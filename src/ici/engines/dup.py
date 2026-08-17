@@ -1,4 +1,4 @@
-"""8. Code Clone & Duplication Detection Engine with Clean Modular Helpers."""
+"""8. Code Clone & Duplication Detection Engine with Connected Cluster Merging."""
 
 import hashlib
 import time
@@ -13,11 +13,12 @@ from ici.core.project import (
 from ici.engines.base import BaseEngine
 
 FileData = tuple[str, list[str], list[tuple[int, str]]]
-CloneTuple = tuple[int, int, int, int, int, int, int]
+LocTuple = tuple[int, int, int]  # (file_idx, start_line, end_line)
+MatchPair = tuple[int, int, int, int, int, int, int]  # (f1, s1, e1, f2, s2, e2, k)
 
 
 class DuplicateEngine(BaseEngine):
-    """Detects maximal copy-pasted code blocks across files with raw formatting preservation."""
+    """Detects maximal copy-pasted code blocks across files and groups them into unified clusters."""
 
     def run(self) -> EngineResult:
         t0 = time.time()
@@ -32,10 +33,10 @@ class DuplicateEngine(BaseEngine):
         all_sources = py_sources + cpp_sources
 
         files_data, total_code_lines = self._load_and_index_files(all_sources)
-        raw_clones = self._find_raw_clones(files_data, window_size)
-        filtered_clones = self._filter_subsumed_clones(raw_clones)
-        clone_groups, targets, duplicate_lines_count = self._assemble_groups(
-            filtered_clones, files_data
+        raw_matches = self._find_raw_matches(files_data, window_size)
+        filtered_matches = self._filter_subsumed_matches(raw_matches)
+        clone_groups, targets, duplicate_lines_count = self._cluster_matches(
+            filtered_matches, files_data
         )
 
         dup_pct = (
@@ -91,7 +92,7 @@ class DuplicateEngine(BaseEngine):
 
         return files_data, total_code_lines
 
-    def _find_raw_clones(self, files_data: list[FileData], window_size: int) -> list[CloneTuple]:
+    def _find_raw_matches(self, files_data: list[FileData], window_size: int) -> list[MatchPair]:
         window_map: dict[str, list[tuple[int, int]]] = defaultdict(list)
         for f_idx, (_, _, indexed) in enumerate(files_data):
             for t_pos in range(len(indexed) - window_size + 1):
@@ -100,7 +101,7 @@ class DuplicateEngine(BaseEngine):
                 window_map[w_hash].append((f_idx, t_pos))
 
         matched_pairs: set[tuple[int, int, int, int]] = set()
-        raw_clones: list[CloneTuple] = []
+        raw_matches: list[MatchPair] = []
 
         for occs in window_map.values():
             if len(occs) < 2:
@@ -128,87 +129,113 @@ class DuplicateEngine(BaseEngine):
                         e1 = idx1[p1 + k - 1][0]
                         s2 = idx2[p2][0]
                         e2 = idx2[p2 + k - 1][0]
-                        raw_clones.append((f1, s1, e1, f2, s2, e2, k))
+                        raw_matches.append((f1, s1, e1, f2, s2, e2, k))
 
-        return raw_clones
+        return raw_matches
 
-    def _filter_subsumed_clones(self, raw_clones: list[CloneTuple]) -> list[CloneTuple]:
-        raw_clones.sort(key=lambda x: x[6], reverse=True)
-        filtered_clones: list[CloneTuple] = []
+    def _filter_subsumed_matches(self, raw_matches: list[MatchPair]) -> list[MatchPair]:
+        raw_matches.sort(key=lambda x: x[6], reverse=True)
+        filtered: list[MatchPair] = []
 
-        for clone in raw_clones:
-            f1, s1, e1, f2, s2, e2, _ = clone
+        for match in raw_matches:
+            f1, s1, e1, f2, s2, e2, _ = match
             is_subsumed = any(
                 f1 == pf1 and f2 == pf2 and ps1 <= s1 and pe1 >= e1 and ps2 <= s2 and pe2 >= e2
-                for pf1, ps1, pe1, pf2, ps2, pe2, _ in filtered_clones
+                for pf1, ps1, pe1, pf2, ps2, pe2, _ in filtered
             )
             if not is_subsumed:
-                filtered_clones.append(clone)
+                filtered.append(match)
 
-        return filtered_clones
+        return filtered
 
-    def _assemble_groups(
-        self, filtered_clones: list[CloneTuple], files_data: list[FileData]
+    def _cluster_matches(
+        self, matches: list[MatchPair], files_data: list[FileData]
     ) -> tuple[list[dict], list[InspectionTarget], int]:
+        """Clusters pairwise matches into unified multi-occurrence connected components."""
+        # 1. Build adjacency graph between location nodes (f_idx, start_line, end_line)
+        adj: dict[LocTuple, set[LocTuple]] = defaultdict(set)
+        match_len_map: dict[LocTuple, int] = {}
+
+        for f1, s1, e1, f2, s2, e2, k in matches:
+            loc1 = (f1, s1, e1)
+            loc2 = (f2, s2, e2)
+            adj[loc1].add(loc2)
+            adj[loc2].add(loc1)
+            match_len_map[loc1] = max(match_len_map.get(loc1, 0), k)
+            match_len_map[loc2] = max(match_len_map.get(loc2, 0), k)
+
+        # 2. Find Connected Components
+        visited: set[LocTuple] = set()
+        clusters: list[list[LocTuple]] = []
+
+        for node in sorted(adj.keys()):
+            if node not in visited:
+                component: list[LocTuple] = []
+                queue = [node]
+                visited.add(node)
+                while queue:
+                    curr = queue.pop()
+                    component.append(curr)
+                    for neighbor in adj[curr]:
+                        if neighbor not in visited:
+                            visited.add(neighbor)
+                            queue.append(neighbor)
+                clusters.append(component)
+
+        # 3. Sort clusters by match size descending
+        clusters.sort(
+            key=lambda c: (max(match_len_map.get(loc, 0) for loc in c), len(c)),
+            reverse=True,
+        )
+
         clone_groups: list[dict] = []
         targets: list[InspectionTarget] = []
         duplicate_lines_count = 0
 
-        for group_idx, (f1, s1, e1, f2, s2, e2, k) in enumerate(filtered_clones, 1):
-            file1_path, file1_raw, _ = files_data[f1]
-            file2_path, _, _ = files_data[f2]
+        for group_idx, component in enumerate(clusters, 1):
+            # Sort occurrences inside component by (file_path, start_line)
+            component.sort(key=lambda loc: (files_data[loc[0]][0], loc[1]))
 
-            raw_snippet = "".join(file1_raw[s1 - 1 : e1])
-            duplicate_lines_count += k
+            rep_f, rep_s, rep_e = component[0]
+            _, rep_raw, _ = files_data[rep_f]
+            lines_k = max(match_len_map.get(loc, 0) for loc in component)
 
-            occ_list = [
-                {
-                    "file_path": file1_path,
-                    "start_line": s1,
-                    "end_line": e1,
-                    "loc": f"{file1_path}:{s1}-{e1}",
-                },
-                {
-                    "file_path": file2_path,
-                    "start_line": s2,
-                    "end_line": e2,
-                    "loc": f"{file2_path}:{s2}-{e2}",
-                },
-            ]
+            # Preserve exact raw indentation (do not strip leading whitespace of line 1!)
+            raw_snippet = "".join(rep_raw[rep_s - 1 : rep_e]).rstrip()
+            duplicate_lines_count += lines_k * (len(component) - 1)
+
+            occ_list = []
+            for f_idx, s_l, e_l in component:
+                f_path = files_data[f_idx][0]
+                occ_list.append(
+                    {
+                        "file_path": f_path,
+                        "start_line": s_l,
+                        "end_line": e_l,
+                        "loc": f"{f_path}:{s_l}-{e_l}",
+                    }
+                )
+                targets.append(
+                    InspectionTarget(
+                        file_path=f_path,
+                        start_line=s_l,
+                        end_line=e_l,
+                        target_name=f"CloneGroup#{group_idx}",
+                        status=EngineStatus.WARN,
+                        message=f"Duplicate code block ({lines_k} lines) shared across {len(component)} locations",
+                        snippet=raw_snippet[:300],
+                        metrics={"clone_group": group_idx, "duplicate_lines": lines_k},
+                    )
+                )
 
             clone_groups.append(
                 {
                     "id": group_idx,
-                    "lines_count": k,
-                    "occurrences_count": 2,
+                    "lines_count": lines_k,
+                    "occurrences_count": len(occ_list),
                     "occurrences": occ_list,
-                    "snippet": raw_snippet.strip(),
+                    "snippet": raw_snippet,
                 }
-            )
-
-            targets.append(
-                InspectionTarget(
-                    file_path=file1_path,
-                    start_line=s1,
-                    end_line=e1,
-                    target_name=f"CloneGroup#{group_idx}",
-                    status=EngineStatus.WARN,
-                    message=f"Duplicate code block ({k} lines) shared between {file1_path} and {file2_path}",
-                    snippet=raw_snippet[:300],
-                    metrics={"clone_group": group_idx, "duplicate_lines": k},
-                )
-            )
-            targets.append(
-                InspectionTarget(
-                    file_path=file2_path,
-                    start_line=s2,
-                    end_line=e2,
-                    target_name=f"CloneGroup#{group_idx}",
-                    status=EngineStatus.WARN,
-                    message=f"Duplicate code block ({k} lines) shared between {file1_path} and {file2_path}",
-                    snippet=raw_snippet[:300],
-                    metrics={"clone_group": group_idx, "duplicate_lines": k},
-                )
             )
 
         return clone_groups, targets, duplicate_lines_count

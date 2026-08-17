@@ -35,8 +35,10 @@
   - **Tab 5 `⚠️ Issues`**: 전체 엔진의 조치 필요(WARN/FAIL) 항목 통합 모아보기
 - **대규모 테스트(100+ tests) 대응 컴팩트 테스트 스위트 뷰**:
   - `test` 엔진 결과를 파일/모듈별 칩 매트릭스(`[✅ tests/test_cli.py (3/3)]`)로 축약 표시
-- **IDE 원클릭 네비게이션**:
-  - 터미널 OSC 8 하이퍼링크(`file://...`), GitHub Step Summary permalink(`blob/...#L10`), HTML 리포터 `vscode://file/...` 링크 지원
+- **유니버설 에디터 연동 및 1-클릭 클립보드 복사 (`🛠️ Open With`)**:
+  - 특정 에디터(VS Code) 강제 탈피: 드롭다운으로 `Copy Path (gvim/Vim/CLI)`, `VS Code`, `Cursor`, `PyCharm/IntelliJ`, `Sublime Text`, `Browser File` 중 선택 가능 (브라우저 `localStorage`에 상태 기억)
+  - 모든 파일 위치 링크 옆에 빠른 `📋` 클립보드 복사 버튼 제공
+  - 터미널 OSC 8 하이퍼링크 및 GitHub Step Summary permalink(`blob/...#L10`) 지원
 - **빌드 및 환경 진단 도구**:
   - `ici build`: Python 바이트코드 컴파일(`compileall`), 릴리스 트리 패키징(`vX.Y.Z/x86_64/lib`), `env.sh` 및 `env.csh` 생성
   - `ici doctor`: glibc, WSL, 컴파일러, 린터, 파이썬 진단 테이블 출력

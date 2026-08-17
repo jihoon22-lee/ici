@@ -10,6 +10,7 @@ from ici.core.models import (
     VerificationSuiteResult,
     format_score_display,
 )
+from ici.reporters.html_assets import HTML_CSS, HTML_JS
 
 
 def generate_html_report(
@@ -18,7 +19,7 @@ def generate_html_report(
     project_name: str = "Project",
     base_dir: Path | None = None,
 ) -> None:
-    """Generates a state-of-the-art, zero-CDN, standalone HTML report."""
+    """Generates a state-of-the-art, zero-CDN, standalone HTML report with universal editor links."""
     base = (base_dir or Path.cwd()).resolve()
 
     status_color = (
@@ -82,7 +83,6 @@ def generate_html_report(
         score_str = format_score_display(res)
         duration_str = f"{res.duration:.2f}s" if res.duration > 0 else "-"
 
-        # Custom summary row presentation
         summary_col = _render_main_row_summary(res, base)
 
         engine_rows.append(
@@ -124,336 +124,24 @@ def generate_html_report(
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ici Verification Report — {html.escape(project_name)}</title>
 <style>
-  :root {{
-    --bg: #090d16;
-    --card-bg: #111827;
-    --card-hover: #172033;
-    --border: #1f293d;
-    --border-highlight: #334155;
-    --text: #f3f4f6;
-    --text-muted: #9ca3af;
-    --primary: #38bdf8;
-    --pass: #10b981;
-    --warn: #f59e0b;
-    --fail: #ef4444;
-  }}
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", Helvetica, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    padding: 2.5rem 1.5rem;
-    line-height: 1.6;
-  }}
-  .container {{ max-width: 1240px; margin: 0 auto; }}
-
-  /* Header */
-  .header {{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border);
-  }}
-  .brand {{ display: flex; align-items: center; gap: 0.75rem; }}
-  .brand-logo {{
-    font-size: 1.5rem;
-    background: linear-gradient(135deg, #0ea5e9, #38bdf8);
-    padding: 0.35rem 0.75rem;
-    border-radius: 8px;
-    font-weight: 800;
-    color: #04101e;
-    letter-spacing: -0.05em;
-  }}
-  .brand-info h1 {{ font-size: 1.5rem; font-weight: 700; color: #ffffff; }}
-  .brand-info p {{ font-size: 0.875rem; color: var(--text-muted); }}
-
+{HTML_CSS}
   .status-banner {{
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.6rem 1.5rem;
-    border-radius: 9999px;
-    font-weight: 700;
-    font-size: 1.1rem;
-    letter-spacing: 0.05em;
     border: 1px solid {status_border};
     background: {status_bg};
     color: {status_color};
     box-shadow: 0 0 20px {status_color}22;
   }}
   .status-dot {{
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
     background: {status_color};
     box-shadow: 0 0 8px {status_color};
   }}
-
-  /* Stats Grid */
-  .stats-grid {{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 2.25rem;
-  }}
-  .card {{
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-  }}
-  .stat-label {{ font-size: 0.8125rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }}
-  .stat-value {{ font-size: 1.85rem; font-weight: 700; margin-top: 0.35rem; color: #fff; }}
-  .stat-sub {{ font-size: 0.95rem; color: var(--text-muted); font-weight: 400; }}
-
-  .mini-progress-bg {{
-    width: 100%;
-    height: 6px;
-    background: #1e293b;
-    border-radius: 9999px;
-    margin-top: 0.6rem;
-    overflow: hidden;
-  }}
-  .mini-progress-fill {{ height: 100%; border-radius: 9999px; }}
-
-  /* Tabs Navigation */
-  .tabs {{
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
-    overflow-x: auto;
-  }}
-  .tab-btn {{
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    font-weight: 600;
-    padding: 0.6rem 1.25rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-  }}
-  .tab-btn:hover {{ color: var(--text); background: var(--card-hover); }}
-  .tab-btn.active {{
-    color: var(--primary);
-    background: rgba(56, 189, 248, 0.1);
-    border-bottom: 2px solid var(--primary);
-  }}
-  .tab-content {{ display: none; }}
-  .tab-content.active {{ display: block; }}
-
-  /* Tables */
-  table {{
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }}
-  th, td {{ padding: 1.1rem 1.25rem; text-align: left; border-bottom: 1px solid var(--border); }}
-  th {{
-    background: #0d131f;
-    color: var(--text-muted);
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-weight: 700;
-  }}
-  tr:last-child td {{ border-bottom: none; }}
-  .text-right {{ text-align: right; }}
-  .text-muted {{ color: var(--text-muted); }}
-  .badge {{
-    display: inline-block;
-    padding: 0.25rem 0.65rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-  }}
-  .engine-name {{ font-size: 1.05rem; }}
-  .engine-summary-text {{ font-size: 0.95rem; color: #e5e7eb; }}
-
-  .jump-tab-btn {{
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(56, 189, 248, 0.08);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    color: var(--primary);
-    padding: 0.3rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 0.45rem;
-    transition: all 0.2s;
-  }}
-  .jump-tab-btn:hover {{
-    background: rgba(56, 189, 248, 0.18);
-    border-color: var(--primary);
-  }}
-
-  /* Interactive Target Details */
-  .target-details {{ margin-top: 0.6rem; }}
-  .target-details summary {{
-    cursor: pointer;
-    color: var(--primary);
-    font-size: 0.835rem;
-    font-weight: 600;
-    outline: none;
-    user-select: none;
-  }}
-  .targets-list {{ margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.45rem; }}
-  .target-item {{
-    background: #090e17;
-    padding: 0.55rem 0.8rem;
-    border-radius: 6px;
-    border-left: 3px solid var(--border);
-    font-size: 0.825rem;
-  }}
-  .loc-link {{ color: var(--primary); text-decoration: none; font-weight: 600; }}
-  .loc-link:hover {{ text-decoration: underline; }}
-  .target-sym {{ color: #a78bfa; font-weight: 500; margin-left: 0.4rem; }}
-  .target-msg {{ color: var(--text-muted); margin-left: 0.5rem; }}
-
-  .snippet {{
-    margin-top: 0.6rem;
-    background: #030712;
-    padding: 0.75rem 1rem;
-    border-radius: 6px;
-    overflow-x: auto;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.775rem;
-    line-height: 1.45;
-    color: #e2e8f0;
-    border: 1px solid var(--border);
-    white-space: pre;
-  }}
-
-  /* Clone Group Cards */
-  .clone-group-card {{
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
-  }}
-  .clone-group-title {{
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--warn);
-    margin-bottom: 0.6rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }}
-  .clone-occurrences {{ display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 0.75rem; }}
-  .occ-pill {{
-    background: #172033;
-    padding: 0.25rem 0.7rem;
-    border-radius: 6px;
-    font-size: 0.8125rem;
-    border: 1px solid var(--border-highlight);
-  }}
-
-  /* Line Charts & Real Tree View */
-  .line-grid {{
-    display: grid;
-    grid-template-columns: 1fr 1.6fr;
-    gap: 1.5rem;
-  }}
-  @media (max-width: 900px) {{
-    .line-grid {{ grid-template-columns: 1fr; }}
-  }}
-  .chart-card {{ background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }}
-  .chart-title {{ font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; color: #fff; }}
-
-  .ratio-bar-wrapper {{ margin-bottom: 1.75rem; }}
-  .ratio-bar {{
-    display: flex;
-    height: 20px;
-    border-radius: 9999px;
-    overflow: hidden;
-    margin: 0.75rem 0;
-    background: #1e293b;
-  }}
-  .ratio-legend {{ display: flex; gap: 1.5rem; font-size: 0.8125rem; }}
-  .legend-item {{ display: flex; align-items: center; gap: 0.45rem; }}
-  .legend-dot {{ width: 10px; height: 10px; border-radius: 50%; }}
-
-  .top-file-row {{ margin-bottom: 0.95rem; }}
-  .top-file-info {{ display: flex; justify-content: space-between; font-size: 0.825rem; margin-bottom: 0.3rem; }}
-  .top-bar-bg {{ height: 8px; background: #1e293b; border-radius: 9999px; overflow: hidden; }}
-  .top-bar-fill {{ height: 100%; border-radius: 9999px; background: #38bdf8; }}
-
-  /* Real Tree Table */
-  .tree-table {{ width: 100%; font-size: 0.825rem; }}
-  .tree-table th {{ padding: 0.75rem 1rem; }}
-  .tree-table td {{ padding: 0.55rem 1rem; border-bottom: 1px solid #172033; }}
-  .tree-folder-row {{ background: #0c121e; font-weight: 700; color: #38bdf8; }}
-  .tree-file-row:hover {{ background: #172033; }}
-  .tree-indent {{ display: inline-block; }}
-  .tree-icon {{ margin-right: 0.4rem; }}
-
-  /* Test Suites */
-  .test-suite-card {{
-    background: #090e17;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.5rem;
-  }}
-  .test-suite-header {{ display: flex; justify-content: space-between; align-items: center; cursor: pointer; }}
-  .test-suite-name {{ font-weight: 600; font-size: 0.875rem; }}
-  .test-suite-cases {{ margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.35rem; }}
-
-  /* Issues View */
-  .issue-item {{
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1.1rem 1.35rem;
-    margin-bottom: 0.85rem;
-  }}
-  .issue-header {{ display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; font-size: 0.85rem; }}
-  .issue-engine {{ font-weight: 700; color: #94a3b8; }}
-  .issue-msg {{ font-size: 0.9rem; color: #e2e8f0; }}
-  .empty-clean {{
-    padding: 3.5rem;
-    text-align: center;
-    background: var(--card-bg);
-    border: 1px dashed var(--border);
-    border-radius: 12px;
-    color: var(--pass);
-    font-size: 1.15rem;
-    font-weight: 600;
-  }}
-
-  /* Complexity Leaderboard */
-  .cc-card {{
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
-  }}
-  .cc-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; }}
-  .cc-name {{ font-size: 1rem; font-weight: 700; color: #fff; }}
-  .cc-badge {{ padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }}
-
-  .footer {{ margin-top: 3.5rem; text-align: center; color: var(--text-muted); font-size: 0.8125rem; }}
 </style>
 </head>
 <body>
 <div class="container">
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
   <!-- Header -->
   <div class="header">
     <div class="brand">
@@ -463,7 +151,21 @@ def generate_html_report(
         <p>Unified CI/CD Verification & Code Quality Gate</p>
       </div>
     </div>
-    <div>
+
+    <div class="header-actions">
+      <!-- Universal Editor Link Selector -->
+      <div class="editor-pref-wrapper">
+        <label for="editorSelect" class="editor-label">🛠️ Open With:</label>
+        <select id="editorSelect" class="editor-select" onchange="setEditorPref(this.value)">
+          <option value="copy">📋 Copy Path (Vim/gvim/CLI)</option>
+          <option value="vscode" selected>🚀 VS Code (vscode://)</option>
+          <option value="cursor">⚡ Cursor (cursor://)</option>
+          <option value="pycharm">🐍 PyCharm / IntelliJ (idea://)</option>
+          <option value="sublime">🪟 Sublime Text (subl://)</option>
+          <option value="file">🌐 Browser (file://)</option>
+        </select>
+      </div>
+
       <div class="status-banner">
         <div class="status-dot"></div>
         {suite.suite_status.value}
@@ -557,21 +259,7 @@ def generate_html_report(
 </div>
 
 <script>
-function switchTab(tabId, btnElem) {{
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-
-  if (btnElem) {{
-    btnElem.classList.add('active');
-  }} else {{
-    const btn = document.getElementById('btn-' + tabId.replace('tab-', ''));
-    if (btn) btn.classList.add('active');
-  }}
-
-  const target = document.getElementById(tabId);
-  if (target) target.classList.add('active');
-  window.scrollTo({{ top: 0, behavior: 'smooth' }});
-}}
+{HTML_JS}
 </script>
 </body>
 </html>
@@ -637,13 +325,16 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
         if t.status in (EngineStatus.WARN, EngineStatus.FAIL):
             t_badge_color = "#ef4444" if t.status == EngineStatus.FAIL else "#f59e0b"
             t_loc = f"{html.escape(t.file_path)}:{t.start_line}"
-            abs_t_path = (base / t.file_path).resolve()
-            vscode_link = f"vscode://file/{abs_t_path}:{t.start_line}"
+            abs_t_path = str((base / t.file_path).resolve())
+            rel_t_path = html.escape(t.file_path)
 
             targets_html.append(
                 f"<div class='target-item'>"
                 f"  <span class='badge' style='color:{t_badge_color}'>{t.status.value}</span> "
-                f"  <a href='{vscode_link}' class='loc-link'><code>{t_loc}</code></a> "
+                f"  <span class='loc-link-group'>"
+                f"    <a href='javascript:void(0)' onclick=\"openLoc('{abs_t_path}', '{rel_t_path}', {t.start_line})\" class='loc-link'><code>{t_loc}</code></a>"
+                f"    <button class='btn-copy-loc' onclick=\"copyLoc('{rel_t_path}', {t.start_line}, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
+                f"  </span>"
                 f"  <span class='target-sym'>[{html.escape(t.target_name or 'target')}]</span> "
                 f"  <span class='target-msg'>{html.escape(t.message)}</span>"
                 f"</div>"
@@ -662,7 +353,7 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
 
 
 def _render_line_section(line_res: EngineResult | None, base: Path) -> str:
-    """Renders line ratio bar, top 5 files chart, and a REAL hierarchical tree explorer."""
+    """Renders line ratio bar, top 5 files chart, and a REAL full-width hierarchical tree explorer."""
     if not line_res:
         return "<div class='card'>No line statistics available</div>"
 
@@ -697,12 +388,15 @@ def _render_line_section(line_res: EngineResult | None, base: Path) -> str:
     top_bars_html = []
     for tf in top_files:
         fill_w = min(100.0, (tf["code"] / max_top_code) * 100.0)
-        abs_f = (base / tf["path"]).resolve()
-        v_link = f"vscode://file/{abs_f}:1"
+        abs_f = str((base / tf["path"]).resolve())
+        rel_f = html.escape(tf["path"])
         top_bars_html.append(
             f"<div class='top-file-row'>"
             f"  <div class='top-file-info'>"
-            f"    <a href='{v_link}' class='loc-link'><code>{html.escape(tf['path'])}</code></a>"
+            f"    <span class='loc-link-group'>"
+            f"      <a href='javascript:void(0)' onclick=\"openLoc('{abs_f}', '{rel_f}', 1)\" class='loc-link'><code>{rel_f}</code></a>"
+            f"      <button class='btn-copy-loc' onclick=\"copyLoc('{rel_f}', 1, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
+            f"    </span>"
             f"    <span><strong>{tf['code']:,}</strong> code lines</span>"
             f"  </div>"
             f"  <div class='top-bar-bg'>"
@@ -715,8 +409,9 @@ def _render_line_section(line_res: EngineResult | None, base: Path) -> str:
     tree_rows = _build_hierarchical_tree_rows(all_files, base)
 
     return f"""
-    <div class="line-grid">
-      <!-- Left: Charts -->
+    <!-- Top Row: Charts -->
+    <div class="line-charts-grid">
+      <!-- Left: Codebase Ratio -->
       <div class="chart-card">
         <div class="chart-title">📈 Codebase Distribution</div>
 
@@ -732,32 +427,41 @@ def _render_line_section(line_res: EngineResult | None, base: Path) -> str:
             <div class="legend-item"><div class="legend-dot" style="background:#64748b"></div> Blanks ({blank_pct:.1f}%)</div>
           </div>
         </div>
-
-        <div class="chart-title" style="margin-top: 2.25rem;">🏆 Top 5 Largest Files</div>
-        {"".join(top_bars_html)}
       </div>
 
-      <!-- Right: Real Explorer Tree Table -->
+      <!-- Right: Top 5 Files -->
       <div class="chart-card">
-        <div class="chart-title">📁 File Explorer Tree ({len(all_files)} Files)</div>
-        <div style="max-height: 520px; overflow-y: auto;">
-          <table class="tree-table">
-            <thead>
-              <tr>
-                <th>Directory & File Structure</th>
-                <th>Lang</th>
-                <th>Status</th>
-                <th class="text-right">Code</th>
-                <th class="text-right">Comment</th>
-                <th class="text-right">Blank</th>
-                <th class="text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {"".join(tree_rows)}
-            </tbody>
-          </table>
+        <div class="chart-title">🏆 Top 5 Largest Files</div>
+        {"".join(top_bars_html)}
+      </div>
+    </div>
+
+    <!-- Bottom Full-Width: File Explorer Tree Table -->
+    <div class="chart-card tree-full-card" style="margin-top: 1.5rem;">
+      <div class="tree-header-bar">
+        <div class="chart-title" style="margin-bottom: 0;">📁 File Explorer Tree ({len(all_files)} Files)</div>
+        <div class="tree-controls">
+          <input type="text" id="treeSearchInput" onkeyup="filterTreeFiles(this.value)" placeholder="🔍 Search file by name or path..." class="tree-search-input" />
         </div>
+      </div>
+
+      <div class="tree-scroll-container">
+        <table class="tree-table" id="fileTreeTable">
+          <thead>
+            <tr>
+              <th style="min-width: 380px;">Directory & File Structure</th>
+              <th style="width: 100px;">Language</th>
+              <th style="width: 90px;">Status</th>
+              <th class="text-right" style="width: 110px;">Code</th>
+              <th class="text-right" style="width: 110px;">Comment</th>
+              <th class="text-right" style="width: 110px;">Blank</th>
+              <th class="text-right" style="width: 120px;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {"".join(tree_rows)}
+          </tbody>
+        </table>
       </div>
     </div>
     """
@@ -765,7 +469,6 @@ def _render_line_section(line_res: EngineResult | None, base: Path) -> str:
 
 def _build_hierarchical_tree_rows(files_data: list[dict], base: Path) -> list[str]:
     """Constructs real indented tree rows for files grouped by directory."""
-    # Organize into dict: folder -> list of files
     folder_map: dict[str, list[dict]] = {}
     for f in sorted(files_data, key=lambda x: x["path"]):
         p = Path(f["path"])
@@ -786,7 +489,6 @@ def _build_hierarchical_tree_rows(files_data: list[dict], base: Path) -> list[st
     }
 
     for folder, files in sorted(folder_map.items()):
-        # Calculate folder totals
         f_code = sum(x["code"] for x in files)
         f_comment = sum(x["comment"] for x in files)
         f_blank = sum(x["blank"] for x in files)
@@ -808,8 +510,8 @@ def _build_hierarchical_tree_rows(files_data: list[dict], base: Path) -> list[st
         for f in files:
             p = Path(f["path"])
             fname = p.name
-            abs_f = (base / f["path"]).resolve()
-            v_link = f"vscode://file/{abs_f}:1"
+            abs_f = str((base / f["path"]).resolve())
+            rel_f = html.escape(f["path"])
             f_indent = indent_px + 22
             icon = icon_map.get(f["lang"], "📄")
 
@@ -823,7 +525,10 @@ def _build_hierarchical_tree_rows(files_data: list[dict], base: Path) -> list[st
                 f"<tr class='tree-file-row'>"
                 f"  <td style='padding-left: {f_indent}px;'>"
                 f"    <span class='tree-icon'>{icon}</span>"
-                f"    <a href='{v_link}' class='loc-link'><code>{html.escape(fname)}</code></a>"
+                f"    <span class='loc-link-group'>"
+                f"      <a href='javascript:void(0)' onclick=\"openLoc('{abs_f}', '{rel_f}', 1)\" class='loc-link'><code>{html.escape(fname)}</code></a>"
+                f"      <button class='btn-copy-loc' onclick=\"copyLoc('{rel_f}', 1, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
+                f"    </span>"
                 f"  </td>"
                 f"  <td><span class='badge' style='background:#1f293d; color:#a78bfa'>{html.escape(f['lang'])}</span></td>"
                 f"  <td>{st_badge}</td>"
@@ -865,8 +570,8 @@ def _render_complexity_section(comp_res: EngineResult | None, base: Path) -> str
 
         cc = metrics.get("complexity", 1)
         nesting = metrics.get("nesting", 1)
-        abs_p = (base / t_file).resolve()
-        v_link = f"vscode://file/{abs_p}:{t_start}"
+        abs_p = str((base / t_file).resolve())
+        rel_p = html.escape(t_file)
 
         if cc > 25:
             badge_style = (
@@ -883,7 +588,13 @@ def _render_complexity_section(comp_res: EngineResult | None, base: Path) -> str
 
         snippet_html = ""
         if t_snippet:
-            snippet_html = f"<pre class='snippet'><code>{html.escape(t_snippet)}</code></pre>"
+            num_lines = len(t_snippet.splitlines())
+            snippet_html = (
+                f"<details class='cc-snippet-details'>"
+                f"  <summary class='cc-snippet-summary'>📄 View Source Code ({num_lines} lines) ▾</summary>"
+                f"  <pre class='snippet'><code>{html.escape(t_snippet)}</code></pre>"
+                f"</details>"
+            )
 
         cards.append(
             f"<div class='cc-card'>"
@@ -891,7 +602,10 @@ def _render_complexity_section(comp_res: EngineResult | None, base: Path) -> str
             f"    <div>"
             f"      <span style='color:var(--text-muted); font-weight:700; margin-right:0.5rem;'>#{rank}</span>"
             f"      <span class='cc-name'>{html.escape(t_name)}</span>"
-            f"      <span style='margin-left:0.6rem;'><a href='{v_link}' class='loc-link'><code>{html.escape(t_file)}:{t_start}</code></a></span>"
+            f"      <span class='loc-link-group' style='margin-left:0.6rem;'>"
+            f"        <a href='javascript:void(0)' onclick=\"openLoc('{abs_p}', '{rel_p}', {t_start})\" class='loc-link'><code>{rel_p}:{t_start}</code></a>"
+            f"        <button class='btn-copy-loc' onclick=\"copyLoc('{rel_p}', {t_start}, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
+            f"      </span>"
             f"    </div>"
             f"    <div style='display:flex; gap:0.5rem;'>"
             f"      <span class='cc-badge' style='{badge_style}'>CC: {cc}</span>"
@@ -904,11 +618,16 @@ def _render_complexity_section(comp_res: EngineResult | None, base: Path) -> str
         )
 
     return f"""
-    <div style="margin-bottom: 1.25rem;">
-      <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">🧩 Cyclomatic Complexity & Nesting Analysis</h2>
-      <p style="font-size: 0.875rem; color: var(--text-muted);">
-        함수의 분기점(If, While, Match 등)과 블록 중첩 깊이를 분석하여 리팩토링이 필요한 고복잡도 함수를 진단합니다.
-      </p>
+    <div class="cc-header-bar">
+      <div>
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">🧩 Cyclomatic Complexity & Nesting Analysis</h2>
+        <p style="font-size: 0.875rem; color: var(--text-muted);">
+          함수의 분기점(If, While, Match 등)과 블록 중첩 깊이를 분석하여 리팩토링이 필요한 고복잡도 함수를 진단합니다.
+        </p>
+      </div>
+      <div>
+        <button class="jump-tab-btn" onclick="toggleAllDetails('.cc-snippet-details')">📂 Toggle All Code</button>
+      </div>
     </div>
     {"".join(cards)}
     """
@@ -927,10 +646,15 @@ def _render_dup_section(dup_res: EngineResult | None, base: Path) -> str:
     for g in groups:
         occ_html = []
         for occ in g["occurrences"]:
-            abs_f = (base / occ["file_path"]).resolve()
-            vscode_link = f"vscode://file/{abs_f}:{occ['start_line']}"
+            abs_f = str((base / occ["file_path"]).resolve())
+            rel_f = html.escape(occ["file_path"])
+            loc_str = html.escape(occ["loc"])
+            s_line = occ["start_line"]
             occ_html.append(
-                f"<span class='occ-pill'><a href='{vscode_link}' class='loc-link'><code>{html.escape(occ['loc'])}</code></a></span>"
+                f"<span class='occ-pill'>"
+                f"  <a href='javascript:void(0)' onclick=\"openLoc('{abs_f}', '{rel_f}', {s_line})\" class='loc-link'><code>{loc_str}</code></a>"
+                f"  <button class='btn-copy-loc' onclick=\"copyLoc('{rel_f}', {s_line}, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
+                f"</span>"
             )
 
         snippet_html = f"<pre class='snippet'><code>{html.escape(g['snippet'])}</code></pre>"
@@ -963,8 +687,8 @@ def _render_issues_section(all_issues: list[tuple[str, Any]], base: Path) -> str
     for eng_name, t in all_issues:
         t_badge_color = "#ef4444" if t.status == EngineStatus.FAIL else "#f59e0b"
         t_loc = f"{html.escape(t.file_path)}:{t.start_line}"
-        abs_t_path = (base / t.file_path).resolve()
-        vscode_link = f"vscode://file/{abs_t_path}:{t.start_line}"
+        abs_t_path = str((base / t.file_path).resolve())
+        rel_t_path = html.escape(t.file_path)
 
         snippet_block = ""
         if t.snippet:
@@ -975,7 +699,10 @@ def _render_issues_section(all_issues: list[tuple[str, Any]], base: Path) -> str
             f"  <div class='issue-header'>"
             f"    <span class='badge' style='color:{t_badge_color}; border:1px solid {t_badge_color}44'>{t.status.value}</span>"
             f"    <span class='issue-engine'>[{html.escape(eng_name)}]</span>"
-            f"    <a href='{vscode_link}' class='loc-link' title='Open in VS Code'><code>{t_loc}</code></a>"
+            f"    <span class='loc-link-group'>"
+            f"      <a href='javascript:void(0)' onclick=\"openLoc('{abs_t_path}', '{rel_t_path}', {t.start_line})\" class='loc-link'><code>{t_loc}</code></a>"
+            f"      <button class='btn-copy-loc' onclick=\"copyLoc('{rel_t_path}', {t.start_line}, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
+            f"    </span>"
             f"    <span class='target-sym'>[{html.escape(t.target_name or 'target')}]</span>"
             f"  </div>"
             f"  <div class='issue-msg'>{html.escape(t.message)}</div>"

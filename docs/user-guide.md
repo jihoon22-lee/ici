@@ -82,12 +82,21 @@ ici verify --report --html verify_report.html --open
 
 ---
 
-## 4. IDE 원클릭 파일/라인 점프
+## 4. 유니버설 에디터 연동 및 gvim/터미널 경로 복사
 
-- **터미널 (OSC 8 Hyperlinks)**:
-  - 검증 결과 터미널 테이블의 파일 경로(`src/pkg/core.py:45`)를 `Ctrl + Click`하면 VS Code / Cursor IDE에서 해당 라인으로 즉시 이동합니다.
-- **HTML 리포트 (`verify_report.html`)**:
-  - 파일 탐색기 트리, 복잡도 리더보드, 중복 코드 위치 태그의 링크를 클릭하면 `vscode://file/...` 스키마를 통해 에디터가 즉시 열립니다.
+`ici` HTML 리포트는 특정 에디터(VS Code)를 강제하지 않고, 개발자가 선호하는 툴에 맞춰 자유롭게 이동할 수 있는 **유니버설 에디터 선택기(Open With)**를 제공합니다.
+
+### 4.1 에디터 링크 선택기 (우측 상단 `🛠️ Open With`)
+리포트 상단 드롭다운에서 선호하는 액션을 선택하면 브라우저(`localStorage`)에 저장되어 다음 검증 시에도 유지됩니다:
+- **📋 Copy Path (Vim/gvim/CLI)**: 클릭 시 `src/ici/core/models.py:45` 경로를 클립보드에 복사하여 `gvim <path> +<line>` 또는 터미널에서 즉시 사용
+- **🚀 VS Code**: `vscode://file/<abs_path>:<line>` 스키마로 열기
+- **⚡ Cursor**: `cursor://file/<abs_path>:<line>` 스키마로 열기
+- **🐍 PyCharm / IntelliJ**: `idea://open?file=<path>&line=<line>` 스키마로 열기
+- **🪟 Sublime Text**: `subl://<path>:<line>` 스키마로 열기
+- **🌐 Browser**: 로컬 파일 URL(`file://`)로 새 탭에서 열기
+
+### 4.2 원클릭 빠른 경로 복사 버튼 (`📋`)
+에디터 설정과 무관하게 모든 파일 링크 옆에 위치한 **`📋` 버튼을 누르면 언제든지 상대 경로(`file:line`)가 클립보드에 즉시 복사**됩니다.
 
 ---
 
