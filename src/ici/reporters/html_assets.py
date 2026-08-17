@@ -361,9 +361,48 @@ HTML_CSS = """
   .tree-folder-row { background: #0c121e; font-weight: 700; color: #38bdf8; }
   .tree-file-row:hover { background: #172033; }
   .tree-indent { display: inline-block; }
-  .tree-icon { margin-right: 0.4rem; }
+  /* Test Suite Cards */
+  .test-suite-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .test-suite-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .test-cases-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .test-case-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #090e17;
+    padding: 0.45rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.825rem;
+  }
+  .test-case-name { color: #f3f4f6; font-weight: 600; }
+  .test-case-msg { color: var(--text-muted); font-size: 0.8rem; margin-left: auto; }
 
   /* Issues View */
+  .issues-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
   .issue-item {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -374,6 +413,24 @@ HTML_CSS = """
   .issue-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; font-size: 0.85rem; }
   .issue-engine { font-weight: 700; color: #94a3b8; }
   .issue-msg { font-size: 0.9rem; color: #e2e8f0; }
+  .issue-snippet-details { margin-top: 0.65rem; }
+  .issue-snippet-summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary);
+    background: #090e17;
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.7rem;
+    border-radius: 6px;
+    display: inline-block;
+    user-select: none;
+    transition: all 0.15s ease;
+  }
+  .issue-snippet-summary:hover {
+    background: #172033;
+    border-color: var(--primary);
+  }
   .empty-clean {
     padding: 3.5rem;
     text-align: center;

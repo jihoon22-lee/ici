@@ -13,6 +13,78 @@ from ici.core.models import (
 from ici.reporters.html_assets import HTML_CSS, HTML_JS
 
 
+def _get_status_theme(status: EngineStatus) -> tuple[str, str, str]:
+    """Returns color, bg, and border for overall status."""
+    if status == EngineStatus.PASS:
+        return "#10b981", "rgba(16, 185, 129, 0.15)", "#10b981"
+    if status == EngineStatus.WARN:
+        return "#f59e0b", "rgba(245, 158, 11, 0.15)", "#f59e0b"
+    return "#ef4444", "rgba(239, 68, 68, 0.15)", "#ef4444"
+
+
+def _extract_suite_data(
+    results: list[EngineResult],
+) -> tuple[dict[str, EngineResult], list[tuple[str, Any]], int, int, int]:
+    """Extracts engine map, actionable issues list, and status counts."""
+    eng_map: dict[str, EngineResult] = {}
+    all_issues: list[tuple[str, Any]] = []
+    p_cnt = 0
+    w_cnt = 0
+    f_cnt = 0
+
+    for r in results:
+        eng_map[r.engine_name] = r
+        if r.status == EngineStatus.PASS:
+            p_cnt += 1
+        elif r.status == EngineStatus.WARN:
+            w_cnt += 1
+        else:
+            f_cnt += 1
+
+        for t in r.targets:
+            if t.status in (EngineStatus.WARN, EngineStatus.FAIL):
+                all_issues.append((r.engine_name, t))
+
+    return eng_map, all_issues, p_cnt, w_cnt, f_cnt
+
+
+def _render_engine_table_rows(results: list[EngineResult], base: Path) -> list[str]:
+    """Renders main summary table rows."""
+    engine_rows = []
+    for res in results:
+        color, bg, _ = _get_status_theme(res.status)
+        score_str = format_score_display(res)
+        duration_str = f"{res.duration:.2f}s" if res.duration > 0 else "-"
+        summary_col = _render_main_row_summary(res, base)
+
+        engine_rows.append(
+            f"<tr class='engine-row'>"
+            f"  <td class='engine-name'><strong>{html.escape(res.engine_name)}</strong></td>"
+            f"  <td><span class='badge' style='color:{color}; background:{bg}; border: 1px solid {color}33'>{res.status.value}</span></td>"
+            f"  <td>{summary_col}</td>"
+            f"  <td class='text-right'><code>{html.escape(score_str)}</code></td>"
+            f"  <td class='text-right text-muted'>{duration_str}</td>"
+            f"</tr>"
+        )
+    return engine_rows
+
+
+def _render_tem_card(tem_score: float | None) -> str:
+    """Renders TEM score KPI card."""
+    if tem_score is None:
+        return ""
+    tem_pct = min(100.0, (tem_score / 5.0) * 100.0)
+    return f"""
+    <div class="card stat-card">
+        <div class="stat-label">TEM Quality Score</div>
+        <div class="stat-value" style="color:#38bdf8">{tem_score:.2f} <span class="stat-sub">/ 5.0</span></div>
+        <div class="mini-progress-bg">
+            <div class="mini-progress-fill" style="width: {tem_pct}%; background: #38bdf8;"></div>
+        </div>
+    </div>
+    """
+
+
 def generate_html_report(
     suite: VerificationSuiteResult,
     output_path: Path,
@@ -21,101 +93,27 @@ def generate_html_report(
 ) -> None:
     """Generates a state-of-the-art, zero-CDN, standalone HTML report with universal editor links."""
     base = (base_dir or Path.cwd()).resolve()
+    status_color, status_bg, status_border = _get_status_theme(suite.suite_status)
 
-    status_color = (
-        "#10b981"
-        if suite.suite_status == EngineStatus.PASS
-        else ("#f59e0b" if suite.suite_status == EngineStatus.WARN else "#ef4444")
+    eng_map, all_issues, pass_engines, warn_engines, fail_engines = _extract_suite_data(
+        suite.results
     )
-    status_bg = (
-        "rgba(16, 185, 129, 0.15)"
-        if suite.suite_status == EngineStatus.PASS
-        else (
-            "rgba(245, 158, 11, 0.15)"
-            if suite.suite_status == EngineStatus.WARN
-            else "rgba(239, 68, 68, 0.15)"
-        )
-    )
-    status_border = (
-        "#10b981"
-        if suite.suite_status == EngineStatus.PASS
-        else ("#f59e0b" if suite.suite_status == EngineStatus.WARN else "#ef4444")
-    )
+    engine_rows = _render_engine_table_rows(suite.results, base)
 
-    pass_engines = sum(1 for r in suite.results if r.status == EngineStatus.PASS)
-    warn_engines = sum(1 for r in suite.results if r.status == EngineStatus.WARN)
-    fail_engines = sum(1 for r in suite.results if r.status == EngineStatus.FAIL)
-
-    all_issues: list[tuple[str, Any]] = []
-    line_result: EngineResult | None = None
-    complexity_result: EngineResult | None = None
-    dup_result: EngineResult | None = None
-
-    for r in suite.results:
-        if r.engine_name == "line":
-            line_result = r
-        elif r.engine_name == "complexity":
-            complexity_result = r
-        elif r.engine_name == "dup":
-            dup_result = r
-
-        for t in r.targets:
-            if t.status in (EngineStatus.WARN, EngineStatus.FAIL):
-                all_issues.append((r.engine_name, t))
-
-    # 1. Build Main Engines Table Rows
-    engine_rows = []
-    for res in suite.results:
-        badge_color = (
-            "#10b981"
-            if res.status == EngineStatus.PASS
-            else ("#f59e0b" if res.status == EngineStatus.WARN else "#ef4444")
-        )
-        badge_bg = (
-            "rgba(16, 185, 129, 0.15)"
-            if res.status == EngineStatus.PASS
-            else (
-                "rgba(245, 158, 11, 0.15)"
-                if res.status == EngineStatus.WARN
-                else "rgba(239, 68, 68, 0.15)"
-            )
-        )
-        score_str = format_score_display(res)
-        duration_str = f"{res.duration:.2f}s" if res.duration > 0 else "-"
-
-        summary_col = _render_main_row_summary(res, base)
-
-        engine_rows.append(
-            f"<tr class='engine-row'>"
-            f"  <td class='engine-name'><strong>{html.escape(res.engine_name)}</strong></td>"
-            f"  <td><span class='badge' style='color:{badge_color}; background:{badge_bg}; border: 1px solid {badge_color}33'>{res.status.value}</span></td>"
-            f"  <td>{summary_col}</td>"
-            f"  <td class='text-right'><code>{html.escape(score_str)}</code></td>"
-            f"  <td class='text-right text-muted'>{duration_str}</td>"
-            f"</tr>"
-        )
-
-    # 2. Section Renders
-    line_tab_content = _render_line_section(line_result, base)
-    complexity_tab_content = _render_complexity_section(complexity_result, base)
-    dup_tab_content = _render_dup_section(dup_result, base)
+    line_tab_content = _render_line_section(eng_map.get("line"), base)
+    test_tab_content = _render_test_section(eng_map.get("test"), base)
+    complexity_tab_content = _render_complexity_section(eng_map.get("complexity"), base)
+    dup_tab_content = _render_dup_section(eng_map.get("dup"), base)
     issues_tab_content = _render_issues_section(all_issues, base)
 
-    # TEM KPI Card
-    tem_score_card = ""
-    if suite.tem_score is not None:
-        tem_pct = min(100.0, (suite.tem_score / 5.0) * 100.0)
-        tem_score_card = f"""
-        <div class="card stat-card">
-            <div class="stat-label">TEM Quality Score</div>
-            <div class="stat-value" style="color:#38bdf8">{suite.tem_score:.2f} <span class="stat-sub">/ 5.0</span></div>
-            <div class="mini-progress-bg">
-                <div class="mini-progress-fill" style="width: {tem_pct}%; background: #38bdf8;"></div>
-            </div>
-        </div>
-        """
+    tem_score_card = _render_tem_card(suite.tem_score)
 
-    clone_groups_count = len(dup_result.extra.get("clone_groups", [])) if dup_result else 0
+    dup_res = eng_map.get("dup")
+    clone_groups_count = len(dup_res.extra.get("clone_groups", [])) if dup_res else 0
+
+    test_res = eng_map.get("test")
+    t_passed = test_res.extra.get("passed_tests", 0) if test_res else 0
+    t_total = test_res.extra.get("total_tests", 0) if test_res else 0
 
     html_content = f"""<!DOCTYPE html>
 <html lang="ko">
@@ -210,6 +208,7 @@ def generate_html_report(
   <div class="tabs">
     <button class="tab-btn active" id="btn-summary" onclick="switchTab('tab-summary', this)">📋 Verification Suites</button>
     <button class="tab-btn" id="btn-line" onclick="switchTab('tab-line', this)">📊 Line Analysis & Explorer</button>
+    <button class="tab-btn" id="btn-test" onclick="switchTab('tab-test', this)">🧪 Tests & Coverage ({t_passed}/{t_total})</button>
     <button class="tab-btn" id="btn-complexity" onclick="switchTab('tab-complexity', this)">🧩 Complexity & Code</button>
     <button class="tab-btn" id="btn-dup" onclick="switchTab('tab-dup', this)">📦 Clone Groups ({clone_groups_count})</button>
     <button class="tab-btn" id="btn-issues" onclick="switchTab('tab-issues', this)">⚠️ Issues ({len(all_issues)})</button>
@@ -238,17 +237,22 @@ def generate_html_report(
     {line_tab_content}
   </div>
 
-  <!-- Tab 3: Dedicated Complexity & Source Code Inspector -->
+  <!-- Tab 3: Dedicated Tests & Coverage Explorer -->
+  <div id="tab-test" class="tab-content">
+    {test_tab_content}
+  </div>
+
+  <!-- Tab 4: Dedicated Complexity & Source Code Inspector -->
   <div id="tab-complexity" class="tab-content">
     {complexity_tab_content}
   </div>
 
-  <!-- Tab 4: Merged Non-Overlapping Clone Groups -->
+  <!-- Tab 5: Merged Non-Overlapping Clone Groups -->
   <div id="tab-dup" class="tab-content">
     {dup_tab_content}
   </div>
 
-  <!-- Tab 5: Actionable Issues Only -->
+  <!-- Tab 6: Actionable Issues Only -->
   <div id="tab-issues" class="tab-content">
     {issues_tab_content}
   </div>
@@ -279,6 +283,13 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
             f"<button class='jump-tab-btn' onclick=\"switchTab('tab-line')\">📊 View File Tree & Charts →</button>"
         )
 
+    # Test Engine
+    if eng == "test":
+        return (
+            f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
+            f"<button class='jump-tab-btn' onclick=\"switchTab('tab-test')\">🧪 View Test Suites & Coverage Details →</button>"
+        )
+
     # Complexity Engine
     if eng == "complexity":
         return (
@@ -292,24 +303,6 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
             f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
             f"<button class='jump-tab-btn' onclick=\"switchTab('tab-dup')\">📦 View Clone Groups →</button>"
         )
-
-    # Test Engine: Grouped test suites presentation
-    if eng == "test":
-        suites = res.extra.get("test_suites", [])
-        suite_chips = []
-        for s in suites:
-            st_color = "#10b981" if s["failed"] == 0 else "#ef4444"
-            icon = "✅" if s["failed"] == 0 else "❌"
-            suite_chips.append(
-                f"<span class='occ-pill' style='color:{st_color};'>{icon} {html.escape(s['file'])} ({s['passed']}/{s['total']})</span>"
-            )
-
-        suites_block = (
-            f"<div style='margin-top:0.45rem; display:flex; flex-wrap:wrap; gap:0.4rem;'>{''.join(suite_chips)}</div>"
-            if suite_chips
-            else ""
-        )
-        return f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>{suites_block}"
 
     # Sanitize Engine
     if eng == "sanitize" and not res.targets:
@@ -350,6 +343,112 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
         )
 
     return f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>{details_section}"
+
+
+def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
+    """Renders dedicated Test & Coverage analysis tab with suite cards and metric progress bars."""
+    if not test_res:
+        return "<div class='card'>No test execution data available.</div>"
+
+    passed = test_res.extra.get("passed_tests", 0)
+    total = test_res.extra.get("total_tests", 0)
+    branch = test_res.extra.get("branch_coverage", 0.0)
+    func = test_res.extra.get("function_coverage", 0.0)
+    tem = test_res.extra.get("tem_score", 0.0)
+    suites = test_res.extra.get("test_suites", [])
+
+    branch_pct = min(100.0, branch)
+    func_pct = min(100.0, func)
+    tem_pct = min(100.0, (tem / 5.0) * 100.0)
+
+    # Build Test Suite Cards
+    suite_cards = []
+    for s in suites:
+        s_file = s.get("file", "tests")
+        s_passed = s.get("passed", 0)
+        s_failed = s.get("failed", 0)
+        s_total = s.get("total", 0)
+        tests_list = s.get("tests", [])
+
+        st_badge_color = "#10b981" if s_failed == 0 else "#ef4444"
+        st_badge_text = f"{s_passed}/{s_total} Passed"
+        abs_sf = str((base / s_file).resolve())
+        rel_sf = html.escape(s_file)
+
+        test_rows = []
+        for t in tests_list:
+            t_name = html.escape(t.get("name", "test"))
+            t_status = t.get("status", "PASS")
+            t_msg = html.escape(t.get("message", ""))
+            t_color = "#10b981" if t_status == "PASS" else "#ef4444"
+            test_rows.append(
+                f"<div class='test-case-row'>"
+                f"  <span class='badge' style='color:{t_color}; border:1px solid {t_color}33'>{t_status}</span>"
+                f"  <span class='test-case-name'><code>{t_name}</code></span>"
+                f"  <span class='test-case-msg'>{t_msg}</span>"
+                f"</div>"
+            )
+
+        suite_cards.append(
+            f"<div class='test-suite-card'>"
+            f"  <div class='test-suite-header'>"
+            f"    <div class='loc-link-group'>"
+            f"      <span style='font-size:1.1rem;'>🧪</span>"
+            f"      <a href='javascript:void(0)' onclick=\"openLoc('{abs_sf}', '{rel_sf}', 1)\" class='loc-link'><strong>{rel_sf}</strong></a>"
+            f"      <button class='btn-copy-loc' onclick=\"copyLoc('{rel_sf}', 1, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
+            f"    </div>"
+            f"    <span class='badge' style='color:{st_badge_color}; border:1px solid {st_badge_color}44'>{st_badge_text}</span>"
+            f"  </div>"
+            f"  <div class='test-cases-list'>{''.join(test_rows)}</div>"
+            f"</div>"
+        )
+
+    return f"""
+    <!-- Top Row: 4 Metric KPI Cards -->
+    <div class="stats-grid" style="margin-bottom: 1.5rem;">
+      <div class="card stat-card">
+        <div class="stat-label">TEM Quality Score</div>
+        <div class="stat-value" style="color:#38bdf8">{tem:.2f} <span class="stat-sub">/ 5.0</span></div>
+        <div class="mini-progress-bg">
+          <div class="mini-progress-fill" style="width: {tem_pct}%; background: #38bdf8;"></div>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Branch Coverage</div>
+        <div class="stat-value" style="color:{"#10b981" if branch >= 80 else "#f59e0b"}">{branch:.1f}% <span class="stat-sub">(Min 80%)</span></div>
+        <div class="mini-progress-bg">
+          <div class="mini-progress-fill" style="width: {branch_pct}%; background: {"#10b981" if branch >= 80 else "#f59e0b"};"></div>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Function Coverage</div>
+        <div class="stat-value" style="color:{"#10b981" if func >= 90 else "#f59e0b"}">{func:.1f}% <span class="stat-sub">(Min 90%)</span></div>
+        <div class="mini-progress-bg">
+          <div class="mini-progress-fill" style="width: {func_pct}%; background: {"#10b981" if func >= 90 else "#f59e0b"};"></div>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Unit Test Pass Rate</div>
+        <div class="stat-value" style="color:#10b981">{passed} / {total} <span class="stat-sub">Passed</span></div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
+          Duration: {test_res.duration:.2f}s across {len(suites)} Suites
+        </div>
+      </div>
+    </div>
+
+    <!-- Test Suites List -->
+    <div style="margin-bottom: 1.25rem;">
+      <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">🧪 Detailed Test Suites & Cases ({len(suites)} Suites)</h2>
+      <p style="font-size: 0.875rem; color: var(--text-muted);">
+        실행된 모든 단위 테스트 스위트의 개별 테스트 케이스 상태 및 커버리지 검증 내역입니다.
+      </p>
+    </div>
+
+    {"".join(suite_cards)}
+    """
 
 
 def _render_line_section(line_res: EngineResult | None, base: Path) -> str:
@@ -692,7 +791,13 @@ def _render_issues_section(all_issues: list[tuple[str, Any]], base: Path) -> str
 
         snippet_block = ""
         if t.snippet:
-            snippet_block = f"<pre class='snippet'><code>{html.escape(t.snippet)}</code></pre>"
+            num_lines = len(t.snippet.splitlines())
+            snippet_block = (
+                f"<details class='issue-snippet-details'>"
+                f"  <summary class='issue-snippet-summary'>📄 View Finding Code ({num_lines} lines) ▾</summary>"
+                f"  <pre class='snippet'><code>{html.escape(t.snippet)}</code></pre>"
+                f"</details>"
+            )
 
         items.append(
             f"<div class='issue-item'>"
@@ -710,4 +815,17 @@ def _render_issues_section(all_issues: list[tuple[str, Any]], base: Path) -> str
             f"</div>"
         )
 
-    return "".join(items)
+    return f"""
+    <div class="issues-header-bar">
+      <div>
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">⚠️ Active Quality Gate Issues ({len(all_issues)} Findings)</h2>
+        <p style="font-size: 0.875rem; color: var(--text-muted);">
+          전체 검증 엔진에서 조치가 필요한 WARN 및 FAIL 항목을 통합하여 확인합니다.
+        </p>
+      </div>
+      <div>
+        <button class="jump-tab-btn" onclick="toggleAllDetails('.issue-snippet-details')">📂 Toggle All Code</button>
+      </div>
+    </div>
+    {"".join(items)}
+    """

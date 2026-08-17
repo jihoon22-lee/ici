@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import sys
 import time
 
 from ici.core.env import get_nas_cpp_lib_dir
@@ -136,10 +137,12 @@ class TestEngine(BaseEngine):
         which_pytest = shutil.which("pytest")
         if venv_pytest.exists():
             pytest_cmd = [str(venv_pytest)]
-        elif shutil.which("uv"):
-            pytest_cmd = ["uv", "run", "pytest"]
         elif which_pytest:
             pytest_cmd = [which_pytest]
+        elif shutil.which("uv") and (self.project_root / "pyproject.toml").exists():
+            pytest_cmd = ["uv", "run", "pytest"]
+        else:
+            pytest_cmd = [sys.executable, "-m", "pytest"]
 
         env = os.environ.copy()
         src_dir = str(self.project_root / "src")
