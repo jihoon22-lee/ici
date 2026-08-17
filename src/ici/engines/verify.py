@@ -1,0 +1,113 @@
+"""Unified Verification Suite Orchestrator for ici."""
+
+import time
+from pathlib import Path
+from typing import Any
+
+from ici.config import load_config
+from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
+from ici.core.project import get_project_name
+from ici.engines.complexity import ComplexityEngine
+from ici.engines.cov_interface import CoverityInterface
+from ici.engines.dead import DeadCodeEngine
+from ici.engines.dup import DuplicateEngine
+from ici.engines.exception import ExceptionSafetyEngine
+from ici.engines.line import LineCountEngine
+from ici.engines.lint import LintEngine
+from ici.engines.sam_interface import SAMInterface
+from ici.engines.sanitize import SanitizeEngine
+from ici.engines.test import TestEngine
+from ici.engines.type_check import TypeCheckEngine
+from ici.reporters.console import print_suite_dashboard
+from ici.reporters.html import generate_html_report
+from ici.reporters.json_rep import save_json_report
+from ici.reporters.markdown import (
+    emit_github_actions_annotations,
+    generate_markdown_report,
+    write_github_step_summary,
+)
+
+
+class VerifyOrchestrator:
+    """Orchestrates running the full 9-engine verification suite and delivers reports."""
+
+    def __init__(self, project_root: Path | None = None, config: dict[str, Any] | None = None):
+        self.project_root = (project_root or Path.cwd()).resolve()
+        self.config = config or load_config(self.project_root)
+
+    def run_all(
+        self,
+        report_json: str | None = None,
+        report_html: str | None = None,
+        github_summary: bool = False,
+        repo_url: str | None = None,
+        commit_sha: str | None = None,
+    ) -> VerificationSuiteResult:
+        t0 = time.time()
+        results: list[EngineResult] = []
+
+        # List of verification engines
+        engines = [
+            LineCountEngine(self.project_root, self.config),
+            LintEngine(self.project_root, self.config),
+            TestEngine(self.project_root, self.config),
+            TypeCheckEngine(self.project_root, self.config),
+            ComplexityEngine(self.project_root, self.config),
+            SanitizeEngine(self.project_root, self.config),
+            DeadCodeEngine(self.project_root, self.config),
+            DuplicateEngine(self.project_root, self.config),
+            ExceptionSafetyEngine(self.project_root, self.config),
+            CoverityInterface(self.project_root, self.config),
+            SAMInterface(self.project_root, self.config),
+        ]
+
+        tem_score = None
+        has_failure = False
+        has_warning = False
+
+        for engine in engines:
+            res = engine.run()
+            results.append(res)
+            if res.engine_name == "test" and res.score is not None:
+                tem_score = res.score
+            if res.status == EngineStatus.FAIL:
+                has_failure = True
+            elif res.status == EngineStatus.WARN:
+                has_warning = True
+
+        suite_status = (
+            EngineStatus.FAIL
+            if has_failure
+            else (EngineStatus.WARN if has_warning else EngineStatus.PASS)
+        )
+        duration = time.time() - t0
+
+        suite = VerificationSuiteResult(
+            suite_status=suite_status,
+            results=results,
+            duration=duration,
+            tem_score=tem_score,
+            max_tem_score=5.0,
+        )
+
+        # 1. Terminal Console Report
+        print_suite_dashboard(suite, self.project_root)
+
+        # 2. JSON Report if requested
+        if report_json:
+            save_json_report(suite, Path(report_json))
+
+        # 3. HTML Report if requested
+        if report_html:
+            proj_name = get_project_name(self.project_root)
+            generate_html_report(
+                suite, Path(report_html), project_name=proj_name, base_dir=self.project_root
+            )
+
+        # 4. Markdown Report & GitHub Actions Summary
+        md_content = generate_markdown_report(suite, repo_url=repo_url, commit_sha=commit_sha)
+        if github_summary:
+            write_github_step_summary(md_content)
+            emit_github_actions_annotations(suite)
+
+        return suite

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Development convenience wrapper for ici
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ICI_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# If built pyz exists, execute it directly
+if [ -f "${ICI_ROOT}/dist/ici.pyz" ]; then
+    exec "${ICI_ROOT}/dist/ici.pyz" "$@"
+fi
+
+# Otherwise execute local Python package
+export PYTHONPATH="${ICI_ROOT}/src:${PYTHONPATH}"
+if command -v uv >/dev/null 2>&1; then
+    exec uv run --directory "${ICI_ROOT}" python -m ici "$@"
+else
+    exec python3 -m ici "$@"
+fi
