@@ -43,7 +43,7 @@ $ ici doctor
    - `📋 Verification Suites`: 종합 품질 게이지, TEM 스코어, 9대 엔진 상태 및 전용 탭 점프 버튼
    - `📊 Line Analysis & Explorer`: 전체 너비(Full-Width) 계층형 파일 트리 탐색기 + 실시간 파일 검색 + 코드 분포 차트
    - `🧪 Tests & Coverage`: 4대 커버리지 KPI 게이지 + 파일별 테스트 스위트 & 개별 테스트 케이스 상세 뷰
-   - `🧩 Complexity & Code`: 순환 복잡도 리더보드 + **접고 펼칠 수 있는 소스 코드 블록 (Toggle All Code 지원)**
+   - `🧩 Complexity`: 순환 복잡도 리더보드 + **접고 펼칠 수 있는 소스 코드 블록 (Toggle All Code 지원)**
    - `📦 Clone Groups`: 연결 컴포넌트 클러스터링 기반 중복 코드 카드 + 원본 들여쓰기 보존 코드 블록
    - `⚠️ Issues`: 전체 조치 필요(WARN/FAIL) 항목 통합 뷰 + **접고 펼칠 수 있는 문제 코드 스니펫**
 5. **전체 파일·라인 원클릭 점프 네비게이션**:

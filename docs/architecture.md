@@ -168,7 +168,7 @@ ici/
    - 터미널 OSC 8 하이퍼링크 (`\033]8;;vscode://...\033\\`)를 통한 터미널 내 에디터 원클릭 점프
 2. **`HtmlReporter`**: 브라우저 독립형 대시보드
    - Zero-CDN 인라인 CSS/JS 구조
-   - 5개 전용 탭: `Summary`, `Line & Tree`, `Complexity & Code`, `Clone Groups`, `Issues`
+   - 6개 전용 탭: `Summary`, `Line & Tree`, `Tests & Coverage`, `Complexity`, `Clone Groups`, `Issues`
    - 계층형 디렉토리 트리 뷰 (depth별 들여쓰기 및 언어별 아이콘)
    - 원본 소스 코드 블록 인스펙터
 3. **`MarkdownReporter`**: CI/CD 파이프라인 최적화
