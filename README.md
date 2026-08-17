@@ -90,8 +90,6 @@ ici verify --report --html verify_report.html --open
 | `ici dead` | 죽은 코드 및 미사용 심볼 검출 | [엔진 레퍼런스](docs/engine-reference.md#27--dead-죽은-코드-및-미사용-심볼) |
 | `ici dup` | 중복 코드 / Copy-Paste 감지 | [엔진 레퍼런스](docs/engine-reference.md#28--dup-코드-복제-및-중복률-감지기) |
 | `ici exception` | 예외 처리 안전성 검출 | [엔진 레퍼런스](docs/engine-reference.md#29-️-exception-예외-처리-안전성-검출기) |
-| `ici cov` | Coverity 확장 인터페이스 | [엔진 레퍼런스](docs/engine-reference.md#3-엔터프라이즈-확장-도구-인터페이스) |
-| `ici sam` | SAM 보안 스캐너 확장 인터페이스 | [엔진 레퍼런스](docs/engine-reference.md#3-엔터프라이즈-확장-도구-인터페이스) |
 | `ici build` | 아티팩트 컴파일, 패키징 및 `env.sh`/`env.csh` 생성 | [사용자 가이드](docs/user-guide.md) |
 | `ici doctor` | 시스템/툴체인/파이썬 환경 종합 진단 | [사용자 가이드](docs/user-guide.md#12-실행-환경-진단-ici-doctor) |
 | `ici env` | 셸 환경 설정 스니펫 생성 (`--sh` / `--csh`) | [사용자 가이드](docs/user-guide.md) |

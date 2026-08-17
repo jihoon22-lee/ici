@@ -13,13 +13,11 @@ from ici.core.models import EngineStatus
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
 from ici.engines.complexity import ComplexityEngine
-from ici.engines.cov_interface import CoverityInterface
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
-from ici.engines.sam_interface import SAMInterface
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
 from ici.engines.type_check import TypeCheckEngine
@@ -69,7 +67,7 @@ def cmd_verify(
         False, "--github-summary", help="Emit GitHub Actions step summary & annotations"
     ),
 ):
-    """Runs all 9 verification engines, Coverity/SAM interfaces, and outputs unified dashboard."""
+    """Runs all 9 verification engines and outputs unified quality gate dashboard."""
     orchestrator = VerifyOrchestrator()
     json_path = "verify_report.json" if report else None
     html_path = html if html else ("verify_report.html" if open_browser else None)
@@ -208,30 +206,6 @@ def cmd_exception(
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
         _save_single_report("exception_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
-
-
-@app.command("cov")
-def cmd_cov(report: bool = typer.Option(False, "--report", "-r", help="Save Coverity report")):
-    """Runs Coverity static defect analysis interface / local rule scanner."""
-    engine = CoverityInterface()
-    res = engine.run()
-    console.print(f"[{'green' if res.status == EngineStatus.PASS else 'yellow'}]{res.summary}[/]")
-    if report:
-        _save_single_report("cov_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
-
-
-@app.command("sam")
-def cmd_sam(report: bool = typer.Option(False, "--report", "-r", help="Save SAM report")):
-    """Runs SAM security analysis module interface / local scanner with 100-point score."""
-    engine = SAMInterface()
-    res = engine.run()
-    console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
-    if report:
-        _save_single_report("sam_report.json", res)
     if res.status == EngineStatus.FAIL:
         raise typer.Exit(code=1)
 

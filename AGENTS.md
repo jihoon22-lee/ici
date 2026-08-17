@@ -4,9 +4,9 @@
 
 ---
 
-## 1. 브랜치 기반 개발 전략 (Branching Strategy)
+## 1. 브랜치 및 GitHub PR 기반 개발 전략 (Branching & PR Workflow)
 
-- **`main` 브랜치 직접 작업 금지**: 모든 변경 사항은 반드시 목적에 맞는 별도 브랜치에서 작업한 후 `main`에 병합(Merge)해야 한다.
+- **`main` 브랜치 직접 푸시/작업 금지**: 모든 변경 사항은 반드시 목적에 맞는 별도 브랜치에서 작업한 후, **GitHub Pull Request(PR)**를 통해 `main`에 병합(Merge)해야 한다.
 - **브랜치 네이밍 규칙**:
   - `feat/<feature-name>`: 새로운 엔진, 리포터, CLI 옵션, 핵심 기능 개발
   - `fix/<issue-name>`: 버그 수정, 린트/타입 오류 해결, 예외 처리 개선
@@ -14,12 +14,14 @@
   - `docs/<doc-name>`: 문서 추가, `CHANGELOG.md` 및 가이드 작성
   - `test/<test-name>`: 테스트 케이스 추가 및 검증 로직 보강
   - `chore/<task-name>`: 빌드 스크립트, 의존성, CI/CD 설정 변경
-- **병합 절차 (Merge Workflow)**:
-  1. 기능 브랜치에서 작업 진행
-  2. 품질 게이트 검증 수행 (`pytest`, `ruff`, `smoke.sh`)
-  3. Conventional Commit 메시지로 브랜치에 커밋
-  4. `main` 브랜치로 전환 후 병합 (`git checkout main && git merge <branch>`)
-  5. 병합 완료 후 작업 브랜치 삭제 (`git branch -d <branch>`)
+- **GitHub PR 병합 절차 (Standard GitHub PR Workflow)**:
+  1. 작업 브랜치 생성: `git checkout -b <type>/<description>`
+  2. 코드 구현 및 품질 게이트 검증 (`pytest`, `ruff`, `./scripts/build-pyz.sh`)
+  3. Conventional Commit 메시지로 작업 브랜치에 커밋: `git commit -m "<type>(<scope>): <summary>"`
+  4. GitHub 원격 저장소로 브랜치 푸시: `git push -u origin <type>/<description>`
+  5. GitHub CLI로 PR 생성: `gh pr create --title "<type>(<scope>): <summary>" --body "..."`
+  6. PR 머지 수행: `gh pr merge --squash --delete-branch`
+  7. 로컬 `main` 브랜치 동기화: `git checkout main && git pull origin main`
 
 ---
 

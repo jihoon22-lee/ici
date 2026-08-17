@@ -53,12 +53,3 @@ min_window = 6            # 6라인 이상 연속 복제 감지
 [engines.exception]
 enabled = true
 mode = "pass_fail"
-
-[engines.cov]
-enabled = false           # 엔터프라이즈 도구: 기본 비활성화
-mode = "pass_warn"
-
-[engines.sam]
-enabled = false           # 엔터프라이즈 도구: 기본 비활성화
-mode = "pass_warn_fail"
-min_score = 80.0

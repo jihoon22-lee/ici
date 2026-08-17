@@ -63,15 +63,6 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "mode": "pass_fail",
         },
-        "cov": {
-            "enabled": False,  # Disabled by default
-            "mode": "pass_warn",
-        },
-        "sam": {
-            "enabled": False,  # Disabled by default
-            "mode": "pass_warn_fail",
-            "min_score": 80.0,
-        },
     },
 }
 

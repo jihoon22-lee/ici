@@ -1,0 +1,114 @@
+name: Release ici
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: "Release Version Tag (e.g. v0.1.0)"
+        required: false
+        default: ""
+      draft:
+        description: "Create Draft Release"
+        type: boolean
+        default: false
+      prerelease:
+        description: "Mark as Pre-release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Target Tag
+        id: tag_info
+        run: |
+          if [ -n "${{ github.event.inputs.version_tag }}" ]; then
+            TAG="${{ github.event.inputs.version_tag }}"
+          elif [ -n "${{ github.ref_name }}" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="v0.1.0"
+          fi
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "Target Release Tag: $TAG"
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Run Test Suite
+        run: |
+          uv run --python 3.10 pytest -v
+
+      - name: Build Standalone ZipApp (dist/ici.pyz)
+        run: |
+          chmod +x ./scripts/build-pyz.sh ./scripts/smoke.sh ./scripts/launcher.sh
+          ./scripts/build-pyz.sh
+          sha256sum dist/ici.pyz > dist/ici.pyz.sha256
+
+      - name: Run Isolated Smoke Test
+        run: |
+          ./scripts/smoke.sh
+
+      - name: Extract Release Notes from CHANGELOG.md
+        id: extract_notes
+        run: |
+          python3 - << 'EOF'
+          import os
+          import re
+
+          raw_tag = os.environ.get("TAG_NAME", "")
+          clean_ver = raw_tag.lstrip("v")
+          changelog_path = "CHANGELOG.md"
+
+          body = ""
+          if os.path.exists(changelog_path):
+              content = open(changelog_path, "r", encoding="utf-8").read()
+              # Match ## [0.1.0] ... up to the next ## [ or end of file
+              pattern = rf"##\s*\[{re.escape(clean_ver)}\][^\n]*\n(.*?)(?=\n##\s*\[|\Z)"
+              match = re.search(pattern, content, re.DOTALL)
+              if match:
+                  body = match.group(1).strip()
+
+          if not body:
+              body = f"### 🚀 ici {raw_tag} Release\n\n- Unified CI/CD Quality Gate ZipApp binary."
+
+          with open("RELEASE_NOTES.md", "w", encoding="utf-8") as f:
+              f.write(body + "\n")
+          EOF
+        env:
+          TAG_NAME: ${{ steps.tag_info.outputs.TAG }}
+
+      - name: Create GitHub Release & Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_info.outputs.TAG }}
+          name: "ici ${{ steps.tag_info.outputs.TAG }}"
+          body_path: RELEASE_NOTES.md
+          files: |
+            dist/ici.pyz
+            dist/ici.pyz.sha256
+          draft: ${{ github.event.inputs.draft || false }}
+          prerelease: ${{ github.event.inputs.prerelease || false }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

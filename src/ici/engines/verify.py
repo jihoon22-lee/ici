@@ -8,13 +8,11 @@ from ici.config import get_engine_config, load_config
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
 from ici.core.project import get_project_name
 from ici.engines.complexity import ComplexityEngine
-from ici.engines.cov_interface import CoverityInterface
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
-from ici.engines.sam_interface import SAMInterface
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
 from ici.engines.type_check import TypeCheckEngine
@@ -57,8 +55,6 @@ class VerifyOrchestrator:
             ("dead", DeadCodeEngine),
             ("dup", DuplicateEngine),
             ("exception", ExceptionSafetyEngine),
-            ("cov", CoverityInterface),
-            ("sam", SAMInterface),
         ]
 
         tem_score = None

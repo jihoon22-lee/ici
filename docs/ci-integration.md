@@ -8,43 +8,57 @@
 
 ---
 
-## 1. GitHub Actions 워크플로우 구성 예시
+## 1. GitHub Actions 워크플로우 구성
 
-`.github/workflows/ci.yml` 파일에 다음과 같이 단일 단계로 연동합니다:
+`ici` 저장소는 자체 품질 검증을 위한 **개밥먹기(Dogfooding) CI 워크플로우**와 태그 푸시 시 자동으로 바이너리를 배포하는 **릴리스 워크플로우**를 갖추고 있습니다.
+
+### 1.1 Dogfooding CI 워크플로우 (`.github/workflows/ci.yml`)
+PR 생성 및 커밋 푸시 시, 프로젝트 소스로 빌드된 `dist/ici.pyz`가 `ici` 코드베이스 전체를 직접 전수 검증합니다:
 
 ```yaml
-name: CI Verification Quality Gate
+name: CI Quality Gate (Dogfooding)
 
 on:
-  pull_request:
-    branches: [ main, develop ]
   push:
-    branches: [ main ]
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   verify:
-    runs-on: self-hosted # 또는 ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - uses: astral-sh/setup-uv@v5
 
-      - name: Run ici Verification Suite
-        run: |
-          ./dist/ici.pyz verify \
-            --report \
-            --html verify_report.html \
-            --json verify_report.json \
-            --github-summary "$GITHUB_STEP_SUMMARY" \
-            --github-repo "${{ github.repository }}" \
-            --github-commit "${{ github.sha }}"
+      # 1. 린팅 & 단위 테스트
+      - run: uvx ruff check . && uv run --python 3.10 pytest -v
 
-      - name: Upload HTML Quality Report
-        uses: actions/upload-artifact@v4
+      # 2. 산출물 빌드 & 스모크 테스트
+      - run: ./scripts/build-pyz.sh && ./scripts/smoke.sh
+
+      # 3. 개밥먹기(Dogfooding) 자체 검증 게이트
+      - run: dist/ici.pyz verify --report --html verify_report.html --github-summary
+
+      # 4. 아티팩트 업로드
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ici-verification-report
-          path: verify_report.html
+          path: |
+            verify_report.html
+            verify_report.json
 ```
+
+### 1.2 자동 릴리스 워크플로우 (`.github/workflows/release.yml`)
+- **트리거**: 버전 태그(`v*.*.*`) 푸시 또는 GitHub Actions 탭에서 수동 실행(`workflow_dispatch`)
+- **동작**:
+  1. `dist/ici.pyz` 단일 실행 파일 빌드 및 SHA256 체크섬 생성
+  2. [`CHANGELOG.md`](../CHANGELOG.md)에서 해당 버전(`[0.1.0]`)의 변경 내역을 정규식으로 자동 추출
+  3. GitHub Release를 생성하고 `dist/ici.pyz` 바이너리를 첨부하여 릴리스 발행
 
 ---
 

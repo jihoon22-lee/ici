@@ -43,3 +43,7 @@
   - `ici build`: Python 바이트코드 컴파일(`compileall`), 릴리스 트리 패키징(`vX.Y.Z/x86_64/lib`), `env.sh` 및 `env.csh` 생성
   - `ici doctor`: glibc, WSL, 컴파일러, 린터, 파이썬 진단 테이블 출력
   - `ici env`: 셸 스크립트 소싱용 환경변수 스니펫 출력
+
+### Removed
+- **Coverity 및 SAM 엔진 제거**:
+  - 프로젝트 경량화 및 9대 핵심 품질 게이트 집중을 위해 `cov` (Coverity) 및 `sam` (SAM) 엔진과 CLI 서브커맨드, 설정 스키마 전면 제거
