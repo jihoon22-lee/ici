@@ -66,8 +66,20 @@ class TestEngine(BaseEngine):
         tem_score = (min(80.0, branch_cov) / 80.0) * (func_cov / 100.0) * 5.0
         tem_score = round(max(0.0, min(5.0, tem_score)), 2)
 
+        cfg = self.get_config("test")
+        mode = cfg.get("mode", "pass_fail")
+        min_tem = cfg.get("min_tem_score", 4.0)
+        min_branch = cfg.get("min_branch_cov", 80.0)
+        min_func = cfg.get("min_func_cov", 90.0)
+
+        has_warn = False
+        if not has_failure and (
+            tem_score < min_tem or branch_cov < min_branch or func_cov < min_func
+        ):
+            has_warn = True
+
         duration = time.time() - t0
-        overall_status = EngineStatus.FAIL if has_failure else EngineStatus.PASS
+        overall_status = self.evaluate_status(has_failure, has_warn, mode)
         summary = (
             f"{passed_tests}/{total_tests} Tests Passed | "
             f"Branch: {branch_cov:.1f}%, Func: {func_cov:.1f}% -> TEM: {tem_score:.2f} / 5.0"

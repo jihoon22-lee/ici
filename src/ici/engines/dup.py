@@ -1,4 +1,4 @@
-"""8. Code Clone & Duplication (Copy-Paste) Detection Engine."""
+"""8. Code Clone & Duplication Detection Engine with Cluster Grouping."""
 
 import hashlib
 import time
@@ -11,14 +11,18 @@ from ici.core.project import (
 )
 from ici.engines.base import BaseEngine
 
-WINDOW_SIZE = 6  # Minimum identical consecutive lines to constitute a clone block
-
 
 class DuplicateEngine(BaseEngine):
     """Detects copy-pasted code blocks across files using token/line hash sliding windows."""
 
     def run(self) -> EngineResult:
         t0 = time.time()
+        cfg = self.get_config("dup")
+        warn_pct = cfg.get("warn_pct", 5.0)
+        fail_pct = cfg.get("fail_pct", 15.0)
+        window_size = cfg.get("min_window", 6)
+        mode = cfg.get("mode", "pass_warn")
+
         py_sources = get_all_python_sources(self.project_root)
         cpp_sources = get_all_cpp_sources(self.project_root)
         all_sources = py_sources + cpp_sources
@@ -27,7 +31,6 @@ class DuplicateEngine(BaseEngine):
         block_map: dict[str, list[tuple[str, int, int, str]]] = defaultdict(list)
         total_code_lines = 0
         duplicate_lines_count = 0
-        targets: list[InspectionTarget] = []
 
         for src_file in all_sources:
             try:
@@ -46,56 +49,71 @@ class DuplicateEngine(BaseEngine):
                             total_code_lines += 1
 
                 # Sliding window
-                for i in range(len(normalized_lines) - WINDOW_SIZE + 1):
-                    window = "".join(normalized_lines[i : i + WINDOW_SIZE])
+                for i in range(len(normalized_lines) - window_size + 1):
+                    window = "".join(normalized_lines[i : i + window_size])
                     w_hash = hashlib.sha256(window.encode("utf-8")).hexdigest()
                     start_l = orig_line_nums[i]
-                    end_l = orig_line_nums[i + WINDOW_SIZE - 1]
-                    sample = "\n".join(normalized_lines[i : i + WINDOW_SIZE])
+                    end_l = orig_line_nums[i + window_size - 1]
+                    sample = "\n".join(normalized_lines[i : i + window_size])
                     block_map[w_hash].append((rel_p, start_l, end_l, sample))
             except (OSError, UnicodeDecodeError) as err:
                 _ = err
 
-        # Identify duplicates
-        seen_pairs = set()
+        # Group into Clone Groups
+        clone_groups: list[dict] = []
+        targets: list[InspectionTarget] = []
+        group_idx = 1
+
         for _w_hash, occurrences in block_map.items():
             if len(occurrences) > 1:
-                # Multiple identical blocks
-                duplicate_lines_count += (len(occurrences) - 1) * WINDOW_SIZE
-                for idx_a in range(len(occurrences)):
-                    for idx_b in range(idx_a + 1, len(occurrences)):
-                        f_a, s_a, e_a, sample = occurrences[idx_a]
-                        f_b, s_b, e_b, _ = occurrences[idx_b]
-                        pair_key = (f_a, s_a, f_b, s_b)
+                # Merge duplicate files in this group
+                duplicate_lines_count += (len(occurrences) - 1) * window_size
+                sample_snippet = occurrences[0][3]
+                occ_list = []
 
-                        if pair_key not in seen_pairs:
-                            seen_pairs.add(pair_key)
-                            targets.append(
-                                InspectionTarget(
-                                    file_path=f_a,
-                                    start_line=s_a,
-                                    end_line=e_a,
-                                    target_name="DuplicateBlock",
-                                    status=EngineStatus.WARN,
-                                    message=f"Duplicate code block ({WINDOW_SIZE} lines) identical to {f_b}:{s_b}-{e_b}",
-                                    snippet=sample[:200],
-                                    metrics={"clone_target": f"{f_b}:{s_b}-{e_b}"},
-                                )
-                            )
+                for f_p, s_l, e_l, _ in occurrences:
+                    occ_list.append(
+                        {
+                            "file_path": f_p,
+                            "start_line": s_l,
+                            "end_line": e_l,
+                            "loc": f"{f_p}:{s_l}-{e_l}",
+                        }
+                    )
+                    targets.append(
+                        InspectionTarget(
+                            file_path=f_p,
+                            start_line=s_l,
+                            end_line=e_l,
+                            target_name=f"CloneGroup#{group_idx}",
+                            status=EngineStatus.WARN,
+                            message=f"Duplicate code block ({window_size} lines) across {len(occurrences)} locations",
+                            snippet=sample_snippet[:200],
+                            metrics={"clone_group": group_idx, "occurrences": len(occurrences)},
+                        )
+                    )
+
+                clone_groups.append(
+                    {
+                        "id": group_idx,
+                        "lines_count": window_size,
+                        "occurrences_count": len(occurrences),
+                        "occurrences": occ_list,
+                        "snippet": sample_snippet[:250],
+                    }
+                )
+                group_idx += 1
 
         dup_pct = (
             (duplicate_lines_count / total_code_lines * 100.0) if total_code_lines > 0 else 0.0
         )
         duration = time.time() - t0
 
-        if dup_pct > 15.0:
-            overall_status = EngineStatus.FAIL
-        elif dup_pct > 5.0 or len(targets) > 0:
-            overall_status = EngineStatus.WARN if len(targets) > 0 else EngineStatus.PASS
-        else:
-            overall_status = EngineStatus.PASS
+        has_fail = dup_pct > fail_pct
+        has_warn = dup_pct > warn_pct or len(clone_groups) > 0
+        overall_status = self.evaluate_status(has_fail, has_warn, mode)
 
-        summary = f"Code Duplication Rate: {dup_pct:.1f}% ({len(targets)} duplicate blocks found)"
+        summary = f"Code Duplication Rate: {dup_pct:.1f}% ({len(clone_groups)} duplicate clone groups found)"
 
         return self.create_result(
             name="dup",
@@ -104,7 +122,12 @@ class DuplicateEngine(BaseEngine):
             score=dup_pct,
             duration=duration,
             targets=targets,
-            extra={"duplication_pct": dup_pct, "metrics_summary": f"Duplication: {dup_pct:.1f}%"},
+            extra={
+                "duplication_pct": dup_pct,
+                "clone_groups_count": len(clone_groups),
+                "clone_groups": clone_groups,
+                "metrics_summary": f"Duplication: {dup_pct:.1f}% ({len(clone_groups)} groups)",
+            },
         )
 
     def _normalize_line(self, line: str) -> str:

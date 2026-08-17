@@ -1,4 +1,4 @@
-"""5. Code Complexity & Nesting Depth Analysis Engine."""
+"""5. Code Complexity & Nesting Depth Analysis Engine with Policy Thresholds."""
 
 import ast
 import time
@@ -17,37 +17,45 @@ class ComplexityEngine(BaseEngine):
 
     def run(self) -> EngineResult:
         t0 = time.time()
+        cfg = self.get_config("complexity")
+        warn_cc = cfg.get("warn_cc", 15)
+        fail_cc = cfg.get("fail_cc", 25)
+        warn_nesting = cfg.get("warn_nesting", 4)
+        mode = cfg.get("mode", "pass_warn_fail")
+
         proj_type = detect_project_type(self.project_root)
-        targets: list[InspectionTarget] = []
+        all_targets: list[InspectionTarget] = []
         max_cc = 0
         has_error = False
         has_warn = False
 
         # 1. Python Complexity (AST analysis)
         if proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py")):
-            p_max, p_targets = self._analyze_python_complexity()
+            p_max, p_targets = self._analyze_python_complexity(warn_cc, fail_cc, warn_nesting)
             max_cc = max(max_cc, p_max)
-            targets.extend(p_targets)
+            all_targets.extend(p_targets)
 
         # 2. C++ Complexity (Brace/Nesting parser)
         if proj_type in ("cpp", "hybrid") or any(self.project_root.rglob("*.cpp")):
-            c_max, c_targets = self._analyze_cpp_complexity()
+            c_max, c_targets = self._analyze_cpp_complexity(warn_cc, fail_cc, warn_nesting)
             max_cc = max(max_cc, c_max)
-            targets.extend(c_targets)
+            all_targets.extend(c_targets)
 
-        for t in targets:
+        issue_targets = [
+            t for t in all_targets if t.status in (EngineStatus.WARN, EngineStatus.FAIL)
+        ]
+        for t in issue_targets:
             if t.status == EngineStatus.FAIL:
                 has_error = True
             elif t.status == EngineStatus.WARN:
                 has_warn = True
 
         duration = time.time() - t0
-        overall_status = (
-            EngineStatus.FAIL
-            if has_error
-            else (EngineStatus.WARN if has_warn else EngineStatus.PASS)
+        overall_status = self.evaluate_status(has_error, has_warn, mode)
+        summary = (
+            f"Max Cyclomatic Complexity: {max_cc} (limit {warn_cc}) across {len(all_targets)} functions "
+            f"({len(issue_targets)} issues)"
         )
-        summary = f"Max Cyclomatic Complexity: {max_cc} (limit 15) across {len(targets)} functions"
 
         return self.create_result(
             name="complexity",
@@ -55,11 +63,18 @@ class ComplexityEngine(BaseEngine):
             summary=summary,
             score=float(max_cc),
             duration=duration,
-            targets=targets,
-            extra={"max_complexity": max_cc, "metrics_summary": f"Max CC: {max_cc}"},
+            targets=all_targets,  # Full list kept for toggle inspection
+            extra={
+                "max_complexity": max_cc,
+                "total_functions": len(all_targets),
+                "issues_count": len(issue_targets),
+                "metrics_summary": f"Max CC: {max_cc} ({len(issue_targets)} issues / {len(all_targets)} funcs)",
+            },
         )
 
-    def _analyze_python_complexity(self) -> tuple[int, list[InspectionTarget]]:
+    def _analyze_python_complexity(
+        self, warn_cc: int, fail_cc: int, warn_nesting: int
+    ) -> tuple[int, list[InspectionTarget]]:
         targets: list[InspectionTarget] = []
         max_cc = 0
 
@@ -75,12 +90,12 @@ class ComplexityEngine(BaseEngine):
                         nesting = self._calc_ast_nesting(node)
                         max_cc = max(max_cc, cc)
 
-                        if cc > 25:
+                        if cc > fail_cc:
                             st = EngineStatus.FAIL
-                            msg = f"Critical complexity: {cc} > 25 (Immediate refactoring required, Nesting: {nesting})"
-                        elif cc > 15 or nesting >= 4:
+                            msg = f"Critical complexity: {cc} > {fail_cc} (Immediate refactoring required, Nesting: {nesting})"
+                        elif cc > warn_cc or nesting >= warn_nesting:
                             st = EngineStatus.WARN
-                            msg = f"High complexity: {cc} (limit 15), Max Nesting: {nesting} (limit 4)"
+                            msg = f"High complexity: {cc} (limit {warn_cc}), Max Nesting: {nesting} (limit {warn_nesting})"
                         else:
                             st = EngineStatus.PASS
                             msg = f"Complexity: {cc}, Nesting: {nesting}"
@@ -141,7 +156,9 @@ class ComplexityEngine(BaseEngine):
 
         return _get_depth(node, 0)
 
-    def _analyze_cpp_complexity(self) -> tuple[int, list[InspectionTarget]]:
+    def _analyze_cpp_complexity(
+        self, warn_cc: int, fail_cc: int, warn_nesting: int
+    ) -> tuple[int, list[InspectionTarget]]:
         targets: list[InspectionTarget] = []
         max_cc = 0
 
@@ -181,6 +198,9 @@ class ComplexityEngine(BaseEngine):
                                     curr_func,
                                     branch_count,
                                     max_func_nesting,
+                                    warn_cc,
+                                    fail_cc,
+                                    warn_nesting,
                                 )
                             )
                             max_cc = max(max_cc, branch_count)
@@ -223,6 +243,9 @@ class ComplexityEngine(BaseEngine):
                                     curr_func,
                                     branch_count,
                                     max_func_nesting,
+                                    warn_cc,
+                                    fail_cc,
+                                    warn_nesting,
                                 )
                             )
                             max_cc = max(max_cc, branch_count)
@@ -231,7 +254,15 @@ class ComplexityEngine(BaseEngine):
                 if curr_func:
                     targets.append(
                         self._make_cpp_target(
-                            rel_p, func_start, len(lines), curr_func, branch_count, max_func_nesting
+                            rel_p,
+                            func_start,
+                            len(lines),
+                            curr_func,
+                            branch_count,
+                            max_func_nesting,
+                            warn_cc,
+                            fail_cc,
+                            warn_nesting,
                         )
                     )
                     max_cc = max(max_cc, branch_count)
@@ -241,14 +272,23 @@ class ComplexityEngine(BaseEngine):
         return max_cc, targets
 
     def _make_cpp_target(
-        self, rel_p: str, start: int, end: int, name: str, cc: int, nesting: int
+        self,
+        rel_p: str,
+        start: int,
+        end: int,
+        name: str,
+        cc: int,
+        nesting: int,
+        warn_cc: int = 15,
+        fail_cc: int = 25,
+        warn_nesting: int = 4,
     ) -> InspectionTarget:
-        if cc > 25:
+        if cc > fail_cc:
             st = EngineStatus.FAIL
-            msg = f"Critical complexity: {cc} > 25 (Immediate refactoring required)"
-        elif cc > 15 or nesting >= 4:
+            msg = f"Critical complexity: {cc} > {fail_cc} (Immediate refactoring required)"
+        elif cc > warn_cc or nesting >= warn_nesting:
             st = EngineStatus.WARN
-            msg = f"High complexity: {cc} (limit 15), Max Nesting: {nesting}"
+            msg = f"High complexity: {cc} (limit {warn_cc}), Max Nesting: {nesting} (limit {warn_nesting})"
         else:
             st = EngineStatus.PASS
             msg = f"Complexity: {cc}, Nesting: {nesting}"

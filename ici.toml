@@ -1,0 +1,64 @@
+# ici — Standard Enterprise CI/CD Quality Gate Configuration
+# 이 설정 파일은 ici 프로젝트의 표준 품질 정책을 정의합니다.
+
+[ici]
+version = "0.1.0"
+policy_name = "Enterprise CI/CD Standard Quality Gate"
+
+[engines.line]
+enabled = true
+mode = "pass_warn_fail"   # pass_warn_fail | pass_fail | pass_warn
+warn_limit = 500          # 순수 코드 500라인 초과 시 경고
+fail_limit = 1000         # 순수 코드 1000라인 초과 시 실패
+
+[engines.lint]
+enabled = true
+mode = "pass_warn_fail"
+
+[engines.test]
+enabled = true
+mode = "pass_fail"
+min_tem_score = 4.0       # TEM 점수 4.0 이상 통과
+min_branch_cov = 80.0     # Branch 커버리지 80% 이상
+min_func_cov = 90.0       # Function 커버리지 90% 이상
+
+[engines.type]
+enabled = true
+mode = "pass_warn"
+fail_on_error = true
+warn_on_missing_annotation = false
+
+[engines.complexity]
+enabled = true
+mode = "pass_warn_fail"
+warn_cc = 15              # 순환 복잡도 15 초과 시 경고
+fail_cc = 25              # 순환 복잡도 25 초과 시 실패
+warn_nesting = 4          # 중첩 깊이 4 이상 시 경고
+
+[engines.sanitize]
+enabled = true
+mode = "pass_fail"
+
+[engines.dead]
+enabled = true
+mode = "pass_warn"
+
+[engines.dup]
+enabled = true
+mode = "pass_warn"
+warn_pct = 5.0            # 중복률 5.0% 초과 시 경고
+fail_pct = 15.0           # 중복률 15.0% 초과 시 실패
+min_window = 6            # 6라인 이상 연속 복제 감지
+
+[engines.exception]
+enabled = true
+mode = "pass_fail"
+
+[engines.cov]
+enabled = false           # 엔터프라이즈 도구: 기본 비활성화
+mode = "pass_warn"
+
+[engines.sam]
+enabled = false           # 엔터프라이즈 도구: 기본 비활성화
+mode = "pass_warn_fail"
+min_score = 80.0

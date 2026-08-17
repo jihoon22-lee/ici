@@ -1,6 +1,5 @@
 """6. Memory Safety & Runtime Sanitize Engine (ASan/UBSan & Resource Leaks)."""
 
-import ast
 import shutil
 import time
 
@@ -10,7 +9,6 @@ from ici.core.project import (
     detect_project_type,
     get_all_cpp_includes,
     get_all_cpp_sources,
-    get_all_python_sources,
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
@@ -35,12 +33,15 @@ class SanitizeEngine(BaseEngine):
             if p_fail:
                 has_failure = True
 
+        cfg = self.get_config("sanitize")
+        mode = cfg.get("mode", "pass_fail")
+
         duration = time.time() - t0
-        overall_status = EngineStatus.FAIL if has_failure else EngineStatus.PASS
+        overall_status = self.evaluate_status(has_failure, False, mode)
         summary = (
-            "Memory Safety & Sanitize Clean"
+            "Memory Safety & Sanitize Clean (0 Defects)"
             if overall_status == EngineStatus.PASS
-            else "Memory / Resource Leak Detected"
+            else f"{len(targets)} Memory / Resource Defect(s) Detected"
         )
 
         return self.create_result(
@@ -49,7 +50,7 @@ class SanitizeEngine(BaseEngine):
             summary=summary,
             duration=duration,
             targets=targets,
-            extra={"sanitize_issues": len([t for t in targets if t.status == EngineStatus.FAIL])},
+            extra={"sanitize_issues": len(targets)},
         )
 
     def _run_cpp_sanitizer(self, targets: list[InspectionTarget]) -> bool:
@@ -112,45 +113,9 @@ class SanitizeEngine(BaseEngine):
                         message=f"Memory/Runtime defect detected: {(r_err or r_out)[:150]}",
                     )
                 )
-            else:
-                targets.append(
-                    InspectionTarget(
-                        file_path=rel_p,
-                        start_line=1,
-                        target_name="ASan/UBSan Passed",
-                        status=EngineStatus.PASS,
-                        message="Memory safety & UB checks clean",
-                    )
-                )
 
         return has_failure
 
     def _check_python_resource_leaks(self, targets: list[InspectionTarget]) -> bool:
         has_issue = False
-        for py_file in get_all_python_sources(self.project_root):
-            try:
-                content = py_file.read_text(encoding="utf-8")
-                tree = ast.parse(content, filename=str(py_file))
-                rel_p = str(py_file.relative_to(self.project_root))
-
-                for node in ast.walk(tree):
-                    # Unmanaged raw open() call not inside with block
-                    if (
-                        isinstance(node, ast.Call)
-                        and isinstance(node.func, ast.Name)
-                        and node.func.id == "open"
-                    ):
-                        # Check if parent is With
-                        # Flag as warning if raw open() assigned to variable
-                        targets.append(
-                            InspectionTarget(
-                                file_path=rel_p,
-                                start_line=node.lineno,
-                                target_name="ResourceCheck",
-                                status=EngineStatus.PASS,
-                                message="File descriptor managed",
-                            )
-                        )
-            except (SyntaxError, OSError) as err:
-                _ = err
         return has_issue

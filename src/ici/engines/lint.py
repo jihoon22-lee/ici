@@ -37,11 +37,10 @@ class LintEngine(BaseEngine):
         fail_count = sum(1 for t in targets if t.status == EngineStatus.FAIL)
         warn_count = sum(1 for t in targets if t.status == EngineStatus.WARN)
 
-        overall_status = (
-            EngineStatus.FAIL
-            if fail_count > 0
-            else (EngineStatus.WARN if warn_count > 0 else EngineStatus.PASS)
-        )
+        cfg = self.get_config("lint")
+        mode = cfg.get("mode", "pass_warn_fail")
+        overall_status = self.evaluate_status(fail_count > 0, warn_count > 0, mode)
+
         summary = (
             "0 Violations Found"
             if overall_status == EngineStatus.PASS

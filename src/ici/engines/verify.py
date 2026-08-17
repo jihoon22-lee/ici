@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from ici.config import load_config
+from ici.config import get_engine_config, load_config
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
 from ici.core.project import get_project_name
 from ici.engines.complexity import ComplexityEngine
@@ -29,7 +29,7 @@ from ici.reporters.markdown import (
 
 
 class VerifyOrchestrator:
-    """Orchestrates running the full 9-engine verification suite and delivers reports."""
+    """Orchestrates running the verification suite and delivers reports."""
 
     def __init__(self, project_root: Path | None = None, config: dict[str, Any] | None = None):
         self.project_root = (project_root or Path.cwd()).resolve()
@@ -46,28 +46,34 @@ class VerifyOrchestrator:
         t0 = time.time()
         results: list[EngineResult] = []
 
-        # List of verification engines
-        engines = [
-            LineCountEngine(self.project_root, self.config),
-            LintEngine(self.project_root, self.config),
-            TestEngine(self.project_root, self.config),
-            TypeCheckEngine(self.project_root, self.config),
-            ComplexityEngine(self.project_root, self.config),
-            SanitizeEngine(self.project_root, self.config),
-            DeadCodeEngine(self.project_root, self.config),
-            DuplicateEngine(self.project_root, self.config),
-            ExceptionSafetyEngine(self.project_root, self.config),
-            CoverityInterface(self.project_root, self.config),
-            SAMInterface(self.project_root, self.config),
+        # Engine definitions mapping name to Engine class
+        engine_defs = [
+            ("line", LineCountEngine),
+            ("lint", LintEngine),
+            ("test", TestEngine),
+            ("type", TypeCheckEngine),
+            ("complexity", ComplexityEngine),
+            ("sanitize", SanitizeEngine),
+            ("dead", DeadCodeEngine),
+            ("dup", DuplicateEngine),
+            ("exception", ExceptionSafetyEngine),
+            ("cov", CoverityInterface),
+            ("sam", SAMInterface),
         ]
 
         tem_score = None
         has_failure = False
         has_warning = False
 
-        for engine in engines:
-            res = engine.run()
+        for name, engine_cls in engine_defs:
+            eng_cfg = get_engine_config(self.config, name)
+            if not eng_cfg.get("enabled", True):
+                continue
+
+            engine_instance = engine_cls(self.project_root, self.config)
+            res = engine_instance.run()
             results.append(res)
+
             if res.engine_name == "test" and res.score is not None:
                 tem_score = res.score
             if res.status == EngineStatus.FAIL:

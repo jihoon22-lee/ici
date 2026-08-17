@@ -1,4 +1,4 @@
-"""1. Line Count Engine — 500-line WARN / 1000-line ERROR Rules."""
+"""1. Line Count Engine — 500-line WARN / 1000-line ERROR Rules with Policy & Tree Data."""
 
 import time
 from pathlib import Path
@@ -30,10 +30,16 @@ class LineCountEngine(BaseEngine):
 
     def run(self) -> EngineResult:
         t0 = time.time()
+        cfg = self.get_config("line")
+        warn_limit = cfg.get("warn_limit", 500)
+        fail_limit = cfg.get("fail_limit", 1000)
+        mode = cfg.get("mode", "pass_warn_fail")
+
         target_dirs = ["src", "include", "tests", "lib", "app", "docs", "scripts"]
 
         total_code, total_comments, total_blanks = 0, 0, 0
         targets: list[InspectionTarget] = []
+        files_data: list[dict] = []
         has_error = False
         has_warn = False
 
@@ -56,17 +62,15 @@ class LineCountEngine(BaseEngine):
 
                 rel_p = str(filepath.relative_to(self.project_root))
 
-                # Check 500 / 1000 pure code lines threshold
-                if code > 1000:
+                # Check thresholds
+                if fail_limit is not None and code > fail_limit:
                     status = EngineStatus.FAIL
                     has_error = True
-                    msg = (
-                        f"Pure code lines ({code}) exceed 1,000 lines limit (Refactoring required)"
-                    )
-                elif code > 500:
+                    msg = f"Pure code lines ({code}) exceed {fail_limit} lines limit (Refactoring required)"
+                elif warn_limit is not None and code > warn_limit:
                     status = EngineStatus.WARN
                     has_warn = True
-                    msg = f"Pure code lines ({code}) exceed 500 lines threshold (Split recommended)"
+                    msg = f"Pure code lines ({code}) exceed {warn_limit} lines threshold (Split recommended)"
                 else:
                     status = EngineStatus.PASS
                     msg = f"{code} code lines, {comment} comments, {blank} blanks"
@@ -88,13 +92,25 @@ class LineCountEngine(BaseEngine):
                     )
                 )
 
+                files_data.append(
+                    {
+                        "path": rel_p,
+                        "lang": EXT_MAP[filepath.suffix],
+                        "code": code,
+                        "comment": comment,
+                        "blank": blank,
+                        "total": total_lines,
+                        "status": status.value,
+                    }
+                )
+
+        # Top 5 largest files by code lines
+        files_data.sort(key=lambda x: x["code"], reverse=True)
+        top_files = files_data[:5]
+
         duration = time.time() - t0
         total_all = total_code + total_comments + total_blanks
-        overall_status = (
-            EngineStatus.FAIL
-            if has_error
-            else (EngineStatus.WARN if has_warn else EngineStatus.PASS)
-        )
+        overall_status = self.evaluate_status(has_error, has_warn, mode)
 
         summary = (
             f"Total {total_all:,} lines ({total_code:,} code, {total_comments:,} comment, {total_blanks:,} blank) "
@@ -112,6 +128,8 @@ class LineCountEngine(BaseEngine):
                 "comment": total_comments,
                 "blank": total_blanks,
                 "total": total_all,
+                "files_data": files_data,
+                "top_files": top_files,
                 "metrics_summary": f"{total_code:,} code / {len(targets)} files",
             },
         )

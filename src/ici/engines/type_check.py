@@ -21,20 +21,18 @@ class TypeCheckEngine(BaseEngine):
         t0 = time.time()
         proj_type = detect_project_type(self.project_root)
         targets: list[InspectionTarget] = []
-        has_error = False
 
         if proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py")):
-            has_error = self._check_python_types(targets)
+            _ = self._check_python_types(targets)
 
         duration = time.time() - t0
         fail_count = sum(1 for t in targets if t.status == EngineStatus.FAIL)
         warn_count = sum(1 for t in targets if t.status == EngineStatus.WARN)
 
-        overall_status = (
-            EngineStatus.FAIL
-            if has_error
-            else (EngineStatus.WARN if warn_count > 0 else EngineStatus.PASS)
-        )
+        cfg = self.get_config("type")
+        mode = cfg.get("mode", "pass_warn")
+        overall_status = self.evaluate_status(fail_count > 0, warn_count > 0, mode)
+
         summary = (
             "Static Type Check Passed"
             if overall_status == EngineStatus.PASS
@@ -101,8 +99,10 @@ class TypeCheckEngine(BaseEngine):
                     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                         if node.name.startswith("__"):
                             continue
+                        cfg = self.get_config("type")
+                        warn_on_missing = cfg.get("warn_on_missing_annotation", False)
                         # Check return annotation
-                        if node.returns is None:
+                        if node.returns is None and warn_on_missing:
                             targets.append(
                                 InspectionTarget(
                                     file_path=rel_p,
@@ -112,7 +112,7 @@ class TypeCheckEngine(BaseEngine):
                                     message=f"Function '{node.name}' is missing return type annotation",
                                 )
                             )
-                        else:
+                        elif node.returns is not None:
                             targets.append(
                                 InspectionTarget(
                                     file_path=rel_p,

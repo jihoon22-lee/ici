@@ -76,17 +76,29 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
             border = "red" if issue.status == EngineStatus.FAIL else "yellow"
             issue_panel_content = []
 
-            for target in issue.targets:
-                if target.status in (EngineStatus.FAIL, EngineStatus.WARN):
-                    link_str = make_terminal_link(target.file_path, target.start_line, base)
-                    line_hdr = f"[{border}]• [{target.status.value}][/] [bold]{link_str}[/] ({target.target_name or 'issue'})"
+            if issue.engine_name == "dup" and "clone_groups" in issue.extra:
+                for g in issue.extra["clone_groups"]:
+                    occ_links = [
+                        make_terminal_link(occ["file_path"], occ["start_line"], base)
+                        for occ in g["occurrences"]
+                    ]
+                    line_hdr = f"[{border}]• [CloneGroup#{g['id']}][/] [bold]{' <-> '.join(occ_links)}[/] ({g['lines_count']} duplicate lines)"
                     issue_panel_content.append(line_hdr)
-                    if target.message:
-                        issue_panel_content.append(f"  [dim]{target.message}[/dim]")
-                    if target.snippet:
-                        snippet_lines = target.snippet.strip().splitlines()
-                        for s_line in snippet_lines[:6]:
+                    if g.get("snippet"):
+                        for s_line in g["snippet"].strip().splitlines()[:4]:
                             issue_panel_content.append(f"    [dim white]│[/dim white] {s_line}")
+            else:
+                for target in issue.targets:
+                    if target.status in (EngineStatus.FAIL, EngineStatus.WARN):
+                        link_str = make_terminal_link(target.file_path, target.start_line, base)
+                        line_hdr = f"[{border}]• [{target.status.value}][/] [bold]{link_str}[/] ({target.target_name or 'issue'})"
+                        issue_panel_content.append(line_hdr)
+                        if target.message:
+                            issue_panel_content.append(f"  [dim]{target.message}[/dim]")
+                        if target.snippet:
+                            snippet_lines = target.snippet.strip().splitlines()
+                            for s_line in snippet_lines[:6]:
+                                issue_panel_content.append(f"    [dim white]│[/dim white] {s_line}")
 
             if issue_panel_content:
                 console.print(
