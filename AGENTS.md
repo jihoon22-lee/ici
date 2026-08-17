@@ -4,7 +4,26 @@
 
 ---
 
-## 1. 커밋 규약 및 문서화 불변식 (Strict Rules)
+## 1. 브랜치 기반 개발 전략 (Branching Strategy)
+
+- **`main` 브랜치 직접 작업 금지**: 모든 변경 사항은 반드시 목적에 맞는 별도 브랜치에서 작업한 후 `main`에 병합(Merge)해야 한다.
+- **브랜치 네이밍 규칙**:
+  - `feat/<feature-name>`: 새로운 엔진, 리포터, CLI 옵션, 핵심 기능 개발
+  - `fix/<issue-name>`: 버그 수정, 린트/타입 오류 해결, 예외 처리 개선
+  - `refactor/<target>`: 기능 변경 없는 구조 개선, 복잡도 분리, 모듈화
+  - `docs/<doc-name>`: 문서 추가, `CHANGELOG.md` 및 가이드 작성
+  - `test/<test-name>`: 테스트 케이스 추가 및 검증 로직 보강
+  - `chore/<task-name>`: 빌드 스크립트, 의존성, CI/CD 설정 변경
+- **병합 절차 (Merge Workflow)**:
+  1. 기능 브랜치에서 작업 진행
+  2. 품질 게이트 검증 수행 (`pytest`, `ruff`, `smoke.sh`)
+  3. Conventional Commit 메시지로 브랜치에 커밋
+  4. `main` 브랜치로 전환 후 병합 (`git checkout main && git merge <branch>`)
+  5. 병합 완료 후 작업 브랜치 삭제 (`git branch -d <branch>`)
+
+---
+
+## 2. 커밋 규약 및 문서화 불변식 (Strict Rules)
 
 - **작업 단위별 즉각 커밋 의무**: 의미 있는 기능 구현, 버그 수정, 리팩토링, UI 개선 단위 작업이 완료될 때마다 즉시 Git 커밋을 수행해야 한다.
 - **Conventional Commits 준수**:
@@ -19,7 +38,7 @@
 
 ---
 
-## 2. 런타임 제약
+## 3. 런타임 제약
 
 - **Python 3.10 하한**: 개발은 최신 Python에서 하더라도 산출물은 Python 3.10에서 동작해야 한다.
   - 3.11+ 문법(예: `tomllib`, `ExceptionGroup`, `match-case` 등 3.10 지원 여부 확인) 사용 금지.
@@ -30,7 +49,7 @@
 
 ---
 
-## 3. 패키징 및 단일 파일 배포
+## 4. 패키징 및 단일 파일 배포
 
 - **산출물**: `dist/ici.pyz` 단일 파일로 빌드된다.
 - **Polyglot 런처**: `scripts/launcher.sh` 프리앰블이 shebang 자리에 붙어, 시스템 내 `ICI_PYTHON` 또는 3.10+ 인터프리터를 스스로 탐색하여 실행한다.
@@ -39,7 +58,7 @@
 
 ---
 
-## 4. 코드 설계 원칙
+## 5. 코드 설계 원칙
 
 1. **위치 추적 필수**: 모든 검증 엔진은 PASS/FAIL 여부와 무관하게 검사된 모든 대상의 파일 경로와 라인 번호(`InspectionTarget`)를 반환해야 한다.
 2. **다중 리포터 분리**: 검증 엔진 로직은 출력(터미널/Markdown/HTML/JSON)과 분리되어야 하며, `EngineResult` 객체를 생성하여 리포터 계층에 전달한다.
@@ -49,7 +68,7 @@
 
 ---
 
-## 5. 테스트 및 품질 게이트
+## 6. 테스트 및 품질 게이트
 
 ```bash
 uv run --python 3.10 pytest
