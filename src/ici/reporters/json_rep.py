@@ -46,4 +46,4 @@ def save_json_report(suite: VerificationSuiteResult, output_path: Path) -> None:
     }
 
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+        json.dump(data, f, indent=2, ensure_ascii=False, default=str)

@@ -1,8 +1,9 @@
-"""8. Code Clone & Duplication Detection Engine with Cluster Grouping."""
+"""8. Code Clone & Duplication Detection Engine with Clean Modular Helpers."""
 
 import hashlib
 import time
 from collections import defaultdict
+from pathlib import Path
 
 from ici.core.models import EngineResult, EngineStatus, InspectionTarget
 from ici.core.project import (
@@ -11,9 +12,12 @@ from ici.core.project import (
 )
 from ici.engines.base import BaseEngine
 
+FileData = tuple[str, list[str], list[tuple[int, str]]]
+CloneTuple = tuple[int, int, int, int, int, int, int]
+
 
 class DuplicateEngine(BaseEngine):
-    """Detects copy-pasted code blocks across files using token/line hash sliding windows."""
+    """Detects maximal copy-pasted code blocks across files with raw formatting preservation."""
 
     def run(self) -> EngineResult:
         t0 = time.time()
@@ -27,82 +31,12 @@ class DuplicateEngine(BaseEngine):
         cpp_sources = get_all_cpp_sources(self.project_root)
         all_sources = py_sources + cpp_sources
 
-        # Map hash -> list of (file_rel, start_line, end_line, sample_text)
-        block_map: dict[str, list[tuple[str, int, int, str]]] = defaultdict(list)
-        total_code_lines = 0
-        duplicate_lines_count = 0
-
-        for src_file in all_sources:
-            try:
-                rel_p = str(src_file.relative_to(self.project_root))
-                normalized_lines = []
-                orig_line_nums = []
-
-                with open(src_file, encoding="utf-8", errors="ignore") as f:
-                    for line_idx, line in enumerate(f, 1):
-                        stripped = line.strip()
-                        if stripped and not stripped.startswith(
-                            ("#", "//", "/*", "*", "import ", "from ", "#include")
-                        ):
-                            normalized_lines.append(self._normalize_line(stripped))
-                            orig_line_nums.append(line_idx)
-                            total_code_lines += 1
-
-                # Sliding window
-                for i in range(len(normalized_lines) - window_size + 1):
-                    window = "".join(normalized_lines[i : i + window_size])
-                    w_hash = hashlib.sha256(window.encode("utf-8")).hexdigest()
-                    start_l = orig_line_nums[i]
-                    end_l = orig_line_nums[i + window_size - 1]
-                    sample = "\n".join(normalized_lines[i : i + window_size])
-                    block_map[w_hash].append((rel_p, start_l, end_l, sample))
-            except (OSError, UnicodeDecodeError) as err:
-                _ = err
-
-        # Group into Clone Groups
-        clone_groups: list[dict] = []
-        targets: list[InspectionTarget] = []
-        group_idx = 1
-
-        for _w_hash, occurrences in block_map.items():
-            if len(occurrences) > 1:
-                # Merge duplicate files in this group
-                duplicate_lines_count += (len(occurrences) - 1) * window_size
-                sample_snippet = occurrences[0][3]
-                occ_list = []
-
-                for f_p, s_l, e_l, _ in occurrences:
-                    occ_list.append(
-                        {
-                            "file_path": f_p,
-                            "start_line": s_l,
-                            "end_line": e_l,
-                            "loc": f"{f_p}:{s_l}-{e_l}",
-                        }
-                    )
-                    targets.append(
-                        InspectionTarget(
-                            file_path=f_p,
-                            start_line=s_l,
-                            end_line=e_l,
-                            target_name=f"CloneGroup#{group_idx}",
-                            status=EngineStatus.WARN,
-                            message=f"Duplicate code block ({window_size} lines) across {len(occurrences)} locations",
-                            snippet=sample_snippet[:200],
-                            metrics={"clone_group": group_idx, "occurrences": len(occurrences)},
-                        )
-                    )
-
-                clone_groups.append(
-                    {
-                        "id": group_idx,
-                        "lines_count": window_size,
-                        "occurrences_count": len(occurrences),
-                        "occurrences": occ_list,
-                        "snippet": sample_snippet[:250],
-                    }
-                )
-                group_idx += 1
+        files_data, total_code_lines = self._load_and_index_files(all_sources)
+        raw_clones = self._find_raw_clones(files_data, window_size)
+        filtered_clones = self._filter_subsumed_clones(raw_clones)
+        clone_groups, targets, duplicate_lines_count = self._assemble_groups(
+            filtered_clones, files_data
+        )
 
         dup_pct = (
             (duplicate_lines_count / total_code_lines * 100.0) if total_code_lines > 0 else 0.0
@@ -113,7 +47,7 @@ class DuplicateEngine(BaseEngine):
         has_warn = dup_pct > warn_pct or len(clone_groups) > 0
         overall_status = self.evaluate_status(has_fail, has_warn, mode)
 
-        summary = f"Code Duplication Rate: {dup_pct:.1f}% ({len(clone_groups)} duplicate clone groups found)"
+        summary = f"Code Duplication Rate: {dup_pct:.1f}% ({len(clone_groups)} distinct clone groups found)"
 
         return self.create_result(
             name="dup",
@@ -129,6 +63,155 @@ class DuplicateEngine(BaseEngine):
                 "metrics_summary": f"Duplication: {dup_pct:.1f}% ({len(clone_groups)} groups)",
             },
         )
+
+    def _load_and_index_files(self, all_sources: list[Path]) -> tuple[list[FileData], int]:
+        files_data: list[FileData] = []
+        total_code_lines = 0
+
+        for src_file in all_sources:
+            try:
+                rel_p = str(src_file.relative_to(self.project_root))
+                with open(src_file, encoding="utf-8", errors="ignore") as f:
+                    raw_lines = f.readlines()
+
+                indexed = []
+                for idx, r_line in enumerate(raw_lines, 1):
+                    s = r_line.strip()
+                    if s and not s.startswith(
+                        ("#", "//", "/*", "*", "import ", "from ", "#include")
+                    ):
+                        norm = self._normalize_line(s)
+                        if norm:
+                            indexed.append((idx, norm))
+                            total_code_lines += 1
+
+                files_data.append((rel_p, raw_lines, indexed))
+            except (OSError, UnicodeDecodeError) as err:
+                _ = err
+
+        return files_data, total_code_lines
+
+    def _find_raw_clones(self, files_data: list[FileData], window_size: int) -> list[CloneTuple]:
+        window_map: dict[str, list[tuple[int, int]]] = defaultdict(list)
+        for f_idx, (_, _, indexed) in enumerate(files_data):
+            for t_pos in range(len(indexed) - window_size + 1):
+                w_str = "".join(indexed[t_pos + k][1] for k in range(window_size))
+                w_hash = hashlib.sha256(w_str.encode("utf-8")).hexdigest()
+                window_map[w_hash].append((f_idx, t_pos))
+
+        matched_pairs: set[tuple[int, int, int, int]] = set()
+        raw_clones: list[CloneTuple] = []
+
+        for occs in window_map.values():
+            if len(occs) < 2:
+                continue
+            for i in range(len(occs)):
+                f1, p1 = occs[i]
+                for j in range(i + 1, len(occs)):
+                    f2, p2 = occs[j]
+                    if (f1, p1, f2, p2) in matched_pairs:
+                        continue
+
+                    _, _, idx1 = files_data[f1]
+                    _, _, idx2 = files_data[f2]
+                    k = 0
+                    while (
+                        p1 + k < len(idx1)
+                        and p2 + k < len(idx2)
+                        and idx1[p1 + k][1] == idx2[p2 + k][1]
+                    ):
+                        matched_pairs.add((f1, p1 + k, f2, p2 + k))
+                        k += 1
+
+                    if k >= window_size:
+                        s1 = idx1[p1][0]
+                        e1 = idx1[p1 + k - 1][0]
+                        s2 = idx2[p2][0]
+                        e2 = idx2[p2 + k - 1][0]
+                        raw_clones.append((f1, s1, e1, f2, s2, e2, k))
+
+        return raw_clones
+
+    def _filter_subsumed_clones(self, raw_clones: list[CloneTuple]) -> list[CloneTuple]:
+        raw_clones.sort(key=lambda x: x[6], reverse=True)
+        filtered_clones: list[CloneTuple] = []
+
+        for clone in raw_clones:
+            f1, s1, e1, f2, s2, e2, _ = clone
+            is_subsumed = any(
+                f1 == pf1 and f2 == pf2 and ps1 <= s1 and pe1 >= e1 and ps2 <= s2 and pe2 >= e2
+                for pf1, ps1, pe1, pf2, ps2, pe2, _ in filtered_clones
+            )
+            if not is_subsumed:
+                filtered_clones.append(clone)
+
+        return filtered_clones
+
+    def _assemble_groups(
+        self, filtered_clones: list[CloneTuple], files_data: list[FileData]
+    ) -> tuple[list[dict], list[InspectionTarget], int]:
+        clone_groups: list[dict] = []
+        targets: list[InspectionTarget] = []
+        duplicate_lines_count = 0
+
+        for group_idx, (f1, s1, e1, f2, s2, e2, k) in enumerate(filtered_clones, 1):
+            file1_path, file1_raw, _ = files_data[f1]
+            file2_path, _, _ = files_data[f2]
+
+            raw_snippet = "".join(file1_raw[s1 - 1 : e1])
+            duplicate_lines_count += k
+
+            occ_list = [
+                {
+                    "file_path": file1_path,
+                    "start_line": s1,
+                    "end_line": e1,
+                    "loc": f"{file1_path}:{s1}-{e1}",
+                },
+                {
+                    "file_path": file2_path,
+                    "start_line": s2,
+                    "end_line": e2,
+                    "loc": f"{file2_path}:{s2}-{e2}",
+                },
+            ]
+
+            clone_groups.append(
+                {
+                    "id": group_idx,
+                    "lines_count": k,
+                    "occurrences_count": 2,
+                    "occurrences": occ_list,
+                    "snippet": raw_snippet.strip(),
+                }
+            )
+
+            targets.append(
+                InspectionTarget(
+                    file_path=file1_path,
+                    start_line=s1,
+                    end_line=e1,
+                    target_name=f"CloneGroup#{group_idx}",
+                    status=EngineStatus.WARN,
+                    message=f"Duplicate code block ({k} lines) shared between {file1_path} and {file2_path}",
+                    snippet=raw_snippet[:300],
+                    metrics={"clone_group": group_idx, "duplicate_lines": k},
+                )
+            )
+            targets.append(
+                InspectionTarget(
+                    file_path=file2_path,
+                    start_line=s2,
+                    end_line=e2,
+                    target_name=f"CloneGroup#{group_idx}",
+                    status=EngineStatus.WARN,
+                    message=f"Duplicate code block ({k} lines) shared between {file1_path} and {file2_path}",
+                    snippet=raw_snippet[:300],
+                    metrics={"clone_group": group_idx, "duplicate_lines": k},
+                )
+            )
+
+        return clone_groups, targets, duplicate_lines_count
 
     def _normalize_line(self, line: str) -> str:
         """Removes spaces and quotes to match structurally identical lines."""

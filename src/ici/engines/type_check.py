@@ -112,16 +112,6 @@ class TypeCheckEngine(BaseEngine):
                                     message=f"Function '{node.name}' is missing return type annotation",
                                 )
                             )
-                        elif node.returns is not None:
-                            targets.append(
-                                InspectionTarget(
-                                    file_path=rel_p,
-                                    start_line=node.lineno,
-                                    target_name=f"{node.name}()",
-                                    status=EngineStatus.PASS,
-                                    message="Type annotated function",
-                                )
-                            )
             except (SyntaxError, OSError) as err:
                 _ = err
 

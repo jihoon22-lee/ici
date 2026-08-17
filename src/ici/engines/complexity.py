@@ -57,6 +57,25 @@ class ComplexityEngine(BaseEngine):
             f"({len(issue_targets)} issues)"
         )
 
+        # Sort all targets by complexity descending
+        sorted_targets = sorted(
+            all_targets, key=lambda x: x.metrics.get("complexity", 0), reverse=True
+        )
+
+        top_funcs_data = [
+            {
+                "file_path": t.file_path,
+                "start_line": t.start_line,
+                "end_line": t.end_line,
+                "target_name": t.target_name,
+                "status": t.status.value,
+                "message": t.message,
+                "snippet": t.snippet,
+                "metrics": t.metrics,
+            }
+            for t in sorted_targets[:15]
+        ]
+
         return self.create_result(
             name="complexity",
             status=overall_status,
@@ -68,6 +87,7 @@ class ComplexityEngine(BaseEngine):
                 "max_complexity": max_cc,
                 "total_functions": len(all_targets),
                 "issues_count": len(issue_targets),
+                "top_complex_funcs": top_funcs_data,
                 "metrics_summary": f"Max CC: {max_cc} ({len(issue_targets)} issues / {len(all_targets)} funcs)",
             },
         )
@@ -101,6 +121,7 @@ class ComplexityEngine(BaseEngine):
                             msg = f"Complexity: {cc}, Nesting: {nesting}"
 
                         end_line = getattr(node, "end_lineno", node.lineno + 10)
+                        snippet = ast.get_source_segment(content, node) or ""
                         targets.append(
                             InspectionTarget(
                                 file_path=rel_p,
@@ -109,6 +130,7 @@ class ComplexityEngine(BaseEngine):
                                 target_name=f"{node.name}()",
                                 status=st,
                                 message=msg,
+                                snippet=snippet,
                                 metrics={"complexity": cc, "nesting": nesting},
                             )
                         )

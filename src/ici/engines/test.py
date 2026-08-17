@@ -78,6 +78,32 @@ class TestEngine(BaseEngine):
         ):
             has_warn = True
 
+        # Group into test_suites
+        suite_map: dict[str, dict] = {}
+        for t in targets:
+            f_path = t.file_path
+            if f_path not in suite_map:
+                suite_map[f_path] = {
+                    "file": f_path,
+                    "passed": 0,
+                    "failed": 0,
+                    "total": 0,
+                    "tests": [],
+                }
+            suite_map[f_path]["total"] += 1
+            if t.status == EngineStatus.PASS:
+                suite_map[f_path]["passed"] += 1
+            else:
+                suite_map[f_path]["failed"] += 1
+            suite_map[f_path]["tests"].append(
+                {
+                    "name": t.target_name,
+                    "status": t.status.value,
+                    "message": t.message,
+                }
+            )
+        test_suites = list(suite_map.values())
+
         duration = time.time() - t0
         overall_status = self.evaluate_status(has_failure, has_warn, mode)
         summary = (
@@ -99,6 +125,7 @@ class TestEngine(BaseEngine):
                 "branch_coverage": branch_cov,
                 "function_coverage": func_cov,
                 "tem_score": tem_score,
+                "test_suites": test_suites,
                 "metrics_summary": f"TEM: {tem_score:.2f}/5.0 (Branch: {branch_cov:.0f}%, Func: {func_cov:.0f}%)",
             },
         )
