@@ -1,5 +1,9 @@
 # ici 시스템 아키텍처 및 상세 설계 (System Architecture Guide)
 
+> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; [🚀 사용자 가이드](user-guide.md) &bull; [📏 검증 엔진 레퍼런스](engine-reference.md) &bull; [⚙️ CI/CD 연동 가이드](ci-integration.md) &bull; **🏛️ 시스템 아키텍처** &bull; [📋 CHANGELOG](../CHANGELOG.md)
+
+---
+
 이 문서는 `ici` (Integrated CI)의 시스템 설계, 내부 아키텍처, 런타임 수명 주기, 엔진 파이프라인 및 확장 방법을 상세히 기술합니다.
 
 ---
@@ -186,6 +190,7 @@ ici/
    from ici.core.models import EngineResult, EngineStatus
    from ici.engines.base import BaseEngine
 
+
    class SecurityEngine(BaseEngine):
        def run(self) -> EngineResult:
            cfg = self.get_config("security")
@@ -200,3 +205,7 @@ ici/
 2. `src/ici/config.py`의 `DEFAULT_CONFIG["policy"]`에 기본 정책 추가
 3. `src/ici/engines/verify.py`의 `AVAILABLE_ENGINES`에 등록
 4. `tests/`에 단위 테스트 추가
+
+---
+
+> **기여 및 개발 규약**: [📜 AGENTS.md](../AGENTS.md)에서 브랜칭 전략과 커밋 규약을 확인하세요.

@@ -10,13 +10,16 @@ $ ici doctor
 
 ---
 
-## 📚 상세 가이드 문서 (Documentation)
+## 📚 문서 허브 (Documentation Hub)
 
-- **[사용자 가이드 (User Guide)](docs/user-guide.md)**: 설치, 실행법, CLI 옵션, IDE 점프 네비게이션
-- **[검증 엔진 레퍼런스 (Engine Reference)](docs/engine-reference.md)**: 9대 품질 검증 엔진, TEM 스코어링 공식, `ici.toml` 정책 설정
-- **[CI/CD 연동 가이드 (CI Integration)](docs/ci-integration.md)**: GitHub Actions 워크플로우, Step Summary, PR 어노테이션, Self-Hosted Runner
-- **[시스템 아키텍처 (Architecture Guide)](docs/architecture.md)**: ZipApp 패키징, Polyglot 런처, 오케스트레이터 및 리포터 설계
-- **[변경 이력 (CHANGELOG)](CHANGELOG.md)**: 버전별 상세 릴리스 노트
+| 문서 | 설명 | 바로가기 |
+|---|---|---|
+| **🚀 사용자 가이드** | 빠른 시작, 설치, 전체 CLI 사용법 및 IDE 원클릭 점프 | [docs/user-guide.md](docs/user-guide.md) |
+| **📏 검증 엔진 레퍼런스** | 9대 품질 검증 엔진, TEM 스코어링 공식, `ici.toml` 정책 설정 | [docs/engine-reference.md](docs/engine-reference.md) |
+| **⚙️ CI/CD 연동 가이드** | GitHub Actions, Step Summary, PR 어노테이션, 사내 폐쇄망 러너 | [docs/ci-integration.md](docs/ci-integration.md) |
+| **🏛️ 시스템 아키텍처** | ZipApp 패키징, Polyglot 런처, 오케스트레이터 및 리포터 계층 설계 | [docs/architecture.md](docs/architecture.md) |
+| **📋 변경 이력 (CHANGELOG)** | 버전별 상세 릴리스 노트 및 마일스톤 | [CHANGELOG.md](CHANGELOG.md) |
+| **📜 개발 및 기여 규약** | 브랜칭 전략, 커밋 룰, 런타임 제약 및 불변식 | [AGENTS.md](AGENTS.md) |
 
 ---
 
@@ -75,20 +78,20 @@ ici verify --report --html verify_report.html --open
 
 ## 📋 명령어 일람
 
-| 명령어 | 설명 |
-|---|---|
-| `ici verify` | 9대 검증 엔진 일괄 실행 및 종합 대시보드 출력 (`--report`, `--html`, `--github-summary`) |
-| `ici line` | 코드/주석/공백 분석 및 500/1000 라인 과대화 검증 |
-| `ici lint` | 문법 린팅 및 스타일/포맷팅 검증 |
-| `ici test` | 단위 테스트 실행 및 커버리지/TEM 스코어 산출 |
-| `ici type` | 정적 타입 검사 |
-| `ici complexity` | 순환 복잡도 및 중첩 깊이 분석 |
-| `ici sanitize` | C++ ASan/UBSan 메모리 안전성 검증 |
-| `ici dead` | 죽은 코드 및 미사용 심볼 검출 |
-| `ici dup` | 중복 코드 / Copy-Paste 감지 |
-| `ici exception` | 예외 처리 안전성 검출 |
-| `ici cov` | Coverity 확장 인터페이스 |
-| `ici sam` | SAM 보안 스캐너 확장 인터페이스 |
-| `ici build` | 아티팩트 컴파일, 패키징 및 `env.sh`/`env.csh` 생성 |
-| `ici doctor` | 시스템/툴체인/파이썬 환경 종합 진단 |
-| `ici env` | 셸 환경 설정 스니펫 생성 (`--sh` / `--csh`) |
+| 명령어 | 설명 | 상세 가이드 |
+|---|---|---|
+| `ici verify` | 9대 검증 엔진 일괄 실행 및 종합 대시보드 출력 (`--report`, `--html`, `--github-summary`) | [사용자 가이드](docs/user-guide.md#2-검증-실행-ici-verify) |
+| `ici line` | 코드/주석/공백 분석 및 500/1000 라인 과대화 검증 | [엔진 레퍼런스](docs/engine-reference.md#21--line-코드-라인-및-파일-크기-분석기) |
+| `ici lint` | 문법 린팅 및 스타일/포맷팅 검증 | [엔진 레퍼런스](docs/engine-reference.md#22--lint-문법-및-코드-스타일-린터) |
+| `ici test` | 단위 테스트 실행 및 커버리지/TEM 스코어 산출 | [엔진 레퍼런스](docs/engine-reference.md#23--test--tem-스코어링-단위-테스트-및-테스트-효과성-지표) |
+| `ici type` | 정적 타입 검사 | [엔진 레퍼런스](docs/engine-reference.md#24-️-type-정적-타입-안정성-검사기) |
+| `ici complexity` | 순환 복잡도 및 중첩 깊이 분석 | [엔진 레퍼런스](docs/engine-reference.md#25--complexity-순환-복잡도-및-블록-중첩도) |
+| `ici sanitize` | C++ ASan/UBSan 메모리 안전성 검증 | [엔진 레퍼런스](docs/engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |
+| `ici dead` | 죽은 코드 및 미사용 심볼 검출 | [엔진 레퍼런스](docs/engine-reference.md#27--dead-죽은-코드-및-미사용-심볼) |
+| `ici dup` | 중복 코드 / Copy-Paste 감지 | [엔진 레퍼런스](docs/engine-reference.md#28--dup-코드-복제-및-중복률-감지기) |
+| `ici exception` | 예외 처리 안전성 검출 | [엔진 레퍼런스](docs/engine-reference.md#29-️-exception-예외-처리-안전성-검출기) |
+| `ici cov` | Coverity 확장 인터페이스 | [엔진 레퍼런스](docs/engine-reference.md#3-엔터프라이즈-확장-도구-인터페이스) |
+| `ici sam` | SAM 보안 스캐너 확장 인터페이스 | [엔진 레퍼런스](docs/engine-reference.md#3-엔터프라이즈-확장-도구-인터페이스) |
+| `ici build` | 아티팩트 컴파일, 패키징 및 `env.sh`/`env.csh` 생성 | [사용자 가이드](docs/user-guide.md) |
+| `ici doctor` | 시스템/툴체인/파이썬 환경 종합 진단 | [사용자 가이드](docs/user-guide.md#12-실행-환경-진단-ici-doctor) |
+| `ici env` | 셸 환경 설정 스니펫 생성 (`--sh` / `--csh`) | [사용자 가이드](docs/user-guide.md) |

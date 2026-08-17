@@ -1,5 +1,9 @@
 # ici CI/CD 연동 가이드 (GitHub Actions & Self-Hosted Runner)
 
+> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; [🚀 사용자 가이드](user-guide.md) &bull; [📏 검증 엔진 레퍼런스](engine-reference.md) &bull; **⚙️ CI/CD 연동 가이드** &bull; [🏛️ 시스템 아키텍처](architecture.md) &bull; [📋 CHANGELOG](../CHANGELOG.md)
+
+---
+
 `ici`는 로컬 터미널에서 실행했을 때와 **GitHub Actions / Self-Hosted Runner** 환경에서 실행했을 때 100% 동일한 검증 결과와 품질 게이트를 보장합니다.
 
 ---
@@ -72,3 +76,7 @@ https://<org>.github.io/<repo>/reports/pr-123/verify_report.html
    - 시스템 기본 `python3`가 3.6/3.8인 RHEL 8 환경이라도, `scripts/launcher.sh`가 사내 표준 파이썬 경로 또는 `ICI_PYTHON` 환경변수를 자동 탐색하여 3.10+ 엔진으로 구동됩니다.
 2. **보안/방화벽 무관**:
    - 외부 PyPI 통신, CDN 자바스크립트 호출, certifi 인증서 가로챔 이슈가 전혀 없는 순수 독립 바이너리로 실행됩니다.
+
+---
+
+> **다음 단계**: [🏛️ 시스템 아키텍처 가이드 (Architecture Guide)](architecture.md)에서 `ici`의 내부 엔진 파이프라인과 패키징 메커니즘을 확인하세요.

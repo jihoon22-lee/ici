@@ -1,5 +1,9 @@
 # ici 검증 엔진 레퍼런스 (Engine Reference)
 
+> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; [🚀 사용자 가이드](user-guide.md) &bull; **📏 검증 엔진 레퍼런스** &bull; [⚙️ CI/CD 연동 가이드](ci-integration.md) &bull; [🏛️ 시스템 아키텍처](architecture.md) &bull; [📋 CHANGELOG](../CHANGELOG.md)
+
+---
+
 `ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 9대 핵심 검증 엔진과 엔터프라이즈 도구 인터페이스를 제공합니다.
 
 ---
@@ -52,7 +56,7 @@ fail_pct = 15.0
   - 파일당 순수 코드(코드 라인) 기준으로 크기 과대화 진단
   - `warn_limit` (기본 500줄): 모듈 분리 검토 권고
   - `fail_limit` (기본 1000줄): 단일 파일 과대화 실패
-- **출력 메트릭**: 코드 라인, 주석 라인, 공백 라인 수 및 디렉토리 계층 트리
+- **출력 메트릭**: 코드 라인, 주석 라인, 공백 라인 수 및 디렉토리 계층 트리 ([HTML 뷰어 지원](user-guide.md#22-인터랙티브-html-리포트-생성-및-자동-브라우저-열기))
 
 ### 2.2 🧹 `lint` (문법 및 코드 스타일 린터)
 - **Python**: `ruff check` (에러/버그) + `ruff format --check` (코드 포맷팅 일치 여부)
@@ -104,3 +108,7 @@ fail_pct = 15.0
 - **`cov` (Coverity)**: 정적 보안 취약점 분석 연동
 - **`sam` (SAM)**: 사내 전용 보안 취약점 스캐너 연동
 - 기본 설정에서 로컬 빌드 속도를 위해 `enabled = false`로 지정되어 있으며, 필요 시 파이프라인에서 활성화할 수 있습니다.
+
+---
+
+> **다음 단계**: [⚙️ CI/CD 연동 가이드](ci-integration.md)에서 GitHub Actions 및 폐쇄망 러너 연동법을 확인하세요.
