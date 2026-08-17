@@ -39,12 +39,13 @@ $ ici doctor
    - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출
    - `dup`: **연속 중복 블록 병합(Maximal Clone Merging)** 및 원본 인덴트 보존 중복률 산출
    - `exception`: 예외 삼킴(`except: pass`), Traceback 유실, 소멸자 throw 차단
-4. **5개 전용 탭 인터랙티브 Zero-CDN HTML 대시보드 (`--html`)**:
-   - `📋 Verification Suites`: 핵심 KPI, TEM 품질 게이지 및 전용 탭 원클릭 점프
-   - `📊 Line Analysis & Explorer`: 코드/주석/공백 분포 바, Top 5 차트, **깊이별 인덴트 탐색기 트리**
-   - `🧩 Complexity & Code`: Top 15 복잡도 리더보드 + **들여쓰기된 소스 코드 블록 박스**
-   - `📦 Clone Groups`: 중복 블록 병합 카드 + **원본 인덴트 코드 박스** + 위치 태그
-   - `⚠️ Issues`: 전체 조치 필요(WARN/FAIL) 항목 통합 뷰
+4. **6개 전용 탭 인터랙티브 Zero-CDN HTML 대시보드 (`--html`)**:
+   - `📋 Verification Suites`: 종합 품질 게이지, TEM 스코어, 9대 엔진 상태 및 전용 탭 점프 버튼
+   - `📊 Line Analysis & Explorer`: 전체 너비(Full-Width) 계층형 파일 트리 탐색기 + 실시간 파일 검색 + 코드 분포 차트
+   - `🧪 Tests & Coverage`: 4대 커버리지 KPI 게이지 + 파일별 테스트 스위트 & 개별 테스트 케이스 상세 뷰
+   - `🧩 Complexity & Code`: 순환 복잡도 리더보드 + **접고 펼칠 수 있는 소스 코드 블록 (Toggle All Code 지원)**
+   - `📦 Clone Groups`: 연결 컴포넌트 클러스터링 기반 중복 코드 카드 + 원본 들여쓰기 보존 코드 블록
+   - `⚠️ Issues`: 전체 조치 필요(WARN/FAIL) 항목 통합 뷰 + **접고 펼칠 수 있는 문제 코드 스니펫**
 5. **전체 파일·라인 원클릭 점프 네비게이션**:
    - **로컬 터미널**: 터미널 OSC 8 하이퍼링크로 `Ctrl+Click` 시 VS Code / Cursor IDE로 즉시 이동
    - **GitHub Actions**: `$GITHUB_STEP_SUMMARY` 및 Sticky PR 코멘트의 GitHub Permalinks + 인라인 에러 어노테이션

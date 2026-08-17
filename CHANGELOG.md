@@ -27,14 +27,13 @@
   - `dead`: 도달 불능 코드 및 미사용 심볼 검출
   - `dup`: 최대 클론 블록 병합(Maximal Clone Merging) 알고리즘 기반 코드 복제율 산출
   - `exception`: `except: pass` 에러 삼킴 및 소멸자 throw 차단
-- **5개 전용 탭 인터랙티브 Zero-CDN HTML 대시보드 (`verify_report.html`)**:
+- **6개 전용 탭 인터랙티브 Zero-CDN HTML 대시보드 (`verify_report.html`)**:
   - **Tab 1 `📋 Verification Suites`**: 종합 상태 뱃지, TEM 게이지, 엔진 요약 및 각 전용 탭 원클릭 점프 버튼
-  - **Tab 2 `📊 Line Analysis & Explorer`**: 코드/주석/공백 분포 바, Top 5 대형 파일 랭킹, **계층형 디렉토리 트리 테이블(깊이별 인덴트, 폴더 요약, 언어별 아이콘, VS Code 링크)**
-  - **Tab 3 `🧩 Complexity & Code`**: Top 15 복잡도 함수 리더보드 + **실제 들여쓰기된 원본 소스 코드 블록 프리뷰**
-  - **Tab 4 `📦 Clone Groups`**: 연속 중복 블록 병합된 독립 클론 그룹 카드 + **원본 인덴트 보존 코드 박스** + 위치 태그
-  - **Tab 5 `⚠️ Issues`**: 전체 엔진의 조치 필요(WARN/FAIL) 항목 통합 모아보기
-- **대규모 테스트(100+ tests) 대응 컴팩트 테스트 스위트 뷰**:
-  - `test` 엔진 결과를 파일/모듈별 칩 매트릭스(`[✅ tests/test_cli.py (3/3)]`)로 축약 표시
+  - **Tab 2 `📊 Line Analysis & Explorer`**: 전폭(Full-Width) 계층형 파일 트리 테이블 + 실시간 검색 필터 + 코드 분포 바
+  - **Tab 3 `🧪 Tests & Coverage`**: 4대 커버리지 KPI 카드(TEM, Branch, Function, Pass Rate) + 파일별 테스트 스위트 및 개별 테스트 케이스 상세 뷰
+  - **Tab 4 `🧩 Complexity & Code`**: Top 15 복잡도 함수 리더보드 + **접고 펼칠 수 있는 소스 코드 블록 (Toggle All Code 지원)**
+  - **Tab 5 `📦 Clone Groups`**: 연결 컴포넌트 클러스터링 기반 중복 코드 카드 + 원본 들여쓰기 보존 코드 블록
+  - **Tab 6 `⚠️ Issues`**: 전체 엔진의 조치 필요(WARN/FAIL) 항목 통합 뷰 + **접고 펼칠 수 있는 문제 코드 스니펫 (Toggle All Code 지원)**
 - **유니버설 에디터 연동 및 1-클릭 클립보드 복사 (`🛠️ Open With`)**:
   - 특정 에디터(VS Code) 강제 탈피: 드롭다운으로 `Copy Path (gvim/Vim/CLI)`, `VS Code`, `Cursor`, `PyCharm/IntelliJ`, `Sublime Text`, `Browser File` 중 선택 가능 (브라우저 `localStorage`에 상태 기억)
   - 모든 파일 위치 링크 옆에 빠른 `📋` 클립보드 복사 버튼 제공
