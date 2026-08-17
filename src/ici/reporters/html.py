@@ -209,7 +209,7 @@ def generate_html_report(
     <button class="tab-btn active" id="btn-summary" onclick="switchTab('tab-summary', this)">📋 Verification Suites</button>
     <button class="tab-btn" id="btn-line" onclick="switchTab('tab-line', this)">📊 Line Analysis & Explorer</button>
     <button class="tab-btn" id="btn-test" onclick="switchTab('tab-test', this)">🧪 Tests & Coverage ({t_passed}/{t_total})</button>
-    <button class="tab-btn" id="btn-complexity" onclick="switchTab('tab-complexity', this)">🧩 Complexity & Code</button>
+    <button class="tab-btn" id="btn-complexity" onclick="switchTab('tab-complexity', this)">🧩 Complexity</button>
     <button class="tab-btn" id="btn-dup" onclick="switchTab('tab-dup', this)">📦 Clone Groups ({clone_groups_count})</button>
     <button class="tab-btn" id="btn-issues" onclick="switchTab('tab-issues', this)">⚠️ Issues ({len(all_issues)})</button>
   </div>
@@ -242,7 +242,7 @@ def generate_html_report(
     {test_tab_content}
   </div>
 
-  <!-- Tab 4: Dedicated Complexity & Source Code Inspector -->
+  <!-- Tab 4: Dedicated Complexity Analysis -->
   <div id="tab-complexity" class="tab-content">
     {complexity_tab_content}
   </div>
@@ -294,7 +294,7 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
     if eng == "complexity":
         return (
             f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
-            f"<button class='jump-tab-btn' onclick=\"switchTab('tab-complexity')\">🧩 Open Complexity Inspector & Code →</button>"
+            f"<button class='jump-tab-btn' onclick=\"switchTab('tab-complexity')\">🧩 View Complexity Details →</button>"
         )
 
     # Duplicate Engine
