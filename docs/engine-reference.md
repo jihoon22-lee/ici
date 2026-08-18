@@ -85,7 +85,10 @@ fail_pct = 15.0
   - **C++**: `gcov`가 있으면 `g++ --coverage` 2단계 컴파일(객체별 `-c` 후 링크)로 테스트를 빌드·실행하고 `gcov -b -p` 산출물을 파싱하여 동일한 파일별 테이블 생성 (테스트 파일 제외)
   - 둘 다 없으면 KPI는 추정치로 표시되며, HTML에 설치 안내가 노출됨
 - **TEM (Test Effectiveness Metric) 5.0 만점 산출 공식**:
-  $$\text{TEM} = \left( \frac{\min(80, \text{Branch Coverage})}{80} \right) \times \left( \frac{\text{Function Coverage}}{100} \right) \times 5.0$$
+  - **Line Coverage 측정 가능 시 (기본)**:
+    $$\text{TEM} = \frac{\min(80, \text{Line Coverage})}{80} \times \frac{\text{Function Coverage}}{100} \times \text{Pass Rate} \times 5.0$$
+  - **Branch Coverage만 측정 가능한 경우** (Branch에 $\times \frac{5}{4}$ 보정 후 동일 공식 적용):
+    $$\text{TEM} = \frac{\min(80, \text{Branch} \times 1.25)}{80} \times \frac{\text{Function Coverage}}{100} \times \text{Pass Rate} \times 5.0$$
 - **평가 기준**:
   - 모든 테스트 케이스 통과 필수
   - TEM 스코어 $\ge 4.0$, Branch Coverage $\ge 80\%$, Function Coverage $\ge 90\%$ 충족 시 PASS

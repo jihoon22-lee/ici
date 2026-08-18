@@ -7,6 +7,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 from ici.core.env import find_uv, get_nas_cpp_lib_dir
 from ici.core.models import EngineResult, EngineStatus, InspectionTarget
@@ -74,10 +75,8 @@ class TestEngine(BaseEngine):
         # 3. Calculate Coverage & TEM Score
         branch_cov, func_cov, missed_targets = self._measure_coverage(proj_type, has_failure)
         targets.extend(missed_targets)
-
-        # TEM Formula: (min(80, branch) / 80) * (func / 100) * 5.0
-        tem_score = (min(80.0, branch_cov) / 80.0) * (func_cov / 100.0) * 5.0
-        tem_score = round(max(0.0, min(5.0, tem_score)), 2)
+        tem_info = self._calc_tem(branch_cov, func_cov, passed_tests, total_tests)
+        tem_score = tem_info["tem_score"]
 
         cfg = self.get_config("test")
         mode = cfg.get("mode", "pass_fail")
@@ -121,9 +120,14 @@ class TestEngine(BaseEngine):
 
         duration = time.time() - t0
         overall_status = self.evaluate_status(has_failure, has_warn, mode)
+        cov_label = tem_info["cov_label"]
+        cov_shown = tem_info["cov_shown"]
+        line_cov = tem_info["line_coverage"]
+        pass_rate = tem_info["pass_rate"]
         summary = (
             f"{passed_tests}/{total_tests} Tests Passed | "
-            f"Branch: {branch_cov:.1f}%, Func: {func_cov:.1f}% -> TEM: {tem_score:.2f} / 5.0"
+            f"{cov_label}: {cov_shown:.1f}%{tem_info['cov_suffix']}, Func: {func_cov:.1f}% "
+            f"-> TEM: {tem_score:.2f} / 5.0"
         )
 
         return self.create_result(
@@ -137,16 +141,57 @@ class TestEngine(BaseEngine):
             extra={
                 "passed_tests": passed_tests,
                 "total_tests": total_tests,
+                "pass_rate": pass_rate,
                 "branch_coverage": branch_cov,
                 "function_coverage": func_cov,
+                "line_coverage": line_cov,
                 "tem_score": tem_score,
                 "test_suites": test_suites,
                 "coverage_files": self._coverage_files,
                 "coverage_source": self._coverage_source,
                 "coverage_totals": self._coverage_totals,
-                "metrics_summary": f"TEM: {tem_score:.2f}/5.0 (Branch: {branch_cov:.0f}%, Func: {func_cov:.0f}%)",
+                "metrics_summary": (
+                    f"TEM: {tem_score:.2f}/5.0 ({cov_label}: {cov_shown:.0f}%, "
+                    f"Func: {func_cov:.0f}%, PassRate: {pass_rate:.0%})"
+                ),
             },
         )
+
+    def _calc_tem(
+        self, branch_cov: float, func_cov: float, passed_tests: int, total_tests: int
+    ) -> dict[str, Any]:
+        """Enterprise TEM 5.0 formula.
+
+        Line 측정 가능: min(LineCov, 80) / 80 * FuncCov * PassRate * 5
+        Branch만 측정 가능: min(BranchCov * 5/4, 80) / 80 * FuncCov * PassRate * 5
+        """
+        pass_rate = (passed_tests / total_tests) if total_tests > 0 else 0.0
+        totals = self._coverage_totals
+        line_cov = totals.get("cover") if totals else None
+        real_branch = totals.get("branch_cover") if totals else None
+
+        if line_cov is not None:
+            cov_factor = min(80.0, line_cov) / 80.0
+            cov_label = "Line"
+            cov_shown = line_cov
+        elif real_branch is not None:
+            cov_factor = min(80.0, real_branch * 1.25) / 80.0
+            cov_label = "Branch"
+            cov_shown = real_branch
+        else:
+            cov_factor = min(80.0, branch_cov) / 80.0
+            cov_label = "Line"
+            cov_shown = branch_cov
+
+        tem_score = round(cov_factor * (func_cov / 100.0) * pass_rate * 5.0, 2)
+        return {
+            "tem_score": max(0.0, min(5.0, tem_score)),
+            "cov_label": cov_label,
+            "cov_shown": cov_shown,
+            "line_coverage": line_cov,
+            "pass_rate": round(pass_rate, 4),
+            "cov_suffix": " (est)" if line_cov is None and real_branch is None else "",
+        }
 
     def _run_python_tests(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
         pytest_cmd: list[str] | None = None

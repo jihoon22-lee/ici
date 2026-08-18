@@ -19,24 +19,57 @@ def test_test_engine_execution_and_tem_score(tmp_python_project: Path):
 
 
 def test_tem_formula_direct_calculation():
-    """Validates TEM Score formula: (min(80, branch) / 80) * (func / 100) * 5.0"""
-    # Case 1: Max score (branch >= 80, func = 100) -> 5.0
-    branch = 85.0
-    func = 100.0
-    tem = (min(80.0, branch) / 80.0) * (func / 100.0) * 5.0
-    assert tem == 5.0
+    """Enterprise TEM 5.0: min(LineCov,80)/80 * FuncCov/100 * PassRate * 5"""
+    # Case 1: Line 90 (cap 80), Func 100, PassRate 1.0 -> 5.0
+    assert round(min(80.0, 90.0) / 80.0 * 1.0 * 1.0 * 5.0, 2) == 5.0
 
-    # Case 2: Partial branch (branch = 40, func = 100) -> 2.5
-    branch = 40.0
-    func = 100.0
-    tem = (min(80.0, branch) / 80.0) * (func / 100.0) * 5.0
-    assert tem == 2.5
+    # Case 2: Line 40, Func 100, PassRate 1.0 -> 2.5
+    assert round(min(80.0, 40.0) / 80.0 * 1.0 * 1.0 * 5.0, 2) == 2.5
 
-    # Case 3: Partial func (branch = 80, func = 80) -> 4.0
-    branch = 80.0
-    func = 80.0
-    tem = (min(80.0, branch) / 80.0) * (func / 100.0) * 5.0
-    assert tem == 4.0
+    # Case 3: Branch-only 60 (->75 via *5/4), Func 80, PassRate 0.9 -> 3.38
+    assert round(min(80.0, 60.0 * 1.25) / 80.0 * 0.8 * 0.9 * 5.0, 2) == 3.38
+
+
+def test_tem_uses_line_coverage_and_pass_rate(tmp_path: Path, monkeypatch):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_x():\n    pass\n", encoding="utf-8")
+    engine = TestEngine(tmp_path)
+    engine._coverage_totals = {
+        "stmts": 100,
+        "miss": 30,
+        "cover": 70.0,
+        "branch_cover": 50.0,
+    }
+    monkeypatch.setattr(engine, "_measure_coverage", lambda pt, hf: (50.0, 95.0, []))
+    monkeypatch.setattr(engine, "_run_python_tests", lambda t: (9, 10, False))
+    monkeypatch.setattr(engine, "_run_cpp_tests", lambda t: (0, 0, False))
+
+    res = engine.run()
+    # Line 70 -> 70/80 * 0.95 * 0.9 * 5 = 3.74
+    assert res.extra["tem_score"] == 3.74
+    assert res.extra["line_coverage"] == 70.0
+    assert res.extra["pass_rate"] == 0.9
+    assert "Line: 70.0%" in res.summary
+
+
+def test_tem_branch_only_scaling(tmp_path: Path, monkeypatch):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_x():\n    pass\n", encoding="utf-8")
+    engine = TestEngine(tmp_path)
+    engine._coverage_totals = {
+        "stmts": 100,
+        "miss": 0,
+        "cover": None,
+        "branch_cover": 60.0,
+    }
+    monkeypatch.setattr(engine, "_measure_coverage", lambda pt, hf: (60.0, 95.0, []))
+    monkeypatch.setattr(engine, "_run_python_tests", lambda t: (10, 10, False))
+    monkeypatch.setattr(engine, "_run_cpp_tests", lambda t: (0, 0, False))
+
+    res = engine.run()
+    # Branch 60 * 1.25 = 75 -> 75/80 * 0.95 * 1.0 * 5 = 4.45
+    assert res.extra["tem_score"] == 4.45
+    assert "Branch: 60.0%" in res.summary
 
 
 def test_parse_coverage_json(tmp_path: Path):

@@ -468,12 +468,17 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
     branch = test_res.extra.get("branch_coverage", 0.0)
     func = test_res.extra.get("function_coverage", 0.0)
     tem = test_res.extra.get("tem_score", 0.0)
+    line_cov = test_res.extra.get("line_coverage")
+    pass_rate = test_res.extra.get("pass_rate")
     suites = test_res.extra.get("test_suites", [])
     coverage_files = test_res.extra.get("coverage_files") or []
     coverage_source = test_res.extra.get("coverage_source", "estimated")
     coverage_totals = test_res.extra.get("coverage_totals")
 
-    branch_pct = min(100.0, branch)
+    kpi_cov_label = "Line Coverage" if line_cov is not None else "Branch Coverage"
+    kpi_cov_value = line_cov if line_cov is not None else branch
+    kpi_cov_est = " (추정)" if line_cov is None else ""
+
     func_pct = min(100.0, func)
     tem_pct = min(100.0, (tem / 5.0) * 100.0)
 
@@ -531,10 +536,10 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
       </div>
 
       <div class="card stat-card">
-        <div class="stat-label">Branch Coverage</div>
-        <div class="stat-value" style="color:{"#10b981" if branch >= 80 else "#f59e0b"}">{branch:.1f}% <span class="stat-sub">(Min 80%)</span></div>
+        <div class="stat-label">{kpi_cov_label}</div>
+        <div class="stat-value" style="color:{"#10b981" if kpi_cov_value >= 80 else "#f59e0b"}">{kpi_cov_value:.1f}% <span class="stat-sub">(Min 80%{kpi_cov_est})</span></div>
         <div class="mini-progress-bg">
-          <div class="mini-progress-fill" style="width: {branch_pct}%; background: {"#10b981" if branch >= 80 else "#f59e0b"};"></div>
+          <div class="mini-progress-fill" style="width: {min(100.0, kpi_cov_value)}%; background: {"#10b981" if kpi_cov_value >= 80 else "#f59e0b"};"></div>
         </div>
       </div>
 
@@ -551,6 +556,7 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
         <div class="stat-value" style="color:#10b981">{passed} / {total} <span class="stat-sub">Passed</span></div>
         <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
           Duration: {test_res.duration:.2f}s across {len(suites)} Suites
+          {f" · PassRate {pass_rate:.0%}" if pass_rate is not None else ""}
         </div>
       </div>
     </div>
