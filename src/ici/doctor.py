@@ -145,7 +145,7 @@ def render_doctor_brief(data: dict[str, Any]) -> None:
     run_py = data["running_python"]
     tools = data["tools"]
 
-    print("ici 0.3.1 brief")
+    print("ici 0.3.2 brief")
     print(
         f"os      {sys_info.get('os_id')}-{sys_info.get('os_version')}  glibc={sys_info.get('glibc')}  arch={sys_info.get('arch')}  wsl={'yes' if sys_info.get('is_wsl') else 'no'}"
     )
