@@ -9,6 +9,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from ici.core.models import EngineStatus, VerificationSuiteResult
 
@@ -80,9 +81,11 @@ class ReportPublisher:
                 message=f"--publish skipped: HTML report not found at {html_path}.",
             )
 
-        uploaded = self._put_file(
-            api_base, repo, token, branch, remote_path, html_path.read_bytes()
-        )
+        uploaded = False
+        if self._ensure_branch(api_base, repo, token, branch):
+            uploaded = self._put_file(
+                api_base, repo, token, branch, remote_path, html_path.read_bytes()
+            )
         pages_enabled, site_url = self._check_pages(api_base, repo, token)
         viewer_url = (
             f"{site_url.rstrip('/')}/{remote_path.rsplit('/', 1)[0]}/"
@@ -91,7 +94,7 @@ class ReportPublisher:
         )
 
         body = self._build_comment_body(
-            suite, viewer_url, pages_enabled, mode, remote_path, run_url
+            suite, viewer_url, pages_enabled, mode, remote_path, run_url, uploaded
         )
         comment_url = (
             self._upsert_comment(api_base, self._own_repo(), self._own_token(), pr_number, body)
@@ -102,7 +105,7 @@ class ReportPublisher:
         if not uploaded:
             message = (
                 f"--publish failed to upload {remote_path} to {repo} ({branch}). "
-                "Check token permissions (contents: write)."
+                "Check token permissions (contents: write) and branch availability."
             )
         elif viewer_url:
             message = f"HTML report published: {viewer_url}"
@@ -189,6 +192,41 @@ class ReportPublisher:
     def _own_token(self) -> str:
         return self.env.get("GITHUB_TOKEN", "").strip()
 
+    def _ensure_branch(self, api_base: str, repo: str, token: str, branch: str) -> bool:
+        """Creates the publish branch from GITHUB_SHA if it does not exist yet."""
+        ref_path = quote(f"heads/{branch}", safe="")
+        status, _ = self._api("GET", f"{api_base}/repos/{repo}/git/ref/{ref_path}", token)
+        if status == 200:
+            return True
+
+        base_sha: str | None = self.env.get("GITHUB_SHA", "").strip()
+        if not base_sha:
+            base_sha = self._default_branch_sha(api_base, repo, token)
+        if not base_sha:
+            return False
+
+        status, _ = self._api(
+            "POST",
+            f"{api_base}/repos/{repo}/git/refs",
+            token,
+            {"ref": f"refs/heads/{branch}", "sha": base_sha},
+        )
+        return status in (200, 201)
+
+    def _default_branch_sha(self, api_base: str, repo: str, token: str) -> str | None:
+        status, repo_data = self._api("GET", f"{api_base}/repos/{repo}", token)
+        default_branch = (
+            repo_data.get("default_branch", "main") if isinstance(repo_data, dict) else "main"
+        )
+        status, ref_data = self._api(
+            "GET", f"{api_base}/repos/{repo}/git/ref/heads/{default_branch}", token
+        )
+        if status == 200 and isinstance(ref_data, dict):
+            obj = ref_data.get("object")
+            if isinstance(obj, dict):
+                return obj.get("sha")
+        return None
+
     def _put_file(
         self, api_base: str, repo: str, token: str, branch: str, path: str, payload: bytes
     ) -> bool:
@@ -267,6 +305,7 @@ class ReportPublisher:
         mode: str,
         remote_path: str,
         run_url: str | None,
+        uploaded: bool,
     ) -> str:
         status = suite.suite_status.value
         emoji = "✅" if suite.suite_status == EngineStatus.PASS else "❌"
@@ -280,7 +319,12 @@ class ReportPublisher:
             f"## {emoji} ici Verification Report — `{status}`{tem}",
             "",
         ]
-        if viewer_url:
+        if not uploaded:
+            lines.append(
+                "❌ HTML 리포트 업로드에 실패했습니다. "
+                "토큰 권한(`contents: write`)과 Workflow Run 로그를 확인하세요."
+            )
+        elif viewer_url:
             lines.append(f"🔗 **인터랙티브 HTML 리포트**: [{viewer_url}]({viewer_url})")
         elif pages_enabled:
             lines.append(f"HTML 리포트가 `{remote_path}`에 게시되었습니다.")
