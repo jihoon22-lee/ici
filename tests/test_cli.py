@@ -10,13 +10,13 @@ runner = CliRunner()
 def test_cli_version():
     res = runner.invoke(app, ["--version"])
     assert res.exit_code == 0
-    assert "ici 0.3.2" in res.stdout
+    assert "ici 0.3.3" in res.stdout
 
 
 def test_cli_doctor():
     res = runner.invoke(app, ["doctor", "--brief"])
     assert res.exit_code == 0
-    assert "ici 0.3.2 brief" in res.stdout
+    assert "ici 0.3.3 brief" in res.stdout
 
 
 def test_cli_env():

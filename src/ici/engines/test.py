@@ -1,5 +1,6 @@
 """3. Unit Test Execution, Coverage Measurement & TEM Scoring Engine."""
 
+import ast
 import contextlib
 import json
 import os
@@ -31,6 +32,8 @@ class TestEngine(BaseEngine):
         super().__init__(*args, **kwargs)
         self._coverage_data: dict | None = None
         self._cpp_coverage_rows: list[dict] = []
+        self._cpp_function_rows: list[dict] = []
+        self._function_rows: list[dict] = []
         self._coverage_files: list[dict] = []
         self._coverage_totals: dict | None = None
         self._coverage_source = "estimated"
@@ -150,6 +153,7 @@ class TestEngine(BaseEngine):
                 "coverage_files": self._coverage_files,
                 "coverage_source": self._coverage_source,
                 "coverage_totals": self._coverage_totals,
+                "function_rows": self._function_rows,
                 "metrics_summary": (
                     f"TEM: {tem_score:.2f}/5.0 ({cov_label}: {cov_shown:.0f}%, "
                     f"Func: {func_cov:.0f}%, PassRate: {pass_rate:.0%})"
@@ -356,6 +360,7 @@ class TestEngine(BaseEngine):
         return passed, total, has_failure
 
     def _parse_coverage_json(self, json_path) -> dict | None:
+        """Parses coverage.json into per-file line/branch data (full line lists kept)."""
         try:
             data = json.loads(json_path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
@@ -365,33 +370,18 @@ class TestEngine(BaseEngine):
         if not isinstance(files, dict):
             return None
 
-        rows: list[dict] = []
+        file_data: dict[str, dict] = {}
         for fname, finfo in files.items():
             if not isinstance(finfo, dict):
                 continue
-            summary = finfo.get("summary") or {}
-            stmts = int(summary.get("num_statements", 0))
-            covered = int(summary.get("covered_lines", 0))
-            miss = int(summary.get("missing_lines", 0))
-            nb = int(summary.get("num_branches", 0))
-            cb = int(summary.get("covered_branches", 0))
             rel = fname
             with contextlib.suppress(ValueError):
                 rel = str(Path(fname).relative_to(self.project_root))
-            rows.append(
-                {
-                    "file": rel,
-                    "stmts": stmts,
-                    "covered": covered,
-                    "miss": miss,
-                    "cover": round(covered / stmts * 100.0, 1) if stmts else 100.0,
-                    "branch_cover": round(cb / nb * 100.0, 1) if nb else None,
-                    "nb": nb,
-                    "cb": cb,
-                    "missing_lines": [int(x) for x in (finfo.get("missing_lines") or [])][:30],
-                }
-            )
-        rows.sort(key=lambda r: (r["cover"], r["file"]))
+            file_data[rel] = {
+                "executed_lines": [int(x) for x in (finfo.get("executed_lines") or [])],
+                "missing_lines": [int(x) for x in (finfo.get("missing_lines") or [])],
+                "summary": dict(finfo.get("summary") or {}),
+            }
 
         totals = data.get("totals") or {}
         tnb = int(totals.get("num_branches", 0))
@@ -402,7 +392,7 @@ class TestEngine(BaseEngine):
         tline = round(tcovered / tstmts * 100.0, 1) if tstmts else None
 
         return {
-            "files": rows,
+            "files": file_data,
             "branch_cov": round(tcb / tnb * 100.0, 1) if tnb else None,
             "line_cov": tline,
             "totals": {
@@ -423,6 +413,7 @@ class TestEngine(BaseEngine):
         total = 0
         has_failure = False
         self._cpp_coverage_rows = []
+        self._cpp_function_rows = []
 
         inc_flags = get_all_cpp_includes(self.project_root, self.config)
         src_files = [
@@ -528,6 +519,7 @@ class TestEngine(BaseEngine):
             if gcno_files:
                 run_process([gcov_bin, "-b", "-p", "-o", ".", *gcno_files], cwd=build_tmp)
             self._cpp_coverage_rows = self._parse_gcov_dir(build_tmp, src_rel_set)
+            self._cpp_function_rows = self._parse_gcov_functions(build_tmp, src_rel_set)
 
         return passed, total, has_failure
 
@@ -630,10 +622,117 @@ class TestEngine(BaseEngine):
             )
         return rows
 
+    def _compute_python_function_coverage(self, cov_data: dict) -> list[dict]:
+        """Function coverage (gcov-style): covered when at least one body line executed."""
+        rows: list[dict] = []
+        file_map = cov_data.get("files", {})
+        for py_file in get_all_python_sources(self.project_root, self.config):
+            rel = str(py_file.relative_to(self.project_root))
+            finfo = file_map.get(rel)
+            if not finfo:
+                continue
+            executed = set(finfo.get("executed_lines") or [])
+            missing = set(finfo.get("missing_lines") or [])
+            try:
+                tree = ast.parse(py_file.read_text(encoding="utf-8"))
+            except (SyntaxError, OSError) as err:
+                _ = err
+                continue
+            for node in ast.walk(tree):
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                body_start = node.body[0].lineno if node.body else node.lineno
+                body_end = node.end_lineno or body_start
+                body_lines = set(range(body_start, body_end + 1))
+                covered = bool(body_lines & executed)
+                missing_body = sorted(body_lines & missing)
+                rows.append(
+                    {
+                        "file": rel,
+                        "name": node.name,
+                        "start_line": node.lineno,
+                        "end_line": body_end,
+                        "covered": covered,
+                        "missing_lines": missing_body[:30],
+                    }
+                )
+        return rows
+
+    def _parse_gcov_functions(self, cov_dir: Path, source_files: set[str]) -> list[dict]:
+        """Parses gcov 'function ... called N' lines into function coverage rows."""
+        rows: list[dict] = []
+        for gcov_file in cov_dir.glob("*.gcov"):
+            cand = gcov_file.name[:-5].replace("#", "/")
+            rel: str | None = None
+            if cand in source_files:
+                rel = cand
+            else:
+                try:
+                    p = Path(cand)
+                    abs_p = p if p.is_absolute() else (self.project_root / p)
+                    r = str(abs_p.resolve().relative_to(self.project_root))
+                    if r in source_files:
+                        rel = r
+                except ValueError as err:
+                    _ = err
+            if rel is None:
+                continue
+            try:
+                content = gcov_file.read_text(encoding="utf-8", errors="replace")
+            except OSError as err:
+                _ = err
+                continue
+            for line in content.splitlines():
+                if not line.startswith("function "):
+                    continue
+                parts = line.split()
+                if len(parts) < 3:
+                    continue
+                name = parts[1]
+                called = 0
+                if "called" in parts:
+                    idx = parts.index("called")
+                    try:
+                        called = int(parts[idx + 1])
+                    except (ValueError, IndexError):
+                        called = 0
+                rows.append(
+                    {
+                        "file": rel,
+                        "name": name,
+                        "start_line": 1,
+                        "end_line": 1,
+                        "covered": called > 0,
+                        "missing_lines": [],
+                    }
+                )
+        return rows
+
     def _build_coverage_summary(self) -> None:
         """Merges coverage.py (Python) and gcov (C++) rows into one module table."""
         cov_data = self._coverage_data
-        py_rows = cov_data.get("files", []) if cov_data else []
+        py_rows: list[dict] = []
+        if cov_data:
+            for rel, finfo in cov_data.get("files", {}).items():
+                summary = finfo.get("summary") or {}
+                stmts = int(summary.get("num_statements", 0))
+                covered = int(summary.get("covered_lines", 0))
+                miss = int(summary.get("missing_lines", 0))
+                nb = int(summary.get("num_branches", 0))
+                cb = int(summary.get("covered_branches", 0))
+                py_rows.append(
+                    {
+                        "file": rel,
+                        "stmts": stmts,
+                        "covered": covered,
+                        "miss": miss,
+                        "cover": round(covered / stmts * 100.0, 1) if stmts else 100.0,
+                        "branch_cover": round(cb / nb * 100.0, 1) if nb else None,
+                        "nb": nb,
+                        "cb": cb,
+                        "missing_lines": finfo.get("missing_lines", [])[:30],
+                    }
+                )
         cpp_rows = getattr(self, "_cpp_coverage_rows", [])
         files = [*py_rows, *cpp_rows]
         files.sort(key=lambda r: (r["cover"], r["file"]))
@@ -673,6 +772,10 @@ class TestEngine(BaseEngine):
         cov_data = self._coverage_data
         self._build_coverage_summary()
 
+        py_func_rows = self._compute_python_function_coverage(cov_data) if cov_data else []
+        cpp_func_rows = getattr(self, "_cpp_function_rows", [])
+        self._function_rows = [*py_func_rows, *cpp_func_rows]
+
         total_lines = 0
         for p in py_sources + cpp_sources:
             try:
@@ -694,6 +797,10 @@ class TestEngine(BaseEngine):
         else:
             branch_cov = 85.0
             func_cov = 95.0
+
+        if self._function_rows:
+            covered_funcs = sum(1 for r in self._function_rows if r["covered"])
+            func_cov = covered_funcs / len(self._function_rows) * 100.0
 
         totals = self._coverage_totals
         if totals and totals.get("branch_cover") is not None:

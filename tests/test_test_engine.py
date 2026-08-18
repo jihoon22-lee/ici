@@ -114,15 +114,67 @@ def test_parse_coverage_json(tmp_path: Path):
     assert parsed is not None
     assert parsed["branch_cov"] == 66.7
     assert parsed["line_cov"] == 71.4
-    rows = parsed["files"]
+    files = parsed["files"]
+    assert set(files) == {"src/pkg/core.py", "src/pkg/util.py"}
+    assert files["src/pkg/core.py"]["executed_lines"] == [1, 2]
+    assert files["src/pkg/core.py"]["missing_lines"] == [5, 6]
+
+
+def test_compute_python_function_coverage(tmp_path: Path):
+    src = tmp_path / "src" / "pkg"
+    src.mkdir(parents=True)
+    (src / "__init__.py").write_text("", encoding="utf-8")
+    (src / "core.py").write_text(
+        """def covered_func():
+    a = 1
+    return a
+
+
+def partial_func():
+    b = 2
+    c = 3
+    return b
+
+
+def never_called():
+    z = 99
+    return z
+""",
+        encoding="utf-8",
+    )
+    engine = TestEngine(tmp_path)
+    cov_data = {
+        "files": {
+            "src/pkg/core.py": {
+                "executed_lines": [1, 2, 3, 7],
+                "missing_lines": [8, 13, 14],
+                "summary": {},
+            }
+        }
+    }
+    rows = engine._compute_python_function_coverage(cov_data)
+    by_name = {r["name"]: r for r in rows}
+    assert by_name["covered_func"]["covered"] is True
+    assert by_name["partial_func"]["covered"] is True
+    assert by_name["never_called"]["covered"] is False
+    assert by_name["never_called"]["missing_lines"] == [13, 14]
+
+
+def test_parse_gcov_functions(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    cov_dir = tmp_path / "build" / "tests"
+    cov_dir.mkdir(parents=True)
+    (cov_dir / "src#calc.cpp.gcov").write_text(
+        """function _Z3addii called 1 returned 100% blocks executed 75%
+function _Z3subii called 0 returned 0% blocks executed 0%
+""",
+        encoding="utf-8",
+    )
+    rows = engine._parse_gcov_functions(cov_dir, {"src/calc.cpp"})
     assert len(rows) == 2
-    worst = rows[0]
-    assert worst["file"] == "src/pkg/core.py"
-    assert worst["stmts"] == 4
-    assert worst["cover"] == 50.0
-    assert worst["branch_cover"] == 50.0
-    assert worst["nb"] == 4
-    assert worst["missing_lines"] == [5, 6]
+    by_name = {r["name"]: r for r in rows}
+    assert by_name["_Z3addii"]["covered"] is True
+    assert by_name["_Z3subii"]["covered"] is False
 
 
 def test_parse_gcov_dir(tmp_path: Path):

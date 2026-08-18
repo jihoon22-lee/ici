@@ -64,7 +64,7 @@ jobs:
 - **트리거**: 버전 태그(`v*.*.*`) 푸시 또는 GitHub Actions 탭에서 수동 실행(`workflow_dispatch`)
 - **동작**:
   1. `dist/ici.pyz` 단일 실행 파일 빌드 및 SHA256 체크섬 생성
-  2. [`CHANGELOG.md`](../CHANGELOG.md)에서 해당 버전(`[0.3.2]`)의 변경 내역을 정규식으로 자동 추출
+  2. [`CHANGELOG.md`](../CHANGELOG.md)에서 해당 버전(`[0.3.3]`)의 변경 내역을 정규식으로 자동 추출
   3. GitHub Release를 생성하고 `dist/ici.pyz` 바이너리를 첨부하여 릴리스 발행
 
 ---
