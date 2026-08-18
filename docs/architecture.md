@@ -69,7 +69,7 @@ ici/
 │   └── smoke.sh                     # 독립 환경 스모크 테스트
 ├── src/
 │   └── ici/
-│       ├── __init__.py              # 패키지 메타데이터 (v0.2.0)
+│       ├── __init__.py              # 패키지 메타데이터 (v0.3.0)
 │       ├── __main__.py              # CLI 엔트리포인트 및 서브커맨드 라우터
 │       ├── config.py                # 전사 기본 정책(DEFAULT_CONFIG) 및 toml 로더
 │       ├── core/                    # 코어 도메인 로직

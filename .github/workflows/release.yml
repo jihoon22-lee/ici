@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: "Release Version Tag (e.g. v0.2.0)"
+        description: "Release Version Tag (e.g. v0.3.0)"
         required: false
         default: ""
       draft:
@@ -41,7 +41,7 @@ jobs:
           elif [ -n "${{ github.ref_name }}" ]; then
             TAG="${{ github.ref_name }}"
           else
-            TAG="v0.2.0"
+            TAG="v0.3.0"
           fi
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
           echo "Target Release Tag: $TAG"
@@ -84,7 +84,7 @@ jobs:
           body = ""
           if os.path.exists(changelog_path):
               content = open(changelog_path, "r", encoding="utf-8").read()
-              # Match ## [0.2.0] ... up to the next ## [ or end of file
+              # Match ## [0.3.0] ... up to the next ## [ or end of file
               pattern = rf"##\s*\[{re.escape(clean_ver)}\][^\n]*\n(.*?)(?=\n##\s*\[|\Z)"
               match = re.search(pattern, content, re.DOTALL)
               if match:

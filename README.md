@@ -27,17 +27,18 @@ $ ici doctor
 
 1. **단일 ZipApp 배포 (`ici.pyz`)**:
    - 가상환경 설치나 `pip` 없이 실행 파일 하나만 복사(`~/.local/bin/ici` 또는 `nas_shared/bin/ici`)하면 끝.
+   - 최초 실행 시 `~/.config/ici/ici.toml`에 전사 기본 정책이 자동 생성되며, `src` 외 `lib`/`app` 등 소스 레이아웃도 자동 탐색
 2. **스마트 런처 (Smart Polyglot)**:
    - 시스템 기본 `python3`가 3.6/3.8인 구버전 환경에서도 `ICI_PYTHON` 또는 3.10+ 설치 경로를 스스로 찾아 실행.
 3. **9대 핵심 품질 검증 엔진**:
-   - `line`: 파일당 순수 코드 500줄 초과 경고, 1000줄 초과 실패 + **계층형 디렉토리 트리 뷰**
+   - `line`: 파일당 순수 코드 500줄 초과 경고, 1000줄 초과 실패 + **계층형 디렉토리 트리 뷰** (게이트 디렉토리/포함·제외 설정 가능)
    - `lint`: 문법 검사 + 코드 스타일/포맷팅 정렬 검증 (`ruff`, `g++`, `clang-format`)
     - `test` & `tem`: 단위 테스트 전수 통과 + Branch/Function 커버리지 기반 **TEM 5.0 스코어링** (모듈별 실측 커버리지: Python `coverage.py` / C++ `gcov`)
    - `type`: Mypy 및 C++ strict 타입 안전성 검사 (0-Noise 요약 지원)
    - `complexity`: 함수별 순환 복잡도(Cyclomatic) 및 중첩 깊이 분석 + **원본 소스 코드 블록 프리뷰**
    - `sanitize`: C++ AddressSanitizer/UBSan 메모리 안전성 및 Python 리소스 누수 검증
    - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출
-   - `dup`: **연속 중복 블록 병합(Maximal Clone Merging)** 및 원본 인덴트 보존 중복률 산출
+   - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출
    - `exception`: 예외 삼킴(`except: pass`), Traceback 유실, 소멸자 throw 차단
 4. **6개 전용 탭 인터랙티브 Zero-CDN HTML 대시보드 (`--html`)**:
    - `📋 Verification Suites`: 종합 품질 게이지, TEM 스코어, 9대 엔진 상태 및 전용 탭 점프 버튼

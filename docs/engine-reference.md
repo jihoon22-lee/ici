@@ -11,6 +11,17 @@
 ## 1. 품질 정책 설정 (`ici.toml`)
 
 전사 공용 정책 또는 프로젝트별 기준을 `ici.toml`을 통해 중앙에서 관리합니다.
+설정 파일이 하나도 없는 최초 실행 시에는 `~/.config/ici/ici.toml`(XDG 존중)에
+기본 정책 파일이 자동 생성되므로, 이를 열어 조직 기준으로 수정하면 됩니다.
+
+### 1.0 프로젝트 레이아웃 (`[project]`)
+소스 디렉토리가 `src`가 아닌 프로젝트는 `source_dirs`로 지정할 수 있습니다
+(미지정 시 `src`, `lib`, `app`, `packages`, `python` 중 존재하는 디렉토리 자동 탐색):
+
+```toml
+[project]
+source_dirs = ["lib"]
+```
 
 ### 1.1 평가 모드 (`mode`)
 각 엔진별로 결과 평가 방식을 설정할 수 있습니다:
@@ -19,27 +30,29 @@
 - `"pass_warn"`: 실패(FAIL) 없이 정보성 경고(WARN)로만 관리
 
 ```toml
-[policy.line]
+[engines.line]
 enabled = true
 mode = "pass_warn"
 warn_limit = 500
 fail_limit = 1000
+gate_dirs = ["src", "include", "lib", "app"]
+exclude_dirs = ["docs"]
 
-[policy.test]
+[engines.test]
 enabled = true
 mode = "pass_fail"
 min_tem_score = 4.0
 min_branch_cov = 80.0
 min_func_cov = 90.0
 
-[policy.complexity]
+[engines.complexity]
 enabled = true
 mode = "pass_warn_fail"
 warn_cc = 15
 fail_cc = 25
 warn_nesting = 4
 
-[policy.dup]
+[engines.dup]
 enabled = true
 mode = "pass_warn"
 min_window = 6
@@ -56,6 +69,9 @@ fail_pct = 15.0
   - 파일당 순수 코드(코드 라인) 기준으로 크기 과대화 진단
   - `warn_limit` (기본 500줄): 모듈 분리 검토 권고
   - `fail_limit` (기본 1000줄): 단일 파일 과대화 실패
+- **게이트/통계 분리**: 임계값 검증은 `gate_dirs`(기본 `src`, `include`, `lib`, `app`)에만 적용.
+  `tests`/`docs`/`scripts` 등은 라인 통계와 HTML 트리 뷰에만 포함되며 실패를 만들지 않습니다.
+  `include_dirs`(스캔 범위 재정의), `exclude_dirs`(제외)로 조직 정책 조절 가능.
 - **출력 메트릭**: 코드 라인, 주석 라인, 공백 라인 수 및 디렉토리 계층 트리 ([HTML 뷰어 지원](user-guide.md#22-인터랙티브-html-리포트-생성-및-자동-브라우저-열기))
 
 ### 2.2 🧹 `lint` (문법 및 코드 스타일 린터)
@@ -82,7 +98,7 @@ fail_pct = 15.0
 - **노이즈 제로**: 오류가 없을 경우 개별 함수 통과 로그를 숨기고 `✅ Static Type Check Passed (0 Errors)` 단일 행으로 축약 요약
 
 ### 2.5 🧩 `complexity` (순환 복잡도 및 블록 중첩도)
-- **Cyclomatic Complexity (CC)**: 조건문(`if`, `while`, `for`, `match`, 삼항 연산자)에 따른 선형 독립 경로 수 계산
+- **Cyclomatic Complexity (CC)**: 조건문(`if`, `while`, `for`, `match`(케이스 guard 포함), 삼항 연산자, comprehension `if`, `and`/`or`)에 따른 선형 독립 경로 수 계산
   - $\text{CC} \le 15$: 양호 (PASS)
   - $15 < \text{CC} \le 25$: 주의 및 리팩토링 권고 (WARN)
   - $\text{CC} > 25$: 과도한 복잡도 (FAIL)
@@ -97,10 +113,12 @@ fail_pct = 15.0
 - 도달할 수 없는 블록(`unreachable code`), 정의 후 참조되지 않는 비공개 함수 및 전역 상수 검출
 
 ### 2.8 📦 `dup` (코드 복제 및 중복률 감지기)
-- **알고리즘**: 연속 슬라이딩 윈도우 해싱 + **최대 클론 블록 병합(Maximal Clone Merging)**
-  - 단순 윈도우 분할로 인한 중복 그룹 파편화 방지
+- **알고리즘**: 토큰 정규화(식별자/리터럴 치환) 슬라이딩 윈도우 해싱 + **최대 클론 병합**
+  - **Type-2 클론 검출**: 변수명/리터럴만 다른 복사-붙여넣기도 동일 구조로 인식
+  - 교차 파일은 갭 허용 블록 매칭(`SequenceMatcher`), 동일 파일은 비중첩 그리디 확장
+  - 중복 라인 집계는 고유 라인 위치 합집합 기준 (과대 집계 방지)
   - 원본 인덴트와 줄바꿈을 완벽히 보존한 소스 코드 프리뷰 제공
-- **평가 기준**: 전체 코드베이스 대비 중복 라인 비율이 `warn_pct`(5%) 초과 시 경고
+- **평가 기준**: 전체 코드베이스 대비 중복 라인 비율이 `warn_pct`(5%) 초과 시 경고, `fail_pct`(15%) 초과 시 실패
 
 ### 2.9 ⚠️ `exception` (예외 처리 안전성 검출기)
 - `except: pass` (예외 무시/삼킴 패턴) 검출
