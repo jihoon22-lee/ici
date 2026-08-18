@@ -136,3 +136,53 @@ def test_parse_gcov_dir_skips_test_files(tmp_path: Path):
 
     rows = engine._parse_gcov_dir(cov_dir, {"src/calc.cpp"})
     assert rows == []
+
+
+def test_find_coverage_cmd_uses_venv_module_probe(tmp_path: Path, monkeypatch):
+    venv = tmp_path / ".venv" / "bin"
+    venv.mkdir(parents=True)
+    (venv / "python").write_text("#!/bin/sh\n", encoding="utf-8")
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr("ici.engines.test.shutil.which", lambda name: None)
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda cmd, cwd=None, env=None: (0, "Coverage.py, version 7.x", "", 0.0),
+    )
+    monkeypatch.setattr("ici.engines.test.find_uv", lambda: None)
+    cmd = engine._find_coverage_cmd(None)
+    assert cmd is not None
+    assert cmd[0].endswith(".venv/bin/python")
+    assert cmd[1:] == ["-m", "coverage"]
+
+
+def test_find_coverage_cmd_uses_pytest_interpreter(tmp_path: Path, monkeypatch):
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr("ici.engines.test.shutil.which", lambda name: None)
+
+    def fake_run(cmd, cwd=None, env=None):
+        if "--version" in cmd and cmd[0] == "/proj/.venvx/bin/python":
+            return (0, "Coverage.py, version 7.1.2", "", 0.0)
+        return (1, "", "No module named coverage", 0.0)
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+    monkeypatch.setattr("ici.engines.test.find_uv", lambda: None)
+    cmd = engine._find_coverage_cmd(["/proj/.venvx/bin/pytest"])
+    assert cmd == ["/proj/.venvx/bin/python", "-m", "coverage"]
+
+
+def test_coverage_run_uses_source_dirs_flag(tmp_path: Path, monkeypatch):
+    lib = tmp_path / "lib"
+    lib.mkdir(parents=True)
+    (lib / "x.py").write_text("x = 1\n", encoding="utf-8")
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda pc: ["cov"])
+    monkeypatch.setattr(engine, "_parse_pytest_stdout", lambda out, targets: (2, 2, False))
+    monkeypatch.setattr(engine, "_parse_coverage_json", lambda p: None)
+    captured: list[list[str]] = []
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda cmd, cwd=None, env=None: captured.append(cmd) or (0, "", "", 0.0),
+    )
+    engine._run_python_tests([])
+    cov_run = next(c for c in captured if "run" in c and "--branch" in c)
+    assert "--source=lib" in cov_run
