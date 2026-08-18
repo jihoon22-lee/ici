@@ -34,8 +34,14 @@ class LineCountEngine(BaseEngine):
         warn_limit = cfg.get("warn_limit", 500)
         fail_limit = cfg.get("fail_limit", 1000)
         mode = cfg.get("mode", "pass_warn_fail")
+        gate_dirs = cfg.get("gate_dirs", ["src", "include", "lib", "app"])
+        include_dirs = [str(x) for x in cfg.get("include_dirs", []) or []]
+        exclude_dirs = set(str(x) for x in cfg.get("exclude_dirs", []) or [])
 
-        target_dirs = ["src", "include", "tests", "lib", "app", "docs", "scripts"]
+        default_dirs = ["src", "include", "tests", "lib", "app", "docs", "scripts"]
+        target_dirs = include_dirs if include_dirs else default_dirs
+        target_dirs = [d for d in target_dirs if d not in exclude_dirs]
+        gate_set = {d for d in gate_dirs if d not in exclude_dirs}
 
         total_code, total_comments, total_blanks = 0, 0, 0
         targets: list[InspectionTarget] = []
@@ -61,13 +67,14 @@ class LineCountEngine(BaseEngine):
                 total_blanks += blank
 
                 rel_p = str(filepath.relative_to(self.project_root))
+                is_gated = rel_p.split("/", 1)[0] in gate_set
 
-                # Check thresholds
-                if fail_limit is not None and code > fail_limit:
+                # Check thresholds (only for production-code gate directories)
+                if is_gated and fail_limit is not None and code > fail_limit:
                     status = EngineStatus.FAIL
                     has_error = True
                     msg = f"Pure code lines ({code}) exceed {fail_limit} lines limit (Refactoring required)"
-                elif warn_limit is not None and code > warn_limit:
+                elif is_gated and warn_limit is not None and code > warn_limit:
                     status = EngineStatus.WARN
                     has_warn = True
                     msg = f"Pure code lines ({code}) exceed {warn_limit} lines threshold (Split recommended)"

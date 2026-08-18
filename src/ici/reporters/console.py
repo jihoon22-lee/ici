@@ -4,6 +4,7 @@ from pathlib import Path
 
 from rich import box
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -86,19 +87,23 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
                     issue_panel_content.append(line_hdr)
                     if g.get("snippet"):
                         for s_line in g["snippet"].strip().splitlines()[:4]:
-                            issue_panel_content.append(f"    [dim white]│[/dim white] {s_line}")
+                            issue_panel_content.append(
+                                f"    [dim white]│[/dim white] {escape(s_line)}"
+                            )
             else:
                 for target in issue.targets:
                     if target.status in (EngineStatus.FAIL, EngineStatus.WARN):
                         link_str = make_terminal_link(target.file_path, target.start_line, base)
-                        line_hdr = f"[{border}]• [{target.status.value}][/] [bold]{link_str}[/] ({target.target_name or 'issue'})"
+                        line_hdr = f"[{border}]• [{target.status.value}][/] [bold]{link_str}[/] ({escape(target.target_name or 'issue')})"
                         issue_panel_content.append(line_hdr)
                         if target.message:
-                            issue_panel_content.append(f"  [dim]{target.message}[/dim]")
+                            issue_panel_content.append(f"  [dim]{escape(target.message)}[/dim]")
                         if target.snippet:
                             snippet_lines = target.snippet.strip().splitlines()
                             for s_line in snippet_lines[:6]:
-                                issue_panel_content.append(f"    [dim white]│[/dim white] {s_line}")
+                                issue_panel_content.append(
+                                    f"    [dim white]│[/dim white] {escape(s_line)}"
+                                )
 
             if issue_panel_content:
                 console.print(
