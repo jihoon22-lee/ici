@@ -9,6 +9,7 @@ import typer
 from rich.console import Console
 
 from ici import __version__
+from ici.config import load_config
 from ici.core.models import EngineStatus
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
@@ -49,7 +50,8 @@ def main_callback(
         help="Show version and exit",
     ),
 ):
-    pass
+    if not version:
+        load_config()
 
 
 @app.command("verify")

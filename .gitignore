@@ -50,3 +50,5 @@ verify_report.md
 *~
 .DS_Store
 Thumbs.db
+.playwright-mcp/
+pr4-report.png

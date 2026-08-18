@@ -30,7 +30,7 @@ ici doctor
 ```
 
 ```text
-╭───────────── ici 0.3.0 Environment Diagnostics ─────────────╮
+╭───────────── ici 0.3.1 Environment Diagnostics ─────────────╮
 │ Category   Item            Status   Details                  │
 ├──────────────────────────────────────────────────────────────┤
 │ OS         Platform        OK       Linux (ubuntu-26.04)     │
