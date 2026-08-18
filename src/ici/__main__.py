@@ -66,16 +66,24 @@ def cmd_verify(
     github_summary: bool = typer.Option(
         False, "--github-summary", help="Emit GitHub Actions step summary & annotations"
     ),
+    publish: bool = typer.Option(
+        False,
+        "--publish",
+        help="Publish HTML report to GitHub (gh-pages/hub) and post sticky PR comment",
+    ),
 ):
     """Runs all 9 verification engines and outputs unified quality gate dashboard."""
     orchestrator = VerifyOrchestrator()
     json_path = "verify_report.json" if report else None
     html_path = html if html else ("verify_report.html" if open_browser else None)
+    if publish and not html_path:
+        html_path = "verify_report.html"
 
     suite = orchestrator.run_all(
         report_json=json_path,
         report_html=html_path,
         github_summary=github_summary,
+        publish=publish,
     )
 
     if html_path and open_browser:

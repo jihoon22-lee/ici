@@ -13,6 +13,7 @@ from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
+from ici.engines.publish import ReportPublisher
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
 from ici.engines.type_check import TypeCheckEngine
@@ -38,6 +39,7 @@ class VerifyOrchestrator:
         report_json: str | None = None,
         report_html: str | None = None,
         github_summary: bool = False,
+        publish: bool = False,
         repo_url: str | None = None,
         commit_sha: str | None = None,
     ) -> VerificationSuiteResult:
@@ -111,5 +113,14 @@ class VerifyOrchestrator:
         if github_summary:
             write_github_step_summary(md_content)
             emit_github_actions_annotations(suite)
+
+        # 5. Publish HTML report to GitHub (gh-pages / hub) with sticky PR comment
+        if publish:
+            html_target = Path(report_html) if report_html else Path("verify_report.html")
+            proj_name = get_project_name(self.project_root)
+            pub_result = ReportPublisher(project_name=proj_name).publish(html_target, suite)
+            print(f"[publish] {pub_result.message}")
+            if pub_result.comment_url:
+                print(f"[publish] PR comment: {pub_result.comment_url}")
 
         return suite
