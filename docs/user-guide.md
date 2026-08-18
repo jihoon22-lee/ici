@@ -62,6 +62,15 @@ ici verify --report --html verify_report.html --open
 - `--open`: 검증 완료 후 기본 브라우저(`firefox`, `chrome`, `xdg-open` 등)로 리포트를 즉시 띄웁니다.
 - `--json <path>`: 파이프라인 데이터 연동용 `verify_report.json`을 저장합니다.
 
+### 2.3 GitHub Actions에서 HTML 리포트 배포 (`--publish`)
+CI에서 `--publish`를 붙이면 `verify_report.html`이 `gh-pages` 브랜치로 자동 배포되고,
+PR에 원클릭 뷰어 링크가 담긴 스티키 댓글이 달립니다 (자세한 설정은
+[CI/CD 연동 가이드](ci-integration.md#23-html-리포트-배포-및-sticky-pr-코멘트---publish) 참조):
+
+```bash
+dist/ici.pyz verify --report --html verify_report.html --github-summary --publish
+```
+
 ---
 
 ## 3. 개별 엔진 단독 실행

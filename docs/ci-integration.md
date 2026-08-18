@@ -27,6 +27,11 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      checks: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,8 +45,10 @@ jobs:
       # 2. 산출물 빌드 & 스모크 테스트
       - run: ./scripts/build-pyz.sh && ./scripts/smoke.sh
 
-      # 3. 개밥먹기(Dogfooding) 자체 검증 게이트
-      - run: dist/ici.pyz verify --report --html verify_report.html --github-summary
+      # 3. 개밥먹기(Dogfooding) 자체 검증 게이트 + HTML 리포트 배포
+      - run: dist/ici.pyz verify --report --html verify_report.html --github-summary --publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       # 4. 아티팩트 업로드
       - uses: actions/upload-artifact@v4
@@ -74,13 +81,32 @@ jobs:
 ### 2.2 인라인 에러 어노테이션 (`::error file=...::`)
 코드에 문제(타입 에러, 린트 위반, 복잡도 초과 등)가 발생하면 GitHub PR의 **Files Changed** 탭의 해당 코드 라인에 자동으로 에러/경고 마커가 달립니다.
 
-### 2.3 Orphan 브랜치를 통한 HTML 리포트 배포 및 Sticky PR 코멘트
-사내 사서버나 GitHub Pages를 활용하여 생성된 `verify_report.html`을 별도 orphan 브랜치(예: `gh-pages` 또는 `reports`)로 자동 푸시하고, PR 코멘트에 원클릭 뷰어 링크를 업데이트할 수 있습니다:
+### 2.3 HTML 리포트 배포 및 Sticky PR 코멘트 (`--publish`)
+`verify`에 `--publish`를 붙이면 생성된 `verify_report.html`을 **GitHub Contents API**로
+레포지토리의 `gh-pages` 브랜치에 푸시하고, PR에 **스티키 댓글**을 남겨 원클릭 인터랙티브
+뷰어 링크를 제공합니다:
 
 ```bash
-# PR 코멘트에 게시될 링크 예시
-https://<org>.github.io/<repo>/reports/pr-123/verify_report.html
+dist/ici.pyz verify --report --html verify_report.html --github-summary --publish
 ```
+
+- **배포 경로 네임스페이스**: PR 실행 → `pr/<number>/index.html`, `main` 푸시 → `main/index.html`.
+  각 PR이 자기 경로에만 쓰므로 **여러 PR이 동시에 실행돼도 충돌이 없습니다** (같은 PR은 최신 런이 덮어씀).
+- **self 모드 (기본)**: `GITHUB_TOKEN`만으로 자기 레포의 `gh-pages`에 배포. 추가 시크릿 불필요.
+- **hub 모드 (옵션)**: `ICI_PUBLISH_REPO` / `ICI_PUBLISH_TOKEN`을 설정하면 중앙 리포트 허브
+  레포지토리로 배포 (`<project>/pr/<n>/index.html`). Pages를 켜기 어려운 팀들을 위한 조직 공용 방식.
+- **Pages 최초 1회 설정**: GitHub 페이지 설정에서 **Source를 `gh-pages` 브랜치**로 선택하면 끝.
+  `--publish`가 매 실행마다 Pages 활성 여부를 확인하며, 미활성 상태에서는 스티키 댓글에
+  설정 안내를 표시합니다 (그 전에도 리포트 파일은 계속 쌓입니다).
+- **뷰어 링크 예시**:
+  ```
+  https://<org>.github.io/<repo>/pr/123/                (self 모드)
+  https://<org>.github.io/ci-reports/<project>/pr/123/  (hub 모드)
+  ```
+- **워크플로우 권한**: `contents: write`(배포), `issues: write`(PR 코멘트),
+  `pull-requests: write`(어노테이션)가 필요합니다.
+
+> 참고: 폐쇄망 GHES에서도 외부 액션 없이 `GITHUB_TOKEN`과 표준 REST API만으로 동작합니다.
 
 ---
 

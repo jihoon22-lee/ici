@@ -48,7 +48,8 @@ $ ici doctor
    - `⚠️ Issues`: 전체 조치 필요(WARN/FAIL) 항목 통합 뷰 + **접고 펼칠 수 있는 문제 코드 스니펫**
 5. **전체 파일·라인 원클릭 점프 네비게이션**:
    - **로컬 터미널**: 터미널 OSC 8 하이퍼링크로 `Ctrl+Click` 시 VS Code / Cursor IDE로 즉시 이동
-   - **GitHub Actions**: `$GITHUB_STEP_SUMMARY` 및 Sticky PR 코멘트의 GitHub Permalinks + 인라인 에러 어노테이션
+    - **GitHub Actions**: `$GITHUB_STEP_SUMMARY` 및 Sticky PR 코멘트의 GitHub Permalinks + 인라인 에러 어노테이션
+    - **`--publish`**: 인터랙티브 HTML 리포트를 `gh-pages`에 자동 배포하고 PR 스티키 댓글에 원클릭 뷰어 링크 제공 (self/hub 모드)
    - **단일 HTML 리포터**: `vscode://file/...` 링크 연동
 
 ---
@@ -81,7 +82,7 @@ ici verify --report --html verify_report.html --open
 
 | 명령어 | 설명 | 상세 가이드 |
 |---|---|---|
-| `ici verify` | 9대 검증 엔진 일괄 실행 및 종합 대시보드 출력 (`--report`, `--html`, `--github-summary`) | [사용자 가이드](docs/user-guide.md#2-검증-실행-ici-verify) |
+| `ici verify` | 9대 검증 엔진 일괄 실행 및 종합 대시보드 출력 (`--report`, `--html`, `--github-summary`, `--publish`) | [사용자 가이드](docs/user-guide.md#2-검증-실행-ici-verify) |
 | `ici line` | 코드/주석/공백 분석 및 500/1000 라인 과대화 검증 | [엔진 레퍼런스](docs/engine-reference.md#21--line-코드-라인-및-파일-크기-분석기) |
 | `ici lint` | 문법 린팅 및 스타일/포맷팅 검증 | [엔진 레퍼런스](docs/engine-reference.md#22--lint-문법-및-코드-스타일-린터) |
 | `ici test` | 단위 테스트 실행 및 커버리지/TEM 스코어 산출 | [엔진 레퍼런스](docs/engine-reference.md#23--test--tem-스코어링-단위-테스트-및-테스트-효과성-지표) |
