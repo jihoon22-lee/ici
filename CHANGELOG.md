@@ -5,7 +5,7 @@
 
 ---
 
-## [Unreleased]
+## [0.2.0] - 2026-08-18
 
 ### Added
 - **모듈별 실측 커버리지 테이블 (Module Coverage Table) — Python/C++ 동일 지원**:
