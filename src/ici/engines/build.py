@@ -14,6 +14,7 @@ from ici.core.project import (
     get_all_cpp_sources,
     get_project_name,
     get_project_version,
+    get_source_dirs,
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
@@ -79,7 +80,8 @@ class BuildEngine(BaseEngine):
         lib_dir: Path,
         targets: list[InspectionTarget],
     ) -> None:
-        src_dir = base / "src"
+        src_dirs = get_source_dirs(base, self.config)
+        src_dir = src_dirs[0] if src_dirs else base / "src"
         compileall.compile_dir(str(src_dir), legacy=True, quiet=1)
 
         for root, _dirs, files in os.walk(str(src_dir)):
@@ -140,8 +142,8 @@ fi
         if not gxx:
             return False
 
-        all_cpp_sources = [str(f) for f in get_all_cpp_sources(base)]
-        inc_flags = get_all_cpp_includes(base)
+        all_cpp_sources = [str(f) for f in get_all_cpp_sources(base, self.config)]
+        inc_flags = get_all_cpp_includes(base, self.config)
         nas_cpp = get_nas_cpp_lib_dir()
         lib_flags = []
         if nas_cpp.exists() and (nas_cpp / "lib").exists():

@@ -60,7 +60,7 @@ class ExceptionSafetyEngine(BaseEngine):
 
     def _check_python_exceptions(self, targets: list[InspectionTarget]) -> bool:
         has_error = False
-        for py_file in get_all_python_sources(self.project_root):
+        for py_file in get_all_python_sources(self.project_root, self.config):
             try:
                 content = py_file.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(py_file))
@@ -116,7 +116,7 @@ class ExceptionSafetyEngine(BaseEngine):
 
     def _check_cpp_exceptions(self, targets: list[InspectionTarget]) -> bool:
         has_error = False
-        for cpp_file in get_all_cpp_sources(self.project_root):
+        for cpp_file in get_all_cpp_sources(self.project_root, self.config):
             try:
                 rel_p = str(cpp_file.relative_to(self.project_root))
                 with open(cpp_file, encoding="utf-8", errors="ignore") as f:

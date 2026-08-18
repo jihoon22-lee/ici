@@ -12,6 +12,7 @@ from rich.table import Table
 from ici.core.env import (
     find_infra_root,
     find_python_candidates,
+    find_uv,
     get_nas_cpp_lib_dir,
     get_nas_shared_dir,
     get_system_info,
@@ -37,7 +38,7 @@ def collect_diagnostics() -> dict[str, Any]:
         "ruff": _check_tool("ruff", ["--version"]),
         "mypy": _check_tool("mypy", ["--version"]),
         "pytest": _check_tool("pytest", ["--version"]),
-        "uv": _check_tool("uv", ["--version"]),
+        "uv": _check_tool(find_uv() or "uv", ["--version"]),
     }
 
     # NAS checks
@@ -144,7 +145,7 @@ def render_doctor_brief(data: dict[str, Any]) -> None:
     run_py = data["running_python"]
     tools = data["tools"]
 
-    print("ici 0.2.0 brief")
+    print("ici 0.3.0 brief")
     print(
         f"os      {sys_info.get('os_id')}-{sys_info.get('os_version')}  glibc={sys_info.get('glibc')}  arch={sys_info.get('arch')}  wsl={'yes' if sys_info.get('is_wsl') else 'no'}"
     )

@@ -3,8 +3,34 @@
 import re
 import subprocess
 from pathlib import Path
+from typing import Any
 
 from ici.core.env import get_nas_cpp_lib_dir
+
+DEFAULT_SOURCE_DIRS = ["src", "lib", "app", "packages", "python"]
+
+
+def get_source_dirs(
+    base_path: Path | None = None, config: dict[str, Any] | None = None
+) -> list[Path]:
+    """Resolves existing project source directories (overridable via config project.source_dirs)."""
+    base = (base_path or Path.cwd()).resolve()
+    names: list[str] | None = None
+    if config:
+        proj_cfg = config.get("project")
+        if isinstance(proj_cfg, dict):
+            raw = proj_cfg.get("source_dirs")
+            if isinstance(raw, list):
+                names = [str(x) for x in raw]
+    if names is None:
+        names = DEFAULT_SOURCE_DIRS
+
+    dirs: list[Path] = []
+    for name in names:
+        candidate = base / name
+        if candidate.is_dir():
+            dirs.append(candidate)
+    return dirs
 
 
 def detect_project_type(target_dir: Path | None = None) -> str:
@@ -26,20 +52,17 @@ def detect_project_type(target_dir: Path | None = None) -> str:
             except OSError as err:
                 _ = err
 
-    # 2. Check source file signatures
+    # 2. Check source file signatures across all configured source directories
+    source_dirs = get_source_dirs(base)
     has_cpp = (
         (base / "CMakeLists.txt").exists()
         or (base / "Makefile").exists()
-        or any((base / "src").rglob("*.cpp"))
-        if (base / "src").exists()
-        else False
+        or any(any(d.rglob("*.cpp")) for d in source_dirs)
     )
     has_py = (
         (base / "pyproject.toml").exists()
         or (base / "setup.py").exists()
-        or any((base / "src").rglob("*.py"))
-        if (base / "src").exists()
-        else False
+        or any(any(d.rglob("*.py")) for d in source_dirs)
     )
 
     if has_cpp and has_py:
@@ -113,23 +136,24 @@ def get_project_version(target_dir: Path | None = None) -> str:
     return "v1.0.0"
 
 
-def get_all_cpp_sources(base_path: Path | None = None) -> list[Path]:
-    """Finds all C++ source files (.cpp, .cc, .cxx, .c) in src/ and root."""
+def get_all_cpp_sources(
+    base_path: Path | None = None, config: dict[str, Any] | None = None
+) -> list[Path]:
+    """Finds all C++ source files (.cpp, .cc, .cxx, .c) across project source directories."""
     base = (base_path or Path.cwd()).resolve()
     cpp_files = []
-    src_dir = base / "src"
-    if src_dir.exists():
-        for p in src_dir.rglob("*.cpp"):
-            if not _should_ignore_path(p):
-                cpp_files.append(p)
-        for p in src_dir.rglob("*.cc"):
-            if not _should_ignore_path(p):
-                cpp_files.append(p)
+    for src_dir in get_source_dirs(base, config):
+        for ext in ("*.cpp", "*.cc", "*.cxx", "*.c"):
+            for p in src_dir.rglob(ext):
+                if not _should_ignore_path(p):
+                    cpp_files.append(p)
 
     return sorted(cpp_files)
 
 
-def get_all_cpp_includes(base_path: Path | None = None) -> list[str]:
+def get_all_cpp_includes(
+    base_path: Path | None = None, config: dict[str, Any] | None = None
+) -> list[str]:
     """Finds all C++ include directories (-I flags)."""
     base = (base_path or Path.cwd()).resolve()
     inc_dirs = set()
@@ -141,6 +165,11 @@ def get_all_cpp_includes(base_path: Path | None = None) -> list[str]:
             if p.is_dir() and not _should_ignore_path(p):
                 inc_dirs.add(f"-I{p}")
 
+    for src_dir in get_source_dirs(base, config):
+        sub_inc = src_dir / "include"
+        if sub_inc.exists():
+            inc_dirs.add(f"-I{sub_inc}")
+
     nas_cpp = get_nas_cpp_lib_dir()
     if nas_cpp.exists() and (nas_cpp / "include").exists():
         inc_dirs.add(f"-I{nas_cpp / 'include'}")
@@ -148,12 +177,13 @@ def get_all_cpp_includes(base_path: Path | None = None) -> list[str]:
     return sorted(list(inc_dirs))
 
 
-def get_all_python_sources(base_path: Path | None = None) -> list[Path]:
-    """Finds all Python source files in src/."""
+def get_all_python_sources(
+    base_path: Path | None = None, config: dict[str, Any] | None = None
+) -> list[Path]:
+    """Finds all Python source files across project source directories."""
     base = (base_path or Path.cwd()).resolve()
     py_files = []
-    src_dir = base / "src"
-    if src_dir.exists():
+    for src_dir in get_source_dirs(base, config):
         for p in src_dir.rglob("*.py"):
             if not _should_ignore_path(p):
                 py_files.append(p)

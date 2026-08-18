@@ -98,7 +98,7 @@ class ComplexityEngine(BaseEngine):
         targets: list[InspectionTarget] = []
         max_cc = 0
 
-        for py_file in get_all_python_sources(self.project_root):
+        for py_file in get_all_python_sources(self.project_root, self.config):
             try:
                 content = py_file.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(py_file))
@@ -158,8 +158,12 @@ class ComplexityEngine(BaseEngine):
                 complexity += 1
             elif isinstance(child, ast.BoolOp):
                 complexity += len(child.values) - 1
-            elif isinstance(child, (ast.IfExp, ast.Match)):
+            elif isinstance(child, ast.IfExp):
                 complexity += 1
+            elif isinstance(child, ast.comprehension):
+                complexity += len(child.ifs)
+            elif isinstance(child, ast.Match):
+                complexity += 1 + sum(1 for case in child.cases if case.guard is not None)
         return complexity
 
     def _calc_ast_nesting(self, node: ast.AST) -> int:
@@ -184,7 +188,7 @@ class ComplexityEngine(BaseEngine):
         targets: list[InspectionTarget] = []
         max_cc = 0
 
-        for cpp_file in get_all_cpp_sources(self.project_root):
+        for cpp_file in get_all_cpp_sources(self.project_root, self.config):
             try:
                 rel_p = str(cpp_file.relative_to(self.project_root))
                 with open(cpp_file, encoding="utf-8", errors="ignore") as f:

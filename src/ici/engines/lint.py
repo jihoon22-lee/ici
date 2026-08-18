@@ -6,6 +6,7 @@ import shutil
 import time
 from pathlib import Path
 
+from ici.core.env import find_uv
 from ici.core.models import EngineResult, EngineStatus, InspectionTarget
 from ici.core.project import (
     _should_ignore_path,
@@ -66,7 +67,7 @@ class LintEngine(BaseEngine):
             ruff_cmd = [str(venv_ruff)]
         elif shutil.which("uvx"):
             ruff_cmd = ["uvx", "ruff"]
-        elif shutil.which("uv"):
+        elif find_uv():
             ruff_cmd = ["uv", "run", "ruff"]
 
         # 1. Ruff check
@@ -140,7 +141,7 @@ class LintEngine(BaseEngine):
 
     def _lint_cpp(self, targets: list[InspectionTarget]) -> None:
         gxx = shutil.which("g++")
-        cpp_files = get_all_cpp_sources(self.project_root)
+        cpp_files = get_all_cpp_sources(self.project_root, self.config)
         inc_flags = get_all_cpp_includes(self.project_root)
 
         if gxx and cpp_files:

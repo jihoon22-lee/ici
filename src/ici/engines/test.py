@@ -8,13 +8,14 @@ import sys
 import time
 from pathlib import Path
 
-from ici.core.env import get_nas_cpp_lib_dir
+from ici.core.env import find_uv, get_nas_cpp_lib_dir
 from ici.core.models import EngineResult, EngineStatus, InspectionTarget
 from ici.core.project import (
     detect_project_type,
     get_all_cpp_includes,
     get_all_cpp_sources,
     get_all_python_sources,
+    get_source_dirs,
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
@@ -155,24 +156,29 @@ class TestEngine(BaseEngine):
             pytest_cmd = [str(venv_pytest)]
         elif which_pytest:
             pytest_cmd = [which_pytest]
-        elif shutil.which("uv") and (self.project_root / "pyproject.toml").exists():
+        elif find_uv() and (self.project_root / "pyproject.toml").exists():
             pytest_cmd = ["uv", "run", "pytest"]
         else:
             pytest_cmd = [sys.executable, "-m", "pytest"]
 
         env = os.environ.copy()
-        src_dir = str(self.project_root / "src")
-        env["PYTHONPATH"] = f"{src_dir}:{env.get('PYTHONPATH', '')}"
+        source_paths = [str(d) for d in get_source_dirs(self.project_root, self.config)]
+        if source_paths:
+            env["PYTHONPATH"] = ":".join([*source_paths, env.get("PYTHONPATH", "")])
 
-        cov_cmd = self._find_coverage_cmd()
+        cov_cmd = self._find_coverage_cmd(pytest_cmd)
         if cov_cmd:
             cov_dir = self.project_root / "build" / "coverage"
             cov_dir.mkdir(parents=True, exist_ok=True)
             cov_env = dict(env)
             cov_env["COVERAGE_FILE"] = str(cov_dir / ".coverage")
             cov_run_cmd = [*cov_cmd, "run", "--branch"]
-            if (self.project_root / "src").exists():
-                cov_run_cmd.append("--source=src")
+            rel_dirs = [
+                str(d.relative_to(self.project_root))
+                for d in get_source_dirs(self.project_root, self.config)
+            ]
+            if rel_dirs:
+                cov_run_cmd.append(f"--source={','.join(rel_dirs)}")
             cov_run_cmd += ["-m", "pytest", "-o", "addopts=", "-v", "tests"]
             _code, out, _err, _ = run_process(cov_run_cmd, cwd=self.project_root, env=cov_env)
 
@@ -233,14 +239,33 @@ class TestEngine(BaseEngine):
 
         return passed, total, has_failure
 
-    def _find_coverage_cmd(self) -> list[str] | None:
+    def _find_coverage_cmd(self, pytest_cmd: list[str] | None) -> list[str] | None:
+        """Finds a working coverage runner, preferring the same interpreter as pytest."""
         venv_cov = self.project_root / ".venv/bin/coverage"
         if venv_cov.exists():
             return [str(venv_cov)]
         which_cov = shutil.which("coverage")
         if which_cov:
             return [which_cov]
-        if shutil.which("uv") and (self.project_root / "pyproject.toml").exists():
+
+        candidates: list[list[str]] = []
+        venv_python = self.project_root / ".venv/bin/python"
+        if venv_python.exists():
+            candidates.append([str(venv_python), "-m", "coverage"])
+        if pytest_cmd and pytest_cmd[0].endswith("/pytest"):
+            pytest_python = str(Path(pytest_cmd[0]).parent / "python")
+            if pytest_python not in [c[0] for c in candidates]:
+                candidates.append([pytest_python, "-m", "coverage"])
+        if shutil.which("python3"):
+            candidates.append(["python3", "-m", "coverage"])
+
+        for cand in candidates:
+            code, _, _, _ = run_process([*cand, "--version"], cwd=self.project_root)
+            if code == 0:
+                return cand
+
+        uv = find_uv()
+        if uv and (self.project_root / "pyproject.toml").exists():
             try:
                 content = (self.project_root / "pyproject.toml").read_text(encoding="utf-8")
             except OSError:
@@ -354,9 +379,11 @@ class TestEngine(BaseEngine):
         has_failure = False
         self._cpp_coverage_rows = []
 
-        inc_flags = get_all_cpp_includes(self.project_root)
+        inc_flags = get_all_cpp_includes(self.project_root, self.config)
         src_files = [
-            str(f) for f in get_all_cpp_sources(self.project_root) if "main.cpp" not in f.name
+            str(f)
+            for f in get_all_cpp_sources(self.project_root, self.config)
+            if "main.cpp" not in f.name
         ]
         src_rel_set = {str(Path(f).relative_to(self.project_root)) for f in src_files}
         nas_cpp = get_nas_cpp_lib_dir()
@@ -595,8 +622,8 @@ class TestEngine(BaseEngine):
     ) -> tuple[float, float, list[InspectionTarget]]:
         """Calculates branch coverage, function coverage, and per-module coverage rows."""
         missed_targets: list[InspectionTarget] = []
-        py_sources = get_all_python_sources(self.project_root)
-        cpp_sources = get_all_cpp_sources(self.project_root)
+        py_sources = get_all_python_sources(self.project_root, self.config)
+        cpp_sources = get_all_cpp_sources(self.project_root, self.config)
 
         cov_data = self._coverage_data
         self._build_coverage_summary()

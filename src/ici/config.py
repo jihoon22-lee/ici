@@ -10,8 +10,11 @@ import tomli_w
 # Default Enterprise Quality Policy — Embedded inside ici
 DEFAULT_CONFIG: dict[str, Any] = {
     "ici": {
-        "version": "0.2.0",
+        "version": "0.3.0",
         "policy_name": "Standard Enterprise CI/CD Quality Gate",
+    },
+    "project": {
+        "source_dirs": ["src", "lib", "app", "packages", "python"],
     },
     "engines": {
         "line": {
@@ -19,6 +22,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "mode": "pass_warn_fail",  # pass_warn_fail | pass_fail | pass_warn
             "warn_limit": 500,
             "fail_limit": 1000,
+            "gate_dirs": ["src", "include", "lib", "app"],
+            "include_dirs": [],
+            "exclude_dirs": [],
         },
         "lint": {
             "enabled": True,
@@ -85,17 +91,41 @@ def load_config(base_dir: Path | None = None) -> dict[str, Any]:
     for conf_name in ("ici.toml", "dev.toml"):
         candidate_paths.append(base / conf_name)
 
+    loaded = False
     for p in candidate_paths:
         if p.exists():
             try:
                 with open(p, "rb") as f:
                     user_cfg = tomli.load(f)
                     _deep_merge(config, user_cfg)
+                    loaded = True
                     break
             except (OSError, tomli.TOMLDecodeError) as err:
                 _ = err
 
+    if not loaded and not os.environ.get("ICI_CONFIG"):
+        _ensure_global_default_config(config)
+
     return config
+
+
+def get_global_config_path() -> Path:
+    """Returns the per-user global config path (XDG_CONFIG_HOME aware)."""
+    base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    return base / "ici" / "ici.toml"
+
+
+def _ensure_global_default_config(config: dict[str, Any]) -> None:
+    """Creates the per-user global ici.toml from the default policy on first run."""
+    target = get_global_config_path()
+    if target.exists():
+        return
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        save_config(config, target)
+        print(f"[ici] 기본 전역 설정을 생성했습니다: {target}")
+    except OSError as err:
+        _ = err
 
 
 def get_engine_config(config: dict[str, Any], engine_name: str) -> dict[str, Any]:

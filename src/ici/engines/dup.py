@@ -1,6 +1,8 @@
-"""8. Code Clone & Duplication Detection Engine with Connected Cluster Merging."""
+"""8. Code Clone & Duplication Detection Engine with Type-2 Token Matching."""
 
+import difflib
 import hashlib
+import re
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -16,6 +18,72 @@ FileData = tuple[str, list[str], list[tuple[int, str]]]
 LocTuple = tuple[int, int, int]  # (file_idx, start_line, end_line)
 MatchPair = tuple[int, int, int, int, int, int, int]  # (f1, s1, e1, f2, s2, e2, k)
 
+_STRUCT_KEYWORDS = {
+    "if",
+    "elif",
+    "else",
+    "for",
+    "while",
+    "return",
+    "def",
+    "class",
+    "try",
+    "except",
+    "finally",
+    "with",
+    "as",
+    "lambda",
+    "yield",
+    "import",
+    "from",
+    "pass",
+    "break",
+    "continue",
+    "raise",
+    "assert",
+    "global",
+    "nonlocal",
+    "del",
+    "and",
+    "or",
+    "not",
+    "in",
+    "is",
+    "switch",
+    "case",
+    "default",
+    "do",
+    "goto",
+    "struct",
+    "enum",
+    "union",
+    "template",
+    "typename",
+    "namespace",
+    "using",
+    "public",
+    "private",
+    "protected",
+    "virtual",
+    "override",
+    "const",
+    "static",
+    "inline",
+    "new",
+    "delete",
+    "this",
+    "true",
+    "false",
+    "nullptr",
+    "None",
+    "True",
+    "False",
+    "catch",
+    "throw",
+}
+
+_TOKEN_RE = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"|\b\d+(?:\.\d+)?\b|\b[A-Za-z_]\w*\b")
+
 
 class DuplicateEngine(BaseEngine):
     """Detects maximal copy-pasted code blocks across files and groups them into unified clusters."""
@@ -28,8 +96,8 @@ class DuplicateEngine(BaseEngine):
         window_size = cfg.get("min_window", 6)
         mode = cfg.get("mode", "pass_warn")
 
-        py_sources = get_all_python_sources(self.project_root)
-        cpp_sources = get_all_cpp_sources(self.project_root)
+        py_sources = get_all_python_sources(self.project_root, self.config)
+        cpp_sources = get_all_cpp_sources(self.project_root, self.config)
         all_sources = py_sources + cpp_sources
 
         files_data, total_code_lines = self._load_and_index_files(all_sources)
@@ -81,7 +149,7 @@ class DuplicateEngine(BaseEngine):
                     if s and not s.startswith(
                         ("#", "//", "/*", "*", "import ", "from ", "#include")
                     ):
-                        norm = self._normalize_line(s)
+                        norm = self._tokenize_line(s)
                         if norm:
                             indexed.append((idx, norm))
                             total_code_lines += 1
@@ -93,57 +161,102 @@ class DuplicateEngine(BaseEngine):
         return files_data, total_code_lines
 
     def _find_raw_matches(self, files_data: list[FileData], window_size: int) -> list[MatchPair]:
+        """Finds Type-1/Type-2 clones via token windows, greedy extension (same-file)
+        and gap-tolerant block matching (cross-file)."""
         window_map: dict[str, list[tuple[int, int]]] = defaultdict(list)
         for f_idx, (_, _, indexed) in enumerate(files_data):
+            if len(indexed) < window_size:
+                continue
             for t_pos in range(len(indexed) - window_size + 1):
                 w_str = "".join(indexed[t_pos + k][1] for k in range(window_size))
                 w_hash = hashlib.sha256(w_str.encode("utf-8")).hexdigest()
                 window_map[w_hash].append((f_idx, t_pos))
 
-        matched_pairs: set[tuple[int, int, int, int]] = set()
-        raw_matches: list[MatchPair] = []
-
+        same_occ: dict[int, list[int]] = defaultdict(list)
+        cross_files: set[tuple[int, int]] = set()
         for occs in window_map.values():
             if len(occs) < 2:
                 continue
-            for i in range(len(occs)):
-                f1, p1 = occs[i]
-                for j in range(i + 1, len(occs)):
-                    f2, p2 = occs[j]
-                    if (f1, p1, f2, p2) in matched_pairs:
+            files_in = {f for f, _ in occs}
+            cross_files.update((a, b) for a in files_in for b in files_in if a < b)
+            for f, p in occs:
+                same_occ[f].append(p)
+
+        raw_matches: list[MatchPair] = []
+
+        # 1. Same-file internal duplication: greedy window extension
+        for f_idx, positions in same_occ.items():
+            positions = sorted(set(positions))
+            if len(positions) < 2:
+                continue
+            _, _, idx = files_data[f_idx]
+            matched: set[tuple[int, int]] = set()
+            for i in range(len(positions)):
+                p1 = positions[i]
+                for j in range(i + 1, len(positions)):
+                    p2 = positions[j]
+                    if p2 - p1 < window_size:
                         continue
-
-                    _, _, idx1 = files_data[f1]
-                    _, _, idx2 = files_data[f2]
+                    if (p1, p2) in matched:
+                        continue
                     k = 0
-                    while (
-                        p1 + k < len(idx1)
-                        and p2 + k < len(idx2)
-                        and idx1[p1 + k][1] == idx2[p2 + k][1]
-                    ):
-                        matched_pairs.add((f1, p1 + k, f2, p2 + k))
+                    while p1 + k < p2 and p2 + k < len(idx) and idx[p1 + k][1] == idx[p2 + k][1]:
+                        matched.add((p1 + k, p2 + k))
                         k += 1
-
                     if k >= window_size:
-                        s1 = idx1[p1][0]
-                        e1 = idx1[p1 + k - 1][0]
-                        s2 = idx2[p2][0]
-                        e2 = idx2[p2 + k - 1][0]
-                        raw_matches.append((f1, s1, e1, f2, s2, e2, k))
+                        raw_matches.append(
+                            (
+                                f_idx,
+                                idx[p1][0],
+                                idx[p1 + k - 1][0],
+                                f_idx,
+                                idx[p2][0],
+                                idx[p2 + k - 1][0],
+                                k,
+                            )
+                        )
+
+        # 2. Cross-file duplication: gap-tolerant SequenceMatcher blocks
+        for f1, f2 in sorted(cross_files):
+            _, _, idx1 = files_data[f1]
+            _, _, idx2 = files_data[f2]
+            seq1 = [norm for _, norm in idx1]
+            seq2 = [norm for _, norm in idx2]
+            sm = difflib.SequenceMatcher(None, seq1, seq2, autojunk=False)
+            for block in sm.get_matching_blocks():
+                if block.size < window_size:
+                    continue
+                raw_matches.append(
+                    (
+                        f1,
+                        idx1[block.a][0],
+                        idx1[block.a + block.size - 1][0],
+                        f2,
+                        idx2[block.b][0],
+                        idx2[block.b + block.size - 1][0],
+                        block.size,
+                    )
+                )
 
         return raw_matches
 
     def _filter_subsumed_matches(self, raw_matches: list[MatchPair]) -> list[MatchPair]:
+        """Keeps maximal clones: drops matches overlapping a larger kept match on both sides."""
         raw_matches.sort(key=lambda x: x[6], reverse=True)
         filtered: list[MatchPair] = []
 
         for match in raw_matches:
             f1, s1, e1, f2, s2, e2, _ = match
-            is_subsumed = any(
-                f1 == pf1 and f2 == pf2 and ps1 <= s1 and pe1 >= e1 and ps2 <= s2 and pe2 >= e2
-                for pf1, ps1, pe1, pf2, ps2, pe2, _ in filtered
-            )
-            if not is_subsumed:
+            redundant = False
+            for pf1, ps1, pe1, pf2, ps2, pe2, _ in filtered:
+                if f1 != pf1 or f2 != pf2:
+                    continue
+                overlaps_1 = not (e1 < ps1 or s1 > pe1)
+                overlaps_2 = not (e2 < ps2 or s2 > pe2)
+                if overlaps_1 and overlaps_2:
+                    redundant = True
+                    break
+            if not redundant:
                 filtered.append(match)
 
         return filtered
@@ -190,7 +303,7 @@ class DuplicateEngine(BaseEngine):
 
         clone_groups: list[dict] = []
         targets: list[InspectionTarget] = []
-        duplicate_lines_count = 0
+        duplicated_positions: set[tuple[int, int]] = set()
 
         for group_idx, component in enumerate(clusters, 1):
             # Sort occurrences inside component by (file_path, start_line)
@@ -202,7 +315,10 @@ class DuplicateEngine(BaseEngine):
 
             # Preserve exact raw indentation (do not strip leading whitespace of line 1!)
             raw_snippet = "".join(rep_raw[rep_s - 1 : rep_e]).rstrip()
-            duplicate_lines_count += lines_k * (len(component) - 1)
+            for occ_idx, (f_idx, s_l, e_l) in enumerate(component):
+                if occ_idx > 0:
+                    for line_no in range(s_l, e_l + 1):
+                        duplicated_positions.add((f_idx, line_no))
 
             occ_list = []
             for f_idx, s_l, e_l in component:
@@ -238,8 +354,18 @@ class DuplicateEngine(BaseEngine):
                 }
             )
 
-        return clone_groups, targets, duplicate_lines_count
+        return clone_groups, targets, len(duplicated_positions)
 
-    def _normalize_line(self, line: str) -> str:
-        """Removes spaces and quotes to match structurally identical lines."""
-        return "".join(c for c in line if not c.isspace()).strip(";'\"")
+    def _tokenize_line(self, line: str) -> str:
+        """Normalizes identifiers to ID and literals to LIT (Type-2 clone support)."""
+
+        def _repl(match: re.Match) -> str:
+            tok = match.group(0)
+            if tok.startswith(("'", '"')):
+                return "LIT"
+            if tok[0].isdigit():
+                return "LIT"
+            return tok if tok in _STRUCT_KEYWORDS else "ID"
+
+        tokenized = _TOKEN_RE.sub(_repl, line)
+        return "".join(c for c in tokenized if not c.isspace())

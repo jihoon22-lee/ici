@@ -43,6 +43,24 @@ def get_nas_shared_dir() -> Path:
     return infra_root / "nas_shared"
 
 
+def find_uv() -> str | None:
+    """Locates the uv executable: $ICI_UV, shared NAS/infra paths, then PATH."""
+    ici_uv = os.environ.get("ICI_UV")
+    if ici_uv and os.path.isfile(ici_uv) and os.access(ici_uv, os.X_OK):
+        return ici_uv
+
+    candidates = [
+        Path.home() / ".local" / "bin" / "uv",
+        get_nas_shared_dir() / "bin" / "uv",
+        find_infra_root() / "bin" / "uv",
+    ]
+    for cand in candidates:
+        if cand.is_file() and os.access(str(cand), os.X_OK):
+            return str(cand)
+
+    return shutil.which("uv")
+
+
 def get_nas_cpp_lib_dir() -> Path:
     """Returns the default NAS shared C++ library directory."""
     return get_nas_shared_dir() / "libs/cpp/ips-core-lib/v1.2.3/x86_64"

@@ -5,10 +5,12 @@ import shutil
 import time
 from pathlib import Path
 
+from ici.core.env import find_uv
 from ici.core.models import EngineResult, EngineStatus, InspectionTarget
 from ici.core.project import (
     detect_project_type,
     get_all_python_sources,
+    get_source_dirs,
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
@@ -56,14 +58,18 @@ class TypeCheckEngine(BaseEngine):
             mypy_cmd = [which_mypy]
         elif venv_mypy.exists():
             mypy_cmd = [str(venv_mypy)]
-        elif shutil.which("uv"):
+        elif find_uv():
             mypy_cmd = ["uv", "run", "mypy"]
 
         has_error = False
 
         if mypy_cmd:
+            mypy_targets = [
+                str(d.relative_to(self.project_root))
+                for d in get_source_dirs(self.project_root, self.config)
+            ] or ["."]
             code, out, _err, _ = run_process(
-                [*mypy_cmd, "--ignore-missing-imports", "src"], cwd=self.project_root
+                [*mypy_cmd, "--ignore-missing-imports", *mypy_targets], cwd=self.project_root
             )
             if code != 0 and out.strip():
                 has_error = True
