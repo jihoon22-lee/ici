@@ -458,6 +458,66 @@ def _render_coverage_table(
     """
 
 
+def _render_function_table(function_rows: list[dict], source: str, base: Path) -> str:
+    """Renders a per-function coverage table (gcov-style: called at least once)."""
+    if not function_rows:
+        return ""
+
+    covered = sum(1 for r in function_rows if r["covered"])
+    total = len(function_rows)
+    pct = covered / total * 100.0 if total else 0.0
+    pct_color = _cov_color(pct)
+
+    rows_html = []
+    for r in function_rows:
+        fname = html.escape(r.get("file", "?"))
+        name = html.escape(r.get("name", "?"))
+        start = r.get("start_line", 1)
+        end = r.get("end_line", start)
+        covered_flag = bool(r.get("covered"))
+        missing = r.get("missing_lines") or []
+        miss_tip = html.escape(", ".join(str(x) for x in missing)) if missing else ""
+        abs_f = str((base / r.get("file", "")).resolve())
+        badge = (
+            "<span class='badge' style='color:#10b981; border:1px solid #10b98144'>✓ 실행됨</span>"
+            if covered_flag
+            else "<span class='badge' style='color:#ef4444; border:1px solid #ef444444'>✗ 미실행</span>"
+        )
+        rows_html.append(
+            f"<tr>"
+            f"<td>{badge} <code>{name}()</code></td>"
+            f"<td style='max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' title='{miss_tip}'>"
+            f"<a href='javascript:void(0)' onclick=\"openLoc('{abs_f}', '{fname}', {start})\" "
+            f"class='loc-link'><code>{fname}:{start}</code></a></td>"
+            f"<td class='num'>{start}-{end}</td>"
+            f"<td class='num'>{len(missing)}</td>"
+            f"</tr>"
+        )
+
+    return f"""
+    <!-- Function Coverage Table -->
+    <div style="margin-bottom: 1rem;">
+      <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">📈 Function Coverage Table ({covered}/{total} 호출됨)</h2>
+      <p style="font-size: 0.875rem; color: var(--text-muted);">
+        gcov 기준 — 함수 본문이 한 번 이상 실행되면 커버된 것으로 간주합니다
+        (<strong style="color:{pct_color}">{pct:.1f}%</strong>). 미실행 함수의 missing 라인은 파일명에 마우스를 올리면 표시됩니다.
+      </p>
+    </div>
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 1.5rem;">
+      <div style="overflow-x: auto;">
+      <table class="cov-table">
+        <thead>
+          <tr><th>Function</th><th>Location</th><th class="num">Lines</th><th class="num">Miss</th></tr>
+        </thead>
+        <tbody>
+          {"".join(rows_html)}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    """
+
+
 def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
     """Renders dedicated Test & Coverage analysis tab with suite cards and metric progress bars."""
     if not test_res:
@@ -474,6 +534,7 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
     coverage_files = test_res.extra.get("coverage_files") or []
     coverage_source = test_res.extra.get("coverage_source", "estimated")
     coverage_totals = test_res.extra.get("coverage_totals")
+    function_rows = test_res.extra.get("function_rows") or []
 
     kpi_cov_label = "Line Coverage" if line_cov is not None else "Branch Coverage"
     kpi_cov_value = line_cov if line_cov is not None else branch
@@ -562,6 +623,8 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
     </div>
 
     {_render_coverage_table(coverage_files, coverage_totals, coverage_source, base)}
+
+    {_render_function_table(function_rows, coverage_source, base)}
 
     <!-- Test Suites List -->
     <div style="margin-bottom: 1.25rem;">

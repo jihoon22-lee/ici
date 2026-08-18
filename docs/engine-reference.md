@@ -84,6 +84,11 @@ fail_pct = 15.0
   - **Python**: 프로젝트 환경의 `coverage.py`가 있으면 `coverage run --branch`로 테스트를 재실행하고 `coverage json`을 파싱하여 파일별 Stmts/Miss/Cover/Branch 실측값 수집
   - **C++**: `gcov`가 있으면 `g++ --coverage` 2단계 컴파일(객체별 `-c` 후 링크)로 테스트를 빌드·실행하고 `gcov -b -p` 산출물을 파싱하여 동일한 파일별 테이블 생성 (테스트 파일 제외)
   - 둘 다 없으면 KPI는 추정치로 표시되며, HTML에 설치 안내가 노출됨
+- **Function Coverage (gcov 호출 기준) 실측**: 함수 본문이 한 번 이상 실행되면 커버된 것으로 간주
+  - Python: coverage.json의 `executed_lines`와 AST 함수 라인 범위를 교차 계산
+  - C++: gcov 산출물의 `function ... called N` 라인 파싱
+  - HTML `🧪 Tests & Coverage` 탭에 함수별 테이블(Function Coverage Table)로 상세 표시
+  - 측정 불가 시에만 기존 추정치(통과 95%/실패 50%)로 폴백
 - **TEM (Test Effectiveness Metric) 5.0 만점 산출 공식**:
   - **Line Coverage 측정 가능 시 (기본)**:
     $$\text{TEM} = \frac{\min(80, \text{Line Coverage})}{80} \times \frac{\text{Function Coverage}}{100} \times \text{Pass Rate} \times 5.0$$

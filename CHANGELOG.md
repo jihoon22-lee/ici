@@ -5,6 +5,16 @@
 
 ---
 
+## [0.3.3] - 2026-08-18
+
+### Added
+- **Function Coverage 실측 (gcov 호출 기준)**:
+  - 기존 하드코딩 추정치(95%/50%)를 실측으로 대체 — 함수 본문이 한 번 이상 실행되면 커버로 간주
+  - Python: coverage.json `executed_lines` × AST 함수 라인 범위 교차 계산
+  - C++: gcov 산출물의 `function ... called N` 라인 파싱
+  - HTML `🧪 Tests & Coverage` 탭에 **Function Coverage Table** 추가 (함수별 실행 여부·위치·missing 라인, 미실행 함수에 호버 시 상세)
+  - 측정 불가 환경에서만 추정치 폴백
+
 ## [0.3.2] - 2026-08-18
 
 ### Fixed

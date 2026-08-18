@@ -83,6 +83,24 @@ def test_html_report_includes_module_coverage_table(tmp_path: Path):
                 }
             ],
             "coverage_totals": {"stmts": 10, "miss": 5, "cover": 50.0, "branch_cover": 40.0},
+            "function_rows": [
+                {
+                    "file": "src/pkg/core.py",
+                    "name": "process",
+                    "start_line": 1,
+                    "end_line": 10,
+                    "covered": True,
+                    "missing_lines": [],
+                },
+                {
+                    "file": "src/pkg/core.py",
+                    "name": "unused",
+                    "start_line": 12,
+                    "end_line": 14,
+                    "covered": False,
+                    "missing_lines": [13],
+                },
+            ],
         },
     )
     suite = VerificationSuiteResult(
@@ -100,6 +118,11 @@ def test_html_report_includes_module_coverage_table(tmp_path: Path):
     assert "50.0%" in content
     assert 'class="cov-table"' in content
     assert "4, 5, 6" in content
+    assert "Function Coverage Table" in content
+    assert "process()" in content
+    assert "unused()" in content
+    assert "✓ 실행됨" in content
+    assert "✗ 미실행" in content
 
 
 def test_html_report_coverage_table_estimated_notice(tmp_path: Path):
