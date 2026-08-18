@@ -345,6 +345,119 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
     return f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>{details_section}"
 
 
+def _cov_color(pct: float | None) -> str:
+    if pct is None:
+        return "#6b7280"
+    if pct >= 90.0:
+        return "#10b981"
+    if pct >= 75.0:
+        return "#f59e0b"
+    return "#ef4444"
+
+
+def _render_coverage_table(
+    coverage_files: list[dict], totals: dict | None, source: str, base: Path
+) -> str:
+    """Renders a coverage.py/gcov-style per-module table (Stmts/Miss/Cover/Branch)."""
+    source_map = {
+        "coverage.py": "coverage.py 실측",
+        "gcov": "gcov 실측",
+        "coverage.py/gcov": "coverage.py + gcov 실측",
+    }
+    source_label = source_map.get(source, "추정 (coverage.py/gcov 미설치)")
+    if not coverage_files:
+        return """
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">📈 Module Coverage Table</h2>
+      <p style="font-size: 0.875rem; color: var(--text-muted);">
+        모듈별 실측 커버리지를 수집하지 못했습니다 — Python은 <code>pip install coverage</code>,
+        C++은 <code>g++</code>/<code>gcov</code> 설치 환경에서 다시 실행하면 모듈별 Stmts/Miss/Cover
+        테이블이 채워집니다 (현재 KPI 수치는 추정치입니다).
+      </p>
+    </div>
+    """
+
+    rows_html = []
+    for f in coverage_files:
+        fname = html.escape(f.get("file", "?"))
+        stmts = f.get("stmts", 0)
+        miss = f.get("miss", 0)
+        cover = f.get("cover")
+        branch_cover = f.get("branch_cover")
+        missing = f.get("missing_lines") or []
+        miss_tip = html.escape(", ".join(str(x) for x in missing)) if missing else ""
+        abs_f = str((base / f.get("file", "")).resolve())
+        cov_color = _cov_color(cover)
+        br_color = _cov_color(branch_cover)
+        cover_str = f"{cover:.1f}%" if isinstance(cover, (int, float)) else "—"
+        branch_str = f"{branch_cover:.1f}%" if isinstance(branch_cover, (int, float)) else "—"
+        miss_style = "color: var(--fail); font-weight: 700;" if miss > 0 else ""
+        rows_html.append(
+            f"<tr>"
+            f"<td style='max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' "
+            f"title='{miss_tip}'>"
+            f"<a href='javascript:void(0)' onclick=\"openLoc('{abs_f}', '{fname}', 1)\" "
+            f"class='loc-link'><code>{fname}</code></a>"
+            f"</td>"
+            f"<td class='num'>{stmts}</td>"
+            f"<td class='num' style='{miss_style}'>{miss}</td>"
+            f"<td><div class='cov-pct-cell'>"
+            f"<span class='cov-pct' style='color:{cov_color}'>{cover_str}</span>"
+            f"<div class='cov-bar-bg'><div class='cov-bar-fill' "
+            f"style='width: {min(100.0, cover or 0.0)}%; background: {cov_color};'></div></div>"
+            f"</div></td>"
+            f"<td><div class='cov-pct-cell'>"
+            f"<span class='cov-pct' style='color:{br_color}'>{branch_str}</span>"
+            f"<div class='cov-bar-bg'><div class='cov-bar-fill' "
+            f"style='width: {min(100.0, branch_cover or 0.0)}%; background: {br_color};'></div></div>"
+            f"</div></td>"
+            f"</tr>"
+        )
+
+    totals_html = ""
+    if totals:
+        t_stmts = totals.get("stmts", 0)
+        t_miss = totals.get("miss", 0)
+        t_cover = totals.get("cover")
+        t_branch = totals.get("branch_cover")
+        t_cover_str = f"{t_cover:.1f}%" if isinstance(t_cover, (int, float)) else "—"
+        t_branch_str = f"{t_branch:.1f}%" if isinstance(t_branch, (int, float)) else "—"
+        totals_html = (
+            f"<tfoot><tr>"
+            f"<td>Total ({len(coverage_files)} modules)</td>"
+            f"<td class='num'>{t_stmts}</td>"
+            f"<td class='num'>{t_miss}</td>"
+            f"<td><strong style='color:{_cov_color(t_cover)}'>{t_cover_str}</strong></td>"
+            f"<td><strong style='color:{_cov_color(t_branch)}'>{t_branch_str}</strong></td>"
+            f"</tr></tfoot>"
+        )
+
+    return f"""
+    <!-- Module Coverage Table -->
+    <div style="margin-bottom: 1rem;">
+      <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">📈 Module Coverage Table ({len(coverage_files)} Modules)</h2>
+      <p style="font-size: 0.875rem; color: var(--text-muted);">
+        <code>coverage report</code> 형태의 모듈별 상세 커버리지 표 — 커버리지 낮은 순 정렬.
+        데이터 출처: <strong style="color: {"#10b981" if source != "estimated" else "#f59e0b"}">{source_label}</strong>
+        · 파일명에 마우스를 올리면 미실행 라인 목록이 표시됩니다.
+      </p>
+    </div>
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 1.5rem;">
+      <div style="overflow-x: auto;">
+      <table class="cov-table">
+        <thead>
+          <tr><th>Module / File</th><th class="num">Stmts</th><th class="num">Miss</th><th>Cover</th><th>Branch</th></tr>
+        </thead>
+        <tbody>
+          {"".join(rows_html)}
+        </tbody>
+        {totals_html}
+      </table>
+      </div>
+    </div>
+    """
+
+
 def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
     """Renders dedicated Test & Coverage analysis tab with suite cards and metric progress bars."""
     if not test_res:
@@ -356,6 +469,9 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
     func = test_res.extra.get("function_coverage", 0.0)
     tem = test_res.extra.get("tem_score", 0.0)
     suites = test_res.extra.get("test_suites", [])
+    coverage_files = test_res.extra.get("coverage_files") or []
+    coverage_source = test_res.extra.get("coverage_source", "estimated")
+    coverage_totals = test_res.extra.get("coverage_totals")
 
     branch_pct = min(100.0, branch)
     func_pct = min(100.0, func)
@@ -438,6 +554,8 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
         </div>
       </div>
     </div>
+
+    {_render_coverage_table(coverage_files, coverage_totals, coverage_source, base)}
 
     <!-- Test Suites List -->
     <div style="margin-bottom: 1.25rem;">

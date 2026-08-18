@@ -10,7 +10,7 @@ import tomli_w
 # Default Enterprise Quality Policy — Embedded inside ici
 DEFAULT_CONFIG: dict[str, Any] = {
     "ici": {
-        "version": "0.1.0",
+        "version": "0.2.0",
         "policy_name": "Standard Enterprise CI/CD Quality Gate",
     },
     "engines": {

@@ -394,6 +394,39 @@ HTML_CSS = """
   .test-case-name { color: #f3f4f6; font-weight: 600; }
   .test-case-msg { color: var(--text-muted); font-size: 0.8rem; margin-left: auto; }
 
+  /* Module Coverage Table */
+  .cov-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .cov-table th {
+    text-align: left;
+    padding: 0.6rem 0.9rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+    white-space: nowrap;
+  }
+  .cov-table th.num, .cov-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .cov-table td { padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--border); }
+  .cov-table tbody tr:hover { background: var(--card-hover); }
+  .cov-table tfoot td {
+    font-weight: 700;
+    border-top: 2px solid var(--border-highlight);
+    border-bottom: none;
+  }
+  .cov-pct-cell { display: flex; align-items: center; gap: 0.55rem; min-width: 150px; }
+  .cov-pct { min-width: 3.4rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .cov-bar-bg {
+    flex: 1;
+    height: 6px;
+    border-radius: 9999px;
+    background: #1f293d;
+    overflow: hidden;
+  }
+  .cov-bar-fill { height: 100%; border-radius: 9999px; }
+
   /* Issues View */
   .issues-header-bar {
     display: flex;

@@ -69,7 +69,7 @@ ici/
 │   └── smoke.sh                     # 독립 환경 스모크 테스트
 ├── src/
 │   └── ici/
-│       ├── __init__.py              # 패키지 메타데이터 (v0.1.0)
+│       ├── __init__.py              # 패키지 메타데이터 (v0.2.0)
 │       ├── __main__.py              # CLI 엔트리포인트 및 서브커맨드 라우터
 │       ├── config.py                # 전사 기본 정책(DEFAULT_CONFIG) 및 toml 로더
 │       ├── core/                    # 코어 도메인 로직
@@ -77,21 +77,22 @@ ici/
 │       │   ├── models.py            # EngineResult, InspectionTarget 데이터 모델
 │       │   ├── project.py           # 소스 파일 탐색 및 프로젝트 루트 감지
 │       │   └── runner.py            # 서브프로세스 격리 실행기
-│       ├── engines/                 # 9대 표준 검증 엔진
+│       ├── engines/                 # 9대 표준 검증 엔진 + 퍼블리셔
 │       │   ├── base.py              # BaseEngine 인터페이스 & evaluate_status()
 │       │   ├── verify.py            # VerifyOrchestrator (검증 오케스트레이터)
 │       │   ├── line.py              # 코드/주석/공백 분석 및 트리 구조 생성
 │       │   ├── lint.py              # ruff/g++/clang-format 린터
-│       │   ├── test.py              # 테스트 실행 & TEM 5.0 스코어링
+│       │   ├── test.py              # 테스트 실행 & TEM 스코어링 (coverage.py/gcov 실측)
 │       │   ├── type_check.py        # mypy & C++ 타입 안정성 검사
 │       │   ├── complexity.py        # Cyclomatic & Nesting 복잡도 분석기
 │       │   ├── sanitize.py          # ASan/UBSan & Python 누수 검증
 │       │   ├── dead.py              # 미사용 심볼 & 데드코드 탐지기
 │       │   ├── dup.py               # 연결 컴포넌트 클러스터링 기반 중복 감지기
-│       │   └── exception.py         # 예외 삼킴 및 소멸자 throw 방지
+│       │   ├── exception.py         # 예외 삼킴 및 소멸자 throw 방지
+│       │   └── publish.py           # GitHub HTML 리포트 퍼블리셔 (gh-pages/hub)
 │       └── reporters/               # 다중 리포터 계층
 │           ├── console.py           # Rich 터미널 대시보드 & OSC 8 링크
-│           ├── html.py              # 5개 전용 탭 Zero-CDN HTML 대시보드
+│           ├── html.py              # 6개 전용 탭 Zero-CDN HTML 대시보드
 │           ├── html_assets.py       # HTML 내장 CSS 및 JavaScript 자산 모듈
 │           ├── markdown.py          # GitHub Actions Summary & PR 코멘트
 │           └── json_rep.py          # JSON 리포트 직렬화기
@@ -201,8 +202,8 @@ ici/
                targets=[],
            )
    ```
-2. `src/ici/config.py`의 `DEFAULT_CONFIG["policy"]`에 기본 정책 추가
-3. `src/ici/engines/verify.py`의 `AVAILABLE_ENGINES`에 등록
+2. `src/ici/config.py`의 `DEFAULT_CONFIG["engines"]`에 기본 정책 추가
+3. `src/ici/engines/verify.py`의 `engine_defs` 목록에 등록
 4. `tests/`에 단위 테스트 추가
 
 ---
