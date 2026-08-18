@@ -52,7 +52,7 @@ class DeadCodeEngine(BaseEngine):
         defined_funcs: dict[str, tuple[str, int]] = {}
         called_names: set[str] = set()
 
-        py_sources = get_all_python_sources(self.project_root)
+        py_sources = get_all_python_sources(self.project_root, self.config)
 
         # 1. Collect all defined functions and all called names
         for py_file in py_sources:

@@ -68,7 +68,9 @@ class SanitizeEngine(BaseEngine):
 
         inc_flags = get_all_cpp_includes(self.project_root)
         src_files = [
-            str(f) for f in get_all_cpp_sources(self.project_root) if "main.cpp" not in f.name
+            str(f)
+            for f in get_all_cpp_sources(self.project_root, self.config)
+            if "main.cpp" not in f.name
         ]
         nas_cpp = get_nas_cpp_lib_dir()
         lib_flags = []
