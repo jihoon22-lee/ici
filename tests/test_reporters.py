@@ -54,3 +54,74 @@ def test_reporters_output_generation(tmp_path: Path):
     json_out = tmp_path / "report.json"
     save_json_report(suite, json_out)
     assert json_out.exists()
+
+
+def test_html_report_includes_module_coverage_table(tmp_path: Path):
+    result = EngineResult(
+        engine_name="test",
+        status=EngineStatus.PASS,
+        summary="2/2 Tests Passed | Branch: 66.7%, Func: 95.0% -> TEM: 3.96 / 5.0",
+        score=3.96,
+        max_score=5.0,
+        extra={
+            "passed_tests": 2,
+            "total_tests": 2,
+            "branch_coverage": 66.7,
+            "function_coverage": 95.0,
+            "tem_score": 3.96,
+            "test_suites": [],
+            "coverage_source": "coverage.py",
+            "coverage_files": [
+                {
+                    "file": "src/pkg/core.py",
+                    "stmts": 10,
+                    "covered": 5,
+                    "miss": 5,
+                    "cover": 50.0,
+                    "branch_cover": 40.0,
+                    "missing_lines": [4, 5, 6],
+                }
+            ],
+            "coverage_totals": {"stmts": 10, "miss": 5, "cover": 50.0, "branch_cover": 40.0},
+        },
+    )
+    suite = VerificationSuiteResult(
+        suite_status=EngineStatus.PASS,
+        results=[result],
+        duration=1.0,
+        tem_score=3.96,
+    )
+    html_out = tmp_path / "report.html"
+    generate_html_report(suite, html_out, project_name="TestProject", base_dir=tmp_path)
+    content = html_out.read_text(encoding="utf-8")
+    assert "Module Coverage Table" in content
+    assert "src/pkg/core.cpp" not in content and "src/pkg/core.py" in content
+    assert "coverage.py 실측" in content
+    assert "50.0%" in content
+    assert 'class="cov-table"' in content
+    assert "4, 5, 6" in content
+
+
+def test_html_report_coverage_table_estimated_notice(tmp_path: Path):
+    result = EngineResult(
+        engine_name="test",
+        status=EngineStatus.PASS,
+        summary="ok",
+        extra={
+            "passed_tests": 0,
+            "total_tests": 0,
+            "branch_coverage": 85.0,
+            "function_coverage": 95.0,
+            "tem_score": 4.75,
+            "test_suites": [],
+            "coverage_source": "estimated",
+            "coverage_files": [],
+        },
+    )
+    suite = VerificationSuiteResult(suite_status=EngineStatus.PASS, results=[result])
+    html_out = tmp_path / "report.html"
+    generate_html_report(suite, html_out, project_name="TestProject", base_dir=tmp_path)
+    content = html_out.read_text(encoding="utf-8")
+    assert "Module Coverage Table" in content
+    assert "추정" in content
+    assert 'class="cov-table"' not in content
