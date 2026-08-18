@@ -673,8 +673,8 @@ class TestEngine(BaseEngine):
                     r = str(abs_p.resolve().relative_to(self.project_root))
                     if r in source_files:
                         rel = r
-                except ValueError:
-                    pass
+                except ValueError as err:
+                    _ = err
             if rel is None:
                 continue
             try:
