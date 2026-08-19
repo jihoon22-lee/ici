@@ -238,132 +238,161 @@ class TestEngine(BaseEngine):
         }
 
     def _run_python_tests(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
-        pytest_cmd: list[str] | None = None
-        venv_pytest = self.project_root / ".venv/bin/pytest"
-        which_pytest = shutil.which("pytest")
-        if venv_pytest.exists():
-            pytest_cmd = [str(venv_pytest)]
-        elif which_pytest:
-            pytest_cmd = [which_pytest]
-        elif find_uv() and (self.project_root / "pyproject.toml").exists():
-            pytest_cmd = ["uv", "run", "pytest"]
-        else:
-            pytest_cmd = [sys.executable, "-m", "pytest"]
+        pytest_cmd = self._find_pytest_cmd()
+        env = self._build_python_test_env()
+        coverage_result = self._run_coverage_tests(pytest_cmd, env, targets)
+        if coverage_result is not None:
+            return coverage_result
+        pytest_result = self._run_plain_pytest(pytest_cmd, env, targets)
+        if pytest_result is not None:
+            return pytest_result
+        return self._run_unittest(env, targets)
 
+    def _find_pytest_cmd(self) -> list[str]:
+        venv_pytest = self.project_root / ".venv/bin/pytest"
+        if venv_pytest.exists():
+            return [str(venv_pytest)]
+        which_pytest = shutil.which("pytest")
+        if which_pytest:
+            return [which_pytest]
+        if find_uv() and (self.project_root / "pyproject.toml").exists():
+            return ["uv", "run", "pytest"]
+        return [sys.executable, "-m", "pytest"]
+
+    def _build_python_test_env(self) -> dict[str, str]:
         env = os.environ.copy()
         source_paths = [str(d) for d in get_source_dirs(self.project_root, self.config)]
         if source_paths:
             env["PYTHONPATH"] = ":".join([*source_paths, env.get("PYTHONPATH", "")])
+        return env
 
+    def _run_coverage_tests(
+        self,
+        pytest_cmd: list[str],
+        env: dict[str, str],
+        targets: list[InspectionTarget],
+    ) -> tuple[int, int, bool] | None:
         cov_cmd = self._find_coverage_cmd(pytest_cmd)
-        if cov_cmd:
-            cov_dir = self.project_root / "build" / "coverage"
-            cov_dir.mkdir(parents=True, exist_ok=True)
-            cov_env = dict(env)
-            cov_env["COVERAGE_FILE"] = str(cov_dir / ".coverage")
-            cov_run_cmd = [*cov_cmd, "run", "--branch"]
-            rel_dirs = [
-                str(d.relative_to(self.project_root))
-                for d in get_source_dirs(self.project_root, self.config)
-            ]
-            if rel_dirs:
-                cov_run_cmd.append(f"--source={','.join(rel_dirs)}")
-            cov_run_cmd += ["-m", "pytest", "-o", "addopts=", "-v", "tests"]
-            result = run_process(cov_run_cmd, cwd=self.project_root, env=cov_env)
-            self._record_tool("coverage pytest", cov_run_cmd, result)
-            if result.timed_out:
-                self._record_tool_error("Coverage test run timed out")
-                return 0, 0, False
-            if result.truncated:
-                self._record_tool_error("Coverage test output was truncated")
-                return 0, 0, False
-            out = result.stdout
+        if cov_cmd is None:
+            return None
+        cov_dir = self.project_root / "build" / "coverage"
+        cov_dir.mkdir(parents=True, exist_ok=True)
+        cov_env = dict(env)
+        cov_env["COVERAGE_FILE"] = str(cov_dir / ".coverage")
+        cov_run_cmd = self._build_coverage_run_cmd(cov_cmd)
+        result = run_process(cov_run_cmd, cwd=self.project_root, env=cov_env)
+        self._record_tool("coverage pytest", cov_run_cmd, result)
+        if result.timed_out:
+            self._record_tool_error("Coverage test run timed out")
+            return 0, 0, False
+        if result.truncated:
+            self._record_tool_error("Coverage test output was truncated")
+            return 0, 0, False
+        self._generate_coverage_json(cov_cmd, cov_dir, cov_env)
+        parsed = self._parse_pytest_result(result, targets)
+        if self._tool_errors or parsed[1] > 0 or self._coverage_data:
+            return parsed
+        return None
 
-            json_path = cov_dir / "coverage.json"
-            with contextlib.suppress(OSError):
-                json_path.unlink()
-            coverage_json_cmd = [*cov_cmd, "json", "-o", str(json_path)]
-            coverage_json_result = run_process(
-                coverage_json_cmd, cwd=self.project_root, env=cov_env
+    def _build_coverage_run_cmd(self, cov_cmd: list[str]) -> list[str]:
+        command = [*cov_cmd, "run", "--branch"]
+        rel_dirs = [
+            str(d.relative_to(self.project_root))
+            for d in get_source_dirs(self.project_root, self.config)
+        ]
+        if rel_dirs:
+            command.append(f"--source={','.join(rel_dirs)}")
+        return [*command, "-m", "pytest", "-o", "addopts=", "-v", "tests"]
+
+    def _generate_coverage_json(
+        self, cov_cmd: list[str], cov_dir: Path, cov_env: dict[str, str]
+    ) -> None:
+        json_path = cov_dir / "coverage.json"
+        with contextlib.suppress(OSError):
+            json_path.unlink()
+        command = [*cov_cmd, "json", "-o", str(json_path)]
+        result = run_process(command, cwd=self.project_root, env=cov_env)
+        self._record_tool("coverage json", command, result)
+        self._coverage_data = None
+        if result.timed_out:
+            self._record_tool_error("Coverage JSON generation timed out")
+        elif result.truncated:
+            self._record_tool_error("Coverage JSON output was truncated")
+        elif result.returncode != 0:
+            self._record_tool_error(
+                f"Coverage JSON generation failed with exit code {result.returncode}"
             )
-            self._record_tool("coverage json", coverage_json_cmd, coverage_json_result)
-            self._coverage_data = None
-            if coverage_json_result.timed_out:
-                self._record_tool_error("Coverage JSON generation timed out")
-            elif coverage_json_result.truncated:
-                self._record_tool_error("Coverage JSON output was truncated")
-            elif coverage_json_result.returncode != 0:
-                self._record_tool_error(
-                    f"Coverage JSON generation failed with exit code {coverage_json_result.returncode}"
-                )
-            else:
-                self._coverage_data = self._parse_coverage_json(json_path)
-                if self._coverage_data is None:
-                    self._record_tool_error("Coverage JSON was missing or incomplete")
+        else:
+            self._coverage_data = self._parse_coverage_json(json_path)
+            if self._coverage_data is None:
+                self._record_tool_error("Coverage JSON was missing or incomplete")
 
-            passed, total, has_failure = self._parse_pytest_stdout(out, targets)
-            if result.returncode not in (0, 1):
-                self._record_tool_error(f"Pytest failed with exit code {result.returncode}")
-            elif result.returncode == 1 and not has_failure:
-                self._record_tool_error("Pytest returned failure without parseable diagnostics")
-            elif total == 0:
-                self._record_tool_error("Pytest produced no parseable test results")
-            if self._tool_errors:
-                return passed, total, has_failure
-            if total > 0 or self._coverage_data:
-                return passed, total, has_failure
+    def _run_plain_pytest(
+        self,
+        pytest_cmd: list[str],
+        env: dict[str, str],
+        targets: list[InspectionTarget],
+    ) -> tuple[int, int, bool] | None:
+        command = [*pytest_cmd, "-o", "addopts=", "-v", "tests"]
+        result = run_process(command, cwd=self.project_root, env=env)
+        self._record_tool("pytest", command, result)
+        if result.timed_out:
+            self._record_tool_error("Pytest timed out")
+            return 0, 0, False
+        if result.truncated:
+            self._record_tool_error("Pytest output was truncated")
+            return 0, 0, False
+        parsed = self._parse_pytest_result(result, targets)
+        if parsed[1] > 0:
+            return parsed
+        return None
 
-        if pytest_cmd:
-            result = run_process(
-                [*pytest_cmd, "-o", "addopts=", "-v", "tests"], cwd=self.project_root, env=env
-            )
-            self._record_tool("pytest", [*pytest_cmd, "-o", "addopts=", "-v", "tests"], result)
-            if result.timed_out:
-                self._record_tool_error("Pytest timed out")
-                return 0, 0, False
-            if result.truncated:
-                self._record_tool_error("Pytest output was truncated")
-                return 0, 0, False
-            out = result.stdout
-            passed, total, has_failure = self._parse_pytest_stdout(out, targets)
-            if result.returncode not in (0, 1):
-                self._record_tool_error(f"Pytest failed with exit code {result.returncode}")
-            elif result.returncode == 1 and not has_failure:
-                self._record_tool_error("Pytest returned failure without parseable diagnostics")
-            elif total == 0:
-                self._record_tool_error("Pytest produced no parseable test results")
-            if total > 0:
-                return passed, total, has_failure
+    def _parse_pytest_result(
+        self, result, targets: list[InspectionTarget]
+    ) -> tuple[int, int, bool]:
+        parsed = self._parse_pytest_stdout(result.stdout, targets)
+        passed, total, has_failure = parsed
+        if result.returncode not in (0, 1):
+            self._record_tool_error(f"Pytest failed with exit code {result.returncode}")
+        elif result.returncode == 1 and not has_failure:
+            self._record_tool_error("Pytest returned failure without parseable diagnostics")
+        elif total == 0:
+            self._record_tool_error("Pytest produced no parseable test results")
+        return passed, total, has_failure
 
-        # Unittest fallback
-        passed = 0
-        total = 0
-        has_failure = False
-        unittest_cmd = ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]
-        result = run_process(
-            unittest_cmd,
-            cwd=self.project_root,
-            env=env,
-        )
-        self._record_tool("unittest", unittest_cmd, result)
+    def _run_unittest(
+        self, env: dict[str, str], targets: list[InspectionTarget]
+    ) -> tuple[int, int, bool]:
+        command = ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]
+        result = run_process(command, cwd=self.project_root, env=env)
+        self._record_tool("unittest", command, result)
         if result.timed_out:
             self._record_tool_error("Unittest timed out")
             return 0, 0, False
         if result.truncated:
             self._record_tool_error("Unittest output was truncated")
             return 0, 0, False
-        out = result.stdout
-        err = result.stderr
-        for line in (out + "\n" + err).splitlines():
+        passed, total, has_failure = self._parse_unittest_stdout(result, targets)
+        if result.returncode not in (0, 1):
+            self._record_tool_error(f"Unittest failed with exit code {result.returncode}")
+        elif total == 0:
+            self._record_tool_error("Unittest produced no parseable test results")
+        return passed, total, has_failure
+
+    @staticmethod
+    def _parse_unittest_stdout(result, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
+        passed = 0
+        total = 0
+        has_failure = False
+        for line in (result.stdout + "\n" + result.stderr).splitlines():
             if " ... ok" in line:
                 total += 1
                 passed += 1
-                tname = line.replace(" ... ok", "").strip()
                 targets.append(
                     InspectionTarget(
                         file_path="tests",
                         start_line=1,
-                        target_name=tname,
+                        target_name=line.replace(" ... ok", "").strip(),
                         status=EngineStatus.PASS,
                         message="Unittest passed",
                     )
@@ -371,22 +400,15 @@ class TestEngine(BaseEngine):
             elif " ... FAIL" in line or " ... ERROR" in line:
                 total += 1
                 has_failure = True
-                tname = line.split(" ...")[0].strip()
                 targets.append(
                     InspectionTarget(
                         file_path="tests",
                         start_line=1,
-                        target_name=tname,
+                        target_name=line.split(" ...")[0].strip(),
                         status=EngineStatus.FAIL,
                         message="Unittest assertion failure",
                     )
                 )
-
-        if result.returncode not in (0, 1):
-            self._record_tool_error(f"Unittest failed with exit code {result.returncode}")
-        elif total == 0:
-            self._record_tool_error("Unittest produced no parseable test results")
-
         return passed, total, has_failure
 
     def _find_coverage_cmd(self, pytest_cmd: list[str] | None) -> list[str] | None:

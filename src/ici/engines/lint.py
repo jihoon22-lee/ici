@@ -21,7 +21,7 @@ from ici.core.project import (
     get_all_cpp_includes,
     get_all_cpp_sources,
 )
-from ici.core.runner import run_process
+from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 
 _RUFF_FORMAT_SUCCESS_RE = re.compile(r"\d+ files? already formatted(?:\r?\n)?\Z")
@@ -80,143 +80,169 @@ class LintEngine(BaseEngine):
     def _lint_python(
         self, targets: list[InspectionTarget], tool_evidence: list[ToolEvidence] | None = None
     ) -> list[str]:
-        errors: list[str] = []
         evidence = tool_evidence if tool_evidence is not None else []
-        ruff_cmd: list[str] | None = None
+        errors: list[str] = []
+        ruff_cmd = self._find_ruff_command()
+        if ruff_cmd is not None:
+            errors.extend(self._run_ruff_check(ruff_cmd, targets, evidence))
+            errors.extend(self._run_ruff_format(ruff_cmd, targets, evidence))
+        self._check_python_syntax(targets)
+        return errors
+
+    def _find_ruff_command(self) -> list[str] | None:
         which_ruff = shutil.which("ruff")
         venv_ruff = self.project_root / ".venv/bin/ruff"
         if which_ruff:
-            ruff_cmd = [which_ruff]
-        elif venv_ruff.exists():
-            ruff_cmd = [str(venv_ruff)]
-        elif shutil.which("uvx"):
-            ruff_cmd = ["uvx", "ruff"]
-        elif find_uv():
-            ruff_cmd = ["uv", "run", "ruff"]
+            return [which_ruff]
+        if venv_ruff.exists():
+            return [str(venv_ruff)]
+        if shutil.which("uvx"):
+            return ["uvx", "ruff"]
+        if find_uv():
+            return ["uv", "run", "ruff"]
+        return None
 
-        # 1. Ruff check
-        if ruff_cmd:
-            check_cmd = [*ruff_cmd, "check", ".", "--output-format=json"]
-            result = run_process(check_cmd, cwd=self.project_root)
-            evidence.append(
-                ToolEvidence(
-                    name="ruff check",
-                    path=check_cmd[0],
-                    argv=check_cmd,
-                    returncode=result.returncode,
+    def _run_ruff_check(
+        self,
+        ruff_cmd: list[str],
+        targets: list[InspectionTarget],
+        evidence: list[ToolEvidence],
+    ) -> list[str]:
+        command = [*ruff_cmd, "check", ".", "--output-format=json"]
+        result = run_process(command, cwd=self.project_root)
+        evidence.append(
+            ToolEvidence(
+                name="ruff check",
+                path=command[0],
+                argv=command,
+                returncode=result.returncode,
+            )
+        )
+        return self._evaluate_ruff_check(result, targets)
+
+    def _evaluate_ruff_check(
+        self, result: ProcessResult, targets: list[InspectionTarget]
+    ) -> list[str]:
+        if result.timed_out:
+            return ["Ruff check timed out"]
+        if result.truncated:
+            return ["Ruff check output was truncated"]
+        if result.returncode not in (0, 1):
+            return [f"Ruff check failed with exit code {result.returncode}"]
+        if result.stderr.strip():
+            return ["Ruff check emitted unexpected stderr"]
+        if not result.stdout.strip():
+            message = "violations" if result.returncode == 1 else "succeeded"
+            return [f"Ruff check {message} without parseable JSON"]
+        try:
+            issues = json.loads(result.stdout)
+            if not isinstance(issues, list):
+                raise ValueError("Ruff JSON output is not a list")
+            if result.returncode == 1 and not issues:
+                return ["Ruff reported violations without any JSON findings"]
+            self._append_ruff_findings(issues, targets)
+        except (json.JSONDecodeError, ValueError) as error:
+            return [f"Ruff check output was not valid JSON: {error}"]
+        return []
+
+    def _append_ruff_findings(self, issues: list[object], targets: list[InspectionTarget]) -> None:
+        for item in issues:
+            if not isinstance(item, dict):
+                raise ValueError("Ruff JSON item is not an object")
+            fpath = item.get("filename", "")
+            try:
+                rel_path = str(Path(fpath).relative_to(self.project_root))
+            except (TypeError, ValueError):
+                rel_path = str(fpath)
+            location = item.get("location", {})
+            if not isinstance(location, dict):
+                raise ValueError("Ruff JSON location is not an object")
+            targets.append(
+                InspectionTarget(
+                    file_path=rel_path,
+                    start_line=location.get("row", 1),
+                    target_name=f"Ruff:{item.get('code', 'RUFF')}",
+                    status=EngineStatus.FAIL,
+                    message=str(item.get("message", "")),
                 )
             )
-            out = result.stdout
-            if result.timed_out:
-                errors.append("Ruff check timed out")
-            elif result.truncated:
-                errors.append("Ruff check output was truncated")
-            elif result.returncode not in (0, 1):
-                errors.append(f"Ruff check failed with exit code {result.returncode}")
-            elif result.stderr.strip():
-                errors.append("Ruff check emitted unexpected stderr")
-            elif result.returncode == 1 and not out.strip():
-                errors.append("Ruff check returned violations without parseable JSON")
-            elif not out.strip():
-                errors.append("Ruff check succeeded without parseable JSON")
-            else:
-                try:
-                    issues = json.loads(out)
-                    if not isinstance(issues, list):
-                        raise ValueError("Ruff JSON output is not a list")
-                    if result.returncode == 1 and not issues:
-                        errors.append("Ruff reported violations without any JSON findings")
-                    for item in issues:
-                        if not isinstance(item, dict):
-                            raise ValueError("Ruff JSON item is not an object")
-                        fpath = item.get("filename", "")
-                        try:
-                            rel_p = str(Path(fpath).relative_to(self.project_root))
-                        except Exception:
-                            rel_p = fpath
 
-                        loc = item.get("location", {})
-                        row = loc.get("row", 1)
-                        rule = item.get("code", "RUFF")
-                        msg = item.get("message", "")
+    def _run_ruff_format(
+        self,
+        ruff_cmd: list[str],
+        targets: list[InspectionTarget],
+        evidence: list[ToolEvidence],
+    ) -> list[str]:
+        command = [*ruff_cmd, "format", "--check", "."]
+        result = run_process(command, cwd=self.project_root)
+        evidence.append(
+            ToolEvidence(
+                name="ruff format",
+                path=command[0],
+                argv=command,
+                returncode=result.returncode,
+            )
+        )
+        return self._evaluate_ruff_format(result, targets)
 
-                        targets.append(
-                            InspectionTarget(
-                                file_path=rel_p,
-                                start_line=row,
-                                target_name=f"Ruff:{rule}",
-                                status=EngineStatus.FAIL,
-                                message=msg,
-                            )
-                        )
-                except (json.JSONDecodeError, ValueError) as err:
-                    errors.append(f"Ruff check output was not valid JSON: {err}")
+    def _evaluate_ruff_format(
+        self, result: ProcessResult, targets: list[InspectionTarget]
+    ) -> list[str]:
+        if result.timed_out:
+            return ["Ruff format check timed out"]
+        if result.truncated:
+            return ["Ruff format output was truncated"]
+        if result.returncode not in (0, 1):
+            return [f"Ruff format check failed with exit code {result.returncode}"]
+        if result.returncode == 1 and not (result.stdout or result.stderr):
+            return ["Ruff format check failed without diagnostic output"]
+        if result.returncode == 0 and not self._is_valid_format_success(result):
+            return ["Ruff format output was not parseable"]
+        if result.returncode == 1 and not self._append_reformat_targets(result, targets):
+            return ["Ruff format output was not parseable"]
+        return []
 
-            # 2. Ruff format check
-            format_cmd = [*ruff_cmd, "format", "--check", "."]
-            format_result = run_process(format_cmd, cwd=self.project_root)
-            evidence.append(
-                ToolEvidence(
-                    name="ruff format",
-                    path=format_cmd[0],
-                    argv=format_cmd,
-                    returncode=format_result.returncode,
+    @staticmethod
+    def _is_valid_format_success(result: ProcessResult) -> bool:
+        return not result.stderr.strip() and (
+            not result.stdout.strip()
+            or _RUFF_FORMAT_SUCCESS_RE.fullmatch(result.stdout) is not None
+        )
+
+    @staticmethod
+    def _append_reformat_targets(result: ProcessResult, targets: list[InspectionTarget]) -> bool:
+        found_reformat = False
+        for line in (result.stdout + "\n" + result.stderr).splitlines():
+            if "Would reformat:" not in line:
+                continue
+            found_reformat = True
+            targets.append(
+                InspectionTarget(
+                    file_path=line.replace("Would reformat:", "").strip(),
+                    start_line=1,
+                    target_name="Format:Style",
+                    status=EngineStatus.WARN,
+                    message="File requires reformatting (PEP 8 style mismatch)",
                 )
             )
-            f_code = format_result.returncode
-            f_out = format_result.stdout
-            f_err = format_result.stderr
-            if format_result.timed_out:
-                errors.append("Ruff format check timed out")
-            elif format_result.truncated:
-                errors.append("Ruff format output was truncated")
-            elif f_code not in (0, 1):
-                errors.append(f"Ruff format check failed with exit code {f_code}")
-            elif f_code == 1 and not (f_out or f_err):
-                errors.append("Ruff format check failed without diagnostic output")
-            elif f_code == 0 and (
-                f_err.strip()
-                or (f_out.strip() and _RUFF_FORMAT_SUCCESS_RE.fullmatch(f_out) is None)
-            ):
-                errors.append("Ruff format output was not parseable")
-            elif f_code != 0:
-                found_reformat = False
-                for line in (f_out + "\n" + f_err).splitlines():
-                    if "Would reformat:" in line:
-                        found_reformat = True
-                        f_name = line.replace("Would reformat:", "").strip()
-                        targets.append(
-                            InspectionTarget(
-                                file_path=f_name,
-                                start_line=1,
-                                target_name="Format:Style",
-                                status=EngineStatus.WARN,
-                                message="File requires reformatting (PEP 8 style mismatch)",
-                            )
-                        )
-                if not found_reformat:
-                    errors.append("Ruff format output was not parseable")
+        return found_reformat
 
-        # 3. AST Syntax check fallback
+    def _check_python_syntax(self, targets: list[InspectionTarget]) -> None:
         for py_file in self.project_root.rglob("*.py"):
             if _should_ignore_path(py_file):
                 continue
             try:
-                content = py_file.read_text(encoding="utf-8")
-                ast.parse(content, filename=str(py_file))
-            except SyntaxError as e:
-                rel_p = str(py_file.relative_to(self.project_root))
+                ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+            except SyntaxError as error:
                 targets.append(
                     InspectionTarget(
-                        file_path=rel_p,
-                        start_line=e.lineno or 1,
+                        file_path=str(py_file.relative_to(self.project_root)),
+                        start_line=error.lineno or 1,
                         target_name="SyntaxError",
                         status=EngineStatus.FAIL,
-                        message=f"SyntaxError: {e.msg}",
+                        message=f"SyntaxError: {error.msg}",
                     )
                 )
-
-        return errors
 
     def _lint_cpp(
         self, targets: list[InspectionTarget], tool_evidence: list[ToolEvidence] | None = None
