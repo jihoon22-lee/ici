@@ -412,6 +412,48 @@ def test_exception_engine_respects_assignment_and_import_shadowing_of_scoped_ali
     assert not any(target.target_name == "BaseException" for target in result.targets)
 
 
+def test_exception_engine_uses_last_alias_binding_before_handler(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "ordered_aliases.py").write_text(
+        """def handle():
+    BE = ValueError
+    from builtins import BaseException as BE
+    b = object()
+    import builtins as b
+    try:
+        work()
+    except BE:
+        log()
+    try:
+        work()
+    except b.BaseException:
+        log()
+
+def later():
+    try:
+        work()
+    except BE:
+        log()
+    from builtins import BaseException as BE
+    try:
+        work()
+    except b.BaseException:
+        log()
+    import builtins as b
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (8, EngineStatus.FAIL),
+        (13, EngineStatus.FAIL),
+    ]
+
+
 def test_exception_engine_cancels_pending_destructor_at_declaration_semicolon(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
