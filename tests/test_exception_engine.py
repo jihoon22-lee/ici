@@ -873,10 +873,10 @@ closure()
 
     targets = [target for target in result.targets if target.target_name == "BaseException"]
     assert [(target.start_line, target.status) for target in targets] == [
-        (19, EngineStatus.FAIL),
-        (31, EngineStatus.FAIL),
-        (41, EngineStatus.FAIL),
-        (51, EngineStatus.FAIL),
+        (15, EngineStatus.FAIL),
+        (27, EngineStatus.FAIL),
+        (37, EngineStatus.FAIL),
+        (47, EngineStatus.FAIL),
     ]
 
 
