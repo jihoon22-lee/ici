@@ -478,10 +478,9 @@ class TestEngine(BaseEngine):
     def _parse_pytest_result(
         self, result, targets: list[InspectionTarget]
     ) -> tuple[int, int, bool]:
-        parsed = self._parse_pytest_stdout(
+        passed, total, has_failure = self._parse_pytest_stdout(
             result.stdout + ("\n" + result.stderr if result.stderr else ""), targets
         )
-        passed, total, has_failure = parsed
         output = result.stdout + "\n" + result.stderr
         collected = re.search(r"\bcollected\s+(\d+)\s+items?\b", output)
         if total == 0 and collected is not None:
