@@ -369,7 +369,7 @@ def test_coverage_malformed_json_is_error_after_attempt(tmp_path: Path, monkeypa
                 0.01,
             )
         output_path = Path(cmd[cmd.index("-o") + 1])
-        output_path.write_text('{"files": {}, "totals": {}}', encoding="utf-8")
+        output_path.write_text("not json", encoding="utf-8")
         return ProcessResult(0, "", "", 0.01)
 
     monkeypatch.setattr("ici.engines.test.run_process", fake_run)
