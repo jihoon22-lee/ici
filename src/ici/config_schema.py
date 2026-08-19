@@ -33,7 +33,17 @@ _ENGINE_KEYS = {
         }
     ),
     "lint": frozenset({"enabled", "mode"}),
-    "test": frozenset({"enabled", "mode", "min_tem_score", "min_branch_cov", "min_func_cov"}),
+    "test": frozenset(
+        {
+            "enabled",
+            "mode",
+            "min_tem_score",
+            "min_branch_cov",
+            "min_func_cov",
+            "coverage_required",
+            "python",
+        }
+    ),
     "type": frozenset({"enabled", "mode", "fail_on_error", "warn_on_missing_annotation"}),
     "complexity": frozenset({"enabled", "mode", "warn_cc", "fail_cc", "warn_nesting"}),
     "sanitize": frozenset({"enabled", "mode"}),
@@ -159,6 +169,10 @@ def _validate_line(table: dict[str, Any], path: str) -> None:
 
 def _validate_test(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
+    if "coverage_required" in table:
+        _require_bool(table["coverage_required"], f"{path}.coverage_required")
+    if "python" in table:
+        _require_string(table["python"], f"{path}.python", non_empty=True)
     if "min_tem_score" in table:
         _require_number(table["min_tem_score"], f"{path}.min_tem_score", minimum=0, maximum=5)
     if "min_branch_cov" in table:
