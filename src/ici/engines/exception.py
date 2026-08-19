@@ -9,6 +9,7 @@ from ici.core.project import detect_project_type, get_all_cpp_sources, get_all_p
 from ici.engines.base import BaseEngine
 
 ScopeAliases = tuple[set[str], set[str], set[str], set[str]]
+TransientEvents = list[tuple[str, tuple[int, int, int]]]
 
 
 class _HandlerRaiseVisitor(ast.NodeVisitor):
@@ -423,11 +424,13 @@ class ExceptionSafetyEngine(BaseEngine):
                 continue
             active_scopes.append(scope)
         active_scopes.reverse()
+        transient = cls._transient_handler_bindings(node, parent_map, active_scopes)
         aliases: list[ScopeAliases] = []
         for scope_index, scope in enumerate(active_scopes):
             is_current_scope = scope_index == len(active_scopes) - 1
+            transient_events = transient.get(scope, [])
             if is_current_scope:
-                aliases.append(cls._scope_aliases(scope, node))
+                aliases.append(cls._scope_aliases(scope, node, transient_events=transient_events))
                 continue
             child_scope = active_scopes[scope_index + 1]
             aliases.append(
@@ -436,10 +439,9 @@ class ExceptionSafetyEngine(BaseEngine):
                     None,
                     cls._child_scope_cutoff(child_scope),
                     possible_after=isinstance(child_scope, (ast.FunctionDef, ast.AsyncFunctionDef)),
+                    transient_events=transient_events,
                 )
             )
-        transient = cls._transient_handler_bindings(node, parent_map, active_scopes)
-        cls._apply_transient_handler_shadows(aliases, active_scopes, transient)
         return aliases
 
     @staticmethod
@@ -447,9 +449,9 @@ class ExceptionSafetyEngine(BaseEngine):
         node: ast.ExceptHandler,
         parent_map: dict[ast.AST, ast.AST],
         active_scopes: list[ast.AST],
-    ) -> dict[ast.AST, set[str]]:
+    ) -> dict[ast.AST, TransientEvents]:
         scope_indexes = {scope: index for index, scope in enumerate(active_scopes)}
-        bindings: dict[ast.AST, set[str]] = {}
+        bindings: dict[ast.AST, TransientEvents] = {}
         current = parent_map.get(node)
         while current is not None:
             if isinstance(current, ast.ExceptHandler) and current.name:
@@ -460,22 +462,10 @@ class ExceptionSafetyEngine(BaseEngine):
                 ):
                     owner = parent_map.get(owner)
                 if owner in scope_indexes:
-                    bindings.setdefault(owner, set()).add(current.name)
+                    position = (current.lineno, current.col_offset, -1)
+                    bindings.setdefault(owner, []).append((current.name, position))
             current = parent_map.get(current)
         return bindings
-
-    @staticmethod
-    def _apply_transient_handler_shadows(
-        aliases: list[ScopeAliases],
-        active_scopes: list[ast.AST],
-        transient: dict[ast.AST, set[str]],
-    ) -> None:
-        for index, scope in enumerate(active_scopes):
-            exception_aliases, builtins_aliases, shadowed_names, _ = aliases[index]
-            for name in transient.get(scope, set()):
-                exception_aliases.discard(name)
-                builtins_aliases.discard(name)
-                shadowed_names.add(name)
 
     @staticmethod
     def _child_scope_cutoff(scope: ast.AST) -> tuple[int, int] | None:
@@ -489,9 +479,12 @@ class ExceptionSafetyEngine(BaseEngine):
         handler: ast.ExceptHandler | None,
         cutoff: tuple[int, int] | None = None,
         possible_after: bool = False,
+        transient_events: TransientEvents | None = None,
     ) -> ScopeAliases:
         collector = _ScopeAliasCollector(scope)
         collector.visit(scope)
+        for name, position in transient_events or ():
+            collector.events.append((position, name, "shadow"))
         return collector.resolve(handler, cutoff, possible_after)
 
     @staticmethod
