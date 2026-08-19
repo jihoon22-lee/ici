@@ -166,8 +166,8 @@ def parse_gcov_dir(cov_dir: Path, source_files: set[str], project_root: Path) ->
                     try:
                         if int(value.rstrip("%")) > 0:
                             covered_branches += 1
-                    except ValueError:
-                        pass
+                    except ValueError as error:
+                        _ = error
                 continue
             if ":" not in line:
                 continue
