@@ -688,158 +688,169 @@ class TestEngine(BaseEngine):
         cpp_tests = list((self.project_root / "tests").rglob("*.cpp"))
         for test_src in cpp_tests:
             total += 1
-            runner_bin = build_tmp / test_src.stem
-            rel_p = str(test_src.relative_to(self.project_root))
-
-            if use_coverage:
-                ok, objs, c_err = self._compile_cpp_objects(
-                    gxx, inc_flags, src_files, str(test_src), build_tmp
-                )
-                if not ok:
-                    self._coverage_errors.append("C++ gcov coverage compilation failed")
-                    tool_error = bool(self._tool_errors)
-                    has_failure = has_failure or not tool_error
-                    targets.append(
-                        InspectionTarget(
-                            file_path=rel_p,
-                            start_line=1,
-                            target_name=f"[C++] {test_src.name}",
-                            status=EngineStatus.ERROR if tool_error else EngineStatus.FAIL,
-                            message=(
-                                "Compiler process terminated before reporting results"
-                                if tool_error
-                                else f"Compilation Error: {c_err[:200]}"
-                            ),
-                        )
-                    )
-                    continue
-                compile_cmd = [
-                    gxx,
-                    "--coverage",
-                    "-std=c++17",
-                    *(str(o) for o in objs),
-                    *lib_flags,
-                    "-o",
-                    str(runner_bin),
-                ]
-                compile_result = run_process(compile_cmd, cwd=build_tmp)
-            else:
-                compile_cmd = [
-                    gxx,
-                    "-std=c++17",
-                    *inc_flags,
-                    str(test_src),
-                    *src_files,
-                    *lib_flags,
-                    "-o",
-                    str(runner_bin),
-                ]
-                compile_result = run_process(compile_cmd, cwd=self.project_root)
-
-            self._record_tool("g++ test compile", compile_cmd, compile_result)
-
-            c_code = compile_result.returncode
-            c_err = compile_result.stderr
-
-            if compile_result.timed_out or compile_result.truncated:
-                self._record_tool_error(f"C++ test compilation incomplete: {test_src.name}")
-                targets.append(
-                    InspectionTarget(
-                        file_path=rel_p,
-                        start_line=1,
-                        target_name=f"[C++] {test_src.name}",
-                        status=EngineStatus.ERROR,
-                        message="Compilation output was incomplete",
-                    )
-                )
-                continue
-            if c_code < 0:
-                self._record_tool_error(
-                    f"C++ test compilation terminated before reporting results: {test_src.name}"
-                )
-                targets.append(
-                    InspectionTarget(
-                        file_path=rel_p,
-                        start_line=1,
-                        target_name=f"[C++] {test_src.name}",
-                        status=EngineStatus.ERROR,
-                        message="Compiler process terminated before reporting results",
-                    )
-                )
-                continue
-            if c_code != 0:
-                if use_coverage:
-                    self._coverage_errors.append("C++ gcov coverage compilation failed")
-                has_failure = True
-                targets.append(
-                    InspectionTarget(
-                        file_path=rel_p,
-                        start_line=1,
-                        target_name=f"[C++] {test_src.name}",
-                        status=EngineStatus.FAIL,
-                        message=f"Compilation Error: {c_err[:200]}",
-                    )
-                )
-                continue
-
-            run_cwd = build_tmp if use_coverage else self.project_root
-            run_cmd = [str(runner_bin)]
-            run_result = run_process(run_cmd, cwd=run_cwd)
-            self._record_tool("C++ test", run_cmd, run_result)
-            r_code = run_result.returncode
-            r_out = run_result.stdout
-            r_err = run_result.stderr
-            if run_result.timed_out or run_result.truncated:
-                self._record_tool_error(f"C++ test execution incomplete: {test_src.name}")
-                targets.append(
-                    InspectionTarget(
-                        file_path=rel_p,
-                        start_line=1,
-                        target_name=f"[C++] {test_src.name}",
-                        status=EngineStatus.ERROR,
-                        message="Execution output was incomplete",
-                    )
-                )
-            elif r_code < 0:
-                self._record_tool_error(
-                    f"C++ test process terminated before reporting results: {test_src.name}"
-                )
-                targets.append(
-                    InspectionTarget(
-                        file_path=rel_p,
-                        start_line=1,
-                        target_name=f"[C++] {test_src.name}",
-                        status=EngineStatus.ERROR,
-                        message="Test process terminated before reporting results",
-                    )
-                )
-            elif r_code == 0:
-                passed += 1
-                targets.append(
-                    InspectionTarget(
-                        file_path=rel_p,
-                        start_line=1,
-                        target_name=f"[C++] {test_src.name}",
-                        status=EngineStatus.PASS,
-                        message="C++ Test Passed",
-                    )
-                )
-            else:
-                has_failure = True
-                targets.append(
-                    InspectionTarget(
-                        file_path=rel_p,
-                        start_line=1,
-                        target_name=f"[C++] {test_src.name}",
-                        status=EngineStatus.FAIL,
-                        message=f"Execution Failed: {r_out or r_err}",
-                    )
-                )
+            case_passed, case_failed = self._run_cpp_test_case(
+                gxx,
+                inc_flags,
+                src_files,
+                lib_flags,
+                build_tmp,
+                test_src,
+                use_coverage,
+                targets,
+            )
+            passed += case_passed
+            has_failure = has_failure or case_failed
 
         if use_coverage and gcov_bin:
             self._collect_cpp_coverage(gcov_bin, build_tmp, src_rel_set)
 
         return passed, total, has_failure
+
+    def _run_cpp_test_case(
+        self,
+        gxx: str,
+        inc_flags: list[str],
+        src_files: list[str],
+        lib_flags: list[str],
+        build_tmp: Path,
+        test_src: Path,
+        use_coverage: bool,
+        targets: list[InspectionTarget],
+    ) -> tuple[int, bool]:
+        runner_bin = build_tmp / test_src.stem
+        relative = str(test_src.relative_to(self.project_root))
+        target_name = f"[C++] {test_src.name}"
+        if use_coverage:
+            ok, objects, compile_error = self._compile_cpp_objects(
+                gxx, inc_flags, src_files, str(test_src), build_tmp
+            )
+            if not ok:
+                self._coverage_errors.append("C++ gcov coverage compilation failed")
+                tool_error = bool(self._tool_errors)
+                targets.append(
+                    InspectionTarget(
+                        file_path=relative,
+                        start_line=1,
+                        target_name=target_name,
+                        status=EngineStatus.ERROR if tool_error else EngineStatus.FAIL,
+                        message=(
+                            "Compiler process terminated before reporting results"
+                            if tool_error
+                            else f"Compilation Error: {compile_error[:200]}"
+                        ),
+                    )
+                )
+                return 0, not tool_error
+            compile_cmd = [
+                gxx,
+                "--coverage",
+                "-std=c++17",
+                *(str(obj) for obj in objects),
+                *lib_flags,
+                "-o",
+                str(runner_bin),
+            ]
+            compile_result = run_process(compile_cmd, cwd=build_tmp)
+        else:
+            compile_cmd = [
+                gxx,
+                "-std=c++17",
+                *inc_flags,
+                str(test_src),
+                *src_files,
+                *lib_flags,
+                "-o",
+                str(runner_bin),
+            ]
+            compile_result = run_process(compile_cmd, cwd=self.project_root)
+
+        self._record_tool("g++ test compile", compile_cmd, compile_result)
+        if compile_result.timed_out or compile_result.truncated:
+            self._record_tool_error(f"C++ test compilation incomplete: {test_src.name}")
+            self._append_cpp_tool_target(
+                relative, target_name, targets, "Compilation output was incomplete"
+            )
+            return 0, False
+        if compile_result.returncode < 0:
+            self._record_tool_error(
+                f"C++ test compilation terminated before reporting results: {test_src.name}"
+            )
+            self._append_cpp_tool_target(
+                relative,
+                target_name,
+                targets,
+                "Compiler process terminated before reporting results",
+            )
+            return 0, False
+        if compile_result.returncode != 0:
+            if use_coverage:
+                self._coverage_errors.append("C++ gcov coverage compilation failed")
+            targets.append(
+                InspectionTarget(
+                    file_path=relative,
+                    start_line=1,
+                    target_name=target_name,
+                    status=EngineStatus.FAIL,
+                    message=f"Compilation Error: {compile_result.stderr[:200]}",
+                )
+            )
+            return 0, True
+
+        run_cmd = [str(runner_bin)]
+        run_result = run_process(run_cmd, cwd=build_tmp if use_coverage else self.project_root)
+        self._record_tool("C++ test", run_cmd, run_result)
+        if run_result.timed_out or run_result.truncated:
+            self._record_tool_error(f"C++ test execution incomplete: {test_src.name}")
+            self._append_cpp_tool_target(
+                relative, target_name, targets, "Execution output was incomplete"
+            )
+            return 0, False
+        if run_result.returncode < 0:
+            self._record_tool_error(
+                f"C++ test process terminated before reporting results: {test_src.name}"
+            )
+            self._append_cpp_tool_target(
+                relative, target_name, targets, "Test process terminated before reporting results"
+            )
+            return 0, False
+        if run_result.returncode == 0:
+            targets.append(
+                InspectionTarget(
+                    file_path=relative,
+                    start_line=1,
+                    target_name=target_name,
+                    status=EngineStatus.PASS,
+                    message="C++ Test Passed",
+                )
+            )
+            return 1, False
+        targets.append(
+            InspectionTarget(
+                file_path=relative,
+                start_line=1,
+                target_name=target_name,
+                status=EngineStatus.FAIL,
+                message=f"Execution Failed: {run_result.stdout or run_result.stderr}",
+            )
+        )
+        return 0, True
+
+    @staticmethod
+    def _append_cpp_tool_target(
+        relative: str,
+        target_name: str,
+        targets: list[InspectionTarget],
+        message: str,
+    ) -> None:
+        targets.append(
+            InspectionTarget(
+                file_path=relative,
+                start_line=1,
+                target_name=target_name,
+                status=EngineStatus.ERROR,
+                message=message,
+            )
+        )
 
     def _collect_cpp_coverage(self, gcov_bin: str, build_tmp: Path, source_files: set[str]) -> None:
         gcno_files = sorted(str(p) for p in build_tmp.glob("*.gcno"))
