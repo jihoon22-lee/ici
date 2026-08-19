@@ -212,11 +212,13 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 - **코드 스니펫**: 고복잡도 함수의 실제 원본 소스 코드를 추출하여 HTML 리포트에 즉시 표시
 
 ### 2.6 🛡️ `sanitize` (메모리 안전성 및 리소스 누수 진단)
-- **C++**: AddressSanitizer(`-fsanitize=address`) 및 UndefinedBehaviorSanitizer(`-fsanitize=undefined`) 빌드/실행 검증
-- **Python**: 열린 파일 핸들, 제너레이터 누수, 리소스 미해제 패턴 검출
+- **C++**: AddressSanitizer(`-fsanitize=address`) 및 UndefinedBehaviorSanitizer(`-fsanitize=undefined`)를 임시 프로젝트 외부 산출물로 빌드·실행한다. 컴파일/실행 도구 오류는 `ERROR`이며, 종료 코드와 무관한 sanitizer 진단은 `FAIL`/`MEASURED`로 기록한다.
+- **Python**: Task 5가 선택한 동일 인터프리터로 `-W error::ResourceWarning -m pytest -o addopts= tests`를 실행해 리소스 경고를 측정한다. 0개 테스트·pytest 부재·timeout·출력 절단·실행 실패·잘못된 성공은 통과로 간주하지 않는다.
+- **적용 범위**: Python/C++ hybrid에서 한 언어의 scope가 건너뛰면 결과는 `WARN`/`ESTIMATED`이며, 대상 자체가 없으면 명시적 `SKIP`이다. 실행 시 기존 `ASAN_OPTIONS`/`UBSAN_OPTIONS`를 보존하면서 leak 검출과 UBSan 중단 옵션을 추가한다.
 
 ### 2.7 💀 `dead` (죽은 코드 및 미사용 심볼)
-- 도달할 수 없는 블록(`unreachable code`), 정의 후 참조되지 않는 비공개 함수 및 전역 상수 검출
+- 도달할 수 없는 블록과 private module-level Python 함수의 실제 `Name`/호출 및 cross-module `from`/attribute 참조를 분석한다.
+- decorator 등록 함수, `__all__` export, class method, nested callback function은 합리적인 false positive를 피하기 위해 제외하며, 분석된 정상 source 위치도 `PASS` target으로 보존한다.
 
 ### 2.8 📦 `dup` (코드 복제 및 중복률 감지기)
 - **알고리즘**: 토큰 정규화(식별자/리터럴 치환) 슬라이딩 윈도우 해싱 + **최대 클론 병합**
@@ -229,7 +231,8 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 ### 2.9 ⚠️ `exception` (예외 처리 안전성 검출기)
 - `except: pass` (예외 무시/삼킴 패턴) 검출
 - `except BaseException:` (시스템 종료 신호 등 비정상 가로챔) 차단
-- C++ 소멸자(`destructor`) 내부 throw 감지
+- Python `except ... as exc` 내부의 암묵적 `raise exc` lost traceback 감지 (`raise`와 `raise exc from cause`, 중첩 함수 scope는 구분)
+- C++ 소멸자(`destructor`) 내부 throw와 빈 `catch(...)` 감지. 주석·문자열을 분석에서 제외하고 multiline body도 위치와 함께 보존한다.
 
 ---
 
