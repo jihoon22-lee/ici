@@ -270,10 +270,7 @@ def test_cpp_unrecognized_context_line_is_not_accepted(tmp_cpp_project, monkeypa
         "ici.engines.lint.shutil.which",
         lambda name: "/usr/bin/g++" if name == "g++" else None,
     )
-    diagnostic = (
-        "src/main.cpp:12:7: warning: unused value\n"
-        "src/main.cpp: In arbitrary context:\n"
-    )
+    diagnostic = "src/main.cpp:12:7: warning: unused value\nsrc/main.cpp: In arbitrary context:\n"
     monkeypatch.setattr(
         "ici.engines.lint.run_process",
         lambda *args, **kwargs: ProcessResult(0, "", diagnostic, 0.01),

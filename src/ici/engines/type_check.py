@@ -42,9 +42,7 @@ class TypeCheckEngine(BaseEngine):
         tool_warnings: list[str] = []
         tool_evidence: list[ToolEvidence] = []
 
-        has_python_scope = proj_type in ("python", "hybrid") or any(
-            self.project_root.rglob("*.py")
-        )
+        has_python_scope = proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py"))
         python_files = (
             get_all_python_sources(self.project_root, self.config) if has_python_scope else []
         )
