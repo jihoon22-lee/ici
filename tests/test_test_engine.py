@@ -134,6 +134,34 @@ def test_parse_coverage_json(tmp_path: Path):
     assert files["src/pkg/core.py"]["missing_lines"] == [5, 6]
 
 
+def test_parse_coverage_json_rejects_incomplete_file_summary(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    json_path = tmp_path / "coverage.json"
+    json_path.write_text(
+        json.dumps(
+            {
+                "files": {
+                    "src/pkg/core.py": {
+                        "executed_lines": [1],
+                        "missing_lines": [],
+                        "summary": {},
+                    }
+                },
+                "totals": {
+                    "covered_lines": 1,
+                    "num_statements": 1,
+                    "missing_lines": 0,
+                    "num_branches": 0,
+                    "covered_branches": 0,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert engine._parse_coverage_json(json_path) is None
+
+
 def test_compute_python_function_coverage(tmp_path: Path):
     src = tmp_path / "src" / "pkg"
     src.mkdir(parents=True)
@@ -304,9 +332,7 @@ def test_coverage_run_uses_source_dirs_flag(tmp_path: Path, monkeypatch):
 def test_coverage_missing_json_is_error_after_attempt(tmp_path: Path, monkeypatch):
     tests = tmp_path / "tests"
     tests.mkdir()
-    (tests / "test_coverage.py").write_text(
-        "def test_coverage():\n    pass\n", encoding="utf-8"
-    )
+    (tests / "test_coverage.py").write_text("def test_coverage():\n    pass\n", encoding="utf-8")
     engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
     monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: ["coverage"])
 
@@ -330,9 +356,7 @@ def test_coverage_missing_json_is_error_after_attempt(tmp_path: Path, monkeypatc
 def test_coverage_malformed_json_is_error_after_attempt(tmp_path: Path, monkeypatch):
     tests = tmp_path / "tests"
     tests.mkdir()
-    (tests / "test_coverage.py").write_text(
-        "def test_coverage():\n    pass\n", encoding="utf-8"
-    )
+    (tests / "test_coverage.py").write_text("def test_coverage():\n    pass\n", encoding="utf-8")
     engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
     monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: ["coverage"])
 

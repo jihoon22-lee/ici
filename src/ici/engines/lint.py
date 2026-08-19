@@ -114,7 +114,9 @@ class LintEngine(BaseEngine):
                 errors.append("Ruff check emitted unexpected stderr")
             elif result.returncode == 1 and not out.strip():
                 errors.append("Ruff check returned violations without parseable JSON")
-            elif out.strip():
+            elif not out.strip():
+                errors.append("Ruff check succeeded without parseable JSON")
+            else:
                 try:
                     issues = json.loads(out)
                     if not isinstance(issues, list):

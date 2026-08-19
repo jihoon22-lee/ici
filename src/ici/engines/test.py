@@ -286,6 +286,8 @@ class TestEngine(BaseEngine):
                 )
             else:
                 self._coverage_data = self._parse_coverage_json(json_path)
+                if self._coverage_data is None:
+                    self._record_tool_error("Coverage JSON was missing or incomplete")
 
             passed, total, has_failure = self._parse_pytest_stdout(out, targets)
             if result.returncode not in (0, 1):
@@ -294,6 +296,8 @@ class TestEngine(BaseEngine):
                 self._record_tool_error("Pytest returned failure without parseable diagnostics")
             elif total == 0:
                 self._record_tool_error("Pytest produced no parseable test results")
+            if self._tool_errors:
+                return passed, total, has_failure
             if total > 0 or self._coverage_data:
                 return passed, total, has_failure
 
@@ -451,29 +455,73 @@ class TestEngine(BaseEngine):
         except (OSError, ValueError):
             return None
 
+        if not isinstance(data, dict):
+            return None
         files = data.get("files")
-        if not isinstance(files, dict):
+        totals = data.get("totals")
+        required_total_keys = (
+            "covered_lines",
+            "num_statements",
+            "missing_lines",
+            "num_branches",
+            "covered_branches",
+        )
+        if (
+            not isinstance(files, dict)
+            or not files
+            or not isinstance(totals, dict)
+            or any(key not in totals for key in required_total_keys)
+        ):
+            return None
+
+        def parse_counts(values: dict) -> dict[str, int] | None:
+            parsed: dict[str, int] = {}
+            for key in required_total_keys:
+                value = values.get(key)
+                if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                    return None
+                parsed[key] = value
+            return parsed
+
+        parsed_totals = parse_counts(totals)
+        if parsed_totals is None:
             return None
 
         file_data: dict[str, dict] = {}
         for fname, finfo in files.items():
-            if not isinstance(finfo, dict):
-                continue
+            if not isinstance(fname, str) or not isinstance(finfo, dict):
+                return None
+            executed_lines = finfo.get("executed_lines")
+            missing_lines = finfo.get("missing_lines")
+            summary = finfo.get("summary")
+            if (
+                not isinstance(executed_lines, list)
+                or not isinstance(missing_lines, list)
+                or not isinstance(summary, dict)
+            ):
+                return None
+            parsed_summary = parse_counts(summary)
+            if parsed_summary is None:
+                return None
+            try:
+                parsed_executed = [int(x) for x in executed_lines]
+                parsed_missing = [int(x) for x in missing_lines]
+            except (TypeError, ValueError):
+                return None
             rel = fname
             with contextlib.suppress(ValueError):
                 rel = str(Path(fname).relative_to(self.project_root))
             file_data[rel] = {
-                "executed_lines": [int(x) for x in (finfo.get("executed_lines") or [])],
-                "missing_lines": [int(x) for x in (finfo.get("missing_lines") or [])],
-                "summary": dict(finfo.get("summary") or {}),
+                "executed_lines": parsed_executed,
+                "missing_lines": parsed_missing,
+                "summary": parsed_summary,
             }
 
-        totals = data.get("totals") or {}
-        tnb = int(totals.get("num_branches", 0))
-        tcb = int(totals.get("covered_branches", 0))
-        tstmts = int(totals.get("num_statements", 0))
-        tcovered = int(totals.get("covered_lines", 0))
-        tmiss = int(totals.get("missing_lines", 0))
+        tnb = parsed_totals["num_branches"]
+        tcb = parsed_totals["covered_branches"]
+        tstmts = parsed_totals["num_statements"]
+        tcovered = parsed_totals["covered_lines"]
+        tmiss = parsed_totals["missing_lines"]
         tline = round(tcovered / tstmts * 100.0, 1) if tstmts else None
 
         return {

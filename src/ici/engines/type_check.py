@@ -1,6 +1,7 @@
 """4. Static Type Checking Engine (Mypy & Strict C++ Flags)."""
 
 import ast
+import re
 import shutil
 import time
 from pathlib import Path
@@ -20,6 +21,11 @@ from ici.core.project import (
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
+
+_MYPY_SUCCESS_RE = re.compile(
+    r"Success: no issues found in (?:0|1) source file(?:\r?\n)?\Z"
+    r"|Success: no issues found in (?:[2-9]|[1-9]\d+) source files(?:\r?\n)?\Z"
+)
 
 
 class TypeCheckEngine(BaseEngine):
@@ -138,12 +144,10 @@ class TypeCheckEngine(BaseEngine):
                     return True
                 errors.append(f"Mypy failed with non-parseable output (exit code {code})")
                 return False
-            if err.strip():
+            if err:
                 errors.append("Mypy emitted unexpected stderr on success")
                 return False
-            if out.strip() and not any(
-                line.strip().startswith("Success:") for line in out.splitlines()
-            ):
+            if _MYPY_SUCCESS_RE.fullmatch(out) is None:
                 errors.append("Mypy success output was not parseable")
                 return False
 

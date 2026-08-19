@@ -58,3 +58,19 @@ def test_ruff_violation_exit_without_violations_is_error(tmp_python_project, mon
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_ruff_success_without_json_is_error(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "", "", 0.01)
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
