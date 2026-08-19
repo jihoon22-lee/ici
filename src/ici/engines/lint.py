@@ -29,7 +29,7 @@ _RUFF_REFORMAT_RE = re.compile(r"Would reformat: (.+)")
 _RUFF_REFORMAT_SUMMARY_RE = re.compile(r"\d+ files? would be reformatted(?:\r?\n)?\Z")
 _CPP_DIAGNOSTIC_RE = re.compile(
     r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
-    r"(?P<kind>fatal error|error|warning):\s*(?P<message>\S.*)$"
+    r"(?P<kind>fatal error|error|warning|note):\s*(?P<message>\S.*)$"
 )
 _CPP_CONTEXT_RE = re.compile(r"^\s*(?:\d+\s*\|.*|\|.*|[\^~].*)$")
 
