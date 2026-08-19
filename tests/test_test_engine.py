@@ -761,9 +761,7 @@ def test_cpp_positive_test_exit_remains_failure(tmp_path: Path, monkeypatch):
     assert any(target.status == EngineStatus.FAIL for target in result.targets)
 
 
-def test_unittest_fallback_runs_when_pytest_module_is_unavailable(
-    tmp_path: Path, monkeypatch
-):
+def test_unittest_fallback_runs_when_pytest_module_is_unavailable(tmp_path: Path, monkeypatch):
     tests = tmp_path / "tests"
     tests.mkdir()
     (tests / "test_legacy.py").write_text(
@@ -792,15 +790,13 @@ def test_unittest_fallback_runs_when_pytest_module_is_unavailable(
     parsed = engine._run_python_tests([])
 
     assert parsed == (1, 1, False)
-    assert commands[0][:3] == [*python, "-m"]
-    assert commands[0][3] == "pytest"
-    assert commands[1][:3] == [*python, "-m"]
-    assert commands[1][3] == "unittest"
+    assert commands[0][:2] == [*python, "-m"]
+    assert commands[0][2] == "pytest"
+    assert commands[1][:2] == [*python, "-m"]
+    assert commands[1][2] == "unittest"
 
 
-def test_unittest_fallback_also_reachable_from_coverage_first_path(
-    tmp_path: Path, monkeypatch
-):
+def test_unittest_fallback_also_reachable_from_coverage_first_path(tmp_path: Path, monkeypatch):
     tests = tmp_path / "tests"
     tests.mkdir()
     (tests / "test_legacy.py").write_text(
@@ -830,7 +826,7 @@ def test_unittest_fallback_also_reachable_from_coverage_first_path(
 
     assert parsed == (1, 1, False)
     assert any("coverage" in cmd and "run" in cmd for cmd in commands)
-    assert commands[-1][3] == "unittest"
+    assert commands[-1][2] == "unittest"
 
 
 def test_pytest_zero_collection_does_not_fall_back_to_unittest(tmp_path: Path, monkeypatch):
@@ -846,7 +842,9 @@ def test_pytest_zero_collection_does_not_fall_back_to_unittest(tmp_path: Path, m
     monkeypatch.setattr(
         engine,
         "_run_unittest",
-        lambda *args, **kwargs: pytest.fail("unittest fallback must not run after pytest collection"),
+        lambda *args, **kwargs: pytest.fail(
+            "unittest fallback must not run after pytest collection"
+        ),
     )
 
     assert engine._run_python_tests([]) == (0, 0, True)
@@ -864,9 +862,7 @@ def test_pytest_zero_collection_does_not_fall_back_to_unittest(tmp_path: Path, m
 )
 def test_coverage_probe_failures_record_tool_error(tmp_path: Path, monkeypatch, probe):
     engine = TestEngine(tmp_path)
-    monkeypatch.setattr(
-        "ici.engines.test.run_process", lambda *args, **kwargs: probe
-    )
+    monkeypatch.setattr("ici.engines.test.run_process", lambda *args, **kwargs: probe)
 
     assert engine._find_coverage_cmd(None) is None
     assert engine._tool_errors
