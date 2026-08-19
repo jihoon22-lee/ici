@@ -7,6 +7,7 @@ import tomli
 import pytest
 
 from ici.config import DEFAULT_CONFIG, ConfigError, get_global_config_path, load_config
+from ici.engines.line import LineCountEngine
 
 
 def test_load_config_auto_creates_global_default(tmp_path: Path, monkeypatch):
@@ -150,3 +151,88 @@ def test_load_config_rejects_missing_explicit_config(tmp_path: Path, monkeypatch
 
     with pytest.raises(ConfigError, match=r"missing\.toml"):
         load_config(tmp_path)
+
+
+def test_load_config_rejects_absolute_line_include_dir(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    outside = tmp_path.parent / "outside"
+    (tmp_path / "ici.toml").write_text(
+        f'[engines.line]\ninclude_dirs = ["{outside}"]\n', encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError, match="outside project root"):
+        load_config(tmp_path)
+
+
+def test_load_config_rejects_parent_source_dir(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        '[project]\nsource_dirs = ["../outside"]\n', encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError, match="outside project root"):
+        load_config(tmp_path)
+
+
+def test_load_config_rejects_symlink_source_dir_escape(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    outside = tmp_path.parent / "outside"
+    outside.mkdir()
+    (tmp_path / "linked").symlink_to(outside, target_is_directory=True)
+    (tmp_path / "ici.toml").write_text('[project]\nsource_dirs = ["linked"]\n', encoding="utf-8")
+
+    with pytest.raises(ConfigError, match="outside project root"):
+        load_config(tmp_path)
+
+
+def test_load_config_rejects_symlink_loop_source_dir(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    first.symlink_to(second, target_is_directory=True)
+    second.symlink_to(first, target_is_directory=True)
+    (tmp_path / "ici.toml").write_text('[project]\nsource_dirs = ["first"]\n', encoding="utf-8")
+
+    with pytest.raises(ConfigError, match="resolve"):
+        load_config(tmp_path)
+
+
+def test_load_config_rejects_invalid_utf8(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_bytes(b"[engines.line]\nwarn_limit = \xff\n")
+
+    with pytest.raises(ConfigError, match=r"ici\.toml"):
+        load_config(tmp_path)
+
+
+def test_load_config_rejects_oversized_numeric_value(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    huge_integer = "9" * 400
+    (tmp_path / "ici.toml").write_text(
+        f"[engines.test]\nmin_tem_score = {huge_integer}\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError, match="min_tem_score"):
+        load_config(tmp_path)
+
+
+def test_load_config_rejects_explicit_symlink_loop(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    first = tmp_path / "explicit-first.toml"
+    second = tmp_path / "explicit-second.toml"
+    first.symlink_to(second)
+    second.symlink_to(first)
+    monkeypatch.setenv("ICI_CONFIG", str(first))
+
+    with pytest.raises(ConfigError, match="resolve"):
+        load_config(tmp_path)
+
+
+def test_engine_rejects_line_path_outside_project(tmp_path: Path):
+    outside = tmp_path.parent / "outside"
+
+    with pytest.raises(ConfigError, match="outside project root"):
+        LineCountEngine(
+            tmp_path,
+            config={"engines": {"line": {"include_dirs": [str(outside)]}}},
+        )

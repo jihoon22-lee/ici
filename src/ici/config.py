@@ -7,7 +7,7 @@ from typing import Any
 import tomli
 import tomli_w
 
-from ici.config_schema import ConfigError, validate_config
+from ici.config_schema import ConfigError, validate_config, validate_config_paths
 
 # Default Enterprise Quality Policy — Embedded inside ici
 DEFAULT_CONFIG: dict[str, Any] = {
@@ -86,22 +86,34 @@ def load_config(base_dir: Path | None = None) -> dict[str, Any]:
     import copy
 
     config = copy.deepcopy(DEFAULT_CONFIG)
-    base = (base_dir or Path.cwd()).resolve()
+    base = _resolve_filesystem_path(base_dir or Path.cwd(), "project root")
     explicit_value = os.environ.get("ICI_CONFIG")
-    explicit_path = Path(explicit_value).expanduser().resolve() if explicit_value else None
+    explicit_path = (
+        _resolve_filesystem_path(Path(explicit_value).expanduser(), "explicit configuration")
+        if explicit_value
+        else None
+    )
 
     loaded = False
-    for path in _config_paths(base):
-        if not path.exists():
+    for path in _config_paths(base, explicit_path):
+        try:
+            exists = path.exists()
+        except OSError as err:
+            raise ConfigError(f"could not inspect configuration {path}: {err}") from err
+        if not exists:
             if explicit_path is not None and path == explicit_path:
                 raise ConfigError(f"explicit configuration file does not exist: {path}")
             continue
-        if not path.is_file():
+        try:
+            is_file = path.is_file()
+        except OSError as err:
+            raise ConfigError(f"could not inspect configuration {path}: {err}") from err
+        if not is_file:
             raise ConfigError(f"configuration path is not a file: {path}")
         try:
             with path.open("rb") as stream:
                 user_cfg = tomli.load(stream)
-        except (OSError, tomli.TOMLDecodeError) as err:
+        except (OSError, UnicodeDecodeError, tomli.TOMLDecodeError) as err:
             raise ConfigError(f"could not read configuration {path}: {err}") from err
         if not isinstance(user_cfg, dict):
             raise ConfigError(f"configuration must be a table: {path}")
@@ -112,16 +124,35 @@ def load_config(base_dir: Path | None = None) -> dict[str, Any]:
         _ensure_global_default_config(config)
 
     validate_config(config)
+    validate_config_paths(config, base)
     return config
 
 
-def _config_paths(base: Path) -> list[Path]:
+def _resolve_filesystem_path(path: Path, description: str) -> Path:
+    """Canonicalize a filesystem path and normalize resolution failures."""
+
+    try:
+        return path.resolve(strict=False)
+    except (OSError, RuntimeError, TypeError, ValueError) as err:
+        raise ConfigError(f"could not resolve {description} path {path}: {err}") from err
+
+
+def _config_paths(base: Path, explicit_path: Path | None = None) -> list[Path]:
     """Return policy files in their fixed precedence order."""
 
-    paths = [get_global_config_path(), base / "ici.toml", base / "dev.toml"]
-    explicit = os.environ.get("ICI_CONFIG")
-    if explicit:
-        paths.append(Path(explicit).expanduser().resolve())
+    paths = [
+        _resolve_filesystem_path(get_global_config_path(), "global configuration"),
+        _resolve_filesystem_path(base / "ici.toml", "project configuration"),
+        _resolve_filesystem_path(base / "dev.toml", "development configuration"),
+    ]
+    if explicit_path is None:
+        explicit = os.environ.get("ICI_CONFIG")
+        if explicit:
+            explicit_path = _resolve_filesystem_path(
+                Path(explicit).expanduser(), "explicit configuration"
+            )
+    if explicit_path is not None:
+        paths.append(explicit_path)
     return paths
 
 
@@ -134,12 +165,14 @@ def get_global_config_path() -> Path:
 def _ensure_global_default_config(config: dict[str, Any]) -> None:
     """Creates the per-user global ici.toml from the default policy on first run."""
     target = get_global_config_path()
-    if target.exists():
-        return
     try:
+        if target.exists():
+            return
         target.parent.mkdir(parents=True, exist_ok=True)
         save_config(config, target)
         print(f"[ici] 기본 전역 설정을 생성했습니다: {target}")
+    except RuntimeError as err:
+        raise ConfigError(f"could not resolve global configuration path {target}: {err}") from err
     except OSError as err:
         _ = err
 

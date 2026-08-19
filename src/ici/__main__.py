@@ -9,7 +9,7 @@ import typer
 from rich.console import Console
 
 from ici import __version__
-from ici.config import load_config
+from ici.config import ConfigError, load_config
 from ici.core.models import EngineStatus
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
@@ -53,7 +53,11 @@ def main_callback(
 ):
     if not version:
         ctx.ensure_object(dict)
-        ctx.obj["config"] = load_config(Path.cwd().resolve())
+        try:
+            ctx.obj["config"] = load_config()
+        except ConfigError as err:
+            typer.echo(f"Configuration error: {err}", err=True)
+            raise typer.Exit(code=2) from err
 
 
 @app.command("verify")

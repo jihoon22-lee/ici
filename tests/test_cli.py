@@ -72,3 +72,16 @@ def test_line_command_uses_project_config(tmp_path, monkeypatch):
     result = runner.invoke(app, ["line"])
 
     assert result.exit_code == 1
+
+
+def test_cli_reports_config_error_without_traceback(tmp_path, monkeypatch):
+    (tmp_path / "ici.toml").write_bytes(b"[engines.line]\nwarn_limit = \xff\n")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.delenv("ICI_CONFIG", raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["line"])
+
+    assert result.exit_code != 0
+    assert "Configuration error:" in result.output
+    assert "Traceback" not in result.output

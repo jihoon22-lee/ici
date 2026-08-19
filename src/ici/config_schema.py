@@ -6,6 +6,7 @@ lets us report the exact dotted key that caused a configuration error.
 """
 
 import math
+from pathlib import Path
 from typing import Any
 
 
@@ -40,6 +41,28 @@ _ENGINE_KEYS = {
     "dup": frozenset({"enabled", "mode", "warn_pct", "fail_pct", "min_window"}),
     "exception": frozenset({"enabled", "mode"}),
 }
+
+
+def resolve_project_path(base: Path, value: str) -> Path:
+    """Resolve a project-relative setting and require it to stay in ``base``.
+
+    The canonical path check follows symlinks, so lexical checks cannot be
+    bypassed with ``..`` segments or a link into another tree.  The helper is
+    kept separate from the schema walk so project discovery can reuse the
+    same boundary rule without duplicating it.
+    """
+
+    try:
+        project_root = Path(base).resolve(strict=False)
+        candidate = (project_root / value).resolve(strict=False)
+    except (OSError, RuntimeError, TypeError, ValueError) as err:
+        raise ConfigError(f"could not resolve project path {value!r}: {err}") from err
+
+    try:
+        candidate.relative_to(project_root)
+    except ValueError as err:
+        raise ConfigError(f"path is outside project root: {value}") from err
+    return candidate
 
 
 def _error(path: str, message: str) -> ConfigError:
@@ -79,11 +102,15 @@ def _require_number(
 ) -> None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise _error(path, "must be a number")
-    if not math.isfinite(float(value)):
+    try:
+        numeric_value = float(value)
+    except (OverflowError, TypeError, ValueError) as err:
+        raise _error(path, "must be a finite number") from err
+    if not math.isfinite(numeric_value):
         raise _error(path, "must be finite")
-    if minimum is not None and value < minimum:
+    if minimum is not None and numeric_value < minimum:
         raise _error(path, f"must be greater than or equal to {minimum:g}")
-    if maximum is not None and value > maximum:
+    if maximum is not None and numeric_value > maximum:
         raise _error(path, f"must be less than or equal to {maximum:g}")
 
 
@@ -204,6 +231,47 @@ def _validate_metadata(table: Any, path: str) -> None:
                 raise _error(f"{path}.{key}", "must be one of: cpp, hybrid, python")
         else:
             _require_string(value, f"{path}.{key}", non_empty=True)
+
+
+def _validate_path_list(value: Any, setting: str, base: Path) -> None:
+    """Validate and canonicalize a list of project-relative path settings."""
+
+    if not isinstance(value, list):
+        raise _error(setting, "must be a list of non-empty strings")
+    for index, item in enumerate(value):
+        item_path = f"{setting}[{index}]"
+        if not isinstance(item, str) or not item:
+            raise _error(item_path, "must be a non-empty string")
+        try:
+            resolve_project_path(base, item)
+        except ConfigError as err:
+            raise ConfigError(f"{item_path}: {err}") from err
+
+
+def validate_config_paths(config: dict[str, Any], base: Path) -> None:
+    """Reject configured paths that resolve outside the project root.
+
+    This function deliberately accepts partial engine configurations so
+    standalone engine construction remains safe even when tests or callers
+    provide only the relevant engine table instead of a fully merged policy.
+    """
+
+    if not isinstance(config, dict):
+        raise ConfigError("configuration must be a table")
+
+    project = config.get("project")
+    if isinstance(project, dict) and "source_dirs" in project:
+        _validate_path_list(project["source_dirs"], "project.source_dirs", base)
+
+    engines = config.get("engines")
+    if not isinstance(engines, dict):
+        return
+    line = engines.get("line")
+    if not isinstance(line, dict):
+        return
+    for key in ("gate_dirs", "include_dirs", "exclude_dirs"):
+        if key in line:
+            _validate_path_list(line[key], f"engines.line.{key}", base)
 
 
 def validate_config(config: dict[str, Any]) -> None:
