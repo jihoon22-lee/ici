@@ -1,8 +1,6 @@
 """3. Unit Test Execution, Coverage Measurement & TEM Scoring Engine."""
 
-import ast
 import contextlib
-import json
 import os
 import re
 import shutil
@@ -31,6 +29,14 @@ from ici.core.project import (
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
+from ici.engines.coverage_support import (
+    build_coverage_summary,
+    calculate_tem,
+    compute_python_function_coverage,
+    parse_coverage_json,
+    parse_gcov_dir,
+    parse_gcov_functions,
+)
 
 
 class TestEngine(BaseEngine):
@@ -53,6 +59,7 @@ class TestEngine(BaseEngine):
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
+        self._zero_tests_detected = False
         self._has_run = False
 
     def _reset_run_state(self) -> None:
@@ -71,6 +78,7 @@ class TestEngine(BaseEngine):
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
+        self._zero_tests_detected = False
 
     def run(self) -> EngineResult:
         t0 = time.time()
@@ -152,7 +160,7 @@ class TestEngine(BaseEngine):
         cpp_sources = get_all_cpp_sources(self.project_root, self.config)
         totals = [0, 0]
         has_failure = False
-        if py_tests or (proj_type == "python" and py_sources):
+        if py_tests or (proj_type in ("python", "hybrid") and py_sources):
             self._python_test_attempted = True
             result = (
                 self._run_python_tests(targets)
@@ -162,7 +170,7 @@ class TestEngine(BaseEngine):
             totals[0] += result[0]
             totals[1] += result[1]
             has_failure = has_failure or result[2]
-        if cpp_tests or (proj_type == "cpp" and cpp_sources):
+        if cpp_tests or (proj_type in ("cpp", "hybrid") and cpp_sources):
             self._cpp_test_attempted = True
             result = (
                 self._run_cpp_tests(targets) if cpp_tests else self._mark_zero_tests("C++", targets)
@@ -176,6 +184,9 @@ class TestEngine(BaseEngine):
         missing = self._coverage_failure_messages()
         required = bool(cfg.get("coverage_required", False)) and bool(missing)
         optional = bool(missing) and not required
+        if self._zero_tests_detected:
+            required = False
+            optional = False
         if required:
             for message in missing:
                 self._record_tool_error(message)
@@ -262,6 +273,7 @@ class TestEngine(BaseEngine):
     def _mark_zero_tests(
         self, language: str, targets: list[InspectionTarget]
     ) -> tuple[int, int, bool]:
+        self._zero_tests_detected = True
         targets.append(
             InspectionTarget(
                 file_path="tests",
@@ -293,38 +305,7 @@ class TestEngine(BaseEngine):
     def _calc_tem(
         self, branch_cov: float, func_cov: float, passed_tests: int, total_tests: int
     ) -> dict[str, Any]:
-        """Enterprise TEM 5.0 formula.
-
-        Line 측정 가능: min(LineCov, 80) / 80 * FuncCov * PassRate * 5
-        Branch만 측정 가능: min(BranchCov * 5/4, 80) / 80 * FuncCov * PassRate * 5
-        """
-        pass_rate = (passed_tests / total_tests) if total_tests > 0 else 0.0
-        totals = self._coverage_totals
-        line_cov = totals.get("cover") if totals else None
-        real_branch = totals.get("branch_cover") if totals else None
-
-        if line_cov is not None:
-            cov_factor = min(80.0, line_cov) / 80.0
-            cov_label = "Line"
-            cov_shown = line_cov
-        elif real_branch is not None:
-            cov_factor = min(80.0, real_branch * 1.25) / 80.0
-            cov_label = "Branch"
-            cov_shown = real_branch
-        else:
-            cov_factor = min(80.0, branch_cov) / 80.0
-            cov_label = "Line"
-            cov_shown = branch_cov
-
-        tem_score = round(cov_factor * (func_cov / 100.0) * pass_rate * 5.0, 2)
-        return {
-            "tem_score": max(0.0, min(5.0, tem_score)),
-            "cov_label": cov_label,
-            "cov_shown": cov_shown,
-            "line_coverage": line_cov,
-            "pass_rate": round(pass_rate, 4),
-            "cov_suffix": " (est)" if line_cov is None and real_branch is None else "",
-        }
+        return calculate_tem(branch_cov, func_cov, passed_tests, total_tests, self._coverage_totals)
 
     def _run_python_tests(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
         python_cmd = self._resolve_python()
@@ -365,6 +346,9 @@ class TestEngine(BaseEngine):
         source_paths = [str(d) for d in get_source_dirs(self.project_root, self.config)]
         if source_paths:
             env["PYTHONPATH"] = ":".join([*source_paths, env.get("PYTHONPATH", "")])
+        if env.get("WSL_DISTRO_NAME") and Path("/tmp").is_dir():
+            for key in ("TMPDIR", "TMP", "TEMP"):
+                env[key] = "/tmp"
         return env
 
     def _run_coverage_tests(
@@ -394,11 +378,15 @@ class TestEngine(BaseEngine):
         if result.truncated:
             self._record_tool_error("Coverage test output was truncated")
             return 0, 0, False
-        if result.returncode == -1:
-            self._record_tool_error("Coverage test executable was unavailable")
+        if result.returncode < 0:
+            self._record_tool_error("Coverage test process terminated before reporting results")
             return 0, 0, False
-        self._generate_coverage_json(cov_cmd, cov_dir, cov_env)
+        if self._module_unavailable(result, "pytest"):
+            return None
         parsed = self._parse_pytest_result(result, targets)
+        if self._tool_errors or parsed[1] == 0 or result.returncode not in (0, 1):
+            return parsed
+        self._generate_coverage_json(cov_cmd, cov_dir, cov_env)
         return parsed
 
     def _build_coverage_run_cmd(self, cov_cmd: list[str]) -> list[str]:
@@ -415,9 +403,6 @@ class TestEngine(BaseEngine):
             "pytest",
             "-o",
             "addopts=",
-            "-s",
-            "--basetemp",
-            str(self.project_root / "build" / "pytest-tmp"),
             "-v",
             "tests",
         ]
@@ -460,9 +445,6 @@ class TestEngine(BaseEngine):
             *pytest_cmd,
             "-o",
             "addopts=",
-            "-s",
-            "--basetemp",
-            str(self.project_root / "build" / "pytest-tmp"),
             "-v",
             "tests",
         ]
@@ -477,8 +459,18 @@ class TestEngine(BaseEngine):
         if result.returncode == -1:
             self._record_tool_error("Pytest executable was unavailable")
             return 0, 0, False
+        if result.returncode < 0:
+            self._record_tool_error("Pytest process terminated before reporting results")
+            return 0, 0, False
+        if self._module_unavailable(result, "pytest"):
+            return None
         parsed = self._parse_pytest_result(result, targets)
         return parsed
+
+    @staticmethod
+    def _module_unavailable(result, module: str) -> bool:
+        output = f"{result.stdout}\n{result.stderr}".lower()
+        return bool(re.search(rf"no module named ['\"]?{re.escape(module)}['\"]?(?:\W|$)", output))
 
     def _parse_pytest_result(
         self, result, targets: list[InspectionTarget]
@@ -492,6 +484,7 @@ class TestEngine(BaseEngine):
         if total == 0 and collected is not None:
             total = int(collected.group(1))
         if result.returncode == 5 or (total == 0 and result.returncode == 0):
+            self._zero_tests_detected = True
             has_failure = True
             if not any(t.target_name == "[Python] Tests" for t in targets):
                 targets.append(
@@ -574,9 +567,21 @@ class TestEngine(BaseEngine):
 
         interpreter = self._interpreter_from_command(python_cmd)
         candidate = [*interpreter, "-m", "coverage"]
-        result = run_process([*candidate, "--version"], cwd=self.project_root)
+        probe = [*candidate, "--version"]
+        result = run_process(probe, cwd=self.project_root)
+        self._record_tool("coverage --version", probe, result)
         if result.returncode == 0 and not result.timed_out and not result.truncated:
             return candidate
+        if result.timed_out:
+            self._record_tool_error("Coverage probe timed out")
+        elif result.truncated:
+            self._record_tool_error("Coverage probe output was truncated")
+        elif result.returncode < 0:
+            self._record_tool_error("Coverage probe process terminated before reporting results")
+        elif not self._module_unavailable(result, "coverage"):
+            self._record_tool_error(
+                f"Coverage module probe failed with exit code {result.returncode}"
+            )
         return None
 
     def _interpreter_from_command(self, command: list[str] | None) -> list[str]:
@@ -641,92 +646,7 @@ class TestEngine(BaseEngine):
         return passed, total, has_failure
 
     def _parse_coverage_json(self, json_path) -> dict | None:
-        """Parses coverage.json into per-file line/branch data (full line lists kept)."""
-        try:
-            data = json.loads(json_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            return None
-
-        if not isinstance(data, dict):
-            return None
-        files = data.get("files")
-        totals = data.get("totals")
-        required_total_keys = (
-            "covered_lines",
-            "num_statements",
-            "missing_lines",
-            "num_branches",
-            "covered_branches",
-        )
-        if (
-            not isinstance(files, dict)
-            or not files
-            or not isinstance(totals, dict)
-            or any(key not in totals for key in required_total_keys)
-        ):
-            return None
-
-        def parse_counts(values: dict) -> dict[str, int] | None:
-            parsed: dict[str, int] = {}
-            for key in required_total_keys:
-                value = values.get(key)
-                if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-                    return None
-                parsed[key] = value
-            return parsed
-
-        parsed_totals = parse_counts(totals)
-        if parsed_totals is None:
-            return None
-
-        file_data: dict[str, dict] = {}
-        for fname, finfo in files.items():
-            if not isinstance(fname, str) or not isinstance(finfo, dict):
-                return None
-            executed_lines = finfo.get("executed_lines")
-            missing_lines = finfo.get("missing_lines")
-            summary = finfo.get("summary")
-            if (
-                not isinstance(executed_lines, list)
-                or not isinstance(missing_lines, list)
-                or not isinstance(summary, dict)
-            ):
-                return None
-            parsed_summary = parse_counts(summary)
-            if parsed_summary is None:
-                return None
-            try:
-                parsed_executed = [int(x) for x in executed_lines]
-                parsed_missing = [int(x) for x in missing_lines]
-            except (TypeError, ValueError):
-                return None
-            rel = fname
-            with contextlib.suppress(ValueError):
-                rel = str(Path(fname).relative_to(self.project_root))
-            file_data[rel] = {
-                "executed_lines": parsed_executed,
-                "missing_lines": parsed_missing,
-                "summary": parsed_summary,
-            }
-
-        tnb = parsed_totals["num_branches"]
-        tcb = parsed_totals["covered_branches"]
-        tstmts = parsed_totals["num_statements"]
-        tcovered = parsed_totals["covered_lines"]
-        tmiss = parsed_totals["missing_lines"]
-        tline = round(tcovered / tstmts * 100.0, 1) if tstmts else None
-
-        return {
-            "files": file_data,
-            "branch_cov": round(tcb / tnb * 100.0, 1) if tnb else None,
-            "line_cov": tline,
-            "totals": {
-                "stmts": tstmts,
-                "miss": tmiss,
-                "cover": tline,
-                "branch_cover": round(tcb / tnb * 100.0, 1) if tnb else None,
-            },
-        }
+        return parse_coverage_json(json_path, self.project_root)
 
     def _run_cpp_tests(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
         gxx = shutil.which("g++")
@@ -777,14 +697,19 @@ class TestEngine(BaseEngine):
                 )
                 if not ok:
                     self._coverage_errors.append("C++ gcov coverage compilation failed")
-                    has_failure = True
+                    tool_error = bool(self._tool_errors)
+                    has_failure = has_failure or not tool_error
                     targets.append(
                         InspectionTarget(
                             file_path=rel_p,
                             start_line=1,
                             target_name=f"[C++] {test_src.name}",
-                            status=EngineStatus.FAIL,
-                            message=f"Compilation Error: {c_err[:200]}",
+                            status=EngineStatus.ERROR if tool_error else EngineStatus.FAIL,
+                            message=(
+                                "Compiler process terminated before reporting results"
+                                if tool_error
+                                else f"Compilation Error: {c_err[:200]}"
+                            ),
                         )
                     )
                     continue
@@ -818,14 +743,27 @@ class TestEngine(BaseEngine):
 
             if compile_result.timed_out or compile_result.truncated:
                 self._record_tool_error(f"C++ test compilation incomplete: {test_src.name}")
-                has_failure = True
                 targets.append(
                     InspectionTarget(
                         file_path=rel_p,
                         start_line=1,
                         target_name=f"[C++] {test_src.name}",
-                        status=EngineStatus.FAIL,
+                        status=EngineStatus.ERROR,
                         message="Compilation output was incomplete",
+                    )
+                )
+                continue
+            if c_code < 0:
+                self._record_tool_error(
+                    f"C++ test compilation terminated before reporting results: {test_src.name}"
+                )
+                targets.append(
+                    InspectionTarget(
+                        file_path=rel_p,
+                        start_line=1,
+                        target_name=f"[C++] {test_src.name}",
+                        status=EngineStatus.ERROR,
+                        message="Compiler process terminated before reporting results",
                     )
                 )
                 continue
@@ -853,14 +791,26 @@ class TestEngine(BaseEngine):
             r_err = run_result.stderr
             if run_result.timed_out or run_result.truncated:
                 self._record_tool_error(f"C++ test execution incomplete: {test_src.name}")
-                has_failure = True
                 targets.append(
                     InspectionTarget(
                         file_path=rel_p,
                         start_line=1,
                         target_name=f"[C++] {test_src.name}",
-                        status=EngineStatus.FAIL,
+                        status=EngineStatus.ERROR,
                         message="Execution output was incomplete",
+                    )
+                )
+            elif r_code < 0:
+                self._record_tool_error(
+                    f"C++ test process terminated before reporting results: {test_src.name}"
+                )
+                targets.append(
+                    InspectionTarget(
+                        file_path=rel_p,
+                        start_line=1,
+                        target_name=f"[C++] {test_src.name}",
+                        status=EngineStatus.ERROR,
+                        message="Test process terminated before reporting results",
                     )
                 )
             elif r_code == 0:
@@ -938,228 +888,32 @@ class TestEngine(BaseEngine):
             if compile_result.timed_out or compile_result.truncated:
                 self._record_tool_error(f"C++ coverage compilation incomplete: {src_abs}")
                 return False, objs, c_err
+            if c_code < 0:
+                self._record_tool_error(
+                    f"C++ coverage compiler terminated before reporting results: {src_abs}"
+                )
+                return False, objs, c_err
             if c_code != 0:
                 return False, objs, c_err
             objs.append(obj)
         return True, objs, ""
 
     def _parse_gcov_dir(self, cov_dir: Path, source_files: set[str]) -> list[dict]:
-        """Parses gcov -b -p output files into per-module coverage rows."""
-        rows: list[dict] = []
-        for gcov_file in cov_dir.glob("*.gcov"):
-            cand = gcov_file.name[:-5].replace("#", "/")
-            rel: str | None = None
-            if cand in source_files:
-                rel = cand
-            else:
-                try:
-                    p = Path(cand)
-                    abs_p = p if p.is_absolute() else (self.project_root / p)
-                    r = str(abs_p.resolve().relative_to(self.project_root))
-                    if r in source_files:
-                        rel = r
-                except ValueError as err:
-                    _ = err
-            if rel is None:
-                continue
-
-            stmts = 0
-            covered = 0
-            miss = 0
-            nb = 0
-            cb = 0
-            missing: list[int] = []
-            try:
-                content = gcov_file.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-
-            for line in content.splitlines():
-                if line.startswith("branch"):
-                    parts = line.split()
-                    nb += 1
-                    if "taken" in parts:
-                        idx = parts.index("taken")
-                        val = parts[idx + 1] if idx + 1 < len(parts) else "0"
-                        try:
-                            if int(val.rstrip("%")) > 0:
-                                cb += 1
-                        except ValueError as err:
-                            _ = err
-                    continue
-                if ":" not in line:
-                    continue
-                parts = line.split(":", 2)
-                if len(parts) < 3:
-                    continue
-                count, lno_str, _ = parts
-                count = count.strip()
-                lno_str = lno_str.strip()
-                if count.startswith("-") or not lno_str.isdigit():
-                    continue
-                lno = int(lno_str)
-                if count.startswith("#"):
-                    miss += 1
-                    missing.append(lno)
-                else:
-                    digits = count.rstrip("*")
-                    if digits.isdigit() and int(digits) > 0:
-                        covered += 1
-
-            stmts = covered + miss
-            rows.append(
-                {
-                    "file": rel,
-                    "stmts": stmts,
-                    "covered": covered,
-                    "miss": miss,
-                    "cover": round(covered / stmts * 100.0, 1) if stmts else 100.0,
-                    "branch_cover": round(cb / nb * 100.0, 1) if nb else None,
-                    "nb": nb,
-                    "cb": cb,
-                    "missing_lines": missing[:30],
-                }
-            )
-        return rows
+        return parse_gcov_dir(cov_dir, source_files, self.project_root)
 
     def _compute_python_function_coverage(self, cov_data: dict) -> list[dict]:
-        """Function coverage (gcov-style): covered when at least one body line executed."""
-        rows: list[dict] = []
-        file_map = cov_data.get("files", {})
-        for py_file in get_all_python_sources(self.project_root, self.config):
-            rel = str(py_file.relative_to(self.project_root))
-            finfo = file_map.get(rel)
-            if not finfo:
-                continue
-            executed = set(finfo.get("executed_lines") or [])
-            missing = set(finfo.get("missing_lines") or [])
-            try:
-                tree = ast.parse(py_file.read_text(encoding="utf-8"))
-            except (SyntaxError, OSError) as err:
-                _ = err
-                continue
-            for node in ast.walk(tree):
-                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    continue
-                body_start = node.body[0].lineno if node.body else node.lineno
-                body_end = node.end_lineno or body_start
-                body_lines = set(range(body_start, body_end + 1))
-                covered = bool(body_lines & executed)
-                missing_body = sorted(body_lines & missing)
-                rows.append(
-                    {
-                        "file": rel,
-                        "name": node.name,
-                        "start_line": node.lineno,
-                        "end_line": body_end,
-                        "covered": covered,
-                        "missing_lines": missing_body[:30],
-                    }
-                )
-        return rows
+        return compute_python_function_coverage(cov_data, self.project_root, self.config)
 
     def _parse_gcov_functions(self, cov_dir: Path, source_files: set[str]) -> list[dict]:
-        """Parses gcov 'function ... called N' lines into function coverage rows."""
-        rows: list[dict] = []
-        for gcov_file in cov_dir.glob("*.gcov"):
-            cand = gcov_file.name[:-5].replace("#", "/")
-            rel: str | None = None
-            if cand in source_files:
-                rel = cand
-            else:
-                try:
-                    p = Path(cand)
-                    abs_p = p if p.is_absolute() else (self.project_root / p)
-                    r = str(abs_p.resolve().relative_to(self.project_root))
-                    if r in source_files:
-                        rel = r
-                except ValueError as err:
-                    _ = err
-            if rel is None:
-                continue
-            try:
-                content = gcov_file.read_text(encoding="utf-8", errors="replace")
-            except OSError as err:
-                _ = err
-                continue
-            for line in content.splitlines():
-                if not line.startswith("function "):
-                    continue
-                parts = line.split()
-                if len(parts) < 3:
-                    continue
-                name = parts[1]
-                called = 0
-                if "called" in parts:
-                    idx = parts.index("called")
-                    try:
-                        called = int(parts[idx + 1])
-                    except (ValueError, IndexError):
-                        called = 0
-                rows.append(
-                    {
-                        "file": rel,
-                        "name": name,
-                        "start_line": 1,
-                        "end_line": 1,
-                        "covered": called > 0,
-                        "missing_lines": [],
-                    }
-                )
-        return rows
+        return parse_gcov_functions(cov_dir, source_files, self.project_root)
 
     def _build_coverage_summary(self) -> None:
-        """Merges coverage.py (Python) and gcov (C++) rows into one module table."""
-        cov_data = self._coverage_data
-        py_rows: list[dict] = []
-        if cov_data:
-            for rel, finfo in cov_data.get("files", {}).items():
-                summary = finfo.get("summary") or {}
-                stmts = int(summary.get("num_statements", 0))
-                covered = int(summary.get("covered_lines", 0))
-                miss = int(summary.get("missing_lines", 0))
-                nb = int(summary.get("num_branches", 0))
-                cb = int(summary.get("covered_branches", 0))
-                py_rows.append(
-                    {
-                        "file": rel,
-                        "stmts": stmts,
-                        "covered": covered,
-                        "miss": miss,
-                        "cover": round(covered / stmts * 100.0, 1) if stmts else 100.0,
-                        "branch_cover": round(cb / nb * 100.0, 1) if nb else None,
-                        "nb": nb,
-                        "cb": cb,
-                        "missing_lines": finfo.get("missing_lines", [])[:30],
-                    }
-                )
-        cpp_rows = getattr(self, "_cpp_coverage_rows", [])
-        files = [*py_rows, *cpp_rows]
-        files.sort(key=lambda r: (r["cover"], r["file"]))
+        files, totals, source = build_coverage_summary(
+            self._coverage_data, getattr(self, "_cpp_coverage_rows", [])
+        )
         self._coverage_files = files
-
-        if not files:
-            self._coverage_totals = cov_data.get("totals") if cov_data else None
-            self._coverage_source = "coverage.py" if cov_data else "estimated"
-            return
-
-        stmts = sum(r["stmts"] for r in files)
-        covered = sum(r["covered"] for r in files)
-        miss = sum(r["miss"] for r in files)
-        nb = sum(r.get("nb", 0) for r in files)
-        cb = sum(r.get("cb", 0) for r in files)
-        self._coverage_totals = {
-            "stmts": stmts,
-            "miss": miss,
-            "cover": round(covered / stmts * 100.0, 1) if stmts else None,
-            "branch_cover": round(cb / nb * 100.0, 1) if nb else None,
-        }
-        sources = []
-        if cov_data:
-            sources.append("coverage.py")
-        if cpp_rows:
-            sources.append("gcov")
-        self._coverage_source = "/".join(sources)
+        self._coverage_totals = totals
+        self._coverage_source = source
 
     def _measure_coverage(
         self, proj_type: str, has_test_failures: bool
