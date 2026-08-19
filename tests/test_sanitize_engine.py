@@ -296,3 +296,56 @@ def test_cpp_sanitizer_execution_sets_options_without_clobbering_environment(tmp
     assert "detect_leaks=1" in seen_envs[0]["ASAN_OPTIONS"]
     assert "print_stacktrace=1" in seen_envs[0]["UBSAN_OPTIONS"]
     assert "halt_on_error=1" in seen_envs[0]["UBSAN_OPTIONS"]
+
+
+def test_cpp_sanitizer_compile_spawn_failure_records_one_evidence_item(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+
+    def fail_spawn(*args, **kwargs):
+        raise OSError("compile spawn failed")
+
+    monkeypatch.setattr("ici.engines.sanitize.run_process", fail_spawn)
+
+    result = SanitizeEngine(tmp_path).run()
+
+    compile_evidence = [e for e in result.tool_evidence if e.name == "sanitizer compile"]
+    assert result.status == EngineStatus.ERROR
+    assert len(compile_evidence) == 1
+    assert compile_evidence[0].error == "OSError: compile spawn failed"
+
+
+def test_hybrid_partial_scope_preserves_measured_resource_failure(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("value = 1\n", encoding="utf-8")
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text("def test_app():\n    pass\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            1,
+            "1 failed in 0.01s\n",
+            "ResourceWarning: unclosed file\n",
+            0.01,
+        ),
+    )
+
+    result = SanitizeEngine(
+        tmp_path,
+        {"engines": {"sanitize": {"required": False}}},
+    ).run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert any(target.target_name == "ResourceWarning" for target in result.targets)
