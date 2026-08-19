@@ -92,7 +92,6 @@ def test_mypy_success_line_with_junk_is_error(tmp_python_project, monkeypatch):
 
 def test_optional_mypy_absence_uses_estimated_ast_fallback(tmp_python_project, monkeypatch):
     monkeypatch.setattr("ici.engines.type_check.shutil.which", lambda _name: None)
-    monkeypatch.setattr("ici.engines.type_check.find_uv", lambda: None)
 
     result = TypeCheckEngine(
         tmp_python_project,
@@ -106,7 +105,6 @@ def test_optional_mypy_absence_uses_estimated_ast_fallback(tmp_python_project, m
 
 def test_required_mypy_absence_is_error_and_not_run(tmp_python_project, monkeypatch):
     monkeypatch.setattr("ici.engines.type_check.shutil.which", lambda _name: None)
-    monkeypatch.setattr("ici.engines.type_check.find_uv", lambda: None)
 
     result = TypeCheckEngine(
         tmp_python_project,
@@ -116,6 +114,26 @@ def test_required_mypy_absence_is_error_and_not_run(tmp_python_project, monkeypa
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
     assert any(e.name == "mypy" and e.returncode is None for e in result.tool_evidence)
+
+
+def test_mypy_uvx_and_uv_only_are_treated_as_missing(tmp_python_project, monkeypatch):
+    monkeypatch.setattr(
+        "ici.engines.type_check.shutil.which",
+        lambda name: "/usr/bin/uvx" if name == "uvx" else None,
+    )
+
+    assert TypeCheckEngine(tmp_python_project)._find_mypy_cmd() is None
+
+
+def test_mypy_finds_windows_style_project_venv_candidate(tmp_python_project, monkeypatch):
+    scripts = tmp_python_project / ".venv" / "Scripts"
+    scripts.mkdir(parents=True)
+    mypy = scripts / "mypy"
+    mypy.write_text("#!/bin/sh\n", encoding="utf-8")
+    mypy.chmod(0o755)
+    monkeypatch.setattr("ici.engines.type_check.shutil.which", lambda _name: None)
+
+    assert TypeCheckEngine(tmp_python_project)._find_mypy_cmd() == [str(mypy)]
 
 
 def test_mypy_exit_two_is_tool_error_even_with_diagnostic(tmp_python_project, monkeypatch):
@@ -138,7 +156,6 @@ def test_mypy_exit_two_is_tool_error_even_with_diagnostic(tmp_python_project, mo
 
 def test_cpp_type_check_is_explicitly_skipped(tmp_cpp_project, monkeypatch):
     monkeypatch.setattr("ici.engines.type_check.shutil.which", lambda _name: None)
-    monkeypatch.setattr("ici.engines.type_check.find_uv", lambda: None)
 
     result = TypeCheckEngine(tmp_cpp_project).run()
 

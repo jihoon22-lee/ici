@@ -108,7 +108,6 @@ def test_ruff_empty_format_success_is_accepted(tmp_python_project, monkeypatch):
 
 def test_optional_ruff_absence_uses_estimated_ast_fallback(tmp_python_project, monkeypatch):
     monkeypatch.setattr("ici.engines.lint.shutil.which", lambda _name: None)
-    monkeypatch.setattr("ici.engines.lint.find_uv", lambda: None)
 
     result = LintEngine(
         tmp_python_project,
@@ -122,7 +121,6 @@ def test_optional_ruff_absence_uses_estimated_ast_fallback(tmp_python_project, m
 
 def test_required_ruff_absence_is_error_and_not_run(tmp_python_project, monkeypatch):
     monkeypatch.setattr("ici.engines.lint.shutil.which", lambda _name: None)
-    monkeypatch.setattr("ici.engines.lint.find_uv", lambda: None)
 
     result = LintEngine(
         tmp_python_project,
@@ -132,6 +130,26 @@ def test_required_ruff_absence_is_error_and_not_run(tmp_python_project, monkeypa
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
     assert any(e.name == "ruff" and e.returncode is None for e in result.tool_evidence)
+
+
+def test_ruff_uvx_and_uv_only_are_treated_as_missing(tmp_python_project, monkeypatch):
+    monkeypatch.setattr(
+        "ici.engines.lint.shutil.which",
+        lambda name: "/usr/bin/uvx" if name == "uvx" else None,
+    )
+
+    assert LintEngine(tmp_python_project)._find_ruff_command() is None
+
+
+def test_ruff_finds_windows_style_project_venv_candidate(tmp_python_project, monkeypatch):
+    scripts = tmp_python_project / ".venv" / "Scripts"
+    scripts.mkdir(parents=True)
+    ruff = scripts / "ruff"
+    ruff.write_text("#!/bin/sh\n", encoding="utf-8")
+    ruff.chmod(0o755)
+    monkeypatch.setattr("ici.engines.lint.shutil.which", lambda _name: None)
+
+    assert LintEngine(tmp_python_project)._find_ruff_command() == [str(ruff)]
 
 
 def test_ruff_spawn_exception_records_both_attempts(tmp_python_project, monkeypatch):
