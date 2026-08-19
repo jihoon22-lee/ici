@@ -55,7 +55,7 @@ class TypeCheckEngine(BaseEngine):
                 self._mark_python_type_check_skipped(targets, tool_warnings)
 
         cpp_files = get_all_cpp_sources(self.project_root, self.config)
-        if cpp_files:
+        if cpp_files or proj_type == "cpp":
             self._mark_cpp_type_check_skipped(targets, tool_warnings, len(cpp_files))
 
         duration = time.time() - t0
@@ -304,7 +304,18 @@ class TypeCheckEngine(BaseEngine):
     def _mark_cpp_type_check_skipped(
         self, targets: list[InspectionTarget], warnings: list[str], count: int
     ) -> None:
-        for source in get_all_cpp_sources(self.project_root, self.config):
+        sources = get_all_cpp_sources(self.project_root, self.config)
+        if not sources:
+            targets.append(
+                InspectionTarget(
+                    file_path=".",
+                    start_line=1,
+                    target_name="C++TypeCheck",
+                    status=EngineStatus.SKIP,
+                    message="No applicable C++ source files were selected; type checking was not run",
+                )
+            )
+        for source in sources:
             targets.append(
                 InspectionTarget(
                     file_path=str(source.relative_to(self.project_root)),

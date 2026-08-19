@@ -33,7 +33,11 @@ _CPP_DIAGNOSTIC_RE = re.compile(
 )
 _CPP_CONTEXT_RE = re.compile(r"^\s*(?:\d+\s*\|.*|\|.*|[\^~].*)$")
 _CPP_CONTEXT_HEADER_RE = re.compile(
-    r"^.+:\s+In (?:function|member function|constructor|destructor|lambda function)(?: .*)?:$"
+    r"^.+:\s+In (?:function|member function|constructor|destructor|lambda function|"
+    r"instantiation of)(?: .*)?:$"
+)
+_CPP_REQUIRED_FROM_RE = re.compile(
+    r"^.+:[1-9]\d*(?::[1-9]\d*)?:\s+required from here$"
 )
 
 
@@ -432,7 +436,7 @@ class LintEngine(BaseEngine):
                 continue
             if found_diagnostic and self._is_cpp_context(line):
                 continue
-            if _CPP_CONTEXT_HEADER_RE.fullmatch(line):
+            if _CPP_CONTEXT_HEADER_RE.fullmatch(line) or _CPP_REQUIRED_FROM_RE.fullmatch(line):
                 continue
             malformed = True
         return parsed, malformed, found_diagnostic
