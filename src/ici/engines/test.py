@@ -59,7 +59,6 @@ class TestEngine(BaseEngine):
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
-        self._zero_tests_detected = False
         self._has_run = False
 
     def _reset_run_state(self) -> None:
@@ -78,7 +77,6 @@ class TestEngine(BaseEngine):
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
-        self._zero_tests_detected = False
 
     def run(self) -> EngineResult:
         t0 = time.time()
@@ -184,9 +182,6 @@ class TestEngine(BaseEngine):
         missing = self._coverage_failure_messages()
         required = bool(cfg.get("coverage_required", False)) and bool(missing)
         optional = bool(missing) and not required
-        if self._zero_tests_detected:
-            required = False
-            optional = False
         if required:
             for message in missing:
                 self._record_tool_error(message)
@@ -273,7 +268,6 @@ class TestEngine(BaseEngine):
     def _mark_zero_tests(
         self, language: str, targets: list[InspectionTarget]
     ) -> tuple[int, int, bool]:
-        self._zero_tests_detected = True
         targets.append(
             InspectionTarget(
                 file_path="tests",
@@ -502,7 +496,6 @@ class TestEngine(BaseEngine):
         if total == 0 and collected is not None:
             total = int(collected.group(1))
         if result.returncode == 5 or (total == 0 and result.returncode == 0):
-            self._zero_tests_detected = True
             has_failure = True
             if not any(t.target_name == "[Python] Tests" for t in targets):
                 targets.append(
@@ -945,6 +938,10 @@ class TestEngine(BaseEngine):
         self._coverage_files = files
         self._coverage_totals = totals
         self._coverage_source = source
+        missing_python = self._python_test_attempted and not self._coverage_data
+        missing_cpp = self._cpp_test_attempted and not self._cpp_coverage_rows
+        if source != "estimated" and (missing_python or missing_cpp):
+            self._coverage_source = f"{source} (partial)"
 
     def _measure_coverage(
         self, proj_type: str, has_test_failures: bool
