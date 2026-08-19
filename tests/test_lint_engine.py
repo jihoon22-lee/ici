@@ -216,3 +216,27 @@ def test_cpp_malformed_success_output_is_tool_error(tmp_cpp_project, monkeypatch
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_cpp_warning_context_is_kept_as_a_finding(tmp_cpp_project, monkeypatch):
+    monkeypatch.setattr(
+        "ici.engines.lint.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    diagnostic = (
+        "src/main.cpp:3:5: warning: unused variable 'value'\n"
+        "    3 | int value = 1;\n"
+        "      |     ^~~~~\n"
+    )
+    monkeypatch.setattr(
+        "ici.engines.lint.run_process",
+        lambda *args, **kwargs: ProcessResult(0, "", diagnostic, 0.01),
+    )
+
+    result = LintEngine(tmp_cpp_project).run()
+
+    assert result.status == EngineStatus.WARN
+    assert result.evidence == EvidenceState.MEASURED
+    target = next(target for target in result.targets if target.target_name == "C++Syntax")
+    assert target.status == EngineStatus.WARN
+    assert target.start_line == 3
