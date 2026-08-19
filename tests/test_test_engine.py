@@ -4,6 +4,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
 from ici.engines.test import TestEngine
@@ -161,6 +163,127 @@ def test_parse_coverage_json_rejects_incomplete_file_summary(tmp_path: Path):
     )
 
     assert engine._parse_coverage_json(json_path) is None
+
+
+def test_parse_coverage_json_rejects_inconsistent_measurement_counts(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    json_path = tmp_path / "coverage.json"
+    json_path.write_text(
+        json.dumps(
+            {
+                "files": {
+                    "src/core.py": {
+                        "executed_lines": [1, 2],
+                        "missing_lines": [3],
+                        "summary": {
+                            "covered_lines": 2,
+                            "num_statements": 4,
+                            "missing_lines": 1,
+                            "num_branches": 2,
+                            "covered_branches": 3,
+                        },
+                    }
+                },
+                "totals": {
+                    "covered_lines": 2,
+                    "num_statements": 4,
+                    "missing_lines": 1,
+                    "num_branches": 2,
+                    "covered_branches": 3,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert engine._parse_coverage_json(json_path) is None
+
+
+def test_parse_coverage_json_rejects_invalid_or_overlapping_line_arrays(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    json_path = tmp_path / "coverage.json"
+    json_path.write_text(
+        json.dumps(
+            {
+                "files": {
+                    "src/core.py": {
+                        "executed_lines": [0, 2],
+                        "missing_lines": [2],
+                        "summary": {
+                            "covered_lines": 2,
+                            "num_statements": 3,
+                            "missing_lines": 1,
+                            "num_branches": 0,
+                            "covered_branches": 0,
+                        },
+                    }
+                },
+                "totals": {
+                    "covered_lines": 2,
+                    "num_statements": 3,
+                    "missing_lines": 1,
+                    "num_branches": 0,
+                    "covered_branches": 0,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert engine._parse_coverage_json(json_path) is None
+
+
+def test_required_zero_statement_coverage_is_not_measured(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_zero.py").write_text("def test_zero():\n    assert True\n", encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
+    engine = TestEngine(
+        tmp_path,
+        {"engines": {"test": {"coverage_required": True}}},
+    )
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _python: ["coverage"])
+
+    def fake_run(cmd, cwd=None, env=None):
+        if "run" in cmd:
+            return ProcessResult(0, "tests/test_zero.py::test_zero PASSED\n", "", 0.01)
+        output_path = Path(cmd[cmd.index("-o") + 1])
+        output_path.write_text(
+            json.dumps(
+                {
+                    "files": {
+                        "src/app.py": {
+                            "executed_lines": [],
+                            "missing_lines": [],
+                            "summary": {
+                                "covered_lines": 0,
+                                "num_statements": 0,
+                                "missing_lines": 0,
+                                "num_branches": 0,
+                                "covered_branches": 0,
+                            },
+                        }
+                    },
+                    "totals": {
+                        "covered_lines": 0,
+                        "num_statements": 0,
+                        "missing_lines": 0,
+                        "num_branches": 0,
+                        "covered_branches": 0,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
 
 
 def test_compute_python_function_coverage(tmp_path: Path):
@@ -477,16 +600,11 @@ def test_python_tools_use_one_interpreter_with_module_invocation(tmp_path: Path)
         "run",
         "--branch",
     ]
-    assert coverage_cmd[-9:-4] == [
+    assert coverage_cmd[-6:] == [
         "-m",
         "pytest",
         "-o",
         "addopts=",
-        "-s",
-    ]
-    assert coverage_cmd[-4:] == [
-        "--basetemp",
-        str(tmp_path / "build" / "pytest-tmp"),
         "-v",
         "tests",
     ]
@@ -581,6 +699,153 @@ def test_required_cpp_coverage_without_gcov_is_error_and_not_run(tmp_path: Path,
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+
+
+@pytest.mark.parametrize("returncode", [-1, -9])
+def test_cpp_spawn_or_signal_failure_is_error_not_assertion_failure(
+    tmp_path: Path, monkeypatch, returncode: int
+):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "calc.cpp").write_text("int add(int a, int b) { return a + b; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_calc.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    (tmp_path / "ici.toml").write_text('type = "cpp"\n', encoding="utf-8")
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr("ici.engines.test.detect_project_type", lambda _root: "cpp")
+    monkeypatch.setattr(
+        "ici.engines.test.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda *args, **kwargs: ProcessResult(returncode, "", "spawn failed", 0.01),
+    )
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+    assert not any(target.status == EngineStatus.FAIL for target in result.targets)
+
+
+def test_cpp_positive_test_exit_remains_failure(tmp_path: Path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "calc.cpp").write_text("int add(int a, int b) { return a + b; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_calc.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    (tmp_path / "ici.toml").write_text('type = "cpp"\n', encoding="utf-8")
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr("ici.engines.test.detect_project_type", lambda _root: "cpp")
+    monkeypatch.setattr(
+        "ici.engines.test.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    calls = 0
+
+    def fake_run(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return ProcessResult(0, "", "", 0.01)
+        return ProcessResult(1, "assertion failed", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.FAIL
+    assert any(target.status == EngineStatus.FAIL for target in result.targets)
+
+
+def test_unittest_fallback_runs_when_pytest_module_is_unavailable(
+    tmp_path: Path, monkeypatch
+):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_legacy.py").write_text(
+        "import unittest\n\nclass Legacy(unittest.TestCase):\n    def test_ok(self):\n        self.assertTrue(True)\n",
+        encoding="utf-8",
+    )
+    engine = TestEngine(tmp_path)
+    python = ["/project/.venv/bin/python"]
+    monkeypatch.setattr(engine, "_resolve_python", lambda: python)
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _python: None)
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        commands.append(cmd)
+        if "pytest" in cmd:
+            return ProcessResult(1, "", "No module named pytest", 0.01)
+        return ProcessResult(
+            0,
+            "test_ok (test_legacy.Legacy) ... ok\n\nRan 1 test\n",
+            "",
+            0.01,
+        )
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+
+    parsed = engine._run_python_tests([])
+
+    assert parsed == (1, 1, False)
+    assert commands[0][:3] == [*python, "-m"]
+    assert commands[0][3] == "pytest"
+    assert commands[1][:3] == [*python, "-m"]
+    assert commands[1][3] == "unittest"
+
+
+def test_pytest_zero_collection_does_not_fall_back_to_unittest(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_empty.py").write_text("# no tests\n", encoding="utf-8")
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _python: None)
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda *args, **kwargs: ProcessResult(5, "collected 0 items\n", "", 0.01),
+    )
+    monkeypatch.setattr(
+        engine,
+        "_run_unittest",
+        lambda *args, **kwargs: pytest.fail("unittest fallback must not run after pytest collection"),
+    )
+
+    assert engine._run_python_tests([]) == (0, 0, True)
+
+
+@pytest.mark.parametrize(
+    "probe",
+    [
+        ProcessResult(124, "", "timeout", 0.01, timed_out=True),
+        ProcessResult(0, "", "", 0.01, truncated=True),
+        ProcessResult(-1, "", "spawn failed", 0.01),
+        ProcessResult(-9, "", "killed", 0.01),
+        ProcessResult(2, "", "coverage configuration failed", 0.01),
+    ],
+)
+def test_coverage_probe_failures_record_tool_error(tmp_path: Path, monkeypatch, probe):
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr(
+        "ici.engines.test.run_process", lambda *args, **kwargs: probe
+    )
+
+    assert engine._find_coverage_cmd(None) is None
+    assert engine._tool_errors
+
+
+def test_coverage_probe_clear_module_absence_is_optional(tmp_path: Path, monkeypatch):
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda *args, **kwargs: ProcessResult(1, "", "No module named coverage", 0.01),
+    )
+
+    assert engine._find_coverage_cmd(None) is None
+    assert engine._tool_errors == []
 
 
 def test_coverage_state_does_not_leak_between_runs(tmp_path: Path, monkeypatch):
