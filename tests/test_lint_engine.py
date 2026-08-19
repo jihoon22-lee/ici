@@ -91,6 +91,21 @@ def test_ruff_clean_format_summary_is_success(tmp_python_project, monkeypatch):
     assert result.status == EngineStatus.PASS
 
 
+def test_ruff_empty_format_success_is_accepted(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.PASS
+
+
 def test_optional_ruff_absence_uses_estimated_ast_fallback(tmp_python_project, monkeypatch):
     monkeypatch.setattr("ici.engines.lint.shutil.which", lambda _name: None)
     monkeypatch.setattr("ici.engines.lint.find_uv", lambda: None)
