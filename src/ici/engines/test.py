@@ -45,6 +45,7 @@ class TestEngine(BaseEngine):
         self._coverage_source = "estimated"
         self._tool_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
+        self._has_run = False
 
     def run(self) -> EngineResult:
         t0 = time.time()
@@ -53,13 +54,14 @@ class TestEngine(BaseEngine):
         has_failure = False
         self._tool_errors = []
         self._tool_evidence = []
-        self._coverage_data = None
-        self._coverage_files = []
-        self._coverage_totals = None
-        self._coverage_source = "estimated"
-        self._function_rows = []
-        self._cpp_coverage_rows = []
-        self._cpp_function_rows = []
+        if self._has_run:
+            self._coverage_data = None
+            self._coverage_files = []
+            self._coverage_totals = None
+            self._coverage_source = "estimated"
+            self._function_rows = []
+            self._cpp_coverage_rows = []
+            self._cpp_function_rows = []
 
         passed_tests = 0
         total_tests = 0
@@ -158,6 +160,7 @@ class TestEngine(BaseEngine):
             )
         )
 
+        self._has_run = True
         return self.create_result(
             name="test",
             status=overall_status,
