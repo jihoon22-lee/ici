@@ -52,3 +52,6 @@ verify_report.md
 Thumbs.db
 .playwright-mcp/
 pr4-report.png
+
+# Local isolated implementation worktrees
+.worktrees/
