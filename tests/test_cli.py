@@ -1,5 +1,6 @@
 """Tests for Typer CLI commands."""
 
+import pytest
 from typer.testing import CliRunner
 
 from ici.__main__ import app
@@ -55,3 +56,73 @@ def test_cli_verify_error_suite_exits_nonzero(monkeypatch):
     res = runner.invoke(app, ["verify"])
 
     assert res.exit_code == 1
+
+
+def test_line_command_uses_project_config(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "large.py").write_text("x = 1\n" * 3, encoding="utf-8")
+    (tmp_path / "ici.toml").write_text(
+        "[engines.line]\nwarn_limit = 1\nfail_limit = 2\nmode = 'pass_warn_fail'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.delenv("ICI_CONFIG", raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["line"])
+
+    assert result.exit_code == 1
+
+
+def test_cli_reports_config_error_without_traceback(tmp_path, monkeypatch):
+    (tmp_path / "ici.toml").write_bytes(b"[engines.line]\nwarn_limit = \xff\n")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.delenv("ICI_CONFIG", raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["line"])
+
+    assert result.exit_code != 0
+    assert "Configuration error:" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_cli_reports_parser_level_ten_thousand_digit_integer_without_traceback(
+    tmp_path, monkeypatch
+):
+    huge_integer = "9" * 10_000
+    (tmp_path / "ici.toml").write_text(
+        f"[engines.test]\nmin_tem_score = {huge_integer}\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.delenv("ICI_CONFIG", raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["line"])
+
+    assert result.exit_code == 2
+    assert "Configuration error:" in result.output
+    assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize(
+    "pathological_config",
+    [
+        pytest.param("value = " + "[" * 1000 + "1" + "]" * 1000 + "\n", id="nested-arrays"),
+        pytest.param("a" + ".a" * 1000 + " = 1\n", id="dotted-key-parts"),
+    ],
+)
+def test_cli_reports_pathological_toml_without_traceback(
+    tmp_path, monkeypatch, pathological_config
+):
+    (tmp_path / "ici.toml").write_text(pathological_config, encoding="utf-8")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.delenv("ICI_CONFIG", raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["line"])
+
+    assert result.exit_code == 2
+    assert "Configuration error:" in result.output
+    assert "Traceback" not in result.output

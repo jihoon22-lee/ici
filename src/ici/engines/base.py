@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from ici.config import get_engine_config
+from ici.config_schema import validate_config_paths
 from ici.core.models import EngineResult, EngineStatus
 
 
@@ -14,6 +15,7 @@ class BaseEngine(ABC):
     def __init__(self, project_root: Path | None = None, config: dict[str, Any] | None = None):
         self.project_root = (project_root or Path.cwd()).resolve()
         self.config = config or {}
+        validate_config_paths(self.config, self.project_root)
 
     @abstractmethod
     def run(self) -> EngineResult:

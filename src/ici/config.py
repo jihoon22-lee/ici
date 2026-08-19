@@ -7,6 +7,8 @@ from typing import Any
 import tomli
 import tomli_w
 
+from ici.config_schema import ConfigError, validate_config, validate_config_paths
+
 # Default Enterprise Quality Policy — Embedded inside ici
 DEFAULT_CONFIG: dict[str, Any] = {
     "ici": {
@@ -74,39 +76,87 @@ DEFAULT_CONFIG: dict[str, Any] = {
 
 
 def load_config(base_dir: Path | None = None) -> dict[str, Any]:
-    """Loads configuration by deep-merging user/system config on top of standard default policy."""
+    """Load the effective policy in deterministic precedence order.
+
+    Defaults are merged first, followed by the XDG global policy, the
+    project's ``ici.toml`` and ``dev.toml``, and finally ``ICI_CONFIG`` when
+    set.  Every present file is loaded; malformed files and a missing
+    explicitly requested file are configuration errors.
+    """
     import copy
 
     config = copy.deepcopy(DEFAULT_CONFIG)
-
-    # Search candidates: ICI_CONFIG env var, ~/.config/ici/ici.toml, base_dir/ici.toml
-    candidate_paths: list[Path] = []
-    if os.environ.get("ICI_CONFIG"):
-        candidate_paths.append(Path(os.environ["ICI_CONFIG"]).resolve())
-
-    home_conf = Path.home() / ".config/ici/ici.toml"
-    candidate_paths.append(home_conf)
-
-    base = (base_dir or Path.cwd()).resolve()
-    for conf_name in ("ici.toml", "dev.toml"):
-        candidate_paths.append(base / conf_name)
+    base = _resolve_filesystem_path(base_dir or Path.cwd(), "project root")
+    explicit_value = os.environ.get("ICI_CONFIG")
+    explicit_path = (
+        _resolve_filesystem_path(Path(explicit_value).expanduser(), "explicit configuration")
+        if explicit_value
+        else None
+    )
 
     loaded = False
-    for p in candidate_paths:
-        if p.exists():
-            try:
-                with open(p, "rb") as f:
-                    user_cfg = tomli.load(f)
-                    _deep_merge(config, user_cfg)
-                    loaded = True
-                    break
-            except (OSError, tomli.TOMLDecodeError) as err:
-                _ = err
+    for path in _config_paths(base, explicit_path):
+        try:
+            exists = path.exists()
+        except OSError as err:
+            raise ConfigError(f"could not inspect configuration {path}: {err}") from err
+        if not exists:
+            if explicit_path is not None and path == explicit_path:
+                raise ConfigError(f"explicit configuration file does not exist: {path}")
+            continue
+        try:
+            is_file = path.is_file()
+        except OSError as err:
+            raise ConfigError(f"could not inspect configuration {path}: {err}") from err
+        if not is_file:
+            raise ConfigError(f"configuration path is not a file: {path}")
+        try:
+            with path.open("rb") as stream:
+                try:
+                    user_cfg = tomli.load(stream)
+                except (ValueError, RecursionError) as err:
+                    raise ConfigError(f"could not parse configuration {path}: {err}") from err
+        except OSError as err:
+            raise ConfigError(f"could not read configuration {path}: {err}") from err
+        if not isinstance(user_cfg, dict):
+            raise ConfigError(f"configuration must be a table: {path}")
+        _deep_merge(config, user_cfg)
+        loaded = True
 
-    if not loaded and not os.environ.get("ICI_CONFIG"):
+    if not loaded and explicit_path is None:
         _ensure_global_default_config(config)
 
+    validate_config(config)
+    validate_config_paths(config, base)
     return config
+
+
+def _resolve_filesystem_path(path: Path, description: str) -> Path:
+    """Canonicalize a filesystem path and normalize resolution failures."""
+
+    try:
+        return path.resolve(strict=False)
+    except (OSError, RuntimeError, TypeError, ValueError) as err:
+        raise ConfigError(f"could not resolve {description} path {path}: {err}") from err
+
+
+def _config_paths(base: Path, explicit_path: Path | None = None) -> list[Path]:
+    """Return policy files in their fixed precedence order."""
+
+    paths = [
+        _resolve_filesystem_path(get_global_config_path(), "global configuration"),
+        _resolve_filesystem_path(base / "ici.toml", "project configuration"),
+        _resolve_filesystem_path(base / "dev.toml", "development configuration"),
+    ]
+    if explicit_path is None:
+        explicit = os.environ.get("ICI_CONFIG")
+        if explicit:
+            explicit_path = _resolve_filesystem_path(
+                Path(explicit).expanduser(), "explicit configuration"
+            )
+    if explicit_path is not None:
+        paths.append(explicit_path)
+    return paths
 
 
 def get_global_config_path() -> Path:
@@ -118,12 +168,14 @@ def get_global_config_path() -> Path:
 def _ensure_global_default_config(config: dict[str, Any]) -> None:
     """Creates the per-user global ici.toml from the default policy on first run."""
     target = get_global_config_path()
-    if target.exists():
-        return
     try:
+        if target.exists():
+            return
         target.parent.mkdir(parents=True, exist_ok=True)
         save_config(config, target)
         print(f"[ici] 기본 전역 설정을 생성했습니다: {target}")
+    except RuntimeError as err:
+        raise ConfigError(f"could not resolve global configuration path {target}: {err}") from err
     except OSError as err:
         _ = err
 
