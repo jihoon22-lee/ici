@@ -184,3 +184,38 @@ def test_dead_engine_resolves_nested_module_attribute_references(tmp_path, impor
     assert actual.target_name == "_foo()"
     assert actual.status == EngineStatus.PASS
     assert unrelated.status == EngineStatus.WARN
+
+
+def test_dead_engine_resolves_imported_symbol_used_through_attribute(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text("def _foo():\n    return 1\n", encoding="utf-8")
+    (src / "use.py").write_text(
+        "from a import _foo\n\nvalue = _foo.__name__\n", encoding="utf-8"
+    )
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    target = next(target for target in result.targets if target.file_path == "src/a.py")
+    assert target.target_name == "_foo()"
+    assert target.status == EngineStatus.PASS
+
+
+def test_dead_engine_prefers_first_configured_source_dir_for_shadowed_module(tmp_path):
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    first.mkdir()
+    second.mkdir()
+    (first / "a.py").write_text("def _foo():\n    return 1\n", encoding="utf-8")
+    (second / "a.py").write_text("def _foo():\n    return 2\n", encoding="utf-8")
+    (first / "use.py").write_text(
+        "from a import _foo\n\nvalue = _foo()\n", encoding="utf-8"
+    )
+    config = {"project": {"source_dirs": ["first", "second"]}}
+
+    result = DeadCodeEngine(tmp_path, config).run()
+
+    first_target = next(target for target in result.targets if target.file_path == "first/a.py")
+    second_target = next(target for target in result.targets if target.file_path == "second/a.py")
+    assert first_target.status == EngineStatus.PASS
+    assert second_target.status == EngineStatus.WARN

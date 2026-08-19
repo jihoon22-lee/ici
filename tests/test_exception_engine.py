@@ -147,6 +147,22 @@ void run() {
     assert any(target.target_name == "CatchAllSwallowed" for target in result.targets)
 
 
+def test_exception_engine_does_not_call_conditional_brace_catch_empty(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "conditional.cpp").write_text(
+        "void run() {\n"
+        "    try { work(); }\n"
+        "    catch (...) { if (ready) {} }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(target.target_name == "CatchAllSwallowed" for target in result.targets)
+
+
 def test_exception_engine_ignores_cpp_raw_string_false_positive(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
@@ -231,6 +247,60 @@ def test_exception_engine_flags_base_exception_handlers_with_location(tmp_path, 
     assert target.start_line == 5
     assert target.status == EngineStatus.FAIL
     assert result.status == EngineStatus.FAIL
+
+
+def test_exception_engine_flags_module_level_base_exception_aliases(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "aliases.py").write_text(
+        """from builtins import BaseException as BE
+import builtins as b
+
+try:
+    work()
+except BE:
+    log()
+
+try:
+    work()
+except b.BaseException:
+    log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (6, EngineStatus.FAIL),
+        (11, EngineStatus.FAIL),
+    ]
+
+
+def test_exception_engine_does_not_flag_function_local_base_exception_alias_shadowing(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "shadowed.py").write_text(
+        """from builtins import BaseException as BE
+import builtins as b
+
+def handle(BE, b):
+    try:
+        work()
+    except BE:
+        log()
+    try:
+        work()
+    except b.BaseException:
+        log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(target.target_name == "BaseException" for target in result.targets)
 
 
 def test_exception_engine_cancels_pending_destructor_at_declaration_semicolon(tmp_path):
