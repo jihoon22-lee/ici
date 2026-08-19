@@ -98,3 +98,60 @@ def test_dead_engine_without_python_sources_is_explicitly_skipped(tmp_path):
     assert result.status == EngineStatus.SKIP
     assert result.evidence == EvidenceState.ESTIMATED
     assert result.targets[0].status == EngineStatus.SKIP
+
+
+def test_dead_engine_resolves_from_import_across_modules(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text("def _from_import():\n    return 1\n", encoding="utf-8")
+    (src / "b.py").write_text(
+        "from a import _from_import\n\ndef use():\n    return _from_import()\n",
+        encoding="utf-8",
+    )
+    (src / "unrelated.py").write_text("def _from_import():\n    return 2\n", encoding="utf-8")
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    imported = next(target for target in result.targets if target.file_path == "src/a.py")
+    unrelated = next(target for target in result.targets if target.file_path == "src/unrelated.py")
+    assert imported.status == EngineStatus.PASS
+    assert unrelated.status == EngineStatus.WARN
+
+
+def test_dead_engine_resolves_module_attribute_reference_across_modules(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text("def _attribute():\n    return 1\n", encoding="utf-8")
+    (src / "b.py").write_text(
+        "import a as module\n\ndef use():\n    return module._attribute()\n",
+        encoding="utf-8",
+    )
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    target = next(target for target in result.targets if target.file_path == "src/a.py")
+    assert target.status == EngineStatus.PASS
+
+
+def test_dead_engine_returns_pass_target_for_clean_source(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "clean.py").write_text("def public():\n    return 1\n", encoding="utf-8")
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.PASS
+    assert any(
+        target.file_path == "src/clean.py" and target.status == EngineStatus.PASS
+        for target in result.targets
+    )
+
+
+def test_dead_engine_warning_uses_warning_status_not_failure(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "unused.py").write_text("def _unused():\n    return 1\n", encoding="utf-8")
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.WARN

@@ -140,3 +140,159 @@ def test_python_resource_warning_without_tests_is_not_pass(tmp_path):
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
     assert "test" in result.summary.lower()
+
+
+def test_cpp_sanitizer_diagnostic_with_zero_exit_is_measured_failure(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    results = iter(
+        [
+            ProcessResult(0, "", "", 0.01),
+            ProcessResult(0, "", "runtime error: signed integer overflow", 0.01),
+        ]
+    )
+    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.evidence == EvidenceState.MEASURED
+    assert any(target.target_name == "ASan/UBSan Error" for target in result.targets)
+
+
+def test_cpp_sanitizer_nonzero_diagnostic_is_measured_failure(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    results = iter(
+        [
+            ProcessResult(0, "", "", 0.01),
+            ProcessResult(1, "", "AddressSanitizer: heap-use-after-free", 0.01),
+        ]
+    )
+    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.evidence == EvidenceState.MEASURED
+
+
+def test_hybrid_partial_cpp_skip_is_warn_and_estimated_when_optional(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("value = 1\n", encoding="utf-8")
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text("def test_app():\n    pass\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.run_process",
+        lambda *args, **kwargs: ProcessResult(0, "1 passed in 0.01s\n", "", 0.01),
+    )
+
+    result = SanitizeEngine(
+        tmp_path,
+        {"engines": {"sanitize": {"required": False}}},
+    ).run()
+
+    assert result.status == EngineStatus.WARN
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert any(target.target_name == "C++Sanitizer" for target in result.targets)
+
+
+def test_hybrid_partial_python_skip_is_warn_and_estimated_when_optional(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("value = 1\n", encoding="utf-8")
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    results = iter(
+        [
+            ProcessResult(0, "", "", 0.01),
+            ProcessResult(0, "", "", 0.01),
+        ]
+    )
+    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
+
+    result = SanitizeEngine(
+        tmp_path,
+        {"engines": {"sanitize": {"required": False}}},
+    ).run()
+
+    assert result.status == EngineStatus.WARN
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert any(target.target_name == "PythonResourceWarnings" for target in result.targets)
+
+
+def test_sanitize_default_mode_matches_pass_fail_policy(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("value = 1\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text("def test_app():\n    pass\n", encoding="utf-8")
+    engine = SanitizeEngine(tmp_path)
+
+    def fake_check(_tests_root, _targets):
+        engine._measured_scopes = 1
+        return False, True
+
+    monkeypatch.setattr(engine, "_check_python_resource_warnings", fake_check)
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.FAIL
+
+
+def test_cpp_sanitizer_execution_sets_options_without_clobbering_environment(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    monkeypatch.setenv("ASAN_OPTIONS", "color=always")
+    monkeypatch.setenv("UBSAN_OPTIONS", "print_stacktrace=1")
+    seen_envs = []
+
+    def fake_run(command, **kwargs):
+        if command[0] != "/usr/bin/g++":
+            seen_envs.append(kwargs.get("env", {}))
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.sanitize.run_process", fake_run)
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.PASS
+    assert seen_envs
+    assert "color=always" in seen_envs[0]["ASAN_OPTIONS"]
+    assert "detect_leaks=1" in seen_envs[0]["ASAN_OPTIONS"]
+    assert "print_stacktrace=1" in seen_envs[0]["UBSAN_OPTIONS"]
+    assert "halt_on_error=1" in seen_envs[0]["UBSAN_OPTIONS"]

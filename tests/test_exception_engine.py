@@ -99,3 +99,92 @@ def test_exception_engine_without_sources_is_explicitly_skipped(tmp_path):
     assert result.status == EngineStatus.SKIP
     assert result.evidence == EvidenceState.ESTIMATED
     assert result.targets[0].status == EngineStatus.SKIP
+
+
+def test_exception_engine_returns_pass_target_for_clean_python_source(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "clean.py").write_text("def work():\n    return 1\n", encoding="utf-8")
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.PASS
+    assert any(
+        target.file_path == "src/clean.py" and target.status == EngineStatus.PASS
+        for target in result.targets
+    )
+
+
+def test_exception_engine_supports_multiline_cpp_bodies(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "unsafe.cpp").write_text(
+        """class Type {
+public:
+    ~Type()
+    {
+        throw 1;
+    }
+};
+
+void run() {
+    try {
+        work();
+    }
+    catch (...)
+    {
+    }
+}
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert any(target.target_name == "DestructorThrow" for target in result.targets)
+    assert any(target.target_name == "CatchAllSwallowed" for target in result.targets)
+
+
+def test_exception_engine_ignores_cpp_raw_string_false_positive(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "raw.cpp").write_text(
+        'const char* text = R"tag(catch (...) { } ~Type() { throw 1; })tag";\n',
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(
+        target.target_name in {"CatchAllSwallowed", "DestructorThrow"} for target in result.targets
+    )
+
+
+def test_exception_default_mode_matches_pass_fail_policy(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "bad.py").write_text(
+        "try:\n    work()\nexcept Exception as exc:\n    raise exc\n", encoding="utf-8"
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.FAIL
+
+
+def test_exception_engine_does_not_flag_explicit_raise_cause(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "wrapped.py").write_text(
+        """try:
+    work()
+except Exception as exc:
+    cause = RuntimeError("cause")
+    raise exc from cause
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(target.target_name == "LostTraceback" for target in result.targets)
