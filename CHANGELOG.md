@@ -17,6 +17,7 @@
   - dead는 private module-level Python 함수 정의와 모듈 내·cross-module `from`/attribute 참조를 분리해 수집하며 `import pkg.a`/`from pkg import a` 중첩 모듈 참조를 실제 정의에 연결하고 decorator·`__all__`·메서드·중첩 callback 함수 오탐을 제외
   - exception은 `BaseException` 단일·tuple·`builtins` 경로를 위치 있는 `FAIL`로 차단하고, `except ... as exc` 내부의 암묵적 `raise exc` lost traceback을 위치와 함께 `WARN`/정책 상태로 기록하며 C++ raw string·multiline destructor/catch를 안전하게 처리
   - 모든 엔진 설정 테이블이 공통 `required` boolean 정책을 사용하고, `sanitize`/`dead`/`exception` 단독 명령은 `ERROR`를 exit 1, `SKIP`을 exit 2로 반환
+  - 선택 엔진(`required = false`)의 `FAIL`/`ERROR`/`SKIP` 및 `MEASURED`가 아닌 결과는 suite를 `WARN`으로 낮춰 허위 `PASS`를 방지하며, 필수 엔진의 `ERROR`/`FAIL` 우선순위는 유지
 - **lint/type 실행 증거 및 도구 정책 강화**:
   - Ruff, Mypy, g++의 모든 실행 시도와 미설치 상태를 `ToolEvidence`에 기록하고 timeout·출력 절단·spawn/신호 종료·도구 크래시·잘못된 성공/진단 출력을 `ERROR`/`NOT_RUN`으로 분류
   - `[engines.lint].ruff_required`와 `[engines.type].mypy_required`를 추가해 필수 도구 누락은 오류로, 선택 도구 누락은 AST 부분 폴백 `WARN`/`ESTIMATED`로 표시

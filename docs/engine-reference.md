@@ -103,8 +103,10 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 `EngineResult.required`의 기본값은 `true`이므로, 별도 설정이 없는 엔진은 필수 엔진으로
 간주됩니다. `aggregate_suite_status()`는 빈 결과 집합, 필수 엔진의 `ERROR`/`SKIP`, 또는
 필수 엔진의 `NOT_RUN` 증거를 `ERROR`로 처리합니다. 그 외에는 필수 엔진의 `FAIL`, 모든
-엔진의 `WARN`, 마지막으로 `PASS` 순서로 전체 게이트 상태를 결정합니다. 도구 실행 정보가
-있는 경우 `ToolEvidence`에 도구 이름·경로·버전·인자·반환 코드를 기록할 수 있습니다.
+엔진의 `WARN`, 마지막으로 `PASS` 순서로 전체 게이트 상태를 결정합니다. `required = false`인
+선택 엔진의 `FAIL`/`ERROR`/`SKIP` 또는 `PASS`이지만 `MEASURED`가 아닌 결과는 게이트를
+차단하지 않고 전체 suite를 `WARN`으로 낮춥니다. 따라서 선택 엔진의 실행 실패나 측정 불가가
+`PASS`로 사라지지 않습니다. 도구 실행 정보가 있는 경우 `ToolEvidence`에 도구 이름·경로·버전·인자·반환 코드를 기록할 수 있습니다.
 
 ---
 
