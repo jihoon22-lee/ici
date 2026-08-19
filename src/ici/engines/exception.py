@@ -135,6 +135,21 @@ class ExceptionSafetyEngine(BaseEngine):
             for node in ast.walk(tree):
                 if not isinstance(node, ast.ExceptHandler):
                     continue
+                if node.type is not None and self._is_base_exception_type(node.type):
+                    has_error = True
+                    targets.append(
+                        InspectionTarget(
+                            file_path=rel_path,
+                            start_line=node.lineno,
+                            end_line=getattr(node, "end_lineno", node.lineno),
+                            target_name="BaseException",
+                            status=EngineStatus.FAIL,
+                            message=(
+                                "Catching BaseException also intercepts system-exit and keyboard "
+                                "interrupt signals; catch a narrower exception type"
+                            ),
+                        )
+                    )
                 if node.type is None:
                     has_error = True
                     targets.append(
@@ -202,6 +217,20 @@ class ExceptionSafetyEngine(BaseEngine):
             and statement.value.value is Ellipsis
         )
 
+    @staticmethod
+    def _is_base_exception_type(node: ast.expr) -> bool:
+        if isinstance(node, ast.Name):
+            return node.id == "BaseException"
+        if isinstance(node, ast.Attribute):
+            return (
+                node.attr == "BaseException"
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "builtins"
+            )
+        if isinstance(node, (ast.Tuple, ast.List)):
+            return any(ExceptionSafetyEngine._is_base_exception_type(item) for item in node.elts)
+        return False
+
     def _check_cpp_exceptions(self, targets: list[InspectionTarget]) -> bool:
         has_error = False
         for cpp_file in get_all_cpp_sources(self.project_root, self.config):
@@ -215,6 +244,7 @@ class ExceptionSafetyEngine(BaseEngine):
             rel_path = str(cpp_file.relative_to(self.project_root))
             masked = self._mask_cpp_literals(content)
             destructor_lines = self._destructor_throw_lines(masked)
+            empty_catch_lines = self._empty_catch_all_lines(masked)
             for line_no in destructor_lines:
                 has_error = True
                 targets.append(
@@ -226,7 +256,7 @@ class ExceptionSafetyEngine(BaseEngine):
                         message="C++ destructor throws an exception and may call std::terminate",
                     )
                 )
-            for line_no in self._empty_catch_all_lines(masked):
+            for line_no in empty_catch_lines:
                 has_error = True
                 targets.append(
                     InspectionTarget(
@@ -245,7 +275,7 @@ class ExceptionSafetyEngine(BaseEngine):
                     status=EngineStatus.PASS,
                     message=(
                         "C++ exception constructs were inspected"
-                        if not destructor_lines and not self._empty_catch_all_lines(masked)
+                        if not destructor_lines and not empty_catch_lines
                         else "C++ exception constructs were inspected; see findings above"
                     ),
                 )
@@ -260,6 +290,21 @@ class ExceptionSafetyEngine(BaseEngine):
         while index < len(chars):
             current = chars[index]
             following = chars[index + 1] if index + 1 < len(chars) else ""
+            if state == "code" and current == "R" and following == '"':
+                open_paren = content.find("(", index + 2)
+                if open_paren != -1:
+                    delimiter = content[index + 2 : open_paren]
+                    if len(delimiter) <= 16 and not any(
+                        char.isspace() or char in {"\\", "(", ")"} for char in delimiter
+                    ):
+                        close_marker = ")" + delimiter + '"'
+                        close_start = content.find(close_marker, open_paren + 1)
+                        end = len(chars) if close_start == -1 else close_start + len(close_marker)
+                        for position in range(index, end):
+                            if chars[position] != "\n":
+                                chars[position] = " "
+                        index = end
+                        continue
             if state == "code" and current == "/" and following == "/":
                 chars[index] = chars[index + 1] = " "
                 state = "line"
@@ -320,11 +365,13 @@ class ExceptionSafetyEngine(BaseEngine):
             if destructor_re.search(line):
                 active.append(depth)
                 pending = False
-            elif declaration_re.search(line.strip()):
-                pending = True
+            elif pending and ";" in line:
+                pending = False
             elif pending and "{" in line:
                 active.append(depth)
                 pending = False
+            elif declaration_re.search(line.strip()):
+                pending = True
             if active and re.search(r"\bthrow\b", line):
                 found.append(line_no)
             depth += line.count("{") - line.count("}")

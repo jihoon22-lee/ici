@@ -166,9 +166,7 @@ def test_dead_engine_warning_uses_warning_status_not_failure(tmp_path):
         ("from pkg import a", "a._foo()"),
     ],
 )
-def test_dead_engine_resolves_nested_module_attribute_references(
-    tmp_path, import_stmt, call
-):
+def test_dead_engine_resolves_nested_module_attribute_references(tmp_path, import_stmt, call):
     src = tmp_path / "src"
     package = src / "pkg"
     package.mkdir(parents=True)

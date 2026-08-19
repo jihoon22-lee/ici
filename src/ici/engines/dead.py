@@ -199,12 +199,20 @@ class DeadCodeEngine(BaseEngine):
         }
 
     @staticmethod
-    def _qualified_refs(tree: ast.AST, module_name: str) -> set[tuple[str, str]]:
+    def _qualified_refs(tree: ast.AST, module_name: str) -> set[str]:
         del module_name
-        refs: set[tuple[str, str]] = set()
+        refs: set[str] = set()
         for node in ast.walk(tree):
-            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
-                refs.add((node.value.id, node.attr))
+            if not isinstance(node, ast.Attribute):
+                continue
+            parts: list[str] = []
+            current: ast.AST = node
+            while isinstance(current, ast.Attribute):
+                parts.append(current.attr)
+                current = current.value
+            if isinstance(current, ast.Name):
+                parts.append(current.id)
+                refs.add(".".join(reversed(parts)))
         return refs
 
     @staticmethod
@@ -271,11 +279,24 @@ class DeadCodeEngine(BaseEngine):
             if alias not in module["refs"]:
                 continue
             if imported_name:
-                resolved.add((imported_module, imported_name))
+                target_module = f"{imported_module}.{imported_name}"
+                if target_module not in module_paths:
+                    target_module = imported_module
+                for reference in module["qualified_refs"]:
+                    parts = reference.split(".")
+                    if parts[0] == alias and len(parts) > 1:
+                        resolved.add((target_module, parts[1]))
+                if not any(
+                    reference.split(".", 1)[0] == alias for reference in module["qualified_refs"]
+                ):
+                    resolved.add((target_module, imported_name))
                 continue
-            for alias_name, attribute in module["qualified_refs"]:
-                if alias_name == alias:
-                    resolved.add((imported_module, attribute))
+            imported_parts = imported_module.split(".")
+            prefix = [alias, *imported_parts[1:]] if imported_parts[0] == alias else [alias]
+            for reference in module["qualified_refs"]:
+                parts = reference.split(".")
+                if parts[: len(prefix)] == prefix and len(parts) > len(prefix):
+                    resolved.add((imported_module, parts[len(prefix)]))
             for module_name in module_paths:
                 if module_name == imported_module or module_name.startswith(imported_module + "."):
                     resolved.add((module_name, ""))

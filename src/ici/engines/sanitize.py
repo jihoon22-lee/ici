@@ -17,6 +17,7 @@ from ici.core.models import (
     ToolEvidence,
 )
 from ici.core.project import (
+    _iter_project_files,
     detect_project_type,
     get_all_cpp_includes,
     get_all_cpp_sources,
@@ -29,7 +30,7 @@ _PYTEST_RESULT_RE = re.compile(
     r"\b(?P<count>\d+)\s+(?:passed|failed|skipped|xfailed|xpassed|deselected)\b",
     re.IGNORECASE,
 )
-_RESOURCE_WARNING_RE = re.compile(r"(?P<file>[^\s:]+\.py):(?P<line>[1-9]\d*):.*ResourceWarning")
+_RESOURCE_WARNING_RE = re.compile(r"(?P<file>.*?\.py):(?P<line>[1-9]\d*):[^\n]*ResourceWarning")
 
 
 class SanitizeEngine(BaseEngine):
@@ -125,7 +126,7 @@ class SanitizeEngine(BaseEngine):
         tests_root = self.project_root / "tests"
         if not tests_root.is_dir():
             return []
-        return sorted(tests_root.rglob("*.cpp"))
+        return sorted(_iter_project_files(tests_root, self.project_root, (".cpp",)))
 
     @staticmethod
     def _has_python_tests(tests_root: Path) -> bool:
@@ -218,7 +219,7 @@ class SanitizeEngine(BaseEngine):
                     )
                     continue
                 run_evidence = self._record_process("sanitizer execution", run_command, run_result)
-                if self._process_incomplete(run_result):
+                if self._process_incomplete(run_result, allow_signal=True):
                     message = self._incomplete_message("Sanitizer execution", run_result)
                     run_evidence.error = message
                     self._tool_errors.append(message)
@@ -414,9 +415,12 @@ class SanitizeEngine(BaseEngine):
 
     def _resource_warning_targets(self, output: str, targets: list[InspectionTarget]) -> bool:
         found = False
-        for match in _RESOURCE_WARNING_RE.finditer(output):
+        for line in output.splitlines():
+            match = _RESOURCE_WARNING_RE.search(line)
+            if match is None:
+                continue
             found = True
-            path = self._normalize_output_path(match.group("file"))
+            path = self._normalize_output_path(match.group("file").strip())
             targets.append(
                 InspectionTarget(
                     file_path=path,
@@ -454,12 +458,12 @@ class SanitizeEngine(BaseEngine):
         )
 
     @staticmethod
-    def _process_incomplete(result: ProcessResult) -> bool:
+    def _process_incomplete(result: ProcessResult, *, allow_signal: bool = False) -> bool:
         return bool(
             result.timed_out
             or result.truncated
             or not isinstance(result.returncode, int)
-            or result.returncode < 0
+            or (result.returncode < 0 and not allow_signal)
         )
 
     def _record_process(self, name: str, command: list[str], result: ProcessResult) -> ToolEvidence:
