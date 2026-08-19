@@ -517,7 +517,7 @@ def test_coverage_run_uses_source_dirs_flag(tmp_path: Path, monkeypatch):
     engine = TestEngine(tmp_path)
     monkeypatch.setattr(engine, "_find_coverage_cmd", lambda pc: ["cov"])
     monkeypatch.setattr(engine, "_parse_pytest_stdout", lambda out, targets: (2, 2, False))
-    monkeypatch.setattr(engine, "_parse_coverage_json", lambda p: None)
+    monkeypatch.setattr(engine, "_parse_coverage_json", lambda p, *_args: None)
     captured: list[list[str]] = []
     monkeypatch.setattr(
         "ici.engines.test.run_process",

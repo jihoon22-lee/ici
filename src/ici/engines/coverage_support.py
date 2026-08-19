@@ -139,7 +139,20 @@ def _build_coverage_result(file_data: dict[str, dict], totals: dict[str, int]) -
     }
 
 
-def parse_coverage_json(json_path: Path, project_root: Path) -> dict | None:
+def _coverage_paths_match(
+    file_data: dict[str, dict], expected_files: set[str] | None, project_root: Path
+) -> bool:
+    if expected_files is None:
+        return True
+    expected = {_relative_coverage_path(path, project_root) for path in expected_files}
+    return set(file_data) == expected
+
+
+def parse_coverage_json(
+    json_path: Path,
+    project_root: Path,
+    expected_files: set[str] | None = None,
+) -> dict | None:
     """Parse coverage.py JSON into strict per-file line and branch data."""
 
     data = _load_coverage_json(json_path)
@@ -148,6 +161,8 @@ def parse_coverage_json(json_path: Path, project_root: Path) -> dict | None:
     totals = _parse_coverage_counts(data.get("totals"))
     file_data = _parse_coverage_files(data.get("files"), project_root)
     if totals is None or file_data is None:
+        return None
+    if not _coverage_paths_match(file_data, expected_files, project_root):
         return None
     if totals["num_statements"] == 0 or _sum_coverage_counts(file_data) != totals:
         return None

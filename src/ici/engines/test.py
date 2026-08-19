@@ -429,7 +429,11 @@ class TestEngine(BaseEngine):
                 f"Coverage JSON generation failed with exit code {result.returncode}"
             )
         else:
-            self._coverage_data = self._parse_coverage_json(json_path)
+            expected_files = {
+                str(path.relative_to(self.project_root))
+                for path in get_all_python_sources(self.project_root, self.config)
+            }
+            self._coverage_data = self._parse_coverage_json(json_path, expected_files)
             if self._coverage_data is None:
                 self._coverage_errors.append("Python coverage JSON was missing or malformed")
             else:
@@ -659,8 +663,10 @@ class TestEngine(BaseEngine):
             has_failure = failed > 0
         return passed, total, has_failure
 
-    def _parse_coverage_json(self, json_path) -> dict | None:
-        return parse_coverage_json(json_path, self.project_root)
+    def _parse_coverage_json(
+        self, json_path: Path, expected_files: set[str] | None = None
+    ) -> dict | None:
+        return parse_coverage_json(json_path, self.project_root, expected_files)
 
     def _run_cpp_tests(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
         gxx = shutil.which("g++")
