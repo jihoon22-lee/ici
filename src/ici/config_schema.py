@@ -32,7 +32,7 @@ _ENGINE_KEYS = {
             "exclude_dirs",
         }
     ),
-    "lint": frozenset({"enabled", "mode"}),
+    "lint": frozenset({"enabled", "mode", "ruff_required"}),
     "test": frozenset(
         {
             "enabled",
@@ -44,7 +44,9 @@ _ENGINE_KEYS = {
             "python",
         }
     ),
-    "type": frozenset({"enabled", "mode", "fail_on_error", "warn_on_missing_annotation"}),
+    "type": frozenset(
+        {"enabled", "mode", "fail_on_error", "warn_on_missing_annotation", "mypy_required"}
+    ),
     "complexity": frozenset({"enabled", "mode", "warn_cc", "fail_cc", "warn_nesting"}),
     "sanitize": frozenset({"enabled", "mode"}),
     "dead": frozenset({"enabled", "mode"}),
@@ -183,9 +185,15 @@ def _validate_test(table: dict[str, Any], path: str) -> None:
 
 def _validate_type(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
-    for key in ("fail_on_error", "warn_on_missing_annotation"):
+    for key in ("fail_on_error", "warn_on_missing_annotation", "mypy_required"):
         if key in table:
             _require_bool(table[key], f"{path}.{key}")
+
+
+def _validate_lint(table: dict[str, Any], path: str) -> None:
+    _validate_common_engine(table, path)
+    if "ruff_required" in table:
+        _require_bool(table["ruff_required"], f"{path}.ruff_required")
 
 
 def _validate_complexity(table: dict[str, Any], path: str) -> None:
@@ -223,6 +231,8 @@ def _validate_engine(name: str, table: Any) -> None:
         _validate_test(table, path)
     elif name == "type":
         _validate_type(table, path)
+    elif name == "lint":
+        _validate_lint(table, path)
     elif name == "complexity":
         _validate_complexity(table, path)
     elif name == "dup":

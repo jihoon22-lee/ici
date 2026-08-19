@@ -28,6 +28,9 @@ class ToolEvidence:
     version: str = ""
     argv: list[str] = field(default_factory=list)
     returncode: int | None = None
+    timed_out: bool = False
+    truncated: bool = False
+    error: str = ""
 
 
 @dataclass

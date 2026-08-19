@@ -1,4 +1,4 @@
-"""4. Static Type Checking Engine (Mypy & Strict C++ Flags)."""
+"""4. Static Type Checking Engine (Mypy with explicit C++ scope)."""
 
 import ast
 import re
@@ -16,16 +16,19 @@ from ici.core.models import (
 )
 from ici.core.project import (
     detect_project_type,
+    get_all_cpp_sources,
     get_all_python_sources,
     get_source_dirs,
 )
-from ici.core.runner import run_process
+from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 
-_MYPY_SUCCESS_RE = re.compile(
-    r"Success: no issues found in (?:0|1) source file(?:\r?\n)?\Z"
-    r"|Success: no issues found in (?:[2-9]|[1-9]\d+) source files(?:\r?\n)?\Z"
+_MYPY_SUCCESS_RE = re.compile(r"Success: no issues found in (?P<count>\d+) source files?\r?\n?\Z")
+_MYPY_DIAGNOSTIC_RE = re.compile(
+    r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
+    r"(?P<kind>error|note):\s*(?P<message>\S.*)$"
 )
+_MYPY_SUMMARY_RE = re.compile(r"Found \d+ errors? in \d+ files? \(checked \d+ source files?\)")
 
 
 class TypeCheckEngine(BaseEngine):
@@ -36,14 +39,20 @@ class TypeCheckEngine(BaseEngine):
         proj_type = detect_project_type(self.project_root)
         targets: list[InspectionTarget] = []
         tool_errors: list[str] = []
+        tool_warnings: list[str] = []
         tool_evidence: list[ToolEvidence] = []
 
         if proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py")):
-            self._check_python_types(targets, tool_errors, tool_evidence)
+            self._check_python_types(targets, tool_errors, tool_warnings, tool_evidence)
+
+        cpp_files = get_all_cpp_sources(self.project_root, self.config)
+        if cpp_files:
+            self._mark_cpp_type_check_skipped(targets, tool_warnings, len(cpp_files))
 
         duration = time.time() - t0
         fail_count = sum(1 for t in targets if t.status == EngineStatus.FAIL)
         warn_count = sum(1 for t in targets if t.status == EngineStatus.WARN)
+        warn_count += len(tool_warnings)
 
         cfg = self.get_config("type")
         mode = cfg.get("mode", "pass_warn")
@@ -58,6 +67,8 @@ class TypeCheckEngine(BaseEngine):
             if tool_errors
             else "Static Type Check Passed"
             if overall_status == EngineStatus.PASS
+            else "; ".join(tool_warnings[:2])
+            if tool_warnings and not fail_count
             else f"{fail_count} Type Errors, {warn_count} Missing Annotations"
         )
 
@@ -69,7 +80,13 @@ class TypeCheckEngine(BaseEngine):
             targets=targets,
             extra={"type_issues": len(targets), "metrics_summary": f"{len(targets)} type targets"},
             required=bool(cfg.get("required", True)),
-            evidence=EvidenceState.NOT_RUN if tool_errors else EvidenceState.MEASURED,
+            evidence=(
+                EvidenceState.NOT_RUN
+                if tool_errors
+                else EvidenceState.ESTIMATED
+                if tool_warnings
+                else EvidenceState.MEASURED
+            ),
             tool_evidence=tool_evidence,
         )
 
@@ -77,15 +94,27 @@ class TypeCheckEngine(BaseEngine):
         self,
         targets: list[InspectionTarget],
         tool_errors: list[str] | None = None,
+        tool_warnings: list[str] | None = None,
         tool_evidence: list[ToolEvidence] | None = None,
     ) -> bool:
         errors = tool_errors if tool_errors is not None else []
+        warnings = tool_warnings if tool_warnings is not None else []
         evidence = tool_evidence if tool_evidence is not None else []
         mypy_cmd = self._find_mypy_cmd()
         if mypy_cmd is not None and self._run_mypy(mypy_cmd, targets, errors, evidence):
             return True
-        if mypy_cmd is not None and errors:
-            return False
+        if mypy_cmd is None:
+            evidence.append(
+                ToolEvidence(
+                    name="mypy",
+                    path="",
+                    error="tool not found; no command was executed",
+                )
+            )
+            if self.get_config("type").get("mypy_required", False):
+                errors.append("Mypy is required but was not found")
+            else:
+                warnings.append("Mypy is unavailable; AST fallback is ESTIMATED")
         return self._check_python_annotations(targets)
 
     def _find_mypy_cmd(self) -> list[str] | None:
@@ -111,67 +140,159 @@ class TypeCheckEngine(BaseEngine):
             for d in get_source_dirs(self.project_root, self.config)
         ] or ["."]
         mypy_argv = [*mypy_cmd, "--ignore-missing-imports", *mypy_targets]
-        result = run_process(mypy_argv, cwd=self.project_root)
-        evidence.append(
-            ToolEvidence(
-                name="mypy",
-                path=mypy_argv[0],
-                argv=mypy_argv,
-                returncode=result.returncode,
-            )
-        )
+        try:
+            result = run_process(mypy_argv, cwd=self.project_root)
+        except Exception as exc:
+            self._record_tool_exception(evidence, mypy_argv, exc)
+            errors.append(f"Mypy could not execute: {type(exc).__name__}: {exc}")
+            return False
+        self._record_process(evidence, mypy_argv, result)
         if result.timed_out:
             errors.append("Mypy timed out")
             return False
         if result.truncated:
             errors.append("Mypy output was truncated")
             return False
-        if result.returncode != 0:
-            return self._parse_mypy_diagnostics(
-                result.stdout, result.stderr, result.returncode, targets, errors
-            )
-        if result.stderr:
+        if not isinstance(result.returncode, int) or result.returncode < 0:
+            errors.append("Mypy terminated before producing a result")
+            return False
+        if result.returncode >= 2:
+            self._parse_mypy_diagnostics(result.stdout, result.stderr, targets)
+            errors.append(f"Mypy tool failed with exit code {result.returncode}")
+            return False
+        if result.returncode == 1:
+            if not self._parse_mypy_diagnostics(result.stdout, result.stderr, targets):
+                errors.append("Mypy diagnostics were not parseable")
+            return False
+        if result.stderr.strip():
             errors.append("Mypy emitted unexpected stderr on success")
             return False
-        if _MYPY_SUCCESS_RE.fullmatch(result.stdout) is None:
+        if not self._is_valid_mypy_success(result.stdout):
             errors.append("Mypy success output was not parseable")
-        return False
+            return False
+        return True
 
     def _parse_mypy_diagnostics(
         self,
         stdout: str,
         stderr: str,
-        returncode: int,
         targets: list[InspectionTarget],
-        errors: list[str],
     ) -> bool:
         has_error = False
-        for line in (stdout + "\n" + stderr).splitlines():
-            if ": error:" not in line and ": note:" not in line:
+        malformed = False
+        for raw_line in (stdout + "\n" + stderr).splitlines():
+            line = raw_line.strip()
+            if not line:
                 continue
-            has_error = has_error or ": error:" in line
-            self._append_mypy_target(line, targets)
-        if not has_error:
-            errors.append(f"Mypy failed with non-parseable output (exit code {returncode})")
-        return has_error
+            match = _MYPY_DIAGNOSTIC_RE.fullmatch(line)
+            if match:
+                has_error = has_error or match.group("kind") == "error"
+                targets.append(
+                    InspectionTarget(
+                        file_path=self._diagnostic_path(match.group("file")),
+                        start_line=int(match.group("line")),
+                        target_name=("MypyError" if match.group("kind") == "error" else "MypyNote"),
+                        status=(
+                            EngineStatus.FAIL
+                            if match.group("kind") == "error"
+                            else EngineStatus.WARN
+                        ),
+                        message=match.group("message"),
+                    )
+                )
+                continue
+            if _MYPY_SUMMARY_RE.fullmatch(line):
+                continue
+            malformed = True
+        return has_error and not malformed
 
     def _append_mypy_target(self, line: str, targets: list[InspectionTarget]) -> None:
-        parts = line.split(":", 3)
-        if len(parts) < 4:
+        match = _MYPY_DIAGNOSTIC_RE.fullmatch(line.strip())
+        if not match:
             return
-        fpath, lnum, _, msg = parts
+        kind = match.group("kind")
         try:
-            rel_path = str(Path(fpath).relative_to(self.project_root))
-        except ValueError:
-            rel_path = fpath
+            rel_path = self._diagnostic_path(match.group("file"))
+        except (TypeError, ValueError):
+            rel_path = match.group("file")
         targets.append(
             InspectionTarget(
                 file_path=rel_path,
-                start_line=int(lnum) if lnum.isdigit() else 1,
-                target_name="MypyError",
-                status=EngineStatus.FAIL,
-                message=msg.strip(),
+                start_line=int(match.group("line")),
+                target_name="MypyError" if kind == "error" else "MypyNote",
+                status=EngineStatus.FAIL if kind == "error" else EngineStatus.WARN,
+                message=match.group("message"),
             )
+        )
+
+    @staticmethod
+    def _is_valid_mypy_success(output: str) -> bool:
+        match = _MYPY_SUCCESS_RE.fullmatch(output)
+        if not match:
+            return False
+        count = int(match.group("count"))
+        expected = "source file" if count == 1 else "source files"
+        normalized = output.rstrip("\r\n")
+        return normalized == f"Success: no issues found in {count} {expected}"
+
+    @staticmethod
+    def _record_process(
+        evidence: list[ToolEvidence], command: list[str], result: ProcessResult
+    ) -> None:
+        error = ""
+        if result.timed_out:
+            error = "timed out"
+        elif result.truncated:
+            error = "output truncated"
+        elif not isinstance(result.returncode, int) or result.returncode < 0:
+            error = "process failed to start or terminated by signal"
+        evidence.append(
+            ToolEvidence(
+                name="mypy",
+                path=command[0],
+                argv=command,
+                returncode=result.returncode,
+                timed_out=result.timed_out,
+                truncated=result.truncated,
+                error=error,
+            )
+        )
+
+    @staticmethod
+    def _record_tool_exception(
+        evidence: list[ToolEvidence], command: list[str], exc: Exception
+    ) -> None:
+        evidence.append(
+            ToolEvidence(
+                name="mypy",
+                path=command[0],
+                argv=command,
+                error=f"{type(exc).__name__}: {exc}",
+            )
+        )
+
+    def _diagnostic_path(self, value: str) -> str:
+        path = Path(value.strip())
+        try:
+            return str(path.relative_to(self.project_root))
+        except ValueError:
+            return str(path)
+
+    def _mark_cpp_type_check_skipped(
+        self, targets: list[InspectionTarget], warnings: list[str], count: int
+    ) -> None:
+        for source in get_all_cpp_sources(self.project_root, self.config):
+            targets.append(
+                InspectionTarget(
+                    file_path=str(source.relative_to(self.project_root)),
+                    start_line=1,
+                    target_name="C++TypeCheck",
+                    status=EngineStatus.SKIP,
+                    message="C++ type checking is not implemented; source was not type-checked",
+                )
+            )
+        warnings.append(
+            f"C++ type checking is skipped for {count} source file(s); evidence is ESTIMATED"
         )
 
     def _check_python_annotations(self, targets: list[InspectionTarget]) -> bool:
