@@ -602,12 +602,6 @@ try:
     work()
 except builtins.BaseException:
     log()
-BaseException = ValueError
-builtins = object()
-try:
-    work()
-except BaseException:
-    log()
 
 class Handler:
     import builtins
@@ -625,6 +619,12 @@ class Handler:
         work()
     except builtins.BaseException:
         log()
+BaseException = ValueError
+builtins = object()
+try:
+    work()
+except BaseException:
+    log()
 """,
         encoding="utf-8",
     )
@@ -635,7 +635,7 @@ class Handler:
     assert [(target.start_line, target.status) for target in targets] == [
         (5, EngineStatus.FAIL),
         (9, EngineStatus.FAIL),
-        (22, EngineStatus.FAIL),
+        (16, EngineStatus.FAIL),
     ]
 
 

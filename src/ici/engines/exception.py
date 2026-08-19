@@ -46,6 +46,9 @@ class _ScopeAliasCollector(ast.NodeVisitor):
         self.scope = scope
         self.events: list[tuple[tuple[int, int, int], str, str]] = []
         self._sequence = 0
+        self._is_function_scope = isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef))
+        self._global_names: set[str] = set()
+        self._nonlocal_names: set[str] = set()
 
     def _record(self, name: str, kind: str, node: ast.AST) -> None:
         position = (
@@ -90,6 +93,12 @@ class _ScopeAliasCollector(ast.NodeVisitor):
     def visit_arg(self, node: ast.arg) -> None:
         del node
 
+    def visit_Global(self, node: ast.Global) -> None:
+        self._global_names.update(node.names)
+
+    def visit_Nonlocal(self, node: ast.Nonlocal) -> None:
+        self._nonlocal_names.update(node.names)
+
     def visit_Name(self, node: ast.Name) -> None:
         if isinstance(node.ctx, (ast.Store, ast.Del)):
             self._record(node.id, "shadow", node)
@@ -115,7 +124,11 @@ class _ScopeAliasCollector(ast.NodeVisitor):
             self._record(node.name, "shadow", node)
         self.generic_visit(node)
 
-    def resolve(self, handler: ast.ExceptHandler | None) -> ScopeAliases:
+    def resolve(
+        self,
+        handler: ast.ExceptHandler | None,
+        cutoff: tuple[int, int] | None = None,
+    ) -> ScopeAliases:
         """Return effective bindings and all lexical names bound in this scope.
 
         A handler cutoff models the current scope's execution point; ``None``
@@ -123,9 +136,10 @@ class _ScopeAliasCollector(ast.NodeVisitor):
         path-insensitive: lexical binding events are applied in source order,
         with the last event before the cutoff winning.
         """
-        cutoff = self._handler_position(handler)
+        if cutoff is None:
+            cutoff = self._handler_position(handler)
         bindings: dict[str, str] = {}
-        bound_names = {name for _, name, _ in self.events}
+        bound_names = self._bound_names(handler, cutoff)
         for position, name, kind in sorted(self.events):
             if cutoff is None or position[:2] < cutoff:
                 bindings[name] = kind
@@ -135,6 +149,26 @@ class _ScopeAliasCollector(ast.NodeVisitor):
             {name for name, kind in bindings.items() if kind == "shadow"},
             bound_names,
         )
+
+    def _bound_names(
+        self,
+        handler: ast.ExceptHandler | None,
+        cutoff: tuple[int, int] | None,
+    ) -> set[str]:
+        if handler is None or not self._is_function_scope:
+            return set()
+        handler_name = handler.name
+        return {
+            name
+            for position, name, _ in self.events
+            if name not in self._global_names
+            and name not in self._nonlocal_names
+            and not (
+                handler_name is not None
+                and position[:2] == cutoff
+                and name == handler_name
+            )
+        }
 
     @staticmethod
     def _handler_position(handler: ast.ExceptHandler | None) -> tuple[int, int] | None:
@@ -365,14 +399,28 @@ class ExceptionSafetyEngine(BaseEngine):
         aliases: list[ScopeAliases] = []
         for scope_index, scope in enumerate(active_scopes):
             is_current_scope = scope_index == len(active_scopes) - 1
-            aliases.append(cls._scope_aliases(scope, node if is_current_scope else None))
+            if is_current_scope:
+                aliases.append(cls._scope_aliases(scope, node))
+                continue
+            child_scope = active_scopes[scope_index + 1]
+            aliases.append(cls._scope_aliases(scope, None, cls._child_scope_cutoff(child_scope)))
         return aliases
 
     @staticmethod
-    def _scope_aliases(scope: ast.AST, handler: ast.ExceptHandler | None) -> ScopeAliases:
+    def _child_scope_cutoff(scope: ast.AST) -> tuple[int, int] | None:
+        if isinstance(scope, ast.ClassDef):
+            return scope.lineno, scope.col_offset
+        return None
+
+    @staticmethod
+    def _scope_aliases(
+        scope: ast.AST,
+        handler: ast.ExceptHandler | None,
+        cutoff: tuple[int, int] | None = None,
+    ) -> ScopeAliases:
         collector = _ScopeAliasCollector(scope)
         collector.visit(scope)
-        return collector.resolve(handler)
+        return collector.resolve(handler, cutoff)
 
     @staticmethod
     def _is_base_exception_type(
