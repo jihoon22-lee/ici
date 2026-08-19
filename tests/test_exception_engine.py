@@ -454,6 +454,95 @@ def later():
     ]
 
 
+def test_exception_engine_resolves_module_aliases_at_function_execution_time(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "module_runtime.py").write_text(
+        """def handle():
+    try:
+        work()
+    except BE:
+        log()
+    try:
+        work()
+    except b.BaseException:
+        log()
+
+from builtins import BaseException as BE
+import builtins as b
+handle()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (4, EngineStatus.FAIL),
+        (8, EngineStatus.FAIL),
+    ]
+
+
+def test_exception_engine_resolves_outer_aliases_after_nested_definition(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "nested_runtime.py").write_text(
+        """def outer():
+    def inner():
+        try:
+            work()
+        except BE:
+            log()
+        try:
+            work()
+        except b.BaseException:
+            log()
+    from builtins import BaseException as BE
+    import builtins as b
+    inner()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (5, EngineStatus.FAIL),
+        (9, EngineStatus.FAIL),
+    ]
+
+
+def test_exception_engine_local_bindings_after_handler_shadow_outer_aliases(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "local_runtime.py").write_text(
+        """from builtins import BaseException as BE
+import builtins as b
+
+def local_import():
+    try:
+        work()
+    except BE:
+        log()
+    from builtins import BaseException as BE
+
+def local_assignment():
+    try:
+        work()
+    except b.BaseException:
+        log()
+    b = object()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(target.target_name == "BaseException" for target in result.targets)
+
+
 def test_exception_engine_cancels_pending_destructor_at_declaration_semicolon(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
