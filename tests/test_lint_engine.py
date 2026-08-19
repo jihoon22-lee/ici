@@ -244,6 +244,26 @@ def test_cpp_located_note_is_a_non_failure_diagnostic(tmp_cpp_project, monkeypat
     assert note.start_line == 12
 
 
+def test_cpp_unrecognized_context_line_is_not_accepted(tmp_cpp_project, monkeypatch):
+    monkeypatch.setattr(
+        "ici.engines.lint.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    diagnostic = (
+        "src/main.cpp:12:7: warning: unused value\n"
+        "src/main.cpp: In arbitrary context:\n"
+    )
+    monkeypatch.setattr(
+        "ici.engines.lint.run_process",
+        lambda *args, **kwargs: ProcessResult(0, "", diagnostic, 0.01),
+    )
+
+    result = LintEngine(tmp_cpp_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
 def test_cpp_signal_failure_is_tool_error(tmp_cpp_project, monkeypatch):
     monkeypatch.setattr(
         "ici.engines.lint.shutil.which",
