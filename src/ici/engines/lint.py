@@ -31,6 +31,7 @@ _CPP_DIAGNOSTIC_RE = re.compile(
     r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
     r"(?P<kind>fatal error|error|warning):\s*(?P<message>\S.*)$"
 )
+_CPP_CONTEXT_RE = re.compile(r"^\s*(?:\d+\s*\|.*|\|.*|[\^~].*)$")
 
 
 class LintEngine(BaseEngine):
@@ -410,8 +411,16 @@ class LintEngine(BaseEngine):
                 continue
             if line.startswith("In file included from") or line.startswith("from "):
                 continue
+            if found_diagnostic and self._is_cpp_context(line):
+                continue
+            if re.match(r"^.+:\s+In .+:$", line):
+                continue
             malformed = True
         return parsed, malformed, found_diagnostic
+
+    @staticmethod
+    def _is_cpp_context(line: str) -> bool:
+        return _CPP_CONTEXT_RE.fullmatch(line) is not None
 
     def _diagnostic_path(self, value: str) -> str:
         path = Path(value.strip())
