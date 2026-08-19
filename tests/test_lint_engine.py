@@ -74,3 +74,18 @@ def test_ruff_success_without_json_is_error(tmp_python_project, monkeypatch):
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_ruff_clean_format_summary_is_success(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        return ProcessResult(0, "2 files already formatted\n", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.PASS

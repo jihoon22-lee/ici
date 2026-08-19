@@ -2,6 +2,7 @@
 
 import ast
 import json
+import re
 import shutil
 import time
 from pathlib import Path
@@ -22,6 +23,8 @@ from ici.core.project import (
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
+
+_RUFF_FORMAT_SUCCESS_RE = re.compile(r"\d+ files? already formatted(?:\r?\n)?\Z")
 
 
 class LintEngine(BaseEngine):
@@ -171,7 +174,10 @@ class LintEngine(BaseEngine):
                 errors.append(f"Ruff format check failed with exit code {f_code}")
             elif f_code == 1 and not (f_out or f_err):
                 errors.append("Ruff format check failed without diagnostic output")
-            elif f_code == 0 and (f_out.strip() or f_err.strip()):
+            elif f_code == 0 and (
+                f_err.strip()
+                or (f_out.strip() and _RUFF_FORMAT_SUCCESS_RE.fullmatch(f_out) is None)
+            ):
                 errors.append("Ruff format output was not parseable")
             elif f_code != 0:
                 found_reformat = False
