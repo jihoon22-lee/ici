@@ -31,6 +31,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "lint": {
             "enabled": True,
             "mode": "pass_warn_fail",
+            "ruff_required": False,
         },
         "test": {
             "enabled": True,
@@ -45,6 +46,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "mode": "pass_warn",
             "fail_on_error": True,
             "warn_on_missing_annotation": False,  # Missing annotations do not warn by default
+            "mypy_required": False,
         },
         "complexity": {
             "enabled": True,

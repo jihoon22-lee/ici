@@ -81,9 +81,9 @@ ici/
 │       │   ├── base.py              # BaseEngine 인터페이스 & evaluate_status()
 │       │   ├── verify.py            # VerifyOrchestrator (검증 오케스트레이터)
 │       │   ├── line.py              # 코드/주석/공백 분석 및 트리 구조 생성
-│       │   ├── lint.py              # ruff/g++/clang-format 린터
+│       │   ├── lint.py              # Ruff 및 g++ 문법 린터
 │       │   ├── test.py              # 테스트 실행 & TEM 스코어링 (coverage.py/gcov 실측)
-│       │   ├── type_check.py        # mypy & C++ 타입 안정성 검사
+│       │   ├── type_check.py        # mypy/AST 타입 검사 (C++은 명시적 SKIP)
 │       │   ├── complexity.py        # Cyclomatic & Nesting 복잡도 분석기
 │       │   ├── sanitize.py          # ASan/UBSan & Python 누수 검증
 │       │   ├── dead.py              # 미사용 심볼 & 데드코드 탐지기

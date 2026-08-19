@@ -104,7 +104,7 @@ dist/ici.pyz verify --report --html verify_report.html --github-summary --publis
 | `ici line` | 순수 코드/주석/공백 라인 수 및 500/1000줄 규칙 검사 | [Line 엔진 상세](engine-reference.md#21--line-코드-라인-및-파일-크기-분석기) |
 | `ici lint` | 문법 린팅 및 코드 스타일 정렬 검사 | [Lint 엔진 상세](engine-reference.md#22--lint-문법-및-코드-스타일-린터) |
 | `ici test` | 단위 테스트 실행 및 Branch/Function 커버리지, TEM 5.0 스코어링 | [Test 엔진 상세](engine-reference.md#23--test--tem-스코어링-단위-테스트-및-테스트-효과성-지표) |
-| `ici type` | Mypy 정적 타입 및 C++ strict 플래그 검사 | [Type 엔진 상세](engine-reference.md#24-️-type-정적-타입-안정성-검사기) |
+| `ici type` | Mypy 정적 타입 및 AST 부분 폴백 (C++ 타입 검증은 명시적 SKIP) | [Type 엔진 상세](engine-reference.md#24-️-type-정적-타입-안정성-검사기) |
 | `ici complexity` | 함수별 Cyclomatic 복잡도 및 블록 중첩 깊이 분석 | [Complexity 엔진 상세](engine-reference.md#25--complexity-순환-복잡도-및-블록-중첩도) |
 | `ici sanitize` | C++ ASan/UBSan 메모리 안전성 및 Python 리소스 누수 검증 | [Sanitize 엔진 상세](engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |
 | `ici dead` | 도달 불능 코드 및 미사용 심볼 검출 | [Dead 엔진 상세](engine-reference.md#27--dead-죽은-코드-및-미사용-심볼) |

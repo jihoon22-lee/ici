@@ -32,9 +32,9 @@ $ ici doctor
    - 시스템 기본 `python3`가 3.6/3.8인 구버전 환경에서도 `ICI_PYTHON` 또는 3.10+ 설치 경로를 스스로 찾아 실행.
 3. **9대 핵심 품질 검증 엔진**:
    - `line`: 파일당 순수 코드 500줄 초과 경고, 1000줄 초과 실패 + **계층형 디렉토리 트리 뷰** (게이트 디렉토리/포함·제외 설정 가능)
-   - `lint`: 문법 검사 + 코드 스타일/포맷팅 정렬 검증 (`ruff`, `g++`, `clang-format`)
+   - `lint`: Python Ruff 및 C/C++ g++ 문법 진단 (도구 미설치·부분 폴백 증거 포함)
     - `test` & `tem`: 단위 테스트 전수 통과 + Branch/Function 커버리지 기반 **TEM 5.0 스코어링** (모듈별 실측 커버리지: Python `coverage.py` / C++ `gcov`)
-   - `type`: Mypy 및 C++ strict 타입 안전성 검사 (0-Noise 요약 지원)
+   - `type`: Mypy 정적 타입 검사 및 AST 부분 폴백 (C++ 타입 검증은 명시적 SKIP)
    - `complexity`: 함수별 순환 복잡도(Cyclomatic) 및 중첩 깊이 분석 + **원본 소스 코드 블록 프리뷰**
    - `sanitize`: C++ AddressSanitizer/UBSan 메모리 안전성 및 Python 리소스 누수 검증
    - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출
