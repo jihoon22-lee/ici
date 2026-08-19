@@ -951,6 +951,21 @@ def test_pytest_commands_do_not_force_project_local_temp(tmp_path: Path):
     assert "-s" not in pytest_command
 
 
+def test_wsl_python_test_env_uses_system_temp_for_pytest_capture(tmp_path: Path, monkeypatch):
+    engine = TestEngine(tmp_path)
+    monkeypatch.setenv("WSL_DISTRO_NAME", "Ubuntu")
+    monkeypatch.setenv("TMPDIR", "/mnt/c/Users/USER/AppData/Local/Temp")
+    monkeypatch.setenv("TMP", "/mnt/c/Users/USER/AppData/Local/Temp")
+    monkeypatch.setenv("TEMP", "/mnt/c/Users/USER/AppData/Local/Temp")
+
+    env = engine._build_python_test_env()
+
+    assert env["TMPDIR"] == "/tmp"
+    assert env["TMP"] == "/tmp"
+    assert env["TEMP"] == "/tmp"
+    assert str(tmp_path) not in env["TMPDIR"]
+
+
 def test_hybrid_sources_without_tests_are_zero_test_failures(tmp_path: Path):
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
