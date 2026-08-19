@@ -234,6 +234,8 @@ def parse_gcov_dir(cov_dir: Path, source_files: set[str], project_root: Path) ->
                     covered += 1
 
         statements = covered + miss
+        if statements == 0:
+            continue
         rows.append(
             {
                 "file": relative,
