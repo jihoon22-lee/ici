@@ -1213,6 +1213,10 @@ def test_required_coverage_exit_five_stays_zero_test_failure(tmp_path: Path, mon
 
     result = engine.run()
 
-    assert result.status == EngineStatus.FAIL
+    assert result.status == EngineStatus.ERROR
     assert result.extra["total_tests"] == 0
     assert len(commands) == 1
+    assert any(
+        target.target_name == "[Python] Tests" and target.status == EngineStatus.FAIL
+        for target in result.targets
+    )
