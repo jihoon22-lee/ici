@@ -230,3 +230,64 @@ def test_windows_job_startup_failure_terminates_and_closes(monkeypatch):
     assert calls == ["create", "set_limits", "assign", "terminate", "close"]
     assert process.killed is True
     assert process.waited is True
+
+
+def test_windows_job_discovers_closed_popen_thread_handle(monkeypatch):
+    calls = []
+
+    class FakeKernel32:
+        def CreateJobObjectW(self, security, name):
+            calls.append("create")
+            return 101
+
+        def SetInformationJobObject(self, job, info_class, info, info_size):
+            calls.append("set_limits")
+            return 1
+
+        def CreateToolhelp32Snapshot(self, flags, process_id):
+            calls.append("snapshot")
+            return 404
+
+        def Thread32First(self, snapshot, entry):
+            calls.append("first_thread")
+            entry._obj.th32ThreadID = 303
+            entry._obj.th32OwnerProcessID = 77
+            return 1
+
+        def OpenThread(self, access, inherit, thread_id):
+            calls.append("open_thread")
+            return 303
+
+        def AssignProcessToJobObject(self, job, process):
+            calls.append("assign")
+            return 1
+
+        def ResumeThread(self, thread):
+            calls.append("resume")
+            return 1
+
+        def CloseHandle(self, handle):
+            calls.append(f"close:{handle}")
+            return 1
+
+    class FakeProcess:
+        pid = 77
+        _handle = 202
+
+    process = FakeProcess()
+    monkeypatch.setattr(runner, "_get_windows_kernel32", lambda: FakeKernel32(), raising=False)
+
+    runner._start_windows_job(process)
+
+    assert calls == [
+        "create",
+        "set_limits",
+        "snapshot",
+        "first_thread",
+        "open_thread",
+        "close:404",
+        "assign",
+        "resume",
+        "close:303",
+    ]
+    assert process._ici_job_handle == 101

@@ -183,6 +183,11 @@ def _thread_handle(proc):
     return thread_handle
 
 
+def _invalid_windows_handle(handle) -> bool:
+    value = handle.value if isinstance(handle, ctypes.c_void_p) else handle
+    return value in (None, 0, ctypes.c_void_p(-1).value)
+
+
 def _open_suspended_process_thread(proc, kernel32):
     """Open the only runnable thread while a CREATE_SUSPENDED process is stopped.
 
@@ -197,7 +202,7 @@ def _open_suspended_process_thread(proc, kernel32):
         return existing, False
 
     snapshot = kernel32.CreateToolhelp32Snapshot(_TH32CS_SNAPTHREAD, 0)
-    if snapshot in (None, 0, ctypes.c_void_p(-1).value):
+    if _invalid_windows_handle(snapshot):
         raise OSError("CreateToolhelp32Snapshot failed")
     thread = None
     try:
@@ -301,8 +306,9 @@ def _wait_process(proc, deadline: float | None = None) -> None:
     except TypeError:
         # Small fakes used by the platform orchestration tests expose wait()
         # without subprocess' optional timeout parameter.
-        with suppress(OSError):
-            proc.wait()
+        if remaining is None:
+            with suppress(OSError):
+                proc.wait()
     except (OSError, subprocess.TimeoutExpired):
         return
 
