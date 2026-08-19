@@ -64,7 +64,9 @@ class DeadCodeEngine(BaseEngine):
             evidence = EvidenceState.ESTIMATED
             summary = "Dead-code analysis skipped: no Python source files"
         else:
-            status = self.evaluate_status(issue_count > 0, False, cfg.get("mode", "pass_warn"))
+            has_fail = any(target.status == EngineStatus.FAIL for target in targets)
+            has_warn = any(target.status == EngineStatus.WARN for target in targets)
+            status = self.evaluate_status(has_fail, has_warn, cfg.get("mode", "pass_warn"))
             evidence = EvidenceState.MEASURED
             summary = (
                 "No Dead Code Detected"
@@ -127,26 +129,39 @@ class DeadCodeEngine(BaseEngine):
 
         if self._analysis_errors:
             return targets
+        referenced_keys: set[tuple[str, str]] = set()
         for module in modules:
-            self._append_module_targets(module, module_paths, targets)
+            referenced_keys.update(self._resolve_imported_refs(module, module_paths))
+        for module in modules:
+            before = len(targets)
+            self._append_module_targets(module, referenced_keys, targets)
             self._append_unreachable_targets(
                 module["tree"], str(module["path"].relative_to(self.project_root)), targets
             )
+            if len(targets) == before:
+                targets.append(
+                    InspectionTarget(
+                        file_path=str(module["path"].relative_to(self.project_root)),
+                        start_line=1,
+                        target_name="DeadCode",
+                        status=EngineStatus.PASS,
+                        message="Python source was parsed and no dead-code findings were identified",
+                    )
+                )
         return targets
 
     def _append_module_targets(
         self,
         module: dict,
-        module_paths: dict[str, Path],
+        referenced_keys: set[tuple[str, str]],
         targets: list[InspectionTarget],
     ) -> None:
         local_refs: set[str] = module["refs"]
-        imported_refs = self._resolve_imported_refs(module, module_paths)
         rel_path = str(module["path"].relative_to(self.project_root))
         for name, node in module["defs"].items():
             if name in module["exports"] or getattr(node, "decorator_list", []):
                 continue
-            used = name in local_refs or (module["module"], name) in imported_refs
+            used = name in local_refs or (module["module"], name) in referenced_keys
             status = EngineStatus.PASS if used else EngineStatus.WARN
             message = (
                 f"Private function '{name}' is referenced"
@@ -258,6 +273,9 @@ class DeadCodeEngine(BaseEngine):
             if imported_name:
                 resolved.add((imported_module, imported_name))
                 continue
+            for alias_name, attribute in module["qualified_refs"]:
+                if alias_name == alias:
+                    resolved.add((imported_module, attribute))
             for module_name in module_paths:
                 if module_name == imported_module or module_name.startswith(imported_module + "."):
                     resolved.add((module_name, ""))

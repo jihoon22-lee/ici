@@ -40,12 +40,16 @@ class SanitizeEngine(BaseEngine):
         self._tool_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
         self._measured_scopes = 0
+        self._skipped_scopes = 0
+        self._required_scope_missing = False
 
     def run(self) -> EngineResult:
         t0 = time.time()
         self._tool_errors = []
         self._tool_evidence = []
         self._measured_scopes = 0
+        self._skipped_scopes = 0
+        self._required_scope_missing = False
         targets: list[InspectionTarget] = []
         proj_type = detect_project_type(self.project_root)
         cpp_sources = get_all_cpp_sources(self.project_root, self.config)
@@ -73,16 +77,21 @@ class SanitizeEngine(BaseEngine):
                 ".",
                 "Sanitize",
                 "No applicable Python or C++ sources were selected; sanitize was not run",
+                required=False,
             )
 
         cfg = self.get_config("sanitize")
-        mode = cfg.get("mode", "pass_warn_fail")
+        mode = cfg.get("mode", "pass_fail")
         required = bool(cfg.get("required", True))
         duration = time.time() - t0
         if self._tool_errors:
             overall_status = EngineStatus.ERROR
             evidence = EvidenceState.NOT_RUN
             summary = "; ".join(self._tool_errors[:3])
+        elif self._measured_scopes and self._skipped_scopes:
+            overall_status = EngineStatus.WARN
+            evidence = EvidenceState.ESTIMATED
+            summary = "Sanitize partially executed: one or more applicable scopes were skipped"
         elif self._measured_scopes:
             overall_status = self.evaluate_status(has_failure, has_warning, mode)
             evidence = EvidenceState.MEASURED
@@ -130,6 +139,7 @@ class SanitizeEngine(BaseEngine):
                 "tests",
                 "C++Sanitizer",
                 "No C++ sanitizer test sources were selected; compilation was not run",
+                required=False,
             )
             return False
 
@@ -191,7 +201,9 @@ class SanitizeEngine(BaseEngine):
 
                 run_command = [str(runner_bin)]
                 try:
-                    run_result = run_process(run_command, cwd=temp_root)
+                    run_result = run_process(
+                        run_command, cwd=temp_root, env=self._sanitizer_environment()
+                    )
                 except Exception as exc:
                     self._record_tool_exception("sanitizer execution", run_command, exc)
                     self._append_error_target(
@@ -209,7 +221,9 @@ class SanitizeEngine(BaseEngine):
                     self._append_error_target(targets, test_src, "SanitizerExecution", message)
                     continue
                 output = f"{run_result.stderr}\n{run_result.stdout}"
-                if run_result.returncode != 0 and self._contains_sanitizer_diagnostic(output):
+                has_diagnostic = self._contains_sanitizer_diagnostic(output)
+                if has_diagnostic:
+                    self._measured_scopes += 1
                     has_failure = True
                     targets.append(
                         InspectionTarget(
@@ -260,6 +274,11 @@ class SanitizeEngine(BaseEngine):
         ]
         if not tests_root.is_dir():
             message = "Python ResourceWarning check skipped: tests directory is missing"
+            return self._missing_python_scope(targets, message, command, "tests")
+        if not any(
+            path.name.startswith("test_") and path.suffix == ".py" for path in tests_root.rglob("*")
+        ):
+            message = "Python ResourceWarning check skipped: no Python test files were selected"
             return self._missing_python_scope(targets, message, command, "tests")
 
         env = os.environ.copy()
@@ -376,6 +395,7 @@ class SanitizeEngine(BaseEngine):
             self._tool_errors.append(message)
             status = EngineStatus.ERROR
         else:
+            self._skipped_scopes += 1
             status = EngineStatus.SKIP
         targets.append(
             InspectionTarget(
@@ -480,22 +500,43 @@ class SanitizeEngine(BaseEngine):
             )
         )
 
-    @staticmethod
     def _mark_scope_skip(
+        self,
         targets: list[InspectionTarget],
         file_path: str,
         target_name: str,
         message: str,
+        required: bool | None = None,
     ) -> None:
+        self._skipped_scopes += 1
+        if required is None:
+            required = bool(self.get_config("sanitize").get("required", True))
+        if required:
+            self._required_scope_missing = True
+            self._tool_errors.append(message)
+            status = EngineStatus.ERROR
+        else:
+            status = EngineStatus.SKIP
         targets.append(
             InspectionTarget(
                 file_path=file_path,
                 start_line=1,
                 target_name=target_name,
-                status=EngineStatus.SKIP,
+                status=status,
                 message=message,
             )
         )
+
+    @staticmethod
+    def _append_option(existing: str, option: str) -> str:
+        return ":".join(part for part in (existing, option) if part)
+
+    @classmethod
+    def _sanitizer_environment(cls) -> dict[str, str]:
+        env = os.environ.copy()
+        env["ASAN_OPTIONS"] = cls._append_option(env.get("ASAN_OPTIONS", ""), "detect_leaks=1")
+        env["UBSAN_OPTIONS"] = cls._append_option(env.get("UBSAN_OPTIONS", ""), "halt_on_error=1")
+        return env
 
     @staticmethod
     def _issue_count(targets: list[InspectionTarget]) -> int:

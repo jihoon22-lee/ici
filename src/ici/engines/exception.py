@@ -32,7 +32,7 @@ class _HandlerRaiseVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Raise(self, node: ast.Raise) -> None:
-        if isinstance(node.exc, ast.Name) and node.exc.id == self.alias:
+        if isinstance(node.exc, ast.Name) and node.exc.id == self.alias and node.cause is None:
             self.raises.append(node)
         self.generic_visit(node)
 
@@ -87,7 +87,7 @@ class ExceptionSafetyEngine(BaseEngine):
             summary = "Exception safety analysis skipped: no applicable source files"
         else:
             overall_status = self.evaluate_status(
-                has_error, has_warning, cfg.get("mode", "pass_warn_fail")
+                has_error, has_warning, cfg.get("mode", "pass_fail")
             )
             evidence = EvidenceState.MEASURED
             summary = (
@@ -131,6 +131,7 @@ class ExceptionSafetyEngine(BaseEngine):
                 )
                 continue
             rel_path = str(py_file.relative_to(self.project_root))
+            target_start = len(targets)
             for node in ast.walk(tree):
                 if not isinstance(node, ast.ExceptHandler):
                     continue
@@ -175,6 +176,19 @@ class ExceptionSafetyEngine(BaseEngine):
                                 ),
                             )
                         )
+            targets.append(
+                InspectionTarget(
+                    file_path=rel_path,
+                    start_line=1,
+                    target_name="PythonExceptionSafety",
+                    status=EngineStatus.PASS,
+                    message=(
+                        "Python exception handlers were inspected"
+                        if len(targets) == target_start
+                        else "Python exception handlers were inspected; see findings above"
+                    ),
+                )
+            )
         return has_error, has_warning
 
     @staticmethod
@@ -223,6 +237,19 @@ class ExceptionSafetyEngine(BaseEngine):
                         message="Silent catch(...) block without logging or re-throw",
                     )
                 )
+            targets.append(
+                InspectionTarget(
+                    file_path=rel_path,
+                    start_line=1,
+                    target_name="CppExceptionSafety",
+                    status=EngineStatus.PASS,
+                    message=(
+                        "C++ exception constructs were inspected"
+                        if not destructor_lines and not self._empty_catch_all_lines(masked)
+                        else "C++ exception constructs were inspected; see findings above"
+                    ),
+                )
+            )
         return has_error
 
     @staticmethod
@@ -275,7 +302,7 @@ class ExceptionSafetyEngine(BaseEngine):
                 continue
             if current == state:
                 state = "code"
-            if current != "\n":
+            if state != "code" and current != "\n":
                 chars[index] = " "
             index += 1
         return "".join(chars)
@@ -287,9 +314,17 @@ class ExceptionSafetyEngine(BaseEngine):
         active: list[int] = []
         found: list[int] = []
         destructor_re = re.compile(r"~\s*[A-Za-z_]\w*\s*\([^)]*\)[^{;]*\{")
+        declaration_re = re.compile(r"~\s*[A-Za-z_]\w*\s*\([^)]*\)[^;{]*$")
+        pending = False
         for line_no, line in enumerate(lines, 1):
             if destructor_re.search(line):
                 active.append(depth)
+                pending = False
+            elif declaration_re.search(line.strip()):
+                pending = True
+            elif pending and "{" in line:
+                active.append(depth)
+                pending = False
             if active and re.search(r"\bthrow\b", line):
                 found.append(line_no)
             depth += line.count("{") - line.count("}")
@@ -298,29 +333,12 @@ class ExceptionSafetyEngine(BaseEngine):
 
     @staticmethod
     def _empty_catch_all_lines(masked: str) -> list[int]:
-        found: list[int] = []
-        lines = masked.splitlines()
-        catch_re = re.compile(r"catch\s*\(\s*\.\.\.\s*\)\s*\{")
-        for index, line in enumerate(lines):
-            match = catch_re.search(line)
-            if not match:
-                continue
-            tail = line[match.end() :]
-            if "}" in tail and not tail[: tail.index("}")].strip():
-                found.append(index + 1)
-                continue
-            depth = 1
-            body = [tail]
-            for following in lines[index + 1 :]:
-                depth += following.count("{") - following.count("}")
-                body.append(following)
-                if depth <= 0:
-                    break
-            body_text = "\n".join(body)
-            if body_text.split("}", 1)[0].strip():
-                continue
-            found.append(index + 1)
-        return found
+        pattern = re.compile(r"catch\s*\(\s*\.\.\.\s*\)\s*\{(?P<body>.*?)\}", re.DOTALL)
+        return [
+            masked[: match.start()].count("\n") + 1
+            for match in pattern.finditer(masked)
+            if not match.group("body").strip()
+        ]
 
     def _append_analysis_error(
         self,
