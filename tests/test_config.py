@@ -132,6 +132,36 @@ def test_load_config_accepts_test_interpreter_and_coverage_policy(tmp_path: Path
     assert config["engines"]["test"]["coverage_required"] is True
 
 
+def test_load_config_accepts_lint_and_type_tool_required_policies(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        "[engines.lint]\nruff_required = true\n[engines.type]\nmypy_required = true\n",
+        encoding="utf-8",
+    )
+
+    config = load_config(tmp_path)
+
+    assert config["engines"]["lint"]["ruff_required"] is True
+    assert config["engines"]["type"]["mypy_required"] is True
+
+
+@pytest.mark.parametrize(
+    ("table", "key"),
+    [("lint", "ruff_required"), ("type", "mypy_required")],
+)
+def test_load_config_rejects_non_boolean_tool_required_policy(
+    tmp_path: Path, monkeypatch, table: str, key: str
+):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        f'[engines.{table}]\n{key} = "yes"\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match=rf"engines\.{table}\.{key}"):
+        load_config(tmp_path)
+
+
 @pytest.mark.parametrize(
     ("key", "value"),
     [("coverage_required", '"yes"'), ("python", "false")],
