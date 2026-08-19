@@ -128,27 +128,63 @@ class _ScopeAliasCollector(ast.NodeVisitor):
         self,
         handler: ast.ExceptHandler | None,
         cutoff: tuple[int, int] | None = None,
+        possible_after: bool = False,
     ) -> ScopeAliases:
         """Return effective bindings and all lexical names bound in this scope.
 
         A handler cutoff models the current scope's execution point; ``None``
-        resolves a complete enclosing scope.  Branches remain intentionally
-        path-insensitive: lexical binding events are applied in source order,
-        with the last event before the cutoff winning.
+        resolves a complete enclosing scope.  For a child function, the
+        ``possible_after`` policy keeps an alias possible when it exists at the
+        child definition or appears later in the enclosing scope.  Branches
+        remain intentionally path-insensitive.
         """
         if cutoff is None:
             cutoff = self._handler_position(handler)
-        bindings: dict[str, str] = {}
+        bindings = self._bindings_before(cutoff)
+        if possible_after and cutoff is not None:
+            alias_sets = self._possible_aliases(bindings, cutoff)
+        else:
+            alias_sets = self._effective_aliases(bindings)
         bound_names = self._bound_names(handler, cutoff)
+        return (
+            *alias_sets,
+            bound_names,
+        )
+
+    def _bindings_before(self, cutoff: tuple[int, int] | None) -> dict[str, str]:
+        bindings: dict[str, str] = {}
         for position, name, kind in sorted(self.events):
             if cutoff is None or position[:2] < cutoff:
                 bindings[name] = kind
+        return bindings
+
+    @staticmethod
+    def _effective_aliases(bindings: dict[str, str]) -> tuple[set[str], set[str], set[str]]:
         return (
             {name for name, kind in bindings.items() if kind == "exception"},
             {name for name, kind in bindings.items() if kind == "builtins"},
             {name for name, kind in bindings.items() if kind == "shadow"},
-            bound_names,
         )
+
+    def _possible_aliases(
+        self,
+        bindings: dict[str, str],
+        cutoff: tuple[int, int],
+    ) -> tuple[set[str], set[str], set[str]]:
+        exception_aliases, builtins_aliases, _ = self._effective_aliases(bindings)
+        for position, name, kind in self.events:
+            if position[:2] < cutoff:
+                continue
+            if kind == "exception":
+                exception_aliases.add(name)
+            elif kind == "builtins":
+                builtins_aliases.add(name)
+        shadowed_names = {
+            name
+            for name, kind in bindings.items()
+            if kind == "shadow" and name not in exception_aliases and name not in builtins_aliases
+        }
+        return exception_aliases, builtins_aliases, shadowed_names
 
     def _bound_names(
         self,
@@ -399,12 +435,19 @@ class ExceptionSafetyEngine(BaseEngine):
                 aliases.append(cls._scope_aliases(scope, node))
                 continue
             child_scope = active_scopes[scope_index + 1]
-            aliases.append(cls._scope_aliases(scope, None, cls._child_scope_cutoff(child_scope)))
+            aliases.append(
+                cls._scope_aliases(
+                    scope,
+                    None,
+                    cls._child_scope_cutoff(child_scope),
+                    possible_after=isinstance(child_scope, (ast.FunctionDef, ast.AsyncFunctionDef)),
+                )
+            )
         return aliases
 
     @staticmethod
     def _child_scope_cutoff(scope: ast.AST) -> tuple[int, int] | None:
-        if isinstance(scope, ast.ClassDef):
+        if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             return scope.lineno, scope.col_offset
         return None
 
@@ -413,10 +456,11 @@ class ExceptionSafetyEngine(BaseEngine):
         scope: ast.AST,
         handler: ast.ExceptHandler | None,
         cutoff: tuple[int, int] | None = None,
+        possible_after: bool = False,
     ) -> ScopeAliases:
         collector = _ScopeAliasCollector(scope)
         collector.visit(scope)
-        return collector.resolve(handler, cutoff)
+        return collector.resolve(handler, cutoff, possible_after)
 
     @staticmethod
     def _is_base_exception_type(
