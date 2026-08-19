@@ -119,11 +119,6 @@ class _ScopeAliasCollector(ast.NodeVisitor):
                 kind = "exception"
             self._record(local_name, kind, node)
 
-    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
-        if node.name:
-            self._record(node.name, "shadow", node)
-        self.generic_visit(node)
-
     def resolve(
         self,
         handler: ast.ExceptHandler | None,
@@ -443,7 +438,44 @@ class ExceptionSafetyEngine(BaseEngine):
                     possible_after=isinstance(child_scope, (ast.FunctionDef, ast.AsyncFunctionDef)),
                 )
             )
+        transient = cls._transient_handler_bindings(node, parent_map, active_scopes)
+        cls._apply_transient_handler_shadows(aliases, active_scopes, transient)
         return aliases
+
+    @staticmethod
+    def _transient_handler_bindings(
+        node: ast.ExceptHandler,
+        parent_map: dict[ast.AST, ast.AST],
+        active_scopes: list[ast.AST],
+    ) -> dict[ast.AST, set[str]]:
+        scope_indexes = {scope: index for index, scope in enumerate(active_scopes)}
+        bindings: dict[ast.AST, set[str]] = {}
+        current = parent_map.get(node)
+        while current is not None:
+            if isinstance(current, ast.ExceptHandler) and current.name:
+                owner = parent_map.get(current)
+                while owner is not None and not isinstance(
+                    owner,
+                    (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
+                ):
+                    owner = parent_map.get(owner)
+                if owner in scope_indexes:
+                    bindings.setdefault(owner, set()).add(current.name)
+            current = parent_map.get(current)
+        return bindings
+
+    @staticmethod
+    def _apply_transient_handler_shadows(
+        aliases: list[ScopeAliases],
+        active_scopes: list[ast.AST],
+        transient: dict[ast.AST, set[str]],
+    ) -> None:
+        for index, scope in enumerate(active_scopes):
+            exception_aliases, builtins_aliases, shadowed_names, _ = aliases[index]
+            for name in transient.get(scope, set()):
+                exception_aliases.discard(name)
+                builtins_aliases.discard(name)
+                shadowed_names.add(name)
 
     @staticmethod
     def _child_scope_cutoff(scope: ast.AST) -> tuple[int, int] | None:
