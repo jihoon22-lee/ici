@@ -121,11 +121,17 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
   없으면 AST 문법 검사만 수행하는 부분 폴백으로 전환하며, `ruff_required = true`이면
   `ERROR`/`NOT_RUN`, 기본 선택 정책이면 `WARN`/`ESTIMATED`로 기록합니다. Ruff의 종료 코드,
   JSON 진단 구조, 포맷 성공 문법은 엄격히 검증하며 도구 오류와 실제 진단을 구분합니다.
+  Ruff는 PATH에 직접 실행 가능한 파일 또는 프로젝트 `.venv/bin`/`.venv/Scripts`의 실행 파일만
+  사용합니다. `uvx`/`uv run`을 도구 설치로 간주하거나 패키지 해석을 시도하지 않으므로 폐쇄망에서
+  실행 시 부작용이 없습니다. `ruff format --check`가 종료 코드 0과 빈 stdout/stderr를 반환하는
+  것도 정상 성공으로 인정합니다.
 - **C++**: 발견된 각 `.cpp`/`.cc`/`.cxx`/`.c`에 `g++ -fsyntax-only -std=c++17 -Wall -Wextra`를
   실행합니다. 소스가 있는데 g++가 없거나 timeout·출력 절단·spawn·비정상 종료·진단 파싱 실패가
   발생하면 `ERROR`/`NOT_RUN`입니다. 정상적인 `error`/`warning` 진단은 보고된 파일과 라인에
-  `InspectionTarget`으로 남기고 엔진 `mode` 정책을 따릅니다.
+  `InspectionTarget`으로 남기고 엔진 `mode` 정책을 따릅니다. 위치가 있는 `note:`는 보조
+  진단으로 `WARN`에 남기며, 위치 없는 임의 문맥 줄은 성공으로 삼지 않습니다.
 - 모든 Ruff/g++ 시도는 `ToolEvidence`에 argv, 반환 코드 및 timeout/절단/실패 사유를 남깁니다.
+  종료 코드 2 이상이나 잘못된 성공/진단 출력도 최종 도구 오류 원인을 `error`에 기록합니다.
 
 ### 2.3 🧪 `test` & TEM 스코어링 (단위 테스트 및 테스트 효과성 지표)
 - **동작**: 프로젝트 내 pytest 또는 C++ 테스트 바이너리를 실행하여 단위 테스트 전수 통과 여부 검증
@@ -180,11 +186,17 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
   종료 코드 `1`의 유효한 진단은 실제 타입 발견 사항으로 `mode` 정책을 따르며, 종료 코드 `2`
   이상·timeout·출력 절단·spawn/신호 종료·잘못된 성공/진단 출력은 진단 문구가 포함되어도
   도구 `ERROR`/`NOT_RUN`입니다. `mypy_required = true`에서 미설치 도구는 `ERROR`/`NOT_RUN`이고,
-  기본 선택 정책에서는 AST 함수 어노테이션 폴백을 `WARN`/`ESTIMATED`로 표시합니다.
+  기본 선택 정책에서는 AST 함수 어노테이션 폴백을 `WARN`/`ESTIMATED`로 표시합니다. Mypy는
+  PATH에 직접 실행 가능한 파일 또는 프로젝트 `.venv/bin`/`.venv/Scripts` 실행 파일만 찾으며,
+  `uv`/`uvx`를 통해 설치하거나 네트워크 패키지 해석을 시도하지 않습니다. 적용할 Python 소스가
+  0개이면 Mypy를 실행하지 않고 명시적 `SKIP` 대상과 `WARN`/`ESTIMATED`를 남깁니다. 따라서
+  `Success: no issues found in 0 source files`도 실측 성공 문법으로 인정하지 않습니다.
 - **C++**: 현재 C++ 타입 검증은 구현되어 있지 않습니다. C++ 소스가 발견되면 소스별 `SKIP`
   대상을 남기고 요약에 미구현 범위를 명시하며 `WARN`/`ESTIMATED`로 기록합니다. Python/C++ 혼합
   프로젝트도 C++ 검증 누락 때문에 전체 증거를 `MEASURED`로 승격하지 않습니다.
-- 모든 Mypy 시도 및 미설치 상태는 `ToolEvidence`로 기록됩니다.
+- 모든 Mypy 시도 및 미설치 상태는 `ToolEvidence`로 기록되며, rc>=2·파싱 실패 등 최종 도구
+  오류 원인도 `error`에 보존됩니다. C++ skip은 Missing Annotations가 아닌 일반 type finding/
+  warning 요약으로 표시됩니다.
 - **노이즈 제로**: 오류가 없을 경우 개별 함수 통과 로그를 숨기고 `✅ Static Type Check Passed (0 Errors)` 단일 행으로 축약 요약
 
 ### 2.5 🧩 `complexity` (순환 복잡도 및 블록 중첩도)
