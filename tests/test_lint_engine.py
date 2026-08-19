@@ -219,6 +219,31 @@ def test_cpp_diagnostic_uses_reported_file_and_line(tmp_cpp_project, monkeypatch
     assert target.start_line == 12
 
 
+def test_cpp_located_note_is_a_non_failure_diagnostic(tmp_cpp_project, monkeypatch):
+    monkeypatch.setattr(
+        "ici.engines.lint.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    diagnostic = (
+        "src/main.cpp:12:7: error: expected ';'\n"
+        "src/main.cpp:12:7: note: the declaration ends here\n"
+    )
+    monkeypatch.setattr(
+        "ici.engines.lint.run_process",
+        lambda *args, **kwargs: ProcessResult(1, "", diagnostic, 0.01),
+    )
+
+    result = LintEngine(tmp_cpp_project).run()
+
+    assert result.status == EngineStatus.FAIL
+    cpp_targets = [target for target in result.targets if target.target_name == "C++Syntax"]
+    assert any(target.status == EngineStatus.FAIL for target in cpp_targets)
+    note = next(target for target in cpp_targets if target.message.startswith("note:"))
+    assert note.status == EngineStatus.WARN
+    assert note.file_path == "src/main.cpp"
+    assert note.start_line == 12
+
+
 def test_cpp_signal_failure_is_tool_error(tmp_cpp_project, monkeypatch):
     monkeypatch.setattr(
         "ici.engines.lint.shutil.which",
