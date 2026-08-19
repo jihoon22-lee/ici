@@ -11,7 +11,13 @@ from pathlib import Path
 from typing import Any
 
 from ici.core.env import find_uv, get_nas_cpp_lib_dir
-from ici.core.models import EngineResult, EngineStatus, InspectionTarget
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    EvidenceState,
+    InspectionTarget,
+    ToolEvidence,
+)
 from ici.core.project import (
     detect_project_type,
     get_all_cpp_includes,
@@ -37,12 +43,16 @@ class TestEngine(BaseEngine):
         self._coverage_files: list[dict] = []
         self._coverage_totals: dict | None = None
         self._coverage_source = "estimated"
+        self._tool_errors: list[str] = []
+        self._tool_evidence: list[ToolEvidence] = []
 
     def run(self) -> EngineResult:
         t0 = time.time()
         proj_type = detect_project_type(self.project_root)
         targets: list[InspectionTarget] = []
         has_failure = False
+        self._tool_errors = []
+        self._tool_evidence = []
 
         passed_tests = 0
         total_tests = 0
@@ -122,15 +132,23 @@ class TestEngine(BaseEngine):
         test_suites = list(suite_map.values())
 
         duration = time.time() - t0
-        overall_status = self.evaluate_status(has_failure, has_warn, mode)
+        overall_status = (
+            EngineStatus.ERROR
+            if self._tool_errors
+            else self.evaluate_status(has_failure, has_warn, mode)
+        )
         cov_label = tem_info["cov_label"]
         cov_shown = tem_info["cov_shown"]
         line_cov = tem_info["line_coverage"]
         pass_rate = tem_info["pass_rate"]
         summary = (
-            f"{passed_tests}/{total_tests} Tests Passed | "
-            f"{cov_label}: {cov_shown:.1f}%{tem_info['cov_suffix']}, Func: {func_cov:.1f}% "
-            f"-> TEM: {tem_score:.2f} / 5.0"
+            "; ".join(self._tool_errors[:3])
+            if self._tool_errors
+            else (
+                f"{passed_tests}/{total_tests} Tests Passed | "
+                f"{cov_label}: {cov_shown:.1f}%{tem_info['cov_suffix']}, Func: {func_cov:.1f}% "
+                f"-> TEM: {tem_score:.2f} / 5.0"
+            )
         )
 
         return self.create_result(
@@ -159,7 +177,19 @@ class TestEngine(BaseEngine):
                     f"Func: {func_cov:.0f}%, PassRate: {pass_rate:.0%})"
                 ),
             },
+            required=bool(cfg.get("required", True)),
+            evidence=EvidenceState.NOT_RUN if self._tool_errors else EvidenceState.MEASURED,
+            tool_evidence=self._tool_evidence,
         )
+
+    def _record_tool(self, name: str, argv: list[str], result) -> None:
+        self._tool_evidence.append(
+            ToolEvidence(name=name, path=argv[0], argv=argv, returncode=result.returncode)
+        )
+
+    def _record_tool_error(self, message: str) -> None:
+        if message not in self._tool_errors:
+            self._tool_errors.append(message)
 
     def _calc_tem(
         self, branch_cov: float, func_cov: float, passed_tests: int, total_tests: int
@@ -230,15 +260,40 @@ class TestEngine(BaseEngine):
                 cov_run_cmd.append(f"--source={','.join(rel_dirs)}")
             cov_run_cmd += ["-m", "pytest", "-o", "addopts=", "-v", "tests"]
             result = run_process(cov_run_cmd, cwd=self.project_root, env=cov_env)
+            self._record_tool("coverage pytest", cov_run_cmd, result)
+            if result.timed_out:
+                self._record_tool_error("Coverage test run timed out")
+                return 0, 0, False
+            if result.truncated:
+                self._record_tool_error("Coverage test output was truncated")
+                return 0, 0, False
             out = result.stdout
 
             json_path = cov_dir / "coverage.json"
-            run_process(
-                [*cov_cmd, "json", "-o", str(json_path)], cwd=self.project_root, env=cov_env
+            coverage_json_cmd = [*cov_cmd, "json", "-o", str(json_path)]
+            coverage_json_result = run_process(
+                coverage_json_cmd, cwd=self.project_root, env=cov_env
             )
-            self._coverage_data = self._parse_coverage_json(json_path)
+            self._record_tool("coverage json", coverage_json_cmd, coverage_json_result)
+            self._coverage_data = None
+            if coverage_json_result.timed_out:
+                self._record_tool_error("Coverage JSON generation timed out")
+            elif coverage_json_result.truncated:
+                self._record_tool_error("Coverage JSON output was truncated")
+            elif coverage_json_result.returncode != 0:
+                self._record_tool_error(
+                    f"Coverage JSON generation failed with exit code {coverage_json_result.returncode}"
+                )
+            else:
+                self._coverage_data = self._parse_coverage_json(json_path)
 
             passed, total, has_failure = self._parse_pytest_stdout(out, targets)
+            if result.returncode not in (0, 1):
+                self._record_tool_error(f"Pytest failed with exit code {result.returncode}")
+            elif result.returncode == 1 and not has_failure:
+                self._record_tool_error("Pytest returned failure without parseable diagnostics")
+            elif total == 0:
+                self._record_tool_error("Pytest produced no parseable test results")
             if total > 0 or self._coverage_data:
                 return passed, total, has_failure
 
@@ -246,8 +301,21 @@ class TestEngine(BaseEngine):
             result = run_process(
                 [*pytest_cmd, "-o", "addopts=", "-v", "tests"], cwd=self.project_root, env=env
             )
+            self._record_tool("pytest", [*pytest_cmd, "-o", "addopts=", "-v", "tests"], result)
+            if result.timed_out:
+                self._record_tool_error("Pytest timed out")
+                return 0, 0, False
+            if result.truncated:
+                self._record_tool_error("Pytest output was truncated")
+                return 0, 0, False
             out = result.stdout
             passed, total, has_failure = self._parse_pytest_stdout(out, targets)
+            if result.returncode not in (0, 1):
+                self._record_tool_error(f"Pytest failed with exit code {result.returncode}")
+            elif result.returncode == 1 and not has_failure:
+                self._record_tool_error("Pytest returned failure without parseable diagnostics")
+            elif total == 0:
+                self._record_tool_error("Pytest produced no parseable test results")
             if total > 0:
                 return passed, total, has_failure
 
@@ -255,11 +323,19 @@ class TestEngine(BaseEngine):
         passed = 0
         total = 0
         has_failure = False
+        unittest_cmd = ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]
         result = run_process(
-            ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"],
+            unittest_cmd,
             cwd=self.project_root,
             env=env,
         )
+        self._record_tool("unittest", unittest_cmd, result)
+        if result.timed_out:
+            self._record_tool_error("Unittest timed out")
+            return 0, 0, False
+        if result.truncated:
+            self._record_tool_error("Unittest output was truncated")
+            return 0, 0, False
         out = result.stdout
         err = result.stderr
         for line in (out + "\n" + err).splitlines():
@@ -290,6 +366,11 @@ class TestEngine(BaseEngine):
                     )
                 )
 
+        if result.returncode not in (0, 1):
+            self._record_tool_error(f"Unittest failed with exit code {result.returncode}")
+        elif total == 0:
+            self._record_tool_error("Unittest produced no parseable test results")
+
         return passed, total, has_failure
 
     def _find_coverage_cmd(self, pytest_cmd: list[str] | None) -> list[str] | None:
@@ -314,7 +395,7 @@ class TestEngine(BaseEngine):
 
         for cand in candidates:
             result = run_process([*cand, "--version"], cwd=self.project_root)
-            if result.returncode == 0:
+            if result.returncode == 0 and not result.timed_out and not result.truncated:
                 return cand
 
         uv = find_uv()
@@ -480,9 +561,24 @@ class TestEngine(BaseEngine):
                 ]
                 compile_result = run_process(compile_cmd, cwd=self.project_root)
 
+            self._record_tool("g++ test compile", compile_cmd, compile_result)
+
             c_code = compile_result.returncode
             c_err = compile_result.stderr
 
+            if compile_result.timed_out or compile_result.truncated:
+                self._record_tool_error(f"C++ test compilation incomplete: {test_src.name}")
+                has_failure = True
+                targets.append(
+                    InspectionTarget(
+                        file_path=rel_p,
+                        start_line=1,
+                        target_name=f"[C++] {test_src.name}",
+                        status=EngineStatus.FAIL,
+                        message="Compilation output was incomplete",
+                    )
+                )
+                continue
             if c_code != 0:
                 has_failure = True
                 targets.append(
@@ -497,11 +593,25 @@ class TestEngine(BaseEngine):
                 continue
 
             run_cwd = build_tmp if use_coverage else self.project_root
-            run_result = run_process([str(runner_bin)], cwd=run_cwd)
+            run_cmd = [str(runner_bin)]
+            run_result = run_process(run_cmd, cwd=run_cwd)
+            self._record_tool("C++ test", run_cmd, run_result)
             r_code = run_result.returncode
             r_out = run_result.stdout
             r_err = run_result.stderr
-            if r_code == 0:
+            if run_result.timed_out or run_result.truncated:
+                self._record_tool_error(f"C++ test execution incomplete: {test_src.name}")
+                has_failure = True
+                targets.append(
+                    InspectionTarget(
+                        file_path=rel_p,
+                        start_line=1,
+                        target_name=f"[C++] {test_src.name}",
+                        status=EngineStatus.FAIL,
+                        message="Execution output was incomplete",
+                    )
+                )
+            elif r_code == 0:
                 passed += 1
                 targets.append(
                     InspectionTarget(
@@ -527,7 +637,13 @@ class TestEngine(BaseEngine):
         if use_coverage and gcov_bin:
             gcno_files = sorted(str(p) for p in build_tmp.glob("*.gcno"))
             if gcno_files:
-                run_process([gcov_bin, "-b", "-p", "-o", ".", *gcno_files], cwd=build_tmp)
+                gcov_cmd = [gcov_bin, "-b", "-p", "-o", ".", *gcno_files]
+                gcov_result = run_process(gcov_cmd, cwd=build_tmp)
+                self._record_tool("gcov", gcov_cmd, gcov_result)
+                if gcov_result.timed_out or gcov_result.truncated:
+                    self._record_tool_error("gcov output was incomplete")
+                elif gcov_result.returncode != 0:
+                    self._record_tool_error(f"gcov failed with exit code {gcov_result.returncode}")
             self._cpp_coverage_rows = self._parse_gcov_dir(build_tmp, src_rel_set)
             self._cpp_function_rows = self._parse_gcov_functions(build_tmp, src_rel_set)
 
@@ -544,12 +660,23 @@ class TestEngine(BaseEngine):
         objs: list[Path] = []
         for idx, src_abs in enumerate([*src_files, test_src]):
             obj = build_tmp / f"obj_{idx}.o"
-            compile_result = run_process(
-                [gxx, "--coverage", "-std=c++17", *inc_flags, "-c", src_abs, "-o", str(obj)],
-                cwd=self.project_root,
-            )
+            compile_cmd = [
+                gxx,
+                "--coverage",
+                "-std=c++17",
+                *inc_flags,
+                "-c",
+                src_abs,
+                "-o",
+                str(obj),
+            ]
+            compile_result = run_process(compile_cmd, cwd=self.project_root)
+            self._record_tool("g++ coverage compile", compile_cmd, compile_result)
             c_code = compile_result.returncode
             c_err = compile_result.stderr
+            if compile_result.timed_out or compile_result.truncated:
+                self._record_tool_error(f"C++ coverage compilation incomplete: {src_abs}")
+                return False, objs, c_err
             if c_code != 0:
                 return False, objs, c_err
             objs.append(obj)

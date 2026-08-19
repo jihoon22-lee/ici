@@ -8,6 +8,10 @@
 ## [Unreleased]
 
 ### Changed
+- **서브프로세스 결과 신뢰성 강화**:
+  - stdout/stderr를 동시 스트리밍하면서 설정된 상한 이후 데이터를 폐기해 대용량 출력이 메모리를 고갈시키지 않도록 개선
+  - Windows timeout 시 stdlib ctypes Job Object로 자식 프로세스 트리를 함께 종료하고 핸들을 항상 닫음
+  - Ruff, Mypy와 빌드/테스트/sanitize 엔진이 timeout·출력 절단·도구 출력 파싱 실패를 `ERROR`/`NOT_RUN`으로 기록
 - **서브프로세스 실행 제한 및 엔진 예외 격리**:
   - `run_process`가 구조화된 `ProcessResult`를 반환하고 기본 300초 timeout과 출력 상한(100만 문자)을 적용
   - POSIX 프로세스 그룹 종료와 Windows 폴백으로 timeout 이후 자식 프로세스가 남지 않도록 정리

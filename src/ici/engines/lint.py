@@ -7,7 +7,13 @@ import time
 from pathlib import Path
 
 from ici.core.env import find_uv
-from ici.core.models import EngineResult, EngineStatus, InspectionTarget
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    EvidenceState,
+    InspectionTarget,
+    ToolEvidence,
+)
 from ici.core.project import (
     _should_ignore_path,
     detect_project_type,
@@ -25,14 +31,16 @@ class LintEngine(BaseEngine):
         t0 = time.time()
         proj_type = detect_project_type(self.project_root)
         targets: list[InspectionTarget] = []
+        tool_errors: list[str] = []
+        tool_evidence: list[ToolEvidence] = []
 
         # 1. Python Linting & Formatting Check
         if proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py")):
-            self._lint_python(targets)
+            tool_errors.extend(self._lint_python(targets, tool_evidence))
 
         # 2. C++ Linting & Syntax Check
         if proj_type in ("cpp", "hybrid") or any(self.project_root.rglob("*.cpp")):
-            self._lint_cpp(targets)
+            tool_errors.extend(self._lint_cpp(targets, tool_evidence))
 
         duration = time.time() - t0
         fail_count = sum(1 for t in targets if t.status == EngineStatus.FAIL)
@@ -40,10 +48,16 @@ class LintEngine(BaseEngine):
 
         cfg = self.get_config("lint")
         mode = cfg.get("mode", "pass_warn_fail")
-        overall_status = self.evaluate_status(fail_count > 0, warn_count > 0, mode)
+        overall_status = (
+            EngineStatus.ERROR
+            if tool_errors
+            else self.evaluate_status(fail_count > 0, warn_count > 0, mode)
+        )
 
         summary = (
-            "0 Violations Found"
+            "; ".join(tool_errors[:3])
+            if tool_errors
+            else "0 Violations Found"
             if overall_status == EngineStatus.PASS
             else f"{fail_count} Errors, {warn_count} Warnings Found"
         )
@@ -55,9 +69,16 @@ class LintEngine(BaseEngine):
             duration=duration,
             targets=targets,
             extra={"violations_count": len(targets), "metrics_summary": f"{len(targets)} issues"},
+            required=bool(cfg.get("required", True)),
+            evidence=EvidenceState.NOT_RUN if tool_errors else EvidenceState.MEASURED,
+            tool_evidence=tool_evidence,
         )
 
-    def _lint_python(self, targets: list[InspectionTarget]) -> None:
+    def _lint_python(
+        self, targets: list[InspectionTarget], tool_evidence: list[ToolEvidence] | None = None
+    ) -> list[str]:
+        errors: list[str] = []
+        evidence = tool_evidence if tool_evidence is not None else []
         ruff_cmd: list[str] | None = None
         which_ruff = shutil.which("ruff")
         venv_ruff = self.project_root / ".venv/bin/ruff"
@@ -72,14 +93,37 @@ class LintEngine(BaseEngine):
 
         # 1. Ruff check
         if ruff_cmd:
-            result = run_process(
-                [*ruff_cmd, "check", ".", "--output-format=json"], cwd=self.project_root
+            check_cmd = [*ruff_cmd, "check", ".", "--output-format=json"]
+            result = run_process(check_cmd, cwd=self.project_root)
+            evidence.append(
+                ToolEvidence(
+                    name="ruff check",
+                    path=check_cmd[0],
+                    argv=check_cmd,
+                    returncode=result.returncode,
+                )
             )
             out = result.stdout
-            if out.strip():
+            if result.timed_out:
+                errors.append("Ruff check timed out")
+            elif result.truncated:
+                errors.append("Ruff check output was truncated")
+            elif result.returncode not in (0, 1):
+                errors.append(f"Ruff check failed with exit code {result.returncode}")
+            elif result.stderr.strip():
+                errors.append("Ruff check emitted unexpected stderr")
+            elif result.returncode == 1 and not out.strip():
+                errors.append("Ruff check returned violations without parseable JSON")
+            elif out.strip():
                 try:
                     issues = json.loads(out)
+                    if not isinstance(issues, list):
+                        raise ValueError("Ruff JSON output is not a list")
+                    if result.returncode == 1 and not issues:
+                        errors.append("Ruff reported violations without any JSON findings")
                     for item in issues:
+                        if not isinstance(item, dict):
+                            raise ValueError("Ruff JSON item is not an object")
                         fpath = item.get("filename", "")
                         try:
                             rel_p = str(Path(fpath).relative_to(self.project_root))
@@ -101,18 +145,37 @@ class LintEngine(BaseEngine):
                             )
                         )
                 except (json.JSONDecodeError, ValueError) as err:
-                    _ = err
+                    errors.append(f"Ruff check output was not valid JSON: {err}")
 
             # 2. Ruff format check
-            format_result = run_process(
-                [*ruff_cmd, "format", "--check", "."], cwd=self.project_root
+            format_cmd = [*ruff_cmd, "format", "--check", "."]
+            format_result = run_process(format_cmd, cwd=self.project_root)
+            evidence.append(
+                ToolEvidence(
+                    name="ruff format",
+                    path=format_cmd[0],
+                    argv=format_cmd,
+                    returncode=format_result.returncode,
+                )
             )
             f_code = format_result.returncode
             f_out = format_result.stdout
             f_err = format_result.stderr
-            if f_code != 0 and (f_out or f_err):
+            if format_result.timed_out:
+                errors.append("Ruff format check timed out")
+            elif format_result.truncated:
+                errors.append("Ruff format output was truncated")
+            elif f_code not in (0, 1):
+                errors.append(f"Ruff format check failed with exit code {f_code}")
+            elif f_code == 1 and not (f_out or f_err):
+                errors.append("Ruff format check failed without diagnostic output")
+            elif f_code == 0 and (f_out.strip() or f_err.strip()):
+                errors.append("Ruff format output was not parseable")
+            elif f_code != 0:
+                found_reformat = False
                 for line in (f_out + "\n" + f_err).splitlines():
                     if "Would reformat:" in line:
+                        found_reformat = True
                         f_name = line.replace("Would reformat:", "").strip()
                         targets.append(
                             InspectionTarget(
@@ -123,6 +186,8 @@ class LintEngine(BaseEngine):
                                 message="File requires reformatting (PEP 8 style mismatch)",
                             )
                         )
+                if not found_reformat:
+                    errors.append("Ruff format output was not parseable")
 
         # 3. AST Syntax check fallback
         for py_file in self.project_root.rglob("*.py"):
@@ -143,7 +208,13 @@ class LintEngine(BaseEngine):
                     )
                 )
 
-    def _lint_cpp(self, targets: list[InspectionTarget]) -> None:
+        return errors
+
+    def _lint_cpp(
+        self, targets: list[InspectionTarget], tool_evidence: list[ToolEvidence] | None = None
+    ) -> list[str]:
+        errors: list[str] = []
+        evidence = tool_evidence if tool_evidence is not None else []
         gxx = shutil.which("g++")
         cpp_files = get_all_cpp_sources(self.project_root, self.config)
         inc_flags = get_all_cpp_includes(self.project_root)
@@ -152,12 +223,26 @@ class LintEngine(BaseEngine):
             for cpp in cpp_files:
                 cmd = [gxx, "-fsyntax-only", "-std=c++17", "-Wall", "-Wextra", *inc_flags, str(cpp)]
                 result = run_process(cmd, cwd=self.project_root)
+                evidence.append(
+                    ToolEvidence(
+                        name="g++ syntax check",
+                        path=cmd[0],
+                        argv=cmd,
+                        returncode=result.returncode,
+                    )
+                )
                 code = result.returncode
                 err = result.stderr
-                if code != 0:
+                if result.timed_out:
+                    errors.append(f"C++ syntax check timed out: {cpp.name}")
+                elif result.truncated:
+                    errors.append(f"C++ syntax output was truncated: {cpp.name}")
+                elif code != 0:
                     rel_p = str(cpp.relative_to(self.project_root))
+                    found_diagnostic = False
                     for line in err.splitlines():
                         if "error:" in line or "warning:" in line:
+                            found_diagnostic = True
                             st = EngineStatus.FAIL if "error:" in line else EngineStatus.WARN
                             line_num = 1
                             # Parse line number e.g. src/app/main.cpp:12:5: error: ...
@@ -174,3 +259,7 @@ class LintEngine(BaseEngine):
                                     message=line.strip(),
                                 )
                             )
+                    if not found_diagnostic:
+                        errors.append(f"C++ syntax output was not parseable: {cpp.name}")
+
+        return errors

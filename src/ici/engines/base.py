@@ -6,7 +6,7 @@ from typing import Any
 
 from ici.config import get_engine_config
 from ici.config_schema import validate_config_paths
-from ici.core.models import EngineResult, EngineStatus
+from ici.core.models import EngineResult, EngineStatus, EvidenceState, ToolEvidence
 
 
 class BaseEngine(ABC):
@@ -58,6 +58,9 @@ class BaseEngine(ABC):
         targets: list | None = None,
         raw_output: str = "",
         extra: dict[str, Any] | None = None,
+        required: bool = True,
+        evidence: EvidenceState = EvidenceState.MEASURED,
+        tool_evidence: list[ToolEvidence] | None = None,
     ) -> EngineResult:
         return EngineResult(
             engine_name=name,
@@ -69,4 +72,7 @@ class BaseEngine(ABC):
             targets=targets or [],
             raw_output=raw_output,
             extra=extra or {},
+            required=required,
+            evidence=evidence,
+            tool_evidence=tool_evidence or [],
         )

@@ -7,7 +7,13 @@ import time
 from pathlib import Path
 
 from ici.core.env import get_nas_cpp_lib_dir
-from ici.core.models import EngineResult, EngineStatus, InspectionTarget
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    EvidenceState,
+    InspectionTarget,
+    ToolEvidence,
+)
 from ici.core.project import (
     detect_project_type,
     get_all_cpp_includes,
@@ -40,6 +46,8 @@ class BuildEngine(BaseEngine):
 
         targets: list[InspectionTarget] = []
         has_error = False
+        self._tool_errors: list[str] = []
+        self._tool_evidence: list[ToolEvidence] = []
 
         # 1. Python Artifact Packaging
         if proj_type in ("python", "hybrid") and (base / "src").exists():
@@ -55,8 +63,19 @@ class BuildEngine(BaseEngine):
         self._generate_env_scripts(target_path, targets)
 
         duration = time.time() - t0
-        overall_status = EngineStatus.FAIL if has_error else EngineStatus.PASS
-        summary = f"Build Completed: {proj_name} {proj_version} ({arch}) into {target_path.relative_to(base)}"
+        cfg = self.get_config("build")
+        overall_status = (
+            EngineStatus.ERROR
+            if self._tool_errors
+            else EngineStatus.FAIL
+            if has_error
+            else EngineStatus.PASS
+        )
+        summary = (
+            "; ".join(self._tool_errors[:3])
+            if self._tool_errors
+            else f"Build Completed: {proj_name} {proj_version} ({arch}) into {target_path.relative_to(base)}"
+        )
 
         return self.create_result(
             name="build",
@@ -70,6 +89,9 @@ class BuildEngine(BaseEngine):
                 "target_path": str(target_path),
                 "metrics_summary": f"Built into {proj_version}/{arch}",
             },
+            required=bool(cfg.get("required", True)),
+            evidence=EvidenceState.NOT_RUN if self._tool_errors else EvidenceState.MEASURED,
+            tool_evidence=self._tool_evidence,
         )
 
     def _package_python(
@@ -161,9 +183,29 @@ fi
                 str(target_bin),
             ]
             result = run_process(cmd, cwd=base)
+            self._tool_evidence.append(
+                ToolEvidence(
+                    name="g++ build",
+                    path=cmd[0],
+                    argv=cmd,
+                    returncode=result.returncode,
+                )
+            )
             code = result.returncode
             err = result.stderr
             dur = result.duration
+            if result.timed_out or result.truncated:
+                self._tool_errors.append("C++ compilation output was incomplete")
+                targets.append(
+                    InspectionTarget(
+                        file_path=str(target_bin.relative_to(base)),
+                        start_line=1,
+                        target_name="CppBinary",
+                        status=EngineStatus.FAIL,
+                        message="C++ compilation output was incomplete",
+                    )
+                )
+                return True
             if code == 0:
                 targets.append(
                     InspectionTarget(
