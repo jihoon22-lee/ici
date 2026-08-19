@@ -108,6 +108,23 @@ def test_ruff_empty_format_success_is_accepted(tmp_python_project, monkeypatch):
     assert result.status == EngineStatus.PASS
 
 
+def test_ruff_format_parse_failure_records_error(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        return ProcessResult(0, "unexpected format output\n", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    format_evidence = next(e for e in result.tool_evidence if e.name == "ruff format")
+    assert "not parseable" in format_evidence.error
+
+
 def test_optional_ruff_absence_uses_estimated_ast_fallback(tmp_python_project, monkeypatch):
     monkeypatch.setattr("ici.engines.lint.shutil.which", lambda _name: None)
 
@@ -282,6 +299,24 @@ def test_cpp_signal_failure_is_tool_error(tmp_cpp_project, monkeypatch):
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_cpp_exit_two_records_error(tmp_cpp_project, monkeypatch):
+    monkeypatch.setattr(
+        "ici.engines.lint.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    diagnostic = "src/main.cpp:2:5: error: compiler crashed\n"
+    monkeypatch.setattr(
+        "ici.engines.lint.run_process",
+        lambda *args, **kwargs: ProcessResult(2, "", diagnostic, 0.01),
+    )
+
+    result = LintEngine(tmp_cpp_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    compiler_evidence = next(e for e in result.tool_evidence if e.name == "g++")
+    assert "exit code 2" in compiler_evidence.error
 
 
 def test_cpp_malformed_success_output_is_tool_error(tmp_cpp_project, monkeypatch):
