@@ -41,6 +41,7 @@ def version_callback(value: bool):
 
 @app.callback()
 def main_callback(
+    ctx: typer.Context,
     version: bool | None = typer.Option(
         None,
         "--version",
@@ -51,11 +52,13 @@ def main_callback(
     ),
 ):
     if not version:
-        load_config()
+        ctx.ensure_object(dict)
+        ctx.obj["config"] = load_config(Path.cwd().resolve())
 
 
 @app.command("verify")
 def cmd_verify(
+    ctx: typer.Context,
     report: bool = typer.Option(
         False, "--report", "-r", help="Save JSON report (verify_report.json)"
     ),
@@ -75,7 +78,8 @@ def cmd_verify(
     ),
 ):
     """Runs all 9 verification engines and outputs unified quality gate dashboard."""
-    orchestrator = VerifyOrchestrator()
+    root = Path.cwd().resolve()
+    orchestrator = VerifyOrchestrator(root, _effective_config(ctx))
     json_path = "verify_report.json" if report else None
     html_path = html if html else ("verify_report.html" if open_browser else None)
     if publish and not html_path:
@@ -96,9 +100,9 @@ def cmd_verify(
 
 
 @app.command("build")
-def cmd_build():
+def cmd_build(ctx: typer.Context):
     """Compiles and packages release artifacts and env loaders into vX.Y.Z/x86_64/."""
-    engine = BuildEngine()
+    engine = _create_engine(BuildEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[bold green]✔[/bold green] {res.summary}")
     if res.status == EngineStatus.FAIL:
@@ -106,9 +110,12 @@ def cmd_build():
 
 
 @app.command("line")
-def cmd_line(report: bool = typer.Option(False, "--report", "-r", help="Save line report")):
+def cmd_line(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save line report"),
+):
     """Analyzes code/comment/blank line distribution and verifies 500/1000 lines threshold."""
-    engine = LineCountEngine()
+    engine = _create_engine(LineCountEngine, _effective_config(ctx))
     res = engine.run()
     extra = res.extra
     print_line_distribution_chart(
@@ -121,9 +128,12 @@ def cmd_line(report: bool = typer.Option(False, "--report", "-r", help="Save lin
 
 
 @app.command("lint")
-def cmd_lint(report: bool = typer.Option(False, "--report", "-r", help="Save lint report")):
+def cmd_lint(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save lint report"),
+):
     """Runs Ruff, AST syntax check, and G++/Clang-Format style linting."""
-    engine = LintEngine()
+    engine = _create_engine(LintEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
@@ -133,9 +143,12 @@ def cmd_lint(report: bool = typer.Option(False, "--report", "-r", help="Save lin
 
 
 @app.command("test")
-def cmd_test(report: bool = typer.Option(False, "--report", "-r", help="Save test report")):
+def cmd_test(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save test report"),
+):
     """Runs unit tests, measures branch/function coverage, and calculates TEM 5.0 score."""
-    engine = TestEngine()
+    engine = _create_engine(TestEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
@@ -145,9 +158,12 @@ def cmd_test(report: bool = typer.Option(False, "--report", "-r", help="Save tes
 
 
 @app.command("type")
-def cmd_type(report: bool = typer.Option(False, "--report", "-r", help="Save type report")):
+def cmd_type(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save type report"),
+):
     """Runs static type checking (Mypy & strict C++ compiler flags)."""
-    engine = TypeCheckEngine()
+    engine = _create_engine(TypeCheckEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
@@ -158,10 +174,11 @@ def cmd_type(report: bool = typer.Option(False, "--report", "-r", help="Save typ
 
 @app.command("complexity")
 def cmd_complexity(
+    ctx: typer.Context,
     report: bool = typer.Option(False, "--report", "-r", help="Save complexity report"),
 ):
     """Analyzes Cyclomatic Complexity and maximum block nesting depth per function."""
-    engine = ComplexityEngine()
+    engine = _create_engine(ComplexityEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
@@ -171,9 +188,12 @@ def cmd_complexity(
 
 
 @app.command("sanitize")
-def cmd_sanitize(report: bool = typer.Option(False, "--report", "-r", help="Save sanitize report")):
+def cmd_sanitize(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save sanitize report"),
+):
     """Runs AddressSanitizer/UBSan for C++ and resource leak checks for Python."""
-    engine = SanitizeEngine()
+    engine = _create_engine(SanitizeEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
@@ -183,9 +203,12 @@ def cmd_sanitize(report: bool = typer.Option(False, "--report", "-r", help="Save
 
 
 @app.command("dead")
-def cmd_dead(report: bool = typer.Option(False, "--report", "-r", help="Save dead code report")):
+def cmd_dead(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save dead code report"),
+):
     """Detects unused functions, unreachable statements, and orphaned symbols."""
-    engine = DeadCodeEngine()
+    engine = _create_engine(DeadCodeEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
@@ -195,9 +218,12 @@ def cmd_dead(report: bool = typer.Option(False, "--report", "-r", help="Save dea
 
 
 @app.command("dup")
-def cmd_dup(report: bool = typer.Option(False, "--report", "-r", help="Save duplication report")):
+def cmd_dup(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save duplication report"),
+):
     """Detects copy-pasted duplicate code blocks and calculates codebase duplication rate."""
-    engine = DuplicateEngine()
+    engine = _create_engine(DuplicateEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
@@ -208,10 +234,11 @@ def cmd_dup(report: bool = typer.Option(False, "--report", "-r", help="Save dupl
 
 @app.command("exception")
 def cmd_exception(
+    ctx: typer.Context,
     report: bool = typer.Option(False, "--report", "-r", help="Save exception safety report"),
 ):
     """Detects exception swallowing (except: pass), lost tracebacks, and destructor throws."""
-    engine = ExceptionSafetyEngine()
+    engine = _create_engine(ExceptionSafetyEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
@@ -250,6 +277,23 @@ def cmd_env(
         print(f'setenv PATH "{local_bin}:$PATH"')
     else:
         print(f'export PATH="{local_bin}:$PATH"')
+
+
+def _effective_config(ctx: typer.Context):
+    """Return the effective policy loaded by the CLI callback."""
+
+    obj = ctx.ensure_object(dict)
+    config = obj.get("config")
+    if isinstance(config, dict):
+        return config
+    return load_config(Path.cwd().resolve())
+
+
+def _create_engine(engine_cls, config=None):
+    """Construct an engine with the effective policy for the current project."""
+
+    root = Path.cwd().resolve()
+    return engine_cls(root, config if config is not None else load_config(root))
 
 
 def _save_single_report(filename: str, res) -> None:

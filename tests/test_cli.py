@@ -55,3 +55,20 @@ def test_cli_verify_error_suite_exits_nonzero(monkeypatch):
     res = runner.invoke(app, ["verify"])
 
     assert res.exit_code == 1
+
+
+def test_line_command_uses_project_config(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "large.py").write_text("x = 1\n" * 3, encoding="utf-8")
+    (tmp_path / "ici.toml").write_text(
+        "[engines.line]\nwarn_limit = 1\nfail_limit = 2\nmode = 'pass_warn_fail'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.delenv("ICI_CONFIG", raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["line"])
+
+    assert result.exit_code == 1
