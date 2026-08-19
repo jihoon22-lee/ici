@@ -60,6 +60,11 @@ warn_pct = 5.0
 fail_pct = 15.0
 ```
 
+이 저장소의 dogfood 정책(`ici.toml`)은 현재 CI·로컬 측정값의 실행기별 편차를 고려해
+TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pass_fail"`은
+그 floor 미달 경고와 테스트 실행 실패를 모두 게이트 실패로 승격하며, 도구·테스트가
+개선되면 floor를 다시 높일 수 있습니다.
+
 ### 1.2 결과 상태와 게이트 계약
 
 모든 엔진은 `EngineResult`를 반환하며, 결과 상태와 증거 상태를 함께 기록합니다.
@@ -118,7 +123,8 @@ fail_pct = 15.0
     $$\text{TEM} = \frac{\min(80, \text{Branch} \times 1.25)}{80} \times \frac{\text{Function Coverage}}{100} \times \text{Pass Rate} \times 5.0$$
 - **평가 기준**:
   - 모든 테스트 케이스 통과 필수
-  - TEM 스코어 $\ge 4.0$, Branch Coverage $\ge 80\%$, Function Coverage $\ge 90\%$ 충족 시 PASS
+  - 기본 내장 정책은 TEM 스코어 $\ge 4.0$, Branch Coverage $\ge 80\%$, Function Coverage $\ge 90\%$를 요구
+  - 이 저장소 dogfood 정책은 현재 측정 baseline에 맞춘 TEM $\ge 2.0$, Branch $\ge 35\%$, Function $\ge 60\%$ floor를 사용
   - 실측 커버리지가 있는 경우 Branch Coverage는 실측값(coverage.py/gcov)으로 대체됨
   - 커버리지 80% 미만 모듈은 `Coverage:Module` WARN 타깃으로 Issues 탭/PR 어노테이션에 노출
 

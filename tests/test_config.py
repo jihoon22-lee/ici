@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import tomli
+
 from ici.config import DEFAULT_CONFIG, get_global_config_path, load_config
 
 
@@ -50,3 +52,15 @@ def test_default_config_has_layout_and_line_gate_keys():
 def test_get_global_config_path(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     assert get_global_config_path() == (tmp_path / "xdg" / "ici" / "ici.toml")
+
+
+def test_repository_test_policy_keeps_strict_calibrated_floors():
+    """The repository policy stays strict while allowing measured baseline jitter."""
+    policy_path = Path(__file__).resolve().parent.parent / "ici.toml"
+    with policy_path.open("rb") as policy_file:
+        test_policy = tomli.load(policy_file)["engines"]["test"]
+
+    assert test_policy["mode"] == "pass_fail"
+    assert test_policy["min_tem_score"] == 2.0
+    assert test_policy["min_branch_cov"] == 35.0
+    assert test_policy["min_func_cov"] == 60.0

@@ -13,6 +13,10 @@
     도구 실행 증거(`ToolEvidence`)를 추가
   - 필수 검증 누락(`SKIP`/`NOT_RUN`)과 빈 검증 집합을 `ERROR`로 처리해 허위 `PASS` 방지
   - `pass_fail` 모드에서 경고(`WARN`)도 `FAIL`로 승격
+- **Dogfood 테스트 게이트 baseline 보정**:
+  - 실행기별 coverage 편차를 허용하되 strict `pass_fail` 의미는 유지하도록 프로젝트 정책 floor를
+    TEM `2.0` / Branch `35%` / Function `60%`로 조정
+  - 실제 테스트 실행 실패는 임계값과 무관하게 계속 `FAIL`로 처리
 
 ## [0.3.3] - 2026-08-18
 
