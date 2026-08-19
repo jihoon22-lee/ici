@@ -31,11 +31,11 @@ class BaseEngine(ABC):
 
         mode options:
         - "pass_warn_fail" (default): FAIL on error, WARN on warning, else PASS
-        - "pass_fail": FAIL on error, ignore warnings (PASS)
+        - "pass_fail": FAIL on error or warning
         - "pass_warn": Downgrade all FAILs and WARNs to WARN (never fails CI)
         """
         if mode == "pass_fail":
-            return EngineStatus.FAIL if has_fail else EngineStatus.PASS
+            return EngineStatus.FAIL if (has_fail or has_warn) else EngineStatus.PASS
         elif mode == "pass_warn":
             return EngineStatus.WARN if (has_fail or has_warn) else EngineStatus.PASS
         else:  # pass_warn_fail

@@ -5,6 +5,15 @@
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **증거 인식 결과 계약 및 검증 게이트 강화**:
+  - `EngineResult`에 필수 엔진 여부(`required`), 증거 상태(`MEASURED`/`ESTIMATED`/`NOT_RUN`),
+    도구 실행 증거(`ToolEvidence`)를 추가
+  - 필수 검증 누락(`SKIP`/`NOT_RUN`)과 빈 검증 집합을 `ERROR`로 처리해 허위 `PASS` 방지
+  - `pass_fail` 모드에서 경고(`WARN`)도 `FAIL`로 승격
+
 ## [0.3.3] - 2026-08-18
 
 ### Added

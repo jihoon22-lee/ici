@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from ici.config import get_engine_config, load_config
-from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
+from ici.core.models import EngineResult, VerificationSuiteResult, aggregate_suite_status
 from ici.core.project import get_project_name
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.dead import DeadCodeEngine
@@ -60,9 +60,6 @@ class VerifyOrchestrator:
         ]
 
         tem_score = None
-        has_failure = False
-        has_warning = False
-
         for name, engine_cls in engine_defs:
             eng_cfg = get_engine_config(self.config, name)
             if not eng_cfg.get("enabled", True):
@@ -74,16 +71,7 @@ class VerifyOrchestrator:
 
             if res.engine_name == "test" and res.score is not None:
                 tem_score = res.score
-            if res.status == EngineStatus.FAIL:
-                has_failure = True
-            elif res.status == EngineStatus.WARN:
-                has_warning = True
-
-        suite_status = (
-            EngineStatus.FAIL
-            if has_failure
-            else (EngineStatus.WARN if has_warning else EngineStatus.PASS)
-        )
+        suite_status = aggregate_suite_status(results)
         duration = time.time() - t0
 
         suite = VerificationSuiteResult(
