@@ -291,9 +291,11 @@ class LintEngine(BaseEngine):
 
     @staticmethod
     def _is_valid_format_success(result: ProcessResult) -> bool:
+        if result.stderr.strip():
+            return False
         return (
-            not result.stderr.strip()
-            and _RUFF_FORMAT_SUCCESS_RE.fullmatch(result.stdout) is not None
+            not result.stdout.strip()
+            or _RUFF_FORMAT_SUCCESS_RE.fullmatch(result.stdout) is not None
         )
 
     @staticmethod
