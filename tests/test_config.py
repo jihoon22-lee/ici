@@ -119,6 +119,35 @@ def test_load_config_rejects_unknown_engine_key(tmp_path: Path, monkeypatch):
         load_config(tmp_path)
 
 
+def test_load_config_accepts_test_interpreter_and_coverage_policy(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        '[engines.test]\npython = "/opt/project/.venv/bin/python"\ncoverage_required = true\n',
+        encoding="utf-8",
+    )
+
+    config = load_config(tmp_path)
+
+    assert config["engines"]["test"]["python"] == "/opt/project/.venv/bin/python"
+    assert config["engines"]["test"]["coverage_required"] is True
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [("coverage_required", "\"yes\""), ("python", "false")],
+)
+def test_load_config_rejects_invalid_test_execution_policy(
+    tmp_path: Path, monkeypatch, key: str, value: str
+):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        f"[engines.test]\n{key} = {value}\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError, match=rf"engines\.test\.{key}"):
+        load_config(tmp_path)
+
+
 def test_load_config_rejects_unknown_top_level_key(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     (tmp_path / "ici.toml").write_text("[not_a_setting]\nvalue = true\n", encoding="utf-8")
