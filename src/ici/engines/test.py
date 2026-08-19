@@ -270,6 +270,8 @@ class TestEngine(BaseEngine):
             out = result.stdout
 
             json_path = cov_dir / "coverage.json"
+            with contextlib.suppress(OSError):
+                json_path.unlink()
             coverage_json_cmd = [*cov_cmd, "json", "-o", str(json_path)]
             coverage_json_result = run_process(
                 coverage_json_cmd, cwd=self.project_root, env=cov_env
