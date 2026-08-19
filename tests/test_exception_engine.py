@@ -386,6 +386,32 @@ def sibling():
     assert [(target.start_line, target.status) for target in targets] == [(5, EngineStatus.FAIL)]
 
 
+def test_exception_engine_respects_assignment_and_import_shadowing_of_scoped_aliases(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "shadowed_scopes.py").write_text(
+        """def handle():
+    from builtins import BaseException as BE
+    import builtins as b
+    BE = ValueError
+    import math as b
+    try:
+        work()
+    except BE:
+        log()
+    try:
+        work()
+    except b.BaseException:
+        log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(target.target_name == "BaseException" for target in result.targets)
+
+
 def test_exception_engine_cancels_pending_destructor_at_declaration_semicolon(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
