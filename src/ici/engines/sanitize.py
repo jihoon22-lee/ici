@@ -89,7 +89,11 @@ class SanitizeEngine(BaseEngine):
             evidence = EvidenceState.NOT_RUN
             summary = "; ".join(self._tool_errors[:3])
         elif self._measured_scopes and self._skipped_scopes:
-            overall_status = EngineStatus.WARN
+            overall_status = (
+                self.evaluate_status(has_failure, has_warning, mode)
+                if has_failure
+                else EngineStatus.WARN
+            )
             evidence = EvidenceState.ESTIMATED
             summary = "Sanitize partially executed: one or more applicable scopes were skipped"
         elif self._measured_scopes:
