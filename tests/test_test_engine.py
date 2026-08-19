@@ -3,7 +3,8 @@
 import json
 from pathlib import Path
 
-from ici.core.models import EngineStatus
+from ici.core.models import EngineStatus, EvidenceState
+from ici.core.runner import ProcessResult
 from ici.engines.test import TestEngine
 
 
@@ -133,6 +134,34 @@ def test_parse_coverage_json(tmp_path: Path):
     assert files["src/pkg/core.py"]["missing_lines"] == [5, 6]
 
 
+def test_parse_coverage_json_rejects_incomplete_file_summary(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    json_path = tmp_path / "coverage.json"
+    json_path.write_text(
+        json.dumps(
+            {
+                "files": {
+                    "src/pkg/core.py": {
+                        "executed_lines": [1],
+                        "missing_lines": [],
+                        "summary": {},
+                    }
+                },
+                "totals": {
+                    "covered_lines": 1,
+                    "num_statements": 1,
+                    "missing_lines": 0,
+                    "num_branches": 0,
+                    "covered_branches": 0,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert engine._parse_coverage_json(json_path) is None
+
+
 def test_compute_python_function_coverage(tmp_path: Path):
     src = tmp_path / "src" / "pkg"
     src.mkdir(parents=True)
@@ -244,7 +273,7 @@ def test_find_coverage_cmd_uses_venv_module_probe(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("ici.engines.test.shutil.which", lambda name: None)
     monkeypatch.setattr(
         "ici.engines.test.run_process",
-        lambda cmd, cwd=None, env=None: (0, "Coverage.py, version 7.x", "", 0.0),
+        lambda cmd, cwd=None, env=None: ProcessResult(0, "Coverage.py, version 7.x", "", 0.0),
     )
     monkeypatch.setattr("ici.engines.test.find_uv", lambda: None)
     cmd = engine._find_coverage_cmd(None)
@@ -259,13 +288,27 @@ def test_find_coverage_cmd_uses_pytest_interpreter(tmp_path: Path, monkeypatch):
 
     def fake_run(cmd, cwd=None, env=None):
         if "--version" in cmd and cmd[0] == "/proj/.venvx/bin/python":
-            return (0, "Coverage.py, version 7.1.2", "", 0.0)
-        return (1, "", "No module named coverage", 0.0)
+            return ProcessResult(0, "Coverage.py, version 7.1.2", "", 0.0)
+        return ProcessResult(1, "", "No module named coverage", 0.0)
 
     monkeypatch.setattr("ici.engines.test.run_process", fake_run)
     monkeypatch.setattr("ici.engines.test.find_uv", lambda: None)
     cmd = engine._find_coverage_cmd(["/proj/.venvx/bin/pytest"])
     assert cmd == ["/proj/.venvx/bin/python", "-m", "coverage"]
+
+
+def test_find_coverage_cmd_rejects_truncated_probe(tmp_path: Path, monkeypatch):
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr("ici.engines.test.shutil.which", lambda name: None)
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            0, "Coverage.py, version 7.1.2", "", 0.01, truncated=True
+        ),
+    )
+    monkeypatch.setattr("ici.engines.test.find_uv", lambda: None)
+
+    assert engine._find_coverage_cmd(["/proj/.venvx/bin/pytest"]) is None
 
 
 def test_coverage_run_uses_source_dirs_flag(tmp_path: Path, monkeypatch):
@@ -279,8 +322,110 @@ def test_coverage_run_uses_source_dirs_flag(tmp_path: Path, monkeypatch):
     captured: list[list[str]] = []
     monkeypatch.setattr(
         "ici.engines.test.run_process",
-        lambda cmd, cwd=None, env=None: captured.append(cmd) or (0, "", "", 0.0),
+        lambda cmd, cwd=None, env=None: captured.append(cmd) or ProcessResult(0, "", "", 0.0),
     )
     engine._run_python_tests([])
     cov_run = next(c for c in captured if "run" in c and "--branch" in c)
     assert "--source=lib" in cov_run
+
+
+def test_coverage_missing_json_is_error_after_attempt(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_coverage.py").write_text("def test_coverage():\n    pass\n", encoding="utf-8")
+    engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: ["coverage"])
+
+    def fake_run(cmd, cwd=None, env=None):
+        if "run" in cmd:
+            return ProcessResult(
+                0,
+                "tests/test_coverage.py::test_coverage PASSED\n",
+                "",
+                0.01,
+            )
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_coverage_malformed_json_is_error_after_attempt(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_coverage.py").write_text("def test_coverage():\n    pass\n", encoding="utf-8")
+    engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: ["coverage"])
+
+    def fake_run(cmd, cwd=None, env=None):
+        if "run" in cmd:
+            return ProcessResult(
+                0,
+                "tests/test_coverage.py::test_coverage PASSED\n",
+                "",
+                0.01,
+            )
+        output_path = Path(cmd[cmd.index("-o") + 1])
+        output_path.write_text("not json", encoding="utf-8")
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_python_test_timeout_cannot_report_pass(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_timeout.py").write_text("def test_timeout():\n    pass\n", encoding="utf-8")
+    engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: None)
+    monkeypatch.setattr(
+        "ici.engines.test.shutil.which",
+        lambda name: "/usr/bin/pytest" if name == "pytest" else None,
+    )
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            124, "tests/test_timeout.py::test_timeout PASSED", "", 0.05, timed_out=True
+        ),
+    )
+    monkeypatch.setattr(
+        engine, "_measure_coverage", lambda _proj_type, _has_failure: (100.0, 100.0, [])
+    )
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_python_test_truncated_output_cannot_report_pass(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_truncated.py").write_text("def test_truncated():\n    pass\n", encoding="utf-8")
+    engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: None)
+    monkeypatch.setattr(
+        "ici.engines.test.shutil.which",
+        lambda name: "/usr/bin/pytest" if name == "pytest" else None,
+    )
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            0, "tests/test_truncated.py::test_truncated PASSED", "", 0.05, truncated=True
+        ),
+    )
+    monkeypatch.setattr(
+        engine, "_measure_coverage", lambda _proj_type, _has_failure: (100.0, 100.0, [])
+    )
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN

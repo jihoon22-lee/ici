@@ -1,12 +1,19 @@
 """4. Static Type Checking Engine (Mypy & Strict C++ Flags)."""
 
 import ast
+import re
 import shutil
 import time
 from pathlib import Path
 
 from ici.core.env import find_uv
-from ici.core.models import EngineResult, EngineStatus, InspectionTarget
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    EvidenceState,
+    InspectionTarget,
+    ToolEvidence,
+)
 from ici.core.project import (
     detect_project_type,
     get_all_python_sources,
@@ -14,6 +21,11 @@ from ici.core.project import (
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
+
+_MYPY_SUCCESS_RE = re.compile(
+    r"Success: no issues found in (?:0|1) source file(?:\r?\n)?\Z"
+    r"|Success: no issues found in (?:[2-9]|[1-9]\d+) source files(?:\r?\n)?\Z"
+)
 
 
 class TypeCheckEngine(BaseEngine):
@@ -23,9 +35,11 @@ class TypeCheckEngine(BaseEngine):
         t0 = time.time()
         proj_type = detect_project_type(self.project_root)
         targets: list[InspectionTarget] = []
+        tool_errors: list[str] = []
+        tool_evidence: list[ToolEvidence] = []
 
         if proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py")):
-            _ = self._check_python_types(targets)
+            self._check_python_types(targets, tool_errors, tool_evidence)
 
         duration = time.time() - t0
         fail_count = sum(1 for t in targets if t.status == EngineStatus.FAIL)
@@ -33,10 +47,16 @@ class TypeCheckEngine(BaseEngine):
 
         cfg = self.get_config("type")
         mode = cfg.get("mode", "pass_warn")
-        overall_status = self.evaluate_status(fail_count > 0, warn_count > 0, mode)
+        overall_status = (
+            EngineStatus.ERROR
+            if tool_errors
+            else self.evaluate_status(fail_count > 0, warn_count > 0, mode)
+        )
 
         summary = (
-            "Static Type Check Passed"
+            "; ".join(tool_errors[:3])
+            if tool_errors
+            else "Static Type Check Passed"
             if overall_status == EngineStatus.PASS
             else f"{fail_count} Type Errors, {warn_count} Missing Annotations"
         )
@@ -48,53 +68,113 @@ class TypeCheckEngine(BaseEngine):
             duration=duration,
             targets=targets,
             extra={"type_issues": len(targets), "metrics_summary": f"{len(targets)} type targets"},
+            required=bool(cfg.get("required", True)),
+            evidence=EvidenceState.NOT_RUN if tool_errors else EvidenceState.MEASURED,
+            tool_evidence=tool_evidence,
         )
 
-    def _check_python_types(self, targets: list[InspectionTarget]) -> bool:
-        mypy_cmd: list[str] | None = None
+    def _check_python_types(
+        self,
+        targets: list[InspectionTarget],
+        tool_errors: list[str] | None = None,
+        tool_evidence: list[ToolEvidence] | None = None,
+    ) -> bool:
+        errors = tool_errors if tool_errors is not None else []
+        evidence = tool_evidence if tool_evidence is not None else []
+        mypy_cmd = self._find_mypy_cmd()
+        if mypy_cmd is not None and self._run_mypy(mypy_cmd, targets, errors, evidence):
+            return True
+        if mypy_cmd is not None and errors:
+            return False
+        return self._check_python_annotations(targets)
+
+    def _find_mypy_cmd(self) -> list[str] | None:
         which_mypy = shutil.which("mypy")
         venv_mypy = self.project_root / ".venv/bin/mypy"
         if which_mypy:
-            mypy_cmd = [which_mypy]
-        elif venv_mypy.exists():
-            mypy_cmd = [str(venv_mypy)]
-        elif find_uv():
-            mypy_cmd = ["uv", "run", "mypy"]
+            return [which_mypy]
+        if venv_mypy.exists():
+            return [str(venv_mypy)]
+        if find_uv():
+            return ["uv", "run", "mypy"]
+        return None
 
-        has_error = False
-
-        if mypy_cmd:
-            mypy_targets = [
-                str(d.relative_to(self.project_root))
-                for d in get_source_dirs(self.project_root, self.config)
-            ] or ["."]
-            code, out, _err, _ = run_process(
-                [*mypy_cmd, "--ignore-missing-imports", *mypy_targets], cwd=self.project_root
+    def _run_mypy(
+        self,
+        mypy_cmd: list[str],
+        targets: list[InspectionTarget],
+        errors: list[str],
+        evidence: list[ToolEvidence],
+    ) -> bool:
+        mypy_targets = [
+            str(d.relative_to(self.project_root))
+            for d in get_source_dirs(self.project_root, self.config)
+        ] or ["."]
+        mypy_argv = [*mypy_cmd, "--ignore-missing-imports", *mypy_targets]
+        result = run_process(mypy_argv, cwd=self.project_root)
+        evidence.append(
+            ToolEvidence(
+                name="mypy",
+                path=mypy_argv[0],
+                argv=mypy_argv,
+                returncode=result.returncode,
             )
-            if code != 0 and out.strip():
-                has_error = True
-                for line in out.splitlines():
-                    if ": error:" in line or ": note:" in line:
-                        parts = line.split(":", 3)
-                        if len(parts) >= 4:
-                            fpath, lnum, _, msg = parts[0], parts[1], parts[2], parts[3]
-                            try:
-                                rel_p = str(Path(fpath).relative_to(self.project_root))
-                            except ValueError as err:
-                                _ = err
-                                rel_p = fpath
-                            targets.append(
-                                InspectionTarget(
-                                    file_path=rel_p,
-                                    start_line=int(lnum) if lnum.isdigit() else 1,
-                                    target_name="MypyError",
-                                    status=EngineStatus.FAIL,
-                                    message=msg.strip(),
-                                )
-                            )
-                return has_error
+        )
+        if result.timed_out:
+            errors.append("Mypy timed out")
+            return False
+        if result.truncated:
+            errors.append("Mypy output was truncated")
+            return False
+        if result.returncode != 0:
+            return self._parse_mypy_diagnostics(
+                result.stdout, result.stderr, result.returncode, targets, errors
+            )
+        if result.stderr:
+            errors.append("Mypy emitted unexpected stderr on success")
+            return False
+        if _MYPY_SUCCESS_RE.fullmatch(result.stdout) is None:
+            errors.append("Mypy success output was not parseable")
+        return False
 
-        # Fallback: AST Type Annotation Inspector
+    def _parse_mypy_diagnostics(
+        self,
+        stdout: str,
+        stderr: str,
+        returncode: int,
+        targets: list[InspectionTarget],
+        errors: list[str],
+    ) -> bool:
+        has_error = False
+        for line in (stdout + "\n" + stderr).splitlines():
+            if ": error:" not in line and ": note:" not in line:
+                continue
+            has_error = has_error or ": error:" in line
+            self._append_mypy_target(line, targets)
+        if not has_error:
+            errors.append(f"Mypy failed with non-parseable output (exit code {returncode})")
+        return has_error
+
+    def _append_mypy_target(self, line: str, targets: list[InspectionTarget]) -> None:
+        parts = line.split(":", 3)
+        if len(parts) < 4:
+            return
+        fpath, lnum, _, msg = parts
+        try:
+            rel_path = str(Path(fpath).relative_to(self.project_root))
+        except ValueError:
+            rel_path = fpath
+        targets.append(
+            InspectionTarget(
+                file_path=rel_path,
+                start_line=int(lnum) if lnum.isdigit() else 1,
+                target_name="MypyError",
+                status=EngineStatus.FAIL,
+                message=msg.strip(),
+            )
+        )
+
+    def _check_python_annotations(self, targets: list[InspectionTarget]) -> bool:
         for py_file in get_all_python_sources(self.project_root):
             try:
                 content = py_file.read_text(encoding="utf-8")

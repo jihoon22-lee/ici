@@ -5,7 +5,13 @@ from pathlib import Path
 from typing import Any
 
 from ici.config import get_engine_config, load_config
-from ici.core.models import EngineResult, VerificationSuiteResult, aggregate_suite_status
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    EvidenceState,
+    VerificationSuiteResult,
+    aggregate_suite_status,
+)
 from ici.core.project import get_project_name
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.dead import DeadCodeEngine
@@ -65,8 +71,17 @@ class VerifyOrchestrator:
             if not eng_cfg.get("enabled", True):
                 continue
 
-            engine_instance = engine_cls(self.project_root, self.config)
-            res = engine_instance.run()
+            try:
+                engine_instance = engine_cls(self.project_root, self.config)
+                res = engine_instance.run()
+            except Exception as exc:
+                res = EngineResult(
+                    engine_name=name,
+                    status=EngineStatus.ERROR,
+                    summary=f"Engine crashed: {type(exc).__name__}: {exc}",
+                    required=bool(eng_cfg.get("required", True)),
+                    evidence=EvidenceState.NOT_RUN,
+                )
             results.append(res)
 
             if res.engine_name == "test" and res.score is not None:
