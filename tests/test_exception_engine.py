@@ -560,6 +560,108 @@ def local_assignment():
     assert not any(target.target_name == "BaseException" for target in result.targets)
 
 
+def test_exception_engine_evaluates_handler_type_before_handler_name_binding(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "handler_names.py").write_text(
+        """import builtins
+
+def handle():
+    try:
+        work()
+    except BaseException as BaseException:
+        log()
+    try:
+        work()
+    except builtins.BaseException as builtins:
+        log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (6, EngineStatus.FAIL),
+        (10, EngineStatus.FAIL),
+    ]
+
+
+def test_exception_engine_does_not_apply_future_module_or_class_bindings(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "future_bindings.py").write_text(
+        """import builtins
+
+try:
+    work()
+except BaseException:
+    log()
+try:
+    work()
+except builtins.BaseException:
+    log()
+BaseException = ValueError
+builtins = object()
+try:
+    work()
+except BaseException:
+    log()
+
+class Handler:
+    import builtins
+    try:
+        work()
+    except BaseException:
+        log()
+    BaseException = ValueError
+    builtins = object()
+    try:
+        work()
+    except BaseException:
+        log()
+    try:
+        work()
+    except builtins.BaseException:
+        log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (5, EngineStatus.FAIL),
+        (9, EngineStatus.FAIL),
+        (22, EngineStatus.FAIL),
+    ]
+
+
+def test_exception_engine_global_assignment_does_not_shadow_module_alias(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "global_binding.py").write_text(
+        """from builtins import BaseException as BE
+
+def handle():
+    global BE
+    try:
+        work()
+    except BE:
+        log()
+    BE = ValueError
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [(7, EngineStatus.FAIL)]
+
+
 def test_exception_engine_cancels_pending_destructor_at_declaration_semicolon(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
