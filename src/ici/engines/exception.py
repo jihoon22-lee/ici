@@ -483,69 +483,97 @@ class ExceptionSafetyEngine(BaseEngine):
         index = 0
         state = "code"
         while index < len(chars):
-            current = chars[index]
-            following = chars[index + 1] if index + 1 < len(chars) else ""
-            if state == "code" and current == "R" and following == '"':
-                open_paren = content.find("(", index + 2)
-                if open_paren != -1:
-                    delimiter = content[index + 2 : open_paren]
-                    if len(delimiter) <= 16 and not any(
-                        char.isspace() or char in {"\\", "(", ")"} for char in delimiter
-                    ):
-                        close_marker = ")" + delimiter + '"'
-                        close_start = content.find(close_marker, open_paren + 1)
-                        end = len(chars) if close_start == -1 else close_start + len(close_marker)
-                        for position in range(index, end):
-                            if chars[position] != "\n":
-                                chars[position] = " "
-                        index = end
-                        continue
-            if state == "code" and current == "/" and following == "/":
-                chars[index] = chars[index + 1] = " "
-                state = "line"
-                index += 2
-                continue
-            if state == "code" and current == "/" and following == "*":
-                chars[index] = chars[index + 1] = " "
-                state = "block"
-                index += 2
-                continue
-            if state == "code" and current in {'"', "'"}:
-                state = current
-                chars[index] = " "
-                index += 1
-                continue
-            if state == "line":
-                if current == "\n":
-                    state = "code"
-                else:
-                    chars[index] = " "
-                index += 1
-                continue
-            if state == "block":
-                if current == "*" and following == "/":
-                    chars[index] = chars[index + 1] = " "
-                    state = "code"
-                    index += 2
-                else:
-                    if current != "\n":
-                        chars[index] = " "
-                    index += 1
-                continue
-            if current == "\\":
-                chars[index] = " "
-                if index + 1 < len(chars) and chars[index + 1] != "\n":
-                    chars[index + 1] = " "
-                    index += 2
-                else:
-                    index += 1
-                continue
-            if current == state:
-                state = "code"
-            if state != "code" and current != "\n":
-                chars[index] = " "
-            index += 1
+            index, state = ExceptionSafetyEngine._mask_cpp_step(content, chars, index, state)
         return "".join(chars)
+
+    @staticmethod
+    def _mask_cpp_step(content: str, chars: list[str], index: int, state: str) -> tuple[int, str]:
+        if state == "code":
+            return ExceptionSafetyEngine._mask_cpp_code_step(content, chars, index)
+        if state == "line":
+            return ExceptionSafetyEngine._mask_cpp_line_step(chars, index)
+        if state == "block":
+            return ExceptionSafetyEngine._mask_cpp_block_step(chars, index)
+        return ExceptionSafetyEngine._mask_cpp_quote_step(chars, index, state)
+
+    @staticmethod
+    def _mask_cpp_code_step(content: str, chars: list[str], index: int) -> tuple[int, str]:
+        following = chars[index + 1] if index + 1 < len(chars) else ""
+        raw_end = ExceptionSafetyEngine._cpp_raw_string_end(content, index)
+        if raw_end is not None:
+            ExceptionSafetyEngine._blank_cpp_span(chars, index, raw_end)
+            return raw_end, "code"
+        if following == "/" and chars[index] == "/":
+            chars[index] = chars[index + 1] = " "
+            return index + 2, "line"
+        if following == "*" and chars[index] == "/":
+            chars[index] = chars[index + 1] = " "
+            return index + 2, "block"
+        quote = chars[index]
+        if quote in {'"', "'"}:
+            chars[index] = " "
+            return index + 1, quote
+        if chars[index] == "\\":
+            return ExceptionSafetyEngine._blank_cpp_escape(chars, index), "code"
+        return index + 1, "code"
+
+    @staticmethod
+    def _mask_cpp_line_step(chars: list[str], index: int) -> tuple[int, str]:
+        if chars[index] == "\n":
+            return index + 1, "code"
+        chars[index] = " "
+        return index + 1, "line"
+
+    @staticmethod
+    def _mask_cpp_block_step(chars: list[str], index: int) -> tuple[int, str]:
+        following = chars[index + 1] if index + 1 < len(chars) else ""
+        if chars[index] == "*" and following == "/":
+            chars[index] = chars[index + 1] = " "
+            return index + 2, "code"
+        if chars[index] != "\n":
+            chars[index] = " "
+        return index + 1, "block"
+
+    @staticmethod
+    def _mask_cpp_quote_step(chars: list[str], index: int, state: str) -> tuple[int, str]:
+        current = chars[index]
+        if current == "\\":
+            return ExceptionSafetyEngine._blank_cpp_escape(chars, index), state
+        if current == state:
+            return index + 1, "code"
+        if current != "\n":
+            chars[index] = " "
+        return index + 1, state
+
+    @staticmethod
+    def _blank_cpp_escape(chars: list[str], index: int) -> int:
+        chars[index] = " "
+        if index + 1 < len(chars) and chars[index + 1] != "\n":
+            chars[index + 1] = " "
+            return index + 2
+        return index + 1
+
+    @staticmethod
+    def _cpp_raw_string_end(content: str, index: int) -> int | None:
+        if content[index : index + 2] != 'R"':
+            return None
+        open_paren = content.find("(", index + 2)
+        if open_paren == -1:
+            return None
+        delimiter = content[index + 2 : open_paren]
+        if len(delimiter) > 16 or any(
+            char.isspace() or char in {"\\", "(", ")"} for char in delimiter
+        ):
+            return None
+        close_marker = ")" + delimiter + '"'
+        close_start = content.find(close_marker, open_paren + 1)
+        return len(content) if close_start == -1 else close_start + len(close_marker)
+
+    @staticmethod
+    def _blank_cpp_span(chars: list[str], start: int, end: int) -> None:
+        for position in range(start, end):
+            if chars[position] != "\n":
+                chars[position] = " "
 
     @staticmethod
     def _destructor_throw_lines(masked: str) -> list[int]:
