@@ -38,6 +38,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "min_tem_score": 4.0,
             "min_branch_cov": 80.0,
             "min_func_cov": 90.0,
+            "coverage_required": False,
         },
         "type": {
             "enabled": True,

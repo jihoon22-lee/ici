@@ -44,6 +44,9 @@ mode = "pass_fail"
 min_tem_score = 4.0
 min_branch_cov = 80.0
 min_func_cov = 90.0
+# Use the project interpreter for pytest, coverage.py, and unittest.
+# python = "/workspace/.venv/bin/python"
+coverage_required = false
 
 [engines.complexity]
 enabled = true
@@ -107,6 +110,17 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 
 ### 2.3 🧪 `test` & TEM 스코어링 (단위 테스트 및 테스트 효과성 지표)
 - **동작**: 프로젝트 내 pytest 또는 C++ 테스트 바이너리를 실행하여 단위 테스트 전수 통과 여부 검증
+- **Python 실행기**: `[engines.test].python`이 지정되면 해당 인터프리터를 우선 사용하고,
+  없으면 프로젝트 `.venv`의 Python, 마지막으로 `sys.executable` 순서로 선택합니다. pytest,
+  coverage.py, unittest는 모두 이 동일한 인터프리터의 `-m` 모듈 호출로 실행하며 PATH에 있는
+  `pytest`/`coverage` 스크립트를 섞어 사용하지 않습니다.
+- **테스트 수집 증거**: pytest 종료 코드 `5` 또는 수집된 테스트가 0개이면 `total_tests = 0`인
+  `FAIL`입니다. 인터프리터/도구 부재, timeout, 출력 절단, 도구 자체 오류는 `ERROR`/`NOT_RUN`으로
+  기록되어 추정치로 통과할 수 없습니다.
+- **커버리지 정책**: `coverage_required = true`이면 Python `coverage.json` 또는 C++ `gcov`
+  산출물이 실제로 생성·파싱되어야 하며, 누락·불완전·잘못된 출력은 `ERROR`/`NOT_RUN`입니다.
+  `false`이면 커버리지 수치는 `ESTIMATED`로 표시되고 결과는 최소 `WARN`이며, 추정치는 TEM·
+  커버리지 임계값의 `PASS` 근거로 사용되지 않습니다.
 - **모듈별 실측 커버리지 수집** (HTML `🧪 Tests & Coverage` 탭의 Module Coverage Table):
   - **Python**: 프로젝트 환경의 `coverage.py`가 있으면 `coverage run --branch`로 테스트를 재실행하고 `coverage json`을 파싱하여 파일별 Stmts/Miss/Cover/Branch 실측값 수집
   - **C++**: `gcov`가 있으면 `g++ --coverage` 2단계 컴파일(객체별 `-c` 후 링크)로 테스트를 빌드·실행하고 `gcov -b -p` 산출물을 파싱하여 동일한 파일별 테이블 생성 (테스트 파일 제외)

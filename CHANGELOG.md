@@ -8,6 +8,14 @@
 ## [Unreleased]
 
 ### Changed
+- **테스트 실행·커버리지 증거 강화**:
+  - 설정된 Python → 프로젝트 `.venv` → `sys.executable` 순으로 단일 인터프리터를 선택하고
+    pytest/coverage/unittest를 모두 `-m` 모듈 호출로 실행
+  - pytest 5 종료 코드와 0개 수집을 `FAIL`로 기록하고, 실행기·timeout·도구 오류는
+    `ERROR`/`NOT_RUN`으로 분리
+  - `coverage_required` 정책에서 Python coverage JSON 또는 C++ gcov 실측이 없거나 잘못되면
+    통과를 금지하며, 선택적 커버리지는 `ESTIMATED`/`WARN`으로만 표시
+  - 반복 실행 사이에 커버리지·도구 증거를 초기화해 이전 측정값이 재사용되지 않도록 보장
 - **Dogfood 품질 게이트 유지보수성 개선**:
   - 프로세스 실행 및 lint/test/type 검증 흐름을 명시적·저복잡도 헬퍼로 분리해 CI 복잡도 임계값과 Mypy 타입 검사를 통과하도록 정리
 - **서브프로세스 결과 신뢰성 강화**:

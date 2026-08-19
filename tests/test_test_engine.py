@@ -334,7 +334,10 @@ def test_coverage_missing_json_is_error_after_attempt(tmp_path: Path, monkeypatc
     tests = tmp_path / "tests"
     tests.mkdir()
     (tests / "test_coverage.py").write_text("def test_coverage():\n    pass\n", encoding="utf-8")
-    engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
+    engine = TestEngine(
+        tmp_path,
+        {"engines": {"test": {"mode": "pass_fail", "coverage_required": True}}},
+    )
     monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: ["coverage"])
 
     def fake_run(cmd, cwd=None, env=None):
@@ -358,7 +361,10 @@ def test_coverage_malformed_json_is_error_after_attempt(tmp_path: Path, monkeypa
     tests = tmp_path / "tests"
     tests.mkdir()
     (tests / "test_coverage.py").write_text("def test_coverage():\n    pass\n", encoding="utf-8")
-    engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
+    engine = TestEngine(
+        tmp_path,
+        {"engines": {"test": {"mode": "pass_fail", "coverage_required": True}}},
+    )
     monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: ["coverage"])
 
     def fake_run(cmd, cwd=None, env=None):
@@ -471,11 +477,16 @@ def test_python_tools_use_one_interpreter_with_module_invocation(tmp_path: Path)
         "run",
         "--branch",
     ]
-    assert coverage_cmd[-6:] == [
+    assert coverage_cmd[-9:-4] == [
         "-m",
         "pytest",
         "-o",
         "addopts=",
+        "-s",
+    ]
+    assert coverage_cmd[-4:] == [
+        "--basetemp",
+        str(tmp_path / "build" / "pytest-tmp"),
         "-v",
         "tests",
     ]
@@ -525,9 +536,7 @@ def test_optional_coverage_is_estimated_warning_not_threshold_pass(
     assert result.extra["coverage_source"] == "estimated"
 
 
-def test_required_coverage_unavailable_is_error_and_not_run(
-    tmp_python_project: Path, monkeypatch
-):
+def test_required_coverage_unavailable_is_error_and_not_run(tmp_python_project: Path, monkeypatch):
     engine = TestEngine(
         tmp_python_project,
         {"engines": {"test": {"coverage_required": True}}},
@@ -542,7 +551,9 @@ def test_required_coverage_unavailable_is_error_and_not_run(
 
 def test_required_cpp_coverage_without_gcov_is_error_and_not_run(tmp_path: Path, monkeypatch):
     (tmp_path / "src").mkdir()
-    (tmp_path / "src" / "calc.cpp").write_text("int add(int a, int b) { return a + b; }\n", encoding="utf-8")
+    (tmp_path / "src" / "calc.cpp").write_text(
+        "int add(int a, int b) { return a + b; }\n", encoding="utf-8"
+    )
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_calc.cpp").write_text(
         "int main() { return 0; }\n", encoding="utf-8"
@@ -561,7 +572,9 @@ def test_required_cpp_coverage_without_gcov_is_error_and_not_run(tmp_path: Path,
         },
     )
     monkeypatch.setattr("ici.engines.test.detect_project_type", lambda _root: "cpp")
-    monkeypatch.setattr("ici.engines.test.shutil.which", lambda name: "/usr/bin/g++" if name == "g++" else None)
+    monkeypatch.setattr(
+        "ici.engines.test.shutil.which", lambda name: "/usr/bin/g++" if name == "g++" else None
+    )
     monkeypatch.setattr(engine, "_run_cpp_tests", lambda targets: (1, 1, False))
 
     result = engine.run()
@@ -582,9 +595,9 @@ def test_coverage_state_does_not_leak_between_runs(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(
         engine,
         "_find_coverage_cmd",
-        lambda _python: ["/project/python", "-m", "coverage"]
-        if coverage_available["enabled"]
-        else None,
+        lambda _python: (
+            ["/project/python", "-m", "coverage"] if coverage_available["enabled"] else None
+        ),
     )
 
     def fake_run(cmd, **kwargs):
