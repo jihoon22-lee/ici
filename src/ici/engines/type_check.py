@@ -6,7 +6,7 @@ import shutil
 import time
 from pathlib import Path
 
-from ici.core.env import find_uv
+from ici.core.env import find_project_executable
 from ici.core.models import (
     EngineResult,
     EngineStatus,
@@ -119,13 +119,11 @@ class TypeCheckEngine(BaseEngine):
 
     def _find_mypy_cmd(self) -> list[str] | None:
         which_mypy = shutil.which("mypy")
-        venv_mypy = self.project_root / ".venv/bin/mypy"
         if which_mypy:
             return [which_mypy]
-        if venv_mypy.exists():
-            return [str(venv_mypy)]
-        if find_uv():
-            return ["uv", "run", "mypy"]
+        venv_mypy = find_project_executable(self.project_root, "mypy")
+        if venv_mypy:
+            return [venv_mypy]
         return None
 
     def _run_mypy(

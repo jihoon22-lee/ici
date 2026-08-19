@@ -7,7 +7,7 @@ import shutil
 import time
 from pathlib import Path
 
-from ici.core.env import find_uv
+from ici.core.env import find_project_executable
 from ici.core.models import (
     EngineResult,
     EngineStatus,
@@ -165,15 +165,11 @@ class LintEngine(BaseEngine):
 
     def _find_ruff_command(self) -> list[str] | None:
         which_ruff = shutil.which("ruff")
-        venv_ruff = self.project_root / ".venv/bin/ruff"
         if which_ruff:
             return [which_ruff]
-        if venv_ruff.exists():
-            return [str(venv_ruff)]
-        if shutil.which("uvx"):
-            return ["uvx", "ruff"]
-        if find_uv():
-            return ["uv", "run", "ruff"]
+        venv_ruff = find_project_executable(self.project_root, "ruff")
+        if venv_ruff:
+            return [venv_ruff]
         return None
 
     def _run_ruff_check(

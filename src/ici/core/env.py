@@ -61,6 +61,25 @@ def find_uv() -> str | None:
     return shutil.which("uv")
 
 
+def find_project_executable(project_root: Path, name: str) -> str | None:
+    """Find a directly executable tool in the project's virtual environment.
+
+    Package runners such as ``uv run`` and ``uvx`` are intentionally excluded:
+    resolving a missing tool through them can access the network or mutate the
+    environment.  The explicit candidates cover the Unix and Windows venv
+    layouts while requiring executable permissions on Unix.
+    """
+
+    for directory in ("bin", "Scripts"):
+        for suffix in ("", ".exe"):
+            candidate = project_root / ".venv" / directory / f"{name}{suffix}"
+            if not candidate.is_file():
+                continue
+            if os.name == "nt" or os.access(str(candidate), os.X_OK):
+                return str(candidate)
+    return None
+
+
 def get_nas_cpp_lib_dir() -> Path:
     """Returns the default NAS shared C++ library directory."""
     return get_nas_shared_dir() / "libs/cpp/ips-core-lib/v1.2.3/x86_64"
