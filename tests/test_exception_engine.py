@@ -450,7 +450,7 @@ def later():
     targets = [target for target in result.targets if target.target_name == "BaseException"]
     assert [(target.start_line, target.status) for target in targets] == [
         (8, EngineStatus.FAIL),
-        (13, EngineStatus.FAIL),
+        (12, EngineStatus.FAIL),
     ]
 
 
