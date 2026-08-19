@@ -162,6 +162,22 @@ def test_exception_engine_ignores_cpp_raw_string_false_positive(tmp_path):
     )
 
 
+@pytest.mark.parametrize("prefix", ["u8R", "uR", "UR", "LR"])
+def test_exception_engine_ignores_cpp_prefixed_raw_string_false_positive(tmp_path, prefix):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "raw.cpp").write_text(
+        f'const char* text = {prefix}"tag(catch (...) {{ }} ~Type() {{ throw 1; }})tag";\n',
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(
+        target.target_name in {"CatchAllSwallowed", "DestructorThrow"} for target in result.targets
+    )
+
+
 def test_exception_default_mode_matches_pass_fail_policy(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
