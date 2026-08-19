@@ -1,9 +1,11 @@
 """Regression tests for project metadata parsing and validation."""
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
+import ici.core.project as project_module
 from ici.core.project import (
     get_project_name,
     get_project_version,
@@ -59,6 +61,14 @@ def test_project_metadata_rejects_malformed_toml(tmp_path: Path):
         read_project_metadata(tmp_path)
 
 
+def test_project_metadata_rejects_parser_recursion_limit(tmp_path: Path):
+    deeply_nested_key = ".".join(f"part{index}" for index in range(5_000))
+    (tmp_path / "pyproject.toml").write_text(f"{deeply_nested_key} = 'value'\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="could not parse project metadata"):
+        read_project_metadata(tmp_path)
+
+
 def test_project_metadata_rejects_symlinked_metadata_escape(tmp_path: Path):
     outside = tmp_path.parent / "outside-metadata"
     outside.write_text("name = 'outside'\nversion = '9.9.9'\n", encoding="utf-8")
@@ -86,3 +96,27 @@ def test_resolve_project_path_uses_canonical_containment(tmp_path: Path):
     assert resolve_project_path(tmp_path, "src/../src") == source.resolve()
     with pytest.raises(ValueError, match="outside project root"):
         resolve_project_path(tmp_path, "src/link")
+
+
+def test_project_metadata_uses_git_version_when_metadata_version_is_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    (tmp_path / "ici.toml").write_text("name = 'demo-app'\n", encoding="utf-8")
+    monkeypatch.setattr(
+        project_module.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout="2.7.0\n"),
+    )
+
+    assert read_project_metadata(tmp_path) == ("demo-app", "v2.7.0")
+
+
+def test_project_metadata_falls_back_when_git_is_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    def fail_git(*args, **kwargs):
+        raise OSError("git unavailable")
+
+    monkeypatch.setattr(project_module.subprocess, "run", fail_git)
+
+    assert get_project_version(tmp_path) == "v1.0.0"

@@ -5,7 +5,13 @@ from pathlib import Path
 import pytest
 
 from ici.core.models import EngineStatus
-from ici.core.project import detect_project_type, get_all_python_sources, get_source_dirs
+from ici.core.project import (
+    detect_project_type,
+    get_all_cpp_includes,
+    get_all_cpp_sources,
+    get_all_python_sources,
+    get_source_dirs,
+)
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.test import TestEngine
@@ -112,6 +118,47 @@ def test_source_discovery_ignores_symlinked_files_and_directories(tmp_path: Path
     assert [p.relative_to(tmp_path) for p in get_all_python_sources(tmp_path)] == [
         Path("src/safe.py")
     ]
+
+
+def test_cpp_source_discovery_ignores_symlinked_files_directories_and_loops(tmp_path: Path):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "safe.cpp").write_text("int safe() { return 0; }\n", encoding="utf-8")
+    outside = tmp_path.parent / "outside-cpp-source"
+    outside.mkdir()
+    (outside / "leak.cpp").write_text("int leak() { return 1; }\n", encoding="utf-8")
+    (source / "leak.cpp").symlink_to(outside / "leak.cpp")
+    (source / "linked").symlink_to(outside, target_is_directory=True)
+    loop_a = source / "loop-a"
+    loop_b = source / "loop-b"
+    loop_a.symlink_to(loop_b, target_is_directory=True)
+    loop_b.symlink_to(loop_a, target_is_directory=True)
+
+    assert [p.relative_to(tmp_path) for p in get_all_cpp_sources(tmp_path)] == [
+        Path("src/safe.cpp")
+    ]
+
+
+def test_cpp_include_discovery_ignores_symlink_escape_and_loops(tmp_path: Path):
+    include = tmp_path / "include"
+    safe = include / "safe"
+    safe.mkdir(parents=True)
+    outside = tmp_path.parent / "outside-cpp-include"
+    outside.mkdir()
+    escape = include / "escape"
+    escape.symlink_to(outside, target_is_directory=True)
+    loop_a = include / "loop-a"
+    loop_b = include / "loop-b"
+    loop_a.symlink_to(loop_b, target_is_directory=True)
+    loop_b.symlink_to(loop_a, target_is_directory=True)
+
+    include_dirs = get_all_cpp_includes(tmp_path)
+
+    assert f"-I{include}" in include_dirs
+    assert f"-I{safe}" in include_dirs
+    assert f"-I{outside}" not in include_dirs
+    assert f"-I{escape}" not in include_dirs
+    assert not any("loop-a" in path or "loop-b" in path for path in include_dirs)
 
 
 def test_dup_detects_type2_cross_file_clone_in_lib(tmp_path: Path):

@@ -224,9 +224,12 @@ def _read_toml(path: Path) -> dict[str, Any]:
     """Read one canonical TOML metadata file."""
     try:
         with path.open("rb") as stream:
-            document = tomli.load(stream)
-    except (OSError, ValueError, UnicodeError) as err:
-        raise ValueError(f"could not parse project metadata {path.name}: {err}") from err
+            try:
+                document = tomli.load(stream)
+            except (ValueError, RecursionError, UnicodeError) as err:
+                raise ValueError(f"could not parse project metadata {path.name}: {err}") from err
+    except OSError as err:
+        raise ValueError(f"could not read project metadata {path.name}: {err}") from err
     if not isinstance(document, dict):
         raise ValueError(f"project metadata must be a table: {path.name}")
     return document

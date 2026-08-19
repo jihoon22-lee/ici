@@ -51,3 +51,32 @@ Repository-wide `uvx ruff format --check .` still reports two pre-existing unfor
 Markdown files outside this task:
 `docs/superpowers/plans/2026-08-19-ci-validation-features.md` and
 `docs/superpowers/plans/2026-08-19-existing-validation-hardening.md`. They were not changed.
+
+## Fix round 1 — review findings addressed
+
+### Important: parser recursion limit
+
+`tomli` can raise `RecursionError` for a deeply nested dotted key before normal TOML parse
+validation runs. The exception is now caught only inside the `tomli.load()` call and converted to
+the existing controlled `ValueError` project-metadata error; filesystem exceptions remain handled
+separately. The regression exercises a 5,000-part key through `read_project_metadata()`.
+
+### Minor: C++ discovery and Git fallback coverage
+
+Added C++ source tests covering escaped symlink files, escaped symlink directories, and symlink
+loops, plus C++ include-directory tests covering escaped links and loops. Added tests for a
+metadata version obtained from `git describe` and the `v1.0.0` fallback when Git is unavailable.
+
+### Fix-round TDD and verification
+
+- RED: the 5,000-part TOML key leaked raw `RecursionError`; the C++ and fallback regressions
+  passed against the existing safe discovery/fallback implementation.
+- GREEN: the parser-limit regression passes after the narrow `tomli.load()` catch; all five new
+  fix-round regressions pass.
+- `TMPDIR=/tmp TEMP=/tmp TMP=/tmp uv run --python 3.10 pytest tests/test_project_layout.py tests/test_project_metadata.py -v` — 24 passed
+- `TMPDIR=/tmp TEMP=/tmp TMP=/tmp uv run --python 3.10 pytest --tb=short` — 96 passed
+- `TMPDIR=/tmp TEMP=/tmp TMP=/tmp uvx ruff check .` — passed
+- `TMPDIR=/tmp TEMP=/tmp TMP=/tmp uvx ruff format --check src/ici/core/project.py tests/test_project_layout.py tests/test_project_metadata.py` — passed
+- `TMPDIR=/tmp TEMP=/tmp TMP=/tmp ./scripts/build-pyz.sh` — passed
+- `TMPDIR=/tmp TEMP=/tmp TMP=/tmp ./scripts/smoke.sh` — passed
+- `git diff --check` — passed
