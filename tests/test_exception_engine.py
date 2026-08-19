@@ -191,6 +191,23 @@ def test_exception_engine_ignores_cpp_prefixed_raw_string_false_positive(tmp_pat
     )
 
 
+def test_exception_engine_mask_cpp_literals_preserves_lines_and_following_code():
+    content = (
+        "// catch(...) {}\n"
+        'const char* quoted = "escaped \\" catch(...) {}";\n'
+        'const char* raw = u8R"tag(\n'
+        "catch (...) {}\n"
+        ')tag";\n'
+        "void f() { catch (...) {} }\n"
+    )
+
+    masked = ExceptionSafetyEngine._mask_cpp_literals(content)
+
+    assert masked.count("\n") == content.count("\n")
+    assert "catch" not in "\n".join(masked.splitlines()[:-1])
+    assert "catch (...) {}" in masked.splitlines()[-1]
+
+
 def test_exception_default_mode_matches_pass_fail_policy(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
