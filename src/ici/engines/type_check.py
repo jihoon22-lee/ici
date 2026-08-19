@@ -32,7 +32,7 @@ _MYPY_SUMMARY_RE = re.compile(r"Found \d+ errors? in \d+ files? \(checked \d+ so
 
 
 class TypeCheckEngine(BaseEngine):
-    """Verifies static type safety for Python (Mypy/AST) and C++."""
+    """Verifies Python static types; C++ sources receive an explicit SKIP target."""
 
     def run(self) -> EngineResult:
         t0 = time.time()

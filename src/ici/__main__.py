@@ -136,7 +136,7 @@ def cmd_lint(
     ctx: typer.Context,
     report: bool = typer.Option(False, "--report", "-r", help="Save lint report"),
 ):
-    """Runs Ruff, AST syntax check, and G++/Clang-Format style linting."""
+    """Runs Ruff/AST Python checks and g++ syntax diagnostics for C/C++ sources."""
     engine = _create_engine(LintEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
@@ -166,7 +166,7 @@ def cmd_type(
     ctx: typer.Context,
     report: bool = typer.Option(False, "--report", "-r", help="Save type report"),
 ):
-    """Runs static type checking (Mypy & strict C++ compiler flags)."""
+    """Runs Mypy or the labeled AST fallback; C++ type checking is explicitly skipped."""
     engine = _create_engine(TypeCheckEngine, _effective_config(ctx))
     res = engine.run()
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")

@@ -1,4 +1,4 @@
-"""2. Lint & Formatting Engine (Ruff, AST, G++, Clang-Format)."""
+"""2. Lint & Formatting Engine (Ruff, AST, and g++ diagnostics)."""
 
 import ast
 import json
