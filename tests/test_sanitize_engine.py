@@ -349,3 +349,15 @@ def test_hybrid_partial_scope_preserves_measured_resource_failure(tmp_path, monk
     assert result.status == EngineStatus.FAIL
     assert result.evidence == EvidenceState.ESTIMATED
     assert any(target.target_name == "ResourceWarning" for target in result.targets)
+
+
+def test_sanitizer_spawn_error_recording_is_idempotent(tmp_path):
+    engine = SanitizeEngine(tmp_path)
+    command = ["/usr/bin/g++", "-c", "test.cpp"]
+    error = OSError("compile spawn failed")
+
+    engine._record_tool_exception("sanitizer compile", command, error)
+    engine._record_tool_exception("sanitizer compile", command, error)
+
+    assert len(engine._tool_evidence) == 1
+    assert engine._tool_errors == ["OSError: compile spawn failed"]
