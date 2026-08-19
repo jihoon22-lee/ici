@@ -33,6 +33,7 @@ from ici.engines.coverage_support import (
     build_coverage_summary,
     calculate_tem,
     compute_python_function_coverage,
+    module_unavailable,
     parse_coverage_json,
     parse_gcov_dir,
     parse_gcov_functions,
@@ -467,22 +468,7 @@ class TestEngine(BaseEngine):
 
     @staticmethod
     def _module_unavailable(result, module: str) -> bool:
-        if result.returncode <= 0 or result.timed_out or result.truncated:
-            return False
-        lines = [
-            line.strip()
-            for line in f"{result.stdout}\n{result.stderr}".splitlines()
-            if line.strip()
-        ]
-        if len(lines) != 1:
-            return False
-        missing = rf"No module named ['\"]?{re.escape(module)}['\"]?"
-        interpreter_prefix = (
-            rf"(?:python(?:3(?:\.\d+)?)?(?:\.exe)?|"
-            rf"(?:[A-Za-z]:[\\/]|/)[^\n]*python(?:3(?:\.\d+)?)?(?:\.exe)?)"
-            rf"\s*:\s*{missing}"
-        )
-        return bool(re.fullmatch(rf"(?:{missing}|{interpreter_prefix})", lines[0]))
+        return module_unavailable(result, module)
 
     def _parse_pytest_result(
         self, result, targets: list[InspectionTarget]

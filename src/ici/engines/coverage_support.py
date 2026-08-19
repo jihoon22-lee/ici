@@ -3,6 +3,7 @@
 import ast
 import contextlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,25 @@ _COVERAGE_KEYS = (
     "num_branches",
     "covered_branches",
 )
+
+
+def module_unavailable(result, module: str) -> bool:
+    """Accept only a minimal interpreter-level missing-module diagnostic."""
+
+    if result.returncode <= 0 or result.timed_out or result.truncated:
+        return False
+    lines = [
+        line.strip() for line in f"{result.stdout}\n{result.stderr}".splitlines() if line.strip()
+    ]
+    if len(lines) != 1:
+        return False
+    missing = rf"No module named ['\"]?{re.escape(module)}['\"]?"
+    prefix = (
+        rf"(?:python(?:3(?:\.\d+)?)?(?:\.exe)?|"
+        rf"(?:[A-Za-z]:[\\/]|/)[^\n]*python(?:3(?:\.\d+)?)?(?:\.exe)?)"
+        rf"\s*:\s*{missing}"
+    )
+    return bool(re.fullmatch(rf"(?:{missing}|{prefix})", lines[0]))
 
 
 def _load_coverage_json(json_path: Path) -> dict | None:
