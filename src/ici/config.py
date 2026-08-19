@@ -114,7 +114,7 @@ def load_config(base_dir: Path | None = None) -> dict[str, Any]:
             with path.open("rb") as stream:
                 try:
                     user_cfg = tomli.load(stream)
-                except ValueError as err:
+                except (ValueError, RecursionError) as err:
                     raise ConfigError(f"could not parse configuration {path}: {err}") from err
         except OSError as err:
             raise ConfigError(f"could not read configuration {path}: {err}") from err

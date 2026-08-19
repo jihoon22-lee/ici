@@ -1,5 +1,6 @@
 """Tests for Typer CLI commands."""
 
+import pytest
 from typer.testing import CliRunner
 
 from ici.__main__ import app
@@ -94,6 +95,28 @@ def test_cli_reports_parser_level_ten_thousand_digit_integer_without_traceback(
     (tmp_path / "ici.toml").write_text(
         f"[engines.test]\nmin_tem_score = {huge_integer}\n", encoding="utf-8"
     )
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.delenv("ICI_CONFIG", raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["line"])
+
+    assert result.exit_code == 2
+    assert "Configuration error:" in result.output
+    assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize(
+    "pathological_config",
+    [
+        pytest.param("value = " + "[" * 1000 + "1" + "]" * 1000 + "\n", id="nested-arrays"),
+        pytest.param("a" + ".a" * 1000 + " = 1\n", id="dotted-key-parts"),
+    ],
+)
+def test_cli_reports_pathological_toml_without_traceback(
+    tmp_path, monkeypatch, pathological_config
+):
+    (tmp_path / "ici.toml").write_text(pathological_config, encoding="utf-8")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     monkeypatch.delenv("ICI_CONFIG", raising=False)
     monkeypatch.chdir(tmp_path)

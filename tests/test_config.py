@@ -226,6 +226,23 @@ def test_load_config_rejects_parser_level_ten_thousand_digit_integer(tmp_path: P
         load_config(tmp_path)
 
 
+@pytest.mark.parametrize(
+    "pathological_config",
+    [
+        pytest.param("value = " + "[" * 1000 + "1" + "]" * 1000 + "\n", id="nested-arrays"),
+        pytest.param("a" + ".a" * 1000 + " = 1\n", id="dotted-key-parts"),
+    ],
+)
+def test_load_config_rejects_pathological_toml_as_config_error(
+    tmp_path: Path, monkeypatch, pathological_config: str
+):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(pathological_config, encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=r"could not parse configuration"):
+        load_config(tmp_path)
+
+
 def test_load_config_rejects_explicit_symlink_loop(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     first = tmp_path / "explicit-first.toml"
