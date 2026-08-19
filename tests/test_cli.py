@@ -85,3 +85,21 @@ def test_cli_reports_config_error_without_traceback(tmp_path, monkeypatch):
     assert result.exit_code != 0
     assert "Configuration error:" in result.output
     assert "Traceback" not in result.output
+
+
+def test_cli_reports_parser_level_ten_thousand_digit_integer_without_traceback(
+    tmp_path, monkeypatch
+):
+    huge_integer = "9" * 10_000
+    (tmp_path / "ici.toml").write_text(
+        f"[engines.test]\nmin_tem_score = {huge_integer}\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.delenv("ICI_CONFIG", raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["line"])
+
+    assert result.exit_code == 2
+    assert "Configuration error:" in result.output
+    assert "Traceback" not in result.output

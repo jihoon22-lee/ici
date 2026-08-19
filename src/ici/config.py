@@ -112,8 +112,11 @@ def load_config(base_dir: Path | None = None) -> dict[str, Any]:
             raise ConfigError(f"configuration path is not a file: {path}")
         try:
             with path.open("rb") as stream:
-                user_cfg = tomli.load(stream)
-        except (OSError, UnicodeDecodeError, tomli.TOMLDecodeError) as err:
+                try:
+                    user_cfg = tomli.load(stream)
+                except ValueError as err:
+                    raise ConfigError(f"could not parse configuration {path}: {err}") from err
+        except OSError as err:
             raise ConfigError(f"could not read configuration {path}: {err}") from err
         if not isinstance(user_cfg, dict):
             raise ConfigError(f"configuration must be a table: {path}")

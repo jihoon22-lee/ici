@@ -2,9 +2,8 @@
 
 from pathlib import Path
 
-import tomli
-
 import pytest
+import tomli
 
 from ici.config import DEFAULT_CONFIG, ConfigError, get_global_config_path, load_config
 from ici.engines.line import LineCountEngine
@@ -213,6 +212,17 @@ def test_load_config_rejects_oversized_numeric_value(tmp_path: Path, monkeypatch
     )
 
     with pytest.raises(ConfigError, match="min_tem_score"):
+        load_config(tmp_path)
+
+
+def test_load_config_rejects_parser_level_ten_thousand_digit_integer(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    huge_integer = "9" * 10_000
+    (tmp_path / "ici.toml").write_text(
+        f"[engines.test]\nmin_tem_score = {huge_integer}\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError, match=r"could not parse configuration"):
         load_config(tmp_path)
 
 
