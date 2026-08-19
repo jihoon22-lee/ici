@@ -116,7 +116,10 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
   `pytest`/`coverage` 스크립트를 섞어 사용하지 않습니다.
 - **테스트 수집 증거**: pytest 종료 코드 `5` 또는 수집된 테스트가 0개이면 `total_tests = 0`인
   `FAIL`입니다. 인터프리터/도구 부재, timeout, 출력 절단, 도구 자체 오류는 `ERROR`/`NOT_RUN`으로
-  기록되어 추정치로 통과할 수 없습니다.
+  기록되어 추정치로 통과할 수 없습니다. 소스·테스트 대상이 전혀 없는 빈 프로젝트도 일반
+  0개 테스트 `FAIL` 대상으로 기록되며, 선택적 커버리지는 `ESTIMATED`, 필수 커버리지는
+  `ERROR`/`NOT_RUN`입니다. pytest가 `returncode = 0`을 반환하더라도 collection 줄만 있고
+  통과/실패 per-test 또는 terminal summary가 없으면 실행 증거 부족으로 `ERROR`/`NOT_RUN`입니다.
 - **언어별 실행 범위**: `python`/`cpp`/`hybrid` 소스가 있으면 해당 언어의 테스트 시도를 기록합니다.
   `hybrid`에서 한 언어의 테스트만 있어도 다른 언어의 0개 수집을 별도 `FAIL`로 표시하며, pytest가
   실제로 0개를 수집한 뒤 unittest로 우회하지 않습니다. pytest 모듈 자체가 명확히 없는 경우에만

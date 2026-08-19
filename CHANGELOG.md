@@ -20,6 +20,8 @@
     표시하며, pytest 모듈 부재일 때만 동일 인터프리터의 unittest fallback을 허용
   - coverage JSON의 수량·라인 배열 일관성을 검증하고, 0 statement·probe/컴파일/실행 signal 오류와
     프로젝트 내부 pytest 임시 디렉토리 강제를 허위 측정·통과로 처리하지 않음
+  - 소스·테스트가 모두 없는 빈 프로젝트도 generic zero-test `FAIL`과 누락 커버리지 증거로 기록하고,
+    pytest가 collection만 보고 성공한 경우(per-test/terminal 결과 증거 없음) `ERROR`/`NOT_RUN`으로 분류
 - **Dogfood 품질 게이트 유지보수성 개선**:
   - 프로세스 실행 및 lint/test/type 검증 흐름을 명시적·저복잡도 헬퍼로 분리해 CI 복잡도 임계값과 Mypy 타입 검사를 통과하도록 정리
 - **서브프로세스 결과 신뢰성 강화**:
