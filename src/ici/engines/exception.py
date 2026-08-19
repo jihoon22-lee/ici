@@ -262,9 +262,32 @@ class ExceptionSafetyEngine(BaseEngine):
     def _scope_aliases(
         scope: ast.AST, handler: ast.ExceptHandler
     ) -> tuple[set[str], set[str], set[str]]:
-        exception_aliases: set[str] = set()
-        builtins_aliases: set[str] = {"builtins"}
-        shadowed_names: set[str] = set()
+        """Resolve the bindings visible when an exception type is evaluated.
+
+        Bindings are applied in source order, stopping before the handler.  This
+        keeps a later import from changing an earlier handler while still making
+        a later import the effective binding for a later handler.  Control-flow
+        is intentionally not path-sensitive: branches are visited in lexical
+        order and the last binding encountered before the handler wins.
+        """
+        bindings: dict[str, str] = {"builtins": "builtins"}
+        binding_events: list[tuple[tuple[int, int, int], str, str]] = []
+        sequence = 0
+
+        def record(name: str, kind: str, node: ast.AST) -> None:
+            nonlocal sequence
+            binding_events.append(
+                (
+                    (
+                        getattr(node, "lineno", getattr(scope, "lineno", 0)),
+                        getattr(node, "col_offset", getattr(scope, "col_offset", 0)),
+                        sequence,
+                    ),
+                    name,
+                    kind,
+                )
+            )
+            sequence += 1
 
         class ScopeVisitor(ast.NodeVisitor):
             def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -272,48 +295,51 @@ class ExceptionSafetyEngine(BaseEngine):
                     self._visit_arguments(node.args)
                     self.generic_visit(node)
                 else:
-                    shadowed_names.add(node.name)
+                    record(node.name, "shadow", node)
 
             def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
                 if node is scope:
                     self._visit_arguments(node.args)
                     self.generic_visit(node)
                 else:
-                    shadowed_names.add(node.name)
+                    record(node.name, "shadow", node)
 
             def visit_ClassDef(self, node: ast.ClassDef) -> None:
                 if node is scope:
                     self.generic_visit(node)
                 else:
-                    shadowed_names.add(node.name)
+                    record(node.name, "shadow", node)
 
             def visit_Lambda(self, node: ast.Lambda) -> None:
                 del node
 
             @staticmethod
             def _visit_arguments(arguments: ast.arguments) -> None:
-                shadowed_names.update(argument.arg for argument in arguments.posonlyargs)
-                shadowed_names.update(argument.arg for argument in arguments.args)
-                shadowed_names.update(argument.arg for argument in arguments.kwonlyargs)
+                for argument in (
+                    *arguments.posonlyargs,
+                    *arguments.args,
+                    *arguments.kwonlyargs,
+                ):
+                    record(argument.arg, "shadow", argument)
                 if arguments.vararg is not None:
-                    shadowed_names.add(arguments.vararg.arg)
+                    record(arguments.vararg.arg, "shadow", arguments.vararg)
                 if arguments.kwarg is not None:
-                    shadowed_names.add(arguments.kwarg.arg)
+                    record(arguments.kwarg.arg, "shadow", arguments.kwarg)
 
             def visit_arg(self, node: ast.arg) -> None:
-                shadowed_names.add(node.arg)
+                del node
 
             def visit_Name(self, node: ast.Name) -> None:
                 if isinstance(node.ctx, (ast.Store, ast.Del)):
-                    shadowed_names.add(node.id)
+                    record(node.id, "shadow", node)
 
             def visit_Import(self, node: ast.Import) -> None:
                 for alias in node.names:
                     local_name = alias.asname or alias.name.split(".")[0]
                     if alias.name == "builtins":
-                        builtins_aliases.add(local_name)
+                        record(local_name, "builtins", node)
                     else:
-                        shadowed_names.add(local_name)
+                        record(local_name, "shadow", node)
 
             def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
                 for alias in node.names:
@@ -321,17 +347,28 @@ class ExceptionSafetyEngine(BaseEngine):
                         continue
                     local_name = alias.asname or alias.name
                     if node.module == "builtins" and alias.name == "BaseException":
-                        exception_aliases.add(local_name)
+                        record(local_name, "exception", node)
                     else:
-                        shadowed_names.add(local_name)
+                        record(local_name, "shadow", node)
 
             def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
-                if node is not handler and node.name:
-                    shadowed_names.add(node.name)
+                if node.name:
+                    record(node.name, "shadow", node)
                 self.generic_visit(node)
 
         ScopeVisitor().visit(scope)
-        return exception_aliases, builtins_aliases, shadowed_names
+        handler_position = (
+            handler.lineno,
+            handler.col_offset,
+        )
+        for position, name, kind in sorted(binding_events):
+            if position[:2] < handler_position:
+                bindings[name] = kind
+        return (
+            {name for name, kind in bindings.items() if kind == "exception"},
+            {name for name, kind in bindings.items() if kind == "builtins"},
+            {name for name, kind in bindings.items() if kind == "shadow"},
+        )
 
     @staticmethod
     def _is_base_exception_type(
