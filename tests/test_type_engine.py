@@ -200,6 +200,40 @@ def test_cpp_type_check_is_explicitly_skipped(tmp_cpp_project, monkeypatch):
     assert "C++" in result.summary and "skip" in result.summary.lower()
 
 
+def test_cpp_project_without_applicable_sources_skips_type_check(tmp_path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "ici.toml").write_text(
+        'name = "empty_cpp"\ntype = "cpp"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+
+    result = TypeCheckEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.WARN
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert not result.tool_evidence
+    target = next(target for target in result.targets if target.target_name == "C++TypeCheck")
+    assert target.status == EngineStatus.SKIP
+    assert target.file_path == "."
+    assert "no applicable c++ source files" in target.message.lower()
+
+
+def test_hybrid_python_only_project_does_not_skip_absent_cpp_scope(
+    tmp_python_project, monkeypatch
+):
+    (tmp_python_project / "ici.toml").write_text(
+        'name = "python_only"\ntype = "hybrid"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("ici.engines.type_check.shutil.which", lambda _name: None)
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.WARN
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert not any(target.target_name == "C++TypeCheck" for target in result.targets)
+
+
 def test_hybrid_type_evidence_stays_estimated_when_cpp_is_skipped(tmp_python_project, monkeypatch):
     source = tmp_python_project / "src" / "sample_pkg" / "native.cpp"
     source.write_text("int native() { return 1; }\n", encoding="utf-8")

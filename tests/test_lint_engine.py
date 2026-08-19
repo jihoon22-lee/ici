@@ -265,6 +265,34 @@ def test_cpp_located_note_is_a_non_failure_diagnostic(tmp_cpp_project, monkeypat
     assert note.start_line == 12
 
 
+def test_cpp_template_context_is_allowed_before_primary_error(tmp_cpp_project, monkeypatch):
+    monkeypatch.setattr(
+        "ici.engines.lint.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    diagnostic = (
+        "src/main.cpp: In instantiation of ‘void call(T) [with T = int]’:\n"
+        "src/main.cpp:12:5:   required from here\n"
+        "src/main.cpp:5:10: error: invalid conversion\n"
+    )
+    monkeypatch.setattr(
+        "ici.engines.lint.run_process",
+        lambda *args, **kwargs: ProcessResult(1, "", diagnostic, 0.01),
+    )
+
+    result = LintEngine(tmp_cpp_project).run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.evidence == EvidenceState.MEASURED
+    error = next(
+        target
+        for target in result.targets
+        if target.target_name == "C++Syntax" and target.status == EngineStatus.FAIL
+    )
+    assert error.file_path == "src/main.cpp"
+    assert error.start_line == 5
+
+
 def test_cpp_unrecognized_context_line_is_not_accepted(tmp_cpp_project, monkeypatch):
     monkeypatch.setattr(
         "ici.engines.lint.shutil.which",
