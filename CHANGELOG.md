@@ -8,6 +8,10 @@
 ## [Unreleased]
 
 ### Changed
+- **서브프로세스 실행 제한 및 엔진 예외 격리**:
+  - `run_process`가 구조화된 `ProcessResult`를 반환하고 기본 300초 timeout과 출력 상한(100만 문자)을 적용
+  - POSIX 프로세스 그룹 종료와 Windows 폴백으로 timeout 이후 자식 프로세스가 남지 않도록 정리
+  - 개별 검증 엔진 예외를 `ERROR`/`NOT_RUN` 결과로 기록한 뒤 나머지 엔진 실행을 계속
 - **증거 인식 결과 계약 및 검증 게이트 강화**:
   - `EngineResult`에 필수 엔진 여부(`required`), 증거 상태(`MEASURED`/`ESTIMATED`/`NOT_RUN`),
     도구 실행 증거(`ToolEvidence`)를 추가

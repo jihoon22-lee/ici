@@ -229,7 +229,8 @@ class TestEngine(BaseEngine):
             if rel_dirs:
                 cov_run_cmd.append(f"--source={','.join(rel_dirs)}")
             cov_run_cmd += ["-m", "pytest", "-o", "addopts=", "-v", "tests"]
-            _code, out, _err, _ = run_process(cov_run_cmd, cwd=self.project_root, env=cov_env)
+            result = run_process(cov_run_cmd, cwd=self.project_root, env=cov_env)
+            out = result.stdout
 
             json_path = cov_dir / "coverage.json"
             run_process(
@@ -242,9 +243,10 @@ class TestEngine(BaseEngine):
                 return passed, total, has_failure
 
         if pytest_cmd:
-            _code, out, _err, _ = run_process(
+            result = run_process(
                 [*pytest_cmd, "-o", "addopts=", "-v", "tests"], cwd=self.project_root, env=env
             )
+            out = result.stdout
             passed, total, has_failure = self._parse_pytest_stdout(out, targets)
             if total > 0:
                 return passed, total, has_failure
@@ -253,11 +255,13 @@ class TestEngine(BaseEngine):
         passed = 0
         total = 0
         has_failure = False
-        _code, out, err, _ = run_process(
+        result = run_process(
             ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"],
             cwd=self.project_root,
             env=env,
         )
+        out = result.stdout
+        err = result.stderr
         for line in (out + "\n" + err).splitlines():
             if " ... ok" in line:
                 total += 1
@@ -309,8 +313,8 @@ class TestEngine(BaseEngine):
             candidates.append(["python3", "-m", "coverage"])
 
         for cand in candidates:
-            code, _, _, _ = run_process([*cand, "--version"], cwd=self.project_root)
-            if code == 0:
+            result = run_process([*cand, "--version"], cwd=self.project_root)
+            if result.returncode == 0:
                 return cand
 
         uv = find_uv()
@@ -462,7 +466,7 @@ class TestEngine(BaseEngine):
                     "-o",
                     str(runner_bin),
                 ]
-                c_code, _c_out, c_err, _ = run_process(compile_cmd, cwd=build_tmp)
+                compile_result = run_process(compile_cmd, cwd=build_tmp)
             else:
                 compile_cmd = [
                     gxx,
@@ -474,7 +478,10 @@ class TestEngine(BaseEngine):
                     "-o",
                     str(runner_bin),
                 ]
-                c_code, _c_out, c_err, _ = run_process(compile_cmd, cwd=self.project_root)
+                compile_result = run_process(compile_cmd, cwd=self.project_root)
+
+            c_code = compile_result.returncode
+            c_err = compile_result.stderr
 
             if c_code != 0:
                 has_failure = True
@@ -490,7 +497,10 @@ class TestEngine(BaseEngine):
                 continue
 
             run_cwd = build_tmp if use_coverage else self.project_root
-            r_code, r_out, r_err, _ = run_process([str(runner_bin)], cwd=run_cwd)
+            run_result = run_process([str(runner_bin)], cwd=run_cwd)
+            r_code = run_result.returncode
+            r_out = run_result.stdout
+            r_err = run_result.stderr
             if r_code == 0:
                 passed += 1
                 targets.append(
@@ -534,10 +544,12 @@ class TestEngine(BaseEngine):
         objs: list[Path] = []
         for idx, src_abs in enumerate([*src_files, test_src]):
             obj = build_tmp / f"obj_{idx}.o"
-            c_code, _c_out, c_err, _ = run_process(
+            compile_result = run_process(
                 [gxx, "--coverage", "-std=c++17", *inc_flags, "-c", src_abs, "-o", str(obj)],
                 cwd=self.project_root,
             )
+            c_code = compile_result.returncode
+            c_err = compile_result.stderr
             if c_code != 0:
                 return False, objs, c_err
             objs.append(obj)

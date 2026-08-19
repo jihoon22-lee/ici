@@ -72,9 +72,10 @@ class LintEngine(BaseEngine):
 
         # 1. Ruff check
         if ruff_cmd:
-            _code, out, _err, _ = run_process(
+            result = run_process(
                 [*ruff_cmd, "check", ".", "--output-format=json"], cwd=self.project_root
             )
+            out = result.stdout
             if out.strip():
                 try:
                     issues = json.loads(out)
@@ -103,9 +104,12 @@ class LintEngine(BaseEngine):
                     _ = err
 
             # 2. Ruff format check
-            f_code, f_out, f_err, _ = run_process(
+            format_result = run_process(
                 [*ruff_cmd, "format", "--check", "."], cwd=self.project_root
             )
+            f_code = format_result.returncode
+            f_out = format_result.stdout
+            f_err = format_result.stderr
             if f_code != 0 and (f_out or f_err):
                 for line in (f_out + "\n" + f_err).splitlines():
                     if "Would reformat:" in line:
@@ -147,7 +151,9 @@ class LintEngine(BaseEngine):
         if gxx and cpp_files:
             for cpp in cpp_files:
                 cmd = [gxx, "-fsyntax-only", "-std=c++17", "-Wall", "-Wextra", *inc_flags, str(cpp)]
-                code, _out, err, _ = run_process(cmd, cwd=self.project_root)
+                result = run_process(cmd, cwd=self.project_root)
+                code = result.returncode
+                err = result.stderr
                 if code != 0:
                     rel_p = str(cpp.relative_to(self.project_root))
                     for line in err.splitlines():

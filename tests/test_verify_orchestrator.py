@@ -27,17 +27,20 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
     monkeypatch.setattr("ici.engines.verify.LintEngine", PassingEngine)
     monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
 
-    enabled = {name: {"enabled": name in {"line", "lint"}} for name in (
-        "line",
-        "lint",
-        "test",
-        "type",
-        "complexity",
-        "sanitize",
-        "dead",
-        "dup",
-        "exception",
-    )}
+    enabled = {
+        name: {"enabled": name in {"line", "lint"}}
+        for name in (
+            "line",
+            "lint",
+            "test",
+            "type",
+            "complexity",
+            "sanitize",
+            "dead",
+            "dup",
+            "exception",
+        )
+    }
     suite = VerifyOrchestrator(tmp_path, {"engines": enabled}).run_all()
 
     assert [result.status for result in suite.results] == [EngineStatus.ERROR, EngineStatus.PASS]
@@ -45,4 +48,3 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
     assert suite.results[0].summary == "Engine crashed: RuntimeError: boom"
     assert suite.results[0].evidence == EvidenceState.NOT_RUN
     assert suite.results[1].engine_name == "lint"
-

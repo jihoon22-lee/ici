@@ -26,4 +26,3 @@ def test_run_process_truncates_output(tmp_path):
 
     assert result.truncated is True
     assert len(result.stdout) <= 100
-

@@ -160,7 +160,10 @@ fi
                 "-o",
                 str(target_bin),
             ]
-            code, _out, err, dur = run_process(cmd, cwd=base)
+            result = run_process(cmd, cwd=base)
+            code = result.returncode
+            err = result.stderr
+            dur = result.duration
             if code == 0:
                 targets.append(
                     InspectionTarget(

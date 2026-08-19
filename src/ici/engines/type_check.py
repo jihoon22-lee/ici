@@ -68,9 +68,11 @@ class TypeCheckEngine(BaseEngine):
                 str(d.relative_to(self.project_root))
                 for d in get_source_dirs(self.project_root, self.config)
             ] or ["."]
-            code, out, _err, _ = run_process(
+            result = run_process(
                 [*mypy_cmd, "--ignore-missing-imports", *mypy_targets], cwd=self.project_root
             )
+            code = result.returncode
+            out = result.stdout
             if code != 0 and out.strip():
                 has_error = True
                 for line in out.splitlines():

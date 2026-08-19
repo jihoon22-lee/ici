@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from ici.core.models import EngineStatus
+from ici.core.runner import ProcessResult
 from ici.engines.test import TestEngine
 
 
@@ -244,7 +245,7 @@ def test_find_coverage_cmd_uses_venv_module_probe(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("ici.engines.test.shutil.which", lambda name: None)
     monkeypatch.setattr(
         "ici.engines.test.run_process",
-        lambda cmd, cwd=None, env=None: (0, "Coverage.py, version 7.x", "", 0.0),
+        lambda cmd, cwd=None, env=None: ProcessResult(0, "Coverage.py, version 7.x", "", 0.0),
     )
     monkeypatch.setattr("ici.engines.test.find_uv", lambda: None)
     cmd = engine._find_coverage_cmd(None)
@@ -259,8 +260,8 @@ def test_find_coverage_cmd_uses_pytest_interpreter(tmp_path: Path, monkeypatch):
 
     def fake_run(cmd, cwd=None, env=None):
         if "--version" in cmd and cmd[0] == "/proj/.venvx/bin/python":
-            return (0, "Coverage.py, version 7.1.2", "", 0.0)
-        return (1, "", "No module named coverage", 0.0)
+            return ProcessResult(0, "Coverage.py, version 7.1.2", "", 0.0)
+        return ProcessResult(1, "", "No module named coverage", 0.0)
 
     monkeypatch.setattr("ici.engines.test.run_process", fake_run)
     monkeypatch.setattr("ici.engines.test.find_uv", lambda: None)
@@ -279,7 +280,7 @@ def test_coverage_run_uses_source_dirs_flag(tmp_path: Path, monkeypatch):
     captured: list[list[str]] = []
     monkeypatch.setattr(
         "ici.engines.test.run_process",
-        lambda cmd, cwd=None, env=None: captured.append(cmd) or (0, "", "", 0.0),
+        lambda cmd, cwd=None, env=None: captured.append(cmd) or ProcessResult(0, "", "", 0.0),
     )
     engine._run_python_tests([])
     cov_run = next(c for c in captured if "run" in c and "--branch" in c)

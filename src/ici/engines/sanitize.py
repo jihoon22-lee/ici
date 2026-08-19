@@ -97,13 +97,16 @@ class SanitizeEngine(BaseEngine):
                 "-o",
                 str(runner_bin),
             ]
-            c_code, _c_out, _c_err, _ = run_process(cmd, cwd=self.project_root)
+            compile_result = run_process(cmd, cwd=self.project_root)
             rel_p = str(test_src.relative_to(self.project_root))
 
-            if c_code != 0:
+            if compile_result.returncode != 0:
                 continue
 
-            r_code, r_out, r_err, _ = run_process([str(runner_bin)], cwd=self.project_root)
+            run_result = run_process([str(runner_bin)], cwd=self.project_root)
+            r_code = run_result.returncode
+            r_out = run_result.stdout
+            r_err = run_result.stderr
             if r_code != 0 or "AddressSanitizer" in r_err or "runtime error:" in r_err:
                 has_failure = True
                 targets.append(
