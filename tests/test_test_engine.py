@@ -705,6 +705,44 @@ def test_zero_collected_tests_is_failure_with_zero_total(tmp_path: Path, monkeyp
     assert result.extra["total_tests"] == 0
 
 
+@pytest.mark.parametrize(
+    ("coverage_required", "status", "evidence"),
+    [
+        (False, EngineStatus.FAIL, EvidenceState.ESTIMATED),
+        (True, EngineStatus.ERROR, EvidenceState.NOT_RUN),
+    ],
+)
+def test_empty_project_is_zero_test_failure_with_missing_evidence(
+    tmp_path: Path,
+    coverage_required: bool,
+    status: EngineStatus,
+    evidence: EvidenceState,
+):
+    engine = TestEngine(
+        tmp_path,
+        {
+            "engines": {
+                "test": {
+                    "coverage_required": coverage_required,
+                    "min_tem_score": 0.0,
+                    "min_branch_cov": 0.0,
+                    "min_func_cov": 0.0,
+                }
+            }
+        },
+    )
+
+    result = engine.run()
+
+    assert result.status == status
+    assert result.evidence == evidence
+    assert result.extra["total_tests"] == 0
+    assert any(
+        target.target_name == "[Project] Tests" and target.status == EngineStatus.FAIL
+        for target in result.targets
+    )
+
+
 def test_optional_coverage_is_estimated_warning_not_threshold_pass(
     tmp_python_project: Path, monkeypatch
 ):
@@ -727,6 +765,74 @@ def test_optional_coverage_is_estimated_warning_not_threshold_pass(
     assert result.status == EngineStatus.WARN
     assert result.evidence == EvidenceState.ESTIMATED
     assert result.extra["coverage_source"] == "estimated"
+
+
+def test_pytest_success_without_result_evidence_is_error_even_with_valid_coverage(
+    tmp_path: Path, monkeypatch
+):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("value = 1\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text("def test_app():\n    assert True\n", encoding="utf-8")
+    engine = TestEngine(
+        tmp_path,
+        {
+            "engines": {
+                "test": {
+                    "coverage_required": True,
+                    "min_tem_score": 0.0,
+                    "min_branch_cov": 0.0,
+                    "min_func_cov": 0.0,
+                }
+            }
+        },
+    )
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _python: ["coverage"])
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        commands.append(cmd)
+        if "run" in cmd:
+            return ProcessResult(0, "collected 1 item\n", "", 0.01)
+        output_path = Path(cmd[cmd.index("-o") + 1])
+        output_path.write_text(
+            json.dumps(
+                {
+                    "files": {
+                        "src/app.py": {
+                            "executed_lines": [1],
+                            "missing_lines": [],
+                            "summary": {
+                                "covered_lines": 1,
+                                "num_statements": 1,
+                                "missing_lines": 0,
+                                "num_branches": 0,
+                                "covered_branches": 0,
+                            },
+                        }
+                    },
+                    "totals": {
+                        "covered_lines": 1,
+                        "num_statements": 1,
+                        "missing_lines": 0,
+                        "num_branches": 0,
+                        "covered_branches": 0,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+    assert len(commands) == 1
 
 
 def test_required_coverage_unavailable_is_error_and_not_run(tmp_python_project: Path, monkeypatch):
