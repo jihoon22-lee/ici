@@ -300,6 +300,92 @@ def handle(BE, b):
     assert not any(target.target_name == "BaseException" for target in result.targets)
 
 
+def test_exception_engine_flags_function_scope_base_exception_aliases(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "function_aliases.py").write_text(
+        """def handle():
+    from builtins import BaseException as BE
+    import builtins as b
+
+    try:
+        work()
+    except BE:
+        log()
+
+    try:
+        work()
+    except b.BaseException:
+        log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (7, EngineStatus.FAIL),
+        (12, EngineStatus.FAIL),
+    ]
+
+
+def test_exception_engine_flags_class_scope_base_exception_aliases(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "class_aliases.py").write_text(
+        """class Handler:
+    from builtins import BaseException as CBE
+    import builtins as cb
+
+    try:
+        work()
+    except CBE:
+        log()
+
+    try:
+        work()
+    except cb.BaseException:
+        log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (7, EngineStatus.FAIL),
+        (12, EngineStatus.FAIL),
+    ]
+
+
+def test_exception_engine_does_not_leak_nested_alias_to_outer_or_sibling_scope(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "scopes.py").write_text(
+        """def nested():
+    from builtins import BaseException as BE
+    try:
+        work()
+    except BE:
+        log()
+
+def sibling():
+    try:
+        work()
+    except BE:
+        log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [(5, EngineStatus.FAIL)]
+
+
 def test_exception_engine_cancels_pending_destructor_at_declaration_semicolon(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
