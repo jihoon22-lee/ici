@@ -24,7 +24,10 @@ def test_mypy_stderr_diagnostic_is_failure(tmp_python_project, monkeypatch):
         ),
     )
 
-    result = TypeCheckEngine(tmp_python_project).run()
+    result = TypeCheckEngine(
+        tmp_python_project,
+        {"engines": {"type": {"mode": "pass_fail"}}},
+    ).run()
 
     assert result.status == EngineStatus.FAIL
     assert any(target.target_name == "MypyError" for target in result.targets)
@@ -34,9 +37,7 @@ def test_mypy_timeout_is_error(tmp_python_project, monkeypatch):
     _use_mypy(monkeypatch)
     monkeypatch.setattr(
         "ici.engines.type_check.run_process",
-        lambda *args, **kwargs: ProcessResult(
-            124, "", "Command timed out", 0.05, timed_out=True
-        ),
+        lambda *args, **kwargs: ProcessResult(124, "", "Command timed out", 0.05, timed_out=True),
     )
 
     result = TypeCheckEngine(tmp_python_project).run()

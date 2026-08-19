@@ -17,7 +17,7 @@ def test_ruff_truncated_json_is_error(tmp_python_project, monkeypatch):
 
     def fake_run(cmd, **kwargs):
         if "check" in cmd:
-            return ProcessResult(0, "[{\"filename\": \"src/core.py\"", "", 0.01, truncated=True)
+            return ProcessResult(0, '[{"filename": "src/core.py"', "", 0.01, truncated=True)
         return ProcessResult(0, "", "", 0.01)
 
     monkeypatch.setattr("ici.engines.lint.run_process", fake_run)

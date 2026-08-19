@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from ici.core.models import EngineStatus
+from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
 from ici.engines.test import TestEngine
 
@@ -285,3 +285,55 @@ def test_coverage_run_uses_source_dirs_flag(tmp_path: Path, monkeypatch):
     engine._run_python_tests([])
     cov_run = next(c for c in captured if "run" in c and "--branch" in c)
     assert "--source=lib" in cov_run
+
+
+def test_python_test_timeout_cannot_report_pass(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_timeout.py").write_text("def test_timeout():\n    pass\n", encoding="utf-8")
+    engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: None)
+    monkeypatch.setattr(
+        "ici.engines.test.shutil.which",
+        lambda name: "/usr/bin/pytest" if name == "pytest" else None,
+    )
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            124, "tests/test_timeout.py::test_timeout PASSED", "", 0.05, timed_out=True
+        ),
+    )
+    monkeypatch.setattr(
+        engine, "_measure_coverage", lambda _proj_type, _has_failure: (100.0, 100.0, [])
+    )
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_python_test_truncated_output_cannot_report_pass(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_truncated.py").write_text("def test_truncated():\n    pass\n", encoding="utf-8")
+    engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: None)
+    monkeypatch.setattr(
+        "ici.engines.test.shutil.which",
+        lambda name: "/usr/bin/pytest" if name == "pytest" else None,
+    )
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            0, "tests/test_truncated.py::test_truncated PASSED", "", 0.05, truncated=True
+        ),
+    )
+    monkeypatch.setattr(
+        engine, "_measure_coverage", lambda _proj_type, _has_failure: (100.0, 100.0, [])
+    )
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
