@@ -32,6 +32,9 @@ _CPP_DIAGNOSTIC_RE = re.compile(
     r"(?P<kind>fatal error|error|warning|note):\s*(?P<message>\S.*)$"
 )
 _CPP_CONTEXT_RE = re.compile(r"^\s*(?:\d+\s*\|.*|\|.*|[\^~].*)$")
+_CPP_CONTEXT_HEADER_RE = re.compile(
+    r"^.+:\s+In (?:function|member function|constructor|destructor|lambda function)(?: .*)?:$"
+)
 
 
 class LintEngine(BaseEngine):
@@ -411,7 +414,7 @@ class LintEngine(BaseEngine):
                 continue
             if found_diagnostic and self._is_cpp_context(line):
                 continue
-            if re.match(r"^.+:\s+In .+:$", line):
+            if _CPP_CONTEXT_HEADER_RE.fullmatch(line):
                 continue
             malformed = True
         return parsed, malformed, found_diagnostic
