@@ -4,7 +4,7 @@ import pytest
 from typer.testing import CliRunner
 
 from ici.__main__ import app
-from ici.core.models import EngineStatus, VerificationSuiteResult
+from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
 
 runner = CliRunner()
 
@@ -56,6 +56,39 @@ def test_cli_verify_error_suite_exits_nonzero(monkeypatch):
     res = runner.invoke(app, ["verify"])
 
     assert res.exit_code == 1
+
+
+@pytest.mark.parametrize(
+    "command, engine_name",
+    [("sanitize", "sanitize"), ("dead", "dead"), ("exception", "exception")],
+)
+@pytest.mark.parametrize("status, exit_code", [(EngineStatus.ERROR, 1), (EngineStatus.SKIP, 2)])
+def test_cli_safety_commands_map_error_and_skip_to_exit_codes(
+    monkeypatch, command, engine_name, status, exit_code
+):
+    class FakeEngine:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run(self):
+            return EngineResult(
+                engine_name=engine_name,
+                status=status,
+                summary=f"{status.value} result",
+                required=False,
+            )
+
+    engine_attr = {
+        "sanitize": "SanitizeEngine",
+        "dead": "DeadCodeEngine",
+        "exception": "ExceptionSafetyEngine",
+    }[command]
+    monkeypatch.setattr(f"ici.__main__.{engine_attr}", FakeEngine)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+
+    result = runner.invoke(app, [command])
+
+    assert result.exit_code == exit_code
 
 
 def test_line_command_uses_project_config(tmp_path, monkeypatch):

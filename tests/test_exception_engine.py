@@ -1,5 +1,7 @@
 """Adversarial tests for exception-safety evidence."""
 
+import pytest
+
 from ici.core.models import EngineStatus, EvidenceState
 from ici.engines.exception import ExceptionSafetyEngine
 
@@ -188,3 +190,71 @@ except Exception as exc:
     result = ExceptionSafetyEngine(tmp_path).run()
 
     assert not any(target.target_name == "LostTraceback" for target in result.targets)
+
+
+@pytest.mark.parametrize(
+    "handler",
+    [
+        "except BaseException:",
+        "except (ValueError, BaseException):",
+        "except builtins.BaseException:",
+    ],
+)
+def test_exception_engine_flags_base_exception_handlers_with_location(tmp_path, handler):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text(
+        f"import builtins\n\ntry:\n    work()\n{handler}\n    log()\n",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    target = next(target for target in result.targets if target.target_name == "BaseException")
+    assert target.file_path == "src/mod.py"
+    assert target.start_line == 5
+    assert target.status == EngineStatus.FAIL
+    assert result.status == EngineStatus.FAIL
+
+
+def test_exception_engine_cancels_pending_destructor_at_declaration_semicolon(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "unsafe.cpp").write_text(
+        """class Type {
+public:
+    ~Type()
+        noexcept;
+};
+
+void run() {
+    throw 1;
+}
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(target.target_name == "DestructorThrow" for target in result.targets)
+
+
+def test_exception_engine_calculates_empty_catch_once_for_pass_target(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "clean.cpp").write_text(
+        "void run() { try { work(); } catch (...) { log(); } }\n", encoding="utf-8"
+    )
+    calls = []
+    original = ExceptionSafetyEngine._empty_catch_all_lines
+
+    def counted(masked):
+        calls.append(masked)
+        return original(masked)
+
+    monkeypatch.setattr(ExceptionSafetyEngine, "_empty_catch_all_lines", staticmethod(counted))
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.PASS
+    assert len(calls) == 1

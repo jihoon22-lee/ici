@@ -1,5 +1,7 @@
 """Adversarial tests for Python dead-code evidence."""
 
+import pytest
+
 from ici.core.models import EngineStatus, EvidenceState
 from ici.engines.dead import DeadCodeEngine
 
@@ -155,3 +157,32 @@ def test_dead_engine_warning_uses_warning_status_not_failure(tmp_path):
     result = DeadCodeEngine(tmp_path).run()
 
     assert result.status == EngineStatus.WARN
+
+
+@pytest.mark.parametrize(
+    "import_stmt, call",
+    [
+        ("import pkg.a", "pkg.a._foo()"),
+        ("from pkg import a", "a._foo()"),
+    ],
+)
+def test_dead_engine_resolves_nested_module_attribute_references(
+    tmp_path, import_stmt, call
+):
+    src = tmp_path / "src"
+    package = src / "pkg"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (package / "a.py").write_text("def _foo():\n    return 1\n", encoding="utf-8")
+    (src / "use.py").write_text(
+        f"{import_stmt}\n\ndef use():\n    return {call}\n", encoding="utf-8"
+    )
+    (src / "unrelated.py").write_text("def _foo():\n    return 2\n", encoding="utf-8")
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    actual = next(target for target in result.targets if target.file_path == "src/pkg/a.py")
+    unrelated = next(target for target in result.targets if target.file_path == "src/unrelated.py")
+    assert actual.target_name == "_foo()"
+    assert actual.status == EngineStatus.PASS
+    assert unrelated.status == EngineStatus.WARN

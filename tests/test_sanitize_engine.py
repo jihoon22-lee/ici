@@ -193,6 +193,92 @@ def test_cpp_sanitizer_nonzero_diagnostic_is_measured_failure(tmp_path, monkeypa
     assert result.evidence == EvidenceState.MEASURED
 
 
+@pytest.mark.parametrize(
+    "run_result",
+    [
+        ProcessResult(124, "", "timed out", 0.01, timed_out=True),
+        ProcessResult(0, "partial AddressSanitizer", "", 0.01, truncated=True),
+    ],
+)
+def test_cpp_sanitizer_execution_timeout_or_truncation_is_error(tmp_path, monkeypatch, run_result):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    results = iter([ProcessResult(0, "", "", 0.01), run_result])
+    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_cpp_sanitizer_signal_with_complete_diagnostic_is_measured_failure(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    results = iter(
+        [
+            ProcessResult(0, "", "", 0.01),
+            ProcessResult(-6, "", "AddressSanitizer: heap-use-after-free", 0.01),
+        ]
+    )
+    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.evidence == EvidenceState.MEASURED
+
+
+def test_cpp_sanitizer_signal_without_diagnostic_is_error(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    results = iter([ProcessResult(0, "", "", 0.01), ProcessResult(-6, "", "", 0.01)])
+    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_resource_warning_preserves_windows_drive_and_spaces_in_path(tmp_path):
+    engine = SanitizeEngine(tmp_path)
+    targets = []
+
+    found = engine._resource_warning_targets(
+        r"C:\work dir\project\tests\test_resource.py:42: ResourceWarning: unclosed file\n",
+        targets,
+    )
+
+    assert found
+    assert targets[0].file_path == r"C:\work dir\project\tests\test_resource.py"
+    assert targets[0].start_line == 42
+
+
 def test_hybrid_partial_cpp_skip_is_warn_and_estimated_when_optional(tmp_path, monkeypatch):
     src = tmp_path / "src"
     src.mkdir()
@@ -361,3 +447,17 @@ def test_sanitizer_spawn_error_recording_is_idempotent(tmp_path):
 
     assert len(engine._tool_evidence) == 1
     assert engine._tool_errors == ["OSError: compile spawn failed"]
+
+
+def test_cpp_test_sources_exclude_external_symlinks(tmp_path):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    inside = tests / "test_inside.cpp"
+    inside.write_text("int main() { return 0; }\n", encoding="utf-8")
+    outside = tmp_path.parent / "outside-test.cpp"
+    outside.write_text("int main() { return 1; }\n", encoding="utf-8")
+    (tests / "test_external.cpp").symlink_to(outside)
+
+    sources = SanitizeEngine(tmp_path)._cpp_test_sources()
+
+    assert sources == [inside.resolve()]
