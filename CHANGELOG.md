@@ -13,8 +13,10 @@
     `-W error::ResourceWarning -m pytest -o addopts= tests`를 실행하고, 0개 테스트·pytest 부재·timeout·출력 절단·spawn/신호 종료·파싱 불가능한 성공을 `ERROR`/`NOT_RUN` 또는 명시적 선택 scope `SKIP`/`ESTIMATED`로 기록
   - C++ sanitizer 컴파일·실행 실패를 허위 `PASS`로 처리하지 않으며, 종료 코드와 무관한 ASan/UBSan 진단을 `FAIL`/`MEASURED`로 보존하고 실행 시 기존 `ASAN_OPTIONS`/`UBSAN_OPTIONS`에 leak/halt 정책을 추가
   - Python/C++ hybrid의 부분 scope는 `WARN`/`ESTIMATED`로 남기고, 적용 대상이 없는 프로젝트는 명시적 `SKIP`으로 표시
-  - dead는 private module-level Python 함수 정의와 모듈 내·cross-module `from`/attribute 참조를 분리해 수집하며 decorator·`__all__`·메서드·중첩 callback 함수 오탐을 제외하고 구문/읽기 오류를 `ERROR`로 기록
-  - exception은 `except ... as exc` 내부의 암묵적 `raise exc` lost traceback을 위치와 함께 `WARN`/정책 상태로 기록하고, bare raise·명시적 cause·중첩 함수는 구분하며 C++ 주석·문자열과 multiline destructor/catch를 안전하게 처리
+  - C++ sanitizer timeout·출력 절단은 `ERROR`/`NOT_RUN`, 완전한 ASan/UBSan 진단을 동반한 signal 종료는 `FAIL`/`MEASURED`, 진단 없는 signal 종료는 `ERROR`로 구분하며 테스트 외부 symlink를 제외하고 Windows drive/공백 ResourceWarning 경로와 라인을 보존
+  - dead는 private module-level Python 함수 정의와 모듈 내·cross-module `from`/attribute 참조를 분리해 수집하며 `import pkg.a`/`from pkg import a` 중첩 모듈 참조를 실제 정의에 연결하고 decorator·`__all__`·메서드·중첩 callback 함수 오탐을 제외
+  - exception은 `BaseException` 단일·tuple·`builtins` 경로를 위치 있는 `FAIL`로 차단하고, `except ... as exc` 내부의 암묵적 `raise exc` lost traceback을 위치와 함께 `WARN`/정책 상태로 기록하며 C++ raw string·multiline destructor/catch를 안전하게 처리
+  - 모든 엔진 설정 테이블이 공통 `required` boolean 정책을 사용하고, `sanitize`/`dead`/`exception` 단독 명령은 `ERROR`를 exit 1, `SKIP`을 exit 2로 반환
 - **lint/type 실행 증거 및 도구 정책 강화**:
   - Ruff, Mypy, g++의 모든 실행 시도와 미설치 상태를 `ToolEvidence`에 기록하고 timeout·출력 절단·spawn/신호 종료·도구 크래시·잘못된 성공/진단 출력을 `ERROR`/`NOT_RUN`으로 분류
   - `[engines.lint].ruff_required`와 `[engines.type].mypy_required`를 추가해 필수 도구 누락은 오류로, 선택 도구 누락은 AST 부분 폴백 `WARN`/`ESTIMATED`로 표시

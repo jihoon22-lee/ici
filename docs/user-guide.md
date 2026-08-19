@@ -111,6 +111,10 @@ dist/ici.pyz verify --report --html verify_report.html --github-summary --publis
 | `ici dup` | 최대 클론 블록 병합 기반 Copy-Paste 코드 중복률 산출 | [Dup 엔진 상세](engine-reference.md#28--dup-코드-복제-및-중복률-감지기) |
 | `ici exception` | 예외 삼킴(`except: pass`) 및 소멸자 throw 차단 | [Exception 엔진 상세](engine-reference.md#29-️-exception-예외-처리-안전성-검출기) |
 
+`ici sanitize`, `ici dead`, `ici exception` 단독 명령은 `FAIL` 또는 실행 `ERROR`일 때
+종료 코드 `1`, 검증을 수행하지 못한 `SKIP`일 때 종료 코드 `2`를 반환합니다. 다른 단독
+엔진의 종료 코드 정책은 기존 동작을 따릅니다.
+
 ---
 
 ## 4. 유니버설 에디터 연동 및 gvim/터미널 경로 복사
