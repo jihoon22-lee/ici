@@ -42,8 +42,19 @@ class TypeCheckEngine(BaseEngine):
         tool_warnings: list[str] = []
         tool_evidence: list[ToolEvidence] = []
 
-        if proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py")):
-            self._check_python_types(targets, tool_errors, tool_warnings, tool_evidence)
+        has_python_scope = proj_type in ("python", "hybrid") or any(
+            self.project_root.rglob("*.py")
+        )
+        python_files = (
+            get_all_python_sources(self.project_root, self.config) if has_python_scope else []
+        )
+        if has_python_scope:
+            if python_files:
+                self._check_python_types(
+                    targets, tool_errors, tool_warnings, tool_evidence, python_files
+                )
+            else:
+                self._mark_python_type_check_skipped(targets, tool_warnings)
 
         cpp_files = get_all_cpp_sources(self.project_root, self.config)
         if cpp_files:
@@ -62,15 +73,14 @@ class TypeCheckEngine(BaseEngine):
             else self.evaluate_status(fail_count > 0, warn_count > 0, mode)
         )
 
-        summary = (
-            "; ".join(tool_errors[:3])
-            if tool_errors
-            else "Static Type Check Passed"
-            if overall_status == EngineStatus.PASS
-            else "; ".join(tool_warnings[:2])
-            if tool_warnings and not fail_count
-            else f"{fail_count} Type Errors, {warn_count} Missing Annotations"
-        )
+        if tool_errors:
+            summary = "; ".join(tool_errors[:3])
+        elif overall_status == EngineStatus.PASS:
+            summary = "Static Type Check Passed"
+        else:
+            summary_parts = [f"{fail_count} Type Findings, {warn_count} Warnings"]
+            summary_parts.extend(tool_warnings[:2])
+            summary = "; ".join(summary_parts)
 
         return self.create_result(
             name="type",
@@ -96,6 +106,7 @@ class TypeCheckEngine(BaseEngine):
         tool_errors: list[str] | None = None,
         tool_warnings: list[str] | None = None,
         tool_evidence: list[ToolEvidence] | None = None,
+        python_sources: list[Path] | None = None,
     ) -> bool:
         errors = tool_errors if tool_errors is not None else []
         warnings = tool_warnings if tool_warnings is not None else []
@@ -115,7 +126,7 @@ class TypeCheckEngine(BaseEngine):
                 errors.append("Mypy is required but was not found")
             else:
                 warnings.append("Mypy is unavailable; AST fallback is ESTIMATED")
-        return self._check_python_annotations(targets)
+        return self._check_python_annotations(targets, python_sources)
 
     def _find_mypy_cmd(self) -> list[str] | None:
         which_mypy = shutil.which("mypy")
@@ -229,6 +240,8 @@ class TypeCheckEngine(BaseEngine):
         if not match:
             return False
         count = int(match.group("count"))
+        if count < 1:
+            return False
         expected = "source file" if count == 1 else "source files"
         normalized = output.rstrip("\r\n")
         return normalized == f"Success: no issues found in {count} {expected}"
@@ -293,8 +306,32 @@ class TypeCheckEngine(BaseEngine):
             f"C++ type checking is skipped for {count} source file(s); evidence is ESTIMATED"
         )
 
-    def _check_python_annotations(self, targets: list[InspectionTarget]) -> bool:
-        for py_file in get_all_python_sources(self.project_root):
+    def _mark_python_type_check_skipped(
+        self, targets: list[InspectionTarget], warnings: list[str]
+    ) -> None:
+        targets.append(
+            InspectionTarget(
+                file_path=".",
+                start_line=1,
+                target_name="Mypy",
+                status=EngineStatus.SKIP,
+                message="No applicable Python source files were selected; Mypy was not run",
+            )
+        )
+        warnings.append(
+            "Python type checking is skipped: no applicable Python source files; "
+            "evidence is ESTIMATED"
+        )
+
+    def _check_python_annotations(
+        self, targets: list[InspectionTarget], python_sources: list[Path] | None = None
+    ) -> bool:
+        source_files = (
+            python_sources
+            if python_sources is not None
+            else get_all_python_sources(self.project_root, self.config)
+        )
+        for py_file in source_files:
             try:
                 content = py_file.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(py_file))
