@@ -798,6 +798,41 @@ def test_unittest_fallback_runs_when_pytest_module_is_unavailable(
     assert commands[1][3] == "unittest"
 
 
+def test_unittest_fallback_also_reachable_from_coverage_first_path(
+    tmp_path: Path, monkeypatch
+):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_legacy.py").write_text(
+        "import unittest\n\nclass Legacy(unittest.TestCase):\n    def test_ok(self):\n        self.assertTrue(True)\n",
+        encoding="utf-8",
+    )
+    engine = TestEngine(tmp_path)
+    python = ["/project/.venv/bin/python"]
+    monkeypatch.setattr(engine, "_resolve_python", lambda: python)
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _python: [*python, "-m", "coverage"])
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        commands.append(cmd)
+        if "run" in cmd or "pytest" in cmd:
+            return ProcessResult(1, "", "No module named pytest", 0.01)
+        return ProcessResult(
+            0,
+            "test_ok (test_legacy.Legacy) ... ok\n\nRan 1 test\n",
+            "",
+            0.01,
+        )
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+
+    parsed = engine._run_python_tests([])
+
+    assert parsed == (1, 1, False)
+    assert any("coverage" in cmd and "run" in cmd for cmd in commands)
+    assert commands[-1][3] == "unittest"
+
+
 def test_pytest_zero_collection_does_not_fall_back_to_unittest(tmp_path: Path, monkeypatch):
     tests = tmp_path / "tests"
     tests.mkdir()
