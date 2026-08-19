@@ -269,6 +269,20 @@ def test_find_coverage_cmd_uses_pytest_interpreter(tmp_path: Path, monkeypatch):
     assert cmd == ["/proj/.venvx/bin/python", "-m", "coverage"]
 
 
+def test_find_coverage_cmd_rejects_truncated_probe(tmp_path: Path, monkeypatch):
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr("ici.engines.test.shutil.which", lambda name: None)
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            0, "Coverage.py, version 7.1.2", "", 0.01, truncated=True
+        ),
+    )
+    monkeypatch.setattr("ici.engines.test.find_uv", lambda: None)
+
+    assert engine._find_coverage_cmd(["/proj/.venvx/bin/pytest"]) is None
+
+
 def test_coverage_run_uses_source_dirs_flag(tmp_path: Path, monkeypatch):
     lib = tmp_path / "lib"
     lib.mkdir(parents=True)

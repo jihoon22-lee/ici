@@ -44,3 +44,16 @@ def test_mypy_timeout_is_error(tmp_python_project, monkeypatch):
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_mypy_unexpected_success_output_is_error(tmp_python_project, monkeypatch):
+    _use_mypy(monkeypatch)
+    monkeypatch.setattr(
+        "ici.engines.type_check.run_process",
+        lambda *args, **kwargs: ProcessResult(0, "unexpected tool output", "", 0.01),
+    )
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
