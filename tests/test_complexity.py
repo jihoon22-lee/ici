@@ -34,6 +34,23 @@ def test_process_validation_helpers_stay_below_complexity_limit():
     assert offenders == []
 
 
+def test_coverage_validation_helpers_stay_below_complexity_limit():
+    project_root = Path(__file__).resolve().parents[1]
+    _, targets = ComplexityEngine(project_root)._analyze_python_complexity(15, 25, 4)
+
+    task5_paths = {
+        "src/ici/engines/coverage_support.py",
+        "src/ici/engines/test.py",
+    }
+    offenders = [
+        (target.file_path, target.target_name, target.metrics["complexity"])
+        for target in targets
+        if target.file_path in task5_paths and target.metrics.get("complexity", 0) > 25
+    ]
+
+    assert offenders == []
+
+
 def test_process_runner_has_no_silent_cleanup_exceptions():
     project_root = Path(__file__).resolve().parents[1]
     targets = []
