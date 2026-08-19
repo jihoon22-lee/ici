@@ -17,7 +17,7 @@ def test_complexity_engine(tmp_python_project: Path):
 
 def test_process_validation_helpers_stay_below_complexity_limit():
     project_root = Path(__file__).resolve().parents[1]
-    result = ComplexityEngine(project_root).run()
+    _, targets = ComplexityEngine(project_root)._analyze_python_complexity(15, 25, 4)
 
     task4_paths = {
         "src/ici/core/runner.py",
@@ -27,7 +27,7 @@ def test_process_validation_helpers_stay_below_complexity_limit():
     }
     offenders = [
         (target.file_path, target.target_name, target.metrics["complexity"])
-        for target in result.targets
+        for target in targets
         if target.file_path in task4_paths and target.metrics.get("complexity", 0) > 25
     ]
 
