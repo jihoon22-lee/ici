@@ -192,8 +192,12 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
   0개이면 Mypy를 실행하지 않고 명시적 `SKIP` 대상과 `WARN`/`ESTIMATED`를 남깁니다. 따라서
   `Success: no issues found in 0 source files`도 실측 성공 문법으로 인정하지 않습니다.
 - **C++**: 현재 C++ 타입 검증은 구현되어 있지 않습니다. C++ 소스가 발견되면 소스별 `SKIP`
-  대상을 남기고 요약에 미구현 범위를 명시하며 `WARN`/`ESTIMATED`로 기록합니다. Python/C++ 혼합
-  프로젝트도 C++ 검증 누락 때문에 전체 증거를 `MEASURED`로 승격하지 않습니다.
+  대상을 남기고 요약에 미구현 범위를 명시하며 `WARN`/`ESTIMATED`로 기록합니다. `type = "cpp"`
+  로 선언했지만 적용 가능한 C/C++ 소스가 0개인 경우에도 프로젝트 범위를 검증하지 않았다는
+  명시적 `SKIP` 대상을 남기고 `WARN`/`ESTIMATED`로 표시합니다. 반대로 `hybrid` 프로젝트는
+  실제로 존재하는 언어 범위만 대상으로 삼아, Python만 있는 경우 C++ 부재를 추가 skip 경고로
+  만들지 않습니다. Python/C++ 혼합 프로젝트도 C++ 검증 누락 때문에 전체 증거를 `MEASURED`로
+  승격하지 않습니다.
 - 모든 Mypy 시도 및 미설치 상태는 `ToolEvidence`로 기록되며, rc>=2·파싱 실패 등 최종 도구
   오류 원인도 `error`에 보존됩니다. C++ skip은 Missing Annotations가 아닌 일반 type finding/
   warning 요약으로 표시됩니다.

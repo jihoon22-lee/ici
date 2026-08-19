@@ -16,6 +16,8 @@
   - Ruff/Mypy는 직접 실행 가능한 PATH 도구 또는 프로젝트 `.venv/bin`·`.venv/Scripts`만 사용하고 `uvx`/`uv run` 패키지 해석을 시도하지 않음
   - Ruff format의 빈 성공 출력, 위치 있는 C++ `note:` 보조 진단, Python 0-source Mypy skip을 명시적으로 처리하며, C++ skip을 Missing Annotations로 오표기하지 않음
   - rc>=2·파싱 실패를 포함한 최종 도구 오류 원인을 각 `ToolEvidence.error`에 보존
+  - `type = "cpp"`의 빈 C/C++ 적용 범위도 명시적 `SKIP`/`WARN`/`ESTIMATED`로 표시하고, Python-only hybrid에는 불필요한 C++ skip을 추가하지 않음
+  - 실제 g++ template context(`In instantiation of ...`, 위치 있는 `required from here`)만 제한적으로 허용하고 알 수 없는 문맥은 계속 도구 오류로 처리
 - **테스트 실행·커버리지 증거 강화**:
   - 설정된 Python → 프로젝트 `.venv` → `sys.executable` 순으로 단일 인터프리터를 선택하고
     pytest/coverage/unittest를 모두 `-m` 모듈 호출로 실행
