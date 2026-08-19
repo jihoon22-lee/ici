@@ -2,8 +2,10 @@
 
 from pathlib import Path
 
+import pytest
+
 from ici.core.models import EngineStatus
-from ici.core.project import detect_project_type, get_all_python_sources
+from ici.core.project import detect_project_type, get_all_python_sources, get_source_dirs
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.test import TestEngine
@@ -68,6 +70,48 @@ def test_lib_layout_source_discovery(tmp_path: Path):
         "lib/mylib/refund.py",
         "lib/mylib/router.py",
     }
+
+
+def test_source_dirs_cannot_escape_project(tmp_path: Path):
+    config = {"project": {"source_dirs": ["../outside"]}}
+
+    with pytest.raises(ValueError, match="outside project root"):
+        get_source_dirs(tmp_path, config)
+
+
+def test_configured_symlink_source_dir_cannot_escape_project(tmp_path: Path):
+    outside = tmp_path.parent / "outside-source"
+    outside.mkdir()
+    (tmp_path / "linked").symlink_to(outside, target_is_directory=True)
+    config = {"project": {"source_dirs": ["linked"]}}
+
+    with pytest.raises(ValueError, match="outside project root"):
+        get_source_dirs(tmp_path, config)
+
+
+def test_default_symlink_source_dir_is_ignored(tmp_path: Path):
+    outside = tmp_path.parent / "outside-default-source"
+    outside.mkdir()
+    (outside / "leak.py").write_text("SECRET = True\n", encoding="utf-8")
+    (tmp_path / "src").symlink_to(outside, target_is_directory=True)
+
+    assert get_source_dirs(tmp_path) == []
+    assert get_all_python_sources(tmp_path) == []
+
+
+def test_source_discovery_ignores_symlinked_files_and_directories(tmp_path: Path):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "safe.py").write_text("SAFE = True\n", encoding="utf-8")
+    outside = tmp_path.parent / "outside-nested-source"
+    outside.mkdir()
+    (outside / "leak.py").write_text("SECRET = True\n", encoding="utf-8")
+    (source / "leak.py").symlink_to(outside / "leak.py")
+    (source / "linked").symlink_to(outside, target_is_directory=True)
+
+    assert [p.relative_to(tmp_path) for p in get_all_python_sources(tmp_path)] == [
+        Path("src/safe.py")
+    ]
 
 
 def test_dup_detects_type2_cross_file_clone_in_lib(tmp_path: Path):
