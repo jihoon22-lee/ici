@@ -8,120 +8,150 @@ from typing import Any
 
 from ici.core.project import get_all_python_sources
 
+_COVERAGE_KEYS = (
+    "covered_lines",
+    "num_statements",
+    "missing_lines",
+    "num_branches",
+    "covered_branches",
+)
 
-def parse_coverage_json(json_path: Path, project_root: Path) -> dict | None:
-    """Parse coverage.py JSON into strict per-file line and branch data."""
 
+def _load_coverage_json(json_path: Path) -> dict | None:
     try:
         data = json.loads(json_path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
+    return data if isinstance(data, dict) else None
 
-    if not isinstance(data, dict):
+
+def _parse_coverage_counts(values: object) -> dict[str, int] | None:
+    if not isinstance(values, dict):
         return None
-    files = data.get("files")
-    totals = data.get("totals")
-    required_total_keys = (
-        "covered_lines",
-        "num_statements",
-        "missing_lines",
-        "num_branches",
-        "covered_branches",
-    )
+    parsed: dict[str, int] = {}
+    for key in _COVERAGE_KEYS:
+        value = values.get(key)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            return None
+        parsed[key] = value
+    if parsed["covered_lines"] > parsed["num_statements"]:
+        return None
+    if parsed["missing_lines"] > parsed["num_statements"]:
+        return None
+    if parsed["covered_lines"] + parsed["missing_lines"] != parsed["num_statements"]:
+        return None
+    if parsed["covered_branches"] > parsed["num_branches"]:
+        return None
+    return parsed
+
+
+def _parse_line_numbers(value: object, expected: int) -> list[int] | None:
+    if not isinstance(value, list) or len(value) != expected:
+        return None
+    parsed: list[int] = []
+    for item in value:
+        if isinstance(item, bool) or not isinstance(item, int) or item <= 0:
+            return None
+        parsed.append(item)
+    if len(set(parsed)) != len(parsed):
+        return None
+    return parsed
+
+
+def _relative_coverage_path(fname: str, project_root: Path) -> str:
+    relative = fname
+    with contextlib.suppress(ValueError):
+        relative = str(Path(fname).relative_to(project_root))
+    return relative
+
+
+def _parse_coverage_file(
+    fname: object, finfo: object, project_root: Path
+) -> tuple[str, dict] | None:
+    if not isinstance(fname, str) or not isinstance(finfo, dict):
+        return None
+    executed_lines = finfo.get("executed_lines")
+    missing_lines = finfo.get("missing_lines")
+    summary = finfo.get("summary")
     if (
-        not isinstance(files, dict)
-        or not files
-        or not isinstance(totals, dict)
-        or any(key not in totals for key in required_total_keys)
+        not isinstance(executed_lines, list)
+        or not isinstance(missing_lines, list)
+        or not isinstance(summary, dict)
     ):
         return None
-
-    def parse_counts(values: dict) -> dict[str, int] | None:
-        parsed: dict[str, int] = {}
-        for key in required_total_keys:
-            value = values.get(key)
-            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-                return None
-            parsed[key] = value
-        if parsed["covered_lines"] > parsed["num_statements"]:
-            return None
-        if parsed["missing_lines"] > parsed["num_statements"]:
-            return None
-        if parsed["covered_lines"] + parsed["missing_lines"] != parsed["num_statements"]:
-            return None
-        if parsed["covered_branches"] > parsed["num_branches"]:
-            return None
-        return parsed
-
-    def parse_line_numbers(value: object, expected: int) -> list[int] | None:
-        if not isinstance(value, list) or len(value) != expected:
-            return None
-        if any(isinstance(item, bool) or not isinstance(item, int) or item <= 0 for item in value):
-            return None
-        if len(set(value)) != len(value):
-            return None
-        return list(value)
-
-    parsed_totals = parse_counts(totals)
-    if parsed_totals is None:
+    parsed_summary = _parse_coverage_counts(summary)
+    if parsed_summary is None:
         return None
+    parsed_executed = _parse_line_numbers(executed_lines, parsed_summary["covered_lines"])
+    parsed_missing = _parse_line_numbers(missing_lines, parsed_summary["missing_lines"])
+    if parsed_executed is None or parsed_missing is None:
+        return None
+    if set(parsed_executed).intersection(parsed_missing):
+        return None
+    return _relative_coverage_path(fname, project_root), {
+        "executed_lines": parsed_executed,
+        "missing_lines": parsed_missing,
+        "summary": parsed_summary,
+    }
 
-    file_data: dict[str, dict] = {}
+
+def _parse_coverage_files(files: object, project_root: Path) -> dict[str, dict] | None:
+    if not isinstance(files, dict) or not files:
+        return None
+    parsed_files: dict[str, dict] = {}
     for fname, finfo in files.items():
-        if not isinstance(fname, str) or not isinstance(finfo, dict):
+        parsed_file = _parse_coverage_file(fname, finfo, project_root)
+        if parsed_file is None:
             return None
-        executed_lines = finfo.get("executed_lines")
-        missing_lines = finfo.get("missing_lines")
-        summary = finfo.get("summary")
-        if (
-            not isinstance(executed_lines, list)
-            or not isinstance(missing_lines, list)
-            or not isinstance(summary, dict)
-        ):
+        relative, file_data = parsed_file
+        if relative in parsed_files:
             return None
-        parsed_summary = parse_counts(summary)
-        if parsed_summary is None:
-            return None
-        parsed_executed = parse_line_numbers(executed_lines, parsed_summary["covered_lines"])
-        parsed_missing = parse_line_numbers(missing_lines, parsed_summary["missing_lines"])
-        if parsed_executed is None or parsed_missing is None:
-            return None
-        if set(parsed_executed).intersection(parsed_missing):
-            return None
-        rel = fname
-        with contextlib.suppress(ValueError):
-            rel = str(Path(fname).relative_to(project_root))
-        file_data[rel] = {
-            "executed_lines": parsed_executed,
-            "missing_lines": parsed_missing,
-            "summary": parsed_summary,
-        }
+        parsed_files[relative] = file_data
+    return parsed_files
 
-    file_totals = {key: 0 for key in required_total_keys}
+
+def _sum_coverage_counts(file_data: dict[str, dict]) -> dict[str, int]:
+    totals = {key: 0 for key in _COVERAGE_KEYS}
     for finfo in file_data.values():
-        for key in required_total_keys:
-            file_totals[key] += finfo["summary"][key]
-    if file_totals != parsed_totals or parsed_totals["num_statements"] == 0:
-        return None
+        summary = finfo["summary"]
+        for key in _COVERAGE_KEYS:
+            totals[key] += summary[key]
+    return totals
 
-    tnb = parsed_totals["num_branches"]
-    tcb = parsed_totals["covered_branches"]
-    tstmts = parsed_totals["num_statements"]
-    tcovered = parsed_totals["covered_lines"]
-    tmiss = parsed_totals["missing_lines"]
-    tline = round(tcovered / tstmts * 100.0, 1) if tstmts else None
 
+def _coverage_percent(covered: int, total: int) -> float | None:
+    return round(covered / total * 100.0, 1) if total else None
+
+
+def _build_coverage_result(file_data: dict[str, dict], totals: dict[str, int]) -> dict:
+    line_cov = _coverage_percent(totals["covered_lines"], totals["num_statements"])
+    branch_cov = _coverage_percent(totals["covered_branches"], totals["num_branches"])
     return {
         "files": file_data,
-        "branch_cov": round(tcb / tnb * 100.0, 1) if tnb else None,
-        "line_cov": tline,
+        "branch_cov": branch_cov,
+        "line_cov": line_cov,
         "totals": {
-            "stmts": tstmts,
-            "miss": tmiss,
-            "cover": tline,
-            "branch_cover": round(tcb / tnb * 100.0, 1) if tnb else None,
+            "stmts": totals["num_statements"],
+            "miss": totals["missing_lines"],
+            "cover": line_cov,
+            "branch_cover": branch_cov,
         },
     }
+
+
+def parse_coverage_json(json_path: Path, project_root: Path) -> dict | None:
+    """Parse coverage.py JSON into strict per-file line and branch data."""
+
+    data = _load_coverage_json(json_path)
+    if data is None:
+        return None
+    totals = _parse_coverage_counts(data.get("totals"))
+    file_data = _parse_coverage_files(data.get("files"), project_root)
+    if totals is None or file_data is None:
+        return None
+    if totals["num_statements"] == 0 or _sum_coverage_counts(file_data) != totals:
+        return None
+    return _build_coverage_result(file_data, totals)
 
 
 def _gcov_source_path(gcov_file: Path, source_files: set[str], project_root: Path) -> str | None:
