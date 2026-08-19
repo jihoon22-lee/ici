@@ -163,11 +163,7 @@ class _ScopeAliasCollector(ast.NodeVisitor):
             for position, name, _ in self.events
             if name not in self._global_names
             and name not in self._nonlocal_names
-            and not (
-                handler_name is not None
-                and position[:2] == cutoff
-                and name == handler_name
-            )
+            and not (handler_name is not None and position[:2] == cutoff and name == handler_name)
         }
 
     @staticmethod
