@@ -16,6 +16,10 @@
   - `coverage_required` 정책에서 Python coverage JSON 또는 C++ gcov 실측이 없거나 잘못되면
     통과를 금지하며, 선택적 커버리지는 `ESTIMATED`/`WARN`으로만 표시
   - 반복 실행 사이에 커버리지·도구 증거를 초기화해 이전 측정값이 재사용되지 않도록 보장
+  - `python`/`cpp`/`hybrid` 소스별 테스트 시도를 기록하고 hybrid의 언어별 0개 테스트를 `FAIL`로
+    표시하며, pytest 모듈 부재일 때만 동일 인터프리터의 unittest fallback을 허용
+  - coverage JSON의 수량·라인 배열 일관성을 검증하고, 0 statement·probe/컴파일/실행 signal 오류와
+    프로젝트 내부 pytest 임시 디렉토리 강제를 허위 측정·통과로 처리하지 않음
 - **Dogfood 품질 게이트 유지보수성 개선**:
   - 프로세스 실행 및 lint/test/type 검증 흐름을 명시적·저복잡도 헬퍼로 분리해 CI 복잡도 임계값과 Mypy 타입 검사를 통과하도록 정리
 - **서브프로세스 결과 신뢰성 강화**:

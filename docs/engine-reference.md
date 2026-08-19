@@ -117,14 +117,25 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 - **테스트 수집 증거**: pytest 종료 코드 `5` 또는 수집된 테스트가 0개이면 `total_tests = 0`인
   `FAIL`입니다. 인터프리터/도구 부재, timeout, 출력 절단, 도구 자체 오류는 `ERROR`/`NOT_RUN`으로
   기록되어 추정치로 통과할 수 없습니다.
+- **언어별 실행 범위**: `python`/`cpp`/`hybrid` 소스가 있으면 해당 언어의 테스트 시도를 기록합니다.
+  `hybrid`에서 한 언어의 테스트만 있어도 다른 언어의 0개 수집을 별도 `FAIL`로 표시하며, pytest가
+  실제로 0개를 수집한 뒤 unittest로 우회하지 않습니다. pytest 모듈 자체가 명확히 없는 경우에만
+  동일 인터프리터의 `-m unittest discover`로 대체합니다.
 - **커버리지 정책**: `coverage_required = true`이면 Python `coverage.json` 또는 C++ `gcov`
   산출물이 실제로 생성·파싱되어야 하며, 누락·불완전·잘못된 출력은 `ERROR`/`NOT_RUN`입니다.
   `false`이면 커버리지 수치는 `ESTIMATED`로 표시되고 결과는 최소 `WARN`이며, 추정치는 TEM·
   커버리지 임계값의 `PASS` 근거로 사용되지 않습니다.
+- **실측 JSON 검증**: Python JSON은 파일/전체 statement·branch 수의 일관성, 양의 정수인
+  `executed_lines`/`missing_lines` 배열의 개수·중복·교집합을 검증합니다. 0 statement 또는
+  측정 불가능한 산출물은 실측으로 인정하지 않으며, coverage `--version`의 timeout·절단·spawn·
+  signal·기타 오류도 선택적 누락이 아닌 `ERROR`/`NOT_RUN`입니다.
 - **모듈별 실측 커버리지 수집** (HTML `🧪 Tests & Coverage` 탭의 Module Coverage Table):
   - **Python**: 프로젝트 환경의 `coverage.py`가 있으면 `coverage run --branch`로 테스트를 재실행하고 `coverage json`을 파싱하여 파일별 Stmts/Miss/Cover/Branch 실측값 수집
   - **C++**: `gcov`가 있으면 `g++ --coverage` 2단계 컴파일(객체별 `-c` 후 링크)로 테스트를 빌드·실행하고 `gcov -b -p` 산출물을 파싱하여 동일한 파일별 테이블 생성 (테스트 파일 제외)
   - 둘 다 없으면 KPI는 추정치로 표시되며, HTML에 설치 안내가 노출됨
+- **pytest 임시 파일**: pytest에는 프로젝트 내부 `--basetemp`를 강제로 지정하지 않으므로
+  `tmp_path`와 캡처 파일은 시스템 임시 디렉토리를 사용합니다. WSL에서는 Windows 마운트의
+  `TMP`/`TEMP` 대신 `/tmp`를 자식 테스트 프로세스에 전달합니다.
 - **Function Coverage (gcov 호출 기준) 실측**: 함수 본문이 한 번 이상 실행되면 커버된 것으로 간주
   - Python: coverage.json의 `executed_lines`와 AST 함수 라인 범위를 교차 계산
   - C++: gcov 산출물의 `function ... called N` 라인 파싱
