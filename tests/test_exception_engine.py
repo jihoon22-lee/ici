@@ -759,6 +759,55 @@ def handle():
     assert [(target.start_line, target.status) for target in targets] == [(7, EngineStatus.FAIL)]
 
 
+def test_exception_engine_treats_handler_targets_as_transient_bindings(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "transient_handlers.py").write_text(
+        """from builtins import BaseException as BE
+import builtins as b
+
+try:
+    work()
+except ValueError as BE:
+    try:
+        work()
+    except BE:
+        log()
+except BE:
+    log()
+
+try:
+    work()
+except ValueError as b:
+    try:
+        work()
+    except b.BaseException:
+        log()
+except b.BaseException:
+    log()
+
+try:
+    work()
+except ValueError as BE:
+    log()
+try:
+    work()
+except BE:
+    log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (11, EngineStatus.FAIL),
+        (21, EngineStatus.FAIL),
+        (30, EngineStatus.FAIL),
+    ]
+
+
 def test_exception_engine_cancels_pending_destructor_at_declaration_semicolon(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
