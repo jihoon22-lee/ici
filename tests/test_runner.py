@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -25,6 +26,32 @@ def test_run_process_marks_timeout(tmp_path):
     assert isinstance(result, ProcessResult)
     assert result.timed_out is True
     assert result.returncode == 124
+
+
+@pytest.mark.parametrize(
+    ("platform", "expected_key"),
+    [("posix", "start_new_session"), ("nt", "creationflags")],
+)
+def test_spawn_process_uses_explicit_platform_options(
+    tmp_path, monkeypatch, platform, expected_key
+):
+    captured = {}
+    sentinel = object()
+
+    def fake_popen(command, **kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(runner, "os", SimpleNamespace(name=platform))
+    monkeypatch.setattr(runner.subprocess, "Popen", fake_popen)
+
+    process = runner._spawn_process([sys.executable, "-c", ""], tmp_path, {}, None)
+
+    assert process is sentinel
+    assert expected_key in captured
+    assert captured["stdin"] is None
+    assert captured["stdout"] is runner.subprocess.PIPE
+    assert captured["stderr"] is runner.subprocess.PIPE
 
 
 def test_run_process_waits_for_finite_descendant_pipe_holder(tmp_path):

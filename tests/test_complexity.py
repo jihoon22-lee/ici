@@ -15,6 +15,35 @@ def test_complexity_engine(tmp_python_project: Path):
     assert len(res.targets) > 0
 
 
+def test_process_validation_helpers_stay_below_complexity_limit():
+    project_root = Path(__file__).resolve().parents[1]
+    result = ComplexityEngine(project_root).run()
+
+    task4_paths = {"src/ici/core/runner.py", "src/ici/engines/lint.py"}
+    offenders = [
+        (target.file_path, target.target_name, target.metrics["complexity"])
+        for target in result.targets
+        if target.file_path in task4_paths and target.metrics.get("complexity", 0) > 25
+    ]
+
+    assert offenders == []
+
+
+def test_process_runner_has_no_silent_cleanup_exceptions():
+    project_root = Path(__file__).resolve().parents[1]
+    targets = []
+    ExceptionSafetyEngine(project_root)._check_python_exceptions(targets)
+
+    silent_runner_errors = [
+        target
+        for target in targets
+        if target.file_path == "src/ici/core/runner.py"
+        and target.target_name == "ErrorSwallowing"
+    ]
+
+    assert silent_runner_errors == []
+
+
 def test_exception_safety_detects_swallowed_error(tmp_path: Path):
     src = tmp_path / "src"
     src.mkdir(parents=True)
