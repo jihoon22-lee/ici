@@ -531,6 +531,103 @@ def test_exception_engine_resolves_outer_aliases_after_nested_definition(tmp_pat
     ]
 
 
+def test_exception_engine_keeps_enclosing_aliases_possible_after_child_call(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "post_call.py").write_text(
+        """from builtins import BaseException as BE
+import builtins as b
+
+def handle():
+    try:
+        work()
+    except BE:
+        log()
+    try:
+        work()
+    except b.BaseException:
+        log()
+
+handle()
+BE = ValueError
+b = object()
+
+def direct():
+    try:
+        work()
+    except BaseException:
+        log()
+
+direct()
+BaseException = ValueError
+
+BaseException = ValueError
+def stable_shadow():
+    try:
+        work()
+    except BaseException:
+        log()
+stable_shadow()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (7, EngineStatus.FAIL),
+        (11, EngineStatus.FAIL),
+        (21, EngineStatus.FAIL),
+    ]
+
+
+def test_exception_engine_keeps_outer_aliases_possible_after_nested_call(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "nested_post_call.py").write_text(
+        """def outer():
+    from builtins import BaseException as BE
+    import builtins as b
+    def inner():
+        nonlocal BE
+        try:
+            work()
+        except BE:
+            log()
+        try:
+            work()
+        except b.BaseException:
+            log()
+    inner()
+    BE = ValueError
+    b = object()
+
+def outer_direct():
+    def inner():
+        try:
+            work()
+        except BaseException:
+            log()
+    inner()
+    BaseException = ValueError
+
+outer()
+outer_direct()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (8, EngineStatus.FAIL),
+        (12, EngineStatus.FAIL),
+        (22, EngineStatus.FAIL),
+    ]
+
+
 def test_exception_engine_local_bindings_after_handler_shadow_outer_aliases(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
