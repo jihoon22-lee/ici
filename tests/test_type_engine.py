@@ -90,6 +90,37 @@ def test_mypy_success_line_with_junk_is_error(tmp_python_project, monkeypatch):
     assert result.evidence == EvidenceState.NOT_RUN
 
 
+def test_mypy_zero_source_success_is_not_valid():
+    assert not TypeCheckEngine._is_valid_mypy_success(
+        "Success: no issues found in 0 source files\n"
+    )
+
+
+def test_python_without_applicable_sources_skips_mypy(tmp_path, monkeypatch):
+    source_dir = tmp_path / "src"
+    source_dir.mkdir()
+    (tmp_path / "ici.toml").write_text(
+        'name = "empty_python"\ntype = "python"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    engine = TypeCheckEngine(tmp_path)
+
+    def fail_if_mypy_is_discovered():
+        raise AssertionError("Mypy must not run when no Python sources are selected")
+
+    monkeypatch.setattr(engine, "_find_mypy_cmd", fail_if_mypy_is_discovered)
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.WARN
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert not any(e.name == "mypy" for e in result.tool_evidence)
+    assert any(
+        target.status == EngineStatus.SKIP and target.target_name == "Mypy"
+        for target in result.targets
+    )
+
+
 def test_optional_mypy_absence_uses_estimated_ast_fallback(tmp_python_project, monkeypatch):
     monkeypatch.setattr("ici.engines.type_check.shutil.which", lambda _name: None)
 
@@ -186,3 +217,30 @@ def test_hybrid_type_evidence_stays_estimated_when_cpp_is_skipped(tmp_python_pro
 
     assert result.evidence == EvidenceState.ESTIMATED
     assert any(target.status == EngineStatus.SKIP for target in result.targets)
+
+
+def test_hybrid_type_summary_does_not_call_cpp_skip_missing_annotations(
+    tmp_python_project, monkeypatch
+):
+    source = tmp_python_project / "src" / "sample_pkg" / "native.cpp"
+    source.write_text("int native() { return 1; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.type_check.shutil.which",
+        lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+    )
+    monkeypatch.setattr(
+        "ici.engines.type_check.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            1,
+            "src/sample_pkg/core.py:1: error: incompatible type\n",
+            "",
+            0.01,
+        ),
+    )
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.WARN
+    assert "Missing Annotations" not in result.summary
+    assert "Type Findings" in result.summary
+    assert "C++ type checking is skipped" in result.summary
