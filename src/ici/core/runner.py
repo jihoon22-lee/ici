@@ -1,6 +1,7 @@
 """Subprocess runner and execution helper for ici."""
 
 import ctypes
+import logging
 import os
 import signal
 import subprocess
@@ -10,6 +11,9 @@ from contextlib import suppress
 from ctypes import wintypes
 from dataclasses import dataclass
 from pathlib import Path
+from typing import IO
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -81,12 +85,90 @@ def _write_input(stream, input_bytes: bytes) -> None:
         return
 
 
+def _start_output_readers(
+    proc: subprocess.Popen[bytes], max_output_chars: int
+) -> tuple[_BoundedCapture, _BoundedCapture, threading.Thread, threading.Thread]:
+    if proc.stdout is None or proc.stderr is None:
+        raise RuntimeError("subprocess pipes were not created")
+    stdout_capture = _BoundedCapture(max_output_chars)
+    stderr_capture = _BoundedCapture(max_output_chars)
+    stdout_thread = threading.Thread(
+        target=_drain_stream,
+        args=(proc.stdout, stdout_capture),
+        name="ici-process-stdout",
+        daemon=True,
+    )
+    stderr_thread = threading.Thread(
+        target=_drain_stream,
+        args=(proc.stderr, stderr_capture),
+        name="ici-process-stderr",
+        daemon=True,
+    )
+    stdout_thread.start()
+    stderr_thread.start()
+    return stdout_capture, stderr_capture, stdout_thread, stderr_thread
+
+
+def _start_input_writer(
+    proc: subprocess.Popen[bytes], input_text: str | None
+) -> threading.Thread | None:
+    if input_text is None or proc.stdin is None:
+        return None
+    input_thread = threading.Thread(
+        target=_write_input,
+        args=(proc.stdin, input_text.encode("utf-8")),
+        name="ici-process-stdin",
+        daemon=True,
+    )
+    input_thread.start()
+    return input_thread
+
+
 _CREATE_SUSPENDED = 0x00000004
 _JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9
 _JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
 _THREAD_SUSPEND_RESUME = 0x0002
 _TH32CS_SNAPTHREAD = 0x00000004
 _RESUME_THREAD_FAILED = 0xFFFFFFFF
+
+
+def _spawn_process(
+    cmd: list[str],
+    cwd: Path | None,
+    exec_env: dict[str, str],
+    input_text: str | None,
+) -> subprocess.Popen[bytes]:
+    """Start a binary-pipe process with platform-specific containment flags."""
+
+    stdin = subprocess.PIPE if input_text is not None else None
+    if os.name == "posix":
+        return subprocess.Popen(
+            cmd,
+            cwd=str(cwd) if cwd else None,
+            env=exec_env,
+            stdin=stdin,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            start_new_session=True,
+        )
+    if os.name == "nt":
+        return subprocess.Popen(
+            cmd,
+            cwd=str(cwd) if cwd else None,
+            env=exec_env,
+            stdin=stdin,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            creationflags=_CREATE_SUSPENDED,
+        )
+    return subprocess.Popen(
+        cmd,
+        cwd=str(cwd) if cwd else None,
+        env=exec_env,
+        stdin=stdin,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
 
 
 class _JobObjectBasicLimitInformation(ctypes.Structure):
@@ -266,13 +348,7 @@ def _start_windows_job(proc) -> None:
                 kernel32.CloseHandle(job_handle)
         with suppress(OSError):
             proc.kill()
-        try:
-            proc.wait(timeout=1.0)
-        except TypeError:
-            with suppress(OSError):
-                proc.wait()
-        except (OSError, subprocess.TimeoutExpired):
-            pass
+        _wait_after_startup_failure(proc)
         raise
     else:
         if close_thread and thread_handle:
@@ -289,6 +365,22 @@ def _close_windows_job(proc) -> None:
     for attr in ("_ici_job_handle", "_ici_job_kernel32"):
         with suppress(AttributeError):
             delattr(proc, attr)
+
+
+def _log_cleanup_failure(action: str, error: BaseException) -> None:
+    _LOGGER.debug("%s during subprocess cleanup: %s", action, error)
+
+
+def _wait_after_startup_failure(proc) -> None:
+    try:
+        proc.wait(timeout=1.0)
+    except TypeError:
+        try:
+            proc.wait()
+        except OSError as error:
+            _log_cleanup_failure("waiting for startup failure", error)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        _log_cleanup_failure("waiting for startup failure", error)
 
 
 def _remaining(deadline: float | None) -> float | None:
@@ -360,8 +452,8 @@ def _terminate_process(proc: subprocess.Popen[bytes], deadline: float | None = N
     if os.name == "posix":
         try:
             os.killpg(proc.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
+        except ProcessLookupError as error:
+            _log_cleanup_failure("SIGTERM process-group cleanup", error)
         except OSError:
             proc.terminate()
 
@@ -375,14 +467,110 @@ def _terminate_process(proc: subprocess.Popen[bytes], deadline: float | None = N
         # Kill the group after the grace period so communicate() cannot hang.
         try:
             os.killpg(proc.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        except ProcessLookupError as error:
+            _log_cleanup_failure("SIGKILL process-group cleanup", error)
         except OSError:
             proc.kill()
     else:
         _terminate_windows_process(proc, deadline)
 
     _wait_process(proc, deadline)
+
+
+def _wait_for_process(proc: subprocess.Popen[bytes], deadline: float | None) -> bool:
+    try:
+        proc.wait(timeout=_remaining(deadline))
+    except subprocess.TimeoutExpired:
+        _terminate_process(proc, deadline)
+        return True
+    return False
+
+
+def _join_until_deadline(thread: threading.Thread, deadline: float | None) -> bool:
+    thread.join(timeout=_remaining(deadline))
+    return thread.is_alive()
+
+
+def _close_stream(stream: IO[bytes] | None) -> None:
+    if stream is not None:
+        with suppress(OSError, ValueError):
+            stream.close()
+
+
+def _close_process_pipes(proc: subprocess.Popen[bytes]) -> None:
+    _close_stream(proc.stdin)
+    _close_stream(proc.stdout)
+    _close_stream(proc.stderr)
+
+
+def _cleanup_process_threads(
+    proc: subprocess.Popen[bytes],
+    input_thread: threading.Thread | None,
+    stdout_thread: threading.Thread,
+    stderr_thread: threading.Thread,
+    deadline: float | None,
+    timed_out: bool,
+) -> bool:
+    if input_thread is not None and _join_until_deadline(input_thread, deadline):
+        timed_out = True
+        _terminate_process(proc, deadline)
+
+    if _join_until_deadline(stdout_thread, deadline) or _join_until_deadline(
+        stderr_thread, deadline
+    ):
+        timed_out = True
+        # The leader may have exited while a descendant retained an inherited
+        # pipe. Kill the group/job even in that case.
+        _terminate_process(proc, deadline)
+
+    if timed_out and (stdout_thread.is_alive() or stderr_thread.is_alive()):
+        _close_stream(proc.stdout)
+        _close_stream(proc.stderr)
+        stdout_thread.join(timeout=_remaining(deadline))
+        stderr_thread.join(timeout=_remaining(deadline))
+
+    if input_thread is not None and input_thread.is_alive():
+        _close_stream(proc.stdin)
+    return timed_out
+
+
+def _make_process_result(
+    proc: subprocess.Popen[bytes],
+    stdout_capture: _BoundedCapture,
+    stderr_capture: _BoundedCapture,
+    t0: float,
+    timeout: float | None,
+    timed_out: bool,
+    max_output_chars: int,
+) -> ProcessResult:
+    stdout_text = stdout_capture.value()
+    stderr_text = stderr_capture.value()
+    if timed_out:
+        stderr_text = f"Command timed out after {timeout}s: {stderr_text}"
+
+    stdout_text, stdout_truncated = _limit(stdout_text, max_output_chars)
+    stderr_text, stderr_truncated = _limit(stderr_text, max_output_chars)
+    return ProcessResult(
+        returncode=124 if timed_out else proc.returncode,
+        stdout=stdout_text,
+        stderr=stderr_text,
+        duration=time.monotonic() - t0,
+        timed_out=timed_out,
+        truncated=(
+            stdout_capture.truncated
+            or stderr_capture.truncated
+            or stdout_truncated
+            or stderr_truncated
+        ),
+    )
+
+
+def _cleanup_failed_process(proc: subprocess.Popen[bytes] | None) -> None:
+    if proc is None:
+        return
+    if os.name == "nt":
+        _close_windows_job(proc)
+    _close_process_pipes(proc)
 
 
 def run_process(
@@ -410,119 +598,38 @@ def run_process(
 
     t0 = time.monotonic()
     deadline = None if timeout is None else t0 + max(0.0, timeout)
-    popen_kwargs: dict[str, object] = {
-        "cwd": str(cwd) if cwd else None,
-        "env": exec_env,
-        "stdin": subprocess.PIPE if input_text is not None else None,
-        "stdout": subprocess.PIPE,
-        "stderr": subprocess.PIPE,
-    }
-    if os.name == "posix":
-        popen_kwargs["start_new_session"] = True
-    elif os.name == "nt":
-        popen_kwargs["creationflags"] = _CREATE_SUSPENDED
-
-    proc = None
+    proc: subprocess.Popen[bytes] | None = None
     try:
-        proc = subprocess.Popen(cmd, **popen_kwargs)
+        proc = _spawn_process(cmd, cwd, exec_env, input_text)
         if os.name == "nt":
             _start_windows_job(proc)
-        stdout_capture = _BoundedCapture(max_output_chars)
-        stderr_capture = _BoundedCapture(max_output_chars)
-        stdout_thread = threading.Thread(
-            target=_drain_stream,
-            args=(proc.stdout, stdout_capture),
-            name="ici-process-stdout",
-            daemon=True,
+        stdout_capture, stderr_capture, stdout_thread, stderr_thread = _start_output_readers(
+            proc, max_output_chars
         )
-        stderr_thread = threading.Thread(
-            target=_drain_stream,
-            args=(proc.stderr, stderr_capture),
-            name="ici-process-stderr",
-            daemon=True,
+        input_thread = _start_input_writer(proc, input_text)
+        timed_out = _wait_for_process(proc, deadline)
+        timed_out = _cleanup_process_threads(
+            proc,
+            input_thread,
+            stdout_thread,
+            stderr_thread,
+            deadline,
+            timed_out,
         )
-        stdout_thread.start()
-        stderr_thread.start()
-
-        input_thread = None
-        if input_text is not None and proc.stdin is not None:
-            input_thread = threading.Thread(
-                target=_write_input,
-                args=(proc.stdin, input_text.encode("utf-8")),
-                name="ici-process-stdin",
-                daemon=True,
-            )
-            input_thread.start()
-
-        timed_out = False
-        try:
-            remaining = _remaining(deadline)
-            proc.wait(timeout=remaining)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            _terminate_process(proc, deadline)
-
-        def join_until_deadline(thread) -> bool:
-            thread.join(timeout=_remaining(deadline))
-            return thread.is_alive()
-
-        if input_thread is not None and join_until_deadline(input_thread):
-            timed_out = True
-            _terminate_process(proc, deadline)
-
-        if join_until_deadline(stdout_thread) or join_until_deadline(stderr_thread):
-            timed_out = True
-            # The leader may have exited while a descendant retained an
-            # inherited pipe.  Kill the group/job even in that case.
-            _terminate_process(proc, deadline)
-
-        if timed_out and (stdout_thread.is_alive() or stderr_thread.is_alive()):
-            # Closing a pipe is a final no-deadlock guard for an escaped child.
-            with suppress(OSError, ValueError):
-                proc.stdout.close()
-            with suppress(OSError, ValueError):
-                proc.stderr.close()
-            stdout_thread.join(timeout=_remaining(deadline))
-            stderr_thread.join(timeout=_remaining(deadline))
-
-        if input_thread is not None and input_thread.is_alive():
-            with suppress(OSError, ValueError):
-                proc.stdin.close()
 
         if os.name == "nt":
             _close_windows_job(proc)
-
-        stdout_text = stdout_capture.value()
-        stderr_text = stderr_capture.value()
-        if timed_out:
-            stderr_text = f"Command timed out after {timeout}s: {stderr_text}"
-
-        stdout_text, stdout_truncated = _limit(stdout_text, max_output_chars)
-        stderr_text, stderr_truncated = _limit(stderr_text, max_output_chars)
-        return ProcessResult(
-            returncode=124 if timed_out else proc.returncode,
-            stdout=stdout_text,
-            stderr=stderr_text,
-            duration=time.monotonic() - t0,
-            timed_out=timed_out,
-            truncated=(
-                stdout_capture.truncated
-                or stderr_capture.truncated
-                or stdout_truncated
-                or stderr_truncated
-            ),
+        return _make_process_result(
+            proc,
+            stdout_capture,
+            stderr_capture,
+            t0,
+            timeout,
+            timed_out,
+            max_output_chars,
         )
     except Exception as exc:
-        if proc is not None:
-            if os.name == "nt":
-                _close_windows_job(proc)
-            for stream in (
-                getattr(proc, "stdin", None),
-                getattr(proc, "stdout", None),
-                getattr(proc, "stderr", None),
-            ):
-                with suppress(OSError, ValueError, AttributeError):
-                    stream.close()
+        _cleanup_failed_process(proc)
         stderr_text, truncated = _limit(f"Failed to execute {cmd}: {exc}", max_output_chars)
         return ProcessResult(
             returncode=-1,
