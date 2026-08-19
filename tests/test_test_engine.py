@@ -8,10 +8,23 @@ from ici.engines.test import TestEngine
 
 
 def test_test_engine_execution_and_tem_score(tmp_python_project: Path):
-    engine = TestEngine(tmp_python_project)
+    engine = TestEngine(
+        tmp_python_project,
+        config={
+            "engines": {
+                "test": {
+                    "mode": "pass_fail",
+                    # A non-perfect TEM score is a warning that strict mode must fail.
+                    "min_tem_score": 5.0,
+                }
+            }
+        },
+    )
     res = engine.run()
 
-    assert res.status == EngineStatus.PASS
+    assert res.extra["passed_tests"] == res.extra["total_tests"] >= 1
+    assert res.extra["tem_score"] < 5.0
+    assert res.status == EngineStatus.FAIL
     assert res.score is not None
     # TEM score must be between 0 and 5.0
     assert 0.0 <= res.score <= 5.0

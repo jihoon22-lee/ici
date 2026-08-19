@@ -170,6 +170,16 @@ def test_process():
 """,
         encoding="utf-8",
     )
-    res = TestEngine(root).run()
-    assert res.extra["passed_tests"] >= 1
-    assert res.status in (EngineStatus.PASS, EngineStatus.WARN)
+    config = {
+        "engines": {
+            "test": {
+                "mode": "pass_fail",
+                # The fixture deliberately exercises only one branch.
+                "min_branch_cov": 100.0,
+            }
+        }
+    }
+    res = TestEngine(root, config=config).run()
+    assert res.extra["passed_tests"] == res.extra["total_tests"] >= 1
+    assert res.extra["branch_coverage"] < 100.0
+    assert res.status == EngineStatus.FAIL

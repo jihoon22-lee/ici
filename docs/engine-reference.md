@@ -60,6 +60,33 @@ warn_pct = 5.0
 fail_pct = 15.0
 ```
 
+이 저장소의 dogfood 정책(`ici.toml`)은 현재 CI·로컬 측정값의 실행기별 편차를 고려해
+TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pass_fail"`은
+그 floor 미달 경고와 테스트 실행 실패를 모두 게이트 실패로 승격하며, 도구·테스트가
+개선되면 floor를 다시 높일 수 있습니다.
+
+### 1.2 결과 상태와 게이트 계약
+
+모든 엔진은 `EngineResult`를 반환하며, 결과 상태와 증거 상태를 함께 기록합니다.
+
+- `PASS`: 정책 기준을 통과했습니다.
+- `WARN`: 조치가 권장되지만 게이트를 차단하지 않는 경고입니다.
+- `FAIL`: 필수 엔진의 정책 기준을 충족하지 못했습니다.
+- `ERROR`: 실행 오류 또는 필수 검증을 완료하지 못한 상태입니다.
+- `SKIP`: 검증이 실행되지 않은 상태입니다. 필수 엔진의 `SKIP`은 게이트에서 `ERROR`로 승격됩니다.
+
+증거 상태(`EvidenceState`)는 다음과 같습니다.
+
+- `MEASURED`: 도구를 실제 실행해 측정한 결과입니다.
+- `ESTIMATED`: 도구를 실행할 수 없어 추정한 결과입니다.
+- `NOT_RUN`: 검증이 실행되지 않았음을 명시합니다.
+
+`EngineResult.required`의 기본값은 `true`이므로, 별도 설정이 없는 엔진은 필수 엔진으로
+간주됩니다. `aggregate_suite_status()`는 빈 결과 집합, 필수 엔진의 `ERROR`/`SKIP`, 또는
+필수 엔진의 `NOT_RUN` 증거를 `ERROR`로 처리합니다. 그 외에는 필수 엔진의 `FAIL`, 모든
+엔진의 `WARN`, 마지막으로 `PASS` 순서로 전체 게이트 상태를 결정합니다. 도구 실행 정보가
+있는 경우 `ToolEvidence`에 도구 이름·경로·버전·인자·반환 코드를 기록할 수 있습니다.
+
 ---
 
 ## 2. 9대 핵심 검증 엔진 상세
@@ -96,7 +123,8 @@ fail_pct = 15.0
     $$\text{TEM} = \frac{\min(80, \text{Branch} \times 1.25)}{80} \times \frac{\text{Function Coverage}}{100} \times \text{Pass Rate} \times 5.0$$
 - **평가 기준**:
   - 모든 테스트 케이스 통과 필수
-  - TEM 스코어 $\ge 4.0$, Branch Coverage $\ge 80\%$, Function Coverage $\ge 90\%$ 충족 시 PASS
+  - 기본 내장 정책은 TEM 스코어 $\ge 4.0$, Branch Coverage $\ge 80\%$, Function Coverage $\ge 90\%$를 요구
+  - 이 저장소 dogfood 정책은 현재 측정 baseline에 맞춘 TEM $\ge 2.0$, Branch $\ge 35\%$, Function $\ge 60\%$ floor를 사용
   - 실측 커버리지가 있는 경우 Branch Coverage는 실측값(coverage.py/gcov)으로 대체됨
   - 커버리지 80% 미만 모듈은 `Coverage:Module` WARN 타깃으로 Issues 탭/PR 어노테이션에 노출
 

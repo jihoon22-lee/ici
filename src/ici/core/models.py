@@ -9,7 +9,25 @@ class EngineStatus(str, Enum):
     PASS = "PASS"
     WARN = "WARN"
     FAIL = "FAIL"
+    ERROR = "ERROR"
     SKIP = "SKIP"
+
+
+class EvidenceState(str, Enum):
+    MEASURED = "MEASURED"
+    ESTIMATED = "ESTIMATED"
+    NOT_RUN = "NOT_RUN"
+
+
+@dataclass
+class ToolEvidence:
+    """Records the tool invocation that produced an engine result."""
+
+    name: str
+    path: str
+    version: str = ""
+    argv: list[str] = field(default_factory=list)
+    returncode: int | None = None
 
 
 @dataclass
@@ -39,6 +57,29 @@ class EngineResult:
     targets: list[InspectionTarget] = field(default_factory=list)
     raw_output: str = ""
     extra: dict[str, Any] = field(default_factory=dict)
+    required: bool = True
+    evidence: EvidenceState = EvidenceState.MEASURED
+    tool_evidence: list[ToolEvidence] = field(default_factory=list)
+
+
+def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
+    """Aggregates engine results into the suite gate status."""
+    if not results:
+        return EngineStatus.ERROR
+    if any(
+        r.required
+        and (
+            r.status in (EngineStatus.ERROR, EngineStatus.SKIP)
+            or r.evidence == EvidenceState.NOT_RUN
+        )
+        for r in results
+    ):
+        return EngineStatus.ERROR
+    if any(r.required and r.status == EngineStatus.FAIL for r in results):
+        return EngineStatus.FAIL
+    if any(r.status == EngineStatus.WARN for r in results):
+        return EngineStatus.WARN
+    return EngineStatus.PASS
 
 
 @dataclass
@@ -61,7 +102,7 @@ class VerificationSuiteResult:
 
     @property
     def failed_count(self) -> int:
-        return sum(1 for r in self.results if r.status == EngineStatus.FAIL)
+        return sum(1 for r in self.results if r.status in (EngineStatus.FAIL, EngineStatus.ERROR))
 
     @property
     def total_count(self) -> int:

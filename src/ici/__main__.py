@@ -91,7 +91,7 @@ def cmd_verify(
     if html_path and open_browser:
         _open_in_browser(html_path)
 
-    if suite.suite_status == EngineStatus.FAIL:
+    if suite.suite_status in (EngineStatus.FAIL, EngineStatus.ERROR):
         raise typer.Exit(code=1)
 
 

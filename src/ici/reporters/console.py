@@ -21,6 +21,8 @@ def format_status_badge(status: EngineStatus) -> str:
         return "[bold yellow] WARN [/]"
     elif status == EngineStatus.FAIL:
         return "[bold red] FAIL [/]"
+    elif status == EngineStatus.ERROR:
+        return "[bold red] ERROR [/]"
     else:
         return "[dim] SKIP [/]"
 
@@ -67,14 +69,18 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
 
     console.print(table)
 
-    # Print Drill-Down for Failures and Warnings
-    issues = [r for r in suite.results if r.status in (EngineStatus.FAIL, EngineStatus.WARN)]
+    # Print Drill-Down for Failures, Errors, and Warnings
+    issues = [
+        r
+        for r in suite.results
+        if r.status in (EngineStatus.FAIL, EngineStatus.ERROR, EngineStatus.WARN)
+    ]
     if issues:
         console.print(
             "\n[bold red]── Action Required: Violations & Issues Drill-Down ──[/bold red]"
         )
         for issue in issues:
-            border = "red" if issue.status == EngineStatus.FAIL else "yellow"
+            border = "red" if issue.status in (EngineStatus.FAIL, EngineStatus.ERROR) else "yellow"
             issue_panel_content = []
 
             if issue.engine_name == "dup" and "clone_groups" in issue.extra:
