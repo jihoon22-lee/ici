@@ -124,7 +124,10 @@ def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
         return EngineStatus.ERROR
     if any(
         r.required
-        and (r.status in (EngineStatus.ERROR, EngineStatus.SKIP) or r.evidence == EvidenceState.NOT_RUN)
+        and (
+            r.status in (EngineStatus.ERROR, EngineStatus.SKIP)
+            or r.evidence == EvidenceState.NOT_RUN
+        )
         for r in results
     ):
         return EngineStatus.ERROR
@@ -185,9 +188,7 @@ def test_load_config_merges_global_project_and_explicit(tmp_path, monkeypatch):
     global_file = xdg / "ici" / "ici.toml"
     global_file.parent.mkdir(parents=True)
     global_file.write_text("[engines.line]\nwarn_limit = 400\n", encoding="utf-8")
-    (tmp_path / "ici.toml").write_text(
-        "[engines.line]\nfail_limit = 900\n", encoding="utf-8"
-    )
+    (tmp_path / "ici.toml").write_text("[engines.line]\nfail_limit = 900\n", encoding="utf-8")
     explicit = tmp_path / "explicit.toml"
     explicit.write_text("[engines.line]\nwarn_limit = 300\n", encoding="utf-8")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(xdg))
@@ -536,7 +537,9 @@ git commit -m "fix(test): require executed tests and measured coverage"
 
 ```python
 def test_ruff_non_json_failure_is_error(tmp_python_project, monkeypatch):
-    monkeypatch.setattr("ici.engines.lint.shutil.which", lambda name: "/bin/ruff" if name == "ruff" else None)
+    monkeypatch.setattr(
+        "ici.engines.lint.shutil.which", lambda name: "/bin/ruff" if name == "ruff" else None
+    )
     monkeypatch.setattr(
         "ici.engines.lint.run_process",
         lambda *args, **kwargs: ProcessResult(2, "", "invalid option", 0.01),

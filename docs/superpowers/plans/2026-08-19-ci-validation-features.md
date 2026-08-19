@@ -299,17 +299,26 @@ def test_cmake_adapter_uses_shadow_build_and_compile_database(tmp_path, monkeypa
     calls = []
     monkeypatch.setattr(
         "ici.build_adapters.cmake.run_process",
-        lambda argv, cwd=None, **kwargs: calls.append((argv, cwd))
-        or ProcessResult(0, "", "", 0.01),
+        lambda argv, cwd=None, **kwargs: (
+            calls.append((argv, cwd)) or ProcessResult(0, "", "", 0.01)
+        ),
     )
     request = BuildRequest(tmp_path, tmp_path / "build/ici/cmake", 4, {})
     CMakeAdapter({"cmake": "/usr/bin/cmake", "ctest": "/usr/bin/ctest"}, []).run(request)
     assert calls[0][0] == [
-        "/usr/bin/cmake", "-S", str(tmp_path), "-B", str(request.build_dir),
+        "/usr/bin/cmake",
+        "-S",
+        str(tmp_path),
+        "-B",
+        str(request.build_dir),
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
     ]
     assert calls[1][0] == [
-        "/usr/bin/cmake", "--build", str(request.build_dir), "--parallel", "4",
+        "/usr/bin/cmake",
+        "--build",
+        str(request.build_dir),
+        "--parallel",
+        "4",
     ]
 ```
 
@@ -376,8 +385,9 @@ def test_qmake_adapter_uses_selected_project_file(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(
         "ici.build_adapters.qmake.run_process",
-        lambda argv, cwd=None, **kwargs: calls.append((argv, cwd))
-        or ProcessResult(0, "", "", 0.01),
+        lambda argv, cwd=None, **kwargs: (
+            calls.append((argv, cwd)) or ProcessResult(0, "", "", 0.01)
+        ),
     )
     build_dir = tmp_path / "build/ici/qmake"
     QMakeAdapter("/usr/bin/qmake", "/usr/bin/make", pro, []).run(
@@ -516,8 +526,9 @@ def test_python_compat_runs_compile_and_import_with_target(tmp_path, monkeypatch
     calls = []
     monkeypatch.setattr(
         "ici.engines.python_compat.run_process",
-        lambda argv, cwd=None, env=None, **kwargs: calls.append((argv, env))
-        or ProcessResult(0, "", "", 0.01),
+        lambda argv, cwd=None, env=None, **kwargs: (
+            calls.append((argv, env)) or ProcessResult(0, "", "", 0.01)
+        ),
     )
     config = {
         "engines": {
@@ -702,12 +713,14 @@ def test_integration_case_resolves_python_and_artifact_without_shell(tmp_path, m
                 "required": True,
                 "manifest": str(manifest),
                 "python_targets": {"py310": sys.executable},
-                "cases": [{
-                    "name": "python-to-cpp",
-                    "argv": ["{python:py310}", "tests/smoke.py", "{artifact:demo}"],
-                    "expected_exit": 0,
-                    "stdout_contains": ["ready"],
-                }],
+                "cases": [
+                    {
+                        "name": "python-to-cpp",
+                        "argv": ["{python:py310}", "tests/smoke.py", "{artifact:demo}"],
+                        "expected_exit": 0,
+                        "stdout_contains": ["ready"],
+                    }
+                ],
             }
         }
     }
