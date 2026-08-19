@@ -1,46 +1,162 @@
 """Project type detection, metadata parsing, and source file discovery for ici."""
 
+import os
 import re
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
+
+import tomli
 
 from ici.core.env import get_nas_cpp_lib_dir
 
 DEFAULT_SOURCE_DIRS = ["src", "lib", "app", "packages", "python"]
+_PROJECT_VALUE_PATTERN = re.compile(r"[A-Za-z0-9._-]+")
+
+
+def _resolve_project_root(base: Path) -> Path:
+    try:
+        return Path(base).resolve(strict=False)
+    except (OSError, RuntimeError, TypeError, ValueError) as err:
+        raise ValueError(f"could not resolve project root {base}: {err}") from err
+
+
+def resolve_project_path(base: Path, value: str) -> Path:
+    """Resolve a project-relative path and enforce canonical containment."""
+    try:
+        project_root = _resolve_project_root(Path(base))
+        candidate = (project_root / value).resolve(strict=False)
+    except (OSError, RuntimeError, TypeError, ValueError) as err:
+        raise ValueError(f"could not resolve project path {value!r}: {err}") from err
+
+    try:
+        candidate.relative_to(project_root)
+    except ValueError as err:
+        raise ValueError(f"path is outside project root: {value}") from err
+    return candidate
+
+
+def _safe_project_file(base: Path, name: str) -> Path | None:
+    """Return an existing in-project file without following an escaped link."""
+    try:
+        candidate = resolve_project_path(base, name)
+        return candidate if candidate.is_file() else None
+    except (OSError, ValueError):
+        return None
+
+
+def _safe_project_dir(base: Path, path: Path) -> Path | None:
+    """Return an existing in-project directory without following an escaped link."""
+    try:
+        candidate = resolve_project_path(base, os.fspath(path))
+        return candidate if candidate.is_dir() else None
+    except (OSError, ValueError):
+        return None
+
+
+def _iter_project_dirs(root: Path, base: Path) -> Iterator[Path]:
+    """Yield canonical directories below ``base`` without traversing symlinks."""
+    safe_root = _safe_project_dir(base, root)
+    if safe_root is None:
+        return
+
+    yield safe_root
+
+    for current, dir_names, _file_names in os.walk(safe_root, topdown=True, followlinks=False):
+        current_path = Path(current)
+        safe_names: list[str] = []
+        safe_dirs: list[Path] = []
+        for dir_name in dir_names:
+            path = current_path / dir_name
+            if path.is_symlink():
+                continue
+            safe_dir = _safe_project_dir(base, path)
+            if safe_dir is None or _should_ignore_path(safe_dir):
+                continue
+            safe_names.append(dir_name)
+            safe_dirs.append(safe_dir)
+        dir_names[:] = safe_names
+        yield from safe_dirs
+
+
+def _iter_project_files(root: Path, base: Path, suffixes: tuple[str, ...]) -> Iterator[Path]:
+    """Yield contained regular files while ignoring symlink traversal."""
+    safe_root = _safe_project_dir(base, root)
+    if safe_root is None:
+        return
+
+    for current, dir_names, file_names in os.walk(safe_root, topdown=True, followlinks=False):
+        current_path = Path(current)
+        safe_names: list[str] = []
+        for dir_name in dir_names:
+            path = current_path / dir_name
+            if path.is_symlink():
+                continue
+            safe_dir = _safe_project_dir(base, path)
+            if safe_dir is None or _should_ignore_path(safe_dir):
+                continue
+            safe_names.append(dir_name)
+        dir_names[:] = safe_names
+
+        for file_name in file_names:
+            path = current_path / file_name
+            if path.is_symlink() or path.suffix not in suffixes:
+                continue
+            try:
+                canonical = resolve_project_path(base, os.fspath(path))
+                if canonical.is_file() and not _should_ignore_path(canonical):
+                    yield canonical
+            except (OSError, ValueError):
+                continue
 
 
 def get_source_dirs(
     base_path: Path | None = None, config: dict[str, Any] | None = None
 ) -> list[Path]:
     """Resolves existing project source directories (overridable via config project.source_dirs)."""
-    base = (base_path or Path.cwd()).resolve()
+    base = _resolve_project_root(base_path or Path.cwd())
     names: list[str] | None = None
+    configured = False
     if config:
         proj_cfg = config.get("project")
         if isinstance(proj_cfg, dict):
             raw = proj_cfg.get("source_dirs")
             if isinstance(raw, list):
-                names = [str(x) for x in raw]
+                configured = True
+                names = []
+                for item in raw:
+                    if not isinstance(item, str) or not item:
+                        raise ValueError("project.source_dirs must be a list of non-empty strings")
+                    names.append(item)
     if names is None:
         names = DEFAULT_SOURCE_DIRS
 
     dirs: list[Path] = []
     for name in names:
-        candidate = base / name
-        if candidate.is_dir():
-            dirs.append(candidate)
+        try:
+            candidate = resolve_project_path(base, name)
+        except ValueError:
+            if configured:
+                raise
+            continue
+        try:
+            if candidate.is_dir():
+                dirs.append(candidate)
+        except OSError as err:
+            if configured:
+                raise ValueError(f"could not inspect source directory {name!r}: {err}") from err
     return dirs
 
 
 def detect_project_type(target_dir: Path | None = None) -> str:
     """Detects whether target project is 'cpp', 'python', or 'hybrid'."""
-    base = (target_dir or Path.cwd()).resolve()
+    base = _resolve_project_root(target_dir or Path.cwd())
 
     # 1. Check configuration files (ici.toml, dev.toml)
     for conf_name in ("ici.toml", "dev.toml"):
-        conf_path = base / conf_name
-        if conf_path.exists():
+        conf_path = _safe_project_file(base, conf_name)
+        if conf_path is not None:
             try:
                 content = conf_path.read_text(encoding="utf-8")
                 if re.search(r'type\s*=\s*["\']hybrid["\']', content):
@@ -55,14 +171,14 @@ def detect_project_type(target_dir: Path | None = None) -> str:
     # 2. Check source file signatures across all configured source directories
     source_dirs = get_source_dirs(base)
     has_cpp = (
-        (base / "CMakeLists.txt").exists()
-        or (base / "Makefile").exists()
-        or any(any(d.rglob("*.cpp")) for d in source_dirs)
+        _safe_project_file(base, "CMakeLists.txt") is not None
+        or _safe_project_file(base, "Makefile") is not None
+        or any(any(_iter_project_files(d, base, (".cpp",))) for d in source_dirs)
     )
     has_py = (
-        (base / "pyproject.toml").exists()
-        or (base / "setup.py").exists()
-        or any(any(d.rglob("*.py")) for d in source_dirs)
+        _safe_project_file(base, "pyproject.toml") is not None
+        or _safe_project_file(base, "setup.py") is not None
+        or any(any(_iter_project_files(d, base, (".py",))) for d in source_dirs)
     )
 
     if has_cpp and has_py:
@@ -72,81 +188,123 @@ def detect_project_type(target_dir: Path | None = None) -> str:
     return "python"
 
 
-def get_project_name(target_dir: Path | None = None) -> str:
-    """Gets the project name from configs or directory name."""
-    base = (target_dir or Path.cwd()).resolve()
-    for conf_name in ("ici.toml", "dev.toml"):
-        conf_path = base / conf_name
-        if conf_path.exists():
-            try:
-                for line in conf_path.read_text(encoding="utf-8").splitlines():
-                    if "name" in line and "=" in line:
-                        val = line.split("=")[1].strip().strip('"').strip("'")
-                        if val:
-                            return val
-            except OSError as err:
-                _ = err
-
-    pyproj = base / "pyproject.toml"
-    if pyproj.exists():
-        try:
-            for line in pyproj.read_text(encoding="utf-8").splitlines():
-                if line.strip().startswith("name") and "=" in line:
-                    val = line.split("=")[1].strip().strip('"').strip("'")
-                    if val:
-                        return val
-        except OSError as err:
-            _ = err
-
-    return base.name
+def _validate_project_name(value: Any) -> str:
+    if (
+        not isinstance(value, str)
+        or value in {".", ".."}
+        or _PROJECT_VALUE_PATTERN.fullmatch(value) is None
+    ):
+        raise ValueError(f"invalid project name: {value!r}")
+    return value
 
 
-def get_project_version(target_dir: Path | None = None) -> str:
-    """Extracts project version or falls back to git describe / v1.0.0."""
-    base = (target_dir or Path.cwd()).resolve()
+def _validate_project_version(value: Any) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"invalid project version: {value!r}")
+    normalized = value[1:] if value.startswith("v") else value
+    if _PROJECT_VALUE_PATTERN.fullmatch(normalized) is None:
+        raise ValueError(f"invalid project version: {value!r}")
+    return f"v{normalized}"
 
-    # 1. Config files
-    for conf_name in ("ici.toml", "dev.toml"):
-        conf_path = base / conf_name
-        if conf_path.exists():
-            try:
-                for line in conf_path.read_text(encoding="utf-8").splitlines():
-                    if "version" in line and "=" in line:
-                        v = line.split("=")[1].strip().strip('"').strip("'")
-                        if v:
-                            return v if v.startswith("v") else f"v{v}"
-            except OSError as err:
-                _ = err
 
-    # 2. Git tag
+def _metadata_path(base: Path, name: str) -> Path | None:
+    """Resolve one project metadata file, rejecting an escaped symlink."""
+    candidate = resolve_project_path(base, name)
     try:
-        res = subprocess.run(
+        if not candidate.exists():
+            return None
+        if not candidate.is_file():
+            raise ValueError(f"project metadata path is not a file: {name}")
+    except OSError as err:
+        raise ValueError(f"could not inspect project metadata {name}: {err}") from err
+    return candidate
+
+
+def _read_toml(path: Path) -> dict[str, Any]:
+    """Read one canonical TOML metadata file."""
+    try:
+        with path.open("rb") as stream:
+            try:
+                document = tomli.load(stream)
+            except (ValueError, RecursionError, UnicodeError) as err:
+                raise ValueError(f"could not parse project metadata {path.name}: {err}") from err
+    except OSError as err:
+        raise ValueError(f"could not read project metadata {path.name}: {err}") from err
+    if not isinstance(document, dict):
+        raise ValueError(f"project metadata must be a table: {path.name}")
+    return document
+
+
+def _metadata_table(document: dict[str, Any], path_name: str) -> dict[str, Any]:
+    if path_name == "pyproject.toml":
+        project = document.get("project", {})
+        if not isinstance(project, dict):
+            raise ValueError("project metadata [project] must be a table")
+        return project
+    return document
+
+
+def _git_project_version(base: Path) -> str:
+    try:
+        result = subprocess.run(
             ["git", "describe", "--tags", "--always"],
             capture_output=True,
             text=True,
             cwd=base,
             timeout=2,
         )
-        if res.returncode == 0 and res.stdout.strip():
-            tag = res.stdout.strip()
-            return tag if tag.startswith("v") else f"v{tag}"
-    except (OSError, subprocess.SubprocessError) as err:
-        _ = err
-
+    except (OSError, subprocess.SubprocessError):
+        return "v1.0.0"
+    if result.returncode == 0 and result.stdout.strip():
+        return _validate_project_version(result.stdout.strip())
     return "v1.0.0"
+
+
+def read_project_metadata(base: Path) -> tuple[str, str]:
+    """Read and validate project name/version from canonical TOML metadata."""
+    project_root = _resolve_project_root(base)
+    name: str | None = None
+    version: str | None = None
+
+    for file_name in ("ici.toml", "dev.toml", "pyproject.toml"):
+        path = _metadata_path(project_root, file_name)
+        if path is None:
+            continue
+        table = _metadata_table(_read_toml(path), file_name)
+        if "name" in table:
+            candidate_name = _validate_project_name(table["name"])
+            if name is None:
+                name = candidate_name
+        if "version" in table:
+            candidate_version = _validate_project_version(table["version"])
+            if version is None:
+                version = candidate_version
+
+    if name is None:
+        name = _validate_project_name(project_root.name)
+    if version is None:
+        version = _git_project_version(project_root)
+    return name, version
+
+
+def get_project_name(target_dir: Path | None = None) -> str:
+    """Gets and validates the project name from TOML metadata or its directory."""
+    return read_project_metadata(target_dir or Path.cwd())[0]
+
+
+def get_project_version(target_dir: Path | None = None) -> str:
+    """Extract and validate the project version or fall back to git/v1.0.0."""
+    return read_project_metadata(target_dir or Path.cwd())[1]
 
 
 def get_all_cpp_sources(
     base_path: Path | None = None, config: dict[str, Any] | None = None
 ) -> list[Path]:
     """Finds all C++ source files (.cpp, .cc, .cxx, .c) across project source directories."""
-    base = (base_path or Path.cwd()).resolve()
+    base = _resolve_project_root(base_path or Path.cwd())
     cpp_files = []
     for src_dir in get_source_dirs(base, config):
-        for ext in ("*.cpp", "*.cc", "*.cxx", "*.c"):
-            for p in src_dir.rglob(ext):
-                if not _should_ignore_path(p):
-                    cpp_files.append(p)
+        cpp_files.extend(_iter_project_files(src_dir, base, (".cpp", ".cc", ".cxx", ".c")))
 
     return sorted(cpp_files)
 
@@ -155,19 +313,19 @@ def get_all_cpp_includes(
     base_path: Path | None = None, config: dict[str, Any] | None = None
 ) -> list[str]:
     """Finds all C++ include directories (-I flags)."""
-    base = (base_path or Path.cwd()).resolve()
+    base = _resolve_project_root(base_path or Path.cwd())
     inc_dirs = set()
 
-    inc_dir = base / "include"
-    if inc_dir.exists():
+    inc_dir = _safe_project_dir(base, base / "include")
+    if inc_dir is not None:
         inc_dirs.add(f"-I{inc_dir}")
-        for p in inc_dir.rglob("*"):
-            if p.is_dir() and not _should_ignore_path(p):
+        for p in _iter_project_dirs(inc_dir, base):
+            if not _should_ignore_path(p):
                 inc_dirs.add(f"-I{p}")
 
     for src_dir in get_source_dirs(base, config):
-        sub_inc = src_dir / "include"
-        if sub_inc.exists():
+        sub_inc = _safe_project_dir(base, src_dir / "include")
+        if sub_inc is not None:
             inc_dirs.add(f"-I{sub_inc}")
 
     nas_cpp = get_nas_cpp_lib_dir()
@@ -181,12 +339,10 @@ def get_all_python_sources(
     base_path: Path | None = None, config: dict[str, Any] | None = None
 ) -> list[Path]:
     """Finds all Python source files across project source directories."""
-    base = (base_path or Path.cwd()).resolve()
+    base = _resolve_project_root(base_path or Path.cwd())
     py_files = []
     for src_dir in get_source_dirs(base, config):
-        for p in src_dir.rglob("*.py"):
-            if not _should_ignore_path(p):
-                py_files.append(p)
+        py_files.extend(_iter_project_files(src_dir, base, (".py",)))
     return sorted(py_files)
 
 
