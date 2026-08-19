@@ -190,9 +190,7 @@ def test_dead_engine_resolves_imported_symbol_used_through_attribute(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
     (src / "a.py").write_text("def _foo():\n    return 1\n", encoding="utf-8")
-    (src / "use.py").write_text(
-        "from a import _foo\n\nvalue = _foo.__name__\n", encoding="utf-8"
-    )
+    (src / "use.py").write_text("from a import _foo\n\nvalue = _foo.__name__\n", encoding="utf-8")
 
     result = DeadCodeEngine(tmp_path).run()
 
@@ -208,9 +206,7 @@ def test_dead_engine_prefers_first_configured_source_dir_for_shadowed_module(tmp
     second.mkdir()
     (first / "a.py").write_text("def _foo():\n    return 1\n", encoding="utf-8")
     (second / "a.py").write_text("def _foo():\n    return 2\n", encoding="utf-8")
-    (first / "use.py").write_text(
-        "from a import _foo\n\nvalue = _foo()\n", encoding="utf-8"
-    )
+    (first / "use.py").write_text("from a import _foo\n\nvalue = _foo()\n", encoding="utf-8")
     config = {"project": {"source_dirs": ["first", "second"]}}
 
     result = DeadCodeEngine(tmp_path, config).run()

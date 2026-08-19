@@ -91,8 +91,8 @@ class DeadCodeEngine(BaseEngine):
         targets: list[InspectionTarget] = []
         modules: list[dict] = []
         source_dirs = get_source_dirs(self.project_root, self.config)
-        module_paths: dict[str, Path] = {}
-        for py_file in get_all_python_sources(self.project_root, self.config):
+        module_paths: dict[str, str] = {}
+        for py_file in self._ordered_python_sources(source_dirs):
             try:
                 content = py_file.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(py_file))
@@ -112,13 +112,15 @@ class DeadCodeEngine(BaseEngine):
                 continue
 
             module_name = self._module_name(py_file, source_dirs)
-            module_paths[module_name] = py_file
+            module_id = str(py_file.relative_to(self.project_root))
+            module_paths.setdefault(module_name, module_id)
             modules.append(
                 {
                     "path": py_file,
                     "content": content,
                     "tree": tree,
                     "module": module_name,
+                    "module_id": module_id,
                     "defs": self._private_module_defs(tree),
                     "refs": self._load_names(tree),
                     "qualified_refs": self._qualified_refs(tree, module_name),
@@ -150,6 +152,27 @@ class DeadCodeEngine(BaseEngine):
                 )
         return targets
 
+    def _ordered_python_sources(self, source_dirs: list[Path]) -> list[Path]:
+        """Return source files in configured root precedence order."""
+
+        sources = get_all_python_sources(self.project_root, self.config)
+        ordered: list[Path] = []
+        seen: set[Path] = set()
+        for source_dir in source_dirs:
+            for py_file in sources:
+                if py_file in seen:
+                    continue
+                try:
+                    py_file.relative_to(source_dir)
+                except ValueError:
+                    continue
+                ordered.append(py_file)
+                seen.add(py_file)
+        for py_file in sources:
+            if py_file not in seen:
+                ordered.append(py_file)
+        return ordered
+
     def _append_module_targets(
         self,
         module: dict,
@@ -161,7 +184,7 @@ class DeadCodeEngine(BaseEngine):
         for name, node in module["defs"].items():
             if name in module["exports"] or getattr(node, "decorator_list", []):
                 continue
-            used = name in local_refs or (module["module"], name) in referenced_keys
+            used = name in local_refs or (module["module_id"], name) in referenced_keys
             status = EngineStatus.PASS if used else EngineStatus.WARN
             message = (
                 f"Private function '{name}' is referenced"
@@ -272,34 +295,39 @@ class DeadCodeEngine(BaseEngine):
         return path.stem
 
     def _resolve_imported_refs(
-        self, module: dict, module_paths: dict[str, Path]
+        self, module: dict, module_paths: dict[str, str]
     ) -> set[tuple[str, str]]:
         resolved: set[tuple[str, str]] = set()
         for alias, (imported_module, imported_name) in module["imports"].items():
             if alias not in module["refs"]:
                 continue
             if imported_name:
-                target_module = f"{imported_module}.{imported_name}"
-                if target_module not in module_paths:
-                    target_module = imported_module
-                for reference in module["qualified_refs"]:
-                    parts = reference.split(".")
-                    if parts[0] == alias and len(parts) > 1:
-                        resolved.add((target_module, parts[1]))
-                if not any(
-                    reference.split(".", 1)[0] == alias for reference in module["qualified_refs"]
-                ):
-                    resolved.add((target_module, imported_name))
+                candidate = f"{imported_module}.{imported_name}"
+                if candidate in module_paths:
+                    target_id = module_paths[candidate]
+                    for reference in module["qualified_refs"]:
+                        parts = reference.split(".")
+                        if parts[0] == alias and len(parts) > 1:
+                            resolved.add((target_id, parts[1]))
+                    if not any(
+                        reference.split(".", 1)[0] == alias
+                        for reference in module["qualified_refs"]
+                    ):
+                        resolved.add((target_id, imported_name))
+                else:
+                    target_id = module_paths.get(imported_module, imported_module)
+                    resolved.add((target_id, imported_name))
                 continue
             imported_parts = imported_module.split(".")
             prefix = [alias, *imported_parts[1:]] if imported_parts[0] == alias else [alias]
             for reference in module["qualified_refs"]:
                 parts = reference.split(".")
                 if parts[: len(prefix)] == prefix and len(parts) > len(prefix):
-                    resolved.add((imported_module, parts[len(prefix)]))
+                    target_id = module_paths.get(imported_module, imported_module)
+                    resolved.add((target_id, parts[len(prefix)]))
             for module_name in module_paths:
                 if module_name == imported_module or module_name.startswith(imported_module + "."):
-                    resolved.add((module_name, ""))
+                    resolved.add((module_paths[module_name], ""))
         return resolved
 
     def _append_unreachable_targets(

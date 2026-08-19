@@ -151,10 +151,7 @@ def test_exception_engine_does_not_call_conditional_brace_catch_empty(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
     (src / "conditional.cpp").write_text(
-        "void run() {\n"
-        "    try { work(); }\n"
-        "    catch (...) { if (ready) {} }\n"
-        "}\n",
+        "void run() {\n    try { work(); }\n    catch (...) { if (ready) {} }\n}\n",
         encoding="utf-8",
     )
 
