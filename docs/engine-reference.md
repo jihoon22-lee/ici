@@ -239,7 +239,7 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 - `except: pass` (예외 무시/삼킴 패턴) 검출
 - `except BaseException:`, tuple 안의 `BaseException`, `builtins.BaseException`을 모두 위치와 함께 `FAIL` target으로 차단
 - Python `except ... as exc` 내부의 암묵적 `raise exc` lost traceback 감지 (`raise`와 `raise exc from cause`, 중첩 함수 scope는 구분)
-- C++ 소멸자(`destructor`) 내부 throw와 빈 `catch(...)` 감지. 주석·일반/Raw 문자열을 분석에서 제외하고 multiline body도 위치와 함께 보존한다. 소멸자 선언이 `;`로 끝나면 뒤의 함수 body를 소멸자로 오인하지 않으며, 빈 catch 계산은 파일별 한 번만 수행한다.
+- C++ 소멸자(`destructor`) 내부 throw와 구문상 비어 있는(syntactically empty) `catch(...)` 감지. 주석·일반/Raw 문자열을 분석에서 제외하고 multiline body도 위치와 함께 보존한다. 소멸자 선언이 `;`로 끝나면 뒤의 함수 body를 소멸자로 오인하지 않으며, 빈 catch 계산은 파일별 한 번만 수행한다.
 
 ---
 
