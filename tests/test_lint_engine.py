@@ -74,6 +74,8 @@ def test_ruff_success_without_json_is_error(tmp_python_project, monkeypatch):
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+    check_evidence = next(e for e in result.tool_evidence if e.name == "ruff check")
+    assert "parseable JSON" in check_evidence.error
 
 
 def test_ruff_clean_format_summary_is_success(tmp_python_project, monkeypatch):
@@ -187,6 +189,8 @@ def test_ruff_exit_two_is_tool_error_even_with_json_diagnostic(tmp_python_projec
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+    check_evidence = next(e for e in result.tool_evidence if e.name == "ruff check")
+    assert "exit code 2" in check_evidence.error
 
 
 def test_missing_gxx_for_discovered_cpp_is_error(tmp_cpp_project, monkeypatch):
@@ -294,6 +298,8 @@ def test_cpp_malformed_success_output_is_tool_error(tmp_cpp_project, monkeypatch
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+    compiler_evidence = next(e for e in result.tool_evidence if e.name == "g++")
+    assert "not parseable" in compiler_evidence.error
 
 
 def test_cpp_warning_context_is_kept_as_a_finding(tmp_cpp_project, monkeypatch):

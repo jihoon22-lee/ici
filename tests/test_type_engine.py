@@ -57,6 +57,8 @@ def test_mypy_unexpected_success_output_is_error(tmp_python_project, monkeypatch
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+    mypy_evidence = next(e for e in result.tool_evidence if e.name == "mypy")
+    assert "not parseable" in mypy_evidence.error
 
 
 def test_mypy_empty_success_output_is_error(tmp_python_project, monkeypatch):
@@ -183,6 +185,8 @@ def test_mypy_exit_two_is_tool_error_even_with_diagnostic(tmp_python_project, mo
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+    mypy_evidence = next(e for e in result.tool_evidence if e.name == "mypy")
+    assert "exit code 2" in mypy_evidence.error
 
 
 def test_cpp_type_check_is_explicitly_skipped(tmp_cpp_project, monkeypatch):
