@@ -271,7 +271,7 @@ def test_cpp_template_context_is_allowed_before_primary_error(tmp_cpp_project, m
         lambda name: "/usr/bin/g++" if name == "g++" else None,
     )
     diagnostic = (
-        "src/main.cpp: In instantiation of ‘void call(T) [with T = int]’:\n"
+        "src/main.cpp: In instantiation of \u2018void call(T) [with T = int]\u2019:\n"
         "src/main.cpp:12:5:   required from here\n"
         "src/main.cpp:5:10: error: invalid conversion\n"
     )

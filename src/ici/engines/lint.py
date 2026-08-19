@@ -36,9 +36,7 @@ _CPP_CONTEXT_HEADER_RE = re.compile(
     r"^.+:\s+In (?:function|member function|constructor|destructor|lambda function|"
     r"instantiation of)(?: .*)?:$"
 )
-_CPP_REQUIRED_FROM_RE = re.compile(
-    r"^.+:[1-9]\d*(?::[1-9]\d*)?:\s+required from here$"
-)
+_CPP_REQUIRED_FROM_RE = re.compile(r"^.+:[1-9]\d*(?::[1-9]\d*)?:\s+required from here$")
 
 
 class LintEngine(BaseEngine):

@@ -218,9 +218,7 @@ def test_cpp_project_without_applicable_sources_skips_type_check(tmp_path):
     assert "no applicable c++ source files" in target.message.lower()
 
 
-def test_hybrid_python_only_project_does_not_skip_absent_cpp_scope(
-    tmp_python_project, monkeypatch
-):
+def test_hybrid_python_only_project_does_not_skip_absent_cpp_scope(tmp_python_project, monkeypatch):
     (tmp_python_project / "ici.toml").write_text(
         'name = "python_only"\ntype = "hybrid"\nversion = "1.0.0"\n',
         encoding="utf-8",
