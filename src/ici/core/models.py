@@ -102,7 +102,7 @@ class VerificationSuiteResult:
 
     @property
     def failed_count(self) -> int:
-        return sum(1 for r in self.results if r.status == EngineStatus.FAIL)
+        return sum(1 for r in self.results if r.status in (EngineStatus.FAIL, EngineStatus.ERROR))
 
     @property
     def total_count(self) -> int:

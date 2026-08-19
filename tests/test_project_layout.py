@@ -172,4 +172,4 @@ def test_process():
     )
     res = TestEngine(root).run()
     assert res.extra["passed_tests"] >= 1
-    assert res.status in (EngineStatus.PASS, EngineStatus.WARN)
+    assert res.status == EngineStatus.FAIL

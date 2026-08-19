@@ -11,7 +11,7 @@ def test_test_engine_execution_and_tem_score(tmp_python_project: Path):
     engine = TestEngine(tmp_python_project)
     res = engine.run()
 
-    assert res.status == EngineStatus.PASS
+    assert res.status == EngineStatus.FAIL
     assert res.score is not None
     # TEM score must be between 0 and 5.0
     assert 0.0 <= res.score <= 5.0

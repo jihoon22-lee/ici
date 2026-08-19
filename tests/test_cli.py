@@ -3,6 +3,7 @@
 from typer.testing import CliRunner
 
 from ici.__main__ import app
+from ici.core.models import EngineStatus, VerificationSuiteResult
 
 runner = CliRunner()
 
@@ -42,3 +43,15 @@ def test_cli_any_command_creates_global_config(tmp_path, monkeypatch):
     global_conf = xdg / "ici" / "ici.toml"
     assert global_conf.exists()
     assert "engines" in global_conf.read_text(encoding="utf-8")
+
+
+def test_cli_verify_error_suite_exits_nonzero(monkeypatch):
+    class ErrorOrchestrator:
+        def run_all(self, **kwargs):
+            return VerificationSuiteResult(suite_status=EngineStatus.ERROR, results=[])
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", ErrorOrchestrator)
+
+    res = runner.invoke(app, ["verify"])
+
+    assert res.exit_code == 1
