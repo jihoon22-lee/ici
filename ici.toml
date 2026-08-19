@@ -14,6 +14,8 @@ fail_limit = 1000         # 순수 코드 1000라인 초과 시 실패
 [engines.lint]
 enabled = true
 mode = "pass_warn_fail"
+# Ruff is optional by default; absence uses an ESTIMATED AST syntax fallback.
+ruff_required = false
 
 [engines.test]
 enabled = true
@@ -29,6 +31,8 @@ enabled = true
 mode = "pass_warn"
 fail_on_error = true
 warn_on_missing_annotation = false
+# Set true to make missing mypy an ERROR/NOT_RUN result.
+mypy_required = false
 
 [engines.complexity]
 enabled = true

@@ -48,6 +48,18 @@ min_func_cov = 90.0
 # python = "/workspace/.venv/bin/python"
 coverage_required = false
 
+[engines.lint]
+enabled = true
+mode = "pass_warn_fail"
+# Optional by default: missing Ruff is reported as WARN/ESTIMATED.
+ruff_required = false
+
+[engines.type]
+enabled = true
+mode = "pass_warn"
+# Optional by default: missing Mypy is reported as WARN/ESTIMATED.
+mypy_required = false
+
 [engines.complexity]
 enabled = true
 mode = "pass_warn_fail"
@@ -105,8 +117,15 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 - **출력 메트릭**: 코드 라인, 주석 라인, 공백 라인 수 및 디렉토리 계층 트리 ([HTML 뷰어 지원](user-guide.md#22-인터랙티브-html-리포트-생성-및-자동-브라우저-열기))
 
 ### 2.2 🧹 `lint` (문법 및 코드 스타일 린터)
-- **Python**: `ruff check` (에러/버그) + `ruff format --check` (코드 포맷팅 일치 여부)
-- **C++**: `g++ -Wall -Wextra -Werror` 컴파일 검사 + `clang-format` 정렬 검사
+- **Python**: `ruff check --output-format=json`과 `ruff format --check`를 실행합니다. Ruff가
+  없으면 AST 문법 검사만 수행하는 부분 폴백으로 전환하며, `ruff_required = true`이면
+  `ERROR`/`NOT_RUN`, 기본 선택 정책이면 `WARN`/`ESTIMATED`로 기록합니다. Ruff의 종료 코드,
+  JSON 진단 구조, 포맷 성공 문법은 엄격히 검증하며 도구 오류와 실제 진단을 구분합니다.
+- **C++**: 발견된 각 `.cpp`/`.cc`/`.cxx`/`.c`에 `g++ -fsyntax-only -std=c++17 -Wall -Wextra`를
+  실행합니다. 소스가 있는데 g++가 없거나 timeout·출력 절단·spawn·비정상 종료·진단 파싱 실패가
+  발생하면 `ERROR`/`NOT_RUN`입니다. 정상적인 `error`/`warning` 진단은 보고된 파일과 라인에
+  `InspectionTarget`으로 남기고 엔진 `mode` 정책을 따릅니다.
+- 모든 Ruff/g++ 시도는 `ToolEvidence`에 argv, 반환 코드 및 timeout/절단/실패 사유를 남깁니다.
 
 ### 2.3 🧪 `test` & TEM 스코어링 (단위 테스트 및 테스트 효과성 지표)
 - **동작**: 프로젝트 내 pytest 또는 C++ 테스트 바이너리를 실행하여 단위 테스트 전수 통과 여부 검증
@@ -157,8 +176,15 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
   - 커버리지 80% 미만 모듈은 `Coverage:Module` WARN 타깃으로 Issues 탭/PR 어노테이션에 노출
 
 ### 2.4 🏷️ `type` (정적 타입 안정성 검사기)
-- **Python**: `mypy`를 통한 엄격한 정적 타입 검사 + AST 기반 함수 시그니처 분석
-- **C++**: strict typing 컴파일 플래그 검사
+- **Python**: `mypy`의 정상 성공 문법과 위치가 있는 `error`/`note` 진단을 엄격히 파싱합니다.
+  종료 코드 `1`의 유효한 진단은 실제 타입 발견 사항으로 `mode` 정책을 따르며, 종료 코드 `2`
+  이상·timeout·출력 절단·spawn/신호 종료·잘못된 성공/진단 출력은 진단 문구가 포함되어도
+  도구 `ERROR`/`NOT_RUN`입니다. `mypy_required = true`에서 미설치 도구는 `ERROR`/`NOT_RUN`이고,
+  기본 선택 정책에서는 AST 함수 어노테이션 폴백을 `WARN`/`ESTIMATED`로 표시합니다.
+- **C++**: 현재 C++ 타입 검증은 구현되어 있지 않습니다. C++ 소스가 발견되면 소스별 `SKIP`
+  대상을 남기고 요약에 미구현 범위를 명시하며 `WARN`/`ESTIMATED`로 기록합니다. Python/C++ 혼합
+  프로젝트도 C++ 검증 누락 때문에 전체 증거를 `MEASURED`로 승격하지 않습니다.
+- 모든 Mypy 시도 및 미설치 상태는 `ToolEvidence`로 기록됩니다.
 - **노이즈 제로**: 오류가 없을 경우 개별 함수 통과 로그를 숨기고 `✅ Static Type Check Passed (0 Errors)` 단일 행으로 축약 요약
 
 ### 2.5 🧩 `complexity` (순환 복잡도 및 블록 중첩도)
