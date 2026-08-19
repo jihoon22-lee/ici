@@ -133,7 +133,7 @@ class LintEngine(BaseEngine):
     @staticmethod
     def _record_process(
         evidence: list[ToolEvidence], name: str, command: list[str], result: ProcessResult
-    ) -> None:
+    ) -> ToolEvidence:
         error = ""
         if result.timed_out:
             error = "timed out"
@@ -141,17 +141,17 @@ class LintEngine(BaseEngine):
             error = "output truncated"
         elif not isinstance(result.returncode, int) or result.returncode < 0:
             error = "process failed to start or terminated by signal"
-        evidence.append(
-            ToolEvidence(
-                name=name,
-                path=command[0],
-                argv=command,
-                returncode=result.returncode,
-                timed_out=result.timed_out,
-                truncated=result.truncated,
-                error=error,
-            )
+        item = ToolEvidence(
+            name=name,
+            path=command[0],
+            argv=command,
+            returncode=result.returncode,
+            timed_out=result.timed_out,
+            truncated=result.truncated,
+            error=error,
         )
+        evidence.append(item)
+        return item
 
     @staticmethod
     def _record_tool_exception(
@@ -187,8 +187,11 @@ class LintEngine(BaseEngine):
         except Exception as exc:
             self._record_tool_exception(evidence, "ruff check", command, exc)
             return [f"Ruff check could not execute: {type(exc).__name__}: {exc}"]
-        self._record_process(evidence, "ruff check", command, result)
-        return self._evaluate_ruff_check(result, targets)
+        tool_record = self._record_process(evidence, "ruff check", command, result)
+        errors = self._evaluate_ruff_check(result, targets)
+        if errors:
+            tool_record.error = errors[0]
+        return errors
 
     def _evaluate_ruff_check(
         self, result: ProcessResult, targets: list[InspectionTarget]
@@ -266,8 +269,11 @@ class LintEngine(BaseEngine):
         except Exception as exc:
             self._record_tool_exception(evidence, "ruff format", command, exc)
             return [f"Ruff format could not execute: {type(exc).__name__}: {exc}"]
-        self._record_process(evidence, "ruff format", command, result)
-        return self._evaluate_ruff_format(result, targets)
+        tool_record = self._record_process(evidence, "ruff format", command, result)
+        errors = self._evaluate_ruff_format(result, targets)
+        if errors:
+            tool_record.error = errors[0]
+        return errors
 
     def _evaluate_ruff_format(
         self, result: ProcessResult, targets: list[InspectionTarget]
@@ -361,15 +367,21 @@ class LintEngine(BaseEngine):
                 self._record_tool_exception(evidence, "g++", cmd, exc)
                 errors.append(f"C++ syntax check could not execute: {cpp.name}")
                 continue
-            self._record_process(evidence, "g++", cmd, result)
+            tool_record = self._record_process(evidence, "g++", cmd, result)
             if result.timed_out:
-                errors.append(f"C++ syntax check timed out: {cpp.name}")
+                message = f"C++ syntax check timed out: {cpp.name}"
+                tool_record.error = message
+                errors.append(message)
                 continue
             if result.truncated:
-                errors.append(f"C++ syntax output was truncated: {cpp.name}")
+                message = f"C++ syntax output was truncated: {cpp.name}"
+                tool_record.error = message
+                errors.append(message)
                 continue
             if not isinstance(result.returncode, int) or result.returncode < 0:
-                errors.append(f"C++ syntax check terminated unexpectedly: {cpp.name}")
+                message = f"C++ syntax check terminated unexpectedly: {cpp.name}"
+                tool_record.error = message
+                errors.append(message)
                 continue
 
             parsed_targets, malformed, found_diagnostic = self._parse_cpp_diagnostics(
@@ -377,11 +389,17 @@ class LintEngine(BaseEngine):
             )
             targets.extend(parsed_targets)
             if malformed:
-                errors.append(f"C++ syntax output was not parseable: {cpp.name}")
-            elif result.returncode != 0 and not found_diagnostic:
-                errors.append(f"C++ syntax output had no diagnostics: {cpp.name}")
+                message = f"C++ syntax output was not parseable: {cpp.name}"
+                tool_record.error = message
+                errors.append(message)
             elif result.returncode >= 2:
-                errors.append(f"g++ failed with exit code {result.returncode}: {cpp.name}")
+                message = f"g++ failed with exit code {result.returncode}: {cpp.name}"
+                tool_record.error = message
+                errors.append(message)
+            elif result.returncode != 0 and not found_diagnostic:
+                message = f"C++ syntax output had no diagnostics: {cpp.name}"
+                tool_record.error = message
+                errors.append(message)
 
         return errors
 

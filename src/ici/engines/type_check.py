@@ -155,29 +155,43 @@ class TypeCheckEngine(BaseEngine):
             self._record_tool_exception(evidence, mypy_argv, exc)
             errors.append(f"Mypy could not execute: {type(exc).__name__}: {exc}")
             return False
-        self._record_process(evidence, mypy_argv, result)
+        tool_record = self._record_process(evidence, mypy_argv, result)
         if result.timed_out:
-            errors.append("Mypy timed out")
+            message = "Mypy timed out"
+            tool_record.error = message
+            errors.append(message)
             return False
         if result.truncated:
-            errors.append("Mypy output was truncated")
+            message = "Mypy output was truncated"
+            tool_record.error = message
+            errors.append(message)
             return False
         if not isinstance(result.returncode, int) or result.returncode < 0:
-            errors.append("Mypy terminated before producing a result")
+            message = "Mypy terminated before producing a result"
+            tool_record.error = message
+            errors.append(message)
             return False
         if result.returncode >= 2:
             self._parse_mypy_diagnostics(result.stdout, result.stderr, targets)
-            errors.append(f"Mypy tool failed with exit code {result.returncode}")
+            message = f"Mypy tool failed with exit code {result.returncode}"
+            tool_record.error = message
+            errors.append(message)
             return False
         if result.returncode == 1:
             if not self._parse_mypy_diagnostics(result.stdout, result.stderr, targets):
-                errors.append("Mypy diagnostics were not parseable")
+                message = "Mypy diagnostics were not parseable"
+                tool_record.error = message
+                errors.append(message)
             return False
         if result.stderr.strip():
-            errors.append("Mypy emitted unexpected stderr on success")
+            message = "Mypy emitted unexpected stderr on success"
+            tool_record.error = message
+            errors.append(message)
             return False
         if not self._is_valid_mypy_success(result.stdout):
-            errors.append("Mypy success output was not parseable")
+            message = "Mypy success output was not parseable"
+            tool_record.error = message
+            errors.append(message)
             return False
         return True
 
@@ -249,7 +263,7 @@ class TypeCheckEngine(BaseEngine):
     @staticmethod
     def _record_process(
         evidence: list[ToolEvidence], command: list[str], result: ProcessResult
-    ) -> None:
+    ) -> ToolEvidence:
         error = ""
         if result.timed_out:
             error = "timed out"
@@ -257,17 +271,17 @@ class TypeCheckEngine(BaseEngine):
             error = "output truncated"
         elif not isinstance(result.returncode, int) or result.returncode < 0:
             error = "process failed to start or terminated by signal"
-        evidence.append(
-            ToolEvidence(
-                name="mypy",
-                path=command[0],
-                argv=command,
-                returncode=result.returncode,
-                timed_out=result.timed_out,
-                truncated=result.truncated,
-                error=error,
-            )
+        item = ToolEvidence(
+            name="mypy",
+            path=command[0],
+            argv=command,
+            returncode=result.returncode,
+            timed_out=result.timed_out,
+            truncated=result.truncated,
+            error=error,
         )
+        evidence.append(item)
+        return item
 
     @staticmethod
     def _record_tool_exception(
