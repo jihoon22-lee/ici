@@ -301,6 +301,60 @@ def test_coverage_run_uses_source_dirs_flag(tmp_path: Path, monkeypatch):
     assert "--source=lib" in cov_run
 
 
+def test_coverage_missing_json_is_error_after_attempt(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_coverage.py").write_text(
+        "def test_coverage():\n    pass\n", encoding="utf-8"
+    )
+    engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: ["coverage"])
+
+    def fake_run(cmd, cwd=None, env=None):
+        if "run" in cmd:
+            return ProcessResult(
+                0,
+                "tests/test_coverage.py::test_coverage PASSED\n",
+                "",
+                0.01,
+            )
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_coverage_malformed_json_is_error_after_attempt(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_coverage.py").write_text(
+        "def test_coverage():\n    pass\n", encoding="utf-8"
+    )
+    engine = TestEngine(tmp_path, {"engines": {"test": {"mode": "pass_fail"}}})
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: ["coverage"])
+
+    def fake_run(cmd, cwd=None, env=None):
+        if "run" in cmd:
+            return ProcessResult(
+                0,
+                "tests/test_coverage.py::test_coverage PASSED\n",
+                "",
+                0.01,
+            )
+        output_path = Path(cmd[cmd.index("-o") + 1])
+        output_path.write_text('{"files": {}, "totals": {}}', encoding="utf-8")
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
 def test_python_test_timeout_cannot_report_pass(tmp_path: Path, monkeypatch):
     tests = tmp_path / "tests"
     tests.mkdir()

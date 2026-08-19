@@ -57,3 +57,34 @@ def test_mypy_unexpected_success_output_is_error(tmp_python_project, monkeypatch
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_mypy_empty_success_output_is_error(tmp_python_project, monkeypatch):
+    _use_mypy(monkeypatch)
+    monkeypatch.setattr(
+        "ici.engines.type_check.run_process",
+        lambda *args, **kwargs: ProcessResult(0, "", "", 0.01),
+    )
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_mypy_success_line_with_junk_is_error(tmp_python_project, monkeypatch):
+    _use_mypy(monkeypatch)
+    monkeypatch.setattr(
+        "ici.engines.type_check.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            0,
+            "Success: no issues found in 1 source file\nunexpected junk\n",
+            "",
+            0.01,
+        ),
+    )
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
