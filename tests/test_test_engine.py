@@ -641,3 +641,83 @@ def test_coverage_state_does_not_leak_between_runs(tmp_path: Path, monkeypatch):
     assert first.extra["coverage_source"] == "coverage.py"
     assert second.extra["coverage_source"] == "estimated"
     assert second.evidence == EvidenceState.ESTIMATED
+
+
+def test_pytest_commands_do_not_force_project_local_temp(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+
+    coverage_command = engine._build_coverage_run_cmd(["python", "-m", "coverage"])
+    pytest_command = [*engine._find_pytest_cmd(), "-o", "addopts=", "-v", "tests"]
+
+    assert "--basetemp" not in coverage_command
+    assert "-s" not in coverage_command
+    assert "--basetemp" not in pytest_command
+    assert "-s" not in pytest_command
+
+
+def test_hybrid_sources_without_tests_are_zero_test_failures(tmp_path: Path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
+    (tmp_path / "src" / "calc.cpp").write_text("int value() { return 1; }\n", encoding="utf-8")
+    (tmp_path / "ici.toml").write_text('type = "hybrid"\n', encoding="utf-8")
+
+    result = TestEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.extra["total_tests"] == 0
+    assert {target.target_name for target in result.targets} >= {
+        "[Python] Tests",
+        "[C++] Tests",
+    }
+
+
+def test_hybrid_one_language_tests_still_fails_for_missing_other_language_tests(
+    tmp_path: Path, monkeypatch
+):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
+    (tmp_path / "src" / "calc.cpp").write_text("int value() { return 1; }\n", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_app.py").write_text(
+        "def test_app():\n    assert True\n", encoding="utf-8"
+    )
+    (tmp_path / "ici.toml").write_text('type = "hybrid"\n', encoding="utf-8")
+    engine = TestEngine(tmp_path)
+    monkeypatch.setattr(engine, "_run_python_tests", lambda targets: (1, 1, False))
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.extra["total_tests"] == 1
+    assert any(target.target_name == "[C++] Tests" for target in result.targets)
+
+
+def test_required_coverage_exit_five_stays_zero_test_failure(tmp_path: Path, monkeypatch):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_empty.py").write_text("# no tests\n", encoding="utf-8")
+    engine = TestEngine(
+        tmp_path,
+        {"engines": {"test": {"coverage_required": True}}},
+    )
+    monkeypatch.setattr(
+        engine,
+        "_find_coverage_cmd",
+        lambda _python: ["/project/python", "-m", "coverage"],
+    )
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        commands.append(cmd)
+        if "run" in cmd:
+            return ProcessResult(5, "collected 0 items\n", "", 0.01)
+        raise AssertionError("coverage JSON must not run when pytest collects zero tests")
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.extra["total_tests"] == 0
+    assert len(commands) == 1
