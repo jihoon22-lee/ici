@@ -480,6 +480,11 @@ class SanitizeEngine(BaseEngine):
 
     def _record_tool_exception(self, name: str, command: list[str], exc: Exception) -> None:
         message = f"{type(exc).__name__}: {exc}"
+        if any(
+            evidence.name == name and evidence.argv == command and evidence.error == message
+            for evidence in self._tool_evidence
+        ):
+            return
         self._tool_evidence.append(
             ToolEvidence(name=name, path=command[0], argv=command, error=message)
         )
