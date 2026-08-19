@@ -37,6 +37,7 @@ from ici.engines.coverage_support import (
     parse_coverage_json,
     parse_gcov_dir,
     parse_gcov_functions,
+    pytest_result_has_evidence,
 )
 
 
@@ -177,6 +178,8 @@ class TestEngine(BaseEngine):
             totals[0] += result[0]
             totals[1] += result[1]
             has_failure = has_failure or result[2]
+        if not self._python_test_attempted and not self._cpp_test_attempted:
+            has_failure = has_failure or self._mark_zero_tests("Project", targets)[2]
         return totals[0], totals[1], has_failure
 
     def _apply_coverage_policy(self, cfg: dict[str, Any]) -> tuple[bool, bool]:
@@ -282,6 +285,8 @@ class TestEngine(BaseEngine):
 
     def _coverage_failure_messages(self) -> list[str]:
         failures = list(self._coverage_errors)
+        if not self._python_test_attempted and not self._cpp_test_attempted:
+            failures.append("No project sources or tests were available")
         if self._python_test_attempted and not self._coverage_data:
             failures.append("Python coverage evidence was unavailable or malformed")
         if self._cpp_test_attempted and not self._cpp_coverage_rows:
@@ -493,6 +498,8 @@ class TestEngine(BaseEngine):
                         message="No tests collected",
                     )
                 )
+        elif result.returncode == 0 and not pytest_result_has_evidence(output):
+            self._record_tool_error("Pytest returned success without parseable test results")
         elif result.returncode not in (0, 1):
             self._record_tool_error(f"Pytest failed with exit code {result.returncode}")
         elif result.returncode == 1 and not has_failure:

@@ -37,6 +37,15 @@ def module_unavailable(result, module: str) -> bool:
     return bool(re.fullmatch(rf"(?:{missing}|{prefix})", lines[0]))
 
 
+def pytest_result_has_evidence(output: str) -> bool:
+    """Return whether pytest output reports an executed result."""
+
+    return bool(
+        re.search(r"::\S+\s+(?:PASSED|FAILED|ERROR)\b", output)
+        or re.search(r"\b\d+\s+(?:passed|failed|errors?)\b", output)
+    )
+
+
 def _load_coverage_json(json_path: Path) -> dict | None:
     try:
         data = json.loads(json_path.read_text(encoding="utf-8"))
