@@ -469,8 +469,22 @@ class TestEngine(BaseEngine):
 
     @staticmethod
     def _module_unavailable(result, module: str) -> bool:
-        output = f"{result.stdout}\n{result.stderr}".lower()
-        return bool(re.search(rf"no module named ['\"]?{re.escape(module)}['\"]?(?:\W|$)", output))
+        if result.returncode <= 0 or result.timed_out or result.truncated:
+            return False
+        lines = [
+            line.strip()
+            for line in f"{result.stdout}\n{result.stderr}".splitlines()
+            if line.strip()
+        ]
+        if len(lines) != 1:
+            return False
+        missing = rf"No module named ['\"]?{re.escape(module)}['\"]?"
+        interpreter_prefix = (
+            rf"(?:python(?:3(?:\.\d+)?)?(?:\.exe)?|"
+            rf"(?:[A-Za-z]:[\\/]|/)[^\n]*python(?:3(?:\.\d+)?)?(?:\.exe)?)"
+            rf"\s*:\s*{missing}"
+        )
+        return bool(re.fullmatch(rf"(?:{missing}|{interpreter_prefix})", lines[0]))
 
     def _parse_pytest_result(
         self, result, targets: list[InspectionTarget]
