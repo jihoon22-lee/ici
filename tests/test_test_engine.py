@@ -286,6 +286,69 @@ def test_required_zero_statement_coverage_is_not_measured(tmp_path: Path, monkey
     assert result.evidence == EvidenceState.NOT_RUN
 
 
+def test_required_python_coverage_rejects_unrelated_source_report(tmp_path: Path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("value = 1\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text("def test_app():\n    assert True\n", encoding="utf-8")
+    engine = TestEngine(
+        tmp_path,
+        {
+            "engines": {
+                "test": {
+                    "coverage_required": True,
+                    "min_tem_score": 0.0,
+                    "min_branch_cov": 0.0,
+                    "min_func_cov": 0.0,
+                }
+            }
+        },
+    )
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _python: ["coverage"])
+
+    def fake_run(cmd, cwd=None, env=None):
+        if "run" in cmd:
+            return ProcessResult(0, "tests/test_app.py::test_app PASSED\n", "", 0.01)
+        output_path = Path(cmd[cmd.index("-o") + 1])
+        output_path.write_text(
+            json.dumps(
+                {
+                    "files": {
+                        "vendor.py": {
+                            "executed_lines": [1],
+                            "missing_lines": [],
+                            "summary": {
+                                "covered_lines": 1,
+                                "num_statements": 1,
+                                "missing_lines": 0,
+                                "num_branches": 0,
+                                "covered_branches": 0,
+                            },
+                        }
+                    },
+                    "totals": {
+                        "covered_lines": 1,
+                        "num_statements": 1,
+                        "missing_lines": 0,
+                        "num_branches": 0,
+                        "covered_branches": 0,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
 def test_compute_python_function_coverage(tmp_path: Path):
     src = tmp_path / "src" / "pkg"
     src.mkdir(parents=True)
@@ -387,6 +450,18 @@ def test_parse_gcov_dir_skips_test_files(tmp_path: Path):
 
     rows = engine._parse_gcov_dir(cov_dir, {"src/calc.cpp"})
     assert rows == []
+
+
+def test_parse_gcov_dir_skips_files_without_statements(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    cov_dir = tmp_path / "build" / "tests"
+    cov_dir.mkdir(parents=True)
+    (cov_dir / "src#calc.cpp.gcov").write_text(
+        '        -:    0:Source:src/calc.cpp\n        -:    1:#include "calc.h"\n',
+        encoding="utf-8",
+    )
+
+    assert engine._parse_gcov_dir(cov_dir, {"src/calc.cpp"}) == []
 
 
 def test_find_coverage_cmd_uses_venv_module_probe(tmp_path: Path, monkeypatch):
@@ -829,6 +904,33 @@ def test_unittest_fallback_also_reachable_from_coverage_first_path(tmp_path: Pat
     assert commands[-1][2] == "unittest"
 
 
+def test_pytest_assertion_text_does_not_trigger_unittest_fallback(tmp_path: Path, monkeypatch):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_failure.py").write_text(
+        "def test_failure():\n    assert False\n", encoding="utf-8"
+    )
+    engine = TestEngine(tmp_path)
+    python = ["/project/.venv/bin/python"]
+    monkeypatch.setattr(engine, "_resolve_python", lambda: python)
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _python: None)
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        commands.append(cmd)
+        return ProcessResult(
+            1,
+            "tests/test_failure.py::test_failure FAILED\n",
+            "E AssertionError: No module named pytest\n",
+            0.01,
+        )
+
+    monkeypatch.setattr("ici.engines.test.run_process", fake_run)
+
+    assert engine._run_python_tests([]) == (0, 1, True)
+    assert len(commands) == 1
+
+
 def test_pytest_zero_collection_does_not_fall_back_to_unittest(tmp_path: Path, monkeypatch):
     tests = tmp_path / "tests"
     tests.mkdir()
@@ -848,6 +950,88 @@ def test_pytest_zero_collection_does_not_fall_back_to_unittest(tmp_path: Path, m
     )
 
     assert engine._run_python_tests([]) == (0, 0, True)
+
+
+def test_optional_zero_tests_remain_fail_with_estimated_evidence(tmp_path: Path, monkeypatch):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_empty.py").write_text("# no tests\n", encoding="utf-8")
+    engine = TestEngine(
+        tmp_path,
+        {
+            "engines": {
+                "test": {
+                    "coverage_required": False,
+                    "min_tem_score": 0.0,
+                    "min_branch_cov": 0.0,
+                    "min_func_cov": 0.0,
+                }
+            }
+        },
+    )
+    monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _python: None)
+    monkeypatch.setattr(
+        "ici.engines.test.run_process",
+        lambda cmd, **kwargs: ProcessResult(5, "collected 0 items\n", "", 0.01),
+    )
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert result.extra["coverage_source"] == "estimated"
+
+
+def test_hybrid_zero_cpp_tests_downgrade_python_coverage_evidence(tmp_path: Path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("def app():\n    return 1\n", encoding="utf-8")
+    (src / "calc.cpp").write_text("int calc() { return 1; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text("def test_app():\n    assert app() == 1\n", encoding="utf-8")
+    (tmp_path / "ici.toml").write_text('type = "hybrid"\n', encoding="utf-8")
+    engine = TestEngine(
+        tmp_path,
+        {
+            "engines": {
+                "test": {
+                    "coverage_required": False,
+                    "min_tem_score": 0.0,
+                    "min_branch_cov": 0.0,
+                    "min_func_cov": 0.0,
+                }
+            }
+        },
+    )
+    engine._coverage_data = {
+        "files": {
+            "src/app.py": {
+                "executed_lines": [1, 2],
+                "missing_lines": [],
+                "summary": {
+                    "covered_lines": 2,
+                    "num_statements": 2,
+                    "missing_lines": 0,
+                    "num_branches": 0,
+                    "covered_branches": 0,
+                },
+            }
+        },
+        "line_cov": 100.0,
+        "branch_cov": None,
+        "totals": {"stmts": 2, "miss": 0, "cover": 100.0, "branch_cover": None},
+    }
+    monkeypatch.setattr(engine, "_run_python_tests", lambda _targets: (1, 1, False))
+
+    result = engine.run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert result.extra["coverage_source"] == "coverage.py (partial)"
+    assert "ESTIMATED" in result.summary
 
 
 @pytest.mark.parametrize(
