@@ -116,6 +116,13 @@ class _ScopeAliasCollector(ast.NodeVisitor):
         self.generic_visit(node)
 
     def resolve(self, handler: ast.ExceptHandler | None) -> ScopeAliases:
+        """Return effective bindings and all lexical names bound in this scope.
+
+        A handler cutoff models the current scope's execution point; ``None``
+        resolves a complete enclosing scope.  Branches remain intentionally
+        path-insensitive: lexical binding events are applied in source order,
+        with the last event before the cutoff winning.
+        """
         cutoff = self._handler_position(handler)
         bindings: dict[str, str] = {}
         bound_names = {name for _, name, _ in self.events}
