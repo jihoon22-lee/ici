@@ -1,7 +1,12 @@
-"""6. Memory Safety & Runtime Sanitize Engine (ASan/UBSan & Resource Leaks)."""
+"""6. Memory safety and runtime resource-warning verification."""
 
+import os
+import re
 import shutil
+import sys
+import tempfile
 import time
+from pathlib import Path
 
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
@@ -15,48 +20,81 @@ from ici.core.project import (
     detect_project_type,
     get_all_cpp_includes,
     get_all_cpp_sources,
+    get_all_python_sources,
 )
-from ici.core.runner import run_process
+from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
+
+_PYTEST_RESULT_RE = re.compile(
+    r"\b(?P<count>\d+)\s+(?:passed|failed|skipped|xfailed|xpassed|deselected)\b",
+    re.IGNORECASE,
+)
+_RESOURCE_WARNING_RE = re.compile(r"(?P<file>[^\s:]+\.py):(?P<line>[1-9]\d*):.*ResourceWarning")
 
 
 class SanitizeEngine(BaseEngine):
-    """Verifies memory safety via AddressSanitizer/UBSan for C++ and resource leaks for Python."""
+    """Run C++ sanitizers and Python ResourceWarning checks with evidence."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._tool_errors: list[str] = []
+        self._tool_evidence: list[ToolEvidence] = []
+        self._measured_scopes = 0
 
     def run(self) -> EngineResult:
         t0 = time.time()
-        proj_type = detect_project_type(self.project_root)
+        self._tool_errors = []
+        self._tool_evidence = []
+        self._measured_scopes = 0
         targets: list[InspectionTarget] = []
+        proj_type = detect_project_type(self.project_root)
+        cpp_sources = get_all_cpp_sources(self.project_root, self.config)
+        cpp_tests = self._cpp_test_sources()
+        py_sources = get_all_python_sources(self.project_root, self.config)
+        tests_root = self.project_root / "tests"
+        has_python_scope = bool(py_sources) or self._has_python_tests(tests_root)
+        has_cpp_scope = bool(cpp_sources) or bool(cpp_tests)
+        if proj_type in ("python", "hybrid") and (py_sources or tests_root.exists()):
+            has_python_scope = True
+        if proj_type in ("cpp", "hybrid") and (cpp_sources or tests_root.exists()):
+            has_cpp_scope = has_cpp_scope or bool(cpp_tests)
+
         has_failure = False
-        self._tool_errors: list[str] = []
-        self._tool_evidence: list[ToolEvidence] = []
-
-        if proj_type in ("cpp", "hybrid") or (self.project_root / "tests").exists():
-            c_fail = self._run_cpp_sanitizer(targets)
-            if c_fail:
-                has_failure = True
-
-        if proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py")):
-            p_fail = self._check_python_resource_leaks(targets)
-            if p_fail:
-                has_failure = True
+        has_warning = False
+        if has_cpp_scope:
+            has_failure = self._run_cpp_sanitizer(cpp_tests, cpp_sources, targets)
+        if has_python_scope:
+            py_failure, py_warning = self._check_python_resource_warnings(tests_root, targets)
+            has_failure = has_failure or py_failure
+            has_warning = has_warning or py_warning
+        if not has_cpp_scope and not has_python_scope:
+            self._mark_scope_skip(
+                targets,
+                ".",
+                "Sanitize",
+                "No applicable Python or C++ sources were selected; sanitize was not run",
+            )
 
         cfg = self.get_config("sanitize")
-        mode = cfg.get("mode", "pass_fail")
-
+        mode = cfg.get("mode", "pass_warn_fail")
+        required = bool(cfg.get("required", True))
         duration = time.time() - t0
-        overall_status = (
-            EngineStatus.ERROR
-            if self._tool_errors
-            else self.evaluate_status(has_failure, False, mode)
-        )
-        summary = (
-            "; ".join(self._tool_errors[:3])
-            if self._tool_errors
-            else "Memory Safety & Sanitize Clean (0 Defects)"
-            if overall_status == EngineStatus.PASS
-            else f"{len(targets)} Memory / Resource Defect(s) Detected"
-        )
+        if self._tool_errors:
+            overall_status = EngineStatus.ERROR
+            evidence = EvidenceState.NOT_RUN
+            summary = "; ".join(self._tool_errors[:3])
+        elif self._measured_scopes:
+            overall_status = self.evaluate_status(has_failure, has_warning, mode)
+            evidence = EvidenceState.MEASURED
+            summary = (
+                "Memory Safety & Sanitize Clean (0 Defects)"
+                if overall_status == EngineStatus.PASS
+                else f"{self._issue_count(targets)} Memory / Resource Defect(s) Detected"
+            )
+        else:
+            overall_status = EngineStatus.SKIP
+            evidence = EvidenceState.ESTIMATED
+            summary = "Sanitize skipped: no applicable checks were executed"
 
         return self.create_result(
             name="sanitize",
@@ -64,102 +102,417 @@ class SanitizeEngine(BaseEngine):
             summary=summary,
             duration=duration,
             targets=targets,
-            extra={"sanitize_issues": len(targets)},
-            required=bool(cfg.get("required", True)),
-            evidence=EvidenceState.NOT_RUN if self._tool_errors else EvidenceState.MEASURED,
+            extra={"sanitize_issues": self._issue_count(targets)},
+            required=required,
+            evidence=evidence,
             tool_evidence=self._tool_evidence,
         )
 
-    def _run_cpp_sanitizer(self, targets: list[InspectionTarget]) -> bool:
+    def _cpp_test_sources(self) -> list[Path]:
+        tests_root = self.project_root / "tests"
+        if not tests_root.is_dir():
+            return []
+        return sorted(tests_root.rglob("*.cpp"))
+
+    @staticmethod
+    def _has_python_tests(tests_root: Path) -> bool:
+        return tests_root.is_dir() and any(tests_root.rglob("*.py"))
+
+    def _run_cpp_sanitizer(
+        self,
+        cpp_tests: list[Path],
+        cpp_sources: list[Path],
+        targets: list[InspectionTarget],
+    ) -> bool:
+        if not cpp_tests:
+            self._mark_scope_skip(
+                targets,
+                "tests",
+                "C++Sanitizer",
+                "No C++ sanitizer test sources were selected; compilation was not run",
+            )
+            return False
+
         gxx = shutil.which("g++")
         if not gxx:
+            message = "g++ is required when C++ sanitizer tests are present"
+            self._record_tool_missing("sanitizer compile", message)
+            for test_src in cpp_tests:
+                self._append_error_target(
+                    targets, test_src, "SanitizerCompile", f"{message}; sanitizer was not run"
+                )
             return False
 
-        cpp_tests = (
-            list((self.project_root / "tests").rglob("*.cpp"))
-            if (self.project_root / "tests").exists()
-            else []
-        )
-        if not cpp_tests:
-            return False
-
-        inc_flags = get_all_cpp_includes(self.project_root)
-        src_files = [
-            str(f)
-            for f in get_all_cpp_sources(self.project_root, self.config)
-            if "main.cpp" not in f.name
-        ]
-        nas_cpp = get_nas_cpp_lib_dir()
-        lib_flags = []
-        if nas_cpp.exists() and (nas_cpp / "lib").exists():
-            lib_flags = [f"-L{nas_cpp / 'lib'}", "-lips_core", f"-Wl,-rpath,{nas_cpp / 'lib'}"]
-
-        build_tmp = self.project_root / "build/sanitize"
-        build_tmp.mkdir(parents=True, exist_ok=True)
         has_failure = False
-
-        for test_src in cpp_tests:
-            runner_bin = build_tmp / f"{test_src.stem}_asan"
-            # Compile with ASan & UBSan
-            cmd = [
-                gxx,
-                "-std=c++17",
-                "-fsanitize=address,undefined",
-                "-fno-omit-frame-pointer",
-                "-g",
-                *inc_flags,
-                str(test_src),
-                *src_files,
-                *lib_flags,
-                "-o",
-                str(runner_bin),
-            ]
-            compile_result = run_process(cmd, cwd=self.project_root)
-            self._tool_evidence.append(
-                ToolEvidence(
-                    name="sanitizer compile",
-                    path=cmd[0],
-                    argv=cmd,
-                    returncode=compile_result.returncode,
-                )
-            )
-            rel_p = str(test_src.relative_to(self.project_root))
-
-            if compile_result.timed_out or compile_result.truncated:
-                self._tool_errors.append(f"Sanitizer compilation incomplete: {test_src.name}")
-                continue
-            if compile_result.returncode != 0:
-                continue
-
-            run_cmd = [str(runner_bin)]
-            run_result = run_process(run_cmd, cwd=self.project_root)
-            self._tool_evidence.append(
-                ToolEvidence(
-                    name="sanitizer execution",
-                    path=run_cmd[0],
-                    argv=run_cmd,
-                    returncode=run_result.returncode,
-                )
-            )
-            r_code = run_result.returncode
-            r_out = run_result.stdout
-            r_err = run_result.stderr
-            if run_result.timed_out or run_result.truncated:
-                self._tool_errors.append(f"Sanitizer execution incomplete: {test_src.name}")
-            elif r_code != 0 or "AddressSanitizer" in r_err or "runtime error:" in r_err:
-                has_failure = True
-                targets.append(
-                    InspectionTarget(
-                        file_path=rel_p,
-                        start_line=1,
-                        target_name="ASan/UBSan Error",
-                        status=EngineStatus.FAIL,
-                        message=f"Memory/Runtime defect detected: {(r_err or r_out)[:150]}",
+        inc_flags = get_all_cpp_includes(self.project_root)
+        src_files = [str(path) for path in cpp_sources if path.name != "main.cpp"]
+        lib_flags = self._cpp_library_flags()
+        with tempfile.TemporaryDirectory(prefix="ici-sanitize-") as temp_name:
+            temp_root = Path(temp_name)
+            for test_src in cpp_tests:
+                runner_bin = temp_root / f"{test_src.stem}_asan"
+                command = [
+                    gxx,
+                    "-std=c++17",
+                    "-fsanitize=address,undefined",
+                    "-fno-omit-frame-pointer",
+                    "-g",
+                    *inc_flags,
+                    str(test_src),
+                    *src_files,
+                    *lib_flags,
+                    "-o",
+                    str(runner_bin),
+                ]
+                try:
+                    compile_result = run_process(command, cwd=temp_root)
+                except Exception as exc:
+                    self._record_tool_exception("sanitizer compile", command, exc)
+                    self._append_error_target(
+                        targets,
+                        test_src,
+                        "SanitizerCompile",
+                        f"Sanitizer compilation failed: {exc}",
                     )
-                )
+                    continue
+                evidence = self._record_process("sanitizer compile", command, compile_result)
+                if self._process_incomplete(compile_result):
+                    message = self._incomplete_message("Sanitizer compilation", compile_result)
+                    evidence.error = message
+                    self._tool_errors.append(message)
+                    self._append_error_target(targets, test_src, "SanitizerCompile", message)
+                    continue
+                if compile_result.returncode != 0:
+                    message = self._tool_failure_message("Sanitizer compilation", compile_result)
+                    evidence.error = message
+                    self._tool_errors.append(message)
+                    self._append_error_target(targets, test_src, "SanitizerCompile", message)
+                    continue
 
+                run_command = [str(runner_bin)]
+                try:
+                    run_result = run_process(run_command, cwd=temp_root)
+                except Exception as exc:
+                    self._record_tool_exception("sanitizer execution", run_command, exc)
+                    self._append_error_target(
+                        targets,
+                        test_src,
+                        "SanitizerExecution",
+                        f"Sanitizer execution failed: {exc}",
+                    )
+                    continue
+                run_evidence = self._record_process("sanitizer execution", run_command, run_result)
+                if self._process_incomplete(run_result):
+                    message = self._incomplete_message("Sanitizer execution", run_result)
+                    run_evidence.error = message
+                    self._tool_errors.append(message)
+                    self._append_error_target(targets, test_src, "SanitizerExecution", message)
+                    continue
+                output = f"{run_result.stderr}\n{run_result.stdout}"
+                if run_result.returncode != 0 and self._contains_sanitizer_diagnostic(output):
+                    has_failure = True
+                    targets.append(
+                        InspectionTarget(
+                            file_path=str(test_src.relative_to(self.project_root)),
+                            start_line=1,
+                            target_name="ASan/UBSan Error",
+                            status=EngineStatus.FAIL,
+                            message=f"Memory/Runtime defect detected: {self._snippet(output)}",
+                        )
+                    )
+                elif run_result.returncode != 0:
+                    message = self._tool_failure_message("Sanitizer execution", run_result)
+                    run_evidence.error = message
+                    self._tool_errors.append(message)
+                    self._append_error_target(targets, test_src, "SanitizerExecution", message)
+                else:
+                    self._measured_scopes += 1
+                    targets.append(
+                        InspectionTarget(
+                            file_path=str(test_src.relative_to(self.project_root)),
+                            start_line=1,
+                            target_name="ASan/UBSan",
+                            status=EngineStatus.PASS,
+                            message="AddressSanitizer and UndefinedBehaviorSanitizer completed",
+                        )
+                    )
         return has_failure
 
-    def _check_python_resource_leaks(self, targets: list[InspectionTarget]) -> bool:
-        has_issue = False
-        return has_issue
+    def _cpp_library_flags(self) -> list[str]:
+        nas_cpp = get_nas_cpp_lib_dir()
+        if nas_cpp.exists() and (nas_cpp / "lib").exists():
+            return [f"-L{nas_cpp / 'lib'}", "-lips_core", f"-Wl,-rpath,{nas_cpp / 'lib'}"]
+        return []
+
+    def _check_python_resource_warnings(
+        self, tests_root: Path, targets: list[InspectionTarget]
+    ) -> tuple[bool, bool]:
+        python_cmd = self._resolve_python()
+        command = [
+            *python_cmd,
+            "-W",
+            "error::ResourceWarning",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "tests",
+        ]
+        if not tests_root.is_dir():
+            message = "Python ResourceWarning check skipped: tests directory is missing"
+            return self._missing_python_scope(targets, message, command, "tests")
+
+        env = os.environ.copy()
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+        env["PYTEST_ADDOPTS"] = " ".join(
+            part for part in (env.get("PYTEST_ADDOPTS", ""), "-p no:cacheprovider") if part
+        )
+        source_paths = [str(path) for path in self._source_dirs()]
+        if source_paths:
+            env["PYTHONPATH"] = os.pathsep.join([*source_paths, env.get("PYTHONPATH", "")])
+        try:
+            result = run_process(command, cwd=self.project_root, env=env)
+        except Exception as exc:
+            self._record_tool_exception("pytest resource warnings", command, exc)
+            self._append_scope_error(
+                targets, "tests", "PythonResourceWarnings", f"Pytest could not execute: {exc}"
+            )
+            return False, False
+        evidence = self._record_process("pytest resource warnings", command, result)
+        if self._process_incomplete(result):
+            message = self._incomplete_message("Pytest ResourceWarning check", result)
+            evidence.error = message
+            self._tool_errors.append(message)
+            self._append_scope_error(targets, "tests", "PythonResourceWarnings", message)
+            return False, False
+        output = f"{result.stdout}\n{result.stderr}"
+        if self._pytest_module_missing(output, result.returncode):
+            message = f"Pytest is unavailable: {self._snippet(output)}"
+            evidence.error = message
+            return self._missing_python_scope(targets, message, command, "tests")
+        if result.returncode == 5 or not self._pytest_has_result(output):
+            message = "Pytest returned success without parseable test results"
+            if result.returncode == 5:
+                message = "Pytest collected 0 tests"
+            evidence.error = f"{message}: {self._snippet(output)}"
+            self._tool_errors.append(message)
+            self._append_scope_error(targets, "tests", "PythonResourceWarnings", message)
+            return False, False
+        if result.returncode == 0:
+            self._measured_scopes += 1
+            targets.append(
+                InspectionTarget(
+                    file_path="tests",
+                    start_line=1,
+                    target_name="PythonResourceWarnings",
+                    status=EngineStatus.PASS,
+                    message="pytest completed with ResourceWarning promoted to errors",
+                )
+            )
+            return False, False
+        if "ResourceWarning" in output:
+            if not self._resource_warning_targets(output, targets):
+                targets.append(
+                    InspectionTarget(
+                        file_path="tests",
+                        start_line=1,
+                        target_name="ResourceWarning",
+                        status=EngineStatus.FAIL,
+                        message=self._snippet(output),
+                    )
+                )
+            self._measured_scopes += 1
+            return True, False
+
+        message = self._tool_failure_message("Pytest ResourceWarning check", result)
+        evidence.error = message
+        self._tool_errors.append(message)
+        self._append_scope_error(targets, "tests", "PythonResourceWarnings", message)
+        return False, False
+
+    def _resolve_python(self) -> list[str]:
+        """Use the same configured/project-venv/system interpreter order as Task 5."""
+
+        configured = self.get_config("test").get("python")
+        if configured:
+            return [str(configured)]
+        candidates = (
+            self.project_root / ".venv" / "bin" / "python",
+            self.project_root / ".venv" / "Scripts" / "python.exe",
+        )
+        for candidate in candidates:
+            try:
+                if candidate.is_file():
+                    return [str(candidate)]
+            except OSError:
+                continue
+        return [sys.executable]
+
+    def _source_dirs(self) -> list[Path]:
+        from ici.core.project import get_source_dirs
+
+        return get_source_dirs(self.project_root, self.config)
+
+    def _missing_python_scope(
+        self,
+        targets: list[InspectionTarget],
+        message: str,
+        command: list[str],
+        file_path: str,
+    ) -> tuple[bool, bool]:
+        if not self._tool_evidence or self._tool_evidence[-1].name != "pytest resource warnings":
+            self._tool_evidence.append(
+                ToolEvidence(
+                    name="pytest resource warnings",
+                    path=command[0],
+                    argv=command,
+                    error=message,
+                )
+            )
+        else:
+            self._tool_evidence[-1].error = message
+        required = bool(self.get_config("sanitize").get("required", True))
+        if required:
+            self._tool_errors.append(message)
+            status = EngineStatus.ERROR
+        else:
+            status = EngineStatus.SKIP
+        targets.append(
+            InspectionTarget(
+                file_path=file_path,
+                start_line=1,
+                target_name="PythonResourceWarnings",
+                status=status,
+                message=message,
+            )
+        )
+        return False, False
+
+    def _resource_warning_targets(self, output: str, targets: list[InspectionTarget]) -> bool:
+        found = False
+        for match in _RESOURCE_WARNING_RE.finditer(output):
+            found = True
+            path = self._normalize_output_path(match.group("file"))
+            targets.append(
+                InspectionTarget(
+                    file_path=path,
+                    start_line=int(match.group("line")),
+                    target_name="ResourceWarning",
+                    status=EngineStatus.FAIL,
+                    message="ResourceWarning was promoted to an exception by the sanitizer",
+                )
+            )
+        return found
+
+    def _normalize_output_path(self, value: str) -> str:
+        path = Path(value)
+        try:
+            return str(path.relative_to(self.project_root))
+        except ValueError:
+            return value
+
+    @staticmethod
+    def _pytest_has_result(output: str) -> bool:
+        return any(int(match.group("count")) > 0 for match in _PYTEST_RESULT_RE.finditer(output))
+
+    @staticmethod
+    def _pytest_module_missing(output: str, returncode: int) -> bool:
+        return returncode != 0 and bool(
+            re.search(r"No module named ['\"]pytest['\"]|No module named pytest", output)
+        )
+
+    @staticmethod
+    def _contains_sanitizer_diagnostic(output: str) -> bool:
+        return (
+            "AddressSanitizer" in output
+            or "UndefinedBehaviorSanitizer" in output
+            or "runtime error:" in output
+        )
+
+    @staticmethod
+    def _process_incomplete(result: ProcessResult) -> bool:
+        return bool(
+            result.timed_out
+            or result.truncated
+            or not isinstance(result.returncode, int)
+            or result.returncode < 0
+        )
+
+    def _record_process(self, name: str, command: list[str], result: ProcessResult) -> ToolEvidence:
+        item = ToolEvidence(
+            name=name,
+            path=command[0],
+            argv=command,
+            returncode=result.returncode,
+            timed_out=result.timed_out,
+            truncated=result.truncated,
+        )
+        self._tool_evidence.append(item)
+        return item
+
+    def _record_tool_missing(self, name: str, message: str) -> None:
+        self._tool_evidence.append(ToolEvidence(name=name, path="", error=message))
+        self._tool_errors.append(message)
+
+    def _record_tool_exception(self, name: str, command: list[str], exc: Exception) -> None:
+        message = f"{type(exc).__name__}: {exc}"
+        self._tool_evidence.append(
+            ToolEvidence(name=name, path=command[0], argv=command, error=message)
+        )
+        self._tool_errors.append(message)
+
+    def _append_error_target(
+        self, targets: list[InspectionTarget], source: Path, name: str, message: str
+    ) -> None:
+        self._append_scope_error(targets, str(source.relative_to(self.project_root)), name, message)
+
+    @staticmethod
+    def _append_scope_error(
+        targets: list[InspectionTarget], file_path: str, name: str, message: str
+    ) -> None:
+        targets.append(
+            InspectionTarget(
+                file_path=file_path,
+                start_line=1,
+                target_name=name,
+                status=EngineStatus.ERROR,
+                message=message,
+            )
+        )
+
+    @staticmethod
+    def _mark_scope_skip(
+        targets: list[InspectionTarget],
+        file_path: str,
+        target_name: str,
+        message: str,
+    ) -> None:
+        targets.append(
+            InspectionTarget(
+                file_path=file_path,
+                start_line=1,
+                target_name=target_name,
+                status=EngineStatus.SKIP,
+                message=message,
+            )
+        )
+
+    @staticmethod
+    def _issue_count(targets: list[InspectionTarget]) -> int:
+        return sum(
+            1 for target in targets if target.status in (EngineStatus.WARN, EngineStatus.FAIL)
+        )
+
+    @staticmethod
+    def _snippet(output: str) -> str:
+        return " ".join(output.split())[:300]
+
+    def _incomplete_message(self, label: str, result: ProcessResult) -> str:
+        if result.timed_out:
+            return f"{label} timed out: {self._snippet(result.stderr or result.stdout)}"
+        if result.truncated:
+            return f"{label} output was truncated: {self._snippet(result.stderr or result.stdout)}"
+        return f"{label} terminated before producing a result: {self._snippet(result.stderr or result.stdout)}"
+
+    def _tool_failure_message(self, label: str, result: ProcessResult) -> str:
+        return f"{label} failed with exit code {result.returncode}: {self._snippet(result.stderr or result.stdout)}"

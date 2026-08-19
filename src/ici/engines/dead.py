@@ -1,105 +1,293 @@
-"""7. Dead Code & Unused Symbols Detection Engine."""
+"""7. Dead code and unused symbol detection engine."""
 
 import ast
 import time
+from pathlib import Path
 
-from ici.core.models import EngineResult, EngineStatus, InspectionTarget
+from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
 from ici.core.project import (
     detect_project_type,
     get_all_python_sources,
+    get_source_dirs,
 )
 from ici.engines.base import BaseEngine
 
 
 class DeadCodeEngine(BaseEngine):
-    """Detects unused functions, unreachable statements, and orphaned symbols."""
+    """Detect unreachable statements and unreferenced private module functions."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._analysis_errors: list[str] = []
 
     def run(self) -> EngineResult:
         t0 = time.time()
-        proj_type = detect_project_type(self.project_root)
+        self._analysis_errors = []
+        sources = get_all_python_sources(self.project_root, self.config)
         targets: list[InspectionTarget] = []
-        dead_count = 0
-
-        if proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py")):
-            p_targets = self._detect_python_dead_code()
-            targets.extend(p_targets)
-            dead_count += sum(
-                1 for t in p_targets if t.status in (EngineStatus.WARN, EngineStatus.FAIL)
+        proj_type = detect_project_type(self.project_root)
+        has_python_scope = bool(sources) or proj_type in ("python", "hybrid")
+        if has_python_scope and sources:
+            targets.extend(self._detect_python_dead_code())
+        elif has_python_scope:
+            targets.append(
+                InspectionTarget(
+                    file_path=".",
+                    start_line=1,
+                    target_name="DeadCode",
+                    status=EngineStatus.SKIP,
+                    message="No applicable Python source files were selected; dead-code analysis was not run",
+                )
+            )
+        else:
+            targets.append(
+                InspectionTarget(
+                    file_path=".",
+                    start_line=1,
+                    target_name="DeadCode",
+                    status=EngineStatus.SKIP,
+                    message="No applicable Python source files were selected; dead-code analysis was not run",
+                )
             )
 
-        duration = time.time() - t0
-        overall_status = EngineStatus.WARN if dead_count > 0 else EngineStatus.PASS
-        summary = (
-            "No Dead Code Detected"
-            if overall_status == EngineStatus.PASS
-            else f"{dead_count} Unused Symbols / Unreachable Blocks Detected"
+        issue_count = sum(
+            1 for target in targets if target.status in (EngineStatus.WARN, EngineStatus.FAIL)
         )
-
+        cfg = self.get_config("dead")
+        duration = time.time() - t0
+        if self._analysis_errors:
+            status = EngineStatus.ERROR
+            evidence = EvidenceState.NOT_RUN
+            summary = "; ".join(self._analysis_errors[:3])
+        elif not sources:
+            status = EngineStatus.SKIP
+            evidence = EvidenceState.ESTIMATED
+            summary = "Dead-code analysis skipped: no Python source files"
+        else:
+            status = self.evaluate_status(issue_count > 0, False, cfg.get("mode", "pass_warn"))
+            evidence = EvidenceState.MEASURED
+            summary = (
+                "No Dead Code Detected"
+                if status == EngineStatus.PASS
+                else f"{issue_count} Unused Symbols / Unreachable Blocks Detected"
+            )
         return self.create_result(
             name="dead",
-            status=overall_status,
+            status=status,
             summary=summary,
             duration=duration,
             targets=targets,
             extra={
-                "dead_symbols_count": dead_count,
-                "metrics_summary": f"{dead_count} dead symbols",
+                "dead_symbols_count": issue_count,
+                "metrics_summary": f"{issue_count} dead symbols",
             },
+            required=bool(cfg.get("required", True)),
+            evidence=evidence,
         )
 
     def _detect_python_dead_code(self) -> list[InspectionTarget]:
         targets: list[InspectionTarget] = []
-        defined_funcs: dict[str, tuple[str, int]] = {}
-        called_names: set[str] = set()
-
-        py_sources = get_all_python_sources(self.project_root, self.config)
-
-        # 1. Collect all defined functions and all called names
-        for py_file in py_sources:
+        modules: list[dict] = []
+        source_dirs = get_source_dirs(self.project_root, self.config)
+        module_paths: dict[str, Path] = {}
+        for py_file in get_all_python_sources(self.project_root, self.config):
             try:
                 content = py_file.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(py_file))
-                rel_p = str(py_file.relative_to(self.project_root))
+            except SyntaxError as err:
+                self._append_analysis_error(
+                    targets,
+                    py_file,
+                    "SyntaxError",
+                    f"SyntaxError: {err.msg}",
+                    err.lineno or 1,
+                )
+                continue
+            except (OSError, UnicodeDecodeError) as err:
+                self._append_analysis_error(
+                    targets, py_file, "ReadError", f"Could not read Python source: {err}", 1
+                )
+                continue
 
-                # Unreachable code detection
-                for node in ast.walk(tree):
-                    if hasattr(node, "body") and isinstance(node.body, list):
-                        self._check_unreachable(node.body, rel_p, targets)
+            module_name = self._module_name(py_file, source_dirs)
+            module_paths[module_name] = py_file
+            modules.append(
+                {
+                    "path": py_file,
+                    "content": content,
+                    "tree": tree,
+                    "module": module_name,
+                    "defs": self._private_module_defs(tree),
+                    "refs": self._load_names(tree),
+                    "qualified_refs": self._qualified_refs(tree, module_name),
+                    "imports": self._imports(tree, module_name),
+                    "exports": self._exports(tree),
+                }
+            )
 
-                    if (
-                        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                        and not node.name.startswith("__")
-                        and node.name not in ("main", "run", "cli", "setup")
-                        and node.name.startswith("_")
-                    ):
-                        defined_funcs[node.name] = (rel_p, node.lineno)
-
-                    if isinstance(node, ast.Name):
-                        called_names.add(node.id)
-                    elif isinstance(node, ast.Attribute):
-                        called_names.add(node.attr)
-                    elif isinstance(node, ast.Call):
-                        if isinstance(node.func, ast.Name):
-                            called_names.add(node.func.id)
-                        elif isinstance(node.func, ast.Attribute):
-                            called_names.add(node.func.attr)
-            except (SyntaxError, OSError, UnicodeDecodeError) as err:
-                _ = err
-
-        # 2. Check for private functions never called
-        for _func_name, (_file_p, _lnum) in defined_funcs.items():
-            # If name count is 1 (only definition), it is never called
-            # Since called_names includes the name token itself, if called > 1 or in external files
-            # Check simple reference
-            # Flag if unused
-            pass
-
+        if self._analysis_errors:
+            return targets
+        for module in modules:
+            self._append_module_targets(module, module_paths, targets)
+            self._append_unreachable_targets(
+                module["tree"], str(module["path"].relative_to(self.project_root)), targets
+            )
         return targets
+
+    def _append_module_targets(
+        self,
+        module: dict,
+        module_paths: dict[str, Path],
+        targets: list[InspectionTarget],
+    ) -> None:
+        local_refs: set[str] = module["refs"]
+        imported_refs = self._resolve_imported_refs(module, module_paths)
+        rel_path = str(module["path"].relative_to(self.project_root))
+        for name, node in module["defs"].items():
+            if name in module["exports"] or getattr(node, "decorator_list", []):
+                continue
+            used = name in local_refs or (module["module"], name) in imported_refs
+            status = EngineStatus.PASS if used else EngineStatus.WARN
+            message = (
+                f"Private function '{name}' is referenced"
+                if used
+                else f"Private module-level function '{name}' is never referenced"
+            )
+            targets.append(
+                InspectionTarget(
+                    file_path=rel_path,
+                    start_line=node.lineno,
+                    end_line=getattr(node, "end_lineno", node.lineno),
+                    target_name=f"{name}()",
+                    status=status,
+                    message=message,
+                    snippet=ast.get_source_segment(module["content"], node) or "",
+                )
+            )
+
+    @staticmethod
+    def _private_module_defs(tree: ast.Module) -> dict[str, ast.FunctionDef | ast.AsyncFunctionDef]:
+        return {
+            node.name: node
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("_")
+            and not node.name.startswith("__")
+        }
+
+    @staticmethod
+    def _load_names(tree: ast.AST) -> set[str]:
+        return {
+            node.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        }
+
+    @staticmethod
+    def _qualified_refs(tree: ast.AST, module_name: str) -> set[tuple[str, str]]:
+        del module_name
+        refs: set[tuple[str, str]] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+                refs.add((node.value.id, node.attr))
+        return refs
+
+    @staticmethod
+    def _exports(tree: ast.Module) -> set[str]:
+        exported: set[str] = set()
+        for node in tree.body:
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                continue
+            names = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if not any(isinstance(name, ast.Name) and name.id == "__all__" for name in names):
+                continue
+            value = node.value
+            if isinstance(value, (ast.List, ast.Tuple, ast.Set)):
+                exported.update(
+                    item.value
+                    for item in value.elts
+                    if isinstance(item, ast.Constant) and isinstance(item.value, str)
+                )
+        return exported
+
+    @staticmethod
+    def _imports(tree: ast.Module, module_name: str) -> dict[str, tuple[str, str]]:
+        imports: dict[str, tuple[str, str]] = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                base = DeadCodeEngine._resolve_import_module(module_name, node.module, node.level)
+                for alias in node.names:
+                    if alias.name == "*":
+                        continue
+                    imports[alias.asname or alias.name] = (base, alias.name)
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    local = alias.asname or alias.name.split(".")[0]
+                    imports[local] = (alias.name, "")
+        return imports
+
+    @staticmethod
+    def _resolve_import_module(current: str, imported: str | None, level: int) -> str:
+        if level == 0:
+            return imported or ""
+        package = current.split(".")[:-1]
+        if level > 1:
+            package = package[: -(level - 1)]
+        return ".".join([*package, *(imported.split(".") if imported else [])])
+
+    @staticmethod
+    def _module_name(path: Path, source_dirs: list[Path]) -> str:
+        for source_dir in source_dirs:
+            try:
+                relative = path.relative_to(source_dir)
+            except ValueError:
+                continue
+            parts = list(relative.with_suffix("").parts)
+            if parts and parts[-1] == "__init__":
+                parts.pop()
+            return ".".join(parts) or path.stem
+        return path.stem
+
+    def _resolve_imported_refs(
+        self, module: dict, module_paths: dict[str, Path]
+    ) -> set[tuple[str, str]]:
+        resolved: set[tuple[str, str]] = set()
+        for alias, (imported_module, imported_name) in module["imports"].items():
+            if alias not in module["refs"]:
+                continue
+            if imported_name:
+                resolved.add((imported_module, imported_name))
+                continue
+            for module_name in module_paths:
+                if module_name == imported_module or module_name.startswith(imported_module + "."):
+                    resolved.add((module_name, ""))
+        return resolved
+
+    def _append_unreachable_targets(
+        self, tree: ast.Module, rel_path: str, targets: list[InspectionTarget]
+    ) -> None:
+        for node in ast.walk(tree):
+            body = getattr(node, "body", None)
+            if isinstance(body, list):
+                self._check_unreachable(body, rel_path, targets)
+
+    def _append_analysis_error(
+        self, targets: list[InspectionTarget], path: Path, name: str, message: str, line: int
+    ) -> None:
+        self._analysis_errors.append(message)
+        targets.append(
+            InspectionTarget(
+                file_path=str(path.relative_to(self.project_root)),
+                start_line=line,
+                target_name=name,
+                status=EngineStatus.ERROR,
+                message=message,
+            )
+        )
 
     def _check_unreachable(
         self, stmts: list[ast.stmt], rel_p: str, targets: list[InspectionTarget]
     ) -> None:
-        """Flags statements that occur immediately after return, raise, break, continue in the same scope."""
         has_terminator = False
         for stmt in stmts:
             if has_terminator:
