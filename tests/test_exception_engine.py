@@ -808,6 +808,78 @@ except BE:
     ]
 
 
+def test_exception_engine_allows_alias_rebind_after_transient_handler(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "transient_rebind.py").write_text(
+        """from builtins import BaseException as BE
+import builtins as b
+
+def direct():
+    try:
+        work()
+    except ValueError as BE:
+        try:
+            work()
+        except BE:
+            log()
+        from builtins import BaseException as BE
+        try:
+            work()
+        except BE:
+            log()
+    try:
+        work()
+    except ValueError as b:
+        try:
+            work()
+        except b.BaseException:
+            log()
+        import builtins as b
+        try:
+            work()
+        except b.BaseException:
+            log()
+
+def closure():
+    try:
+        work()
+    except ValueError as BE:
+        def inner():
+            try:
+                work()
+            except BE:
+                log()
+        from builtins import BaseException as BE
+        inner()
+    try:
+        work()
+    except ValueError as b:
+        def inner_b():
+            try:
+                work()
+            except b.BaseException:
+                log()
+        import builtins as b
+        inner_b()
+
+direct()
+closure()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (19, EngineStatus.FAIL),
+        (31, EngineStatus.FAIL),
+        (41, EngineStatus.FAIL),
+        (51, EngineStatus.FAIL),
+    ]
+
+
 def test_exception_engine_cancels_pending_destructor_at_declaration_semicolon(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
