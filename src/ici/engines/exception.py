@@ -132,16 +132,13 @@ class ExceptionSafetyEngine(BaseEngine):
                 continue
             rel_path = str(py_file.relative_to(self.project_root))
             parent_map = self._parent_map(tree)
-            base_exception_aliases, builtins_aliases = self._base_exception_aliases(tree)
             target_start = len(targets)
             for node in ast.walk(tree):
                 if not isinstance(node, ast.ExceptHandler):
                     continue
                 if node.type is not None and self._is_base_exception_type(
                     node.type,
-                    base_exception_aliases,
-                    builtins_aliases,
-                    self._shadowed_names(node, parent_map),
+                    self._enclosing_scope_aliases(node, parent_map, tree),
                 ):
                     has_error = True
                     targets.append(
@@ -230,113 +227,162 @@ class ExceptionSafetyEngine(BaseEngine):
             child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)
         }
 
-    @staticmethod
-    def _base_exception_aliases(tree: ast.Module) -> tuple[set[str], set[str]]:
-        exception_aliases: set[str] = set()
-        builtins_aliases = {"builtins"}
-        for statement in tree.body:
-            if isinstance(statement, ast.ImportFrom) and statement.module == "builtins":
-                for alias in statement.names:
-                    if alias.name == "BaseException":
-                        exception_aliases.add(alias.asname or alias.name)
-            elif isinstance(statement, ast.Import):
-                for alias in statement.names:
-                    if alias.name == "builtins":
-                        builtins_aliases.add(alias.asname or alias.name)
-        return exception_aliases, builtins_aliases
-
     @classmethod
-    def _shadowed_names(cls, node: ast.AST, parent_map: dict[ast.AST, ast.AST]) -> set[str]:
-        shadowed: set[str] = set()
-        current = parent_map.get(node)
+    def _enclosing_scope_aliases(
+        cls,
+        node: ast.ExceptHandler,
+        parent_map: dict[ast.AST, ast.AST],
+        tree: ast.Module,
+    ) -> list[tuple[set[str], set[str], set[str]]]:
+        scopes: list[ast.AST] = []
+        current: ast.AST | None = node
         while current is not None:
-            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                shadowed.update(cls._scope_bound_names(current, node))
+            if isinstance(
+                current,
+                (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
+            ):
+                scopes.append(current)
             current = parent_map.get(current)
-        return shadowed
+        if tree not in scopes:
+            scopes.append(tree)
+        scopes.reverse()
+
+        aliases: list[tuple[set[str], set[str], set[str]]] = []
+        function_after_class = False
+        for scope in reversed(scopes):
+            if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                function_after_class = True
+            if isinstance(scope, ast.ClassDef) and function_after_class:
+                continue
+            aliases.append(cls._scope_aliases(scope, node))
+        aliases.reverse()
+        return aliases
 
     @staticmethod
-    def _scope_bound_names(
-        scope: ast.FunctionDef | ast.AsyncFunctionDef, handler: ast.AST
-    ) -> set[str]:
-        bound: set[str] = set()
+    def _scope_aliases(
+        scope: ast.AST, handler: ast.ExceptHandler
+    ) -> tuple[set[str], set[str], set[str]]:
+        exception_aliases: set[str] = set()
+        builtins_aliases: set[str] = {"builtins"}
+        shadowed_names: set[str] = set()
 
-        def add_arguments(arguments: ast.arguments) -> None:
-            bound.update(argument.arg for argument in arguments.posonlyargs)
-            bound.update(argument.arg for argument in arguments.args)
-            bound.update(argument.arg for argument in arguments.kwonlyargs)
-            if arguments.vararg is not None:
-                bound.add(arguments.vararg.arg)
-            if arguments.kwarg is not None:
-                bound.add(arguments.kwarg.arg)
-
-        class BindingVisitor(ast.NodeVisitor):
+        class ScopeVisitor(ast.NodeVisitor):
             def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
                 if node is scope:
-                    add_arguments(node.args)
+                    self._visit_arguments(node.args)
                     self.generic_visit(node)
                 else:
-                    bound.add(node.name)
+                    shadowed_names.add(node.name)
 
             def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
                 if node is scope:
-                    add_arguments(node.args)
+                    self._visit_arguments(node.args)
                     self.generic_visit(node)
                 else:
-                    bound.add(node.name)
+                    shadowed_names.add(node.name)
 
             def visit_ClassDef(self, node: ast.ClassDef) -> None:
-                bound.add(node.name)
+                if node is scope:
+                    self.generic_visit(node)
+                else:
+                    shadowed_names.add(node.name)
 
             def visit_Lambda(self, node: ast.Lambda) -> None:
                 del node
 
+            @staticmethod
+            def _visit_arguments(arguments: ast.arguments) -> None:
+                shadowed_names.update(argument.arg for argument in arguments.posonlyargs)
+                shadowed_names.update(argument.arg for argument in arguments.args)
+                shadowed_names.update(argument.arg for argument in arguments.kwonlyargs)
+                if arguments.vararg is not None:
+                    shadowed_names.add(arguments.vararg.arg)
+                if arguments.kwarg is not None:
+                    shadowed_names.add(arguments.kwarg.arg)
+
+            def visit_arg(self, node: ast.arg) -> None:
+                shadowed_names.add(node.arg)
+
             def visit_Name(self, node: ast.Name) -> None:
                 if isinstance(node.ctx, (ast.Store, ast.Del)):
-                    bound.add(node.id)
+                    shadowed_names.add(node.id)
 
             def visit_Import(self, node: ast.Import) -> None:
                 for alias in node.names:
-                    bound.add(alias.asname or alias.name.split(".")[0])
+                    local_name = alias.asname or alias.name.split(".")[0]
+                    if alias.name == "builtins":
+                        builtins_aliases.add(local_name)
+                    else:
+                        shadowed_names.add(local_name)
 
             def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
                 for alias in node.names:
-                    if alias.name != "*":
-                        bound.add(alias.asname or alias.name)
+                    if alias.name == "*":
+                        continue
+                    local_name = alias.asname or alias.name
+                    if node.module == "builtins" and alias.name == "BaseException":
+                        exception_aliases.add(local_name)
+                    else:
+                        shadowed_names.add(local_name)
 
             def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
                 if node is not handler and node.name:
-                    bound.add(node.name)
+                    shadowed_names.add(node.name)
                 self.generic_visit(node)
 
-        BindingVisitor().visit(scope)
-        return bound
+        ScopeVisitor().visit(scope)
+        return exception_aliases, builtins_aliases, shadowed_names
 
     @staticmethod
     def _is_base_exception_type(
         node: ast.expr,
-        exception_aliases: set[str],
-        builtins_aliases: set[str],
-        shadowed_names: set[str],
+        scope_aliases: list[tuple[set[str], set[str], set[str]]],
     ) -> bool:
         if isinstance(node, ast.Name):
-            return node.id not in shadowed_names and (
-                node.id == "BaseException" or node.id in exception_aliases
+            if node.id == "BaseException":
+                return ExceptionSafetyEngine._resolves_direct_base_exception(scope_aliases)
+            return ExceptionSafetyEngine._resolves_alias(
+                node.id, scope_aliases, alias_kind="exception"
             )
         if isinstance(node, ast.Attribute):
             return (
                 node.attr == "BaseException"
                 and isinstance(node.value, ast.Name)
-                and node.value.id in builtins_aliases
-                and node.value.id not in shadowed_names
+                and ExceptionSafetyEngine._resolves_alias(
+                    node.value.id, scope_aliases, alias_kind="builtins"
+                )
             )
         if isinstance(node, (ast.Tuple, ast.List)):
             return any(
-                ExceptionSafetyEngine._is_base_exception_type(
-                    item, exception_aliases, builtins_aliases, shadowed_names
-                )
+                ExceptionSafetyEngine._is_base_exception_type(item, scope_aliases)
                 for item in node.elts
             )
+        return False
+
+    @staticmethod
+    def _resolves_direct_base_exception(
+        scope_aliases: list[tuple[set[str], set[str], set[str]]],
+    ) -> bool:
+        for exception_aliases, _, shadowed in reversed(scope_aliases):
+            if "BaseException" in shadowed:
+                return False
+            if "BaseException" in exception_aliases:
+                return True
+        return True
+
+    @staticmethod
+    def _resolves_alias(
+        name: str,
+        scope_aliases: list[tuple[set[str], set[str], set[str]]],
+        *,
+        alias_kind: str,
+    ) -> bool:
+        for exception_aliases, builtins_aliases, shadowed in reversed(scope_aliases):
+            if name in shadowed:
+                return False
+            aliases = exception_aliases if alias_kind == "exception" else builtins_aliases
+            if name in aliases:
+                return True
         return False
 
     def _check_cpp_exceptions(self, targets: list[InspectionTarget]) -> bool:
