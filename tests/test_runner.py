@@ -30,9 +30,9 @@ def test_run_process_marks_timeout(tmp_path):
 def test_run_process_waits_for_finite_descendant_pipe_holder(tmp_path):
     child_code = "import time; time.sleep(0.1)"
     parent_code = (
-        "import subprocess,sys; "
+        "import os,subprocess,sys; "
         f"subprocess.Popen([sys.executable, '-c', {child_code!r}]); "
-        "print('parent', flush=True)"
+        "print('parent', flush=True); os._exit(0)"
     )
 
     result = run_process([sys.executable, "-c", parent_code], cwd=tmp_path, timeout=0.8)
@@ -45,12 +45,11 @@ def test_run_process_waits_for_finite_descendant_pipe_holder(tmp_path):
 def test_run_process_deadline_kills_infinite_descendant_pipe_holder(tmp_path):
     marker = tmp_path / "descendant-survived.txt"
     child_code = (
-        "import time; time.sleep(2); "
-        f"open({str(marker)!r}, 'w', encoding='utf-8').write('alive')"
+        f"import time; time.sleep(2); open({str(marker)!r}, 'w', encoding='utf-8').write('alive')"
     )
     parent_code = (
-        "import subprocess,sys; "
-        f"subprocess.Popen([sys.executable, '-c', {child_code!r}])"
+        "import os,subprocess,sys; "
+        f"subprocess.Popen([sys.executable, '-c', {child_code!r}]); os._exit(0)"
     )
     started = time.monotonic()
 
