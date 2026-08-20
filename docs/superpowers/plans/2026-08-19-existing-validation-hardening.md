@@ -674,7 +674,9 @@ git commit -m "fix(engine): replace incomplete safety checks with evidence"
 
 **Files:**
 - Modify: `src/ici/engines/build.py`
+- Modify: `src/ici/config_schema.py`
 - Create: `tests/test_build_engine.py`
+- Modify: `tests/test_config.py`
 - Modify: `docs/user-guide.md`
 - Modify: `CHANGELOG.md`
 
@@ -694,21 +696,25 @@ def test_build_fails_when_project_produces_no_artifact(tmp_path):
 
 def test_build_rejects_unsafe_project_name(tmp_path):
     (tmp_path / "ici.toml").write_text("name = '../escape'\ntype = 'python'\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="project name"):
-        BuildEngine(tmp_path).run()
+    result = BuildEngine(tmp_path).run()
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
 ```
 
 - [ ] **Step 2: 테스트 실패 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_build_engine.py -v`
 
-Expected: 빈 build가 env script만 생성하고 PASS하여 FAIL.
+Expected: 빈 build가 env script만 생성하고 PASS하여 FAIL. metadata/설정 오류는
+`pytest.raises`가 아니라 `EngineResult.ERROR`/`EvidenceState.NOT_RUN`으로 정규화된다.
 
 - [ ] **Step 3: Python entrypoint와 산출물 검증 구현**
 
-`pyproject.toml [project.scripts]` 또는 명시적 `[build.python] entrypoint="pkg.cli:main"`만 launcher
-entrypoint로 사용한다. 첫 번째 `.py` 파일을 임의 entrypoint로 선택하지 않는다. 산출된 launcher,
-library, C++ binary 중 하나도 없으면 FAIL한다.
+top-level `[build.python] entrypoint="pkg.cli:main"` 또는
+`pyproject.toml [project.scripts]`만 launcher entrypoint로 사용한다. 첫 번째 `.py` 파일을
+임의 entrypoint로 선택하지 않는다. 모든 configured source directory의 non-symlink `.py`를
+library로 복사하고 source tree에는 `compileall`/`.pyc`를 만들지 않는다. 산출된 launcher,
+library, C++ binary 중 하나도 없으면 FAIL하며 env script만으로는 PASS하지 않는다.
 
 - [ ] **Step 4: C++ generic build의 허용 범위 제한**
 
@@ -718,12 +724,13 @@ main translation unit이 정확히 하나인 단순 프로젝트만 direct `g++`
 
 - [ ] **Step 5: build 테스트 실행 후 커밋**
 
-Run: `uv run --python 3.10 pytest tests/test_build_engine.py tests/test_project_metadata.py -v`
+Run: `uv run --python 3.10 pytest tests/test_build_engine.py tests/test_config.py tests/test_project_metadata.py -v`
 
 Expected: PASS.
 
 ```bash
-git add src/ici/engines/build.py tests/test_build_engine.py docs/user-guide.md CHANGELOG.md
+git add src/ici/engines/build.py src/ici/config_schema.py tests/test_build_engine.py \
+  tests/test_config.py docs/user-guide.md CHANGELOG.md
 git commit -m "fix(build): validate metadata and produced artifacts"
 ```
 

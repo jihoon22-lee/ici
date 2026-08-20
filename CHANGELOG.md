@@ -8,6 +8,10 @@
 ## [Unreleased]
 
 ### Changed
+- **build 엔진의 metadata·산출물 안전성 강화**:
+  - top-level `[build.python].entrypoint`와 `pyproject.toml [project.scripts]`를 엄격히 검증하고, 모든 configured source directory의 non-symlink `.py` library·검증된 callable launcher·실제 C++ regular binary만 산출물로 인정
+  - source tree를 변경하지 않고, destination/path symlink·충돌·복사 오류·unsafe metadata를 구조화된 `ERROR`/`NOT_RUN`으로 처리하며 산출물이 없으면 `FAIL`, 실제 산출물과 오류 없는 경우에만 env scripts 생성
+  - CMake/qmake/Makefile descriptor에서는 generic g++를 호출하지 않고 adapter 필요 `ERROR`를 반환하며, descriptor 없는 C++는 정확히 하나의 `int main(...)`과 실제 regular binary를 확인
 - **sanitize/dead/exception 엔진의 실행·분석 증거 강화**:
   - sanitize Python 검증은 Task 5와 동일한 대상 인터프리터의
     `-W error::ResourceWarning -m pytest -o addopts= tests`를 실행하고, 0개 테스트·pytest 부재·timeout·출력 절단·spawn/신호 종료·파싱 불가능한 성공을 `ERROR`/`NOT_RUN` 또는 명시적 선택 scope `SKIP`/`ESTIMATED`로 기록

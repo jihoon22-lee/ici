@@ -93,6 +93,35 @@ PR에 원클릭 뷰어 링크가 담긴 스티키 댓글이 달립니다 (자세
 dist/ici.pyz verify --report --html verify_report.html --github-summary --publish
 ```
 
+### 2.4 빌드 산출물 (`ici build`)
+
+`ici build`는 프로젝트 루트 안에서만 릴리스 트리를 만들고, 실제로 생성된 산출물이
+있을 때만 `env.sh`/`env.csh`를 함께 생성합니다. 출력은
+`vX.Y.Z/x86_64/{lib,bin}` 아래에 놓이며, 환경 스크립트는 산출물 개수에 포함되지
+않습니다. Python `.py` library가 하나 이상 있으면 launcher 없이도 library 빌드가
+성공할 수 있지만, 산출물이 전혀 없으면 `FAIL`입니다.
+
+Python launcher는 임의의 `main.py`를 자동 선택하지 않습니다. 다음 중 하나를
+명시해야 합니다.
+
+```toml
+[build.python]
+entrypoint = "pkg.cli:main"
+```
+
+명시적 entrypoint가 없으면 `pyproject.toml`의 `[project.scripts]`에 있는 모든
+`script = "dotted.module:callable"` 항목을 launcher로 만들며, script 이름·target
+문법과 selected source directory 안의 실제 `.py` 또는 package `__init__.py`를
+검증합니다. 잘못된 metadata, entrypoint, launcher 경로, 기존 symlink는 traceback
+대신 구조화된 `ERROR`/`NOT_RUN`으로 처리됩니다.
+
+Python library는 `project.source_dirs`에 설정된 모든 source directory의 프로젝트
+내부 non-symlink `.py`만 복사하며 source tree에 `compileall` 또는 `.pyc`를 만들지
+않습니다. C++는 root에 CMake/qmake/Makefile descriptor가 있으면 generic `g++`를
+호출하지 않고 adapter 필요 `ERROR`를 반환합니다. descriptor가 없는 경우에도
+`int main(...)` 정의가 정확히 하나인 단순 executable만 허용하며, g++ timeout·절단·
+signal·spawn 오류와 rc 0인데 regular binary가 없는 경우는 `ERROR`입니다.
+
 ---
 
 ## 3. 개별 엔진 단독 실행
