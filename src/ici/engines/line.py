@@ -139,6 +139,7 @@ class LineCountEngine(BaseEngine):
                 "top_files": top_files,
                 "metrics_summary": f"{total_code:,} code / {len(targets)} files",
             },
+            required=bool(cfg.get("required", True)),
         )
 
     def _count_file(self, filepath: Path) -> tuple[int, int, int]:

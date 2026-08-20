@@ -131,6 +131,7 @@ class DuplicateEngine(BaseEngine):
                 "clone_groups": clone_groups,
                 "metrics_summary": f"Duplication: {dup_pct:.1f}% ({len(clone_groups)} groups)",
             },
+            required=bool(cfg.get("required", True)),
         )
 
     def _load_and_index_files(self, all_sources: list[Path]) -> tuple[list[FileData], int]:

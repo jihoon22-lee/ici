@@ -30,7 +30,17 @@ _PYTEST_RESULT_RE = re.compile(
     r"\b(?P<count>\d+)\s+(?:passed|failed|skipped|xfailed|xpassed|deselected)\b",
     re.IGNORECASE,
 )
+_PYTEST_EXECUTED_RE = re.compile(
+    r"\b(?P<count>\d+)\s+(?:passed|failed|xfailed|xpassed)\b", re.IGNORECASE
+)
 _RESOURCE_WARNING_RE = re.compile(r"(?P<file>.*?\.py):(?P<line>[1-9]\d*):[^\n]*ResourceWarning")
+_SANITIZER_ERROR_RE = re.compile(
+    r"(?mi)^(?:==\d+==)?\s*ERROR:\s*(?:AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer)\b"
+)
+_SANITIZER_SUMMARY_RE = re.compile(
+    r"(?mi)^\s*SUMMARY:\s*(?:AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer)\b"
+)
+_UBSAN_RUNTIME_RE = re.compile(r"(?m)^.*:\d+(?::\d+)?:\s*runtime error:\s*\S+")
 
 
 class SanitizeEngine(BaseEngine):
@@ -159,7 +169,7 @@ class SanitizeEngine(BaseEngine):
             return False
 
         has_failure = False
-        inc_flags = get_all_cpp_includes(self.project_root)
+        inc_flags = get_all_cpp_includes(self.project_root, self.config)
         src_files = [str(path) for path in cpp_sources if path.name != "main.cpp"]
         lib_flags = self._cpp_library_flags()
         with tempfile.TemporaryDirectory(prefix="ici-sanitize-") as temp_name:
@@ -281,7 +291,9 @@ class SanitizeEngine(BaseEngine):
             message = "Python ResourceWarning check skipped: tests directory is missing"
             return self._missing_python_scope(targets, message, command, "tests")
         if not any(
-            path.name.startswith("test_") and path.suffix == ".py" for path in tests_root.rglob("*")
+            path.suffix == ".py"
+            and (path.name.startswith("test_") or path.name.endswith("_test.py"))
+            for path in tests_root.rglob("*")
         ):
             message = "Python ResourceWarning check skipped: no Python test files were selected"
             return self._missing_python_scope(targets, message, command, "tests")
@@ -293,7 +305,11 @@ class SanitizeEngine(BaseEngine):
         )
         source_paths = [str(path) for path in self._source_dirs()]
         if source_paths:
-            env["PYTHONPATH"] = os.pathsep.join([*source_paths, env.get("PYTHONPATH", "")])
+            python_paths = [*source_paths, env.get("PYTHONPATH", "")]
+            env["PYTHONPATH"] = os.pathsep.join(path for path in python_paths if path)
+        if env.get("WSL_DISTRO_NAME") and Path("/tmp").is_dir():
+            for key in ("TMPDIR", "TMP", "TEMP"):
+                env[key] = "/tmp"
         try:
             result = run_process(command, cwd=self.project_root, env=env)
         except Exception as exc:
@@ -314,14 +330,12 @@ class SanitizeEngine(BaseEngine):
             message = f"Pytest is unavailable: {self._snippet(output)}"
             evidence.error = message
             return self._missing_python_scope(targets, message, command, "tests")
-        if result.returncode == 5 or not self._pytest_has_result(output):
+        if result.returncode == 5 or not self._pytest_has_executed_result(output):
             message = "Pytest returned success without parseable test results"
             if result.returncode == 5:
                 message = "Pytest collected 0 tests"
             evidence.error = f"{message}: {self._snippet(output)}"
-            self._tool_errors.append(message)
-            self._append_scope_error(targets, "tests", "PythonResourceWarnings", message)
-            return False, False
+            return self._missing_python_scope(targets, message, command, "tests")
         if result.returncode == 0:
             self._measured_scopes += 1
             targets.append(
@@ -444,6 +458,10 @@ class SanitizeEngine(BaseEngine):
         return any(int(match.group("count")) > 0 for match in _PYTEST_RESULT_RE.finditer(output))
 
     @staticmethod
+    def _pytest_has_executed_result(output: str) -> bool:
+        return any(int(match.group("count")) > 0 for match in _PYTEST_EXECUTED_RE.finditer(output))
+
+    @staticmethod
     def _pytest_module_missing(output: str, returncode: int) -> bool:
         return returncode != 0 and bool(
             re.search(r"No module named ['\"]pytest['\"]|No module named pytest", output)
@@ -451,10 +469,10 @@ class SanitizeEngine(BaseEngine):
 
     @staticmethod
     def _contains_sanitizer_diagnostic(output: str) -> bool:
-        return (
-            "AddressSanitizer" in output
-            or "UndefinedBehaviorSanitizer" in output
-            or "runtime error:" in output
+        return bool(
+            _SANITIZER_ERROR_RE.search(output)
+            or _SANITIZER_SUMMARY_RE.search(output)
+            or _UBSAN_RUNTIME_RE.search(output)
         )
 
     @staticmethod

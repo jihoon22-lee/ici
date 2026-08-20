@@ -90,6 +90,7 @@ class ComplexityEngine(BaseEngine):
                 "top_complex_funcs": top_funcs_data,
                 "metrics_summary": f"Max CC: {max_cc} ({len(issue_targets)} issues / {len(all_targets)} funcs)",
             },
+            required=bool(cfg.get("required", True)),
         )
 
     def _analyze_python_complexity(
