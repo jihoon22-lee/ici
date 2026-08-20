@@ -123,7 +123,8 @@ def emit_github_actions_annotations(suite: VerificationSuiteResult) -> None:
             file_path = _escape_workflow_property(t.file_path)
             engine_name = _escape_workflow_data(res.engine_name)
             message = _escape_workflow_data(t.message)
-            print(f"::{command} file={file_path},line={t.start_line}::[{engine_name}] {message}")
+            line = _escape_workflow_property(t.start_line)
+            print(f"::{command} file={file_path},line={line}::[{engine_name}] {message}")
 
 
 def write_github_step_summary(markdown_content: str) -> None:

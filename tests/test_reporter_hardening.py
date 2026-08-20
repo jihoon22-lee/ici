@@ -136,7 +136,7 @@ def test_github_annotations_escape_command_data(monkeypatch, capsys):
     result.targets = [
         InspectionTarget(
             file_path="src/a,b:c.py",
-            start_line=7,
+            start_line="7\n::error file=evil",  # type: ignore[arg-type]
             status=EngineStatus.ERROR,
             message="message %\r\nnext",
         )
@@ -146,7 +146,7 @@ def test_github_annotations_escape_command_data(monkeypatch, capsys):
     )
 
     output = capsys.readouterr().out
-    assert "::error file=src/a%2Cb%3Ac.py,line=7::" in output
+    assert "::error file=src/a%2Cb%3Ac.py,line=7%0A%3A%3Aerror file=evil::" in output
     assert "%0A" in output
     assert "%25" in output
     assert "%3A" in output
