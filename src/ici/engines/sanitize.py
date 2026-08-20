@@ -26,10 +26,6 @@ from ici.core.project import (
 from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 
-_PYTEST_RESULT_RE = re.compile(
-    r"\b(?P<count>\d+)\s+(?:passed|failed|skipped|xfailed|xpassed|deselected)\b",
-    re.IGNORECASE,
-)
 _PYTEST_EXECUTED_RE = re.compile(
     r"\b(?P<count>\d+)\s+(?:passed|failed|xfailed|xpassed)\b", re.IGNORECASE
 )
@@ -452,10 +448,6 @@ class SanitizeEngine(BaseEngine):
             return str(path.relative_to(self.project_root))
         except ValueError:
             return value
-
-    @staticmethod
-    def _pytest_has_result(output: str) -> bool:
-        return any(int(match.group("count")) > 0 for match in _PYTEST_RESULT_RE.finditer(output))
 
     @staticmethod
     def _pytest_has_executed_result(output: str) -> bool:
