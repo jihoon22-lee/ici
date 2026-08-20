@@ -68,12 +68,33 @@ def test_ci_permissions_are_read_only_except_trusted_publish_job():
 
 
 def test_ci_verify_keeps_reports_summary_and_artifacts_without_publish():
-    verify = _job_block(_workflow("ci.yml"), "verify")
+    workflow = _workflow("ci.yml")
+    verify = _job_block(workflow, "verify")
     assert "verify --report --html verify_report.html --github-summary" in verify
-    assert "verify_report.html" in verify
-    assert "verify_report.json" in verify
-    assert "actions/upload-artifact@" in verify
-    assert "GITHUB_STEP_SUMMARY" in verify
+    assert "GITHUB_STEP_SUMMARY:" not in verify
+
+    upload = re.search(
+        r"(?ms)^      - name: Upload Verification Reports\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+        verify,
+    )
+    assert upload is not None
+    assert "actions/upload-artifact@" in upload.group("body")
+    path = re.search(
+        r"(?ms)^          path: \|\n(?P<body>(?:            [^\n]*\n)+)", upload.group("body")
+    )
+    assert path is not None
+    assert path.group("body") == "            verify_report.html\n            verify_report.json\n"
+
+
+def test_all_ci_and_release_checkouts_disable_credential_persistence():
+    for workflow_name in ("ci.yml", "release.yml"):
+        workflow = _workflow(workflow_name)
+        checkouts = re.findall(
+            r"(?ms)^      - name: [^\n]*Checkout[^\n]*\n(?P<body>.*?)(?=^      - name:|\Z)",
+            workflow,
+        )
+        assert checkouts, f"no checkout step found in {workflow_name}"
+        assert all("persist-credentials: false" in block for block in checkouts)
 
 
 def test_ci_verification_checkout_does_not_persist_credentials():
