@@ -770,7 +770,9 @@ class ExceptionSafetyEngine(BaseEngine):
     def _mask_cpp_line_step(chars: list[str], index: int) -> tuple[int, str]:
         if chars[index] == "\\" and index + 1 < len(chars):
             following = chars[index + 1]
-            if following == "\n" or (following == "\r" and index + 2 < len(chars)):
+            if following == "\n" or (
+                following == "\r" and index + 2 < len(chars) and chars[index + 2] == "\n"
+            ):
                 chars[index] = " "
                 return index + 1, "line_splice"
         if chars[index] == "\n":
