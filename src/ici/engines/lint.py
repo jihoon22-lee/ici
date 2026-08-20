@@ -30,6 +30,7 @@ _RUFF_REFORMAT_SUMMARY_RE = re.compile(
     r"(?:1 file|(?:[2-9]|[1-9]\d+) files) would be reformatted(?:\r?\n)?\Z"
 )
 _RUFF_WARNING_RE = re.compile(r"^warning:\s+\S.*$")
+_RUFF_FORMAT_PREVIEW_ONLY_RE = re.compile(r"only respected in preview mode", re.IGNORECASE)
 _CPP_DIAGNOSTIC_RE = re.compile(
     r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
     r"(?P<kind>fatal error|error|warning|note):\s*(?P<message>\S.*)$"
@@ -368,7 +369,11 @@ class LintEngine(BaseEngine):
             message = f"Ruff format capability probe emitted unexpected stderr: {warning_error}"
             tool_record.error = message
             return False, message
-        return "--output-format" in result.stdout, None
+        supports_json = (
+            "--output-format" in result.stdout
+            and not _RUFF_FORMAT_PREVIEW_ONLY_RE.search(result.stdout)
+        )
+        return supports_json, None
 
     def _evaluate_ruff_format(
         self,

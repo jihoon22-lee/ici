@@ -161,6 +161,49 @@ def test_ruff_finding_with_format_warning_is_a_policy_failure(tmp_python_project
     )
 
 
+def test_ruff_01517_preview_only_format_json_flag_uses_legacy_output(
+    tmp_python_project, monkeypatch
+):
+    _use_ruff(monkeypatch)
+    format_warning = (
+        "warning: The following rule may cause conflicts when used with the formatter: COM812\n"
+    )
+    help_excerpt = """      --output-format <OUTPUT_FORMAT>
+          Output serialization format for violations, when used with `--check`.
+          The default serialization format is \"full\".
+
+          Note that this option is currently only respected in preview mode. A warning will be emitted if this flag is used on stable.
+"""
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        if "check" in cmd:
+            return ProcessResult(
+                1,
+                (
+                    '[{"filename":"src/sample_pkg/core.py",'
+                    '"location":{"row":2},"code":"E501","message":"line too long"}]'
+                ),
+                "",
+                0.01,
+            )
+        if "--help" in cmd:
+            return ProcessResult(0, help_excerpt, "", 0.01)
+        return ProcessResult(0, "1 file already formatted\n", format_warning, 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.FAIL
+    assert any(target.target_name == "Ruff:E501" for target in result.targets)
+    format_evidence = next(item for item in result.tool_evidence if item.name == "ruff format")
+    assert "--output-format=json" not in format_evidence.argv
+    assert "Ruff format output was not parseable" not in format_evidence.error
+    assert any("--help" in cmd for cmd in calls)
+
+
 def test_ruff_check_warning_is_preserved_as_warn(tmp_python_project, monkeypatch):
     _use_ruff(monkeypatch)
 
