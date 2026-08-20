@@ -103,8 +103,8 @@ def test_html_uses_data_attributes_and_escapes_untrusted_values(tmp_path: Path):
 
     content = output.read_text(encoding="utf-8")
     assert "data-abs-path=" in content
-    assert "data-rel-path=\"src/a&#x27;b&lt;/script&gt;&amp;.py\"" in content
-    assert "data-line=\"7\"" in content
+    assert 'data-rel-path="src/a&#x27;b&lt;/script&gt;&amp;.py"' in content
+    assert 'data-line="7"' in content
     assert "&lt;script&gt;" in content
     assert "<script>alert" not in content
     assert "</script>.py" not in content

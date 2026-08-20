@@ -72,9 +72,7 @@ def _extract_suite_data(
     return eng_map, all_issues, p_cnt, w_cnt, f_cnt, e_cnt, s_cnt
 
 
-def _location_controls(
-    file_path: str, line: int, base: Path, label: str | None = None
-) -> str:
+def _location_controls(file_path: str, line: int, base: Path, label: str | None = None) -> str:
     """Render a location control using escaped data attributes only."""
     rel_path = str(file_path)
     display = label if label is not None else f"{rel_path}:{line}"
@@ -86,8 +84,8 @@ def _location_controls(
     return (
         "<span class='loc-link-group'>"
         f"<a href='#' class='loc-link' data-abs-path=\"{abs_attr}\" "
-        f"data-rel-path=\"{rel_attr}\" data-line=\"{line_attr}\"><code>{display_html}</code></a>"
-        f"<button class='btn-copy-loc' data-rel-path=\"{rel_attr}\" data-line=\"{line_attr}\" "
+        f'data-rel-path="{rel_attr}" data-line="{line_attr}"><code>{display_html}</code></a>'
+        f'<button class=\'btn-copy-loc\' data-rel-path="{rel_attr}" data-line="{line_attr}" '
         "title='경로 복사 (gvim/CLI용)'>📋</button>"
         "</span>"
     )
@@ -624,11 +622,12 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
         for t in tests_list:
             t_name = html.escape(t.get("name", "test"))
             t_status = t.get("status", "PASS")
+            t_status_html = html.escape(str(t_status))
             t_msg = html.escape(t.get("message", ""))
             t_color = "#10b981" if t_status == "PASS" else "#ef4444"
             test_rows.append(
                 f"<div class='test-case-row'>"
-                f"  <span class='badge' style='color:{t_color}; border:1px solid {t_color}33'>{t_status}</span>"
+                f"  <span class='badge' style='color:{t_color}; border:1px solid {t_color}33'>{t_status_html}</span>"
                 f"  <span class='test-case-name'><code>{t_name}</code></span>"
                 f"  <span class='test-case-msg'>{t_msg}</span>"
                 f"</div>"
@@ -864,9 +863,7 @@ def _build_hierarchical_tree_rows(files_data: list[dict], base: Path) -> list[st
                 status_color = "#9ca3af"
             status_text = html.escape(file_status)
 
-            st_badge = (
-                f"<span class='badge' style='color:{status_color}'>{status_text}</span>"
-            )
+            st_badge = f"<span class='badge' style='color:{status_color}'>{status_text}</span>"
 
             rows.append(
                 f"<tr class='tree-file-row'>"
@@ -990,11 +987,7 @@ def _render_dup_section(dup_res: EngineResult | None, base: Path) -> str:
             location = _location_controls(
                 str(occ["file_path"]), int(s_line), base, label=str(occ["loc"])
             )
-            occ_html.append(
-                f"<span class='occ-pill'>"
-                f"  {location}"
-                f"</span>"
-            )
+            occ_html.append(f"<span class='occ-pill'>  {location}</span>")
 
         snippet_html = f"<pre class='snippet'><code>{html.escape(g['snippet'])}</code></pre>"
         cards.append(

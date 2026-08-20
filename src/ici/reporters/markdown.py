@@ -187,8 +187,4 @@ def _escape_workflow_data(value: object) -> str:
 
 def _escape_workflow_property(value: object) -> str:
     """Escape GitHub workflow command properties, including separators."""
-    return (
-        _escape_workflow_data(value)
-        .replace(":", "%3A")
-        .replace(",", "%2C")
-    )
+    return _escape_workflow_data(value).replace(":", "%3A").replace(",", "%2C")
