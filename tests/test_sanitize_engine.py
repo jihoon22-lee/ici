@@ -101,6 +101,93 @@ def test_python_resource_warning_check_uses_resolved_python_module(tmp_path, mon
     assert "no:cacheprovider" in seen["kwargs"]["env"]["PYTEST_ADDOPTS"]
 
 
+def test_python_resource_warning_check_selects_pytest_suffix_test_files(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("value = 1\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "resource_test.py").write_text("def test_resource():\n    pass\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.run_process",
+        lambda *args, **kwargs: ProcessResult(0, "1 passed in 0.01s\n", "", 0.01),
+    )
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.PASS
+
+
+def test_python_resource_warning_check_does_not_treat_only_skips_as_measured_pass(
+    tmp_path, monkeypatch
+):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("value = 1\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_resource.py").write_text("def test_resource():\n    pass\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.run_process",
+        lambda *args, **kwargs: ProcessResult(0, "3 skipped, 2 deselected in 0.01s\n", "", 0.01),
+    )
+
+    required_result = SanitizeEngine(tmp_path).run()
+    optional_result = SanitizeEngine(tmp_path, {"engines": {"sanitize": {"required": False}}}).run()
+
+    assert required_result.status == EngineStatus.ERROR
+    assert optional_result.status == EngineStatus.SKIP
+    assert optional_result.evidence == EvidenceState.ESTIMATED
+
+
+def test_python_resource_warning_check_does_not_add_empty_pythonpath(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("value = 1\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_resource.py").write_text("def test_resource():\n    pass\n", encoding="utf-8")
+    monkeypatch.delenv("PYTHONPATH", raising=False)
+    seen = {}
+
+    def fake_run(command, **kwargs):
+        seen["env"] = kwargs["env"]
+        return ProcessResult(0, "1 passed in 0.01s\n", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.sanitize.run_process", fake_run)
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.PASS
+    assert seen["env"]["PYTHONPATH"] == str(src)
+    assert not seen["env"]["PYTHONPATH"].endswith(":")
+
+
+def test_python_resource_warning_check_reuses_wsl_temp_environment_policy(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("value = 1\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_resource.py").write_text("def test_resource():\n    pass\n", encoding="utf-8")
+    monkeypatch.setenv("WSL_DISTRO_NAME", "Ubuntu")
+    monkeypatch.setenv("TMPDIR", str(tmp_path / "host-temp"))
+    monkeypatch.setenv("TMP", str(tmp_path / "host-temp"))
+    monkeypatch.setenv("TEMP", str(tmp_path / "host-temp"))
+    seen = {}
+
+    def fake_run(command, **kwargs):
+        seen["env"] = kwargs["env"]
+        return ProcessResult(0, "1 passed in 0.01s\n", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.sanitize.run_process", fake_run)
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.PASS
+    assert all(seen["env"][key] == "/tmp" for key in ("TMPDIR", "TMP", "TEMP"))
+
+
 @pytest.mark.parametrize(
     ("result", "message"),
     [
@@ -166,6 +253,78 @@ def test_cpp_sanitizer_diagnostic_with_zero_exit_is_measured_failure(tmp_path, m
     assert result.status == EngineStatus.FAIL
     assert result.evidence == EvidenceState.MEASURED
     assert any(target.target_name == "ASan/UBSan Error" for target in result.targets)
+
+
+@pytest.mark.parametrize(
+    ("diagnostic", "expected"),
+    [
+        ("the test mentions AddressSanitizer but has no failure", False),
+        ("ERROR: LeakSanitizer: detected memory leaks\nSUMMARY: AddressSanitizer", True),
+        ("/tmp/test.cpp:8:5: runtime error: signed integer overflow", True),
+    ],
+)
+def test_sanitizer_diagnostic_requires_a_real_report_signature(
+    diagnostic, expected, tmp_path, monkeypatch
+):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    results = iter(
+        [
+            ProcessResult(0, "", "", 0.01),
+            ProcessResult(0, "", diagnostic, 0.01),
+        ]
+    )
+    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert (result.status == EngineStatus.FAIL) is expected
+
+
+def test_cpp_sanitizer_passes_configured_include_flags_to_compile(tmp_path, monkeypatch):
+    src = tmp_path / "custom-src"
+    include = tmp_path / "custom-include"
+    src.mkdir()
+    include.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    seen = {}
+
+    def fake_includes(root, config=None):
+        seen["config"] = config
+        return [f"-I{include}"]
+
+    monkeypatch.setattr("ici.engines.sanitize.get_all_cpp_includes", fake_includes)
+    monkeypatch.setattr(
+        "ici.engines.sanitize.run_process",
+        lambda command, **kwargs: (
+            (seen.setdefault("command", command) or True) and ProcessResult(0, "", "", 0.01)
+        ),
+    )
+    config = {
+        "project": {"source_dirs": ["custom-src"]},
+        "engines": {"sanitize": {"required": False}},
+    }
+
+    result = SanitizeEngine(tmp_path, config).run()
+
+    assert result.status == EngineStatus.PASS
+    assert seen["config"] is config
+    assert f"-I{include}" in seen["command"]
 
 
 def test_cpp_sanitizer_nonzero_diagnostic_is_measured_failure(tmp_path, monkeypatch):

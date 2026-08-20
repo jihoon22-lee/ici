@@ -215,3 +215,81 @@ def test_dead_engine_prefers_first_configured_source_dir_for_shadowed_module(tmp
     second_target = next(target for target in result.targets if target.file_path == "second/a.py")
     assert first_target.status == EngineStatus.PASS
     assert second_target.status == EngineStatus.WARN
+
+
+@pytest.mark.parametrize(
+    ("import_stmt", "use"),
+    [
+        ("from .a import _foo", "_foo()"),
+        ("from . import a", "a._foo()"),
+    ],
+)
+def test_dead_engine_resolves_relative_imports_from_package_init(tmp_path, import_stmt, use):
+    src = tmp_path / "src"
+    package = src / "pkg"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text(f"{import_stmt}\nvalue = {use}\n", encoding="utf-8")
+    (package / "a.py").write_text("def _foo():\n    return 1\n", encoding="utf-8")
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    target = next(target for target in result.targets if target.file_path == "src/pkg/a.py")
+    assert target.status == EngineStatus.PASS
+
+
+def test_dead_engine_preserves_same_alias_bindings_in_different_function_scopes(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text("def _foo():\n    return 1\n", encoding="utf-8")
+    (src / "b.py").write_text("def _foo():\n    return 2\n", encoding="utf-8")
+    (src / "use.py").write_text(
+        "def use_a():\n"
+        "    from a import _foo\n"
+        "    return _foo()\n\n"
+        "def use_b():\n"
+        "    from b import _foo\n"
+        "    return _foo()\n",
+        encoding="utf-8",
+    )
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    statuses = {
+        target.file_path: target.status
+        for target in result.targets
+        if target.target_name == "_foo()"
+    }
+    assert statuses == {"src/a.py": EngineStatus.PASS, "src/b.py": EngineStatus.PASS}
+
+
+def test_dead_engine_checks_unreachable_else_finally_and_match_bodies(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "control.py").write_text(
+        "def run(value):\n"
+        "    if value:\n"
+        "        pass\n"
+        "    else:\n"
+        "        return\n"
+        "        print('if else')\n"
+        "    try:\n"
+        "        pass\n"
+        "    except Exception:\n"
+        "        raise\n"
+        "    else:\n"
+        "        return\n"
+        "        print('try else')\n"
+        "    finally:\n"
+        "        return\n"
+        "        print('finally')\n"
+        "    match value:\n"
+        "        case 1:\n"
+        "            return\n"
+        "            print('match')\n",
+        encoding="utf-8",
+    )
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    unreachable = [target for target in result.targets if target.target_name == "UnreachableCode"]
+    assert {target.start_line for target in unreachable} >= {6, 13, 16, 20}

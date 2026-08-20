@@ -1119,3 +1119,127 @@ def test_exception_engine_calculates_empty_catch_once_for_pass_target(tmp_path, 
 
     assert result.status == EngineStatus.PASS
     assert len(calls) == 1
+
+
+def test_exception_engine_does_not_assume_unimported_builtins_module_alias(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text(
+        "try:\n    work()\nexcept builtins.BaseException:\n    log()\n", encoding="utf-8"
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(target.target_name == "BaseException" for target in result.targets)
+
+
+def test_exception_engine_resolves_direct_builtin_after_delete(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text(
+        "BaseException = ValueError\ndel BaseException\n\n"
+        "try:\n    work()\nexcept BaseException:\n    log()\n",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert any(target.target_name == "BaseException" for target in result.targets)
+
+
+def test_exception_engine_keeps_deleted_exception_alias_shadowed(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text(
+        "from builtins import BaseException as BE\ndel BE\n\n"
+        "try:\n    work()\nexcept BE:\n    log()\n",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(target.target_name == "BaseException" for target in result.targets)
+
+
+def test_exception_engine_keeps_alias_possible_after_boolop_walrus(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text(
+        "from builtins import BaseException as BE\n"
+        "False and (BE := ValueError)\n\n"
+        "try:\n    work()\nexcept BE:\n    log()\n",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert any(target.target_name == "BaseException" for target in result.targets)
+
+
+def test_exception_engine_keeps_alias_possible_after_ifexp_walrus(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text(
+        "from builtins import BaseException as BE\n"
+        "value = (BE := ValueError) if condition else None\n\n"
+        "try:\n    work()\nexcept BE:\n    log()\n",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert any(target.target_name == "BaseException" for target in result.targets)
+
+
+@pytest.mark.parametrize("scope", ["module", "function"])
+def test_exception_engine_match_capture_does_not_resolve_as_builtin(tmp_path, scope):
+    src = tmp_path / "src"
+    src.mkdir()
+    prefix = "" if scope == "module" else "def handle(value):\n"
+    indent = "" if scope == "module" else "    "
+    body = (
+        f"{prefix}{indent}match value:\n"
+        f"{indent}    case BaseException:\n"
+        f"{indent}        pass\n"
+        f"{indent}try:\n"
+        f"{indent}    work()\n"
+        f"{indent}except BaseException:\n"
+        f"{indent}    log()\n"
+    )
+    (src / "mod.py").write_text(body, encoding="utf-8")
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(target.target_name == "BaseException" for target in result.targets)
+
+
+def test_exception_engine_second_with_context_is_conditional(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text(
+        "from builtins import BaseException as BE\n"
+        "with first(), (BE := second()):\n"
+        "    pass\n\n"
+        "try:\n    work()\nexcept BE:\n    log()\n",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert any(target.target_name == "BaseException" for target in result.targets)
+
+
+def test_exception_engine_masks_cpp_line_comment_splice(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "spliced.cpp").write_text(
+        "// comment " + "\\\n" + "catch (...) { }\n"
+        "void f() {\n"
+        "    try { work(); } catch (...) { log(); }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert not any(target.target_name == "CatchAllSwallowed" for target in result.targets)
