@@ -156,7 +156,7 @@ def test_release_workflow_requires_explicit_version_tag_without_stale_fallback()
     assert 'TAG="$GITHUB_REF_NAME"' in run_script
     assert 'TAG="$MANUAL_VERSION_TAG"' in run_script
     assert 'TAG="v0.3.3"' not in run_script
-    assert 'PACKAGE_VERSION' in run_script
-    assert 'src/ici/__init__.py' in run_script
+    assert "PACKAGE_VERSION" in run_script
+    assert "src/ici/__init__.py" in run_script
     assert '"$TAG" != "v$PACKAGE_VERSION"' in run_script
     assert "GITHUB_OUTPUT" in run_script
