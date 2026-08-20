@@ -302,6 +302,7 @@ def test_cpp_sanitizer_passes_configured_include_flags_to_compile(tmp_path, monk
         "ici.engines.sanitize.shutil.which",
         lambda name: "/usr/bin/g++" if name == "g++" else None,
     )
+    monkeypatch.setattr("ici.engines.sanitize.detect_project_type", lambda root: "cpp")
     seen = {}
 
     def fake_includes(root, config=None):
