@@ -259,7 +259,13 @@ class TypeCheckEngine(BaseEngine):
             return False, []
 
         summary = _MYPY_SUCCESS_LINE_RE.fullmatch(lines[-1])
-        if summary is None or int(summary.group("count")) < 1:
+        if summary is None:
+            return False, []
+        count = int(summary.group("count"))
+        if count < 1:
+            return False, []
+        expected_noun = "file" if count == 1 else "files"
+        if lines[-1] != f"Success: no issues found in {count} source {expected_noun}":
             return False, []
 
         diagnostics: list[str] = []
