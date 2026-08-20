@@ -26,7 +26,10 @@ from ici.engines.base import BaseEngine
 
 _RUFF_FORMAT_SUCCESS_RE = re.compile(r"\d+ files? already formatted(?:\r?\n)?\Z")
 _RUFF_REFORMAT_RE = re.compile(r"Would reformat: (.+)")
-_RUFF_REFORMAT_SUMMARY_RE = re.compile(r"\d+ files? would be reformatted(?:\r?\n)?\Z")
+_RUFF_REFORMAT_SUMMARY_RE = re.compile(
+    r"(?:1 file|[2-9]\d* files) would be reformatted(?:\r?\n)?\Z"
+)
+_RUFF_WARNING_RE = re.compile(r"^warning:\s+\S.*$")
 _CPP_DIAGNOSTIC_RE = re.compile(
     r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
     r"(?P<kind>fatal error|error|warning|note):\s*(?P<message>\S.*)$"
@@ -37,6 +40,41 @@ _CPP_CONTEXT_HEADER_RE = re.compile(
     r"instantiation of)(?: .*)?:$"
 )
 _CPP_REQUIRED_FROM_RE = re.compile(r"^.+:[1-9]\d*(?::[1-9]\d*)?:\s+required from here$")
+
+
+def _parse_ruff_warning_blocks(stderr: str) -> tuple[list[str], str | None]:
+    """Parse Ruff's line-oriented warning blocks without accepting arbitrary stderr."""
+
+    if not stderr.strip():
+        return [], None
+
+    lines = stderr.splitlines()
+    warnings: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if not _RUFF_WARNING_RE.fullmatch(line):
+            return [], f"unrecognized stderr line: {line!r}"
+
+        block = [line]
+        index += 1
+        while index < len(lines):
+            continuation = lines[index]
+            if _RUFF_WARNING_RE.fullmatch(continuation):
+                break
+            if continuation and continuation[0].isspace():
+                block.append(continuation)
+                index += 1
+                continue
+            if not continuation.strip():
+                block.append(continuation)
+                index += 1
+                continue
+            return [], f"unrecognized stderr line: {continuation!r}"
+
+        warnings.append("\n".join(block).rstrip("\r\n"))
+
+    return warnings, None
 
 
 class LintEngine(BaseEngine):
@@ -110,8 +148,8 @@ class LintEngine(BaseEngine):
         errors: list[str] = []
         ruff_cmd = self._find_ruff_command()
         if ruff_cmd is not None:
-            errors.extend(self._run_ruff_check(ruff_cmd, targets, evidence))
-            errors.extend(self._run_ruff_format(ruff_cmd, targets, evidence))
+            errors.extend(self._run_ruff_check(ruff_cmd, targets, evidence, warnings))
+            errors.extend(self._run_ruff_format(ruff_cmd, targets, evidence, warnings))
         else:
             self._record_missing_tool(evidence, "ruff")
             message = "Ruff is unavailable; AST syntax fallback is ESTIMATED"
@@ -182,6 +220,7 @@ class LintEngine(BaseEngine):
         ruff_cmd: list[str],
         targets: list[InspectionTarget],
         evidence: list[ToolEvidence],
+        tool_warnings: list[str] | None = None,
     ) -> list[str]:
         command = [*ruff_cmd, "check", ".", "--output-format=json"]
         try:
@@ -190,13 +229,16 @@ class LintEngine(BaseEngine):
             self._record_tool_exception(evidence, "ruff check", command, exc)
             return [f"Ruff check could not execute: {type(exc).__name__}: {exc}"]
         tool_record = self._record_process(evidence, "ruff check", command, result)
-        errors = self._evaluate_ruff_check(result, targets)
+        errors = self._evaluate_ruff_check(result, targets, tool_warnings)
         if errors:
             tool_record.error = errors[0]
         return errors
 
     def _evaluate_ruff_check(
-        self, result: ProcessResult, targets: list[InspectionTarget]
+        self,
+        result: ProcessResult,
+        targets: list[InspectionTarget],
+        tool_warnings: list[str] | None = None,
     ) -> list[str]:
         if result.timed_out:
             return ["Ruff check timed out"]
@@ -206,8 +248,11 @@ class LintEngine(BaseEngine):
             return ["Ruff check terminated before producing a result"]
         if result.returncode not in (0, 1):
             return [f"Ruff check failed with exit code {result.returncode}"]
-        if result.stderr.strip():
-            return ["Ruff check emitted unexpected stderr"]
+        warnings, warning_error = _parse_ruff_warning_blocks(result.stderr)
+        if warning_error:
+            return [f"Ruff check emitted unexpected stderr: {warning_error}"]
+        if tool_warnings is not None:
+            tool_warnings.extend(warnings)
         if not result.stdout.strip():
             message = "violations" if result.returncode == 1 else "succeeded"
             return [f"Ruff check {message} without parseable JSON"]
@@ -264,21 +309,79 @@ class LintEngine(BaseEngine):
         ruff_cmd: list[str],
         targets: list[InspectionTarget],
         evidence: list[ToolEvidence],
+        tool_warnings: list[str] | None = None,
     ) -> list[str]:
+        warnings = tool_warnings if tool_warnings is not None else []
+        supports_json, probe_error = self._probe_ruff_format_json_support(
+            ruff_cmd, evidence, warnings
+        )
+        if probe_error:
+            return [probe_error]
+
         command = [*ruff_cmd, "format", "--check", "."]
+        if supports_json:
+            command = [*ruff_cmd, "format", "--check", "--output-format=json", "."]
         try:
             result = run_process(command, cwd=self.project_root)
         except Exception as exc:
             self._record_tool_exception(evidence, "ruff format", command, exc)
             return [f"Ruff format could not execute: {type(exc).__name__}: {exc}"]
         tool_record = self._record_process(evidence, "ruff format", command, result)
-        errors = self._evaluate_ruff_format(result, targets)
+        errors = self._evaluate_ruff_format(result, targets, warnings, json_output=supports_json)
         if errors:
             tool_record.error = errors[0]
         return errors
 
+    def _probe_ruff_format_json_support(
+        self,
+        ruff_cmd: list[str],
+        evidence: list[ToolEvidence],
+        tool_warnings: list[str],
+    ) -> tuple[bool, str | None]:
+        """Detect formatter JSON support using only the locally installed Ruff."""
+
+        command = [*ruff_cmd, "format", "--help"]
+        try:
+            result = run_process(command, cwd=self.project_root)
+        except Exception as exc:
+            message = f"Ruff format capability probe could not execute: {type(exc).__name__}: {exc}"
+            self._record_tool_exception(evidence, "ruff format capability", command, exc)
+            evidence[-1].error = message
+            return False, message
+
+        tool_record = self._record_process(evidence, "ruff format capability", command, result)
+        if result.timed_out:
+            message = "Ruff format capability probe timed out"
+            tool_record.error = message
+            return False, message
+        if result.truncated:
+            message = "Ruff format capability probe output was truncated"
+            tool_record.error = message
+            return False, message
+        if not isinstance(result.returncode, int) or result.returncode < 0:
+            message = "Ruff format capability probe terminated before producing a result"
+            tool_record.error = message
+            return False, message
+        if result.returncode != 0:
+            message = f"Ruff format capability probe failed with exit code {result.returncode}"
+            tool_record.error = message
+            return False, message
+
+        warnings, warning_error = _parse_ruff_warning_blocks(result.stderr)
+        if warning_error:
+            message = f"Ruff format capability probe emitted unexpected stderr: {warning_error}"
+            tool_record.error = message
+            return False, message
+        tool_warnings.extend(warnings)
+        return "--output-format" in result.stdout, None
+
     def _evaluate_ruff_format(
-        self, result: ProcessResult, targets: list[InspectionTarget]
+        self,
+        result: ProcessResult,
+        targets: list[InspectionTarget],
+        tool_warnings: list[str] | None = None,
+        *,
+        json_output: bool = False,
     ) -> list[str]:
         if result.timed_out:
             return ["Ruff format check timed out"]
@@ -288,7 +391,14 @@ class LintEngine(BaseEngine):
             return ["Ruff format check terminated before producing a result"]
         if result.returncode not in (0, 1):
             return [f"Ruff format check failed with exit code {result.returncode}"]
-        if result.returncode == 1 and not (result.stdout or result.stderr):
+        warnings, warning_error = _parse_ruff_warning_blocks(result.stderr)
+        if warning_error:
+            return [f"Ruff format emitted unexpected stderr: {warning_error}"]
+        if tool_warnings is not None:
+            tool_warnings.extend(warnings)
+        if json_output:
+            return self._evaluate_ruff_format_json(result, targets)
+        if result.returncode == 1 and not result.stdout:
             return ["Ruff format check failed without diagnostic output"]
         if result.returncode == 0 and not self._is_valid_format_success(result):
             return ["Ruff format output was not parseable"]
@@ -296,10 +406,71 @@ class LintEngine(BaseEngine):
             return ["Ruff format output was not parseable"]
         return []
 
+    def _evaluate_ruff_format_json(
+        self, result: ProcessResult, targets: list[InspectionTarget]
+    ) -> list[str]:
+        try:
+            diagnostics = json.loads(result.stdout)
+            if not isinstance(diagnostics, list):
+                raise ValueError("Ruff format JSON output is not a list")
+        except (json.JSONDecodeError, ValueError) as error:
+            return [f"Ruff format output was not parseable as JSON: {error}"]
+
+        if result.returncode == 0:
+            if diagnostics:
+                return ["Ruff format returned success with diagnostic findings"]
+            return []
+        if not diagnostics:
+            return ["Ruff format reported violations without any JSON findings"]
+
+        try:
+            parsed = self._parse_ruff_format_diagnostics(diagnostics)
+        except ValueError as error:
+            return [f"Ruff format output was not parseable: {error}"]
+        targets.extend(parsed)
+        return []
+
+    def _parse_ruff_format_diagnostics(self, diagnostics: list[object]) -> list[InspectionTarget]:
+        parsed: list[InspectionTarget] = []
+        for item in diagnostics:
+            if not isinstance(item, dict):
+                raise ValueError("Ruff format JSON item is not an object")
+            filename = item.get("filename")
+            if not isinstance(filename, str) or not filename.strip():
+                raise ValueError("Ruff format JSON filename is missing")
+            if item.get("code") != "unformatted":
+                raise ValueError("Ruff format JSON code is not unformatted")
+            location = item.get("location")
+            if not isinstance(location, dict):
+                raise ValueError("Ruff format JSON location is not an object")
+            row = location.get("row")
+            if isinstance(row, bool) or not isinstance(row, int) or row < 1:
+                raise ValueError("Ruff format JSON row is invalid")
+            column = location.get("column")
+            if column is not None and (
+                isinstance(column, bool) or not isinstance(column, int) or column < 1
+            ):
+                raise ValueError("Ruff format JSON column is invalid")
+            message = item.get("message", "File requires reformatting (PEP 8 style mismatch)")
+            if not isinstance(message, str) or not message.strip():
+                raise ValueError("Ruff format JSON message is invalid")
+            try:
+                rel_path = str(Path(filename).relative_to(self.project_root))
+            except (TypeError, ValueError):
+                rel_path = str(filename)
+            parsed.append(
+                InspectionTarget(
+                    file_path=rel_path,
+                    start_line=row,
+                    target_name="Format:Style",
+                    status=EngineStatus.WARN,
+                    message=message,
+                )
+            )
+        return parsed
+
     @staticmethod
     def _is_valid_format_success(result: ProcessResult) -> bool:
-        if result.stderr.strip():
-            return False
         return (
             not result.stdout.strip()
             or _RUFF_FORMAT_SUCCESS_RE.fullmatch(result.stdout) is not None
@@ -308,8 +479,6 @@ class LintEngine(BaseEngine):
     @staticmethod
     def _append_reformat_targets(result: ProcessResult, targets: list[InspectionTarget]) -> bool:
         found_reformat = False
-        if result.stderr.strip():
-            return False
         lines = [line for line in result.stdout.splitlines() if line.strip()]
         for index, line in enumerate(lines):
             match = _RUFF_REFORMAT_RE.fullmatch(line.strip())

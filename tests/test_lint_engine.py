@@ -1,5 +1,7 @@
 """Tests for lint tool failure handling and execution evidence."""
 
+import pytest
+
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
 from ici.engines.lint import LintEngine
@@ -125,6 +127,268 @@ def test_ruff_format_parse_failure_records_error(tmp_python_project, monkeypatch
     assert "not parseable" in format_evidence.error
 
 
+def test_ruff_finding_with_format_warning_is_a_policy_failure(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+
+    format_warning = (
+        "warning: The following rule may cause conflicts when used with the formatter: COM812\n"
+    )
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(
+                1,
+                (
+                    '[{"filename":"src/sample_pkg/core.py",'
+                    '"location":{"row":2},"code":"E501","message":"line too long"}]'
+                ),
+                "",
+                0.01,
+            )
+        return ProcessResult(0, "1 file already formatted\n", format_warning, 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.FAIL
+    finding = next(target for target in result.targets if target.target_name == "Ruff:E501")
+    assert finding.file_path == "src/sample_pkg/core.py"
+    assert finding.start_line == 2
+    assert "Ruff format output was not parseable" not in result.summary
+    assert all(
+        "Ruff format output was not parseable" not in item.error for item in result.tool_evidence
+    )
+
+
+def test_ruff_check_warning_is_preserved_as_warn(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "warning: check configuration notice\n", 0.01)
+        if "--help" in cmd:
+            return ProcessResult(0, "legacy format help\n", "", 0.01)
+        return ProcessResult(0, "1 file already formatted\n", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.WARN
+    assert "warning: check configuration notice" in result.summary
+    assert result.evidence == EvidenceState.ESTIMATED
+
+
+def test_ruff_format_multiline_warning_is_preserved_as_warn(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+    warning = "warning: formatter configuration notice\n  - first recommendation\n  - second recommendation\n"
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        if "--help" in cmd:
+            return ProcessResult(0, "legacy format help\n", "", 0.01)
+        return ProcessResult(0, "1 file already formatted\n", warning, 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.WARN
+    assert "warning: formatter configuration notice\n  - first recommendation" in result.summary
+    assert "second recommendation" in result.summary
+
+
+@pytest.mark.parametrize(
+    "stderr,command_part",
+    [
+        ("notice: unexpected stderr\n", "check"),
+        ("warning: recognized warning\ncontinued without indentation\n", "check"),
+        ("warning: recognized warning\ncontinued without indentation\n", "format"),
+    ],
+)
+def test_ruff_unrecognized_stderr_is_tool_error(
+    tmp_python_project, monkeypatch, stderr, command_part
+):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "--help" in cmd:
+            return ProcessResult(0, "legacy format help\n", "", 0.01)
+        if command_part == "check" and "check" in cmd:
+            return ProcessResult(0, "[]\n", stderr, 0.01)
+        if command_part == "format" and "check" not in cmd:
+            return ProcessResult(0, "1 file already formatted\n", stderr, 0.01)
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        return ProcessResult(0, "1 file already formatted\n", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_ruff_legacy_unformatted_output_keeps_format_target(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        if "--help" in cmd:
+            return ProcessResult(0, "legacy format help\n", "", 0.01)
+        return ProcessResult(
+            1,
+            "Would reformat: src/sample_pkg/core.py\n1 file would be reformatted\n",
+            "",
+            0.01,
+        )
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.WARN
+    target = next(target for target in result.targets if target.target_name == "Format:Style")
+    assert target.file_path == "src/sample_pkg/core.py"
+    assert target.start_line == 1
+
+
+def test_ruff_json_format_success_uses_supported_output_format(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        if "--help" in cmd:
+            return ProcessResult(0, "--output-format <OUTPUT_FORMAT>\n", "", 0.01)
+        return ProcessResult(0, "[]\n", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.PASS
+    assert any("--output-format=json" in call and "format" in call for call in calls)
+    format_evidence = next(
+        item
+        for item in result.tool_evidence
+        if item.name == "ruff format" and "--output-format=json" in item.argv
+    )
+    assert format_evidence.returncode == 0
+
+
+def test_ruff_json_format_finding_is_a_format_warning(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        if "--help" in cmd:
+            return ProcessResult(0, "--output-format <OUTPUT_FORMAT>\n", "", 0.01)
+        return ProcessResult(
+            1,
+            '[{"filename":"src/sample_pkg/core.py","code":"unformatted",'
+            '"location":{"row":4,"column":1},"message":"File would be reformatted"}]\n',
+            "",
+            0.01,
+        )
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.WARN
+    target = next(target for target in result.targets if target.target_name == "Format:Style")
+    assert target.file_path == "src/sample_pkg/core.py"
+    assert target.start_line == 4
+
+
+@pytest.mark.parametrize(
+    "stdout,returncode",
+    [
+        ("{not json}\n", 1),
+        ('[{"filename":"src/sample_pkg/core.py","code":"E501","location":{"row":1}}]\n', 1),
+        ('[{"filename":"src/sample_pkg/core.py","code":"unformatted","location":{"row":0}}]\n', 1),
+        ('[{"filename":"src/sample_pkg/core.py","code":"unformatted","location":"bad"}]\n', 1),
+        ('[{"filename":"src/sample_pkg/core.py","code":"unformatted","location":{"row":1}}]\n', 0),
+    ],
+)
+def test_ruff_json_format_invalid_output_is_tool_error(
+    tmp_python_project, monkeypatch, stdout, returncode
+):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        if "--help" in cmd:
+            return ProcessResult(0, "--output-format <OUTPUT_FORMAT>\n", "", 0.01)
+        return ProcessResult(returncode, stdout, "", 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+@pytest.mark.parametrize(
+    "probe_result",
+    [
+        ProcessResult(124, "", "timed out", 0.01, timed_out=True),
+        ProcessResult(0, "partial", "", 0.01, truncated=True),
+        ProcessResult(2, "", "unsupported", 0.01),
+    ],
+)
+def test_ruff_format_capability_probe_failure_is_not_legacy_fallback(
+    tmp_python_project, monkeypatch, probe_result
+):
+    _use_ruff(monkeypatch)
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        if "--help" in cmd:
+            return probe_result
+        raise AssertionError("legacy/JSON format validation must not run after probe failure")
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+    assert any("--help" in item.argv for item in result.tool_evidence)
+    assert len(calls) == 2
+
+
+def test_ruff_format_capability_probe_spawn_failure_is_recorded(tmp_python_project, monkeypatch):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        raise OSError("spawn failed")
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+    probe = next(item for item in result.tool_evidence if "--help" in item.argv)
+    assert "spawn failed" in probe.error
+
+
 def test_optional_ruff_absence_uses_estimated_ast_fallback(tmp_python_project, monkeypatch):
     monkeypatch.setattr("ici.engines.lint.shutil.which", lambda _name: None)
 
@@ -183,7 +447,7 @@ def test_ruff_spawn_exception_records_both_attempts(tmp_python_project, monkeypa
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
-    assert [e.name for e in result.tool_evidence] == ["ruff check", "ruff format"]
+    assert [e.name for e in result.tool_evidence] == ["ruff check", "ruff format capability"]
     assert all(e.error for e in result.tool_evidence)
 
 
