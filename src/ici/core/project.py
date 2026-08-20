@@ -302,7 +302,7 @@ def get_all_cpp_sources(
 ) -> list[Path]:
     """Finds all C++ source files (.cpp, .cc, .cxx, .c) across project source directories."""
     base = _resolve_project_root(base_path or Path.cwd())
-    cpp_files = []
+    cpp_files: list[Path] = []
     for src_dir in get_source_dirs(base, config):
         cpp_files.extend(_iter_project_files(src_dir, base, (".cpp", ".cc", ".cxx", ".c")))
 
@@ -340,7 +340,7 @@ def get_all_python_sources(
 ) -> list[Path]:
     """Finds all Python source files across project source directories."""
     base = _resolve_project_root(base_path or Path.cwd())
-    py_files = []
+    py_files: list[Path] = []
     for src_dir in get_source_dirs(base, config):
         py_files.extend(_iter_project_files(src_dir, base, (".py",)))
     return sorted(py_files)

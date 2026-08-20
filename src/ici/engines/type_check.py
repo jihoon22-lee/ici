@@ -23,7 +23,7 @@ from ici.core.project import (
 from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 
-_MYPY_SUCCESS_RE = re.compile(r"Success: no issues found in (?P<count>\d+) source files?\r?\n?\Z")
+_MYPY_SUCCESS_LINE_RE = re.compile(r"^Success: no issues found in (?P<count>\d+) source files?$")
 _MYPY_DIAGNOSTIC_RE = re.compile(
     r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
     r"(?P<kind>error|note):\s*(?P<message>\S.*)$"
@@ -186,7 +186,10 @@ class TypeCheckEngine(BaseEngine):
             tool_record.error = message
             errors.append(message)
             return False
-        if not self._is_valid_mypy_success(result.stdout):
+        valid_success, diagnostics = self._validated_mypy_success(result.stdout)
+        for line in diagnostics:
+            self._append_mypy_target(line, targets)
+        if not valid_success:
             message = "Mypy success output was not parseable"
             tool_record.error = message
             errors.append(message)
@@ -247,16 +250,38 @@ class TypeCheckEngine(BaseEngine):
         )
 
     @staticmethod
-    def _is_valid_mypy_success(output: str) -> bool:
-        match = _MYPY_SUCCESS_RE.fullmatch(output)
-        if not match:
-            return False
-        count = int(match.group("count"))
+    def _validated_mypy_success(output: str) -> tuple[bool, list[str]]:
+        lines = output.splitlines()
+        summary_indexes = [
+            index for index, line in enumerate(lines) if _MYPY_SUCCESS_LINE_RE.fullmatch(line)
+        ]
+        if len(summary_indexes) != 1 or summary_indexes[0] != len(lines) - 1:
+            return False, []
+
+        summary = _MYPY_SUCCESS_LINE_RE.fullmatch(lines[-1])
+        if summary is None:
+            return False, []
+        count = int(summary.group("count"))
         if count < 1:
-            return False
-        expected = "source file" if count == 1 else "source files"
-        normalized = output.rstrip("\r\n")
-        return normalized == f"Success: no issues found in {count} {expected}"
+            return False, []
+        expected_noun = "file" if count == 1 else "files"
+        if lines[-1] != f"Success: no issues found in {count} source {expected_noun}":
+            return False, []
+
+        diagnostics: list[str] = []
+        for line in lines[:-1]:
+            match = _MYPY_DIAGNOSTIC_RE.fullmatch(line)
+            if match is None:
+                return False, []
+            diagnostics.append(line)
+            if match.group("kind") != "note":
+                return False, diagnostics
+        return True, diagnostics
+
+    @staticmethod
+    def _is_valid_mypy_success(output: str) -> bool:
+        valid, _diagnostics = TypeCheckEngine._validated_mypy_success(output)
+        return valid
 
     @staticmethod
     def _record_process(
