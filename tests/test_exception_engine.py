@@ -534,6 +534,18 @@ except BE:
 
 CBE = ValueError
 cb = object()
+with manager() as BE:
+    log()
+try:
+    work()
+except BE:
+    log()
+with manager() as b:
+    log()
+try:
+    work()
+except b.BaseException:
+    log()
 if first:
     from builtins import BaseException as CBE
     import builtins as cb
@@ -556,16 +568,18 @@ except cb.BaseException:
 
     targets = [target for target in result.targets if target.target_name == "BaseException"]
     assert [(target.start_line, target.status) for target in targets] == [
-        (10, EngineStatus.FAIL),
-        (14, EngineStatus.FAIL),
-        (21, EngineStatus.FAIL),
+        (13, EngineStatus.FAIL),
+        (17, EngineStatus.FAIL),
         (25, EngineStatus.FAIL),
-        (32, EngineStatus.FAIL),
-        (36, EngineStatus.FAIL),
-        (92, EngineStatus.FAIL),
-        (101, EngineStatus.FAIL),
-        (114, EngineStatus.FAIL),
-        (118, EngineStatus.FAIL),
+        (29, EngineStatus.FAIL),
+        (37, EngineStatus.FAIL),
+        (41, EngineStatus.FAIL),
+        (50, EngineStatus.FAIL),
+        (59, EngineStatus.FAIL),
+        (68, EngineStatus.FAIL),
+        (74, EngineStatus.FAIL),
+        (84, EngineStatus.FAIL),
+        (88, EngineStatus.FAIL),
     ]
 
 
