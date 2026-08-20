@@ -144,10 +144,15 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **출력 메트릭**: 코드 라인, 주석 라인, 공백 라인 수 및 디렉토리 계층 트리 ([HTML 뷰어 지원](user-guide.md#22-인터랙티브-html-리포트-생성-및-자동-브라우저-열기))
 
 ### 2.2 🧹 `lint` (문법 및 코드 스타일 린터)
-- **Python**: `ruff check --output-format=json`과 `ruff format --check`를 실행합니다. Ruff가
-  없으면 AST 문법 검사만 수행하는 부분 폴백으로 전환하며, `ruff_required = true`이면
-  `ERROR`/`NOT_RUN`, 기본 선택 정책이면 `WARN`/`ESTIMATED`로 기록합니다. Ruff의 종료 코드,
-  JSON 진단 구조, 포맷 성공 문법은 엄격히 검증하며 도구 오류와 실제 진단을 구분합니다.
+- **Python**: `ruff check --output-format=json`을 실행하고, 로컬 `ruff format --help` capability
+  probe에서 `--output-format` 지원을 확인하면 `ruff format --check --output-format=json`을
+  실행합니다. Ruff 0.15 계열은 기존 `Would reformat:` 및 정확한 파일 수 summary grammar를
+  사용합니다. `warning:`으로 시작하는 Ruff의 한 줄 또는 들여쓴 다중 줄 warning block은
+  `tool_warnings`로 보존하며 유효한 결과를 `ERROR`로 승격하지 않습니다. 그 외 stderr,
+  malformed JSON, timeout·절단·비정상 종료·spawn 실패는 계속 도구 오류로 처리합니다.
+  JSON formatter의 빈 배열 성공과 `unformatted` 위치 진단은 엄격히 검증하며 도구 오류와
+  실제 진단을 구분합니다. Ruff가 없으면 AST 문법 검사만 수행하는 부분 폴백으로 전환하며,
+  `ruff_required = true`이면 `ERROR`/`NOT_RUN`, 기본 선택 정책이면 `WARN`/`ESTIMATED`로 기록합니다.
   Ruff는 PATH에 직접 실행 가능한 파일 또는 프로젝트 `.venv/bin`/`.venv/Scripts`의 실행 파일만
   사용합니다. `uvx`/`uv run`을 도구 설치로 간주하거나 패키지 해석을 시도하지 않으므로 폐쇄망에서
   실행 시 부작용이 없습니다. `ruff format --check`가 종료 코드 0과 빈 stdout/stderr를 반환하는

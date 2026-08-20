@@ -58,7 +58,7 @@ def test_load_config_respects_ici_config_env(tmp_path: Path, monkeypatch):
 
 
 def test_default_config_has_layout_and_line_gate_keys():
-    assert DEFAULT_CONFIG["ici"]["version"] == __version__ == "0.4.0"
+    assert DEFAULT_CONFIG["ici"]["version"] == __version__ == "0.4.1"
     assert DEFAULT_CONFIG["project"]["source_dirs"] == ["src", "lib", "app", "packages", "python"]
     assert DEFAULT_CONFIG["engines"]["line"]["gate_dirs"] == ["src", "include", "lib", "app"]
     assert DEFAULT_CONFIG["engines"]["line"]["include_dirs"] == []
