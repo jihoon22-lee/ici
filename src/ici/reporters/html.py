@@ -22,6 +22,8 @@ def _get_status_theme(status: EngineStatus) -> tuple[str, str, str]:
         return "#f59e0b", "rgba(245, 158, 11, 0.15)", "#f59e0b"
     if status == EngineStatus.SKIP:
         return "#9ca3af", "rgba(156, 163, 175, 0.15)", "#9ca3af"
+    if status == EngineStatus.ERROR:
+        return "#b91c1c", "rgba(185, 28, 28, 0.15)", "#b91c1c"
     return "#ef4444", "rgba(239, 68, 68, 0.15)", "#ef4444"
 
 
@@ -72,14 +74,19 @@ def _extract_suite_data(
     return eng_map, all_issues, p_cnt, w_cnt, f_cnt, e_cnt, s_cnt
 
 
+def _escape_html_attr(value: object) -> str:
+    """Escape an attribute and encode line breaks instead of emitting controls."""
+    return html.escape(str(value), quote=True).replace("\r", "&#13;").replace("\n", "&#10;")
+
+
 def _location_controls(file_path: str, line: int, base: Path, label: str | None = None) -> str:
     """Render a location control using escaped data attributes only."""
     rel_path = str(file_path)
     display = label if label is not None else f"{rel_path}:{line}"
     abs_path = str((base / rel_path).resolve())
-    rel_attr = html.escape(rel_path, quote=True)
-    abs_attr = html.escape(abs_path, quote=True)
-    line_attr = html.escape(str(line), quote=True)
+    rel_attr = _escape_html_attr(rel_path)
+    abs_attr = _escape_html_attr(abs_path)
+    line_attr = _escape_html_attr(line)
     display_html = html.escape(display)
     return (
         "<span class='loc-link-group'>"
@@ -1052,7 +1059,7 @@ def _render_issues_section(all_issues: list[tuple[str, Any]], base: Path) -> str
       <div>
         <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">⚠️ Active Quality Gate Issues ({len(all_issues)} Findings)</h2>
         <p style="font-size: 0.875rem; color: var(--text-muted);">
-          전체 검증 엔진에서 조치가 필요한 WARN 및 FAIL 항목을 통합하여 확인합니다.
+          전체 검증 엔진에서 PASS가 아닌 WARN/FAIL/ERROR/SKIP 항목을 통합하여 확인합니다.
         </p>
       </div>
       <div>
