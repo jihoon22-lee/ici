@@ -7,6 +7,7 @@ from typing import Any
 from ici.core.models import (
     EngineResult,
     EngineStatus,
+    InspectionTarget,
     VerificationSuiteResult,
     format_score_display,
 )
@@ -19,18 +20,22 @@ def _get_status_theme(status: EngineStatus) -> tuple[str, str, str]:
         return "#10b981", "rgba(16, 185, 129, 0.15)", "#10b981"
     if status == EngineStatus.WARN:
         return "#f59e0b", "rgba(245, 158, 11, 0.15)", "#f59e0b"
+    if status == EngineStatus.SKIP:
+        return "#9ca3af", "rgba(156, 163, 175, 0.15)", "#9ca3af"
     return "#ef4444", "rgba(239, 68, 68, 0.15)", "#ef4444"
 
 
 def _extract_suite_data(
     results: list[EngineResult],
-) -> tuple[dict[str, EngineResult], list[tuple[str, Any]], int, int, int]:
+) -> tuple[dict[str, EngineResult], list[tuple[str, InspectionTarget]], int, int, int, int, int]:
     """Extracts engine map, actionable issues list, and status counts."""
     eng_map: dict[str, EngineResult] = {}
     all_issues: list[tuple[str, Any]] = []
     p_cnt = 0
     w_cnt = 0
     f_cnt = 0
+    e_cnt = 0
+    s_cnt = 0
 
     for r in results:
         eng_map[r.engine_name] = r
@@ -38,14 +43,64 @@ def _extract_suite_data(
             p_cnt += 1
         elif r.status == EngineStatus.WARN:
             w_cnt += 1
-        else:
+        elif r.status == EngineStatus.FAIL:
             f_cnt += 1
+        elif r.status == EngineStatus.ERROR:
+            e_cnt += 1
+        else:
+            s_cnt += 1
 
+        issue_count = 0
         for t in r.targets:
-            if t.status in (EngineStatus.WARN, EngineStatus.FAIL):
+            if t.status != EngineStatus.PASS:
                 all_issues.append((r.engine_name, t))
+                issue_count += 1
+        if r.status in (EngineStatus.ERROR, EngineStatus.SKIP) and issue_count == 0:
+            all_issues.append(
+                (
+                    r.engine_name,
+                    InspectionTarget(
+                        file_path="",
+                        start_line=1,
+                        status=r.status,
+                        target_name="engine",
+                        message=r.summary,
+                    ),
+                )
+            )
 
-    return eng_map, all_issues, p_cnt, w_cnt, f_cnt
+    return eng_map, all_issues, p_cnt, w_cnt, f_cnt, e_cnt, s_cnt
+
+
+def _location_controls(
+    file_path: str, line: int, base: Path, label: str | None = None
+) -> str:
+    """Render a location control using escaped data attributes only."""
+    rel_path = str(file_path)
+    display = label if label is not None else f"{rel_path}:{line}"
+    abs_path = str((base / rel_path).resolve())
+    rel_attr = html.escape(rel_path, quote=True)
+    abs_attr = html.escape(abs_path, quote=True)
+    line_attr = html.escape(str(line), quote=True)
+    display_html = html.escape(display)
+    return (
+        "<span class='loc-link-group'>"
+        f"<a href='#' class='loc-link' data-abs-path=\"{abs_attr}\" "
+        f"data-rel-path=\"{rel_attr}\" data-line=\"{line_attr}\"><code>{display_html}</code></a>"
+        f"<button class='btn-copy-loc' data-rel-path=\"{rel_attr}\" data-line=\"{line_attr}\" "
+        "title='경로 복사 (gvim/CLI용)'>📋</button>"
+        "</span>"
+    )
+
+
+def _status_color(status: EngineStatus) -> str:
+    return {
+        EngineStatus.PASS: "#10b981",
+        EngineStatus.WARN: "#f59e0b",
+        EngineStatus.FAIL: "#ef4444",
+        EngineStatus.ERROR: "#dc2626",
+        EngineStatus.SKIP: "#9ca3af",
+    }[status]
 
 
 def _render_engine_table_rows(results: list[EngineResult], base: Path) -> list[str]:
@@ -95,9 +150,15 @@ def generate_html_report(
     base = (base_dir or Path.cwd()).resolve()
     status_color, status_bg, status_border = _get_status_theme(suite.suite_status)
 
-    eng_map, all_issues, pass_engines, warn_engines, fail_engines = _extract_suite_data(
-        suite.results
-    )
+    (
+        eng_map,
+        all_issues,
+        pass_engines,
+        warn_engines,
+        fail_engines,
+        error_engines,
+        skip_engines,
+    ) = _extract_suite_data(suite.results)
     engine_rows = _render_engine_table_rows(suite.results, base)
 
     line_tab_content = _render_line_section(eng_map.get("line"), base)
@@ -154,7 +215,7 @@ def generate_html_report(
       <!-- Universal Editor Link Selector -->
       <div class="editor-pref-wrapper">
         <label for="editorSelect" class="editor-label">🛠️ Open With:</label>
-        <select id="editorSelect" class="editor-select" onchange="setEditorPref(this.value)">
+        <select id="editorSelect" class="editor-select">
           <option value="copy">📋 Copy Path (Vim/gvim/CLI)</option>
           <option value="vscode" selected>🚀 VS Code (vscode://)</option>
           <option value="cursor">⚡ Cursor (cursor://)</option>
@@ -179,7 +240,9 @@ def generate_html_report(
       <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
         <span style="color:var(--pass)">{pass_engines} Pass</span> &bull;
         <span style="color:var(--warn)">{warn_engines} Warn</span> &bull;
-        <span style="color:var(--fail)">{fail_engines} Fail</span>
+        <span style="color:var(--fail)">{fail_engines} Fail</span> &bull;
+        <span style="color:var(--fail)">{error_engines} Error</span> &bull;
+        <span style="color:var(--text-muted)">{skip_engines} Skip</span>
       </div>
     </div>
 
@@ -206,12 +269,12 @@ def generate_html_report(
 
   <!-- Tabs Navigation -->
   <div class="tabs">
-    <button class="tab-btn active" id="btn-summary" onclick="switchTab('tab-summary', this)">📋 Verification Suites</button>
-    <button class="tab-btn" id="btn-line" onclick="switchTab('tab-line', this)">📊 Line Analysis & Explorer</button>
-    <button class="tab-btn" id="btn-test" onclick="switchTab('tab-test', this)">🧪 Tests & Coverage ({t_passed}/{t_total})</button>
-    <button class="tab-btn" id="btn-complexity" onclick="switchTab('tab-complexity', this)">🧩 Complexity</button>
-    <button class="tab-btn" id="btn-dup" onclick="switchTab('tab-dup', this)">📦 Clone Groups ({clone_groups_count})</button>
-    <button class="tab-btn" id="btn-issues" onclick="switchTab('tab-issues', this)">⚠️ Issues ({len(all_issues)})</button>
+    <button class="tab-btn active" id="btn-summary" data-tab-target="tab-summary">📋 Verification Suites</button>
+    <button class="tab-btn" id="btn-line" data-tab-target="tab-line">📊 Line Analysis & Explorer</button>
+    <button class="tab-btn" id="btn-test" data-tab-target="tab-test">🧪 Tests & Coverage ({t_passed}/{t_total})</button>
+    <button class="tab-btn" id="btn-complexity" data-tab-target="tab-complexity">🧩 Complexity</button>
+    <button class="tab-btn" id="btn-dup" data-tab-target="tab-dup">📦 Clone Groups ({clone_groups_count})</button>
+    <button class="tab-btn" id="btn-issues" data-tab-target="tab-issues">⚠️ Issues ({len(all_issues)})</button>
   </div>
 
   <!-- Tab 1: Main Suites Summary -->
@@ -280,28 +343,32 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
     if eng == "line":
         return (
             f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
-            f"<button class='jump-tab-btn' onclick=\"switchTab('tab-line')\">📊 View File Tree & Charts →</button>"
+            "<button class='jump-tab-btn' data-tab-target='tab-line'>"
+            "📊 View File Tree & Charts →</button>"
         )
 
     # Test Engine
     if eng == "test":
         return (
             f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
-            f"<button class='jump-tab-btn' onclick=\"switchTab('tab-test')\">🧪 View Test Suites & Coverage Details →</button>"
+            "<button class='jump-tab-btn' data-tab-target='tab-test'>"
+            "🧪 View Test Suites & Coverage Details →</button>"
         )
 
     # Complexity Engine
     if eng == "complexity":
         return (
             f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
-            f"<button class='jump-tab-btn' onclick=\"switchTab('tab-complexity')\">🧩 View Complexity Details →</button>"
+            "<button class='jump-tab-btn' data-tab-target='tab-complexity'>"
+            "🧩 View Complexity Details →</button>"
         )
 
     # Duplicate Engine
     if eng == "dup":
         return (
             f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
-            f"<button class='jump-tab-btn' onclick=\"switchTab('tab-dup')\">📦 View Clone Groups →</button>"
+            "<button class='jump-tab-btn' data-tab-target='tab-dup'>"
+            "📦 View Clone Groups →</button>"
         )
 
     # Sanitize Engine
@@ -315,19 +382,18 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
     # Default Target List (if any violations remain)
     targets_html = []
     for t in res.targets:
-        if t.status in (EngineStatus.WARN, EngineStatus.FAIL):
-            t_badge_color = "#ef4444" if t.status == EngineStatus.FAIL else "#f59e0b"
-            t_loc = f"{html.escape(t.file_path)}:{t.start_line}"
-            abs_t_path = str((base / t.file_path).resolve())
-            rel_t_path = html.escape(t.file_path)
+        if t.status != EngineStatus.PASS:
+            t_badge_color = _status_color(t.status)
+            location = (
+                _location_controls(t.file_path, t.start_line, base)
+                if t.file_path
+                else "<span class='issue-no-location'>engine result</span>"
+            )
 
             targets_html.append(
                 f"<div class='target-item'>"
                 f"  <span class='badge' style='color:{t_badge_color}'>{t.status.value}</span> "
-                f"  <span class='loc-link-group'>"
-                f"    <a href='javascript:void(0)' onclick=\"openLoc('{abs_t_path}', '{rel_t_path}', {t.start_line})\" class='loc-link'><code>{t_loc}</code></a>"
-                f"    <button class='btn-copy-loc' onclick=\"copyLoc('{rel_t_path}', {t.start_line}, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
-                f"  </span>"
+                f"  {location}"
                 f"  <span class='target-sym'>[{html.escape(t.target_name or 'target')}]</span> "
                 f"  <span class='target-msg'>{html.escape(t.message)}</span>"
                 f"</div>"
@@ -379,14 +445,14 @@ def _render_coverage_table(
 
     rows_html = []
     for f in coverage_files:
-        fname = html.escape(f.get("file", "?"))
+        raw_fname = str(f.get("file", "?"))
         stmts = f.get("stmts", 0)
         miss = f.get("miss", 0)
         cover = f.get("cover")
         branch_cover = f.get("branch_cover")
         missing = f.get("missing_lines") or []
         miss_tip = html.escape(", ".join(str(x) for x in missing)) if missing else ""
-        abs_f = str((base / f.get("file", "")).resolve())
+        location = _location_controls(raw_fname, 1, base, label=raw_fname)
         cov_color = _cov_color(cover)
         br_color = _cov_color(branch_cover)
         cover_str = f"{cover:.1f}%" if isinstance(cover, (int, float)) else "—"
@@ -396,8 +462,7 @@ def _render_coverage_table(
             f"<tr>"
             f"<td style='max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' "
             f"title='{miss_tip}'>"
-            f"<a href='javascript:void(0)' onclick=\"openLoc('{abs_f}', '{fname}', 1)\" "
-            f"class='loc-link'><code>{fname}</code></a>"
+            f"{location}"
             f"</td>"
             f"<td class='num'>{stmts}</td>"
             f"<td class='num' style='{miss_style}'>{miss}</td>"
@@ -470,14 +535,14 @@ def _render_function_table(function_rows: list[dict], source: str, base: Path) -
 
     rows_html = []
     for r in function_rows:
-        fname = html.escape(r.get("file", "?"))
+        raw_fname = str(r.get("file", "?"))
         name = html.escape(r.get("name", "?"))
         start = r.get("start_line", 1)
         end = r.get("end_line", start)
         covered_flag = bool(r.get("covered"))
         missing = r.get("missing_lines") or []
         miss_tip = html.escape(", ".join(str(x) for x in missing)) if missing else ""
-        abs_f = str((base / r.get("file", "")).resolve())
+        location = _location_controls(raw_fname, start, base, label=f"{raw_fname}:{start}")
         badge = (
             "<span class='badge' style='color:#10b981; border:1px solid #10b98144'>✓ 실행됨</span>"
             if covered_flag
@@ -487,8 +552,7 @@ def _render_function_table(function_rows: list[dict], source: str, base: Path) -
             f"<tr>"
             f"<td>{badge} <code>{name}()</code></td>"
             f"<td style='max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' title='{miss_tip}'>"
-            f"<a href='javascript:void(0)' onclick=\"openLoc('{abs_f}', '{fname}', {start})\" "
-            f"class='loc-link'><code>{fname}:{start}</code></a></td>"
+            f"{location}</td>"
             f"<td class='num'>{start}-{end}</td>"
             f"<td class='num'>{len(missing)}</td>"
             f"</tr>"
@@ -554,8 +618,7 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
 
         st_badge_color = "#10b981" if s_failed == 0 else "#ef4444"
         st_badge_text = f"{s_passed}/{s_total} Passed"
-        abs_sf = str((base / s_file).resolve())
-        rel_sf = html.escape(s_file)
+        location = _location_controls(str(s_file), 1, base, label=str(s_file))
 
         test_rows = []
         for t in tests_list:
@@ -576,8 +639,7 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
             f"  <div class='test-suite-header'>"
             f"    <div class='loc-link-group'>"
             f"      <span style='font-size:1.1rem;'>🧪</span>"
-            f"      <a href='javascript:void(0)' onclick=\"openLoc('{abs_sf}', '{rel_sf}', 1)\" class='loc-link'><strong>{rel_sf}</strong></a>"
-            f"      <button class='btn-copy-loc' onclick=\"copyLoc('{rel_sf}', 1, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
+            f"      {location}"
             f"    </div>"
             f"    <span class='badge' style='color:{st_badge_color}; border:1px solid {st_badge_color}44'>{st_badge_text}</span>"
             f"  </div>"
@@ -674,15 +736,11 @@ def _render_line_section(line_res: EngineResult | None, base: Path) -> str:
     top_bars_html = []
     for tf in top_files:
         fill_w = min(100.0, (tf["code"] / max_top_code) * 100.0)
-        abs_f = str((base / tf["path"]).resolve())
-        rel_f = html.escape(tf["path"])
+        location = _location_controls(str(tf["path"]), 1, base, label=str(tf["path"]))
         top_bars_html.append(
             f"<div class='top-file-row'>"
             f"  <div class='top-file-info'>"
-            f"    <span class='loc-link-group'>"
-            f"      <a href='javascript:void(0)' onclick=\"openLoc('{abs_f}', '{rel_f}', 1)\" class='loc-link'><code>{rel_f}</code></a>"
-            f"      <button class='btn-copy-loc' onclick=\"copyLoc('{rel_f}', 1, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
-            f"    </span>"
+            f"    {location}"
             f"    <span><strong>{tf['code']:,}</strong> code lines</span>"
             f"  </div>"
             f"  <div class='top-bar-bg'>"
@@ -727,7 +785,7 @@ def _render_line_section(line_res: EngineResult | None, base: Path) -> str:
       <div class="tree-header-bar">
         <div class="chart-title" style="margin-bottom: 0;">📁 File Explorer Tree ({len(all_files)} Files)</div>
         <div class="tree-controls">
-          <input type="text" id="treeSearchInput" onkeyup="filterTreeFiles(this.value)" placeholder="🔍 Search file by name or path..." class="tree-search-input" />
+          <input type="text" id="treeSearchInput" placeholder="🔍 Search file by name or path..." class="tree-search-input" />
         </div>
       </div>
 
@@ -796,25 +854,25 @@ def _build_hierarchical_tree_rows(files_data: list[dict], base: Path) -> list[st
         for f in files:
             p = Path(f["path"])
             fname = p.name
-            abs_f = str((base / f["path"]).resolve())
-            rel_f = html.escape(f["path"])
+            location = _location_controls(str(f["path"]), 1, base, label=fname)
             f_indent = indent_px + 22
             icon = icon_map.get(f["lang"], "📄")
+            file_status = str(f.get("status", "PASS"))
+            try:
+                status_color = _status_color(EngineStatus(file_status))
+            except ValueError:
+                status_color = "#9ca3af"
+            status_text = html.escape(file_status)
 
             st_badge = (
-                "<span class='badge' style='color:#10b981'>PASS</span>"
-                if f["status"] == "PASS"
-                else f"<span class='badge' style='color:#f59e0b'>{f['status']}</span>"
+                f"<span class='badge' style='color:{status_color}'>{status_text}</span>"
             )
 
             rows.append(
                 f"<tr class='tree-file-row'>"
                 f"  <td style='padding-left: {f_indent}px;'>"
                 f"    <span class='tree-icon'>{icon}</span>"
-                f"    <span class='loc-link-group'>"
-                f"      <a href='javascript:void(0)' onclick=\"openLoc('{abs_f}', '{rel_f}', 1)\" class='loc-link'><code>{html.escape(fname)}</code></a>"
-                f"      <button class='btn-copy-loc' onclick=\"copyLoc('{rel_f}', 1, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
-                f"    </span>"
+                f"    {location}"
                 f"  </td>"
                 f"  <td><span class='badge' style='background:#1f293d; color:#a78bfa'>{html.escape(f['lang'])}</span></td>"
                 f"  <td>{st_badge}</td>"
@@ -856,8 +914,7 @@ def _render_complexity_section(comp_res: EngineResult | None, base: Path) -> str
 
         cc = metrics.get("complexity", 1)
         nesting = metrics.get("nesting", 1)
-        abs_p = str((base / t_file).resolve())
-        rel_p = html.escape(t_file)
+        location = _location_controls(str(t_file), int(t_start), base, label=f"{t_file}:{t_start}")
 
         if cc > 25:
             badge_style = (
@@ -888,10 +945,7 @@ def _render_complexity_section(comp_res: EngineResult | None, base: Path) -> str
             f"    <div>"
             f"      <span style='color:var(--text-muted); font-weight:700; margin-right:0.5rem;'>#{rank}</span>"
             f"      <span class='cc-name'>{html.escape(t_name)}</span>"
-            f"      <span class='loc-link-group' style='margin-left:0.6rem;'>"
-            f"        <a href='javascript:void(0)' onclick=\"openLoc('{abs_p}', '{rel_p}', {t_start})\" class='loc-link'><code>{rel_p}:{t_start}</code></a>"
-            f"        <button class='btn-copy-loc' onclick=\"copyLoc('{rel_p}', {t_start}, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
-            f"      </span>"
+            f"      {location}"
             f"    </div>"
             f"    <div style='display:flex; gap:0.5rem;'>"
             f"      <span class='cc-badge' style='{badge_style}'>CC: {cc}</span>"
@@ -912,7 +966,7 @@ def _render_complexity_section(comp_res: EngineResult | None, base: Path) -> str
         </p>
       </div>
       <div>
-        <button class="jump-tab-btn" onclick="toggleAllDetails('.cc-snippet-details')">📂 Toggle All Code</button>
+        <button class="jump-tab-btn" data-toggle-details=".cc-snippet-details">📂 Toggle All Code</button>
       </div>
     </div>
     {"".join(cards)}
@@ -932,14 +986,13 @@ def _render_dup_section(dup_res: EngineResult | None, base: Path) -> str:
     for g in groups:
         occ_html = []
         for occ in g["occurrences"]:
-            abs_f = str((base / occ["file_path"]).resolve())
-            rel_f = html.escape(occ["file_path"])
-            loc_str = html.escape(occ["loc"])
             s_line = occ["start_line"]
+            location = _location_controls(
+                str(occ["file_path"]), int(s_line), base, label=str(occ["loc"])
+            )
             occ_html.append(
                 f"<span class='occ-pill'>"
-                f"  <a href='javascript:void(0)' onclick=\"openLoc('{abs_f}', '{rel_f}', {s_line})\" class='loc-link'><code>{loc_str}</code></a>"
-                f"  <button class='btn-copy-loc' onclick=\"copyLoc('{rel_f}', {s_line}, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
+                f"  {location}"
                 f"</span>"
             )
 
@@ -971,10 +1024,12 @@ def _render_issues_section(all_issues: list[tuple[str, Any]], base: Path) -> str
 
     items = []
     for eng_name, t in all_issues:
-        t_badge_color = "#ef4444" if t.status == EngineStatus.FAIL else "#f59e0b"
-        t_loc = f"{html.escape(t.file_path)}:{t.start_line}"
-        abs_t_path = str((base / t.file_path).resolve())
-        rel_t_path = html.escape(t.file_path)
+        t_badge_color = _status_color(t.status)
+        location = (
+            _location_controls(t.file_path, t.start_line, base)
+            if t.file_path
+            else "<span class='issue-no-location'>engine result</span>"
+        )
 
         snippet_block = ""
         if t.snippet:
@@ -991,10 +1046,7 @@ def _render_issues_section(all_issues: list[tuple[str, Any]], base: Path) -> str
             f"  <div class='issue-header'>"
             f"    <span class='badge' style='color:{t_badge_color}; border:1px solid {t_badge_color}44'>{t.status.value}</span>"
             f"    <span class='issue-engine'>[{html.escape(eng_name)}]</span>"
-            f"    <span class='loc-link-group'>"
-            f"      <a href='javascript:void(0)' onclick=\"openLoc('{abs_t_path}', '{rel_t_path}', {t.start_line})\" class='loc-link'><code>{t_loc}</code></a>"
-            f"      <button class='btn-copy-loc' onclick=\"copyLoc('{rel_t_path}', {t.start_line}, event)\" title='경로 복사 (gvim/CLI용)'>📋</button>"
-            f"    </span>"
+            f"    {location}"
             f"    <span class='target-sym'>[{html.escape(t.target_name or 'target')}]</span>"
             f"  </div>"
             f"  <div class='issue-msg'>{html.escape(t.message)}</div>"
@@ -1011,7 +1063,7 @@ def _render_issues_section(all_issues: list[tuple[str, Any]], base: Path) -> str
         </p>
       </div>
       <div>
-        <button class="jump-tab-btn" onclick="toggleAllDetails('.issue-snippet-details')">📂 Toggle All Code</button>
+        <button class="jump-tab-btn" data-toggle-details=".issue-snippet-details">📂 Toggle All Code</button>
       </div>
     </div>
     {"".join(items)}
