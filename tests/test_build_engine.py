@@ -140,6 +140,151 @@ def test_python_copy_failure_is_structured_error(tmp_path, monkeypatch):
     assert not (_target(tmp_path) / "env.sh").exists()
 
 
+def test_python_rebuild_reuses_regular_outputs_and_refreshes_content(tmp_path):
+    module = tmp_path / "src" / "pkg"
+    module.mkdir(parents=True)
+    (module / "__init__.py").write_text("", encoding="utf-8")
+    source = module / "cli.py"
+    source.write_text("VALUE = 1\ndef main():\n    return 0\n", encoding="utf-8")
+    _write_project(tmp_path, "python")
+    config = {"build": {"python": {"entrypoint": "pkg.cli:main"}}}
+
+    first = BuildEngine(tmp_path, config).run()
+    target = _target(tmp_path)
+    launcher = target / "bin" / "sample"
+    env_sh = target / "env.sh"
+    assert first.status == EngineStatus.PASS
+    launcher.write_text("stale launcher\n", encoding="utf-8")
+    env_sh.write_text("stale environment\n", encoding="utf-8")
+    source.write_text("VALUE = 2\ndef main():\n    return 0\n", encoding="utf-8")
+
+    second = BuildEngine(tmp_path, config).run()
+
+    assert second.status == EngineStatus.PASS
+    assert (target / "lib" / "pkg" / "cli.py").read_text(encoding="utf-8").startswith("VALUE = 2")
+    assert "stale launcher" not in launcher.read_text(encoding="utf-8")
+    assert "stale environment" not in env_sh.read_text(encoding="utf-8")
+
+
+def test_cpp_stale_regular_binary_is_removed_before_rc0_without_create(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    _write_project(tmp_path, "cpp")
+    target_bin = _target(tmp_path) / "bin" / "sample"
+    target_bin.parent.mkdir(parents=True)
+    target_bin.write_bytes(b"stale")
+    calls = []
+    monkeypatch.setattr("ici.engines.build.shutil.which", lambda _name: "/usr/bin/g++")
+
+    def no_create(command, **_kwargs):
+        calls.append(command)
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.build.run_process", no_create)
+
+    result = BuildEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert len(calls) == 1
+    assert not target_bin.exists()
+    assert not (_target(tmp_path) / "env.sh").exists()
+
+
+@pytest.mark.parametrize("component", ["version", "bin", "lib", "env"])
+def test_existing_output_path_symlink_is_rejected_without_escape(tmp_path, component):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "pkg.py").write_text("VALUE = 1\n", encoding="utf-8")
+    _write_project(tmp_path, "python")
+    target = _target(tmp_path)
+    outside = tmp_path.parent / f"outside-{component}"
+    outside.mkdir()
+    if component == "version":
+        (tmp_path / "v1.0.0").symlink_to(outside, target_is_directory=True)
+    elif component == "bin":
+        target.mkdir(parents=True)
+        (target / "bin").symlink_to(outside, target_is_directory=True)
+    elif component == "lib":
+        (target / "bin").mkdir(parents=True)
+        (target / "lib").symlink_to(outside, target_is_directory=True)
+    else:
+        (target / "bin").mkdir(parents=True)
+        (target / "lib").mkdir(parents=True)
+        (target / "env.sh").symlink_to(outside / "env.sh")
+
+    result = BuildEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert not list(outside.iterdir())
+
+
+def test_cpp_source_inspection_error_is_error_without_gxx(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    unreadable = src / "unreadable.cpp"
+    unreadable.write_text("int helper() { return 0; }\n", encoding="utf-8")
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    _write_project(tmp_path, "cpp")
+    original_read_text = Path.read_text
+
+    def fail_source_read(path, *args, **kwargs):
+        if path == unreadable:
+            raise UnicodeError("invalid source encoding")
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", fail_source_read)
+    monkeypatch.setattr(
+        "ici.engines.build.shutil.which",
+        lambda _name: pytest.fail("g++ must not run when source inspection fails"),
+    )
+
+    result = BuildEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_cpp_main_count_masks_comments_strings_and_raw_strings(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text(
+        "// int main() { return 1; }\n"
+        'const char *text = "int main() { return 2; }";\n'
+        'const char *raw = u8R"tag(int main() { return 3; })tag";\n'
+        "int main() { return 0; }\n",
+        encoding="utf-8",
+    )
+    _write_project(tmp_path, "cpp")
+    monkeypatch.setattr("ici.engines.build.shutil.which", lambda _name: "/usr/bin/g++")
+    monkeypatch.setattr("ici.engines.build.run_process", _successful_cpp_process)
+
+    result = BuildEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.PASS
+
+
+def test_cpp_fake_main_only_in_comments_and_strings_needs_adapter(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "fake.cpp").write_text(
+        "/* int main() { return 1; } */\n"
+        'const char *text = "int main() { return 2; }";\n'
+        'const char *raw = R"(int main() { return 3; })";\n',
+        encoding="utf-8",
+    )
+    _write_project(tmp_path, "cpp")
+    monkeypatch.setattr(
+        "ici.engines.build.shutil.which",
+        lambda _name: pytest.fail("g++ must not run without a real main"),
+    )
+
+    result = BuildEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+
+
 def test_explicit_python_entrypoint_creates_callable_launcher(tmp_path):
     module = tmp_path / "src" / "pkg"
     module.mkdir(parents=True)
@@ -356,6 +501,7 @@ def test_cpp_compile_exit_one_is_fail(tmp_path, monkeypatch):
     result = BuildEngine(tmp_path).run()
 
     assert result.status == EngineStatus.FAIL
+    assert "compile error" in result.tool_evidence[0].error
     assert not (_target(tmp_path) / "env.sh").exists()
 
 
