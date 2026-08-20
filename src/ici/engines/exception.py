@@ -120,15 +120,25 @@ class _ScopeAliasCollector(ast.NodeVisitor):
 
     def visit_Match(self, node: ast.Match) -> None:
         self.visit(node.subject)
+        definite_capture = (
+            len(node.cases) == 1
+            and node.cases[0].guard is None
+            and self._is_irrefutable_capture(node.cases[0].pattern)
+        )
         for case in node.cases:
             self._conditional_depth += 1
+            capture_kind = "match_definite" if definite_capture else "match"
             for name, capture in self._match_captures(case.pattern):
-                self._record(name, "match", capture)
+                self._record(name, capture_kind, capture)
             if case.guard is not None:
                 self.visit(case.guard)
             for statement in case.body:
                 self.visit(statement)
             self._conditional_depth -= 1
+
+    @staticmethod
+    def _is_irrefutable_capture(pattern: ast.pattern) -> bool:
+        return isinstance(pattern, ast.MatchAs) and pattern.pattern is None and bool(pattern.name)
 
     @staticmethod
     def _match_captures(pattern: ast.pattern) -> list[tuple[str, ast.AST]]:
@@ -281,8 +291,9 @@ class _ScopeAliasCollector(ast.NodeVisitor):
                         and "unbound" not in kinds
                         and "exception" not in kinds
                         and "builtins" not in kinds
+                        and not ("delete" in kinds and name == "BaseException")
                     )
-                    or ("match" in kinds)
+                    or ("match_definite" in kinds)
                     or ("delete" in kinds and name != "BaseException")
                 )
             },
@@ -309,8 +320,12 @@ class _ScopeAliasCollector(ast.NodeVisitor):
             if name not in exception_aliases
             and name not in builtins_aliases
             and (
-                ("shadow" in kinds and "unbound" not in kinds)
-                or "match" in kinds
+                (
+                    "shadow" in kinds
+                    and "unbound" not in kinds
+                    and not ("delete" in kinds and name == "BaseException")
+                )
+                or "match_definite" in kinds
                 or ("delete" in kinds and name != "BaseException")
             )
         }
