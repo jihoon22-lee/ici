@@ -108,7 +108,9 @@ def test_ci_and_release_actions_are_immutable_node24_pins():
         for uses in _uses_lines(workflow):
             action, _, ref = uses.partition("@")
             assert action in expected, f"unapproved action in {workflow_name}: {uses}"
-            assert re.fullmatch(r"[0-9a-f]{40}", ref), f"mutable action ref in {workflow_name}: {uses}"
+            assert re.fullmatch(r"[0-9a-f]{40}", ref), (
+                f"mutable action ref in {workflow_name}: {uses}"
+            )
             assert ref == expected[action], f"unexpected action pin in {workflow_name}: {uses}"
         assert "node20" not in workflow.lower()
         assert not re.search(r"@[vV][0-9]+(?:\.[0-9]+){0,2}\b", workflow)
