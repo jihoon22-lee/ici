@@ -228,7 +228,7 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 ### 2.7 💀 `dead` (죽은 코드 및 미사용 심볼)
 - 도달할 수 없는 블록과 private module-level Python 함수의 실제 `Name`/호출 및 cross-module `from`/attribute 참조를 분석한다.
 - `import pkg.a; pkg.a._foo()` 및 `from pkg import a; a._foo()`처럼 중첩 모듈을 거치는 참조는 실제 정의 모듈에만 연결하며, 같은 이름의 무관한 함수는 별도 경고로 남긴다.
-- package `__init__.py`의 `.a`/`. import a` 상대 import도 package-qualified 모듈로 해석한다. `project.source_dirs`가 충돌하면 앞선 source directory의 모듈 정의만 선택하며, 동일 alias의 여러 lexical import 후보는 누락 없이 보수적으로 연결한다.
+- package `__init__.py`의 `.a`/`from . import a` 상대 import도 package-qualified 모듈로 해석한다. `project.source_dirs`가 충돌하면 앞선 source directory의 모듈 정의만 선택하며, 동일 alias의 여러 lexical import 후보는 누락 없이 보수적으로 연결한다.
 - `if`/loop/`try`의 `else`·`finally` 및 `match` case를 포함한 모든 statement-list에서 terminal statement 뒤의 코드를 검사한다.
 - decorator 등록 함수, `__all__` export, class method, nested callback function은 합리적인 false positive를 피하기 위해 제외하며, 분석된 정상 source 위치도 `PASS` target으로 보존한다.
 
