@@ -533,3 +533,33 @@ def test_unsafe_project_metadata_is_engine_error_without_escape(tmp_path):
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
     assert not (tmp_path.parent / "escape").exists()
+
+
+def test_dot_source_root_excludes_current_target_on_rebuild(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "pkg.py").write_text("VALUE = 1\n", encoding="utf-8")
+    _write_project(tmp_path, "python", version="2.0.0")
+    config = {"project": {"source_dirs": ["."]}}
+
+    first = BuildEngine(tmp_path, config).run()
+    target = _target(tmp_path, "v2.0.0")
+    first_artifacts = [
+        (item.target_name, item.file_path, item.status)
+        for item in first.targets
+        if item.target_name in {"PythonLibrary", "PythonLauncher", "CppBinary"}
+    ]
+
+    second = BuildEngine(tmp_path, config).run()
+    second_artifacts = [
+        (item.target_name, item.file_path, item.status)
+        for item in second.targets
+        if item.target_name in {"PythonLibrary", "PythonLauncher", "CppBinary"}
+    ]
+
+    assert first.status == EngineStatus.PASS
+    assert second.status == EngineStatus.PASS
+    assert second_artifacts == first_artifacts
+    assert sorted(path.relative_to(target / "lib") for path in (target / "lib").rglob("*.py")) == [
+        Path("src/pkg.py")
+    ]
