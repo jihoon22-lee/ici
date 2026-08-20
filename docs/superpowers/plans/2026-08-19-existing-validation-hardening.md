@@ -20,9 +20,9 @@ v0.4.0 범위에서 모두 완료했다. 기존 9개 검증 엔진과 build/conf
 - 검증 job은 `contents: read`만 사용하고 checkout은 `persist-credentials: false`다.
 - `main` push 전용 `publish-main` job만 `contents: write`를 사용하며 PR 댓글/이슈/Checks
   쓰기 권한은 부여하지 않는다.
-- v0.4.0 후보는 로컬에서 전체 pytest/mypy/Ruff/pyz/smoke 게이트와 workflow YAML/shell 정적
-  검증을 통과했다. GitHub tag workflow 실행과 GitHub Release publication은 아직 수행하지
-  않았으며, 배포 전 최종 릴리스 게이트로 남아 있다.
+- v0.4.0 후보의 전체 pytest/mypy/Ruff/pyz/smoke 게이트와 workflow YAML/shell 정적 검증이
+  완료됐다. 태그 트리거 workflow와 GitHub Release publication은 v0.4.0의 최종 post-merge
+  release gate이며, 최종 공개 릴리스가 해당 외부 실행 증거를 제공한다.
 - 신규 Toolchain/build adapter/compile DB/Python compatibility/ELF-ABI/integration 엔진은
   이번 릴리스에 구현하지 않으며 별도 미래 계획으로 남긴다.
 

@@ -50,10 +50,13 @@ RHEL 7.9, 8.10, 이후 버전은 각자 별도의 CI 실행 환경으로 취급�
 ### 3.3 실행 Python과 검증 대상 Python 분리
 
 - `ICI_PYTHON`: `ici.pyz` 자체를 실행하는 Python 3.10+
-- Target Python: 프로젝트가 지원한다고 선언한 Python 인터프리터
+- v0.4.0의 기존 `test`/`sanitize` 엔진: 설정된 Python → 프로젝트 `.venv` → 현재
+  `sys.executable` 순으로 하나의 인터프리터를 선택하고, `pytest`, `coverage`, `unittest`를
+  각각 해당 인터프리터의 `-m` 모듈 호출로 실행한다.
 
-Python 호환성 검증은 Target Python 경로를 명시적으로 사용한다. `pytest`, `coverage`,
-`compileall`도 해당 인터프리터의 `-m` 실행을 우선한다.
+다중 Target Python의 `compileall`, import smoke, package metadata와 `Requires-Python`을
+검증하는 전용 Python 호환성 엔진은 개발 축 B의 미래 기능이다. v0.4.0은 여러 Target Python을
+순회하는 호환성 검증을 제공하지 않는다.
 
 ### 3.4 OS 이름 대신 실제 실행 증거 사용
 
