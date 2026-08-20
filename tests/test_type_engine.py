@@ -166,6 +166,17 @@ def test_mypy_zero_source_success_is_not_valid():
     )
 
 
+@pytest.mark.parametrize(
+    "output",
+    [
+        "Success: no issues found in 1 source files\n",
+        "Success: no issues found in 2 source file\n",
+    ],
+)
+def test_mypy_success_summary_requires_matching_source_plurality(output):
+    assert not TypeCheckEngine._is_valid_mypy_success(output)
+
+
 def test_python_without_applicable_sources_skips_mypy(tmp_path, monkeypatch):
     source_dir = tmp_path / "src"
     source_dir.mkdir()
