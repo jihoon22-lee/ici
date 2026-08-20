@@ -4,7 +4,7 @@
 
 ---
 
-`ici`는 로컬 개발 환경(WSL/Linux), 사내 폐쇄망(RHEL 8.10/CentOS, tcsh/bash), 그리고 GitHub Actions CI/CD 파이프라인에서 **완벽히 동일한 검증 결과와 리포트**를 제공하는 단일 실행형 CI 통합 엔진입니다.
+`ici`는 로컬 개발 환경(WSL/Linux), 사내 폐쇄망(RHEL 8.10/CentOS, tcsh/bash), 그리고 GitHub Actions CI/CD 파이프라인에서 같은 정책·결과 계약을 적용하는 단일 실행형 CI 통합 엔진입니다. OS·컴파일러·Python·검증 도구의 가용성과 버전은 실행 증거로 기록되며, 환경이 다르면 실제 결과도 달라질 수 있습니다.
 
 ---
 
@@ -84,14 +84,19 @@ ici verify --report --html verify_report.html --open
 - `--open`: 검증 완료 후 기본 브라우저(`firefox`, `chrome`, `xdg-open` 등)로 리포트를 즉시 띄웁니다.
 - `--json <path>`: 파이프라인 데이터 연동용 `verify_report.json`을 저장합니다.
 
-### 2.3 GitHub Actions에서 HTML 리포트 배포 (`--publish`)
-CI에서 `--publish`를 붙이면 `verify_report.html`이 `gh-pages` 브랜치로 자동 배포되고,
-PR에 원클릭 뷰어 링크가 담긴 스티키 댓글이 달립니다 (자세한 설정은
-[CI/CD 연동 가이드](ci-integration.md#23-html-리포트-배포-및-sticky-pr-코멘트---publish) 참조):
+### 2.3 신뢰된 실행에서 HTML 리포트 배포 (`--publish`)
+`--publish`는 일반 PR 검증의 기본 동작이 아닙니다. 권한을 명시적으로 부여한 신뢰된
+`main` push 또는 수동 실행에서만 `verify_report.html`을 `gh-pages` 등 설정된 경로로
+배포합니다. 기본 PR workflow는 Step Summary와 JSON/HTML 아티팩트만 생성하며 sticky
+댓글을 작성하지 않습니다 (자세한 설정은
+[CI/CD 연동 가이드](ci-integration.md#3-신뢰된-html-publish---publish) 참조):
 
 ```bash
 dist/ici.pyz verify --report --html verify_report.html --github-summary --publish
 ```
+
+이 기능은 GitHub Contents API와 쓰기 토큰이 필요하므로, 실행 job의 `contents: write`와
+토큰 범위를 대상 저장소 정책에 맞게 검토해야 합니다.
 
 ### 2.4 빌드 산출물 (`ici build`)
 

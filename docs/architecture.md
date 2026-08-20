@@ -10,21 +10,21 @@
 
 ## 1. 시스템 개요 및 하이레벨 구조
 
-`ici`는 로컬 개발 머신, 사내 폐쇄망 서버, GitHub Actions 가상머신 등 어떠한 환경에서도 **동일한 실행 환경과 엄격한 품질 게이트**를 보장하기 위해 설계되었습니다.
+`ici`는 로컬 개발 머신, 사내 폐쇄망 서버, GitHub Actions 가상머신 등 서로 다른 환경에서 **같은 정책·결과 계약과 엄격한 품질 게이트**를 적용하도록 설계되었습니다. OS, 컴파일러, Python, 외부 도구의 가용성과 버전은 실행 증거로 보존되며 환경이 다르면 검증 결과도 달라질 수 있습니다.
 
 ### 1.1 컴포넌트 아키텍처 다이어그램
 
 ```text
 +-----------------------------------------------------------------------------------+
 |                                  CLI Layer (__main__.py)                          |
-|    - CLI Parsing (argparse)      - Signal Handling        - Exit Code Mapping     |
+|    - CLI Parsing (Typer)         - Signal Handling        - Exit Code Mapping     |
 +------------------------------------------+----------------------------------------+
                                            |
                                            v
 +-----------------------------------------------------------------------------------+
 |                             VerifyOrchestrator Layer                              |
 |    - Config Deep-Merge (ici.toml)                         - Engine Registry       |
-|    - Concurrent Execution (ThreadPoolExecutor)            - TEM Scoring Engine    |
+|    - Sequential Engine Execution + Exception Isolation    - TEM Scoring Engine   |
 +------------------------------------------+----------------------------------------+
                                            |
        +-----------------------------------+-----------------------------------+
@@ -43,8 +43,8 @@
 |                                Multi-Reporter Layer                               |
 |  +---------------------+  +---------------------+  +----------------------------+ |
 |  | RichConsoleReporter |  |     HtmlReporter    |  |      MarkdownReporter      | |
-|  | - Color Table       |  | - 5 Dedicated Tabs  |  | - GitHub Step Summary      | |
-|  | - OSC 8 IDE Links   |  | - Hierarchical Tree |  | - Sticky PR Comments       | |
+|  | - Color Table       |  | - 6 Dedicated Tabs  |  | - GitHub Step Summary      | |
+|  | - file:// Links     |  | - Hierarchical Tree |  | - Optional Trusted Publish | |
 |  | - Summary Banners   |  | - Source Previews   |  | - Inline Annotations       | |
 |  +---------------------+  +---------------------+  +----------------------------+ |
 +-----------------------------------------------------------------------------------+
@@ -69,7 +69,7 @@ ici/
 │   └── smoke.sh                     # 독립 환경 스모크 테스트
 ├── src/
 │   └── ici/
-│       ├── __init__.py              # 패키지 메타데이터 (v0.3.3)
+│       ├── __init__.py              # 패키지 메타데이터 (동적 프로젝트 버전)
 │       ├── __main__.py              # CLI 엔트리포인트 및 서브커맨드 라우터
 │       ├── config.py                # 전사 기본 정책(DEFAULT_CONFIG) 및 toml 로더
 │       ├── core/                    # 코어 도메인 로직
@@ -91,7 +91,7 @@ ici/
 │       │   ├── exception.py         # 예외 삼킴 및 소멸자 throw 방지
 │       │   └── publish.py           # GitHub HTML 리포트 퍼블리셔 (gh-pages/hub)
 │       └── reporters/               # 다중 리포터 계층
-│           ├── console.py           # Rich 터미널 대시보드 & OSC 8 링크
+│           ├── console.py           # Rich 터미널 대시보드 & file:// 링크
 │           ├── html.py              # 6개 전용 탭 Zero-CDN HTML 대시보드
 │           ├── html_assets.py       # HTML 내장 CSS 및 JavaScript 자산 모듈
 │           ├── markdown.py          # GitHub Actions Summary & PR 코멘트
@@ -137,7 +137,7 @@ ici/
   - `file_path`: 대상 파일 상대 경로
   - `start_line` / `end_line`: 소스 코드 라인 범위
   - `target_name`: 함수명, 클래스명, 또는 규칙 심볼명
-  - `status`: `EngineStatus` (`PASS`, `WARN`, `FAIL`, `SKIP`, `INFO`)
+  - `status`: `EngineStatus` (`PASS`, `WARN`, `FAIL`, `ERROR`, `SKIP`)
   - `message`: 진단 메시지
   - `snippet`: 원본 소스 코드 블록 (포맷팅 보존)
   - `metrics`: 세부 수치 데이터 (`complexity`, `nesting`, `duplicate_lines` 등)
@@ -149,14 +149,19 @@ ici/
   - `score` / `max_score`: 점수 (예: TEM 4.75 / 5.0)
   - `targets`: 세부 `InspectionTarget` 목록
   - `extra`: 엔진별 추가 구조화 데이터 (`files_data`, `top_complex_funcs`, `clone_groups` 등)
+  - `required`: 결과가 품질 게이트에 필수인지 여부
+  - `evidence`: 결과가 실측(`MEASURED`), 추정(`ESTIMATED`) 또는 미실행(`NOT_RUN`)인지 여부
+  - `tool_evidence`: 호출한 외부 도구의 경로·인자·버전·종료 상태·오류 증거
 
 - **`VerificationSuiteResult`**: 전체 검증 스위트의 최종 집계 결과입니다.
-  - `suite_status`: 전체 최고 위험도 상태 (FAIL > WARN > PASS)
+  - `suite_status`: 전체 집계 상태. 필수 `ERROR`/`SKIP`/`NOT_RUN`은 `ERROR`, 필수 `FAIL`은 `FAIL`, 경고 또는 선택 검증의 비측정 결과는 `WARN`으로 집계합니다.
   - `results`: 각 엔진 결과 목록
   - `tem_score`: TEM 종합 품질 점수
+  - JSON 직렬화 형식은 `ici.result/v2`이며, 엔진·대상·도구 증거의 전체 필드를 보존합니다.
 
-### 4.2 오케스트레이터 및 병렬 실행 (`VerifyOrchestrator`)
-- `VerifyOrchestrator`는 활성화된 엔진 목록을 확인하고, I/O 및 AST 파싱이 병렬로 처리될 수 있도록 `ThreadPoolExecutor`를 통해 검증 엔진을 병렬로 수행합니다.
+### 4.2 오케스트레이터 및 예외 격리 (`VerifyOrchestrator`)
+- `VerifyOrchestrator`는 활성화된 엔진을 정의된 순서로 순차 실행합니다. 개별 엔진에서 예외가 발생해도 해당 엔진을 `ERROR`/`NOT_RUN`으로 기록하고 나머지 엔진을 계속 실행하여 결과 계약을 완성합니다.
+- 단독 명령과 전체 검증은 `PASS`/`WARN`은 0, `FAIL`/`ERROR`는 1, `SKIP`은 2를 반환하는 공통 종료 코드 계약을 사용합니다.
 
 ---
 
@@ -166,7 +171,7 @@ ici/
 
 1. **`RichConsoleReporter`**: 터미널 환경 최적화
    - ANSI 컬러 및 Rich 테이블/패널
-   - 터미널 OSC 8 하이퍼링크 (`\033]8;;vscode://...\033\\`)를 통한 터미널 내 에디터 원클릭 점프
+   - 안전한 `file://` URI와 Rich 링크 마크업을 통한 터미널 파일 위치 원클릭 이동
 2. **`HtmlReporter`**: 브라우저 독립형 대시보드
    - Zero-CDN 인라인 CSS/JS 구조
    - 6개 전용 탭: `Summary`, `Line & Tree`, `Tests & Coverage`, `Complexity`, `Clone Groups`, `Issues`
@@ -175,7 +180,7 @@ ici/
 3. **`MarkdownReporter`**: CI/CD 파이프라인 최적화
    - GitHub Step Summary 테이블 및 TEM 게이지
    - GitHub Blob 영구 링크 (`blob/<sha>/file#L10-L25`)
-   - PR 인라인 에러 어노테이션 (`::error file=...::`)
+   - PR 인라인 에러 어노테이션 (`::error file=...::`); 기본 PR 워크플로우는 댓글을 작성하지 않음
 4. **`JsonReporter`**: 데이터 파이프라인 연동
    - `verify_report.json` 포맷 직렬화
 

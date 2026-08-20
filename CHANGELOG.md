@@ -8,6 +8,23 @@
 ## [Unreleased]
 
 ### Changed
+- **CI 권한 분리 및 Action 공급망 고정**:
+  - PR/main 검증 `verify` job은 `contents: read`만 사용하고 checkout의
+    `persist-credentials`를 비활성화했으며, `GITHUB_TOKEN`·`--publish`·PR 댓글 쓰기를
+    검증 경로에서 제거
+  - `main` push에서 검증 성공 후에만 실행되는 `publish-main` job을 별도 구성하고
+    `contents: write`를 해당 job에만 부여
+  - checkout/setup-python/upload-artifact/setup-uv/release Action을 Node 24 릴리스의
+    immutable 40자리 commit SHA로 고정
+- **CI 및 사용자 문서 정합성 보강**:
+  - 로컬·CI·폐쇄망이 같은 정책·결과 계약을 사용하되 OS/컴파일러/Python/도구 버전과
+    실행 결과는 달라질 수 있음을 명시
+  - Typer, 순차 엔진 실행과 예외 격리, PASS/WARN/FAIL/ERROR/SKIP, `ici.result/v2`,
+    Rich `file://` 링크 및 6개 HTML 탭으로 아키텍처 설명을 현행화
+  - PR은 Step Summary·annotation·JSON/HTML 아티팩트를 사용하고, trusted main 또는
+    명시적 수동 실행에서만 `--publish`를 사용하도록 CI 가이드를 정정
+  - 배포된 ZipApp은 오프라인 실행 가능하지만 빌드에는 사전 준비된 Python·wheel/cache
+    또는 내부 미러가 필요하다는 폐쇄망 안내를 추가
 - **리포터·CLI 결과 계약과 출력 안전성 강화**:
   - suite 및 단독 엔진 JSON을 ici.result/v2로 통일하고 required/evidence/raw_output/extra/InspectionTarget의 snippet·metrics/전체 ToolEvidence를 보존하며, 기존 FAIL+ERROR 의미의 failed_count와 순수 error_count/skipped_count를 분리
   - HTML 위치 링크는 동적 JavaScript 인자 대신 escaped data-* 속성과 정적 delegated listener를 사용하고, ERROR/SKIP도 Issues 뷰와 상태 뱃지에 표시
