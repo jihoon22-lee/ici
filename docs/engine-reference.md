@@ -146,8 +146,11 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 ### 2.2 🧹 `lint` (문법 및 코드 스타일 린터)
 - **Python**: `ruff check --output-format=json`을 실행하고, 로컬 `ruff format --help` capability
   probe에서 `--output-format` 지원을 확인하면 `ruff format --check --output-format=json`을
-  실행합니다. Ruff 0.15 계열은 기존 `Would reformat:` 및 정확한 파일 수 summary grammar를
-  사용합니다. `warning:`으로 시작하는 Ruff의 한 줄 또는 들여쓴 다중 줄 warning block은
+  실행합니다. Ruff 0.15 legacy `format --check`는 plain `N file(s) would be reformatted`
+  summary와 mixed `..., M file(s) already formatted` suffix를 모두 허용합니다. 두 count의
+  singular/plural grammar와 `N` 및 `Would reformat:` 경로 수를 엄격히 검증하며, malformed·unknown·
+  misordered output은 부분 `Format:Style` target을 남기지 않고 원자적으로 거부합니다. `warning:`으로
+  시작하는 Ruff의 한 줄 또는 들여쓴 다중 줄 warning block은
   `tool_warnings`로 보존하며 유효한 결과를 `ERROR`로 승격하지 않습니다. 그 외 stderr,
   malformed JSON, timeout·절단·비정상 종료·spawn 실패는 계속 도구 오류로 처리합니다.
   JSON formatter의 빈 배열 성공과 `unformatted` 위치 진단은 엄격히 검증하며 도구 오류와

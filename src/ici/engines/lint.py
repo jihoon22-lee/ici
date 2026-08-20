@@ -25,9 +25,10 @@ from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 
 _RUFF_FORMAT_SUCCESS_RE = re.compile(r"\d+ files? already formatted(?:\r?\n)?\Z")
-_RUFF_REFORMAT_RE = re.compile(r"Would reformat: (.+)")
+_RUFF_REFORMAT_RE = re.compile(r"Would reformat: (?P<path>\S.*)")
 _RUFF_REFORMAT_SUMMARY_RE = re.compile(
-    r"(?:1 file|(?:[2-9]|[1-9]\d+) files) would be reformatted(?:\r?\n)?\Z"
+    r"(?P<would_count>[1-9]\d*) (?P<would_unit>file|files) would be reformatted"
+    r"(?:, (?P<already_count>[1-9]\d*) (?P<already_unit>file|files) already formatted)?"
 )
 _RUFF_WARNING_RE = re.compile(r"^warning:\s+\S.*$")
 _RUFF_FORMAT_PREVIEW_ONLY_RE = re.compile(r"only respected in preview mode", re.IGNORECASE)
@@ -478,26 +479,55 @@ class LintEngine(BaseEngine):
 
     @staticmethod
     def _append_reformat_targets(result: ProcessResult, targets: list[InspectionTarget]) -> bool:
-        found_reformat = False
-        lines = [line for line in result.stdout.splitlines() if line.strip()]
-        for index, line in enumerate(lines):
-            match = _RUFF_REFORMAT_RE.fullmatch(line.strip())
-            if match:
-                found_reformat = True
-                targets.append(
-                    InspectionTarget(
-                        file_path=match.group(1).strip(),
-                        start_line=1,
-                        target_name="Format:Style",
-                        status=EngineStatus.WARN,
-                        message="File requires reformatting (PEP 8 style mismatch)",
-                    )
-                )
-                continue
-            if index == len(lines) - 1 and _RUFF_REFORMAT_SUMMARY_RE.fullmatch(line + "\n"):
-                continue
+        lines = result.stdout.splitlines()
+        if not lines:
             return False
-        return found_reformat
+
+        summary_matches = [
+            (index, _RUFF_REFORMAT_SUMMARY_RE.fullmatch(line)) for index, line in enumerate(lines)
+        ]
+        summaries = [(index, match) for index, match in summary_matches if match is not None]
+        if len(summaries) != 1 or summaries[0][0] != len(lines) - 1:
+            return False
+
+        summary = summaries[0][1]
+        assert summary is not None
+        would_count = int(summary.group("would_count"))
+        would_unit = summary.group("would_unit")
+        if would_unit != ("file" if would_count == 1 else "files"):
+            return False
+
+        already_count = summary.group("already_count")
+        already_unit = summary.group("already_unit")
+        if already_count is not None:
+            already_count_value = int(already_count)
+            if already_unit != ("file" if already_count_value == 1 else "files"):
+                return False
+
+        paths: list[str] = []
+        for line in lines[:-1]:
+            match = _RUFF_REFORMAT_RE.fullmatch(line)
+            if match is None:
+                return False
+            path = match.group("path").strip()
+            if not path:
+                return False
+            paths.append(path)
+
+        if not paths or would_count != len(paths):
+            return False
+
+        targets.extend(
+            InspectionTarget(
+                file_path=path,
+                start_line=1,
+                target_name="Format:Style",
+                status=EngineStatus.WARN,
+                message="File requires reformatting (PEP 8 style mismatch)",
+            )
+            for path in paths
+        )
+        return True
 
     def _check_python_syntax(self, targets: list[InspectionTarget]) -> None:
         for py_file in self.project_root.rglob("*.py"):

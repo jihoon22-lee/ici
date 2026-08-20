@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-08-20
+
+### Fixed
+- **Ruff 0.15.17 mixed formatter summaries**: legacy `ruff format --check`
+  output containing both `Would reformat:` paths and an `already formatted`
+  suffix is parsed as a policy `WARN` with one location target per path.
+- **Atomic Ruff formatter parsing**: malformed legacy output is rejected as
+  `ERROR` without retaining partially parsed format targets.
+
 ## [0.4.1] - 2026-08-20
 
 ### Fixed
