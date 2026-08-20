@@ -578,10 +578,34 @@ function copyLoc(relPath, line, ev) {
   });
 }
 
+function encodeLocationComponent(value) {
+  return encodeURIComponent(String(value)).replace(/[!'()*]/g, (char) =>
+    '%' + char.charCodeAt(0).toString(16).toUpperCase()
+  );
+}
+
+function encodeLocationPath(absPath) {
+  const normalized = String(absPath || '').replace(/\\\\/g, '/');
+  return normalized.split('/').map((segment) => {
+    if (/^[A-Za-z]:$/.test(segment)) return segment;
+    return encodeLocationComponent(segment);
+  }).join('/');
+}
+
+function toFileUri(encodedPath) {
+  return /^[A-Za-z]:\\//.test(encodedPath)
+    ? 'file:///' + encodedPath
+    : 'file://' + encodedPath;
+}
+
 function openLoc(absPath, relPath, line) {
   const pref = getEditorPref();
   const lineNo = line || 1;
-  const encodedPath = encodeURIComponent(absPath);
+  const encodedPath = encodeLocationPath(absPath);
+  const encodedQueryPath = encodeURIComponent(absPath).replace(/[!'()*]/g, (char) =>
+    '%' + char.charCodeAt(0).toString(16).toUpperCase()
+  );
+  const fileUri = toFileUri(encodedPath);
 
   if (pref === 'copy') {
     copyLoc(relPath, line);
@@ -595,13 +619,13 @@ function openLoc(absPath, relPath, line) {
     window.location.href = 'cursor://file/' + encodedPath + ':' + lineNo;
     showToast('⚡ Opening in Cursor: ' + relPath + ':' + lineNo);
   } else if (pref === 'pycharm') {
-    window.location.href = 'idea://open?file=' + encodedPath + '&line=' + lineNo;
+    window.location.href = 'idea://open?file=' + encodedQueryPath + '&line=' + lineNo;
     showToast('🐍 Opening in PyCharm/IntelliJ...');
   } else if (pref === 'sublime') {
     window.location.href = 'subl://' + encodedPath + ':' + lineNo;
     showToast('🪟 Opening in Sublime Text...');
   } else if (pref === 'file') {
-    window.open('file://' + encodedPath, '_blank');
+    window.open(fileUri, '_blank');
   }
 }
 

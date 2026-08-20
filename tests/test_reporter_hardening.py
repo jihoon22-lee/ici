@@ -17,6 +17,7 @@ from ici.core.models import (
 )
 from ici.reporters.console import make_terminal_link, print_suite_dashboard
 from ici.reporters.html import _get_status_theme, generate_html_report
+from ici.reporters.html_assets import HTML_JS
 from ici.reporters.json_rep import save_json_report
 from ici.reporters.markdown import emit_github_actions_annotations, generate_markdown_report
 
@@ -196,6 +197,22 @@ def test_html_attribute_context_encodes_line_breaks_and_distinguishes_error(
     assert _get_status_theme(EngineStatus.ERROR) != _get_status_theme(EngineStatus.FAIL)
     assert "WARN 및 FAIL 항목" not in content
     assert "ERROR/SKIP" in content
+
+
+def test_html_location_protocols_encode_path_segments_safely():
+    assert "function encodeLocationPath(absPath)" in HTML_JS
+    assert "replace(/\\\\/g, '/')" in HTML_JS
+    assert ".split('/')" in HTML_JS
+    assert "const encodedPath = encodeLocationPath(absPath);" in HTML_JS
+    assert "const encodedQueryPath = encodeURIComponent(absPath)" in HTML_JS
+    assert "const fileUri = toFileUri(encodedPath);" in HTML_JS
+    assert "window.location.href = 'vscode://file/' + encodedPath + ':' + lineNo;" in HTML_JS
+    assert "window.location.href = 'subl://' + encodedPath + ':' + lineNo;" in HTML_JS
+    assert (
+        "window.location.href = 'idea://open?file=' + encodedQueryPath + '&line=' + lineNo;"
+        in HTML_JS
+    )
+    assert "window.open(fileUri, '_blank');" in HTML_JS
 
 
 def test_console_counts_do_not_double_count_errors(capsys, tmp_path: Path):
