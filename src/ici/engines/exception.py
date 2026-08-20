@@ -9,6 +9,7 @@ from ici.core.project import detect_project_type, get_all_cpp_sources, get_all_p
 from ici.engines.base import BaseEngine
 
 ScopeAliases = tuple[set[str], set[str], set[str], set[str]]
+ScopeEvent = tuple[tuple[int, int, int], str, str, bool]
 TransientEvents = list[tuple[str, tuple[int, int, int]]]
 
 
@@ -45,8 +46,9 @@ class _ScopeAliasCollector(ast.NodeVisitor):
 
     def __init__(self, scope: ast.AST):
         self.scope = scope
-        self.events: list[tuple[tuple[int, int, int], str, str]] = []
+        self.events: list[ScopeEvent] = []
         self._sequence = 0
+        self._conditional_depth = 0
         self._is_function_scope = isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef))
         self._global_names: set[str] = set()
         self._nonlocal_names: set[str] = set()
@@ -57,8 +59,72 @@ class _ScopeAliasCollector(ast.NodeVisitor):
             getattr(node, "col_offset", getattr(self.scope, "col_offset", 0)),
             self._sequence,
         )
-        self.events.append((position, name, kind))
+        self.events.append((position, name, kind, self._conditional_depth > 0))
         self._sequence += 1
+
+    def _visit_conditional_nodes(self, nodes: list[ast.AST]) -> None:
+        self._conditional_depth += 1
+        for node in nodes:
+            self.visit(node)
+        self._conditional_depth -= 1
+
+    def _visit_conditional_suite(self, statements: list[ast.stmt]) -> None:
+        self._visit_conditional_nodes(statements)
+
+    def visit_If(self, node: ast.If) -> None:
+        self.visit(node.test)
+        self._visit_conditional_suite(node.body)
+        self._visit_conditional_suite(node.orelse)
+
+    def visit_For(self, node: ast.For) -> None:
+        self.visit(node.iter)
+        self._visit_conditional_nodes([node.target, *node.body, *node.orelse])
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+        self.visit(node.iter)
+        self._visit_conditional_nodes([node.target, *node.body, *node.orelse])
+
+    def visit_While(self, node: ast.While) -> None:
+        self.visit(node.test)
+        self._visit_conditional_suite(node.body)
+        self._visit_conditional_suite(node.orelse)
+
+    def visit_With(self, node: ast.With) -> None:
+        for item in node.items:
+            self.visit(item.context_expr)
+            if item.optional_vars is not None:
+                self._visit_conditional_nodes([item.optional_vars])
+        self._visit_conditional_suite(node.body)
+
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+        for item in node.items:
+            self.visit(item.context_expr)
+            if item.optional_vars is not None:
+                self._visit_conditional_nodes([item.optional_vars])
+        self._visit_conditional_suite(node.body)
+
+    def visit_Try(self, node: ast.Try) -> None:
+        self._visit_conditional_suite(node.body)
+        self._visit_conditional_suite(node.handlers)
+        self._visit_conditional_suite(node.orelse)
+        self._visit_conditional_suite(node.finalbody)
+
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        if node.type is not None:
+            self.visit(node.type)
+        self._visit_conditional_suite(node.body)
+
+    def visit_ListComp(self, node: ast.ListComp) -> None:
+        del node
+
+    def visit_SetComp(self, node: ast.SetComp) -> None:
+        del node
+
+    def visit_DictComp(self, node: ast.DictComp) -> None:
+        del node
+
+    def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
+        del node
 
     def _visit_arguments(self, arguments: ast.arguments) -> None:
         argument_nodes = arguments.posonlyargs + arguments.args + arguments.kwonlyargs
@@ -138,7 +204,9 @@ class _ScopeAliasCollector(ast.NodeVisitor):
             cutoff = self._handler_position(handler)
         bindings = self._bindings_before(cutoff)
         if possible_after and cutoff is not None:
-            alias_sets = self._possible_aliases(bindings, cutoff)
+            alias_sets = self._possible_aliases(bindings, cutoff, possible_after=True)
+        elif cutoff is not None:
+            alias_sets = self._possible_aliases(bindings, cutoff, possible_after=False)
         else:
             alias_sets = self._effective_aliases(bindings)
         bound_names = self._bound_names(handler, cutoff)
@@ -147,38 +215,59 @@ class _ScopeAliasCollector(ast.NodeVisitor):
             bound_names,
         )
 
-    def _bindings_before(self, cutoff: tuple[int, int] | None) -> dict[str, str]:
-        bindings: dict[str, str] = {}
-        for position, name, kind in sorted(self.events):
-            if cutoff is None or position[:2] < cutoff:
-                bindings[name] = kind
+    def _bindings_before(self, cutoff: tuple[int, int] | None) -> dict[str, set[str]]:
+        bindings: dict[str, set[str]] = {}
+        for position, name, kind, conditional in sorted(self.events):
+            if cutoff is not None and position[:2] >= cutoff:
+                continue
+            if conditional:
+                bindings.setdefault(name, {"unbound"}).add(kind)
+            else:
+                bindings[name] = {kind}
         return bindings
 
     @staticmethod
-    def _effective_aliases(bindings: dict[str, str]) -> tuple[set[str], set[str], set[str]]:
+    def _effective_aliases(
+        bindings: dict[str, set[str]],
+    ) -> tuple[set[str], set[str], set[str]]:
         return (
-            {name for name, kind in bindings.items() if kind == "exception"},
-            {name for name, kind in bindings.items() if kind == "builtins"},
-            {name for name, kind in bindings.items() if kind == "shadow"},
+            {name for name, kinds in bindings.items() if "exception" in kinds},
+            {name for name, kinds in bindings.items() if "builtins" in kinds},
+            {
+                name
+                for name, kinds in bindings.items()
+                if "shadow" in kinds
+                and "unbound" not in kinds
+                and "exception" not in kinds
+                and "builtins" not in kinds
+            },
         )
 
     def _possible_aliases(
         self,
-        bindings: dict[str, str],
+        bindings: dict[str, set[str]],
         cutoff: tuple[int, int],
+        possible_after: bool,
     ) -> tuple[set[str], set[str], set[str]]:
         exception_aliases, builtins_aliases, _ = self._effective_aliases(bindings)
-        for position, name, kind in self.events:
-            if position[:2] < cutoff:
+        for position, name, kind, conditional in self.events:
+            is_after_cutoff = position[:2] >= cutoff
+            if is_after_cutoff and not possible_after:
                 continue
-            if kind == "exception":
+            if conditional and not is_after_cutoff:
+                if kind == "exception":
+                    exception_aliases.add(name)
+                elif kind == "builtins":
+                    builtins_aliases.add(name)
+            elif is_after_cutoff and possible_after and kind == "exception":
                 exception_aliases.add(name)
-            elif kind == "builtins":
+            elif is_after_cutoff and possible_after and kind == "builtins":
                 builtins_aliases.add(name)
         shadowed_names = {
-            name
-            for name, kind in bindings.items()
-            if kind == "shadow" and name not in exception_aliases and name not in builtins_aliases
+            name for name, kinds in bindings.items() if name not in exception_aliases
+            and name not in builtins_aliases
+            and "shadow" in kinds
+            and "unbound" not in kinds
         }
         return exception_aliases, builtins_aliases, shadowed_names
 
@@ -192,7 +281,7 @@ class _ScopeAliasCollector(ast.NodeVisitor):
         handler_name = handler.name
         return {
             name
-            for position, name, _ in self.events
+            for position, name, _, _ in self.events
             if name not in self._global_names
             and name not in self._nonlocal_names
             and not (handler_name is not None and position[:2] == cutoff and name == handler_name)
@@ -484,7 +573,7 @@ class ExceptionSafetyEngine(BaseEngine):
         collector = _ScopeAliasCollector(scope)
         collector.visit(scope)
         for name, position in transient_events or ():
-            collector.events.append((position, name, "shadow"))
+            collector.events.append((position, name, "shadow", False))
         return collector.resolve(handler, cutoff, possible_after)
 
     @staticmethod
