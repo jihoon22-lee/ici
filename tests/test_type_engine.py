@@ -1,5 +1,7 @@
 """Tests for mypy tool failure handling and partial-language evidence."""
 
+import pytest
+
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
 from ici.engines.type_check import TypeCheckEngine
@@ -90,6 +92,72 @@ def test_mypy_success_line_with_junk_is_error(tmp_python_project, monkeypatch):
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
+
+
+def test_mypy_success_with_valid_notes_is_accepted_and_preserves_note_targets(
+    tmp_python_project, monkeypatch
+):
+    _use_mypy(monkeypatch)
+    monkeypatch.setattr(
+        "ici.engines.type_check.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            0,
+            "src/sample_pkg/core.py:2: note: checked overload\n"
+            "src/sample_pkg/core.py:4: note: inferred type\n"
+            "Success: no issues found in 1 source file\n",
+            "",
+            0.01,
+        ),
+    )
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.WARN
+    assert result.status != EngineStatus.ERROR
+    notes = [target for target in result.targets if target.target_name == "MypyNote"]
+    assert [(target.start_line, target.status) for target in notes] == [
+        (2, EngineStatus.WARN),
+        (4, EngineStatus.WARN),
+    ]
+
+
+def test_mypy_success_with_error_diagnostic_is_error(tmp_python_project, monkeypatch):
+    _use_mypy(monkeypatch)
+    monkeypatch.setattr(
+        "ici.engines.type_check.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            0,
+            "src/sample_pkg/core.py:2: error: incompatible type\n"
+            "Success: no issues found in 1 source file\n",
+            "",
+            0.01,
+        ),
+    )
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert any(target.target_name == "MypyError" for target in result.targets)
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "Success: no issues found in 1 source file\n"
+        "src/sample_pkg/core.py:2: note: emitted after summary\n",
+        "Success: no issues found in 1 source file\nSuccess: no issues found in 1 source file\n",
+    ],
+)
+def test_mypy_success_summary_must_be_unique_and_last(tmp_python_project, monkeypatch, output):
+    _use_mypy(monkeypatch)
+    monkeypatch.setattr(
+        "ici.engines.type_check.run_process",
+        lambda *args, **kwargs: ProcessResult(0, output, "", 0.01),
+    )
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
 
 
 def test_mypy_zero_source_success_is_not_valid():
