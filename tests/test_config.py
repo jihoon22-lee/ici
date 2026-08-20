@@ -223,6 +223,37 @@ def test_load_config_rejects_unknown_top_level_key(tmp_path: Path, monkeypatch):
         load_config(tmp_path)
 
 
+def test_load_config_accepts_build_python_entrypoint(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        '[build.python]\nentrypoint = "pkg.cli:main"\n', encoding="utf-8"
+    )
+
+    config = load_config(tmp_path)
+
+    assert config["build"]["python"]["entrypoint"] == "pkg.cli:main"
+
+
+@pytest.mark.parametrize(
+    "config_text",
+    [
+        "[build]\nunexpected = true\n",
+        '[build]\npython = "pkg.cli:main"\n',
+        '[build.python]\nunknown = "value"\n',
+        "[build.python]\nentrypoint = 42\n",
+        '[build.python]\nentrypoint = "  "\n',
+    ],
+)
+def test_load_config_rejects_invalid_build_python_schema(
+    tmp_path: Path, monkeypatch, config_text: str
+):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(config_text, encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=r"build"):
+        load_config(tmp_path)
+
+
 def test_load_config_rejects_invalid_mode(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     (tmp_path / "ici.toml").write_text("[engines.line]\nmode = 'unknown'\n", encoding="utf-8")
