@@ -120,15 +120,17 @@ class BuildEngine(BaseEngine):
             project_name = get_project_name(base)
             project_version = get_project_version(base)
             project_type = detect_project_type(base)
+            target_path = base / project_version / "x86_64"
             python_sources = (
-                get_all_python_sources(base, self.config)
+                self._exclude_target_sources(get_all_python_sources(base, self.config), target_path)
                 if project_type in ("python", "hybrid")
                 else []
             )
             cpp_sources = (
-                get_all_cpp_sources(base, self.config) if project_type in ("cpp", "hybrid") else []
+                self._exclude_target_sources(get_all_cpp_sources(base, self.config), target_path)
+                if project_type in ("cpp", "hybrid")
+                else []
             )
-            target_path = base / project_version / "x86_64"
             bin_dir, lib_dir = self._prepare_output_tree(base, target_path)
 
             if project_type in ("python", "hybrid"):
@@ -196,6 +198,18 @@ class BuildEngine(BaseEngine):
             evidence=(EvidenceState.NOT_RUN if self._tool_errors else EvidenceState.MEASURED),
             tool_evidence=self._tool_evidence,
         )
+
+    @staticmethod
+    def _exclude_target_sources(sources: list[Path], target: Path) -> list[Path]:
+        """Keep source discovery from treating this run's output as input."""
+
+        filtered: list[Path] = []
+        for source in sources:
+            try:
+                source.relative_to(target)
+            except ValueError:
+                filtered.append(source)
+        return filtered
 
     def _prepare_output_tree(self, base: Path, target: Path) -> tuple[Path, Path]:
         self._ensure_directory_chain(base, target)
