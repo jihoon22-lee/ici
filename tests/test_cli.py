@@ -5,6 +5,7 @@ import json
 import pytest
 from typer.testing import CliRunner
 
+from ici import __version__
 from ici.__main__ import app
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
 
@@ -14,13 +15,14 @@ runner = CliRunner()
 def test_cli_version():
     res = runner.invoke(app, ["--version"])
     assert res.exit_code == 0
-    assert "ici 0.3.3" in res.stdout
+    assert f"ici {__version__}" in res.stdout
+    assert __version__ == "0.4.0"
 
 
 def test_cli_doctor():
     res = runner.invoke(app, ["doctor", "--brief"])
     assert res.exit_code == 0
-    assert "ici 0.3.3 brief" in res.stdout
+    assert f"ici {__version__} brief" in res.stdout
 
 
 def test_cli_env():

@@ -135,3 +135,28 @@ def test_ci_and_release_actions_are_immutable_node24_pins():
             assert ref == expected[action], f"unexpected action pin in {workflow_name}: {uses}"
         assert "node20" not in workflow.lower()
         assert not re.search(r"@[vV][0-9]+(?:\.[0-9]+){0,2}\b", workflow)
+
+
+def test_release_workflow_requires_explicit_version_tag_without_stale_fallback():
+    workflow = _workflow("release.yml")
+    dispatch = workflow.split("  workflow_dispatch:\n", 1)[1].split("\n\npermissions:", 1)[0]
+    version_input = dispatch.split("      version_tag:\n", 1)[1].split("      draft:\n", 1)[0]
+
+    assert re.search(r"(?m)^        required: true$", version_input)
+    assert not re.search(r"(?m)^        default:", version_input)
+    assert "v0.3.3" not in workflow
+
+    tag_step = workflow.split("      - name: Determine Target Tag\n", 1)[1].split(
+        "\n      - name: Set up Python", 1
+    )[0]
+    run_script = tag_step.split("        run: |\n", 1)[1]
+    assert "MANUAL_VERSION_TAG: ${{ inputs.version_tag }}" in tag_step
+    assert "${{ inputs.version_tag }}" not in run_script
+    assert 'if [ "$GITHUB_EVENT_NAME" = "push" ]; then' in run_script
+    assert 'TAG="$GITHUB_REF_NAME"' in run_script
+    assert 'TAG="$MANUAL_VERSION_TAG"' in run_script
+    assert 'TAG="v0.3.3"' not in run_script
+    assert 'PACKAGE_VERSION' in run_script
+    assert 'src/ici/__init__.py' in run_script
+    assert 'TAG != "v$PACKAGE_VERSION"' in run_script
+    assert "GITHUB_OUTPUT" in run_script
