@@ -429,6 +429,146 @@ def test_exception_engine_respects_assignment_and_import_shadowing_of_scoped_ali
     assert not any(target.target_name == "BaseException" for target in result.targets)
 
 
+def test_exception_engine_keeps_aliases_possible_across_conditional_handler_paths(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "conditional_handlers.py").write_text(
+        """from builtins import BaseException as BE
+import builtins as b
+
+try:
+    work()
+except ValueError:
+    BE = ValueError
+    b = object()
+except BE:
+    log()
+
+try:
+    work()
+except ValueError:
+    BaseException = ValueError
+except BaseException:
+    log()
+
+try:
+    work()
+except ValueError:
+    b = object()
+except b.BaseException:
+    log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (13, EngineStatus.FAIL),
+        (20, EngineStatus.FAIL),
+        (27, EngineStatus.FAIL),
+    ]
+
+
+def test_exception_engine_treats_control_flow_bindings_as_possible(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "conditional_bindings.py").write_text(
+        """from builtins import BaseException as BE
+import builtins as b
+
+if flag:
+    BE = ValueError
+    b = object()
+try:
+    work()
+except BE:
+    log()
+try:
+    work()
+except b.BaseException:
+    log()
+
+for item in items:
+    BE = ValueError
+    b = object()
+try:
+    work()
+except BE:
+    log()
+try:
+    work()
+except b.BaseException:
+    log()
+
+while flag:
+    BE = ValueError
+    b = object()
+try:
+    work()
+except BE:
+    log()
+try:
+    work()
+except b.BaseException:
+    log()
+
+try:
+    BE = ValueError
+except ValueError:
+    log()
+try:
+    work()
+except BE:
+    log()
+
+try:
+    work()
+except ValueError:
+    BE = ValueError
+try:
+    work()
+except BE:
+    log()
+
+CBE = ValueError
+cb = object()
+if first:
+    from builtins import BaseException as CBE
+    import builtins as cb
+if second:
+    CBE = ValueError
+    cb = object()
+try:
+    work()
+except CBE:
+    log()
+try:
+    work()
+except cb.BaseException:
+    log()
+""",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    targets = [target for target in result.targets if target.target_name == "BaseException"]
+    assert [(target.start_line, target.status) for target in targets] == [
+        (10, EngineStatus.FAIL),
+        (14, EngineStatus.FAIL),
+        (21, EngineStatus.FAIL),
+        (25, EngineStatus.FAIL),
+        (32, EngineStatus.FAIL),
+        (36, EngineStatus.FAIL),
+        (92, EngineStatus.FAIL),
+        (101, EngineStatus.FAIL),
+        (114, EngineStatus.FAIL),
+        (118, EngineStatus.FAIL),
+    ]
+
+
 def test_exception_engine_uses_last_alias_binding_before_handler(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
