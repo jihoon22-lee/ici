@@ -3,6 +3,7 @@
 import ast
 import re
 import time
+from collections.abc import Iterable
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
 from ici.core.project import detect_project_type, get_all_cpp_sources, get_all_python_sources
@@ -62,13 +63,13 @@ class _ScopeAliasCollector(ast.NodeVisitor):
         self.events.append((position, name, kind, self._conditional_depth > 0))
         self._sequence += 1
 
-    def _visit_conditional_nodes(self, nodes: list[ast.AST]) -> None:
+    def _visit_conditional_nodes(self, nodes: Iterable[ast.AST]) -> None:
         self._conditional_depth += 1
         for node in nodes:
             self.visit(node)
         self._conditional_depth -= 1
 
-    def _visit_conditional_suite(self, statements: list[ast.stmt]) -> None:
+    def _visit_conditional_suite(self, statements: Iterable[ast.AST]) -> None:
         self._visit_conditional_nodes(statements)
 
     def visit_If(self, node: ast.If) -> None:
