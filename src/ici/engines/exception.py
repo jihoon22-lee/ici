@@ -250,21 +250,18 @@ class _ScopeAliasCollector(ast.NodeVisitor):
         possible_after: bool,
     ) -> tuple[set[str], set[str], set[str]]:
         exception_aliases, builtins_aliases, _ = self._effective_aliases(bindings)
-        for position, name, kind, conditional in self.events:
-            is_after_cutoff = position[:2] >= cutoff
-            if is_after_cutoff and not possible_after:
-                continue
-            if conditional and not is_after_cutoff:
+        if possible_after:
+            for position, name, kind, _ in self.events:
+                if position[:2] < cutoff:
+                    continue
                 if kind == "exception":
                     exception_aliases.add(name)
                 elif kind == "builtins":
                     builtins_aliases.add(name)
-            elif is_after_cutoff and possible_after and kind == "exception":
-                exception_aliases.add(name)
-            elif is_after_cutoff and possible_after and kind == "builtins":
-                builtins_aliases.add(name)
         shadowed_names = {
-            name for name, kinds in bindings.items() if name not in exception_aliases
+            name
+            for name, kinds in bindings.items()
+            if name not in exception_aliases
             and name not in builtins_aliases
             and "shadow" in kinds
             and "unbound" not in kinds
