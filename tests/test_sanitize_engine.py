@@ -243,7 +243,7 @@ def test_cpp_sanitizer_diagnostic_with_zero_exit_is_measured_failure(tmp_path, m
     results = iter(
         [
             ProcessResult(0, "", "", 0.01),
-            ProcessResult(0, "", "runtime error: signed integer overflow", 0.01),
+            ProcessResult(0, "", "/tmp/test.cpp:8:5: runtime error: signed integer overflow", 0.01),
         ]
     )
     monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
@@ -341,7 +341,7 @@ def test_cpp_sanitizer_nonzero_diagnostic_is_measured_failure(tmp_path, monkeypa
     results = iter(
         [
             ProcessResult(0, "", "", 0.01),
-            ProcessResult(1, "", "AddressSanitizer: heap-use-after-free", 0.01),
+            ProcessResult(1, "", "ERROR: AddressSanitizer: heap-use-after-free", 0.01),
         ]
     )
     monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
@@ -393,7 +393,7 @@ def test_cpp_sanitizer_signal_with_complete_diagnostic_is_measured_failure(tmp_p
     results = iter(
         [
             ProcessResult(0, "", "", 0.01),
-            ProcessResult(-6, "", "AddressSanitizer: heap-use-after-free", 0.01),
+            ProcessResult(-6, "", "ERROR: AddressSanitizer: heap-use-after-free", 0.01),
         ]
     )
     monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
