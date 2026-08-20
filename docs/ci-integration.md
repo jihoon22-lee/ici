@@ -7,7 +7,8 @@
 `ici`는 로컬, GitHub Actions, 사내 러너에서 같은 정책·결과 계약을 적용합니다. 결과가
 항상 동일하다는 뜻은 아닙니다. OS, 컴파일러, Python, Ruff/Mypy/pytest 등의 가용성과
 버전은 `doctor` 및 각 엔진의 `ToolEvidence`에 기록되고, 도구 체인이나 소스 환경이
-다르면 실제 결과도 달라질 수 있습니다.
+다르면 실제 결과도 달라질 수 있습니다. v0.4.0은 실행별 시스템 정보와 현재 엔진이 실제로
+확인·호출한 도구의 증거만 기록하며, 전체 툴체인 capability를 자동으로 판정하지 않습니다.
 
 ## 1. GitHub Actions 워크플로우
 
@@ -78,7 +79,10 @@ CI와 release workflow의 외부 Action은 Node 24 기반 릴리스 라벨을 �
 `.github/workflows/release.yml`은 `v*.*.*` 태그 push 또는 `workflow_dispatch`에서
 테스트·ZipApp 빌드·스모크 테스트·SHA-256 생성 후 GitHub Release에
 `dist/ici.pyz`와 체크섬을 첨부합니다. 릴리스 job은 배포를 위해 `contents: write`를
-사용하며, release용 Action도 위의 SHA 고정 정책을 따릅니다.
+사용하며, release용 Action도 위의 SHA 고정 정책을 따릅니다. 수동 실행은 `version_tag`를
+필수로 입력해야 하고, workflow는 입력 태그 또는 push 태그가 패키지의 `__version__`과 정확히
+일치하는 `vX.Y.Z` 형식인지 검증합니다. 따라서 수동 실행에서 브랜치 이름이나 이전 버전으로
+대체되지 않습니다.
 
 ## 2. 리포팅과 위치 추적
 
@@ -123,7 +127,13 @@ publish 대상의 Pages 설정, 브랜치 정책, 토큰 범위는 조직 정책
   사전에 준비되어 있어야 합니다. 캐시가 없다면 build 단계에서 네트워크 또는 내부
   패키지 미러가 필요합니다.
 - RHEL 7.9/8.10 및 이후 OS 전환기에는 `ici doctor` 결과와 엔진의 도구 증거를 함께
-  보관하여 Python, gcc/g++, cmake/qmake, pytest 등의 실제 버전을 확인합니다.
+  보관합니다. `doctor`는 현재 구현에 포함된 git, gcc, g++, clang, clang-format, make, cmake,
+  ruff, mypy, pytest, uv를 확인하고, 각 엔진은 실제로 호출한 도구의 경로·argv·버전·종료
+  상태를 기록합니다.
+- qmake/Qt·Ninja·binutils 전체 capability inventory, 도구별 버전 정책, 프로젝트 정의 기반
+  CMake/qmake build adapter는 현재 기능이 아닙니다. 해당 범위는
+  [`2026-08-19-ci-validation-features.md`](superpowers/plans/2026-08-19-ci-validation-features.md)의
+  미래 계획으로 남겨 두었으며 v0.4.0의 CI 결과로 가정해서는 안 됩니다.
 
 ### 4.2 Python 런타임
 
@@ -131,11 +141,14 @@ publish 대상의 Pages 설정, 브랜치 정책, 토큰 범위는 조직 정책
 Python 3.10 이상 후보를 탐색합니다. 폐쇄망 배포 전에는 대상 OS에서 실행 가능한 Python
 인터프리터와 pure-Python wheel을 준비하고 `scripts/smoke.sh`로 확인합니다.
 
-### 4.3 도구 체인 증거
+### 4.3 도구 실행 증거
 
-`gcc/g++`, `cmake`, `qmake`, `ruff`, `mypy`, `pytest`가 설치되지 않았거나 버전이 다르면
-엔진은 이를 PASS로 숨기지 않고 `SKIP`, `WARN`, `ERROR`와 `ToolEvidence`로 구분합니다.
-따라서 CI 결과를 비교할 때 상태와 함께 도구 경로·버전·argv를 확인해야 합니다.
+현재 기능은 모든 도구를 일괄 검사하지 않는다. 기존 엔진이 `gcc/g++`, `ruff`, `mypy`,
+`pytest`, `coverage`, `gcov` 등을 실제로 호출한 경우에만 실행 증거를 남기며, 해당 엔진의
+필수/선택 정책에 따라 누락·실패를 `SKIP`, `WARN`, `FAIL`, `ERROR`로 구분한다. qmake나
+binutils capability를 현재 `ici`가 자동 판정한다고 해석해서는 안 된다. 각 실행의 상태와
+함께 실제 도구 경로·버전·argv를 확인하고, 전체 toolchain 정책이 필요하면 미래 계획을
+별도 PR로 진행한다.
 
 ---
 

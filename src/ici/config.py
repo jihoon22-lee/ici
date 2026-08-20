@@ -7,12 +7,13 @@ from typing import Any
 import tomli
 import tomli_w
 
+from ici import __version__
 from ici.config_schema import ConfigError, validate_config, validate_config_paths
 
 # Default Enterprise Quality Policy — Embedded inside ici
 DEFAULT_CONFIG: dict[str, Any] = {
     "ici": {
-        "version": "0.3.3",
+        "version": __version__,
         "policy_name": "Standard Enterprise CI/CD Quality Gate",
     },
     "project": {

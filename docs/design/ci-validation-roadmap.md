@@ -7,6 +7,12 @@
 1. 현재 제공 중인 검증·빌드·리포팅 기능의 결과를 신뢰할 수 있도록 보강한다.
 2. C++, Python, C++/Python 혼합 프로젝트에서 실질적인 CI 실패를 조기에 발견하는 신규 검증을 추가한다.
 
+> **v0.4.0 상태 (2026-08-20)**: 개발 축 A(기존 기능 보강)는 완료했다. 개발 축 B(신규 CI
+> 검증 기능)는 전부 보류했으며 v0.4.0에 구현하지 않았다. 축 B의 Toolchain, build adapter,
+> compile DB, Python compatibility, ELF/ABI, 혼합 통합 엔진은 미래 릴리스에서 별도 승인과 PR로
+> 진행한다. 현재 배포물은 기존 9개 검증 엔진, build, 설정, 실행기, 리포터 및 CI 권한 보강만
+> 제공한다.
+
 ## 2. 명시적 제외 범위
 
 다음 항목은 현재 로드맵에 포함하지 않는다.
@@ -17,17 +23,18 @@
 - 변경분 전용 검사, 기준선 비교, 장기 추세 대시보드
 - 플러그인 SDK 또는 외부 엔진 마켓플레이스
 
-RHEL 7.9, 8.10, 이후 버전은 각자 별도의 CI 실행 환경으로 취급한다. `ici`는 매 실행에서
-현재 OS와 툴체인을 정확히 진단하고 그 실행 결과에 포함하지만, 서로 다른 실행 결과를 합치지는
-않는다.
+RHEL 7.9, 8.10, 이후 버전은 각자 별도의 CI 실행 환경으로 취급한다. v0.4.0은 실행별 시스템
+정보와 현재 엔진이 실제로 확인·호출한 도구의 증거만 기록하며, 서로 다른 실행 결과를 합치지
+않는다. 전체 툴체인 capability inventory와 버전 정책은 개발 축 B의 미래 범위다.
 
 ## 3. 핵심 결정
 
 ### 3.1 Python 오케스트레이터 유지
 
-검증 시간의 대부분은 GCC, CMake, qmake, pytest, mypy와 같은 외부 프로그램에서 발생한다.
-따라서 Python 오케스트레이터를 유지하고, 중복 파일 탐색과 불필요한 외부 실행을 줄이는 데
-집중한다.
+검증 시간의 대부분은 외부 compiler, test runner, linter에서 발생한다. 따라서 Python
+오케스트레이터를 유지하고, 중복 파일 탐색과 불필요한 외부 실행을 줄이는 데 집중한다.
+프로젝트 정의를 읽어 CMake/qmake를 실제로 configure/build/test하는 어댑터는 개발 축 B에서
+추가할 미래 기능이다.
 
 ### 3.2 결과와 발견 사항 분리
 
@@ -43,25 +50,37 @@ RHEL 7.9, 8.10, 이후 버전은 각자 별도의 CI 실행 환경으로 취급�
 ### 3.3 실행 Python과 검증 대상 Python 분리
 
 - `ICI_PYTHON`: `ici.pyz` 자체를 실행하는 Python 3.10+
-- Target Python: 프로젝트가 지원한다고 선언한 Python 인터프리터
+- v0.4.0의 기존 `test`/`sanitize` 엔진: 설정된 Python → 프로젝트 `.venv` → 현재
+  `sys.executable` 순으로 하나의 인터프리터를 선택하고, `pytest`, `coverage`, `unittest`를
+  각각 해당 인터프리터의 `-m` 모듈 호출로 실행한다.
 
-Python 호환성 검증은 Target Python 경로를 명시적으로 사용한다. `pytest`, `coverage`,
-`compileall`도 해당 인터프리터의 `-m` 실행을 우선한다.
+다중 Target Python의 `compileall`, import smoke, package metadata와 `Requires-Python`을
+검증하는 전용 Python 호환성 엔진은 개발 축 B의 미래 기능이다. v0.4.0은 여러 Target Python을
+순회하는 호환성 검증을 제공하지 않는다.
 
-### 3.4 OS 이름 대신 실제 툴체인 증거 사용
+### 3.4 OS 이름 대신 실제 실행 증거 사용
 
-OS별 CI 작업은 독립적으로 실행한다. 각 실행 결과에는 다음 정보를 포함한다.
+OS별 CI 작업은 독립적으로 실행한다. v0.4.0의 현재 범위는 다음과 같다.
 
-- OS ID/버전, 커널, 아키텍처, glibc
-- gcc/g++/gcov 경로, 버전, target triple
-- CMake/CTest, qmake/Qt, Make/Ninja 경로와 버전
-- 실행 Python과 Target Python 경로 및 버전
-- `readelf`, `objdump`, `nm` 같은 진단 도구 가용 여부
+- `doctor`는 OS ID/버전, 커널, 아키텍처, glibc와 함께 현재 구현에 포함된 제한된 도구 목록
+  (git, gcc, g++, clang, clang-format, make, cmake, ruff, mypy, pytest, uv)을 확인한다.
+- 기존 엔진은 실제로 호출한 도구에 한해 경로, argv, 버전, 종료 상태와 오류를 `ToolEvidence`에
+  남긴다. 도구를 호출하지 않은 경우에는 해당 도구의 capability를 추정하지 않는다.
+- 실행 Python과 엔진이 선택한 프로젝트 Python은 각 결과에서 구분할 수 있다.
+- RHEL 7.9, 8.10 또는 이후 OS의 결과는 각각 독립적으로 보며 공통 PASS나 자동 비교를 하지
+  않는다.
 
-툴 경로는 설정에서 명시할 수 있어야 하며, 명시한 경로가 없거나 요구 버전을 만족하지 않으면
-필수 검증은 `ERROR`가 된다.
+다음 항목은 현재 기능이 아닌 개발 축 B의 미래 범위다.
 
-## 4. 개발 축 A: 기존 기능 보강
+- qmake/Qt, Ninja, CTest 및 `readelf`/`objdump`/`nm`을 포함한 전체 capability inventory
+- compiler target triple과 도구별 최소/최대 버전 정책
+- 프로젝트 정의 기반 CMake/qmake build adapter와 전용 toolchain 엔진
+
+이 미래 범위의 도구 누락·버전 정책·shadow build 검증은
+[`2026-08-19-ci-validation-features.md`](../superpowers/plans/2026-08-19-ci-validation-features.md)에
+정의되어 있으며 v0.4.0에서는 구현하지 않는다.
+
+## 4. 개발 축 A: 기존 기능 보강 (v0.4.0 완료)
 
 우선순위는 다음과 같다.
 
@@ -80,12 +99,20 @@ OS별 CI 작업은 독립적으로 실행한다. 각 실행 결과에는 다음 
 [`2026-08-19-existing-validation-hardening.md`](../superpowers/plans/2026-08-19-existing-validation-hardening.md)에
 정의한다.
 
-## 5. 개발 축 B: 신규 CI 검증 기능
+v0.4.0에서는 위 10개 항목을 모두 구현·검증했다. 결과/증거 계약, 설정·프로젝트 경계,
+프로세스 격리, 테스트·커버리지·lint/type·sanitize/dead/exception, build 산출물, 리포터·CLI,
+그리고 CI 읽기/쓰기 권한 분리를 포함한다.
+
+## 5. 개발 축 B: 신규 CI 검증 기능 (미래 작업, v0.4.0 보류)
+
+아래 항목은 설계와 작업 순서만 정의한 미래 범위다. 현재 `ici`가 제공하는 기능으로
+간주해서는 안 되며, v0.4.0의 `verify`에 신규 엔진이나 신규 CLI가 등록되어 있지 않다.
 
 ### 5.1 Toolchain 검증
 
-현재 실행 환경의 컴파일러·빌드 도구·Python을 기록하고 프로젝트가 요구하는 최소/최대 버전과
-필수 도구를 검사한다. 서로 다른 OS의 결과는 각 실행의 JSON/HTML에서 독립적으로 확인한다.
+향후 Toolchain 엔진이 실행 환경의 컴파일러·빌드 도구·Python을 체계적으로 기록하고 프로젝트가
+요구하는 최소/최대 버전과 필수 도구를 검사한다. 서로 다른 OS의 결과는 각 실행의 JSON/HTML에서
+독립적으로 확인한다.
 
 ### 5.2 CMake/CTest 및 qmake/Make 빌드 어댑터
 
@@ -104,7 +131,7 @@ build 디렉터리를 사용한다.
 
 ### 5.4 Python Runtime/Package 호환성 검증
 
-설정된 각 Target Python에서 다음을 독립적으로 검사한다.
+향후 기능은 설정된 각 Target Python에서 다음을 독립적으로 검사한다.
 
 - 전체 소스 `compileall`
 - 설정된 모듈 import smoke
@@ -124,30 +151,40 @@ build 디렉터리를 사용한다.
 
 ### 5.6 C++/Python 혼합 통합 스모크
 
-사용자가 선언한 argv 기반 시나리오로 Python→C++ 실행, Python 네이티브 모듈 import, C++
-실행 파일의 Python 호출을 검증한다. 기대 종료 코드와 stdout/stderr 정규식을 검사하되 shell은
-사용하지 않는다.
+향후 기능은 사용자가 선언한 argv 기반 시나리오로 Python→C++ 실행, Python 네이티브 모듈 import,
+C++ 실행 파일의 Python 호출을 검증한다. 기대 종료 코드와 stdout/stderr 정규식을 검사하되
+shell은 사용하지 않는다.
 
 상세 구현 순서는
 [`2026-08-19-ci-validation-features.md`](../superpowers/plans/2026-08-19-ci-validation-features.md)에
 정의한다.
 
-## 6. 구현 순서와 릴리스 경계
+## 6. 미래 구현 순서와 릴리스 경계
 
-신규 기능은 기존 기능 보강 계획이 완료된 뒤 시작한다. 최소 릴리스 경계는 다음과 같다.
+신규 기능은 기존 기능 보강 계획이 완료된 뒤 별도 승인과 PR로 시작한다. v0.4.0은 신뢰성
+릴리스 경계만 달성했으며, 다음 단계는 아직 구현되지 않았다.
 
-1. **신뢰성 릴리스**: 개발 축 A 전체 완료
-2. **빌드 인식 릴리스**: Toolchain + 빌드 어댑터 + Compile Commands
-3. **언어 호환성 릴리스**: Python Runtime/Package + ELF/ABI
-4. **혼합 프로젝트 릴리스**: 통합 스모크
+1. **완료 — 신뢰성 릴리스 (v0.4.0)**: 개발 축 A 전체 완료
+2. **미래 — 빌드 인식 릴리스**: Toolchain + 빌드 어댑터 + Compile Commands
+3. **미래 — 언어 호환성 릴리스**: Python Runtime/Package + ELF/ABI
+4. **미래 — 혼합 프로젝트 릴리스**: 통합 스모크
 
 각 릴리스는 Python 3.10 품질 게이트, ruff, 재현 가능한 pyz 빌드, smoke 테스트를 통과해야 한다.
 
 ## 7. 완료 정의
 
+### 7.1 v0.4.0에서 달성한 기준
+
 - 실행하지 않은 필수 검증이 PASS로 표시되지 않는다.
 - 모든 FAIL/ERROR는 파일 위치 또는 실행 단계와 명령 증거를 제공한다.
+- JSON/HTML/Markdown/CLI가 같은 상태·증거 계약을 표현한다.
+- 검증 job은 읽기 전용이고 신뢰된 main publish만 `contents: write`를 사용한다.
+- Python 3.10, Ruff, mypy, 재현 가능한 ZipApp, smoke 게이트를 통과한다.
+
+### 7.2 미래 축 B의 완료 기준 (아직 미달성)
+
 - CMake와 qmake 프로젝트가 실제 빌드 정의로 검증된다.
 - Target Python과 `ici.pyz` 실행 Python이 보고서에서 구분된다.
 - 각 OS의 독립 실행 결과만으로 사용 툴체인과 실패 원인을 재현할 수 있다.
 - C++/Python 혼합 프로젝트의 경계 동작을 CI에서 자동 검증할 수 있다.
+- 신규 엔진은 별도 계획·승인·PR과 동일한 품질 게이트를 통과한다.

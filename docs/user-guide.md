@@ -23,25 +23,27 @@ export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ### 1.2 실행 환경 진단 (`ici doctor`)
-현재 시스템의 OS, glibc 버전, 툴체인(gcc/g++, cmake, make, ruff, mypy, pytest) 및 Python 런타임을 점검합니다.
+현재 시스템의 OS, glibc 버전, Python 런타임과 `doctor`에 포함된 제한된 도구 목록을 점검합니다.
+전체 검증 엔진은 자신이 실제로 호출한 도구에 대한 `ToolEvidence`를 결과에 남깁니다.
 
 ```bash
-ici doctor
+ici doctor --brief
 ```
 
 ```text
-╭───────────── ici 0.3.3 Environment Diagnostics ─────────────╮
-│ Category   Item            Status   Details                  │
-├──────────────────────────────────────────────────────────────┤
-│ OS         Platform        OK       Linux (ubuntu-26.04)     │
-│ OS         WSL             INFO     WSL Environment Detected │
-│ OS         glibc           OK       2.43                     │
-│ Python     Candidate       OK       Python 3.10+ Available   │
-│ Toolchain  g++             OK       15.2.0                   │
-│ Toolchain  ruff            OK       0.16.3                   │
-│ Toolchain  pytest          OK       9.0.2                    │
-╰──────────────────────────────────────────────────────────────╯
+ici 0.4.0 brief
+os      <os_id>-<os_version>  glibc=<glibc>  arch=<arch>  wsl=<yes|no>
+shell   <shell>  TERM=<term>  LANG=<lang>
+python  running=<major.minor.micro>  path=<executable>
+tools   gcc=<version-or->  g++=<version-or->  clang=<version-or->  make=<version-or->  cmake=<version-or->
+        ruff=<version-or->  mypy=<version-or->  pytest=<version-or->  git=<version-or->
 ```
+
+`ici doctor`를 `--brief` 없이 실행하면 동일한 데이터를 OS/Python/도구/경로별 Rich 표로
+확장해서 보여줍니다. 위 출력의 버전과 경로는 실행 환경에 따라 달라지며 고정된 결과로
+해석해서는 안 됩니다. qmake/Qt, Ninja, binutils 전체 capability 검증과 프로젝트 정의 기반
+빌드 어댑터는 [신규 CI 검증 기능 계획](superpowers/plans/2026-08-19-ci-validation-features.md)의
+미래 범위입니다.
 
 ---
 

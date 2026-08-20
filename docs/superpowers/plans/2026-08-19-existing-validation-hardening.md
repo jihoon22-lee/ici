@@ -1,6 +1,6 @@
 # Existing Validation Hardening Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use Markdown checkboxes for tracking.
 
 **Goal:** 현재 9개 검증 엔진, build, 설정, 리포터가 실행 여부와 실패 원인을 정확히 표현하고 허위 PASS를 만들지 않도록 보강한다.
 
@@ -9,6 +9,22 @@
 **Tech Stack:** Python 3.10, Typer, dataclasses, tomli/tomli-w, pytest, Ruff, mypy, stdlib subprocess/pathlib/json/html
 
 **Spec:** `docs/design/ci-validation-roadmap.md`
+
+## v0.4.0 완료 상태 (2026-08-20)
+
+Task 1부터 Task 10까지의 구현, 회귀 테스트, 문서 정합성, CI 권한 분리 및 최종 품질 게이트를
+v0.4.0 범위에서 모두 완료했다. 기존 9개 검증 엔진과 build/config/process/report/CLI 경로의
+허위 PASS 방지 및 실행 증거 보강이 이번 릴리스의 완료 범위다.
+
+- PR #10~#20에서 Task 1~10을 순차 병합했다.
+- 검증 job은 `contents: read`만 사용하고 checkout은 `persist-credentials: false`다.
+- `main` push 전용 `publish-main` job만 `contents: write`를 사용하며 PR 댓글/이슈/Checks
+  쓰기 권한은 부여하지 않는다.
+- v0.4.0 후보의 전체 pytest/mypy/Ruff/pyz/smoke 게이트와 workflow YAML/shell 정적 검증이
+  완료됐다. 태그 트리거 workflow와 GitHub Release publication은 v0.4.0의 최종 post-merge
+  release gate이며, 최종 공개 릴리스가 해당 외부 실행 증거를 제공한다.
+- 신규 Toolchain/build adapter/compile DB/Python compatibility/ELF-ABI/integration 엔진은
+  이번 릴리스에 구현하지 않으며 별도 미래 계획으로 남긴다.
 
 ## Global Constraints
 
@@ -50,7 +66,7 @@
 - Produces: `aggregate_suite_status(results: list[EngineResult]) -> EngineStatus`
 - Consumes: 기존 `EngineStatus`, `EngineResult`, `VerificationSuiteResult`
 
-- [ ] **Step 1: 허위 PASS와 `pass_fail` 경고 처리를 고정하는 실패 테스트 작성**
+- [x] **Step 1: 허위 PASS와 `pass_fail` 경고 처리를 고정하는 실패 테스트 작성**
 
 ```python
 from ici.core.models import (
@@ -87,13 +103,13 @@ def test_pass_fail_promotes_warning_to_failure():
     assert engine.evaluate_status(False, True, "pass_fail") == EngineStatus.FAIL
 ```
 
-- [ ] **Step 2: 테스트가 현재 계약에서 실패하는지 확인**
+- [x] **Step 2: 테스트가 현재 계약에서 실패하는지 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_result_contract.py -v`
 
 Expected: `EvidenceState` 또는 `aggregate_suite_status` import 실패와 `pass_fail` assertion 실패.
 
-- [ ] **Step 3: 모델과 집계 함수를 최소 구현**
+- [x] **Step 3: 모델과 집계 함수를 최소 구현**
 
 ```python
 class EngineStatus(str, Enum):
@@ -143,19 +159,19 @@ def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
 has_warn`일 때 FAIL을 반환하게 한다. `VerifyOrchestrator`의 수동 boolean 집계는
 `aggregate_suite_status()` 호출로 교체한다.
 
-- [ ] **Step 4: 결과 계약 테스트와 기존 모델 소비 테스트 실행**
+- [x] **Step 4: 결과 계약 테스트와 기존 모델 소비 테스트 실행**
 
 Run: `uv run --python 3.10 pytest tests/test_result_contract.py tests/test_reporters.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: 엔진 레퍼런스와 변경 이력에 새 상태 계약 기록**
+- [x] **Step 5: 엔진 레퍼런스와 변경 이력에 새 상태 계약 기록**
 
 `docs/engine-reference.md`의 평가 모드 설명에 `ERROR`, `SKIP`, 증거 상태와 필수 엔진 규칙을
 추가한다. `CHANGELOG.md` 최상단에 `## [Unreleased]`와 `### Changed`를 만들고 결과 계약을
 기록한다.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add src/ici/core/models.py src/ici/engines/base.py src/ici/engines/verify.py \
@@ -180,7 +196,7 @@ git commit -m "fix(core): make verification outcomes evidence-aware"
 - Produces: `load_config(base_dir: Path | None = None) -> dict[str, Any]` with deterministic merge order
 - Consumes: `DEFAULT_CONFIG`, `_deep_merge`, `get_global_config_path()`
 
-- [ ] **Step 1: 전역·프로젝트·명시 설정 병합과 잘못된 설정 실패 테스트 작성**
+- [x] **Step 1: 전역·프로젝트·명시 설정 병합과 잘못된 설정 실패 테스트 작성**
 
 ```python
 def test_load_config_merges_global_project_and_explicit(tmp_path, monkeypatch):
@@ -207,13 +223,13 @@ def test_load_config_rejects_invalid_threshold_order(tmp_path):
         load_config(tmp_path)
 ```
 
-- [ ] **Step 2: 새 설정 테스트 실패 확인**
+- [x] **Step 2: 새 설정 테스트 실패 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_config.py -v`
 
 Expected: 첫 파일에서 로딩이 중단되어 병합 assertion 실패, `ConfigError` import 실패.
 
-- [ ] **Step 3: 결정적 병합 순서와 스키마 검증 구현**
+- [x] **Step 3: 결정적 병합 순서와 스키마 검증 구현**
 
 ```python
 def _config_paths(base: Path) -> list[Path]:
@@ -241,7 +257,7 @@ def validate_config(config: dict[str, Any]) -> None:
 `validate_config()`를 호출한다. TOML 구문 오류와 명시 설정 파일 부재는 조용히 무시하지 않고
 `ConfigError`로 변환한다.
 
-- [ ] **Step 4: 모든 CLI 엔진에 effective config 전달**
+- [x] **Step 4: 모든 CLI 엔진에 effective config 전달**
 
 ```python
 def _create_engine(engine_cls):
@@ -252,7 +268,7 @@ def _create_engine(engine_cls):
 `cmd_line`부터 `cmd_exception`, `cmd_build`까지 직접 생성자를 호출하는 부분을
 `_create_engine()`으로 교체한다. callback에서 설정을 읽고 버리는 동작은 제거한다.
 
-- [ ] **Step 5: CLI 설정 적용 회귀 테스트 작성 및 실행**
+- [x] **Step 5: CLI 설정 적용 회귀 테스트 작성 및 실행**
 
 ```python
 def test_line_command_uses_project_config(tmp_path, monkeypatch):
@@ -272,7 +288,7 @@ Run: `uv run --python 3.10 pytest tests/test_config.py tests/test_cli.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 6: 문서 갱신 후 커밋**
+- [x] **Step 6: 문서 갱신 후 커밋**
 
 ```bash
 git add src/ici/config.py src/ici/config_schema.py src/ici/__main__.py \
@@ -293,7 +309,7 @@ git commit -m "fix(config): merge and validate effective policy"
 - Produces: `read_project_metadata(base: Path) -> tuple[str, str]`
 - Consumes: `get_source_dirs()`, `get_project_name()`, `get_project_version()`
 
-- [ ] **Step 1: 경로 이탈과 잘못된 TOML 메타데이터 회귀 테스트 작성**
+- [x] **Step 1: 경로 이탈과 잘못된 TOML 메타데이터 회귀 테스트 작성**
 
 ```python
 def test_source_dirs_cannot_escape_project(tmp_path):
@@ -310,13 +326,13 @@ def test_project_metadata_reads_project_table(tmp_path):
     assert get_project_version(tmp_path) == "v2.4.1"
 ```
 
-- [ ] **Step 2: 테스트 실패 확인**
+- [x] **Step 2: 테스트 실패 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_project_layout.py tests/test_project_metadata.py -v`
 
 Expected: `../outside`가 허용되거나 메타데이터가 잘못 파싱되어 FAIL.
 
-- [ ] **Step 3: canonical path containment와 tomli 기반 메타데이터 구현**
+- [x] **Step 3: canonical path containment와 tomli 기반 메타데이터 구현**
 
 ```python
 def resolve_project_path(base: Path, value: str) -> Path:
@@ -338,13 +354,13 @@ def _read_toml(path: Path) -> dict[str, Any]:
 `ici.toml`의 top-level `name/version`과 `pyproject.toml`의 `[project]`를 명시적으로 구분하고,
 이름은 `[A-Za-z0-9._-]+`, 버전은 `v`를 제거한 뒤 같은 문자 집합만 허용한다.
 
-- [ ] **Step 4: 프로젝트 관련 전체 테스트 실행**
+- [x] **Step 4: 프로젝트 관련 전체 테스트 실행**
 
 Run: `uv run --python 3.10 pytest tests/test_project_layout.py tests/test_project_metadata.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: 변경 이력 갱신 후 커밋**
+- [x] **Step 5: 변경 이력 갱신 후 커밋**
 
 ```bash
 git add src/ici/core/project.py tests/test_project_layout.py tests/test_project_metadata.py CHANGELOG.md
@@ -365,7 +381,7 @@ git commit -m "fix(project): contain paths and parse metadata safely"
 - Produces: `run_process(..., timeout=300.0, max_output_chars=1_000_000) -> ProcessResult`
 - Consumes: Task 1의 `EvidenceState`, `ToolEvidence`, `aggregate_suite_status()`
 
-- [ ] **Step 1: timeout·출력 제한·엔진 예외 테스트 작성**
+- [x] **Step 1: timeout·출력 제한·엔진 예외 테스트 작성**
 
 ```python
 def test_run_process_marks_timeout(tmp_path):
@@ -391,13 +407,13 @@ def test_run_process_truncates_output(tmp_path):
 오케스트레이터 테스트에는 첫 번째 fake engine이 `RuntimeError("boom")`을 발생시키고 두 번째
 engine이 PASS를 반환하도록 구성하여 결과가 `ERROR, PASS` 두 개 모두 남는지 검증한다.
 
-- [ ] **Step 2: 테스트 실패 확인**
+- [x] **Step 2: 테스트 실패 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_runner.py tests/test_verify_orchestrator.py -v`
 
 Expected: tuple 반환에는 `timed_out`이 없고 오케스트레이터가 예외에서 중단되어 FAIL.
 
-- [ ] **Step 3: `ProcessResult`와 안전한 프로세스 종료 구현**
+- [x] **Step 3: `ProcessResult`와 안전한 프로세스 종료 구현**
 
 ```python
 @dataclass
@@ -420,7 +436,7 @@ POSIX에서는 `start_new_session=True`로 실행하고 timeout 시 `os.killpg(p
 짧은 유예 뒤 SIGKILL한다. Windows에서는 `proc.kill()`로 폴백한다. 모든 기존 tuple unpacking을
 `result.returncode` 형식으로 한 번에 마이그레이션한다.
 
-- [ ] **Step 4: 엔진 실행을 try/except로 격리**
+- [x] **Step 4: 엔진 실행을 try/except로 격리**
 
 ```python
 try:
@@ -436,7 +452,7 @@ except Exception as exc:
 results.append(result)
 ```
 
-- [ ] **Step 5: 전체 엔진 테스트 실행 후 커밋**
+- [x] **Step 5: 전체 엔진 테스트 실행 후 커밋**
 
 Run: `uv run --python 3.10 pytest -q`
 
@@ -461,7 +477,7 @@ git commit -m "fix(runner): bound subprocesses and isolate engine failures"
 - Produces: test result `EvidenceState.MEASURED|ESTIMATED|NOT_RUN`
 - Consumes: Task 4의 `ProcessResult`
 
-- [ ] **Step 1: 테스트 0개·pytest 실행 실패·커버리지 미실측 테스트 작성**
+- [x] **Step 1: 테스트 0개·pytest 실행 실패·커버리지 미실측 테스트 작성**
 
 ```python
 def test_zero_tests_is_failure(tmp_path):
@@ -480,13 +496,13 @@ def test_required_coverage_cannot_pass_with_estimate(tmp_python_project, monkeyp
     assert result.evidence == EvidenceState.NOT_RUN
 ```
 
-- [ ] **Step 2: 현재 추정치 폴백으로 테스트가 실패함을 확인**
+- [x] **Step 2: 현재 추정치 폴백으로 테스트가 실패함을 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_test_engine.py -v`
 
 Expected: 빈 프로젝트가 PASS이거나 coverage estimate가 임계값을 통과하여 FAIL.
 
-- [ ] **Step 3: Python 도구를 같은 인터프리터의 `-m`으로 통일**
+- [x] **Step 3: Python 도구를 같은 인터프리터의 `-m`으로 통일**
 
 ```python
 def _resolve_python(self) -> list[str]:
@@ -500,19 +516,19 @@ def _resolve_python(self) -> list[str]:
 pytest는 `[*python_cmd, "-m", "pytest"]`, coverage는 `[*python_cmd, "-m", "coverage"]`,
 unittest도 같은 python_cmd로 실행한다. PATH의 pytest/coverage 스크립트를 직접 선택하지 않는다.
 
-- [ ] **Step 4: 종료 코드와 수집 건수를 판정에 포함**
+- [x] **Step 4: 종료 코드와 수집 건수를 판정에 포함**
 
 pytest 종료 코드 5 또는 `total_tests == 0`은 FAIL, 실행 파일 부재와 timeout은 ERROR로 처리한다.
 `coverage_required=true`인데 coverage JSON 또는 gcov 결과가 없으면 ERROR이며, false이면
 ESTIMATED/WARN으로 표시하되 TEM 임계값 PASS 근거로 사용하지 않는다.
 
-- [ ] **Step 5: TestEngine 전체 회귀 테스트 실행**
+- [x] **Step 5: TestEngine 전체 회귀 테스트 실행**
 
 Run: `uv run --python 3.10 pytest tests/test_test_engine.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 6: 문서와 변경 이력 갱신 후 커밋**
+- [x] **Step 6: 문서와 변경 이력 갱신 후 커밋**
 
 ```bash
 git add src/ici/engines/test.py tests/test_test_engine.py docs/engine-reference.md CHANGELOG.md
@@ -533,7 +549,7 @@ git commit -m "fix(test): require executed tests and measured coverage"
 - Produces: 도구별 `ToolEvidence`
 - Consumes: `ProcessResult`, `EvidenceState`
 
-- [ ] **Step 1: 도구 자체 실패와 미설치 상태 테스트 작성**
+- [x] **Step 1: 도구 자체 실패와 미설치 상태 테스트 작성**
 
 ```python
 def test_ruff_non_json_failure_is_error(tmp_python_project, monkeypatch):
@@ -557,25 +573,25 @@ def test_required_mypy_missing_is_not_pass(tmp_python_project, monkeypatch):
     assert result.status == EngineStatus.ERROR
 ```
 
-- [ ] **Step 2: 새 테스트 실패 확인**
+- [x] **Step 2: 새 테스트 실패 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_lint_engine.py tests/test_type_engine.py -v`
 
 Expected: 비정상 도구 출력이 0 violations PASS로 처리되어 FAIL.
 
-- [ ] **Step 3: 도구 종료 코드 분기와 증거 기록 구현**
+- [x] **Step 3: 도구 종료 코드 분기와 증거 기록 구현**
 
 ruff JSON 파싱 실패와 returncode 2 이상은 ERROR, returncode 1은 발견 사항 FAIL로 구분한다.
 mypy도 정상 분석 오류와 도구 크래시/잘못된 옵션을 stderr와 종료 코드로 구분한다. C++ type
 검증을 수행하지 않았으면 summary에 C++ 지원을 주장하지 않고 해당 세부 검증을 SKIP으로 남긴다.
 
-- [ ] **Step 4: lint/type 및 CLI 테스트 실행**
+- [x] **Step 4: lint/type 및 CLI 테스트 실행**
 
 Run: `uv run --python 3.10 pytest tests/test_lint_engine.py tests/test_type_engine.py tests/test_cli.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: 문서와 변경 이력 갱신 후 커밋**
+- [x] **Step 5: 문서와 변경 이력 갱신 후 커밋**
 
 ```bash
 git add src/ici/engines/lint.py src/ici/engines/type_check.py \
@@ -601,7 +617,7 @@ git commit -m "fix(engine): report lint and type tool failures"
 - Produces: Python `raise caught_exception` 탐지 결과
 - Consumes: Task 5의 Target Python 선택 방식
 
-- [ ] **Step 1: 현재 stub을 드러내는 테스트 작성**
+- [x] **Step 1: 현재 stub을 드러내는 테스트 작성**
 
 ```python
 def test_dead_engine_reports_unreferenced_private_function(tmp_path):
@@ -625,19 +641,19 @@ def test_exception_engine_reports_lost_traceback(tmp_path):
 sanitize 테스트는 `ResourceWarning`을 발생시키는 작은 pytest fixture를 만들고
 `python -W error::ResourceWarning -m pytest` 경로가 실행되는지 검증한다.
 
-- [ ] **Step 2: 세 엔진의 테스트가 실패하는지 확인**
+- [x] **Step 2: 세 엔진의 테스트가 실패하는지 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_sanitize_engine.py tests/test_dead_engine.py tests/test_exception_engine.py -v`
 
 Expected: stub `pass`와 항상 false인 Python sanitize 때문에 FAIL.
 
-- [ ] **Step 3: Python dead/exception 분석 최소 구현**
+- [x] **Step 3: Python dead/exception 분석 최소 구현**
 
 dead는 private module-level function 정의와 `ast.Call`/`ast.Name` 참조를 별도 집합으로 수집하고,
 데코레이터로 등록된 함수, `__all__`, protocol callback 이름은 제외한다. exception은 각
 `ExceptHandler.name`과 그 body 안의 `ast.Raise`를 비교하여 `raise exc`를 WARN으로 기록한다.
 
-- [ ] **Step 4: Python resource warning 검증 구현**
+- [x] **Step 4: Python resource warning 검증 구현**
 
 ```python
 argv = [
@@ -655,13 +671,13 @@ argv = [
 테스트가 없거나 pytest가 없으면 required 정책에 따라 ERROR 또는 SKIP을 반환한다. C++ sanitizer
 컴파일 실패를 더 이상 무시하지 않고 컴파일 단계 ERROR target으로 남긴다.
 
-- [ ] **Step 5: 세 엔진 테스트와 전체 회귀 테스트 실행**
+- [x] **Step 5: 세 엔진 테스트와 전체 회귀 테스트 실행**
 
 Run: `uv run --python 3.10 pytest tests/test_sanitize_engine.py tests/test_dead_engine.py tests/test_exception_engine.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 6: 문서와 변경 이력 갱신 후 커밋**
+- [x] **Step 6: 문서와 변경 이력 갱신 후 커밋**
 
 ```bash
 git add src/ici/engines/sanitize.py src/ici/engines/dead.py src/ici/engines/exception.py \
@@ -684,7 +700,7 @@ git commit -m "fix(engine): replace incomplete safety checks with evidence"
 - Consumes: Task 3의 안전한 metadata와 project path 함수
 - Produces: build 단계별 `ToolEvidence`와 실제 산출물 target
 
-- [ ] **Step 1: 무산출물 PASS, 경로 이탈, 잘못된 entrypoint 테스트 작성**
+- [x] **Step 1: 무산출물 PASS, 경로 이탈, 잘못된 entrypoint 테스트 작성**
 
 ```python
 def test_build_fails_when_project_produces_no_artifact(tmp_path):
@@ -701,14 +717,14 @@ def test_build_rejects_unsafe_project_name(tmp_path):
     assert result.evidence == EvidenceState.NOT_RUN
 ```
 
-- [ ] **Step 2: 테스트 실패 확인**
+- [x] **Step 2: 테스트 실패 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_build_engine.py -v`
 
 Expected: 빈 build가 env script만 생성하고 PASS하여 FAIL. metadata/설정 오류는
 `pytest.raises`가 아니라 `EngineResult.ERROR`/`EvidenceState.NOT_RUN`으로 정규화된다.
 
-- [ ] **Step 3: Python entrypoint와 산출물 검증 구현**
+- [x] **Step 3: Python entrypoint와 산출물 검증 구현**
 
 top-level `[build.python] entrypoint="pkg.cli:main"` 또는
 `pyproject.toml [project.scripts]`만 launcher entrypoint로 사용한다. 첫 번째 `.py` 파일을
@@ -716,13 +732,13 @@ top-level `[build.python] entrypoint="pkg.cli:main"` 또는
 library로 복사하고 source tree에는 `compileall`/`.pyc`를 만들지 않는다. 산출된 launcher,
 library, C++ binary 중 하나도 없으면 FAIL하며 env script만으로는 PASS하지 않는다.
 
-- [ ] **Step 4: C++ generic build의 허용 범위 제한**
+- [x] **Step 4: C++ generic build의 허용 범위 제한**
 
 main translation unit이 정확히 하나인 단순 프로젝트만 direct `g++` build를 허용한다. CMakeLists,
 `.pro`, 다중 main 또는 링크 대상이 여러 개인 프로젝트는 실제 build adapter가 필요하다는 ERROR를
 반환한다. 신규 어댑터는 두 번째 계획에서 추가한다.
 
-- [ ] **Step 5: build 테스트 실행 후 커밋**
+- [x] **Step 5: build 테스트 실행 후 커밋**
 
 Run: `uv run --python 3.10 pytest tests/test_build_engine.py tests/test_config.py tests/test_project_metadata.py -v`
 
@@ -751,7 +767,7 @@ git commit -m "fix(build): validate metadata and produced artifacts"
 - Produces: `exit_code_for_status(status: EngineStatus) -> int`
 - Consumes: Task 1의 ERROR/SKIP/evidence/tool_evidence
 
-- [ ] **Step 1: JSON 계약, HTML 특수문자, CLI ERROR 종료 테스트 작성**
+- [x] **Step 1: JSON 계약, HTML 특수문자, CLI ERROR 종료 테스트 작성**
 
 ```python
 def test_json_v2_contains_evidence(tmp_path):
@@ -772,19 +788,19 @@ def test_html_escapes_path_used_by_javascript(tmp_path):
     assert "</script>.py'" not in html
 ```
 
-- [ ] **Step 2: 현재 리포터 테스트 실패 확인**
+- [x] **Step 2: 현재 리포터 테스트 실패 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_reporters.py tests/test_cli.py -v`
 
 Expected: schema/evidence 누락 또는 JavaScript 문자열 노출로 FAIL.
 
-- [ ] **Step 3: 공통 직렬화와 문맥별 escaping 구현**
+- [x] **Step 3: 공통 직렬화와 문맥별 escaping 구현**
 
 JSON에는 required, evidence, tool_evidence, ERROR count를 추가한다. HTML text/attribute는
 `html.escape()`, JavaScript 인수는 `json.dumps(value, ensure_ascii=False)` 결과를 사용한다.
 문자열 연결로 `onclick="openLoc('...')"`를 만들지 않는다.
 
-- [ ] **Step 4: 모든 CLI 명령의 종료 코드를 공통 함수로 전환**
+- [x] **Step 4: 모든 CLI 명령의 종료 코드를 공통 함수로 전환**
 
 ```python
 def exit_code_for_status(status: EngineStatus) -> int:
@@ -797,7 +813,7 @@ def exit_code_for_status(status: EngineStatus) -> int:
 
 각 command는 결과를 출력한 뒤 반환 코드가 0이 아니면 `typer.Exit(code=code)`를 발생시킨다.
 
-- [ ] **Step 5: 리포터·CLI 테스트 후 커밋**
+- [x] **Step 5: 리포터·CLI 테스트 후 커밋**
 
 Run: `uv run --python 3.10 pytest tests/test_reporters.py tests/test_cli.py -v`
 
@@ -822,7 +838,7 @@ git commit -m "fix(report): serialize outcomes safely and align exit codes"
 - Consumes: JSON v2 보고서와 기존 `ReportPublisher`
 - Produces: PR 코드를 실행하지 않는 보고서 게시 workflow
 
-- [ ] **Step 1: CI workflow 정적 보안 테스트 작성**
+- [x] **Step 1: CI workflow 정적 보안 테스트 작성**
 
 `tests/test_purity.py`에 YAML을 텍스트로 읽는 다음 검사를 추가한다.
 
@@ -835,18 +851,18 @@ def test_pr_verify_workflow_has_read_only_permissions():
     assert "--publish" not in verify_job
 ```
 
-- [ ] **Step 2: 현재 workflow에서 테스트 실패 확인**
+- [x] **Step 2: 현재 workflow에서 테스트 실패 확인**
 
 Run: `uv run --python 3.10 pytest tests/test_purity.py -v`
 
 Expected: 현재 CI의 write 권한과 `--publish` 때문에 FAIL.
 
-- [ ] **Step 3: 검증과 게시 workflow 분리**
+- [x] **Step 3: 검증과 게시 workflow 분리**
 
 `ci.yml`의 기본 권한은 `contents: read`로 설정한다. `verify` job은 PR과 main push 모두에서
 JSON/HTML artifact만 생성하고 `--publish`를 호출하지 않는다. 별도의 `publish-main` job은
 `github.event_name == 'push' && github.ref == 'refs/heads/main'`인 경우만 실행하고 job 수준에서
-`contents: write`, `issues: write` 권한을 받는다.
+`contents: write`만 받는다. PR 댓글, issue, Checks 쓰기 권한은 부여하지 않는다.
 
 ```yaml
 permissions:
@@ -858,16 +874,18 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - run: uvx ruff check . && uvx ruff format --check .
       - run: uv run --python 3.10 pytest -v
       - run: ./scripts/build-pyz.sh && ./scripts/smoke.sh
       - run: dist/ici.pyz verify --report --html verify_report.html --github-summary
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: ici-verification-report
@@ -880,13 +898,14 @@ jobs:
     needs: verify
     permissions:
       contents: write
-      issues: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - run: ./scripts/build-pyz.sh
       - run: dist/ici.pyz verify --html verify_report.html --publish
         env:
@@ -896,13 +915,13 @@ jobs:
 이 단계에서는 PR sticky comment 게시를 중단한다. PR 실행에 쓰기 권한을 다시 부여하는 방식으로
 기능을 보존하지 않는다.
 
-- [ ] **Step 4: 현재 구현과 일치하도록 문서 수정**
+- [x] **Step 4: 현재 구현과 일치하도록 문서 수정**
 
 `docs/architecture.md`의 존재하지 않는 `ThreadPoolExecutor` 설명을 순차 실행과 예외 격리로
 수정한다. `docs/engine-reference.md`, `README.md`, `docs/ci-integration.md`에서 미구현 기능을
 완료 기능으로 표현한 문구를 실제 증거 계약에 맞춘다.
 
-- [ ] **Step 5: 전체 품질 게이트 실행**
+- [x] **Step 5: 전체 품질 게이트 실행**
 
 Run: `TMPDIR=/tmp TEMP=/tmp TMP=/tmp uv run --python 3.10 pytest`
 
@@ -920,7 +939,7 @@ Run: `./scripts/build-pyz.sh && ./scripts/smoke.sh`
 
 Expected: 재현 가능한 `dist/ici.pyz` 생성과 Python 3.10+ smoke PASS.
 
-- [ ] **Step 6: 최종 문서·CI 커밋**
+- [x] **Step 6: 최종 문서·CI 커밋**
 
 ```bash
 git add .github/workflows docs README.md CHANGELOG.md tests/test_purity.py
@@ -929,11 +948,11 @@ git commit -m "fix(ci): separate verification from privileged publishing"
 
 ## Final Review Checklist
 
-- [ ] 필수 미실행 엔진, 테스트 0개, all-disabled가 성공하지 않는다.
-- [ ] 전역·프로젝트·명시 설정이 순서대로 병합되고 모든 CLI가 같은 설정을 쓴다.
-- [ ] timeout과 엔진 예외가 부분 결과를 남긴다.
-- [ ] 추정 커버리지가 실측 임계값을 통과시키지 않는다.
-- [ ] 도구 크래시와 실제 발견 사항이 ERROR/FAIL로 구분된다.
-- [ ] JSON v2, 콘솔, Markdown, HTML, CLI 종료 코드가 같은 상태를 표현한다.
-- [ ] PR 검증 작업에 GitHub 쓰기 토큰이 노출되지 않는다.
-- [ ] pytest, Ruff, pyz build, smoke 품질 게이트가 모두 통과한다.
+- [x] 필수 미실행 엔진, 테스트 0개, all-disabled가 성공하지 않는다.
+- [x] 전역·프로젝트·명시 설정이 순서대로 병합되고 모든 CLI가 같은 설정을 쓴다.
+- [x] timeout과 엔진 예외가 부분 결과를 남긴다.
+- [x] 추정 커버리지가 실측 임계값을 통과시키지 않는다.
+- [x] 도구 크래시와 실제 발견 사항이 ERROR/FAIL로 구분된다.
+- [x] JSON v2, 콘솔, Markdown, HTML, CLI 종료 코드가 같은 상태를 표현한다.
+- [x] PR 검증 작업에 GitHub 쓰기 토큰이 노출되지 않는다.
+- [x] pytest, Ruff, pyz build, smoke 품질 게이트가 모두 통과한다.

@@ -10,6 +10,11 @@
 
 **Spec:** `docs/design/ci-validation-roadmap.md`
 
+> **상태: v0.4.0에서 전체 보류 (Deferred).** 이 문서의 Toolchain, CMake/qmake build
+> adapter, compile DB, Python compatibility, ELF/ABI, 혼합 통합 검증 및 신규 CLI/리포터 연동은
+> 이번 릴리스에 구현하지 않았다. 각 작업과 체크박스는 미래 릴리스의 별도 승인·별도 PR 범위로
+> 유지한다. v0.4.0에는 기존 검증 기능 보강(Axis A)만 포함한다.
+
 ## Global Constraints
 
 - `2026-08-19-existing-validation-hardening.md` 계획이 모두 완료된 상태에서 시작한다.

@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-20
+
 ### Changed
 - **CI 권한 분리 및 Action 공급망 고정**:
   - PR/main 검증 `verify` job은 `contents: read`만 사용하고 checkout의
@@ -25,6 +27,14 @@
     명시적 수동 실행에서만 `--publish`를 사용하도록 CI 가이드를 정정
   - 배포된 ZipApp은 오프라인 실행 가능하지만 빌드에는 사전 준비된 Python·wheel/cache
     또는 내부 미러가 필요하다는 폐쇄망 안내를 추가
+- **제품 버전 및 릴리스 태그 안전성 보강**:
+  - 제품 버전을 `ici.__version__`으로 단일화하고 CLI, `doctor --brief`, 기본 설정이 같은
+    버전 값을 사용하도록 정리
+  - 수동 릴리스의 `version_tag` 입력을 필수화하고 SemVer-like 형식과 패키지 버전의 정확한
+    일치를 검증하여 브랜치 이름·이전 버전으로의 fallback을 제거
+- **신규 CI 검증 기능 보류**:
+  - Toolchain, CMake/qmake build adapter, compile DB, Python compatibility, ELF/ABI 및
+    C++/Python 통합 엔진은 v0.4.0에 포함하지 않고 별도 미래 계획으로 남김
 - **리포터·CLI 결과 계약과 출력 안전성 강화**:
   - suite 및 단독 엔진 JSON을 ici.result/v2로 통일하고 required/evidence/raw_output/extra/InspectionTarget의 snippet·metrics/전체 ToolEvidence를 보존하며, 기존 FAIL+ERROR 의미의 failed_count와 순수 error_count/skipped_count를 분리
   - HTML 위치 링크는 동적 JavaScript 인자 대신 escaped data-* 속성과 정적 delegated listener를 사용하고, ERROR/SKIP도 Issues 뷰와 상태 뱃지에 표시
