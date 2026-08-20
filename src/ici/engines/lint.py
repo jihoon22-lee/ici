@@ -27,7 +27,7 @@ from ici.engines.base import BaseEngine
 _RUFF_FORMAT_SUCCESS_RE = re.compile(r"\d+ files? already formatted(?:\r?\n)?\Z")
 _RUFF_REFORMAT_RE = re.compile(r"Would reformat: (.+)")
 _RUFF_REFORMAT_SUMMARY_RE = re.compile(
-    r"(?:1 file|[2-9]\d* files) would be reformatted(?:\r?\n)?\Z"
+    r"(?:1 file|(?:[2-9]|[1-9]\d+) files) would be reformatted(?:\r?\n)?\Z"
 )
 _RUFF_WARNING_RE = re.compile(r"^warning:\s+\S.*$")
 _CPP_DIAGNOSTIC_RE = re.compile(
@@ -63,10 +63,6 @@ def _parse_ruff_warning_blocks(stderr: str) -> tuple[list[str], str | None]:
             if _RUFF_WARNING_RE.fullmatch(continuation):
                 break
             if continuation and continuation[0].isspace():
-                block.append(continuation)
-                index += 1
-                continue
-            if not continuation.strip():
                 block.append(continuation)
                 index += 1
                 continue
@@ -367,12 +363,11 @@ class LintEngine(BaseEngine):
             tool_record.error = message
             return False, message
 
-        warnings, warning_error = _parse_ruff_warning_blocks(result.stderr)
+        _, warning_error = _parse_ruff_warning_blocks(result.stderr)
         if warning_error:
             message = f"Ruff format capability probe emitted unexpected stderr: {warning_error}"
             tool_record.error = message
             return False, message
-        tool_warnings.extend(warnings)
         return "--output-format" in result.stdout, None
 
     def _evaluate_ruff_format(

@@ -7,6 +7,17 @@
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-20
+
+### Fixed
+- **Ruff 0.15.17 formatter compatibility**: recognized Ruff `warning:` blocks on
+  `check` and `format` stderr are retained as tool warnings instead of turning a
+  valid lint/format result into `ERROR`.
+- **Ruff formatter capability detection**: locally probes `ruff format --help` and
+  uses the JSON formatter output when supported by Ruff 0.16+, while retaining the
+  strict legacy `Would reformat:` grammar for older versions. Probe and validation
+  failures remain `ERROR`/`NOT_RUN` with complete `ToolEvidence`.
+
 ## [0.4.0] - 2026-08-20
 
 ### Changed

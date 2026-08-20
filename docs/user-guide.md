@@ -31,7 +31,7 @@ ici doctor --brief
 ```
 
 ```text
-ici 0.4.0 brief
+ici 0.4.1 brief
 os      <os_id>-<os_version>  glibc=<glibc>  arch=<arch>  wsl=<yes|no>
 shell   <shell>  TERM=<term>  LANG=<lang>
 python  running=<major.minor.micro>  path=<executable>
