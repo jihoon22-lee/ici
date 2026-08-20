@@ -1,6 +1,6 @@
 # ici — Integrated CI Engine
 
-개발 환경(WSL/Linux)과 **사내 폐쇄망**(RHEL 8.10/CentOS, tcsh/bash), **GitHub Actions**에서 **완벽히 동일하게 동작하는** C++/Python CI/CD 통합 검증·빌드 엔진.  
+개발 환경(WSL/Linux)과 **사내 폐쇄망**(RHEL 8.10/CentOS, tcsh/bash), **GitHub Actions**에서 같은 정책·결과 계약으로 동작하는 C++/Python CI/CD 통합 검증·빌드 엔진입니다. OS·컴파일러·Python·검증 도구의 가용성과 버전은 실행 증거로 기록되며, 환경이 다르면 실제 결과도 달라질 수 있습니다.
 단일 ZipApp 실행 파일(`ici.pyz`, 1.9MB) 하나로 배포됩니다.
 
 ```bash
@@ -46,12 +46,12 @@ $ ici doctor
     - `🧪 Tests & Coverage`: 4대 커버리지 KPI 게이지 + **모듈별 실측 커버리지 테이블 (Module Coverage Table)** + 파일별 테스트 스위트 & 개별 테스트 케이스 상세 뷰
    - `🧩 Complexity`: 순환 복잡도 리더보드 + **접고 펼칠 수 있는 소스 코드 블록 (Toggle All Code 지원)**
    - `📦 Clone Groups`: 연결 컴포넌트 클러스터링 기반 중복 코드 카드 + 원본 들여쓰기 보존 코드 블록
-   - `⚠️ Issues`: 전체 조치 필요(WARN/FAIL) 항목 통합 뷰 + **접고 펼칠 수 있는 문제 코드 스니펫**
+   - `⚠️ Issues`: 전체 조치 필요(WARN/FAIL/ERROR/SKIP) 항목 통합 뷰 + **접고 펼칠 수 있는 문제 코드 스니펫**
 5. **전체 파일·라인 원클릭 점프 네비게이션**:
-   - **로컬 터미널**: 터미널 OSC 8 하이퍼링크로 `Ctrl+Click` 시 VS Code / Cursor IDE로 즉시 이동
-    - **GitHub Actions**: `$GITHUB_STEP_SUMMARY` 및 Sticky PR 코멘트의 GitHub Permalinks + 인라인 에러 어노테이션
-    - **`--publish`**: 인터랙티브 HTML 리포트를 `gh-pages`에 자동 배포하고 PR 스티키 댓글에 원클릭 뷰어 링크 제공 (self/hub 모드)
-   - **단일 HTML 리포터**: `vscode://file/...` 링크 연동
+   - **로컬 터미널**: Rich가 안전한 `file://` 링크를 출력하여 지원하는 터미널에서 파일 위치로 이동
+   - **GitHub Actions**: `$GITHUB_STEP_SUMMARY`, 아티팩트 및 인라인 에러 어노테이션에 GitHub Permalink 제공 (기본 PR 검증은 댓글을 작성하지 않음)
+   - **`--publish`**: 권한을 명시적으로 부여한 신뢰된 실행에서만 인터랙티브 HTML 리포트를 `gh-pages`에 배포하는 선택 기능
+   - **단일 HTML 리포터**: 브라우저에서 로컬 파일·선호 에디터 링크를 선택해 이동
 
 ---
 
@@ -83,7 +83,7 @@ ici verify --report --html verify_report.html --open
 
 | 명령어 | 설명 | 상세 가이드 |
 |---|---|---|
-| `ici verify` | 9대 검증 엔진 일괄 실행 및 종합 대시보드 출력 (`--report`, `--html`, `--github-summary`, `--publish`) | [사용자 가이드](docs/user-guide.md#2-검증-실행-ici-verify) |
+| `ici verify` | 9대 검증 엔진 일괄 실행 및 종합 대시보드 출력 (`--report`, `--html`, `--github-summary`, 선택적 `--publish`) | [사용자 가이드](docs/user-guide.md#2-검증-실행-ici-verify) |
 | `ici line` | 코드/주석/공백 분석 및 500/1000 라인 과대화 검증 | [엔진 레퍼런스](docs/engine-reference.md#21--line-코드-라인-및-파일-크기-분석기) |
 | `ici lint` | 문법 린팅 및 스타일/포맷팅 검증 | [엔진 레퍼런스](docs/engine-reference.md#22--lint-문법-및-코드-스타일-린터) |
 | `ici test` | 단위 테스트 실행 및 커버리지/TEM 스코어 산출 | [엔진 레퍼런스](docs/engine-reference.md#23--test--tem-스코어링-단위-테스트-및-테스트-효과성-지표) |
