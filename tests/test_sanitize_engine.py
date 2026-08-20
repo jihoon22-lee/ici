@@ -286,7 +286,8 @@ def test_sanitizer_diagnostic_requires_a_real_report_signature(
 
     result = SanitizeEngine(tmp_path).run()
 
-    assert (result.status == EngineStatus.FAIL) is expected
+    expected_status = EngineStatus.FAIL if expected else EngineStatus.PASS
+    assert result.status == expected_status
 
 
 def test_cpp_sanitizer_passes_configured_include_flags_to_compile(tmp_path, monkeypatch):

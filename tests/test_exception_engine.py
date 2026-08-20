@@ -1213,6 +1213,60 @@ def test_exception_engine_match_capture_does_not_resolve_as_builtin(tmp_path, sc
     assert not any(target.target_name == "BaseException" for target in result.targets)
 
 
+@pytest.mark.parametrize("scope", ["module", "class"])
+def test_exception_engine_preserves_builtin_after_non_irrefutable_match_capture(tmp_path, scope):
+    src = tmp_path / "src"
+    src.mkdir()
+    if scope == "module":
+        prefix = ""
+        indent = ""
+    else:
+        prefix = "class Handler:\n"
+        indent = "    "
+    body = (
+        f"{prefix}{indent}match value:\n"
+        f"{indent}    case BaseException if condition:\n"
+        f"{indent}        pass\n"
+        f"{indent}    case _:\n"
+        f"{indent}        pass\n"
+        f"{indent}try:\n"
+        f"{indent}    work()\n"
+        f"{indent}except BaseException:\n"
+        f"{indent}    log()\n"
+    )
+    (src / "mod.py").write_text(body, encoding="utf-8")
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert any(target.target_name == "BaseException" for target in result.targets)
+
+
+@pytest.mark.parametrize("scope", ["module", "class"])
+def test_exception_engine_keeps_builtin_possible_after_conditional_delete(tmp_path, scope):
+    src = tmp_path / "src"
+    src.mkdir()
+    if scope == "module":
+        prefix = ""
+        indent = ""
+    else:
+        prefix = "class Handler:\n"
+        indent = "    "
+    (src / "mod.py").write_text(
+        f"{prefix}{indent}BaseException = ValueError\n"
+        f"{indent}if condition:\n"
+        f"{indent}    del BaseException\n"
+        f"{indent}try:\n"
+        f"{indent}    work()\n"
+        f"{indent}except BaseException:\n"
+        f"{indent}    log()\n",
+        encoding="utf-8",
+    )
+
+    result = ExceptionSafetyEngine(tmp_path).run()
+
+    assert any(target.target_name == "BaseException" for target in result.targets)
+
+
 def test_exception_engine_second_with_context_is_conditional(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
