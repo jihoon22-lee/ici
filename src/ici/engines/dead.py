@@ -124,7 +124,9 @@ class DeadCodeEngine(BaseEngine):
                     "defs": self._private_module_defs(tree),
                     "refs": self._load_names(tree),
                     "qualified_refs": self._qualified_refs(tree, module_name),
-                    "imports": self._imports(tree, module_name),
+                    "imports": self._imports(
+                        tree, module_name, is_package=py_file.name == "__init__.py"
+                    ),
                     "exports": self._exports(tree),
                 }
             )
@@ -257,26 +259,32 @@ class DeadCodeEngine(BaseEngine):
         return exported
 
     @staticmethod
-    def _imports(tree: ast.Module, module_name: str) -> dict[str, tuple[str, str]]:
-        imports: dict[str, tuple[str, str]] = {}
+    def _imports(
+        tree: ast.Module, module_name: str, *, is_package: bool = False
+    ) -> dict[str, list[tuple[str, str]]]:
+        imports: dict[str, list[tuple[str, str]]] = {}
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                base = DeadCodeEngine._resolve_import_module(module_name, node.module, node.level)
+                base = DeadCodeEngine._resolve_import_module(
+                    module_name, node.module, node.level, is_package=is_package
+                )
                 for alias in node.names:
                     if alias.name == "*":
                         continue
-                    imports[alias.asname or alias.name] = (base, alias.name)
+                    imports.setdefault(alias.asname or alias.name, []).append((base, alias.name))
             elif isinstance(node, ast.Import):
                 for alias in node.names:
                     local = alias.asname or alias.name.split(".")[0]
-                    imports[local] = (alias.name, "")
+                    imports.setdefault(local, []).append((alias.name, ""))
         return imports
 
     @staticmethod
-    def _resolve_import_module(current: str, imported: str | None, level: int) -> str:
+    def _resolve_import_module(
+        current: str, imported: str | None, level: int, *, is_package: bool = False
+    ) -> str:
         if level == 0:
             return imported or ""
-        package = current.split(".")[:-1]
+        package = current.split(".") if is_package else current.split(".")[:-1]
         if level > 1:
             package = package[: -(level - 1)]
         return ".".join([*package, *(imported.split(".") if imported else [])])
@@ -298,45 +306,53 @@ class DeadCodeEngine(BaseEngine):
         self, module: dict, module_paths: dict[str, str]
     ) -> set[tuple[str, str]]:
         resolved: set[tuple[str, str]] = set()
-        for alias, (imported_module, imported_name) in module["imports"].items():
+        for alias, bindings in module["imports"].items():
             if alias not in module["refs"]:
                 continue
-            if imported_name:
-                candidate = f"{imported_module}.{imported_name}"
-                if candidate in module_paths:
-                    target_id = module_paths[candidate]
-                    for reference in module["qualified_refs"]:
-                        parts = reference.split(".")
-                        if parts[0] == alias and len(parts) > 1:
-                            resolved.add((target_id, parts[1]))
-                    if not any(
-                        reference.split(".", 1)[0] == alias
-                        for reference in module["qualified_refs"]
-                    ):
+            for imported_module, imported_name in bindings:
+                if imported_name:
+                    candidate = f"{imported_module}.{imported_name}"
+                    if candidate in module_paths:
+                        target_id = module_paths[candidate]
+                        for reference in module["qualified_refs"]:
+                            parts = reference.split(".")
+                            if parts[0] == alias and len(parts) > 1:
+                                resolved.add((target_id, parts[1]))
+                        if not any(
+                            reference.split(".", 1)[0] == alias
+                            for reference in module["qualified_refs"]
+                        ):
+                            resolved.add((target_id, imported_name))
+                    else:
+                        target_id = module_paths.get(imported_module, imported_module)
                         resolved.add((target_id, imported_name))
-                else:
-                    target_id = module_paths.get(imported_module, imported_module)
-                    resolved.add((target_id, imported_name))
-                continue
-            imported_parts = imported_module.split(".")
-            prefix = [alias, *imported_parts[1:]] if imported_parts[0] == alias else [alias]
-            for reference in module["qualified_refs"]:
-                parts = reference.split(".")
-                if parts[: len(prefix)] == prefix and len(parts) > len(prefix):
-                    target_id = module_paths.get(imported_module, imported_module)
-                    resolved.add((target_id, parts[len(prefix)]))
-            for module_name in module_paths:
-                if module_name == imported_module or module_name.startswith(imported_module + "."):
-                    resolved.add((module_paths[module_name], ""))
+                    continue
+                imported_parts = imported_module.split(".")
+                prefix = [alias, *imported_parts[1:]] if imported_parts[0] == alias else [alias]
+                for reference in module["qualified_refs"]:
+                    parts = reference.split(".")
+                    if parts[: len(prefix)] == prefix and len(parts) > len(prefix):
+                        target_id = module_paths.get(imported_module, imported_module)
+                        resolved.add((target_id, parts[len(prefix)]))
+                for module_name in module_paths:
+                    if module_name == imported_module or module_name.startswith(
+                        imported_module + "."
+                    ):
+                        resolved.add((module_paths[module_name], ""))
         return resolved
 
     def _append_unreachable_targets(
         self, tree: ast.Module, rel_path: str, targets: list[InspectionTarget]
     ) -> None:
+        seen_lists: set[int] = set()
         for node in ast.walk(tree):
-            body = getattr(node, "body", None)
-            if isinstance(body, list):
-                self._check_unreachable(body, rel_path, targets)
+            for _field, value in ast.iter_fields(node):
+                if not isinstance(value, list) or id(value) in seen_lists:
+                    continue
+                if not value or not all(isinstance(item, ast.stmt) for item in value):
+                    continue
+                seen_lists.add(id(value))
+                self._check_unreachable(value, rel_path, targets)
 
     def _append_analysis_error(
         self, targets: list[InspectionTarget], path: Path, name: str, message: str, line: int
