@@ -115,6 +115,16 @@ class VerificationSuiteResult:
         return sum(1 for r in self.results if r.status in (EngineStatus.FAIL, EngineStatus.ERROR))
 
     @property
+    def error_count(self) -> int:
+        """Returns the number of engines that could not produce a result."""
+        return sum(1 for r in self.results if r.status == EngineStatus.ERROR)
+
+    @property
+    def skipped_count(self) -> int:
+        """Returns the number of engines that were intentionally not run."""
+        return sum(1 for r in self.results if r.status == EngineStatus.SKIP)
+
+    @property
     def total_count(self) -> int:
         return len(self.results)
 
@@ -128,3 +138,12 @@ def format_score_display(res: EngineResult) -> str:
     if "metrics_summary" in res.extra:
         return str(res.extra["metrics_summary"])
     return "-"
+
+
+def exit_code_for_status(status: EngineStatus) -> int:
+    """Maps a result status to the stable command-line exit contract."""
+    if status in (EngineStatus.FAIL, EngineStatus.ERROR):
+        return 1
+    if status == EngineStatus.SKIP:
+        return 2
+    return 0

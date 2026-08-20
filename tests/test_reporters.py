@@ -46,8 +46,9 @@ def test_reporters_output_generation(tmp_path: Path):
     html_content = html_out.read_text(encoding="utf-8")
     assert "TestProject" in html_content
     assert "4.88" in html_content
-    assert "openLoc(" in html_content
-    assert "copyLoc(" in html_content
+    assert "data-abs-path=" in html_content
+    assert "data-rel-path=" in html_content
+    assert "onclick=" not in html_content
     assert "editorSelect" in html_content
 
     # 3. JSON
