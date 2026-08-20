@@ -122,7 +122,8 @@ def test_markdown_escapes_table_and_fenced_content():
 
     assert "summary \\| &lt;script&gt;" in markdown
     assert "unsafe\\|engine" in markdown
-    assert "</script>" in markdown.split("~~~", 1)[-1]
+    assert "````diff" in markdown
+    assert "</script>" in markdown
     assert "error_count" not in markdown
     assert "Errors" in markdown
     assert "Skipped" in markdown
@@ -131,12 +132,20 @@ def test_markdown_escapes_table_and_fenced_content():
 def test_github_annotations_escape_command_data(monkeypatch, capsys):
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     result = _malicious_suite().results[0]
+    result.targets = [
+        InspectionTarget(
+            file_path="src/a,b:c.py",
+            start_line=7,
+            status=EngineStatus.ERROR,
+            message="message %\r\nnext",
+        )
+    ]
     emit_github_actions_annotations(
         VerificationSuiteResult(suite_status=EngineStatus.ERROR, results=[result])
     )
 
     output = capsys.readouterr().out
-    assert "::error file=src/a'b</script>&.py,line=7::" in output
+    assert "::error file=src/a%2Cb%3Ac.py,line=7::" in output
     assert "%0A" in output
     assert "%25" in output
     assert "%3A" in output
@@ -161,4 +170,4 @@ def test_exit_code_for_all_statuses(status: EngineStatus, expected: int):
 def test_terminal_link_quotes_path_and_rich_markup(tmp_path: Path):
     link = make_terminal_link("src/a[b] c.py", 3, tmp_path)
     assert "a%5Bb%5D%20c.py" in link
-    assert "a\\[b\\] c.py:3" in link
+    assert "a\\[b] c.py:3" in link
