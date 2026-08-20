@@ -300,6 +300,118 @@ def test_ruff_legacy_unformatted_output_keeps_format_target(tmp_python_project, 
     assert target.start_line == 1
 
 
+def test_ruff_01517_mixed_legacy_format_summary_is_a_policy_warning(
+    tmp_python_project, monkeypatch
+):
+    _use_ruff(monkeypatch)
+    help_excerpt = """      --output-format <OUTPUT_FORMAT>
+          Output serialization format for violations, when used with `--check`.
+          The default serialization format is "full".
+
+          Note that this option is currently only respected in preview mode. A warning will be emitted if this flag is used on stable.
+"""
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        if "--help" in cmd:
+            return ProcessResult(0, help_excerpt, "", 0.01)
+        return ProcessResult(
+            1,
+            "Would reformat: src/sample_pkg/core.py\n"
+            "1 file would be reformatted, 1 file already formatted\n",
+            "",
+            0.01,
+        )
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.WARN
+    format_targets = [target for target in result.targets if target.target_name == "Format:Style"]
+    assert len(format_targets) == 1
+    assert format_targets[0].file_path == "src/sample_pkg/core.py"
+    format_evidence = next(item for item in result.tool_evidence if item.name == "ruff format")
+    assert "Ruff format output was not parseable" not in format_evidence.error
+
+
+@pytest.mark.parametrize(
+    "paths,summary",
+    [
+        (["src/sample_pkg/core.py"], "1 file would be reformatted, 1 file already formatted"),
+        (["src/sample_pkg/core.py"], "1 file would be reformatted, 2 files already formatted"),
+        (
+            ["src/sample_pkg/core.py", "src/sample_pkg/other.py"],
+            "2 files would be reformatted, 1 file already formatted",
+        ),
+        (
+            ["src/sample_pkg/core.py", "src/sample_pkg/other.py"],
+            "2 files would be reformatted, 2 files already formatted",
+        ),
+    ],
+)
+def test_ruff_legacy_format_summary_accepts_exact_mixed_suffix(
+    tmp_python_project, monkeypatch, paths, summary
+):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        if "--help" in cmd:
+            return ProcessResult(0, "legacy format help\n", "", 0.01)
+        output = "".join(f"Would reformat: {path}\n" for path in paths) + f"{summary}\n"
+        return ProcessResult(1, output, "", 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.WARN
+    assert [
+        target.file_path for target in result.targets if target.target_name == "Format:Style"
+    ] == paths
+
+
+@pytest.mark.parametrize(
+    "stdout",
+    [
+        "Would reformat: src/sample_pkg/core.py\n0 files would be reformatted\n",
+        "Would reformat: src/sample_pkg/core.py\n1 files would be reformatted\n",
+        "Would reformat: src/sample_pkg/core.py\n1 file would be reformatted, 2 file already formatted\n",
+        "Would reformat: src/sample_pkg/core.py\n2 files would be reformatted, 1 files already formatted\n",
+        "Would reformat: src/sample_pkg/core.py\n2 files would be reformatted\n",
+        "Would reformat: src/sample_pkg/core.py\n1 file would be reformatted\n"
+        "1 file would be reformatted\n",
+        "1 file would be reformatted\nWould reformat: src/sample_pkg/core.py\n",
+        "Would reformat: src/sample_pkg/core.py\nunexpected output\n1 file would be reformatted\n",
+        "Would reformat: \n1 file would be reformatted\n",
+    ],
+)
+def test_ruff_legacy_format_summary_rejects_malformed_output_atomically(
+    tmp_python_project, monkeypatch, stdout
+):
+    _use_ruff(monkeypatch)
+
+    def fake_run(cmd, **kwargs):
+        if "check" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        if "--help" in cmd:
+            return ProcessResult(0, "legacy format help\n", "", 0.01)
+        return ProcessResult(1, stdout, "", 0.01)
+
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+    assert not any(target.target_name == "Format:Style" for target in result.targets)
+    format_evidence = next(item for item in result.tool_evidence if item.name == "ruff format")
+    assert "Ruff format output was not parseable" in format_evidence.error
+
+
 def test_ruff_json_format_success_uses_supported_output_format(tmp_python_project, monkeypatch):
     _use_ruff(monkeypatch)
     calls = []
