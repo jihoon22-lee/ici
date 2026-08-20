@@ -78,7 +78,10 @@ CI와 release workflow의 외부 Action은 Node 24 기반 릴리스 라벨을 �
 `.github/workflows/release.yml`은 `v*.*.*` 태그 push 또는 `workflow_dispatch`에서
 테스트·ZipApp 빌드·스모크 테스트·SHA-256 생성 후 GitHub Release에
 `dist/ici.pyz`와 체크섬을 첨부합니다. 릴리스 job은 배포를 위해 `contents: write`를
-사용하며, release용 Action도 위의 SHA 고정 정책을 따릅니다.
+사용하며, release용 Action도 위의 SHA 고정 정책을 따릅니다. 수동 실행은 `version_tag`를
+필수로 입력해야 하고, workflow는 입력 태그 또는 push 태그가 패키지의 `__version__`과 정확히
+일치하는 `vX.Y.Z` 형식인지 검증합니다. 따라서 수동 실행에서 브랜치 이름이나 이전 버전으로
+대체되지 않습니다.
 
 ## 2. 리포팅과 위치 추적
 

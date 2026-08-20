@@ -10,6 +10,22 @@
 
 **Spec:** `docs/design/ci-validation-roadmap.md`
 
+## v0.4.0 완료 상태 (2026-08-20)
+
+Task 1부터 Task 10까지의 구현, 회귀 테스트, 문서 정합성, CI 권한 분리 및 최종 품질 게이트를
+v0.4.0 범위에서 모두 완료했다. 기존 9개 검증 엔진과 build/config/process/report/CLI 경로의
+허위 PASS 방지 및 실행 증거 보강이 이번 릴리스의 완료 범위다. 최종 체크리스트도 다음 PR과
+릴리스 검증에서 통과했다.
+
+- PR #10~#20에서 Task 1~10을 순차 병합했다.
+- 검증 job은 `contents: read`만 사용하고 checkout은 `persist-credentials: false`다.
+- `main` push 전용 `publish-main` job만 `contents: write`를 사용하며 PR 댓글/이슈/Checks
+  쓰기 권한은 부여하지 않는다.
+- CI/release Action은 40자리 commit SHA로 고정되어 있고, 전체 pytest/mypy/Ruff/pyz/smoke
+  게이트를 통과한다.
+- 신규 Toolchain/build adapter/compile DB/Python compatibility/ELF-ABI/integration 엔진은
+  이번 릴리스에 구현하지 않으며 별도 미래 계획으로 남긴다.
+
 ## Global Constraints
 
 - Python 3.10에서 동작해야 하며 `tomllib`, 3.11+ 전용 문법을 사용하지 않는다.
@@ -846,7 +862,7 @@ Expected: 현재 CI의 write 권한과 `--publish` 때문에 FAIL.
 `ci.yml`의 기본 권한은 `contents: read`로 설정한다. `verify` job은 PR과 main push 모두에서
 JSON/HTML artifact만 생성하고 `--publish`를 호출하지 않는다. 별도의 `publish-main` job은
 `github.event_name == 'push' && github.ref == 'refs/heads/main'`인 경우만 실행하고 job 수준에서
-`contents: write`, `issues: write` 권한을 받는다.
+`contents: write`만 받는다. PR 댓글, issue, Checks 쓰기 권한은 부여하지 않는다.
 
 ```yaml
 permissions:
@@ -858,16 +874,18 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - run: uvx ruff check . && uvx ruff format --check .
       - run: uv run --python 3.10 pytest -v
       - run: ./scripts/build-pyz.sh && ./scripts/smoke.sh
       - run: dist/ici.pyz verify --report --html verify_report.html --github-summary
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: ici-verification-report
@@ -880,13 +898,14 @@ jobs:
     needs: verify
     permissions:
       contents: write
-      issues: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - run: ./scripts/build-pyz.sh
       - run: dist/ici.pyz verify --html verify_report.html --publish
         env:

@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-20
+
 ### Changed
 - **CI 권한 분리 및 Action 공급망 고정**:
   - PR/main 검증 `verify` job은 `contents: read`만 사용하고 checkout의
