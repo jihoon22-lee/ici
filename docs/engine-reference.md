@@ -107,6 +107,8 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 선택 엔진의 `FAIL`/`ERROR`/`SKIP` 또는 `PASS`이지만 `MEASURED`가 아닌 결과는 게이트를
 차단하지 않고 전체 suite를 `WARN`으로 낮춥니다. 따라서 선택 엔진의 실행 실패나 측정 불가가
 `PASS`로 사라지지 않습니다. 도구 실행 정보가 있는 경우 `ToolEvidence`에 도구 이름·경로·버전·인자·반환 코드를 기록할 수 있습니다.
+이 정책은 오케스트레이터가 결합한 결과뿐 아니라 `line`, `complexity`, `dup`을 포함한
+각 엔진의 직접 `EngineResult`에도 적용됩니다.
 
 ---
 
@@ -219,12 +221,15 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 
 ### 2.6 🛡️ `sanitize` (메모리 안전성 및 리소스 누수 진단)
 - **C++**: AddressSanitizer(`-fsanitize=address`) 및 UndefinedBehaviorSanitizer(`-fsanitize=undefined`)를 임시 프로젝트 외부 산출물로 빌드·실행한다. 컴파일/실행 도구 오류는 `ERROR`이며, timeout·출력 절단도 `ERROR`/`NOT_RUN`이다. 음수 signal 종료라도 완전한 ASan/UBSan 진단이 있으면 `FAIL`/`MEASURED`로 보존하고, 진단 없는 signal 종료는 `ERROR`로 처리한다.
-- **Python**: Task 5가 선택한 동일 인터프리터로 `-W error::ResourceWarning -m pytest -o addopts= tests`를 실행해 리소스 경고를 측정한다. 0개 테스트·pytest 부재·timeout·출력 절단·실행 실패·잘못된 성공은 통과로 간주하지 않는다.
+- **Python**: Task 5가 선택한 동일 인터프리터로 `-W error::ResourceWarning -m pytest -o addopts= tests`를 실행해 리소스 경고를 측정한다. `test_*.py`와 `*_test.py`를 모두 대상으로 하며, 0개 실행 테스트(전부 skipped/deselected)·pytest 부재·timeout·출력 절단·실행 실패·잘못된 성공은 통과로 간주하지 않는다. 기존 `PYTHONPATH`와 WSL 임시 디렉터리 정책도 보존한다.
+- **진단 판정**: 출력에 sanitizer 이름만 언급된 경우는 결함으로 판정하지 않는다. 위치가 있는 UBSan `runtime error` 또는 ASan/LSan/UBSan의 `ERROR`/`SUMMARY` 서명만 실제 진단으로 인정한다.
 - **적용 범위**: Python/C++ hybrid에서 한 언어의 scope가 건너뛰면 결과는 `WARN`/`ESTIMATED`이며, 대상 자체가 없으면 명시적 `SKIP`이다. C++ 테스트 파일은 project 경계 안의 실제 파일만 선택하며 외부 symlink는 제외한다. ResourceWarning의 Windows drive/공백 경로도 원본 파일과 라인 위치를 보존한다. 실행 시 기존 `ASAN_OPTIONS`/`UBSAN_OPTIONS`를 보존하면서 leak 검출과 UBSan 중단 옵션을 추가한다.
 
 ### 2.7 💀 `dead` (죽은 코드 및 미사용 심볼)
 - 도달할 수 없는 블록과 private module-level Python 함수의 실제 `Name`/호출 및 cross-module `from`/attribute 참조를 분석한다.
 - `import pkg.a; pkg.a._foo()` 및 `from pkg import a; a._foo()`처럼 중첩 모듈을 거치는 참조는 실제 정의 모듈에만 연결하며, 같은 이름의 무관한 함수는 별도 경고로 남긴다.
+- package `__init__.py`의 `.a`/`. import a` 상대 import도 package-qualified 모듈로 해석한다. `project.source_dirs`가 충돌하면 앞선 source directory의 모듈 정의만 선택하며, 동일 alias의 여러 lexical import 후보는 누락 없이 보수적으로 연결한다.
+- `if`/loop/`try`의 `else`·`finally` 및 `match` case를 포함한 모든 statement-list에서 terminal statement 뒤의 코드를 검사한다.
 - decorator 등록 함수, `__all__` export, class method, nested callback function은 합리적인 false positive를 피하기 위해 제외하며, 분석된 정상 source 위치도 `PASS` target으로 보존한다.
 
 ### 2.8 📦 `dup` (코드 복제 및 중복률 감지기)
@@ -238,9 +243,11 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 ### 2.9 ⚠️ `exception` (예외 처리 안전성 검출기)
 - `except: pass` (예외 무시/삼킴 패턴) 검출
 - `except BaseException:`, tuple 안의 `BaseException`, `builtins.BaseException`을 모두 위치와 함께 `FAIL` target으로 차단
+- `builtins`는 명시적으로 import된 alias만 module attribute 경로로 인정한다. `del BaseException` 뒤에는 builtin 이름으로 복귀하지만 삭제된 `BE` alias는 외부 alias로 재해석하지 않는다.
+- 함수 lexical local, module/class 실행 순서, handler의 transient binding을 구분하며, BoolOp·IfExp·match capture·복수 `with` context의 조건부 binding은 기존 alias 가능성을 보존하는 보수적 정책을 사용한다.
 - Python `except ... as exc` 내부의 암묵적 `raise exc` lost traceback 감지 (`raise`와 `raise exc from cause`, 중첩 함수 scope는 구분)
 - 함수·중첩 함수의 enclosing scope alias는 child 정의 시점의 binding과 그 이후 가능한 alias 이벤트를 호출 graph 없이 path-insensitive하게 함께 고려한다. 정의 전에 안정적으로 shadow되고 이후 alias 가능성이 없는 경우에만 억제하며, class body는 정의 시점 cutoff를 적용한다.
-- C++ 소멸자(`destructor`) 내부 throw와 구문상 비어 있는(syntactically empty) `catch(...)` 감지. 주석·일반/Raw 문자열을 분석에서 제외하고 multiline body도 위치와 함께 보존한다. 소멸자 선언이 `;`로 끝나면 뒤의 함수 body를 소멸자로 오인하지 않으며, 빈 catch 계산은 파일별 한 번만 수행한다.
+- C++ 소멸자(`destructor`) 내부 throw와 구문상 비어 있는(syntactically empty) `catch(...)` 감지. 주석·일반/Raw 문자열을 분석에서 제외하고 multiline body도 위치와 함께 보존한다. 표준 raw-string prefix와 `//` line-splice 주석도 마스킹한다. 소멸자 선언이 `;`로 끝나면 뒤의 함수 body를 소멸자로 오인하지 않으며, 빈 catch 계산은 파일별 한 번만 수행한다.
 
 ---
 
