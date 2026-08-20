@@ -90,18 +90,55 @@ class _ScopeAliasCollector(ast.NodeVisitor):
         self._visit_conditional_suite(node.orelse)
 
     def visit_With(self, node: ast.With) -> None:
-        for item in node.items:
-            self.visit(item.context_expr)
+        for index, item in enumerate(node.items):
+            if index == 0:
+                self.visit(item.context_expr)
+            else:
+                self._visit_conditional_nodes([item.context_expr])
             if item.optional_vars is not None:
                 self._visit_conditional_nodes([item.optional_vars])
         self._visit_conditional_suite(node.body)
 
     def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
-        for item in node.items:
-            self.visit(item.context_expr)
+        for index, item in enumerate(node.items):
+            if index == 0:
+                self.visit(item.context_expr)
+            else:
+                self._visit_conditional_nodes([item.context_expr])
             if item.optional_vars is not None:
                 self._visit_conditional_nodes([item.optional_vars])
         self._visit_conditional_suite(node.body)
+
+    def visit_BoolOp(self, node: ast.BoolOp) -> None:
+        if node.values:
+            self.visit(node.values[0])
+            self._visit_conditional_nodes(node.values[1:])
+
+    def visit_IfExp(self, node: ast.IfExp) -> None:
+        self.visit(node.test)
+        self._visit_conditional_nodes([node.body, node.orelse])
+
+    def visit_Match(self, node: ast.Match) -> None:
+        self.visit(node.subject)
+        for case in node.cases:
+            self._conditional_depth += 1
+            for name, capture in self._match_captures(case.pattern):
+                self._record(name, "match", capture)
+            if case.guard is not None:
+                self.visit(case.guard)
+            for statement in case.body:
+                self.visit(statement)
+            self._conditional_depth -= 1
+
+    @staticmethod
+    def _match_captures(pattern: ast.pattern) -> list[tuple[str, ast.AST]]:
+        captures: list[tuple[str, ast.AST]] = []
+        for node in ast.walk(pattern):
+            if isinstance(node, (ast.MatchAs, ast.MatchStar)) and node.name:
+                captures.append((node.name, node))
+            elif isinstance(node, ast.MatchMapping) and node.rest:
+                captures.append((node.rest, node))
+        return captures
 
     def visit_Try(self, node: ast.Try) -> None:
         self._visit_conditional_suite(node.body)
@@ -167,7 +204,9 @@ class _ScopeAliasCollector(ast.NodeVisitor):
         self._nonlocal_names.update(node.names)
 
     def visit_Name(self, node: ast.Name) -> None:
-        if isinstance(node.ctx, (ast.Store, ast.Del)):
+        if isinstance(node.ctx, ast.Del):
+            self._record(node.id, "delete", node)
+        elif isinstance(node.ctx, ast.Store):
             self._record(node.id, "shadow", node)
 
     def visit_Import(self, node: ast.Import) -> None:
@@ -236,10 +275,16 @@ class _ScopeAliasCollector(ast.NodeVisitor):
             {
                 name
                 for name, kinds in bindings.items()
-                if "shadow" in kinds
-                and "unbound" not in kinds
-                and "exception" not in kinds
-                and "builtins" not in kinds
+                if (
+                    (
+                        "shadow" in kinds
+                        and "unbound" not in kinds
+                        and "exception" not in kinds
+                        and "builtins" not in kinds
+                    )
+                    or ("match" in kinds)
+                    or ("delete" in kinds and name != "BaseException")
+                )
             },
         )
 
@@ -263,8 +308,11 @@ class _ScopeAliasCollector(ast.NodeVisitor):
             for name, kinds in bindings.items()
             if name not in exception_aliases
             and name not in builtins_aliases
-            and "shadow" in kinds
-            and "unbound" not in kinds
+            and (
+                ("shadow" in kinds and "unbound" not in kinds)
+                or "match" in kinds
+                or ("delete" in kinds and name != "BaseException")
+            )
         }
         return exception_aliases, builtins_aliases, shadowed_names
 
@@ -623,7 +671,7 @@ class ExceptionSafetyEngine(BaseEngine):
                 return True
             if name in shadowed or name in bound_names:
                 return False
-        return alias_kind == "builtins" and name == "builtins"
+        return False
 
     def _check_cpp_exceptions(self, targets: list[InspectionTarget]) -> bool:
         has_error = False
@@ -691,6 +739,8 @@ class ExceptionSafetyEngine(BaseEngine):
             return ExceptionSafetyEngine._mask_cpp_code_step(content, chars, index)
         if state == "line":
             return ExceptionSafetyEngine._mask_cpp_line_step(chars, index)
+        if state == "line_splice":
+            return ExceptionSafetyEngine._mask_cpp_line_splice_step(chars, index)
         if state == "block":
             return ExceptionSafetyEngine._mask_cpp_block_step(chars, index)
         return ExceptionSafetyEngine._mask_cpp_quote_step(chars, index, state)
@@ -718,10 +768,23 @@ class ExceptionSafetyEngine(BaseEngine):
 
     @staticmethod
     def _mask_cpp_line_step(chars: list[str], index: int) -> tuple[int, str]:
+        if chars[index] == "\\" and index + 1 < len(chars):
+            following = chars[index + 1]
+            if following == "\n" or (following == "\r" and index + 2 < len(chars)):
+                chars[index] = " "
+                return index + 1, "line_splice"
         if chars[index] == "\n":
             return index + 1, "code"
         chars[index] = " "
         return index + 1, "line"
+
+    @staticmethod
+    def _mask_cpp_line_splice_step(chars: list[str], index: int) -> tuple[int, str]:
+        if chars[index] == "\r" and index + 1 < len(chars) and chars[index + 1] == "\n":
+            return index + 2, "line"
+        if chars[index] == "\n":
+            return index + 1, "line"
+        return ExceptionSafetyEngine._mask_cpp_line_step(chars, index)
 
     @staticmethod
     def _mask_cpp_block_step(chars: list[str], index: int) -> tuple[int, str]:
