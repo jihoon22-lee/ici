@@ -140,9 +140,8 @@ signal·spawn 오류와 rc 0인데 regular binary가 없는 경우는 `ERROR`입
 | `ici dup` | 최대 클론 블록 병합 기반 Copy-Paste 코드 중복률 산출 | [Dup 엔진 상세](engine-reference.md#28--dup-코드-복제-및-중복률-감지기) |
 | `ici exception` | 예외 삼킴(`except: pass`) 및 소멸자 throw 차단 | [Exception 엔진 상세](engine-reference.md#29-️-exception-예외-처리-안전성-검출기) |
 
-`ici sanitize`, `ici dead`, `ici exception` 단독 명령은 `FAIL` 또는 실행 `ERROR`일 때
-종료 코드 `1`, 검증을 수행하지 못한 `SKIP`일 때 종료 코드 `2`를 반환합니다. 다른 단독
-엔진의 종료 코드 정책은 기존 동작을 따릅니다.
+모든 검증 단독 명령과 `verify`/`build`는 공통 종료 코드 정책을 사용합니다. `PASS`/`WARN`은
+`0`, `FAIL`/실행 `ERROR`는 `1`, 검증을 수행하지 못한 `SKIP`은 `2`를 반환합니다.
 
 ---
 

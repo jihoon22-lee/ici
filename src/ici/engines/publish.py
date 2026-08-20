@@ -336,9 +336,11 @@ class ReportPublisher:
             )
         if run_url:
             lines.append(f"⚙️ [Workflow Run]({run_url})")
+        failed_count = max(0, suite.failed_count - suite.error_count)
         lines.append(
             f"\n> 모드: `{mode}` · 엔진 {suite.total_count}개 "
-            f"({suite.passed_count} PASS / {suite.warned_count} WARN / {suite.failed_count} FAIL)"
+            f"({suite.passed_count} PASS / {suite.warned_count} WARN / "
+            f"{failed_count} FAIL / {suite.error_count} ERROR / {suite.skipped_count} SKIP)"
         )
         return "\n".join(lines)
 

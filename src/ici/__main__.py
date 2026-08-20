@@ -7,10 +7,11 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 
 from ici import __version__
 from ici.config import ConfigError, load_config
-from ici.core.models import EngineStatus
+from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
 from ici.engines.complexity import ComplexityEngine
@@ -24,6 +25,7 @@ from ici.engines.test import TestEngine
 from ici.engines.type_check import TypeCheckEngine
 from ici.engines.verify import VerifyOrchestrator
 from ici.reporters.console import print_line_distribution_chart
+from ici.reporters.json_rep import save_engine_json_report
 
 app = typer.Typer(
     name="ici",
@@ -99,8 +101,7 @@ def cmd_verify(
     if html_path and open_browser:
         _open_in_browser(html_path)
 
-    if suite.suite_status in (EngineStatus.FAIL, EngineStatus.ERROR):
-        raise typer.Exit(code=1)
+    _exit_for_safety_status(suite.suite_status)
 
 
 @app.command("build")
@@ -108,9 +109,8 @@ def cmd_build(ctx: typer.Context):
     """Compiles and packages release artifacts and env loaders into vX.Y.Z/x86_64/."""
     engine = _create_engine(BuildEngine, _effective_config(ctx))
     res = engine.run()
-    console.print(f"[bold green]✔[/bold green] {res.summary}")
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
+    _print_engine_result(res)
+    _exit_for_safety_status(res.status)
 
 
 @app.command("line")
@@ -121,14 +121,14 @@ def cmd_line(
     """Analyzes code/comment/blank line distribution and verifies 500/1000 lines threshold."""
     engine = _create_engine(LineCountEngine, _effective_config(ctx))
     res = engine.run()
+    _print_engine_result(res)
     extra = res.extra
     print_line_distribution_chart(
         extra.get("code", 0), extra.get("comment", 0), extra.get("blank", 0), extra.get("total", 0)
     )
     if report:
         _save_single_report("line_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
+    _exit_for_safety_status(res.status)
 
 
 @app.command("lint")
@@ -139,11 +139,10 @@ def cmd_lint(
     """Runs Ruff/AST Python checks and g++ syntax diagnostics for C/C++ sources."""
     engine = _create_engine(LintEngine, _effective_config(ctx))
     res = engine.run()
-    console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
+    _print_engine_result(res)
     if report:
         _save_single_report("lint_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
+    _exit_for_safety_status(res.status)
 
 
 @app.command("test")
@@ -154,11 +153,10 @@ def cmd_test(
     """Runs unit tests, measures branch/function coverage, and calculates TEM 5.0 score."""
     engine = _create_engine(TestEngine, _effective_config(ctx))
     res = engine.run()
-    console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
+    _print_engine_result(res)
     if report:
         _save_single_report("test_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
+    _exit_for_safety_status(res.status)
 
 
 @app.command("type")
@@ -169,11 +167,10 @@ def cmd_type(
     """Runs Mypy or the labeled AST fallback; C++ type checking is explicitly skipped."""
     engine = _create_engine(TypeCheckEngine, _effective_config(ctx))
     res = engine.run()
-    console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
+    _print_engine_result(res)
     if report:
         _save_single_report("type_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
+    _exit_for_safety_status(res.status)
 
 
 @app.command("complexity")
@@ -184,11 +181,10 @@ def cmd_complexity(
     """Analyzes Cyclomatic Complexity and maximum block nesting depth per function."""
     engine = _create_engine(ComplexityEngine, _effective_config(ctx))
     res = engine.run()
-    console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
+    _print_engine_result(res)
     if report:
         _save_single_report("complexity_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
+    _exit_for_safety_status(res.status)
 
 
 @app.command("sanitize")
@@ -199,7 +195,7 @@ def cmd_sanitize(
     """Runs AddressSanitizer/UBSan for C++ and resource leak checks for Python."""
     engine = _create_engine(SanitizeEngine, _effective_config(ctx))
     res = engine.run()
-    console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
+    _print_engine_result(res)
     if report:
         _save_single_report("sanitize_report.json", res)
     _exit_for_safety_status(res.status)
@@ -213,7 +209,7 @@ def cmd_dead(
     """Detects unused functions, unreachable statements, and orphaned symbols."""
     engine = _create_engine(DeadCodeEngine, _effective_config(ctx))
     res = engine.run()
-    console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
+    _print_engine_result(res)
     if report:
         _save_single_report("dead_report.json", res)
     _exit_for_safety_status(res.status)
@@ -227,11 +223,10 @@ def cmd_dup(
     """Detects copy-pasted duplicate code blocks and calculates codebase duplication rate."""
     engine = _create_engine(DuplicateEngine, _effective_config(ctx))
     res = engine.run()
-    console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
+    _print_engine_result(res)
     if report:
         _save_single_report("dup_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
+    _exit_for_safety_status(res.status)
 
 
 @app.command("exception")
@@ -242,7 +237,7 @@ def cmd_exception(
     """Detects exception swallowing (except: pass), lost tracebacks, and destructor throws."""
     engine = _create_engine(ExceptionSafetyEngine, _effective_config(ctx))
     res = engine.run()
-    console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
+    _print_engine_result(res)
     if report:
         _save_single_report("exception_report.json", res)
     _exit_for_safety_status(res.status)
@@ -298,34 +293,26 @@ def _create_engine(engine_cls, config=None):
 
 
 def _exit_for_safety_status(status: EngineStatus) -> None:
-    if status in (EngineStatus.FAIL, EngineStatus.ERROR):
-        raise typer.Exit(code=1)
-    if status == EngineStatus.SKIP:
-        raise typer.Exit(code=2)
+    code = exit_code_for_status(status)
+    if code:
+        raise typer.Exit(code=code)
 
 
-def _save_single_report(filename: str, res) -> None:
-    data = {
-        "engine": res.engine_name,
-        "status": res.status.value,
-        "summary": res.summary,
-        "score": res.score,
-        "duration": res.duration,
-        "targets": [
-            {
-                "file_path": t.file_path,
-                "start_line": t.start_line,
-                "end_line": t.end_line,
-                "target_name": t.target_name,
-                "status": t.status.value,
-                "message": t.message,
-            }
-            for t in res.targets
-        ],
-    }
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def _save_single_report(filename: str, res: EngineResult) -> None:
+    save_engine_json_report(res, Path(filename))
     console.print(f"[dim]Report saved to: {filename}[/dim]")
+
+
+def _print_engine_result(res: EngineResult) -> None:
+    """Render one engine result with a status-aware icon and escaped summary."""
+    style, icon = {
+        EngineStatus.PASS: ("bold green", "✔"),
+        EngineStatus.WARN: ("bold yellow", "⚠"),
+        EngineStatus.FAIL: ("bold red", "✘"),
+        EngineStatus.ERROR: ("bold red", "✘"),
+        EngineStatus.SKIP: ("dim", "↷"),
+    }[res.status]
+    console.print(f"[{style}]{icon}[/] {escape(res.summary)}")
 
 
 def _open_in_browser(html_path: str) -> None:

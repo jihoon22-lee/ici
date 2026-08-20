@@ -1,6 +1,7 @@
 """Rich Console Reporter with OSC 8 Hyperlinks for IDE Navigation."""
 
 from pathlib import Path
+from urllib.parse import quote
 
 from rich import box
 from rich.console import Console
@@ -35,9 +36,9 @@ def make_terminal_link(
     abs_path = (base / file_path).resolve()
     line_str = f":{line}" if line else ""
     display_str = f"{file_path}{line_str}"
-    target_url = f"file://{abs_path}"
+    target_url = f"file://{quote(str(abs_path), safe='/:@-._~')}"
 
-    return f"[link={target_url}]{display_str}[/link]"
+    return f"[link={target_url}]{escape(display_str)}[/link]"
 
 
 def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None = None) -> None:
@@ -65,7 +66,13 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
         status_badge = format_status_badge(res.status)
         score_str = format_score_display(res)
         duration_str = f"{res.duration:.2f}s" if res.duration > 0 else "-"
-        table.add_row(res.engine_name, status_badge, res.summary, score_str, duration_str)
+        table.add_row(
+            escape(res.engine_name),
+            status_badge,
+            escape(res.summary),
+            escape(score_str),
+            escape(duration_str),
+        )
 
     console.print(table)
 
@@ -73,7 +80,7 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
     issues = [
         r
         for r in suite.results
-        if r.status in (EngineStatus.FAIL, EngineStatus.ERROR, EngineStatus.WARN)
+        if r.status in (EngineStatus.FAIL, EngineStatus.ERROR, EngineStatus.WARN, EngineStatus.SKIP)
     ]
     if issues:
         console.print(
@@ -89,7 +96,10 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
                         make_terminal_link(occ["file_path"], occ["start_line"], base)
                         for occ in g["occurrences"]
                     ]
-                    line_hdr = f"[{border}]• [CloneGroup#{g['id']}][/] [bold]{' <-> '.join(occ_links)}[/] ({g['lines_count']} duplicate lines)"
+                    line_hdr = (
+                        f"[{border}]• [CloneGroup#{escape(str(g['id']))}][/] [bold]"
+                        f"{' <-> '.join(occ_links)}[/] ({escape(str(g['lines_count']))} duplicate lines)"
+                    )
                     issue_panel_content.append(line_hdr)
                     if g.get("snippet"):
                         for s_line in g["snippet"].strip().splitlines()[:4]:
@@ -98,7 +108,7 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
                             )
             else:
                 for target in issue.targets:
-                    if target.status in (EngineStatus.FAIL, EngineStatus.WARN):
+                    if target.status != EngineStatus.PASS:
                         link_str = make_terminal_link(target.file_path, target.start_line, base)
                         line_hdr = f"[{border}]• [{target.status.value}][/] [bold]{link_str}[/] ({escape(target.target_name or 'issue')})"
                         issue_panel_content.append(line_hdr)
@@ -115,7 +125,7 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
                 console.print(
                     Panel(
                         "\n".join(issue_panel_content),
-                        title=f"[{border}]{issue.engine_name} Issues[/]",
+                        title=f"[{border}]{escape(issue.engine_name)} Issues[/]",
                         border_style=border,
                         box=box.SQUARE,
                     )
@@ -127,11 +137,14 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
         if suite.tem_score is not None
         else ""
     )
+    failed_count = max(0, suite.failed_count - suite.error_count)
     summary_text = (
         f"[bold]Total Engines:[/] {suite.total_count}  "
         f"([green]Pass: {suite.passed_count}[/green], "
         f"[yellow]Warn: {suite.warned_count}[/yellow], "
-        f"[red]Fail: {suite.failed_count}[/red])"
+        f"[red]Fail: {failed_count}[/red], "
+        f"[red]Error: {suite.error_count}[/red], "
+        f"[dim]Skip: {suite.skipped_count}[/dim])"
         f"{tem_str}  |  "
         f"[dim]Total Time: {suite.duration:.2f}s[/dim]"
     )

@@ -112,6 +112,25 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 
 ---
 
+### 1.3 결과 리포트 계약과 종료 코드
+
+verify --report 및 모든 단독 엔진의 --report는 schema_version = ici.result/v2를
+사용합니다. JSON에는 엔진 상태·요약·점수·실행 시간·원시 출력·extra·required·증거 상태,
+검사 대상의 위치·메시지·snippet·metrics, 그리고 도구별 경로·버전·argv·반환 코드·timeout·출력
+절단·오류를 포함합니다. suite 집계에는 기존 호환성을 위해 FAIL과 ERROR를 합산한
+legacy failed_count와 함께 순수 ERROR 수인 error_count 및 skipped_count가 제공됩니다.
+화면 리포터에서 표시하는 순수 FAIL 수는 failed_count - error_count입니다.
+
+모든 CLI 결과의 종료 코드는 동일합니다.
+
+- PASS/WARN: 0
+- FAIL/ERROR: 1
+- SKIP: 2
+
+HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-path/data-rel-path/data-line
+속성으로만 전달됩니다. 리포터의 JavaScript는 정적인 이벤트 위임으로 이 값을 읽으므로
+경로·메시지에 따옴표나 HTML/스크립트 문자열이 포함되어도 실행 코드로 해석되지 않습니다.
+
 ## 2. 9대 핵심 검증 엔진 상세
 
 ### 2.1 📏 `line` (코드 라인 및 파일 크기 분석기)
