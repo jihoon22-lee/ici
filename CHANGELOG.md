@@ -9,7 +9,7 @@
 
 ### Changed
 - **리포터·CLI 결과 계약과 출력 안전성 강화**:
-  - suite 및 단독 엔진 JSON을 ici.result/v2로 통일하고 required/evidence/raw_output/extra/InspectionTarget의 snippet·metrics/전체 ToolEvidence를 보존하며 ERROR·SKIP 집계를 분리
+  - suite 및 단독 엔진 JSON을 ici.result/v2로 통일하고 required/evidence/raw_output/extra/InspectionTarget의 snippet·metrics/전체 ToolEvidence를 보존하며, 기존 FAIL+ERROR 의미의 failed_count와 순수 error_count/skipped_count를 분리
   - HTML 위치 링크는 동적 JavaScript 인자 대신 escaped data-* 속성과 정적 delegated listener를 사용하고, ERROR/SKIP도 Issues 뷰와 상태 뱃지에 표시
   - Markdown 표·코드 fence·GitHub Actions annotation, Rich 콘솔 경로/요약을 문맥별 escaping 및 안전한 file URI로 보호
   - 모든 단독 엔진과 verify/build가 PASS/WARN=0, FAIL/ERROR=1, SKIP=2 종료 코드를 공유하고 ERROR를 성공 아이콘으로 출력하지 않음

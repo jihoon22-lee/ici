@@ -117,8 +117,9 @@ TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pa
 verify --report 및 모든 단독 엔진의 --report는 schema_version = ici.result/v2를
 사용합니다. JSON에는 엔진 상태·요약·점수·실행 시간·원시 출력·extra·required·증거 상태,
 검사 대상의 위치·메시지·snippet·metrics, 그리고 도구별 경로·버전·argv·반환 코드·timeout·출력
-절단·오류를 포함합니다. suite 집계에는 기존 failed_count와 함께 error_count와
-skipped_count가 제공됩니다.
+절단·오류를 포함합니다. suite 집계에는 기존 호환성을 위해 FAIL과 ERROR를 합산한
+legacy failed_count와 함께 순수 ERROR 수인 error_count 및 skipped_count가 제공됩니다.
+화면 리포터에서 표시하는 순수 FAIL 수는 failed_count - error_count입니다.
 
 모든 CLI 결과의 종료 코드는 동일합니다.
 

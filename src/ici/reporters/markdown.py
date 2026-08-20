@@ -32,11 +32,12 @@ def generate_markdown_report(
         else ""
     )
 
+    failed_count = max(0, suite.failed_count - suite.error_count)
     md = [
         f"## {status_emoji} `ici` Verification Report — {status_str}{tem_part}\n",
         f"> **Summary**: Total {suite.total_count} engines executed in {suite.duration:.2f}s. "
         f"(**{suite.passed_count} Passed**, **{suite.warned_count} Warnings**, "
-        f"**{suite.failed_count} Failed**, **{suite.error_count} Errors**, "
+        f"**{failed_count} Failed**, **{suite.error_count} Errors**, "
         f"**{suite.skipped_count} Skipped**)\n",
         "| Engine | Status | Summary | Score / Metrics | Duration |",
         "|---|:---:|---|---|:---:|",
@@ -53,10 +54,10 @@ def generate_markdown_report(
 
         score_val = format_score_display(res)
         if score_val != "-":
-            score_val = f"**`{score_val}`**"
+            score_val = f"<strong>{_render_code(score_val)}</strong>"
         duration_val = f"{res.duration:.2f}s" if res.duration > 0 else "-"
         md.append(
-            f"| **`{_escape_table_cell(res.engine_name)}`** | {badge} | "
+            f"| <strong>{_render_code(res.engine_name)}</strong> | {badge} | "
             f"{_escape_table_cell(res.summary)} | {score_val} | {duration_val} |"
         )
 
@@ -87,9 +88,9 @@ def generate_markdown_report(
                 target.file_path, target.start_line, target.end_line, repo_url, commit_sha
             )
             status_b = f"`{target.status.value}`"
-            sym = _escape_table_cell(target.target_name or "-")
+            sym = _render_code(target.target_name or "-")
             msg = _escape_table_cell(target.message or "-")
-            md.append(f"| {loc_link} | `{sym}` | {status_b} | {msg} |")
+            md.append(f"| {loc_link} | {sym} | {status_b} | {msg} |")
 
         # Include snippet if failures exist
         failed_targets = [
@@ -150,7 +151,7 @@ def _make_gh_link(
         line_anchor += f"-L{end_line}"
 
     display = f"{file_path}#{line_anchor}"
-    escaped_display = _escape_table_cell(display)
+    escaped_display = _render_code(display)
     if repo_url and commit_sha:
         parsed = urlsplit(repo_url)
         if parsed.scheme in ("http", "https") and parsed.netloc:
@@ -158,20 +159,34 @@ def _make_gh_link(
             encoded_commit = quote(commit_sha, safe="-._~")
             base = repo_url.rstrip("/")
             url = f"{base}/blob/{encoded_commit}/{encoded_file}#{line_anchor}"
-            return f"[{escaped_display}](<{url}>)"
-    return f"`{escaped_display}`"
+            safe_url = html.escape(url, quote=True)
+            return f'<a href="{safe_url}">{escaped_display}</a>'
+    return escaped_display
 
 
 def _escape_inline(value: object) -> str:
-    """Escape untrusted text used inside Markdown code spans or labels."""
-    return html.escape(str(value), quote=False).replace("`", "\\`")
+    """Escape untrusted text used in an inline HTML/code context."""
+    return _escape_html_content(value)
 
 
 def _escape_table_cell(value: object) -> str:
-    """Escape untrusted Markdown table content without allowing row injection."""
-    escaped = html.escape(str(value), quote=False).replace("`", "\\`")
-    escaped = escaped.replace("\\", "\\\\").replace("|", "\\|")
+    """Escape untrusted table content without allowing Markdown row injection."""
+    return _escape_html_content(value)
+
+
+def _escape_html_content(value: object, *, encode_backticks: bool = True) -> str:
+    """Escape untrusted text while retaining readable HTML table/code content."""
+    escaped = html.escape(str(value), quote=False)
+    escaped = escaped.replace("|", "&#124;")
+    escaped = escaped.replace("[", "&#91;").replace("]", "&#93;")
+    if encode_backticks:
+        escaped = escaped.replace(chr(96), "&#96;")
     return escaped.replace("\r\n", "<br>").replace("\r", "<br>").replace("\n", "<br>")
+
+
+def _render_code(value: object) -> str:
+    """Render untrusted content in a closed HTML code element."""
+    return f"<code>{_escape_html_content(value, encode_backticks=False)}</code>"
 
 
 def _fenced_snippet(file_path: str, start_line: int, snippet: str) -> str:

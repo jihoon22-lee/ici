@@ -137,11 +137,14 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
         if suite.tem_score is not None
         else ""
     )
+    failed_count = max(0, suite.failed_count - suite.error_count)
     summary_text = (
         f"[bold]Total Engines:[/] {suite.total_count}  "
         f"([green]Pass: {suite.passed_count}[/green], "
         f"[yellow]Warn: {suite.warned_count}[/yellow], "
-        f"[red]Fail: {suite.failed_count}[/red])"
+        f"[red]Fail: {failed_count}[/red], "
+        f"[red]Error: {suite.error_count}[/red], "
+        f"[dim]Skip: {suite.skipped_count}[/dim])"
         f"{tem_str}  |  "
         f"[dim]Total Time: {suite.duration:.2f}s[/dim]"
     )

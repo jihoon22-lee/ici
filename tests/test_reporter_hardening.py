@@ -1,6 +1,7 @@
 """Focused regression tests for reporter and CLI hardening."""
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -14,8 +15,8 @@ from ici.core.models import (
     VerificationSuiteResult,
     exit_code_for_status,
 )
-from ici.reporters.console import make_terminal_link
-from ici.reporters.html import generate_html_report
+from ici.reporters.console import make_terminal_link, print_suite_dashboard
+from ici.reporters.html import _get_status_theme, generate_html_report
 from ici.reporters.json_rep import save_json_report
 from ici.reporters.markdown import emit_github_actions_annotations, generate_markdown_report
 
@@ -111,6 +112,7 @@ def test_html_uses_data_attributes_and_escapes_untrusted_values(tmp_path: Path):
     assert "onclick=" not in content
     assert "onchange=" not in content
     assert "onkeyup=" not in content
+    assert re.search(r"\bon[a-z]+\s*=", content, re.IGNORECASE) is None
     assert "javascript:void" not in content
     assert "ERROR" in content
     assert "SKIP" in content
@@ -121,13 +123,88 @@ def test_html_uses_data_attributes_and_escapes_untrusted_values(tmp_path: Path):
 def test_markdown_escapes_table_and_fenced_content():
     markdown = generate_markdown_report(_malicious_suite())
 
-    assert "summary \\| &lt;script&gt;" in markdown
-    assert "unsafe\\|engine" in markdown
-    assert "````diff" in markdown
+    assert "summary &#124; &lt;script&gt;" in markdown
+    assert "unsafe&#124;engine" in markdown
+    assert (chr(96) * 4 + "diff") in markdown
     assert "</script>" in markdown
+    assert "**0 Failed**" in markdown
     assert "error_count" not in markdown
     assert "Errors" in markdown
     assert "Skipped" in markdown
+
+
+@pytest.mark.parametrize("repo_url", [None, "https://github.com/owner/repo"])
+def test_markdown_untrusted_delimiters_cannot_break_tables_or_links(repo_url: str | None):
+    tick = chr(96)
+    result = EngineResult(
+        engine_name=f"x{tick}|y",
+        status=EngineStatus.FAIL,
+        summary=f"summary ](https://evil) {tick} | <unsafe>",
+        extra={"metrics_summary": f"metrics ](https://evil) {tick} |"},
+        targets=[
+            InspectionTarget(
+                file_path=f"x](https://evil) [z|{tick} .py",
+                start_line=1,
+                target_name=f"target ](evil) {tick}|",
+                status=EngineStatus.FAIL,
+                message=f"detail ](evil) {tick}|",
+            )
+        ],
+    )
+    suite = VerificationSuiteResult(suite_status=EngineStatus.FAIL, results=[result])
+
+    markdown = generate_markdown_report(
+        suite,
+        repo_url=repo_url,
+        commit_sha="abc123" if repo_url else None,
+    )
+
+    assert "](https://evil)" not in markdown
+    assert "|y" not in markdown
+    assert "&#124;" in markdown
+    assert f"<code>x{tick}&#124;y</code>" in markdown
+    assert "metrics ](https://evil)" not in markdown
+
+
+def test_html_attribute_context_encodes_line_breaks_and_distinguishes_error(
+    tmp_path: Path,
+):
+    target = InspectionTarget(
+        file_path="src/a\r\nb.py",
+        start_line=1,
+        status=EngineStatus.ERROR,
+        message="error",
+    )
+    suite = VerificationSuiteResult(
+        suite_status=EngineStatus.ERROR,
+        results=[
+            EngineResult(
+                engine_name="error-engine",
+                status=EngineStatus.ERROR,
+                summary="error",
+                targets=[target],
+            )
+        ],
+    )
+
+    output = tmp_path / "report.html"
+    generate_html_report(suite, output, base_dir=tmp_path)
+    content = output.read_text(encoding="utf-8")
+
+    assert 'data-rel-path="src/a&#13;&#10;b.py"' in content
+    assert 'data-rel-path="src/a\r\nb.py"' not in content
+    assert _get_status_theme(EngineStatus.ERROR) != _get_status_theme(EngineStatus.FAIL)
+    assert "WARN 및 FAIL 항목" not in content
+    assert "ERROR/SKIP" in content
+
+
+def test_console_counts_do_not_double_count_errors(capsys, tmp_path: Path):
+    print_suite_dashboard(_malicious_suite(), tmp_path)
+
+    output = capsys.readouterr().out
+    assert "Fail: 0" in output
+    assert "Error: 1" in output
+    assert "Skip: 1" in output
 
 
 def test_github_annotations_escape_command_data(monkeypatch, capsys):

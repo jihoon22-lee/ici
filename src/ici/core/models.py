@@ -112,6 +112,7 @@ class VerificationSuiteResult:
 
     @property
     def failed_count(self) -> int:
+        """Return legacy FAIL+ERROR count for backward-compatible consumers."""
         return sum(1 for r in self.results if r.status in (EngineStatus.FAIL, EngineStatus.ERROR))
 
     @property
