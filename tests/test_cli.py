@@ -1,5 +1,7 @@
 """Tests for Typer CLI commands."""
 
+import json
+
 import pytest
 from typer.testing import CliRunner
 
@@ -58,6 +60,21 @@ def test_cli_verify_error_suite_exits_nonzero(monkeypatch):
     assert res.exit_code == 1
 
 
+def test_cli_verify_skip_suite_uses_skip_exit_code(monkeypatch):
+    class SkippedOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            return VerificationSuiteResult(suite_status=EngineStatus.SKIP, results=[])
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", SkippedOrchestrator)
+
+    res = runner.invoke(app, ["verify"])
+
+    assert res.exit_code == 2
+
+
 @pytest.mark.parametrize(
     "command, engine_name",
     [("sanitize", "sanitize"), ("dead", "dead"), ("exception", "exception")],
@@ -89,6 +106,93 @@ def test_cli_safety_commands_map_error_and_skip_to_exit_codes(
     result = runner.invoke(app, [command])
 
     assert result.exit_code == exit_code
+
+
+@pytest.mark.parametrize(
+    ("command", "engine_attr", "engine_name"),
+    [
+        ("build", "BuildEngine", "build"),
+        ("line", "LineCountEngine", "line"),
+        ("lint", "LintEngine", "lint"),
+        ("test", "TestEngine", "test"),
+        ("type", "TypeCheckEngine", "type"),
+        ("complexity", "ComplexityEngine", "complexity"),
+        ("dup", "DuplicateEngine", "dup"),
+        ("sanitize", "SanitizeEngine", "sanitize"),
+        ("dead", "DeadCodeEngine", "dead"),
+        ("exception", "ExceptionSafetyEngine", "exception"),
+    ],
+)
+def test_cli_all_engine_commands_map_skip_to_exit_code(
+    monkeypatch, command, engine_attr, engine_name
+):
+    class FakeEngine:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run(self):
+            return EngineResult(
+                engine_name=engine_name,
+                status=EngineStatus.SKIP,
+                summary="not run [unsafe]",
+                required=False,
+            )
+
+    monkeypatch.setattr(f"ici.__main__.{engine_attr}", FakeEngine)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+
+    result = runner.invoke(app, [command])
+
+    assert result.exit_code == 2
+
+
+def test_build_error_is_not_reported_as_green_success(monkeypatch):
+    class ErrorBuild:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run(self):
+            return EngineResult(
+                engine_name="build",
+                status=EngineStatus.ERROR,
+                summary="build failed [unsafe]",
+                required=True,
+            )
+
+    monkeypatch.setattr("ici.__main__.BuildEngine", ErrorBuild)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+
+    result = runner.invoke(app, ["build"])
+
+    assert result.exit_code == 1
+    assert "build failed [unsafe]" in result.output
+    assert "✔" not in result.output
+
+
+def test_standalone_report_uses_v2_serializer(tmp_path, monkeypatch):
+    class FakeLine:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run(self):
+            return EngineResult(
+                engine_name="line",
+                status=EngineStatus.WARN,
+                summary="warning",
+                required=False,
+            )
+
+    monkeypatch.setattr("ici.__main__.LineCountEngine", FakeLine)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["line", "--report"])
+
+    assert result.exit_code == 0
+    data = json.loads((tmp_path / "line_report.json").read_text(encoding="utf-8"))
+    assert data["schema_version"] == "ici.result/v2"
+    assert data["engine_name"] == "line"
+    assert "tool_evidence" in data
 
 
 def test_line_command_uses_project_config(tmp_path, monkeypatch):
