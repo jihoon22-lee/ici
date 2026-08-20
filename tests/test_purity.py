@@ -147,7 +147,7 @@ def test_release_workflow_requires_explicit_version_tag_without_stale_fallback()
     assert "v0.3.3" not in workflow
 
     tag_step = workflow.split("      - name: Determine Target Tag\n", 1)[1].split(
-        "\n      - name: Set up Python", 1
+        "\n      - name: Run Test Suite", 1
     )[0]
     run_script = tag_step.split("        run: |\n", 1)[1]
     assert "MANUAL_VERSION_TAG: ${{ inputs.version_tag }}" in tag_step
@@ -158,5 +158,5 @@ def test_release_workflow_requires_explicit_version_tag_without_stale_fallback()
     assert 'TAG="v0.3.3"' not in run_script
     assert 'PACKAGE_VERSION' in run_script
     assert 'src/ici/__init__.py' in run_script
-    assert 'TAG != "v$PACKAGE_VERSION"' in run_script
+    assert '"$TAG" != "v$PACKAGE_VERSION"' in run_script
     assert "GITHUB_OUTPUT" in run_script

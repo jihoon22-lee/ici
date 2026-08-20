@@ -9,6 +9,7 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
+from ici import __version__
 from ici.core.env import (
     find_infra_root,
     find_python_candidates,
@@ -145,7 +146,7 @@ def render_doctor_brief(data: dict[str, Any]) -> None:
     run_py = data["running_python"]
     tools = data["tools"]
 
-    print("ici 0.3.3 brief")
+    print(f"ici {__version__} brief")
     print(
         f"os      {sys_info.get('os_id')}-{sys_info.get('os_version')}  glibc={sys_info.get('glibc')}  arch={sys_info.get('arch')}  wsl={'yes' if sys_info.get('is_wsl') else 'no'}"
     )
