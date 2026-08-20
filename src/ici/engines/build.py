@@ -34,6 +34,71 @@ _ENTRYPOINT_RE = re.compile(
 )
 _SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 _MAIN_DEFINITION_RE = re.compile(r"\bint\s+main\s*\([^{};]*\)\s*(?:noexcept\s*)?\{")
+_CPP_RAW_START_RE = re.compile(r'(?:u8|u|U|L)?R"(?P<delimiter>[^\s()\\]{0,16})\(')
+
+
+def _blank_cpp_region(chars: list[str], start: int, end: int) -> None:
+    for index in range(start, end):
+        if chars[index] not in "\r\n":
+            chars[index] = " "
+
+
+def _cpp_line_comment_end(text: str, start: int) -> int:
+    index = start + 2
+    while index < len(text):
+        if text[index] == "\n" and (index == start or text[index - 1] != "\\"):
+            return index
+        index += 1
+    return len(text)
+
+
+def _cpp_quoted_end(text: str, start: int) -> int:
+    quote = text[start]
+    index = start + 1
+    while index < len(text):
+        if text[index] == "\\":
+            index += 2
+            continue
+        if text[index] == quote:
+            return index + 1
+        if text[index] in "\r\n":
+            return index + 1
+        index += 1
+    return len(text)
+
+
+def _mask_cpp_literals(text: str) -> str:
+    """Blank comments and quoted C++ literals while preserving source lines."""
+
+    chars = list(text)
+    index = 0
+    while index < len(text):
+        raw_start = _CPP_RAW_START_RE.match(text, index)
+        if raw_start:
+            closing = ")" + raw_start.group("delimiter") + '"'
+            closing_index = text.find(closing, raw_start.end())
+            end = len(text) if closing_index < 0 else closing_index + len(closing)
+            _blank_cpp_region(chars, index, end)
+            index = end
+            continue
+        if text.startswith("//", index):
+            end = _cpp_line_comment_end(text, index)
+            _blank_cpp_region(chars, index, end)
+            index = end
+            continue
+        if text.startswith("/*", index):
+            closing_index = text.find("*/", index + 2)
+            end = len(text) if closing_index < 0 else closing_index + 2
+            _blank_cpp_region(chars, index, end)
+            index = end
+            continue
+        if text[index] in "\"'":
+            end = _cpp_quoted_end(text, index)
+            _blank_cpp_region(chars, index, end)
+            index = end
+            continue
+        index += 1
+    return "".join(chars)
 
 
 class BuildEngine(BaseEngine):
@@ -168,8 +233,10 @@ class BuildEngine(BaseEngine):
             if current.is_symlink():
                 raise ValueError(f"output path contains symlink: {current}")
             current = current.parent
-        if path.exists() or path.is_symlink():
-            raise FileExistsError(f"output path already exists: {path}")
+        if path.is_symlink():
+            raise ValueError(f"output path contains symlink: {path}")
+        if path.exists() and not path.is_file():
+            raise ValueError(f"output path is not a regular file: {path}")
 
     def _package_python(
         self,
@@ -378,7 +445,9 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
             )
             return
 
-        main_count = self._count_cpp_main_definitions(base, sources, targets)
+        main_count, inspection_error = self._count_cpp_main_definitions(base, sources, targets)
+        if inspection_error:
+            return
         if main_count != 1:
             self._record_error(
                 targets,
@@ -399,6 +468,8 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
         target_bin = bin_dir / project_name
         try:
             self._ensure_output_file_available(base, target_bin)
+            if target_bin.exists():
+                target_bin.unlink()
             include_flags = get_all_cpp_includes(base, self.config)
             nas_cpp = get_nas_cpp_lib_dir()
             lib_flags: list[str] = []
@@ -453,6 +524,8 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
             self._record_error(targets, message, target_file)
             return
         if result.returncode == 1:
+            message = f"C++ compilation failed: {result.stderr[:200]}"
+            evidence.error = message
             self._has_fail = True
             targets.append(
                 InspectionTarget(
@@ -460,7 +533,7 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
                     start_line=1,
                     target_name="CppBinary",
                     status=EngineStatus.FAIL,
-                    message=f"C++ compilation failed: {result.stderr[:200]}",
+                    message=message,
                 )
             )
             return
@@ -496,31 +569,28 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
             for path in base.glob(pattern)
         )
 
-    @staticmethod
     def _count_cpp_main_definitions(
-        base: Path, sources: list[Path], targets: list[InspectionTarget]
-    ) -> int:
+        self, base: Path, sources: list[Path], targets: list[InspectionTarget]
+    ) -> tuple[int, bool]:
         count = 0
+        inspection_error = False
         for source in sources:
             try:
-                text = source.read_text(encoding="utf-8")
+                text = _mask_cpp_literals(source.read_text(encoding="utf-8"))
             except (OSError, UnicodeError) as exc:
                 try:
                     file_path = str(source.relative_to(base))
                 except ValueError:
                     file_path = "."
-                targets.append(
-                    InspectionTarget(
-                        file_path=file_path,
-                        start_line=1,
-                        target_name="CppSource",
-                        status=EngineStatus.ERROR,
-                        message=f"Could not inspect C++ source: {exc}",
-                    )
+                self._record_error(
+                    targets,
+                    f"Could not inspect C++ source {source}: {exc}",
+                    file_path,
                 )
+                inspection_error = True
                 continue
             count += len(_MAIN_DEFINITION_RE.findall(text))
-        return count
+        return count, inspection_error
 
     def _generate_env_scripts(
         self, base: Path, target_path: Path, targets: list[InspectionTarget]
