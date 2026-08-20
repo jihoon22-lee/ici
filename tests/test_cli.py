@@ -16,7 +16,7 @@ def test_cli_version():
     res = runner.invoke(app, ["--version"])
     assert res.exit_code == 0
     assert f"ici {__version__}" in res.stdout
-    assert __version__ == "0.4.1"
+    assert __version__ == "0.4.2"
 
 
 def test_cli_doctor():
