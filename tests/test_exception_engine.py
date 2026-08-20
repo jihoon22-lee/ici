@@ -465,9 +465,9 @@ except b.BaseException:
 
     targets = [target for target in result.targets if target.target_name == "BaseException"]
     assert [(target.start_line, target.status) for target in targets] == [
-        (13, EngineStatus.FAIL),
-        (20, EngineStatus.FAIL),
-        (27, EngineStatus.FAIL),
+        (9, EngineStatus.FAIL),
+        (16, EngineStatus.FAIL),
+        (23, EngineStatus.FAIL),
     ]
 
 
@@ -568,18 +568,18 @@ except cb.BaseException:
 
     targets = [target for target in result.targets if target.target_name == "BaseException"]
     assert [(target.start_line, target.status) for target in targets] == [
+        (9, EngineStatus.FAIL),
         (13, EngineStatus.FAIL),
-        (17, EngineStatus.FAIL),
+        (21, EngineStatus.FAIL),
         (25, EngineStatus.FAIL),
-        (29, EngineStatus.FAIL),
+        (33, EngineStatus.FAIL),
         (37, EngineStatus.FAIL),
-        (41, EngineStatus.FAIL),
-        (50, EngineStatus.FAIL),
-        (59, EngineStatus.FAIL),
-        (68, EngineStatus.FAIL),
-        (74, EngineStatus.FAIL),
+        (46, EngineStatus.FAIL),
+        (55, EngineStatus.FAIL),
+        (64, EngineStatus.FAIL),
+        (70, EngineStatus.FAIL),
+        (80, EngineStatus.FAIL),
         (84, EngineStatus.FAIL),
-        (88, EngineStatus.FAIL),
     ]
 
 
