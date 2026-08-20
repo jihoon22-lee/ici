@@ -316,7 +316,7 @@ def test_cpp_sanitizer_passes_configured_include_flags_to_compile(tmp_path, monk
         ),
     )
     config = {
-        "project": {"source_dirs": ["custom-src"]},
+        "project": {"source_dirs": ["custom-src"], "type": "cpp"},
         "engines": {"sanitize": {"required": False}},
     }
 
