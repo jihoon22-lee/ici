@@ -8,6 +8,17 @@
 ## [Unreleased]
 
 ### Changed
+- **sanitize/dead/exception 엔진의 실행·분석 증거 강화**:
+  - sanitize Python 검증은 Task 5와 동일한 대상 인터프리터의
+    `-W error::ResourceWarning -m pytest -o addopts= tests`를 실행하고, 0개 테스트·pytest 부재·timeout·출력 절단·spawn/신호 종료·파싱 불가능한 성공을 `ERROR`/`NOT_RUN` 또는 명시적 선택 scope `SKIP`/`ESTIMATED`로 기록
+  - C++ sanitizer 컴파일·실행 실패를 허위 `PASS`로 처리하지 않으며, 종료 코드와 무관한 ASan/UBSan 진단을 `FAIL`/`MEASURED`로 보존하고 실행 시 기존 `ASAN_OPTIONS`/`UBSAN_OPTIONS`에 leak/halt 정책을 추가
+  - Python/C++ hybrid의 부분 scope는 `WARN`/`ESTIMATED`로 남기고, 적용 대상이 없는 프로젝트는 명시적 `SKIP`으로 표시
+  - C++ sanitizer timeout·출력 절단은 `ERROR`/`NOT_RUN`, 완전한 ASan/UBSan 진단을 동반한 signal 종료는 `FAIL`/`MEASURED`, 진단 없는 signal 종료는 `ERROR`로 구분하며 테스트 외부 symlink를 제외하고 Windows drive/공백 ResourceWarning 경로와 라인을 보존
+  - sanitizer는 `ERROR`/`SUMMARY` 또는 위치 있는 UBSan `runtime error` 서명만 실제 진단으로 인정하고, `test_*.py`/`*_test.py`를 모두 선택하며 전부 skipped/deselected인 pytest 실행은 측정 PASS로 승격하지 않음. configured C++ source/include와 기존 PYTHONPATH·WSL `/tmp` 환경을 실행에 전달
+  - dead는 private module-level Python 함수 정의와 모듈 내·cross-module `from`/attribute 참조를 분리해 수집하며 package `__init__.py` 상대 import, source directory 우선순위, 동일 alias 복수 후보, 모든 statement-list의 unreachable 경로를 처리하고 decorator·`__all__`·메서드·중첩 callback 함수 오탐을 제외
+  - exception은 명시적으로 import된 `builtins` alias만 인정하고 `del`, BoolOp/IfExp walrus, match capture, 복수 with context의 실행 순서와 transient handler binding을 보수적으로 처리하며, C++ 표준 raw prefix와 line-splice 주석을 마스킹. 기존 `BaseException`/traceback·destructor·구문상 비어 있는 catch 정책은 유지
+  - 모든 엔진 설정 테이블이 공통 `required` boolean 정책을 사용하고, `sanitize`/`dead`/`exception` 단독 명령은 `ERROR`를 exit 1, `SKIP`을 exit 2로 반환
+  - 선택 엔진(`required = false`)의 `FAIL`/`ERROR`/`SKIP` 및 `MEASURED`가 아닌 결과는 suite를 `WARN`으로 낮춰 허위 `PASS`를 방지하며, 필수 엔진의 `ERROR`/`FAIL` 우선순위는 유지
 - **lint/type 실행 증거 및 도구 정책 강화**:
   - Ruff, Mypy, g++의 모든 실행 시도와 미설치 상태를 `ToolEvidence`에 기록하고 timeout·출력 절단·spawn/신호 종료·도구 크래시·잘못된 성공/진단 출력을 `ERROR`/`NOT_RUN`으로 분류
   - `[engines.lint].ruff_required`와 `[engines.type].mypy_required`를 추가해 필수 도구 누락은 오류로, 선택 도구 누락은 AST 부분 폴백 `WARN`/`ESTIMATED`로 표시

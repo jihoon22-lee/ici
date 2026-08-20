@@ -80,7 +80,14 @@ def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
         return EngineStatus.ERROR
     if any(r.required and r.status == EngineStatus.FAIL for r in results):
         return EngineStatus.FAIL
-    if any(r.status == EngineStatus.WARN for r in results):
+    if any(
+        r.status == EngineStatus.WARN
+        or (
+            not r.required
+            and (r.status != EngineStatus.PASS or r.evidence != EvidenceState.MEASURED)
+        )
+        for r in results
+    ):
         return EngineStatus.WARN
     return EngineStatus.PASS
 

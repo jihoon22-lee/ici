@@ -20,11 +20,11 @@ PROJECT_TYPES = frozenset({"python", "cpp", "hybrid"})
 _TOP_LEVEL_KEYS = frozenset({"ici", "project", "engines", "name", "type", "version"})
 _ICI_KEYS = frozenset({"version", "policy_name"})
 _PROJECT_KEYS = frozenset({"source_dirs", "name", "type", "version"})
+_COMMON_ENGINE_KEYS = frozenset({"enabled", "mode", "required"})
 _ENGINE_KEYS = {
-    "line": frozenset(
+    "line": _COMMON_ENGINE_KEYS
+    | frozenset(
         {
-            "enabled",
-            "mode",
             "warn_limit",
             "fail_limit",
             "gate_dirs",
@@ -32,11 +32,10 @@ _ENGINE_KEYS = {
             "exclude_dirs",
         }
     ),
-    "lint": frozenset({"enabled", "mode", "ruff_required"}),
-    "test": frozenset(
+    "lint": _COMMON_ENGINE_KEYS | frozenset({"ruff_required"}),
+    "test": _COMMON_ENGINE_KEYS
+    | frozenset(
         {
-            "enabled",
-            "mode",
             "min_tem_score",
             "min_branch_cov",
             "min_func_cov",
@@ -44,14 +43,13 @@ _ENGINE_KEYS = {
             "python",
         }
     ),
-    "type": frozenset(
-        {"enabled", "mode", "fail_on_error", "warn_on_missing_annotation", "mypy_required"}
-    ),
-    "complexity": frozenset({"enabled", "mode", "warn_cc", "fail_cc", "warn_nesting"}),
-    "sanitize": frozenset({"enabled", "mode"}),
-    "dead": frozenset({"enabled", "mode"}),
-    "dup": frozenset({"enabled", "mode", "warn_pct", "fail_pct", "min_window"}),
-    "exception": frozenset({"enabled", "mode"}),
+    "type": _COMMON_ENGINE_KEYS
+    | frozenset({"fail_on_error", "warn_on_missing_annotation", "mypy_required"}),
+    "complexity": _COMMON_ENGINE_KEYS | frozenset({"warn_cc", "fail_cc", "warn_nesting"}),
+    "sanitize": _COMMON_ENGINE_KEYS,
+    "dead": _COMMON_ENGINE_KEYS,
+    "dup": _COMMON_ENGINE_KEYS | frozenset({"warn_pct", "fail_pct", "min_window"}),
+    "exception": _COMMON_ENGINE_KEYS,
 }
 
 
@@ -144,6 +142,8 @@ def _validate_mode(table: dict[str, Any], path: str) -> None:
 def _validate_common_engine(table: dict[str, Any], path: str) -> None:
     if "enabled" in table:
         _require_bool(table["enabled"], f"{path}.enabled")
+    if "required" in table:
+        _require_bool(table["required"], f"{path}.required")
     _validate_mode(table, path)
 
 

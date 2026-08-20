@@ -202,8 +202,7 @@ def cmd_sanitize(
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
         _save_single_report("sanitize_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
+    _exit_for_safety_status(res.status)
 
 
 @app.command("dead")
@@ -217,8 +216,7 @@ def cmd_dead(
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
         _save_single_report("dead_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
+    _exit_for_safety_status(res.status)
 
 
 @app.command("dup")
@@ -247,8 +245,7 @@ def cmd_exception(
     console.print(f"[{'green' if res.status == EngineStatus.PASS else 'red'}]{res.summary}[/]")
     if report:
         _save_single_report("exception_report.json", res)
-    if res.status == EngineStatus.FAIL:
-        raise typer.Exit(code=1)
+    _exit_for_safety_status(res.status)
 
 
 @app.command("doctor")
@@ -298,6 +295,13 @@ def _create_engine(engine_cls, config=None):
 
     root = Path.cwd().resolve()
     return engine_cls(root, config if config is not None else load_config(root))
+
+
+def _exit_for_safety_status(status: EngineStatus) -> None:
+    if status in (EngineStatus.FAIL, EngineStatus.ERROR):
+        raise typer.Exit(code=1)
+    if status == EngineStatus.SKIP:
+        raise typer.Exit(code=2)
 
 
 def _save_single_report(filename: str, res) -> None:

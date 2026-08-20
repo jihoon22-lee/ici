@@ -8,6 +8,18 @@ import tomli
 from ici.config import DEFAULT_CONFIG, ConfigError, get_global_config_path, load_config
 from ici.engines.line import LineCountEngine
 
+ENGINE_NAMES = (
+    "line",
+    "lint",
+    "test",
+    "type",
+    "complexity",
+    "sanitize",
+    "dead",
+    "dup",
+    "exception",
+)
+
 
 def test_load_config_auto_creates_global_default(tmp_path: Path, monkeypatch):
     xdg = tmp_path / "xdg"
@@ -143,6 +155,33 @@ def test_load_config_accepts_lint_and_type_tool_required_policies(tmp_path: Path
 
     assert config["engines"]["lint"]["ruff_required"] is True
     assert config["engines"]["type"]["mypy_required"] is True
+
+
+@pytest.mark.parametrize("engine_name", ENGINE_NAMES)
+def test_load_config_accepts_common_required_policy_for_every_engine(
+    tmp_path: Path, monkeypatch, engine_name: str
+):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        f"[engines.{engine_name}]\nrequired = false\n", encoding="utf-8"
+    )
+
+    config = load_config(tmp_path)
+
+    assert config["engines"][engine_name]["required"] is False
+
+
+@pytest.mark.parametrize("engine_name", ENGINE_NAMES)
+def test_load_config_rejects_non_boolean_common_required_policy(
+    tmp_path: Path, monkeypatch, engine_name: str
+):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        f'[engines.{engine_name}]\nrequired = "yes"\n', encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError, match=rf"engines\.{engine_name}\.required"):
+        load_config(tmp_path)
 
 
 @pytest.mark.parametrize(
