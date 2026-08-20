@@ -17,9 +17,11 @@ class ConfigError(ValueError):
 MODES = frozenset({"pass_warn_fail", "pass_fail", "pass_warn"})
 PROJECT_TYPES = frozenset({"python", "cpp", "hybrid"})
 
-_TOP_LEVEL_KEYS = frozenset({"ici", "project", "engines", "name", "type", "version"})
+_TOP_LEVEL_KEYS = frozenset({"ici", "project", "engines", "build", "name", "type", "version"})
 _ICI_KEYS = frozenset({"version", "policy_name"})
 _PROJECT_KEYS = frozenset({"source_dirs", "name", "type", "version"})
+_BUILD_KEYS = frozenset({"python"})
+_BUILD_PYTHON_KEYS = frozenset({"entrypoint"})
 _COMMON_ENGINE_KEYS = frozenset({"enabled", "mode", "required"})
 _ENGINE_KEYS = {
     "line": _COMMON_ENGINE_KEYS
@@ -220,6 +222,21 @@ def _validate_dup(table: dict[str, Any], path: str) -> None:
         raise _error(f"{path}.warn_pct", "must be less than or equal to engines.dup.fail_pct")
 
 
+def _validate_build(table: Any) -> None:
+    path = "build"
+    if not isinstance(table, dict):
+        raise _error(path, "must be a table")
+    _reject_unknown(table, _BUILD_KEYS, path)
+    if "python" not in table:
+        return
+    python = table["python"]
+    if not isinstance(python, dict):
+        raise _error("build.python", "must be a table")
+    _reject_unknown(python, _BUILD_PYTHON_KEYS, "build.python")
+    if "entrypoint" in python:
+        _require_string(python["entrypoint"], "build.python.entrypoint", non_empty=True)
+
+
 def _validate_engine(name: str, table: Any) -> None:
     path = f"engines.{name}"
     if not isinstance(table, dict):
@@ -315,6 +332,9 @@ def validate_config(config: dict[str, Any]) -> None:
         _require_string(config["type"], "type", non_empty=True)
         if config["type"] not in PROJECT_TYPES:
             raise _error("type", "must be one of: cpp, hybrid, python")
+
+    if "build" in config:
+        _validate_build(config["build"])
 
     engines = config.get("engines")
     if not isinstance(engines, dict):
