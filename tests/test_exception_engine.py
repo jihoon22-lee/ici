@@ -1229,14 +1229,22 @@ def test_exception_engine_second_with_context_is_conditional(tmp_path):
     assert any(target.target_name == "BaseException" for target in result.targets)
 
 
-def test_exception_engine_masks_cpp_line_comment_splice(tmp_path):
+@pytest.mark.parametrize("line_ending", ["\n", "\r\n"])
+def test_exception_engine_masks_cpp_line_comment_splice(tmp_path, line_ending):
     src = tmp_path / "src"
     src.mkdir()
     (src / "spliced.cpp").write_text(
-        "// comment " + "\\\n" + "catch (...) { }\n"
-        "void f() {\n"
-        "    try { work(); } catch (...) { log(); }\n"
-        "}\n",
+        "// comment "
+        + "\\"
+        + line_ending
+        + "catch (...) { }"
+        + line_ending
+        + "void f() {"
+        + line_ending
+        + "    try { work(); } catch (...) { log(); }"
+        + line_ending
+        + "}"
+        + line_ending,
         encoding="utf-8",
     )
 
