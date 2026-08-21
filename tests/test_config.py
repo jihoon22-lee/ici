@@ -82,6 +82,14 @@ def test_repository_test_policy_keeps_strict_calibrated_floors():
     assert test_policy["min_func_cov"] == 60.0
 
 
+def test_repository_ici_version_matches_package_version():
+    """Repository ici.toml version must stay in sync with the package version."""
+    policy_path = Path(__file__).resolve().parent.parent / "ici.toml"
+    with policy_path.open("rb") as policy_file:
+        policy_version = tomli.load(policy_file).get("ici", {}).get("version")
+    assert policy_version == __version__
+
+
 def test_load_config_merges_global_project_and_explicit(tmp_path: Path, monkeypatch):
     xdg = tmp_path / "xdg"
     global_file = xdg / "ici" / "ici.toml"

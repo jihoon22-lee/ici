@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **프로젝트 정책 버전 싱크**: `ici.toml`의 `ici.version`을 패키지 `__version__`(`0.4.2`)과 동기화하고, 드리프트를 방지하는 `test_repository_ici_version_matches_package_version` 회귀 테스트를 추가했습니다.
+
 ## [0.4.2] - 2026-08-20
 
 ### Fixed
