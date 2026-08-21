@@ -56,25 +56,14 @@ _ENGINE_KEYS = {
 
 
 def resolve_project_path(base: Path, value: str) -> Path:
-    """Resolve a project-relative setting and require it to stay in ``base``.
+    """Resolve a project-relative setting and require it to stay in ``base``."""
 
-    The canonical path check follows symlinks, so lexical checks cannot be
-    bypassed with ``..`` segments or a link into another tree.  The helper is
-    kept separate from the schema walk so project discovery can reuse the
-    same boundary rule without duplicating it.
-    """
+    from ici.core.path_utils import resolve_project_path as _core_resolve
 
     try:
-        project_root = Path(base).resolve(strict=False)
-        candidate = (project_root / value).resolve(strict=False)
-    except (OSError, RuntimeError, TypeError, ValueError) as err:
-        raise ConfigError(f"could not resolve project path {value!r}: {err}") from err
-
-    try:
-        candidate.relative_to(project_root)
+        return _core_resolve(base, value)
     except ValueError as err:
-        raise ConfigError(f"path is outside project root: {value}") from err
-    return candidate
+        raise ConfigError(str(err)) from err
 
 
 def _error(path: str, message: str) -> ConfigError:
