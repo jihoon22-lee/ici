@@ -52,6 +52,7 @@ _ENGINE_KEYS = {
     "dead": _COMMON_ENGINE_KEYS,
     "dup": _COMMON_ENGINE_KEYS | frozenset({"warn_pct", "fail_pct", "min_window"}),
     "exception": _COMMON_ENGINE_KEYS,
+    "cmake_lint": _COMMON_ENGINE_KEYS | frozenset({"min_version"}),
 }
 
 
@@ -211,6 +212,12 @@ def _validate_dup(table: dict[str, Any], path: str) -> None:
         raise _error(f"{path}.warn_pct", "must be less than or equal to engines.dup.fail_pct")
 
 
+def _validate_cmake_lint(table: dict[str, Any], path: str) -> None:
+    _validate_common_engine(table, path)
+    if "min_version" in table:
+        _require_string(table["min_version"], f"{path}.min_version", non_empty=True)
+
+
 def _validate_build(table: Any) -> None:
     path = "build"
     if not isinstance(table, dict):
@@ -243,6 +250,8 @@ def _validate_engine(name: str, table: Any) -> None:
         _validate_complexity(table, path)
     elif name == "dup":
         _validate_dup(table, path)
+    elif name == "cmake_lint":
+        _validate_cmake_lint(table, path)
     else:
         _validate_common_engine(table, path)
 

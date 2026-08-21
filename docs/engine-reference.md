@@ -4,7 +4,7 @@
 
 ---
 
-`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 9대 핵심 검증 엔진과 엔터프라이즈 도구 인터페이스를 제공합니다.
+`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 9대 핵심 검증 엔진과 확장 린트(`cmake_lint` 등, `required=false`)를 제공합니다. 기본 9대는 필수 게이트, 확장 엔진은 `pass_warn`으로 점진 도입됩니다.
 
 ---
 
@@ -275,6 +275,12 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - Python `except ... as exc` 내부의 암묵적 `raise exc` lost traceback 감지 (`raise`와 `raise exc from cause`, 중첩 함수 scope는 구분)
 - 함수·중첩 함수의 enclosing scope alias는 child 정의 시점의 binding과 그 이후 가능한 alias 이벤트를 호출 graph 없이 path-insensitive하게 함께 고려한다. 정의 전에 안정적으로 shadow되고 이후 alias 가능성이 없는 경우에만 억제하며, class body는 정의 시점 cutoff를 적용한다.
 - C++ 소멸자(`destructor`) 내부 throw와 구문상 비어 있는(syntactically empty) `catch(...)` 감지. 주석·일반/Raw 문자열을 분석에서 제외하고 multiline body도 위치와 함께 보존한다. 표준 raw-string prefix와 `//` line-splice 주석도 마스킹한다. 소멸자 선언이 `;`로 끝나면 뒤의 함수 body를 소멸자로 오인하지 않으며, 빈 catch 계산은 파일별 한 번만 수행한다.
+
+### 2.10 🏗️ `cmake_lint` (CMake 정의 린트)
+- **동작**: `CMakeLists.txt`를 실행 없이 오프라인 정규식으로 파싱. `cmake_minimum_required(VERSION >=3.16)`(RHEL8 `cmake 3.20` 대응), `project()` 존재, `add_subdirectory("..")` 경계 이탈, `CMAKE_CXX_STANDARD 17`, `CMAKE_EXPORT_COMPILE_COMMANDS=ON`을 검사.
+- **설정**: `[engines.cmake_lint] enabled=true, mode="pass_warn", required=false, min_version="3.16"` — 기본 `pass_warn`으로 신규 도입 시 CI를 차단하지 않고 `WARN`으로 점진 적용.
+- **대상**: 프로젝트 경계 내 `CMakeLists.txt`만 검사하며, `build/.venv/.git` 하위는 제외. 파일이 없으면 `PASS`(CMake 프로젝트 아님)로 처리.
+- **보고**: 각 위반은 `InspectionTarget`으로 파일·라인과 함께 `WARN`으로 기록되어 `verify` 요약·`Issues`·`markdown`·`console`에 자동 집계되며, HTML은 요약/Issues 탭에 노출.
 
 ---
 

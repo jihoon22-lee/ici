@@ -31,6 +31,7 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
         name: {"enabled": name in {"line", "lint"}}
         for name in (
             "line",
+            "cmake_lint",
             "lint",
             "test",
             "type",

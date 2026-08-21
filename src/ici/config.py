@@ -76,6 +76,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "mode": "pass_fail",
         },
+        "cmake_lint": {
+            "enabled": True,
+            "mode": "pass_warn",
+            "required": False,
+            "min_version": "3.16",
+        },
     },
 }
 
