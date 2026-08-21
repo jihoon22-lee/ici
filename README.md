@@ -33,7 +33,7 @@ $ ici doctor
 3. **9대 핵심 품질 검증 엔진**:
    - `line`: 파일당 순수 코드 500줄 초과 경고, 1000줄 초과 실패 + **계층형 디렉토리 트리 뷰** (게이트 디렉토리/포함·제외 설정 가능)
    - `lint`: Python Ruff 및 C/C++ g++ 문법 진단 (도구 미설치·부분 폴백 증거 포함)
-    - `test` & `tem`: 단위 테스트 전수 통과 + Branch/Function 커버리지 기반 **TEM 5.0 스코어링** (모듈별 실측 커버리지: Python `coverage.py` / C++ `gcov`)
+    - `test` & `tem`: 단위 테스트 전수 통과 + Line/Branch/Function 커버리지 및 PassRate 기반 **TEM 5.0 스코어링** (`min(Line,80)/80 * Func/100 * PassRate *5`, Branch는 `*5/4` 보정; 모듈별 실측: Python `coverage.py` / C++ `gcov`)
    - `type`: Mypy 정적 타입 검사 및 AST 부분 폴백 (C++ 타입 검증은 명시적 SKIP)
    - `complexity`: 함수별 순환 복잡도(Cyclomatic) 및 중첩 깊이 분석 + **원본 소스 코드 블록 프리뷰**
    - `sanitize`: C++ AddressSanitizer/UBSan 메모리 안전성 및 Python 리소스 누수 검증
@@ -41,12 +41,12 @@ $ ici doctor
    - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출
    - `exception`: 예외 삼킴(`except: pass`), Traceback 유실, 소멸자 throw 차단
 4. **6개 전용 탭 인터랙티브 Zero-CDN HTML 대시보드 (`--html`)**:
-   - `📋 Verification Suites`: 종합 품질 게이지, TEM 스코어, 9대 엔진 상태 및 전용 탭 점프 버튼
-   - `📊 Line Analysis & Explorer`: 전체 너비(Full-Width) 계층형 파일 트리 탐색기 + 실시간 파일 검색 + 코드 분포 차트
-    - `🧪 Tests & Coverage`: 4대 커버리지 KPI 게이지 + **모듈별 실측 커버리지 테이블 (Module Coverage Table)** + 파일별 테스트 스위트 & 개별 테스트 케이스 상세 뷰
-   - `🧩 Complexity`: 순환 복잡도 리더보드 + **접고 펼칠 수 있는 소스 코드 블록 (Toggle All Code 지원)**
-   - `📦 Clone Groups`: 연결 컴포넌트 클러스터링 기반 중복 코드 카드 + 원본 들여쓰기 보존 코드 블록
-   - `⚠️ Issues`: 전체 조치 필요(WARN/FAIL/ERROR/SKIP) 항목 통합 뷰 + **접고 펼칠 수 있는 문제 코드 스니펫**
+    - `📋 Verification Suites`: 종합 품질 게이지, TEM 스코어, 9대 엔진 상태 및 전용 탭 점프 버튼 (모든 엔진은 요약 테이블·Issues에 자동 노출, 전용 탭은 코어 9개)
+    - `📊 Line Analysis & Explorer`: 전체 너비(Full-Width) 계층형 파일 트리 탐색기 + 실시간 파일 검색 + 코드 분포 차트
+     - `🧪 Tests & Coverage`: 4대 커버리지 KPI 게이지 + **모듈별 실측 커버리지 테이블 (Module Coverage Table)** + 파일별 테스트 스위트 & 개별 테스트 케이스 상세 뷰
+    - `🧩 Complexity`: 순환 복잡도 리더보드 + **접고 펼칠 수 있는 소스 코드 블록 (Toggle All Code 지원)**
+    - `📦 Clone Groups`: 연결 컴포넌트 클러스터링 기반 중복 코드 카드 + 원본 들여쓰기 보존 코드 블록
+    - `⚠️ Issues`: 전체 조치 필요(WARN/FAIL/ERROR/SKIP) 항목 통합 뷰 + **접고 펼칠 수 있는 문제 코드 스니펫** — 신규 엔진(예: `cmake_lint`, `pyproject_lint`, `toolchain`)도 동일 계약으로 자동 집계
 5. **전체 파일·라인 원클릭 점프 네비게이션**:
    - **로컬 터미널**: Rich가 안전한 `file://` 링크를 출력하여 지원하는 터미널에서 파일 위치로 이동
    - **GitHub Actions**: `$GITHUB_STEP_SUMMARY`, 아티팩트 및 인라인 에러 어노테이션에 GitHub Permalink 제공 (기본 PR 검증은 댓글을 작성하지 않음)
