@@ -387,7 +387,7 @@ class TypeCheckEngine(BaseEngine):
 
                 for node in ast.walk(tree):
                     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        if node.name.startswith("__"):
+                        if node.name.startswith("__") and node.name.endswith("__"):
                             continue
                         cfg = self.get_config("type")
                         warn_on_missing = cfg.get("warn_on_missing_annotation", False)

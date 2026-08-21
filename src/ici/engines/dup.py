@@ -169,7 +169,7 @@ class DuplicateEngine(BaseEngine):
             if len(indexed) < window_size:
                 continue
             for t_pos in range(len(indexed) - window_size + 1):
-                w_str = "".join(indexed[t_pos + k][1] for k in range(window_size))
+                w_str = "\x00".join(indexed[t_pos + k][1] for k in range(window_size))
                 w_hash = hashlib.sha256(w_str.encode("utf-8")).hexdigest()
                 window_map[w_hash].append((f_idx, t_pos))
 
