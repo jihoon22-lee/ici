@@ -1,6 +1,7 @@
 """Configuration management & Global Verification Policy for ici."""
 
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -177,7 +178,7 @@ def _ensure_global_default_config(config: dict[str, Any]) -> None:
             return
         target.parent.mkdir(parents=True, exist_ok=True)
         save_config(config, target)
-        print(f"[ici] 기본 전역 설정을 생성했습니다: {target}")
+        print(f"[ici] 기본 전역 설정을 생성했습니다: {target}", file=sys.stderr)
     except RuntimeError as err:
         raise ConfigError(f"could not resolve global configuration path {target}: {err}") from err
     except OSError as err:
