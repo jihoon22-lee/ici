@@ -10,31 +10,10 @@ from typing import Any
 import tomli
 
 from ici.core.env import get_nas_cpp_lib_dir
+from ici.core.path_utils import _resolve_project_root, resolve_project_path
 
 DEFAULT_SOURCE_DIRS = ["src", "lib", "app", "packages", "python"]
 _PROJECT_VALUE_PATTERN = re.compile(r"[A-Za-z0-9._-]+")
-
-
-def _resolve_project_root(base: Path) -> Path:
-    try:
-        return Path(base).resolve(strict=False)
-    except (OSError, RuntimeError, TypeError, ValueError) as err:
-        raise ValueError(f"could not resolve project root {base}: {err}") from err
-
-
-def resolve_project_path(base: Path, value: str) -> Path:
-    """Resolve a project-relative path and enforce canonical containment."""
-    try:
-        project_root = _resolve_project_root(Path(base))
-        candidate = (project_root / value).resolve(strict=False)
-    except (OSError, RuntimeError, TypeError, ValueError) as err:
-        raise ValueError(f"could not resolve project path {value!r}: {err}") from err
-
-    try:
-        candidate.relative_to(project_root)
-    except ValueError as err:
-        raise ValueError(f"path is outside project root: {value}") from err
-    return candidate
 
 
 def _safe_project_file(base: Path, name: str) -> Path | None:
