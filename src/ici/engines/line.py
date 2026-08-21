@@ -55,6 +55,8 @@ class LineCountEngine(BaseEngine):
                 continue
 
             for filepath in dir_path.rglob("*"):
+                if filepath.is_symlink():
+                    continue
                 if not filepath.is_file() or filepath.suffix not in EXT_MAP:
                     continue
                 if _should_ignore_path(filepath):
