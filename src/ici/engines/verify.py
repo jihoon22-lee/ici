@@ -25,6 +25,7 @@ from ici.engines.publish import ReportPublisher
 from ici.engines.pyproject_lint import PyProjectLintEngine
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
+from ici.engines.toolchain import ToolchainEngine
 from ici.engines.type_check import TypeCheckEngine
 from ici.reporters.console import print_suite_dashboard
 from ici.reporters.html import generate_html_report
@@ -69,6 +70,7 @@ class VerifyOrchestrator:
             ("dead", DeadCodeEngine),
             ("dup", DuplicateEngine),
             ("exception", ExceptionSafetyEngine),
+            ("toolchain", ToolchainEngine),
         ]
 
         tem_score = None

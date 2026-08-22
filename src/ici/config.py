@@ -92,6 +92,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "mode": "pass_warn",
             "required": False,
         },
+        "toolchain": {
+            "enabled": True,
+            "mode": "pass_warn_fail",
+            "required": False,
+            "required_tools": [],
+        },
     },
 }
 

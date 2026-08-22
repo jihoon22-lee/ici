@@ -292,6 +292,11 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **설정**: `[engines.file_hygiene] enabled=true, mode="pass_warn", required=false`와 `check_exec_bits/check_crlf/check_bom/check_pycache/shell_syntax` boolean 스위치.
 - **대상**: `.venv/build/.git` 등 무시 디렉터리는 prune하며, symlink 파일은 제외한다.
 
+### 2.13 🔧 `toolchain` (툴체인 실측·필수 도구 정책)
+- **동작**: gcc/g++/make/cmake/qmake/gcov/git/python3 등 프로브 테이블(`DEFAULT_PROBES`)로 PATH의 실제 경로와 버전을 실측해 `ToolEvidence`와 `extra.capabilities`에 기록하고, OS/glibc/커널 스냅샷을 `extra.environment`에 남긴다.
+- **정책**: `[engines.toolchain] required_tools = ["g++", "cmake"]`에 지정한 도구가 누락되면 `ERROR`(게이트 차단), 선택 도구 누락은 `WARN`. 기본 `required=false`로 점진 도입.
+- **설계**: OS별 결과를 집계하지 않고 각 실행의 JSON/HTML에서 독립 확인(로드맵 §3.4 계약 유지).
+
 ---
 
 > **다음 단계**: [⚙️ CI/CD 연동 가이드](ci-integration.md)에서 GitHub Actions 및 폐쇄망 러너 연동법을 확인하세요.

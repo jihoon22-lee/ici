@@ -25,6 +25,7 @@ from ici.engines.lint import LintEngine
 from ici.engines.pyproject_lint import PyProjectLintEngine
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
+from ici.engines.toolchain import ToolchainEngine
 from ici.engines.type_check import TypeCheckEngine
 from ici.engines.verify import VerifyOrchestrator
 from ici.reporters.console import print_line_distribution_chart
@@ -159,6 +160,20 @@ def cmd_pyproject_lint(
     _print_engine_result(res)
     if report:
         _save_single_report("pyproject_lint_report.json", res)
+    _exit_for_safety_status(res.status)
+
+
+@app.command("toolchain")
+def cmd_toolchain(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save toolchain report"),
+):
+    """Probes CI tools and enforces required-tool policy."""
+    engine = _create_engine(ToolchainEngine, _effective_config(ctx))
+    res = engine.run()
+    _print_engine_result(res)
+    if report:
+        _save_single_report("toolchain_report.json", res)
     _exit_for_safety_status(res.status)
 
 

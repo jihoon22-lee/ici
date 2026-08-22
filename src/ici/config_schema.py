@@ -64,6 +64,7 @@ _ENGINE_KEYS = {
             "shell_syntax",
         }
     ),
+    "toolchain": _COMMON_ENGINE_KEYS | frozenset({"required_tools", "tools"}),
 }
 
 
@@ -251,6 +252,13 @@ def _validate_file_hygiene(table: dict[str, Any], path: str) -> None:
             _require_bool(table[key], f"{path}.{key}")
 
 
+def _validate_toolchain(table: dict[str, Any], path: str) -> None:
+    _validate_common_engine(table, path)
+    for key in ("required_tools", "tools"):
+        if key in table:
+            _require_string_list(table[key], f"{path}.{key}")
+
+
 def _validate_engine(name: str, table: Any) -> None:
     path = f"engines.{name}"
     if not isinstance(table, dict):
@@ -274,6 +282,8 @@ def _validate_engine(name: str, table: Any) -> None:
         _validate_common_engine(table, path)
     elif name == "file_hygiene":
         _validate_file_hygiene(table, path)
+    elif name == "toolchain":
+        _validate_toolchain(table, path)
     else:
         _validate_common_engine(table, path)
 
