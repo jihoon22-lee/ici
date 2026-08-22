@@ -42,6 +42,7 @@ def test_verify_orchestrator_preserves_required_policy_for_line_complexity_and_d
                 "cmake_lint",
                 "pyproject_lint",
                 "file_hygiene",
+                "toolchain",
                 "lint",
                 "test",
                 "type",
