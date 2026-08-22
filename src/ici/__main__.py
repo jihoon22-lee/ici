@@ -19,6 +19,7 @@ from ici.engines.complexity import ComplexityEngine
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
+from ici.engines.file_hygiene import FileHygieneEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
 from ici.engines.pyproject_lint import PyProjectLintEngine
@@ -158,6 +159,20 @@ def cmd_pyproject_lint(
     _print_engine_result(res)
     if report:
         _save_single_report("pyproject_lint_report.json", res)
+    _exit_for_safety_status(res.status)
+
+
+@app.command("file-hygiene")
+def cmd_file_hygiene(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save file-hygiene report"),
+):
+    """Detects exec bits, CRLF/BOM, pycache artifacts, and broken shell syntax."""
+    engine = _create_engine(FileHygieneEngine, _effective_config(ctx))
+    res = engine.run()
+    _print_engine_result(res)
+    if report:
+        _save_single_report("file_hygiene_report.json", res)
     _exit_for_safety_status(res.status)
 
 

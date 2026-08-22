@@ -18,6 +18,7 @@ from ici.engines.complexity import ComplexityEngine
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
+from ici.engines.file_hygiene import FileHygieneEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
 from ici.engines.publish import ReportPublisher
@@ -59,6 +60,7 @@ class VerifyOrchestrator:
             ("line", LineCountEngine),
             ("cmake_lint", CMakeLintEngine),
             ("pyproject_lint", PyProjectLintEngine),
+            ("file_hygiene", FileHygieneEngine),
             ("lint", LintEngine),
             ("test", TestEngine),
             ("type", TypeCheckEngine),

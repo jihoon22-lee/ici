@@ -87,6 +87,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "mode": "pass_warn",
             "required": False,
         },
+        "file_hygiene": {
+            "enabled": True,
+            "mode": "pass_warn",
+            "required": False,
+        },
     },
 }
 

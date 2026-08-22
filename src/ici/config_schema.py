@@ -54,6 +54,16 @@ _ENGINE_KEYS = {
     "exception": _COMMON_ENGINE_KEYS,
     "cmake_lint": _COMMON_ENGINE_KEYS | frozenset({"min_version"}),
     "pyproject_lint": _COMMON_ENGINE_KEYS,
+    "file_hygiene": _COMMON_ENGINE_KEYS
+    | frozenset(
+        {
+            "check_exec_bits",
+            "check_crlf",
+            "check_bom",
+            "check_pycache",
+            "shell_syntax",
+        }
+    ),
 }
 
 
@@ -234,6 +244,13 @@ def _validate_build(table: Any) -> None:
         _require_string(python["entrypoint"], "build.python.entrypoint", non_empty=True)
 
 
+def _validate_file_hygiene(table: dict[str, Any], path: str) -> None:
+    _validate_common_engine(table, path)
+    for key in ("check_exec_bits", "check_crlf", "check_bom", "check_pycache", "shell_syntax"):
+        if key in table:
+            _require_bool(table[key], f"{path}.{key}")
+
+
 def _validate_engine(name: str, table: Any) -> None:
     path = f"engines.{name}"
     if not isinstance(table, dict):
@@ -255,6 +272,8 @@ def _validate_engine(name: str, table: Any) -> None:
         _validate_cmake_lint(table, path)
     elif name == "pyproject_lint":
         _validate_common_engine(table, path)
+    elif name == "file_hygiene":
+        _validate_file_hygiene(table, path)
     else:
         _validate_common_engine(table, path)
 
