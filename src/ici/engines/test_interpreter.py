@@ -10,7 +10,7 @@ from ici.core.project import get_source_dirs
 class TestInterpreterMixin:
     """Mixin providing interpreter resolution for pytest/coverage."""
 
-    def _resolve_python(self) -> list[str]:  # type: ignore[no-redef]
+    def _resolve_python(self) -> list[str]:
         """Resolve the interpreter used for every Python test-related module."""
 
         configured = self.get_config("test").get("python")  # type: ignore[attr-defined]
@@ -29,10 +29,10 @@ class TestInterpreterMixin:
                 continue
         return [sys.executable]
 
-    def _find_pytest_cmd(self) -> list[str]:  # type: ignore[no-redef]
-        return [*self._resolve_python(), "-m", "pytest"]  # type: ignore[attr-defined]
+    def _find_pytest_cmd(self) -> list[str]:
+        return [*self._resolve_python(), "-m", "pytest"]
 
-    def _build_python_test_env(self) -> dict[str, str]:  # type: ignore[no-redef]
+    def _build_python_test_env(self) -> dict[str, str]:
         env = os.environ.copy()
         source_paths = [str(d) for d in get_source_dirs(self.project_root, self.config)]  # type: ignore[attr-defined]
         if source_paths:
@@ -42,21 +42,14 @@ class TestInterpreterMixin:
                 env[key] = "/tmp"
         return env
 
-    def _find_coverage_cmd(self, python_cmd: list[str] | None) -> list[str] | None:  # type: ignore[no-redef]
+    def _find_coverage_cmd(self, python_cmd: list[str] | None) -> list[str] | None:
         """Find coverage.py through the exact interpreter used for pytest."""
 
-        interpreter = self._interpreter_from_command(python_cmd)  # type: ignore[attr-defined]
+        interpreter = self._interpreter_from_command(python_cmd)
         candidate = [*interpreter, "-m", "coverage"]
         probe = [*candidate, "--version"]
-        # Use test module's run_process for test patch compatibility
-        try:
-            import ici.engines.test as _test_mod
-
-            _run = getattr(_test_mod, "run_process", None)
-        except Exception:
-            _run = None
-        if _run is None:
-            from ici.core.runner import run_process as _run  # type: ignore[no-redef]
+        # Import through ici.engines.test so monkeypatched run_process applies.
+        from ici.engines.test import run_process as _run
 
         result = _run(probe, cwd=self.project_root)  # type: ignore[attr-defined]
         self._record_tool("coverage --version", probe, result)  # type: ignore[attr-defined]
@@ -76,11 +69,11 @@ class TestInterpreterMixin:
             )
         return None
 
-    def _interpreter_from_command(self, command: list[str] | None) -> list[str]:  # type: ignore[no-redef]
+    def _interpreter_from_command(self, command: list[str] | None) -> list[str]:
         """Normalize legacy pytest argv into its interpreter prefix."""
 
         if not command:
-            return self._resolve_python()  # type: ignore[attr-defined]
+            return self._resolve_python()
         if "-m" in command:
             module_index = command.index("-m")
             if module_index > 0:
