@@ -43,10 +43,7 @@ def test_verify_orchestrator_preserves_required_policy_for_line_complexity_and_d
                 "pyproject_lint",
                 "file_hygiene",
                 "toolchain",
-<<<<<<< HEAD
-=======
                 "python_compat",
->>>>>>> f74b9c5 (feat(python_compat): compile sources under each target interpreter)
                 "lint",
                 "test",
                 "type",

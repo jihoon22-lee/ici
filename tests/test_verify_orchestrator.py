@@ -35,10 +35,7 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
             "pyproject_lint",
             "file_hygiene",
             "toolchain",
-<<<<<<< HEAD
-=======
             "python_compat",
->>>>>>> f74b9c5 (feat(python_compat): compile sources under each target interpreter)
             "lint",
             "test",
             "type",

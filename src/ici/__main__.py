@@ -23,6 +23,7 @@ from ici.engines.file_hygiene import FileHygieneEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
 from ici.engines.pyproject_lint import PyProjectLintEngine
+from ici.engines.python_compat import PythonCompatEngine
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
 from ici.engines.toolchain import ToolchainEngine
@@ -174,6 +175,19 @@ def cmd_toolchain(
     _print_engine_result(res)
     if report:
         _save_single_report("toolchain_report.json", res)
+
+
+@app.command("python-compat")
+def cmd_python_compat(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save python-compat report"),
+):
+    """Byte-compiles sources under each configured target interpreter."""
+    engine = _create_engine(PythonCompatEngine, _effective_config(ctx))
+    res = engine.run()
+    _print_engine_result(res)
+    if report:
+        _save_single_report("python_compat_report.json", res)
     _exit_for_safety_status(res.status)
 
 
