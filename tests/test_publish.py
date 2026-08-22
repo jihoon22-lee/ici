@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
 from ici.engines.publish import PUBLISH_MARKER, ReportPublisher
 
@@ -206,5 +208,79 @@ def test_upload_failure_reflected_in_comment(tmp_path: Path, monkeypatch):
     assert "failed" in result.message
     post_payload = next(p for m, u, p in fake.calls if m == "POST" and "/comments" in u)
     assert post_payload is not None
-    assert "업로드에 실패" in post_payload["body"]
+    assert "업로드 실패" in post_payload["body"]
     assert result.viewer_url not in post_payload["body"]
+
+
+def test_comment_body_modern_layout(tmp_path: Path, monkeypatch):
+    """New comment layout: badge link, stats table, collapsible engine details."""
+    fake = FakeGitHubApi(existing_comment_id=777)
+    monkeypatch.setattr("ici.engines.publish.ReportPublisher._api", fake)
+    suite = make_suite()
+    html_path = tmp_path / "report.html"
+    html_path.write_text("<html></html>", encoding="utf-8")
+    result = ReportPublisher(env=gh_env(tmp_path), project_name="my-proj").publish(html_path, suite)
+
+    assert result.comment_url is not None
+    patch_payload = next(c for c in fake.calls if c[0] == "PATCH")[2]
+    body = patch_payload["body"]
+    assert PUBLISH_MARKER in body
+    assert "## ✅ ici Quality Gate — **`PASS`**" in body
+    assert "TEM" in body and "`4.50/5.0`" in body
+    assert "for-the-badge" in body  # shield badge linking to viewer
+    assert "<details>" in body and "</details>" in body
+    assert "| `test` |" in body  # engine row present
+
+
+def test_load_suite_from_json_roundtrip(tmp_path: Path):
+    from ici.engines.publish import load_suite_from_json
+    from ici.reporters.json_rep import save_json_report
+
+    suite = make_suite()
+    out = tmp_path / "verify_report.json"
+    save_json_report(suite, out)
+    loaded = load_suite_from_json(out)
+    assert loaded is not None
+    assert loaded.suite_status == EngineStatus.PASS
+    assert loaded.tem_score == pytest.approx(4.5)
+    assert loaded.results[0].engine_name == "test"
+
+
+def test_publish_command_uses_saved_json(tmp_path: Path, monkeypatch):
+    """The standalone publish command feeds the saved JSON into the publisher."""
+    from typer.testing import CliRunner
+
+    from ici.__main__ import app
+    from ici.reporters.json_rep import save_json_report
+
+    suite = make_suite()
+    out = tmp_path / "verify_report.json"
+    save_json_report(suite, out)
+
+    captured = {}
+
+    def fake_publish(self, html_path, suite_arg):
+        captured["suite"] = suite_arg
+        from ici.engines.publish import PublishResult
+
+        return PublishResult(
+            mode="none",
+            repo="",
+            branch="",
+            remote_path="",
+            viewer_url=None,
+            pages_enabled=False,
+            comment_url=None,
+            message="skipped",
+        )
+
+    monkeypatch.setattr("ici.engines.publish.ReportPublisher.publish", fake_publish)
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        ["publish", "--html", "r.html", "--json", str(out)],
+        env={"GITHUB_ACTIONS": ""},
+    )
+    assert result.exit_code == 0, result.output
+    assert captured["suite"] is not None
+    assert captured["suite"].results[0].engine_name == "test"

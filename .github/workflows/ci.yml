@@ -66,6 +66,49 @@ jobs:
             verify_report.json
           retention-days: 14
 
+  report-pr:
+    name: Publish PR Report & Sticky Comment
+    if: github.event_name == 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # gh-pages 업로드 (Contents API)
+      pull-requests: write  # sticky 댓글 작성/갱신
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Build Standalone ZipApp (dist/ici.pyz)
+        run: |
+          chmod +x ./scripts/build-pyz.sh ./scripts/smoke.sh ./scripts/launcher.sh
+          ./scripts/build-pyz.sh
+
+      - name: Download Verification Reports (artifact)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ici-verification-report
+          path: .
+
+      - name: Publish HTML Report & Sticky PR Comment
+        run: |
+          chmod +x dist/ici.pyz
+          dist/ici.pyz publish --html verify_report.html --json verify_report.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-main:
     name: Publish Main Verification Report
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

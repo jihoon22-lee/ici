@@ -24,6 +24,7 @@ from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.file_hygiene import FileHygieneEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
+from ici.engines.publish import ReportPublisher, load_suite_from_json
 from ici.engines.pyproject_lint import PyProjectLintEngine
 from ici.engines.python_compat import PythonCompatEngine
 from ici.engines.sanitize import SanitizeEngine
@@ -360,6 +361,23 @@ def cmd_exception(
     if report:
         _save_single_report("exception_report.json", res)
     _exit_for_safety_status(res.status)
+
+
+@app.command("publish")
+def cmd_publish(
+    ctx: typer.Context,
+    html: str = typer.Option("verify_report.html", "--html", help="Published HTML report path"),
+    json_report: str = typer.Option(
+        "verify_report.json", "--json", help="verify_report.json used to enrich the comment"
+    ),
+):
+    """Publishes an existing HTML report to gh-pages and updates the sticky PR comment."""
+    json_path = Path(json_report)
+    suite = load_suite_from_json(json_path) if json_path.exists() else None
+    result = ReportPublisher(project_name=None).publish(Path(html), suite)  # type: ignore[arg-type]
+    print(f"[publish] {result.message}")
+    if result.comment_url:
+        print(f"[publish] PR comment: {result.comment_url}")
 
 
 @app.command("doctor")
