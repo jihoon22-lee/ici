@@ -301,6 +301,11 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **정책**: 컴파일 실패는 `FAIL`(mode에 따라 WARN으로 강등 가능), 인터프리터 실행 불가·timeout·출력 절단은 `ERROR`. 모든 시도는 `ToolEvidence`로 기록.
 - **설계**: 런처용 `ICI_PYTHON`과 무관하게 프로젝트 코드의 대상 런타임 호환성을 독립 검증(다중 Target Python).
 
+### 2.15 🏗️ `build_definition` (빌드 정의 Shadow Build)
+- **동작**: `CMakeLists.txt` 또는 `*.pro`를 감지해 `build/ici/<adapter>/` shadow 디렉터리에서 실제 `cmake -S/-B` → `cmake --build` 또는 `qmake -o Makefile` → `make -C`를 `run_process`로 실행하고, `ctest`는 선택적으로 수행. 모든 단계는 `ToolEvidence`와 `ArtifactManifest`로 기록.
+- **설정**: `[engines.build_definition] enabled=true, mode="pass_warn", required=false, adapter="auto"|"cmake"|"qmake", jobs=4, run_ctest=true`.
+- **대상**: 루트에 `CMakeLists.txt`/`*.pro`가 없으면 `PASS`(빌드 프로젝트 아님). 둘 다 존재하거나 `*.pro`가 여러 개면 명시적 `adapter`를 요구.
+
 ---
 
 > **다음 단계**: [⚙️ CI/CD 연동 가이드](ci-integration.md)에서 GitHub Actions 및 폐쇄망 러너 연동법을 확인하세요.

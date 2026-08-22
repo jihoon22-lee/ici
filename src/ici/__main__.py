@@ -14,6 +14,7 @@ from ici.config import ConfigError, load_config
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
+from ici.engines.build_definition import BuildDefinitionEngine
 from ici.engines.cmake_lint import CMakeLintEngine
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.dead import DeadCodeEngine
@@ -133,6 +134,20 @@ def cmd_line(
     )
     if report:
         _save_single_report("line_report.json", res)
+    _exit_for_safety_status(res.status)
+
+
+@app.command("build-definition")
+def cmd_build_definition(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save build-definition report"),
+):
+    """Configures and builds via the project's declared build system (shadow dir)."""
+    engine = _create_engine(BuildDefinitionEngine, _effective_config(ctx))
+    res = engine.run()
+    _print_engine_result(res)
+    if report:
+        _save_single_report("build_definition_report.json", res)
     _exit_for_safety_status(res.status)
 
 
