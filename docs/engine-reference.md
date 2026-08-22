@@ -282,6 +282,11 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **대상**: 프로젝트 경계 내 `CMakeLists.txt`만 검사하며, `build/.venv/.git` 하위는 제외. 파일이 없으면 `PASS`(CMake 프로젝트 아님)로 처리.
 - **보고**: 각 위반은 `InspectionTarget`으로 파일·라인과 함께 `WARN`으로 기록되어 `verify` 요약·`Issues`·`markdown`·`console`에 자동 집계되며, HTML은 요약/Issues 탭에 노출.
 
+### 2.11 📦 `pyproject_lint` (pyproject 메타데이터 린트)
+- **동작**: `pyproject.toml [project]`(PEP 621 부분 집합)를 `tomli`로 오프라인 검증. `name` 문자 집합, `version` 경로 안전성, `requires-python` 존재, `dependencies` 문자열 리스트, `[project.scripts]`의 `module:callable` 형식을 검사.
+- **설정**: `[engines.pyproject_lint] enabled=true, mode="pass_warn", required=false`.
+- **대상**: 루트 `pyproject.toml` 하나. 파일이 없으면 Python 소스가 있을 때만 `WARN`, 그 외 `PASS`. `[project]` 테이블이 없거나 TOML이 깨진 경우 `WARN`.
+
 ---
 
 > **다음 단계**: [⚙️ CI/CD 연동 가이드](ci-integration.md)에서 GitHub Actions 및 폐쇄망 러너 연동법을 확인하세요.

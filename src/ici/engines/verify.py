@@ -21,6 +21,7 @@ from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
 from ici.engines.publish import ReportPublisher
+from ici.engines.pyproject_lint import PyProjectLintEngine
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
 from ici.engines.type_check import TypeCheckEngine
@@ -57,6 +58,7 @@ class VerifyOrchestrator:
         engine_defs = [
             ("line", LineCountEngine),
             ("cmake_lint", CMakeLintEngine),
+            ("pyproject_lint", PyProjectLintEngine),
             ("lint", LintEngine),
             ("test", TestEngine),
             ("type", TypeCheckEngine),

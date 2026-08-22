@@ -21,6 +21,7 @@ from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
+from ici.engines.pyproject_lint import PyProjectLintEngine
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
 from ici.engines.type_check import TypeCheckEngine
@@ -143,6 +144,20 @@ def cmd_cmake_lint(
     _print_engine_result(res)
     if report:
         _save_single_report("cmake_lint_report.json", res)
+    _exit_for_safety_status(res.status)
+
+
+@app.command("pyproject-lint")
+def cmd_pyproject_lint(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save pyproject-lint report"),
+):
+    """Validates pyproject.toml [project] metadata offline."""
+    engine = _create_engine(PyProjectLintEngine, _effective_config(ctx))
+    res = engine.run()
+    _print_engine_result(res)
+    if report:
+        _save_single_report("pyproject_lint_report.json", res)
     _exit_for_safety_status(res.status)
 
 

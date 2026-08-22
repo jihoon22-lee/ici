@@ -53,6 +53,7 @@ _ENGINE_KEYS = {
     "dup": _COMMON_ENGINE_KEYS | frozenset({"warn_pct", "fail_pct", "min_window"}),
     "exception": _COMMON_ENGINE_KEYS,
     "cmake_lint": _COMMON_ENGINE_KEYS | frozenset({"min_version"}),
+    "pyproject_lint": _COMMON_ENGINE_KEYS,
 }
 
 
@@ -252,6 +253,8 @@ def _validate_engine(name: str, table: Any) -> None:
         _validate_dup(table, path)
     elif name == "cmake_lint":
         _validate_cmake_lint(table, path)
+    elif name == "pyproject_lint":
+        _validate_common_engine(table, path)
     else:
         _validate_common_engine(table, path)
 

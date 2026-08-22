@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### Added
+- **pyproject 메타데이터 린트 (`pyproject_lint`)**: `pyproject.toml [project]`(PEP 621 부분 집합)를 오프라인 검증하는 신규 엔진. `name`, `version`, `requires-python`, `dependencies`, `[project.scripts]` 형식을 검사하며 기본 `enabled=true, required=false, mode=pass_warn`. `ici pyproject-lint` 단독 실행 지원.
 - **CMake 정의 린트 (`cmake_lint`)**: `CMakeLists.txt`를 실행 없이 파싱하는 신규 엔진. `cmake_minimum_required(VERSION >=3.16)`, `project()`, `add_subdirectory("..")` 경계 이탈, `CMAKE_CXX_STANDARD 17`, `CMAKE_EXPORT_COMPILE_COMMANDS=ON`을 검사하며, 기본 `enabled=true, required=false, mode=pass_warn`로 점진 도입. `ici verify` 요약/Issues·`ici cmake-lint` 단독 실행·`verify` HTML/Markdown/콘솔에 자동 집계.
 
 ### Refactored
