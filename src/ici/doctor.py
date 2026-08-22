@@ -3,6 +3,7 @@
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any
 
 from rich import box
@@ -18,29 +19,50 @@ from ici.core.env import (
     get_nas_shared_dir,
     get_system_info,
 )
+from ici.core.toolchain import DEFAULT_PROBES, collect_tool_capability
 
 console = Console()
 
 
-def collect_diagnostics() -> dict[str, Any]:
+def collect_diagnostics(
+    project_root: Path | None = None, config: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Collects all environment and toolchain information."""
     sys_info = get_system_info()
     py_candidates = find_python_candidates()
 
-    # Tool checks
-    tools = {
-        "git": _check_tool("git", ["--version"]),
-        "gcc": _check_tool("gcc", ["--version"]),
-        "g++": _check_tool("g++", ["--version"]),
-        "clang": _check_tool("clang", ["--version"]),
-        "clang-format": _check_tool("clang-format", ["--version"]),
-        "make": _check_tool("make", ["--version"]),
-        "cmake": _check_tool("cmake", ["--version"]),
-        "ruff": _check_tool("ruff", ["--version"]),
-        "mypy": _check_tool("mypy", ["--version"]),
-        "pytest": _check_tool("pytest", ["--version"]),
-        "uv": _check_tool(find_uv() or "uv", ["--version"]),
-    }
+    # Unified tool probing via core/toolchain (required_tools policy aware)
+    if config is None:
+        try:
+            from ici.config import load_config
+
+            config = load_config(project_root or Path.cwd())
+        except Exception:
+            config = {}
+    required_tools = set(
+        config.get("engines", {}).get("toolchain", {}).get("required_tools", []) or []
+    )
+    probe_map: dict[str, list[str]] = dict(DEFAULT_PROBES)
+    probe_map.update(
+        {
+            "clang": ["clang", "--version"],
+            "clang-format": ["clang-format", "--version"],
+            "ruff": ["ruff", "--version"],
+            "mypy": ["mypy", "--version"],
+            "pytest": ["pytest", "--version"],
+            "uv": [find_uv() or "uv", "--version"],
+        }
+    )
+    tools: dict[str, dict[str, Any]] = {}
+    for tool_name, probe in probe_map.items():
+        cap, _result = collect_tool_capability(tool_name, probe, cwd=project_root)
+        tools[tool_name] = {
+            "available": cap.available,
+            "version": cap.version,
+            "path": cap.path,
+            "error": cap.error,
+            "required": tool_name in required_tools,
+        }
 
     # NAS checks
     nas_root = get_nas_shared_dir()
@@ -57,6 +79,7 @@ def collect_diagnostics() -> dict[str, Any]:
             {"candidate": c[0], "path": c[1], "version": c[2]} for c in py_candidates
         ],
         "tools": tools,
+        "required_tools": sorted(required_tools),
         "paths": {
             "infra_root": str(infra_root),
             "nas_shared": str(nas_root),
@@ -109,9 +132,13 @@ def render_doctor_table(data: dict[str, Any]) -> None:
     t_tool.add_column("Version / Path", style="dim")
 
     for tool_name, info in data["tools"].items():
+        is_required = bool(info.get("required"))
         if info["available"]:
             st = "[green]Available[/green]"
             v = f"{info['version']} ({info['path']})"
+        elif is_required:
+            st = "[yellow]Missing (required) WARN[/yellow]"
+            v = info.get("error") or "-"
         else:
             st = "[red]Missing[/red]"
             v = "-"
@@ -158,10 +185,11 @@ def render_doctor_brief(data: dict[str, Any]) -> None:
     # tool summaries
     tool_strs = []
     for t in ("gcc", "g++", "clang", "make", "cmake", "ruff", "mypy", "pytest", "git"):
-        if tools[t]["available"]:
-            tool_strs.append(f"{t}={tools[t]['version']}")
-        else:
-            tool_strs.append(f"{t}=-")
+        info = tools.get(t, {"available": False})
+        label = f"{t}={info['version']}" if info.get("available") else f"{t}=-"
+        if not info.get("available") and info.get("required"):
+            label += "(!required WARN)"
+        tool_strs.append(label)
     print("tools   " + "  ".join(tool_strs[:5]))
     if len(tool_strs) > 5:
         print("        " + "  ".join(tool_strs[5:]))

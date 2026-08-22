@@ -4,7 +4,7 @@
 
 ---
 
-`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 9대 핵심 검증 엔진과 확장 린트(`cmake_lint` 등, `required=false`)를 제공합니다. 기본 9대는 필수 게이트, 확장 엔진은 `pass_warn`으로 점진 도입됩니다.
+`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 9대 핵심 검증 엔진(`line/lint/test/type/complexity/sanitize/dead/dup/exception`)을 제공합니다.
 
 ---
 
@@ -276,45 +276,6 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - 함수·중첩 함수의 enclosing scope alias는 child 정의 시점의 binding과 그 이후 가능한 alias 이벤트를 호출 graph 없이 path-insensitive하게 함께 고려한다. 정의 전에 안정적으로 shadow되고 이후 alias 가능성이 없는 경우에만 억제하며, class body는 정의 시점 cutoff를 적용한다.
 - C++ 소멸자(`destructor`) 내부 throw와 구문상 비어 있는(syntactically empty) `catch(...)` 감지. 주석·일반/Raw 문자열을 분석에서 제외하고 multiline body도 위치와 함께 보존한다. 표준 raw-string prefix와 `//` line-splice 주석도 마스킹한다. 소멸자 선언이 `;`로 끝나면 뒤의 함수 body를 소멸자로 오인하지 않으며, 빈 catch 계산은 파일별 한 번만 수행한다.
 
-### 2.10 🏗️ `cmake_lint` (CMake 정의 린트)
-- **동작**: `CMakeLists.txt`를 실행 없이 오프라인 정규식으로 파싱. `cmake_minimum_required(VERSION >=3.16)`(RHEL8 `cmake 3.20` 대응), `project()` 존재, `add_subdirectory("..")` 경계 이탈, `CMAKE_CXX_STANDARD 17`, `CMAKE_EXPORT_COMPILE_COMMANDS=ON`을 검사.
-- **설정**: `[engines.cmake_lint] enabled=true, mode="pass_warn", required=false, min_version="3.16"` — 기본 `pass_warn`으로 신규 도입 시 CI를 차단하지 않고 `WARN`으로 점진 적용.
-- **대상**: 프로젝트 경계 내 `CMakeLists.txt`만 검사하며, `build/.venv/.git` 하위는 제외. 파일이 없으면 `PASS`(CMake 프로젝트 아님)로 처리.
-- **보고**: 각 위반은 `InspectionTarget`으로 파일·라인과 함께 `WARN`으로 기록되어 `verify` 요약·`Issues`·`markdown`·`console`에 자동 집계되며, HTML은 요약/Issues 탭에 노출.
-
-### 2.11 📦 `pyproject_lint` (pyproject 메타데이터 린트)
-- **동작**: `pyproject.toml [project]`(PEP 621 부분 집합)를 `tomli`로 오프라인 검증. `name` 문자 집합, `version` 경로 안전성, `requires-python` 존재, `dependencies` 문자열 리스트, `[project.scripts]`의 `module:callable` 형식을 검사.
-- **설정**: `[engines.pyproject_lint] enabled=true, mode="pass_warn", required=false`.
-- **대상**: 루트 `pyproject.toml` 하나. 파일이 없으면 Python 소스가 있을 때만 `WARN`, 그 외 `PASS`. `[project]` 테이블이 없거나 TOML이 깨진 경우 `WARN`.
-
-### 2.12 🧹 `file_hygiene` (파일 시스템 위생 검사)
-- **동작**: 소스 트리를 순회해 실행 비트가 잘못 부여된 소스 파일, CRLF 줄바꿈, UTF-8 BOM, 추적 중인 `__pycache__`/`.pyc` 산출물을 탐지하고, `bash -n`으로 셸 스크립트 문법을 검증한다(`ToolEvidence` 기록).
-- **설정**: `[engines.file_hygiene] enabled=true, mode="pass_warn", required=false`와 `check_exec_bits/check_crlf/check_bom/check_pycache/shell_syntax` boolean 스위치.
-- **대상**: `.venv/build/.git` 등 무시 디렉터리는 prune하며, symlink 파일은 제외한다.
-
-### 2.13 🔧 `toolchain` (툴체인 실측·필수 도구 정책)
-- **동작**: gcc/g++/make/cmake/qmake/gcov/git/python3 등 프로브 테이블(`DEFAULT_PROBES`)로 PATH의 실제 경로와 버전을 실측해 `ToolEvidence`와 `extra.capabilities`에 기록하고, OS/glibc/커널 스냅샷을 `extra.environment`에 남긴다.
-- **정책**: `[engines.toolchain] required_tools = ["g++", "cmake"]`에 지정한 도구가 누락되면 `ERROR`(게이트 차단), 선택 도구 누락은 `WARN`. 기본 `required=false`로 점진 도입.
-- **설계**: OS별 결과를 집계하지 않고 각 실행의 JSON/HTML에서 독립 확인(로드맵 §3.4 계약 유지).
-### 2.13 🐍 `python_compat` (타깃 Python 호환성)
-- **동작**: `[engines.python_compat].targets`에 나열된 각 인터프리터로 소스 디렉터리 전체를 `python -m compileall -q`로 바이트컴파일한다. 타깃 미지정 시 실행 중 인터프리터 1개로 폴백.
-- **정책**: 컴파일 실패는 `FAIL`(mode에 따라 WARN으로 강등 가능), 인터프리터 실행 불가·timeout·출력 절단은 `ERROR`. 모든 시도는 `ToolEvidence`로 기록.
-- **설계**: 런처용 `ICI_PYTHON`과 무관하게 프로젝트 코드의 대상 런타임 호환성을 독립 검증(다중 Target Python).
-
-### 2.15 🏗️ `build_definition` (빌드 정의 Shadow Build)
-- **동작**: `CMakeLists.txt` 또는 `*.pro`를 감지해 `build/ici/<adapter>/` shadow 디렉터리에서 실제 `cmake -S/-B` → `cmake --build` 또는 `qmake -o Makefile` → `make -C`를 `run_process`로 실행하고, `ctest`는 선택적으로 수행. 모든 단계는 `ToolEvidence`와 `ArtifactManifest`로 기록.
-- **설정**: `[engines.build_definition] enabled=true, mode="pass_warn", required=false, adapter="auto"|"cmake"|"qmake", jobs=4, run_ctest=true`.
-- **대상**: 루트에 `CMakeLists.txt`/`*.pro`가 없으면 `PASS`(빌드 프로젝트 아님). 둘 다 존재하거나 `*.pro`가 여러 개면 명시적 `adapter`를 요구.
-
-### 2.16 🗄️ `compile_db` (compile_commands.json 검증)
-- **동작**: `build/ici/cmake/compile_commands.json` 등 알려진 경로의 컴파일 DB를 `tomli`가 아닌 표준 `json`+`shlex`로 파싱해, 모든 C++ 소스가 DB에 포함되는지(`NotInDb`), `required_flags`(예: `-std=c++17`) 충족 여부(`MissingFlag`), 존재하지 않는 include 디렉터리 참조를 검사.
-- **경계**: 각 엔트리의 `directory`/`file`은 프로젝트·빌드 루트 안에 있어야 하며 이탈 시 `BuildAdapterError`.
-- **설정**: `[engines.compile_db] enabled=true, mode="pass_warn", required=false, required_flags=[], path=<선택적 명시 경로>`. DB 부재는 `WARN`(`required=true`면 `ERROR`).
-
-### 2.17 🔍 `static_hygiene` (정적 위생 — 헤더 가드·include 사이클·위험 패턴)
-- **동작**: (1) 모든 `.h/.hpp/.hh`에 `#pragma once` 또는 include 가드 존재 검사, (2) 로컬 `#include` 그래프를 Tarjan SCC로 분석해 순환 참조 탐지, (3) Python 소스에서 `eval/exec/pickle.loads/shell=True/하드코딩 시크릿/개인키 블록` 오프라인 정규식 스캔.
-- **설정**: `[engines.static_hygiene] enabled=true, mode="pass_warn", required=false`와 `check_header_guards/check_include_cycles/check_security_patterns` boolean 스위치.
-- **출력**: 사이클 경로는 `extra.cycles`에, 개별 발견은 `Static:*` target으로 Issues·마크다운·HTML에 자동 집계.
 
 ---
 

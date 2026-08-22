@@ -52,18 +52,6 @@ _ENGINE_KEYS = {
     "dead": _COMMON_ENGINE_KEYS,
     "dup": _COMMON_ENGINE_KEYS | frozenset({"warn_pct", "fail_pct", "min_window"}),
     "exception": _COMMON_ENGINE_KEYS,
-    "cmake_lint": _COMMON_ENGINE_KEYS | frozenset({"min_version"}),
-    "pyproject_lint": _COMMON_ENGINE_KEYS,
-    "file_hygiene": _COMMON_ENGINE_KEYS
-    | frozenset(
-        {
-            "check_exec_bits",
-            "check_crlf",
-            "check_bom",
-            "check_pycache",
-            "shell_syntax",
-        }
-    ),
     "toolchain": _COMMON_ENGINE_KEYS | frozenset({"required_tools", "tools"}),
 }
 
@@ -224,10 +212,11 @@ def _validate_dup(table: dict[str, Any], path: str) -> None:
         raise _error(f"{path}.warn_pct", "must be less than or equal to engines.dup.fail_pct")
 
 
-def _validate_cmake_lint(table: dict[str, Any], path: str) -> None:
+def _validate_toolchain(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
-    if "min_version" in table:
-        _require_string(table["min_version"], f"{path}.min_version", non_empty=True)
+    for key in ("required_tools", "tools"):
+        if key in table:
+            _require_string_list(table[key], f"{path}.{key}")
 
 
 def _validate_build(table: Any) -> None:
@@ -243,20 +232,6 @@ def _validate_build(table: Any) -> None:
     _reject_unknown(python, _BUILD_PYTHON_KEYS, "build.python")
     if "entrypoint" in python:
         _require_string(python["entrypoint"], "build.python.entrypoint", non_empty=True)
-
-
-def _validate_file_hygiene(table: dict[str, Any], path: str) -> None:
-    _validate_common_engine(table, path)
-    for key in ("check_exec_bits", "check_crlf", "check_bom", "check_pycache", "shell_syntax"):
-        if key in table:
-            _require_bool(table[key], f"{path}.{key}")
-
-
-def _validate_toolchain(table: dict[str, Any], path: str) -> None:
-    _validate_common_engine(table, path)
-    for key in ("required_tools", "tools"):
-        if key in table:
-            _require_string_list(table[key], f"{path}.{key}")
 
 
 def _validate_engine(name: str, table: Any) -> None:
@@ -276,12 +251,6 @@ def _validate_engine(name: str, table: Any) -> None:
         _validate_complexity(table, path)
     elif name == "dup":
         _validate_dup(table, path)
-    elif name == "cmake_lint":
-        _validate_cmake_lint(table, path)
-    elif name == "pyproject_lint":
-        _validate_common_engine(table, path)
-    elif name == "file_hygiene":
-        _validate_file_hygiene(table, path)
     elif name == "toolchain":
         _validate_toolchain(table, path)
     else:
