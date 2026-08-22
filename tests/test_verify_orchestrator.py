@@ -32,6 +32,7 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
         for name in (
             "line",
             "cmake_lint",
+            "pyproject_lint",
             "lint",
             "test",
             "type",

@@ -82,6 +82,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "required": False,
             "min_version": "3.16",
         },
+        "pyproject_lint": {
+            "enabled": True,
+            "mode": "pass_warn",
+            "required": False,
+        },
     },
 }
 
