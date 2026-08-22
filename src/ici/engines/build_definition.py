@@ -74,7 +74,8 @@ class BuildDefinitionEngine(BaseEngine):
             summary="No CMakeLists.txt or .pro — nothing to build",
             duration=time.time() - t0,
             targets=[],
-            evidence=EvidenceState.NOT_RUN,
+            required=bool(self.get_config("build_definition").get("required", False)),
+            evidence=EvidenceState.MEASURED,
         )
 
     def _adapter_error(self, message: str, t0: float) -> EngineResult:

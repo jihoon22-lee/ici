@@ -89,9 +89,11 @@ def check_line_endings_and_bom(finding: _Finding, rel: str, path: Path) -> None:
 
 
 def check_pycache(finding: _Finding, rel: str, path: Path) -> None:
-    if "__pycache__" in Path(rel).parts:
-        finding.warn(rel, "PycacheDir", "__pycache__ directory should not be tracked")
-    elif path.suffix == ".pyc":
+    """Flag stray compiled artifacts; runtime __pycache__ dirs are ubiquitous."""
+    parts = Path(rel).parts
+    if "__pycache__" in parts:
+        return
+    if path.suffix in (".pyc", ".pyo"):
         finding.warn(rel, "PycFile", "Compiled .pyc artifact should not be tracked")
 
 
