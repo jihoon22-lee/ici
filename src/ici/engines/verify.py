@@ -13,23 +13,15 @@ from ici.core.models import (
     aggregate_suite_status,
 )
 from ici.core.project import get_project_name
-from ici.engines.build_definition import BuildDefinitionEngine
-from ici.engines.cmake_lint import CMakeLintEngine
-from ici.engines.compile_db import CompileDbEngine
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
-from ici.engines.file_hygiene import FileHygieneEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
 from ici.engines.publish import ReportPublisher
-from ici.engines.pyproject_lint import PyProjectLintEngine
-from ici.engines.python_compat import PythonCompatEngine
 from ici.engines.sanitize import SanitizeEngine
-from ici.engines.static_hygiene import StaticHygieneEngine
 from ici.engines.test import TestEngine
-from ici.engines.toolchain import ToolchainEngine
 from ici.engines.type_check import TypeCheckEngine
 from ici.reporters.console import print_suite_dashboard
 from ici.reporters.html import generate_html_report
@@ -63,9 +55,6 @@ class VerifyOrchestrator:
         # Engine definitions mapping name to Engine class
         engine_defs = [
             ("line", LineCountEngine),
-            ("cmake_lint", CMakeLintEngine),
-            ("pyproject_lint", PyProjectLintEngine),
-            ("file_hygiene", FileHygieneEngine),
             ("lint", LintEngine),
             ("test", TestEngine),
             ("type", TypeCheckEngine),
@@ -74,11 +63,6 @@ class VerifyOrchestrator:
             ("dead", DeadCodeEngine),
             ("dup", DuplicateEngine),
             ("exception", ExceptionSafetyEngine),
-            ("toolchain", ToolchainEngine),
-            ("python_compat", PythonCompatEngine),
-            ("build_definition", BuildDefinitionEngine),
-            ("static_hygiene", StaticHygieneEngine),
-            ("compile_db", CompileDbEngine),
         ]
 
         tem_score = None

@@ -15,15 +15,6 @@ from ici.config import ConfigError, load_config
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
-from ici.engines.build_definition import (
-    BuildDefinitionEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
-from ici.engines.cmake_lint import (
-    CMakeLintEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
-from ici.engines.compile_db import (
-    CompileDbEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
 from ici.engines.complexity import (
     ComplexityEngine,  # noqa: F401 - resolved dynamically by CLI registry
 )
@@ -32,26 +23,11 @@ from ici.engines.dup import DuplicateEngine  # noqa: F401 - resolved dynamically
 from ici.engines.exception import (
     ExceptionSafetyEngine,  # noqa: F401 - resolved dynamically by CLI registry
 )
-from ici.engines.file_hygiene import (
-    FileHygieneEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
 from ici.engines.line import LineCountEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.lint import LintEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.publish import ReportPublisher, load_suite_from_json
-from ici.engines.pyproject_lint import (
-    PyProjectLintEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
-from ici.engines.python_compat import (
-    PythonCompatEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
 from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - resolved dynamically by CLI registry
-from ici.engines.static_hygiene import (
-    StaticHygieneEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
 from ici.engines.test import TestEngine  # noqa: F401 - resolved dynamically by CLI registry
-from ici.engines.toolchain import (
-    ToolchainEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
 from ici.engines.type_check import (
     TypeCheckEngine,  # noqa: F401 - resolved dynamically by CLI registry
 )
@@ -154,54 +130,6 @@ _ENGINE_COMMANDS = [
         "LineCountEngine",
         "line_report.json",
         "Analyzes code/comment/blank line distribution and verifies 500/1000 lines threshold.",
-    ),
-    (
-        "compile-db",
-        "CompileDbEngine",
-        "compile_db_report.json",
-        "Validates compile_commands.json coverage and flag policy.",
-    ),
-    (
-        "static-hygiene",
-        "StaticHygieneEngine",
-        "static_hygiene_report.json",
-        "Detects missing header guards, include cycles, and dangerous patterns.",
-    ),
-    (
-        "build-definition",
-        "BuildDefinitionEngine",
-        "build_definition_report.json",
-        "Configures and builds via the project's declared build system (shadow dir).",
-    ),
-    (
-        "cmake-lint",
-        "CMakeLintEngine",
-        "cmake_lint_report.json",
-        "Validates CMakeLists.txt without executing cmake.",
-    ),
-    (
-        "pyproject-lint",
-        "PyProjectLintEngine",
-        "pyproject_lint_report.json",
-        "Validates pyproject.toml [project] metadata offline.",
-    ),
-    (
-        "toolchain",
-        "ToolchainEngine",
-        "toolchain_report.json",
-        "Probes CI tools and enforces required-tool policy.",
-    ),
-    (
-        "python-compat",
-        "PythonCompatEngine",
-        "python_compat_report.json",
-        "Byte-compiles sources under each configured target interpreter.",
-    ),
-    (
-        "file-hygiene",
-        "FileHygieneEngine",
-        "file_hygiene_report.json",
-        "Detects exec bits, CRLF/BOM, pycache artifacts, and broken shell syntax.",
     ),
     (
         "lint",
@@ -309,13 +237,14 @@ def cmd_publish(
 
 @app.command("doctor")
 def cmd_doctor(
+    ctx: typer.Context,
     brief: bool = typer.Option(
         False, "--brief", help="Concise single-screen brief for closed-network survey"
     ),
     as_json: bool = typer.Option(False, "--json", help="Output machine-readable JSON"),
 ):
     """Diagnoses toolchains, Python candidates, compilers, and shared paths."""
-    data = collect_diagnostics()
+    data = collect_diagnostics(Path.cwd().resolve(), _effective_config(ctx))
     if as_json:
         print(json.dumps(data, indent=2, ensure_ascii=False))
     elif brief:
