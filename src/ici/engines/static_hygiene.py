@@ -128,9 +128,11 @@ def find_include_cycles(graph: dict[Path, set[Path]]) -> list[list[Path]]:
     return components
 
 
-def check_security(finding, project_root: Path) -> None:
+def check_security(finding, project_root: Path, include_tests: bool = False) -> None:
     """Scan Python sources for offline-detectable dangerous patterns."""
     for source in _iter_sources(project_root, frozenset({".py"})):
+        if not include_tests and "tests" in source.relative_to(project_root).parts:
+            continue
         try:
             lines = source.read_text(encoding="utf-8", errors="ignore").splitlines()
         except OSError:
@@ -168,7 +170,7 @@ class StaticHygieneEngine(BaseEngine):
                 finding.warn(first, "IncludeCycle", f"Cycle #{number}: {names}")
                 cycles[f"cycle_{number}"] = [str(p) for p in component]
         if cfg.get("check_security_patterns", True):
-            check_security(finding, self.project_root)
+            check_security(finding, self.project_root, bool(cfg.get("security_scan_tests", False)))
 
         issue_count = sum(1 for target in finding.targets if target.status != EngineStatus.PASS)
         status = self.evaluate_status(False, issue_count > 0, mode)

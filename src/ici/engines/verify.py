@@ -27,6 +27,7 @@ from ici.engines.publish import ReportPublisher
 from ici.engines.pyproject_lint import PyProjectLintEngine
 from ici.engines.python_compat import PythonCompatEngine
 from ici.engines.sanitize import SanitizeEngine
+from ici.engines.static_hygiene import StaticHygieneEngine
 from ici.engines.test import TestEngine
 from ici.engines.toolchain import ToolchainEngine
 from ici.engines.type_check import TypeCheckEngine
@@ -76,6 +77,7 @@ class VerifyOrchestrator:
             ("toolchain", ToolchainEngine),
             ("python_compat", PythonCompatEngine),
             ("build_definition", BuildDefinitionEngine),
+            ("static_hygiene", StaticHygieneEngine),
             ("compile_db", CompileDbEngine),
         ]
 

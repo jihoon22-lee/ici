@@ -27,6 +27,7 @@ from ici.engines.lint import LintEngine
 from ici.engines.pyproject_lint import PyProjectLintEngine
 from ici.engines.python_compat import PythonCompatEngine
 from ici.engines.sanitize import SanitizeEngine
+from ici.engines.static_hygiene import StaticHygieneEngine
 from ici.engines.test import TestEngine
 from ici.engines.toolchain import ToolchainEngine
 from ici.engines.type_check import TypeCheckEngine
@@ -149,6 +150,20 @@ def cmd_compile_db(
     _print_engine_result(res)
     if report:
         _save_single_report("compile_db_report.json", res)
+    _exit_for_safety_status(res.status)
+
+
+@app.command("static-hygiene")
+def cmd_static_hygiene(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save static-hygiene report"),
+):
+    """Detects missing header guards, include cycles, and dangerous patterns."""
+    engine = _create_engine(StaticHygieneEngine, _effective_config(ctx))
+    res = engine.run()
+    _print_engine_result(res)
+    if report:
+        _save_single_report("static_hygiene_report.json", res)
     _exit_for_safety_status(res.status)
 
 

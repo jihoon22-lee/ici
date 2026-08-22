@@ -81,3 +81,30 @@ def test_disabled_checks_respected(tmp_path: Path):
     (tmp_path / "include" / "x.h").write_text("int x;\n", encoding="utf-8")
     result = StaticHygieneEngine(tmp_path, cfg).run()
     assert result.status == EngineStatus.PASS
+
+
+def test_security_scan_skips_tests_dir_by_default(tmp_path: Path):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "fixture.py").write_text(
+        'value = eval(user)\nSECRET = "super-secret-key"\n', encoding="utf-8"
+    )
+    result = StaticHygieneEngine(tmp_path, _CFG).run()
+    assert result.status == EngineStatus.PASS
+
+
+def test_security_scan_include_tests_optin(tmp_path: Path):
+    cfg = {
+        "engines": {
+            "static_hygiene": {
+                "mode": "pass_warn",
+                "required": False,
+                "security_scan_tests": True,
+            }
+        }
+    }
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "fixture.py").write_text("value = eval(user)\n", encoding="utf-8")
+    result = StaticHygieneEngine(tmp_path, cfg).run()
+    assert result.status == EngineStatus.WARN
