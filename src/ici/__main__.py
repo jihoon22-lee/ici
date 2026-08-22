@@ -3,6 +3,7 @@
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import typer
@@ -14,24 +15,46 @@ from ici.config import ConfigError, load_config
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
-from ici.engines.build_definition import BuildDefinitionEngine
-from ici.engines.cmake_lint import CMakeLintEngine
-from ici.engines.compile_db import CompileDbEngine
-from ici.engines.complexity import ComplexityEngine
-from ici.engines.dead import DeadCodeEngine
-from ici.engines.dup import DuplicateEngine
-from ici.engines.exception import ExceptionSafetyEngine
-from ici.engines.file_hygiene import FileHygieneEngine
-from ici.engines.line import LineCountEngine
-from ici.engines.lint import LintEngine
+from ici.engines.build_definition import (
+    BuildDefinitionEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
+from ici.engines.cmake_lint import (
+    CMakeLintEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
+from ici.engines.compile_db import (
+    CompileDbEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
+from ici.engines.complexity import (
+    ComplexityEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
+from ici.engines.dead import DeadCodeEngine  # noqa: F401 - resolved dynamically by CLI registry
+from ici.engines.dup import DuplicateEngine  # noqa: F401 - resolved dynamically by CLI registry
+from ici.engines.exception import (
+    ExceptionSafetyEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
+from ici.engines.file_hygiene import (
+    FileHygieneEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
+from ici.engines.line import LineCountEngine  # noqa: F401 - resolved dynamically by CLI registry
+from ici.engines.lint import LintEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.publish import ReportPublisher, load_suite_from_json
-from ici.engines.pyproject_lint import PyProjectLintEngine
-from ici.engines.python_compat import PythonCompatEngine
-from ici.engines.sanitize import SanitizeEngine
-from ici.engines.static_hygiene import StaticHygieneEngine
-from ici.engines.test import TestEngine
-from ici.engines.toolchain import ToolchainEngine
-from ici.engines.type_check import TypeCheckEngine
+from ici.engines.pyproject_lint import (
+    PyProjectLintEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
+from ici.engines.python_compat import (
+    PythonCompatEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
+from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - resolved dynamically by CLI registry
+from ici.engines.static_hygiene import (
+    StaticHygieneEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
+from ici.engines.test import TestEngine  # noqa: F401 - resolved dynamically by CLI registry
+from ici.engines.toolchain import (
+    ToolchainEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
+from ici.engines.type_check import (
+    TypeCheckEngine,  # noqa: F401 - resolved dynamically by CLI registry
+)
 from ici.engines.verify import VerifyOrchestrator
 from ici.reporters.console import print_line_distribution_chart
 from ici.reporters.json_rep import save_engine_json_report
@@ -122,245 +145,149 @@ def cmd_build(ctx: typer.Context):
     _exit_for_safety_status(res.status)
 
 
-@app.command("line")
-def cmd_line(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save line report"),
+# --- Engine subcommands are generated from a single registry (keeps CLI
+# boilerplate free of per-engine duplication; see dogfood dup gate). ---
+
+_ENGINE_COMMANDS = [
+    (
+        "line",
+        "LineCountEngine",
+        "line_report.json",
+        "Analyzes code/comment/blank line distribution and verifies 500/1000 lines threshold.",
+    ),
+    (
+        "compile-db",
+        "CompileDbEngine",
+        "compile_db_report.json",
+        "Validates compile_commands.json coverage and flag policy.",
+    ),
+    (
+        "static-hygiene",
+        "StaticHygieneEngine",
+        "static_hygiene_report.json",
+        "Detects missing header guards, include cycles, and dangerous patterns.",
+    ),
+    (
+        "build-definition",
+        "BuildDefinitionEngine",
+        "build_definition_report.json",
+        "Configures and builds via the project's declared build system (shadow dir).",
+    ),
+    (
+        "cmake-lint",
+        "CMakeLintEngine",
+        "cmake_lint_report.json",
+        "Validates CMakeLists.txt without executing cmake.",
+    ),
+    (
+        "pyproject-lint",
+        "PyProjectLintEngine",
+        "pyproject_lint_report.json",
+        "Validates pyproject.toml [project] metadata offline.",
+    ),
+    (
+        "toolchain",
+        "ToolchainEngine",
+        "toolchain_report.json",
+        "Probes CI tools and enforces required-tool policy.",
+    ),
+    (
+        "python-compat",
+        "PythonCompatEngine",
+        "python_compat_report.json",
+        "Byte-compiles sources under each configured target interpreter.",
+    ),
+    (
+        "file-hygiene",
+        "FileHygieneEngine",
+        "file_hygiene_report.json",
+        "Detects exec bits, CRLF/BOM, pycache artifacts, and broken shell syntax.",
+    ),
+    (
+        "lint",
+        "LintEngine",
+        "lint_report.json",
+        "Runs Ruff/AST Python checks and g++ syntax diagnostics for C/C++ sources.",
+    ),
+    (
+        "test",
+        "TestEngine",
+        "test_report.json",
+        "Runs unit tests, measures branch/function coverage, and calculates TEM 5.0 score.",
+    ),
+    (
+        "type",
+        "TypeCheckEngine",
+        "type_report.json",
+        "Runs Mypy or the labeled AST fallback; C++ type checking is explicitly skipped.",
+    ),
+    (
+        "complexity",
+        "ComplexityEngine",
+        "complexity_report.json",
+        "Analyzes Cyclomatic Complexity and maximum block nesting depth per function.",
+    ),
+    (
+        "sanitize",
+        "SanitizeEngine",
+        "sanitize_report.json",
+        "Runs AddressSanitizer/UBSan for C++ and resource leak checks for Python.",
+    ),
+    (
+        "dead",
+        "DeadCodeEngine",
+        "dead_report.json",
+        "Detects unused functions, unreachable statements, and orphaned symbols.",
+    ),
+    (
+        "dup",
+        "DuplicateEngine",
+        "dup_report.json",
+        "Detects copy-pasted duplicate code blocks and calculates codebase duplication rate.",
+    ),
+    (
+        "exception",
+        "ExceptionSafetyEngine",
+        "exception_report.json",
+        "Detects exception swallowing (except: pass), lost tracebacks, and destructor throws.",
+    ),
+]
+
+
+def _run_engine_command(
+    engine_cls_name: str, report_filename: str, ctx: typer.Context, report: bool
 ):
-    """Analyzes code/comment/blank line distribution and verifies 500/1000 lines threshold."""
-    engine = _create_engine(LineCountEngine, _effective_config(ctx))
+    # Resolve via module attribute so tests can monkeypatch engine classes.
+    engine_cls = getattr(sys.modules[__name__], engine_cls_name)
+    engine = _create_engine(engine_cls, _effective_config(ctx))
     res = engine.run()
     _print_engine_result(res)
-    extra = res.extra
-    print_line_distribution_chart(
-        extra.get("code", 0), extra.get("comment", 0), extra.get("blank", 0), extra.get("total", 0)
-    )
+    if res.engine_name == "line":
+        extra = res.extra
+        print_line_distribution_chart(
+            extra.get("code", 0),
+            extra.get("comment", 0),
+            extra.get("blank", 0),
+            extra.get("total", 0),
+        )
     if report:
-        _save_single_report("line_report.json", res)
+        _save_single_report(report_filename, res)
     _exit_for_safety_status(res.status)
 
 
-@app.command("compile-db")
-def cmd_compile_db(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save compile-db report"),
-):
-    """Validates compile_commands.json coverage and flag policy."""
-    engine = _create_engine(CompileDbEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("compile_db_report.json", res)
-    _exit_for_safety_status(res.status)
+for _name, _cls, _filename, _doc in _ENGINE_COMMANDS:
 
+    def _make_handler(_cls_name=_cls, _report_filename=_filename, _doc=_doc):
+        def handler(
+            ctx: typer.Context,
+            report: bool = typer.Option(False, "--report", "-r", help="Save JSON report"),
+        ):
+            _run_engine_command(_cls_name, _report_filename, ctx, report)
 
-@app.command("static-hygiene")
-def cmd_static_hygiene(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save static-hygiene report"),
-):
-    """Detects missing header guards, include cycles, and dangerous patterns."""
-    engine = _create_engine(StaticHygieneEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("static_hygiene_report.json", res)
-    _exit_for_safety_status(res.status)
+        handler.__doc__ = _doc
+        return handler
 
-
-@app.command("build-definition")
-def cmd_build_definition(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save build-definition report"),
-):
-    """Configures and builds via the project's declared build system (shadow dir)."""
-    engine = _create_engine(BuildDefinitionEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("build_definition_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("cmake-lint")
-def cmd_cmake_lint(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save cmake-lint report"),
-):
-    """Validates CMakeLists.txt without executing cmake."""
-    engine = _create_engine(CMakeLintEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("cmake_lint_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("pyproject-lint")
-def cmd_pyproject_lint(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save pyproject-lint report"),
-):
-    """Validates pyproject.toml [project] metadata offline."""
-    engine = _create_engine(PyProjectLintEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("pyproject_lint_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("toolchain")
-def cmd_toolchain(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save toolchain report"),
-):
-    """Probes CI tools and enforces required-tool policy."""
-    engine = _create_engine(ToolchainEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("toolchain_report.json", res)
-
-
-@app.command("python-compat")
-def cmd_python_compat(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save python-compat report"),
-):
-    """Byte-compiles sources under each configured target interpreter."""
-    engine = _create_engine(PythonCompatEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("python_compat_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("file-hygiene")
-def cmd_file_hygiene(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save file-hygiene report"),
-):
-    """Detects exec bits, CRLF/BOM, pycache artifacts, and broken shell syntax."""
-    engine = _create_engine(FileHygieneEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("file_hygiene_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("lint")
-def cmd_lint(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save lint report"),
-):
-    """Runs Ruff/AST Python checks and g++ syntax diagnostics for C/C++ sources."""
-    engine = _create_engine(LintEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("lint_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("test")
-def cmd_test(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save test report"),
-):
-    """Runs unit tests, measures branch/function coverage, and calculates TEM 5.0 score."""
-    engine = _create_engine(TestEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("test_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("type")
-def cmd_type(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save type report"),
-):
-    """Runs Mypy or the labeled AST fallback; C++ type checking is explicitly skipped."""
-    engine = _create_engine(TypeCheckEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("type_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("complexity")
-def cmd_complexity(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save complexity report"),
-):
-    """Analyzes Cyclomatic Complexity and maximum block nesting depth per function."""
-    engine = _create_engine(ComplexityEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("complexity_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("sanitize")
-def cmd_sanitize(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save sanitize report"),
-):
-    """Runs AddressSanitizer/UBSan for C++ and resource leak checks for Python."""
-    engine = _create_engine(SanitizeEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("sanitize_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("dead")
-def cmd_dead(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save dead code report"),
-):
-    """Detects unused functions, unreachable statements, and orphaned symbols."""
-    engine = _create_engine(DeadCodeEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("dead_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("dup")
-def cmd_dup(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save duplication report"),
-):
-    """Detects copy-pasted duplicate code blocks and calculates codebase duplication rate."""
-    engine = _create_engine(DuplicateEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("dup_report.json", res)
-    _exit_for_safety_status(res.status)
-
-
-@app.command("exception")
-def cmd_exception(
-    ctx: typer.Context,
-    report: bool = typer.Option(False, "--report", "-r", help="Save exception safety report"),
-):
-    """Detects exception swallowing (except: pass), lost tracebacks, and destructor throws."""
-    engine = _create_engine(ExceptionSafetyEngine, _effective_config(ctx))
-    res = engine.run()
-    _print_engine_result(res)
-    if report:
-        _save_single_report("exception_report.json", res)
-    _exit_for_safety_status(res.status)
+    app.command(_name)(_make_handler())
 
 
 @app.command("publish")

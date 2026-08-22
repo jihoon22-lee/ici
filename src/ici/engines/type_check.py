@@ -210,18 +210,19 @@ class TypeCheckEngine(BaseEngine):
                 continue
             match = _MYPY_DIAGNOSTIC_RE.fullmatch(line)
             if match:
-                has_error = has_error or match.group("kind") == "error"
+                is_error = match.group("kind") == "error"
+                has_error = has_error or is_error
+                rel_file = self._diagnostic_path(match.group("file"))
+                message = match.group("message")
+                if not is_error and _merge_note_target(targets, rel_file, message):
+                    continue
                 targets.append(
                     InspectionTarget(
-                        file_path=self._diagnostic_path(match.group("file")),
+                        file_path=rel_file,
                         start_line=int(match.group("line")),
-                        target_name=("MypyError" if match.group("kind") == "error" else "MypyNote"),
-                        status=(
-                            EngineStatus.FAIL
-                            if match.group("kind") == "error"
-                            else EngineStatus.WARN
-                        ),
-                        message=match.group("message"),
+                        target_name="MypyError" if is_error else "MypyNote",
+                        status=EngineStatus.FAIL if is_error else EngineStatus.WARN,
+                        message=message,
                     )
                 )
                 continue
@@ -239,13 +240,16 @@ class TypeCheckEngine(BaseEngine):
             rel_path = self._diagnostic_path(match.group("file"))
         except (TypeError, ValueError):
             rel_path = match.group("file")
+        message = match.group("message")
+        if kind != "error" and _merge_note_target(targets, rel_path, message):
+            return
         targets.append(
             InspectionTarget(
                 file_path=rel_path,
                 start_line=int(match.group("line")),
                 target_name="MypyError" if kind == "error" else "MypyNote",
                 status=EngineStatus.FAIL if kind == "error" else EngineStatus.WARN,
-                message=match.group("message"),
+                message=message,
             )
         )
 
@@ -406,3 +410,16 @@ class TypeCheckEngine(BaseEngine):
                 _ = err
 
         return False
+
+
+def _merge_note_target(targets: list[InspectionTarget], rel_file: str, message: str) -> bool:
+    """Fold repeated identical notes into the first target (adds a repeat count)."""
+    for target in targets:
+        if (
+            target.target_name == "MypyNote"
+            and target.file_path == rel_file
+            and target.message == message
+        ):
+            target.metrics["repeats"] = int(target.metrics.get("repeats", 1)) + 1
+            return True
+    return False
