@@ -65,6 +65,19 @@ def _has_exec_bit(path: Path) -> bool:
         return False
 
 
+def _exec_bits_are_meaningless(project_root: Path, sample_size: int = 12) -> bool:
+    """Detect WSL/drvfs-style mounts where every file reports mode 0777.
+
+    When every sampled source file carries the execute bit there is no real
+    permission signal to check (Windows drive mounts), so the exec-bit check
+    would only produce noise.
+    """
+    samples = [p for p in _iter_candidate_files(project_root) if p.suffix == ".py"][:sample_size]
+    if len(samples) < 3:
+        return False
+    return all(_has_exec_bit(p) for p in samples)
+
+
 def check_exec_bit(finding: _Finding, rel: str, path: Path) -> None:
     if path.suffix in _TEXT_SUFFIXES - _SHELL_SUFFIXES and _has_exec_bit(path):
         finding.warn(rel, "ExecBit", "Source file should not be executable")
@@ -107,10 +120,13 @@ class FileHygieneEngine(BaseEngine):
         required = bool(cfg.get("required", False))
         tool_evidence: list[ToolEvidence] = []
         finding = _Finding()
+        exec_check_on = bool(cfg.get("check_exec_bits", True)) and not (
+            _exec_bits_are_meaningless(self.project_root)
+        )
 
         for path in _iter_candidate_files(self.project_root):
             rel = str(path.relative_to(self.project_root))
-            self._check_one(cfg, finding, rel, path)
+            self._check_one(cfg, finding, rel, path, exec_check_on)
 
         if cfg.get("shell_syntax", True):
             tool_evidence = self._check_shell_syntax(finding)
@@ -133,13 +149,15 @@ class FileHygieneEngine(BaseEngine):
             tool_evidence=tool_evidence,
         )
 
-    def _check_one(self, cfg: dict, finding: _Finding, rel: str, path: Path) -> None:
+    def _check_one(
+        self, cfg: dict, finding: _Finding, rel: str, path: Path, exec_check_on: bool
+    ) -> None:
         """Run every enabled textual check against one file."""
         if cfg.get("check_pycache", True):
             check_pycache(finding, rel, path)
         if path.suffix not in _TEXT_SUFFIXES:
             return
-        if cfg.get("check_exec_bits", True):
+        if exec_check_on:
             check_exec_bit(finding, rel, path)
         if cfg.get("check_crlf", True) or cfg.get("check_bom", True):
             check_line_endings_and_bom(finding, rel, path)
