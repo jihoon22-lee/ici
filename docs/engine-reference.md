@@ -287,6 +287,11 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **설정**: `[engines.pyproject_lint] enabled=true, mode="pass_warn", required=false`.
 - **대상**: 루트 `pyproject.toml` 하나. 파일이 없으면 Python 소스가 있을 때만 `WARN`, 그 외 `PASS`. `[project]` 테이블이 없거나 TOML이 깨진 경우 `WARN`.
 
+### 2.12 🧹 `file_hygiene` (파일 시스템 위생 검사)
+- **동작**: 소스 트리를 순회해 실행 비트가 잘못 부여된 소스 파일, CRLF 줄바꿈, UTF-8 BOM, 추적 중인 `__pycache__`/`.pyc` 산출물을 탐지하고, `bash -n`으로 셸 스크립트 문법을 검증한다(`ToolEvidence` 기록).
+- **설정**: `[engines.file_hygiene] enabled=true, mode="pass_warn", required=false`와 `check_exec_bits/check_crlf/check_bom/check_pycache/shell_syntax` boolean 스위치.
+- **대상**: `.venv/build/.git` 등 무시 디렉터리는 prune하며, symlink 파일은 제외한다.
+
 ---
 
 > **다음 단계**: [⚙️ CI/CD 연동 가이드](ci-integration.md)에서 GitHub Actions 및 폐쇄망 러너 연동법을 확인하세요.
