@@ -306,6 +306,11 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **설정**: `[engines.build_definition] enabled=true, mode="pass_warn", required=false, adapter="auto"|"cmake"|"qmake", jobs=4, run_ctest=true`.
 - **대상**: 루트에 `CMakeLists.txt`/`*.pro`가 없으면 `PASS`(빌드 프로젝트 아님). 둘 다 존재하거나 `*.pro`가 여러 개면 명시적 `adapter`를 요구.
 
+### 2.16 🗄️ `compile_db` (compile_commands.json 검증)
+- **동작**: `build/ici/cmake/compile_commands.json` 등 알려진 경로의 컴파일 DB를 `tomli`가 아닌 표준 `json`+`shlex`로 파싱해, 모든 C++ 소스가 DB에 포함되는지(`NotInDb`), `required_flags`(예: `-std=c++17`) 충족 여부(`MissingFlag`), 존재하지 않는 include 디렉터리 참조를 검사.
+- **경계**: 각 엔트리의 `directory`/`file`은 프로젝트·빌드 루트 안에 있어야 하며 이탈 시 `BuildAdapterError`.
+- **설정**: `[engines.compile_db] enabled=true, mode="pass_warn", required=false, required_flags=[], path=<선택적 명시 경로>`. DB 부재는 `WARN`(`required=true`면 `ERROR`).
+
 ---
 
 > **다음 단계**: [⚙️ CI/CD 연동 가이드](ci-integration.md)에서 GitHub Actions 및 폐쇄망 러너 연동법을 확인하세요.

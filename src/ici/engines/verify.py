@@ -15,6 +15,7 @@ from ici.core.models import (
 from ici.core.project import get_project_name
 from ici.engines.build_definition import BuildDefinitionEngine
 from ici.engines.cmake_lint import CMakeLintEngine
+from ici.engines.compile_db import CompileDbEngine
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
@@ -75,6 +76,7 @@ class VerifyOrchestrator:
             ("toolchain", ToolchainEngine),
             ("python_compat", PythonCompatEngine),
             ("build_definition", BuildDefinitionEngine),
+            ("compile_db", CompileDbEngine),
         ]
 
         tem_score = None
