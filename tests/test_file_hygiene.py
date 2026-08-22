@@ -35,13 +35,16 @@ def test_crlf_and_bom_warn(tmp_path: Path):
     assert "Hygiene:Crlf" in names
 
 
-def test_pycache_artifacts_warn(tmp_path: Path):
+def test_stray_pyc_warns_but_runtime_pycache_ignored(tmp_path: Path):
     cache = tmp_path / "src" / "__pycache__"
     cache.mkdir(parents=True)
     (cache / "app.cpython-310.pyc").write_bytes(b"\x00")
+    (tmp_path / "src" / "stray.pyc").write_bytes(b"\x00")
     result = FileHygieneEngine(tmp_path, _CFG).run()
     names = {t.target_name for t in result.targets}
-    assert "Hygiene:PycacheDir" in names or "Hygiene:PycFile" in names
+    assert "Hygiene:PycFile" in names
+    stray = [t for t in result.targets if t.target_name == "Hygiene:PycFile"]
+    assert all("stray" in t.file_path for t in stray)
 
 
 def test_broken_shell_script_warns_with_evidence(tmp_path: Path):

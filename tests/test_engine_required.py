@@ -44,6 +44,7 @@ def test_verify_orchestrator_preserves_required_policy_for_line_complexity_and_d
                 "file_hygiene",
                 "toolchain",
                 "python_compat",
+                "build_definition",
                 "lint",
                 "test",
                 "type",
