@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### Added
+- **정적 위생 엔진 (`static_hygiene`)**: C++ 헤더 가드 누락, `#include` 순환 참조(Tarjan SCC), Python 위험 패턴(`eval`/`exec`/`pickle`/`shell=True`/하드코딩 시크릿)을 오프라인 정규식으로 탐지. `tests/` 기본 제외(`security_scan_tests` opt-in). `ici static-hygiene` 단독 실행 지원.
 - **컴파일 DB 검증 (`compile_db`)**: `compile_commands.json`을 파싱해 C++ 소스 커버리지·필수 플래그·include 경로 존재를 오프라인 검증. 경계 이탈 엔트리 거부, `ici compile-db` 단독 실행 지원.
 - **빌드 정의 Shadow Build (`build_definition`)**: `CMakeLists.txt`/`*.pro`를 감지해 shadow 빌드를 수행하는 어댑터 엔진. `cmake`/`ctest`/`qmake`/`make`를 argv-only로 실행하고 `ArtifactManifest`를 기록. `ici build-definition` 단독 실행 지원.
 - **툴체인 실측 엔진 (`toolchain`)**: PATH상 빌드 도구 8종(gcc/g++/make/cmake/qmake/gcov/git/python3)의 실제 경로·버전을 프로브하여 `ToolEvidence`·`capabilities`로 기록하고, `required_tools` 누락 시 `ERROR`로 게이트 차단. OS 환경 스냅샷을 `environment`로 보존. `ici toolchain` 단독 실행 지원.

@@ -311,6 +311,11 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **경계**: 각 엔트리의 `directory`/`file`은 프로젝트·빌드 루트 안에 있어야 하며 이탈 시 `BuildAdapterError`.
 - **설정**: `[engines.compile_db] enabled=true, mode="pass_warn", required=false, required_flags=[], path=<선택적 명시 경로>`. DB 부재는 `WARN`(`required=true`면 `ERROR`).
 
+### 2.17 🔍 `static_hygiene` (정적 위생 — 헤더 가드·include 사이클·위험 패턴)
+- **동작**: (1) 모든 `.h/.hpp/.hh`에 `#pragma once` 또는 include 가드 존재 검사, (2) 로컬 `#include` 그래프를 Tarjan SCC로 분석해 순환 참조 탐지, (3) Python 소스에서 `eval/exec/pickle.loads/shell=True/하드코딩 시크릿/개인키 블록` 오프라인 정규식 스캔.
+- **설정**: `[engines.static_hygiene] enabled=true, mode="pass_warn", required=false`와 `check_header_guards/check_include_cycles/check_security_patterns` boolean 스위치.
+- **출력**: 사이클 경로는 `extra.cycles`에, 개별 발견은 `Static:*` target으로 Issues·마크다운·HTML에 자동 집계.
+
 ---
 
-> **다음 단계**: [⚙️ CI/CD 연동 가이드](ci-integration.md)에서 GitHub Actions 및 폐쇄망 러너 연동법을 확인하세요.
+> **다음 단계**
