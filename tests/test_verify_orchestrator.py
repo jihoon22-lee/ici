@@ -35,6 +35,7 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
             "pyproject_lint",
             "file_hygiene",
             "toolchain",
+            "python_compat",
             "lint",
             "test",
             "type",

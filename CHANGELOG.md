@@ -9,6 +9,7 @@
 
 ### Added
 - **툴체인 실측 엔진 (`toolchain`)**: PATH상 빌드 도구 8종(gcc/g++/make/cmake/qmake/gcov/git/python3)의 실제 경로·버전을 프로브하여 `ToolEvidence`·`capabilities`로 기록하고, `required_tools` 누락 시 `ERROR`로 게이트 차단. OS 환경 스냅샷을 `environment`로 보존. `ici toolchain` 단독 실행 지원.
+- **Python 호환성 엔진 (`python_compat`)**: 설정된 각 타깃 인터프리터로 소스 전체 `compileall`을 수행해 문법 호환성을 실측. 실패는 FAIL, 도구 오류는 ERROR, 전 시도는 ToolEvidence 기록. `ici python-compat` 단독 실행 지원.
 - **파일 위생 검사 (`file_hygiene`)**: 실행 비트 오부여, CRLF, UTF-8 BOM, `__pycache__`/`.pyc` 추적 산출물 탐지 + `bash -n` 셸 문법 검증(`ToolEvidence`) 신규 엔진. 기본 `enabled=true, required=false, mode=pass_warn`, 체크별 boolean 스위치 제공. `ici file-hygiene` 단독 실행 지원.
 - **pyproject 메타데이터 린트 (`pyproject_lint`)**: `pyproject.toml [project]`(PEP 621 부분 집합)를 오프라인 검증하는 신규 엔진. `name`, `version`, `requires-python`, `dependencies`, `[project.scripts]` 형식을 검사하며 기본 `enabled=true, required=false, mode=pass_warn`. `ici pyproject-lint` 단독 실행 지원.
 - **CMake 정의 린트 (`cmake_lint`)**: `CMakeLists.txt`를 실행 없이 파싱하는 신규 엔진. `cmake_minimum_required(VERSION >=3.16)`, `project()`, `add_subdirectory("..")` 경계 이탈, `CMAKE_CXX_STANDARD 17`, `CMAKE_EXPORT_COMPILE_COMMANDS=ON`을 검사하며, 기본 `enabled=true, required=false, mode=pass_warn`로 점진 도입. `ici verify` 요약/Issues·`ici cmake-lint` 단독 실행·`verify` HTML/Markdown/콘솔에 자동 집계.

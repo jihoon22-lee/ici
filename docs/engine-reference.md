@@ -296,6 +296,10 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **동작**: gcc/g++/make/cmake/qmake/gcov/git/python3 등 프로브 테이블(`DEFAULT_PROBES`)로 PATH의 실제 경로와 버전을 실측해 `ToolEvidence`와 `extra.capabilities`에 기록하고, OS/glibc/커널 스냅샷을 `extra.environment`에 남긴다.
 - **정책**: `[engines.toolchain] required_tools = ["g++", "cmake"]`에 지정한 도구가 누락되면 `ERROR`(게이트 차단), 선택 도구 누락은 `WARN`. 기본 `required=false`로 점진 도입.
 - **설계**: OS별 결과를 집계하지 않고 각 실행의 JSON/HTML에서 독립 확인(로드맵 §3.4 계약 유지).
+### 2.13 🐍 `python_compat` (타깃 Python 호환성)
+- **동작**: `[engines.python_compat].targets`에 나열된 각 인터프리터로 소스 디렉터리 전체를 `python -m compileall -q`로 바이트컴파일한다. 타깃 미지정 시 실행 중 인터프리터 1개로 폴백.
+- **정책**: 컴파일 실패는 `FAIL`(mode에 따라 WARN으로 강등 가능), 인터프리터 실행 불가·timeout·출력 절단은 `ERROR`. 모든 시도는 `ToolEvidence`로 기록.
+- **설계**: 런처용 `ICI_PYTHON`과 무관하게 프로젝트 코드의 대상 런타임 호환성을 독립 검증(다중 Target Python).
 
 ---
 
