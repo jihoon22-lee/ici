@@ -13,6 +13,7 @@ from ici.core.models import (
     aggregate_suite_status,
 )
 from ici.core.project import get_project_name
+from ici.engines.cmake_lint import CMakeLintEngine
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
@@ -55,6 +56,7 @@ class VerifyOrchestrator:
         # Engine definitions mapping name to Engine class
         engine_defs = [
             ("line", LineCountEngine),
+            ("cmake_lint", CMakeLintEngine),
             ("lint", LintEngine),
             ("test", TestEngine),
             ("type", TypeCheckEngine),

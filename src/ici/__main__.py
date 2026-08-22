@@ -14,6 +14,7 @@ from ici.config import ConfigError, load_config
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
+from ici.engines.cmake_lint import CMakeLintEngine
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
@@ -128,6 +129,20 @@ def cmd_line(
     )
     if report:
         _save_single_report("line_report.json", res)
+    _exit_for_safety_status(res.status)
+
+
+@app.command("cmake-lint")
+def cmd_cmake_lint(
+    ctx: typer.Context,
+    report: bool = typer.Option(False, "--report", "-r", help="Save cmake-lint report"),
+):
+    """Validates CMakeLists.txt without executing cmake."""
+    engine = _create_engine(CMakeLintEngine, _effective_config(ctx))
+    res = engine.run()
+    _print_engine_result(res)
+    if report:
+        _save_single_report("cmake_lint_report.json", res)
     _exit_for_safety_status(res.status)
 
 

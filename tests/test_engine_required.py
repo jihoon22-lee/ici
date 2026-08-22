@@ -39,6 +39,7 @@ def test_verify_orchestrator_preserves_required_policy_for_line_complexity_and_d
             name: {"enabled": name in names, "required": False}
             for name in (
                 "line",
+                "cmake_lint",
                 "lint",
                 "test",
                 "type",
