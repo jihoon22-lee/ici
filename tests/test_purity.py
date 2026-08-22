@@ -107,12 +107,29 @@ def test_ci_verification_checkout_does_not_persist_credentials():
     assert "persist-credentials: false" in checkout.group("body")
 
 
-def test_ci_only_trusted_publish_job_uses_publish_and_token():
+def test_ci_privileged_tokens_confined_to_publish_jobs():
+    """--publish/GITHUB_TOKEN appear only inside the privileged publish jobs."""
     workflow = _workflow("ci.yml")
-    publish = _job_block(workflow, "publish-main")
-    assert workflow.count("--publish") == publish.count("--publish")
-    assert workflow.count("GITHUB_TOKEN") == publish.count("GITHUB_TOKEN")
+    privileged = _job_block(workflow, "publish-main") + _job_block(workflow, "report-pr")
+    assert workflow.count("--publish") == privileged.count("--publish")
+    assert workflow.count("GITHUB_TOKEN") == privileged.count("GITHUB_TOKEN")
+    # verify job must stay read-only: no token, no publish flag in its block
+    verify_block = _job_block(workflow, "verify")
+    assert "--publish" not in verify_block
+    assert "GITHUB_TOKEN" not in verify_block
     assert workflow.count("github.token") == 0
+
+
+def test_report_pr_job_consumes_artifact_not_pr_code():
+    """report-pr downloads artifacts and never checks out the PR ref with creds."""
+    workflow = _workflow("ci.yml")
+    report_job = _job_block(workflow, "report-pr")
+    assert "actions/download-artifact@" in report_job
+    assert "ici-verification-report" in report_job
+    assert "persist-credentials: false" in report_job
+    assert "dist/ici.pyz publish" in report_job
+    # the comment path needs pull-requests write, declared only in this job
+    assert "pull-requests: write" in report_job
 
 
 def test_ci_and_release_actions_are_immutable_node24_pins():
@@ -120,6 +137,7 @@ def test_ci_and_release_actions_are_immutable_node24_pins():
         "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
         "actions/setup-python": "5fda3b95a4ea91299a34e894583c3862153e4b97",
         "actions/upload-artifact": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "actions/download-artifact": "d3f86a106a0bac45b974a628896c90dbdf5c8093",
         "astral-sh/setup-uv": "20cfd1bf945f4377ade1205e4dbc17946fc9a30d",
         "softprops/action-gh-release": "3d0d9888cb7fd7b750713d6e236d1fcb99157228",
     }

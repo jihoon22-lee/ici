@@ -34,11 +34,34 @@ PR에서 확인할 수 있는 결과는 다음과 같습니다.
 - GitHub Step Summary: 엔진별 상태와 위치 링크
 - GitHub Actions annotations: FAIL/ERROR/WARN/SKIP 위치 진단
 - `ici-verification-report` 아티팩트: `verify_report.json`, `verify_report.html`
+- **sticky PR 댓글** (`report-pr` job): HTML 리포트 링크 + 엔진 상세 (아래 1.3)
 
-기본 PR 검증은 sticky PR 댓글이나 브랜치 쓰기를 수행하지 않습니다. 따라서 저장소의
-PR 검증은 최소 권한으로 동작하며, 결과는 실행 화면의 Summary와 아티팩트에서 확인합니다.
+### 1.2 PR 리포트 sticky 댓글 (`report-pr`)
 
-### 1.2 신뢰된 main publish (`publish-main`)
+`report-pr`은 PR 이벤트에서만 실행되며, 검증 job이 업로드한 **아티팩트만** 소비합니다.
+PR 코드를 이 job에서 다시 실행하지 않으므로, PR 변경분이 권한 있는 작업을 유도할 수
+없습니다.
+
+```yaml
+if: github.event_name == 'pull_request'
+needs: verify
+permissions:
+  contents: write       # gh-pages 업로드 (Contents API)
+  pull-requests: write  # sticky 댓글 작성/갱신
+```
+
+동작은 다음과 같습니다.
+
+1. `actions/download-artifact`로 `verify_report.html/json`을 받습니다.
+2. `dist/ici.pyz publish --html verify_report.html --json verify_report.json`를 실행해
+   gh-pages `pr/<번호>/index.html`에 리포트를 올립니다.
+3. `<!-- ici-report -->` 마커로 기존 댓글을 찾아 **갱신(PATCH)** 하고, 없으면 생성합니다.
+
+댓글 본문에는 배지형 "HTML 리포트 열기" 링크, Pass/Warn/Fail/Error/Skip/TEM 통계 표,
+접을 수 있는(`<details>`) 엔진별 상세 결과가 포함됩니다. Fork PR에서는 `GITHUB_TOKEN`이
+읽기 전용이므로 업로드·댓글이 조용히 건너뛰어집니다(게이트에는 영향 없음).
+
+### 1.3 신뢰된 main publish (`publish-main`)
 
 `publish-main`은 아래 조건을 모두 만족할 때만 실행됩니다.
 
@@ -61,7 +84,7 @@ dist/ici.pyz verify --html verify_report.html --publish
 수동/신뢰된 workflow에서 이 기능을 사용할 때도 대상 저장소와 토큰 권한을 명시적으로
 검토해야 합니다.
 
-### 1.3 Action 버전 고정
+### 1.4 Action 버전 고정
 
 CI와 release workflow의 외부 Action은 Node 24 기반 릴리스 라벨을 주석으로 남기되,
 실제 `uses:` 값은 다음 40자리 커밋 SHA에 고정되어 있습니다.
@@ -71,10 +94,11 @@ CI와 release workflow의 외부 Action은 Node 24 기반 릴리스 라벨을 �
 | `actions/checkout` | v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` |
 | `actions/setup-python` | v7.0.0 | `5fda3b95a4ea91299a34e894583c3862153e4b97` |
 | `actions/upload-artifact` | v7.0.1 | `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` |
+| `actions/download-artifact` | v4.3.0 | `d3f86a106a0bac45b974a628896c90dbdf5c8093` |
 | `astral-sh/setup-uv` | v10.0.1 | `20cfd1bf945f4377ade1205e4dbc17946fc9a30d` |
 | `softprops/action-gh-release` | v3.0.2 | `3d0d9888cb7fd7b750713d6e236d1fcb99157228` |
 
-### 1.4 Release workflow
+### 1.5 Release workflow
 
 `.github/workflows/release.yml`은 `v*.*.*` 태그 push 또는 `workflow_dispatch`에서
 테스트·ZipApp 빌드·스모크 테스트·SHA-256 생성 후 GitHub Release에

@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### Added
+- **PR sticky 리포트 댓글 복원 (`report-pr` + `ici publish`)**: v0.4.0 권한 분리 이후 중단됐던 PR 리포트 댓글을 아티팩트 기반으로 재도입. 검증 job은 계속 읽기 전용이고, 새 `report-pr` job(`pull_request` 전용, `contents:write`+`pull-requests:write`)이 업로드된 `verify_report.html/json`을 받아 gh-pages에 게시하고 `<!-- ici-report -->` 마커로 sticky 댓글을 갱신합니다. 댓글은 배지형 링크·통계 표·접을 수 있는 엔진 상세로 리디자인됐습니다. 신규 CLI `ici publish --html --json`으로 기존 리포트를 단독 게시할 수 있습니다.
 - **정적 위생 엔진 (`static_hygiene`)**: C++ 헤더 가드 누락, `#include` 순환 참조(Tarjan SCC), Python 위험 패턴(`eval`/`exec`/`pickle`/`shell=True`/하드코딩 시크릿)을 오프라인 정규식으로 탐지. `tests/` 기본 제외(`security_scan_tests` opt-in). `ici static-hygiene` 단독 실행 지원.
 - **컴파일 DB 검증 (`compile_db`)**: `compile_commands.json`을 파싱해 C++ 소스 커버리지·필수 플래그·include 경로 존재를 오프라인 검증. 경계 이탈 엔트리 거부, `ici compile-db` 단독 실행 지원.
 - **빌드 정의 Shadow Build (`build_definition`)**: `CMakeLists.txt`/`*.pro`를 감지해 shadow 빌드를 수행하는 어댑터 엔진. `cmake`/`ctest`/`qmake`/`make`를 argv-only로 실행하고 `ArtifactManifest`를 기록. `ici build-definition` 단독 실행 지원.
