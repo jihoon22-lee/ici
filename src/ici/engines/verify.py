@@ -23,6 +23,7 @@ from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
 from ici.engines.publish import ReportPublisher
 from ici.engines.pyproject_lint import PyProjectLintEngine
+from ici.engines.python_compat import PythonCompatEngine
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
 from ici.engines.toolchain import ToolchainEngine
@@ -71,6 +72,7 @@ class VerifyOrchestrator:
             ("dup", DuplicateEngine),
             ("exception", ExceptionSafetyEngine),
             ("toolchain", ToolchainEngine),
+            ("python_compat", PythonCompatEngine),
         ]
 
         tem_score = None
