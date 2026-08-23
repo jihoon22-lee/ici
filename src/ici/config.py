@@ -81,6 +81,13 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "mode": "pass_warn_fail",
             "max_reported": 20,
         },
+        "cognitive": {
+            "enabled": True,
+            "mode": "pass_warn_fail",
+            "warn": 15,
+            "fail": 25,
+            "warn_nesting": 4,
+        },
     },
 }
 

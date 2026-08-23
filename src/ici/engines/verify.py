@@ -13,6 +13,7 @@ from ici.core.models import (
     aggregate_suite_status,
 )
 from ici.core.project import get_project_name
+from ici.engines.cognitive import CognitiveEngine
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.cycle import CycleEngine
 from ici.engines.dead import DeadCodeEngine
@@ -59,6 +60,7 @@ class VerifyOrchestrator:
             ("lint", LintEngine),
             ("test", TestEngine),
             ("type", TypeCheckEngine),
+            ("cognitive", CognitiveEngine),
             ("cycle", CycleEngine),
             ("complexity", ComplexityEngine),
             ("sanitize", SanitizeEngine),
