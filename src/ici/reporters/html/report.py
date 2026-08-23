@@ -118,6 +118,13 @@ def generate_html_report(
         <span style="color:var(--fail)">{error_engines} Error</span> &bull;
         <span style="color:var(--text-muted)">{skip_engines} Skip</span>
       </div>
+      <div style="margin-top: 0.8rem; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; display: flex;">
+        <div style="flex: {pass_engines}; background: var(--pass);" title="Pass {pass_engines}"></div>
+        <div style="flex: {warn_engines};" title="Warn {warn_engines}"><div style="height: 100%; background: var(--warn);"></div></div>
+        <div style="flex: {fail_engines}; background: var(--fail);" title="Fail {fail_engines}"></div>
+        <div style="flex: {error_engines}; background: #b91c1c;" title="Error {error_engines}"></div>
+        <div style="flex: {skip_engines}; background: var(--text-muted);" title="Skip {skip_engines}"></div>
+      </div>
     </div>
 
     {tem_score_card}

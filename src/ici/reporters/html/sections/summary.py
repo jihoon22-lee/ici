@@ -7,10 +7,35 @@ from ici.core.models import EngineResult, EngineStatus, format_score_display
 from ici.reporters.html.utils import _get_status_theme, _location_controls, _status_color
 
 
+def _category_for(engine_name: str) -> str:
+    if engine_name in {
+        "line",
+        "lint",
+        "test",
+        "type",
+        "complexity",
+        "sanitize",
+        "dead",
+        "dup",
+        "exception",
+    }:
+        return "Source Quality"
+    if engine_name in {"cycle", "cognitive", "security", "resource"}:
+        return "New Static Analysis"
+    return "Other"
+
+
 def _render_engine_table_rows(results: list[EngineResult], base: Path) -> list[str]:
-    """Renders main summary table rows."""
+    """Renders main summary table rows grouped by category."""
     engine_rows = []
+    current_category = None
     for res in results:
+        category = _category_for(res.engine_name)
+        if category != current_category:
+            engine_rows.append(
+                f"<tr class='category-row'><td colspan='5' style='background: var(--card-hover); font-weight: 700; color: var(--text-muted); padding: 0.5rem 1rem; border-top: 2px solid var(--border);'>{category}</td></tr>"
+            )
+            current_category = category
         color, bg, _ = _get_status_theme(res.status)
         score_str = format_score_display(res)
         duration_str = f"{res.duration:.2f}s" if res.duration > 0 else "-"
