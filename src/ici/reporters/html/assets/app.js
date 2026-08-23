@@ -102,9 +102,9 @@ function switchTab(tabId, btnElem) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function filterTreeFiles(query) {
+function filterTreeFiles(query, tableId) {
   const q = query.toLowerCase().trim();
-  const rows = document.querySelectorAll('#fileTreeTable tbody tr');
+  const rows = document.querySelectorAll('#' + tableId + ' tbody tr');
   if (!q) {
     rows.forEach(r => r.style.display = '');
     return;
@@ -152,12 +152,20 @@ document.addEventListener('click', (event) => {
 document.addEventListener('change', (event) => {
   if (event.target.id === 'editorSelect') {
     setEditorPref(event.target.value);
+    return;
+  }
+  if (event.target.id === 'lineAllFilesToggle') {
+    const showAll = event.target.checked;
+    document.querySelectorAll('[data-line-view]').forEach(el => {
+      el.style.display = (el.dataset.lineView === 'all') === showAll ? '' : 'none';
+    });
   }
 });
 
 document.addEventListener('input', (event) => {
-  if (event.target.id === 'treeSearchInput') {
-    filterTreeFiles(event.target.value);
+  const searchInput = event.target.closest('.tree-search-input[data-tree-target]');
+  if (searchInput) {
+    filterTreeFiles(searchInput.value, searchInput.dataset.treeTarget);
   }
 });
 

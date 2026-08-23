@@ -535,3 +535,61 @@
   }
 
   .footer { margin-top: 3.5rem; text-align: center; color: var(--text-muted); font-size: 0.8125rem; }
+
+/* Cycle chain chips */
+.cycle-chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+.cycle-chip {
+  background: #1f293d;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.78rem;
+  color: #a5b4fc;
+}
+.cycle-arrow {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+/* Collapsible coverage groups & suite details */
+.cov-folder-group {
+  border-bottom: 1px solid var(--border);
+}
+.cov-folder-group:last-of-type {
+  border-bottom: none;
+}
+.cov-folder-group > summary {
+  cursor: pointer;
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  list-style: none;
+  background: var(--card-hover);
+}
+.cov-folder-group > summary::-webkit-details-marker {
+  display: none;
+}
+.cov-folder-group > summary::before {
+  content: "▸";
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+.cov-folder-group[open] > summary::before {
+  transform: rotate(90deg);
+}
+.cov-folder-group .cov-table {
+  width: 100%;
+}
+.test-case-details > summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 0.3rem 0;
+}

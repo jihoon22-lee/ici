@@ -82,3 +82,29 @@ def test_line_exclude_dirs(tmp_path: Path):
     res = engine.run()
     assert res.status == EngineStatus.PASS
     assert not any(t.file_path.startswith("src/") for t in res.targets)
+
+
+def test_line_all_files_mode(tmp_path: Path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("x = 1\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "big_test.py").write_text(
+        "\n".join(f"x_{i} = {i}" for i in range(600)), encoding="utf-8"
+    )
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "guide.md").write_text("# guide\n" * 50, encoding="utf-8")
+
+    engine = LineCountEngine(tmp_path)
+    res = engine.run()
+
+    scopes = {f["path"]: f["scope"] for f in res.extra["files_data"]}
+    assert scopes["src/app.py"] == "source"
+    assert scopes["tests/big_test.py"] == "extra"
+    assert scopes["docs/guide.md"] == "extra"
+    assert not any(t.file_path.startswith(("tests/", "docs/")) for t in res.targets)
+    all_totals = res.extra["all"]
+    assert all_totals["files"] == 3
+    assert res.extra["code"] < all_totals["code"]

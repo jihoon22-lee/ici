@@ -6,6 +6,7 @@ from pathlib import Path
 from ici.core.models import VerificationSuiteResult
 from ici.reporters.html.assets_loader import HTML_CSS, HTML_JS
 from ici.reporters.html.sections.complexity import _render_complexity_section
+from ici.reporters.html.sections.cycles import _render_cycles_section
 from ici.reporters.html.sections.dup import _render_dup_section
 from ici.reporters.html.sections.issues import _render_issues_section
 from ici.reporters.html.sections.line import _render_line_section
@@ -35,22 +36,23 @@ def generate_html_report(
         skip_engines,
     ) = _extract_suite_data(suite.results)
     engine_rows = _render_engine_table_rows(suite.results, base)
-
     line_tab_content = _render_line_section(eng_map.get("line"), base)
     test_tab_content = _render_test_section(eng_map.get("test"), base)
-    complexity_tab_content = _render_complexity_section(eng_map.get("complexity"), base)
+    complexity_tab_content = _render_complexity_section(
+        eng_map.get("complexity"), base, eng_map.get("cognitive")
+    )
     dup_tab_content = _render_dup_section(eng_map.get("dup"), base)
+    cycles_tab_content = _render_cycles_section(eng_map.get("cycle"), base)
+    security_engines = [eng_map[name] for name in ("security", "resource") if name in eng_map]
+    security_tab_content = _render_static_analysis_section(security_engines, base)
     issues_tab_content = _render_issues_section(all_issues, base)
-
-    static_engines = [
-        eng_map[name] for name in ("cycle", "cognitive", "security", "resource") if name in eng_map
-    ]
-    static_tab_content = _render_static_analysis_section(static_engines, base)
-
     tem_score_card = _render_tem_card(suite.tem_score)
 
     dup_res = eng_map.get("dup")
     clone_groups_count = len(dup_res.extra.get("clone_groups", [])) if dup_res else 0
+
+    cycle_res = eng_map.get("cycle")
+    cycles_count = len(cycle_res.targets) if cycle_res else 0
 
     test_res = eng_map.get("test")
     t_passed = test_res.extra.get("passed_tests", 0) if test_res else 0
@@ -161,7 +163,8 @@ def generate_html_report(
     <button class="tab-btn" id="btn-test" data-tab-target="tab-test">🧪 Tests & Coverage ({t_passed}/{t_total})</button>
     <button class="tab-btn" id="btn-complexity" data-tab-target="tab-complexity">🧩 Complexity</button>
     <button class="tab-btn" id="btn-dup" data-tab-target="tab-dup">📦 Clone Groups ({clone_groups_count})</button>
-    <button class="tab-btn" id="btn-static" data-tab-target="tab-static">🔬 Static Analysis</button>
+    <button class="tab-btn" id="btn-cycles" data-tab-target="tab-cycles">🔁 Cycles ({cycles_count})</button>
+    <button class="tab-btn" id="btn-security" data-tab-target="tab-security">🔐 Security & Resources</button>
     <button class="tab-btn" id="btn-issues" data-tab-target="tab-issues">⚠️ Issues ({len(all_issues)})</button>
   </div>
 
@@ -203,12 +206,17 @@ def generate_html_report(
     {dup_tab_content}
   </div>
 
-  <!-- Tab 6: AST-based Static Analysis Findings -->
-  <div id="tab-static" class="tab-content">
-    {static_tab_content}
+  <!-- Tab 6: Dependency Cycles -->
+  <div id="tab-cycles" class="tab-content">
+    {cycles_tab_content}
   </div>
 
-  <!-- Tab 7: Actionable Issues Only -->
+  <!-- Tab 7: Security & Resources -->
+  <div id="tab-security" class="tab-content">
+    {security_tab_content}
+  </div>
+
+  <!-- Tab 8: Actionable Issues Only -->
   <div id="tab-issues" class="tab-content">
     {issues_tab_content}
   </div>

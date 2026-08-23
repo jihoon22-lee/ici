@@ -45,24 +45,60 @@ def _render_coverage_table(
         branch_str = f"{branch_cover:.1f}%" if isinstance(branch_cover, (int, float)) else "—"
         miss_style = "color: var(--fail); font-weight: 700;" if miss > 0 else ""
         rows_html.append(
-            f"<tr>"
-            f"<td style='max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' "
-            f"title='{miss_tip}'>"
-            f"{location}"
-            f"</td>"
-            f"<td class='num'>{stmts}</td>"
-            f"<td class='num' style='{miss_style}'>{miss}</td>"
-            f"<td><div class='cov-pct-cell'>"
-            f"<span class='cov-pct' style='color:{cov_color}'>{cover_str}</span>"
-            f"<div class='cov-bar-bg'><div class='cov-bar-fill' "
-            f"style='width: {min(100.0, cover or 0.0)}%; background: {cov_color};'></div></div>"
-            f"</div></td>"
-            f"<td><div class='cov-pct-cell'>"
-            f"<span class='cov-pct' style='color:{br_color}'>{branch_str}</span>"
-            f"<div class='cov-bar-bg'><div class='cov-bar-fill' "
-            f"style='width: {min(100.0, branch_cover or 0.0)}%; background: {br_color};'></div></div>"
-            f"</div></td>"
-            f"</tr>"
+            {
+                "folder": str(Path(raw_fname).parent),
+                "html": (
+                    f"<tr>"
+                    f"<td style='max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' "
+                    f"title='{miss_tip}'>"
+                    f"{location}"
+                    f"</td>"
+                    f"<td class='num'>{stmts}</td>"
+                    f"<td class='num' style='{miss_style}'>{miss}</td>"
+                    f"<td><div class='cov-pct-cell'>"
+                    f"<span class='cov-pct' style='color:{cov_color}'>{cover_str}</span>"
+                    f"<div class='cov-bar-bg'><div class='cov-bar-fill' "
+                    f"style='width: {min(100.0, cover or 0.0)}%; background: {cov_color};'></div></div>"
+                    f"</div></td>"
+                    f"<td><div class='cov-pct-cell'>"
+                    f"<span class='cov-pct' style='color:{br_color}'>{branch_str}</span>"
+                    f"<div class='cov-bar-bg'><div class='cov-bar-fill' "
+                    f"style='width: {min(100.0, branch_cover or 0.0)}%; background: {br_color};'></div></div>"
+                    f"</div></td>"
+                    f"</tr>"
+                ),
+                "cover": cover if isinstance(cover, (int, float)) else 100.0,
+                "miss": miss,
+            }
+        )
+
+    # Group rows by directory into collapsible blocks — open only problem folders.
+    folder_order: list[str] = []
+    folder_groups: dict[str, list[dict]] = {}
+    for row in rows_html:
+        if row["folder"] not in folder_groups:
+            folder_groups[row["folder"]] = []
+            folder_order.append(row["folder"])
+        folder_groups[row["folder"]].append(row)
+
+    folder_blocks = []
+    for folder in sorted(folder_order):
+        group = folder_groups[folder]
+        needs_attention = any(r["miss"] > 0 or r["cover"] < 80.0 for r in group)
+        avg_cover = sum(r["cover"] for r in group) / len(group)
+        avg_color = _cov_color(avg_cover)
+        open_attr = " open" if needs_attention else ""
+        folder_blocks.append(
+            f"<details class='cov-folder-group'{open_attr}>"
+            f"  <summary>📁 <strong>{html.escape(folder)}</strong>"
+            f"   <span style='color:var(--text-muted); font-size:0.8rem;'>({len(group)} modules)</span>"
+            f"   <span class='badge' style='color:{avg_color}; border:1px solid {avg_color}44'>avg {avg_cover:.1f}%</span>"
+            f"  </summary>"
+            f"  <table class='cov-table'>"
+            f"    <thead><tr><th>Module / File</th><th class='num'>Stmts</th><th class='num'>Miss</th><th>Cover</th><th>Branch</th></tr></thead>"
+            f"    <tbody>{''.join(r['html'] for r in group)}</tbody>"
+            f"  </table>"
+            f"</details>"
         )
 
     totals_html = ""
@@ -74,37 +110,29 @@ def _render_coverage_table(
         t_cover_str = f"{t_cover:.1f}%" if isinstance(t_cover, (int, float)) else "—"
         t_branch_str = f"{t_branch:.1f}%" if isinstance(t_branch, (int, float)) else "—"
         totals_html = (
-            f"<tfoot><tr>"
-            f"<td>Total ({len(coverage_files)} modules)</td>"
-            f"<td class='num'>{t_stmts}</td>"
-            f"<td class='num'>{t_miss}</td>"
-            f"<td><strong style='color:{_cov_color(t_cover)}'>{t_cover_str}</strong></td>"
-            f"<td><strong style='color:{_cov_color(t_branch)}'>{t_branch_str}</strong></td>"
-            f"</tr></tfoot>"
+            f"<div style='display:flex; gap:1.25rem; align-items:center; padding:0.6rem 1rem;"
+            f" background:var(--card-hover); border-top:1px solid var(--border); font-size:0.85rem;'>"
+            f"<strong>Totals ({len(coverage_files)} modules)</strong>"
+            f"<span>Stmts <code>{t_stmts}</code></span>"
+            f"<span>Miss <code style='color:{'#ef4444' if t_miss else '#10b981'}'>{t_miss}</code></span>"
+            f"<span>Cover <strong style='color:{_cov_color(t_cover)}'>{t_cover_str}</strong></span>"
+            f"<span>Branch <strong style='color:{_cov_color(t_branch)}'>{t_branch_str}</strong></span>"
+            f"</div>"
         )
 
     return f"""
-    <!-- Module Coverage Table -->
+    <!-- Module Coverage Table (grouped by directory) -->
     <div style="margin-bottom: 1rem;">
       <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">📈 Module Coverage Table ({len(coverage_files)} Modules)</h2>
       <p style="font-size: 0.875rem; color: var(--text-muted);">
-        <code>coverage report</code> 형태의 모듈별 상세 커버리지 표 — 커버리지 낮은 순 정렬.
+        디렉터리별로 묶은 모듈 커버리지 — 문제 폴더(80% 미만·미스 존재)만 기본 펼쳐집니다.
         데이터 출처: <strong style="color: {"#10b981" if source != "estimated" else "#f59e0b"}">{source_label}</strong>
         · 파일명에 마우스를 올리면 미실행 라인 목록이 표시됩니다.
       </p>
     </div>
     <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 1.5rem;">
-      <div style="overflow-x: auto;">
-      <table class="cov-table">
-        <thead>
-          <tr><th>Module / File</th><th class="num">Stmts</th><th class="num">Miss</th><th>Cover</th><th>Branch</th></tr>
-        </thead>
-        <tbody>
-          {"".join(rows_html)}
-        </tbody>
-        {totals_html}
-      </table>
-      </div>
+      {"".join(folder_blocks)}
+      {totals_html}
     </div>
     """
 
@@ -145,26 +173,24 @@ def _render_function_table(function_rows: list[dict], source: str, base: Path) -
         )
 
     return f"""
-    <!-- Function Coverage Table -->
-    <div style="margin-bottom: 1rem;">
-      <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">📈 Function Coverage Table ({covered}/{total} 호출됨)</h2>
-      <p style="font-size: 0.875rem; color: var(--text-muted);">
-        gcov 기준 — 함수 본문이 한 번 이상 실행되면 커버된 것으로 간주합니다
-        (<strong style="color:{pct_color}">{pct:.1f}%</strong>). 미실행 함수의 missing 라인은 파일명에 마우스를 올리면 표시됩니다.
-      </p>
-    </div>
-    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 1.5rem;">
-      <div style="overflow-x: auto;">
-      <table class="cov-table">
-        <thead>
-          <tr><th>Function</th><th>Location</th><th class="num">Lines</th><th class="num">Miss</th></tr>
-        </thead>
-        <tbody>
-          {"".join(rows_html)}
-        </tbody>
-      </table>
+    <!-- Function Coverage Table (collapsed by default) -->
+    <details class='cov-folder-group'>
+      <summary>📈 <strong>Function Coverage Table</strong>
+        <span style='color:var(--text-muted); font-size:0.8rem;'>({covered}/{total} 호출됨)</span>
+        <span class='badge' style='color:{pct_color}; border:1px solid {pct_color}44'>{pct:.1f}%</span>
+      </summary>
+      <div style="padding: 0.75rem 1rem;">
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+          gcov 기준 — 함수 본문이 한 번 이상 실행되면 커버된 것으로 간주합니다. 미실행 함수의 missing 라인은 파일명에 마우스를 올리면 표시됩니다.
+        </p>
+        <div style="overflow-x: auto;">
+          <table class="cov-table">
+            <thead><tr><th>Function</th><th>Location</th><th class="num">Lines</th><th class="num">Miss</th></tr></thead>
+            <tbody>{"".join(rows_html)}</tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </details>
     """
 
 
@@ -193,7 +219,7 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
     func_pct = min(100.0, func)
     tem_pct = min(100.0, (tem / 5.0) * 100.0)
 
-    # Build Test Suite Cards
+    # Build Test Suite Cards — collapsed by default, failures stay visible.
     suite_cards = []
     for s in suites:
         s_file = s.get("file", "tests")
@@ -206,19 +232,47 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
         st_badge_text = f"{s_passed}/{s_total} Passed"
         location = _location_controls(str(s_file), 1, base, label=str(s_file))
 
-        test_rows = []
+        failed_rows: list[str] = []
+        passed_rows: list[str] = []
         for t in tests_list:
             t_name = html.escape(t.get("name", "test"))
             t_status = t.get("status", "PASS")
             t_status_html = html.escape(str(t_status))
             t_msg = html.escape(t.get("message", ""))
             t_color = "#10b981" if t_status == "PASS" else "#ef4444"
-            test_rows.append(
+            row = (
                 f"<div class='test-case-row'>"
                 f"  <span class='badge' style='color:{t_color}; border:1px solid {t_color}33'>{t_status_html}</span>"
                 f"  <span class='test-case-name'><code>{t_name}</code></span>"
                 f"  <span class='test-case-msg'>{t_msg}</span>"
                 f"</div>"
+            )
+            (failed_rows if t_status != "PASS" else passed_rows).append(row)
+
+        failed_html = "".join(failed_rows)
+        if s_failed == 0:
+            cases_body = (
+                f"<div class='test-case-row' style='color:#10b981;'>"
+                f"  <span class='badge' style='color:#10b981; border:1px solid #10b98133'>PASS</span>"
+                f"  <span>✅ All {s_total} cases passed</span>"
+                f"</div>"
+                + (
+                    f"<details class='test-case-details'>"
+                    f"  <summary>Show all {len(passed_rows)} cases ▾</summary>"
+                    f"  {''.join(passed_rows)}"
+                    f"</details>"
+                    if passed_rows
+                    else ""
+                )
+            )
+        else:
+            cases_body = failed_html + (
+                f"<details class='test-case-details'>"
+                f"  <summary>Show {len(passed_rows)} passed cases ▾</summary>"
+                f"  {''.join(passed_rows)}"
+                f"</details>"
+                if passed_rows
+                else ""
             )
 
         suite_cards.append(
@@ -230,7 +284,7 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
             f"    </div>"
             f"    <span class='badge' style='color:{st_badge_color}; border:1px solid {st_badge_color}44'>{st_badge_text}</span>"
             f"  </div>"
-            f"  <div class='test-cases-list'>{''.join(test_rows)}</div>"
+            f"  <div class='test-cases-list'>{cases_body}</div>"
             f"</div>"
         )
 
@@ -276,11 +330,16 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
     {_render_function_table(function_rows, coverage_source, base)}
 
     <!-- Test Suites List -->
-    <div style="margin-bottom: 1.25rem;">
-      <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">🧪 Detailed Test Suites & Cases ({len(suites)} Suites)</h2>
-      <p style="font-size: 0.875rem; color: var(--text-muted);">
-        실행된 모든 단위 테스트 스위트의 개별 테스트 케이스 상태 및 커버리지 검증 내역입니다.
-      </p>
+    <div class="issues-header-bar">
+      <div>
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">🧪 Detailed Test Suites & Cases ({len(suites)} Suites)</h2>
+        <p style="font-size: 0.875rem; color: var(--text-muted);">
+          실패 케이스는 항상 표시되고, 통과 스위트는 한 줄 요약으로 접힙니다.
+        </p>
+      </div>
+      <div>
+        <button class="jump-tab-btn" data-toggle-details=".test-case-details">📂 Toggle All Cases</button>
+      </div>
     </div>
 
     {"".join(suite_cards)}

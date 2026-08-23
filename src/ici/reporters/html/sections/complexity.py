@@ -7,13 +7,88 @@ from ici.core.models import EngineResult
 from ici.reporters.html.utils import _location_controls
 
 
-def _render_complexity_section(comp_res: EngineResult | None, base: Path) -> str:
+def _render_cognitive_block(cog_res: EngineResult | None, base: Path) -> str:
+    """Renders cognitive complexity leaderboard inside the Complexity tab."""
+    if not cog_res or not cog_res.targets:
+        return ""
+
+    cards = []
+    for rank, t in enumerate(cog_res.targets, 1):
+        cog = (t.metrics or {}).get("cognitive", 0)
+        nesting = (t.metrics or {}).get("nesting", 0)
+        if cog > 60:
+            badge_style = (
+                "background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444;"
+            )
+        elif cog > 30:
+            badge_style = (
+                "background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b;"
+            )
+        else:
+            badge_style = (
+                "background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981;"
+            )
+
+        location = (
+            _location_controls(
+                str(t.file_path), int(t.start_line), base, label=f"{t.file_path}:{t.start_line}"
+            )
+            if t.file_path
+            else ""
+        )
+        snippet_html = ""
+        if t.snippet:
+            num_lines = len(t.snippet.splitlines())
+            snippet_html = (
+                f"<details class='cc-snippet-details'>"
+                f"  <summary class='cc-snippet-summary'>📄 View Source Code ({num_lines} lines) ▾</summary>"
+                f"  <pre class='snippet'><code>{html.escape(t.snippet)}</code></pre>"
+                f"</details>"
+            )
+        cards.append(
+            f"<div class='cc-card'>"
+            f"  <div class='cc-header'>"
+            f"    <div>"
+            f"      <span style='color:var(--text-muted); font-weight:700; margin-right:0.5rem;'>#{rank}</span>"
+            f"      <span class='cc-name'>{html.escape(t.target_name or '?')}</span>"
+            f"      {location}"
+            f"    </div>"
+            f"    <div style='display:flex; gap:0.5rem;'>"
+            f"      <span class='cc-badge' style='{badge_style}'>COG: {cog}</span>"
+            f"      <span class='cc-badge' style='background:#1e293b; color:#38bdf8;'>Nesting: {nesting}</span>"
+            f"    </div>"
+            f"  </div>"
+            f"  <div style='font-size:0.85rem; color:var(--text-muted); margin-bottom:0.4rem;'>{html.escape(t.message)}</div>"
+            f"  {snippet_html}"
+            f"</div>"
+        )
+
+    return f"""
+    <div class="cc-header-bar" style="margin-top: 1.5rem;">
+      <div>
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">🧠 Cognitive Complexity (Sonar S3776)</h2>
+        <p style="font-size: 0.875rem; color: var(--text-muted);">
+          제어 흐름 중첩에 가중치를 둔 인지 복잡도 — 사람이 코드를 이해하기 어려운 정도를 측정합니다.
+          ({len(cog_res.targets)} functions over threshold · warn 30 / fail 60)
+        </p>
+      </div>
+    </div>
+    {"".join(cards)}
+    """
+
+
+def _render_complexity_section(
+    comp_res: EngineResult | None,
+    base: Path,
+    cog_res: EngineResult | None = None,
+) -> str:
     """Renders the dedicated Complexity & Quality tab with leaderboard and actual source snippets."""
     if not comp_res:
         return "<div class='card'>No complexity results available.</div>"
 
     top_funcs = comp_res.extra.get("top_complex_funcs", [])
-    if not top_funcs:
+    cognitive_block = _render_cognitive_block(cog_res, base)
+    if not top_funcs and not cognitive_block:
         return "<div class='empty-clean'>✨ All functions are simple and clean!</div>"
 
     cards = []
@@ -78,7 +153,9 @@ def _render_complexity_section(comp_res: EngineResult | None, base: Path) -> str
             f"</div>"
         )
 
-    return f"""
+    cyc_header = ""
+    if top_funcs:
+        cyc_header = """
     <div class="cc-header-bar">
       <div>
         <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">🧩 Cyclomatic Complexity & Nesting Analysis</h2>
@@ -90,5 +167,9 @@ def _render_complexity_section(comp_res: EngineResult | None, base: Path) -> str
         <button class="jump-tab-btn" data-toggle-details=".cc-snippet-details">📂 Toggle All Code</button>
       </div>
     </div>
+    """
+    return f"""
+    {cyc_header}
     {"".join(cards)}
+    {cognitive_block}
     """

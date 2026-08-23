@@ -15,11 +15,13 @@
 - **PR sticky 리포트 댓글 복원 (`report-pr` + `ici publish`)**: v0.4.0 권한 분리 이후 중단됐던 PR 리포트 댓글을 아티팩트 기반으로 재도입. 검증 job은 계속 읽기 전용이고, 새 `report-pr` job(`pull_request` 전용, `contents:write`+`pull-requests:write`)이 업로드된 `verify_report.html/json`을 받아 gh-pages에 게시하고 `<!-- ici-report -->` 마커로 sticky 댓글을 갱신합니다. 댓글은 배지형 링크·통계 표·접을 수 있는 엔진 상세로 리디자인됐습니다. 신규 CLI `ici publish --html --json`으로 기존 리포트를 단독 게시할 수 있습니다.
 
 ### Changed
-- **HTML 리포트 UI/UX 개선**:
-  - "Engines Run" 카드에 Pass/Warn/Fail/Error/Skip 분포 **헬스 바** 추가.
-  - 요약 테이블의 **N/A(SKIP) 엔진을 회색 접힘 행**으로 표시해 미적용 사유를 숨김 없이 확인 가능.
-  - 신규 정적 분석 엔진(cycle/cognitive/security/resource) 전용 **`🔬 Static Analysis` 탭** 추가 및 요약 행 점프 버튼 연결 (총 7개 탭).
-- **`line` 소스 전용 스캔**: 통계 집계와 임계값 게이트 모두 기본 소스 디렉터리(`src/include/lib/app`)만 대상. `tests/docs/scripts`는 Top 파일 목록과 Total Volume에서 제외되며, `include_dirs`로 명시적 옵트인 시에만 집계.
+- **HTML 리포트 UI/UX 개선 (8탭 재구성)**:
+  - 탭 구조를 성격별로 재편: `📋 Summary · 📏 Line · 🧪 Tests · 🧩 Complexity(+🧠 cognitive 통합) · 📦 Clones · 🔁 Cycles · 🔐 Security & Resources · ⚠️ Issues`.
+  - **Line 듀얼 모드**: 엔진은 프로젝트 전체를 스캔하되 기본 표시·게이트는 소스 스코프만. Line 탭의 "All files" 토글로 전체 프로젝트 파일 트리·차트·Top5 조회.
+  - **Cycles 독립 탭**: 순환 체인을 칩(chip)+화살표 유연 레이아웃으로 시각화, 전체 경로는 접기로 제공.
+  - **Tests & Coverage 압축**: 커버리지 테이블을 디렉터리별 접기 그룹(문제 폴더만 자동 펼침), 함수 커버리지 테이블 접기, 테스트 스위트는 실패 케이스만 항상 표시하고 통과 케이스는 한 줄 요약+접기, "Toggle All Cases" 일괄 토글 지원.
+  - "Engines Run" 카드 Pass/Warn/Fail/Error/Skip **헬스 바**, N/A(SKIP) 엔진 회색 접힘 행은 유지.
+- **`line` 소스 전용 게이트 + 전체 스캔 병행**: 임계값 판정은 소스 디렉터리(`src/include/lib/app` + 설정 추가 경로)에서만 수행하고, `include_dirs`는 재정의가 아닌 **추가** 동작으로 변경. 전체 프로젝트 수치는 `extra.all`로 별도 집계.
 - **Dogfood 품질 강화 1차 (자체 검증 기반)**:
   - CLI 엔진 커맨드 17종을 데이터 주도 레지스트리+팩토리로 통합해 `__main__.py`의 반복 보일러플레이트를 제거하고, 엔진 클래스는 호출 시점에 모듈 어트리뷰트로 조회해 기존 monkeypatch 호환을 유지 (dup 최대 클론 제거).
   - `type`: 동일 파일·동일 문구의 Mypy note를 첫 위치 1건으로 병합(`metrics.repeats`)해 리포트 노이즈 축소.
