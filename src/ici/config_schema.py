@@ -215,13 +215,6 @@ def _validate_dup(table: dict[str, Any], path: str) -> None:
         raise _error(f"{path}.warn_pct", "must be less than or equal to engines.dup.fail_pct")
 
 
-def _validate_toolchain(table: dict[str, Any], path: str) -> None:
-    _validate_common_engine(table, path)
-    for key in ("required_tools", "tools"):
-        if key in table:
-            _require_string_list(table[key], f"{path}.{key}")
-
-
 def _validate_build(table: Any) -> None:
     path = "build"
     if not isinstance(table, dict):
@@ -265,28 +258,20 @@ def _validate_engine(name: str, table: Any) -> None:
     if not isinstance(table, dict):
         raise _error(path, "must be a table")
     _reject_unknown(table, _ENGINE_KEYS[name], path)
-    if name == "line":
-        _validate_line(table, path)
-    elif name == "test":
-        _validate_test(table, path)
-    elif name == "type":
-        _validate_type(table, path)
-    elif name == "lint":
-        _validate_lint(table, path)
-    elif name == "complexity":
-        _validate_complexity(table, path)
-    elif name == "dup":
-        _validate_dup(table, path)
-    elif name == "cycle":
-        _validate_cycle(table, path)
-    elif name == "cognitive":
-        _validate_cognitive(table, path)
-    elif name == "security":
-        _validate_security(table, path)
-    elif name == "resource":
-        _validate_common_engine(table, path)
-    else:
-        _validate_common_engine(table, path)
+    validators = {
+        "line": _validate_line,
+        "test": _validate_test,
+        "type": _validate_type,
+        "lint": _validate_lint,
+        "complexity": _validate_complexity,
+        "dup": _validate_dup,
+        "cycle": _validate_cycle,
+        "cognitive": _validate_cognitive,
+        "security": _validate_security,
+        "resource": _validate_common_engine,
+    }
+    validator = validators.get(name, _validate_common_engine)
+    validator(table, path)
 
 
 def _validate_metadata(table: Any, path: str) -> None:

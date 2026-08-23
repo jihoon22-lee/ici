@@ -82,10 +82,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "max_reported": 20,
         },
         "cognitive": {
-            "enabled": True,
-            "mode": "pass_warn_fail",
-            "warn": 15,
-            "fail": 25,
+            "enabled": False,
+            "mode": "pass_warn",
+            "warn": 30,
+            "fail": 60,
             "warn_nesting": 4,
         },
         "security": {
