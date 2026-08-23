@@ -169,10 +169,16 @@ class CycleEngine(BaseEngine):
         for cycle_nodes in py_cycles[:max_reported]:
             names = " -> ".join([*cycle_nodes, cycle_nodes[0]])
             first_mod = cycle_nodes[0]
-            first_file = py_modules.get(first_mod, Path(first_mod.split(".")[0]))
+            first_file = py_modules.get(first_mod)
+            if first_file is None:
+                continue
+            try:
+                rel_path = str(first_file.relative_to(self.project_root))
+            except ValueError:
+                rel_path = str(first_file)
             targets.append(
                 InspectionTarget(
-                    file_path=str(first_file),
+                    file_path=rel_path,
                     start_line=1,
                     target_name=f"Cycle:{len(cycle_nodes)}",
                     status=EngineStatus.WARN,
@@ -186,12 +192,13 @@ class CycleEngine(BaseEngine):
         cpp_cycles = _find_cycles_tarjan(cpp_graph)
         for cycle_files in cpp_cycles[:max_reported]:
             names = " -> ".join(f.name for f in [*cycle_files, cycle_files[0]])
-            first_file = cpp_files_map.get(cycle_files[0], cycle_files[0])
-            first_rel = (
-                str(first_file)
-                if first_file.is_absolute() and not first_file.is_relative_to(self.project_root)
-                else str(first_file.relative_to(self.project_root))
-            )
+            first_file = cpp_files_map.get(cycle_files[0])
+            if first_file is None:
+                first_file = cycle_files[0]
+            try:
+                first_rel = str(first_file.relative_to(self.project_root))
+            except ValueError:
+                first_rel = str(first_file)
             targets.append(
                 InspectionTarget(
                     file_path=first_rel,
