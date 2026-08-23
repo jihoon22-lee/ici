@@ -1,7 +1,5 @@
 """System, toolchain, and runtime environment diagnostics for ici."""
 
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -193,24 +191,3 @@ def render_doctor_brief(data: dict[str, Any]) -> None:
     print("tools   " + "  ".join(tool_strs[:5]))
     if len(tool_strs) > 5:
         print("        " + "  ".join(tool_strs[5:]))
-
-
-def _check_tool(name: str, ver_args: list[str]) -> dict[str, Any]:
-    path = shutil.which(name)
-    if not path:
-        return {"available": False, "version": "", "path": ""}
-    try:
-        res = subprocess.run([path, *ver_args], capture_output=True, text=True, timeout=2)
-        out = (res.stdout or res.stderr).strip()
-        first_line = out.splitlines()[0] if out else ""
-        # Extract version like 8.5.0, 17.0.0, etc.
-        parts = first_line.split()
-        ver = parts[-1] if parts else first_line
-        for p in parts:
-            if any(c.isdigit() for c in p) and "." in p:
-                ver = p.strip("v").strip("()")
-                break
-        return {"available": True, "version": ver, "path": path}
-    except (OSError, subprocess.SubprocessError) as err:
-        _ = err
-        return {"available": True, "version": "unknown", "path": path}
