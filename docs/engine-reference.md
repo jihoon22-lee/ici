@@ -277,6 +277,16 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - C++ 소멸자(`destructor`) 내부 throw와 구문상 비어 있는(syntactically empty) `catch(...)` 감지. 주석·일반/Raw 문자열을 분석에서 제외하고 multiline body도 위치와 함께 보존한다. 표준 raw-string prefix와 `//` line-splice 주석도 마스킹한다. 소멸자 선언이 `;`로 끝나면 뒤의 함수 body를 소멸자로 오인하지 않으며, 빈 catch 계산은 파일별 한 번만 수행한다.
 
 
+### 2.10 🔄 `cycle` (순환 참조 탐지)
+- **동작**: Python `import` 그래프와 C++ `#include` 그래프를 각각 구축해 Tarjan SCC로 순환을 탐지. Python은 `ast` 기반, C++는 `#include "..."` 정규식 기반.
+- **설정**: `[engines.cycle] enabled=true, mode="pass_warn_fail", max_reported=20`.
+- **대상**: `src` 등 소스 디렉터리 내 파일만 대상.
+
+### 2.11 🧠 `cognitive` (인지 복잡도)
+- **동작**: SonarQube S3776 스타일 인지 복잡도를 함수별로 계산. `if/for/while/except/with`는 중첩 깊이에 따라 가중치를 더하고, `and/or` 체인, `comprehension`, `assert` 등을 반영.
+- **설정**: `[engines.cognitive] enabled=true, mode="pass_warn_fail", warn=15, fail=25, warn_nesting=4`.
+- **대상**: Python 소스만 분석, `__dunder__` 함수는 제외.
+
 ---
 
 > **다음 단계**

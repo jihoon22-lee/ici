@@ -15,6 +15,7 @@ from ici.config import ConfigError, load_config
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
+from ici.engines.cognitive import CognitiveEngine  # noqa: F401
 from ici.engines.complexity import (
     ComplexityEngine,  # noqa: F401 - resolved dynamically by CLI registry
 )
@@ -126,6 +127,12 @@ def cmd_build(ctx: typer.Context):
 # boilerplate free of per-engine duplication; see dogfood dup gate). ---
 
 _ENGINE_COMMANDS = [
+    (
+        "cognitive",
+        "CognitiveEngine",
+        "cognitive_report.json",
+        "Measures cognitive complexity with nesting penalty.",
+    ),
     (
         "cycle",
         "CycleEngine",

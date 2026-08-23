@@ -13,15 +13,10 @@
   - `file_hygiene`: WSL/drvfs 마운트처럼 전 파일이 실행 비트를 가지는 환경을 샘플링으로 감지해 ExecBit 오탐을 자동 생략.
   - `type`: 동일 파일·동일 문구의 Mypy note를 첫 위치 1건으로 병합(`metrics.repeats`)해 리포트 노이즈 축소.
 ### Added
+- **인지 복잡도 (`cognitive`)**: SonarQube S3776 스타일 인지 복잡도를 함수별로 계산. 중첩 깊이에 따라 가중치를 더함. `warn/fail/warn_nesting` 설정 지원.
+- **순환 참조 탐지 (`cycle`)**: Python `import` 그래프와 C++ `#include` 그래프를 Tarjan SCC로 분석해 순환을 탐지. `max_reported` 설정 지원.
 - **PR sticky 리포트 댓글 복원 (`report-pr` + `ici publish`)**: v0.4.0 권한 분리 이후 중단됐던 PR 리포트 댓글을 아티팩트 기반으로 재도입. 검증 job은 계속 읽기 전용이고, 새 `report-pr` job(`pull_request` 전용, `contents:write`+`pull-requests:write`)이 업로드된 `verify_report.html/json`을 받아 gh-pages에 게시하고 `<!-- ici-report -->` 마커로 sticky 댓글을 갱신합니다. 댓글은 배지형 링크·통계 표·접을 수 있는 엔진 상세로 리디자인됐습니다. 신규 CLI `ici publish --html --json`으로 기존 리포트를 단독 게시할 수 있습니다.
 - **정적 위생 엔진 (`static_hygiene`)**: C++ 헤더 가드 누락, `#include` 순환 참조(Tarjan SCC), Python 위험 패턴(`eval`/`exec`/`pickle`/`shell=True`/하드코딩 시크릿)을 오프라인 정규식으로 탐지. `tests/` 기본 제외(`security_scan_tests` opt-in). `ici static-hygiene` 단독 실행 지원.
-- **컴파일 DB 검증 (`compile_db`)**: `compile_commands.json`을 파싱해 C++ 소스 커버리지·필수 플래그·include 경로 존재를 오프라인 검증. 경계 이탈 엔트리 거부, `ici compile-db` 단독 실행 지원.
-- **빌드 정의 Shadow Build (`build_definition`)**: `CMakeLists.txt`/`*.pro`를 감지해 shadow 빌드를 수행하는 어댑터 엔진. `cmake`/`ctest`/`qmake`/`make`를 argv-only로 실행하고 `ArtifactManifest`를 기록. `ici build-definition` 단독 실행 지원.
-- **툴체인 실측 엔진 (`toolchain`)**: PATH상 빌드 도구 8종(gcc/g++/make/cmake/qmake/gcov/git/python3)의 실제 경로·버전을 프로브하여 `ToolEvidence`·`capabilities`로 기록하고, `required_tools` 누락 시 `ERROR`로 게이트 차단. OS 환경 스냅샷을 `environment`로 보존. `ici toolchain` 단독 실행 지원.
-- **Python 호환성 엔진 (`python_compat`)**: 설정된 각 타깃 인터프리터로 소스 전체 `compileall`을 수행해 문법 호환성을 실측. 실패는 FAIL, 도구 오류는 ERROR, 전 시도는 ToolEvidence 기록. `ici python-compat` 단독 실행 지원.
-- **파일 위생 검사 (`file_hygiene`)**: 실행 비트 오부여, CRLF, UTF-8 BOM, `__pycache__`/`.pyc` 추적 산출물 탐지 + `bash -n` 셸 문법 검증(`ToolEvidence`) 신규 엔진. 기본 `enabled=true, required=false, mode=pass_warn`, 체크별 boolean 스위치 제공. `ici file-hygiene` 단독 실행 지원.
-- **pyproject 메타데이터 린트 (`pyproject_lint`)**: `pyproject.toml [project]`(PEP 621 부분 집합)를 오프라인 검증하는 신규 엔진. `name`, `version`, `requires-python`, `dependencies`, `[project.scripts]` 형식을 검사하며 기본 `enabled=true, required=false, mode=pass_warn`. `ici pyproject-lint` 단독 실행 지원.
-- **CMake 정의 린트 (`cmake_lint`)**: `CMakeLists.txt`를 실행 없이 파싱하는 신규 엔진. `cmake_minimum_required(VERSION >=3.16)`, `project()`, `add_subdirectory("..")` 경계 이탈, `CMAKE_CXX_STANDARD 17`, `CMAKE_EXPORT_COMPILE_COMMANDS=ON`을 검사하며, 기본 `enabled=true, required=false, mode=pass_warn`로 점진 도입. `ici verify` 요약/Issues·`ici cmake-lint` 단독 실행·`verify` HTML/Markdown/콘솔에 자동 집계.
 
 ### Refactored
 - **HTML 리포터 모듈화**: 1070줄 단일 파일 `src/ici/reporters/html.py`를 `html/report.py` + `html/sections/{summary,line,test,complexity,dup,issues}.py` + `html/utils.py` + `html/assets/{style.css,app.js}` + `html/assets_loader.py` 구조로 분해하고, `html_assets.py`는 하위 호환 shim으로 유지. Zero-CDN 인라인 동작은 `importlib.resources` 기반 로더로 보존하며, 신규 엔진 탭 추가 시 섹션 모듈만 추가하면 되도록 확장성을 확보했습니다. (`_get_status_theme` 등 레거시 헬퍼는 `html/__init__.py`에서 re-export)

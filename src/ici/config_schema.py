@@ -53,6 +53,7 @@ _ENGINE_KEYS = {
     "dup": _COMMON_ENGINE_KEYS | frozenset({"warn_pct", "fail_pct", "min_window"}),
     "exception": _COMMON_ENGINE_KEYS,
     "cycle": _COMMON_ENGINE_KEYS | frozenset({"max_reported"}),
+    "cognitive": _COMMON_ENGINE_KEYS | frozenset({"warn", "fail", "warn_nesting"}),
 }
 
 
@@ -234,6 +235,17 @@ def _validate_build(table: Any) -> None:
         _require_string(python["entrypoint"], "build.python.entrypoint", non_empty=True)
 
 
+def _validate_cognitive(table: dict[str, Any], path: str) -> None:
+    _validate_common_engine(table, path)
+    for key in ("warn", "fail", "warn_nesting"):
+        if key in table:
+            _require_int(table[key], f"{path}.{key}", minimum=1)
+    w = table.get("warn", 15)
+    f = table.get("fail", 25)
+    if f < w:
+        raise _error(f"{path}.warn", "must be <= fail")
+
+
 def _validate_cycle(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
     if "max_reported" in table:
@@ -259,6 +271,8 @@ def _validate_engine(name: str, table: Any) -> None:
         _validate_dup(table, path)
     elif name == "cycle":
         _validate_cycle(table, path)
+    elif name == "cognitive":
+        _validate_cognitive(table, path)
     else:
         _validate_common_engine(table, path)
 
