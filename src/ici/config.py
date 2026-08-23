@@ -88,6 +88,15 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "fail": 25,
             "warn_nesting": 4,
         },
+        "security": {
+            "enabled": True,
+            "mode": "pass_warn",
+            "scan_tests": False,
+        },
+        "resource": {
+            "enabled": True,
+            "mode": "pass_warn",
+        },
     },
 }
 

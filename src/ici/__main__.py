@@ -28,7 +28,9 @@ from ici.engines.exception import (
 from ici.engines.line import LineCountEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.lint import LintEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.publish import ReportPublisher, load_suite_from_json
+from ici.engines.resource import ResourceEngine  # noqa: F401
 from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - resolved dynamically by CLI registry
+from ici.engines.security import SecurityEngine  # noqa: F401
 from ici.engines.test import TestEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.type_check import (
     TypeCheckEngine,  # noqa: F401 - resolved dynamically by CLI registry
@@ -127,6 +129,18 @@ def cmd_build(ctx: typer.Context):
 # boilerplate free of per-engine duplication; see dogfood dup gate). ---
 
 _ENGINE_COMMANDS = [
+    (
+        "resource",
+        "ResourceEngine",
+        "resource_report.json",
+        "Detects resource leaks and mutable defaults via AST.",
+    ),
+    (
+        "security",
+        "SecurityEngine",
+        "security_report.json",
+        "Detects hardcoded secrets and weak crypto via offline regex.",
+    ),
     (
         "cognitive",
         "CognitiveEngine",

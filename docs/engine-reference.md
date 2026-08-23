@@ -287,6 +287,16 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **설정**: `[engines.cognitive] enabled=true, mode="pass_warn_fail", warn=15, fail=25, warn_nesting=4`.
 - **대상**: Python 소스만 분석, `__dunder__` 함수는 제외.
 
+### 2.12 🔒 `security` (보안 위생)
+- **동작**: 하드코딩 시크릿(`password|secret` 등), 프라이빗 키 블록, `hashlib.md5/sha1`, `random` 약한 난수, `eval/exec`, `pickle.loads`, `shell=True` 등을 정규식으로 탐지. `# nosec` 주석으로 억제 가능.
+- **설정**: `[engines.security] enabled=true, mode="pass_warn", scan_tests=false`.
+- **대상**: Python 소스만, `tests/`는 기본 제외.
+
+### 2.13 🧹 `resource` (리소스 누수)
+- **동작**: `open()`이 `with` 밖에서 사용되거나 `close()` 없이 방치된 경우, `List/Dict/Set` 가변 기본 인자 등을 AST로 탐지.
+- **설정**: `[engines.resource] enabled=true, mode="pass_warn"`.
+- **대상**: Python 소스만 분석.
+
 ---
 
 > **다음 단계**

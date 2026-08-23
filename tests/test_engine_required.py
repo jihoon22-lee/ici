@@ -48,7 +48,9 @@ def test_verify_orchestrator_preserves_required_policy_for_line_complexity_and_d
                 "dup",
                 "exception",
                 "cognitive",
+                "security",
                 "cycle",
+                "resource",
             )
         }
     }
