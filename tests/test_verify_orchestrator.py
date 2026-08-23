@@ -47,6 +47,7 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
             "dead",
             "dup",
             "exception",
+            "cycle",
         )
     }
     suite = VerifyOrchestrator(tmp_path, {"engines": enabled}).run_all()

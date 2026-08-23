@@ -76,11 +76,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "mode": "pass_fail",
         },
-        "toolchain": {
+        "cycle": {
             "enabled": True,
             "mode": "pass_warn_fail",
-            "required": False,
-            "required_tools": [],
+            "max_reported": 20,
         },
     },
 }

@@ -18,6 +18,7 @@ from ici.engines.build import BuildEngine
 from ici.engines.complexity import (
     ComplexityEngine,  # noqa: F401 - resolved dynamically by CLI registry
 )
+from ici.engines.cycle import CycleEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.dead import DeadCodeEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.dup import DuplicateEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.exception import (
@@ -125,6 +126,12 @@ def cmd_build(ctx: typer.Context):
 # boilerplate free of per-engine duplication; see dogfood dup gate). ---
 
 _ENGINE_COMMANDS = [
+    (
+        "cycle",
+        "CycleEngine",
+        "cycle_report.json",
+        "Detects cyclic dependencies in Python imports and C++ includes.",
+    ),
     (
         "line",
         "LineCountEngine",
