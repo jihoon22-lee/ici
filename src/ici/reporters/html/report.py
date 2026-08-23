@@ -9,6 +9,7 @@ from ici.reporters.html.sections.complexity import _render_complexity_section
 from ici.reporters.html.sections.dup import _render_dup_section
 from ici.reporters.html.sections.issues import _render_issues_section
 from ici.reporters.html.sections.line import _render_line_section
+from ici.reporters.html.sections.static_analysis import _render_static_analysis_section
 from ici.reporters.html.sections.summary import _render_engine_table_rows, _render_tem_card
 from ici.reporters.html.sections.test import _render_test_section
 from ici.reporters.html.utils import _extract_suite_data, _get_status_theme
@@ -40,6 +41,11 @@ def generate_html_report(
     complexity_tab_content = _render_complexity_section(eng_map.get("complexity"), base)
     dup_tab_content = _render_dup_section(eng_map.get("dup"), base)
     issues_tab_content = _render_issues_section(all_issues, base)
+
+    static_engines = [
+        eng_map[name] for name in ("cycle", "cognitive", "security", "resource") if name in eng_map
+    ]
+    static_tab_content = _render_static_analysis_section(static_engines, base)
 
     tem_score_card = _render_tem_card(suite.tem_score)
 
@@ -155,6 +161,7 @@ def generate_html_report(
     <button class="tab-btn" id="btn-test" data-tab-target="tab-test">🧪 Tests & Coverage ({t_passed}/{t_total})</button>
     <button class="tab-btn" id="btn-complexity" data-tab-target="tab-complexity">🧩 Complexity</button>
     <button class="tab-btn" id="btn-dup" data-tab-target="tab-dup">📦 Clone Groups ({clone_groups_count})</button>
+    <button class="tab-btn" id="btn-static" data-tab-target="tab-static">🔬 Static Analysis</button>
     <button class="tab-btn" id="btn-issues" data-tab-target="tab-issues">⚠️ Issues ({len(all_issues)})</button>
   </div>
 
@@ -196,7 +203,12 @@ def generate_html_report(
     {dup_tab_content}
   </div>
 
-  <!-- Tab 6: Actionable Issues Only -->
+  <!-- Tab 6: AST-based Static Analysis Findings -->
+  <div id="tab-static" class="tab-content">
+    {static_tab_content}
+  </div>
+
+  <!-- Tab 7: Actionable Issues Only -->
   <div id="tab-issues" class="tab-content">
     {issues_tab_content}
   </div>
