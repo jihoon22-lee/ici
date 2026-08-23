@@ -4,7 +4,9 @@
 
 ---
 
-`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 9대 핵심 검증 엔진(`line/lint/test/type/complexity/sanitize/dead/dup/exception`)을 제공합니다.
+`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 13종 검증 엔진을 제공합니다.
+기본 활성은 12종(`line/lint/test/type/resource/security/cycle/complexity/sanitize/dead/dup/exception`)이며,
+`cognitive`(인지 복잡도)는 `enabled = false` 기본값으로 필요 시 옵트인합니다.
 
 ---
 
@@ -131,16 +133,18 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 속성으로만 전달됩니다. 리포터의 JavaScript는 정적인 이벤트 위임으로 이 값을 읽으므로
 경로·메시지에 따옴표나 HTML/스크립트 문자열이 포함되어도 실행 코드로 해석되지 않습니다.
 
-## 2. 9대 핵심 검증 엔진 상세
+## 2. 검증 엔진 상세
 
 ### 2.1 📏 `line` (코드 라인 및 파일 크기 분석기)
 - **검증 규칙**:
   - 파일당 순수 코드(코드 라인) 기준으로 크기 과대화 진단
   - `warn_limit` (기본 500줄): 모듈 분리 검토 권고
   - `fail_limit` (기본 1000줄): 단일 파일 과대화 실패
-- **게이트/통계 분리**: 임계값 검증은 `gate_dirs`(기본 `src`, `include`, `lib`, `app`)에만 적용.
-  `tests`/`docs`/`scripts` 등은 라인 통계와 HTML 트리 뷰에만 포함되며 실패를 만들지 않습니다.
-  `include_dirs`(스캔 범위 재정의), `exclude_dirs`(제외)로 조직 정책 조절 가능.
+- **소스 전용 스캔**: 통계 집계와 임계값 검증 모두 기본적으로 소스 디렉터리
+  (`src`, `include`, `lib`, `app`)만 대상으로 합니다. `tests`/`docs`/`scripts`는
+  기본 제외되며 Top 파일 목록·Total Volume·게이트 어디에도 나타나지 않습니다.
+  `include_dirs`(스캔 범위 재정의, 예: 테스트 코드까지 집계)와 `exclude_dirs`(제외)로
+  조직 정책 조절 가능. 임계값 판정은 언제나 `gate_dirs`에 속한 경로에서만 수행됩니다.
 - **출력 메트릭**: 코드 라인, 주석 라인, 공백 라인 수 및 디렉토리 계층 트리 ([HTML 뷰어 지원](user-guide.md#22-인터랙티브-html-리포트-생성-및-자동-브라우저-열기))
 
 ### 2.2 🧹 `lint` (문법 및 코드 스타일 린터)

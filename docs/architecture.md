@@ -61,7 +61,7 @@ ici/
 ├── docs/                            # 프로젝트 문서화
 │   ├── architecture.md              # [본 문서] 시스템 아키텍처 및 내부 설계
 │   ├── user-guide.md                # 사용자 가이드 및 빠른 시작
-│   ├── engine-reference.md          # 9대 검증 엔진 레퍼런스 및 수식
+│   ├── engine-reference.md          # 검증 엔진 레퍼런스 및 수식
 │   └── ci-integration.md            # GitHub Actions & 폐쇄망 CI 연동 가이드
 ├── scripts/                         # 빌드 및 런처 스크립트
 │   ├── launcher.sh                  # ZipApp polyglot 프리앰블 런처
@@ -77,7 +77,7 @@ ici/
 │       │   ├── models.py            # EngineResult, InspectionTarget 데이터 모델
 │       │   ├── project.py           # 소스 파일 탐색 및 프로젝트 루트 감지
 │       │   └── runner.py            # 서브프로세스 격리 실행기
-│       ├── engines/                 # 9대 표준 검증 엔진 + 퍼블리셔
+│       ├── engines/                 # 표준 검증 엔진 + 퍼블리셔
 │       │   ├── base.py              # BaseEngine 인터페이스 & evaluate_status()
 │       │   ├── verify.py            # VerifyOrchestrator (검증 오케스트레이터)
 │       │   ├── line.py              # 코드/주석/공백 분석 및 트리 구조 생성
