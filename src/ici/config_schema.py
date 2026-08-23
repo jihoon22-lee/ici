@@ -52,7 +52,7 @@ _ENGINE_KEYS = {
     "dead": _COMMON_ENGINE_KEYS,
     "dup": _COMMON_ENGINE_KEYS | frozenset({"warn_pct", "fail_pct", "min_window"}),
     "exception": _COMMON_ENGINE_KEYS,
-    "toolchain": _COMMON_ENGINE_KEYS | frozenset({"required_tools", "tools"}),
+    "cycle": _COMMON_ENGINE_KEYS | frozenset({"max_reported"}),
 }
 
 
@@ -234,6 +234,12 @@ def _validate_build(table: Any) -> None:
         _require_string(python["entrypoint"], "build.python.entrypoint", non_empty=True)
 
 
+def _validate_cycle(table: dict[str, Any], path: str) -> None:
+    _validate_common_engine(table, path)
+    if "max_reported" in table:
+        _require_int(table["max_reported"], f"{path}.max_reported", minimum=1)
+
+
 def _validate_engine(name: str, table: Any) -> None:
     path = f"engines.{name}"
     if not isinstance(table, dict):
@@ -251,8 +257,8 @@ def _validate_engine(name: str, table: Any) -> None:
         _validate_complexity(table, path)
     elif name == "dup":
         _validate_dup(table, path)
-    elif name == "toolchain":
-        _validate_toolchain(table, path)
+    elif name == "cycle":
+        _validate_cycle(table, path)
     else:
         _validate_common_engine(table, path)
 

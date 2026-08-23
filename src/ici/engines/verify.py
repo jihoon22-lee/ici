@@ -14,6 +14,7 @@ from ici.core.models import (
 )
 from ici.core.project import get_project_name
 from ici.engines.complexity import ComplexityEngine
+from ici.engines.cycle import CycleEngine
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
@@ -58,6 +59,7 @@ class VerifyOrchestrator:
             ("lint", LintEngine),
             ("test", TestEngine),
             ("type", TypeCheckEngine),
+            ("cycle", CycleEngine),
             ("complexity", ComplexityEngine),
             ("sanitize", SanitizeEngine),
             ("dead", DeadCodeEngine),
