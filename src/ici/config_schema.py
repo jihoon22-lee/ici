@@ -54,6 +54,8 @@ _ENGINE_KEYS = {
     "exception": _COMMON_ENGINE_KEYS,
     "cycle": _COMMON_ENGINE_KEYS | frozenset({"max_reported"}),
     "cognitive": _COMMON_ENGINE_KEYS | frozenset({"warn", "fail", "warn_nesting"}),
+    "security": _COMMON_ENGINE_KEYS | frozenset({"scan_tests"}),
+    "resource": _COMMON_ENGINE_KEYS,
 }
 
 
@@ -235,6 +237,12 @@ def _validate_build(table: Any) -> None:
         _require_string(python["entrypoint"], "build.python.entrypoint", non_empty=True)
 
 
+def _validate_security(table: dict[str, Any], path: str) -> None:
+    _validate_common_engine(table, path)
+    if "scan_tests" in table:
+        _require_bool(table["scan_tests"], f"{path}.scan_tests")
+
+
 def _validate_cognitive(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
     for key in ("warn", "fail", "warn_nesting"):
@@ -273,6 +281,10 @@ def _validate_engine(name: str, table: Any) -> None:
         _validate_cycle(table, path)
     elif name == "cognitive":
         _validate_cognitive(table, path)
+    elif name == "security":
+        _validate_security(table, path)
+    elif name == "resource":
+        _validate_common_engine(table, path)
     else:
         _validate_common_engine(table, path)
 
