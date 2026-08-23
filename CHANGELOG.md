@@ -7,32 +7,36 @@
 
 ## [Unreleased]
 
-### Changed
-- **Dogfood 품질 강화 1차 (자체 검증 기반)**:
-  - CLI 엔진 커맨드 17종을 데이터 주도 레지스트리+팩토리로 통합해 `__main__.py`의 반복 보일러플레이트를 제거하고, 엔진 클래스는 호출 시점에 모듈 어트리뷰트로 조회해 기존 monkeypatch 호환을 유지 (dup 최대 클론 제거).
-  - `file_hygiene`: WSL/drvfs 마운트처럼 전 파일이 실행 비트를 가지는 환경을 샘플링으로 감지해 ExecBit 오탐을 자동 생략.
-  - `type`: 동일 파일·동일 문구의 Mypy note를 첫 위치 1건으로 병합(`metrics.repeats`)해 리포트 노이즈 축소.
 ### Added
+- **리소스 누수 (`resource`)**: `open()` 후 close 누락, 가변 기본 인자 등 리소스 누수 AST 패턴을 탐지.
 - **보안 위생 (`security`)**: 하드코딩 시크릿, 프라이빗 키, `hashlib.md5/sha1`, `random`, `eval/exec`, `pickle`, `shell=True` 등을 정규식으로 탐지. `scan_tests` 설정 지원.
-- **인지 복잡도 (`cognitive`)**: SonarQube S3776 스타일 인지 복잡도를 함수별로 계산. 중첩 깊이에 따라 가중치를 더함. `warn/fail/warn_nesting` 설정 지원.
+- **인지 복잡도 (`cognitive`)**: SonarQube S3776 스타일 인지 복잡도를 함수별로 계산. 중첩 깊이에 따라 가중치를 더함. `warn/fail/warn_nesting` 설정 지원. 자체 검증 baseline 대비 오탐을 줄이기 위해 **기본 비활성(`enabled = false`)**, 임계값은 warn 30 / fail 60으로 조정.
 - **순환 참조 탐지 (`cycle`)**: Python `import` 그래프와 C++ `#include` 그래프를 Tarjan SCC로 분석해 순환을 탐지. `max_reported` 설정 지원.
 - **PR sticky 리포트 댓글 복원 (`report-pr` + `ici publish`)**: v0.4.0 권한 분리 이후 중단됐던 PR 리포트 댓글을 아티팩트 기반으로 재도입. 검증 job은 계속 읽기 전용이고, 새 `report-pr` job(`pull_request` 전용, `contents:write`+`pull-requests:write`)이 업로드된 `verify_report.html/json`을 받아 gh-pages에 게시하고 `<!-- ici-report -->` 마커로 sticky 댓글을 갱신합니다. 댓글은 배지형 링크·통계 표·접을 수 있는 엔진 상세로 리디자인됐습니다. 신규 CLI `ici publish --html --json`으로 기존 리포트를 단독 게시할 수 있습니다.
-- **정적 위생 엔진 (`static_hygiene`)**: C++ 헤더 가드 누락, `#include` 순환 참조(Tarjan SCC), Python 위험 패턴(`eval`/`exec`/`pickle`/`shell=True`/하드코딩 시크릿)을 오프라인 정규식으로 탐지. `tests/` 기본 제외(`security_scan_tests` opt-in). `ici static-hygiene` 단독 실행 지원.
+
+### Changed
+- **HTML 리포트 UI/UX 개선**:
+  - "Engines Run" 카드에 Pass/Warn/Fail/Error/Skip 분포 **헬스 바** 추가.
+  - 요약 테이블의 **N/A(SKIP) 엔진을 회색 접힘 행**으로 표시해 미적용 사유를 숨김 없이 확인 가능.
+  - 신규 정적 분석 엔진(cycle/cognitive/security/resource) 전용 **`🔬 Static Analysis` 탭** 추가 및 요약 행 점프 버튼 연결 (총 7개 탭).
+- **`line` 소스 전용 스캔**: 통계 집계와 임계값 게이트 모두 기본 소스 디렉터리(`src/include/lib/app`)만 대상. `tests/docs/scripts`는 Top 파일 목록과 Total Volume에서 제외되며, `include_dirs`로 명시적 옵트인 시에만 집계.
+- **Dogfood 품질 강화 1차 (자체 검증 기반)**:
+  - CLI 엔진 커맨드 17종을 데이터 주도 레지스트리+팩토리로 통합해 `__main__.py`의 반복 보일러플레이트를 제거하고, 엔진 클래스는 호출 시점에 모듈 어트리뷰트로 조회해 기존 monkeypatch 호환을 유지 (dup 최대 클론 제거).
+  - `type`: 동일 파일·동일 문구의 Mypy note를 첫 위치 1건으로 병합(`metrics.repeats`)해 리포트 노이즈 축소.
 
 ### Refactored
-- **HTML 리포터 모듈화**: 1070줄 단일 파일 `src/ici/reporters/html.py`를 `html/report.py` + `html/sections/{summary,line,test,complexity,dup,issues}.py` + `html/utils.py` + `html/assets/{style.css,app.js}` + `html/assets_loader.py` 구조로 분해하고, `html_assets.py`는 하위 호환 shim으로 유지. Zero-CDN 인라인 동작은 `importlib.resources` 기반 로더로 보존하며, 신규 엔진 탭 추가 시 섹션 모듈만 추가하면 되도록 확장성을 확보했습니다. (`_get_status_theme` 등 레거시 헬퍼는 `html/__init__.py`에서 re-export)
+- **HTML 리포터 모듈화**: 1070줄 단일 파일 `src/ici/reporters/html.py`를 `html/report.py` + `html/sections/{summary,line,test,complexity,dup,issues,static_analysis}.py` + `html/utils.py` + `html/assets/{style.css,app.js}` + `html/assets_loader.py` 구조로 분해하고, `html_assets.py`는 하위 호환 shim으로 유지. Zero-CDN 인라인 동작은 `importlib.resources` 기반 로더로 보존하며, 신규 엔진 탭 추가 시 섹션 모듈만 추가하면 되도록 확장성을 확보했습니다. (`_get_status_theme` 등 레거시 헬퍼는 `html/__init__.py`에서 re-export)
 - **Runner/Path 모듈화**: `src/ici/core/runner.py`(640줄)에서 Windows Job Object 관련 상수·구조체·저수준 헬퍼를 `runner_win.py`(147줄)로 분리하고, 공통 경계 검증 `resolve_project_path` 중복을 `core/path_utils.py`로 통합. `config_schema.py`와 `core/project.py`는 해당 모듈을 re-export하여 기존 import 경로를 유지합니다. POSIX/Windows 분리에 따른 순환 참조 없이 `run_process`의 timeout·출력 제한·프로세스 그룹 정리 동작을 보존했습니다.
 - **Test 엔진 인터프리터 분리**: 1000줄 `src/ici/engines/test.py`에서 인터프리터 해석(`_resolve_python`, `_find_pytest_cmd`, `_build_python_test_env`, `_find_coverage_cmd`, `_interpreter_from_command`)을 `test_interpreter.py`의 `TestInterpreterMixin`으로 분리하고 `TestEngine`이 다중 상속하도록 변경. `run_process` 패치 호환성(`ici.engines.test.run_process`)을 유지하며 `test_test_engine.py` 55개 테스트가 통과하도록 검증했습니다.
 
 ### Fixed
+- **`cycle` 경로 표기**: 순환 참조 대상 파일 경로가 러너 절대경로로 노출되던 문제를 수정하고 다른 엔진과 동일하게 프로젝트 루트 상대경로로 보고.
 - **프로젝트 정책 버전 싱크**: `ici.toml`의 `ici.version`을 패키지 `__version__`(`0.4.2`)과 동기화하고, 드리프트를 방지하는 `test_repository_ici_version_matches_package_version` 회귀 테스트를 추가했습니다.
 - **엔진 경량 보강**: `dup` Type-2 해시 충돌 방지를 위해 윈도우 해시를 `"\x00"` 구분자로 생성, `type`의 `__private` 함수 오탐 방지를 위해 `__` 시작·끝 dunder만 스킵, `line`의 symlink 파일이 라인 집계에서 제외되도록 `is_symlink()` 가드 추가.
 - **문서·환경·리포터 정합성**: `README.md` TEM 공식을 LineCov 기반(`min(Line,80)/80*Func/100*PassRate*5`, Branch는 `*5/4` 보정)으로 정정하고 HTML 대시보드가 신규 엔진도 요약/Issues에 자동 집계됨을 명시. `config.py` 전역 설정 생성 로그를 `stderr`로 이동해 `--json` 출력을 방해하지 않도록 수정하고, `scripts/smoke.sh`에 `dist/ici` 일치 및 Zero-CDN 검증 단계를 추가.
 
 ### Removed
 - **CI 부적합 엔진 7종 일괄 제거**: `cmake_lint`, `pyproject_lint`, `file_hygiene`, `python_compat`, `build_definition`, `compile_db`, `static_hygiene` 및 `build_adapters`/`core/compile_db` 공유 인프라를 `verify` 스위트에서 제거. `file_hygiene`의 `bash -n` 셸 검사는 폐쇄망 `csh` 미지원으로 함께 폐기.
-
-### Changed
 - **toolchain `doctor`로 흡수**: `verify` 엔진 `toolchain`을 제거하고 `src/ici/core/toolchain.py:41` `collect_tool_capability`를 `src/ici/doctor.py:25` `collect_diagnostics`가 재사용하도록 통합. `required_tools` 위반 시 `doctor` 테이블에 `[yellow]Missing (required) WARN[/yellow]`로 표시.
 
 ## [0.4.2] - 2026-08-20

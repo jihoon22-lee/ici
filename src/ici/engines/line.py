@@ -38,7 +38,7 @@ class LineCountEngine(BaseEngine):
         include_dirs = [str(x) for x in cfg.get("include_dirs", []) or []]
         exclude_dirs = set(str(x) for x in cfg.get("exclude_dirs", []) or [])
 
-        default_dirs = ["src", "include", "tests", "lib", "app", "docs", "scripts"]
+        default_dirs = ["src", "include", "lib", "app"]
         target_dirs = include_dirs if include_dirs else default_dirs
         target_dirs = [d for d in target_dirs if d not in exclude_dirs]
         gate_set = {d for d in gate_dirs if d not in exclude_dirs}

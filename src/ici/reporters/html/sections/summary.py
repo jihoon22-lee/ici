@@ -6,11 +6,27 @@ from pathlib import Path
 from ici.core.models import EngineResult, EngineStatus, format_score_display
 from ici.reporters.html.utils import _get_status_theme, _location_controls, _status_color
 
+_JUMP_TARGET_ENGINES = {"cycle", "cognitive", "security", "resource"}
+
 
 def _render_engine_table_rows(results: list[EngineResult], base: Path) -> list[str]:
     """Renders main summary table rows."""
     engine_rows = []
     for res in results:
+        if res.status == EngineStatus.SKIP:
+            engine_rows.append(
+                f"<tr style='opacity: 0.55;'>"
+                f"  <td class='engine-name' style='color: var(--text-muted);'>{html.escape(res.engine_name)}</td>"
+                f"  <td><span class='badge' style='color:var(--text-muted); border:1px solid var(--text-muted)44'>N/A</span></td>"
+                f"  <td colspan='3'>"
+                f"    <details>"
+                f"      <summary style='cursor:pointer; color:var(--text-muted); font-size:0.85rem;'>Not applicable — why?</summary>"
+                f"      <div class='engine-summary-text' style='margin-top:0.4rem;'>{html.escape(res.summary)}</div>"
+                f"    </details>"
+                f"  </td>"
+                f"</tr>"
+            )
+            continue
         color, bg, _ = _get_status_theme(res.status)
         score_str = format_score_display(res)
         duration_str = f"{res.duration:.2f}s" if res.duration > 0 else "-"
@@ -78,6 +94,14 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
             f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
             "<button class='jump-tab-btn' data-tab-target='tab-dup'>"
             "📦 View Clone Groups →</button>"
+        )
+
+    # Static Analysis Engines (cycle/cognitive/security/resource)
+    if eng in _JUMP_TARGET_ENGINES:
+        return (
+            f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
+            "<button class='jump-tab-btn' data-tab-target='tab-static'>"
+            "🔬 View Static Analysis Findings →</button>"
         )
 
     # Sanitize Engine
