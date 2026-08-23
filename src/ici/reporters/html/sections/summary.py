@@ -6,7 +6,16 @@ from pathlib import Path
 from ici.core.models import EngineResult, EngineStatus, format_score_display
 from ici.reporters.html.utils import _get_status_theme, _location_controls, _status_color
 
-_JUMP_TARGET_ENGINES = {"cycle", "cognitive", "security", "resource"}
+_JUMP_MAP = {
+    "line": ("tab-line", "📊 View File Tree & Charts →"),
+    "test": ("tab-test", "🧪 View Test Suites & Coverage Details →"),
+    "complexity": ("tab-complexity", "🧩 View Complexity Details →"),
+    "dup": ("tab-dup", "📦 View Clone Groups →"),
+    "cycle": ("tab-cycles", "🔁 View Dependency Cycles →"),
+    "cognitive": ("tab-complexity", "🧠 View Complexity Details →"),
+    "security": ("tab-security", "🔐 View Security & Resources →"),
+    "resource": ("tab-security", "🔐 View Security & Resources →"),
+}
 
 
 def _render_engine_table_rows(results: list[EngineResult], base: Path) -> list[str]:
@@ -64,44 +73,13 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
     """Renders main summary column with quick jump buttons and noise-free presentation."""
     eng = res.engine_name
 
-    # Line Engine
-    if eng == "line":
+    # Engines with a dedicated tab — one shared template for all jump links.
+    if eng in _JUMP_MAP:
+        tab_id, label = _JUMP_MAP[eng]
         return (
             f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
-            "<button class='jump-tab-btn' data-tab-target='tab-line'>"
-            "📊 View File Tree & Charts →</button>"
-        )
-
-    # Test Engine
-    if eng == "test":
-        return (
-            f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
-            "<button class='jump-tab-btn' data-tab-target='tab-test'>"
-            "🧪 View Test Suites & Coverage Details →</button>"
-        )
-
-    # Complexity Engine
-    if eng == "complexity":
-        return (
-            f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
-            "<button class='jump-tab-btn' data-tab-target='tab-complexity'>"
-            "🧩 View Complexity Details →</button>"
-        )
-
-    # Duplicate Engine
-    if eng == "dup":
-        return (
-            f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
-            "<button class='jump-tab-btn' data-tab-target='tab-dup'>"
-            "📦 View Clone Groups →</button>"
-        )
-
-    # Static Analysis Engines (cycle/cognitive/security/resource)
-    if eng in _JUMP_TARGET_ENGINES:
-        return (
-            f"<div class='engine-summary-text'>{html.escape(res.summary)}</div>"
-            "<button class='jump-tab-btn' data-tab-target='tab-static'>"
-            "🔬 View Static Analysis Findings →</button>"
+            f"<button class='jump-tab-btn' data-tab-target='{tab_id}'>"
+            f"{label}</button>"
         )
 
     # Sanitize Engine

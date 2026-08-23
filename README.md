@@ -44,13 +44,14 @@ $ ici doctor
     - `security`: 하드코딩 시크릿, 약한 해시, `eval`/`pickle`/`shell=True` 등 위험 패턴 탐지
     - `resource`: 파일·네트워크 리소스 누수 AST 패턴 검출
     - `cognitive`: SonarQube S3776 스타일 **인지 복잡도** (기본 비활성, 옵트인)
-4. **7개 전용 탭 인터랙티브 Zero-CDN HTML 대시보드 (`--html`)**:
+4. **8개 전용 탭 인터랙티브 Zero-CDN HTML 대시보드 (`--html`)**:
      - `📋 Verification Suites`: 종합 품질 게이지, TEM 스코어, 전체 엔진 상태 및 전용 탭 점프 버튼 (N/A 엔진은 회색 접힘 행 표시)
-     - `📊 Line Analysis & Explorer`: 전체 너비(Full-Width) 계층형 파일 트리 탐색기 + 실시간 파일 검색 + 코드 분포 차트
+     - `📊 Line Analysis & Explorer`: 소스 스코프 기본 표시 + **All-files 토글로 전체 프로젝트 라인 탐색** + 계층형 파일 트리 + 실시간 검색 + 코드 분포 차트
       - `🧪 Tests & Coverage`: 4대 커버리지 KPI 게이지 + **모듈별 실측 커버리지 테이블 (Module Coverage Table)** + 파일별 테스트 스위트 & 개별 테스트 케이스 상세 뷰
-     - `🧩 Complexity`: 순환 복잡도 리더보드 + **접고 펼칠 수 있는 소스 코드 블록 (Toggle All Code 지원)**
+     - `🧩 Complexity`: 순환 복잡도 리더보드 + 🧠 인지 복잡도 통합 뷰 + 토글 코드 블록
      - `📦 Clone Groups`: 연결 컴포넌트 클러스터링 기반 중복 코드 카드 + 원본 들여쓰기 보존 코드 블록
-     - `🔬 Static Analysis`: cycle/cognitive/security/resource 정적 분석 결과 통합 뷰
+     - `🔁 Cycles`: 순환 참조 체인을 **칩(chip) 시각화**로 표시 + 전체 경로 접기
+     - `🔐 Security & Resources`: security/resource 발견 사항 카드 뷰
      - `⚠️ Issues`: 전체 조치 필요(WARN/FAIL/ERROR/SKIP) 항목 통합 뷰 + **접고 펼칠 수 있는 문제 코드 스니펫**
 5. **전체 파일·라인 원클릭 점프 네비게이션**:
    - **로컬 터미널**: Rich가 안전한 `file://` 링크를 출력하여 지원하는 터미널에서 파일 위치로 이동

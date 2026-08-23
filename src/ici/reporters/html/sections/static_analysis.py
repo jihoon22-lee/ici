@@ -1,4 +1,4 @@
-"""Static Analysis section — dedicated findings view for AST-based engines."""
+"""Security & Resources section — dedicated findings view for hygiene engines."""
 
 import html
 from pathlib import Path
@@ -7,15 +7,13 @@ from ici.core.models import EngineResult, EngineStatus
 from ici.reporters.html.utils import _get_status_theme, _location_controls, _status_color
 
 _ENGINE_META = {
-    "cycle": ("🔁", "Dependency Cycles"),
-    "cognitive": ("🧠", "Cognitive Complexity"),
     "security": ("🔐", "Security Patterns"),
     "resource": ("💧", "Resource Leaks"),
 }
 
 
 def _render_static_analysis_section(results: list[EngineResult], base: Path) -> str:
-    """Renders grouped findings for cycle/cognitive/security/resource engines."""
+    """Renders grouped findings for security/resource engines."""
     blocks = []
     for res in results:
         meta = _ENGINE_META.get(res.engine_name)
@@ -69,14 +67,14 @@ def _render_static_analysis_section(results: list[EngineResult], base: Path) -> 
         )
 
     if not blocks:
-        return "<div class='empty-clean'>🔬 No static analysis engines produced findings.</div>"
+        return "<div class='empty-clean'>🔐 No security or resource findings.</div>"
 
     return (
         "<div class='issues-header-bar'>"
         "  <div>"
-        '    <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">🔬 Static Analysis Findings</h2>'
+        '    <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">🔐 Security & Resources</h2>'
         "    <p style='font-size: 0.875rem; color: var(--text-muted);'>"
-        "      AST 기반 정적 분석 엔진(cycle · cognitive · security · resource)의 상세 결과입니다."
+        "      보안 위생(security)과 리소스 누수(resource) 정적 분석 결과입니다."
         "    </p>"
         "  </div>"
         "</div>"
