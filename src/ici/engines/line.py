@@ -92,23 +92,47 @@ class LineCountEngine(BaseEngine):
             required=bool(cfg.get("required", True)),
         )
 
+    def _configured_source_dir_names(self) -> list[str] | None:
+        """Return explicit ``project.source_dirs`` names, or None if unset.
+
+        Returns the raw configured names (not resolved paths) so they compose
+        with the same top-level string comparisons ``gate_set``/``scope_list``
+        already use.
+        """
+        project_cfg = self.config.get("project") if isinstance(self.config, dict) else None
+        if isinstance(project_cfg, dict):
+            raw = project_cfg.get("source_dirs")
+            if isinstance(raw, list) and raw:
+                return [str(x).strip("/") for x in raw if isinstance(x, str) and x]
+        return None
+
     def _build_scan_plan(self, cfg: dict) -> dict:
-        """Resolves source scope (defaults + include_dirs), gate set and limits."""
+        """Resolves source scope (defaults + project.source_dirs + include_dirs)."""
         include_dirs = [str(x) for x in cfg.get("include_dirs", []) or []]
         exclude_set = {str(x).strip("/") for x in cfg.get("exclude_dirs", []) or []}
+        configured_source_dirs = self._configured_source_dir_names() or []
 
         scope_list: list[str] = []
-        for d in [*self._DEFAULT_SOURCE, *include_dirs]:
+        for d in [*self._DEFAULT_SOURCE, *configured_source_dirs, *include_dirs]:
             d_clean = str(d).strip("/")
             if d_clean and d_clean not in exclude_set and d_clean not in scope_list:
                 scope_list.append(d_clean)
 
+        # `gate_dirs` always ships a concrete default in DEFAULT_CONFIG (it is
+        # never actually "absent" once merged through load_config), so a plain
+        # `cfg.get("gate_dirs", default)` fallback would never see
+        # project.source_dirs. Only union project.source_dirs in when gate_dirs
+        # is still exactly the shipped default (i.e. the user never customized
+        # it) — an explicit, narrower `gate_dirs` override is respected as-is.
+        configured_gate_dirs = cfg.get("gate_dirs", self._DEFAULT_SOURCE)
+        gate_names = (
+            [*configured_gate_dirs, *configured_source_dirs]
+            if list(configured_gate_dirs) == self._DEFAULT_SOURCE
+            else configured_gate_dirs
+        )
         return {
             "scope_list": scope_list,
-            "gate_set": {
-                str(d).strip("/") for d in cfg.get("gate_dirs", list(self._DEFAULT_SOURCE))
-            }
-            - exclude_set,
+            "gate_set": {str(d).strip("/") for d in gate_names} - exclude_set,
             "exclude_roots": {self.project_root / x for x in exclude_set},
             "warn_limit": cfg.get("warn_limit", 500),
             "fail_limit": cfg.get("fail_limit", 1000),

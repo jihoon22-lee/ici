@@ -17,11 +17,14 @@ class ConfigError(ValueError):
 MODES = frozenset({"pass_warn_fail", "pass_fail", "pass_warn"})
 PROJECT_TYPES = frozenset({"python", "cpp", "hybrid"})
 
-_TOP_LEVEL_KEYS = frozenset({"ici", "project", "engines", "build", "name", "type", "version"})
+_TOP_LEVEL_KEYS = frozenset(
+    {"ici", "project", "engines", "build", "doctor", "name", "type", "version"}
+)
 _ICI_KEYS = frozenset({"version", "policy_name"})
 _PROJECT_KEYS = frozenset({"source_dirs", "name", "type", "version"})
 _BUILD_KEYS = frozenset({"python"})
 _BUILD_PYTHON_KEYS = frozenset({"entrypoint"})
+_DOCTOR_KEYS = frozenset({"required_tools"})
 _COMMON_ENGINE_KEYS = frozenset({"enabled", "mode", "required"})
 _ENGINE_KEYS = {
     "line": _COMMON_ENGINE_KEYS
@@ -230,6 +233,15 @@ def _validate_build(table: Any) -> None:
         _require_string(python["entrypoint"], "build.python.entrypoint", non_empty=True)
 
 
+def _validate_doctor(table: Any) -> None:
+    path = "doctor"
+    if not isinstance(table, dict):
+        raise _error(path, "must be a table")
+    _reject_unknown(table, _DOCTOR_KEYS, path)
+    if "required_tools" in table:
+        _require_string_list(table["required_tools"], f"{path}.required_tools")
+
+
 def _validate_security(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
     if "scan_tests" in table:
@@ -241,8 +253,10 @@ def _validate_cognitive(table: dict[str, Any], path: str) -> None:
     for key in ("warn", "fail", "warn_nesting"):
         if key in table:
             _require_int(table[key], f"{path}.{key}", minimum=1)
-    w = table.get("warn", 15)
-    f = table.get("fail", 25)
+    # Matches CognitiveEngine's own fallback and DEFAULT_CONFIG's shipped
+    # policy (warn=30, fail=60) — kept in sync deliberately.
+    w = table.get("warn", 30)
+    f = table.get("fail", 60)
     if f < w:
         raise _error(f"{path}.warn", "must be <= fail")
 
@@ -351,6 +365,9 @@ def validate_config(config: dict[str, Any]) -> None:
 
     if "build" in config:
         _validate_build(config["build"])
+
+    if "doctor" in config:
+        _validate_doctor(config["doctor"])
 
     engines = config.get("engines")
     if not isinstance(engines, dict):

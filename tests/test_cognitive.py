@@ -37,3 +37,17 @@ def test_cognitive_respects_thresholds(tmp_path: Path):
     cfg = {"engines": {"cognitive": {"mode": "pass_warn_fail", "warn": 100, "fail": 200}}}
     result = CognitiveEngine(tmp_path, cfg).run()
     assert result.status == EngineStatus.PASS
+
+
+def test_default_thresholds_match_shipped_policy(tmp_path: Path):
+    # A standalone/partial config (no warn/fail set) must fall back to the
+    # same 30/60 policy DEFAULT_CONFIG ships, not a stricter undocumented
+    # pair -- a function scoring under 30 should stay clean either way.
+    src = tmp_path / "src"
+    src.mkdir()
+    code = "def foo(x, y, z):\n"
+    for i in range(3):
+        code += f"    if x > {i}:\n        if y > {i}:\n            x += 1\n"
+    (src / "a.py").write_text(code, encoding="utf-8")
+    result = CognitiveEngine(tmp_path, {"engines": {"cognitive": {"mode": "pass_warn_fail"}}}).run()
+    assert result.status == EngineStatus.PASS

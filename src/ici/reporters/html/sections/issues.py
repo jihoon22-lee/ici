@@ -1,4 +1,4 @@
-"""Generated section - see html.py original."""
+"""Issues tab — every actionable (non-PASS) finding across all engines."""
 
 import html
 from pathlib import Path

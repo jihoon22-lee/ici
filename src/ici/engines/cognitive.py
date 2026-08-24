@@ -13,9 +13,9 @@ def _cognitive_for_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tup
 
     Rules (Sonar-inspired, pure-Python):
     - +1 for if/elif/else, for, while, except, with, assert, comprehension
-    - +1 per boolean operator chain (and/or) counted once per BinOp chain
-    - + nesting_level for each nesting increment (if/for/while/except/with)
-    - Recursion and break/continue inside loops handled as +1
+    - +1 per boolean operator chain (and/or), plus nesting
+    - +nesting_level for each nesting increment (if/for/while/except/with)
+    - break/continue inside a loop count as +1
     """
     cognitive = 0
     max_nesting = 0
@@ -36,18 +36,16 @@ def _cognitive_for_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tup
                     ast.AsyncWith,
                 ),
             ):
-                # +1 + nesting
-                cognitive_child = 1 + nesting
-                # Special: if-elif chain: elif is an If in orelse, should not double count nesting
-                # For simplicity, count each If as +1+nesting
-                cognitive += cognitive_child
+                # Each branch/loop/handler/with is +1, weighted by its nesting
+                # depth. elif is modeled as a nested If in orelse, so it is
+                # counted (and weighted) the same way as any other If.
+                cognitive += 1 + nesting
                 walk(
                     child,
                     nesting + 1,
                     in_loop or isinstance(child, (ast.For, ast.AsyncFor, ast.While)),
                 )
             elif isinstance(child, ast.BoolOp):
-                # +1 for boolean chain, plus nesting
                 if isinstance(child.op, (ast.And, ast.Or)):
                     cognitive += 1 + nesting
                 walk(child, nesting, in_loop)
@@ -63,10 +61,7 @@ def _cognitive_for_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tup
             else:
                 walk(child, nesting, in_loop)
 
-    # Start with 0, walk function body
     walk(node, 0)
-    # Ensure at least 1? Sonar cognitive can be 0 for simple function, but we keep at least 1 for consistency with CC?
-    # Keep as computed, but ensure max_nesting is at least 1 if function has body
     return cognitive, max_nesting
 
 
@@ -76,8 +71,11 @@ class CognitiveEngine(BaseEngine):
     def run(self) -> EngineResult:
         t0 = time.time()
         cfg = self.get_config("cognitive")
-        warn = int(cfg.get("warn", 15))
-        fail = int(cfg.get("fail", 25))
+        # Matches DEFAULT_CONFIG's shipped policy (warn=30, fail=60); kept in
+        # sync so a standalone/partial config behaves the same as the real
+        # default policy instead of a stricter, undocumented fallback.
+        warn = int(cfg.get("warn", 30))
+        fail = int(cfg.get("fail", 60))
         warn_nesting = int(cfg.get("warn_nesting", 4))
         mode = cfg.get("mode", "pass_warn_fail")
 
@@ -96,31 +94,24 @@ class CognitiveEngine(BaseEngine):
             for node in ast.walk(tree):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     continue
-                # Skip private helpers and tests? Keep all for now, but skip dunders
                 if node.name.startswith("__") and node.name.endswith("__"):
                     continue
                 cog, nesting = _cognitive_for_function(node)
                 max_cog = max(max_cog, cog)
-                snippet = ast.get_source_segment(content, node) or ""
-                # Trim snippet to first 20 lines
-                snip_lines = snippet.splitlines()[:20]
-                snippet_trim = "\n".join(snip_lines)
 
                 status = EngineStatus.PASS
-                if cog >= fail or nesting >= warn_nesting:
-                    # Use fail threshold for cognitive, warn for nesting
-                    if cog >= fail:
-                        has_fail = True
-                        status = EngineStatus.FAIL
-                    elif cog >= warn or nesting >= warn_nesting:
-                        has_warn = True
-                        status = EngineStatus.WARN
-                elif cog >= warn:
+                if cog >= fail:
+                    has_fail = True
+                    status = EngineStatus.FAIL
+                elif cog >= warn or nesting >= warn_nesting:
                     has_warn = True
                     status = EngineStatus.WARN
 
-                # Only report WARN/FAIL, but keep PASS for tracking? Only report issues to avoid noise
+                # Only report WARN/FAIL targets — passing functions would
+                # just add noise without any actionable content.
                 if status != EngineStatus.PASS:
+                    snippet = ast.get_source_segment(content, node) or ""
+                    snippet_trim = "\n".join(snippet.splitlines()[:20])
                     targets.append(
                         InspectionTarget(
                             file_path=rel,
@@ -133,15 +124,6 @@ class CognitiveEngine(BaseEngine):
                             metrics={"cognitive": cog, "nesting": nesting},
                         )
                     )
-
-        # Also handle C++ heuristic: reuse complexity's C++ logic? For now, Python only
-        if (
-            not targets
-            and not has_warn
-            and not has_fail
-            and get_all_python_sources(self.project_root, self.config)
-        ):
-            pass
 
         status = self.evaluate_status(has_fail, has_warn, mode)
         summary = (

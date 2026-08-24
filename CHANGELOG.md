@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-24
+
 ### Added
 - **리소스 누수 (`resource`)**: `open()` 후 close 누락, 가변 기본 인자 등 리소스 누수 AST 패턴을 탐지.
 - **보안 위생 (`security`)**: 하드코딩 시크릿, 프라이빗 키, `hashlib.md5/sha1`, `random`, `eval/exec`, `pickle`, `shell=True` 등을 정규식으로 탐지. `scan_tests` 설정 지원.
@@ -36,10 +38,56 @@
 - **프로젝트 정책 버전 싱크**: `ici.toml`의 `ici.version`을 패키지 `__version__`(`0.4.2`)과 동기화하고, 드리프트를 방지하는 `test_repository_ici_version_matches_package_version` 회귀 테스트를 추가했습니다.
 - **엔진 경량 보강**: `dup` Type-2 해시 충돌 방지를 위해 윈도우 해시를 `"\x00"` 구분자로 생성, `type`의 `__private` 함수 오탐 방지를 위해 `__` 시작·끝 dunder만 스킵, `line`의 symlink 파일이 라인 집계에서 제외되도록 `is_symlink()` 가드 추가.
 - **문서·환경·리포터 정합성**: `README.md` TEM 공식을 LineCov 기반(`min(Line,80)/80*Func/100*PassRate*5`, Branch는 `*5/4` 보정)으로 정정하고 HTML 대시보드가 신규 엔진도 요약/Issues에 자동 집계됨을 명시. `config.py` 전역 설정 생성 로그를 `stderr`로 이동해 `--json` 출력을 방해하지 않도록 수정하고, `scripts/smoke.sh`에 `dist/ici` 일치 및 Zero-CDN 검증 단계를 추가.
+- **`security` 시크릿 마스킹**: `HardcodedSecret`/`PrivateKey` 발견 사항이 실제 시크릿 값을
+  그대로 message/snippet에 담아, `--publish`로 gh-pages에 게시되는 HTML 리포트가 스캐너가
+  찾아낸 시크릿을 그대로 노출하던 문제를 수정. 값은 `***REDACTED***`로 치환하며, 전체가
+  주석인 줄은 스캔에서 제외해 오탐도 줄였습니다. 마스킹은 **줄 단위로 한 번** 수행한 뒤 그
+  줄의 모든 발견 사항에 재사용하므로, 한 줄이 시크릿 패턴과 비(非)시크릿 패턴(`eval` 등)에
+  동시에 걸려도 비시크릿 쪽 결과가 시크릿 원문을 흘리지 않습니다. `scan_tests=true`가 아무
+  효과도 없던 문제도 함께 수정 — 프로젝트 최상위 `tests/`를 실제로 스캔하도록 별도 경로를
+  추가했습니다.
+- **`cycle` 재귀 한도 초과로 인한 스위트 전체 크래시**: 재귀 Tarjan SCC 구현이 큰(수백~
+  수천 노드) import/include 체인에서 `RecursionError`로 죽어 `verify` 전체가 `ERROR`로
+  종료되던 문제를 반복(iterative) Tarjan으로 교체해 해결. 다른 신규 휴리스틱 엔진과 달리
+  `cycle`만 `required=true`가 기본값이어서 이 크래시가 전체 게이트를 막았던 점도 함께
+  `required=false`로 정정. 부수적으로 리포트에 표시되는 순환 체인을 SCC 멤버의 임의 정렬
+  목록이 아닌 실제 간선을 따라간 경로로 교체하고, 표준 라이브러리 모듈명과 겹치는 프로젝트
+  모듈(`import html` vs 자체 `ici.reporters.html`)을 오탐하던 suffix 매칭과, 같은 파일명이
+  여러 디렉터리에 존재하는 C++ 헤더를 임의로 하나 골라 잘못된 순환을 만들던 문제도 수정.
+- **`line`이 `project.source_dirs`를 무시**: 소스 스코프가 `src/include/lib/app`으로 고정돼
+  있어 `project.source_dirs`로 다른 레이아웃을 지정한 프로젝트는 파일 0개로 스캔되고
+  500/1000줄 게이트가 조용히 무력화되던 문제를 수정. 이제 기본 스코프·게이트 모두
+  `project.source_dirs`를 포함하며, `gate_dirs`를 명시적으로 좁힌 설정은 그대로 존중합니다.
+- **`ici publish` 실패가 항상 종료 코드 0**: `PublishResult`에 `success` 필드를 추가해
+  업로드 실패와 의도된 스킵(예: `GITHUB_ACTIONS` 밖 로컬 실행)을 구분하고, `ici publish`는
+  실패 시 0이 아닌 종료 코드를 반환하도록 수정. `report-pr` job의 유일한 역할이 게시이므로
+  실패가 조용히 사라지지 않아야 합니다. 기존 댓글 검색이 첫 30개만 확인해 그보다 긴 PR에서
+  마커를 못 찾고 매번 중복 댓글을 남기던 문제도 페이지네이션(`per_page=100`, 최대 2000개)
+  으로 수정.
+- **`report-pr`이 PR 코드를 신뢰된 권한으로 실행**: `contents:write`+`pull-requests:write`를
+  가진 `report-pr` job이 PR head/merge ref를 체크아웃해 `dist/ici.pyz`를 빌드하고 있어,
+  문서가 명시한 "PR 코드를 이 job에서 다시 실행하지 않는다"는 불변식과 실제 워크플로가
+  어긋나 있던 문제를 수정. 이제 PR의 base commit만 체크아웃합니다. `pages: read` 권한 누락
+  으로 `_check_pages` 조회가 항상 실패해 Pages가 켜져 있어도 뷰어 링크 배지가 절대 뜨지
+  않던 문제도 `report-pr`/`publish-main` 양쪽에 함께 수정.
+- **`required_tools` 설정이 항상 config 오류**: `[engines.toolchain] required_tools`가
+  #40에서 `toolchain` 엔진과 함께 제거됐지만 `doctor.py`는 여전히 그 경로를 읽고 있어,
+  이 설정을 쓰면 "engines.toolchain is an unknown configuration key"로 항상 실패하던
+  문제를 수정. `doctor`는 검증 게이트가 아닌 진단 전용 커맨드이므로 `engines` 바깥의
+  전용 `[doctor] required_tools` 테이블로 복원했습니다.
+- **`type` note 반복 횟수가 화면에 보이지 않음**: 동일 위치·문구의 Mypy note를 병합할 때
+  `metrics.repeats`만 갱신되고 콘솔/HTML/Markdown이 실제로 출력하는 `message`에는 반영되지
+  않아, N건이 조용히 1건처럼 보이던 문제를 수정. 이제 message에 `(xN)` 접미사가 붙습니다.
+- **`cognitive` 기본 임계값 불일치**: 엔진 자체 fallback과 config 검증 fallback이
+  `warn=15/fail=25`였던 반면 실제 배포 정책(`DEFAULT_CONFIG`)은 `warn=30/fail=60`이라,
+  독립·부분 설정으로 엔진을 돌리면 실제 정책과 다른 기준이 적용되던 문제를 정정해
+  세 곳 모두 `warn=30/fail=60`으로 통일.
+- **HTML N/A(SKIP) 행의 잘못된 CSS**: `var(--text-muted)44`처럼 `var()` 참조에 직접 알파
+  값을 붙이는 문법 오류로 SKIP 배지 테두리가 렌더링되지 않던 문제를 수정.
 
 ### Removed
 - **CI 부적합 엔진 7종 일괄 제거**: `cmake_lint`, `pyproject_lint`, `file_hygiene`, `python_compat`, `build_definition`, `compile_db`, `static_hygiene` 및 `build_adapters`/`core/compile_db` 공유 인프라를 `verify` 스위트에서 제거. `file_hygiene`의 `bash -n` 셸 검사는 폐쇄망 `csh` 미지원으로 함께 폐기.
-- **toolchain `doctor`로 흡수**: `verify` 엔진 `toolchain`을 제거하고 `src/ici/core/toolchain.py:41` `collect_tool_capability`를 `src/ici/doctor.py:25` `collect_diagnostics`가 재사용하도록 통합. `required_tools` 위반 시 `doctor` 테이블에 `[yellow]Missing (required) WARN[/yellow]`로 표시.
+- **toolchain `doctor`로 흡수**: `verify` 엔진 `toolchain`을 제거하고 `src/ici/core/toolchain.py:41` `collect_tool_capability`를 `src/ici/doctor.py:25` `collect_diagnostics`가 재사용하도록 통합. `[doctor] required_tools` 위반 시 `doctor` 테이블에 `[yellow]Missing (required) WARN[/yellow]`로 표시.
 
 ## [0.4.2] - 2026-08-20
 

@@ -47,27 +47,6 @@ class _LeakVisitor(ast.NodeVisitor):
             )
         self.generic_visit(node)
 
-    def visit_Call(self, node):
-        # Also check for open() not in assign, e.g., open(...).read() is ok (one-liner)
-        # But bare open() as expr is also leak
-        if isinstance(node.func, ast.Name) and node.func.id == "open" and self._with_depth == 0:
-            # Check if parent is Assign or With - if it's Expr, it's bare open()
-            # We already handled Assign case, so this is Expr case
-            # Check if it's inside an Assign via stack? Simplified: if it's direct Expr, warn
-            # We can check by seeing if this Call is inside an Assign - but generic_visit already handles Assign
-            # For Expr case, the Call will be visited as part of Expr node, not Assign
-            # So we need to check if this Call's parent is Expr
-            # Since we are visiting Call directly, we can't know parent easily, so just warn for any open() outside with that is not part of a with
-            # To avoid double counting, only warn if this Call is not inside an Assign that we already warned for
-            # We'll just not double warn: check if this Call is inside an Assign - we can approximate by checking if it's inside a with (already) and if it's not inside an Assign's value that is open()
-            # For simplicity, warn for bare open() in Expr
-            # We can detect by checking if this node's parent is Expr - but we don't have parent, so we'll just warn for any open() outside with that is not already counted as Assign
-            # To avoid double, we can check if this Call is the same as the one in Assign - but that's complex
-            # For now, just warn for any open() outside with, but avoid duplicate by checking if this Call is not inside an Assign's value that is open()
-            # We'll use a simple heuristic: if this Call is open() and not inside with, warn, but track visited Assign opens to avoid duplicate
-            pass
-        self.generic_visit(node)
-
 
 def _check_file_for_leaks(rel_path: str, content: str) -> list[InspectionTarget]:
     try:

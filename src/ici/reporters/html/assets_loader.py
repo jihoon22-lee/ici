@@ -12,16 +12,11 @@ def _read_text(package: str, resource: str) -> str:
     try:
         return (_files(package) / resource).read_text(encoding="utf-8")
     except Exception:
-        # Fallback to file path relative to this file (for dev without package install)
-        return (Path(__file__).parent / resource).read_text(encoding="utf-8")
+        # Fallback to a file path relative to this file (for dev without
+        # package install) -- resource lives under html/assets/, one level
+        # below this file's own parent.
+        return (Path(__file__).parent / "assets" / resource).read_text(encoding="utf-8")
 
 
-try:
-    HTML_CSS = _read_text("ici.reporters.html.assets", "style.css")
-except Exception:
-    HTML_CSS = Path(__file__).parent.joinpath("assets", "style.css").read_text(encoding="utf-8")
-
-try:
-    HTML_JS = _read_text("ici.reporters.html.assets", "app.js")
-except Exception:
-    HTML_JS = Path(__file__).parent.joinpath("assets", "app.js").read_text(encoding="utf-8")
+HTML_CSS = _read_text("ici.reporters.html.assets", "style.css")
+HTML_JS = _read_text("ici.reporters.html.assets", "app.js")

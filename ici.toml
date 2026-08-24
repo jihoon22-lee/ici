@@ -2,8 +2,11 @@
 # 이 설정 파일은 ici 프로젝트의 표준 품질 정책을 정의합니다.
 
 [ici]
-version = "0.4.2"
+version = "0.5.0"
 policy_name = "Enterprise CI/CD Standard Quality Gate"
+
+[doctor]
+required_tools = []
 
 [engines.line]
 enabled = true
@@ -20,7 +23,7 @@ ruff_required = false
 [engines.test]
 enabled = true
 mode = "pass_fail"
-# Dogfood baseline (CI/local): TEM 2.35–2.52, Branch 42.7–42.8%, Function 67.8%.
+# Dogfood baseline (CI/local, 2026-08-24): TEM ~4.72/5.0, Line ~83.6%, Func ~94.3%.
 # Keep strict pass_fail semantics while leaving headroom for runner/tool jitter.
 min_tem_score = 2.0       # TEM 점수 2.0 이상 통과
 min_branch_cov = 35.0     # Branch 커버리지 35% 이상
@@ -59,3 +62,27 @@ min_window = 6            # 6라인 이상 연속 복제 감지
 [engines.exception]
 enabled = true
 mode = "pass_fail"
+
+[engines.cycle]
+enabled = true
+mode = "pass_warn_fail"
+max_reported = 20         # 리포트에 포함할 최대 순환 참조 개수
+# 휴리스틱 엔진(basename 기반 C++ include 해석, 베스트에포트 Python 모듈 매핑)이므로
+# required는 기본 false — ERROR가 나도 전체 게이트를 막지 않는다.
+required = false
+
+[engines.cognitive]
+enabled = false            # 기본 비활성 — 필요 시 옵트인
+mode = "pass_warn"
+warn = 30                  # 인지 복잡도 30 초과 시 경고
+fail = 60                  # 인지 복잡도 60 초과 시 경고로 강등(pass_warn 모드는 FAIL을 내지 않음)
+warn_nesting = 4
+
+[engines.security]
+enabled = true
+mode = "pass_warn"
+scan_tests = false        # true면 tests/ 디렉터리도 함께 스캔
+
+[engines.resource]
+enabled = true
+mode = "pass_warn"

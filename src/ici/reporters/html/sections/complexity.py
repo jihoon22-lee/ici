@@ -1,4 +1,4 @@
-"""Generated section - see html.py original."""
+"""Complexity tab — cyclomatic complexity leaderboard + cognitive complexity."""
 
 import html
 from pathlib import Path

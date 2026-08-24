@@ -1,4 +1,4 @@
-"""Generated section - see html.py original."""
+"""Top-level HTML report assembly — page shell, tabs, and stat cards."""
 
 import html
 from pathlib import Path

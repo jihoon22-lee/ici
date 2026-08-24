@@ -7,7 +7,7 @@
 `ici`는 로컬, GitHub Actions, 사내 러너에서 같은 정책·결과 계약을 적용합니다. 결과가
 항상 동일하다는 뜻은 아닙니다. OS, 컴파일러, Python, Ruff/Mypy/pytest 등의 가용성과
 버전은 `doctor` 및 각 엔진의 `ToolEvidence`에 기록되고, 도구 체인이나 소스 환경이
-다르면 실제 결과도 달라질 수 있습니다. v0.4.0은 실행별 시스템 정보와 현재 엔진이 실제로
+다르면 실제 결과도 달라질 수 있습니다. 현재 버전은 실행별 시스템 정보와 현재 엔진이 실제로
 확인·호출한 도구의 증거만 기록하며, 전체 툴체인 capability를 자동으로 판정하지 않습니다.
 
 ## 1. GitHub Actions 워크플로우
@@ -39,8 +39,12 @@ PR에서 확인할 수 있는 결과는 다음과 같습니다.
 ### 1.2 PR 리포트 sticky 댓글 (`report-pr`)
 
 `report-pr`은 PR 이벤트에서만 실행되며, 검증 job이 업로드한 **아티팩트만** 소비합니다.
-PR 코드를 이 job에서 다시 실행하지 않으므로, PR 변경분이 권한 있는 작업을 유도할 수
-없습니다.
+이 job은 `contents: write` + `pull-requests: write`를 가진 신뢰된 job이므로, 여기서
+빌드해 실행하는 `dist/ici.pyz`는 반드시 신뢰된 코드에서 나와야 합니다 — 그래서 PR
+head/merge ref가 아니라 **PR의 base commit**(`github.event.pull_request.base.sha`)을
+체크아웃한 뒤 그 소스로 `ici.pyz`를 빌드합니다. PR이 실제로 검증된 내용
+(`verify_report.html/json`)은 별도로 업로드된 아티팩트로만 받으므로, PR 변경분이 이 job의
+권한 있는 동작을 유도할 수 없습니다.
 
 ```yaml
 if: github.event_name == 'pull_request'
@@ -48,18 +52,23 @@ needs: verify
 permissions:
   contents: write       # gh-pages 업로드 (Contents API)
   pull-requests: write  # sticky 댓글 작성/갱신
+  pages: read           # Pages 활성화 여부 조회 (뷰어 링크 계산용)
 ```
 
 동작은 다음과 같습니다.
 
-1. `actions/download-artifact`로 `verify_report.html/json`을 받습니다.
-2. `dist/ici.pyz publish --html verify_report.html --json verify_report.json`를 실행해
+1. PR의 base commit을 체크아웃하고 `dist/ici.pyz`를 빌드합니다(신뢰된 코드만 실행).
+2. `actions/download-artifact`로 `verify_report.html/json`을 받습니다.
+3. `dist/ici.pyz publish --html verify_report.html --json verify_report.json`를 실행해
    gh-pages `pr/<번호>/index.html`에 리포트를 올립니다.
-3. `<!-- ici-report -->` 마커로 기존 댓글을 찾아 **갱신(PATCH)** 하고, 없으면 생성합니다.
+4. `<!-- ici-report -->` 마커로 기존 댓글을 찾아 **갱신(PATCH)** 하고, 없으면 생성합니다.
+   댓글 검색은 페이지네이션(`per_page=100`, 최대 2000개)을 사용하므로 30개를 넘는 기존
+   댓글 뒤에 있는 마커도 놓치지 않습니다.
 
 댓글 본문에는 배지형 "HTML 리포트 열기" 링크, Pass/Warn/Fail/Error/Skip/TEM 통계 표,
 접을 수 있는(`<details>`) 엔진별 상세 결과가 포함됩니다. Fork PR에서는 `GITHUB_TOKEN`이
-읽기 전용이므로 업로드·댓글이 조용히 건너뛰어집니다(게이트에는 영향 없음).
+읽기 전용이므로 업로드·댓글이 조용히 건너뛰어집니다(게이트에는 영향 없음). 업로드나 댓글
+게시 자체가 실패하면 `ici publish`는 0이 아닌 종료 코드로 실패를 알립니다.
 
 ### 1.3 신뢰된 main publish (`publish-main`)
 
@@ -70,6 +79,7 @@ if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 needs: verify
 permissions:
   contents: write
+  pages: read       # Pages 활성화 여부 조회 (뷰어 링크 계산용)
 ```
 
 이 job은 검증이 통과한 `main`을 다시 빌드하고, 명시적으로 `GITHUB_TOKEN`을 주입하여
@@ -124,9 +134,10 @@ annotation 문법을 깨뜨리지 않습니다.
 
 ### 2.3 HTML 아티팩트
 
-`--html verify_report.html`은 외부 CDN 없이 동작하는 6개 탭 HTML을 생성합니다. PR에서는
-파일을 업로드만 하고, 브랜치나 PR 댓글에 자동 게시하지 않습니다. 다운로드한 HTML은
-폐쇄망에서도 로컬로 열 수 있습니다.
+`--html verify_report.html`은 외부 CDN 없이 동작하는 8개 탭 HTML을 생성합니다. `verify` job
+자체는 파일을 아티팩트로 업로드만 하고 브랜치나 PR 댓글에 직접 게시하지 않습니다 — sticky
+댓글 게시는 별도 권한을 가진 `report-pr` job이 그 아티팩트를 소비해 수행합니다 (1.2 참조).
+다운로드한 HTML은 폐쇄망에서도 로컬로 열 수 있습니다.
 
 ## 3. 신뢰된 HTML publish (`--publish`)
 
@@ -157,7 +168,7 @@ publish 대상의 Pages 설정, 브랜치 정책, 토큰 범위는 조직 정책
 - qmake/Qt·Ninja·binutils 전체 capability inventory, 도구별 버전 정책, 프로젝트 정의 기반
   CMake/qmake build adapter는 현재 기능이 아닙니다. 해당 범위는
   [`2026-08-19-ci-validation-features.md`](superpowers/plans/2026-08-19-ci-validation-features.md)의
-  미래 계획으로 남겨 두었으며 v0.4.0의 CI 결과로 가정해서는 안 됩니다.
+  미래 계획으로 남겨 두었으며 현재 CI 결과로 가정해서는 안 됩니다.
 
 ### 4.2 Python 런타임
 

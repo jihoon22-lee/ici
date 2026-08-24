@@ -1,4 +1,4 @@
-"""Generated section - see html.py original."""
+"""Shared HTML rendering helpers — status theming, location links, escaping."""
 
 import html
 from pathlib import Path

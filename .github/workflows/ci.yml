@@ -74,11 +74,18 @@ jobs:
     permissions:
       contents: write       # gh-pages 업로드 (Contents API)
       pull-requests: write  # sticky 댓글 작성/갱신
+      pages: read           # Pages 활성화 여부 조회 (뷰어 링크 계산용)
 
     steps:
-      - name: Checkout Source Code
+      # PR head가 아닌 base(병합 대상 main)를 체크아웃한다: 이 job은
+      # contents:write + pull-requests:write 를 가진 신뢰된 job이므로, 여기서
+      # 빌드해 실행하는 dist/ici.pyz는 신뢰된 코드에서만 나와야 한다. PR이
+      # 실제로 검증된 내용(verify_report.html/json)은 verify job의 아티팩트로만
+      # 받으므로, PR 소스 자체를 이 job에서 체크아웃할 필요가 없다.
+      - name: Checkout Trusted Base Source Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
 
       - name: Set up Python 3.10
@@ -116,6 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: read       # Pages 활성화 여부 조회 (뷰어 링크 계산용)
 
     steps:
       - name: Checkout Main Source Code

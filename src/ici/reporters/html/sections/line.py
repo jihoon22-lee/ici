@@ -1,4 +1,4 @@
-"""Generated section - see html.py original."""
+"""Line Analysis tab — source-scope/all-files toggle, file tree, size charts."""
 
 import html
 from pathlib import Path

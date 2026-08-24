@@ -155,6 +155,12 @@ class PublishResult:
     pages_enabled: bool
     comment_url: str | None
     message: str
+    # True for a genuine success *or* an intentional no-op skip (e.g. running
+    # locally without GITHUB_ACTIONS). False only for real failures — the
+    # report existed and publish was attempted, but the upload itself did not
+    # succeed. Callers whose only job is to publish (the `ici publish` CLI
+    # command) should treat False as a hard failure.
+    success: bool = True
 
 
 class ReportPublisher:
@@ -204,6 +210,7 @@ class ReportPublisher:
                 pages_enabled=False,
                 comment_url=None,
                 message=f"--publish skipped: HTML report not found at {html_path}.",
+                success=False,
             )
 
         uploaded = False
@@ -249,6 +256,7 @@ class ReportPublisher:
             pages_enabled=pages_enabled,
             comment_url=comment_url,
             message=message,
+            success=uploaded,
         )
 
     def _resolve_target(
@@ -388,20 +396,33 @@ class ReportPublisher:
             return True, data.get("html_url")
         return False, None
 
+    def _find_existing_comment(
+        self, api_base: str, repo: str, token: str, pr_number: int
+    ) -> int | None:
+        """Paginates through issue comments looking for the sticky marker.
+
+        GitHub's default page size is 30; a PR with more comments than that
+        would otherwise never find its own prior sticky comment and would
+        keep posting duplicates on every run instead of updating in place.
+        """
+        for page in range(1, 21):  # 20 pages * 100 = 2000 comments, a generous cap
+            url = f"{api_base}/repos/{repo}/issues/{pr_number}/comments?per_page=100&page={page}"
+            status, comments = self._api("GET", url, token)
+            if status != 200 or not isinstance(comments, list) or not comments:
+                return None
+            for comment in comments:
+                if isinstance(comment, dict) and PUBLISH_MARKER in (comment.get("body") or ""):
+                    return comment.get("id")
+            if len(comments) < 100:
+                return None
+        return None
+
     def _upsert_comment(
         self, api_base: str, repo: str, token: str, pr_number: int, body: str
     ) -> str | None:
         if not repo or not token:
             return None
-        existing_id = None
-        status, comments = self._api(
-            "GET", f"{api_base}/repos/{repo}/issues/{pr_number}/comments", token
-        )
-        if status == 200 and isinstance(comments, list):
-            for comment in comments:
-                if isinstance(comment, dict) and PUBLISH_MARKER in comment.get("body", ""):
-                    existing_id = comment.get("id")
-                    break
+        existing_id = self._find_existing_comment(api_base, repo, token, pr_number)
 
         if existing_id:
             status, data = self._api(
@@ -465,5 +486,9 @@ class ReportPublisher:
                 return err.code, json.loads(raw)
             except ValueError:
                 return err.code, raw
-        except OSError:
-            return -1, None
+        except OSError as err:
+            # Network/DNS/TLS failure — surface it instead of silently
+            # returning an empty body, so a real cause is visible if a
+            # caller ever inspects it (and in worst case shows up as a
+            # generic-but-present reason rather than nothing at all).
+            return -1, {"error": str(err)}

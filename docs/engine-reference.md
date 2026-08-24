@@ -141,10 +141,12 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
   - `warn_limit` (기본 500줄): 모듈 분리 검토 권고
   - `fail_limit` (기본 1000줄): 단일 파일 과대화 실패
 - **소스 전용 스캔**: 통계 집계와 임계값 검증 모두 기본적으로 소스 디렉터리
-  (`src`, `include`, `lib`, `app`)만 대상으로 합니다. `tests`/`docs`/`scripts`는
-  기본 제외되며 Top 파일 목록·Total Volume·게이트 어디에도 나타나지 않습니다.
-  `include_dirs`(스캔 범위 재정의, 예: 테스트 코드까지 집계)와 `exclude_dirs`(제외)로
-  조직 정책 조절 가능. 임계값 판정은 언제나 `gate_dirs`에 속한 경로에서만 수행됩니다.
+  (`src`, `include`, `lib`, `app` + 설정된 `project.source_dirs`)만 대상으로 합니다.
+  `tests`/`docs`/`scripts`는 기본 제외되며 Top 파일 목록·Total Volume·게이트 어디에도
+  나타나지 않습니다. `include_dirs`(스캔 범위 추가, 예: 테스트 코드까지 집계)와
+  `exclude_dirs`(제외)로 조직 정책 조절 가능. 임계값 판정은 `gate_dirs`에 속한
+  경로에서만 수행되며, `gate_dirs`를 기본값에서 명시적으로 좁히지 않는 한
+  `project.source_dirs`도 자동으로 게이트에 포함됩니다.
 - **출력 메트릭**: 코드 라인, 주석 라인, 공백 라인 수 및 디렉토리 계층 트리 ([HTML 뷰어 지원](user-guide.md#22-인터랙티브-html-리포트-생성-및-자동-브라우저-열기))
 
 ### 2.2 🧹 `lint` (문법 및 코드 스타일 린터)
@@ -282,18 +284,34 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 
 
 ### 2.10 🔄 `cycle` (순환 참조 탐지)
-- **동작**: Python `import` 그래프와 C++ `#include` 그래프를 각각 구축해 Tarjan SCC로 순환을 탐지. Python은 `ast` 기반, C++는 `#include "..."` 정규식 기반.
-- **설정**: `[engines.cycle] enabled=true, mode="pass_warn_fail", max_reported=20`.
+- **동작**: Python `import` 그래프와 C++ `#include` 그래프를 각각 구축해 반복(iterative) Tarjan
+  SCC로 순환을 탐지합니다 (재귀 구현이 아니므로 수천 노드짜리 체인에서도 재귀 한도 초과로
+  죽지 않습니다). Python은 `ast` 기반, C++는 `#include "..."` 정규식(파일명 기준, `-I` 검색
+  경로 모델 없음) 기반입니다. 리포트되는 순환 체인은 SCC 멤버를 임의 정렬한 목록이 아니라
+  실제 간선을 따라간 경로입니다.
+- **휴리스틱 한계**: Python 쪽은 표준 라이브러리와 이름이 겹치는 프로젝트 모듈(예: 자체
+  `html.py`)을 혼동하지 않도록 `sys.stdlib_module_names`를 확인합니다. C++ 쪽은 같은
+  파일명이 서로 다른 디렉터리에 존재하면(예: `a/util.h`와 `b/util.h`) 어느 쪽을 가리키는지
+  판정할 근거가 없으므로 해당 include는 순환 탐지 대상에서 제외됩니다(오탐 대신 미탐).
+- **설정**: `[engines.cycle] enabled=true, mode="pass_warn_fail", max_reported=20, required=false`.
+  다른 신규 휴리스틱 엔진과 마찬가지로 기본 `required=false`이므로, 엔진 `ERROR`가 나도
+  전체 게이트를 막지 않습니다.
 - **대상**: `src` 등 소스 디렉터리 내 파일만 대상.
 
 ### 2.11 🧠 `cognitive` (인지 복잡도)
 - **동작**: SonarQube S3776 스타일 인지 복잡도를 함수별로 계산. `if/for/while/except/with`는 중첩 깊이에 따라 가중치를 더하고, `and/or` 체인, `comprehension`, `assert` 등을 반영.
-- **설정**: `[engines.cognitive] enabled=true, mode="pass_warn_fail", warn=15, fail=25, warn_nesting=4`.
+- **설정**: `[engines.cognitive] enabled=false, mode="pass_warn", warn=30, fail=60, warn_nesting=4`
+  (기본 비활성 — 옵트인). `pass_warn` 모드이므로 개별 함수가 `fail` 임계값을 넘어도 엔진
+  전체 상태는 `WARN`까지만 올라가고 `FAIL`로 게이트를 막지 않습니다.
 - **대상**: Python 소스만 분석, `__dunder__` 함수는 제외.
 
 ### 2.12 🔒 `security` (보안 위생)
-- **동작**: 하드코딩 시크릿(`password|secret` 등), 프라이빗 키 블록, `hashlib.md5/sha1`, `random` 약한 난수, `eval/exec`, `pickle.loads`, `shell=True` 등을 정규식으로 탐지. `# nosec` 주석으로 억제 가능.
-- **설정**: `[engines.security] enabled=true, mode="pass_warn", scan_tests=false`.
+- **동작**: 하드코딩 시크릿(`password|secret` 등), 프라이빗 키 블록, `hashlib.md5/sha1`, `random` 약한 난수, `eval/exec`, `pickle.loads`, `shell=True` 등을 정규식으로 탐지. `# nosec` 주석과 전체가 주석인 줄은 억제됩니다.
+- **시크릿 마스킹**: `HardcodedSecret`/`PrivateKey` 발견 사항은 실제 시크릿 값을
+  `***REDACTED***`로 치환한 뒤 리포트(콘솔/HTML/JSON/gh-pages 게시본)에 기록합니다 —
+  시크릿 스캐너가 찾아낸 시크릿 원문 자체를 노출하지 않기 위함입니다.
+- **설정**: `[engines.security] enabled=true, mode="pass_warn", scan_tests=false`. `scan_tests=true`면
+  `project.source_dirs`와 별개로 프로젝트 최상위 `tests/` 디렉터리도 함께 스캔합니다.
 - **대상**: Python 소스만, `tests/`는 기본 제외.
 
 ### 2.13 🧹 `resource` (리소스 누수)

@@ -19,6 +19,10 @@ ENGINE_NAMES = (
     "dead",
     "dup",
     "exception",
+    "cycle",
+    "cognitive",
+    "security",
+    "resource",
 )
 
 
@@ -58,11 +62,39 @@ def test_load_config_respects_ici_config_env(tmp_path: Path, monkeypatch):
 
 
 def test_default_config_has_layout_and_line_gate_keys():
-    assert DEFAULT_CONFIG["ici"]["version"] == __version__ == "0.4.2"
+    assert DEFAULT_CONFIG["ici"]["version"] == __version__ == "0.5.0"
     assert DEFAULT_CONFIG["project"]["source_dirs"] == ["src", "lib", "app", "packages", "python"]
     assert DEFAULT_CONFIG["engines"]["line"]["gate_dirs"] == ["src", "include", "lib", "app"]
     assert DEFAULT_CONFIG["engines"]["line"]["include_dirs"] == []
     assert DEFAULT_CONFIG["engines"]["line"]["exclude_dirs"] == []
+    assert DEFAULT_CONFIG["doctor"]["required_tools"] == []
+
+
+def test_load_config_accepts_doctor_required_tools(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        '[doctor]\nrequired_tools = ["g++", "cmake"]\n', encoding="utf-8"
+    )
+
+    config = load_config(tmp_path)
+
+    assert config["doctor"]["required_tools"] == ["g++", "cmake"]
+
+
+def test_load_config_rejects_non_list_doctor_required_tools(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text('[doctor]\nrequired_tools = "g++"\n', encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=r"doctor\.required_tools"):
+        load_config(tmp_path)
+
+
+def test_load_config_rejects_unknown_doctor_key(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text("[doctor]\nbogus = true\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=r"doctor\.bogus"):
+        load_config(tmp_path)
 
 
 def test_get_global_config_path(tmp_path: Path, monkeypatch):

@@ -413,13 +413,24 @@ class TypeCheckEngine(BaseEngine):
 
 
 def _merge_note_target(targets: list[InspectionTarget], rel_file: str, message: str) -> bool:
-    """Fold repeated identical notes into the first target (adds a repeat count)."""
+    """Fold repeated identical notes into the first target (adds a repeat count).
+
+    The displayed ``message`` gains a "(xN)" suffix on each repeat, since
+    ``metrics["repeats"]`` alone was previously invisible everywhere a target
+    is rendered (console/HTML/markdown all just print ``message``).
+    ``metrics["base_message"]`` keeps the original text so later repeats keep
+    matching against the raw note rather than an already-suffixed one.
+    """
     for target in targets:
+        base_message = target.metrics.get("base_message", target.message)
         if (
             target.target_name == "MypyNote"
             and target.file_path == rel_file
-            and target.message == message
+            and base_message == message
         ):
-            target.metrics["repeats"] = int(target.metrics.get("repeats", 1)) + 1
+            target.metrics.setdefault("base_message", message)
+            count = int(target.metrics.get("repeats", 1)) + 1
+            target.metrics["repeats"] = count
+            target.message = f"{message} (x{count})"
             return True
     return False

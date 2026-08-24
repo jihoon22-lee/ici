@@ -121,6 +121,34 @@ def test_mypy_success_with_valid_notes_is_accepted_and_preserves_note_targets(
     ]
 
 
+def test_mypy_repeated_identical_notes_fold_with_visible_count(tmp_python_project, monkeypatch):
+    _use_mypy(monkeypatch)
+    monkeypatch.setattr(
+        "ici.engines.type_check.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            0,
+            "src/sample_pkg/core.py:2: note: same repeated note\n"
+            "src/sample_pkg/core.py:9: note: same repeated note\n"
+            "src/sample_pkg/core.py:16: note: same repeated note\n"
+            "Success: no issues found in 1 source file\n",
+            "",
+            0.01,
+        ),
+    )
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    notes = [target for target in result.targets if target.target_name == "MypyNote"]
+    # Folded into a single target at the first occurrence's location, not
+    # three separate rows -- but the repeat count must stay visible in the
+    # rendered message (metrics["repeats"] alone was previously invisible
+    # everywhere a target gets printed).
+    assert len(notes) == 1
+    assert notes[0].start_line == 2
+    assert notes[0].metrics["repeats"] == 3
+    assert notes[0].message == "same repeated note (x3)"
+
+
 def test_mypy_success_with_error_diagnostic_is_error(tmp_python_project, monkeypatch):
     _use_mypy(monkeypatch)
     monkeypatch.setattr(

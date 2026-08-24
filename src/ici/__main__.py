@@ -95,7 +95,7 @@ def cmd_verify(
         help="Publish HTML report to GitHub (gh-pages/hub) and post sticky PR comment",
     ),
 ):
-    """Runs all 9 verification engines and outputs unified quality gate dashboard."""
+    """Runs the full verification engine suite and outputs a unified quality gate dashboard."""
     root = Path.cwd().resolve()
     orchestrator = VerifyOrchestrator(root, _effective_config(ctx))
     json_path = "verify_report.json" if report else None
@@ -261,6 +261,11 @@ def cmd_publish(
     print(f"[publish] {result.message}")
     if result.comment_url:
         print(f"[publish] PR comment: {result.comment_url}")
+    # Publishing is this command's only job — a real upload failure must be a
+    # visible CI failure, not a silent exit 0 (an intentional skip, e.g. no
+    # GITHUB_ACTIONS environment, still exits 0 via success=True).
+    if not result.success:
+        raise typer.Exit(code=1)
 
 
 @app.command("doctor")
