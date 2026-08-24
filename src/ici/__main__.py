@@ -95,7 +95,7 @@ def cmd_verify(
         help="Publish HTML report to GitHub (gh-pages/hub) and post sticky PR comment",
     ),
 ):
-    """Runs all 9 verification engines and outputs unified quality gate dashboard."""
+    """Runs the full verification engine suite and outputs a unified quality gate dashboard."""
     root = Path.cwd().resolve()
     orchestrator = VerifyOrchestrator(root, _effective_config(ctx))
     json_path = "verify_report.json" if report else None

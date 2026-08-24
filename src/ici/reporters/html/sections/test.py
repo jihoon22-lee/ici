@@ -1,4 +1,4 @@
-"""Generated section - see html.py original."""
+"""Tests & Coverage tab — coverage KPIs, per-module table, test suite detail."""
 
 import html
 from pathlib import Path

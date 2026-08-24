@@ -1,4 +1,4 @@
-"""Generated section - see html.py original."""
+"""Clone Groups tab — duplicate-code clusters with original indentation preserved."""
 
 import html
 from pathlib import Path

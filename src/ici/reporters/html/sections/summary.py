@@ -1,4 +1,4 @@
-"""Generated section - see html.py original."""
+"""Summary tab — main engine result table, jump-to-tab buttons, TEM card."""
 
 import html
 from pathlib import Path
@@ -23,10 +23,12 @@ def _render_engine_table_rows(results: list[EngineResult], base: Path) -> list[s
     engine_rows = []
     for res in results:
         if res.status == EngineStatus.SKIP:
+            skip_color, skip_bg, _ = _get_status_theme(EngineStatus.SKIP)
             engine_rows.append(
                 f"<tr style='opacity: 0.55;'>"
                 f"  <td class='engine-name' style='color: var(--text-muted);'>{html.escape(res.engine_name)}</td>"
-                f"  <td><span class='badge' style='color:var(--text-muted); border:1px solid var(--text-muted)44'>N/A</span></td>"
+                f"  <td><span class='badge' style='color:{skip_color}; background:{skip_bg}; "
+                f"border:1px solid {skip_color}44'>N/A</span></td>"
                 f"  <td colspan='3'>"
                 f"    <details>"
                 f"      <summary style='cursor:pointer; color:var(--text-muted); font-size:0.85rem;'>Not applicable — why?</summary>"
