@@ -20,6 +20,13 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "project": {
         "source_dirs": ["src", "lib", "app", "packages", "python"],
     },
+    "doctor": {
+        # Tools named here are still probed even if missing, but a missing
+        # required tool renders as a WARN row in `ici doctor` instead of a
+        # silently-blank one. `doctor` is diagnostic-only (not part of the
+        # `verify` gate), so this lives outside `engines`.
+        "required_tools": [],
+    },
     "engines": {
         "line": {
             "enabled": True,

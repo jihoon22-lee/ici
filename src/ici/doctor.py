@@ -37,9 +37,7 @@ def collect_diagnostics(
             config = load_config(project_root or Path.cwd())
         except Exception:
             config = {}
-    required_tools = set(
-        config.get("engines", {}).get("toolchain", {}).get("required_tools", []) or []
-    )
+    required_tools = set(config.get("doctor", {}).get("required_tools", []) or [])
     probe_map: dict[str, list[str]] = dict(DEFAULT_PROBES)
     probe_map.update(
         {
