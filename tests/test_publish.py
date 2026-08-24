@@ -197,6 +197,16 @@ def test_publish_skips_missing_html(tmp_path: Path, monkeypatch):
     result = ReportPublisher(env=gh_env(tmp_path)).publish(tmp_path / "missing.html", make_suite())
     assert "not found" in result.message
     assert fake.put_count == 0
+    assert result.success is False
+
+
+def test_publish_flow_success_marks_result_success_true(tmp_path: Path, monkeypatch):
+    html = tmp_path / "verify_report.html"
+    html.write_text("<html>report</html>", encoding="utf-8")
+    fake = FakeGitHubApi(pages_enabled=True)
+    monkeypatch.setattr(ReportPublisher, "_api", fake)
+    result = ReportPublisher(env=gh_env(tmp_path)).publish(html, make_suite())
+    assert result.success is True
 
 
 def test_upload_failure_reflected_in_comment(tmp_path: Path, monkeypatch):
@@ -206,6 +216,7 @@ def test_upload_failure_reflected_in_comment(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(ReportPublisher, "_api", fake)
     result = ReportPublisher(env=gh_env(tmp_path)).publish(html, make_suite())
     assert "failed" in result.message
+    assert result.success is False
     post_payload = next(p for m, u, p in fake.calls if m == "POST" and "/comments" in u)
     assert post_payload is not None
     assert "업로드 실패" in post_payload["body"]
@@ -284,3 +295,70 @@ def test_publish_command_uses_saved_json(tmp_path: Path, monkeypatch):
     assert result.exit_code == 0, result.output
     assert captured["suite"] is not None
     assert captured["suite"].results[0].engine_name == "test"
+
+
+def test_publish_command_exits_nonzero_on_real_failure(tmp_path: Path, monkeypatch):
+    """`ici publish`'s only job is to publish — a real failure must not exit 0."""
+    from typer.testing import CliRunner
+
+    from ici.__main__ import app
+
+    def fake_publish(self, html_path, suite_arg):
+        from ici.engines.publish import PublishResult
+
+        return PublishResult(
+            mode="self",
+            repo="org/repo",
+            branch="gh-pages",
+            remote_path="index.html",
+            viewer_url=None,
+            pages_enabled=False,
+            comment_url=None,
+            message="--publish failed to upload index.html to org/repo (gh-pages).",
+            success=False,
+        )
+
+    monkeypatch.setattr("ici.engines.publish.ReportPublisher.publish", fake_publish)
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        ["publish", "--html", "r.html", "--json", str(tmp_path / "missing.json")],
+        env={"GITHUB_ACTIONS": "true"},
+    )
+    assert result.exit_code != 0
+
+
+def test_sticky_comment_finds_marker_past_first_page(tmp_path: Path, monkeypatch):
+    """The sticky comment must be found even behind >100 unrelated comments."""
+    html = tmp_path / "verify_report.html"
+    html.write_text("<html>report</html>", encoding="utf-8")
+
+    filler_page = [{"id": i, "body": f"unrelated comment {i}"} for i in range(100)]
+    marker_page = [{"id": 999, "body": f"{PUBLISH_MARKER} old report"}]
+    calls: list[tuple[str, str, dict | None]] = []
+
+    def paged_api(self, method: str, url: str, token: str, payload: dict | None = None):
+        calls.append((method, url, payload))
+        if method == "GET" and url.endswith("/pages"):
+            return 200, {"html_url": "https://pages.example/org/repo"}
+        if method == "GET" and "/contents/" in url:
+            return 404, None
+        if method == "GET" and "/git/ref/" in url:
+            return 404, None
+        if method == "POST" and url.endswith("/git/refs"):
+            return 201, {"ref": "refs/heads/gh-pages"}
+        if method == "PUT":
+            return 201, {"content": {}}
+        if method == "GET" and "/comments" in url:
+            return (200, filler_page) if url.endswith("page=1") else (200, marker_page)
+        if method == "PATCH":
+            return 200, {"html_url": "https://ghes.example/org/my-proj/issues/42#issuecomment-1"}
+        return 404, None
+
+    monkeypatch.setattr(ReportPublisher, "_api", paged_api)
+    result = ReportPublisher(env=gh_env(tmp_path)).publish(html, make_suite())
+    assert result.comment_url == "https://ghes.example/org/my-proj/issues/42#issuecomment-1"
+    patch_calls = [c for c in calls if c[0] == "PATCH"]
+    assert len(patch_calls) == 1
+    post_calls = [c for c in calls if c[0] == "POST" and "/comments" in c[1]]
+    assert not post_calls  # updated in place, never created a duplicate
