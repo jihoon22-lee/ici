@@ -8,55 +8,59 @@ from ici.core.models import EngineResult, EngineStatus, EvidenceState, Inspectio
 from ici.core.project import _iter_project_files, get_all_python_sources
 from ici.engines.base import BaseEngine
 
-# Patterns: (name, regex, message, sensitive)
-# ``sensitive`` patterns capture an actual secret value in group 1 and must be
-# redacted before the matched line is ever placed into a report (message/snippet).
+# Patterns whose match text contains actual confidential material. These drive
+# redaction and are applied to EVERY reported line, independently of which
+# pattern produced the finding -- one line can match a secret pattern and a
+# non-secret one at once (e.g. `password = "..." ; eval(x)`), and the
+# non-secret finding must not echo the secret back into the report.
 _SECRET_VALUE_RE = re.compile(
     r"(?i)(?P<key>password|passwd|secret|api_key|aws_access_key|aws_secret)"
     r'(?P<op>\s*[=:]\s*)(?P<quote>["\'])(?P<value>[^"\']{6,})(?P=quote)'
 )
+_PRIVATE_KEY_RE = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*$")
 
-_PATTERNS: list[tuple[str, re.Pattern[str], str, bool]] = [
-    ("HardcodedSecret", _SECRET_VALUE_RE, "Hardcoded secret-like assignment", True),
-    ("PrivateKey", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), "Private key block", True),
-    ("WeakCryptoMD5", re.compile(r"hashlib\.md5\s*\("), "Weak crypto: hashlib.md5", False),
-    ("WeakCryptoSHA1", re.compile(r"hashlib\.sha1\s*\("), "Weak crypto: hashlib.sha1", False),
+# Patterns: (name, regex, message)
+_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
+    ("HardcodedSecret", _SECRET_VALUE_RE, "Hardcoded secret-like assignment"),
+    ("PrivateKey", _PRIVATE_KEY_RE, "Private key block"),
+    ("WeakCryptoMD5", re.compile(r"hashlib\.md5\s*\("), "Weak crypto: hashlib.md5"),
+    ("WeakCryptoSHA1", re.compile(r"hashlib\.sha1\s*\("), "Weak crypto: hashlib.sha1"),
     (
         "WeakRandom",
         re.compile(r"\brandom\.(random|randint|choice|randrange)\s*\("),
         "Weak random: use secrets module",
-        False,
     ),
-    ("EvalExec", re.compile(r"\b(eval|exec)\s*\("), "Dangerous eval/exec", False),
-    ("PickleLoad", re.compile(r"pickle\.loads?\s*\("), "Pickle deserialization", False),
+    ("EvalExec", re.compile(r"\b(eval|exec)\s*\("), "Dangerous eval/exec"),
+    ("PickleLoad", re.compile(r"pickle\.loads?\s*\("), "Pickle deserialization"),
     (
         "ShellTrue",
         re.compile(r"subprocess\.\w+\([^)]*shell\s*=\s*True"),
         "subprocess with shell=True",
-        False,
     ),
 ]
 
 _REDACTED = "***REDACTED***"
 
 
-def _redact_line(name: str, pattern: re.Pattern[str], line: str, stripped: str) -> str:
-    """Return a display-safe copy of ``line`` with any captured secret masked.
+def _mask_secret_assignment(match: re.Match[str]) -> str:
+    return (
+        f"{match.group('key')}{match.group('op')}{match.group('quote')}"
+        f"{_REDACTED}{match.group('quote')}"
+    )
 
-    Only patterns flagged ``sensitive`` capture a real secret value; all other
-    findings (weak crypto, eval/exec, ...) never contain confidential material
-    so the original stripped line is safe to echo back unmodified.
+
+def redact_secrets(line: str) -> str:
+    """Return a display-safe copy of ``line`` with every secret span masked.
+
+    Applied once per source line and reused for all findings on that line, so
+    a non-secret pattern (weak crypto, eval/exec, ...) can never smuggle a
+    co-located secret into the report. The reports this feeds -- HTML, JSON,
+    and the gh-pages copy published by ``--publish`` -- are routinely shared
+    more widely than the source itself.
     """
-    if name == "HardcodedSecret":
-        match = pattern.search(line)
-        if match:
-            return (
-                f"{match.group('key')}{match.group('op')}{match.group('quote')}"
-                f"{_REDACTED}{match.group('quote')}"
-            )
-    if name == "PrivateKey":
-        return "-----BEGIN [REDACTED] PRIVATE KEY-----"
-    return stripped[:200]
+    masked = _SECRET_VALUE_RE.sub(_mask_secret_assignment, line)
+    masked = _PRIVATE_KEY_RE.sub("-----BEGIN [REDACTED] PRIVATE KEY-----", masked)
+    return masked.strip()
 
 
 class SecurityEngine(BaseEngine):
@@ -95,19 +99,23 @@ class SecurityEngine(BaseEngine):
                 # from documentation/examples that merely mention these patterns.
                 if "nosec" in line or stripped.startswith("#"):
                     continue
-                for name, pattern, msg, _sensitive in _PATTERNS:
-                    if pattern.search(line):
-                        display = _redact_line(name, pattern, line, stripped)
-                        targets.append(
-                            InspectionTarget(
-                                file_path=rel,
-                                start_line=idx,
-                                target_name=f"Security:{name}",
-                                status=EngineStatus.WARN,
-                                message=f"{msg}: {display[:120]}",
-                                snippet=display[:200],
-                            )
+                matched = [(name, msg) for name, pattern, msg in _PATTERNS if pattern.search(line)]
+                if not matched:
+                    continue
+                # Redact once per line, then reuse for every finding on it — a
+                # non-secret pattern must not echo a co-located secret.
+                display = redact_secrets(line)
+                for name, msg in matched:
+                    targets.append(
+                        InspectionTarget(
+                            file_path=rel,
+                            start_line=idx,
+                            target_name=f"Security:{name}",
+                            status=EngineStatus.WARN,
+                            message=f"{msg}: {display[:120]}",
+                            snippet=display[:200],
                         )
+                    )
 
         has_warn = bool(targets)
         status = self.evaluate_status(False, has_warn, mode)

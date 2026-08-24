@@ -96,6 +96,36 @@ def test_private_key_block_is_masked_in_report(tmp_path: Path):
     assert "MIIsupersecretmaterial" not in target.snippet
 
 
+def test_secret_masked_even_when_another_pattern_matches_same_line(tmp_path: Path):
+    # A line can trip a secret pattern AND a non-secret one at once. The
+    # non-secret finding must not echo the raw line back and leak the secret.
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text('password = "sk-LEAKED-SECRET-999"; eval(x)\n', encoding="utf-8")
+    result = SecurityEngine(tmp_path, _CFG).run()
+
+    names = {t.target_name for t in result.targets}
+    assert "Security:HardcodedSecret" in names
+    assert "Security:EvalExec" in names
+    for target in result.targets:
+        assert "sk-LEAKED-SECRET-999" not in target.message, target.target_name
+        assert "sk-LEAKED-SECRET-999" not in target.snippet, target.target_name
+
+
+def test_private_key_masked_when_another_pattern_matches_same_line(tmp_path: Path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text(
+        'eval("-----BEGIN RSA PRIVATE KEY-----MIIsecretmaterial")\n', encoding="utf-8"
+    )
+    result = SecurityEngine(tmp_path, _CFG).run()
+
+    assert result.targets
+    for target in result.targets:
+        assert "MIIsecretmaterial" not in target.message, target.target_name
+        assert "MIIsecretmaterial" not in target.snippet, target.target_name
+
+
 def test_commented_out_line_is_not_flagged(tmp_path: Path):
     src = tmp_path / "src"
     src.mkdir()

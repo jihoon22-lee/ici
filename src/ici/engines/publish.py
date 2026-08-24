@@ -405,7 +405,7 @@ class ReportPublisher:
         would otherwise never find its own prior sticky comment and would
         keep posting duplicates on every run instead of updating in place.
         """
-        for page in range(1, 21):  # 21 * 100 = 2000 comments, a generous cap
+        for page in range(1, 21):  # 20 pages * 100 = 2000 comments, a generous cap
             url = f"{api_base}/repos/{repo}/issues/{pr_number}/comments?per_page=100&page={page}"
             status, comments = self._api("GET", url, token)
             if status != 200 or not isinstance(comments, list) or not comments:
