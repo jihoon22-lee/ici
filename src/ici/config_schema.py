@@ -253,8 +253,10 @@ def _validate_cognitive(table: dict[str, Any], path: str) -> None:
     for key in ("warn", "fail", "warn_nesting"):
         if key in table:
             _require_int(table[key], f"{path}.{key}", minimum=1)
-    w = table.get("warn", 15)
-    f = table.get("fail", 25)
+    # Matches CognitiveEngine's own fallback and DEFAULT_CONFIG's shipped
+    # policy (warn=30, fail=60) — kept in sync deliberately.
+    w = table.get("warn", 30)
+    f = table.get("fail", 60)
     if f < w:
         raise _error(f"{path}.warn", "must be <= fail")
 
