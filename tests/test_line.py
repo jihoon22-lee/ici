@@ -108,3 +108,54 @@ def test_line_all_files_mode(tmp_path: Path):
     all_totals = res.extra["all"]
     assert all_totals["files"] == 3
     assert res.extra["code"] < all_totals["code"]
+
+
+def test_line_respects_configured_project_source_dirs(tmp_path: Path):
+    # Regression: a project with a non-default `project.source_dirs` (e.g.
+    # ["packages"]) used to be scanned as 0 files by `line`, silently
+    # disabling both the file listing and the size gate.
+    packages = tmp_path / "packages"
+    packages.mkdir(parents=True)
+    big_file = packages / "big.py"
+    big_file.write_text("\n".join(f"x_{i} = {i}" for i in range(60)), encoding="utf-8")
+
+    engine = LineCountEngine(
+        tmp_path,
+        config={
+            "project": {"source_dirs": ["packages"]},
+            "engines": {"line": {"warn_limit": 10, "fail_limit": 20}},
+        },
+    )
+    res = engine.run()
+    assert res.status == EngineStatus.FAIL
+    assert len(res.targets) == 1
+    target = res.targets[0]
+    assert target.file_path == "packages/big.py"
+    assert target.status == EngineStatus.FAIL
+
+
+def test_line_explicit_gate_dirs_override_is_not_expanded(tmp_path: Path):
+    # An explicit, narrower `gate_dirs` must be honored as-is even when
+    # project.source_dirs names a different directory — auto-union only
+    # kicks in when gate_dirs was left at its shipped default.
+    src = tmp_path / "src"
+    src.mkdir(parents=True)
+    (src / "small.py").write_text("x = 1\n", encoding="utf-8")
+    packages = tmp_path / "packages"
+    packages.mkdir(parents=True)
+    (packages / "big.py").write_text("\n".join(f"x_{i} = {i}" for i in range(60)), encoding="utf-8")
+
+    engine = LineCountEngine(
+        tmp_path,
+        config={
+            "project": {"source_dirs": ["packages"]},
+            "engines": {
+                "line": {"warn_limit": 10, "fail_limit": 20, "gate_dirs": ["src"]},
+            },
+        },
+    )
+    res = engine.run()
+    assert res.status == EngineStatus.PASS
+    assert not any(
+        t.file_path == "packages/big.py" and t.status != EngineStatus.PASS for t in res.targets
+    )
