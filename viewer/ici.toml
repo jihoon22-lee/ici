@@ -1,0 +1,20 @@
+[project]
+name = "icirv"
+version = "0.1.0"
+source_dirs = ["src"]
+
+# 임계값을 명시적으로 고정한다. 생략하면 개발자 홈의 ~/.config/ici/ici.toml 을 따르게 되어
+# 로컬과 CI 결과가 갈린다. 값은 ici 기본 정책과 동일하다.
+[engines.test]
+enabled = true
+mode = "pass_fail"
+min_tem_score = 4.0
+min_branch_cov = 80.0
+min_func_cov = 90.0
+
+# dead 엔진은 Python 전용이라(src/ici/engines/dead.py 가 get_all_python_sources 만 사용)
+# 순수 C++ 프로젝트에서는 항상 SKIP 한다. 그런데 required 엔진의 SKIP 은
+# aggregate_suite_status(core/models.py) 에서 스위트 전체를 ERROR 로 승격시킨다.
+# required=false 로 두면 SKIP 근거는 리포트에 남으면서 거짓 게이트 실패만 걷힌다.
+[engines.dead]
+required = false
