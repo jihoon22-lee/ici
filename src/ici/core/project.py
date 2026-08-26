@@ -2,6 +2,7 @@
 
 import os
 import re
+import shutil
 import subprocess
 from collections.abc import Iterator
 from pathlib import Path
@@ -11,6 +12,7 @@ import tomli
 
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.path_utils import _resolve_project_root, resolve_project_path
+from ici.core.runner import run_process
 
 DEFAULT_SOURCE_DIRS = ["src", "lib", "app", "packages", "python"]
 _PROJECT_VALUE_PATTERN = re.compile(r"[A-Za-z0-9._-]+")
@@ -288,10 +290,104 @@ def get_all_cpp_sources(
     return sorted(cpp_files)
 
 
+def _project_string_list(config: dict[str, Any] | None, key: str) -> list[str]:
+    """Read a `[project]` list-of-strings setting, tolerating an absent table."""
+    if not config:
+        return []
+    project = config.get("project")
+    if not isinstance(project, dict):
+        return []
+    raw = project.get(key)
+    if not isinstance(raw, list):
+        return []
+    return [item for item in raw if isinstance(item, str) and item]
+
+
+def get_cpp_pkg_config_flags(config: dict[str, Any] | None = None) -> list[str]:
+    """Resolve `project.cpp_pkg_config` packages into compiler flags.
+
+    A GUI or any library-backed source needs its toolkit's include paths before
+    it will even parse, and hardcoding those paths in a config file breaks the
+    moment the project moves to another machine. Asking pkg-config keeps the
+    setting portable: the project names the package, the host supplies the path.
+
+    Returns an empty list when nothing is configured or pkg-config is missing;
+    the caller's compile then fails with the real "no such file" diagnostic,
+    which says more than anything this function could invent.
+    """
+    packages = _project_string_list(config, "cpp_pkg_config")
+    if not packages:
+        return []
+    pkg_config = shutil.which("pkg-config")
+    if pkg_config is None:
+        return []
+    flags: list[str] = []
+    for package in packages:
+        try:
+            result = run_process([pkg_config, "--cflags", package])
+        except (OSError, ValueError):
+            continue
+        if result.returncode == 0:
+            flags.extend(result.stdout.split())
+    return flags
+
+
+def get_cpp_external_build_dirs(
+    base_path: Path | None = None, config: dict[str, Any] | None = None
+) -> list[Path]:
+    """Directories ici analyses but does not compile itself.
+
+    Some C++ in a project genuinely cannot be built by a bare `g++` invocation:
+    Qt widgets need moc-generated sources, and anything driven by CMake may need
+    generated headers. Those files are still project source and every text- and
+    AST-based engine should read them; only the engines that produce a binary
+    have to step around them.
+    """
+    base = _resolve_project_root(base_path or Path.cwd())
+    dirs: list[Path] = []
+    for name in _project_string_list(config, "cpp_external_build_dirs"):
+        try:
+            candidate = resolve_project_path(base, name)
+        except ValueError:
+            continue
+        if candidate.is_dir():
+            dirs.append(candidate)
+    return dirs
+
+
+def get_compilable_cpp_sources(
+    base_path: Path | None = None, config: dict[str, Any] | None = None
+) -> list[Path]:
+    """C++ sources ici can compile and link on its own.
+
+    This is `get_all_cpp_sources` minus anything under
+    `project.cpp_external_build_dirs`. Engines that only read source should keep
+    using the full list — excluding a file from a link is not a reason to stop
+    checking its complexity, duplication or exception safety.
+    """
+    base = _resolve_project_root(base_path or Path.cwd())
+    external = get_cpp_external_build_dirs(base, config)
+    if not external:
+        return get_all_cpp_sources(base, config)
+    return [
+        source
+        for source in get_all_cpp_sources(base, config)
+        if not any(_is_within(source, directory) for directory in external)
+    ]
+
+
+def _is_within(path: Path, directory: Path) -> bool:
+    try:
+        path.relative_to(directory)
+    except ValueError:
+        return False
+    return True
+
+
 def get_all_cpp_includes(
     base_path: Path | None = None, config: dict[str, Any] | None = None
 ) -> list[str]:
-    """Finds all C++ include directories (-I flags)."""
+    """Finds C++ compile flags: project include directories plus configured packages."""
     base = _resolve_project_root(base_path or Path.cwd())
     inc_dirs = set()
 
@@ -311,7 +407,9 @@ def get_all_cpp_includes(
     if nas_cpp.exists() and (nas_cpp / "include").exists():
         inc_dirs.add(f"-I{nas_cpp / 'include'}")
 
-    return sorted(list(inc_dirs))
+    # Package flags keep their order: pkg-config emits -I and -D together and
+    # sorting them apart would be meaningless.
+    return sorted(inc_dirs) + get_cpp_pkg_config_flags(config)
 
 
 def get_all_python_sources(

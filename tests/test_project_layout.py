@@ -10,6 +10,9 @@ from ici.core.project import (
     get_all_cpp_includes,
     get_all_cpp_sources,
     get_all_python_sources,
+    get_compilable_cpp_sources,
+    get_cpp_external_build_dirs,
+    get_cpp_pkg_config_flags,
     get_source_dirs,
 )
 from ici.engines.complexity import ComplexityEngine
@@ -274,3 +277,58 @@ def test_process():
     assert res.extra["passed_tests"] == res.extra["total_tests"] >= 1
     assert res.extra["branch_coverage"] < 100.0
     assert res.status == EngineStatus.FAIL
+
+
+def _cpp_project_with_gui(tmp_path: Path) -> dict:
+    """A project whose GUI sources cannot be compiled by a bare g++ call."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "gui").mkdir()
+    (tmp_path / "src" / "core.cpp").write_text("int f() { return 0; }\n", encoding="utf-8")
+    (tmp_path / "src" / "gui" / "window.cpp").write_text(
+        "int g() { return 1; }\n", encoding="utf-8"
+    )
+    return {"project": {"source_dirs": ["src"], "cpp_external_build_dirs": ["src/gui"]}}
+
+
+def test_external_build_dirs_are_analysed_but_not_compiled(tmp_path: Path):
+    """The GUI is still project source: only the engines that link skip it."""
+    config = _cpp_project_with_gui(tmp_path)
+
+    analysed = {p.name for p in get_all_cpp_sources(tmp_path, config)}
+    assert analysed == {"core.cpp", "window.cpp"}
+
+    compilable = {p.name for p in get_compilable_cpp_sources(tmp_path, config)}
+    assert compilable == {"core.cpp"}
+
+
+def test_compilable_sources_match_all_sources_without_the_setting(tmp_path: Path):
+    config = _cpp_project_with_gui(tmp_path)
+    del config["project"]["cpp_external_build_dirs"]
+    assert get_compilable_cpp_sources(tmp_path, config) == get_all_cpp_sources(tmp_path, config)
+
+
+def test_external_build_dirs_ignores_missing_and_escaping_paths(tmp_path: Path):
+    (tmp_path / "src").mkdir()
+    config = {
+        "project": {"source_dirs": ["src"], "cpp_external_build_dirs": ["nope", "../outside"]}
+    }
+    assert get_cpp_external_build_dirs(tmp_path, config) == []
+
+
+def test_pkg_config_flags_are_empty_without_configuration(tmp_path: Path):
+    assert get_cpp_pkg_config_flags(None) == []
+    assert get_cpp_pkg_config_flags({}) == []
+    assert get_cpp_pkg_config_flags({"project": {}}) == []
+    assert get_cpp_pkg_config_flags({"project": {"cpp_pkg_config": []}}) == []
+
+
+def test_pkg_config_flags_reach_the_include_list(tmp_path: Path):
+    """A configured package contributes compiler flags when pkg-config knows it."""
+    pytest.importorskip("shutil")
+    import shutil
+
+    if shutil.which("pkg-config") is None:
+        pytest.skip("pkg-config is not installed")
+    flags = get_cpp_pkg_config_flags({"project": {"cpp_pkg_config": ["nonexistent-pkg-xyz"]}})
+    # An unknown package contributes nothing rather than raising.
+    assert flags == []

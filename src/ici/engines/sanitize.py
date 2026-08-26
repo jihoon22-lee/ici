@@ -22,6 +22,7 @@ from ici.core.project import (
     get_all_cpp_includes,
     get_all_cpp_sources,
     get_all_python_sources,
+    get_compilable_cpp_sources,
 )
 from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
@@ -73,7 +74,11 @@ class SanitizeEngine(BaseEngine):
         has_failure = False
         has_warning = False
         if has_cpp_scope:
-            has_failure = self._run_cpp_sanitizer(cpp_tests, cpp_sources, targets)
+            # Scope is decided by all C++ sources, but only compilable ones are
+            # linked into the sanitizer binaries.
+            has_failure = self._run_cpp_sanitizer(
+                cpp_tests, get_compilable_cpp_sources(self.project_root, self.config), targets
+            )
         if has_python_scope:
             py_failure, py_warning = self._check_python_resource_warnings(tests_root, targets)
             has_failure = has_failure or py_failure

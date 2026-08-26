@@ -19,8 +19,8 @@ from ici.core.models import (
 from ici.core.project import (
     detect_project_type,
     get_all_cpp_includes,
-    get_all_cpp_sources,
     get_all_python_sources,
+    get_compilable_cpp_sources,
     get_project_name,
     get_project_version,
     get_source_dirs,
@@ -63,7 +63,9 @@ class BuildEngine(BaseEngine):
                 else []
             )
             cpp_sources = (
-                self._exclude_target_sources(get_all_cpp_sources(base, self.config), target_path)
+                self._exclude_target_sources(
+                    get_compilable_cpp_sources(base, self.config), target_path
+                )
                 if project_type in ("cpp", "hybrid")
                 else []
             )

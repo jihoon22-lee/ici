@@ -23,6 +23,7 @@ from ici.core.project import (
     get_all_cpp_includes,
     get_all_cpp_sources,
     get_all_python_sources,
+    get_compilable_cpp_sources,
     get_source_dirs,
 )
 from ici.core.runner import run_process
@@ -594,9 +595,12 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         self._cpp_function_rows = []
 
         inc_flags = get_all_cpp_includes(self.project_root, self.config)
+        # Only sources ici can build itself: anything under
+        # project.cpp_external_build_dirs (Qt widgets needing moc, CMake-driven
+        # code) is still analysed by the other engines but cannot be linked here.
         src_files = [
             str(f)
-            for f in get_all_cpp_sources(self.project_root, self.config)
+            for f in get_compilable_cpp_sources(self.project_root, self.config)
             if "main.cpp" not in f.name
         ]
         src_rel_set = {str(Path(f).relative_to(self.project_root)) for f in src_files}
