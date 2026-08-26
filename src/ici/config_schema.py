@@ -21,7 +21,20 @@ _TOP_LEVEL_KEYS = frozenset(
     {"ici", "project", "engines", "build", "doctor", "name", "type", "version"}
 )
 _ICI_KEYS = frozenset({"version", "policy_name"})
-_PROJECT_KEYS = frozenset({"source_dirs", "name", "type", "version"})
+_PROJECT_KEYS = frozenset(
+    {
+        "source_dirs",
+        "name",
+        "type",
+        "version",
+        # Packages whose pkg-config --cflags are appended to C++ compile flags,
+        # so toolkit-backed sources (Qt widgets and the like) can be checked.
+        "cpp_pkg_config",
+        # C++ that ici analyses but does not compile itself: moc-dependent or
+        # build-system-driven sources that a bare g++ call cannot produce.
+        "cpp_external_build_dirs",
+    }
+)
 _BUILD_KEYS = frozenset({"python"})
 _BUILD_PYTHON_KEYS = frozenset({"entrypoint"})
 _DOCTOR_KEYS = frozenset({"required_tools"})
@@ -294,8 +307,12 @@ def _validate_metadata(table: Any, path: str) -> None:
     allowed = _ICI_KEYS if path == "ici" else _PROJECT_KEYS
     _reject_unknown(table, allowed, path)
     for key, value in table.items():
-        if path == "project" and key == "source_dirs":
-            _require_string_list(value, "project.source_dirs")
+        if path == "project" and key in (
+            "source_dirs",
+            "cpp_pkg_config",
+            "cpp_external_build_dirs",
+        ):
+            _require_string_list(value, f"project.{key}")
         elif key == "type":
             _require_string(value, f"{path}.{key}", non_empty=True)
             if value not in PROJECT_TYPES:
@@ -331,8 +348,11 @@ def validate_config_paths(config: dict[str, Any], base: Path) -> None:
         raise ConfigError("configuration must be a table")
 
     project = config.get("project")
-    if isinstance(project, dict) and "source_dirs" in project:
-        _validate_path_list(project["source_dirs"], "project.source_dirs", base)
+    if isinstance(project, dict):
+        # cpp_pkg_config holds package names, not paths, so it is not resolved here.
+        for key in ("source_dirs", "cpp_external_build_dirs"):
+            if key in project:
+                _validate_path_list(project[key], f"project.{key}", base)
 
     engines = config.get("engines")
     if not isinstance(engines, dict):

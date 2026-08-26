@@ -8,6 +8,18 @@
 ## [Unreleased]
 
 ### Added
+- **`project.cpp_pkg_config` — C++ 컴파일 플래그를 설정으로 주입**: 나열한 pkg-config 패키지의 `--cflags` 가 C++ 컴파일 플래그에 추가됩니다. 그 전에는 `get_all_cpp_includes()` 가 `include/` 와 `<source_dir>/include` 만 보았기 때문에, Qt 같은 툴킷을 쓰는 소스는 **파싱조차 되지 않아** 검증 대상에서 통째로 빠질 수밖에 없었습니다. 경로를 설정 파일에 박으면 다른 머신에서 깨지므로, 프로젝트는 패키지 이름만 선언하고 경로는 호스트가 제공합니다.
+- **`project.cpp_external_build_dirs` — 분석은 하되 컴파일은 하지 않는 디렉터리**: `Q_OBJECT` 클래스는 moc 가 생성한 소스가 있어야 링크되고, CMake 로 구동되는 코드는 생성 헤더가 필요합니다. 맨 `g++` 호출로는 만들 수 없는 그런 소스를 여기에 선언하면, 바이너리를 만드는 엔진(`test`/`sanitize`/`build`)만 건너뛰고 **텍스트·AST 기반 엔진은 그대로 읽습니다.**
+
+### Fixed
+- **`lint` 가 설정을 무시하고 있었다**: `get_all_cpp_includes(self.project_root)` 를 config 인자 없이 호출해, 설정된 include 경로가 컴파일러에 전달되지 않았습니다.
+
+### Changed
+- **`viewer/gui/` → `viewer/src/gui/`**: GUI 도 프로젝트 소스이므로 `src/` 아래로 옮겼습니다. `src/` 옆에 따로 두는 배치는 관례도 아니고, 무엇보다 **"검증할 필요 없는 코드"라는 잘못된 신호**를 줍니다. 위 두 설정으로 이제 GUI 가 `lint`·`line`·`complexity`·`dup`·`exception`·`cycle`·`security` 의 검증을 받습니다 — 검증 엔진 **0개에서 8개로**. 실측(`viewer/`): 코드 라인 1,020 → 1,378, 측정 함수 96 → 118개, GUI 소스 3개에 대해 Qt 플래그를 포함한 g++ 진단이 실제로 실행됩니다.
+  - GUI 진입점은 `src/main.cpp` 와 `int main` 이 겹치지 않도록 `gui_main.cpp` 로 이름을 바꿨습니다.
+  - CI 의 verify job 에 `qt6-base-dev` 설치를 추가했습니다. GUI 를 빌드하기 위해서가 아니라 **파싱하기 위해서**입니다.
+
+### Added
 - **`viewer/gui/` — 리포트 뷰어의 Qt6 셸**: `icirv-gui [report.json]` 으로 실행합니다. 화면에서 가장 큰 글씨가 `gateReason()` 결과입니다 — 콘솔이 `Error: 0` 을 출력하면서 스위트는 `ERROR` 인 상황(요약 카운트는 엔진 상태를 세고, 스위트 상태는 `aggregate_suite_status` 의 별도 규칙으로 정해지는데 그 규칙이 출력에 없음)을 문장으로 설명하는 것이 이 앱의 존재 이유이기 때문입니다.
   - 엔진 → 타깃 2단계 트리, "Issues only" 토글(정상 실행에서는 타깃 대부분이 PASS라 기본값), 엔진 행 툴팁에 `evidence` 와 `required` 표시(MEASURED 와 ESTIMATED 는 결과를 얼마나 믿을 수 있는지에 대해 전혀 다른 의미입니다), 타깃 더블클릭 시 파일 열기.
   - 스키마 불일치나 손상된 리포트는 조용히 빈 창을 띄우지 않고 사유를 표시합니다.

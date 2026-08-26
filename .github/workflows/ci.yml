@@ -65,6 +65,13 @@ jobs:
       # --github-summary 는 $GITHUB_STEP_SUMMARY 에 append 하므로, Actions 실행 요약에
       # Python 결과와 C++ 결과가 나란히 남는다. 두 리포트를 모두 볼 수 있어야 한다 —
       # viewer/ 도 이 저장소의 소스코드다.
+      # viewer/src/gui is project source and is linted like the rest of it, so
+      # the verify job needs Qt's headers — not to build a GUI, but to parse one.
+      - name: Install Qt6 headers for the C++ gate
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qt6-base-dev pkg-config
+
       - name: 🐶 Dogfooding — C++ Gate via ici (viewer/)
         working-directory: viewer
         run: ../dist/ici.pyz verify --report --html verify_report.html --github-summary
@@ -103,8 +110,8 @@ jobs:
       - name: Configure and build
         working-directory: viewer
         run: |
-          cmake -S gui -B gui/build -DCMAKE_BUILD_TYPE=Release
-          cmake --build gui/build -j
+          cmake -S src/gui -B src/gui/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build src/gui/build -j
 
       # Loads a real report headlessly, so a GUI that links but dies on startup
       # or while parsing still fails the gate.
@@ -114,7 +121,7 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: |
           set -euo pipefail
-          ./gui/build/icirv-gui "$PWD/tests/data/ici_self_report.json" &
+          ./src/gui/build/icirv-gui "$PWD/tests/data/ici_self_report.json" &
           pid=$!
           sleep 8
           if ! kill -0 "$pid" 2>/dev/null; then

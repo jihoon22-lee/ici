@@ -558,7 +558,9 @@ class LintEngine(BaseEngine):
         if not gxx:
             self._record_missing_tool(evidence, "g++")
             return ["g++ is required when C++ sources are present"]
-        inc_flags = get_all_cpp_includes(self.project_root)
+        # Passing config matters: without it the configured package flags
+        # never reach the compiler and Qt-backed sources fail to parse.
+        inc_flags = get_all_cpp_includes(self.project_root, self.config)
 
         for cpp in cpp_files:
             cmd = [gxx, "-fsyntax-only", "-std=c++17", "-Wall", "-Wextra", *inc_flags, str(cpp)]
