@@ -62,7 +62,11 @@ def test_load_config_respects_ici_config_env(tmp_path: Path, monkeypatch):
 
 
 def test_default_config_has_layout_and_line_gate_keys():
-    assert DEFAULT_CONFIG["ici"]["version"] == __version__ == "0.5.0"
+    # No hardcoded version literal here: the invariant is that the shipped
+    # default policy tracks the package version, and pinning the string just
+    # forces an extra edit every release. Cross-file sync with the repository
+    # ici.toml is covered by test_repository_ici_version_matches_package_version.
+    assert DEFAULT_CONFIG["ici"]["version"] == __version__
     assert DEFAULT_CONFIG["project"]["source_dirs"] == ["src", "lib", "app", "packages", "python"]
     assert DEFAULT_CONFIG["engines"]["line"]["gate_dirs"] == ["src", "include", "lib", "app"]
     assert DEFAULT_CONFIG["engines"]["line"]["include_dirs"] == []
