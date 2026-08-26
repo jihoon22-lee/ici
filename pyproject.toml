@@ -25,6 +25,10 @@ dev = [
     "shiv>=1.0.6",
     "mypy>=1.10",
     "coverage>=7.0",
+    # lint 엔진은 PATH 또는 프로젝트 venv 에서 ruff 를 찾는다(engines/lint.py:_find_ruff_command).
+    # dev 의존성으로 선언해야 CI 의 .venv 에 들어가고, 엔진이 AST 폴백으로 내려가지 않는다.
+    # 상한을 두는 이유: ruff format 규칙이 마이너 버전에서 바뀌면 --check 가 갑자기 깨진다.
+    "ruff>=0.16,<0.17",
 ]
 
 [tool.hatch.version]

@@ -17,8 +17,11 @@ fail_limit = 1000         # 순수 코드 1000라인 초과 시 실패
 [engines.lint]
 enabled = true
 mode = "pass_warn_fail"
-# Ruff is optional by default; absence uses an ESTIMATED AST syntax fallback.
-ruff_required = false
+# 배포 기본값(config.py DEFAULT_CONFIG)은 ruff 를 선택 사항으로 두고 없으면 AST 폴백으로 내려가지만,
+# ici 자체 검증에서는 필수다. ruff 가 없으면 lint 는 검사 대상을 하나도 보고하지 않은 채
+# ESTIMATED/WARN 으로 통과하는데, 그러면 게이트가 초록불인 채로 실제 린팅은 일어나지 않는다.
+# 실제로 v0.5.1 까지 CI 가 이 상태였다 — uvx 는 임시 실행이라 PATH 에 ruff 를 남기지 않았다.
+ruff_required = true
 
 [engines.test]
 enabled = true

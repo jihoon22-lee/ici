@@ -33,10 +33,13 @@ jobs:
         with:
           enable-cache: true
 
+      # uv run 을 쓰는 이유: uvx 는 ruff 를 임시로 내려받아 실행할 뿐 PATH 에 남기지 않아,
+      # 뒤의 도그푸딩 스텝에서 lint 엔진이 ruff 를 못 찾고 AST 폴백으로 내려간다.
+      # uv run 은 프로젝트 .venv 에 설치하므로 엔진과 CI 가 같은 바이너리를 쓴다.
       - name: Code Style & Lint Check
         run: |
-          uvx ruff check .
-          uvx ruff format --check .
+          uv run --python 3.10 ruff check .
+          uv run --python 3.10 ruff format --check .
 
       - name: Unit Tests & Coverage
         run: |

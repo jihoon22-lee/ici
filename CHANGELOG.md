@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+### Fixed
+- **CI 에서 `lint` 엔진이 한 번도 실제로 실행되지 않고 있었다**: 워크플로의 린트 단계는 `uvx ruff check .` 를 쓰는데, `uvx` 는 ruff 를 임시로 내려받아 실행할 뿐 `PATH` 에 남기지 않습니다. ruff 는 dev 의존성에도 없어 `.venv` 에도 설치되지 않았습니다. 그 결과 뒤이은 도그푸딩 단계에서 `_find_ruff_command()` 가 ruff 를 찾지 못해 `lint` 가 AST 문법 폴백으로 강등됐고, **검사 대상을 하나도 보고하지 않은 채**(`targets: []`) `evidence = ESTIMATED` / `WARN` 으로 게이트를 통과했습니다. 개발자 로컬에는 ruff 가 전역 설치돼 있어 이 차이가 드러나지 않았습니다.
+  - `ruff>=0.16,<0.17` 을 dev 의존성으로 선언해 `.venv` 에 설치되도록 하고(엔진의 `find_project_executable` 경로가 이를 찾습니다), CI 린트 단계를 `uv run` 으로 바꿔 엔진과 CI 가 같은 바이너리를 쓰도록 통일했습니다. format 규칙이 마이너 버전에서 바뀌면 `--check` 가 갑자기 깨지므로 상한을 둡니다.
+  - 저장소 정책 `ici.toml` 의 `engines.lint.ruff_required` 를 `true` 로 올렸습니다. 이제 ruff 를 찾지 못하면 `lint` 가 `ERROR`(evidence `NOT_RUN`)가 되고 스위트가 `ERROR`, `verify` 는 exit 1 로 끝납니다. 배포 기본값(`config.py` DEFAULT_CONFIG)은 기존대로 `false` 이므로 사용자 프로젝트의 동작은 바뀌지 않습니다.
+  - 확인: 수정 후 자체 검증에서 `lint` 가 `evidence = MEASURED` 로 보고됩니다(이전 CI: `ESTIMATED`).
+
 ## [0.5.1] - 2026-08-26
 
 ### Fixed
