@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+### Changed
+- **`viewer/` 를 관례적인 C++ 레이아웃으로 재배치**: 공개 헤더를 `viewer/include/icirv/`, 구현을 `viewer/src/` 로 분리했습니다. ici 의 `get_all_cpp_includes()` 가 `include/` 와 그 하위 디렉터리를 `-I` 로 넘겨주므로, 테스트가 쓰던 `#include "../src/core/json_parser.hpp"` 같은 상대 경로가 `#include "icirv/json_parser.hpp"` 로 정리됐습니다. 검증 결과는 동일합니다(exit 0, TEM 4.94).
+- **CI 가 Python 과 C++ 검증 리포트를 모두 제공**: `viewer/` 게이트 스텝에 `--html` 과 `--github-summary` 를 추가했습니다. `--github-summary` 는 `$GITHUB_STEP_SUMMARY` 에 append 하므로 Actions 실행 요약에 두 결과가 나란히 남고, 아티팩트에도 `viewer/verify_report.{html,json}` 이 함께 담깁니다. 그 전에는 Python 자체 검증 리포트만 업로드돼 C++ 검증 결과를 볼 방법이 없었습니다.
+  - 두 리포트를 **하나로 합치는** 것은 아직 불가능합니다. `source_dirs` 에 `viewer/src` 를 넣으면 C++ 소스는 잡히지만 (1) `engines/test.py` 가 C++ 테스트를 `<root>/tests` 에서만 찾아 `viewer/tests` 를 보지 못하고, (2) `get_all_cpp_includes()` 가 `<source_dir>/include` 만 보므로 `viewer/include` 를 `-I` 에 넣지 못합니다. 두 제약을 걷어내는 것은 별도 작업입니다.
+
 ### Added
 - **`viewer/` — ici 리포트 네이티브 뷰어의 C++17 코어와 CLI(`icirv`)**: `ici verify --report` 가 만드는 `ici.result/v2` JSON 을 읽어 게이트 사유·엔진 표·조치 필요 항목을 출력합니다. 손으로 작성한 재귀 하강 JSON 파서(`json_value`/`json_parser`), 스키마 검증 매퍼(`report_model`), 파생 뷰(`summary`) 로 구성되며 외부 의존성이 없습니다.
   - `gateReason()` 이 이 뷰어의 존재 이유입니다. ici 콘솔은 `Error: 0` 을 출력하면서 `suite_status` 는 `ERROR` 일 수 있는데, 요약 카운트는 엔진 상태를 세는 반면 스위트 상태는 `aggregate_suite_status` 의 별도 규칙(required 엔진의 SKIP / evidence NOT_RUN 이 스위트를 승격)으로 정해지고 그 규칙이 출력 어디에도 없기 때문입니다. `gateReason()` 은 그 규칙을 재현해 `"ERROR — required engine 'dead' was SKIPPED"` 처럼 사유를 문장으로 돌려줍니다.

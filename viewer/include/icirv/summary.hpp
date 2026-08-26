@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "report_model.hpp"
+#include "icirv/report_model.hpp"
 
 namespace icirv {
 

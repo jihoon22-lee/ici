@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include "json_value.hpp"
+#include "icirv/json_value.hpp"
 
 namespace icirv {
 

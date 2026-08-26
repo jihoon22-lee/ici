@@ -1,5 +1,5 @@
-#include "core/report_model.hpp"
-#include "core/summary.hpp"
+#include "icirv/report_model.hpp"
+#include "icirv/summary.hpp"
 
 #include <cstdio>
 #include <fstream>

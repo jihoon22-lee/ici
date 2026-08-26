@@ -62,9 +62,12 @@ jobs:
       # viewer/ 는 순수 C++17 코어라 Qt 없이 빌드된다. 이 스텝이 있어야 ici 의 C++ 경로
       # (lint 의 g++ 진단, test 의 gcov 커버리지, sanitize 의 ASan/UBSan, cycle 의 include 순환)가
       # CI 에서 실제로 실행된다 — 그 전까지 C++ 엔진은 단위 테스트로만 덮여 있었다.
+      # --github-summary 는 $GITHUB_STEP_SUMMARY 에 append 하므로, Actions 실행 요약에
+      # Python 결과와 C++ 결과가 나란히 남는다. 두 리포트를 모두 볼 수 있어야 한다 —
+      # viewer/ 도 이 저장소의 소스코드다.
       - name: 🐶 Dogfooding — C++ Gate via ici (viewer/)
         working-directory: viewer
-        run: ../dist/ici.pyz verify --report
+        run: ../dist/ici.pyz verify --report --html verify_report.html --github-summary
 
       - name: Upload Verification Reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -74,6 +77,8 @@ jobs:
           path: |
             verify_report.html
             verify_report.json
+            viewer/verify_report.html
+            viewer/verify_report.json
           retention-days: 14
 
   report-pr:

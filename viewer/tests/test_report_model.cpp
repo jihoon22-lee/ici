@@ -1,7 +1,7 @@
 #include "check.hpp"
 #include "fixtures.hpp"
 
-#include "../src/core/report_model.hpp"
+#include "icirv/report_model.hpp"
 
 #include <string>
 

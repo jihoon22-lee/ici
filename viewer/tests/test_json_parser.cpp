@@ -1,6 +1,6 @@
 #include "check.hpp"
 
-#include "../src/core/json_parser.hpp"
+#include "icirv/json_parser.hpp"
 
 #include <string>
 
