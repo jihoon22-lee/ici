@@ -17,6 +17,17 @@ _COVERAGE_KEYS = (
     "covered_branches",
 )
 
+# gcc emits an extra arm marked "(throw)" around nearly every call that may
+# raise — which, with exceptions enabled, is essentially every STL allocation.
+# It represents the exception-unwind edge, not a branch anyone wrote, and no
+# test can take it without inducing a real throw (bad_alloc and friends).
+# Counting it made C++ branch coverage read ~20 points lower than it is: a file
+# whose every branch point was reached still scored 73% purely from unwind
+# arms. lcov 2.x filters the same edges for the same reason. Excluded from both
+# numerator and denominator so the remaining figure still measures real,
+# author-written branches.
+_EXCEPTION_UNWIND_ARM = "(throw)"
+
 
 def module_unavailable(result, module: str) -> bool:
     """Accept only a minimal interpreter-level missing-module diagnostic."""
@@ -232,6 +243,8 @@ def parse_gcov_dir(cov_dir: Path, source_files: set[str], project_root: Path) ->
 
         for line in content.splitlines():
             if line.startswith("branch"):
+                if _EXCEPTION_UNWIND_ARM in line:
+                    continue
                 parts = line.split()
                 branches += 1
                 if "taken" in parts:
