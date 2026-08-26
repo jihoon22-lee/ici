@@ -81,6 +81,51 @@ jobs:
             viewer/verify_report.json
           retention-days: 14
 
+  # The Qt shell sits outside every ici engine's scope by design — the core is
+  # what gets verified — so nothing else would notice a broken GUI build.
+  viewer-gui:
+    name: Qt6 Viewer GUI build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Qt6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qt6-base-dev
+
+      - name: Configure and build
+        working-directory: viewer
+        run: |
+          cmake -S gui -B gui/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build gui/build -j
+
+      # Loads a real report headlessly, so a GUI that links but dies on startup
+      # or while parsing still fails the gate.
+      - name: Headless smoke run
+        working-directory: viewer
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          set -euo pipefail
+          ./gui/build/icirv-gui "$PWD/tests/data/ici_self_report.json" &
+          pid=$!
+          sleep 8
+          if ! kill -0 "$pid" 2>/dev/null; then
+            echo "::error::viewer GUI exited before the smoke window elapsed"
+            wait "$pid" || true
+            exit 1
+          fi
+          kill "$pid"
+          wait "$pid" 2>/dev/null || true
+          echo "viewer GUI stayed up through a report load"
+
   report-pr:
     name: Publish PR Report & Sticky Comment
     if: github.event_name == 'pull_request'
