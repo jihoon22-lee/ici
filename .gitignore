@@ -42,6 +42,11 @@ verify_report.html
 verify_report.json
 verify_report.md
 
+# C++ coverage artifacts (viewer/)
+*.gcda
+*.gcno
+*.gcov
+
 # IDE & OS
 .vscode/
 .idea/

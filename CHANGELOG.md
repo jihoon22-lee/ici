@@ -7,6 +7,14 @@
 
 ## [Unreleased]
 
+### Added
+- **`viewer/` — ici 리포트 네이티브 뷰어의 C++17 코어와 CLI(`icirv`)**: `ici verify --report` 가 만드는 `ici.result/v2` JSON 을 읽어 게이트 사유·엔진 표·조치 필요 항목을 출력합니다. 손으로 작성한 재귀 하강 JSON 파서(`json_value`/`json_parser`), 스키마 검증 매퍼(`report_model`), 파생 뷰(`summary`) 로 구성되며 외부 의존성이 없습니다.
+  - `gateReason()` 이 이 뷰어의 존재 이유입니다. ici 콘솔은 `Error: 0` 을 출력하면서 `suite_status` 는 `ERROR` 일 수 있는데, 요약 카운트는 엔진 상태를 세는 반면 스위트 상태는 `aggregate_suite_status` 의 별도 규칙(required 엔진의 SKIP / evidence NOT_RUN 이 스위트를 승격)으로 정해지고 그 규칙이 출력 어디에도 없기 때문입니다. `gateReason()` 은 그 규칙을 재현해 `"ERROR — required engine 'dead' was SKIPPED"` 처럼 사유를 문장으로 돌려줍니다.
+  - 스키마 불일치·필수 필드 누락·타입 불일치는 조용히 기본값으로 넘어가지 않고 `LoadError` 로 명시됩니다.
+- **CI 에 C++ 게이트 추가**: `viewer/` 를 대상으로 `ici verify` 를 실행하는 스텝을 넣었습니다. 그 전까지 ici 의 C++ 경로(`lint` 의 g++ 진단, `test` 의 gcov 커버리지, `sanitize` 의 ASan/UBSan, `cycle` 의 include 순환)는 **단위 테스트로만 덮여 있었고 실제 C++ 프로젝트로 검증된 적이 없었습니다.** 코어가 Qt 무의존이라 CI 에 Qt 설치가 필요 없습니다.
+  - `viewer/` 는 기본 source_dir 이 아니고 ici 의 `tests/` 아래도 아니며 루트에 빌드 디스크립터를 추가하지도 않으므로, ici 자체 검증 결과는 변하지 않습니다(확인: TEM 4.72 유지).
+  - 측정: 12 엔진 중 9 PASS, exit 0, TEM 4.94 / line 95.0% / branch 85.2% / function 98.9%.
+
 ### Fixed
 - **CI 에서 `lint` 엔진이 한 번도 실제로 실행되지 않고 있었다**: 워크플로의 린트 단계는 `uvx ruff check .` 를 쓰는데, `uvx` 는 ruff 를 임시로 내려받아 실행할 뿐 `PATH` 에 남기지 않습니다. ruff 는 dev 의존성에도 없어 `.venv` 에도 설치되지 않았습니다. 그 결과 뒤이은 도그푸딩 단계에서 `_find_ruff_command()` 가 ruff 를 찾지 못해 `lint` 가 AST 문법 폴백으로 강등됐고, **검사 대상을 하나도 보고하지 않은 채**(`targets: []`) `evidence = ESTIMATED` / `WARN` 으로 게이트를 통과했습니다. 개발자 로컬에는 ruff 가 전역 설치돼 있어 이 차이가 드러나지 않았습니다.
   - `ruff>=0.16,<0.17` 을 dev 의존성으로 선언해 `.venv` 에 설치되도록 하고(엔진의 `find_project_executable` 경로가 이를 찾습니다), CI 린트 단계를 `uv run` 으로 바꿔 엔진과 CI 가 같은 바이너리를 쓰도록 통일했습니다. format 규칙이 마이너 버전에서 바뀌면 `--check` 가 갑자기 깨지므로 상한을 둡니다.
