@@ -2,7 +2,7 @@
 # 이 설정 파일은 ici 프로젝트의 표준 품질 정책을 정의합니다.
 
 [ici]
-version = "0.5.0"
+version = "0.5.1"
 policy_name = "Enterprise CI/CD Standard Quality Gate"
 
 [doctor]
