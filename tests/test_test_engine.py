@@ -440,6 +440,35 @@ branch  1 taken 0%
     assert row["missing_lines"] == [4]
 
 
+def test_parse_gcov_dir_excludes_exception_unwind_arms(tmp_path: Path):
+    """gcc's "(throw)" arms are unwind edges, not branches anyone can test."""
+    engine = TestEngine(tmp_path)
+    (tmp_path / "src").mkdir(exist_ok=True)
+    (tmp_path / "src" / "calc.cpp").write_text("", encoding="utf-8")
+    cov_dir = tmp_path / "build" / "tests"
+    cov_dir.mkdir(parents=True)
+    abs_encoded = "#" + str(tmp_path).lstrip("/").replace("/", "#") + "#src#calc.cpp"
+    (cov_dir / f"{abs_encoded}.gcov").write_text(
+        """        -:    0:Source:/tmp/x/src/calc.cpp
+        1:    1:std::string label(int a) {
+        1:    2:    if (a > 0) { return "pos"; }
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+branch  2 taken 0% (throw)
+branch  3 taken 0% (throw)
+branch  4 taken 0% (throw)
+        1:    3:    return "neg";
+""",
+        encoding="utf-8",
+    )
+
+    row = engine._parse_gcov_dir(cov_dir, {"src/calc.cpp"})[0]
+    # Only the two real arms are counted; one of them was taken.
+    assert row["nb"] == 2
+    assert row["cb"] == 1
+    assert row["branch_cover"] == 50.0
+
+
 def test_parse_gcov_dir_skips_test_files(tmp_path: Path):
     engine = TestEngine(tmp_path)
     cov_dir = tmp_path / "build" / "tests"
