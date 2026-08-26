@@ -1,7 +1,7 @@
 #include "check.hpp"
 #include "fixtures.hpp"
 
-#include "../src/core/summary.hpp"
+#include "icirv/summary.hpp"
 
 #include <string>
 

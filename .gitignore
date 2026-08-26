@@ -41,6 +41,9 @@ coverage.xml
 verify_report.html
 verify_report.json
 verify_report.md
+viewer/verify_report.html
+viewer/verify_report.json
+viewer/build/
 
 # C++ coverage artifacts (viewer/)
 *.gcda

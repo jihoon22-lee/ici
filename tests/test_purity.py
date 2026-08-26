@@ -83,7 +83,12 @@ def test_ci_verify_keeps_reports_summary_and_artifacts_without_publish():
         r"(?ms)^          path: \|\n(?P<body>(?:            [^\n]*\n)+)", upload.group("body")
     )
     assert path is not None
-    assert path.group("body") == "            verify_report.html\n            verify_report.json\n"
+    uploaded = {line.strip() for line in path.group("body").splitlines() if line.strip()}
+    # The repository-root reports must always ship. Additional reports (the
+    # viewer/ C++ gate, and whatever comes next) are expected, so this asserts
+    # the invariant rather than pinning the exact list — the property this test
+    # guards is "verify uploads and does not publish", not the file count.
+    assert {"verify_report.html", "verify_report.json"} <= uploaded
 
 
 def test_all_ci_and_release_checkouts_disable_credential_persistence():
