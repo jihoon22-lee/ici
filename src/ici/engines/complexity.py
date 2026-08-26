@@ -1,6 +1,7 @@
 """5. Code Complexity & Nesting Depth Analysis Engine with Policy Thresholds."""
 
 import ast
+import re
 import time
 
 from ici.core.models import EngineResult, EngineStatus, InspectionTarget
@@ -10,6 +11,164 @@ from ici.core.project import (
     get_all_python_sources,
 )
 from ici.engines.base import BaseEngine
+from ici.engines.cpp_text import mask_cpp_literals
+
+# --- C++ function scanning -------------------------------------------------
+#
+# The previous implementation guessed at function boundaries by looking for a
+# line that contained "(", ")", "{" and one of a handful of return-type
+# keywords. That misread C++ in three separate ways, each of which put the
+# reported complexity on the wrong function:
+#
+#   * A definition written on one line — `void Stats::add(const T& r) { v_.push_back(r); }`
+#     — never closed, because the scanner skipped the signature line when
+#     counting braces. It kept accumulating and absorbed the functions after it.
+#   * `for (int i = 0; i < n; ++i) {` matched the heuristic (it has parentheses,
+#     a brace, and "int "), so a loop was reported as a function named "for" and
+#     the real function was truncated at that line.
+#   * A signature split across lines was never detected at all, so its body was
+#     attributed to whatever came before it.
+#
+# Tracking brace depth and accumulating the signature until its opening brace
+# removes all three. Names are rejected when the token before "(" is a control
+# keyword, which is what keeps loops and conditionals out of the results.
+
+_CPP_CONTROL_HEADS = frozenset(
+    {"if", "for", "while", "switch", "catch", "do", "else", "return", "sizeof"}
+)
+
+_CPP_DECISION_TOKENS = ("&&", "||", "?")
+
+_CPP_DECISION_KEYWORDS = ("if", "for", "while", "case", "catch")
+
+
+class _CppFunctionSpan:
+    """One C++ function definition and its measured complexity."""
+
+    __slots__ = ("complexity", "end_line", "max_nesting", "name", "start_line")
+
+    def __init__(self, name: str, start_line: int) -> None:
+        self.name = name
+        self.start_line = start_line
+        self.end_line = start_line
+        self.complexity = 1
+        self.max_nesting = 1
+
+
+def _strip_cpp_noise(line: str) -> str:
+    """Drop line comments and string/char literals so they cannot fake tokens."""
+    text = line.split("//", 1)[0]
+    return mask_cpp_literals(text)
+
+
+def _cpp_decision_count(text: str) -> int:
+    """Count decision points on one line, the usual cyclomatic contributors."""
+    total = sum(text.count(token) for token in _CPP_DECISION_TOKENS)
+    for keyword in _CPP_DECISION_KEYWORDS:
+        total += len(re.findall(r"\b" + keyword + r"\b\s*[({:]", text))
+    return total
+
+
+def _cpp_definition_name(signature: str) -> str | None:
+    """Return the function name for a definition header, or None if it is not one."""
+    if "(" not in signature:
+        return None
+    head = signature.split("(", 1)[0].strip()
+    if not head:
+        return None
+    token = head.split()[-1].lstrip("*&")
+    if not token or token in _CPP_CONTROL_HEADS:
+        return None
+    if not (token[0].isalpha() or token[0] == "_"):
+        return None
+    return token
+
+
+def _cpp_function_spans(lines: list[str]) -> list[_CppFunctionSpan]:
+    """Scan a translation unit and measure every function definition in it."""
+    scanner = _CppScanner()
+    for number, raw in enumerate(lines, 1):
+        scanner.feed(number, _strip_cpp_noise(raw))
+    scanner.finish(len(lines))
+    return scanner.spans
+
+
+class _CppScanner:
+    """Brace-depth state machine over one file."""
+
+    def __init__(self) -> None:
+        self.spans: list[_CppFunctionSpan] = []
+        self._depth = 0
+        self._current: _CppFunctionSpan | None = None
+        self._base_depth = 0
+        self._pending = ""
+        self._pending_line = 0
+
+    def feed(self, number: int, text: str) -> None:
+        if self._current is not None:
+            self._feed_body(number, text)
+            return
+        self._feed_outside(number, text)
+
+    def finish(self, last_line: int) -> None:
+        """Close an unterminated function so its findings are still reported."""
+        if self._current is None:
+            return
+        self._current.end_line = last_line
+        self.spans.append(self._current)
+        self._current = None
+
+    def _feed_body(self, number: int, text: str) -> None:
+        current = self._current
+        if current is None:
+            return
+        current.complexity += _cpp_decision_count(text)
+        opened = text.count("{")
+        closed = text.count("}")
+        if opened:
+            self._depth += opened
+            current.max_nesting = max(current.max_nesting, self._depth - self._base_depth)
+        self._depth -= closed
+        if self._depth <= self._base_depth:
+            current.end_line = number
+            self.spans.append(current)
+            self._current = None
+            self._depth = max(self._depth, self._base_depth)
+
+    def _feed_outside(self, number: int, text: str) -> None:
+        stripped = text.strip()
+        if not stripped or stripped.startswith("#"):
+            self._pending = ""
+            return
+        if not self._pending:
+            self._pending_line = number
+        self._pending = f"{self._pending} {stripped}".strip()
+        if "{" not in stripped:
+            # A ';' at this level ends a declaration or statement, not a body.
+            if ";" in stripped:
+                self._pending = ""
+            return
+        self._open_or_discard(number, stripped)
+
+    def _open_or_discard(self, number: int, stripped: str) -> None:
+        signature = self._pending
+        self._pending = ""
+        name = _cpp_definition_name(signature)
+        if name is None:
+            # Not a function: keep the braces balanced for anything that follows
+            # (a struct body, a namespace, an initialiser list).
+            self._depth += stripped.count("{") - stripped.count("}")
+            self._depth = max(self._depth, 0)
+            return
+        span = _CppFunctionSpan(name, self._pending_line)
+        self._base_depth = self._depth
+        self._depth += 1
+        self._current = span
+        span.complexity += _cpp_decision_count(signature)
+        # The rest of the line can close the body outright: `void f() { g(); }`.
+        after = stripped.split("{", 1)[1]
+        self._current = span
+        self._feed_body(number, after)
 
 
 class ComplexityEngine(BaseEngine):
@@ -192,109 +351,24 @@ class ComplexityEngine(BaseEngine):
         for cpp_file in get_all_cpp_sources(self.project_root, self.config):
             try:
                 rel_p = str(cpp_file.relative_to(self.project_root))
-                with open(cpp_file, encoding="utf-8", errors="ignore") as f:
-                    lines = f.readlines()
-
-                # Basic heuristic for C++ functions
-                curr_func = None
-                func_start = 1
-                branch_count = 1
-                nesting = 0
-                max_func_nesting = 0
-
-                for idx, line in enumerate(lines, 1):
-                    stripped = line.strip()
-                    if (
-                        "(" in stripped
-                        and ")" in stripped
-                        and "{" in stripped
-                        and not stripped.startswith(("//", "#", "/*"))
-                    ) and (
-                        "int " in stripped
-                        or "void " in stripped
-                        or "bool " in stripped
-                        or "auto " in stripped
-                        or "double " in stripped
-                    ):
-                        if curr_func:
-                            targets.append(
-                                self._make_cpp_target(
-                                    rel_p,
-                                    func_start,
-                                    idx - 1,
-                                    curr_func,
-                                    branch_count,
-                                    max_func_nesting,
-                                    warn_cc,
-                                    fail_cc,
-                                    warn_nesting,
-                                )
-                            )
-                            max_cc = max(max_cc, branch_count)
-                        curr_func = stripped.split("(")[0].split()[-1]
-                        func_start = idx
-                        branch_count = 1
-                        nesting = 1
-                        max_func_nesting = 1
-                        continue
-
-                    if curr_func:
-                        if "{" in stripped:
-                            nesting += stripped.count("{")
-                            max_func_nesting = max(max_func_nesting, nesting)
-                        if "}" in stripped:
-                            nesting -= stripped.count("}")
-                        if any(
-                            kw in stripped
-                            for kw in (
-                                "if (",
-                                "if(",
-                                "while (",
-                                "while(",
-                                "for (",
-                                "for(",
-                                "catch (",
-                                "case ",
-                                "&&",
-                                "||",
-                            )
-                        ):
-                            branch_count += 1
-
-                        if nesting <= 0:
-                            targets.append(
-                                self._make_cpp_target(
-                                    rel_p,
-                                    func_start,
-                                    idx,
-                                    curr_func,
-                                    branch_count,
-                                    max_func_nesting,
-                                    warn_cc,
-                                    fail_cc,
-                                    warn_nesting,
-                                )
-                            )
-                            max_cc = max(max_cc, branch_count)
-                            curr_func = None
-
-                if curr_func:
-                    targets.append(
-                        self._make_cpp_target(
-                            rel_p,
-                            func_start,
-                            len(lines),
-                            curr_func,
-                            branch_count,
-                            max_func_nesting,
-                            warn_cc,
-                            fail_cc,
-                            warn_nesting,
-                        )
+                lines = cpp_file.read_text(encoding="utf-8", errors="ignore").splitlines()
+            except (OSError, UnicodeDecodeError, ValueError):
+                continue
+            for span in _cpp_function_spans(lines):
+                targets.append(
+                    self._make_cpp_target(
+                        rel_p,
+                        span.start_line,
+                        span.end_line,
+                        span.name,
+                        span.complexity,
+                        span.max_nesting,
+                        warn_cc,
+                        fail_cc,
+                        warn_nesting,
                     )
-                    max_cc = max(max_cc, branch_count)
-            except (OSError, UnicodeDecodeError) as err:
-                _ = err
+                )
+                max_cc = max(max_cc, span.complexity)
 
         return max_cc, targets
 
