@@ -27,6 +27,7 @@ from ici.core.project import (
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
+from ici.engines.cpp_text import mask_cpp_literals as _mask_cpp_literals
 
 _ENTRYPOINT_RE = re.compile(
     r"^(?P<module>[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*):"
@@ -34,71 +35,6 @@ _ENTRYPOINT_RE = re.compile(
 )
 _SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 _MAIN_DEFINITION_RE = re.compile(r"\bint\s+main\s*\([^{};]*\)\s*(?:noexcept\s*)?\{")
-_CPP_RAW_START_RE = re.compile(r'(?:u8|u|U|L)?R"(?P<delimiter>[^\s()\\]{0,16})\(')
-
-
-def _blank_cpp_region(chars: list[str], start: int, end: int) -> None:
-    for index in range(start, end):
-        if chars[index] not in "\r\n":
-            chars[index] = " "
-
-
-def _cpp_line_comment_end(text: str, start: int) -> int:
-    index = start + 2
-    while index < len(text):
-        if text[index] == "\n" and (index == start or text[index - 1] != "\\"):
-            return index
-        index += 1
-    return len(text)
-
-
-def _cpp_quoted_end(text: str, start: int) -> int:
-    quote = text[start]
-    index = start + 1
-    while index < len(text):
-        if text[index] == "\\":
-            index += 2
-            continue
-        if text[index] == quote:
-            return index + 1
-        if text[index] in "\r\n":
-            return index + 1
-        index += 1
-    return len(text)
-
-
-def _mask_cpp_literals(text: str) -> str:
-    """Blank comments and quoted C++ literals while preserving source lines."""
-
-    chars = list(text)
-    index = 0
-    while index < len(text):
-        raw_start = _CPP_RAW_START_RE.match(text, index)
-        if raw_start:
-            closing = ")" + raw_start.group("delimiter") + '"'
-            closing_index = text.find(closing, raw_start.end())
-            end = len(text) if closing_index < 0 else closing_index + len(closing)
-            _blank_cpp_region(chars, index, end)
-            index = end
-            continue
-        if text.startswith("//", index):
-            end = _cpp_line_comment_end(text, index)
-            _blank_cpp_region(chars, index, end)
-            index = end
-            continue
-        if text.startswith("/*", index):
-            closing_index = text.find("*/", index + 2)
-            end = len(text) if closing_index < 0 else closing_index + 2
-            _blank_cpp_region(chars, index, end)
-            index = end
-            continue
-        if text[index] in "\"'":
-            end = _cpp_quoted_end(text, index)
-            _blank_cpp_region(chars, index, end)
-            index = end
-            continue
-        index += 1
-    return "".join(chars)
 
 
 class BuildEngine(BaseEngine):

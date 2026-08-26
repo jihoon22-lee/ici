@@ -103,3 +103,97 @@ def test_exception_safety_detects_bare_except(tmp_path: Path):
     res = engine.run()
     assert res.status == EngineStatus.FAIL
     assert any("BareExcept" in t.target_name for t in res.targets)
+
+
+def _cpp_targets(tmp_path: Path, source: str) -> dict:
+    """Run the C++ path of the complexity engine over one file."""
+    src = tmp_path / "src"
+    src.mkdir(exist_ok=True)
+    (src / "sample.cpp").write_text(source, encoding="utf-8")
+    result = ComplexityEngine(tmp_path).run()
+    return {t.target_name: t for t in result.targets}
+
+
+def test_cpp_single_line_definition_closes_itself(tmp_path: Path):
+    """A body on the signature line must not absorb the functions after it."""
+    targets = _cpp_targets(
+        tmp_path,
+        "void trivial() { return; }\n"
+        "\n"
+        "bool busy(int a, int b) {\n"
+        "    if (a > 0) {\n"
+        "        while (b > 0) {\n"
+        "            --b;\n"
+        "        }\n"
+        "    }\n"
+        "    return a > b;\n"
+        "}\n",
+    )
+    assert set(targets) == {"trivial()", "busy()"}
+    assert targets["trivial()"].start_line == 1
+    assert targets["trivial()"].end_line == 1
+    assert targets["trivial()"].metrics["complexity"] == 1
+    # The loop and branch belong to busy(), not to the one-liner above it.
+    assert targets["busy()"].start_line == 3
+    assert targets["busy()"].metrics["complexity"] == 3
+
+
+def test_cpp_control_flow_is_not_reported_as_a_function(tmp_path: Path):
+    """`for (int i = ...)` has parens, a brace and a type, but is not a definition."""
+    targets = _cpp_targets(
+        tmp_path,
+        "int total(int n) {\n"
+        "    int sum = 0;\n"
+        "    for (int i = 0; i < n; ++i) {\n"
+        "        sum += i;\n"
+        "    }\n"
+        "    return sum;\n"
+        "}\n",
+    )
+    assert set(targets) == {"total()"}
+    assert targets["total()"].end_line == 7
+
+
+def test_cpp_multi_line_signature_is_detected(tmp_path: Path):
+    """A signature wrapped across lines used to be invisible to the scanner."""
+    targets = _cpp_targets(
+        tmp_path,
+        "void first() { return; }\n"
+        "\n"
+        "void wrapped(const int& a,\n"
+        "             const int& b) {\n"
+        "    if (a && b) {\n"
+        "        return;\n"
+        "    }\n"
+        "}\n",
+    )
+    assert "wrapped()" in targets
+    assert targets["wrapped()"].start_line == 3
+    # The if and the && are both decision points.
+    assert targets["wrapped()"].metrics["complexity"] == 3
+
+
+def test_cpp_literals_do_not_create_decision_points(tmp_path: Path):
+    """Braces and operators inside strings and comments must not be counted."""
+    targets = _cpp_targets(
+        tmp_path,
+        'const char* text() { return "if (a && b) {"; }  // while (x) {\n',
+    )
+    assert set(targets) == {"text()"}
+    assert targets["text()"].metrics["complexity"] == 1
+
+
+def test_cpp_nesting_depth_is_measured_from_the_body(tmp_path: Path):
+    targets = _cpp_targets(
+        tmp_path,
+        "void deep(int a) {\n"
+        "    if (a) {\n"
+        "        if (a) {\n"
+        "            if (a) {\n"
+        "                return;\n"
+        "            }\n"
+        "        }\n"
+        "    }\n"
+        "}\n",
+    )
+    assert targets["deep()"].metrics["nesting"] == 4

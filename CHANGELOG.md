@@ -7,6 +7,18 @@
 
 ## [Unreleased]
 
+### Fixed
+- **C++ 함수 경계 탐지가 세 가지 방식으로 어긋나 있었다 (`complexity`)**: 기존 구현은 `(`, `)`, `{` 와 몇 개의 반환 타입 키워드(`int `/`void `/`bool `/`auto `/`double `)가 한 줄에 같이 있으면 함수 정의로 간주했습니다. 그 결과:
+  - **한 줄 정의가 닫히지 않았습니다.** `void Stats::add(const T& r) { v_.push_back(r); }` 같은 정의는 시그니처 줄의 중괄호를 세지 않고 넘어가므로 영영 닫히지 않고 **뒤따르는 함수들의 본문을 흡수**했습니다. 실측: 한 줄짜리 `spanPrecedes()` 에 중첩 깊이 4 가 붙었는데, 실제로는 그 아래 함수의 값이었습니다.
+  - **`for (int i = 0; i < n; ++i) {` 가 함수로 잡혔습니다.** 괄호·중괄호·`int ` 가 모두 있기 때문입니다. `for` 라는 이름의 유령 함수가 생기고 진짜 함수는 그 줄에서 잘렸습니다.
+  - **여러 줄에 걸친 시그니처는 아예 탐지되지 않았습니다.** 본문이 앞 함수에 귀속됐습니다.
+  - 이제 중괄호 깊이를 추적하고 시그니처를 여는 중괄호까지 누적해 판정하며, `(` 앞 토큰이 제어 키워드면 함수가 아닌 것으로 처리합니다. 문자열·주석은 `mask_cpp_literals` 로 중립화해 리터럴 안의 `if (` 나 `&&` 가 분기로 세어지지 않습니다.
+  - **영향**: 탐지되는 함수 수가 실측 프로젝트에서 크게 늘었습니다 — `loglens` 44 → 93, `viewer` 72 → 96, `diskmap` 33 → 51. 절반 가까운 함수가 측정 대상에서 빠져 있었다는 뜻입니다. 거짓 경고가 사라진 대신 가려져 있던 진짜 중첩 위반이 드러납니다.
+  - C++ 경로에는 테스트가 하나도 없었습니다. 세 결함 각각에 대한 회귀 테스트와 리터럴·중첩 측정 테스트를 추가했습니다.
+
+### Refactored
+- **`mask_cpp_literals` 를 `engines/cpp_text.py` 로 분리**: `build` 와 `exception` 이 각자 구현을 갖고 있었고 `complexity` 가 세 번째를 추가할 참이었습니다. `build` 쪽 구현(raw string·블록 주석까지 처리)을 공용 모듈로 옮기고 `build` 와 `complexity` 가 함께 씁니다. `exception` 의 구현은 line-splice 처리가 달라 이번에는 건드리지 않았습니다.
+
 ### Changed
 - **`viewer/` 를 관례적인 C++ 레이아웃으로 재배치**: 공개 헤더를 `viewer/include/icirv/`, 구현을 `viewer/src/` 로 분리했습니다. ici 의 `get_all_cpp_includes()` 가 `include/` 와 그 하위 디렉터리를 `-I` 로 넘겨주므로, 테스트가 쓰던 `#include "../src/core/json_parser.hpp"` 같은 상대 경로가 `#include "icirv/json_parser.hpp"` 로 정리됐습니다. 검증 결과는 동일합니다(exit 0, TEM 4.94).
 - **CI 가 Python 과 C++ 검증 리포트를 모두 제공**: `viewer/` 게이트 스텝에 `--html` 과 `--github-summary` 를 추가했습니다. `--github-summary` 는 `$GITHUB_STEP_SUMMARY` 에 append 하므로 Actions 실행 요약에 두 결과가 나란히 남고, 아티팩트에도 `viewer/verify_report.{html,json}` 이 함께 담깁니다. 그 전에는 Python 자체 검증 리포트만 업로드돼 C++ 검증 결과를 볼 방법이 없었습니다.
