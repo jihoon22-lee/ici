@@ -218,7 +218,13 @@ class SanitizeEngine(BaseEngine):
                 run_command = [str(runner_bin)]
                 try:
                     run_result = run_process(
-                        run_command, cwd=temp_root, env=self._sanitizer_environment()
+                        # The binary is built into a temp directory but runs from
+                        # the project root, matching the test engine. A test that
+                        # reads a fixture must not behave differently depending on
+                        # which engine launched it.
+                        run_command,
+                        cwd=self.project_root,
+                        env=self._sanitizer_environment(),
                     )
                 except Exception as exc:
                     self._record_tool_exception("sanitizer execution", run_command, exc)

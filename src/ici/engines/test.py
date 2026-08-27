@@ -733,7 +733,15 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             return 0, True
 
         run_cmd = [str(runner_bin)]
-        run_result = run_process(run_cmd, cwd=build_tmp if use_coverage else self.project_root)
+        # Always the project root. This used to be build/tests when coverage was
+        # enabled, so the same test binary saw a different working directory
+        # depending on whether gcov happened to be installed — a test that opens
+        # a fixture by relative path passed on one machine and failed on another.
+        #
+        # Nothing is lost by fixing it: gcov records the object's absolute path
+        # at compile time, so .gcda files land beside the objects no matter where
+        # the binary runs from.
+        run_result = run_process(run_cmd, cwd=self.project_root)
         self._record_tool("C++ test", run_cmd, run_result)
         if run_result.timed_out or run_result.truncated:
             self._record_tool_error(f"C++ test execution incomplete: {test_src.name}")
