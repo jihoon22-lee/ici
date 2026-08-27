@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-08-27
+
 ### Added
 - **`project.cpp_pkg_config` — C++ 컴파일 플래그를 설정으로 주입**: 나열한 pkg-config 패키지의 `--cflags` 가 C++ 컴파일 플래그에 추가됩니다. 그 전에는 `get_all_cpp_includes()` 가 `include/` 와 `<source_dir>/include` 만 보았기 때문에, Qt 같은 툴킷을 쓰는 소스는 **파싱조차 되지 않아** 검증 대상에서 통째로 빠질 수밖에 없었습니다. 경로를 설정 파일에 박으면 다른 머신에서 깨지므로, 프로젝트는 패키지 이름만 선언하고 경로는 호스트가 제공합니다.
 - **`project.cpp_external_build_dirs` — 분석은 하되 컴파일은 하지 않는 디렉터리**: `Q_OBJECT` 클래스는 moc 가 생성한 소스가 있어야 링크되고, CMake 로 구동되는 코드는 생성 헤더가 필요합니다. 맨 `g++` 호출로는 만들 수 없는 그런 소스를 여기에 선언하면, 바이너리를 만드는 엔진(`test`/`sanitize`/`build`)만 건너뛰고 **텍스트·AST 기반 엔진은 그대로 읽습니다.**
