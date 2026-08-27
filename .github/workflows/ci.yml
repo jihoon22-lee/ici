@@ -225,9 +225,23 @@ jobs:
           chmod +x ./scripts/build-pyz.sh ./scripts/smoke.sh ./scripts/launcher.sh
           ./scripts/build-pyz.sh
 
-      - name: Publish Trusted Main Verification Report
+      # Consumes the verify job's artifacts rather than re-running verify. The
+      # push is on main, so those artifacts already come from trusted code, and
+      # re-running would mean building the C++ gate a second time — Qt, gcov and
+      # the sanitizers — for a result this run already has.
+      #
+      # It also has to be --report-dir: on main the published path is
+      # main/index.html with no project prefix, so publishing the root and the
+      # viewer separately would have them overwrite each other.
+      - name: Download Verification Reports (artifact)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ici-verification-report
+          path: .
+
+      - name: Publish Trusted Main Verification Reports
         run: |
           chmod +x dist/ici.pyz
-          dist/ici.pyz verify --html verify_report.html --publish
+          dist/ici.pyz publish --report-dir ici=. --report-dir viewer
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
