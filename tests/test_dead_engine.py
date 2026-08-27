@@ -94,11 +94,17 @@ def test_dead_engine_reports_syntax_errors_as_not_run(tmp_path):
     assert target.start_line == 1
 
 
-def test_dead_engine_without_python_sources_is_explicitly_skipped(tmp_path):
+def test_dead_engine_without_python_sources_is_not_applicable(tmp_path):
+    """No Python to read is not a weak result — it is no result at all.
+
+    The evidence used to be ESTIMATED, which claimed an approximation that was
+    never made, and a required engine reporting SKIP escalated the whole suite
+    to ERROR. That is what kept C++-only projects permanently red.
+    """
     result = DeadCodeEngine(tmp_path).run()
 
     assert result.status == EngineStatus.SKIP
-    assert result.evidence == EvidenceState.ESTIMATED
+    assert result.evidence == EvidenceState.NOT_APPLICABLE
     assert result.targets[0].status == EngineStatus.SKIP
 
 

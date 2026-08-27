@@ -17,6 +17,12 @@ class EvidenceState(str, Enum):
     MEASURED = "MEASURED"
     ESTIMATED = "ESTIMATED"
     NOT_RUN = "NOT_RUN"
+    # The engine does not apply to this project at all — it analyses a language
+    # the project does not contain. Distinct from NOT_RUN, which means the
+    # engine should have run and could not. Conflating the two is what made a
+    # C++-only project unable to reach a green gate: dead only reads Python, so
+    # it skipped, and a required engine that skips escalated the whole suite.
+    NOT_APPLICABLE = "NOT_APPLICABLE"
 
 
 @dataclass
@@ -69,8 +75,14 @@ def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
     """Aggregates engine results into the suite gate status."""
     if not results:
         return EngineStatus.ERROR
+    # A required engine that could not verify anything blocks the gate — except
+    # when it never applied in the first place. "This project has no Python for
+    # the dead-code engine to read" is not a verification failure, and treating
+    # it as one left C++-only projects permanently red no matter how good the
+    # code was.
     if any(
         r.required
+        and r.evidence != EvidenceState.NOT_APPLICABLE
         and (
             r.status in (EngineStatus.ERROR, EngineStatus.SKIP)
             or r.evidence == EvidenceState.NOT_RUN
@@ -80,11 +92,16 @@ def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
         return EngineStatus.ERROR
     if any(r.required and r.status == EngineStatus.FAIL for r in results):
         return EngineStatus.FAIL
+    # Same reasoning for the warning tier: an inapplicable engine is not a
+    # warning about anything, so it must not colour the suite either.
     if any(
-        r.status == EngineStatus.WARN
-        or (
-            not r.required
-            and (r.status != EngineStatus.PASS or r.evidence != EvidenceState.MEASURED)
+        r.evidence != EvidenceState.NOT_APPLICABLE
+        and (
+            r.status == EngineStatus.WARN
+            or (
+                not r.required
+                and (r.status != EngineStatus.PASS or r.evidence != EvidenceState.MEASURED)
+            )
         )
         for r in results
     ):

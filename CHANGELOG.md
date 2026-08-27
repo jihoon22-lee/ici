@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+### Fixed
+- **순수 C++ 프로젝트가 기본 설정으로 초록불이 될 수 없던 문제**: `SKIP` 이 서로 다른 두 상황을 뭉뚱그리고 있었습니다 — **"이 프로젝트에 적용되지 않음"** 과 **"돌았어야 하는데 못 돌았음"**. `aggregate_suite_status` 는 required 엔진의 SKIP 을 후자로만 보고 스위트를 `ERROR` 로 승격시켰는데, `dead` 는 Python 전용이라 C++ 프로젝트에서 **항상** SKIP 합니다. 코드 품질과 무관하게 영구히 빨간불이었고, 게이트로 쓸 수 없었습니다.
+  - `EvidenceState.NOT_APPLICABLE` 을 추가했습니다. 엔진이 분석하는 언어가 프로젝트에 아예 없을 때 쓰며, 게이트 판정(ERROR·WARN 양쪽)에서 제외됩니다. 도구 부재를 뜻하는 `NOT_RUN` 과는 구분됩니다 — 그쪽은 계속 게이트를 막아야 합니다.
+  - `dead`·`exception` 이 소스 부재로 건너뛸 때 이 상태를 씁니다. 기존에는 `ESTIMATED` 였는데, **추정한 것이 없으므로** 잘못된 표현이었습니다.
+  - `type` 도 같은 처리를 받습니다. C++ 전용 프로젝트에서는 mypy 가 읽을 Python 도 없고 C++ 타입 검사는 미구현이라, 모든 C++ 프로젝트가 **고칠 수 없는 WARN** 을 영구히 달고 있었습니다(ICI-GAPS C-5). 이제 SKIP/NOT_APPLICABLE 이며, 어느 파일이 검사되지 않았는지는 타깃으로 그대로 남습니다.
+  - 실측: 우회 설정 없는 순수 C++ 프로젝트가 `suite_status = PASS`, exit 0. `viewer`·`diskmap`·`loglens` 모두 PASS. **Python 프로젝트(ici 자신)는 변화 없음** — WARN 5건, `type` 은 여전히 MEASURED.
+
+`ici.result/v2` 스키마에 값이 하나 추가되는 것이라 기존 소비자와 호환됩니다.
+
 ## [0.5.4] - 2026-08-27
 
 ### Added
