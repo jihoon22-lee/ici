@@ -123,7 +123,11 @@ class LintEngine(BaseEngine):
             summary=summary,
             duration=duration,
             targets=targets,
-            extra={"violations_count": len(targets), "metrics_summary": f"{len(targets)} issues"},
+            extra={
+                "violations_count": len(targets),
+                "python_files_parsed": getattr(self, "_python_files_parsed", 0),
+                "metrics_summary": f"{len(targets)} issues",
+            },
             required=bool(cfg.get("required", True)),
             evidence=(
                 EvidenceState.NOT_RUN
@@ -155,7 +159,25 @@ class LintEngine(BaseEngine):
                 errors.append("Ruff is required but was not found")
             else:
                 warnings.append(message)
-        self._check_python_syntax(targets)
+        inspected = self._check_python_syntax(targets)
+        self._python_files_parsed = inspected
+        if ruff_cmd is None:
+            # Without this the fallback is indistinguishable from having done
+            # nothing: it only speaks up on a SyntaxError, so a clean project and
+            # a project it never looked at both report zero targets.
+            targets.append(
+                InspectionTarget(
+                    file_path=".",
+                    start_line=1,
+                    target_name="ASTSyntaxFallback",
+                    status=EngineStatus.PASS,
+                    message=(
+                        f"Ruff was unavailable; parsed {inspected} Python file(s) "
+                        "for syntax errors only. Style and lint rules were not checked."
+                    ),
+                    metrics={"files_parsed": inspected},
+                )
+            )
         return errors
 
     @staticmethod
@@ -529,10 +551,18 @@ class LintEngine(BaseEngine):
         )
         return True
 
-    def _check_python_syntax(self, targets: list[InspectionTarget]) -> None:
+    def _check_python_syntax(self, targets: list[InspectionTarget]) -> int:
+        """Parse every Python file and report the ones that will not parse.
+
+        Returns how many files were read, which the caller needs: a clean run
+        and a run that inspected nothing both produce zero targets, and without
+        the count the report cannot tell them apart.
+        """
+        inspected = 0
         for py_file in self.project_root.rglob("*.py"):
             if _should_ignore_path(py_file):
                 continue
+            inspected += 1
             try:
                 ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
             except SyntaxError as error:
@@ -545,6 +575,7 @@ class LintEngine(BaseEngine):
                         message=f"SyntaxError: {error.msg}",
                     )
                 )
+        return inspected
 
     def _lint_cpp(
         self, targets: list[InspectionTarget], tool_evidence: list[ToolEvidence] | None = None

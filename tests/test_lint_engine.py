@@ -803,3 +803,52 @@ def test_cpp_warning_context_is_kept_as_a_finding(tmp_cpp_project, monkeypatch):
     target = next(target for target in result.targets if target.target_name == "C++Syntax")
     assert target.status == EngineStatus.WARN
     assert target.start_line == 3
+
+
+def _fallback_engine(tmp_path, monkeypatch) -> LintEngine:
+    """A lint engine with no ruff available, so the AST fallback is what runs."""
+    engine = LintEngine(tmp_path, {"engines": {"lint": {"ruff_required": False}}})
+    monkeypatch.setattr(engine, "_find_ruff_command", lambda: None)
+    return engine
+
+
+def test_ast_fallback_reports_how_much_it_inspected(tmp_path, monkeypatch):
+    """A clean project and one it never looked at both produced zero targets.
+
+    The fallback only speaks up on a SyntaxError, so "no findings" and "nothing
+    was examined" were indistinguishable in the report — which is the shape of
+    every silent-verification bug found while dogfooding this tool.
+    """
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text("value = 1\n", encoding="utf-8")
+    (src / "b.py").write_text("other = 2\n", encoding="utf-8")
+
+    result = _fallback_engine(tmp_path, monkeypatch).run()
+
+    assert result.extra["python_files_parsed"] == 2
+    scope = next(t for t in result.targets if t.target_name == "ASTSyntaxFallback")
+    assert scope.metrics["files_parsed"] == 2
+    # It also has to say what it did *not* check, or the reader assumes lint ran.
+    assert "not checked" in scope.message.lower()
+
+
+def test_ast_fallback_distinguishes_an_empty_project(tmp_path, monkeypatch):
+    (tmp_path / "src").mkdir()
+
+    result = _fallback_engine(tmp_path, monkeypatch).run()
+
+    assert result.extra["python_files_parsed"] == 0
+    scope = next(t for t in result.targets if t.target_name == "ASTSyntaxFallback")
+    assert scope.metrics["files_parsed"] == 0
+
+
+def test_ast_fallback_still_reports_syntax_errors(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "broken.py").write_text("def oops(:\n", encoding="utf-8")
+
+    result = _fallback_engine(tmp_path, monkeypatch).run()
+
+    assert any(t.target_name == "SyntaxError" for t in result.targets)
+    assert result.extra["python_files_parsed"] == 1
