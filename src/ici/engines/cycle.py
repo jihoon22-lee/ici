@@ -5,9 +5,14 @@ import re
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
-from ici.core.project import get_all_python_sources
+from ici.core.project import (
+    _iter_project_files,
+    get_all_python_sources,
+    get_source_dirs,
+)
 from ici.engines.base import BaseEngine
 
 _INCLUDE_RE = re.compile(r'#include\s*["]([^"]+)["]')
@@ -75,25 +80,43 @@ def _build_python_graph(
     return graph, module_to_file
 
 
-def _iter_cpp_and_headers(project_root: Path) -> list[Path]:
-    """Collect all C++ source + header files inside the project boundary."""
-    import os
+_CPP_AND_HEADER_SUFFIXES = (".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hh")
 
-    skip = {".venv", "venv", "build", ".git"}
-    suffixes = {".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hh"}
-    results = []
-    for current, dir_names, file_names in os.walk(project_root):
-        dir_names[:] = [d for d in dir_names if d not in skip]
-        current_path = Path(current)
-        for name in sorted(file_names):
-            path = current_path / name
-            if not path.is_symlink() and path.suffix in suffixes:
+
+def _iter_cpp_and_headers(project_root: Path, config: dict[str, Any] | None = None) -> list[Path]:
+    """Collect C++ sources and headers from the project's declared scope.
+
+    This used to walk the entire repository, which made cycle the only C++
+    engine that ignored ``project.source_dirs`` — lint, dup, complexity and
+    exception all go through ``get_all_cpp_sources``. The inconsistency was
+    invisible until something deliberate lived outside the source directories:
+    a C++ fixture under ``examples/`` was reported as a real finding in this
+    project's own verification run, because no other engine could see it and
+    this one could.
+
+    Headers are the reason this cannot simply call ``get_all_cpp_sources``:
+    that returns implementation files only, and an include cycle is mostly a
+    property of headers. So the scan covers each source directory plus a
+    top-level ``include/``, matching where ``get_all_cpp_includes`` already
+    looks for public headers.
+    """
+    roots = list(get_source_dirs(project_root, config))
+    include_dir = project_root / "include"
+    if include_dir.is_dir():
+        roots.append(include_dir)
+
+    results: list[Path] = []
+    seen: set[Path] = set()
+    for root in roots:
+        for path in _iter_project_files(root, project_root, _CPP_AND_HEADER_SUFFIXES):
+            if path not in seen:
+                seen.add(path)
                 results.append(path)
-    return results
+    return sorted(results)
 
 
 def _build_cpp_graph(
-    project_root: Path,
+    project_root: Path, config: dict[str, Any] | None = None
 ) -> tuple[dict[Path, set[Path]], dict[Path, Path]]:
     """Build file -> included-file graph including headers.
 
@@ -103,7 +126,7 @@ def _build_cpp_graph(
     false edge to the wrong file. Ambiguous basenames are left unresolved
     instead.
     """
-    all_files = _iter_cpp_and_headers(project_root)
+    all_files = _iter_cpp_and_headers(project_root, config)
     by_name: dict[str, list[Path]] = {}
     for f in all_files:
         by_name.setdefault(f.name, []).append(f)
@@ -260,7 +283,7 @@ class CycleEngine(BaseEngine):
             )
         total_cycles += len(py_cycles)
 
-        cpp_graph, cpp_files_map = _build_cpp_graph(self.project_root)
+        cpp_graph, cpp_files_map = _build_cpp_graph(self.project_root, self.config)
         cpp_cycles = _find_cycles_tarjan(cpp_graph)
         for component in cpp_cycles[:max_reported]:
             start = min(component, key=str)

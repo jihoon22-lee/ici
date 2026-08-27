@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+### Added
+- **C++ 탐지 픽스처와 E2E 테스트 (`examples/cpp-fixtures/`, `tests/test_cpp_e2e.py`)**: 의도적으로 망가뜨린 소형 C++ 프로젝트 7종을 각각 잡아내야 할 엔진에 통과시킵니다. 단위 테스트는 파싱을 덮지만 실제 프로젝트가 지나는 경로는 덮지 않았습니다.
+  - `cycle_pair`(헤더 순환) · `complexity_hot`(CC 17) · `clone_pair`(Type-2 클론) · `dtor_throw`(소멸자 throw) · `oversized_file`(560줄) · `asan_overflow`(힙 오버플로, ASan 이 실제로 잡음) · `clean_baseline`(**거짓 양성 방지** — 5개 엔진 모두 조용해야 함)
+  - `tests/` 가 아니라 `examples/` 아래에 둡니다. ici 의 test 엔진이 저장소 루트에서 `tests/**/*.cpp` 를 글롭하므로, 거기 두면 자체 검증 때 이 픽스처들을 **ici 자신의 C++ 테스트로 컴파일·실행**하려 듭니다.
+
+### Fixed
+- **`cycle` 만 `project.source_dirs` 를 무시하고 있었다**: 다른 C++ 엔진(`lint`/`dup`/`complexity`/`exception`)은 모두 `get_all_cpp_sources()` 를 거치는데 `cycle` 은 저장소 전체를 `os.walk` 했습니다. 소스 디렉터리 밖에 의도적인 C++ 가 놓이기 전까지는 드러나지 않던 불일치였는데, `examples/` 의 순환 픽스처가 **이 프로젝트 자체 검증에서 진짜 결함으로 보고**되면서 표면화됐습니다 — 다른 엔진은 아무도 못 보는 파일을 이 엔진만 봤기 때문입니다.
+  - 이제 소스 디렉터리와 최상위 `include/` 만 훑습니다. 헤더를 포함해야 하므로 `get_all_cpp_sources()`(구현 파일만 반환)를 그대로 쓸 수는 없고, `get_all_cpp_includes()` 가 공개 헤더를 찾는 위치와 같은 곳을 봅니다.
+
 ## [0.5.3] - 2026-08-27
 
 ### Changed
