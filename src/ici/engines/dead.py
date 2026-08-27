@@ -61,7 +61,9 @@ class DeadCodeEngine(BaseEngine):
             summary = "; ".join(self._analysis_errors[:3])
         elif not sources:
             status = EngineStatus.SKIP
-            evidence = EvidenceState.ESTIMATED
+            # Nothing was estimated: this engine only reads Python and the
+            # project has none. NOT_APPLICABLE keeps it out of the gate.
+            evidence = EvidenceState.NOT_APPLICABLE
             summary = "Dead-code analysis skipped: no Python source files"
         else:
             has_fail = any(target.status == EngineStatus.FAIL for target in targets)

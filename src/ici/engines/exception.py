@@ -401,7 +401,7 @@ class ExceptionSafetyEngine(BaseEngine):
             summary = "; ".join(self._analysis_errors[:3])
         elif not py_sources and not cpp_sources:
             overall_status = EngineStatus.SKIP
-            evidence = EvidenceState.ESTIMATED
+            evidence = EvidenceState.NOT_APPLICABLE
             summary = "Exception safety analysis skipped: no applicable source files"
         else:
             overall_status = self.evaluate_status(

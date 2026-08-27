@@ -65,14 +65,22 @@ class TypeCheckEngine(BaseEngine):
 
         cfg = self.get_config("type")
         mode = cfg.get("mode", "pass_warn")
+        # Nothing here is type-checkable: no Python for mypy, and C++ checking is
+        # not implemented. Reporting WARN would be a warning about a situation
+        # nobody can act on, and every C++ project would carry it forever.
+        nothing_applies = not python_files and not tool_errors
         overall_status = (
             EngineStatus.ERROR
             if tool_errors
+            else EngineStatus.SKIP
+            if nothing_applies
             else self.evaluate_status(fail_count > 0, warn_count > 0, mode)
         )
 
         if tool_errors:
             summary = "; ".join(tool_errors[:3])
+        elif nothing_applies:
+            summary = "Type checking not applicable: no Python sources; C++ is unsupported"
         elif overall_status == EngineStatus.PASS:
             summary = "Static Type Check Passed"
         else:
@@ -91,6 +99,8 @@ class TypeCheckEngine(BaseEngine):
             evidence=(
                 EvidenceState.NOT_RUN
                 if tool_errors
+                else EvidenceState.NOT_APPLICABLE
+                if nothing_applies
                 else EvidenceState.ESTIMATED
                 if tool_warnings
                 else EvidenceState.MEASURED

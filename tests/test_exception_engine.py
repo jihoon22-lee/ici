@@ -95,11 +95,11 @@ def test_exception_engine_reports_syntax_errors_as_not_run(tmp_path):
     assert any(target.target_name == "SyntaxError" for target in result.targets)
 
 
-def test_exception_engine_without_sources_is_explicitly_skipped(tmp_path):
+def test_exception_engine_without_sources_is_not_applicable(tmp_path):
     result = ExceptionSafetyEngine(tmp_path).run()
 
     assert result.status == EngineStatus.SKIP
-    assert result.evidence == EvidenceState.ESTIMATED
+    assert result.evidence == EvidenceState.NOT_APPLICABLE
     assert result.targets[0].status == EngineStatus.SKIP
 
 

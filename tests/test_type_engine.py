@@ -221,8 +221,10 @@ def test_python_without_applicable_sources_skips_mypy(tmp_path, monkeypatch):
 
     result = engine.run()
 
-    assert result.status == EngineStatus.WARN
-    assert result.evidence == EvidenceState.ESTIMATED
+    # Nothing was type-checkable, so this is not applicable rather than a
+    # warning: WARN would be a complaint about a situation nobody can act on.
+    assert result.status == EngineStatus.SKIP
+    assert result.evidence == EvidenceState.NOT_APPLICABLE
     assert not any(e.name == "mypy" for e in result.tool_evidence)
     assert any(
         target.status == EngineStatus.SKIP and target.target_name == "Mypy"
@@ -301,10 +303,13 @@ def test_cpp_type_check_is_explicitly_skipped(tmp_cpp_project, monkeypatch):
 
     result = TypeCheckEngine(tmp_cpp_project).run()
 
-    assert result.status == EngineStatus.WARN
-    assert result.evidence == EvidenceState.ESTIMATED
+    # A C++-only project has nothing mypy can read and C++ checking is not
+    # implemented, so the engine does not apply. The per-file SKIP targets stay
+    # so the report can still say which files went unchecked.
+    assert result.status == EngineStatus.SKIP
+    assert result.evidence == EvidenceState.NOT_APPLICABLE
     assert any(target.status == EngineStatus.SKIP for target in result.targets)
-    assert "C++" in result.summary and "skip" in result.summary.lower()
+    assert "C++" in result.summary
 
 
 def test_cpp_project_without_applicable_sources_skips_type_check(tmp_path):
@@ -316,8 +321,9 @@ def test_cpp_project_without_applicable_sources_skips_type_check(tmp_path):
 
     result = TypeCheckEngine(tmp_path).run()
 
-    assert result.status == EngineStatus.WARN
-    assert result.evidence == EvidenceState.ESTIMATED
+    # An empty C++ project: no Python, no C++ files either. Nothing applies.
+    assert result.status == EngineStatus.SKIP
+    assert result.evidence == EvidenceState.NOT_APPLICABLE
     assert not result.tool_evidence
     target = next(target for target in result.targets if target.target_name == "C++TypeCheck")
     assert target.status == EngineStatus.SKIP
