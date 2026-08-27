@@ -45,6 +45,13 @@ jobs:
         run: |
           uv run --python 3.10 pytest -v
 
+      # Runs the C++ engines against deliberately broken fixtures, so a detector
+      # that stops detecting fails here. The unit tests cover parsing; these
+      # cover the path a real project takes.
+      - name: C++ Detection Fixtures
+        run: |
+          uv run --python 3.10 pytest tests/test_cpp_e2e.py -v
+
       - name: Build Standalone ZipApp (dist/ici.pyz)
         run: |
           chmod +x ./scripts/build-pyz.sh ./scripts/smoke.sh ./scripts/launcher.sh
