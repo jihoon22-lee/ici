@@ -109,6 +109,38 @@ def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
     return EngineStatus.PASS
 
 
+def gate_reason(results: list[EngineResult], suite_status: EngineStatus) -> str:
+    """Explain, in one line, why the suite landed on this status.
+
+    The console prints a Pass/Warn/Fail/Error tally, but the suite status comes
+    from :func:`aggregate_suite_status`, which applies a different rule: a
+    required engine that skipped or never ran escalates everything. So a report
+    could read "Error: 0" while the suite was ERROR, and nothing on screen said
+    why. This mirrors that rule so the verdict explains itself.
+    """
+    for result in results:
+        if not result.required or result.evidence == EvidenceState.NOT_APPLICABLE:
+            continue
+        if result.evidence == EvidenceState.NOT_RUN:
+            return f"required engine '{result.engine_name}' did not run (evidence NOT_RUN)"
+        if result.status in (EngineStatus.ERROR, EngineStatus.SKIP):
+            return f"required engine '{result.engine_name}' reported {result.status.value}"
+
+    failed = [r for r in results if r.required and r.status == EngineStatus.FAIL]
+    if failed:
+        return f"required engine '{failed[0].engine_name}' failed"
+
+    warned = [r for r in results if r.status == EngineStatus.WARN]
+    if warned:
+        names = ", ".join(r.engine_name for r in warned[:3])
+        suffix = "" if len(warned) <= 3 else f" (+{len(warned) - 3} more)"
+        return f"{len(warned)} engine(s) warned: {names}{suffix}"
+
+    if suite_status == EngineStatus.PASS:
+        return "all applicable engines passed"
+    return "see engine results"
+
+
 @dataclass
 class VerificationSuiteResult:
     """Combined results across all executed engines."""

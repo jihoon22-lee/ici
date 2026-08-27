@@ -118,7 +118,18 @@ class SanitizeEngine(BaseEngine):
             )
         else:
             overall_status = EngineStatus.SKIP
-            evidence = EvidenceState.ESTIMATED
+            # Two different situations reach here, and only one of them is
+            # "not applicable".
+            #
+            # A scope was in play but produced no measurement — tests that all
+            # skipped, say — is a hole in verification and must keep blocking.
+            # Nothing in scope at all, as in a C++ project with no tests, is not:
+            # the test engine already reports the missing tests, and escalating
+            # here too named sanitize as the gate's reason when the real one was
+            # "this project has no tests".
+            evidence = (
+                EvidenceState.ESTIMATED if self._skipped_scopes else EvidenceState.NOT_APPLICABLE
+            )
             summary = "Sanitize skipped: no applicable checks were executed"
 
         return self.create_result(
