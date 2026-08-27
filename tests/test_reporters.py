@@ -149,3 +149,74 @@ def test_html_report_coverage_table_estimated_notice(tmp_path: Path):
     assert "Module Coverage Table" in content
     assert "추정" in content
     assert 'class="cov-table"' not in content
+
+
+def _type_suite(targets: list[InspectionTarget]) -> VerificationSuiteResult:
+    return VerificationSuiteResult(
+        suite_status=EngineStatus.WARN,
+        results=[
+            EngineResult(
+                engine_name="type",
+                status=EngineStatus.WARN,
+                summary="0 Type Findings, 1 Warnings",
+                targets=targets,
+            )
+        ],
+        duration=0.1,
+        tem_score=4.0,
+    )
+
+
+def test_type_engine_has_its_own_tab(tmp_path: Path):
+    """The summary links out to the tab instead of inlining the target list.
+
+    On a C++ project the type engine emits one SKIP per source file. Without a
+    tab those landed in the summary inside an open <details>, so a handful of
+    real findings sat underneath a wall of "not checked" entries.
+    """
+    skipped = [
+        InspectionTarget(
+            file_path=f"src/mod{i}.cpp",
+            start_line=1,
+            target_name="C++TypeCheck",
+            status=EngineStatus.SKIP,
+            message="C++ type checking is not implemented; source was not type-checked",
+        )
+        for i in range(6)
+    ]
+    out = tmp_path / "report.html"
+    generate_html_report(_type_suite(skipped), out, project_name="TypeTab", base_dir=tmp_path)
+    page = out.read_text(encoding="utf-8")
+
+    assert 'data-tab-target="tab-type"' in page
+    assert 'id="tab-type"' in page
+    # The summary row offers a jump, not the expanded list.
+    assert "View Static Type Results" in page
+    # Files that were never checked are collapsed: nothing there is actionable.
+    assert "not type-checked" in page
+
+
+def test_type_tab_separates_findings_from_unchecked_files(tmp_path: Path):
+    targets = [
+        InspectionTarget(
+            file_path="src/a.py",
+            start_line=12,
+            target_name="a.assign",
+            status=EngineStatus.FAIL,
+            message="Incompatible assignment",
+        ),
+        InspectionTarget(
+            file_path="src/b.cpp",
+            start_line=1,
+            target_name="C++TypeCheck",
+            status=EngineStatus.SKIP,
+            message="C++ type checking is not implemented; source was not type-checked",
+        ),
+    ]
+    out = tmp_path / "report.html"
+    generate_html_report(_type_suite(targets), out, project_name="TypeTab", base_dir=tmp_path)
+    page = out.read_text(encoding="utf-8")
+
+    assert "Incompatible assignment" in page
+    assert "Findings" in page
+    assert "Not checked" in page

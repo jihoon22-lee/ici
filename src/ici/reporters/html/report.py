@@ -13,6 +13,7 @@ from ici.reporters.html.sections.line import _render_line_section
 from ici.reporters.html.sections.static_analysis import _render_static_analysis_section
 from ici.reporters.html.sections.summary import _render_engine_table_rows, _render_tem_card
 from ici.reporters.html.sections.test import _render_test_section
+from ici.reporters.html.sections.type_check import _render_type_section
 from ici.reporters.html.utils import _extract_suite_data, _get_status_theme
 
 
@@ -41,6 +42,7 @@ def generate_html_report(
     complexity_tab_content = _render_complexity_section(
         eng_map.get("complexity"), base, eng_map.get("cognitive")
     )
+    type_tab_content = _render_type_section(eng_map.get("type"), base)
     dup_tab_content = _render_dup_section(eng_map.get("dup"), base)
     cycles_tab_content = _render_cycles_section(eng_map.get("cycle"), base)
     security_engines = [eng_map[name] for name in ("security", "resource") if name in eng_map]
@@ -162,6 +164,7 @@ def generate_html_report(
     <button class="tab-btn" id="btn-line" data-tab-target="tab-line">📊 Line Analysis & Explorer</button>
     <button class="tab-btn" id="btn-test" data-tab-target="tab-test">🧪 Tests & Coverage ({t_passed}/{t_total})</button>
     <button class="tab-btn" id="btn-complexity" data-tab-target="tab-complexity">🧩 Complexity</button>
+    <button class="tab-btn" id="btn-type" data-tab-target="tab-type">🏷️ Static Types</button>
     <button class="tab-btn" id="btn-dup" data-tab-target="tab-dup">📦 Clone Groups ({clone_groups_count})</button>
     <button class="tab-btn" id="btn-cycles" data-tab-target="tab-cycles">🔁 Cycles ({cycles_count})</button>
     <button class="tab-btn" id="btn-security" data-tab-target="tab-security">🔐 Security & Resources</button>
@@ -201,7 +204,12 @@ def generate_html_report(
     {complexity_tab_content}
   </div>
 
-  <!-- Tab 5: Merged Non-Overlapping Clone Groups -->
+  <!-- Tab 5: Static Type Checking -->
+  <div id="tab-type" class="tab-content">
+    {type_tab_content}
+  </div>
+
+  <!-- Tab 6: Merged Non-Overlapping Clone Groups -->
   <div id="tab-dup" class="tab-content">
     {dup_tab_content}
   </div>
