@@ -28,6 +28,7 @@ from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.sanitize import SanitizeEngine
+from ici.engines.test import TestEngine
 
 FIXTURES = Path(__file__).resolve().parent.parent / "examples" / "cpp-fixtures"
 
@@ -104,3 +105,53 @@ def test_sanitize_detects_a_heap_overflow():
         pytest.skip(f"sanitizer unavailable: {result.summary}")
     assert result.status == EngineStatus.FAIL
     assert _findings(result), "reading past the end must be reported"
+
+
+def _cwd_fixture_project(tmp_path: Path) -> Path:
+    """A project whose C++ test reads a data file by a project-relative path.
+
+    This is the ordinary way to write such a test, and it used to depend on
+    which engine launched the binary: the test engine ran it from build/tests
+    when gcov was installed and from the project root when it was not, and
+    sanitize ran it from a temporary directory outside the project entirely.
+    """
+    (tmp_path / "src").mkdir()
+    (tmp_path / "tests" / "data").mkdir(parents=True)
+    (tmp_path / "tests" / "data" / "fixture.txt").write_text("expected-payload\n", encoding="utf-8")
+    (tmp_path / "src" / "lib.hpp").write_text("#pragma once\nint twice(int a);\n", encoding="utf-8")
+    (tmp_path / "src" / "lib.cpp").write_text(
+        '#include "lib.hpp"\nint twice(int a) { return a * 2; }\n', encoding="utf-8"
+    )
+    (tmp_path / "tests" / "test_reads_fixture.cpp").write_text(
+        '#include "../src/lib.hpp"\n'
+        "\n"
+        "#include <fstream>\n"
+        "#include <string>\n"
+        "\n"
+        "int main() {\n"
+        '    std::ifstream in("tests/data/fixture.txt");\n'
+        "    if (!in) {\n"
+        "        return 1;\n"
+        "    }\n"
+        "    std::string line;\n"
+        "    std::getline(in, line);\n"
+        '    return (line == "expected-payload" && twice(2) == 4) ? 0 : 1;\n'
+        "}\n",
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
+def test_cpp_tests_run_from_the_project_root(tmp_path: Path):
+    """Both engines must launch a test binary from the same place."""
+    root = _cwd_fixture_project(tmp_path)
+
+    test_result = TestEngine(root).run()
+    if test_result.status == EngineStatus.ERROR:
+        pytest.skip(f"compiler unavailable: {test_result.summary}")
+    assert test_result.status == EngineStatus.PASS, test_result.summary
+
+    sanitize_result = SanitizeEngine(root).run()
+    if sanitize_result.status == EngineStatus.ERROR:
+        pytest.skip(f"sanitizer unavailable: {sanitize_result.summary}")
+    assert sanitize_result.status == EngineStatus.PASS, sanitize_result.summary
