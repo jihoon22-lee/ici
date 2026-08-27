@@ -197,3 +197,55 @@ def test_release_workflow_requires_explicit_version_tag_without_stale_fallback()
     assert "src/ici/__init__.py" in run_script
     assert '"$TAG" != "v$PACKAGE_VERSION"' in run_script
     assert "GITHUB_OUTPUT" in run_script
+
+
+def test_gate_reason_matches_the_aggregation_rule():
+    """The stated reason must agree with the status it explains.
+
+    The console prints a Pass/Warn/Fail/Error tally alongside the suite status,
+    but the two come from different rules — a required engine that skipped
+    escalates everything — so a report could read "Error: 0" while the suite was
+    ERROR with nothing saying why.
+    """
+    from ici.core.models import (
+        EngineResult,
+        EngineStatus,
+        EvidenceState,
+        aggregate_suite_status,
+        gate_reason,
+    )
+
+    def engine(name, status, required=True, evidence=EvidenceState.MEASURED):
+        return EngineResult(
+            engine_name=name, status=status, summary="", required=required, evidence=evidence
+        )
+
+    cases = [
+        # A required skip escalates, and the reason names the engine that did it.
+        (
+            [engine("lint", EngineStatus.PASS), engine("dead", EngineStatus.SKIP)],
+            EngineStatus.ERROR,
+            "dead",
+        ),
+        # Not applicable is invisible to the gate, so it must not be blamed.
+        (
+            [
+                engine("lint", EngineStatus.PASS),
+                engine("dead", EngineStatus.SKIP, evidence=EvidenceState.NOT_APPLICABLE),
+            ],
+            EngineStatus.PASS,
+            "passed",
+        ),
+        (
+            [engine("lint", EngineStatus.WARN, evidence=EvidenceState.NOT_RUN)],
+            EngineStatus.ERROR,
+            "did not run",
+        ),
+        ([engine("test", EngineStatus.FAIL)], EngineStatus.FAIL, "test"),
+        ([engine("dup", EngineStatus.WARN)], EngineStatus.WARN, "dup"),
+    ]
+    for results, expected_status, expected_fragment in cases:
+        status = aggregate_suite_status(results)
+        assert status == expected_status, f"{results} -> {status}"
+        reason = gate_reason(results, status)
+        assert expected_fragment in reason, reason

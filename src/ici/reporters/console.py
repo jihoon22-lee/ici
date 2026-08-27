@@ -10,7 +10,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from ici.core.models import EngineStatus, VerificationSuiteResult, format_score_display
+from ici.core.models import EngineStatus, VerificationSuiteResult, format_score_display, gate_reason
 
 console = Console()
 
@@ -146,7 +146,12 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
         f"[red]Error: {suite.error_count}[/red], "
         f"[dim]Skip: {suite.skipped_count}[/dim])"
         f"{tem_str}  |  "
-        f"[dim]Total Time: {suite.duration:.2f}s[/dim]"
+        f"[dim]Total Time: {suite.duration:.2f}s[/dim]\n"
+        # The tally counts engine statuses; the verdict comes from a different
+        # rule. Printing one without the other is how a report could say
+        # "Error: 0" and still be an ERROR with nothing on screen explaining it.
+        f"[bold {status_color}]Suite: {suite.suite_status.value}[/] — "
+        f"{gate_reason(suite.results, suite.suite_status)}"
     )
     console.print(Panel(summary_text, style="white", border_style="cyan"))
 

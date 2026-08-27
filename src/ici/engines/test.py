@@ -97,9 +97,11 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         targets.extend(missed_targets)
         tem_info = self._calc_tem(branch_cov, func_cov, passed_tests, total_tests)
         tem_score = tem_info["tem_score"]
-        has_warn = self._has_threshold_warning(
+        threshold_breaches = self._threshold_breaches(
             cfg, optional_coverage_warning, has_failure, tem_score, branch_cov, func_cov
         )
+        targets.extend(threshold_breaches)
+        has_warn = bool(threshold_breaches) or optional_coverage_warning
         test_suites = self._build_test_suites(targets)
         overall_status = self._result_status(
             cfg, has_failure, has_warn, optional_coverage_warning, required_coverage_missing
@@ -111,6 +113,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             tem_score,
             tem_info,
             optional_coverage_warning,
+            branch_cov=branch_cov,
         )
         duration = time.time() - t0
         line_cov = tem_info["line_coverage"]
@@ -192,21 +195,47 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         return required, optional
 
     @staticmethod
-    def _has_threshold_warning(
+    def _threshold_breaches(
         cfg: dict[str, Any],
         optional: bool,
         has_failure: bool,
         tem: float,
         branch: float,
         func: float,
-    ) -> bool:
+    ) -> list[InspectionTarget]:
+        """One target per threshold the run came in under.
+
+        This used to return a bare bool, so a run could report FAIL with every
+        test passing, no non-PASS target anywhere, and the deciding number —
+        branch coverage — absent from the summary. The only way to find out why
+        was to open the JSON. Engines are supposed to report what they looked
+        at (AGENTS.md 5-1); a gate decision is no exception.
+        """
         if optional or has_failure:
-            return optional
-        return (
-            tem < cfg.get("min_tem_score", 4.0)
-            or branch < cfg.get("min_branch_cov", 80.0)
-            or func < cfg.get("min_func_cov", 90.0)
+            return []
+        checks = (
+            ("TEM score", tem, float(cfg.get("min_tem_score", 4.0)), "{:.2f}"),
+            ("Branch coverage", branch, float(cfg.get("min_branch_cov", 80.0)), "{:.1f}%"),
+            ("Function coverage", func, float(cfg.get("min_func_cov", 90.0)), "{:.1f}%"),
         )
+        breaches = []
+        for label, actual, threshold, fmt in checks:
+            if actual >= threshold:
+                continue
+            breaches.append(
+                InspectionTarget(
+                    file_path=".",
+                    start_line=1,
+                    target_name=f"Threshold: {label}",
+                    status=EngineStatus.WARN,
+                    message=(
+                        f"{label} {fmt.format(actual)} is below the configured "
+                        f"minimum {fmt.format(threshold)}"
+                    ),
+                    metrics={"actual": actual, "threshold": threshold},
+                )
+            )
+        return breaches
 
     @staticmethod
     def _build_test_suites(targets: list[InspectionTarget]) -> list[dict]:
@@ -252,6 +281,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         tem_score: float,
         tem_info: dict[str, Any],
         optional: bool,
+        branch_cov: float = 0.0,
     ) -> str:
         if self._tool_errors:
             return "; ".join(self._tool_errors[:3])
@@ -260,6 +290,11 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             f"{tem_info['cov_label']}: {tem_info['cov_shown']:.1f}%{tem_info['cov_suffix']}, "
             f"Func: {func_cov:.1f}% -> TEM: {tem_score:.2f} / 5.0"
         )
+        # Branch coverage gates the result but is only shown when TEM happened to
+        # be computed from it. A summary that omits the number the gate turned on
+        # is how a FAIL could read as though everything passed.
+        if tem_info["cov_label"] != "Branch":
+            summary = summary.replace(" -> TEM:", f", Branch: {branch_cov:.1f}% -> TEM:", 1)
         if optional:
             summary += "; Coverage evidence ESTIMATED (optional; not threshold evidence)"
         return summary
