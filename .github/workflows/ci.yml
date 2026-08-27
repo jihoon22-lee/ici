@@ -176,10 +176,14 @@ jobs:
           name: ici-verification-report
           path: .
 
-      - name: Publish HTML Report & Sticky PR Comment
+      # Both reports in one comment. This repository verifies two things — the
+      # Python package at the root and the C++ viewer under viewer/ — and a
+      # comment carrying only the first hides half the gate. The root needs an
+      # explicit label because its directory name is ".".
+      - name: Publish HTML Reports & Sticky PR Comment
         run: |
           chmod +x dist/ici.pyz
-          dist/ici.pyz publish --html verify_report.html --json verify_report.json
+          dist/ici.pyz publish --report-dir ici=. --report-dir viewer
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
