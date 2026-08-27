@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-08-27
+
 ### Fixed
 - **리포트가 자기 판정 사유를 말하지 않았다**: 콘솔은 `Pass/Warn/Fail/Error` 카운트를 출력하는데 스위트 상태는 `aggregate_suite_status` 의 다른 규칙(required 엔진의 SKIP·NOT_RUN 이 전체를 승격)으로 정해집니다. 그래서 **`Error: 0` 인데 스위트는 `ERROR`** 인 리포트가 나왔고, 화면 어디에도 이유가 없었습니다.
   - `gate_reason()` 을 추가해 요약 패널이 판정과 **그 사유**를 함께 출력합니다: `Suite: ERROR — required engine 'dead' reported SKIP`. 집계 규칙과 같은 함수에 두어 둘이 어긋나지 않게 했습니다.
