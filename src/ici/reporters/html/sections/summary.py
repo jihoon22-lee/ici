@@ -12,6 +12,7 @@ _JUMP_MAP = {
     "complexity": ("tab-complexity", "🧩 View Complexity Details →"),
     "dup": ("tab-dup", "📦 View Clone Groups →"),
     "cycle": ("tab-cycles", "🔁 View Dependency Cycles →"),
+    "type": ("tab-type", "🏷️ View Static Type Results →"),
     "cognitive": ("tab-complexity", "🧠 View Complexity Details →"),
     "security": ("tab-security", "🔐 View Security & Resources →"),
     "resource": ("tab-security", "🔐 View Security & Resources →"),
@@ -87,10 +88,6 @@ def _render_main_row_summary(res: EngineResult, base: Path) -> str:
     # Sanitize Engine
     if eng == "sanitize" and not res.targets:
         return "<div class='engine-summary-text'>✅ 0 Defect — Memory Safety & Resource Management Clean</div>"
-
-    # Type Engine
-    if eng == "type" and not res.targets:
-        return "<div class='engine-summary-text'>✅ Static Type Check Passed (0 Errors)</div>"
 
     # Default Target List (if any violations remain)
     targets_html = []
