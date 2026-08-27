@@ -6,45 +6,22 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <vector>
 
-// Loads a fixture without assuming a working directory.
+// Loads a fixture from tests/data/.
 //
-// The CWD a C++ test binary sees depends on which ici engine launched it:
-//   test      -> build/tests when gcov is available, the project root when not
-//   sanitize  -> a temporary directory entirely outside the project
-// So no relative path works everywhere. Deriving the location from __FILE__ does,
-// because ici passes absolute source paths to the compiler. The relative
-// candidates remain as a fallback for hand-compiling during development, where
-// __FILE__ may be relative.
-inline std::string fixtureDirFromSource() {
-    const std::string source = __FILE__;
-    const std::size_t slash = source.find_last_of('/');
-    if (slash == std::string::npos) {
+// The path is relative to the project root, which is where ici runs C++ test
+// binaries. That used to be untrue — the working directory depended on which
+// engine launched the test and on whether gcov was installed — and this
+// function carried a list of candidate prefixes and a __FILE__ fallback to
+// work around it. ici 0.5.5 fixed the engines, so the workaround is gone.
+inline std::string readFixture(const std::string& name) {
+    std::ifstream input("tests/data/" + name);
+    if (!input) {
         return std::string();
     }
-    return source.substr(0, slash + 1) + "data/";
-}
-
-inline std::string readFixture(const std::string& name) {
-    std::vector<std::string> candidates;
-    const std::string fromSource = fixtureDirFromSource();
-    if (!fromSource.empty()) {
-        candidates.push_back(fromSource);
-    }
-    candidates.push_back("tests/data/");
-    candidates.push_back("../../tests/data/");
-    candidates.push_back("../tests/data/");
-
-    for (const std::string& prefix : candidates) {
-        std::ifstream input(prefix + name);
-        if (input) {
-            std::stringstream buffer;
-            buffer << input.rdbuf();
-            return buffer.str();
-        }
-    }
-    return std::string();
+    std::stringstream buffer;
+    buffer << input.rdbuf();
+    return buffer.str();
 }
 
 // A complete, valid v2 report with one required engine that SKIPs — the shape
