@@ -52,7 +52,9 @@ class _CppFunctionSpan:
         self.start_line = start_line
         self.end_line = start_line
         self.complexity = 1
-        self.max_nesting = 1
+        # Counted the way the Python side counts it: how many blocks deep the
+        # code goes *inside* the function, so a body with no branches is 0.
+        self.max_nesting = 0
 
 
 def _strip_cpp_noise(line: str) -> str:
@@ -127,7 +129,12 @@ class _CppScanner:
         closed = text.count("}")
         if opened:
             self._depth += opened
-            current.max_nesting = max(current.max_nesting, self._depth - self._base_depth)
+            # Subtract the function's own brace: it is not nesting, it is the body.
+            # Without this C++ read one level deeper than Python for identical
+            # code, so the shared warn_nesting threshold was effectively stricter
+            # for C++ — which is where every complexity warning in the dogfooded
+            # C++ projects was coming from.
+            current.max_nesting = max(current.max_nesting, self._depth - self._base_depth - 1)
         self._depth -= closed
         if self._depth <= self._base_depth:
             current.end_line = number
