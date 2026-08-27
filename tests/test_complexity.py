@@ -183,7 +183,8 @@ def test_cpp_literals_do_not_create_decision_points(tmp_path: Path):
     assert targets["text()"].metrics["complexity"] == 1
 
 
-def test_cpp_nesting_depth_is_measured_from_the_body(tmp_path: Path):
+def test_cpp_nesting_depth_counts_blocks_inside_the_body(tmp_path: Path):
+    """Three nested ifs are depth 3 — the function's own braces are not nesting."""
     targets = _cpp_targets(
         tmp_path,
         "void deep(int a) {\n"
@@ -196,4 +197,45 @@ def test_cpp_nesting_depth_is_measured_from_the_body(tmp_path: Path):
         "    }\n"
         "}\n",
     )
-    assert targets["deep()"].metrics["nesting"] == 4
+    assert targets["deep()"].metrics["nesting"] == 3
+
+
+def test_cpp_and_python_agree_on_nesting_depth(tmp_path: Path):
+    """The same shape in either language must produce the same number.
+
+    C++ used to count the function body as a level, so identical code read one
+    deeper than Python and the shared warn_nesting threshold was quietly
+    stricter for C++.
+    """
+    src = tmp_path / "src"
+    src.mkdir(exist_ok=True)
+    (src / "same.cpp").write_text(
+        "int threeLevels(int a, int b) {\n"
+        "    if (a) {\n"
+        "        while (b) {\n"
+        "            for (int i = 0; i < 3; ++i) {\n"
+        "                --b;\n"
+        "            }\n"
+        "        }\n"
+        "    }\n"
+        "    return a;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (src / "same.py").write_text(
+        "def three_levels(a, b):\n"
+        "    if a:\n"
+        "        while b:\n"
+        "            for i in range(3):\n"
+        "                b -= 1\n"
+        "    return a\n",
+        encoding="utf-8",
+    )
+    by_file = {t.file_path: t for t in ComplexityEngine(tmp_path).run().targets}
+    assert by_file["src/same.cpp"].metrics["nesting"] == 3
+    assert by_file["src/same.py"].metrics["nesting"] == 3
+
+
+def test_cpp_function_body_alone_is_zero_nesting(tmp_path: Path):
+    targets = _cpp_targets(tmp_path, "int flat(int a) {\n    return a + 1;\n}\n")
+    assert targets["flat()"].metrics["nesting"] == 0

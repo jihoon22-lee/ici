@@ -5,6 +5,7 @@ import hashlib
 import re
 import time
 from collections import defaultdict
+from dataclasses import replace
 from pathlib import Path
 
 from ici.core.models import EngineResult, EngineStatus, InspectionTarget
@@ -113,8 +114,26 @@ class DuplicateEngine(BaseEngine):
         duration = time.time() - t0
 
         has_fail = dup_pct > fail_pct
-        has_warn = dup_pct > warn_pct or len(clone_groups) > 0
+        # warn_pct governs. It used to be `or len(clone_groups) > 0`, which made
+        # the setting unreachable: any clone at all warned, whatever the rate was
+        # configured to allow. A project at 1.8% against a 5% policy was told it
+        # had a problem it had explicitly decided not to have. The groups stay in
+        # the report either way — see below — so nothing is hidden by this.
+        has_warn = dup_pct > warn_pct
         overall_status = self.evaluate_status(has_fail, has_warn, mode)
+
+        # Clone groups are built before the rate is known, so their status is
+        # aligned here. Under the policy they stay in the report as findings to
+        # read — location, size and snippet intact — without being counted as
+        # something to act on; an engine reporting PASS while its own targets say
+        # WARN would be the report contradicting itself.
+        if not has_warn and not has_fail:
+            targets = [
+                replace(target, status=EngineStatus.PASS)
+                if target.status == EngineStatus.WARN
+                else target
+                for target in targets
+            ]
 
         summary = f"Code Duplication Rate: {dup_pct:.1f}% ({len(clone_groups)} distinct clone groups found)"
 
@@ -305,6 +324,11 @@ class DuplicateEngine(BaseEngine):
         clone_groups: list[dict] = []
         targets: list[InspectionTarget] = []
         duplicated_positions: set[tuple[int, int]] = set()
+        # Only lines the denominator also counted may go into the numerator.
+        # total_code_lines excludes blanks, comments and import lines, while a
+        # clone span covers every physical line between its endpoints — counting
+        # those against each other is how the "rate" could read above 100%.
+        code_lines_by_file = [{line_no for line_no, _ in indexed} for (_, _, indexed) in files_data]
 
         for group_idx, component in enumerate(clusters, 1):
             # Sort occurrences inside component by (file_path, start_line)
@@ -318,8 +342,10 @@ class DuplicateEngine(BaseEngine):
             raw_snippet = "".join(rep_raw[rep_s - 1 : rep_e]).rstrip()
             for occ_idx, (f_idx, s_l, e_l) in enumerate(component):
                 if occ_idx > 0:
+                    counted = code_lines_by_file[f_idx]
                     for line_no in range(s_l, e_l + 1):
-                        duplicated_positions.add((f_idx, line_no))
+                        if line_no in counted:
+                            duplicated_positions.add((f_idx, line_no))
 
             occ_list = []
             for f_idx, s_l, e_l in component:
