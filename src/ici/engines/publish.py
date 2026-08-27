@@ -91,6 +91,100 @@ def _engine_details(suite: VerificationSuiteResult | None) -> list[str]:
     return rows
 
 
+@dataclass
+class ReportInput:
+    """One project's report in a publish run.
+
+    ``label`` is empty for a single-project repository, which keeps the
+    published path and the comment exactly as they were before monorepos were
+    supported. For a monorepo it is the subproject directory name, and it both
+    namespaces the gh-pages path and titles the row in the comment.
+    """
+
+    label: str
+    html_path: Path
+    suite: VerificationSuiteResult | None
+
+
+@dataclass
+class _PublishedReport:
+    """Result of uploading one report, used to build the combined comment."""
+
+    label: str
+    suite: VerificationSuiteResult | None
+    remote_path: str
+    viewer_url: str | None
+    uploaded: bool
+
+
+def _status_cell(suite: VerificationSuiteResult | None) -> str:
+    if suite is None:
+        return "—"
+    status = suite.suite_status.value
+    return f"{_STATUS_EMOJI.get(status, '📋')} `{status}`"
+
+
+def _tem_cell(suite: VerificationSuiteResult | None) -> str:
+    if suite is None or suite.tem_score is None:
+        return "—"
+    return f"`{suite.tem_score:.2f}/{suite.max_tem_score:.1f}`"
+
+
+def _link_cell(report: _PublishedReport) -> str:
+    if not report.uploaded:
+        return "❌ 업로드 실패"
+    if report.viewer_url:
+        return f"[📊 열기]({report.viewer_url})"
+    return f"`{report.remote_path}`"
+
+
+def _multi_report_body(
+    reports: list[_PublishedReport], mode: str, run_url: str | None, pages_enabled: bool
+) -> str:
+    """One sticky comment covering every project verified in this run.
+
+    A comment per project would be simpler to produce but would bury the pull
+    request under N near-identical blocks, and ici's sticky marker is a single
+    fixed string — each publish would overwrite the previous project's comment
+    rather than sit beside it.
+    """
+    worst = max(
+        (r.suite.suite_status.value for r in reports if r.suite is not None),
+        key=lambda s: (
+            ("PASS", "SKIP", "WARN", "FAIL", "ERROR").index(s)
+            if s in ("PASS", "SKIP", "WARN", "FAIL", "ERROR")
+            else 0
+        ),
+        default="",
+    )
+    emoji = _STATUS_EMOJI.get(worst, "📋")
+    lines = [
+        PUBLISH_MARKER,
+        f"## {emoji} ici Quality Gate — {len(reports)}개 프로젝트",
+        "",
+        "| 프로젝트 | 상태 | TEM | 리포트 |",
+        "|---|:---:|:---:|:---:|",
+    ]
+    for report in reports:
+        lines.append(
+            f"| `{report.label or '.'}` | {_status_cell(report.suite)} "
+            f"| {_tem_cell(report.suite)} | {_link_cell(report)} |"
+        )
+    if not pages_enabled:
+        lines += [
+            "",
+            "> 📦 리포트가 gh-pages 에 푸시되었습니다. **최초 1회** Settings → Pages → "
+            "Source 에서 `gh-pages` 를 선택하면 이 표에 뷰어 링크가 표시됩니다.",
+        ]
+    for report in reports:
+        details = _engine_details(report.suite)
+        if not details:
+            continue
+        lines += ["", f"#### `{report.label or '.'}`", *_stats_table(report.suite), "", *details]
+    lines += ["", "---", _footer_line(mode, "/".join(r.remote_path for r in reports), run_url)]
+    return "\n".join(lines)
+
+
 def _footer_line(mode: str, remote_path: str, run_url: str | None) -> str:
     parts = [f"모드 `{mode}`", f"경로 `{remote_path}`"]
     if run_url:
@@ -171,7 +265,25 @@ class ReportPublisher:
         self.project_name = project_name
 
     def publish(self, html_path: Path, suite: VerificationSuiteResult) -> PublishResult:
-        """Uploads the HTML report via the Contents API and updates the PR comment."""
+        """Uploads one HTML report and updates the sticky PR comment."""
+        return self._publish_single(html_path, suite)
+
+    def publish_many(self, reports: list[ReportInput]) -> PublishResult:
+        """Publishes several projects' reports under one sticky comment.
+
+        Uploads run sequentially on purpose. The Contents API needs the current
+        blob sha to overwrite a file, so parallel writes to the same branch race
+        and lose; doing them in one job keeps that ordering explicit.
+        """
+        # Route the single unlabeled case back through publish() rather than the
+        # private worker: it is the public seam callers and tests already hook.
+        if len(reports) == 1 and not reports[0].label:
+            return self.publish(reports[0].html_path, reports[0].suite)  # type: ignore[arg-type]
+        return self._publish_multi(reports)
+
+    def _publish_single(
+        self, html_path: Path, suite: VerificationSuiteResult | None
+    ) -> PublishResult:
         if self.env.get("GITHUB_ACTIONS") != "true":
             return PublishResult(
                 mode="none",
@@ -259,8 +371,86 @@ class ReportPublisher:
             success=uploaded,
         )
 
+    def _publish_multi(self, reports: list[ReportInput]) -> PublishResult:
+        guard = self._environment_guard()
+        if guard is not None:
+            return guard
+        first = self._resolve_target(reports[0].label)
+        if first is None:
+            return self._skipped(
+                "--publish skipped: GITHUB_REPOSITORY or a publish token is unavailable."
+            )
+
+        mode, repo, token, branch, _, pr_number, run_url = first
+        api_base = self.env.get("GITHUB_API_URL") or GITHUB_API_FALLBACK
+        branch_ready = self._ensure_branch(api_base, repo, token, branch)
+        pages_enabled, site_url = self._check_pages(api_base, repo, token)
+
+        published: list[_PublishedReport] = []
+        for report in reports:
+            target = self._resolve_target(report.label)
+            if target is None:
+                continue
+            remote_path = target[4]
+            uploaded = False
+            if branch_ready and report.html_path.exists():
+                uploaded = self._put_file(
+                    api_base, repo, token, branch, remote_path, report.html_path.read_bytes()
+                )
+            viewer_url = (
+                f"{site_url.rstrip('/')}/{remote_path.rsplit('/', 1)[0]}/"
+                if pages_enabled and site_url and uploaded
+                else None
+            )
+            published.append(
+                _PublishedReport(report.label, report.suite, remote_path, viewer_url, uploaded)
+            )
+
+        body = _multi_report_body(published, mode, run_url, pages_enabled)
+        comment_url = (
+            self._upsert_comment(api_base, self._own_repo(), self._own_token(), pr_number, body)
+            if pr_number
+            else None
+        )
+
+        failures = [r.label for r in published if not r.uploaded]
+        success = not failures
+        if failures:
+            message = f"--publish failed to upload: {', '.join(failures)}"
+        else:
+            message = f"Published {len(published)} report(s) to {repo}:{branch}"
+        return PublishResult(
+            mode=mode,
+            repo=repo,
+            branch=branch,
+            remote_path=", ".join(r.remote_path for r in published),
+            viewer_url=next((r.viewer_url for r in published if r.viewer_url), None),
+            pages_enabled=pages_enabled,
+            comment_url=comment_url,
+            message=message,
+            success=success,
+        )
+
+    def _environment_guard(self) -> PublishResult | None:
+        if self.env.get("GITHUB_ACTIONS") != "true":
+            return self._skipped("--publish requires a GitHub Actions environment; skipping.")
+        return None
+
+    @staticmethod
+    def _skipped(message: str) -> PublishResult:
+        return PublishResult(
+            mode="none",
+            repo="",
+            branch="",
+            remote_path="",
+            viewer_url=None,
+            pages_enabled=False,
+            comment_url=None,
+            message=message,
+        )
+
     def _resolve_target(
-        self,
+        self, label: str = ""
     ) -> tuple[str, str, str, str, str, int | None, str | None] | None:
         hub_repo = self.env.get("ICI_PUBLISH_REPO", "").strip()
         hub_token = self.env.get("ICI_PUBLISH_TOKEN", "").strip()
@@ -297,7 +487,10 @@ class ReportPublisher:
         else:
             sub_path = "index.html"
 
-        remote_path = f"{prefix}/{sub_path}" if prefix else sub_path
+        # A monorepo publishes several projects into one gh-pages branch, so the
+        # label has to namespace the path — without it every project would write
+        # to the same pr/<n>/index.html and only the last one would survive.
+        remote_path = "/".join(part for part in (prefix, label, sub_path) if part)
         run_url = None
         server_url = self.env.get("GITHUB_SERVER_URL", "").strip()
         run_id = self.env.get("GITHUB_RUN_ID", "").strip()
