@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
-from ici.engines.publish import PUBLISH_MARKER, ReportPublisher
+from ici.engines.publish import PUBLISH_MARKER, ReportInput, ReportPublisher
 
 
 class FakeGitHubApi:
@@ -362,3 +362,102 @@ def test_sticky_comment_finds_marker_past_first_page(tmp_path: Path, monkeypatch
     assert len(patch_calls) == 1
     post_calls = [c for c in calls if c[0] == "POST" and "/comments" in c[1]]
     assert not post_calls  # updated in place, never created a duplicate
+
+
+def _monorepo_env() -> dict:
+    return {
+        "GITHUB_ACTIONS": "true",
+        "GITHUB_REPOSITORY": "owner/monorepo",
+        "GITHUB_TOKEN": "t0ken",
+        "GITHUB_REF_NAME": "feature",
+        "GITHUB_EVENT_NAME": "pull_request",
+    }
+
+
+def test_report_dir_namespaces_the_published_path(tmp_path: Path):
+    """Without a label every project would write to the same pr/<n>/index.html."""
+    publisher = ReportPublisher(env=_monorepo_env())
+    first = publisher._resolve_target("diskmap")
+    second = publisher._resolve_target("loglens")
+    assert first is not None and second is not None
+    assert first[4] != second[4]
+    assert first[4].startswith("branch/feature/diskmap/") or "diskmap" in first[4]
+    assert "loglens" in second[4]
+
+
+def test_unlabeled_target_keeps_the_original_path(tmp_path: Path):
+    """A single-project repository must publish exactly where it always did."""
+    publisher = ReportPublisher(env=_monorepo_env())
+    target = publisher._resolve_target()
+    assert target is not None
+    assert "diskmap" not in target[4]
+    assert target[4].endswith("index.html")
+
+
+def test_publish_many_delegates_single_unlabeled_report(tmp_path: Path, monkeypatch):
+    """The one-report path stays on publish(), which callers and tests hook."""
+    seen = {}
+
+    def fake_publish(self, html_path, suite):
+        seen["html"] = html_path
+        return "sentinel"
+
+    monkeypatch.setattr(ReportPublisher, "publish", fake_publish)
+    html = tmp_path / "verify_report.html"
+    html.write_text("<html></html>", encoding="utf-8")
+    result = ReportPublisher(env=_monorepo_env()).publish_many([ReportInput("", html, None)])
+    assert result == "sentinel"
+    assert seen["html"] == html
+
+
+def test_multi_report_comment_lists_every_project(tmp_path: Path, monkeypatch):
+    """One sticky comment, one row per project — not one comment per project."""
+    posted = {}
+
+    def fake_put_file(self, api_base, repo, token, branch, remote_path, payload):
+        posted.setdefault("paths", []).append(remote_path)
+        return True
+
+    def fake_upsert(self, api_base, repo, token, pr_number, body):
+        posted["body"] = body
+        return "https://example.invalid/comment"
+
+    monkeypatch.setattr(ReportPublisher, "_ensure_branch", lambda *a, **k: True)
+    monkeypatch.setattr(ReportPublisher, "_check_pages", lambda *a, **k: (True, "https://pages/"))
+    monkeypatch.setattr(ReportPublisher, "_put_file", fake_put_file)
+    monkeypatch.setattr(ReportPublisher, "_upsert_comment", fake_upsert)
+
+    reports = []
+    for name in ("diskmap", "loglens"):
+        html = tmp_path / f"{name}.html"
+        html.write_text("<html></html>", encoding="utf-8")
+        reports.append(ReportInput(name, html, make_suite()))
+
+    env = _monorepo_env() | {"GITHUB_EVENT_PATH": ""}
+    result = ReportPublisher(env=env).publish_many(reports)
+
+    assert result.success
+    # Distinct destinations, so neither project overwrites the other.
+    assert len(set(posted["paths"])) == 2
+    body = posted.get("body")
+    if body is not None:
+        assert body.count(PUBLISH_MARKER) == 1
+        assert "diskmap" in body and "loglens" in body
+
+
+def test_multi_report_reports_upload_failure(tmp_path: Path, monkeypatch):
+    """A missing HTML must surface as a failure, not a quietly successful run."""
+    monkeypatch.setattr(ReportPublisher, "_ensure_branch", lambda *a, **k: True)
+    monkeypatch.setattr(ReportPublisher, "_check_pages", lambda *a, **k: (False, None))
+    monkeypatch.setattr(ReportPublisher, "_put_file", lambda *a, **k: True)
+    monkeypatch.setattr(ReportPublisher, "_upsert_comment", lambda *a, **k: None)
+
+    present = tmp_path / "there.html"
+    present.write_text("<html></html>", encoding="utf-8")
+    reports = [
+        ReportInput("here", present, make_suite()),
+        ReportInput("gone", tmp_path / "missing.html", None),
+    ]
+    result = ReportPublisher(env=_monorepo_env()).publish_many(reports)
+    assert not result.success
+    assert "gone" in result.message

@@ -27,7 +27,7 @@ from ici.engines.exception import (
 )
 from ici.engines.line import LineCountEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.lint import LintEngine  # noqa: F401 - resolved dynamically by CLI registry
-from ici.engines.publish import ReportPublisher, load_suite_from_json
+from ici.engines.publish import ReportInput, ReportPublisher, load_suite_from_json
 from ici.engines.resource import ResourceEngine  # noqa: F401
 from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.security import SecurityEngine  # noqa: F401
@@ -246,6 +246,49 @@ for _name, _cls, _filename, _doc in _ENGINE_COMMANDS:
     app.command(_name)(_make_handler())
 
 
+# Held at module level because a typer.Option() call in a list-typed default
+# trips bugbear's B008; the scalar options above are not flagged.
+_REPORT_DIR_OPTION = typer.Option(
+    None,
+    "--report-dir",
+    help=(
+        "Directory holding verify_report.html/json, optionally as label=path. "
+        "Repeatable; each becomes one row of a single sticky comment and is "
+        "published under its own gh-pages path. Use label=path for the "
+        "repository root, whose directory name would otherwise be '.'. "
+        "Overrides --html/--json."
+    ),
+)
+
+
+def _collect_report_inputs(
+    report_dirs: list[str] | None, html: str, json_report: str
+) -> list[ReportInput]:
+    """Build the publish set from either --report-dir (monorepo) or --html/--json."""
+    if not report_dirs:
+        json_path = Path(json_report)
+        suite = load_suite_from_json(json_path) if json_path.exists() else None
+        return [ReportInput("", Path(html), suite)]
+    inputs: list[ReportInput] = []
+    for raw in report_dirs:
+        # "label=path" spells out the name explicitly, which the repository root
+        # needs: its directory name is "." and would make a nonsense path segment.
+        label, _, path_part = raw.partition("=")
+        if not path_part:
+            label, path_part = "", raw
+        directory = Path(path_part)
+        label = label or directory.name or directory.resolve().name
+        json_path = directory / "verify_report.json"
+        inputs.append(
+            ReportInput(
+                label=label,
+                html_path=directory / "verify_report.html",
+                suite=load_suite_from_json(json_path) if json_path.exists() else None,
+            )
+        )
+    return inputs
+
+
 @app.command("publish")
 def cmd_publish(
     ctx: typer.Context,
@@ -253,11 +296,11 @@ def cmd_publish(
     json_report: str = typer.Option(
         "verify_report.json", "--json", help="verify_report.json used to enrich the comment"
     ),
+    report_dir: list[str] = _REPORT_DIR_OPTION,
 ):
-    """Publishes an existing HTML report to gh-pages and updates the sticky PR comment."""
-    json_path = Path(json_report)
-    suite = load_suite_from_json(json_path) if json_path.exists() else None
-    result = ReportPublisher(project_name=None).publish(Path(html), suite)  # type: ignore[arg-type]
+    """Publishes existing HTML report(s) to gh-pages and updates the sticky PR comment."""
+    reports = _collect_report_inputs(report_dir, html, json_report)
+    result = ReportPublisher(project_name=None).publish_many(reports)
     print(f"[publish] {result.message}")
     if result.comment_url:
         print(f"[publish] PR comment: {result.comment_url}")
