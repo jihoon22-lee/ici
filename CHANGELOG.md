@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+### Changed
+- **main 브랜치 게시도 두 리포트를 함께 올립니다**: `publish-main` 은 루트 리포트만 게시하고 있어 PR 댓글에서 고친 것과 같은 비대칭이 main 에 남아 있었습니다. 이제 verify 잡의 아티팩트를 받아 `--report-dir ici=. --report-dir viewer` 로 게시합니다.
+  - verify 를 재실행하지 않고 아티팩트를 소비합니다. push 는 main 이라 그 산출물이 이미 신뢰된 코드에서 나왔고, 재실행하면 이 실행이 이미 가진 결과를 위해 C++ 게이트(Qt·gcov·새니타이저)를 한 번 더 돌리게 됩니다.
+  - main 의 게시 경로는 프로젝트 접두사가 없는 `main/index.html` 이라, 루트와 뷰어를 따로 게시하면 **서로 덮어씁니다.** `--report-dir` 가 필요한 이유입니다.
+  - `test_purity.py` 의 게시 검증을 CLI 철자 하나(`--publish`)가 아니라 **게시 행위**를 보도록 일반화했습니다. 권한·토큰 검증은 그대로이고, "게시를 아예 없앤" 변이는 **이전에 통과하던 것이 이제 잡힙니다**(`count == count` 가 0 == 0 으로 성립했었습니다).
+
 ### Added
 - **C++ 탐지 픽스처와 E2E 테스트 (`examples/cpp-fixtures/`, `tests/test_cpp_e2e.py`)**: 의도적으로 망가뜨린 소형 C++ 프로젝트 7종을 각각 잡아내야 할 엔진에 통과시킵니다. 단위 테스트는 파싱을 덮지만 실제 프로젝트가 지나는 경로는 덮지 않았습니다.
   - `cycle_pair`(헤더 순환) · `complexity_hot`(CC 17) · `clone_pair`(Type-2 클론) · `dtor_throw`(소멸자 throw) · `oversized_file`(560줄) · `asan_overflow`(힙 오버플로, ASan 이 실제로 잡음) · `clean_baseline`(**거짓 양성 방지** — 5개 엔진 모두 조용해야 함)

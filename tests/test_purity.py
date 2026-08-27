@@ -42,6 +42,11 @@ def _job_block(workflow: str, job_name: str) -> str:
     return match.group("body")
 
 
+# Matches either way ici can be told to publish, so the security assertions
+# below track the behaviour rather than one command-line spelling.
+_PUBLISH_INVOCATION = re.compile(r"ici\.pyz (?:verify [^\n]*--publish|publish\b)")
+
+
 def _uses_lines(workflow: str) -> list[str]:
     return re.findall(r"(?m)^\s+uses:\s*(\S+)", workflow)
 
@@ -63,7 +68,12 @@ def test_ci_permissions_are_read_only_except_trusted_publish_job():
     assert re.search(r"(?m)^    needs: verify\n", publish)
     assert re.search(r"(?m)^    permissions:\n      contents: write\n", publish)
     assert not re.search(r"(?m)^      (?:issues|pull-requests|checks):\s*write\n", publish)
-    assert "--publish" in publish
+    # Either publishing form counts. What this test guards is that publish-main
+    # is the job doing it, that it is gated to main, and — the security-critical
+    # part above — that it cannot comment. Pinning one CLI spelling made the
+    # assertion break when publishing moved from `verify --publish` to
+    # `publish --report-dir`, which says nothing about permissions.
+    assert _PUBLISH_INVOCATION.search(publish)
     assert "GITHUB_TOKEN" in publish
 
 
@@ -113,10 +123,14 @@ def test_ci_verification_checkout_does_not_persist_credentials():
 
 
 def test_ci_privileged_tokens_confined_to_publish_jobs():
-    """--publish/GITHUB_TOKEN appear only inside the privileged publish jobs."""
+    """Publishing and GITHUB_TOKEN appear only inside the privileged jobs."""
     workflow = _workflow("ci.yml")
     privileged = _job_block(workflow, "publish-main") + _job_block(workflow, "report-pr")
-    assert workflow.count("--publish") == privileged.count("--publish")
+    all_calls = _PUBLISH_INVOCATION.findall(workflow)
+    privileged_calls = _PUBLISH_INVOCATION.findall(privileged)
+    # Also asserts there is at least one: a workflow that stopped publishing
+    # entirely would otherwise satisfy an equality of two zeroes.
+    assert all_calls and len(all_calls) == len(privileged_calls)
     assert workflow.count("GITHUB_TOKEN") == privileged.count("GITHUB_TOKEN")
     # verify job must stay read-only: no token, no publish flag in its block
     verify_block = _job_block(workflow, "verify")
