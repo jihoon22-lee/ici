@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-08-27
+
 ### Changed
 - **ici 자신의 PR 댓글이 두 리포트를 함께 보여줍니다**: 이 저장소는 루트의 Python 패키지와 `viewer/` 의 C++ 프로젝트를 둘 다 검증하는데, 댓글에는 앞의 것만 나와 게이트의 절반이 보이지 않았습니다. `report-pr` 잡을 `--report-dir ici=. --report-dir viewer` 로 전환했습니다.
   - `publish-main` 은 그대로입니다. 그 잡은 main 에서 verify 를 재실행해 `--publish` 로 인라인 게시하므로, 뷰어까지 담으려면 C++ 게이트 재실행이나 아티팩트 소비 방식으로의 전환이 필요합니다. 후자가 더 싸지만 `test_purity.py` 가 고정한 토큰 격리 의도를 손대게 되어 따로 다룹니다.
