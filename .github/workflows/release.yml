@@ -100,6 +100,57 @@ jobs:
         run: |
           ./scripts/smoke.sh
 
+      # Two viewer artifacts, and the difference between them matters.
+      #
+      # icirv is the Qt-free CLI, linked statically so it runs wherever it is
+      # copied. glibc is not forward compatible and the closed-network target is
+      # RHEL 8 (glibc 2.28) while this runner is Ubuntu (2.39), so a dynamically
+      # linked build would not start there. Static removes the question.
+      #
+      # icirv-gui needs Qt at runtime, so it is a development-environment asset
+      # only: it wants glibc 2.34+ and Qt 6 present. Making it portable to RHEL 8
+      # means building Qt inside an almalinux:8 container and bundling or
+      # statically linking it — worth doing, deliberately not done here.
+      - name: Build Viewer CLI (static)
+        run: |
+          set -euo pipefail
+          cmake -S viewer -B viewer/build-cli -DCMAKE_BUILD_TYPE=Release
+          cmake --build viewer/build-cli -j
+          mkdir -p dist
+          cp viewer/build-cli/icirv dist/icirv
+          if ldd dist/icirv 2>&1 | grep -qv "not a dynamic executable"; then
+            echo "::error::icirv is not statically linked; it would not run on the closed-network target"
+            ldd dist/icirv || true
+            exit 1
+          fi
+          dist/icirv viewer/tests/data/ici_self_report.json > /dev/null
+          echo "icirv: static, and it parses a real report"
+
+      - name: Install Qt6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qt6-base-dev
+
+      - name: Build Viewer GUI (development asset)
+        run: |
+          set -euo pipefail
+          cmake -S viewer/src/gui -B viewer/src/gui/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build viewer/src/gui/build -j
+          cp viewer/src/gui/build/icirv-gui dist/icirv-gui
+          # Record what it actually needs, so the requirement is discoverable
+          # from the release rather than by trial and error on a target machine.
+          {
+            echo "icirv-gui — ici report viewer (development environments)"
+            echo
+            echo "Requires Qt 6 Widgets at runtime and glibc $(objdump -T dist/icirv-gui | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1 | cut -d_ -f2)+."
+            echo "It will NOT run on RHEL 8 (glibc 2.28, no Qt 6 packages)."
+            echo "Use the statically linked icirv CLI there instead."
+            echo
+            echo "Shared libraries:"
+            ldd dist/icirv-gui | grep -i qt || true
+          } > dist/icirv-gui.README.txt
+          cat dist/icirv-gui.README.txt
+
       - name: Extract Release Notes from CHANGELOG.md
         id: extract_notes
         run: |
@@ -138,6 +189,9 @@ jobs:
           files: |
             dist/ici.pyz
             dist/ici.pyz.sha256
+            dist/icirv
+            dist/icirv-gui
+            dist/icirv-gui.README.txt
           draft: ${{ github.event.inputs.draft || false }}
           prerelease: ${{ github.event.inputs.prerelease || false }}
         env:
