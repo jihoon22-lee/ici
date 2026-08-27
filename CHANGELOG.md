@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Changed
+- **ici 자신의 PR 댓글이 두 리포트를 함께 보여줍니다**: 이 저장소는 루트의 Python 패키지와 `viewer/` 의 C++ 프로젝트를 둘 다 검증하는데, 댓글에는 앞의 것만 나와 게이트의 절반이 보이지 않았습니다. `report-pr` 잡을 `--report-dir ici=. --report-dir viewer` 로 전환했습니다.
+  - `publish-main` 은 그대로입니다. 그 잡은 main 에서 verify 를 재실행해 `--publish` 로 인라인 게시하므로, 뷰어까지 담으려면 C++ 게이트 재실행이나 아티팩트 소비 방식으로의 전환이 필요합니다. 후자가 더 싸지만 `test_purity.py` 가 고정한 토큰 격리 의도를 손대게 되어 따로 다룹니다.
+
 ### Added
 - **`ici publish --report-dir` — 모노repo의 여러 프로젝트 리포트를 하나의 sticky 댓글로**: 서브프로젝트 디렉터리를 반복 지정하면 각 `<dir>/verify_report.{html,json}` 을 **디렉터리 이름으로 네임스페이스된 gh-pages 경로**에 게시하고, 프로젝트별 행과 링크를 담은 **댓글 하나**를 남깁니다.
   - 그 전에는 모노repo 지원이 두 지점에서 막혀 있었습니다. (1) self 모드의 게시 경로에 프로젝트 접두사가 없어(`prefix = ""`) 모든 프로젝트가 같은 `pr/<N>/index.html` 에 써서 마지막 것만 남았고, (2) sticky 마커가 `<!-- ici-report -->` 하나로 고정이라 두 번째 publish 가 첫 번째 댓글을 덮어썼습니다.
