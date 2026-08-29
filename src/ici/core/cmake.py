@@ -116,3 +116,24 @@ def cmake_test_argv(
         argv.extend(["--output-junit", str(junit)])
         return argv, junit
     return argv, None
+
+
+def qmake_configure_argv(qmake_bin: str, pro_file: Path) -> list[str]:
+    """qmake runs with the shadow directory as its cwd; the .pro path is absolute."""
+
+    return [
+        qmake_bin,
+        str(pro_file),
+        "QMAKE_CXXFLAGS+=--coverage",
+        "QMAKE_LFLAGS+=--coverage",
+    ]
+
+
+def qmake_build_argv(make_bin: str, jobs: int) -> list[str]:
+    return [make_bin, f"--jobs={max(1, jobs)}"]
+
+
+def qmake_test_argv(make_bin: str) -> list[str]:
+    """`CONFIG += testcase` generates the check target and forwards TESTARGS."""
+
+    return [make_bin, "check", "TESTARGS=-xunitxml"]

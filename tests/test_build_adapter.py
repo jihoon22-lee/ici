@@ -7,6 +7,9 @@ from ici.core.cmake import (
     cmake_configure_argv,
     cmake_test_argv,
     parse_cmake_version,
+    qmake_build_argv,
+    qmake_configure_argv,
+    qmake_test_argv,
     select_backend,
     shadow_dir,
 )
@@ -120,3 +123,30 @@ def test_ctest_unknown_version_is_most_conservative(tmp_path):
     argv, junit = cmake_test_argv("/usr/bin/ctest", tmp_path / "s", None)
     assert "--test-dir" not in argv
     assert junit is None
+
+
+def test_qmake_configure_injects_coverage(tmp_path):
+    pro = tmp_path / "app.pro"
+    argv = qmake_configure_argv("/usr/bin/qmake6", pro)
+    assert argv[0] == "/usr/bin/qmake6"
+    assert str(pro) in argv
+    # qmake uses its own flag variables; CMAKE_CXX_FLAGS has no effect here.
+    assert "QMAKE_CXXFLAGS+=--coverage" in argv
+    assert "QMAKE_LFLAGS+=--coverage" in argv
+
+
+def test_qmake_build_is_parallel():
+    assert qmake_build_argv("/usr/bin/make", 4) == ["/usr/bin/make", "--jobs=4"]
+
+
+def test_qmake_build_rejects_bad_jobs():
+    # A zero or negative job count would make GNU make spawn unbounded jobs.
+    assert qmake_build_argv("/usr/bin/make", 0) == ["/usr/bin/make", "--jobs=1"]
+    assert qmake_build_argv("/usr/bin/make", -3) == ["/usr/bin/make", "--jobs=1"]
+
+
+def test_qmake_test_requests_xunit_xml():
+    argv = qmake_test_argv("/usr/bin/make")
+    assert argv[:2] == ["/usr/bin/make", "check"]
+    # CONFIG += testcase forwards TESTARGS to each QtTest binary.
+    assert "TESTARGS=-xunitxml" in argv
