@@ -7,6 +7,7 @@ problem this repository has already hit twice (B-1, C-9), so the new build path
 starts in one place.
 """
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -62,3 +63,56 @@ def select_backend(root: Path) -> BackendChoice:
         )
 
     return BackendChoice(None, "No build descriptor at the project root", "")
+
+
+# --test-dir arrived in CMake 3.20 and --output-junit in 3.21. The roadmap
+# treats RHEL 7.9 as a target runtime, so an old ctest cannot be assumed away.
+_CTEST_TEST_DIR_MIN = (3, 20)
+_CTEST_JUNIT_MIN = (3, 21)
+
+_CMAKE_VERSION_RE = re.compile(r"cmake version (\d+)\.(\d+)")
+
+
+def shadow_dir(root: Path, backend: str) -> Path:
+    """Build directory ici owns. Never the project's own build tree."""
+
+    return root / "build" / f"ici-{backend}"
+
+
+def parse_cmake_version(text: str) -> tuple[int, int] | None:
+    match = _CMAKE_VERSION_RE.search(text)
+    if match is None:
+        return None
+    return int(match.group(1)), int(match.group(2))
+
+
+def cmake_configure_argv(cmake_bin: str, root: Path, shadow: Path) -> list[str]:
+    return [
+        cmake_bin,
+        "-S",
+        str(root),
+        "-B",
+        str(shadow),
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DCMAKE_CXX_FLAGS=--coverage",
+        "-DCMAKE_EXE_LINKER_FLAGS=--coverage",
+    ]
+
+
+def cmake_build_argv(cmake_bin: str, shadow: Path) -> list[str]:
+    return [cmake_bin, "--build", str(shadow), "--parallel"]
+
+
+def cmake_test_argv(
+    ctest_bin: str, shadow: Path, version: tuple[int, int] | None
+) -> tuple[list[str], Path | None]:
+    """Return the ctest argv and the JUnit path, or None when stdout must be parsed."""
+
+    argv = [ctest_bin, "--output-on-failure"]
+    if version is not None and version >= _CTEST_TEST_DIR_MIN:
+        argv.extend(["--test-dir", str(shadow)])
+    if version is not None and version >= _CTEST_JUNIT_MIN:
+        junit = shadow / "ici-ctest.xml"
+        argv.extend(["--output-junit", str(junit)])
+        return argv, junit
+    return argv, None
