@@ -36,7 +36,7 @@
   - `test:` 테스트 케이스 추가 및 검증 로직 보강
   - `chore:` 빌드 스크립트, 패키징 설정, 패키지 메타데이터 변경
 - **CHANGELOG 및 문서 동기화 의무**:
-  - 기능 변경, UI/UX 개선, 정책 추가, 버전 변경이 일어날 때마다 **반드시 [`CHANGELOG.md`](file:///mnt/e/projects/ici/CHANGELOG.md)에 상세 변경 내역을 기록**하고 필요한 경우 `README.md`도 즉시 동기화한다.
+  - 기능 변경, UI/UX 개선, 정책 추가, 버전 변경이 일어날 때마다 **반드시 [`CHANGELOG.md`](CHANGELOG.md)에 상세 변경 내역을 기록**하고 필요한 경우 `README.md`도 즉시 동기화한다.
 
 ---
 
