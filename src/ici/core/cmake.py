@@ -7,10 +7,15 @@ problem this repository has already hit twice (B-1, C-9), so the new build path
 starts in one place.
 """
 
+import os
 import re
-from dataclasses import dataclass
+import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree
+
+from ici.core.models import ToolEvidence
+from ici.core.runner import run_process
 
 BACKEND_CMAKE = "cmake"
 BACKEND_QMAKE = "qmake"
@@ -239,3 +244,176 @@ def plan_gcov(shadow: Path, gcov_bin: str) -> tuple[Path, list[list[str]]]:
         for obj_dir, files in sorted(groups.items())
     ]
     return out_dir, argvs
+
+
+@dataclass
+class BuildSession:
+    """One configure of one project. Shared by the build and test engines."""
+
+    root: Path
+    shadow: Path
+    backend: str | None = None
+    descriptor: str = ""
+    reason: str = ""
+    configured: bool = False
+    cmake_version: tuple[int, int] | None = None
+    tool_evidence: list[ToolEvidence] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+
+def _record(session: BuildSession, name: str, argv: list[str], result) -> None:
+    session.tool_evidence.append(
+        ToolEvidence(
+            name=name,
+            path=argv[0],
+            argv=argv,
+            returncode=result.returncode,
+            timed_out=result.timed_out,
+            truncated=result.truncated,
+        )
+    )
+
+
+def _fail(session: BuildSession, message: str) -> None:
+    if message not in session.errors:
+        session.errors.append(message)
+
+
+def _which(session: BuildSession, name: str) -> str | None:
+    found = shutil.which(name)
+    if found is None:
+        _fail(session, f"{name} executable was unavailable")
+    return found
+
+
+def configure(root: Path) -> BuildSession:
+    """Select a backend and configure a shadow build tree."""
+
+    choice = select_backend(root)
+    session = BuildSession(
+        root=root,
+        shadow=shadow_dir(root, choice.kind or BACKEND_CMAKE),
+        backend=choice.kind,
+        descriptor=choice.descriptor,
+        reason=choice.reason,
+    )
+    if choice.kind is None:
+        return session
+
+    # The choice itself is evidence. Without it the report cannot say why one
+    # backend ran and the other did not. The reason goes in the name, not in
+    # `error` — this is a normal outcome, not a failure.
+    session.tool_evidence.append(
+        ToolEvidence(name=f"build backend selection: {choice.reason}", path="")
+    )
+    session.shadow.mkdir(parents=True, exist_ok=True)
+
+    if choice.kind == BACKEND_CMAKE:
+        return _configure_cmake(session)
+    return _configure_qmake(session)
+
+
+def _configure_cmake(session: BuildSession) -> BuildSession:
+    cmake_bin = _which(session, "cmake")
+    if cmake_bin is None:
+        return session
+
+    version_argv = [cmake_bin, "--version"]
+    version_result = run_process(version_argv)
+    _record(session, "cmake --version", version_argv, version_result)
+    session.cmake_version = parse_cmake_version(version_result.stdout)
+
+    argv = cmake_configure_argv(cmake_bin, session.root, session.shadow)
+    result = run_process(argv, cwd=session.root)
+    _record(session, "cmake configure", argv, result)
+    if result.returncode != 0:
+        _fail(session, f"cmake configure failed: {result.stderr[:200]}")
+        return session
+    session.configured = True
+    return session
+
+
+def _configure_qmake(session: BuildSession) -> BuildSession:
+    # Debian ships Qt6's qmake as qmake6; some distributions only have `qmake`.
+    # Probing both before recording an error keeps the message honest.
+    qmake_bin = shutil.which("qmake6") or shutil.which("qmake")
+    if qmake_bin is None:
+        _fail(session, "qmake6 executable was unavailable")
+        return session
+
+    argv = qmake_configure_argv(qmake_bin, session.root / session.descriptor)
+    result = run_process(argv, cwd=session.shadow)
+    _record(session, "qmake configure", argv, result)
+    if result.returncode != 0:
+        _fail(session, f"qmake configure failed: {result.stderr[:200]}")
+        return session
+    session.configured = True
+    return session
+
+
+def build(session: BuildSession) -> bool:
+    """Build the configured tree. Returns False on failure."""
+
+    if not session.configured:
+        return False
+    if session.backend == BACKEND_CMAKE:
+        cmake_bin = _which(session, "cmake")
+        if cmake_bin is None:
+            return False
+        argv = cmake_build_argv(cmake_bin, session.shadow)
+        cwd = session.root
+    else:
+        make_bin = _which(session, "make")
+        if make_bin is None:
+            return False
+        argv = qmake_build_argv(make_bin, os.cpu_count() or 1)
+        cwd = session.shadow
+
+    result = run_process(argv, cwd=cwd)
+    _record(session, f"{session.backend} build", argv, result)
+    if result.returncode != 0:
+        _fail(session, f"{session.backend} build failed: {result.stderr[:200]}")
+        return False
+    return True
+
+
+def run_tests(session: BuildSession) -> list[TestCaseResult]:
+    """Run the project's tests through its own build system."""
+
+    if session.backend == BACKEND_CMAKE:
+        ctest_bin = _which(session, "ctest")
+        if ctest_bin is None:
+            return []
+        argv, junit = cmake_test_argv(ctest_bin, session.shadow, session.cmake_version)
+        result = run_process(argv, cwd=session.shadow)
+        _record(session, "ctest", argv, result)
+        if junit is not None and junit.is_file():
+            parsed = parse_ctest_junit(junit.read_text(encoding="utf-8", errors="replace"))
+            if parsed:
+                return parsed
+        return parse_ctest_stdout(result.stdout)
+
+    make_bin = _which(session, "make")
+    if make_bin is None:
+        return []
+    argv = qmake_test_argv(make_bin)
+    result = run_process(argv, cwd=session.shadow)
+    _record(session, "make check", argv, result)
+    return parse_qtest_xunit(result.stdout)
+
+
+def collect_coverage(session: BuildSession) -> Path | None:
+    """Run gcov over the shadow tree. Must be called after run_tests."""
+
+    gcov_bin = _which(session, "gcov")
+    if gcov_bin is None:
+        return None
+    out_dir, argvs = plan_gcov(session.shadow, gcov_bin)
+    if not argvs:
+        _fail(session, "C++ gcov data files were unavailable")
+        return None
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for argv in argvs:
+        result = run_process(argv, cwd=out_dir)
+        _record(session, "gcov", argv, result)
+    return out_dir

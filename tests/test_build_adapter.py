@@ -1,11 +1,15 @@
 """Tests for the CMake/qmake build adapter."""
 
+import ici.core.cmake as cmake_mod
 from ici.core.cmake import (
     BACKEND_CMAKE,
     BACKEND_QMAKE,
+    BuildSession,
     cmake_build_argv,
     cmake_configure_argv,
     cmake_test_argv,
+    collect_coverage,
+    configure,
     parse_cmake_version,
     parse_ctest_junit,
     parse_ctest_stdout,
@@ -14,9 +18,11 @@ from ici.core.cmake import (
     qmake_build_argv,
     qmake_configure_argv,
     qmake_test_argv,
+    run_tests,
     select_backend,
     shadow_dir,
 )
+from ici.core.runner import ProcessResult
 
 
 def test_root_cmakelists_selects_cmake(tmp_path):
@@ -274,3 +280,98 @@ def test_plan_gcov_with_no_gcno(tmp_path):
     out_dir, argvs = plan_gcov(shadow, "/usr/bin/gcov")
     assert out_dir == shadow / "ici-gcov"
     assert argvs == []
+
+
+def _ok(*_args, **_kwargs):
+    return ProcessResult(0, "cmake version 3.28.1", "", 0.01)
+
+
+def test_configure_records_backend_reason_as_evidence(tmp_path, monkeypatch):
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(cmake_mod, "run_process", _ok)
+
+    session = configure(tmp_path)
+
+    assert session.backend == BACKEND_CMAKE
+    assert session.configured is True
+    assert session.shadow == tmp_path / "build" / "ici-cmake"
+    # Choosing a backend silently would make "why did this build run this way"
+    # untraceable from the report alone.
+    names = [e.name for e in session.tool_evidence]
+    assert any("CMakeLists.txt" in name for name in names)
+
+
+def test_configure_without_descriptor_has_no_backend(tmp_path):
+    session = configure(tmp_path)
+    assert session.backend is None
+    assert session.configured is False
+
+
+def test_configure_missing_tool_is_an_error(tmp_path, monkeypatch):
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda _name: None)
+
+    session = configure(tmp_path)
+
+    assert session.configured is False
+    # Not NOT_APPLICABLE: there was something to build and it was not measured.
+    assert any("cmake" in err for err in session.errors)
+
+
+def test_configure_failure_records_stderr(tmp_path, monkeypatch):
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+
+    def _fail(cmd, **_kwargs):
+        if "--version" in cmd:
+            return ProcessResult(0, "cmake version 3.28.1", "", 0.01)
+        return ProcessResult(1, "", "CMake Error: bad target", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _fail)
+    session = configure(tmp_path)
+
+    assert session.configured is False
+    assert any("bad target" in err for err in session.errors)
+
+
+def test_run_tests_prefers_junit_when_written(tmp_path, monkeypatch):
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    shadow = tmp_path / "build" / "ici-cmake"
+    shadow.mkdir(parents=True)
+    (shadow / "ici-ctest.xml").write_text(_CTEST_JUNIT, encoding="utf-8")
+
+    def _run(cmd, **_kwargs):
+        if "--version" in cmd:
+            return ProcessResult(0, "cmake version 3.28.1", "", 0.01)
+        return ProcessResult(0, _CTEST_STDOUT, "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+    session = configure(tmp_path)
+    results = run_tests(session)
+
+    # The JUnit file has three cases; stdout has two. Proving which source was
+    # used matters, because only one of them reports the skipped test.
+    assert len(results) == 3
+
+
+def test_collect_coverage_runs_every_group(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-cmake"
+    for name in ("core.dir", "gui.dir"):
+        _touch(shadow / "CMakeFiles" / name / "a.cpp.gcno")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    calls: list[list[str]] = []
+
+    def _run(cmd, **kwargs):
+        calls.append(cmd)
+        assert kwargs.get("cwd") == shadow / "ici-gcov"
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+    session = BuildSession(root=tmp_path, shadow=shadow, backend=BACKEND_CMAKE)
+
+    out_dir = collect_coverage(session)
+
+    assert out_dir == shadow / "ici-gcov"
+    assert len(calls) == 2
