@@ -124,10 +124,45 @@ entrypoint = "pkg.cli:main"
 
 Python library는 `project.source_dirs`에 설정된 모든 source directory의 프로젝트
 내부 non-symlink `.py`만 복사하며 source tree에 `compileall` 또는 `.pyc`를 만들지
-않습니다. C++는 root에 CMake/qmake/Makefile descriptor가 있으면 generic `g++`를
-호출하지 않고 adapter 필요 `ERROR`를 반환합니다. descriptor가 없는 경우에도
-`int main(...)` 정의가 정확히 하나인 단순 executable만 허용하며, g++ timeout·절단·
-signal·spawn 오류와 rc 0인데 regular binary가 없는 경우는 `ERROR`입니다.
+않습니다. C++는 루트 빌드 디스크립터에 따라 경로가 갈립니다(§2.5). generic `g++`
+경로에서는 `int main(...)` 정의가 정확히 하나인 단순 executable만 허용하며, g++
+timeout·절단·signal·spawn 오류와 rc 0인데 regular binary가 없는 경우는 `ERROR`입니다.
+
+### 2.5 C++ 빌드 경로는 두 가지다
+
+`ici`는 **프로젝트 루트**의 빌드 디스크립터를 보고 경로를 고릅니다.
+
+| 루트에 있는 것 | `build`와 `test`가 하는 일 |
+|---|---|
+| `CMakeLists.txt` | CMake로 configure·build하고 CTest로 테스트한다 |
+| `*.pro` | qmake로 configure·build하고 `make check`로 테스트한다 |
+| `Makefile`만 | 어댑터가 없어 거부한다 |
+| 없음 | 모든 소스를 `g++`로 직접 컴파일·링크한다 |
+
+하위 디렉터리의 디스크립터는 보지 않습니다. `src/gui/CMakeLists.txt`만 있는
+프로젝트는 g++ 경로를 씁니다. 둘 다 있으면 CMake를 고르고, **왜 그 백엔드가
+선택됐는지는 리포트의 도구 증거에 남습니다.**
+
+어댑터 경로에서 달라지는 것이 셋 있습니다.
+
+- **`project.cpp_external_build_dirs`가 무시됩니다.** 이 설정은 "moc가 필요해 ici가
+  직접 빌드할 수 없는 소스를 링크 대상에서 뺀다"는 뜻인데, 어댑터 경로에서는 빌드
+  시스템이 moc를 돌리므로 전제가 사라집니다. 빌드 시스템이 빌드한 전부가 테스트
+  링크와 커버리지 집계의 대상입니다.
+- **`-std=c++17` 고정이 사라집니다.** C++ 표준을 프로젝트의 빌드 정의가 정합니다.
+- **`Q_OBJECT` 클래스를 단위 테스트할 수 있습니다.** g++ 경로에서는 moc 실행 단계가
+  없어 vtable 미해결로 링크에 실패합니다.
+
+커버리지 계측 플래그(`--coverage`)는 어느 경로에서든 `ici`가 주입합니다. 프로젝트가
+커버리지 빌드를 따로 선언할 필요는 없습니다. 어댑터는 프로젝트의 빌드 트리를 건드리지
+않고 `build/ici-cmake` 또는 `build/ici-qmake`에 별도로 빌드합니다.
+
+**두 어댑터의 테스트 카운트는 서로 비교할 수 없습니다.** CTest는 테스트 **바이너리**
+하나를 1건으로 세고, QtTest는 그 안의 테스트 **함수**를 각각 셉니다
+(`initTestCase`/`cleanupTestCase` 포함). 같은 코드가 CMake에서 1건, qmake에서 4건이
+될 수 있습니다. 어느 쪽으로도 정규화하지 않는 이유는, 각 빌드 시스템이 "테스트 하나"로
+여기는 단위를 그대로 쓰는 편이 정직하기 때문입니다. TEM 점수의 통과/전체 비율에
+들어가는 값이므로, **경로가 다른 프로젝트끼리 TEM을 비교하지 마십시오.**
 
 ---
 
