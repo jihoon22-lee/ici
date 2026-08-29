@@ -7,6 +7,9 @@ from ici.core.cmake import (
     cmake_configure_argv,
     cmake_test_argv,
     parse_cmake_version,
+    parse_ctest_junit,
+    parse_ctest_stdout,
+    parse_qtest_xunit,
     qmake_build_argv,
     qmake_configure_argv,
     qmake_test_argv,
@@ -150,3 +153,76 @@ def test_qmake_test_requests_xunit_xml():
     assert argv[:2] == ["/usr/bin/make", "check"]
     # CONFIG += testcase forwards TESTARGS to each QtTest binary.
     assert "TESTARGS=-xunitxml" in argv
+
+
+_CTEST_JUNIT = """<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ctest" tests="3">
+  <testcase name="test_ring_buffer" classname="ctest" time="0.01"/>
+  <testcase name="test_log_model" classname="ctest" time="0.02">
+    <failure message="row count mismatch">expected 3 got 2</failure>
+  </testcase>
+  <testcase name="test_skipped" classname="ctest" status="notrun"/>
+</testsuite>
+"""
+
+
+def test_parse_ctest_junit():
+    results = parse_ctest_junit(_CTEST_JUNIT)
+    assert [r.name for r in results] == ["test_ring_buffer", "test_log_model", "test_skipped"]
+    assert results[0].passed is True
+    assert results[1].passed is False
+    assert "row count mismatch" in results[1].message
+    # A test that never ran is not a passing test.
+    assert results[2].passed is False
+
+
+def test_parse_ctest_junit_rejects_malformed_xml():
+    assert parse_ctest_junit("<testsuite><testcase") == []
+
+
+_CTEST_STDOUT = """    Start 1: test_ring_buffer
+1/2 Test #1: test_ring_buffer .................   Passed    0.01 sec
+    Start 2: test_log_model
+2/2 Test #2: test_log_model ...................***Failed    0.02 sec
+"""
+
+
+def test_parse_ctest_stdout():
+    results = parse_ctest_stdout(_CTEST_STDOUT)
+    assert [r.name for r in results] == ["test_ring_buffer", "test_log_model"]
+    assert results[0].passed is True
+    assert results[1].passed is False
+    assert "Failed" in results[1].message
+
+
+_QTEST_XUNIT = """<?xml version="1.0" encoding="UTF-8"?>
+<testsuite errors="0" failures="0" tests="2" name="TestScanner">
+  <testcase result="pass" name="initTestCase"/>
+  <testcase result="pass" name="scanCountsFiles"/>
+</testsuite>
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite errors="0" failures="1" tests="1" name="TestTreemapWidget">
+  <testcase result="fail" name="clickSelectsNode">
+    <failure result="fail" message="no signal emitted"/>
+  </testcase>
+</testsuite>
+"""
+
+
+def test_parse_qtest_xunit_reads_concatenated_suites():
+    # TEMPLATE = subdirs runs several test binaries; their XML documents are
+    # concatenated on one stream, so a single ElementTree.fromstring fails.
+    results = parse_qtest_xunit(_QTEST_XUNIT)
+    names = [r.name for r in results]
+    assert names == [
+        "TestScanner::initTestCase",
+        "TestScanner::scanCountsFiles",
+        "TestTreemapWidget::clickSelectsNode",
+    ]
+    assert results[0].passed is True
+    assert results[2].passed is False
+    assert "no signal emitted" in results[2].message
+
+
+def test_parse_qtest_xunit_on_empty_output():
+    assert parse_qtest_xunit("") == []

@@ -10,6 +10,7 @@ starts in one place.
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from xml.etree import ElementTree
 
 BACKEND_CMAKE = "cmake"
 BACKEND_QMAKE = "qmake"
@@ -137,3 +138,78 @@ def qmake_test_argv(make_bin: str) -> list[str]:
     """`CONFIG += testcase` generates the check target and forwards TESTARGS."""
 
     return [make_bin, "check", "TESTARGS=-xunitxml"]
+
+
+# 1/2 Test #1: test_name ......   Passed    0.01 sec
+_CTEST_LINE_RE = re.compile(
+    r"^\s*\d+/\d+\s+Test\s+#\d+:\s+(?P<name>\S+)\s+[. ]*(?P<verdict>.+?)\s+[\d.]+\s+sec\s*$"
+)
+_TESTSUITE_RE = re.compile(r"<testsuite\b.*?</testsuite>", re.DOTALL)
+
+
+@dataclass(frozen=True)
+class TestCaseResult:
+    """One test as the build system reported it."""
+
+    name: str
+    passed: bool
+    message: str = ""
+
+
+def _junit_case(node: ElementTree.Element) -> TestCaseResult:
+    name = node.get("name", "")
+    failures = node.findall("failure") + node.findall("error")
+    if failures:
+        parts = [f.get("message", "") or (f.text or "").strip() for f in failures]
+        return TestCaseResult(name, False, "; ".join(p for p in parts if p))
+    # A test ctest never ran is not evidence that it passes.
+    status = node.get("status", "")
+    if status and status not in ("run", "passed"):
+        return TestCaseResult(name, False, f"ctest reported status {status!r}")
+    return TestCaseResult(name, True)
+
+
+def parse_ctest_junit(xml_text: str) -> list[TestCaseResult]:
+    try:
+        root = ElementTree.fromstring(xml_text)
+    except ElementTree.ParseError:
+        return []
+    return [_junit_case(node) for node in root.iter("testcase")]
+
+
+def parse_ctest_stdout(text: str) -> list[TestCaseResult]:
+    results: list[TestCaseResult] = []
+    for line in text.splitlines():
+        match = _CTEST_LINE_RE.match(line)
+        if match is None:
+            continue
+        verdict = match.group("verdict").strip().lstrip("*")
+        results.append(
+            TestCaseResult(
+                match.group("name"),
+                verdict == "Passed",
+                "" if verdict == "Passed" else verdict,
+            )
+        )
+    return results
+
+
+def parse_qtest_xunit(text: str) -> list[TestCaseResult]:
+    """Parse one or more concatenated QtTest xunitxml documents."""
+
+    results: list[TestCaseResult] = []
+    for block in _TESTSUITE_RE.findall(text):
+        try:
+            suite = ElementTree.fromstring(block)
+        except ElementTree.ParseError:
+            continue
+        suite_name = suite.get("name", "")
+        for node in suite.iter("testcase"):
+            case = _junit_case(node)
+            name = f"{suite_name}::{case.name}" if suite_name else case.name
+            passed = case.passed and node.get("result", "pass") == "pass"
+            message = case.message
+            if not passed and not message:
+                message = f"QtTest reported result {node.get('result', '')!r}"
+            results.append(TestCaseResult(name, passed, message))
+    return results
