@@ -150,6 +150,7 @@ _CTEST_LINE_RE = re.compile(
     r"^\s*\d+/\d+\s+Test\s+#\d+:\s+(?P<name>\S+)\s+[. ]*(?P<verdict>.+?)\s+[\d.]+\s+sec\s*$"
 )
 _TESTSUITE_RE = re.compile(r"<testsuite\b.*?</testsuite>", re.DOTALL)
+_DOCTYPE_RE = re.compile(r"<!DOCTYPE", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -174,10 +175,28 @@ def _junit_case(node: ElementTree.Element) -> TestCaseResult:
     return TestCaseResult(name, True)
 
 
-def parse_ctest_junit(xml_text: str) -> list[TestCaseResult]:
+def _parse_xml(text: str) -> ElementTree.Element | None:
+    """Parse XML, refusing any document that carries a DTD.
+
+    ElementTree expands internal entities, and the project being verified owns
+    this input: ctest embeds test names taken from CMakeLists.txt, and the
+    qmake path reads whatever the test binaries printed. On a CI gate that runs
+    pull-request sources, that is enough for a billion-laughs document to be
+    handed to us. Entities can only be declared in a DTD, so refusing a DOCTYPE
+    removes the expansion entirely. Neither ctest nor QtTest emits one.
+    """
+
+    if _DOCTYPE_RE.search(text) is not None:
+        return None
     try:
-        root = ElementTree.fromstring(xml_text)
+        return ElementTree.fromstring(text)
     except ElementTree.ParseError:
+        return None
+
+
+def parse_ctest_junit(xml_text: str) -> list[TestCaseResult]:
+    root = _parse_xml(xml_text)
+    if root is None:
         return []
     return [_junit_case(node) for node in root.iter("testcase")]
 
@@ -202,11 +221,13 @@ def parse_ctest_stdout(text: str) -> list[TestCaseResult]:
 def parse_qtest_xunit(text: str) -> list[TestCaseResult]:
     """Parse one or more concatenated QtTest xunitxml documents."""
 
+    if _DOCTYPE_RE.search(text) is not None:
+        return []
+
     results: list[TestCaseResult] = []
     for block in _TESTSUITE_RE.findall(text):
-        try:
-            suite = ElementTree.fromstring(block)
-        except ElementTree.ParseError:
+        suite = _parse_xml(block)
+        if suite is None:
             continue
         suite_name = suite.get("name", "")
         for node in suite.iter("testcase"):

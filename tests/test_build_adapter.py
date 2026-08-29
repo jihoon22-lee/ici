@@ -375,3 +375,29 @@ def test_collect_coverage_runs_every_group(tmp_path, monkeypatch):
 
     assert out_dir == shadow / "ici-gcov"
     assert len(calls) == 2
+
+
+_XML_BOMB = """<?xml version="1.0"?>
+<!DOCTYPE t [
+ <!ENTITY a "aaaaaaaaaa">
+ <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">
+ <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">
+]>
+<testsuite name="x"><testcase name="&c;"/></testsuite>"""
+
+
+def test_ctest_junit_refuses_a_doctype():
+    # ElementTree expands internal entities, and the project under verification
+    # controls this document: ctest embeds test names from CMakeLists.txt, and
+    # `make check` output is whatever the test binaries print. A PR could hand
+    # ici a billion-laughs document. No DTD means no custom entities.
+    assert parse_ctest_junit(_XML_BOMB) == []
+
+
+def test_qtest_xunit_refuses_a_doctype():
+    assert parse_qtest_xunit(_XML_BOMB) == []
+
+
+def test_doctype_rejection_does_not_break_ordinary_documents():
+    assert len(parse_ctest_junit(_CTEST_JUNIT)) == 3
+    assert len(parse_qtest_xunit(_QTEST_XUNIT)) == 3
