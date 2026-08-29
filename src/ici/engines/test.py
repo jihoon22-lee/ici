@@ -43,6 +43,7 @@ from ici.engines.coverage_support import (
     parse_gcov_functions,
     pytest_result_has_evidence,
 )
+from ici.engines.cpp_text import defines_main
 from ici.engines.test_interpreter import TestInterpreterMixin
 
 
@@ -768,11 +769,15 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         if gcov_dir is None:
             self._coverage_errors.append("C++ gcov coverage output was missing or malformed")
         else:
-            # cpp_external_build_dirs does not apply here: the build system
-            # links everything, so everything it built is coverage scope.
+            # cpp_external_build_dirs does not apply here — the build system
+            # links everything — but entry points still do not. The g++ path
+            # keeps main() out of the test link, so it never reached gcov;
+            # counting it here would drop a project's coverage the moment it
+            # moved to CMake, for code that did not change.
             sources = {
                 str(path.relative_to(self.project_root))
                 for path in get_all_cpp_sources(self.project_root, self.config)
+                if not defines_main(path)
             }
             self._cpp_coverage_rows = self._parse_gcov_dir(gcov_dir, sources)
             self._cpp_function_rows = self._parse_gcov_functions(gcov_dir, sources)

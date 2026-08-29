@@ -21,6 +21,7 @@ from pathlib import Path
 
 import pytest
 
+from ici.core.cmake import select_backend
 from ici.core.models import EngineStatus
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.cycle import CycleEngine
@@ -140,6 +141,19 @@ def _cwd_fixture_project(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     return tmp_path
+
+
+def test_fixture_project_stays_on_the_generic_gxx_path(tmp_path: Path):
+    """This fixture is the regression witness for the non-adapter path.
+
+    viewer/ used to fill that role, but it has a root CMakeLists.txt and now
+    goes through the CMake adapter. If this project ever grew a root build
+    descriptor too, the generic g++ path would stop being exercised anywhere
+    and nothing would say so — the shape of C-6, where lint sat unrun in CI
+    behind a green gate.
+    """
+    root = _cwd_fixture_project(tmp_path)
+    assert select_backend(root).kind is None
 
 
 def test_cpp_tests_run_from_the_project_root(tmp_path: Path):

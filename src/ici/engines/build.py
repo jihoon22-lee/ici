@@ -30,6 +30,7 @@ from ici.core.project import (
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
+from ici.engines.cpp_text import MAIN_DEFINITION_RE as _MAIN_DEFINITION_RE
 from ici.engines.cpp_text import mask_cpp_literals as _mask_cpp_literals
 
 _ENTRYPOINT_RE = re.compile(
@@ -37,7 +38,6 @@ _ENTRYPOINT_RE = re.compile(
     r"(?P<callable>[A-Za-z_][A-Za-z0-9_]*)$"
 )
 _SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
-_MAIN_DEFINITION_RE = re.compile(r"\bint\s+main\s*\([^{};]*\)\s*(?:noexcept\s*)?\{")
 
 
 class BuildEngine(BaseEngine):
