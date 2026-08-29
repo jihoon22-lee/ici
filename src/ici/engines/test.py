@@ -7,6 +7,11 @@ import time
 from pathlib import Path
 from typing import Any
 
+from ici.core.cmake import build as adapter_build
+from ici.core.cmake import collect_coverage as adapter_collect_coverage
+from ici.core.cmake import configure as adapter_configure
+from ici.core.cmake import run_tests as adapter_run_tests
+from ici.core.cmake import select_backend
 from ici.core.env import (
     find_uv,  # noqa: F401 - retained for callers patching the legacy probe
     get_nas_cpp_lib_dir,
@@ -617,6 +622,8 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         return parse_coverage_json(json_path, self.project_root, expected_files)
 
     def _run_cpp_tests(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
+        if select_backend(self.project_root).kind is not None:
+            return self._run_cpp_tests_via_adapter(targets)
         gxx = shutil.which("g++")
         if not gxx:
             self._record_tool_error("g++ executable was unavailable")
@@ -676,6 +683,105 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             self._collect_cpp_coverage(gcov_bin, build_tmp, src_rel_set)
 
         return passed, total, has_failure
+
+    def _resolve_test_source(self, test_name: str) -> str:
+        """Map a CTest/QtTest name onto a file, as AGENTS.md 5-1 requires.
+
+        Neither ctest nor QtTest reports the source file, so the stem is matched
+        against tests/. When nothing matches, the build descriptor is the most
+        specific location that is still true.
+        """
+
+        stem = test_name.split("::")[0]
+        tests_root = self.project_root / "tests"
+        if tests_root.is_dir():
+            for candidate in sorted(tests_root.rglob("*.cpp")):
+                if candidate.stem == stem:
+                    return str(candidate.relative_to(self.project_root))
+        return select_backend(self.project_root).descriptor or "."
+
+    def _run_cpp_tests_via_adapter(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
+        self._cpp_coverage_rows = []
+        self._cpp_function_rows = []
+
+        session = adapter_configure(self.project_root)
+
+        if not session.configured:
+            self._tool_evidence.extend(session.tool_evidence)
+            messages = session.errors or [
+                f"{session.backend} configure did not complete and reported no reason"
+            ]
+            for message in messages:
+                self._record_tool_error(message)
+            self._coverage_errors.append("C++ build was not configured")
+            return 0, 0, False
+
+        if not adapter_build(session):
+            self._tool_evidence.extend(session.tool_evidence)
+            self._coverage_errors.append("C++ build failed before tests could run")
+            messages = session.errors or ["C++ build failed and reported no reason"]
+            for message in messages:
+                targets.append(
+                    InspectionTarget(
+                        file_path=session.descriptor or ".",
+                        start_line=1,
+                        target_name="[C++] build",
+                        status=EngineStatus.FAIL,
+                        message=message,
+                    )
+                )
+            return 0, 0, True
+
+        results = adapter_run_tests(session)
+
+        passed = 0
+        has_failure = False
+        for case in results:
+            relative = self._resolve_test_source(case.name)
+            if case.passed:
+                passed += 1
+                targets.append(
+                    InspectionTarget(
+                        file_path=relative,
+                        start_line=1,
+                        target_name=f"[C++] {case.name}",
+                        status=EngineStatus.PASS,
+                        message="C++ Test Passed",
+                    )
+                )
+            else:
+                has_failure = True
+                targets.append(
+                    InspectionTarget(
+                        file_path=relative,
+                        start_line=1,
+                        target_name=f"[C++] {case.name}",
+                        status=EngineStatus.FAIL,
+                        message=f"Execution Failed: {case.message}",
+                    )
+                )
+
+        # gcov only after the tests ran: .gcda does not exist until then.
+        gcov_dir = adapter_collect_coverage(session)
+        # One copy at the end, covering configure, build, ctest and gcov.
+        self._tool_evidence.extend(session.tool_evidence)
+        if gcov_dir is None:
+            self._coverage_errors.append("C++ gcov coverage output was missing or malformed")
+        else:
+            # cpp_external_build_dirs does not apply here: the build system
+            # links everything, so everything it built is coverage scope.
+            sources = {
+                str(path.relative_to(self.project_root))
+                for path in get_all_cpp_sources(self.project_root, self.config)
+            }
+            self._cpp_coverage_rows = self._parse_gcov_dir(gcov_dir, sources)
+            self._cpp_function_rows = self._parse_gcov_functions(gcov_dir, sources)
+            if self._cpp_coverage_rows:
+                self._coverage_measured = True
+            else:
+                self._coverage_errors.append("C++ gcov coverage output was missing or malformed")
+
+        return passed, len(results), has_failure
 
     def _run_cpp_test_case(
         self,

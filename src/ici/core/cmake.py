@@ -157,6 +157,10 @@ _DOCTYPE_RE = re.compile(r"<!DOCTYPE", re.IGNORECASE)
 class TestCaseResult:
     """One test as the build system reported it."""
 
+    # The name starts with "Test", so pytest tries to collect this as a test
+    # class and warns on every run. It is a result record, not a test.
+    __test__ = False
+
     name: str
     passed: bool
     message: str = ""
