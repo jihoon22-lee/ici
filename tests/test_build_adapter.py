@@ -10,6 +10,7 @@ from ici.core.cmake import (
     parse_ctest_junit,
     parse_ctest_stdout,
     parse_qtest_xunit,
+    plan_gcov,
     qmake_build_argv,
     qmake_configure_argv,
     qmake_test_argv,
@@ -226,3 +227,50 @@ def test_parse_qtest_xunit_reads_concatenated_suites():
 
 def test_parse_qtest_xunit_on_empty_output():
     assert parse_qtest_xunit("") == []
+
+
+def _touch(path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"")
+
+
+def test_plan_gcov_groups_by_object_directory(tmp_path):
+    shadow = tmp_path / "build" / "ici-cmake"
+    _touch(shadow / "CMakeFiles" / "core.dir" / "a.cpp.gcno")
+    _touch(shadow / "CMakeFiles" / "core.dir" / "b.cpp.gcno")
+    _touch(shadow / "CMakeFiles" / "gui.dir" / "c.cpp.gcno")
+
+    out_dir, argvs = plan_gcov(shadow, "/usr/bin/gcov")
+
+    assert out_dir == shadow / "ici-gcov"
+    assert len(argvs) == 2
+    for argv in argvs:
+        assert argv[0] == "/usr/bin/gcov"
+        # -b gives branch counts; -p keeps the source path in the .gcov filename
+        # so two objects with the same basename do not overwrite each other.
+        assert "-b" in argv and "-p" in argv
+        assert argv[argv.index("-o") + 1] in (
+            str(shadow / "CMakeFiles" / "core.dir"),
+            str(shadow / "CMakeFiles" / "gui.dir"),
+        )
+    core_argv = next(a for a in argvs if "core.dir" in a[a.index("-o") + 1])
+    assert len([x for x in core_argv if x.endswith(".gcno")]) == 2
+
+
+def test_plan_gcov_skips_its_own_output_directory(tmp_path):
+    shadow = tmp_path / "build" / "ici-cmake"
+    _touch(shadow / "CMakeFiles" / "core.dir" / "a.cpp.gcno")
+    _touch(shadow / "ici-gcov" / "stale.gcno")
+
+    _out_dir, argvs = plan_gcov(shadow, "/usr/bin/gcov")
+
+    assert len(argvs) == 1
+    assert "core.dir" in argvs[0][argvs[0].index("-o") + 1]
+
+
+def test_plan_gcov_with_no_gcno(tmp_path):
+    shadow = tmp_path / "build" / "ici-qmake"
+    shadow.mkdir(parents=True)
+    out_dir, argvs = plan_gcov(shadow, "/usr/bin/gcov")
+    assert out_dir == shadow / "ici-gcov"
+    assert argvs == []

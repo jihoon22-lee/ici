@@ -213,3 +213,29 @@ def parse_qtest_xunit(text: str) -> list[TestCaseResult]:
                 message = f"QtTest reported result {node.get('result', '')!r}"
             results.append(TestCaseResult(name, passed, message))
     return results
+
+
+GCOV_OUTPUT_DIRNAME = "ici-gcov"
+
+
+def plan_gcov(shadow: Path, gcov_bin: str) -> tuple[Path, list[list[str]]]:
+    """Group .gcno files by object directory and return one gcov argv per group.
+
+    Callers must run every argv with ``cwd`` set to the returned directory.
+    gcov writes .gcov files into its own working directory, so fixing the cwd
+    makes the output flat and lets engines.coverage_support.parse_gcov_dir stay
+    as it is — it globs a single directory level.
+    """
+
+    out_dir = shadow / GCOV_OUTPUT_DIRNAME
+    groups: dict[Path, list[str]] = {}
+    for gcno in sorted(shadow.rglob("*.gcno")):
+        if out_dir == gcno.parent or out_dir in gcno.parents:
+            continue
+        groups.setdefault(gcno.parent, []).append(str(gcno))
+
+    argvs = [
+        [gcov_bin, "-b", "-p", "-o", str(obj_dir), *files]
+        for obj_dir, files in sorted(groups.items())
+    ]
+    return out_dir, argvs
