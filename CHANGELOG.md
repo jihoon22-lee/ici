@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### Fixed
+- **ext4 작업 트리에서 개발 스크립트를 직접 실행할 수 없던 문제**: Windows 드라이브에서 생성된 Git 인덱스에 실행 비트가 기록되지 않아 `./scripts/build-pyz.sh`, `./scripts/smoke.sh`, `./tools/ici` 같은 문서화된 명령이 WSL 내부 ext4 clone에서 `Permission denied`로 실패했습니다. 빌드·스모크·런처·개발 래퍼의 실행 비트를 저장소에 기록하고, 이 개발 규약의 CHANGELOG 링크도 특정 머신의 `/mnt/e/projects/ici` 절대 경로 대신 저장소 상대 경로를 사용합니다.
 - **AST 폴백이 무엇을 검사했는지 보고하지 않았다 (`lint`)**: ruff 가 없을 때 내려가는 폴백은 `SyntaxError` 가 났을 때만 타깃을 남깁니다. 그래서 **깨끗한 프로젝트와 아무것도 들여다보지 않은 프로젝트가 똑같이 "타깃 0건"** 으로 보였습니다 — 도그푸딩으로 찾은 조용한 검증 실패들과 같은 모양입니다.
   - 폴백이 파싱한 파일 수를 기록하고(`extra.python_files_parsed`), 스코프를 타깃으로 남깁니다: `Ruff was unavailable; parsed 2 Python file(s) for syntax errors only. Style and lint rules were not checked.`
   - 무엇을 검사했는지뿐 아니라 **무엇을 검사하지 않았는지**도 말합니다. 그러지 않으면 읽는 사람이 lint 가 돌았다고 가정합니다.
