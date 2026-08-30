@@ -184,8 +184,8 @@ def test_verify_collects_one_snapshot_before_engines_and_attaches_it(
         return inventory
 
     class PassingLine:
-        def __init__(self, project_root, config):
-            del project_root, config
+        def __init__(self, project_root, config, analysis_context=None):
+            del project_root, config, analysis_context
 
         def run(self):
             events.append(("engine", "line"))

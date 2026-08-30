@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ici.core.capabilities import serialize_capability_inventory
+from ici.core.context import AnalysisContext, ArtifactManifest
 from ici.core.findings import findings_for_result, validate_source_region
 from ici.core.models import (
     AnalysisMetadata,
@@ -38,6 +39,108 @@ from ici.core.redaction import redact_engine_result, redact_suite
 RESULT_SCHEMA_VERSION = "ici.result/v3"
 LEGACY_RESULT_SCHEMA_VERSION = "ici.result/v2"
 _SHA256_RE = re.compile(r"sha256:[0-9a-f]{64}")
+
+
+def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
+    shadow_root = None
+    if manifest.shadow_root is not None:
+        try:
+            shadow_root = manifest.shadow_root.relative_to(manifest.project_root).as_posix()
+        except ValueError as err:
+            raise ValueError("artifact shadow root must be project-relative") from err
+    return {
+        "schema_version": "ici.artifacts/v1",
+        "project_root": ".",
+        "shadow_root": shadow_root,
+        "variant": manifest.variant.value,
+        "source_commit": manifest.source_commit,
+        "config_digest": _require_digest(manifest.config_digest, "manifest.config_digest"),
+        "toolchain_digest": _require_digest(
+            manifest.toolchain_digest,
+            "manifest.toolchain_digest",
+        ),
+        "artifacts": [
+            {
+                "path": artifact.path,
+                "scope": artifact.scope.value,
+                "kind": artifact.kind,
+                "sha256": _require_digest(artifact.sha256, "artifact.sha256"),
+                "size": artifact.size,
+                "mode": artifact.mode,
+                "producer": artifact.producer,
+            }
+            for artifact in manifest.artifacts
+        ],
+    }
+
+
+def _report_include_flag(flag: str, project_root: Path) -> str:
+    if not flag.startswith("-I") or len(flag) == 2:
+        return flag
+    path = Path(flag[2:])
+    if not path.is_absolute():
+        return flag
+    try:
+        return "-I" + path.resolve(strict=False).relative_to(project_root).as_posix()
+    except (OSError, RuntimeError, ValueError):
+        return "-I[external]"
+
+
+def _serialize_analysis_context(context: AnalysisContext | None) -> dict[str, Any] | None:
+    if context is None:
+        return None
+    project = context.project
+    return {
+        "schema_version": "ici.analysis-context/v1",
+        "project": {
+            "name": _require_string(project.name, "context.project.name", nonempty=True),
+            "version": _require_string(project.version, "context.project.version", nonempty=True),
+            "type": _require_string(
+                project.project_type,
+                "context.project.type",
+                nonempty=True,
+            ),
+            "source_dirs": list(project.source_dirs),
+            "python_sources": list(project.python_sources),
+            "cpp_sources": list(project.cpp_sources),
+            "cpp_headers": list(project.cpp_headers),
+            "compilable_cpp_sources": list(project.compilable_cpp_sources),
+            "external_cpp_dirs": list(project.external_cpp_dirs),
+            "cpp_include_flags": [
+                _report_include_flag(flag, project.root) for flag in project.cpp_include_flags
+            ],
+            "backend": project.backend,
+            "backend_descriptor": project.backend_descriptor,
+            "backend_reason": project.backend_reason,
+        },
+        "identity": {
+            "source_commit": context.identity.source_commit,
+            "config_digest": _require_digest(
+                context.identity.config_digest,
+                "context.identity.config_digest",
+            ),
+            "toolchain_digest": _require_digest(
+                context.identity.toolchain_digest,
+                "context.identity.toolchain_digest",
+            ),
+        },
+        "compilation": {
+            "database_path": context.compilation.database_path,
+            "units": [
+                {
+                    "source": unit.source,
+                    "directory": unit.directory,
+                    "argv": list(unit.argv),
+                    "output": unit.output,
+                }
+                for unit in context.compilation.units
+            ],
+        },
+        "requested_variants": [variant.value for variant in context.requested_variants],
+        "artifact_manifests": [
+            _serialize_artifact_manifest(manifest) for manifest in context.manifests
+        ],
+    }
 
 
 def _require_string(value: Any, field_name: str, *, nonempty: bool = False) -> str:
@@ -401,6 +504,9 @@ def serialize_engine_result(
             for finding in findings_for_result(safe, project_root=project_root)
         ],
         "support_matrix": serialize_support_matrix(safe.support_matrix),
+        "artifact_manifests": [
+            _serialize_artifact_manifest(manifest) for manifest in safe.artifact_manifests
+        ],
     }
 
 
@@ -435,6 +541,7 @@ def serialize_suite_result(
             if safe.capability_inventory is not None
             else None
         ),
+        "analysis_context": _serialize_analysis_context(safe.analysis_context),
     }
 
 

@@ -354,13 +354,21 @@ def parse_gcov_dir(cov_dir: Path, source_files: set[str], project_root: Path) ->
 
 
 def compute_python_function_coverage(
-    cov_data: dict, project_root: Path, config: dict[str, Any] | None
+    cov_data: dict,
+    project_root: Path,
+    config: dict[str, Any] | None,
+    python_sources: list[Path] | None = None,
 ) -> list[dict]:
     """Mark a Python function covered when one body line executed."""
 
     rows: list[dict] = []
     file_map = cov_data.get("files", {})
-    for py_file in get_all_python_sources(project_root, config):
+    sources = (
+        python_sources
+        if python_sources is not None
+        else get_all_python_sources(project_root, config)
+    )
+    for py_file in sources:
         relative = str(py_file.relative_to(project_root))
         file_info = file_map.get(relative)
         if not file_info:

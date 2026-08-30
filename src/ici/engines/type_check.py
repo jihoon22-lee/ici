@@ -14,12 +14,6 @@ from ici.core.models import (
     InspectionTarget,
     ToolEvidence,
 )
-from ici.core.project import (
-    detect_project_type,
-    get_all_cpp_sources,
-    get_all_python_sources,
-    get_source_dirs,
-)
 from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 
@@ -36,16 +30,14 @@ class TypeCheckEngine(BaseEngine):
 
     def run(self) -> EngineResult:
         t0 = time.time()
-        proj_type = detect_project_type(self.project_root)
+        proj_type = self.project_type()
         targets: list[InspectionTarget] = []
         tool_errors: list[str] = []
         tool_warnings: list[str] = []
         tool_evidence: list[ToolEvidence] = []
 
         has_python_scope = proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py"))
-        python_files = (
-            get_all_python_sources(self.project_root, self.config) if has_python_scope else []
-        )
+        python_files = self.project_python_sources() if has_python_scope else []
         if has_python_scope:
             if python_files:
                 self._check_python_types(
@@ -54,7 +46,7 @@ class TypeCheckEngine(BaseEngine):
             else:
                 self._mark_python_type_check_skipped(targets, tool_warnings)
 
-        cpp_files = get_all_cpp_sources(self.project_root, self.config)
+        cpp_files = self.project_cpp_sources()
         if cpp_files or proj_type == "cpp":
             self._mark_cpp_type_check_skipped(targets, tool_warnings, len(cpp_files))
 
@@ -153,8 +145,7 @@ class TypeCheckEngine(BaseEngine):
         evidence: list[ToolEvidence],
     ) -> bool:
         mypy_targets = [
-            str(d.relative_to(self.project_root))
-            for d in get_source_dirs(self.project_root, self.config)
+            str(d.relative_to(self.project_root)) for d in self.project_source_dirs()
         ] or ["."]
         mypy_argv = [*mypy_cmd, "--ignore-missing-imports", *mypy_targets]
         try:
@@ -343,7 +334,7 @@ class TypeCheckEngine(BaseEngine):
     def _mark_cpp_type_check_skipped(
         self, targets: list[InspectionTarget], warnings: list[str], count: int
     ) -> None:
-        sources = get_all_cpp_sources(self.project_root, self.config)
+        sources = self.project_cpp_sources()
         if not sources:
             targets.append(
                 InspectionTarget(
@@ -389,9 +380,7 @@ class TypeCheckEngine(BaseEngine):
         self, targets: list[InspectionTarget], python_sources: list[Path] | None = None
     ) -> bool:
         source_files = (
-            python_sources
-            if python_sources is not None
-            else get_all_python_sources(self.project_root, self.config)
+            python_sources if python_sources is not None else self.project_python_sources()
         )
         for py_file in source_files:
             try:

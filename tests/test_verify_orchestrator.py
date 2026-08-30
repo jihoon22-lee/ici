@@ -10,15 +10,15 @@ from ici.reporters.issue_view import ConsoleGroupBy, ConsoleOptions
 
 def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
     class CrashingEngine:
-        def __init__(self, project_root, config):
-            pass
+        def __init__(self, project_root, config, analysis_context=None):
+            del project_root, config, analysis_context
 
         def run(self):
             raise RuntimeError("boom")
 
     class PassingEngine:
-        def __init__(self, project_root, config):
-            pass
+        def __init__(self, project_root, config, analysis_context=None):
+            del project_root, config, analysis_context
 
         def run(self):
             return EngineResult(
@@ -95,8 +95,8 @@ def _only_lint_enabled():
 
 def test_baseline_gate_changes_suite_verdict_without_inventing_an_engine(monkeypatch, tmp_path):
     class PassingEngine:
-        def __init__(self, project_root, config):
-            del project_root, config
+        def __init__(self, project_root, config, analysis_context=None):
+            del project_root, config, analysis_context
 
         def run(self):
             return EngineResult("lint", EngineStatus.PASS, "clean")
@@ -124,8 +124,8 @@ def test_baseline_gate_changes_suite_verdict_without_inventing_an_engine(monkeyp
 
 def test_write_baseline_is_root_contained_and_excludes_transient_delta(monkeypatch, tmp_path):
     class PassingEngine:
-        def __init__(self, project_root, config):
-            del project_root, config
+        def __init__(self, project_root, config, analysis_context=None):
+            del project_root, config, analysis_context
 
         def run(self):
             return EngineResult("lint", EngineStatus.PASS, "clean")
@@ -153,8 +153,8 @@ def test_write_baseline_is_root_contained_and_excludes_transient_delta(monkeypat
 
 def test_write_baseline_normalizes_filesystem_errors(monkeypatch, tmp_path):
     class PassingEngine:
-        def __init__(self, project_root, config):
-            del project_root, config
+        def __init__(self, project_root, config, analysis_context=None):
+            del project_root, config, analysis_context
 
         def run(self):
             return EngineResult("lint", EngineStatus.PASS, "clean")
@@ -174,8 +174,8 @@ def test_write_baseline_normalizes_filesystem_errors(monkeypatch, tmp_path):
 
 def test_failed_delta_gate_cannot_overwrite_its_input_baseline(monkeypatch, tmp_path):
     class PassingEngine:
-        def __init__(self, project_root, config):
-            del project_root, config
+        def __init__(self, project_root, config, analysis_context=None):
+            del project_root, config, analysis_context
 
         def run(self):
             return EngineResult("lint", EngineStatus.PASS, "clean")
@@ -205,8 +205,8 @@ def test_failed_delta_gate_cannot_overwrite_its_input_baseline(monkeypatch, tmp_
 
 def test_console_options_are_forwarded_only_to_console_reporter(monkeypatch, tmp_path):
     class PassingEngine:
-        def __init__(self, project_root, config):
-            del project_root, config
+        def __init__(self, project_root, config, analysis_context=None):
+            del project_root, config, analysis_context
 
         def run(self):
             return EngineResult("lint", EngineStatus.PASS, "clean")

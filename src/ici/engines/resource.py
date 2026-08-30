@@ -4,7 +4,6 @@ import ast
 import time
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
-from ici.core.project import get_all_python_sources
 from ici.engines.base import BaseEngine
 
 
@@ -82,7 +81,7 @@ class ResourceEngine(BaseEngine):
         required = bool(cfg.get("required", False))
 
         targets: list[InspectionTarget] = []
-        for py_file in get_all_python_sources(self.project_root, self.config):
+        for py_file in self.project_python_sources():
             rel = str(py_file.relative_to(self.project_root))
             try:
                 content = py_file.read_text(encoding="utf-8", errors="ignore")

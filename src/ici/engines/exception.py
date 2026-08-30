@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
-from ici.core.project import detect_project_type, get_all_cpp_sources, get_all_python_sources
 from ici.engines.base import BaseEngine
 
 ScopeAliases = tuple[set[str], set[str], set[str], set[str]]
@@ -370,9 +369,9 @@ class ExceptionSafetyEngine(BaseEngine):
         t0 = time.time()
         self._analysis_errors = []
         targets: list[InspectionTarget] = []
-        py_sources = get_all_python_sources(self.project_root, self.config)
-        cpp_sources = get_all_cpp_sources(self.project_root, self.config)
-        proj_type = detect_project_type(self.project_root)
+        py_sources = self.project_python_sources()
+        cpp_sources = self.project_cpp_sources()
+        proj_type = self.project_type()
         has_python_scope = bool(py_sources) or proj_type in ("python", "hybrid")
         has_cpp_scope = bool(cpp_sources) or proj_type in ("cpp", "hybrid")
         has_error = False
@@ -434,7 +433,7 @@ class ExceptionSafetyEngine(BaseEngine):
     def _check_python_exceptions(self, targets: list[InspectionTarget]) -> tuple[bool, bool]:
         has_error = False
         has_warning = False
-        for py_file in get_all_python_sources(self.project_root, self.config):
+        for py_file in self.project_python_sources():
             try:
                 content = py_file.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(py_file))
@@ -695,7 +694,7 @@ class ExceptionSafetyEngine(BaseEngine):
 
     def _check_cpp_exceptions(self, targets: list[InspectionTarget]) -> bool:
         has_error = False
-        for cpp_file in get_all_cpp_sources(self.project_root, self.config):
+        for cpp_file in self.project_cpp_sources():
             try:
                 content = cpp_file.read_text(encoding="utf-8")
             except (OSError, UnicodeDecodeError) as err:

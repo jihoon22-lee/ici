@@ -5,11 +5,6 @@ import re
 import time
 
 from ici.core.models import EngineResult, EngineStatus, InspectionTarget
-from ici.core.project import (
-    detect_project_type,
-    get_all_cpp_sources,
-    get_all_python_sources,
-)
 from ici.engines.base import BaseEngine
 from ici.engines.cpp_text import mask_cpp_literals
 
@@ -189,7 +184,7 @@ class ComplexityEngine(BaseEngine):
         warn_nesting = cfg.get("warn_nesting", 4)
         mode = cfg.get("mode", "pass_warn_fail")
 
-        proj_type = detect_project_type(self.project_root)
+        proj_type = self.project_type()
         all_targets: list[InspectionTarget] = []
         max_cc = 0
         has_error = False
@@ -265,7 +260,7 @@ class ComplexityEngine(BaseEngine):
         targets: list[InspectionTarget] = []
         max_cc = 0
 
-        for py_file in get_all_python_sources(self.project_root, self.config):
+        for py_file in self.project_python_sources():
             try:
                 content = py_file.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(py_file))
@@ -355,7 +350,7 @@ class ComplexityEngine(BaseEngine):
         targets: list[InspectionTarget] = []
         max_cc = 0
 
-        for cpp_file in get_all_cpp_sources(self.project_root, self.config):
+        for cpp_file in self.project_cpp_sources():
             try:
                 rel_p = str(cpp_file.relative_to(self.project_root))
                 lines = cpp_file.read_text(encoding="utf-8", errors="ignore").splitlines()

@@ -14,7 +14,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree
 
-from ici.core.context import BuildVariant
+from ici.core.context import (
+    AnalysisContext,
+    ArtifactManifest,
+    ArtifactScope,
+    BuildVariant,
+)
 from ici.core.models import ToolEvidence
 from ici.core.runner import run_process
 
@@ -359,6 +364,8 @@ class BuildSession:
     reason: str = ""
     configured: bool = False
     cmake_version: tuple[int, int] | None = None
+    analysis_context: AnalysisContext | None = None
+    artifact_manifest: ArtifactManifest | None = None
     tool_evidence: list[ToolEvidence] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -479,7 +486,7 @@ def build(session: BuildSession) -> bool:
         clean_argv = qmake_clean_argv(make_bin)
         clean_result = run_process(clean_argv, cwd=session.shadow)
         _record(session, "qmake clean", clean_argv, clean_result)
-        if clean_result.returncode != 0:
+        if clean_result.returncode != 0 or clean_result.timed_out or clean_result.truncated:
             _fail(session, f"qmake clean failed: {clean_result.stderr[:200]}")
             return False
         argv = qmake_build_argv(make_bin, os.cpu_count() or 1)
@@ -487,10 +494,76 @@ def build(session: BuildSession) -> bool:
 
     result = run_process(argv, cwd=cwd)
     _record(session, f"{session.backend} build", argv, result)
-    if result.returncode != 0:
+    if result.returncode != 0 or result.timed_out or result.truncated:
         _fail(session, f"{session.backend} build failed: {result.stderr[:200]}")
         return False
-    return True
+    return _capture_artifact_manifest(session)
+
+
+def _artifact_kind(path: Path) -> str:
+    if path.suffix in (".a", ".lib"):
+        return "static-library"
+    if path.suffix in (".so", ".dylib", ".dll") or ".so." in path.name:
+        return "shared-library"
+    return "executable"
+
+
+def _linked_artifact_paths(shadow: Path) -> list[tuple[Path, ArtifactScope, str]]:
+    """Find linked binaries/libraries without treating generated scripts as products."""
+
+    paths: dict[Path, tuple[Path, ArtifactScope, str]] = {}
+    binary_magics = (
+        b"\x7fELF",
+        b"MZ",
+        b"\xfe\xed\xfa\xce",
+        b"\xfe\xed\xfa\xcf",
+        b"\xce\xfa\xed\xfe",
+        b"\xcf\xfa\xed\xfe",
+    )
+    for candidate in sorted(shadow.rglob("*")):
+        try:
+            if not candidate.is_file():
+                continue
+            if candidate.suffix in (".o", ".obj", ".gcno", ".gcda"):
+                continue
+            with candidate.open("rb") as stream:
+                prefix = stream.read(4)
+        except OSError:
+            continue
+        is_library = candidate.suffix in (".a", ".lib", ".so", ".dylib", ".dll") or (
+            ".so." in candidate.name
+        )
+        if not is_library and not any(prefix.startswith(magic) for magic in binary_magics):
+            continue
+        try:
+            resolved = candidate.resolve(strict=True)
+            relative = resolved.relative_to(shadow).as_posix()
+        except (OSError, RuntimeError, ValueError):
+            continue
+        paths[resolved] = (Path(relative), ArtifactScope.SHADOW, _artifact_kind(resolved))
+    return [paths[path] for path in sorted(paths)]
+
+
+def _capture_artifact_manifest(session: BuildSession) -> bool:
+    """Publish a frozen manifest only when a run has a shared analysis identity."""
+
+    context = session.analysis_context
+    if context is None:
+        return True
+    try:
+        session.artifact_manifest = ArtifactManifest.create(
+            project_root=session.root,
+            shadow_root=session.shadow,
+            variant=session.variant,
+            identity=context.identity,
+            paths=_linked_artifact_paths(session.shadow),
+            producer=f"{session.backend or 'unknown'}.build",
+        )
+        return True
+    except (OSError, ValueError) as err:
+        session.artifact_manifest = None
+        _fail(session, f"artifact manifest validation failed: {err}")
+        return False
 
 
 def run_tests(session: BuildSession, env: dict[str, str] | None = None) -> list[TestCaseResult]:

@@ -135,6 +135,22 @@ class ProjectModel:
             "cpp_include_flags",
         ):
             object.__setattr__(self, field_name, tuple(getattr(self, field_name)))
+        for field_name in (
+            "source_dirs",
+            "python_sources",
+            "cpp_sources",
+            "cpp_headers",
+            "compilable_cpp_sources",
+            "external_cpp_dirs",
+        ):
+            for value in getattr(self, field_name):
+                _validate_relative_path(
+                    value,
+                    f"project {field_name}",
+                    allow_dot=field_name in {"source_dirs", "external_cpp_dirs"},
+                )
+        if self.project_type not in {"python", "cpp", "hybrid"}:
+            raise ValueError(f"unsupported project type: {self.project_type!r}")
 
 
 def discover_project_model(root: Path, config: dict[str, Any]) -> ProjectModel:
@@ -145,14 +161,27 @@ def discover_project_model(root: Path, config: dict[str, Any]) -> ProjectModel:
     from ici.core.cmake import select_backend
 
     backend = select_backend(canonical_root)
+    project_config = config.get("project", {})
+    configured_type = config.get("type")
+    if configured_type is None and isinstance(project_config, dict):
+        configured_type = project_config.get("type")
+    project_type = (
+        configured_type
+        if configured_type in {"python", "cpp", "hybrid"}
+        else detect_project_type(canonical_root)
+    )
 
     def relative(paths) -> tuple[str, ...]:
         return tuple(sorted(_relative_project_path(canonical_root, path) for path in paths))
 
     source_dirs = get_source_dirs(canonical_root, config)
+    header_roots = list(source_dirs)
+    include_root = canonical_root / "include"
+    if include_root.is_dir() and include_root not in header_roots:
+        header_roots.append(include_root)
     cpp_headers = (
         path
-        for source_dir in source_dirs
+        for source_dir in header_roots
         for path in _iter_project_files(
             source_dir,
             canonical_root,
@@ -164,7 +193,7 @@ def discover_project_model(root: Path, config: dict[str, Any]) -> ProjectModel:
         root=canonical_root,
         name=get_project_name(canonical_root),
         version=get_project_version(canonical_root),
-        project_type=detect_project_type(canonical_root),
+        project_type=project_type,
         source_dirs=relative(source_dirs),
         python_sources=relative(get_all_python_sources(canonical_root, config)),
         cpp_sources=relative(get_all_cpp_sources(canonical_root, config)),

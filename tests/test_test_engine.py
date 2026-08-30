@@ -900,7 +900,7 @@ def test_required_cpp_coverage_without_gcov_is_error_and_not_run(tmp_path: Path,
             }
         },
     )
-    monkeypatch.setattr("ici.engines.test.detect_project_type", lambda _root: "cpp")
+    monkeypatch.setattr(engine, "project_type", lambda: "cpp")
     monkeypatch.setattr(
         "ici.engines.test.shutil.which", lambda name: "/usr/bin/g++" if name == "g++" else None
     )
@@ -924,7 +924,7 @@ def test_cpp_spawn_or_signal_failure_is_error_not_assertion_failure(
     (tests / "test_calc.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
     (tmp_path / "ici.toml").write_text('type = "cpp"\n', encoding="utf-8")
     engine = TestEngine(tmp_path)
-    monkeypatch.setattr("ici.engines.test.detect_project_type", lambda _root: "cpp")
+    monkeypatch.setattr(engine, "project_type", lambda: "cpp")
     monkeypatch.setattr(
         "ici.engines.test.shutil.which",
         lambda name: "/usr/bin/g++" if name == "g++" else None,
@@ -950,7 +950,7 @@ def test_cpp_positive_test_exit_remains_failure(tmp_path: Path, monkeypatch):
     (tests / "test_calc.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
     (tmp_path / "ici.toml").write_text('type = "cpp"\n', encoding="utf-8")
     engine = TestEngine(tmp_path)
-    monkeypatch.setattr("ici.engines.test.detect_project_type", lambda _root: "cpp")
+    monkeypatch.setattr(engine, "project_type", lambda: "cpp")
     monkeypatch.setattr(
         "ici.engines.test.shutil.which",
         lambda name: "/usr/bin/g++" if name == "g++" else None,

@@ -15,12 +15,7 @@ from ici.core.models import (
     InspectionTarget,
     ToolEvidence,
 )
-from ici.core.project import (
-    _should_ignore_path,
-    detect_project_type,
-    get_all_cpp_includes,
-    get_all_cpp_sources,
-)
+from ici.core.project import _should_ignore_path
 from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 
@@ -80,7 +75,7 @@ class LintEngine(BaseEngine):
 
     def run(self) -> EngineResult:
         t0 = time.time()
-        proj_type = detect_project_type(self.project_root)
+        proj_type = self.project_type()
         targets: list[InspectionTarget] = []
         tool_errors: list[str] = []
         tool_warnings: list[str] = []
@@ -91,7 +86,7 @@ class LintEngine(BaseEngine):
             tool_errors.extend(self._lint_python(targets, tool_evidence, tool_warnings))
 
         # 2. C++ Linting & Syntax Check
-        if proj_type in ("cpp", "hybrid") or get_all_cpp_sources(self.project_root, self.config):
+        if proj_type in ("cpp", "hybrid") or self.project_cpp_sources():
             tool_errors.extend(self._lint_cpp(targets, tool_evidence))
 
         duration = time.time() - t0
@@ -583,7 +578,7 @@ class LintEngine(BaseEngine):
         errors: list[str] = []
         evidence = tool_evidence if tool_evidence is not None else []
         gxx = shutil.which("g++")
-        cpp_files = get_all_cpp_sources(self.project_root, self.config)
+        cpp_files = self.project_cpp_sources()
         if not cpp_files:
             return errors
         if not gxx:
@@ -591,7 +586,7 @@ class LintEngine(BaseEngine):
             return ["g++ is required when C++ sources are present"]
         # Passing config matters: without it the configured package flags
         # never reach the compiler and Qt-backed sources fail to parse.
-        inc_flags = get_all_cpp_includes(self.project_root, self.config)
+        inc_flags = self.project_cpp_include_flags()
 
         for cpp in cpp_files:
             cmd = [gxx, "-fsyntax-only", "-std=c++17", "-Wall", "-Wextra", *inc_flags, str(cpp)]

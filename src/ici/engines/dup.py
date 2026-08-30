@@ -9,10 +9,6 @@ from dataclasses import replace
 from pathlib import Path
 
 from ici.core.models import EngineResult, EngineStatus, InspectionTarget
-from ici.core.project import (
-    get_all_cpp_sources,
-    get_all_python_sources,
-)
 from ici.engines.base import BaseEngine
 
 FileData = tuple[str, list[str], list[tuple[int, str]]]
@@ -97,8 +93,8 @@ class DuplicateEngine(BaseEngine):
         window_size = cfg.get("min_window", 6)
         mode = cfg.get("mode", "pass_warn")
 
-        py_sources = get_all_python_sources(self.project_root, self.config)
-        cpp_sources = get_all_cpp_sources(self.project_root, self.config)
+        py_sources = self.project_python_sources()
+        cpp_sources = self.project_cpp_sources()
         all_sources = py_sources + cpp_sources
 
         files_data, total_code_lines = self._load_and_index_files(all_sources)

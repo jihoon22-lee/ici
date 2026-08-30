@@ -6,11 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
-from ici.core.project import (
-    detect_project_type,
-    get_all_python_sources,
-    get_source_dirs,
-)
 from ici.engines.base import BaseEngine
 
 
@@ -26,9 +21,9 @@ class DeadCodeEngine(BaseEngine):
     def run(self) -> EngineResult:
         t0 = time.time()
         self._analysis_errors = []
-        sources = get_all_python_sources(self.project_root, self.config)
+        sources = self.project_python_sources()
         targets: list[InspectionTarget] = []
-        proj_type = detect_project_type(self.project_root)
+        proj_type = self.project_type()
         has_python_scope = bool(sources) or proj_type in ("python", "hybrid")
         if has_python_scope and sources:
             targets.extend(self._detect_python_dead_code())
@@ -95,7 +90,7 @@ class DeadCodeEngine(BaseEngine):
     def _detect_python_dead_code(self) -> list[InspectionTarget]:
         targets: list[InspectionTarget] = []
         modules: list[dict] = []
-        source_dirs = get_source_dirs(self.project_root, self.config)
+        source_dirs = self.project_source_dirs()
         module_paths: dict[str, str] = {}
         for py_file in self._ordered_python_sources(source_dirs):
             try:
@@ -162,7 +157,7 @@ class DeadCodeEngine(BaseEngine):
     def _ordered_python_sources(self, source_dirs: list[Path]) -> list[Path]:
         """Return source files in configured root precedence order."""
 
-        sources = get_all_python_sources(self.project_root, self.config)
+        sources = self.project_python_sources()
         ordered: list[Path] = []
         seen: set[Path] = set()
         for source_dir in source_dirs:

@@ -4,8 +4,6 @@ import os
 import sys
 from pathlib import Path
 
-from ici.core.project import get_source_dirs
-
 
 class TestInterpreterMixin:
     """Mixin providing interpreter resolution for pytest/coverage."""
@@ -34,7 +32,7 @@ class TestInterpreterMixin:
 
     def _build_python_test_env(self) -> dict[str, str]:
         env = os.environ.copy()
-        source_paths = [str(d) for d in get_source_dirs(self.project_root, self.config)]  # type: ignore[attr-defined]
+        source_paths = [str(path) for path in self.project_source_dirs()]  # type: ignore[attr-defined]
         if source_paths:
             env["PYTHONPATH"] = ":".join([*source_paths, env.get("PYTHONPATH", "")])
         if env.get("WSL_DISTRO_NAME") and Path("/tmp").is_dir():

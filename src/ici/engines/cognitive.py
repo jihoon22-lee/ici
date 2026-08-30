@@ -4,7 +4,6 @@ import ast
 import time
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
-from ici.core.project import get_all_python_sources
 from ici.engines.base import BaseEngine
 
 
@@ -84,7 +83,7 @@ class CognitiveEngine(BaseEngine):
         targets: list[InspectionTarget] = []
         max_cog = 0
 
-        for py_file in get_all_python_sources(self.project_root, self.config):
+        for py_file in self.project_python_sources():
             try:
                 content = py_file.read_text(encoding="utf-8", errors="ignore")
                 tree = ast.parse(content, filename=str(py_file))

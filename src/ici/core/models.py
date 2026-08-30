@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from ici.core.capabilities import CapabilityInventory
+    from ici.core.context import AnalysisContext, ArtifactManifest
 
 
 class EngineStatus(str, Enum):
@@ -270,6 +271,7 @@ class EngineResult:
     tool_evidence: list[ToolEvidence] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
     support_matrix: SupportMatrix | None = None
+    artifact_manifests: tuple[ArtifactManifest, ...] = ()
 
 
 def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
@@ -362,6 +364,7 @@ class VerificationSuiteResult:
     analysis_metadata: AnalysisMetadata | None = None
     baseline_comparison: BaselineComparison | None = None
     capability_inventory: CapabilityInventory | None = None
+    analysis_context: AnalysisContext | None = None
 
     @property
     def passed_count(self) -> int:
