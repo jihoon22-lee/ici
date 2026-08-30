@@ -17,18 +17,19 @@ from ici.core.models import (
 REDACTED = "***REDACTED***"
 
 _QUOTED_SECRET_ASSIGNMENT_RE = re.compile(
-    r"(?i)(?P<key>password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token)"
+    r"(?i)(?P<key>password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)"
     r"(?P<op>\s*[=:]\s*)(?P<quote>[\"'])(?P<value>[^\r\n]*?)(?P=quote)"
 )
 _SECRET_ASSIGNMENT_RE = re.compile(
-    r"(?i)(?P<key>password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token)"
-    r"(?P<op>\s*[=:]\s*)(?P<value>[^\s,;\"']{6,})"
+    r"(?i)(?P<key>password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)"
+    r"(?P<op>\s*[=:]\s*)(?P<value>[^\s,;\"']+)"
 )
 _PRIVATE_KEY_RE = re.compile(
-    r"-----BEGIN (?P<kind>[A-Z ]*PRIVATE KEY)-----.*?-----END (?P=kind)-----",
+    r"-----BEGIN (?P<kind>[A-Z ]*PRIVATE KEY)-----.*?"
+    r"(?:-----END (?P=kind)-----|\Z)",
     re.DOTALL,
 )
-_BEARER_RE = re.compile(r"(?i)(\bBearer\s+)[A-Za-z0-9._~+/=-]{8,}")
+_BEARER_RE = re.compile(r"(?i)(\bBearer\s+)[A-Za-z0-9._~+/=-]+")
 _FLAG_VALUE_RE = re.compile(
     r"(?i)(--?(?:password|passwd|secret|token|api[_-]?key)(?:=|\s+))([^\s]+)"
 )
@@ -67,7 +68,7 @@ def redact_data(value: Any) -> Any:
     if isinstance(value, str):
         return redact_text(value)
     if isinstance(value, dict):
-        return {str(key): redact_data(item) for key, item in value.items()}
+        return {redact_text(str(key)): redact_data(item) for key, item in value.items()}
     if isinstance(value, list):
         return [redact_data(item) for item in value]
     if isinstance(value, tuple):
@@ -106,6 +107,9 @@ def _redact_finding(finding: Finding) -> Finding:
         message=redact_text(finding.message),
         explanation=redact_text(finding.explanation),
         remediation=redact_text(finding.remediation),
+        tool_rule_id=redact_text(finding.tool_rule_id),
+        tool_name=redact_text(finding.tool_name),
+        tool_version=redact_text(finding.tool_version),
         snippet=redact_text(finding.snippet),
         suppression=suppression,
     )
@@ -127,6 +131,9 @@ def redact_engine_result(result: EngineResult) -> EngineResult:
     tools = [
         replace(
             tool,
+            name=redact_text(tool.name),
+            path=redact_text(tool.path),
+            version=redact_text(tool.version),
             argv=_redact_argv(tool.argv),
             error=redact_text(tool.error),
         )

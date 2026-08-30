@@ -220,9 +220,7 @@ def _canonical_location(
     return replace(location, path=canonical_project_path(location.path, project_root))
 
 
-def canonicalize_finding(
-    finding: Finding, project_root: str | Path | None = None
-) -> Finding:
+def canonicalize_finding(finding: Finding, project_root: str | Path | None = None) -> Finding:
     """Normalize a native finding and derive its identity from canonical fields."""
 
     if not re.fullmatch(r"ici\.[a-z0-9][a-z0-9.-]*", finding.rule_id):

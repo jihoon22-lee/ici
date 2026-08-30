@@ -2,6 +2,7 @@ import io
 import json
 from pathlib import Path
 
+import pytest
 from rich.console import Console
 
 from ici.core.findings import canonical_project_path, finding_fingerprint, findings_for_result
@@ -163,6 +164,20 @@ def test_canonical_path_and_fingerprint_are_checkout_and_separator_independent()
     assert posix_finding.fingerprint == windows_finding.fingerprint
 
 
+@pytest.mark.parametrize(
+    ("path", "root"),
+    [
+        ("../outside.py", None),
+        ("/tmp/outside.py", None),
+        ("/tmp/other/outside.py", "/tmp/project"),
+        (r"D:\other\outside.cpp", r"C:\project"),
+    ],
+)
+def test_canonical_path_rejects_escape_and_unscoped_absolute_paths(path, root):
+    with pytest.raises(ValueError):
+        canonical_project_path(path, root)
+
+
 def test_symbol_fingerprint_survives_line_move_but_region_fingerprint_does_not():
     symbol_a = SourceLocation(path="src/a.py", start_line=10, label="run")
     symbol_b = SourceLocation(path="src/a.py", start_line=90, label="run")
@@ -232,13 +247,22 @@ def test_redaction_covers_all_result_text_and_every_reporter(tmp_path, monkeypat
         "AKIA1234567890ABCDEF",
         "sk-abcdefghijklmnopqrstuv",
         "PRIVATE-BODY",
+        "TRUNCATED-BODY",
+        "pathsecret",
+        "toolsecret",
+        "keysecret",
     ]
     result = _legacy_result()
     result.summary = 'password="correct horse battery staple"'
     result.targets[0].message = "api_key=supersecret123"
     result.targets[0].snippet = "client_secret='tokenvalue123'"
     result.raw_output = "Authorization: Bearer tokenvalue123"
-    result.extra = {"pem": "-----BEGIN PRIVATE KEY-----\nPRIVATE-BODY\n-----END PRIVATE KEY-----"}
+    result.extra = {
+        "pem": "-----BEGIN PRIVATE KEY-----\nPRIVATE-BODY\n-----END PRIVATE KEY-----",
+        "truncated": "-----BEGIN RSA PRIVATE KEY-----\nTRUNCATED-BODY",
+        "password=keysecret": "Bearer xy",
+    }
+    result.tool_evidence[0].path = "/tmp/api_key=pathsecret"
     result.tool_evidence[0].argv = ["scanner", "--token", "tokenvalue123"]
     result.tool_evidence[0].error = "credential AKIA1234567890ABCDEF"
     result.findings = [
@@ -252,6 +276,7 @@ def test_redaction_covers_all_result_text_and_every_reporter(tmp_path, monkeypat
             message="ghp_abcdefghijklmnopqrstuvwxyz",
             explanation="api_key=supersecret123",
             remediation="replace --password tokenvalue123",
+            tool_name="token=toolsecret",
             snippet="sk-abcdefghijklmnopqrstuv",
             suppression=FindingSuppression(reason="password=supersecret123"),
         )
