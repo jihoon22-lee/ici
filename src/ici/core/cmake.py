@@ -471,17 +471,35 @@ def run_tests(session: BuildSession, env: dict[str, str] | None = None) -> list[
     result = run_process(argv, cwd=session.shadow, env=env)
     _record(session, "make check", argv, result)
 
-    # -xunitxml only means something to a QtTest binary. A qmake project whose
-    # tests roll their own main() ignores it and prints whatever it likes, so
-    # the structured read comes first and the make transcript is the fallback.
-    # Without the fallback such a project reports zero tests and the engine
-    # calls that "no tests ran" — a green-looking gate over a suite that
-    # actually passed.
-    combined = result.stdout + result.stderr
-    parsed = parse_qtest_xunit(combined)
-    if parsed:
-        return parsed
-    return parse_make_check_stdout(combined, result.returncode)
+    return _qmake_results(result.stdout + result.stderr, result.returncode)
+
+
+def _qmake_results(output: str, returncode: int) -> list[TestCaseResult]:
+    """Read a `make check` run, per test binary.
+
+    The transcript is authoritative, not the XML. -xunitxml only means something
+    to a QtTest binary, and a real qmake project mixes those with tests that
+    roll their own main() and ignore the flag. Preferring the XML would report
+    the QtTest binaries and silently drop every other one — a green gate over
+    tests nobody looked at.
+
+    Per binary also matches what CTest reports, so the two backends count the
+    same kind of thing. QtTest's per-function detail is not lost: make stops at
+    the first failing binary, so any failures in the XML belong to it.
+    """
+
+    results = parse_make_check_stdout(output, returncode)
+    if not results:
+        return parse_qtest_xunit(output)
+
+    failures = [case for case in parse_qtest_xunit(output) if not case.passed]
+    if not failures:
+        return results
+    detail = "; ".join(f"{case.name}: {case.message}".strip(": ") for case in failures)
+    return [
+        case if case.passed else TestCaseResult(case.name, False, f"{case.message} — {detail}")
+        for case in results
+    ]
 
 
 def collect_coverage(session: BuildSession) -> Path | None:

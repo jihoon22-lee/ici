@@ -508,3 +508,39 @@ def test_make_check_blames_the_last_started_test_on_an_unattributed_failure():
 
 def test_make_check_with_no_invocations_reports_nothing():
     assert parse_make_check_stdout("nothing here\n", 0) == []
+
+
+_MAKE_CHECK_MIXED = """./test_format -xunitxml
+All checks passed
+./test_scanner -xunitxml
+All checks passed
+./test_widget -xunitxml
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="TestWidget" tests="2" failures="1">
+  <testcase result="pass" name="opens"/>
+  <testcase result="fail" name="clicks">
+    <failure result="fail" message="no signal emitted"/>
+  </testcase>
+</testsuite>
+make[2]: *** [Makefile.test_widget:88: check] Error 2
+"""
+
+
+def test_mixed_qmake_output_does_not_drop_the_plain_tests():
+    # A real qmake project mixes QtTest binaries with tests that roll their own
+    # main() and ignore -xunitxml. Preferring the XML would report only the
+    # QtTest binary and silently drop the other two — a green gate over tests
+    # nobody looked at.
+    results = cmake_mod._qmake_results(_MAKE_CHECK_MIXED, 2)
+    assert [r.name for r in results] == ["test_format", "test_scanner", "test_widget"]
+    assert results[0].passed is True
+    assert results[1].passed is True
+    assert results[2].passed is False
+    # QtTest's per-function detail survives on the binary that failed.
+    assert "clicks" in results[2].message
+    assert "no signal emitted" in results[2].message
+
+
+def test_pure_qtest_output_still_reports_per_binary():
+    results = cmake_mod._qmake_results(_MAKE_CHECK_OK, 0)
+    assert [r.name for r in results] == ["test_format", "test_scanner"]
