@@ -14,6 +14,7 @@ from ici import __version__
 from ici.config import ConfigError, load_config
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
 from ici.core.redaction import redact_engine_result
+from ici.core.support import evaluate_support_matrix
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
 from ici.engines.cognitive import CognitiveEngine  # noqa: F401
@@ -216,8 +217,16 @@ def _run_engine_command(
 ):
     # Resolve via module attribute so tests can monkeypatch engine classes.
     engine_cls = getattr(sys.modules[__name__], engine_cls_name)
-    engine = _create_engine(engine_cls, _effective_config(ctx))
-    res = redact_engine_result(engine.run())
+    config = _effective_config(ctx)
+    engine = _create_engine(engine_cls, config)
+    raw_result = engine.run()
+    raw_result.support_matrix = evaluate_support_matrix(
+        Path.cwd().resolve(),
+        config,
+        [raw_result],
+        engine_names={raw_result.engine_name},
+    )
+    res = redact_engine_result(raw_result)
     _print_engine_result(res)
     if res.engine_name == "line":
         extra = res.extra

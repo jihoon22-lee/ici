@@ -12,12 +12,14 @@ from ici.core.findings import findings_for_result, validate_source_region
 from ici.core.models import (
     EngineResult,
     EngineStatus,
+    EngineSupport,
     EvidenceState,
     Finding,
     FindingMetric,
     FindingSuppression,
     InspectionTarget,
     SourceLocation,
+    SupportMatrix,
     ToolEvidence,
     VerificationSuiteResult,
 )
@@ -155,6 +157,81 @@ def _serialize_tool_evidence(tool: ToolEvidence) -> dict[str, Any]:
     }
 
 
+def _serialize_string_list(
+    values: list[str], field_name: str, *, unique: bool = False
+) -> list[str]:
+    if not isinstance(values, list):
+        raise ValueError(f"{field_name} must be an array of strings")
+    serialized = [_require_string(value, f"{field_name} item", nonempty=True) for value in values]
+    if unique and len(serialized) != len(set(serialized)):
+        raise ValueError(f"{field_name} must not contain duplicates")
+    return serialized
+
+
+def _serialize_support_entry(entry: EngineSupport) -> dict[str, Any]:
+    if type(entry.applicable) is not bool or type(entry.enabled) is not bool:
+        raise ValueError("support applicable/enabled must be booleans")
+    if entry.mode.value == "unsupported" and entry.applicable:
+        raise ValueError("unsupported support entry cannot be applicable")
+    if (not entry.applicable or not entry.enabled) and entry.active_mode is not None:
+        raise ValueError("inactive support entry cannot declare active_mode")
+    if entry.evidence in (EvidenceState.NOT_APPLICABLE, EvidenceState.NOT_RUN):
+        if entry.active_mode is not None:
+            raise ValueError("unobserved support entry cannot declare active_mode")
+    elif entry.applicable and entry.enabled and entry.active_mode is None:
+        raise ValueError("observed support entry must declare active_mode")
+    required_tools = _serialize_string_list(
+        entry.required_tools, "support.required_tools", unique=True
+    )
+    optional_tools = _serialize_string_list(
+        entry.optional_tools, "support.optional_tools", unique=True
+    )
+    if set(required_tools) & set(optional_tools):
+        raise ValueError("support tool cannot be both required and optional")
+    return {
+        "engine_name": _require_string(entry.engine_name, "support.engine_name", nonempty=True),
+        "language": entry.language.value,
+        "mode": entry.mode.value,
+        "active_mode": entry.active_mode.value if entry.active_mode is not None else None,
+        "applicable": entry.applicable,
+        "enabled": entry.enabled,
+        "evidence": entry.evidence.value,
+        "confidence": entry.confidence.value,
+        "frameworks": _serialize_string_list(entry.frameworks, "support.frameworks", unique=True),
+        "required_tools": required_tools,
+        "optional_tools": optional_tools,
+        "fallback_mode": entry.fallback_mode.value if entry.fallback_mode is not None else None,
+        "limitations": _serialize_string_list(entry.limitations, "support.limitations"),
+        "reason": _require_string(entry.reason, "support.reason"),
+    }
+
+
+def serialize_support_matrix(matrix: SupportMatrix | None) -> dict[str, Any] | None:
+    """Serialize a project capability matrix using the v3 enum vocabulary."""
+
+    if matrix is None:
+        return None
+    if not isinstance(matrix.project_languages, list):
+        raise ValueError("support.project_languages must be an array")
+    project_languages = [item.value for item in matrix.project_languages]
+    if len(project_languages) != len(set(project_languages)):
+        raise ValueError("support.project_languages must not contain duplicates")
+    if not isinstance(matrix.entries, list) or not all(
+        isinstance(entry, EngineSupport) for entry in matrix.entries
+    ):
+        raise ValueError("support.entries must be an array of EngineSupport values")
+    entry_keys = [(entry.engine_name, entry.language.value) for entry in matrix.entries]
+    if len(entry_keys) != len(set(entry_keys)):
+        raise ValueError("support.entries must contain unique engine/language pairs")
+    return {
+        "project_languages": project_languages,
+        "project_frameworks": _serialize_string_list(
+            matrix.project_frameworks, "support.project_frameworks", unique=True
+        ),
+        "entries": [_serialize_support_entry(entry) for entry in matrix.entries],
+    }
+
+
 def serialize_engine_result(
     result: EngineResult, project_root: str | Path | None = None
 ) -> dict[str, Any]:
@@ -184,6 +261,7 @@ def serialize_engine_result(
             _serialize_finding(finding)
             for finding in findings_for_result(safe, project_root=project_root)
         ],
+        "support_matrix": serialize_support_matrix(safe.support_matrix),
     }
 
 
@@ -210,6 +288,7 @@ def serialize_suite_result(
         "results": [
             serialize_engine_result(result, project_root=project_root) for result in safe.results
         ],
+        "support_matrix": serialize_support_matrix(safe.support_matrix),
     }
 
 

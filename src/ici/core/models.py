@@ -61,6 +61,51 @@ class SuppressionKind(str, Enum):
     BASELINE = "baseline"
 
 
+class SupportLanguage(str, Enum):
+    """Source-language scopes declared by analysis engines."""
+
+    PYTHON = "python"
+    CPP = "cpp"
+
+
+class AnalysisMode(str, Enum):
+    """How an engine obtains a result for one language scope."""
+
+    EXACT = "exact"
+    HEURISTIC = "heuristic"
+    TOOL_BACKED = "tool-backed"
+    UNSUPPORTED = "unsupported"
+
+
+@dataclass
+class EngineSupport:
+    """Declared and observed support for one engine/language pair."""
+
+    engine_name: str
+    language: SupportLanguage
+    mode: AnalysisMode
+    active_mode: AnalysisMode | None
+    applicable: bool
+    enabled: bool
+    evidence: EvidenceState
+    confidence: FindingConfidence
+    frameworks: list[str] = field(default_factory=list)
+    required_tools: list[str] = field(default_factory=list)
+    optional_tools: list[str] = field(default_factory=list)
+    fallback_mode: AnalysisMode | None = None
+    limitations: list[str] = field(default_factory=list)
+    reason: str = ""
+
+
+@dataclass
+class SupportMatrix:
+    """Project scope and every engine's evaluated language support."""
+
+    project_languages: list[SupportLanguage] = field(default_factory=list)
+    project_frameworks: list[str] = field(default_factory=list)
+    entries: list[EngineSupport] = field(default_factory=list)
+
+
 @dataclass
 class ToolEvidence:
     """Records the tool invocation that produced an engine result."""
@@ -159,6 +204,7 @@ class EngineResult:
     evidence: EvidenceState = EvidenceState.MEASURED
     tool_evidence: list[ToolEvidence] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
+    support_matrix: SupportMatrix | None = None
 
 
 def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
@@ -240,6 +286,7 @@ class VerificationSuiteResult:
     duration: float = 0.0
     tem_score: float | None = None
     max_tem_score: float = 5.0
+    support_matrix: SupportMatrix | None = None
 
     @property
     def passed_count(self) -> int:

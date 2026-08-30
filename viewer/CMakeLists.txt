@@ -76,6 +76,25 @@ foreach(name IN ITEMS json_parser report_model summary)
     add_test(NAME test_${name} COMMAND test_${name} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endforeach()
 
+# Exercise the user-facing summary against a report carrying the capability
+# contract. Keeping this Qt-free makes the output contract test run in the
+# static CLI build as well as in either Qt matrix.
+foreach(check IN ITEMS scope header framework_row)
+    add_test(
+        NAME test_cli_support_matrix_${check}
+        COMMAND icirv ${CMAKE_SOURCE_DIR}/tests/data/support_matrix_v3.json
+    )
+endforeach()
+set_tests_properties(
+    test_cli_support_matrix_scope
+    PROPERTIES PASS_REGULAR_EXPRESSION "Project scope: languages=python, cpp  frameworks=qt"
+)
+set_tests_properties(test_cli_support_matrix_header PROPERTIES PASS_REGULAR_EXPRESSION "Capabilities:")
+set_tests_properties(
+    test_cli_support_matrix_framework_row
+    PROPERTIES PASS_REGULAR_EXPRESSION "type/cpp [(]qt[)]"
+)
+
 if(ICIRV_BUILD_GUI)
     # The Qt shell test links the widget library and exercises replacement
     # failures after a real report has already populated the window.

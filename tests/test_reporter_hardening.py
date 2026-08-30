@@ -7,10 +7,15 @@ from pathlib import Path
 import pytest
 
 from ici.core.models import (
+    AnalysisMode,
     EngineResult,
     EngineStatus,
+    EngineSupport,
     EvidenceState,
+    FindingConfidence,
     InspectionTarget,
+    SupportLanguage,
+    SupportMatrix,
     ToolEvidence,
     VerificationSuiteResult,
     exit_code_for_status,
@@ -197,6 +202,84 @@ def test_html_attribute_context_encodes_line_breaks_and_distinguishes_error(
     assert _get_status_theme(EngineStatus.ERROR) != _get_status_theme(EngineStatus.FAIL)
     assert "WARN 및 FAIL 항목" not in content
     assert "ERROR/SKIP" in content
+
+
+def test_html_support_matrix_is_issues_first_and_escapes_every_field(tmp_path: Path):
+    matrix = SupportMatrix(
+        project_languages=[SupportLanguage.PYTHON],
+        project_frameworks=["qt<script>", "framework & name"],
+        entries=[
+            EngineSupport(
+                engine_name="lint</script>",
+                language=SupportLanguage.PYTHON,
+                mode=AnalysisMode.TOOL_BACKED,
+                active_mode=AnalysisMode.HEURISTIC,
+                applicable=True,
+                enabled=True,
+                evidence=EvidenceState.ESTIMATED,
+                confidence=FindingConfidence.MEDIUM,
+                frameworks=["web'&"],
+                required_tools=["ruff<tool>"],
+                optional_tools=['tool"quote'],
+                fallback_mode=AnalysisMode.HEURISTIC,
+                limitations=["limit <one>", "limit & two"],
+                reason="reason <script>alert('x')</script>",
+            ),
+            EngineSupport(
+                engine_name="line",
+                language=SupportLanguage.PYTHON,
+                mode=AnalysisMode.EXACT,
+                active_mode=AnalysisMode.EXACT,
+                applicable=True,
+                enabled=True,
+                evidence=EvidenceState.MEASURED,
+                confidence=FindingConfidence.EXACT,
+                reason="measured",
+            ),
+        ],
+    )
+    suite = VerificationSuiteResult(
+        suite_status=EngineStatus.PASS,
+        results=[EngineResult("line", EngineStatus.PASS, "ok")],
+        support_matrix=matrix,
+    )
+
+    output = tmp_path / "support-report.html"
+    generate_html_report(suite, output, base_dir=tmp_path)
+    content = output.read_text(encoding="utf-8")
+
+    assert 'id="tab-support"' in content
+    assert "Project languages" in content
+    assert "Project frameworks" in content
+    assert "Declared mode" in content
+    assert "Active mode" in content
+    assert "Required tools" in content
+    assert "Optional tools" in content
+    assert "Fallback" in content
+    assert "Limitations" in content
+    assert "Reason" in content
+    support_content = content[content.index('id="tab-support"') :]
+    assert support_content.index("lint&lt;/script&gt;") < support_content.index(">line</strong>")
+    assert "qt&lt;script&gt;" in content
+    assert "framework &amp; name" in content
+    assert "reason &lt;script&gt;alert(&#x27;x&#x27;)&lt;/script&gt;" in content
+    assert "<script>alert('x')</script>" not in content
+    assert "lint</script>" not in content
+    assert "onclick=" not in content
+
+
+def test_html_omits_support_tab_for_legacy_suite_without_matrix(tmp_path: Path):
+    suite = VerificationSuiteResult(
+        suite_status=EngineStatus.PASS,
+        results=[EngineResult("line", EngineStatus.PASS, "ok")],
+    )
+
+    output = tmp_path / "legacy-report.html"
+    generate_html_report(suite, output, base_dir=tmp_path)
+    content = output.read_text(encoding="utf-8")
+
+    assert 'id="tab-support"' not in content
+    assert "Support &amp; Capabilities" not in content
 
 
 def test_html_location_protocols_encode_path_segments_safely():

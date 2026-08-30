@@ -188,6 +188,100 @@
         "error": { "type": "string" }
       }
     },
+    "analysisMode": {
+      "type": "string",
+      "enum": ["exact", "heuristic", "tool-backed", "unsupported"]
+    },
+    "nullableAnalysisMode": {
+      "oneOf": [
+        { "$ref": "#/$defs/analysisMode" },
+        { "type": "null" }
+      ]
+    },
+    "supportEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine_name",
+        "language",
+        "mode",
+        "active_mode",
+        "applicable",
+        "enabled",
+        "evidence",
+        "confidence",
+        "frameworks",
+        "required_tools",
+        "optional_tools",
+        "fallback_mode",
+        "limitations",
+        "reason"
+      ],
+      "properties": {
+        "engine_name": { "type": "string", "minLength": 1 },
+        "language": { "type": "string", "enum": ["python", "cpp"] },
+        "mode": { "$ref": "#/$defs/analysisMode" },
+        "active_mode": { "$ref": "#/$defs/nullableAnalysisMode" },
+        "applicable": { "type": "boolean" },
+        "enabled": { "type": "boolean" },
+        "evidence": {
+          "type": "string",
+          "enum": ["MEASURED", "ESTIMATED", "NOT_RUN", "NOT_APPLICABLE"]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["exact", "high", "medium", "low"]
+        },
+        "frameworks": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_tools": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "optional_tools": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "fallback_mode": { "$ref": "#/$defs/nullableAnalysisMode" },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "reason": { "type": "string" }
+      }
+    },
+    "supportMatrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project_languages", "project_frameworks", "entries"],
+      "properties": {
+        "project_languages": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["python", "cpp"] },
+          "uniqueItems": true
+        },
+        "project_frameworks": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "entries": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/supportEntry" }
+        }
+      }
+    },
+    "nullableSupportMatrix": {
+      "oneOf": [
+        { "$ref": "#/$defs/supportMatrix" },
+        { "type": "null" }
+      ]
+    },
     "engine": {
       "type": "object",
       "additionalProperties": true,
@@ -233,7 +327,8 @@
         "findings": {
           "type": "array",
           "items": { "$ref": "#/$defs/finding" }
-        }
+        },
+        "support_matrix": { "$ref": "#/$defs/nullableSupportMatrix" }
       }
     },
     "suite": {
@@ -268,7 +363,8 @@
         "results": {
           "type": "array",
           "items": { "$ref": "#/$defs/engine" }
-        }
+        },
+        "support_matrix": { "$ref": "#/$defs/nullableSupportMatrix" }
       }
     }
   }

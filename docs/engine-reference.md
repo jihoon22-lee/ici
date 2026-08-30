@@ -146,6 +146,42 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 속성으로만 전달됩니다. 리포터의 JavaScript는 정적인 이벤트 위임으로 이 값을 읽으므로
 경로·메시지에 따옴표나 HTML/스크립트 문자열이 포함되어도 실행 코드로 해석되지 않습니다.
 
+### 1.4 엔진 지원·기능 매트릭스
+
+아래 표는 설명용으로 손으로 관리하지 않습니다. `ici.core.support`의 실행 가능한 선언에서
+생성하며 테스트가 이 블록과 선언의 완전한 일치를 확인합니다. `Qt` 표시는 별도 언어나
+Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소스를 포함하거나 CMake/qmake
+어댑터로 Qt 테스트를 실행할 수 있다는 호환성 표기입니다. 실제 프로젝트 보고서는 발견된
+언어·프레임워크와 활성 정책을 적용해 각 행의 `applicable`, `enabled`, `active_mode`,
+`evidence`, `confidence`, 필수·선택 도구, fallback과 현재 한계를 함께 기록합니다.
+
+<!-- ici:support-matrix:start -->
+| Engine | Python | C++ / Qt |
+|---|---|---|
+| `line` | exact | exact (Qt) |
+| `lint` | tool-backed → heuristic fallback | tool-backed (Qt) |
+| `test` | tool-backed → heuristic fallback | tool-backed (Qt) → heuristic fallback |
+| `type` | tool-backed → heuristic fallback | unsupported |
+| `cognitive` | heuristic | unsupported |
+| `resource` | heuristic | unsupported |
+| `security` | heuristic | unsupported |
+| `cycle` | heuristic | heuristic (Qt) |
+| `complexity` | heuristic | heuristic (Qt) |
+| `sanitize` | tool-backed | tool-backed (Qt) |
+| `dead` | heuristic | unsupported |
+| `dup` | heuristic | heuristic (Qt) |
+| `exception` | heuristic | heuristic (Qt) |
+<!-- ici:support-matrix:end -->
+
+표의 mode는 다음 뜻입니다.
+
+- `exact`: 소스 텍스트의 결정적 값을 계산합니다. 의미적 정확성을 넓게 주장하지 않습니다.
+- `tool-backed`: 외부 compiler/test/lint/type 도구의 실제 실행 증거를 사용합니다.
+- `heuristic`: AST, 경량 parser, token 또는 pattern 기반으로 한계를 명시하는 분석입니다.
+- `unsupported`: 현재 그 언어를 분석하지 않습니다. 언어가 없거나 지원하지 않는 행은
+  `NOT_APPLICABLE`, 대상이 있지만 실행하지 못한 행은 `NOT_RUN`, 제한된 fallback만 수행한
+  행은 `ESTIMATED`로 남으므로 미지원 범위가 PASS로 보이지 않습니다.
+
 ## 2. 검증 엔진 상세
 
 ### 2.1 📏 `line` (코드 라인 및 파일 크기 분석기)

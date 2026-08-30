@@ -12,6 +12,7 @@ from ici.core.models import (
     FindingMetric,
     FindingSuppression,
     SourceLocation,
+    SupportMatrix,
     VerificationSuiteResult,
 )
 
@@ -145,6 +146,28 @@ def _redact_finding(finding: Finding) -> Finding:
     )
 
 
+def _redact_support_matrix(matrix: SupportMatrix | None) -> SupportMatrix | None:
+    if matrix is None:
+        return None
+    entries = [
+        replace(
+            entry,
+            engine_name=redact_text(entry.engine_name),
+            frameworks=[redact_text(value) for value in entry.frameworks],
+            required_tools=[redact_text(value) for value in entry.required_tools],
+            optional_tools=[redact_text(value) for value in entry.optional_tools],
+            limitations=[redact_text(value) for value in entry.limitations],
+            reason=redact_text(entry.reason),
+        )
+        for entry in matrix.entries
+    ]
+    return replace(
+        matrix,
+        project_frameworks=[redact_text(value) for value in matrix.project_frameworks],
+        entries=entries,
+    )
+
+
 def redact_engine_result(result: EngineResult) -> EngineResult:
     """Return a reporting-safe copy of an engine result."""
 
@@ -178,10 +201,15 @@ def redact_engine_result(result: EngineResult) -> EngineResult:
         extra=redact_data(result.extra),
         tool_evidence=tools,
         findings=[_redact_finding(finding) for finding in result.findings],
+        support_matrix=_redact_support_matrix(result.support_matrix),
     )
 
 
 def redact_suite(suite: VerificationSuiteResult) -> VerificationSuiteResult:
     """Return a reporting-safe suite shared by every output format."""
 
-    return replace(suite, results=[redact_engine_result(result) for result in suite.results])
+    return replace(
+        suite,
+        results=[redact_engine_result(result) for result in suite.results],
+        support_matrix=_redact_support_matrix(suite.support_matrix),
+    )

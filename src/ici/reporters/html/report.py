@@ -13,6 +13,7 @@ from ici.reporters.html.sections.issues import _render_issues_section
 from ici.reporters.html.sections.line import _render_line_section
 from ici.reporters.html.sections.static_analysis import _render_static_analysis_section
 from ici.reporters.html.sections.summary import _render_engine_table_rows, _render_tem_card
+from ici.reporters.html.sections.support import _render_support_section
 from ici.reporters.html.sections.test import _render_test_section
 from ici.reporters.html.sections.type_check import _render_type_section
 from ici.reporters.html.utils import _extract_suite_data, _get_status_theme
@@ -50,7 +51,21 @@ def generate_html_report(
     security_engines = [eng_map[name] for name in ("security", "resource") if name in eng_map]
     security_tab_content = _render_static_analysis_section(security_engines, base)
     issues_tab_content = _render_issues_section(all_issues, base)
+    support_tab_content = _render_support_section(suite.support_matrix)
     tem_score_card = _render_tem_card(suite.tem_score)
+
+    support_tab_button = (
+        '<button class="tab-btn" id="btn-support" data-tab-target="tab-support">'
+        "🧭 Support &amp; Capabilities"
+        "</button>"
+        if support_tab_content
+        else ""
+    )
+    support_tab_panel = (
+        f'<div id="tab-support" class="tab-content">{support_tab_content}</div>'
+        if support_tab_content
+        else ""
+    )
 
     dup_res = eng_map.get("dup")
     clone_groups_count = len(dup_res.extra.get("clone_groups", [])) if dup_res else 0
@@ -163,6 +178,7 @@ def generate_html_report(
   <!-- Tabs Navigation -->
   <div class="tabs">
     <button class="tab-btn active" id="btn-summary" data-tab-target="tab-summary">📋 Verification Suites</button>
+    {support_tab_button}
     <button class="tab-btn" id="btn-line" data-tab-target="tab-line">📊 Line Analysis & Explorer</button>
     <button class="tab-btn" id="btn-test" data-tab-target="tab-test">🧪 Tests & Coverage ({t_passed}/{t_total})</button>
     <button class="tab-btn" id="btn-complexity" data-tab-target="tab-complexity">🧩 Complexity</button>
@@ -190,6 +206,8 @@ def generate_html_report(
       </tbody>
     </table>
   </div>
+
+  {support_tab_panel}
 
   <!-- Tab 2: Line Analysis & Real Tree Explorer -->
   <div id="tab-line" class="tab-content">

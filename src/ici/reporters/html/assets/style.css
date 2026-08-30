@@ -472,6 +472,120 @@
     font-weight: 600;
   }
 
+  /* Evaluated support and capability matrix */
+  .support-section { display: flex; flex-direction: column; gap: 1.25rem; }
+  .support-scope-card { margin-bottom: 0; }
+  .support-section-heading, .support-matrix-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.1rem;
+  }
+  .support-section-heading h2, .support-matrix-heading h2 {
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+  .support-section-heading p, .support-matrix-heading p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+  .support-scope-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.9rem;
+  }
+  .support-scope-item {
+    background: #090e17;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+  }
+  .support-label {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .support-pill-list { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.45rem; }
+  .support-pill {
+    background: #1f293d;
+    border: 1px solid var(--border-highlight);
+    border-radius: 9999px;
+    color: #e2e8f0;
+    display: inline-block;
+    font-size: 0.78rem;
+    padding: 0.16rem 0.55rem;
+  }
+  .support-none { color: var(--text-muted); font-style: italic; }
+  .support-matrix-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .support-matrix-heading { padding: 1.25rem 1.5rem 0; margin-bottom: 0.85rem; }
+  .support-entry-list { display: flex; flex-direction: column; gap: 0.55rem; padding: 0 1rem 1rem; }
+  .support-entry {
+    background: #090e17;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-highlight);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .support-entry-attention { border-left-color: var(--warn); }
+  .support-entry-healthy { border-left-color: var(--pass); }
+  .support-entry-summary {
+    align-items: center;
+    cursor: pointer;
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: minmax(100px, 1fr) minmax(80px, 0.7fr) minmax(220px, 1.5fr) auto;
+    list-style: none;
+    padding: 0.75rem 0.9rem;
+  }
+  .support-entry-summary::-webkit-details-marker { display: none; }
+  .support-entry-summary:hover { background: var(--card-hover); }
+  .support-entry-title { color: #fff; font-size: 0.92rem; font-weight: 700; }
+  .support-entry-language { color: #a5b4fc; font-size: 0.82rem; font-weight: 600; }
+  .support-entry-mode { color: #e2e8f0; font-size: 0.8rem; }
+  .support-entry-mode code { color: var(--primary); }
+  .support-arrow { color: var(--text-muted); margin: 0 0.25rem; }
+  .support-badge {
+    border: 1px solid var(--border-highlight);
+    border-radius: 6px;
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 0.2rem 0.5rem;
+    white-space: nowrap;
+  }
+  .support-badge-healthy { background: rgba(16, 185, 129, 0.12); border-color: #10b98166; color: var(--pass); }
+  .support-badge-attention { background: rgba(245, 158, 11, 0.12); border-color: #f59e0b66; color: var(--warn); }
+  .support-badge-neutral { background: rgba(156, 163, 175, 0.1); color: var(--text-muted); }
+  .support-fields {
+    border-top: 1px solid var(--border);
+    display: grid;
+    gap: 0;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    padding: 0.75rem 0.9rem 0.9rem;
+  }
+  .support-field { min-width: 0; padding: 0.45rem 0.55rem; }
+  .support-field dt { color: var(--text-muted); font-size: 0.72rem; font-weight: 700; margin-bottom: 0.2rem; text-transform: uppercase; }
+  .support-field dd { color: #e5e7eb; font-size: 0.83rem; overflow-wrap: anywhere; }
+  .support-field dd code { color: var(--primary); }
+  .support-list { display: flex; flex-direction: column; gap: 0.2rem; margin: 0; padding-left: 1.1rem; }
+  .support-list li { color: #d1d5db; }
+  @media (max-width: 900px) {
+    .support-entry-summary { grid-template-columns: 1fr auto; }
+    .support-entry-language, .support-entry-mode { grid-column: 1 / -1; }
+  }
+
   /* Complexity Leaderboard */
   .cc-card {
     background: var(--card-bg);

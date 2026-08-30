@@ -92,8 +92,8 @@ ici/
 │       │   └── publish.py           # GitHub HTML 리포트 퍼블리셔 (gh-pages/hub)
 │       └── reporters/               # 다중 리포터 계층
 │           ├── console.py           # Rich 터미널 대시보드 & file:// 링크
-│           ├── html.py              # 6개 전용 탭 Zero-CDN HTML 대시보드
-│           ├── html_assets.py       # HTML 내장 CSS 및 JavaScript 자산 모듈
+│           ├── html/                # 10개 전용 탭 Zero-CDN HTML 대시보드
+│           ├── html_assets.py       # 이전 import 호환 facade
 │           ├── markdown.py          # GitHub Actions Summary & PR 코멘트
 │           └── json_rep.py          # JSON 리포트 직렬화기
 ├── tests/                           # Pytest 단위 테스트 스위트
@@ -167,6 +167,9 @@ ici/
   - `suite_status`: 전체 집계 상태. 필수 `ERROR`/`SKIP`/`NOT_RUN`은 `ERROR`, 필수 `FAIL`은 `FAIL`, 경고 또는 선택 검증의 비측정 결과는 `WARN`으로 집계합니다.
   - `results`: 각 엔진 결과 목록
   - `tem_score`: TEM 종합 품질 점수
+  - `support_matrix`: 발견된 Python/C++ 및 Qt scope에 대해 중앙 엔진 선언을 적용한 결과입니다.
+    선언 mode와 실제 active mode, 적용·활성 여부, evidence/confidence, 필수·선택 도구,
+    fallback 및 limitation을 보존합니다. reporter와 viewer는 이를 다시 계산하지 않습니다.
   - JSON writer는 `ici.result/v3`를 사용합니다. 기존 `targets`와 엔진·도구 증거를 보존하면서
     `findings`를 추가하므로 점진적으로 소비자를 전환할 수 있습니다. v2 archive는 migration
     helper와 v2/v3 겸용 viewer로 계속 읽을 수 있습니다. 기계 검증 계약은
@@ -192,7 +195,7 @@ suppression reason·metric·파일 경로에 포함된 credential은 마스킹�
    - 안전한 `file://` URI와 Rich 링크 마크업을 통한 터미널 파일 위치 원클릭 이동
 2. **`HtmlReporter`**: 브라우저 독립형 대시보드
    - Zero-CDN 인라인 CSS/JS 구조
-   - 9개 전용 탭: `Summary`, `Line & Tree`, `Tests & Coverage`, `Static Types`, `Complexity`, `Clone Groups`, `Cycles`, `Security & Resources`, `Issues`
+   - 10개 전용 탭: `Summary`, `Support & Capabilities`, `Line & Tree`, `Tests & Coverage`, `Static Types`, `Complexity`, `Clone Groups`, `Cycles`, `Security & Resources`, `Issues`
    - 계층형 디렉토리 트리 뷰 (depth별 들여쓰기 및 언어별 아이콘)
    - 원본 소스 코드 블록 인스펙터
 3. **`MarkdownReporter`**: CI/CD 파이프라인 최적화

@@ -8,6 +8,9 @@
 ## [Unreleased]
 
 ### Added
+- **실행 가능한 엔진 support/capability matrix**: 13개 엔진의 Python/C++ 지원을 `exact`, `heuristic`, `tool-backed`, `unsupported` mode와 Qt 호환성, 필수·선택 도구, fallback, 신뢰도 및 알려진 한계로 중앙 선언합니다. 프로젝트 소스와 유효 정책을 적용해 `applicable`/`enabled`/`active_mode`를 계산하며, 실행 증거를 `MEASURED`·`ESTIMATED`·`NOT_RUN`·`NOT_APPLICABLE`과 일관되게 연결합니다.
+  - 전체 verify와 단독 엔진의 `ici.result/v3` JSON, `ici doctor --json`은 동일한 구조를 사용합니다. v3 schema의 matrix 필드는 이전 v3 archive를 깨뜨리지 않도록 선택 사항이고 새 writer는 항상 object 또는 `null`을 기록합니다.
+  - `doctor`, zero-CDN HTML, Qt viewer가 같은 행을 표시하며, 미지원 또는 실행하지 못한 범위를 PASS로 보이지 않게 합니다. 문서의 지원 표는 중앙 선언에서 생성되고 회귀 테스트로 정확히 일치하는지 검증합니다.
 - **`ici.result/v3` finding 계약**: 모든 엔진의 기존 `InspectionTarget`을 안정적인 ici rule id, category/severity/confidence, canonical project-relative 위치, 관련 위치, 설명·개선안, suppression 근거, 단위가 붙은 숫자 metric과 SHA-256 fingerprint를 가진 `Finding`으로 함께 직렬화합니다. 기존 `targets`는 이행 기간 동안 그대로 보존하며 v2→v3 migration helper와 배포되는 JSON Schema를 제공합니다.
   - fingerprint는 checkout root와 Windows/POSIX separator에 무관하며 symbol이 있으면 줄 이동에도 유지되고, symbol이 없으면 정확한 region 변화에 반응합니다. native v3 finding도 출력 경계에서 동일한 경로·fingerprint 규칙으로 정규화합니다.
   - viewer는 새 v3와 보관된 v2 리포트를 모두 읽습니다. 현재 UI는 호환용 `targets`를 계속 표시하므로 writer 전환과 viewer 전환을 한 번에 강제하지 않습니다.

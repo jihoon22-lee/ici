@@ -99,3 +99,58 @@ inline std::string minimalV3Report() {
   ]
 })";
 }
+
+// A v3 suite carrying the evaluated project scope and two representative
+// capability rows. The producer contract requires every support entry field;
+// keeping that shape in one fixture lets the model and GUI tests share it.
+inline std::string supportMatrixReport(const std::string& matrix) {
+    return std::string(R"({
+  "schema_version": "ici.result/v3",
+  "suite_status": "PASS",
+  "passed_count": 1, "warned_count": 0, "failed_count": 0,
+  "error_count": 0, "skipped_count": 0, "total_count": 1,
+  "tem_score": 5.0, "max_tem_score": 5.0,
+  "results": [
+    {"engine_name": "lint", "status": "PASS", "summary": "clean",
+     "required": true, "evidence": "MEASURED", "targets": [], "tool_evidence": []}
+  ],
+  "producer_extension": {"kept": true},
+  "support_matrix": )") + matrix + R"(
+})";
+}
+
+inline std::string validSupportMatrixReport() {
+    return supportMatrixReport(R"({
+    "project_languages": ["python", "cpp"],
+    "project_frameworks": ["qt"],
+    "entries": [
+      {
+        "engine_name": "lint", "language": "python", "mode": "tool-backed",
+        "active_mode": "heuristic", "applicable": true, "enabled": true,
+        "evidence": "ESTIMATED", "confidence": "medium",
+        "frameworks": [], "required_tools": [], "optional_tools": ["ruff"],
+        "fallback_mode": "heuristic", "limitations": ["AST fallback"],
+        "reason": "Ruff was unavailable"
+      },
+      {
+        "engine_name": "type", "language": "cpp", "mode": "unsupported",
+        "active_mode": null, "applicable": false, "enabled": true,
+        "evidence": "NOT_APPLICABLE", "confidence": "low",
+        "frameworks": ["qt"], "required_tools": [], "optional_tools": [],
+        "fallback_mode": null, "limitations": ["No C++ type analyzer"],
+        "reason": "type does not support cpp"
+      }
+    ],
+    "future_matrix_field": "ignored"
+  })");
+}
+
+inline std::string nullSupportMatrixReport() { return supportMatrixReport("null"); }
+
+inline std::string malformedSupportMatrixReport() {
+    return supportMatrixReport(R"({
+    "project_languages": ["python", 7],
+    "project_frameworks": [],
+    "entries": []
+  })");
+}
