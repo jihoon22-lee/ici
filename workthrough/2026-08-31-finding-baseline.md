@@ -145,13 +145,18 @@ single/multi sticky comment의 escape를 포함한다.
 
 ### Final measurement placeholders
 
-최종 main 병합 전 측정값은 후보 commit과 CI 결과를 기준으로 다시 기록해야 한다.
+로컬 release candidate에서 전체 품질 게이트와 실제 baseline 왕복을 확인했다.
 
 - PR: TODO — GitHub PR 번호와 URL
 - CI/Merge Gate: TODO — workflow run ID와 모든 required job 결과
-- 최종 self-verify: TODO — release candidate pyz의 suite status, engine count, test count,
-  TEM, coverage와 baseline report evidence
-- 전체 테스트 최종 수: TODO — main 기준으로 갱신
+- 전체 테스트: Python 3.10에서 732개 통과, Ruff check/format 통과
+- 패키징: pure-Python 10개 배포판, certifi 없음, 재현 가능한 2.0 MiB pyz와 smoke 통과
+- self-verify: WARN(Pass 8/Warn 4/Fail 0/Error 0), 732/732, TEM 4.82,
+  line/branch/function 87.6%/78.6%/96.5%
+- baseline 왕복: 2,783 unchanged, new/moved/resolved/regressed/gated 0,
+  fail-on-new PASSED, compatibility warning 0
+- 결과 소비: Draft 2020-12 schema 검증, 0 external reference zero-CDN HTML,
+  saved-JSON publish summary와 기존 C++ viewer parse 통과
 
 ## I1-4 boundary and next steps
 

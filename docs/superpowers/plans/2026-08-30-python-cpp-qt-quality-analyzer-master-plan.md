@@ -268,13 +268,16 @@ new·unchanged·moved·resolved 전체 inventory와 new/regressed gated subset�
 duplicate fingerprint는 occurrence 단위로 비교한다. console/Markdown/HTML/JSON과 GitHub
 single·multi-project sticky comment에서 같은 baseline summary를 확인하도록 연결했다.
 
-- 단위·회귀 테스트: tests/test_baseline.py, tests/test_verify_orchestrator.py,
-  tests/test_baseline_reporters.py, tests/test_cli.py, tests/test_publish.py — TODO: 최종
-  통과 수를 main 기준으로 다시 기록한다.
+- 단위·회귀 테스트: Python 3.10 전체 732개 통과. baseline 집중 경로는
+  tests/test_baseline.py, tests/test_verify_orchestrator.py,
+  tests/test_baseline_reporters.py, tests/test_cli.py, tests/test_publish.py가 담당한다.
 - PR: TODO: GitHub PR 번호와 URL
 - CI/Merge Gate: TODO: 최종 workflow run 및 모든 required job 결과
-- 최종 self-verify: TODO: release candidate pyz의 suite status, engine counts, test count,
-  TEM, coverage 및 baseline report evidence
+- 로컬 release-candidate pyz self-verify: WARN(Pass 8/Warn 4/Fail 0/Error 0), 732/732,
+  TEM 4.82, line/branch/function 87.6%/78.6%/96.5%. 동일 소스 baseline 왕복에서
+  2,783 unchanged, new/moved/resolved/regressed/gated 0, fail-on-new PASSED를 확인했고,
+  v3 Draft 2020-12 schema, 0 external reference zero-CDN HTML, publish summary, 기존 C++
+  viewer parse를 모두 통과했다.
 
 I1-4가 남아 있으므로 I1 전체 checkpoint는 아직 완료로 표시하지 않는다.
 
