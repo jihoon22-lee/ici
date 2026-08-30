@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from ici.core.cmake import BACKEND_CMAKE, BuildSession
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
 from ici.engines.build import BuildEngine
@@ -371,7 +372,7 @@ def test_unsafe_pyproject_script_name_is_structured_error(tmp_path):
     assert not (tmp_path.parent / "escape").exists()
 
 
-@pytest.mark.parametrize("descriptor", ["CMakeLists.txt", "project.pro", "Makefile", "build.mk"])
+@pytest.mark.parametrize("descriptor", ["Makefile", "build.mk"])
 def test_cpp_descriptor_requires_adapter_without_invoking_gxx(tmp_path, monkeypatch, descriptor):
     src = tmp_path / "src"
     src.mkdir()
@@ -563,3 +564,92 @@ def test_dot_source_root_excludes_current_target_on_rebuild(tmp_path):
     assert sorted(path.relative_to(target / "lib") for path in (target / "lib").rglob("*.py")) == [
         Path("src/pkg.py")
     ]
+
+
+def test_cmake_project_is_built_through_the_adapter(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    _write_project(tmp_path, "cpp")
+
+    shadow = tmp_path / "build" / "ici-cmake"
+
+    def _fake_configure(root, options=None):
+        # The engine now passes ConfigureOptions(coverage=False): release
+        # artifacts must not be instrumented.
+        assert options is not None and options.coverage is False
+        shadow.mkdir(parents=True, exist_ok=True)
+        return BuildSession(
+            root=root,
+            shadow=shadow,
+            backend=BACKEND_CMAKE,
+            descriptor="CMakeLists.txt",
+            reason="CMakeLists.txt at the project root selected the CMake backend",
+            configured=True,
+        )
+
+    def _fake_build(session):
+        binary = session.shadow / "app"
+        binary.write_bytes(b"\x7fELF")
+        binary.chmod(0o755)
+        return True
+
+    monkeypatch.setattr("ici.engines.build.adapter_configure", _fake_configure)
+    monkeypatch.setattr("ici.engines.build.adapter_build", _fake_build)
+
+    result = BuildEngine(tmp_path).run()
+
+    # Before this change the engine refused outright with
+    # "C++ build descriptor requires an adapter".
+    assert result.status is not EngineStatus.ERROR
+    assert "requires an adapter" not in result.summary
+
+
+def test_makefile_only_project_still_refuses_with_a_precise_reason(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    (tmp_path / "Makefile").write_text("all:\n\t@true\n", encoding="utf-8")
+    _write_project(tmp_path, "cpp")
+
+    result = BuildEngine(tmp_path).run()
+
+    assert result.status is EngineStatus.ERROR
+    # The old message predates the adapters existing at all. Now that CMake and
+    # qmake are handled, it has to say which adapter is missing.
+    messages = " ".join(t.message for t in result.targets)
+    assert "Makefile" in messages
+    assert "CMake and qmake" in messages
+
+
+@pytest.mark.parametrize("descriptor", ["CMakeLists.txt", "project.pro"])
+def test_adapter_path_never_falls_back_to_gxx(tmp_path, monkeypatch, descriptor):
+    """The adapter replaces the generic g++ link; it must not run alongside it."""
+
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    (tmp_path / descriptor).write_text("# descriptor\n", encoding="utf-8")
+    _write_project(tmp_path, "cpp")
+
+    monkeypatch.setattr(
+        "ici.engines.build.run_process",
+        lambda *_args, **_kwargs: pytest.fail("the adapter path must not invoke g++"),
+    )
+    monkeypatch.setattr(
+        "ici.engines.build.adapter_configure",
+        lambda root, options=None: BuildSession(
+            root=root,
+            shadow=root / "build" / "ici-cmake",
+            backend=BACKEND_CMAKE,
+            descriptor=descriptor,
+            reason="selected for this test",
+        ),
+    )
+
+    result = BuildEngine(tmp_path).run()
+
+    # configure() reported nothing configured, so this is an unmeasured build,
+    # not an inapplicable one.
+    assert result.status == EngineStatus.ERROR

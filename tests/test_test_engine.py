@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from ici.core.cmake import BACKEND_CMAKE, BuildSession, TestCaseResult
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
 from ici.engines.test import TestEngine
@@ -1355,3 +1356,89 @@ def test_required_coverage_exit_five_stays_zero_test_failure(tmp_path: Path, mon
         target.target_name == "[Python] Tests" and target.status == EngineStatus.FAIL
         for target in result.targets
     )
+
+
+def _cmake_project(root):
+    (root / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    src = root / "src"
+    src.mkdir(exist_ok=True)
+    (src / "model.cpp").write_text("int f() { return 1; }\n", encoding="utf-8")
+    tests = root / "tests"
+    tests.mkdir(exist_ok=True)
+    (tests / "test_model.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    (root / "ici.toml").write_text(
+        'name = "x"\ntype = "cpp"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+
+
+def _configured_session(root, shadow):
+    return BuildSession(
+        root=root,
+        shadow=shadow,
+        backend=BACKEND_CMAKE,
+        descriptor="CMakeLists.txt",
+        reason="root CMakeLists.txt",
+        configured=True,
+    )
+
+
+def test_cpp_tests_run_through_the_adapter(tmp_path, monkeypatch):
+    _cmake_project(tmp_path)
+    shadow = tmp_path / "build" / "ici-cmake"
+
+    monkeypatch.setattr(
+        "ici.engines.test.adapter_configure",
+        lambda root, options=None: _configured_session(root, shadow),
+    )
+    monkeypatch.setattr("ici.engines.test.adapter_build", lambda _s: True)
+    monkeypatch.setattr(
+        "ici.engines.test.adapter_run_tests",
+        lambda _s: [
+            TestCaseResult("test_model", True),
+            TestCaseResult("test_broken", False, "assertion failed"),
+        ],
+    )
+    monkeypatch.setattr("ici.engines.test.adapter_collect_coverage", lambda _s: None)
+
+    result = TestEngine(tmp_path).run()
+
+    names = {t.target_name for t in result.targets}
+    assert any("test_model" in n for n in names)
+    assert any("test_broken" in n for n in names)
+    failed = [t for t in result.targets if t.status is EngineStatus.FAIL]
+    assert any("assertion failed" in t.message for t in failed)
+
+
+def test_adapter_test_target_points_at_its_source_file(tmp_path, monkeypatch):
+    _cmake_project(tmp_path)
+    shadow = tmp_path / "build" / "ici-cmake"
+    monkeypatch.setattr(
+        "ici.engines.test.adapter_configure",
+        lambda root, options=None: _configured_session(root, shadow),
+    )
+    monkeypatch.setattr("ici.engines.test.adapter_build", lambda _s: True)
+    monkeypatch.setattr(
+        "ici.engines.test.adapter_run_tests", lambda _s: [TestCaseResult("test_model", True)]
+    )
+    monkeypatch.setattr("ici.engines.test.adapter_collect_coverage", lambda _s: None)
+
+    result = TestEngine(tmp_path).run()
+
+    # AGENTS.md 5-1 requires a file path on every target. CTest reports only a
+    # name, so the engine resolves it against tests/ by stem.
+    target = next(t for t in result.targets if "test_model" in t.target_name)
+    assert target.file_path == "tests/test_model.cpp"
+
+
+def test_adapter_build_failure_is_a_fail_not_a_silent_pass(tmp_path, monkeypatch):
+    _cmake_project(tmp_path)
+    shadow = tmp_path / "build" / "ici-cmake"
+    session = _configured_session(tmp_path, shadow)
+    session.errors.append("cmake build failed: undefined reference to vtable for LogModel")
+    monkeypatch.setattr("ici.engines.test.adapter_configure", lambda _root, options=None: session)
+    monkeypatch.setattr("ici.engines.test.adapter_build", lambda _s: False)
+
+    result = TestEngine(tmp_path).run()
+
+    assert result.status in (EngineStatus.FAIL, EngineStatus.ERROR)
+    assert any("vtable" in t.message for t in result.targets)

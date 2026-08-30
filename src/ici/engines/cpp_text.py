@@ -11,8 +11,11 @@ have to survive the masking.
 """
 
 import re
+from pathlib import Path
 
 CPP_RAW_START_RE = re.compile(r'(?:u8|u|U|L)?R"(?P<delimiter>[^\s()\\]{0,16})\(')
+
+MAIN_DEFINITION_RE = re.compile(r"\bint\s+main\s*\([^{};]*\)\s*(?:noexcept\s*)?\{")
 
 
 def blank_cpp_region(chars: list[str], start: int, end: int) -> None:
@@ -77,3 +80,24 @@ def mask_cpp_literals(text: str) -> str:
             continue
         index += 1
     return "".join(chars)
+
+
+def defines_main(path: Path) -> bool:
+    """Whether a translation unit defines an entry point.
+
+    Coverage scope uses this. A ``main()`` is not unit-testable by construction,
+    and the generic g++ path has always kept entry points out of the test link,
+    so they never reached gcov. Counting them on the adapter path would drop a
+    project's coverage the moment it moved to CMake, for code that did not
+    change.
+
+    An unreadable file is reported as *not* an entry point, so it stays inside
+    coverage scope. Dropping a file from measurement because it could not be
+    read would be the silent kind of gap this gate exists to catch.
+    """
+
+    try:
+        text = mask_cpp_literals(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError):
+        return False
+    return MAIN_DEFINITION_RE.search(text) is not None

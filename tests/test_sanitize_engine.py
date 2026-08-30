@@ -2,6 +2,7 @@
 
 import pytest
 
+from ici.core.cmake import BACKEND_CMAKE, BuildSession
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
 from ici.engines.sanitize import SanitizeEngine
@@ -622,3 +623,41 @@ def test_cpp_test_sources_exclude_external_symlinks(tmp_path):
     sources = SanitizeEngine(tmp_path)._cpp_test_sources()
 
     assert sources == [inside.resolve()]
+
+
+def test_adapter_build_failure_is_not_reported_as_inapplicable(tmp_path, monkeypatch):
+    """A sanitizer build that failed is an unmeasured scope, not an absent one.
+
+    Appending an ERROR target is not enough on its own: with no measured and no
+    skipped scopes the status logic falls through to SKIP/NOT_APPLICABLE, and a
+    failed build gets reported as "this engine does not apply here". That is the
+    inverse of the §3.2 rule — a scope that existed and was not measured has to
+    keep blocking the gate.
+    """
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "lib.cpp").write_text("int twice(int a) { return a * 2; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_lib.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+
+    session = BuildSession(
+        root=tmp_path,
+        shadow=tmp_path / "build" / "ici-cmake-asan",
+        backend=BACKEND_CMAKE,
+        descriptor="CMakeLists.txt",
+        reason="root CMakeLists.txt",
+        configured=True,
+    )
+    session.errors.append("cmake build failed: cannot specify -static with -fsanitize=address")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.adapter_configure", lambda _root, _options=None: session
+    )
+    monkeypatch.setattr("ici.engines.sanitize.adapter_build", lambda _s: False)
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert any("-static" in t.message for t in result.targets)

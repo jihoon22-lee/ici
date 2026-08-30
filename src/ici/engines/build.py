@@ -8,6 +8,9 @@ from pathlib import Path
 
 import tomli
 
+from ici.core.cmake import ConfigureOptions, select_backend
+from ici.core.cmake import build as adapter_build
+from ici.core.cmake import configure as adapter_configure
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
     EngineResult,
@@ -27,6 +30,7 @@ from ici.core.project import (
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
+from ici.engines.cpp_text import MAIN_DEFINITION_RE as _MAIN_DEFINITION_RE
 from ici.engines.cpp_text import mask_cpp_literals as _mask_cpp_literals
 
 _ENTRYPOINT_RE = re.compile(
@@ -34,7 +38,6 @@ _ENTRYPOINT_RE = re.compile(
     r"(?P<callable>[A-Za-z_][A-Za-z0-9_]*)$"
 )
 _SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
-_MAIN_DEFINITION_RE = re.compile(r"\bint\s+main\s*\([^{};]*\)\s*(?:noexcept\s*)?\{")
 
 
 class BuildEngine(BaseEngine):
@@ -390,10 +393,15 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
         bin_dir: Path,
         targets: list[InspectionTarget],
     ) -> None:
+        choice = select_backend(base)
+        if choice.kind is not None:
+            self._build_with_adapter(base, targets)
+            return
         if self._has_build_descriptor(base):
             self._record_error(
                 targets,
-                "C++ build descriptor requires an adapter; generic g++ was not invoked",
+                f"{choice.descriptor or 'A build descriptor'} at the project root has no "
+                "adapter; only CMake and qmake are supported, and generic g++ was not invoked",
             )
             return
 
@@ -584,6 +592,72 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
                     message=f"Generated {path.name}",
                 )
             )
+
+    def _build_with_adapter(self, base: Path, targets: list[InspectionTarget]) -> None:
+        """Delegate configure and build to the project's own build system."""
+
+        # No coverage and no sanitizers: these are release artifacts.
+        session = adapter_configure(base, ConfigureOptions(coverage=False, shadow_suffix="-build"))
+        if not session.configured:
+            self._tool_evidence.extend(session.tool_evidence)
+            # A configure that fails without saying why must still be
+            # diagnosable. Without this the run falls through to the generic
+            # "no artifact was created" failure, which names the wrong cause.
+            messages = session.errors or [
+                f"{session.backend} configure did not complete and reported no reason"
+            ]
+            for message in messages:
+                self._record_error(targets, message, file_path=session.descriptor or ".")
+            return
+
+        built = adapter_build(session)
+        # Copy evidence once, after every adapter call. Slicing by the engine's
+        # own list length would index into the wrong list.
+        self._tool_evidence.extend(session.tool_evidence)
+        if not built:
+            self._has_fail = True
+            for message in session.errors:
+                targets.append(
+                    InspectionTarget(
+                        file_path=session.descriptor or ".",
+                        start_line=1,
+                        target_name="BuildAdapter",
+                        status=EngineStatus.FAIL,
+                        message=message,
+                    )
+                )
+            return
+
+        produced = self._count_adapter_artifacts(session.shadow)
+        self._artifact_count += produced
+        targets.append(
+            InspectionTarget(
+                file_path=session.descriptor,
+                start_line=1,
+                target_name=f"BuildAdapter[{session.backend}]",
+                status=EngineStatus.PASS,
+                message=f"{session.reason}; produced {produced} artifact(s)",
+            )
+        )
+
+    @staticmethod
+    def _count_adapter_artifacts(shadow: Path) -> int:
+        """Count linked outputs in the shadow tree: executables and libraries."""
+
+        count = 0
+        for path in shadow.rglob("*"):
+            if not path.is_file() or path.is_symlink():
+                continue
+            if path.suffix in (".a", ".so"):
+                count += 1
+                continue
+            try:
+                is_elf = os.access(path, os.X_OK) and path.read_bytes()[:4] == b"\x7fELF"
+            except OSError:
+                continue
+            if is_elf:
+                count += 1
+        return count
 
     def _record_error(
         self,

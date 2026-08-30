@@ -4,7 +4,7 @@ import ast
 import contextlib
 import json
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ici.core.project import get_all_python_sources
@@ -209,17 +209,76 @@ def parse_coverage_json(
     return _build_coverage_result(file_data, totals)
 
 
+def _match_source_suffix(candidate: str, source_files: set[str]) -> str | None:
+    """Find the project-relative path a gcov `Source:` value refers to.
+
+    gcov records the path the compiler saw. CMake compiles with absolute paths,
+    but qmake compiles from inside the shadow tree with relative ones, so the
+    value arrives as `../../../src/format.cpp` and there is no reliable base to
+    resolve it against — the base is the object directory, which the .gcov file
+    does not name. Dropping the leading components until the remainder is a
+    known source recovers it. The set of sources is the project's own, so a
+    match is not a coincidence.
+    """
+
+    parts = PurePosixPath(candidate).parts
+    for start in range(len(parts)):
+        suffix = "/".join(parts[start:])
+        if suffix in source_files:
+            return suffix
+    return None
+
+
+def _gcov_declared_source(gcov_file: Path) -> str | None:
+    """Read the `Source:` header gcov writes as line 0 of its output."""
+
+    try:
+        with gcov_file.open(encoding="utf-8", errors="replace") as handle:
+            for _ in range(4):
+                line = handle.readline()
+                if not line:
+                    return None
+                marker = line.find("Source:")
+                if marker != -1:
+                    return line[marker + len("Source:") :].strip()
+    except OSError:
+        return None
+    return None
+
+
+def _in_scope_relative(candidate: str, source_files: set[str], project_root: Path) -> str | None:
+    """Project-relative form of a path, but only if it is a measured source.
+
+    Membership decides, not resolvability. A test source sits inside the project
+    and resolves cleanly, and counting it inflates the coverage denominator of
+    every project on the generic g++ path.
+    """
+
+    path = Path(candidate)
+    absolute = (path if path.is_absolute() else project_root / path).resolve()
+    if not absolute.is_relative_to(project_root):
+        return None
+    relative = str(absolute.relative_to(project_root))
+    return relative if relative in source_files else None
+
+
 def _gcov_source_path(gcov_file: Path, source_files: set[str], project_root: Path) -> str | None:
     candidate = gcov_file.name[:-5].replace("#", "/")
     if candidate in source_files:
         return candidate
-    try:
-        path = Path(candidate)
-        absolute = path if path.is_absolute() else project_root / path
-        relative = str(absolute.resolve().relative_to(project_root))
-    except ValueError:
+    resolved = _in_scope_relative(candidate, source_files, project_root)
+    if resolved is not None:
+        return resolved
+
+    # The filename is a mangled form of the path — gcov -p encodes "/" as "#"
+    # and ".." as "^" — so it only round-trips for absolute paths. The header
+    # inside the file is the unmangled original.
+    declared = _gcov_declared_source(gcov_file)
+    if declared is None:
         return None
-    return relative if relative in source_files else None
+    if Path(declared).is_absolute():
+        return _in_scope_relative(declared, source_files, project_root)
+    return _match_source_suffix(declared, source_files)
 
 
 def parse_gcov_dir(cov_dir: Path, source_files: set[str], project_root: Path) -> list[dict]:

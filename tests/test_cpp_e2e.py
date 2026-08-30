@@ -21,8 +21,10 @@ from pathlib import Path
 
 import pytest
 
+from ici.core.cmake import select_backend
 from ici.core.models import EngineStatus
 from ici.engines.complexity import ComplexityEngine
+from ici.engines.cpp_text import defines_main
 from ici.engines.cycle import CycleEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
@@ -142,6 +144,19 @@ def _cwd_fixture_project(tmp_path: Path) -> Path:
     return tmp_path
 
 
+def test_fixture_project_stays_on_the_generic_gxx_path(tmp_path: Path):
+    """This fixture is the regression witness for the non-adapter path.
+
+    viewer/ used to fill that role, but it has a root CMakeLists.txt and now
+    goes through the CMake adapter. If this project ever grew a root build
+    descriptor too, the generic g++ path would stop being exercised anywhere
+    and nothing would say so — the shape of C-6, where lint sat unrun in CI
+    behind a green gate.
+    """
+    root = _cwd_fixture_project(tmp_path)
+    assert select_backend(root).kind is None
+
+
 def test_cpp_tests_run_from_the_project_root(tmp_path: Path):
     """Both engines must launch a test binary from the same place."""
     root = _cwd_fixture_project(tmp_path)
@@ -155,3 +170,23 @@ def test_cpp_tests_run_from_the_project_root(tmp_path: Path):
     if sanitize_result.status == EngineStatus.ERROR:
         pytest.skip(f"sanitizer unavailable: {sanitize_result.summary}")
     assert sanitize_result.status == EngineStatus.PASS, sanitize_result.summary
+
+
+@pytest.mark.parametrize("entry_name", ["main.cpp", "gui_main.cpp", "cli.cpp"])
+def test_entry_points_are_excluded_by_the_same_rule_everywhere(tmp_path: Path, entry_name: str):
+    """test and sanitize must agree on what an entry point is.
+
+    They did not. The test engine excluded any name containing "main.cpp" while
+    sanitize matched the name exactly, so gui_main.cpp was linked by one and not
+    the other — and a second main() makes the link fail. cli.cpp defines main()
+    under a name neither substring rule would ever catch.
+
+    Engines disagreeing about scope is the shape of B-1 and C-9. One rule now.
+    """
+    entry = tmp_path / entry_name
+    entry.write_text("int main() { return 0; }\n", encoding="utf-8")
+    plain = tmp_path / "helper.cpp"
+    plain.write_text("int twice(int a) { return a * 2; }\n", encoding="utf-8")
+
+    assert defines_main(entry) is True
+    assert defines_main(plain) is False

@@ -41,7 +41,25 @@ jobs:
           uv run --python 3.10 ruff check .
           uv run --python 3.10 ruff format --check .
 
+      # Installed before pytest, not after: the build-adapter E2E tests run
+      # inside pytest and need cmake/qmake/Qt. viewer/src/gui is project source
+      # and is linted like the rest of it, so the later verify step needs Qt's
+      # headers too — not to build a GUI, but to parse one.
+      #
+      # qmake6 is a separate package from qt6-base-dev. cmake ships with the
+      # runner image.
+      - name: Install the C++ toolchain for the adapters and the C++ gate
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config
+
       - name: Unit Tests & Coverage
+        env:
+          # The adapter E2E tests skip when cmake/qmake/Qt are missing. They are
+          # present on this runner, so a skip means something broke — and a
+          # silently skipped gate is how lint went unrun for several releases
+          # (C-6).
+          ICI_REQUIRE_BUILD_ADAPTERS: "1"
         run: |
           uv run --python 3.10 pytest -v
 
@@ -71,14 +89,6 @@ jobs:
       # CI 에서 실제로 실행된다 — 그 전까지 C++ 엔진은 단위 테스트로만 덮여 있었다.
       # --github-summary 는 $GITHUB_STEP_SUMMARY 에 append 하므로, Actions 실행 요약에
       # Python 결과와 C++ 결과가 나란히 남는다. 두 리포트를 모두 볼 수 있어야 한다 —
-      # viewer/ 도 이 저장소의 소스코드다.
-      # viewer/src/gui is project source and is linted like the rest of it, so
-      # the verify job needs Qt's headers — not to build a GUI, but to parse one.
-      - name: Install Qt6 headers for the C++ gate
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qt6-base-dev pkg-config
-
       - name: 🐶 Dogfooding — C++ Gate via ici (viewer/)
         working-directory: viewer
         run: ../dist/ici.pyz verify --report --html verify_report.html --github-summary
