@@ -169,3 +169,34 @@ def test_write_baseline_normalizes_filesystem_errors(monkeypatch, tmp_path):
         VerifyOrchestrator(tmp_path, _only_lint_enabled()).run_all(
             write_baseline=".ici/baseline.json"
         )
+
+
+def test_failed_delta_gate_cannot_overwrite_its_input_baseline(monkeypatch, tmp_path):
+    class PassingEngine:
+        def __init__(self, project_root, config):
+            del project_root, config
+
+        def run(self):
+            return EngineResult("lint", EngineStatus.PASS, "clean")
+
+    comparison = BaselineComparison(
+        source_path=".ici/baseline.json",
+        fail_on_new=True,
+        gate_failed=True,
+    )
+    monkeypatch.setattr("ici.engines.verify.LintEngine", PassingEngine)
+    monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
+    monkeypatch.setattr(
+        "ici.engines.verify.compare_suite_to_baseline", lambda *args, **kwargs: comparison
+    )
+    monkeypatch.setattr(
+        "ici.engines.verify.save_json_report",
+        lambda *args, **kwargs: pytest.fail("failed gate must preserve its input baseline"),
+    )
+
+    with pytest.raises(BaselineError, match="refusing to overwrite"):
+        VerifyOrchestrator(tmp_path, _only_lint_enabled()).run_all(
+            baseline_path=".ici/baseline.json",
+            fail_on_new=True,
+            write_baseline=".ici/baseline.json",
+        )

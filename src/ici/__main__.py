@@ -78,6 +78,36 @@ def main_callback(
             raise typer.Exit(code=2) from err
 
 
+def _resolve_baseline_cli_paths(
+    root: Path,
+    *,
+    baseline: str | None,
+    write_baseline: str | None,
+    fail_on_new: bool,
+    report: bool,
+) -> tuple[Path | None, Path | None]:
+    """Validate baseline option relationships and root-contained paths."""
+
+    if fail_on_new and baseline is None:
+        typer.echo("Baseline error: --fail-on-new requires --baseline", err=True)
+        raise typer.Exit(code=2)
+    try:
+        baseline_path = resolve_project_path(root, baseline) if baseline is not None else None
+        baseline_output = (
+            resolve_project_path(root, write_baseline) if write_baseline is not None else None
+        )
+    except ValueError as err:
+        typer.echo(f"Baseline error: {err}", err=True)
+        raise typer.Exit(code=2) from err
+    if report and baseline_output == root / "verify_report.json":
+        typer.echo(
+            "Baseline error: --write-baseline must not overwrite --report output",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+    return baseline_path, baseline_output
+
+
 @app.command("verify")
 def cmd_verify(
     ctx: typer.Context,
@@ -120,23 +150,13 @@ def cmd_verify(
     if publish and not html_path:
         html_path = "verify_report.html"
 
-    if fail_on_new and baseline is None:
-        typer.echo("Baseline error: --fail-on-new requires --baseline", err=True)
-        raise typer.Exit(code=2)
-    try:
-        baseline_path = resolve_project_path(root, baseline) if baseline is not None else None
-        baseline_output = (
-            resolve_project_path(root, write_baseline) if write_baseline is not None else None
-        )
-    except ValueError as err:
-        typer.echo(f"Baseline error: {err}", err=True)
-        raise typer.Exit(code=2) from err
-    if report and baseline_output == root / "verify_report.json":
-        typer.echo(
-            "Baseline error: --write-baseline must not overwrite --report output",
-            err=True,
-        )
-        raise typer.Exit(code=2)
+    baseline_path, baseline_output = _resolve_baseline_cli_paths(
+        root,
+        baseline=baseline,
+        write_baseline=write_baseline,
+        fail_on_new=fail_on_new,
+        report=report,
+    )
 
     try:
         suite = orchestrator.run_all(
