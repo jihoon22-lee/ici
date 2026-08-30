@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree
 
+from ici.core.context import BuildVariant
 from ici.core.models import ToolEvidence
 from ici.core.runner import run_process
 
@@ -106,24 +107,46 @@ class ConfigureOptions:
     sanitizers and no coverage, since it measures crashes rather than lines.
     """
 
-    coverage: bool = True
+    variant: BuildVariant
     extra_cxx_flags: tuple[str, ...] = ()
     extra_link_flags: tuple[str, ...] = ()
-    shadow_suffix: str = ""
+
+    @property
+    def coverage(self) -> bool:
+        return self.variant is BuildVariant.COVERAGE
+
+    @property
+    def shadow_suffix(self) -> str:
+        return {
+            BuildVariant.RELEASE: "-build",
+            BuildVariant.COVERAGE: "",
+            BuildVariant.SANITIZE: "-asan",
+        }[self.variant]
 
     def cxx_flags(self) -> list[str]:
-        flags = ["--coverage"] if self.coverage else []
+        flags = {
+            BuildVariant.RELEASE: [],
+            BuildVariant.COVERAGE: ["--coverage"],
+            BuildVariant.SANITIZE: [
+                "-fsanitize=address,undefined",
+                "-fno-omit-frame-pointer",
+                "-g",
+            ],
+        }[self.variant]
         return flags + list(self.extra_cxx_flags)
 
     def link_flags(self) -> list[str]:
-        flags = ["--coverage"] if self.coverage else []
+        flags = {
+            BuildVariant.RELEASE: [],
+            BuildVariant.COVERAGE: ["--coverage"],
+            BuildVariant.SANITIZE: ["-fsanitize=address,undefined"],
+        }[self.variant]
         return flags + list(self.extra_link_flags)
 
 
 def cmake_configure_argv(
-    cmake_bin: str, root: Path, shadow: Path, options: "ConfigureOptions | None" = None
+    cmake_bin: str, root: Path, shadow: Path, options: ConfigureOptions
 ) -> list[str]:
-    options = options or ConfigureOptions()
     argv = [
         cmake_bin,
         "-S",
@@ -160,12 +183,9 @@ def cmake_test_argv(
     return argv, None
 
 
-def qmake_configure_argv(
-    qmake_bin: str, pro_file: Path, options: "ConfigureOptions | None" = None
-) -> list[str]:
+def qmake_configure_argv(qmake_bin: str, pro_file: Path, options: ConfigureOptions) -> list[str]:
     """qmake runs with the shadow directory as its cwd; the .pro path is absolute."""
 
-    options = options or ConfigureOptions()
     argv = [qmake_bin, str(pro_file)]
     argv.extend(f"QMAKE_CXXFLAGS+={flag}" for flag in options.cxx_flags())
     argv.extend(f"QMAKE_LFLAGS+={flag}" for flag in options.link_flags())
@@ -333,6 +353,7 @@ class BuildSession:
 
     root: Path
     shadow: Path
+    variant: BuildVariant = BuildVariant.COVERAGE
     backend: str | None = None
     descriptor: str = ""
     reason: str = ""
@@ -367,14 +388,14 @@ def _which(session: BuildSession, name: str) -> str | None:
     return found
 
 
-def configure(root: Path, options: ConfigureOptions | None = None) -> BuildSession:
+def configure(root: Path, options: ConfigureOptions) -> BuildSession:
     """Select a backend and configure a shadow build tree."""
 
-    options = options or ConfigureOptions()
     choice = select_backend(root)
     session = BuildSession(
         root=root,
         shadow=shadow_dir(root, choice.kind or BACKEND_CMAKE, options.shadow_suffix),
+        variant=options.variant,
         backend=choice.kind,
         descriptor=choice.descriptor,
         reason=choice.reason,

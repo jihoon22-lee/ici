@@ -7,11 +7,12 @@ import time
 from pathlib import Path
 from typing import Any
 
+from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import collect_coverage as adapter_collect_coverage
 from ici.core.cmake import configure as adapter_configure
 from ici.core.cmake import run_tests as adapter_run_tests
-from ici.core.cmake import select_backend
+from ici.core.context import BuildVariant
 from ici.core.env import (
     find_uv,  # noqa: F401 - retained for callers patching the legacy probe
     get_nas_cpp_lib_dir,
@@ -707,7 +708,10 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         self._cpp_coverage_rows = []
         self._cpp_function_rows = []
 
-        session = adapter_configure(self.project_root)
+        session = adapter_configure(
+            self.project_root,
+            ConfigureOptions(BuildVariant.COVERAGE),
+        )
 
         if not session.configured:
             self._tool_evidence.extend(session.tool_evidence)

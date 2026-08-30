@@ -13,6 +13,7 @@ from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
 from ici.core.cmake import run_tests as adapter_run_tests
+from ici.core.context import BuildVariant
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
     EngineResult,
@@ -305,12 +306,7 @@ class SanitizeEngine(BaseEngine):
         test engine does, only with -fsanitize instead of --coverage.
         """
 
-        options = ConfigureOptions(
-            coverage=False,
-            extra_cxx_flags=("-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-g"),
-            extra_link_flags=("-fsanitize=address,undefined",),
-            shadow_suffix="-asan",
-        )
+        options = ConfigureOptions(BuildVariant.SANITIZE)
         session = adapter_configure(self.project_root, options)
         self._tool_evidence.extend(session.tool_evidence)
 

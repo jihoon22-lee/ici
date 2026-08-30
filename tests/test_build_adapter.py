@@ -25,8 +25,11 @@ from ici.core.cmake import (
     select_backend,
     shadow_dir,
 )
+from ici.core.context import BuildVariant
 from ici.core.runner import ProcessResult
 from ici.engines.coverage_support import parse_gcov_dir
+
+_COVERAGE_OPTIONS = ConfigureOptions(BuildVariant.COVERAGE)
 
 
 def test_root_cmakelists_selects_cmake(tmp_path):
@@ -95,7 +98,9 @@ def test_parse_cmake_version():
 
 
 def test_cmake_configure_injects_coverage(tmp_path):
-    argv = cmake_configure_argv("/usr/bin/cmake", tmp_path, tmp_path / "build/ici-cmake")
+    argv = cmake_configure_argv(
+        "/usr/bin/cmake", tmp_path, tmp_path / "build/ici-cmake", _COVERAGE_OPTIONS
+    )
     assert argv[0] == "/usr/bin/cmake"
     assert "-S" in argv and "-B" in argv
     # Debug gives -O0 -g. Optimised builds smear gcov's line and branch mapping,
@@ -141,7 +146,7 @@ def test_ctest_unknown_version_is_most_conservative(tmp_path):
 
 def test_qmake_configure_injects_coverage(tmp_path):
     pro = tmp_path / "app.pro"
-    argv = qmake_configure_argv("/usr/bin/qmake6", pro)
+    argv = qmake_configure_argv("/usr/bin/qmake6", pro, _COVERAGE_OPTIONS)
     assert argv[0] == "/usr/bin/qmake6"
     assert str(pro) in argv
     # qmake uses its own flag variables; CMAKE_CXX_FLAGS has no effect here.
@@ -189,12 +194,12 @@ def test_qmake_build_cleans_shadow_before_parallel_build(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cmake_mod, "run_process", _run)
 
-    session = configure(tmp_path)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
     assert session.configured is True
     assert build(session) is True
 
     assert [argv for argv, _cwd in calls] == [
-        qmake_configure_argv("/opt/qt/bin/qmake6", tmp_path / "app.pro"),
+        qmake_configure_argv("/opt/qt/bin/qmake6", tmp_path / "app.pro", _COVERAGE_OPTIONS),
         ["/usr/bin/make", "clean"],
         ["/usr/bin/make", "--jobs=1"],
     ]
@@ -227,10 +232,10 @@ def test_qmake_clean_failure_stops_build_and_is_explicit(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cmake_mod, "run_process", _run)
 
-    session = configure(tmp_path)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
     assert build(session) is False
     assert calls == [
-        qmake_configure_argv("/opt/qt/bin/qmake6", tmp_path / "app.pro"),
+        qmake_configure_argv("/opt/qt/bin/qmake6", tmp_path / "app.pro", _COVERAGE_OPTIONS),
         ["/usr/bin/make", "clean"],
     ]
     assert any("clean" in error and "permission denied" in error for error in session.errors)
@@ -254,7 +259,7 @@ def test_qmake_first_shadow_still_cleans_and_builds(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cmake_mod, "run_process", _run)
 
-    session = configure(tmp_path)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
     assert not (tmp_path / "build" / "ici-qmake" / "Makefile").exists()
     assert build(session) is True
     assert calls[1:] == [["/usr/bin/make", "clean"], ["/usr/bin/make", "--jobs=1"]]
@@ -277,7 +282,7 @@ def test_cmake_build_does_not_add_qmake_clean_step(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cmake_mod, "run_process", _run)
 
-    session = configure(tmp_path)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
     assert build(session) is True
     assert calls == [
         ["/usr/bin/cmake", "--version"],
@@ -436,7 +441,7 @@ def test_configure_records_backend_reason_as_evidence(tmp_path, monkeypatch):
     monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
     monkeypatch.setattr(cmake_mod, "run_process", _ok)
 
-    session = configure(tmp_path)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
 
     assert session.backend == BACKEND_CMAKE
     assert session.configured is True
@@ -448,7 +453,7 @@ def test_configure_records_backend_reason_as_evidence(tmp_path, monkeypatch):
 
 
 def test_configure_without_descriptor_has_no_backend(tmp_path):
-    session = configure(tmp_path)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
     assert session.backend is None
     assert session.configured is False
 
@@ -457,7 +462,7 @@ def test_configure_missing_tool_is_an_error(tmp_path, monkeypatch):
     (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
     monkeypatch.setattr(cmake_mod.shutil, "which", lambda _name: None)
 
-    session = configure(tmp_path)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
 
     assert session.configured is False
     # Not NOT_APPLICABLE: there was something to build and it was not measured.
@@ -474,7 +479,7 @@ def test_configure_failure_records_stderr(tmp_path, monkeypatch):
         return ProcessResult(1, "", "CMake Error: bad target", 0.01)
 
     monkeypatch.setattr(cmake_mod, "run_process", _fail)
-    session = configure(tmp_path)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
 
     assert session.configured is False
     assert any("bad target" in err for err in session.errors)
@@ -493,7 +498,7 @@ def test_run_tests_prefers_junit_when_written(tmp_path, monkeypatch):
         return ProcessResult(0, _CTEST_STDOUT, "", 0.01)
 
     monkeypatch.setattr(cmake_mod, "run_process", _run)
-    session = configure(tmp_path)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
     results = run_tests(session)
 
     # The JUnit file has three cases; stdout has two. Proving which source was
@@ -548,35 +553,36 @@ def test_doctype_rejection_does_not_break_ordinary_documents():
     assert len(parse_qtest_xunit(_QTEST_XUNIT)) == 3
 
 
-def test_configure_options_default_to_coverage(tmp_path):
-    argv = cmake_configure_argv("/usr/bin/cmake", tmp_path, tmp_path / "s")
+def test_coverage_variant_instruments_the_build(tmp_path):
+    argv = cmake_configure_argv("/usr/bin/cmake", tmp_path, tmp_path / "s", _COVERAGE_OPTIONS)
     assert "-DCMAKE_CXX_FLAGS=--coverage" in argv
 
 
 def test_build_wants_no_instrumentation_at_all(tmp_path):
     # Shipping a coverage-instrumented release artifact would be wrong.
     argv = cmake_configure_argv(
-        "/usr/bin/cmake", tmp_path, tmp_path / "s", ConfigureOptions(coverage=False)
+        "/usr/bin/cmake",
+        tmp_path,
+        tmp_path / "s",
+        ConfigureOptions(BuildVariant.RELEASE),
     )
     assert not any(a.startswith("-DCMAKE_CXX_FLAGS") for a in argv)
     assert not any(a.startswith("-DCMAKE_EXE_LINKER_FLAGS") for a in argv)
 
 
 def test_sanitize_options_carry_the_sanitizer_and_drop_coverage(tmp_path):
-    options = ConfigureOptions(
-        coverage=False,
-        extra_cxx_flags=("-fsanitize=address,undefined",),
-        extra_link_flags=("-fsanitize=address,undefined",),
-        shadow_suffix="-asan",
-    )
+    options = ConfigureOptions(BuildVariant.SANITIZE)
     argv = cmake_configure_argv("/usr/bin/cmake", tmp_path, tmp_path / "s", options)
-    assert "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined" in argv
+    assert "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -g" in argv
     assert "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined" in argv
     assert "--coverage" not in " ".join(argv)
 
 
 def test_qmake_options_use_qmake_flag_variables(tmp_path):
-    options = ConfigureOptions(coverage=False, extra_cxx_flags=("-fsanitize=address",))
+    options = ConfigureOptions(
+        BuildVariant.RELEASE,
+        extra_cxx_flags=("-fsanitize=address",),
+    )
     argv = qmake_configure_argv("/usr/bin/qmake6", tmp_path / "a.pro", options)
     assert "QMAKE_CXXFLAGS+=-fsanitize=address" in argv
     assert not any("--coverage" in a for a in argv)
@@ -603,7 +609,7 @@ def test_run_tests_passes_the_runner_environment_through(tmp_path, monkeypatch):
         return ProcessResult(0, "", "", 0.01)
 
     monkeypatch.setattr(cmake_mod, "run_process", _run)
-    session = configure(tmp_path)
+    session = configure(tmp_path, ConfigureOptions(BuildVariant.SANITIZE))
     run_tests(session, env={"ASAN_OPTIONS": "detect_leaks=1"})
 
     assert seen and seen[-1] == {"ASAN_OPTIONS": "detect_leaks=1"}
