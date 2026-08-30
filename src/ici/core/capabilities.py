@@ -8,7 +8,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import cast
 
-from ici.core.redaction import redact_data
+from ici.core.redaction_values import redact_data
 from ici.core.toolchain import (
     DEFAULT_TOOL_PROBES,
     PROBE_OUTPUT_LIMIT,
