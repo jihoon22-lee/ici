@@ -1,4 +1,4 @@
-#include "main_window.hpp"
+#include "icirv/gui/main_window.hpp"
 
 #include <QCheckBox>
 #include <QDesktopServices>
@@ -16,7 +16,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "engine_tree_model.hpp"
+#include "icirv/gui/engine_tree_model.hpp"
 #include "icirv/summary.hpp"
 
 namespace {
