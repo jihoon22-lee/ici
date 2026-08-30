@@ -7,6 +7,7 @@ from typing import Any
 
 from ici.config import get_engine_config, load_config
 from ici.core.baseline import BaselineError, build_analysis_metadata, compare_suite_to_baseline
+from ici.core.capabilities import collect_capability_inventory, derive_tool_policy
 from ici.core.models import (
     AnalysisMetadata,
     EngineResult,
@@ -127,6 +128,17 @@ class VerifyOrchestrator:
         t0 = time.time()
         results: list[EngineResult] = []
 
+        declared_support = evaluate_support_matrix(self.project_root, self.config)
+        configured_required = {
+            str(name) for name in self.config.get("doctor", {}).get("required_tools", []) or []
+        }
+        required_by, optional_by = derive_tool_policy(declared_support, configured_required)
+        capability_inventory = collect_capability_inventory(
+            cwd=self.project_root,
+            required_by=required_by,
+            optional_by=optional_by,
+        )
+
         # Engine definitions mapping name to Engine class
         engine_defs = [
             ("line", LineCountEngine),
@@ -180,6 +192,7 @@ class VerifyOrchestrator:
             max_tem_score=5.0,
             support_matrix=support_matrix,
             analysis_metadata=metadata,
+            capability_inventory=capability_inventory,
         )
         self._apply_baseline(suite, metadata, baseline_path, fail_on_new)
         # All reporters share one sanitized suite. This prevents a secret in an

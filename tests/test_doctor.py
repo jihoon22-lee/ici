@@ -148,7 +148,8 @@ def test_collect_diagnostics_shares_full_inventory_and_legacy_tool_rows(
     assert captured["required_by"]["sentinel"] == {"doctor.config"}
     assert "test:python" in captured["required_by"]["python3"]
     assert "lint:python" in captured["optional_by"]["ruff"]
-    assert "test:python" in captured["optional_by"]["pytest"]
+    assert captured["required_by"]["pytest"] == {"sanitize:python", "test:python"}
+    assert "pytest" not in captured["optional_by"]
     assert data["capability_inventory"] is serialized
     assert data["tools"]["sentinel"] == serialized["tools"][0]
 

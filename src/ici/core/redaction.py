@@ -170,6 +170,53 @@ def _redact_support_matrix(matrix: SupportMatrix | None) -> SupportMatrix | None
     )
 
 
+def _redact_capability_inventory(inventory: Any) -> Any:
+    """Redact an immutable capability snapshot without importing it eagerly.
+
+    Capabilities depend on the shared redaction primitives, so using dataclass
+    ``replace`` here avoids a circular module import while preserving the
+    inventory's concrete type and immutable mapping contract.
+    """
+
+    if inventory is None:
+        return None
+    capabilities = {}
+    requirements = {}
+    for original_name, capability in inventory.capabilities.items():
+        base_name = redact_text(original_name)
+        safe_name = base_name
+        suffix = 2
+        while safe_name in capabilities:
+            safe_name = f"{base_name}#{suffix}"
+            suffix += 1
+        capabilities[safe_name] = replace(
+            capability,
+            name=safe_name,
+            path=redact_text(capability.path),
+            version=redact_text(capability.version),
+            error=redact_text(capability.error),
+            details=redact_data(dict(capability.details)),
+            probe_argv=tuple(_redact_argv(list(capability.probe_argv))),
+            evidence=tuple(
+                replace(
+                    item,
+                    purpose=redact_text(item.purpose),
+                    argv=tuple(_redact_argv(list(item.argv))),
+                )
+                for item in capability.evidence
+            ),
+        )
+        requirement = inventory.requirements[original_name]
+        requirements[safe_name] = replace(
+            requirement,
+            name=safe_name,
+            required_by=tuple(redact_text(value) for value in requirement.required_by),
+            optional_by=tuple(redact_text(value) for value in requirement.optional_by),
+        )
+    safe = replace(inventory, capabilities=capabilities, requirements=requirements)
+    return inventory if safe == inventory else safe
+
+
 def _redact_delta(delta: FindingDelta) -> FindingDelta:
     return replace(
         delta,
@@ -256,4 +303,5 @@ def redact_suite(suite: VerificationSuiteResult) -> VerificationSuiteResult:
         results=[redact_engine_result(result) for result in suite.results],
         support_matrix=_redact_support_matrix(suite.support_matrix),
         baseline_comparison=_redact_baseline(suite.baseline_comparison),
+        capability_inventory=_redact_capability_inventory(suite.capability_inventory),
     )
