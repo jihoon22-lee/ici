@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### Added
+- **I2-1 tool capability probes (first slice)**: 추가한 선언형 bounded·shell-free registry가 compiler/clang tools, CMake/CTest, qmake6→qmake, Make, Ninja, gcov, binutils, pkg-config, Qt5·Qt6 및 Python tooling을 탐지합니다. vendor suffix·multiline stdout/stderr version tuple parser와 compiler target triple, qmake Qt metadata, CMake generator capabilities를 기록하며, 5초/64KiB 제한·redacted immutable evidence와 available/complete 구분을 제공합니다. `doctor`/`verify` shared inventory wiring은 다음 I2-1 slice로 남아 있습니다.
 - **I1-3 baseline/delta gate**: 이전 v3 finding report를 프로젝트 내부 baseline으로 읽고, stable fingerprint와 위치 보조 정보로 finding occurrence를 new·unchanged·moved·resolved로 분류합니다.
   - 전체 inventory는 보존하면서 PR gate는 actionable한 new 또는 regressed finding만 대상으로 분리합니다. fail-on-new 정책을 켜면 gated count가 있을 때 suite가 FAIL이 되고, baseline 비교 자체가 engine 결과를 가짜로 추가하지 않습니다.
   - producer/fingerprint/analysis policy/tool policy identity가 다르면 compatibility warning으로 남기며, duplicate fingerprint도 occurrence 단위(multiset)로 비교합니다.
