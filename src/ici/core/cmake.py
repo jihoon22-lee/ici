@@ -188,6 +188,9 @@ _CTEST_LINE_RE = re.compile(
 )
 _TESTSUITE_RE = re.compile(r"<testsuite\b.*?</testsuite>", re.DOTALL)
 _DOCTYPE_RE = re.compile(r"<!DOCTYPE", re.IGNORECASE)
+# `make check` echoes each test command before running it: "./test_format -xunitxml".
+_MAKE_INVOCATION_RE = re.compile(r"^\./(?P<name>[\w.+-]+)(?:\s|$)")
+_MAKE_ERROR_RE = re.compile(r"^\s*make(?:\[\d+\])?: \*\*\* .*Error \d+")
 
 
 @dataclass(frozen=True)
@@ -467,7 +470,18 @@ def run_tests(session: BuildSession, env: dict[str, str] | None = None) -> list[
     argv = qmake_test_argv(make_bin)
     result = run_process(argv, cwd=session.shadow, env=env)
     _record(session, "make check", argv, result)
-    return parse_qtest_xunit(result.stdout)
+
+    # -xunitxml only means something to a QtTest binary. A qmake project whose
+    # tests roll their own main() ignores it and prints whatever it likes, so
+    # the structured read comes first and the make transcript is the fallback.
+    # Without the fallback such a project reports zero tests and the engine
+    # calls that "no tests ran" — a green-looking gate over a suite that
+    # actually passed.
+    combined = result.stdout + result.stderr
+    parsed = parse_qtest_xunit(combined)
+    if parsed:
+        return parsed
+    return parse_make_check_stdout(combined, result.returncode)
 
 
 def collect_coverage(session: BuildSession) -> Path | None:
@@ -485,3 +499,37 @@ def collect_coverage(session: BuildSession) -> Path | None:
         result = run_process(argv, cwd=out_dir)
         _record(session, "gcov", argv, result)
     return out_dir
+
+
+def parse_make_check_stdout(text: str, returncode: int) -> list[TestCaseResult]:
+    """Recover per-test results from a `make check` transcript.
+
+    make echoes each command before running it, so the invocations name the
+    tests. A failing test makes make print an Error line and stop, which is why
+    a non-zero exit with no attributed failure is blamed on the last test that
+    started: the ones after it never ran.
+    """
+
+    names: list[str] = []
+    failed: set[str] = set()
+    current: str | None = None
+    for line in text.splitlines():
+        match = _MAKE_INVOCATION_RE.match(line)
+        if match is not None:
+            current = match.group("name")
+            if current not in names:
+                names.append(current)
+            continue
+        if current is not None and _MAKE_ERROR_RE.match(line):
+            failed.add(current)
+
+    results = [
+        TestCaseResult(name, name not in failed, "" if name not in failed else "make check failed")
+        for name in names
+    ]
+    if returncode != 0 and not failed and results:
+        last = results[-1]
+        results[-1] = TestCaseResult(
+            last.name, False, "make check exited non-zero after this test started"
+        )
+    return results

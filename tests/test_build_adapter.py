@@ -14,6 +14,7 @@ from ici.core.cmake import (
     parse_cmake_version,
     parse_ctest_junit,
     parse_ctest_stdout,
+    parse_make_check_stdout,
     parse_qtest_xunit,
     plan_gcov,
     qmake_build_argv,
@@ -463,3 +464,47 @@ def test_run_tests_passes_the_runner_environment_through(tmp_path, monkeypatch):
     run_tests(session, env={"ASAN_OPTIONS": "detect_leaks=1"})
 
     assert seen and seen[-1] == {"ASAN_OPTIONS": "detect_leaks=1"}
+
+
+_MAKE_CHECK_OK = """make[2]: Entering directory '/b/tests'
+./test_format -xunitxml
+All checks passed
+make[2]: Leaving directory '/b/tests'
+./test_scanner -xunitxml
+All checks passed
+"""
+
+_MAKE_CHECK_FAIL = """./test_format -xunitxml
+All checks passed
+./test_scanner -xunitxml
+FAIL scanner.cpp:12
+make[2]: *** [Makefile.test_scanner:88: check] Error 1
+"""
+
+
+def test_make_check_transcript_names_the_tests():
+    # -xunitxml means nothing to a test that rolls its own main(). Without this
+    # fallback such a project reports zero tests, and "no tests ran" over a
+    # suite that actually passed is the green-gate failure this repo keeps
+    # finding.
+    results = parse_make_check_stdout(_MAKE_CHECK_OK, 0)
+    assert [r.name for r in results] == ["test_format", "test_scanner"]
+    assert all(r.passed for r in results)
+
+
+def test_make_check_attributes_a_failure_to_its_test():
+    results = parse_make_check_stdout(_MAKE_CHECK_FAIL, 2)
+    assert [r.name for r in results] == ["test_format", "test_scanner"]
+    assert results[0].passed is True
+    assert results[1].passed is False
+
+
+def test_make_check_blames_the_last_started_test_on_an_unattributed_failure():
+    # make stops at the first failure, so anything after it never ran.
+    results = parse_make_check_stdout(_MAKE_CHECK_OK, 2)
+    assert results[-1].passed is False
+    assert "non-zero" in results[-1].message
+
+
+def test_make_check_with_no_invocations_reports_nothing():
+    assert parse_make_check_stdout("nothing here\n", 0) == []
