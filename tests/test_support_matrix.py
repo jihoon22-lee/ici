@@ -4,6 +4,8 @@ import copy
 import json
 from pathlib import Path
 
+import pytest
+
 from ici.config import DEFAULT_CONFIG
 from ici.core.models import (
     AnalysisMode,
@@ -20,7 +22,7 @@ from ici.core.support import (
     render_support_markdown,
     support_declarations,
 )
-from ici.reporters.json_rep import serialize_suite_result
+from ici.reporters.json_rep import serialize_suite_result, serialize_support_matrix
 
 
 def _config(*source_dirs: str) -> dict:
@@ -201,3 +203,24 @@ def test_v3_serializer_and_schema_share_the_complete_matrix_contract(tmp_path: P
     assert schema["$defs"]["suite"]["properties"]["support_matrix"] == {
         "$ref": "#/$defs/nullableSupportMatrix"
     }
+
+
+def test_support_writer_rejects_schema_invalid_or_contradictory_entries(tmp_path: Path):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "app.py").write_text("value = 1\n", encoding="utf-8")
+    matrix = evaluate_support_matrix(tmp_path, _config("src"))
+
+    matrix.entries[0].frameworks = ["qt", "qt"]
+    with pytest.raises(ValueError, match="frameworks must not contain duplicates"):
+        serialize_support_matrix(matrix)
+
+    matrix.entries[0].frameworks = []
+    matrix.entries[0].active_mode = AnalysisMode.EXACT
+    with pytest.raises(ValueError, match="unobserved support entry"):
+        serialize_support_matrix(matrix)
+
+    matrix.entries[0].active_mode = None
+    matrix.entries.append(matrix.entries[0])
+    with pytest.raises(ValueError, match="unique engine/language"):
+        serialize_support_matrix(matrix)
