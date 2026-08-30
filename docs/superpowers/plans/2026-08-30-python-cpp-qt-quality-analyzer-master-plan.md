@@ -245,10 +245,11 @@ untyped body에서만 발생했고 모두 Python 3.10 호환 시그니처로 정
 - [x] 문서의 B-3 언어 지원 범위를 실제 선언에서 생성하거나 검증한다.
 
 **완료 측정(2026-08-31):** 13개 엔진 × Python/C++ 26개 선언·평가 행, v3 object/null 호환
-직렬화, doctor/JSON/HTML 및 viewer 표시 경로를 연결했다. I1-2 집중 회귀 범위는 registry,
-scope/evidence/policy, schema/redaction, doctor/reporter/CLI/orchestrator와 viewer의
-parser·GUI 표시·legacy/오류 초기화이며, 지원 표는 registry 생성 출력과 exact-match 검증으로
-동기화한다.
+직렬화, doctor/JSON/HTML 및 viewer 표시 경로를 연결했다. 최종 `dist/ici.pyz` self-verify는
+WARN(Pass 8/Warn 4/Fail 0/Error 0), 672/672, TEM 4.81, line/branch/function
+87.2%/78.7%/96.1%였고, doctor renderer complexity 초과는 `e65c742`에서 helper로 분리해
+해결했다. 실제 v3 JSON의 Draft 2020-12 검증, 26 unique rows, doctor/static declaration
+exact match, zero-CDN HTML support tab 및 viewer CLI parse도 확인했다.
 
 ### I1-3. baseline과 delta gate
 

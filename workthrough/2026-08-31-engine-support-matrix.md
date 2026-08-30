@@ -6,8 +6,10 @@
 선언으로 만들고, 프로젝트별 적용 여부와 실제 실행 증거를 같은 계약으로 내보내는 기능이다.
 `119823d`부터 `fc43a37`까지의 core/report/doctor/HTML 변경에 viewer commit `5c1d2a2`의
 통합을 연결해 총 26개 엔진·언어 행을 `ici.result/v3`, `ici doctor --json`, HTML 및 C++
-viewer에서 같은 필드로 볼 수 있게 했다. 이 매트릭스는 설치된 도구를 새로 탐지하는 inventory가 아니라,
-엔진이 주장할 수 있는 범위와 관찰된 결과를 과장 없이 구분하는 capability contract다.
+viewer에서 같은 필드로 볼 수 있게 했다. 최종 self-verify에서 doctor capability renderer의
+복잡도 초과가 발견되어 `e65c742`로 렌더링을 분리한 뒤 재검증했다. 이 매트릭스는 설치된
+도구를 새로 탐지하는 inventory가 아니라, 엔진이 주장할 수 있는 범위와 관찰된 결과를
+과장 없이 구분하는 capability contract다.
 
 ## Context and purpose
 
@@ -24,6 +26,11 @@ viewer에서 같은 필드로 볼 수 있게 했다. 이 매트릭스는 설치�
 실제로 실행하지 않았는데 PASS처럼 보이면 검증 공백을 숨긴다. I1-2는 `NOT_APPLICABLE`와
 `NOT_RUN`을 분리하고, `ESTIMATED` fallback에는 별도의 active mode와 confidence를 붙여
 이 두 문제를 동시에 해결한다.
+
+초기 matrix 표시는 동작했지만 `ici doctor`의 큰 렌더 함수가 self-verify complexity gate를
+넘는 문제가 남았다. `e65c742`는 capability 행의 language/state/tools/detail 계산과 table
+렌더링을 `_support_language`, `_support_state`, `_support_tools`, `_support_detail`,
+`_render_support_table`로 분리해 doctor shell의 복잡도를 낮췄다.
 
 ## Architecture and data flow
 
@@ -154,7 +161,14 @@ engine name, framework, required/optional tool, limitation, reason을 다른 rep
 - 문서 표는 `render_support_markdown()` 출력과
   `<!-- ici:support-matrix:start/end -->` 블록을 exact-match test로 묶었다.
 
-### 5. C++/Qt viewer integration (`5c1d2a2`)
+### 5. Doctor renderer hardening (`e65c742`)
+
+`src/ici/doctor.py`의 capability table을 작은 helper와 `_render_support_table()`로 분리했다.
+matrix 출력 내용은 바꾸지 않고 `render_doctor_table()`은 시스템/도구/경로 shell과 support
+renderer를 연결하는 역할만 맡는다. 최종 측정에서 helper 함수 complexity는 3–12, render
+shell은 10으로 self-quality 기준을 통과했다.
+
+### 6. C++/Qt viewer integration (`5c1d2a2`)
 
 viewer는 동일 v3 vocabulary를 C++ string model로 읽고 표시한다.
 
@@ -208,7 +222,7 @@ viewer는 동일 v3 vocabulary를 C++ string model로 읽고 표시한다.
 - `docs/engine-reference.md`
 - `docs/user-guide.md`
 
-### Current viewer integration files
+### Viewer integration files (`5c1d2a2`)
 
 - `viewer/CMakeLists.txt`
 - `viewer/include/icirv/report_model.hpp`
@@ -348,6 +362,26 @@ uvx ruff format --check .        90 files already formatted
 uv run --python 3.10 mypy src/ici Success: no issues found in 55 source files
 ```
 
+### Packaged self-verify and artifact checks
+
+The first packaged self-verify exposed one quality regression in the new doctor output path:
+the capability renderer reached complexity 30 and caused a doctor `FAIL`. After `e65c742`
+split the renderer, the final `dist/ici.pyz` self-verify measured:
+
+```text
+Suite status                         WARN (Pass 8 / Warn 4 / Fail 0 / Error 0)
+Tests                                672/672
+TEM                                 4.81 / 5.0
+Coverage (line / branch / function) 87.2% / 78.7% / 96.1%
+Doctor helper complexity             3–12
+Doctor render shell complexity       10
+```
+
+The produced v3 JSON validated against the Draft 2020-12 schema and contained 26 unique support
+rows. A field-level comparison found doctor output and the static declaration registry exactly
+matched; the HTML support tab remained zero-CDN; and the viewer CLI successfully parsed the
+actual generated report.
+
 ### Viewer-focused coverage
 
 The final viewer commit `5c1d2a2` was built locally with both installed Qt majors and the GUI tests
@@ -367,6 +401,8 @@ replacement failure clearing.
 
 - The feature implementation is the nine-commit range `119823d..fc43a37`; no dependency was
   added for the matrix.
+- `e65c742` is the post-dogfood doctor complexity refactor; it changes the rendering structure
+  without changing matrix fields or semantics.
 - The v3 schema keeps `support_matrix` optional at suite/engine level, while matrix internals are
   validated strictly.
 - Documentation support rows are generated from the declaration registry and compared exactly in
