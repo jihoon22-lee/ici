@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from ici.config import get_engine_config, load_config
-from ici.core.baseline import build_analysis_metadata, compare_suite_to_baseline
+from ici.core.baseline import BaselineError, build_analysis_metadata, compare_suite_to_baseline
 from ici.core.models import (
     EngineResult,
     EngineStatus,
@@ -137,17 +137,23 @@ class VerifyOrchestrator:
         suite = redact_suite(suite)
 
         if write_baseline is not None:
-            baseline_output = resolve_project_path(self.project_root, str(write_baseline))
+            try:
+                baseline_output = resolve_project_path(self.project_root, str(write_baseline))
+            except ValueError as err:
+                raise BaselineError(f"unsafe baseline output path: {err}") from err
             baseline_suite = replace(
                 suite,
                 suite_status=aggregate_suite_status(suite.results),
                 baseline_comparison=None,
             )
-            save_json_report(
-                baseline_suite,
-                baseline_output,
-                project_root=self.project_root,
-            )
+            try:
+                save_json_report(
+                    baseline_suite,
+                    baseline_output,
+                    project_root=self.project_root,
+                )
+            except OSError as err:
+                raise BaselineError(f"could not write baseline {baseline_output}: {err}") from err
 
         # 1. Terminal Console Report
         print_suite_dashboard(suite, self.project_root)

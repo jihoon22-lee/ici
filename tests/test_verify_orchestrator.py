@@ -1,5 +1,8 @@
 """Tests for verification engine isolation."""
 
+import pytest
+
+from ici.core.baseline import BaselineError
 from ici.core.models import BaselineComparison, EngineResult, EngineStatus, EvidenceState
 from ici.engines.verify import VerifyOrchestrator
 
@@ -145,3 +148,24 @@ def test_write_baseline_is_root_contained_and_excludes_transient_delta(monkeypat
     assert saved["project_root"] == tmp_path
     assert saved["suite"].baseline_comparison is None
     assert saved["suite"].analysis_metadata is not None
+
+
+def test_write_baseline_normalizes_filesystem_errors(monkeypatch, tmp_path):
+    class PassingEngine:
+        def __init__(self, project_root, config):
+            del project_root, config
+
+        def run(self):
+            return EngineResult("lint", EngineStatus.PASS, "clean")
+
+    monkeypatch.setattr("ici.engines.verify.LintEngine", PassingEngine)
+    monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
+    monkeypatch.setattr(
+        "ici.engines.verify.save_json_report",
+        lambda *args, **kwargs: (_ for _ in ()).throw(OSError("disk full")),
+    )
+
+    with pytest.raises(BaselineError, match="could not write baseline"):
+        VerifyOrchestrator(tmp_path, _only_lint_enabled()).run_all(
+            write_baseline=".ici/baseline.json"
+        )
