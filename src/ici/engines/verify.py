@@ -27,7 +27,7 @@ from ici.core.pipeline import (
     descriptors_for_profile,
 )
 from ici.core.redaction import redact_suite
-from ici.core.support import evaluate_support_matrix
+from ici.core.support import ENGINE_NAMES, evaluate_support_matrix  # noqa: F401
 from ici.engines.cognitive import CognitiveEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.complexity import ComplexityEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.cycle import CycleEngine  # noqa: F401 - dynamic descriptor factory
