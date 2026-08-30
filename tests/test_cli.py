@@ -154,7 +154,7 @@ def test_cli_verify_forwards_profile_to_orchestrator(tmp_path, monkeypatch):
 
 
 def test_cli_verify_help_documents_profile_option():
-    result = runner.invoke(app, ["verify", "--help"])
+    result = runner.invoke(app, ["verify", "--help"], color=False)
 
     assert result.exit_code == 0
     assert "--profile" in result.output
