@@ -7,6 +7,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import Any
 
 from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
@@ -48,8 +49,10 @@ _UBSAN_RUNTIME_RE = re.compile(r"(?m)^.*:\d+(?::\d+)?:\s*runtime error:\s*\S+")
 class SanitizeEngine(BaseEngine):
     """Run C++ sanitizers and Python ResourceWarning checks with evidence."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self, project_root: Path | None = None, config: dict[str, Any] | None = None
+    ) -> None:
+        super().__init__(project_root, config)
         self._tool_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
         self._measured_scopes = 0

@@ -52,8 +52,10 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
 
     __test__ = False
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self, project_root: Path | None = None, config: dict[str, Any] | None = None
+    ) -> None:
+        super().__init__(project_root, config)
         self._coverage_data: dict | None = None
         self._cpp_coverage_rows: list[dict] = []
         self._cpp_function_rows: list[dict] = []
