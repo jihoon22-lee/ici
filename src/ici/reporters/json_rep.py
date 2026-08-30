@@ -174,40 +174,57 @@ def _serialize_analysis_metadata(metadata: AnalysisMetadata | None) -> dict[str,
     }
 
 
-def _serialize_delta(delta: FindingDelta) -> dict[str, Any]:
-    if type(delta.regressed) is not bool or type(delta.suppressed) is not bool:
-        raise ValueError("finding delta regressed/suppressed must be booleans")
-    if type(delta.gated) is not bool:
-        raise ValueError("finding delta gated must be a boolean")
+def _validate_delta_presence(delta: FindingDelta) -> None:
+    """Enforce which side(s) of a delta must carry location and severity."""
+
+    has_current = delta.current_location is not None and delta.current_severity is not None
+    has_baseline = delta.baseline_location is not None and delta.baseline_severity is not None
     if delta.state == DeltaState.NEW:
-        if delta.current_location is None or delta.current_severity is None:
+        if not has_current:
             raise ValueError("new finding delta must contain current location and severity")
         if delta.baseline_location is not None or delta.baseline_severity is not None:
             raise ValueError("new finding delta must not contain baseline state")
-    elif delta.state == DeltaState.RESOLVED:
-        if delta.baseline_location is None or delta.baseline_severity is None:
+        return
+    if delta.state == DeltaState.RESOLVED:
+        if not has_baseline:
             raise ValueError("resolved finding delta must contain baseline location and severity")
         if delta.current_location is not None or delta.current_severity is not None:
             raise ValueError("resolved finding delta must not contain current state")
-    elif (
-        delta.current_location is None
-        or delta.current_severity is None
-        or delta.baseline_location is None
-        or delta.baseline_severity is None
-    ):
+        return
+    if not has_current or not has_baseline:
         raise ValueError("paired finding delta must contain current and baseline state")
+
+
+def _validate_delta_relationship(delta: FindingDelta) -> None:
     if delta.state == DeltaState.UNCHANGED and delta.current_location != delta.baseline_location:
         raise ValueError("unchanged finding delta locations must match")
     if delta.state == DeltaState.MOVED and delta.current_location == delta.baseline_location:
         raise ValueError("moved finding delta locations must differ")
     if delta.regressed and delta.state in (DeltaState.NEW, DeltaState.RESOLVED):
         raise ValueError("only paired finding deltas can be regressed")
+
+
+def _validate_delta_flags(delta: FindingDelta) -> None:
+    if type(delta.regressed) is not bool or type(delta.suppressed) is not bool:
+        raise ValueError("finding delta regressed/suppressed must be booleans")
+    if type(delta.gated) is not bool:
+        raise ValueError("finding delta gated must be a boolean")
     if delta.gated and (
         delta.suppressed
         or delta.current_severity == FindingSeverity.INFO
         or (delta.state != DeltaState.NEW and not delta.regressed)
     ):
         raise ValueError("finding delta gate state contradicts its severity or suppression")
+
+
+def _serialize_optional_location(location: SourceLocation | None) -> dict[str, Any] | None:
+    return _serialize_location(location) if location is not None else None
+
+
+def _serialize_delta(delta: FindingDelta) -> dict[str, Any]:
+    _validate_delta_presence(delta)
+    _validate_delta_relationship(delta)
+    _validate_delta_flags(delta)
     return {
         "state": delta.state.value,
         "engine_name": _require_string(
@@ -216,16 +233,8 @@ def _serialize_delta(delta: FindingDelta) -> dict[str, Any]:
         "fingerprint": _require_digest(delta.fingerprint, "baseline delta fingerprint"),
         "rule_id": _require_string(delta.rule_id, "baseline delta rule_id", nonempty=True),
         "message": _require_string(delta.message, "baseline delta message"),
-        "current_location": (
-            _serialize_location(delta.current_location)
-            if delta.current_location is not None
-            else None
-        ),
-        "baseline_location": (
-            _serialize_location(delta.baseline_location)
-            if delta.baseline_location is not None
-            else None
-        ),
+        "current_location": _serialize_optional_location(delta.current_location),
+        "baseline_location": _serialize_optional_location(delta.baseline_location),
         "current_severity": (
             delta.current_severity.value if delta.current_severity is not None else None
         ),

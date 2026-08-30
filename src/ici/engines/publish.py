@@ -1,25 +1,20 @@
 """GitHub HTML report publisher for ici (gh-pages self/hub deployment)."""
 
 import base64
-import html
 import json
 import os
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from ici.core.models import (
-    BaselineComparison,
-    DeltaState,
-    EngineResult,
-    EngineStatus,
-    VerificationSuiteResult,
-)
+from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
 from ici.core.redaction import redact_suite
+from ici.engines.publish_baseline import baseline_summary_lines as _baseline_summary_lines
+from ici.engines.publish_baseline import parse_baseline_summary as _parse_baseline_summary
 
 PUBLISH_MARKER = "<!-- ici-report -->"
 
@@ -32,181 +27,6 @@ _STATUS_EMOJI = {
     "ERROR": "⛔",
     "SKIP": "⏭️",
 }
-
-_BASELINE_COUNT_FIELDS = {
-    "new_count": DeltaState.NEW,
-    "unchanged_count": DeltaState.UNCHANGED,
-    "moved_count": DeltaState.MOVED,
-    "resolved_count": DeltaState.RESOLVED,
-}
-_BASELINE_REQUIRED_FIELDS = {
-    "source_path",
-    "warnings",
-    "baseline_metadata",
-    "fail_on_new",
-    "gate_failed",
-    *(_BASELINE_COUNT_FIELDS.keys()),
-    "regressed_count",
-    "gated_count",
-    "entries",
-}
-
-
-@dataclass
-class _LoadedBaselineComparison(BaselineComparison):
-    """A lightweight baseline comparison reconstructed from a report summary.
-
-    The loader intentionally does not rebuild every finding delta (the
-    publisher only needs the summary). The normal BaselineComparison API
-    derives counts from entries, so retain explicit, validated summary counts
-    here without manufacturing fake finding rows.
-    """
-
-    summary_counts: dict[DeltaState, int] = field(default_factory=dict, repr=False, compare=False)
-    summary_regressed_count: int = field(default=0, repr=False, compare=False)
-    summary_gated_count: int = field(default=0, repr=False, compare=False)
-
-    def count(self, state: DeltaState) -> int:
-        return self.summary_counts[state]
-
-    @property
-    def regressed_count(self) -> int:
-        return self.summary_regressed_count
-
-    @property
-    def gated_count(self) -> int:
-        return self.summary_gated_count
-
-
-def _strict_nonnegative_int(value: Any) -> int | None:
-    """Return a valid count, rejecting booleans, floats, and negatives."""
-    if type(value) is not int or value < 0:
-        return None
-    return value
-
-
-def _parse_baseline_summary(value: Any) -> BaselineComparison | None:
-    """Read a complete v3 baseline comparison without trusting malformed data."""
-    if value is None or not isinstance(value, dict):
-        return None
-    if not _BASELINE_REQUIRED_FIELDS.issubset(value):
-        return None
-
-    source_path = value.get("source_path", "")
-    if not isinstance(source_path, str) or not source_path:
-        return None
-    warnings_value = value.get("warnings", [])
-    if not isinstance(warnings_value, list) or not all(
-        isinstance(item, str) and bool(item) for item in warnings_value
-    ):
-        return None
-    baseline_metadata = value.get("baseline_metadata")
-    if baseline_metadata is not None and not isinstance(baseline_metadata, dict):
-        return None
-
-    fail_on_new = value.get("fail_on_new", False)
-    gate_failed = value.get("gate_failed", False)
-    if type(fail_on_new) is not bool or type(gate_failed) is not bool:
-        return None
-
-    summary_counts: dict[DeltaState, int] = {}
-    for field_name, state in _BASELINE_COUNT_FIELDS.items():
-        count = _strict_nonnegative_int(value[field_name])
-        if count is None:
-            return None
-        summary_counts[state] = count
-
-    summary_regressed_count = _strict_nonnegative_int(value["regressed_count"])
-    summary_gated_count = _strict_nonnegative_int(value["gated_count"])
-    if summary_regressed_count is None or summary_gated_count is None:
-        return None
-
-    entries = value["entries"]
-    if not isinstance(entries, list):
-        return None
-    entry_counts = {state: 0 for state in DeltaState}
-    entry_regressed = 0
-    entry_gated = 0
-    for item in entries:
-        if not isinstance(item, dict) or not all(
-            key in item for key in ("state", "regressed", "gated")
-        ):
-            return None
-        try:
-            state = DeltaState(item["state"])
-        except (TypeError, ValueError):
-            return None
-        regressed = item["regressed"]
-        gated = item["gated"]
-        if type(regressed) is not bool or type(gated) is not bool:
-            return None
-        if regressed and state not in (DeltaState.MOVED, DeltaState.UNCHANGED):
-            return None
-        if gated and state != DeltaState.NEW and not regressed:
-            return None
-        entry_counts[state] += 1
-        entry_regressed += int(regressed)
-        entry_gated += int(gated)
-
-    if any(summary_counts[state] != entry_counts[state] for state in DeltaState):
-        return None
-    if summary_regressed_count != entry_regressed or summary_gated_count != entry_gated:
-        return None
-    if gate_failed != (fail_on_new and summary_gated_count > 0):
-        return None
-
-    return _LoadedBaselineComparison(
-        source_path=source_path,
-        warnings=list(warnings_value),
-        baseline_metadata=None,
-        fail_on_new=fail_on_new,
-        gate_failed=gate_failed,
-        summary_counts=summary_counts,
-        summary_regressed_count=summary_regressed_count,
-        summary_gated_count=summary_gated_count,
-    )
-
-
-def _escape_comment_value(value: str) -> str:
-    """Keep report-derived text on one safe Markdown line."""
-    compact = " ".join(value.replace("\r", "\n").splitlines())
-    return html.escape(compact, quote=False).replace(chr(96), "&#96;").replace("|", "&#124;")
-
-
-def _baseline_summary_lines(suite: VerificationSuiteResult | None) -> list[str]:
-    """Render a compact baseline summary for a single project comment block."""
-    comparison = suite.baseline_comparison if suite is not None else None
-    if comparison is None:
-        return []
-
-    if isinstance(comparison, _LoadedBaselineComparison):
-        new_count = str(comparison.summary_counts[DeltaState.NEW])
-        regressed_count = str(comparison.summary_regressed_count)
-        gated_count = str(comparison.summary_gated_count)
-    else:
-        new_count = str(comparison.count(DeltaState.NEW))
-        regressed_count = str(comparison.regressed_count)
-        gated_count = str(comparison.gated_count)
-
-    if comparison.gate_failed:
-        gate = "❌ FAILED"
-    elif comparison.fail_on_new:
-        gate = "✅ PASSED"
-    else:
-        gate = "NOT ENFORCED"
-
-    lines = [
-        f"> 🔎 **Baseline delta**: new **{new_count}** · regressed **{regressed_count}** "
-        f"· gated **{gated_count}** · gate **{gate}**"
-    ]
-    if comparison.warnings:
-        first_warning = _escape_comment_value(comparison.warnings[0])
-        remaining = len(comparison.warnings) - 1
-        suffix = f" (+{remaining} more)" if remaining else ""
-        lines.append(
-            f"> ⚠️ **Baseline warnings ({len(comparison.warnings)})**: {first_warning}{suffix}"
-        )
-    return lines
 
 
 def _header_line(suite: VerificationSuiteResult | None) -> str:
