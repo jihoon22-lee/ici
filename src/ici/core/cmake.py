@@ -14,6 +14,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree
 
+from ici.core.backend import (
+    BACKEND_CMAKE,
+    BACKEND_QMAKE,
+    BackendChoice,
+    select_backend,
+)
 from ici.core.context import (
     AnalysisContext,
     ArtifactManifest,
@@ -23,59 +29,12 @@ from ici.core.context import (
 from ici.core.models import ToolEvidence
 from ici.core.runner import run_process
 
-BACKEND_CMAKE = "cmake"
-BACKEND_QMAKE = "qmake"
-
-# Only the project root is inspected. Descriptors in subdirectories do not
-# select a backend, which is what keeps projects that have not been converted
-# yet (a CMakeLists.txt under src/gui) on their existing g++ path.
-_MAKEFILE_NAMES = ("Makefile", "makefile", "GNUmakefile")
-
-
-@dataclass(frozen=True)
-class BackendChoice:
-    """Which backend runs, and why. The reason is recorded as tool evidence."""
-
-    kind: str | None
-    reason: str
-    descriptor: str = ""
-
-
-def _is_real_file(path: Path) -> bool:
-    return path.is_file() and not path.is_symlink()
-
-
-def select_backend(root: Path) -> BackendChoice:
-    """Pick a build backend from the descriptor at the project root."""
-
-    cmake_file = root / "CMakeLists.txt"
-    has_cmake = _is_real_file(cmake_file)
-    pro_files = sorted(p for p in root.glob("*.pro") if _is_real_file(p))
-    makefiles = [name for name in _MAKEFILE_NAMES if _is_real_file(root / name)]
-
-    if has_cmake:
-        reason = "CMakeLists.txt at the project root selected the CMake backend"
-        if pro_files:
-            reason += f"; {pro_files[0].name} was present and passed over"
-        return BackendChoice(BACKEND_CMAKE, reason, "CMakeLists.txt")
-
-    if pro_files:
-        return BackendChoice(
-            BACKEND_QMAKE,
-            f"{pro_files[0].name} at the project root selected the qmake backend",
-            pro_files[0].name,
-        )
-
-    if makefiles:
-        return BackendChoice(
-            None,
-            f"{makefiles[0]} at the project root has no adapter; "
-            "only CMake and qmake are supported",
-            makefiles[0],
-        )
-
-    return BackendChoice(None, "No build descriptor at the project root", "")
-
+__all__ = [
+    "BACKEND_CMAKE",
+    "BACKEND_QMAKE",
+    "BackendChoice",
+    "select_backend",
+]
 
 # --test-dir arrived in CMake 3.20 and --output-junit in 3.21. The roadmap
 # treats RHEL 7.9 as a target runtime, so an old ctest cannot be assumed away.

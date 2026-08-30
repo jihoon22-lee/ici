@@ -14,7 +14,7 @@ from ici.core.cmake import build as adapter_build
 from ici.core.cmake import collect_coverage as adapter_collect_coverage
 from ici.core.cmake import configure as adapter_configure
 from ici.core.cmake import run_tests as adapter_run_tests
-from ici.core.context import BuildVariant
+from ici.core.context import ArtifactManifest, BuildVariant
 from ici.core.env import (
     find_uv,  # noqa: F401 - retained for callers patching the legacy probe
     get_nas_cpp_lib_dir,
@@ -67,7 +67,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         self._tool_errors: list[str] = []
         self._coverage_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
-        self._artifact_manifests = []
+        self._artifact_manifests: list[ArtifactManifest] = []
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
@@ -86,7 +86,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         self._tool_errors = []
         self._coverage_errors = []
         self._tool_evidence = []
-        self._artifact_manifests = []
+        self._artifact_manifests: list[ArtifactManifest] = []
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False

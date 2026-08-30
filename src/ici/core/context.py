@@ -18,6 +18,7 @@ from enum import Enum
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from ici.core.backend import select_backend
 from ici.core.capabilities import CapabilityInventory
 from ici.core.project import (
     _iter_project_files,
@@ -157,9 +158,6 @@ def discover_project_model(root: Path, config: dict[str, Any]) -> ProjectModel:
     """Discover project metadata and source scope exactly once."""
 
     canonical_root = root.resolve(strict=False)
-    # Kept local to avoid a module cycle once cmake imports BuildVariant.
-    from ici.core.cmake import select_backend
-
     backend = select_backend(canonical_root)
     project_config = config.get("project", {})
     configured_type = config.get("type")

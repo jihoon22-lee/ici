@@ -1,21 +1,29 @@
 """7. Dead code and unused symbol detection engine."""
 
+from __future__ import annotations
+
 import ast
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
 from ici.engines.base import BaseEngine
+
+if TYPE_CHECKING:
+    from ici.core.context import AnalysisContext
 
 
 class DeadCodeEngine(BaseEngine):
     """Detect unreachable statements and unreferenced private module functions."""
 
     def __init__(
-        self, project_root: Path | None = None, config: dict[str, Any] | None = None
+        self,
+        project_root: Path | None = None,
+        config: dict[str, Any] | None = None,
+        analysis_context: AnalysisContext | None = None,
     ) -> None:
-        super().__init__(project_root, config)
+        super().__init__(project_root, config, analysis_context)
         self._analysis_errors: list[str] = []
 
     def run(self) -> EngineResult:

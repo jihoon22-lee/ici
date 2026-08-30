@@ -1,14 +1,19 @@
 """9. Exception handling safety and anti-pattern detection engine."""
 
+from __future__ import annotations
+
 import ast
 import re
 import time
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
 from ici.engines.base import BaseEngine
+
+if TYPE_CHECKING:
+    from ici.core.context import AnalysisContext
 
 ScopeAliases = tuple[set[str], set[str], set[str], set[str]]
 ScopeEvent = tuple[tuple[int, int, int], str, str, bool]
@@ -360,9 +365,12 @@ class ExceptionSafetyEngine(BaseEngine):
     """Detect swallowed errors, lost Python tracebacks, and unsafe C++ throws."""
 
     def __init__(
-        self, project_root: Path | None = None, config: dict[str, Any] | None = None
+        self,
+        project_root: Path | None = None,
+        config: dict[str, Any] | None = None,
+        analysis_context: AnalysisContext | None = None,
     ) -> None:
-        super().__init__(project_root, config)
+        super().__init__(project_root, config, analysis_context)
         self._analysis_errors: list[str] = []
 
     def run(self) -> EngineResult:

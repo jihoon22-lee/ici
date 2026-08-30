@@ -11,7 +11,7 @@ import tomli
 from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
-from ici.core.context import BuildVariant
+from ici.core.context import ArtifactManifest, BuildVariant
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
     EngineResult,
@@ -43,7 +43,7 @@ class BuildEngine(BaseEngine):
         self._tool_evidence: list[ToolEvidence] = []
         self._has_fail = False
         self._artifact_count = 0
-        self._artifact_manifests = []
+        self._artifact_manifests: list[ArtifactManifest] = []
         project_name = ""
         project_version = ""
         target_path: Path | None = None

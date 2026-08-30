@@ -19,6 +19,8 @@ from ici.core.models import EngineResult, EngineStatus, SupportMatrix
 from ici.core.support import ENGINE_NAMES
 from ici.engines import verify as verify_module
 from ici.engines.base import BaseEngine
+from ici.engines.dead import DeadCodeEngine
+from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.verify import VerifyOrchestrator
 
 _IDENTITY = AnalysisIdentity(
@@ -145,6 +147,17 @@ def test_base_engine_retains_the_exact_analysis_context_object(tmp_path: Path):
     marker, _project, _inventory = _context(tmp_path)
 
     engine = _ProbeEngine(tmp_path, {}, analysis_context=marker)
+
+    assert engine.analysis_context is marker
+
+
+@pytest.mark.parametrize("engine_type", (DeadCodeEngine, ExceptionSafetyEngine))
+def test_specialized_engines_retain_the_exact_analysis_context_object(
+    tmp_path: Path, engine_type: type[BaseEngine]
+):
+    marker, _project, _inventory = _context(tmp_path)
+
+    engine = engine_type(tmp_path, {}, analysis_context=marker)
 
     assert engine.analysis_context is marker
 
