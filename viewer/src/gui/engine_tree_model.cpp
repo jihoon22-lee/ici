@@ -1,4 +1,4 @@
-#include "engine_tree_model.hpp"
+#include "icirv/gui/engine_tree_model.hpp"
 
 #include <QBrush>
 #include <QColor>
