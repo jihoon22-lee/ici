@@ -21,6 +21,7 @@ from ici.core.env import (
     get_nas_shared_dir,
     get_system_info,
 )
+from ici.core.pipeline import apply_analysis_profile
 from ici.core.support import evaluate_support_matrix
 from ici.core.toolchain import DEFAULT_TOOL_PROBES
 from ici.reporters.json_rep import serialize_support_matrix
@@ -51,6 +52,7 @@ def collect_diagnostics(
             config = {}
     if config is None:
         config = {}
+    config, selected_profile = apply_analysis_profile(config)
     configured_required = {
         str(name) for name in config.get("doctor", {}).get("required_tools", []) or []
     }
@@ -94,6 +96,7 @@ def collect_diagnostics(
         "required_tools": sorted(configured_required),
         "effective_required_tools": sorted(required_by),
         "support_matrix": support_matrix,
+        "analysis_profile": selected_profile.value,
         "paths": {
             "infra_root": str(infra_root),
             "nas_shared": str(nas_root),
@@ -285,7 +288,10 @@ def render_doctor_brief(data: dict[str, Any]) -> None:
     if matrix:
         languages = ", ".join(matrix.get("project_languages", []) or []) or "none"
         frameworks = ", ".join(matrix.get("project_frameworks", []) or []) or "none"
-        print(f"scope   languages={languages}  frameworks={frameworks}")
+        print(
+            f"scope   languages={languages}  frameworks={frameworks}  "
+            f"profile={data.get('analysis_profile', 'standard')}"
+        )
 
     inventory = data.get("capability_inventory", {})
     counts = inventory.get("counts", {}) if isinstance(inventory, dict) else {}

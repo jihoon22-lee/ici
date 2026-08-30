@@ -10,6 +10,7 @@ from ici import __version__
 from ici.__main__ import app
 from ici.core.baseline import BaselineError
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
+from ici.core.pipeline import AnalysisProfile
 from ici.reporters.issue_view import DEFAULT_MAX_FINDINGS, ConsoleGroupBy, ConsoleOptions
 
 runner = CliRunner()
@@ -127,7 +128,37 @@ def test_cli_verify_forwards_baseline_options_to_orchestrator(tmp_path, monkeypa
             max_findings=DEFAULT_MAX_FINDINGS,
             group_by=ConsoleGroupBy.ENGINE,
         ),
+        "profile": None,
     }
+
+
+def test_cli_verify_forwards_profile_to_orchestrator(tmp_path, monkeypatch):
+    captured = {}
+
+    class FakeOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            captured.update(kwargs)
+            return VerificationSuiteResult(suite_status=EngineStatus.PASS, results=[])
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", FakeOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["verify", "--profile", "deep"])
+
+    assert result.exit_code == 0
+    assert captured["profile"] is AnalysisProfile.DEEP
+
+
+def test_cli_verify_help_documents_profile_option():
+    result = runner.invoke(app, ["verify", "--help"])
+
+    assert result.exit_code == 0
+    assert "--profile" in result.output
+    assert all(value in result.output for value in ("fast", "standard", "deep"))
 
 
 def test_cli_verify_forwards_console_options_to_orchestrator(tmp_path, monkeypatch):

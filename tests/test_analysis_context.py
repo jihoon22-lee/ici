@@ -193,6 +193,7 @@ def test_context_models_are_frozen_and_nested_collections_are_immutable(tmp_path
     capabilities = CapabilityInventory()
     context = AnalysisContext(project, capabilities, identity, compilation=compilation)
 
+    assert context.profile == "standard"
     assert isinstance(unit.argv, tuple)
     assert isinstance(compilation.units, tuple)
     assert isinstance(context.requested_variants, tuple)

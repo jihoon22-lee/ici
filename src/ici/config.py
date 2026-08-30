@@ -16,6 +16,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "ici": {
         "version": __version__,
         "policy_name": "Standard Enterprise CI/CD Quality Gate",
+        "profile": "standard",
     },
     "project": {
         "source_dirs": ["src", "lib", "app", "packages", "python"],
@@ -89,7 +90,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "max_reported": 20,
         },
         "cognitive": {
-            "enabled": False,
+            "enabled": True,
             "mode": "pass_warn",
             "warn": 30,
             "fail": 60,

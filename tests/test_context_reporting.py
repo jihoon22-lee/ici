@@ -148,6 +148,8 @@ def test_suite_serializes_context_as_relative_facts_with_all_identity_provenance
     serialized = payload["analysis_context"]
     assert isinstance(serialized, dict)
     assert serialized["schema_version"] == "ici.analysis-context/v1"
+    assert context.profile == "standard"
+    assert serialized["profile"] == "standard"
     assert "root" not in serialized
     assert "project_root" not in serialized["project"]
     assert serialized["project"] == {
@@ -271,6 +273,17 @@ def test_existing_v3_payload_without_context_extensions_remains_loadable(tmp_pat
     assert "artifact_manifests" not in migrated["results"][0]
 
 
+def test_context_profile_is_optional_for_legacy_v3_payloads(tmp_path: Path) -> None:
+    suite, context, _manifest_value = _suite_fixture(tmp_path)
+    payload = serialize_suite_result(suite)
+    payload["analysis_context"].pop("profile")
+
+    migrated = migrate_report_payload(payload)
+
+    assert context.profile == "standard"
+    assert "profile" not in migrated["analysis_context"]
+
+
 def test_checked_in_schema_declares_context_and_manifest_extensions_as_optional() -> None:
     schema_path = (
         Path(__file__).parents[1] / "src" / "ici" / "schemas" / "ici-result-v3.schema.json"
@@ -288,5 +301,10 @@ def test_checked_in_schema_declares_context_and_manifest_extensions_as_optional(
     assert context_definition["properties"]["schema_version"] == {
         "const": "ici.analysis-context/v1"
     }
+    assert context_definition["properties"]["profile"] == {
+        "type": "string",
+        "enum": ["fast", "standard", "deep"],
+    }
+    assert "profile" not in context_definition["required"]
     manifest_definition = schema["$defs"]["artifactManifest"]
     assert manifest_definition["properties"]["schema_version"] == {"const": "ici.artifacts/v1"}
