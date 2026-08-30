@@ -12,16 +12,37 @@ from ici import __version__
 from ici.core.env import (
     find_infra_root,
     find_python_candidates,
-    find_uv,
     get_nas_cpp_lib_dir,
     get_nas_shared_dir,
     get_system_info,
 )
 from ici.core.support import evaluate_support_matrix
-from ici.core.toolchain import DEFAULT_PROBES, collect_tool_capability
+from ici.core.toolchain import (
+    DEFAULT_TOOL_PROBES,
+    collect_capability_inventory,
+    serialize_capability_inventory,
+)
 from ici.reporters.json_rep import serialize_support_matrix
 
 console = Console()
+
+
+def _tool_policy(
+    matrix: dict[str, Any], configured_required: set[str]
+) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
+    """Derive effective tool policy from applicable engines and doctor config."""
+
+    required_by: dict[str, set[str]] = {name: {"doctor.config"} for name in configured_required}
+    optional_by: dict[str, set[str]] = {}
+    for entry in matrix.get("entries", []):
+        if not entry.get("applicable", False) or not entry.get("enabled", False):
+            continue
+        source = f"{entry.get('engine_name', '-')}:{entry.get('language', '-')}"
+        for name in entry.get("required_tools", []) or []:
+            required_by.setdefault(str(name), set()).add(source)
+        for name in entry.get("optional_tools", []) or []:
+            optional_by.setdefault(str(name), set()).add(source)
+    return required_by, optional_by
 
 
 def collect_diagnostics(
@@ -42,35 +63,34 @@ def collect_diagnostics(
             config = {}
     if config is None:
         config = {}
-    required_tools = set(config.get("doctor", {}).get("required_tools", []) or [])
-    probe_map: dict[str, list[str]] = dict(DEFAULT_PROBES)
-    probe_map.update(
-        {
-            "clang": ["clang", "--version"],
-            "clang-format": ["clang-format", "--version"],
-            "ruff": ["ruff", "--version"],
-            "mypy": ["mypy", "--version"],
-            "pytest": ["pytest", "--version"],
-            "uv": [find_uv() or "uv", "--version"],
-        }
+    configured_required = {
+        str(name) for name in config.get("doctor", {}).get("required_tools", []) or []
+    }
+    support_matrix = serialize_support_matrix(evaluate_support_matrix(root, config)) or {
+        "project_languages": [],
+        "project_frameworks": [],
+        "entries": [],
+    }
+    required_by, optional_by = _tool_policy(support_matrix, configured_required)
+    inventory = collect_capability_inventory(
+        cwd=root,
+        probes=DEFAULT_TOOL_PROBES,
+        required_by=required_by,
+        optional_by=optional_by,
     )
-    tools: dict[str, dict[str, Any]] = {}
-    for tool_name, probe in probe_map.items():
-        cap, _result = collect_tool_capability(tool_name, probe, cwd=root)
-        tools[tool_name] = {
-            "available": cap.available,
-            "version": cap.version,
-            "path": cap.path,
-            "error": cap.error,
-            "required": tool_name in required_tools,
-        }
+    serialized_inventory = serialize_capability_inventory(inventory)
+    raw_tool_rows = serialized_inventory.get("tools", [])
+    tool_rows = raw_tool_rows if isinstance(raw_tool_rows, list) else []
+    tools = {
+        str(row["name"]): dict(row)
+        for row in tool_rows
+        if isinstance(row, dict) and row.get("name")
+    }
 
     # NAS checks
     nas_root = get_nas_shared_dir()
     nas_cpp = get_nas_cpp_lib_dir()
     infra_root = find_infra_root()
-    support_matrix = serialize_support_matrix(evaluate_support_matrix(root, config))
-
     return {
         "system": sys_info,
         "running_python": {
@@ -80,8 +100,10 @@ def collect_diagnostics(
         "python_candidates": [
             {"candidate": c[0], "path": c[1], "version": c[2]} for c in py_candidates
         ],
+        "capability_inventory": serialized_inventory,
         "tools": tools,
-        "required_tools": sorted(required_tools),
+        "required_tools": sorted(configured_required),
+        "effective_required_tools": sorted(required_by),
         "support_matrix": support_matrix,
         "paths": {
             "infra_root": str(infra_root),
@@ -203,19 +225,27 @@ def render_doctor_table(data: dict[str, Any]) -> None:
     t_tool.add_column("Tool", style="bold", width=16)
     t_tool.add_column("Status", width=12)
     t_tool.add_column("Version / Path", style="dim")
+    t_tool.add_column("Capability details", style="dim")
 
     for tool_name, info in data["tools"].items():
         is_required = bool(info.get("required"))
-        if info["available"]:
-            st = "[green]Available[/green]"
+        if info["available"] and info.get("complete", False):
+            st = "[green]Ready[/green]"
             v = f"{info['version']} ({info['path']})"
+        elif info["available"]:
+            suffix = " (required) WARN" if is_required else ""
+            st = f"[yellow]Incomplete{suffix}[/yellow]"
+            v = info.get("error") or f"{info['version']} ({info['path']})"
         elif is_required:
             st = "[yellow]Missing (required) WARN[/yellow]"
             v = info.get("error") or "-"
         else:
-            st = "[red]Missing[/red]"
-            v = "-"
-        t_tool.add_row(tool_name, st, v)
+            st = "[dim]Unavailable[/dim]"
+            v = info.get("error") or "-"
+        details = ", ".join(
+            f"{key}={value}" for key, value in (info.get("details", {}) or {}).items()
+        )
+        t_tool.add_row(tool_name, st, v, details or "-")
     console.print(t_tool)
 
     # Engine capability matrix. This is intentionally a read-only declaration
@@ -268,12 +298,21 @@ def render_doctor_brief(data: dict[str, Any]) -> None:
         frameworks = ", ".join(matrix.get("project_frameworks", []) or []) or "none"
         print(f"scope   languages={languages}  frameworks={frameworks}")
 
+    inventory = data.get("capability_inventory", {})
+    counts = inventory.get("counts", {}) if isinstance(inventory, dict) else {}
+    if counts:
+        print(
+            "caps    "
+            f"status={inventory.get('status', '-')}  ready={counts.get('ready', 0)}/"
+            f"{counts.get('total', 0)}  required={counts.get('required', 0)}"
+        )
+
     # tool summaries
     tool_strs = []
     for t in ("gcc", "g++", "clang", "make", "cmake", "ruff", "mypy", "pytest", "git"):
         info = tools.get(t, {"available": False})
         label = f"{t}={info['version']}" if info.get("available") else f"{t}=-"
-        if not info.get("available") and info.get("required"):
+        if info.get("required") and not info.get("complete"):
             label += "(!required WARN)"
         tool_strs.append(label)
     print("tools   " + "  ".join(tool_strs[:5]))
