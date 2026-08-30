@@ -7,6 +7,7 @@ from pathlib import Path
 from rich.console import Console
 
 from ici.config import load_config
+from ici.core.toolchain import CapabilityInventory, ToolCapability, ToolRequirement
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 
 
@@ -20,8 +21,135 @@ def test_required_tools_flags_configured_tool():
     data = collect_diagnostics(Path.cwd(), config={"doctor": {"required_tools": ["git"]}})
     assert data["required_tools"] == ["git"]
     assert data["tools"]["git"]["required"] is True
-    other_tools = {name: t for name, t in data["tools"].items() if name != "git"}
-    assert all(not t["required"] for t in other_tools.values())
+    assert "doctor.config" in data["tools"]["git"]["required_by"]
+    assert "git" in data["effective_required_tools"]
+    assert set(data["effective_required_tools"]) == {
+        name for name, tool in data["tools"].items() if tool["required"]
+    }
+
+
+def test_tool_policy_merges_engine_requirements_and_ignores_inactive_rows():
+    import ici.doctor as doctor
+
+    required_by, optional_by = doctor._tool_policy(
+        {
+            "entries": [
+                {
+                    "engine_name": "test",
+                    "language": "python",
+                    "applicable": True,
+                    "enabled": True,
+                    "required_tools": ["python3"],
+                    "optional_tools": ["pytest"],
+                },
+                {
+                    "engine_name": "lint",
+                    "language": "cpp",
+                    "applicable": False,
+                    "enabled": True,
+                    "required_tools": ["g++"],
+                    "optional_tools": ["pkg-config"],
+                },
+                {
+                    "engine_name": "type",
+                    "language": "python",
+                    "applicable": True,
+                    "enabled": False,
+                    "required_tools": ["mypy"],
+                    "optional_tools": ["typing-extensions"],
+                },
+            ]
+        },
+        {"doctor-tool"},
+    )
+
+    assert required_by == {
+        "doctor-tool": {"doctor.config"},
+        "python3": {"test:python"},
+    }
+    assert optional_by == {"pytest": {"test:python"}}
+
+
+def test_collect_diagnostics_shares_full_inventory_and_legacy_tool_rows(
+    tmp_path: Path, monkeypatch
+):
+    import ici.doctor as doctor
+
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "app.py").write_text("value = 1\n", encoding="utf-8")
+
+    inventory = CapabilityInventory(
+        capabilities={
+            "sentinel": ToolCapability(
+                name="sentinel",
+                path="/fake/sentinel",
+                available=True,
+                version="sentinel 1.2.3",
+                version_tuple=(1, 2, 3),
+            )
+        },
+        requirements={
+            "sentinel": ToolRequirement(
+                name="sentinel", required_by=("doctor.config",), optional_by=()
+            )
+        },
+    )
+    serialized = {
+        "schema_version": "ici.capabilities/v1",
+        "status": "PASS",
+        "healthy": True,
+        "counts": {"total": 1, "ready": 1, "incomplete": 0, "unavailable": 0},
+        "missing_required": [],
+        "incomplete_required": [],
+        "tools": [
+            {
+                "name": "sentinel",
+                "available": True,
+                "complete": True,
+                "required": True,
+                "optional": False,
+                "required_by": ["doctor.config"],
+                "optional_by": [],
+            }
+        ],
+    }
+    captured = {}
+
+    def fake_collect(*args, **kwargs):
+        captured["args"] = args
+        captured.update(kwargs)
+        return inventory
+
+    def fake_serialize(value):
+        captured["serialized_inventory"] = value
+        return serialized
+
+    monkeypatch.setattr(doctor, "collect_capability_inventory", fake_collect)
+    monkeypatch.setattr(doctor, "serialize_capability_inventory", fake_serialize)
+    monkeypatch.setattr(doctor, "get_system_info", lambda: {})
+    monkeypatch.setattr(doctor, "find_python_candidates", lambda: [])
+    monkeypatch.setattr(doctor, "get_nas_shared_dir", lambda: tmp_path / "nas")
+    monkeypatch.setattr(doctor, "get_nas_cpp_lib_dir", lambda: tmp_path / "cpp")
+    monkeypatch.setattr(doctor, "find_infra_root", lambda: tmp_path)
+
+    data = doctor.collect_diagnostics(
+        tmp_path,
+        config={
+            "project": {"source_dirs": ["src"]},
+            "doctor": {"required_tools": ["sentinel"]},
+        },
+    )
+
+    assert captured["cwd"] == tmp_path.resolve()
+    assert captured["probes"] is doctor.DEFAULT_TOOL_PROBES
+    assert captured["serialized_inventory"] is inventory
+    assert captured["required_by"]["sentinel"] == {"doctor.config"}
+    assert "test:python" in captured["required_by"]["python3"]
+    assert "lint:python" in captured["optional_by"]["ruff"]
+    assert "test:python" in captured["optional_by"]["pytest"]
+    assert data["capability_inventory"] is serialized
+    assert data["tools"]["sentinel"] == serialized["tools"][0]
 
 
 def test_required_tools_loads_from_ici_toml(tmp_path: Path, monkeypatch):
