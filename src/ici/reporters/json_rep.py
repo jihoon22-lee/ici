@@ -5,17 +5,26 @@ from __future__ import annotations
 import copy
 import json
 import math
+import os
+import re
+import tempfile
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
 from ici.core.findings import findings_for_result, validate_source_region
 from ici.core.models import (
+    AnalysisMetadata,
+    BaselineComparison,
+    DeltaState,
     EngineResult,
     EngineStatus,
     EngineSupport,
     EvidenceState,
     Finding,
+    FindingDelta,
     FindingMetric,
+    FindingSeverity,
     FindingSuppression,
     InspectionTarget,
     SourceLocation,
@@ -27,6 +36,7 @@ from ici.core.redaction import redact_engine_result, redact_suite
 
 RESULT_SCHEMA_VERSION = "ici.result/v3"
 LEGACY_RESULT_SCHEMA_VERSION = "ici.result/v2"
+_SHA256_RE = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 def _require_string(value: Any, field_name: str, *, nonempty: bool = False) -> str:
@@ -34,6 +44,13 @@ def _require_string(value: Any, field_name: str, *, nonempty: bool = False) -> s
         qualifier = "non-empty " if nonempty else ""
         raise ValueError(f"{field_name} must be a {qualifier}string: {value!r}")
     return value
+
+
+def _require_digest(value: Any, field_name: str) -> str:
+    digest = _require_string(value, field_name, nonempty=True)
+    if _SHA256_RE.fullmatch(digest) is None:
+        raise ValueError(f"{field_name} must be a sha256 digest: {value!r}")
+    return digest
 
 
 def _finite_number(
@@ -134,6 +151,127 @@ def _serialize_finding(finding: Finding) -> dict[str, Any]:
             name: _serialize_metric(metric) for name, metric in sorted(finding.metrics.items())
         },
         "snippet": _require_string(finding.snippet, "finding.snippet"),
+    }
+
+
+def _serialize_analysis_metadata(metadata: AnalysisMetadata | None) -> dict[str, Any] | None:
+    if metadata is None:
+        return None
+    return {
+        "producer_version": _require_string(
+            metadata.producer_version, "analysis_metadata.producer_version", nonempty=True
+        ),
+        "fingerprint_version": _require_string(
+            metadata.fingerprint_version,
+            "analysis_metadata.fingerprint_version",
+            nonempty=True,
+        ),
+        "policy_digest": _require_digest(metadata.policy_digest, "analysis_metadata.policy_digest"),
+        "tool_policy_digest": _require_digest(
+            metadata.tool_policy_digest,
+            "analysis_metadata.tool_policy_digest",
+        ),
+    }
+
+
+def _validate_delta_presence(delta: FindingDelta) -> None:
+    """Enforce which side(s) of a delta must carry location and severity."""
+
+    has_current = delta.current_location is not None and delta.current_severity is not None
+    has_baseline = delta.baseline_location is not None and delta.baseline_severity is not None
+    if delta.state == DeltaState.NEW:
+        if not has_current:
+            raise ValueError("new finding delta must contain current location and severity")
+        if delta.baseline_location is not None or delta.baseline_severity is not None:
+            raise ValueError("new finding delta must not contain baseline state")
+        return
+    if delta.state == DeltaState.RESOLVED:
+        if not has_baseline:
+            raise ValueError("resolved finding delta must contain baseline location and severity")
+        if delta.current_location is not None or delta.current_severity is not None:
+            raise ValueError("resolved finding delta must not contain current state")
+        return
+    if not has_current or not has_baseline:
+        raise ValueError("paired finding delta must contain current and baseline state")
+
+
+def _validate_delta_relationship(delta: FindingDelta) -> None:
+    if delta.state == DeltaState.UNCHANGED and delta.current_location != delta.baseline_location:
+        raise ValueError("unchanged finding delta locations must match")
+    if delta.state == DeltaState.MOVED and delta.current_location == delta.baseline_location:
+        raise ValueError("moved finding delta locations must differ")
+    if delta.regressed and delta.state in (DeltaState.NEW, DeltaState.RESOLVED):
+        raise ValueError("only paired finding deltas can be regressed")
+
+
+def _validate_delta_flags(delta: FindingDelta) -> None:
+    if type(delta.regressed) is not bool or type(delta.suppressed) is not bool:
+        raise ValueError("finding delta regressed/suppressed must be booleans")
+    if type(delta.gated) is not bool:
+        raise ValueError("finding delta gated must be a boolean")
+    if delta.gated and (
+        delta.suppressed
+        or delta.current_severity == FindingSeverity.INFO
+        or (delta.state != DeltaState.NEW and not delta.regressed)
+    ):
+        raise ValueError("finding delta gate state contradicts its severity or suppression")
+
+
+def _serialize_optional_location(location: SourceLocation | None) -> dict[str, Any] | None:
+    return _serialize_location(location) if location is not None else None
+
+
+def _serialize_delta(delta: FindingDelta) -> dict[str, Any]:
+    _validate_delta_presence(delta)
+    _validate_delta_relationship(delta)
+    _validate_delta_flags(delta)
+    return {
+        "state": delta.state.value,
+        "engine_name": _require_string(
+            delta.engine_name, "baseline delta engine_name", nonempty=True
+        ),
+        "fingerprint": _require_digest(delta.fingerprint, "baseline delta fingerprint"),
+        "rule_id": _require_string(delta.rule_id, "baseline delta rule_id", nonempty=True),
+        "message": _require_string(delta.message, "baseline delta message"),
+        "current_location": _serialize_optional_location(delta.current_location),
+        "baseline_location": _serialize_optional_location(delta.baseline_location),
+        "current_severity": (
+            delta.current_severity.value if delta.current_severity is not None else None
+        ),
+        "baseline_severity": (
+            delta.baseline_severity.value if delta.baseline_severity is not None else None
+        ),
+        "regressed": delta.regressed,
+        "suppressed": delta.suppressed,
+        "gated": delta.gated,
+    }
+
+
+def _serialize_baseline_comparison(
+    comparison: BaselineComparison | None,
+) -> dict[str, Any] | None:
+    if comparison is None:
+        return None
+    if type(comparison.fail_on_new) is not bool or type(comparison.gate_failed) is not bool:
+        raise ValueError("baseline fail_on_new/gate_failed must be booleans")
+    expected_gate_failed = comparison.fail_on_new and comparison.gated_count > 0
+    if comparison.gate_failed != expected_gate_failed:
+        raise ValueError("baseline gate_failed contradicts fail_on_new or gated entries")
+    return {
+        "source_path": _require_string(
+            comparison.source_path, "baseline source_path", nonempty=True
+        ),
+        "warnings": _serialize_string_list(comparison.warnings, "baseline warnings"),
+        "baseline_metadata": _serialize_analysis_metadata(comparison.baseline_metadata),
+        "fail_on_new": comparison.fail_on_new,
+        "gate_failed": comparison.gate_failed,
+        "new_count": comparison.count(DeltaState.NEW),
+        "unchanged_count": comparison.count(DeltaState.UNCHANGED),
+        "moved_count": comparison.count(DeltaState.MOVED),
+        "resolved_count": comparison.count(DeltaState.RESOLVED),
+        "regressed_count": comparison.regressed_count,
+        "gated_count": comparison.gated_count,
+        "entries": [_serialize_delta(entry) for entry in comparison.entries],
     }
 
 
@@ -289,6 +427,8 @@ def serialize_suite_result(
             serialize_engine_result(result, project_root=project_root) for result in safe.results
         ],
         "support_matrix": serialize_support_matrix(safe.support_matrix),
+        "analysis_metadata": _serialize_analysis_metadata(safe.analysis_metadata),
+        "baseline_comparison": _serialize_baseline_comparison(safe.baseline_comparison),
     }
 
 
@@ -483,4 +623,23 @@ def _save_json(data: dict[str, Any], output_path: Path) -> None:
         default=str,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(content, encoding="utf-8")
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=output_path.parent,
+            prefix=f".{output_path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary.replace(output_path)
+    except OSError:
+        if temporary is not None:
+            with suppress(OSError):
+                temporary.unlink(missing_ok=True)
+        raise

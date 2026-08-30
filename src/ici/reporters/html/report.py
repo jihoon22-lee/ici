@@ -6,6 +6,7 @@ from pathlib import Path
 from ici.core.models import VerificationSuiteResult
 from ici.core.redaction import redact_suite
 from ici.reporters.html.assets_loader import HTML_CSS, HTML_JS
+from ici.reporters.html.sections.baseline import _render_baseline_section
 from ici.reporters.html.sections.complexity import _render_complexity_section
 from ici.reporters.html.sections.cycles import _render_cycles_section
 from ici.reporters.html.sections.dup import _render_dup_section
@@ -52,6 +53,11 @@ def generate_html_report(
     security_tab_content = _render_static_analysis_section(security_engines, base)
     issues_tab_content = _render_issues_section(all_issues, base)
     support_tab_content = _render_support_section(suite.support_matrix)
+    baseline_tab_content = (
+        _render_baseline_section(suite.baseline_comparison, suite, base)
+        if suite.baseline_comparison is not None
+        else ""
+    )
     tem_score_card = _render_tem_card(suite.tem_score)
 
     support_tab_button = (
@@ -64,6 +70,18 @@ def generate_html_report(
     support_tab_panel = (
         f'<div id="tab-support" class="tab-content">{support_tab_content}</div>'
         if support_tab_content
+        else ""
+    )
+    baseline_tab_button = (
+        '<button class="tab-btn" id="btn-baseline" data-tab-target="tab-baseline">'
+        "🧭 Baseline Delta"
+        "</button>"
+        if baseline_tab_content
+        else ""
+    )
+    baseline_tab_panel = (
+        f'<div id="tab-baseline" class="tab-content">{baseline_tab_content}</div>'
+        if baseline_tab_content
         else ""
     )
 
@@ -178,7 +196,7 @@ def generate_html_report(
   <!-- Tabs Navigation -->
   <div class="tabs">
     <button class="tab-btn active" id="btn-summary" data-tab-target="tab-summary">📋 Verification Suites</button>
-    {support_tab_button}
+    {support_tab_button}{baseline_tab_button}
     <button class="tab-btn" id="btn-line" data-tab-target="tab-line">📊 Line Analysis & Explorer</button>
     <button class="tab-btn" id="btn-test" data-tab-target="tab-test">🧪 Tests & Coverage ({t_passed}/{t_total})</button>
     <button class="tab-btn" id="btn-complexity" data-tab-target="tab-complexity">🧩 Complexity</button>
@@ -207,7 +225,7 @@ def generate_html_report(
     </table>
   </div>
 
-  {support_tab_panel}
+  {support_tab_panel}{baseline_tab_panel}
 
   <!-- Tab 2: Line Analysis & Real Tree Explorer -->
   <div id="tab-line" class="tab-content">

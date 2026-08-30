@@ -7,6 +7,7 @@ from typer.testing import CliRunner
 
 from ici import __version__
 from ici.__main__ import app
+from ici.core.baseline import BaselineError
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
 
 runner = CliRunner()
@@ -74,6 +75,163 @@ def test_cli_verify_skip_suite_uses_skip_exit_code(monkeypatch):
     res = runner.invoke(app, ["verify"])
 
     assert res.exit_code == 2
+
+
+def test_cli_verify_forwards_baseline_options_to_orchestrator(tmp_path, monkeypatch):
+    captured = {}
+
+    class FakeOrchestrator:
+        def __init__(self, project_root, config):
+            captured["project_root"] = project_root
+            captured["config"] = config
+
+        def run_all(self, **kwargs):
+            captured["run_all"] = kwargs
+            return VerificationSuiteResult(suite_status=EngineStatus.PASS, results=[])
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", FakeOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "verify",
+            "--report",
+            "--html",
+            "report.html",
+            "--github-summary",
+            "--baseline",
+            "baseline.json",
+            "--fail-on-new",
+            "--write-baseline",
+            "new-baseline.json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["project_root"] == tmp_path.resolve()
+    assert captured["config"] == {}
+    assert captured["run_all"] == {
+        "report_json": "verify_report.json",
+        "report_html": "report.html",
+        "github_summary": True,
+        "publish": False,
+        "baseline_path": tmp_path / "baseline.json",
+        "fail_on_new": True,
+        "write_baseline": tmp_path / "new-baseline.json",
+    }
+
+
+def test_cli_verify_fail_on_new_requires_baseline(tmp_path, monkeypatch):
+    class UnexpectedOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            del kwargs
+            pytest.fail("orchestrator must not run without a baseline")
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", UnexpectedOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["verify", "--fail-on-new"])
+
+    assert result.exit_code == 2
+    assert "--fail-on-new requires --baseline" in result.output
+
+
+@pytest.mark.parametrize("option", ["--baseline", "--write-baseline"])
+@pytest.mark.parametrize("path", ["../outside.json", "escape/outside.json"])
+def test_cli_verify_rejects_baseline_paths_outside_project_root(
+    tmp_path, monkeypatch, option, path
+):
+    outside = tmp_path.parent / f"ici-cli-outside-{tmp_path.name}"
+    outside.mkdir()
+    (tmp_path / "escape").symlink_to(outside, target_is_directory=True)
+
+    class UnexpectedOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            del kwargs
+            pytest.fail("orchestrator must not run for an unsafe baseline path")
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", UnexpectedOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["verify", option, path])
+
+    assert result.exit_code == 2
+    assert "Baseline error:" in result.output
+    assert "outside project root" in result.output
+
+
+def test_cli_verify_rejects_report_baseline_collision(tmp_path, monkeypatch):
+    class UnexpectedOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            del kwargs
+            pytest.fail("orchestrator must not run when report output collides")
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", UnexpectedOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["verify", "--report", "--write-baseline", "verify_report.json"])
+
+    assert result.exit_code == 2
+    assert "--write-baseline must not overwrite --report output" in result.output
+
+
+def test_cli_verify_maps_baseline_error_to_exit_code_two(tmp_path, monkeypatch):
+    class FailingOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            del kwargs
+            raise BaselineError("invalid baseline")
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", FailingOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["verify", "--baseline", "baseline.json"])
+
+    assert result.exit_code == 2
+    assert "Baseline error: invalid baseline" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_cli_verify_allows_same_baseline_input_and_output_path(tmp_path, monkeypatch):
+    captured = {}
+
+    class FakeOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            captured.update(kwargs)
+            return VerificationSuiteResult(suite_status=EngineStatus.PASS, results=[])
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", FakeOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["verify", "--baseline", "shared.json", "--write-baseline", "shared.json"],
+    )
+
+    assert result.exit_code == 0
+    assert captured["baseline_path"] == tmp_path / "shared.json"
+    assert captured["write_baseline"] == tmp_path / "shared.json"
 
 
 @pytest.mark.parametrize(

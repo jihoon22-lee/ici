@@ -13,6 +13,8 @@ from urllib.parse import quote
 
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
 from ici.core.redaction import redact_suite
+from ici.engines.publish_baseline import baseline_summary_lines as _baseline_summary_lines
+from ici.engines.publish_baseline import parse_baseline_summary as _parse_baseline_summary
 
 PUBLISH_MARKER = "<!-- ici-report -->"
 
@@ -179,9 +181,14 @@ def _multi_report_body(
         ]
     for report in reports:
         details = _engine_details(report.suite)
-        if not details:
+        baseline_lines = _baseline_summary_lines(report.suite)
+        if not details and not baseline_lines:
             continue
-        lines += ["", f"#### `{report.label or '.'}`", *_stats_table(report.suite), "", *details]
+        lines += ["", f"#### `{report.label or '.'}`", *_stats_table(report.suite)]
+        if baseline_lines:
+            lines.extend(["", *baseline_lines])
+        if details:
+            lines.extend(["", *details])
     lines += ["", "---", _footer_line(mode, ", ".join(r.remote_path for r in reports), run_url)]
     return "\n".join(lines)
 
@@ -195,7 +202,7 @@ def _footer_line(mode: str, remote_path: str, run_url: str | None) -> str:
 
 
 def load_suite_from_json(json_path: Path) -> VerificationSuiteResult | None:
-    """Reconstruct a lightweight suite from an ``ici.result/v2`` report file."""
+    """Reconstruct a lightweight suite from a v2/v3 report file."""
     try:
         payload = json.loads(Path(json_path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -235,6 +242,7 @@ def load_suite_from_json(json_path: Path) -> VerificationSuiteResult | None:
         duration=float(payload.get("duration", 0.0)),
         tem_score=float(tem) if isinstance(tem, (int, float)) else None,
         max_tem_score=float(max_tem) if isinstance(max_tem, (int, float)) else 5.0,
+        baseline_comparison=_parse_baseline_summary(payload.get("baseline_comparison")),
     )
 
 
@@ -670,6 +678,9 @@ class ReportPublisher:
         lines.extend(_report_link_lines(viewer_url, pages_enabled, remote_path, uploaded))
         lines.append("")
         lines.extend(_stats_table(suite))
+        baseline_lines = _baseline_summary_lines(suite)
+        if baseline_lines:
+            lines.extend(["", *baseline_lines])
         engine_table = _engine_details(suite)
         if engine_table:
             lines.extend(engine_table)

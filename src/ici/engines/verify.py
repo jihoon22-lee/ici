@@ -1,17 +1,21 @@
 """Unified Verification Suite Orchestrator for ici."""
 
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 from ici.config import get_engine_config, load_config
+from ici.core.baseline import BaselineError, build_analysis_metadata, compare_suite_to_baseline
 from ici.core.models import (
+    AnalysisMetadata,
     EngineResult,
     EngineStatus,
     EvidenceState,
     VerificationSuiteResult,
     aggregate_suite_status,
 )
+from ici.core.path_utils import resolve_project_path
 from ici.core.project import get_project_name
 from ici.core.redaction import redact_suite
 from ici.core.support import ENGINE_NAMES, evaluate_support_matrix
@@ -46,6 +50,65 @@ class VerifyOrchestrator:
         self.project_root = (project_root or Path.cwd()).resolve()
         self.config = config or load_config(self.project_root)
 
+    def _apply_baseline(
+        self,
+        suite: VerificationSuiteResult,
+        metadata: AnalysisMetadata,
+        baseline_path: str | Path | None,
+        fail_on_new: bool,
+    ) -> None:
+        if baseline_path is None:
+            return
+        comparison = compare_suite_to_baseline(
+            suite,
+            baseline_path=Path(baseline_path),
+            project_root=self.project_root,
+            current_metadata=metadata,
+            fail_on_new=fail_on_new,
+        )
+        suite.baseline_comparison = comparison
+        if comparison.gate_failed and suite.suite_status not in (
+            EngineStatus.FAIL,
+            EngineStatus.ERROR,
+        ):
+            suite.suite_status = EngineStatus.FAIL
+
+    def _write_baseline(
+        self,
+        suite: VerificationSuiteResult,
+        output_path: str | Path | None,
+        input_path: str | Path | None,
+    ) -> None:
+        if output_path is None:
+            return
+        try:
+            baseline_output = resolve_project_path(self.project_root, str(output_path))
+        except ValueError as err:
+            raise BaselineError(f"unsafe baseline output path: {err}") from err
+        if suite.baseline_comparison is not None and suite.baseline_comparison.gate_failed:
+            baseline_input = (
+                resolve_project_path(self.project_root, str(input_path))
+                if input_path is not None
+                else None
+            )
+            if baseline_output == baseline_input:
+                raise BaselineError(
+                    "refusing to overwrite a baseline that failed the fail-on-new gate"
+                )
+        baseline_suite = replace(
+            suite,
+            suite_status=aggregate_suite_status(suite.results),
+            baseline_comparison=None,
+        )
+        try:
+            save_json_report(
+                baseline_suite,
+                baseline_output,
+                project_root=self.project_root,
+            )
+        except OSError as err:
+            raise BaselineError(f"could not write baseline {baseline_output}: {err}") from err
+
     def run_all(
         self,
         report_json: str | None = None,
@@ -54,6 +117,9 @@ class VerifyOrchestrator:
         publish: bool = False,
         repo_url: str | None = None,
         commit_sha: str | None = None,
+        baseline_path: str | Path | None = None,
+        fail_on_new: bool = False,
+        write_baseline: str | Path | None = None,
     ) -> VerificationSuiteResult:
         t0 = time.time()
         results: list[EngineResult] = []
@@ -101,17 +167,23 @@ class VerifyOrchestrator:
         suite_status = aggregate_suite_status(results)
         duration = time.time() - t0
 
+        support_matrix = evaluate_support_matrix(self.project_root, self.config, results)
+        metadata = build_analysis_metadata(self.config, support_matrix)
         suite = VerificationSuiteResult(
             suite_status=suite_status,
             results=results,
             duration=duration,
             tem_score=tem_score,
             max_tem_score=5.0,
-            support_matrix=evaluate_support_matrix(self.project_root, self.config, results),
+            support_matrix=support_matrix,
+            analysis_metadata=metadata,
         )
+        self._apply_baseline(suite, metadata, baseline_path, fail_on_new)
         # All reporters share one sanitized suite. This prevents a secret in an
         # engine diagnostic from leaking through a non-JSON output path.
         suite = redact_suite(suite)
+
+        self._write_baseline(suite, write_baseline, baseline_path)
 
         # 1. Terminal Console Report
         print_suite_dashboard(suite, self.project_root)

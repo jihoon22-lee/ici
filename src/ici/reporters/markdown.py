@@ -6,11 +6,105 @@ import re
 from urllib.parse import quote, urlsplit
 
 from ici.core.models import (
+    BaselineComparison,
+    DeltaState,
     EngineStatus,
+    SourceLocation,
     VerificationSuiteResult,
     format_score_display,
+    gate_reason,
 )
 from ici.core.redaction import redact_suite
+from ici.reporters.baseline_view import enum_value, select_baseline_details, severity_transition
+
+
+def _render_baseline_location(
+    location: SourceLocation | None,
+    repo_url: str | None,
+    commit_sha: str | None,
+) -> str:
+    if location is None:
+        return _render_code("—")
+    return _make_gh_link(
+        location.path,
+        location.start_line,
+        location.end_line,
+        repo_url,
+        commit_sha,
+    )
+
+
+def _render_severity_transition(before: str, after: str) -> str:
+    return _render_code(f"{before} → {after}")
+
+
+def _render_baseline_markdown(
+    comparison: BaselineComparison,
+    suite: VerificationSuiteResult,
+    repo_url: str | None,
+    commit_sha: str | None,
+) -> list[str]:
+    """Render a compact baseline summary and an issues-first delta table."""
+    selection = select_baseline_details(comparison)
+    gate_label = (
+        "❌ FAILED"
+        if comparison.gate_failed
+        else ("✅ PASSED" if comparison.fail_on_new else "INFO: NOT ENFORCED")
+    )
+    lines = [
+        "### Baseline finding delta\n",
+        f"> **Source**: {_render_code(comparison.source_path)}  ",
+        f"> **Fail-on-new gate**: {gate_label}  ",
+        f"> **Gate reason**: {_escape_inline(gate_reason(suite.results, suite.suite_status, comparison))}\n",
+        "| Delta | Count |",
+        "|---|---:|",
+        f"| New | **{comparison.count(DeltaState.NEW)}** |",
+        f"| Unchanged | **{comparison.count(DeltaState.UNCHANGED)}** |",
+        f"| Moved | **{comparison.count(DeltaState.MOVED)}** |",
+        f"| Resolved | **{comparison.count(DeltaState.RESOLVED)}** |",
+        f"| Regressed | **{comparison.regressed_count}** |",
+        f"| Gated | **{comparison.gated_count}** |",
+    ]
+
+    if comparison.warnings:
+        lines.extend(["\n**Compatibility warnings:**"])
+        lines.extend(f"> ⚠️ {_escape_inline(warning)}" for warning in comparison.warnings)
+
+    if selection.visible:
+        lines.extend(
+            [
+                "\n<details>",
+                f"<summary><b>Issues-first delta details ({len(selection.visible)} shown)</b></summary>\n",
+                "| Delta | Engine / Rule | Current location | Baseline location | Severity transition | Gate | Message |",
+                "|---|---|---|---|:---:|:---:|---|",
+            ]
+        )
+        for entry in selection.visible:
+            state = enum_value(entry.state).upper()
+            gated = "❌" if entry.gated else "—"
+            before, after = severity_transition(entry)
+            lines.append(
+                f"| `{_escape_table_cell(state)}` | {_render_code(f'{entry.engine_name} / {entry.rule_id}')} | "
+                f"{_render_baseline_location(entry.current_location, repo_url, commit_sha)} | "
+                f"{_render_baseline_location(entry.baseline_location, repo_url, commit_sha)} | "
+                f"{_render_severity_transition(before, after)} | {gated} | {_escape_table_cell(entry.message or '—')} |"
+            )
+        lines.append("</details>\n")
+    elif comparison.entries:
+        lines.append("\n<details><summary>Delta details omitted</summary></details>\n")
+
+    omitted_note = []
+    if selection.omitted_changed:
+        omitted_note.append(
+            f"{selection.omitted_changed} additional delta row(s) omitted from this view"
+        )
+    if selection.omitted_unchanged:
+        omitted_note.append(f"{selection.omitted_unchanged} unchanged row(s) omitted")
+    if omitted_note:
+        lines.append(
+            f"> Note: {'; '.join(omitted_note)}. The JSON report retains the full inventory.\n"
+        )
+    return lines
 
 
 def generate_markdown_report(
@@ -61,6 +155,16 @@ def generate_markdown_report(
         md.append(
             f"| <strong>{_render_code(res.engine_name)}</strong> | {badge} | "
             f"{_escape_table_cell(res.summary)} | {score_val} | {duration_val} |"
+        )
+
+    if suite.baseline_comparison is not None:
+        md.extend(
+            _render_baseline_markdown(
+                suite.baseline_comparison,
+                suite,
+                repo_url,
+                commit_sha,
+            )
         )
 
     md.append("\n---\n")

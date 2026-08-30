@@ -136,6 +136,136 @@
         "snippet": { "type": "string" }
       }
     },
+    "analysisMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer_version",
+        "fingerprint_version",
+        "policy_digest",
+        "tool_policy_digest"
+      ],
+      "properties": {
+        "producer_version": { "type": "string", "minLength": 1 },
+        "fingerprint_version": { "type": "string", "minLength": 1 },
+        "policy_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "tool_policy_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "nullableAnalysisMetadata": {
+      "oneOf": [
+        { "$ref": "#/$defs/analysisMetadata" },
+        { "type": "null" }
+      ]
+    },
+    "findingDelta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "engine_name",
+        "fingerprint",
+        "rule_id",
+        "message",
+        "current_location",
+        "baseline_location",
+        "current_severity",
+        "baseline_severity",
+        "regressed",
+        "suppressed",
+        "gated"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": ["new", "unchanged", "moved", "resolved"]
+        },
+        "engine_name": { "type": "string", "minLength": 1 },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rule_id": { "type": "string", "minLength": 1 },
+        "message": { "type": "string" },
+        "current_location": {
+          "oneOf": [
+            { "$ref": "#/$defs/location" },
+            { "type": "null" }
+          ]
+        },
+        "baseline_location": {
+          "oneOf": [
+            { "$ref": "#/$defs/location" },
+            { "type": "null" }
+          ]
+        },
+        "current_severity": {
+          "type": ["string", "null"],
+          "enum": ["info", "low", "medium", "high", "critical", null]
+        },
+        "baseline_severity": {
+          "type": ["string", "null"],
+          "enum": ["info", "low", "medium", "high", "critical", null]
+        },
+        "regressed": { "type": "boolean" },
+        "suppressed": { "type": "boolean" },
+        "gated": { "type": "boolean" }
+      }
+    },
+    "baselineComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_path",
+        "warnings",
+        "baseline_metadata",
+        "fail_on_new",
+        "gate_failed",
+        "new_count",
+        "unchanged_count",
+        "moved_count",
+        "resolved_count",
+        "regressed_count",
+        "gated_count",
+        "entries"
+      ],
+      "properties": {
+        "source_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "baseline_metadata": { "$ref": "#/$defs/nullableAnalysisMetadata" },
+        "fail_on_new": { "type": "boolean" },
+        "gate_failed": { "type": "boolean" },
+        "new_count": { "type": "integer", "minimum": 0 },
+        "unchanged_count": { "type": "integer", "minimum": 0 },
+        "moved_count": { "type": "integer", "minimum": 0 },
+        "resolved_count": { "type": "integer", "minimum": 0 },
+        "regressed_count": { "type": "integer", "minimum": 0 },
+        "gated_count": { "type": "integer", "minimum": 0 },
+        "entries": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/findingDelta" }
+        }
+      }
+    },
+    "nullableBaselineComparison": {
+      "oneOf": [
+        { "$ref": "#/$defs/baselineComparison" },
+        { "type": "null" }
+      ]
+    },
     "target": {
       "type": "object",
       "additionalProperties": false,
@@ -364,7 +494,9 @@
           "type": "array",
           "items": { "$ref": "#/$defs/engine" }
         },
-        "support_matrix": { "$ref": "#/$defs/nullableSupportMatrix" }
+        "support_matrix": { "$ref": "#/$defs/nullableSupportMatrix" },
+        "analysis_metadata": { "$ref": "#/$defs/nullableAnalysisMetadata" },
+        "baseline_comparison": { "$ref": "#/$defs/nullableBaselineComparison" }
       }
     }
   }

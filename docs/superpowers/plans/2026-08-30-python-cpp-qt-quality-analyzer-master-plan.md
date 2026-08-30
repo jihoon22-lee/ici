@@ -255,12 +255,31 @@ exact match, zero-CDN HTML support tab 및 viewer CLI parse도 확인했다.
 
 **브랜치:** `feat/finding-baseline`
 
-- [ ] 이전 v3 JSON을 baseline으로 읽는다.
-- [ ] new, unchanged, moved, resolved를 fingerprint와 location 보조 정보로 구분한다.
-- [ ] 전체 inventory와 PR gate 대상인 new/regressed finding을 분리한다.
-- [ ] baseline schema/version/tool policy 불일치를 경고한다.
-- [ ] baseline이 현재 프로젝트 밖 경로를 참조하지 못하게 한다.
-- [ ] `--baseline`, `--fail-on-new`, `--write-baseline` CLI와 문서를 추가한다.
+- [x] 이전 v3 JSON을 baseline으로 읽는다.
+- [x] new, unchanged, moved, resolved를 fingerprint와 location 보조 정보로 구분한다.
+- [x] 전체 inventory와 PR gate 대상인 new/regressed finding을 분리한다.
+- [x] baseline schema/version/tool policy 불일치를 경고한다.
+- [x] baseline이 현재 프로젝트 밖 경로를 참조하지 못하게 한다.
+- [x] `--baseline`, `--fail-on-new`, `--write-baseline` CLI와 문서를 추가한다.
+
+**완료 측정(초안, 2026-08-31):** v3 baseline reader와 delta model, actionable gate,
+compatibility warning, root-contained path validation, CLI 옵션 및 report parity를 구현했다.
+new·unchanged·moved·resolved 전체 inventory와 new/regressed gated subset을 분리하고,
+duplicate fingerprint는 occurrence 단위로 비교한다. console/Markdown/HTML/JSON과 GitHub
+single·multi-project sticky comment에서 같은 baseline summary를 확인하도록 연결했다.
+
+- 단위·회귀 테스트: Python 3.10 전체 732개 통과. baseline 집중 경로는
+  tests/test_baseline.py, tests/test_verify_orchestrator.py,
+  tests/test_baseline_reporters.py, tests/test_cli.py, tests/test_publish.py가 담당한다.
+- PR: TODO: GitHub PR 번호와 URL
+- CI/Merge Gate: TODO: 최종 workflow run 및 모든 required job 결과
+- 로컬 release-candidate pyz self-verify: WARN(Pass 8/Warn 4/Fail 0/Error 0), 732/732,
+  TEM 4.82, line/branch/function 87.6%/78.6%/96.5%. 동일 소스 baseline 왕복에서
+  2,783 unchanged, new/moved/resolved/regressed/gated 0, fail-on-new PASSED를 확인했고,
+  v3 Draft 2020-12 schema, 0 external reference zero-CDN HTML, publish summary, 기존 C++
+  viewer parse를 모두 통과했다.
+
+I1-4가 남아 있으므로 I1 전체 checkpoint는 아직 완료로 표시하지 않는다.
 
 ### I1-4. issues-first console과 공통 grouping
 

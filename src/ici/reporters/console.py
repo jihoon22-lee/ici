@@ -10,8 +10,24 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from ici.core.models import EngineStatus, VerificationSuiteResult, format_score_display, gate_reason
+from ici.core.models import (
+    BaselineComparison,
+    DeltaState,
+    EngineStatus,
+    SourceLocation,
+    VerificationSuiteResult,
+    format_score_display,
+    gate_reason,
+)
 from ici.core.redaction import redact_suite
+from ici.reporters.baseline_view import select_baseline_details, severity_transition
+
+_DELTA_STATE_COLOR = {
+    DeltaState.NEW: "red",
+    DeltaState.MOVED: "yellow",
+    DeltaState.RESOLVED: "green",
+    DeltaState.UNCHANGED: "dim",
+}
 
 console = Console()
 
@@ -40,6 +56,93 @@ def make_terminal_link(
     target_url = f"file://{quote(str(abs_path), safe='/:@-._~')}"
 
     return f"[link={target_url}]{escape(display_str)}[/link]"
+
+
+def _baseline_location_text(location: SourceLocation | None) -> str:
+    if location is None:
+        return "—"
+    line = f"L{location.start_line}"
+    if location.end_line is not None and location.end_line > location.start_line:
+        line += f"-L{location.end_line}"
+    return f"{location.path}:{line}"
+
+
+def _print_baseline_comparison(
+    comparison: BaselineComparison,
+    suite: VerificationSuiteResult,
+) -> None:
+    """Print compact baseline counts followed by bounded, gated-first deltas."""
+    gate_label = (
+        "[bold red]FAILED[/]"
+        if comparison.gate_failed
+        else ("[bold green]PASSED[/]" if comparison.fail_on_new else "[dim]NOT ENFORCED[/]")
+    )
+    summary = (
+        f"[bold]Source:[/] {escape(comparison.source_path)}\n"
+        f"[bold]Counts:[/] New {comparison.count(DeltaState.NEW)} · "
+        f"Unchanged {comparison.count(DeltaState.UNCHANGED)} · "
+        f"Moved {comparison.count(DeltaState.MOVED)} · "
+        f"Resolved {comparison.count(DeltaState.RESOLVED)} · "
+        f"Regressed {comparison.regressed_count} · Gated {comparison.gated_count}\n"
+        f"[bold]Fail-on-new gate:[/] {gate_label}\n"
+        f"[bold]Gate reason:[/] {escape(gate_reason(suite.results, suite.suite_status, comparison))}"
+    )
+    if comparison.warnings:
+        summary += "\n[bold yellow]Compatibility warnings:[/]"
+        summary += "\n" + "\n".join(
+            f"  [yellow]•[/] {escape(warning)}" for warning in comparison.warnings
+        )
+    console.print(
+        Panel(
+            summary,
+            title="[bold cyan]Baseline Finding Delta[/]",
+            border_style="cyan",
+            box=box.ROUNDED,
+        )
+    )
+
+    selection = select_baseline_details(comparison)
+    if selection.visible:
+        lines: list[str] = []
+        for entry in selection.visible:
+            state = getattr(entry.state, "value", entry.state)
+            state_color = _DELTA_STATE_COLOR.get(entry.state, "white")
+            gate_marker = " [bold red]GATED[/]" if entry.gated else ""
+            before, after = severity_transition(entry)
+            lines.append(
+                f"[{state_color}]• {escape(str(state).upper())}[/]"
+                f"{gate_marker} [bold]{escape(entry.engine_name)}[/]"
+                f" / {escape(entry.rule_id)} — {escape(entry.message or '—')}"
+            )
+            lines.append(
+                f"    [dim]Current:[/] {escape(_baseline_location_text(entry.current_location))}"
+                f"  [dim]Baseline:[/] {escape(_baseline_location_text(entry.baseline_location))}"
+                f"  [dim]Severity:[/] {escape(f'{before} → {after}')}"
+            )
+        if selection.omitted_changed or selection.omitted_unchanged:
+            notes = []
+            if selection.omitted_changed:
+                notes.append(f"{selection.omitted_changed} additional delta row(s) omitted")
+            if selection.omitted_unchanged:
+                notes.append(f"{selection.omitted_unchanged} unchanged row(s) omitted")
+            lines.append(f"[dim]Note: {'; '.join(notes)}; JSON retains the full inventory.[/]")
+        console.print(
+            Panel(
+                "\n".join(lines),
+                title="[bold yellow]Baseline Issues-First Details[/]",
+                border_style="yellow",
+                box=box.SQUARE,
+            )
+        )
+    elif comparison.entries:
+        console.print(
+            Panel(
+                "[dim]Delta details omitted from the terminal view; JSON retains the full inventory.[/]",
+                title="[bold yellow]Baseline Details[/]",
+                border_style="yellow",
+                box=box.SQUARE,
+            )
+        )
 
 
 def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None = None) -> None:
@@ -133,6 +236,9 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
                     )
                 )
 
+    if suite.baseline_comparison is not None:
+        _print_baseline_comparison(suite.baseline_comparison, suite)
+
     # Print Overall Footer
     tem_str = (
         f" | TEM Score: [bold cyan]{suite.tem_score:.2f} / {suite.max_tem_score:.1f}[/bold cyan]"
@@ -153,7 +259,7 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
         # rule. Printing one without the other is how a report could say
         # "Error: 0" and still be an ERROR with nothing on screen explaining it.
         f"[bold {status_color}]Suite: {suite.suite_status.value}[/] — "
-        f"{gate_reason(suite.results, suite.suite_status)}"
+        f"{gate_reason(suite.results, suite.suite_status, suite.baseline_comparison)}"
     )
     console.print(Panel(summary_text, style="white", border_style="cyan"))
 

@@ -146,6 +146,67 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 속성으로만 전달됩니다. 리포터의 JavaScript는 정적인 이벤트 위임으로 이 값을 읽으므로
 경로·메시지에 따옴표나 HTML/스크립트 문자열이 포함되어도 실행 코드로 해석되지 않습니다.
 
+### 1.3.1 finding baseline 및 delta gate
+
+`verify --baseline <path>`는 현재 v3 finding inventory를 프로젝트 루트 안의
+`ici.result/v3` JSON baseline과 비교합니다. `--fail-on-new`를 함께 지정하면 새롭거나
+회귀한 actionable finding이 하나라도 있을 때 baseline gate가 실패합니다. baseline 없이
+`--fail-on-new`를 지정하는 것은 CLI 입력 오류이며, 현재 엔진의 `FAIL`/`ERROR` 결과는
+baseline verdict보다 우선합니다. 현재 inventory를 저장할 때는
+`--write-baseline <path>`을 사용합니다.
+
+#### 비교 identity와 pairing
+
+비교는 `(engine_name, fingerprint)`를 그룹 identity로 사용합니다. 같은 identity의
+occurrence가 여러 개이면 fingerprint 하나로 축약하지 않고 multiset으로 유지합니다.
+각 그룹 안에서는 다음 순서로 pairing합니다.
+
+1. canonical primary location(path, line/column, label)이 정확히 같은 occurrence를 먼저
+   `unchanged`로 pair합니다.
+2. 남은 current/baseline occurrence를 deterministic record order로 pair하면 `moved`이며,
+   current와 baseline 위치를 모두 보존합니다.
+3. pair되지 않은 current surplus는 `new`, baseline surplus는 `resolved`입니다.
+
+따라서 위치가 이동한 duplicate와 실제 추가·해결된 occurrence를 구분할 수 있습니다.
+`FindingDelta`는 상태 외에도 양쪽 severity와 위치, `regressed`, `suppressed`, `gated`를
+포함합니다. severity rank가 올라가거나 baseline suppression이 현재 제거되면 regression으로
+분류됩니다. actionable은 현재 suppression이 없고 severity가 `info`가 아닌 finding입니다.
+`new` actionable 또는 actionable regression만 `gated`이며, informational·suppressed
+finding과 `resolved` 항목은 inventory에는 남지만 gate를 만들지 않습니다.
+
+#### 호환성 identity와 입력 보안
+
+현재와 baseline의 `AnalysisMetadata`는 다음 네 가지 identity로 호환성을 설명합니다.
+
+- `producer_version`: 결과를 만든 ici producer 버전
+- `fingerprint_version`: finding fingerprint 규칙 버전
+- `policy_digest`: 엔진 분석 정책 digest
+- `tool_policy_digest`: 프로젝트 scope·engine mode·도구/fallback 정책 digest
+
+네 값 중 하나라도 다르면 비교를 폐기하지 않고 `warnings`에 차이를 남긴 채 delta를
+계산합니다. metadata가 없는 기존 v3 baseline도 허용하지만 네 identity를 검증할 수 없다는
+명시적 warning을 추가합니다.
+
+loader는 baseline 경로를 프로젝트 루트에 canonical하게 resolve하고 파일 크기를 64 MiB로
+제한합니다. JSON parse와 `ici.result/v3` schema version 및 baseline 관련 필드를 요구하며,
+각 finding의 primary 및
+related location이 canonical POSIX project-relative path이고 1-indexed line/column region인지
+검증합니다. 절대 경로, `..` root 탈출, backslash/non-canonical alias, root 밖으로 향하는
+symlink, 잘못된 fingerprint digest·metadata·suppression 값은 거부합니다.
+
+v3 결과에서 `analysis_metadata`와 `baseline_comparison`은 optional nullable field입니다.
+따라서 두 필드가 없는 기존 v3 archive도 기존 소비자와 viewer가 계속 읽을 수 있습니다.
+v2 archive는 migration helper로 v3 copy를 만들 수 있지만 baseline loader의 직접 입력은
+v3입니다. JSON writer는 `baseline_comparison.entries` 전체 inventory를 저장합니다.
+반면 console/Markdown/HTML reporter는 issues-first로 gated·변경 항목을 먼저 보여주고,
+화면 상세는 최대 20개 row(unchanged 예시는 최대 3개)로 제한해 unchanged noise를 줄입니다.
+
+`--write-baseline`의 writer는 output과 같은 디렉터리에 고유한
+`.{name}.<random>.tmp` 파일을 만들고 내용을 flush·`fsync`한 뒤 `Path.replace`로 원자
+교체합니다. 쓰기나 교체가 실패하면 임시 파일을 정리하여 기존 baseline이 부분 결과로
+덮어써지지 않습니다. 입력과 출력이 같은 갱신에서 `fail-on-new` gate가 실패하면 원본을
+그대로 보존하며, 실패 snapshot이 필요하면 다른 출력 경로를 사용해야 합니다.
+
 ### 1.4 엔진 지원·기능 매트릭스
 
 아래 표는 설명용으로 손으로 관리하지 않습니다. `ici.core.support`의 실행 가능한 선언에서

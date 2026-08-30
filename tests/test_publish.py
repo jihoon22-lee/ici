@@ -278,6 +278,216 @@ def test_load_suite_from_json_roundtrip(tmp_path: Path):
     assert loaded.results[0].engine_name == "test"
 
 
+def _baseline_summary_payload() -> dict:
+    entries = []
+    for state, count in (
+        ("new", 2),
+        ("unchanged", 3),
+        ("moved", 1),
+        ("resolved", 4),
+    ):
+        for index in range(count):
+            entries.append(
+                {
+                    "state": state,
+                    "regressed": state == "moved" and index == 0,
+                    "gated": (state == "new" and index == 0) or (state == "moved" and index == 0),
+                }
+            )
+    return {
+        "source_path": ".ici/baseline.json",
+        "warnings": ["compatibility <warning>| details"],
+        "baseline_metadata": None,
+        "fail_on_new": True,
+        "gate_failed": True,
+        "new_count": 2,
+        "unchanged_count": 3,
+        "moved_count": 1,
+        "resolved_count": 4,
+        "regressed_count": 1,
+        "gated_count": 2,
+        "entries": entries,
+        "future_summary_field": {"ignored": True},
+    }
+
+
+def _write_suite_payload(tmp_path: Path, baseline: object = None) -> Path:
+    path = tmp_path / "v3-report.json"
+    payload = {
+        "schema_version": "ici.result/v3",
+        "suite_status": "PASS",
+        "duration": 1.0,
+        "tem_score": 4.5,
+        "max_tem_score": 5.0,
+        "results": [],
+    }
+    if baseline is not None:
+        payload["baseline_comparison"] = baseline
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def test_load_suite_from_json_reads_baseline_summary_and_ignores_unknown_fields(
+    tmp_path: Path,
+):
+    from ici.core.models import DeltaState
+    from ici.engines.publish import load_suite_from_json
+
+    loaded = load_suite_from_json(_write_suite_payload(tmp_path, _baseline_summary_payload()))
+
+    assert loaded is not None
+    comparison = loaded.baseline_comparison
+    assert comparison is not None
+    assert comparison.source_path == ".ici/baseline.json"
+    assert comparison.warnings == ["compatibility <warning>| details"]
+    assert comparison.count(DeltaState.NEW) == 2
+    assert comparison.count(DeltaState.UNCHANGED) == 3
+    assert comparison.count(DeltaState.MOVED) == 1
+    assert comparison.count(DeltaState.RESOLVED) == 4
+    assert comparison.regressed_count == 1
+    assert comparison.gated_count == 2
+    assert comparison.fail_on_new is True
+    assert comparison.gate_failed is True
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid"),
+    [
+        ("source_path", ""),
+        ("warnings", [""]),
+        ("warnings", ["ok", 1]),
+        ("baseline_metadata", []),
+        ("new_count", -1),
+        ("new_count", True),
+        ("new_count", 1.5),
+        ("gate_failed", 1),
+        ("entries", [{"state": "not-a-delta", "regressed": False, "gated": False}]),
+        ("entries", {}),
+    ],
+)
+def test_load_suite_from_json_omits_invalid_or_legacy_baseline_summary(
+    tmp_path: Path, field: str, invalid: object
+):
+    from ici.engines.publish import load_suite_from_json
+
+    baseline = _baseline_summary_payload()
+    baseline[field] = invalid
+    loaded = load_suite_from_json(_write_suite_payload(tmp_path, baseline))
+
+    assert loaded is not None
+    assert loaded.baseline_comparison is None
+
+
+@pytest.mark.parametrize(
+    "mutator",
+    [
+        lambda baseline: baseline.pop("entries"),
+        lambda baseline: baseline.update({"new_count": 3}),
+        lambda baseline: baseline.update({"gate_failed": False}),
+    ],
+)
+def test_load_suite_from_json_rejects_partial_or_inconsistent_baseline_summary(
+    tmp_path: Path, mutator
+):
+    from ici.engines.publish import load_suite_from_json
+
+    baseline = _baseline_summary_payload()
+    mutator(baseline)
+    loaded = load_suite_from_json(_write_suite_payload(tmp_path, baseline))
+
+    assert loaded is not None
+    assert loaded.baseline_comparison is None
+
+
+def test_load_suite_from_json_rejects_invalid_delta_flag_invariants(tmp_path: Path):
+    from ici.engines.publish import load_suite_from_json
+
+    baseline = _baseline_summary_payload()
+    # Keep the aggregate counts unchanged while making a NEW delta regressed.
+    baseline["entries"][0]["regressed"] = True
+    baseline["entries"][5]["regressed"] = False
+
+    loaded = load_suite_from_json(_write_suite_payload(tmp_path, baseline))
+
+    assert loaded is not None
+    assert loaded.baseline_comparison is None
+
+
+def test_load_suite_from_json_rejects_gated_resolved_delta(tmp_path: Path):
+    from ici.engines.publish import load_suite_from_json
+
+    baseline = _baseline_summary_payload()
+    # Keep gated_count unchanged while moving one gate to a RESOLVED entry.
+    baseline["entries"][0]["gated"] = False
+    baseline["entries"][6]["gated"] = True
+
+    loaded = load_suite_from_json(_write_suite_payload(tmp_path, baseline))
+
+    assert loaded is not None
+    assert loaded.baseline_comparison is None
+
+
+def test_load_suite_from_json_accepts_null_and_older_reports(tmp_path: Path):
+    from ici.engines.publish import load_suite_from_json
+
+    null_report = _write_suite_payload(tmp_path, None)
+    payload = json.loads(null_report.read_text(encoding="utf-8"))
+    payload["baseline_comparison"] = None
+    null_report.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_suite_from_json(null_report)
+
+    assert loaded is not None
+    assert loaded.baseline_comparison is None
+
+
+def test_single_comment_includes_baseline_delta_and_escapes_warnings(tmp_path: Path):
+    from ici.engines.publish import _baseline_summary_lines, load_suite_from_json
+
+    loaded = load_suite_from_json(_write_suite_payload(tmp_path, _baseline_summary_payload()))
+
+    assert loaded is not None
+    lines = _baseline_summary_lines(loaded)
+    body = "\n".join(lines)
+    assert "new **2**" in body
+    assert "regressed **1**" in body
+    assert "gated **2**" in body
+    assert "gate **❌ FAILED**" in body
+    assert "&lt;warning&gt;&#124; details" in body
+    assert "<warning>" not in body
+
+
+def test_multi_comment_includes_each_project_baseline_delta(tmp_path: Path, monkeypatch):
+    from ici.engines.publish import load_suite_from_json
+
+    posted: dict[str, str] = {}
+
+    def fake_upsert(self, api_base, repo, token, pr_number, body):
+        posted["body"] = body
+        return "https://example.invalid/comment"
+
+    monkeypatch.setattr(ReportPublisher, "_ensure_branch", lambda *a, **k: True)
+    monkeypatch.setattr(ReportPublisher, "_check_pages", lambda *a, **k: (True, "https://pages/"))
+    monkeypatch.setattr(ReportPublisher, "_put_file", lambda *a, **k: True)
+    monkeypatch.setattr(ReportPublisher, "_upsert_comment", fake_upsert)
+
+    baseline = load_suite_from_json(_write_suite_payload(tmp_path, _baseline_summary_payload()))
+    assert baseline is not None
+    reports = []
+    for name in ("diskmap", "loglens"):
+        html = tmp_path / f"{name}.html"
+        html.write_text("<html></html>", encoding="utf-8")
+        reports.append(ReportInput(name, html, baseline))
+
+    result = ReportPublisher(env=gh_env(tmp_path)).publish_many(reports)
+
+    assert result.success
+    body = posted["body"]
+    assert body.count("Baseline delta") == 2
+    assert body.count("new **2**") == 2
+    assert body.count("gate **❌ FAILED**") == 2
+
+
 def test_publish_command_uses_saved_json(tmp_path: Path, monkeypatch):
     """The standalone publish command feeds the saved JSON into the publisher."""
     from typer.testing import CliRunner

@@ -153,10 +153,73 @@ annotation 문법을 깨뜨리지 않습니다.
 
 ### 2.3 HTML 아티팩트
 
-`--html verify_report.html`은 외부 CDN 없이 동작하는 10개 탭 HTML을 생성합니다. `verify` job
-자체는 파일을 아티팩트로 업로드만 하고 브랜치나 PR 댓글에 직접 게시하지 않습니다 — sticky
+`--html verify_report.html`은 외부 CDN 없이 동작하는 기본 10개 탭 HTML을 생성하며, baseline을
+함께 비교하면 `Baseline Delta` 탭이 추가됩니다. `verify` job 자체는 파일을 아티팩트로
+업로드만 하고 브랜치나 PR 댓글에 직접 게시하지 않습니다 — sticky
 댓글 게시는 별도 권한을 가진 `report-pr` job이 그 아티팩트를 소비해 수행합니다 (1.2 참조).
 다운로드한 HTML은 폐쇄망에서도 로컬로 열 수 있습니다.
+
+### 2.4 CI baseline/delta gate
+
+저장소가 검토한 기준선 파일(예: `.ici/baseline.json`)을 커밋해 두면 PR 검증에서 다음처럼
+delta를 확인하고 gate할 수 있습니다.
+
+```bash
+# 기준선 생성/갱신은 변경 사유를 확인한 별도 작업에서 수행
+dist/ici.pyz verify --write-baseline .ici/baseline.json
+
+# PR 검증: JSON/HTML/Step Summary를 남기고 actionable delta를 gate
+dist/ici.pyz verify \
+  --baseline .ici/baseline.json \
+  --fail-on-new \
+  --report --html verify_report.html --github-summary
+```
+
+`--fail-on-new`는 baseline 없이 사용할 수 없으며, baseline은 `ici.result/v3`만 허용합니다.
+baseline 입력과 출력, 그리고 baseline finding이 가리키는 소스 위치는 프로젝트 루트 안에
+canonical하게 있어야 합니다. `..`로 루트를 벗어나거나 프로젝트 내부 symlink를 통해
+루트 밖으로 해석되는 경로는 CLI에서 차단됩니다. 이 검사는 읽기와 쓰기 모두에 적용되므로
+CI가 작업 디렉터리 밖 파일을 기준선으로 소비하거나 덮어쓸 수 없습니다.
+
+기존 파일을 읽은 뒤 새 파일을 쓰므로 다음처럼 같은 경로를 지정하는 갱신은 허용됩니다.
+
+```bash
+dist/ici.pyz verify \
+  --baseline .ici/baseline.json \
+  --write-baseline .ici/baseline.json \
+  --report --html verify_report.html --github-summary
+```
+
+단, `--report`가 기본으로 쓰는 `verify_report.json`과 `--write-baseline`을 같은 경로로
+지정하면 report를 덮어쓰므로 exit 2로 실패합니다. baseline 파일 자체를 갱신하는 작업과
+PR 검증을 분리하면 기준선 변경을 코드 리뷰로 확인하기도 쉽습니다.
+`--fail-on-new`가 실패한 실행도 입력 baseline과 같은 경로를 덮어쓰지 않으므로, 새 finding이
+다음 실행에서 자동으로 기준선에 편입되어 숨는 일이 없습니다. 실패 상태의 snapshot이
+필요하면 다른 경로에 기록해 별도로 리뷰합니다.
+
+비교는 엔진·fingerprint·위치를 기준으로 모든 finding occurrence를 분류합니다. `new`,
+`unchanged`, `moved`, `resolved` 네 상태와 현재/기준선 위치를 보존하며, severity 상승 또는
+기준선 suppressed → 현재 unsuppressed 전환은 `regressed`로 표시합니다. `--fail-on-new`는
+현재 finding이 actionable일 때만 새 항목과 regression을 gate합니다. `info` severity와
+suppressed finding은 gate에서 제외되고, `resolved`는 실패시키지 않습니다. 따라서 같은
+위치의 severity 변경은 `unchanged + regressed`가 될 수 있고, suppression은 현재 finding을
+조치 대상에서 제외하는 표시인 반면 baseline은 과거 finding inventory snapshot이라는
+차이가 있습니다.
+
+baseline metadata의 버전·fingerprint·analysis policy·tool policy 불일치는 호환성
+warning으로 보고됩니다. 이 warning만으로 baseline gate가 실패하지는 않지만, 같은 실행의
+엔진 `FAIL`/`ERROR` 등 기존 suite 결과는 독립적으로 적용됩니다.
+
+결과 노출 위치는 다음과 같습니다.
+
+- `verify_report.json`: `baseline_comparison`에 네 상태 count, 전체 delta, 위치, severity,
+  suppression/regression/gate 플래그와 warning을 보존합니다.
+- `verify_report.html`: `Baseline Delta` 탭에서 gate와 warning, issues-first delta를 보여줍니다.
+- `--github-summary`: Markdown Summary에 count와 이슈 우선 상세를 추가합니다.
+- 콘솔: `Baseline Finding Delta` 패널에서 count와 gate 우선 항목을 출력합니다.
+- `report-pr`/신뢰된 `publish`: JSON의 baseline 요약을 sticky PR 댓글에 새 finding·regression·
+  gated count 및 compatibility warning으로 추가합니다. 댓글은 요약 링크이고, 전체 inventory와
+  위치는 HTML/JSON을 확인하도록 유지합니다.
 
 ## 3. 신뢰된 HTML publish (`--publish`)
 
