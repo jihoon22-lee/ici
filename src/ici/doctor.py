@@ -17,7 +17,9 @@ from ici.core.env import (
     get_nas_shared_dir,
     get_system_info,
 )
+from ici.core.support import evaluate_support_matrix
 from ici.core.toolchain import DEFAULT_PROBES, collect_tool_capability
+from ici.reporters.json_rep import serialize_support_matrix
 
 console = Console()
 
@@ -26,6 +28,7 @@ def collect_diagnostics(
     project_root: Path | None = None, config: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     """Collects all environment and toolchain information."""
+    root = (project_root or Path.cwd()).resolve()
     sys_info = get_system_info()
     py_candidates = find_python_candidates()
 
@@ -34,9 +37,11 @@ def collect_diagnostics(
         try:
             from ici.config import load_config
 
-            config = load_config(project_root or Path.cwd())
+            config = load_config(root)
         except Exception:
             config = {}
+    if config is None:
+        config = {}
     required_tools = set(config.get("doctor", {}).get("required_tools", []) or [])
     probe_map: dict[str, list[str]] = dict(DEFAULT_PROBES)
     probe_map.update(
@@ -51,7 +56,7 @@ def collect_diagnostics(
     )
     tools: dict[str, dict[str, Any]] = {}
     for tool_name, probe in probe_map.items():
-        cap, _result = collect_tool_capability(tool_name, probe, cwd=project_root)
+        cap, _result = collect_tool_capability(tool_name, probe, cwd=root)
         tools[tool_name] = {
             "available": cap.available,
             "version": cap.version,
@@ -64,6 +69,7 @@ def collect_diagnostics(
     nas_root = get_nas_shared_dir()
     nas_cpp = get_nas_cpp_lib_dir()
     infra_root = find_infra_root()
+    support_matrix = serialize_support_matrix(evaluate_support_matrix(root, config))
 
     return {
         "system": sys_info,
@@ -76,6 +82,7 @@ def collect_diagnostics(
         ],
         "tools": tools,
         "required_tools": sorted(required_tools),
+        "support_matrix": support_matrix,
         "paths": {
             "infra_root": str(infra_root),
             "nas_shared": str(nas_root),
@@ -141,6 +148,73 @@ def render_doctor_table(data: dict[str, Any]) -> None:
         t_tool.add_row(tool_name, st, v)
     console.print(t_tool)
 
+    # Engine capability matrix. This is intentionally a read-only declaration
+    # view: doctor never runs an engine, so applicable enabled rows are
+    # normally reported as NOT_RUN until a verification command observes them.
+    matrix = data.get("support_matrix")
+    if matrix:
+        t_support = Table(
+            title="Engine Capability Matrix",
+            box=box.ROUNDED,
+            header_style="bold cyan",
+            show_lines=False,
+        )
+        t_support.add_column("Engine", style="bold", width=12, no_wrap=True)
+        t_support.add_column("Language", width=13, no_wrap=True)
+        t_support.add_column("State", width=15, no_wrap=True)
+        t_support.add_column("Declared / Active", width=24)
+        t_support.add_column("Evidence / Confidence", width=22)
+        t_support.add_column("Tools", width=25)
+        t_support.add_column("Fallback", width=14)
+        t_support.add_column("Detail", style="dim")
+
+        for entry in matrix.get("entries", []):
+            language = str(entry.get("language") or "-")
+            frameworks = entry.get("frameworks", []) or []
+            if frameworks:
+                language += " (" + ", ".join(str(item) for item in frameworks) + ")"
+
+            if not entry.get("applicable", False):
+                state = "not-applicable"
+            elif not entry.get("enabled", False):
+                state = "disabled"
+            else:
+                state = "applicable"
+
+            declared = entry.get("mode") or "-"
+            active = entry.get("active_mode") or "-"
+            mode = f"{declared} / {active}"
+            evidence = entry.get("evidence") or "-"
+            confidence = entry.get("confidence") or "-"
+            evidence_summary = f"{evidence} / {confidence}"
+
+            required = entry.get("required_tools", []) or []
+            optional = entry.get("optional_tools", []) or []
+            tools: list[str] = []
+            if required:
+                tools.append("req: " + ", ".join(required))
+            if optional:
+                tools.append("opt: " + ", ".join(optional))
+            tools_summary = "; ".join(tools) or "-"
+
+            fallback = entry.get("fallback_mode") or "-"
+            reason = entry.get("reason") or "-"
+            limitations = entry.get("limitations", []) or []
+            detail = " | ".join(
+                [str(reason), str(limitations[0])] if limitations else [str(reason)]
+            )
+            t_support.add_row(
+                str(entry.get("engine_name") or "-"),
+                language,
+                state,
+                mode,
+                evidence_summary,
+                tools_summary,
+                fallback,
+                detail,
+            )
+        console.print(t_support)
+
     # Paths Table
     t_path = Table(title="Workspace & Shared Paths", box=box.ROUNDED, header_style="bold blue")
     t_path.add_column("Component", style="bold", width=18)
@@ -177,6 +251,12 @@ def render_doctor_brief(data: dict[str, Any]) -> None:
         f"shell   {sys_info.get('shell')}  TERM={sys_info.get('term')}  LANG={sys_info.get('lang')}"
     )
     print(f"python  running={run_py['version']}  path={run_py['executable']}")
+
+    matrix = data.get("support_matrix")
+    if matrix:
+        languages = ", ".join(matrix.get("project_languages", []) or []) or "none"
+        frameworks = ", ".join(matrix.get("project_frameworks", []) or []) or "none"
+        print(f"scope   languages={languages}  frameworks={frameworks}")
 
     # tool summaries
     tool_strs = []
