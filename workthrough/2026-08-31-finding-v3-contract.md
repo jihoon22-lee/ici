@@ -59,9 +59,13 @@ JSON·HTML·Markdown·console 중 한 곳으로 새어 나갈 수 있었다. 동
   잘린 private-key block을 마스킹한다.
 - summary, message, snippet, raw output, recursive extra key/value, tool identity/path/version,
   argv/error, finding explanation/remediation/tool metadata와 suppression reason을 모두 copy-on-write
-  방식으로 처리한다. source location path는 탐색 정확성을 위해 유지한다.
+  방식으로 처리한다. source path와 finding metric 이름·단위도 credential 형태만 마스킹하고,
+  일반 경로는 탐색 정확성을 위해 유지한다.
 - 서로 다른 원본 metadata key가 마스킹 뒤 같은 문자열이 되면 `#2` suffix를 붙인다. 따라서
   secret은 숨기면서도 dictionary comprehension의 key collision로 진단 항목을 잃지 않는다.
+- writer는 non-empty string, finite/non-negative number, 정확한 boolean, 1-indexed source region을
+  schema와 같은 경계에서 검사한다. v2 migration은 producer extension을 남기면서 빠진 suite
+  count와 engine 기본 필드를 canonical 값으로 채워 migration 결과도 v3 schema를 만족시킨다.
 - verify/단독 engine/build 반환값과 console, JSON, HTML, Markdown, Actions annotation,
   publish comment가 같은 안전한 suite/result를 사용한다.
 

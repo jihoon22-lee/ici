@@ -184,7 +184,8 @@ ici/
 
 리포터에 도달하기 전과 개별 reporter API 경계에서 공통 redaction copy를 만들며 원본 분석
 객체는 변경하지 않습니다. message, snippet, raw output, tool argv/error, extra, finding 설명·개선안과
-suppression reason에 포함된 credential은 마스킹되고, 탐색에 필요한 파일 경로는 유지됩니다.
+suppression reason·metric·파일 경로에 포함된 credential은 마스킹됩니다. credential 형태가 없는
+일반 파일 경로는 탐색을 위해 그대로 유지됩니다.
 
 1. **`RichConsoleReporter`**: 터미널 환경 최적화
    - ANSI 컬러 및 Rich 테이블/패널
