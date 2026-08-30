@@ -37,7 +37,7 @@ Files: `src/ici/engines/sanitize.py`, `src/ici/engines/exception.py`,
 
 File: `ici.toml`
 
-2026-08-31 최신 `origin/main@fa3ad28` 기준 세 번의 측정값을 주석에 남기고, 다음 ratchet을
+2026-08-31 `origin/main@fa3ad28` snapshot의 세 번 측정값을 주석에 남기고, 다음 ratchet을
 세 번 연속 측정·설명 가능한 상태·실측 coverage 조건으로 제한했다.
 
 ```toml
