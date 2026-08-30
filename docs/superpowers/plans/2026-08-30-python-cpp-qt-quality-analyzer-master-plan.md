@@ -150,12 +150,12 @@ I1 이후 Python과 C++ 작업은 병렬 가능하지만, 각 언어 안에서�
 
 **브랜치:** `fix/cycle-include-path`
 
-- [ ] 같은 basename을 가진 두 헤더와 directory-qualified include 회귀 테스트를 추가한다.
-- [ ] path suffix로 유일하게 결정되는 include만 연결한다.
-- [ ] bare basename 충돌은 계속 추측하지 않는다.
-- [ ] unresolved/ambiguous include 수와 예시 위치를 result extra와 target에 남긴다.
-- [ ] evidence/confidence가 compiler-exact가 아님을 문서화한다.
-- [ ] Python import graph와 C++ E2E 회귀를 함께 실행한다.
+- [x] 같은 basename을 가진 두 헤더와 directory-qualified include 회귀 테스트를 추가한다.
+- [x] path suffix로 유일하게 결정되는 include만 연결한다.
+- [x] bare basename 충돌은 계속 추측하지 않는다.
+- [x] unresolved/ambiguous include 수와 예시 위치를 result extra와 target에 남긴다.
+- [x] evidence/confidence가 compiler-exact가 아님을 문서화한다.
+- [x] Python import graph와 C++ E2E 회귀를 함께 실행한다.
 
 **완료 조건:** 탐지력 저하가 조용히 사라지지 않으며, I3 이전 임시 방식임이 명확하다.
 
