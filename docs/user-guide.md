@@ -87,6 +87,13 @@ ici verify --report --html verify_report.html --open
 - `--report`: 파이프라인 데이터 연동용 `verify_report.json`을 `ici.result/v3` 형식으로 저장합니다.
   기존 `targets`와 canonical `findings`를 함께 포함하며, 기계 검증용 JSON Schema는
   [`src/ici/schemas/ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)입니다.
+  프로젝트 언어·Qt 발견 결과와 엔진별 mode/tool/fallback/evidence/confidence를 담은
+  `support_matrix`도 함께 저장됩니다. 단독 엔진 리포트에는 그 엔진의 두 언어 행만 들어갑니다.
+
+환경과 지원 범위를 실행 전에 확인하려면 `ici doctor`를 사용합니다. 일반 출력은 설치된 도구와
+프로젝트별 엔진 matrix를 표로 보여주고, `--brief`는 프로젝트 언어·프레임워크 한 줄만 더하며,
+`--json`은 verify report와 같은 support matrix 구조를 자동화에 제공합니다. doctor는 분석 엔진을
+실행하지 않으므로 적용 가능한 활성 행도 이 시점에는 정확히 `NOT_RUN`/active mode 없음으로 표시됩니다.
 
 ### 2.3 신뢰된 실행에서 HTML 리포트 배포 (`--publish`)
 `--publish`는 일반 PR 검증의 기본 동작이 아닙니다. 권한을 명시적으로 부여한 신뢰된

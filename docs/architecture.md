@@ -167,6 +167,9 @@ ici/
   - `suite_status`: 전체 집계 상태. 필수 `ERROR`/`SKIP`/`NOT_RUN`은 `ERROR`, 필수 `FAIL`은 `FAIL`, 경고 또는 선택 검증의 비측정 결과는 `WARN`으로 집계합니다.
   - `results`: 각 엔진 결과 목록
   - `tem_score`: TEM 종합 품질 점수
+  - `support_matrix`: 발견된 Python/C++ 및 Qt scope에 대해 중앙 엔진 선언을 적용한 결과입니다.
+    선언 mode와 실제 active mode, 적용·활성 여부, evidence/confidence, 필수·선택 도구,
+    fallback 및 limitation을 보존합니다. reporter와 viewer는 이를 다시 계산하지 않습니다.
   - JSON writer는 `ici.result/v3`를 사용합니다. 기존 `targets`와 엔진·도구 증거를 보존하면서
     `findings`를 추가하므로 점진적으로 소비자를 전환할 수 있습니다. v2 archive는 migration
     helper와 v2/v3 겸용 viewer로 계속 읽을 수 있습니다. 기계 검증 계약은
