@@ -67,7 +67,7 @@ suite에 붙인다. 단독 엔진 CLI는 같은 함수를 `engine_names={raw_res
   framework scope, required/optional tools, fallback, limitations, reason
 - `SupportMatrix`: project languages/frameworks와 평가된 entry 목록
 - `EngineResult.support_matrix`와 `VerificationSuiteResult.support_matrix`의 optional 연결
-- `EvidenceState.NOT_APPLICABLE`과 gate 집계 예외 처리. 적용되지 않은 required 엔진은
+- 기존 `EvidenceState.NOT_APPLICABLE`을 matrix 평가에 재사용하고 gate 집계 예외 처리. 적용되지 않은 required 엔진은
   `ERROR`/`WARN` 승격의 원인이 되지 않는다.
 
 `src/ici/core/support.py`의 immutable `SupportDeclaration` tuple이 13개 엔진을 항상
@@ -264,9 +264,12 @@ if not language_present:
 elif not supported:
     evidence = EvidenceState.NOT_APPLICABLE
     reason = f"{declaration.engine_name} does not support {declaration.language.value}"
-elif not enabled or result is None:
+elif not enabled:
     evidence = EvidenceState.NOT_RUN
-    reason = "engine is disabled by effective policy" if not enabled else "applicable engine has not been run"
+    reason = "engine is disabled by effective policy"
+elif result is None:
+    evidence = EvidenceState.NOT_RUN
+    reason = "applicable engine has not been run"
 
 if applicable and enabled and evidence == EvidenceState.MEASURED:
     active_mode = declaration.mode
@@ -421,6 +424,9 @@ replacement failure clearing.
   dashboards or gate logic.
 - `ESTIMATED` means a fallback result was used. Its confidence is deliberately reduced for an
   exact/high declaration. `unsupported` and `NOT_APPLICABLE` are not green evidence.
+- Current `EngineResult.evidence` is engine-level. In a hybrid project, one language fallback can
+  conservatively lower every applicable language row for that engine to `ESTIMATED`; per-language
+  evidence remains a follow-up shared-context/engine-contract task.
 - Required/optional tool lists describe policy and declaration. They do not replace the separate
   I2-1 capability inventory or prove that a binary is installed.
 - `(Qt)` is compatibility metadata for C++/Qt projects, not a claim that every marked engine
