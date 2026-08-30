@@ -71,6 +71,20 @@ sha256: 8fdb816ae394e5327ffa6f6ca6ddc0efca0a45addb48975e3b8eef6412a39018
 PASS: Python 3.10, artifact integrity, and Zero-CDN checks
 ```
 
+### ici self verification with the candidate pyz
+
+The candidate pyz self-verified with exit code `0` and a policy `WARN`: 12 engines,
+8 pass, 4 warn, 0 fail/error/skip; embedded test `811/811`; line/function/branch
+coverage `88.1%/96.7%/78.8%`; TEM `4.84`; complexity `23/732`; duplicate rate
+`16.03%`; duration `127.05s`. The only cycle finding was the pre-existing
+`test/test_interpreter` cycle. Its capability snapshot contained 30 tools, 21 ready,
+0 incomplete, and 9 unavailable; required `ruff`, `pytest`, and `python3` were ready
+and health was `READY`.
+
+The self-verification HTML at `/tmp/ici-qmake-freshness-self.html` was checked for
+Zero-CDN compliance: `3,622,941` bytes, zero external `src`/`href` references, and
+the tool capability snapshot rendered.
+
 ### Real DiskMap validation with the candidate pyz
 
 The candidate pyz was run against the rebased DiskMap branch. The result was
