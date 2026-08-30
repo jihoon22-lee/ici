@@ -356,11 +356,32 @@ green(756 tests)이었고, [sticky comment](https://github.com/jihoon22-lee/ici/
 
 **브랜치:** `refactor/analysis-context`
 
-- [ ] `ProjectModel`, `CapabilityInventory`, `BuildSession`, `ArtifactManifest`, `CompilationContext`의 소유권을 정의한다.
-- [ ] artifact path는 project/shadow root 아래인지 검증하고 symlink escape를 거부한다.
-- [ ] source commit, config digest, toolchain digest를 manifest에 기록한다.
-- [ ] test/sanitize/coverage가 필요한 build variant를 명시적으로 요청한다.
-- [ ] reporter는 context를 변경하지 못한다.
+- [x] `ProjectModel`, `CapabilityInventory`, `BuildSession`, `ArtifactManifest`, `CompilationContext`의 소유권을 정의한다.
+- [x] artifact path는 project/shadow root 아래인지 검증하고 symlink escape를 거부한다.
+- [x] source commit, config digest, toolchain digest를 manifest에 기록한다.
+- [x] test/sanitize/coverage가 필요한 build variant를 명시적으로 요청한다.
+- [x] reporter는 context를 변경하지 못한다.
+
+**완료 기록 (2026-08-31):** `ProjectModel`은 canonical root와 project-relative source,
+header, include scope를 한 번만 발견해 frozen tuple snapshot으로 소유한다. 이미 수집된
+`CapabilityInventory`는 `AnalysisContext`에 그대로 전달되고, `CompilationContext`는 compile
+unit의 상대 source/directory/argv/output을 immutable tuple로 보존한다. adapter가 configure,
+build, test 중 변경하는 상태는 mutable `BuildSession`에만 두며, 성공한 project/shadow regular
+file은 frozen `ArtifactManifest`로 발행한다. manifest는 canonical containment와 symlink
+escape를 검사하고 variant, producer, source/config/toolchain identity, SHA-256·size·mode를
+기록한다. `source_commit`은 Git HEAD 또는 명시적 `unavailable`이고 config/toolchain은
+canonical SHA-256 digest다.
+
+`RELEASE`, `COVERAGE`, `SANITIZE`를 명시적으로 선택해 shadow와 계측 flags를 분리했으며,
+build/test/sanitize가 같은 context snapshot을 공유한다. console·Markdown·HTML·JSON
+reporter는 context를 변경하지 않고 safe projection을 만든다. `ici.result/v3`의 optional
+`analysis_context` (`ici.analysis-context/v1`)와 `artifact_manifests`
+(`ici.artifacts/v1`)는 project-relative POSIX 경로와 전체 provenance를 보존하고, 외부
+include/search path는 report redaction 경계에서 호스트 절대 경로를 노출하지 않는다.
+기존 v3 payload는 두 확장 없이도 계속 읽고 migration할 수 있다. 전체 품질 게이트의 병합
+조건은 full suite green이며, 작업 중인 테스트 수는 이 문서에 고정하지 않는다.
+
+I2-2는 완료됐다. I2-3의 engine DAG와 I2-4의 cache/reproducibility 설계는 아직 남아 있다.
 
 ### I2-3. hardcoded loop를 의존성 그래프로 교체
 
@@ -747,7 +768,7 @@ main 반영은 후속 검증에서 완료해야 한다.
 
 - [x] I0: 현재 viewer/cycle 계획이 보정된 테스트와 함께 완료
 - [x] I1: v3 finding, support matrix, baseline, issues-first console 완료
-- [ ] I2: shared context와 engine DAG 완료
+- [ ] I2: I2-2 shared context 완료; I2-3 engine DAG와 I2-4 cache/reproducibility 남음
 - [ ] I3: CMake/qmake compile context와 compiler-exact include/lint 완료
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
@@ -758,5 +779,5 @@ main 반영은 후속 검증에서 완료해야 한다.
 
 I1 기능과 로컬 실물 검증 및 PR/CI Merge Gate는 완료됐다. [PR #89](https://github.com/jihoon22-lee/ici/pull/89)의
 병합 commit과 [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의 required checks
-결과는 위 I1-4 완료 조건에 기록한 evidence를 따른다. 다음 단계는 I2 shared context와 toy T1
-reliability 작업이다.
+결과는 위 I1-4 완료 조건에 기록한 evidence를 따른다. I2-2 shared context와 artifact
+manifest는 완료됐으며, 다음 단계는 I2-3 engine DAG·I2-4 cache와 toy T1 reliability 작업이다.

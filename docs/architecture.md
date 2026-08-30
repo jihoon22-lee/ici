@@ -74,8 +74,11 @@ ici/
 │       ├── __main__.py              # CLI 엔트리포인트 및 서브커맨드 라우터
 │       ├── config.py                # 전사 기본 정책(DEFAULT_CONFIG) 및 toml 로더
 │       ├── core/                    # 코어 도메인 로직
+│       │   ├── backend.py           # 독립 build backend discovery
 │       │   ├── env.py               # 파이썬 탐색 및 시스템 환경 진단
 │       │   ├── models.py            # 결과·finding·baseline 데이터 모델
+│       │   ├── context.py           # immutable 분석 맥락·variant·artifact manifest
+│       │   ├── capabilities.py      # bounded tool capability inventory
 │       │   ├── findings.py          # v3 finding canonicalization/fingerprint
 │       │   ├── baseline.py          # v3 baseline loader/comparison/gate
 │       │   ├── project.py           # 소스 파일 탐색 및 프로젝트 루트 감지
@@ -191,11 +194,45 @@ ici/
     helper와 v2/v3 겸용 viewer로 계속 읽을 수 있습니다. 기계 검증 계약은
     [`ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)입니다.
 
-### 4.2 오케스트레이터 및 예외 격리 (`VerifyOrchestrator`)
+### 4.2 공유 분석 맥락과 산출물 소유권 (`AnalysisContext`)
+
+엔진마다 프로젝트를 다시 탐색하거나 리포터가 실행 중인 객체를 수정하면, 같은 실행 안에서도
+범위·도구·산출물의 기준이 달라질 수 있습니다. I2-2부터 한 검증 실행은 아래 immutable
+snapshot을 생성하고 모든 엔진과 리포터가 이를 읽기 전용으로 공유합니다.
+
+- **`ProjectModel`**: canonical project root, 이름·버전·언어/프레임워크 유형, source와
+  header 범위, Python/C++ 및 직접 컴파일 가능한 C++ 목록, external build directory,
+  include flags와 선택된 backend descriptor/reason을 한 번만 발견해 tuple로 보존합니다.
+- **`CapabilityInventory`**: bounded probe가 수집한 도구 경로·버전·세부 정보·실행 evidence와
+  required/optional provenance를 mapping-proxy로 고정합니다. 엔진이나 리포터는 재탐색하거나
+  snapshot을 추가할 수 없습니다.
+- **`CompilationContext`**: compile database 경로와 번역 단위별 `source`, `directory`,
+  `argv`, `output`을 immutable tuple로 전달합니다. 실제 compile DB 해석·정확한 include
+  context는 I3의 범위이며, I2에서는 소유권과 경계만 고정합니다.
+- **`BuildSession`**: configure/build/test 중 누적되는 도구 evidence와 오류를 보유하는
+  유일한 mutable adapter 상태입니다. session은 명시적인 `RELEASE`, `COVERAGE`,
+  `SANITIZE` variant를 받아 각 shadow tree와 계측 flags를 분리합니다.
+- **`ArtifactManifest`**: 성공한 session이 발행하는 frozen 산출물 목록입니다. project 또는
+  shadow root 아래의 regular file만 허용하고, 각 record에 variant·producer·source/config/
+  toolchain identity와 SHA-256, size, mode를 남깁니다. project/shadow root와 symlink
+  escape는 canonical containment 검사에서 거부됩니다.
+- **`AnalysisIdentity`**: source commit, canonical config digest, toolchain digest를 묶어
+  build와 report가 어느 입력 snapshot에서 만들어졌는지 재현 가능하게 합니다. git 밖의
+  실행은 source commit을 명시적인 `unavailable`로 기록합니다.
+
+리포터는 `AnalysisContext`를 변경하지 않고 reporting-safe copy와 JSON projection만 만듭니다.
+`ici.result/v3`에는 기존 archive를 깨지 않도록 선택적인 `analysis_context` 객체
+(`ici.analysis-context/v1`)와 engine-level `artifact_manifests` 배열
+(`ici.artifacts/v1`)을 둡니다. JSON의 project/source/header/compile/artifact 경로는
+project-relative POSIX 형식이며, 외부 include/search path처럼 호스트 정보가 섞일 수 있는
+경로는 redaction 경계를 통과해 절대 경로를 노출하지 않습니다. 두 확장 필드가 없는 기존
+v3 payload도 그대로 읽고 migration할 수 있습니다.
+
+### 4.3 오케스트레이터 및 예외 격리 (`VerifyOrchestrator`)
 - `VerifyOrchestrator`는 활성화된 엔진을 정의된 순서로 순차 실행합니다. 개별 엔진에서 예외가 발생해도 해당 엔진을 `ERROR`/`NOT_RUN`으로 기록하고 나머지 엔진을 계속 실행하여 결과 계약을 완성합니다.
 - 단독 명령과 전체 검증은 `PASS`/`WARN`은 0, `FAIL`/`ERROR`는 1, `SKIP`은 2를 반환하는 공통 종료 코드 계약을 사용합니다.
 
-### 4.3 finding baseline 비교 파이프라인
+### 4.4 finding baseline 비교 파이프라인
 
 `verify --baseline <project-relative-v3.json>`을 지정하면 오케스트레이터는 엔진 결과에서
 native finding과 legacy `InspectionTarget` adapter를 모두 모아 baseline과 비교합니다.
