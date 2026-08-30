@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections import Counter
 from dataclasses import replace
@@ -173,7 +174,11 @@ def _metric_unit(name: str) -> str:
 def _numeric_metrics(values: dict[str, Any]) -> dict[str, FindingMetric]:
     metrics: dict[str, FindingMetric] = {}
     for name, value in sorted(values.items()):
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+        ):
             continue
         metrics[str(name)] = FindingMetric(value=value, unit=_metric_unit(str(name)))
     return metrics
@@ -230,9 +235,17 @@ def canonicalize_finding(finding: Finding, project_root: str | Path | None = Non
     if not re.fullmatch(r"ici\.[a-z0-9][a-z0-9.-]*", finding.rule_id):
         raise ValueError(f"finding rule_id must use the ici namespace: {finding.rule_id!r}")
     primary = _canonical_location(finding.primary_location, project_root)
-    related = [
-        _canonical_location(location, project_root) for location in finding.related_locations
-    ]
+    related = sorted(
+        (_canonical_location(location, project_root) for location in finding.related_locations),
+        key=lambda location: (
+            location.path,
+            location.start_line,
+            location.start_column or 0,
+            location.end_line or 0,
+            location.end_column or 0,
+            location.label,
+        ),
+    )
     return replace(
         finding,
         primary_location=primary,

@@ -68,7 +68,16 @@ def redact_data(value: Any) -> Any:
     if isinstance(value, str):
         return redact_text(value)
     if isinstance(value, dict):
-        return {redact_text(str(key)): redact_data(item) for key, item in value.items()}
+        redacted: dict[str, Any] = {}
+        for key, item in value.items():
+            base_key = redact_text(str(key))
+            safe_key = base_key
+            suffix = 2
+            while safe_key in redacted:
+                safe_key = f"{base_key}#{suffix}"
+                suffix += 1
+            redacted[safe_key] = redact_data(item)
+        return redacted
     if isinstance(value, list):
         return [redact_data(item) for item in value]
     if isinstance(value, tuple):

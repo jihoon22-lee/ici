@@ -293,6 +293,13 @@ def save_engine_json_report(
 
 
 def _save_json(data: dict[str, Any], output_path: Path) -> None:
+    content = json.dumps(
+        data,
+        indent=2,
+        ensure_ascii=False,
+        sort_keys=True,
+        allow_nan=False,
+        default=str,
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as handle:
-        json.dump(data, handle, indent=2, ensure_ascii=False, default=str)
+    output_path.write_text(content, encoding="utf-8")

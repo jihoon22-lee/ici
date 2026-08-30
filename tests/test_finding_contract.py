@@ -1,5 +1,6 @@
 import io
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -21,7 +22,7 @@ from ici.core.models import (
 )
 from ici.core.redaction import REDACTED, redact_suite
 from ici.reporters.html import generate_html_report
-from ici.reporters.json_rep import migrate_report_payload, serialize_suite_result
+from ici.reporters.json_rep import migrate_report_payload, save_json_report, serialize_suite_result
 from ici.reporters.markdown import generate_markdown_report
 
 
@@ -79,6 +80,27 @@ def test_v3_writer_retains_targets_and_adds_complete_findings(tmp_path):
         "line_coverage": {"value": 91, "unit": "percent"},
     }
     assert finding["fingerprint"].startswith("sha256:")
+
+
+def test_adapter_excludes_non_finite_and_non_numeric_metrics():
+    result = _legacy_result()
+    result.targets[0].metrics.update(
+        {"nan": math.nan, "positive_inf": math.inf, "negative_inf": -math.inf, "flag": True}
+    )
+
+    metrics = findings_for_result(result)[0].metrics
+
+    assert set(metrics) == {"entropy", "line_coverage"}
+
+
+def test_json_writer_rejects_non_finite_native_values(tmp_path):
+    suite = _suite(_legacy_result())
+    suite.results[0].extra = {"invalid": math.nan}
+
+    with pytest.raises(ValueError, match="Out of range float"):
+        save_json_report(suite, tmp_path / "report.json")
+
+    assert not (tmp_path / "report.json").exists()
 
 
 def test_checked_in_schema_declares_v3_finding_contract():
@@ -280,6 +302,7 @@ def test_redaction_covers_all_result_text_and_every_reporter(tmp_path, monkeypat
         "pem": "-----BEGIN PRIVATE KEY-----\nPRIVATE-BODY\n-----END PRIVATE KEY-----",
         "truncated": "-----BEGIN RSA PRIVATE KEY-----\nTRUNCATED-BODY",
         "password=keysecret": "Bearer xy",
+        "token=toolsecret": "still preserved after key collision",
     }
     result.tool_evidence[0].path = "/tmp/api_key=pathsecret"
     result.tool_evidence[0].argv = ["scanner", "--token", "tokenvalue123"]
@@ -316,6 +339,7 @@ def test_redaction_covers_all_result_text_and_every_reporter(tmp_path, monkeypat
     rendered_console = stream.getvalue()
 
     safe_suite = redact_suite(suite)
+    assert len(safe_suite.results[0].extra) == len(result.extra)
     combined = "\n".join([serialized, markdown, html, rendered_console, repr(safe_suite)])
     for secret in secrets:
         assert secret not in combined
