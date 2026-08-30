@@ -2,44 +2,52 @@
 
 import html
 from pathlib import Path
-from typing import Any
 
-from ici.reporters.html.utils import _location_controls, _status_color
+from ici.reporters.html.utils import HtmlIssue, _location_controls, _status_color
 
 
-def _render_issues_section(all_issues: list[tuple[str, Any]], base: Path) -> str:
+def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
     """Renders aggregated actionable issues tab."""
     if not all_issues:
         return "<div class='empty-clean'>✨ No actionable issues found! All active quality gate checks passed cleanly.</div>"
 
     items = []
-    for eng_name, t in all_issues:
-        t_badge_color = _status_color(t.status)
+    for issue in all_issues:
+        badge_color = _status_color(issue.status)
+        end_line = issue.end_line or issue.start_line
+        location_label = f"{issue.file_path}:L{issue.start_line}"
+        if end_line > issue.start_line:
+            location_label += f"-L{end_line}"
         location = (
-            _location_controls(t.file_path, t.start_line, base)
-            if t.file_path
+            _location_controls(
+                issue.file_path,
+                issue.start_line,
+                base,
+                label=location_label,
+            )
+            if issue.file_path
             else "<span class='issue-no-location'>engine result</span>"
         )
 
         snippet_block = ""
-        if t.snippet:
-            num_lines = len(t.snippet.splitlines())
+        if issue.snippet:
+            num_lines = len(issue.snippet.splitlines())
             snippet_block = (
                 f"<details class='issue-snippet-details'>"
                 f"  <summary class='issue-snippet-summary'>📄 View Finding Code ({num_lines} lines) ▾</summary>"
-                f"  <pre class='snippet'><code>{html.escape(t.snippet)}</code></pre>"
+                f"  <pre class='snippet'><code>{html.escape(issue.snippet)}</code></pre>"
                 f"</details>"
             )
 
         items.append(
             f"<div class='issue-item'>"
             f"  <div class='issue-header'>"
-            f"    <span class='badge' style='color:{t_badge_color}; border:1px solid {t_badge_color}44'>{t.status.value}</span>"
-            f"    <span class='issue-engine'>[{html.escape(eng_name)}]</span>"
+            f"    <span class='badge' style='color:{badge_color}; border:1px solid {badge_color}44'>{html.escape(issue.badge)}</span>"
+            f"    <span class='issue-engine'>[{html.escape(issue.engine_name)}]</span>"
             f"    {location}"
-            f"    <span class='target-sym'>[{html.escape(t.target_name or 'target')}]</span>"
+            f"    <span class='target-sym'>[{html.escape(issue.rule_id)}]</span>"
             f"  </div>"
-            f"  <div class='issue-msg'>{html.escape(t.message)}</div>"
+            f"  <div class='issue-msg'>{html.escape(issue.message)}</div>"
             f"  {snippet_block}"
             f"</div>"
         )

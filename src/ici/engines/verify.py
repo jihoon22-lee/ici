@@ -35,6 +35,7 @@ from ici.engines.test import TestEngine
 from ici.engines.type_check import TypeCheckEngine
 from ici.reporters.console import print_suite_dashboard
 from ici.reporters.html import generate_html_report
+from ici.reporters.issue_view import ConsoleOptions
 from ici.reporters.json_rep import save_json_report
 from ici.reporters.markdown import (
     emit_github_actions_annotations,
@@ -120,6 +121,8 @@ class VerifyOrchestrator:
         baseline_path: str | Path | None = None,
         fail_on_new: bool = False,
         write_baseline: str | Path | None = None,
+        *,
+        console_options: ConsoleOptions | None = None,
     ) -> VerificationSuiteResult:
         t0 = time.time()
         results: list[EngineResult] = []
@@ -186,7 +189,10 @@ class VerifyOrchestrator:
         self._write_baseline(suite, write_baseline, baseline_path)
 
         # 1. Terminal Console Report
-        print_suite_dashboard(suite, self.project_root)
+        if console_options is None:
+            print_suite_dashboard(suite, self.project_root)
+        else:
+            print_suite_dashboard(suite, self.project_root, options=console_options)
 
         # 2. JSON Report if requested
         if report_json:

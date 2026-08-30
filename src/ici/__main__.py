@@ -41,6 +41,7 @@ from ici.engines.type_check import (
 )
 from ici.engines.verify import VerifyOrchestrator
 from ici.reporters.console import print_line_distribution_chart
+from ici.reporters.issue_view import DEFAULT_MAX_FINDINGS, ConsoleGroupBy, ConsoleOptions
 from ici.reporters.json_rep import save_engine_json_report
 
 app = typer.Typer(
@@ -49,6 +50,23 @@ app = typer.Typer(
     add_completion=False,
 )
 console = Console()
+
+_VERIFY_VERBOSE_OPTION = typer.Option(
+    False,
+    "--verbose",
+    help="Show every console finding instead of the issues-first cap",
+)
+_VERIFY_MAX_FINDINGS_OPTION = typer.Option(
+    DEFAULT_MAX_FINDINGS,
+    "--max-findings",
+    min=0,
+    help="Maximum console issue groups per engine (0 shows summaries only)",
+)
+_VERIFY_GROUP_BY_OPTION = typer.Option(
+    ConsoleGroupBy.ENGINE,
+    "--group-by",
+    help="Group console findings by engine, severity, category, file, or rule",
+)
 
 
 def version_callback(value: bool):
@@ -141,9 +159,17 @@ def cmd_verify(
         "--write-baseline",
         help="Write the current inventory as a project-contained v3 baseline",
     ),
+    verbose: bool = _VERIFY_VERBOSE_OPTION,
+    max_findings: int = _VERIFY_MAX_FINDINGS_OPTION,
+    group_by: ConsoleGroupBy = _VERIFY_GROUP_BY_OPTION,
 ):
     """Runs the full verification engine suite and outputs a unified quality gate dashboard."""
     root = Path.cwd().resolve()
+    console_options = ConsoleOptions(
+        verbose=verbose,
+        max_findings=max_findings,
+        group_by=group_by,
+    )
     orchestrator = VerifyOrchestrator(root, _effective_config(ctx))
     json_path = "verify_report.json" if report else None
     html_path = html if html else ("verify_report.html" if open_browser else None)
@@ -167,6 +193,7 @@ def cmd_verify(
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
             write_baseline=baseline_output,
+            console_options=console_options,
         )
     except BaselineError as err:
         typer.echo(f"Baseline error: {err}", err=True)
