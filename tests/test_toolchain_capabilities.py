@@ -621,6 +621,7 @@ def test_default_tool_probe_registry_is_deterministic_and_covers_requested_tools
         "ruff",
         "mypy",
         "pytest",
+        "coverage",
         "uv",
         "python3",
     )

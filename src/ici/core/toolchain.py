@@ -101,6 +101,7 @@ DEFAULT_TOOL_PROBES: tuple[ToolProbe, ...] = (
     ToolProbe("ruff", ("ruff",), ("--version",)),
     ToolProbe("mypy", ("mypy",), ("--version",)),
     ToolProbe("pytest", ("pytest",), ("--version",)),
+    ToolProbe("coverage", ("coverage",), ("--version",)),
     ToolProbe("uv", ("uv",), ("--version",)),
     ToolProbe("python3", ("python3",), ("-VV",)),
 )
