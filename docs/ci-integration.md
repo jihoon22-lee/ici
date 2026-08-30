@@ -119,12 +119,21 @@ CI와 release workflow의 외부 Action은 Node 24 기반 릴리스 라벨을 �
 ### 1.5 Release workflow
 
 `.github/workflows/release.yml`은 `v*.*.*` 태그 push 또는 `workflow_dispatch`에서
-테스트·ZipApp 빌드·스모크 테스트·SHA-256 생성 후 GitHub Release에
-`dist/ici.pyz`와 체크섬을 첨부합니다. 릴리스 job은 배포를 위해 `contents: write`를
-사용하며, release용 Action도 위의 SHA 고정 정책을 따릅니다. 수동 실행은 `version_tag`를
-필수로 입력해야 하고, workflow는 입력 태그 또는 push 태그가 패키지의 `__version__`과 정확히
-일치하는 `vX.Y.Z` 형식인지 검증합니다. 따라서 수동 실행에서 브랜치 이름이나 이전 버전으로
-대체되지 않습니다.
+두 job으로 릴리스를 수행합니다. 먼저 읽기 전용 `validate-release`가 태그를
+commit으로 해석해 detached checkout한 뒤 다음을 모두 검증합니다.
+
+- 태그 commit이 `origin/main`에서 도달 가능한다.
+- 그 정확한 commit SHA의 `Merge Gate`가 성공했다. PR head의 같은 이름 check는
+  squash merge SHA와 다르므로 대체 증거가 될 수 없다.
+- `vX.Y.Z`, `src/ici/__init__.py`의 `__version__`, `CHANGELOG.md`의 release section이
+  서로 일치한다.
+
+검증된 SHA를 출력으로 받은 `build-release`만 `contents: write`를 가집니다. 그 job은
+Ruff, Python 3.10 전체 테스트, ZipApp 빌드·스모크·SHA-256, ici self verify,
+viewer C++/Qt verify, GUI CTest·headless smoke를 candidate에서 다시 실행합니다. GitHub
+Release에는 `ici.pyz`, 체크섬, CLI/GUI viewer와 함께 self/viewer HTML·JSON 검증
+리포트를 첨부합니다. 수동 실행의 `version_tag`는 필수이며 태그가 이미
+존재해야 하므로, 선택한 workflow branch의 소스가 릴리스로 대체되지 않습니다.
 
 ## 2. 리포팅과 위치 추적
 

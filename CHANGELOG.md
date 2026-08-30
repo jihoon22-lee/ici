@@ -15,6 +15,9 @@
 - **`viewer` Qt 셸 회귀 테스트**: 정상 리포트를 연 뒤 missing 또는 malformed 리포트를 열 때 `MainWindow`의 모델, suite 상태, 게이트·점수 라벨, 창 제목이 이전 보고서 데이터를 남기지 않는지 QtTest로 검증합니다. QtTest 실행은 프로젝트 루트 CTest에 등록되어 Qt 5와 Qt 6에서 같은 경로를 확인합니다.
 
 ### Changed
+- **릴리스를 태그 이름이 아닌 정확한 main 검증 commit에 묶음**: 태그 commit이 `origin/main`의 조상이고 동일 SHA의 `Merge Gate`가 성공한 경우에만 쓰기 권한을 가진 build/release job이 시작됩니다. 수동 실행도 선택한 branch가 아니라 이미 존재하는 태그 commit을 detached checkout하며, 패키지 버전·CHANGELOG section을 같이 검증합니다.
+  - provenance job은 `contents: read`/`checks: read`만 사용하고, 검증된 SHA를 인수한 build job에만 `contents: write`를 부여합니다.
+  - 릴리스 candidate에서 Ruff, Python 3.10 전체 테스트, reproducible pyz/smoke, ici self verify, viewer C++/Qt verify와 GUI CTest/headless smoke를 다시 실행합니다. self/viewer HTML·JSON 검증 리포트도 release asset으로 보존합니다.
 - **`viewer` GUI를 루트 CMake에 통합**: `ICIRV_BUILD_GUI` 옵션으로 Qt GUI를 선택적으로 구성하고 `icirv_gui` 정적 라이브러리와 `icirv-gui` 실행 파일을 분리했습니다. `ICIRV_BUILD_GUI=OFF`에서는 Qt를 탐색하지 않고 정적 `icirv` CLI만 configure/build할 수 있습니다.
 - **Qt 버전 탐지를 설치 환경에 맞춤**: 기본 구성은 Qt 6을 우선하고 Qt 5로 폴백하며, `CMAKE_DISABLE_FIND_PACKAGE_Qt6=ON`으로 Qt 5를 강제하는 빌드도 지원합니다. CI는 Qt 5·Qt 6 각각에서 4개 CTest와 headless report open을 실행하고, Qt package를 모두 비활성화한 configure에서 정적 CLI 계약도 확인합니다. 릴리스 워크플로의 GUI 경로도 새 루트 타깃에 맞췄습니다.
 
