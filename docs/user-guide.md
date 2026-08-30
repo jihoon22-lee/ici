@@ -95,6 +95,74 @@ ici verify --report --html verify_report.html --open
 `--json`은 verify report와 같은 support matrix 구조를 자동화에 제공합니다. doctor는 분석 엔진을
 실행하지 않으므로 적용 가능한 활성 행도 이 시점에는 정확히 `NOT_RUN`/active mode 없음으로 표시됩니다.
 
+### 2.2.1 기준선 비교와 delta gate
+
+기준선은 이전 실행의 finding inventory를 저장한 `ici.result/v3` JSON입니다. 현재 실행의
+finding을 기준선과 비교하면 새로 생긴 문제뿐 아니라 위치 이동, 해결, 심각도와 suppression
+변경까지 한 번에 확인할 수 있습니다.
+
+```bash
+# 최초 기준선 생성 또는 의도적인 기준선 갱신
+ici verify --write-baseline .ici/baseline.json
+
+# 비교 결과만 확인하고 기존 엔진 gate 정책은 그대로 둠
+ici verify --baseline .ici/baseline.json \
+  --report --html verify_report.html --github-summary
+
+# 새 actionable finding 또는 regression이 있으면 exit 1
+ici verify --baseline .ici/baseline.json --fail-on-new \
+  --report --html verify_report.html --github-summary
+```
+
+`--fail-on-new`는 `--baseline` 없이 사용할 수 없으며, 이 조합은 exit 2입니다. `--baseline`은
+기준선의 `schema_version`이 정확히 `ici.result/v3`인지 확인하므로 v2 또는 다른 JSON을
+기준선으로 사용할 수 없습니다. baseline 입력과 `--write-baseline` 출력은 프로젝트 루트에
+canonical하게 포함되는 경로여야 합니다. `..`로 루트를 벗어나거나 프로젝트 안의 symlink가
+루트 밖으로 해석되는 경로는 읽기·쓰기를 모두 거부합니다. 기준선 finding이 가리키는
+primary/related location도 같은 프로젝트 내부 규칙을 따릅니다.
+
+기존 기준선과 출력 경로를 같게 지정하는 것은 허용됩니다. 예를 들어
+`--baseline .ici/baseline.json --write-baseline .ici/baseline.json`은 기존 파일을 먼저
+읽고 비교한 뒤 새 v3 파일로 교체합니다. 반면 `--report`의 고정 출력
+`verify_report.json`과 `--write-baseline` 경로를 같게 지정하면 report를 덮어쓸 수 있으므로
+exit 2로 거부됩니다. 또한 `--fail-on-new`가 실제로 실패한 실행에서는 입력 baseline과 같은
+경로를 덮어쓰지 않습니다. 그렇지 않으면 실패한 finding이 다음 실행의 기준선으로 자동
+승격되어 regression을 숨길 수 있기 때문입니다. 새 snapshot이 필요하면 다른 출력 경로에
+기록해 리뷰한 뒤 의도적으로 교체합니다.
+
+#### Delta 상태와 gate 판정
+
+| 상태 | 의미 | `--fail-on-new`에서의 처리 |
+|---|---|---|
+| `new` | 현재 실행에만 있는 finding | `info`가 아니고 suppressed가 아니면 gate |
+| `unchanged` | 같은 엔진·fingerprint·위치로 매칭된 finding | severity가 높아지거나 suppression이 해제된 regression이면 gate |
+| `moved` | 같은 엔진·fingerprint의 매칭되지 않은 occurrence가 새 위치와 기준선 위치로 대응됨 | severity/suppression regression이면서 현재 finding이 actionable이면 gate |
+| `resolved` | 기준선에만 있고 현재 실행에는 없는 finding | 해결된 항목이므로 gate하지 않음 |
+
+`regressed`는 severity가 더 심각해졌거나, 기준선에서는 suppressed였는데 현재 실행에서
+suppression이 해제된 경우입니다. 같은 위치의 severity 변경은 `unchanged` 상태에서도
+regression이 될 수 있습니다. 현재 finding이 `info`이거나 suppressed이면 새 항목이어도
+gate에서 제외됩니다. 반대로 suppression은 현재 finding 하나를 의도적으로 조치 대상에서
+제외하는 표시이고, baseline은 과거 inventory의 snapshot입니다. baseline 비교는 suppressed
+항목도 delta에 남기며, baseline을 suppression 설정 대신 사용할 수 없습니다. suppressed
+finding을 다시 활성화하면 suppression regression으로 표시될 수 있습니다.
+
+baseline metadata의 producer/fingerprint/policy/tool policy가 현재 실행과 다르면
+호환성 warning으로 표시됩니다. warning 자체만으로 `gate_failed`가 되거나 exit 1이 되지는
+않습니다. 다만 엔진 자체의 `FAIL`/`ERROR` 등 기존 suite gate 결과는 별도로 적용됩니다.
+
+비교 결과는 다음 경로에서 같은 계약으로 확인할 수 있습니다.
+
+- `--report`: `baseline_comparison` 안에 네 상태의 전체 count와 각 delta의 현재·기준선 위치,
+  severity, `regressed`/`suppressed`/`gated`를 보존하는 v3 JSON을 씁니다.
+- `--html`: `Baseline Delta` 탭에서 gate 상태, 호환성 warning, issues-first 상세를 보여줍니다.
+  화면은 길이를 제한할 수 있지만 JSON에는 전체 inventory가 남습니다.
+- `--github-summary`: Markdown Summary에 네 상태 count와 이슈 우선 delta 표를 추가합니다.
+- 콘솔: `Baseline Finding Delta` 패널과 gate 우선 상세를 출력합니다.
+- sticky PR 댓글: `report-pr`/신뢰된 `publish` job이 JSON을 소비해 새 finding·regression·gated
+  count와 compatibility warning을 요약합니다. 전체 delta 위치와 메시지는 HTML/JSON 및
+  Markdown 상세에서 확인합니다.
+
 ### 2.3 신뢰된 실행에서 HTML 리포트 배포 (`--publish`)
 `--publish`는 일반 PR 검증의 기본 동작이 아닙니다. 권한을 명시적으로 부여한 신뢰된
 `main` push 또는 수동 실행에서만 `verify_report.html`을 `gh-pages` 등 설정된 경로로

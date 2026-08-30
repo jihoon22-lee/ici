@@ -25,6 +25,7 @@
 |                             VerifyOrchestrator Layer                              |
 |    - Config Deep-Merge (ici.toml)                         - Engine Registry       |
 |    - Sequential Engine Execution + Exception Isolation    - TEM Scoring Engine   |
+|    - Finding/metadata assembly                             - Baseline gate         |
 +------------------------------------------+----------------------------------------+
                                            |
        +-----------------------------------+-----------------------------------+
@@ -43,7 +44,7 @@
 |                                Multi-Reporter Layer                               |
 |  +---------------------+  +---------------------+  +----------------------------+ |
 |  | RichConsoleReporter |  |     HtmlReporter    |  |      MarkdownReporter      | |
-|  | - Color Table       |  | - 9 Dedicated Tabs  |  | - GitHub Step Summary      | |
+|  | - Color Table       |  | - 10/11 Dynamic Tabs |  | - GitHub Step Summary      | |
 |  | - file:// Links     |  | - Hierarchical Tree |  | - Optional Trusted Publish | |
 |  | - Summary Banners   |  | - Source Previews   |  | - Inline Annotations       | |
 |  +---------------------+  +---------------------+  +----------------------------+ |
@@ -57,7 +58,7 @@
 ```text
 ici/
 ├── dist/
-│   └── ici.pyz                      # 1.9MB 단일 실행 ZipApp 산출물
+│   └── ici.pyz                      # 약 2.0MB 단일 실행 ZipApp 산출물
 ├── docs/                            # 프로젝트 문서화
 │   ├── architecture.md              # [본 문서] 시스템 아키텍처 및 내부 설계
 │   ├── user-guide.md                # 사용자 가이드 및 빠른 시작
@@ -74,7 +75,9 @@ ici/
 │       ├── config.py                # 전사 기본 정책(DEFAULT_CONFIG) 및 toml 로더
 │       ├── core/                    # 코어 도메인 로직
 │       │   ├── env.py               # 파이썬 탐색 및 시스템 환경 진단
-│       │   ├── models.py            # EngineResult, InspectionTarget 데이터 모델
+│       │   ├── models.py            # 결과·finding·baseline 데이터 모델
+│       │   ├── findings.py          # v3 finding canonicalization/fingerprint
+│       │   ├── baseline.py          # v3 baseline loader/comparison/gate
 │       │   ├── project.py           # 소스 파일 탐색 및 프로젝트 루트 감지
 │       │   └── runner.py            # 서브프로세스 격리 실행기
 │       ├── engines/                 # 표준 검증 엔진 + 퍼블리셔
@@ -89,10 +92,11 @@ ici/
 │       │   ├── dead.py              # 미사용 심볼 & 데드코드 탐지기
 │       │   ├── dup.py               # 연결 컴포넌트 클러스터링 기반 중복 감지기
 │       │   ├── exception.py         # 예외 삼킴 및 소멸자 throw 방지
-│       │   └── publish.py           # GitHub HTML 리포트 퍼블리셔 (gh-pages/hub)
+│       │   ├── publish.py           # GitHub HTML 리포트 퍼블리셔 (gh-pages/hub)
+│       │   └── publish_baseline.py  # strict delta summary/comment adapter
 │       └── reporters/               # 다중 리포터 계층
 │           ├── console.py           # Rich 터미널 대시보드 & file:// 링크
-│           ├── html/                # 10개 전용 탭 Zero-CDN HTML 대시보드
+│           ├── html/                # 기본 10개, baseline 비교 시 11개 Zero-CDN 탭
 │           ├── html_assets.py       # 이전 import 호환 facade
 │           ├── markdown.py          # GitHub Actions Summary & PR 코멘트
 │           └── json_rep.py          # JSON 리포트 직렬화기
@@ -163,6 +167,18 @@ ici/
   - `message`, `explanation`, `remediation`, tool identity, suppression 근거
   - `metrics`: 숫자 값과 단위를 분리한 측정치. 문자열형 보조 정보는 finding metric으로 승격하지 않습니다.
 
+- **`AnalysisMetadata`**: baseline과 현재 분석이 같은 계약을 사용했는지 판별하는 네 가지
+  identity를 보존합니다. `producer_version`, `fingerprint_version`, `policy_digest`,
+  `tool_policy_digest`가 각각 producer, fingerprint 규칙, 분석 정책, 도구 정책의
+  호환성 식별자입니다. 차이가 있으면 delta 자체는 계속 계산하되 comparison warning으로
+  노출합니다.
+
+- **`FindingDelta` / `BaselineComparison`**: 현재 finding inventory와 선택한 baseline의
+  관계를 각각 `new`, `unchanged`, `moved`, `resolved`로 표현합니다. `FindingDelta`는
+  현재·baseline 위치와 severity, `regressed`/`suppressed`/`gated` 상태를 함께 가집니다.
+  `BaselineComparison`은 baseline source, 네 compatibility identity의 warning, 전체 delta 목록,
+  `fail_on_new` 설정과 `gate_failed` verdict를 보존합니다.
+
 - **`VerificationSuiteResult`**: 전체 검증 스위트의 최종 집계 결과입니다.
   - `suite_status`: 전체 집계 상태. 필수 `ERROR`/`SKIP`/`NOT_RUN`은 `ERROR`, 필수 `FAIL`은 `FAIL`, 경고 또는 선택 검증의 비측정 결과는 `WARN`으로 집계합니다.
   - `results`: 각 엔진 결과 목록
@@ -178,6 +194,49 @@ ici/
 ### 4.2 오케스트레이터 및 예외 격리 (`VerifyOrchestrator`)
 - `VerifyOrchestrator`는 활성화된 엔진을 정의된 순서로 순차 실행합니다. 개별 엔진에서 예외가 발생해도 해당 엔진을 `ERROR`/`NOT_RUN`으로 기록하고 나머지 엔진을 계속 실행하여 결과 계약을 완성합니다.
 - 단독 명령과 전체 검증은 `PASS`/`WARN`은 0, `FAIL`/`ERROR`는 1, `SKIP`은 2를 반환하는 공통 종료 코드 계약을 사용합니다.
+
+### 4.3 finding baseline 비교 파이프라인
+
+`verify --baseline <project-relative-v3.json>`을 지정하면 오케스트레이터는 엔진 결과에서
+native finding과 legacy `InspectionTarget` adapter를 모두 모아 baseline과 비교합니다.
+비교 identity는 `(engine_name, fingerprint)`이며, 같은 identity가 여러 번 나타나는 경우에도
+하나의 finding으로 접지하지 않고 multiset occurrence를 보존합니다.
+
+각 identity 그룹은 다음 순서로 결정론적으로 pair됩니다.
+
+1. primary location의 canonical path·line·column·label이 정확히 같은 occurrence를 먼저
+   `unchanged`로 pair합니다.
+2. 남은 current와 baseline occurrence는 정렬된 순서로 pair해 `moved`로 표시합니다. 이
+   단계에서는 current와 baseline 위치를 모두 남깁니다.
+3. current surplus는 `new`, baseline surplus는 `resolved`가 됩니다. 따라서 duplicate
+   occurrence와 위치 이동이 서로의 결과를 덮어쓰지 않습니다.
+
+severity rank가 상승하거나 baseline에서 suppression된 finding이 현재 actionable 상태로
+돌아오면 `regressed = true`입니다. gate 대상(`gated`)은 현재 finding이 suppression되지
+않고 severity가 `info`가 아닌 actionable occurrence이면서 `new`이거나 regression인
+경우입니다. `resolved`, suppression이 유지되는 finding, informational finding은
+inventory에는 남지만 gate를 만들지 않습니다. `--fail-on-new`가 켜져 있고 gated count가
+0보다 크면 baseline gate가 실패하며, 엔진 자체의 `FAIL`/`ERROR`가 이미 있으면 그 결과를
+우선 보존합니다.
+
+baseline loader는 보안 경계를 결과 계약의 일부로 취급합니다. 입력 파일은 프로젝트 루트
+안에서만 해석하고 64 MiB를 초과하면 거부하며, `ici.result/v3` schema version과 비교에
+필요한 finding/metadata 계약을 엄격히 검증합니다.
+각 primary/related location은 canonical slash-separated project-relative path와 유효한
+1-indexed line/column region인지 검증하고, 절대 경로·`..` 탈출·backslash alias와 root
+밖 symlink를 거부합니다. metadata, fingerprint digest, suppression boolean도 같은
+경계에서 검증합니다.
+
+`--write-baseline`은 결과 JSON을 output과 같은 디렉터리의 고유한
+`.{name}.<random>.tmp` 파일에 먼저 쓰고 flush·`fsync`한 뒤 `Path.replace`로 원자 교체합니다.
+쓰기/교체 실패 시 임시 파일을 정리하므로 기존 baseline이 부분 파일로 덮이지 않습니다.
+같은 파일을 입력과 출력으로 쓰더라도 먼저 비교하지만, `fail-on-new` gate가 실패하면 원본을
+보존해 새 regression이 다음 실행의 baseline으로 자동 승격되지 않게 합니다.
+
+v3 schema의 `analysis_metadata`와 `baseline_comparison`은 optional nullable field입니다.
+따라서 이 필드가 없는 기존 v3 archive도 계속 읽고 렌더링할 수 있으며, metadata가 없는
+baseline을 비교하면 호환성 warning만 추가합니다. v2 archive는 migration helper를 통해
+v3 copy로 변환할 수 있지만, baseline loader가 직접 비교하는 입력은 v3입니다.
 
 ---
 
@@ -195,15 +254,24 @@ suppression reason·metric·파일 경로에 포함된 credential은 마스킹�
    - 안전한 `file://` URI와 Rich 링크 마크업을 통한 터미널 파일 위치 원클릭 이동
 2. **`HtmlReporter`**: 브라우저 독립형 대시보드
    - Zero-CDN 인라인 CSS/JS 구조
-   - 10개 전용 탭: `Summary`, `Support & Capabilities`, `Line & Tree`, `Tests & Coverage`, `Static Types`, `Complexity`, `Clone Groups`, `Cycles`, `Security & Resources`, `Issues`
+   - 기본 10개 전용 탭에 비교가 있을 때 `Baseline Delta`를 더하는 동적 구성: `Summary`, `Support & Capabilities`, `[Baseline Delta]`, `Line & Tree`, `Tests & Coverage`, `Static Types`, `Complexity`, `Clone Groups`, `Cycles`, `Security & Resources`, `Issues`
    - 계층형 디렉토리 트리 뷰 (depth별 들여쓰기 및 언어별 아이콘)
    - 원본 소스 코드 블록 인스펙터
+   - baseline comparison이 있으면 source·delta count·compatibility warning·fail-on-new
+     verdict를 별도 탭에 표시하고 gated delta를 먼저 보여줍니다. current/baseline 위치와
+     severity transition을 포함하되, 화면은 최대 20개 row(그중 unchanged 예시는 최대 3개)로
+     제한합니다.
 3. **`MarkdownReporter`**: CI/CD 파이프라인 최적화
    - GitHub Step Summary 테이블 및 TEM 게이지
    - GitHub Blob 영구 링크 (`blob/<sha>/file#L10-L25`)
    - PR 인라인 에러 어노테이션 (`::error file=...::`); 별도 신뢰 job이 아티팩트로 sticky 댓글과 HTML 링크를 게시
+   - baseline comparison이 있으면 동일한 source/count/gate/warning 요약과 gated-first
+     delta table을 추가합니다. unchanged inventory 전체를 Markdown에 펼치지 않고 bounded
+     상세만 표시합니다.
 4. **`JsonReporter`**: 데이터 파이프라인 연동
    - `verify_report.json` 포맷 직렬화
+   - baseline `entries`는 축약하지 않은 전체 inventory를 유지하므로 화면 reporter의
+     bounded issues-first view와 데이터 파이프라인의 완전한 비교 결과를 동시에 보장합니다.
 
 ---
 

@@ -8,6 +8,12 @@
 ## [Unreleased]
 
 ### Added
+- **I1-3 baseline/delta gate**: 이전 v3 finding report를 프로젝트 내부 baseline으로 읽고, stable fingerprint와 위치 보조 정보로 finding occurrence를 new·unchanged·moved·resolved로 분류합니다.
+  - 전체 inventory는 보존하면서 PR gate는 actionable한 new 또는 regressed finding만 대상으로 분리합니다. fail-on-new 정책을 켜면 gated count가 있을 때 suite가 FAIL이 되고, baseline 비교 자체가 engine 결과를 가짜로 추가하지 않습니다.
+  - producer/fingerprint/analysis policy/tool policy identity가 다르면 compatibility warning으로 남기며, duplicate fingerprint도 occurrence 단위(multiset)로 비교합니다.
+  - baseline은 v3 baseline 계약과 canonical project-relative location을 요구하고, 현재 project root 밖 경로·절대경로·비정규 separator·symlink escape를 거부합니다. baseline 기록은 고유 임시 파일과 atomic replace를 사용해 부분 파일을 남기지 않으며, 실패한 fail-on-new gate가 입력 baseline을 같은 경로에서 덮어써 regression을 숨기는 것도 차단합니다.
+  - verify에 --baseline, --fail-on-new, --write-baseline을 추가했습니다. --fail-on-new은 baseline 없이는 실행하지 않고, report와 baseline output 경로 충돌도 거부합니다.
+  - console, Markdown, zero-CDN HTML은 issues-first delta와 compatibility warning을 보여 주고 JSON은 전체 delta inventory를 보존합니다. GitHub sticky comment도 single/multi-project report에 new·regressed·gated count와 baseline gate 상태를 요약하며, legacy report와 null baseline은 계속 읽습니다.
 - **실행 가능한 엔진 support/capability matrix**: 13개 엔진의 Python/C++ 지원을 `exact`, `heuristic`, `tool-backed`, `unsupported` mode와 Qt 호환성, 필수·선택 도구, fallback, 신뢰도 및 알려진 한계로 중앙 선언합니다. 프로젝트 소스와 유효 정책을 적용해 `applicable`/`enabled`/`active_mode`를 계산하며, 실행 증거를 `MEASURED`·`ESTIMATED`·`NOT_RUN`·`NOT_APPLICABLE`과 일관되게 연결합니다.
   - 전체 verify와 단독 엔진의 `ici.result/v3` JSON, `ici doctor --json`은 동일한 구조를 사용합니다. v3 schema의 matrix 필드는 이전 v3 archive를 깨뜨리지 않도록 선택 사항이고 새 writer는 항상 object 또는 `null`을 기록합니다.
   - `doctor`, zero-CDN HTML, Qt viewer가 같은 행을 표시하며, 미지원 또는 실행하지 못한 범위를 PASS로 보이지 않게 합니다. 문서의 지원 표는 중앙 선언에서 생성되고 회귀 테스트로 정확히 일치하는지 검증합니다.
