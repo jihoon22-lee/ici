@@ -617,3 +617,17 @@ def test_gcov_for_a_file_outside_the_project_is_ignored(tmp_path):
     _write_gcov(cov / "#usr#include#c++#15#vector.gcov", "/usr/include/c++/15/vector")
 
     assert parse_gcov_dir(cov, {"src/format.cpp"}, tmp_path) == []
+
+
+def test_gcov_for_an_in_project_file_outside_scope_is_ignored(tmp_path):
+    # Resolving a path is not the same as it being in scope. A test source sits
+    # inside the project and resolves cleanly, but it is not what coverage
+    # measures — counting it inflates the denominator of every project.
+    cov = tmp_path / "ici-gcov"
+    cov.mkdir()
+    test_src = tmp_path / "tests" / "test_lib.cpp"
+    test_src.parent.mkdir(parents=True)
+    test_src.write_text("int main() { return 0; }\n", encoding="utf-8")
+    _write_gcov(cov / "unmangled.gcov", str(test_src))
+
+    assert parse_gcov_dir(cov, {"src/lib.cpp"}, tmp_path) == []

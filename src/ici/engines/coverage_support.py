@@ -268,9 +268,13 @@ def _gcov_source_path(gcov_file: Path, source_files: set[str], project_root: Pat
     declared_path = Path(declared)
     if declared_path.is_absolute():
         try:
-            return str(declared_path.resolve().relative_to(project_root))
+            relative = str(declared_path.resolve().relative_to(project_root))
         except ValueError:
             return None
+        # Membership still decides. Resolving a path is not the same as it being
+        # in scope: dropping this check pulled test sources into the coverage
+        # denominator of every project on the generic g++ path.
+        return relative if relative in source_files else None
     return _match_source_suffix(declared, source_files)
 
 
