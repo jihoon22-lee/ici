@@ -14,10 +14,12 @@ from ici.core.baseline import (
 )
 from ici.core.models import (
     AnalysisMetadata,
+    AnalysisMode,
     BaselineComparison,
     DeltaState,
     EngineResult,
     EngineStatus,
+    EvidenceState,
     Finding,
     FindingCategory,
     FindingConfidence,
@@ -351,6 +353,14 @@ def test_analysis_metadata_is_deterministic_and_tracks_tool_policy(tmp_path):
     assert changed_metadata.policy_digest != first.policy_digest
     assert changed_metadata.tool_policy_digest != first.tool_policy_digest
 
+    observed_matrix = deepcopy(matrix)
+    observed_matrix.entries[0].applicable = True
+    observed_matrix.entries[0].active_mode = AnalysisMode.EXACT
+    observed_matrix.entries[0].evidence = EvidenceState.MEASURED
+    observed_metadata = build_analysis_metadata(config, observed_matrix)
+    assert observed_metadata.policy_digest == first.policy_digest
+    assert observed_metadata.tool_policy_digest != first.tool_policy_digest
+
 
 def test_baseline_delta_serialization_is_complete_and_redacted(tmp_path):
     baseline = _write_baseline(tmp_path, [], metadata=_metadata())
@@ -416,7 +426,7 @@ def test_json_writer_replaces_atomically_and_cleans_failed_temporary_file(tmp_pa
     original_replace = Path.replace
 
     def fail_replace(source, target):
-        if source == output.with_name("baseline.json.tmp"):
+        if source.parent == output.parent and source.name.startswith(f".{output.name}."):
             raise OSError("replace failed")
         return original_replace(source, target)
 
@@ -426,7 +436,7 @@ def test_json_writer_replaces_atomically_and_cleans_failed_temporary_file(tmp_pa
         save_json_report(_suite([], metadata=_metadata()), output, project_root=tmp_path)
 
     assert output.read_text(encoding="utf-8") == "old"
-    assert not output.with_name("baseline.json.tmp").exists()
+    assert not list(tmp_path.glob(f".{output.name}.*.tmp"))
 
 
 def test_json_writer_rejects_contradictory_delta_and_metadata_states(tmp_path):

@@ -5,7 +5,9 @@ from __future__ import annotations
 import copy
 import json
 import math
+import os
 import re
+import tempfile
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -612,11 +614,23 @@ def _save_json(data: dict[str, Any], output_path: Path) -> None:
         default=str,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = output_path.with_name(output_path.name + ".tmp")
+    temporary: Path | None = None
     try:
-        temporary.write_text(content, encoding="utf-8")
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=output_path.parent,
+            prefix=f".{output_path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
         temporary.replace(output_path)
     except OSError:
-        with suppress(OSError):
-            temporary.unlink(missing_ok=True)
+        if temporary is not None:
+            with suppress(OSError):
+                temporary.unlink(missing_ok=True)
         raise

@@ -84,24 +84,32 @@ def build_analysis_metadata(
     """Describe the policy identities that can affect a finding comparison."""
 
     engine_policy = config.get("engines", {})
-    tool_policy = [
-        {
-            "engine_name": entry.engine_name,
-            "language": entry.language.value,
-            "mode": entry.mode.value,
-            "enabled": entry.enabled,
-            "frameworks": sorted(entry.frameworks),
-            "required_tools": sorted(entry.required_tools),
-            "optional_tools": sorted(entry.optional_tools),
-            "fallback_mode": (
-                entry.fallback_mode.value if entry.fallback_mode is not None else None
-            ),
-        }
-        for entry in sorted(
-            support_matrix.entries,
-            key=lambda item: (item.engine_name, item.language.value),
-        )
-    ]
+    tool_policy = {
+        "project_languages": sorted(item.value for item in support_matrix.project_languages),
+        "project_frameworks": sorted(support_matrix.project_frameworks),
+        "entries": [
+            {
+                "engine_name": entry.engine_name,
+                "language": entry.language.value,
+                "mode": entry.mode.value,
+                "active_mode": (entry.active_mode.value if entry.active_mode is not None else None),
+                "applicable": entry.applicable,
+                "enabled": entry.enabled,
+                "evidence": entry.evidence.value,
+                "confidence": entry.confidence.value,
+                "frameworks": sorted(entry.frameworks),
+                "required_tools": sorted(entry.required_tools),
+                "optional_tools": sorted(entry.optional_tools),
+                "fallback_mode": (
+                    entry.fallback_mode.value if entry.fallback_mode is not None else None
+                ),
+            }
+            for entry in sorted(
+                support_matrix.entries,
+                key=lambda item: (item.engine_name, item.language.value),
+            )
+        ],
+    }
     return AnalysisMetadata(
         producer_version=__version__,
         fingerprint_version=FINGERPRINT_VERSION,
