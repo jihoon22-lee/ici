@@ -291,13 +291,16 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 ### 2.10 🔄 `cycle` (순환 참조 탐지)
 - **동작**: Python `import` 그래프와 C++ `#include` 그래프를 각각 구축해 반복(iterative) Tarjan
   SCC로 순환을 탐지합니다 (재귀 구현이 아니므로 수천 노드짜리 체인에서도 재귀 한도 초과로
-  죽지 않습니다). Python은 `ast` 기반, C++는 `#include "..."` 정규식(파일명 기준, `-I` 검색
-  경로 모델 없음) 기반입니다. 리포트되는 순환 체인은 SCC 멤버를 임의 정렬한 목록이 아니라
-  실제 간선을 따라간 경로입니다.
+  죽지 않습니다). Python은 `ast` 기반, C++는 `#include "..."` 정규식과 프로젝트 파일의
+  **유일한 전체 path suffix**를 사용합니다. 리포트되는 순환 체인은 SCC 멤버를 임의 정렬한
+  목록이 아니라 실제 간선을 따라간 경로입니다.
 - **휴리스틱 한계**: Python 쪽은 표준 라이브러리와 이름이 겹치는 프로젝트 모듈(예: 자체
-  `html.py`)을 혼동하지 않도록 `sys.stdlib_module_names`를 확인합니다. C++ 쪽은 같은
-  파일명이 서로 다른 디렉터리에 존재하면(예: `a/util.h`와 `b/util.h`) 어느 쪽을 가리키는지
-  판정할 근거가 없으므로 해당 include는 순환 탐지 대상에서 제외됩니다(오탐 대신 미탐).
+  `html.py`)을 혼동하지 않도록 `sys.stdlib_module_names`를 확인합니다. C++ 쪽은
+  `#include "a/util.h"`처럼 디렉터리가 있으면 그 정보까지 비교하지만, bare `util.h`에 여러
+  후보가 있거나 프로젝트 안에 후보가 없으면 간선을 추측하지 않습니다. 이 경우
+  `CppIncludeAmbiguous`/`CppIncludeUnresolved` 타깃에 include 위치와 후보를 남기며 엔진은
+  WARN입니다. generated header와 compiler의 실제 `-I` 검색 순서는 아직 모델링하지 않으므로
+  `extra.cpp_include_resolution=unique_project_path_suffix`는 compiler-exact 판정이 아닙니다.
 - **설정**: `[engines.cycle] enabled=true, mode="pass_warn_fail", max_reported=20, required=false`.
   다른 신규 휴리스틱 엔진과 마찬가지로 기본 `required=false`이므로, 엔진 `ERROR`가 나도
   전체 게이트를 막지 않습니다.

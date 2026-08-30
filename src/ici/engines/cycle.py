@@ -4,7 +4,8 @@ import ast
 import re
 import sys
 import time
-from pathlib import Path
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
@@ -83,6 +84,21 @@ def _build_python_graph(
 _CPP_AND_HEADER_SUFFIXES = (".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hh")
 
 
+@dataclass(frozen=True)
+class _IncludeDiagnostic:
+    """A quoted include the project-only heuristic could not resolve."""
+
+    source: Path
+    line: int
+    include: str
+    candidates: tuple[Path, ...]
+    snippet: str
+
+    @property
+    def kind(self) -> str:
+        return "ambiguous" if self.candidates else "unresolved"
+
+
 def _iter_cpp_and_headers(project_root: Path, config: dict[str, Any] | None = None) -> list[Path]:
     """Collect C++ sources and headers from the project's declared scope.
 
@@ -115,25 +131,66 @@ def _iter_cpp_and_headers(project_root: Path, config: dict[str, Any] | None = No
     return sorted(results)
 
 
+def _include_parts(inc_name: str) -> tuple[str, ...]:
+    """Return portable, safe components from a compiler-style include path."""
+
+    normalized = inc_name.replace("\\", "/")
+    parts = PurePosixPath(normalized).parts
+    if not parts or normalized.startswith("/") or ".." in parts:
+        return ()
+    return tuple(part for part in parts if part not in ("", "."))
+
+
+def _include_matches(candidate: Path, wanted: tuple[str, ...]) -> bool:
+    """Whether ``candidate`` ends with every component named by an include."""
+
+    parts = candidate.parts
+    return bool(wanted) and len(parts) >= len(wanted) and parts[-len(wanted) :] == wanted
+
+
+def _matching_includes(inc_name: str, files: list[Path]) -> list[Path]:
+    wanted = _include_parts(inc_name)
+    if not wanted:
+        return []
+    return [candidate for candidate in files if _include_matches(candidate, wanted)]
+
+
+def _resolve_include(inc_name: str, files: list[Path]) -> Path | None:
+    """Resolve a quoted include only when its full path suffix is unique.
+
+    Directory components are useful evidence: ``core/format.hpp`` can name one
+    project file even when several files are called ``format.hpp``. Conversely,
+    a bare basename with multiple matches remains unresolved rather than being
+    guessed. This is deliberately a project-file heuristic, not compiler-exact
+    ``-I`` resolution; compilation context supersedes it in the I3 roadmap.
+    """
+
+    matches = _matching_includes(inc_name, files)
+    return matches[0] if len(matches) == 1 else None
+
+
 def _build_cpp_graph(
     project_root: Path, config: dict[str, Any] | None = None
-) -> tuple[dict[Path, set[Path]], dict[Path, Path]]:
+) -> tuple[
+    dict[Path, set[Path]],
+    dict[Path, Path],
+    list[_IncludeDiagnostic],
+    int,
+]:
     """Build file -> included-file graph including headers.
 
-    ``#include "..."`` is resolved by basename only (no ``-I`` search-path
-    model here), so a basename shared by more than one file in the project is
-    genuinely ambiguous — silently picking the first one found risks wiring a
-    false edge to the wrong file. Ambiguous basenames are left unresolved
-    instead.
+    ``#include "..."`` is resolved by matching the complete path suffix named
+    by the source, rather than throwing away directories and comparing only the
+    basename. A non-unique or missing project-file match is preserved as a
+    location-bearing diagnostic. This remains a heuristic because it does not
+    yet model compiler include search order or generated headers.
     """
     all_files = _iter_cpp_and_headers(project_root, config)
-    by_name: dict[str, list[Path]] = {}
-    for f in all_files:
-        by_name.setdefault(f.name, []).append(f)
-    unambiguous = {name: paths[0] for name, paths in by_name.items() if len(paths) == 1}
 
     graph: dict[Path, set[Path]] = {}
     known: dict[Path, Path] = {}
+    diagnostics: list[_IncludeDiagnostic] = []
+    resolved_count = 0
     for f in all_files:
         resolved_f = f.resolve()
         known[resolved_f] = f
@@ -144,10 +201,28 @@ def _build_cpp_graph(
             continue
         for match in _INCLUDE_RE.finditer(content):
             inc_name = match.group(1)
-            target = unambiguous.get(Path(inc_name).name)
-            if target and target.resolve() != resolved_f:
-                graph[resolved_f].add(target.resolve())
-    return graph, known
+            target = _resolve_include(inc_name, all_files)
+            candidates = [target] if target is not None else _matching_includes(inc_name, all_files)
+            if target:
+                resolved_count += 1
+                if target.resolve() != resolved_f:
+                    graph[resolved_f].add(target.resolve())
+            elif target is None:
+                line = content.count("\n", 0, match.start()) + 1
+                line_start = content.rfind("\n", 0, match.start()) + 1
+                line_end = content.find("\n", match.end())
+                if line_end < 0:
+                    line_end = len(content)
+                diagnostics.append(
+                    _IncludeDiagnostic(
+                        source=f,
+                        line=line,
+                        include=inc_name,
+                        candidates=tuple(candidates),
+                        snippet=content[line_start:line_end].strip(),
+                    )
+                )
+    return graph, known, diagnostics, resolved_count
 
 
 def _find_cycles_tarjan(graph: dict) -> list[list]:
@@ -283,7 +358,9 @@ class CycleEngine(BaseEngine):
             )
         total_cycles += len(py_cycles)
 
-        cpp_graph, cpp_files_map = _build_cpp_graph(self.project_root, self.config)
+        cpp_graph, cpp_files_map, cpp_include_diagnostics, resolved_cpp_includes = _build_cpp_graph(
+            self.project_root, self.config
+        )
         cpp_cycles = _find_cycles_tarjan(cpp_graph)
         for component in cpp_cycles[:max_reported]:
             start = min(component, key=str)
@@ -308,13 +385,61 @@ class CycleEngine(BaseEngine):
             )
         total_cycles += len(cpp_cycles)
 
-        has_warn = total_cycles > 0
-        status = self.evaluate_status(False, has_warn, mode)
-        summary = (
-            f"Dependency cycles: {total_cycles} found"
-            if has_warn
-            else "No cyclic dependencies detected"
+        for diagnostic in cpp_include_diagnostics[:max_reported]:
+            try:
+                source_path = str(diagnostic.source.relative_to(self.project_root))
+            except ValueError:
+                source_path = str(diagnostic.source)
+            candidates: list[str] = []
+            for candidate in diagnostic.candidates:
+                try:
+                    candidates.append(str(candidate.relative_to(self.project_root)))
+                except ValueError:
+                    candidates.append(str(candidate))
+            if diagnostic.kind == "ambiguous":
+                target_name = "CppIncludeAmbiguous"
+                message = (
+                    f'Quoted include "{diagnostic.include}" matches '
+                    f"{len(candidates)} project files; no dependency edge was guessed"
+                )
+            else:
+                target_name = "CppIncludeUnresolved"
+                message = (
+                    f'Quoted include "{diagnostic.include}" has no project-file match; '
+                    "it may be generated or supplied by compiler include paths"
+                )
+            targets.append(
+                InspectionTarget(
+                    file_path=source_path,
+                    start_line=diagnostic.line,
+                    target_name=target_name,
+                    status=EngineStatus.WARN,
+                    message=message,
+                    snippet=diagnostic.snippet,
+                    metrics={
+                        "include": diagnostic.include,
+                        "candidates": candidates,
+                        "resolution": "unique_project_path_suffix",
+                    },
+                )
+            )
+
+        ambiguous_cpp_includes = sum(
+            diagnostic.kind == "ambiguous" for diagnostic in cpp_include_diagnostics
         )
+        unresolved_cpp_includes = len(cpp_include_diagnostics) - ambiguous_cpp_includes
+        has_warn = total_cycles > 0 or bool(cpp_include_diagnostics)
+        status = self.evaluate_status(False, has_warn, mode)
+        if total_cycles:
+            summary = f"Dependency cycles: {total_cycles} found"
+        else:
+            summary = "No cyclic dependencies detected"
+        if cpp_include_diagnostics:
+            summary += (
+                "; C++ include graph incomplete: "
+                f"{ambiguous_cpp_includes} ambiguous, "
+                f"{unresolved_cpp_includes} unresolved"
+            )
         duration = time.time() - t0
         return self.create_result(
             name="cycle",
@@ -326,10 +451,17 @@ class CycleEngine(BaseEngine):
                 "total_cycles": total_cycles,
                 "py_cycles": len(py_cycles),
                 "cpp_cycles": len(cpp_cycles),
+                "cpp_include_resolution": "unique_project_path_suffix",
+                "resolved_cpp_includes": resolved_cpp_includes,
+                "ambiguous_cpp_includes": ambiguous_cpp_includes,
+                "unresolved_cpp_includes": unresolved_cpp_includes,
+                "cpp_include_diagnostics_truncated": max(
+                    0, len(cpp_include_diagnostics) - max_reported
+                ),
             },
-            # Advisory heuristic engine (basename-only C++ resolution, best-effort
-            # Python module mapping) — like cognitive/security/resource, an
-            # ERROR here must not sink the whole suite's required gate by default.
+            # Advisory heuristic engine (project-path-suffix C++ resolution,
+            # best-effort Python module mapping) — like cognitive/security/resource,
+            # an ERROR here must not sink the whole suite's required gate by default.
             required=bool(cfg.get("required", False)),
             evidence=EvidenceState.MEASURED,
         )

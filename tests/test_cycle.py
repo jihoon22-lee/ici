@@ -3,7 +3,12 @@
 from pathlib import Path
 
 from ici.core.models import EngineStatus
-from ici.engines.cycle import CycleEngine, _find_actual_cycle_path, _find_cycles_tarjan
+from ici.engines.cycle import (
+    CycleEngine,
+    _find_actual_cycle_path,
+    _find_cycles_tarjan,
+    _resolve_include,
+)
 
 _CFG = {"engines": {"cycle": {"mode": "pass_warn_fail", "max_reported": 20}}}
 
@@ -131,6 +136,74 @@ def test_ambiguous_cpp_header_basename_is_not_wired(tmp_path: Path):
     (a_dir / "main.cpp").write_text('#include "util.h"\n', encoding="utf-8")
     result = CycleEngine(tmp_path, _CFG).run()
     assert result.extra["cpp_cycles"] == 0
+
+
+def test_include_with_directories_resolves_colliding_basenames(tmp_path: Path):
+    """Directory components must disambiguate otherwise identical basenames."""
+    core = tmp_path / "src" / "core"
+    gui = tmp_path / "src" / "gui"
+    core.mkdir(parents=True)
+    gui.mkdir(parents=True)
+    (core / "format.hpp").write_text('#include "gui/format.hpp"\n', encoding="utf-8")
+    (gui / "format.hpp").write_text('#include "core/format.hpp"\n', encoding="utf-8")
+
+    result = CycleEngine(tmp_path, _CFG).run()
+
+    assert result.extra["cpp_cycles"] == 1, result.summary
+    assert result.extra["ambiguous_cpp_includes"] == 0
+    assert result.extra["unresolved_cpp_includes"] == 0
+
+
+def test_bare_colliding_basename_is_reported_as_ambiguous(tmp_path: Path):
+    core = tmp_path / "src" / "core"
+    gui = tmp_path / "src" / "gui"
+    core.mkdir(parents=True)
+    gui.mkdir(parents=True)
+    (core / "format.hpp").write_text("#pragma once\n", encoding="utf-8")
+    (gui / "format.hpp").write_text("#pragma once\n", encoding="utf-8")
+    (tmp_path / "src" / "main.cpp").write_text(
+        '// include is intentionally ambiguous\n#include "format.hpp"\n',
+        encoding="utf-8",
+    )
+
+    result = CycleEngine(tmp_path, _CFG).run()
+
+    assert result.extra["cpp_cycles"] == 0
+    assert result.extra["ambiguous_cpp_includes"] == 1
+    target = next(t for t in result.targets if t.target_name == "CppIncludeAmbiguous")
+    assert target.file_path == "src/main.cpp"
+    assert target.start_line == 2
+    assert sorted(target.metrics["candidates"]) == [
+        "src/core/format.hpp",
+        "src/gui/format.hpp",
+    ]
+
+
+def test_unresolved_cpp_include_is_reported_with_location(tmp_path: Path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text(
+        '// generated at build time\n#include "generated/config.hpp"\n',
+        encoding="utf-8",
+    )
+
+    result = CycleEngine(tmp_path, _CFG).run()
+
+    assert result.extra["unresolved_cpp_includes"] == 1
+    target = next(t for t in result.targets if t.target_name == "CppIncludeUnresolved")
+    assert target.file_path == "src/main.cpp"
+    assert target.start_line == 2
+    assert target.metrics["include"] == "generated/config.hpp"
+
+
+def test_resolve_include_only_returns_a_unique_path_suffix(tmp_path: Path):
+    core = tmp_path / "src" / "core" / "format.hpp"
+    gui = tmp_path / "src" / "gui" / "format.hpp"
+    files = [core, gui]
+
+    assert _resolve_include("core/format.hpp", files) == core
+    assert _resolve_include("format.hpp", files) is None
+    assert _resolve_include("missing.hpp", files) is None
 
 
 def test_required_defaults_to_false(tmp_path: Path):

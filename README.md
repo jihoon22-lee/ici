@@ -40,7 +40,7 @@ $ ici doctor
     - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출
     - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출
     - `exception`: 예외 삼킴(`except: pass`), Traceback 유실, 소멸자 throw 차단
-    - `cycle`: Python import / C++ include **순환 참조 탐지** (Tarjan SCC)
+    - `cycle`: Python import / C++ include **순환 참조 탐지** (Tarjan SCC, C++ path-suffix 해석의 미해결·모호 위치도 보고)
     - `security`: 하드코딩 시크릿, 약한 해시, `eval`/`pickle`/`shell=True` 등 위험 패턴 탐지
     - `resource`: 파일·네트워크 리소스 누수 AST 패턴 검출
     - `cognitive`: SonarQube S3776 스타일 **인지 복잡도** (기본 비활성, 옵트인)
