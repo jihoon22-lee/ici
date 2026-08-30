@@ -40,6 +40,10 @@ JSON·HTML·Markdown·console 중 한 곳으로 새어 나갈 수 있었다. 동
   `2,243 targets`가 정확히 `2,243 findings`로 보존되는 것을 확인했다.
 - native v3 producer가 동일 fingerprint를 발행할 때만 adapter를 대체하며, native 위치도
   같은 canonicalization과 fingerprint 계산을 다시 거친다.
+- related location은 canonical 위치 순서로 정렬하고 JSON object key도 정렬해 같은 결과의
+  직렬화가 실행 순서나 입력 순서에 흔들리지 않게 했다. boolean·비숫자·NaN·Inf legacy
+  metric은 단위 metric에서 제외하고 native metadata의 NaN·Inf는 출력 파일을 만들기 전에
+  거부한다.
 
 ### 3. Migration and compatibility
 
@@ -56,6 +60,8 @@ JSON·HTML·Markdown·console 중 한 곳으로 새어 나갈 수 있었다. 동
 - summary, message, snippet, raw output, recursive extra key/value, tool identity/path/version,
   argv/error, finding explanation/remediation/tool metadata와 suppression reason을 모두 copy-on-write
   방식으로 처리한다. source location path는 탐색 정확성을 위해 유지한다.
+- 서로 다른 원본 metadata key가 마스킹 뒤 같은 문자열이 되면 `#2` suffix를 붙인다. 따라서
+  secret은 숨기면서도 dictionary comprehension의 key collision로 진단 항목을 잃지 않는다.
 - verify/단독 engine/build 반환값과 console, JSON, HTML, Markdown, Actions annotation,
   publish comment가 같은 안전한 suite/result를 사용한다.
 
@@ -89,8 +95,8 @@ C:\checkout-a\src\a.cpp + project root C:\checkout-a
 ### Python and packaging gates
 
 ```text
-uv run --python 3.10 pytest                    647 passed
-uv run --python 3.10 mypy src/ici              success; pre-I0-4 notes only
+uv run --python 3.10 pytest                    649 passed
+uv run --python 3.10 mypy src/ici              success; 53 source files, no notes
 uvx ruff check .                               passed
 uvx ruff format --check .                      passed
 ./scripts/build-pyz.sh                         passed; Python 3.10, pure Python
@@ -104,17 +110,19 @@ The built `dist/ici.pyz` contains
 
 ```text
 dist/ici.pyz verify --report --html /tmp/ici-v3-self.html
-suite WARN; 7 PASS / 5 WARN; TEM 4.79
-targets 2,243; findings 2,243; every nested engine schema ici.result/v3
-console 2,426 lines; HTML contains no external CDN URL
+suite WARN; 8 PASS / 4 WARN; TEM 4.79
+targets 2,244; findings 2,244; 2,227 unique fingerprints
+every nested engine schema ici.result/v3; Draft 2020-12 schema validation passed
+console 2,420 lines; HTML contains no external script or stylesheet URL
 ```
 
 ### Native viewer
 
 ```text
-CMake build + CTest                            4/4 passed
-icirv verify_report.json                       parsed real v3 report
-QT_QPA_PLATFORM=offscreen icirv-gui ...        opened until controlled timeout
+CMake Qt 5 build + CTest                       4/4 passed
+CMake Qt 6 build + CTest                       4/4 passed
+both icirv binaries                            parsed the real v3 report
+both offscreen icirv-gui binaries              opened until controlled timeout
 v2 fixture / v3 fixture / invalid v1           accepted / accepted / rejected
 ```
 
