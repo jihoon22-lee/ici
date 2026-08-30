@@ -2,6 +2,7 @@
 
 import json
 
+import click
 import pytest
 from typer.testing import CliRunner
 
@@ -187,14 +188,14 @@ def test_cli_verify_forwards_default_console_options(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    ("argv", "message"),
+    ("argv", "option_name"),
     [
-        (["--max-findings=-1"], "Invalid value for '--max-findings'"),
-        (["--max-findings", "not-an-integer"], "Invalid value for '--max-findings'"),
-        (["--group-by", "unknown"], "Invalid value for '--group-by'"),
+        (["--max-findings=-1"], "--max-findings"),
+        (["--max-findings", "not-an-integer"], "--max-findings"),
+        (["--group-by", "unknown"], "--group-by"),
     ],
 )
-def test_cli_verify_rejects_invalid_console_options(tmp_path, monkeypatch, argv, message):
+def test_cli_verify_rejects_invalid_console_options(tmp_path, monkeypatch, argv, option_name):
     class UnexpectedOrchestrator:
         def __init__(self, *args, **kwargs):
             del args, kwargs
@@ -204,10 +205,12 @@ def test_cli_verify_rejects_invalid_console_options(tmp_path, monkeypatch, argv,
     monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
     monkeypatch.chdir(tmp_path)
 
-    result = runner.invoke(app, ["verify", *argv])
+    result = runner.invoke(app, ["verify", *argv], color=True)
 
     assert result.exit_code == 2
-    assert message in result.output
+    plain_output = click.unstyle(result.output)
+    assert "Invalid value" in plain_output
+    assert option_name in plain_output
 
 
 def test_cli_verify_accepts_zero_max_findings(tmp_path, monkeypatch):
