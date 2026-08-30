@@ -2,10 +2,9 @@
 # defined icirv_core. Keeping the widgets in a library lets QtTest link the
 # actual MainWindow instead of rebuilding a private copy of the GUI sources.
 
-# A standalone project on purpose: this is the only part that needs Qt, and
-# keeping it apart is what lets the root project link the CLI statically and
-# ship it to a machine with no Qt at all. The root builds its own icirv_core;
-# these are separate CMake projects and never meet.
+# This is the only part that needs Qt. The root project includes it only when
+# ICIRV_BUILD_GUI is enabled, so the CLI can still be configured and linked
+# statically on a machine without Qt.
 add_library(icirv_gui STATIC
     engine_tree_model.cpp
     main_window.cpp

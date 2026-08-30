@@ -75,8 +75,10 @@ void TestMainWindow::openingEachGateStatusUsesItsColour() {
     };
     const StatusCase cases[] = {
         {"PASS", "#5bbf7a"},
+        {"WARN", "#e0b341"},
         {"SKIP", "#8a8f98"},
         {"FAIL", "#e0645a"},
+        {"ERROR", "#e0645a"},
     };
     const QString reportTemplate = QStringLiteral(
         R"({

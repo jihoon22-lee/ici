@@ -54,8 +54,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     auto* bar = new QHBoxLayout();
     auto* openButton = new QPushButton(tr("Open report…"), central);
     openButton->setObjectName(QStringLiteral("openButton"));
+    openButton->setAccessibleName(tr("Open report file"));
     issuesOnly_ = new QCheckBox(tr("Issues only"), central);
     issuesOnly_->setObjectName(QStringLiteral("issuesOnly"));
+    issuesOnly_->setAccessibleName(tr("Show issues only"));
     issuesOnly_->setChecked(true);
     bar->addWidget(openButton);
     bar->addStretch(1);
@@ -82,6 +84,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     model_ = new EngineTreeModel(this);
     tree_ = new QTreeView(central);
     tree_->setObjectName(QStringLiteral("engineTree"));
+    tree_->setAccessibleName(tr("Verification engine results"));
     tree_->setModel(model_);
     tree_->setAlternatingRowColors(true);
     tree_->header()->setStretchLastSection(true);

@@ -29,18 +29,22 @@ hosts.
 - `.github/workflows/ci.yml` and `.github/workflows/release.yml` use the root
   configure tree, build `icirv-gui` from `src/gui`, and configure the static
   CLI with `ICIRV_BUILD_GUI=OFF`.
+- The CI GUI job is a Qt 5/Qt 6 matrix. Both variants build and run all four
+  CTests headlessly, while the Qt 6 variant also disables both Qt packages and
+  proves that the CLI still configures and links statically.
 
 ### MainWindow state and QtTest
 
 - `viewer/src/gui/main_window.cpp` now has one `clearReport` path for unreadable,
   malformed, and schema-invalid reports. It resets `suite_`, the model, gate
   and score labels, status text, and loaded window title.
-- Stable object names were added to the tested labels and tree. A read-only
+- Stable object and accessibility names were added to the controls and tested
+  labels/tree. A read-only
   `hasLoadedReport()` seam lets the Qt test assert suite state without exposing
   mutable internals.
 - `viewer/tests/test_main_window.cpp` covers loading the real report, missing
   and malformed replacement failures, stale-state clearing, and PASS/WARN/
-  SKIP/FAIL gate colour selection.
+  SKIP/FAIL/ERROR gate colour selection.
 
 ### Configuration and documentation
 

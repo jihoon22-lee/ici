@@ -16,7 +16,7 @@
 
 ### Changed
 - **`viewer` GUI를 루트 CMake에 통합**: `ICIRV_BUILD_GUI` 옵션으로 Qt GUI를 선택적으로 구성하고 `icirv_gui` 정적 라이브러리와 `icirv-gui` 실행 파일을 분리했습니다. `ICIRV_BUILD_GUI=OFF`에서는 Qt를 탐색하지 않고 정적 `icirv` CLI만 configure/build할 수 있습니다.
-- **Qt 버전 탐지를 설치 환경에 맞춤**: 기본 구성은 Qt 6을 우선하고 Qt 5로 폴백하며, `CMAKE_DISABLE_FIND_PACKAGE_Qt6=ON`으로 Qt 5를 강제하는 빌드도 지원합니다. CI와 릴리스 워크플로의 GUI 경로를 새 루트 타깃에 맞췄습니다.
+- **Qt 버전 탐지를 설치 환경에 맞춤**: 기본 구성은 Qt 6을 우선하고 Qt 5로 폴백하며, `CMAKE_DISABLE_FIND_PACKAGE_Qt6=ON`으로 Qt 5를 강제하는 빌드도 지원합니다. CI는 Qt 5·Qt 6 각각에서 4개 CTest와 headless report open을 실행하고, Qt package를 모두 비활성화한 configure에서 정적 CLI 계약도 확인합니다. 릴리스 워크플로의 GUI 경로도 새 루트 타깃에 맞췄습니다.
 
 ### Fixed
 - **HTML은 올라갔지만 PR 댓글이 실패해도 `ici publish`가 성공하던 문제**: PR publish의 성공 조건에 sticky comment URL을 포함했습니다. 단일·다중 리포트 모두 `pull-requests: write` 실패를 0이 아닌 종료 코드로 전달하며, 업로드 실패 시 아직 존재하지 않는 Pages URL을 만들지 않습니다. 다중 리포트 댓글 footer의 경로도 `/`로 이어 붙인 가짜 경로 대신 쉼표로 구분합니다.
