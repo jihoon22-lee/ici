@@ -14,62 +14,27 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree
 
+from ici.core.backend import (
+    BACKEND_CMAKE,
+    BACKEND_QMAKE,
+    BackendChoice,
+    select_backend,
+)
+from ici.core.context import (
+    AnalysisContext,
+    ArtifactManifest,
+    ArtifactScope,
+    BuildVariant,
+)
 from ici.core.models import ToolEvidence
 from ici.core.runner import run_process
 
-BACKEND_CMAKE = "cmake"
-BACKEND_QMAKE = "qmake"
-
-# Only the project root is inspected. Descriptors in subdirectories do not
-# select a backend, which is what keeps projects that have not been converted
-# yet (a CMakeLists.txt under src/gui) on their existing g++ path.
-_MAKEFILE_NAMES = ("Makefile", "makefile", "GNUmakefile")
-
-
-@dataclass(frozen=True)
-class BackendChoice:
-    """Which backend runs, and why. The reason is recorded as tool evidence."""
-
-    kind: str | None
-    reason: str
-    descriptor: str = ""
-
-
-def _is_real_file(path: Path) -> bool:
-    return path.is_file() and not path.is_symlink()
-
-
-def select_backend(root: Path) -> BackendChoice:
-    """Pick a build backend from the descriptor at the project root."""
-
-    cmake_file = root / "CMakeLists.txt"
-    has_cmake = _is_real_file(cmake_file)
-    pro_files = sorted(p for p in root.glob("*.pro") if _is_real_file(p))
-    makefiles = [name for name in _MAKEFILE_NAMES if _is_real_file(root / name)]
-
-    if has_cmake:
-        reason = "CMakeLists.txt at the project root selected the CMake backend"
-        if pro_files:
-            reason += f"; {pro_files[0].name} was present and passed over"
-        return BackendChoice(BACKEND_CMAKE, reason, "CMakeLists.txt")
-
-    if pro_files:
-        return BackendChoice(
-            BACKEND_QMAKE,
-            f"{pro_files[0].name} at the project root selected the qmake backend",
-            pro_files[0].name,
-        )
-
-    if makefiles:
-        return BackendChoice(
-            None,
-            f"{makefiles[0]} at the project root has no adapter; "
-            "only CMake and qmake are supported",
-            makefiles[0],
-        )
-
-    return BackendChoice(None, "No build descriptor at the project root", "")
-
+__all__ = [
+    "BACKEND_CMAKE",
+    "BACKEND_QMAKE",
+    "BackendChoice",
+    "select_backend",
+]
 
 # --test-dir arrived in CMake 3.20 and --output-junit in 3.21. The roadmap
 # treats RHEL 7.9 as a target runtime, so an old ctest cannot be assumed away.
@@ -106,24 +71,46 @@ class ConfigureOptions:
     sanitizers and no coverage, since it measures crashes rather than lines.
     """
 
-    coverage: bool = True
+    variant: BuildVariant
     extra_cxx_flags: tuple[str, ...] = ()
     extra_link_flags: tuple[str, ...] = ()
-    shadow_suffix: str = ""
+
+    @property
+    def coverage(self) -> bool:
+        return self.variant is BuildVariant.COVERAGE
+
+    @property
+    def shadow_suffix(self) -> str:
+        return {
+            BuildVariant.RELEASE: "-build",
+            BuildVariant.COVERAGE: "",
+            BuildVariant.SANITIZE: "-asan",
+        }[self.variant]
 
     def cxx_flags(self) -> list[str]:
-        flags = ["--coverage"] if self.coverage else []
+        flags = {
+            BuildVariant.RELEASE: [],
+            BuildVariant.COVERAGE: ["--coverage"],
+            BuildVariant.SANITIZE: [
+                "-fsanitize=address,undefined",
+                "-fno-omit-frame-pointer",
+                "-g",
+            ],
+        }[self.variant]
         return flags + list(self.extra_cxx_flags)
 
     def link_flags(self) -> list[str]:
-        flags = ["--coverage"] if self.coverage else []
+        flags = {
+            BuildVariant.RELEASE: [],
+            BuildVariant.COVERAGE: ["--coverage"],
+            BuildVariant.SANITIZE: ["-fsanitize=address,undefined"],
+        }[self.variant]
         return flags + list(self.extra_link_flags)
 
 
 def cmake_configure_argv(
-    cmake_bin: str, root: Path, shadow: Path, options: "ConfigureOptions | None" = None
+    cmake_bin: str, root: Path, shadow: Path, options: ConfigureOptions
 ) -> list[str]:
-    options = options or ConfigureOptions()
     argv = [
         cmake_bin,
         "-S",
@@ -160,12 +147,9 @@ def cmake_test_argv(
     return argv, None
 
 
-def qmake_configure_argv(
-    qmake_bin: str, pro_file: Path, options: "ConfigureOptions | None" = None
-) -> list[str]:
+def qmake_configure_argv(qmake_bin: str, pro_file: Path, options: ConfigureOptions) -> list[str]:
     """qmake runs with the shadow directory as its cwd; the .pro path is absolute."""
 
-    options = options or ConfigureOptions()
     argv = [qmake_bin, str(pro_file)]
     argv.extend(f"QMAKE_CXXFLAGS+={flag}" for flag in options.cxx_flags())
     argv.extend(f"QMAKE_LFLAGS+={flag}" for flag in options.link_flags())
@@ -333,11 +317,14 @@ class BuildSession:
 
     root: Path
     shadow: Path
+    variant: BuildVariant = BuildVariant.COVERAGE
     backend: str | None = None
     descriptor: str = ""
     reason: str = ""
     configured: bool = False
     cmake_version: tuple[int, int] | None = None
+    analysis_context: AnalysisContext | None = None
+    artifact_manifest: ArtifactManifest | None = None
     tool_evidence: list[ToolEvidence] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -367,14 +354,14 @@ def _which(session: BuildSession, name: str) -> str | None:
     return found
 
 
-def configure(root: Path, options: ConfigureOptions | None = None) -> BuildSession:
+def configure(root: Path, options: ConfigureOptions) -> BuildSession:
     """Select a backend and configure a shadow build tree."""
 
-    options = options or ConfigureOptions()
     choice = select_backend(root)
     session = BuildSession(
         root=root,
         shadow=shadow_dir(root, choice.kind or BACKEND_CMAKE, options.shadow_suffix),
+        variant=options.variant,
         backend=choice.kind,
         descriptor=choice.descriptor,
         reason=choice.reason,
@@ -458,7 +445,7 @@ def build(session: BuildSession) -> bool:
         clean_argv = qmake_clean_argv(make_bin)
         clean_result = run_process(clean_argv, cwd=session.shadow)
         _record(session, "qmake clean", clean_argv, clean_result)
-        if clean_result.returncode != 0:
+        if clean_result.returncode != 0 or clean_result.timed_out or clean_result.truncated:
             _fail(session, f"qmake clean failed: {clean_result.stderr[:200]}")
             return False
         argv = qmake_build_argv(make_bin, os.cpu_count() or 1)
@@ -466,10 +453,76 @@ def build(session: BuildSession) -> bool:
 
     result = run_process(argv, cwd=cwd)
     _record(session, f"{session.backend} build", argv, result)
-    if result.returncode != 0:
+    if result.returncode != 0 or result.timed_out or result.truncated:
         _fail(session, f"{session.backend} build failed: {result.stderr[:200]}")
         return False
-    return True
+    return _capture_artifact_manifest(session)
+
+
+def _artifact_kind(path: Path) -> str:
+    if path.suffix in (".a", ".lib"):
+        return "static-library"
+    if path.suffix in (".so", ".dylib", ".dll") or ".so." in path.name:
+        return "shared-library"
+    return "executable"
+
+
+def _linked_artifact_paths(shadow: Path) -> list[tuple[Path, ArtifactScope, str]]:
+    """Find linked binaries/libraries without treating generated scripts as products."""
+
+    paths: dict[Path, tuple[Path, ArtifactScope, str]] = {}
+    binary_magics = (
+        b"\x7fELF",
+        b"MZ",
+        b"\xfe\xed\xfa\xce",
+        b"\xfe\xed\xfa\xcf",
+        b"\xce\xfa\xed\xfe",
+        b"\xcf\xfa\xed\xfe",
+    )
+    for candidate in sorted(shadow.rglob("*")):
+        try:
+            if not candidate.is_file():
+                continue
+            if candidate.suffix in (".o", ".obj", ".gcno", ".gcda"):
+                continue
+            with candidate.open("rb") as stream:
+                prefix = stream.read(4)
+        except OSError:
+            continue
+        is_library = candidate.suffix in (".a", ".lib", ".so", ".dylib", ".dll") or (
+            ".so." in candidate.name
+        )
+        if not is_library and not any(prefix.startswith(magic) for magic in binary_magics):
+            continue
+        try:
+            resolved = candidate.resolve(strict=True)
+            relative = resolved.relative_to(shadow).as_posix()
+        except (OSError, RuntimeError, ValueError):
+            continue
+        paths[resolved] = (Path(relative), ArtifactScope.SHADOW, _artifact_kind(resolved))
+    return [paths[path] for path in sorted(paths)]
+
+
+def _capture_artifact_manifest(session: BuildSession) -> bool:
+    """Publish a frozen manifest only when a run has a shared analysis identity."""
+
+    context = session.analysis_context
+    if context is None:
+        return True
+    try:
+        session.artifact_manifest = ArtifactManifest.create(
+            project_root=session.root,
+            shadow_root=session.shadow,
+            variant=session.variant,
+            identity=context.identity,
+            paths=_linked_artifact_paths(session.shadow),
+            producer=f"{session.backend or 'unknown'}.build",
+        )
+        return True
+    except (OSError, ValueError) as err:
+        session.artifact_manifest = None
+        _fail(session, f"artifact manifest validation failed: {err}")
+        return False
 
 
 def run_tests(session: BuildSession, env: dict[str, str] | None = None) -> list[TestCaseResult]:

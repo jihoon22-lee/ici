@@ -1,5 +1,7 @@
 """6. Memory safety and runtime resource-warning verification."""
 
+from __future__ import annotations
+
 import os
 import re
 import shutil
@@ -7,12 +9,13 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
 from ici.core.cmake import run_tests as adapter_run_tests
+from ici.core.context import ArtifactManifest, BuildVariant
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
     EngineResult,
@@ -21,17 +24,13 @@ from ici.core.models import (
     InspectionTarget,
     ToolEvidence,
 )
-from ici.core.project import (
-    _iter_project_files,
-    detect_project_type,
-    get_all_cpp_includes,
-    get_all_cpp_sources,
-    get_all_python_sources,
-    get_compilable_cpp_sources,
-)
+from ici.core.project import _iter_project_files
 from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 from ici.engines.cpp_text import defines_main
+
+if TYPE_CHECKING:
+    from ici.core.context import AnalysisContext
 
 _PYTEST_EXECUTED_RE = re.compile(
     r"\b(?P<count>\d+)\s+(?:passed|failed|xfailed|xpassed)\b", re.IGNORECASE
@@ -50,11 +49,15 @@ class SanitizeEngine(BaseEngine):
     """Run C++ sanitizers and Python ResourceWarning checks with evidence."""
 
     def __init__(
-        self, project_root: Path | None = None, config: dict[str, Any] | None = None
+        self,
+        project_root: Path | None = None,
+        config: dict[str, Any] | None = None,
+        analysis_context: AnalysisContext | None = None,
     ) -> None:
-        super().__init__(project_root, config)
+        super().__init__(project_root, config, analysis_context)
         self._tool_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
+        self._artifact_manifests: list[ArtifactManifest] = []
         self._measured_scopes = 0
         self._skipped_scopes = 0
         self._required_scope_missing = False
@@ -63,14 +66,15 @@ class SanitizeEngine(BaseEngine):
         t0 = time.time()
         self._tool_errors = []
         self._tool_evidence = []
+        self._artifact_manifests = []
         self._measured_scopes = 0
         self._skipped_scopes = 0
         self._required_scope_missing = False
         targets: list[InspectionTarget] = []
-        proj_type = detect_project_type(self.project_root)
-        cpp_sources = get_all_cpp_sources(self.project_root, self.config)
+        proj_type = self.project_type()
+        cpp_sources = self.project_cpp_sources()
         cpp_tests = self._cpp_test_sources()
-        py_sources = get_all_python_sources(self.project_root, self.config)
+        py_sources = self.project_python_sources()
         tests_root = self.project_root / "tests"
         has_python_scope = bool(py_sources) or self._has_python_tests(tests_root)
         has_cpp_scope = bool(cpp_sources) or bool(cpp_tests)
@@ -85,7 +89,7 @@ class SanitizeEngine(BaseEngine):
             # Scope is decided by all C++ sources, but only compilable ones are
             # linked into the sanitizer binaries.
             has_failure = self._run_cpp_sanitizer(
-                cpp_tests, get_compilable_cpp_sources(self.project_root, self.config), targets
+                cpp_tests, self.project_compilable_cpp_sources(), targets
             )
         if has_python_scope:
             py_failure, py_warning = self._check_python_resource_warnings(tests_root, targets)
@@ -150,6 +154,7 @@ class SanitizeEngine(BaseEngine):
             required=required,
             evidence=evidence,
             tool_evidence=self._tool_evidence,
+            artifact_manifests=self._artifact_manifests,
         )
 
     def _cpp_test_sources(self) -> list[Path]:
@@ -192,7 +197,7 @@ class SanitizeEngine(BaseEngine):
             return False
 
         has_failure = False
-        inc_flags = get_all_cpp_includes(self.project_root, self.config)
+        inc_flags = self.project_cpp_include_flags()
         src_files = [str(path) for path in cpp_sources if not defines_main(path)]
         lib_flags = self._cpp_library_flags()
         with tempfile.TemporaryDirectory(prefix="ici-sanitize-") as temp_name:
@@ -305,13 +310,9 @@ class SanitizeEngine(BaseEngine):
         test engine does, only with -fsanitize instead of --coverage.
         """
 
-        options = ConfigureOptions(
-            coverage=False,
-            extra_cxx_flags=("-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-g"),
-            extra_link_flags=("-fsanitize=address,undefined",),
-            shadow_suffix="-asan",
-        )
+        options = ConfigureOptions(BuildVariant.SANITIZE)
         session = adapter_configure(self.project_root, options)
+        session.analysis_context = self.analysis_context
         self._tool_evidence.extend(session.tool_evidence)
 
         if not session.configured:
@@ -326,6 +327,9 @@ class SanitizeEngine(BaseEngine):
                 targets, session, session.errors or ["sanitizer build reported no reason"]
             )
             return False
+
+        if session.artifact_manifest is not None:
+            self._artifact_manifests.append(session.artifact_manifest)
 
         results = adapter_run_tests(session, env=self._sanitizer_environment())
         self._tool_evidence.extend(session.tool_evidence)
@@ -494,9 +498,7 @@ class SanitizeEngine(BaseEngine):
         return [sys.executable]
 
     def _source_dirs(self) -> list[Path]:
-        from ici.core.project import get_source_dirs
-
-        return get_source_dirs(self.project_root, self.config)
+        return self.project_source_dirs()
 
     def _missing_python_scope(
         self,

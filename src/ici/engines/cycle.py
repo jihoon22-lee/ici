@@ -37,12 +37,14 @@ def _python_module_name(py_file: Path, source_dirs: list[Path]) -> str | None:
 
 def _build_python_graph(
     project_root: Path,
+    source_dirs: list[Path] | None = None,
+    all_sources: list[Path] | None = None,
 ) -> tuple[dict[str, set[str]], dict[str, Path]]:
     """Build module -> imported-module graph for in-project Python sources."""
-    from ici.core.project import get_source_dirs
-
-    source_dirs = get_source_dirs(project_root)
-    all_sources = get_all_python_sources(project_root)
+    if source_dirs is None:
+        source_dirs = get_source_dirs(project_root)
+    if all_sources is None:
+        all_sources = get_all_python_sources(project_root)
 
     file_to_module: dict[Path, str] = {}
     module_to_file: dict[str, Path] = {}
@@ -170,7 +172,9 @@ def _resolve_include(inc_name: str, files: list[Path]) -> Path | None:
 
 
 def _build_cpp_graph(
-    project_root: Path, config: dict[str, Any] | None = None
+    project_root: Path,
+    config: dict[str, Any] | None = None,
+    all_files: list[Path] | None = None,
 ) -> tuple[
     dict[Path, set[Path]],
     dict[Path, Path],
@@ -185,7 +189,8 @@ def _build_cpp_graph(
     location-bearing diagnostic. This remains a heuristic because it does not
     yet model compiler include search order or generated headers.
     """
-    all_files = _iter_cpp_and_headers(project_root, config)
+    if all_files is None:
+        all_files = _iter_cpp_and_headers(project_root, config)
 
     graph: dict[Path, set[Path]] = {}
     known: dict[Path, Path] = {}
@@ -332,7 +337,11 @@ class CycleEngine(BaseEngine):
         targets: list[InspectionTarget] = []
         total_cycles = 0
 
-        py_graph, py_modules = _build_python_graph(self.project_root)
+        py_graph, py_modules = _build_python_graph(
+            self.project_root,
+            self.project_source_dirs(),
+            self.project_python_sources(),
+        )
         py_cycles = _find_cycles_tarjan(py_graph)
         for component in py_cycles[:max_reported]:
             start = min(component)
@@ -358,8 +367,12 @@ class CycleEngine(BaseEngine):
             )
         total_cycles += len(py_cycles)
 
+        cpp_headers = self.project_cpp_headers()
+        cpp_files = [*self.project_cpp_sources(), *cpp_headers] if cpp_headers is not None else None
         cpp_graph, cpp_files_map, cpp_include_diagnostics, resolved_cpp_includes = _build_cpp_graph(
-            self.project_root, self.config
+            self.project_root,
+            self.config,
+            cpp_files,
         )
         cpp_cycles = _find_cycles_tarjan(cpp_graph)
         for component in cpp_cycles[:max_reported]:

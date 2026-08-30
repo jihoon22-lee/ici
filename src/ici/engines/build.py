@@ -11,6 +11,7 @@ import tomli
 from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
+from ici.core.context import ArtifactManifest, BuildVariant
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
     EngineResult,
@@ -18,15 +19,6 @@ from ici.core.models import (
     EvidenceState,
     InspectionTarget,
     ToolEvidence,
-)
-from ici.core.project import (
-    detect_project_type,
-    get_all_cpp_includes,
-    get_all_python_sources,
-    get_compilable_cpp_sources,
-    get_project_name,
-    get_project_version,
-    get_source_dirs,
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
@@ -51,24 +43,23 @@ class BuildEngine(BaseEngine):
         self._tool_evidence: list[ToolEvidence] = []
         self._has_fail = False
         self._artifact_count = 0
+        self._artifact_manifests: list[ArtifactManifest] = []
         project_name = ""
         project_version = ""
         target_path: Path | None = None
 
         try:
-            project_name = get_project_name(base)
-            project_version = get_project_version(base)
-            project_type = detect_project_type(base)
+            project_name = self.project_name()
+            project_version = self.project_version()
+            project_type = self.project_type()
             target_path = base / project_version / "x86_64"
             python_sources = (
-                self._exclude_target_sources(get_all_python_sources(base, self.config), target_path)
+                self._exclude_target_sources(self.project_python_sources(), target_path)
                 if project_type in ("python", "hybrid")
                 else []
             )
             cpp_sources = (
-                self._exclude_target_sources(
-                    get_compilable_cpp_sources(base, self.config), target_path
-                )
+                self._exclude_target_sources(self.project_compilable_cpp_sources(), target_path)
                 if project_type in ("cpp", "hybrid")
                 else []
             )
@@ -138,6 +129,7 @@ class BuildEngine(BaseEngine):
             required=True,
             evidence=(EvidenceState.NOT_RUN if self._tool_errors else EvidenceState.MEASURED),
             tool_evidence=self._tool_evidence,
+            artifact_manifests=self._artifact_manifests,
         )
 
     @staticmethod
@@ -203,7 +195,7 @@ class BuildEngine(BaseEngine):
         targets: list[InspectionTarget],
     ) -> None:
         try:
-            source_dirs = get_source_dirs(base, self.config)
+            source_dirs = self.project_source_dirs()
         except Exception as exc:
             self._record_error(targets, f"Could not discover Python source directories: {exc}")
             return
@@ -346,7 +338,7 @@ class BuildEngine(BaseEngine):
 
     def _python_module_exists(self, base: Path, module: str) -> bool:
         try:
-            source_dirs = get_source_dirs(base, self.config)
+            source_dirs = self.project_source_dirs()
         except Exception:
             return False
         parts = module.split(".")
@@ -430,7 +422,7 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
             self._ensure_output_file_available(base, target_bin)
             if target_bin.exists():
                 target_bin.unlink()
-            include_flags = get_all_cpp_includes(base, self.config)
+            include_flags = self.project_cpp_include_flags()
             nas_cpp = get_nas_cpp_lib_dir()
             lib_flags: list[str] = []
             if nas_cpp.exists() and (nas_cpp / "lib").exists():
@@ -597,7 +589,8 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
         """Delegate configure and build to the project's own build system."""
 
         # No coverage and no sanitizers: these are release artifacts.
-        session = adapter_configure(base, ConfigureOptions(coverage=False, shadow_suffix="-build"))
+        session = adapter_configure(base, ConfigureOptions(BuildVariant.RELEASE))
+        session.analysis_context = self.analysis_context
         if not session.configured:
             self._tool_evidence.extend(session.tool_evidence)
             # A configure that fails without saying why must still be
@@ -627,6 +620,9 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
                     )
                 )
             return
+
+        if session.artifact_manifest is not None:
+            self._artifact_manifests.append(session.artifact_manifest)
 
         produced = self._count_adapter_artifacts(session.shadow)
         self._artifact_count += produced

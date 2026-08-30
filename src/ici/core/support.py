@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ici.config import get_engine_config
+from ici.core.context import ProjectModel
 from ici.core.models import (
     AnalysisMode,
     EngineResult,
@@ -308,21 +309,36 @@ def support_declarations() -> tuple[SupportDeclaration, ...]:
     return _DECLARATIONS
 
 
-def _project_languages(project_root: Path, config: dict[str, Any]) -> list[SupportLanguage]:
+def _project_languages(
+    project_root: Path,
+    config: dict[str, Any],
+    project: ProjectModel | None = None,
+) -> list[SupportLanguage]:
     languages: list[SupportLanguage] = []
-    if get_all_python_sources(project_root, config):
+    if (
+        project.python_sources
+        if project is not None
+        else get_all_python_sources(project_root, config)
+    ):
         languages.append(SupportLanguage.PYTHON)
-    has_cpp_headers = any(
-        any(_iter_project_files(source_dir, project_root, (".h", ".hh", ".hpp", ".hxx")))
-        for source_dir in get_source_dirs(project_root, config)
+    has_cpp_headers = (
+        bool(project.cpp_headers)
+        if project is not None
+        else any(
+            any(_iter_project_files(source_dir, project_root, (".h", ".hh", ".hpp", ".hxx")))
+            for source_dir in get_source_dirs(project_root, config)
+        )
     )
-    if get_all_cpp_sources(project_root, config) or has_cpp_headers:
+    cpp_sources = (
+        project.cpp_sources if project is not None else get_all_cpp_sources(project_root, config)
+    )
+    if cpp_sources or has_cpp_headers:
         languages.append(SupportLanguage.CPP)
 
-    project = config.get("project", {})
+    project_config = config.get("project", {})
     configured_type = config.get("type")
-    if configured_type is None and isinstance(project, dict):
-        configured_type = project.get("type")
+    if configured_type is None and isinstance(project_config, dict):
+        configured_type = project_config.get("type")
     if configured_type in ("python", "hybrid") and SupportLanguage.PYTHON not in languages:
         languages.append(SupportLanguage.PYTHON)
     if configured_type in ("cpp", "hybrid") and SupportLanguage.CPP not in languages:
@@ -402,11 +418,14 @@ def evaluate_support_matrix(
     results: list[EngineResult] | None = None,
     *,
     engine_names: set[str] | None = None,
+    project: ProjectModel | None = None,
 ) -> SupportMatrix:
     """Evaluate declarations against discovered project scope and observed results."""
 
     root = project_root.resolve()
-    languages = _project_languages(root, config)
+    if project is not None and project.root != root:
+        raise ValueError("project model belongs to another support-matrix root")
+    languages = _project_languages(root, config, project)
     frameworks = _project_frameworks(root, config)
     by_engine = {result.engine_name: result for result in results or []}
     entries: list[EngineSupport] = []

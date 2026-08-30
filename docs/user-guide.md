@@ -42,8 +42,8 @@ tools   gcc=<version-or->  g++=<version-or->  clang=<version-or->  make=<version
 `ici doctor`를 `--brief` 없이 실행하면 동일한 데이터를 OS/Python/도구/경로별 Rich 표로
 확장해서 보여줍니다. 위 출력의 버전과 경로는 실행 환경에 따라 달라지며 고정된 결과로
 해석해서는 안 됩니다. qmake/Qt, Ninja, binutils 전체 capability 검증과 프로젝트 정의 기반
-빌드 어댑터는 [신규 CI 검증 기능 계획](superpowers/plans/2026-08-19-ci-validation-features.md)의
-미래 범위입니다.
+빌드 어댑터도 같은 bounded inventory·evidence 정책 안에서 동작하며, 실제 지원 범위와
+제약은 실행 시점의 capability snapshot으로 확인합니다.
 
 ---
 
@@ -89,6 +89,28 @@ ici verify --report --html verify_report.html --open
   [`src/ici/schemas/ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)입니다.
   프로젝트 언어·Qt 발견 결과와 엔진별 mode/tool/fallback/evidence/confidence를 담은
   `support_matrix`도 함께 저장됩니다. 단독 엔진 리포트에는 그 엔진의 두 언어 행만 들어갑니다.
+
+### 2.2.0 공유 분석 맥락과 산출물
+
+`verify`는 프로젝트를 엔진마다 다시 발견하지 않고 하나의 immutable `AnalysisContext`를
+만들어 모든 엔진과 리포터에 전달합니다. context에는 project facts, compile invocation
+snapshot, source commit·config digest·toolchain digest, 요청된 `release`/`coverage`/
+`sanitize` variant가 들어갑니다. build/test/sanitize가 만든 결과는 `ArtifactManifest`로
+기록되며 variant, producer, identity, SHA-256, size, mode와 project/shadow root를 함께
+보존합니다.
+
+`--report`의 `ici.result/v3` JSON에는 다음 선택적 확장이 추가됩니다.
+
+- `analysis_context`: `ici.analysis-context/v1` — project/source/header/compile 경로는
+  project-relative POSIX 경로입니다. project root 자체는 JSON에 넣지 않습니다.
+- engine의 `artifact_manifests`: `ici.artifacts/v1` — project/shadow root와 각 artifact의
+  상대 경로 및 전체 provenance를 기록합니다.
+
+외부 include/search path처럼 호스트 절대 경로가 섞일 수 있는 값은 `analysis_context` JSON
+projection에서 `-I[external]`로 치환됩니다. HTML의 로컬 editor-link용 absolute path와 기존
+tool evidence는 각 리포터의 기존 redaction 계약을 그대로 따르며, 이 확장이 그 계약을
+변경하지는 않습니다. 두 확장이 없는 기존 `ici.result/v3` archive도 계속 읽고 migration할
+수 있습니다.
 
 환경과 지원 범위를 실행 전에 확인하려면 `ici doctor`를 사용합니다. 일반 출력은 설치된 도구와
 프로젝트별 엔진 matrix를 표로 보여주고, `--brief`는 프로젝트 언어·프레임워크 한 줄만 더하며,
@@ -314,6 +336,12 @@ Qt를 링크하지 않으며, 정적 배포가 필요하면 `ICIRV_STATIC=ON`을
 커버리지 계측 플래그(`--coverage`)는 어느 경로에서든 `ici`가 주입합니다. 프로젝트가
 커버리지 빌드를 따로 선언할 필요는 없습니다. 어댑터는 프로젝트의 빌드 트리를 건드리지
 않고 `build/ici-cmake` 또는 `build/ici-qmake`에 별도로 빌드합니다.
+
+이 세 엔진은 같은 `AnalysisContext`의 project/capability snapshot을 읽고, adapter를
+호출할 때 각각 release·coverage·sanitize variant를 명시합니다. configure/build/test 중
+변하는 상태는 mutable `BuildSession`에만 남고, 성공한 파일은 이후 엔진이 수정할 수 없는
+frozen `ArtifactManifest`로 발행됩니다. 이 구조로 coverage나 sanitizer 산출물이 release
+shadow를 덮어쓰거나, 리포터가 결과를 표시하는 과정에서 분석 입력을 바꾸는 일을 막습니다.
 
 **두 어댑터 모두 테스트 바이너리 하나를 1건으로 셉니다.** CTest는 원래 그렇고, qmake
 경로는 `make check`가 실행한 명령을 기준으로 세어 같은 단위를 씁니다. QtTest 바이너리가

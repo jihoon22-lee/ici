@@ -1,17 +1,20 @@
 """3. Unit Test Execution, Coverage Measurement & TEM Scoring Engine."""
 
+from __future__ import annotations
+
 import contextlib
 import re
 import shutil
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import collect_coverage as adapter_collect_coverage
 from ici.core.cmake import configure as adapter_configure
 from ici.core.cmake import run_tests as adapter_run_tests
-from ici.core.cmake import select_backend
+from ici.core.context import ArtifactManifest, BuildVariant
 from ici.core.env import (
     find_uv,  # noqa: F401 - retained for callers patching the legacy probe
     get_nas_cpp_lib_dir,
@@ -22,14 +25,6 @@ from ici.core.models import (
     EvidenceState,
     InspectionTarget,
     ToolEvidence,
-)
-from ici.core.project import (
-    detect_project_type,
-    get_all_cpp_includes,
-    get_all_cpp_sources,
-    get_all_python_sources,
-    get_compilable_cpp_sources,
-    get_source_dirs,
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
@@ -46,6 +41,9 @@ from ici.engines.coverage_support import (
 from ici.engines.cpp_text import defines_main
 from ici.engines.test_interpreter import TestInterpreterMixin
 
+if TYPE_CHECKING:
+    from ici.core.context import AnalysisContext
+
 
 class TestEngine(TestInterpreterMixin, BaseEngine):
     """Executes unit tests and calculates TEM score based on branch & function coverage."""
@@ -53,9 +51,12 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
     __test__ = False
 
     def __init__(
-        self, project_root: Path | None = None, config: dict[str, Any] | None = None
+        self,
+        project_root: Path | None = None,
+        config: dict[str, Any] | None = None,
+        analysis_context: AnalysisContext | None = None,
     ) -> None:
-        super().__init__(project_root, config)
+        super().__init__(project_root, config, analysis_context)
         self._coverage_data: dict | None = None
         self._cpp_coverage_rows: list[dict] = []
         self._cpp_function_rows: list[dict] = []
@@ -66,6 +67,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         self._tool_errors: list[str] = []
         self._coverage_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
+        self._artifact_manifests: list[ArtifactManifest] = []
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
@@ -84,6 +86,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         self._tool_errors = []
         self._coverage_errors = []
         self._tool_evidence = []
+        self._artifact_manifests = []
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
@@ -96,7 +99,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             self._tool_errors = []
             self._coverage_errors = []
             self._tool_evidence = []
-        proj_type = detect_project_type(self.project_root)
+        proj_type = self.project_type()
         targets: list[InspectionTarget] = []
         passed_tests, total_tests, has_failure = self._run_project_tests(proj_type, targets)
         cfg = self.get_config("test")
@@ -159,6 +162,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             required=bool(cfg.get("required", True)),
             evidence=evidence,
             tool_evidence=self._tool_evidence,
+            artifact_manifests=self._artifact_manifests,
         )
 
     def _run_project_tests(
@@ -167,8 +171,8 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         tests_root = self.project_root / "tests"
         py_tests = list(tests_root.rglob("test_*.py")) if tests_root.exists() else []
         cpp_tests = list(tests_root.rglob("*.cpp")) if tests_root.exists() else []
-        py_sources = get_all_python_sources(self.project_root, self.config)
-        cpp_sources = get_all_cpp_sources(self.project_root, self.config)
+        py_sources = self.project_python_sources()
+        cpp_sources = self.project_cpp_sources()
         totals = [0, 0]
         has_failure = False
         if py_tests or (proj_type in ("python", "hybrid") and py_sources):
@@ -402,10 +406,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
 
     def _build_coverage_run_cmd(self, cov_cmd: list[str]) -> list[str]:
         command = [*cov_cmd, "run", "--branch"]
-        rel_dirs = [
-            str(d.relative_to(self.project_root))
-            for d in get_source_dirs(self.project_root, self.config)
-        ]
+        rel_dirs = [str(d.relative_to(self.project_root)) for d in self.project_source_dirs()]
         if rel_dirs:
             command.append(f"--source={','.join(rel_dirs)}")
         return [
@@ -441,8 +442,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             )
         else:
             expected_files = {
-                str(path.relative_to(self.project_root))
-                for path in get_all_python_sources(self.project_root, self.config)
+                str(path.relative_to(self.project_root)) for path in self.project_python_sources()
             }
             self._coverage_data = self._parse_coverage_json(json_path, expected_files)
             if self._coverage_data is None:
@@ -639,15 +639,11 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         self._cpp_coverage_rows = []
         self._cpp_function_rows = []
 
-        inc_flags = get_all_cpp_includes(self.project_root, self.config)
+        inc_flags = self.project_cpp_include_flags()
         # Only sources ici can build itself: anything under
         # project.cpp_external_build_dirs (Qt widgets needing moc, CMake-driven
         # code) is still analysed by the other engines but cannot be linked here.
-        src_files = [
-            str(f)
-            for f in get_compilable_cpp_sources(self.project_root, self.config)
-            if not defines_main(f)
-        ]
+        src_files = [str(f) for f in self.project_compilable_cpp_sources() if not defines_main(f)]
         src_rel_set = {str(Path(f).relative_to(self.project_root)) for f in src_files}
         nas_cpp = get_nas_cpp_lib_dir()
         lib_flags = []
@@ -707,7 +703,11 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         self._cpp_coverage_rows = []
         self._cpp_function_rows = []
 
-        session = adapter_configure(self.project_root)
+        session = adapter_configure(
+            self.project_root,
+            ConfigureOptions(BuildVariant.COVERAGE),
+        )
+        session.analysis_context = self.analysis_context
 
         if not session.configured:
             self._tool_evidence.extend(session.tool_evidence)
@@ -734,6 +734,9 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
                     )
                 )
             return 0, 0, True
+
+        if session.artifact_manifest is not None:
+            self._artifact_manifests.append(session.artifact_manifest)
 
         results = adapter_run_tests(session)
 
@@ -778,7 +781,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             # moved to CMake, for code that did not change.
             sources = {
                 str(path.relative_to(self.project_root))
-                for path in get_all_cpp_sources(self.project_root, self.config)
+                for path in self.project_cpp_sources()
                 if not defines_main(path)
             }
             self._cpp_coverage_rows = self._parse_gcov_dir(gcov_dir, sources)
@@ -1005,7 +1008,12 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         return parse_gcov_dir(cov_dir, source_files, self.project_root)
 
     def _compute_python_function_coverage(self, cov_data: dict) -> list[dict]:
-        return compute_python_function_coverage(cov_data, self.project_root, self.config)
+        return compute_python_function_coverage(
+            cov_data,
+            self.project_root,
+            self.config,
+            self.project_python_sources(),
+        )
 
     def _parse_gcov_functions(self, cov_dir: Path, source_files: set[str]) -> list[dict]:
         return parse_gcov_functions(cov_dir, source_files, self.project_root)
@@ -1027,8 +1035,8 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
     ) -> tuple[float, float, list[InspectionTarget]]:
         """Calculates branch coverage, function coverage, and per-module coverage rows."""
         missed_targets: list[InspectionTarget] = []
-        py_sources = get_all_python_sources(self.project_root, self.config)
-        cpp_sources = get_all_cpp_sources(self.project_root, self.config)
+        py_sources = self.project_python_sources()
+        cpp_sources = self.project_cpp_sources()
 
         cov_data = self._coverage_data
         self._build_coverage_summary()

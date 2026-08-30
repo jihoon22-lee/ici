@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
-from ici.core.project import _iter_project_files, get_all_python_sources
+from ici.core.project import _iter_project_files
 from ici.engines.base import BaseEngine
 
 # Patterns whose match text contains actual confidential material. These drive
@@ -77,7 +77,7 @@ class SecurityEngine(BaseEngine):
         targets: list[InspectionTarget] = []
 
         seen: set[Path] = set()
-        sources = list(get_all_python_sources(self.project_root, self.config))
+        sources = self.project_python_sources()
         if scan_tests:
             sources.extend(self._test_python_files())
 

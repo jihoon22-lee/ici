@@ -304,14 +304,12 @@ def test_cpp_sanitizer_passes_configured_include_flags_to_compile(tmp_path, monk
         "ici.engines.sanitize.shutil.which",
         lambda name: "/usr/bin/g++" if name == "g++" else None,
     )
-    monkeypatch.setattr("ici.engines.sanitize.detect_project_type", lambda root: "cpp")
     seen = {}
 
-    def fake_includes(root, config=None):
+    def fake_includes():
         seen["config"] = config
         return [f"-I{include}"]
 
-    monkeypatch.setattr("ici.engines.sanitize.get_all_cpp_includes", fake_includes)
     monkeypatch.setattr(
         "ici.engines.sanitize.run_process",
         lambda command, **kwargs: (
@@ -323,7 +321,11 @@ def test_cpp_sanitizer_passes_configured_include_flags_to_compile(tmp_path, monk
         "engines": {"sanitize": {"required": False}},
     }
 
-    result = SanitizeEngine(tmp_path, config).run()
+    engine = SanitizeEngine(tmp_path, config)
+    monkeypatch.setattr(engine, "project_type", lambda: "cpp")
+    monkeypatch.setattr(engine, "project_cpp_include_flags", fake_includes)
+
+    result = engine.run()
 
     assert result.status == EngineStatus.PASS
     assert seen["config"] is config

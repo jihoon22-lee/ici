@@ -8,6 +8,7 @@ from typing import Any
 from ici.config import get_engine_config, load_config
 from ici.core.baseline import BaselineError, build_analysis_metadata, compare_suite_to_baseline
 from ici.core.capabilities import collect_capability_inventory, derive_tool_policy
+from ici.core.context import BuildVariant, create_analysis_context, discover_project_model
 from ici.core.models import (
     AnalysisMetadata,
     EngineResult,
@@ -17,7 +18,6 @@ from ici.core.models import (
     aggregate_suite_status,
 )
 from ici.core.path_utils import resolve_project_path
-from ici.core.project import get_project_name
 from ici.core.redaction import redact_suite
 from ici.core.support import ENGINE_NAMES, evaluate_support_matrix
 from ici.engines.cognitive import CognitiveEngine
@@ -128,7 +128,12 @@ class VerifyOrchestrator:
         t0 = time.time()
         results: list[EngineResult] = []
 
-        declared_support = evaluate_support_matrix(self.project_root, self.config)
+        project = discover_project_model(self.project_root, self.config)
+        declared_support = evaluate_support_matrix(
+            self.project_root,
+            self.config,
+            project=project,
+        )
         configured_required = {
             str(name) for name in self.config.get("doctor", {}).get("required_tools", []) or []
         }
@@ -137,6 +142,18 @@ class VerifyOrchestrator:
             cwd=self.project_root,
             required_by=required_by,
             optional_by=optional_by,
+        )
+        requested_variants: list[BuildVariant] = []
+        if get_engine_config(self.config, "test").get("enabled", True):
+            requested_variants.append(BuildVariant.COVERAGE)
+        if get_engine_config(self.config, "sanitize").get("enabled", True):
+            requested_variants.append(BuildVariant.SANITIZE)
+        analysis_context = create_analysis_context(
+            self.project_root,
+            self.config,
+            capability_inventory,
+            requested_variants=tuple(requested_variants),
+            project=project,
         )
 
         # Engine definitions mapping name to Engine class
@@ -165,7 +182,11 @@ class VerifyOrchestrator:
                 continue
 
             try:
-                engine_instance = engine_cls(self.project_root, self.config)
+                engine_instance = engine_cls(
+                    self.project_root,
+                    self.config,
+                    analysis_context=analysis_context,
+                )
                 res = engine_instance.run()
             except Exception as exc:
                 res = EngineResult(
@@ -182,7 +203,17 @@ class VerifyOrchestrator:
         suite_status = aggregate_suite_status(results)
         duration = time.time() - t0
 
-        support_matrix = evaluate_support_matrix(self.project_root, self.config, results)
+        reporting_context = analysis_context
+        for result in results:
+            for manifest in result.artifact_manifests:
+                reporting_context = reporting_context.with_manifest(manifest)
+
+        support_matrix = evaluate_support_matrix(
+            self.project_root,
+            self.config,
+            results,
+            project=project,
+        )
         metadata = build_analysis_metadata(self.config, support_matrix)
         suite = VerificationSuiteResult(
             suite_status=suite_status,
@@ -193,6 +224,7 @@ class VerifyOrchestrator:
             support_matrix=support_matrix,
             analysis_metadata=metadata,
             capability_inventory=capability_inventory,
+            analysis_context=reporting_context,
         )
         self._apply_baseline(suite, metadata, baseline_path, fail_on_new)
         # All reporters share one sanitized suite. This prevents a secret in an
@@ -213,9 +245,11 @@ class VerifyOrchestrator:
 
         # 3. HTML Report if requested
         if report_html:
-            proj_name = get_project_name(self.project_root)
             generate_html_report(
-                suite, Path(report_html), project_name=proj_name, base_dir=self.project_root
+                suite,
+                Path(report_html),
+                project_name=reporting_context.project.name,
+                base_dir=self.project_root,
             )
 
         # 4. Markdown Report & GitHub Actions Summary
@@ -227,8 +261,9 @@ class VerifyOrchestrator:
         # 5. Publish HTML report to GitHub (gh-pages / hub) with sticky PR comment
         if publish:
             html_target = Path(report_html) if report_html else Path("verify_report.html")
-            proj_name = get_project_name(self.project_root)
-            pub_result = ReportPublisher(project_name=proj_name).publish(html_target, suite)
+            pub_result = ReportPublisher(project_name=reporting_context.project.name).publish(
+                html_target, suite
+            )
             print(f"[publish] {pub_result.message}")
             if pub_result.comment_url:
                 print(f"[publish] PR comment: {pub_result.comment_url}")

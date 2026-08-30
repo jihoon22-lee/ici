@@ -16,7 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from ici.core.cmake import build, collect_coverage, configure, run_tests
+from ici.core.cmake import ConfigureOptions, build, collect_coverage, configure, run_tests
+from ici.core.context import BuildVariant
 
 FIXTURES = Path(__file__).resolve().parents[1] / "examples" / "cpp-fixtures"
 
@@ -41,7 +42,7 @@ def test_cmake_fixture_builds_and_tests_a_q_object(tmp_path):
     _require("cmake", "ctest", "gcov")
     root = _copy("cmake_project", tmp_path)
 
-    session = configure(root)
+    session = configure(root, ConfigureOptions(BuildVariant.COVERAGE))
     assert session.configured, session.errors
     assert build(session), session.errors
 
@@ -61,7 +62,7 @@ def test_qmake_fixture_builds_and_tests_a_q_object(tmp_path):
     _require("qmake6", "make", "gcov")
     root = _copy("qmake_project", tmp_path)
 
-    session = configure(root)
+    session = configure(root, ConfigureOptions(BuildVariant.COVERAGE))
     assert session.configured, session.errors
     assert build(session), session.errors
 
