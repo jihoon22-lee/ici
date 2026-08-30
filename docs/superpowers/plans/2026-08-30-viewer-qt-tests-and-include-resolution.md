@@ -1,5 +1,10 @@
 # viewer Qt 셸 테스트와 include 해석 개선 (ici)
 
+> **병합 상태 (2026-08-31): 완료·역사 보존.** cycle 경로 해석 개선은 [ici PR #79](https://github.com/jihoon22-lee/ici/pull/79),
+> viewer Qt 셸·실패 상태·Qt 5/6 검증은 [PR #81](https://github.com/jihoon22-lee/ici/pull/81)로
+> `main`에 병합됐다. PR #81은 Qt 6 4/4, Qt 5.15 강제 4/4, Qt-free CLI와 Merge Gate를
+> 통과했다. 아래 원래 체크박스는 설계와 회귀 근거이며 활성 작업으로 재실행하지 않는다.
+
 > **상태 보정:** 이 문서는 마스터 계획
 > `2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md`의 I0 세부 입력이다. suffix include
 > 해석은 compiler-exact B-2 완료가 아닌 중간 휴리스틱이다. missing/malformed viewer 테스트는

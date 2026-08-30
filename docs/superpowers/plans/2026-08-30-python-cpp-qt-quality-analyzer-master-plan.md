@@ -1,6 +1,7 @@
 # Python·C++·Qt 코드 품질 분석기 마스터 실행 계획
 
 **상태:** 승인된 장기 마스터 계획. 2026-08-30 이후 ici 기능 계획의 우선순위와 완료 조건은 이 문서를 기준으로 판단한다.
+**문서 기준일:** 2026-08-31. 이 계획은 ici [PR #78](https://github.com/jihoon22-lee/ici/pull/78)로 `main`에 병합됐고, 현재 상태는 이 체크리스트와 병합된 PR의 실측을 함께 기준으로 삼는다.
 
 **목표:** ici를 Python, C++, Qt 프로젝트의 실제 빌드·테스트·배포 맥락을 이해하고, 위치와 근거가 있는 상세 진단을 낮은 노이즈로 제공하는 고신뢰 코드 품질 분석기로 발전시킨다.
 
@@ -20,18 +21,31 @@
 - `2026-08-19-existing-validation-hardening.md`와 `2026-08-29-cmake-qmake-build-adapter.md`는 완료 이력과 회귀 근거로 유지한다.
 - 체크박스가 남았다는 이유만으로 과거 계획을 재실행하지 않는다. 최신 마스터 계획, 인수인계서, Git 이력을 함께 본다.
 
+### 1.1 I0-1 상태 기준 (2026-08-31)
+
+아래 표는 문서 감사 시점의 GitHub `main` 사실을 고정한 기록이다. 로컬 worktree의
+unpushed branch나 커밋 수를 완료 근거로 사용하지 않으며, 이후 상태는 각 PR과 그 PR의
+Merge Gate를 다시 확인한다.
+
+| 저장소 | 기준 `main` | 이 계획과 직접 관련된 병합 사실 |
+|---|---|---|
+| ici | [`fa3ad28`](https://github.com/jihoon22-lee/ici/commit/fa3ad28dabccac840d2e19246ccf35d8cb30182b) | 계획 #78, cycle #79, CI/리포트 gate #80, viewer Qt 셸 #81, release provenance #82 |
+| toy-projects | [`6a4b29e`](https://github.com/jihoon22-lee/toy-projects/commit/6a4b29ea0690cb49df92ac4038d3fd61fc67b3d6) | 제품 계획 #12, manifest/report gate #13, loglens state #14, T0-1 계획·환경 #15 |
+
+현재 환경에는 Qt 5.15.18과 Qt 6.10.2가 모두 설치돼 있다. ici viewer는 [PR #81](https://github.com/jihoon22-lee/ici/pull/81)에서 Qt 5·Qt 6 각각 4/4 CTest와 Qt-free CLI를 통과했고, toy 쪽 환경·실측 기록은 [PR #15](https://github.com/jihoon22-lee/toy-projects/pull/15)에 있다. 따라서 과거 문서의 “Qt 5 미설치/미검증” 또는 “아직 푸시되지 않음” 표현은 현재 상태가 아니다.
+
 ---
 
 ## 2. 현재 기준선과 문제 정의
 
-2026-08-30 실측 기준:
+2026-08-31 `origin/main` 실측 기준:
 
 | 대상 | 결과 |
 |---|---|
-| ici pytest | 625/625 PASS |
+| ici pytest | 632/632 PASS |
 | ici self verify | Pass 7 · Warn 5 · Fail 0 · Error 0, TEM 4.78 |
-| line/function/branch | 85.8% / 95.7% / 77.8% |
-| viewer | 3/3 PASS, TEM 4.94 |
+| line/function/branch | 85.9% / 95.7% / 78.0% |
+| viewer | 4/4 PASS, TEM 4.86 |
 
 현재 강점:
 
@@ -40,7 +54,7 @@
 - build/test/sanitize의 실제 프로젝트 빌드 정의 사용
 - JSON/HTML/Markdown/console reporter 분리
 - `ToolEvidence`, `EvidenceState`, 파일·행 위치 계약
-- 실물 Qt 프로젝트에서 발견한 adapter 회귀를 포함한 625개 테스트
+- 실물 Qt 프로젝트에서 발견한 adapter 회귀를 포함한 632개 테스트
 
 현재 핵심 한계:
 
@@ -137,12 +151,12 @@ I1 이후 Python과 C++ 작업은 병렬 가능하지만, 각 언어 안에서�
 
 ### I0-1. 계획 보존과 상태 정리
 
-**브랜치:** `docs/quality-analyzer-master-plan`
+**브랜치:** `docs/quality-plan-status`
 
-- [ ] 이 마스터 계획과 toy master plan을 각각 문서 PR로 병합한다.
-- [ ] 인수인계서의 stale commit count와 Qt 5 미설치 정보를 고친다.
-- [ ] 과거 계획 상단에 완료·보류·보정 관계를 표시한다.
-- [ ] GitHub의 main에서 모든 계획 링크가 실제로 열린다는 것을 확인한다.
+- [x] 이 마스터 계획과 toy master plan을 각각 문서 PR로 병합한다.
+- [x] 인수인계서의 stale commit count와 Qt 5 미설치 정보를 고친다.
+- [x] 과거 계획 상단에 완료·보류·보정 관계를 표시한다.
+- [x] GitHub의 main에서 모든 계획 링크가 실제로 열린다는 것을 확인한다.
 
 **완료 조건:** 새 세션이 과거 체크박스를 활성 작업으로 오인하지 않는다.
 
