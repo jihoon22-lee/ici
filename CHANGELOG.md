@@ -24,6 +24,7 @@
   - bare `#include "format.hpp"`처럼 실제로 여러 후보가 있는 경우는 계속 추측하지 않습니다.
   - 유일한 후보가 없는 quoted include와 여러 후보가 있는 include는 파일·행·후보와 함께 `CppIncludeUnresolved`/`CppIncludeAmbiguous` 타깃으로 남고, `extra`에 전체 개수와 잘린 진단 개수를 기록합니다. generated header나 실제 compiler `-I` 순서는 아직 알지 못하므로 결과에는 `unique_project_path_suffix` 휴리스틱임을 명시합니다.
 - **viewer가 실패한 리포트 교체 뒤 이전 데이터를 표시하던 문제**: 파일을 읽지 못하거나 JSON/schema 검증에 실패하면 suite와 트리를 비우고, 게이트·점수 라벨과 loaded title을 초기화한 뒤 오류 원인을 status label에 남깁니다.
+- **headless CI의 viewer dogfood가 QWidget 테스트에서 abort하던 문제**: 별도 Qt matrix만 아니라 ici가 CTest를 실행하는 C++ gate에도 `QT_QPA_PLATFORM=offscreen`을 적용합니다. GUI 테스트를 root build에 통합한 후 display가 없는 GitHub runner에서 `test`/`sanitize` 엔진이 동시에 실패하던 경로를 고정했습니다.
 
 ## [0.6.0] - 2026-08-30
 

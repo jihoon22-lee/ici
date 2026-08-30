@@ -32,6 +32,10 @@ hosts.
 - The CI GUI job is a Qt 5/Qt 6 matrix. Both variants build and run all four
   CTests headlessly, while the Qt 6 variant also disables both Qt packages and
   proves that the CLI still configures and links statically.
+- The main ici dogfood job also sets `QT_QPA_PLATFORM=offscreen` for `viewer/`.
+  The adapter executes the same QWidget CTest in both the `test` and `sanitize`
+  engines, so the display contract must apply to that path as well as the
+  dedicated GUI matrix.
 
 ### MainWindow state and QtTest
 
@@ -76,13 +80,3 @@ ici viewer verify: PASS — 4/4 tests, branch 80.2%, TEM 4.86/5.0
 ./scripts/build-pyz.sh: completed; dist/ici.pyz 2.0M
 ./scripts/smoke.sh: completed all integrity and Zero-CDN checks
 ```
-
-The work was split into these conventional commits:
-
-- `e77fca8` `build(viewer): bring the GUI into the root project`
-- `78702ad` `test(viewer): cover the report-loading path in the shell`
-- `b94320d` `docs(viewer): document the Qt build matrix and shell state`
-- `49ca197` `test(viewer): cover gate status colours`
-- `125e3e7` `fix(viewer): link the GUI against the detected Qt major`
-
-No push, PR, or merge was performed from this worktree.

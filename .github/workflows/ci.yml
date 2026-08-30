@@ -91,6 +91,10 @@ jobs:
       # Python 결과와 C++ 결과가 나란히 남는다. 두 리포트를 모두 볼 수 있어야 한다 —
       - name: 🐶 Dogfooding — C++ Gate via ici (viewer/)
         working-directory: viewer
+        env:
+          # The adapter executes every CTest, including the QWidget-based
+          # MainWindow test. GitHub-hosted runners do not provide a display.
+          QT_QPA_PLATFORM: offscreen
         run: ../dist/ici.pyz verify --report --html verify_report.html --github-summary
 
       - name: Upload Verification Reports
