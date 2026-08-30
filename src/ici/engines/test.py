@@ -86,7 +86,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         self._tool_errors = []
         self._coverage_errors = []
         self._tool_evidence = []
-        self._artifact_manifests: list[ArtifactManifest] = []
+        self._artifact_manifests = []
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False

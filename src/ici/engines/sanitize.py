@@ -66,7 +66,7 @@ class SanitizeEngine(BaseEngine):
         t0 = time.time()
         self._tool_errors = []
         self._tool_evidence = []
-        self._artifact_manifests: list[ArtifactManifest] = []
+        self._artifact_manifests = []
         self._measured_scopes = 0
         self._skipped_scopes = 0
         self._required_scope_missing = False
