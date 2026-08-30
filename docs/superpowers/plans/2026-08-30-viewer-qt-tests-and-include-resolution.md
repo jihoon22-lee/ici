@@ -1,5 +1,12 @@
 # viewer Qt 셸 테스트와 include 해석 개선 (ici)
 
+> **상태 보정:** 이 문서는 마스터 계획
+> `2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md`의 I0 세부 입력이다. suffix include
+> 해석은 compiler-exact B-2 완료가 아닌 중간 휴리스틱이다. missing/malformed viewer 테스트는
+> 먼저 정상 report를 열어 stale state를 만든 뒤 model·suite·labels·title 초기화를 검증한다.
+> root CMake는 `ICIRV_BUILD_GUI=OFF`에서 Qt 없이 CLI configure가 가능해야 한다. 이 보정이 아래
+> 원래 step보다 우선한다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** `viewer` 의 Qt 셸에 단위 테스트를 붙이고, `cycle` 엔진이 `#include` 를 basename 이 아니라 경로로 해석하게 한다(B-2).
@@ -182,7 +189,9 @@ git commit -m "fix(cycle): resolve includes by path, not basename alone"
 
 GUI 가 독립 프로젝트라 루트의 테스트가 링크할 수 없다. Task 3 의 셸 테스트가 성립하려면 먼저 이 구조가 바뀌어야 한다.
 
-**`icirv` 는 계속 Qt 를 링크하지 않는다.** 루트가 Qt 를 찾게 되지만 그건 configure 시점 요구이고, `icirv` 타깃의 링크 대상은 `icirv_core` 뿐이라 정적 링크가 유지된다. `viewer/ici.toml` 이 이미 `cpp_pkg_config` 로 Qt 를 요구하므로 검증 환경에는 Qt 가 있다.
+**`icirv` 는 계속 Qt 를 링크하지 않고, Qt 없는 머신에서도 configure할 수 있어야 한다.** GUI는
+`ICIRV_BUILD_GUI` 옵션 안에서만 Qt를 찾는다. ici verify와 GUI CI는 ON, RHEL 8 static CLI release는
+OFF를 명시한다.
 
 - [ ] **Step 1: Rewrite the root CMakeLists**
 
@@ -197,13 +206,15 @@ project(icirv LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_AUTOMOC ON)
+option(ICIRV_BUILD_GUI "Build the Qt report viewer" ON)
 
-# Whichever Qt the machine has. Development here is Qt 6; the closed network is
-# Qt 5.15. Pinning a major version would make the same source unbuildable on one
-# of them for no reason.
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Test)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Test)
+if(ICIRV_BUILD_GUI)
+    set(CMAKE_AUTOMOC ON)
+    # Whichever Qt the machine has. Development here is Qt 6; the closed network
+    # uses Qt 5.15. The static CLI build sets ICIRV_BUILD_GUI=OFF and needs no Qt.
+    find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Test)
+    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Test)
+endif()
 
 # The parsing and model code lives in a library so the tests can link it without
 # dragging in main().
@@ -231,7 +242,9 @@ if(ICIRV_STATIC AND NOT CMAKE_CXX_FLAGS MATCHES "-fsanitize")
     target_link_options(icirv PRIVATE -static)
 endif()
 
-add_subdirectory(src/gui)
+if(ICIRV_BUILD_GUI)
+    add_subdirectory(src/gui)
+endif()
 
 enable_testing()
 
@@ -280,8 +293,14 @@ cmake --build build/check --parallel
 ldd build/check/icirv 2>&1 | head -1        # "not a dynamic executable" 이어야 한다
 QT_QPA_PLATFORM=offscreen timeout 5 ./build/check/src/gui/icirv-gui verify_report.json &
 sleep 3 && kill %1
+
+# A machine building only the static CLI must not need Qt even at configure time.
+rm -rf build/cli-only
+cmake -S . -B build/cli-only -DCMAKE_BUILD_TYPE=Release -DICIRV_BUILD_GUI=OFF
+cmake --build build/cli-only --parallel --target icirv
 ```
-Expected: 둘 다 빌드되고, `icirv` 는 여전히 정적이며, GUI 가 3초를 버틴다
+Expected: 둘 다 빌드되고, `icirv` 는 여전히 정적이며, GUI 가 3초를 버틴다. cli-only configure
+log에는 Qt 탐색이 없어야 한다.
 
 - [ ] **Step 4: Update both workflows**
 
@@ -297,7 +316,9 @@ Expected: 둘 다 빌드되고, `icirv` 는 여전히 정적이며, GUI 가 3초
 
 그 잡의 스모크 스텝에서 바이너리 경로를 `build/gui/src/gui/icirv-gui` 로 바꾼다.
 
-`.github/workflows/release.yml` 의 `Build Viewer GUI (development asset)` 스텝도 같은 모양으로 바꾸고, 복사 경로를 `viewer/build/gui/src/gui/icirv-gui` 로 맞춘다. **`Build Viewer CLI (static)` 스텝은 그대로 둔다** — `cmake --build viewer/build-cli -j` 가 이제 GUI 까지 빌드하므로 `--target icirv` 를 더해 CLI 만 만들게 한다.
+`.github/workflows/release.yml` 의 `Build Viewer GUI (development asset)` 스텝도 같은 모양으로
+바꾸고, 복사 경로를 `viewer/build/gui/src/gui/icirv-gui` 로 맞춘다. `Build Viewer CLI (static)`
+configure에는 `-DICIRV_BUILD_GUI=OFF`를, build에는 `--target icirv`를 명시한다.
 
 - [ ] **Step 5: Verify the workflows parse and viewer still verifies**
 
@@ -376,9 +397,12 @@ void TestMainWindow::openingARealReportFillsTheTree() {
 
 void TestMainWindow::openingAMissingFileLeavesTheTreeEmpty() {
     MainWindow window;
+    window.openReport(QStringLiteral("tests/data/ici_self_report.json"));
+    QVERIFY(treeRowCount(window) > 0);
+
     window.openReport(QStringLiteral("tests/data/does-not-exist.json"));
 
-    // Reporting nothing is right; crashing or showing a stale tree is not.
+    // The valid report must not survive a failed replacement.
     QCOMPARE(treeRowCount(window), 0);
 }
 
@@ -389,6 +413,9 @@ void TestMainWindow::openingMalformedJsonLeavesTheTreeEmpty() {
     broken.close();
 
     MainWindow window;
+    window.openReport(QStringLiteral("tests/data/ici_self_report.json"));
+    QVERIFY(treeRowCount(window) > 0);
+
     window.openReport(broken.fileName());
 
     QCOMPARE(treeRowCount(window), 0);
@@ -418,14 +445,24 @@ Expected: 컴파일 또는 링크 실패. `openReport` 가 실패 경로에서 �
 
 - [ ] **Step 3: Make the failure paths leave the tree empty**
 
-`viewer/src/gui/main_window.cpp` 의 `openReport` 를 읽고, 파일을 못 읽거나 JSON 파싱이 실패했을 때 **모델을 비우고 상태 메시지를 남기도록** 고친다. 이미 그렇게 되어 있으면 이 스텝은 변경 없이 넘어간다 — 그 경우 Step 2 는 컴파일 문제만 났을 것이다.
+`viewer/src/gui/main_window.cpp` 의 `openReport` 를 읽고, 파일을 못 읽거나 JSON 파싱이 실패했을
+때 `suite_`, model, gate/score label과 loaded title을 함께 초기화하고 원인 status를 남긴다. tree
+row만 아니라 label/title도 objectName 또는 안정적인 test seam으로 단언한다. fresh window에서
+빈 tree만 확인하는 테스트로 대체하지 않는다.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
 ```bash
 cd viewer && cmake --build build/check --parallel && QT_QPA_PLATFORM=offscreen ctest --test-dir build/check --output-on-failure
+
+# Force the installed Qt 5 instead of letting NAMES choose Qt 6 first.
+rm -rf build/qt5
+cmake -S . -B build/qt5 -DCMAKE_BUILD_TYPE=Debug -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON
+cmake --build build/qt5 --parallel
+QT_QPA_PLATFORM=offscreen ctest --test-dir build/qt5 --output-on-failure
 ```
-Expected: 4/4 통과 (기존 3 + 새 1)
+Expected: Qt 6/Qt 5에서 각각 4/4 통과 (기존 3 + 새 1). configure log와 link target에서
+선택된 major를 확인한다.
 
 - [ ] **Step 5: Verify through ici and check the coverage move**
 

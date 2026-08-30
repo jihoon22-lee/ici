@@ -1,5 +1,11 @@
 # C++ and Python CI Validation Features Implementation Plan
 
+> **상태 보정 (2026-08-30):** 완료된 CMake/qmake adapter task는 재실행하지 않는다. 남은
+> toolchain, compile DB, Python compatibility, ELF/ABI, hybrid integration 작업은
+> `2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md`의 I2·I3·I5·I7로 재설계됐다.
+> 이 문서는 과거 상세 설계와 fixture 아이디어를 제공하지만 우선순위와 완료 조건은 마스터가
+> 우선한다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 폐쇄망의 개별 CI 실행 환경에서 CMake/qmake C++, Python, C++/Python 혼합 프로젝트의 툴체인·빌드 정의·런타임·ABI·통합 경계를 검증한다.
