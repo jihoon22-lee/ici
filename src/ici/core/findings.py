@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -182,6 +183,8 @@ def legacy_target_to_finding(
     result: EngineResult,
     target: InspectionTarget,
     project_root: str | Path | None = None,
+    *,
+    fingerprint_symbol: str | None = None,
 ) -> Finding:
     """Adapt one v2 InspectionTarget without inventing tool-specific semantics."""
 
@@ -195,6 +198,7 @@ def legacy_target_to_finding(
         label=target.target_name,
     )
     rule_id = _legacy_rule_id(result.engine_name)
+    symbol = target.target_name if fingerprint_symbol is None else fingerprint_symbol
     tool = result.tool_evidence[0] if result.tool_evidence else None
     tool_rule_id = target.target_name if ":" in target.target_name else ""
     return Finding(
@@ -202,7 +206,7 @@ def legacy_target_to_finding(
         category=_CATEGORY_BY_ENGINE.get(result.engine_name, FindingCategory.CORRECTNESS),
         severity=_SEVERITY_BY_STATUS[target.status],
         confidence=_confidence(result.evidence),
-        fingerprint=finding_fingerprint(rule_id, location, symbol=target.target_name),
+        fingerprint=finding_fingerprint(rule_id, location, symbol=symbol),
         primary_location=location,
         message=target.message,
         explanation=f"Adapted from the legacy {result.engine_name} InspectionTarget contract.",
@@ -246,13 +250,45 @@ def findings_for_result(
 ) -> list[Finding]:
     """Return native findings plus every non-duplicated legacy target adapter."""
 
-    by_fingerprint = {
-        finding.fingerprint: finding
-        for finding in (
-            legacy_target_to_finding(result, target, project_root) for target in result.targets
+    canonical_keys = [
+        (canonical_project_path(target.file_path, project_root), target.target_name.strip())
+        for target in result.targets
+    ]
+    key_counts = Counter(canonical_keys)
+    adapted = [
+        legacy_target_to_finding(
+            result,
+            target,
+            project_root,
+            # A legacy unqualified symbol is stable only when it uniquely
+            # identifies a target in that file. Overloads, repeated pytest
+            # parameters and clone occurrences retain their regions instead
+            # of silently collapsing locations.
+            fingerprint_symbol=(key[1] if key[1] and key_counts[key] == 1 else ""),
         )
-    }
-    # Native v3 data wins when it deliberately describes the same identity.
+        for target, key in zip(result.targets, canonical_keys, strict=True)
+    ]
+
+    # Native v3 data wins when it deliberately describes the same identity,
+    # but adapters are otherwise a lossless one-finding-per-target migration.
     native = [canonicalize_finding(finding, project_root) for finding in result.findings]
-    by_fingerprint.update({finding.fingerprint: finding for finding in native})
-    return [by_fingerprint[key] for key in sorted(by_fingerprint)]
+    native_by_fingerprint = {finding.fingerprint: finding for finding in native}
+    emitted_native: set[str] = set()
+    findings: list[Finding] = []
+    for finding in adapted:
+        replacement = native_by_fingerprint.get(finding.fingerprint)
+        if replacement is None:
+            findings.append(finding)
+        elif replacement.fingerprint not in emitted_native:
+            findings.append(replacement)
+            emitted_native.add(replacement.fingerprint)
+    findings.extend(finding for finding in native if finding.fingerprint not in emitted_native)
+    return sorted(
+        findings,
+        key=lambda finding: (
+            finding.fingerprint,
+            finding.primary_location.path,
+            finding.primary_location.start_line,
+            finding.message,
+        ),
+    )

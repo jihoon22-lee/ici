@@ -238,6 +238,25 @@ def test_native_locations_are_canonicalized_and_fingerprint_is_rederived():
     )
 
 
+def test_legacy_adapter_preserves_repeated_unqualified_symbols_by_region():
+    result = _legacy_result()
+    result.targets.append(
+        InspectionTarget(
+            file_path="src/service.py",
+            start_line=70,
+            target_name="load_config",
+            status=EngineStatus.FAIL,
+            message="second overload",
+        )
+    )
+
+    findings = findings_for_result(result)
+
+    assert len(findings) == len(result.targets) == 2
+    assert len({finding.fingerprint for finding in findings}) == 2
+    assert {finding.primary_location.start_line for finding in findings} == {7, 70}
+
+
 def test_redaction_covers_all_result_text_and_every_reporter(tmp_path, monkeypatch):
     secrets = [
         "correct horse battery staple",
