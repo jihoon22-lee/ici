@@ -23,6 +23,10 @@ public:
     // path can be exercised headlessly.
     void openReport(const QString& path);
 
+    // Read-only state used by the shell test and by callers that need to
+    // distinguish an empty viewer from a report that has no findings.
+    bool hasLoadedReport() const { return suite_.has_value(); }
+
 private slots:
     void chooseReport();
     void openSelectedLocation(const QModelIndex& index);
@@ -36,5 +40,6 @@ private:
     QLabel* status_ = nullptr;
     std::optional<icirv::Suite> suite_;
 
+    void clearReport(const QString& statusMessage);
     void showSuite();
 };

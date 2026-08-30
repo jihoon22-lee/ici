@@ -18,8 +18,21 @@ if(ICIRV_BUILD_GUI)
     set(CMAKE_AUTOMOC ON)
     # Use whichever Qt major is installed. The static CLI build sets
     # ICIRV_BUILD_GUI=OFF and therefore has no Qt configure-time dependency.
-    find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Test)
-    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Test)
+    # CMAKE_DISABLE_FIND_PACKAGE_Qt6 is used by the Qt 5 matrix job. CMake's
+    # NAMES probe records the first candidate as QT_VERSION_MAJOR even when
+    # that candidate is explicitly disabled, so handle that forced branch
+    # before using the usual Qt 6-then-Qt 5 probe.
+    if(CMAKE_DISABLE_FIND_PACKAGE_Qt6)
+        find_package(Qt5 REQUIRED COMPONENTS Widgets Test)
+        set(ICIRV_QT_MAJOR 5)
+    else()
+        find_package(QT NAMES Qt6 Qt5 QUIET COMPONENTS Widgets Test)
+        if(NOT QT_VERSION_MAJOR)
+            message(FATAL_ERROR "ICIRV_BUILD_GUI requires Qt 5 or Qt 6 (Widgets and Test)")
+        endif()
+        set(ICIRV_QT_MAJOR ${QT_VERSION_MAJOR})
+        find_package(Qt${ICIRV_QT_MAJOR} REQUIRED COMPONENTS Widgets Test)
+    endif()
 endif()
 
 # The parsing and model code lives in a library so the CLI and GUI tests can
@@ -62,3 +75,12 @@ foreach(name IN ITEMS json_parser report_model summary)
     # launched it or on whether gcov happened to be installed.
     add_test(NAME test_${name} COMMAND test_${name} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endforeach()
+
+if(ICIRV_BUILD_GUI)
+    # The Qt shell test links the widget library and exercises replacement
+    # failures after a real report has already populated the window.
+    add_executable(test_main_window tests/test_main_window.cpp)
+    target_link_libraries(test_main_window PRIVATE icirv_gui Qt${ICIRV_QT_MAJOR}::Test)
+    target_include_directories(test_main_window PRIVATE tests)
+    add_test(NAME test_main_window COMMAND test_main_window WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
