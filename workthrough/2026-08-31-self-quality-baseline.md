@@ -14,10 +14,10 @@ Python 3.10 호환 타입 시그니처를 적용했고, self verify를 동일 �
 
 | 위치 | 원인 | 반복 |
 |---|---|---:|
-| `src/ici/engines/sanitize.py:53` | `SanitizeEngine.__init__(*args, **kwargs)` | 2 |
-| `src/ici/engines/exception.py:363` | `ExceptionSafetyEngine.__init__(*args, **kwargs)` | 1 |
-| `src/ici/engines/dead.py:21` | `DeadCodeEngine.__init__(*args, **kwargs)` | 1 |
-| `src/ici/engines/test.py:57-66` | `TestEngine.__init__(*args, **kwargs)`의 변수 annotation | 9 |
+| `src/ici/engines/sanitize.py:51-54` | `SanitizeEngine.__init__(*args, **kwargs)`의 변수 annotation (note 53-54) | 2 |
+| `src/ici/engines/exception.py:361-363` | `ExceptionSafetyEngine.__init__(*args, **kwargs)` (note 363) | 1 |
+| `src/ici/engines/dead.py:19-21` | `DeadCodeEngine.__init__(*args, **kwargs)` (note 21) | 1 |
+| `src/ici/engines/test.py:55-66` | `TestEngine.__init__(*args, **kwargs)`의 변수 annotation (note 57-66) | 9 |
 
 기존 저장소 정책은 측정값보다 크게 낮은 TEM `2.0`, branch `35%`, function `60%`를
 사용하고 있었다. 정책을 바로 실측값으로 고정하면 실행기 변동에 취약하므로, 측정값과

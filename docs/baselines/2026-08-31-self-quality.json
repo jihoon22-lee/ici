@@ -65,10 +65,10 @@
     "before_groups": 4,
     "before_occurrences": 13,
     "before_locations": [
-      "src/ici/engines/sanitize.py:53",
-      "src/ici/engines/exception.py:363",
-      "src/ici/engines/dead.py:21",
-      "src/ici/engines/test.py:57-66"
+      "src/ici/engines/sanitize.py:51-54 (__init__; notes at 53-54)",
+      "src/ici/engines/exception.py:361-363 (__init__; note at 363)",
+      "src/ici/engines/dead.py:19-21 (__init__; note at 21)",
+      "src/ici/engines/test.py:55-66 (__init__; notes at 57-66)"
     ],
     "after_groups": 0,
     "after_occurrences": 0
