@@ -400,6 +400,36 @@ omitted/null matrix compatibility, malformed matrix rejection, CLI summary scope
 output, Qt table scope/row rendering, stale matrix clearing after omitted/null reports, and
 replacement failure clearing.
 
+### PR #86 C++ dogfood remediation
+
+The first PR #86 CI run (`33324633373`) passed the main verification steps, both Qt 5 and Qt 6
+viewer jobs, and report publishing. The only failing check was the separate C++ dogfood step for
+`viewer/`. Its seven tests passed, but the quality gate reported branch coverage `76.0% < 80%`,
+complexity 16 at `readSupportEntry`, and duplication `5.28%` caused by a new 13-line clone. The
+failure stopped the merge as required by the PR gate.
+
+The remediation was split into focused commits: `98afa01` separates support-entry identity and
+evidence parsing and introduces the generic validated-array helper, `88304ca` adds GUI branch
+tests, and `060105f` adds parser-validation branch tests. Together these preserve the strict v3
+contract while covering the branches that the C++ dogfood run exposed and removing the duplicated
+validation path.
+
+The exact local viewer command now passes:
+
+```text
+cd viewer
+../dist/ici.pyz verify --report --html verify_report.html
+PASS — 7/7 tests
+Coverage (line / function / branch) 94.6% / 97.7% / 80.4%
+Complexity 15
+Duplication 4.43%
+Suite TEM 4.89 / 5.0
+```
+
+The refreshed PR sticky comment links resolved successfully: both the ici and viewer Pages URLs
+returned HTTP 200, the published HTML contained the `Support & Capabilities` tab, and the report
+contained no external `<script>` or `<style>` resources.
+
 ### Diff and compatibility checks
 
 - The feature implementation is the nine-commit range `119823d..fc43a37`; no dependency was
