@@ -176,6 +176,12 @@ def qmake_build_argv(make_bin: str, jobs: int) -> list[str]:
     return [make_bin, f"--jobs={max(1, jobs)}"]
 
 
+def qmake_clean_argv(make_bin: str) -> list[str]:
+    """Return the deterministic freshness step for a configured qmake tree."""
+
+    return [make_bin, "clean"]
+
+
 def qmake_test_argv(make_bin: str) -> list[str]:
     """`CONFIG += testcase` generates the check target and forwards TESTARGS."""
 
@@ -441,6 +447,19 @@ def build(session: BuildSession) -> bool:
     else:
         make_bin = _which(session, "make")
         if make_bin is None:
+            return False
+        # qmake's LIBS entry is a linker argument, not necessarily a Makefile
+        # dependency.  In a reused shadow tree an unchanged test executable can
+        # therefore remain linked to an older static archive.  Besides testing
+        # stale code, coverage then writes a .gcda whose stamp does not match
+        # the newly-built .gcno and gcov reports a false 0%.  A configured
+        # qmake tree always has a clean target, so make freshness explicit
+        # before the parallel build until content-addressed shadows land.
+        clean_argv = qmake_clean_argv(make_bin)
+        clean_result = run_process(clean_argv, cwd=session.shadow)
+        _record(session, "qmake clean", clean_argv, clean_result)
+        if clean_result.returncode != 0:
+            _fail(session, f"qmake clean failed: {clean_result.stderr[:200]}")
             return False
         argv = qmake_build_argv(make_bin, os.cpu_count() or 1)
         cwd = session.shadow

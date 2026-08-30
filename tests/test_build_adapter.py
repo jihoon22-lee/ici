@@ -6,6 +6,7 @@ from ici.core.cmake import (
     BACKEND_QMAKE,
     BuildSession,
     ConfigureOptions,
+    build,
     cmake_build_argv,
     cmake_configure_argv,
     cmake_test_argv,
@@ -156,6 +157,147 @@ def test_qmake_build_rejects_bad_jobs():
     # A zero or negative job count would make GNU make spawn unbounded jobs.
     assert qmake_build_argv("/usr/bin/make", 0) == ["/usr/bin/make", "--jobs=1"]
     assert qmake_build_argv("/usr/bin/make", -3) == ["/usr/bin/make", "--jobs=1"]
+
+
+def test_qmake_build_cleans_shadow_before_parallel_build(tmp_path, monkeypatch):
+    """A reused qmake shadow must not link consumers against a stale archive.
+
+    qmake's generated Makefile can have a link rule that names a static
+    library but does not make the consumer binary depend on that archive.  A
+    configure followed by ``make --jobs`` can therefore leave an unchanged
+    executable linked to an older library.  The adapter's observable
+    contract is a deterministic ``make clean`` between configure and the
+    parallel build, including when the shadow already exists.
+    """
+
+    (tmp_path / "app.pro").write_text("TEMPLATE = app\n", encoding="utf-8")
+    shadow = tmp_path / "build" / "ici-qmake"
+    shadow.mkdir(parents=True)
+    (shadow / "Makefile").write_text("# stale generated makefile\n", encoding="utf-8")
+    calls: list[tuple[list[str], object]] = []
+
+    monkeypatch.setattr(
+        cmake_mod.shutil,
+        "which",
+        lambda name: {"qmake6": "/opt/qt/bin/qmake6", "make": "/usr/bin/make"}.get(name),
+    )
+    monkeypatch.setattr(cmake_mod.os, "cpu_count", lambda: 1)
+
+    def _run(argv, **kwargs):
+        calls.append((argv, kwargs.get("cwd")))
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+
+    session = configure(tmp_path)
+    assert session.configured is True
+    assert build(session) is True
+
+    assert [argv for argv, _cwd in calls] == [
+        qmake_configure_argv("/opt/qt/bin/qmake6", tmp_path / "app.pro"),
+        ["/usr/bin/make", "clean"],
+        ["/usr/bin/make", "--jobs=1"],
+    ]
+    assert [cwd for _argv, cwd in calls] == [shadow, shadow, shadow]
+    assert calls[1][0] == ["/usr/bin/make", "clean"]
+    assert any("clean" in evidence.name for evidence in session.tool_evidence)
+
+
+def test_qmake_clean_failure_stops_build_and_is_explicit(tmp_path, monkeypatch):
+    """A failed clean cannot silently fall through to a stale parallel build."""
+
+    (tmp_path / "app.pro").write_text("TEMPLATE = app\n", encoding="utf-8")
+    shadow = tmp_path / "build" / "ici-qmake"
+    shadow.mkdir(parents=True)
+    (shadow / "Makefile").write_text("# existing shadow\n", encoding="utf-8")
+    calls: list[list[str]] = []
+
+    monkeypatch.setattr(
+        cmake_mod.shutil,
+        "which",
+        lambda name: {"qmake6": "/opt/qt/bin/qmake6", "make": "/usr/bin/make"}.get(name),
+    )
+    monkeypatch.setattr(cmake_mod.os, "cpu_count", lambda: 1)
+
+    def _run(argv, **_kwargs):
+        calls.append(argv)
+        if argv == ["/usr/bin/make", "clean"]:
+            return ProcessResult(2, "", "clean permission denied", 0.01)
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+
+    session = configure(tmp_path)
+    assert build(session) is False
+    assert calls == [
+        qmake_configure_argv("/opt/qt/bin/qmake6", tmp_path / "app.pro"),
+        ["/usr/bin/make", "clean"],
+    ]
+    assert any("clean" in error and "permission denied" in error for error in session.errors)
+
+
+def test_qmake_first_shadow_still_cleans_and_builds(tmp_path, monkeypatch):
+    """A new shadow follows the same safe path without a pre-existing file."""
+
+    (tmp_path / "app.pro").write_text("TEMPLATE = app\n", encoding="utf-8")
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        cmake_mod.shutil,
+        "which",
+        lambda name: {"qmake6": "/opt/qt/bin/qmake6", "make": "/usr/bin/make"}.get(name),
+    )
+    monkeypatch.setattr(cmake_mod.os, "cpu_count", lambda: 1)
+
+    def _run(argv, **_kwargs):
+        calls.append(argv)
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+
+    session = configure(tmp_path)
+    assert not (tmp_path / "build" / "ici-qmake" / "Makefile").exists()
+    assert build(session) is True
+    assert calls[1:] == [["/usr/bin/make", "clean"], ["/usr/bin/make", "--jobs=1"]]
+
+
+def test_cmake_build_does_not_add_qmake_clean_step(tmp_path, monkeypatch):
+    """The qmake freshness rule must not alter CMake's existing build path."""
+
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        cmake_mod.shutil,
+        "which",
+        lambda name: f"/usr/bin/{name}",
+    )
+
+    def _run(argv, **_kwargs):
+        calls.append(argv)
+        return ProcessResult(0, "cmake version 3.28.1" if "--version" in argv else "", "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+
+    session = configure(tmp_path)
+    assert build(session) is True
+    assert calls == [
+        ["/usr/bin/cmake", "--version"],
+        [
+            "/usr/bin/cmake",
+            "-S",
+            str(tmp_path),
+            "-B",
+            str(tmp_path / "build" / "ici-cmake"),
+            "-DCMAKE_BUILD_TYPE=Debug",
+            "-DCMAKE_CXX_FLAGS=--coverage",
+            "-DCMAKE_EXE_LINKER_FLAGS=--coverage",
+        ],
+        [
+            "/usr/bin/cmake",
+            "--build",
+            str(tmp_path / "build" / "ici-cmake"),
+            "--parallel",
+        ],
+    ]
 
 
 def test_qmake_test_requests_xunit_xml():

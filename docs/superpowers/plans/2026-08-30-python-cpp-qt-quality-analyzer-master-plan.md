@@ -412,10 +412,30 @@ green(756 tests)이었고, [sticky comment](https://github.com/jihoon22-lee/ici/
 
 **브랜치:** `feat/qmake-compile-context`
 
+- [x] qmake configure 뒤 shadow에서 deterministic `make clean`을 먼저 실행하고,
+  clean evidence와 실패 사유를 결과에 남긴다. 재사용한 qmake shadow에서 정적 archive와
+  test executable의 freshness가 어긋나 stale 실행 및 gcov stamp 불일치가 coverage 0%로
+  둔갑하지 않게 하는 선행 안전망이며, CMake build path는 변경하지 않는다. 이 체크는
+  compile capture 완료를 의미하지 않는다.
 - [ ] qmake verbose build, compiler wrapper, 선택적 외부 capture 도구를 실측 비교하는 spike를 먼저 한다.
 - [ ] shell parsing이나 임의 command 실행 없이 argv를 보존할 수 있는 방식을 채택한다.
 - [ ] Qt5/Qt6, target wrapper, shadow relative path를 fixture와 diskmap에서 검증한다.
 - [ ] exact capture가 불가능한 환경은 명시적 lower-confidence mode로 남긴다.
+
+**Freshness 선행 안전망의 최종 로컬 증거 (2026-08-31):** rebase된 test/fix 커밋
+`1098a62`/`f692a3c` 기준으로 Python 3.10 `pytest 811 passed (42.79s)`, Ruff
+check/format 103 files, reproducible pyz 두 회의 동일 SHA-256
+`8fdb816ae394e5327ffa6f6ca6ddc0efca0a45addb48975e3b8eef6412a39018`, pure-Python
+10 distributions/no certifi, smoke(Python 3.10·integrity·Zero-CDN 포함) PASS를
+확인했다. 같은 candidate pyz를 실제 DiskMap에 적용한 결과는 Suite PASS
+(10 pass, 0 warn, 0 fail/error, 2 skip; 9/9 tests; line/function/branch
+96.6%/98.0%/85.0%; TEM 4.90; complexity 14/101/0 issues; duplicate 2.0%;
+sanitizer clean, 85.96s)였고, test와 sanitize qmake build JSON evidence 양쪽에
+`/usr/bin/make clean` 성공이 남았다. capability snapshot은 30 tools/21 ready/
+0 incomplete/9 unavailable이며 required `g++`는 ready/health READY였다. HTML은
+281,264 bytes, external `src`/`href` reference 0개이고 capability snapshot을
+렌더링했다. 이 기록은 qmake compile capture 완료가 아니며, 원격 CI·PR·Pages 및
+main 반영은 후속 검증에서 완료해야 한다.
 
 ### I3-4. lint와 include graph 이관
 
