@@ -10,11 +10,15 @@ from typing import Any
 
 from ici.core.findings import findings_for_result, validate_source_region
 from ici.core.models import (
+    AnalysisMetadata,
+    BaselineComparison,
+    DeltaState,
     EngineResult,
     EngineStatus,
     EngineSupport,
     EvidenceState,
     Finding,
+    FindingDelta,
     FindingMetric,
     FindingSuppression,
     InspectionTarget,
@@ -134,6 +138,91 @@ def _serialize_finding(finding: Finding) -> dict[str, Any]:
             name: _serialize_metric(metric) for name, metric in sorted(finding.metrics.items())
         },
         "snippet": _require_string(finding.snippet, "finding.snippet"),
+    }
+
+
+def _serialize_analysis_metadata(metadata: AnalysisMetadata | None) -> dict[str, Any] | None:
+    if metadata is None:
+        return None
+    return {
+        "producer_version": _require_string(
+            metadata.producer_version, "analysis_metadata.producer_version", nonempty=True
+        ),
+        "fingerprint_version": _require_string(
+            metadata.fingerprint_version,
+            "analysis_metadata.fingerprint_version",
+            nonempty=True,
+        ),
+        "policy_digest": _require_string(
+            metadata.policy_digest, "analysis_metadata.policy_digest", nonempty=True
+        ),
+        "tool_policy_digest": _require_string(
+            metadata.tool_policy_digest,
+            "analysis_metadata.tool_policy_digest",
+            nonempty=True,
+        ),
+    }
+
+
+def _serialize_delta(delta: FindingDelta) -> dict[str, Any]:
+    if type(delta.regressed) is not bool or type(delta.suppressed) is not bool:
+        raise ValueError("finding delta regressed/suppressed must be booleans")
+    if type(delta.gated) is not bool:
+        raise ValueError("finding delta gated must be a boolean")
+    return {
+        "state": delta.state.value,
+        "engine_name": _require_string(
+            delta.engine_name, "baseline delta engine_name", nonempty=True
+        ),
+        "fingerprint": _require_string(
+            delta.fingerprint, "baseline delta fingerprint", nonempty=True
+        ),
+        "rule_id": _require_string(delta.rule_id, "baseline delta rule_id", nonempty=True),
+        "message": _require_string(delta.message, "baseline delta message"),
+        "current_location": (
+            _serialize_location(delta.current_location)
+            if delta.current_location is not None
+            else None
+        ),
+        "baseline_location": (
+            _serialize_location(delta.baseline_location)
+            if delta.baseline_location is not None
+            else None
+        ),
+        "current_severity": (
+            delta.current_severity.value if delta.current_severity is not None else None
+        ),
+        "baseline_severity": (
+            delta.baseline_severity.value if delta.baseline_severity is not None else None
+        ),
+        "regressed": delta.regressed,
+        "suppressed": delta.suppressed,
+        "gated": delta.gated,
+    }
+
+
+def _serialize_baseline_comparison(
+    comparison: BaselineComparison | None,
+) -> dict[str, Any] | None:
+    if comparison is None:
+        return None
+    if type(comparison.fail_on_new) is not bool or type(comparison.gate_failed) is not bool:
+        raise ValueError("baseline fail_on_new/gate_failed must be booleans")
+    return {
+        "source_path": _require_string(
+            comparison.source_path, "baseline source_path", nonempty=True
+        ),
+        "warnings": _serialize_string_list(comparison.warnings, "baseline warnings"),
+        "baseline_metadata": _serialize_analysis_metadata(comparison.baseline_metadata),
+        "fail_on_new": comparison.fail_on_new,
+        "gate_failed": comparison.gate_failed,
+        "new_count": comparison.count(DeltaState.NEW),
+        "unchanged_count": comparison.count(DeltaState.UNCHANGED),
+        "moved_count": comparison.count(DeltaState.MOVED),
+        "resolved_count": comparison.count(DeltaState.RESOLVED),
+        "regressed_count": comparison.regressed_count,
+        "gated_count": comparison.gated_count,
+        "entries": [_serialize_delta(entry) for entry in comparison.entries],
     }
 
 
@@ -289,6 +378,8 @@ def serialize_suite_result(
             serialize_engine_result(result, project_root=project_root) for result in safe.results
         ],
         "support_matrix": serialize_support_matrix(safe.support_matrix),
+        "analysis_metadata": _serialize_analysis_metadata(safe.analysis_metadata),
+        "baseline_comparison": _serialize_baseline_comparison(safe.baseline_comparison),
     }
 
 

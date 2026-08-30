@@ -7,8 +7,10 @@ from dataclasses import replace
 from typing import Any
 
 from ici.core.models import (
+    BaselineComparison,
     EngineResult,
     Finding,
+    FindingDelta,
     FindingMetric,
     FindingSuppression,
     SourceLocation,
@@ -168,6 +170,36 @@ def _redact_support_matrix(matrix: SupportMatrix | None) -> SupportMatrix | None
     )
 
 
+def _redact_delta(delta: FindingDelta) -> FindingDelta:
+    return replace(
+        delta,
+        engine_name=redact_text(delta.engine_name),
+        rule_id=redact_text(delta.rule_id),
+        message=redact_text(delta.message),
+        current_location=(
+            _redact_location(delta.current_location) if delta.current_location is not None else None
+        ),
+        baseline_location=(
+            _redact_location(delta.baseline_location)
+            if delta.baseline_location is not None
+            else None
+        ),
+    )
+
+
+def _redact_baseline(
+    comparison: BaselineComparison | None,
+) -> BaselineComparison | None:
+    if comparison is None:
+        return None
+    return replace(
+        comparison,
+        source_path=redact_text(comparison.source_path),
+        warnings=[redact_text(warning) for warning in comparison.warnings],
+        entries=[_redact_delta(entry) for entry in comparison.entries],
+    )
+
+
 def redact_engine_result(result: EngineResult) -> EngineResult:
     """Return a reporting-safe copy of an engine result."""
 
@@ -212,4 +244,5 @@ def redact_suite(suite: VerificationSuiteResult) -> VerificationSuiteResult:
         suite,
         results=[redact_engine_result(result) for result in suite.results],
         support_matrix=_redact_support_matrix(suite.support_matrix),
+        baseline_comparison=_redact_baseline(suite.baseline_comparison),
     )

@@ -61,6 +61,15 @@ class SuppressionKind(str, Enum):
     BASELINE = "baseline"
 
 
+class DeltaState(str, Enum):
+    """Relationship between one current finding and the selected baseline."""
+
+    NEW = "new"
+    UNCHANGED = "unchanged"
+    MOVED = "moved"
+    RESOLVED = "resolved"
+
+
 class SupportLanguage(str, Enum):
     """Source-language scopes declared by analysis engines."""
 
@@ -188,6 +197,57 @@ class Finding:
 
 
 @dataclass
+class AnalysisMetadata:
+    """Compatibility identity embedded in every baseline-capable v3 report."""
+
+    producer_version: str
+    fingerprint_version: str
+    policy_digest: str
+    tool_policy_digest: str
+
+
+@dataclass
+class FindingDelta:
+    """Compact, deterministic comparison record for one finding occurrence."""
+
+    state: DeltaState
+    engine_name: str
+    fingerprint: str
+    rule_id: str
+    message: str
+    current_location: SourceLocation | None = None
+    baseline_location: SourceLocation | None = None
+    current_severity: FindingSeverity | None = None
+    baseline_severity: FindingSeverity | None = None
+    regressed: bool = False
+    suppressed: bool = False
+    gated: bool = False
+
+
+@dataclass
+class BaselineComparison:
+    """Full inventory classification plus the optional PR gate decision."""
+
+    source_path: str
+    entries: list[FindingDelta] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    baseline_metadata: AnalysisMetadata | None = None
+    fail_on_new: bool = False
+    gate_failed: bool = False
+
+    def count(self, state: DeltaState) -> int:
+        return sum(1 for entry in self.entries if entry.state == state)
+
+    @property
+    def regressed_count(self) -> int:
+        return sum(1 for entry in self.entries if entry.regressed)
+
+    @property
+    def gated_count(self) -> int:
+        return sum(1 for entry in self.entries if entry.gated)
+
+
+@dataclass
 class EngineResult:
     """Structured result returned by each verification engine."""
 
@@ -287,6 +347,8 @@ class VerificationSuiteResult:
     tem_score: float | None = None
     max_tem_score: float = 5.0
     support_matrix: SupportMatrix | None = None
+    analysis_metadata: AnalysisMetadata | None = None
+    baseline_comparison: BaselineComparison | None = None
 
     @property
     def passed_count(self) -> int:
