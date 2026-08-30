@@ -58,7 +58,7 @@ def test_matrix_discovers_hybrid_qt_scope_and_does_not_claim_unrun_evidence(tmp_
 
     matrix = evaluate_support_matrix(tmp_path, config)
 
-    assert matrix.project_languages == [SupportLanguage.CPP, SupportLanguage.PYTHON]
+    assert matrix.project_languages == [SupportLanguage.PYTHON, SupportLanguage.CPP]
     assert matrix.project_frameworks == ["qt"]
     py_lint = _entry(matrix, "lint", SupportLanguage.PYTHON)
     assert py_lint.applicable is True
@@ -145,7 +145,7 @@ def test_declared_empty_scope_and_cpp_headers_are_discovered(tmp_path: Path):
 
     matrix = evaluate_support_matrix(tmp_path, config)
 
-    assert matrix.project_languages == [SupportLanguage.CPP, SupportLanguage.PYTHON]
+    assert matrix.project_languages == [SupportLanguage.PYTHON, SupportLanguage.CPP]
 
 
 def test_markdown_table_is_generated_in_registry_order():

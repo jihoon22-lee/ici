@@ -335,7 +335,11 @@ def _project_languages(project_root: Path, config: dict[str, Any]) -> list[Suppo
             languages.append(SupportLanguage.PYTHON)
         if (project_root / "CMakeLists.txt").is_file() or any(project_root.glob("*.pro")):
             languages.append(SupportLanguage.CPP)
-    return sorted(languages, key=lambda item: item.value)
+    return [
+        language
+        for language in (SupportLanguage.PYTHON, SupportLanguage.CPP)
+        if language in languages
+    ]
 
 
 def _project_frameworks(project_root: Path, config: dict[str, Any]) -> list[str]:
