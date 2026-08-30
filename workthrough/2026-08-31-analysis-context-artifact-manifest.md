@@ -67,10 +67,10 @@ BuildSession (mutable, adapter-owned)
 - project root와 shadow root는 canonical path로 확인한다.
 - 상대 path의 `..`, 절대 path, root 밖 경로와 root 밖으로 해석되는 symlink는 거부한다.
 - manifest는 regular file만 허용하고, 재검증 시 size·mode·SHA-256이 바뀌면 거부한다.
-- context/report JSON은 project-relative POSIX 경로만 투영한다.
-- 외부 include/search path처럼 machine-specific root가 포함될 수 있는 값은 reporter의
-  redaction 경계를 통과한다. 외부 경로와 credential은 HTML·JSON·Markdown·console에
-  그대로 남기지 않는다.
+- 새 context/manifest JSON의 project·source·compile·artifact 경로는 project-relative POSIX
+  형식으로만 투영한다.
+- 외부 include/search path는 context JSON에서 `-I[external]`로 치환한다. HTML editor-link의
+  absolute path와 기존 tool evidence는 각 reporter의 기존 path/redaction 계약을 유지한다.
 
 ### 4. Variant isolation and reporting contract
 

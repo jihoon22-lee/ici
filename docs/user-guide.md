@@ -106,10 +106,11 @@ snapshot, source commit·config digest·toolchain digest, 요청된 `release`/`c
 - engine의 `artifact_manifests`: `ici.artifacts/v1` — project/shadow root와 각 artifact의
   상대 경로 및 전체 provenance를 기록합니다.
 
-외부 include/search path처럼 호스트 절대 경로가 섞일 수 있는 값은 report redaction 경계를
-거칩니다. 따라서 HTML·JSON·Markdown·console에 machine-specific include root이나 secret이
-그대로 노출되지 않습니다. 이 두 확장이 없는 기존 `ici.result/v3` archive도 계속 읽고
-migration할 수 있습니다.
+외부 include/search path처럼 호스트 절대 경로가 섞일 수 있는 값은 `analysis_context` JSON
+projection에서 `-I[external]`로 치환됩니다. HTML의 로컬 editor-link용 absolute path와 기존
+tool evidence는 각 리포터의 기존 redaction 계약을 그대로 따르며, 이 확장이 그 계약을
+변경하지는 않습니다. 두 확장이 없는 기존 `ici.result/v3` archive도 계속 읽고 migration할
+수 있습니다.
 
 환경과 지원 범위를 실행 전에 확인하려면 `ici doctor`를 사용합니다. 일반 출력은 설치된 도구와
 프로젝트별 엔진 matrix를 표로 보여주고, `--brief`는 프로젝트 언어·프레임워크 한 줄만 더하며,

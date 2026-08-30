@@ -374,11 +374,12 @@ canonical SHA-256 digest다.
 
 `RELEASE`, `COVERAGE`, `SANITIZE`를 명시적으로 선택해 shadow와 계측 flags를 분리했으며,
 build/test/sanitize가 같은 context snapshot을 공유한다. console·Markdown·HTML·JSON
-reporter는 context를 변경하지 않고 safe projection을 만든다. `ici.result/v3`의 optional
+reporter는 context를 변경하지 않고 projection을 만든다. `ici.result/v3`의 optional
 `analysis_context` (`ici.analysis-context/v1`)와 `artifact_manifests`
 (`ici.artifacts/v1`)는 project-relative POSIX 경로와 전체 provenance를 보존하고, 외부
-include/search path는 report redaction 경계에서 호스트 절대 경로를 노출하지 않는다.
-기존 v3 payload는 두 확장 없이도 계속 읽고 migration할 수 있다. 전체 품질 게이트의 병합
+include/search path는 context JSON에서 `-I[external]`로 치환한다. 기존 HTML editor-link와
+tool evidence의 path/redaction 계약은 변경하지 않는다. 기존 v3 payload는 두 확장 없이도
+계속 읽고 migration할 수 있다. 전체 품질 게이트의 병합
 조건은 full suite green이며, 작업 중인 테스트 수는 이 문서에 고정하지 않는다.
 
 I2-2는 완료됐다. I2-3의 engine DAG와 I2-4의 cache/reproducibility 설계는 아직 남아 있다.
