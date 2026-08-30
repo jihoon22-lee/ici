@@ -271,13 +271,16 @@ single·multi-project sticky comment에서 같은 baseline summary를 확인하�
 - 단위·회귀 테스트: Python 3.10 전체 732개 통과. baseline 집중 경로는
   tests/test_baseline.py, tests/test_verify_orchestrator.py,
   tests/test_baseline_reporters.py, tests/test_cli.py, tests/test_publish.py가 담당한다.
-- PR: TODO: GitHub PR 번호와 URL
-- CI/Merge Gate: TODO: 최종 workflow run 및 모든 required job 결과
+- PR: [#87](https://github.com/jihoon22-lee/ici/pull/87) — finding baseline/delta gate 병합 완료
+- CI/Merge Gate: [workflow run 33327928094](https://github.com/jihoon22-lee/ici/actions/runs/33327928094) — Verify, Viewer Qt5, Viewer Qt6, Publish PR Report, Merge Gate 모두 SUCCESS
 - 로컬 release-candidate pyz self-verify: WARN(Pass 8/Warn 4/Fail 0/Error 0), 732/732,
   TEM 4.82, line/branch/function 87.6%/78.6%/96.5%. 동일 소스 baseline 왕복에서
   2,783 unchanged, new/moved/resolved/regressed/gated 0, fail-on-new PASSED를 확인했고,
   v3 Draft 2020-12 schema, 0 external reference zero-CDN HTML, publish summary, 기존 C++
   viewer parse를 모두 통과했다.
+- CI runner의 동일 검증 측정값은 line/branch 87.7%/78.7%였다. 로컬
+  release-candidate의 87.6%/78.6%와의 차이는 코드 불일치가 아니라 실행 환경별
+  coverage 측정치 차이로 기록한다.
 
 I1-4가 남아 있으므로 I1 전체 checkpoint는 아직 완료로 표시하지 않는다.
 
@@ -681,7 +684,7 @@ I1-4가 남아 있으므로 I1 전체 checkpoint는 아직 완료로 표시하�
 
 ## 18. 마스터 체크포인트
 
-- [ ] I0: 현재 viewer/cycle 계획이 보정된 테스트와 함께 완료
+- [x] I0: 현재 viewer/cycle 계획이 보정된 테스트와 함께 완료
 - [ ] I1: v3 finding, support matrix, baseline, issues-first console 완료
 - [ ] I2: shared context와 engine DAG 완료
 - [ ] I3: CMake/qmake compile context와 compiler-exact include/lint 완료
