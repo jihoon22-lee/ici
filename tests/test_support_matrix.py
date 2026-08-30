@@ -158,6 +158,17 @@ def test_markdown_table_is_generated_in_registry_order():
     assert "| `sanitize` | tool-backed | tool-backed (Qt) |" in table
 
 
+def test_documented_support_table_exactly_matches_registry():
+    reference = (Path(__file__).parents[1] / "docs" / "engine-reference.md").read_text(
+        encoding="utf-8"
+    )
+    start = reference.index("<!-- ici:support-matrix:start -->")
+    end = reference.index("<!-- ici:support-matrix:end -->")
+    documented = reference[start:end].split("-->", 1)[1].strip()
+
+    assert documented == render_support_markdown()
+
+
 def test_v3_serializer_and_schema_share_the_complete_matrix_contract(tmp_path: Path):
     source = tmp_path / "src"
     source.mkdir()
