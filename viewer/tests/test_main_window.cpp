@@ -15,6 +15,7 @@ class TestMainWindow : public QObject {
 private slots:
     void openingARealReportFillsTheTree();
     void openingASupportMatrixShowsScopeAndRows();
+    void openingSupportMatrixExercisesAllRenderingBranches();
     void openingAnOmittedOrNullMatrixClearsTheCapabilityView();
     void openingEachGateStatusUsesItsColour();
     void openingAMissingFileClearsTheLoadedReport();
@@ -118,6 +119,111 @@ void TestMainWindow::openingASupportMatrixShowsScopeAndRows() {
     QCOMPARE(table->item(1, 4)->text(), QStringLiteral("not-applicable"));
     QVERIFY(scope->text().contains(QStringLiteral("python, cpp")));
     QVERIFY(scope->text().contains(QStringLiteral("qt")));
+}
+
+namespace {
+
+std::string supportMatrixBranchReport() {
+    return supportMatrixReport(R"({
+    "project_languages": [],
+    "project_frameworks": [],
+    "entries": [
+      {
+        "engine_name": "branch-none", "language": "python", "mode": "exact",
+        "active_mode": "exact", "applicable": true, "enabled": true,
+        "evidence": "MEASURED", "confidence": "exact",
+        "frameworks": [], "required_tools": [], "optional_tools": [],
+        "fallback_mode": null, "limitations": [], "reason": ""
+      },
+      {
+        "engine_name": "branch-required", "language": "cpp", "mode": "tool-backed",
+        "active_mode": null, "applicable": true, "enabled": false,
+        "evidence": "ESTIMATED", "confidence": "medium",
+        "frameworks": ["qt"], "required_tools": ["clang"], "optional_tools": [],
+        "fallback_mode": "heuristic", "limitations": ["requires clang"],
+        "reason": "required tool missing"
+      },
+      {
+        "engine_name": "branch-optional", "language": "python", "mode": "tool-backed",
+        "active_mode": "heuristic", "applicable": false, "enabled": true,
+        "evidence": "NOT_APPLICABLE", "confidence": "low",
+        "frameworks": [], "required_tools": [], "optional_tools": ["ruff"],
+        "fallback_mode": null, "limitations": ["python only"], "reason": ""
+      },
+      {
+        "engine_name": "branch-both", "language": "cpp", "mode": "heuristic",
+        "active_mode": "heuristic", "applicable": true, "enabled": true,
+        "evidence": "MEASURED", "confidence": "high",
+        "frameworks": ["qt", "widgets"], "required_tools": ["cmake"],
+        "optional_tools": ["clang"], "fallback_mode": "exact", "limitations": [],
+        "reason": "full tool path"
+      }
+    ]
+  })");
+}
+
+} // namespace
+
+void TestMainWindow::openingSupportMatrixExercisesAllRenderingBranches() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString path = writeReport(QString::fromStdString(supportMatrixBranchReport()), directory,
+                                     QStringLiteral("branches.json"));
+    QVERIFY(!path.isEmpty());
+
+    MainWindow window;
+    window.show();
+    window.openReport(path);
+
+    QTableWidget* table = supportTable(window);
+    QLabel* scope = supportScope(window);
+    QVERIFY(table != nullptr);
+    QVERIFY(scope != nullptr);
+    QVERIFY(table->isVisible());
+    QCOMPARE(table->rowCount(), 4);
+    QCOMPARE(scope->text(), QStringLiteral("Project scope: languages=—  frameworks=—"));
+
+    // Empty and non-empty framework lists, plus all three support states.
+    QCOMPARE(table->item(0, 0)->text(), QStringLiteral("branch-none"));
+    QCOMPARE(table->item(0, 1)->text(), QStringLiteral("python"));
+    QCOMPARE(table->item(0, 4)->text(), QStringLiteral("applicable"));
+    QCOMPARE(table->item(1, 1)->text(), QStringLiteral("cpp (qt)"));
+    QCOMPARE(table->item(1, 4)->text(), QStringLiteral("disabled"));
+    QCOMPARE(table->item(2, 4)->text(), QStringLiteral("not-applicable"));
+    QCOMPARE(table->item(3, 1)->text(), QStringLiteral("cpp (qt, widgets)"));
+
+    // Active and fallback modes exercise both optionalMode branches.
+    QCOMPARE(table->item(0, 2)->text(), QStringLiteral("exact"));
+    QCOMPARE(table->item(0, 3)->text(), QStringLiteral("exact"));
+    QCOMPARE(table->item(0, 8)->text(), QStringLiteral("—"));
+    QCOMPARE(table->item(1, 3)->text(), QStringLiteral("—"));
+    QCOMPARE(table->item(1, 8)->text(), QStringLiteral("heuristic"));
+    QCOMPARE(table->item(2, 3)->text(), QStringLiteral("heuristic"));
+    QCOMPARE(table->item(3, 8)->text(), QStringLiteral("exact"));
+
+    // No tools, required-only, optional-only, and both tool policies.
+    QCOMPARE(table->item(0, 7)->text(), QStringLiteral("—"));
+    QCOMPARE(table->item(1, 7)->text(), QStringLiteral("required: clang"));
+    QCOMPARE(table->item(2, 7)->text(), QStringLiteral("optional: ruff"));
+    QCOMPARE(table->item(3, 7)->text(), QStringLiteral("required: cmake; optional: clang"));
+
+    // Empty detail, limitations-only, reason-plus-limitations, and reason-only.
+    for (int column = 0; column < table->columnCount(); ++column) {
+        QVERIFY(table->item(0, column)->toolTip().isEmpty());
+        QCOMPARE(table->item(1, column)->toolTip(),
+                 QStringLiteral("required tool missing\nrequires clang"));
+        QCOMPARE(table->item(2, column)->toolTip(), QStringLiteral("python only"));
+        QCOMPARE(table->item(3, column)->toolTip(), QStringLiteral("full tool path"));
+    }
+
+    const QString clearedPath = writeReport(QString::fromStdString(minimalV3Report()), directory,
+                                            QStringLiteral("cleared.json"));
+    QVERIFY(!clearedPath.isEmpty());
+    window.openReport(clearedPath);
+    QVERIFY(window.hasLoadedReport());
+    QVERIFY(!table->isVisible());
+    QCOMPARE(table->rowCount(), 0);
+    QCOMPARE(scope->text(), QStringLiteral("No support matrix in report"));
 }
 
 void TestMainWindow::openingAnOmittedOrNullMatrixClearsTheCapabilityView() {
