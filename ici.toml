@@ -26,11 +26,17 @@ ruff_required = true
 [engines.test]
 enabled = true
 mode = "pass_fail"
-# Dogfood baseline (CI/local, 2026-08-24): TEM ~4.72/5.0, Line ~83.6%, Func ~94.3%.
-# Keep strict pass_fail semantics while leaving headroom for runner/tool jitter.
-min_tem_score = 2.0       # TEM 점수 2.0 이상 통과
-min_branch_cov = 35.0     # Branch 커버리지 35% 이상
-min_func_cov = 60.0       # Function 커버리지 60% 이상
+# Dogfood baseline (origin/main@fa3ad28, 2026-08-31): three consecutive runs
+# measured TEM 4.78/5.0, Line 85.9%, Branch 77.9%, Function 95.691%, with
+# 634/634 tests passing. The values were identical across all three runs.
+# These floors retain runner/toolchain headroom while replacing the stale
+# 2.0/35/60 policy. Ratchet only after a later implementation change records
+# three consecutive runs at or above the current floor plus the same margin
+# (TEM +0.10, Branch +3pp, Function +3pp) with measured coverage and no new
+# unexplained test/tool warnings; then raise one floor at a time.
+min_tem_score = 4.5       # measured 4.78; 0.28 points of headroom
+min_branch_cov = 70.0     # measured 77.9%; 7.9 percentage points of headroom
+min_func_cov = 90.0       # measured 95.691%; 5.691 percentage points of headroom
 
 [engines.type]
 enabled = true

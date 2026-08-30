@@ -4,6 +4,8 @@ import ast
 import re
 import time
 from collections.abc import Iterable
+from pathlib import Path
+from typing import Any
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
 from ici.core.project import detect_project_type, get_all_cpp_sources, get_all_python_sources
@@ -358,8 +360,10 @@ class _ScopeAliasCollector(ast.NodeVisitor):
 class ExceptionSafetyEngine(BaseEngine):
     """Detect swallowed errors, lost Python tracebacks, and unsafe C++ throws."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self, project_root: Path | None = None, config: dict[str, Any] | None = None
+    ) -> None:
+        super().__init__(project_root, config)
         self._analysis_errors: list[str] = []
 
     def run(self) -> EngineResult:

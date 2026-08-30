@@ -38,13 +38,14 @@ Merge Gate를 다시 확인한다.
 
 ## 2. 현재 기준선과 문제 정의
 
-2026-08-31 `origin/main` 실측 기준:
+2026-08-31 실측 기준 (`origin/main@fa3ad28`, self-quality annotation 반영):
 
 | 대상 | 결과 |
 |---|---|
 | ici pytest | 634/634 PASS |
-| ici self verify | Pass 7 · Warn 5 · Fail 0 · Error 0, TEM 4.78 |
+| ici self verify | Pass 8 · Warn 4 · Fail 0 · Error 0, TEM 4.78 |
 | line/function/branch | 85.9% / 95.7% / 77.9% |
+| self verify console / duplicate | 2,276 lines / 237 groups (3회 반복 동일) |
 | viewer | 4/4 PASS, TEM 4.86 |
 
 현재 강점:
@@ -191,12 +192,19 @@ I1 이후 Python과 C++ 작업은 병렬 가능하지만, 각 언어 안에서�
 
 **브랜치:** `chore/self-quality-baseline`
 
-- [ ] mypy note의 원인이 되는 untyped function body를 식별한다.
-- [ ] 즉시 무리 없이 올릴 수 있는 TEM/branch/function floor를 실측한다.
-- [ ] 변경 이유와 다음 ratchet 조건을 `ici.toml`에 기록한다.
-- [ ] 결과 출력 줄 수와 duplicate group 수를 I1 성능 기준선으로 저장한다.
+- [x] mypy note의 원인이 되는 untyped function body를 식별한다.
+- [x] 즉시 무리 없이 올릴 수 있는 TEM/branch/function floor를 실측한다.
+- [x] 변경 이유와 다음 ratchet 조건을 `ici.toml`에 기록한다.
+- [x] 결과 출력 줄 수와 duplicate group 수를 I1 성능 기준선으로 저장한다.
 
 **초기 목표:** TEM 4.5, branch 70% 이상, function 90% 이상을 검토하되 측정값과 변동 근거 없이 숫자만 바꾸지 않는다.
+
+**실측 완료:** `ici.toml`에 TEM `4.5`, branch `70%`, function `90%` floor를
+설정했다. 세 번의 self verify가 동일하게 TEM `4.78`, branch `77.9%`, function
+`95.691%`, console `2,276`줄, duplicate `237` groups를 기록했으며,
+[`docs/baselines/2026-08-31-self-quality.json`](../../baselines/2026-08-31-self-quality.json)에
+구조화해 저장했다. mypy `[annotation-unchecked]` note는 네 엔진 생성자의
+untyped body에서만 발생했고 모두 Python 3.10 호환 시그니처로 정리했다.
 
 ---
 
