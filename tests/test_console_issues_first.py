@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import copy
 import io
+from dataclasses import replace
 from pathlib import Path
 
+import pytest
 from rich.cells import cell_len
 from rich.console import Console
 
@@ -21,6 +23,7 @@ from ici.core.models import (
     FindingCategory,
     FindingConfidence,
     FindingSeverity,
+    FindingSuppression,
     InspectionTarget,
     SourceLocation,
     VerificationSuiteResult,
@@ -256,6 +259,26 @@ def test_same_fingerprint_same_file_unions_only_overlapping_regions(tmp_path: Pa
     assert selection.visible_findings == 4
 
 
+def test_overlapping_regions_with_different_fingerprints_stay_separate(
+    tmp_path: Path,
+    monkeypatch,
+):
+    findings = [
+        _finding(path="src/a.py", start=10, end=15, fingerprint="sha256:" + "a" * 64),
+        _finding(path="src/a.py", start=12, end=18, fingerprint="sha256:" + "b" * 64),
+    ]
+    suite = _suite([_result("lint", findings)])
+    monkeypatch.setattr(
+        "ici.reporters.issue_view.findings_for_result",
+        lambda result, project_root: list(result.findings),
+    )
+
+    selection = _select(suite, tmp_path)
+
+    assert len(selection.all_groups) == 2
+    assert selection.total_findings == 2
+
+
 def test_clone_group_unions_same_file_overlap_and_keeps_cross_file_locations(
     tmp_path: Path,
 ):
@@ -335,6 +358,50 @@ def test_selection_is_independent_of_engine_input_order(tmp_path: Path):
             ("beta", "beta-marker"),
         ]
     )
+
+
+def test_info_and_suppressed_findings_are_not_actionable(tmp_path: Path):
+    actionable = _finding(message="actionable-marker")
+    informational = _finding(
+        start=2,
+        message="informational-marker",
+        severity=FindingSeverity.INFO,
+    )
+    suppressed = replace(
+        _finding(start=3, message="suppressed-marker"),
+        suppression=FindingSuppression(suppressed=True),
+    )
+
+    selection = _select(
+        _suite([_result("lint", [actionable, informational, suppressed])]),
+        tmp_path,
+    )
+
+    assert selection.total_findings == 1
+    assert [group.message for group in selection.all_groups] == ["actionable-marker"]
+
+
+@pytest.mark.parametrize(
+    ("group_by", "heading"),
+    [
+        (ConsoleGroupBy.ENGINE, "Engine: lint"),
+        (ConsoleGroupBy.SEVERITY, "Severity: high"),
+        (ConsoleGroupBy.CATEGORY, "Category: correctness"),
+        (ConsoleGroupBy.FILE, "File: src/app.py"),
+        (ConsoleGroupBy.RULE, "Rule: ici.test.issue"),
+    ],
+)
+def test_each_group_by_mode_changes_only_the_display_bucket(
+    tmp_path: Path,
+    group_by: ConsoleGroupBy,
+    heading: str,
+):
+    suite = _suite([_result("lint", [_finding(message="grouping-marker")])])
+
+    output = _render(suite, tmp_path, options=ConsoleOptions(group_by=group_by))
+
+    assert heading in output
+    assert "grouping-marker" in output
 
 
 def test_console_selection_does_not_mutate_suite_or_json_inventory(tmp_path: Path):
