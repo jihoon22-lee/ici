@@ -7,7 +7,8 @@ from pathlib import Path
 from rich.console import Console
 
 from ici.config import load_config
-from ici.core.toolchain import CapabilityInventory, ToolCapability, ToolRequirement
+from ici.core.capabilities import CapabilityInventory, ToolRequirement
+from ici.core.toolchain import ToolCapability
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 
 

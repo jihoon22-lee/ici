@@ -6,7 +6,7 @@ from types import MappingProxyType
 
 import pytest
 
-from ici.core import toolchain
+from ici.core import capabilities, toolchain
 from ici.core.runner import ProcessResult
 
 
@@ -69,20 +69,20 @@ def test_inventory_preserves_deterministic_registry_order_and_rejects_duplicate_
         available={"zeta": "/fake/zeta", "alpha": "/fake/alpha"},
     )
 
-    first = toolchain.collect_capability_inventory(tmp_path, probes=probes)
-    first_payload = toolchain.serialize_capability_inventory(first)
+    first = capabilities.collect_capability_inventory(tmp_path, probes=probes)
+    first_payload = capabilities.serialize_capability_inventory(first)
     first_runs = list(run_calls)
     run_calls.clear()
-    second = toolchain.collect_capability_inventory(tmp_path, probes=probes)
+    second = capabilities.collect_capability_inventory(tmp_path, probes=probes)
 
     assert tuple(first.capabilities) == ("zeta", "alpha")
     assert tuple(first.requirements) == ("zeta", "alpha")
-    assert toolchain.serialize_capability_inventory(second) == first_payload
+    assert capabilities.serialize_capability_inventory(second) == first_payload
     assert run_calls == first_runs
 
     duplicate = toolchain.ToolProbe("zeta", ("other",), ("--version",))
     with pytest.raises(ValueError, match="duplicate capability probe name"):
-        toolchain.collect_capability_inventory(tmp_path, probes=(*probes, duplicate))
+        capabilities.collect_capability_inventory(tmp_path, probes=(*probes, duplicate))
 
 
 def test_unknown_required_tool_is_explicit_missing_and_never_executed(tmp_path: Path, monkeypatch):
@@ -100,7 +100,7 @@ def test_unknown_required_tool_is_explicit_missing_and_never_executed(tmp_path: 
     monkeypatch.setattr(toolchain.shutil, "which", fail_which)
     monkeypatch.setattr(toolchain, "run_process", fail_run)
 
-    inventory = toolchain.collect_capability_inventory(
+    inventory = capabilities.collect_capability_inventory(
         tmp_path,
         probes=(),
         required_by={"missing-tool": ("test:python",)},
@@ -127,7 +127,7 @@ def test_required_incomplete_capability_makes_inventory_unhealthy(tmp_path: Path
         outputs={("/fake/incomplete", "--version"): _result(stdout="installed but opaque\n")},
     )
 
-    inventory = toolchain.collect_capability_inventory(
+    inventory = capabilities.collect_capability_inventory(
         tmp_path,
         probes=(probe,),
         required_by={"incomplete": ("type:python",)},
@@ -145,7 +145,7 @@ def test_required_incomplete_capability_makes_inventory_unhealthy(tmp_path: Path
 def test_optional_missing_capability_does_not_change_health(tmp_path: Path, monkeypatch):
     which_calls, run_calls = _fake_tools(monkeypatch, available={})
 
-    inventory = toolchain.collect_capability_inventory(
+    inventory = capabilities.collect_capability_inventory(
         tmp_path,
         probes=(),
         optional_by={"optional-tool": ("lint:python",)},
@@ -167,8 +167,8 @@ def test_inventory_and_nested_capability_metadata_are_mapping_proxy_immutable():
     capability = toolchain.ToolCapability(
         name="tool", path="/fake/tool", available=True, details={"vendor": "test"}
     )
-    requirement = toolchain.ToolRequirement(name="tool", required_by=("engine",))
-    inventory = toolchain.CapabilityInventory(
+    requirement = capabilities.ToolRequirement(name="tool", required_by=("engine",))
+    inventory = capabilities.CapabilityInventory(
         capabilities={"tool": capability}, requirements={"tool": requirement}
     )
 
@@ -193,12 +193,12 @@ def test_inventory_serialization_is_json_roundtrippable_and_redacts_evidence_arg
     )
     _fake_tools(monkeypatch, available={"secret-tool": "/fake/secret-tool"})
 
-    inventory = toolchain.collect_capability_inventory(
+    inventory = capabilities.collect_capability_inventory(
         tmp_path,
         probes=(probe,),
         required_by={"secret-tool": ("security:python", "security:python")},
     )
-    payload = toolchain.serialize_capability_inventory(inventory)
+    payload = capabilities.serialize_capability_inventory(inventory)
     row = payload["tools"][0]
 
     assert json.loads(json.dumps(payload)) == payload

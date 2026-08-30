@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ici import __version__
+from ici.core.capabilities import collect_capability_inventory, serialize_capability_inventory
 from ici.core.env import (
     find_infra_root,
     find_python_candidates,
@@ -17,11 +18,7 @@ from ici.core.env import (
     get_system_info,
 )
 from ici.core.support import evaluate_support_matrix
-from ici.core.toolchain import (
-    DEFAULT_TOOL_PROBES,
-    collect_capability_inventory,
-    serialize_capability_inventory,
-)
+from ici.core.toolchain import DEFAULT_TOOL_PROBES
 from ici.reporters.json_rep import serialize_support_matrix
 
 console = Console()
