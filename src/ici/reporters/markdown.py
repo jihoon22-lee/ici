@@ -9,60 +9,13 @@ from ici.core.models import (
     BaselineComparison,
     DeltaState,
     EngineStatus,
-    FindingDelta,
     SourceLocation,
     VerificationSuiteResult,
     format_score_display,
     gate_reason,
 )
 from ici.core.redaction import redact_suite
-
-_BASELINE_DETAIL_LIMIT = 20
-_BASELINE_UNCHANGED_DETAIL_LIMIT = 3
-_DELTA_STATE_ORDER = {
-    DeltaState.NEW: 0,
-    DeltaState.MOVED: 1,
-    DeltaState.RESOLVED: 2,
-    DeltaState.UNCHANGED: 3,
-}
-
-
-def _enum_value(value: object) -> str:
-    """Return a readable value for an enum or a legacy string payload."""
-    return str(getattr(value, "value", value))
-
-
-def _baseline_detail_entries(
-    comparison: BaselineComparison,
-) -> tuple[list[FindingDelta], int, int]:
-    """Select a deterministic, issues-first view without truncating JSON data."""
-    entries = list(comparison.entries or [])
-    entries.sort(
-        key=lambda entry: (
-            not entry.gated,
-            _DELTA_STATE_ORDER.get(entry.state, 99),
-            entry.engine_name,
-            entry.fingerprint,
-            _location_sort_key(entry.current_location or entry.baseline_location),
-        )
-    )
-    changed = [entry for entry in entries if entry.state != DeltaState.UNCHANGED]
-    unchanged = [entry for entry in entries if entry.state == DeltaState.UNCHANGED]
-    visible = changed[:_BASELINE_DETAIL_LIMIT]
-    remaining_slots = _BASELINE_DETAIL_LIMIT - len(visible)
-    visible_unchanged = unchanged[: min(_BASELINE_UNCHANGED_DETAIL_LIMIT, remaining_slots)]
-    visible.extend(visible_unchanged)
-    return (
-        visible,
-        len(changed) - min(len(changed), _BASELINE_DETAIL_LIMIT),
-        len(unchanged) - len(visible_unchanged),
-    )
-
-
-def _location_sort_key(location: SourceLocation | None) -> tuple[object, ...]:
-    if location is None:
-        return ("", 0, 0, "")
-    return (location.path, location.start_line, location.end_line or 0, location.label)
+from ici.reporters.baseline_view import enum_value, select_baseline_details, severity_transition
 
 
 def _render_baseline_location(
@@ -81,9 +34,7 @@ def _render_baseline_location(
     )
 
 
-def _render_severity_transition(entry: FindingDelta) -> str:
-    before = _enum_value(entry.baseline_severity) if entry.baseline_severity is not None else "—"
-    after = _enum_value(entry.current_severity) if entry.current_severity is not None else "—"
+def _render_severity_transition(before: str, after: str) -> str:
     return _render_code(f"{before} → {after}")
 
 
@@ -94,7 +45,7 @@ def _render_baseline_markdown(
     commit_sha: str | None,
 ) -> list[str]:
     """Render a compact baseline summary and an issues-first delta table."""
-    visible, omitted, omitted_unchanged = _baseline_detail_entries(comparison)
+    selection = select_baseline_details(comparison)
     gate_label = (
         "❌ FAILED"
         if comparison.gate_failed
@@ -119,33 +70,36 @@ def _render_baseline_markdown(
         lines.extend(["\n**Compatibility warnings:**"])
         lines.extend(f"> ⚠️ {_escape_inline(warning)}" for warning in comparison.warnings)
 
-    if visible:
+    if selection.visible:
         lines.extend(
             [
                 "\n<details>",
-                f"<summary><b>Issues-first delta details ({len(visible)} shown)</b></summary>\n",
+                f"<summary><b>Issues-first delta details ({len(selection.visible)} shown)</b></summary>\n",
                 "| Delta | Engine / Rule | Current location | Baseline location | Severity transition | Gate | Message |",
                 "|---|---|---|---|:---:|:---:|---|",
             ]
         )
-        for entry in visible:
-            state = _enum_value(entry.state).upper()
+        for entry in selection.visible:
+            state = enum_value(entry.state).upper()
             gated = "❌" if entry.gated else "—"
+            before, after = severity_transition(entry)
             lines.append(
                 f"| `{_escape_table_cell(state)}` | {_render_code(f'{entry.engine_name} / {entry.rule_id}')} | "
                 f"{_render_baseline_location(entry.current_location, repo_url, commit_sha)} | "
                 f"{_render_baseline_location(entry.baseline_location, repo_url, commit_sha)} | "
-                f"{_render_severity_transition(entry)} | {gated} | {_escape_table_cell(entry.message or '—')} |"
+                f"{_render_severity_transition(before, after)} | {gated} | {_escape_table_cell(entry.message or '—')} |"
             )
         lines.append("</details>\n")
     elif comparison.entries:
         lines.append("\n<details><summary>Delta details omitted</summary></details>\n")
 
     omitted_note = []
-    if omitted:
-        omitted_note.append(f"{omitted} additional delta row(s) omitted from this view")
-    if omitted_unchanged:
-        omitted_note.append(f"{omitted_unchanged} unchanged row(s) omitted")
+    if selection.omitted_changed:
+        omitted_note.append(
+            f"{selection.omitted_changed} additional delta row(s) omitted from this view"
+        )
+    if selection.omitted_unchanged:
+        omitted_note.append(f"{selection.omitted_unchanged} unchanged row(s) omitted")
     if omitted_note:
         lines.append(
             f"> Note: {'; '.join(omitted_note)}. The JSON report retains the full inventory.\n"

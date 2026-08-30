@@ -14,22 +14,14 @@ from ici.core.models import (
     BaselineComparison,
     DeltaState,
     EngineStatus,
-    FindingDelta,
     SourceLocation,
     VerificationSuiteResult,
     format_score_display,
     gate_reason,
 )
 from ici.core.redaction import redact_suite
+from ici.reporters.baseline_view import select_baseline_details, severity_transition
 
-_BASELINE_DETAIL_LIMIT = 20
-_BASELINE_UNCHANGED_DETAIL_LIMIT = 3
-_DELTA_STATE_ORDER = {
-    DeltaState.NEW: 0,
-    DeltaState.MOVED: 1,
-    DeltaState.RESOLVED: 2,
-    DeltaState.UNCHANGED: 3,
-}
 _DELTA_STATE_COLOR = {
     DeltaState.NEW: "red",
     DeltaState.MOVED: "yellow",
@@ -75,53 +67,6 @@ def _baseline_location_text(location: SourceLocation | None) -> str:
     return f"{location.path}:{line}"
 
 
-def _baseline_detail_entries(
-    comparison: BaselineComparison,
-) -> tuple[list[FindingDelta], int, int]:
-    """Select a bounded issues-first view; the JSON reporter keeps all entries."""
-    entries = list(comparison.entries or [])
-    entries.sort(
-        key=lambda entry: (
-            not entry.gated,
-            _DELTA_STATE_ORDER.get(entry.state, 99),
-            entry.engine_name,
-            entry.fingerprint,
-            _baseline_location_sort_key(entry.current_location or entry.baseline_location),
-        )
-    )
-    changed = [entry for entry in entries if entry.state != DeltaState.UNCHANGED]
-    unchanged = [entry for entry in entries if entry.state == DeltaState.UNCHANGED]
-    visible_changed = changed[:_BASELINE_DETAIL_LIMIT]
-    unchanged_slots = _BASELINE_DETAIL_LIMIT - len(visible_changed)
-    visible_unchanged = unchanged[: min(_BASELINE_UNCHANGED_DETAIL_LIMIT, unchanged_slots)]
-    visible = [*visible_changed, *visible_unchanged]
-    return (
-        visible,
-        len(changed) - len(visible_changed),
-        len(unchanged) - len(visible_unchanged),
-    )
-
-
-def _baseline_location_sort_key(location: SourceLocation | None) -> tuple[object, ...]:
-    if location is None:
-        return ("", 0, 0, "")
-    return (location.path, location.start_line, location.end_line or 0, location.label)
-
-
-def _baseline_severity_transition(entry: FindingDelta) -> str:
-    before = (
-        getattr(entry.baseline_severity, "value", entry.baseline_severity)
-        if entry.baseline_severity is not None
-        else "—"
-    )
-    after = (
-        getattr(entry.current_severity, "value", entry.current_severity)
-        if entry.current_severity is not None
-        else "—"
-    )
-    return f"{before} → {after}"
-
-
 def _print_baseline_comparison(
     comparison: BaselineComparison,
     suite: VerificationSuiteResult,
@@ -156,13 +101,14 @@ def _print_baseline_comparison(
         )
     )
 
-    visible, omitted, omitted_unchanged = _baseline_detail_entries(comparison)
-    if visible:
+    selection = select_baseline_details(comparison)
+    if selection.visible:
         lines: list[str] = []
-        for entry in visible:
+        for entry in selection.visible:
             state = getattr(entry.state, "value", entry.state)
             state_color = _DELTA_STATE_COLOR.get(entry.state, "white")
             gate_marker = " [bold red]GATED[/]" if entry.gated else ""
+            before, after = severity_transition(entry)
             lines.append(
                 f"[{state_color}]• {escape(str(state).upper())}[/]"
                 f"{gate_marker} [bold]{escape(entry.engine_name)}[/]"
@@ -171,14 +117,14 @@ def _print_baseline_comparison(
             lines.append(
                 f"    [dim]Current:[/] {escape(_baseline_location_text(entry.current_location))}"
                 f"  [dim]Baseline:[/] {escape(_baseline_location_text(entry.baseline_location))}"
-                f"  [dim]Severity:[/] {escape(_baseline_severity_transition(entry))}"
+                f"  [dim]Severity:[/] {escape(f'{before} → {after}')}"
             )
-        if omitted or omitted_unchanged:
+        if selection.omitted_changed or selection.omitted_unchanged:
             notes = []
-            if omitted:
-                notes.append(f"{omitted} additional delta row(s) omitted")
-            if omitted_unchanged:
-                notes.append(f"{omitted_unchanged} unchanged row(s) omitted")
+            if selection.omitted_changed:
+                notes.append(f"{selection.omitted_changed} additional delta row(s) omitted")
+            if selection.omitted_unchanged:
+                notes.append(f"{selection.omitted_unchanged} unchanged row(s) omitted")
             lines.append(f"[dim]Note: {'; '.join(notes)}; JSON retains the full inventory.[/]")
         console.print(
             Panel(

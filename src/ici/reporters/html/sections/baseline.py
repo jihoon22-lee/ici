@@ -13,59 +13,15 @@ from ici.core.models import (
     VerificationSuiteResult,
     gate_reason,
 )
+from ici.reporters.baseline_view import enum_value, select_baseline_details, severity_transition
 from ici.reporters.html.utils import _location_controls
 
-_BASELINE_DETAIL_LIMIT = 20
-_BASELINE_UNCHANGED_DETAIL_LIMIT = 3
-_DELTA_STATE_ORDER = {
-    DeltaState.NEW: 0,
-    DeltaState.MOVED: 1,
-    DeltaState.RESOLVED: 2,
-    DeltaState.UNCHANGED: 3,
-}
 _DELTA_STATE_TONE = {
     DeltaState.NEW: "new",
     DeltaState.MOVED: "moved",
     DeltaState.RESOLVED: "resolved",
     DeltaState.UNCHANGED: "unchanged",
 }
-
-
-def _enum_value(value: object) -> str:
-    return str(getattr(value, "value", value))
-
-
-def _location_sort_key(location: SourceLocation | None) -> tuple[object, ...]:
-    if location is None:
-        return ("", 0, 0, "")
-    return (location.path, location.start_line, location.end_line or 0, location.label)
-
-
-def _select_entries(
-    comparison: BaselineComparison,
-) -> tuple[list[FindingDelta], int, int]:
-    """Bound the visual list while preserving gated and changed rows first."""
-    entries = list(comparison.entries or [])
-    entries.sort(
-        key=lambda entry: (
-            not entry.gated,
-            _DELTA_STATE_ORDER.get(entry.state, 99),
-            entry.engine_name,
-            entry.fingerprint,
-            _location_sort_key(entry.current_location or entry.baseline_location),
-        )
-    )
-    changed = [entry for entry in entries if entry.state != DeltaState.UNCHANGED]
-    unchanged = [entry for entry in entries if entry.state == DeltaState.UNCHANGED]
-    visible_changed = changed[:_BASELINE_DETAIL_LIMIT]
-    unchanged_slots = _BASELINE_DETAIL_LIMIT - len(visible_changed)
-    visible_unchanged = unchanged[: min(_BASELINE_UNCHANGED_DETAIL_LIMIT, unchanged_slots)]
-    visible = [*visible_changed, *visible_unchanged]
-    return (
-        visible,
-        len(changed) - len(visible_changed),
-        len(unchanged) - len(visible_unchanged),
-    )
 
 
 def _render_location(location: SourceLocation | None, base: Path) -> str:
@@ -79,13 +35,12 @@ def _render_location(location: SourceLocation | None, base: Path) -> str:
 
 
 def _render_severity_transition(entry: FindingDelta) -> str:
-    before = _enum_value(entry.baseline_severity) if entry.baseline_severity is not None else "—"
-    after = _enum_value(entry.current_severity) if entry.current_severity is not None else "—"
+    before, after = severity_transition(entry)
     return html.escape(f"{before} → {after}")
 
 
 def _render_delta(entry: FindingDelta, base: Path) -> str:
-    state_value = _enum_value(entry.state)
+    state_value = enum_value(entry.state)
     tone = _DELTA_STATE_TONE.get(entry.state, "unknown")
     gate = (
         "<span class='baseline-gate-pill baseline-gate-failed'>GATED</span>" if entry.gated else ""
@@ -122,7 +77,7 @@ def _render_baseline_section(
     base: Path,
 ) -> str:
     """Render a safe, bounded baseline view; the JSON report remains complete."""
-    visible, omitted, omitted_unchanged = _select_entries(comparison)
+    selection = select_baseline_details(comparison)
     gate_label, gate_tone = _gate_label(comparison)
     warnings = (
         "<ul class='baseline-warning-list'>"
@@ -131,12 +86,12 @@ def _render_baseline_section(
         if comparison.warnings
         else "<p class='baseline-none'>No compatibility warnings.</p>"
     )
-    details = "".join(_render_delta(entry, base) for entry in visible)
+    details = "".join(_render_delta(entry, base) for entry in selection.visible)
     notes = []
-    if omitted:
-        notes.append(f"{omitted} additional delta row(s) omitted")
-    if omitted_unchanged:
-        notes.append(f"{omitted_unchanged} unchanged row(s) omitted")
+    if selection.omitted_changed:
+        notes.append(f"{selection.omitted_changed} additional delta row(s) omitted")
+    if selection.omitted_unchanged:
+        notes.append(f"{selection.omitted_unchanged} unchanged row(s) omitted")
     omitted_note = (
         f"<p class='baseline-omitted-note'>Note: {html.escape('; '.join(notes))}. "
         "The JSON report retains the full inventory.</p>"
