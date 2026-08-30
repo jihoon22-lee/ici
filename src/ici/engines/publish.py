@@ -1,17 +1,24 @@
 """GitHub HTML report publisher for ici (gh-pages self/hub deployment)."""
 
 import base64
+import html
 import json
 import os
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
+from ici.core.models import (
+    BaselineComparison,
+    DeltaState,
+    EngineResult,
+    EngineStatus,
+    VerificationSuiteResult,
+)
 from ici.core.redaction import redact_suite
 
 PUBLISH_MARKER = "<!-- ici-report -->"
@@ -25,6 +32,213 @@ _STATUS_EMOJI = {
     "ERROR": "⛔",
     "SKIP": "⏭️",
 }
+
+_BASELINE_COUNT_FIELDS = {
+    "new_count": DeltaState.NEW,
+    "unchanged_count": DeltaState.UNCHANGED,
+    "moved_count": DeltaState.MOVED,
+    "resolved_count": DeltaState.RESOLVED,
+}
+_BASELINE_SUMMARY_FIELDS = {
+    *(_BASELINE_COUNT_FIELDS.keys()),
+    "regressed_count",
+    "gated_count",
+    "fail_on_new",
+    "gate_failed",
+    "warnings",
+    "entries",
+}
+
+
+@dataclass
+class _LoadedBaselineComparison(BaselineComparison):
+    """A lightweight baseline comparison reconstructed from a report summary.
+
+    The loader intentionally does not rebuild every finding delta (the
+    publisher only needs the summary). The normal BaselineComparison API
+    derives counts from entries, so retain explicit, validated summary counts
+    here without manufacturing fake finding rows.
+    """
+
+    summary_counts: dict[DeltaState, int | None] = field(
+        default_factory=dict, repr=False, compare=False
+    )
+    summary_regressed_count: int | None = field(default=None, repr=False, compare=False)
+    summary_gated_count: int | None = field(default=None, repr=False, compare=False)
+    summary_gate_state_present: bool = field(default=False, repr=False, compare=False)
+
+    def count(self, state: DeltaState) -> int:
+        value = self.summary_counts.get(state)
+        return value if value is not None else super().count(state)
+
+    @property
+    def regressed_count(self) -> int:
+        if self.summary_regressed_count is not None:
+            return self.summary_regressed_count
+        return super().regressed_count
+
+    @property
+    def gated_count(self) -> int:
+        if self.summary_gated_count is not None:
+            return self.summary_gated_count
+        return super().gated_count
+
+
+def _strict_nonnegative_int(value: Any) -> int | None:
+    """Return a valid count, rejecting booleans, floats, and negatives."""
+    if type(value) is not int or value < 0:
+        return None
+    return value
+
+
+def _parse_baseline_summary(value: Any) -> BaselineComparison | None:
+    """Read an optional v3 baseline summary without trusting malformed data."""
+    if value is None or not isinstance(value, dict):
+        return None
+    if not _BASELINE_SUMMARY_FIELDS.intersection(value):
+        return None
+
+    source_path = value.get("source_path", "")
+    if not isinstance(source_path, str):
+        return None
+    warnings_value = value.get("warnings", [])
+    if not isinstance(warnings_value, list) or not all(
+        isinstance(item, str) for item in warnings_value
+    ):
+        return None
+
+    fail_on_new = value.get("fail_on_new", False)
+    gate_failed = value.get("gate_failed", False)
+    if type(fail_on_new) is not bool or type(gate_failed) is not bool:
+        return None
+
+    summary_counts: dict[DeltaState, int | None] = {}
+    for field_name, state in _BASELINE_COUNT_FIELDS.items():
+        if field_name not in value:
+            continue
+        count = _strict_nonnegative_int(value[field_name])
+        if count is None:
+            return None
+        summary_counts[state] = count
+
+    summary_regressed_count: int | None = None
+    if "regressed_count" in value:
+        summary_regressed_count = _strict_nonnegative_int(value["regressed_count"])
+        if summary_regressed_count is None:
+            return None
+
+    summary_gated_count: int | None = None
+    if "gated_count" in value:
+        summary_gated_count = _strict_nonnegative_int(value["gated_count"])
+        if summary_gated_count is None:
+            return None
+
+    if "entries" in value:
+        entries = value["entries"]
+        if not isinstance(entries, list):
+            return None
+        entry_counts = {state: 0 for state in DeltaState}
+        entry_regressed = 0
+        entry_gated = 0
+        for item in entries:
+            if not isinstance(item, dict):
+                return None
+            try:
+                state = DeltaState(item.get("state"))
+            except (TypeError, ValueError):
+                return None
+            regressed = item.get("regressed", False)
+            gated = item.get("gated", False)
+            if type(regressed) is not bool or type(gated) is not bool:
+                return None
+            entry_counts[state] += 1
+            entry_regressed += int(regressed)
+            entry_gated += int(gated)
+
+        for field_name, state in _BASELINE_COUNT_FIELDS.items():
+            expected = entry_counts[state]
+            if field_name in value and summary_counts.get(state) != expected:
+                return None
+            summary_counts.setdefault(state, expected)
+        if "regressed_count" in value and summary_regressed_count != entry_regressed:
+            return None
+        if "gated_count" in value and summary_gated_count != entry_gated:
+            return None
+        if summary_regressed_count is None:
+            summary_regressed_count = entry_regressed
+        if summary_gated_count is None:
+            summary_gated_count = entry_gated
+
+    return _LoadedBaselineComparison(
+        source_path=source_path,
+        warnings=list(warnings_value),
+        fail_on_new=fail_on_new,
+        gate_failed=gate_failed,
+        summary_counts=summary_counts,
+        summary_regressed_count=summary_regressed_count,
+        summary_gated_count=summary_gated_count,
+        summary_gate_state_present=("fail_on_new" in value or "gate_failed" in value),
+    )
+
+
+def _escape_comment_value(value: str) -> str:
+    """Keep report-derived text on one safe Markdown line."""
+    compact = " ".join(value.replace("\r", "\n").splitlines())
+    return html.escape(compact, quote=False).replace(chr(96), "&#96;").replace("|", "&#124;")
+
+
+def _baseline_summary_lines(suite: VerificationSuiteResult | None) -> list[str]:
+    """Render a compact baseline summary for a single project comment block."""
+    comparison = suite.baseline_comparison if suite is not None else None
+    if comparison is None:
+        return []
+
+    if isinstance(comparison, _LoadedBaselineComparison):
+
+        def summary_count(state: DeltaState) -> str:
+            value = comparison.summary_counts.get(state)
+            return str(value) if value is not None else "—"
+
+        new_count = summary_count(DeltaState.NEW)
+        regressed_count = (
+            str(comparison.summary_regressed_count)
+            if comparison.summary_regressed_count is not None
+            else "—"
+        )
+        gated_count = (
+            str(comparison.summary_gated_count)
+            if comparison.summary_gated_count is not None
+            else "—"
+        )
+    else:
+        new_count = str(comparison.count(DeltaState.NEW))
+        regressed_count = str(comparison.regressed_count)
+        gated_count = str(comparison.gated_count)
+
+    if (
+        isinstance(comparison, _LoadedBaselineComparison)
+        and not comparison.summary_gate_state_present
+    ):
+        gate = "— UNKNOWN"
+    elif comparison.gate_failed:
+        gate = "❌ FAILED"
+    elif comparison.fail_on_new:
+        gate = "✅ PASSED"
+    else:
+        gate = "NOT ENFORCED"
+
+    lines = [
+        f"> 🔎 **Baseline delta**: new **{new_count}** · regressed **{regressed_count}** "
+        f"· gated **{gated_count}** · gate **{gate}**"
+    ]
+    if comparison.warnings:
+        first_warning = _escape_comment_value(comparison.warnings[0])
+        remaining = len(comparison.warnings) - 1
+        suffix = f" (+{remaining} more)" if remaining else ""
+        lines.append(
+            f"> ⚠️ **Baseline warnings ({len(comparison.warnings)})**: {first_warning}{suffix}"
+        )
+    return lines
 
 
 def _header_line(suite: VerificationSuiteResult | None) -> str:
@@ -179,9 +393,14 @@ def _multi_report_body(
         ]
     for report in reports:
         details = _engine_details(report.suite)
-        if not details:
+        baseline_lines = _baseline_summary_lines(report.suite)
+        if not details and not baseline_lines:
             continue
-        lines += ["", f"#### `{report.label or '.'}`", *_stats_table(report.suite), "", *details]
+        lines += ["", f"#### `{report.label or '.'}`", *_stats_table(report.suite)]
+        if baseline_lines:
+            lines.extend(["", *baseline_lines])
+        if details:
+            lines.extend(["", *details])
     lines += ["", "---", _footer_line(mode, ", ".join(r.remote_path for r in reports), run_url)]
     return "\n".join(lines)
 
@@ -195,7 +414,7 @@ def _footer_line(mode: str, remote_path: str, run_url: str | None) -> str:
 
 
 def load_suite_from_json(json_path: Path) -> VerificationSuiteResult | None:
-    """Reconstruct a lightweight suite from an ``ici.result/v2`` report file."""
+    """Reconstruct a lightweight suite from a v2/v3 report file."""
     try:
         payload = json.loads(Path(json_path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -235,6 +454,7 @@ def load_suite_from_json(json_path: Path) -> VerificationSuiteResult | None:
         duration=float(payload.get("duration", 0.0)),
         tem_score=float(tem) if isinstance(tem, (int, float)) else None,
         max_tem_score=float(max_tem) if isinstance(max_tem, (int, float)) else 5.0,
+        baseline_comparison=_parse_baseline_summary(payload.get("baseline_comparison")),
     )
 
 
@@ -670,6 +890,9 @@ class ReportPublisher:
         lines.extend(_report_link_lines(viewer_url, pages_enabled, remote_path, uploaded))
         lines.append("")
         lines.extend(_stats_table(suite))
+        baseline_lines = _baseline_summary_lines(suite)
+        if baseline_lines:
+            lines.extend(["", *baseline_lines])
         engine_table = _engine_details(suite)
         if engine_table:
             lines.extend(engine_table)
