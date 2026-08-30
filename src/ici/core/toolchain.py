@@ -324,12 +324,14 @@ def collect_tool_capability(
 
     argv = [resolved, *probe[1:]]
     result = _run_probe(argv, cwd, timeout, max_output_chars)
-    evidence = {
-        "probe_argv": _safe_argv(argv),
-        "returncode": result.returncode,
-        "timed_out": result.timed_out,
-        "truncated": result.truncated,
-    }
+    safe_argv = _safe_argv(argv)
+    version_evidence = ProbeEvidence(
+        purpose="version",
+        argv=safe_argv,
+        returncode=result.returncode,
+        timed_out=result.timed_out,
+        truncated=result.truncated,
+    )
     if result.timed_out or result.truncated or result.returncode != 0:
         return (
             ToolCapability(
@@ -338,16 +340,11 @@ def collect_tool_capability(
                 available=False,
                 complete=False,
                 error=_failure_reason(result),
-                evidence=(
-                    ProbeEvidence(
-                        purpose="version",
-                        argv=_safe_argv(argv),
-                        returncode=result.returncode,
-                        timed_out=result.timed_out,
-                        truncated=result.truncated,
-                    ),
-                ),
-                **evidence,
+                probe_argv=safe_argv,
+                returncode=result.returncode,
+                timed_out=result.timed_out,
+                truncated=result.truncated,
+                evidence=(version_evidence,),
             ),
             result,
         )
@@ -368,16 +365,11 @@ def collect_tool_capability(
             complete=complete,
             error="" if complete else "probe did not report a parseable version",
             details=details,
-            evidence=(
-                ProbeEvidence(
-                    purpose="version",
-                    argv=_safe_argv(argv),
-                    returncode=result.returncode,
-                    timed_out=result.timed_out,
-                    truncated=result.truncated,
-                ),
-            ),
-            **evidence,
+            probe_argv=safe_argv,
+            returncode=result.returncode,
+            timed_out=result.timed_out,
+            truncated=result.truncated,
+            evidence=(version_evidence,),
         ),
         result,
     )
