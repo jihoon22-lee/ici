@@ -1,4 +1,6 @@
 #include <QLabel>
+#include <QFile>
+#include <QTemporaryDir>
 #include <QTemporaryFile>
 #include <QTreeView>
 #include <QtTest>
@@ -10,6 +12,7 @@ class TestMainWindow : public QObject {
 
 private slots:
     void openingARealReportFillsTheTree();
+    void openingEachGateStatusUsesItsColour();
     void openingAMissingFileClearsTheLoadedReport();
     void openingMalformedJsonClearsTheLoadedReport();
 };
@@ -63,6 +66,46 @@ void TestMainWindow::openingARealReportFillsTheTree() {
     QVERIFY(!score->text().isEmpty());
     QCOMPARE(status->text(), QStringLiteral("Loaded"));
     QVERIFY(window.windowTitle().contains(QStringLiteral("ici_self_report.json")));
+}
+
+void TestMainWindow::openingEachGateStatusUsesItsColour() {
+    struct StatusCase {
+        const char* status;
+        const char* colour;
+    };
+    const StatusCase cases[] = {
+        {"PASS", "#5bbf7a"},
+        {"SKIP", "#8a8f98"},
+        {"FAIL", "#e0645a"},
+    };
+    const QString reportTemplate = QStringLiteral(
+        R"({
+  "schema_version": "ici.result/v2",
+  "suite_status": "%1",
+  "tem_score": 0.0,
+  "passed_count": 0, "warned_count": 0, "failed_count": 0,
+  "error_count": 0, "skipped_count": 0, "total_count": 0,
+  "results": []
+})");
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    for (const StatusCase& statusCase : cases) {
+        const QString path = directory.filePath(QString::fromLatin1(statusCase.status) +
+                                                 QStringLiteral(".json"));
+        QFile report(path);
+        QVERIFY(report.open(QIODevice::WriteOnly | QIODevice::Text));
+        const QByteArray json = reportTemplate.arg(QString::fromLatin1(statusCase.status)).toUtf8();
+        QCOMPARE(report.write(json), static_cast<qint64>(json.size()));
+        report.close();
+
+        MainWindow window;
+        window.openReport(path);
+        QLabel* gate = label(window, "gateLabel");
+        QVERIFY(gate != nullptr);
+        QCOMPARE(gate->styleSheet(),
+                 QStringLiteral("color: %1;").arg(QString::fromLatin1(statusCase.colour)));
+    }
 }
 
 void TestMainWindow::openingAMissingFileClearsTheLoadedReport() {
