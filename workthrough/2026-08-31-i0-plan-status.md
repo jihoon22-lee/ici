@@ -97,13 +97,16 @@ toy-projects `main`은 `f267695`다.
 ```text
 uv run --python 3.10 pytest -q              634 passed
 uv run --python 3.10 pytest --collect-only  634 collected
+uvx ruff check . / ruff format --check .    passed
+./scripts/build-pyz.sh                      passed; pure Python 3.10 artifact
+./scripts/smoke.sh                          passed; Python 3.10 and Zero-CDN
 dist/ici.pyz verify                         Pass 7 / Warn 5 / TEM 4.78
 git diff --check                             passed
 ```
 
 README와 `docs/superpowers`·`docs/design`의 계획 링크는 35개 로컬 대상이 실제 파일로
-존재하고, 20개 외부 GitHub 링크가 HTTP 200을 반환하는지 확인했다. 문서 변경만 포함하므로 pyz를
-재빌드하지 않았다.
+존재하고, 20개 외부 GitHub 링크가 HTTP 200을 반환하는지 확인했다. 문서 변경이지만 품질 게이트
+불변식을 그대로 적용해 pyz 재빌드와 격리 스모크까지 다시 통과시켰다.
 
 ## Next Steps
 
