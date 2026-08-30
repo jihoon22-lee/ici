@@ -113,9 +113,9 @@ def test_repository_test_policy_keeps_strict_calibrated_floors():
         test_policy = tomli.load(policy_file)["engines"]["test"]
 
     assert test_policy["mode"] == "pass_fail"
-    assert test_policy["min_tem_score"] == 2.0
-    assert test_policy["min_branch_cov"] == 35.0
-    assert test_policy["min_func_cov"] == 60.0
+    assert test_policy["min_tem_score"] == 4.5
+    assert test_policy["min_branch_cov"] == 70.0
+    assert test_policy["min_func_cov"] == 90.0
 
 
 def test_repository_ici_version_matches_package_version():
