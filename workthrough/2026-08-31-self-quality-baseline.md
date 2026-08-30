@@ -96,6 +96,28 @@ git diff --check
 passed
 ```
 
+### Full packaging and smoke gates
+
+```text
+uvx ruff check .
+All checks passed!
+
+uvx ruff format --check .
+84 files already formatted
+
+./scripts/build-pyz.sh
+완료: dist/ici.pyz (2.0M)
+
+./scripts/smoke.sh
+✔ 모든 스모크 테스트 통과: dist/ici.pyz
+
+./dist/ici.pyz verify --report
+rc=0; 8 PASS, 4 WARN, 0 FAIL, 0 ERROR; TEM 4.78
+```
+
+The two new local documentation links resolve to files in the same checkout, and the baseline
+JSON parses successfully with `jq empty`.
+
 ## Next Steps
 
 Raise one floor at a time only when a later implementation change has three consecutive runs
