@@ -163,13 +163,13 @@ I1 이후 Python과 C++ 작업은 병렬 가능하지만, 각 언어 안에서�
 
 **브랜치:** `test/viewer-qt-shell`
 
-- [ ] root CMake가 `ICIRV_BUILD_GUI` 옵션으로 Qt GUI를 선택적으로 구성한다.
-- [ ] `ICIRV_BUILD_GUI=OFF`에서 Qt가 없는 configure와 static CLI 빌드 계약을 테스트한다.
-- [ ] GUI library와 executable을 분리해 QtTest가 MainWindow를 링크한다.
-- [ ] 정상 보고서 → missing report 순서에서 model, suite, labels, title이 초기화되는지 테스트한다.
-- [ ] 정상 보고서 → malformed report도 동일하게 테스트한다.
-- [ ] Qt 6과 `CMAKE_DISABLE_FIND_PACKAGE_Qt6=ON` Qt 5 빌드를 각각 검증한다.
-- [ ] viewer `ici.toml`에 Qt5/Qt6 pkg-config scope를 기록한다.
+- [x] root CMake가 `ICIRV_BUILD_GUI` 옵션으로 Qt GUI를 선택적으로 구성한다.
+- [x] `ICIRV_BUILD_GUI=OFF`에서 Qt가 없는 configure와 static CLI 빌드 계약을 테스트한다.
+- [x] GUI library와 executable을 분리해 QtTest가 MainWindow를 링크한다.
+- [x] 정상 보고서 → missing report 순서에서 model, suite, labels, title이 초기화되는지 테스트한다.
+- [x] 정상 보고서 → malformed report도 동일하게 테스트한다.
+- [x] Qt 6과 `CMAKE_DISABLE_FIND_PACKAGE_Qt6=ON` Qt 5 빌드를 각각 검증한다.
+- [x] viewer `ici.toml`에 Qt5/Qt6 pkg-config scope를 기록한다.
 
 **완료 조건:** Qt-free CLI 요구를 유지하면서 4개 이상 CTest가 통과하고 GUI failure state에 stale data가 없다.
 

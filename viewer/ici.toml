@@ -7,15 +7,16 @@ source_dirs = ["src"]
 # and every text- and AST-based engine reads it. Two settings make that work:
 #
 #   cpp_pkg_config          gives lint the Qt include paths it needs to parse
-#                           the widget sources at all
-#   cpp_external_build_dirs tells the engines that produce a binary to skip
-#                           src/gui — Q_OBJECT classes need moc-generated
-#                           sources that a bare g++ call cannot provide
+#                           the widget sources at all. Listing both majors lets
+#                           the same config work on Qt 6 and Qt 5 hosts.
+#   cpp_external_build_dirs is retained for the generic g++ fallback. The
+#                           CMake adapter ignores it because CMake runs moc and
+#                           builds the GUI target itself.
 #
-# So the GUI is linted, measured for complexity and duplication, and scanned for
-# exception and security problems. It is only excluded from unit-test linking,
-# where CMake and the CI smoke run cover it instead.
-cpp_pkg_config = ["Qt6Widgets"]
+# The GUI is linted, measured for complexity and duplication, and scanned for
+# exception and security problems. The root CMake adapter also builds and tests
+# it when Qt is available.
+cpp_pkg_config = ["Qt6Widgets", "Qt5Widgets"]
 cpp_external_build_dirs = ["src/gui"]
 
 # 임계값을 명시적으로 고정한다. 생략하면 개발자 홈의 ~/.config/ici/ici.toml 을 따르게 되어

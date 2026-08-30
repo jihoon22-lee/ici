@@ -1,0 +1,142 @@
+#include <QLabel>
+#include <QFile>
+#include <QTemporaryDir>
+#include <QTemporaryFile>
+#include <QTreeView>
+#include <QtTest>
+
+#include "icirv/gui/main_window.hpp"
+
+class TestMainWindow : public QObject {
+    Q_OBJECT
+
+private slots:
+    void openingARealReportFillsTheTree();
+    void openingEachGateStatusUsesItsColour();
+    void openingAMissingFileClearsTheLoadedReport();
+    void openingMalformedJsonClearsTheLoadedReport();
+};
+
+namespace {
+
+QLabel* label(MainWindow& window, const char* objectName) {
+    return window.findChild<QLabel*>(QString::fromLatin1(objectName));
+}
+
+int treeRowCount(MainWindow& window) {
+    auto* tree = window.findChild<QTreeView*>(QStringLiteral("engineTree"));
+    if (tree == nullptr || tree->model() == nullptr) {
+        return -1;
+    }
+    return tree->model()->rowCount(QModelIndex());
+}
+
+void assertCleared(MainWindow& window, const QString& statusFragment) {
+    QVERIFY(!window.hasLoadedReport());
+    QCOMPARE(treeRowCount(window), 0);
+
+    QLabel* gate = label(window, "gateLabel");
+    QLabel* score = label(window, "scoreLabel");
+    QLabel* status = label(window, "statusLabel");
+    QVERIFY(gate != nullptr);
+    QVERIFY(score != nullptr);
+    QVERIFY(status != nullptr);
+    QCOMPARE(gate->text(), QStringLiteral("Could not load report"));
+    QVERIFY(score->text().isEmpty());
+    QVERIFY(status->text().contains(statusFragment));
+    QCOMPARE(window.windowTitle(), QStringLiteral("ici report viewer"));
+}
+
+} // namespace
+
+void TestMainWindow::openingARealReportFillsTheTree() {
+    MainWindow window;
+    window.openReport(QStringLiteral("tests/data/ici_self_report.json"));
+
+    QVERIFY(window.hasLoadedReport());
+    QVERIFY(treeRowCount(window) > 0);
+
+    QLabel* gate = label(window, "gateLabel");
+    QLabel* score = label(window, "scoreLabel");
+    QLabel* status = label(window, "statusLabel");
+    QVERIFY(gate != nullptr);
+    QVERIFY(score != nullptr);
+    QVERIFY(status != nullptr);
+    QVERIFY(gate->text().contains(QStringLiteral("WARN")));
+    QVERIFY(!score->text().isEmpty());
+    QCOMPARE(status->text(), QStringLiteral("Loaded"));
+    QVERIFY(window.windowTitle().contains(QStringLiteral("ici_self_report.json")));
+}
+
+void TestMainWindow::openingEachGateStatusUsesItsColour() {
+    struct StatusCase {
+        const char* status;
+        const char* colour;
+    };
+    const StatusCase cases[] = {
+        {"PASS", "#5bbf7a"},
+        {"WARN", "#e0b341"},
+        {"SKIP", "#8a8f98"},
+        {"FAIL", "#e0645a"},
+        {"ERROR", "#e0645a"},
+    };
+    const QString reportTemplate = QStringLiteral(
+        R"({
+  "schema_version": "ici.result/v2",
+  "suite_status": "%1",
+  "tem_score": 0.0,
+  "passed_count": 0, "warned_count": 0, "failed_count": 0,
+  "error_count": 0, "skipped_count": 0, "total_count": 0,
+  "results": []
+})");
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    for (const StatusCase& statusCase : cases) {
+        const QString path = directory.filePath(QString::fromLatin1(statusCase.status) +
+                                                 QStringLiteral(".json"));
+        QFile report(path);
+        QVERIFY(report.open(QIODevice::WriteOnly | QIODevice::Text));
+        const QByteArray json = reportTemplate.arg(QString::fromLatin1(statusCase.status)).toUtf8();
+        QCOMPARE(report.write(json), static_cast<qint64>(json.size()));
+        report.close();
+
+        MainWindow window;
+        window.openReport(path);
+        QLabel* gate = label(window, "gateLabel");
+        QVERIFY(gate != nullptr);
+        QCOMPARE(gate->styleSheet(),
+                 QStringLiteral("color: %1;").arg(QString::fromLatin1(statusCase.colour)));
+    }
+}
+
+void TestMainWindow::openingAMissingFileClearsTheLoadedReport() {
+    MainWindow window;
+    window.openReport(QStringLiteral("tests/data/ici_self_report.json"));
+    QVERIFY(window.hasLoadedReport());
+    QVERIFY(treeRowCount(window) > 0);
+
+    const QString missing = QStringLiteral("tests/data/does-not-exist.json");
+    window.openReport(missing);
+
+    assertCleared(window, QStringLiteral("Cannot read"));
+}
+
+void TestMainWindow::openingMalformedJsonClearsTheLoadedReport() {
+    QTemporaryFile broken;
+    QVERIFY(broken.open());
+    QVERIFY(broken.write(QByteArrayLiteral("{ this is not json")) > 0);
+    broken.close();
+
+    MainWindow window;
+    window.openReport(QStringLiteral("tests/data/ici_self_report.json"));
+    QVERIFY(window.hasLoadedReport());
+    QVERIFY(treeRowCount(window) > 0);
+
+    window.openReport(broken.fileName());
+
+    assertCleared(window, QStringLiteral("invalid JSON"));
+}
+
+QTEST_MAIN(TestMainWindow)
+#include "test_main_window.moc"

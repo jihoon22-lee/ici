@@ -53,7 +53,11 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     auto* bar = new QHBoxLayout();
     auto* openButton = new QPushButton(tr("Open report…"), central);
+    openButton->setObjectName(QStringLiteral("openButton"));
+    openButton->setAccessibleName(tr("Open report file"));
     issuesOnly_ = new QCheckBox(tr("Issues only"), central);
+    issuesOnly_->setObjectName(QStringLiteral("issuesOnly"));
+    issuesOnly_->setAccessibleName(tr("Show issues only"));
     issuesOnly_->setChecked(true);
     bar->addWidget(openButton);
     bar->addStretch(1);
@@ -65,6 +69,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     // statuses and the suite status comes from a different rule that appears
     // nowhere in the output. Saying it plainly is the reason this app exists.
     gateLabel_ = new QLabel(tr("No report loaded"), central);
+    gateLabel_->setObjectName(QStringLiteral("gateLabel"));
     QFont gateFont = gateLabel_->font();
     gateFont.setPointSize(gateFont.pointSize() + 4);
     gateFont.setBold(true);
@@ -73,10 +78,13 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     layout->addWidget(gateLabel_);
 
     scoreLabel_ = new QLabel(QString(), central);
+    scoreLabel_->setObjectName(QStringLiteral("scoreLabel"));
     layout->addWidget(scoreLabel_);
 
     model_ = new EngineTreeModel(this);
     tree_ = new QTreeView(central);
+    tree_->setObjectName(QStringLiteral("engineTree"));
+    tree_->setAccessibleName(tr("Verification engine results"));
     tree_->setModel(model_);
     tree_->setAlternatingRowColors(true);
     tree_->header()->setStretchLastSection(true);
@@ -84,6 +92,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     setCentralWidget(central);
     status_ = new QLabel(tr("Ready"), this);
+    status_->setObjectName(QStringLiteral("statusLabel"));
     statusBar()->addWidget(status_);
 
     connect(openButton, &QPushButton::clicked, this, &MainWindow::chooseReport);
@@ -106,22 +115,35 @@ void MainWindow::chooseReport() {
 void MainWindow::openReport(const QString& path) {
     std::string text;
     if (!readFile(path, text)) {
-        status_->setText(tr("Cannot read %1").arg(path));
+        clearReport(tr("Cannot read %1").arg(path));
         return;
     }
     icirv::LoadError error;
     suite_ = icirv::loadReport(text, error);
     if (!suite_) {
         // A schema mismatch or a malformed field is reported rather than
-        // silently producing an empty-looking but valid window.
-        gateLabel_->setText(tr("Could not load report"));
-        gateLabel_->setStyleSheet(QStringLiteral("color: #e0645a;"));
-        status_->setText(QString::fromStdString(error.message));
-        model_->setSuite(nullptr);
+        // silently producing an empty-looking but valid window. Clearing the
+        // previous suite first also prevents stale labels and tree rows from
+        // being mistaken for the failed replacement.
+        QString message = QString::fromStdString(error.message);
+        if (error.line > 0) {
+            message += tr(" (line %1)").arg(static_cast<qulonglong>(error.line));
+        }
+        clearReport(message);
         return;
     }
     showSuite();
     setWindowTitle(tr("ici report viewer — %1").arg(path));
+}
+
+void MainWindow::clearReport(const QString& statusMessage) {
+    suite_.reset();
+    model_->setSuite(nullptr);
+    gateLabel_->setText(tr("Could not load report"));
+    gateLabel_->setStyleSheet(QStringLiteral("color: #e0645a;"));
+    scoreLabel_->clear();
+    setWindowTitle(tr("ici report viewer"));
+    status_->setText(statusMessage);
 }
 
 void MainWindow::showSuite() {

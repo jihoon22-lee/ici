@@ -12,12 +12,19 @@
   - `report-pr`은 quality 결과가 WARN/FAIL이어도 생성된 아티팩트를 게시할 수 있도록 `always()`로 실행하되, 최종 gate는 원래 verify 결과를 별도로 검사합니다.
   - gh-pages 쓰기는 concurrency group으로 직렬화합니다. 서로 다른 PR이 Contents API의 같은 branch head를 동시에 갱신해 한쪽 리포트를 잃지 않습니다.
   - 게시 직후 실제 sticky 댓글에서 두 HTML 링크를 다시 읽고 GitHub Pages 비동기 배포가 완료될 때까지 cache-busting URL을 확인합니다. 파일 업로드 API 성공만으로 게시 완료를 선언하지 않습니다.
+- **`viewer` Qt 셸 회귀 테스트**: 정상 리포트를 연 뒤 missing 또는 malformed 리포트를 열 때 `MainWindow`의 모델, suite 상태, 게이트·점수 라벨, 창 제목이 이전 보고서 데이터를 남기지 않는지 QtTest로 검증합니다. QtTest 실행은 프로젝트 루트 CTest에 등록되어 Qt 5와 Qt 6에서 같은 경로를 확인합니다.
+
+### Changed
+- **`viewer` GUI를 루트 CMake에 통합**: `ICIRV_BUILD_GUI` 옵션으로 Qt GUI를 선택적으로 구성하고 `icirv_gui` 정적 라이브러리와 `icirv-gui` 실행 파일을 분리했습니다. `ICIRV_BUILD_GUI=OFF`에서는 Qt를 탐색하지 않고 정적 `icirv` CLI만 configure/build할 수 있습니다.
+- **Qt 버전 탐지를 설치 환경에 맞춤**: 기본 구성은 Qt 6을 우선하고 Qt 5로 폴백하며, `CMAKE_DISABLE_FIND_PACKAGE_Qt6=ON`으로 Qt 5를 강제하는 빌드도 지원합니다. CI는 Qt 5·Qt 6 각각에서 4개 CTest와 headless report open을 실행하고, Qt package를 모두 비활성화한 configure에서 정적 CLI 계약도 확인합니다. 릴리스 워크플로의 GUI 경로도 새 루트 타깃에 맞췄습니다.
 
 ### Fixed
 - **HTML은 올라갔지만 PR 댓글이 실패해도 `ici publish`가 성공하던 문제**: PR publish의 성공 조건에 sticky comment URL을 포함했습니다. 단일·다중 리포트 모두 `pull-requests: write` 실패를 0이 아닌 종료 코드로 전달하며, 업로드 실패 시 아직 존재하지 않는 Pages URL을 만들지 않습니다. 다중 리포트 댓글 footer의 경로도 `/`로 이어 붙인 가짜 경로 대신 쉼표로 구분합니다.
 - **`cycle`이 directory-qualified C++ include의 정보를 버리던 문제**: `core/format.hpp`와 `gui/format.hpp`가 함께 있을 때 `#include "core/format.hpp"`도 basename `format.hpp`만 비교해 모호하다고 버렸고, 실제 include cycle을 놓쳤습니다. 이제 include가 지정한 전체 path suffix가 프로젝트 파일 하나와 유일하게 일치할 때만 간선을 연결합니다.
   - bare `#include "format.hpp"`처럼 실제로 여러 후보가 있는 경우는 계속 추측하지 않습니다.
   - 유일한 후보가 없는 quoted include와 여러 후보가 있는 include는 파일·행·후보와 함께 `CppIncludeUnresolved`/`CppIncludeAmbiguous` 타깃으로 남고, `extra`에 전체 개수와 잘린 진단 개수를 기록합니다. generated header나 실제 compiler `-I` 순서는 아직 알지 못하므로 결과에는 `unique_project_path_suffix` 휴리스틱임을 명시합니다.
+- **viewer가 실패한 리포트 교체 뒤 이전 데이터를 표시하던 문제**: 파일을 읽지 못하거나 JSON/schema 검증에 실패하면 suite와 트리를 비우고, 게이트·점수 라벨과 loaded title을 초기화한 뒤 오류 원인을 status label에 남깁니다.
+- **headless CI의 viewer dogfood가 QWidget 테스트에서 abort하던 문제**: 별도 Qt matrix만 아니라 ici가 CTest를 실행하는 C++ gate에도 `QT_QPA_PLATFORM=offscreen`을 적용합니다. GUI 테스트를 root build에 통합한 후 display가 없는 GitHub runner에서 `test`/`sanitize` 엔진이 동시에 실패하던 경로를 고정했습니다.
 
 ## [0.6.0] - 2026-08-30
 

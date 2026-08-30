@@ -152,6 +152,24 @@ timeout·절단·signal·spawn 오류와 rc 0인데 regular binary가 없는 경
 프로젝트는 g++ 경로를 씁니다. 둘 다 있으면 CMake를 고르고, **왜 그 백엔드가
 선택됐는지는 리포트의 도구 증거에 남습니다.**
 
+`viewer`처럼 GUI를 선택적으로 제공하는 프로젝트는 루트 CMake 옵션으로 툴킷
+의존성을 경계 짓습니다.
+
+```bash
+# Qt가 없는 환경에서도 정적 CLI만 구성·빌드
+cmake -S viewer -B viewer/build-cli -DICIRV_BUILD_GUI=OFF
+cmake --build viewer/build-cli --target icirv
+
+# 설치된 Qt 6(또는 Qt 5) GUI와 QtTest를 구성
+cmake -S viewer -B viewer/build-gui -DICIRV_BUILD_GUI=ON
+cmake --build viewer/build-gui --target icirv-gui test_main_window
+```
+
+`ICIRV_BUILD_GUI=ON`은 `find_package(QT NAMES Qt6 Qt5 ...)`로 Qt 6을 우선
+탐색하고 Qt 5로 폴백합니다. Qt 5 호환성을 명시적으로 확인하려면
+`-DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON`을 추가합니다. `icirv` CLI는 두 구성 모두
+Qt를 링크하지 않으며, 정적 배포가 필요하면 `ICIRV_STATIC=ON`을 유지합니다.
+
 어댑터 경로에서 달라지는 것이 셋 있습니다.
 
 - **`project.cpp_external_build_dirs`가 무시됩니다.** 이 설정은 "moc가 필요해 ici가

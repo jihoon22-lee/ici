@@ -125,8 +125,8 @@ jobs:
       - name: Build Viewer CLI (static)
         run: |
           set -euo pipefail
-          cmake -S viewer -B viewer/build-cli -DCMAKE_BUILD_TYPE=Release
-          cmake --build viewer/build-cli -j
+          cmake -S viewer -B viewer/build-cli -DCMAKE_BUILD_TYPE=Release -DICIRV_BUILD_GUI=OFF
+          cmake --build viewer/build-cli --target icirv --parallel
           mkdir -p dist
           cp viewer/build-cli/icirv dist/icirv
           if ldd dist/icirv 2>&1 | grep -qv "not a dynamic executable"; then
@@ -140,9 +140,9 @@ jobs:
       - name: Build Viewer GUI (development asset)
         run: |
           set -euo pipefail
-          cmake -S viewer/src/gui -B viewer/src/gui/build -DCMAKE_BUILD_TYPE=Release
-          cmake --build viewer/src/gui/build -j
-          cp viewer/src/gui/build/icirv-gui dist/icirv-gui
+          cmake -S viewer -B viewer/build/gui -DCMAKE_BUILD_TYPE=Release -DICIRV_BUILD_GUI=ON
+          cmake --build viewer/build/gui --target icirv-gui --parallel
+          cp viewer/build/gui/src/gui/icirv-gui dist/icirv-gui
           # Record what it actually needs, so the requirement is discoverable
           # from the release rather than by trial and error on a target machine.
           {
