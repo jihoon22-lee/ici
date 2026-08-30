@@ -50,11 +50,12 @@ def _baseline_detail_entries(
     unchanged = [entry for entry in entries if entry.state == DeltaState.UNCHANGED]
     visible = changed[:_BASELINE_DETAIL_LIMIT]
     remaining_slots = _BASELINE_DETAIL_LIMIT - len(visible)
-    visible.extend(unchanged[: min(_BASELINE_UNCHANGED_DETAIL_LIMIT, remaining_slots)])
+    visible_unchanged = unchanged[: min(_BASELINE_UNCHANGED_DETAIL_LIMIT, remaining_slots)]
+    visible.extend(visible_unchanged)
     return (
         visible,
-        len(entries) - len(visible),
-        max(0, len(unchanged) - len(visible[len(changed[:_BASELINE_DETAIL_LIMIT]) :])),
+        len(changed) - min(len(changed), _BASELINE_DETAIL_LIMIT),
+        len(unchanged) - len(visible_unchanged),
     )
 
 

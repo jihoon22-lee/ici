@@ -125,7 +125,7 @@ def test_html_baseline_tab_is_zero_cdn_and_escapes_delta_fields(tmp_path: Path):
     assert "security&lt;script&gt;" in content
     assert "new &lt;script&gt;alert(&#x27;x&#x27;)&lt;/script&gt;" in content
     assert "<script>alert('x')</script>" not in content
-    assert 'src="http' not in content and "href=\"http" not in content
+    assert 'src="http' not in content and 'href="http' not in content
 
 
 def test_console_baseline_summary_and_gated_details(capsys):
@@ -154,3 +154,38 @@ def test_absent_comparison_keeps_reporters_without_baseline_sections(tmp_path: P
 
     print_suite_dashboard(suite, tmp_path)
     assert "Baseline Finding Delta" not in capsys.readouterr().out
+
+
+def test_unchanged_omission_count_is_not_double_counted(tmp_path: Path, capsys):
+    entries = [
+        FindingDelta(
+            state=DeltaState.UNCHANGED,
+            engine_name="lint",
+            fingerprint="sha256:" + f"{index:064x}",
+            rule_id="ici.lint.same",
+            message=f"unchanged {index}",
+            current_location=_location(f"src/{index}.py", index + 1),
+            baseline_location=_location(f"src/{index}.py", index + 1),
+            current_severity=FindingSeverity.LOW,
+            baseline_severity=FindingSeverity.LOW,
+        )
+        for index in range(5)
+    ]
+    comparison = BaselineComparison(source_path="baseline.json", entries=entries)
+    suite = _suite(with_comparison=False)
+    suite.baseline_comparison = comparison
+
+    markdown = generate_markdown_report(suite)
+    assert "2 unchanged row(s) omitted" in markdown
+    assert "additional delta row(s) omitted" not in markdown
+
+    output = tmp_path / "unchanged.html"
+    generate_html_report(suite, output, base_dir=tmp_path)
+    content = output.read_text(encoding="utf-8")
+    assert "2 unchanged row(s) omitted" in content
+    assert "additional delta row(s) omitted" not in content
+
+    print_suite_dashboard(suite, tmp_path)
+    console_output = capsys.readouterr().out
+    assert "2 unchanged row(s) omitted" in console_output
+    assert "additional delta row(s) omitted" not in console_output

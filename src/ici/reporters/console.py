@@ -95,7 +95,11 @@ def _baseline_detail_entries(
     unchanged_slots = _BASELINE_DETAIL_LIMIT - len(visible_changed)
     visible_unchanged = unchanged[: min(_BASELINE_UNCHANGED_DETAIL_LIMIT, unchanged_slots)]
     visible = [*visible_changed, *visible_unchanged]
-    return visible, len(entries) - len(visible), len(unchanged) - len(visible_unchanged)
+    return (
+        visible,
+        len(changed) - len(visible_changed),
+        len(unchanged) - len(visible_unchanged),
+    )
 
 
 def _baseline_location_sort_key(location: SourceLocation | None) -> tuple[object, ...]:
