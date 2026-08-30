@@ -120,6 +120,40 @@ ici verify --baseline .ici/baseline.json --fail-on-new \
 실패한 실행은 같은 파일을 덮어쓰지 않아 다음 실행에서 regression을 숨기지 않습니다.
 또한 `--report`가 만드는 `verify_report.json`과 `--write-baseline` 경로를 같게 쓸 수는 없습니다.
 
+### 4. Issues-first 콘솔
+
+`ici verify`는 전체 inventory를 보존하면서 조치가 필요한 원인을 짧게 확인할 수 있는
+issues-first 콘솔 projection을 제공합니다.
+
+- `ici verify --verbose`: `verify` 전용 상세 표시 모드이며 console cap을 해제합니다.
+- `ici verify --max-findings N`: 엔진별 console display group 상한입니다. 기본값은 엔진별
+  5건이며 `0`은 engine summary만 표시합니다.
+- `ici verify --group-by engine|severity|category|file|rule`: v3 finding의 engine, severity,
+  category, canonical primary file 또는 rule 기준으로 표시 그룹을 선택합니다.
+
+cap과 grouping은 console-only projection입니다. JSON·HTML·Markdown과 baseline의 원본
+inventory, target, finding, delta occurrence는 상한과 무관하게 모두 보존합니다. duplicate는
+같은 실행의 같은 clone group 안에서 같은 파일의 겹치는 line region만 화면에서 병합하며,
+원본 occurrence와 fingerprint를 유지합니다. 인접하지만 겹치지 않는 region이나 서로 다른
+clone group은 합치지 않습니다. HTML `Issues` 탭도 native v3 finding inventory를 기반으로
+표시하며 전체 결과를 유지합니다.
+
+표시 순서와 줄바꿈은 deterministic하게 유지하고, 80-column 터미널에서도 표와 상세 링크가
+한 글자씩 세로로 깨지지 않도록 회귀 테스트로 고정했습니다.
+
+현재 로컬 구현·테스트 기준은 `814679c` + `d80a027`입니다. 현재 Python 3.10 전체 품질
+게이트는 756/756 tests, focused console 테스트는 16개입니다. 최종 안정 self verify에서
+built `dist/ici.pyz`가 exit 0으로 실행됐고 suite는 WARN을 반환했습니다. self verify 출력은
+144 lines/15,288 bytes, HTML은 3,381,263 bytes였습니다. 해당 self verify 출력에 내장된
+test engine 수치는 749/749이며, line/function/branch coverage 87.7%/96.6%/78.6%, TEM
+4.83, engines Pass 8/Warn 4/Fail 0/Error 0/Skip 0을 확인했습니다. complexity는 최대 23,
+이슈 64건이며 duplicate는 16.2%·338 groups·1,006 actionable occurrences였습니다.
+
+콘솔 측정은 actionable 1,088건, visible 21/420 display groups, represented 34,
+hidden 1,054 findings/399 groups였습니다. HTML에는 clone group card 338개와 issue engine
+row 1,088개가 유지됐고 external script/stylesheet reference는 0개였습니다. PR/CI Merge
+Gate의 URL과 실행 근거는 `TODO_AFTER_PR_AND_CI`로 추적합니다.
+
 ---
 
 ## 📋 명령어 일람

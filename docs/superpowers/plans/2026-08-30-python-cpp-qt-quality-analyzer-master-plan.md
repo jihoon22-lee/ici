@@ -282,20 +282,42 @@ single·multi-project sticky comment에서 같은 baseline summary를 확인하�
   release-candidate의 87.6%/78.6%와의 차이는 코드 불일치가 아니라 실행 환경별
   coverage 측정치 차이로 기록한다.
 
-I1-4가 남아 있으므로 I1 전체 checkpoint는 아직 완료로 표시하지 않는다.
+I1-1~I1-4 기능 구현과 로컬 품질 검증이 완료되어 I1 전체 checkpoint를 완료로 표시한다.
+PR/CI Merge Gate의 URL과 실행 근거는 `TODO_AFTER_PR_AND_CI`로 추적한다.
 
 ### I1-4. issues-first console과 공통 grouping
 
 **브랜치:** `fix/console-issues-first`
 
-- [ ] 기본 출력은 engine summary와 engine별 상위 N건만 표시한다.
-- [ ] 전체 finding 수, 숨긴 수, 재출력 명령을 명시한다.
-- [ ] clone occurrence를 겹치는 region과 fingerprint로 통합한다.
-- [ ] `--verbose`, `--max-findings`, `--group-by`를 추가한다.
-- [ ] 80-column terminal에서 표가 한 글자씩 세로로 깨지지 않는지 golden test를 만든다.
-- [ ] JSON/HTML에서는 console cap과 관계없이 전체 결과를 보존한다.
+- [x] 기본 출력은 engine summary와 엔진별 최대 5 display group만 표시한다.
+- [x] 전체 actionable finding 수, 표시 group 수, 숨긴 수와 재출력 명령을 명시한다.
+- [x] clone occurrence를 같은 실행의 같은 clone group 안에서 같은 파일의 겹치는 region만
+  표시 병합하고 원본 occurrence와 fingerprint를 보존한다.
+- [x] `verify` 전용 `--verbose`, `--max-findings`, `--group-by`를 추가했다. `--verbose`는
+  cap을 해제하고 `--max-findings 0`은 summary만 표시한다.
+- [x] `engine|severity|category|file|rule` 5종 grouping과 80-column terminal golden 회귀를
+  검증했다.
+- [x] console cap과 관계없이 JSON·HTML·Markdown·baseline 원본 inventory를 보존한다. HTML
+  `Issues` 탭도 native v3 finding inventory를 기반으로 전체 결과를 표시한다.
 
-**완료 조건:** 현재 self verify 기본 출력이 200줄 안팎에서 원인을 설명하고, 전체 237 clone group은 구조화 report에 남는다. 정확한 상한은 UX 실측 후 고정한다.
+**완료 측정(최종 안정 로컬 검증, 2026-08-31):** 구현·테스트 기준 commit은 `814679c` +
+`d80a027`이다. 현재 Python 3.10 전체 품질 게이트 756/756, focused console 테스트 16개,
+Ruff check/format, pure-Python 10-distribution·no-certifi·2.0 MiB pyz 빌드, smoke 전체
+검증을 통과했다. built `dist/ici.pyz`는 exit 0으로 실행됐고 suite는 WARN이었다. self
+verify 출력은 144 lines/15,288 bytes, HTML은 3,381,263 bytes이며, 해당 출력에 내장된 test
+engine 수치는 749/749다. coverage는 line/function/branch 87.7%/96.6%/78.6%, TEM은
+4.83이었다. engines는 Pass 8/Warn 4/Fail 0/Error 0/Skip 0, complexity는 최대 23·이슈
+64건, duplicate는 16.2%·338 groups·1,006 actionable occurrences였다.
+
+콘솔 측정은 actionable 1,088건, visible 21/420 display groups, represented 34,
+hidden 1,054 findings/399 groups였다. HTML clone group card는 정확히 338개, issue engine
+row 합계는 1,088개였고 external script/stylesheet reference는 0개였다. 초기 self 측정의
+lint 실패는 에이전트 파일 작성 경합에 따른 참고 기록이며, 위 최종 안정 측정을 기준으로 한다.
+
+**완료 조건:** 구현, 회귀 테스트, 전체 로컬 품질 게이트와 안정 self verify를 모두 충족했다.
+기본 cap·summary-only·verbose·5종 grouping과 80-column 표시를 확인했고, console projection과
+무관하게 JSON·HTML·Markdown·baseline 원본 inventory를 보존했다. I1-4와 I1 로컬 checkpoint는
+완료다. PR/CI Merge Gate URL과 실행 근거는 `TODO_AFTER_PR_AND_CI`로 추적한다.
 
 ---
 
@@ -685,7 +707,7 @@ I1-4가 남아 있으므로 I1 전체 checkpoint는 아직 완료로 표시하�
 ## 18. 마스터 체크포인트
 
 - [x] I0: 현재 viewer/cycle 계획이 보정된 테스트와 함께 완료
-- [ ] I1: v3 finding, support matrix, baseline, issues-first console 완료
+- [x] I1: v3 finding, support matrix, baseline, issues-first console 완료
 - [ ] I2: shared context와 engine DAG 완료
 - [ ] I3: CMake/qmake compile context와 compiler-exact include/lint 완료
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
@@ -695,4 +717,6 @@ I1-4가 남아 있으므로 I1 전체 checkpoint는 아직 완료로 표시하�
 - [ ] I8: reporter parity, viewer diff/triage, 대형 report 처리 완료
 - [ ] I9: quality-zoo, self ratchet, 1.0 support contract 완료
 
-각 체크포인트는 하위 PR이 모두 main에 병합되고 대응 실물 검증이 통과했을 때만 완료로 바꾼다.
+I1 기능과 로컬 실물 검증은 완료했지만 PR/CI Merge Gate의 URL·실행 근거는
+`TODO_AFTER_PR_AND_CI`로 남아 있다. 각 체크포인트의 저장소 병합 및 CI 증거는 해당 PR 기록과
+함께 확인한다.
