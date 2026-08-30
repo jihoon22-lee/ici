@@ -283,7 +283,10 @@ single·multi-project sticky comment에서 같은 baseline summary를 확인하�
   coverage 측정치 차이로 기록한다.
 
 I1-1~I1-4 기능 구현과 로컬 품질 검증이 완료되어 I1 전체 checkpoint를 완료로 표시한다.
-PR/CI Merge Gate의 URL과 실행 근거는 `TODO_AFTER_PR_AND_CI`로 추적한다.
+I1-4의 [PR #89](https://github.com/jihoon22-lee/ici/pull/89)는 squash commit
+[`cc0ad469afe7c5d2713ef768610791a394a66f0b`](https://github.com/jihoon22-lee/ici/commit/cc0ad469afe7c5d2713ef768610791a394a66f0b)로
+병합됐고 [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의 모든 required checks가
+green(756 tests)이었다.
 
 ### I1-4. issues-first console과 공통 grouping
 
@@ -305,7 +308,7 @@ PR/CI Merge Gate의 URL과 실행 근거는 `TODO_AFTER_PR_AND_CI`로 추적한�
 Ruff check/format, pure-Python 10-distribution·no-certifi·2.0 MiB pyz 빌드, smoke 전체
 검증을 통과했다. built `dist/ici.pyz`는 exit 0으로 실행됐고 suite는 WARN이었다. self
 verify 출력은 144 lines/15,288 bytes, HTML은 3,383,523 bytes이며, 해당 출력에 내장된 test
-engine 수치는 756/756이다. coverage는 line/function/branch 87.8%/96.6%/78.8%, TEM은
+engine 수치는 756/756이다. local self verify coverage는 line/function/branch 87.8%/96.6%/78.8%, TEM은
 4.83이었다. engines는 Pass 8/Warn 4/Fail 0/Error 0/Skip 0, complexity는 최대 23·이슈
 64건, duplicate는 16.2%·338 groups·1,006 actionable occurrences였다.
 
@@ -317,7 +320,14 @@ lint 실패는 에이전트 파일 작성 경합에 따른 참고 기록이며, 
 **완료 조건:** 구현, 회귀 테스트, 전체 로컬 품질 게이트와 안정 self verify를 모두 충족했다.
 기본 cap·summary-only·verbose·5종 grouping과 80-column 표시를 확인했고, console projection과
 무관하게 JSON·HTML·Markdown·baseline 원본 inventory를 보존했다. I1-4와 I1 로컬 checkpoint는
-완료다. PR/CI Merge Gate URL과 실행 근거는 `TODO_AFTER_PR_AND_CI`로 추적한다.
+완료다. [PR #89](https://github.com/jihoon22-lee/ici/pull/89)는 squash commit
+[`cc0ad469afe7c5d2713ef768610791a394a66f0b`](https://github.com/jihoon22-lee/ici/commit/cc0ad469afe7c5d2713ef768610791a394a66f0b)로
+병합됐다. [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의 모든 required checks가
+green(756 tests)이었고, [sticky comment](https://github.com/jihoon22-lee/ici/pull/89#issuecomment-5470778278)에
+결과가 기록됐다. CI report stats는 ici WARN(TEM 4.83, Pass 8, Warn 4, line 87.8%, function
+96.6%, branch 78.9%), viewer PASS(TEM 4.89, 7/7 tests)였다. [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/89/)
+는 HTTP 200·external script/stylesheet refs 0, [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/89/)
+는 HTTP 200·external refs 0이었다.
 
 ---
 
@@ -717,6 +727,7 @@ lint 실패는 에이전트 파일 작성 경합에 따른 참고 기록이며, 
 - [ ] I8: reporter parity, viewer diff/triage, 대형 report 처리 완료
 - [ ] I9: quality-zoo, self ratchet, 1.0 support contract 완료
 
-I1 기능과 로컬 실물 검증은 완료했지만 PR/CI Merge Gate의 URL·실행 근거는
-`TODO_AFTER_PR_AND_CI`로 남아 있다. 각 체크포인트의 저장소 병합 및 CI 증거는 해당 PR 기록과
-함께 확인한다.
+I1 기능과 로컬 실물 검증 및 PR/CI Merge Gate는 완료됐다. [PR #89](https://github.com/jihoon22-lee/ici/pull/89)의
+병합 commit과 [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의 required checks
+결과는 위 I1-4 완료 조건에 기록한 evidence를 따른다. 다음 단계는 I2 shared context와 toy T1
+reliability 작업이다.

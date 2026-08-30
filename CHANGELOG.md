@@ -23,20 +23,28 @@
   - duplicate는 같은 실행의 같은 clone group 안에서 같은 파일의 겹치는 region만 표시상
     병합하며 원본 occurrence와 fingerprint를 유지합니다. HTML `Issues` 탭도 native v3
     finding inventory를 기반으로 전체 결과를 표시합니다.
-  - 현재 Python 3.10 전체 품질 게이트 756/756 tests, focused console 16 tests, Ruff
+  - 로컬 Python 3.10 전체 품질 게이트 756/756 tests, focused console 16 tests, Ruff
     check/format, pure-Python 10-distribution 2.0 MiB pyz(no certifi), smoke 전체 및
     80-column 안정성 검증을 통과했습니다. 최종 안정 self verify의 built `dist/ici.pyz`
     실행은 exit 0, suite는 WARN이었고 self verify 출력은 144 lines/15,288 bytes였습니다.
-    해당 출력에 내장된 test engine 수치는 756/756이며 coverage는 line/function/branch
-    87.8%/96.6%/78.8%, TEM 4.83이었습니다. engines는 Pass 8/Warn 4/
+    해당 출력에 내장된 test engine 수치는 756/756이며 local self verify coverage는
+    line/function/branch 87.8%/96.6%/78.8%, TEM 4.83이었습니다. engines는 Pass 8/Warn 4/
     Fail 0/Error 0/Skip 0, complexity는 최대 23·이슈 64건, duplicate는 16.2%·338 groups·
     1,006 actionable occurrences였습니다.
   - 콘솔은 actionable 1,088건, visible 21/420 display groups, represented 34,
     hidden 1,054 findings/399 groups를 기록했습니다. HTML은 3,383,523 bytes이며 clone
     group card 338개와 issue engine row 1,088개를 유지했고 external script/stylesheet
     reference는 0개였습니다. 초기 측정의 lint 실패는 에이전트 파일 작성 경합에 따른 참고
-    기록이며, 위 최종 안정 self verify를 기준으로 삼습니다. PR/CI Merge Gate의 URL과 실행
-    근거는 `TODO_AFTER_PR_AND_CI`로 추적합니다.
+    기록이며, 위 최종 안정 self verify를 기준으로 삼습니다.
+  - [PR #89](https://github.com/jihoon22-lee/ici/pull/89)는 squash commit
+    [`cc0ad469afe7c5d2713ef768610791a394a66f0b`](https://github.com/jihoon22-lee/ici/commit/cc0ad469afe7c5d2713ef768610791a394a66f0b)로
+    병합됐습니다. [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의
+    모든 required checks가 green(756 tests)이었고, [sticky comment](https://github.com/jihoon22-lee/ici/pull/89#issuecomment-5470778278)에
+    결과가 기록됐습니다. CI report stats는 ici WARN(TEM 4.83, Pass 8, Warn 4,
+    line 87.8%, function 96.6%, branch 78.9%), viewer PASS(TEM 4.89, 7/7 tests)였습니다.
+    [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/89/)는 HTTP 200·external
+    script/stylesheet refs 0, [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/89/)는
+    HTTP 200·external refs 0이었습니다.
 
 - **실행 가능한 엔진 support/capability matrix**: 13개 엔진의 Python/C++ 지원을 `exact`, `heuristic`, `tool-backed`, `unsupported` mode와 Qt 호환성, 필수·선택 도구, fallback, 신뢰도 및 알려진 한계로 중앙 선언합니다. 프로젝트 소스와 유효 정책을 적용해 `applicable`/`enabled`/`active_mode`를 계산하며, 실행 증거를 `MEASURED`·`ESTIMATED`·`NOT_RUN`·`NOT_APPLICABLE`과 일관되게 연결합니다.
   - 전체 verify와 단독 엔진의 `ici.result/v3` JSON, `ici doctor --json`은 동일한 구조를 사용합니다. v3 schema의 matrix 필드는 이전 v3 archive를 깨뜨리지 않도록 선택 사항이고 새 writer는 항상 object 또는 `null`을 기록합니다.
