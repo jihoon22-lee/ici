@@ -92,8 +92,8 @@ ici/
 │       │   └── publish.py           # GitHub HTML 리포트 퍼블리셔 (gh-pages/hub)
 │       └── reporters/               # 다중 리포터 계층
 │           ├── console.py           # Rich 터미널 대시보드 & file:// 링크
-│           ├── html.py              # 6개 전용 탭 Zero-CDN HTML 대시보드
-│           ├── html_assets.py       # HTML 내장 CSS 및 JavaScript 자산 모듈
+│           ├── html/                # 10개 전용 탭 Zero-CDN HTML 대시보드
+│           ├── html_assets.py       # 이전 import 호환 facade
 │           ├── markdown.py          # GitHub Actions Summary & PR 코멘트
 │           └── json_rep.py          # JSON 리포트 직렬화기
 ├── tests/                           # Pytest 단위 테스트 스위트
@@ -195,7 +195,7 @@ suppression reason·metric·파일 경로에 포함된 credential은 마스킹�
    - 안전한 `file://` URI와 Rich 링크 마크업을 통한 터미널 파일 위치 원클릭 이동
 2. **`HtmlReporter`**: 브라우저 독립형 대시보드
    - Zero-CDN 인라인 CSS/JS 구조
-   - 9개 전용 탭: `Summary`, `Line & Tree`, `Tests & Coverage`, `Static Types`, `Complexity`, `Clone Groups`, `Cycles`, `Security & Resources`, `Issues`
+   - 10개 전용 탭: `Summary`, `Support & Capabilities`, `Line & Tree`, `Tests & Coverage`, `Static Types`, `Complexity`, `Clone Groups`, `Cycles`, `Security & Resources`, `Issues`
    - 계층형 디렉토리 트리 뷰 (depth별 들여쓰기 및 언어별 아이콘)
    - 원본 소스 코드 블록 인스펙터
 3. **`MarkdownReporter`**: CI/CD 파이프라인 최적화

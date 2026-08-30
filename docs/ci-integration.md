@@ -153,7 +153,7 @@ annotation 문법을 깨뜨리지 않습니다.
 
 ### 2.3 HTML 아티팩트
 
-`--html verify_report.html`은 외부 CDN 없이 동작하는 9개 탭 HTML을 생성합니다. `verify` job
+`--html verify_report.html`은 외부 CDN 없이 동작하는 10개 탭 HTML을 생성합니다. `verify` job
 자체는 파일을 아티팩트로 업로드만 하고 브랜치나 PR 댓글에 직접 게시하지 않습니다 — sticky
 댓글 게시는 별도 권한을 가진 `report-pr` job이 그 아티팩트를 소비해 수행합니다 (1.2 참조).
 다운로드한 HTML은 폐쇄망에서도 로컬로 열 수 있습니다.
