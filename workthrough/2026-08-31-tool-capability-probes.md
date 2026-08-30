@@ -58,6 +58,21 @@ All checks passed!
 
 uvx ruff format --check src/ici/core/toolchain.py tests/test_toolchain_capabilities.py
 2 files already formatted
+
+uv run --python 3.10 pytest
+791 passed
+
+uvx ruff check .
+All checks passed!
+
+uvx ruff format --check .
+99 files already formatted
+
+./scripts/build-pyz.sh
+pure-Python 10 distributions, no certifi, reproducible 2.0 MiB pyz
+
+./scripts/smoke.sh
+all launcher, Python 3.10, artifact integrity, self-dogfood, and Zero-CDN checks passed
 ```
 
 The independent suite initially found that a lexical hyphen-only target check accepted
@@ -65,8 +80,8 @@ The independent suite initially found that a lexical hyphen-only target check ac
 platform/ABI marker, while covering ordinary GNU/Linux and bare-metal ARM triples. The retained
 regression test passes.
 
-The full pytest/build/smoke quality gate, integration wiring, commit, push, and PR evidence are
-not claimed by this workthrough and were not run in this focused test task.
+The full local quality gate is complete. Doctor/verify shared-inventory integration and remote
+PR/CI evidence are deliberately not claimed by this first slice.
 
 ## Next Steps
 
