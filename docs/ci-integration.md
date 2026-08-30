@@ -27,7 +27,11 @@ checkout은 `persist-credentials: false`로 설정되어 작업 디렉터리에 
 2. Python 3.10 pytest
 3. `dist/ici.pyz` 빌드 및 독립 스모크 테스트
 4. `dist/ici.pyz verify --report --html verify_report.html --github-summary`
-5. JSON/HTML 결과 아티팩트 업로드
+5. 저장소 루트와 `viewer/`의 JSON/HTML 결과 아티팩트 업로드
+
+별도 `viewer-gui` job은 Qt6 GUI를 빌드하고 실제 report를 headless로 엽니다. 마지막
+`Merge Gate` job은 verify, viewer GUI, PR report 게시 결과를 모두 집계합니다. branch
+protection은 개별 job 이름 대신 이 안정적인 최종 체크를 필수로 사용합니다.
 
 PR에서 확인할 수 있는 결과는 다음과 같습니다.
 
@@ -47,8 +51,8 @@ head/merge ref가 아니라 **PR의 base commit**(`github.event.pull_request.bas
 권한 있는 동작을 유도할 수 없습니다.
 
 ```yaml
-if: github.event_name == 'pull_request'
-needs: verify
+if: ${{ always() && github.event_name == 'pull_request' }}
+needs: [verify, viewer-gui]
 permissions:
   contents: write       # gh-pages 업로드 (Contents API)
   pull-requests: write  # sticky 댓글 작성/갱신
@@ -58,17 +62,21 @@ permissions:
 동작은 다음과 같습니다.
 
 1. PR의 base commit을 체크아웃하고 `dist/ici.pyz`를 빌드합니다(신뢰된 코드만 실행).
-2. `actions/download-artifact`로 `verify_report.html/json`을 받습니다.
-3. `dist/ici.pyz publish --html verify_report.html --json verify_report.json`를 실행해
-   gh-pages `pr/<번호>/index.html`에 리포트를 올립니다.
+2. `actions/download-artifact`로 루트와 `viewer/`의 `verify_report.html/json`을 받습니다.
+3. `dist/ici.pyz publish --report-dir ici=. --report-dir viewer`를 실행해
+   gh-pages의 `ici/pr/<번호>/`와 `viewer/pr/<번호>/`에 리포트를 올립니다.
 4. `<!-- ici-report -->` 마커로 기존 댓글을 찾아 **갱신(PATCH)** 하고, 없으면 생성합니다.
    댓글 검색은 페이지네이션(`per_page=100`, 최대 2000개)을 사용하므로 30개를 넘는 기존
    댓글 뒤에 있는 마커도 놓치지 않습니다.
+5. 실제 댓글에서 두 HTML URL을 추출하고, Pages 비동기 배포가 완료돼 두 URL 모두 HTML을
+   반환할 때까지 확인합니다. 이 단계까지 성공해야 `report-pr`이 통과합니다.
 
-댓글 본문에는 배지형 "HTML 리포트 열기" 링크, Pass/Warn/Fail/Error/Skip/TEM 통계 표,
-접을 수 있는(`<details>`) 엔진별 상세 결과가 포함됩니다. Fork PR에서는 `GITHUB_TOKEN`이
-읽기 전용이므로 업로드·댓글이 조용히 건너뛰어집니다(게이트에는 영향 없음). 업로드나 댓글
-게시 자체가 실패하면 `ici publish`는 0이 아닌 종료 코드로 실패를 알립니다.
+댓글 본문에는 프로젝트별 "HTML 리포트 열기" 링크, Pass/Warn/Fail/Error/Skip/TEM 통계 표,
+접을 수 있는(`<details>`) 엔진별 상세 결과가 포함됩니다. 업로드·댓글·실제 HTML 확인 중
+하나라도 실패하면 `ici publish` 또는 `report-pr`이 실패하고 `Merge Gate`가 병합을 막습니다.
+Fork PR의 기본 `GITHUB_TOKEN`은 쓰기 권한이 없으므로 이 저장소의 내부 branch와 같은 게시
+계약을 충족하지 못합니다. 외부 fork는 maintainer-owned branch로 옮겨 전체 gate를 다시
+통과시키기 전에는 병합하지 않습니다.
 
 ### 1.3 신뢰된 main publish (`publish-main`)
 
@@ -76,21 +84,21 @@ permissions:
 
 ```yaml
 if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-needs: verify
+needs: [verify, viewer-gui]
 permissions:
   contents: write
   pages: read       # Pages 활성화 여부 조회 (뷰어 링크 계산용)
 ```
 
-이 job은 검증이 통과한 `main`을 다시 빌드하고, 명시적으로 `GITHUB_TOKEN`을 주입하여
-다음 명령을 실행합니다.
+이 job은 검증이 통과한 `main`에서 신뢰된 `ici.pyz`를 빌드하고, verify job의 기존
+아티팩트를 내려받은 뒤 명시적으로 `GITHUB_TOKEN`을 주입하여 다음 명령을 실행합니다.
 
 ```bash
-dist/ici.pyz verify --html verify_report.html --publish
+dist/ici.pyz publish --report-dir ici=. --report-dir viewer
 ```
 
-`--publish`는 Contents API를 사용하는 권한 있는 동작입니다. PR 검증 job에 이 권한을
-확장하지 않고, 신뢰된 `main` push에서만 사용하도록 한 것이 기본 정책입니다. 별도의
+`publish`는 Contents API를 사용하는 권한 있는 동작입니다. 일반 검증 job에 이 권한을
+확장하지 않고, 신뢰된 게시 job에서만 사용하도록 한 것이 기본 정책입니다. 별도의
 수동/신뢰된 workflow에서 이 기능을 사용할 때도 대상 저장소와 토큰 권한을 명시적으로
 검토해야 합니다.
 
@@ -134,7 +142,7 @@ annotation 문법을 깨뜨리지 않습니다.
 
 ### 2.3 HTML 아티팩트
 
-`--html verify_report.html`은 외부 CDN 없이 동작하는 8개 탭 HTML을 생성합니다. `verify` job
+`--html verify_report.html`은 외부 CDN 없이 동작하는 9개 탭 HTML을 생성합니다. `verify` job
 자체는 파일을 아티팩트로 업로드만 하고 브랜치나 PR 댓글에 직접 게시하지 않습니다 — sticky
 댓글 게시는 별도 권한을 가진 `report-pr` job이 그 아티팩트를 소비해 수행합니다 (1.2 참조).
 다운로드한 HTML은 폐쇄망에서도 로컬로 열 수 있습니다.

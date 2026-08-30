@@ -65,7 +65,7 @@ def test_ci_permissions_are_read_only_except_trusted_publish_job():
 
     publish = _job_block(workflow, "publish-main")
     assert "if: github.event_name == 'push' && github.ref == 'refs/heads/main'" in publish
-    assert re.search(r"(?m)^    needs: verify\n", publish)
+    assert re.search(r"(?m)^    needs: \[verify, viewer-gui\]\n", publish)
     assert re.search(r"(?m)^    permissions:\n      contents: write\n", publish)
     assert not re.search(r"(?m)^      (?:issues|pull-requests|checks):\s*write\n", publish)
     # Either publishing form counts. What this test guards is that publish-main
@@ -149,6 +149,27 @@ def test_report_pr_job_consumes_artifact_not_pr_code():
     assert "dist/ici.pyz publish" in report_job
     # the comment path needs pull-requests write, declared only in this job
     assert "pull-requests: write" in report_job
+    assert "needs: [verify, viewer-gui]" in report_job
+    assert "always() && github.event_name == 'pull_request'" in report_job
+    assert "Verify Sticky Comment & Published HTML" in report_job
+    assert "<!-- ici-report -->" in report_job
+    assert 'EXPECTED_REPORTS: "2"' in report_job
+    assert "run_path = f\"/actions/runs/{os.environ['GITHUB_RUN_ID']}\"" in report_job
+    assert "for page in range(1, 21)" in report_job
+
+
+def test_merge_gate_requires_every_pr_quality_job():
+    workflow = _workflow("ci.yml")
+    merge_gate = _job_block(workflow, "merge-gate")
+
+    assert "if: ${{ always() }}" in merge_gate
+    assert "needs: [verify, viewer-gui, report-pr]" in merge_gate
+    assert "VERIFY_RESULT: ${{ needs.verify.result }}" in merge_gate
+    assert "VIEWER_GUI_RESULT: ${{ needs.viewer-gui.result }}" in merge_gate
+    assert "REPORT_RESULT: ${{ needs.report-pr.result }}" in merge_gate
+    assert 'test "$VERIFY_RESULT" = success' in merge_gate
+    assert 'test "$VIEWER_GUI_RESULT" = success' in merge_gate
+    assert 'test "$REPORT_RESULT" = success' in merge_gate
 
 
 def test_ci_and_release_actions_are_immutable_node24_pins():

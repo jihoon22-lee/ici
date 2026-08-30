@@ -17,10 +17,12 @@ class FakeGitHubApi:
         pages_enabled: bool = True,
         existing_comment_id: int | None = None,
         fail_put: bool = False,
+        fail_comment: bool = False,
     ):
         self.pages_enabled = pages_enabled
         self.existing_comment_id = existing_comment_id
         self.fail_put = fail_put
+        self.fail_comment = fail_comment
         self.calls: list[tuple[str, str, dict | None]] = []
         self.put_count = 0
         self.patch_count = 0
@@ -53,9 +55,13 @@ class FakeGitHubApi:
             return 200, []
         if method == "PATCH":
             self.patch_count += 1
+            if self.fail_comment:
+                return 403, {"message": "Resource not accessible by integration"}
             return 200, {"html_url": "https://ghes.example/org/my-proj/issues/42#issuecomment-1"}
         if method == "POST" and "/comments" in url:
             self.post_count += 1
+            if self.fail_comment:
+                return 403, {"message": "Resource not accessible by integration"}
             return 201, {"html_url": "https://ghes.example/org/my-proj/issues/42#issuecomment-2"}
         return 404, None
 
@@ -209,6 +215,21 @@ def test_publish_flow_success_marks_result_success_true(tmp_path: Path, monkeypa
     assert result.success is True
 
 
+def test_pr_comment_failure_makes_single_publish_fail(tmp_path: Path, monkeypatch):
+    """A PR publish is incomplete until its sticky comment can be discovered."""
+    html = tmp_path / "verify_report.html"
+    html.write_text("<html>report</html>", encoding="utf-8")
+    fake = FakeGitHubApi(pages_enabled=True, fail_comment=True)
+    monkeypatch.setattr(ReportPublisher, "_api", fake)
+
+    result = ReportPublisher(env=gh_env(tmp_path)).publish(html, make_suite())
+
+    assert result.viewer_url == "https://pages.example/org/repo/pr/42/"
+    assert result.comment_url is None
+    assert result.success is False
+    assert "comment" in result.message.lower()
+
+
 def test_upload_failure_reflected_in_comment(tmp_path: Path, monkeypatch):
     html = tmp_path / "verify_report.html"
     html.write_text("<html>report</html>", encoding="utf-8")
@@ -220,7 +241,7 @@ def test_upload_failure_reflected_in_comment(tmp_path: Path, monkeypatch):
     post_payload = next(p for m, u, p in fake.calls if m == "POST" and "/comments" in u)
     assert post_payload is not None
     assert "업로드 실패" in post_payload["body"]
-    assert result.viewer_url not in post_payload["body"]
+    assert result.viewer_url is None
 
 
 def test_comment_body_modern_layout(tmp_path: Path, monkeypatch):
@@ -433,16 +454,35 @@ def test_multi_report_comment_lists_every_project(tmp_path: Path, monkeypatch):
         html.write_text("<html></html>", encoding="utf-8")
         reports.append(ReportInput(name, html, make_suite()))
 
-    env = _monorepo_env() | {"GITHUB_EVENT_PATH": ""}
-    result = ReportPublisher(env=env).publish_many(reports)
+    result = ReportPublisher(env=gh_env(tmp_path)).publish_many(reports)
 
     assert result.success
     # Distinct destinations, so neither project overwrites the other.
     assert len(set(posted["paths"])) == 2
-    body = posted.get("body")
-    if body is not None:
-        assert body.count(PUBLISH_MARKER) == 1
-        assert "diskmap" in body and "loglens" in body
+    body = posted["body"]
+    assert body.count(PUBLISH_MARKER) == 1
+    assert "diskmap" in body and "loglens" in body
+    assert "https://pages/diskmap/pr/42/" in body
+    assert "https://pages/loglens/pr/42/" in body
+    assert "diskmap/pr/42/index.html, loglens/pr/42/index.html" in body
+
+
+def test_multi_report_comment_failure_makes_publish_fail(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(ReportPublisher, "_ensure_branch", lambda *a, **k: True)
+    monkeypatch.setattr(ReportPublisher, "_check_pages", lambda *a, **k: (True, "https://pages/"))
+    monkeypatch.setattr(ReportPublisher, "_put_file", lambda *a, **k: True)
+    monkeypatch.setattr(ReportPublisher, "_upsert_comment", lambda *a, **k: None)
+    reports = []
+    for name in ("diskmap", "loglens"):
+        html = tmp_path / f"{name}.html"
+        html.write_text("<html></html>", encoding="utf-8")
+        reports.append(ReportInput(name, html, make_suite()))
+
+    result = ReportPublisher(env=gh_env(tmp_path)).publish_many(reports)
+
+    assert result.comment_url is None
+    assert result.success is False
+    assert "comment" in result.message.lower()
 
 
 def test_multi_report_reports_upload_failure(tmp_path: Path, monkeypatch):
