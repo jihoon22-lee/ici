@@ -43,7 +43,7 @@
 |                                Multi-Reporter Layer                               |
 |  +---------------------+  +---------------------+  +----------------------------+ |
 |  | RichConsoleReporter |  |     HtmlReporter    |  |      MarkdownReporter      | |
-|  | - Color Table       |  | - 6 Dedicated Tabs  |  | - GitHub Step Summary      | |
+|  | - Color Table       |  | - 9 Dedicated Tabs  |  | - GitHub Step Summary      | |
 |  | - file:// Links     |  | - Hierarchical Tree |  | - Optional Trusted Publish | |
 |  | - Summary Banners   |  | - Source Previews   |  | - Inline Annotations       | |
 |  +---------------------+  +---------------------+  +----------------------------+ |
@@ -174,13 +174,13 @@ ici/
    - 안전한 `file://` URI와 Rich 링크 마크업을 통한 터미널 파일 위치 원클릭 이동
 2. **`HtmlReporter`**: 브라우저 독립형 대시보드
    - Zero-CDN 인라인 CSS/JS 구조
-   - 6개 전용 탭: `Summary`, `Line & Tree`, `Tests & Coverage`, `Complexity`, `Clone Groups`, `Issues`
+   - 9개 전용 탭: `Summary`, `Line & Tree`, `Tests & Coverage`, `Static Types`, `Complexity`, `Clone Groups`, `Cycles`, `Security & Resources`, `Issues`
    - 계층형 디렉토리 트리 뷰 (depth별 들여쓰기 및 언어별 아이콘)
    - 원본 소스 코드 블록 인스펙터
 3. **`MarkdownReporter`**: CI/CD 파이프라인 최적화
    - GitHub Step Summary 테이블 및 TEM 게이지
    - GitHub Blob 영구 링크 (`blob/<sha>/file#L10-L25`)
-   - PR 인라인 에러 어노테이션 (`::error file=...::`); 기본 PR 워크플로우는 댓글을 작성하지 않음
+   - PR 인라인 에러 어노테이션 (`::error file=...::`); 별도 신뢰 job이 아티팩트로 sticky 댓글과 HTML 링크를 게시
 4. **`JsonReporter`**: 데이터 파이프라인 연동
    - `verify_report.json` 포맷 직렬화
 

@@ -7,7 +7,14 @@
 
 ## [Unreleased]
 
+### Added
+- **CI의 최종 판정을 `Merge Gate` 하나로 고정**: Python/ici self-dogfood, Qt viewer GUI, PR HTML 게시가 모두 성공해야 PR용 최종 체크가 통과합니다. 기존 ruleset은 self-dogfood만 필수여서 GUI나 댓글 게시가 실패해도 병합할 수 있었습니다.
+  - `report-pr`은 quality 결과가 WARN/FAIL이어도 생성된 아티팩트를 게시할 수 있도록 `always()`로 실행하되, 최종 gate는 원래 verify 결과를 별도로 검사합니다.
+  - gh-pages 쓰기는 concurrency group으로 직렬화합니다. 서로 다른 PR이 Contents API의 같은 branch head를 동시에 갱신해 한쪽 리포트를 잃지 않습니다.
+  - 게시 직후 실제 sticky 댓글에서 두 HTML 링크를 다시 읽고 GitHub Pages 비동기 배포가 완료될 때까지 cache-busting URL을 확인합니다. 파일 업로드 API 성공만으로 게시 완료를 선언하지 않습니다.
+
 ### Fixed
+- **HTML은 올라갔지만 PR 댓글이 실패해도 `ici publish`가 성공하던 문제**: PR publish의 성공 조건에 sticky comment URL을 포함했습니다. 단일·다중 리포트 모두 `pull-requests: write` 실패를 0이 아닌 종료 코드로 전달하며, 업로드 실패 시 아직 존재하지 않는 Pages URL을 만들지 않습니다. 다중 리포트 댓글 footer의 경로도 `/`로 이어 붙인 가짜 경로 대신 쉼표로 구분합니다.
 - **`cycle`이 directory-qualified C++ include의 정보를 버리던 문제**: `core/format.hpp`와 `gui/format.hpp`가 함께 있을 때 `#include "core/format.hpp"`도 basename `format.hpp`만 비교해 모호하다고 버렸고, 실제 include cycle을 놓쳤습니다. 이제 include가 지정한 전체 path suffix가 프로젝트 파일 하나와 유일하게 일치할 때만 간선을 연결합니다.
   - bare `#include "format.hpp"`처럼 실제로 여러 후보가 있는 경우는 계속 추측하지 않습니다.
   - 유일한 후보가 없는 quoted include와 여러 후보가 있는 include는 파일·행·후보와 함께 `CppIncludeUnresolved`/`CppIncludeAmbiguous` 타깃으로 남고, `extra`에 전체 개수와 잘린 진단 개수를 기록합니다. generated header나 실제 compiler `-I` 순서는 아직 알지 못하므로 결과에는 `unique_project_path_suffix` 휴리스틱임을 명시합니다.

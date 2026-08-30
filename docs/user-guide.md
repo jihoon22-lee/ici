@@ -89,8 +89,9 @@ ici verify --report --html verify_report.html --open
 ### 2.3 신뢰된 실행에서 HTML 리포트 배포 (`--publish`)
 `--publish`는 일반 PR 검증의 기본 동작이 아닙니다. 권한을 명시적으로 부여한 신뢰된
 `main` push 또는 수동 실행에서만 `verify_report.html`을 `gh-pages` 등 설정된 경로로
-배포합니다. 기본 PR workflow는 Step Summary와 JSON/HTML 아티팩트만 생성하며 sticky
-댓글을 작성하지 않습니다 (자세한 설정은
+배포합니다. 이 저장소의 PR workflow는 읽기 전용 verify가 JSON/HTML 아티팩트를 만든 뒤,
+신뢰된 base 코드를 실행하는 별도 게시 job이 sticky 댓글을 작성하고 실제 HTML URL까지
+확인합니다 (자세한 설정은
 [CI/CD 연동 가이드](ci-integration.md#3-신뢰된-html-publish---publish) 참조):
 
 ```bash

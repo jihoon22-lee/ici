@@ -152,9 +152,14 @@ jobs:
 
   report-pr:
     name: Publish PR Report & Sticky Comment
-    if: github.event_name == 'pull_request'
-    needs: verify
+    # Publish a generated failure report too. `always()` is required because a
+    # quality gate can return non-zero after writing the report artifact.
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    needs: [verify, viewer-gui]
     runs-on: ubuntu-latest
+    concurrency:
+      group: ici-pages-publish
+      cancel-in-progress: false
     permissions:
       contents: write       # gh-pages 업로드 (Contents API)
       pull-requests: write  # sticky 댓글 작성/갱신
@@ -204,11 +209,92 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # A successful Contents API write does not mean the report is visible or
+      # that the comment write succeeded. GitHub Pages builds asynchronously,
+      # so poll the URLs from the actual sticky comment with a cache-busting
+      # query before this job is allowed to pass.
+      - name: Verify Sticky Comment & Published HTML
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_REPORTS: "2"
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import time
+          import urllib.error
+          import urllib.request
+
+          api = os.environ.get("GITHUB_API_URL", "https://api.github.com")
+          repo = os.environ["GITHUB_REPOSITORY"]
+          pr = os.environ["PR_NUMBER"]
+          token = os.environ["GITHUB_TOKEN"]
+          expected = int(os.environ["EXPECTED_REPORTS"])
+          comments_url = f"{api}/repos/{repo}/issues/{pr}/comments"
+
+          def read(url, *, api_request=False):
+              headers = {"User-Agent": "ici-report-verifier"}
+              if api_request:
+                  headers.update({
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {token}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                  })
+              request = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  return response.read()
+
+          body = ""
+          for page in range(1, 21):
+              comments = json.loads(read(f"{comments_url}?per_page=100&page={page}", api_request=True))
+              body = next(
+                  (str(item.get("body", "")) for item in comments if "<!-- ici-report -->" in str(item.get("body", ""))),
+                  "",
+              )
+              if body or len(comments) < 100:
+                  break
+          if not body:
+              raise SystemExit("ici sticky comment was not found")
+          run_path = f"/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          if run_path not in body:
+              raise SystemExit("ici sticky comment is stale: current workflow run link is missing")
+          urls = list(dict.fromkeys(re.findall(r"\[📊 열기\]\((https://[^)]+)\)", body)))
+          if len(urls) != expected:
+              raise SystemExit(f"expected {expected} report links in the sticky comment, found {len(urls)}")
+
+          pending = list(urls)
+          last_errors = {}
+          for attempt in range(18):
+              remaining = []
+              for url in pending:
+                  separator = "&" if "?" in url else "?"
+                  probe = f"{url}{separator}ici_run={os.environ['GITHUB_RUN_ID']}-{attempt}"
+                  try:
+                      payload = read(probe).lstrip().lower()
+                      if b"<!doctype html" not in payload[:256] and b"<html" not in payload[:256]:
+                          raise RuntimeError("response is not HTML")
+                  except (OSError, RuntimeError, urllib.error.HTTPError) as exc:
+                      last_errors[url] = str(exc)
+                      remaining.append(url)
+              if not remaining:
+                  print(f"verified sticky comment and {len(urls)} published HTML report(s)")
+                  break
+              pending = remaining
+              time.sleep(5)
+          else:
+              raise SystemExit(f"published report URLs did not become ready: {last_errors}")
+          PY
+
   publish-main:
     name: Publish Main Verification Report
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: verify
+    needs: [verify, viewer-gui]
     runs-on: ubuntu-latest
+    concurrency:
+      group: ici-pages-publish
+      cancel-in-progress: false
     permissions:
       contents: write
       pages: read       # Pages 활성화 여부 조회 (뷰어 링크 계산용)
@@ -255,3 +341,35 @@ jobs:
           dist/ici.pyz publish --report-dir ici=. --report-dir viewer
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  merge-gate:
+    name: Merge Gate
+    if: ${{ always() }}
+    needs: [verify, viewer-gui, report-pr]
+    runs-on: ubuntu-latest
+    permissions: {}
+
+    steps:
+      - name: Require verification, GUI, and PR report publication
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          VIEWER_GUI_RESULT: ${{ needs.viewer-gui.result }}
+          REPORT_RESULT: ${{ needs.report-pr.result }}
+        run: |
+          set -euo pipefail
+          test "$VERIFY_RESULT" = success || {
+            echo "::error::Verify & Dogfood ici result: $VERIFY_RESULT"
+            exit 1
+          }
+          test "$VIEWER_GUI_RESULT" = success || {
+            echo "::error::Qt6 Viewer GUI build result: $VIEWER_GUI_RESULT"
+            exit 1
+          }
+          if [ "$EVENT_NAME" = pull_request ]; then
+            test "$REPORT_RESULT" = success || {
+              echo "::error::Publish PR Report & Sticky Comment result: $REPORT_RESULT"
+              exit 1
+            }
+          fi
+          echo "All required CI jobs passed"

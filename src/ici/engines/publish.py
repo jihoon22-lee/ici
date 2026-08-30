@@ -181,7 +181,7 @@ def _multi_report_body(
         if not details:
             continue
         lines += ["", f"#### `{report.label or '.'}`", *_stats_table(report.suite), "", *details]
-    lines += ["", "---", _footer_line(mode, "/".join(r.remote_path for r in reports), run_url)]
+    lines += ["", "---", _footer_line(mode, ", ".join(r.remote_path for r in reports), run_url)]
     return "\n".join(lines)
 
 
@@ -333,7 +333,7 @@ class ReportPublisher:
         pages_enabled, site_url = self._check_pages(api_base, repo, token)
         viewer_url = (
             f"{site_url.rstrip('/')}/{remote_path.rsplit('/', 1)[0]}/"
-            if pages_enabled and site_url
+            if pages_enabled and site_url and uploaded
             else None
         )
 
@@ -350,6 +350,11 @@ class ReportPublisher:
             message = (
                 f"--publish failed to upload {remote_path} to {repo} ({branch}). "
                 "Check token permissions (contents: write) and branch availability."
+            )
+        elif pr_number and comment_url is None:
+            message = (
+                f"--publish uploaded {remote_path}, but failed to update the PR comment. "
+                "Check token permissions (pull-requests: write)."
             )
         elif viewer_url:
             message = f"HTML report published: {viewer_url}"
@@ -368,7 +373,7 @@ class ReportPublisher:
             pages_enabled=pages_enabled,
             comment_url=comment_url,
             message=message,
-            success=uploaded,
+            success=uploaded and (pr_number is None or comment_url is not None),
         )
 
     def _publish_multi(self, reports: list[ReportInput]) -> PublishResult:
@@ -414,9 +419,15 @@ class ReportPublisher:
         )
 
         failures = [r.label for r in published if not r.uploaded]
-        success = not failures
+        comment_failed = pr_number is not None and comment_url is None
+        success = not failures and not comment_failed
         if failures:
             message = f"--publish failed to upload: {', '.join(failures)}"
+        elif comment_failed:
+            message = (
+                "--publish uploaded every report, but failed to update the PR comment. "
+                "Check token permissions (pull-requests: write)."
+            )
         else:
             message = f"Published {len(published)} report(s) to {repo}:{branch}"
         return PublishResult(
