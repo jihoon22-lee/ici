@@ -1,15 +1,15 @@
 {
   "schema_version": "ici.self-quality-baseline/v1",
   "measured_at": "2026-08-31",
-  "measurement_base_commit": "a3105af",
+  "measurement_base_commit": "fa3ad28",
   "measurement_command": "./dist/ici.pyz verify --report",
   "report_schema": "ici.result/v2",
   "runs": [
     {
       "run": 1,
       "suite_status": "WARN",
-      "passed_tests": 632,
-      "total_tests": 632,
+      "passed_tests": 634,
+      "total_tests": 634,
       "tem_score": 4.78,
       "line_coverage_pct": 85.9,
       "branch_coverage_pct": 77.9,
@@ -23,8 +23,8 @@
     {
       "run": 2,
       "suite_status": "WARN",
-      "passed_tests": 632,
-      "total_tests": 632,
+      "passed_tests": 634,
+      "total_tests": 634,
       "tem_score": 4.78,
       "line_coverage_pct": 85.9,
       "branch_coverage_pct": 77.9,
@@ -38,8 +38,8 @@
     {
       "run": 3,
       "suite_status": "WARN",
-      "passed_tests": 632,
-      "total_tests": 632,
+      "passed_tests": 634,
+      "total_tests": 634,
       "tem_score": 4.78,
       "line_coverage_pct": 85.9,
       "branch_coverage_pct": 77.9,

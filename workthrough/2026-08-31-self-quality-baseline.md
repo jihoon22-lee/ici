@@ -37,7 +37,7 @@ Files: `src/ici/engines/sanitize.py`, `src/ici/engines/exception.py`,
 
 File: `ici.toml`
 
-2026-08-31 최신 `origin/main@a3105af` 기준 세 번의 측정값을 주석에 남기고, 다음 ratchet을
+2026-08-31 최신 `origin/main@fa3ad28` 기준 세 번의 측정값을 주석에 남기고, 다음 ratchet을
 세 번 연속 측정·설명 가능한 상태·실측 coverage 조건으로 제한했다.
 
 ```toml
@@ -66,7 +66,7 @@ uv run --python 3.10 mypy --show-error-codes src/ici
 Success: no issues found in 51 source files
 
 uv run --python 3.10 pytest
-632 passed in 27.46s
+634 passed in 25.70s
 ```
 
 ### Repeated self verify
@@ -75,9 +75,9 @@ Command: `./dist/ici.pyz verify --report` (the same result was also reproduced w
 
 | Run | Exit | Tests | TEM | Line / Branch / Function | Console lines | Duplicate groups | Type |
 |---:|---:|---:|---:|---|---:|---:|---|
-| 1 | 0 | 632/632 | 4.78 | 85.9% / 77.9% / 95.691% | 2,276 | 237 | PASS |
-| 2 | 0 | 632/632 | 4.78 | 85.9% / 77.9% / 95.691% | 2,276 | 237 | PASS |
-| 3 | 0 | 632/632 | 4.78 | 85.9% / 77.9% / 95.691% | 2,276 | 237 | PASS |
+| 1 | 0 | 634/634 | 4.78 | 85.9% / 77.9% / 95.691% | 2,276 | 237 | PASS |
+| 2 | 0 | 634/634 | 4.78 | 85.9% / 77.9% / 95.691% | 2,276 | 237 | PASS |
+| 3 | 0 | 634/634 | 4.78 | 85.9% / 77.9% / 95.691% | 2,276 | 237 | PASS |
 
 The suite remains `WARN` because the pre-existing line/cycle/complexity/dup findings remain;
 there were 8 PASS, 4 WARN, 0 FAIL, and 0 ERROR engines. The test gate itself passed, and all
