@@ -155,10 +155,11 @@ def test_cli_verify_forwards_profile_to_orchestrator(tmp_path, monkeypatch):
 
 def test_cli_verify_help_documents_profile_option():
     result = runner.invoke(app, ["verify", "--help"], color=False)
+    output = click.unstyle(result.output)
 
     assert result.exit_code == 0
-    assert "--profile" in result.output
-    assert all(value in result.output for value in ("fast", "standard", "deep"))
+    assert "--profile" in output
+    assert all(value in output for value in ("fast", "standard", "deep"))
 
 
 def test_cli_verify_forwards_console_options_to_orchestrator(tmp_path, monkeypatch):
