@@ -86,7 +86,18 @@ jobs:
           printf 'TAG=%s\n' "$TAG" >> "$GITHUB_OUTPUT"
           echo "Target Release Tag: $TAG"
 
+      # Installed before the tests, not after: the build-adapter E2E tests run
+      # inside pytest and need cmake/qmake/Qt. Letting them skip here would ship
+      # a release whose adapters were never exercised on this runner.
+      - name: Install the Qt6 build toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config
+
       - name: Run Test Suite
+        env:
+          # A skip means something broke, not that the tests are optional (C-6).
+          ICI_REQUIRE_BUILD_ADAPTERS: "1"
         run: |
           uv run --python 3.10 pytest -v
 
@@ -125,11 +136,6 @@ jobs:
           fi
           dist/icirv viewer/tests/data/ici_self_report.json > /dev/null
           echo "icirv: static, and it parses a real report"
-
-      - name: Install Qt6
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qt6-base-dev
 
       - name: Build Viewer GUI (development asset)
         run: |
