@@ -246,18 +246,29 @@ def _gcov_declared_source(gcov_file: Path) -> str | None:
     return None
 
 
+def _in_scope_relative(candidate: str, source_files: set[str], project_root: Path) -> str | None:
+    """Project-relative form of a path, but only if it is a measured source.
+
+    Membership decides, not resolvability. A test source sits inside the project
+    and resolves cleanly, and counting it inflates the coverage denominator of
+    every project on the generic g++ path.
+    """
+
+    path = Path(candidate)
+    absolute = (path if path.is_absolute() else project_root / path).resolve()
+    if not absolute.is_relative_to(project_root):
+        return None
+    relative = str(absolute.relative_to(project_root))
+    return relative if relative in source_files else None
+
+
 def _gcov_source_path(gcov_file: Path, source_files: set[str], project_root: Path) -> str | None:
     candidate = gcov_file.name[:-5].replace("#", "/")
     if candidate in source_files:
         return candidate
-    try:
-        path = Path(candidate)
-        absolute = path if path.is_absolute() else project_root / path
-        relative = str(absolute.resolve().relative_to(project_root))
-        if relative in source_files:
-            return relative
-    except ValueError:
-        pass
+    resolved = _in_scope_relative(candidate, source_files, project_root)
+    if resolved is not None:
+        return resolved
 
     # The filename is a mangled form of the path — gcov -p encodes "/" as "#"
     # and ".." as "^" — so it only round-trips for absolute paths. The header
@@ -265,16 +276,8 @@ def _gcov_source_path(gcov_file: Path, source_files: set[str], project_root: Pat
     declared = _gcov_declared_source(gcov_file)
     if declared is None:
         return None
-    declared_path = Path(declared)
-    if declared_path.is_absolute():
-        try:
-            relative = str(declared_path.resolve().relative_to(project_root))
-        except ValueError:
-            return None
-        # Membership still decides. Resolving a path is not the same as it being
-        # in scope: dropping this check pulled test sources into the coverage
-        # denominator of every project on the generic g++ path.
-        return relative if relative in source_files else None
+    if Path(declared).is_absolute():
+        return _in_scope_relative(declared, source_files, project_root)
     return _match_source_suffix(declared, source_files)
 
 
