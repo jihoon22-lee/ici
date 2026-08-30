@@ -12,7 +12,7 @@ add_library(icirv_gui STATIC
     ${CMAKE_SOURCE_DIR}/include/icirv/gui/engine_tree_model.hpp
     ${CMAKE_SOURCE_DIR}/include/icirv/gui/main_window.hpp
 )
-target_link_libraries(icirv_gui PUBLIC icirv_core Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(icirv_gui PUBLIC icirv_core Qt${ICIRV_QT_MAJOR}::Widgets)
 
 # The headers are listed explicitly because they sit under include/ rather than
 # beside their .cpp. AUTOMOC finds a Q_OBJECT header on its own only when it
