@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import json
 import math
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -574,4 +575,11 @@ def _save_json(data: dict[str, Any], output_path: Path) -> None:
         default=str,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(content, encoding="utf-8")
+    temporary = output_path.with_name(output_path.name + ".tmp")
+    try:
+        temporary.write_text(content, encoding="utf-8")
+        temporary.replace(output_path)
+    except OSError:
+        with suppress(OSError):
+            temporary.unlink(missing_ok=True)
+        raise

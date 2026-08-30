@@ -12,7 +12,9 @@ from rich.markup import escape
 
 from ici import __version__
 from ici.config import ConfigError, load_config
+from ici.core.baseline import BaselineError
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
+from ici.core.path_utils import resolve_project_path
 from ici.core.redaction import redact_engine_result
 from ici.core.support import evaluate_support_matrix
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
@@ -96,6 +98,19 @@ def cmd_verify(
         "--publish",
         help="Publish HTML report to GitHub (gh-pages/hub) and post sticky PR comment",
     ),
+    baseline: str | None = typer.Option(
+        None, "--baseline", help="Compare findings with a project-contained ici.result/v3 report"
+    ),
+    fail_on_new: bool = typer.Option(
+        False,
+        "--fail-on-new",
+        help="Fail when the baseline comparison finds new or regressed actionable findings",
+    ),
+    write_baseline: str | None = typer.Option(
+        None,
+        "--write-baseline",
+        help="Write the current inventory as a project-contained v3 baseline",
+    ),
 ):
     """Runs the full verification engine suite and outputs a unified quality gate dashboard."""
     root = Path.cwd().resolve()
@@ -105,12 +120,37 @@ def cmd_verify(
     if publish and not html_path:
         html_path = "verify_report.html"
 
-    suite = orchestrator.run_all(
-        report_json=json_path,
-        report_html=html_path,
-        github_summary=github_summary,
-        publish=publish,
-    )
+    if fail_on_new and baseline is None:
+        typer.echo("Baseline error: --fail-on-new requires --baseline", err=True)
+        raise typer.Exit(code=2)
+    try:
+        baseline_path = resolve_project_path(root, baseline) if baseline is not None else None
+        baseline_output = (
+            resolve_project_path(root, write_baseline) if write_baseline is not None else None
+        )
+    except ValueError as err:
+        typer.echo(f"Baseline error: {err}", err=True)
+        raise typer.Exit(code=2) from err
+    if report and baseline_output == root / "verify_report.json":
+        typer.echo(
+            "Baseline error: --write-baseline must not overwrite --report output",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        suite = orchestrator.run_all(
+            report_json=json_path,
+            report_html=html_path,
+            github_summary=github_summary,
+            publish=publish,
+            baseline_path=baseline_path,
+            fail_on_new=fail_on_new,
+            write_baseline=baseline_output,
+        )
+    except BaselineError as err:
+        typer.echo(f"Baseline error: {err}", err=True)
+        raise typer.Exit(code=2) from err
 
     if html_path and open_browser:
         _open_in_browser(html_path)

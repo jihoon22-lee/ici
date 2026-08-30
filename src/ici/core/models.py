@@ -305,7 +305,11 @@ def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
     return EngineStatus.PASS
 
 
-def gate_reason(results: list[EngineResult], suite_status: EngineStatus) -> str:
+def gate_reason(
+    results: list[EngineResult],
+    suite_status: EngineStatus,
+    baseline: BaselineComparison | None = None,
+) -> str:
     """Explain, in one line, why the suite landed on this status.
 
     The console prints a Pass/Warn/Fail/Error tally, but the suite status comes
@@ -325,6 +329,9 @@ def gate_reason(results: list[EngineResult], suite_status: EngineStatus) -> str:
     failed = [r for r in results if r.required and r.status == EngineStatus.FAIL]
     if failed:
         return f"required engine '{failed[0].engine_name}' failed"
+
+    if baseline is not None and baseline.gate_failed:
+        return f"baseline gate found {baseline.gated_count} new or regressed actionable finding(s)"
 
     warned = [r for r in results if r.status == EngineStatus.WARN]
     if warned:

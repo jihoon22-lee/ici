@@ -153,7 +153,7 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
         # rule. Printing one without the other is how a report could say
         # "Error: 0" and still be an ERROR with nothing on screen explaining it.
         f"[bold {status_color}]Suite: {suite.suite_status.value}[/] — "
-        f"{gate_reason(suite.results, suite.suite_status)}"
+        f"{gate_reason(suite.results, suite.suite_status, suite.baseline_comparison)}"
     )
     console.print(Panel(summary_text, style="white", border_style="cyan"))
 

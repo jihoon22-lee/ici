@@ -1,10 +1,12 @@
 """Unified Verification Suite Orchestrator for ici."""
 
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 from ici.config import get_engine_config, load_config
+from ici.core.baseline import build_analysis_metadata, compare_suite_to_baseline
 from ici.core.models import (
     EngineResult,
     EngineStatus,
@@ -12,6 +14,7 @@ from ici.core.models import (
     VerificationSuiteResult,
     aggregate_suite_status,
 )
+from ici.core.path_utils import resolve_project_path
 from ici.core.project import get_project_name
 from ici.core.redaction import redact_suite
 from ici.core.support import ENGINE_NAMES, evaluate_support_matrix
@@ -54,6 +57,9 @@ class VerifyOrchestrator:
         publish: bool = False,
         repo_url: str | None = None,
         commit_sha: str | None = None,
+        baseline_path: str | Path | None = None,
+        fail_on_new: bool = False,
+        write_baseline: str | Path | None = None,
     ) -> VerificationSuiteResult:
         t0 = time.time()
         results: list[EngineResult] = []
@@ -101,17 +107,47 @@ class VerifyOrchestrator:
         suite_status = aggregate_suite_status(results)
         duration = time.time() - t0
 
+        support_matrix = evaluate_support_matrix(self.project_root, self.config, results)
+        metadata = build_analysis_metadata(self.config, support_matrix)
         suite = VerificationSuiteResult(
             suite_status=suite_status,
             results=results,
             duration=duration,
             tem_score=tem_score,
             max_tem_score=5.0,
-            support_matrix=evaluate_support_matrix(self.project_root, self.config, results),
+            support_matrix=support_matrix,
+            analysis_metadata=metadata,
         )
+        if baseline_path is not None:
+            comparison = compare_suite_to_baseline(
+                suite,
+                baseline_path=Path(baseline_path),
+                project_root=self.project_root,
+                current_metadata=metadata,
+                fail_on_new=fail_on_new,
+            )
+            suite.baseline_comparison = comparison
+            if comparison.gate_failed and suite.suite_status not in (
+                EngineStatus.FAIL,
+                EngineStatus.ERROR,
+            ):
+                suite.suite_status = EngineStatus.FAIL
         # All reporters share one sanitized suite. This prevents a secret in an
         # engine diagnostic from leaking through a non-JSON output path.
         suite = redact_suite(suite)
+
+        if write_baseline is not None:
+            baseline_output = resolve_project_path(self.project_root, str(write_baseline))
+            baseline_suite = replace(
+                suite,
+                suite_status=aggregate_suite_status(suite.results),
+                baseline_comparison=None,
+            )
+            save_json_report(
+                baseline_suite,
+                baseline_output,
+                project_root=self.project_root,
+            )
 
         # 1. Terminal Console Report
         print_suite_dashboard(suite, self.project_root)

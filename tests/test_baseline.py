@@ -1,11 +1,14 @@
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
 
+from ici.config import DEFAULT_CONFIG
 from ici.core.baseline import (
     BASELINE_MAX_BYTES,
     BaselineError,
+    build_analysis_metadata,
     compare_suite_to_baseline,
     load_baseline,
 )
@@ -23,7 +26,8 @@ from ici.core.models import (
     SuppressionKind,
     VerificationSuiteResult,
 )
-from ici.reporters.json_rep import save_json_report
+from ici.core.support import evaluate_support_matrix
+from ici.reporters.json_rep import save_json_report, serialize_suite_result
 
 _DIGEST_A = "sha256:" + "a" * 64
 _DIGEST_B = "sha256:" + "b" * 64
@@ -288,3 +292,95 @@ def test_baseline_rejects_malformed_and_oversized_input(tmp_path, monkeypatch):
     with pytest.raises(BaselineError, match="exceeds"):
         load_baseline(baseline, tmp_path)
     assert BASELINE_MAX_BYTES >= 64 * 1024 * 1024
+
+
+def test_analysis_metadata_is_deterministic_and_tracks_tool_policy(tmp_path):
+    config = deepcopy(DEFAULT_CONFIG)
+    matrix = evaluate_support_matrix(tmp_path, config, [])
+
+    first = build_analysis_metadata(config, matrix)
+    second = build_analysis_metadata(config, matrix)
+
+    assert first == second
+    assert first.policy_digest.startswith("sha256:")
+    assert first.tool_policy_digest.startswith("sha256:")
+
+    changed = deepcopy(config)
+    changed["engines"]["lint"]["ruff_required"] = True
+    changed_matrix = evaluate_support_matrix(tmp_path, changed, [])
+    changed_metadata = build_analysis_metadata(changed, changed_matrix)
+    assert changed_metadata.policy_digest != first.policy_digest
+    assert changed_metadata.tool_policy_digest != first.tool_policy_digest
+
+
+def test_baseline_delta_serialization_is_complete_and_redacted(tmp_path):
+    baseline = _write_baseline(tmp_path, [], metadata=_metadata())
+    current = _suite(
+        [
+            _finding(
+                "new",
+                5,
+                severity=FindingSeverity.HIGH,
+                message="password=supersecret",
+            )
+        ],
+        metadata=_metadata(),
+    )
+    current.baseline_comparison = _compare(tmp_path, current, baseline, fail_on_new=True)
+
+    payload = serialize_suite_result(current, project_root=tmp_path)
+
+    assert payload["analysis_metadata"]["fingerprint_version"] == "ici-fingerprint/v1"
+    comparison = payload["baseline_comparison"]
+    assert comparison["source_path"] == "baseline.json"
+    assert comparison["new_count"] == 1
+    assert comparison["unchanged_count"] == 0
+    assert comparison["moved_count"] == 0
+    assert comparison["resolved_count"] == 0
+    assert comparison["regressed_count"] == 0
+    assert comparison["gated_count"] == 1
+    assert comparison["gate_failed"] is True
+    assert comparison["entries"][0]["state"] == "new"
+    assert "supersecret" not in json.dumps(payload)
+    assert "***REDACTED***" in comparison["entries"][0]["message"]
+
+
+def test_checked_in_schema_declares_optional_baseline_contract():
+    schema_path = (
+        Path(__file__).parents[1] / "src" / "ici" / "schemas" / "ici-result-v3.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    suite_properties = schema["$defs"]["suite"]["properties"]
+    assert "analysis_metadata" in suite_properties
+    assert "baseline_comparison" in suite_properties
+    assert "analysis_metadata" not in schema["$defs"]["suite"]["required"]
+    assert "baseline_comparison" not in schema["$defs"]["suite"]["required"]
+    assert set(schema["$defs"]["baselineComparison"]["required"]) >= {
+        "new_count",
+        "unchanged_count",
+        "moved_count",
+        "resolved_count",
+        "regressed_count",
+        "gated_count",
+        "entries",
+    }
+
+
+def test_json_writer_replaces_atomically_and_cleans_failed_temporary_file(tmp_path, monkeypatch):
+    output = tmp_path / "baseline.json"
+    output.write_text("old", encoding="utf-8")
+    original_replace = Path.replace
+
+    def fail_replace(source, target):
+        if source == output.with_name("baseline.json.tmp"):
+            raise OSError("replace failed")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_replace)
+
+    with pytest.raises(OSError, match="replace failed"):
+        save_json_report(_suite([], metadata=_metadata()), output, project_root=tmp_path)
+
+    assert output.read_text(encoding="utf-8") == "old"
+    assert not output.with_name("baseline.json.tmp").exists()
