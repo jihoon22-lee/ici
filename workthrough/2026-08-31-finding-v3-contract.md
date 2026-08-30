@@ -99,7 +99,7 @@ C:\checkout-a\src\a.cpp + project root C:\checkout-a
 ### Python and packaging gates
 
 ```text
-uv run --python 3.10 pytest                    649 passed
+uv run --python 3.10 pytest                    657 passed
 uv run --python 3.10 mypy src/ici              success; 53 source files, no notes
 uvx ruff check .                               passed
 uvx ruff format --check .                      passed
@@ -115,9 +115,9 @@ The built `dist/ici.pyz` contains
 ```text
 dist/ici.pyz verify --report --html /tmp/ici-v3-self.html
 suite WARN; 8 PASS / 4 WARN; TEM 4.79
-targets 2,244; findings 2,244; 2,227 unique fingerprints
+targets 2,249; findings 2,249; 2,232 unique fingerprints
 every nested engine schema ici.result/v3; Draft 2020-12 schema validation passed
-console 2,420 lines; HTML contains no external script or stylesheet URL
+console 2,408 lines; HTML contains no external script or stylesheet URL
 ```
 
 ### Native viewer
