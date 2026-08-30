@@ -8,10 +8,12 @@ tests to accidentally probe the host toolchain.
 from __future__ import annotations
 
 import json
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
 import pytest
+from rich.console import Console
 
 from ici.core.capabilities import CapabilityInventory, ToolRequirement
 from ici.core.models import (
@@ -28,7 +30,10 @@ from ici.core.models import (
 from ici.core.redaction import redact_suite
 from ici.core.toolchain import ProbeEvidence, ToolCapability
 from ici.engines.verify import VerifyOrchestrator
+from ici.reporters.console import print_suite_dashboard
+from ici.reporters.html import generate_html_report
 from ici.reporters.json_rep import serialize_suite_result
+from ici.reporters.markdown import generate_markdown_report
 
 
 def _support_matrix() -> SupportMatrix:
@@ -331,6 +336,64 @@ def test_suite_without_inventory_remains_serializable_and_backward_compatible():
     assert payload.get("capability_inventory") is None
     assert payload["schema_version"] == "ici.result/v3"
     assert payload["results"][0]["engine_name"] == "line"
+
+
+def test_human_reporters_project_the_attached_snapshot_without_reprobing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    inventory = _inventory()
+    suite = VerificationSuiteResult(
+        suite_status=EngineStatus.PASS,
+        results=[EngineResult("line", EngineStatus.PASS, "ok")],
+        capability_inventory=inventory,
+    )
+
+    def fail_probe(*args, **kwargs):
+        pytest.fail(f"human reporters must not probe tools: {args!r} {kwargs!r}")
+
+    monkeypatch.setattr("ici.core.capabilities.collect_capability_inventory", fail_probe)
+
+    terminal = StringIO()
+    print_suite_dashboard(
+        suite,
+        tmp_path,
+        output_console=Console(file=terminal, color_system=None, width=120),
+    )
+    markdown = generate_markdown_report(suite)
+    html_path = tmp_path / "capabilities.html"
+    generate_html_report(suite, html_path, base_dir=tmp_path)
+    html = html_path.read_text(encoding="utf-8")
+
+    assert "Tool Capability Snapshot" in terminal.getvalue()
+    assert "compiler=ready" in terminal.getvalue()
+    assert "Tool capability snapshot" in markdown
+    assert "Complete tool inventory (1)" in markdown
+    assert "compiler 14.2.0" in markdown
+    assert "Tool capability snapshot" in html
+    assert "/usr/bin/ici-tool" in html
+    assert "target_triple=x86_64-linux-gnu" in html
+    assert 'id="tab-support"' in html
+
+
+def test_checked_in_v3_schema_declares_optional_capability_inventory():
+    schema_path = (
+        Path(__file__).parents[1] / "src" / "ici" / "schemas" / "ici-result-v3.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    suite = schema["$defs"]["suite"]
+    assert suite["properties"]["capability_inventory"] == {
+        "$ref": "#/$defs/nullableCapabilityInventory"
+    }
+    assert "capability_inventory" not in suite["required"]
+    assert set(schema["$defs"]["capabilityTool"]["required"]) >= {
+        "name",
+        "state",
+        "required_by",
+        "details",
+        "probe_argv",
+        "evidence",
+    }
 
 
 def _walk_dicts(value: object):

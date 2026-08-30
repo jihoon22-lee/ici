@@ -52,7 +52,10 @@ def generate_html_report(
     security_engines = [eng_map[name] for name in ("security", "resource") if name in eng_map]
     security_tab_content = _render_static_analysis_section(security_engines, base)
     issues_tab_content = _render_issues_section(all_issues, base)
-    support_tab_content = _render_support_section(suite.support_matrix)
+    support_tab_content = _render_support_section(
+        suite.support_matrix,
+        suite.capability_inventory,
+    )
     baseline_tab_content = (
         _render_baseline_section(suite.baseline_comparison, suite, base)
         if suite.baseline_comparison is not None
