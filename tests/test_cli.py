@@ -194,6 +194,8 @@ def test_standalone_report_uses_v2_serializer(tmp_path, monkeypatch):
     assert data["schema_version"] == "ici.result/v3"
     assert data["engine_name"] == "line"
     assert "tool_evidence" in data
+    assert data["support_matrix"] is not None
+    assert {item["engine_name"] for item in data["support_matrix"]["entries"]} == {"line"}
 
 
 def test_line_command_uses_project_config(tmp_path, monkeypatch):

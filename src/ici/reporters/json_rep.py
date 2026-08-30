@@ -12,12 +12,14 @@ from ici.core.findings import findings_for_result, validate_source_region
 from ici.core.models import (
     EngineResult,
     EngineStatus,
+    EngineSupport,
     EvidenceState,
     Finding,
     FindingMetric,
     FindingSuppression,
     InspectionTarget,
     SourceLocation,
+    SupportMatrix,
     ToolEvidence,
     VerificationSuiteResult,
 )
@@ -155,6 +157,54 @@ def _serialize_tool_evidence(tool: ToolEvidence) -> dict[str, Any]:
     }
 
 
+def _serialize_support_entry(entry: EngineSupport) -> dict[str, Any]:
+    if type(entry.applicable) is not bool or type(entry.enabled) is not bool:
+        raise ValueError("support applicable/enabled must be booleans")
+    return {
+        "engine_name": _require_string(entry.engine_name, "support.engine_name", nonempty=True),
+        "language": entry.language.value,
+        "mode": entry.mode.value,
+        "active_mode": entry.active_mode.value if entry.active_mode is not None else None,
+        "applicable": entry.applicable,
+        "enabled": entry.enabled,
+        "evidence": entry.evidence.value,
+        "confidence": entry.confidence.value,
+        "frameworks": [
+            _require_string(value, "support.frameworks item", nonempty=True)
+            for value in entry.frameworks
+        ],
+        "required_tools": [
+            _require_string(value, "support.required_tools item", nonempty=True)
+            for value in entry.required_tools
+        ],
+        "optional_tools": [
+            _require_string(value, "support.optional_tools item", nonempty=True)
+            for value in entry.optional_tools
+        ],
+        "fallback_mode": entry.fallback_mode.value if entry.fallback_mode is not None else None,
+        "limitations": [
+            _require_string(value, "support.limitations item", nonempty=True)
+            for value in entry.limitations
+        ],
+        "reason": _require_string(entry.reason, "support.reason"),
+    }
+
+
+def serialize_support_matrix(matrix: SupportMatrix | None) -> dict[str, Any] | None:
+    """Serialize a project capability matrix using the v3 enum vocabulary."""
+
+    if matrix is None:
+        return None
+    return {
+        "project_languages": [item.value for item in matrix.project_languages],
+        "project_frameworks": [
+            _require_string(value, "support.project_frameworks item", nonempty=True)
+            for value in matrix.project_frameworks
+        ],
+        "entries": [_serialize_support_entry(entry) for entry in matrix.entries],
+    }
+
+
 def serialize_engine_result(
     result: EngineResult, project_root: str | Path | None = None
 ) -> dict[str, Any]:
@@ -184,6 +234,7 @@ def serialize_engine_result(
             _serialize_finding(finding)
             for finding in findings_for_result(safe, project_root=project_root)
         ],
+        "support_matrix": serialize_support_matrix(safe.support_matrix),
     }
 
 
@@ -210,6 +261,7 @@ def serialize_suite_result(
         "results": [
             serialize_engine_result(result, project_root=project_root) for result in safe.results
         ],
+        "support_matrix": serialize_support_matrix(safe.support_matrix),
     }
 
 

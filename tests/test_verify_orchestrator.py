@@ -60,3 +60,5 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
     assert suite.results[0].summary == "Engine crashed: RuntimeError: boom"
     assert suite.results[0].evidence == EvidenceState.NOT_RUN
     assert suite.results[1].engine_name == "lint"
+    assert suite.support_matrix is not None
+    assert len(suite.support_matrix.entries) == 26

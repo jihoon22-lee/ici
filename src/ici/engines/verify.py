@@ -14,6 +14,7 @@ from ici.core.models import (
 )
 from ici.core.project import get_project_name
 from ici.core.redaction import redact_suite
+from ici.core.support import ENGINE_NAMES, evaluate_support_matrix
 from ici.engines.cognitive import CognitiveEngine
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.cycle import CycleEngine
@@ -73,6 +74,8 @@ class VerifyOrchestrator:
             ("dup", DuplicateEngine),
             ("exception", ExceptionSafetyEngine),
         ]
+        if tuple(name for name, _engine_cls in engine_defs) != ENGINE_NAMES:
+            raise RuntimeError("verification engines and support declarations are out of sync")
 
         tem_score = None
         for name, engine_cls in engine_defs:
@@ -104,6 +107,7 @@ class VerifyOrchestrator:
             duration=duration,
             tem_score=tem_score,
             max_tem_score=5.0,
+            support_matrix=evaluate_support_matrix(self.project_root, self.config, results),
         )
         # All reporters share one sanitized suite. This prevents a secret in an
         # engine diagnostic from leaking through a non-JSON output path.

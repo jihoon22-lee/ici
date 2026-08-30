@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 
 from ici.config import DEFAULT_CONFIG
@@ -11,6 +12,7 @@ from ici.core.models import (
     EvidenceState,
     FindingConfidence,
     SupportLanguage,
+    VerificationSuiteResult,
 )
 from ici.core.support import (
     ENGINE_NAMES,
@@ -18,6 +20,7 @@ from ici.core.support import (
     render_support_markdown,
     support_declarations,
 )
+from ici.reporters.json_rep import serialize_suite_result
 
 
 def _config(*source_dirs: str) -> dict:
@@ -153,3 +156,37 @@ def test_markdown_table_is_generated_in_registry_order():
     assert [row.split("`")[1] for row in rows] == list(ENGINE_NAMES)
     assert "| `type` | tool-backed → heuristic fallback | unsupported |" in table
     assert "| `sanitize` | tool-backed | tool-backed (Qt) |" in table
+
+
+def test_v3_serializer_and_schema_share_the_complete_matrix_contract(tmp_path: Path):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "app.py").write_text("value = 1\n", encoding="utf-8")
+    config = _config("src")
+    result = EngineResult("line", EngineStatus.PASS, "ok")
+    matrix = evaluate_support_matrix(tmp_path, config, [result])
+    matrix.entries[0].reason = "api_key=matrixsecret"
+    suite = VerificationSuiteResult(EngineStatus.PASS, [result], support_matrix=matrix)
+
+    payload = serialize_suite_result(suite, project_root=tmp_path)
+    assert "matrixsecret" not in json.dumps(payload)
+    serialized = payload["support_matrix"]
+    assert serialized["project_languages"] == ["python"]
+    assert len(serialized["entries"]) == len(ENGINE_NAMES) * 2
+    line_python = next(
+        item
+        for item in serialized["entries"]
+        if item["engine_name"] == "line" and item["language"] == "python"
+    )
+    assert line_python["mode"] == "exact"
+    assert line_python["active_mode"] == "exact"
+    assert line_python["evidence"] == "MEASURED"
+
+    schema_path = (
+        Path(__file__).parents[1] / "src" / "ici" / "schemas" / "ici-result-v3.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    assert schema["$defs"]["supportEntry"]["additionalProperties"] is False
+    assert schema["$defs"]["suite"]["properties"]["support_matrix"] == {
+        "$ref": "#/$defs/nullableSupportMatrix"
+    }
