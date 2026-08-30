@@ -26,6 +26,7 @@ from ici.core.project import (
 )
 from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
+from ici.engines.cpp_text import defines_main
 
 _PYTEST_EXECUTED_RE = re.compile(
     r"\b(?P<count>\d+)\s+(?:passed|failed|xfailed|xpassed)\b", re.IGNORECASE
@@ -182,7 +183,7 @@ class SanitizeEngine(BaseEngine):
 
         has_failure = False
         inc_flags = get_all_cpp_includes(self.project_root, self.config)
-        src_files = [str(path) for path in cpp_sources if path.name != "main.cpp"]
+        src_files = [str(path) for path in cpp_sources if not defines_main(path)]
         lib_flags = self._cpp_library_flags()
         with tempfile.TemporaryDirectory(prefix="ici-sanitize-") as temp_name:
             temp_root = Path(temp_name)

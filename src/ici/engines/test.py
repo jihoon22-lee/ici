@@ -644,7 +644,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         src_files = [
             str(f)
             for f in get_compilable_cpp_sources(self.project_root, self.config)
-            if "main.cpp" not in f.name
+            if not defines_main(f)
         ]
         src_rel_set = {str(Path(f).relative_to(self.project_root)) for f in src_files}
         nas_cpp = get_nas_cpp_lib_dir()

@@ -178,7 +178,8 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **동작**: 프로젝트 내 pytest 또는 C++ 테스트 바이너리를 실행하여 단위 테스트 전수 통과 여부 검증
 - **C++ 경로**: 프로젝트 **루트**에 `CMakeLists.txt`나 `*.pro`가 있으면 그 빌드 시스템에 위임하고
   (CTest / `make check`), 없으면 모든 소스를 `g++`로 직접 컴파일·링크합니다. 어댑터 경로에서는
-  `project.cpp_external_build_dirs`와 `-std=c++17` 고정이 적용되지 않고, `Q_OBJECT` 클래스를
+  `project.cpp_external_build_dirs`와 `-std=c++17` 고정이 적용되지 않고(`sanitize`는 어댑터로
+  옮기지 않아 그 설정을 계속 따릅니다), `Q_OBJECT` 클래스를
   단위 테스트할 수 있습니다. 두 경로의 테스트 카운트 단위가 다르다는 점을 포함해 자세한 것은
   [`user-guide.md` §2.5](user-guide.md)를 봅니다.
 - **Python 실행기**: `[engines.test].python`이 지정되면 해당 인터프리터를 우선 사용하고,
