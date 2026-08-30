@@ -70,25 +70,30 @@ and `9d24815`.
 
 The recorded local evidence is:
 
-- `uv run --python 3.10 pytest`: **807 passed**.
-- `uvx ruff check .` and `uvx ruff format --check .`: passed.
-- `./scripts/smoke.sh`: passed.
-- `./scripts/build-pyz.sh` run twice produced the reproducible SHA-256
-  `5fd461d65add85d1ff7ae6d9267673e9db562cfd1c0b087f0c346214a2531546`. This measurement
-  predates the final import-cycle correction, so a final rebuild and hash are still pending.
-- Self verify completed with exit 0 and policy **WARN** due to existing findings: 12 engines,
-  8 PASS / 4 WARN / 0 FAIL / 0 ERROR, TEM **4.84**, and **159.99s**. The verify result carries
-  exactly one capability snapshot with **30 tools**: **21 ready / 0 incomplete / 9 unavailable**;
-  required `ruff`, `pytest`, and `python3` were ready and capability health was **READY**.
-- Self verify exposed a newly introduced core import cycle,
-  `capabilities -> redaction -> models -> capabilities`. The cycle was fixed by extracting the
-  model-independent `redaction_values` module; the focused cycle rerun now reports only the
-  single pre-existing `test/test_interpreter` cycle.
+- `uv run --python 3.10 pytest`: **807 passed in 40.32s**.
+- `uvx ruff check .` and `uvx ruff format --check .`: passed for **103 files**.
+- `./scripts/build-pyz.sh` run twice produced identical, reproducible SHA-256
+  `0d91f4ab698aed53781669125200e5ae2291484c4083d2c181aacee06d5c80e2`; both artifacts contain
+  10 pure-Python distributions and no `certifi`.
+- `./scripts/smoke.sh`: passed, including the doctor capability summary (**21/30 ready**, required
+  `ruff`/`pytest`/`python3` ready), Python 3.10, integrity, and Zero-CDN checks.
+- Final self verify completed with exit 0 and policy **WARN** due to existing findings: 12 engines,
+  **8 PASS / 4 WARN / 0 FAIL / 0 ERROR / 0 SKIP**, TEM **4.84**, and **105.98s**. The capability
+  inventory is exactly **30 tools** (**21 ready / 0 incomplete / 9 unavailable**); required
+  `ruff`, `pytest`, and `python3` are ready and capability health is **PASS**.
+- The JSON report contains the capability inventory exactly once at the suite root, uses schema
+  `ici.capabilities/v1`, and has no nested copies. The final HTML report at
+  `/tmp/ici-capability-reporting-final.html` is **3,627,583 bytes**, contains the **Support &
+  Capabilities** and **Capability health** text, and has zero external `src`/`href` references.
+- The initial self verify exposed a core import cycle,
+  `capabilities -> redaction -> models -> capabilities`. Extracting the model-independent
+  `redaction_values` module fixed it; the final focused cycle rerun reports only the single
+  pre-existing `test/test_interpreter` cycle.
 
 These are local results only. Remote CI, PR checks, sticky comments, and Pages HTTP/Zero-CDN
 evidence are not claimed in this workthrough.
 
 ## Next Steps
 
-- Rebuild the pyz after the import-cycle correction and record its final reproducibility hash.
+- Record remote CI, PR, sticky-comment, and Pages HTTP/Zero-CDN evidence after main integration.
 - Retain the optional field when consuming legacy `ici.result/v3` reports.
