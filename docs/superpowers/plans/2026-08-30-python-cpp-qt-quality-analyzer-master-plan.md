@@ -30,7 +30,7 @@ Merge Gate를 다시 확인한다.
 | 저장소 | 기준 `main` | 이 계획과 직접 관련된 병합 사실 |
 |---|---|---|
 | ici | [`fa3ad28`](https://github.com/jihoon22-lee/ici/commit/fa3ad28dabccac840d2e19246ccf35d8cb30182b) | 계획 #78, cycle #79, CI/리포트 gate #80, viewer Qt 셸 #81, release provenance #82 |
-| toy-projects | [`6a4b29e`](https://github.com/jihoon22-lee/toy-projects/commit/6a4b29ea0690cb49df92ac4038d3fd61fc67b3d6) | 제품 계획 #12, manifest/report gate #13, loglens state #14, T0-1 계획·환경 #15 |
+| toy-projects | [`f267695`](https://github.com/jihoon22-lee/toy-projects/commit/f26769527fa7443aa56cdea693fba278000f0816) | 제품 계획 #12, manifest/report gate #13, loglens state #14, T0-1 계획·환경 #15, diskmap Qt 셸 #16 |
 
 현재 환경에는 Qt 5.15.18과 Qt 6.10.2가 모두 설치돼 있다. ici viewer는 [PR #81](https://github.com/jihoon22-lee/ici/pull/81)에서 Qt 5·Qt 6 각각 4/4 CTest와 Qt-free CLI를 통과했고, toy 쪽 환경·실측 기록은 [PR #15](https://github.com/jihoon22-lee/toy-projects/pull/15)에 있다. 따라서 과거 문서의 “Qt 5 미설치/미검증” 또는 “아직 푸시되지 않음” 표현은 현재 상태가 아니다.
 
@@ -42,9 +42,9 @@ Merge Gate를 다시 확인한다.
 
 | 대상 | 결과 |
 |---|---|
-| ici pytest | 632/632 PASS |
+| ici pytest | 634/634 PASS |
 | ici self verify | Pass 7 · Warn 5 · Fail 0 · Error 0, TEM 4.78 |
-| line/function/branch | 85.9% / 95.7% / 78.0% |
+| line/function/branch | 85.9% / 95.7% / 77.9% |
 | viewer | 4/4 PASS, TEM 4.86 |
 
 현재 강점:
@@ -54,7 +54,7 @@ Merge Gate를 다시 확인한다.
 - build/test/sanitize의 실제 프로젝트 빌드 정의 사용
 - JSON/HTML/Markdown/console reporter 분리
 - `ToolEvidence`, `EvidenceState`, 파일·행 위치 계약
-- 실물 Qt 프로젝트에서 발견한 adapter 회귀를 포함한 632개 테스트
+- 실물 Qt 프로젝트에서 발견한 adapter 회귀를 포함한 634개 테스트
 
 현재 핵심 한계:
 
