@@ -428,7 +428,7 @@ Suite TEM 4.89 / 5.0
 
 The refreshed PR sticky comment links resolved successfully: both the ici and viewer Pages URLs
 returned HTTP 200, the published HTML contained the `Support & Capabilities` tab, and the report
-contained no external `<script>` or `<style>` resources.
+contained no external script or stylesheet references; its CSS and JavaScript remained inline.
 
 ### Diff and compatibility checks
 
