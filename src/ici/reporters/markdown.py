@@ -6,11 +6,150 @@ import re
 from urllib.parse import quote, urlsplit
 
 from ici.core.models import (
+    BaselineComparison,
+    DeltaState,
     EngineStatus,
+    FindingDelta,
+    SourceLocation,
     VerificationSuiteResult,
     format_score_display,
+    gate_reason,
 )
 from ici.core.redaction import redact_suite
+
+_BASELINE_DETAIL_LIMIT = 20
+_BASELINE_UNCHANGED_DETAIL_LIMIT = 3
+_DELTA_STATE_ORDER = {
+    DeltaState.NEW: 0,
+    DeltaState.MOVED: 1,
+    DeltaState.RESOLVED: 2,
+    DeltaState.UNCHANGED: 3,
+}
+
+
+def _enum_value(value: object) -> str:
+    """Return a readable value for an enum or a legacy string payload."""
+    return str(getattr(value, "value", value))
+
+
+def _baseline_detail_entries(
+    comparison: BaselineComparison,
+) -> tuple[list[FindingDelta], int, int]:
+    """Select a deterministic, issues-first view without truncating JSON data."""
+    entries = list(comparison.entries or [])
+    entries.sort(
+        key=lambda entry: (
+            not entry.gated,
+            _DELTA_STATE_ORDER.get(entry.state, 99),
+            entry.engine_name,
+            entry.fingerprint,
+            _location_sort_key(entry.current_location or entry.baseline_location),
+        )
+    )
+    changed = [entry for entry in entries if entry.state != DeltaState.UNCHANGED]
+    unchanged = [entry for entry in entries if entry.state == DeltaState.UNCHANGED]
+    visible = changed[:_BASELINE_DETAIL_LIMIT]
+    remaining_slots = _BASELINE_DETAIL_LIMIT - len(visible)
+    visible.extend(unchanged[: min(_BASELINE_UNCHANGED_DETAIL_LIMIT, remaining_slots)])
+    return (
+        visible,
+        len(entries) - len(visible),
+        max(0, len(unchanged) - len(visible[len(changed[:_BASELINE_DETAIL_LIMIT]) :])),
+    )
+
+
+def _location_sort_key(location: SourceLocation | None) -> tuple[object, ...]:
+    if location is None:
+        return ("", 0, 0, "")
+    return (location.path, location.start_line, location.end_line or 0, location.label)
+
+
+def _render_baseline_location(
+    location: SourceLocation | None,
+    repo_url: str | None,
+    commit_sha: str | None,
+) -> str:
+    if location is None:
+        return _render_code("—")
+    return _make_gh_link(
+        location.path,
+        location.start_line,
+        location.end_line,
+        repo_url,
+        commit_sha,
+    )
+
+
+def _render_severity_transition(entry: FindingDelta) -> str:
+    before = _enum_value(entry.baseline_severity) if entry.baseline_severity is not None else "—"
+    after = _enum_value(entry.current_severity) if entry.current_severity is not None else "—"
+    return _render_code(f"{before} → {after}")
+
+
+def _render_baseline_markdown(
+    comparison: BaselineComparison,
+    suite: VerificationSuiteResult,
+    repo_url: str | None,
+    commit_sha: str | None,
+) -> list[str]:
+    """Render a compact baseline summary and an issues-first delta table."""
+    visible, omitted, omitted_unchanged = _baseline_detail_entries(comparison)
+    gate_label = (
+        "❌ FAILED"
+        if comparison.gate_failed
+        else ("✅ PASSED" if comparison.fail_on_new else "INFO: NOT ENFORCED")
+    )
+    lines = [
+        "### Baseline finding delta\n",
+        f"> **Source**: {_render_code(comparison.source_path)}  ",
+        f"> **Fail-on-new gate**: {gate_label}  ",
+        f"> **Gate reason**: {_escape_inline(gate_reason(suite.results, suite.suite_status, comparison))}\n",
+        "| Delta | Count |",
+        "|---|---:|",
+        f"| New | **{comparison.count(DeltaState.NEW)}** |",
+        f"| Unchanged | **{comparison.count(DeltaState.UNCHANGED)}** |",
+        f"| Moved | **{comparison.count(DeltaState.MOVED)}** |",
+        f"| Resolved | **{comparison.count(DeltaState.RESOLVED)}** |",
+        f"| Regressed | **{comparison.regressed_count}** |",
+        f"| Gated | **{comparison.gated_count}** |",
+    ]
+
+    if comparison.warnings:
+        lines.extend(["\n**Compatibility warnings:**"])
+        lines.extend(f"> ⚠️ {_escape_inline(warning)}" for warning in comparison.warnings)
+
+    if visible:
+        lines.extend(
+            [
+                "\n<details>",
+                f"<summary><b>Issues-first delta details ({len(visible)} shown)</b></summary>\n",
+                "| Delta | Engine / Rule | Current location | Baseline location | Severity transition | Gate | Message |",
+                "|---|---|---|---|:---:|:---:|---|",
+            ]
+        )
+        for entry in visible:
+            state = _enum_value(entry.state).upper()
+            gated = "❌" if entry.gated else "—"
+            lines.append(
+                f"| `{_escape_table_cell(state)}` | {_render_code(f'{entry.engine_name} / {entry.rule_id}')} | "
+                f"{_render_baseline_location(entry.current_location, repo_url, commit_sha)} | "
+                f"{_render_baseline_location(entry.baseline_location, repo_url, commit_sha)} | "
+                f"{_render_severity_transition(entry)} | {gated} | {_escape_table_cell(entry.message or '—')} |"
+            )
+        lines.append("</details>\n")
+    elif comparison.entries:
+        lines.append("\n<details><summary>Delta details omitted</summary></details>\n")
+
+    omitted_note = []
+    if omitted:
+        omitted_note.append(f"{omitted} additional delta row(s) omitted from this view")
+    if omitted_unchanged:
+        omitted_note.append(f"{omitted_unchanged} unchanged row(s) omitted")
+    if omitted_note:
+        lines.append(
+            f"> Note: {'; '.join(omitted_note)}. The JSON report retains the full inventory.\n"
+        )
+    return lines
 
 
 def generate_markdown_report(
@@ -61,6 +200,16 @@ def generate_markdown_report(
         md.append(
             f"| <strong>{_render_code(res.engine_name)}</strong> | {badge} | "
             f"{_escape_table_cell(res.summary)} | {score_val} | {duration_val} |"
+        )
+
+    if suite.baseline_comparison is not None:
+        md.extend(
+            _render_baseline_markdown(
+                suite.baseline_comparison,
+                suite,
+                repo_url,
+                commit_sha,
+            )
         )
 
     md.append("\n---\n")
