@@ -26,6 +26,12 @@
 > §7의 착수 조건은 충족 방식이 바뀌었다 — 측정을 별도 단계로 두는 대신 구현과 같은 루프에서
 > 수행한다. 자세한 것은 §7.4를 본다.
 
+> **v0.6.0 완료 상태 (2026-08-31):** 위 진행 기록은 당시 상태를 설명하는 역사 기록이다.
+> CMake/CTest·qmake/Make adapter는 [PR #76](https://github.com/jihoon22-lee/ici/pull/76)로
+> 완료·출시됐고, viewer의 Qt 셸 회귀는 [PR #81](https://github.com/jihoon22-lee/ici/pull/81)에서
+> Qt 5.15와 Qt 6 각각 4/4 CTest로 검증됐다. Toolchain capability inventory, compile DB,
+> Python compatibility, ELF/ABI, hybrid integration은 여전히 마스터 계획의 후속 범위다.
+
 ## 2. 명시적 제외 범위
 
 다음 항목은 현재 로드맵에 포함하지 않는다.
@@ -46,8 +52,9 @@ RHEL 7.9, 8.10, 이후 버전은 각자 별도의 CI 실행 환경으로 취급�
 
 검증 시간의 대부분은 외부 compiler, test runner, linter에서 발생한다. 따라서 Python
 오케스트레이터를 유지하고, 중복 파일 탐색과 불필요한 외부 실행을 줄이는 데 집중한다.
-프로젝트 정의를 읽어 CMake/qmake를 실제로 configure/build/test하는 어댑터는 개발 축 B에서
-추가할 미래 기능이다.
+프로젝트 정의를 읽어 CMake/qmake를 실제로 configure/build/test하는 어댑터는 `v0.6.0`부터
+현재 기능이다. Toolchain capability inventory와 compile DB 등 나머지 축 B 기능은 미래 범위로
+남긴다.
 
 ### 3.2 결과와 발견 사항 분리
 
@@ -98,7 +105,10 @@ OS별 CI 작업은 독립적으로 실행한다. v0.4.0의 현재 범위는 다�
 
 - qmake/Qt, Ninja, CTest 및 `readelf`/`objdump`/`nm`을 포함한 전체 capability inventory
 - compiler target triple과 도구별 최소/최대 버전 정책
-- 프로젝트 정의 기반 CMake/qmake build adapter와 전용 toolchain 엔진
+
+프로젝트 정의 기반 CMake/qmake build adapter는 위 미래 목록에서 제외한다. 이 기능은
+`v0.6.0`에서 완료됐으며 [PR #76](https://github.com/jihoon22-lee/ici/pull/76)의 실제
+구현·회귀 근거를 따른다. 전용 toolchain 엔진과 전체 capability 정책은 여전히 미래 범위다.
 
 이 미래 범위의 도구 누락·버전 정책·shadow build 검증은
 [`2026-08-19-ci-validation-features.md`](../superpowers/plans/2026-08-19-ci-validation-features.md)에
@@ -127,10 +137,12 @@ v0.4.0에서는 위 10개 항목을 모두 구현·검증했다. 결과/증거 �
 프로세스 격리, 테스트·커버리지·lint/type·sanitize/dead/exception, build 산출물, 리포터·CLI,
 그리고 CI 읽기/쓰기 권한 분리를 포함한다.
 
-## 5. 개발 축 B: 신규 CI 검증 기능 (미래 작업, v0.4.0 보류)
+## 5. 개발 축 B: 신규 CI 검증 기능 (v0.6.0에서 adapter 부분 완료)
 
-아래 항목은 설계와 작업 순서만 정의한 미래 범위다. 현재 `ici`가 제공하는 기능으로
-간주해서는 안 되며, v0.4.0의 `verify`에 신규 엔진이나 신규 CLI가 등록되어 있지 않다.
+아래 항목 중 CMake/CTest·qmake/Make adapter는 `v0.6.0`에서 구현·출시됐다. 나머지는
+설계와 작업 순서만 정의한 미래 범위이며, 현재 `ici`가 제공하는 기능으로 간주해서는 안 된다.
+v0.4.0의 `verify`에 신규 엔진이나 신규 CLI가 등록되어 있지 않았다는 설명은 당시 릴리스
+경계를 가리킨다.
 
 ### 5.1 Toolchain 검증
 
@@ -140,7 +152,7 @@ v0.4.0에서는 위 10개 항목을 모두 구현·검증했다. 결과/증거 �
 
 ### 5.2 CMake/CTest 및 qmake/Make 빌드 어댑터
 
-> **v0.6.0에서 착수됨.** 구현 수준의 설계는
+> **v0.6.0에서 완료됨.** 구현 수준의 설계는
 > [`2026-08-29-cmake-qmake-build-adapter-design.md`](../superpowers/specs/2026-08-29-cmake-qmake-build-adapter-design.md)에
 > 있다. 아래는 그 문서가 확정한 계약의 요약이다.
 
@@ -207,22 +219,28 @@ shell은 사용하지 않는다.
 [`2026-08-19-ci-validation-features.md`](../superpowers/plans/2026-08-19-ci-validation-features.md)에
 정의한다.
 
-## 6. 미래 구현 순서와 릴리스 경계
+## 6. 구현 순서와 릴리스 경계
 
 신규 기능은 기존 기능 보강 계획이 완료된 뒤 별도 승인과 PR로 시작한다. v0.4.0은 신뢰성
-릴리스 경계만 달성했으며, 다음 단계는 아직 구현되지 않았다.
+릴리스 경계였고, v0.6.0에서 CMake/qmake adapter가 추가됐다. 나머지 단계는 아직 구현되지
+않았다.
 
 1. **완료 — 신뢰성 릴리스 (v0.4.0)**: 개발 축 A 전체 완료
-2. **미래 — 빌드 인식 릴리스**: Toolchain + 빌드 어댑터 + Compile Commands
+2. **부분 완료 — 빌드 인식 릴리스 (v0.6.0)**: CMake/qmake build adapter 완료; Toolchain + Compile Commands는 미래
 3. **미래 — 언어 호환성 릴리스**: Python Runtime/Package + ELF/ABI
 4. **미래 — 혼합 프로젝트 릴리스**: 통합 스모크
 
 각 릴리스는 Python 3.10 품질 게이트, ruff, 재현 가능한 pyz 빌드, smoke 테스트를 통과해야 한다.
 
-## 7. 축 B 착수 조건: 요구사항을 추측하지 않는다
+## 7. 축 B 착수 조건: 요구사항을 추측하지 않는다 (역사 기록)
 
-§5.2 빌드 어댑터와 §5.3 Compile Commands는 **아직 스펙을 쓰지 않는다.** 쓸 수 없어서가 아니라,
-지금 쓰면 실측이 아닌 추측이 되기 때문이다.
+> **상태 보정 (2026-08-31):** 아래 §7.2~§7.4는 v0.6.0 adapter를 구현하기 전후의
+> 실측·설계 근거를 보존한다. A-2/A-3 결함 자체는 [PR #76](https://github.com/jihoon22-lee/ici/pull/76)로
+> 해결됐으므로 현재 미해결 목록으로 읽지 않는다.
+
+§5.3 Compile Commands는 **아직 스펙을 쓰지 않는다.** 쓸 수 없어서가 아니라, 지금 쓰면
+실측이 아닌 추측이 되기 때문이다. §5.2 CMake/qmake adapter는 이 착수 조건을 거쳐
+`v0.6.0`에서 별도 설계·구현됐으며, 아래 §7.2~§7.4는 그 전후의 근거를 역사로 보존한다.
 
 ### 7.1 근거: 결함은 읽어서가 아니라 만들다 나왔다
 
@@ -235,18 +253,19 @@ shell은 사용하지 않는다.
 어댑터도 같은 방식으로 다뤄야 한다. 실물 Qt 프로젝트를 대상으로 실제로 막혀 봐야 요구사항이
 추측이 아니라 실측이 된다.
 
-### 7.2 남은 두 결함과 그 코드 위치
+### 7.2 당시 결함과 v0.6.0 해결 상태
 
-| | 항목 | 코드 위치 | 현상 |
-|---|---|---|---|
-| **A-2** | 루트 빌드 디스크립터 거부 | `src/ici/engines/build.py` — `_has_build_descriptor()` | 저장소 **루트**에 `CMakeLists.txt`/`Makefile`/`*.pro`가 있으면 `build` 엔진이 빌드를 거부한다. 하위 디렉터리는 검사하지 않는다. |
-| **A-3** | 테스트 컴파일이 plain g++ 고정 | `src/ici/engines/test.py` — `compile_cmd` 구성부 | `g++ -std=c++17`로 직접 컴파일·링크한다. **moc 실행 단계가 없고**, gtest/Catch2 같은 테스트 프레임워크 링크 경로도 없다. |
+| | 항목 | 코드 위치 | 당시 현상 | 현재 상태 |
+|---|---|---|---|---|
+| **A-2** | 루트 빌드 디스크립터 거부 | `src/ici/engines/build.py` — `_has_build_descriptor()` | 저장소 **루트**에 `CMakeLists.txt`/`Makefile`/`*.pro`가 있으면 `build` 엔진이 빌드를 거부한다. 하위 디렉터리는 검사하지 않는다. | CMake/qmake adapter가 PR #76에서 해결 |
+| **A-3** | 테스트 컴파일이 plain g++ 고정 | `src/ici/engines/test.py` — `compile_cmd` 구성부 | `g++ -std=c++17`로 직접 컴파일·링크한다. **moc 실행 단계가 없고**, gtest/Catch2 같은 테스트 프레임워크 링크 경로도 없다. | 프로젝트 build/test adapter와 QtTest 경로가 PR #76에서 해결 |
 
-이 둘이 §5.2의 본체다.
+당시 이 둘이 §5.2의 본체였다. 현재 §5.2의 남은 일은 toolchain·compile DB 등 마스터 계획의
+후속 범위이며, 이 표의 과거 현상을 현재 결함으로 다시 보고하지 않는다.
 
 ### 7.3 착수 조건
 
-문제는 현재 도그푸딩 대상인 세 C++/Qt 프로젝트(`ici/viewer`, 그리고 별도 저장소의 `diskmap`,
+당시 도그푸딩 대상인 세 C++/Qt 프로젝트(`ici/viewer`, 그리고 별도 저장소의 `diskmap`,
 `loglens`)가 **A-2와 A-3을 정면으로 만나지 않도록 설계돼 있다는 점**이다. 로직을 Qt 없는
 `core`로 밀어냈고(→ moc가 필요한 테스트가 없다), `CMakeLists.txt`를 하위 디렉터리에 두었으며
 (→ 루트 거부에 걸리지 않는다), 자체 ASSERT 매크로를 썼다(→ 프레임워크가 아쉬울 일이 없다).
@@ -304,9 +323,9 @@ qmake는 §7.3을 쓸 당시 실측 대상이 없었다. `diskmap`을 qmake로 �
 - 검증 job은 읽기 전용이고 신뢰된 main publish만 `contents: write`를 사용한다.
 - Python 3.10, Ruff, mypy, 재현 가능한 ZipApp, smoke 게이트를 통과한다.
 
-### 8.2 미래 축 B의 완료 기준 (아직 미달성)
+### 8.2 축 B의 완료 기준
 
-- CMake와 qmake 프로젝트가 실제 빌드 정의로 검증된다.
+- [x] CMake와 qmake 프로젝트가 실제 빌드 정의로 검증된다 (`v0.6.0`, PR #76).
 - Target Python과 `ici.pyz` 실행 Python이 보고서에서 구분된다.
 - 각 OS의 독립 실행 결과만으로 사용 툴체인과 실패 원인을 재현할 수 있다.
 - C++/Python 혼합 프로젝트의 경계 동작을 CI에서 자동 검증할 수 있다.

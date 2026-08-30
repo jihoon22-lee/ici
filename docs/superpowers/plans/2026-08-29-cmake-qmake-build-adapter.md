@@ -1,5 +1,13 @@
 # CMake/qmake 빌드 어댑터 구현 계획 (ici)
 
+> **I0-1 상태 보정 (2026-08-31): 완료·역사 보존.** 이 계획의 CMake/qmake adapter
+> 구현과 Task 11 릴리스는 [ici PR #76](https://github.com/jihoon22-lee/ici/pull/76)과
+> `v0.6.0`으로 완료됐다. 아래 체크박스는 구현 당시의 단계별 레시피와 회귀 근거를
+> 보존하며 활성 작업을 뜻하지 않는다. toy-projects의 후속 검증은 [PR #10](https://github.com/jihoon22-lee/toy-projects/pull/10) 이후
+> [PR #15](https://github.com/jihoon22-lee/toy-projects/pull/15)의 현재 환경 기록과
+> toy master plan을 따른다. 남은 adapter/toolchain 정밀화는 ici master plan I2·I3·I5·I7의
+> 범위다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** `ici` 가 프로젝트의 실제 빌드 시스템(CMake/CTest, qmake/Make)으로 configure·build·test 를 수행해, `Q_OBJECT` 클래스의 단위 테스트와 CMake/qmake 프로젝트의 `ici build` 를 가능하게 한다.

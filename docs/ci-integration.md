@@ -182,10 +182,16 @@ publish 대상의 Pages 설정, 브랜치 정책, 토큰 범위는 조직 정책
   보관합니다. `doctor`는 현재 구현에 포함된 git, gcc, g++, clang, clang-format, make, cmake,
   ruff, mypy, pytest, uv를 확인하고, 각 엔진은 실제로 호출한 도구의 경로·argv·버전·종료
   상태를 기록합니다.
-- qmake/Qt·Ninja·binutils 전체 capability inventory, 도구별 버전 정책, 프로젝트 정의 기반
-  CMake/qmake build adapter는 현재 기능이 아닙니다. 해당 범위는
+- qmake/Qt·Ninja·binutils 전체 capability inventory와 도구별 버전 정책은 아직 별도
+  capability 계약이 아니다. 반면 프로젝트 정의 기반 CMake/qmake build adapter는
+  `v0.6.0`에서 지원하며 `build`·`test`·`sanitize` 엔진이 실제 CMake/CTest 또는 qmake/Make
+  경로를 사용한다([adapter 구현 PR #76](https://github.com/jihoon22-lee/ici/pull/76)).
+  adapter의 실행 증거는 해당 프로젝트의 `ici verify` 결과에서 확인하고, 전체 toolchain
+  inventory를 자동 판정한다고 가정하지 않는다. 남은 toolchain·compile DB·Python
+  compatibility·ELF/ABI·hybrid 범위는
   [`2026-08-19-ci-validation-features.md`](superpowers/plans/2026-08-19-ci-validation-features.md)의
-  미래 계획으로 남겨 두었으며 현재 CI 결과로 가정해서는 안 됩니다.
+  역사 설계와 [마스터 계획](superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md)
+  I2·I3·I5·I7을 따른다.
 
 ### 4.2 Python 런타임
 

@@ -1,5 +1,10 @@
 # Existing Validation Hardening Implementation Plan
 
+> **I0-1 상태 보정 (2026-08-31): 완료·역사 보존.** Task 1–10은 PR #10–#20으로
+> `v0.4.0`에 병합됐다. 이 문서의 체크박스와 세부 단계는 당시 완료 근거와 회귀 설계를
+> 보존하기 위한 것이며 활성 작업으로 재실행하지 않는다. 이후 우선순위와 새 완료 조건은
+> [`Python·C++·Qt 코드 품질 분석기 마스터 계획`](2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md)이 정한다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use Markdown checkboxes for tracking.
 
 **Goal:** 현재 9개 검증 엔진, build, 설정, 리포터가 실행 여부와 실패 원인을 정확히 표현하고 허위 PASS를 만들지 않도록 보강한다.

@@ -1,9 +1,14 @@
 # CMake/CTest · qmake/Make 빌드 어댑터 설계
 
-- 상태: 설계 승인됨, 구현 전
+- 상태: 설계 승인됨, 구현 완료·역사 보존 (`v0.6.0`, [PR #76](https://github.com/jihoon22-lee/ici/pull/76))
 - 대상 릴리스: v0.6.0
 - 확장하는 문서: [`docs/design/ci-validation-roadmap.md`](../../design/ci-validation-roadmap.md) §5.2
 - 관련 결함: `toy-projects/ICI-GAPS.md` 의 A-2, A-3
+
+> **상태 보정 (2026-08-31):** 이 문서는 adapter 구현 전후의 설계 근거와 계약을 보존한다.
+> 아래의 “구현 전”, 기존 g++ 경로, viewer 3-test 기준선은 당시 시점의 기록이다. 현재
+> adapter와 viewer Qt 셸의 병합 상태·최신 실측은 [ici 마스터 계획](../plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md)과
+> [viewer PR #81](https://github.com/jihoon22-lee/ici/pull/81)을 기준으로 한다.
 
 ## 1. 목적
 
@@ -268,7 +273,9 @@ QtTest 는 테스트 **이름**만 주고 소스 파일을 주지 않는다. `te
 `add_test` 로 등록하며, `WORKING_DIRECTORY` 를 프로젝트 루트로 고정한다(C-9 계약 —
 `tests/fixtures.hpp` 가 `tests/data/` 를 상대 경로로 연다).
 
-전환 후 `viewer` 는 **TEM 4.94 로 PASS** 했다. 전환 전 기준선과 같은 값이다.
+전환 후 당시 `viewer` 는 **TEM 4.94 로 PASS** 했다. 전환 전 기준선과 같은 값이다. 이후
+Qt 셸 테스트가 추가된 현재 기준은 [PR #81](https://github.com/jihoon22-lee/ici/pull/81)의
+4/4 tests · TEM 4.86이다.
 
 **g++ 경로의 회귀 증인은 `tests/test_cpp_e2e.py` 의 픽스처 프로젝트가 맡는다.** 그 프로젝트에
 루트 디스크립터가 없다는 것을 명시적으로 단언하는 테스트를 두어, 나중에 조용히 어댑터로

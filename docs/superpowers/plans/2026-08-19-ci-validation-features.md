@@ -6,6 +6,13 @@
 > 이 문서는 과거 상세 설계와 fixture 아이디어를 제공하지만 우선순위와 완료 조건은 마스터가
 > 우선한다.
 
+> **I0-1 상태 보정 (2026-08-31): 부분 완료·역사 보존.** 이 문서의 CMake/qmake adapter
+> 범위는 별도 계획으로 추출되어 [ici PR #76](https://github.com/jihoon22-lee/ici/pull/76)과
+> `v0.6.0`으로 출시됐다. Toolchain·compile DB·Python compatibility·ELF/ABI·hybrid
+> integration의 남은 체크박스는 현재 작업 목록이 아니며 마스터 계획 I2·I3·I5·I7의
+> 재설계 입력으로만 보존한다. 아래의 원래 v0.4.0 보류 표시는 당시 릴리스 경계를 설명하는
+> 역사 기록이다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 폐쇄망의 개별 CI 실행 환경에서 CMake/qmake C++, Python, C++/Python 혼합 프로젝트의 툴체인·빌드 정의·런타임·ABI·통합 경계를 검증한다.
