@@ -188,8 +188,18 @@ _CTEST_LINE_RE = re.compile(
 )
 _TESTSUITE_RE = re.compile(r"<testsuite\b.*?</testsuite>", re.DOTALL)
 _DOCTYPE_RE = re.compile(r"<!DOCTYPE", re.IGNORECASE)
-# `make check` echoes each test command before running it: "./test_format -xunitxml".
-_MAKE_INVOCATION_RE = re.compile(r"^\./(?P<name>[\w.+-]+)(?:\s|$)")
+# `make check` echoes each test command before running it. Two shapes occur:
+#
+#   ./test_format -xunitxml
+#   /abs/path/target_wrapper.sh  ./test_widget -xunitxml
+#
+# qmake wraps Qt-linked binaries so they find their libraries, so anchoring at
+# the start of the line silently loses exactly the Qt tests this adapter exists
+# to run.
+_MAKE_INVOCATION_RE = re.compile(r"(?:^|\s)\./(?P<name>[\w.+-]+)(?:\s|$)")
+# make's own chatter and the recursive-make guard both mention paths; neither is
+# a test being run.
+_MAKE_NOISE_RE = re.compile(r"^\s*(?:make(?:\[\d+\])?:|\()")
 _MAKE_ERROR_RE = re.compile(r"^\s*make(?:\[\d+\])?: \*\*\* .*Error \d+")
 
 
@@ -532,14 +542,16 @@ def parse_make_check_stdout(text: str, returncode: int) -> list[TestCaseResult]:
     failed: set[str] = set()
     current: str | None = None
     for line in text.splitlines():
-        match = _MAKE_INVOCATION_RE.match(line)
+        if _MAKE_NOISE_RE.match(line):
+            if current is not None and _MAKE_ERROR_RE.match(line):
+                failed.add(current)
+            continue
+        match = _MAKE_INVOCATION_RE.search(line)
         if match is not None:
             current = match.group("name")
             if current not in names:
                 names.append(current)
             continue
-        if current is not None and _MAKE_ERROR_RE.match(line):
-            failed.add(current)
 
     results = [
         TestCaseResult(name, name not in failed, "" if name not in failed else "make check failed")

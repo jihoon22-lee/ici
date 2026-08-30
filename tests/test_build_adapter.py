@@ -544,3 +544,29 @@ def test_mixed_qmake_output_does_not_drop_the_plain_tests():
 def test_pure_qtest_output_still_reports_per_binary():
     results = cmake_mod._qmake_results(_MAKE_CHECK_OK, 0)
     assert [r.name for r in results] == ["test_format", "test_scanner"]
+
+
+_MAKE_CHECK_WRAPPED = """make[2]: Entering directory '/b/tests'
+./test_format -xunitxml
+All checks passed
+( test -e Makefile.test_widget || /usr/bin/qmake6 -o Makefile.test_widget /p/test_widget.pro ) && make -f Makefile.test_widget check
+/b/tests/target_wrapper.sh  ./test_widget -xunitxml
+Totals: 3 passed, 0 failed
+"""
+
+
+def test_wrapped_qt_test_invocations_are_still_counted():
+    # qmake runs Qt-linked binaries through target_wrapper.sh so they find their
+    # libraries. Anchoring the match at the start of the line loses exactly the
+    # Qt tests this adapter exists to run — diskmap reported 5 of its 6.
+    results = parse_make_check_stdout(_MAKE_CHECK_WRAPPED, 0)
+    assert [r.name for r in results] == ["test_format", "test_widget"]
+    assert all(r.passed for r in results)
+
+
+def test_make_recursion_guard_is_not_mistaken_for_a_test():
+    # The "( test -e Makefile.x || qmake -o ... )" line mentions paths but runs
+    # no test, and make's own chatter must not become a result either.
+    results = parse_make_check_stdout(_MAKE_CHECK_WRAPPED, 0)
+    assert not any("Makefile" in r.name for r in results)
+    assert not any(r.name.startswith("make") for r in results)

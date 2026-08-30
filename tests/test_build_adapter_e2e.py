@@ -50,6 +50,7 @@ def test_cmake_fixture_builds_and_tests_a_q_object(tmp_path):
     # with "undefined reference to vtable".
     assert results, "no tests were reported"
     assert all(r.passed for r in results), [r.message for r in results if not r.passed]
+    assert [r.name for r in results] == ["test_counter"]
 
     gcov_dir = collect_coverage(session)
     assert gcov_dir is not None, session.errors
@@ -67,3 +68,8 @@ def test_qmake_fixture_builds_and_tests_a_q_object(tmp_path):
     results = run_tests(session)
     assert results, "no tests were reported"
     assert all(r.passed for r in results), [r.message for r in results if not r.passed]
+    # Per binary, matching CTest. qmake runs Qt-linked tests through
+    # target_wrapper.sh, and reading only the start of each transcript line
+    # dropped exactly those. A fixture with a single Qt test hid that behind the
+    # XML fallback until a real mixed project surfaced it.
+    assert [r.name for r in results] == ["test_counter"]
