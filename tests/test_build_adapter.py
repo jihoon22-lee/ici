@@ -5,6 +5,7 @@ from ici.core.cmake import (
     BACKEND_CMAKE,
     BACKEND_QMAKE,
     BuildSession,
+    ConfigureOptions,
     cmake_build_argv,
     cmake_configure_argv,
     cmake_test_argv,
@@ -401,3 +402,64 @@ def test_qtest_xunit_refuses_a_doctype():
 def test_doctype_rejection_does_not_break_ordinary_documents():
     assert len(parse_ctest_junit(_CTEST_JUNIT)) == 3
     assert len(parse_qtest_xunit(_QTEST_XUNIT)) == 3
+
+
+def test_configure_options_default_to_coverage(tmp_path):
+    argv = cmake_configure_argv("/usr/bin/cmake", tmp_path, tmp_path / "s")
+    assert "-DCMAKE_CXX_FLAGS=--coverage" in argv
+
+
+def test_build_wants_no_instrumentation_at_all(tmp_path):
+    # Shipping a coverage-instrumented release artifact would be wrong.
+    argv = cmake_configure_argv(
+        "/usr/bin/cmake", tmp_path, tmp_path / "s", ConfigureOptions(coverage=False)
+    )
+    assert not any(a.startswith("-DCMAKE_CXX_FLAGS") for a in argv)
+    assert not any(a.startswith("-DCMAKE_EXE_LINKER_FLAGS") for a in argv)
+
+
+def test_sanitize_options_carry_the_sanitizer_and_drop_coverage(tmp_path):
+    options = ConfigureOptions(
+        coverage=False,
+        extra_cxx_flags=("-fsanitize=address,undefined",),
+        extra_link_flags=("-fsanitize=address,undefined",),
+        shadow_suffix="-asan",
+    )
+    argv = cmake_configure_argv("/usr/bin/cmake", tmp_path, tmp_path / "s", options)
+    assert "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined" in argv
+    assert "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined" in argv
+    assert "--coverage" not in " ".join(argv)
+
+
+def test_qmake_options_use_qmake_flag_variables(tmp_path):
+    options = ConfigureOptions(coverage=False, extra_cxx_flags=("-fsanitize=address",))
+    argv = qmake_configure_argv("/usr/bin/qmake6", tmp_path / "a.pro", options)
+    assert "QMAKE_CXXFLAGS+=-fsanitize=address" in argv
+    assert not any("--coverage" in a for a in argv)
+
+
+def test_shadow_suffix_keeps_engines_out_of_each_others_trees(tmp_path):
+    # test builds with --coverage and sanitize with -fsanitize. One shared tree
+    # would make each run rebuild the other's objects with the wrong flags.
+    assert shadow_dir(tmp_path, BACKEND_CMAKE) != shadow_dir(tmp_path, BACKEND_CMAKE, "-asan")
+    assert shadow_dir(tmp_path, BACKEND_CMAKE, "-asan").name == "ici-cmake-asan"
+
+
+def test_run_tests_passes_the_runner_environment_through(tmp_path, monkeypatch):
+    # ASAN_OPTIONS reaches the test binary, not the build. Without this the
+    # adapter would run the sanitizers with different settings than g++ did.
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    seen: list[dict | None] = []
+
+    def _run(cmd, **kwargs):
+        if "--version" in cmd:
+            return ProcessResult(0, "cmake version 3.28.1", "", 0.01)
+        seen.append(kwargs.get("env"))
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+    session = configure(tmp_path)
+    run_tests(session, env={"ASAN_OPTIONS": "detect_leaks=1"})
+
+    assert seen and seen[-1] == {"ASAN_OPTIONS": "detect_leaks=1"}

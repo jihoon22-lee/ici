@@ -8,9 +8,9 @@ from pathlib import Path
 
 import tomli
 
+from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
-from ici.core.cmake import select_backend
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
     EngineResult,
@@ -596,7 +596,8 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
     def _build_with_adapter(self, base: Path, targets: list[InspectionTarget]) -> None:
         """Delegate configure and build to the project's own build system."""
 
-        session = adapter_configure(base)
+        # No coverage and no sanitizers: these are release artifacts.
+        session = adapter_configure(base, ConfigureOptions(coverage=False, shadow_suffix="-build"))
         if not session.configured:
             self._tool_evidence.extend(session.tool_evidence)
             # A configure that fails without saying why must still be

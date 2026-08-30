@@ -79,10 +79,15 @@ _CTEST_JUNIT_MIN = (3, 21)
 _CMAKE_VERSION_RE = re.compile(r"cmake version (\d+)\.(\d+)")
 
 
-def shadow_dir(root: Path, backend: str) -> Path:
-    """Build directory ici owns. Never the project's own build tree."""
+def shadow_dir(root: Path, backend: str, suffix: str = "") -> Path:
+    """Build directory ici owns. Never the project's own build tree.
 
-    return root / "build" / f"ici-{backend}"
+    The suffix keeps engines apart. test builds with --coverage and sanitize
+    with -fsanitize; sharing one tree would make each engine silently rebuild
+    the other's objects with the wrong flags on every run.
+    """
+
+    return root / "build" / f"ici-{backend}{suffix}"
 
 
 def parse_cmake_version(text: str) -> tuple[int, int] | None:
@@ -92,17 +97,48 @@ def parse_cmake_version(text: str) -> tuple[int, int] | None:
     return int(match.group(1)), int(match.group(2))
 
 
-def cmake_configure_argv(cmake_bin: str, root: Path, shadow: Path) -> list[str]:
-    return [
+@dataclass(frozen=True)
+class ConfigureOptions:
+    """What an engine wants out of its own build tree.
+
+    `build` wants neither coverage nor sanitizers — instrumenting a release
+    artifact would be wrong. `test` wants coverage. `sanitize` wants the
+    sanitizers and no coverage, since it measures crashes rather than lines.
+    """
+
+    coverage: bool = True
+    extra_cxx_flags: tuple[str, ...] = ()
+    extra_link_flags: tuple[str, ...] = ()
+    shadow_suffix: str = ""
+
+    def cxx_flags(self) -> list[str]:
+        flags = ["--coverage"] if self.coverage else []
+        return flags + list(self.extra_cxx_flags)
+
+    def link_flags(self) -> list[str]:
+        flags = ["--coverage"] if self.coverage else []
+        return flags + list(self.extra_link_flags)
+
+
+def cmake_configure_argv(
+    cmake_bin: str, root: Path, shadow: Path, options: "ConfigureOptions | None" = None
+) -> list[str]:
+    options = options or ConfigureOptions()
+    argv = [
         cmake_bin,
         "-S",
         str(root),
         "-B",
         str(shadow),
         "-DCMAKE_BUILD_TYPE=Debug",
-        "-DCMAKE_CXX_FLAGS=--coverage",
-        "-DCMAKE_EXE_LINKER_FLAGS=--coverage",
     ]
+    cxx = " ".join(options.cxx_flags())
+    link = " ".join(options.link_flags())
+    if cxx:
+        argv.append(f"-DCMAKE_CXX_FLAGS={cxx}")
+    if link:
+        argv.append(f"-DCMAKE_EXE_LINKER_FLAGS={link}")
+    return argv
 
 
 def cmake_build_argv(cmake_bin: str, shadow: Path) -> list[str]:
@@ -124,15 +160,16 @@ def cmake_test_argv(
     return argv, None
 
 
-def qmake_configure_argv(qmake_bin: str, pro_file: Path) -> list[str]:
+def qmake_configure_argv(
+    qmake_bin: str, pro_file: Path, options: "ConfigureOptions | None" = None
+) -> list[str]:
     """qmake runs with the shadow directory as its cwd; the .pro path is absolute."""
 
-    return [
-        qmake_bin,
-        str(pro_file),
-        "QMAKE_CXXFLAGS+=--coverage",
-        "QMAKE_LFLAGS+=--coverage",
-    ]
+    options = options or ConfigureOptions()
+    argv = [qmake_bin, str(pro_file)]
+    argv.extend(f"QMAKE_CXXFLAGS+={flag}" for flag in options.cxx_flags())
+    argv.extend(f"QMAKE_LFLAGS+={flag}" for flag in options.link_flags())
+    return argv
 
 
 def qmake_build_argv(make_bin: str, jobs: int) -> list[str]:
@@ -311,13 +348,14 @@ def _which(session: BuildSession, name: str) -> str | None:
     return found
 
 
-def configure(root: Path) -> BuildSession:
+def configure(root: Path, options: ConfigureOptions | None = None) -> BuildSession:
     """Select a backend and configure a shadow build tree."""
 
+    options = options or ConfigureOptions()
     choice = select_backend(root)
     session = BuildSession(
         root=root,
-        shadow=shadow_dir(root, choice.kind or BACKEND_CMAKE),
+        shadow=shadow_dir(root, choice.kind or BACKEND_CMAKE, options.shadow_suffix),
         backend=choice.kind,
         descriptor=choice.descriptor,
         reason=choice.reason,
@@ -334,11 +372,11 @@ def configure(root: Path) -> BuildSession:
     session.shadow.mkdir(parents=True, exist_ok=True)
 
     if choice.kind == BACKEND_CMAKE:
-        return _configure_cmake(session)
-    return _configure_qmake(session)
+        return _configure_cmake(session, options)
+    return _configure_qmake(session, options)
 
 
-def _configure_cmake(session: BuildSession) -> BuildSession:
+def _configure_cmake(session: BuildSession, options: ConfigureOptions) -> BuildSession:
     cmake_bin = _which(session, "cmake")
     if cmake_bin is None:
         return session
@@ -348,7 +386,7 @@ def _configure_cmake(session: BuildSession) -> BuildSession:
     _record(session, "cmake --version", version_argv, version_result)
     session.cmake_version = parse_cmake_version(version_result.stdout)
 
-    argv = cmake_configure_argv(cmake_bin, session.root, session.shadow)
+    argv = cmake_configure_argv(cmake_bin, session.root, session.shadow, options)
     result = run_process(argv, cwd=session.root)
     _record(session, "cmake configure", argv, result)
     if result.returncode != 0:
@@ -358,7 +396,7 @@ def _configure_cmake(session: BuildSession) -> BuildSession:
     return session
 
 
-def _configure_qmake(session: BuildSession) -> BuildSession:
+def _configure_qmake(session: BuildSession, options: ConfigureOptions) -> BuildSession:
     # Debian ships Qt6's qmake as qmake6; some distributions only have `qmake`.
     # Probing both before recording an error keeps the message honest.
     qmake_bin = shutil.which("qmake6") or shutil.which("qmake")
@@ -366,7 +404,7 @@ def _configure_qmake(session: BuildSession) -> BuildSession:
         _fail(session, "qmake6 executable was unavailable")
         return session
 
-    argv = qmake_configure_argv(qmake_bin, session.root / session.descriptor)
+    argv = qmake_configure_argv(qmake_bin, session.root / session.descriptor, options)
     result = run_process(argv, cwd=session.shadow)
     _record(session, "qmake configure", argv, result)
     if result.returncode != 0:
@@ -402,15 +440,20 @@ def build(session: BuildSession) -> bool:
     return True
 
 
-def run_tests(session: BuildSession) -> list[TestCaseResult]:
-    """Run the project's tests through its own build system."""
+def run_tests(session: BuildSession, env: dict[str, str] | None = None) -> list[TestCaseResult]:
+    """Run the project's tests through its own build system.
+
+    `env` carries options the runner needs but the build does not — ASAN_OPTIONS
+    and UBSAN_OPTIONS for the sanitize engine. Without it the adapter path would
+    run the sanitizers with different settings than the generic g++ path.
+    """
 
     if session.backend == BACKEND_CMAKE:
         ctest_bin = _which(session, "ctest")
         if ctest_bin is None:
             return []
         argv, junit = cmake_test_argv(ctest_bin, session.shadow, session.cmake_version)
-        result = run_process(argv, cwd=session.shadow)
+        result = run_process(argv, cwd=session.shadow, env=env)
         _record(session, "ctest", argv, result)
         if junit is not None and junit.is_file():
             parsed = parse_ctest_junit(junit.read_text(encoding="utf-8", errors="replace"))
@@ -422,7 +465,7 @@ def run_tests(session: BuildSession) -> list[TestCaseResult]:
     if make_bin is None:
         return []
     argv = qmake_test_argv(make_bin)
-    result = run_process(argv, cwd=session.shadow)
+    result = run_process(argv, cwd=session.shadow, env=env)
     _record(session, "make check", argv, result)
     return parse_qtest_xunit(result.stdout)
 

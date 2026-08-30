@@ -1387,7 +1387,8 @@ def test_cpp_tests_run_through_the_adapter(tmp_path, monkeypatch):
     shadow = tmp_path / "build" / "ici-cmake"
 
     monkeypatch.setattr(
-        "ici.engines.test.adapter_configure", lambda root: _configured_session(root, shadow)
+        "ici.engines.test.adapter_configure",
+        lambda root, options=None: _configured_session(root, shadow),
     )
     monkeypatch.setattr("ici.engines.test.adapter_build", lambda _s: True)
     monkeypatch.setattr(
@@ -1412,7 +1413,8 @@ def test_adapter_test_target_points_at_its_source_file(tmp_path, monkeypatch):
     _cmake_project(tmp_path)
     shadow = tmp_path / "build" / "ici-cmake"
     monkeypatch.setattr(
-        "ici.engines.test.adapter_configure", lambda root: _configured_session(root, shadow)
+        "ici.engines.test.adapter_configure",
+        lambda root, options=None: _configured_session(root, shadow),
     )
     monkeypatch.setattr("ici.engines.test.adapter_build", lambda _s: True)
     monkeypatch.setattr(
@@ -1433,7 +1435,7 @@ def test_adapter_build_failure_is_a_fail_not_a_silent_pass(tmp_path, monkeypatch
     shadow = tmp_path / "build" / "ici-cmake"
     session = _configured_session(tmp_path, shadow)
     session.errors.append("cmake build failed: undefined reference to vtable for LogModel")
-    monkeypatch.setattr("ici.engines.test.adapter_configure", lambda _root: session)
+    monkeypatch.setattr("ici.engines.test.adapter_configure", lambda _root, options=None: session)
     monkeypatch.setattr("ici.engines.test.adapter_build", lambda _s: False)
 
     result = TestEngine(tmp_path).run()

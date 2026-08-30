@@ -575,7 +575,10 @@ def test_cmake_project_is_built_through_the_adapter(tmp_path, monkeypatch):
 
     shadow = tmp_path / "build" / "ici-cmake"
 
-    def _fake_configure(root):
+    def _fake_configure(root, options=None):
+        # The engine now passes ConfigureOptions(coverage=False): release
+        # artifacts must not be instrumented.
+        assert options is not None and options.coverage is False
         shadow.mkdir(parents=True, exist_ok=True)
         return BuildSession(
             root=root,
@@ -636,7 +639,7 @@ def test_adapter_path_never_falls_back_to_gxx(tmp_path, monkeypatch, descriptor)
     )
     monkeypatch.setattr(
         "ici.engines.build.adapter_configure",
-        lambda root: BuildSession(
+        lambda root, options=None: BuildSession(
             root=root,
             shadow=root / "build" / "ici-cmake",
             backend=BACKEND_CMAKE,

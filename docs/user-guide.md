@@ -136,6 +136,14 @@ timeout·절단·signal·spawn 오류와 rc 0인데 regular binary가 없는 경
 |---|---|
 | `CMakeLists.txt` | CMake로 configure·build하고 CTest로 테스트한다 |
 | `*.pro` | qmake로 configure·build하고 `make check`로 테스트한다 |
+
+세 엔진은 각자의 shadow 디렉터리를 씁니다 — `build/ici-<backend>-build`(계측 없음),
+`build/ici-<backend>`(`--coverage`), `build/ici-<backend>-asan`(`-fsanitize`). 하나를
+공유하면 엔진이 돌 때마다 상대의 오브젝트를 다른 플래그로 다시 빌드하게 됩니다.
+
+**정적 링크를 쓰는 프로젝트는 주의가 필요합니다.** `-static`과 `-fsanitize=address`는
+함께 쓸 수 없으므로, 정적 링크를 sanitizer 빌드에서는 끄도록 빌드 정의에 조건을 두어야
+합니다. `viewer/CMakeLists.txt`가 그 예입니다.
 | `Makefile`만 | 어댑터가 없어 거부한다 |
 | 없음 | 모든 소스를 `g++`로 직접 컴파일·링크한다 |
 
@@ -145,15 +153,11 @@ timeout·절단·signal·spawn 오류와 rc 0인데 regular binary가 없는 경
 
 어댑터 경로에서 달라지는 것이 셋 있습니다.
 
-- **`project.cpp_external_build_dirs`를 `build`와 `test`가 무시합니다.** 이 설정은
-  "moc가 필요해 ici가 직접 빌드할 수 없는 소스를 링크 대상에서 뺀다"는 뜻인데, 어댑터
-  경로에서는 빌드 시스템이 moc를 돌리므로 그 전제가 사라집니다. 빌드 시스템이 빌드한
-  전부가 테스트 링크와 커버리지 집계의 대상입니다.
-
-  **다만 `sanitize`는 여전히 이 설정을 따릅니다.** `sanitize`는 어댑터로 옮기지 않아
-  아직 `g++`로 직접 링크하며, 그 경로는 `Q_OBJECT` 클래스의 vtable을 만들 수 없습니다.
-  Qt 위젯이 있는 프로젝트는 어댑터로 옮긴 뒤에도 이 설정을 지우면 안 됩니다 —
-  `sanitize`가 링크에 실패해 `NOT_RUN`으로 게이트를 막습니다.
+- **`project.cpp_external_build_dirs`가 무시됩니다.** 이 설정은 "moc가 필요해 ici가
+  직접 빌드할 수 없는 소스를 링크 대상에서 뺀다"는 뜻인데, 어댑터 경로에서는 빌드
+  시스템이 moc를 돌리므로 그 전제가 사라집니다. 바이너리를 만드는 세 엔진
+  (`build`·`test`·`sanitize`)이 모두 어댑터를 쓰므로, 빌드 시스템이 빌드한 전부가
+  대상입니다. 디스크립터가 없는 g++ 경로에서는 세 엔진 모두 이 설정을 그대로 따릅니다.
 - **`-std=c++17` 고정이 사라집니다.** C++ 표준을 프로젝트의 빌드 정의가 정합니다.
 - **`Q_OBJECT` 클래스를 단위 테스트할 수 있습니다.** g++ 경로에서는 moc 실행 단계가
   없어 vtable 미해결로 링크에 실패합니다.

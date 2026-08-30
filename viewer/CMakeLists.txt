@@ -30,7 +30,11 @@ target_link_libraries(icirv PRIVATE icirv_core)
 # the builder's — the closed-network target is RHEL 8 (glibc 2.28) while CI
 # builds on Ubuntu (2.39), and glibc is not forward compatible.
 option(ICIRV_STATIC "Link the CLI statically" ON)
-if(ICIRV_STATIC)
+# -static and -fsanitize=address cannot be combined, and ici's sanitize engine
+# configures its own tree with the sanitizers on. Asking for both produces a
+# build failure rather than a diagnosis, so the static link stands down when
+# this is a sanitizer build.
+if(ICIRV_STATIC AND NOT CMAKE_CXX_FLAGS MATCHES "-fsanitize")
     target_link_options(icirv PRIVATE -static)
 endif()
 

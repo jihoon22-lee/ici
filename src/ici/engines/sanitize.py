@@ -8,6 +8,10 @@ import tempfile
 import time
 from pathlib import Path
 
+from ici.core.cmake import ConfigureOptions, select_backend
+from ici.core.cmake import build as adapter_build
+from ici.core.cmake import configure as adapter_configure
+from ici.core.cmake import run_tests as adapter_run_tests
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
     EngineResult,
@@ -171,6 +175,9 @@ class SanitizeEngine(BaseEngine):
             )
             return False
 
+        if select_backend(self.project_root).kind is not None:
+            return self._run_cpp_sanitizer_via_adapter(targets)
+
         gxx = shutil.which("g++")
         if not gxx:
             message = "g++ is required when C++ sanitizer tests are present"
@@ -285,6 +292,84 @@ class SanitizeEngine(BaseEngine):
                         )
                     )
         return has_failure
+
+    def _run_cpp_sanitizer_via_adapter(self, targets: list[InspectionTarget]) -> bool:
+        """Build and run the project's own tests under the sanitizers.
+
+        The generic g++ path cannot do this once any test uses Qt: it has no moc
+        step and no way to link Qt Test, so a Q_OBJECT test fails to compile
+        before a sanitizer ever runs. The adapter builds the same targets the
+        test engine does, only with -fsanitize instead of --coverage.
+        """
+
+        options = ConfigureOptions(
+            coverage=False,
+            extra_cxx_flags=("-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-g"),
+            extra_link_flags=("-fsanitize=address,undefined",),
+            shadow_suffix="-asan",
+        )
+        session = adapter_configure(self.project_root, options)
+        self._tool_evidence.extend(session.tool_evidence)
+
+        if not session.configured:
+            self._fail_adapter_scope(
+                targets, session, session.errors or ["sanitizer configure reported no reason"]
+            )
+            return False
+
+        if not adapter_build(session):
+            self._tool_evidence.extend(session.tool_evidence)
+            self._fail_adapter_scope(
+                targets, session, session.errors or ["sanitizer build reported no reason"]
+            )
+            return False
+
+        results = adapter_run_tests(session, env=self._sanitizer_environment())
+        self._tool_evidence.extend(session.tool_evidence)
+        if not results:
+            self._fail_adapter_scope(
+                targets,
+                session,
+                ["The build system reported no tests, so nothing ran under the sanitizers"],
+            )
+            return False
+
+        has_failure = False
+        for case in results:
+            status = EngineStatus.PASS if case.passed else EngineStatus.FAIL
+            has_failure = has_failure or not case.passed
+            # Each executed binary is a measured scope. Without this the engine
+            # reports "no applicable checks were executed" and skips, which is
+            # the silent-gap shape the gate exists to catch.
+            self._measured_scopes += 1
+            targets.append(
+                InspectionTarget(
+                    file_path=session.descriptor or ".",
+                    start_line=1,
+                    target_name=f"[C++ ASan/UBSan] {case.name}",
+                    status=status,
+                    message="Sanitizers reported no diagnostics"
+                    if case.passed
+                    else f"Sanitizer run failed: {case.message}",
+                )
+            )
+        return has_failure
+
+    def _fail_adapter_scope(self, targets, session, messages: list[str]) -> None:
+        """Record an adapter failure as an unmeasured scope, not an absent one.
+
+        Appending an ERROR target is not enough on its own: the status logic
+        reads _tool_errors, and a run with neither measured nor skipped scopes
+        falls through to SKIP/NOT_APPLICABLE. A sanitizer build that failed
+        would then be reported as "this engine does not apply here" — the
+        inverse of the §3.2 rule that a scope which existed and was not
+        measured has to keep blocking the gate.
+        """
+
+        for message in messages:
+            self._append_scope_error(targets, session.descriptor or ".", "C++Sanitizer", message)
+            if message not in self._tool_errors:
+                self._tool_errors.append(message)
 
     def _cpp_library_flags(self) -> list[str]:
         nas_cpp = get_nas_cpp_lib_dir()
