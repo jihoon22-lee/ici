@@ -13,6 +13,7 @@
   - gh-pages 쓰기는 concurrency group으로 직렬화합니다. 서로 다른 PR이 Contents API의 같은 branch head를 동시에 갱신해 한쪽 리포트를 잃지 않습니다.
   - 게시 직후 실제 sticky 댓글에서 두 HTML 링크를 다시 읽고 GitHub Pages 비동기 배포가 완료될 때까지 cache-busting URL을 확인합니다. 파일 업로드 API 성공만으로 게시 완료를 선언하지 않습니다.
 - **`viewer` Qt 셸 회귀 테스트**: 정상 리포트를 연 뒤 missing 또는 malformed 리포트를 열 때 `MainWindow`의 모델, suite 상태, 게이트·점수 라벨, 창 제목이 이전 보고서 데이터를 남기지 않는지 QtTest로 검증합니다. QtTest 실행은 프로젝트 루트 CTest에 등록되어 Qt 5와 Qt 6에서 같은 경로를 확인합니다.
+- **I0-4 self-quality 기준선을 기록하고 floor를 현실화**: 2026-08-31 `origin/main@86e0e5a`에서 self verify를 세 번 반복해 632/632 테스트, TEM 4.78, line/branch/function 85.9%/77.9%/95.691%, console 2,276줄, duplicate 237 groups를 확인했습니다. 변동 여유를 둔 floor를 TEM 4.5, branch 70%, function 90%로 올리고 측정값·ratchet 조건을 `ici.toml` 주석과 구조화된 기준선에 남겼습니다.
 
 ### Changed
 - **릴리스를 태그 이름이 아닌 정확한 main 검증 commit에 묶음**: 태그 commit이 `origin/main`의 조상이고 동일 SHA의 `Merge Gate`가 성공한 경우에만 쓰기 권한을 가진 build/release job이 시작됩니다. 수동 실행도 선택한 branch가 아니라 이미 존재하는 태그 commit을 detached checkout하며, 패키지 버전·CHANGELOG section을 같이 검증합니다.
@@ -22,6 +23,7 @@
 - **Qt 버전 탐지를 설치 환경에 맞춤**: 기본 구성은 Qt 6을 우선하고 Qt 5로 폴백하며, `CMAKE_DISABLE_FIND_PACKAGE_Qt6=ON`으로 Qt 5를 강제하는 빌드도 지원합니다. CI는 Qt 5·Qt 6 각각에서 4개 CTest와 headless report open을 실행하고, Qt package를 모두 비활성화한 configure에서 정적 CLI 계약도 확인합니다. 릴리스 워크플로의 GUI 경로도 새 루트 타깃에 맞췄습니다.
 
 ### Fixed
+- **self verify의 mypy `annotation-unchecked` note 제거**: `sanitize`, `exception`, `dead`, `test` 엔진의 생성자 네 곳이 `*args/**kwargs` untyped body였고, 변수 annotation마다 동일 note를 냈습니다. BaseEngine과 동일한 Python 3.10 호환 `project_root`/`config` 시그니처와 반환형을 적용해 동작은 유지하면서 mypy note를 0건으로 만들었습니다.
 - **HTML은 올라갔지만 PR 댓글이 실패해도 `ici publish`가 성공하던 문제**: PR publish의 성공 조건에 sticky comment URL을 포함했습니다. 단일·다중 리포트 모두 `pull-requests: write` 실패를 0이 아닌 종료 코드로 전달하며, 업로드 실패 시 아직 존재하지 않는 Pages URL을 만들지 않습니다. 다중 리포트 댓글 footer의 경로도 `/`로 이어 붙인 가짜 경로 대신 쉼표로 구분합니다.
 - **`cycle`이 directory-qualified C++ include의 정보를 버리던 문제**: `core/format.hpp`와 `gui/format.hpp`가 함께 있을 때 `#include "core/format.hpp"`도 basename `format.hpp`만 비교해 모호하다고 버렸고, 실제 include cycle을 놓쳤습니다. 이제 include가 지정한 전체 path suffix가 프로젝트 파일 하나와 유일하게 일치할 때만 간선을 연결합니다.
   - bare `#include "format.hpp"`처럼 실제로 여러 후보가 있는 경우는 계속 추측하지 않습니다.

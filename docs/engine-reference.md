@@ -81,10 +81,14 @@ warn_pct = 5.0
 fail_pct = 15.0
 ```
 
-이 저장소의 dogfood 정책(`ici.toml`)은 현재 CI·로컬 측정값의 실행기별 편차를 고려해
-TEM `2.0`, Branch `35%`, Function `60%`를 floor로 사용합니다. `mode = "pass_fail"`은
-그 floor 미달 경고와 테스트 실행 실패를 모두 게이트 실패로 승격하며, 도구·테스트가
-개선되면 floor를 다시 높일 수 있습니다.
+이 저장소의 dogfood 정책(`ici.toml`)은 2026-08-31 세 번의 연속 self verify에서
+동일하게 측정된 TEM `4.78`, Branch `77.9%`, Function `95.691%`에 변동 여유를 두어
+TEM `4.5`, Branch `70%`, Function `90%`를 floor로 사용합니다. `mode = "pass_fail"`은
+그 floor 미달과 테스트 실행 실패를 모두 게이트 실패로 승격합니다. 다음 ratchet은
+현재 floor보다 TEM 0.10점·Branch/Function 3%p 이상 높은 측정값이 설명 가능한 상태로
+세 번 연속 확인될 때 한 항목씩 적용합니다. 반복 측정의 console/duplicate 기준선은
+[`docs/baselines/2026-08-31-self-quality.json`](baselines/2026-08-31-self-quality.json)에
+기록합니다.
 
 ### 1.2 결과 상태와 게이트 계약
 
@@ -223,7 +227,7 @@ HTML은 외부 CDN 없이 동작하며, 파일 위치 값은 escaped data-abs-pa
 - **평가 기준**:
   - 모든 테스트 케이스 통과 필수
   - 기본 내장 정책은 TEM 스코어 $\ge 4.0$, Branch Coverage $\ge 80\%$, Function Coverage $\ge 90\%$를 요구
-  - 이 저장소 dogfood 정책은 현재 측정 baseline에 맞춘 TEM $\ge 2.0$, Branch $\ge 35\%$, Function $\ge 60\%$ floor를 사용
+  - 이 저장소 dogfood 정책은 2026-08-31 기준 TEM $\ge 4.5$, Branch $\ge 70\%$, Function $\ge 90\%$ floor를 사용하며, 세 번 연속 실측과 변동 여유를 둔 ratchet 조건은 위 정책 설명과 기준선 파일에 기록
   - 실측 커버리지가 있는 경우 Branch Coverage는 실측값(coverage.py/gcov)으로 대체됨
   - 커버리지 80% 미만 모듈은 `Coverage:Module` WARN 타깃으로 Issues 탭/PR 어노테이션에 노출
 

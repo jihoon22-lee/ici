@@ -1,0 +1,76 @@
+{
+  "schema_version": "ici.self-quality-baseline/v1",
+  "measured_at": "2026-08-31",
+  "measurement_commit": "7bb3a50",
+  "measurement_command": "uv run --python 3.10 ici verify --report",
+  "report_schema": "ici.result/v2",
+  "runs": [
+    {
+      "run": 1,
+      "suite_status": "WARN",
+      "passed_tests": 632,
+      "total_tests": 632,
+      "tem_score": 4.78,
+      "line_coverage_pct": 85.9,
+      "branch_coverage_pct": 77.9,
+      "function_coverage_pct": 95.69120287253142,
+      "console_output_lines": 2276,
+      "duplicate_groups": 237,
+      "duplicate_rate_pct": 14.633313412447707,
+      "type_status": "PASS",
+      "type_annotation_unchecked_notes": 0
+    },
+    {
+      "run": 2,
+      "suite_status": "WARN",
+      "passed_tests": 632,
+      "total_tests": 632,
+      "tem_score": 4.78,
+      "line_coverage_pct": 85.9,
+      "branch_coverage_pct": 77.9,
+      "function_coverage_pct": 95.69120287253142,
+      "console_output_lines": 2276,
+      "duplicate_groups": 237,
+      "duplicate_rate_pct": 14.633313412447707,
+      "type_status": "PASS",
+      "type_annotation_unchecked_notes": 0
+    },
+    {
+      "run": 3,
+      "suite_status": "WARN",
+      "passed_tests": 632,
+      "total_tests": 632,
+      "tem_score": 4.78,
+      "line_coverage_pct": 85.9,
+      "branch_coverage_pct": 77.9,
+      "function_coverage_pct": 95.69120287253142,
+      "console_output_lines": 2276,
+      "duplicate_groups": 237,
+      "duplicate_rate_pct": 14.633313412447707,
+      "type_status": "PASS",
+      "type_annotation_unchecked_notes": 0
+    }
+  ],
+  "policy_floors": {
+    "min_tem_score": 4.5,
+    "min_branch_cov": 70.0,
+    "min_func_cov": 90.0
+  },
+  "ratchet_margin": {
+    "tem_points": 0.1,
+    "coverage_percentage_points": 3.0,
+    "required_consecutive_runs": 3
+  },
+  "mypy_note_diagnosis": {
+    "before_groups": 4,
+    "before_occurrences": 13,
+    "before_locations": [
+      "src/ici/engines/sanitize.py:53",
+      "src/ici/engines/exception.py:363",
+      "src/ici/engines/dead.py:21",
+      "src/ici/engines/test.py:57-66"
+    ],
+    "after_groups": 0,
+    "after_occurrences": 0
+  }
+}
