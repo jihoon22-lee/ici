@@ -715,6 +715,116 @@
   padding: 0.3rem 0;
 }
 
+/* Baseline finding delta */
+.baseline-section { display: flex; flex-direction: column; gap: 1.25rem; }
+.baseline-summary-card, .baseline-warning-card, .baseline-deltas-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+.baseline-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+.baseline-section-heading h2, .baseline-warning-card h3 {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+.baseline-section-heading p {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+.baseline-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+.baseline-summary-grid > div {
+  background: #090e17;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+}
+.baseline-summary-grid dt, .baseline-field-label {
+  color: var(--text-muted);
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+}
+.baseline-summary-grid dd {
+  color: #f3f4f6;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.baseline-summary-grid dd code { color: var(--primary); font-size: 0.84rem; }
+.baseline-reason {
+  align-items: baseline;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+}
+.baseline-reason > span:last-child { color: #e5e7eb; font-size: 0.85rem; overflow-wrap: anywhere; }
+.baseline-gate-pill, .baseline-count-pill {
+  border: 1px solid var(--border-highlight);
+  border-radius: 9999px;
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.25rem 0.65rem;
+  white-space: nowrap;
+}
+.baseline-gate-failed { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.48); color: #fca5a5; }
+.baseline-gate-passed { background: rgba(16, 185, 129, 0.14); border-color: rgba(16, 185, 129, 0.48); color: #6ee7b7; }
+.baseline-gate-not-enforced { background: rgba(156, 163, 175, 0.12); color: var(--text-muted); }
+.baseline-count-pill { color: var(--text-muted); }
+.baseline-warning-card h3 { font-size: 1rem; }
+.baseline-warning-list { color: #fcd34d; margin: 0.65rem 0 0; padding-left: 1.25rem; }
+.baseline-warning-list li { margin: 0.25rem 0; overflow-wrap: anywhere; }
+.baseline-none { color: var(--text-muted); font-size: 0.85rem; margin: 0.6rem 0 0; }
+.baseline-delta-list { display: flex; flex-direction: column; gap: 0.7rem; }
+.baseline-delta {
+  background: #090e17;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-highlight);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+.baseline-delta-new { border-left-color: var(--fail); }
+.baseline-delta-moved { border-left-color: var(--warn); }
+.baseline-delta-resolved { border-left-color: var(--pass); }
+.baseline-delta-unchanged { border-left-color: var(--border-highlight); opacity: 0.85; }
+.baseline-delta-heading { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.baseline-delta-heading strong { color: #f3f4f6; }
+.baseline-delta-state { color: #e5e7eb; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; }
+.baseline-delta-rule { color: #a78bfa; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; overflow-wrap: anywhere; }
+.baseline-delta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.7rem;
+  margin-top: 0.7rem;
+}
+.baseline-delta-grid > div { min-width: 0; }
+.baseline-delta-grid code, .baseline-delta-grid .loc-link { overflow-wrap: anywhere; }
+.baseline-delta-message { color: #e2e8f0; font-size: 0.86rem; margin: 0.75rem 0 0; overflow-wrap: anywhere; }
+.baseline-omitted-note { color: var(--text-muted); font-size: 0.8rem; margin: 0.8rem 0 0; }
+
   .status-banner {
     border: 1px solid #10b981;
     background: rgba(16, 185, 129, 0.15);
@@ -806,7 +916,7 @@
 
     <div class="card stat-card">
       <div class="stat-label">Total Execution Time</div>
-      <div class="stat-value">28.68 <span class="stat-sub">sec</span></div>
+      <div class="stat-value">32.45 <span class="stat-sub">sec</span></div>
       <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
         Concurrent & AST Subprocess Engine
       </div>
@@ -840,7 +950,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr class='engine-row'>  <td class='engine-name'><strong>line</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Total 2,097 lines (1,769 code, 74 comment, 254 blank) across 14 files</div><button class='jump-tab-btn' data-tab-target='tab-line'>📊 View File Tree & Charts →</button></td>  <td class='text-right'><code>1,769 code / 14 files</code></td>  <td class='text-right text-muted'>0.04s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>lint</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>0 Violations Found</div></td>  <td class='text-right'><code>0 issues</code></td>  <td class='text-right text-muted'>4.69s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>test</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>7/7 Tests Passed | Line: 94.6%, Func: 97.7%, Branch: 80.9% -&gt; TEM: 4.89 / 5.0</div><button class='jump-tab-btn' data-tab-target='tab-test'>🧪 View Test Suites & Coverage Details →</button></td>  <td class='text-right'><code>4.89 / 5.00</code></td>  <td class='text-right text-muted'>10.68s</td></tr><tr style='opacity: 0.55;'>  <td class='engine-name' style='color: var(--text-muted);'>type</td>  <td><span class='badge' style='color:#9ca3af; background:rgba(156, 163, 175, 0.15); border:1px solid #9ca3af44'>N/A</span></td>  <td colspan='3'>    <details>      <summary style='cursor:pointer; color:var(--text-muted); font-size:0.85rem;'>Not applicable — why?</summary>      <div class='engine-summary-text' style='margin-top:0.4rem;'>Type checking not applicable: no Python sources; C++ is unsupported</div>    </details>  </td></tr><tr class='engine-row'>  <td class='engine-name'><strong>resource</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>No resource leaks detected</div><button class='jump-tab-btn' data-tab-target='tab-security'>🔐 View Security & Resources →</button></td>  <td class='text-right'><code>-</code></td>  <td class='text-right text-muted'>0.00s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>security</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Security hygiene clean</div><button class='jump-tab-btn' data-tab-target='tab-security'>🔐 View Security & Resources →</button></td>  <td class='text-right'><code>-</code></td>  <td class='text-right text-muted'>0.00s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>cycle</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>No cyclic dependencies detected</div><button class='jump-tab-btn' data-tab-target='tab-cycles'>🔁 View Dependency Cycles →</button></td>  <td class='text-right'><code>-</code></td>  <td class='text-right text-muted'>0.01s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>complexity</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Max Cyclomatic Complexity: 15 (limit 15) across 140 functions (0 issues)</div><button class='jump-tab-btn' data-tab-target='tab-complexity'>🧩 View Complexity Details →</button></td>  <td class='text-right'><code>15.00</code></td>  <td class='text-right text-muted'>0.04s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>sanitize</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Memory Safety &amp; Sanitize Clean (0 Defects)</div></td>  <td class='text-right'><code>-</code></td>  <td class='text-right text-muted'>13.14s</td></tr><tr style='opacity: 0.55;'>  <td class='engine-name' style='color: var(--text-muted);'>dead</td>  <td><span class='badge' style='color:#9ca3af; background:rgba(156, 163, 175, 0.15); border:1px solid #9ca3af44'>N/A</span></td>  <td colspan='3'>    <details>      <summary style='cursor:pointer; color:var(--text-muted); font-size:0.85rem;'>Not applicable — why?</summary>      <div class='engine-summary-text' style='margin-top:0.4rem;'>Dead-code analysis skipped: no Python source files</div>    </details>  </td></tr><tr class='engine-row'>  <td class='engine-name'><strong>dup</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Code Duplication Rate: 4.4% (10 distinct clone groups found)</div><button class='jump-tab-btn' data-tab-target='tab-dup'>📦 View Clone Groups →</button></td>  <td class='text-right'><code>4.43</code></td>  <td class='text-right text-muted'>0.02s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>exception</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Exception Handling Safety Clean</div></td>  <td class='text-right'><code>0 exc errors</code></td>  <td class='text-right text-muted'>0.04s</td></tr>
+        <tr class='engine-row'>  <td class='engine-name'><strong>line</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Total 2,097 lines (1,769 code, 74 comment, 254 blank) across 14 files</div><button class='jump-tab-btn' data-tab-target='tab-line'>📊 View File Tree & Charts →</button></td>  <td class='text-right'><code>1,769 code / 14 files</code></td>  <td class='text-right text-muted'>0.04s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>lint</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>0 Violations Found</div></td>  <td class='text-right'><code>0 issues</code></td>  <td class='text-right text-muted'>5.39s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>test</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>7/7 Tests Passed | Line: 94.6%, Func: 97.7%, Branch: 80.9% -&gt; TEM: 4.89 / 5.0</div><button class='jump-tab-btn' data-tab-target='tab-test'>🧪 View Test Suites & Coverage Details →</button></td>  <td class='text-right'><code>4.89 / 5.00</code></td>  <td class='text-right text-muted'>12.08s</td></tr><tr style='opacity: 0.55;'>  <td class='engine-name' style='color: var(--text-muted);'>type</td>  <td><span class='badge' style='color:#9ca3af; background:rgba(156, 163, 175, 0.15); border:1px solid #9ca3af44'>N/A</span></td>  <td colspan='3'>    <details>      <summary style='cursor:pointer; color:var(--text-muted); font-size:0.85rem;'>Not applicable — why?</summary>      <div class='engine-summary-text' style='margin-top:0.4rem;'>Type checking not applicable: no Python sources; C++ is unsupported</div>    </details>  </td></tr><tr class='engine-row'>  <td class='engine-name'><strong>resource</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>No resource leaks detected</div><button class='jump-tab-btn' data-tab-target='tab-security'>🔐 View Security & Resources →</button></td>  <td class='text-right'><code>-</code></td>  <td class='text-right text-muted'>0.00s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>security</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Security hygiene clean</div><button class='jump-tab-btn' data-tab-target='tab-security'>🔐 View Security & Resources →</button></td>  <td class='text-right'><code>-</code></td>  <td class='text-right text-muted'>0.00s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>cycle</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>No cyclic dependencies detected</div><button class='jump-tab-btn' data-tab-target='tab-cycles'>🔁 View Dependency Cycles →</button></td>  <td class='text-right'><code>-</code></td>  <td class='text-right text-muted'>0.01s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>complexity</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Max Cyclomatic Complexity: 15 (limit 15) across 140 functions (0 issues)</div><button class='jump-tab-btn' data-tab-target='tab-complexity'>🧩 View Complexity Details →</button></td>  <td class='text-right'><code>15.00</code></td>  <td class='text-right text-muted'>0.04s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>sanitize</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Memory Safety &amp; Sanitize Clean (0 Defects)</div></td>  <td class='text-right'><code>-</code></td>  <td class='text-right text-muted'>14.81s</td></tr><tr style='opacity: 0.55;'>  <td class='engine-name' style='color: var(--text-muted);'>dead</td>  <td><span class='badge' style='color:#9ca3af; background:rgba(156, 163, 175, 0.15); border:1px solid #9ca3af44'>N/A</span></td>  <td colspan='3'>    <details>      <summary style='cursor:pointer; color:var(--text-muted); font-size:0.85rem;'>Not applicable — why?</summary>      <div class='engine-summary-text' style='margin-top:0.4rem;'>Dead-code analysis skipped: no Python source files</div>    </details>  </td></tr><tr class='engine-row'>  <td class='engine-name'><strong>dup</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Code Duplication Rate: 4.4% (10 distinct clone groups found)</div><button class='jump-tab-btn' data-tab-target='tab-dup'>📦 View Clone Groups →</button></td>  <td class='text-right'><code>4.43</code></td>  <td class='text-right text-muted'>0.02s</td></tr><tr class='engine-row'>  <td class='engine-name'><strong>exception</strong></td>  <td><span class='badge' style='color:#10b981; background:rgba(16, 185, 129, 0.15); border: 1px solid #10b98133'>PASS</span></td>  <td><div class='engine-summary-text'>Exception Handling Safety Clean</div></td>  <td class='text-right'><code>0 exc errors</code></td>  <td class='text-right text-muted'>0.04s</td></tr>
       </tbody>
     </table>
   </div>
@@ -1397,7 +1507,7 @@
         <div class="stat-label">Unit Test Pass Rate</div>
         <div class="stat-value" style="color:#10b981">7 / 7 <span class="stat-sub">Passed</span></div>
         <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
-          Duration: 10.68s across 5 Suites
+          Duration: 12.08s across 5 Suites
            · PassRate 100%
         </div>
       </div>
