@@ -2,6 +2,7 @@
 
 import json
 
+import click
 import pytest
 from typer.testing import CliRunner
 
@@ -9,6 +10,7 @@ from ici import __version__
 from ici.__main__ import app
 from ici.core.baseline import BaselineError
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
+from ici.reporters.issue_view import DEFAULT_MAX_FINDINGS, ConsoleGroupBy, ConsoleOptions
 
 runner = CliRunner()
 
@@ -120,7 +122,126 @@ def test_cli_verify_forwards_baseline_options_to_orchestrator(tmp_path, monkeypa
         "baseline_path": tmp_path / "baseline.json",
         "fail_on_new": True,
         "write_baseline": tmp_path / "new-baseline.json",
+        "console_options": ConsoleOptions(
+            verbose=False,
+            max_findings=DEFAULT_MAX_FINDINGS,
+            group_by=ConsoleGroupBy.ENGINE,
+        ),
     }
+
+
+def test_cli_verify_forwards_console_options_to_orchestrator(tmp_path, monkeypatch):
+    captured = {}
+
+    class FakeOrchestrator:
+        def __init__(self, project_root, config):
+            captured["project_root"] = project_root
+            captured["config"] = config
+
+        def run_all(self, **kwargs):
+            captured["run_all"] = kwargs
+            return VerificationSuiteResult(suite_status=EngineStatus.PASS, results=[])
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", FakeOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "verify",
+            "--verbose",
+            "--max-findings",
+            "7",
+            "--group-by",
+            "severity",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["run_all"]["console_options"] == ConsoleOptions(
+        verbose=True,
+        max_findings=7,
+        group_by=ConsoleGroupBy.SEVERITY,
+    )
+
+
+def test_cli_verify_forwards_default_console_options(tmp_path, monkeypatch):
+    captured = {}
+
+    class FakeOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            captured.update(kwargs)
+            return VerificationSuiteResult(suite_status=EngineStatus.PASS, results=[])
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", FakeOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["verify"])
+
+    assert result.exit_code == 0
+    assert captured["console_options"] == ConsoleOptions()
+
+
+@pytest.mark.parametrize(
+    ("argv", "option_name"),
+    [
+        (["--max-findings=-1"], "--max-findings"),
+        (["--max-findings", "not-an-integer"], "--max-findings"),
+        (["--group-by", "unknown"], "--group-by"),
+    ],
+)
+def test_cli_verify_rejects_invalid_console_options(tmp_path, monkeypatch, argv, option_name):
+    class UnexpectedOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+            pytest.fail("orchestrator must not be constructed for invalid console options")
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", UnexpectedOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["verify", *argv], color=True)
+
+    assert result.exit_code == 2
+    plain_output = click.unstyle(result.output)
+    assert "Invalid value" in plain_output
+    assert option_name in plain_output
+
+
+def test_cli_verify_accepts_zero_max_findings(tmp_path, monkeypatch):
+    captured = {}
+
+    class FakeOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            captured.update(kwargs)
+            return VerificationSuiteResult(suite_status=EngineStatus.PASS, results=[])
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", FakeOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["verify", "--max-findings", "0"])
+
+    assert result.exit_code == 0
+    assert captured["console_options"].max_findings == 0
+
+
+def test_cli_engine_commands_do_not_accept_console_options(monkeypatch, tmp_path):
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["line", "--verbose"])
+
+    assert result.exit_code == 2
+    assert "No such option" in result.output
 
 
 def test_cli_verify_fail_on_new_requires_baseline(tmp_path, monkeypatch):

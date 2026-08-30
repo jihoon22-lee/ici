@@ -14,6 +14,30 @@
   - baseline은 v3 baseline 계약과 canonical project-relative location을 요구하고, 현재 project root 밖 경로·절대경로·비정규 separator·symlink escape를 거부합니다. baseline 기록은 고유 임시 파일과 atomic replace를 사용해 부분 파일을 남기지 않으며, 실패한 fail-on-new gate가 입력 baseline을 같은 경로에서 덮어써 regression을 숨기는 것도 차단합니다.
   - verify에 --baseline, --fail-on-new, --write-baseline을 추가했습니다. --fail-on-new은 baseline 없이는 실행하지 않고, report와 baseline output 경로 충돌도 거부합니다.
   - console, Markdown, zero-CDN HTML은 issues-first delta와 compatibility warning을 보여 주고 JSON은 전체 delta inventory를 보존합니다. GitHub sticky comment도 single/multi-project report에 new·regressed·gated count와 baseline gate 상태를 요약하며, legacy report와 null baseline은 계속 읽습니다.
+
+- **I1-4 issues-first console과 공통 grouping**: `ici verify` 전용 `--verbose`,
+  `--max-findings N`(엔진별 기본 5개 display group, `0`은 summary만), `--group-by
+  engine|severity|category|file|rule`을 구현했습니다. verbose는 cap을 해제하고, grouping과
+  cap은 console-only projection으로 제한해 JSON·HTML·Markdown·baseline 원본 inventory를
+  그대로 보존합니다.
+  - duplicate는 같은 실행의 같은 clone group 안에서 같은 파일의 겹치는 region만 표시상
+    병합하며 원본 occurrence와 fingerprint를 유지합니다. HTML `Issues` 탭도 native v3
+    finding inventory를 기반으로 전체 결과를 표시합니다.
+  - 현재 Python 3.10 전체 품질 게이트 756/756 tests, focused console 16 tests, Ruff
+    check/format, pure-Python 10-distribution 2.0 MiB pyz(no certifi), smoke 전체 및
+    80-column 안정성 검증을 통과했습니다. 최종 안정 self verify의 built `dist/ici.pyz`
+    실행은 exit 0, suite는 WARN이었고 self verify 출력은 144 lines/15,288 bytes였습니다.
+    해당 출력에 내장된 test engine 수치는 756/756이며 coverage는 line/function/branch
+    87.8%/96.6%/78.8%, TEM 4.83이었습니다. engines는 Pass 8/Warn 4/
+    Fail 0/Error 0/Skip 0, complexity는 최대 23·이슈 64건, duplicate는 16.2%·338 groups·
+    1,006 actionable occurrences였습니다.
+  - 콘솔은 actionable 1,088건, visible 21/420 display groups, represented 34,
+    hidden 1,054 findings/399 groups를 기록했습니다. HTML은 3,383,523 bytes이며 clone
+    group card 338개와 issue engine row 1,088개를 유지했고 external script/stylesheet
+    reference는 0개였습니다. 초기 측정의 lint 실패는 에이전트 파일 작성 경합에 따른 참고
+    기록이며, 위 최종 안정 self verify를 기준으로 삼습니다. PR/CI Merge Gate의 URL과 실행
+    근거는 `TODO_AFTER_PR_AND_CI`로 추적합니다.
+
 - **실행 가능한 엔진 support/capability matrix**: 13개 엔진의 Python/C++ 지원을 `exact`, `heuristic`, `tool-backed`, `unsupported` mode와 Qt 호환성, 필수·선택 도구, fallback, 신뢰도 및 알려진 한계로 중앙 선언합니다. 프로젝트 소스와 유효 정책을 적용해 `applicable`/`enabled`/`active_mode`를 계산하며, 실행 증거를 `MEASURED`·`ESTIMATED`·`NOT_RUN`·`NOT_APPLICABLE`과 일관되게 연결합니다.
   - 전체 verify와 단독 엔진의 `ici.result/v3` JSON, `ici doctor --json`은 동일한 구조를 사용합니다. v3 schema의 matrix 필드는 이전 v3 archive를 깨뜨리지 않도록 선택 사항이고 새 writer는 항상 object 또는 `null`을 기록합니다.
   - `doctor`, zero-CDN HTML, Qt viewer가 같은 행을 표시하며, 미지원 또는 실행하지 못한 범위를 PASS로 보이지 않게 합니다. 문서의 지원 표는 중앙 선언에서 생성되고 회귀 테스트로 정확히 일치하는지 검증합니다.

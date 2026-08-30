@@ -5,6 +5,7 @@ import pytest
 from ici.core.baseline import BaselineError
 from ici.core.models import BaselineComparison, EngineResult, EngineStatus, EvidenceState
 from ici.engines.verify import VerifyOrchestrator
+from ici.reporters.issue_view import ConsoleGroupBy, ConsoleOptions
 
 
 def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
@@ -200,3 +201,34 @@ def test_failed_delta_gate_cannot_overwrite_its_input_baseline(monkeypatch, tmp_
             fail_on_new=True,
             write_baseline=".ici/baseline.json",
         )
+
+
+def test_console_options_are_forwarded_only_to_console_reporter(monkeypatch, tmp_path):
+    class PassingEngine:
+        def __init__(self, project_root, config):
+            del project_root, config
+
+        def run(self):
+            return EngineResult("lint", EngineStatus.PASS, "clean")
+
+    captured = {}
+    monkeypatch.setattr("ici.engines.verify.LintEngine", PassingEngine)
+    monkeypatch.setattr(
+        "ici.engines.verify.print_suite_dashboard",
+        lambda suite, root, *, options=None: captured.update(
+            suite=suite, root=root, options=options
+        ),
+    )
+
+    options = ConsoleOptions(
+        verbose=True,
+        max_findings=3,
+        group_by=ConsoleGroupBy.FILE,
+    )
+    suite = VerifyOrchestrator(tmp_path, _only_lint_enabled()).run_all(
+        console_options=options,
+    )
+
+    assert captured["suite"] is suite
+    assert captured["root"] == tmp_path.resolve()
+    assert captured["options"] is options

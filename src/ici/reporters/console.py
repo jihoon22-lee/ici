@@ -21,6 +21,15 @@ from ici.core.models import (
 )
 from ici.core.redaction import redact_suite
 from ici.reporters.baseline_view import select_baseline_details, severity_transition
+from ici.reporters.issue_view import (
+    DEFAULT_MAX_LOCATIONS,
+    ConsoleOptions,
+    IssueGroup,
+    IssueLocation,
+    IssueSelection,
+    issue_bucket,
+    select_issue_groups,
+)
 
 _DELTA_STATE_COLOR = {
     DeltaState.NEW: "red",
@@ -70,6 +79,7 @@ def _baseline_location_text(location: SourceLocation | None) -> str:
 def _print_baseline_comparison(
     comparison: BaselineComparison,
     suite: VerificationSuiteResult,
+    output_console: Console,
 ) -> None:
     """Print compact baseline counts followed by bounded, gated-first deltas."""
     gate_label = (
@@ -92,7 +102,7 @@ def _print_baseline_comparison(
         summary += "\n" + "\n".join(
             f"  [yellow]•[/] {escape(warning)}" for warning in comparison.warnings
         )
-    console.print(
+    output_console.print(
         Panel(
             summary,
             title="[bold cyan]Baseline Finding Delta[/]",
@@ -126,7 +136,7 @@ def _print_baseline_comparison(
             if selection.omitted_unchanged:
                 notes.append(f"{selection.omitted_unchanged} unchanged row(s) omitted")
             lines.append(f"[dim]Note: {'; '.join(notes)}; JSON retains the full inventory.[/]")
-        console.print(
+        output_console.print(
             Panel(
                 "\n".join(lines),
                 title="[bold yellow]Baseline Issues-First Details[/]",
@@ -135,7 +145,7 @@ def _print_baseline_comparison(
             )
         )
     elif comparison.entries:
-        console.print(
+        output_console.print(
             Panel(
                 "[dim]Delta details omitted from the terminal view; JSON retains the full inventory.[/]",
                 title="[bold yellow]Baseline Details[/]",
@@ -145,10 +155,106 @@ def _print_baseline_comparison(
         )
 
 
-def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None = None) -> None:
+def _issue_color(group: IssueGroup) -> str:
+    if group.severity.value in ("critical", "high"):
+        return "red"
+    if group.severity.value == "medium":
+        return "yellow"
+    return "cyan"
+
+
+def _issue_location_link(location: IssueLocation, base_dir: Path) -> str:
+    link = make_terminal_link(location.path, location.start_line, base_dir)
+    if location.end_line > location.start_line:
+        link += f"[dim]-L{location.end_line}[/]"
+    return link
+
+
+def _render_issue_group(
+    group: IssueGroup,
+    base_dir: Path,
+    options: ConsoleOptions,
+) -> list[str]:
+    color = _issue_color(group)
+    identity = f"{group.engine_name} / {group.rule_id}"
+    if group.clone_group_id:
+        identity += f" / clone {group.clone_group_id}"
+    lines = [
+        f"[{color}]• {group.severity.value.upper()}[/] "
+        f"[bold]{escape(identity)}[/] — {escape(group.message or '—')}"
+    ]
+    location_limit = len(group.locations) if options.verbose else DEFAULT_MAX_LOCATIONS
+    for location in group.locations[:location_limit]:
+        lines.append(f"    [dim]↳[/] {_issue_location_link(location, base_dir)}")
+    hidden_locations = len(group.locations) - location_limit
+    if hidden_locations > 0:
+        lines.append(f"    [dim]… {hidden_locations} additional location(s) hidden[/]")
+    snippet_limit = 4 if options.verbose else 1
+    for snippet_line in group.snippet.strip().splitlines()[:snippet_limit]:
+        lines.append(f"    [dim white]│[/dim white] {escape(snippet_line)}")
+    if group.original_finding_count > 1:
+        lines.append(f"    [dim]{group.original_finding_count} original findings represented[/]")
+    return lines
+
+
+def _print_issue_details(
+    selection: IssueSelection,
+    base_dir: Path,
+    options: ConsoleOptions,
+    output_console: Console,
+) -> None:
+    if selection.visible_groups:
+        output_console.print("\n[bold red]── Issues-First Drill-Down ──[/bold red]")
+        buckets: dict[str, list[IssueGroup]] = {}
+        for group in selection.visible_groups:
+            buckets.setdefault(issue_bucket(group, options.group_by), []).append(group)
+        for bucket, groups in buckets.items():
+            content = [
+                line for group in groups for line in _render_issue_group(group, base_dir, options)
+            ]
+            output_console.print(
+                Panel(
+                    "\n".join(content),
+                    title=f"[bold]{escape(options.group_by.value.title())}: {escape(bucket)}[/]",
+                    border_style="yellow",
+                    box=box.SQUARE,
+                )
+            )
+
+    if selection.total_findings:
+        inventory = (
+            f"[bold]Actionable findings:[/] {selection.total_findings}  ·  "
+            f"[bold]Display groups:[/] {len(selection.visible_groups)}/{selection.total_groups}  ·  "
+            f"[bold]Represented:[/] {selection.visible_findings}"
+        )
+        if selection.hidden_findings or selection.hidden_groups:
+            inventory += (
+                f"  ·  [yellow]Hidden:[/] {selection.hidden_findings} finding(s) "
+                f"in {selection.hidden_groups} group(s)\n"
+                f"[dim]Re-run with: {escape(options.rerun_command)}[/]"
+            )
+        output_console.print(
+            Panel(
+                inventory,
+                title="[bold cyan]Terminal Finding Inventory[/]",
+                border_style="cyan",
+                box=box.ROUNDED,
+            )
+        )
+
+
+def print_suite_dashboard(
+    suite: VerificationSuiteResult,
+    base_dir: Path | None = None,
+    *,
+    options: ConsoleOptions | None = None,
+    output_console: Console | None = None,
+) -> None:
     """Prints the comprehensive Rich terminal dashboard for all verification engines."""
     suite = redact_suite(suite)
     base = (base_dir or Path.cwd()).resolve()
+    selected_options = options or ConsoleOptions()
+    active_console = output_console or console
 
     status_color = (
         "green"
@@ -158,86 +264,51 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
     banner_text = Text(
         f"ici Unified Verification Suite — {suite.suite_status.value}", style=f"bold {status_color}"
     )
-    console.print(Panel(banner_text, box=box.DOUBLE, border_style=status_color))
+    active_console.print(Panel(banner_text, box=box.DOUBLE, border_style=status_color))
 
+    selection = select_issue_groups(suite, base, selected_options)
+    findings_by_engine: dict[str, int] = {}
+    for group in selection.all_groups:
+        findings_by_engine[group.engine_name] = (
+            findings_by_engine.get(group.engine_name, 0) + group.original_finding_count
+        )
+
+    compact = active_console.width < 100
     table = Table(box=box.ROUNDED, header_style="bold cyan", expand=True)
-    table.add_column("Engine", style="bold", width=16)
-    table.add_column("Status", justify="center", width=10)
-    table.add_column("Summary", style="white")
-    table.add_column("Score / Metrics", justify="right", width=22)
-    table.add_column("Duration", justify="right", width=10)
+    table.add_column("Engine", style="bold", width=12 if compact else 16, no_wrap=True)
+    table.add_column("Status", justify="center", width=8 if compact else 10, no_wrap=True)
+    table.add_column("Summary", style="white", ratio=1, overflow="fold")
+    table.add_column("Issues", justify="right", width=7, no_wrap=True)
+    table.add_column(
+        "Score / Metrics",
+        justify="right",
+        width=14 if compact else 22,
+        overflow="ellipsis",
+        no_wrap=True,
+    )
+    if not compact:
+        table.add_column("Duration", justify="right", width=10, no_wrap=True)
 
     for res in suite.results:
         status_badge = format_status_badge(res.status)
         score_str = format_score_display(res)
         duration_str = f"{res.duration:.2f}s" if res.duration > 0 else "-"
-        table.add_row(
+        row = [
             escape(res.engine_name),
             status_badge,
             escape(res.summary),
+            str(findings_by_engine.get(res.engine_name, 0)),
             escape(score_str),
-            escape(duration_str),
-        )
+        ]
+        if not compact:
+            row.append(escape(duration_str))
+        table.add_row(*row)
 
-    console.print(table)
-
-    # Print Drill-Down for Failures, Errors, and Warnings
-    issues = [
-        r
-        for r in suite.results
-        if r.status in (EngineStatus.FAIL, EngineStatus.ERROR, EngineStatus.WARN, EngineStatus.SKIP)
-    ]
-    if issues:
-        console.print(
-            "\n[bold red]── Action Required: Violations & Issues Drill-Down ──[/bold red]"
-        )
-        for issue in issues:
-            border = "red" if issue.status in (EngineStatus.FAIL, EngineStatus.ERROR) else "yellow"
-            issue_panel_content = []
-
-            if issue.engine_name == "dup" and "clone_groups" in issue.extra:
-                for g in issue.extra["clone_groups"]:
-                    occ_links = [
-                        make_terminal_link(occ["file_path"], occ["start_line"], base)
-                        for occ in g["occurrences"]
-                    ]
-                    line_hdr = (
-                        f"[{border}]• [CloneGroup#{escape(str(g['id']))}][/] [bold]"
-                        f"{' <-> '.join(occ_links)}[/] ({escape(str(g['lines_count']))} duplicate lines)"
-                    )
-                    issue_panel_content.append(line_hdr)
-                    if g.get("snippet"):
-                        for s_line in g["snippet"].strip().splitlines()[:4]:
-                            issue_panel_content.append(
-                                f"    [dim white]│[/dim white] {escape(s_line)}"
-                            )
-            else:
-                for target in issue.targets:
-                    if target.status != EngineStatus.PASS:
-                        link_str = make_terminal_link(target.file_path, target.start_line, base)
-                        line_hdr = f"[{border}]• [{target.status.value}][/] [bold]{link_str}[/] ({escape(target.target_name or 'issue')})"
-                        issue_panel_content.append(line_hdr)
-                        if target.message:
-                            issue_panel_content.append(f"  [dim]{escape(target.message)}[/dim]")
-                        if target.snippet:
-                            snippet_lines = target.snippet.strip().splitlines()
-                            for s_line in snippet_lines[:6]:
-                                issue_panel_content.append(
-                                    f"    [dim white]│[/dim white] {escape(s_line)}"
-                                )
-
-            if issue_panel_content:
-                console.print(
-                    Panel(
-                        "\n".join(issue_panel_content),
-                        title=f"[{border}]{escape(issue.engine_name)} Issues[/]",
-                        border_style=border,
-                        box=box.SQUARE,
-                    )
-                )
+    active_console.print(table)
+    _print_issue_details(selection, base, selected_options, active_console)
 
     if suite.baseline_comparison is not None:
-        _print_baseline_comparison(suite.baseline_comparison, suite)
+        _print_baseline_comparison(suite.baseline_comparison, suite, active_console)
 
     # Print Overall Footer
     tem_str = (
@@ -261,7 +332,7 @@ def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None 
         f"[bold {status_color}]Suite: {suite.suite_status.value}[/] — "
         f"{gate_reason(suite.results, suite.suite_status, suite.baseline_comparison)}"
     )
-    console.print(Panel(summary_text, style="white", border_style="cyan"))
+    active_console.print(Panel(summary_text, style="white", border_style="cyan"))
 
 
 def print_line_distribution_chart(code: int, comment: int, blank: int, total: int) -> None:

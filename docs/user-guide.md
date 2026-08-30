@@ -163,6 +163,51 @@ baseline metadata의 producer/fingerprint/policy/tool policy가 현재 실행과
   count와 compatibility warning을 요약합니다. 전체 delta 위치와 메시지는 HTML/JSON 및
   Markdown 상세에서 확인합니다.
 
+### 2.2.2 Issues-first 콘솔
+
+콘솔은 전체 inventory를 보존하면서 동일한 원인을 반복해서 펼치지 않는 issues-first projection을
+제공합니다.
+
+| 옵션 | 동작 |
+|---|---|
+| `--verbose` | `ici verify`에서만 사용하는 상세 표시 모드이며 console cap을 해제 |
+| `--max-findings N` | 엔진별 console display group 상한. 기본값은 엔진별 5건이며 `0`은 summary만 표시 |
+| `--group-by engine\|severity\|category\|file\|rule` | v3 finding의 engine, severity, category, canonical primary file 또는 rule 기준 표시 그룹 선택 |
+
+사용 형태는 다음과 같습니다.
+
+```bash
+# 엔진별 최대 5건, 파일 기준 표시 그룹
+ici verify --group-by file
+
+# summary만 출력
+ici verify --max-findings 0
+
+# 상세 표시 모드: cap 해제
+ici verify --verbose --max-findings 10 --group-by severity
+```
+
+cap과 grouping은 console-only projection이다. `--report` JSON, HTML, Markdown 및 baseline의
+원본 inventory·target·finding·delta occurrence는 상한과 무관하게 전체를 보존해야 한다.
+duplicate는 같은 실행의 같은 clone group 안에서 같은 파일의 겹치는 line region만 표시상
+병합한다. 인접하지만 겹치지 않는 region과 서로 다른 clone group은 병합하지 않으며, 병합 전
+원본 occurrence와 fingerprint를 모두 유지한다. HTML `Issues` 탭도 native v3 finding inventory를
+기반으로 전체 결과를 표시한다. 80-column 터미널에서도 표·링크·상세가 한 글자씩 세로로
+깨지지 않도록 회귀 테스트로 고정했다.
+
+현재 로컬 구현·테스트 기준은 `814679c` + `d80a027`이며 현재 Python 3.10 전체 품질 게이트는
+756/756 tests, focused console 테스트는 16개다. Ruff check/format,
+pure-Python 10-distribution·no-certifi·2.0 MiB pyz, smoke 전체 검증도 통과했다. 최종 안정
+self verify에서 built `dist/ici.pyz`는 exit 0, suite는 WARN이었다. self verify 출력은 144
+lines/15,288 bytes, HTML은 3,383,523 bytes였고, 해당 출력에 내장된 test engine 수치는
+756/756이다. line/function/branch coverage 87.8%/96.6%/78.8%, TEM 4.83을 확인했다.
+engines는 Pass 8, Warn 4, Fail 0,
+Error 0, Skip 0이며 complexity는 최대 23·이슈 64건, duplicate는 16.2%·338 groups·
+1,006 actionable occurrences였다. 콘솔 측정은 actionable 1,088건, visible 21/420 display
+groups, represented 34, hidden 1,054 findings/399 groups였다. HTML에는 clone group card
+338개와 issue engine row 1,088개가 유지됐고 external script/stylesheet reference는 0개였다.
+PR/CI Merge Gate URL과 실행 근거는 `TODO_AFTER_PR_AND_CI`로 추적한다.
+
 ### 2.3 신뢰된 실행에서 HTML 리포트 배포 (`--publish`)
 `--publish`는 일반 PR 검증의 기본 동작이 아닙니다. 권한을 명시적으로 부여한 신뢰된
 `main` push 또는 수동 실행에서만 `verify_report.html`을 `gh-pages` 등 설정된 경로로

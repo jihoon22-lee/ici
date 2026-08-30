@@ -39,7 +39,7 @@ def generate_html_report(
         fail_engines,
         error_engines,
         skip_engines,
-    ) = _extract_suite_data(suite.results)
+    ) = _extract_suite_data(suite.results, base)
     engine_rows = _render_engine_table_rows(suite.results, base)
     line_tab_content = _render_line_section(eng_map.get("line"), base)
     test_tab_content = _render_test_section(eng_map.get("test"), base)
