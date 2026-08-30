@@ -14,12 +14,14 @@ from ici.core.baseline import (
 )
 from ici.core.models import (
     AnalysisMetadata,
+    BaselineComparison,
     DeltaState,
     EngineResult,
     EngineStatus,
     Finding,
     FindingCategory,
     FindingConfidence,
+    FindingDelta,
     FindingSeverity,
     FindingSuppression,
     SourceLocation,
@@ -421,3 +423,39 @@ def test_json_writer_replaces_atomically_and_cleans_failed_temporary_file(tmp_pa
 
     assert output.read_text(encoding="utf-8") == "old"
     assert not output.with_name("baseline.json.tmp").exists()
+
+
+def test_json_writer_rejects_contradictory_delta_and_metadata_states(tmp_path):
+    location = SourceLocation("src/service.py", 1, label="run")
+    invalid_new = FindingDelta(
+        state=DeltaState.NEW,
+        engine_name="lint",
+        fingerprint=_DIGEST_A,
+        rule_id="ici.test.baseline",
+        message="new",
+        current_location=location,
+        baseline_location=location,
+        current_severity=FindingSeverity.HIGH,
+        baseline_severity=FindingSeverity.MEDIUM,
+        gated=True,
+    )
+    suite = _suite([], metadata=_metadata())
+    suite.baseline_comparison = BaselineComparison(
+        source_path="baseline.json",
+        entries=[invalid_new],
+        fail_on_new=True,
+        gate_failed=True,
+    )
+    with pytest.raises(ValueError, match="must not contain baseline"):
+        serialize_suite_result(suite, project_root=tmp_path)
+
+    suite.baseline_comparison = BaselineComparison(
+        source_path="baseline.json", fail_on_new=False, gate_failed=True
+    )
+    with pytest.raises(ValueError, match="gate_failed contradicts"):
+        serialize_suite_result(suite, project_root=tmp_path)
+
+    suite.baseline_comparison = None
+    suite.analysis_metadata = _metadata(policy="not-a-digest")
+    with pytest.raises(ValueError, match="sha256 digest"):
+        serialize_suite_result(suite, project_root=tmp_path)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import json
 import math
+import re
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,7 @@ from ici.core.models import (
     Finding,
     FindingDelta,
     FindingMetric,
+    FindingSeverity,
     FindingSuppression,
     InspectionTarget,
     SourceLocation,
@@ -32,6 +34,7 @@ from ici.core.redaction import redact_engine_result, redact_suite
 
 RESULT_SCHEMA_VERSION = "ici.result/v3"
 LEGACY_RESULT_SCHEMA_VERSION = "ici.result/v2"
+_SHA256_RE = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 def _require_string(value: Any, field_name: str, *, nonempty: bool = False) -> str:
@@ -39,6 +42,13 @@ def _require_string(value: Any, field_name: str, *, nonempty: bool = False) -> s
         qualifier = "non-empty " if nonempty else ""
         raise ValueError(f"{field_name} must be a {qualifier}string: {value!r}")
     return value
+
+
+def _require_digest(value: Any, field_name: str) -> str:
+    digest = _require_string(value, field_name, nonempty=True)
+    if _SHA256_RE.fullmatch(digest) is None:
+        raise ValueError(f"{field_name} must be a sha256 digest: {value!r}")
+    return digest
 
 
 def _finite_number(
@@ -154,13 +164,10 @@ def _serialize_analysis_metadata(metadata: AnalysisMetadata | None) -> dict[str,
             "analysis_metadata.fingerprint_version",
             nonempty=True,
         ),
-        "policy_digest": _require_string(
-            metadata.policy_digest, "analysis_metadata.policy_digest", nonempty=True
-        ),
-        "tool_policy_digest": _require_string(
+        "policy_digest": _require_digest(metadata.policy_digest, "analysis_metadata.policy_digest"),
+        "tool_policy_digest": _require_digest(
             metadata.tool_policy_digest,
             "analysis_metadata.tool_policy_digest",
-            nonempty=True,
         ),
     }
 
@@ -170,14 +177,41 @@ def _serialize_delta(delta: FindingDelta) -> dict[str, Any]:
         raise ValueError("finding delta regressed/suppressed must be booleans")
     if type(delta.gated) is not bool:
         raise ValueError("finding delta gated must be a boolean")
+    if delta.state == DeltaState.NEW:
+        if delta.current_location is None or delta.current_severity is None:
+            raise ValueError("new finding delta must contain current location and severity")
+        if delta.baseline_location is not None or delta.baseline_severity is not None:
+            raise ValueError("new finding delta must not contain baseline state")
+    elif delta.state == DeltaState.RESOLVED:
+        if delta.baseline_location is None or delta.baseline_severity is None:
+            raise ValueError("resolved finding delta must contain baseline location and severity")
+        if delta.current_location is not None or delta.current_severity is not None:
+            raise ValueError("resolved finding delta must not contain current state")
+    elif (
+        delta.current_location is None
+        or delta.current_severity is None
+        or delta.baseline_location is None
+        or delta.baseline_severity is None
+    ):
+        raise ValueError("paired finding delta must contain current and baseline state")
+    if delta.state == DeltaState.UNCHANGED and delta.current_location != delta.baseline_location:
+        raise ValueError("unchanged finding delta locations must match")
+    if delta.state == DeltaState.MOVED and delta.current_location == delta.baseline_location:
+        raise ValueError("moved finding delta locations must differ")
+    if delta.regressed and delta.state in (DeltaState.NEW, DeltaState.RESOLVED):
+        raise ValueError("only paired finding deltas can be regressed")
+    if delta.gated and (
+        delta.suppressed
+        or delta.current_severity == FindingSeverity.INFO
+        or (delta.state != DeltaState.NEW and not delta.regressed)
+    ):
+        raise ValueError("finding delta gate state contradicts its severity or suppression")
     return {
         "state": delta.state.value,
         "engine_name": _require_string(
             delta.engine_name, "baseline delta engine_name", nonempty=True
         ),
-        "fingerprint": _require_string(
-            delta.fingerprint, "baseline delta fingerprint", nonempty=True
-        ),
+        "fingerprint": _require_digest(delta.fingerprint, "baseline delta fingerprint"),
         "rule_id": _require_string(delta.rule_id, "baseline delta rule_id", nonempty=True),
         "message": _require_string(delta.message, "baseline delta message"),
         "current_location": (
@@ -209,6 +243,9 @@ def _serialize_baseline_comparison(
         return None
     if type(comparison.fail_on_new) is not bool or type(comparison.gate_failed) is not bool:
         raise ValueError("baseline fail_on_new/gate_failed must be booleans")
+    expected_gate_failed = comparison.fail_on_new and comparison.gated_count > 0
+    if comparison.gate_failed != expected_gate_failed:
+        raise ValueError("baseline gate_failed contradicts fail_on_new or gated entries")
     return {
         "source_path": _require_string(
             comparison.source_path, "baseline source_path", nonempty=True
