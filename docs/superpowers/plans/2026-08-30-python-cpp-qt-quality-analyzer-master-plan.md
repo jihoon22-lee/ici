@@ -304,8 +304,8 @@ PR/CI Merge Gate의 URL과 실행 근거는 `TODO_AFTER_PR_AND_CI`로 추적한�
 `d80a027`이다. 현재 Python 3.10 전체 품질 게이트 756/756, focused console 테스트 16개,
 Ruff check/format, pure-Python 10-distribution·no-certifi·2.0 MiB pyz 빌드, smoke 전체
 검증을 통과했다. built `dist/ici.pyz`는 exit 0으로 실행됐고 suite는 WARN이었다. self
-verify 출력은 144 lines/15,288 bytes, HTML은 3,381,263 bytes이며, 해당 출력에 내장된 test
-engine 수치는 749/749다. coverage는 line/function/branch 87.7%/96.6%/78.6%, TEM은
+verify 출력은 144 lines/15,288 bytes, HTML은 3,383,523 bytes이며, 해당 출력에 내장된 test
+engine 수치는 756/756이다. coverage는 line/function/branch 87.8%/96.6%/78.8%, TEM은
 4.83이었다. engines는 Pass 8/Warn 4/Fail 0/Error 0/Skip 0, complexity는 최대 23·이슈
 64건, duplicate는 16.2%·338 groups·1,006 actionable occurrences였다.
 

@@ -27,12 +27,12 @@
     check/format, pure-Python 10-distribution 2.0 MiB pyz(no certifi), smoke 전체 및
     80-column 안정성 검증을 통과했습니다. 최종 안정 self verify의 built `dist/ici.pyz`
     실행은 exit 0, suite는 WARN이었고 self verify 출력은 144 lines/15,288 bytes였습니다.
-    해당 출력에 내장된 test engine 수치는 749/749이며 coverage는 line/function/branch
-    87.7%/96.6%/78.6%, TEM 4.83이었습니다. engines는 Pass 8/Warn 4/
+    해당 출력에 내장된 test engine 수치는 756/756이며 coverage는 line/function/branch
+    87.8%/96.6%/78.8%, TEM 4.83이었습니다. engines는 Pass 8/Warn 4/
     Fail 0/Error 0/Skip 0, complexity는 최대 23·이슈 64건, duplicate는 16.2%·338 groups·
     1,006 actionable occurrences였습니다.
   - 콘솔은 actionable 1,088건, visible 21/420 display groups, represented 34,
-    hidden 1,054 findings/399 groups를 기록했습니다. HTML은 3,381,263 bytes이며 clone
+    hidden 1,054 findings/399 groups를 기록했습니다. HTML은 3,383,523 bytes이며 clone
     group card 338개와 issue engine row 1,088개를 유지했고 external script/stylesheet
     reference는 0개였습니다. 초기 측정의 lint 실패는 에이전트 파일 작성 경합에 따른 참고
     기록이며, 위 최종 안정 self verify를 기준으로 삼습니다. PR/CI Merge Gate의 URL과 실행

@@ -126,13 +126,13 @@ JSON / HTML / Markdown / baseline ───── full original inventory
 implementation/test commits: 814679c + d80a027
 dist/ici.pyz: exit 0; suite WARN
 self verify output: 144 lines / 15,288 bytes
-HTML artifact: 3,381,263 bytes
+HTML artifact: 3,383,523 bytes
 Python 3.10 current full suite: 756/756 passed
 focused console tests: 16 passed
 ruff check / ruff format --check: passed
 build-pyz: pure-Python 10 distributions, no certifi, 2.0 MiB artifact
 smoke: all checks passed
-coverage: line 87.7% / function 96.6% / branch 78.6%
+coverage: line 87.8% / function 96.6% / branch 78.8%
 TEM: 4.83
 engines: Pass 8 / Warn 4 / Fail 0 / Error 0 / Skip 0
 complexity: max 23, 64 issues
@@ -141,8 +141,8 @@ duplicate: 16.2%, 338 groups, 1,006 actionable occurrences
 
 기본 cap은 engine별 5 display group, `--max-findings 0`은 summary-only, `--verbose`는 cap
 해제로 동작했으며 `engine|severity|category|file|rule` 5종을 확인했다.
-최종 안정 self verify 출력에 내장된 test engine 수치는 749/749였으며, 이는 이후 추가 테스트
-커밋 전의 안정 실행 산출물이다. 현재 전체 품질 게이트 수치는 위 756/756으로 별도 기록한다.
+최종 안정 self verify 출력에 내장된 test engine 수치도 756/756으로 현재 전체 품질 게이트와
+일치한다.
 
 ### Final stable self measurement
 

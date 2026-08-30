@@ -199,8 +199,8 @@ duplicate는 같은 실행의 같은 clone group 안에서 같은 파일의 겹�
 756/756 tests, focused console 테스트는 16개다. Ruff check/format,
 pure-Python 10-distribution·no-certifi·2.0 MiB pyz, smoke 전체 검증도 통과했다. 최종 안정
 self verify에서 built `dist/ici.pyz`는 exit 0, suite는 WARN이었다. self verify 출력은 144
-lines/15,288 bytes, HTML은 3,381,263 bytes였고, 해당 출력에 내장된 test engine 수치는
-749/749다. line/function/branch coverage 87.7%/96.6%/78.6%, TEM 4.83을 확인했다.
+lines/15,288 bytes, HTML은 3,383,523 bytes였고, 해당 출력에 내장된 test engine 수치는
+756/756이다. line/function/branch coverage 87.8%/96.6%/78.8%, TEM 4.83을 확인했다.
 engines는 Pass 8, Warn 4, Fail 0,
 Error 0, Skip 0이며 complexity는 최대 23·이슈 64건, duplicate는 16.2%·338 groups·
 1,006 actionable occurrences였다. 콘솔 측정은 actionable 1,088건, visible 21/420 display

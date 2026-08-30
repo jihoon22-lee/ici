@@ -144,8 +144,8 @@ clone group은 합치지 않습니다. HTML `Issues` 탭도 native v3 finding in
 현재 로컬 구현·테스트 기준은 `814679c` + `d80a027`입니다. 현재 Python 3.10 전체 품질
 게이트는 756/756 tests, focused console 테스트는 16개입니다. 최종 안정 self verify에서
 built `dist/ici.pyz`가 exit 0으로 실행됐고 suite는 WARN을 반환했습니다. self verify 출력은
-144 lines/15,288 bytes, HTML은 3,381,263 bytes였습니다. 해당 self verify 출력에 내장된
-test engine 수치는 749/749이며, line/function/branch coverage 87.7%/96.6%/78.6%, TEM
+144 lines/15,288 bytes, HTML은 3,383,523 bytes였습니다. 해당 self verify 출력에 내장된
+test engine 수치는 756/756이며, line/function/branch coverage 87.8%/96.6%/78.8%, TEM
 4.83, engines Pass 8/Warn 4/Fail 0/Error 0/Skip 0을 확인했습니다. complexity는 최대 23,
 이슈 64건이며 duplicate는 16.2%·338 groups·1,006 actionable occurrences였습니다.
 
