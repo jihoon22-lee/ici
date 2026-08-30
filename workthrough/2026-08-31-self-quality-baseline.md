@@ -37,7 +37,7 @@ Files: `src/ici/engines/sanitize.py`, `src/ici/engines/exception.py`,
 
 File: `ici.toml`
 
-2026-08-31 `origin/main@86e0e5a` 기준 세 번의 측정값을 주석에 남기고, 다음 ratchet을
+2026-08-31 최신 `origin/main@a3105af` 기준 세 번의 측정값을 주석에 남기고, 다음 ratchet을
 세 번 연속 측정·설명 가능한 상태·실측 coverage 조건으로 제한했다.
 
 ```toml
@@ -71,7 +71,7 @@ uv run --python 3.10 pytest
 
 ### Repeated self verify
 
-Command: `uv run --python 3.10 ici verify --report`
+Command: `./dist/ici.pyz verify --report` (the same result was also reproduced with the Python 3.10 development runner)
 
 | Run | Exit | Tests | TEM | Line / Branch / Function | Console lines | Duplicate groups | Type |
 |---:|---:|---:|---:|---|---:|---:|---|

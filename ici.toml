@@ -26,7 +26,7 @@ ruff_required = true
 [engines.test]
 enabled = true
 mode = "pass_fail"
-# Dogfood baseline (origin/main@86e0e5a, 2026-08-31): three consecutive runs
+# Dogfood baseline (origin/main@a3105af, 2026-08-31): three consecutive runs
 # measured TEM 4.78/5.0, Line 85.9%, Branch 77.9%, Function 95.691%, with
 # 632/632 tests passing. The values were identical across all three runs.
 # These floors retain runner/toolchain headroom while replacing the stale

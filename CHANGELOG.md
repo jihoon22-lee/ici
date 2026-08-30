@@ -13,7 +13,7 @@
   - gh-pages 쓰기는 concurrency group으로 직렬화합니다. 서로 다른 PR이 Contents API의 같은 branch head를 동시에 갱신해 한쪽 리포트를 잃지 않습니다.
   - 게시 직후 실제 sticky 댓글에서 두 HTML 링크를 다시 읽고 GitHub Pages 비동기 배포가 완료될 때까지 cache-busting URL을 확인합니다. 파일 업로드 API 성공만으로 게시 완료를 선언하지 않습니다.
 - **`viewer` Qt 셸 회귀 테스트**: 정상 리포트를 연 뒤 missing 또는 malformed 리포트를 열 때 `MainWindow`의 모델, suite 상태, 게이트·점수 라벨, 창 제목이 이전 보고서 데이터를 남기지 않는지 QtTest로 검증합니다. QtTest 실행은 프로젝트 루트 CTest에 등록되어 Qt 5와 Qt 6에서 같은 경로를 확인합니다.
-- **I0-4 self-quality 기준선을 기록하고 floor를 현실화**: 2026-08-31 `origin/main@86e0e5a`에서 self verify를 세 번 반복해 632/632 테스트, TEM 4.78, line/branch/function 85.9%/77.9%/95.691%, console 2,276줄, duplicate 237 groups를 확인했습니다. 변동 여유를 둔 floor를 TEM 4.5, branch 70%, function 90%로 올리고 측정값·ratchet 조건을 `ici.toml` 주석과 구조화된 기준선에 남겼습니다.
+- **I0-4 self-quality 기준선을 기록하고 floor를 현실화**: 2026-08-31 최신 `origin/main@a3105af`에서 self verify를 세 번 반복해 632/632 테스트, TEM 4.78, line/branch/function 85.9%/77.9%/95.691%, console 2,276줄, duplicate 237 groups를 확인했습니다. 변동 여유를 둔 floor를 TEM 4.5, branch 70%, function 90%로 올리고 측정값·ratchet 조건을 `ici.toml` 주석과 구조화된 기준선에 남겼습니다.
 
 ### Changed
 - **릴리스를 태그 이름이 아닌 정확한 main 검증 commit에 묶음**: 태그 commit이 `origin/main`의 조상이고 동일 SHA의 `Merge Gate`가 성공한 경우에만 쓰기 권한을 가진 build/release job이 시작됩니다. 수동 실행도 선택한 branch가 아니라 이미 존재하는 태그 commit을 detached checkout하며, 패키지 버전·CHANGELOG section을 같이 검증합니다.
