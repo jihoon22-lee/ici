@@ -422,6 +422,21 @@ green(756 tests)이었고, [sticky comment](https://github.com/jihoon22-lee/ici/
 - [ ] Qt5/Qt6, target wrapper, shadow relative path를 fixture와 diskmap에서 검증한다.
 - [ ] exact capture가 불가능한 환경은 명시적 lower-confidence mode로 남긴다.
 
+**Freshness 선행 안전망의 최종 로컬 증거 (2026-08-31):** rebase된 test/fix 커밋
+`1098a62`/`f692a3c` 기준으로 Python 3.10 `pytest 811 passed (42.79s)`, Ruff
+check/format 103 files, reproducible pyz 두 회의 동일 SHA-256
+`8fdb816ae394e5327ffa6f6ca6ddc0efca0a45addb48975e3b8eef6412a39018`, pure-Python
+10 distributions/no certifi, smoke(Python 3.10·integrity·Zero-CDN 포함) PASS를
+확인했다. 같은 candidate pyz를 실제 DiskMap에 적용한 결과는 Suite PASS
+(10 pass, 0 warn, 0 fail/error, 2 skip; 9/9 tests; line/function/branch
+96.6%/98.0%/85.0%; TEM 4.90; complexity 14/101/0 issues; duplicate 2.0%;
+sanitizer clean, 85.96s)였고, test와 sanitize qmake build JSON evidence 양쪽에
+`/usr/bin/make clean` 성공이 남았다. capability snapshot은 30 tools/21 ready/
+0 incomplete/9 unavailable이며 required `g++`는 ready/health READY였다. HTML은
+281,264 bytes, external `src`/`href` reference 0개이고 capability snapshot을
+렌더링했다. 이 기록은 qmake compile capture 완료가 아니며, 원격 CI·PR·Pages 및
+main 반영은 후속 검증에서 완료해야 한다.
+
 ### I3-4. lint와 include graph 이관
 
 **브랜치:** `refactor/cpp-analysis-context`

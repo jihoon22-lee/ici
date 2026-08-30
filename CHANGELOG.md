@@ -81,8 +81,11 @@
   stamp가 새 `.gcno`와 달라 gcov가 coverage를 0%로 보고할 수 있었습니다. 이제 qmake
   configure 뒤 deterministic `make clean`을 실행하고 evidence로 기록한 뒤 parallel
   build를 시작합니다. clean 실패는 stale 결과를 숨기지 않도록 명시적인 build 실패로
-  남기며, CMake adapter 경로에는 이 규칙을 적용하지 않습니다. 실제 DiskMap 실물
-  재검증과 main/CI 반영은 후속 교차 저장소 검증에서 진행합니다.
+  남기며, CMake adapter 경로에는 이 규칙을 적용하지 않습니다. rebase된
+  `1098a62`/`f692a3c` 기준 candidate `ici.pyz`로 DiskMap의 실제 qmake
+  test/sanitize를 재검증해 두 경로 모두 `/usr/bin/make clean` 성공 evidence와
+  `Suite PASS`를 확인했습니다. 원격 CI·PR·Pages 검증과 main 반영은 아직 남아
+  있으므로 이 로컬 증거만으로 병합 완료를 간주하지 않습니다.
 - **self verify의 mypy `annotation-unchecked` note 제거**: `sanitize`, `exception`, `dead`, `test` 엔진의 생성자 네 곳이 `*args/**kwargs` untyped body였고, 변수 annotation마다 동일 note를 냈습니다. BaseEngine과 동일한 Python 3.10 호환 `project_root`/`config` 시그니처와 반환형을 적용해 동작은 유지하면서 mypy note를 0건으로 만들었습니다.
 - **HTML은 올라갔지만 PR 댓글이 실패해도 `ici publish`가 성공하던 문제**: PR publish의 성공 조건에 sticky comment URL을 포함했습니다. 단일·다중 리포트 모두 `pull-requests: write` 실패를 0이 아닌 종료 코드로 전달하며, 업로드 실패 시 아직 존재하지 않는 Pages URL을 만들지 않습니다. 다중 리포트 댓글 footer의 경로도 `/`로 이어 붙인 가짜 경로 대신 쉼표로 구분합니다.
 - **`cycle`이 directory-qualified C++ include의 정보를 버리던 문제**: `core/format.hpp`와 `gui/format.hpp`가 함께 있을 때 `#include "core/format.hpp"`도 basename `format.hpp`만 비교해 모호하다고 버렸고, 실제 include cycle을 놓쳤습니다. 이제 include가 지정한 전체 path suffix가 프로젝트 파일 하나와 유일하게 일치할 때만 간선을 연결합니다.

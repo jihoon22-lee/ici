@@ -5,8 +5,8 @@
 qmake의 재사용 shadow build가 이전 정적 라이브러리를 링크한 test executable과
 현재 소스에서 생성된 coverage metadata를 섞을 수 있는 문제를 보강했다. 이 문서는
 그 원인과 adapter의 freshness 계약을 기록한다. 이번 문서 작업은 이미 구현된
-`f325e62`/`740a88e` 변경을 설명하는 것이며, 이 브랜치에서는 코드와 테스트를
-수정하지 않았다.
+rebase 후 `1098a62`/`f692a3c` 변경을 설명하는 것이며, 이 브랜치에서는 코드와
+테스트를 수정하지 않았다.
 
 ## Context
 
@@ -51,24 +51,49 @@ make --jobs=N
 
 ## Verification Results
 
-구현 브랜치에서 이미 수행된 focused contract suite는 `58 passed`였고 Ruff 검사도
-통과했다. 다만 이 문서 커밋 시점에는 다음 검증을 완료된 것으로 간주하지 않는다.
+### Local ici gates
 
-- Python 3.10 전체 품질 게이트, pyz 재현성 build, smoke
-- GitHub PR의 전체 CI와 Merge Gate
-- 새 ici adapter를 사용한 실제 DiskMap qmake test 및 coverage 검증
-- toy PR의 ici HTML 생성·게시, 실제 sticky comment의 HTML 링크와 GitHub Pages
-  응답/Zero-CDN 확인
+rebase된 test/fix 커밋 `1098a62`/`f692a3c` 기준으로 다음을 완료했다.
 
-실물 DiskMap에서 발견된 stale shadow 재현을 새 ici가 해소하는지는 ici 변경이 main에
-반영된 뒤 toy 쪽 cross-repository 검증에서 다시 측정해야 한다. 실패하는 상태는
-main이나 toy PR에 병합하지 않는다.
+```text
+uv run --python 3.10 pytest
+811 passed in 42.79s
+
+uvx ruff check .
+uvx ruff format --check .
+103 files passed
+
+./scripts/build-pyz.sh  # two consecutive builds
+sha256: 8fdb816ae394e5327ffa6f6ca6ddc0efca0a45addb48975e3b8eef6412a39018
+10 pure-Python distributions; no certifi
+
+./scripts/smoke.sh
+PASS: Python 3.10, artifact integrity, and Zero-CDN checks
+```
+
+### Real DiskMap validation with the candidate pyz
+
+The candidate pyz was run against the rebased DiskMap branch. The result was
+`Suite PASS`: 10 pass, 0 warn, 0 fail/error, 2 skip; 9/9 tests; line/function/branch
+coverage `96.6%/98.0%/85.0%`; TEM `4.90`; complexity `14/101/0 issues`; duplicate
+rate `2.0%`; sanitizer clean; elapsed time `85.96s`.
+
+The capability snapshot contained 30 tools, 21 ready, 0 incomplete, and 9 unavailable.
+Required `g++` was ready and health was `READY`. Both qmake test and sanitize JSON
+evidence recorded successful `/usr/bin/make clean` executions. The generated HTML was
+`281,264` bytes, had zero external `src`/`href` references, and rendered the capability
+snapshot.
+
+Remote CI/PR/Pages verification is still pending. In particular, this branch has not
+yet established the GitHub PR's green Merge Gate, sticky comment HTML links, or Pages
+HTTP/Zero-CDN evidence. The real DiskMap result is therefore a completed local
+cross-repository validation, not a main-branch merge or release claim.
 
 ## Next Steps
 
 1. 이 문서 변경을 포함한 ici PR을 열고 전체 CI와 Merge Gate가 green인지 확인한다.
-2. PR 댓글과 Pages에 게시된 HTML을 다시 읽어 링크와 zero-CDN 조건을 확인한다.
-3. ici 변경을 main에 병합한 뒤 candidate `ici.pyz`로 DiskMap native test와 실제
-   qmake coverage를 재실행한다.
+2. PR 댓글과 Pages에 게시된 HTML을 다시 읽어 링크와 Zero-CDN 조건을 확인한다.
+3. ici 변경을 main에 병합한 뒤 toy PR의 ici pin을 갱신하고, 동일한 DiskMap native
+   test/sanitize 및 qmake coverage를 재실행한다.
 4. 결과와 양쪽 PR 링크를 toy 계획/`ICI-GAPS.md`에 기록하고, toy PR의 sticky HTML
-   댓글까지 검증한 후에만 병합한다.
+   댓글까지 검증한 후에만 병합·릴리스한다.
