@@ -10,6 +10,7 @@ class EngineTreeModel;
 class QCheckBox;
 class QLabel;
 class QLineEdit;
+class QTableWidget;
 class QTreeView;
 
 // Shows one ici report: why the gate landed where it did, then the detail.
@@ -36,10 +37,14 @@ private:
     QTreeView* tree_ = nullptr;
     QLabel* gateLabel_ = nullptr;
     QLabel* scoreLabel_ = nullptr;
+    QLabel* supportScope_ = nullptr;
+    QTableWidget* supportTable_ = nullptr;
     QCheckBox* issuesOnly_ = nullptr;
     QLabel* status_ = nullptr;
     std::optional<icirv::Suite> suite_;
 
     void clearReport(const QString& statusMessage);
+    void clearSupportMatrix();
+    void showSupportMatrix(const icirv::SupportMatrix& matrix);
     void showSuite();
 };

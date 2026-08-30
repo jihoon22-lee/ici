@@ -2,6 +2,8 @@
 
 #include "icirv/json_parser.hpp"
 
+#include <utility>
+
 namespace icirv {
 
 const char* const kSupportedSchema = "ici.result/v3";
@@ -51,6 +53,23 @@ bool requireString(const JsonValue& obj, const std::string& key, std::string& ou
     return requireTyped(obj, key, "string", &JsonValue::isString, extract, error);
 }
 
+bool requireNonEmptyString(const JsonValue& obj, const std::string& key, std::string& out,
+                           LoadError& error) {
+    if (!requireString(obj, key, out, error)) {
+        return false;
+    }
+    if (out.empty()) {
+        error.message = "field '" + key + "' must be a non-empty string";
+        return false;
+    }
+    return true;
+}
+
+bool requireBool(const JsonValue& obj, const std::string& key, bool& out, LoadError& error) {
+    const auto extract = [&out](const JsonValue& value) { out = value.asBool(); };
+    return requireTyped(obj, key, "boolean", &JsonValue::isBool, extract, error);
+}
+
 bool requireNumber(const JsonValue& obj, const std::string& key, double& out, LoadError& error) {
     const auto extract = [&out](const JsonValue& value) { out = value.asNumber(); };
     return requireTyped(obj, key, "number", &JsonValue::isNumber, extract, error);
@@ -72,6 +91,173 @@ std::string optionalString(const JsonValue& obj, const std::string& key) {
 
 int optionalInt(const JsonValue& obj, const std::string& key) {
     return static_cast<int>(obj.member(key).asNumber(0.0));
+}
+
+bool enumValue(const std::string& value, const char* const* allowed, std::size_t count) {
+    for (std::size_t index = 0; index < count; ++index) {
+        if (value == allowed[index]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool readEnumMember(const JsonValue& obj, const std::string& key, const char* const* allowed,
+                    std::size_t count, std::string& out, LoadError& error) {
+    if (!requireString(obj, key, out, error)) {
+        return false;
+    }
+    if (!enumValue(out, allowed, count)) {
+        error.message = "field '" + key + "' has an unsupported value '" + out + "'";
+        return false;
+    }
+    return true;
+}
+
+bool readNullableEnumMember(const JsonValue& obj, const std::string& key,
+                            const char* const* allowed, std::size_t count,
+                            std::optional<std::string>& out, LoadError& error) {
+    if (!requireField(obj, key, error)) {
+        return false;
+    }
+    const JsonValue& value = obj.member(key);
+    if (value.isNull()) {
+        out.reset();
+        return true;
+    }
+    if (!value.isString()) {
+        error.message = "field '" + key + "' must be a string or null";
+        return false;
+    }
+    const std::string parsed = value.asString();
+    if (!enumValue(parsed, allowed, count)) {
+        error.message = "field '" + key + "' has an unsupported value '" + parsed + "'";
+        return false;
+    }
+    out = parsed;
+    return true;
+}
+
+bool readStringArrayMember(const JsonValue& obj, const std::string& key,
+                           std::vector<std::string>& out, bool nonemptyItems,
+                           LoadError& error) {
+    if (!requireField(obj, key, error)) {
+        return false;
+    }
+    const JsonValue& list = obj.member(key);
+    if (!list.isArray()) {
+        error.message = "field '" + key + "' must be an array";
+        return false;
+    }
+    out.clear();
+    out.reserve(list.size());
+    for (std::size_t index = 0; index < list.size(); ++index) {
+        const JsonValue& item = list.at(index);
+        if (!item.isString()) {
+            error.message = "field '" + key + "' items must be strings";
+            return false;
+        }
+        const std::string value = item.asString();
+        if (nonemptyItems && value.empty()) {
+            error.message = "field '" + key + "' items must be non-empty strings";
+            return false;
+        }
+        out.push_back(value);
+    }
+    return true;
+}
+
+bool readLanguageArrayMember(const JsonValue& obj, const std::string& key,
+                             std::vector<std::string>& out, LoadError& error) {
+    static const char* const kLanguages[] = {"python", "cpp"};
+    if (!readStringArrayMember(obj, key, out, false, error)) {
+        return false;
+    }
+    for (const std::string& language : out) {
+        if (!enumValue(language, kLanguages, sizeof(kLanguages) / sizeof(kLanguages[0]))) {
+            error.message = "field '" + key + "' has an unsupported language '" + language +
+                            "'";
+            return false;
+        }
+    }
+    return true;
+}
+
+bool readSupportEntry(const JsonValue& node, SupportEntry& entry, LoadError& error) {
+    if (!node.isObject()) {
+        error.message = "each entry of 'support_matrix.entries' must be an object";
+        return false;
+    }
+    static const char* const kModes[] = {"exact", "heuristic", "tool-backed", "unsupported"};
+    static const char* const kEvidence[] = {"MEASURED", "ESTIMATED", "NOT_RUN",
+                                             "NOT_APPLICABLE"};
+    static const char* const kConfidence[] = {"exact", "high", "medium", "low"};
+    static const char* const kLanguages[] = {"python", "cpp"};
+
+    if (!requireNonEmptyString(node, "engine_name", entry.engine_name, error) ||
+        !readEnumMember(node, "language", kLanguages, sizeof(kLanguages) / sizeof(kLanguages[0]),
+                        entry.language, error) ||
+        !readEnumMember(node, "mode", kModes, sizeof(kModes) / sizeof(kModes[0]), entry.mode,
+                        error) ||
+        !readNullableEnumMember(node, "active_mode", kModes, sizeof(kModes) / sizeof(kModes[0]),
+                                entry.active_mode, error) ||
+        !requireBool(node, "applicable", entry.applicable, error) ||
+        !requireBool(node, "enabled", entry.enabled, error) ||
+        !readEnumMember(node, "evidence", kEvidence,
+                        sizeof(kEvidence) / sizeof(kEvidence[0]), entry.evidence, error) ||
+        !readEnumMember(node, "confidence", kConfidence,
+                        sizeof(kConfidence) / sizeof(kConfidence[0]), entry.confidence, error) ||
+        !readStringArrayMember(node, "frameworks", entry.frameworks, true, error) ||
+        !readStringArrayMember(node, "required_tools", entry.required_tools, true, error) ||
+        !readStringArrayMember(node, "optional_tools", entry.optional_tools, true, error) ||
+        !readNullableEnumMember(node, "fallback_mode", kModes,
+                                sizeof(kModes) / sizeof(kModes[0]), entry.fallback_mode, error) ||
+        !readStringArrayMember(node, "limitations", entry.limitations, true, error) ||
+        !requireString(node, "reason", entry.reason, error)) {
+        return false;
+    }
+    return true;
+}
+
+bool readSupportMatrixMember(const JsonValue& obj, const std::string& key,
+                             std::optional<SupportMatrix>& out, LoadError& error) {
+    out.reset();
+    if (!obj.has(key)) {
+        return true;
+    }
+    const JsonValue& value = obj.member(key);
+    if (value.isNull()) {
+        return true;
+    }
+    if (!value.isObject()) {
+        error.message = "field '" + key + "' must be an object or null";
+        return false;
+    }
+
+    SupportMatrix matrix;
+    if (!readLanguageArrayMember(value, "project_languages", matrix.project_languages, error) ||
+        !readStringArrayMember(value, "project_frameworks", matrix.project_frameworks, true,
+                                error)) {
+        return false;
+    }
+    if (!requireField(value, "entries", error)) {
+        return false;
+    }
+    const JsonValue& entries = value.member("entries");
+    if (!entries.isArray()) {
+        error.message = "field 'entries' must be an array";
+        return false;
+    }
+    matrix.entries.reserve(entries.size());
+    for (std::size_t index = 0; index < entries.size(); ++index) {
+        SupportEntry entry;
+        if (!readSupportEntry(entries.at(index), entry, error)) {
+            return false;
+        }
+        matrix.entries.push_back(std::move(entry));
+    }
+    out = std::move(matrix);
+    return true;
 }
 
 Target readTarget(const JsonValue& node) {
@@ -136,7 +322,7 @@ bool readEngine(const JsonValue& node, EngineResult& engine, LoadError& error) {
     engine.evidence = optionalString(node, "evidence");
     engine.targets = readList<Target>(node, "targets", readTarget);
     engine.tool_evidence = readList<ToolEvidence>(node, "tool_evidence", readToolEvidence);
-    return true;
+    return readSupportMatrixMember(node, "support_matrix", engine.support_matrix, error);
 }
 
 bool readCounts(const JsonValue& root, Suite& suite, LoadError& error) {
@@ -238,6 +424,9 @@ std::optional<Suite> loadReport(const std::string& jsonText, LoadError& error) {
     suite.suite_status = parseStatus(statusText);
     suite.duration = document->member("duration").asNumber(0.0);
     suite.max_tem_score = document->member("max_tem_score").asNumber(0.0);
+    if (!readSupportMatrixMember(*document, "support_matrix", suite.support_matrix, error)) {
+        return std::nullopt;
+    }
     return suite;
 }
 

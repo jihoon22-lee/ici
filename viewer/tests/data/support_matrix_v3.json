@@ -1,0 +1,63 @@
+{
+  "schema_version": "ici.result/v3",
+  "suite_status": "PASS",
+  "duration": 0.1,
+  "passed_count": 1,
+  "warned_count": 0,
+  "failed_count": 0,
+  "error_count": 0,
+  "skipped_count": 0,
+  "total_count": 1,
+  "tem_score": 5.0,
+  "max_tem_score": 5.0,
+  "results": [
+    {
+      "engine_name": "lint",
+      "status": "PASS",
+      "summary": "clean",
+      "duration": 0.1,
+      "required": true,
+      "evidence": "MEASURED",
+      "targets": [],
+      "tool_evidence": []
+    }
+  ],
+  "support_matrix": {
+    "project_languages": ["python", "cpp"],
+    "project_frameworks": ["qt"],
+    "entries": [
+      {
+        "engine_name": "lint",
+        "language": "python",
+        "mode": "tool-backed",
+        "active_mode": "tool-backed",
+        "applicable": true,
+        "enabled": true,
+        "evidence": "MEASURED",
+        "confidence": "high",
+        "frameworks": [],
+        "required_tools": [],
+        "optional_tools": ["ruff"],
+        "fallback_mode": "heuristic",
+        "limitations": ["AST fallback"],
+        "reason": "Ruff available"
+      },
+      {
+        "engine_name": "type",
+        "language": "cpp",
+        "mode": "unsupported",
+        "active_mode": null,
+        "applicable": false,
+        "enabled": true,
+        "evidence": "NOT_APPLICABLE",
+        "confidence": "low",
+        "frameworks": ["qt"],
+        "required_tools": [],
+        "optional_tools": [],
+        "fallback_mode": null,
+        "limitations": ["No C++ type analyzer"],
+        "reason": "type does not support cpp"
+      }
+    ]
+  }
+}

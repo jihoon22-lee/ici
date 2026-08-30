@@ -2,19 +2,24 @@
 #include <QFile>
 #include <QTemporaryDir>
 #include <QTemporaryFile>
+#include <QTableWidget>
 #include <QTreeView>
 #include <QtTest>
 
 #include "icirv/gui/main_window.hpp"
+#include "fixtures.hpp"
 
 class TestMainWindow : public QObject {
     Q_OBJECT
 
 private slots:
     void openingARealReportFillsTheTree();
+    void openingASupportMatrixShowsScopeAndRows();
+    void openingAnOmittedOrNullMatrixClearsTheCapabilityView();
     void openingEachGateStatusUsesItsColour();
     void openingAMissingFileClearsTheLoadedReport();
     void openingMalformedJsonClearsTheLoadedReport();
+    void openingMalformedSupportMatrixClearsTheLoadedReport();
 };
 
 namespace {
@@ -29,6 +34,28 @@ int treeRowCount(MainWindow& window) {
         return -1;
     }
     return tree->model()->rowCount(QModelIndex());
+}
+
+QTableWidget* supportTable(MainWindow& window) {
+    return window.findChild<QTableWidget*>(QStringLiteral("supportMatrix"));
+}
+
+QLabel* supportScope(MainWindow& window) {
+    return label(window, "supportScope");
+}
+
+QString writeReport(const QString& text, QTemporaryDir& directory, const QString& name) {
+    const QString path = directory.filePath(name);
+    QFile report(path);
+    if (!report.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        return QString();
+    }
+    const QByteArray json = text.toUtf8();
+    if (report.write(json) != json.size()) {
+        return QString();
+    }
+    report.close();
+    return path;
 }
 
 void assertCleared(MainWindow& window, const QString& statusFragment) {
@@ -66,6 +93,68 @@ void TestMainWindow::openingARealReportFillsTheTree() {
     QVERIFY(!score->text().isEmpty());
     QCOMPARE(status->text(), QStringLiteral("Loaded"));
     QVERIFY(window.windowTitle().contains(QStringLiteral("ici_self_report.json")));
+}
+
+void TestMainWindow::openingASupportMatrixShowsScopeAndRows() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString path = writeReport(QString::fromStdString(validSupportMatrixReport()), directory,
+                                     QStringLiteral("support.json"));
+    QVERIFY(!path.isEmpty());
+
+    MainWindow window;
+    window.openReport(path);
+
+    QVERIFY(window.hasLoadedReport());
+    QTableWidget* table = supportTable(window);
+    QLabel* scope = supportScope(window);
+    QVERIFY(table != nullptr);
+    QVERIFY(scope != nullptr);
+    QCOMPARE(table->rowCount(), 2);
+    QCOMPARE(table->item(0, 0)->text(), QStringLiteral("lint"));
+    QCOMPARE(table->item(0, 1)->text(), QStringLiteral("python"));
+    QCOMPARE(table->item(0, 2)->text(), QStringLiteral("tool-backed"));
+    QCOMPARE(table->item(1, 1)->text(), QStringLiteral("cpp (qt)"));
+    QCOMPARE(table->item(1, 4)->text(), QStringLiteral("not-applicable"));
+    QVERIFY(scope->text().contains(QStringLiteral("python, cpp")));
+    QVERIFY(scope->text().contains(QStringLiteral("qt")));
+}
+
+void TestMainWindow::openingAnOmittedOrNullMatrixClearsTheCapabilityView() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString validPath =
+        writeReport(QString::fromStdString(validSupportMatrixReport()), directory,
+                    QStringLiteral("valid.json"));
+    const QString omittedPath =
+        writeReport(QString::fromStdString(minimalV3Report()), directory,
+                    QStringLiteral("omitted.json"));
+    const QString nullPath =
+        writeReport(QString::fromStdString(nullSupportMatrixReport()), directory,
+                    QStringLiteral("null.json"));
+    QVERIFY(!validPath.isEmpty());
+    QVERIFY(!omittedPath.isEmpty());
+    QVERIFY(!nullPath.isEmpty());
+
+    MainWindow window;
+    window.openReport(validPath);
+    QTableWidget* table = supportTable(window);
+    QLabel* scope = supportScope(window);
+    QVERIFY(table != nullptr);
+    QVERIFY(scope != nullptr);
+    QCOMPARE(table->rowCount(), 2);
+
+    window.openReport(omittedPath);
+    QVERIFY(window.hasLoadedReport());
+    QCOMPARE(table->rowCount(), 0);
+    QVERIFY(scope->text().contains(QStringLiteral("No support matrix")));
+
+    window.openReport(validPath);
+    QCOMPARE(table->rowCount(), 2);
+    window.openReport(nullPath);
+    QVERIFY(window.hasLoadedReport());
+    QCOMPARE(table->rowCount(), 0);
+    QVERIFY(scope->text().contains(QStringLiteral("No support matrix")));
 }
 
 void TestMainWindow::openingEachGateStatusUsesItsColour() {
@@ -136,6 +225,29 @@ void TestMainWindow::openingMalformedJsonClearsTheLoadedReport() {
     window.openReport(broken.fileName());
 
     assertCleared(window, QStringLiteral("invalid JSON"));
+}
+
+void TestMainWindow::openingMalformedSupportMatrixClearsTheLoadedReport() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString validPath =
+        writeReport(QString::fromStdString(validSupportMatrixReport()), directory,
+                    QStringLiteral("valid.json"));
+    const QString malformedPath =
+        writeReport(QString::fromStdString(malformedSupportMatrixReport()), directory,
+                    QStringLiteral("malformed.json"));
+    QVERIFY(!validPath.isEmpty());
+    QVERIFY(!malformedPath.isEmpty());
+
+    MainWindow window;
+    window.openReport(validPath);
+    QTableWidget* table = supportTable(window);
+    QVERIFY(table != nullptr);
+    QCOMPARE(table->rowCount(), 2);
+
+    window.openReport(malformedPath);
+    assertCleared(window, QStringLiteral("project_languages"));
+    QCOMPARE(table->rowCount(), 0);
 }
 
 QTEST_MAIN(TestMainWindow)

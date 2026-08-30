@@ -38,6 +38,36 @@ struct ToolEvidence {
     std::string error;
 };
 
+// The support matrix is intentionally represented with the contract's string
+// vocabulary. This keeps the viewer lossless when a newer producer adds an
+// entry while still validating the values it knows how to display.
+struct SupportEntry {
+    std::string engine_name;
+    std::string language;
+    std::string mode;
+    std::optional<std::string> active_mode;
+    bool applicable = false;
+    bool enabled = false;
+    std::string evidence;
+    std::string confidence;
+    std::vector<std::string> frameworks;
+    std::vector<std::string> required_tools;
+    std::vector<std::string> optional_tools;
+    std::optional<std::string> fallback_mode;
+    std::vector<std::string> limitations;
+    std::string reason;
+};
+
+// Names used by the producer model are useful to callers that want to build
+// a matrix for tests or another front end without coupling to Python types.
+using EngineSupport = SupportEntry;
+
+struct SupportMatrix {
+    std::vector<std::string> project_languages;
+    std::vector<std::string> project_frameworks;
+    std::vector<SupportEntry> entries;
+};
+
 struct EngineResult {
     std::string engine_name;
     Status status = Status::Unknown;
@@ -47,6 +77,7 @@ struct EngineResult {
     std::string evidence;
     std::vector<Target> targets;
     std::vector<ToolEvidence> tool_evidence;
+    std::optional<SupportMatrix> support_matrix;
 };
 
 struct Suite {
@@ -61,6 +92,7 @@ struct Suite {
     int skipped_count = 0;
     int total_count = 0;
     std::vector<EngineResult> results;
+    std::optional<SupportMatrix> support_matrix;
 };
 
 struct LoadError {

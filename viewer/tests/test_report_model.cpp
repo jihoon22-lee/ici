@@ -106,6 +106,70 @@ void testV3ReportRetainsLegacyRendering() {
     CHECK_EQ(suite->results.front().targets.front().start_line, 8);
 }
 
+void testSupportMatrixIsParsedLosslessly() {
+    LoadError error;
+    const auto suite = loadReport(validSupportMatrixReport(), error);
+    CHECK(suite.has_value());
+    if (!suite) {
+        std::fprintf(stderr, "  support matrix report rejected: %s\n", error.message.c_str());
+        return;
+    }
+    CHECK(suite->support_matrix.has_value());
+    if (!suite->support_matrix) {
+        return;
+    }
+    const icirv::SupportMatrix& matrix = suite->support_matrix.value();
+    CHECK_EQ(matrix.project_languages.size(), static_cast<std::size_t>(2));
+    CHECK_EQ(matrix.project_languages[0], std::string("python"));
+    CHECK_EQ(matrix.project_languages[1], std::string("cpp"));
+    CHECK_EQ(matrix.project_frameworks.size(), static_cast<std::size_t>(1));
+    CHECK_EQ(matrix.project_frameworks.front(), std::string("qt"));
+    CHECK_EQ(matrix.entries.size(), static_cast<std::size_t>(2));
+
+    const icirv::SupportEntry& fallback = matrix.entries.front();
+    CHECK_EQ(fallback.engine_name, std::string("lint"));
+    CHECK_EQ(fallback.language, std::string("python"));
+    CHECK_EQ(fallback.mode, std::string("tool-backed"));
+    CHECK(fallback.active_mode.has_value());
+    CHECK_EQ(fallback.active_mode.value(), std::string("heuristic"));
+    CHECK(fallback.applicable);
+    CHECK(fallback.enabled);
+    CHECK_EQ(fallback.evidence, std::string("ESTIMATED"));
+    CHECK_EQ(fallback.confidence, std::string("medium"));
+    CHECK_EQ(fallback.optional_tools.front(), std::string("ruff"));
+    CHECK_EQ(fallback.fallback_mode.value(), std::string("heuristic"));
+
+    const icirv::SupportEntry& unsupported = matrix.entries.back();
+    CHECK(!unsupported.active_mode.has_value());
+    CHECK(!unsupported.applicable);
+    CHECK(unsupported.fallback_mode == std::nullopt);
+    CHECK_EQ(unsupported.frameworks.front(), std::string("qt"));
+}
+
+void testSupportMatrixMayBeOmittedOrNull() {
+    LoadError error;
+    const auto omitted = loadReport(minimalV3Report(), error);
+    CHECK(omitted.has_value());
+    if (omitted) {
+        CHECK(!omitted->support_matrix.has_value());
+    }
+
+    const auto nullMatrix = loadReport(nullSupportMatrixReport(), error);
+    CHECK(nullMatrix.has_value());
+    if (nullMatrix) {
+        CHECK(!nullMatrix->support_matrix.has_value());
+    }
+}
+
+void testMalformedSupportMatrixIsRejected() {
+    expectRejected(malformedSupportMatrixReport(), "project_languages");
+    expectRejected(supportMatrixReport("7"), "support_matrix");
+    expectRejected(
+        supportMatrixReport(R"({"project_languages":[],"project_frameworks":[],"entries":
+          [{"engine_name":"x"}]})"),
+        "language");
+}
+
 void testValidationErrors() {
     expectRejected("not json at all", "invalid JSON");
     expectRejected("[1,2]", "must be an object");
@@ -148,6 +212,9 @@ int main() {
     testMinimalReport();
     testRealIciReport();
     testV3ReportRetainsLegacyRendering();
+    testSupportMatrixIsParsedLosslessly();
+    testSupportMatrixMayBeOmittedOrNull();
+    testMalformedSupportMatrixIsRejected();
     testValidationErrors();
     return checkSummary();
 }

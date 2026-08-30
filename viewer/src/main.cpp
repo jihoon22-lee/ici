@@ -101,6 +101,53 @@ bool engineSelected(const icirv::EngineResult& engine, const CliOptions& options
     return options.engine.empty() || engine.engine_name == options.engine;
 }
 
+std::string joinValues(const std::vector<std::string>& values) {
+    std::string joined;
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index > 0) {
+            joined += ", ";
+        }
+        joined += values[index];
+    }
+    return joined.empty() ? "-" : joined;
+}
+
+std::string modeValue(const std::optional<std::string>& mode) {
+    return mode.has_value() ? mode.value() : "-";
+}
+
+void printSupportMatrix(const icirv::Suite& suite, std::ostream& out) {
+    if (!suite.support_matrix.has_value()) {
+        return;
+    }
+    const icirv::SupportMatrix& matrix = suite.support_matrix.value();
+    out << "Project scope: languages=" << joinValues(matrix.project_languages)
+        << "  frameworks=" << joinValues(matrix.project_frameworks) << "\n"
+        << "Capabilities:\n";
+    for (const icirv::SupportEntry& entry : matrix.entries) {
+        const std::string state = !entry.applicable
+                                       ? "not-applicable"
+                                       : (entry.enabled ? "applicable" : "disabled");
+        std::string language = entry.language;
+        if (!entry.frameworks.empty()) {
+            language += " (" + joinValues(entry.frameworks) + ")";
+        }
+        out << "  " << entry.engine_name << "/" << language << "  " << state
+            << "  mode=" << entry.mode << "  active=" << modeValue(entry.active_mode)
+            << "  evidence=" << entry.evidence << "  confidence=" << entry.confidence;
+        if (!entry.required_tools.empty()) {
+            out << "  required=" << joinValues(entry.required_tools);
+        }
+        if (!entry.optional_tools.empty()) {
+            out << "  optional=" << joinValues(entry.optional_tools);
+        }
+        if (entry.fallback_mode.has_value()) {
+            out << "  fallback=" << entry.fallback_mode.value();
+        }
+        out << "\n";
+    }
+}
+
 void printHistogram(const icirv::Suite& suite, std::ostream& out) {
     for (const auto& entry : icirv::statusHistogram(suite)) {
         if (entry.second > 0) {
@@ -123,6 +170,10 @@ void printSummary(const icirv::Suite& suite, const CliOptions& options, std::ost
         << icirv::temPercent(suite) << "%)\n\nEngines:\n";
     printHistogram(suite, out);
     out << "\n";
+    printSupportMatrix(suite, out);
+    if (suite.support_matrix.has_value()) {
+        out << "\n";
+    }
     for (const icirv::EngineResult& engine : suite.results) {
         if (engineSelected(engine, options)) {
             printEngineRow(engine, out);
