@@ -279,9 +279,25 @@ def test_load_suite_from_json_roundtrip(tmp_path: Path):
 
 
 def _baseline_summary_payload() -> dict:
+    entries = []
+    for state, count in (
+        ("new", 2),
+        ("unchanged", 3),
+        ("moved", 1),
+        ("resolved", 4),
+    ):
+        for index in range(count):
+            entries.append(
+                {
+                    "state": state,
+                    "regressed": state == "moved" and index == 0,
+                    "gated": (state == "new" and index == 0) or (state == "moved" and index == 0),
+                }
+            )
     return {
         "source_path": ".ici/baseline.json",
         "warnings": ["compatibility <warning>| details"],
+        "baseline_metadata": None,
         "fail_on_new": True,
         "gate_failed": True,
         "new_count": 2,
@@ -290,6 +306,7 @@ def _baseline_summary_payload() -> dict:
         "resolved_count": 4,
         "regressed_count": 1,
         "gated_count": 2,
+        "entries": entries,
         "future_summary_field": {"ignored": True},
     }
 
@@ -334,21 +351,75 @@ def test_load_suite_from_json_reads_baseline_summary_and_ignores_unknown_fields(
 
 
 @pytest.mark.parametrize(
-    "baseline",
+    ("field", "invalid"),
     [
-        None,
-        {"new_count": -1},
-        {"new_count": True},
-        {"new_count": 1.5},
-        {"warnings": ["ok", 1]},
-        {"gate_failed": 1},
-        {"entries": [{"state": "not-a-delta"}]},
+        ("source_path", ""),
+        ("warnings", [""]),
+        ("warnings", ["ok", 1]),
+        ("baseline_metadata", []),
+        ("new_count", -1),
+        ("new_count", True),
+        ("new_count", 1.5),
+        ("gate_failed", 1),
+        ("entries", [{"state": "not-a-delta", "regressed": False, "gated": False}]),
+        ("entries", {}),
     ],
 )
 def test_load_suite_from_json_omits_invalid_or_legacy_baseline_summary(
-    tmp_path: Path, baseline: object
+    tmp_path: Path, field: str, invalid: object
 ):
     from ici.engines.publish import load_suite_from_json
+
+    baseline = _baseline_summary_payload()
+    baseline[field] = invalid
+    loaded = load_suite_from_json(_write_suite_payload(tmp_path, baseline))
+
+    assert loaded is not None
+    assert loaded.baseline_comparison is None
+
+
+@pytest.mark.parametrize(
+    "mutator",
+    [
+        lambda baseline: baseline.pop("entries"),
+        lambda baseline: baseline.update({"new_count": 3}),
+        lambda baseline: baseline.update({"gate_failed": False}),
+    ],
+)
+def test_load_suite_from_json_rejects_partial_or_inconsistent_baseline_summary(
+    tmp_path: Path, mutator
+):
+    from ici.engines.publish import load_suite_from_json
+
+    baseline = _baseline_summary_payload()
+    mutator(baseline)
+    loaded = load_suite_from_json(_write_suite_payload(tmp_path, baseline))
+
+    assert loaded is not None
+    assert loaded.baseline_comparison is None
+
+
+def test_load_suite_from_json_rejects_invalid_delta_flag_invariants(tmp_path: Path):
+    from ici.engines.publish import load_suite_from_json
+
+    baseline = _baseline_summary_payload()
+    # Keep the aggregate counts unchanged while making a NEW delta regressed.
+    baseline["entries"][0]["regressed"] = True
+    baseline["entries"][5]["regressed"] = False
+
+    loaded = load_suite_from_json(_write_suite_payload(tmp_path, baseline))
+
+    assert loaded is not None
+    assert loaded.baseline_comparison is None
+
+
+def test_load_suite_from_json_rejects_gated_resolved_delta(tmp_path: Path):
+    from ici.engines.publish import load_suite_from_json
+
+    baseline = _baseline_summary_payload()
+    # Keep gated_count unchanged while moving one gate to a RESOLVED entry.
+    baseline["entries"][0]["gated"] = False
+    baseline["entries"][6]["gated"] = True
 
     loaded = load_suite_from_json(_write_suite_payload(tmp_path, baseline))
 

@@ -39,13 +39,15 @@ _BASELINE_COUNT_FIELDS = {
     "moved_count": DeltaState.MOVED,
     "resolved_count": DeltaState.RESOLVED,
 }
-_BASELINE_SUMMARY_FIELDS = {
+_BASELINE_REQUIRED_FIELDS = {
+    "source_path",
+    "warnings",
+    "baseline_metadata",
+    "fail_on_new",
+    "gate_failed",
     *(_BASELINE_COUNT_FIELDS.keys()),
     "regressed_count",
     "gated_count",
-    "fail_on_new",
-    "gate_failed",
-    "warnings",
     "entries",
 }
 
@@ -60,28 +62,20 @@ class _LoadedBaselineComparison(BaselineComparison):
     here without manufacturing fake finding rows.
     """
 
-    summary_counts: dict[DeltaState, int | None] = field(
-        default_factory=dict, repr=False, compare=False
-    )
-    summary_regressed_count: int | None = field(default=None, repr=False, compare=False)
-    summary_gated_count: int | None = field(default=None, repr=False, compare=False)
-    summary_gate_state_present: bool = field(default=False, repr=False, compare=False)
+    summary_counts: dict[DeltaState, int] = field(default_factory=dict, repr=False, compare=False)
+    summary_regressed_count: int = field(default=0, repr=False, compare=False)
+    summary_gated_count: int = field(default=0, repr=False, compare=False)
 
     def count(self, state: DeltaState) -> int:
-        value = self.summary_counts.get(state)
-        return value if value is not None else super().count(state)
+        return self.summary_counts[state]
 
     @property
     def regressed_count(self) -> int:
-        if self.summary_regressed_count is not None:
-            return self.summary_regressed_count
-        return super().regressed_count
+        return self.summary_regressed_count
 
     @property
     def gated_count(self) -> int:
-        if self.summary_gated_count is not None:
-            return self.summary_gated_count
-        return super().gated_count
+        return self.summary_gated_count
 
 
 def _strict_nonnegative_int(value: Any) -> int | None:
@@ -92,19 +86,22 @@ def _strict_nonnegative_int(value: Any) -> int | None:
 
 
 def _parse_baseline_summary(value: Any) -> BaselineComparison | None:
-    """Read an optional v3 baseline summary without trusting malformed data."""
+    """Read a complete v3 baseline comparison without trusting malformed data."""
     if value is None or not isinstance(value, dict):
         return None
-    if not _BASELINE_SUMMARY_FIELDS.intersection(value):
+    if not _BASELINE_REQUIRED_FIELDS.issubset(value):
         return None
 
     source_path = value.get("source_path", "")
-    if not isinstance(source_path, str):
+    if not isinstance(source_path, str) or not source_path:
         return None
     warnings_value = value.get("warnings", [])
     if not isinstance(warnings_value, list) or not all(
-        isinstance(item, str) for item in warnings_value
+        isinstance(item, str) and bool(item) for item in warnings_value
     ):
+        return None
+    baseline_metadata = value.get("baseline_metadata")
+    if baseline_metadata is not None and not isinstance(baseline_metadata, dict):
         return None
 
     fail_on_new = value.get("fail_on_new", False)
@@ -112,72 +109,61 @@ def _parse_baseline_summary(value: Any) -> BaselineComparison | None:
     if type(fail_on_new) is not bool or type(gate_failed) is not bool:
         return None
 
-    summary_counts: dict[DeltaState, int | None] = {}
+    summary_counts: dict[DeltaState, int] = {}
     for field_name, state in _BASELINE_COUNT_FIELDS.items():
-        if field_name not in value:
-            continue
         count = _strict_nonnegative_int(value[field_name])
         if count is None:
             return None
         summary_counts[state] = count
 
-    summary_regressed_count: int | None = None
-    if "regressed_count" in value:
-        summary_regressed_count = _strict_nonnegative_int(value["regressed_count"])
-        if summary_regressed_count is None:
-            return None
+    summary_regressed_count = _strict_nonnegative_int(value["regressed_count"])
+    summary_gated_count = _strict_nonnegative_int(value["gated_count"])
+    if summary_regressed_count is None or summary_gated_count is None:
+        return None
 
-    summary_gated_count: int | None = None
-    if "gated_count" in value:
-        summary_gated_count = _strict_nonnegative_int(value["gated_count"])
-        if summary_gated_count is None:
+    entries = value["entries"]
+    if not isinstance(entries, list):
+        return None
+    entry_counts = {state: 0 for state in DeltaState}
+    entry_regressed = 0
+    entry_gated = 0
+    for item in entries:
+        if not isinstance(item, dict) or not all(
+            key in item for key in ("state", "regressed", "gated")
+        ):
             return None
+        try:
+            state = DeltaState(item["state"])
+        except (TypeError, ValueError):
+            return None
+        regressed = item["regressed"]
+        gated = item["gated"]
+        if type(regressed) is not bool or type(gated) is not bool:
+            return None
+        if regressed and state not in (DeltaState.MOVED, DeltaState.UNCHANGED):
+            return None
+        if gated and state != DeltaState.NEW and not regressed:
+            return None
+        entry_counts[state] += 1
+        entry_regressed += int(regressed)
+        entry_gated += int(gated)
 
-    if "entries" in value:
-        entries = value["entries"]
-        if not isinstance(entries, list):
-            return None
-        entry_counts = {state: 0 for state in DeltaState}
-        entry_regressed = 0
-        entry_gated = 0
-        for item in entries:
-            if not isinstance(item, dict):
-                return None
-            try:
-                state = DeltaState(item.get("state"))
-            except (TypeError, ValueError):
-                return None
-            regressed = item.get("regressed", False)
-            gated = item.get("gated", False)
-            if type(regressed) is not bool or type(gated) is not bool:
-                return None
-            entry_counts[state] += 1
-            entry_regressed += int(regressed)
-            entry_gated += int(gated)
-
-        for field_name, state in _BASELINE_COUNT_FIELDS.items():
-            expected = entry_counts[state]
-            if field_name in value and summary_counts.get(state) != expected:
-                return None
-            summary_counts.setdefault(state, expected)
-        if "regressed_count" in value and summary_regressed_count != entry_regressed:
-            return None
-        if "gated_count" in value and summary_gated_count != entry_gated:
-            return None
-        if summary_regressed_count is None:
-            summary_regressed_count = entry_regressed
-        if summary_gated_count is None:
-            summary_gated_count = entry_gated
+    if any(summary_counts[state] != entry_counts[state] for state in DeltaState):
+        return None
+    if summary_regressed_count != entry_regressed or summary_gated_count != entry_gated:
+        return None
+    if gate_failed != (fail_on_new and summary_gated_count > 0):
+        return None
 
     return _LoadedBaselineComparison(
         source_path=source_path,
         warnings=list(warnings_value),
+        baseline_metadata=None,
         fail_on_new=fail_on_new,
         gate_failed=gate_failed,
         summary_counts=summary_counts,
         summary_regressed_count=summary_regressed_count,
         summary_gated_count=summary_gated_count,
-        summary_gate_state_present=("fail_on_new" in value or "gate_failed" in value),
     )
 
 
@@ -194,33 +180,15 @@ def _baseline_summary_lines(suite: VerificationSuiteResult | None) -> list[str]:
         return []
 
     if isinstance(comparison, _LoadedBaselineComparison):
-
-        def summary_count(state: DeltaState) -> str:
-            value = comparison.summary_counts.get(state)
-            return str(value) if value is not None else "—"
-
-        new_count = summary_count(DeltaState.NEW)
-        regressed_count = (
-            str(comparison.summary_regressed_count)
-            if comparison.summary_regressed_count is not None
-            else "—"
-        )
-        gated_count = (
-            str(comparison.summary_gated_count)
-            if comparison.summary_gated_count is not None
-            else "—"
-        )
+        new_count = str(comparison.summary_counts[DeltaState.NEW])
+        regressed_count = str(comparison.summary_regressed_count)
+        gated_count = str(comparison.summary_gated_count)
     else:
         new_count = str(comparison.count(DeltaState.NEW))
         regressed_count = str(comparison.regressed_count)
         gated_count = str(comparison.gated_count)
 
-    if (
-        isinstance(comparison, _LoadedBaselineComparison)
-        and not comparison.summary_gate_state_present
-    ):
-        gate = "— UNKNOWN"
-    elif comparison.gate_failed:
+    if comparison.gate_failed:
         gate = "❌ FAILED"
     elif comparison.fail_on_new:
         gate = "✅ PASSED"
