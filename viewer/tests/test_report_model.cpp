@@ -92,6 +92,20 @@ void testRealIciReport() {
     CHECK(targets > 1000);
 }
 
+void testV3ReportRetainsLegacyRendering() {
+    LoadError error;
+    const auto suite = loadReport(minimalV3Report(), error);
+    CHECK(suite.has_value());
+    if (!suite) {
+        std::fprintf(stderr, "  v3 report rejected: %s\n", error.message.c_str());
+        return;
+    }
+    CHECK(suite->suite_status == Status::Warn);
+    CHECK_EQ(suite->results.size(), static_cast<std::size_t>(1));
+    CHECK_EQ(suite->results.front().targets.size(), static_cast<std::size_t>(1));
+    CHECK_EQ(suite->results.front().targets.front().start_line, 8);
+}
+
 void testValidationErrors() {
     expectRejected("not json at all", "invalid JSON");
     expectRejected("[1,2]", "must be an object");
@@ -133,6 +147,7 @@ int main() {
     testStatusMapping();
     testMinimalReport();
     testRealIciReport();
+    testV3ReportRetainsLegacyRendering();
     testValidationErrors();
     return checkSummary();
 }

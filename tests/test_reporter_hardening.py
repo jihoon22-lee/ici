@@ -78,7 +78,7 @@ def test_json_v2_serializes_complete_engine_contract(tmp_path: Path):
     save_json_report(_malicious_suite(), output)
 
     data = json.loads(output.read_text(encoding="utf-8"))
-    assert data["schema_version"] == "ici.result/v2"
+    assert data["schema_version"] == "ici.result/v3"
     assert data["error_count"] == 1
     assert data["skipped_count"] == 1
     result = data["results"][0]

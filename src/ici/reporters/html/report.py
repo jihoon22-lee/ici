@@ -4,6 +4,7 @@ import html
 from pathlib import Path
 
 from ici.core.models import VerificationSuiteResult
+from ici.core.redaction import redact_suite
 from ici.reporters.html.assets_loader import HTML_CSS, HTML_JS
 from ici.reporters.html.sections.complexity import _render_complexity_section
 from ici.reporters.html.sections.cycles import _render_cycles_section
@@ -24,6 +25,7 @@ def generate_html_report(
     base_dir: Path | None = None,
 ) -> None:
     """Generates a state-of-the-art, zero-CDN, standalone HTML report with universal editor links."""
+    suite = redact_suite(suite)
     base = (base_dir or Path.cwd()).resolve()
     status_color, status_bg, status_border = _get_status_theme(suite.suite_status)
 

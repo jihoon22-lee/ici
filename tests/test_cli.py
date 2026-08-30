@@ -191,7 +191,7 @@ def test_standalone_report_uses_v2_serializer(tmp_path, monkeypatch):
 
     assert result.exit_code == 0
     data = json.loads((tmp_path / "line_report.json").read_text(encoding="utf-8"))
-    assert data["schema_version"] == "ici.result/v2"
+    assert data["schema_version"] == "ici.result/v3"
     assert data["engine_name"] == "line"
     assert "tool_evidence" in data
 

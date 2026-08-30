@@ -4,7 +4,8 @@
 
 namespace icirv {
 
-const char* const kSupportedSchema = "ici.result/v2";
+const char* const kSupportedSchema = "ici.result/v3";
+const char* const kLegacySchema = "ici.result/v2";
 
 namespace {
 
@@ -169,9 +170,10 @@ bool checkSchema(const JsonValue& root, LoadError& error) {
     if (!requireString(root, "schema_version", schema, error)) {
         return false;
     }
-    if (schema != kSupportedSchema) {
+    if (schema != kSupportedSchema && schema != kLegacySchema) {
         error.message = "unsupported schema_version '" + schema + "', expected '" +
-                        std::string(kSupportedSchema) + "'";
+                        std::string(kSupportedSchema) + "' or '" + std::string(kLegacySchema) +
+                        "'";
         return false;
     }
     return true;

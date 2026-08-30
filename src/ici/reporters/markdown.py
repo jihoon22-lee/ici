@@ -10,6 +10,7 @@ from ici.core.models import (
     VerificationSuiteResult,
     format_score_display,
 )
+from ici.core.redaction import redact_suite
 
 
 def generate_markdown_report(
@@ -18,6 +19,7 @@ def generate_markdown_report(
     commit_sha: str | None = None,
 ) -> str:
     """Generates a complete, beautiful GitHub-flavored Markdown report."""
+    suite = redact_suite(suite)
     status_emoji = {
         EngineStatus.PASS: "✅",
         EngineStatus.WARN: "⚠️",
@@ -113,7 +115,7 @@ def emit_github_actions_annotations(suite: VerificationSuiteResult) -> None:
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return
 
-    for res in suite.results:
+    for res in redact_suite(suite).results:
         for t in res.targets:
             if t.status in (EngineStatus.FAIL, EngineStatus.ERROR):
                 command = "error"

@@ -25,6 +25,42 @@ class EvidenceState(str, Enum):
     NOT_APPLICABLE = "NOT_APPLICABLE"
 
 
+class FindingCategory(str, Enum):
+    """Stable, tool-independent grouping used by the v3 finding contract."""
+
+    CORRECTNESS = "correctness"
+    TYPE = "type"
+    SECURITY = "security"
+    RESOURCE = "resource"
+    BUILD = "build"
+    TEST = "test"
+    MAINTAINABILITY = "maintainability"
+    ARCHITECTURE = "architecture"
+    COMPATIBILITY = "compatibility"
+
+
+class FindingSeverity(str, Enum):
+    INFO = "info"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class FindingConfidence(str, Enum):
+    EXACT = "exact"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class SuppressionKind(str, Enum):
+    NONE = "none"
+    INLINE = "inline"
+    CONFIG = "config"
+    BASELINE = "baseline"
+
+
 @dataclass
 class ToolEvidence:
     """Records the tool invocation that produced an engine result."""
@@ -51,6 +87,59 @@ class InspectionTarget:
     message: str = ""  # Detailed message or rule description
     snippet: str = ""  # Associated code snippet
     metrics: dict[str, Any] = field(default_factory=dict)  # e.g., complexity score, lines
+    start_column: int | None = None  # 1-indexed start column
+    end_column: int | None = None  # 1-indexed end column (inclusive)
+
+
+@dataclass
+class SourceLocation:
+    """A canonical project-relative source region."""
+
+    path: str
+    start_line: int
+    end_line: int | None = None
+    start_column: int | None = None
+    end_column: int | None = None
+    label: str = ""
+
+
+@dataclass
+class FindingMetric:
+    """A numeric finding measurement with an explicit unit."""
+
+    value: int | float
+    unit: str = ""
+
+
+@dataclass
+class FindingSuppression:
+    """Describes whether and why a finding is suppressed."""
+
+    suppressed: bool = False
+    kind: SuppressionKind = SuppressionKind.NONE
+    reason: str = ""
+
+
+@dataclass
+class Finding:
+    """Stable v3 issue/inventory record shared by every engine and reporter."""
+
+    rule_id: str
+    category: FindingCategory
+    severity: FindingSeverity
+    confidence: FindingConfidence
+    fingerprint: str
+    primary_location: SourceLocation
+    message: str
+    related_locations: list[SourceLocation] = field(default_factory=list)
+    explanation: str = ""
+    remediation: str = ""
+    tool_rule_id: str = ""
+    tool_name: str = ""
+    tool_version: str = ""
+    suppression: FindingSuppression = field(default_factory=FindingSuppression)
+    metrics: dict[str, FindingMetric] = field(default_factory=dict)
+    snippet: str = ""
 
 
 @dataclass
@@ -69,6 +158,7 @@ class EngineResult:
     required: bool = True
     evidence: EvidenceState = EvidenceState.MEASURED
     tool_evidence: list[ToolEvidence] = field(default_factory=list)
+    findings: list[Finding] = field(default_factory=list)
 
 
 def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
