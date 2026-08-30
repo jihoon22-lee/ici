@@ -328,6 +328,124 @@
         { "type": "null" }
       ]
     },
+    "capabilityEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["purpose", "argv", "returncode", "timed_out", "truncated"],
+      "properties": {
+        "purpose": { "type": "string" },
+        "argv": { "type": "array", "items": { "type": "string" } },
+        "returncode": { "type": "integer" },
+        "timed_out": { "type": "boolean" },
+        "truncated": { "type": "boolean" }
+      }
+    },
+    "capabilityTool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "state",
+        "available",
+        "complete",
+        "required",
+        "optional",
+        "required_by",
+        "optional_by",
+        "path",
+        "version",
+        "version_tuple",
+        "error",
+        "details",
+        "probe_argv",
+        "returncode",
+        "timed_out",
+        "truncated",
+        "evidence"
+      ],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "state": { "type": "string", "enum": ["ready", "incomplete", "unavailable"] },
+        "available": { "type": "boolean" },
+        "complete": { "type": "boolean" },
+        "required": { "type": "boolean" },
+        "optional": { "type": "boolean" },
+        "required_by": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "optional_by": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "path": { "type": "string" },
+        "version": { "type": "string" },
+        "version_tuple": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "error": { "type": "string" },
+        "details": { "type": "object", "additionalProperties": { "type": "string" } },
+        "probe_argv": { "type": "array", "items": { "type": "string" } },
+        "returncode": { "type": ["integer", "null"] },
+        "timed_out": { "type": "boolean" },
+        "truncated": { "type": "boolean" },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/capabilityEvidence" }
+        }
+      }
+    },
+    "capabilityInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "status",
+        "healthy",
+        "counts",
+        "missing_required",
+        "incomplete_required",
+        "tools"
+      ],
+      "properties": {
+        "schema_version": { "const": "ici.capabilities/v1" },
+        "status": { "type": "string", "enum": ["PASS", "WARN"] },
+        "healthy": { "type": "boolean" },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "ready", "incomplete", "unavailable", "required", "optional"],
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "ready": { "type": "integer", "minimum": 0 },
+            "incomplete": { "type": "integer", "minimum": 0 },
+            "unavailable": { "type": "integer", "minimum": 0 },
+            "required": { "type": "integer", "minimum": 0 },
+            "optional": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "missing_required": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "incomplete_required": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "tools": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/capabilityTool" }
+        }
+      }
+    },
+    "nullableCapabilityInventory": {
+      "oneOf": [
+        { "$ref": "#/$defs/capabilityInventory" },
+        { "type": "null" }
+      ]
+    },
     "supportEntry": {
       "type": "object",
       "additionalProperties": false,
@@ -496,7 +614,8 @@
         },
         "support_matrix": { "$ref": "#/$defs/nullableSupportMatrix" },
         "analysis_metadata": { "$ref": "#/$defs/nullableAnalysisMetadata" },
-        "baseline_comparison": { "$ref": "#/$defs/nullableBaselineComparison" }
+        "baseline_comparison": { "$ref": "#/$defs/nullableBaselineComparison" },
+        "capability_inventory": { "$ref": "#/$defs/nullableCapabilityInventory" }
       }
     }
   }

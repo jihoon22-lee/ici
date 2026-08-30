@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
 
-from ici.core.redaction import redact_text
+from ici.core.redaction_values import redact_text
 from ici.core.runner import ProcessResult, run_process
 
 PROBE_TIMEOUT_SECONDS = 5.0

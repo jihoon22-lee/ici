@@ -3,6 +3,7 @@
 import html
 from collections.abc import Iterable
 
+from ici.core.capabilities import CapabilityInventory
 from ici.core.models import EngineSupport, EvidenceState, SupportMatrix
 
 
@@ -121,10 +122,97 @@ def _render_entry(entry: EngineSupport, *, expanded: bool) -> str:
     """
 
 
-def _render_support_section(matrix: SupportMatrix | None) -> str:
-    """Render the evaluated support matrix, or nothing for legacy v3 suites."""
-    if matrix is None:
+def _render_tool_entry(inventory: CapabilityInventory, name: str) -> str:
+    capability = inventory.capabilities[name]
+    requirement = inventory.requirements[name]
+    state = (
+        "ready"
+        if capability.available and capability.complete
+        else ("incomplete" if capability.available else "unavailable")
+    )
+    attention = requirement.required and state != "ready"
+    tone = "attention" if attention else ("healthy" if state == "ready" else "neutral")
+    marker = "⚠️ " if attention else ""
+    policy = (
+        "required" if requirement.required else ("optional" if requirement.optional else "registry")
+    )
+    details = _render_list(
+        (f"{key}={value}" for key, value in capability.details.items()),
+        empty="No extra metadata",
+    )
+    fields = "".join(
+        (
+            _render_field("Tool", f"<strong>{_escaped_value(capability.name)}</strong>"),
+            _render_field("State", f"<code>{html.escape(state)}</code>"),
+            _render_field("Policy", f"<code>{html.escape(policy)}</code>"),
+            _render_field("Required by", _render_values(requirement.required_by)),
+            _render_field("Optional for", _render_values(requirement.optional_by)),
+            _render_field("Path", f"<code>{_escaped_value(capability.path)}</code>"),
+            _render_field("Version", _escaped_value(capability.version)),
+            _render_field("Metadata", details),
+            _render_field("Probe error", _escaped_value(capability.error, empty="None")),
+            _render_field("Evidence records", f"<code>{len(capability.evidence)}</code>"),
+        )
+    )
+    open_attr = " open" if attention else ""
+    return f"""
+    <details class='support-entry support-entry-{tone}'{open_attr}>
+      <summary class='support-entry-summary'>
+        <span class='support-entry-title'>{marker}{_escaped_value(capability.name)}</span>
+        <span class='support-entry-language'>{html.escape(policy)}</span>
+        <span class='support-entry-mode'>{_escaped_value(capability.version)}</span>
+        <span class='support-badge support-badge-{tone}'>{html.escape(state)}</span>
+      </summary>
+      <dl class='support-fields'>{fields}</dl>
+    </details>
+    """
+
+
+def _render_capability_section(inventory: CapabilityInventory | None) -> str:
+    if inventory is None:
         return ""
+    names = list(inventory.capabilities)
+    attention_names = [
+        name
+        for name in names
+        if inventory.requirements[name].required
+        and (
+            not inventory.capabilities[name].available or not inventory.capabilities[name].complete
+        )
+    ]
+    ordered_names = [*attention_names, *(name for name in names if name not in attention_names)]
+    rows = "".join(_render_tool_entry(inventory, name) for name in ordered_names)
+    ready = sum(item.available and item.complete for item in inventory.capabilities.values())
+    incomplete = sum(
+        item.available and not item.complete for item in inventory.capabilities.values()
+    )
+    unavailable = sum(not item.available for item in inventory.capabilities.values())
+    health = "ready" if inventory.healthy else "attention"
+    return f"""
+    <div class='support-matrix-card'>
+      <div class='support-matrix-heading'>
+        <div>
+          <h2>🧰 Tool capability snapshot</h2>
+          <p>{len(names)} tools · {ready} ready · {incomplete} incomplete · {unavailable} unavailable. Required gaps are expanded first.</p>
+        </div>
+        <span class='support-badge support-badge-{health}'>{health}</span>
+      </div>
+      <div class='support-entry-list'>{rows}</div>
+    </div>
+    """
+
+
+def _render_support_section(
+    matrix: SupportMatrix | None,
+    inventory: CapabilityInventory | None = None,
+) -> str:
+    """Render evaluated support and the shared tool snapshot when available."""
+    if matrix is None and inventory is None:
+        return ""
+
+    capability_section = _render_capability_section(inventory)
+    if matrix is None:
+        return f"<div class='support-section'>{capability_section}</div>"
 
     entries = list(matrix.entries or [])
     attention_entries = [entry for entry in entries if _needs_attention(entry)]
@@ -174,6 +262,7 @@ def _render_support_section(matrix: SupportMatrix | None) -> str:
         </div>
         <div class='support-entry-list'>{entry_rows}</div>
       </div>
+      {capability_section}
     </div>
     """
 

@@ -339,14 +339,18 @@ green(756 tests)이었고, [sticky comment](https://github.com/jihoon22-lee/ici/
 
 - [x] Slice 1 — bounded probe/parser registry
 - [x] Slice 2 — `doctor` shared inventory, redaction, and policy
-- [ ] Slice 3 — `verify`/report shared inventory
+- [x] Slice 3 — `verify`/report shared inventory
+
+> Slice 3 구현은 `feat/capability-reporting`에서 완료됐다. 이 문서의 구현 체크리스트는
+> 완료됐지만, 최종 full quality gate·CI·PR/Pages 게시 증거는 main 통합 검증에서
+> 보강한다.
 
 - [x] Python interpreters, compilers, CMake, qmake, make, gcov, clang tools, Qt, binutils를 탐지한다.
 - [x] version parser는 vendor suffix와 multi-line 출력을 견딘다.
 - [x] compiler target triple, Qt major, generator와 지원 feature를 기록한다.
-- [ ] required/optional 도구 정책을 engine과 profile별로 계산한다.
+- [x] required/optional 도구 정책을 유효한 support matrix의 `applicable`·`enabled` 행과 `[doctor].required_tools`에서 계산한다. required provenance가 optional보다 우선하지만 모든 provenance를 보존한다.
 - [x] `ici doctor --json`은 전체 bounded registry와 redacted evidence를 담은 `capability_inventory`를 제공하고, 기존 `tools` map을 유지한다. active support-matrix 행과 `[doctor].required_tools`의 provenance도 기록한다.
-- [ ] verify/report가 doctor와 같은 inventory를 공유하고 engine/profile별 required/optional 정책을 완성한다. 이 항목은 I2-1 Slice 3 범위다.
+- [x] verify는 엔진 실행 전에 정책을 계산하고 bounded registry를 정확히 한 번 수집해 suite-level immutable `CapabilityInventory`로 공유한다. console/Markdown/zero-CDN HTML/JSON reporter는 이 snapshot을 재사용하며, JSON root의 선택적 `capability_inventory`와 checked-in schema는 inventory 없는 기존 v3 리포트와 호환된다.
 
 ### I2-2. `AnalysisContext`와 artifact manifest
 

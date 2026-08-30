@@ -12,6 +12,7 @@ from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
+from ici.core.capabilities import serialize_capability_inventory
 from ici.core.findings import findings_for_result, validate_source_region
 from ici.core.models import (
     AnalysisMetadata,
@@ -429,6 +430,11 @@ def serialize_suite_result(
         "support_matrix": serialize_support_matrix(safe.support_matrix),
         "analysis_metadata": _serialize_analysis_metadata(safe.analysis_metadata),
         "baseline_comparison": _serialize_baseline_comparison(safe.baseline_comparison),
+        "capability_inventory": (
+            serialize_capability_inventory(safe.capability_inventory)
+            if safe.capability_inventory is not None
+            else None
+        ),
     }
 
 

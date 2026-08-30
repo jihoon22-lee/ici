@@ -10,6 +10,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from ici.core.capabilities import CapabilityInventory
 from ici.core.models import (
     BaselineComparison,
     DeltaState,
@@ -39,6 +40,57 @@ _DELTA_STATE_COLOR = {
 }
 
 console = Console()
+
+
+def _capability_state(available: bool, complete: bool) -> str:
+    if not available:
+        return "unavailable"
+    return "ready" if complete else "incomplete"
+
+
+def _print_capability_inventory(
+    inventory: CapabilityInventory,
+    output_console: Console,
+) -> None:
+    """Print one compact projection of the suite-owned tool snapshot."""
+
+    capabilities = list(inventory.capabilities.values())
+    ready = sum(item.available and item.complete for item in capabilities)
+    incomplete = sum(item.available and not item.complete for item in capabilities)
+    unavailable = sum(not item.available for item in capabilities)
+    required = [
+        inventory.capabilities[name]
+        for name, policy in inventory.requirements.items()
+        if policy.required
+    ]
+    required_rows = (
+        ", ".join(
+            f"{escape(item.name)}={_capability_state(item.available, item.complete)}"
+            for item in required
+        )
+        or "none"
+    )
+    health = "[bold green]READY[/]" if inventory.healthy else "[bold yellow]ATTENTION[/]"
+    summary = (
+        f"[bold]Snapshot:[/] {len(capabilities)} tools · [green]{ready} ready[/] · "
+        f"[yellow]{incomplete} incomplete[/] · [dim]{unavailable} unavailable[/]\n"
+        f"[bold]Required policy:[/] {required_rows}\n"
+        f"[bold]Capability health:[/] {health}"
+    )
+    if inventory.missing_required or inventory.incomplete_required:
+        issues = [
+            *(f"missing: {escape(name)}" for name in inventory.missing_required),
+            *(f"incomplete: {escape(name)}" for name in inventory.incomplete_required),
+        ]
+        summary += "\n[bold yellow]Required attention:[/] " + "; ".join(issues)
+    output_console.print(
+        Panel(
+            summary,
+            title="[bold cyan]Tool Capability Snapshot[/]",
+            border_style="cyan" if inventory.healthy else "yellow",
+            box=box.ROUNDED,
+        )
+    )
 
 
 def format_status_badge(status: EngineStatus) -> str:
@@ -305,6 +357,8 @@ def print_suite_dashboard(
         table.add_row(*row)
 
     active_console.print(table)
+    if suite.capability_inventory is not None:
+        _print_capability_inventory(suite.capability_inventory, active_console)
     _print_issue_details(selection, base, selected_options, active_console)
 
     if suite.baseline_comparison is not None:

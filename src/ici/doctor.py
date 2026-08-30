@@ -9,7 +9,11 @@ from rich.console import Console
 from rich.table import Table
 
 from ici import __version__
-from ici.core.capabilities import collect_capability_inventory, serialize_capability_inventory
+from ici.core.capabilities import (
+    collect_capability_inventory,
+    derive_tool_policy,
+    serialize_capability_inventory,
+)
 from ici.core.env import (
     find_infra_root,
     find_python_candidates,
@@ -23,23 +27,10 @@ from ici.reporters.json_rep import serialize_support_matrix
 
 console = Console()
 
-
-def _tool_policy(
-    matrix: dict[str, Any], configured_required: set[str]
-) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
-    """Derive effective tool policy from applicable engines and doctor config."""
-
-    required_by: dict[str, set[str]] = {name: {"doctor.config"} for name in configured_required}
-    optional_by: dict[str, set[str]] = {}
-    for entry in matrix.get("entries", []):
-        if not entry.get("applicable", False) or not entry.get("enabled", False):
-            continue
-        source = f"{entry.get('engine_name', '-')}:{entry.get('language', '-')}"
-        for name in entry.get("required_tools", []) or []:
-            required_by.setdefault(str(name), set()).add(source)
-        for name in entry.get("optional_tools", []) or []:
-            optional_by.setdefault(str(name), set()).add(source)
-    return required_by, optional_by
+# Compatibility alias for callers that exercised the former private helper.
+# The implementation now lives at the shared capability boundary used by both
+# doctor and verify.
+_tool_policy = derive_tool_policy
 
 
 def collect_diagnostics(
@@ -63,12 +54,13 @@ def collect_diagnostics(
     configured_required = {
         str(name) for name in config.get("doctor", {}).get("required_tools", []) or []
     }
-    support_matrix = serialize_support_matrix(evaluate_support_matrix(root, config)) or {
+    support_model = evaluate_support_matrix(root, config)
+    support_matrix = serialize_support_matrix(support_model) or {
         "project_languages": [],
         "project_frameworks": [],
         "entries": [],
     }
-    required_by, optional_by = _tool_policy(support_matrix, configured_required)
+    required_by, optional_by = derive_tool_policy(support_model, configured_required)
     inventory = collect_capability_inventory(
         cwd=root,
         probes=DEFAULT_TOOL_PROBES,

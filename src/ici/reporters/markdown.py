@@ -5,6 +5,7 @@ import os
 import re
 from urllib.parse import quote, urlsplit
 
+from ici.core.capabilities import CapabilityInventory
 from ici.core.models import (
     BaselineComparison,
     DeltaState,
@@ -16,6 +17,59 @@ from ici.core.models import (
 )
 from ici.core.redaction import redact_suite
 from ici.reporters.baseline_view import enum_value, select_baseline_details, severity_transition
+
+
+def _render_capability_markdown(inventory: CapabilityInventory) -> list[str]:
+    """Render a compact summary plus a collapsed complete tool inventory."""
+
+    capabilities = list(inventory.capabilities.values())
+    ready = sum(item.available and item.complete for item in capabilities)
+    incomplete = sum(item.available and not item.complete for item in capabilities)
+    unavailable = sum(not item.available for item in capabilities)
+    health = "✅ READY" if inventory.healthy else "⚠️ ATTENTION"
+    lines = [
+        "### Tool capability snapshot\n",
+        f"> **Health**: {health}  ",
+        f"> **Inventory**: {len(capabilities)} total · {ready} ready · "
+        f"{incomplete} incomplete · {unavailable} unavailable  ",
+    ]
+    if inventory.missing_required:
+        lines.append(
+            f"> **Missing required**: {_render_code(', '.join(inventory.missing_required))}  "
+        )
+    if inventory.incomplete_required:
+        lines.append(
+            f"> **Incomplete required**: {_render_code(', '.join(inventory.incomplete_required))}  "
+        )
+    lines.extend(
+        [
+            "\n<details>",
+            f"<summary><b>Complete tool inventory ({len(capabilities)})</b></summary>\n",
+            "| Tool | State | Policy | Version | Details |",
+            "|---|:---:|---|---|---|",
+        ]
+    )
+    for name, capability in inventory.capabilities.items():
+        requirement = inventory.requirements[name]
+        state = (
+            "ready"
+            if capability.available and capability.complete
+            else ("incomplete" if capability.available else "unavailable")
+        )
+        if requirement.required:
+            policy = "required by " + ", ".join(requirement.required_by)
+        elif requirement.optional:
+            policy = "optional for " + ", ".join(requirement.optional_by)
+        else:
+            policy = "registry"
+        details = ", ".join(f"{key}={value}" for key, value in capability.details.items()) or "—"
+        lines.append(
+            f"| {_render_code(capability.name)} | {_render_code(state)} | "
+            f"{_escape_table_cell(policy)} | {_escape_table_cell(capability.version or '—')} | "
+            f"{_escape_table_cell(details)} |"
+        )
+    lines.append("</details>\n")
+    return lines
 
 
 def _render_baseline_location(
@@ -156,6 +210,9 @@ def generate_markdown_report(
             f"| <strong>{_render_code(res.engine_name)}</strong> | {badge} | "
             f"{_escape_table_cell(res.summary)} | {score_val} | {duration_val} |"
         )
+
+    if suite.capability_inventory is not None:
+        md.extend(_render_capability_markdown(suite.capability_inventory))
 
     if suite.baseline_comparison is not None:
         md.extend(

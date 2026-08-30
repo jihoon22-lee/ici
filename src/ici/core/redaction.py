@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import replace
 from typing import Any
 
@@ -17,29 +16,8 @@ from ici.core.models import (
     SupportMatrix,
     VerificationSuiteResult,
 )
+from ici.core.redaction_values import REDACTED, redact_data, redact_text
 
-REDACTED = "***REDACTED***"
-
-_QUOTED_SECRET_ASSIGNMENT_RE = re.compile(
-    r"(?i)(?P<key>password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)"
-    r"(?P<op>\s*[=:]\s*)(?P<quote>[\"'])(?P<value>[^\r\n]*?)(?P=quote)"
-)
-_SECRET_ASSIGNMENT_RE = re.compile(
-    r"(?i)(?P<key>password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)"
-    r"(?P<op>\s*[=:]\s*)(?P<value>[^\s,;\"']+)"
-)
-_PRIVATE_KEY_RE = re.compile(
-    r"-----BEGIN (?P<kind>[A-Z ]*PRIVATE KEY)-----.*?"
-    r"(?:-----END (?P=kind)-----|\Z)",
-    re.DOTALL,
-)
-_BEARER_RE = re.compile(r"(?i)(\bBearer\s+)[A-Za-z0-9._~+/=-]+")
-_FLAG_VALUE_RE = re.compile(
-    r"(?i)(--?(?:password|passwd|secret|token|api[_-]?key)(?:=|\s+))([^\s]+)"
-)
-_KNOWN_TOKEN_RE = re.compile(
-    r"\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{16,}|AKIA[0-9A-Z]{16})\b"
-)
 _SECRET_FLAGS = {
     "--api-key",
     "--api_key",
@@ -48,47 +26,6 @@ _SECRET_FLAGS = {
     "--secret",
     "--token",
 }
-
-
-def _mask_assignment(match: re.Match[str]) -> str:
-    quote = match.groupdict().get("quote", "")
-    return f"{match.group('key')}{match.group('op')}{quote}{REDACTED}{quote}"
-
-
-def redact_text(value: str) -> str:
-    """Mask common credential forms while leaving diagnostic structure intact."""
-
-    if not isinstance(value, str):
-        raise ValueError(f"redaction input must be a string: {value!r}")
-    masked = _QUOTED_SECRET_ASSIGNMENT_RE.sub(_mask_assignment, value)
-    masked = _SECRET_ASSIGNMENT_RE.sub(_mask_assignment, masked)
-    masked = _PRIVATE_KEY_RE.sub("-----BEGIN [REDACTED] PRIVATE KEY-----", masked)
-    masked = _BEARER_RE.sub(rf"\1{REDACTED}", masked)
-    masked = _FLAG_VALUE_RE.sub(rf"\1{REDACTED}", masked)
-    return _KNOWN_TOKEN_RE.sub(REDACTED, masked)
-
-
-def redact_data(value: Any) -> Any:
-    """Recursively redact strings in reporter metadata without changing its shape."""
-
-    if isinstance(value, str):
-        return redact_text(value)
-    if isinstance(value, dict):
-        redacted: dict[str, Any] = {}
-        for key, item in value.items():
-            base_key = redact_text(str(key))
-            safe_key = base_key
-            suffix = 2
-            while safe_key in redacted:
-                safe_key = f"{base_key}#{suffix}"
-                suffix += 1
-            redacted[safe_key] = redact_data(item)
-        return redacted
-    if isinstance(value, list):
-        return [redact_data(item) for item in value]
-    if isinstance(value, tuple):
-        return tuple(redact_data(item) for item in value)
-    return value
 
 
 def _redact_argv(argv: list[str]) -> list[str]:
@@ -168,6 +105,53 @@ def _redact_support_matrix(matrix: SupportMatrix | None) -> SupportMatrix | None
         project_frameworks=[redact_text(value) for value in matrix.project_frameworks],
         entries=entries,
     )
+
+
+def _redact_capability_inventory(inventory: Any) -> Any:
+    """Redact an immutable capability snapshot without importing it eagerly.
+
+    Capabilities depend on the shared redaction primitives, so using dataclass
+    ``replace`` here avoids a circular module import while preserving the
+    inventory's concrete type and immutable mapping contract.
+    """
+
+    if inventory is None:
+        return None
+    capabilities = {}
+    requirements = {}
+    for original_name, capability in inventory.capabilities.items():
+        base_name = redact_text(original_name)
+        safe_name = base_name
+        suffix = 2
+        while safe_name in capabilities:
+            safe_name = f"{base_name}#{suffix}"
+            suffix += 1
+        capabilities[safe_name] = replace(
+            capability,
+            name=safe_name,
+            path=redact_text(capability.path),
+            version=redact_text(capability.version),
+            error=redact_text(capability.error),
+            details=redact_data(dict(capability.details)),
+            probe_argv=tuple(_redact_argv(list(capability.probe_argv))),
+            evidence=tuple(
+                replace(
+                    item,
+                    purpose=redact_text(item.purpose),
+                    argv=tuple(_redact_argv(list(item.argv))),
+                )
+                for item in capability.evidence
+            ),
+        )
+        requirement = inventory.requirements[original_name]
+        requirements[safe_name] = replace(
+            requirement,
+            name=safe_name,
+            required_by=tuple(redact_text(value) for value in requirement.required_by),
+            optional_by=tuple(redact_text(value) for value in requirement.optional_by),
+        )
+    safe = replace(inventory, capabilities=capabilities, requirements=requirements)
+    return inventory if safe == inventory else safe
 
 
 def _redact_delta(delta: FindingDelta) -> FindingDelta:
@@ -256,4 +240,5 @@ def redact_suite(suite: VerificationSuiteResult) -> VerificationSuiteResult:
         results=[redact_engine_result(result) for result in suite.results],
         support_matrix=_redact_support_matrix(suite.support_matrix),
         baseline_comparison=_redact_baseline(suite.baseline_comparison),
+        capability_inventory=_redact_capability_inventory(suite.capability_inventory),
     )

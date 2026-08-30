@@ -8,7 +8,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import cast
 
-from ici.core.redaction import redact_data
+from ici.core.redaction_values import redact_data
 from ici.core.toolchain import (
     DEFAULT_TOOL_PROBES,
     PROBE_OUTPUT_LIMIT,
@@ -85,6 +85,63 @@ class CapabilityInventory:
     @property
     def healthy(self) -> bool:
         return not self.missing_required and not self.incomplete_required
+
+
+def derive_tool_policy(
+    matrix: object | Mapping[str, object],
+    configured_required: Iterable[str] = (),
+) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
+    """Derive deterministic probe policy from the effective project scope.
+
+    Disabled and inapplicable support rows cannot consume tools during this
+    verification run, so they do not contribute requirements.  A required
+    provenance always dominates optional use of the same tool.
+    """
+
+    required_by: dict[str, set[str]] = {
+        name: {"doctor.config"} for value in configured_required if (name := str(value).strip())
+    }
+    optional_by: dict[str, set[str]] = {}
+    raw_entries = (
+        matrix.get("entries", []) if isinstance(matrix, Mapping) else getattr(matrix, "entries", ())
+    )
+    entries = raw_entries if isinstance(raw_entries, Iterable) else ()
+    for entry in entries:
+        if isinstance(entry, Mapping):
+            applicable = bool(entry.get("applicable", False))
+            enabled = bool(entry.get("enabled", False))
+            engine_name = str(entry.get("engine_name", "-"))
+            language = str(entry.get("language", "-"))
+            required_tools = entry.get("required_tools", [])
+            optional_tools = entry.get("optional_tools", [])
+        else:
+            applicable = entry.applicable
+            enabled = entry.enabled
+            engine_name = entry.engine_name
+            language = entry.language.value
+            required_tools = entry.required_tools
+            optional_tools = entry.optional_tools
+        if not applicable or not enabled:
+            continue
+        source = f"{engine_name}:{language}"
+        for value in required_tools or []:
+            name = str(value).strip()
+            if name:
+                required_by.setdefault(name, set()).add(source)
+        for value in optional_tools or []:
+            name = str(value).strip()
+            if name:
+                optional_by.setdefault(name, set()).add(source)
+
+    for name in required_by:
+        # Preserve every consumer as provenance while promoting the tool to a
+        # single required row.  Consumers must not disappear merely because a
+        # stricter policy source also needs the same executable.
+        required_by[name].update(optional_by.pop(name, set()))
+    return (
+        {name: required_by[name] for name in sorted(required_by)},
+        {name: optional_by[name] for name in sorted(optional_by)},
+    )
 
 
 def _policy_sources(

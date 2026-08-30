@@ -1,8 +1,13 @@
 """Core Domain Models for ici."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ici.core.capabilities import CapabilityInventory
 
 
 class EngineStatus(str, Enum):
@@ -356,6 +361,7 @@ class VerificationSuiteResult:
     support_matrix: SupportMatrix | None = None
     analysis_metadata: AnalysisMetadata | None = None
     baseline_comparison: BaselineComparison | None = None
+    capability_inventory: CapabilityInventory | None = None
 
     @property
     def passed_count(self) -> int:
