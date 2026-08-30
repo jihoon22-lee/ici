@@ -197,6 +197,17 @@ def _redact_baseline(
         source_path=redact_text(comparison.source_path),
         warnings=[redact_text(warning) for warning in comparison.warnings],
         entries=[_redact_delta(entry) for entry in comparison.entries],
+        baseline_metadata=(
+            replace(
+                comparison.baseline_metadata,
+                producer_version=redact_text(comparison.baseline_metadata.producer_version),
+                fingerprint_version=redact_text(comparison.baseline_metadata.fingerprint_version),
+                policy_digest=redact_text(comparison.baseline_metadata.policy_digest),
+                tool_policy_digest=redact_text(comparison.baseline_metadata.tool_policy_digest),
+            )
+            if comparison.baseline_metadata is not None
+            else None
+        ),
     )
 
 

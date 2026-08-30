@@ -366,6 +366,8 @@ def test_baseline_delta_serialization_is_complete_and_redacted(tmp_path):
         metadata=_metadata(),
     )
     current.baseline_comparison = _compare(tmp_path, current, baseline, fail_on_new=True)
+    current.baseline_comparison.baseline_metadata = _metadata(producer="password=metadata-secret")
+    current.baseline_comparison.warnings.append("token=warning-secret")
 
     payload = serialize_suite_result(current, project_root=tmp_path)
 
@@ -381,6 +383,8 @@ def test_baseline_delta_serialization_is_complete_and_redacted(tmp_path):
     assert comparison["gate_failed"] is True
     assert comparison["entries"][0]["state"] == "new"
     assert "supersecret" not in json.dumps(payload)
+    assert "metadata-secret" not in json.dumps(payload)
+    assert "warning-secret" not in json.dumps(payload)
     assert "***REDACTED***" in comparison["entries"][0]["message"]
 
 
