@@ -9,6 +9,7 @@ from typing import Any
 from ici.core.models import (
     EngineResult,
     Finding,
+    FindingMetric,
     FindingSuppression,
     SourceLocation,
     VerificationSuiteResult,
@@ -54,6 +55,8 @@ def _mask_assignment(match: re.Match[str]) -> str:
 def redact_text(value: str) -> str:
     """Mask common credential forms while leaving diagnostic structure intact."""
 
+    if not isinstance(value, str):
+        raise ValueError(f"redaction input must be a string: {value!r}")
     masked = _QUOTED_SECRET_ASSIGNMENT_RE.sub(_mask_assignment, value)
     masked = _SECRET_ASSIGNMENT_RE.sub(_mask_assignment, masked)
     masked = _PRIVATE_KEY_RE.sub("-----BEGIN [REDACTED] PRIVATE KEY-----", masked)
@@ -100,7 +103,24 @@ def _redact_argv(argv: list[str]) -> list[str]:
 
 
 def _redact_location(location: SourceLocation) -> SourceLocation:
-    return replace(location, label=redact_text(location.label))
+    return replace(
+        location,
+        path=redact_text(location.path),
+        label=redact_text(location.label),
+    )
+
+
+def _redact_finding_metrics(metrics: dict[str, FindingMetric]) -> dict[str, FindingMetric]:
+    redacted: dict[str, FindingMetric] = {}
+    for name, metric in metrics.items():
+        base_name = redact_text(name)
+        safe_name = base_name
+        suffix = 2
+        while safe_name in redacted:
+            safe_name = f"{base_name}#{suffix}"
+            suffix += 1
+        redacted[safe_name] = replace(metric, unit=redact_text(metric.unit))
+    return redacted
 
 
 def _redact_finding(finding: Finding) -> Finding:
@@ -121,6 +141,7 @@ def _redact_finding(finding: Finding) -> Finding:
         tool_version=redact_text(finding.tool_version),
         snippet=redact_text(finding.snippet),
         suppression=suppression,
+        metrics=_redact_finding_metrics(finding.metrics),
     )
 
 
@@ -130,6 +151,7 @@ def redact_engine_result(result: EngineResult) -> EngineResult:
     targets = [
         replace(
             target,
+            file_path=redact_text(target.file_path),
             target_name=redact_text(target.target_name),
             message=redact_text(target.message),
             snippet=redact_text(target.snippet),

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 from pathlib import Path
 from typing import Any
 
-from ici.core.findings import findings_for_result
+from ici.core.findings import findings_for_result, validate_source_region
 from ici.core.models import (
     EngineResult,
     EngineStatus,
@@ -26,42 +27,86 @@ RESULT_SCHEMA_VERSION = "ici.result/v3"
 LEGACY_RESULT_SCHEMA_VERSION = "ici.result/v2"
 
 
+def _require_string(value: Any, field_name: str, *, nonempty: bool = False) -> str:
+    if not isinstance(value, str) or (nonempty and not value):
+        qualifier = "non-empty " if nonempty else ""
+        raise ValueError(f"{field_name} must be a {qualifier}string: {value!r}")
+    return value
+
+
+def _finite_number(
+    value: Any,
+    field_name: str,
+    *,
+    nullable: bool = False,
+    nonnegative: bool = False,
+) -> int | float | None:
+    if value is None and nullable:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ValueError(f"{field_name} must be a finite number: {value!r}")
+    if nonnegative and value < 0:
+        raise ValueError(f"{field_name} must be non-negative: {value!r}")
+    return value
+
+
 def _serialize_target(target: InspectionTarget) -> dict[str, Any]:
     """Serialize every legacy location field for compatibility consumers."""
+    validate_source_region(
+        start_line=target.start_line,
+        end_line=target.end_line,
+        start_column=target.start_column,
+        end_column=target.end_column,
+        context=f"legacy target {target.file_path!r}",
+    )
+    if not isinstance(target.metrics, dict):
+        raise ValueError(f"legacy target metrics must be an object: {target.metrics!r}")
     return {
-        "file_path": target.file_path,
+        "file_path": _require_string(target.file_path, "target.file_path", nonempty=True),
         "start_line": target.start_line,
         "end_line": target.end_line,
         "start_column": target.start_column,
         "end_column": target.end_column,
-        "target_name": target.target_name,
+        "target_name": _require_string(target.target_name, "target.target_name"),
         "status": target.status.value,
-        "message": target.message,
-        "snippet": target.snippet,
+        "message": _require_string(target.message, "target.message"),
+        "snippet": _require_string(target.snippet, "target.snippet"),
         "metrics": target.metrics,
     }
 
 
 def _serialize_location(location: SourceLocation) -> dict[str, Any]:
+    validate_source_region(
+        start_line=location.start_line,
+        end_line=location.end_line,
+        start_column=location.start_column,
+        end_column=location.end_column,
+        context=f"finding location {location.path!r}",
+    )
     return {
-        "path": location.path,
+        "path": _require_string(location.path, "location.path", nonempty=True),
         "start_line": location.start_line,
         "end_line": location.end_line,
         "start_column": location.start_column,
         "end_column": location.end_column,
-        "label": location.label,
+        "label": _require_string(location.label, "location.label"),
     }
 
 
 def _serialize_metric(metric: FindingMetric) -> dict[str, Any]:
-    return {"value": metric.value, "unit": metric.unit}
+    return {
+        "value": _finite_number(metric.value, "finding metric value"),
+        "unit": _require_string(metric.unit, "finding metric unit"),
+    }
 
 
 def _serialize_suppression(suppression: FindingSuppression) -> dict[str, Any]:
+    if type(suppression.suppressed) is not bool:
+        raise ValueError("finding suppression.suppressed must be a boolean")
     return {
         "suppressed": suppression.suppressed,
         "kind": suppression.kind.value,
-        "reason": suppression.reason,
+        "reason": _require_string(suppression.reason, "finding suppression.reason"),
     }
 
 
@@ -76,31 +121,37 @@ def _serialize_finding(finding: Finding) -> dict[str, Any]:
         "related_locations": [
             _serialize_location(location) for location in finding.related_locations
         ],
-        "message": finding.message,
-        "explanation": finding.explanation,
-        "remediation": finding.remediation,
-        "tool_rule_id": finding.tool_rule_id,
-        "tool_name": finding.tool_name,
-        "tool_version": finding.tool_version,
+        "message": _require_string(finding.message, "finding.message"),
+        "explanation": _require_string(finding.explanation, "finding.explanation"),
+        "remediation": _require_string(finding.remediation, "finding.remediation"),
+        "tool_rule_id": _require_string(finding.tool_rule_id, "finding.tool_rule_id"),
+        "tool_name": _require_string(finding.tool_name, "finding.tool_name"),
+        "tool_version": _require_string(finding.tool_version, "finding.tool_version"),
         "suppression": _serialize_suppression(finding.suppression),
         "metrics": {
             name: _serialize_metric(metric) for name, metric in sorted(finding.metrics.items())
         },
-        "snippet": finding.snippet,
+        "snippet": _require_string(finding.snippet, "finding.snippet"),
     }
 
 
 def _serialize_tool_evidence(tool: ToolEvidence) -> dict[str, Any]:
     """Serialize the complete external-tool execution evidence contract."""
+    if not isinstance(tool.argv, list) or not all(isinstance(item, str) for item in tool.argv):
+        raise ValueError("tool_evidence.argv must be an array of strings")
+    if tool.returncode is not None and type(tool.returncode) is not int:
+        raise ValueError("tool_evidence.returncode must be an integer or null")
+    if type(tool.timed_out) is not bool or type(tool.truncated) is not bool:
+        raise ValueError("tool_evidence timed_out/truncated must be booleans")
     return {
-        "name": tool.name,
-        "path": tool.path,
-        "version": tool.version,
+        "name": _require_string(tool.name, "tool_evidence.name"),
+        "path": _require_string(tool.path, "tool_evidence.path"),
+        "version": _require_string(tool.version, "tool_evidence.version"),
         "argv": list(tool.argv),
         "returncode": tool.returncode,
         "timed_out": tool.timed_out,
         "truncated": tool.truncated,
-        "error": tool.error,
+        "error": _require_string(tool.error, "tool_evidence.error"),
     }
 
 
@@ -109,15 +160,19 @@ def serialize_engine_result(
 ) -> dict[str, Any]:
     """Return the canonical v3 representation of one sanitized engine result."""
     safe = redact_engine_result(result)
+    if not isinstance(safe.extra, dict):
+        raise ValueError(f"engine.extra must be an object: {safe.extra!r}")
+    if type(safe.required) is not bool:
+        raise ValueError(f"engine.required must be a boolean: {safe.required!r}")
     return {
         "schema_version": RESULT_SCHEMA_VERSION,
-        "engine_name": safe.engine_name,
+        "engine_name": _require_string(safe.engine_name, "engine.engine_name", nonempty=True),
         "status": safe.status.value,
-        "summary": safe.summary,
-        "score": safe.score,
-        "max_score": safe.max_score,
-        "duration": safe.duration,
-        "raw_output": safe.raw_output,
+        "summary": _require_string(safe.summary, "engine.summary"),
+        "score": _finite_number(safe.score, "engine.score", nullable=True),
+        "max_score": _finite_number(safe.max_score, "engine.max_score", nullable=True),
+        "duration": _finite_number(safe.duration, "engine.duration", nonnegative=True),
+        "raw_output": _require_string(safe.raw_output, "engine.raw_output"),
         "extra": safe.extra,
         "required": safe.required,
         "evidence": safe.evidence.value,
@@ -140,7 +195,7 @@ def serialize_suite_result(
     return {
         "schema_version": RESULT_SCHEMA_VERSION,
         "suite_status": safe.suite_status.value,
-        "duration": safe.duration,
+        "duration": _finite_number(safe.duration, "suite.duration", nonnegative=True),
         "passed_count": safe.passed_count,
         "warned_count": safe.warned_count,
         # failed_count intentionally retains its historical FAIL+ERROR meaning.
@@ -148,8 +203,10 @@ def serialize_suite_result(
         "error_count": safe.error_count,
         "skipped_count": safe.skipped_count,
         "total_count": safe.total_count,
-        "tem_score": safe.tem_score,
-        "max_tem_score": safe.max_tem_score,
+        "tem_score": _finite_number(safe.tem_score, "suite.tem_score", nullable=True),
+        "max_tem_score": _finite_number(
+            safe.max_tem_score, "suite.max_tem_score", nonnegative=True
+        ),
         "results": [
             serialize_engine_result(result, project_root=project_root) for result in safe.results
         ],
@@ -157,12 +214,26 @@ def serialize_suite_result(
 
 
 def _optional_int(value: Any) -> int | None:
-    if value is None:
+    if value is None or isinstance(value, bool):
         return None
     try:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _payload_number(
+    value: Any,
+    *,
+    default: float | None,
+    nonnegative: bool = False,
+) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return default
+    number = float(value)
+    if not math.isfinite(number) or (nonnegative and number < 0):
+        return default
+    return number
 
 
 def _target_from_payload(payload: dict[str, Any]) -> InspectionTarget:
@@ -171,17 +242,37 @@ def _target_from_payload(payload: dict[str, Any]) -> InspectionTarget:
     except ValueError:
         status = EngineStatus.WARN
     metrics = payload.get("metrics", {})
+    start_line = _optional_int(payload.get("start_line")) or 1
+    if start_line < 1:
+        start_line = 1
+    end_line = _optional_int(payload.get("end_line"))
+    if end_line is not None and end_line < start_line:
+        end_line = None
+    start_column = _optional_int(payload.get("start_column"))
+    if start_column is not None and start_column < 1:
+        start_column = None
+    end_column = _optional_int(payload.get("end_column"))
+    if end_column is not None and end_column < 1:
+        end_column = None
+    if (
+        start_column is not None
+        and end_column is not None
+        and end_line in (None, start_line)
+        and end_column < start_column
+    ):
+        end_column = None
+    file_path = payload.get("file_path")
     return InspectionTarget(
-        file_path=str(payload.get("file_path", "unknown")),
-        start_line=max(1, int(payload.get("start_line", 1) or 1)),
-        end_line=_optional_int(payload.get("end_line")),
+        file_path=file_path if isinstance(file_path, str) and file_path else "unknown",
+        start_line=start_line,
+        end_line=end_line,
         target_name=str(payload.get("target_name", "")),
         status=status,
         message=str(payload.get("message", "")),
         snippet=str(payload.get("snippet", "")),
         metrics=metrics if isinstance(metrics, dict) else {},
-        start_column=_optional_int(payload.get("start_column")),
-        end_column=_optional_int(payload.get("end_column")),
+        start_column=start_column,
+        end_column=end_column,
     )
 
 
@@ -210,15 +301,15 @@ def _engine_from_v2(payload: dict[str, Any]) -> EngineResult:
         evidence = EvidenceState.NOT_RUN
     targets = payload.get("targets", [])
     tools = payload.get("tool_evidence", [])
+    engine_name = payload.get("engine_name")
+    duration = _payload_number(payload.get("duration"), default=0.0, nonnegative=True)
     return EngineResult(
-        engine_name=str(payload.get("engine_name", "unknown")),
+        engine_name=(engine_name if isinstance(engine_name, str) and engine_name else "unknown"),
         status=status,
         summary=str(payload.get("summary", "")),
-        score=payload.get("score") if isinstance(payload.get("score"), (int, float)) else None,
-        max_score=(
-            payload.get("max_score") if isinstance(payload.get("max_score"), (int, float)) else None
-        ),
-        duration=float(payload.get("duration", 0.0) or 0.0),
+        score=_payload_number(payload.get("score"), default=None),
+        max_score=_payload_number(payload.get("max_score"), default=None),
+        duration=duration if duration is not None else 0.0,
         targets=[_target_from_payload(item) for item in targets if isinstance(item, dict)],
         raw_output=str(payload.get("raw_output", "")),
         extra=payload.get("extra", {}) if isinstance(payload.get("extra"), dict) else {},
@@ -247,24 +338,35 @@ def migrate_report_payload(
     else:
         candidates = [migrated]
 
+    engine_models: list[EngineResult] = []
     for engine_payload in candidates:
         engine_payload["schema_version"] = RESULT_SCHEMA_VERSION
         if version == LEGACY_RESULT_SCHEMA_VERSION or not isinstance(
             engine_payload.get("findings"), list
         ):
             engine = _engine_from_v2(engine_payload)
-            safe = redact_engine_result(engine)
-            engine_payload["targets"] = [_serialize_target(item) for item in safe.targets]
-            engine_payload["tool_evidence"] = [
-                _serialize_tool_evidence(item) for item in safe.tool_evidence
-            ]
-            engine_payload["summary"] = safe.summary
-            engine_payload["raw_output"] = safe.raw_output
-            engine_payload["extra"] = safe.extra
-            engine_payload["findings"] = [
-                _serialize_finding(finding)
-                for finding in findings_for_result(safe, project_root=project_root)
-            ]
+            engine_models.append(engine)
+            # Canonical fields replace malformed or missing legacy fields;
+            # producer-specific extension keys remain alongside them.
+            engine_payload.update(serialize_engine_result(engine, project_root=project_root))
+
+    if isinstance(engines, list) and version == LEGACY_RESULT_SCHEMA_VERSION:
+        migrated["results"] = candidates
+        try:
+            suite_status = EngineStatus(str(migrated.get("suite_status", "ERROR")))
+        except ValueError:
+            suite_status = EngineStatus.ERROR
+        duration = _payload_number(migrated.get("duration"), default=0.0, nonnegative=True)
+        max_tem = _payload_number(migrated.get("max_tem_score"), default=5.0, nonnegative=True)
+        suite = VerificationSuiteResult(
+            suite_status=suite_status,
+            results=engine_models,
+            duration=duration if duration is not None else 0.0,
+            tem_score=_payload_number(migrated.get("tem_score"), default=None),
+            max_tem_score=max_tem if max_tem is not None else 5.0,
+        )
+        canonical_suite = serialize_suite_result(suite, project_root=project_root)
+        migrated.update({key: value for key, value in canonical_suite.items() if key != "results"})
 
     migrated["schema_version"] = RESULT_SCHEMA_VERSION
     # Running an existing v3 archive through migration is also a supported

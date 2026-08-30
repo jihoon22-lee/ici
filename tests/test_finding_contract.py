@@ -13,6 +13,7 @@ from ici.core.models import (
     Finding,
     FindingCategory,
     FindingConfidence,
+    FindingMetric,
     FindingSeverity,
     FindingSuppression,
     InspectionTarget,
@@ -22,7 +23,12 @@ from ici.core.models import (
 )
 from ici.core.redaction import REDACTED, redact_suite
 from ici.reporters.html import generate_html_report
-from ici.reporters.json_rep import migrate_report_payload, save_json_report, serialize_suite_result
+from ici.reporters.json_rep import (
+    migrate_report_payload,
+    save_json_report,
+    serialize_engine_result,
+    serialize_suite_result,
+)
 from ici.reporters.markdown import generate_markdown_report
 
 
@@ -171,6 +177,20 @@ def test_v2_migration_preserves_extensions_and_adds_findings():
     assert engine["producer_field"] == 42
     assert engine["targets"][0]["start_column"] is None
     assert engine["findings"][0]["primary_location"]["path"] == "src/a.py"
+    assert migrated["duration"] == 0.0
+    assert migrated["passed_count"] == 0
+    assert migrated["warned_count"] == 1
+    assert migrated["failed_count"] == 0
+    assert migrated["error_count"] == 0
+    assert migrated["skipped_count"] == 0
+    assert migrated["total_count"] == 1
+    assert migrated["tem_score"] is None
+    assert migrated["max_tem_score"] == 5.0
+    assert engine["score"] is None
+    assert engine["max_score"] is None
+    assert engine["duration"] == 0.0
+    assert engine["raw_output"] == ""
+    assert engine["extra"] == {}
 
 
 def test_canonical_path_and_fingerprint_are_checkout_and_separator_independent():
@@ -184,6 +204,85 @@ def test_canonical_path_and_fingerprint_are_checkout_and_separator_independent()
     assert posix_finding.primary_location.path == "src/service.py"
     assert windows_finding.primary_location.path == "src/service.py"
     assert posix_finding.fingerprint == windows_finding.fingerprint
+
+
+def test_canonical_path_supports_posix_root_and_rejects_drive_relative_input():
+    assert canonical_project_path("/src/service.py", "/") == "src/service.py"
+
+    with pytest.raises(ValueError, match="drive-relative"):
+        canonical_project_path(r"C:src\service.py")
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("start_line", 0, "start_line"),
+        ("start_line", True, "start_line"),
+        ("end_line", 6, "end_line"),
+        ("start_column", 0, "start_column"),
+        ("end_column", 2, "end_column"),
+    ],
+)
+def test_writer_rejects_regions_that_violate_the_v3_schema(field, value, message):
+    result = _legacy_result(start_line=7)
+    if field == "end_line":
+        result.targets[0].end_line = value
+    elif field == "end_column":
+        result.targets[0].end_line = result.targets[0].start_line
+        result.targets[0].start_column = 3
+        result.targets[0].end_column = value
+    else:
+        setattr(result.targets[0], field, value)
+
+    with pytest.raises(ValueError, match=message):
+        serialize_engine_result(result)
+
+
+def test_writer_rejects_non_schema_runtime_values():
+    result = _legacy_result()
+    result.duration = -0.1
+    with pytest.raises(ValueError, match="duration"):
+        serialize_engine_result(result)
+
+    result = _legacy_result()
+    result.engine_name = ""
+    with pytest.raises(ValueError, match="engine_name"):
+        serialize_engine_result(result)
+
+    result = _legacy_result()
+    result.targets[0].file_path = None  # type: ignore[assignment]
+    with pytest.raises(ValueError, match="string"):
+        serialize_engine_result(result)
+
+    result = _legacy_result()
+    result.tool_evidence[0].returncode = True
+    with pytest.raises(ValueError, match="returncode"):
+        serialize_engine_result(result)
+
+    suite = _suite(_legacy_result())
+    suite.max_tem_score = None  # type: ignore[assignment]
+    with pytest.raises(ValueError, match="max_tem_score"):
+        serialize_suite_result(suite)
+
+
+def test_writer_rejects_non_finite_native_finding_metric():
+    result = _legacy_result()
+    result.targets = []
+    result.findings = [
+        Finding(
+            rule_id="ici.test.metric",
+            category=FindingCategory.TEST,
+            severity=FindingSeverity.INFO,
+            confidence=FindingConfidence.EXACT,
+            fingerprint="sha256:" + "0" * 64,
+            primary_location=SourceLocation("src/test.py", 1),
+            message="metric",
+            metrics={"ratio": FindingMetric(math.nan, "percent")},
+        )
+    ]
+
+    with pytest.raises(ValueError, match="metric value"):
+        serialize_engine_result(result)
 
 
 @pytest.mark.parametrize(
@@ -292,8 +391,10 @@ def test_redaction_covers_all_result_text_and_every_reporter(tmp_path, monkeypat
         "pathsecret",
         "toolsecret",
         "keysecret",
+        "metricsecret",
     ]
     result = _legacy_result()
+    result.targets[0].file_path = "src/password=pathsecret.py"
     result.summary = 'password="correct horse battery staple"'
     result.targets[0].message = "api_key=supersecret123"
     result.targets[0].snippet = "client_secret='tokenvalue123'"
@@ -314,13 +415,14 @@ def test_redaction_covers_all_result_text_and_every_reporter(tmp_path, monkeypat
             severity=FindingSeverity.HIGH,
             confidence=FindingConfidence.EXACT,
             fingerprint="sha256:" + "a" * 64,
-            primary_location=SourceLocation("src/service.py", 7, label="load_config"),
+            primary_location=SourceLocation("src/token=toolsecret.py", 7, label="load_config"),
             message="ghp_abcdefghijklmnopqrstuvwxyz",
             explanation="api_key=supersecret123",
             remediation="replace --password tokenvalue123",
             tool_name="token=toolsecret",
             snippet="sk-abcdefghijklmnopqrstuv",
             suppression=FindingSuppression(reason="password=supersecret123"),
+            metrics={"token=toolsecret": FindingMetric(1, "api_key=metricsecret")},
         )
     ]
     suite = _suite(result)

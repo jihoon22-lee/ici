@@ -99,7 +99,10 @@ def canonical_project_path(file_path: str | Path, project_root: str | Path | Non
     """
 
     value = _slash_path(file_path).rstrip("/") or "."
-    root = _slash_path(project_root).rstrip("/") if project_root is not None else ""
+    if re.match(r"^[A-Za-z]:(?!/)", value):
+        raise ValueError(f"drive-relative finding path is ambiguous: {value!r}")
+    root_value = _slash_path(project_root) if project_root is not None else ""
+    root = root_value.rstrip("/") or ("/" if root_value.startswith("/") else "")
     is_absolute = value.startswith("/") or bool(re.match(r"^[A-Za-z]:/", value))
 
     if is_absolute:
@@ -109,12 +112,51 @@ def canonical_project_path(file_path: str | Path, project_root: str | Path | Non
         root_cmp = _comparison_value(root)
         if value_cmp == root_cmp:
             value = "."
+        elif root == "/":
+            value = value.lstrip("/")
         elif value_cmp.startswith(root_cmp + "/"):
             value = value[len(root) + 1 :]
         else:
             raise ValueError(f"finding path is outside project_root: {value!r}")
 
     return _collapse_relative(value)
+
+
+def validate_source_region(
+    *,
+    start_line: int,
+    end_line: int | None,
+    start_column: int | None,
+    end_column: int | None,
+    context: str = "source location",
+) -> None:
+    """Enforce the 1-indexed region invariant promised by the v3 schema."""
+
+    values = {
+        "start_line": start_line,
+        "end_line": end_line,
+        "start_column": start_column,
+        "end_column": end_column,
+    }
+    for name, value in values.items():
+        if value is None and name != "start_line":
+            continue
+        if type(value) is not int or value < 1:
+            raise ValueError(f"{context} {name} must be a 1-indexed integer: {value!r}")
+    if end_line is not None and end_line < start_line:
+        raise ValueError(
+            f"{context} end_line must not precede start_line: {end_line} < {start_line}"
+        )
+    if (
+        start_column is not None
+        and end_column is not None
+        and end_line in (None, start_line)
+        and end_column < start_column
+    ):
+        raise ValueError(
+            f"{context} end_column must not precede start_column on one line: "
+            f"{end_column} < {start_column}"
+        )
 
 
 def finding_fingerprint(
@@ -193,10 +235,17 @@ def legacy_target_to_finding(
 ) -> Finding:
     """Adapt one v2 InspectionTarget without inventing tool-specific semantics."""
 
+    validate_source_region(
+        start_line=target.start_line,
+        end_line=target.end_line,
+        start_column=target.start_column,
+        end_column=target.end_column,
+        context=f"legacy target {target.file_path!r}",
+    )
     path = canonical_project_path(target.file_path, project_root)
     location = SourceLocation(
         path=path,
-        start_line=max(1, int(target.start_line)),
+        start_line=target.start_line,
         end_line=target.end_line,
         start_column=target.start_column,
         end_column=target.end_column,
@@ -226,6 +275,13 @@ def legacy_target_to_finding(
 def _canonical_location(
     location: SourceLocation, project_root: str | Path | None
 ) -> SourceLocation:
+    validate_source_region(
+        start_line=location.start_line,
+        end_line=location.end_line,
+        start_column=location.start_column,
+        end_column=location.end_column,
+        context=f"finding location {location.path!r}",
+    )
     return replace(location, path=canonical_project_path(location.path, project_root))
 
 
