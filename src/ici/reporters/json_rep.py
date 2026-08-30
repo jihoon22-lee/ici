@@ -1,91 +1,407 @@
-"""JSON result serializers for CI/CD pipelines."""
+"""JSON result serializers and v2-to-v3 migration for CI/CD pipelines."""
 
+from __future__ import annotations
+
+import copy
 import json
+import math
 from pathlib import Path
 from typing import Any
 
-from ici.core.models import EngineResult, InspectionTarget, ToolEvidence, VerificationSuiteResult
+from ici.core.findings import findings_for_result, validate_source_region
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    EvidenceState,
+    Finding,
+    FindingMetric,
+    FindingSuppression,
+    InspectionTarget,
+    SourceLocation,
+    ToolEvidence,
+    VerificationSuiteResult,
+)
+from ici.core.redaction import redact_engine_result, redact_suite
 
-RESULT_SCHEMA_VERSION = "ici.result/v2"
+RESULT_SCHEMA_VERSION = "ici.result/v3"
+LEGACY_RESULT_SCHEMA_VERSION = "ici.result/v2"
+
+
+def _require_string(value: Any, field_name: str, *, nonempty: bool = False) -> str:
+    if not isinstance(value, str) or (nonempty and not value):
+        qualifier = "non-empty " if nonempty else ""
+        raise ValueError(f"{field_name} must be a {qualifier}string: {value!r}")
+    return value
+
+
+def _finite_number(
+    value: Any,
+    field_name: str,
+    *,
+    nullable: bool = False,
+    nonnegative: bool = False,
+) -> int | float | None:
+    if value is None and nullable:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ValueError(f"{field_name} must be a finite number: {value!r}")
+    if nonnegative and value < 0:
+        raise ValueError(f"{field_name} must be non-negative: {value!r}")
+    return value
 
 
 def _serialize_target(target: InspectionTarget) -> dict[str, Any]:
-    """Serialize every location field so consumers can reproduce the finding."""
+    """Serialize every legacy location field for compatibility consumers."""
+    validate_source_region(
+        start_line=target.start_line,
+        end_line=target.end_line,
+        start_column=target.start_column,
+        end_column=target.end_column,
+        context=f"legacy target {target.file_path!r}",
+    )
+    if not isinstance(target.metrics, dict):
+        raise ValueError(f"legacy target metrics must be an object: {target.metrics!r}")
     return {
-        "file_path": target.file_path,
+        "file_path": _require_string(target.file_path, "target.file_path", nonempty=True),
         "start_line": target.start_line,
         "end_line": target.end_line,
-        "target_name": target.target_name,
+        "start_column": target.start_column,
+        "end_column": target.end_column,
+        "target_name": _require_string(target.target_name, "target.target_name"),
         "status": target.status.value,
-        "message": target.message,
-        "snippet": target.snippet,
+        "message": _require_string(target.message, "target.message"),
+        "snippet": _require_string(target.snippet, "target.snippet"),
         "metrics": target.metrics,
+    }
+
+
+def _serialize_location(location: SourceLocation) -> dict[str, Any]:
+    validate_source_region(
+        start_line=location.start_line,
+        end_line=location.end_line,
+        start_column=location.start_column,
+        end_column=location.end_column,
+        context=f"finding location {location.path!r}",
+    )
+    return {
+        "path": _require_string(location.path, "location.path", nonempty=True),
+        "start_line": location.start_line,
+        "end_line": location.end_line,
+        "start_column": location.start_column,
+        "end_column": location.end_column,
+        "label": _require_string(location.label, "location.label"),
+    }
+
+
+def _serialize_metric(metric: FindingMetric) -> dict[str, Any]:
+    return {
+        "value": _finite_number(metric.value, "finding metric value"),
+        "unit": _require_string(metric.unit, "finding metric unit"),
+    }
+
+
+def _serialize_suppression(suppression: FindingSuppression) -> dict[str, Any]:
+    if type(suppression.suppressed) is not bool:
+        raise ValueError("finding suppression.suppressed must be a boolean")
+    return {
+        "suppressed": suppression.suppressed,
+        "kind": suppression.kind.value,
+        "reason": _require_string(suppression.reason, "finding suppression.reason"),
+    }
+
+
+def _serialize_finding(finding: Finding) -> dict[str, Any]:
+    return {
+        "rule_id": finding.rule_id,
+        "category": finding.category.value,
+        "severity": finding.severity.value,
+        "confidence": finding.confidence.value,
+        "fingerprint": finding.fingerprint,
+        "primary_location": _serialize_location(finding.primary_location),
+        "related_locations": [
+            _serialize_location(location) for location in finding.related_locations
+        ],
+        "message": _require_string(finding.message, "finding.message"),
+        "explanation": _require_string(finding.explanation, "finding.explanation"),
+        "remediation": _require_string(finding.remediation, "finding.remediation"),
+        "tool_rule_id": _require_string(finding.tool_rule_id, "finding.tool_rule_id"),
+        "tool_name": _require_string(finding.tool_name, "finding.tool_name"),
+        "tool_version": _require_string(finding.tool_version, "finding.tool_version"),
+        "suppression": _serialize_suppression(finding.suppression),
+        "metrics": {
+            name: _serialize_metric(metric) for name, metric in sorted(finding.metrics.items())
+        },
+        "snippet": _require_string(finding.snippet, "finding.snippet"),
     }
 
 
 def _serialize_tool_evidence(tool: ToolEvidence) -> dict[str, Any]:
     """Serialize the complete external-tool execution evidence contract."""
+    if not isinstance(tool.argv, list) or not all(isinstance(item, str) for item in tool.argv):
+        raise ValueError("tool_evidence.argv must be an array of strings")
+    if tool.returncode is not None and type(tool.returncode) is not int:
+        raise ValueError("tool_evidence.returncode must be an integer or null")
+    if type(tool.timed_out) is not bool or type(tool.truncated) is not bool:
+        raise ValueError("tool_evidence timed_out/truncated must be booleans")
     return {
-        "name": tool.name,
-        "path": tool.path,
-        "version": tool.version,
+        "name": _require_string(tool.name, "tool_evidence.name"),
+        "path": _require_string(tool.path, "tool_evidence.path"),
+        "version": _require_string(tool.version, "tool_evidence.version"),
         "argv": list(tool.argv),
         "returncode": tool.returncode,
         "timed_out": tool.timed_out,
         "truncated": tool.truncated,
-        "error": tool.error,
+        "error": _require_string(tool.error, "tool_evidence.error"),
     }
 
 
-def serialize_engine_result(result: EngineResult) -> dict[str, Any]:
-    """Return the canonical v2 representation of one engine result."""
+def serialize_engine_result(
+    result: EngineResult, project_root: str | Path | None = None
+) -> dict[str, Any]:
+    """Return the canonical v3 representation of one sanitized engine result."""
+    safe = redact_engine_result(result)
+    if not isinstance(safe.extra, dict):
+        raise ValueError(f"engine.extra must be an object: {safe.extra!r}")
+    if type(safe.required) is not bool:
+        raise ValueError(f"engine.required must be a boolean: {safe.required!r}")
     return {
         "schema_version": RESULT_SCHEMA_VERSION,
-        "engine_name": result.engine_name,
-        "status": result.status.value,
-        "summary": result.summary,
-        "score": result.score,
-        "max_score": result.max_score,
-        "duration": result.duration,
-        "raw_output": result.raw_output,
-        "extra": result.extra,
-        "required": result.required,
-        "evidence": result.evidence.value,
-        "tool_evidence": [_serialize_tool_evidence(item) for item in result.tool_evidence],
-        "targets": [_serialize_target(target) for target in result.targets],
+        "engine_name": _require_string(safe.engine_name, "engine.engine_name", nonempty=True),
+        "status": safe.status.value,
+        "summary": _require_string(safe.summary, "engine.summary"),
+        "score": _finite_number(safe.score, "engine.score", nullable=True),
+        "max_score": _finite_number(safe.max_score, "engine.max_score", nullable=True),
+        "duration": _finite_number(safe.duration, "engine.duration", nonnegative=True),
+        "raw_output": _require_string(safe.raw_output, "engine.raw_output"),
+        "extra": safe.extra,
+        "required": safe.required,
+        "evidence": safe.evidence.value,
+        "tool_evidence": [_serialize_tool_evidence(item) for item in safe.tool_evidence],
+        # targets remains intact through the v3 transition. Existing consumers
+        # can ignore findings and continue to render the v2 shape.
+        "targets": [_serialize_target(target) for target in safe.targets],
+        "findings": [
+            _serialize_finding(finding)
+            for finding in findings_for_result(safe, project_root=project_root)
+        ],
     }
 
 
-def serialize_suite_result(suite: VerificationSuiteResult) -> dict[str, Any]:
-    """Return the canonical v2 representation of a verification suite."""
+def serialize_suite_result(
+    suite: VerificationSuiteResult, project_root: str | Path | None = None
+) -> dict[str, Any]:
+    """Return the canonical v3 representation of a sanitized verification suite."""
+    safe = redact_suite(suite)
     return {
         "schema_version": RESULT_SCHEMA_VERSION,
-        "suite_status": suite.suite_status.value,
-        "duration": suite.duration,
-        "passed_count": suite.passed_count,
-        "warned_count": suite.warned_count,
+        "suite_status": safe.suite_status.value,
+        "duration": _finite_number(safe.duration, "suite.duration", nonnegative=True),
+        "passed_count": safe.passed_count,
+        "warned_count": safe.warned_count,
         # failed_count intentionally retains its historical FAIL+ERROR meaning.
-        "failed_count": suite.failed_count,
-        "error_count": suite.error_count,
-        "skipped_count": suite.skipped_count,
-        "total_count": suite.total_count,
-        "tem_score": suite.tem_score,
-        "max_tem_score": suite.max_tem_score,
-        "results": [serialize_engine_result(result) for result in suite.results],
+        "failed_count": safe.failed_count,
+        "error_count": safe.error_count,
+        "skipped_count": safe.skipped_count,
+        "total_count": safe.total_count,
+        "tem_score": _finite_number(safe.tem_score, "suite.tem_score", nullable=True),
+        "max_tem_score": _finite_number(
+            safe.max_tem_score, "suite.max_tem_score", nonnegative=True
+        ),
+        "results": [
+            serialize_engine_result(result, project_root=project_root) for result in safe.results
+        ],
     }
 
 
-def save_json_report(suite: VerificationSuiteResult, output_path: Path) -> None:
-    """Serialize a verification suite to a canonical JSON v2 report."""
-    _save_json(serialize_suite_result(suite), output_path)
+def _optional_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
-def save_engine_json_report(result: EngineResult, output_path: Path) -> None:
-    """Serialize one standalone engine result using the same v2 contract."""
-    _save_json(serialize_engine_result(result), output_path)
+def _payload_number(
+    value: Any,
+    *,
+    default: float | None,
+    nonnegative: bool = False,
+) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return default
+    number = float(value)
+    if not math.isfinite(number) or (nonnegative and number < 0):
+        return default
+    return number
+
+
+def _target_from_payload(payload: dict[str, Any]) -> InspectionTarget:
+    try:
+        status = EngineStatus(str(payload.get("status", "PASS")))
+    except ValueError:
+        status = EngineStatus.WARN
+    metrics = payload.get("metrics", {})
+    start_line = _optional_int(payload.get("start_line")) or 1
+    if start_line < 1:
+        start_line = 1
+    end_line = _optional_int(payload.get("end_line"))
+    if end_line is not None and end_line < start_line:
+        end_line = None
+    start_column = _optional_int(payload.get("start_column"))
+    if start_column is not None and start_column < 1:
+        start_column = None
+    end_column = _optional_int(payload.get("end_column"))
+    if end_column is not None and end_column < 1:
+        end_column = None
+    if (
+        start_column is not None
+        and end_column is not None
+        and end_line in (None, start_line)
+        and end_column < start_column
+    ):
+        end_column = None
+    file_path = payload.get("file_path")
+    return InspectionTarget(
+        file_path=file_path if isinstance(file_path, str) and file_path else "unknown",
+        start_line=start_line,
+        end_line=end_line,
+        target_name=str(payload.get("target_name", "")),
+        status=status,
+        message=str(payload.get("message", "")),
+        snippet=str(payload.get("snippet", "")),
+        metrics=metrics if isinstance(metrics, dict) else {},
+        start_column=start_column,
+        end_column=end_column,
+    )
+
+
+def _tool_from_payload(payload: dict[str, Any]) -> ToolEvidence:
+    argv = payload.get("argv", [])
+    return ToolEvidence(
+        name=str(payload.get("name", "")),
+        path=str(payload.get("path", "")),
+        version=str(payload.get("version", "")),
+        argv=[str(item) for item in argv] if isinstance(argv, list) else [],
+        returncode=_optional_int(payload.get("returncode")),
+        timed_out=bool(payload.get("timed_out", False)),
+        truncated=bool(payload.get("truncated", False)),
+        error=str(payload.get("error", "")),
+    )
+
+
+def _engine_from_v2(payload: dict[str, Any]) -> EngineResult:
+    try:
+        status = EngineStatus(str(payload.get("status", "ERROR")))
+    except ValueError:
+        status = EngineStatus.ERROR
+    try:
+        evidence = EvidenceState(str(payload.get("evidence", "NOT_RUN")))
+    except ValueError:
+        evidence = EvidenceState.NOT_RUN
+    targets = payload.get("targets", [])
+    tools = payload.get("tool_evidence", [])
+    engine_name = payload.get("engine_name")
+    duration = _payload_number(payload.get("duration"), default=0.0, nonnegative=True)
+    return EngineResult(
+        engine_name=(engine_name if isinstance(engine_name, str) and engine_name else "unknown"),
+        status=status,
+        summary=str(payload.get("summary", "")),
+        score=_payload_number(payload.get("score"), default=None),
+        max_score=_payload_number(payload.get("max_score"), default=None),
+        duration=duration if duration is not None else 0.0,
+        targets=[_target_from_payload(item) for item in targets if isinstance(item, dict)],
+        raw_output=str(payload.get("raw_output", "")),
+        extra=payload.get("extra", {}) if isinstance(payload.get("extra"), dict) else {},
+        required=bool(payload.get("required", True)),
+        evidence=evidence,
+        tool_evidence=[_tool_from_payload(item) for item in tools if isinstance(item, dict)],
+    )
+
+
+def migrate_report_payload(
+    payload: dict[str, Any], project_root: str | Path | None = None
+) -> dict[str, Any]:
+    """Return a redacted v3 copy of an engine or suite v2/v3 payload.
+
+    Migration deliberately preserves all unknown top-level and engine fields.
+    That makes the helper safe for CI archives containing producer extensions.
+    """
+    version = payload.get("schema_version")
+    if version not in (LEGACY_RESULT_SCHEMA_VERSION, RESULT_SCHEMA_VERSION):
+        raise ValueError(f"unsupported schema_version: {version!r}")
+
+    migrated = copy.deepcopy(payload)
+    engines = migrated.get("results")
+    if isinstance(engines, list):
+        candidates = [item for item in engines if isinstance(item, dict)]
+    else:
+        candidates = [migrated]
+
+    engine_models: list[EngineResult] = []
+    for engine_payload in candidates:
+        engine_payload["schema_version"] = RESULT_SCHEMA_VERSION
+        if version == LEGACY_RESULT_SCHEMA_VERSION or not isinstance(
+            engine_payload.get("findings"), list
+        ):
+            engine = _engine_from_v2(engine_payload)
+            engine_models.append(engine)
+            # Canonical fields replace malformed or missing legacy fields;
+            # producer-specific extension keys remain alongside them.
+            engine_payload.update(serialize_engine_result(engine, project_root=project_root))
+
+    if isinstance(engines, list) and version == LEGACY_RESULT_SCHEMA_VERSION:
+        migrated["results"] = candidates
+        try:
+            suite_status = EngineStatus(str(migrated.get("suite_status", "ERROR")))
+        except ValueError:
+            suite_status = EngineStatus.ERROR
+        duration = _payload_number(migrated.get("duration"), default=0.0, nonnegative=True)
+        max_tem = _payload_number(migrated.get("max_tem_score"), default=5.0, nonnegative=True)
+        suite = VerificationSuiteResult(
+            suite_status=suite_status,
+            results=engine_models,
+            duration=duration if duration is not None else 0.0,
+            tem_score=_payload_number(migrated.get("tem_score"), default=None),
+            max_tem_score=max_tem if max_tem is not None else 5.0,
+        )
+        canonical_suite = serialize_suite_result(suite, project_root=project_root)
+        migrated.update({key: value for key, value in canonical_suite.items() if key != "results"})
+
+    migrated["schema_version"] = RESULT_SCHEMA_VERSION
+    # Running an existing v3 archive through migration is also a supported
+    # output boundary, so recursively mask producer-specific string fields.
+    from ici.core.redaction import redact_data
+
+    return redact_data(migrated)
+
+
+def save_json_report(
+    suite: VerificationSuiteResult,
+    output_path: Path,
+    project_root: str | Path | None = None,
+) -> None:
+    """Serialize a verification suite to a canonical JSON v3 report."""
+    _save_json(serialize_suite_result(suite, project_root=project_root), output_path)
+
+
+def save_engine_json_report(
+    result: EngineResult,
+    output_path: Path,
+    project_root: str | Path | None = None,
+) -> None:
+    """Serialize one standalone engine result using the same v3 contract."""
+    _save_json(serialize_engine_result(result, project_root=project_root), output_path)
 
 
 def _save_json(data: dict[str, Any], output_path: Path) -> None:
+    content = json.dumps(
+        data,
+        indent=2,
+        ensure_ascii=False,
+        sort_keys=True,
+        allow_nan=False,
+        default=str,
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as handle:
-        json.dump(data, handle, indent=2, ensure_ascii=False, default=str)
+    output_path.write_text(content, encoding="utf-8")

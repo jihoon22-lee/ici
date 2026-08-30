@@ -8,6 +8,12 @@
 ## [Unreleased]
 
 ### Added
+- **`ici.result/v3` finding 계약**: 모든 엔진의 기존 `InspectionTarget`을 안정적인 ici rule id, category/severity/confidence, canonical project-relative 위치, 관련 위치, 설명·개선안, suppression 근거, 단위가 붙은 숫자 metric과 SHA-256 fingerprint를 가진 `Finding`으로 함께 직렬화합니다. 기존 `targets`는 이행 기간 동안 그대로 보존하며 v2→v3 migration helper와 배포되는 JSON Schema를 제공합니다.
+  - fingerprint는 checkout root와 Windows/POSIX separator에 무관하며 symbol이 있으면 줄 이동에도 유지되고, symbol이 없으면 정확한 region 변화에 반응합니다. native v3 finding도 출력 경계에서 동일한 경로·fingerprint 규칙으로 정규화합니다.
+  - viewer는 새 v3와 보관된 v2 리포트를 모두 읽습니다. 현재 UI는 호환용 `targets`를 계속 표시하므로 writer 전환과 viewer 전환을 한 번에 강제하지 않습니다.
+  - 중앙 redaction 경계가 콘솔, JSON, HTML, Markdown, GitHub annotation/sticky comment 및 CLI 반환 결과의 credential 형태를 마스킹합니다. message·snippet·raw tool output·argv·error·extra·설명·개선안·suppression reason뿐 아니라 source path와 finding metric 이름·단위도 같은 정책을 사용하며, 일반 경로는 유지합니다.
+  - JSON writer는 키를 정렬해 같은 결과를 재현 가능하게 기록하고 NaN/Inf를 파일을 만들기 전에 거부합니다. legacy metric adapter도 boolean·비숫자·비유한 값을 finding metric으로 오인하지 않으며, 비밀 키 두 개가 같은 마스킹 키가 되더라도 suffix를 붙여 metadata 항목 수를 보존합니다.
+  - writer는 schema의 non-empty string, finite/non-negative number, boolean, 1-indexed source region 불변식을 직접 검사해 잘못된 producer가 schema-invalid JSON을 만들지 못하게 합니다. v2 migration은 누락된 suite count와 engine 기본 필드를 canonical 값으로 채우면서 producer extension은 보존합니다.
 - **CI의 최종 판정을 `Merge Gate` 하나로 고정**: Python/ici self-dogfood, Qt viewer GUI, PR HTML 게시가 모두 성공해야 PR용 최종 체크가 통과합니다. 기존 ruleset은 self-dogfood만 필수여서 GUI나 댓글 게시가 실패해도 병합할 수 있었습니다.
   - `report-pr`은 quality 결과가 WARN/FAIL이어도 생성된 아티팩트를 게시할 수 있도록 `always()`로 실행하되, 최종 gate는 원래 verify 결과를 별도로 검사합니다.
   - gh-pages 쓰기는 concurrency group으로 직렬화합니다. 서로 다른 PR이 Contents API의 같은 branch head를 동시에 갱신해 한쪽 리포트를 잃지 않습니다.

@@ -68,8 +68,9 @@ struct LoadError {
     std::size_t line = 0;
 };
 
-// The only schema this viewer claims to understand.
+// Current writer schema and the legacy schema retained for report archives.
 extern const char* const kSupportedSchema;
+extern const char* const kLegacySchema;
 
 // Parses and validates an ici JSON report. A schema mismatch, a missing
 // required field, or a wrong value type produces an explicit LoadError rather

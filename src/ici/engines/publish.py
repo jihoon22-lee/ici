@@ -12,6 +12,7 @@ from typing import Any
 from urllib.parse import quote
 
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
+from ici.core.redaction import redact_suite
 
 PUBLISH_MARKER = "<!-- ici-report -->"
 
@@ -266,7 +267,7 @@ class ReportPublisher:
 
     def publish(self, html_path: Path, suite: VerificationSuiteResult) -> PublishResult:
         """Uploads one HTML report and updates the sticky PR comment."""
-        return self._publish_single(html_path, suite)
+        return self._publish_single(html_path, redact_suite(suite))
 
     def publish_many(self, reports: list[ReportInput]) -> PublishResult:
         """Publishes several projects' reports under one sticky comment.
@@ -275,6 +276,14 @@ class ReportPublisher:
         blob sha to overwrite a file, so parallel writes to the same branch race
         and lose; doing them in one job keeps that ordering explicit.
         """
+        reports = [
+            ReportInput(
+                label=report.label,
+                html_path=report.html_path,
+                suite=redact_suite(report.suite) if report.suite is not None else None,
+            )
+            for report in reports
+        ]
         # Route the single unlabeled case back through publish() rather than the
         # private worker: it is the public seam callers and tests already hook.
         if len(reports) == 1 and not reports[0].label:

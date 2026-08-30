@@ -152,12 +152,25 @@ ici/
   - `required`: 결과가 품질 게이트에 필수인지 여부
   - `evidence`: 결과가 실측(`MEASURED`), 추정(`ESTIMATED`) 또는 미실행(`NOT_RUN`)인지 여부
   - `tool_evidence`: 호출한 외부 도구의 경로·인자·버전·종료 상태·오류 증거
+  - `findings`: v3의 안정적인 issue/inventory 목록. legacy `targets`도 adapter를 통해 전부
+    finding으로 노출되며 native finding이 같은 fingerprint를 제공하면 더 풍부한 native 정보가
+    우선합니다.
+
+- **`Finding`**: 도구 출력 형식과 독립적인 분석 결과입니다.
+  - `rule_id`, `category`, `severity`, `confidence`: ici가 소유하는 안정적인 분류
+  - `fingerprint`: canonical project-relative path와 symbol 또는 region을 결합한 SHA-256 identity
+  - `primary_location`, `related_locations`: 1-indexed line/column을 가진 위치
+  - `message`, `explanation`, `remediation`, tool identity, suppression 근거
+  - `metrics`: 숫자 값과 단위를 분리한 측정치. 문자열형 보조 정보는 finding metric으로 승격하지 않습니다.
 
 - **`VerificationSuiteResult`**: 전체 검증 스위트의 최종 집계 결과입니다.
   - `suite_status`: 전체 집계 상태. 필수 `ERROR`/`SKIP`/`NOT_RUN`은 `ERROR`, 필수 `FAIL`은 `FAIL`, 경고 또는 선택 검증의 비측정 결과는 `WARN`으로 집계합니다.
   - `results`: 각 엔진 결과 목록
   - `tem_score`: TEM 종합 품질 점수
-  - JSON 직렬화 형식은 `ici.result/v2`이며, 엔진·대상·도구 증거의 전체 필드를 보존합니다.
+  - JSON writer는 `ici.result/v3`를 사용합니다. 기존 `targets`와 엔진·도구 증거를 보존하면서
+    `findings`를 추가하므로 점진적으로 소비자를 전환할 수 있습니다. v2 archive는 migration
+    helper와 v2/v3 겸용 viewer로 계속 읽을 수 있습니다. 기계 검증 계약은
+    [`ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)입니다.
 
 ### 4.2 오케스트레이터 및 예외 격리 (`VerifyOrchestrator`)
 - `VerifyOrchestrator`는 활성화된 엔진을 정의된 순서로 순차 실행합니다. 개별 엔진에서 예외가 발생해도 해당 엔진을 `ERROR`/`NOT_RUN`으로 기록하고 나머지 엔진을 계속 실행하여 결과 계약을 완성합니다.
@@ -168,6 +181,11 @@ ici/
 ## 5. 다중 리포터 계층 설계
 
 모든 리포터는 동일한 `VerificationSuiteResult`를 소비하여 각 플랫폼에 최적화된 출력을 만듭니다:
+
+리포터에 도달하기 전과 개별 reporter API 경계에서 공통 redaction copy를 만들며 원본 분석
+객체는 변경하지 않습니다. message, snippet, raw output, tool argv/error, extra, finding 설명·개선안과
+suppression reason·metric·파일 경로에 포함된 credential은 마스킹됩니다. credential 형태가 없는
+일반 파일 경로는 탐색을 위해 그대로 유지됩니다.
 
 1. **`RichConsoleReporter`**: 터미널 환경 최적화
    - ANSI 컬러 및 Rich 테이블/패널

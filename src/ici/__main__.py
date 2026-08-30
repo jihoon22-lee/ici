@@ -13,6 +13,7 @@ from rich.markup import escape
 from ici import __version__
 from ici.config import ConfigError, load_config
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
+from ici.core.redaction import redact_engine_result
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
 from ici.engines.build import BuildEngine
 from ici.engines.cognitive import CognitiveEngine  # noqa: F401
@@ -120,7 +121,7 @@ def cmd_verify(
 def cmd_build(ctx: typer.Context):
     """Compiles and packages release artifacts and env loaders into vX.Y.Z/x86_64/."""
     engine = _create_engine(BuildEngine, _effective_config(ctx))
-    res = engine.run()
+    res = redact_engine_result(engine.run())
     _print_engine_result(res)
     _exit_for_safety_status(res.status)
 
@@ -216,7 +217,7 @@ def _run_engine_command(
     # Resolve via module attribute so tests can monkeypatch engine classes.
     engine_cls = getattr(sys.modules[__name__], engine_cls_name)
     engine = _create_engine(engine_cls, _effective_config(ctx))
-    res = engine.run()
+    res = redact_engine_result(engine.run())
     _print_engine_result(res)
     if res.engine_name == "line":
         extra = res.extra
@@ -368,7 +369,7 @@ def _exit_for_safety_status(status: EngineStatus) -> None:
 
 
 def _save_single_report(filename: str, res: EngineResult) -> None:
-    save_engine_json_report(res, Path(filename))
+    save_engine_json_report(res, Path(filename), project_root=Path.cwd().resolve())
     console.print(f"[dim]Report saved to: {filename}[/dim]")
 
 

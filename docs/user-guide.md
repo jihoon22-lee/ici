@@ -84,7 +84,9 @@ ici verify --report --html verify_report.html --open
 ```
 - `--html <path>`: Zero-CDN 기반의 독립형 인터랙티브 HTML 리포트를 생성합니다.
 - `--open`: 검증 완료 후 기본 브라우저(`firefox`, `chrome`, `xdg-open` 등)로 리포트를 즉시 띄웁니다.
-- `--json <path>`: 파이프라인 데이터 연동용 `verify_report.json`을 저장합니다.
+- `--report`: 파이프라인 데이터 연동용 `verify_report.json`을 `ici.result/v3` 형식으로 저장합니다.
+  기존 `targets`와 canonical `findings`를 함께 포함하며, 기계 검증용 JSON Schema는
+  [`src/ici/schemas/ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)입니다.
 
 ### 2.3 신뢰된 실행에서 HTML 리포트 배포 (`--publish`)
 `--publish`는 일반 PR 검증의 기본 동작이 아닙니다. 권한을 명시적으로 부여한 신뢰된

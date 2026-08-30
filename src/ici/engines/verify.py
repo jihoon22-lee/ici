@@ -13,6 +13,7 @@ from ici.core.models import (
     aggregate_suite_status,
 )
 from ici.core.project import get_project_name
+from ici.core.redaction import redact_suite
 from ici.engines.cognitive import CognitiveEngine
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.cycle import CycleEngine
@@ -104,13 +105,16 @@ class VerifyOrchestrator:
             tem_score=tem_score,
             max_tem_score=5.0,
         )
+        # All reporters share one sanitized suite. This prevents a secret in an
+        # engine diagnostic from leaking through a non-JSON output path.
+        suite = redact_suite(suite)
 
         # 1. Terminal Console Report
         print_suite_dashboard(suite, self.project_root)
 
         # 2. JSON Report if requested
         if report_json:
-            save_json_report(suite, Path(report_json))
+            save_json_report(suite, Path(report_json), project_root=self.project_root)
 
         # 3. HTML Report if requested
         if report_html:

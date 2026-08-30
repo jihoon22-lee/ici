@@ -11,6 +11,7 @@ from rich.table import Table
 from rich.text import Text
 
 from ici.core.models import EngineStatus, VerificationSuiteResult, format_score_display, gate_reason
+from ici.core.redaction import redact_suite
 
 console = Console()
 
@@ -43,6 +44,7 @@ def make_terminal_link(
 
 def print_suite_dashboard(suite: VerificationSuiteResult, base_dir: Path | None = None) -> None:
     """Prints the comprehensive Rich terminal dashboard for all verification engines."""
+    suite = redact_suite(suite)
     base = (base_dir or Path.cwd()).resolve()
 
     status_color = (

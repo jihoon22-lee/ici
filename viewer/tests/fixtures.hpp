@@ -68,3 +68,34 @@ inline std::string minimalReport() {
   ]
 })";
 }
+
+// The v3 writer keeps the v2 target inventory and adds canonical findings.
+// The current viewer renders targets, but it must accept and safely ignore the
+// richer field until its issues-first UI consumes findings natively.
+inline std::string minimalV3Report() {
+    return R"({
+  "schema_version": "ici.result/v3",
+  "suite_status": "WARN",
+  "passed_count": 0, "warned_count": 1, "failed_count": 0,
+  "error_count": 0, "skipped_count": 0, "total_count": 1,
+  "tem_score": 4.5, "max_tem_score": 5.0,
+  "results": [
+    {"schema_version": "ici.result/v3", "engine_name": "security", "status": "WARN",
+     "summary": "one finding", "required": true, "evidence": "MEASURED",
+     "targets": [
+       {"file_path": "src/a.py", "start_line": 8, "target_name": "secret",
+        "status": "WARN", "message": "credential", "snippet": "masked"}
+     ],
+     "tool_evidence": [],
+     "findings": [
+       {"rule_id": "ici.security.secret", "category": "security", "severity": "medium",
+        "confidence": "exact", "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "primary_location": {"path": "src/a.py", "start_line": 8},
+        "related_locations": [], "message": "credential", "explanation": "",
+        "remediation": "use environment", "tool_rule_id": "", "tool_name": "",
+        "tool_version": "", "suppression": {"suppressed": false, "kind": "none", "reason": ""},
+        "metrics": {}, "snippet": "masked"}
+     ]}
+  ]
+})";
+}
