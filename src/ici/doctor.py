@@ -93,6 +93,76 @@ def collect_diagnostics(
     }
 
 
+def _support_language(entry: dict[str, Any]) -> str:
+    language = str(entry.get("language") or "-")
+    frameworks = entry.get("frameworks", []) or []
+    if frameworks:
+        language += " (" + ", ".join(str(item) for item in frameworks) + ")"
+    return language
+
+
+def _support_state(entry: dict[str, Any]) -> str:
+    if not entry.get("applicable", False):
+        return "not-applicable"
+    if not entry.get("enabled", False):
+        return "disabled"
+    return "applicable"
+
+
+def _support_tools(entry: dict[str, Any]) -> str:
+    required = entry.get("required_tools", []) or []
+    optional = entry.get("optional_tools", []) or []
+    parts = []
+    if required:
+        parts.append("req: " + ", ".join(str(item) for item in required))
+    if optional:
+        parts.append("opt: " + ", ".join(str(item) for item in optional))
+    return "; ".join(parts) or "-"
+
+
+def _support_detail(entry: dict[str, Any]) -> str:
+    parts = [str(entry.get("reason") or "-")]
+    limitations = entry.get("limitations", []) or []
+    if limitations:
+        parts.append(str(limitations[0]))
+    return " | ".join(parts)
+
+
+def _render_support_table(matrix: dict[str, Any]) -> None:
+    """Render declarations without adding branches to the doctor shell."""
+    table = Table(
+        title="Engine Capability Matrix",
+        box=box.ROUNDED,
+        header_style="bold cyan",
+        show_lines=False,
+    )
+    table.add_column("Engine", style="bold", width=12, no_wrap=True)
+    table.add_column("Language", width=13, no_wrap=True)
+    table.add_column("State", width=15, no_wrap=True)
+    table.add_column("Declared / Active", width=24)
+    table.add_column("Evidence / Confidence", width=22)
+    table.add_column("Tools", width=25)
+    table.add_column("Fallback", width=14)
+    table.add_column("Detail", style="dim")
+
+    for entry in matrix.get("entries", []):
+        declared = entry.get("mode") or "-"
+        active = entry.get("active_mode") or "-"
+        evidence = entry.get("evidence") or "-"
+        confidence = entry.get("confidence") or "-"
+        table.add_row(
+            str(entry.get("engine_name") or "-"),
+            _support_language(entry),
+            _support_state(entry),
+            f"{declared} / {active}",
+            f"{evidence} / {confidence}",
+            _support_tools(entry),
+            str(entry.get("fallback_mode") or "-"),
+            _support_detail(entry),
+        )
+    console.print(table)
+
+
 def render_doctor_table(data: dict[str, Any]) -> None:
     """Renders formatted Rich tables for doctor output."""
     sys_info = data["system"]
@@ -153,67 +223,7 @@ def render_doctor_table(data: dict[str, Any]) -> None:
     # normally reported as NOT_RUN until a verification command observes them.
     matrix = data.get("support_matrix")
     if matrix:
-        t_support = Table(
-            title="Engine Capability Matrix",
-            box=box.ROUNDED,
-            header_style="bold cyan",
-            show_lines=False,
-        )
-        t_support.add_column("Engine", style="bold", width=12, no_wrap=True)
-        t_support.add_column("Language", width=13, no_wrap=True)
-        t_support.add_column("State", width=15, no_wrap=True)
-        t_support.add_column("Declared / Active", width=24)
-        t_support.add_column("Evidence / Confidence", width=22)
-        t_support.add_column("Tools", width=25)
-        t_support.add_column("Fallback", width=14)
-        t_support.add_column("Detail", style="dim")
-
-        for entry in matrix.get("entries", []):
-            language = str(entry.get("language") or "-")
-            frameworks = entry.get("frameworks", []) or []
-            if frameworks:
-                language += " (" + ", ".join(str(item) for item in frameworks) + ")"
-
-            if not entry.get("applicable", False):
-                state = "not-applicable"
-            elif not entry.get("enabled", False):
-                state = "disabled"
-            else:
-                state = "applicable"
-
-            declared = entry.get("mode") or "-"
-            active = entry.get("active_mode") or "-"
-            mode = f"{declared} / {active}"
-            evidence = entry.get("evidence") or "-"
-            confidence = entry.get("confidence") or "-"
-            evidence_summary = f"{evidence} / {confidence}"
-
-            required = entry.get("required_tools", []) or []
-            optional = entry.get("optional_tools", []) or []
-            tools: list[str] = []
-            if required:
-                tools.append("req: " + ", ".join(required))
-            if optional:
-                tools.append("opt: " + ", ".join(optional))
-            tools_summary = "; ".join(tools) or "-"
-
-            fallback = entry.get("fallback_mode") or "-"
-            reason = entry.get("reason") or "-"
-            limitations = entry.get("limitations", []) or []
-            detail = " | ".join(
-                [str(reason), str(limitations[0])] if limitations else [str(reason)]
-            )
-            t_support.add_row(
-                str(entry.get("engine_name") or "-"),
-                language,
-                state,
-                mode,
-                evidence_summary,
-                tools_summary,
-                fallback,
-                detail,
-            )
-        console.print(t_support)
+        _render_support_table(matrix)
 
     # Paths Table
     t_path = Table(title="Workspace & Shared Paths", box=box.ROUNDED, header_style="bold blue")
