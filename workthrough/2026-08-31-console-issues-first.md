@@ -6,7 +6,8 @@ I1-4 issues-first console과 공통 grouping을 구현했다. `ici verify`는 en
 group-by를 적용하면서도 v3 finding inventory와 baseline occurrence를 변경하지 않으며,
 duplicate는 실행 중 clone group 관계와 같은 파일의 겹치는 region만 표시상 합친다. 이 기록은
 로컬 구현·품질 검증 결과와 PR·CI 경계를 함께 남긴다. 최종 안정 self verify는 완료됐고,
-PR/CI Merge Gate의 URL과 실행 근거만 `TODO_AFTER_PR_AND_CI`로 추적한다.
+PR/CI Merge Gate는 [PR #89](https://github.com/jihoon22-lee/ici/pull/89)와 아래 merge evidence로
+완료됐다.
 
 ## Context
 
@@ -132,7 +133,7 @@ focused console tests: 16 passed
 ruff check / ruff format --check: passed
 build-pyz: pure-Python 10 distributions, no certifi, 2.0 MiB artifact
 smoke: all checks passed
-coverage: line 87.8% / function 96.6% / branch 78.8%
+local self verify coverage: line 87.8% / function 96.6% / branch 78.8%
 TEM: 4.83
 engines: Pass 8 / Warn 4 / Fail 0 / Error 0 / Skip 0
 complexity: max 23, 64 issues
@@ -160,11 +161,23 @@ lint FAIL은 에이전트 파일 작성 경합에 따른 참고 기록이며, �
 final self verify: COMPLETE (local)
 I1-4 implementation and local verification: COMPLETE
 I1 overall checkpoint: COMPLETE (local)
-PR/CI Merge Gate: TODO_AFTER_PR_AND_CI
+PR/CI Merge Gate: COMPLETE (PR #89 / squash cc0ad469afe7c5d2713ef768610791a394a66f0b)
 ```
+
+### PR/CI merge evidence
+
+- [PR #89](https://github.com/jihoon22-lee/ici/pull/89)는 squash commit
+  [`cc0ad469afe7c5d2713ef768610791a394a66f0b`](https://github.com/jihoon22-lee/ici/commit/cc0ad469afe7c5d2713ef768610791a394a66f0b)로
+  병합됐다. [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의 모든 required
+  checks가 green(756 tests)이었다.
+- [sticky comment](https://github.com/jihoon22-lee/ici/pull/89#issuecomment-5470778278)에 결과가 기록됐다.
+  [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/89/)는 HTTP 200·external script/stylesheet refs 0,
+  [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/89/)는 HTTP 200·external refs 0이었다.
+- CI report stats는 ici WARN(TEM 4.83, Pass 8, Warn 4, line 87.8%, function 96.6%, branch 78.9%),
+  viewer PASS(TEM 4.89, 7/7 tests)였다. 위 self verify의 branch 78.8%는 local 측정값으로 보존한다.
 
 ## Next Steps
 
-- PR/CI Merge Gate를 수행하고 실제 URL·실행 결과를 `TODO_AFTER_PR_AND_CI` 위치에 반영한다.
-- I2 shared context와 toy T1 reliability 작업으로 이어가며, 이 문서의 로컬 측정값은 기준
+- I1-4 PR/CI Merge Gate evidence는 위 PR·CI·sticky comment·Pages 기록으로 완료됐다.
+- I2 shared context와 toy T1 reliability 작업으로 이어가며, 이 문서의 local 측정값은 기준
   증거로 보존한다.

@@ -195,18 +195,26 @@ duplicate는 같은 실행의 같은 clone group 안에서 같은 파일의 겹�
 기반으로 전체 결과를 표시한다. 80-column 터미널에서도 표·링크·상세가 한 글자씩 세로로
 깨지지 않도록 회귀 테스트로 고정했다.
 
-현재 로컬 구현·테스트 기준은 `814679c` + `d80a027`이며 현재 Python 3.10 전체 품질 게이트는
+현재 로컬 구현·테스트 기준은 `814679c` + `d80a027`이며 로컬 Python 3.10 전체 품질 게이트는
 756/756 tests, focused console 테스트는 16개다. Ruff check/format,
 pure-Python 10-distribution·no-certifi·2.0 MiB pyz, smoke 전체 검증도 통과했다. 최종 안정
 self verify에서 built `dist/ici.pyz`는 exit 0, suite는 WARN이었다. self verify 출력은 144
 lines/15,288 bytes, HTML은 3,383,523 bytes였고, 해당 출력에 내장된 test engine 수치는
-756/756이다. line/function/branch coverage 87.8%/96.6%/78.8%, TEM 4.83을 확인했다.
+756/756이다. local self verify line/function/branch coverage는 87.8%/96.6%/78.8%, TEM 4.83을 확인했다.
 engines는 Pass 8, Warn 4, Fail 0,
 Error 0, Skip 0이며 complexity는 최대 23·이슈 64건, duplicate는 16.2%·338 groups·
 1,006 actionable occurrences였다. 콘솔 측정은 actionable 1,088건, visible 21/420 display
 groups, represented 34, hidden 1,054 findings/399 groups였다. HTML에는 clone group card
 338개와 issue engine row 1,088개가 유지됐고 external script/stylesheet reference는 0개였다.
-PR/CI Merge Gate URL과 실행 근거는 `TODO_AFTER_PR_AND_CI`로 추적한다.
+
+Merge evidence (PR #89): [PR #89](https://github.com/jihoon22-lee/ici/pull/89)는 squash commit
+[`cc0ad469afe7c5d2713ef768610791a394a66f0b`](https://github.com/jihoon22-lee/ici/commit/cc0ad469afe7c5d2713ef768610791a394a66f0b)로
+병합됐다. [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의
+모든 required checks가 green(756 tests)이었고, [sticky comment](https://github.com/jihoon22-lee/ici/pull/89#issuecomment-5470778278)에
+결과가 기록됐다. CI report stats는 ici WARN(TEM 4.83, Pass 8, Warn 4, line 87.8%,
+function 96.6%, branch 78.9%), viewer PASS(TEM 4.89, 7/7 tests)였다. [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/89/)
+는 HTTP 200·external script/stylesheet refs 0, [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/89/)
+는 HTTP 200·external refs 0이었다.
 
 ### 2.3 신뢰된 실행에서 HTML 리포트 배포 (`--publish`)
 `--publish`는 일반 PR 검증의 기본 동작이 아닙니다. 권한을 명시적으로 부여한 신뢰된
