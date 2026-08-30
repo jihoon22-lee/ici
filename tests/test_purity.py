@@ -195,7 +195,7 @@ def test_ci_and_release_actions_are_immutable_node24_pins():
         assert not re.search(r"@[vV][0-9]+(?:\.[0-9]+){0,2}\b", workflow)
 
 
-def test_release_workflow_requires_explicit_version_tag_without_stale_fallback():
+def test_release_workflow_requires_validated_tag_without_stale_fallback():
     workflow = _workflow("release.yml")
     dispatch = workflow.split("  workflow_dispatch:\n", 1)[1].split("\n\npermissions:", 1)[0]
     version_input = dispatch.split("      version_tag:\n", 1)[1].split("      draft:\n", 1)[0]
@@ -204,9 +204,9 @@ def test_release_workflow_requires_explicit_version_tag_without_stale_fallback()
     assert not re.search(r"(?m)^        default:", version_input)
     assert "v0.3.3" not in workflow
 
-    tag_step = workflow.split("      - name: Determine Target Tag\n", 1)[1].split(
-        "\n      - name: Run Test Suite", 1
-    )[0]
+    tag_step = workflow.split("      - name: Validate Tag, Main Ancestry, and Merge Gate\n", 1)[
+        1
+    ].split("\n  build-release:", 1)[0]
     run_script = tag_step.split("        run: |\n", 1)[1]
     assert "MANUAL_VERSION_TAG: ${{ inputs.version_tag }}" in tag_step
     assert "${{ inputs.version_tag }}" not in run_script
@@ -217,7 +217,49 @@ def test_release_workflow_requires_explicit_version_tag_without_stale_fallback()
     assert "PACKAGE_VERSION" in run_script
     assert "src/ici/__init__.py" in run_script
     assert '"$TAG" != "v$PACKAGE_VERSION"' in run_script
+    assert 'git rev-parse --verify "$TAG^{commit}"' in run_script
+    assert 'git checkout --detach "$TARGET_SHA"' in run_script
+    assert 'git merge-base --is-ancestor "$TARGET_SHA" refs/remotes/origin/main' in run_script
+    assert "commits/${TARGET_SHA}/check-runs" in run_script
+    assert 'select(.name == "Merge Gate")' in run_script
+    assert '[ "$gate_conclusion" = success ]' in run_script
     assert "GITHUB_OUTPUT" in run_script
+
+
+def test_release_write_permission_follows_read_only_provenance_gate():
+    workflow = _workflow("release.yml")
+    validate = _job_block(workflow, "validate-release")
+    build = _job_block(workflow, "build-release")
+
+    assert "permissions: {}" in workflow.split("jobs:", 1)[0]
+    assert "contents: read" in validate
+    assert "checks: read" in validate
+    assert "contents: write" not in validate
+    assert "needs: validate-release" in build
+    assert "contents: write" in build
+    assert "ref: ${{ needs.validate-release.outputs.target_sha }}" in build
+    assert 'test "$(git rev-parse HEAD)" = "$TARGET_SHA"' in build
+
+
+def test_release_repeats_quality_and_dogfood_gates_on_the_candidate():
+    build = _job_block(_workflow("release.yml"), "build-release")
+
+    assert "ruff check ." in build
+    assert "ruff format --check ." in build
+    assert "pytest -v" in build
+    assert "./scripts/build-pyz.sh" in build
+    assert "./scripts/smoke.sh" in build
+    assert "dist/ici.pyz verify" in build
+    assert "../dist/ici.pyz verify" in build
+    assert "QT_QPA_PLATFORM: offscreen" in build
+    assert "ctest --test-dir viewer/build/gui --output-on-failure" in build
+    for report in (
+        "dist/ici-self-report.html",
+        "dist/ici-self-report.json",
+        "dist/viewer-report.html",
+        "dist/viewer-report.json",
+    ):
+        assert build.count(report) >= 2
 
 
 def test_gate_reason_matches_the_aggregation_rule():
