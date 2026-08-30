@@ -120,12 +120,21 @@ TEM `4.5`, Branch `70%`, Function `90%`를 floor로 사용합니다. `mode = "pa
 
 ### 1.3 결과 리포트 계약과 종료 코드
 
-verify --report 및 모든 단독 엔진의 --report는 schema_version = ici.result/v2를
+verify --report 및 모든 단독 엔진의 --report는 schema_version = ici.result/v3를
 사용합니다. JSON에는 엔진 상태·요약·점수·실행 시간·원시 출력·extra·required·증거 상태,
 검사 대상의 위치·메시지·snippet·metrics, 그리고 도구별 경로·버전·argv·반환 코드·timeout·출력
-절단·오류를 포함합니다. suite 집계에는 기존 호환성을 위해 FAIL과 ERROR를 합산한
+절단·오류를 포함합니다. v3는 여기에 `findings`를 추가합니다. 각 finding은 ici rule id,
+category/severity/confidence, checkout 위치와 무관한 fingerprint, primary/related location,
+설명·개선안, tool identity, suppression 근거와 단위가 붙은 숫자 metric을 가집니다. 기존
+`targets`는 이행 기간 동안 그대로 남고 모든 legacy target은 finding adapter로도 제공됩니다.
+suite 집계에는 기존 호환성을 위해 FAIL과 ERROR를 합산한
 legacy failed_count와 함께 순수 ERROR 수인 error_count 및 skipped_count가 제공됩니다.
 화면 리포터에서 표시하는 순수 FAIL 수는 failed_count - error_count입니다.
+
+writer가 사용하는 JSON Schema는
+[`src/ici/schemas/ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)에
+있습니다. v2 archive는 `migrate_report_payload()`로 v3 copy를 만들 수 있고 viewer는 두 버전을
+모두 읽습니다. reporter에 전달되는 모든 자유 형식 문자열은 공통 credential redaction을 거칩니다.
 
 모든 CLI 결과의 종료 코드는 동일합니다.
 

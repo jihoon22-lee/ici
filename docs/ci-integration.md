@@ -140,8 +140,10 @@ Release에는 `ici.pyz`, 체크섬, CLI/GUI viewer와 함께 self/viewer HTML·J
 ### 2.1 GitHub Step Summary (`--github-summary`)
 
 `--github-summary`는 Markdown Summary에 전체 상태, TEM, 엔진별 결과와
-`blob/<commit>/<path>#Lx-Ly` 위치 링크를 기록합니다. JSON 결과는 `ici.result/v2` 계약으로
-엔진 상태, required/evidence, 대상 snippet·metrics, 외부 도구 실행 증거를 보존합니다.
+`blob/<commit>/<path>#Lx-Ly` 위치 링크를 기록합니다. JSON 결과는 `ici.result/v3` 계약으로
+엔진 상태, required/evidence, 기존 대상 snippet·metrics, 외부 도구 실행 증거와 canonical
+finding inventory를 보존합니다. v3 finding fingerprint는 checkout root·path separator에
+무관하므로 후속 baseline/delta gate에서 같은 문제를 안정적으로 식별할 수 있습니다.
 
 ### 2.2 Workflow annotations
 
@@ -211,4 +213,4 @@ binutils capability를 현재 `ici`가 자동 판정한다고 해석해서는 �
 ---
 
 > **다음 단계**: [🏛️ 시스템 아키텍처 가이드](architecture.md)에서 엔진 파이프라인과
-> `ici.result/v2` 데이터 모델을 확인하세요.
+> `ici.result/v3` 데이터 모델을 확인하세요.

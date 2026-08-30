@@ -228,11 +228,11 @@ untyped body에서만 발생했고 모두 Python 3.10 호환 시그니처로 정
 - `suppression`: inline/config/baseline 여부와 근거
 - `metrics`: 숫자형 측정값과 단위
 
-- [ ] v2 reader와 viewer의 backward compatibility를 유지한다.
-- [ ] v2→v3 migration 테스트를 만든다.
-- [ ] path separator와 checkout root가 달라도 fingerprint가 안정적인지 테스트한다.
-- [ ] secret redaction이 message, snippet, tool output, remediation 전부에 적용되는지 테스트한다.
-- [ ] 모든 engine의 legacy target을 adapter로 v3 finding으로 옮긴 뒤 점진적으로 native v3를 발행한다.
+- [x] v2 reader와 viewer의 backward compatibility를 유지한다.
+- [x] v2→v3 migration 테스트를 만든다.
+- [x] path separator와 checkout root가 달라도 fingerprint가 안정적인지 테스트한다.
+- [x] secret redaction이 message, snippet, tool output, remediation 전부에 적용되는지 테스트한다.
+- [x] 모든 engine의 legacy target을 adapter로 v3 finding으로 옮긴 뒤 점진적으로 native v3를 발행한다.
 
 ### I1-2. support/capability matrix
 
