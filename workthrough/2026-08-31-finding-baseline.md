@@ -147,16 +147,22 @@ single/multi sticky comment의 escape를 포함한다.
 
 로컬 release candidate에서 전체 품질 게이트와 실제 baseline 왕복을 확인했다.
 
-- PR: TODO — GitHub PR 번호와 URL
-- CI/Merge Gate: TODO — workflow run ID와 모든 required job 결과
+- PR: [#87](https://github.com/jihoon22-lee/ici/pull/87) — finding baseline/delta gate 병합 완료
+- CI/Merge Gate: [workflow run 33327928094](https://github.com/jihoon22-lee/ici/actions/runs/33327928094) — Verify, Viewer Qt5, Viewer Qt6, Publish PR Report, Merge Gate 모두 SUCCESS
 - 전체 테스트: Python 3.10에서 732개 통과, Ruff check/format 통과
 - 패키징: pure-Python 10개 배포판, certifi 없음, 재현 가능한 2.0 MiB pyz와 smoke 통과
 - self-verify: WARN(Pass 8/Warn 4/Fail 0/Error 0), 732/732, TEM 4.82,
   line/branch/function 87.6%/78.6%/96.5%
+- CI runner의 line/branch 측정은 87.7%/78.7%였다. 로컬 release-candidate의
+  87.6%/78.6%와의 차이는 소스 차이가 아닌 실행 환경별 coverage 측정치 차이다.
 - baseline 왕복: 2,783 unchanged, new/moved/resolved/regressed/gated 0,
   fail-on-new PASSED, compatibility warning 0
 - 결과 소비: Draft 2020-12 schema 검증, 0 external reference zero-CDN HTML,
   saved-JSON publish summary와 기존 C++ viewer parse 통과
+- sticky comment: [#87 comment](https://github.com/jihoon22-lee/ici/pull/87#issuecomment-5470482999)
+  에서 결과 HTML 링크를 확인했다. [ici report](https://jihoon22-lee.github.io/ici/ici/pr/87/)와
+  [viewer report](https://jihoon22-lee.github.io/ici/viewer/pr/87/) 모두 HTTP 200이며
+  외부 script/stylesheet 참조가 없는 zero-CDN HTML이었다.
 
 ## I1-4 boundary and next steps
 
