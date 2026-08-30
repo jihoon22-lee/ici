@@ -25,6 +25,7 @@ from ici.core.cmake import (
     shadow_dir,
 )
 from ici.core.runner import ProcessResult
+from ici.engines.coverage_support import parse_gcov_dir
 
 
 def test_root_cmakelists_selects_cmake(tmp_path):
@@ -570,3 +571,49 @@ def test_make_recursion_guard_is_not_mistaken_for_a_test():
     results = parse_make_check_stdout(_MAKE_CHECK_WRAPPED, 0)
     assert not any("Makefile" in r.name for r in results)
     assert not any(r.name.startswith("make") for r in results)
+
+
+def _write_gcov(path, source_line: str) -> None:
+    path.write_text(
+        f"        -:    0:Source:{source_line}\n"
+        "        1:    1:int twice(int a) {\n"
+        "        1:    2:  return a * 2;\n"
+        "        -:    3:}\n",
+        encoding="utf-8",
+    )
+
+
+def test_gcov_relative_source_header_is_resolved(tmp_path):
+    # qmake compiles from inside the shadow tree, so gcov records
+    # "../../../src/format.cpp" and mangles ".." to "^" in the filename. Without
+    # reading the header, every qmake project loses all of its line coverage and
+    # the engine degrades to ESTIMATED — correct, but on a broken measurement.
+    cov = tmp_path / "ici-gcov"
+    cov.mkdir()
+    _write_gcov(cov / "^#^#^#src#format.cpp.gcov", "../../../src/format.cpp")
+
+    rows = parse_gcov_dir(cov, {"src/format.cpp"}, tmp_path)
+
+    assert [r["file"] for r in rows] == ["src/format.cpp"]
+
+
+def test_gcov_absolute_source_still_resolves(tmp_path):
+    cov = tmp_path / "ici-gcov"
+    cov.mkdir()
+    src = tmp_path / "src" / "format.cpp"
+    src.parent.mkdir(parents=True)
+    src.write_text("int f() { return 1; }\n", encoding="utf-8")
+    _write_gcov(cov / "weird-name.gcov", str(src))
+
+    rows = parse_gcov_dir(cov, {"src/format.cpp"}, tmp_path)
+
+    assert [r["file"] for r in rows] == ["src/format.cpp"]
+
+
+def test_gcov_for_a_file_outside_the_project_is_ignored(tmp_path):
+    # System headers land in the same directory and must not be counted.
+    cov = tmp_path / "ici-gcov"
+    cov.mkdir()
+    _write_gcov(cov / "#usr#include#c++#15#vector.gcov", "/usr/include/c++/15/vector")
+
+    assert parse_gcov_dir(cov, {"src/format.cpp"}, tmp_path) == []
