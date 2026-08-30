@@ -337,6 +337,10 @@ green(756 tests)이었고, [sticky comment](https://github.com/jihoon22-lee/ici/
 
 **브랜치:** `feat/tool-capabilities`
 
+- [x] Slice 1 — bounded probe/parser registry
+- [ ] Slice 2 — `doctor` shared inventory, redaction, and policy
+- [ ] Slice 3 — `verify`/report shared inventory
+
 - [ ] Python interpreters, compilers, CMake, qmake, make, gcov, clang tools, Qt, binutils를 탐지한다.
 - [ ] version parser는 vendor suffix와 multi-line 출력을 견딘다.
 - [ ] compiler target triple, Qt major, generator와 지원 feature를 기록한다.
