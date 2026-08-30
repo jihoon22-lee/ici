@@ -8,7 +8,6 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import cast
 
-from ici.core.models import SupportMatrix
 from ici.core.redaction import redact_data
 from ici.core.toolchain import (
     DEFAULT_TOOL_PROBES,
@@ -89,7 +88,7 @@ class CapabilityInventory:
 
 
 def derive_tool_policy(
-    matrix: SupportMatrix | Mapping[str, object],
+    matrix: object | Mapping[str, object],
     configured_required: Iterable[str] = (),
 ) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
     """Derive deterministic probe policy from the effective project scope.
@@ -103,7 +102,9 @@ def derive_tool_policy(
         name: {"doctor.config"} for value in configured_required if (name := str(value).strip())
     }
     optional_by: dict[str, set[str]] = {}
-    raw_entries = matrix.entries if isinstance(matrix, SupportMatrix) else matrix.get("entries", [])
+    raw_entries = (
+        matrix.get("entries", []) if isinstance(matrix, Mapping) else getattr(matrix, "entries", ())
+    )
     entries = raw_entries if isinstance(raw_entries, Iterable) else ()
     for entry in entries:
         if isinstance(entry, Mapping):
