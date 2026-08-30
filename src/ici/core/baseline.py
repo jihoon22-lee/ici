@@ -14,6 +14,7 @@ from ici import __version__
 from ici.core.findings import (
     FINGERPRINT_VERSION,
     canonical_project_path,
+    finding_fingerprint,
     findings_for_result,
     validate_source_region,
 )
@@ -144,6 +145,10 @@ def _location_from_payload(value: Any, project_root: Path, context: str) -> Sour
         resolve_project_path(project_root, canonical_path)
     except ValueError as err:
         raise BaselineError(f"{context}.path is unsafe: {err}") from err
+    if raw_path != canonical_path:
+        raise BaselineError(
+            f"{context}.path must already be canonical project-relative POSIX form: {raw_path!r}"
+        )
 
     start_line = _optional_positive_int(payload.get("start_line"), f"{context}.start_line")
     if start_line is None:
@@ -215,6 +220,12 @@ def _finding_from_payload(
     location = _location_from_payload(
         payload.get("primary_location"), project_root, f"{context}.primary_location"
     )
+    valid_fingerprints = {
+        finding_fingerprint(rule_id, location, symbol=location.label),
+        finding_fingerprint(rule_id, location),
+    }
+    if fingerprint not in valid_fingerprints:
+        raise BaselineError(f"{context}.fingerprint does not match its rule and location")
     for related_index, related in enumerate(
         _require_list(payload.get("related_locations"), f"{context}.related_locations")
     ):
@@ -329,7 +340,9 @@ def _delta_location_key(delta: FindingDelta) -> tuple[Any, ...]:
 
 
 def _is_regressed(current: _FindingRecord, baseline: _FindingRecord) -> bool:
-    return _SEVERITY_RANK[current.severity] > _SEVERITY_RANK[baseline.severity]
+    return _SEVERITY_RANK[current.severity] > _SEVERITY_RANK[baseline.severity] or (
+        baseline.suppressed and not current.suppressed
+    )
 
 
 def _is_actionable(current: _FindingRecord) -> bool:

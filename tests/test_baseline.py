@@ -200,6 +200,22 @@ def test_info_and_suppressed_new_findings_stay_in_inventory_but_do_not_gate(tmp_
     assert not comparison.gate_failed
 
 
+def test_removing_a_baseline_suppression_is_an_actionable_regression(tmp_path):
+    baseline = _write_baseline(
+        tmp_path,
+        [_finding("accepted", 2, severity=FindingSeverity.HIGH, suppressed=True)],
+        metadata=_metadata(),
+    )
+    current = _suite([_finding("accepted", 2, severity=FindingSeverity.HIGH)])
+
+    comparison = _compare(tmp_path, current, baseline, fail_on_new=True)
+
+    assert comparison.count(DeltaState.UNCHANGED) == 1
+    assert comparison.regressed_count == 1
+    assert comparison.gated_count == 1
+    assert comparison.gate_failed
+
+
 def test_metadata_mismatches_warn_without_invalidating_the_delta(tmp_path):
     baseline = _write_baseline(
         tmp_path,
@@ -251,6 +267,27 @@ def test_baseline_rejects_unsafe_primary_and_related_locations(tmp_path, unsafe_
     finding["related_locations"] = [dict(finding["primary_location"], path=unsafe_path)]
     baseline.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(BaselineError, match="unsafe"):
+        load_baseline(baseline, tmp_path)
+
+
+@pytest.mark.parametrize("noncanonical_path", ["src/../service.py", r"src\service.py"])
+def test_baseline_rejects_noncanonical_path_aliases(tmp_path, noncanonical_path):
+    baseline = _write_baseline(tmp_path, [_finding("same", 1)], metadata=_metadata())
+    payload = json.loads(baseline.read_text(encoding="utf-8"))
+    payload["results"][0]["findings"][0]["primary_location"]["path"] = noncanonical_path
+    baseline.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(BaselineError, match="canonical"):
+        load_baseline(baseline, tmp_path)
+
+
+def test_baseline_rejects_a_fingerprint_that_does_not_match_its_finding(tmp_path):
+    baseline = _write_baseline(tmp_path, [_finding("same", 1)], metadata=_metadata())
+    payload = json.loads(baseline.read_text(encoding="utf-8"))
+    payload["results"][0]["findings"][0]["fingerprint"] = _DIGEST_B
+    baseline.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(BaselineError, match="does not match"):
         load_baseline(baseline, tmp_path)
 
 
