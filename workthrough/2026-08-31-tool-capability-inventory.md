@@ -7,7 +7,9 @@ immutable, machine-readable capability snapshot that explains not only whether a
 installed, but also which active engine/language scope or explicit doctor policy requires it.
 The inventory and policy model now lives in `src/ici/core/capabilities.py`, while bounded probe
 execution remains in `src/ici/core/toolchain.py`; the latter is 482 lines after the separation.
-Verify/report inventory sharing and profile-level policy remain later I2-1 scope.
+The verify/report hand-off is completed in the follow-up
+[`2026-08-31-verify-capability-reporting.md`](2026-08-31-verify-capability-reporting.md); this
+document remains the Slice 2 doctor-focused history.
 
 ## Design
 
@@ -83,8 +85,8 @@ engine results. Its test engine measured 799/799 and TEM 4.83; line/function/bra
 pre-separation self-analysis), complexity maximum 23 with 66 issues, and duplicate rate 16.14%
 across 350 groups. The generated HTML was 3,513,188 bytes with zero external references.
 
-## Next Steps
+## Follow-up
 
-- Add the same inventory to verify/report outputs without probing the toolchain twice.
-- Define complete engine/profile requirement policy and its reporter/schema compatibility before
-  closing I2-1 Slice 3.
+Slice 3 adds the suite-level verify snapshot, reporter projections, and schema compatibility.
+See the follow-up workthrough for the implementation contract and the remaining final-gate
+evidence status.
