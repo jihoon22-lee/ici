@@ -412,6 +412,11 @@ green(756 tests)이었고, [sticky comment](https://github.com/jihoon22-lee/ici/
 
 **브랜치:** `feat/qmake-compile-context`
 
+- [x] qmake configure 뒤 shadow에서 deterministic `make clean`을 먼저 실행하고,
+  clean evidence와 실패 사유를 결과에 남긴다. 재사용한 qmake shadow에서 정적 archive와
+  test executable의 freshness가 어긋나 stale 실행 및 gcov stamp 불일치가 coverage 0%로
+  둔갑하지 않게 하는 선행 안전망이며, CMake build path는 변경하지 않는다. 이 체크는
+  compile capture 완료를 의미하지 않는다.
 - [ ] qmake verbose build, compiler wrapper, 선택적 외부 capture 도구를 실측 비교하는 spike를 먼저 한다.
 - [ ] shell parsing이나 임의 command 실행 없이 argv를 보존할 수 있는 방식을 채택한다.
 - [ ] Qt5/Qt6, target wrapper, shadow relative path를 fixture와 diskmap에서 검증한다.
