@@ -338,14 +338,15 @@ green(756 tests)이었고, [sticky comment](https://github.com/jihoon22-lee/ici/
 **브랜치:** `feat/tool-capabilities`
 
 - [x] Slice 1 — bounded probe/parser registry
-- [ ] Slice 2 — `doctor` shared inventory, redaction, and policy
+- [x] Slice 2 — `doctor` shared inventory, redaction, and policy
 - [ ] Slice 3 — `verify`/report shared inventory
 
-- [ ] Python interpreters, compilers, CMake, qmake, make, gcov, clang tools, Qt, binutils를 탐지한다.
-- [ ] version parser는 vendor suffix와 multi-line 출력을 견딘다.
-- [ ] compiler target triple, Qt major, generator와 지원 feature를 기록한다.
+- [x] Python interpreters, compilers, CMake, qmake, make, gcov, clang tools, Qt, binutils를 탐지한다.
+- [x] version parser는 vendor suffix와 multi-line 출력을 견딘다.
+- [x] compiler target triple, Qt major, generator와 지원 feature를 기록한다.
 - [ ] required/optional 도구 정책을 engine과 profile별로 계산한다.
-- [ ] `ici doctor --json`과 verify가 같은 inventory를 공유한다.
+- [x] `ici doctor --json`은 전체 bounded registry와 redacted evidence를 담은 `capability_inventory`를 제공하고, 기존 `tools` map을 유지한다. active support-matrix 행과 `[doctor].required_tools`의 provenance도 기록한다.
+- [ ] verify/report가 doctor와 같은 inventory를 공유하고 engine/profile별 required/optional 정책을 완성한다. 이 항목은 I2-1 Slice 3 범위다.
 
 ### I2-2. `AnalysisContext`와 artifact manifest
 

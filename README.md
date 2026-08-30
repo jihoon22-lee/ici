@@ -72,6 +72,7 @@ $ ici doctor
 7. **과장 없는 언어·도구 지원 매트릭스**:
    - 13개 엔진 × Python/C++ 범위를 `exact`/`heuristic`/`tool-backed`/`unsupported`로 선언하고 Qt 호환성, 필요 도구, fallback과 한계를 함께 공개합니다.
    - 프로젝트별 적용 여부와 실제 증거 상태를 계산해 doctor, JSON, HTML과 Qt viewer에서 같은 데이터로 표시합니다. 상세 표는 [엔진 레퍼런스 §1.4](docs/engine-reference.md#14-엔진-지원기능-매트릭스)를 참고하세요.
+   - `ici doctor`는 전체 tool registry를 한 번의 bounded probe snapshot으로 수집하고, 필요한 이유(`engine:language` 또는 `doctor.config`)와 missing/incomplete 상태를 함께 보여 줍니다. `ici doctor --json`의 `capability_inventory`는 status·counts·version/path/details/evidence를 담는 machine-readable 계약이며, 기존 `tools` map도 유지합니다.
 
 ---
 
@@ -86,7 +87,8 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # 환경 진단
 ici doctor
-ici doctor --json  # 도구 inventory와 프로젝트별 support matrix
+ici doctor --brief  # capability status와 준비된 도구 수를 한 줄로 확인
+ici doctor --json  # 전체 capability inventory와 프로젝트별 support matrix
 
 # 전체 검증 실행
 ici verify --report --html verify_report.html --open
