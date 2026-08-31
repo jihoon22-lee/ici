@@ -115,7 +115,7 @@ coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따�
 그 경로가 우선하므로, override를 사용할 때도 checkout과 분리된 사용자 전용 로컬 경로를
 지정해야 합니다.
 
-캐시 key(`ici.analysis-cache-key/v2`)는 단순한 파일 timestamp가 아니라 다음 입력을 모두
+캐시 key(`ici.analysis-cache-key/v3`)는 단순한 파일 timestamp가 아니라 다음 입력을 모두
 포함한 SHA-256 identity입니다.
 
 | key 구성 요소 | 의미 |
@@ -124,12 +124,16 @@ coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따�
 | 소스·build 설정 내용 | project source와 인식된 build/config 파일의 경로·내용·권한 digest |
 | effective ici 설정 | 기본·전역·프로젝트·`ICI_CONFIG` 병합 후 profile이 적용된 설정 digest |
 | toolchain | capability inventory의 도구 경로·버전·세부 정보 digest |
-| 엔진 구현 | engine descriptor와 implementation source digest |
+| 엔진 구현 | engine descriptor, engine class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로 엔진이 명시적으로 선언한 helper/dependency module source digest 목록 (C++ lint/cycle에는 `ici.core._cpp_replay_policy`, cycle에는 `ici.engines._cpp_include_trace` 포함) |
 | build variant | `release`, `coverage`, `sanitize` 또는 해당 없는 엔진의 `none` |
 | compilation context | 선택된 compile database의 project-relative path·바이트 digest, loader version, 정규화된 unit configuration/metadata와 parse diagnostics |
 | producer | ici 버전과 cache key schema 버전 |
 
-따라서 프로젝트 루트, 소스 또는 build 설정, 유효 설정, 도구 버전, 엔진 구현, build variant,
+엔진 implementation identity는 engine class의 module/qualname와 class source digest를 포함하고,
+class가 `CACHE_IMPLEMENTATION_MODULES`로 명시한 helper/dependency module 이름의 sorted unique
+목록과 각 module source digest도 포함합니다. import tree 전체를 암묵적으로 수집하지 않고
+명시적으로 선언된 구현 의존성만 cache identity에 반영합니다. 따라서 프로젝트 루트, 소스 또는
+build 설정, 유효 설정, 도구 버전, 엔진 구현, build variant,
 compile database의 내용·선택 경로·parse state, ici 버전 중 하나라도 달라지면 다른 key가 되어
 cache miss가 됩니다. 캐시 저장소를 지우지 않아도 이 identity 경계가 이전 결과의 재사용을
 막습니다.
@@ -259,6 +263,43 @@ report에는 source별 coverage target과 loader/configuration diagnostic이 함
 `coverage_percent`, production/covered unit 수, configuration 수와 선택된 database path는
 engine `extra`에 기록됩니다. compile argv와 외부 SDK/include 경로는 JSON·HTML·Markdown 출력
 경계에서 redaction되어 host 경로가 그대로 공개되지 않습니다.
+
+#### C++ lint와 cycle의 compilation-context 동작
+
+`compile_commands.json`이 선택되어 `CompilationContext`가 있으면 C++ `lint`와 `cycle`은
+각 production translation unit의 모든 covered configuration을 그대로 사용합니다. context의
+normalized direct GCC/Clang argv는 `CapabilityInventory`가 probe한 실행 파일과 대조한 뒤
+재생되며, source·working directory 경계를 다시 확인합니다. `-c`·출력·dependency 생성,
+plugin/wrapper/toolchain 주입 등 안전하지 않은 flag는 replay에서 제거하거나 거부합니다.
+보존되는 option은 positive allowlist와 허용된 value에 한정하고, allowlist 밖의 option은
+fail-closed로 거부합니다. compiler에는 inherited override가 없는 minimal replacement environment를
+주며 stdin은 빈 입력으로 닫습니다.
+따라서 DB가 있는데도 고정 `g++ -std=c++17` 명령이나 suffix heuristic으로 바뀌지 않습니다.
+
+lint는 compiler가 돌려준 위치 있는 `error`/`warning`/`note:`와 진단 없는 PASS를 source·line
+target으로 보존합니다. error-level context/unit diagnostic, context coverage 누락, unsafe
+replay, malformed 출력, timeout·truncation, spawn 실패 또는 검증할 수 없는 nonzero 결과는
+`ERROR`/`NOT_RUN`으로 fail-closed 처리됩니다. warning-level context/unit diagnostic은 위치 있는
+`WARN` target으로 보존하고 replay를 계속하므로 다른 오류가 없으면 exact evidence는
+`MEASURED`입니다. 이 실행 정보는 `ToolEvidence`에 남습니다.
+
+cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
+path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration
+graph를 독립적으로 분석하고 동일 cycle component만 중복 제거하며 configuration 간 edge는
+union하지 않습니다. 같은 component가 여러 configuration에서 확인되면 configuration 목록은
+metadata로만 보존됩니다. compiler가 active missing include를 보고하면 include 위치의
+`CppIncludeUnresolved` `WARN`으로 남기고 해당 edge는 연결하지 않습니다. trace가 malformed,
+truncated, timed out이거나 검증할 수 없는 nonzero 종료·replay/spawn 실패이면
+`ERROR`/`NOT_RUN`입니다.
+
+실제로 compilation context/database가 없는 경우에만 C++ lint가 `g++ -fsyntax-only -std=c++17
+-Wall -Wextra` 휴리스틱 폴백을, cycle이 unique project path-suffix 휴리스틱을 사용합니다.
+lint fallback도 ready capability의 direct `g++`를 우선하고 exact replay와 같은 positive allowlist,
+argument bound, project/compiler 경계, minimal replacement environment와 closed stdin을 적용합니다.
+unsafe package/include flag나 project-contained/non-canonical driver는 실행 전에 거부됩니다.
+도구를 실행할 수 있었던 두 폴백 결과는 `ESTIMATED`이며, g++ 자체가 없거나 폴백 실행이
+실패하면 `ERROR`/`NOT_RUN`입니다. cycle의 ambiguous/unresolved include는 위치와 후보를
+함께 보고합니다.
 
 환경과 지원 범위를 실행 전에 확인하려면 `ici doctor`를 사용합니다. 일반 출력은 설치된 도구와
 프로젝트별 엔진 matrix를 표로 보여주고, `--brief`는 프로젝트 언어·프레임워크 한 줄만 더하며,

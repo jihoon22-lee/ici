@@ -449,6 +449,7 @@ def run_process(
     timeout: float | None = 300.0,
     input_text: str | None = None,
     max_output_chars: int = 1_000_000,
+    replace_env: bool = False,
 ) -> ProcessResult:
     """Run an argv command with bounded output and safe timeout handling.
 
@@ -461,7 +462,7 @@ def run_process(
     if max_output_chars < 0:
         raise ValueError("max_output_chars must be non-negative")
 
-    exec_env = os.environ.copy()
+    exec_env = {} if replace_env else os.environ.copy()
     if env:
         exec_env.update(env)
 

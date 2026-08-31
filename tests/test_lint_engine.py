@@ -40,7 +40,9 @@ def test_cpp_source_scope_does_not_activate_python_lint(tmp_cpp_project, monkeyp
 
     result = LintEngine(tmp_cpp_project, config).run()
 
-    assert result.status == EngineStatus.PASS
+    assert result.status == EngineStatus.WARN
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert result.extra["cpp_analysis_mode"] == "heuristic"
     assert result.extra["python_files_parsed"] == 0
     assert not any(e.name in {"ruff", "ruff check", "ruff format"} for e in result.tool_evidence)
     assert not any(
@@ -777,7 +779,7 @@ def test_cpp_template_context_is_allowed_before_primary_error(tmp_cpp_project, m
     result = LintEngine(tmp_cpp_project).run()
 
     assert result.status == EngineStatus.FAIL
-    assert result.evidence == EvidenceState.MEASURED
+    assert result.evidence == EvidenceState.ESTIMATED
     error = next(
         target
         for target in result.targets
@@ -874,7 +876,7 @@ def test_cpp_warning_context_is_kept_as_a_finding(tmp_cpp_project, monkeypatch):
     result = LintEngine(tmp_cpp_project).run()
 
     assert result.status == EngineStatus.WARN
-    assert result.evidence == EvidenceState.MEASURED
+    assert result.evidence == EvidenceState.ESTIMATED
     target = next(target for target in result.targets if target.target_name == "C++Syntax")
     assert target.status == EngineStatus.WARN
     assert target.start_line == 3

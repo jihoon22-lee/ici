@@ -313,6 +313,44 @@ configuration digest와 CMake target을 보유합니다. target은 `CMakeFiles/<
 argv를 redaction 경계로 통과시키고, cache key는 DB 내용·parse state뿐 아니라 origin/generator/
 unity/target까지 포함하므로 CMake context가 바뀐 결과를 재사용하지 않습니다.
 
+#### I3-4 compiler-backed C++ lint와 include graph
+
+`lint`와 `cycle`의 C++ 경로는 shared `AnalysisContext`의 `CompilationContext`를 단일
+입력으로 사용합니다. context/database가 있으면 모든 covered production translation unit의
+각 configuration에서 `CapabilityInventory`가 직접 probe한 실행 가능한 GCC/Clang compiler와
+normalized argv를 선택해 replay합니다. replay는 source와 working directory의 project 경계를
+재검사하고, compile-only·출력·dependency 생성 옵션과 plugin/wrapper/toolchain 주입처럼
+안전하지 않은 flag를 제거하거나 거부합니다. 보존되는 compiler option은 positive allowlist와
+허용된 value에만 한정되며, allowlist 밖의 unknown option도 fail-closed로 거부합니다. compiler
+process에는 inherited override를 주지 않는 minimal replacement environment를 전달하고,
+stdin은 빈 입력으로 명시적으로 닫습니다. 따라서 엔진이 임의로 `g++ -std=c++17` 명령을
+재구성하지 않으며, context가 존재하는데 replay할 수 없을 때 suffix 또는 고정 compiler
+폴백으로 조용히 바뀌지 않습니다.
+
+- C++ lint는 configuration마다 controlled syntax check를 실행합니다. 위치가 있는
+  compiler `error`/`warning`/`note:`와 무진단 PASS를 원래 source·line target으로 보존하고,
+  error-level context/unit diagnostic, context coverage 누락·unsafe replay·malformed
+  output·timeout·truncation·spawn 또는 검증할 수 없는 nonzero 결과만 `ERROR`/`NOT_RUN`으로
+  fail-closed 기록합니다. warning-level context/unit diagnostic은 위치가 있는 `WARN` target으로
+  보존하고 exact 실행을 계속하므로, 다른 오류가 없으면 engine evidence는 `MEASURED`입니다.
+- C++ cycle은 configuration별 `-E -H` compiler trace에서 실제 active resolved include edge를
+  추출하고, edge를 `project`/`generated`/`system`/`third_party` scope로 집계합니다. 각
+  configuration graph를 독립적으로 분석하고 동일한 cycle component만 중복 제거하며,
+  configuration 간 edge는 union하지 않습니다. 같은 component가 여러 configuration에서
+  확인되면 report metadata에 configuration 목록만 보탭니다. active missing include는 위치 있는 `CppIncludeUnresolved`
+  `WARN`으로 남기고 edge를 만들지 않습니다. malformed/truncated/timed-out trace, 검증할 수
+  없는 nonzero 종료, replay/spawn 실패는 `ERROR`/`NOT_RUN`입니다.
+- compilation context가 실제로 없을 때만 cycle은 기존 unique project path-suffix heuristic을
+  사용하고 `ESTIMATED`로 표시합니다. 이 경로의 ambiguous/unresolved include도 위치와
+  후보를 보존합니다. context가 있으면 DB 부재 heuristic을 사용하지 않습니다.
+- DB 부재 C++ lint도 임의 argv를 직접 실행하지 않습니다. ready capability의 `g++`를 우선하고,
+  standalone에서는 canonical direct driver만 허용한 뒤 exact 경로와 같은 positive allowlist,
+  source/compiler 경계, argument bound, minimal replacement environment, closed stdin을 적용합니다.
+  unsafe package/include flag나 project-contained driver는 compiler 실행 전에 거부합니다.
+- `ici.engines._cpp_include_trace` parser는 `-H` entry/depth, missing-include trace,
+  include-guard trailer와 pseudo frame을 bounded하게 검증합니다. stale/unrecognized shape는 edge를
+  추측하지 않고 `ERROR`/`NOT_RUN`으로 닫힙니다.
+
 ### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
 
 `src/ici/core/pipeline.py`의 immutable `EngineDescriptor`가 각 엔진의 실행 계약과
@@ -355,20 +393,27 @@ build node는 read-only 관찰이나 다른 build node와 동시에 실행되지
 사용할 때도 checkout과 분리된 user-local 경로를 지정해야 합니다. `ici cache --clear`는
 선택된 exact entries directory의 JSON/TMP entry만 대상으로 합니다.
 
-cache key(`ici.analysis-cache-key/v2`)는 다음 identity를 canonical JSON으로 만든
+cache key(`ici.analysis-cache-key/v3`)는 다음 identity를 canonical JSON으로 만든
 SHA-256 digest입니다.
 
 - canonical project root
 - project source와 인식된 build/config 파일의 path·content·mode digest
 - profile을 포함한 effective ici configuration digest
 - capability inventory의 toolchain path·version·details digest
-- engine descriptor와 implementation source digest
+- engine descriptor와 engine class source digest, 그리고 engine class가
+  `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest
+  목록 (C++ lint/cycle에는 `ici.core._cpp_replay_policy`, cycle에는
+  `ici.engines._cpp_include_trace` 포함)
 - `none`, `release`, `coverage`, `sanitize` 중 engine build variant
 - compilation context identity: 선택된 database의 project-relative path와 바이트 digest,
   loader schema version, 정규화된 unit configuration/metadata와 diagnostics를 포함한 parse state
 - ici producer version과 cache key schema version
 
-이 key 설계는 소스나 정책이 같아 보여도 toolchain·엔진 구현·variant·compile database
+엔진 implementation identity는 engine class의 module/qualname와 class source digest를 포함하며,
+class가 명시적으로 선언한 helper/dependency module 이름의 sorted unique 목록과 각 module
+source digest도 포함합니다. 따라서 import tree 전체를 암묵적으로 따라가지 않고, 엔진이
+선언한 구현 의존성만 identity 경계에 들어갑니다. 이 key 설계는 소스나 정책이 같아 보여도
+toolchain·엔진 구현·variant·compile database
 내용/선택 경로·parse state·ici 버전이 달라지면 entry를 재사용하지 않게 합니다. 완전한
 `PASS`/`WARN`/`FAIL` 결과는 evidence가
 `NOT_RUN`이 아니고 timeout·truncation·tool error가 없으며 artifact manifest가 유효한

@@ -16,6 +16,7 @@ from ici.core.models import (
     ToolEvidence,
 )
 from ici.core.runner import ProcessResult, run_process
+from ici.engines._cpp_lint import run_cpp_lint
 from ici.engines.base import BaseEngine
 
 _RUFF_FORMAT_SUCCESS_RE = re.compile(r"\d+ files? already formatted(?:\r?\n)?\Z")
@@ -26,16 +27,6 @@ _RUFF_REFORMAT_SUMMARY_RE = re.compile(
 )
 _RUFF_WARNING_RE = re.compile(r"^warning:\s+\S.*$")
 _RUFF_FORMAT_PREVIEW_ONLY_RE = re.compile(r"only respected in preview mode", re.IGNORECASE)
-_CPP_DIAGNOSTIC_RE = re.compile(
-    r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
-    r"(?P<kind>fatal error|error|warning|note):\s*(?P<message>\S.*)$"
-)
-_CPP_CONTEXT_RE = re.compile(r"^\s*(?:\d+\s*\|.*|\|.*|[\^~].*)$")
-_CPP_CONTEXT_HEADER_RE = re.compile(
-    r"^.+:\s+In (?:function|member function|constructor|destructor|lambda function|"
-    r"instantiation of)(?: .*)?:$"
-)
-_CPP_REQUIRED_FROM_RE = re.compile(r"^.+:[1-9]\d*(?::[1-9]\d*)?:\s+required from here$")
 
 
 def _parse_ruff_warning_blocks(stderr: str) -> tuple[list[str], str | None]:
@@ -72,6 +63,13 @@ def _parse_ruff_warning_blocks(stderr: str) -> tuple[list[str], str | None]:
 class LintEngine(BaseEngine):
     """Verifies linting, syntax, and formatting rules across C++ and Python."""
 
+    CACHE_IMPLEMENTATION_MODULES = (
+        "ici.core._cpp_replay_policy",
+        "ici.core.cpp_replay",
+        "ici.engines._cpp_lint",
+        "ici.engines.lint",
+    )
+
     def run(self) -> EngineResult:
         t0 = time.time()
         targets: list[InspectionTarget] = []
@@ -79,6 +77,10 @@ class LintEngine(BaseEngine):
         tool_warnings: list[str] = []
         tool_evidence: list[ToolEvidence] = []
         self._python_files_parsed = 0
+        self._cpp_analysis_mode = "not_applicable"
+        self._cpp_configurations_checked = 0
+        self._cpp_sources_checked = 0
+        self._cpp_context_missing = 0
 
         # 1. Python Linting & Formatting Check
         python_files = self.project_python_sources()
@@ -90,7 +92,7 @@ class LintEngine(BaseEngine):
         # 2. C++ Linting & Syntax Check
         cpp_files = self.project_cpp_sources()
         if cpp_files:
-            tool_errors.extend(self._lint_cpp(cpp_files, targets, tool_evidence))
+            tool_errors.extend(self._lint_cpp(cpp_files, targets, tool_evidence, tool_warnings))
 
         nothing_applies = not python_files and not cpp_files
         if nothing_applies:
@@ -138,9 +140,16 @@ class LintEngine(BaseEngine):
             duration=duration,
             targets=targets,
             extra={
-                "violations_count": len(targets),
+                "violations_count": sum(
+                    target.status not in {EngineStatus.PASS, EngineStatus.SKIP}
+                    for target in targets
+                ),
                 "python_files_parsed": getattr(self, "_python_files_parsed", 0),
-                "metrics_summary": f"{len(targets)} issues",
+                "cpp_analysis_mode": self._cpp_analysis_mode,
+                "cpp_configurations_checked": self._cpp_configurations_checked,
+                "cpp_sources_checked": self._cpp_sources_checked,
+                "cpp_context_missing": self._cpp_context_missing,
+                "metrics_summary": f"{fail_count + warn_count} issues",
             },
             required=bool(cfg.get("required", True)),
             evidence=(
@@ -611,104 +620,23 @@ class LintEngine(BaseEngine):
         cpp_files: list[Path],
         targets: list[InspectionTarget],
         tool_evidence: list[ToolEvidence] | None = None,
+        tool_warnings: list[str] | None = None,
     ) -> list[str]:
-        errors: list[str] = []
         evidence = tool_evidence if tool_evidence is not None else []
-        gxx = shutil.which("g++")
-        if not gxx:
-            self._record_missing_tool(evidence, "g++")
-            return ["g++ is required when C++ sources are present"]
-        # Passing config matters: without it the configured package flags
-        # never reach the compiler and Qt-backed sources fail to parse.
-        inc_flags = self.project_cpp_include_flags()
-
-        for cpp in cpp_files:
-            cmd = [gxx, "-fsyntax-only", "-std=c++17", "-Wall", "-Wextra", *inc_flags, str(cpp)]
-            try:
-                result = run_process(cmd, cwd=self.project_root)
-            except Exception as exc:
-                self._record_tool_exception(evidence, "g++", cmd, exc)
-                errors.append(f"C++ syntax check could not execute: {cpp.name}")
-                continue
-            tool_record = self._record_process(evidence, "g++", cmd, result)
-            if result.timed_out:
-                message = f"C++ syntax check timed out: {cpp.name}"
-                tool_record.error = message
-                errors.append(message)
-                continue
-            if result.truncated:
-                message = f"C++ syntax output was truncated: {cpp.name}"
-                tool_record.error = message
-                errors.append(message)
-                continue
-            if not isinstance(result.returncode, int) or result.returncode < 0:
-                message = f"C++ syntax check terminated unexpectedly: {cpp.name}"
-                tool_record.error = message
-                errors.append(message)
-                continue
-
-            parsed_targets, malformed, found_diagnostic = self._parse_cpp_diagnostics(
-                result.stdout, result.stderr
-            )
-            targets.extend(parsed_targets)
-            if malformed:
-                message = f"C++ syntax output was not parseable: {cpp.name}"
-                tool_record.error = message
-                errors.append(message)
-            elif result.returncode >= 2:
-                message = f"g++ failed with exit code {result.returncode}: {cpp.name}"
-                tool_record.error = message
-                errors.append(message)
-            elif result.returncode != 0 and not found_diagnostic:
-                message = f"C++ syntax output had no diagnostics: {cpp.name}"
-                tool_record.error = message
-                errors.append(message)
-
-        return errors
-
-    def _parse_cpp_diagnostics(
-        self, stdout: str, stderr: str
-    ) -> tuple[list[InspectionTarget], bool, bool]:
-        parsed: list[InspectionTarget] = []
-        malformed = False
-        found_diagnostic = False
-        for raw_line in (stdout + "\n" + stderr).splitlines():
-            line = raw_line.strip()
-            if not line:
-                continue
-            match = _CPP_DIAGNOSTIC_RE.match(line)
-            if match:
-                found_diagnostic = True
-                kind = match.group("kind")
-                file_path = self._diagnostic_path(match.group("file"))
-                parsed.append(
-                    InspectionTarget(
-                        file_path=file_path,
-                        start_line=int(match.group("line")),
-                        target_name="C++Syntax",
-                        status=EngineStatus.FAIL if "error" in kind else EngineStatus.WARN,
-                        message=f"{kind}: {match.group('message')}",
-                    )
-                )
-                continue
-            if line.startswith("In file included from") or line.startswith("from "):
-                continue
-            if found_diagnostic and self._is_cpp_context(line):
-                continue
-            if _CPP_CONTEXT_HEADER_RE.fullmatch(line) or _CPP_REQUIRED_FROM_RE.fullmatch(line):
-                continue
-            malformed = True
-        return parsed, malformed, found_diagnostic
-
-    @staticmethod
-    def _is_cpp_context(line: str) -> bool:
-        return _CPP_CONTEXT_RE.fullmatch(line) is not None
-
-    def _diagnostic_path(self, value: str) -> str:
-        path = Path(value.strip())
-        try:
-            return str(path.relative_to(self.project_root))
-        except ValueError:
-            if path.is_absolute():
-                return str(path)
-            return str(path)
+        warnings = tool_warnings if tool_warnings is not None else []
+        outcome = run_cpp_lint(
+            self.project_root,
+            cpp_files,
+            self.analysis_context,
+            self.project_cpp_include_flags(),
+            runner=run_process,
+            which=shutil.which,
+        )
+        targets.extend(outcome.targets)
+        evidence.extend(outcome.evidence)
+        warnings.extend(outcome.warnings)
+        self._cpp_analysis_mode = outcome.mode
+        self._cpp_configurations_checked = outcome.configurations_checked
+        self._cpp_sources_checked = outcome.sources_checked
+        self._cpp_context_missing = outcome.missing_sources
+        return outcome.errors
