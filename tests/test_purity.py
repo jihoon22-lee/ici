@@ -101,6 +101,19 @@ def test_ci_verify_keeps_reports_summary_and_artifacts_without_publish():
     assert {"verify_report.html", "verify_report.json"} <= uploaded
 
 
+def test_ci_builds_pyz_twice_and_rejects_project_mutation():
+    verify = _job_block(_workflow("ci.yml"), "verify")
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "verify-reproducibility.sh"
+    script = script_path.read_text(encoding="utf-8")
+
+    assert "./scripts/verify-reproducibility.sh" in verify
+    assert script.count("./scripts/build-pyz.sh") == 2
+    assert "first_sha256=$(sha256sum dist/ici.pyz" in script
+    assert "second_sha256=$(sha256sum dist/ici.pyz" in script
+    assert "git status --porcelain=v1 --untracked-files=all" in script
+    assert '[[ "$status_before" != "$status_after" ]]' in script
+
+
 def test_all_ci_and_release_checkouts_disable_credential_persistence():
     for workflow_name in ("ci.yml", "release.yml"):
         workflow = _workflow(workflow_name)

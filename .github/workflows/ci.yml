@@ -70,10 +70,10 @@ jobs:
         run: |
           uv run --python 3.10 pytest tests/test_cpp_e2e.py -v
 
-      - name: Build Standalone ZipApp (dist/ici.pyz)
+      - name: Build Reproducible Standalone ZipApp (dist/ici.pyz)
         run: |
-          chmod +x ./scripts/build-pyz.sh ./scripts/smoke.sh ./scripts/launcher.sh
-          ./scripts/build-pyz.sh
+          chmod +x ./scripts/build-pyz.sh ./scripts/verify-reproducibility.sh ./scripts/smoke.sh ./scripts/launcher.sh
+          ./scripts/verify-reproducibility.sh
 
       - name: Run Isolated Smoke Test
         run: |
