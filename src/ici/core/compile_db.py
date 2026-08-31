@@ -127,45 +127,55 @@ def _is_dir(path: Path) -> bool:
         return False
 
 
+def _windows_quote(
+    command: str,
+    index: int,
+    slashes: int,
+    quoted: bool,
+    value: list[str],
+) -> tuple[int, bool]:
+    value.extend("\\" for _ in range(slashes // 2))
+    if slashes % 2:
+        value.append('"')
+    elif quoted and index + 1 < len(command) and command[index + 1] == '"':
+        value.append('"')
+        index += 1
+    else:
+        quoted = not quoted
+    return index + 1, quoted
+
+
+def _windows_argument(command: str, index: int) -> tuple[str, int]:
+    value: list[str] = []
+    quoted = False
+    while index < len(command) and (quoted or command[index] not in " \t"):
+        slashes = 0
+        while index < len(command) and command[index] == "\\":
+            slashes += 1
+            index += 1
+        if index < len(command) and command[index] == '"':
+            index, quoted = _windows_quote(command, index, slashes, quoted, value)
+            continue
+        value.extend("\\" for _ in range(slashes))
+        if index < len(command) and (quoted or command[index] not in " \t"):
+            value.append(command[index])
+            index += 1
+    if quoted:
+        raise ValueError("unclosed quote")
+    return "".join(value), index
+
+
 def _split_windows_command(command: str) -> tuple[str, ...]:
     """Parse the Microsoft C runtime argv convention without executing it."""
 
     argv: list[str] = []
-    length = len(command)
     index = 0
-    while index < length:
-        while index < length and command[index] in " \t":
+    while index < len(command):
+        while index < len(command) and command[index] in " \t":
             index += 1
-        if index >= length:
-            break
-        value: list[str] = []
-        quoted = False
-        started = False
-        while index < length and (quoted or command[index] not in " \t"):
-            started = True
-            slashes = 0
-            while index < length and command[index] == "\\":
-                slashes += 1
-                index += 1
-            if index < length and command[index] == '"':
-                value.extend("\\" for _ in range(slashes // 2))
-                if slashes % 2:
-                    value.append('"')
-                elif quoted and index + 1 < length and command[index + 1] == '"':
-                    value.append('"')
-                    index += 1
-                else:
-                    quoted = not quoted
-                index += 1
-                continue
-            value.extend("\\" for _ in range(slashes))
-            if index < length and (quoted or command[index] not in " \t"):
-                value.append(command[index])
-                index += 1
-        if quoted:
-            raise ValueError("unclosed quote")
-        if started:
-            argv.append("".join(value))
+        if index < len(command):
+            value, index = _windows_argument(command, index)
+            argv.append(value)
     return tuple(argv)
 
 
@@ -239,6 +249,23 @@ def _extract_standard(argv: tuple[str, ...]) -> tuple[str, list[CompilationDiagn
     return standard, diagnostics
 
 
+def _language_value(
+    value: str | None,
+    current: str,
+    diagnostics: list[CompilationDiagnostic],
+) -> str:
+    if value is None:
+        diagnostics.append(_diagnostic("missing-flag-value", "The -x flag has no value."))
+        return current
+    if not value:
+        return current
+    normalized = _LANGUAGE_ALIASES.get(value.casefold())
+    if normalized is not None:
+        return normalized
+    diagnostics.append(_diagnostic("unknown-language", "The -x language value is not recognized."))
+    return current
+
+
 def _extract_language(
     argv: tuple[str, ...], source: str
 ) -> tuple[str, list[CompilationDiagnostic]]:
@@ -247,18 +274,31 @@ def _extract_language(
     index = 1
     while index < len(argv):
         value, next_index = _option_value(argv, index, "-x", joined=False)
-        if value is None:
-            diagnostics.append(_diagnostic("missing-flag-value", "The -x flag has no value."))
-        elif value:
-            normalized = _LANGUAGE_ALIASES.get(value.casefold())
-            if normalized is None:
-                diagnostics.append(
-                    _diagnostic("unknown-language", "The -x language value is not recognized.")
-                )
-            else:
-                language = normalized
+        language = _language_value(value, language, diagnostics)
         index = next_index
     return language or _SOURCE_LANGUAGES.get(Path(source).suffix.casefold(), ""), diagnostics
+
+
+def _parse_define(value: str) -> tuple[CompilationDefine | None, CompilationDiagnostic | None]:
+    name, separator, definition_value = value.partition("=")
+    if not name or any(character.isspace() for character in name):
+        return None, _diagnostic("invalid-define", "A compiler definition has an invalid name.")
+    return (
+        CompilationDefine(name=name, value=definition_value if separator else None),
+        None,
+    )
+
+
+def _append_define(
+    value: str,
+    definitions: list[CompilationDefine],
+    diagnostics: list[CompilationDiagnostic],
+) -> None:
+    definition, diagnostic = _parse_define(value)
+    if definition is not None:
+        definitions.append(definition)
+    if diagnostic is not None:
+        diagnostics.append(diagnostic)
 
 
 def _extract_defines(
@@ -272,15 +312,7 @@ def _extract_defines(
         if value is None:
             diagnostics.append(_diagnostic("missing-flag-value", "The -D flag has no value."))
         elif value:
-            name, separator, definition_value = value.partition("=")
-            if not name or any(character.isspace() for character in name):
-                diagnostics.append(
-                    _diagnostic("invalid-define", "A compiler definition has an invalid name.")
-                )
-            else:
-                definitions.append(
-                    CompilationDefine(name=name, value=definition_value if separator else None)
-                )
+            _append_define(value, definitions, diagnostics)
         index = next_index
     return tuple(definitions), diagnostics
 
