@@ -298,6 +298,41 @@ class CompilationSearchPath:
             raise ValueError("external compilation search path must not be empty")
 
 
+def _typed_tuple(values: Any, expected: type, description: str) -> tuple[Any, ...]:
+    normalized = tuple(values)
+    if not all(isinstance(item, expected) for item in normalized):
+        raise ValueError(f"{description} must contain {expected.__name__} values")
+    return normalized
+
+
+def _validate_compilation_unit_scalars(unit: CompilationUnit) -> None:
+    _validate_relative_path(unit.source, "compilation source", allow_dot=False)
+    _validate_relative_path(unit.directory, "compilation directory", allow_dot=True)
+    if unit.output:
+        _validate_relative_path(unit.output, "compilation output", allow_dot=False)
+    if not unit.argv or not all(isinstance(item, str) and item for item in unit.argv):
+        raise ValueError("compilation argv must contain non-empty strings")
+    if unit.language and unit.language not in {"c", "c++", "objective-c", "objective-c++"}:
+        raise ValueError(f"unsupported compilation language: {unit.language!r}")
+    if not isinstance(unit.compiler, str):
+        raise ValueError("compilation compiler must be a string")
+    if not isinstance(unit.standard, str):
+        raise ValueError("compilation standard must be a string")
+    if unit.configuration and _DIGEST_RE.fullmatch(unit.configuration) is None:
+        raise ValueError("compilation configuration must be a sha256 digest")
+
+
+def _validate_compilation_sysroot(unit: CompilationUnit) -> None:
+    if unit.sysroot_scope not in {"", "project", "external"}:
+        raise ValueError(f"unsupported compilation sysroot scope: {unit.sysroot_scope!r}")
+    if bool(unit.sysroot) != bool(unit.sysroot_scope):
+        raise ValueError("compilation sysroot and scope must be declared together")
+    if unit.sysroot_scope == "project":
+        _validate_relative_path(unit.sysroot, "compilation sysroot", allow_dot=True)
+    elif unit.sysroot and not isinstance(unit.sysroot, str):
+        raise ValueError("external compilation sysroot must be a string")
+
+
 @dataclass(frozen=True)
 class CompilationUnit:
     """One normalized compile invocation with immutable provenance."""
@@ -317,40 +352,20 @@ class CompilationUnit:
     diagnostics: tuple[CompilationDiagnostic, ...] = ()
 
     def __post_init__(self) -> None:
-        _validate_relative_path(self.source, "compilation source", allow_dot=False)
-        _validate_relative_path(self.directory, "compilation directory", allow_dot=True)
-        if self.output:
-            _validate_relative_path(self.output, "compilation output", allow_dot=False)
-        if not self.argv or not all(isinstance(item, str) and item for item in self.argv):
-            raise ValueError("compilation argv must contain non-empty strings")
-        if self.language and self.language not in {"c", "c++", "objective-c", "objective-c++"}:
-            raise ValueError(f"unsupported compilation language: {self.language!r}")
-        if not isinstance(self.compiler, str):
-            raise ValueError("compilation compiler must be a string")
-        if not isinstance(self.standard, str):
-            raise ValueError("compilation standard must be a string")
-        if self.sysroot_scope not in {"", "project", "external"}:
-            raise ValueError(f"unsupported compilation sysroot scope: {self.sysroot_scope!r}")
-        if bool(self.sysroot) != bool(self.sysroot_scope):
-            raise ValueError("compilation sysroot and scope must be declared together")
-        if self.sysroot_scope == "project":
-            _validate_relative_path(self.sysroot, "compilation sysroot", allow_dot=True)
-        elif self.sysroot and not isinstance(self.sysroot, str):
-            raise ValueError("external compilation sysroot must be a string")
-        if self.configuration and _DIGEST_RE.fullmatch(self.configuration) is None:
-            raise ValueError("compilation configuration must be a sha256 digest")
+        _validate_compilation_unit_scalars(self)
+        _validate_compilation_sysroot(self)
         object.__setattr__(self, "argv", tuple(self.argv))
-        defines = tuple(self.defines)
-        include_paths = tuple(self.include_paths)
-        diagnostics = tuple(self.diagnostics)
-        if not all(isinstance(item, CompilationDefine) for item in defines):
-            raise ValueError("compilation defines must contain CompilationDefine values")
-        if not all(isinstance(item, CompilationSearchPath) for item in include_paths):
-            raise ValueError("compilation include paths must contain CompilationSearchPath values")
-        if not all(isinstance(item, CompilationDiagnostic) for item in diagnostics):
-            raise ValueError(
-                "compilation unit diagnostics must contain CompilationDiagnostic values"
-            )
+        defines = _typed_tuple(self.defines, CompilationDefine, "compilation defines")
+        include_paths = _typed_tuple(
+            self.include_paths,
+            CompilationSearchPath,
+            "compilation include paths",
+        )
+        diagnostics = _typed_tuple(
+            self.diagnostics,
+            CompilationDiagnostic,
+            "compilation unit diagnostics",
+        )
         object.__setattr__(self, "defines", defines)
         object.__setattr__(self, "include_paths", include_paths)
         object.__setattr__(self, "diagnostics", diagnostics)
