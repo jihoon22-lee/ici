@@ -4,9 +4,10 @@
 
 I3-3 adds a bounded qmake preflight that captures the compiler invocations qmake
 actually builds, then publishes them as the shared immutable compilation context.
-This workthrough records the implementation present on `feat/qmake-compile-context`
-and the limited local E2E evidence available for the slice. The current task changed
-documentation only; it did not modify production or test files.
+This workthrough records the implementation merged through [PR #103](https://github.com/jihoon22-lee/ici/pull/103)
+and the complete local and remote evidence for the slice. The follow-up evidence
+update changed documentation only; the production and test implementation remains
+the exact revision that passed PR #103.
 
 ## Context
 
@@ -129,11 +130,27 @@ The final local evidence for this slice is:
   complexity 25; 117.25 seconds; line issues decreased from 10 to 9.
 - The self HTML was 4,722,391 bytes, had a title, and contained zero external
   script/link/image dependencies.
+- The merged [PR #103](https://github.com/jihoon22-lee/ici/pull/103) used squash commit
+  [`e97d6d4502232bf7bc5b36a21f3b031306f43554`](https://github.com/jihoon22-lee/ici/commit/e97d6d4502232bf7bc5b36a21f3b031306f43554).
+  [CI run 33394395321](https://github.com/jihoon22-lee/ici/actions/runs/33394395321) reported
+  `Verify & Dogfood ici`, `Viewer GUI Qt5`, `Viewer GUI Qt6`,
+  `Publish PR Report & Sticky Comment`, and `Merge Gate` as SUCCESS; `Publish Main` was
+  expectedly skipped.
+- The [sticky comment](https://github.com/jihoon22-lee/ici/pull/103#issuecomment-5478744238)
+  reported ici WARN (Pass 8, Warn 4, Fail 0, Error 0, Skip 1, TEM 4.82, tests 1,112,
+  line/function/branch 88.9%/96.5%/80.1%) and viewer PASS (Pass 11, Warn 0, Fail 0,
+  Error 0, Skip 2, TEM 4.89, tests 7, compile DB production 5/5, 20 configurations).
+- Independent [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/103/) and
+  [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/103/) checks returned HTTP 200
+  `text/html`, with titles `ici Verification Report — ici` and `ici Verification Report — viewer`,
+  observed sizes 4,716,032 and 337,918 bytes, and zero external `script`/`link`/`img`
+  references in both reports.
+- I3-3 is complete. The I3-2 BuildScope target-by-target comparison remains outstanding,
+  and I3-4 plus the I3 checkpoint remain pending.
 - `git diff --check` returned exit 0.
 
 ## Next Steps
 
-1. Open the PR and record its Merge Gate, sticky comment, and Pages/Zero-CDN evidence.
-2. Complete the outstanding BuildScope target-by-target comparison.
-3. Keep I3-4 lint/include-graph migration and the I3 checkpoint pending until their
+1. Complete the outstanding I3-2 BuildScope target-by-target comparison.
+2. Keep I3-4 lint/include-graph migration and the I3 checkpoint pending until their
    own implementation and evidence are complete.
