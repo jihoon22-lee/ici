@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Pages publication latency tolerance**: the PR report gate now waits up to ten minutes for
+  legacy GitHub Pages to serve newly committed ici/viewer reports. It still fails closed unless
+  every sticky-comment URL returns HTML, while avoiding false failures when consecutive report
+  commits leave the final Pages deployment queued longer than the previous 90-second window.
+
 ### Added
 - **I3-3 qmake exact compilation context**: qmake projects without an
   explicit or discovered `compile_commands.json` can now produce a canonical Release context in
@@ -97,13 +103,21 @@
   - Local source revalidation on 2026-09-01 passed: the focused implementation bundle had 308
     tests; Python 3.10 full pytest had 1,275 passed in 48.61s; Ruff check passed for all files, Ruff
     format covered 142 files, mypy passed 83 source files, every new source passed the line gate,
-    and no new helper had a complexity issue. Two final `build-pyz` runs matched at SHA-256
-    `f6c6cfb85f55f41d548b65e9cb921b6b56d005eae838ec873ff7c927eaac2dc2` (2,151,981 bytes), and
-    smoke passed. The packaged pyz deep/no-cache reruns passed for LogLens (12/14 applicable,
-    2 skipped; 12/12 tests; 40 configurations; 21.59s; HTML 443,828 bytes; correct title; zero
-    external assets) and DiskMap (12/14 applicable, 2 skipped; 9/9 tests; 20 configurations;
-    79.74s; HTML 310,558 bytes; correct title; zero external assets). PR/CI/Pages evidence remains
-    pending; I3 as a whole remains pending on the BuildScope comparison.
+    and no new helper had a complexity issue. The remote evidence is complete through
+    [PR #105](https://github.com/jihoon22-lee/ici/pull/105),
+    squash-merged as [`183b2d83421cd3173fb2e6f745c0e39bd5c36a78`](https://github.com/jihoon22-lee/ici/commit/183b2d83421cd3173fb2e6f745c0e39bd5c36a78).
+    [CI run `33409862110`](https://github.com/jihoon22-lee/ici/actions/runs/33409862110) reported
+    `Verify & Dogfood ici` (3m58s), `Viewer GUI build (Qt5)` (45s),
+    `Viewer GUI build (Qt6)` (1m15s),
+    `Publish PR Report & Sticky Comment` (1m16s), and `Merge Gate` (3s) as SUCCESS; `Publish Main`
+    was expectedly SKIPPED for the PR. The [sticky comment](https://github.com/jihoon22-lee/ici/pull/105#issuecomment-5480770505)
+    contains both ici and viewer links/tables: ici WARN (Pass 8, Warn 4, Fail 0, Error 0, Skip 1,
+    TEM 4.84, tests 1,275/1,275, branch 80.4%) and viewer PASS (Pass 11, Warn 0, Fail 0, Error 0,
+    Skip 2, TEM 4.89, tests 7/7). Independent [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/105/)
+    and [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/105/) both returned HTTP/2 200,
+    `text/html;charset=utf-8`, correct titles, and zero external `script`/`link`/`img`/`iframe`/`import`
+    references; observed sizes were 5,458,757 and 344,868 bytes respectively. BuildScope
+    target-by-target comparison remains pending, so I3 as a whole remains pending.
 - **I3-2 canonical CMake compilation context**: CMake projects without an existing
   compilation database now receive a deterministic Release analysis preflight in
   `build/ici-cmake-build`. Every CMake configure exports `compile_commands.json`;
