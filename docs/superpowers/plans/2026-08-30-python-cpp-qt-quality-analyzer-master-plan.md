@@ -530,12 +530,13 @@ TEM 4.89, tests 7, compile_db 5/5 production units, 20 configurations, 0 issues)
 독립적으로 확인한 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/)와
 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/)는 모두 HTTP/2 200,
 `text/html`, title present, 외부 dependency 0건이었고 관측 bytes는 각각 4,574,483와 337,918이었다.
-BuildScope target-by-target 대조는 pending이며 I3-3 final quality/remote evidence, I3-4와 I3
-전체도 아직 완료되지 않았다.
+BuildScope target-by-target 대조는 pending이며 I3-3은 완료됐다. I3-4와 I3 전체는 아직
+완료되지 않았다.
 
 ### I3-3. qmake compile capture
 
-**브랜치:** `feat/qmake-compile-context`
+**병합:** [PR #103](https://github.com/jihoon22-lee/ici/pull/103), squash commit
+[`e97d6d4502232bf7bc5b36a21f3b031306f43554`](https://github.com/jihoon22-lee/ici/commit/e97d6d4502232bf7bc5b36a21f3b031306f43554)
 
 - [x] qmake configure 뒤 shadow에서 deterministic `make clean`을 먼저 실행하고,
   clean evidence와 실패 사유를 결과에 남긴다. 재사용한 qmake shadow에서 정적 archive와
@@ -551,9 +552,9 @@ BuildScope target-by-target 대조는 pending이며 I3-3 final quality/remote ev
 - [x] exact capture가 불가능한 환경은 명시적 POSIX lower-confidence mode로 남긴다.
 - [x] Python 3.10 full quality gate, reproducible pyz/build/smoke와 self-verify local evidence를
   확정한다.
-- [ ] PR/CI/Merge Gate/Pages remote evidence를 이 slice의 최종 증거로 확정한다.
+- [x] PR/CI/Merge Gate/Pages remote evidence를 이 slice의 최종 증거로 확정한다.
 
-**I3-3 구현 및 bounded local E2E (2026-08-31; final gates pending):** qmake는 자체적으로
+**I3-3 완료 및 bounded local/remote evidence (2026-08-31):** qmake는 자체적으로
 `compile_commands.json`을 내보내지 않으므로, 명시적·자동 발견 database가 없고 root backend가
 qmake인 C/C++ project에만 `build/ici-qmake-build` Release shadow를 사용한다. 기존 database는
 항상 우선하며, capture가 실패해도 임의 database를 대신 실행하지 않는다.
@@ -604,7 +605,20 @@ line/function/branch 88.8%/96.5%/79.9%; TEM 4.82; complexity 25; 117.25s)이었�
 qmake dispatch conditional이 `VerifyOrchestrator.run_all` complexity를 25→26으로 올려 FAIL을
 만든 것을 발견해 typed helper로 분리했고, final self run은 25/WARN으로 복구됐다. qmake argv
 builder도 분리해 `cmake.py`를 512→495 code lines로 낮췄고 self line issues는 10→9가 됐다.
-remote PR/CI/Pages evidence만 pending이다.
+원격 evidence도 완료됐다. [PR #103](https://github.com/jihoon22-lee/ici/pull/103)은
+squash commit [`e97d6d4502232bf7bc5b36a21f3b031306f43554`](https://github.com/jihoon22-lee/ici/commit/e97d6d4502232bf7bc5b36a21f3b031306f43554)로
+병합됐다. [CI run 33394395321](https://github.com/jihoon22-lee/ici/actions/runs/33394395321)의
+`Verify & Dogfood ici`, `Viewer GUI Qt5`, `Viewer GUI Qt6`, `Publish PR Report & Sticky Comment`,
+`Merge Gate`가 모두 SUCCESS였고 `Publish Main`은 PR에서 expected SKIPPED였다. [sticky comment](https://github.com/jihoon22-lee/ici/pull/103#issuecomment-5478744238)는
+ici WARN(Pass 8, Warn 4, Fail 0, Error 0, Skip 1, TEM 4.82, tests 1,112,
+line/function/branch 88.9%/96.5%/80.1%)와 viewer PASS(Pass 11, Warn 0, Fail 0, Error 0,
+Skip 2, TEM 4.89, tests 7, compile DB production 5/5, 20 configurations)를 기록했다.
+Independent [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/103/)와
+[viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/103/)는 각각 HTTP 200,
+`text/html`, title `ici Verification Report — ici`와 `ici Verification Report — viewer`,
+관측 bytes 4,716,032와 337,918, 외부 `script`/`link`/`img` reference 0건을 확인했다.
+I3-3은 완전히 완료됐다. I3-2 BuildScope target-by-target 대조는 아직 pending이며, I3-4와
+I3 전체도 완료되지 않았다.
 
 ### I3-4. lint와 include graph 이관
 
@@ -919,8 +933,8 @@ remote PR/CI/Pages evidence만 pending이다.
 - [x] I2: toolchain inventory, shared context, engine DAG, cache/reproducibility와 PR·CI·Pages 증거 완료
 - [ ] I3: I3-1 compilation model/검증 게이트와 PR·CI·Pages evidence 완료; I3-2 canonical
   CMake generation first four items, PR·CI·Pages evidence, and local viewer/LogLens checks
-  complete, buildscope target comparison pending; I3-3 implementation/local E2E/quality gates
-  complete but remote evidence pending; I3-4 pending
+  complete, buildscope target comparison pending; I3-3 implementation/local E2E/quality gates와
+  PR·CI·Pages evidence complete; I3-4 pending
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
@@ -943,5 +957,5 @@ squash merge commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.
 [CI run 33386134812](https://github.com/jihoon22-lee/ici/actions/runs/33386134812),
 [sticky comment](https://github.com/jihoon22-lee/ici/pull/101#issuecomment-5477565364),
 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/), [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/)까지
-완료됐다. 현재 ici 구현 단계는 I3-3 remote evidence와 I3-2 buildscope target comparison이며,
-I3-4와 I3 전체는 아직 완료되지 않았다.
+완료됐다. 현재 ici 구현 단계는 I3-2 buildscope target comparison이며, I3-4와 I3 전체는 아직
+완료되지 않았다. I3-3 qmake exact capture는 PR #103의 CI·Pages evidence까지 완료됐다.
