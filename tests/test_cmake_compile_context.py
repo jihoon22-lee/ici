@@ -421,6 +421,23 @@ def test_cmake_cache_invalid_encoding_is_rejected(tmp_path: Path) -> None:
     assert [item.code for item in diagnostics] == ["cmake-cache-invalid"]
 
 
+def test_cmake_cache_unknown_unity_value_is_diagnosed(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    _write_cmake_cache(
+        root,
+        "CMAKE_GENERATOR:INTERNAL=Ninja\n"
+        "CMAKE_UNITY_BUILD:BOOL=maybe\n"
+        "CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON\n",
+    )
+
+    generator, unity, diagnostics = cmake_context._read_cmake_metadata(root)
+
+    assert generator == "Ninja"
+    assert unity is None
+    assert [item.code for item in diagnostics] == ["cmake-unity-unknown"]
+
+
 @pytest.mark.parametrize("escape_kind", ["build", "shadow"])
 def test_configure_rejects_build_shadow_symlink_escape(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, escape_kind: str
