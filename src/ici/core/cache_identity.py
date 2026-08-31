@@ -27,6 +27,9 @@ _EMPTY_COMPILATION_DIGEST = canonical_digest(
         "version": COMPILATION_IDENTITY_VERSION,
         "database_path": None,
         "database_digest": "",
+        "origin": "",
+        "generator": "",
+        "unity_build": None,
         "units": [],
         "diagnostics": [],
     }
@@ -346,6 +349,9 @@ def build_analysis_cache_key(
         "version": COMPILATION_IDENTITY_VERSION,
         "database_path": compilation.database_path,
         "database_digest": compilation.database_digest,
+        "origin": compilation.origin,
+        "generator": compilation.generator,
+        "unity_build": compilation.unity_build,
         "units": [
             {
                 "source": unit.source,
@@ -354,6 +360,7 @@ def build_analysis_cache_key(
                 "compiler": unit.compiler,
                 "language": unit.language,
                 "standard": unit.standard,
+                "target": unit.target,
                 "output": unit.output,
                 "defines": [
                     {"name": definition.name, "value": definition.value}

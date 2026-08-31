@@ -334,9 +334,14 @@ def _validate_compilation_unit_scalars(unit: CompilationUnit) -> None:
         _validate_relative_path(unit.output, "compilation output", allow_dot=False)
     if not unit.argv or not all(isinstance(item, str) and item for item in unit.argv):
         raise ValueError("compilation argv must contain non-empty strings")
-    for field_name in ("compiler", "language", "standard", "configuration"):
+    for field_name in ("compiler", "language", "standard", "target", "configuration"):
         if not isinstance(getattr(unit, field_name), str):
             raise ValueError(f"compilation {field_name} must be a string")
+    if unit.target and (
+        len(unit.target) > 512
+        or any(character in unit.target for character in ("/", "\\", "\0", "\n", "\r"))
+    ):
+        raise ValueError("compilation target must be a bounded name")
     if unit.language and unit.language not in {"c", "c++", "objective-c", "objective-c++"}:
         raise ValueError(f"unsupported compilation language: {unit.language!r}")
     if unit.configuration and _DIGEST_RE.fullmatch(unit.configuration) is None:
@@ -368,6 +373,7 @@ class CompilationUnit:
     compiler: str = ""
     language: str = ""
     standard: str = ""
+    target: str = ""
     defines: tuple[CompilationDefine, ...] = ()
     include_paths: tuple[CompilationSearchPath, ...] = ()
     sysroot: str = ""
@@ -405,6 +411,9 @@ class CompilationContext:
     units: tuple[CompilationUnit, ...] = ()
     database_path: str | None = None
     database_digest: str = ""
+    origin: str = ""
+    generator: str = ""
+    unity_build: bool | None = None
     diagnostics: tuple[CompilationDiagnostic, ...] = ()
 
     def __post_init__(self) -> None:
@@ -417,6 +426,17 @@ class CompilationContext:
             raise ValueError("compilation database digest must be a string")
         if self.database_digest and _DIGEST_RE.fullmatch(self.database_digest) is None:
             raise ValueError("compilation database digest must be a sha256 digest")
+        if not isinstance(self.origin, str) or self.origin not in {
+            "",
+            "configured",
+            "discovered",
+            "cmake",
+        }:
+            raise ValueError(f"unsupported compilation database origin: {self.origin!r}")
+        if not isinstance(self.generator, str) or len(self.generator) > 512:
+            raise ValueError("compilation generator must be a bounded string")
+        if self.unity_build is not None and type(self.unity_build) is not bool:
+            raise ValueError("compilation unity build flag must be boolean or null")
         diagnostics = _typed_tuple(
             self.diagnostics,
             CompilationDiagnostic,

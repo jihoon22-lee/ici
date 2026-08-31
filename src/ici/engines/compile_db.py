@@ -172,6 +172,11 @@ class CompileDatabaseEngine(BaseEngine):
         targets: list[InspectionTarget] = []
         if compilation.database_path is None:
             missing_status = EngineStatus.FAIL if database_required else EngineStatus.WARN
+            fallback = production[0]
+            targets.extend(
+                _diagnostic_target(diagnostic, fallback_path=fallback)
+                for diagnostic in compilation.diagnostics
+            )
             targets.extend(
                 _target(
                     source,

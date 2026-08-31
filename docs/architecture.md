@@ -278,6 +278,41 @@ required_flags = ["-Wall", "-Wextra"]
 forbidden_flags = ["-fpermissive"]
 ```
 
+#### I3-2 canonical CMake compilation context
+
+`src/ici/core/cmake_context.py`는 immutable `AnalysisContext`와 cache identity가 만들어지기
+전에 CMake 기반 C/C++ 프로젝트의 compile database를 준비합니다. 명시적으로 설정했거나
+자동 발견한 DB가 있으면 그것을 우선하고 CMake를 다시 실행하지 않습니다. DB가 없고 root
+backend가 CMake인 C/C++ 프로젝트에만 `build/ici-cmake-build` shadow를 사용해 다음과 같은
+단일 Release 분석 구성을 수행합니다.
+
+```text
+cmake -S <project> -B <project>/build/ici-cmake-build \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  -DCMAKE_UNITY_BUILD=OFF
+```
+
+canonical preflight는 `Ninja` 또는 이름이 `Makefiles`로 끝나는 single-config generator만
+exact context 대상으로 허용합니다. multi-config 또는 알 수 없는 generator, export 비활성,
+해석할 수 없는 unity 값은 context diagnostic으로 보존해 정확한 compile scope인 것처럼
+표시하지 않습니다. `CMakeCache.txt`는 `O_NOFOLLOW` regular-file descriptor로 최대 4 MiB만
+읽고 generator/export/unity 관련 키만 bounded하게 해석합니다.
+
+처음 읽은 DB에 canonical shadow 아래 generated source의 `stale-source`가 있으면 preflight는
+한 번의 full build 후 DB를 다시 읽습니다. 이 조건 밖의 stale source는 자동 build를 유발하지
+않습니다. CMake subdirectory entry의 `output` 표기가 DB parent 기준인지 entry working
+directory 기준인지 불일치하는 경우에도 두 경로가 같은 canonical output을 가리킬 때만
+reconcile하며, 기존 project containment 검사는 그대로 적용합니다. generated 또는 unity
+unit이 남으면 `cmake-generation-failed`/`cmake-unity-build` diagnostic과 위치를 보존합니다.
+
+생성된 context는 `origin = "cmake"`, generator, nullable unity 상태, DB digest와 함께 각
+`CompilationUnit`의 compiler/language/standard/defines/include paths/sysroot/output,
+configuration digest와 CMake target을 보유합니다. target은 `CMakeFiles/<target>.dir` 출력
+관례에서 도출됩니다. JSON report payload와 이를 내장하는 HTML은 이 metadata와 normalized
+argv를 redaction 경계로 통과시키고, cache key는 DB 내용·parse state뿐 아니라 origin/generator/
+unity/target까지 포함하므로 CMake context가 바뀐 결과를 재사용하지 않습니다.
+
 ### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
 
 `src/ici/core/pipeline.py`의 immutable `EngineDescriptor`가 각 엔진의 실행 계약과

@@ -122,6 +122,7 @@ def _serialize_compilation_unit(unit: Any, project_root: Path) -> dict[str, Any]
         "compiler": redact_text(unit.compiler),
         "language": unit.language,
         "standard": redact_text(unit.standard),
+        "target": redact_text(unit.target),
         "defines": definitions,
         "include_paths": [
             {
@@ -149,6 +150,9 @@ def _serialize_analysis_context(context: AnalysisContext | None) -> dict[str, An
         "database_path": _report_compilation_path(context.compilation.database_path, project.root)
         if context.compilation.database_path is not None
         else None,
+        "origin": context.compilation.origin,
+        "generator": redact_text(context.compilation.generator),
+        "unity_build": context.compilation.unity_build,
         "units": [
             _serialize_compilation_unit(unit, project.root) for unit in context.compilation.units
         ],

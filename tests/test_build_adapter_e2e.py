@@ -44,6 +44,7 @@ def test_cmake_fixture_builds_and_tests_a_q_object(tmp_path):
 
     session = configure(root, ConfigureOptions(BuildVariant.COVERAGE))
     assert session.configured, session.errors
+    assert (session.shadow / "compile_commands.json").is_file()
     assert build(session), session.errors
 
     results = run_tests(session)

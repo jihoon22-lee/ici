@@ -482,19 +482,41 @@ TEM 4.86, tests 1,032, branch 79.7%), viewer WARN(Pass 10, Warn 1, Fail 0, Error
 TEM 4.89, tests 7)였다. 독립적으로 fetch한 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/99/)
 와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/99/)는 각각 HTTP/2 200,
 `Content-Type: text/html; charset=utf-8`, title present, 외부 `script`/`link`/`img`/`iframe`
-dependency 0건이었고 관측 bytes는 각각 4,496,996와 344,663이었다. 이로써 I3-1은 완료됐고
-다음 단계는 I3-2다. I3 전체는 아직 완료되지 않았다. CMake DB 생성·qmake capture·lint/include
-graph 이관(I3-2~I3-4)은 포함하지 않는다.
+dependency 0건이었고 관측 bytes는 각각 4,496,996와 344,663이었다. 이로써 I3-1은 완료됐다.
+이 단락은 I3-1의 범위만 기록하며, CMake DB 생성·qmake capture·lint/include graph 이관은
+아래 I3-2~I3-4 절에서 별도로 추적한다. I3 전체는 아직 완료되지 않았다.
 
 ### I3-2. CMake compile DB 생성
 
 **브랜치:** `feat/cmake-compile-db`
 
-- [ ] adapter configure에 `CMAKE_EXPORT_COMPILE_COMMANDS=ON`을 넣는다.
-- [ ] Makefile/Ninja generator 제약과 unity build를 탐지한다.
-- [ ] coverage/sanitize/release variant 중 analyzer에 사용할 canonical DB 정책을 정한다.
-- [ ] generated source가 build 전 필요한 경우 generation 단계 후 DB를 소비한다.
-- [ ] buildscope와 viewer에서 실제 target별 명령을 대조한다.
+- [x] adapter configure에 `CMAKE_EXPORT_COMPILE_COMMANDS=ON`을 넣는다.
+- [x] Makefile/Ninja generator 제약과 unity build를 탐지한다.
+- [x] coverage/sanitize/release variant 중 analyzer에 사용할 canonical DB 정책을 정한다.
+- [x] generated source가 build 전 필요한 경우 generation 단계 후 DB를 소비한다.
+- [ ] buildscope와 viewer에서 실제 target별 명령을 대조한다. viewer는 candidate ici로
+  production 5/5·20 configurations·0 issues를 확인했지만, buildscope 실물 대조는 pending이다.
+
+**I3-2 로컬 구현 증거 (2026-08-31; PR 전):** CMake root project에 기존 DB가 없을 때만
+`build/ici-cmake-build` Release shadow를 사용하고, configure에
+`CMAKE_EXPORT_COMPILE_COMMANDS=ON`과 `CMAKE_UNITY_BUILD=OFF`를 넣는다. `Ninja` 또는
+`*Makefiles` single-config generator만 exact context로 허용하며, 최대 4 MiB no-follow
+`CMakeCache.txt`에서 generator/export/unity metadata를 bounded하게 읽는다. generated
+source가 canonical shadow에서 stale이면 한 번 full build한 뒤 DB를 reload하고, CMake
+subdirectory output은 entry directory와 database parent 해석이 같은 경우에만 reconcile한다.
+`CompilationContext`/unit report와 cache identity에는 origin/generator/unity/target이
+포함된다.
+
+Python 3.10 `pytest`는 1,074 passed (46.32s), Ruff check/format은 130 files, focused mypy는
+11 source files에서 clean이었다. reproducible pyz 두 build의 SHA-256은
+`2874e081cc27e0fc7f77e1285229c5fd0ba2803a149ddf1c6e4a3c4fb4d6db90`로 일치했고 pure-Python
+10 distributions/no certifi, smoke·Zero-CDN도 PASS였다. self verify는 WARN(Pass 8, Warn 4,
+Skip 1; tests 1,074; line/function/branch 88.7%/97.2%/79.7%; TEM 4.86; 113.38s;
+HTML 4,697,480 bytes; external dependencies 0)였다. candidate viewer는 PASS(5/5 production,
+20 configurations, 0 issues, 23.27s), LogLens는 PASS(14/14, 40 configurations, 0 issues,
+32.27s)였다. self-dogfood에서 처음 발견한 불필요한 silent `OSError` inspection은 제거했고
+final exception path가 PASS했다. 이 수치는 local branch evidence이며 PR/CI/Pages는 아직 없고,
+I3-3/I3-4와 I3 전체는 pending이다.
 
 ### I3-3. qmake compile capture
 
@@ -836,7 +858,9 @@ main 반영은 후속 검증에서 완료해야 한다.
 - [x] I0: 현재 viewer/cycle 계획이 보정된 테스트와 함께 완료
 - [x] I1: v3 finding, support matrix, baseline, issues-first console 완료
 - [x] I2: toolchain inventory, shared context, engine DAG, cache/reproducibility와 PR·CI·Pages 증거 완료
-- [ ] I3: I3-1 compilation model/검증 게이트와 PR·CI·Pages evidence 완료; I3-2~I3-4 pending
+- [ ] I3: I3-1 compilation model/검증 게이트와 PR·CI·Pages evidence 완료; I3-2 canonical
+  CMake generation first four items and local viewer/LogLens checks complete, buildscope
+  target comparison pending; I3-3~I3-4 pending
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
@@ -855,4 +879,5 @@ required check와 Merge Gate가 성공했다. sticky comment `5472411964`의 ici
 squash merge commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.com/jihoon22-lee/ici/commit/64c4f7b57826e088e9b74b5950c7f3d8091188b9),
 [CI run `33380721019`](https://github.com/jihoon22-lee/ici/actions/runs/33380721019), [sticky comment](https://github.com/jihoon22-lee/ici/pull/99#issuecomment-5476836988),
 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/99/)와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/99/)까지
-완료됐다. 다음 ici 구현 단계는 I3-2 CMake compile DB 생성이며 I3 전체는 아직 완료되지 않았다.
+완료됐다. 현재 ici 구현 단계는 I3-2 buildscope target comparison과 PR·CI·Pages evidence이며,
+I3 전체는 아직 완료되지 않았다.

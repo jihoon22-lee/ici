@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree
 
+from ici.core._build_paths import prepare_owned_shadow, shadow_dir
 from ici.core.backend import (
     BACKEND_CMAKE,
     BACKEND_QMAKE,
@@ -44,17 +45,6 @@ _CTEST_JUNIT_MIN = (3, 21)
 _CMAKE_VERSION_RE = re.compile(r"cmake version (\d+)\.(\d+)")
 
 
-def shadow_dir(root: Path, backend: str, suffix: str = "") -> Path:
-    """Build directory ici owns. Never the project's own build tree.
-
-    The suffix keeps engines apart. test builds with --coverage and sanitize
-    with -fsanitize; sharing one tree would make each engine silently rebuild
-    the other's objects with the wrong flags on every run.
-    """
-
-    return root / "build" / f"ici-{backend}{suffix}"
-
-
 def parse_cmake_version(text: str) -> tuple[int, int] | None:
     match = _CMAKE_VERSION_RE.search(text)
     if match is None:
@@ -74,6 +64,7 @@ class ConfigureOptions:
     variant: BuildVariant
     extra_cxx_flags: tuple[str, ...] = ()
     extra_link_flags: tuple[str, ...] = ()
+    analysis_database: bool = False
 
     @property
     def coverage(self) -> bool:
@@ -86,6 +77,10 @@ class ConfigureOptions:
             BuildVariant.COVERAGE: "",
             BuildVariant.SANITIZE: "-asan",
         }[self.variant]
+
+    @property
+    def build_type(self) -> str:
+        return "Release" if self.variant is BuildVariant.RELEASE else "Debug"
 
     def cxx_flags(self) -> list[str]:
         flags = {
@@ -117,8 +112,11 @@ def cmake_configure_argv(
         str(root),
         "-B",
         str(shadow),
-        "-DCMAKE_BUILD_TYPE=Debug",
+        f"-DCMAKE_BUILD_TYPE={options.build_type}",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
     ]
+    if options.analysis_database:
+        argv.append("-DCMAKE_UNITY_BUILD=OFF")
     cxx = " ".join(options.cxx_flags())
     link = " ".join(options.link_flags())
     if cxx:
@@ -357,6 +355,7 @@ def _which(session: BuildSession, name: str) -> str | None:
 def configure(root: Path, options: ConfigureOptions) -> BuildSession:
     """Select a backend and configure a shadow build tree."""
 
+    root = root.resolve(strict=False)
     choice = select_backend(root)
     session = BuildSession(
         root=root,
@@ -375,7 +374,11 @@ def configure(root: Path, options: ConfigureOptions) -> BuildSession:
     session.tool_evidence.append(
         ToolEvidence(name=f"build backend selection: {choice.reason}", path="")
     )
-    session.shadow.mkdir(parents=True, exist_ok=True)
+    prepared_shadow, shadow_error = prepare_owned_shadow(session.root, session.shadow)
+    if prepared_shadow is None:
+        _fail(session, shadow_error)
+        return session
+    session.shadow = prepared_shadow
 
     if choice.kind == BACKEND_CMAKE:
         return _configure_cmake(session, options)
@@ -395,7 +398,7 @@ def _configure_cmake(session: BuildSession, options: ConfigureOptions) -> BuildS
     argv = cmake_configure_argv(cmake_bin, session.root, session.shadow, options)
     result = run_process(argv, cwd=session.root)
     _record(session, "cmake configure", argv, result)
-    if result.returncode != 0:
+    if result.returncode != 0 or result.timed_out or result.truncated:
         _fail(session, f"cmake configure failed: {result.stderr[:200]}")
         return session
     session.configured = True

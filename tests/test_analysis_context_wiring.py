@@ -73,8 +73,13 @@ def _install_wiring_spies(
         events.append("capabilities")
         return inventory
 
-    def load_compilation_context(*args: Any, **kwargs: Any) -> CompilationContext:
-        del args, kwargs
+    def prepare_cmake_compilation_context(
+        project_root: Path,
+        config: dict[str, Any],
+        project_model: ProjectModel,
+    ) -> CompilationContext:
+        del config, project_model
+        assert project_root == root.resolve()
         events.append("compilation")
         return context.compilation
 
@@ -105,8 +110,8 @@ def _install_wiring_spies(
     )
     monkeypatch.setattr(
         verify_module,
-        "load_compilation_context",
-        load_compilation_context,
+        "prepare_cmake_compilation_context",
+        prepare_cmake_compilation_context,
         raising=False,
     )
     monkeypatch.setattr(

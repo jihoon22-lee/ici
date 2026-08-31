@@ -8,6 +8,39 @@
 ## [Unreleased]
 
 ### Added
+- **I3-2 canonical CMake compilation context**: CMake projects without an existing
+  compilation database now receive a deterministic Release analysis preflight in
+  `build/ici-cmake-build`. Every CMake configure exports `compile_commands.json`;
+  the analysis configure also forces unity off so source-level coverage can be
+  interpreted exactly.
+  - Only single-configuration `Ninja` and `*Makefiles` generators are accepted.
+    The bounded, no-follow `CMakeCache.txt` reader records generator, export and
+    unity metadata without exposing raw tool output. Unsupported or ambiguous
+    metadata remains a location-bearing compilation diagnostic.
+  - Generated sources under the canonical shadow are detected on the first load;
+    exactly one full build is performed and the database is reloaded before the
+    immutable context is published. Ordinary stale source entries do not trigger
+    an unrelated build. CMake subdirectory output paths are reconciled against
+    both the entry working directory and database parent only when they resolve
+    to the same output, preserving project containment checks.
+  - `CompilationContext`/`CompilationUnit` report and cache identity now retain
+    `origin`, generator, unity state and CMake target metadata alongside the
+    database digest, normalized argv and diagnostics. The target is derived from
+    CMake's `CMakeFiles/<target>.dir` convention, while redaction still keeps
+    external paths out of reports.
+  - Local evidence: Python 3.10 `pytest` 1,074 passed (46.32s), Ruff check/format
+    130 files, focused mypy clean for 11 source files, reproducible pyz SHA-256
+    `2874e081cc27e0fc7f77e1285229c5fd0ba2803a149ddf1c6e4a3c4fb4d6db90`, 10
+    pure-Python distributions with no certifi, and smoke/Zero-CDN PASS. The
+    self report was WARN (Pass 8, Warn 4, Skip 1; tests 1,074; line/function/
+    branch 88.7%/97.2%/79.7%; TEM 4.86; 113.38s; HTML 4,697,480 bytes; external
+    dependencies 0). Candidate validation was viewer PASS (5/5 production
+    units, 20 configurations, 0 issues, 23.27s) and LogLens PASS (14/14, 40
+    configurations, 0 issues, 32.27s). Self-dogfood initially exposed an
+    unnecessary silent CMake inspection `OSError` path; the dead inspection was
+    removed and the final exception path passed.
+  - These are local branch measurements. I3-2 has no PR, CI, or Pages evidence
+    yet; buildscope target-by-target validation remains pending.
 - **I3-1 compiler-exact compilation context와 `compile_db` 품질 게이트**: root 또는 `build/compile_commands.json`(또는 명시적 project-relative 설정)을 immutable `CompilationContext`로 한 번 읽어 모든 엔진과 리포터가 공유합니다. `arguments` 우선, POSIX/Windows command tokenizer, bounded project-contained response-file 확장으로 shell/compiler를 실행하지 않고 compiler, language, standard, defines, include/search path, sysroot, output과 동일 source의 여러 configuration을 보존합니다.
   - database와 response file은 `O_NOFOLLOW`·`O_NONBLOCK` descriptor, regular-file `fstat`, 크기 제한 읽기, device/inode/size/mtime 재검증을 거칩니다. duplicate JSON key, non-finite/과대 입력, symlink·foreign path escape, malformed row, source/output 불일치와 stale/missing path는 전체 검증을 crash시키지 않고 위치가 있는 진단으로 변환됩니다.
   - GCC/Clang의 `-std`, `-x`, `-D`, `-I`/`-isystem`/`-iquote`, sysroot, `-o`와 MSVC/clang-cl의 `/std:`, `/D`, `/I`, `/external:I`, `/Fo`, `/TC`·`/TP`를 구조화합니다. 중앙/JSON redaction은 module/search/linker/rpath/forced-include/response-file 및 define 안의 embedded absolute POSIX·Windows 경로도 `[external]`로 투영합니다.

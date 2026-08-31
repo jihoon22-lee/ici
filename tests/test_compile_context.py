@@ -322,6 +322,37 @@ def test_language_quote_sysroot_and_output_precedence_matrix(tmp_path: Path) -> 
     assert [item.code for item in unit.diagnostics] == ["output-mismatch"]
 
 
+def test_cmake_subdirectory_output_is_relative_to_database_parent(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+    working_directory = root / "build" / "src" / "gui"
+    working_directory.mkdir(parents=True)
+    output = "src/gui/CMakeFiles/gui.dir/main.cpp.o"
+    _write_database(
+        root,
+        [
+            {
+                "directory": str(working_directory),
+                "file": str(root / "src" / "main.cpp"),
+                "arguments": [
+                    "g++",
+                    "-c",
+                    str(root / "src" / "main.cpp"),
+                    "-o",
+                    "CMakeFiles/gui.dir/main.cpp.o",
+                ],
+                "output": output,
+            }
+        ],
+    )
+
+    context = load_compilation_context(root, {"project": {}})
+
+    unit = context.units[0]
+    assert unit.output == f"build/{output}"
+    assert unit.target == "gui"
+    assert unit.diagnostics == ()
+
+
 def test_invalid_arguments_never_fall_back_to_command(tmp_path: Path) -> None:
     root = _fixture_tree(tmp_path)
     _write_database(
