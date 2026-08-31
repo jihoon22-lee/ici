@@ -343,7 +343,23 @@ def test_redaction_and_serializers_preserve_context_identity_without_aliasing_ou
     suite, context, manifest = _suite_fixture(tmp_path)
 
     redacted = redact_suite(suite)
-    assert redacted.analysis_context is context
+    assert redacted.analysis_context is not context
+    assert redacted.analysis_context is not None
+    safe_unit = redacted.analysis_context.compilation.units[0]
+    assert safe_unit.argv == (
+        "[external]",
+        "-Iinclude",
+        "-isystem",
+        "[external]",
+        f"-DAPI_TOKEN={REDACTED}",
+        "--token",
+        REDACTED,
+        "-c",
+        "src/main.cpp",
+    )
+    assert safe_unit.defines[1].value == REDACTED
+    assert safe_unit.include_paths[1].path == "[external]"
+    assert safe_unit.sysroot == "[external]"
     assert redacted.results[0].artifact_manifests == (manifest,)
     with pytest.raises(FrozenInstanceError):
         context.project.name = "mutated"
