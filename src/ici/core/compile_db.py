@@ -56,23 +56,6 @@ MAX_COMPILE_ARGUMENT_CHARS = 1024 * 1024
 MAX_COMPILE_COMMAND_CHARS = 4 * 1024 * 1024
 MAX_RESPONSE_FILE_BYTES = 4 * 1024 * 1024
 MAX_RESPONSE_FILE_DEPTH = 4
-_SOURCE_LANGUAGES = {
-    ".c": "c",
-    ".cc": "c++",
-    ".cpp": "c++",
-    ".cxx": "c++",
-    ".m": "objective-c",
-    ".mm": "objective-c++",
-}
-_LANGUAGE_ALIASES = {
-    "c": "c",
-    "c-header": "c",
-    "c++": "c++",
-    "c++-header": "c++",
-    "objective-c": "objective-c",
-    "objective-c++": "objective-c++",
-}
-
 __all__ = ["CompilationDefine", "_split_windows_command", "load_compilation_context"]
 
 
