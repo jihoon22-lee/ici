@@ -455,7 +455,7 @@ source status unchanged 및 smoke 전체 통과를 확인했다. I2-4는 PR #97,
 - [x] 전체 production translation unit이 DB에 포함되는지 검사한다.
 - [x] stale/missing source, 존재하지 않는 include dir, 금지·필수 flag를 finding으로 만든다.
 
-**I3-1 로컬 완료(2026-08-31):** bounded descriptor read와 strict JSON, POSIX/MSVC
+**I3-1 완료(2026-08-31; 로컬 및 원격 evidence):** bounded descriptor read와 strict JSON, POSIX/MSVC
 metadata, project-contained response file, immutable context, `compile_db` engine, cache key v2,
 report redaction과 v3 schema를 함께 구현했다. compile_db loader는 facade
 `src/ici/core/compile_db.py`와 `_compile_db_paths.py`, `_compile_db_commands.py`,
@@ -470,8 +470,21 @@ check/format은 127 files에서 통과했으며 focused mypy도 clean이었다. 
 compile_db `SKIP`/`NOT_APPLICABLE`(Python-only), test 1,032/1,032, coverage
 line/function/branch 88.6%/97.1%/79.6%, TEM 4.86, cache hits 0, 109.26s, HTML
 4,627,454 bytes였으며 compile_db-specific high-complexity/line-threshold/type issues는
-0건이다. 이 문단은 로컬 증거만 기록하며 PR·CI·Pages 증거는 아직 pending이다. CMake DB
-생성·qmake capture·lint/include graph 이관(I3-2~I3-4)은 포함하지 않는다.
+0건이다. 위 수치(HTML 4,627,454 bytes, branch 79.6% 등)는 로컬 증거다. 원격 병합도
+완료됐다. [PR #99](https://github.com/jihoon22-lee/ici/pull/99)는 squash로 병합되어
+commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.com/jihoon22-lee/ici/commit/64c4f7b57826e088e9b74b5950c7f3d8091188b9)가
+되었고, [CI run 33380721019](https://github.com/jihoon22-lee/ici/actions/runs/33380721019)의
+`Verify & Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`, `Publish PR Report &
+Sticky Comment`, `Merge Gate`가 모두 SUCCESS였다(`Publish Main`은 PR에서 expected skipped).
+[sticky comment](https://github.com/jihoon22-lee/ici/pull/99#issuecomment-5476836988)는 ici와
+viewer를 함께 포함했으며, CI stats는 ici WARN(Pass 8, Warn 4, Fail 0, Error 0, Skip 1,
+TEM 4.86, tests 1,032, branch 79.7%), viewer WARN(Pass 10, Warn 1, Fail 0, Error 0, Skip 2,
+TEM 4.89, tests 7)였다. 독립적으로 fetch한 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/99/)
+와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/99/)는 각각 HTTP/2 200,
+`Content-Type: text/html; charset=utf-8`, title present, 외부 `script`/`link`/`img`/`iframe`
+dependency 0건이었고 관측 bytes는 각각 4,496,996와 344,663이었다. 이로써 I3-1은 완료됐고
+다음 단계는 I3-2다. I3 전체는 아직 완료되지 않았다. CMake DB 생성·qmake capture·lint/include
+graph 이관(I3-2~I3-4)은 포함하지 않는다.
 
 ### I3-2. CMake compile DB 생성
 
@@ -823,7 +836,7 @@ main 반영은 후속 검증에서 완료해야 한다.
 - [x] I0: 현재 viewer/cycle 계획이 보정된 테스트와 함께 완료
 - [x] I1: v3 finding, support matrix, baseline, issues-first console 완료
 - [x] I2: toolchain inventory, shared context, engine DAG, cache/reproducibility와 PR·CI·Pages 증거 완료
-- [ ] I3: I3-1 compilation model/검증 게이트 로컬 완료; I3-2~I3-4 pending
+- [ ] I3: I3-1 compilation model/검증 게이트와 PR·CI·Pages evidence 완료; I3-2~I3-4 pending
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
@@ -838,6 +851,8 @@ manifest와 I2-3 선언형 pipeline 구현은 완료됐다. I2-4 cache contract�
 commit `ef30059522729b376c5409e5bb49164aa538b128`로 병합됐고 CI run `33345993304`의 모든
 required check와 Merge Gate가 성공했다. sticky comment `5472411964`의 ici/viewer Pages도
 게시됐다. 후속 source-scope 보정 PR #98도 CI run `33355330343` green 뒤 merge commit
-`6a0eadb20464569be9573d41ab72a27bd96d58a7`로 병합됐다. I3-1의 로컬 evidence는 위에
-기록했으며 PR·CI·Pages evidence는 아직 pending이다. 다음 ici 구현 단계는 I3-2 CMake
-compile DB 생성이다.
+`6a0eadb20464569be9573d41ab72a27bd96d58a7`로 병합됐다. I3-1은 [PR #99](https://github.com/jihoon22-lee/ici/pull/99)의
+squash merge commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.com/jihoon22-lee/ici/commit/64c4f7b57826e088e9b74b5950c7f3d8091188b9),
+[CI run `33380721019`](https://github.com/jihoon22-lee/ici/actions/runs/33380721019), [sticky comment](https://github.com/jihoon22-lee/ici/pull/99#issuecomment-5476836988),
+[ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/99/)와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/99/)까지
+완료됐다. 다음 ici 구현 단계는 I3-2 CMake compile DB 생성이며 I3 전체는 아직 완료되지 않았다.
