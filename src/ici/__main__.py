@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.markup import escape
 
 from ici import __version__
+from ici.compilation_export_cli import export_compilation_context
 from ici.config import ConfigError, load_config
 from ici.core.baseline import BaselineError
 from ici.core.cache import CACHE_KEY_VERSION, AnalysisCache
@@ -102,7 +103,9 @@ def main_callback(
     if not version:
         ctx.ensure_object(dict)
         try:
-            ctx.obj["config"] = load_config()
+            ctx.obj["config"] = load_config(
+                create_global_default=ctx.invoked_subcommand != "export-compilation-context"
+            )
         except ConfigError as err:
             typer.echo(f"Configuration error: {err}", err=True)
             raise typer.Exit(code=2) from err
@@ -136,6 +139,9 @@ def _resolve_baseline_cli_paths(
         )
         raise typer.Exit(code=2)
     return baseline_path, baseline_output
+
+
+app.command("export-compilation-context")(export_compilation_context)
 
 
 @app.command("verify")

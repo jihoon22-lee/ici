@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from ici.core import _compile_db_commands as compile_db_commands_module
+from ici.core import _compile_db_paths as compile_db_paths_module
 from ici.core import compile_db as compile_db_module
 from ici.core.compile_db import load_compilation_context
 from ici.core.context import CompilationContext
@@ -750,6 +752,157 @@ def test_aggregate_response_file_bytes_are_bounded(
 
     assert unit.defines == (compile_db_module.CompilationDefine("ONE"),)
     assert [item.code for item in unit.diagnostics] == ["response-file-too-large"]
+
+
+def test_shared_response_file_is_cached_across_database_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    response = root / "build" / "shared.rsp"
+    response.parent.mkdir(exist_ok=True)
+    response_text = "-DRESP=1"
+    response.write_text(response_text, encoding="utf-8")
+    rows = []
+    for index in range(3):
+        source_name = f"unit{index}.cpp"
+        (root / "src" / source_name).write_text("int value = 1;\n", encoding="utf-8")
+        rows.append(
+            {
+                "directory": ".",
+                "file": f"../src/{source_name}",
+                "arguments": [
+                    "g++",
+                    "@shared.rsp",
+                    "-c",
+                    f"../src/{source_name}",
+                ],
+            }
+        )
+    _write_database(root, rows)
+    monkeypatch.setattr(
+        compile_db_module,
+        "MAX_RESPONSE_FILE_BYTES",
+        len(response_text.encode("utf-8")),
+    )
+    real_read = compile_db_commands_module._read_bounded_regular
+    reads: list[Path] = []
+
+    def counting_read(
+        path: Path,
+        limit: int,
+        *,
+        containment_root: Path | None = None,
+    ) -> bytes:
+        reads.append(path)
+        return real_read(path, limit, containment_root=containment_root)
+
+    monkeypatch.setattr(compile_db_commands_module, "_read_bounded_regular", counting_read)
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert reads == [response.resolve()]
+    assert context.diagnostics == ()
+    assert len(context.units) == 3
+    assert all(
+        unit.defines == (compile_db_module.CompilationDefine("RESP", "1"),)
+        for unit in context.units
+    )
+    assert all("-DRESP=1" in unit.argv for unit in context.units)
+
+
+def test_distinct_response_files_share_database_wide_byte_budget(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    build = root / "build"
+    build.mkdir(exist_ok=True)
+    (build / "one.rsp").write_text("-DONE", encoding="utf-8")
+    (build / "two.rsp").write_text("-DTWO", encoding="utf-8")
+    rows = []
+    for source_name, response_name in (("first.cpp", "one.rsp"), ("second.cpp", "two.rsp")):
+        (root / "src" / source_name).write_text("int value = 1;\n", encoding="utf-8")
+        rows.append(
+            {
+                "directory": ".",
+                "file": f"../src/{source_name}",
+                "arguments": [
+                    "g++",
+                    f"@{response_name}",
+                    "-c",
+                    f"../src/{source_name}",
+                ],
+            }
+        )
+    _write_database(root, rows)
+    monkeypatch.setattr(compile_db_module, "MAX_RESPONSE_FILE_BYTES", 6)
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert context.diagnostics == ()
+    units = {unit.source: unit for unit in context.units}
+    assert units["src/first.cpp"].defines == (compile_db_module.CompilationDefine("ONE"),)
+    assert units["src/first.cpp"].diagnostics == ()
+    assert units["src/second.cpp"].defines == ()
+    assert [item.code for item in units["src/second.cpp"].diagnostics] == [
+        "response-file-too-large"
+    ]
+
+
+def test_repeated_response_expansion_has_database_wide_argument_budget(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    response = root / "build" / "shared.rsp"
+    response.parent.mkdir(exist_ok=True)
+    response.write_text("-DONE=1 -DTWO=2", encoding="utf-8")
+    rows = []
+    for index in range(3):
+        source_name = f"budget{index}.cpp"
+        (root / "src" / source_name).write_text("int value = 1;\n", encoding="utf-8")
+        rows.append(
+            {
+                "directory": ".",
+                "file": f"../src/{source_name}",
+                "arguments": ["g++", "@shared.rsp", "-c", f"../src/{source_name}"],
+            }
+        )
+    _write_database(root, rows)
+    monkeypatch.setattr(compile_db_module, "MAX_COMPILE_DATABASE_ARGUMENTS", 10)
+    monkeypatch.setattr(compile_db_module, "MAX_COMPILE_DATABASE_ARGUMENT_CHARS", 10_000)
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert len(context.units) == 2
+    assert [item.code for item in context.diagnostics] == ["database-arguments-too-large"]
+    assert context.diagnostics[0].entry_index == 2
+    assert context.diagnostics[0].source == "src/budget2.cpp"
+
+
+@pytest.mark.skipif(
+    compile_db_paths_module.os.name == "nt"
+    or compile_db_paths_module.os.open not in compile_db_paths_module.os.supports_dir_fd
+    or not hasattr(compile_db_paths_module.os, "O_DIRECTORY"),
+    reason="intermediate no-follow descriptors are POSIX-specific",
+)
+def test_contained_bounded_open_rejects_intermediate_symlink(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    outside = tmp_path / "outside"
+    root.mkdir()
+    outside.mkdir()
+    (outside / "flags.rsp").write_text("-DOUTSIDE=1", encoding="utf-8")
+    (root / "nested").symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(compile_db_paths_module._ReadError) as error:
+        compile_db_paths_module._read_bounded_regular(
+            root / "nested" / "flags.rsp",
+            1024,
+            containment_root=root,
+        )
+
+    assert error.value.code == "unreadable"
 
 
 def test_similar_long_options_are_not_misclassified_as_compilation_metadata(

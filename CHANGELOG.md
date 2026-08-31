@@ -7,6 +7,54 @@
 
 ## [Unreleased]
 
+### Added
+- **Standalone compilation-context export**: `ici export-compilation-context` now emits a
+  deterministic, redacted `ici.compilation-export/v1` JSON snapshot for downstream consumers.
+  The packaged contract is [`ici-compilation-export-v1.schema.json`](src/ici/schemas/ici-compilation-export-v1.schema.json).
+
+### Security and compatibility
+- The default export path is process-free and read-only: it parses the selected compilation
+  database without invoking a shell, compiler, or recursive source scan. `arguments` takes
+  precedence over `command`; project-contained response files remain bounded and are never shell
+  expanded.
+- `--prepare` is an explicit opt-in for the CMake/qmake configure/build adapters and their owned
+  `build/ici-*` shadows. Public output omits raw `argv`/`command`, redacts credentials and external
+  host paths, and marks redaction, external inputs, unknown options, and diagnostics as
+  `inconclusive` while retaining `MEASURED` provenance. An explicitly configured missing or
+  malformed database remains authoritative; `--prepare` does not silently replace it.
+- `--output` uses bounded, same-directory atomic replacement and protects the database and project
+  policy files. Input and output bounds include database-wide expanded argument count/size limits;
+  duplicate-key/non-finite JSON rejection and project containment keep malformed, repeated, or
+  oversized compilation metadata from becoming execution input or unbounded retained argv state.
+
+### Verification
+- Python 3.10 passed 1,333 tests in 51.99s; Ruff check/format and mypy over 88 source files were
+  clean. The quoted relative define path regression is covered: values are resolved from the unit
+  directory and external escapes remain redacted. Two pyz builds matched at SHA-256
+  `d9d83b20832ca8d0133653e00b1f7a20861c2ee855b06d0de1f0328137a382ca`,
+  with 10 pure-Python distributions, no certifi/native extension, both public schemas packaged,
+  and smoke/Zero-CDN passing.
+- Packaged self-verification was WARN (8/4/0/0/1 for pass/warn/fail/error/skip; 1,333/1,333 tests;
+  line/function/branch 89.2%/96.8%/80.6%; TEM 4.84; cache hits 0). Engine duration was 121.72s
+  (wall 125.09s). HTML was 5,696,688 bytes with SHA-256
+  `adc9a49c78c2f5ea5666c58a96555cd73b281587f891e11175654a7ac973b3d5`, the expected title, and
+  zero external references. The export/compile-DB change scope had zero line, module-coverage,
+  type, high-complexity, or exception findings.
+- Final candidate BuildScope verification was WARN (11/2/0/0/0 for pass/warn/fail/error/skip;
+  45/45 tests; line/function/branch 95.2%/100%/84.3%; compile DB 7/7 production units,
+  16 configurations, 0 issues; TEM 5.00). Engine duration was 20.52s (wall 21.22s). HTML was
+  490,420 bytes with SHA-256
+  `faf4646b27b2e2c50501fb96280aa70741254dba8e7b383e5ede033ab519cb85`, the expected title, and
+  zero external references.
+- The BuildScope v2 native snapshot SHA-256 was
+  `ee0e59f484a82cbdb09d8085a241929e15b0130e2c51f824c361f808f6c611f5`; the deterministic ici v1
+  export SHA-256 was `6f0e99872ab0041f174f9b708cb2a0bd5e60569ce06fe825644541c0ae2162c9`, with
+  semantic digest `sha256:a7db541ae2daa0c19365f80c1bdbe5090049c86b423000fdf9b6f8e85a857a48`.
+  The same public projection compared 16 units, 6 targets, and 14 field groups with zero mismatch,
+  checkout leak, or raw `argv`/`command` exposure.
+- These are local/candidate measurements only; remote PR/CI/Pages and public release completion are
+  not claimed here.
+
 ## [0.7.1] - 2026-09-01
 
 ### Fixed

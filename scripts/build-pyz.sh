@@ -48,6 +48,14 @@ if [ -d "$SITE/certifi" ]; then
 fi
 echo "      $(find "$SITE" -maxdepth 1 -name '*.dist-info' | wc -l) 개 배포판 전부 py3-none-any, certifi 없음"
 
+for schema in ici-result-v3.schema.json ici-compilation-export-v1.schema.json; do
+    if [ ! -f "$SITE/ici/schemas/$schema" ]; then
+        echo "공개 JSON schema가 패키지에서 누락됐습니다: ici/schemas/$schema" >&2
+        exit 1
+    fi
+done
+echo "      공개 JSON schema 2개 패키징 확인"
+
 echo "      빌드 환경 흔적 제거 (재현 가능 빌드)"
 python3 - "$SITE" <<'PY'
 import sys

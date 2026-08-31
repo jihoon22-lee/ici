@@ -232,6 +232,77 @@ tool evidence는 각 리포터의 기존 redaction 계약을 그대로 따르며
 변경하지는 않습니다. 두 확장이 없는 기존 `ici.result/v3` archive도 계속 읽고 migration할
 수 있습니다.
 
+#### Standalone compilation context export
+
+검증 엔진을 실행하지 않고 컴파일 데이터베이스의 측정 맥락만 전달하려면
+`export-compilation-context`를 사용합니다. 기본 모드는 현재 프로젝트의 메타데이터와
+선택된 `compile_commands.json`을 읽는 process-free/read-only 경로입니다. compiler, shell,
+subprocess 또는 재귀 source scan을 실행하지 않으며, export 명령 때문에 전역 기본 설정
+파일을 새로 만들지도 않습니다. 성공한 stdout에는 JSON과 마지막 개행만 남습니다.
+
+```bash
+# 루트의 compile_commands.json 또는 build/compile_commands.json을 발견해 stdout으로 출력
+ici export-compilation-context
+
+# 프로젝트 내부 DB를 명시하고, 결과는 checkout 밖의 파일에 예쁘게 저장
+ici export-compilation-context \
+  --database build/compile_commands.json \
+  --output /tmp/ici-compilation-context.json --pretty
+
+# 기존 DB가 없을 때만 CMake/qmake 준비를 허용
+ici export-compilation-context --prepare \
+  --output /tmp/ici-compilation-context.json
+```
+
+옵션의 경계는 다음과 같습니다.
+
+| 옵션 | 계약 |
+|---|---|
+| `--database PATH` | 프로젝트 루트 아래의 project-relative POSIX 경로만 허용합니다. 절대 경로, Windows drive/backslash, `..` 탈출과 root 밖 symlink 해석은 exit 2로 거부합니다. |
+| `--prepare` | 명시적으로 선택·설정한 DB와 auto-discovered DB가 모두 없을 때만 루트 `CMakeLists.txt` 또는 `*.pro`에 해당하는 adapter가 configure/build를 수행합니다. CMake는 `build/ici-cmake-build`, qmake는 `build/ici-qmake-build` shadow를 사용할 수 있습니다. 명시 DB가 누락·손상됐으면 canonical DB로 대체하지 않고 그 오류가 우선합니다. 이 옵션만 외부 도구 실행과 build 파일 변경을 허용합니다. |
+| `--output PATH` / `-o` | 기본값 `-`은 stdout입니다. 상대 경로는 프로젝트 루트 기준이고 절대 경로도 허용됩니다. 대상은 regular file 또는 교체 가능한 symlink여야 하며, DB·`ici.toml`·`dev.toml`·`pyproject.toml` 및 hardlink/symlink alias는 보호됩니다. |
+| `--pretty` | 결정론적 JSON에 2칸 들여쓰기를 추가합니다. 데이터 내용과 digest는 바꾸지 않습니다. |
+
+파일 출력은 대상 디렉터리의 임시 regular file에 쓰고 flush·`fsync`한 뒤 atomic replace와
+디렉터리 동기화를 수행합니다. 허용된 기존 symlink를 출력 대상으로 지정하면 symlink
+자체를 교체하며 referent에는 쓰지 않습니다. 출력은 프로젝트 밖에도 둘 수 있지만 부모
+디렉터리는 미리 존재해야 합니다. 출력 JSON은 32 MiB를 넘을 수 없습니다.
+
+입력 loader도 자원 상한을 적용합니다. DB는 최대 32 MiB·200,000 entries, row별 `arguments`는
+최대 32,768개·총 1 MiB, DB 전체 expanded arguments는 1,000,000개·32 MiB, `command`는
+4 MiB입니다. response file은 프로젝트 내부 regular file만 읽고 깊이 4, 파일별·aggregate
+4 MiB, 같은 per-row argument bound를 적용합니다.
+`arguments`가 `command`보다 우선하며 POSIX `shlex` 또는 Windows CRT 규칙으로만 argv를
+분해합니다. duplicate JSON key, `NaN`/`Infinity`, 비정상 파일, symlink 탈출, malformed row,
+읽는 중 변경은 실행하거나 추측하지 않고 bounded diagnostic으로 처리합니다.
+
+출력 계약은 [`ici-compilation-export-v1.schema.json`](../src/ici/schemas/ici-compilation-export-v1.schema.json)의
+`ici.compilation-export/v1`입니다. key를 정렬한 UTF-8 JSON으로 `evidence`는 실제 DB를 읽거나
+준비했다는 `MEASURED`를 뜻합니다. `source_bytes_digest`는 선택된 DB 원본 바이트의 SHA-256이고,
+`semantic_digest`와 unit별 `configuration_digest`는 redacted·정규화된 origin, generator,
+source/target/configuration 정보를 canonical하게 해시합니다. 같은 의미의 unit은 안정적으로
+정렬되지만, 원본 바이트가 달라지면 `source_bytes_digest`는 달라질 수 있습니다.
+
+raw `argv`와 `command`는 공개하지 않습니다. 내부 경로는 project-relative POSIX로 투영하고,
+외부 include/sysroot와 host 경로는 `[external]`, credential과 안전하게 공개할 수 없는 표준·정의·
+generator 값은 `***REDACTED***`로 치환합니다. 치환되거나 외부 값, unknown compiler,
+unmodeled option, unit/context diagnostic 또는 unity build가 있으면 root/unit
+`comparison_state`가 `inconclusive`가 될 수 있습니다. 치명적인 error-level diagnostic은
+payload를 만들지 않고 exit 1로 닫힙니다. 그 밖의 측정 결과는 추정으로 바뀌는 것이 아니므로
+`evidence`는 여전히 `MEASURED`일 수 있습니다.
+
+종료 코드는 다음과 같습니다.
+
+| 코드 | 의미 |
+|---:|---|
+| `0` | export 성공 |
+| `1` | fatal compilation diagnostic 또는 직렬화·쓰기 오류 |
+| `2` | 옵션/경로 검증 실패, 측정된 DB 또는 usable unit 부재, 보호된 출력 대상 |
+
+stdout 모드에서 오류 메시지는 stderr로만 출력되고, `--output` 파일 모드에서는 성공 stdout이
+비어 있습니다. schema는 `src/ici/schemas/` 아래 package data로 wheel/ZipApp에 함께 포함되며,
+`scripts/build-pyz.sh`가 ZipApp 구성 전에 두 공개 schema의 존재를 확인합니다.
+
 #### C++ compile database gate
 
 C++ production translation unit이 발견되면 `compile_db` 엔진이 `compile_commands.json`을

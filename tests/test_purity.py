@@ -114,6 +114,16 @@ def test_ci_builds_pyz_twice_and_rejects_project_mutation():
     assert '[[ "$status_before" != "$status_after" ]]' in script
 
 
+def test_pyz_build_requires_every_public_json_schema():
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "build-pyz.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "ici-result-v3.schema.json" in script
+    assert "ici-compilation-export-v1.schema.json" in script
+    assert 'if [ ! -f "$SITE/ici/schemas/$schema" ]' in script
+
+
 def test_all_ci_and_release_checkouts_disable_credential_persistence():
     for workflow_name in ("ci.yml", "release.yml"):
         workflow = _workflow(workflow_name)

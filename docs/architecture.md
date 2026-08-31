@@ -72,6 +72,7 @@ ici/
 │   └── ici/
 │       ├── __init__.py              # 패키지 메타데이터 (동적 프로젝트 버전)
 │       ├── __main__.py              # CLI 엔트리포인트 및 서브커맨드 라우터
+│       ├── compilation_export_cli.py # standalone export CLI/exit-code adapter
 │       ├── config.py                # 전사 기본 정책(DEFAULT_CONFIG) 및 toml 로더
 │       ├── core/                    # 코어 도메인 로직
 │       │   ├── backend.py           # 독립 build backend discovery
@@ -85,6 +86,10 @@ ici/
 │       │   ├── cache_codec.py        # strict cache JSON encode/decode/검증
 │       │   ├── findings.py          # v3 finding canonicalization/fingerprint
 │       │   ├── baseline.py          # v3 baseline loader/comparison/gate
+│       │   ├── compilation_export.py # standalone measured context v1 projection
+│       │   ├── _compilation_export_argv.py # compiler metadata redaction/digest
+│       │   ├── _compilation_export_io.py # bounded atomic output boundary
+│       │   ├── _compilation_export_project.py # process-free project discovery
 │       │   ├── project.py           # 소스 파일 탐색 및 프로젝트 루트 감지
 │       │   └── runner.py            # 서브프로세스 격리 실행기
 │       ├── engines/                 # 표준 검증 엔진 + 퍼블리셔
@@ -102,12 +107,15 @@ ici/
 │       │   ├── exception.py         # 예외 삼킴 및 소멸자 throw 방지
 │       │   ├── publish.py           # GitHub HTML 리포트 퍼블리셔 (gh-pages/hub)
 │       │   └── publish_baseline.py  # strict delta summary/comment adapter
-│       └── reporters/               # 다중 리포터 계층
-│           ├── console.py           # Rich 터미널 대시보드 & file:// 링크
-│           ├── html/                # 기본 10개, baseline 비교 시 11개 Zero-CDN 탭
-│           ├── html_assets.py       # 이전 import 호환 facade
-│           ├── markdown.py          # GitHub Actions Summary & PR 코멘트
-│           └── json_rep.py          # JSON 리포트 직렬화기
+│       ├── reporters/               # 다중 리포터 계층
+│       │   ├── console.py           # Rich 터미널 대시보드 & file:// 링크
+│       │   ├── html/                # 기본 10개, baseline 비교 시 11개 Zero-CDN 탭
+│       │   ├── html_assets.py       # 이전 import 호환 facade
+│       │   ├── markdown.py          # GitHub Actions Summary & PR 코멘트
+│       │   └── json_rep.py          # JSON 리포트 직렬화기
+│       └── schemas/                  # 배포되는 기계 검증 계약
+│           ├── ici-result-v3.schema.json
+│           └── ici-compilation-export-v1.schema.json
 ├── tests/                           # Pytest 단위 테스트 스위트
 ├── AGENTS.md                        # 개발 규약, 브랜칭 전략, 커밋 룰
 ├── CHANGELOG.md                     # 변경 이력 및 릴리스 노트
@@ -242,6 +250,60 @@ project-relative POSIX 형식이며, 외부 include/search path처럼 호스트 
 v3 payload도 그대로 읽고 migration할 수 있습니다. `analysis_context`가 포함된 경우에도
 `profile`은 선택 필드이므로, profile이 없는 기존 context와 context 자체가 없는 기존
 v3 payload를 모두 호환합니다.
+
+#### Standalone compilation context export
+
+`ici export-compilation-context`는 `verify`의 엔진 DAG와 분리된 public projection 경계다.
+이 명령은 측정된 compile database를 `ici.compilation-export/v1`로 내보내며, 내부의 frozen
+`CompilationContext`와 원본 argv를 소비하되 raw command를 공개하지 않는다.
+
+```text
+CLI/config (global-default write disabled)
+        │
+        ├─ default: static project metadata + bounded DB loader (no process/shell/compiler)
+        │
+        └─ --prepare: selected root CMake/qmake adapter → owned build/ici-* shadow
+                              │
+                  normalized context → redaction → deterministic v1 JSON
+                              │
+                    stdout (-) or validated atomic file output
+```
+
+기본 경로의 project discovery는 루트 descriptor와 metadata만 확인하고 recursive source scan이나
+subprocess를 사용하지 않는다. loader는 `arguments`를 `command`보다 우선하고 POSIX `shlex`/
+Windows CRT 규칙으로만 분해한다. project-contained response file을 읽을 수 있지만 shell을
+실행하지 않으며, DB 32 MiB·200,000 entries, row별 argv 32,768 arguments·1 MiB, DB 전체
+expanded arguments 1,000,000개·32 MiB, command 4 MiB, response depth 4·파일/aggregate
+4 MiB의 상한을 적용한다. duplicate key, non-finite JSON,
+foreign/escaping path, symlink escape, malformed row와 읽는 중 변경은 bounded diagnostic으로
+보존하거나 거부한다.
+
+`--prepare`는 명시적으로 선택·설정한 DB와 auto-discovered DB가 모두 없을 때만 adapter를
+호출한다. 명시 DB가 누락·손상됐으면 다른 canonical DB로 조용히 대체하지 않고 그 오류가
+우선한다. 루트 `CMakeLists.txt`는 `build/ici-cmake-build`, 루트 `*.pro`는
+`build/ici-qmake-build`를 소유 shadow로 사용하며, configure/build와 generated source capture
+때문에 프로젝트 파일과 외부 compiler/build 도구에 side effect가 생길 수 있다. 따라서 default
+read-only와 명시적 preparation은 별도의 신뢰 경계다. 기존 DB가 있으면 preparation보다 그 DB가
+우선한다.
+
+projection에는 project-relative POSIX path, compiler family/name, language/standard, defines,
+include/search path scope, sysroot, target, unit/configuration digest와 diagnostic만 남는다.
+외부 경로는 `[external]`, credential과 공개 불가 scalar는 `***REDACTED***`가 되고 include
+existence는 외부 범위에서 `null`이다. unit에는 raw `argv`/`command`가 없다. `source_bytes_digest`
+는 선택된 DB의 원본 bytes SHA-256이고, `semantic_digest`는 origin/generator/unity와 정렬된
+normalized unit semantics를 canonical JSON으로 해시한다. 따라서 raw-byte identity와 의미 비교
+identity를 구분한다. 모든 JSON key와 unit 순서는 deterministic하며 `--pretty`는 whitespace만
+바꾼다.
+
+`evidence`는 유효한 DB를 관측했다는 `MEASURED`이고, 외부/redacted 값·unknown compiler·
+unmodeled option·비치명 diagnostic·unity build가 있으면 `comparison_state`를 `inconclusive`로
+낮춘다. 치명적인 error-level diagnostic은 payload를 만들지 않고 exit 1로 닫는다. 이는 측정
+근거를 `ESTIMATED`로 바꾸지 않는다. 출력은 32 MiB를 넘을 수 없고, stdout 성공 출력은
+JSON-only이며 오류는 stderr로 보낸다. 파일 출력은 validated target에 같은 디렉터리
+임시 파일, flush/`fsync`, atomic replace와 directory sync를 사용한다. DB와 project policy
+파일, alias 및 special file은 보호하며 허용된 symlink는 referent가 아니라 link 자체를 교체한다.
+기계 계약은 [`ici-compilation-export-v1.schema.json`](../src/ici/schemas/ici-compilation-export-v1.schema.json)이며,
+`build-pyz.sh`가 ZipApp 구성에 이 schema와 기존 v3 schema가 포함되는지 확인한다.
 
 #### I3-1 compile database 경계와 C++ coverage gate
 

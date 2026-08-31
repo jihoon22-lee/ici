@@ -111,6 +111,19 @@ def test_project_metadata_uses_git_version_when_metadata_version_is_missing(
     assert read_project_metadata(tmp_path) == ("demo-app", "v2.7.0")
 
 
+def test_project_metadata_can_disable_git_version_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    (tmp_path / "ici.toml").write_text("name = 'demo-app'\n", encoding="utf-8")
+
+    def unexpected_git(*args, **kwargs):
+        raise AssertionError("static metadata discovery must not invoke git")
+
+    monkeypatch.setattr(project_module.subprocess, "run", unexpected_git)
+
+    assert read_project_metadata(tmp_path, allow_git=False) == ("demo-app", "v1.0.0")
+
+
 def test_project_metadata_falls_back_when_git_is_unavailable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):

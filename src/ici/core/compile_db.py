@@ -52,6 +52,8 @@ from ici.core.context import (
 
 MAX_COMPILE_DATABASE_BYTES = 32 * 1024 * 1024
 MAX_COMPILE_DATABASE_ENTRIES = 200_000
+MAX_COMPILE_DATABASE_ARGUMENTS = 1_000_000
+MAX_COMPILE_DATABASE_ARGUMENT_CHARS = 32 * 1024 * 1024
 MAX_COMPILE_ARGUMENTS = 32_768
 MAX_COMPILE_ARGUMENT_CHARS = 1024 * 1024
 MAX_COMPILE_COMMAND_CHARS = 4 * 1024 * 1024
@@ -97,6 +99,11 @@ def _expand_response_files(
     active: tuple[Path, ...] = (),
     byte_budget: list[int] | None = None,
     character_budget: list[int] | None = None,
+    response_cache: dict[
+        Path,
+        tuple[tuple[str, ...], CompilationDiagnostic | None],
+    ]
+    | None = None,
 ) -> tuple[tuple[str, ...], list[CompilationDiagnostic]]:
     """Expand response files using the current facade-level resource limits."""
 
@@ -108,11 +115,33 @@ def _expand_response_files(
         active=active,
         byte_budget=byte_budget,
         character_budget=character_budget,
+        response_cache=response_cache,
         max_arguments=MAX_COMPILE_ARGUMENTS,
         max_argument_chars=MAX_COMPILE_ARGUMENT_CHARS,
         max_response_file_bytes=MAX_RESPONSE_FILE_BYTES,
+        max_response_file_total_bytes=MAX_RESPONSE_FILE_BYTES,
         max_response_file_depth=MAX_RESPONSE_FILE_DEPTH,
     )
+
+
+def _reserve_database_arguments(
+    argv: tuple[str, ...], budget: list[int] | None, *, source: str
+) -> None:
+    """Bound retained expanded argv state across the complete database."""
+
+    if budget is None:
+        return
+    budget[0] += len(argv)
+    budget[1] += sum(len(value) for value in argv)
+    if (
+        budget[0] > MAX_COMPILE_DATABASE_ARGUMENTS
+        or budget[1] > MAX_COMPILE_DATABASE_ARGUMENT_CHARS
+    ):
+        raise _RowError(
+            "database-arguments-too-large",
+            "Expanded compilation arguments exceed the database-wide resource limit.",
+            source=source,
+        )
 
 
 def _parse_row(
@@ -121,6 +150,13 @@ def _parse_row(
     index: int,
     root: Path,
     database_parent: Path,
+    response_byte_budget: list[int] | None = None,
+    response_cache: dict[
+        Path,
+        tuple[tuple[str, ...], CompilationDiagnostic | None],
+    ]
+    | None = None,
+    database_argument_budget: list[int] | None = None,
 ) -> CompilationUnit:
     if not isinstance(row, dict):
         raise _RowError("invalid-entry", "A compilation database entry is not an object.")
@@ -166,7 +202,10 @@ def _parse_row(
         argv,
         root=root,
         directory=resolved_directory,
+        byte_budget=response_byte_budget,
+        response_cache=response_cache,
     )
+    _reserve_database_arguments(argv, database_argument_budget, source=source)
     unit_diagnostics: list[CompilationDiagnostic] = []
     if not _is_dir(resolved_directory):
         unit_diagnostics.append(
@@ -301,7 +340,11 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
             origin=origin,
         )
     try:
-        encoded = _read_bounded_regular(database, MAX_COMPILE_DATABASE_BYTES)
+        encoded = _read_bounded_regular(
+            database,
+            MAX_COMPILE_DATABASE_BYTES,
+            containment_root=project_root,
+        )
     except FileNotFoundError:
         if explicit:
             return _database_failure(
@@ -354,6 +397,12 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
 
     units: list[CompilationUnit] = []
     diagnostics: list[CompilationDiagnostic] = []
+    response_byte_budget = [0]
+    response_cache: dict[
+        Path,
+        tuple[tuple[str, ...], CompilationDiagnostic | None],
+    ] = {}
+    database_argument_budget = [0, 0]
     for index, row in enumerate(payload):
         try:
             unit = _parse_row(
@@ -361,6 +410,9 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
                 index=index,
                 root=project_root,
                 database_parent=database.parent,
+                response_byte_budget=response_byte_budget,
+                response_cache=response_cache,
+                database_argument_budget=database_argument_budget,
             )
         except _RowError as err:
             diagnostics.append(
