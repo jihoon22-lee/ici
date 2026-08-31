@@ -92,6 +92,7 @@ ici/
 │       │   ├── verify.py            # VerifyOrchestrator (검증 오케스트레이터)
 │       │   ├── line.py              # 코드/주석/공백 분석 및 트리 구조 생성
 │       │   ├── lint.py              # Ruff 및 g++ 문법 린터
+│       │   ├── compile_db.py        # compile_commands coverage와 C++ flag policy
 │       │   ├── test.py              # 테스트 실행 & TEM 스코어링 (coverage.py/gcov 실측)
 │       │   ├── type_check.py        # mypy/AST 타입 검사 (C++은 명시적 SKIP)
 │       │   ├── complexity.py        # Cyclomatic & Nesting 복잡도 분석기
@@ -212,9 +213,12 @@ snapshot을 생성하고 모든 엔진과 리포터가 이를 읽기 전용으�
 - **`CapabilityInventory`**: bounded probe가 수집한 도구 경로·버전·세부 정보·실행 evidence와
   required/optional provenance를 mapping-proxy로 고정합니다. 엔진이나 리포터는 재탐색하거나
   snapshot을 추가할 수 없습니다.
-- **`CompilationContext`**: compile database 경로와 번역 단위별 `source`, `directory`,
-  `argv`, `output`을 immutable tuple로 전달합니다. 실제 compile DB 해석·정확한 include
-  context는 I3의 범위이며, I2에서는 소유권과 경계만 고정합니다.
+  - **`CompilationContext`**: I3 preflight가 선택한 compile database와 번역 단위별 `source`,
+  `directory`, `argv`, `output`, compiler metadata를 immutable tuple로 전달합니다. DB는
+  project root의 `compile_commands.json`, `build/compile_commands.json` 또는 명시된
+  project-relative 경로에서만 선택하며, 모든 바이트와 parse diagnostic을 snapshot에
+  바이트 digest와 parse diagnostic을 snapshot에 포함합니다. 같은 source의 debug/release 등
+  여러 configuration도 합치지 않습니다.
 - **`BuildSession`**: configure/build/test 중 누적되는 도구 evidence와 오류를 보유하는
   유일한 mutable adapter 상태입니다. session은 명시적인 `RELEASE`, `COVERAGE`,
   `SANITIZE` variant를 받아 각 shadow tree와 계측 flags를 분리합니다.
@@ -238,6 +242,41 @@ project-relative POSIX 형식이며, 외부 include/search path처럼 호스트 
 v3 payload도 그대로 읽고 migration할 수 있습니다. `analysis_context`가 포함된 경우에도
 `profile`은 선택 필드이므로, profile이 없는 기존 context와 context 자체가 없는 기존
 v3 payload를 모두 호환합니다.
+
+#### I3-1 compile database 경계와 C++ coverage gate
+
+`src/ici/core/compile_db.py`는 신뢰할 수 없는 `compile_commands.json`을 compiler나 shell을
+실행하지 않고 읽습니다. `arguments` 배열이 `command`보다 우선하고, command 문자열은 POSIX
+`shlex` 또는 Windows CRT 규칙으로만 분해됩니다. response file은 project 안의 regular file만
+제한된 깊이·총 바이트·인자 수로 확장하며, 외부 경로·symlink escape·중복 JSON key·비유한
+숫자·비정상 파일·읽기 중 변경은 오류 diagnostic으로 남깁니다. 데이터베이스와 각 row는
+bounded read, canonical containment 검사를 통과해야 하며, 한 row의 오류가 다른 유효한 row를
+버리지 않습니다.
+
+정규화된 unit에는 compiler basename, language, standard, define, include/quote/system search
+path와 존재 여부, sysroot, output, configuration digest가 들어갑니다. `CompilationUnit`과
+`CompilationContext`는 frozen model이므로 엔진이 argv나 경로를 다시 발견하지 않습니다.
+source·working directory·output·include path의 project-relative/외부 scope와 stale source,
+missing directory, source/argv mismatch는 location-bearing `CompilationDiagnostic`으로
+보존됩니다. JSON/HTML/Markdown으로 투영할 때 compile argv와 path-bearing flag도 공통
+redaction 경계를 통과해 checkout·사용자 홈·외부 SDK 경로를 노출하지 않습니다.
+
+`CompileDatabaseEngine`은 shared context를 소비해 모든 production C/C++ translation unit을
+DB의 source set과 대조합니다. DB가 없으면 기본적으로 C++ unit별 `WARN`을 내고
+`database_required = true`일 때 `FAIL`로 승격합니다. DB가 있으면 각 unit의 coverage, 모든
+loader/unit diagnostic, configuration별 required/forbidden flag를 각각 `InspectionTarget`으로
+반환하므로 PASS도 source와 line 1을 갖습니다. 결과의 `coverage_percent`, configuration 수와
+database path는 `EngineResult.extra`에 남고, engine은 standard/deep profile에서 descriptor
+DAG의 read-only node로 실행됩니다.
+
+```toml
+[engines.compile_db]
+enabled = true
+mode = "pass_warn_fail"
+database_required = true
+required_flags = ["-Wall", "-Wextra"]
+forbidden_flags = ["-fpermissive"]
+```
 
 ### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
 
@@ -281,7 +320,7 @@ build node는 read-only 관찰이나 다른 build node와 동시에 실행되지
 사용할 때도 checkout과 분리된 user-local 경로를 지정해야 합니다. `ici cache --clear`는
 선택된 exact entries directory의 JSON/TMP entry만 대상으로 합니다.
 
-cache key(`ici.analysis-cache-key/v1`)는 다음 identity를 canonical JSON으로 만든
+cache key(`ici.analysis-cache-key/v2`)는 다음 identity를 canonical JSON으로 만든
 SHA-256 digest입니다.
 
 - canonical project root
@@ -290,10 +329,13 @@ SHA-256 digest입니다.
 - capability inventory의 toolchain path·version·details digest
 - engine descriptor와 implementation source digest
 - `none`, `release`, `coverage`, `sanitize` 중 engine build variant
+- compilation context identity: 선택된 database의 project-relative path와 바이트 digest,
+  loader schema version, 정규화된 unit configuration/metadata와 diagnostics를 포함한 parse state
 - ici producer version과 cache key schema version
 
-이 key 설계는 소스나 정책이 같아 보여도 toolchain·엔진 구현·variant·ici 버전이 달라지면
-entry를 재사용하지 않게 합니다. 완전한 `PASS`/`WARN`/`FAIL` 결과는 evidence가
+이 key 설계는 소스나 정책이 같아 보여도 toolchain·엔진 구현·variant·compile database
+내용/선택 경로·parse state·ici 버전이 달라지면 entry를 재사용하지 않게 합니다. 완전한
+`PASS`/`WARN`/`FAIL` 결과는 evidence가
 `NOT_RUN`이 아니고 timeout·truncation·tool error가 없으며 artifact manifest가 유효한
 경우에만 저장할 수 있습니다. `ERROR`/`SKIP`, `NOT_RUN`, timeout/truncated/tool error,
 invalid 또는 stale artifact는 저장·재사용하지 않습니다. 따라서 결과를 좋게 보이게 만드는

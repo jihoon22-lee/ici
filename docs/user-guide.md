@@ -92,8 +92,8 @@ ici verify --profile deep
 | profile | 선택되는 내장 엔진 | 용도 |
 |---|---|---|
 | `fast` | read-only 엔진 10종 | 빠른 편집·pre-commit 피드백 |
-| `standard` | 기본 엔진 12종(`test`/`sanitize` 포함) | 일반 로컬·CI 검증 |
-| `deep` | 내장 엔진 13종(`cognitive` 포함) | 가장 넓은 분석 범위 |
+| `standard` | 기본 엔진 13종(`compile_db`/`test`/`sanitize` 포함) | 일반 로컬·CI 검증 |
+| `deep` | 내장 엔진 14종(`compile_db`/`cognitive` 포함) | 가장 넓은 분석 범위 |
 
 profile은 engine set만 바꿉니다. 예를 들어 line·complexity의 설정 임계값, test의
 coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따라 낮아지거나 높아지지
@@ -115,7 +115,7 @@ coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따�
 그 경로가 우선하므로, override를 사용할 때도 checkout과 분리된 사용자 전용 로컬 경로를
 지정해야 합니다.
 
-캐시 key(`ici.analysis-cache-key/v1`)는 단순한 파일 timestamp가 아니라 다음 입력을 모두
+캐시 key(`ici.analysis-cache-key/v2`)는 단순한 파일 timestamp가 아니라 다음 입력을 모두
 포함한 SHA-256 identity입니다.
 
 | key 구성 요소 | 의미 |
@@ -126,11 +126,13 @@ coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따�
 | toolchain | capability inventory의 도구 경로·버전·세부 정보 digest |
 | 엔진 구현 | engine descriptor와 implementation source digest |
 | build variant | `release`, `coverage`, `sanitize` 또는 해당 없는 엔진의 `none` |
+| compilation context | 선택된 compile database의 project-relative path·바이트 digest, loader version, 정규화된 unit configuration/metadata와 parse diagnostics |
 | producer | ici 버전과 cache key schema 버전 |
 
 따라서 프로젝트 루트, 소스 또는 build 설정, 유효 설정, 도구 버전, 엔진 구현, build variant,
-ici 버전 중 하나라도 달라지면 다른 key가 되어 cache miss가 됩니다. 캐시 저장소를 지우지
-않아도 이 identity 경계가 이전 결과의 재사용을 막습니다.
+compile database의 내용·선택 경로·parse state, ici 버전 중 하나라도 달라지면 다른 key가 되어
+cache miss가 됩니다. 캐시 저장소를 지우지 않아도 이 identity 경계가 이전 결과의 재사용을
+막습니다.
 
 모든 엔진 결과를 저장하지는 않습니다.
 
@@ -184,7 +186,7 @@ source status unchanged를 확인했습니다. 이 로컬 증거만으로 I2-4�
 release 검증 완료를 선언하지 않습니다.
 
 ### 2.1 로컬 전체 검증
-현재 프로젝트 디렉토리에서 13종 핵심 품질 검증 (기본 12종 활성)을 일괄 수행하고 터미널 컬러 대시보드를 출력합니다.
+현재 프로젝트 디렉토리에서 14종 핵심 품질 검증 (기본 13종 활성)을 일괄 수행하고 터미널 컬러 대시보드를 출력합니다.
 
 ```bash
 ici verify
@@ -224,6 +226,38 @@ projection에서 `-I[external]`로 치환됩니다. HTML의 로컬 editor-link�
 tool evidence는 각 리포터의 기존 redaction 계약을 그대로 따르며, 이 확장이 그 계약을
 변경하지는 않습니다. 두 확장이 없는 기존 `ici.result/v3` archive도 계속 읽고 migration할
 수 있습니다.
+
+#### C++ compile database gate
+
+C++ production translation unit이 발견되면 `compile_db` 엔진이 `compile_commands.json`을
+분석 맥락의 단일 입력으로 사용합니다. 자동 선택 순서는 프로젝트 루트의
+`compile_commands.json`, `build/compile_commands.json`이며, `project.compile_database`로
+project-relative 경로를 명시할 수도 있습니다. Python-only 프로젝트에는 이 엔진이
+`SKIP`/`NOT_APPLICABLE`입니다.
+
+loader는 compiler를 실행하거나 shell을 거치지 않습니다. JSON의 `arguments`가 `command`보다
+우선하며, command는 POSIX/Windows 플랫폼 규칙으로 argv로 분해됩니다. response file은
+project 내부 regular file만 제한된 깊이·크기·인자 수로 읽고, 외부 경로·symlink escape·malformed
+row·stale source·missing include directory·읽기 중 변경은 위치가 있는 diagnostic으로 남깁니다.
+동일 source의 여러 configuration도 각각 검사합니다.
+
+기본적으로 DB가 없으면 각 production unit에 `WARN`이 생성됩니다. CI에서 DB를 반드시 요구하려면
+다음처럼 설정합니다. `required_flags`는 각 compile argv에 반드시 있어야 하는 exact token이고,
+`forbidden_flags`가 발견되면 해당 configuration을 `FAIL`로 판정합니다.
+
+```toml
+[engines.compile_db]
+enabled = true
+mode = "pass_warn_fail"
+database_required = true
+required_flags = ["-Wall", "-Wextra"]
+forbidden_flags = ["-fpermissive"]
+```
+
+report에는 source별 coverage target과 loader/configuration diagnostic이 함께 남으며,
+`coverage_percent`, production/covered unit 수, configuration 수와 선택된 database path는
+engine `extra`에 기록됩니다. compile argv와 외부 SDK/include 경로는 JSON·HTML·Markdown 출력
+경계에서 redaction되어 host 경로가 그대로 공개되지 않습니다.
 
 환경과 지원 범위를 실행 전에 확인하려면 `ici doctor`를 사용합니다. 일반 출력은 설치된 도구와
 프로젝트별 엔진 matrix를 표로 보여주고, `--brief`는 프로젝트 언어·프레임워크 한 줄만 더하며,
