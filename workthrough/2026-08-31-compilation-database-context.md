@@ -69,7 +69,7 @@ digest, path, enum과 bool의 runtime type을 검증해 malformed 외부 입력�
 파일: `src/ici/engines/compile_db.py`, `src/ici/core/pipeline.py`, `src/ici/config.py`,
 `src/ici/config_schema.py`
 
-`CompileDatabaseEngine`은 standard/deep profile의 read-only descriptor로 등록되어
+`CompileDatabaseEngine`은 fast/standard/deep 전체 profile의 read-only descriptor로 등록되어
 `AnalysisContext.project.compilable_cpp_sources`와 DB unit source를 정확히 비교한다.
 
 - C++ production unit이 없으면 `SKIP`/`NOT_APPLICABLE`이다.

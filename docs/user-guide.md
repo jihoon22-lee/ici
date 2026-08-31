@@ -91,7 +91,7 @@ ici verify --profile deep
 
 | profile | 선택되는 내장 엔진 | 용도 |
 |---|---|---|
-| `fast` | read-only 엔진 10종 | 빠른 편집·pre-commit 피드백 |
+| `fast` | read-only 엔진 11종(`compile_db` 포함) | 빠른 편집·pre-commit 피드백 |
 | `standard` | 기본 엔진 13종(`compile_db`/`test`/`sanitize` 포함) | 일반 로컬·CI 검증 |
 | `deep` | 내장 엔진 14종(`compile_db`/`cognitive` 포함) | 가장 넓은 분석 범위 |
 
@@ -182,8 +182,9 @@ standard 입력에서 첫 실행은 118.49초·cache hits 0, 두 번째 실행�
 finding 수는 각각 3,497건이었습니다. 생성 HTML은 4,095,550 bytes이고 외부 참조는
 0건이었습니다. `scripts/verify-reproducibility.sh`는 두 build 모두
 `6a629f9b162fdacbe84a82cd861eac622aebc47f3a9cae00915387e53fc21c16`을 만들었고 project
-source status unchanged를 확인했습니다. 이 로컬 증거만으로 I2-4의 PR/CI/Pages 또는
-release 검증 완료를 선언하지 않습니다.
+source status unchanged를 확인했습니다. I2-4는 PR #97의 merge commit
+`ef30059522729b376c5409e5bb49164aa538b128`, CI run `33345993304`, sticky comment
+`5472411964`의 ici/viewer Pages 게시까지 완료됐습니다.
 
 ### 2.1 로컬 전체 검증
 현재 프로젝트 디렉토리에서 14종 핵심 품질 검증 (기본 13종 활성)을 일괄 수행하고 터미널 컬러 대시보드를 출력합니다.

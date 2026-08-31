@@ -266,7 +266,7 @@ DB의 source set과 대조합니다. DB가 없으면 기본적으로 C++ unit별
 `database_required = true`일 때 `FAIL`로 승격합니다. DB가 있으면 각 unit의 coverage, 모든
 loader/unit diagnostic, configuration별 required/forbidden flag를 각각 `InspectionTarget`으로
 반환하므로 PASS도 source와 line 1을 갖습니다. 결과의 `coverage_percent`, configuration 수와
-database path는 `EngineResult.extra`에 남고, engine은 standard/deep profile에서 descriptor
+database path는 `EngineResult.extra`에 남고, engine은 모든 profile에서 read-only descriptor
 DAG의 read-only node로 실행됩니다.
 
 ```toml
@@ -380,8 +380,9 @@ reader는 누락을 false/unknown으로 처리해야 합니다.
 findings는 각각 3,497건이었습니다. HTML은 4,095,550 bytes이고 외부 참조는 0건이며,
 재현성 script 두 build의 SHA-256은
 `6a629f9b162fdacbe84a82cd861eac622aebc47f3a9cae00915387e53fc21c16`으로 같고 project source
-status unchanged였습니다. 이는 로컬 evidence이고 I2-4 PR/CI/Pages/release evidence는
-아직 pending입니다.
+status unchanged였습니다. I2-4는 PR #97의 merge commit
+`ef30059522729b376c5409e5bb49164aa538b128`, CI run `33345993304`, sticky comment
+`5472411964`의 ici/viewer Pages 게시까지 완료됐습니다.
 
 ### 4.5 finding baseline 비교 파이프라인
 
