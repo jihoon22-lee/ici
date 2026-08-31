@@ -73,7 +73,7 @@ def test_arguments_win_and_structured_metadata_is_normalized(tmp_path: Path) -> 
     assert unit.source == "src/main.cpp"
     assert unit.directory == "build"
     assert unit.output == "build/main.o"
-    assert unit.compiler == "/usr/bin/g++"
+    assert unit.compiler == "g++"
     assert unit.language == "c++"
     assert unit.standard == "c++20"
     assert [(item.name, item.value) for item in unit.defines] == [

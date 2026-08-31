@@ -12,7 +12,7 @@ import json
 import os
 import shlex
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from ici.core.context import (
@@ -195,6 +195,14 @@ def _parse_argv(row: dict[str, Any]) -> tuple[str, ...]:
     if not parsed or any(not value for value in parsed):
         raise _RowError("invalid-command", "The compilation command produced an invalid argv.")
     return parsed
+
+
+def _compiler_name(value: str) -> str:
+    """Return a non-sensitive compiler basename for structured reporting."""
+
+    posix_name = PurePosixPath(value).name
+    windows_name = PureWindowsPath(value).name
+    return windows_name if "\\" in value else posix_name
 
 
 def _option_value(
@@ -464,7 +472,7 @@ def _parse_row(
         directory=directory,
         argv=argv,
         output=output,
-        compiler=argv[0],
+        compiler=_compiler_name(argv[0]),
         language=language,
         standard=standard,
         defines=definitions,
