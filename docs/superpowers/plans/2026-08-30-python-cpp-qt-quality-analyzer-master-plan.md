@@ -446,7 +446,7 @@ source status unchanged 및 smoke 전체 통과를 확인했다. I2-4는 PR #97,
 
 ### I3-1. compilation database model과 검증 엔진
 
-**브랜치:** `feat/compile-context`
+**브랜치:** `feat/compile-db-context`
 
 - [x] `arguments`를 우선하고 `command`는 플랫폼별 안전한 parser를 통해 읽는다.
 - [x] directory, file, output과 여러 configuration의 동일 source를 보존한다.
@@ -457,10 +457,21 @@ source status unchanged 및 smoke 전체 통과를 확인했다. I2-4는 PR #97,
 
 **I3-1 로컬 완료(2026-08-31):** bounded descriptor read와 strict JSON, POSIX/MSVC
 metadata, project-contained response file, immutable context, `compile_db` engine, cache key v2,
-report redaction과 v3 schema를 함께 구현했다. Python 3.10 전체 1,032 tests와 Ruff
-check/format(124 files)이 통과했다. pyz/smoke 및 PR·CI·Pages 증거는 이 브랜치의 merge gate에서
-확정하며, 이 완료는 CMake DB 생성·qmake capture·lint/include graph 이관(I3-2~I3-4)을
-포함하지 않는다.
+report redaction과 v3 schema를 함께 구현했다. compile_db loader는 facade
+`src/ici/core/compile_db.py`와 `_compile_db_paths.py`, `_compile_db_commands.py`,
+`_compile_db_metadata.py`로 분리했으며, 네 모듈은 각각 순수 코드 500줄 미만이다. compile_db
+범위의 최종 line·type·high-complexity 이슈는 0건이다.
+
+Python 3.10 focused 109 tests와 full suite 1,032 tests(46.29s)가 통과했고, Ruff
+check/format은 127 files에서 통과했으며 focused mypy도 clean이었다. reproducible pyz 두
+빌드의 SHA-256은 `408fcd0fcf153b5e63927d10d34d55cea680eb472dc6f0e95bf174efcf6e8b36`으로
+일치했고 pure-Python 10 distributions/no certifi, smoke와 Zero-CDN도 PASS였다. 최종
+`--no-cache` self verify는 WARN(13 total: Pass 8, Warn 4, Fail 0, Error 0, Skip 1),
+compile_db `SKIP`/`NOT_APPLICABLE`(Python-only), test 1,032/1,032, coverage
+line/function/branch 88.6%/97.1%/79.6%, TEM 4.86, cache hits 0, 109.26s, HTML
+4,627,454 bytes였으며 compile_db-specific high-complexity/line-threshold/type issues는
+0건이다. 이 문단은 로컬 증거만 기록하며 PR·CI·Pages 증거는 아직 pending이다. CMake DB
+생성·qmake capture·lint/include graph 이관(I3-2~I3-4)은 포함하지 않는다.
 
 ### I3-2. CMake compile DB 생성
 
@@ -827,5 +838,6 @@ manifest와 I2-3 선언형 pipeline 구현은 완료됐다. I2-4 cache contract�
 commit `ef30059522729b376c5409e5bb49164aa538b128`로 병합됐고 CI run `33345993304`의 모든
 required check와 Merge Gate가 성공했다. sticky comment `5472411964`의 ici/viewer Pages도
 게시됐다. 후속 source-scope 보정 PR #98도 CI run `33355330343` green 뒤 merge commit
-`6a0eadb20464569be9573d41ab72a27bd96d58a7`로 병합됐다. 다음 ici 단계는 I3-1 merge evidence를
-확보한 뒤 I3-2 CMake compile DB 생성이다.
+`6a0eadb20464569be9573d41ab72a27bd96d58a7`로 병합됐다. I3-1의 로컬 evidence는 위에
+기록했으며 PR·CI·Pages evidence는 아직 pending이다. 다음 ici 구현 단계는 I3-2 CMake
+compile DB 생성이다.

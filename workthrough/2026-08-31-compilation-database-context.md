@@ -30,7 +30,11 @@ argv를 보관하는 수준이었다. 이 상태에서는 다음 문제가 있�
 
 ### 1. Safe, bounded compilation-database loader
 
-파일: `src/ici/core/compile_db.py`
+파일: `src/ici/core/compile_db.py` (facade), `src/ici/core/_compile_db_paths.py`,
+`src/ici/core/_compile_db_commands.py`, `src/ici/core/_compile_db_metadata.py`
+
+- loader를 facade와 path/command/metadata 전용 모듈로 분리했다. 네 모듈은 각각 순수 코드
+  500줄 미만이며, compile_db 범위의 최종 line·type·high-complexity 이슈는 모두 0건이다.
 
 - DB 선택 순서는 명시된 `project.compile_database`, 프로젝트 루트의
   `compile_commands.json`, `build/compile_commands.json`이며 project-relative containment를
@@ -167,19 +171,29 @@ compile_db
 
 ## Verification Results
 
-I3-1 전용 회귀 묶음은 Python 3.10에서 다음과 같이 통과했다.
+I3-1 최종 로컬 품질 게이트는 Python 3.10에서 focused 109 passed, full suite
+1,032 passed in 46.29s였다. Ruff check/format은 127 files에서 통과했고, focused mypy도
+clean이었다. reproducible pyz는 두 번 빌드한 SHA-256이 모두
+`408fcd0fcf153b5e63927d10d34d55cea680eb472dc6f0e95bf174efcf6e8b36`으로 일치했다.
+의존성 검사는 pure-Python 10 distributions/no certifi였고, smoke와 Zero-CDN도 PASS였다.
+
+최종 `--no-cache` self verify는 exit 0의 WARN이었다.
 
 ```text
-uv run --python 3.10 pytest tests/test_compile_context.py \
-  tests/test_compile_db_engine.py tests/test_cache_identity.py \
-  tests/test_context_reporting.py
-61 passed in 0.33s
+engines: 13 total — Pass 8 / Warn 4 / Fail 0 / Error 0 / Skip 1
+compile_db: SKIP / NOT_APPLICABLE (Python-only)
+test: 1,032/1,032
+coverage: line 88.6% / function 97.1% / branch 79.6%
+TEM: 4.86
+cache hits: 0
+elapsed: 109.26s
+HTML: 4,627,454 bytes
+compile_db-specific high-complexity / line-threshold / type issues: 0
 ```
 
 문서 변경 후 `git diff --check`와 변경 문서의 내부 경로 링크(`README.md`,
-`src/ici/schemas/ici-result-v3.schema.json`, `docs/engine-reference.md`)도 확인했다. 전체
-Python suite, Ruff, reproducible pyz, smoke, PR CI와 Pages evidence는 I3-1 branch의
-Merge Gate에서 다시 확정한다.
+`src/ici/schemas/ici-result-v3.schema.json`, `docs/engine-reference.md`)도 확인했다. 위
+결과는 로컬 증거이며 PR·CI·Pages 증거는 아직 pending이다.
 
 ## Next Steps
 
