@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-01
+
 ### Fixed
 - **Pages publication latency tolerance**: the PR report gate now waits up to ten minutes for
   legacy GitHub Pages to serve newly committed ici/viewer reports. It still fails closed unless
