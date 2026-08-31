@@ -117,6 +117,39 @@ class CacheEntryError(ValueError):
     """Raised internally when a cache entry cannot be trusted."""
 
 
+def _reject_json_constant(value: str) -> None:
+    raise CacheEntryError(f"cache JSON contains non-finite constant: {value}")
+
+
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise CacheEntryError(f"cache JSON contains duplicate key: {key}")
+        value[key] = item
+    return value
+
+
+def _read_cache_json(path: Path) -> Any:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(path, flags)
+    try:
+        details = os.fstat(descriptor)
+        if not stat.S_ISREG(details.st_mode) or details.st_size > MAX_CACHE_ENTRY_BYTES:
+            raise CacheEntryError("cache entry is not a bounded regular file")
+        with os.fdopen(descriptor, "rb", closefd=False) as stream:
+            encoded = stream.read(MAX_CACHE_ENTRY_BYTES + 1)
+        if len(encoded) > MAX_CACHE_ENTRY_BYTES:
+            raise CacheEntryError("cache entry exceeds the size limit")
+        return json.loads(
+            encoded.decode("utf-8"),
+            parse_constant=_reject_json_constant,
+            object_pairs_hook=_unique_json_object,
+        )
+    finally:
+        os.close(descriptor)
+
+
 @dataclass(frozen=True)
 class AnalysisCacheKey:
     """Complete identity of one engine execution."""
@@ -396,10 +429,7 @@ class AnalysisCache:
         try:
             if path.is_symlink():
                 return None
-            details = path.stat()
-            if not path.is_file() or details.st_size > MAX_CACHE_ENTRY_BYTES:
-                return None
-            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload = _read_cache_json(path)
             result = _decode_entry(payload, key, project_root.resolve(strict=False))
             serialize_engine_result(result, project_root=project_root)
         except (
@@ -408,7 +438,7 @@ class AnalysisCache:
             UnicodeError,
             ValueError,
             TypeError,
-            json.JSONDecodeError,
+            RecursionError,
         ):
             return None
         return replace(result, cache_hit=True, cache_key=key.digest)
@@ -491,9 +521,9 @@ class AnalysisCache:
                 if details.st_size > MAX_CACHE_ENTRY_BYTES:
                     corrupt += 1
                     continue
-                payload = json.loads(path.read_text(encoding="utf-8"))
+                payload = _read_cache_json(path)
                 _validate_inventory_entry(payload, path)
-            except (CacheEntryError, OSError, UnicodeError, ValueError, json.JSONDecodeError):
+            except (CacheEntryError, OSError, UnicodeError, ValueError, RecursionError):
                 corrupt += 1
             else:
                 entries += 1
