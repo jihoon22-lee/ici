@@ -433,7 +433,7 @@ def _configure_cmake(session: BuildSession, options: ConfigureOptions) -> BuildS
         if database.is_file():
             session.compilation_database = database
     except OSError:
-        pass
+        _fail(session, "compilation database could not be inspected")
     return session
 
 
