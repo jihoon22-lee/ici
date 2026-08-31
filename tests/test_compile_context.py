@@ -12,7 +12,9 @@ from ici.core.compile_db import load_compilation_context
 from ici.core.context import CompilationContext
 
 
-def _write_database(root: Path, rows: list[object], relative: str = "build/compile_commands.json") -> Path:
+def _write_database(
+    root: Path, rows: list[object], relative: str = "build/compile_commands.json"
+) -> Path:
     path = root / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(rows), encoding="utf-8")
@@ -237,9 +239,7 @@ def test_source_and_database_symlink_escapes_are_rejected_with_evidence(tmp_path
 
     assert database_context.units == ()
     assert database_context.database_path == "compile_commands.json"
-    assert [item.code for item in database_context.diagnostics] == [
-        "database-outside-project"
-    ]
+    assert [item.code for item in database_context.diagnostics] == ["database-outside-project"]
 
 
 def test_missing_database_is_optional_unless_explicitly_configured(tmp_path: Path) -> None:

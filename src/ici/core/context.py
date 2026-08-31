@@ -240,13 +240,81 @@ class AnalysisIdentity:
 
 
 @dataclass(frozen=True)
+class CompilationDiagnostic:
+    """Bounded, reporting-safe evidence from compile database ingestion."""
+
+    code: str
+    message: str
+    level: str = "warning"
+    entry_index: int | None = None
+    source: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.code or not self.message:
+            raise ValueError("compilation diagnostic code and message must not be empty")
+        if self.level not in {"info", "warning", "error"}:
+            raise ValueError(f"unsupported compilation diagnostic level: {self.level!r}")
+        if self.entry_index is not None and (
+            type(self.entry_index) is not int or self.entry_index < 0
+        ):
+            raise ValueError("compilation diagnostic entry index must be non-negative")
+        if self.source:
+            _validate_relative_path(self.source, "compilation diagnostic source", allow_dot=False)
+
+
+@dataclass(frozen=True)
+class CompilationDefine:
+    """One compiler preprocessor definition without losing its optional value."""
+
+    name: str
+    value: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.name or any(character.isspace() for character in self.name):
+            raise ValueError("compilation define name must be a non-empty token")
+        if self.value is not None and not isinstance(self.value, str):
+            raise ValueError("compilation define value must be a string or null")
+
+
+@dataclass(frozen=True)
+class CompilationSearchPath:
+    """One normalized compiler header search path and its trust scope."""
+
+    path: str
+    kind: str
+    scope: str
+    exists: bool
+
+    def __post_init__(self) -> None:
+        if self.kind not in {"include", "system", "quote"}:
+            raise ValueError(f"unsupported compilation search path kind: {self.kind!r}")
+        if self.scope not in {"project", "external"}:
+            raise ValueError(f"unsupported compilation search path scope: {self.scope!r}")
+        if type(self.exists) is not bool:
+            raise ValueError("compilation search path exists flag must be a boolean")
+        if self.scope == "project":
+            _validate_relative_path(self.path, "compilation search path", allow_dot=True)
+        elif not isinstance(self.path, str) or not self.path:
+            raise ValueError("external compilation search path must not be empty")
+
+
+@dataclass(frozen=True)
 class CompilationUnit:
-    """One compile invocation seam; parsing is implemented by I3."""
+    """One normalized compile invocation with immutable provenance."""
 
     source: str
     directory: str
     argv: tuple[str, ...]
     output: str = ""
+    compiler: str = ""
+    language: str = ""
+    standard: str = ""
+    defines: tuple[CompilationDefine, ...] = ()
+    include_paths: tuple[CompilationSearchPath, ...] = ()
+    sysroot: str = ""
+    sysroot_scope: str = ""
+    configuration: str = ""
+    diagnostics: tuple[CompilationDiagnostic, ...] = ()
 
     def __post_init__(self) -> None:
         _validate_relative_path(self.source, "compilation source", allow_dot=False)
@@ -255,7 +323,37 @@ class CompilationUnit:
             _validate_relative_path(self.output, "compilation output", allow_dot=False)
         if not self.argv or not all(isinstance(item, str) and item for item in self.argv):
             raise ValueError("compilation argv must contain non-empty strings")
+        if self.language and self.language not in {"c", "c++", "objective-c", "objective-c++"}:
+            raise ValueError(f"unsupported compilation language: {self.language!r}")
+        if not isinstance(self.compiler, str):
+            raise ValueError("compilation compiler must be a string")
+        if not isinstance(self.standard, str):
+            raise ValueError("compilation standard must be a string")
+        if self.sysroot_scope not in {"", "project", "external"}:
+            raise ValueError(f"unsupported compilation sysroot scope: {self.sysroot_scope!r}")
+        if bool(self.sysroot) != bool(self.sysroot_scope):
+            raise ValueError("compilation sysroot and scope must be declared together")
+        if self.sysroot_scope == "project":
+            _validate_relative_path(self.sysroot, "compilation sysroot", allow_dot=True)
+        elif self.sysroot and not isinstance(self.sysroot, str):
+            raise ValueError("external compilation sysroot must be a string")
+        if self.configuration and _DIGEST_RE.fullmatch(self.configuration) is None:
+            raise ValueError("compilation configuration must be a sha256 digest")
         object.__setattr__(self, "argv", tuple(self.argv))
+        defines = tuple(self.defines)
+        include_paths = tuple(self.include_paths)
+        diagnostics = tuple(self.diagnostics)
+        if not all(isinstance(item, CompilationDefine) for item in defines):
+            raise ValueError("compilation defines must contain CompilationDefine values")
+        if not all(isinstance(item, CompilationSearchPath) for item in include_paths):
+            raise ValueError("compilation include paths must contain CompilationSearchPath values")
+        if not all(isinstance(item, CompilationDiagnostic) for item in diagnostics):
+            raise ValueError(
+                "compilation unit diagnostics must contain CompilationDiagnostic values"
+            )
+        object.__setattr__(self, "defines", defines)
+        object.__setattr__(self, "include_paths", include_paths)
+        object.__setattr__(self, "diagnostics", diagnostics)
 
 
 @dataclass(frozen=True)
@@ -264,14 +362,24 @@ class CompilationContext:
 
     units: tuple[CompilationUnit, ...] = ()
     database_path: str | None = None
+    database_digest: str = ""
+    diagnostics: tuple[CompilationDiagnostic, ...] = ()
 
     def __post_init__(self) -> None:
         units = tuple(self.units)
-        if len({unit.source for unit in units}) != len(units):
-            raise ValueError("compilation context contains duplicate source entries")
         if self.database_path is not None:
             _validate_relative_path(self.database_path, "compilation database", allow_dot=False)
+        if self.database_digest and _DIGEST_RE.fullmatch(self.database_digest) is None:
+            raise ValueError("compilation database digest must be a sha256 digest")
+        diagnostics = tuple(self.diagnostics)
+        if not all(isinstance(item, CompilationUnit) for item in units):
+            raise ValueError("compilation context units must contain CompilationUnit values")
+        if not all(isinstance(item, CompilationDiagnostic) for item in diagnostics):
+            raise ValueError(
+                "compilation context diagnostics must contain CompilationDiagnostic values"
+            )
         object.__setattr__(self, "units", units)
+        object.__setattr__(self, "diagnostics", diagnostics)
 
 
 @dataclass(frozen=True)
