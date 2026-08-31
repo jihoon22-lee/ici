@@ -331,8 +331,6 @@ class BuildSession:
     reason: str = ""
     configured: bool = False
     cmake_version: tuple[int, int] | None = None
-    cmake_generator: str = ""
-    cmake_unity_build: bool | None = None
     compilation_database: Path | None = None
     analysis_context: AnalysisContext | None = None
     artifact_manifest: ArtifactManifest | None = None

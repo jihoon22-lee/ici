@@ -81,16 +81,21 @@ def _read_cmake_metadata(root: Path) -> tuple[str, bool | None, tuple[Compilatio
     try:
         values = _cache_values(_read_bounded_regular(cache, MAX_CMAKE_CACHE_BYTES))
     except FileNotFoundError:
-        return "", None, (
-            _diagnostic("cmake-cache-missing", "The canonical CMake cache was not generated."),
+        return (
+            "",
+            None,
+            (_diagnostic("cmake-cache-missing", "The canonical CMake cache was not generated."),),
         )
     except (_ReadError, ValueError):
-        return "", None, (
-            _diagnostic("cmake-cache-invalid", "The canonical CMake cache is not safe to read."),
+        return (
+            "",
+            None,
+            (_diagnostic("cmake-cache-invalid", "The canonical CMake cache is not safe to read."),),
         )
 
     generator = values.get("CMAKE_GENERATOR", "")
-    unity = _cmake_bool(values.get("CMAKE_UNITY_BUILD"))
+    unity_value = values.get("CMAKE_UNITY_BUILD")
+    unity = _cmake_bool(unity_value)
     diagnostics: list[CompilationDiagnostic] = []
     if not generator:
         diagnostics.append(
@@ -108,6 +113,13 @@ def _read_cmake_metadata(root: Path) -> tuple[str, bool | None, tuple[Compilatio
             _diagnostic(
                 "cmake-export-disabled",
                 "The canonical CMake configure did not enable compile-command export.",
+            )
+        )
+    if unity_value is not None and unity is None:
+        diagnostics.append(
+            _diagnostic(
+                "cmake-unity-unknown",
+                "The canonical CMake unity-build setting could not be interpreted safely.",
             )
         )
     return generator, unity, tuple(diagnostics)
