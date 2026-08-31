@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Pages publication latency tolerance**: the PR report gate now waits up to ten minutes for
+  legacy GitHub Pages to serve newly committed ici/viewer reports. It still fails closed unless
+  every sticky-comment URL returns HTML, while avoiding false failures when consecutive report
+  commits leave the final Pages deployment queued longer than the previous 90-second window.
+
 ### Added
 - **I3-3 qmake exact compilation context**: qmake projects without an
   explicit or discovered `compile_commands.json` can now produce a canonical Release context in

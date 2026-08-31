@@ -169,6 +169,8 @@ def test_report_pr_job_consumes_artifact_not_pr_code():
     assert 'EXPECTED_REPORTS: "2"' in report_job
     assert "run_path = f\"/actions/runs/{os.environ['GITHUB_RUN_ID']}\"" in report_job
     assert "for page in range(1, 21)" in report_job
+    assert "for attempt in range(120)" in report_job
+    assert "time.sleep(5)" in report_job
 
 
 def test_merge_gate_requires_every_pr_quality_job():

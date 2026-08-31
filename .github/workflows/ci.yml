@@ -303,7 +303,10 @@ jobs:
 
           pending = list(urls)
           last_errors = {}
-          for attempt in range(18):
+          # Legacy Pages deployments may remain queued for several minutes when
+          # consecutive report commits supersede one another. Keep the PR gate
+          # fail-closed, but allow the deployment up to ten minutes to settle.
+          for attempt in range(120):
               remaining = []
               for url in pending:
                   separator = "&" if "?" in url else "?"
