@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shlex
 import stat
 from dataclasses import dataclass
@@ -396,6 +397,28 @@ def _compiler_name(value: str) -> str:
     return windows_name if "\\" in value else posix_name
 
 
+def _uses_msvc(argv: tuple[str, ...]) -> bool:
+    if not argv:
+        return False
+    name = _compiler_name(argv[0]).casefold()
+    return name in {"cl", "cl.exe", "clang-cl", "clang-cl.exe"}
+
+
+def _msvc_option_value(
+    argv: tuple[str, ...],
+    index: int,
+    option: str,
+) -> tuple[str | None, int] | None:
+    token = argv[index]
+    if token == option:
+        if index + 1 >= len(argv) or argv[index + 1].startswith(("/", "-")):
+            return None, index + 1
+        return argv[index + 1], index + 2
+    if token.startswith(option) and len(token) > len(option):
+        return token[len(option) :], index + 1
+    return None
+
+
 def _option_value(
     argv: tuple[str, ...],
     index: int,
@@ -412,6 +435,8 @@ def _option_value(
         if option in {"-std", "--sysroot"} and not token.startswith(option + "="):
             return "", index + 1
         if option == "-o" and token.startswith("-output"):
+            return "", index + 1
+        if option in {"-isystem", "-iquote", "-isysroot"} and token[len(option)] not in "=./\\":
             return "", index + 1
         value = token[len(option) :]
         if value.startswith("="):
@@ -431,6 +456,18 @@ def _extract_standard(argv: tuple[str, ...]) -> tuple[str, list[CompilationDiagn
     while index < len(argv):
         if argv[index] == "--":
             break
+        if _uses_msvc(argv):
+            token = argv[index]
+            if token.casefold().startswith("/std:"):
+                value = token.split(":", 1)[1]
+                if value:
+                    standard = value
+                else:
+                    diagnostics.append(
+                        _diagnostic("missing-flag-value", "The /std flag has no value.")
+                    )
+                index += 1
+                continue
         value, next_index = _option_value(argv, index, "-std", joined=True)
         if value is None:
             diagnostics.append(_diagnostic("missing-flag-value", "The -std flag has no value."))
@@ -466,6 +503,16 @@ def _extract_language(
     while index < len(argv):
         if argv[index] == "--":
             break
+        if _uses_msvc(argv):
+            lowered = argv[index].casefold()
+            if lowered.startswith("/tc"):
+                language = "c"
+                index += 1
+                continue
+            if lowered.startswith("/tp"):
+                language = "c++"
+                index += 1
+                continue
         value, next_index = _option_value(argv, index, "-x", joined=True)
         language = _language_value(value, language, diagnostics)
         index = next_index
@@ -474,7 +521,7 @@ def _extract_language(
 
 def _parse_define(value: str) -> tuple[CompilationDefine | None, CompilationDiagnostic | None]:
     name, separator, definition_value = value.partition("=")
-    if not name or any(character.isspace() for character in name):
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) is None:
         return None, _diagnostic("invalid-define", "A compiler definition has an invalid name.")
     return (
         CompilationDefine(name=name, value=definition_value if separator else None),
@@ -503,6 +550,17 @@ def _extract_defines(
     while index < len(argv):
         if argv[index] == "--":
             break
+        if _uses_msvc(argv):
+            matched = _msvc_option_value(argv, index, "/D")
+            if matched is not None:
+                value, index = matched
+                if value is None:
+                    diagnostics.append(
+                        _diagnostic("missing-flag-value", "The /D flag has no value.")
+                    )
+                else:
+                    _append_define(value, definitions, diagnostics)
+                continue
         value, next_index = _option_value(argv, index, "-D", joined=True)
         if value is None:
             diagnostics.append(_diagnostic("missing-flag-value", "The -D flag has no value."))
@@ -522,6 +580,34 @@ def _extract_includes(
     while index < len(argv):
         if argv[index] == "--":
             break
+        if _uses_msvc(argv):
+            matched_msvc = False
+            for option, kind in (("/external:I", "system"), ("/I", "include")):
+                matched_value = _msvc_option_value(argv, index, option)
+                if matched_value is None:
+                    continue
+                value, index = matched_value
+                matched_msvc = True
+                if value is None:
+                    diagnostics.append(
+                        _diagnostic("missing-flag-value", f"The {option} flag has no value.")
+                    )
+                    break
+                path, scope, resolved = _scoped_path(root, directory, value)
+                exists = _is_dir(resolved)
+                paths.append(
+                    CompilationSearchPath(path=path, kind=kind, scope=scope, exists=exists)
+                )
+                if not exists:
+                    diagnostics.append(
+                        _diagnostic(
+                            "missing-include-dir",
+                            "A configured compiler include directory does not exist.",
+                        )
+                    )
+                break
+            if matched_msvc:
+                continue
         matched = False
         for option, kind, joined in options:
             value, next_index = _option_value(argv, index, option, joined=joined)
@@ -586,6 +672,17 @@ def _argv_output(argv: tuple[str, ...]) -> tuple[str, list[CompilationDiagnostic
     while index < len(argv):
         if argv[index] == "--":
             break
+        if _uses_msvc(argv):
+            matched = _msvc_option_value(argv, index, "/Fo")
+            if matched is not None:
+                value, index = matched
+                if value is None:
+                    diagnostics.append(
+                        _diagnostic("missing-flag-value", "The /Fo flag has no value.")
+                    )
+                elif value:
+                    output = value
+                continue
         value, next_index = _option_value(argv, index, "-o", joined=True)
         if value is None:
             diagnostics.append(_diagnostic("missing-flag-value", "The -o flag has no value."))
