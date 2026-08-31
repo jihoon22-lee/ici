@@ -530,7 +530,8 @@ TEM 4.89, tests 7, compile_db 5/5 production units, 20 configurations, 0 issues)
 독립적으로 확인한 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/)와
 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/)는 모두 HTTP/2 200,
 `text/html`, title present, 외부 dependency 0건이었고 관측 bytes는 각각 4,574,483와 337,918이었다.
-BuildScope target-by-target 대조는 pending이며 I3-3/I3-4와 I3 전체도 아직 완료되지 않았다.
+BuildScope target-by-target 대조는 pending이며 I3-3 final quality/remote evidence, I3-4와 I3
+전체도 아직 완료되지 않았다.
 
 ### I3-3. qmake compile capture
 
@@ -541,25 +542,69 @@ BuildScope target-by-target 대조는 pending이며 I3-3/I3-4와 I3 전체도 �
   test executable의 freshness가 어긋나 stale 실행 및 gcov stamp 불일치가 coverage 0%로
   둔갑하지 않게 하는 선행 안전망이며, CMake build path는 변경하지 않는다. 이 체크는
   compile capture 완료를 의미하지 않는다.
-- [ ] qmake verbose build, compiler wrapper, 선택적 외부 capture 도구를 실측 비교하는 spike를 먼저 한다.
-- [ ] shell parsing이나 임의 command 실행 없이 argv를 보존할 수 있는 방식을 채택한다.
-- [ ] Qt5/Qt6, target wrapper, shadow relative path를 fixture와 diskmap에서 검증한다.
-- [ ] exact capture가 불가능한 환경은 명시적 lower-confidence mode로 남긴다.
+- [x] qmake verbose build, trace output, compiler wrapper, 선택적 외부 capture 도구를
+  실측 비교하는 spike를 먼저 한다.
+- [x] shell parsing이나 임의 command 실행 없이 compiler `argv`와 working directory를
+  보존하는 compiler-wrapper 방식을 채택한다.
+- [x] Qt5/Qt6, target wrapper, shadow-relative path를 real qmake fixture와 DiskMap에서
+  검증한다.
+- [x] exact capture가 불가능한 환경은 명시적 POSIX lower-confidence mode로 남긴다.
+- [x] Python 3.10 full quality gate, reproducible pyz/build/smoke와 self-verify local evidence를
+  확정한다.
+- [ ] PR/CI/Merge Gate/Pages remote evidence를 이 slice의 최종 증거로 확정한다.
 
-**Freshness 선행 안전망의 최종 로컬 증거 (2026-08-31):** rebase된 test/fix 커밋
-`1098a62`/`f692a3c` 기준으로 Python 3.10 `pytest 811 passed (42.79s)`, Ruff
-check/format 103 files, reproducible pyz 두 회의 동일 SHA-256
-`8fdb816ae394e5327ffa6f6ca6ddc0efca0a45addb48975e3b8eef6412a39018`, pure-Python
-10 distributions/no certifi, smoke(Python 3.10·integrity·Zero-CDN 포함) PASS를
-확인했다. 같은 candidate pyz를 실제 DiskMap에 적용한 결과는 Suite PASS
-(10 pass, 0 warn, 0 fail/error, 2 skip; 9/9 tests; line/function/branch
-96.6%/98.0%/85.0%; TEM 4.90; complexity 14/101/0 issues; duplicate 2.0%;
-sanitizer clean, 85.96s)였고, test와 sanitize qmake build JSON evidence 양쪽에
-`/usr/bin/make clean` 성공이 남았다. capability snapshot은 30 tools/21 ready/
-0 incomplete/9 unavailable이며 required `g++`는 ready/health READY였다. HTML은
-281,264 bytes, external `src`/`href` reference 0개이고 capability snapshot을
-렌더링했다. 이 기록은 qmake compile capture 완료가 아니며, 원격 CI·PR·Pages 및
-main 반영은 후속 검증에서 완료해야 한다.
+**I3-3 구현 및 bounded local E2E (2026-08-31; final gates pending):** qmake는 자체적으로
+`compile_commands.json`을 내보내지 않으므로, 명시적·자동 발견 database가 없고 root backend가
+qmake인 C/C++ project에만 `build/ici-qmake-build` Release shadow를 사용한다. 기존 database는
+항상 우선하며, capture가 실패해도 임의 database를 대신 실행하지 않는다.
+
+DiskMap에서 첫 qmake pass에 wrapper text를 주입하면 nested `$$`가 collapse되는 것이 발견됐다.
+그래서 preflight는 owned canonical shadow를 먼저 reset하고, `-recursive` configure를 한 번
+수행해 nested Makefile을 materialize한다. 첫 단계는 recursively 찾은 `Makefile*`를 no-follow
+bounded read로 검사해 정확히 하나의 일관된 `CC`/`CXX` compiler pair만 허용한다. 각 값은 단일
+recognized gcc/g++/clang driver여야 하고, whitespace·multiword·불일치·미설치·symlink 또는
+non-executable regular file이면 fail closed한다. Makefile 하나는 최대 4 MiB, 전체는 최대
+4,096개이며 aggregate metadata도 bounded하다.
+
+두 번째 단계는 같은 canonical shadow를 `-recursive`로 다시 configure하면서 선택한
+`sys.executable`을 shebang으로 고정한 compiler wrapper와 probe에서 resolve한 literal absolute
+C/C++ compiler path를 `QMAKE_CC`/`QMAKE_CXX`에 전달한다. wrapper는 `-c` invocation의 wrapper
+뒤 exact `argv`와 실제 working directory만 32 MiB/200,000-record JSONL journal에 기록한 뒤
+원래 compiler를 직접 `execvp`한다. shell parsing, Makefile recipe 재해석, captured command
+replay는 없다. 두 번째 configure 뒤에는 adapter의 deterministic `make clean`을 evidence로
+기록하고 capture build를 수행한다.
+
+journal은 no-follow regular-file, owner/mode와 permission 재검사 및 locking을 거치며 wrapper는
+0700, journal은 0600이다. generated `compile_commands.json`은 owned shadow 내부 temporary
+file에서 atomic replace로 발행한다. Non-POSIX host는 configure하지 않고 명시적 warning인
+`qmake-capture-unsupported`로 lower confidence를 표시한다. capture된 source set과
+production translation unit을 비교해 빠진 단위는 `qmake-capture-incomplete` diagnostic으로
+남긴다.
+
+`CompilationContext`는 `origin = "qmake"`, `generator = "qmake"`, `unity_build = null`과
+capture diagnostics를 보존한다. v3 schema의 origin enum에 qmake를 추가했고, compilation
+identity는 `ici.compilation-identity/v2`, cache key는 `ici.analysis-cache-key/v2` 계약으로
+이 provenance를 포함한다. `VerifyOrchestrator`는 qmake backend에서
+`prepare_qmake_compilation_context`를 선택하고, CMake backend는 기존 CMake preflight를
+사용한다.
+
+현재 확인한 local E2E facts는 다음으로 한정한다. Qt5와 Qt6의 real qmake fixture에서 각각
+3 compilation units가 수집됐고 generated moc unit도 포함됐다. 실제 DiskMap Qt5/Qt6 실행은
+총 20 configurations에서 9/9 production units를 포함했고 compilation diagnostics는 없었으며,
+temporary capture shadows는 정리됐다. 이 사실은 implementation/E2E evidence이지 final
+remote evidence가 아니다.
+
+최종 local gate는 Python 3.10 `1,112 passed (52.96s)`, Ruff check/format 134 files, focused
+mypy 7 source files clean이었다. current source pyz 두 빌드는 SHA-256
+`5610617022a6accaf0b8fa0313ee0fd6c414317e839d23e2c879fa8b4c918d23`로 일치했고 pure-Python
+10 distributions/no certifi, smoke의 Python 3.10 직접 실행·artifact integrity·Zero-CDN도
+PASS였다. packaged self-verify는 WARN(Pass 8, Warn 4, Fail 0, Error 0, Skip 1; tests 1,112;
+line/function/branch 88.8%/96.5%/79.9%; TEM 4.82; complexity 25; 117.25s)이었다. HTML은
+4,722,391 bytes, title present, 외부 script/link/image dependency 0건이었다. 최초 self run에서
+qmake dispatch conditional이 `VerifyOrchestrator.run_all` complexity를 25→26으로 올려 FAIL을
+만든 것을 발견해 typed helper로 분리했고, final self run은 25/WARN으로 복구됐다. qmake argv
+builder도 분리해 `cmake.py`를 512→495 code lines로 낮췄고 self line issues는 10→9가 됐다.
+remote PR/CI/Pages evidence만 pending이다.
 
 ### I3-4. lint와 include graph 이관
 
@@ -874,7 +919,8 @@ main 반영은 후속 검증에서 완료해야 한다.
 - [x] I2: toolchain inventory, shared context, engine DAG, cache/reproducibility와 PR·CI·Pages 증거 완료
 - [ ] I3: I3-1 compilation model/검증 게이트와 PR·CI·Pages evidence 완료; I3-2 canonical
   CMake generation first four items, PR·CI·Pages evidence, and local viewer/LogLens checks
-  complete, buildscope target comparison pending; I3-3~I3-4 pending
+  complete, buildscope target comparison pending; I3-3 implementation/local E2E/quality gates
+  complete but remote evidence pending; I3-4 pending
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
@@ -897,4 +943,5 @@ squash merge commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.
 [CI run 33386134812](https://github.com/jihoon22-lee/ici/actions/runs/33386134812),
 [sticky comment](https://github.com/jihoon22-lee/ici/pull/101#issuecomment-5477565364),
 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/), [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/)까지
-완료됐다. 현재 ici 구현 단계는 I3-2 buildscope target comparison이며, I3-3~I3-4와 I3 전체는 아직 완료되지 않았다.
+완료됐다. 현재 ici 구현 단계는 I3-3 remote evidence와 I3-2 buildscope target comparison이며,
+I3-4와 I3 전체는 아직 완료되지 않았다.
