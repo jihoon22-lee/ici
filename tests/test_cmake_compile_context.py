@@ -24,7 +24,6 @@ from ici.core.cmake import (
     cmake_build_argv,
     cmake_configure_argv,
 )
-from ici.core.compile_db import load_compilation_context
 from ici.core.context import (
     AnalysisContext,
     AnalysisIdentity,
@@ -209,7 +208,7 @@ def test_explicit_and_discovered_databases_precede_cmake_and_never_configure(
         ("cpp", ("src/main.cpp",), False),
     ],
 )
-def test_no_cpp_or_no_root_cmake_leaves_existing_context_unchanged(
+def test_no_cpp_or_no_root_cmake_returns_empty_context_without_configuring(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     project_type: str,
@@ -221,7 +220,6 @@ def test_no_cpp_or_no_root_cmake_leaves_existing_context_unchanged(
     if write_cmake:
         (root / "CMakeLists.txt").write_text("project(demo)\n", encoding="utf-8")
     _write_cpp_sources(root, sources)
-    database = _write_database(root, "compile_commands.json", [])
     config = {}
     project = _project(
         root,
@@ -229,8 +227,6 @@ def test_no_cpp_or_no_root_cmake_leaves_existing_context_unchanged(
         sources=sources,
         backend="cmake" if write_cmake else None,
     )
-    expected = load_compilation_context(root, config)
-
     monkeypatch.setattr(
         cmake_context,
         "configure",
@@ -238,8 +234,7 @@ def test_no_cpp_or_no_root_cmake_leaves_existing_context_unchanged(
     )
     actual = cmake_context.prepare_cmake_compilation_context(root, config, project)
 
-    assert actual == expected
-    assert actual.database_path == database.relative_to(root).as_posix()
+    assert actual == CompilationContext()
 
 
 @pytest.mark.parametrize("failure_kind", ["missing", "configure"])
@@ -439,7 +434,9 @@ def test_stale_generated_source_builds_once_then_reloads(
 
     def load(root_arg: Path, config: dict[str, object]) -> CompilationContext:
         context = real_loader(root_arg, config)
-        loads.append(any(item.code == "stale-source" for item in context.diagnostics))
+        loads.append(
+            any(item.code == "stale-source" for unit in context.units for item in unit.diagnostics)
+        )
         return context
 
     monkeypatch.setattr(cmake_context, "load_compilation_context", load)
@@ -447,7 +444,7 @@ def test_stale_generated_source_builds_once_then_reloads(
 
     build_calls = [argv for argv, _cwd in calls if "--build" in argv]
     assert len(build_calls) == 1
-    assert loads and loads[-1] is False
+    assert loads == [False, True, False]
     assert result.units and not result.units[0].diagnostics
 
 

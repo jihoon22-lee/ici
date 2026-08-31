@@ -365,7 +365,11 @@ def _record_output_value(
 
 
 def _normalize_output(
-    row: dict[str, Any], argv: tuple[str, ...], root: Path, directory: Path
+    row: dict[str, Any],
+    argv: tuple[str, ...],
+    root: Path,
+    directory: Path,
+    database_parent: Path,
 ) -> tuple[str, list[CompilationDiagnostic]]:
     argv_value, diagnostics = _argv_output(argv)
     declared = row.get("output")
@@ -374,8 +378,26 @@ def _normalize_output(
             _diagnostic("invalid-output", "The compilation output field is not a string.")
         )
         declared = None
-    normalized_declared = _normalize_output_value(declared, root, directory, diagnostics)
     normalized_argv = _normalize_output_value(argv_value, root, directory, diagnostics)
+    declared_diagnostics: list[CompilationDiagnostic] = []
+    normalized_declared = _normalize_output_value(
+        declared,
+        root,
+        directory,
+        declared_diagnostics,
+    )
+    if declared and normalized_declared != normalized_argv and database_parent != directory:
+        database_diagnostics: list[CompilationDiagnostic] = []
+        database_relative = _normalize_output_value(
+            declared,
+            root,
+            database_parent,
+            database_diagnostics,
+        )
+        if database_relative == normalized_argv:
+            normalized_declared = database_relative
+            declared_diagnostics = database_diagnostics
+    diagnostics.extend(declared_diagnostics)
     if normalized_declared and normalized_argv and normalized_declared != normalized_argv:
         diagnostics.append(
             _diagnostic(

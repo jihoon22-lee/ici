@@ -191,7 +191,13 @@ def _parse_row(
     definitions, define_diagnostics = _extract_defines(argv)
     include_paths, include_diagnostics = _extract_includes(argv, root, resolved_directory)
     sysroot, sysroot_scope, sysroot_diagnostics = _extract_sysroot(argv, root, resolved_directory)
-    output, output_diagnostics = _normalize_output(row, argv, root, resolved_directory)
+    output, output_diagnostics = _normalize_output(
+        row,
+        argv,
+        root,
+        resolved_directory,
+        database_parent,
+    )
     for diagnostic in (
         *response_diagnostics,
         *_source_operand_diagnostics(
