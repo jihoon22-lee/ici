@@ -703,6 +703,13 @@
           "type": "string",
           "enum": ["MEASURED", "ESTIMATED", "NOT_RUN", "NOT_APPLICABLE"]
         },
+        "cache_hit": { "type": "boolean" },
+        "cache_key": {
+          "oneOf": [
+            { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+            { "type": "null" }
+          ]
+        },
         "tool_evidence": {
           "type": "array",
           "items": { "$ref": "#/$defs/toolEvidence" }

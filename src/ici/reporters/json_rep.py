@@ -484,6 +484,9 @@ def serialize_engine_result(
         raise ValueError(f"engine.extra must be an object: {safe.extra!r}")
     if type(safe.required) is not bool:
         raise ValueError(f"engine.required must be a boolean: {safe.required!r}")
+    if type(safe.cache_hit) is not bool:
+        raise ValueError(f"engine.cache_hit must be a boolean: {safe.cache_hit!r}")
+    cache_key = _require_digest(safe.cache_key, "engine.cache_key") if safe.cache_key else None
     return {
         "schema_version": RESULT_SCHEMA_VERSION,
         "engine_name": _require_string(safe.engine_name, "engine.engine_name", nonempty=True),
@@ -496,6 +499,8 @@ def serialize_engine_result(
         "extra": safe.extra,
         "required": safe.required,
         "evidence": safe.evidence.value,
+        "cache_hit": safe.cache_hit,
+        "cache_key": cache_key,
         "tool_evidence": [_serialize_tool_evidence(item) for item in safe.tool_evidence],
         # targets remains intact through the v3 transition. Existing consumers
         # can ignore findings and continue to render the v2 shape.
