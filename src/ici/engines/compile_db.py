@@ -84,7 +84,9 @@ def _diagnostic_target(
     *,
     fallback_path: str,
 ) -> InspectionTarget:
-    metrics = {"entry_index": diagnostic.entry_index} if diagnostic.entry_index is not None else {}
+    metrics: dict[str, int | float] = (
+        {"entry_index": diagnostic.entry_index} if diagnostic.entry_index is not None else {}
+    )
     return _target(
         diagnostic.source or fallback_path,
         diagnostic.code,
