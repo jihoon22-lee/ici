@@ -383,7 +383,9 @@ tool evidence의 path/redaction 계약은 변경하지 않는다. 기존 v3 payl
 조건은 full suite green이며, 작업 중인 테스트 수는 이 문서에 고정하지 않는다.
 
 I2-2는 완료됐다. I2-3 선언형 verification pipeline 구현도 `refactor/verification-pipeline`에서
-완료됐으며, I2에서 남은 구현은 cache/reproducibility다.
+완료됐다. I2-4의 cache key·local cache·CLI·report contract 구현과 사용자 문서화는
+`feat/analysis-cache` 작업대에 반영했고 pyz 재현성·비변경 로컬 게이트도 통과했다. PR·CI·
+Pages·release evidence는 아직 남아 있다.
 
 ### I2-3. hardcoded loop를 의존성 그래프로 교체
 
@@ -401,15 +403,41 @@ I2-2는 완료됐다. I2-3 선언형 verification pipeline 구현도 `refactor/v
   바꾸고 동일 rule의 threshold·의미는 변경하지 않는다. JSON `analysis_context.profile`은
   optional로 유지해 기존 v3 payload와 호환한다.
 
+I2-3은 [PR #96](https://github.com/jihoon22-lee/ici/pull/96)으로 병합됐다. 최종
+[CI run 33343118306](https://github.com/jihoon22-lee/ici/actions/runs/33343118306)에서
+898 tests, C++ detection fixtures, reproducible pyz build/smoke, ici/viewer dogfood,
+Qt5·Qt6 GUI build, PR report 게시와 Merge Gate가 모두 통과했다. 실제
+[sticky comment](https://github.com/jihoon22-lee/ici/pull/96#issuecomment-5472080848)는
+ici WARN(TEM 4.84)과 viewer PASS(TEM 4.89)를 게시했고, 두 Pages는 HTTP 200·`text/html`·
+외부 script/stylesheet 참조 0건이었다. 병합 commit은 `edd775ac192baea4f9ce7dad882ab8e090d9c065`다.
+
 ### I2-4. 캐시와 재현성
 
 **브랜치:** `feat/analysis-cache`
 
-- [ ] cache key에 source/config/tool version/build variant를 포함한다.
-- [ ] failure/timeout/truncated output은 성공 cache로 재사용하지 않는다.
-- [ ] `--no-cache`, cache inventory와 invalidation 설명을 제공한다.
-- [ ] report에 cache hit 여부를 기록한다.
-- [ ] pyz 재현성과 프로젝트 파일 비변경 불변식을 테스트한다.
+- [x] cache key에 project root, source/build-config content, effective ici config, toolchain
+  version, engine implementation, build variant, ici version을 포함한다.
+- [x] 완료된 `PASS`/`WARN`/`FAIL`은 유효한 증거라면 cache할 수 있고,
+  `ERROR`/`SKIP`/`NOT_RUN`, timeout/truncated output/tool error 및 invalid artifact는
+  성공 cache로 재사용하지 않는다.
+- [x] `--no-cache`, `ici cache` inventory/`--clear`, cache key invalidation과 local-only
+  atomic entry 경계를 사용자 문서에 설명한다.
+- [x] engine-level report에 optional `cache_hit`와 nullable `cache_key`를 기록하면서
+  기존 v3 archive 소비자와 호환한다.
+- [x] pyz 재현성과 프로젝트 파일 비변경 불변식을 테스트한다.
+
+구현은 `cache.py`, `cache_identity.py`, `cache_codec.py`, `VerifyOrchestrator`, CLI, v3 JSON
+schema에 분리했다. cache는 user-local `entries-v1` 아래에만 atomic write를 수행하고 project
+source/config는 읽기 전용으로 digest한다. 입력을 해시하는 동안 파일 변경을 감지하면 해당
+실행의 cache를 끄며, artifact manifest도 저장·조회 경계에서 다시 검증한다.
+
+로컬 Python 3.10 전체 테스트는 935개가 통과했다. `standard` 최초 실행은 118.49초·hits 0,
+동일 입력 재실행은 2.38초·hits 12였으며 cache metadata를 제외한 result SHA-256
+`95af9c5122442411da60da0371b0938b89ca2095b562e02b08fe05f5eeb5bd70`와 finding 3,497건이
+일치했다. HTML은 4,095,550 bytes·외부 참조 0건이었다. pyz 두 빌드는 SHA-256
+`6a629f9b162fdacbe84a82cd861eac622aebc47f3a9cae00915387e53fc21c16`으로 일치했고 project
+source status unchanged 및 smoke 전체 통과를 확인했다. I2-4 PR/CI Merge Gate·Pages·release
+evidence는 pending이다.
 
 ---
 
@@ -775,7 +803,8 @@ main 반영은 후속 검증에서 완료해야 한다.
 
 - [x] I0: 현재 viewer/cycle 계획이 보정된 테스트와 함께 완료
 - [x] I1: v3 finding, support matrix, baseline, issues-first console 완료
-- [ ] I2: I2-2 shared context와 I2-3 engine DAG 완료; I2-4 cache/reproducibility 남음
+- [ ] I2: I2-2 shared context와 I2-3 engine DAG, I2-4 cache/reproducibility 로컬 구현 완료;
+  I2-4 PR·CI·Pages·release evidence pending
 - [ ] I3: CMake/qmake compile context와 compiler-exact include/lint 완료
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
@@ -787,6 +816,7 @@ main 반영은 후속 검증에서 완료해야 한다.
 I1 기능과 로컬 실물 검증 및 PR/CI Merge Gate는 완료됐다. [PR #89](https://github.com/jihoon22-lee/ici/pull/89)의
 병합 commit과 [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의 required checks
 결과는 위 I1-4 완료 조건에 기록한 evidence를 따른다. I2-2 shared context와 artifact
-manifest와 I2-3 선언형 pipeline 구현은 완료됐으며, 다음 단계는 I2-4 cache/reproducibility와
-toy T1 reliability 작업이다. I2-3 branch의 PR/CI Merge Gate evidence는 해당 PR이 생성된 뒤
-추가한다.
+manifest와 I2-3 선언형 pipeline 구현은 완료됐다. I2-4 cache contract 구현과 문서화는
+`feat/analysis-cache`에 반영됐고 pyz reproducibility/non-mutation 로컬 게이트도 통과했다.
+해당 PR의 CI Merge Gate·Pages·release evidence가 기록될 때까지 I2 전체를 main 병합 완료로
+해석하지 않는다. 다음 단계는 I2-4 PR evidence를 확보한 뒤 toy T1 reliability 작업이다.

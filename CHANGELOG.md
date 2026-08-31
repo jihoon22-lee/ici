@@ -25,7 +25,25 @@
   - `fast`/`standard`/`deep`은 engine selection만 조정하며 동일 rule의 threshold나
     의미를 변경하지 않습니다. verify CLI와 `[ici] profile` 설정을 지원하고, `analysis_context.profile`은
     optional JSON field로 추가해 기존 v3 archive와 호환합니다.
-  - I2-4의 cache key·invalidation·reproducibility 구현은 아직 남아 있습니다.
+  - I2-4의 cache key·invalidation·reproducibility 구현은 다음 항목으로 기록합니다.
+- **I2-4 user-local analysis cache**: `feat/analysis-cache`에 engine result cache를 추가했습니다.
+  - cache key는 canonical project root, source와 build/config content digest, effective ici
+    config, capability/toolchain versions, engine descriptor·implementation, build variant,
+    ici producer version을 포함하므로 입력 identity가 달라지면 자동으로 miss가 됩니다.
+  - 완료된 `PASS`/`WARN`/`FAIL` 중 evidence가 완전하고 artifact manifest가 유효한 결과만 저장할
+    수 있습니다. `ERROR`/`SKIP`/`NOT_RUN`, timeout·truncated output·tool error, invalid/stale
+    artifact는 성공 cache로 저장·재사용하지 않습니다.
+  - 기본 user-local 경로(`~/.cache/ici/analysis`, `XDG_CACHE_HOME`/`ICI_CACHE_DIR` override),
+    `ici verify --no-cache`, `ici cache`, `ici cache --clear`를 제공합니다. entry는 local
+    temp file + flush/`fsync` + atomic replace로만 발행하고 project source는 읽기만 하므로
+    remote cache나 project-file mutation이 없습니다.
+  - v3 engine JSON에 optional `cache_hit`와 nullable `cache_key`를 추가해 hit identity를
+    표시하면서 기존 archive 소비자와 호환합니다. Python 3.10 전체 935 tests, Ruff
+    check/format, pyz 이중 빌드 SHA-256
+    `6a629f9b162fdacbe84a82cd861eac622aebc47f3a9cae00915387e53fc21c16` 일치와 source status
+    unchanged, smoke 전체를 통과했습니다. 표준 프로필은 118.49초·0 hit에서 2.38초·12 hit로
+    줄었고 정규화된 결과 hash와 finding 3,497건이 일치했습니다. 이 기능의 PR/CI Merge Gate·
+    Pages·release evidence는 아직 기록하지 않았습니다.
 - **I1-3 baseline/delta gate**: 이전 v3 finding report를 프로젝트 내부 baseline으로 읽고, stable fingerprint와 위치 보조 정보로 finding occurrence를 new·unchanged·moved·resolved로 분류합니다.
   - 전체 inventory는 보존하면서 PR gate는 actionable한 new 또는 regressed finding만 대상으로 분리합니다. fail-on-new 정책을 켜면 gated count가 있을 때 suite가 FAIL이 되고, baseline 비교 자체가 engine 결과를 가짜로 추가하지 않습니다.
   - producer/fingerprint/analysis policy/tool policy identity가 다르면 compatibility warning으로 남기며, duplicate fingerprint도 occurrence 단위(multiset)로 비교합니다.

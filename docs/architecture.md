@@ -80,6 +80,9 @@ ici/
 │       │   ├── context.py           # immutable 분석 맥락·variant·artifact manifest
 │       │   ├── pipeline.py          # 선언형 engine descriptor, DAG 검증 및 bounded scheduler
 │       │   ├── capabilities.py      # bounded tool capability inventory
+│       │   ├── cache.py              # user-local, digest-addressed analysis cache store
+│       │   ├── cache_identity.py     # source digest와 실행 identity/cache key
+│       │   ├── cache_codec.py        # strict cache JSON encode/decode/검증
 │       │   ├── findings.py          # v3 finding canonicalization/fingerprint
 │       │   ├── baseline.py          # v3 baseline loader/comparison/gate
 │       │   ├── project.py           # 소스 파일 탐색 및 프로젝트 루트 감지
@@ -160,6 +163,8 @@ ici/
   - `required`: 결과가 품질 게이트에 필수인지 여부
   - `evidence`: 결과가 실측(`MEASURED`), 추정(`ESTIMATED`) 또는 미실행(`NOT_RUN`)인지 여부
   - `tool_evidence`: 호출한 외부 도구의 경로·인자·버전·종료 상태·오류 증거
+  - `cache_hit` / `cache_key`: 해당 엔진 결과가 user-local analysis cache에서 왔는지와
+    cache identity digest. v3에서 optional extension으로 취급해 기존 archive를 깨뜨리지 않습니다.
   - `findings`: v3의 안정적인 issue/inventory 목록. legacy `targets`도 adapter를 통해 전부
     finding으로 노출되며 native finding이 같은 fingerprint를 제공하면 더 풍부한 native 정보가
     우선합니다.
@@ -263,7 +268,80 @@ build node는 read-only 관찰이나 다른 build node와 동시에 실행되지
 보존됩니다. 단독 명령과 전체 검증은 `PASS`/`WARN`은 0, `FAIL`/`ERROR`는
 1, `SKIP`은 2를 반환하는 공통 종료 코드 계약을 사용합니다.
 
-### 4.4 finding baseline 비교 파이프라인
+### 4.4 분석 결과 캐시와 재현성 경계
+
+`VerifyOrchestrator`는 엔진을 실행하기 전 `AnalysisCache`를 통해 user-local entry를
+조회하고, 실행이 끝난 뒤 재사용 가능한 결과만 저장합니다. 구현은 책임을 세 모듈로
+나눕니다. `cache_identity.py`는 입력을 읽기 전용으로 digest하고 key를 만들며,
+`cache_codec.py`는 untrusted JSON의 decode/검증과 native finding serialization을 맡고,
+`cache.py`는 inventory·load/store/clear와 원자적 파일 수명을 조정합니다. 기본 경로는
+`~/.cache/ici/analysis/entries-v1/`이며 `XDG_CACHE_HOME` 또는 `ICI_CACHE_DIR`로
+명시적인 로컬 경로를 지정할 수 있습니다. 네트워크 저장소는 자동으로 사용하지 않으며,
+기본 cache store는 프로젝트 내부 `.ici`/`build` 경로가 아닙니다. `ICI_CACHE_DIR` override를
+사용할 때도 checkout과 분리된 user-local 경로를 지정해야 합니다. `ici cache --clear`는
+선택된 exact entries directory의 JSON/TMP entry만 대상으로 합니다.
+
+cache key(`ici.analysis-cache-key/v1`)는 다음 identity를 canonical JSON으로 만든
+SHA-256 digest입니다.
+
+- canonical project root
+- project source와 인식된 build/config 파일의 path·content·mode digest
+- profile을 포함한 effective ici configuration digest
+- capability inventory의 toolchain path·version·details digest
+- engine descriptor와 implementation source digest
+- `none`, `release`, `coverage`, `sanitize` 중 engine build variant
+- ici producer version과 cache key schema version
+
+이 key 설계는 소스나 정책이 같아 보여도 toolchain·엔진 구현·variant·ici 버전이 달라지면
+entry를 재사용하지 않게 합니다. 완전한 `PASS`/`WARN`/`FAIL` 결과는 evidence가
+`NOT_RUN`이 아니고 timeout·truncation·tool error가 없으며 artifact manifest가 유효한
+경우에만 저장할 수 있습니다. `ERROR`/`SKIP`, `NOT_RUN`, timeout/truncated/tool error,
+invalid 또는 stale artifact는 저장·재사용하지 않습니다. 따라서 결과를 좋게 보이게 만드는
+실패 cache는 허용하지 않지만, 완전한 증거를 가진 `WARN`/`FAIL`은 정상적인 분석 결과로
+재사용될 수 있습니다.
+
+entry는 임시 파일에 전체 JSON을 쓰고 flush·`fsync`한 뒤 `os.replace`하는 방식으로
+원자적으로 발행하며, cache 디렉터리와 파일은 user-local 권한(0700/0600)으로 생성됩니다.
+손상·stale·symlink entry는 cache miss로 격하되어 검증 자체를 실패시키지 않습니다.
+artifact manifest가 포함된 hit는 project/shadow containment, variant, config/toolchain
+identity와 실제 artifact의 content·size·mode를 다시 검증합니다.
+
+source digest 계산은 declared source와 인식된 build/config 파일을 프로젝트 밖으로 따라가지
+않는 regular-file read-only 해시입니다. hash 전후 metadata가 달라지면 해당 실행의 cache를
+끄므로, cache read/write가 프로젝트 source를 수정하거나 프로젝트 안에 임시 파일을 만들지
+않습니다. `verify_report.json`과 engine별 `*_report.json`처럼 ici가 생성하는 report JSON
+이름은 source input 후보에서 제외되어, report를 쓸 때 자기 자신 때문에 cache key가
+바뀌지 않습니다. `--no-cache`는 lookup과 write를 모두 끄는 명시적 실행 경계입니다.
+
+`cache_codec.py`의 read boundary는 다음을 모두 검사합니다.
+
+- `O_NOFOLLOW`와 regular-file 확인으로 cache entry symlink/비정규 파일을 거부하고,
+  entry 크기를 32 MiB 이하로 제한합니다.
+- JSON object의 duplicate key와 `NaN`/`Infinity` 등 non-finite constant를 거부합니다.
+- schema·key identity·finding/target/tool evidence·artifact manifest를 모두 decode한 뒤
+  하나라도 맞지 않으면 해당 entry를 miss로 격하합니다.
+
+새 directory는 `0700`, 새 entry 파일은 `0600`으로 만들고, `cache.py`는 entry 전체를
+임시 파일에 쓴 뒤 flush·`fsync`·`os.replace` 순서로 발행합니다. 손상·stale·symlink·oversize
+entry나 저장 오류는 검증 실패가 아니라 cache miss/저장 생략으로 처리합니다. `ici cache
+--clear`는 정확한 `entries-v1` 아래의 `.json`/`.tmp` 파일만 지웁니다. artifact manifest가
+있는 결과는 store와 load 양쪽에서 project/shadow containment, variant, config/toolchain
+identity와 실제 artifact의 content·size·mode를 다시 검증합니다.
+
+engine-level v3 JSON은 `cache_hit` boolean과 nullable `cache_key` digest를 선택적으로
+가질 수 있습니다. 새 writer는 이 필드를 기록하지만 오래된 v3 archive에는 없을 수 있으므로
+reader는 누락을 false/unknown으로 처리해야 합니다.
+
+로컬 검증에서는 전체 Python 3.10 run이 935 tests passed였고 targeted cache 테스트도
+통과했습니다. `standard` 첫 실행은 118.49초·hits 0, 두 번째는 2.38초·hits 12였으며,
+두 normalized 결과의 SHA-256은 `95af9c5122442411da60da0371b0938b89ca2095b562e02b08fe05f5eeb5bd70`,
+findings는 각각 3,497건이었습니다. HTML은 4,095,550 bytes이고 외부 참조는 0건이며,
+재현성 script 두 build의 SHA-256은
+`6a629f9b162fdacbe84a82cd861eac622aebc47f3a9cae00915387e53fc21c16`으로 같고 project source
+status unchanged였습니다. 이는 로컬 evidence이고 I2-4 PR/CI/Pages/release evidence는
+아직 pending입니다.
+
+### 4.5 finding baseline 비교 파이프라인
 
 `verify --baseline <project-relative-v3.json>`을 지정하면 오케스트레이터는 엔진 결과에서
 native finding과 legacy `InspectionTarget` adapter를 모두 모아 baseline과 비교합니다.

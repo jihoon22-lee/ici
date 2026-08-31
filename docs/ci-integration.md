@@ -40,6 +40,43 @@ PR에서 확인할 수 있는 결과는 다음과 같습니다.
 - `ici-verification-report` 아티팩트: `verify_report.json`, `verify_report.html`
 - **sticky PR 댓글** (`report-pr` job): HTML 리포트 링크 + 엔진 상세 (아래 1.3)
 
+### 1.1.1 분석 캐시와 CI 실행
+
+`verify`는 기본적으로 분석 cache를 사용하지만, cache는 사용자 로컬 파일 저장소이며
+GitHub Actions job 사이에 자동으로 공유되거나 업로드되지 않습니다. hosted runner처럼
+실행마다 workspace/home이 새로 만들어지는 환경에서는 보통 job 수명 동안만 존재합니다.
+지속형 self-hosted runner가 home을 유지하는 경우에도 project root, source/build-config content,
+effective ici config, toolchain versions, engine implementation, build variant, ici version을
+포함한 cache key가 모두 같을 때만 재사용됩니다.
+
+완전히 새로운 분석을 강제하거나 release 검증에서 이전 로컬 상태를 배제하려면 다음처럼
+lookup과 write를 함께 끕니다.
+
+```bash
+dist/ici.pyz verify --no-cache \
+  --report --html verify_report.html --github-summary
+```
+
+일반 CI 실행에서 cache를 유지하고 싶다면 별도 remote cache 설정은 필요하지 않습니다. runner의
+로컬 위치를 점검하거나 정리할 때 `ici cache`와 `ici cache --clear`를 사용합니다. `--clear`는
+정확히 ici가 소유한 local `entries-v1` 아래 entry만 지우며 checkout, source, build artifact,
+baseline 파일은 건드리지 않습니다. cache entry 쓰기는 임시 파일 + flush/`fsync` + atomic
+replace이고, source/config 파일은 읽기 전용으로 digest하므로 cache 사용이 프로젝트 파일을
+변경하지 않습니다.
+
+완료된 `PASS`/`WARN`/`FAIL`은 유효한 증거라면 cache될 수 있지만 `ERROR`/`SKIP`/`NOT_RUN`,
+timeout·truncated output·tool error 및 invalid artifact는 cache 성공 결과로 저장하지 않습니다.
+손상되거나 stale한 local entry는 CI 실패가 아니라 miss로 처리되어 엔진이 다시 실행됩니다.
+source digest에서는 `verify_report.json`과 engine별 `*_report.json`처럼 ici가 생성하는 report
+JSON 이름을 제외합니다. cache reader는 `O_NOFOLLOW`/regular-file 검사, 32 MiB 상한,
+duplicate JSON key 및 `NaN`/`Infinity` 거부로 entry를 신뢰 경계에서 검증하고, 새 directory/file은
+0700/0600 권한으로 만듭니다. artifact manifest가 있으면 hit/store 양쪽에서 containment와
+content·size·mode를 다시 확인합니다.
+
+I2-4의 현재 수치는 로컬 evidence로만 취급합니다. 전체 Python 3.10 run은 935 tests
+passed였고 targeted 테스트와 reproducibility script도 통과했지만, 이 cache 구현의 PR/CI/Pages
+및 release evidence는 아직 pending입니다.
+
 ### 1.2 PR 리포트 sticky 댓글 (`report-pr`)
 
 `report-pr`은 PR 이벤트에서만 실행되며, 검증 job이 업로드한 **아티팩트만** 소비합니다.
@@ -214,6 +251,9 @@ warning으로 보고됩니다. 이 warning만으로 baseline gate가 실패하�
 
 - `verify_report.json`: `baseline_comparison`에 네 상태 count, 전체 delta, 위치, severity,
   suppression/regression/gate 플래그와 warning을 보존합니다.
+- 각 engine 결과의 optional `cache_hit`와 nullable `cache_key`는 cache 재사용 여부와
+  identity digest를 보존합니다. 기존 `ici.result/v3` 파일에는 이 필드가 없을 수 있으므로
+  report 소비자는 누락을 허용해야 합니다.
 - `verify_report.html`: `Baseline Delta` 탭에서 gate와 warning, issues-first delta를 보여줍니다.
 - `--github-summary`: Markdown Summary에 count와 이슈 우선 상세를 추가합니다.
 - 콘솔: `Baseline Finding Delta` 패널에서 count와 gate 우선 항목을 출력합니다.
