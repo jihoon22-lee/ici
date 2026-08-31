@@ -89,7 +89,7 @@ def _relative_text(path: Path, root: Path, *, allow_dot: bool = True) -> str:
 
 
 def _scoped_path(root: Path, base: Path, value: str) -> tuple[str, str, Path]:
-    if os.name != "nt" and ("\\" in value or PureWindowsPath(value).is_absolute()):
+    if os.name != "nt" and ("\\" in value or bool(PureWindowsPath(value).drive)):
         raise _RowError(
             "foreign-path-syntax",
             "A compilation path uses foreign platform syntax.",
@@ -113,7 +113,7 @@ def _select_database(root: Path, config: dict[str, Any]) -> tuple[str | None, bo
     if explicit is not None:
         if not isinstance(explicit, str) or not explicit:
             return None, True
-        if os.name != "nt" and ("\\" in explicit or PureWindowsPath(explicit).is_absolute()):
+        if os.name != "nt" and ("\\" in explicit or bool(PureWindowsPath(explicit).drive)):
             return None, True
         try:
             resolved = (root / explicit).resolve(strict=False)

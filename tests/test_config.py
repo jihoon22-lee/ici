@@ -129,7 +129,16 @@ def test_load_config_accepts_project_compile_database_path(
     assert config["project"]["compile_database"] == "out/debug/compile_commands.json"
 
 
-@pytest.mark.parametrize("value", ['"../outside.json"', '"/tmp/outside.json"', "123"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        '"../outside.json"',
+        '"/tmp/outside.json"',
+        '"build\\\\compile_commands.json"',
+        '"C:compile_commands.json"',
+        "123",
+    ],
+)
 def test_load_config_rejects_invalid_project_compile_database_path(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: str
 ) -> None:

@@ -6,7 +6,8 @@ lets us report the exact dotted key that caused a configuration error.
 """
 
 import math
-from pathlib import Path
+import os
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 
@@ -377,6 +378,13 @@ def validate_config_paths(config: dict[str, Any], base: Path) -> None:
         if compile_database is not None:
             if not isinstance(compile_database, str) or not compile_database:
                 raise _error("project.compile_database", "must be a non-empty string")
+            if os.name != "nt" and (
+                "\\" in compile_database or bool(PureWindowsPath(compile_database).drive)
+            ):
+                raise _error(
+                    "project.compile_database",
+                    "must use native project path syntax",
+                )
             try:
                 resolve_project_path(base, compile_database)
             except ConfigError as err:

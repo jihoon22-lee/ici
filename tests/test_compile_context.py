@@ -402,12 +402,19 @@ def test_database_size_and_entry_count_are_bounded(
     assert [item.code for item in too_many.diagnostics] == ["database-too-many-entries"]
 
 
-def test_invalid_explicit_database_setting_is_bounded_evidence(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "configured",
+    ["../outside/compile_commands.json", r"build\compile_commands.json", "C:commands.json"],
+)
+def test_invalid_explicit_database_setting_is_bounded_evidence(
+    tmp_path: Path,
+    configured: str,
+) -> None:
     root = _fixture_tree(tmp_path)
 
     context = load_compilation_context(
         root,
-        {"project": {"compile_database": "../outside/compile_commands.json"}},
+        {"project": {"compile_database": configured}},
     )
 
     assert context.database_path == "compile_commands.json"
