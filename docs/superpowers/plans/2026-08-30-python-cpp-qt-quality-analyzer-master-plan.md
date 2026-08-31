@@ -678,6 +678,53 @@ context/cache 문구는 과거 evidence이므로 변경하지 않는다.
 header edge를 실제 build와 대조하는 작업은 pending이다. I3-4 PR·CI·Pages evidence는 완료됐고,
 이 BuildScope 대조가 남아 있으므로 I3 전체는 아직 pending이다.
 
+### I3-5. 독립 compilation-context export와 교차 구현 대조
+
+**브랜치:** `feat/compilation-context-export`
+
+- [x] `ici export-compilation-context`의 기본 경로를 process-free/read-only로 분리하고,
+  CMake/qmake configure·build는 명시적 `--prepare`에서만 허용한다.
+- [x] raw `argv`/`command`와 외부 host path를 공개하지 않는 deterministic
+  `ici.compilation-export/v1` projection, source/semantic/configuration digest 및
+  `comparable`/`inconclusive` 상태를 정의한다.
+- [x] DB·response file·DB 전체 expanded argument·출력 크기를 모두 제한하고, no-follow
+  containment read, duplicate-key rejection, protected output, symlink-safe atomic replacement를
+  테스트한다.
+- [x] 공개 schema가 wheel/ZipApp package data에 실제 포함되는지 build gate로 강제한다.
+- [ ] 릴리스 artifact로 BuildScope의 producer/native reader와 target별 source, define,
+  standard, include order/scope를 대조하고 I3-4의 same-basename active header edge까지 실제
+  compiler trace와 일치함을 확정한다.
+
+이 export는 전체 `verify` report의 대체물이 아니라 BuildScope와 같은 독립 consumer가 동일
+compile database 해석을 안전하게 비교하기 위한 최소 계약이다. 기본 호출은 root descriptor와
+metadata, 선택된 DB만 읽고 전역 default config도 생성하지 않는다. `--database`는 project-relative
+POSIX path만, `--output`은 stdout 또는 검증된 atomic file target만 허용한다. 실제 build가 필요한
+경우에만 `--prepare`가 owned `build/ici-*` shadow를 사용할 수 있다. 명시적으로 설정한 DB가
+missing 또는 malformed여도 그 선택은 authoritative하며, `--prepare`가 이를 조용히 대체하지 않는다.
+I3 완료 판정은 마지막
+교차 구현 대조와 PR·release evidence가 끝날 때까지 유지한다.
+
+**I3-5 final local revalidation evidence (2026-09-01):** Python 3.10 full suite 1,333 tests
+passed in 51.99s, Ruff check/format 148 files, mypy 88 source files가 통과했다. quoted relative
+define path regression은 unit directory 기준 해석과 외부 탈출 redaction으로 고정했다. 두 pyz
+build는 SHA-256 `d9d83b20832ca8d0133653e00b1f7a20861c2ee855b06d0de1f0328137a382ca`으로 일치했고,
+10개 pure-Python distribution/no certifi, 두 공개 schema package data, smoke·Zero-CDN을
+확인했다. packaged self verify는 WARN(8/4/0/0/1: pass/warn/fail/error/skip; tests 1,333/1,333;
+line/function/branch 89.2%/96.8%/80.6%; TEM 4.84; cache 0; engine 121.72s, wall 125.09s)이었다.
+HTML은 5,696,688 bytes, SHA-256 `adc9a49c78c2f5ea5666c58a96555cd73b281587f891e11175654a7ac973b3d5`,
+expected title, external references 0건이며 변경 범위의 line/coverage/type/high-complexity/
+exception finding은 0건이다. 최종 candidate BuildScope verify는 WARN(11/2/0/0/0;
+tests 45/45; line/function/branch 95.2%/100%/84.3%; compile DB 7/7 production units,
+16 configurations, 0 issues; TEM 5.00; engine 20.52s, wall 21.22s)이었다. BuildScope HTML은
+490,420 bytes, SHA-256 `faf4646b27b2e2c50501fb96280aa70741254dba8e7b383e5ede033ab519cb85`,
+expected title, external references 0건이다. BuildScope v2 native snapshot SHA-256은
+`ee0e59f484a82cbdb09d8085a241929e15b0130e2c51f824c361f808f6c611f5`, ici v1 export deterministic
+SHA-256은 `6f0e99872ab0041f174f9b708cb2a0bd5e60569ce06fe825644541c0ae2162c9`, semantic digest는
+`sha256:a7db541ae2daa0c19365f80c1bdbe5090049c86b423000fdf9b6f8e85a857a48`였다. 같은 public
+projection으로 16 unit·6 target·14 field group을 대조해 mismatch, checkout leak, raw
+`argv`/`command` 모두 0건이었다. 이 수치는 local/candidate evidence이며 remote PR/CI/Pages,
+공개 release artifact와 same-basename header edge 대조는 pending이다.
+
 ---
 
 ## 10. I4 — C++·Qt 정밀 분석

@@ -90,7 +90,42 @@ def _is_dir(path: Path) -> bool:
         return False
 
 
-def _read_bounded_regular(path: Path, limit: int) -> bytes:
+def _open_contained(path: Path, root: Path, file_flags: int) -> int:
+    """Open a root-relative file without following any intermediate symlink."""
+
+    try:
+        relative = path.relative_to(root)
+    except ValueError as err:
+        raise _ReadError("unreadable", "The file is outside its containment root.") from err
+    if not relative.parts:
+        raise _ReadError("not-file", "The selected path is not a regular file.")
+    if os.open not in os.supports_dir_fd or not hasattr(os, "O_DIRECTORY"):
+        return os.open(path, file_flags)
+    directory_flags = (
+        os.O_RDONLY
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_DIRECTORY", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    descriptors: list[int] = []
+    try:
+        current = os.open(root, directory_flags)
+        descriptors.append(current)
+        for part in relative.parts[:-1]:
+            current = os.open(part, directory_flags, dir_fd=current)
+            descriptors.append(current)
+        return os.open(relative.parts[-1], file_flags, dir_fd=current)
+    finally:
+        for descriptor in reversed(descriptors):
+            os.close(descriptor)
+
+
+def _read_bounded_regular(
+    path: Path,
+    limit: int,
+    *,
+    containment_root: Path | None = None,
+) -> bytes:
     """Read one stable regular file through a no-follow descriptor."""
 
     flags = (
@@ -101,7 +136,11 @@ def _read_bounded_regular(path: Path, limit: int) -> bytes:
     )
     flags |= getattr(os, "O_NOFOLLOW", 0)
     try:
-        descriptor = os.open(path, flags)
+        descriptor = (
+            _open_contained(path, containment_root, flags)
+            if containment_root is not None
+            else os.open(path, flags)
+        )
     except FileNotFoundError:
         raise
     except OSError as err:

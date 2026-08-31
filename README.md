@@ -217,11 +217,65 @@ function 96.6%, branch 78.9%), viewer PASS(TEM 4.89, 7/7 tests)였습니다. [ic
 
 ---
 
+## 📦 컴파일 맥락 내보내기
+
+`ici export-compilation-context`는 검증 스위트를 실행하지 않고, 측정된
+`compile_commands.json`을 개인정보 보호형 `ici.compilation-export/v1` JSON으로 내보냅니다.
+기본 경로는 프로젝트 메타데이터와 컴파일 데이터베이스를 읽기만 하며 compiler, shell,
+subprocess, 재귀 소스 스캔을 사용하지 않고 전역 기본 설정 파일도 새로 만들지 않습니다.
+
+```bash
+# 발견된 DB를 stdout으로 출력한다. 성공 시 stdout은 JSON 한 개뿐이다.
+ici export-compilation-context
+
+# project-relative POSIX DB를 선택해 checkout 밖의 임시 파일로 예쁘게 저장한다.
+ici export-compilation-context \
+  --database build/compile_commands.json \
+  --output /tmp/ici-compilation-context.json --pretty
+
+# DB가 없을 때만 명시적으로 CMake/qmake 준비를 허용한다.
+ici export-compilation-context --prepare \
+  --output /tmp/ici-compilation-context.json
+```
+
+`--database`는 프로젝트 루트 아래의 POSIX 상대 경로만 허용하며 루트 밖 traversal, 절대 경로,
+Windows 경로와 symlink 탈출은 거부합니다. `--prepare`는 명시적으로 선택·설정한 DB와
+auto-discovered DB가 모두 없을 때만 루트의 CMake/qmake 어댑터를 사용해
+`build/ici-cmake-build` 또는 `build/ici-qmake-build`를 configure/build할 수 있으므로 파일과
+외부 도구를 변경할 수 있습니다. 명시한 DB가 누락되거나 손상된 경우에는 다른 DB로 대체하지
+않고 해당 오류를 반환합니다. `--output`의 기본값은
+`-`(stdout)이고, 파일 출력은 같은 디렉터리의 임시 파일·flush·fsync·atomic replace를
+사용합니다. 기존 regular file은 원자적으로 교체하며 허용된 symlink는 링크 자체를 교체해
+referent를 쓰지 않습니다. 데이터베이스와 `ici.toml`, `dev.toml`, `pyproject.toml` 및
+그 alias/special file은 출력 대상으로 사용할 수 없습니다.
+
+출력은 정렬된 key와 최종 개행을 가진 결정론적 UTF-8 JSON이며 `--pretty`는 들여쓰기만
+추가합니다. 데이터베이스 바이트 digest와 정규화된 semantic digest를 분리해 기록하고,
+raw `argv`/`command`는 내보내지 않습니다. 프로젝트 내부 경로는 POSIX 상대 경로로,
+외부 경로·sysroot는 `[external]`로, credential과 안전하게 공개할 수 없는 값은
+`***REDACTED***`로 투영합니다. 실제 DB를 읽었다는 `evidence`는 `MEASURED`이지만,
+외부 경로·redaction·unknown compiler·unmodeled option·diagnostic·unity build가 있으면
+`comparison_state`는 `inconclusive`가 될 수 있습니다.
+
+입력 DB는 32 MiB·200,000 entry, 한 argv는 32,768 argument·총 1 MiB, DB 전체의 확장
+argument는 1,000,000개·32 MiB, command 문자열은 4 MiB로 제한됩니다. project-contained
+response file도 깊이 4, 파일/aggregate 4 MiB와 동일한 per-row argument bound 안에서만 읽습니다.
+`arguments`가 `command`보다 우선하고 shell은
+호출하지 않으며, duplicate JSON key·비유한 수·비정상 파일·symlink 탈출과 malformed row는
+제한된 diagnostic으로 처리합니다. 출력 자체도 32 MiB를 넘으면 쓰지 않습니다.
+
+성공은 exit 0, 입력/경로 검증 실패·측정된 DB/usable unit 부재는 exit 2, fatal diagnostic이나
+직렬화·쓰기 오류는 exit 1입니다. stdout 모드의 성공 출력은 JSON만 포함하고 오류는 stderr로
+보냅니다. 기계 검증 계약은 배포 패키지에 포함되는
+[`ici-compilation-export-v1.schema.json`](src/ici/schemas/ici-compilation-export-v1.schema.json)
+이며, `scripts/build-pyz.sh`가 ZipApp 구성 단계에서 공개 schema 포함을 확인합니다.
+
 ## 📋 명령어 일람
 
 | 명령어 | 설명 | 상세 가이드 |
 |---|---|---|
 | `ici verify` | 검증 엔진 일괄 실행 및 종합 대시보드 출력 (`--report`, `--html`, `--github-summary`, 선택적 `--publish`) | [사용자 가이드](docs/user-guide.md#2-검증-실행-ici-verify) |
+| `ici export-compilation-context` | 측정된 compile database를 redacted `ici.compilation-export/v1` JSON으로 내보내기 (`--database`, `--prepare`, `--output`, `--pretty`) | [사용자 가이드](docs/user-guide.md#standalone-compilation-context-export) |
 | `ici line` | 코드/주석/공백 분석 및 500/1000 라인 과대화 검증 | [엔진 레퍼런스](docs/engine-reference.md#21--line-코드-라인-및-파일-크기-분석기) |
 | `ici lint` | 문법 린팅 및 스타일/포맷팅 검증 | [엔진 레퍼런스](docs/engine-reference.md#22--lint-문법-및-코드-스타일-린터) |
 | `ici test` | 단위 테스트 실행 및 커버리지/TEM 스코어 산출 | [엔진 레퍼런스](docs/engine-reference.md#23--test--tem-스코어링-단위-테스트-및-테스트-효과성-지표) |

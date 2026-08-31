@@ -182,20 +182,31 @@ def _append_plain_argument(
 def _load_response_tokens(
     resolved: Path,
     *,
+    containment_root: Path,
     byte_budget: list[int],
+    response_cache: dict[Path, tuple[tuple[str, ...], CompilationDiagnostic | None]],
     max_response_file_bytes: int,
+    max_response_file_total_bytes: int,
     max_arguments: int,
     max_argument_chars: int,
 ) -> tuple[tuple[str, ...], CompilationDiagnostic | None]:
+    cached = response_cache.get(resolved)
+    if cached is not None:
+        return cached
+    result: tuple[tuple[str, ...], CompilationDiagnostic | None]
     try:
-        encoded = _read_bounded_regular(resolved, max_response_file_bytes)
+        encoded = _read_bounded_regular(
+            resolved,
+            max_response_file_bytes,
+            containment_root=containment_root,
+        )
         byte_budget[0] += len(encoded)
-        if byte_budget[0] > max_response_file_bytes:
+        if byte_budget[0] > max_response_file_total_bytes:
             raise _ReadError(
                 "too-large",
                 "The aggregate compiler response-file input is too large.",
             )
-        return (
+        result = (
             _tokenize_response_file(
                 encoded,
                 max_arguments=max_arguments,
@@ -204,16 +215,24 @@ def _load_response_tokens(
             None,
         )
     except FileNotFoundError:
-        return (), _response_diagnostic(
-            "response-file-missing", "A compiler response file does not exist."
+        result = (
+            (),
+            _response_diagnostic(
+                "response-file-missing", "A compiler response file does not exist."
+            ),
         )
     except _ReadError as err:
-        return (), _response_diagnostic(
-            f"response-file-{err.code}",
-            "A compiler response file could not be read safely.",
+        result = (
+            (),
+            _response_diagnostic(
+                f"response-file-{err.code}",
+                "A compiler response file could not be read safely.",
+            ),
         )
     except _RowError as err:
-        return (), _response_diagnostic(err.code, err.message)
+        result = ((), _response_diagnostic(err.code, err.message))
+    response_cache[resolved] = result
+    return result
 
 
 def _expand_response_token(
@@ -225,9 +244,11 @@ def _expand_response_token(
     active: tuple[Path, ...],
     byte_budget: list[int],
     character_budget: list[int],
+    response_cache: dict[Path, tuple[tuple[str, ...], CompilationDiagnostic | None]],
     max_arguments: int,
     max_argument_chars: int,
     max_response_file_bytes: int,
+    max_response_file_total_bytes: int,
     max_response_file_depth: int,
 ) -> tuple[tuple[str, ...], list[CompilationDiagnostic]]:
     if token == "@":
@@ -263,8 +284,11 @@ def _expand_response_token(
         ]
     nested, diagnostic = _load_response_tokens(
         resolved,
+        containment_root=root,
         byte_budget=byte_budget,
+        response_cache=response_cache,
         max_response_file_bytes=max_response_file_bytes,
+        max_response_file_total_bytes=max_response_file_total_bytes,
         max_arguments=max_arguments,
         max_argument_chars=max_argument_chars,
     )
@@ -278,9 +302,11 @@ def _expand_response_token(
         active=(*active, resolved),
         byte_budget=byte_budget,
         character_budget=character_budget,
+        response_cache=response_cache,
         max_arguments=max_arguments,
         max_argument_chars=max_argument_chars,
         max_response_file_bytes=max_response_file_bytes,
+        max_response_file_total_bytes=max_response_file_total_bytes,
         max_response_file_depth=max_response_file_depth,
     )
 
@@ -294,15 +320,18 @@ def _expand_response_files(
     active: tuple[Path, ...] = (),
     byte_budget: list[int] | None = None,
     character_budget: list[int] | None = None,
+    response_cache: dict[Path, tuple[tuple[str, ...], CompilationDiagnostic | None]] | None = None,
     max_arguments: int,
     max_argument_chars: int,
     max_response_file_bytes: int,
+    max_response_file_total_bytes: int,
     max_response_file_depth: int,
 ) -> tuple[tuple[str, ...], list[CompilationDiagnostic]]:
     """Expand bounded, contained response files without invoking a compiler."""
 
     byte_budget = byte_budget if byte_budget is not None else [0]
     character_budget = character_budget if character_budget is not None else [0]
+    response_cache = response_cache if response_cache is not None else {}
     expanded: list[str] = []
     diagnostics: list[CompilationDiagnostic] = []
     for token in argv:
@@ -315,9 +344,11 @@ def _expand_response_files(
                 active=active,
                 byte_budget=byte_budget,
                 character_budget=character_budget,
+                response_cache=response_cache,
                 max_arguments=max_arguments,
                 max_argument_chars=max_argument_chars,
                 max_response_file_bytes=max_response_file_bytes,
+                max_response_file_total_bytes=max_response_file_total_bytes,
                 max_response_file_depth=max_response_file_depth,
             )
             expanded.extend(nested_values)

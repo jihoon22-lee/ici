@@ -116,7 +116,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
 }
 
 
-def load_config(base_dir: Path | None = None) -> dict[str, Any]:
+def load_config(
+    base_dir: Path | None = None, *, create_global_default: bool = True
+) -> dict[str, Any]:
     """Load the effective policy in deterministic precedence order.
 
     Defaults are merged first, followed by the XDG global policy, the
@@ -164,7 +166,7 @@ def load_config(base_dir: Path | None = None) -> dict[str, Any]:
         _deep_merge(config, user_cfg)
         loaded = True
 
-    if not loaded and explicit_path is None:
+    if not loaded and explicit_path is None and create_global_default:
         _ensure_global_default_config(config)
 
     validate_config(config)

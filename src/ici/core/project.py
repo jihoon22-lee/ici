@@ -241,8 +241,8 @@ def _git_project_version(base: Path) -> str:
     return "v1.0.0"
 
 
-def read_project_metadata(base: Path) -> tuple[str, str]:
-    """Read and validate project name/version from canonical TOML metadata."""
+def read_project_metadata(base: Path, *, allow_git: bool = True) -> tuple[str, str]:
+    """Read project metadata, optionally disabling the git version fallback."""
     project_root = _resolve_project_root(base)
     name: str | None = None
     version: str | None = None
@@ -263,8 +263,10 @@ def read_project_metadata(base: Path) -> tuple[str, str]:
 
     if name is None:
         name = _validate_project_name(project_root.name)
-    if version is None:
+    if version is None and allow_git:
         version = _git_project_version(project_root)
+    elif version is None:
+        version = "v1.0.0"
     return name, version
 
 

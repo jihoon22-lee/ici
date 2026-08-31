@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jihoon22-lee/ici/blob/main/src/ici/schemas/ici-compilation-export-v1.schema.json",
+  "title": "ici standalone compilation context export v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["compilation", "evidence", "producer", "project", "schema_version"],
+  "properties": {
+    "schema_version": {"const": "ici.compilation-export/v1"},
+    "evidence": {"const": "MEASURED"},
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"const": "ici"},
+        "version": {"type": "string", "minLength": 1}
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backend", "name", "type", "version"],
+      "properties": {
+        "backend": {"type": ["string", "null"]},
+        "name": {"type": "string", "minLength": 1},
+        "type": {"enum": ["python", "cpp", "hybrid"]},
+        "version": {"type": "string", "minLength": 1}
+      }
+    },
+    "compilation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "database_path",
+        "comparison_state",
+        "diagnostics",
+        "generator",
+        "origin",
+        "semantic_digest",
+        "source_bytes_digest",
+        "units",
+        "unity_build"
+      ],
+      "properties": {
+        "comparison_state": {"enum": ["comparable", "inconclusive"]},
+        "database_path": {"type": "string", "minLength": 1},
+        "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+        "generator": {"type": ["string", "null"]},
+        "origin": {"enum": ["cmake", "configured", "discovered", "qmake"]},
+        "semantic_digest": {"$ref": "#/$defs/digest"},
+        "source_bytes_digest": {"$ref": "#/$defs/digest"},
+        "units": {"type": "array", "maxItems": 200000, "items": {"$ref": "#/$defs/unit"}},
+        "unity_build": {"type": ["boolean", "null"]}
+      }
+    }
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "entry_index", "level", "message", "source"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "entry_index": {"type": ["integer", "null"], "minimum": 0},
+        "level": {"enum": ["error", "info", "warning"]},
+        "message": {"type": "string", "minLength": 1},
+        "source": {"type": "string"}
+      }
+    },
+    "define": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value", "value_state"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "value": {"type": ["string", "null"]},
+        "value_state": {"enum": ["absent", "measured", "redacted"]}
+      }
+    },
+    "include": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exists", "kind", "order", "path", "scope"],
+      "properties": {
+        "exists": {"type": ["boolean", "null"]},
+        "kind": {"enum": ["include", "quote", "system"]},
+        "order": {"type": "integer", "minimum": 0},
+        "path": {"type": "string", "minLength": 1},
+        "scope": {"enum": ["external", "project"]}
+      }
+    },
+    "sysroot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "scope"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "scope": {"enum": ["external", "project"]}
+      }
+    },
+    "compiler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["family", "name", "path", "wrappers"],
+      "properties": {
+        "family": {"enum": ["clang", "clang-cl", "gcc", "msvc", "unknown"]},
+        "name": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "wrappers": {"type": "array", "items": {"enum": ["ccache", "distcc", "env", "icecc", "sccache"]}}
+      }
+    },
+    "unmodeledOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "order", "token_digest"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "order": {"type": "integer", "minimum": 0},
+        "token_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command_style", "digest", "source", "target_triple", "unmodeled_options"],
+      "properties": {
+        "command_style": {"enum": ["posix", "windows"]},
+        "digest": {"$ref": "#/$defs/digest"},
+        "source": {"const": "normalized"},
+        "target_triple": {"type": ["string", "null"]},
+        "unmodeled_options": {"type": "array", "items": {"$ref": "#/$defs/unmodeledOption"}}
+      }
+    },
+    "unitState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["duplicate", "source_configuration_count", "unit_index"],
+      "properties": {
+        "duplicate": {"type": "boolean"},
+        "source_configuration_count": {"type": "integer", "minimum": 1},
+        "unit_index": {"type": "integer", "minimum": 0}
+      }
+    },
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparison_state",
+        "compiler",
+        "configuration_digest",
+        "defines",
+        "diagnostics",
+        "directory",
+        "include_paths",
+        "invocation",
+        "language",
+        "output",
+        "source",
+        "state",
+        "standard",
+        "sysroot",
+        "target",
+        "undefines"
+      ],
+      "properties": {
+        "comparison_state": {"enum": ["comparable", "inconclusive"]},
+        "compiler": {"$ref": "#/$defs/compiler"},
+        "configuration_digest": {"$ref": "#/$defs/digest"},
+        "defines": {"type": "array", "items": {"$ref": "#/$defs/define"}},
+        "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+        "directory": {"type": "string", "minLength": 1},
+        "include_paths": {"type": "array", "items": {"$ref": "#/$defs/include"}},
+        "invocation": {"$ref": "#/$defs/invocation"},
+        "language": {"enum": ["", "c", "c++", "objective-c", "objective-c++"]},
+        "output": {"type": "string"},
+        "source": {"type": "string", "minLength": 1},
+        "state": {"$ref": "#/$defs/unitState"},
+        "standard": {"type": "string"},
+        "sysroot": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sysroot"}]},
+        "target": {"type": ["string", "null"]},
+        "undefines": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}
