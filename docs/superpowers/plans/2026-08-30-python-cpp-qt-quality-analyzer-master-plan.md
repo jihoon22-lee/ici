@@ -618,8 +618,8 @@ Independent [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/103/)와
 `text/html`, title `ici Verification Report — ici`와 `ici Verification Report — viewer`,
 관측 bytes 4,716,032와 337,918, 외부 `script`/`link`/`img` reference 0건을 확인했다.
 I3-3은 완전히 완료됐다. I3-2 BuildScope target-by-target 대조는 아직 pending이다. I3-4는
-구현과 focused local test까지 완료했지만 BuildScope 대조와 PR·CI·Pages evidence가 남아
-있으며, I3 전체도 완료되지 않았다.
+구현·focused local test·PR·CI·Pages evidence까지 완료했지만 BuildScope 대조가 남아 있으며,
+I3 전체도 완료되지 않았다.
 
 ### I3-4. lint와 include graph 이관
 
@@ -654,13 +654,19 @@ missing-include trace, include-guard trailer, pseudo frame과 stale path를 fail
 관련 focused test 묶음은 총 308 tests passed였다. Python 3.10 full pytest는 1,275 passed
 (48.61s), Ruff check는 전체 파일에서 통과했으며 Ruff format은 142 files, mypy는 83 source
 files를 통과했다. 모든 새 source는 line gate PASS이고 새 helper complexity issue는 0이다.
-최종 `build-pyz` 두 번은 동일 SHA-256
-`f6c6cfb85f55f41d548b65e9cb921b6b56d005eae838ec873ff7c927eaac2dc2` (2,151,981 bytes)을
-만들었고 smoke도 통과했다. Packaged pyz deep/no-cache rerun은 LogLens (12/14 applicable,
-2 SKIP, 12/12 tests, 40 configurations, 21.59s, HTML 443,828 bytes, 정확한 title, external
-assets 0)와 DiskMap (12/14 applicable, 2 SKIP, 9/9 tests, 20 configurations, 79.74s,
-HTML 310,558 bytes, 정확한 title, external assets 0)에서 모두 PASS였다. 이는 local
-evidence이며 PR/CI/Pages evidence는 pending이다.
+원격 evidence는 [PR #105](https://github.com/jihoon22-lee/ici/pull/105)의 squash merge commit
+[`183b2d83421cd3173fb2e6f745c0e39bd5c36a78`](https://github.com/jihoon22-lee/ici/commit/183b2d83421cd3173fb2e6f745c0e39bd5c36a78)로
+완료됐다. [CI run `33409862110`](https://github.com/jihoon22-lee/ici/actions/runs/33409862110)의
+`Verify & Dogfood ici` (3m58s), `Viewer GUI Qt5` (45s), `Viewer GUI Qt6` (1m15s),
+`Publish PR Report & Sticky Comment` (1m16s), `Merge Gate` (3s)는 모두 SUCCESS였고,
+`Publish Main`은 PR에서 expected SKIPPED였다. [sticky comment](https://github.com/jihoon22-lee/ici/pull/105#issuecomment-5480770505)는
+ici와 viewer 링크/표를 모두 포함하며, ici WARN (Pass 8, Warn 4, Fail 0, Error 0, Skip 1,
+TEM 4.84, tests 1,275/1,275, branch 80.4%)와 viewer PASS (Pass 11, Warn 0, Fail 0, Error 0,
+Skip 2, TEM 4.89, tests 7/7)를 기록했다. 독립 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/105/)
+와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/105/)는 모두 HTTP/2 200,
+`text/html;charset=utf-8`, 올바른 title, 외부 `script`/`link`/`img`/`iframe`/`import` 0건을
+확인했으며 관측 bytes는 각각 5,458,757와 344,868이다. BuildScope target-by-target 대조는
+여전히 pending이고, 따라서 I3 전체도 pending이다.
 
 현재 cache key는 `ici.analysis-cache-key/v3`이며, I3-4 engine class가
 `CACHE_IMPLEMENTATION_MODULES`로 명시한 helper/dependency module source digest의 sorted
@@ -669,8 +675,8 @@ unique 목록을 implementation identity에 포함한다. C++ lint/cycle 선언�
 context/cache 문구는 과거 evidence이므로 변경하지 않는다.
 
 **남은 완료 조건:** BuildScope에서 target-by-target으로 define·standard·include와 same-basename
-header edge를 실제 build와 대조하는 작업은 pending이다. I3-4의 PR·CI·Pages evidence도
-pending이며, 따라서 I3 전체는 아직 완료되지 않았다.
+header edge를 실제 build와 대조하는 작업은 pending이다. I3-4 PR·CI·Pages evidence는 완료됐고,
+이 BuildScope 대조가 남아 있으므로 I3 전체는 아직 pending이다.
 
 ---
 
@@ -974,7 +980,7 @@ pending이며, 따라서 I3 전체는 아직 완료되지 않았다.
   CMake generation first four items, PR·CI·Pages evidence, and local viewer/LogLens checks
   complete, buildscope target comparison pending; I3-3 implementation/local E2E/quality gates와
   PR·CI·Pages evidence complete; I3-4 implementation/focused local tests complete, BuildScope
-  target comparison과 PR·CI·Pages evidence pending
+  target comparison pending, PR·CI·Pages evidence complete
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
@@ -997,7 +1003,10 @@ squash merge commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.
 [CI run 33386134812](https://github.com/jihoon22-lee/ici/actions/runs/33386134812),
 [sticky comment](https://github.com/jihoon22-lee/ici/pull/101#issuecomment-5477565364),
 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/), [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/)까지
-완료됐다. 현재 ici 구현 단계는 I3-2 BuildScope target comparison과 I3-4 BuildScope/PR·CI·Pages
-evidence 수집이다. I3-4 구현과 focused local tests는 완료됐지만 위 원격·target 비교 증거가
-없어 I3 전체는 아직 완료되지 않았다. I3-3 qmake exact capture는 PR #103의 CI·Pages evidence까지
-완료됐다.
+완료됐다. I3-4 compiler-backed lint/include graph도 [PR #105](https://github.com/jihoon22-lee/ici/pull/105),
+[CI run 33409862110](https://github.com/jihoon22-lee/ici/actions/runs/33409862110),
+[sticky comment](https://github.com/jihoon22-lee/ici/pull/105#issuecomment-5480770505),
+[ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/105/)와
+[viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/105/)까지 완료됐다. 현재 남은 I3
+조건은 BuildScope target-by-target comparison뿐이다. I3-3 qmake exact capture는 PR #103의
+CI·Pages evidence까지 완료됐다.

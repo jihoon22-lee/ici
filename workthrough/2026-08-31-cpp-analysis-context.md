@@ -117,12 +117,26 @@ Every new source passed the line gate and the new helpers had no complexity issu
 - Packaged pyz deep/no-cache DiskMap: PASS, 12/14 applicable (2 SKIP), 9/9 tests,
   20 configurations, 79.74s, HTML 310,558 bytes, correct title, external assets 0.
 
-These are local results. BuildScope target comparison and PR/CI/Pages evidence remain pending;
-I3 as a whole remains pending until the BuildScope comparison is complete.
+### Remote verification
+
+- [PR #105](https://github.com/jihoon22-lee/ici/pull/105) was squash-merged as
+  [`183b2d83421cd3173fb2e6f745c0e39bd5c36a78`](https://github.com/jihoon22-lee/ici/commit/183b2d83421cd3173fb2e6f745c0e39bd5c36a78).
+- [CI run 33409862110](https://github.com/jihoon22-lee/ici/actions/runs/33409862110) passed
+  Verify & Dogfood, Viewer Qt5/Qt6, PR report/sticky comment, and Merge Gate. Publish Main was the
+  expected PR-only skip.
+- The [sticky comment](https://github.com/jihoon22-lee/ici/pull/105#issuecomment-5480770505)
+  contained both ici and viewer report links and tables.
+- Independent [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/105/) and
+  [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/105/) checks returned HTTP/2 200,
+  `text/html;charset=utf-8`, correct titles, and zero external assets. Observed sizes were
+  5,458,757 and 344,868 bytes.
+
+BuildScope target comparison remains pending; I3 as a whole remains pending until that comparison
+is complete.
 
 ## Next Steps
 
 - BuildScope에서 target-by-target define·standard·include를 실제 build와 대조하고,
   same-basename header가 compiler 선택과 동일한 edge를 만드는지 확인한다.
-- PR/CI/Pages evidence는 아직 pending이며, 확인 후 기록한다.
+- PR/CI/Pages evidence는 완료됐다.
 - 위 조건이 충족되기 전까지 I3 전체는 pending으로 유지한다.
