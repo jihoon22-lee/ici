@@ -93,6 +93,58 @@ def _only_lint_enabled():
     }
 
 
+def test_orchestrator_cache_miss_hit_and_no_cache_bypass(monkeypatch, tmp_path):
+    calls = []
+
+    class CountingEngine:
+        def __init__(self, project_root, config, analysis_context=None):
+            del project_root, config, analysis_context
+
+        def run(self):
+            calls.append(len(calls) + 1)
+            return EngineResult(
+                engine_name="lint",
+                status=EngineStatus.PASS,
+                summary=f"run {len(calls)}",
+            )
+
+    # Keep cache entries outside the project so their JSON contents cannot
+    # become analysis inputs while the next run computes its source digest.
+    cache_root = tmp_path.parent / f"{tmp_path.name}-analysis-cache"
+    monkeypatch.setenv("ICI_CACHE_DIR", str(cache_root))
+    monkeypatch.setattr("ici.engines.verify.LintEngine", CountingEngine)
+    monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
+
+    config = _only_lint_enabled()
+    first = VerifyOrchestrator(tmp_path, config).run_all()
+
+    assert calls == [1]
+    assert first.results[0].summary == "run 1"
+    assert first.results[0].cache_hit is False
+    assert first.results[0].cache_key.startswith("sha256:")
+    assert list((cache_root / "entries-v1").glob("*.json"))
+
+    second = VerifyOrchestrator(tmp_path, config).run_all()
+
+    assert calls == [1]
+    assert second.results[0].summary == "run 1"
+    assert second.results[0].cache_hit is True
+    assert second.results[0].cache_key == first.results[0].cache_key
+
+    bypassed = VerifyOrchestrator(tmp_path, config).run_all(use_cache=False)
+
+    assert calls == [1, 2]
+    assert bypassed.results[0].summary == "run 2"
+    assert bypassed.results[0].cache_hit is False
+    assert bypassed.results[0].cache_key == ""
+
+    after_bypass = VerifyOrchestrator(tmp_path, config).run_all()
+
+    assert calls == [1, 2]
+    assert after_bypass.results[0].summary == "run 1"
+    assert after_bypass.results[0].cache_hit is True
+
+
 def test_baseline_gate_changes_suite_verdict_without_inventing_an_engine(monkeypatch, tmp_path):
     class PassingEngine:
         def __init__(self, project_root, config, analysis_context=None):

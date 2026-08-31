@@ -129,6 +129,7 @@ def test_cli_verify_forwards_baseline_options_to_orchestrator(tmp_path, monkeypa
             group_by=ConsoleGroupBy.ENGINE,
         ),
         "profile": None,
+        "use_cache": True,
     }
 
 
@@ -217,6 +218,57 @@ def test_cli_verify_forwards_default_console_options(tmp_path, monkeypatch):
 
     assert result.exit_code == 0
     assert captured["console_options"] == ConsoleOptions()
+    assert captured["use_cache"] is True
+
+
+def test_cli_verify_forwards_no_cache_to_orchestrator(tmp_path, monkeypatch):
+    captured = {}
+
+    class FakeOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            captured.update(kwargs)
+            return VerificationSuiteResult(suite_status=EngineStatus.PASS, results=[])
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", FakeOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["verify", "--no-cache"])
+
+    assert result.exit_code == 0
+    assert captured["use_cache"] is False
+
+
+def test_cli_cache_inventory_and_clear_output(tmp_path, monkeypatch):
+    cache_root = tmp_path / "analysis-cache"
+    entries = cache_root / "entries-v1"
+    entries.mkdir(parents=True)
+    invalid = entries / "invalid.json"
+    invalid.write_text("{not-json", encoding="utf-8")
+    temporary = entries / ".entry.tmp"
+    temporary.write_text("in-progress", encoding="utf-8")
+
+    monkeypatch.setenv("ICI_CACHE_DIR", str(cache_root))
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    inventory = runner.invoke(app, ["cache"])
+
+    assert inventory.exit_code == 0
+    assert f"Cache directory: {cache_root.resolve()}" in inventory.output
+    assert "Entries: 0 valid, 1 corrupt" in inventory.output
+    assert "Key contract: ici.analysis-cache-key/v1" in inventory.output
+
+    cleared = runner.invoke(app, ["cache", "--clear"])
+
+    assert cleared.exit_code == 0
+    assert "Removed 2 cache file(s)." in cleared.output
+    assert "Entries: 0 valid, 0 corrupt, 0 bytes" in cleared.output
+    assert not invalid.exists()
+    assert not temporary.exists()
 
 
 @pytest.mark.parametrize(
