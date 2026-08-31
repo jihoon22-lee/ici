@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree
 
+from ici.core._build_paths import prepare_owned_shadow, shadow_dir
 from ici.core.backend import (
     BACKEND_CMAKE,
     BACKEND_QMAKE,
@@ -42,17 +43,6 @@ _CTEST_TEST_DIR_MIN = (3, 20)
 _CTEST_JUNIT_MIN = (3, 21)
 
 _CMAKE_VERSION_RE = re.compile(r"cmake version (\d+)\.(\d+)")
-
-
-def shadow_dir(root: Path, backend: str, suffix: str = "") -> Path:
-    """Build directory ici owns. Never the project's own build tree.
-
-    The suffix keeps engines apart. test builds with --coverage and sanitize
-    with -fsanitize; sharing one tree would make each engine silently rebuild
-    the other's objects with the wrong flags on every run.
-    """
-
-    return root / "build" / f"ici-{backend}{suffix}"
 
 
 def parse_cmake_version(text: str) -> tuple[int, int] | None:
@@ -331,7 +321,6 @@ class BuildSession:
     reason: str = ""
     configured: bool = False
     cmake_version: tuple[int, int] | None = None
-    compilation_database: Path | None = None
     analysis_context: AnalysisContext | None = None
     artifact_manifest: ArtifactManifest | None = None
     tool_evidence: list[ToolEvidence] = field(default_factory=list)
@@ -385,30 +374,15 @@ def configure(root: Path, options: ConfigureOptions) -> BuildSession:
     session.tool_evidence.append(
         ToolEvidence(name=f"build backend selection: {choice.reason}", path="")
     )
-    if not _prepare_shadow(session):
+    prepared_shadow, shadow_error = prepare_owned_shadow(session.root, session.shadow)
+    if prepared_shadow is None:
+        _fail(session, shadow_error)
         return session
+    session.shadow = prepared_shadow
 
     if choice.kind == BACKEND_CMAKE:
         return _configure_cmake(session, options)
     return _configure_qmake(session, options)
-
-
-def _prepare_shadow(session: BuildSession) -> bool:
-    """Create the owned shadow without following an escape outside the project."""
-
-    try:
-        build_root = session.root / "build"
-        build_root.mkdir(parents=True, exist_ok=True)
-        resolved_build = build_root.resolve(strict=True)
-        resolved_build.relative_to(session.root)
-        session.shadow.mkdir(parents=True, exist_ok=True)
-        resolved_shadow = session.shadow.resolve(strict=True)
-        resolved_shadow.relative_to(resolved_build)
-    except (OSError, RuntimeError, ValueError) as err:
-        _fail(session, f"build shadow is unsafe or unavailable: {err}")
-        return False
-    session.shadow = resolved_shadow
-    return True
 
 
 def _configure_cmake(session: BuildSession, options: ConfigureOptions) -> BuildSession:
@@ -428,12 +402,6 @@ def _configure_cmake(session: BuildSession, options: ConfigureOptions) -> BuildS
         _fail(session, f"cmake configure failed: {result.stderr[:200]}")
         return session
     session.configured = True
-    database = session.shadow / "compile_commands.json"
-    try:
-        if database.is_file():
-            session.compilation_database = database
-    except OSError:
-        _fail(session, "compilation database could not be inspected")
     return session
 
 
