@@ -365,10 +365,13 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   이상·timeout·출력 절단·spawn/신호 종료·잘못된 성공/진단 출력은 진단 문구가 포함되어도
   도구 `ERROR`/`NOT_RUN`입니다. `mypy_required = true`에서 미설치 도구는 `ERROR`/`NOT_RUN`이고,
   기본 선택 정책에서는 AST 함수 어노테이션 폴백을 `WARN`/`ESTIMATED`로 표시합니다. Mypy는
-  PATH에 직접 실행 가능한 파일 또는 프로젝트 `.venv/bin`/`.venv/Scripts` 실행 파일만 찾으며,
-  `uv`/`uvx`를 통해 설치하거나 네트워크 패키지 해석을 시도하지 않습니다. 적용할 Python 소스가
-  0개이면 Mypy를 실행하지 않고 명시적 `SKIP` 대상과 `WARN`/`ESTIMATED`를 남깁니다. 따라서
-  `Success: no issues found in 0 source files`도 실측 성공 문법으로 인정하지 않습니다.
+  공유 capability가 선택한 프로젝트 `.venv` 또는 현재 interpreter의 `python -m mypy`를
+  우선 재사용하고, 독립 엔진 실행에서는 PATH나 프로젝트 `.venv/bin`/`.venv/Scripts`의 직접
+  실행 파일을 사용합니다. `uv`/`uvx`를 통한 설치나 네트워크 패키지 해석은 시도하지 않습니다.
+  hybrid 프로젝트에서는 발견된 Python 파일을 실제로 포함하는 source root만 mypy argv에
+  전달하므로 C++ 전용 `src`/`include` 경로가 도구 오류를 만들지 않습니다. 적용할 Python
+  소스가 0개이면 Mypy를 실행하지 않고 명시적 `SKIP` 대상과 `WARN`/`ESTIMATED`를 남깁니다.
+  따라서 `Success: no issues found in 0 source files`도 실측 성공 문법으로 인정하지 않습니다.
 - **C++**: 현재 C++ 타입 검증은 구현되어 있지 않습니다. C++ 소스가 발견되면 소스별 `SKIP`
   대상을 남기고 요약에 미구현 범위를 명시하며 `WARN`/`ESTIMATED`로 기록합니다. `type = "cpp"`
   로 선언했지만 적용 가능한 C/C++ 소스가 0개인 경우에도 프로젝트 범위를 검증하지 않았다는

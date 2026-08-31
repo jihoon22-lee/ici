@@ -263,6 +263,8 @@ def test_release_repeats_quality_and_dogfood_gates_on_the_candidate():
     assert "ruff format --check ." in build
     assert "pytest -v" in build
     assert "./scripts/build-pyz.sh" in build
+    assert "(cd dist && sha256sum ici.pyz > ici.pyz.sha256)" in build
+    assert "sha256sum dist/ici.pyz > dist/ici.pyz.sha256" not in build
     assert "./scripts/smoke.sh" in build
     assert "dist/ici.pyz verify" in build
     assert "../dist/ici.pyz verify" in build

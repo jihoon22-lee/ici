@@ -3,6 +3,7 @@
 import ast
 import re
 import shutil
+import sys
 import time
 from pathlib import Path
 
@@ -112,7 +113,9 @@ class TypeCheckEngine(BaseEngine):
         warnings = tool_warnings if tool_warnings is not None else []
         evidence = tool_evidence if tool_evidence is not None else []
         mypy_cmd = self._find_mypy_cmd()
-        if mypy_cmd is not None and self._run_mypy(mypy_cmd, targets, errors, evidence):
+        if mypy_cmd is not None and self._run_mypy(
+            mypy_cmd, targets, errors, evidence, python_sources or []
+        ):
             return True
         if mypy_cmd is None:
             evidence.append(
@@ -129,6 +132,13 @@ class TypeCheckEngine(BaseEngine):
         return self._check_python_annotations(targets, python_sources)
 
     def _find_mypy_cmd(self) -> list[str] | None:
+        if self.analysis_context is not None:
+            capability = self.analysis_context.capabilities.capabilities.get("mypy")
+            if capability is None or not capability.available:
+                return None
+            if capability.details.get("provider") == "python-module":
+                return [capability.path or sys.executable, "-m", "mypy"]
+            return [capability.path] if capability.path else None
         which_mypy = shutil.which("mypy")
         if which_mypy:
             return [which_mypy]
@@ -143,10 +153,9 @@ class TypeCheckEngine(BaseEngine):
         targets: list[InspectionTarget],
         errors: list[str],
         evidence: list[ToolEvidence],
+        python_sources: list[Path],
     ) -> bool:
-        mypy_targets = [
-            str(d.relative_to(self.project_root)) for d in self.project_source_dirs()
-        ] or ["."]
+        mypy_targets = self._mypy_targets(python_sources)
         mypy_argv = [*mypy_cmd, "--ignore-missing-imports", *mypy_targets]
         try:
             result = run_process(mypy_argv, cwd=self.project_root)
@@ -196,6 +205,17 @@ class TypeCheckEngine(BaseEngine):
             errors.append(message)
             return False
         return True
+
+    def _mypy_targets(self, python_sources: list[Path]) -> list[str]:
+        targets: list[str] = []
+        for source_dir in self.project_source_dirs():
+            if any(
+                source == source_dir or source_dir in source.parents for source in python_sources
+            ):
+                targets.append(str(source_dir.relative_to(self.project_root)))
+        if targets:
+            return sorted(set(targets))
+        return sorted(str(source.relative_to(self.project_root)) for source in python_sources)
 
     def _parse_mypy_diagnostics(
         self,

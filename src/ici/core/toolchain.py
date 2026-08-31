@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+import sys
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,6 +17,7 @@ from ici.core.runner import ProcessResult, run_process
 
 PROBE_TIMEOUT_SECONDS = 5.0
 PROBE_OUTPUT_LIMIT = 65_536
+_PYTHON_MODULE_RE = re.compile(r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$")
 
 
 @dataclass(frozen=True)
@@ -28,6 +30,11 @@ class ToolProbe:
     detail_kind: str = ""
     detail_args: tuple[str, ...] = ()
     static_details: tuple[tuple[str, str], ...] = ()
+    python_module: str = ""
+
+    def __post_init__(self) -> None:
+        if self.python_module and _PYTHON_MODULE_RE.fullmatch(self.python_module) is None:
+            raise ValueError(f"invalid Python module probe: {self.python_module!r}")
 
 
 @dataclass(frozen=True)
@@ -99,9 +106,9 @@ DEFAULT_TOOL_PROBES: tuple[ToolProbe, ...] = (
     ),
     ToolProbe("git", ("git",), ("--version",)),
     ToolProbe("ruff", ("ruff",), ("--version",)),
-    ToolProbe("mypy", ("mypy",), ("--version",)),
-    ToolProbe("pytest", ("pytest",), ("--version",)),
-    ToolProbe("coverage", ("coverage",), ("--version",)),
+    ToolProbe("mypy", ("mypy",), ("--version",), python_module="mypy"),
+    ToolProbe("pytest", ("pytest",), ("--version",), python_module="pytest"),
+    ToolProbe("coverage", ("coverage",), ("--version",), python_module="coverage"),
     ToolProbe("uv", ("uv",), ("--version",)),
     ToolProbe("python3", ("python3",), ("-VV",)),
 )
@@ -389,6 +396,32 @@ def _resolve_candidate(candidates: tuple[str, ...]) -> tuple[str, str] | None:
     return None
 
 
+def _resolve_python_module_interpreter(cwd: Path | None) -> str:
+    if cwd is not None:
+        for relative in ((".venv", "bin", "python"), (".venv", "Scripts", "python.exe")):
+            candidate = cwd.joinpath(*relative)
+            try:
+                if candidate.is_file() and (os.name == "nt" or os.access(candidate, os.X_OK)):
+                    return str(candidate)
+            except OSError:
+                continue
+    return sys.executable
+
+
+def _resolve_probe_prefix(probe: ToolProbe, cwd: Path | None) -> tuple[str, list[str]] | None:
+    if probe.python_module:
+        interpreter = _resolve_python_module_interpreter(cwd)
+        return (
+            f"{Path(interpreter).name} -m {probe.python_module}",
+            [interpreter, "-m", probe.python_module],
+        )
+    resolution = _resolve_candidate(probe.candidates)
+    if resolution is None:
+        return None
+    alias, resolved = resolution
+    return alias, [resolved]
+
+
 def collect_registered_capability(
     probe: ToolProbe,
     cwd: Path | None = None,
@@ -397,13 +430,13 @@ def collect_registered_capability(
 ) -> tuple[ToolCapability, tuple[ProcessResult, ...]]:
     """Run a registry probe and its optional metadata probe without a shell."""
 
-    resolution = _resolve_candidate(probe.candidates)
+    resolution = _resolve_probe_prefix(probe, cwd)
     if resolution is None:
         return ToolCapability(name=probe.name, path="", available=False, complete=False), ()
-    alias, resolved = resolution
+    alias, command_prefix = resolution
     base, version_result = collect_tool_capability(
         probe.name,
-        [resolved, *probe.version_args],
+        [*command_prefix, *probe.version_args],
         cwd=cwd,
         timeout=timeout,
         max_output_chars=max_output_chars,
@@ -414,6 +447,9 @@ def collect_registered_capability(
     details = dict(probe.static_details)
     details.update(base.details)
     details["resolved_alias"] = alias
+    if probe.python_module:
+        details["provider"] = "python-module"
+        details["module"] = probe.python_module
     results = [version_result]
     complete = base.complete
     error = base.error
@@ -421,7 +457,7 @@ def collect_registered_capability(
     truncated = base.truncated
 
     if base.available and probe.detail_args:
-        detail_argv = [resolved, *probe.detail_args]
+        detail_argv = [*command_prefix, *probe.detail_args]
         detail_result = _run_probe(detail_argv, cwd, timeout, max_output_chars)
         results.append(detail_result)
         detail_evidence = ProbeEvidence(
