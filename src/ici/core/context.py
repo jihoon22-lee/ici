@@ -457,10 +457,13 @@ class AnalysisContext:
     capabilities: CapabilityInventory
     identity: AnalysisIdentity
     compilation: CompilationContext = field(default_factory=CompilationContext)
+    profile: str = "standard"
     requested_variants: tuple[BuildVariant, ...] = ()
     manifests: tuple[ArtifactManifest, ...] = ()
 
     def __post_init__(self) -> None:
+        if self.profile not in {"fast", "standard", "deep"}:
+            raise ValueError(f"unsupported analysis profile: {self.profile!r}")
         order = {variant: index for index, variant in enumerate(BuildVariant)}
         variants = tuple(
             sorted(
@@ -500,6 +503,7 @@ def create_analysis_context(
     capabilities: CapabilityInventory,
     requested_variants: tuple[BuildVariant, ...] = (),
     *,
+    profile: str = "standard",
     project: ProjectModel | None = None,
 ) -> AnalysisContext:
     """Create the run snapshot after capability policy has been evaluated."""
@@ -516,5 +520,6 @@ def create_analysis_context(
         project=project,
         capabilities=capabilities,
         identity=identity,
+        profile=profile,
         requested_variants=requested_variants,
     )

@@ -24,7 +24,7 @@
 +-----------------------------------------------------------------------------------+
 |                             VerifyOrchestrator Layer                              |
 |    - Config Deep-Merge (ici.toml)                         - Engine Registry       |
-|    - Sequential Engine Execution + Exception Isolation    - TEM Scoring Engine   |
+|    - Declarative Engine DAG + bounded Scheduler        - TEM Scoring Engine       |
 |    - Finding/metadata assembly                             - Baseline gate         |
 +------------------------------------------+----------------------------------------+
                                            |
@@ -78,6 +78,7 @@ ici/
 │       │   ├── env.py               # 파이썬 탐색 및 시스템 환경 진단
 │       │   ├── models.py            # 결과·finding·baseline 데이터 모델
 │       │   ├── context.py           # immutable 분석 맥락·variant·artifact manifest
+│       │   ├── pipeline.py          # 선언형 engine descriptor, DAG 검증 및 bounded scheduler
 │       │   ├── capabilities.py      # bounded tool capability inventory
 │       │   ├── findings.py          # v3 finding canonicalization/fingerprint
 │       │   ├── baseline.py          # v3 baseline loader/comparison/gate
@@ -219,6 +220,9 @@ snapshot을 생성하고 모든 엔진과 리포터가 이를 읽기 전용으�
 - **`AnalysisIdentity`**: source commit, canonical config digest, toolchain digest를 묶어
   build와 report가 어느 입력 snapshot에서 만들어졌는지 재현 가능하게 합니다. git 밖의
   실행은 source commit을 명시적인 `unavailable`로 기록합니다.
+- **`AnalysisProfile`**: `fast`/`standard`/`deep` 중 하나로 비용과 실행 범위를
+  선택합니다. profile은 descriptor가 지원하는 엔진을 고르는 정책일 뿐이며, 같은 rule의
+  임계값이나 판정 의미를 바꾸지 않습니다.
 
 리포터는 `AnalysisContext`를 변경하지 않고 reporting-safe copy와 JSON projection만 만듭니다.
 `ici.result/v3`에는 기존 archive를 깨지 않도록 선택적인 `analysis_context` 객체
@@ -226,11 +230,38 @@ snapshot을 생성하고 모든 엔진과 리포터가 이를 읽기 전용으�
 (`ici.artifacts/v1`)을 둡니다. JSON의 project/source/header/compile/artifact 경로는
 project-relative POSIX 형식이며, 외부 include/search path처럼 호스트 정보가 섞일 수 있는
 경로는 redaction 경계를 통과해 절대 경로를 노출하지 않습니다. 두 확장 필드가 없는 기존
-v3 payload도 그대로 읽고 migration할 수 있습니다.
+v3 payload도 그대로 읽고 migration할 수 있습니다. `analysis_context`가 포함된 경우에도
+`profile`은 선택 필드이므로, profile이 없는 기존 context와 context 자체가 없는 기존
+v3 payload를 모두 호환합니다.
 
-### 4.3 오케스트레이터 및 예외 격리 (`VerifyOrchestrator`)
-- `VerifyOrchestrator`는 활성화된 엔진을 정의된 순서로 순차 실행합니다. 개별 엔진에서 예외가 발생해도 해당 엔진을 `ERROR`/`NOT_RUN`으로 기록하고 나머지 엔진을 계속 실행하여 결과 계약을 완성합니다.
-- 단독 명령과 전체 검증은 `PASS`/`WARN`은 0, `FAIL`/`ERROR`는 1, `SKIP`은 2를 반환하는 공통 종료 코드 계약을 사용합니다.
+### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
+
+`src/ici/core/pipeline.py`의 immutable `EngineDescriptor`가 각 엔진의 실행 계약과
+데이터 흐름을 선언합니다. descriptor는 다음 필드를 가집니다.
+
+- `name`, `dependencies`: 엔진 식별자와 선행 엔진
+- `produces`, `consumes`: 엔진이 발행하거나 요구하는 artifact 이름
+- `profiles`: 엔진이 선택될 수 있는 `fast`/`standard`/`deep` 집합
+- `execution`, `build_variant`: 읽기 전용 관찰인지, `COVERAGE`/`SANITIZE` 같은
+  mutable build session 소유자인지
+
+내장 descriptor registry는 import 시점과 executor 생성 시점에 검증됩니다. 검증은 중복
+엔진명·artifact producer, 알 수 없는 dependency, profile closure, 소비 artifact의
+producer와 dependency 연결, cycle을 거부합니다. 따라서 잘못된 graph나 artifact 계약은
+분석을 시작한 뒤 조용히 누락되지 않고 startup definition error가 됩니다.
+
+검증 실행에서는 profile과 `enabled` 정책을 먼저 적용해 선택된 descriptor만 남깁니다.
+선택된 graph는 안정적인 registry 순서의 topological layer로 실행됩니다. 한 layer의
+독립적인 `read-only` 엔진은 기본 최대 4개 worker로 제한된 pool에서만 병렬 실행되고,
+완료 수집은 descriptor 순서를 유지합니다. `build` 엔진은 read-only 작업이 끝난 뒤
+실행되며 build owner끼리도 겹치지 않습니다. 따라서 동일 project/shadow tree를 변경하는
+build node는 read-only 관찰이나 다른 build node와 동시에 실행되지 않습니다. 최종 결과
+목록도 registry 선언 순서를 따르므로 완료 시점의 흔들림이 결과 순서를 바꾸지 않습니다.
+
+엔진 초기화 또는 `run()` 중 예외는 해당 엔진의 명시적인 `ERROR` 결과와
+`NOT_RUN` evidence로 변환되고, 공유 `AnalysisContext`와 다른 엔진의 결과는
+보존됩니다. 단독 명령과 전체 검증은 `PASS`/`WARN`은 0, `FAIL`/`ERROR`는
+1, `SKIP`은 2를 반환하는 공통 종료 코드 계약을 사용합니다.
 
 ### 4.4 finding baseline 비교 파이프라인
 

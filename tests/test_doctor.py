@@ -252,3 +252,24 @@ def test_render_doctor_brief_keeps_support_summary_compact(tmp_path: Path, monke
     assert "scope   languages=python  frameworks=none" in rendered
     assert "Engine Capability Matrix" not in rendered
     assert data["tools"]["gcc"]["required"] is False
+
+
+def test_doctor_reports_effective_analysis_profile(tmp_path: Path, monkeypatch):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "app.py").write_text("value = 1\n", encoding="utf-8")
+    data = collect_diagnostics(
+        tmp_path,
+        config={
+            "ici": {"profile": "deep"},
+            "project": {"source_dirs": ["src"]},
+            "engines": {},
+        },
+    )
+    output = io.StringIO()
+    monkeypatch.setattr("sys.stdout", output)
+
+    render_doctor_brief(data)
+
+    assert data["analysis_profile"] == "deep"
+    assert "profile=deep" in output.getvalue()

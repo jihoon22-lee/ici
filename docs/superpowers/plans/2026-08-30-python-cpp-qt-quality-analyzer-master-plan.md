@@ -382,18 +382,24 @@ tool evidence의 path/redaction 계약은 변경하지 않는다. 기존 v3 payl
 계속 읽고 migration할 수 있다. 전체 품질 게이트의 병합
 조건은 full suite green이며, 작업 중인 테스트 수는 이 문서에 고정하지 않는다.
 
-I2-2는 완료됐다. I2-3의 engine DAG와 I2-4의 cache/reproducibility 설계는 아직 남아 있다.
+I2-2는 완료됐다. I2-3 선언형 verification pipeline 구현도 `refactor/verification-pipeline`에서
+완료됐으며, I2에서 남은 구현은 cache/reproducibility다.
 
 ### I2-3. hardcoded loop를 의존성 그래프로 교체
 
 **브랜치:** `refactor/verification-pipeline`
 
-- [ ] engine descriptor에 name, dependencies, produced/consumed artifacts, supported profiles를 선언한다.
-- [ ] cycle이 없는 DAG인지 시작 시 검증한다.
-- [ ] 독립적인 read-only engine만 제한적으로 병렬 실행한다.
-- [ ] build variant를 쓰는 engine은 동일 shadow tree에서 직렬화한다.
-- [ ] 한 engine crash가 context를 훼손하지 않고 명시적 ERROR가 되는지 테스트한다.
-- [ ] `fast`, `standard`, `deep` profile을 추가하되 동일 rule의 의미는 profile에 따라 바뀌지 않게 한다.
+- [x] engine descriptor에 `name`, `dependencies`, `produces`/`consumes`,
+  `profiles`, `execution`, `build_variant`를 선언한다.
+- [x] startup에서 dependency/artifact 계약과 cycle이 없는 DAG인지 검증한다.
+- [x] 독립적인 read-only engine만 기본 최대 4개로 제한 병렬 실행하고, 결과를 registry 순서로
+  반환한다.
+- [x] build variant를 쓰는 engine은 read-only 작업 및 다른 build node와 겹치지 않게 직렬화한다.
+- [x] engine 초기화·실행 crash가 context를 훼손하지 않고 명시적 `ERROR`/`NOT_RUN` 결과가
+  되도록 격리한다.
+- [x] `fast`, `standard`, `deep` profile을 추가하되 profile은 engine selection만
+  바꾸고 동일 rule의 threshold·의미는 변경하지 않는다. JSON `analysis_context.profile`은
+  optional로 유지해 기존 v3 payload와 호환한다.
 
 ### I2-4. 캐시와 재현성
 
@@ -769,7 +775,7 @@ main 반영은 후속 검증에서 완료해야 한다.
 
 - [x] I0: 현재 viewer/cycle 계획이 보정된 테스트와 함께 완료
 - [x] I1: v3 finding, support matrix, baseline, issues-first console 완료
-- [ ] I2: I2-2 shared context 완료; I2-3 engine DAG와 I2-4 cache/reproducibility 남음
+- [ ] I2: I2-2 shared context와 I2-3 engine DAG 완료; I2-4 cache/reproducibility 남음
 - [ ] I3: CMake/qmake compile context와 compiler-exact include/lint 완료
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
@@ -781,4 +787,6 @@ main 반영은 후속 검증에서 완료해야 한다.
 I1 기능과 로컬 실물 검증 및 PR/CI Merge Gate는 완료됐다. [PR #89](https://github.com/jihoon22-lee/ici/pull/89)의
 병합 commit과 [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의 required checks
 결과는 위 I1-4 완료 조건에 기록한 evidence를 따른다. I2-2 shared context와 artifact
-manifest는 완료됐으며, 다음 단계는 I2-3 engine DAG·I2-4 cache와 toy T1 reliability 작업이다.
+manifest와 I2-3 선언형 pipeline 구현은 완료됐으며, 다음 단계는 I2-4 cache/reproducibility와
+toy T1 reliability 작업이다. I2-3 branch의 PR/CI Merge Gate evidence는 해당 PR이 생성된 뒤
+추가한다.

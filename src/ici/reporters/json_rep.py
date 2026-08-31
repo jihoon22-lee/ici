@@ -124,6 +124,7 @@ def _serialize_analysis_context(context: AnalysisContext | None) -> dict[str, An
                 "context.identity.toolchain_digest",
             ),
         },
+        "profile": context.profile,
         "compilation": {
             "database_path": context.compilation.database_path,
             "units": [

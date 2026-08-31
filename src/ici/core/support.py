@@ -18,6 +18,7 @@ from ici.core.models import (
     SupportLanguage,
     SupportMatrix,
 )
+from ici.core.pipeline import ENGINE_DESCRIPTORS, apply_analysis_profile
 from ici.core.project import (
     _iter_project_files,
     get_all_cpp_sources,
@@ -25,21 +26,7 @@ from ici.core.project import (
     get_source_dirs,
 )
 
-ENGINE_NAMES = (
-    "line",
-    "lint",
-    "test",
-    "type",
-    "cognitive",
-    "resource",
-    "security",
-    "cycle",
-    "complexity",
-    "sanitize",
-    "dead",
-    "dup",
-    "exception",
-)
+ENGINE_NAMES = tuple(descriptor.name for descriptor in ENGINE_DESCRIPTORS)
 
 
 @dataclass(frozen=True)
@@ -302,6 +289,10 @@ _DECLARATIONS = (
     ),
 )
 
+_DECLARED_ENGINE_NAMES = tuple(dict.fromkeys(item.engine_name for item in _DECLARATIONS))
+if _DECLARED_ENGINE_NAMES != ENGINE_NAMES:
+    raise RuntimeError("pipeline descriptors and support declarations are out of sync")
+
 
 def support_declarations() -> tuple[SupportDeclaration, ...]:
     """Return the immutable, deterministically ordered support contract."""
@@ -423,6 +414,7 @@ def evaluate_support_matrix(
     """Evaluate declarations against discovered project scope and observed results."""
 
     root = project_root.resolve()
+    config, _selected_profile = apply_analysis_profile(config)
     if project is not None and project.root != root:
         raise ValueError("project model belongs to another support-matrix root")
     languages = _project_languages(root, config, project)

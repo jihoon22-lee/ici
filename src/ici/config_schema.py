@@ -16,11 +16,12 @@ class ConfigError(ValueError):
 
 MODES = frozenset({"pass_warn_fail", "pass_fail", "pass_warn"})
 PROJECT_TYPES = frozenset({"python", "cpp", "hybrid"})
+ANALYSIS_PROFILES = frozenset({"fast", "standard", "deep"})
 
 _TOP_LEVEL_KEYS = frozenset(
     {"ici", "project", "engines", "build", "doctor", "name", "type", "version"}
 )
-_ICI_KEYS = frozenset({"version", "policy_name"})
+_ICI_KEYS = frozenset({"version", "policy_name", "profile"})
 _PROJECT_KEYS = frozenset(
     {
         "source_dirs",
@@ -317,6 +318,10 @@ def _validate_metadata(table: Any, path: str) -> None:
             _require_string(value, f"{path}.{key}", non_empty=True)
             if value not in PROJECT_TYPES:
                 raise _error(f"{path}.{key}", "must be one of: cpp, hybrid, python")
+        elif path == "ici" and key == "profile":
+            _require_string(value, "ici.profile", non_empty=True)
+            if value not in ANALYSIS_PROFILES:
+                raise _error("ici.profile", "must be one of: deep, fast, standard")
         else:
             _require_string(value, f"{path}.{key}", non_empty=True)
 

@@ -15,6 +15,17 @@
   - 프로젝트·shadow 경계는 canonical path와 symlink escape 검사를 거치며, context와 manifest의 JSON 투영은 project-relative POSIX 경로만 노출합니다. 외부 include/search path처럼 호스트 경로가 섞일 수 있는 값은 report redaction 경계를 통과해 절대 경로를 외부로 내보내지 않습니다.
   - `RELEASE`, `COVERAGE`, `SANITIZE` variant를 명시적으로 요청하고 각 variant의 shadow suffix·instrumentation flags를 분리합니다. build/test/sanitize는 각각 release/coverage/sanitize variant를 adapter에 전달하며, 하나의 context snapshot을 공유합니다.
   - `ici.result/v3`의 선택적 `analysis_context`(`ici.analysis-context/v1`)와 engine-level `artifact_manifests`(`ici.artifacts/v1`)가 project facts, compilation units, requested variants와 전체 provenance를 보존합니다. 기존 v3 report는 두 확장 필드 없이도 계속 읽고 migrate할 수 있습니다. 정확한 전체 테스트 수는 작업 중인 PR의 CI artifact를 기준으로 고정하며, 병합 조건은 full suite green입니다.
+- **I2-3 선언형 verification pipeline**: hardcoded engine loop를 immutable `EngineDescriptor` registry와 DAG executor로 교체했습니다.
+  - descriptor가 `name`, `dependencies`, `produces`/`consumes`, `profiles`,
+    `execution`, `build_variant`를 선언하며, startup에서 dependency DAG·artifact producer
+    ownership·profile closure를 검증해 잘못된 graph를 분석 전에 거부합니다.
+  - 독립적인 read-only engine은 기본 최대 4개까지 병렬 실행하고, build node는 read-only 작업 및
+    다른 build node와 겹치지 않게 직렬 실행합니다. 결과는 registry 선언 순서로 수집해 완료
+    시점에 영향을 받지 않습니다.
+  - `fast`/`standard`/`deep`은 engine selection만 조정하며 동일 rule의 threshold나
+    의미를 변경하지 않습니다. verify CLI와 `[ici] profile` 설정을 지원하고, `analysis_context.profile`은
+    optional JSON field로 추가해 기존 v3 archive와 호환합니다.
+  - I2-4의 cache key·invalidation·reproducibility 구현은 아직 남아 있습니다.
 - **I1-3 baseline/delta gate**: 이전 v3 finding report를 프로젝트 내부 baseline으로 읽고, stable fingerprint와 위치 보조 정보로 finding occurrence를 new·unchanged·moved·resolved로 분류합니다.
   - 전체 inventory는 보존하면서 PR gate는 actionable한 new 또는 regressed finding만 대상으로 분리합니다. fail-on-new 정책을 켜면 gated count가 있을 때 suite가 FAIL이 되고, baseline 비교 자체가 engine 결과를 가짜로 추가하지 않습니다.
   - producer/fingerprint/analysis policy/tool policy identity가 다르면 compatibility warning으로 남기며, duplicate fingerprint도 occurrence 단위(multiset)로 비교합니다.

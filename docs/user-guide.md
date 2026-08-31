@@ -71,6 +71,41 @@ fail_limit = 900
 알 수 없는 키, 잘못된 TOML, 잘못된 임계값은 조용히 기본값으로 대체되지 않고 설정 오류로
 실패합니다. `ICI_CONFIG`가 존재하지 않는 파일을 가리키는 경우에도 동일하게 실패합니다.
 
+### 2.0.1 분석 프로필과 실행 스케줄
+
+`fast`, `standard`, `deep`은 검증 비용과 실행 범위를 선택하는 profile입니다.
+기본값은 `standard`이며, 프로젝트 설정 또는 이번 실행의 CLI 옵션으로 고를 수 있습니다.
+
+~~~toml
+[ici]
+profile = "deep"
+~~~
+
+~~~bash
+ici verify --profile fast
+ici verify --profile standard
+ici verify --profile deep
+~~~
+
+현재 내장 descriptor 기준으로 선택되는 범위는 다음과 같습니다.
+
+| profile | 선택되는 내장 엔진 | 용도 |
+|---|---|---|
+| `fast` | read-only 엔진 10종 | 빠른 편집·pre-commit 피드백 |
+| `standard` | 기본 엔진 12종(`test`/`sanitize` 포함) | 일반 로컬·CI 검증 |
+| `deep` | 내장 엔진 13종(`cognitive` 포함) | 가장 넓은 분석 범위 |
+
+profile은 engine set만 바꿉니다. 예를 들어 line·complexity의 설정 임계값, test의
+coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따라 낮아지거나 높아지지
+않습니다. 프로젝트가 개별 엔진을 `enabled = false`로 명시하면 해당 profile에서도 그 엔진은
+제외됩니다. `test`/`sanitize`처럼 build session을 소유하는 선택 엔진은 서로
+겹치지 않도록 직렬화되고, 나머지 read-only 엔진은 내부적으로 최대 4개까지만 병렬 실행됩니다.
+이 제한은 결과의 재현성을 위해 두며 사용자가 worker 수를 조정할 필요는 없습니다.
+
+선택된 profile은 `ici doctor`의 요약/JSON과 verify JSON의 `analysis_context.profile`에
+표시됩니다. 이 JSON field는 optional이므로 profile이 없던 기존 `ici.result/v3` archive도
+그대로 읽을 수 있습니다.
+
 ### 2.1 로컬 전체 검증
 현재 프로젝트 디렉토리에서 13종 핵심 품질 검증 (기본 12종 활성)을 일괄 수행하고 터미널 컬러 대시보드를 출력합니다.
 
@@ -102,7 +137,8 @@ snapshot, source commit·config digest·toolchain digest, 요청된 `release`/`c
 `--report`의 `ici.result/v3` JSON에는 다음 선택적 확장이 추가됩니다.
 
 - `analysis_context`: `ici.analysis-context/v1` — project/source/header/compile 경로는
-  project-relative POSIX 경로입니다. project root 자체는 JSON에 넣지 않습니다.
+  project-relative POSIX 경로입니다. project root 자체는 JSON에 넣지 않습니다. `profile`은
+  선택 필드이며 engine set 선택 결과만 기록합니다.
 - engine의 `artifact_manifests`: `ici.artifacts/v1` — project/shadow root와 각 artifact의
   상대 경로 및 전체 provenance를 기록합니다.
 

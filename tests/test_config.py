@@ -1,5 +1,6 @@
 """Tests for config auto-generation and global default policy creation."""
 
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,8 @@ import tomli
 
 from ici import __version__
 from ici.config import DEFAULT_CONFIG, ConfigError, get_global_config_path, load_config
+from ici.config_schema import validate_config
+from ici.core.pipeline import apply_analysis_profile
 from ici.engines.line import LineCountEngine
 
 ENGINE_NAMES = (
@@ -72,6 +75,32 @@ def test_default_config_has_layout_and_line_gate_keys():
     assert DEFAULT_CONFIG["engines"]["line"]["include_dirs"] == []
     assert DEFAULT_CONFIG["engines"]["line"]["exclude_dirs"] == []
     assert DEFAULT_CONFIG["doctor"]["required_tools"] == []
+
+
+def test_default_cognitive_engine_is_selected_only_by_deep_profile():
+    standard, _ = apply_analysis_profile(DEFAULT_CONFIG, "standard")
+    deep, _ = apply_analysis_profile(DEFAULT_CONFIG, "deep")
+
+    assert DEFAULT_CONFIG["engines"]["cognitive"]["enabled"] is True
+    assert standard["engines"]["cognitive"]["enabled"] is False
+    assert deep["engines"]["cognitive"]["enabled"] is True
+
+
+@pytest.mark.parametrize("profile", ["fast", "standard", "deep"])
+def test_config_schema_accepts_ici_profile(profile: str):
+    config = deepcopy(DEFAULT_CONFIG)
+    config["ici"]["profile"] = profile
+
+    validate_config(config)
+
+
+@pytest.mark.parametrize("profile", ["", "turbo", None, 1])
+def test_config_schema_rejects_invalid_ici_profile(profile):
+    config = deepcopy(DEFAULT_CONFIG)
+    config["ici"]["profile"] = profile
+
+    with pytest.raises(ConfigError, match=r"ici\.profile"):
+        validate_config(config)
 
 
 def test_load_config_accepts_doctor_required_tools(tmp_path: Path, monkeypatch):

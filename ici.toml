@@ -81,7 +81,7 @@ max_reported = 20         # 리포트에 포함할 최대 순환 참조 개수
 required = false
 
 [engines.cognitive]
-enabled = false            # 기본 비활성 — 필요 시 옵트인
+enabled = true             # deep profile에서만 선택; fast/standard는 descriptor가 제외
 mode = "pass_warn"
 warn = 30                  # 인지 복잡도 30 초과 시 경고
 fail = 60                  # 인지 복잡도 60 초과 시 경고로 강등(pass_warn 모드는 FAIL을 내지 않음)

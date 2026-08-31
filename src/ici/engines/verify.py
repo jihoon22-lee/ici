@@ -8,7 +8,7 @@ from typing import Any
 from ici.config import get_engine_config, load_config
 from ici.core.baseline import BaselineError, build_analysis_metadata, compare_suite_to_baseline
 from ici.core.capabilities import collect_capability_inventory, derive_tool_policy
-from ici.core.context import BuildVariant, create_analysis_context, discover_project_model
+from ici.core.context import create_analysis_context, discover_project_model
 from ici.core.models import (
     AnalysisMetadata,
     EngineResult,
@@ -18,22 +18,30 @@ from ici.core.models import (
     aggregate_suite_status,
 )
 from ici.core.path_utils import resolve_project_path
+from ici.core.pipeline import (
+    ENGINE_DESCRIPTORS,
+    AnalysisProfile,
+    EngineDescriptor,
+    PipelineExecutor,
+    apply_analysis_profile,
+    descriptors_for_profile,
+)
 from ici.core.redaction import redact_suite
-from ici.core.support import ENGINE_NAMES, evaluate_support_matrix
-from ici.engines.cognitive import CognitiveEngine
-from ici.engines.complexity import ComplexityEngine
-from ici.engines.cycle import CycleEngine
-from ici.engines.dead import DeadCodeEngine
-from ici.engines.dup import DuplicateEngine
-from ici.engines.exception import ExceptionSafetyEngine
-from ici.engines.line import LineCountEngine
-from ici.engines.lint import LintEngine
+from ici.core.support import ENGINE_NAMES, evaluate_support_matrix  # noqa: F401
+from ici.engines.cognitive import CognitiveEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.complexity import ComplexityEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.cycle import CycleEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.dead import DeadCodeEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.dup import DuplicateEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.exception import ExceptionSafetyEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.line import LineCountEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.lint import LintEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.publish import ReportPublisher
-from ici.engines.resource import ResourceEngine
-from ici.engines.sanitize import SanitizeEngine
-from ici.engines.security import SecurityEngine
-from ici.engines.test import TestEngine
-from ici.engines.type_check import TypeCheckEngine
+from ici.engines.resource import ResourceEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.security import SecurityEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.test import TestEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.type_check import TypeCheckEngine  # noqa: F401 - dynamic descriptor factory
 from ici.reporters.console import print_suite_dashboard
 from ici.reporters.html import generate_html_report
 from ici.reporters.issue_view import ConsoleOptions
@@ -124,18 +132,24 @@ class VerifyOrchestrator:
         write_baseline: str | Path | None = None,
         *,
         console_options: ConsoleOptions | None = None,
+        profile: AnalysisProfile | str | None = None,
     ) -> VerificationSuiteResult:
         t0 = time.time()
-        results: list[EngineResult] = []
+        effective_config, selected_profile = apply_analysis_profile(self.config, profile)
+        descriptors = descriptors_for_profile(
+            ENGINE_DESCRIPTORS,
+            selected_profile,
+            lambda name: bool(get_engine_config(effective_config, name).get("enabled", True)),
+        )
 
-        project = discover_project_model(self.project_root, self.config)
+        project = discover_project_model(self.project_root, effective_config)
         declared_support = evaluate_support_matrix(
             self.project_root,
-            self.config,
+            effective_config,
             project=project,
         )
         configured_required = {
-            str(name) for name in self.config.get("doctor", {}).get("required_tools", []) or []
+            str(name) for name in effective_config.get("doctor", {}).get("required_tools", []) or []
         }
         required_by, optional_by = derive_tool_policy(declared_support, configured_required)
         capability_inventory = collect_capability_inventory(
@@ -143,63 +157,67 @@ class VerifyOrchestrator:
             required_by=required_by,
             optional_by=optional_by,
         )
-        requested_variants: list[BuildVariant] = []
-        if get_engine_config(self.config, "test").get("enabled", True):
-            requested_variants.append(BuildVariant.COVERAGE)
-        if get_engine_config(self.config, "sanitize").get("enabled", True):
-            requested_variants.append(BuildVariant.SANITIZE)
+        requested_variants = tuple(
+            descriptor.build_variant
+            for descriptor in descriptors
+            if descriptor.build_variant is not None
+        )
         analysis_context = create_analysis_context(
             self.project_root,
-            self.config,
+            effective_config,
             capability_inventory,
-            requested_variants=tuple(requested_variants),
+            requested_variants=requested_variants,
+            profile=selected_profile.value,
             project=project,
         )
 
-        # Engine definitions mapping name to Engine class
-        engine_defs = [
-            ("line", LineCountEngine),
-            ("lint", LintEngine),
-            ("test", TestEngine),
-            ("type", TypeCheckEngine),
-            ("cognitive", CognitiveEngine),
-            ("resource", ResourceEngine),
-            ("security", SecurityEngine),
-            ("cycle", CycleEngine),
-            ("complexity", ComplexityEngine),
-            ("sanitize", SanitizeEngine),
-            ("dead", DeadCodeEngine),
-            ("dup", DuplicateEngine),
-            ("exception", ExceptionSafetyEngine),
-        ]
-        if tuple(name for name, _engine_cls in engine_defs) != ENGINE_NAMES:
-            raise RuntimeError("verification engines and support declarations are out of sync")
-
-        tem_score = None
-        for name, engine_cls in engine_defs:
-            eng_cfg = get_engine_config(self.config, name)
-            if not eng_cfg.get("enabled", True):
-                continue
-
+        prepared: dict[str, Any] = {}
+        for descriptor in descriptors:
+            eng_cfg = get_engine_config(effective_config, descriptor.name)
             try:
+                engine_cls = globals()[descriptor.factory_name]
                 engine_instance = engine_cls(
                     self.project_root,
-                    self.config,
+                    effective_config,
                     analysis_context=analysis_context,
                 )
-                res = engine_instance.run()
             except Exception as exc:
-                res = EngineResult(
-                    engine_name=name,
+                prepared[descriptor.name] = EngineResult(
+                    engine_name=descriptor.name,
                     status=EngineStatus.ERROR,
                     summary=f"Engine crashed: {type(exc).__name__}: {exc}",
                     required=bool(eng_cfg.get("required", True)),
                     evidence=EvidenceState.NOT_RUN,
                 )
-            results.append(res)
+            else:
+                prepared[descriptor.name] = engine_instance
 
-            if res.engine_name == "test" and res.score is not None:
-                tem_score = res.score
+        def execute(descriptor: EngineDescriptor) -> EngineResult:
+            candidate = prepared[descriptor.name]
+            if isinstance(candidate, EngineResult):
+                return candidate
+            eng_cfg = get_engine_config(effective_config, descriptor.name)
+            try:
+                return candidate.run()
+            except Exception as exc:
+                return EngineResult(
+                    engine_name=descriptor.name,
+                    status=EngineStatus.ERROR,
+                    summary=f"Engine crashed: {type(exc).__name__}: {exc}",
+                    required=bool(eng_cfg.get("required", True)),
+                    evidence=EvidenceState.NOT_RUN,
+                )
+
+        results = PipelineExecutor[EngineResult](descriptors).run(execute)
+
+        tem_score = next(
+            (
+                result.score
+                for result in results
+                if result.engine_name == "test" and result.score is not None
+            ),
+            None,
+        )
         suite_status = aggregate_suite_status(results)
         duration = time.time() - t0
 
@@ -210,11 +228,11 @@ class VerifyOrchestrator:
 
         support_matrix = evaluate_support_matrix(
             self.project_root,
-            self.config,
+            effective_config,
             results,
             project=project,
         )
-        metadata = build_analysis_metadata(self.config, support_matrix)
+        metadata = build_analysis_metadata(effective_config, support_matrix)
         suite = VerificationSuiteResult(
             suite_status=suite_status,
             results=results,

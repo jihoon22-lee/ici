@@ -15,6 +15,7 @@ from ici.config import ConfigError, load_config
 from ici.core.baseline import BaselineError
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
 from ici.core.path_utils import resolve_project_path
+from ici.core.pipeline import AnalysisProfile
 from ici.core.redaction import redact_engine_result
 from ici.core.support import evaluate_support_matrix
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
@@ -66,6 +67,11 @@ _VERIFY_GROUP_BY_OPTION = typer.Option(
     ConsoleGroupBy.ENGINE,
     "--group-by",
     help="Group console findings by engine, severity, category, file, or rule",
+)
+_VERIFY_PROFILE_OPTION = typer.Option(
+    None,
+    "--profile",
+    help="Analysis cost profile: fast, standard, or deep (defaults to ici.profile)",
 )
 
 
@@ -162,6 +168,7 @@ def cmd_verify(
     verbose: bool = _VERIFY_VERBOSE_OPTION,
     max_findings: int = _VERIFY_MAX_FINDINGS_OPTION,
     group_by: ConsoleGroupBy = _VERIFY_GROUP_BY_OPTION,
+    profile: AnalysisProfile | None = _VERIFY_PROFILE_OPTION,
 ):
     """Runs the full verification engine suite and outputs a unified quality gate dashboard."""
     root = Path.cwd().resolve()
@@ -194,6 +201,7 @@ def cmd_verify(
             fail_on_new=fail_on_new,
             write_baseline=baseline_output,
             console_options=console_options,
+            profile=profile,
         )
     except BaselineError as err:
         typer.echo(f"Baseline error: {err}", err=True)

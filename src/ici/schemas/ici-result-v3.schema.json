@@ -621,6 +621,10 @@
             "toolchain_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
           }
         },
+        "profile": {
+          "type": "string",
+          "enum": ["fast", "standard", "deep"]
+        },
         "compilation": {
           "type": "object",
           "additionalProperties": false,
