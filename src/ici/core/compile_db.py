@@ -23,6 +23,7 @@ from ici.core._compile_db_commands import (
     _split_windows_command,
 )
 from ici.core._compile_db_metadata import (
+    _cmake_target,
     _compiler_name,
     _extract_defines,
     _extract_includes,
@@ -224,6 +225,7 @@ def _parse_row(
         compiler=_compiler_name(argv[0]),
         language=language,
         standard=standard,
+        target=_cmake_target(output),
         defines=definitions,
         include_paths=include_paths,
         sysroot=sysroot,
@@ -233,9 +235,16 @@ def _parse_row(
     )
 
 
-def _database_failure(path: str, code: str, message: str) -> CompilationContext:
+def _database_failure(
+    path: str,
+    code: str,
+    message: str,
+    *,
+    origin: str,
+) -> CompilationContext:
     return CompilationContext(
         database_path=path,
+        origin=origin,
         diagnostics=(_diagnostic(code, message, level="error"),),
     )
 
@@ -264,12 +273,14 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
 
     project_root = root.resolve(strict=False)
     selected, explicit = _select_database(project_root, config)
+    origin = "configured" if explicit else "discovered"
     if selected is None:
         if explicit:
             return _database_failure(
                 "compile_commands.json",
                 "invalid-database-setting",
                 "The configured compilation database path is invalid.",
+                origin=origin,
             )
         return CompilationContext()
     lexical = project_root / PurePosixPath(selected)
@@ -281,6 +292,7 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
             selected,
             "database-outside-project",
             "The compilation database resolves outside the project.",
+            origin=origin,
         )
     try:
         encoded = _read_bounded_regular(database, MAX_COMPILE_DATABASE_BYTES)
@@ -290,6 +302,7 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
                 selected,
                 "database-missing",
                 "The configured compilation database does not exist.",
+                origin=origin,
             )
         return CompilationContext()
     except _ReadError as err:
@@ -299,7 +312,12 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
             "changed": "The compilation database changed while it was being read.",
             "unreadable": "The compilation database could not be read safely.",
         }
-        return _database_failure(selected, f"database-{err.code}", messages[err.code])
+        return _database_failure(
+            selected,
+            f"database-{err.code}",
+            messages[err.code],
+            origin=origin,
+        )
     try:
         payload = json.loads(
             encoded.decode("utf-8"),
@@ -311,18 +329,21 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
             selected,
             "database-malformed",
             "The compilation database could not be decoded as JSON.",
+            origin=origin,
         )
     if not isinstance(payload, list):
         return _database_failure(
             selected,
             "database-not-array",
             "The compilation database root must be an array.",
+            origin=origin,
         )
     if len(payload) > MAX_COMPILE_DATABASE_ENTRIES:
         return _database_failure(
             selected,
             "database-too-many-entries",
             "The compilation database exceeds the bounded entry count.",
+            origin=origin,
         )
 
     units: list[CompilationUnit] = []
@@ -361,5 +382,6 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
         units=tuple(units),
         database_path=selected,
         database_digest="sha256:" + hashlib.sha256(encoded).hexdigest(),
+        origin=origin,
         diagnostics=tuple(diagnostics),
     )

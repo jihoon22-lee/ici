@@ -48,6 +48,19 @@ def _compiler_name(value: str) -> str:
     return windows_name if "\\" in value else posix_name
 
 
+def _cmake_target(output: str) -> str:
+    """Derive a CMake target from its stable object-directory convention."""
+
+    parts = PurePosixPath(output).parts
+    for index, part in enumerate(parts[:-1]):
+        if part != "CMakeFiles":
+            continue
+        candidate = parts[index + 1]
+        if candidate.endswith(".dir") and len(candidate) > len(".dir"):
+            return candidate[: -len(".dir")]
+    return ""
+
+
 def _uses_msvc(argv: tuple[str, ...]) -> bool:
     if not argv:
         return False

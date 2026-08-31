@@ -74,6 +74,7 @@ class ConfigureOptions:
     variant: BuildVariant
     extra_cxx_flags: tuple[str, ...] = ()
     extra_link_flags: tuple[str, ...] = ()
+    analysis_database: bool = False
 
     @property
     def coverage(self) -> bool:
@@ -86,6 +87,10 @@ class ConfigureOptions:
             BuildVariant.COVERAGE: "",
             BuildVariant.SANITIZE: "-asan",
         }[self.variant]
+
+    @property
+    def build_type(self) -> str:
+        return "Release" if self.variant is BuildVariant.RELEASE else "Debug"
 
     def cxx_flags(self) -> list[str]:
         flags = {
@@ -117,8 +122,11 @@ def cmake_configure_argv(
         str(root),
         "-B",
         str(shadow),
-        "-DCMAKE_BUILD_TYPE=Debug",
+        f"-DCMAKE_BUILD_TYPE={options.build_type}",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
     ]
+    if options.analysis_database:
+        argv.append("-DCMAKE_UNITY_BUILD=OFF")
     cxx = " ".join(options.cxx_flags())
     link = " ".join(options.link_flags())
     if cxx:
@@ -323,6 +331,9 @@ class BuildSession:
     reason: str = ""
     configured: bool = False
     cmake_version: tuple[int, int] | None = None
+    cmake_generator: str = ""
+    cmake_unity_build: bool | None = None
+    compilation_database: Path | None = None
     analysis_context: AnalysisContext | None = None
     artifact_manifest: ArtifactManifest | None = None
     tool_evidence: list[ToolEvidence] = field(default_factory=list)
@@ -357,6 +368,7 @@ def _which(session: BuildSession, name: str) -> str | None:
 def configure(root: Path, options: ConfigureOptions) -> BuildSession:
     """Select a backend and configure a shadow build tree."""
 
+    root = root.resolve(strict=False)
     choice = select_backend(root)
     session = BuildSession(
         root=root,
@@ -375,11 +387,30 @@ def configure(root: Path, options: ConfigureOptions) -> BuildSession:
     session.tool_evidence.append(
         ToolEvidence(name=f"build backend selection: {choice.reason}", path="")
     )
-    session.shadow.mkdir(parents=True, exist_ok=True)
+    if not _prepare_shadow(session):
+        return session
 
     if choice.kind == BACKEND_CMAKE:
         return _configure_cmake(session, options)
     return _configure_qmake(session, options)
+
+
+def _prepare_shadow(session: BuildSession) -> bool:
+    """Create the owned shadow without following an escape outside the project."""
+
+    try:
+        build_root = session.root / "build"
+        build_root.mkdir(parents=True, exist_ok=True)
+        resolved_build = build_root.resolve(strict=True)
+        resolved_build.relative_to(session.root)
+        session.shadow.mkdir(parents=True, exist_ok=True)
+        resolved_shadow = session.shadow.resolve(strict=True)
+        resolved_shadow.relative_to(resolved_build)
+    except (OSError, RuntimeError, ValueError) as err:
+        _fail(session, f"build shadow is unsafe or unavailable: {err}")
+        return False
+    session.shadow = resolved_shadow
+    return True
 
 
 def _configure_cmake(session: BuildSession, options: ConfigureOptions) -> BuildSession:
@@ -395,10 +426,16 @@ def _configure_cmake(session: BuildSession, options: ConfigureOptions) -> BuildS
     argv = cmake_configure_argv(cmake_bin, session.root, session.shadow, options)
     result = run_process(argv, cwd=session.root)
     _record(session, "cmake configure", argv, result)
-    if result.returncode != 0:
+    if result.returncode != 0 or result.timed_out or result.truncated:
         _fail(session, f"cmake configure failed: {result.stderr[:200]}")
         return session
     session.configured = True
+    database = session.shadow / "compile_commands.json"
+    try:
+        if database.is_file():
+            session.compilation_database = database
+    except OSError:
+        pass
     return session
 
 

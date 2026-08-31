@@ -269,6 +269,7 @@ def _redact_compilation_unit(unit: Any, project_root: Path) -> Any:
         output=_redact_compilation_path(unit.output, project_root),
         compiler=redact_text(unit.compiler),
         standard=redact_text(unit.standard),
+        target=redact_text(unit.target),
         defines=definitions,
         include_paths=include_paths,
         sysroot=_redact_compilation_path(unit.sysroot, project_root),
@@ -295,6 +296,7 @@ def _redact_analysis_context(context: Any) -> Any:
             if context.compilation.database_path is not None
             else None
         ),
+        generator=redact_text(context.compilation.generator),
         units=tuple(
             _redact_compilation_unit(unit, project_root) for unit in context.compilation.units
         ),
