@@ -26,6 +26,9 @@ from ici.core.context import (
 
 MAX_COMPILE_DATABASE_BYTES = 32 * 1024 * 1024
 MAX_COMPILE_DATABASE_ENTRIES = 200_000
+MAX_COMPILE_ARGUMENTS = 32_768
+MAX_COMPILE_ARGUMENT_CHARS = 1024 * 1024
+MAX_COMPILE_COMMAND_CHARS = 4 * 1024 * 1024
 _SOURCE_LANGUAGES = {
     ".c": "c",
     ".cc": "c++",
@@ -185,7 +188,9 @@ def _parse_argv(row: dict[str, Any]) -> tuple[str, ...]:
         if (
             not isinstance(arguments, list)
             or not arguments
+            or len(arguments) > MAX_COMPILE_ARGUMENTS
             or any(not isinstance(value, str) or not value or "\0" in value for value in arguments)
+            or any(len(value) > MAX_COMPILE_ARGUMENT_CHARS for value in arguments)
         ):
             raise _RowError(
                 "invalid-arguments",
@@ -197,6 +202,11 @@ def _parse_argv(row: dict[str, Any]) -> tuple[str, ...]:
         raise _RowError(
             "missing-command",
             "The compilation entry has neither valid arguments nor a command.",
+        )
+    if len(command) > MAX_COMPILE_COMMAND_CHARS:
+        raise _RowError(
+            "invalid-command",
+            "The compilation command exceeds the bounded input size.",
         )
     try:
         parsed = _split_windows_command(command) if os.name == "nt" else tuple(shlex.split(command))
@@ -523,6 +533,11 @@ def _database_failure(path: str, code: str, message: str) -> CompilationContext:
     )
 
 
+def _reject_json_constant(value: str) -> None:
+    del value
+    raise ValueError("non-standard JSON constant")
+
+
 def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationContext:
     """Load the selected compilation database into an immutable context.
 
@@ -596,8 +611,8 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
                 "database-changed",
                 "The compilation database changed while it was being read.",
             )
-        payload = json.loads(encoded.decode("utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError):
+        payload = json.loads(encoded.decode("utf-8"), parse_constant=_reject_json_constant)
+    except (OSError, UnicodeError, ValueError, RecursionError):
         return _database_failure(
             selected,
             "database-malformed",

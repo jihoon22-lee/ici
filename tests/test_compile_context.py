@@ -367,6 +367,8 @@ def test_root_database_has_deterministic_precedence_over_build_database(tmp_path
     [
         ("{", "database-malformed"),
         ("{}", "database-not-array"),
+        ("[NaN]", "database-malformed"),
+        ("[" + "9" * 5000 + "]", "database-malformed"),
     ],
 )
 def test_malformed_database_shapes_are_diagnostic(tmp_path: Path, payload: str, code: str) -> None:
@@ -410,6 +412,35 @@ def test_invalid_explicit_database_setting_is_bounded_evidence(tmp_path: Path) -
 
     assert context.database_path == "compile_commands.json"
     assert [item.code for item in context.diagnostics] == ["invalid-database-setting"]
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "limit_name"),
+    [
+        ("arguments", ["g++", "-c", "../src/main.cpp"], "MAX_COMPILE_ARGUMENTS"),
+        ("arguments", ["g++", "-c", "../src/main.cpp"], "MAX_COMPILE_ARGUMENT_CHARS"),
+        ("command", "g++ -c ../src/main.cpp", "MAX_COMPILE_COMMAND_CHARS"),
+    ],
+)
+def test_per_entry_command_and_argument_limits_are_bounded_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    value: object,
+    limit_name: str,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    monkeypatch.setattr(compile_db_module, limit_name, 1)
+    _write_database(
+        root,
+        [{"directory": ".", "file": "../src/main.cpp", field: value}],
+    )
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert context.units == ()
+    expected = "invalid-arguments" if field == "arguments" else "invalid-command"
+    assert [item.code for item in context.diagnostics] == [expected]
 
 
 def test_windows_command_line_parser_preserves_quoted_argv_without_execution() -> None:
