@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-01
+
 ### Added
 - **Standalone compilation-context export**: `ici export-compilation-context` now emits a
   deterministic, redacted `ici.compilation-export/v1` JSON snapshot for downstream consumers.
@@ -52,8 +54,31 @@
   semantic digest `sha256:a7db541ae2daa0c19365f80c1bdbe5090049c86b423000fdf9b6f8e85a857a48`.
   The same public projection compared 16 units, 6 targets, and 14 field groups with zero mismatch,
   checkout leak, or raw `argv`/`command` exposure.
-- These are local/candidate measurements only; remote PR/CI/Pages and public release completion are
-  not claimed here.
+- These are local/candidate measurements; the remote PR/main evidence is recorded separately below,
+  while public release completion is not yet claimed.
+
+### Remote evidence
+- Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110) from head
+  [`3ce564a`](https://github.com/jihoon22-lee/ici/commit/3ce564a) was merged as
+  [`6b44f32869944a0941cab63eb94489b92c543a58`](https://github.com/jihoon22-lee/ici/commit/6b44f32869944a0941cab63eb94489b92c543a58).
+  [CI run 33448847117](https://github.com/jihoon22-lee/ici/actions/runs/33448847117) completed all
+  required checks, including `Merge Gate`. The [sticky comment](https://github.com/jihoon22-lee/ici/pull/110#issuecomment-5485964934)
+  records marker 1 and two report links.
+- Independent PR [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/110/) and
+  [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/110/) returned HTTP 200
+  `text/html`, the expected titles, and zero external references. The ici report was 5,690,362
+  bytes with SHA-256 `fbda099830ee7f0505b76b410963e2531904ea199e36e0292953d2cf73f45014`; the
+  viewer report was 345,176 bytes with SHA-256
+  `cff8fdc355bf09a5fcceda0f4c1715988b693a2b61f6fac23641dd3d6a6ea115`.
+- The exact main commit [`6b44f32869944a0941cab63eb94489b92c543a58`](https://github.com/jihoon22-lee/ici/commit/6b44f32869944a0941cab63eb94489b92c543a58)
+  passed [CI run 33449333028](https://github.com/jihoon22-lee/ici/actions/runs/33449333028), including
+  `Merge Gate` and `Publish Main`. Independent [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/)
+  and [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) returned HTTP 200
+  `text/html`, the expected titles, and zero external references: ici 5,690,362 bytes with
+  SHA-256 `99445ff8da2458d6bd5d861d63ae9318db374dfbc60a66bc6cc60ff5cc05894d`, and viewer 345,176
+  bytes with SHA-256 `4626e354eba2638e07c3c6a254e4ae5cb95291a86c13f4bebe92bef1d892696d`.
+- The release PR, tag, and assets remain pending. The same-basename active-header comparison also
+  remains pending.
 
 ## [0.7.1] - 2026-09-01
 

@@ -155,9 +155,27 @@ fatal diagnostic, serialization or write error: 1
   `6f0e99872ab0041f174f9b708cb2a0bd5e60569ce06fe825644541c0ae2162c9`, semantic digest는
   `sha256:a7db541ae2daa0c19365f80c1bdbe5090049c86b423000fdf9b6f8e85a857a48`였다.
 
+### Remote follow-up
+
+- Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110)은 head `3ce564a`에서 exact main
+  commit `6b44f32869944a0941cab63eb94489b92c543a58`로 병합됐다. [CI run 33448847117](https://github.com/jihoon22-lee/ici/actions/runs/33448847117)은
+  required checks와 `Merge Gate`를 모두 성공시켰고, [sticky comment](https://github.com/jihoon22-lee/ici/pull/110#issuecomment-5485964934)는
+  marker 1과 두 report link를 기록했다.
+- 독립 PR Pages는 HTTP 200·`text/html`·expected title·external reference 0건이었다. ici는
+  5,690,362 bytes, SHA-256 `fbda099830ee7f0505b76b410963e2531904ea199e36e0292953d2cf73f45014`,
+  viewer는 345,176 bytes, SHA-256
+  `cff8fdc355bf09a5fcceda0f4c1715988b693a2b61f6fac23641dd3d6a6ea115`였다.
+- main [CI run 33449333028](https://github.com/jihoon22-lee/ici/actions/runs/33449333028)도 `Merge Gate`와
+  `Publish Main`을 포함해 성공했다. main Pages는 HTTP 200·`text/html`·expected title·external
+  reference 0건으로, ici 5,690,362 bytes/SHA-256
+  `99445ff8da2458d6bd5d861d63ae9318db374dfbc60a66bc6cc60ff5cc05894d`, viewer 345,176 bytes/SHA-256
+  `4626e354eba2638e07c3c6a254e4ae5cb95291a86c13f4bebe92bef1d892696d`였다.
+- 원격 PR·main Pages 증거는 확보됐지만 release PR/tag/assets와 same-basename active-header
+  비교는 아직 pending이다.
+
 ## Next Steps
 
-- PR의 required CI, sticky comment, ici/viewer Pages를 확인한 뒤 merge하고, 별도 release PR로
-  버전을 올려 공개 asset/checksum을 검증한다.
+- PR #110의 required CI, sticky comment, ici/viewer Pages와 main 반영 증거를 위에 기록했다.
+  별도 release PR/tag/assets와 공개 checksum 검증이 남아 있다.
 - 공개 release artifact를 BuildScope의 교차 구현 비교에 고정하고, I3의 남은 same-basename
   active header edge 대조를 toy fixture와 실제 compiler trace로 완료한다.
