@@ -34,6 +34,9 @@ _PROJECT_KEYS = frozenset(
         # C++ that ici analyses but does not compile itself: moc-dependent or
         # build-system-driven sources that a bare g++ call cannot produce.
         "cpp_external_build_dirs",
+        # Optional deterministic compilation database selection. When absent,
+        # ici checks only the root and conventional build location.
+        "compile_database",
     }
 )
 _BUILD_KEYS = frozenset({"python"})
@@ -358,6 +361,14 @@ def validate_config_paths(config: dict[str, Any], base: Path) -> None:
         for key in ("source_dirs", "cpp_external_build_dirs"):
             if key in project:
                 _validate_path_list(project[key], f"project.{key}", base)
+        compile_database = project.get("compile_database")
+        if compile_database is not None:
+            if not isinstance(compile_database, str) or not compile_database:
+                raise _error("project.compile_database", "must be a non-empty string")
+            try:
+                resolve_project_path(base, compile_database)
+            except ConfigError as err:
+                raise ConfigError(f"project.compile_database: {err}") from err
 
     engines = config.get("engines")
     if not isinstance(engines, dict):

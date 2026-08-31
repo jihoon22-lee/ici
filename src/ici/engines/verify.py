@@ -14,6 +14,7 @@ from ici.core.cache import (
     project_source_digest,
 )
 from ici.core.capabilities import collect_capability_inventory, derive_tool_policy
+from ici.core.compile_db import load_compilation_context
 from ici.core.context import create_analysis_context, discover_project_model
 from ici.core.models import (
     AnalysisMetadata,
@@ -169,6 +170,7 @@ class VerifyOrchestrator:
             for descriptor in descriptors
             if descriptor.build_variant is not None
         )
+        compilation = load_compilation_context(self.project_root, effective_config)
         analysis_context = create_analysis_context(
             self.project_root,
             effective_config,
@@ -176,6 +178,7 @@ class VerifyOrchestrator:
             requested_variants=requested_variants,
             profile=selected_profile.value,
             project=project,
+            compilation=compilation,
         )
         cache: AnalysisCache | None = AnalysisCache() if use_cache else None
         source_digest = ""

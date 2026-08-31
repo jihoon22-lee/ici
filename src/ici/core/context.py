@@ -613,6 +613,7 @@ def create_analysis_context(
     *,
     profile: str = "standard",
     project: ProjectModel | None = None,
+    compilation: CompilationContext | None = None,
 ) -> AnalysisContext:
     """Create the run snapshot after capability policy has been evaluated."""
 
@@ -628,6 +629,7 @@ def create_analysis_context(
         project=project,
         capabilities=capabilities,
         identity=identity,
+        compilation=compilation if compilation is not None else CompilationContext(),
         profile=profile,
         requested_variants=requested_variants,
     )

@@ -114,6 +114,34 @@ def test_load_config_accepts_doctor_required_tools(tmp_path: Path, monkeypatch):
     assert config["doctor"]["required_tools"] == ["g++", "cmake"]
 
 
+def test_load_config_accepts_project_compile_database_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        '[project]\ncompile_database = "out/debug/compile_commands.json"\n',
+        encoding="utf-8",
+    )
+
+    config = load_config(tmp_path)
+
+    assert config["project"]["compile_database"] == "out/debug/compile_commands.json"
+
+
+@pytest.mark.parametrize("value", ['"../outside.json"', '"/tmp/outside.json"', "123"])
+def test_load_config_rejects_invalid_project_compile_database_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        f"[project]\ncompile_database = {value}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match=r"project\.compile_database|outside project root"):
+        load_config(tmp_path)
+
+
 def test_load_config_rejects_non_list_doctor_required_tools(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     (tmp_path / "ici.toml").write_text('[doctor]\nrequired_tools = "g++"\n', encoding="utf-8")
