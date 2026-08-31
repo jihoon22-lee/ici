@@ -73,7 +73,9 @@ def _cmake_bool(value: str | None) -> bool | None:
 
 
 def _generator_supported(generator: str) -> bool:
-    return generator.startswith("Ninja") or generator.endswith("Makefiles")
+    # The canonical context is a single Release configuration.  Multi-config
+    # generators ignore CMAKE_BUILD_TYPE and therefore cannot prove that policy.
+    return generator == "Ninja" or generator.endswith("Makefiles")
 
 
 def _read_cmake_metadata(root: Path) -> tuple[str, bool | None, tuple[CompilationDiagnostic, ...]]:

@@ -335,8 +335,9 @@ def test_makefiles_and_ninja_are_accepted(
     assert "unsupported" not in _diagnostic_text(result)
 
 
-def test_unsupported_cmake_generator_is_diagnosed(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("generator", ["Visual Studio 17 2022", "Ninja Multi-Config"])
+def test_unsupported_or_multi_config_cmake_generator_is_diagnosed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, generator: str
 ) -> None:
     root = tmp_path / "project"
     root.mkdir()
@@ -345,7 +346,7 @@ def test_unsupported_cmake_generator_is_diagnosed(
     _install_fake_cmake(
         monkeypatch,
         root,
-        generator="Visual Studio 17 2022",
+        generator=generator,
         on_configure=lambda shadow, _argv: _write_database(
             root,
             _COMPILE_DB,
