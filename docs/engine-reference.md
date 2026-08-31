@@ -4,8 +4,8 @@
 
 ---
 
-`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 13종 검증 엔진을 제공합니다.
-기본 활성은 12종(`line/lint/test/type/resource/security/cycle/complexity/sanitize/dead/dup/exception`)이며,
+`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 14종 검증 엔진을 제공합니다.
+기본 활성은 13종(`line/lint/compile_db/test/type/resource/security/cycle/complexity/sanitize/dead/dup/exception`)이며,
 `cognitive`(인지 복잡도)는 `enabled = false` 기본값으로 필요 시 옵트인합니다.
 
 ---
@@ -59,6 +59,14 @@ enabled = true
 mode = "pass_warn_fail"
 # Optional by default: missing Ruff is reported as WARN/ESTIMATED.
 ruff_required = false
+
+[engines.compile_db]
+enabled = true
+mode = "pass_warn_fail"
+# true이면 C/C++ 프로젝트에서 DB 부재를 FAIL로 승격합니다.
+database_required = false
+required_flags = []
+forbidden_flags = []
 
 [engines.type]
 enabled = true
@@ -221,6 +229,7 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 |---|---|---|
 | `line` | exact | exact (Qt) |
 | `lint` | tool-backed → heuristic fallback | tool-backed (Qt) |
+| `compile_db` | unsupported | exact (Qt) → heuristic fallback |
 | `test` | tool-backed → heuristic fallback | tool-backed (Qt) → heuristic fallback |
 | `type` | tool-backed → heuristic fallback | unsupported |
 | `cognitive` | heuristic | unsupported |

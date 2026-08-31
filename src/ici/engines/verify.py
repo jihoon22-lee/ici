@@ -35,6 +35,7 @@ from ici.core.pipeline import (
 )
 from ici.core.support import ENGINE_NAMES, evaluate_support_matrix  # noqa: F401
 from ici.engines.cognitive import CognitiveEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.compile_db import CompileDatabaseEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.complexity import ComplexityEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.cycle import CycleEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.dead import DeadCodeEngine  # noqa: F401 - dynamic descriptor factory

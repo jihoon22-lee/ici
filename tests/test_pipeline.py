@@ -147,6 +147,7 @@ def test_builtin_fast_standard_and_deep_profiles_select_expected_registry_entrie
     assert [descriptor.name for descriptor in fast] == [
         "line",
         "lint",
+        "compile_db",
         "type",
         "resource",
         "security",
@@ -159,6 +160,7 @@ def test_builtin_fast_standard_and_deep_profiles_select_expected_registry_entrie
     assert [descriptor.name for descriptor in standard] == [
         "line",
         "lint",
+        "compile_db",
         "test",
         "type",
         "resource",

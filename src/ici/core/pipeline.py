@@ -93,6 +93,11 @@ ENGINE_DESCRIPTORS = (
     EngineDescriptor("line", "LineCountEngine", produces=("findings:line",)),
     EngineDescriptor("lint", "LintEngine", produces=("findings:lint",)),
     EngineDescriptor(
+        "compile_db",
+        "CompileDatabaseEngine",
+        produces=("findings:compile-db", "compilation-coverage"),
+    ),
+    EngineDescriptor(
         "test",
         "TestEngine",
         produces=("findings:test", "test-results", "coverage-report", "build:coverage"),

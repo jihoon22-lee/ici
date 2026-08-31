@@ -15,6 +15,7 @@ from ici.engines.line import LineCountEngine
 ENGINE_NAMES = (
     "line",
     "lint",
+    "compile_db",
     "test",
     "type",
     "complexity",
