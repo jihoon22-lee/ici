@@ -689,6 +689,38 @@ def test_recursive_response_file_cycle_is_bounded_evidence(tmp_path: Path) -> No
     assert [item.code for item in unit.diagnostics] == ["response-file-cycle"]
 
 
+def test_aggregate_response_file_bytes_are_bounded(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    (root / "build").mkdir(exist_ok=True)
+    (root / "build" / "one.rsp").write_text("-DONE", encoding="utf-8")
+    (root / "build" / "two.rsp").write_text("-DTWO", encoding="utf-8")
+    monkeypatch.setattr(compile_db_module, "MAX_RESPONSE_FILE_BYTES", 6)
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/main.cpp",
+                "arguments": [
+                    "g++",
+                    "@one.rsp",
+                    "@two.rsp",
+                    "-c",
+                    "../src/main.cpp",
+                ],
+            }
+        ],
+    )
+
+    unit = load_compilation_context(root, {"project": {}}).units[0]
+
+    assert unit.defines == (compile_db_module.CompilationDefine("ONE"),)
+    assert [item.code for item in unit.diagnostics] == ["response-file-too-large"]
+
+
 def test_similar_long_options_are_not_misclassified_as_compilation_metadata(
     tmp_path: Path,
 ) -> None:

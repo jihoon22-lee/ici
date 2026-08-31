@@ -149,7 +149,12 @@ def _is_dir(path: Path) -> bool:
 def _read_bounded_regular(path: Path, limit: int) -> bytes:
     """Read one stable regular file through a no-follow descriptor."""
 
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_BINARY", 0)
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_BINARY", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+    )
     flags |= getattr(os, "O_NOFOLLOW", 0)
     try:
         descriptor = os.open(path, flags)
@@ -245,7 +250,8 @@ def _parse_argv(row: dict[str, Any]) -> tuple[str, ...]:
             or not arguments
             or len(arguments) > MAX_COMPILE_ARGUMENTS
             or any(not isinstance(value, str) or not value or "\0" in value for value in arguments)
-            or any(len(value) > MAX_COMPILE_ARGUMENT_CHARS for value in arguments)
+            or sum(len(value) for value in arguments if isinstance(value, str))
+            > MAX_COMPILE_ARGUMENT_CHARS
         ):
             raise _RowError(
                 "invalid-arguments",
@@ -288,7 +294,7 @@ def _tokenize_response_file(encoded: bytes) -> tuple[str, ...]:
     if (
         len(values) > MAX_COMPILE_ARGUMENTS
         or any(not value or "\0" in value for value in values)
-        or any(len(value) > MAX_COMPILE_ARGUMENT_CHARS for value in values)
+        or sum(len(value) for value in values) > MAX_COMPILE_ARGUMENT_CHARS
     ):
         raise _RowError(
             "response-file-malformed",
@@ -304,14 +310,26 @@ def _expand_response_files(
     directory: Path,
     depth: int = 0,
     active: tuple[Path, ...] = (),
+    byte_budget: list[int] | None = None,
+    character_budget: list[int] | None = None,
 ) -> tuple[tuple[str, ...], list[CompilationDiagnostic]]:
     """Expand bounded, contained response files without invoking a compiler."""
 
+    if byte_budget is None:
+        byte_budget = [0]
+    if character_budget is None:
+        character_budget = [0]
     expanded: list[str] = []
     diagnostics: list[CompilationDiagnostic] = []
     for token in argv:
         if not token.startswith("@"):
             expanded.append(token)
+            character_budget[0] += len(token)
+            if character_budget[0] > MAX_COMPILE_ARGUMENT_CHARS:
+                raise _RowError(
+                    "invalid-arguments",
+                    "Expanded compilation arguments exceed the bounded character count.",
+                )
             continue
         if token == "@":
             diagnostics.append(
@@ -352,6 +370,12 @@ def _expand_response_files(
             continue
         try:
             encoded = _read_bounded_regular(resolved, MAX_RESPONSE_FILE_BYTES)
+            byte_budget[0] += len(encoded)
+            if byte_budget[0] > MAX_RESPONSE_FILE_BYTES:
+                raise _ReadError(
+                    "too-large",
+                    "The aggregate compiler response-file input is too large.",
+                )
             nested = _tokenize_response_file(encoded)
         except FileNotFoundError:
             diagnostics.append(
@@ -378,6 +402,8 @@ def _expand_response_files(
             directory=resolved.parent,
             depth=depth + 1,
             active=(*active, resolved),
+            byte_budget=byte_budget,
+            character_budget=character_budget,
         )
         expanded.extend(nested_values)
         diagnostics.extend(nested_diagnostics)
