@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 CACHE_SCHEMA_VERSION = "ici.analysis-cache/v1"
 CACHE_KEY_VERSION = "ici.analysis-cache-key/v2"
-COMPILATION_IDENTITY_VERSION = "ici.compilation-identity/v1"
+COMPILATION_IDENTITY_VERSION = "ici.compilation-identity/v2"
 
 _DIGEST_PREFIX = "sha256:"
 _EMPTY_COMPILATION_DIGEST = canonical_digest(

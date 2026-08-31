@@ -709,7 +709,7 @@
             },
             "origin": {
               "type": "string",
-              "enum": ["", "configured", "discovered", "cmake"]
+              "enum": ["", "configured", "discovered", "cmake", "qmake"]
             },
             "generator": { "type": "string", "maxLength": 512 },
             "unity_build": { "type": ["boolean", "null"] },

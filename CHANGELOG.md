@@ -8,6 +8,49 @@
 ## [Unreleased]
 
 ### Added
+- **I3-3 qmake exact compilation context (implementation slice)**: qmake projects without an
+  explicit or discovered `compile_commands.json` can now produce a canonical Release context in
+  `build/ici-qmake-build`; an existing database remains authoritative. The capture spike compared
+  qmake verbose/trace output, external capture tooling, and a compiler wrapper. The selected
+  wrapper records the exact compiler `argv` and working directory for each `-c` invocation in a
+  bounded JSONL journal, then executes the original compiler directly without shell parsing or
+  replaying captured recipes.
+  - DiskMap exposed that injecting wrapper text during the first qmake pass can collapse nested
+    `$$` expressions. The preflight therefore starts by resetting the owned canonical shadow,
+    recursively configures once to materialize nested Makefiles, and performs a bounded metadata
+    probe before recursively configuring again with a wrapper pinned to the selected
+    `sys.executable` and literal absolute C/C++ compiler paths. The adapter's recorded
+    `make clean` then runs before the capture build, so stale metadata and artifacts are not reused.
+  - The first-stage probe accepts only one consistent, safe `CC`/`CXX` pair from recursively found
+    `Makefile*` files: each value must be a single recognized gcc/g++/clang driver resolving to an
+    executable regular file. Each Makefile is capped at 4 MiB and the walk at 4,096 Makefiles;
+    ambiguous, multiword, unavailable, symlinked, or unsafe metadata fails closed.
+  - The capture journal is capped at 32 MiB and 200,000 records. Journal writes use no-follow
+    regular-file/ownership/permission checks and locking; the generated wrapper is 0700 and the
+    journal 0600. The resulting database is written inside the owned shadow through a temporary
+    file and atomic replace. Non-POSIX hosts return an explicit warning lower-confidence mode
+    rather than claiming exact capture.
+  - Captured source coverage is checked against production translation units; missing units emit
+    the `qmake-capture-incomplete` compilation diagnostic. `CompilationContext` records qmake
+    provenance (`origin = "qmake"`, `generator = "qmake"`, `unity_build = null`), v3 schema
+    accepts the new origin, and compilation identity/cache contracts include the v2 context. The
+    verification orchestrator routes qmake projects through this preflight and CMake projects
+    through the existing CMake path.
+  - Local E2E evidence: the real qmake fixture produced 3 units on both Qt5 and Qt6,
+    including the generated moc unit. Actual DiskMap Qt5 and Qt6 runs covered 20 configurations,
+    all 9/9 production units, with no compilation diagnostics; temporary capture shadows were
+    cleaned. Python 3.10 finished with 1,112 tests passing; Ruff check/format covered 134 files and
+    focused mypy passed 7 source files. Two current-source pyz builds matched at SHA-256
+    `5610617022a6accaf0b8fa0313ee0fd6c414317e839d23e2c879fa8b4c918d23` with 10 pure-Python
+    distributions and no certifi, and smoke passed Python 3.10 execution, artifact integrity, and
+    Zero-CDN. Packaged self-verify returned WARN (8 pass, 4 warn, 0 fail/error, 1 skip; 1,112 tests;
+    line/function/branch 88.8%/96.5%/79.9%; TEM 4.82; complexity 25; 117.25s). Its 4,722,391-byte
+    HTML had a title and zero external script/link/image dependencies. PR, CI, and Pages evidence
+    for this slice remain pending.
+  - Self-dogfood first exposed an inline qmake dispatch branch that raised
+    `VerifyOrchestrator.run_all` complexity from 25 to 26/FAIL; typed dispatch extraction restored
+    25/WARN. Moving qmake argv construction into its own module also reduced `cmake.py` from 512
+    to 495 code lines, removing the line warning reintroduced by this slice.
 - **I3-2 canonical CMake compilation context**: CMake projects without an existing
   compilation database now receive a deterministic Release analysis preflight in
   `build/ici-cmake-build`. Every CMake configure exports `compile_commands.json`;
@@ -53,8 +96,8 @@
     [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/) checks both
     returned HTTP/2 200 `text/html` with a title, zero external dependencies, and
     observed sizes of 4,574,483 and 337,918 bytes respectively. BuildScope
-    target-by-target validation remains pending; I3-3, I3-4, and I3 as a whole
-    are not complete.
+    target-by-target validation remains pending; I3-3 final quality/remote evidence,
+    I3-4, and I3 as a whole are not complete.
 - **I3-1 compiler-exact compilation context와 `compile_db` 품질 게이트**: root 또는 `build/compile_commands.json`(또는 명시적 project-relative 설정)을 immutable `CompilationContext`로 한 번 읽어 모든 엔진과 리포터가 공유합니다. `arguments` 우선, POSIX/Windows command tokenizer, bounded project-contained response-file 확장으로 shell/compiler를 실행하지 않고 compiler, language, standard, defines, include/search path, sysroot, output과 동일 source의 여러 configuration을 보존합니다.
   - database와 response file은 `O_NOFOLLOW`·`O_NONBLOCK` descriptor, regular-file `fstat`, 크기 제한 읽기, device/inode/size/mtime 재검증을 거칩니다. duplicate JSON key, non-finite/과대 입력, symlink·foreign path escape, malformed row, source/output 불일치와 stale/missing path는 전체 검증을 crash시키지 않고 위치가 있는 진단으로 변환됩니다.
   - GCC/Clang의 `-std`, `-x`, `-D`, `-I`/`-isystem`/`-iquote`, sysroot, `-o`와 MSVC/clang-cl의 `/std:`, `/D`, `/I`, `/external:I`, `/Fo`, `/TC`·`/TP`를 구조화합니다. 중앙/JSON redaction은 module/search/linker/rpath/forced-include/response-file 및 define 안의 embedded absolute POSIX·Windows 경로도 `[external]`로 투영합니다.

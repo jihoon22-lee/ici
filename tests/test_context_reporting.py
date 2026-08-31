@@ -583,7 +583,7 @@ def test_checked_in_schema_bounds_and_constrains_compilation_context() -> None:
     assert compilation["properties"]["diagnostics"]["maxItems"] == 200_000
     assert compilation["properties"]["origin"] == {
         "type": "string",
-        "enum": ["", "configured", "discovered", "cmake"],
+        "enum": ["", "configured", "discovered", "cmake", "qmake"],
     }
     assert compilation["properties"]["generator"] == {"type": "string", "maxLength": 512}
     assert compilation["properties"]["unity_build"] == {"type": ["boolean", "null"]}
