@@ -702,7 +702,7 @@ POSIX path만, `--output`은 stdout 또는 검증된 atomic file target만 허�
 경우에만 `--prepare`가 owned `build/ici-*` shadow를 사용할 수 있다. 명시적으로 설정한 DB가
 missing 또는 malformed여도 그 선택은 authoritative하며, `--prepare`가 이를 조용히 대체하지 않는다.
 I3 완료 판정은 마지막
-교차 구현 대조와 PR·release evidence가 끝날 때까지 유지한다.
+교차 구현 대조와 release evidence가 끝날 때까지 유지한다.
 
 **I3-5 final local revalidation evidence (2026-09-01):** Python 3.10 full suite 1,333 tests
 passed in 51.99s, Ruff check/format 148 files, mypy 88 source files가 통과했다. quoted relative
@@ -722,8 +722,29 @@ expected title, external references 0건이다. BuildScope v2 native snapshot SH
 SHA-256은 `6f0e99872ab0041f174f9b708cb2a0bd5e60569ce06fe825644541c0ae2162c9`, semantic digest는
 `sha256:a7db541ae2daa0c19365f80c1bdbe5090049c86b423000fdf9b6f8e85a857a48`였다. 같은 public
 projection으로 16 unit·6 target·14 field group을 대조해 mismatch, checkout leak, raw
-`argv`/`command` 모두 0건이었다. 이 수치는 local/candidate evidence이며 remote PR/CI/Pages,
+`argv`/`command` 모두 0건이었다. 아래 remote PR/CI/Pages evidence를 추가로 확인했으며,
 공개 release artifact와 same-basename header edge 대조는 pending이다.
+
+### I3-5 remote PR evidence
+
+- Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110)은 head
+  [`3ce564a`](https://github.com/jihoon22-lee/ici/commit/3ce564a)에서 exact main commit
+  [`6b44f32869944a0941cab63eb94489b92c543a58`](https://github.com/jihoon22-lee/ici/commit/6b44f32869944a0941cab63eb94489b92c543a58)로
+  병합됐다. [CI run 33448847117](https://github.com/jihoon22-lee/ici/actions/runs/33448847117)은 모든 required
+  checks와 `Merge Gate`를 성공시켰고, [sticky comment](https://github.com/jihoon22-lee/ici/pull/110#issuecomment-5485964934)는
+  marker 1과 두 report link를 포함한다.
+- 독립 PR ici/viewer Pages는 HTTP 200·`text/html`·expected title·external reference 0건이었다.
+  ici는 5,690,362 bytes/SHA-256
+  `fbda099830ee7f0505b76b410963e2531904ea199e36e0292953d2cf73f45014`, viewer는 345,176 bytes/SHA-256
+  `cff8fdc355bf09a5fcceda0f4c1715988b693a2b61f6fac23641dd3d6a6ea115`였다.
+- exact main [CI run 33449333028](https://github.com/jihoon22-lee/ici/actions/runs/33449333028)은 `Merge Gate`와
+  `Publish Main`을 포함해 성공했다. main ici/viewer Pages도 HTTP 200·`text/html`·expected title·
+  external reference 0건으로, 각각 5,690,362 bytes/SHA-256
+  `99445ff8da2458d6bd5d861d63ae9318db374dfbc60a66bc6cc60ff5cc05894d`와 345,176 bytes/SHA-256
+  `4626e354eba2638e07c3c6a254e4ae5cb95291a86c13f4bebe92bef1d892696d`였다.
+- 이는 PR/main 원격 증거이며 release PR/tag/assets 검증을 대체하지 않는다. 공개 release artifact와
+  same-basename active-header edge 비교는 pending이고, 따라서 위 I3-5 완료 체크박스는 미완료로
+  유지한다.
 
 ---
 
