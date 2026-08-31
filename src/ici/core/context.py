@@ -13,6 +13,7 @@ import json
 import re
 import shutil
 import stat
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from pathlib import Path, PurePosixPath
@@ -250,6 +251,9 @@ class CompilationDiagnostic:
     source: str = ""
 
     def __post_init__(self) -> None:
+        for field_name in ("code", "message", "level", "source"):
+            if not isinstance(getattr(self, field_name), str):
+                raise ValueError(f"compilation diagnostic {field_name} must be a string")
         if not self.code or not self.message:
             raise ValueError("compilation diagnostic code and message must not be empty")
         if self.level not in {"info", "warning", "error"}:
@@ -270,6 +274,8 @@ class CompilationDefine:
     value: str | None = None
 
     def __post_init__(self) -> None:
+        if not isinstance(self.name, str):
+            raise ValueError("compilation define name must be a string")
         if not self.name or any(character.isspace() for character in self.name):
             raise ValueError("compilation define name must be a non-empty token")
         if self.value is not None and not isinstance(self.value, str):
@@ -286,6 +292,9 @@ class CompilationSearchPath:
     exists: bool
 
     def __post_init__(self) -> None:
+        for field_name in ("path", "kind", "scope"):
+            if not isinstance(getattr(self, field_name), str):
+                raise ValueError(f"compilation search path {field_name} must be a string")
         if self.kind not in {"include", "system", "quote"}:
             raise ValueError(f"unsupported compilation search path kind: {self.kind!r}")
         if self.scope not in {"project", "external"}:
@@ -299,30 +308,45 @@ class CompilationSearchPath:
 
 
 def _typed_tuple(values: Any, expected: type, description: str) -> tuple[Any, ...]:
-    normalized = tuple(values)
+    normalized = _collection_tuple(values, description)
     if not all(isinstance(item, expected) for item in normalized):
         raise ValueError(f"{description} must contain {expected.__name__} values")
     return normalized
 
 
+def _collection_tuple(values: Any, description: str) -> tuple[Any, ...]:
+    """Normalize a model collection while turning boundary TypeErrors into ValueErrors."""
+
+    if isinstance(values, (str, bytes, bytearray, Mapping)) or not isinstance(values, Iterable):
+        raise ValueError(f"{description} must be an iterable collection")
+    try:
+        return tuple(values)
+    except TypeError as err:
+        raise ValueError(f"{description} must be an iterable collection") from err
+
+
 def _validate_compilation_unit_scalars(unit: CompilationUnit) -> None:
     _validate_relative_path(unit.source, "compilation source", allow_dot=False)
     _validate_relative_path(unit.directory, "compilation directory", allow_dot=True)
+    if not isinstance(unit.output, str):
+        raise ValueError("compilation output must be a string")
     if unit.output:
         _validate_relative_path(unit.output, "compilation output", allow_dot=False)
     if not unit.argv or not all(isinstance(item, str) and item for item in unit.argv):
         raise ValueError("compilation argv must contain non-empty strings")
+    for field_name in ("compiler", "language", "standard", "configuration"):
+        if not isinstance(getattr(unit, field_name), str):
+            raise ValueError(f"compilation {field_name} must be a string")
     if unit.language and unit.language not in {"c", "c++", "objective-c", "objective-c++"}:
         raise ValueError(f"unsupported compilation language: {unit.language!r}")
-    if not isinstance(unit.compiler, str):
-        raise ValueError("compilation compiler must be a string")
-    if not isinstance(unit.standard, str):
-        raise ValueError("compilation standard must be a string")
     if unit.configuration and _DIGEST_RE.fullmatch(unit.configuration) is None:
         raise ValueError("compilation configuration must be a sha256 digest")
 
 
 def _validate_compilation_sysroot(unit: CompilationUnit) -> None:
+    for field_name in ("sysroot", "sysroot_scope"):
+        if not isinstance(getattr(unit, field_name), str):
+            raise ValueError(f"compilation {field_name} must be a string")
     if unit.sysroot_scope not in {"", "project", "external"}:
         raise ValueError(f"unsupported compilation sysroot scope: {unit.sysroot_scope!r}")
     if bool(unit.sysroot) != bool(unit.sysroot_scope):
@@ -352,9 +376,10 @@ class CompilationUnit:
     diagnostics: tuple[CompilationDiagnostic, ...] = ()
 
     def __post_init__(self) -> None:
-        _validate_compilation_unit_scalars(self)
-        _validate_compilation_sysroot(self)
-        object.__setattr__(self, "argv", tuple(self.argv))
+        argv = _collection_tuple(self.argv, "compilation argv")
+        if not argv or not all(isinstance(item, str) and item for item in argv):
+            raise ValueError("compilation argv must contain non-empty strings")
+        object.__setattr__(self, "argv", argv)
         defines = _typed_tuple(self.defines, CompilationDefine, "compilation defines")
         include_paths = _typed_tuple(
             self.include_paths,
@@ -369,6 +394,8 @@ class CompilationUnit:
         object.__setattr__(self, "defines", defines)
         object.__setattr__(self, "include_paths", include_paths)
         object.__setattr__(self, "diagnostics", diagnostics)
+        _validate_compilation_unit_scalars(self)
+        _validate_compilation_sysroot(self)
 
 
 @dataclass(frozen=True)
@@ -381,18 +408,20 @@ class CompilationContext:
     diagnostics: tuple[CompilationDiagnostic, ...] = ()
 
     def __post_init__(self) -> None:
-        units = tuple(self.units)
+        units = _typed_tuple(self.units, CompilationUnit, "compilation context units")
         if self.database_path is not None:
+            if not isinstance(self.database_path, str):
+                raise ValueError("compilation database path must be a string or null")
             _validate_relative_path(self.database_path, "compilation database", allow_dot=False)
+        if not isinstance(self.database_digest, str):
+            raise ValueError("compilation database digest must be a string")
         if self.database_digest and _DIGEST_RE.fullmatch(self.database_digest) is None:
             raise ValueError("compilation database digest must be a sha256 digest")
-        diagnostics = tuple(self.diagnostics)
-        if not all(isinstance(item, CompilationUnit) for item in units):
-            raise ValueError("compilation context units must contain CompilationUnit values")
-        if not all(isinstance(item, CompilationDiagnostic) for item in diagnostics):
-            raise ValueError(
-                "compilation context diagnostics must contain CompilationDiagnostic values"
-            )
+        diagnostics = _typed_tuple(
+            self.diagnostics,
+            CompilationDiagnostic,
+            "compilation context diagnostics",
+        )
         object.__setattr__(self, "units", units)
         object.__setattr__(self, "diagnostics", diagnostics)
 
