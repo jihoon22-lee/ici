@@ -107,6 +107,7 @@
 
 ### Fixed
 - **I2-1 capability snapshot import cycle**: `capabilities -> redaction -> models -> capabilities` 순환을 model-independent `redaction_values` 모듈로 분리해 제거했습니다. 수정 후 focused cycle 검사에는 기존 `test/test_interpreter` 순환만 남습니다.
+- **`lint`가 설정된 Python 소스 범위 밖까지 검사하던 문제**: C++ 전용 프로젝트의 `benchmarks/out.py` 같은 파일이 존재한다는 이유만으로 Python lint와 AST 폴백이 활성화되고, Python 프로젝트에서도 Ruff가 프로젝트 루트 전체(`.`)를 검사해 `project.source_dirs` 계약을 무시했습니다. 이제 공유 source inventory에 선택된 Python 파일이 있을 때만 Python lint를 실행하고, Ruff check/format과 AST syntax fallback 모두 그 목록의 project-relative 경로만 사용합니다. 선택된 소스가 전혀 없으면 `LintScope`의 `SKIP`/`NOT_APPLICABLE` 결과로 분석하지 않았음을 명시하며, C++ 소스와 범위 밖 Python 파일은 서로의 판정에 영향을 주지 않습니다.
 - **qmake shadow build가 stale 실행 파일과 coverage 산출물을 재사용하던 문제**: qmake가
   생성한 Makefile은 정적 라이브러리를 링크하는 소비자 실행 파일에 항상 명시적인
   dependency를 남기지 않을 수 있습니다. 재사용한 shadow에서 core archive만 다시
