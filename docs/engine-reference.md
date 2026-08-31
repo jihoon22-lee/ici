@@ -462,6 +462,17 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   file은 FAIL입니다.
 - **대상**: C/C++/Qt production translation unit. Python-only 프로젝트에서는
   `SKIP`/`NOT_APPLICABLE`입니다.
+- **CMake preflight**: 명시적 또는 자동 발견 DB가 없고 root backend가 CMake인 C/C++ 프로젝트는
+  `build/ici-cmake-build`에서 Release canonical configure를 수행합니다. configure에는
+  `CMAKE_EXPORT_COMPILE_COMMANDS=ON`과 `CMAKE_UNITY_BUILD=OFF`가 포함됩니다. `Ninja`와
+  `*Makefiles` single-config generator만 exact context로 허용하고, multi-config/unknown
+  generator와 export·unity metadata 문제는 diagnostic으로 남깁니다.
+- **generated source와 metadata**: canonical DB 첫 load에서 shadow 내부 generated source가
+  stale이면 full build를 한 번 수행한 뒤 DB를 reload합니다. `CMakeCache.txt`는 최대 4 MiB의
+  no-follow bounded read입니다. context/report/cache에는 `origin`, generator, unity 상태,
+  DB digest 및 `CMakeFiles/<target>.dir`에서 도출한 target이 포함됩니다. CMake subdirectory의
+  output이 DB parent 기준으로 기록된 경우에도 entry directory 기준 명령과 같은 canonical
+  파일을 가리킬 때만 보정합니다.
 
 ---
 
