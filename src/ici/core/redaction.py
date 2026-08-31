@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import replace
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from ici.core.models import (
@@ -26,6 +28,11 @@ _SECRET_FLAGS = {
     "--secret",
     "--token",
 }
+_SECRET_DEFINE_RE = re.compile(
+    r"(?i)(?:password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)"
+)
+_COMPILE_PATH_FLAGS = frozenset({"-I", "-isystem", "-iquote", "--sysroot", "-isysroot", "-o"})
+_COMPILE_PATH_PREFIXES = ("--sysroot=", "-isystem", "-iquote", "-isysroot", "-I", "-o")
 
 
 def _redact_argv(argv: list[str]) -> list[str]:
@@ -40,6 +47,127 @@ def _redact_argv(argv: list[str]) -> list[str]:
         redacted.append(redacted_value)
         hide_next = value.casefold() in _SECRET_FLAGS
     return redacted
+
+
+def _redact_compilation_path(value: str, project_root: Path) -> str:
+    if not value:
+        return value
+    path = Path(value)
+    if not path.is_absolute() and not PureWindowsPath(value).is_absolute():
+        return redact_text(value)
+    if PureWindowsPath(value).is_absolute() and not path.is_absolute():
+        return "[external]"
+    try:
+        return path.resolve(strict=False).relative_to(project_root).as_posix() or "."
+    except (OSError, RuntimeError, ValueError):
+        return "[external]"
+
+
+def _redact_compilation_argv(argv: tuple[str, ...], project_root: Path) -> tuple[str, ...]:
+    redacted: list[str] = []
+    hide_next = False
+    path_next = False
+    for value in argv:
+        if hide_next:
+            redacted.append(REDACTED)
+            hide_next = False
+            continue
+        if path_next:
+            redacted.append(_redact_compilation_path(value, project_root))
+            path_next = False
+            continue
+        safe = redact_text(value)
+        if value.casefold() in _SECRET_FLAGS:
+            redacted.append(safe)
+            hide_next = True
+            continue
+        if value in _COMPILE_PATH_FLAGS:
+            redacted.append(safe)
+            path_next = True
+            continue
+        prefix = next(
+            (
+                item
+                for item in _COMPILE_PATH_PREFIXES
+                if value.startswith(item) and len(value) > len(item)
+            ),
+            None,
+        )
+        if prefix is not None:
+            redacted.append(prefix + _redact_compilation_path(value[len(prefix) :], project_root))
+            continue
+        redacted.append(_redact_compilation_path(safe, project_root))
+    return tuple(redacted)
+
+
+def _redact_compilation_diagnostic(diagnostic: Any) -> Any:
+    return replace(
+        diagnostic,
+        code=redact_text(diagnostic.code),
+        message=redact_text(diagnostic.message),
+        source=redact_text(diagnostic.source),
+    )
+
+
+def _redact_compilation_unit(unit: Any, project_root: Path) -> Any:
+    definitions = tuple(
+        replace(
+            item,
+            name=redact_text(item.name),
+            value=(
+                REDACTED
+                if item.value is not None and _SECRET_DEFINE_RE.search(item.name)
+                else redact_text(item.value)
+                if item.value is not None
+                else None
+            ),
+        )
+        for item in unit.defines
+    )
+    include_paths = tuple(
+        replace(item, path=_redact_compilation_path(item.path, project_root))
+        for item in unit.include_paths
+    )
+    return replace(
+        unit,
+        source=_redact_compilation_path(unit.source, project_root),
+        directory=_redact_compilation_path(unit.directory, project_root),
+        argv=_redact_compilation_argv(unit.argv, project_root),
+        output=_redact_compilation_path(unit.output, project_root),
+        compiler=redact_text(unit.compiler),
+        standard=redact_text(unit.standard),
+        defines=definitions,
+        include_paths=include_paths,
+        sysroot=_redact_compilation_path(unit.sysroot, project_root),
+        diagnostics=tuple(_redact_compilation_diagnostic(item) for item in unit.diagnostics),
+    )
+
+
+def _redact_analysis_context(context: Any) -> Any:
+    if context is None:
+        return None
+    project_root = context.project.root
+    project = replace(
+        context.project,
+        cpp_include_flags=_redact_compilation_argv(
+            tuple(context.project.cpp_include_flags), project_root
+        ),
+    )
+    compilation = replace(
+        context.compilation,
+        database_path=(
+            _redact_compilation_path(context.compilation.database_path, project_root)
+            if context.compilation.database_path is not None
+            else None
+        ),
+        units=tuple(
+            _redact_compilation_unit(unit, project_root) for unit in context.compilation.units
+        ),
+        diagnostics=tuple(
+            _redact_compilation_diagnostic(item) for item in context.compilation.diagnostics
+        ),
+    )
+    return replace(context, project=project, compilation=compilation)
 
 
 def _redact_location(location: SourceLocation) -> SourceLocation:
@@ -241,4 +369,5 @@ def redact_suite(suite: VerificationSuiteResult) -> VerificationSuiteResult:
         support_matrix=_redact_support_matrix(suite.support_matrix),
         baseline_comparison=_redact_baseline(suite.baseline_comparison),
         capability_inventory=_redact_capability_inventory(suite.capability_inventory),
+        analysis_context=_redact_analysis_context(suite.analysis_context),
     )
