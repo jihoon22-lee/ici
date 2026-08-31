@@ -140,6 +140,41 @@ def test_checked_in_schema_declares_v3_finding_contract():
     assert "targets" in schema["$defs"]["engine"]["required"]
 
 
+def test_cache_metadata_serializes_and_remains_optional_for_legacy_payloads():
+    result = _legacy_result()
+    default_payload = serialize_engine_result(result)
+
+    assert default_payload["cache_hit"] is False
+    assert default_payload["cache_key"] is None
+
+    result.cache_hit = True
+    result.cache_key = "sha256:" + "a" * 64
+    payload = serialize_engine_result(result)
+
+    assert payload["cache_hit"] is True
+    assert payload["cache_key"] == result.cache_key
+
+    legacy_v3 = dict(payload)
+    legacy_v3.pop("cache_hit")
+    legacy_v3.pop("cache_key")
+    migrated = migrate_report_payload(legacy_v3)
+    assert "cache_hit" not in migrated
+    assert "cache_key" not in migrated
+
+    schema_path = (
+        Path(__file__).parents[1] / "src" / "ici" / "schemas" / "ici-result-v3.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    engine = schema["$defs"]["engine"]
+    assert engine["properties"]["cache_hit"] == {"type": "boolean"}
+    assert engine["properties"]["cache_key"]["oneOf"] == [
+        {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        {"type": "null"},
+    ]
+    assert "cache_hit" not in engine["required"]
+    assert "cache_key" not in engine["required"]
+
+
 def test_v2_migration_preserves_extensions_and_adds_findings():
     v2 = {
         "schema_version": "ici.result/v2",
@@ -191,6 +226,8 @@ def test_v2_migration_preserves_extensions_and_adds_findings():
     assert engine["duration"] == 0.0
     assert engine["raw_output"] == ""
     assert engine["extra"] == {}
+    assert engine["cache_hit"] is False
+    assert engine["cache_key"] is None
 
 
 def test_canonical_path_and_fingerprint_are_checkout_and_separator_independent():

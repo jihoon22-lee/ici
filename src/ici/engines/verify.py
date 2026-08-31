@@ -7,6 +7,12 @@ from typing import Any
 
 from ici.config import get_engine_config, load_config
 from ici.core.baseline import BaselineError, build_analysis_metadata, compare_suite_to_baseline
+from ici.core.cache import (
+    AnalysisCache,
+    CacheEntryError,
+    build_analysis_cache_key,
+    project_source_digest,
+)
 from ici.core.capabilities import collect_capability_inventory, derive_tool_policy
 from ici.core.context import create_analysis_context, discover_project_model
 from ici.core.models import (
@@ -133,6 +139,7 @@ class VerifyOrchestrator:
         *,
         console_options: ConsoleOptions | None = None,
         profile: AnalysisProfile | str | None = None,
+        use_cache: bool = True,
     ) -> VerificationSuiteResult:
         t0 = time.time()
         effective_config, selected_profile = apply_analysis_profile(self.config, profile)
@@ -170,6 +177,13 @@ class VerifyOrchestrator:
             profile=selected_profile.value,
             project=project,
         )
+        cache: AnalysisCache | None = AnalysisCache() if use_cache else None
+        source_digest = ""
+        if cache is not None:
+            try:
+                source_digest = project_source_digest(project)
+            except CacheEntryError:
+                cache = None
 
         prepared: dict[str, Any] = {}
         for descriptor in descriptors:
@@ -197,8 +211,19 @@ class VerifyOrchestrator:
             if isinstance(candidate, EngineResult):
                 return candidate
             eng_cfg = get_engine_config(effective_config, descriptor.name)
+            cache_key = None
+            if cache is not None:
+                cache_key = build_analysis_cache_key(
+                    descriptor,
+                    analysis_context,
+                    source_digest,
+                    implementation=candidate,
+                )
+                cached = cache.load(cache_key, self.project_root)
+                if cached is not None:
+                    return cached
             try:
-                return candidate.run()
+                result = candidate.run()
             except Exception as exc:
                 return EngineResult(
                     engine_name=descriptor.name,
@@ -207,6 +232,10 @@ class VerifyOrchestrator:
                     required=bool(eng_cfg.get("required", True)),
                     evidence=EvidenceState.NOT_RUN,
                 )
+            if cache_key is not None and cache is not None:
+                result = replace(result, cache_hit=False, cache_key=cache_key.digest)
+                cache.store(cache_key, result, self.project_root)
+            return result
 
         results = PipelineExecutor[EngineResult](descriptors).run(execute)
 

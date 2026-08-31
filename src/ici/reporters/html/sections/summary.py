@@ -30,7 +30,7 @@ def _render_engine_table_rows(results: list[EngineResult], base: Path) -> list[s
                 f"  <td class='engine-name' style='color: var(--text-muted);'>{html.escape(res.engine_name)}</td>"
                 f"  <td><span class='badge' style='color:{skip_color}; background:{skip_bg}; "
                 f"border:1px solid {skip_color}44'>N/A</span></td>"
-                f"  <td colspan='3'>"
+                f"  <td colspan='4'>"
                 f"    <details>"
                 f"      <summary style='cursor:pointer; color:var(--text-muted); font-size:0.85rem;'>Not applicable — why?</summary>"
                 f"      <div class='engine-summary-text' style='margin-top:0.4rem;'>{html.escape(res.summary)}</div>"
@@ -42,6 +42,7 @@ def _render_engine_table_rows(results: list[EngineResult], base: Path) -> list[s
         color, bg, _ = _get_status_theme(res.status)
         score_str = format_score_display(res)
         duration_str = f"{res.duration:.2f}s" if res.duration > 0 else "-"
+        cache_str = "HIT" if res.cache_hit else "—"
         summary_col = _render_main_row_summary(res, base)
 
         engine_rows.append(
@@ -50,6 +51,7 @@ def _render_engine_table_rows(results: list[EngineResult], base: Path) -> list[s
             f"  <td><span class='badge' style='color:{color}; background:{bg}; border: 1px solid {color}33'>{res.status.value}</span></td>"
             f"  <td>{summary_col}</td>"
             f"  <td class='text-right'><code>{html.escape(score_str)}</code></td>"
+            f"  <td class='text-right'><code>{cache_str}</code></td>"
             f"  <td class='text-right text-muted'>{duration_str}</td>"
             f"</tr>"
         )

@@ -272,6 +272,8 @@ class EngineResult:
     findings: list[Finding] = field(default_factory=list)
     support_matrix: SupportMatrix | None = None
     artifact_manifests: tuple[ArtifactManifest, ...] = ()
+    cache_hit: bool = False
+    cache_key: str = ""
 
 
 def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:

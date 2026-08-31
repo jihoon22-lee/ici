@@ -106,6 +106,83 @@ coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따�
 표시됩니다. 이 JSON field는 optional이므로 profile이 없던 기존 `ici.result/v3` archive도
 그대로 읽을 수 있습니다.
 
+### 2.0.2 분석 결과 캐시 (I2-4)
+
+`ici verify`는 기본적으로 엔진별로 완료된 결과를 사용자 로컬 캐시에 저장하고, 다음 실행에서
+동일한 입력 identity를 확인하면 다시 사용합니다. 기본 캐시는 네트워크나 프로젝트 공유
+디렉터리를 사용하지 않는 사용자 로컬 저장소입니다. 기본 위치는 `~/.cache/ici/analysis/`이며
+`XDG_CACHE_HOME` 또는 `ICI_CACHE_DIR`로 위치를 바꿀 수 있습니다. `ICI_CACHE_DIR`가 지정되면
+그 경로가 우선하므로, override를 사용할 때도 checkout과 분리된 사용자 전용 로컬 경로를
+지정해야 합니다.
+
+캐시 key(`ici.analysis-cache-key/v1`)는 단순한 파일 timestamp가 아니라 다음 입력을 모두
+포함한 SHA-256 identity입니다.
+
+| key 구성 요소 | 의미 |
+|---|---|
+| 프로젝트 루트 | canonical project root 경로 |
+| 소스·build 설정 내용 | project source와 인식된 build/config 파일의 경로·내용·권한 digest |
+| effective ici 설정 | 기본·전역·프로젝트·`ICI_CONFIG` 병합 후 profile이 적용된 설정 digest |
+| toolchain | capability inventory의 도구 경로·버전·세부 정보 digest |
+| 엔진 구현 | engine descriptor와 implementation source digest |
+| build variant | `release`, `coverage`, `sanitize` 또는 해당 없는 엔진의 `none` |
+| producer | ici 버전과 cache key schema 버전 |
+
+따라서 프로젝트 루트, 소스 또는 build 설정, 유효 설정, 도구 버전, 엔진 구현, build variant,
+ici 버전 중 하나라도 달라지면 다른 key가 되어 cache miss가 됩니다. 캐시 저장소를 지우지
+않아도 이 identity 경계가 이전 결과의 재사용을 막습니다.
+
+모든 엔진 결과를 저장하지는 않습니다.
+
+| 결과 | 캐시 정책 |
+|---|---|
+| 완료된 `PASS`/`WARN`/`FAIL` | 재사용 가능. `WARN`/`FAIL`도 완전한 증거라면 저장할 수 있음 |
+| `ERROR`/`SKIP` 또는 evidence `NOT_RUN` | 저장·재사용하지 않음 |
+| timeout, 출력 truncation, `ToolEvidence.error` | 저장·재사용하지 않음 |
+| 검증되지 않거나 변경된 artifact manifest | 저장·재사용하지 않음 |
+
+artifact manifest가 있는 결과는 저장·읽기 경계에서 variant, config/toolchain identity와 실제
+파일 내용·크기·권한을 다시 검증합니다. 캐시 파일이 없거나 손상·오래된 경우에도 검증은
+실패하지 않고 cache miss로 처리되어 엔진이 정상 경로로 실행됩니다.
+
+cache entry는 신뢰할 수 없는 입력으로 취급합니다. reader는 symlink/비정규 파일을
+`O_NOFOLLOW`와 regular-file 검사로 거부하고, 32 MiB를 넘는 entry, JSON duplicate key,
+`NaN`/`Infinity` 같은 non-finite 값을 허용하지 않습니다. 새 cache directory/file은 각각
+`0700`/`0600` 권한으로 만들고, entry는 임시 파일에 flush·`fsync`한 뒤 atomic replace로
+발행합니다. `verify_report.json`과 engine별 `*_report.json`처럼 ici가 생성하는 report JSON
+이름은 source digest 대상에서 제외됩니다.
+
+```bash
+# 이번 실행만 cache read/write를 끔
+ici verify --no-cache
+
+# 사용자 로컬 cache inventory와 key contract를 확인
+ici cache
+
+# 정확히 ici cache entries-v1 아래의 JSON/TMP entry만 정리
+ici cache --clear
+```
+
+`ici cache --clear`는 프로젝트의 소스, `build/`, `.ici/` 또는 다른 경로를 삭제하지 않습니다.
+cache entry는 사용자 로컬 디렉터리 안에서 임시 파일에 쓰고 flush·`fsync`한 뒤 atomic replace로
+교체하며, 프로젝트 파일은 digest 계산을 위해 읽기만 합니다. 입력 파일이 hash 중 바뀌었다고
+감지되면 해당 실행에서는 cache를 비활성화해 일관되지 않은 결과를 저장하지 않습니다.
+
+`ici.result/v3`의 engine object에는 cache 상태를 나타내는 선택적·하위 호환 필드가 있습니다.
+새 writer는 `cache_hit`(boolean)과 nullable `cache_key`(`sha256:...`)를 기록하며, cache hit이면
+`cache_hit: true`가 됩니다. `--no-cache`, 초기화 오류 또는 cache miss 결과는 hit가 아니며,
+오래된 v3 archive는 두 필드가 없을 수 있으므로 소비자는 필드 부재를 허용해야 합니다.
+
+로컬 검증 snapshot은 다음과 같습니다. 전체 Python 3.10 실행은 935 tests passed였고,
+현재 cache identity/store/orchestrator/CLI/purity targeted 테스트도 통과했습니다. 동일한
+standard 입력에서 첫 실행은 118.49초·cache hits 0, 두 번째 실행은 2.38초·hits 12였으며,
+두 실행의 normalized results SHA-256은 `95af9c5122442411da60da0371b0938b89ca2095b562e02b08fe05f5eeb5bd70`,
+finding 수는 각각 3,497건이었습니다. 생성 HTML은 4,095,550 bytes이고 외부 참조는
+0건이었습니다. `scripts/verify-reproducibility.sh`는 두 build 모두
+`6a629f9b162fdacbe84a82cd861eac622aebc47f3a9cae00915387e53fc21c16`을 만들었고 project
+source status unchanged를 확인했습니다. 이 로컬 증거만으로 I2-4의 PR/CI/Pages 또는
+release 검증 완료를 선언하지 않습니다.
+
 ### 2.1 로컬 전체 검증
 현재 프로젝트 디렉토리에서 13종 핵심 품질 검증 (기본 12종 활성)을 일괄 수행하고 터미널 컬러 대시보드를 출력합니다.
 
