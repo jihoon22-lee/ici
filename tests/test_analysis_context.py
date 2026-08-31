@@ -283,12 +283,14 @@ def test_factory_retains_capability_identity_and_normalizes_variants(
     monkeypatch.setenv("NAS_SHARED_DIR", str(tmp_path / "missing-nas"))
     config = {"project": {"source_dirs": []}}
     capabilities = CapabilityInventory()
+    compilation = CompilationContext(database_path="build/compile_commands.json")
 
     first = create_analysis_context(
         root,
         config,
         capabilities,
         requested_variants=[BuildVariant.SANITIZE, BuildVariant.RELEASE, BuildVariant.SANITIZE],
+        compilation=compilation,
     )
     second = create_analysis_context(
         root,
@@ -298,6 +300,7 @@ def test_factory_retains_capability_identity_and_normalizes_variants(
     )
 
     assert first.capabilities is capabilities
+    assert first.compilation is compilation
     assert second.capabilities is capabilities
     assert first.requested_variants == (
         BuildVariant.RELEASE,
