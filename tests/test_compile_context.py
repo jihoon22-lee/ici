@@ -455,3 +455,185 @@ def test_windows_command_line_parser_preserves_quoted_argv_without_execution() -
         "src\\with space.cpp",
         "/Fobuild\\with space.obj",
     )
+
+
+def test_duplicate_json_keys_are_rejected_as_ambiguous_input(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+    (root / "compile_commands.json").write_text(
+        '[{"directory":"build","file":"../src/main.cpp",'
+        '"file":"../src/with space.cpp","arguments":["g++"]}]',
+        encoding="utf-8",
+    )
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert context.units == ()
+    assert [item.code for item in context.diagnostics] == ["database-malformed"]
+
+
+@pytest.mark.skipif(compile_db_module.os.name == "nt", reason="POSIX path contract")
+@pytest.mark.parametrize(
+    ("file_value", "code"),
+    [(".", "invalid-source-path"), (r"..\\src\\main.cpp", "foreign-path-syntax")],
+)
+def test_invalid_row_paths_become_bounded_diagnostics(
+    tmp_path: Path,
+    file_value: str,
+    code: str,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    _write_database(
+        root,
+        [{"directory": ".", "file": file_value, "arguments": ["g++", "-c", file_value]}],
+    )
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert context.units == ()
+    assert [item.code for item in context.diagnostics] == [code]
+
+
+def test_missing_working_directory_is_retained_as_unit_evidence(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+    _write_database(
+        root,
+        [
+            {
+                "directory": str(root / "missing-build"),
+                "file": "../src/main.cpp",
+                "arguments": ["g++", "-c", "../src/main.cpp"],
+            }
+        ],
+    )
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert len(context.units) == 1
+    assert [item.code for item in context.units[0].diagnostics] == ["missing-directory"]
+
+
+def test_flag_parser_stops_at_double_dash_and_does_not_consume_options_as_values(
+    tmp_path: Path,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/main.cpp",
+                "arguments": [
+                    "g++",
+                    "-standard",
+                    "gnu++98",
+                    "-std",
+                    "-c",
+                    "-x",
+                    "-DSTOP=1",
+                    "-I",
+                    "--",
+                    "-std=c++23",
+                    "-DIGNORED=1",
+                ],
+            }
+        ],
+    )
+
+    unit = load_compilation_context(root, {"project": {}}).units[0]
+
+    assert unit.standard == ""
+    assert unit.language == "c++"
+    assert unit.defines == ()
+    assert unit.include_paths == ()
+    assert [item.code for item in unit.diagnostics] == [
+        "missing-flag-value",
+        "missing-flag-value",
+        "missing-flag-value",
+    ]
+
+
+def test_source_mismatch_and_canonical_output_comparison_are_diagnostic(
+    tmp_path: Path,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    (root / "src" / "other.cpp").write_text("int other;\n", encoding="utf-8")
+    (root / "build" / "obj").mkdir(parents=True)
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/main.cpp",
+                "arguments": ["g++", "-c", "../src/other.cpp", "-o", "main.o"],
+                "output": "obj/../main.o",
+            }
+        ],
+    )
+
+    unit = load_compilation_context(root, {"project": {}}).units[0]
+
+    assert unit.output == "build/main.o"
+    assert [item.code for item in unit.diagnostics] == ["source-mismatch"]
+
+
+def test_explicit_database_setting_uses_same_canonical_path_policy_as_config(
+    tmp_path: Path,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    database = _write_database(root, [], relative="compile_commands.json")
+
+    context = load_compilation_context(
+        root,
+        {"project": {"compile_database": "build/../compile_commands.json"}},
+    )
+
+    assert context.database_path == database.relative_to(root).as_posix()
+    assert context.diagnostics == ()
+
+
+def test_bounded_project_response_file_is_expanded_without_execution(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+    (root / "build").mkdir(exist_ok=True)
+    (root / "build" / "flags.rsp").write_text(
+        "-std=c++20 -DRESP=1 -I '../include dir'", encoding="utf-8"
+    )
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/main.cpp",
+                "arguments": ["g++", "@flags.rsp", "-c", "../src/main.cpp"],
+            }
+        ],
+    )
+
+    unit = load_compilation_context(root, {"project": {}}).units[0]
+
+    assert unit.standard == "c++20"
+    assert unit.defines == (compile_db_module.CompilationDefine("RESP", "1"),)
+    assert [(item.kind, item.path) for item in unit.include_paths] == [
+        ("include", "include dir")
+    ]
+    assert unit.argv[1:4] == ("-std=c++20", "-DRESP=1", "-I")
+
+
+def test_response_file_escape_is_reported_without_reading_external_input(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+    outside = tmp_path / "outside.rsp"
+    outside.write_text("-DSECRET=external", encoding="utf-8")
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/main.cpp",
+                "arguments": ["g++", "@../../outside.rsp", "-c", "../src/main.cpp"],
+            }
+        ],
+    )
+
+    unit = load_compilation_context(root, {"project": {}}).units[0]
+
+    assert unit.defines == ()
+    assert [item.code for item in unit.diagnostics] == ["response-file-outside-project"]
