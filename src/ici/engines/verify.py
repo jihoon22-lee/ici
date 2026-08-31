@@ -232,7 +232,7 @@ class VerifyOrchestrator:
                     required=bool(eng_cfg.get("required", True)),
                     evidence=EvidenceState.NOT_RUN,
                 )
-            if cache_key is not None:
+            if cache_key is not None and cache is not None:
                 result = replace(result, cache_hit=False, cache_key=cache_key.digest)
                 cache.store(cache_key, result, self.project_root)
             return result

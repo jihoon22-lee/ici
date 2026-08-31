@@ -191,10 +191,7 @@ def _file_digest(path: Path) -> str:
     return _DIGEST_PREFIX + digest.hexdigest()
 
 
-def project_source_digest(project: ProjectModel) -> str:
-    """Hash source and analysis/build configuration without modifying the project."""
-
-    root = project.root.resolve(strict=False)
+def _declared_input_candidates(project: ProjectModel, root: Path) -> dict[str, Path]:
     declared = {
         *project.python_sources,
         *project.cpp_sources,
@@ -206,51 +203,69 @@ def project_source_digest(project: ProjectModel) -> str:
         relative = PurePosixPath(relative_text)
         if not _is_ignored(relative):
             candidates[relative.as_posix()] = root / relative
+    return candidates
+
+
+def _discover_input_candidates(root: Path, candidates: dict[str, Path]) -> None:
+    for directory, names, filenames in os.walk(root, followlinks=False):
+        base = Path(directory)
+        relative_base = PurePosixPath(base.relative_to(root).as_posix())
+        names[:] = sorted(
+            name
+            for name in names
+            if not _is_ignored(relative_base / name) and not (base / name).is_symlink()
+        )
+        for name in sorted(filenames):
+            path = base / name
+            relative = PurePosixPath(path.relative_to(root).as_posix())
+            if _is_analysis_input(relative):
+                candidates.setdefault(relative.as_posix(), path)
+
+
+def _input_digest_record(root: Path, relative: str, candidate: Path) -> dict[str, Any] | None:
+    resolved = _regular_contained_file(root, candidate)
+    if resolved is None:
+        return None
     try:
-        for directory, names, filenames in os.walk(root, followlinks=False):
-            base = Path(directory)
-            relative_base = PurePosixPath(base.relative_to(root).as_posix())
-            names[:] = sorted(
-                name
-                for name in names
-                if not _is_ignored(relative_base / name) and not (base / name).is_symlink()
-            )
-            for name in sorted(filenames):
-                path = base / name
-                relative = PurePosixPath(path.relative_to(root).as_posix())
-                if _is_analysis_input(relative):
-                    candidates.setdefault(relative.as_posix(), path)
+        details_before = resolved.stat()
+        digest = _file_digest(resolved)
+        details_after = resolved.stat()
+    except OSError as err:
+        raise CacheEntryError(f"could not read project input {relative}: {err}") from err
+    identity_before = (
+        details_before.st_size,
+        details_before.st_mtime_ns,
+        details_before.st_ino,
+    )
+    identity_after = (
+        details_after.st_size,
+        details_after.st_mtime_ns,
+        details_after.st_ino,
+    )
+    if identity_before != identity_after:
+        raise CacheEntryError(f"project input changed while hashing: {relative}")
+    return {
+        "path": relative,
+        "sha256": digest,
+        "mode": stat.S_IMODE(details_after.st_mode),
+    }
+
+
+def project_source_digest(project: ProjectModel) -> str:
+    """Hash source and analysis/build configuration without modifying the project."""
+
+    root = project.root.resolve(strict=False)
+    candidates = _declared_input_candidates(project, root)
+    try:
+        _discover_input_candidates(root, candidates)
     except OSError as err:
         raise CacheEntryError(f"could not enumerate project inputs: {err}") from err
 
     records: list[dict[str, Any]] = []
-    for relative, candidate in sorted(candidates.items()):
-        resolved = _regular_contained_file(root, candidate)
-        if resolved is None:
-            continue
-        try:
-            details_before = resolved.stat()
-            digest = _file_digest(resolved)
-            details_after = resolved.stat()
-        except OSError as err:
-            raise CacheEntryError(f"could not read project input {relative}: {err}") from err
-        if (
-            details_before.st_size,
-            details_before.st_mtime_ns,
-            details_before.st_ino,
-        ) != (
-            details_after.st_size,
-            details_after.st_mtime_ns,
-            details_after.st_ino,
-        ):
-            raise CacheEntryError(f"project input changed while hashing: {relative}")
-        records.append(
-            {
-                "path": relative,
-                "sha256": digest,
-                "mode": stat.S_IMODE(details_after.st_mode),
-            }
-        )
+    for relative_text, candidate in sorted(candidates.items()):
+        record = _input_digest_record(root, relative_text, candidate)
+        if record is not None:
+            records.append(record)
     return canonical_digest(records)
 
 
