@@ -529,3 +529,51 @@ def test_checked_in_schema_declares_context_and_manifest_extensions_as_optional(
     } <= set(unit["properties"])
     manifest_definition = schema["$defs"]["artifactManifest"]
     assert manifest_definition["properties"]["schema_version"] == {"const": "ici.artifacts/v1"}
+
+
+def test_checked_in_schema_bounds_and_constrains_compilation_context() -> None:
+    schema_path = (
+        Path(__file__).parents[1] / "src" / "ici" / "schemas" / "ici-result-v3.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    definitions = schema["$defs"]
+
+    compilation = definitions["analysisContext"]["properties"]["compilation"]
+    assert compilation["properties"]["units"]["maxItems"] == 200_000
+    assert compilation["properties"]["diagnostics"]["maxItems"] == 200_000
+
+    unit = compilation["properties"]["units"]["items"]
+    argv = unit["properties"]["argv"]
+    assert argv["maxItems"] == 32_768
+    assert argv["items"]["maxLength"] == 1_048_576
+    assert unit["properties"]["defines"]["maxItems"] == 32_768
+    assert unit["properties"]["include_paths"]["maxItems"] == 32_768
+    assert unit["properties"]["diagnostics"]["maxItems"] == 200_000
+    assert unit["properties"]["output"]["oneOf"] == [
+        {"$ref": "#/$defs/relativeOutputPath"},
+        {"const": ""},
+    ]
+
+    search_path = definitions["compilationSearchPath"]
+    assert search_path["properties"]["scope"]["enum"] == ["project", "external"]
+    assert search_path["properties"]["path"]["oneOf"] == [
+        {"$ref": "#/$defs/relativePath"},
+        {"const": "[external]"},
+    ]
+    search_path_by_scope = {
+        condition["if"]["properties"]["scope"]["const"]: condition["then"]
+        for condition in search_path["allOf"]
+    }
+    assert search_path_by_scope["project"]["properties"]["path"] == {"$ref": "#/$defs/relativePath"}
+    assert search_path_by_scope["external"]["properties"]["path"] == {"const": "[external]"}
+
+    sysroot_conditions = unit["allOf"]
+    pair_condition = sysroot_conditions[0]
+    assert pair_condition["then"]["required"] == ["sysroot", "sysroot_scope"]
+    sysroot_by_scope = {
+        condition["if"]["properties"]["sysroot_scope"]["const"]: condition["then"]
+        for condition in sysroot_conditions[1:]
+    }
+    assert sysroot_by_scope[""]["properties"]["sysroot"] == {"const": ""}
+    assert sysroot_by_scope["project"]["properties"]["sysroot"] == {"$ref": "#/$defs/relativePath"}
+    assert sysroot_by_scope["external"]["properties"]["sysroot"] == {"const": "[external]"}
