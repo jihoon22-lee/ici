@@ -1,5 +1,7 @@
 """Tests for lint tool failure handling and execution evidence."""
 
+from pathlib import Path
+
 import pytest
 
 from ici.core.models import EngineStatus, EvidenceState
@@ -12,6 +14,79 @@ def _use_ruff(monkeypatch):
         "ici.engines.lint.shutil.which",
         lambda name: "/usr/bin/ruff" if name == "ruff" else None,
     )
+
+
+def test_cpp_source_scope_does_not_activate_python_lint(tmp_cpp_project, monkeypatch):
+    """Python outside configured C++ sources must not trigger lint fallback."""
+    benchmark = tmp_cpp_project / "benchmarks"
+    benchmark.mkdir()
+    (benchmark / "out.py").write_text("def broken(:\n", encoding="utf-8")
+    config = {
+        "project": {"source_dirs": ["src"]},
+        "engines": {"lint": {"ruff_required": False}},
+    }
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr(
+        "ici.engines.lint.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+    monkeypatch.setattr(LintEngine, "_find_ruff_command", lambda _self: None)
+
+    result = LintEngine(tmp_cpp_project, config).run()
+
+    assert result.status == EngineStatus.PASS
+    assert result.extra["python_files_parsed"] == 0
+    assert not any(e.name in {"ruff", "ruff check", "ruff format"} for e in result.tool_evidence)
+    assert not any(
+        target.target_name in {"SyntaxError", "ASTSyntaxFallback"} for target in result.targets
+    )
+    assert all("out.py" not in str(command) for command in calls)
+
+
+def test_ruff_commands_receive_only_scoped_relative_python_paths(tmp_python_project, monkeypatch):
+    """Ruff and syntax parsing must use the configured Python source inventory."""
+    benchmark = tmp_python_project / "benchmarks"
+    benchmark.mkdir()
+    (benchmark / "out.py").write_text("def broken(:\n", encoding="utf-8")
+    config = {"project": {"source_dirs": ["src"]}}
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        if "format" in cmd and "--help" in cmd:
+            return ProcessResult(0, "--output-format <OUTPUT_FORMAT>\n", "", 0.01)
+        if "format" in cmd:
+            return ProcessResult(0, "[]\n", "", 0.01)
+        return ProcessResult(0, "[]\n", "", 0.01)
+
+    _use_ruff(monkeypatch)
+    monkeypatch.setattr("ici.engines.lint.run_process", fake_run)
+
+    result = LintEngine(tmp_python_project, config).run()
+
+    expected = {"src/sample_pkg/__init__.py", "src/sample_pkg/core.py"}
+    check_commands = [
+        command for command in calls if "check" in command and "format" not in command
+    ]
+    format_commands = [
+        command for command in calls if "format" in command and "--help" not in command
+    ]
+    assert result.status == EngineStatus.PASS
+    assert result.extra["python_files_parsed"] == len(expected)
+    assert len(check_commands) == 1
+    assert len(format_commands) == 1
+    for command in [*check_commands, *format_commands]:
+        python_paths = [argument for argument in command if argument.endswith(".py")]
+        assert set(python_paths) == expected
+        assert "." not in command
+        assert "benchmarks/out.py" not in command
+        assert all(not Path(path).is_absolute() for path in python_paths)
 
 
 def test_ruff_truncated_json_is_error(tmp_python_project, monkeypatch):
@@ -838,9 +913,12 @@ def test_ast_fallback_distinguishes_an_empty_project(tmp_path, monkeypatch):
 
     result = _fallback_engine(tmp_path, monkeypatch).run()
 
+    assert result.status == EngineStatus.SKIP
+    assert result.evidence == EvidenceState.NOT_APPLICABLE
     assert result.extra["python_files_parsed"] == 0
-    scope = next(t for t in result.targets if t.target_name == "ASTSyntaxFallback")
-    assert scope.metrics["files_parsed"] == 0
+    scope = next(t for t in result.targets if t.target_name == "LintScope")
+    assert scope.status == EngineStatus.SKIP
+    assert "not run" in scope.message
 
 
 def test_ast_fallback_still_reports_syntax_errors(tmp_path, monkeypatch):
