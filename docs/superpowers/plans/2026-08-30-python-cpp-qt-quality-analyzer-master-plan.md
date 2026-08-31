@@ -507,15 +507,15 @@ subdirectory output은 entry directory와 database parent 해석이 같은 경�
 `CompilationContext`/unit report와 cache identity에는 origin/generator/unity/target이
 포함된다.
 
-Python 3.10 `pytest`는 1,074 passed (49.03s), Ruff check/format은 129 files, focused mypy는
-10 source files에서 clean이었다. reproducible pyz 두 build의 SHA-256은
-`7ef7bc9b384771cc87246ab7d74d962a80cf1412cc397205512a112aef5c9ca5`로 일치했고 pure-Python
+Python 3.10 `pytest`는 1,074 passed (46.32s), Ruff check/format은 130 files, focused mypy는
+11 source files에서 clean이었다. reproducible pyz 두 build의 SHA-256은
+`2874e081cc27e0fc7f77e1285229c5fd0ba2803a149ddf1c6e4a3c4fb4d6db90`로 일치했고 pure-Python
 10 distributions/no certifi, smoke·Zero-CDN도 PASS였다. self verify는 WARN(Pass 8, Warn 4,
-Skip 1; tests 1,074; line/function/branch 88.7%/97.2%/79.7%; TEM 4.86; 110.73s;
-HTML 4,694,394 bytes; external dependencies 0)였다. candidate viewer는 PASS(5/5 production,
-20 configurations, 0 issues, 7.58s), LogLens는 PASS(14/14, 40 configurations, 0 issues,
-29.81s)였다. self-dogfood에서 처음 발견한 silent `OSError` handler는 수정했고 final
-exception path가 PASS했다. 이 수치는 local branch evidence이며 PR/CI/Pages는 아직 없고,
+Skip 1; tests 1,074; line/function/branch 88.7%/97.2%/79.7%; TEM 4.86; 113.38s;
+HTML 4,697,480 bytes; external dependencies 0)였다. candidate viewer는 PASS(5/5 production,
+20 configurations, 0 issues, 23.27s), LogLens는 PASS(14/14, 40 configurations, 0 issues,
+32.27s)였다. self-dogfood에서 처음 발견한 불필요한 silent `OSError` inspection은 제거했고
+final exception path가 PASS했다. 이 수치는 local branch evidence이며 PR/CI/Pages는 아직 없고,
 I3-3/I3-4와 I3 전체는 pending이다.
 
 ### I3-3. qmake compile capture

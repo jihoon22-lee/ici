@@ -22,6 +22,8 @@ conditions.
 ### 1. Canonical CMake preflight
 
 - `src/ici/core/cmake.py` exports compile commands for every CMake configure.
+- `src/ici/core/_build_paths.py` owns project-contained shadow construction so
+  the native adapter remains below the 500-code-line quality threshold.
 - `src/ici/core/cmake_context.py` uses `build/ici-cmake-build` only when a C/C++
   root CMake project has neither an explicit nor an auto-discovered database.
 - The analyzer configure selects Release, enables export, and disables unity
@@ -48,8 +50,8 @@ conditions.
   database digest and diagnostics.
 - Each `CompilationUnit` keeps normalized compiler metadata and a target derived
   from `CMakeFiles/<target>.dir` output paths.
-- JSON/HTML/Markdown projections retain the provenance through the existing
-  redaction boundary. Cache identity includes database parse state plus origin,
+- JSON report payloads and the HTML that embeds them retain the provenance
+  through the existing redaction boundary. Cache identity includes database parse state plus origin,
   generator, unity and target metadata.
 
 ## Code Examples
@@ -78,20 +80,22 @@ The loader never executes commands recovered from the database.
 
 Local branch evidence (not PR, CI, or Pages evidence):
 
-- Python 3.10: `pytest` 1,074 passed in 49.03s.
-- Ruff check/format: 129 files; focused mypy: 10 source files clean.
+- Python 3.10: `pytest` 1,074 passed in 46.32s.
+- Ruff check/format: 130 files; focused mypy: 11 source files clean.
 - Reproducible pyz builds matched SHA-256
-  `7ef7bc9b384771cc87246ab7d74d962a80cf1412cc397205512a112aef5c9ca5`.
+  `2874e081cc27e0fc7f77e1285229c5fd0ba2803a149ddf1c6e4a3c4fb4d6db90`.
 - Packaging contained 10 pure-Python distributions and no certifi; smoke and
   Zero-CDN checks passed.
 - Self verify: WARN, Pass 8 / Warn 4 / Skip 1; 1,074 tests; line/function/
-  branch 88.7% / 97.2% / 79.7%; TEM 4.86; 110.73s; HTML 4,694,394 bytes;
+  branch 88.7% / 97.2% / 79.7%; TEM 4.86; 113.38s; HTML 4,697,480 bytes;
   external dependencies 0.
 - Candidate viewer: PASS, 5/5 production units, 20 configurations, 0 issues,
-  7.58s.
-- LogLens: PASS, 14/14, 40 configurations, 0 issues, 29.81s.
-- Self-dogfood initially caught a silent CMake inspection `OSError` handler. The
-  handler was fixed, and the final exception path passed.
+  23.27s.
+- LogLens: PASS, 14/14, 40 configurations, 0 issues, 32.27s.
+- Self-dogfood initially caught an unnecessary silent CMake inspection
+  `OSError` path. The dead inspection was removed, and the final exception path
+  passed. The extracted build-path module also returned `cmake.py` below ici's
+  500-code-line warning threshold.
 
 ## Next Steps
 

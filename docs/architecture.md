@@ -309,8 +309,8 @@ unit이 남으면 `cmake-generation-failed`/`cmake-unity-build` diagnostic과 �
 생성된 context는 `origin = "cmake"`, generator, nullable unity 상태, DB digest와 함께 각
 `CompilationUnit`의 compiler/language/standard/defines/include paths/sysroot/output,
 configuration digest와 CMake target을 보유합니다. target은 `CMakeFiles/<target>.dir` 출력
-관례에서 도출됩니다. JSON/HTML/Markdown projection은 이 metadata와 normalized argv를
-redaction 경계로 통과시키고, cache key는 DB 내용·parse state뿐 아니라 origin/generator/
+관례에서 도출됩니다. JSON report payload와 이를 내장하는 HTML은 이 metadata와 normalized
+argv를 redaction 경계로 통과시키고, cache key는 DB 내용·parse state뿐 아니라 origin/generator/
 unity/target까지 포함하므로 CMake context가 바뀐 결과를 재사용하지 않습니다.
 
 ### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
