@@ -635,3 +635,120 @@ def test_response_file_escape_is_reported_without_reading_external_input(tmp_pat
 
     assert unit.defines == ()
     assert [item.code for item in unit.diagnostics] == ["response-file-outside-project"]
+
+
+def test_database_growth_during_bounded_read_is_rejected(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    _write_database(root, [], relative="compile_commands.json")
+    monkeypatch.setattr(compile_db_module, "MAX_COMPILE_DATABASE_BYTES", 2)
+    real_read = compile_db_module.os.read
+    calls = 0
+
+    def growing_read(descriptor: int, size: int) -> bytes:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            return b"x"
+        return real_read(descriptor, size)
+
+    monkeypatch.setattr(compile_db_module.os, "read", growing_read)
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert [item.code for item in context.diagnostics] == ["database-too-large"]
+
+
+def test_recursive_response_file_cycle_is_bounded_evidence(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+    (root / "build").mkdir(exist_ok=True)
+    (root / "build" / "one.rsp").write_text("@two.rsp", encoding="utf-8")
+    (root / "build" / "two.rsp").write_text("@one.rsp", encoding="utf-8")
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/main.cpp",
+                "arguments": ["g++", "@one.rsp", "-c", "../src/main.cpp"],
+            }
+        ],
+    )
+
+    unit = load_compilation_context(root, {"project": {}}).units[0]
+
+    assert [item.code for item in unit.diagnostics] == ["response-file-cycle"]
+
+
+def test_similar_long_options_are_not_misclassified_as_compilation_metadata(
+    tmp_path: Path,
+) -> None:
+    root = _fixture_tree(tmp_path)
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/main.cpp",
+                "arguments": [
+                    "g++",
+                    "-stdlib=libc++",
+                    "-output",
+                    "--sysrootx",
+                    "-isystematic",
+                    "-c",
+                    "../src/main.cpp",
+                ],
+            }
+        ],
+    )
+
+    unit = load_compilation_context(root, {"project": {}}).units[0]
+
+    assert unit.standard == ""
+    assert unit.output == ""
+    assert unit.sysroot == ""
+    assert unit.include_paths == ()
+
+
+def test_msvc_style_metadata_is_normalized_without_running_the_compiler(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/main.cpp",
+                "arguments": [
+                    "cl.exe",
+                    "/std:c++20",
+                    "/DNAME=1",
+                    "/D",
+                    "VALUE=two",
+                    "/I../include dir",
+                    "/external:I../system",
+                    "/TP",
+                    "/c",
+                    "../src/main.cpp",
+                    "/Fomain.obj",
+                ],
+            }
+        ],
+    )
+
+    unit = load_compilation_context(root, {"project": {}}).units[0]
+
+    assert unit.standard == "c++20"
+    assert unit.language == "c++"
+    assert [(item.name, item.value) for item in unit.defines] == [
+        ("NAME", "1"),
+        ("VALUE", "two"),
+    ]
+    assert [(item.kind, item.path) for item in unit.include_paths] == [
+        ("include", "include dir"),
+        ("system", "system"),
+    ]
+    assert unit.output == "build/main.obj"
+    assert unit.diagnostics == ()
