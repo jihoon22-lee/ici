@@ -33,6 +33,7 @@ def test_project_source_digest_is_deterministic_and_scoped_to_analysis_inputs(
         (root / "src" / "app.py").write_text("VALUE = 1\n", encoding="utf-8")
         (root / "ici.toml").write_text('name = "cache"\n', encoding="utf-8")
         (root / "notes.txt").write_text("not an analysis input\n", encoding="utf-8")
+        (root / "verify_report.json").write_text('{"generated": 1}\n', encoding="utf-8")
 
     first_project = _context(first_root).project
     second_project = _context(second_root).project
@@ -42,6 +43,7 @@ def test_project_source_digest_is_deterministic_and_scoped_to_analysis_inputs(
     assert first_digest == project_source_digest(second_project)
 
     (first_root / "notes.txt").write_text("documentation changed\n", encoding="utf-8")
+    (first_root / "verify_report.json").write_text('{"generated": 2}\n', encoding="utf-8")
     assert project_source_digest(first_project) == first_digest
 
     (first_root / "src" / "app.py").write_text("VALUE = 2\n", encoding="utf-8")

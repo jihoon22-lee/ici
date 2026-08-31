@@ -63,6 +63,24 @@ _INPUT_NAMES = frozenset(
         "uv.lock",
     }
 )
+_GENERATED_REPORT_NAMES = frozenset(
+    {
+        "cognitive_report.json",
+        "complexity_report.json",
+        "cycle_report.json",
+        "dead_report.json",
+        "dup_report.json",
+        "exception_report.json",
+        "line_report.json",
+        "lint_report.json",
+        "resource_report.json",
+        "sanitize_report.json",
+        "security_report.json",
+        "test_report.json",
+        "type_report.json",
+        "verify_report.json",
+    }
+)
 _IGNORED_PARTS = frozenset(
     {
         ".git",
@@ -161,6 +179,8 @@ def _is_ignored(relative: PurePosixPath) -> bool:
 
 def _is_analysis_input(relative: PurePosixPath) -> bool:
     name = relative.name
+    if name in _GENERATED_REPORT_NAMES:
+        return False
     return (
         relative.suffix.casefold() in _SOURCE_SUFFIXES
         or relative.suffix.casefold() in _INPUT_SUFFIXES
