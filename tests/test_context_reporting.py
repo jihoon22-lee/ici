@@ -103,7 +103,7 @@ def _context_fixture(tmp_path: Path) -> tuple[AnalysisContext, ArtifactManifest]
                     source="src/main.cpp",
                     directory=".",
                     argv=(
-                        str(tmp_path / "toolchain" / "g++"),
+                        "/opt/toolchain/g++",
                         f"-I{tmp_path / 'include'}",
                         "-isystem",
                         "/opt/vendor/include",

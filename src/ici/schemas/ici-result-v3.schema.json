@@ -578,6 +578,48 @@
         }
       }
     },
+    "compilationDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "level", "entry_index", "source"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "level": { "type": "string", "enum": ["info", "warning", "error"] },
+        "entry_index": { "type": ["integer", "null"], "minimum": 0 },
+        "source": {
+          "oneOf": [
+            { "$ref": "#/$defs/relativePath" },
+            { "const": "" }
+          ]
+        }
+      }
+    },
+    "compilationDefine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "value": { "type": ["string", "null"] }
+      }
+    },
+    "compilationSearchPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "scope", "exists"],
+      "properties": {
+        "path": {
+          "oneOf": [
+            { "$ref": "#/$defs/relativePath" },
+            { "const": "[external]" }
+          ]
+        },
+        "kind": { "type": "string", "enum": ["include", "system", "quote"] },
+        "scope": { "type": "string", "enum": ["project", "external"] },
+        "exists": { "type": "boolean" }
+      }
+    },
     "analysisContext": {
       "type": "object",
       "additionalProperties": false,
@@ -636,6 +678,14 @@
                 { "type": "null" }
               ]
             },
+            "database_digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "diagnostics": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/compilationDiagnostic" }
+            },
             "units": {
               "type": "array",
               "items": {
@@ -646,7 +696,40 @@
                   "source": { "$ref": "#/$defs/relativePath" },
                   "directory": { "$ref": "#/$defs/relativePath" },
                   "argv": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
-                  "output": { "type": "string" }
+                  "output": { "type": "string" },
+                  "compiler": { "type": "string" },
+                  "language": {
+                    "type": "string",
+                    "enum": ["", "c", "c++", "objective-c", "objective-c++"]
+                  },
+                  "standard": { "type": "string" },
+                  "defines": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/compilationDefine" }
+                  },
+                  "include_paths": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/compilationSearchPath" }
+                  },
+                  "sysroot": {
+                    "oneOf": [
+                      { "$ref": "#/$defs/relativePath" },
+                      { "const": "[external]" },
+                      { "const": "" }
+                    ]
+                  },
+                  "sysroot_scope": {
+                    "type": "string",
+                    "enum": ["", "project", "external"]
+                  },
+                  "configuration": {
+                    "type": "string",
+                    "pattern": "^(?:|sha256:[0-9a-f]{64})$"
+                  },
+                  "diagnostics": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/compilationDiagnostic" }
+                  }
                 }
               }
             }

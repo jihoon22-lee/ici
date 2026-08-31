@@ -9,7 +9,7 @@ import os
 import re
 import tempfile
 from contextlib import suppress
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from ici.core.capabilities import serialize_capability_inventory
@@ -35,10 +35,19 @@ from ici.core.models import (
     VerificationSuiteResult,
 )
 from ici.core.redaction import redact_engine_result, redact_suite
+from ici.core.redaction_values import REDACTED, redact_text
 
 RESULT_SCHEMA_VERSION = "ici.result/v3"
 LEGACY_RESULT_SCHEMA_VERSION = "ici.result/v2"
 _SHA256_RE = re.compile(r"sha256:[0-9a-f]{64}")
+_SECRET_COMPILE_FLAGS = frozenset(
+    {"--api-key", "--api_key", "--password", "--passwd", "--secret", "--token"}
+)
+_SECRET_DEFINE_RE = re.compile(
+    r"(?i)(?:password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)"
+)
+_COMPILE_PATH_FLAGS = frozenset({"-I", "-isystem", "-iquote", "--sysroot", "-isysroot", "-o"})
+_COMPILE_PATH_PREFIXES = ("--sysroot=", "-isystem", "-iquote", "-isysroot", "-I", "-o")
 
 
 def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
@@ -86,10 +95,127 @@ def _report_include_flag(flag: str, project_root: Path) -> str:
         return "-I[external]"
 
 
+def _report_compilation_path(value: str, project_root: Path) -> str:
+    if not value:
+        return value
+    path = Path(value)
+    if not path.is_absolute() and not PureWindowsPath(value).is_absolute():
+        return redact_text(value)
+    if PureWindowsPath(value).is_absolute() and not path.is_absolute():
+        return "[external]"
+    try:
+        return path.resolve(strict=False).relative_to(project_root).as_posix() or "."
+    except (OSError, RuntimeError, ValueError):
+        return "[external]"
+
+
+def _report_compilation_argv(argv: tuple[str, ...], project_root: Path) -> list[str]:
+    reported: list[str] = []
+    redact_next = False
+    path_next = False
+    for token in argv:
+        if redact_next:
+            reported.append(REDACTED)
+            redact_next = False
+            continue
+        if path_next:
+            reported.append(_report_compilation_path(token, project_root))
+            path_next = False
+            continue
+        safe = redact_text(token)
+        lowered = token.casefold()
+        if lowered in _SECRET_COMPILE_FLAGS:
+            reported.append(safe)
+            redact_next = True
+            continue
+        if token in _COMPILE_PATH_FLAGS:
+            reported.append(safe)
+            path_next = True
+            continue
+        attached = next(
+            (
+                prefix
+                for prefix in _COMPILE_PATH_PREFIXES
+                if token.startswith(prefix) and len(token) > len(prefix)
+            ),
+            None,
+        )
+        if attached is not None:
+            value = token[len(attached) :]
+            reported.append(attached + _report_compilation_path(value, project_root))
+            continue
+        reported.append(_report_compilation_path(safe, project_root))
+    return reported
+
+
+def _serialize_compilation_diagnostic(diagnostic: Any) -> dict[str, Any]:
+    return {
+        "code": redact_text(diagnostic.code),
+        "message": redact_text(diagnostic.message),
+        "level": diagnostic.level,
+        "entry_index": diagnostic.entry_index,
+        "source": diagnostic.source,
+    }
+
+
+def _serialize_compilation_unit(unit: Any, project_root: Path) -> dict[str, Any]:
+    definitions = []
+    for definition in unit.defines:
+        value = definition.value
+        if value is not None:
+            value = REDACTED if _SECRET_DEFINE_RE.search(definition.name) else redact_text(value)
+        definitions.append({"name": redact_text(definition.name), "value": value})
+    return {
+        "source": unit.source,
+        "directory": unit.directory,
+        "argv": _report_compilation_argv(unit.argv, project_root),
+        "output": unit.output,
+        "compiler": redact_text(unit.compiler),
+        "language": unit.language,
+        "standard": redact_text(unit.standard),
+        "defines": definitions,
+        "include_paths": [
+            {
+                "path": (
+                    item.path
+                    if item.scope == "project"
+                    else _report_compilation_path(item.path, project_root)
+                ),
+                "kind": item.kind,
+                "scope": item.scope,
+                "exists": item.exists,
+            }
+            for item in unit.include_paths
+        ],
+        "sysroot": (
+            unit.sysroot
+            if unit.sysroot_scope in {"", "project"}
+            else _report_compilation_path(unit.sysroot, project_root)
+        ),
+        "sysroot_scope": unit.sysroot_scope,
+        "configuration": unit.configuration,
+        "diagnostics": [_serialize_compilation_diagnostic(item) for item in unit.diagnostics],
+    }
+
+
 def _serialize_analysis_context(context: AnalysisContext | None) -> dict[str, Any] | None:
     if context is None:
         return None
     project = context.project
+    compilation = {
+        "database_path": context.compilation.database_path,
+        "units": [
+            _serialize_compilation_unit(unit, project.root) for unit in context.compilation.units
+        ],
+        "diagnostics": [
+            _serialize_compilation_diagnostic(item) for item in context.compilation.diagnostics
+        ],
+    }
+    if context.compilation.database_digest:
+        compilation["database_digest"] = _require_digest(
+            context.compilation.database_digest,
+            "context.compilation.database_digest",
+        )
     return {
         "schema_version": "ici.analysis-context/v1",
         "project": {
@@ -125,18 +251,7 @@ def _serialize_analysis_context(context: AnalysisContext | None) -> dict[str, An
             ),
         },
         "profile": context.profile,
-        "compilation": {
-            "database_path": context.compilation.database_path,
-            "units": [
-                {
-                    "source": unit.source,
-                    "directory": unit.directory,
-                    "argv": list(unit.argv),
-                    "output": unit.output,
-                }
-                for unit in context.compilation.units
-            ],
-        },
+        "compilation": compilation,
         "requested_variants": [variant.value for variant in context.requested_variants],
         "artifact_manifests": [
             _serialize_artifact_manifest(manifest) for manifest in context.manifests
