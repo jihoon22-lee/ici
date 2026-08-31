@@ -494,10 +494,11 @@ dependency 0건이었고 관측 bytes는 각각 4,496,996와 344,663이었다. �
 - [x] Makefile/Ninja generator 제약과 unity build를 탐지한다.
 - [x] coverage/sanitize/release variant 중 analyzer에 사용할 canonical DB 정책을 정한다.
 - [x] generated source가 build 전 필요한 경우 generation 단계 후 DB를 소비한다.
+- [x] I3-2 구현을 PR로 병합하고 CI Merge Gate와 ici/viewer Pages HTML evidence를 독립적으로 확인한다.
 - [ ] buildscope와 viewer에서 실제 target별 명령을 대조한다. viewer는 candidate ici로
   production 5/5·20 configurations·0 issues를 확인했지만, buildscope 실물 대조는 pending이다.
 
-**I3-2 로컬 구현 증거 (2026-08-31; PR 전):** CMake root project에 기존 DB가 없을 때만
+**I3-2 구현 및 로컬 증거 (2026-08-31):** CMake root project에 기존 DB가 없을 때만
 `build/ici-cmake-build` Release shadow를 사용하고, configure에
 `CMAKE_EXPORT_COMPILE_COMMANDS=ON`과 `CMAKE_UNITY_BUILD=OFF`를 넣는다. `Ninja` 또는
 `*Makefiles` single-config generator만 exact context로 허용하며, 최대 4 MiB no-follow
@@ -515,8 +516,21 @@ Skip 1; tests 1,074; line/function/branch 88.7%/97.2%/79.7%; TEM 4.86; 113.38s;
 HTML 4,697,480 bytes; external dependencies 0)였다. candidate viewer는 PASS(5/5 production,
 20 configurations, 0 issues, 23.27s), LogLens는 PASS(14/14, 40 configurations, 0 issues,
 32.27s)였다. self-dogfood에서 처음 발견한 불필요한 silent `OSError` inspection은 제거했고
-final exception path가 PASS했다. 이 수치는 local branch evidence이며 PR/CI/Pages는 아직 없고,
-I3-3/I3-4와 I3 전체는 pending이다.
+final exception path가 PASS했다. 위 수치는 local implementation evidence다.
+
+I3-2 원격 병합 증거도 완료됐다. [PR #101](https://github.com/jihoon22-lee/ici/pull/101)은
+squash commit [`459abbaa5d6c80d91dfe07e54403c9bf88e63602`](https://github.com/jihoon22-lee/ici/commit/459abbaa5d6c80d91dfe07e54403c9bf88e63602)로
+병합됐다. [CI run 33386134812](https://github.com/jihoon22-lee/ici/actions/runs/33386134812)의
+`Verify & Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`, `Publish PR Report &
+Sticky Comment`, `Merge Gate`가 모두 SUCCESS였고 `Publish Main`은 PR에서 expected SKIPPED였다.
+[sticky comment](https://github.com/jihoon22-lee/ici/pull/101#issuecomment-5477565364)는 ici와
+viewer 링크를 모두 포함했다. CI stats는 ici WARN(Pass 8, Warn 4, Fail 0, Error 0, Skip 1,
+TEM 4.86, tests 1,074, branch 79.8%), viewer PASS(Pass 11, Warn 0, Fail 0, Error 0, Skip 2,
+TEM 4.89, tests 7, compile_db 5/5 production units, 20 configurations, 0 issues)였다.
+독립적으로 확인한 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/)와
+[viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/)는 모두 HTTP/2 200,
+`text/html`, title present, 외부 dependency 0건이었고 관측 bytes는 각각 4,574,483와 337,918이었다.
+BuildScope target-by-target 대조는 pending이며 I3-3/I3-4와 I3 전체도 아직 완료되지 않았다.
 
 ### I3-3. qmake compile capture
 
@@ -859,8 +873,8 @@ main 반영은 후속 검증에서 완료해야 한다.
 - [x] I1: v3 finding, support matrix, baseline, issues-first console 완료
 - [x] I2: toolchain inventory, shared context, engine DAG, cache/reproducibility와 PR·CI·Pages 증거 완료
 - [ ] I3: I3-1 compilation model/검증 게이트와 PR·CI·Pages evidence 완료; I3-2 canonical
-  CMake generation first four items and local viewer/LogLens checks complete, buildscope
-  target comparison pending; I3-3~I3-4 pending
+  CMake generation first four items, PR·CI·Pages evidence, and local viewer/LogLens checks
+  complete, buildscope target comparison pending; I3-3~I3-4 pending
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
@@ -879,5 +893,8 @@ required check와 Merge Gate가 성공했다. sticky comment `5472411964`의 ici
 squash merge commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.com/jihoon22-lee/ici/commit/64c4f7b57826e088e9b74b5950c7f3d8091188b9),
 [CI run `33380721019`](https://github.com/jihoon22-lee/ici/actions/runs/33380721019), [sticky comment](https://github.com/jihoon22-lee/ici/pull/99#issuecomment-5476836988),
 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/99/)와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/99/)까지
-완료됐다. 현재 ici 구현 단계는 I3-2 buildscope target comparison과 PR·CI·Pages evidence이며,
-I3 전체는 아직 완료되지 않았다.
+완료됐다. I3-2 canonical CMake context의 PR·CI·Pages evidence도 [PR #101](https://github.com/jihoon22-lee/ici/pull/101),
+[CI run 33386134812](https://github.com/jihoon22-lee/ici/actions/runs/33386134812),
+[sticky comment](https://github.com/jihoon22-lee/ici/pull/101#issuecomment-5477565364),
+[ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/), [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/)까지
+완료됐다. 현재 ici 구현 단계는 I3-2 buildscope target comparison이며, I3-3~I3-4와 I3 전체는 아직 완료되지 않았다.

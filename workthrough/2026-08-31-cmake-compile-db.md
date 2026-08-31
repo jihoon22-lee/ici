@@ -78,7 +78,7 @@ The loader never executes commands recovered from the database.
 
 ## Verification Results
 
-Local branch evidence (not PR, CI, or Pages evidence):
+Local implementation evidence (preserved from the feature branch):
 
 - Python 3.10: `pytest` 1,074 passed in 46.32s.
 - Ruff check/format: 130 files; focused mypy: 11 source files clean.
@@ -97,10 +97,27 @@ Local branch evidence (not PR, CI, or Pages evidence):
   passed. The extracted build-path module also returned `cmake.py` below ici's
   500-code-line warning threshold.
 
+Merged PR evidence:
+
+- [PR #101](https://github.com/jihoon22-lee/ici/pull/101) was squash-merged as
+  [`459abbaa5d6c80d91dfe07e54403c9bf88e63602`](https://github.com/jihoon22-lee/ici/commit/459abbaa5d6c80d91dfe07e54403c9bf88e63602).
+- [CI run 33386134812](https://github.com/jihoon22-lee/ici/actions/runs/33386134812)
+  passed `Verify & Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`,
+  `Publish PR Report & Sticky Comment`, and `Merge Gate`; `Publish Main` was
+  expectedly skipped for the PR.
+- The [sticky comment](https://github.com/jihoon22-lee/ici/pull/101#issuecomment-5477565364)
+  contains both ici and viewer HTML report links. CI stats were ici WARN
+  (Pass 8, Warn 4, Fail 0, Error 0, Skip 1, TEM 4.86, 1,074 tests, branch
+  79.8%) and viewer PASS (Pass 11, Warn 0, Fail 0, Error 0, Skip 2, TEM 4.89,
+  7 tests, compile_db 5/5 production units, 20 configurations, 0 issues).
+- Independent [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/) and
+  [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/) checks both
+  returned HTTP/2 200 `text/html` with a title and zero external dependencies;
+  observed sizes were 4,574,483 and 337,918 bytes respectively.
+
 ## Next Steps
 
-- Run buildscope target-by-target command comparison and record the result.
-- Open the I3-2 PR only after the full local gate; require CI Merge Gate before
-  merging and independently verify both PR HTML Pages links.
+- Run buildscope target-by-target command comparison and record the result; this
+  remains the only incomplete I3-2 checklist item.
 - Continue with I3-3 qmake capture and I3-4 lint/include graph migration. I3 as
   a whole is not complete.

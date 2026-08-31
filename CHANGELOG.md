@@ -39,8 +39,22 @@
     configurations, 0 issues, 32.27s). Self-dogfood initially exposed an
     unnecessary silent CMake inspection `OSError` path; the dead inspection was
     removed and the final exception path passed.
-  - These are local branch measurements. I3-2 has no PR, CI, or Pages evidence
-    yet; buildscope target-by-target validation remains pending.
+  - I3-2 was merged through [PR #101](https://github.com/jihoon22-lee/ici/pull/101)
+    as squash commit [`459abbaa5d6c80d91dfe07e54403c9bf88e63602`](https://github.com/jihoon22-lee/ici/commit/459abbaa5d6c80d91dfe07e54403c9bf88e63602).
+    [CI run 33386134812](https://github.com/jihoon22-lee/ici/actions/runs/33386134812)
+    reported `Verify & Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`,
+    `Publish PR Report & Sticky Comment`, and `Merge Gate` as SUCCESS; `Publish Main`
+    was expectedly SKIPPED for the PR. The [sticky comment](https://github.com/jihoon22-lee/ici/pull/101#issuecomment-5477565364)
+    contains both the ici and viewer report links. CI stats were ici WARN (Pass 8,
+    Warn 4, Fail 0, Error 0, Skip 1, TEM 4.86, 1,074 tests, branch 79.8%) and
+    viewer PASS (Pass 11, Warn 0, Fail 0, Error 0, Skip 2, TEM 4.89, 7 tests,
+    compile_db 5/5 production units, 20 configurations, 0 issues). Independent
+    [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/) and
+    [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/) checks both
+    returned HTTP/2 200 `text/html` with a title, zero external dependencies, and
+    observed sizes of 4,574,483 and 337,918 bytes respectively. BuildScope
+    target-by-target validation remains pending; I3-3, I3-4, and I3 as a whole
+    are not complete.
 - **I3-1 compiler-exact compilation context와 `compile_db` 품질 게이트**: root 또는 `build/compile_commands.json`(또는 명시적 project-relative 설정)을 immutable `CompilationContext`로 한 번 읽어 모든 엔진과 리포터가 공유합니다. `arguments` 우선, POSIX/Windows command tokenizer, bounded project-contained response-file 확장으로 shell/compiler를 실행하지 않고 compiler, language, standard, defines, include/search path, sysroot, output과 동일 source의 여러 configuration을 보존합니다.
   - database와 response file은 `O_NOFOLLOW`·`O_NONBLOCK` descriptor, regular-file `fstat`, 크기 제한 읽기, device/inode/size/mtime 재검증을 거칩니다. duplicate JSON key, non-finite/과대 입력, symlink·foreign path escape, malformed row, source/output 불일치와 stale/missing path는 전체 검증을 crash시키지 않고 위치가 있는 진단으로 변환됩니다.
   - GCC/Clang의 `-std`, `-x`, `-D`, `-I`/`-isystem`/`-iquote`, sysroot, `-o`와 MSVC/clang-cl의 `/std:`, `/D`, `/I`, `/external:I`, `/Fo`, `/TC`·`/TP`를 구조화합니다. 중앙/JSON redaction은 module/search/linker/rpath/forced-include/response-file 및 define 안의 embedded absolute POSIX·Windows 경로도 `[external]`로 투영합니다.
