@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from ici.core import compile_db as compile_db_module
 from ici.core.compile_db import load_compilation_context
 from ici.core.context import CompilationContext
 
@@ -276,3 +277,150 @@ def test_context_and_nested_metadata_are_frozen(tmp_path: Path) -> None:
         context.units[0].standard = "c++23"
     with pytest.raises(FrozenInstanceError):
         context.units[0].defines[0].value = "changed"
+
+
+def test_language_quote_sysroot_and_output_precedence_matrix(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+    (root / "src" / "legacy.c").write_text("int legacy;\n", encoding="utf-8")
+    (root / "quote").mkdir()
+    (root / "sdk").mkdir()
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/legacy.c",
+                "arguments": [
+                    "clang++",
+                    "-x",
+                    "c++",
+                    "-std",
+                    "c++23",
+                    "-D",
+                    "FLAG",
+                    "-iquote../quote",
+                    "-isysroot",
+                    "../sdk",
+                    "-c",
+                    "../src/legacy.c",
+                    "-oargv.o",
+                ],
+                "output": "declared.o",
+            }
+        ],
+    )
+
+    context = load_compilation_context(root, {"project": {}})
+
+    unit = context.units[0]
+    assert unit.language == "c++"
+    assert unit.standard == "c++23"
+    assert unit.defines == (compile_db_module.CompilationDefine("FLAG"),)
+    assert [(item.kind, item.path) for item in unit.include_paths] == [("quote", "quote")]
+    assert (unit.sysroot, unit.sysroot_scope) == ("sdk", "project")
+    assert unit.output == "build/declared.o"
+    assert [item.code for item in unit.diagnostics] == ["output-mismatch"]
+
+
+def test_invalid_arguments_never_fall_back_to_command(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/main.cpp",
+                "arguments": "g++ -c ../src/main.cpp",
+                "command": "g++ -c ../src/main.cpp",
+            }
+        ],
+    )
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert context.units == ()
+    assert [item.code for item in context.diagnostics] == ["invalid-arguments"]
+
+
+def test_root_database_has_deterministic_precedence_over_build_database(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+    _write_database(
+        root,
+        [
+            {
+                "directory": ".",
+                "file": "../src/main.cpp",
+                "arguments": ["g++", "-c", "../src/main.cpp"],
+            }
+        ],
+    )
+    root_database = _write_database(root, [], relative="compile_commands.json")
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert context.database_path == root_database.relative_to(root).as_posix()
+    assert context.units == ()
+
+
+@pytest.mark.parametrize(
+    ("payload", "code"),
+    [
+        ("{", "database-malformed"),
+        ("{}", "database-not-array"),
+    ],
+)
+def test_malformed_database_shapes_are_diagnostic(tmp_path: Path, payload: str, code: str) -> None:
+    root = _fixture_tree(tmp_path)
+    path = root / "compile_commands.json"
+    path.write_text(payload, encoding="utf-8")
+
+    context = load_compilation_context(root, {"project": {}})
+
+    assert context.units == ()
+    assert [item.code for item in context.diagnostics] == [code]
+
+
+def test_database_size_and_entry_count_are_bounded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _fixture_tree(tmp_path)
+    _write_database(root, [], relative="compile_commands.json")
+    monkeypatch.setattr(compile_db_module, "MAX_COMPILE_DATABASE_BYTES", 1)
+
+    oversized = load_compilation_context(root, {"project": {}})
+
+    assert [item.code for item in oversized.diagnostics] == ["database-too-large"]
+
+    monkeypatch.setattr(compile_db_module, "MAX_COMPILE_DATABASE_BYTES", 1024)
+    monkeypatch.setattr(compile_db_module, "MAX_COMPILE_DATABASE_ENTRIES", 0)
+    _write_database(root, [{}], relative="compile_commands.json")
+
+    too_many = load_compilation_context(root, {"project": {}})
+
+    assert [item.code for item in too_many.diagnostics] == ["database-too-many-entries"]
+
+
+def test_invalid_explicit_database_setting_is_bounded_evidence(tmp_path: Path) -> None:
+    root = _fixture_tree(tmp_path)
+
+    context = load_compilation_context(
+        root,
+        {"project": {"compile_database": "../outside/compile_commands.json"}},
+    )
+
+    assert context.database_path == "compile_commands.json"
+    assert [item.code for item in context.diagnostics] == ["invalid-database-setting"]
+
+
+def test_windows_command_line_parser_preserves_quoted_argv_without_execution() -> None:
+    command = (
+        '"C:\\Program Files\\LLVM\\bin\\clang++.exe" '
+        '/DNAME=1 "src\\with space.cpp" /Fo"build\\with space.obj"'
+    )
+
+    assert compile_db_module._split_windows_command(command) == (
+        "C:\\Program Files\\LLVM\\bin\\clang++.exe",
+        "/DNAME=1",
+        "src\\with space.cpp",
+        "/Fobuild\\with space.obj",
+    )
