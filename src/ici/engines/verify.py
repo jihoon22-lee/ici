@@ -14,6 +14,7 @@ from ici.core.cache import (
     project_source_digest,
 )
 from ici.core.capabilities import collect_capability_inventory, derive_tool_policy
+from ici.core.compile_db import load_compilation_context
 from ici.core.context import create_analysis_context, discover_project_model
 from ici.core.models import (
     AnalysisMetadata,
@@ -32,9 +33,9 @@ from ici.core.pipeline import (
     apply_analysis_profile,
     descriptors_for_profile,
 )
-from ici.core.redaction import redact_suite
 from ici.core.support import ENGINE_NAMES, evaluate_support_matrix  # noqa: F401
 from ici.engines.cognitive import CognitiveEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.compile_db import CompileDatabaseEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.complexity import ComplexityEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.cycle import CycleEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.dead import DeadCodeEngine  # noqa: F401 - dynamic descriptor factory
@@ -169,6 +170,7 @@ class VerifyOrchestrator:
             for descriptor in descriptors
             if descriptor.build_variant is not None
         )
+        compilation = load_compilation_context(self.project_root, effective_config)
         analysis_context = create_analysis_context(
             self.project_root,
             effective_config,
@@ -176,6 +178,7 @@ class VerifyOrchestrator:
             requested_variants=requested_variants,
             profile=selected_profile.value,
             project=project,
+            compilation=compilation,
         )
         cache: AnalysisCache | None = AnalysisCache() if use_cache else None
         source_digest = ""
@@ -274,10 +277,6 @@ class VerifyOrchestrator:
             analysis_context=reporting_context,
         )
         self._apply_baseline(suite, metadata, baseline_path, fail_on_new)
-        # All reporters share one sanitized suite. This prevents a secret in an
-        # engine diagnostic from leaking through a non-JSON output path.
-        suite = redact_suite(suite)
-
         self._write_baseline(suite, write_baseline, baseline_path)
 
         # 1. Terminal Console Report

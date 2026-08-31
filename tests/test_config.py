@@ -15,6 +15,7 @@ from ici.engines.line import LineCountEngine
 ENGINE_NAMES = (
     "line",
     "lint",
+    "compile_db",
     "test",
     "type",
     "complexity",
@@ -112,6 +113,43 @@ def test_load_config_accepts_doctor_required_tools(tmp_path: Path, monkeypatch):
     config = load_config(tmp_path)
 
     assert config["doctor"]["required_tools"] == ["g++", "cmake"]
+
+
+def test_load_config_accepts_project_compile_database_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        '[project]\ncompile_database = "out/debug/compile_commands.json"\n',
+        encoding="utf-8",
+    )
+
+    config = load_config(tmp_path)
+
+    assert config["project"]["compile_database"] == "out/debug/compile_commands.json"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        '"../outside.json"',
+        '"/tmp/outside.json"',
+        '"build\\\\compile_commands.json"',
+        '"C:compile_commands.json"',
+        "123",
+    ],
+)
+def test_load_config_rejects_invalid_project_compile_database_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        f"[project]\ncompile_database = {value}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match=r"project\.compile_database|outside project root"):
+        load_config(tmp_path)
 
 
 def test_load_config_rejects_non_list_doctor_required_tools(tmp_path: Path, monkeypatch):
@@ -230,6 +268,54 @@ def test_load_config_accepts_lint_and_type_tool_required_policies(tmp_path: Path
 
     assert config["engines"]["lint"]["ruff_required"] is True
     assert config["engines"]["type"]["mypy_required"] is True
+
+
+def test_load_config_accepts_compile_database_gate_policy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        "[engines.compile_db]\n"
+        "database_required = true\n"
+        'required_flags = ["-Wall", "-std=c++20"]\n'
+        'forbidden_flags = ["-fpermissive"]\n',
+        encoding="utf-8",
+    )
+
+    config = load_config(tmp_path)
+
+    assert config["engines"]["compile_db"] == {
+        "enabled": True,
+        "mode": "pass_warn_fail",
+        "database_required": True,
+        "required_flags": ["-Wall", "-std=c++20"],
+        "forbidden_flags": ["-fpermissive"],
+    }
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("database_required", '"yes"'),
+        ("required_flags", '"-Wall"'),
+        ("forbidden_flags", '[""]'),
+    ],
+)
+def test_load_config_rejects_invalid_compile_database_gate_policy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    key: str,
+    value: str,
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "ici.toml").write_text(
+        f"[engines.compile_db]\n{key} = {value}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match=rf"engines\.compile_db\.{key}"):
+        load_config(tmp_path)
 
 
 @pytest.mark.parametrize("engine_name", ENGINE_NAMES)

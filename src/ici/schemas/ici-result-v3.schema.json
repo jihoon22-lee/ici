@@ -535,6 +535,11 @@
       "minLength": 1,
       "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
     },
+    "relativeOutputPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!\\.$)(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+    },
     "artifactRecord": {
       "type": "object",
       "additionalProperties": false,
@@ -577,6 +582,68 @@
           "items": { "$ref": "#/$defs/artifactRecord" }
         }
       }
+    },
+    "compilationDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "level", "entry_index", "source"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "level": { "type": "string", "enum": ["info", "warning", "error"] },
+        "entry_index": { "type": ["integer", "null"], "minimum": 0 },
+        "source": {
+          "oneOf": [
+            { "$ref": "#/$defs/relativePath" },
+            { "const": "" }
+          ]
+        }
+      }
+    },
+    "compilationDefine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "value": { "type": ["string", "null"] }
+      }
+    },
+    "compilationSearchPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "scope", "exists"],
+      "properties": {
+        "path": {
+          "oneOf": [
+            { "$ref": "#/$defs/relativePath" },
+            { "const": "[external]" }
+          ]
+        },
+        "kind": { "type": "string", "enum": ["include", "system", "quote"] },
+        "scope": { "type": "string", "enum": ["project", "external"] },
+        "exists": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["scope"],
+            "properties": { "scope": { "const": "project" } }
+          },
+          "then": {
+            "properties": { "path": { "$ref": "#/$defs/relativePath" } }
+          }
+        },
+        {
+          "if": {
+            "required": ["scope"],
+            "properties": { "scope": { "const": "external" } }
+          },
+          "then": {
+            "properties": { "path": { "const": "[external]" } }
+          }
+        }
+      ]
     },
     "analysisContext": {
       "type": "object",
@@ -636,8 +703,18 @@
                 { "type": "null" }
               ]
             },
+            "database_digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "diagnostics": {
+              "type": "array",
+              "maxItems": 200000,
+              "items": { "$ref": "#/$defs/compilationDiagnostic" }
+            },
             "units": {
               "type": "array",
+              "maxItems": 200000,
               "items": {
                 "type": "object",
                 "additionalProperties": false,
@@ -645,9 +722,89 @@
                 "properties": {
                   "source": { "$ref": "#/$defs/relativePath" },
                   "directory": { "$ref": "#/$defs/relativePath" },
-                  "argv": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
-                  "output": { "type": "string" }
-                }
+                  "argv": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 32768,
+                    "items": { "type": "string", "minLength": 1, "maxLength": 1048576 }
+                  },
+                  "output": {
+                    "oneOf": [
+                      { "$ref": "#/$defs/relativeOutputPath" },
+                      { "const": "" }
+                    ]
+                  },
+                  "compiler": { "type": "string" },
+                  "language": {
+                    "type": "string",
+                    "enum": ["", "c", "c++", "objective-c", "objective-c++"]
+                  },
+                  "standard": { "type": "string" },
+                  "defines": {
+                    "type": "array",
+                    "maxItems": 32768,
+                    "items": { "$ref": "#/$defs/compilationDefine" }
+                  },
+                  "include_paths": {
+                    "type": "array",
+                    "maxItems": 32768,
+                    "items": { "$ref": "#/$defs/compilationSearchPath" }
+                  },
+                  "sysroot": {
+                    "oneOf": [
+                      { "$ref": "#/$defs/relativePath" },
+                      { "const": "[external]" },
+                      { "const": "" }
+                    ]
+                  },
+                  "sysroot_scope": {
+                    "type": "string",
+                    "enum": ["", "project", "external"]
+                  },
+                  "configuration": {
+                    "type": "string",
+                    "pattern": "^(?:|sha256:[0-9a-f]{64})$"
+                  },
+                  "diagnostics": {
+                    "type": "array",
+                    "maxItems": 200000,
+                    "items": { "$ref": "#/$defs/compilationDiagnostic" }
+                  }
+                },
+                "allOf": [
+                  {
+                    "if": {
+                      "anyOf": [
+                        { "required": ["sysroot"] },
+                        { "required": ["sysroot_scope"] }
+                      ]
+                    },
+                    "then": { "required": ["sysroot", "sysroot_scope"] }
+                  },
+                  {
+                    "if": {
+                      "required": ["sysroot_scope"],
+                      "properties": { "sysroot_scope": { "const": "" } }
+                    },
+                    "then": { "properties": { "sysroot": { "const": "" } } }
+                  },
+                  {
+                    "if": {
+                      "required": ["sysroot_scope"],
+                      "properties": { "sysroot_scope": { "const": "project" } }
+                    },
+                    "then": {
+                      "properties": { "sysroot": { "$ref": "#/$defs/relativePath" } }
+                    }
+                  },
+                  {
+                    "if": {
+                      "required": ["sysroot_scope"],
+                      "properties": { "sysroot_scope": { "const": "external" } }
+                    },
+                    "then": { "properties": { "sysroot": { "const": "[external]" } } }
+                  }
+                ]
               }
             }
           }

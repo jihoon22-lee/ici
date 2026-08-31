@@ -4,8 +4,8 @@
 
 ---
 
-`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 13종 검증 엔진을 제공합니다.
-기본 활성은 12종(`line/lint/test/type/resource/security/cycle/complexity/sanitize/dead/dup/exception`)이며,
+`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 14종 검증 엔진을 제공합니다.
+기본 활성은 13종(`line/lint/compile_db/test/type/resource/security/cycle/complexity/sanitize/dead/dup/exception`)이며,
 `cognitive`(인지 복잡도)는 `enabled = false` 기본값으로 필요 시 옵트인합니다.
 
 ---
@@ -59,6 +59,14 @@ enabled = true
 mode = "pass_warn_fail"
 # Optional by default: missing Ruff is reported as WARN/ESTIMATED.
 ruff_required = false
+
+[engines.compile_db]
+enabled = true
+mode = "pass_warn_fail"
+# true이면 C/C++ 프로젝트에서 DB 부재를 FAIL로 승격합니다.
+database_required = false
+required_flags = []
+forbidden_flags = []
 
 [engines.type]
 enabled = true
@@ -221,6 +229,7 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 |---|---|---|
 | `line` | exact | exact (Qt) |
 | `lint` | tool-backed → heuristic fallback | tool-backed (Qt) |
+| `compile_db` | unsupported | exact (Qt) → heuristic fallback |
 | `test` | tool-backed → heuristic fallback | tool-backed (Qt) → heuristic fallback |
 | `type` | tool-backed → heuristic fallback | unsupported |
 | `cognitive` | heuristic | unsupported |
@@ -436,6 +445,23 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 - **동작**: `open()`이 `with` 밖에서 사용되거나 `close()` 없이 방치된 경우, `List/Dict/Set` 가변 기본 인자 등을 AST로 탐지.
 - **설정**: `[engines.resource] enabled=true, mode="pass_warn"`.
 - **대상**: Python 소스만 분석.
+
+### 2.14 🧭 `compile_db` (컴파일 맥락·translation unit 검증)
+- **동작**: root 또는 `build/compile_commands.json`을 안전하게 읽어 production C/C++
+  translation unit이 빠짐없이 포함됐는지 확인합니다. 동일 source의 debug/release 등 여러
+  configuration을 보존하고 compiler, language/standard, define, include/search path,
+  sysroot와 output을 구조화합니다.
+- **입력 안전성**: `arguments`가 `command`보다 우선합니다. command와 project-contained
+  `@response` file은 플랫폼별 tokenizer로만 분해하며 shell/compiler를 실행하지 않습니다.
+  database/response file은 크기·개수·깊이가 제한되고 symlink/path escape, duplicate JSON
+  key, 읽기 중 변경, malformed row는 위치가 있는 진단으로 보고합니다.
+- **정책**: `[engines.compile_db]`의 `database_required`, `required_flags`,
+  `forbidden_flags`를 사용합니다. 자동 탐색 DB 부재는 기본 WARN이며
+  `database_required = true`이면 FAIL입니다. 명시한 DB의 malformed/missing 상태,
+  production TU 누락, stale source, 누락 include/working directory, 검사할 수 없는 response
+  file은 FAIL입니다.
+- **대상**: C/C++/Qt production translation unit. Python-only 프로젝트에서는
+  `SKIP`/`NOT_APPLICABLE`입니다.
 
 ---
 

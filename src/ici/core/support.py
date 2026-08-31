@@ -85,6 +85,24 @@ _DECLARATIONS = (
         ),
     ),
     SupportDeclaration(
+        "compile_db",
+        SupportLanguage.PYTHON,
+        AnalysisMode.UNSUPPORTED,
+        FindingConfidence.LOW,
+        limitations=("Compilation databases apply only to C/C++ translation units.",),
+    ),
+    SupportDeclaration(
+        "compile_db",
+        SupportLanguage.CPP,
+        AnalysisMode.EXACT,
+        FindingConfidence.EXACT,
+        frameworks=_QT,
+        fallback_mode=AnalysisMode.HEURISTIC,
+        limitations=(
+            "Exact flag and coverage evidence requires a valid compile_commands.json; absence is reported explicitly.",
+        ),
+    ),
+    SupportDeclaration(
         "test",
         SupportLanguage.PYTHON,
         AnalysisMode.TOOL_BACKED,

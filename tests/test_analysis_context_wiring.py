@@ -13,6 +13,7 @@ from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
     AnalysisContext,
     AnalysisIdentity,
+    CompilationContext,
     ProjectModel,
 )
 from ici.core.models import EngineResult, EngineStatus, SupportMatrix
@@ -72,8 +73,14 @@ def _install_wiring_spies(
         events.append("capabilities")
         return inventory
 
-    def create_analysis_context(*args: Any, **kwargs: Any) -> AnalysisContext:
+    def load_compilation_context(*args: Any, **kwargs: Any) -> CompilationContext:
         del args, kwargs
+        events.append("compilation")
+        return context.compilation
+
+    def create_analysis_context(*args: Any, **kwargs: Any) -> AnalysisContext:
+        del args
+        assert kwargs["compilation"] is context.compilation
         events.append("context")
         return context
 
@@ -95,6 +102,12 @@ def _install_wiring_spies(
         verify_module,
         "collect_capability_inventory",
         collect_capability_inventory,
+    )
+    monkeypatch.setattr(
+        verify_module,
+        "load_compilation_context",
+        load_compilation_context,
+        raising=False,
     )
     monkeypatch.setattr(
         verify_module, "create_analysis_context", create_analysis_context, raising=False
@@ -177,8 +190,9 @@ def test_orchestrator_discovers_once_and_shares_one_context_snapshot(
 
     assert events.count("discover") == 1
     assert events.count("capabilities") == 1
+    assert events.count("compilation") == 1
     assert events.count("context") == 1
-    assert events.index("capabilities") < events.index("context")
+    assert events.index("capabilities") < events.index("compilation") < events.index("context")
     assert len(seen) == 2
     assert [name for name, _context in seen] == ["line", "lint"]
     assert all(received is context for _name, received in seen)

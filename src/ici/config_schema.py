@@ -6,7 +6,8 @@ lets us report the exact dotted key that caused a configuration error.
 """
 
 import math
-from pathlib import Path
+import os
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 
@@ -34,6 +35,9 @@ _PROJECT_KEYS = frozenset(
         # C++ that ici analyses but does not compile itself: moc-dependent or
         # build-system-driven sources that a bare g++ call cannot produce.
         "cpp_external_build_dirs",
+        # Optional deterministic compilation database selection. When absent,
+        # ici checks only the root and conventional build location.
+        "compile_database",
     }
 )
 _BUILD_KEYS = frozenset({"python"})
@@ -52,6 +56,8 @@ _ENGINE_KEYS = {
         }
     ),
     "lint": _COMMON_ENGINE_KEYS | frozenset({"ruff_required"}),
+    "compile_db": _COMMON_ENGINE_KEYS
+    | frozenset({"database_required", "required_flags", "forbidden_flags"}),
     "test": _COMMON_ENGINE_KEYS
     | frozenset(
         {
@@ -262,6 +268,15 @@ def _validate_security(table: dict[str, Any], path: str) -> None:
         _require_bool(table["scan_tests"], f"{path}.scan_tests")
 
 
+def _validate_compile_db(table: dict[str, Any], path: str) -> None:
+    _validate_common_engine(table, path)
+    if "database_required" in table:
+        _require_bool(table["database_required"], f"{path}.database_required")
+    for key in ("required_flags", "forbidden_flags"):
+        if key in table:
+            _require_string_list(table[key], f"{path}.{key}")
+
+
 def _validate_cognitive(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
     for key in ("warn", "fail", "warn_nesting"):
@@ -291,6 +306,7 @@ def _validate_engine(name: str, table: Any) -> None:
         "test": _validate_test,
         "type": _validate_type,
         "lint": _validate_lint,
+        "compile_db": _validate_compile_db,
         "complexity": _validate_complexity,
         "dup": _validate_dup,
         "cycle": _validate_cycle,
@@ -358,6 +374,21 @@ def validate_config_paths(config: dict[str, Any], base: Path) -> None:
         for key in ("source_dirs", "cpp_external_build_dirs"):
             if key in project:
                 _validate_path_list(project[key], f"project.{key}", base)
+        compile_database = project.get("compile_database")
+        if compile_database is not None:
+            if not isinstance(compile_database, str) or not compile_database:
+                raise _error("project.compile_database", "must be a non-empty string")
+            if os.name != "nt" and (
+                "\\" in compile_database or bool(PureWindowsPath(compile_database).drive)
+            ):
+                raise _error(
+                    "project.compile_database",
+                    "must use native project path syntax",
+                )
+            try:
+                resolve_project_path(base, compile_database)
+            except ConfigError as err:
+                raise ConfigError(f"project.compile_database: {err}") from err
 
     engines = config.get("engines")
     if not isinstance(engines, dict):

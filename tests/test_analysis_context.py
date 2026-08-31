@@ -20,6 +20,9 @@ from ici.core.context import (
     AnalysisIdentity,
     BuildVariant,
     CompilationContext,
+    CompilationDefine,
+    CompilationDiagnostic,
+    CompilationSearchPath,
     CompilationUnit,
     ProjectModel,
     canonical_digest,
@@ -222,6 +225,121 @@ def test_context_models_are_frozen_and_nested_collections_are_immutable(tmp_path
         context.capabilities.capabilities["new"] = object()
 
 
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("code", 1),
+        ("message", None),
+        ("level", object()),
+        ("source", 1),
+    ],
+)
+def test_compilation_diagnostic_rejects_non_string_fields(field_name: str, value: object) -> None:
+    kwargs: dict[str, object] = {
+        "code": "invalid-entry",
+        "message": "The entry is invalid.",
+        "source": "src/main.cpp",
+    }
+    kwargs[field_name] = value
+
+    with pytest.raises(ValueError):
+        CompilationDiagnostic(**kwargs)
+
+
+def test_compilation_define_rejects_non_string_name() -> None:
+    with pytest.raises(ValueError):
+        CompilationDefine(name=object())
+
+
+@pytest.mark.parametrize("field_name", ["path", "kind", "scope"])
+def test_compilation_search_path_rejects_non_string_fields(field_name: str) -> None:
+    kwargs: dict[str, object] = {
+        "path": "include",
+        "kind": "include",
+        "scope": "project",
+        "exists": True,
+    }
+    kwargs[field_name] = object()
+
+    with pytest.raises(ValueError):
+        CompilationSearchPath(**kwargs)
+
+
+def _valid_compilation_unit_kwargs() -> dict[str, object]:
+    return {
+        "source": "src/main.cpp",
+        "directory": ".",
+        "argv": ("g++", "-c", "src/main.cpp"),
+    }
+
+
+@pytest.mark.parametrize("field_name", ["argv", "defines", "include_paths", "diagnostics"])
+@pytest.mark.parametrize("bad_value", [None, 1, "not-a-collection"])
+def test_compilation_unit_rejects_invalid_collection_inputs(
+    field_name: str, bad_value: object
+) -> None:
+    kwargs = _valid_compilation_unit_kwargs()
+    kwargs[field_name] = bad_value
+
+    with pytest.raises(ValueError):
+        CompilationUnit(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    [
+        "source",
+        "directory",
+        "output",
+        "compiler",
+        "language",
+        "standard",
+        "sysroot",
+        "sysroot_scope",
+        "configuration",
+    ],
+)
+def test_compilation_unit_rejects_non_string_scalar_inputs(field_name: str) -> None:
+    kwargs = _valid_compilation_unit_kwargs()
+    kwargs[field_name] = None
+
+    with pytest.raises(ValueError):
+        CompilationUnit(**kwargs)
+
+
+@pytest.mark.parametrize("field_name", ["units", "diagnostics"])
+@pytest.mark.parametrize("bad_value", [None, 1, "not-a-collection"])
+def test_compilation_context_rejects_invalid_collection_inputs(
+    field_name: str, bad_value: object
+) -> None:
+    kwargs: dict[str, object] = {"units": (), "diagnostics": ()}
+    kwargs[field_name] = bad_value
+
+    with pytest.raises(ValueError):
+        CompilationContext(**kwargs)
+
+
+@pytest.mark.parametrize(
+    ("field_name", "bad_value"),
+    [
+        ("database_path", 1),
+        ("database_digest", None),
+        ("database_digest", []),
+    ],
+)
+def test_compilation_context_rejects_non_string_database_scalars(
+    field_name: str, bad_value: object
+) -> None:
+    kwargs: dict[str, object] = {
+        "database_path": "compile_commands.json",
+        "database_digest": canonical_digest({"database": True}),
+    }
+    kwargs[field_name] = bad_value
+
+    with pytest.raises(ValueError):
+        CompilationContext(**kwargs)
+
+
 def test_canonical_digest_is_order_independent_and_mutation_sensitive() -> None:
     first = {
         "project": {"source_dirs": ["src", "lib"], "type": "hybrid"},
@@ -283,12 +401,14 @@ def test_factory_retains_capability_identity_and_normalizes_variants(
     monkeypatch.setenv("NAS_SHARED_DIR", str(tmp_path / "missing-nas"))
     config = {"project": {"source_dirs": []}}
     capabilities = CapabilityInventory()
+    compilation = CompilationContext(database_path="build/compile_commands.json")
 
     first = create_analysis_context(
         root,
         config,
         capabilities,
         requested_variants=[BuildVariant.SANITIZE, BuildVariant.RELEASE, BuildVariant.SANITIZE],
+        compilation=compilation,
     )
     second = create_analysis_context(
         root,
@@ -298,6 +418,7 @@ def test_factory_retains_capability_identity_and_normalizes_variants(
     )
 
     assert first.capabilities is capabilities
+    assert first.compilation is compilation
     assert second.capabilities is capabilities
     assert first.requested_variants == (
         BuildVariant.RELEASE,

@@ -30,6 +30,7 @@ _CATEGORY_BY_ENGINE = {
     "build": FindingCategory.BUILD,
     "complexity": FindingCategory.MAINTAINABILITY,
     "cognitive": FindingCategory.MAINTAINABILITY,
+    "compile_db": FindingCategory.BUILD,
     "cycle": FindingCategory.ARCHITECTURE,
     "dead": FindingCategory.MAINTAINABILITY,
     "dup": FindingCategory.MAINTAINABILITY,

@@ -43,6 +43,13 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "mode": "pass_warn_fail",
             "ruff_required": False,
         },
+        "compile_db": {
+            "enabled": True,
+            "mode": "pass_warn_fail",
+            "database_required": False,
+            "required_flags": [],
+            "forbidden_flags": [],
+        },
         "test": {
             "enabled": True,
             "mode": "pass_fail",

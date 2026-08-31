@@ -20,7 +20,13 @@ from cache_fixtures import (
     _result,
 )
 from ici.core.cache import AnalysisCache, AnalysisCacheKey, project_source_digest
-from ici.core.context import BuildVariant, canonical_digest
+from ici.core.context import (
+    BuildVariant,
+    CompilationContext,
+    CompilationDiagnostic,
+    CompilationUnit,
+    canonical_digest,
+)
 
 
 def test_project_source_digest_is_deterministic_and_scoped_to_analysis_inputs(
@@ -125,6 +131,49 @@ def test_analysis_cache_key_separates_project_roots_with_identical_contents(
     assert cache.store(keys[0], _result(), roots[0])
     assert cache.load(keys[0], roots[0]) is not None
     assert cache.load(keys[1], roots[1]) is None
+
+
+def test_analysis_cache_key_tracks_compilation_database_and_parse_state(tmp_path: Path) -> None:
+    context = _context(tmp_path / "project")
+    descriptor = _descriptor()
+    unit = CompilationUnit(
+        source="src/app.cpp",
+        directory="build",
+        argv=("g++", "-c", "../src/app.cpp"),
+        configuration=_SOURCE_DIGEST,
+    )
+    first_context = replace(
+        context,
+        compilation=CompilationContext(
+            units=(unit,),
+            database_path="build/compile_commands.json",
+            database_digest=_SOURCE_DIGEST,
+        ),
+    )
+    changed_database = replace(
+        first_context,
+        compilation=replace(first_context.compilation, database_digest=_OTHER_DIGEST),
+    )
+    invalid_database = replace(
+        first_context,
+        compilation=replace(
+            first_context.compilation,
+            diagnostics=(
+                CompilationDiagnostic(
+                    code="database-malformed",
+                    message="The database is malformed.",
+                    level="error",
+                ),
+            ),
+        ),
+    )
+
+    first = _key(first_context, descriptor=descriptor)
+
+    assert first.compilation_digest.startswith("sha256:")
+    assert _key(changed_database, descriptor=descriptor).digest != first.digest
+    assert _key(invalid_database, descriptor=descriptor).digest != first.digest
+    assert _key(context, descriptor=descriptor).digest != first.digest
 
 
 def test_implementation_source_and_descriptor_identity_invalidate_keys(tmp_path: Path) -> None:

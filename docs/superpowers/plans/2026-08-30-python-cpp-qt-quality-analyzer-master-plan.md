@@ -436,8 +436,9 @@ source/config는 읽기 전용으로 digest한다. 입력을 해시하는 동안
 `95af9c5122442411da60da0371b0938b89ca2095b562e02b08fe05f5eeb5bd70`와 finding 3,497건이
 일치했다. HTML은 4,095,550 bytes·외부 참조 0건이었다. pyz 두 빌드는 SHA-256
 `6a629f9b162fdacbe84a82cd861eac622aebc47f3a9cae00915387e53fc21c16`으로 일치했고 project
-source status unchanged 및 smoke 전체 통과를 확인했다. I2-4 PR/CI Merge Gate·Pages·release
-evidence는 pending이다.
+source status unchanged 및 smoke 전체 통과를 확인했다. I2-4는 PR #97, merge commit
+`ef30059522729b376c5409e5bb49164aa538b128`, CI run `33345993304`, sticky comment
+`5472411964`와 ici/viewer Pages 게시까지 완료됐다.
 
 ---
 
@@ -445,14 +446,32 @@ evidence는 pending이다.
 
 ### I3-1. compilation database model과 검증 엔진
 
-**브랜치:** `feat/compile-context`
+**브랜치:** `feat/compile-db-context`
 
-- [ ] `arguments`를 우선하고 `command`는 플랫폼별 안전한 parser를 통해 읽는다.
-- [ ] directory, file, output과 여러 configuration의 동일 source를 보존한다.
-- [ ] project-relative/absolute canonical path와 symlink 경계를 검증한다.
-- [ ] compiler, language, standard, defines, include/search path, sysroot를 구조화한다.
-- [ ] 전체 production translation unit이 DB에 포함되는지 검사한다.
-- [ ] stale/missing source, 존재하지 않는 include dir, 금지·필수 flag를 finding으로 만든다.
+- [x] `arguments`를 우선하고 `command`는 플랫폼별 안전한 parser를 통해 읽는다.
+- [x] directory, file, output과 여러 configuration의 동일 source를 보존한다.
+- [x] project-relative/absolute canonical path와 symlink 경계를 검증한다.
+- [x] compiler, language, standard, defines, include/search path, sysroot를 구조화한다.
+- [x] 전체 production translation unit이 DB에 포함되는지 검사한다.
+- [x] stale/missing source, 존재하지 않는 include dir, 금지·필수 flag를 finding으로 만든다.
+
+**I3-1 로컬 완료(2026-08-31):** bounded descriptor read와 strict JSON, POSIX/MSVC
+metadata, project-contained response file, immutable context, `compile_db` engine, cache key v2,
+report redaction과 v3 schema를 함께 구현했다. compile_db loader는 facade
+`src/ici/core/compile_db.py`와 `_compile_db_paths.py`, `_compile_db_commands.py`,
+`_compile_db_metadata.py`로 분리했으며, 네 모듈은 각각 순수 코드 500줄 미만이다. compile_db
+범위의 최종 line·type·high-complexity 이슈는 0건이다.
+
+Python 3.10 focused 109 tests와 full suite 1,032 tests(46.29s)가 통과했고, Ruff
+check/format은 127 files에서 통과했으며 focused mypy도 clean이었다. reproducible pyz 두
+빌드의 SHA-256은 `408fcd0fcf153b5e63927d10d34d55cea680eb472dc6f0e95bf174efcf6e8b36`으로
+일치했고 pure-Python 10 distributions/no certifi, smoke와 Zero-CDN도 PASS였다. 최종
+`--no-cache` self verify는 WARN(13 total: Pass 8, Warn 4, Fail 0, Error 0, Skip 1),
+compile_db `SKIP`/`NOT_APPLICABLE`(Python-only), test 1,032/1,032, coverage
+line/function/branch 88.6%/97.1%/79.6%, TEM 4.86, cache hits 0, 109.26s, HTML
+4,627,454 bytes였으며 compile_db-specific high-complexity/line-threshold/type issues는
+0건이다. 이 문단은 로컬 증거만 기록하며 PR·CI·Pages 증거는 아직 pending이다. CMake DB
+생성·qmake capture·lint/include graph 이관(I3-2~I3-4)은 포함하지 않는다.
 
 ### I3-2. CMake compile DB 생성
 
@@ -803,9 +822,8 @@ main 반영은 후속 검증에서 완료해야 한다.
 
 - [x] I0: 현재 viewer/cycle 계획이 보정된 테스트와 함께 완료
 - [x] I1: v3 finding, support matrix, baseline, issues-first console 완료
-- [ ] I2: I2-2 shared context와 I2-3 engine DAG, I2-4 cache/reproducibility 로컬 구현 완료;
-  I2-4 PR·CI·Pages·release evidence pending
-- [ ] I3: CMake/qmake compile context와 compiler-exact include/lint 완료
+- [x] I2: toolchain inventory, shared context, engine DAG, cache/reproducibility와 PR·CI·Pages 증거 완료
+- [ ] I3: I3-1 compilation model/검증 게이트 로컬 완료; I3-2~I3-4 pending
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
@@ -816,7 +834,10 @@ main 반영은 후속 검증에서 완료해야 한다.
 I1 기능과 로컬 실물 검증 및 PR/CI Merge Gate는 완료됐다. [PR #89](https://github.com/jihoon22-lee/ici/pull/89)의
 병합 commit과 [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의 required checks
 결과는 위 I1-4 완료 조건에 기록한 evidence를 따른다. I2-2 shared context와 artifact
-manifest와 I2-3 선언형 pipeline 구현은 완료됐다. I2-4 cache contract 구현과 문서화는
-`feat/analysis-cache`에 반영됐고 pyz reproducibility/non-mutation 로컬 게이트도 통과했다.
-해당 PR의 CI Merge Gate·Pages·release evidence가 기록될 때까지 I2 전체를 main 병합 완료로
-해석하지 않는다. 다음 단계는 I2-4 PR evidence를 확보한 뒤 toy T1 reliability 작업이다.
+manifest와 I2-3 선언형 pipeline 구현은 완료됐다. I2-4 cache contract는 PR #97의 merge
+commit `ef30059522729b376c5409e5bb49164aa538b128`로 병합됐고 CI run `33345993304`의 모든
+required check와 Merge Gate가 성공했다. sticky comment `5472411964`의 ici/viewer Pages도
+게시됐다. 후속 source-scope 보정 PR #98도 CI run `33355330343` green 뒤 merge commit
+`6a0eadb20464569be9573d41ab72a27bd96d58a7`로 병합됐다. I3-1의 로컬 evidence는 위에
+기록했으며 PR·CI·Pages evidence는 아직 pending이다. 다음 ici 구현 단계는 I3-2 CMake
+compile DB 생성이다.

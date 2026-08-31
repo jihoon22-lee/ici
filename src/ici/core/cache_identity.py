@@ -18,9 +18,19 @@ if TYPE_CHECKING:
     from ici.core.pipeline import EngineDescriptor
 
 CACHE_SCHEMA_VERSION = "ici.analysis-cache/v1"
-CACHE_KEY_VERSION = "ici.analysis-cache-key/v1"
+CACHE_KEY_VERSION = "ici.analysis-cache-key/v2"
+COMPILATION_IDENTITY_VERSION = "ici.compilation-identity/v1"
 
 _DIGEST_PREFIX = "sha256:"
+_EMPTY_COMPILATION_DIGEST = canonical_digest(
+    {
+        "version": COMPILATION_IDENTITY_VERSION,
+        "database_path": None,
+        "database_digest": "",
+        "units": [],
+        "diagnostics": [],
+    }
+)
 _SOURCE_SUFFIXES = frozenset(
     {
         ".c",
@@ -125,6 +135,7 @@ class AnalysisCacheKey:
     toolchain_digest: str
     build_variant: str
     descriptor_digest: str
+    compilation_digest: str = _EMPTY_COMPILATION_DIGEST
     producer_version: str = __version__
     key_version: str = CACHE_KEY_VERSION
 
@@ -137,6 +148,7 @@ class AnalysisCacheKey:
             "config_digest",
             "toolchain_digest",
             "descriptor_digest",
+            "compilation_digest",
         ):
             _require_digest(getattr(self, name), f"cache key {name}")
         if self.build_variant not in {"none", *(variant.value for variant in BuildVariant)}:
@@ -155,6 +167,7 @@ class AnalysisCacheKey:
             "toolchain_digest": self.toolchain_digest,
             "build_variant": self.build_variant,
             "descriptor_digest": self.descriptor_digest,
+            "compilation_digest": self.compilation_digest,
         }
 
     @property
@@ -328,6 +341,57 @@ def build_analysis_cache_key(
             else None
         ),
     }
+    compilation = context.compilation
+    compilation_payload = {
+        "version": COMPILATION_IDENTITY_VERSION,
+        "database_path": compilation.database_path,
+        "database_digest": compilation.database_digest,
+        "units": [
+            {
+                "source": unit.source,
+                "directory": unit.directory,
+                "configuration": unit.configuration,
+                "compiler": unit.compiler,
+                "language": unit.language,
+                "standard": unit.standard,
+                "output": unit.output,
+                "defines": [
+                    {"name": definition.name, "value": definition.value}
+                    for definition in unit.defines
+                ],
+                "include_paths": [
+                    {
+                        "path": search_path.path,
+                        "kind": search_path.kind,
+                        "scope": search_path.scope,
+                        "exists": search_path.exists,
+                    }
+                    for search_path in unit.include_paths
+                ],
+                "sysroot": unit.sysroot,
+                "sysroot_scope": unit.sysroot_scope,
+                "diagnostics": [
+                    {
+                        "code": diagnostic.code,
+                        "level": diagnostic.level,
+                        "entry_index": diagnostic.entry_index,
+                        "source": diagnostic.source,
+                    }
+                    for diagnostic in unit.diagnostics
+                ],
+            }
+            for unit in compilation.units
+        ],
+        "diagnostics": [
+            {
+                "code": diagnostic.code,
+                "level": diagnostic.level,
+                "entry_index": diagnostic.entry_index,
+                "source": diagnostic.source,
+            }
+            for diagnostic in compilation.diagnostics
+        ],
+    }
     return AnalysisCacheKey(
         engine_name=descriptor.name,
         project_root_digest=canonical_digest(str(context.project.root)),
@@ -338,6 +402,7 @@ def build_analysis_cache_key(
             descriptor.build_variant.value if descriptor.build_variant is not None else "none"
         ),
         descriptor_digest=canonical_digest(descriptor_payload),
+        compilation_digest=canonical_digest(compilation_payload),
     )
 
 
