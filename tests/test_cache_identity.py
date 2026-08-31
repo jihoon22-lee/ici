@@ -176,6 +176,74 @@ def test_analysis_cache_key_tracks_compilation_database_and_parse_state(tmp_path
     assert _key(context, descriptor=descriptor).digest != first.digest
 
 
+@pytest.mark.parametrize("metadata", ["origin", "generator", "unity_build", "unit_target"])
+def test_analysis_cache_key_tracks_compilation_provenance_metadata(
+    tmp_path: Path, metadata: str
+) -> None:
+    context = _context(tmp_path / "project")
+    descriptor = _descriptor(name="compile_db")
+    unit = CompilationUnit(
+        source="src/app.cpp",
+        directory=".",
+        argv=("g++", "-c", "src/app.cpp"),
+        output="build/app.o",
+    )
+    compilation = CompilationContext(
+        units=(unit,),
+        database_path="build/compile_commands.json",
+        database_digest=_SOURCE_DIGEST,
+    )
+    base = replace(context, compilation=compilation)
+
+    if metadata == "origin":
+        changed_compilation = replace(compilation, origin="cmake")
+    elif metadata == "generator":
+        changed_compilation = replace(compilation, generator="Ninja")
+    elif metadata == "unity_build":
+        changed_compilation = replace(compilation, unity_build=True)
+    else:
+        changed_compilation = replace(
+            compilation,
+            units=(replace(unit, target="app"),),
+        )
+
+    changed = replace(base, compilation=changed_compilation)
+
+    assert _key(changed, descriptor=descriptor).digest != _key(base, descriptor=descriptor).digest
+
+
+@pytest.mark.parametrize(
+    "target",
+    ["../escape", "nested/target", r"nested\target", "line\nbreak", "x" * 513],
+)
+def test_compilation_unit_rejects_unsafe_target_metadata(target: str) -> None:
+    with pytest.raises(ValueError, match="compilation target"):
+        CompilationUnit(
+            source="src/app.cpp",
+            directory=".",
+            argv=("g++", "-c", "src/app.cpp"),
+            target=target,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("origin", "manual"),
+        ("origin", None),
+        ("generator", None),
+        ("generator", "g" * 513),
+        ("unity_build", 1),
+        ("unity_build", "false"),
+    ],
+)
+def test_compilation_context_rejects_invalid_provenance_metadata(
+    field_name: str, value: object
+) -> None:
+    with pytest.raises(ValueError):
+        CompilationContext(**{field_name: value})
+
+
 def test_implementation_source_and_descriptor_identity_invalidate_keys(tmp_path: Path) -> None:
     context = _context(tmp_path / "project")
     descriptor = _descriptor()

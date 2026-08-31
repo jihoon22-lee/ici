@@ -451,6 +451,42 @@ def test_compilation_path_redaction_covers_embedded_flags_and_include_flags(
     ]
 
 
+def test_compilation_metadata_serialization_preserves_safe_values_and_redacts_secrets(
+    tmp_path: Path,
+) -> None:
+    suite, context, _manifest_value = _suite_fixture(tmp_path)
+    unit = context.compilation.units[0]
+    updated_context = replace(
+        context,
+        compilation=replace(
+            context.compilation,
+            origin="cmake",
+            generator="Ninja token=generator-secret",
+            unity_build=False,
+            units=(replace(unit, target="renderer_core token=target-secret"),),
+        ),
+    )
+    updated_suite = replace(suite, analysis_context=updated_context)
+
+    redacted = redact_suite(updated_suite)
+    assert redacted.analysis_context is not None
+    redacted_compilation = redacted.analysis_context.compilation
+    assert redacted_compilation.origin == "cmake"
+    assert redacted_compilation.generator == "Ninja token=***REDACTED***"
+    assert redacted_compilation.unity_build is False
+    assert redacted_compilation.units[0].target == "renderer_core token=***REDACTED***"
+
+    payload = serialize_suite_result(updated_suite)
+    serialized_compilation = payload["analysis_context"]["compilation"]
+    assert serialized_compilation["origin"] == "cmake"
+    assert serialized_compilation["generator"] == "Ninja token=***REDACTED***"
+    assert serialized_compilation["unity_build"] is False
+    assert serialized_compilation["units"][0]["target"] == "renderer_core token=***REDACTED***"
+    encoded = json.dumps(payload, ensure_ascii=False)
+    assert "generator-secret" not in encoded
+    assert "target-secret" not in encoded
+
+
 def test_existing_v3_payload_without_context_extensions_remains_loadable(tmp_path: Path) -> None:
     suite, _context, _manifest_value = _suite_fixture(tmp_path)
     legacy = serialize_suite_result(suite)
@@ -545,6 +581,12 @@ def test_checked_in_schema_bounds_and_constrains_compilation_context() -> None:
     compilation = definitions["analysisContext"]["properties"]["compilation"]
     assert compilation["properties"]["units"]["maxItems"] == 200_000
     assert compilation["properties"]["diagnostics"]["maxItems"] == 200_000
+    assert compilation["properties"]["origin"] == {
+        "type": "string",
+        "enum": ["", "configured", "discovered", "cmake"],
+    }
+    assert compilation["properties"]["generator"] == {"type": "string", "maxLength": 512}
+    assert compilation["properties"]["unity_build"] == {"type": ["boolean", "null"]}
 
     unit = compilation["properties"]["units"]["items"]
     argv = unit["properties"]["argv"]
@@ -557,6 +599,11 @@ def test_checked_in_schema_bounds_and_constrains_compilation_context() -> None:
         {"$ref": "#/$defs/relativeOutputPath"},
         {"const": ""},
     ]
+    assert unit["properties"]["target"] == {
+        "type": "string",
+        "maxLength": 512,
+        "pattern": "^[^/\\\\\\u0000\\r\\n]*$",
+    }
 
     search_path = definitions["compilationSearchPath"]
     assert search_path["properties"]["scope"]["enum"] == ["project", "external"]
