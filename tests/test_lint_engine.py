@@ -913,9 +913,12 @@ def test_ast_fallback_distinguishes_an_empty_project(tmp_path, monkeypatch):
 
     result = _fallback_engine(tmp_path, monkeypatch).run()
 
+    assert result.status == EngineStatus.SKIP
+    assert result.evidence == EvidenceState.NOT_APPLICABLE
     assert result.extra["python_files_parsed"] == 0
-    scope = next(t for t in result.targets if t.target_name == "ASTSyntaxFallback")
-    assert scope.metrics["files_parsed"] == 0
+    scope = next(t for t in result.targets if t.target_name == "LintScope")
+    assert scope.status == EngineStatus.SKIP
+    assert "not run" in scope.message
 
 
 def test_ast_fallback_still_reports_syntax_errors(tmp_path, monkeypatch):

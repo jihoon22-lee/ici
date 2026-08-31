@@ -15,7 +15,6 @@ from ici.core.models import (
     InspectionTarget,
     ToolEvidence,
 )
-from ici.core.project import _should_ignore_path
 from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 
@@ -75,19 +74,35 @@ class LintEngine(BaseEngine):
 
     def run(self) -> EngineResult:
         t0 = time.time()
-        proj_type = self.project_type()
         targets: list[InspectionTarget] = []
         tool_errors: list[str] = []
         tool_warnings: list[str] = []
         tool_evidence: list[ToolEvidence] = []
+        self._python_files_parsed = 0
 
         # 1. Python Linting & Formatting Check
-        if proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py")):
-            tool_errors.extend(self._lint_python(targets, tool_evidence, tool_warnings))
+        python_files = self.project_python_sources()
+        if python_files:
+            tool_errors.extend(
+                self._lint_python(python_files, targets, tool_evidence, tool_warnings)
+            )
 
         # 2. C++ Linting & Syntax Check
-        if proj_type in ("cpp", "hybrid") or self.project_cpp_sources():
-            tool_errors.extend(self._lint_cpp(targets, tool_evidence))
+        cpp_files = self.project_cpp_sources()
+        if cpp_files:
+            tool_errors.extend(self._lint_cpp(cpp_files, targets, tool_evidence))
+
+        nothing_applies = not python_files and not cpp_files
+        if nothing_applies:
+            targets.append(
+                InspectionTarget(
+                    file_path=".",
+                    start_line=1,
+                    target_name="LintScope",
+                    status=EngineStatus.SKIP,
+                    message="No applicable source files were selected; lint analysis was not run",
+                )
+            )
 
         duration = time.time() - t0
         fail_count = sum(1 for t in targets if t.status == EngineStatus.FAIL)
@@ -99,12 +114,16 @@ class LintEngine(BaseEngine):
         overall_status = (
             EngineStatus.ERROR
             if tool_errors
+            else EngineStatus.SKIP
+            if nothing_applies
             else self.evaluate_status(fail_count > 0, warn_count > 0, mode)
         )
 
         summary = (
             "; ".join(tool_errors[:3])
             if tool_errors
+            else "Lint analysis skipped: no applicable source files"
+            if nothing_applies
             else "0 Violations Found"
             if overall_status == EngineStatus.PASS
             else "; ".join(tool_warnings[:2])
@@ -127,6 +146,8 @@ class LintEngine(BaseEngine):
             evidence=(
                 EvidenceState.NOT_RUN
                 if tool_errors
+                else EvidenceState.NOT_APPLICABLE
+                if nothing_applies
                 else EvidenceState.ESTIMATED
                 if tool_warnings
                 else EvidenceState.MEASURED
@@ -136,6 +157,7 @@ class LintEngine(BaseEngine):
 
     def _lint_python(
         self,
+        python_files: list[Path],
         targets: list[InspectionTarget],
         tool_evidence: list[ToolEvidence] | None = None,
         tool_warnings: list[str] | None = None,
@@ -145,8 +167,10 @@ class LintEngine(BaseEngine):
         errors: list[str] = []
         ruff_cmd = self._find_ruff_command()
         if ruff_cmd is not None:
-            errors.extend(self._run_ruff_check(ruff_cmd, targets, evidence, warnings))
-            errors.extend(self._run_ruff_format(ruff_cmd, targets, evidence, warnings))
+            errors.extend(self._run_ruff_check(ruff_cmd, python_files, targets, evidence, warnings))
+            errors.extend(
+                self._run_ruff_format(ruff_cmd, python_files, targets, evidence, warnings)
+            )
         else:
             self._record_missing_tool(evidence, "ruff")
             message = "Ruff is unavailable; AST syntax fallback is ESTIMATED"
@@ -154,7 +178,7 @@ class LintEngine(BaseEngine):
                 errors.append("Ruff is required but was not found")
             else:
                 warnings.append(message)
-        inspected = self._check_python_syntax(targets)
+        inspected = self._check_python_syntax(python_files, targets)
         self._python_files_parsed = inspected
         if ruff_cmd is None:
             # Without this the fallback is indistinguishable from having done
@@ -233,11 +257,13 @@ class LintEngine(BaseEngine):
     def _run_ruff_check(
         self,
         ruff_cmd: list[str],
+        python_files: list[Path],
         targets: list[InspectionTarget],
         evidence: list[ToolEvidence],
         tool_warnings: list[str] | None = None,
     ) -> list[str]:
-        command = [*ruff_cmd, "check", ".", "--output-format=json"]
+        paths = [str(path.relative_to(self.project_root)) for path in python_files]
+        command = [*ruff_cmd, "check", *paths, "--output-format=json"]
         try:
             result = run_process(command, cwd=self.project_root)
         except Exception as exc:
@@ -322,6 +348,7 @@ class LintEngine(BaseEngine):
     def _run_ruff_format(
         self,
         ruff_cmd: list[str],
+        python_files: list[Path],
         targets: list[InspectionTarget],
         evidence: list[ToolEvidence],
         tool_warnings: list[str] | None = None,
@@ -333,9 +360,16 @@ class LintEngine(BaseEngine):
         if probe_error:
             return [probe_error]
 
-        command = [*ruff_cmd, "format", "--check", "."]
+        paths = [str(path.relative_to(self.project_root)) for path in python_files]
+        command = [*ruff_cmd, "format", "--check", *paths]
         if supports_json:
-            command = [*ruff_cmd, "format", "--check", "--output-format=json", "."]
+            command = [
+                *ruff_cmd,
+                "format",
+                "--check",
+                "--output-format=json",
+                *paths,
+            ]
         try:
             result = run_process(command, cwd=self.project_root)
         except Exception as exc:
@@ -546,7 +580,9 @@ class LintEngine(BaseEngine):
         )
         return True
 
-    def _check_python_syntax(self, targets: list[InspectionTarget]) -> int:
+    def _check_python_syntax(
+        self, python_files: list[Path], targets: list[InspectionTarget]
+    ) -> int:
         """Parse every Python file and report the ones that will not parse.
 
         Returns how many files were read, which the caller needs: a clean run
@@ -554,9 +590,7 @@ class LintEngine(BaseEngine):
         the count the report cannot tell them apart.
         """
         inspected = 0
-        for py_file in self.project_root.rglob("*.py"):
-            if _should_ignore_path(py_file):
-                continue
+        for py_file in python_files:
             inspected += 1
             try:
                 ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
@@ -573,14 +607,14 @@ class LintEngine(BaseEngine):
         return inspected
 
     def _lint_cpp(
-        self, targets: list[InspectionTarget], tool_evidence: list[ToolEvidence] | None = None
+        self,
+        cpp_files: list[Path],
+        targets: list[InspectionTarget],
+        tool_evidence: list[ToolEvidence] | None = None,
     ) -> list[str]:
         errors: list[str] = []
         evidence = tool_evidence if tool_evidence is not None else []
         gxx = shutil.which("g++")
-        cpp_files = self.project_cpp_sources()
-        if not cpp_files:
-            return errors
         if not gxx:
             self._record_missing_tool(evidence, "g++")
             return ["g++ is required when C++ sources are present"]
