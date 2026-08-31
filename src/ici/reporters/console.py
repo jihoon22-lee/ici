@@ -371,6 +371,7 @@ def print_suite_dashboard(
         else ""
     )
     failed_count = max(0, suite.failed_count - suite.error_count)
+    cache_hits = sum(result.cache_hit for result in suite.results)
     summary_text = (
         f"[bold]Total Engines:[/] {suite.total_count}  "
         f"([green]Pass: {suite.passed_count}[/green], "
@@ -378,7 +379,7 @@ def print_suite_dashboard(
         f"[red]Fail: {failed_count}[/red], "
         f"[red]Error: {suite.error_count}[/red], "
         f"[dim]Skip: {suite.skipped_count}[/dim])"
-        f"{tem_str}  |  "
+        f"{tem_str}  |  [dim]Cache Hits: {cache_hits}[/dim]  |  "
         f"[dim]Total Time: {suite.duration:.2f}s[/dim]\n"
         # The tally counts engine statuses; the verdict comes from a different
         # rule. Printing one without the other is how a report could say

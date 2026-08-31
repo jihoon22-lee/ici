@@ -40,6 +40,7 @@ def generate_html_report(
         error_engines,
         skip_engines,
     ) = _extract_suite_data(suite.results, base)
+    cache_hits = sum(result.cache_hit for result in suite.results)
     engine_rows = _render_engine_table_rows(suite.results, base)
     line_tab_content = _render_line_section(eng_map.get("line"), base)
     test_tab_content = _render_test_section(eng_map.get("test"), base)
@@ -164,7 +165,8 @@ def generate_html_report(
         <span style="color:var(--warn)">{warn_engines} Warn</span> &bull;
         <span style="color:var(--fail)">{fail_engines} Fail</span> &bull;
         <span style="color:var(--fail)">{error_engines} Error</span> &bull;
-        <span style="color:var(--text-muted)">{skip_engines} Skip</span>
+        <span style="color:var(--text-muted)">{skip_engines} Skip</span> &bull;
+        <span style="color:var(--text-muted)">{cache_hits} Cache Hits</span>
       </div>
       <div style="margin-top: 0.8rem; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; display: flex;">
         <div style="flex: {pass_engines}; background: var(--pass);" title="Pass {pass_engines}"></div>
@@ -219,6 +221,7 @@ def generate_html_report(
           <th>Status</th>
           <th>Summary & Inspection Focus</th>
           <th class="text-right">Score / Metrics</th>
+          <th class="text-right">Cache</th>
           <th class="text-right">Time</th>
         </tr>
       </thead>

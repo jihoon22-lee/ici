@@ -13,6 +13,7 @@ from rich.markup import escape
 from ici import __version__
 from ici.config import ConfigError, load_config
 from ici.core.baseline import BaselineError
+from ici.core.cache import CACHE_KEY_VERSION, AnalysisCache
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
 from ici.core.path_utils import resolve_project_path
 from ici.core.pipeline import AnalysisProfile
@@ -72,6 +73,11 @@ _VERIFY_PROFILE_OPTION = typer.Option(
     None,
     "--profile",
     help="Analysis cost profile: fast, standard, or deep (defaults to ici.profile)",
+)
+_VERIFY_NO_CACHE_OPTION = typer.Option(
+    False,
+    "--no-cache",
+    help="Disable analysis cache reads and writes for this verification run",
 )
 
 
@@ -169,6 +175,7 @@ def cmd_verify(
     max_findings: int = _VERIFY_MAX_FINDINGS_OPTION,
     group_by: ConsoleGroupBy = _VERIFY_GROUP_BY_OPTION,
     profile: AnalysisProfile | None = _VERIFY_PROFILE_OPTION,
+    no_cache: bool = _VERIFY_NO_CACHE_OPTION,
 ):
     """Runs the full verification engine suite and outputs a unified quality gate dashboard."""
     root = Path.cwd().resolve()
@@ -202,6 +209,7 @@ def cmd_verify(
             write_baseline=baseline_output,
             console_options=console_options,
             profile=profile,
+            use_cache=not no_cache,
         )
     except BaselineError as err:
         typer.echo(f"Baseline error: {err}", err=True)
@@ -447,6 +455,33 @@ def cmd_env(
         print(f'setenv PATH "{local_bin}:$PATH"')
     else:
         print(f'export PATH="{local_bin}:$PATH"')
+
+
+@app.command("cache")
+def cmd_cache(
+    clear: bool = typer.Option(
+        False,
+        "--clear",
+        help="Remove analysis cache entry files from the exact local cache directory",
+    ),
+):
+    """Shows local cache inventory and the inputs that invalidate cached analysis."""
+
+    cache = AnalysisCache()
+    removed = cache.clear() if clear else 0
+    inventory = cache.inventory()
+    if clear:
+        typer.echo(f"Removed {removed} cache file(s).")
+    typer.echo(f"Cache directory: {inventory.root}")
+    typer.echo(
+        f"Entries: {inventory.entries} valid, {inventory.corrupt_entries} corrupt, "
+        f"{inventory.bytes} bytes"
+    )
+    typer.echo(f"Key contract: {CACHE_KEY_VERSION}")
+    typer.echo(
+        "Invalidated by project root, source/build-config content, effective ici config, "
+        "tool versions, engine implementation, build variant, or ici version."
+    )
 
 
 def _effective_config(ctx: typer.Context):

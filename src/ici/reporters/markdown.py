@@ -188,9 +188,10 @@ def generate_markdown_report(
         f"> **Summary**: Total {suite.total_count} engines executed in {suite.duration:.2f}s. "
         f"(**{suite.passed_count} Passed**, **{suite.warned_count} Warnings**, "
         f"**{failed_count} Failed**, **{suite.error_count} Errors**, "
-        f"**{suite.skipped_count} Skipped**)\n",
-        "| Engine | Status | Summary | Score / Metrics | Duration |",
-        "|---|:---:|---|---|:---:|",
+        f"**{suite.skipped_count} Skipped**, "
+        f"**{sum(result.cache_hit for result in suite.results)} Cache Hits**)\n",
+        "| Engine | Status | Summary | Score / Metrics | Cache | Duration |",
+        "|---|:---:|---|---|:---:|:---:|",
     ]
 
     for res in suite.results:
@@ -208,7 +209,8 @@ def generate_markdown_report(
         duration_val = f"{res.duration:.2f}s" if res.duration > 0 else "-"
         md.append(
             f"| <strong>{_render_code(res.engine_name)}</strong> | {badge} | "
-            f"{_escape_table_cell(res.summary)} | {score_val} | {duration_val} |"
+            f"{_escape_table_cell(res.summary)} | {score_val} | "
+            f"{'HIT' if res.cache_hit else '—'} | {duration_val} |"
         )
 
     if suite.capability_inventory is not None:
