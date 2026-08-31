@@ -543,7 +543,7 @@ def test_flag_parser_stops_at_double_dash_and_does_not_consume_options_as_values
 
     assert unit.standard == ""
     assert unit.language == "c++"
-    assert unit.defines == ()
+    assert unit.defines == (compile_db_module.CompilationDefine("STOP", "1"),)
     assert unit.include_paths == ()
     assert [item.code for item in unit.diagnostics] == [
         "missing-flag-value",
@@ -612,9 +612,7 @@ def test_bounded_project_response_file_is_expanded_without_execution(tmp_path: P
 
     assert unit.standard == "c++20"
     assert unit.defines == (compile_db_module.CompilationDefine("RESP", "1"),)
-    assert [(item.kind, item.path) for item in unit.include_paths] == [
-        ("include", "include dir")
-    ]
+    assert [(item.kind, item.path) for item in unit.include_paths] == [("include", "include dir")]
     assert unit.argv[1:4] == ("-std=c++20", "-DRESP=1", "-I")
 
 

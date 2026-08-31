@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import shlex
+import stat
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
@@ -29,6 +30,8 @@ MAX_COMPILE_DATABASE_ENTRIES = 200_000
 MAX_COMPILE_ARGUMENTS = 32_768
 MAX_COMPILE_ARGUMENT_CHARS = 1024 * 1024
 MAX_COMPILE_COMMAND_CHARS = 4 * 1024 * 1024
+MAX_RESPONSE_FILE_BYTES = 4 * 1024 * 1024
+MAX_RESPONSE_FILE_DEPTH = 4
 _SOURCE_LANGUAGES = {
     ".c": "c",
     ".cc": "c++",
@@ -52,6 +55,12 @@ class _RowError(Exception):
     code: str
     message: str
     source: str = ""
+
+
+@dataclass(frozen=True)
+class _ReadError(Exception):
+    code: str
+    message: str
 
 
 def _diagnostic(
@@ -79,6 +88,11 @@ def _relative_text(path: Path, root: Path, *, allow_dot: bool = True) -> str:
 
 
 def _scoped_path(root: Path, base: Path, value: str) -> tuple[str, str, Path]:
+    if os.name != "nt" and ("\\" in value or PureWindowsPath(value).is_absolute()):
+        raise _RowError(
+            "foreign-path-syntax",
+            "A compilation path uses foreign platform syntax.",
+        )
     candidate = Path(value)
     lexical = candidate if candidate.is_absolute() else base / candidate
     try:
@@ -88,7 +102,7 @@ def _scoped_path(root: Path, base: Path, value: str) -> tuple[str, str, Path]:
     try:
         relative = _relative_text(resolved, root)
     except ValueError:
-        return str(resolved), "external", resolved
+        return resolved.as_posix(), "external", resolved
     return relative, "project", resolved
 
 
@@ -96,17 +110,18 @@ def _select_database(root: Path, config: dict[str, Any]) -> tuple[str | None, bo
     project = config.get("project", {})
     explicit = project.get("compile_database") if isinstance(project, dict) else None
     if explicit is not None:
-        if not isinstance(explicit, str) or not explicit or "\\" in explicit:
+        if not isinstance(explicit, str) or not explicit:
             return None, True
-        path = PurePosixPath(explicit)
-        if (
-            path.is_absolute()
-            or ".." in path.parts
-            or path.as_posix() != explicit
-            or path == Path(".")
-        ):
+        if os.name != "nt" and ("\\" in explicit or PureWindowsPath(explicit).is_absolute()):
             return None, True
-        return path.as_posix(), True
+        try:
+            resolved = (root / explicit).resolve(strict=False)
+            relative = resolved.relative_to(root).as_posix()
+        except (OSError, RuntimeError, TypeError, ValueError):
+            return None, True
+        if not relative or relative == ".":
+            return None, True
+        return relative, True
     for candidate in ("compile_commands.json", "build/compile_commands.json"):
         try:
             if (root / candidate).exists():
@@ -128,6 +143,45 @@ def _is_dir(path: Path) -> bool:
         return path.is_dir()
     except OSError:
         return False
+
+
+def _read_bounded_regular(path: Path, limit: int) -> bytes:
+    """Read one stable regular file through a no-follow descriptor."""
+
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_BINARY", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except FileNotFoundError:
+        raise
+    except OSError as err:
+        raise _ReadError("unreadable", "The file could not be opened safely.") from err
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise _ReadError("not-file", "The selected path is not a regular file.")
+        if before.st_size > limit:
+            raise _ReadError("too-large", "The file exceeds the bounded input size.")
+        chunks: list[bytes] = []
+        total = 0
+        while total <= limit:
+            chunk = os.read(descriptor, min(1024 * 1024, limit + 1 - total))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+        if total > limit:
+            raise _ReadError("too-large", "The file exceeds the bounded input size.")
+        after = os.fstat(descriptor)
+        before_identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+        after_identity = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+        if before_identity != after_identity or total != after.st_size:
+            raise _ReadError("changed", "The file changed while it was being read.")
+        return b"".join(chunks)
+    except OSError as err:
+        raise _ReadError("unreadable", "The file could not be read safely.") from err
+    finally:
+        os.close(descriptor)
 
 
 def _windows_quote(
@@ -217,6 +271,123 @@ def _parse_argv(row: dict[str, Any]) -> tuple[str, ...]:
     return parsed
 
 
+def _response_diagnostic(code: str, message: str) -> CompilationDiagnostic:
+    return _diagnostic(code, message, level="error")
+
+
+def _tokenize_response_file(encoded: bytes) -> tuple[str, ...]:
+    try:
+        text = encoded.decode("utf-8")
+        values = _split_windows_command(text) if os.name == "nt" else tuple(shlex.split(text))
+    except (UnicodeError, ValueError) as err:
+        raise _RowError(
+            "response-file-malformed",
+            "A compiler response file could not be decoded safely.",
+        ) from err
+    if (
+        len(values) > MAX_COMPILE_ARGUMENTS
+        or any(not value or "\0" in value for value in values)
+        or any(len(value) > MAX_COMPILE_ARGUMENT_CHARS for value in values)
+    ):
+        raise _RowError(
+            "response-file-malformed",
+            "A compiler response file contains invalid or excessive arguments.",
+        )
+    return values
+
+
+def _expand_response_files(
+    argv: tuple[str, ...],
+    *,
+    root: Path,
+    directory: Path,
+    depth: int = 0,
+    active: tuple[Path, ...] = (),
+) -> tuple[tuple[str, ...], list[CompilationDiagnostic]]:
+    """Expand bounded, contained response files without invoking a compiler."""
+
+    expanded: list[str] = []
+    diagnostics: list[CompilationDiagnostic] = []
+    for token in argv:
+        if not token.startswith("@"):
+            expanded.append(token)
+            continue
+        if token == "@":
+            diagnostics.append(
+                _response_diagnostic(
+                    "response-file-invalid",
+                    "A compiler response-file token has no path.",
+                )
+            )
+            continue
+        if depth >= MAX_RESPONSE_FILE_DEPTH:
+            diagnostics.append(
+                _response_diagnostic(
+                    "response-file-depth",
+                    "Compiler response-file nesting exceeds the bounded depth.",
+                )
+            )
+            continue
+        try:
+            _path, scope, resolved = _scoped_path(root, directory, token[1:])
+        except _RowError as err:
+            diagnostics.append(_response_diagnostic(err.code, err.message))
+            continue
+        if scope != "project":
+            diagnostics.append(
+                _response_diagnostic(
+                    "response-file-outside-project",
+                    "A compiler response file resolves outside the project.",
+                )
+            )
+            continue
+        if resolved in active:
+            diagnostics.append(
+                _response_diagnostic(
+                    "response-file-cycle",
+                    "Compiler response files contain a recursive cycle.",
+                )
+            )
+            continue
+        try:
+            encoded = _read_bounded_regular(resolved, MAX_RESPONSE_FILE_BYTES)
+            nested = _tokenize_response_file(encoded)
+        except FileNotFoundError:
+            diagnostics.append(
+                _response_diagnostic(
+                    "response-file-missing",
+                    "A compiler response file does not exist.",
+                )
+            )
+            continue
+        except _ReadError as err:
+            diagnostics.append(
+                _response_diagnostic(
+                    f"response-file-{err.code}",
+                    "A compiler response file could not be read safely.",
+                )
+            )
+            continue
+        except _RowError as err:
+            diagnostics.append(_response_diagnostic(err.code, err.message))
+            continue
+        nested_values, nested_diagnostics = _expand_response_files(
+            nested,
+            root=root,
+            directory=resolved.parent,
+            depth=depth + 1,
+            active=(*active, resolved),
+        )
+        expanded.extend(nested_values)
+        diagnostics.extend(nested_diagnostics)
+        if len(expanded) > MAX_COMPILE_ARGUMENTS:
+            raise _RowError(
+                "invalid-arguments",
+                "Expanded compilation arguments exceed the bounded count.",
+            )
+    return tuple(expanded), diagnostics
+
+
 def _compiler_name(value: str) -> str:
     """Return a non-sensitive compiler basename for structured reporting."""
 
@@ -234,10 +405,14 @@ def _option_value(
 ) -> tuple[str | None, int]:
     token = argv[index]
     if token == option:
-        if index + 1 >= len(argv):
+        if index + 1 >= len(argv) or _looks_like_option(argv[index + 1]):
             return None, index + 1
         return argv[index + 1], index + 2
     if joined and token.startswith(option) and len(token) > len(option):
+        if option in {"-std", "--sysroot"} and not token.startswith(option + "="):
+            return "", index + 1
+        if option == "-o" and token.startswith("-output"):
+            return "", index + 1
         value = token[len(option) :]
         if value.startswith("="):
             value = value[1:]
@@ -245,11 +420,17 @@ def _option_value(
     return "", index + 1
 
 
+def _looks_like_option(value: str) -> bool:
+    return value == "--" or (value.startswith("-") and value != "-")
+
+
 def _extract_standard(argv: tuple[str, ...]) -> tuple[str, list[CompilationDiagnostic]]:
     standard = ""
     diagnostics: list[CompilationDiagnostic] = []
     index = 1
     while index < len(argv):
+        if argv[index] == "--":
+            break
         value, next_index = _option_value(argv, index, "-std", joined=True)
         if value is None:
             diagnostics.append(_diagnostic("missing-flag-value", "The -std flag has no value."))
@@ -283,7 +464,9 @@ def _extract_language(
     diagnostics: list[CompilationDiagnostic] = []
     index = 1
     while index < len(argv):
-        value, next_index = _option_value(argv, index, "-x", joined=False)
+        if argv[index] == "--":
+            break
+        value, next_index = _option_value(argv, index, "-x", joined=True)
         language = _language_value(value, language, diagnostics)
         index = next_index
     return language or _SOURCE_LANGUAGES.get(Path(source).suffix.casefold(), ""), diagnostics
@@ -318,6 +501,8 @@ def _extract_defines(
     diagnostics: list[CompilationDiagnostic] = []
     index = 1
     while index < len(argv):
+        if argv[index] == "--":
+            break
         value, next_index = _option_value(argv, index, "-D", joined=True)
         if value is None:
             diagnostics.append(_diagnostic("missing-flag-value", "The -D flag has no value."))
@@ -335,6 +520,8 @@ def _extract_includes(
     options = (("-I", "include", True), ("-isystem", "system", True), ("-iquote", "quote", True))
     index = 1
     while index < len(argv):
+        if argv[index] == "--":
+            break
         matched = False
         for option, kind, joined in options:
             value, next_index = _option_value(argv, index, option, joined=joined)
@@ -371,6 +558,8 @@ def _extract_sysroot(
     diagnostics: list[CompilationDiagnostic] = []
     index = 1
     while index < len(argv):
+        if argv[index] == "--":
+            break
         matched = False
         for option, joined in (("--sysroot", True), ("-isysroot", False)):
             value, next_index = _option_value(argv, index, option, joined=joined)
@@ -395,6 +584,8 @@ def _argv_output(argv: tuple[str, ...]) -> tuple[str, list[CompilationDiagnostic
     diagnostics: list[CompilationDiagnostic] = []
     index = 1
     while index < len(argv):
+        if argv[index] == "--":
+            break
         value, next_index = _option_value(argv, index, "-o", joined=True)
         if value is None:
             diagnostics.append(_diagnostic("missing-flag-value", "The -o flag has no value."))
@@ -414,23 +605,67 @@ def _normalize_output(
             _diagnostic("invalid-output", "The compilation output field is not a string.")
         )
         declared = None
-    if declared and argv_value and declared != argv_value:
+    normalized_declared = _normalize_output_value(declared, root, directory, diagnostics)
+    normalized_argv = _normalize_output_value(argv_value, root, directory, diagnostics)
+    if normalized_declared and normalized_argv and normalized_declared != normalized_argv:
         diagnostics.append(
             _diagnostic(
                 "output-mismatch",
                 "The output field and compiler -o argument identify different paths.",
             )
         )
-    selected = declared or argv_value
-    if not selected:
-        return "", diagnostics
-    normalized, scope, _resolved = _scoped_path(root, directory, selected)
+    return normalized_declared or normalized_argv, diagnostics
+
+
+def _normalize_output_value(
+    value: str | None,
+    root: Path,
+    directory: Path,
+    diagnostics: list[CompilationDiagnostic],
+) -> str:
+    if not value:
+        return ""
+    normalized, scope, resolved = _scoped_path(root, directory, value)
     if scope == "external":
         diagnostics.append(
             _diagnostic("output-outside-project", "The compilation output is outside the project.")
         )
-        return "", diagnostics
-    return normalized, diagnostics
+        return ""
+    if normalized == "." or _is_dir(resolved):
+        diagnostics.append(
+            _diagnostic("invalid-output", "The compilation output does not identify a file path.")
+        )
+        return ""
+    return normalized
+
+
+def _source_operand_diagnostics(
+    argv: tuple[str, ...],
+    *,
+    root: Path,
+    directory: Path,
+    source: str,
+) -> list[CompilationDiagnostic]:
+    diagnostics: list[CompilationDiagnostic] = []
+    for index, token in enumerate(argv[:-1]):
+        if token not in {"-c", "/c"}:
+            continue
+        candidate = argv[index + 1]
+        if _looks_like_option(candidate):
+            continue
+        try:
+            normalized, scope, _resolved = _scoped_path(root, directory, candidate)
+        except _RowError:
+            normalized, scope = "", "external"
+        if scope != "project" or normalized != source:
+            diagnostics.append(
+                _diagnostic(
+                    "source-mismatch",
+                    "The compiler source operand does not match the compilation file field.",
+                )
+            )
+        break
+    return diagnostics
 
 
 def _parse_row(
@@ -473,9 +708,28 @@ def _parse_row(
             "source-outside-project",
             "The compilation source resolves outside the project.",
         )
+    if source == "." or _is_dir(resolved_source):
+        raise _RowError(
+            "invalid-source-path",
+            "The compilation source does not identify a file path.",
+        )
 
     argv = _parse_argv(row)
+    argv, response_diagnostics = _expand_response_files(
+        argv,
+        root=root,
+        directory=resolved_directory,
+    )
     unit_diagnostics: list[CompilationDiagnostic] = []
+    if not _is_dir(resolved_directory):
+        unit_diagnostics.append(
+            _diagnostic(
+                "missing-directory",
+                "The compilation working directory does not exist.",
+                entry_index=index,
+                source=source,
+            )
+        )
     if not _is_file(resolved_source):
         unit_diagnostics.append(
             _diagnostic(
@@ -492,6 +746,13 @@ def _parse_row(
     sysroot, sysroot_scope, sysroot_diagnostics = _extract_sysroot(argv, root, resolved_directory)
     output, output_diagnostics = _normalize_output(row, argv, root, resolved_directory)
     for diagnostic in (
+        *response_diagnostics,
+        *_source_operand_diagnostics(
+            argv,
+            root=root,
+            directory=resolved_directory,
+            source=source,
+        ),
         *language_diagnostics,
         *standard_diagnostics,
         *define_diagnostics,
@@ -538,6 +799,15 @@ def _reject_json_constant(value: str) -> None:
     raise ValueError("non-standard JSON constant")
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON object key: {key}")
+        result[key] = value
+    return result
+
+
 def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationContext:
     """Load the selected compilation database into an immutable context.
 
@@ -567,7 +837,7 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
             "The compilation database resolves outside the project.",
         )
     try:
-        details = database.stat()
+        encoded = _read_bounded_regular(database, MAX_COMPILE_DATABASE_BYTES)
     except FileNotFoundError:
         if explicit:
             return _database_failure(
@@ -576,43 +846,21 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
                 "The configured compilation database does not exist.",
             )
         return CompilationContext()
-    except OSError:
-        return _database_failure(
-            selected,
-            "database-unreadable",
-            "The compilation database metadata could not be read.",
-        )
-    if not _is_file(database):
-        return _database_failure(
-            selected,
-            "database-not-file",
-            "The compilation database path is not a regular file.",
-        )
-    if details.st_size > MAX_COMPILE_DATABASE_BYTES:
-        return _database_failure(
-            selected,
-            "database-too-large",
-            "The compilation database exceeds the bounded input size.",
-        )
+    except _ReadError as err:
+        messages = {
+            "not-file": "The compilation database path is not a regular file.",
+            "too-large": "The compilation database exceeds the bounded input size.",
+            "changed": "The compilation database changed while it was being read.",
+            "unreadable": "The compilation database could not be read safely.",
+        }
+        return _database_failure(selected, f"database-{err.code}", messages[err.code])
     try:
-        encoded = database.read_bytes()
-        details_after = database.stat()
-        if (
-            details.st_size,
-            details.st_mtime_ns,
-            details.st_ino,
-        ) != (
-            details_after.st_size,
-            details_after.st_mtime_ns,
-            details_after.st_ino,
-        ):
-            return _database_failure(
-                selected,
-                "database-changed",
-                "The compilation database changed while it was being read.",
-            )
-        payload = json.loads(encoded.decode("utf-8"), parse_constant=_reject_json_constant)
-    except (OSError, UnicodeError, ValueError, RecursionError):
+        payload = json.loads(
+            encoded.decode("utf-8"),
+            parse_constant=_reject_json_constant,
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+    except (UnicodeError, ValueError, RecursionError):
         return _database_failure(
             selected,
             "database-malformed",
@@ -648,6 +896,15 @@ def load_compilation_context(root: Path, config: dict[str, Any]) -> CompilationC
                     err.message,
                     entry_index=index,
                     source=err.source,
+                    level="error",
+                )
+            )
+        except (TypeError, ValueError):
+            diagnostics.append(
+                _diagnostic(
+                    "invalid-entry-value",
+                    "A compilation database entry contains an invalid value.",
+                    entry_index=index,
                     level="error",
                 )
             )
