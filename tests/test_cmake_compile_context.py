@@ -16,6 +16,7 @@ from types import SimpleNamespace
 
 import pytest
 
+import ici.core.cmake as cmake_module
 from ici.core import cmake_context
 from ici.core.capabilities import CapabilityInventory
 from ici.core.cmake import (
@@ -27,6 +28,7 @@ from ici.core.cmake import (
 from ici.core.context import (
     AnalysisContext,
     AnalysisIdentity,
+    BuildVariant,
     CompilationContext,
     ProjectModel,
     canonical_digest,
@@ -71,6 +73,14 @@ def _write_database(root: Path, relative: str, rows: list[dict[str, object]]) ->
     path = root / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(rows), encoding="utf-8")
+    return path
+
+
+def _write_cmake_cache(root: Path, payload: bytes | str) -> Path:
+    path = root / "build" / "ici-cmake-build" / "CMakeCache.txt"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    encoded = payload.encode("utf-8") if isinstance(payload, str) else payload
+    path.write_bytes(encoded)
     return path
 
 
@@ -348,6 +358,99 @@ def test_unsupported_cmake_generator_is_diagnosed(
     text = _diagnostic_text(result)
     assert "unsupported" in text
     assert "generator" in text
+
+
+def test_cmake_cache_symlink_is_rejected_without_reading_outside_target(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    outside = tmp_path / "outside-cache.txt"
+    outside.write_text("CMAKE_GENERATOR:INTERNAL=Ninja\nSECRET_CACHE_VALUE\n", encoding="utf-8")
+    cache = root / "build" / "ici-cmake-build" / "CMakeCache.txt"
+    cache.parent.mkdir(parents=True)
+    cache.symlink_to(outside)
+
+    generator, unity, diagnostics = cmake_context._read_cmake_metadata(root)
+
+    assert generator == ""
+    assert unity is None
+    assert [item.code for item in diagnostics] == ["cmake-cache-invalid"]
+    assert "SECRET_CACHE_VALUE" not in " ".join(item.message for item in diagnostics)
+
+
+def test_cmake_cache_size_limit_is_enforced_before_parsing(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    _write_cmake_cache(root, b"x" * (cmake_context.MAX_CMAKE_CACHE_BYTES + 1))
+
+    generator, unity, diagnostics = cmake_context._read_cmake_metadata(root)
+
+    assert generator == ""
+    assert unity is None
+    assert [item.code for item in diagnostics] == ["cmake-cache-invalid"]
+
+
+def test_cmake_cache_duplicate_metadata_is_rejected(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    _write_cmake_cache(
+        root,
+        "CMAKE_GENERATOR:INTERNAL=Ninja\n"
+        "CMAKE_GENERATOR:INTERNAL=Unix Makefiles\n"
+        "CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON\n",
+    )
+
+    generator, unity, diagnostics = cmake_context._read_cmake_metadata(root)
+
+    assert generator == ""
+    assert unity is None
+    assert [item.code for item in diagnostics] == ["cmake-cache-invalid"]
+
+
+def test_cmake_cache_invalid_encoding_is_rejected(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    _write_cmake_cache(
+        root,
+        b"CMAKE_GENERATOR:INTERNAL=Ninja\nCMAKE_UNITY_BUILD:BOOL=\xff\n",
+    )
+
+    generator, unity, diagnostics = cmake_context._read_cmake_metadata(root)
+
+    assert generator == ""
+    assert unity is None
+    assert [item.code for item in diagnostics] == ["cmake-cache-invalid"]
+
+
+@pytest.mark.parametrize("escape_kind", ["build", "shadow"])
+def test_configure_rejects_build_shadow_symlink_escape(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, escape_kind: str
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "CMakeLists.txt").write_text("project(demo LANGUAGES CXX)\n", encoding="utf-8")
+    outside = tmp_path / "outside-build"
+    outside.mkdir()
+    build_root = root / "build"
+    if escape_kind == "build":
+        build_root.symlink_to(outside, target_is_directory=True)
+    else:
+        build_root.mkdir()
+        (build_root / "ici-cmake-build").symlink_to(outside, target_is_directory=True)
+
+    monkeypatch.setattr(
+        cmake_module,
+        "run_process",
+        lambda *_args, **_kwargs: pytest.fail("unsafe shadow must not execute CMake"),
+    )
+    session = cmake_module.configure(
+        root,
+        ConfigureOptions(BuildVariant.RELEASE, analysis_database=True),
+    )
+
+    assert session.backend == cmake_module.BACKEND_CMAKE
+    assert not session.configured
+    assert any("unsafe" in error for error in session.errors)
+    assert not list(outside.iterdir())
 
 
 def test_target_name_comes_from_cmakefiles_object_output(
