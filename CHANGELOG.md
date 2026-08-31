@@ -7,6 +7,30 @@
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-09-01
+
+### Fixed
+- **Hybrid mypy scope isolation**: the type engine now derives mypy argv only from configured
+  source roots that actually contain discovered Python files. A hybrid project with separate
+  `python`, `src`, and `include` roots no longer passes the C++-only roots to mypy and turns a
+  valid analysis into tool exit code 2.
+- **Selected-interpreter Python tool capabilities**: capability probes for `pytest`, `coverage`,
+  and `mypy` now run as bounded `INTERPRETER -m MODULE --version` commands through the same
+  project `.venv` or current interpreter used by the engines. A PATH executable belonging to a
+  different Python installation can no longer make the shared capability snapshot claim a module
+  is ready when the selected runtime cannot import it. Type analysis reuses the immutable mypy
+  module capability from the shared analysis context.
+- **Portable release checksum manifest**: release generation now runs `sha256sum` inside `dist`,
+  so the published manifest names `ici.pyz` rather than the internal build path `dist/ici.pyz` and
+  consumers can use `sha256sum --check ici.pyz.sha256` directly.
+
+### Verification
+- BuildScope reproduced both defects against the public v0.7.0 asset: with the full isolated
+  Python tool environment, capability inventory was READY but mypy received `include python src`
+  and exited 2; the downloaded checksum contained `dist/ici.pyz`. The v0.7.1 focused regression
+  suite covers the exact selected-interpreter argv, unsafe module-name rejection, hybrid Python
+  root filtering, and portable release workflow command.
+
 ## [0.7.0] - 2026-09-01
 
 ### Fixed

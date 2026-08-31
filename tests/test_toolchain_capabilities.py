@@ -678,3 +678,44 @@ def test_collect_registered_capability_missing_candidates_returns_no_process_res
     assert capability.available is False
     assert capability.complete is False
     assert capability.path == ""
+
+
+def test_python_module_probe_uses_the_selected_interpreter(monkeypatch):
+    interpreter = "/isolated/python"
+    calls: list[tuple[str, ...]] = []
+    monkeypatch.setattr(toolchain.sys, "executable", interpreter)
+    monkeypatch.setattr(
+        toolchain.shutil,
+        "which",
+        lambda command: interpreter if command == interpreter else None,
+    )
+
+    def fake_run(argv, cwd=None, timeout=0, max_output_chars=0):
+        del cwd, timeout, max_output_chars
+        calls.append(tuple(argv))
+        return _result(stdout="pytest 9.1.1\n")
+
+    monkeypatch.setattr(toolchain, "run_process", fake_run)
+    probe = toolchain.ToolProbe(
+        "pytest",
+        ("pytest",),
+        ("--version",),
+        python_module="pytest",
+    )
+
+    capability, results = toolchain.collect_registered_capability(probe)
+
+    assert calls == [(interpreter, "-m", "pytest", "--version")]
+    assert len(results) == 1
+    assert capability.available is True
+    assert capability.complete is True
+    assert capability.path == interpreter
+    assert capability.version_tuple == (9, 1, 1)
+    assert capability.details["provider"] == "python-module"
+    assert capability.details["module"] == "pytest"
+    assert capability.probe_argv == calls[0]
+
+
+def test_python_module_probe_rejects_unsafe_module_name():
+    with pytest.raises(ValueError, match="invalid Python module probe"):
+        toolchain.ToolProbe("bad", (), ("--version",), python_module="pytest;echo")

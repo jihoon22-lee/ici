@@ -188,7 +188,7 @@ jobs:
         run: |
           chmod +x ./scripts/build-pyz.sh ./scripts/smoke.sh ./scripts/launcher.sh
           ./scripts/build-pyz.sh
-          sha256sum dist/ici.pyz > dist/ici.pyz.sha256
+          (cd dist && sha256sum ici.pyz > ici.pyz.sha256)
 
       - name: Run Isolated Smoke Test
         run: |

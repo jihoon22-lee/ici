@@ -732,6 +732,12 @@ header edge를 실제 build와 대조하는 작업은 pending이다. I3-4 PR·CI
 
 **브랜치:** `fix/python-tool-config`
 
+> 2026-09-01 BuildScope B0 preflight에서 hybrid source root 전체를 mypy에 넘겨 exit 2가
+> 발생하고, PATH의 Python tool과 선택 interpreter module이 불일치할 수 있음이 재현됐다.
+> v0.7.1 선행 수정은 mypy 대상을 Python-containing root로 제한하고 pytest/coverage/mypy
+> capability를 선택 interpreter의 `-m` probe로 통일한다. 아래 project-config 존중 작업을
+> 완료한 것으로 표시하지는 않는다.
+
 - [ ] Ruff JSON/JSON-lines output과 rule code를 직접 파싱한다.
 - [ ] project `pyproject.toml`/ruff config의 select, ignore, per-file policy를 보존한다.
 - [ ] mypy의 project config를 자동 발견하게 하고 전역 `--ignore-missing-imports` 강제를 제거한다.

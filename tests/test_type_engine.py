@@ -1,9 +1,13 @@
 """Tests for mypy tool failure handling and partial-language evidence."""
 
+from types import SimpleNamespace
+
 import pytest
 
+from ici.core.capabilities import CapabilityInventory
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
+from ici.core.toolchain import ToolCapability
 from ici.engines.type_check import TypeCheckEngine
 
 
@@ -278,6 +282,39 @@ def test_mypy_finds_windows_style_project_venv_candidate(tmp_python_project, mon
     assert TypeCheckEngine(tmp_python_project)._find_mypy_cmd() == [str(mypy)]
 
 
+def test_mypy_command_reuses_selected_interpreter_capability(tmp_python_project, monkeypatch):
+    capability = ToolCapability(
+        name="mypy",
+        path="/selected/python",
+        available=True,
+        complete=True,
+        details={"provider": "python-module", "module": "mypy"},
+    )
+    engine = TypeCheckEngine(tmp_python_project)
+    engine.analysis_context = SimpleNamespace(
+        capabilities=CapabilityInventory(capabilities={"mypy": capability})
+    )
+    monkeypatch.setattr(
+        "ici.engines.type_check.shutil.which",
+        lambda _name: pytest.fail("shared capability must prevent a PATH re-probe"),
+    )
+
+    assert engine._find_mypy_cmd() == ["/selected/python", "-m", "mypy"]
+
+
+def test_mypy_unavailable_shared_capability_does_not_fall_back_to_path(
+    tmp_python_project, monkeypatch
+):
+    capability = ToolCapability(name="mypy", path="", available=False, complete=False)
+    engine = TypeCheckEngine(tmp_python_project)
+    engine.analysis_context = SimpleNamespace(
+        capabilities=CapabilityInventory(capabilities={"mypy": capability})
+    )
+    monkeypatch.setattr("ici.engines.type_check.shutil.which", lambda _name: "/other/mypy")
+
+    assert engine._find_mypy_cmd() is None
+
+
 def test_mypy_exit_two_is_tool_error_even_with_diagnostic(tmp_python_project, monkeypatch):
     _use_mypy(monkeypatch)
     monkeypatch.setattr(
@@ -393,3 +430,38 @@ def test_hybrid_type_summary_does_not_call_cpp_skip_missing_annotations(
     assert "Missing Annotations" not in result.summary
     assert "Type Findings" in result.summary
     assert "C++ type checking is skipped" in result.summary
+
+
+def test_hybrid_mypy_receives_only_python_source_roots(tmp_path, monkeypatch):
+    python_root = tmp_path / "python"
+    cpp_root = tmp_path / "src"
+    include_root = tmp_path / "include"
+    python_root.mkdir()
+    cpp_root.mkdir()
+    include_root.mkdir()
+    (python_root / "package.py").write_text("value: int = 1\n", encoding="utf-8")
+    (cpp_root / "native.cpp").write_text("int native() { return 1; }\n", encoding="utf-8")
+    (include_root / "native.hpp").write_text("int native();\n", encoding="utf-8")
+    (tmp_path / "ici.toml").write_text(
+        'name = "hybrid"\ntype = "hybrid"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    config = {"project": {"source_dirs": ["python", "src", "include"]}}
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        "ici.engines.type_check.shutil.which",
+        lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+    )
+
+    def fake_run(argv, **_kwargs):
+        commands.append(argv)
+        return ProcessResult(0, "Success: no issues found in 1 source file\n", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.type_check.run_process", fake_run)
+
+    result = TypeCheckEngine(tmp_path, config).run()
+
+    assert result.status == EngineStatus.WARN
+    assert commands == [["/usr/bin/mypy", "--ignore-missing-imports", "python"]]
+    assert "src" not in commands[0]
+    assert "include" not in commands[0]
