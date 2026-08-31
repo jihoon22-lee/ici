@@ -101,6 +101,25 @@ def test_run_process_truncates_output(tmp_path):
     assert len(result.stdout) <= 100
 
 
+def test_run_process_can_replace_inherited_environment(tmp_path, monkeypatch):
+    monkeypatch.setenv("ICI_RUNNER_INHERITED_SENTINEL", "must-not-leak")
+
+    result = run_process(
+        [
+            sys.executable,
+            "-c",
+            "import os; print(os.environ.get('ICI_RUNNER_INHERITED_SENTINEL', 'clean'))",
+        ],
+        cwd=tmp_path,
+        env={"LC_ALL": "C"},
+        replace_env=True,
+        input_text="",
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.strip() == "clean"
+
+
 @pytest.mark.skipif(
     os.name != "posix" or resource is None, reason="RSS accounting is POSIX-specific"
 )

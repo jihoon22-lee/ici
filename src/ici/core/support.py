@@ -78,10 +78,10 @@ _DECLARATIONS = (
         AnalysisMode.TOOL_BACKED,
         FindingConfidence.HIGH,
         frameworks=_QT,
-        required_tools=("g++",),
-        optional_tools=("pkg-config",),
+        optional_tools=("gcc", "g++", "clang", "clang++", "pkg-config"),
+        fallback_mode=AnalysisMode.HEURISTIC,
         limitations=(
-            "Uses per-translation-unit g++ syntax diagnostics; generated build context may require configured pkg-config flags.",
+            "Replays sanitized GCC/Clang translation-unit commands when compilation context exists; without it, a fixed c++17 syntax fallback is estimated.",
         ),
     ),
     SupportDeclaration(
@@ -207,11 +207,13 @@ _DECLARATIONS = (
     SupportDeclaration(
         "cycle",
         SupportLanguage.CPP,
-        AnalysisMode.HEURISTIC,
-        FindingConfidence.MEDIUM,
+        AnalysisMode.TOOL_BACKED,
+        FindingConfidence.HIGH,
         frameworks=_QT,
+        optional_tools=("gcc", "g++", "clang", "clang++"),
+        fallback_mode=AnalysisMode.HEURISTIC,
         limitations=(
-            "Include graph resolution is textual and may not reproduce conditional preprocessor state.",
+            "Compiler traces measure active include edges for covered translation units; without compilation context, project-path suffix resolution is estimated.",
         ),
     ),
     SupportDeclaration(

@@ -260,7 +260,7 @@ def test_cli_cache_inventory_and_clear_output(tmp_path, monkeypatch):
     assert inventory.exit_code == 0
     assert f"Cache directory: {cache_root.resolve()}" in inventory.output
     assert "Entries: 0 valid, 1 corrupt" in inventory.output
-    assert "Key contract: ici.analysis-cache-key/v2" in inventory.output
+    assert "Key contract: ici.analysis-cache-key/v3" in inventory.output
 
     cleared = runner.invoke(app, ["cache", "--clear"])
 

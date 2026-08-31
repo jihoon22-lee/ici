@@ -6,6 +6,7 @@ import hashlib
 import inspect
 import os
 import stat
+import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
     from ici.core.pipeline import EngineDescriptor
 
 CACHE_SCHEMA_VERSION = "ici.analysis-cache/v1"
-CACHE_KEY_VERSION = "ici.analysis-cache-key/v2"
+CACHE_KEY_VERSION = "ici.analysis-cache-key/v3"
 COMPILATION_IDENTITY_VERSION = "ici.compilation-identity/v2"
 
 _DIGEST_PREFIX = "sha256:"
@@ -326,6 +327,21 @@ def build_analysis_cache_key(
             implementation_source = inspect.getsource(implementation_type)
         except (OSError, TypeError):
             implementation_source = ""
+    implementation_modules: list[dict[str, str]] = []
+    if implementation_type is not None:
+        raw_modules = getattr(implementation_type, "CACHE_IMPLEMENTATION_MODULES", ())
+        if isinstance(raw_modules, tuple) and all(
+            isinstance(name, str) and name for name in raw_modules
+        ):
+            for name in sorted(set(raw_modules)):
+                module = sys.modules.get(name)
+                try:
+                    source = inspect.getsource(module) if module is not None else ""
+                except (OSError, TypeError):
+                    source = ""
+                implementation_modules.append(
+                    {"module": name, "source_digest": canonical_digest(source)}
+                )
     descriptor_payload = {
         "name": descriptor.name,
         "factory_name": descriptor.factory_name,
@@ -339,6 +355,7 @@ def build_analysis_cache_key(
                 "module": implementation_type.__module__,
                 "qualname": implementation_type.__qualname__,
                 "source_digest": canonical_digest(implementation_source),
+                "dependency_modules": implementation_modules,
             }
             if implementation_type is not None
             else None

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import replace
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -19,6 +21,7 @@ from cache_fixtures import (
     _key,
     _result,
 )
+from ici.core import cache_identity
 from ici.core.cache import AnalysisCache, AnalysisCacheKey, project_source_digest
 from ici.core.context import (
     BuildVariant,
@@ -255,6 +258,34 @@ def test_implementation_source_and_descriptor_identity_invalidate_keys(tmp_path:
     assert one_as_type.digest == one_as_instance.digest
     assert one_as_type.descriptor_digest != _key(context, descriptor=descriptor).descriptor_digest
     assert two.digest != one_as_type.digest
+
+
+def test_declared_implementation_module_source_invalidates_key(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module_name = "test.cache_helper"
+    helper_module = ModuleType(module_name)
+    helper_source = {"value": "HELPER_VERSION = 1\n"}
+    original_getsource = cache_identity.inspect.getsource
+
+    class ImplementationWithHelper:
+        CACHE_IMPLEMENTATION_MODULES = (module_name, module_name)
+
+    def getsource(target: object) -> str:
+        if target is helper_module:
+            return helper_source["value"]
+        return original_getsource(target)
+
+    monkeypatch.setitem(sys.modules, module_name, helper_module)
+    monkeypatch.setattr(cache_identity.inspect, "getsource", getsource)
+    context = _context(tmp_path / "project")
+
+    first = _key(context, implementation=ImplementationWithHelper)
+    helper_source["value"] = "HELPER_VERSION = 2\n"
+    second = _key(context, implementation=ImplementationWithHelper)
+
+    assert first.descriptor_digest != second.descriptor_digest
+    assert first.digest != second.digest
 
 
 def test_cache_key_rejects_non_sha256_digests() -> None:
