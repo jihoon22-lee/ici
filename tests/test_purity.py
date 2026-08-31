@@ -267,6 +267,8 @@ def test_release_repeats_quality_and_dogfood_gates_on_the_candidate():
     assert "dist/ici.pyz verify" in build
     assert "../dist/ici.pyz verify" in build
     assert "QT_QPA_PLATFORM: offscreen" in build
+    assert "cmake --build viewer/build/gui --parallel" in build
+    assert "cmake --build viewer/build/gui --target icirv-gui" not in build
     assert "ctest --test-dir viewer/build/gui --output-on-failure" in build
     for report in (
         "dist/ici-self-report.html",

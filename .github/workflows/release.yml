@@ -246,7 +246,10 @@ jobs:
         run: |
           set -euo pipefail
           cmake -S viewer -B viewer/build/gui -DCMAKE_BUILD_TYPE=Release -DICIRV_BUILD_GUI=ON
-          cmake --build viewer/build/gui --target icirv-gui --parallel
+          # CTest registers the core, CLI and GUI tests. Build the complete
+          # configured graph so every registered executable exists before the
+          # release gate runs it.
+          cmake --build viewer/build/gui --parallel
           ctest --test-dir viewer/build/gui --output-on-failure
           cp viewer/build/gui/src/gui/icirv-gui dist/icirv-gui
           dist/icirv-gui "$PWD/viewer/tests/data/ici_self_report.json" &

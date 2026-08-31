@@ -10,6 +10,10 @@
 ## [0.7.0] - 2026-09-01
 
 ### Fixed
+- **Release viewer test completeness**: the release workflow now builds the complete configured
+  viewer graph before running CTest. Building only `icirv-gui` left the six core/CLI test
+  executables and the MainWindow test absent, so the otherwise green v0.7.0 release candidate
+  failed closed with seven `Not Run` tests before asset publication.
 - **Pages publication latency tolerance**: the PR report gate now waits up to ten minutes for
   legacy GitHub Pages to serve newly committed ici/viewer reports. It still fails closed unless
   every sticky-comment URL returns HTML, while avoiding false failures when consecutive report
