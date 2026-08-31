@@ -95,7 +95,7 @@ def test_command_only_row_handles_quoted_paths_without_using_a_shell(tmp_path: P
         root,
         [
             {
-                "directory": "build",
+                "directory": ".",
                 "file": "../src/with space.cpp",
                 "command": (
                     "g++ -std c++17 -I '../include dir' "
@@ -154,16 +154,16 @@ def test_malformed_rows_become_diagnostics_without_aborting_valid_rows(tmp_path:
         root,
         [
             {
-                "directory": "build",
+                "directory": ".",
                 "file": "../src/main.cpp",
                 "command": "'unterminated",
             },
             {
-                "directory": "build",
+                "directory": ".",
                 "file": "../src/main.cpp",
                 "arguments": ["g++", "-I"],
             },
-            {"directory": "build", "arguments": ["g++", "-c", "missing.cpp"]},
+            {"directory": ".", "arguments": ["g++", "-c", "missing.cpp"]},
             "not-an-object",
         ],
     )
@@ -186,7 +186,7 @@ def test_stale_source_and_missing_include_are_retained_as_unit_evidence(tmp_path
         root,
         [
             {
-                "directory": "build",
+                "directory": ".",
                 "file": "../src/generated.cpp",
                 "arguments": ["g++", "-I", "../missing-include", "-c", "../src/generated.cpp"],
             }
@@ -216,7 +216,7 @@ def test_source_and_database_symlink_escapes_are_rejected_with_evidence(tmp_path
         root,
         [
             {
-                "directory": "build",
+                "directory": ".",
                 "file": "../src/escaped.cpp",
                 "arguments": ["g++", "-c", "../src/escaped.cpp"],
             }
@@ -262,7 +262,7 @@ def test_context_and_nested_metadata_are_frozen(tmp_path: Path) -> None:
         root,
         [
             {
-                "directory": "build",
+                "directory": ".",
                 "file": "../src/main.cpp",
                 "arguments": ["g++", "-DNAME=1", "-c", "../src/main.cpp"],
             }
