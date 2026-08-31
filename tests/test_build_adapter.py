@@ -1,5 +1,7 @@
 """Tests for the CMake/qmake build adapter."""
 
+import pytest
+
 import ici.core.cmake as cmake_mod
 from ici.core.cmake import (
     BACKEND_CMAKE,
@@ -106,8 +108,21 @@ def test_cmake_configure_injects_coverage(tmp_path):
     # Debug gives -O0 -g. Optimised builds smear gcov's line and branch mapping,
     # which is what the TEM score stands on.
     assert "-DCMAKE_BUILD_TYPE=Debug" in argv
+    assert "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" in argv
     assert "-DCMAKE_CXX_FLAGS=--coverage" in argv
     assert "-DCMAKE_EXE_LINKER_FLAGS=--coverage" in argv
+
+
+@pytest.mark.parametrize("variant", tuple(BuildVariant))
+def test_cmake_configure_exports_compile_commands_for_every_variant(tmp_path, variant):
+    argv = cmake_configure_argv(
+        "/usr/bin/cmake",
+        tmp_path,
+        tmp_path / "build" / "ici-cmake",
+        ConfigureOptions(variant),
+    )
+
+    assert "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" in argv
 
 
 def test_cmake_build_is_parallel(tmp_path):
@@ -293,6 +308,7 @@ def test_cmake_build_does_not_add_qmake_clean_step(tmp_path, monkeypatch):
             "-B",
             str(tmp_path / "build" / "ici-cmake"),
             "-DCMAKE_BUILD_TYPE=Debug",
+            "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
             "-DCMAKE_CXX_FLAGS=--coverage",
             "-DCMAKE_EXE_LINKER_FLAGS=--coverage",
         ],
