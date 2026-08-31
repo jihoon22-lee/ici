@@ -220,6 +220,9 @@ def test_suite_serializes_context_as_relative_facts_with_all_identity_provenance
     assert serialized["compilation"] == {
         "database_path": "build/compile_commands.json",
         "database_digest": "sha256:" + "e" * 64,
+        "origin": "",
+        "generator": "",
+        "unity_build": None,
         "diagnostics": [
             {
                 "code": "invalid-entry",
@@ -248,6 +251,7 @@ def test_suite_serializes_context_as_relative_facts_with_all_identity_provenance
                 "compiler": "g++",
                 "language": "c++",
                 "standard": "c++20",
+                "target": "",
                 "defines": [
                     {"name": "NAME", "value": "1"},
                     {"name": "API_TOKEN", "value": REDACTED},
