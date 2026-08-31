@@ -54,31 +54,54 @@
   semantic digest `sha256:a7db541ae2daa0c19365f80c1bdbe5090049c86b423000fdf9b6f8e85a857a48`.
   The same public projection compared 16 units, 6 targets, and 14 field groups with zero mismatch,
   checkout leak, or raw `argv`/`command` exposure.
-- These are local/candidate measurements; the remote PR/main evidence is recorded separately below,
-  while public release completion is not yet claimed.
+- These are local/candidate measurements; the exact remote PR, main, release, and public artifact
+  evidence is recorded below. The only remaining I3-5 edge is same-basename active-header
+  confirmation against a real compiler trace.
 
 ### Remote evidence
-- Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110) from head
-  [`3ce564a`](https://github.com/jihoon22-lee/ici/commit/3ce564a) was merged as
-  [`6b44f32869944a0941cab63eb94489b92c543a58`](https://github.com/jihoon22-lee/ici/commit/6b44f32869944a0941cab63eb94489b92c543a58).
-  [CI run 33448847117](https://github.com/jihoon22-lee/ici/actions/runs/33448847117) completed all
-  required checks, including `Merge Gate`. The [sticky comment](https://github.com/jihoon22-lee/ici/pull/110#issuecomment-5485964934)
-  records marker 1 and two report links.
-- Independent PR [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/110/) and
-  [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/110/) returned HTTP 200
-  `text/html`, the expected titles, and zero external references. The ici report was 5,690,362
-  bytes with SHA-256 `fbda099830ee7f0505b76b410963e2531904ea199e36e0292953d2cf73f45014`; the
-  viewer report was 345,176 bytes with SHA-256
-  `cff8fdc355bf09a5fcceda0f4c1715988b693a2b61f6fac23641dd3d6a6ea115`.
-- The exact main commit [`6b44f32869944a0941cab63eb94489b92c543a58`](https://github.com/jihoon22-lee/ici/commit/6b44f32869944a0941cab63eb94489b92c543a58)
-  passed [CI run 33449333028](https://github.com/jihoon22-lee/ici/actions/runs/33449333028), including
-  `Merge Gate` and `Publish Main`. Independent [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/)
-  and [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) returned HTTP 200
-  `text/html`, the expected titles, and zero external references: ici 5,690,362 bytes with
-  SHA-256 `99445ff8da2458d6bd5d861d63ae9318db374dfbc60a66bc6cc60ff5cc05894d`, and viewer 345,176
-  bytes with SHA-256 `4626e354eba2638e07c3c6a254e4ae5cb95291a86c13f4bebe92bef1d892696d`.
-- The release PR, tag, and assets remain pending. The same-basename active-header comparison also
-  remains pending.
+- Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110) from head `3ce564a` was merged as
+  `6b44f32869944a0941cab63eb94489b92c543a58`. [CI run 33448847117](https://github.com/jihoon22-lee/ici/actions/runs/33448847117)
+  completed every required check and `Merge Gate`; its sticky comment retained one marker and two
+  report links. Independent PR ici/viewer Pages returned HTTP 200 `text/html`, the expected titles,
+  and zero external resource references.
+- Release [PR #111](https://github.com/jihoon22-lee/ici/pull/111) from head
+  [`13d870f`](https://github.com/jihoon22-lee/ici/commit/13d870f6bd8c6bd9ddc89b703e40b1d22b7567f4) was
+  merged as exact main commit
+  [`27574109e0f3fc24d6e96eca05bfded4e041d3fa`](https://github.com/jihoon22-lee/ici/commit/27574109e0f3fc24d6e96eca05bfded4e041d3fa).
+  [PR CI run 33450379770](https://github.com/jihoon22-lee/ici/actions/runs/33450379770) completed all
+  jobs green, and the [sticky comment](https://github.com/jihoon22-lee/ici/pull/111#issuecomment-5486185531)
+  records marker 1 and two report links. Independent [PR ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/111/)
+  and [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/111/) returned HTTP 200 `text/html`,
+  the correct titles, and zero external references: ici 5,690,362 bytes with SHA-256
+  `862c72443ca80040e0bc4524d31c5f5f7e8adb26292faf665f125ce09a9e53af`, viewer 345,176 bytes with
+  SHA-256 `e6c86558ce00666e8151c1b4020abd26115f3dd6846dca06b275d5b7b75366ff`.
+- The exact main commit `27574109e0f3fc24d6e96eca05bfded4e041d3fa` passed [CI run 33450906375](https://github.com/jihoon22-lee/ici/actions/runs/33450906375)
+  all green, including `Merge Gate` and `Publish Main`. Independent [main ici Pages](https://jihoon22-lee.github.io/ici/ici/main/)
+  and [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/main/) retained HTTP 200 `text/html`,
+  the correct titles, zero external references, and the recorded hashes: ici 5,690,362 bytes with
+  SHA-256 `99445ff8da2458d6bd5d861d63ae9318db374dfbc60a66bc6cc60ff5cc05894d`, viewer 345,176 bytes
+  with SHA-256 `4626e354eba2638e07c3c6a254e4ae5cb95291a86c13f4bebe92bef1d892696d`.
+- The annotated [`v0.8.0` tag](https://github.com/jihoon22-lee/ici/releases/tag/v0.8.0) resolves exactly
+  to the main SHA above. [Release run 33451310453](https://github.com/jihoon22-lee/ici/actions/runs/33451310453)
+  completed both `Validate Release Provenance` and `Build & Publish Release` green. The published
+  release is non-draft/non-prerelease and has exactly nine assets: `ici.pyz`, `ici.pyz.sha256`,
+  `ici-self-report.html`, `ici-self-report.json`, `viewer-report.html`, `viewer-report.json`,
+  `icirv`, `icirv-gui`, and `icirv-gui.README.txt`.
+- The downloaded `ici.pyz` reports version `0.8.0`; `sha256sum --check ici.pyz.sha256` passed and
+  matched the GitHub API digest `sha256:bb723a30b0ed07936fcf81c7e2b4425832fd86210286b0e6b1b619e1b434142e`.
+  Release `ici-self-report.html` and `viewer-report.html` have SHA-256
+  `ccfbb3709864c7bf578a0635d66a63b82448304aefd616e1b57a3d9d59038539` and
+  `6ee8d2e5b29453155af5e84323a8d829c1bcb3be80c345ab6d99d27b6560412a`, respectively; both have
+  the correct titles and zero external references, and both JSON reports are valid.
+- Public v0.8.0 BuildScope verification was WARN (Pass 11, Warn 2; tests 45/45; TEM 5.00); its
+  HTML was SHA-256 `567957be0fcf978d756116262b4075f1655050902227b0b9d1428fe7a1080b6b`. Public
+  export SHA-256 was `f1d7e1297c773f55777d939a552c11f300a5f59652839f59495037ac227e83d`, semantic
+  digest `sha256:68f86ddf572ba781573f24d8a7319c6abd0f606b980ea1594e9f0616da71e95f`, and native v2
+  snapshot SHA-256 `085f70450cd89171d3fd4011d35ccc35e8658ab5308b64e398ea0b0793c45d8a`. Schema
+  validation passed; the public projection compared 16 units, 6 targets, and 14 field groups with
+  zero mismatch, checkout leak, or raw `argv`/`command` keys.
+- The release and public artifact evidence is complete; only the same-basename active-header edge
+  comparison against a real compiler trace remains pending for I3-5.
 
 ## [0.7.1] - 2026-09-01
 
