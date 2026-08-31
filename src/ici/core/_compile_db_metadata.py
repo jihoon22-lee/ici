@@ -100,6 +100,13 @@ def _looks_like_option(value: str) -> bool:
     return value == "--" or (value.startswith("-") and value != "-")
 
 
+def _msvc_standard_value(token: str) -> str | None:
+    prefix = "/std:"
+    if not token.casefold().startswith(prefix):
+        return None
+    return token[len(prefix) :]
+
+
 def _extract_standard(argv: tuple[str, ...]) -> tuple[str, list[CompilationDiagnostic]]:
     standard = ""
     diagnostics: list[CompilationDiagnostic] = []
@@ -107,18 +114,14 @@ def _extract_standard(argv: tuple[str, ...]) -> tuple[str, list[CompilationDiagn
     while index < len(argv):
         if argv[index] == "--":
             break
-        if _uses_msvc(argv):
-            token = argv[index]
-            if token.casefold().startswith("/std:"):
-                msvc_value = token.split(":", 1)[1]
-                if msvc_value:
-                    standard = msvc_value
-                else:
-                    diagnostics.append(
-                        _diagnostic("missing-flag-value", "The /std flag has no value.")
-                    )
-                index += 1
-                continue
+        msvc_value = _msvc_standard_value(argv[index]) if _uses_msvc(argv) else None
+        if msvc_value is not None:
+            if msvc_value:
+                standard = msvc_value
+            else:
+                diagnostics.append(_diagnostic("missing-flag-value", "The /std flag has no value."))
+            index += 1
+            continue
         standard_value, next_index = _option_value(argv, index, "-std", joined=True)
         if standard_value is None:
             diagnostics.append(_diagnostic("missing-flag-value", "The -std flag has no value."))
@@ -192,6 +195,19 @@ def _append_define(
         diagnostics.append(diagnostic)
 
 
+def _record_define_value(
+    value: str | None,
+    option: str,
+    definitions: list[CompilationDefine],
+    diagnostics: list[CompilationDiagnostic],
+) -> None:
+    if value is None:
+        diagnostics.append(_diagnostic("missing-flag-value", f"The {option} flag has no value."))
+        return
+    if value:
+        _append_define(value, definitions, diagnostics)
+
+
 def _extract_defines(
     argv: tuple[str, ...],
 ) -> tuple[tuple[CompilationDefine, ...], list[CompilationDiagnostic]]:
@@ -201,24 +217,60 @@ def _extract_defines(
     while index < len(argv):
         if argv[index] == "--":
             break
-        if _uses_msvc(argv):
-            matched = _msvc_option_value(argv, index, "/D")
-            if matched is not None:
-                value, index = matched
-                if value is None:
-                    diagnostics.append(
-                        _diagnostic("missing-flag-value", "The /D flag has no value.")
-                    )
-                else:
-                    _append_define(value, definitions, diagnostics)
-                continue
+        matched = _msvc_option_value(argv, index, "/D") if _uses_msvc(argv) else None
+        if matched is not None:
+            value, index = matched
+            _record_define_value(value, "/D", definitions, diagnostics)
+            continue
         value, next_index = _option_value(argv, index, "-D", joined=True)
-        if value is None:
-            diagnostics.append(_diagnostic("missing-flag-value", "The -D flag has no value."))
-        elif value:
-            _append_define(value, definitions, diagnostics)
+        _record_define_value(value, "-D", definitions, diagnostics)
         index = next_index
     return tuple(definitions), diagnostics
+
+
+def _match_msvc_include(
+    argv: tuple[str, ...], index: int
+) -> tuple[str, str, str | None, int] | None:
+    for option, kind in (("/external:I", "system"), ("/I", "include")):
+        matched = _msvc_option_value(argv, index, option)
+        if matched is not None:
+            value, next_index = matched
+            return option, kind, value, next_index
+    return None
+
+
+def _match_posix_include(
+    argv: tuple[str, ...], index: int
+) -> tuple[str, str, str | None, int] | None:
+    for option, kind in (("-I", "include"), ("-isystem", "system"), ("-iquote", "quote")):
+        value, next_index = _option_value(argv, index, option, joined=True)
+        if value != "":
+            return option, kind, value, next_index
+    return None
+
+
+def _record_include_value(
+    value: str | None,
+    option: str,
+    kind: str,
+    root: Path,
+    directory: Path,
+    paths: list[CompilationSearchPath],
+    diagnostics: list[CompilationDiagnostic],
+) -> None:
+    if value is None:
+        diagnostics.append(_diagnostic("missing-flag-value", f"The {option} flag has no value."))
+        return
+    path, scope, resolved = _scoped_path(root, directory, value)
+    exists = _is_dir(resolved)
+    paths.append(CompilationSearchPath(path=path, kind=kind, scope=scope, exists=exists))
+    if not exists:
+        diagnostics.append(
+            _diagnostic(
+                "missing-include-dir",
+                "A configured compiler include directory does not exist.",
+            )
+        )
 
 
 def _extract_includes(
@@ -226,64 +278,17 @@ def _extract_includes(
 ) -> tuple[tuple[CompilationSearchPath, ...], list[CompilationDiagnostic]]:
     paths: list[CompilationSearchPath] = []
     diagnostics: list[CompilationDiagnostic] = []
-    options = (("-I", "include", True), ("-isystem", "system", True), ("-iquote", "quote", True))
     index = 1
     while index < len(argv):
         if argv[index] == "--":
             break
-        if _uses_msvc(argv):
-            matched_msvc = False
-            for option, kind in (("/external:I", "system"), ("/I", "include")):
-                matched_value = _msvc_option_value(argv, index, option)
-                if matched_value is None:
-                    continue
-                value, index = matched_value
-                matched_msvc = True
-                if value is None:
-                    diagnostics.append(
-                        _diagnostic("missing-flag-value", f"The {option} flag has no value.")
-                    )
-                    break
-                path, scope, resolved = _scoped_path(root, directory, value)
-                exists = _is_dir(resolved)
-                paths.append(
-                    CompilationSearchPath(path=path, kind=kind, scope=scope, exists=exists)
-                )
-                if not exists:
-                    diagnostics.append(
-                        _diagnostic(
-                            "missing-include-dir",
-                            "A configured compiler include directory does not exist.",
-                        )
-                    )
-                break
-            if matched_msvc:
-                continue
-        matched = False
-        for option, kind, joined in options:
-            value, next_index = _option_value(argv, index, option, joined=joined)
-            if value == "":
-                continue
-            matched = True
-            index = next_index
-            if value is None:
-                diagnostics.append(
-                    _diagnostic("missing-flag-value", f"The {option} flag has no value.")
-                )
-                break
-            path, scope, resolved = _scoped_path(root, directory, value)
-            exists = _is_dir(resolved)
-            paths.append(CompilationSearchPath(path=path, kind=kind, scope=scope, exists=exists))
-            if not exists:
-                diagnostics.append(
-                    _diagnostic(
-                        "missing-include-dir",
-                        "A configured compiler include directory does not exist.",
-                    )
-                )
-            break
-        if not matched:
+        matched = _match_msvc_include(argv, index) if _uses_msvc(argv) else None
+        matched = matched or _match_posix_include(argv, index)
+        if matched is None:
             index += 1
+            continue
+        option, kind, value, index = matched
+        _record_include_value(value, option, kind, root, directory, paths, diagnostics)
     return tuple(paths), diagnostics
 
 
@@ -323,24 +328,27 @@ def _argv_output(argv: tuple[str, ...]) -> tuple[str, list[CompilationDiagnostic
     while index < len(argv):
         if argv[index] == "--":
             break
-        if _uses_msvc(argv):
-            matched = _msvc_option_value(argv, index, "/Fo")
-            if matched is not None:
-                value, index = matched
-                if value is None:
-                    diagnostics.append(
-                        _diagnostic("missing-flag-value", "The /Fo flag has no value.")
-                    )
-                elif value:
-                    output = value
-                continue
+        matched = _msvc_option_value(argv, index, "/Fo") if _uses_msvc(argv) else None
+        if matched is not None:
+            value, index = matched
+            output = _record_output_value(value, "/Fo", output, diagnostics)
+            continue
         value, next_index = _option_value(argv, index, "-o", joined=True)
-        if value is None:
-            diagnostics.append(_diagnostic("missing-flag-value", "The -o flag has no value."))
-        elif value:
-            output = value
+        output = _record_output_value(value, "-o", output, diagnostics)
         index = next_index
     return output, diagnostics
+
+
+def _record_output_value(
+    value: str | None,
+    option: str,
+    current: str,
+    diagnostics: list[CompilationDiagnostic],
+) -> str:
+    if value is None:
+        diagnostics.append(_diagnostic("missing-flag-value", f"The {option} flag has no value."))
+        return current
+    return value or current
 
 
 def _normalize_output(
