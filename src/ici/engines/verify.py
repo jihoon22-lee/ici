@@ -33,7 +33,6 @@ from ici.core.pipeline import (
     apply_analysis_profile,
     descriptors_for_profile,
 )
-from ici.core.redaction import redact_suite
 from ici.core.support import ENGINE_NAMES, evaluate_support_matrix  # noqa: F401
 from ici.engines.cognitive import CognitiveEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.complexity import ComplexityEngine  # noqa: F401 - dynamic descriptor factory
@@ -277,10 +276,6 @@ class VerifyOrchestrator:
             analysis_context=reporting_context,
         )
         self._apply_baseline(suite, metadata, baseline_path, fail_on_new)
-        # All reporters share one sanitized suite. This prevents a secret in an
-        # engine diagnostic from leaking through a non-JSON output path.
-        suite = redact_suite(suite)
-
         self._write_baseline(suite, write_baseline, baseline_path)
 
         # 1. Terminal Console Report
