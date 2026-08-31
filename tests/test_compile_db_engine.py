@@ -183,6 +183,6 @@ def test_duplicate_source_configurations_are_inspected_independently(tmp_path: P
 
     assert result.extra["configurations"] == 2
     assert result.extra["covered_units"] == 1
-    assert [target.status for target in result.targets if target.target_name.endswith("coverage")] == [
-        EngineStatus.PASS
-    ]
+    assert [
+        target.status for target in result.targets if target.target_name.endswith("coverage")
+    ] == [EngineStatus.PASS]
