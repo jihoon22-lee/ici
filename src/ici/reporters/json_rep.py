@@ -9,7 +9,7 @@ import os
 import re
 import tempfile
 from contextlib import suppress
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from typing import Any
 
 from ici.core.capabilities import serialize_capability_inventory
@@ -34,20 +34,20 @@ from ici.core.models import (
     ToolEvidence,
     VerificationSuiteResult,
 )
-from ici.core.redaction import redact_engine_result, redact_suite
+from ici.core.redaction import (
+    _redact_compilation_argv,
+    _redact_compilation_path,
+    redact_engine_result,
+    redact_suite,
+)
 from ici.core.redaction_values import REDACTED, redact_text
 
 RESULT_SCHEMA_VERSION = "ici.result/v3"
 LEGACY_RESULT_SCHEMA_VERSION = "ici.result/v2"
 _SHA256_RE = re.compile(r"sha256:[0-9a-f]{64}")
-_SECRET_COMPILE_FLAGS = frozenset(
-    {"--api-key", "--api_key", "--password", "--passwd", "--secret", "--token"}
-)
 _SECRET_DEFINE_RE = re.compile(
     r"(?i)(?:password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)"
 )
-_COMPILE_PATH_FLAGS = frozenset({"-I", "-isystem", "-iquote", "--sysroot", "-isysroot", "-o"})
-_COMPILE_PATH_PREFIXES = ("--sysroot=", "-isystem", "-iquote", "-isysroot", "-I", "-o")
 
 
 def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
@@ -83,78 +83,27 @@ def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
     }
 
 
-def _report_include_flag(flag: str, project_root: Path) -> str:
-    if not flag.startswith("-I") or len(flag) == 2:
-        return flag
-    path = Path(flag[2:])
-    if not path.is_absolute():
-        return flag
-    try:
-        return "-I" + path.resolve(strict=False).relative_to(project_root).as_posix()
-    except (OSError, RuntimeError, ValueError):
-        return "-I[external]"
-
-
 def _report_compilation_path(value: str, project_root: Path) -> str:
-    if not value:
-        return value
-    path = Path(value)
-    if not path.is_absolute() and not PureWindowsPath(value).is_absolute():
-        return redact_text(value)
-    if PureWindowsPath(value).is_absolute() and not path.is_absolute():
-        return "[external]"
-    try:
-        return path.resolve(strict=False).relative_to(project_root).as_posix() or "."
-    except (OSError, RuntimeError, ValueError):
-        return "[external]"
+    return _redact_compilation_path(value, project_root)
 
 
 def _report_compilation_argv(argv: tuple[str, ...], project_root: Path) -> list[str]:
-    reported: list[str] = []
-    redact_next = False
-    path_next = False
-    for token in argv:
-        if redact_next:
-            reported.append(REDACTED)
-            redact_next = False
-            continue
-        if path_next:
-            reported.append(_report_compilation_path(token, project_root))
-            path_next = False
-            continue
-        safe = redact_text(token)
-        lowered = token.casefold()
-        if lowered in _SECRET_COMPILE_FLAGS:
-            reported.append(safe)
-            redact_next = True
-            continue
-        if token in _COMPILE_PATH_FLAGS:
-            reported.append(safe)
-            path_next = True
-            continue
-        attached = next(
-            (
-                prefix
-                for prefix in _COMPILE_PATH_PREFIXES
-                if token.startswith(prefix) and len(token) > len(prefix)
-            ),
-            None,
-        )
-        if attached is not None:
-            value = token[len(attached) :]
-            reported.append(attached + _report_compilation_path(value, project_root))
-            continue
-        reported.append(_report_compilation_path(safe, project_root))
-    return reported
+    return list(_redact_compilation_argv(argv, project_root))
 
 
-def _serialize_compilation_diagnostic(diagnostic: Any) -> dict[str, Any]:
+def _serialize_compilation_diagnostic(
+    diagnostic: Any, project_root: Path | None = None
+) -> dict[str, Any]:
     return {
         "code": redact_text(diagnostic.code),
         "message": redact_text(diagnostic.message),
         "level": diagnostic.level,
         "entry_index": diagnostic.entry_index,
-        "source": diagnostic.source,
+        "source": (
+            _report_compilation_path(diagnostic.source, project_root)
+            if project_root is not None
+            else redact_text(diagnostic.source)
+        ),
     }
 
 
@@ -166,35 +115,29 @@ def _serialize_compilation_unit(unit: Any, project_root: Path) -> dict[str, Any]
             value = REDACTED if _SECRET_DEFINE_RE.search(definition.name) else redact_text(value)
         definitions.append({"name": redact_text(definition.name), "value": value})
     return {
-        "source": unit.source,
-        "directory": unit.directory,
+        "source": _report_compilation_path(unit.source, project_root),
+        "directory": _report_compilation_path(unit.directory, project_root),
         "argv": _report_compilation_argv(unit.argv, project_root),
-        "output": unit.output,
+        "output": _report_compilation_path(unit.output, project_root),
         "compiler": redact_text(unit.compiler),
         "language": unit.language,
         "standard": redact_text(unit.standard),
         "defines": definitions,
         "include_paths": [
             {
-                "path": (
-                    item.path
-                    if item.scope == "project"
-                    else _report_compilation_path(item.path, project_root)
-                ),
+                "path": _report_compilation_path(item.path, project_root),
                 "kind": item.kind,
                 "scope": item.scope,
                 "exists": item.exists,
             }
             for item in unit.include_paths
         ],
-        "sysroot": (
-            unit.sysroot
-            if unit.sysroot_scope in {"", "project"}
-            else _report_compilation_path(unit.sysroot, project_root)
-        ),
+        "sysroot": _report_compilation_path(unit.sysroot, project_root),
         "sysroot_scope": unit.sysroot_scope,
         "configuration": unit.configuration,
-        "diagnostics": [_serialize_compilation_diagnostic(item) for item in unit.diagnostics],
+        "diagnostics": [
+            _serialize_compilation_diagnostic(item, project_root) for item in unit.diagnostics
+        ],
     }
 
 
@@ -203,12 +146,15 @@ def _serialize_analysis_context(context: AnalysisContext | None) -> dict[str, An
         return None
     project = context.project
     compilation = {
-        "database_path": context.compilation.database_path,
+        "database_path": _report_compilation_path(context.compilation.database_path, project.root)
+        if context.compilation.database_path is not None
+        else None,
         "units": [
             _serialize_compilation_unit(unit, project.root) for unit in context.compilation.units
         ],
         "diagnostics": [
-            _serialize_compilation_diagnostic(item) for item in context.compilation.diagnostics
+            _serialize_compilation_diagnostic(item, project.root)
+            for item in context.compilation.diagnostics
         ],
     }
     if context.compilation.database_digest:
@@ -232,9 +178,9 @@ def _serialize_analysis_context(context: AnalysisContext | None) -> dict[str, An
             "cpp_headers": list(project.cpp_headers),
             "compilable_cpp_sources": list(project.compilable_cpp_sources),
             "external_cpp_dirs": list(project.external_cpp_dirs),
-            "cpp_include_flags": [
-                _report_include_flag(flag, project.root) for flag in project.cpp_include_flags
-            ],
+            "cpp_include_flags": _report_compilation_argv(
+                tuple(project.cpp_include_flags), project.root
+            ),
             "backend": project.backend,
             "backend_descriptor": project.backend_descriptor,
             "backend_reason": project.backend_reason,

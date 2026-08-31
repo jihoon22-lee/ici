@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +25,7 @@ from ici.core.context import (
     canonical_digest,
 )
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
-from ici.core.redaction import redact_suite
+from ici.core.redaction import _redact_compilation_argv, redact_suite
 from ici.core.redaction_values import REDACTED
 from ici.reporters.json_rep import (
     migrate_report_payload,
@@ -370,6 +370,81 @@ def test_redaction_and_serializers_preserve_context_identity_without_aliasing_ou
     assert context.project.name == "reporting-fixture"
     assert context.manifests[0].artifacts[0].path == "dist/a.bin"
     assert suite.analysis_context is context
+
+
+def test_compilation_path_redaction_covers_embedded_flags_and_include_flags(
+    tmp_path: Path,
+) -> None:
+    suite, context, _manifest_value = _suite_fixture(tmp_path)
+    external = "/private/ici-redaction/toolchain/include"
+    windows_external = r"C:\Users\alice\ici-redaction\flags.rsp"
+    unit = context.compilation.units[0]
+    unit = replace(
+        unit,
+        argv=(
+            "clang++",
+            f"-fmodule-file={external}/module.pcm",
+            f"-B{external}/bin",
+            f"-L{external}/lib",
+            f"-Wl,-rpath,{external}/lib",
+            f"-Wl,-rpath={external}/lib",
+            f"-DROOT={external}/generated.hpp",
+            "-include",
+            f"{external}/prefix.hpp",
+            f"-include-pch={external}/prefix.pch",
+            f"@{windows_external}",
+        ),
+    )
+    project = replace(
+        context.project,
+        cpp_include_flags=(
+            "-isystem",
+            f"{external}/system",
+            f"-I{external}/project",
+            "-isystem",
+            windows_external,
+        ),
+    )
+    compilation = replace(context.compilation, units=(unit,))
+    updated_context = replace(context, project=project, compilation=compilation)
+    updated_suite = replace(suite, analysis_context=updated_context)
+
+    safe_argv = _redact_compilation_argv(unit.argv, tmp_path)
+    assert safe_argv == (
+        "clang++",
+        "-fmodule-file=[external]",
+        "-B[external]",
+        "-L[external]",
+        "-Wl,-rpath,[external]",
+        "-Wl,-rpath=[external]",
+        "-DROOT=[external]",
+        "-include",
+        "[external]",
+        "-include-pch=[external]",
+        "@[external]",
+    )
+    safe_include_flags = _redact_compilation_argv(project.cpp_include_flags, tmp_path)
+    assert safe_include_flags == (
+        "-isystem",
+        "[external]",
+        "-I[external]",
+        "-isystem",
+        "[external]",
+    )
+
+    payload = serialize_suite_result(updated_suite)
+    encoded = json.dumps(payload, ensure_ascii=False)
+    assert external not in encoded
+    assert windows_external not in encoded
+    serialized = payload["analysis_context"]
+    assert serialized["compilation"]["units"][0]["argv"] == list(safe_argv)
+    assert serialized["project"]["cpp_include_flags"] == [
+        "-isystem",
+        "[external]",
+        "-I[external]",
+        "-isystem",
+        "[external]",
+    ]
 
 
 def test_existing_v3_payload_without_context_extensions_remains_loadable(tmp_path: Path) -> None:
