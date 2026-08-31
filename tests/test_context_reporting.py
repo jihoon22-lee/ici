@@ -17,12 +17,16 @@ from ici.core.context import (
     ArtifactScope,
     BuildVariant,
     CompilationContext,
+    CompilationDefine,
+    CompilationDiagnostic,
+    CompilationSearchPath,
     CompilationUnit,
     ProjectModel,
     canonical_digest,
 )
 from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
 from ici.core.redaction import redact_suite
+from ici.core.redaction_values import REDACTED
 from ici.reporters.json_rep import (
     migrate_report_payload,
     serialize_engine_result,
@@ -98,11 +102,52 @@ def _context_fixture(tmp_path: Path) -> tuple[AnalysisContext, ArtifactManifest]
                 CompilationUnit(
                     source="src/main.cpp",
                     directory=".",
-                    argv=("g++", "-Iinclude", "-c", "src/main.cpp"),
+                    argv=(
+                        str(tmp_path / "toolchain" / "g++"),
+                        f"-I{tmp_path / 'include'}",
+                        "-isystem",
+                        "/opt/vendor/include",
+                        "-DAPI_TOKEN=secret-value",
+                        "--token",
+                        "another-secret",
+                        "-c",
+                        str(tmp_path / "src" / "main.cpp"),
+                    ),
                     output="build/main.o",
+                    compiler="g++",
+                    language="c++",
+                    standard="c++20",
+                    defines=(
+                        CompilationDefine("NAME", "1"),
+                        CompilationDefine("API_TOKEN", "secret-value"),
+                    ),
+                    include_paths=(
+                        CompilationSearchPath("include", "include", "project", True),
+                        CompilationSearchPath("/opt/vendor/include", "system", "external", True),
+                    ),
+                    sysroot="/opt/vendor/sysroot",
+                    sysroot_scope="external",
+                    configuration="sha256:" + "d" * 64,
+                    diagnostics=(
+                        CompilationDiagnostic(
+                            "missing-include-dir",
+                            "A configured compiler include directory does not exist.",
+                            entry_index=0,
+                            source="src/main.cpp",
+                        ),
+                    ),
                 ),
             ),
             database_path="build/compile_commands.json",
+            database_digest="sha256:" + "e" * 64,
+            diagnostics=(
+                CompilationDiagnostic(
+                    "invalid-entry",
+                    "A compilation database entry is not an object.",
+                    level="error",
+                    entry_index=1,
+                ),
+            ),
         ),
         requested_variants=(BuildVariant.SANITIZE, BuildVariant.COVERAGE),
         manifests=(manifest,),
@@ -174,12 +219,65 @@ def test_suite_serializes_context_as_relative_facts_with_all_identity_provenance
     }
     assert serialized["compilation"] == {
         "database_path": "build/compile_commands.json",
+        "database_digest": "sha256:" + "e" * 64,
+        "diagnostics": [
+            {
+                "code": "invalid-entry",
+                "message": "A compilation database entry is not an object.",
+                "level": "error",
+                "entry_index": 1,
+                "source": "",
+            }
+        ],
         "units": [
             {
                 "source": "src/main.cpp",
                 "directory": ".",
-                "argv": ["g++", "-Iinclude", "-c", "src/main.cpp"],
+                "argv": [
+                    "[external]",
+                    "-Iinclude",
+                    "-isystem",
+                    "[external]",
+                    f"-DAPI_TOKEN={REDACTED}",
+                    "--token",
+                    REDACTED,
+                    "-c",
+                    "src/main.cpp",
+                ],
                 "output": "build/main.o",
+                "compiler": "g++",
+                "language": "c++",
+                "standard": "c++20",
+                "defines": [
+                    {"name": "NAME", "value": "1"},
+                    {"name": "API_TOKEN", "value": REDACTED},
+                ],
+                "include_paths": [
+                    {
+                        "path": "include",
+                        "kind": "include",
+                        "scope": "project",
+                        "exists": True,
+                    },
+                    {
+                        "path": "[external]",
+                        "kind": "system",
+                        "scope": "external",
+                        "exists": True,
+                    },
+                ],
+                "sysroot": "[external]",
+                "sysroot_scope": "external",
+                "configuration": "sha256:" + "d" * 64,
+                "diagnostics": [
+                    {
+                        "code": "missing-include-dir",
+                        "message": "A configured compiler include directory does not exist.",
+                        "level": "warning",
+                        "entry_index": 0,
+                        "source": "src/main.cpp",
+                    }
+                ],
             }
         ],
     }
@@ -284,6 +382,22 @@ def test_context_profile_is_optional_for_legacy_v3_payloads(tmp_path: Path) -> N
     assert "profile" not in migrated["analysis_context"]
 
 
+def test_legacy_compilation_unit_shape_remains_loadable(tmp_path: Path) -> None:
+    suite, _context, _manifest_value = _suite_fixture(tmp_path)
+    payload = serialize_suite_result(suite)
+    compilation = payload["analysis_context"]["compilation"]
+    compilation.pop("database_digest")
+    compilation.pop("diagnostics")
+    unit = compilation["units"][0]
+    for key in tuple(unit):
+        if key not in {"source", "directory", "argv", "output"}:
+            unit.pop(key)
+
+    migrated = migrate_report_payload(payload)
+
+    assert migrated["analysis_context"]["compilation"] == compilation
+
+
 def test_checked_in_schema_declares_context_and_manifest_extensions_as_optional() -> None:
     schema_path = (
         Path(__file__).parents[1] / "src" / "ici" / "schemas" / "ici-result-v3.schema.json"
@@ -306,5 +420,21 @@ def test_checked_in_schema_declares_context_and_manifest_extensions_as_optional(
         "enum": ["fast", "standard", "deep"],
     }
     assert "profile" not in context_definition["required"]
+    compilation = context_definition["properties"]["compilation"]
+    assert "database_digest" not in compilation["required"]
+    assert "diagnostics" not in compilation["required"]
+    unit = compilation["properties"]["units"]["items"]
+    assert unit["required"] == ["source", "directory", "argv", "output"]
+    assert {
+        "compiler",
+        "language",
+        "standard",
+        "defines",
+        "include_paths",
+        "sysroot",
+        "sysroot_scope",
+        "configuration",
+        "diagnostics",
+    } <= set(unit["properties"])
     manifest_definition = schema["$defs"]["artifactManifest"]
     assert manifest_definition["properties"]["schema_version"] == {"const": "ici.artifacts/v1"}
