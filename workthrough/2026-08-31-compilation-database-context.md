@@ -193,7 +193,25 @@ compile_db-specific high-complexity / line-threshold / type issues: 0
 
 문서 변경 후 `git diff --check`와 변경 문서의 내부 경로 링크(`README.md`,
 `src/ici/schemas/ici-result-v3.schema.json`, `docs/engine-reference.md`)도 확인했다. 위
-결과는 로컬 증거이며 PR·CI·Pages 증거는 아직 pending이다.
+수치(HTML 4,627,454 bytes, branch 79.6% 등)는 로컬 증거다.
+
+I3-1 원격 병합 증거도 완료됐다. [PR #99](https://github.com/jihoon22-lee/ici/pull/99)는
+squash로 병합되어 commit
+[`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.com/jihoon22-lee/ici/commit/64c4f7b57826e088e9b74b5950c7f3d8091188b9)가
+되었다. [CI run 33380721019](https://github.com/jihoon22-lee/ici/actions/runs/33380721019)의
+`Verify & Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`,
+`Publish PR Report & Sticky Comment`, `Merge Gate`가 모두 SUCCESS였고, PR에서
+`Publish Main`은 expected skipped였다. [sticky comment](https://github.com/jihoon22-lee/ici/pull/99#issuecomment-5476836988)는
+ici와 viewer를 함께 포함했다. CI stats는 ici WARN(Pass 8, Warn 4, Fail 0, Error 0,
+Skip 1, TEM 4.86, tests 1,032, branch 79.7%), viewer WARN(Pass 10, Warn 1, Fail 0,
+Error 0, Skip 2, TEM 4.89, tests 7)였다.
+
+독립적으로 fetch한 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/99/)와
+[viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/99/)는 각각 HTTP/2 200,
+`Content-Type: text/html; charset=utf-8`, title present, 외부
+`script`/`link`/`img`/`iframe` dependency 0건이었다. 관측 bytes는 ici 4,496,996,
+viewer 344,663이었다. 이로써 I3-1은 완료됐으며 다음 단계는 I3-2 CMake compile DB
+생성이다. I3 전체는 아직 완료되지 않았다.
 
 ## Next Steps
 
