@@ -15,6 +15,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from ici.core._build_paths import prepare_owned_shadow, shadow_dir
+from ici.core._qmake_commands import qmake_configure_argv
 from ici.core.backend import (
     BACKEND_CMAKE,
     BACKEND_QMAKE,
@@ -65,6 +66,9 @@ class ConfigureOptions:
     extra_cxx_flags: tuple[str, ...] = ()
     extra_link_flags: tuple[str, ...] = ()
     analysis_database: bool = False
+    qmake_capture_wrapper: str = ""
+    qmake_capture_cxx: str = ""
+    qmake_capture_cc: str = ""
 
     @property
     def coverage(self) -> bool:
@@ -143,15 +147,6 @@ def cmake_test_argv(
         argv.extend(["--output-junit", str(junit)])
         return argv, junit
     return argv, None
-
-
-def qmake_configure_argv(qmake_bin: str, pro_file: Path, options: ConfigureOptions) -> list[str]:
-    """qmake runs with the shadow directory as its cwd; the .pro path is absolute."""
-
-    argv = [qmake_bin, str(pro_file)]
-    argv.extend(f"QMAKE_CXXFLAGS+={flag}" for flag in options.cxx_flags())
-    argv.extend(f"QMAKE_LFLAGS+={flag}" for flag in options.link_flags())
-    return argv
 
 
 def qmake_build_argv(make_bin: str, jobs: int) -> list[str]:
@@ -416,14 +411,14 @@ def _configure_qmake(session: BuildSession, options: ConfigureOptions) -> BuildS
     argv = qmake_configure_argv(qmake_bin, session.root / session.descriptor, options)
     result = run_process(argv, cwd=session.shadow)
     _record(session, "qmake configure", argv, result)
-    if result.returncode != 0:
+    if result.returncode != 0 or result.timed_out or result.truncated:
         _fail(session, f"qmake configure failed: {result.stderr[:200]}")
         return session
     session.configured = True
     return session
 
 
-def build(session: BuildSession) -> bool:
+def build(session: BuildSession, *, env: dict[str, str] | None = None) -> bool:
     """Build the configured tree. Returns False on failure."""
 
     if not session.configured:
@@ -446,7 +441,7 @@ def build(session: BuildSession) -> bool:
         # qmake tree always has a clean target, so make freshness explicit
         # before the parallel build until content-addressed shadows land.
         clean_argv = qmake_clean_argv(make_bin)
-        clean_result = run_process(clean_argv, cwd=session.shadow)
+        clean_result = run_process(clean_argv, cwd=session.shadow, env=env)
         _record(session, "qmake clean", clean_argv, clean_result)
         if clean_result.returncode != 0 or clean_result.timed_out or clean_result.truncated:
             _fail(session, f"qmake clean failed: {clean_result.stderr[:200]}")
@@ -454,7 +449,7 @@ def build(session: BuildSession) -> bool:
         argv = qmake_build_argv(make_bin, os.cpu_count() or 1)
         cwd = session.shadow
 
-    result = run_process(argv, cwd=cwd)
+    result = run_process(argv, cwd=cwd, env=env)
     _record(session, f"{session.backend} build", argv, result)
     if result.returncode != 0 or result.timed_out or result.truncated:
         _fail(session, f"{session.backend} build failed: {result.stderr[:200]}")

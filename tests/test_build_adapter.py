@@ -169,6 +169,61 @@ def test_qmake_configure_injects_coverage(tmp_path):
     assert "QMAKE_LFLAGS+=--coverage" in argv
 
 
+def test_qmake_analysis_configure_adds_recursive_probe_without_capture(tmp_path):
+    pro = tmp_path / "app.pro"
+    options = ConfigureOptions(BuildVariant.RELEASE, analysis_database=True)
+
+    argv = qmake_configure_argv("/usr/bin/qmake6", pro, options)
+
+    assert argv[:3] == ["/usr/bin/qmake6", "-recursive", str(pro)]
+    assert "-after" not in argv
+    assert not any(argument.startswith(("QMAKE_CXX=", "QMAKE_CC=")) for argument in argv)
+
+
+@pytest.mark.parametrize(
+    ("qmake_capture_cxx", "qmake_capture_cc"),
+    [("", "/opt/qt/bin/gcc"), ("/opt/qt/bin/g++", "")],
+    ids=["missing-cxx", "missing-cc"],
+)
+def test_qmake_capture_requires_both_resolved_compiler_tokens(
+    tmp_path, qmake_capture_cxx, qmake_capture_cc
+):
+    options = ConfigureOptions(
+        BuildVariant.RELEASE,
+        analysis_database=True,
+        qmake_capture_wrapper=str(tmp_path / "compiler-wrapper"),
+        qmake_capture_cxx=qmake_capture_cxx,
+        qmake_capture_cc=qmake_capture_cc,
+    )
+
+    with pytest.raises(ValueError, match=r"resolved C and C\+\+ compilers"):
+        qmake_configure_argv("/usr/bin/qmake6", tmp_path / "app.pro", options)
+
+
+def test_qmake_capture_argv_uses_after_with_literal_compiler_tokens(tmp_path):
+    pro = tmp_path / "app.pro"
+    wrapper = tmp_path / "compiler-wrapper"
+    resolved_cxx = "/opt/qt/bin/g++"
+    resolved_cc = "/opt/qt/bin/gcc"
+    options = ConfigureOptions(
+        BuildVariant.RELEASE,
+        analysis_database=True,
+        qmake_capture_wrapper=str(wrapper),
+        qmake_capture_cxx=resolved_cxx,
+        qmake_capture_cc=resolved_cc,
+    )
+
+    argv = qmake_configure_argv("/usr/bin/qmake6", pro, options)
+
+    after = argv.index("-after")
+    assert argv[:3] == ["/usr/bin/qmake6", "-recursive", str(pro)]
+    assert argv[after + 1 : after + 3] == [
+        f"QMAKE_CXX={wrapper} {resolved_cxx}",
+        f"QMAKE_CC={wrapper} {resolved_cc}",
+    ]
+    assert "$$" not in " ".join(argv)
+
+
 def test_qmake_build_is_parallel():
     assert qmake_build_argv("/usr/bin/make", 4) == ["/usr/bin/make", "--jobs=4"]
 
@@ -221,6 +276,68 @@ def test_qmake_build_cleans_shadow_before_parallel_build(tmp_path, monkeypatch):
     assert [cwd for _argv, cwd in calls] == [shadow, shadow, shadow]
     assert calls[1][0] == ["/usr/bin/make", "clean"]
     assert any("clean" in evidence.name for evidence in session.tool_evidence)
+
+
+def test_qmake_build_passes_environment_to_clean_and_build(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-qmake"
+    shadow.mkdir(parents=True)
+    calls: list[tuple[list[str], object]] = []
+    monkeypatch.setattr(
+        cmake_mod.shutil,
+        "which",
+        lambda name: "/usr/bin/make" if name == "make" else None,
+    )
+    monkeypatch.setattr(cmake_mod.os, "cpu_count", lambda: 1)
+
+    def _run(argv, **kwargs):
+        calls.append((argv, kwargs.get("env")))
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+    session = BuildSession(
+        root=tmp_path,
+        shadow=shadow,
+        backend=BACKEND_QMAKE,
+        configured=True,
+    )
+    environment = {"ICI_QMAKE_CAPTURE_PATH": str(tmp_path / "capture.jsonl")}
+
+    assert build(session, env=environment) is True
+
+    assert [argv for argv, _env in calls] == [
+        ["/usr/bin/make", "clean"],
+        ["/usr/bin/make", "--jobs=1"],
+    ]
+    assert [env for _argv, env in calls] == [environment, environment]
+
+
+@pytest.mark.parametrize("incomplete_field", ["timed_out", "truncated"])
+def test_qmake_configure_rejects_incomplete_process_result(tmp_path, monkeypatch, incomplete_field):
+    pro = tmp_path / "app.pro"
+    pro.write_text("TEMPLATE = app\n", encoding="utf-8")
+    shadow = tmp_path / "build" / "ici-qmake"
+    shadow.mkdir(parents=True)
+    monkeypatch.setattr(
+        cmake_mod.shutil,
+        "which",
+        lambda name: "/usr/bin/qmake6" if name == "qmake6" else None,
+    )
+    result = ProcessResult(0, "", "", 0.01, **{incomplete_field: True})
+    monkeypatch.setattr(cmake_mod, "run_process", lambda *_args, **_kwargs: result)
+    session = BuildSession(
+        root=tmp_path,
+        shadow=shadow,
+        backend=BACKEND_QMAKE,
+        descriptor="app.pro",
+    )
+
+    configured = cmake_mod._configure_qmake(session, ConfigureOptions(BuildVariant.RELEASE))
+
+    assert configured is session
+    assert session.configured is False
+    assert any(error.startswith("qmake configure failed") for error in session.errors)
+    assert len(session.tool_evidence) == 1
+    assert getattr(session.tool_evidence[0], incomplete_field) is True
 
 
 def test_qmake_clean_failure_stops_build_and_is_explicit(tmp_path, monkeypatch):

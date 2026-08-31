@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from ici.config import get_engine_config, load_config
+from ici.core.backend import BACKEND_QMAKE
 from ici.core.baseline import BaselineError, build_analysis_metadata, compare_suite_to_baseline
 from ici.core.cache import (
     AnalysisCache,
@@ -15,7 +16,12 @@ from ici.core.cache import (
 )
 from ici.core.capabilities import collect_capability_inventory, derive_tool_policy
 from ici.core.cmake_context import prepare_cmake_compilation_context
-from ici.core.context import create_analysis_context, discover_project_model
+from ici.core.context import (
+    CompilationContext,
+    ProjectModel,
+    create_analysis_context,
+    discover_project_model,
+)
 from ici.core.models import (
     AnalysisMetadata,
     EngineResult,
@@ -33,6 +39,7 @@ from ici.core.pipeline import (
     apply_analysis_profile,
     descriptors_for_profile,
 )
+from ici.core.qmake_context import prepare_qmake_compilation_context
 from ici.core.support import ENGINE_NAMES, evaluate_support_matrix  # noqa: F401
 from ici.engines.cognitive import CognitiveEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.compile_db import CompileDatabaseEngine  # noqa: F401 - dynamic descriptor factory
@@ -58,6 +65,16 @@ from ici.reporters.markdown import (
     generate_markdown_report,
     write_github_step_summary,
 )
+
+
+def _prepare_compilation_context(
+    project_root: Path,
+    config: dict[str, Any],
+    project: ProjectModel,
+) -> CompilationContext:
+    if project.backend == BACKEND_QMAKE:
+        return prepare_qmake_compilation_context(project_root, config, project)
+    return prepare_cmake_compilation_context(project_root, config, project)
 
 
 class VerifyOrchestrator:
@@ -170,7 +187,7 @@ class VerifyOrchestrator:
             for descriptor in descriptors
             if descriptor.build_variant is not None
         )
-        compilation = prepare_cmake_compilation_context(
+        compilation = _prepare_compilation_context(
             self.project_root,
             effective_config,
             project,

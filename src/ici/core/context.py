@@ -431,6 +431,7 @@ class CompilationContext:
             "configured",
             "discovered",
             "cmake",
+            "qmake",
         }:
             raise ValueError(f"unsupported compilation database origin: {self.origin!r}")
         if not isinstance(self.generator, str) or len(self.generator) > 512:
