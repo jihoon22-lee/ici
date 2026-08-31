@@ -64,6 +64,46 @@
     `VerifyOrchestrator.run_all` complexity from 25 to 26/FAIL; typed dispatch extraction restored
     25/WARN. Moving qmake argv construction into its own module also reduced `cmake.py` from 512
     to 495 code lines, removing the line warning reintroduced by this slice.
+- **I3-4 compiler-backed C++ lint and include graph**: C++ lint now replays every covered
+  translation-unit configuration from the shared compilation context using a sanitized direct
+  GCC/Clang argv selected from the capability inventory. Compile-only/output/dependency options and
+  plugin, wrapper, or other unsafe injection flags are rejected or removed; located diagnostics and
+  PASS targets are preserved. A positive option allowlist is used: unknown or unsafe options fail
+  closed, while only explicitly safe options and values survive replay. Compiler processes receive a
+  minimal replacement environment with closed stdin, so inherited override hooks are not reused.
+  Error-level context/unit diagnostics, context coverage, replay, malformed-output, timeout,
+  truncation, spawn, and unknown nonzero failures are fail-closed `ERROR`/`NOT_RUN` results;
+  warning-level context/unit diagnostics remain located `WARN` targets and, without another error,
+  exact evidence remains `MEASURED`.
+  - C++ cycle analysis runs compiler `-E -H` traces per configuration, records active resolved edges,
+    and counts `project`/`generated`/`system`/`third_party` scopes. Each configuration graph is
+    analyzed independently; only an identical cycle component is deduplicated, and configuration
+    edges are never unioned. When the same component appears in several configurations, their names
+    are retained as report metadata only. Active missing includes are located
+    `CppIncludeUnresolved` warnings; malformed or otherwise untrusted traces fail closed, and no
+    suffix fallback is used when context exists.
+  - Only a genuinely absent database uses a heuristic: lint builds a c++17 command through the same
+    bounded replay adapter and cycle uses unique project path suffix resolution. Fallback lint
+    prefers the ready probed `g++` capability, rejects project-contained/non-canonical drivers and
+    unsafe package/include flags before execution, and still uses a minimal environment with closed
+    stdin. Successful fallback runs are `ESTIMATED`; unavailable or rejected tools and failed runs
+    are `ERROR`/`NOT_RUN`.
+  - Include-trace parsing is isolated in `ici.engines._cpp_include_trace`. Missing-include traces,
+    include-guard trailers, pseudo frames, stale paths, entry count, and depth are bounded and
+    fail-closed without inventing edges.
+    Engine cache identity is `ici.analysis-cache-key/v3` and includes source digests for
+    helper/dependency modules explicitly declared by the engine, including
+    `ici.core._cpp_replay_policy` and `ici.engines._cpp_include_trace` for these C++ engines.
+  - Local source revalidation on 2026-09-01 passed: the focused implementation bundle had 308
+    tests; Python 3.10 full pytest had 1,275 passed in 48.61s; Ruff check passed for all files, Ruff
+    format covered 142 files, mypy passed 83 source files, every new source passed the line gate,
+    and no new helper had a complexity issue. Two final `build-pyz` runs matched at SHA-256
+    `f6c6cfb85f55f41d548b65e9cb921b6b56d005eae838ec873ff7c927eaac2dc2` (2,151,981 bytes), and
+    smoke passed. The packaged pyz deep/no-cache reruns passed for LogLens (12/14 applicable,
+    2 skipped; 12/12 tests; 40 configurations; 21.59s; HTML 443,828 bytes; correct title; zero
+    external assets) and DiskMap (12/14 applicable, 2 skipped; 9/9 tests; 20 configurations;
+    79.74s; HTML 310,558 bytes; correct title; zero external assets). PR/CI/Pages evidence remains
+    pending; I3 as a whole remains pending on the BuildScope comparison.
 - **I3-2 canonical CMake compilation context**: CMake projects without an existing
   compilation database now receive a deterministic Release analysis preflight in
   `build/ici-cmake-build`. Every CMake configure exports `compile_commands.json`;

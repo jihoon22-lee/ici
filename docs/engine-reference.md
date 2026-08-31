@@ -228,14 +228,14 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 | Engine | Python | C++ / Qt |
 |---|---|---|
 | `line` | exact | exact (Qt) |
-| `lint` | tool-backed → heuristic fallback | tool-backed (Qt) |
+| `lint` | tool-backed → heuristic fallback | tool-backed (Qt) → heuristic fallback |
 | `compile_db` | unsupported | exact (Qt) → heuristic fallback |
 | `test` | tool-backed → heuristic fallback | tool-backed (Qt) → heuristic fallback |
 | `type` | tool-backed → heuristic fallback | unsupported |
 | `cognitive` | heuristic | unsupported |
 | `resource` | heuristic | unsupported |
 | `security` | heuristic | unsupported |
-| `cycle` | heuristic | heuristic (Qt) |
+| `cycle` | heuristic | tool-backed (Qt) → heuristic fallback |
 | `complexity` | heuristic | heuristic (Qt) |
 | `sanitize` | tool-backed | tool-backed (Qt) |
 | `dead` | heuristic | unsupported |
@@ -285,13 +285,26 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   사용합니다. `uvx`/`uv run`을 도구 설치로 간주하거나 패키지 해석을 시도하지 않으므로 폐쇄망에서
   실행 시 부작용이 없습니다. `ruff format --check`가 종료 코드 0과 빈 stdout/stderr를 반환하는
   것도 정상 성공으로 인정합니다.
-- **C++**: 발견된 각 `.cpp`/`.cc`/`.cxx`/`.c`에 `g++ -fsyntax-only -std=c++17 -Wall -Wextra`를
-  실행합니다. 소스가 있는데 g++가 없거나 timeout·출력 절단·spawn·비정상 종료·진단 파싱 실패가
-  발생하면 `ERROR`/`NOT_RUN`입니다. 정상적인 `error`/`warning` 진단은 보고된 파일과 라인에
-  `InspectionTarget`으로 남기고 엔진 `mode` 정책을 따릅니다. 위치가 있는 `note:`는 보조
-  진단으로 `WARN`에 남기며, 위치 없는 임의 문맥 줄은 성공으로 삼지 않습니다.
-- 모든 Ruff/g++ 시도는 `ToolEvidence`에 argv, 반환 코드 및 timeout/절단/실패 사유를 남깁니다.
-  종료 코드 2 이상이나 잘못된 성공/진단 출력도 최종 도구 오류 원인을 `error`에 기록합니다.
+- **C++ (정확한 compilation context)**: compilation database/context가 있으면 각 production
+  translation unit의 각 configuration에 저장된 normalized command를 사용합니다. `CapabilityInventory`가
+  확인한 실행 가능한 직접 GCC/Clang driver만 허용하고, source·working directory 경계도 다시
+  검사합니다. replay adapter는 `-c`·출력·dependency 생성 옵션은 제거하고, positive allowlist
+  밖의 option과 plugin/wrapper/toolchain 주입 등 unsafe option은 fail-closed로 거부한 뒤
+  controlled syntax operation을 붙여 실행합니다. inherited override를 배제한 minimal
+  replacement environment와 closed stdin을 사용합니다. 위치가 있는 `error`/`warning`/`note:`
+  진단과 PASS target은 원래 파일·라인에 보존하며, error-level context/unit diagnostic만
+  `ERROR`/`NOT_RUN`으로 닫습니다. warning-level diagnostic은 위치 있는 `WARN`/`MEASURED`로
+  남기고 replay를 계속하며, compilation context가 존재하는 동안 고정 `g++ -std=c++17`
+  폴백은 사용하지 않습니다. C++ 엔진 cache dependency에는 `ici.core._cpp_replay_policy`가,
+  cycle에는 `ici.engines._cpp_include_trace`가 명시적으로 포함됩니다.
+- **C++ (DB 부재 폴백)**: compilation context가 실제로 없을 때만 `g++`를 찾아
+  `-fsyntax-only -std=c++17 -Wall -Wextra` 휴리스틱 명령을 실행하고 `ESTIMATED`로 표시합니다.
+  ready capability의 compiler를 우선하며 standalone driver도 canonical/project 경계를 확인합니다.
+  이 command 역시 exact replay와 같은 positive allowlist, argument bound, minimal replacement
+  environment와 closed stdin을 사용하므로 unsafe package/include flag는 실행 전에 거부됩니다.
+  g++ 부재, timeout·출력 절단·spawn/비정상 종료·malformed 또는 진단 없는 비정상 출력은
+  fail-closed `ERROR`/`NOT_RUN`으로 남깁니다. 모든 Ruff/compiler 시도는
+  `ToolEvidence`에 argv, 반환 코드와 timeout/절단/실패 사유를 기록합니다.
 
 ### 2.3 🧪 `test` & TEM 스코어링 (단위 테스트 및 테스트 효과성 지표)
 - **동작**: 프로젝트 내 pytest 또는 C++ 테스트 바이너리를 실행하여 단위 테스트 전수 통과 여부 검증
@@ -408,18 +421,23 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 
 
 ### 2.10 🔄 `cycle` (순환 참조 탐지)
-- **동작**: Python `import` 그래프와 C++ `#include` 그래프를 각각 구축해 반복(iterative) Tarjan
+- **동작**: Python `import` 그래프와 C++ include 그래프를 각각 구축해 반복(iterative) Tarjan
   SCC로 순환을 탐지합니다 (재귀 구현이 아니므로 수천 노드짜리 체인에서도 재귀 한도 초과로
-  죽지 않습니다). Python은 `ast` 기반, C++는 `#include "..."` 정규식과 프로젝트 파일의
-  **유일한 전체 path suffix**를 사용합니다. 리포트되는 순환 체인은 SCC 멤버를 임의 정렬한
-  목록이 아니라 실제 간선을 따라간 경로입니다.
-- **휴리스틱 한계**: Python 쪽은 표준 라이브러리와 이름이 겹치는 프로젝트 모듈(예: 자체
-  `html.py`)을 혼동하지 않도록 `sys.stdlib_module_names`를 확인합니다. C++ 쪽은
-  `#include "a/util.h"`처럼 디렉터리가 있으면 그 정보까지 비교하지만, bare `util.h`에 여러
-  후보가 있거나 프로젝트 안에 후보가 없으면 간선을 추측하지 않습니다. 이 경우
-  `CppIncludeAmbiguous`/`CppIncludeUnresolved` 타깃에 include 위치와 후보를 남기며 엔진은
-  WARN입니다. generated header와 compiler의 실제 `-I` 검색 순서는 아직 모델링하지 않으므로
-  `extra.cpp_include_resolution=unique_project_path_suffix`는 compiler-exact 판정이 아닙니다.
+  죽지 않습니다). C++ production context가 있으면 각 configuration의 normalized direct
+  GCC/Clang command를 안전하게 replay하고 `-E -H` compiler trace에서 active resolved edge를
+  수집합니다. edge는 `project`/`generated`/`system`/`third_party` scope로 집계됩니다. 각
+  configuration graph를 독립적으로 SCC 분석하고 동일 cycle component만 중복 제거하며,
+  configuration 간 edge는 union하지 않습니다. 동일 component가 여러 configuration에서
+  발견되면 configuration 목록은 report metadata로만 보존됩니다. 실제 cycle path는 SCC 멤버를
+  임의 정렬하지 않고 간선을 따라갑니다.
+- **정확한 trace의 진단과 실패**: active compiler missing-include 진단은 include 위치를 가진
+  `CppIncludeUnresolved` `WARN`으로 보존하고 해당 edge는 만들지 않습니다. malformed/truncated/
+  timed-out trace, 검증할 수 없는 nonzero 종료, spawn/replay 실패는 fail-closed `ERROR`/
+  `NOT_RUN`입니다. context가 존재하면 suffix fallback으로 전환하지 않습니다.
+- **DB 부재 폴백과 한계**: compilation context가 실제로 없을 때만 C++는 프로젝트 파일의
+  **유일한 전체 path suffix** 휴리스틱을 사용하고 `ESTIMATED`로 기록합니다. bare `util.h`에
+  여러 후보가 있거나 프로젝트 안에 후보가 없으면 간선을 추측하지 않고
+  `CppIncludeAmbiguous`/`CppIncludeUnresolved` 타깃에 include 위치와 후보를 남깁니다.
 - **설정**: `[engines.cycle] enabled=true, mode="pass_warn_fail", max_reported=20, required=false`.
   다른 신규 휴리스틱 엔진과 마찬가지로 기본 `required=false`이므로, 엔진 `ERROR`가 나도
   전체 게이트를 막지 않습니다.

@@ -617,21 +617,60 @@ Independent [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/103/)와
 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/103/)는 각각 HTTP 200,
 `text/html`, title `ici Verification Report — ici`와 `ici Verification Report — viewer`,
 관측 bytes 4,716,032와 337,918, 외부 `script`/`link`/`img` reference 0건을 확인했다.
-I3-3은 완전히 완료됐다. I3-2 BuildScope target-by-target 대조는 아직 pending이며, I3-4와
-I3 전체도 완료되지 않았다.
+I3-3은 완전히 완료됐다. I3-2 BuildScope target-by-target 대조는 아직 pending이다. I3-4는
+구현과 focused local test까지 완료했지만 BuildScope 대조와 PR·CI·Pages evidence가 남아
+있으며, I3 전체도 완료되지 않았다.
 
 ### I3-4. lint와 include graph 이관
 
 **브랜치:** `refactor/cpp-analysis-context`
 
-- [ ] C++ lint가 고정 `-std=c++17` 명령을 만들지 않고 translation unit command를 재생한다.
-- [ ] compile-only/output/dependency flags를 안전하게 정리한다.
-- [ ] compiler의 dependency output으로 실제 include edge와 resolved path를 수집한다.
-- [ ] generated/system/third-party header 포함 정책을 구분한다.
-- [ ] suffix fallback은 DB가 없는 heuristic mode로만 유지한다.
-- [ ] include ambiguity와 미해석 edge를 보고한다.
+- [x] C++ lint가 고정 `-std=c++17` 명령을 만들지 않고 shared compilation context의 모든
+  covered translation unit configuration에서 `CapabilityInventory`가 probe한 직접 GCC/Clang
+  argv를 sanitized replay한다.
+- [x] compile-only/output/dependency와 plugin/wrapper/toolchain 주입 flags를 안전하게
+  제거하거나 거부한다.
+- [x] compiler `-E -H` dependency output으로 configuration별 active include edge와 resolved
+  path를 수집한다.
+- [x] generated/system/third-party header scope를 구분하고 configuration별 scope counts를
+  기록한다.
+- [x] suffix fallback은 compilation DB/context가 실제로 없는 heuristic mode로만 유지하고,
+  exact context에서는 replay 실패를 `ERROR`/`NOT_RUN`으로 닫는다.
+- [x] active missing include의 위치 있는 `CppIncludeUnresolved` 경고와 ambiguous/unresolved
+  edge를 보고한다. 서로 다른 configuration의 edge를 섞어 false cycle을 만들지 않는다.
 
 **완료 조건:** buildscope에서 source별 define·standard·include가 실제 build와 일치하고, 같은 basename header가 compiler 선택과 같은 edge로 연결된다.
+
+**I3-4 구현 및 local revalidation (2026-09-01):** C++ lint와 include graph는 위 여섯 checklist의
+구현을 완료했다. exact context에서는 sanitized direct compiler replay와 fail-closed 오류 처리를
+사용하고, DB 부재에서만 lint/cycle heuristic을 `ESTIMATED`로 남긴다. replay option은 positive
+allowlist와 허용된 value만 보존하며 unknown/unsafe option은 fail-closed로 거부한다. compiler는
+minimal replacement environment와 closed stdin으로 실행된다. error-level context/unit
+diagnostic만 `ERROR`/`NOT_RUN`으로 올리고 warning-level diagnostic은 위치 있는 `WARN`으로
+보존해 다른 오류가 없으면 `MEASURED` exact evidence를 유지한다. DB 부재 lint도
+ready/canonical direct `g++`와 동일 replay policy/bounds를 사용하며 unsafe package/include
+flag와 project-contained driver를 실행 전에 거부한다. bounded include trace parser는
+missing-include trace, include-guard trailer, pseudo frame과 stale path를 fail-closed로 처리한다.
+관련 focused test 묶음은 총 308 tests passed였다. Python 3.10 full pytest는 1,275 passed
+(48.61s), Ruff check는 전체 파일에서 통과했으며 Ruff format은 142 files, mypy는 83 source
+files를 통과했다. 모든 새 source는 line gate PASS이고 새 helper complexity issue는 0이다.
+최종 `build-pyz` 두 번은 동일 SHA-256
+`f6c6cfb85f55f41d548b65e9cb921b6b56d005eae838ec873ff7c927eaac2dc2` (2,151,981 bytes)을
+만들었고 smoke도 통과했다. Packaged pyz deep/no-cache rerun은 LogLens (12/14 applicable,
+2 SKIP, 12/12 tests, 40 configurations, 21.59s, HTML 443,828 bytes, 정확한 title, external
+assets 0)와 DiskMap (12/14 applicable, 2 SKIP, 9/9 tests, 20 configurations, 79.74s,
+HTML 310,558 bytes, 정확한 title, external assets 0)에서 모두 PASS였다. 이는 local
+evidence이며 PR/CI/Pages evidence는 pending이다.
+
+현재 cache key는 `ici.analysis-cache-key/v3`이며, I3-4 engine class가
+`CACHE_IMPLEMENTATION_MODULES`로 명시한 helper/dependency module source digest의 sorted
+unique 목록을 implementation identity에 포함한다. C++ lint/cycle 선언에는
+`ici.core._cpp_replay_policy`와 `ici.engines._cpp_include_trace`가 포함된다. I3-1~I3-3 절의 당시 v2 compilation
+context/cache 문구는 과거 evidence이므로 변경하지 않는다.
+
+**남은 완료 조건:** BuildScope에서 target-by-target으로 define·standard·include와 same-basename
+header edge를 실제 build와 대조하는 작업은 pending이다. I3-4의 PR·CI·Pages evidence도
+pending이며, 따라서 I3 전체는 아직 완료되지 않았다.
 
 ---
 
@@ -934,7 +973,8 @@ I3 전체도 완료되지 않았다.
 - [ ] I3: I3-1 compilation model/검증 게이트와 PR·CI·Pages evidence 완료; I3-2 canonical
   CMake generation first four items, PR·CI·Pages evidence, and local viewer/LogLens checks
   complete, buildscope target comparison pending; I3-3 implementation/local E2E/quality gates와
-  PR·CI·Pages evidence complete; I3-4 pending
+  PR·CI·Pages evidence complete; I3-4 implementation/focused local tests complete, BuildScope
+  target comparison과 PR·CI·Pages evidence pending
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
@@ -957,5 +997,7 @@ squash merge commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.
 [CI run 33386134812](https://github.com/jihoon22-lee/ici/actions/runs/33386134812),
 [sticky comment](https://github.com/jihoon22-lee/ici/pull/101#issuecomment-5477565364),
 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/), [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/)까지
-완료됐다. 현재 ici 구현 단계는 I3-2 buildscope target comparison이며, I3-4와 I3 전체는 아직
-완료되지 않았다. I3-3 qmake exact capture는 PR #103의 CI·Pages evidence까지 완료됐다.
+완료됐다. 현재 ici 구현 단계는 I3-2 BuildScope target comparison과 I3-4 BuildScope/PR·CI·Pages
+evidence 수집이다. I3-4 구현과 focused local tests는 완료됐지만 위 원격·target 비교 증거가
+없어 I3 전체는 아직 완료되지 않았다. I3-3 qmake exact capture는 PR #103의 CI·Pages evidence까지
+완료됐다.

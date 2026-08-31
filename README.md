@@ -78,7 +78,7 @@ $ ici doctor
    - `ici doctor`는 전체 tool registry를 한 번의 bounded probe snapshot으로 수집하고, 필요한 이유(`engine:language` 또는 `doctor.config`)와 missing/incomplete 상태를 함께 보여 줍니다. `ici doctor --json`의 `capability_inventory`는 status·counts·version/path/details/evidence를 담는 machine-readable 계약이며, 기존 `tools` map도 유지합니다.
    - `ici verify`도 유효한 support matrix의 `applicable`·`enabled` 범위와 `doctor.config`에서 required/optional 정책을 계산한 뒤, 엔진 실행 전에 같은 registry를 정확히 한 번 수집합니다. suite root의 선택적 `capability_inventory`를 console/Markdown/zero-CDN HTML reporter가 그대로 공유하므로 reporter가 도구를 재탐지하지 않습니다. required provenance 우선 규칙과 모든 provenance, capability 메타데이터·probe argv/evidence redaction을 보존하며, 콘솔은 요약하고 Markdown은 전체 inventory를 접어 보여 주고 HTML은 Support & Capabilities 탭에 전체 행을 표시합니다. 기존 inventory 없는 `ici.result/v3` 리포트도 계속 읽을 수 있습니다.
 8. **사용자 로컬 분석 캐시**:
-   - `ici verify`는 프로젝트 루트·소스/빌드 설정 내용·effective ici 설정·toolchain 버전·컴파일 DB digest/parse state·엔진 구현·build variant·ici 버전을 포함한 key v2로 완료된 엔진 결과를 재사용합니다. 기본 위치는 `~/.cache/ici/analysis/`이며 remote/shared cache는 사용하지 않습니다.
+   - `ici verify`는 프로젝트 루트·소스/빌드 설정 내용·effective ici 설정·toolchain 버전·컴파일 DB digest/parse state·엔진 구현·build variant·ici 버전을 포함한 `ici.analysis-cache-key/v3`로 완료된 엔진 결과를 재사용합니다. 엔진 구현 identity에는 engine class source digest와 `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest 목록이 포함되며, C++ lint/cycle은 `ici.core._cpp_replay_policy`를, cycle은 `ici.engines._cpp_include_trace`를 명시합니다. 기본 위치는 `~/.cache/ici/analysis/`이며 remote/shared cache는 사용하지 않습니다.
    - 완전한 `PASS`/`WARN`/`FAIL`은 저장할 수 있지만 `ERROR`/`SKIP`/`NOT_RUN`, timeout·truncation·tool error 및 invalid artifact는 저장하지 않습니다. `--no-cache`, `ici cache`, `ici cache --clear`로 실행별 비활성화·inventory·정리를 제어합니다.
    - v3 engine JSON의 optional `cache_hit`/nullable `cache_key`는 기존 archive 소비자와 호환되며, 캐시는 프로젝트 소스를 변경하지 않고 atomic local entry만 씁니다. 새 entry는 0700/0600 권한 경계를 사용하고, symlink·duplicate key·NaN/Infinity·32 MiB 초과 payload를 거부합니다.
 
@@ -154,8 +154,12 @@ ici cache --clear
 engine-level `cache_hit`/`cache_key`로 확인할 수 있고, 기존 v3 JSON은 해당 필드 없이도
 계속 읽을 수 있습니다.
 
-cache key는 canonical root, source/build-config content, effective config, toolchain,
-engine implementation, build variant와 ici version을 포함합니다. `verify_report.json`과
+cache key(`ici.analysis-cache-key/v3`)는 canonical root, source/build-config content, effective config, toolchain,
+engine implementation, build variant와 ici version을 포함합니다. engine implementation identity는
+engine class의 module/qualname와 class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로
+명시한 helper/dependency module 이름의 sorted unique 목록과 각 module source digest를 포함합니다.
+import tree 전체를 암묵적으로 수집하지 않고 명시적으로 선언된 구현 의존성만 반영합니다.
+`verify_report.json`과
 engine별 `*_report.json`처럼 ici가 생성하는 report JSON은 source digest에서 제외됩니다.
 entry reader는 symlink·비정규 파일, duplicate JSON key, non-finite number와 32 MiB 초과
 payload를 신뢰하지 않으며, 손상·stale entry는 miss로 처리합니다. artifact manifest가
