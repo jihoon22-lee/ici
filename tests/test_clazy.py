@@ -336,11 +336,16 @@ def test_lint_engine_maps_qt_diagnostics_and_exact_clazy_evidence(
     result = LintEngine(root, config, analysis_context=context).run()
 
     assert result.status is EngineStatus.WARN
-    assert result.evidence is EvidenceState.MEASURED
+    assert result.evidence is EvidenceState.ESTIMATED
+    assert any(target.target_name == "QtCompatibility:UnknownMajor" for target in result.targets)
     assert result.extra["clazy_mode"] == "exact"
     assert result.extra["clazy_provider"] == "standalone"
     assert result.extra["cpp_diagnostic_families"]["clazy"] == 4
-    findings = {finding.tool_rule_id: finding for finding in result.findings}
+    findings = {
+        finding.tool_rule_id: finding
+        for finding in result.findings
+        if finding.tool_rule_id.startswith("clazy-")
+    }
     assert findings["clazy-connect-non-signal"].category is FindingCategory.CORRECTNESS
     assert findings["clazy-lifetime-issue"].category is FindingCategory.RESOURCE
     assert findings["clazy-qt6-deprecated-api-fixes"].category is FindingCategory.COMPATIBILITY
