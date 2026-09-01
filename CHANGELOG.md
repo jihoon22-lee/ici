@@ -7,6 +7,14 @@
 
 ## [Unreleased]
 
+### Fixed
+- **LLVM 18 clang-tidy structural-note parsing**: the bounded clang-tidy adapter now recognizes
+  the located, message-less separator note emitted by
+  `bugprone-easily-swappable-parameters`, preserves the following concrete note under its parent
+  rule, and still rejects an empty note that has no diagnostic context. This prevents valid Qt/C++
+  analysis from being promoted to an atomic parser `ERROR` without weakening unknown-output or
+  diagnostic-accounting checks.
+
 ## [0.9.0] - 2026-09-01
 
 ### Added

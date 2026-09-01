@@ -317,6 +317,65 @@ def test_clang_tidy_note_inherits_parent_rule_and_family(tmp_path: Path) -> None
     assert note.target.start_column == 7
 
 
+def test_clang_tidy_llvm18_empty_structural_note_keeps_concrete_note(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/model.cpp:431:50: warning: 3 adjacent parameters are easily swapped "
+        "[bugprone-easily-swappable-parameters]\n"
+        "src/model.cpp:431:50: note: \n"
+        "src/model.cpp:431:80: note: 'qsizetype' and 'int' may be implicitly converted\n"
+        "40713 warnings generated.\n"
+        "Suppressed 40712 warnings (40712 in non-user code).\n"
+        "Use -header-filter=.* to display errors from all non-system headers. "
+        "Use -system-headers to display errors from system headers as well.\n"
+    )
+
+    result = parse_clang_tidy_diagnostics(root, root, output, "")
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error == ""
+    assert len(result.diagnostics) == 2
+    primary, note = result.diagnostics
+    assert primary.tool_rule_id == "bugprone-easily-swappable-parameters"
+    assert note.tool_rule_id == primary.tool_rule_id
+    assert note.target.message == ("note: 'qsizetype' and 'int' may be implicitly converted")
+
+
+def test_clang_tidy_empty_note_without_diagnostic_context_is_rejected(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+
+    result = parse_clang_tidy_diagnostics(
+        root,
+        root,
+        "src/model.cpp:431:50: note: \n",
+        "",
+    )
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error == "clang-tidy empty note has no diagnostic context"
+    assert result.diagnostics == ()
+
+
+def test_clang_tidy_out_of_range_empty_note_is_not_treated_as_structure(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/model.cpp:3:5: warning: valid [bugprone-easily-swappable-parameters]\n"
+        "src/model.cpp:2147483648:5: note: \n"
+    )
+
+    result = parse_clang_tidy_diagnostics(root, root, output, "")
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error
+    assert result.diagnostics == ()
+
+
 @pytest.mark.parametrize(
     ("parser", "output"),
     [

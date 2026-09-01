@@ -40,6 +40,10 @@ _CLANG_TIDY_HEADER_HINT_RE = re.compile(
     r"from all non-system headers\."
     r"(?: Use -system-headers to display errors from system headers as well\.)?$"
 )
+_CLANG_TIDY_EMPTY_NOTE_RE = re.compile(
+    r"^(?P<file>.+?):(?P<line>[1-9]\d{0,9})"
+    r"(?::(?P<column>[1-9]\d{0,9}))?:\s*note:\s*$"
+)
 _TEXT_FIXIT_RE = re.compile(
     r'^fix-it:"(?P<file>(?:[^"\\]|\\.)*)":\{'
     r"(?P<start_line>[1-9]\d*):(?P<start_column>[1-9]\d*)-"
@@ -94,6 +98,7 @@ class _ClangTidyText:
     generated: int | None = None
     suppressed: int = 0
     header_hint: bool = False
+    empty_notes: int = 0
     error: str = ""
 
 
@@ -439,6 +444,7 @@ def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
     generated: int | None = None
     suppressed = 0
     header_hint = False
+    empty_notes = 0
     for raw_line in (stdout + "\n" + stderr).splitlines():
         line = raw_line.strip()
         if not line:
@@ -460,8 +466,30 @@ def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
         if _CLANG_TIDY_HEADER_HINT_RE.fullmatch(line):
             header_hint = True
             continue
+        empty_note = _CLANG_TIDY_EMPTY_NOTE_RE.fullmatch(line)
+        if (
+            empty_note
+            and len(empty_note.group("file")) <= 4_096
+            and int(empty_note.group("line")) <= MAX_DIAGNOSTIC_LINE
+            and (
+                empty_note.group("column") is None
+                or int(empty_note.group("column")) <= MAX_DIAGNOSTIC_LINE
+            )
+        ):
+            # LLVM 18's bugprone-easily-swappable-parameters check emits a
+            # located, message-less note before its concrete conversion note.
+            # It is structural output rather than a diagnostic, so retain its
+            # accounting without manufacturing an empty finding.
+            empty_notes += 1
+            continue
         retained.append(raw_line)
-    return _ClangTidyText(tuple(retained), generated, suppressed, header_hint)
+    return _ClangTidyText(
+        retained=tuple(retained),
+        generated=generated,
+        suppressed=suppressed,
+        header_hint=header_hint,
+        empty_notes=empty_notes,
+    )
 
 
 def _normalize_clang_tidy(
@@ -515,6 +543,8 @@ def _clang_tidy_accounting_error(
         return "clang-tidy generated-warning summary has no diagnostic accounting"
     if text.header_hint and text.generated is None and not text.suppressed and not diagnostics:
         return "clang-tidy header-filter hint has no diagnostic summary"
+    if text.empty_notes and not diagnostics:
+        return "clang-tidy empty note has no diagnostic context"
     return ""
 
 
