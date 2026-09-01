@@ -52,7 +52,7 @@
 - v0.9.1의 릴리스 provenance·9개 artifact 독립 감사와 toy-projects BuildScope B4 교차 검증
   (PR #36, released ici v0.9.1, PR/main CI·sticky comment·Zero-CDN Pages)을 인수인계와
   실행 계획에 기록했다. I4-1 release boundary와 B4 precondition은 닫혔으며, I4-2 코드 구현과
-  `1511 passed, 4 skipped` full local gate도 완료됐다. I4-2 원격 CI/PR, toy-projects BuildScope B5 교차 검증,
+  `1513 passed, 4 skipped` full local gate도 완료됐다. I4-2 원격 CI/PR, toy-projects BuildScope B5 교차 검증,
   다음 release evidence와 I4-3/I4-4는 아직 pending이며 I4 전체 checkpoint도 미완료다.
 
 ## [0.9.1] - 2026-09-01

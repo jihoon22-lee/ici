@@ -140,7 +140,7 @@ toy-projects BuildScope B5 및 새 release evidence를 의미하지 않는다.
 
 ```text
 uv run --python 3.10 pytest
-1511 passed, 4 skipped in 54.44s
+1513 passed, 4 skipped in 58.99s
 uvx ruff check .
 All checks passed!
 uvx ruff format --check .
@@ -148,12 +148,12 @@ uvx ruff format --check .
 ./scripts/build-pyz.sh
 10 distributions: py3-none-any; public schemas packaged; dist/ici.pyz built
 ./scripts/smoke.sh
-all smoke tests passed; HTML Zero-CDN verification passed (verify exit 1)
+all smoke tests passed; packaged self-verification and HTML Zero-CDN passed (verify exit 0)
 ```
 
 네 skip은 로컬 `clang-tidy` 2건, `clazy` 1건, `clang++` 1건의 actual-process 조건이다.
-`dist/ici.pyz`는 2,198,115 bytes이며 SHA-256은
-`1161adea86caa9c4b22813dd9337b08588745587e2a8415fe4b1252c45fcce84`다.
+`dist/ici.pyz`는 2,198,997 bytes이며 SHA-256은
+`4eea5105ab503cd602575e8ad4b7195a060d87523252ddf135b025b68444a356`다.
 
 Ubuntu Noble clazy 1.11의 실제 출력 형태는 다음과 같으며, parser regression은 실제 source
 line 검증 뒤에만 legacy context state를 전진시킨다.
