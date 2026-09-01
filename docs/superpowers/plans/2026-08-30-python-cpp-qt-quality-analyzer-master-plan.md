@@ -1037,6 +1037,10 @@ I4-3/I4-4를 진행한다.
 **브랜치:** `refactor/cpp-maintainability`
 
 - [ ] complexity/cognitive/function boundary를 AST/tool output 우선으로 바꾼다.
+  - [x] Python complexity/cognitive는 nested function/class/lambda body를 enclosing function에서
+    제외하고 named nested function/method를 독립 target으로 유지한다. definition-time 표현식과
+    comprehension 정책, async loop-state 경계는 regression test로 고정했다.
+  - [ ] C++ function boundary는 compiler/tool output 우선으로 전환한다.
 - [ ] template, lambda, operator, macro-generated code 처리 정책을 정한다.
 - [ ] dead/unused symbol은 compiler/linker/clang-tidy evidence가 있을 때만 exact로 표시한다.
 - [ ] duplicate는 generated/moc/vendor code를 기본 제외하고 token/region fingerprint를 통합한다.

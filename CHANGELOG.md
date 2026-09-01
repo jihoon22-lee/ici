@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Python function metric scope boundaries**: cyclomatic and cognitive complexity now measure each
+  named function independently instead of charging nested function, class, and lambda bodies to
+  the enclosing function. Definition-time decorators, defaults, annotations, class bases, and
+  class keywords remain in the enclosing metric, while nested named functions and methods continue
+  to receive their own file/line targets. Async nested loops, inherited loop state, lambdas, class
+  bodies, definition expressions, and comprehensions have explicit regression coverage.
+
 ## [0.10.2] - 2026-09-02
 
 ### Release discipline
