@@ -1,5 +1,6 @@
 """Tests for Complexity and Exception Safety Engines."""
 
+import ast
 from pathlib import Path
 
 from ici.core.models import EngineStatus
@@ -13,6 +14,114 @@ def test_complexity_engine(tmp_python_project: Path):
     assert res.status == EngineStatus.PASS
     assert res.score is not None
     assert len(res.targets) > 0
+
+
+def test_python_complexity_excludes_nested_scope_bodies(tmp_path: Path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "scopes.py").write_text(
+        """def outer(x, xs):
+    if x:
+        def inner(y):
+            if y:
+                return 1
+            return 0
+        @class_deco(x if x else 0)
+        class Holder(Base(x) if x else Base):
+            if x:
+                marker = 1
+            def method(self, y):
+                if y:
+                    return 1
+                return 0
+        chooser = lambda value: value if value and x else 0
+        return inner(x)
+    return 0
+""",
+        encoding="utf-8",
+    )
+
+    result = ComplexityEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.PASS
+    assert result.score == 4.0
+    assert result.extra["max_complexity"] == 4
+    assert result.extra["total_functions"] == 3
+    rows = {
+        (target.target_name, target.start_line): (
+            target.metrics["complexity"],
+            target.metrics["nesting"],
+        )
+        for target in result.targets
+    }
+    assert rows == {
+        ("outer()", 1): (4, 1),
+        ("inner()", 3): (2, 1),
+        ("method()", 11): (2, 1),
+    }
+
+
+def test_python_complexity_bounds_async_nested_function_body(tmp_path: Path):
+    tree = ast.parse(
+        """async def async_outer(xs):
+    async for x in xs:
+        async def async_inner(ys):
+            async for y in ys:
+                if y and y > 0:
+                    break
+            return 0
+        return await async_inner(xs)
+    return 0
+"""
+    )
+    nodes = {
+        (node.name, node.lineno): node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    engine = ComplexityEngine(tmp_path)
+
+    outer = nodes[("async_outer", 1)]
+    inner = nodes[("async_inner", 3)]
+    assert (engine._calc_ast_cc(outer), engine._calc_ast_nesting(outer)) == (2, 1)
+    assert (engine._calc_ast_cc(inner), engine._calc_ast_nesting(inner)) == (4, 2)
+
+
+def test_python_complexity_keeps_definition_expressions_and_comprehensions(
+    tmp_path: Path,
+):
+    tree = ast.parse(
+        """@deco(flag if ok else fallback)
+def decorated(value=default(value) if ok else fallback):
+    if value:
+        return value
+    return 0
+
+def outer(x):
+    if x:
+        def inner(y=default(y) if y else 0):
+            if y:
+                return y
+            return 0
+        return inner()
+    return 0
+
+def comp(xs, ys):
+    return [x for x in xs if x and x > 0 for y in ys if y]
+"""
+    )
+    nodes = {
+        (node.name, node.lineno): node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    engine = ComplexityEngine(tmp_path)
+
+    assert engine._calc_ast_cc(nodes[("decorated", 2)]) == 4
+    assert engine._calc_ast_cc(nodes[("outer", 7)]) == 3
+    assert engine._calc_ast_cc(nodes[("inner", 9)]) == 3
+    assert engine._calc_ast_cc(nodes[("comp", 16)]) == 4
+    assert engine._calc_ast_nesting(nodes[("comp", 16)]) == 0
 
 
 def test_process_validation_helpers_stay_below_complexity_limit():

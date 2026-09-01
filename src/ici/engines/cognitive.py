@@ -4,6 +4,7 @@ import ast
 import time
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
+from ici.engines._python_metrics import iter_metric_children
 from ici.engines.base import BaseEngine
 
 
@@ -22,7 +23,7 @@ def _cognitive_for_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tup
     def walk(n, nesting: int, in_loop: bool = False):
         nonlocal cognitive, max_nesting
         max_nesting = max(max_nesting, nesting)
-        for child in ast.iter_child_nodes(n):
+        for child in iter_metric_children(n, root=node):
             if isinstance(
                 child,
                 (

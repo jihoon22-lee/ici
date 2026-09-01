@@ -5,6 +5,7 @@ import re
 import time
 
 from ici.core.models import EngineResult, EngineStatus, InspectionTarget
+from ici.engines._python_metrics import iter_metric_children, walk_metric_scope
 from ici.engines.base import BaseEngine
 from ici.engines.cpp_text import mask_cpp_literals
 
@@ -304,7 +305,7 @@ class ComplexityEngine(BaseEngine):
     def _calc_ast_cc(self, node: ast.AST) -> int:
         """Calculates Cyclomatic Complexity: 1 + number of branching points."""
         complexity = 1
-        for child in ast.walk(node):
+        for child in walk_metric_scope(node):
             if isinstance(
                 child,
                 (
@@ -338,7 +339,7 @@ class ComplexityEngine(BaseEngine):
             )
             new_depth = depth + (1 if is_block else 0)
             max_d = max(max_d, new_depth)
-            for child in ast.iter_child_nodes(curr):
+            for child in iter_metric_children(curr, root=node):
                 max_d = max(max_d, _get_depth(child, new_depth))
             return max_d
 
