@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-09-01
+
 ### Fixed
 - **LLVM 18 clang-tidy structural-note parsing**: the bounded clang-tidy adapter now recognizes
   the located, message-less separator note emitted by
