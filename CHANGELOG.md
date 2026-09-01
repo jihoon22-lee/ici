@@ -43,6 +43,10 @@
   `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` so actual-tool E2E coverage cannot silently skip.
 - Capability probing continues through declared executable aliases when an earlier candidate cannot
   execute or report a valid version, while preserving the first failure if every candidate fails.
+- Self-dogfood maintainability now splits candidate probing, C++ source masking, clazy parse state,
+  and per-kind Qt generated linkage into focused helpers. The four new critical-complexity findings
+  (31/35/27/36) are eliminated, generated-linkage branch variables are independently typed, and a
+  repository test prevents I4 analysis helpers from exceeding complexity 25 again.
 
 ### Documentation and integration status
 - v0.9.1의 릴리스 provenance·9개 artifact 독립 감사와 toy-projects BuildScope B4 교차 검증

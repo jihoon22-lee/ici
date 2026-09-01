@@ -106,6 +106,19 @@ canonical clazy capability와 두 provider 경로, strict diagnostic normalizati
   `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`을 설정한다. 실제 tool E2E가 환경에서 skip되면
   required gate가 실패한다.
 
+### 6. Self-dogfood maintainability remediation
+
+- 원격 run 33498022877은 1,511 tests와 actual clazy E2E, Qt5/Qt6 build를 통과한 뒤 새 I4
+  함수 네 개의 critical complexity를 탐지했다: capability probing 31, clazy parser 35,
+  C++ source masker 27, generated-code verifier 36.
+- candidate iteration/metadata validation, stateful C++ masking, clazy rule/context state,
+  UI/RCC/MOC target construction을 각각 focused helper로 분리했다. `verify_qt_codegen`에서 같은
+  이름의 branch-local 변수가 서로 다른 optional type으로 추론되던 mypy finding 두 건도
+  per-kind helper 경계로 제거했다.
+- `tests/test_complexity.py`에 toolchain/clazy/diagnostic/tooling/Qt helper가 complexity 25를
+  넘지 못하도록 회귀 계약을 추가했다. 변경 후 이 범위의 최대 complexity는 기존
+  `_split_clang_tidy_text`의 warning-only 24이고 새 `verify_qt_codegen`은 22다.
+
 ## Verification Results
 
 관련 parser/config/adapter/codegen/cache와 C++ process-level E2E를 묶은 Python 3.10 focused

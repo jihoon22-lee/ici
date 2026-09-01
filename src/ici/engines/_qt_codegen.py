@@ -700,6 +700,141 @@ def _verify_major_evidence(
         )
 
 
+def _count_qt_input(outcome: QtCodegenOutcome, item: _QtInput) -> None:
+    outcome.inputs_checked += 1
+    if item.kind == "ui":
+        outcome.ui_checked += 1
+    elif item.kind == "qrc":
+        outcome.qrc_checked += 1
+    else:
+        outcome.moc_checked += 1
+
+
+def _ambiguous_input_target(item: _QtInput) -> InspectionTarget:
+    return _target(
+        item,
+        EngineStatus.WARN,
+        f"Qt{item.kind.title()}AmbiguousStem",
+        f"Multiple Qt {item.kind} inputs share the generated basename stem {item.stem!r}; "
+        "exact linkage is ambiguous.",
+    )
+
+
+def _ui_linkage_target(
+    root: Path,
+    item: _QtInput,
+    production_units: tuple[CompilationUnit, ...],
+    successful: set[str],
+) -> InspectionTarget:
+    expected = f"ui_{item.stem}.h"
+    ui_link = _find_ui_link(root, production_units, expected)
+    if ui_link is None:
+        return _target(
+            item,
+            EngineStatus.FAIL,
+            "QtUicLinkage",
+            f"uic output {expected} is absent or not included by an exact translation unit.",
+        )
+    linked_unit, generated = ui_link
+    replayed = linked_unit.source in successful
+    message = (
+        f"uic output {generated.relative_to(root).as_posix()} is linked by successfully "
+        f"replayed unit {linked_unit.source}."
+        if replayed
+        else f"uic output {generated.relative_to(root).as_posix()} is linked by "
+        f"{linked_unit.source}, but that unit has no successful compile replay."
+    )
+    return _target(
+        item,
+        EngineStatus.PASS if replayed else EngineStatus.WARN,
+        "QtUicLinkage",
+        message,
+        metrics={"compile_replay": int(replayed)},
+    )
+
+
+def _qrc_linkage_target(
+    root: Path,
+    item: _QtInput,
+    units: tuple[CompilationUnit, ...],
+    successful: set[str],
+) -> InspectionTarget:
+    expected = f"qrc_{item.stem}.cpp"
+    qrc_unit = _find_generated_unit(root, units, expected, "qrc")
+    if qrc_unit is None:
+        return _target(
+            item,
+            EngineStatus.FAIL,
+            "QtRccLinkage",
+            f"rcc output {expected} is absent from the exact compilation database.",
+        )
+    replayed = qrc_unit.source in successful
+    message = (
+        f"rcc output {qrc_unit.source} is a successfully replayed generated compilation unit."
+        if replayed
+        else f"rcc output {qrc_unit.source} is in the compilation database without a "
+        "successful replay."
+    )
+    return _target(
+        item,
+        EngineStatus.PASS if replayed else EngineStatus.WARN,
+        "QtRccLinkage",
+        message,
+        metrics={"compile_replay": int(replayed)},
+    )
+
+
+def _moc_linkage_target(
+    root: Path,
+    item: _QtInput,
+    units: tuple[CompilationUnit, ...],
+    successful: set[str],
+) -> InspectionTarget:
+    moc_link = _find_moc_link(root, units, item.stem)
+    if moc_link is None:
+        return _target(
+            item,
+            EngineStatus.FAIL,
+            "QtMocLinkage",
+            f"No linked moc output was found for Q_OBJECT in {item.path}.",
+        )
+    linked_unit, generated = moc_link
+    replayed = linked_unit.source in successful
+    message = (
+        f"moc output {generated} is linked by successfully replayed unit {linked_unit.source}."
+        if replayed
+        else f"moc output {generated} is linked by {linked_unit.source} without a successful replay."
+    )
+    return _target(
+        item,
+        EngineStatus.PASS if replayed else EngineStatus.WARN,
+        "QtMocLinkage",
+        message,
+        metrics={"compile_replay": int(replayed)},
+    )
+
+
+def _verify_qt_input(
+    root: Path,
+    item: _QtInput,
+    units: tuple[CompilationUnit, ...],
+    production_units: tuple[CompilationUnit, ...],
+    successful: set[str],
+    duplicate_keys: set[tuple[str, str]],
+    outcome: QtCodegenOutcome,
+) -> None:
+    _count_qt_input(outcome, item)
+    if (item.kind, item.stem) in duplicate_keys:
+        target = _ambiguous_input_target(item)
+    elif item.kind == "ui":
+        target = _ui_linkage_target(root, item, production_units, successful)
+    elif item.kind == "qrc":
+        target = _qrc_linkage_target(root, item, units, successful)
+    else:
+        target = _moc_linkage_target(root, item, units, successful)
+    _append(outcome, target, f"ici.qt.codegen.{item.kind}")
+
+
 def verify_qt_codegen(
     project_root: Path,
     source_dirs: list[Path],
@@ -794,97 +929,15 @@ def verify_qt_codegen(
         if count > 1
     }
     for item in inputs:
-        outcome.inputs_checked += 1
-        if item.kind == "ui":
-            outcome.ui_checked += 1
-        elif item.kind == "qrc":
-            outcome.qrc_checked += 1
-        else:
-            outcome.moc_checked += 1
-        if (item.kind, item.stem) in duplicate_keys:
-            _append(
-                outcome,
-                _target(
-                    item,
-                    EngineStatus.WARN,
-                    f"Qt{item.kind.title()}AmbiguousStem",
-                    f"Multiple Qt {item.kind} inputs share the generated basename stem {item.stem!r}; exact linkage is ambiguous.",
-                ),
-                f"ici.qt.codegen.{item.kind}",
-            )
-            continue
-        if item.kind == "ui":
-            expected = f"ui_{item.stem}.h"
-            link = _find_ui_link(root, production_units, expected)
-            if link is None:
-                target = _target(
-                    item,
-                    EngineStatus.FAIL,
-                    "QtUicLinkage",
-                    f"uic output {expected} is absent or not included by an exact translation unit.",
-                )
-            else:
-                unit, generated = link
-                replayed = unit.source in successful
-                target = _target(
-                    item,
-                    EngineStatus.PASS if replayed else EngineStatus.WARN,
-                    "QtUicLinkage",
-                    (
-                        f"uic output {generated.relative_to(root).as_posix()} is linked by successfully replayed unit {unit.source}."
-                        if replayed
-                        else f"uic output {generated.relative_to(root).as_posix()} is linked by {unit.source}, but that unit has no successful compile replay."
-                    ),
-                    metrics={"compile_replay": int(replayed)},
-                )
-            _append(outcome, target, "ici.qt.codegen.ui")
-        elif item.kind == "qrc":
-            expected = f"qrc_{item.stem}.cpp"
-            unit = _find_generated_unit(root, units, expected, "qrc")
-            if unit is not None:
-                replayed = unit.source in successful
-                target = _target(
-                    item,
-                    EngineStatus.PASS if replayed else EngineStatus.WARN,
-                    "QtRccLinkage",
-                    (
-                        f"rcc output {unit.source} is a successfully replayed generated compilation unit."
-                        if replayed
-                        else f"rcc output {unit.source} is in the compilation database without a successful replay."
-                    ),
-                    metrics={"compile_replay": int(replayed)},
-                )
-            else:
-                target = _target(
-                    item,
-                    EngineStatus.FAIL,
-                    "QtRccLinkage",
-                    f"rcc output {expected} is absent from the exact compilation database.",
-                )
-            _append(outcome, target, "ici.qt.codegen.qrc")
-        else:
-            link = _find_moc_link(root, units, item.stem)
-            if link is not None:
-                replayed = link[0].source in successful
-                target = _target(
-                    item,
-                    EngineStatus.PASS if replayed else EngineStatus.WARN,
-                    "QtMocLinkage",
-                    (
-                        f"moc output {link[1]} is linked by successfully replayed unit {link[0].source}."
-                        if replayed
-                        else f"moc output {link[1]} is linked by {link[0].source} without a successful replay."
-                    ),
-                    metrics={"compile_replay": int(replayed)},
-                )
-            else:
-                target = _target(
-                    item,
-                    EngineStatus.FAIL,
-                    "QtMocLinkage",
-                    f"No linked moc output was found for Q_OBJECT in {item.path}.",
-                )
-            _append(outcome, target, "ici.qt.codegen.moc")
+        _verify_qt_input(
+            root,
+            item,
+            units,
+            production_units,
+            successful,
+            duplicate_keys,
+            outcome,
+        )
 
     _verify_major_evidence(root, context, successful, outcome)
     outcome.mode = "exact" if not outcome.errors else "error"
