@@ -80,6 +80,9 @@ def _context(
             "QT_CORE_LIB",
             "-I",
             "../include",
+            "-I",
+            "/usr/include/qt6",
+            "-fPIC",
             "-MMD",
             "-MF",
             "clock.d",
@@ -198,6 +201,9 @@ def test_standalone_receives_explicit_checks_and_sanitized_context(tmp_path: Pat
         "QT_CORE_LIB",
         "-I",
         "../include",
+        "-I",
+        "/usr/include/qt6",
+        "-fPIC",
         "-fdiagnostics-color=never",
     ]
     assert "-p" not in command
@@ -336,8 +342,8 @@ def test_lint_engine_maps_qt_diagnostics_and_exact_clazy_evidence(
     result = LintEngine(root, config, analysis_context=context).run()
 
     assert result.status is EngineStatus.WARN
-    assert result.evidence is EvidenceState.ESTIMATED
-    assert any(target.target_name == "QtCompatibility:UnknownMajor" for target in result.targets)
+    assert result.evidence is EvidenceState.MEASURED
+    assert any(target.target_name == "QtCompatibility:Qt6" for target in result.targets)
     assert result.extra["clazy_mode"] == "exact"
     assert result.extra["clazy_provider"] == "standalone"
     assert result.extra["cpp_diagnostic_families"]["clazy"] == 4

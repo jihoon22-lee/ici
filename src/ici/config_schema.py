@@ -21,13 +21,10 @@ ANALYSIS_PROFILES = frozenset({"fast", "standard", "deep"})
 CLANG_TIDY_MODES = frozenset({"auto", "required", "off"})
 CLAZY_MODES = frozenset({"auto", "required", "off"})
 CLAZY_PROFILES = frozenset({"level0", "level1"})
-_CLANG_TIDY_CHECK_CHARS = frozenset(
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.*-"
-)
-_CLAZY_CHECK_CHARS = _CLANG_TIDY_CHECK_CHARS
-_MAX_CLANG_TIDY_CHECKS = 128
-_MAX_CLANG_TIDY_CHECK_LENGTH = 128
-_MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH = 8192
+_TOOL_CHECK_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.*-")
+_MAX_TOOL_CHECKS = 128
+_MAX_TOOL_CHECK_LENGTH = 128
+_MAX_TOOL_CHECKS_JOINED_LENGTH = 8192
 _MAX_CLANG_TIDY_CONFIG_LENGTH = 4096
 
 _TOP_LEVEL_KEYS = frozenset(
@@ -267,46 +264,22 @@ def _validate_lint(table: dict[str, Any], path: str) -> None:
 
 
 def _validate_clang_tidy_checks(value: Any, path: str) -> None:
-    if not isinstance(value, list):
-        raise _error(path, "must be a list of 1 to 128 unique non-empty strings")
-    if not 1 <= len(value) <= _MAX_CLANG_TIDY_CHECKS:
-        raise _error(
-            path,
-            f"must contain between 1 and {_MAX_CLANG_TIDY_CHECKS} items",
-        )
-
-    seen: set[str] = set()
-    for index, item in enumerate(value):
-        item_path = f"{path}[{index}]"
-        if not isinstance(item, str) or not item:
-            raise _error(item_path, "must be a non-empty string")
-        if len(item) > _MAX_CLANG_TIDY_CHECK_LENGTH:
-            raise _error(
-                item_path,
-                f"must be at most {_MAX_CLANG_TIDY_CHECK_LENGTH} characters",
-            )
-        if item in seen:
-            raise _error(item_path, "must be unique")
-        if any(character not in _CLANG_TIDY_CHECK_CHARS for character in item):
-            raise _error(item_path, "contains unsafe characters")
-        seen.add(item)
-
-    if len(",".join(value)) > _MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH:
-        raise _error(
-            path,
-            f"joined length must be at most {_MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH} characters",
-        )
+    _validate_tool_checks(value, path)
 
 
 def _validate_clazy_checks(value: Any, path: str) -> None:
     """Validate explicit Clazy check names before an adapter builds argv."""
 
+    _validate_tool_checks(value, path)
+
+
+def _validate_tool_checks(value: Any, path: str) -> None:
     if not isinstance(value, list):
         raise _error(path, "must be a list of 1 to 128 unique non-empty strings")
-    if not 1 <= len(value) <= _MAX_CLANG_TIDY_CHECKS:
+    if not 1 <= len(value) <= _MAX_TOOL_CHECKS:
         raise _error(
             path,
-            f"must contain between 1 and {_MAX_CLANG_TIDY_CHECKS} items",
+            f"must contain between 1 and {_MAX_TOOL_CHECKS} items",
         )
 
     seen: set[str] = set()
@@ -314,21 +287,21 @@ def _validate_clazy_checks(value: Any, path: str) -> None:
         item_path = f"{path}[{index}]"
         if not isinstance(item, str) or not item:
             raise _error(item_path, "must be a non-empty string")
-        if len(item) > _MAX_CLANG_TIDY_CHECK_LENGTH:
+        if len(item) > _MAX_TOOL_CHECK_LENGTH:
             raise _error(
                 item_path,
-                f"must be at most {_MAX_CLANG_TIDY_CHECK_LENGTH} characters",
+                f"must be at most {_MAX_TOOL_CHECK_LENGTH} characters",
             )
         if item in seen:
             raise _error(item_path, "must be unique")
-        if any(character not in _CLAZY_CHECK_CHARS for character in item):
+        if any(character not in _TOOL_CHECK_CHARS for character in item):
             raise _error(item_path, "contains unsafe characters")
         seen.add(item)
 
-    if len(",".join(value)) > _MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH:
+    if len(",".join(value)) > _MAX_TOOL_CHECKS_JOINED_LENGTH:
         raise _error(
             path,
-            f"joined length must be at most {_MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH} characters",
+            f"joined length must be at most {_MAX_TOOL_CHECKS_JOINED_LENGTH} characters",
         )
 
 
