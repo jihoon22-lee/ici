@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from ici.core.cpp_replay import ReplayCommandError
-from ici.engines._cpp_tooling import tooling_arguments
+from ici.engines._cpp_tooling import tooling_arguments, tooling_include_roots
 
 
 def test_tooling_arguments_demote_fatal_warning_policy_without_losing_checks() -> None:
@@ -89,3 +89,49 @@ def test_tooling_arguments_reject_unexpected_replay_shape(replay: tuple[str, ...
         tooling_arguments(replay, Path("/project/src/main.cpp"))
 
     assert caught.value.code == "unexpected-replay-shape"
+
+
+def test_tooling_include_roots_resolve_exact_split_and_joined_flags(tmp_path: Path) -> None:
+    build = tmp_path / "build"
+    relative = tmp_path / "include"
+    system = tmp_path / "qt" / "include"
+    framework = tmp_path / "Frameworks"
+    for directory in (build, relative, system, framework):
+        directory.mkdir(parents=True, exist_ok=True)
+
+    roots = tooling_include_roots(
+        [
+            "-I../include",
+            "-isystem",
+            str(system),
+            f"-F{framework}",
+            f"-I{relative}",
+            "-I/does/not/exist",
+        ],
+        build,
+    )
+
+    assert roots == (relative.resolve(), system.resolve(), framework.resolve())
+
+
+def test_tooling_include_roots_do_not_misclassify_longer_compiler_options(
+    tmp_path: Path,
+) -> None:
+    build = tmp_path / "build"
+    intended = tmp_path / "include"
+    false_system = build / "atic"
+    false_framework = build / "withsysroot"
+    for directory in (build, intended, false_system, false_framework):
+        directory.mkdir(parents=True, exist_ok=True)
+
+    roots = tooling_include_roots(
+        [
+            "-isystematic",
+            "-iframeworkwithsysroot",
+            str(false_framework),
+            f"-I{intended}",
+        ],
+        build,
+    )
+
+    assert roots == (intended.resolve(),)

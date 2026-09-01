@@ -16,6 +16,39 @@ _WARNING_POLICY_DEMOTIONS = {
     "--pedantic-errors": "-pedantic",
     "-Werror-implicit-function-declaration": "-Wimplicit-function-declaration",
 }
+_MAX_INCLUDE_ROOTS = 512
+_SEPARATE_INCLUDE_OPTIONS = {
+    "-I",
+    "-F",
+    "-idirafter",
+    "-iframework",
+    "-iquote",
+    "-isystem",
+    "/I",
+    "/external:I",
+    "/imsvc",
+}
+_JOINED_INCLUDE_OPTIONS = (
+    "/external:I",
+    "-iframework",
+    "-idirafter",
+    "-isystem",
+    "-iquote",
+    "/imsvc",
+    "-I",
+    "-F",
+    "/I",
+)
+_AMBIGUOUS_INCLUDE_PREFIXES = (
+    "-iframeworkwithsysroot",
+    "-isystem-after",
+)
+_PATH_SEPARATED_JOINED_OPTIONS = {
+    "-idirafter",
+    "-iframework",
+    "-iquote",
+    "-isystem",
+}
 
 
 def _diagnostic_warning_argument(argument: str) -> str | None:
@@ -119,3 +152,63 @@ def tooling_arguments(argv: tuple[str, ...], source: Path) -> list[str]:
         if projected is not None:
             arguments.append(projected)
     return arguments
+
+
+def tooling_include_roots(arguments: list[str], cwd: Path) -> tuple[Path, ...]:
+    """Resolve explicit compiler include roots used to validate diagnostic previews.
+
+    Clang can echo source previews for notes in Qt or other external headers.  The
+    diagnostic parser may compare those previews with disk only when the path is
+    covered by the exact, sanitized compilation context.  This projection keeps
+    that read authority narrower than the whole host filesystem.
+    """
+
+    roots: list[Path] = []
+    seen: set[Path] = set()
+    pending = False
+    ignored_pending = False
+    for argument in arguments:
+        value = ""
+        if ignored_pending:
+            ignored_pending = False
+            continue
+        if pending:
+            value = argument
+            pending = False
+        elif argument in _SEPARATE_INCLUDE_OPTIONS:
+            pending = True
+            continue
+        elif argument in _AMBIGUOUS_INCLUDE_PREFIXES:
+            ignored_pending = True
+            continue
+        elif argument.startswith(_AMBIGUOUS_INCLUDE_PREFIXES):
+            # These are distinct compiler options with different sysroot
+            # semantics, not joined spellings of -iframework/-isystem.
+            continue
+        else:
+            for option in _JOINED_INCLUDE_OPTIONS:
+                if argument.startswith(option) and len(argument) > len(option):
+                    candidate = argument[len(option) :]
+                    if option in _PATH_SEPARATED_JOINED_OPTIONS and candidate[0] not in ".\\/":
+                        continue
+                    value = candidate
+                    break
+        if not value or value.startswith("=") or "\x00" in value:
+            continue
+        try:
+            lexical = Path(value)
+            root = (lexical if lexical.is_absolute() else cwd / lexical).resolve(strict=False)
+            if not root.is_dir() or root == Path(root.anchor):
+                continue
+        except (OSError, RuntimeError, ValueError):
+            continue
+        if root in seen:
+            continue
+        roots.append(root)
+        seen.add(root)
+        if len(roots) > _MAX_INCLUDE_ROOTS:
+            raise ReplayCommandError(
+                "too-many-tooling-include-roots",
+                "The sanitized compiler context contains too many include roots.",
+            )
+    return tuple(roots)

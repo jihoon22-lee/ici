@@ -500,11 +500,16 @@ verbose stack frame and source explanation must stay out of the result
     assert "verbose stack frame and source explanation" not in message
 
 
-def test_parse_ctest_junit_rejects_oversized_input():
+@pytest.mark.parametrize(
+    "payload",
+    ["x" * 1_000_001, "U0001f40d" * 250_001],
+    ids=["characters", "utf8-bytes"],
+)
+def test_parse_ctest_junit_rejects_oversized_input(payload):
     xml = (
         '<testsuite name="ctest" tests="1">'
         '<testcase name="test_large"><system-out>'
-        + ("x" * 1_000_001)
+        + payload
         + "</system-out></testcase></testsuite>"
     )
 
@@ -678,6 +683,27 @@ def test_run_tests_prefers_junit_when_written(tmp_path, monkeypatch):
     # The JUnit file has three cases; stdout has two. Proving which source was
     # used matters, because only one of them reports the skipped test.
     assert len(results) == 3
+
+
+def test_run_tests_rejects_oversized_junit_and_uses_bounded_stdout_fallback(tmp_path, monkeypatch):
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    shadow = tmp_path / "build" / "ici-cmake"
+    shadow.mkdir(parents=True)
+    (shadow / "ici-ctest.xml").write_text("x" * 1_000_001, encoding="utf-8")
+
+    def _run(cmd, **_kwargs):
+        if "--version" in cmd:
+            return ProcessResult(0, "cmake version 3.28.1", "", 0.01)
+        return ProcessResult(1, _CTEST_STDOUT, "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
+
+    results = run_tests(session)
+
+    assert [result.name for result in results] == ["test_ring_buffer", "test_log_model"]
+    assert results[1].passed is False
 
 
 def test_collect_coverage_runs_every_group(tmp_path, monkeypatch):

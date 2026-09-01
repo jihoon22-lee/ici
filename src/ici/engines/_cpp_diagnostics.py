@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import stat
+from contextlib import suppress
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
@@ -17,6 +19,8 @@ MAX_DIAGNOSTIC_LINE = 2_147_483_647
 MAX_MESSAGE_CHARS = 8_192
 MAX_REPLACEMENT_CHARS = 8_192
 MAX_DIAGNOSTIC_OUTPUT_CHARS = 1_000_000
+MAX_CLAZY_SOURCE_ROOTS = 512
+MAX_CLAZY_SOURCE_LINE_BYTES = MAX_MESSAGE_CHARS * 4 + 2
 
 _TEXT_DIAGNOSTIC_RE = re.compile(
     r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
@@ -159,35 +163,6 @@ def _diagnostic_path(project_root: Path, cwd: Path, value: Any) -> str:
         # Tool diagnostics can legitimately originate in system headers. Keep
         # a location without publishing a machine-specific absolute path.
         return "[external]"
-
-
-def _project_source_line(project_root: Path, file_path: str, line_number: int) -> str | None:
-    """Read one bounded project source line for legacy Clang context validation."""
-
-    if file_path == "[external]":
-        return None
-    try:
-        path = (project_root / file_path).resolve(strict=True)
-        path.relative_to(project_root)
-        details = path.stat()
-        if not stat.S_ISREG(details.st_mode):
-            return None
-        consumed = 0
-        with path.open(encoding="utf-8", errors="replace") as handle:
-            for current_number in range(1, line_number + 1):
-                current = handle.readline(MAX_MESSAGE_CHARS + 2)
-                if not current:
-                    return None
-                consumed += len(current)
-                if consumed > MAX_DIAGNOSTIC_OUTPUT_CHARS:
-                    return None
-                if len(current) > MAX_MESSAGE_CHARS and not current.endswith(("\n", "\r")):
-                    return None
-                if current_number == line_number:
-                    return current.rstrip("\r\n")
-    except (OSError, RuntimeError, ValueError):
-        return None
-    return None
 
 
 def _position(value: Any, label: str) -> tuple[str, int, int | None]:
@@ -494,6 +469,110 @@ class _ClazyTextState:
     diagnostic_count: int = 0
     legacy_source_line: str | None = None
     legacy_context_stage: int = 0
+    source_roots: tuple[Path, ...] = ()
+    source_context_bytes: int = 0
+    source_line_cache: dict[tuple[Path, int, tuple[int, int, int, int]], str] = field(
+        default_factory=dict
+    )
+
+
+def _inside(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def _clazy_source_roots(project_root: Path, values: tuple[Path, ...]) -> tuple[Path, ...]:
+    if len(values) > MAX_CLAZY_SOURCE_ROOTS:
+        raise ValueError("clazy source-root count exceeds the bounded limit")
+    roots = [project_root]
+    for value in values:
+        if not isinstance(value, Path):
+            raise ValueError("clazy source roots must be paths")
+        try:
+            root = value.resolve(strict=True)
+            if not root.is_dir() or root == Path(root.anchor):
+                raise ValueError("clazy source root is not a bounded directory")
+        except (OSError, RuntimeError) as err:
+            raise ValueError("clazy source root is unavailable") from err
+        if root not in roots:
+            roots.append(root)
+    return tuple(roots)
+
+
+def _clazy_source_line(
+    cwd: Path,
+    raw_path: str,
+    line_number: int,
+    state: _ClazyTextState,
+) -> str | None:
+    """Read one allowlisted source line under a per-output byte budget."""
+
+    try:
+        raw = _bounded_text(raw_path, "diagnostic file", limit=4_096)
+        lexical = Path(raw)
+        path = (lexical if lexical.is_absolute() else cwd / lexical).resolve(strict=True)
+        if not any(_inside(path, root) for root in state.source_roots):
+            return None
+        details = path.stat()
+        if not stat.S_ISREG(details.st_mode):
+            return None
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+    identity = (details.st_dev, details.st_ino, details.st_size, details.st_mtime_ns)
+    key = (path, line_number, identity)
+    if key in state.source_line_cache:
+        return state.source_line_cache[key]
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_BINARY", 0)
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    descriptor = -1
+    try:
+        descriptor = os.open(path, flags)
+        opened = os.fstat(descriptor)
+        opened_identity = (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns)
+        if not stat.S_ISREG(opened.st_mode) or opened_identity != identity:
+            return None
+        with os.fdopen(descriptor, "rb") as handle:
+            descriptor = -1
+            selected: str | None = None
+            for current_number in range(1, line_number + 1):
+                available = MAX_DIAGNOSTIC_OUTPUT_CHARS - state.source_context_bytes
+                if available <= 0:
+                    return None
+                current = handle.readline(min(MAX_CLAZY_SOURCE_LINE_BYTES, available + 1))
+                if not current:
+                    return None
+                if len(current) > available:
+                    state.source_context_bytes = MAX_DIAGNOSTIC_OUTPUT_CHARS
+                    return None
+                state.source_context_bytes += len(current)
+                line = current.rstrip(b"\r\n").decode("utf-8", errors="replace")
+                if len(line) > MAX_MESSAGE_CHARS:
+                    return None
+                if current_number == line_number:
+                    selected = line
+                    break
+            after = os.fstat(handle.fileno())
+            after_identity = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+            if selected is None or after_identity != opened_identity:
+                return None
+            state.source_line_cache[key] = selected
+            return selected
+    except (OSError, RuntimeError, ValueError):
+        return None
+    finally:
+        if descriptor >= 0:
+            with suppress(OSError):
+                os.close(descriptor)
+    return None
 
 
 def _select_clazy_rule(
@@ -536,7 +615,12 @@ def _append_clazy_diagnostic(
     line_number = _text_number(match.group("line"), "diagnostic line")
     column = _text_number(match.group("column"), "diagnostic column", optional=True)
     assert line_number is not None
-    state.legacy_source_line = _project_source_line(project_root, file_path, line_number)
+    state.legacy_source_line = _clazy_source_line(
+        cwd,
+        match.group("file"),
+        line_number,
+        state,
+    )
     state.legacy_context_stage = 0
     message = _bounded_text(match.group("message"), "diagnostic message")
     if _CLAZY_RULE_MARKER_RE.search(message):
@@ -605,10 +689,19 @@ def _consume_clazy_context(raw_line: str, line: str, state: _ClazyTextState) -> 
     return False
 
 
-def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticParseResult:
+def _parse_clazy_text(
+    project_root: Path,
+    cwd: Path,
+    text: str,
+    source_roots: tuple[Path, ...],
+) -> DiagnosticParseResult:
     """Parse clazy output and validate compiler diagnostics before excluding them."""
 
-    state = _ClazyTextState()
+    try:
+        roots = _clazy_source_roots(project_root, source_roots)
+    except ValueError as err:
+        return DiagnosticParseResult(format_name="clazy-text", error=str(err))
+    state = _ClazyTextState(source_roots=roots)
     try:
         for raw_line in text.splitlines():
             line = raw_line.strip()
@@ -638,6 +731,8 @@ def parse_clazy_diagnostics(
     cwd: Path,
     stdout: str,
     stderr: str,
+    *,
+    source_roots: tuple[Path, ...] = (),
 ) -> DiagnosticParseResult:
     """Parse clazy diagnostics atomically with a strict rule allowlist shape."""
 
@@ -659,7 +754,7 @@ def parse_clazy_diagnostics(
     if not non_empty:
         return DiagnosticParseResult(format_name="clazy-text")
     root = project_root.resolve(strict=False)
-    return _parse_clazy_text(root, cwd, "\n".join(non_empty))
+    return _parse_clazy_text(root, cwd, "\n".join(non_empty), source_roots)
 
 
 def _bounded_empty_note(match: re.Match[str]) -> bool:

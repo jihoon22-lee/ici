@@ -15,6 +15,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from ici.core._build_paths import prepare_owned_shadow, shadow_dir
+from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
 from ici.core._qmake_commands import qmake_configure_argv
 from ici.core.backend import (
     BACKEND_CMAKE,
@@ -42,6 +43,8 @@ __all__ = [
 # treats RHEL 7.9 as a target runtime, so an old ctest cannot be assumed away.
 _CTEST_TEST_DIR_MIN = (3, 20)
 _CTEST_JUNIT_MIN = (3, 21)
+_MAX_CTEST_REPORT_BYTES = 1_000_000
+_MAX_TEST_RESULT_CHARS = 512
 
 _CMAKE_VERSION_RE = re.compile(r"cmake version (\d+)\.(\d+)")
 
@@ -171,6 +174,23 @@ _CTEST_LINE_RE = re.compile(
 )
 _TESTSUITE_RE = re.compile(r"<testsuite\b.*?</testsuite>", re.DOTALL)
 _DOCTYPE_RE = re.compile(r"<!DOCTYPE", re.IGNORECASE)
+_SANITIZER_FAILURE_MARKERS = (
+    (
+        "LeakSanitizer",
+        re.compile(r"\bLeakSanitizer:\s*detected memory leaks\b", re.IGNORECASE),
+    ),
+    (
+        "AddressSanitizer",
+        re.compile(r"\b(?:ERROR|SUMMARY):\s*AddressSanitizer:\s*\S", re.IGNORECASE),
+    ),
+    (
+        "UndefinedBehaviorSanitizer",
+        re.compile(
+            r"\b(?:ERROR|SUMMARY):\s*UndefinedBehaviorSanitizer:\s*\S",
+            re.IGNORECASE,
+        ),
+    ),
+)
 # `make check` echoes each test command before running it. Two shapes occur:
 #
 #   ./test_format -xunitxml
@@ -199,16 +219,51 @@ class TestCaseResult:
     message: str = ""
 
 
+def _bounded_test_result(value: str) -> str:
+    normalized = value.strip()
+    if len(normalized) <= _MAX_TEST_RESULT_CHARS:
+        return normalized
+    return f"{normalized[: _MAX_TEST_RESULT_CHARS - 3]}..."
+
+
+def _sanitizer_failure_message(
+    node: ElementTree.Element,
+    failures: list[ElementTree.Element],
+) -> str:
+    """Return a bounded class of sanitizer evidence without exporting its trace."""
+
+    evidence: list[str] = []
+    for failure in failures:
+        evidence.extend((failure.get("message", ""), failure.text or ""))
+    for tag in ("system-out", "system-err"):
+        evidence.extend(child.text or "" for child in node.findall(tag))
+    for sanitizer, marker in _SANITIZER_FAILURE_MARKERS:
+        if any(marker.search(value) is not None for value in evidence):
+            return f"{sanitizer} diagnostic"
+    return ""
+
+
 def _junit_case(node: ElementTree.Element) -> TestCaseResult:
-    name = node.get("name", "")
+    name = _bounded_test_result(node.get("name", ""))
     failures = node.findall("failure") + node.findall("error")
     if failures:
+        sanitizer = _sanitizer_failure_message(node, failures)
+        if sanitizer:
+            return TestCaseResult(name, False, sanitizer)
         parts = [f.get("message", "") or (f.text or "").strip() for f in failures]
-        return TestCaseResult(name, False, "; ".join(p for p in parts if p))
+        return TestCaseResult(
+            name,
+            False,
+            _bounded_test_result("; ".join(p for p in parts if p)),
+        )
     # A test ctest never ran is not evidence that it passes.
     status = node.get("status", "")
     if status and status not in ("run", "passed"):
-        return TestCaseResult(name, False, f"ctest reported status {status!r}")
+        return TestCaseResult(
+            name,
+            False,
+            _bounded_test_result(f"ctest reported status {status!r}"),
+        )
     return TestCaseResult(name, True)
 
 
@@ -232,10 +287,32 @@ def _parse_xml(text: str) -> ElementTree.Element | None:
 
 
 def parse_ctest_junit(xml_text: str) -> list[TestCaseResult]:
+    if not isinstance(xml_text, str) or len(xml_text) > _MAX_CTEST_REPORT_BYTES:
+        return []
+    try:
+        encoded_size = len(xml_text.encode("utf-8"))
+    except UnicodeError:
+        return []
+    if encoded_size > _MAX_CTEST_REPORT_BYTES or "\x00" in xml_text:
+        return []
     root = _parse_xml(xml_text)
     if root is None:
         return []
     return [_junit_case(node) for node in root.iter("testcase")]
+
+
+def _read_ctest_junit(path: Path, containment_root: Path) -> str | None:
+    """Read a CTest report through a byte bound, including across file races."""
+
+    try:
+        payload = _read_bounded_regular(
+            path,
+            _MAX_CTEST_REPORT_BYTES,
+            containment_root=containment_root,
+        )
+    except (FileNotFoundError, _ReadError):
+        return None
+    return payload.decode("utf-8", errors="replace")
 
 
 def parse_ctest_stdout(text: str) -> list[TestCaseResult]:
@@ -538,8 +615,9 @@ def run_tests(session: BuildSession, env: dict[str, str] | None = None) -> list[
         argv, junit = cmake_test_argv(ctest_bin, session.shadow, session.cmake_version)
         result = run_process(argv, cwd=session.shadow, env=env)
         _record(session, "ctest", argv, result)
-        if junit is not None and junit.is_file():
-            parsed = parse_ctest_junit(junit.read_text(encoding="utf-8", errors="replace"))
+        if junit is not None:
+            report = _read_ctest_junit(junit, session.shadow)
+            parsed = parse_ctest_junit(report) if report is not None else []
             if parsed:
                 return parsed
         return parse_ctest_stdout(result.stdout)

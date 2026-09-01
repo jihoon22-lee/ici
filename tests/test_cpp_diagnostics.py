@@ -899,3 +899,31 @@ def test_clazy_diagnostics_reject_external_macro_context_atomically(
     assert result.format_name == "clazy-text"
     assert result.error
     assert result.diagnostics == ()
+
+
+def test_clazy_external_source_validation_enforces_a_byte_budget(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    external_include_root = tmp_path / "qt" / "include"
+    header = external_include_root / "QtCore" / "qstring.h"
+    header.parent.mkdir(parents=True)
+    prefix = ("U0001f40d" * 1_000 + "\n") * 250
+    macro_line = "#define QStringLiteral(str) QString::fromUtf8(str)"
+    header.write_text(prefix + macro_line + "\n", encoding="utf-8")
+    output = (
+        "src/widget.cpp:3:2: warning: use QStringLiteral [-Wclazy-qstring-arg]\n"
+        f"{header}:251:5: note: expanded from macro 'QStringLiteral'\n"
+        f"{macro_line}\n"
+        "    ^~~~~~~~~~~~~\n"
+        "    QString::fromUtf8(str)\n"
+    )
+
+    result = parse_clazy_diagnostics(
+        root,
+        root,
+        output,
+        "",
+        source_roots=(external_include_root,),
+    )
+
+    assert result.error
+    assert result.diagnostics == ()
