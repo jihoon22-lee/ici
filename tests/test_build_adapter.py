@@ -470,6 +470,47 @@ def test_parse_ctest_junit_rejects_malformed_xml():
     assert parse_ctest_junit("<testsuite><testcase") == []
 
 
+def test_parse_ctest_junit_normalizes_sanitizer_failure_evidence():
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ctest" tests="1" failures="1">
+  <testcase name="test_leak" classname="ctest">
+    <failure message="test process exited with status 1">generic test failure</failure>
+    <system-out><![CDATA[
+==123==ERROR: LeakSanitizer: detected memory leaks
+SUMMARY: AddressSanitizer: 64 byte(s) leaked in 1 allocation(s)
+    #0 0x7f00 in operator new /usr/lib/llvm/asan_new_delete.cpp:95
+    #1 0x7f01 in leak_fixture /home/runner/work/project/tests/leaky.cpp:42
+verbose stack frame and source explanation must stay out of the result
+]]></system-out>
+  </testcase>
+</testsuite>
+"""
+
+    results = parse_ctest_junit(xml)
+
+    assert len(results) == 1
+    assert results[0].passed is False
+    message = results[0].message
+    assert "LeakSanitizer" in message
+    assert len(message) <= 512
+    assert "#0" not in message
+    assert "asan_new_delete.cpp" not in message
+    assert "leak_fixture" not in message
+    assert "/home/runner/work/project/tests/leaky.cpp:42" not in message
+    assert "verbose stack frame and source explanation" not in message
+
+
+def test_parse_ctest_junit_rejects_oversized_input():
+    xml = (
+        '<testsuite name="ctest" tests="1">'
+        '<testcase name="test_large"><system-out>'
+        + ("x" * 1_000_001)
+        + "</system-out></testcase></testsuite>"
+    )
+
+    assert parse_ctest_junit(xml) == []
+
+
 _CTEST_STDOUT = """    Start 1: test_ring_buffer
 1/2 Test #1: test_ring_buffer .................   Passed    0.01 sec
     Start 2: test_log_model
