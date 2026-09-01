@@ -418,6 +418,12 @@ evidence를 만들지 않습니다. timeout·truncation·nonzero·spawn/malforme
 `ToolEvidence`와 `MEASURED` evidence를 남기며, 위치 있는 compiler/clang-tidy warning과 error는
 각각 finding의 severity와 전체 lint gate에 반영됩니다.
 
+실제 빌드가 `-Werror`, `-Werror=<rule>`, `-pedantic-errors`를 사용해도 diagnostic-only
+clang-tidy/clazy 실행에서는 각각 제거, `-W<rule>`, `-pedantic`으로 낮춰집니다. 이 변환은
+warning 선택과 standard/define/include/ABI context를 보존하며 `-Wno-error*`도 변경하지 않습니다.
+따라서 분석 finding은 위치 있는 결과로 수집되고, 실제 syntax 오류·비정상 종료·파서 오류만
+tool execution failure로 처리됩니다.
+
 ##### C++ Qt clazy 및 생성 단계 정책 (I4-2)
 
 Qt 분석은 exact `CompilationContext`가 있고 capability inventory가 승인한 `clazy` 실행 파일이
