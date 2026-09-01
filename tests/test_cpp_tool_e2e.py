@@ -145,6 +145,7 @@ def real_cpp_project(tmp_path: Path) -> Path:
             "arguments": [
                 "g++",
                 "-std=c++17",
+                "-Werror",
                 "-D",
                 "ICI_E2E_VALUE=1",
                 "-I",
@@ -376,6 +377,7 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
     arguments = [
         gxx,
         "-std=c++17",
+        "-Werror",
         *shlex.split(flags_result.stdout),
         "-fPIC",
         "-c",
@@ -433,6 +435,7 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
     assert evidence.error == ""
     assert evidence.argv is not None
     assert evidence.argv[1:3] == ["--checks=qdatetime-utc", "--only-qt"]
+    assert "-Werror" not in evidence.argv
     assert "-p" not in evidence.argv
     assert not any(argument.startswith("--fix") for argument in evidence.argv)
     assert source.read_bytes() == before
