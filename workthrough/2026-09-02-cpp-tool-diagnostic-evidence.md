@@ -27,6 +27,18 @@ an unbounded XML or stack-trace ingestion path.
 - Documented fail-closed behavior for root/file/identity violations, symlinks, source mismatches,
   forged or extra previews, and budget exhaustion.
 
+### Selected GCC standard-library replay
+
+- `_cpp_tooling` now verifies that the replay compiler is the capability-approved `g++` by resolved
+  file identity, then runs two bounded include-search probes (`c++` and `c`) with only architecture
+  and sysroot selectors retained.
+- The C++ search result minus the C search result is projected in compiler order as
+  `-nostdinc++` plus ordered `-isystem` pairs. Both clang-tidy and clazy consume this projection;
+  probe records are emitted as `g++ stdlib include search` evidence and cached by compiler, working
+  directory, and selector identity.
+- Probe output, timeout, malformed search blocks, nonzero exits, identity mismatch, and unresolved
+  standard-library roots fail closed before a Clang-based analyzer starts.
+
 ### Atomic clazy and CTest evidence
 
 - Documented that every nonzero clazy exit remains an atomic `ERROR` with no partial diagnostics.
@@ -75,6 +87,9 @@ uv run --python 3.10 pytest tests/test_cpp_tooling.py tests/test_cpp_diagnostics
 
 uv run --python 3.10 pytest
 1,538 passed, 4 skipped in 60.31s
+
+uv run --python 3.10 pytest tests/test_cpp_tooling.py tests/test_clang_tidy.py tests/test_clazy.py
+71 passed in 0.25s
 ```
 
 ### Exact tool evidence
@@ -83,6 +98,13 @@ The exact Ubuntu 24.04 + Qt 5 + clazy 1.11 run recorded 12/12 full-lint units, a
 targeted external macro note exported at `[external]`, and an unsuppressed CTest 8 run with 9 cases
 including a LeakSanitizer diagnostic. Suppression work used for that downstream experiment belongs
 to the toy repository only and must not be described as ici policy or an ici suppression contract.
+
+The dual-GCC failure was observed in toy-projects PR #38 run `33531285208`, where Qt 5 and Qt 6 deep
+checks selected the newest installed libstdc++ instead of the compile database's GCC. On Ubuntu 24.04
+with GCC 13 and GCC 14 installed, the fixed local `dist/ici.pyz` projected
+`/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`, and
+`/usr/include/c++/13/backward`; it recorded 2 probes, ran clazy at exit 0 for 12 sources, and kept
+the expected warnings.
 
 ## Next Steps
 

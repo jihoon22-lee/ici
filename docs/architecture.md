@@ -456,6 +456,19 @@ compiler와 sanitized argv를 공유하며, 결과는 legacy `InspectionTarget`,
   `auto`에서 unavailable tool은 분석 결과를 무효화하지 않는 경고로, `required`에서는 실행
   오류로 승격되며, compiler diagnostics와 analyzer findings의 category/confidence/remediation은
   서로 섞이지 않습니다.
+- Clang 기반 clang-tidy/clazy replay가 compile database의 approved `g++`를 선택하면
+  `_cpp_tooling`은 replay executable과 capability path의 resolved file identity를 비교합니다.
+  일치할 때만 같은 GCC를 `c++`와 `c`로 각각 bounded `-E -x <lang> -v -` probe하고,
+  architecture/sysroot selector만 probe argv에 남깁니다. C++ include-search에서 C include-search를
+  차집합한 경로를 compiler 순서 그대로 `-nostdinc++`와 ordered `-isystem` pairs로 두 adapter의
+  compiler arguments에 붙입니다. 최대 5초·131,072 characters·64 directories, replacement
+  environment, closed stdin과 projection cache key를 사용하며 probe 결과는 별도
+  `g++ stdlib include search` `ToolEvidence`로 발행합니다. probe parse/identity/timeout/
+  truncation/nonzero/unresolved 오류는 analyzer 실행 전 atomic toolchain-context error입니다.
+  이 경계는 Ubuntu 24.04의 GCC 13/14 혼재를 재현한 toy-projects PR #38 run `33531285208`의
+  Qt 5/Qt 6 deep clazy 실패를 해결했고, fixed local pyz에서 `/usr/include/c++/13`,
+  `/usr/include/x86_64-linux-gnu/c++/13`, `/usr/include/c++/13/backward` projection, 2 probes,
+  12 sources의 exit 0과 expected warning 보존으로 확인했습니다.
 
 #### I4-2 Qt clazy와 generated-code linkage
 

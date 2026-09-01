@@ -474,6 +474,16 @@ project root). 외부 root의 source preview도 허용되지만 diagnostic targe
 때만 검증합니다. root 부재, identity mismatch, exact source mismatch, forged/extra preview와
 bound 초과는 finding 일부를 남기지 않고 fail-closed합니다.
 
+clang-tidy/clazy가 Clang 기반이고 compilation context의 compiler가 capability-approved `g++`인
+경우에는 선택 GCC의 libstdc++를 별도로 고정합니다. replay compiler가 선택된 `g++`와 resolved
+file identity가 같은지 먼저 확인하고, 그 GCC를 `c++`와 `c`로 각각 한 번씩 `-E -x <lang> -v -`
+bounded probe합니다. probe에는 `-m32`/`-m64`/`-mx32`와 `--sysroot`/`-isysroot` selector만
+보존합니다. C++ search roots에서 C search roots를 빼고 남은 디렉터리를 compiler가 보고한
+순서 그대로 `-nostdinc++`와 `-isystem <root>` 쌍으로 두 도구에 투영합니다. probe는 최대
+5초·131,072 output characters·64 directories 범위이며, malformed/timeout/truncated/nonzero
+probe, identity mismatch 또는 C++ 표준 라이브러리 경로 미확인은 analyzer 실행 전 `ERROR`입니다.
+각 probe는 `g++ stdlib include search` `ToolEvidence`로 기록되고 동일 replay key에서는 캐시됩니다.
+
 clazy process 자체가 nonzero로 종료되면 출력에 warning만 있어도 parser를 시도하지 않고
 atomic engine `ERROR`를 발행합니다. `ToolEvidence.error`와 오류 target에는 bounded exit code와
 `fatal`/`error`/`warning`/`note`/`remark` kind count, processing/output 여부만 남기며 raw
@@ -512,6 +522,13 @@ main publication 및 ici/viewer Pages 감사를 통과했습니다. 따라서 ic
 v0.10.0 release workflow run `33503441322`도 provenance와 9개 artifact 감사를 통과했습니다.
 첫 toy-projects BuildScope B5 run이 production `-Werror`의 diagnostic-tool 승격 결함을 드러내
 v0.10.1 보정과 released-artifact 재검증이 후속 gate가 됐습니다.
+
+다중 GCC 회귀는 Ubuntu 24.04에서 GCC 13과 GCC 14를 함께 설치해 재현했습니다. toy-projects
+PR #38의 run `33531285208`은 Qt 5와 Qt 6 deep에서 clazy가 compile database의 선택 GCC가
+아닌 최신 libstdc++ header를 선택해 실패했습니다. fixed local `dist/ici.pyz`는 선택 GCC의
+projection으로 `/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`,
+`/usr/include/c++/13/backward`를 `-nostdinc++` 뒤 ordered `-isystem`으로 전달했고, 2 probes와
+12 sources에서 clazy exit 0을 기록하면서 expected warnings를 보존했습니다.
 
 cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
 path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration

@@ -332,6 +332,15 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   `--fix`를 넣지 않고 source와 context를 read-only로 다루므로 fix-it은 report finding의
   remediation 제안으로만 남습니다. 단위 실행은 120초, 전체 clang-tidy 실행은 최대 600초의
   bounded budget을 공유하며, budget을 넘긴 나머지 unit은 실행하지 않고 `ERROR`로 기록합니다.
+- clang-tidy 또는 clazy가 Clang 기반이고 exact replay의 compiler가 capability-approved `g++`와
+  resolved file identity까지 일치하면, 두 adapter는 같은 GCC driver로 `c++`와 `c` include-search를
+  각각 한 번 probe합니다. probe에는 `-m32`/`-m64`/`-mx32`, `--sysroot`/`-isysroot` selector만
+  보존하고, C++ search 결과에서 C search 결과를 뺀 나머지를 compiler 출력 순서대로
+  `-nostdinc++`와 `-isystem <root>` 쌍으로 투영합니다. 각 probe는 5초·131,072 output
+  characters·64 directories bound와 replacement environment/closed stdin을 사용해
+  `g++ stdlib include search` `ToolEvidence`로 기록하며, malformed·timeout·truncated·nonzero
+  probe, identity 불일치 또는 표준 라이브러리 경로 미확인은 Clang 도구를 실행하기 전에
+  fail-closed합니다. 이미 `-nostdinc`/`-nostdinc++`가 있으면 projection을 중복 적용하지 않습니다.
 - compiler diagnostic format은 approved GCC/`g++` version 9 이상에서
   `-fdiagnostics-format=json`을 사용하고, approved Clang 또는 version을 알 수 없는 compiler는
   `-fdiagnostics-parseable-fixits` text fallback을 사용합니다. JSON/text parser는 malformed
@@ -356,6 +365,12 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   wrapper는 approved `clang++`를 `CLANGXX`로 고정한 replacement environment와 `CLAZY_CHECKS`를
   사용합니다. 두 경로 모두 compilation database 재탐색, `-p`, `--fix`, shell, source/context
   수정을 하지 않습니다.
+- Clang 기반 clazy 실행도 선택 GCC의 exact libstdc++를 사용하도록 위 표준-library projection을
+  공유합니다. Ubuntu 24.04의 GCC 13/14 혼재처럼 최신 header가 잘못 선택될 수 있는 환경에서
+  projection은 `/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`,
+  `/usr/include/c++/13/backward`를 compiler가 보고한 순서로 `-nostdinc++`와 `-isystem`으로
+  전달합니다. toy-projects PR #38 run `33531285208`의 Qt 5/Qt 6 deep 실패를 재현한 뒤 fixed
+  local pyz에서 12 sources, 2 probes, clazy exit 0과 expected warning 보존을 확인했습니다.
 - clazy parser는 `-Wclazy-*` warning option 형태를 strict하게 검증하고 위치 있는 diagnostics와
   parent rule note를 `family = "clazy"` 및 stable rule ID로 보존합니다. lifetime/ownership은
   `RESOURCE`, Qt6/deprecated/QString API는 `COMPATIBILITY`, QObject/connect/signal/slot은

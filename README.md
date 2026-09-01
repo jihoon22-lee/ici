@@ -175,6 +175,15 @@ read 전후 device/inode/size/mtime identity를 확인합니다. source-context 
 symlink, source mismatch, forged/extra preview 또는 budget 초과는 partial finding 없이
 atomic `ERROR`가 됩니다.
 
+Clang 기반 clang-tidy/clazy가 exact compilation context의 선택 GCC를 사용할 때는 최신 설치
+libstdc++를 임의로 집지 않도록 별도 표준 라이브러리 projection을 먼저 수행합니다. capability가
+승인한 `g++`와 replay compiler의 resolved file identity가 같은지 확인하고, 해당 GCC를 `c++`와
+`c`로 각각 한 번씩 bounded probe한 뒤 C++ search 결과에서 C search 결과를 뺍니다. 남은 경로를
+compiler가 보고한 순서 그대로 `-nostdinc++`와 `-isystem <root>` 쌍으로 clazy와 clang-tidy에
+전달합니다. probe는 architecture/sysroot selector만 보존하고, output/timeout/parse/identity/
+unresolved 오류는 analyzer를 실행하기 전에 fail-closed합니다. 두 probe는 `ToolEvidence`로
+기록됩니다.
+
 같은 lint 단계에서 source scope의 `.ui`, `.qrc`, `Q_OBJECT` 선언을 찾아 exact compilation
 database와 연결합니다. `ui_<stem>.h`가 bounded project include traversal로 exact translation
 unit에 연결되는지, `qrc_<stem>.cpp`가 generated
@@ -192,6 +201,12 @@ Python 3.10 local run은 focused C++/CTest 회귀 161 passed, full suite 1,538 p
 확인한 작업은 toy repository에 한정되며 ici policy로 해석하지 않는다. 남은 delivery evidence는
 이번 correction의 ici PR/정확한 main gate, BuildScope candidate 교차 검증, 그리고 그 증거를
 통과한 corrective release를 사용하는 BuildScope 최종 검증입니다.
+
+다중 GCC 회귀를 재현한 Ubuntu 24.04에서는 GCC 13/14가 함께 설치된 상태에서 toy-projects PR #38
+run `33531285208`의 Qt 5/Qt 6 deep clazy가 실패했습니다. fixed local `dist/ici.pyz`는
+`/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`, `/usr/include/c++/13/backward`를
+projection하고 2 probes 뒤 12 sources에서 clazy exit 0을 기록했으며, expected warnings도
+보존했습니다. 이 경로의 표준 라이브러리 선택은 compile database의 GCC identity에 종속됩니다.
 
 ## 💻 빠른 설치 및 사용법
 
