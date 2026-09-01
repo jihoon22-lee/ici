@@ -5,6 +5,7 @@ import json
 import re
 import shutil
 import time
+from collections import Counter
 from pathlib import Path
 
 from ici.core.env import find_project_executable
@@ -12,10 +13,17 @@ from ici.core.models import (
     EngineResult,
     EngineStatus,
     EvidenceState,
+    Finding,
+    FindingCategory,
+    FindingConfidence,
+    FindingSeverity,
     InspectionTarget,
+    SourceLocation,
     ToolEvidence,
 )
 from ici.core.runner import ProcessResult, run_process
+from ici.engines._clang_tidy import run_clang_tidy
+from ici.engines._cpp_diagnostics import CppDiagnostic
 from ici.engines._cpp_lint import run_cpp_lint
 from ici.engines.base import BaseEngine
 
@@ -66,6 +74,8 @@ class LintEngine(BaseEngine):
     CACHE_IMPLEMENTATION_MODULES = (
         "ici.core._cpp_replay_policy",
         "ici.core.cpp_replay",
+        "ici.engines._clang_tidy",
+        "ici.engines._cpp_diagnostics",
         "ici.engines._cpp_lint",
         "ici.engines.lint",
     )
@@ -81,6 +91,10 @@ class LintEngine(BaseEngine):
         self._cpp_configurations_checked = 0
         self._cpp_sources_checked = 0
         self._cpp_context_missing = 0
+        self._clang_tidy_mode = "not_applicable"
+        self._clang_tidy_configurations_checked = 0
+        self._clang_tidy_sources_checked = 0
+        self._cpp_diagnostics: list[CppDiagnostic] = []
 
         # 1. Python Linting & Formatting Check
         python_files = self.project_python_sources()
@@ -109,7 +123,10 @@ class LintEngine(BaseEngine):
         duration = time.time() - t0
         fail_count = sum(1 for t in targets if t.status == EngineStatus.FAIL)
         warn_count = sum(1 for t in targets if t.status == EngineStatus.WARN)
-        warn_count += len(tool_warnings)
+        target_warning_messages = {
+            target.message for target in targets if target.status == EngineStatus.WARN
+        }
+        warn_count += sum(message not in target_warning_messages for message in tool_warnings)
 
         cfg = self.get_config("lint")
         mode = cfg.get("mode", "pass_warn_fail")
@@ -133,7 +150,7 @@ class LintEngine(BaseEngine):
             else f"{fail_count} Errors, {warn_count} Warnings Found"
         )
 
-        return self.create_result(
+        result = self.create_result(
             name="lint",
             status=overall_status,
             summary=summary,
@@ -149,6 +166,32 @@ class LintEngine(BaseEngine):
                 "cpp_configurations_checked": self._cpp_configurations_checked,
                 "cpp_sources_checked": self._cpp_sources_checked,
                 "cpp_context_missing": self._cpp_context_missing,
+                "clang_tidy_mode": self._clang_tidy_mode,
+                "clang_tidy_configurations_checked": self._clang_tidy_configurations_checked,
+                "clang_tidy_sources_checked": self._clang_tidy_sources_checked,
+                "cpp_diagnostic_families": {
+                    family: sum(
+                        1 for diagnostic in self._cpp_diagnostics if diagnostic.family == family
+                    )
+                    for family in ("compiler", "clang-tidy", "clang-analyzer")
+                },
+                "cpp_fixits": [
+                    {
+                        "family": diagnostic.family,
+                        "rule": diagnostic.tool_rule_id,
+                        "file_path": fixit.file_path,
+                        "start_line": fixit.start_line,
+                        "start_column": fixit.start_column,
+                        "end_line": fixit.end_line,
+                        "end_column": fixit.end_column,
+                        "replacement": fixit.replacement,
+                    }
+                    for diagnostic in self._cpp_diagnostics
+                    for fixit in diagnostic.fixits
+                ][:1_000],
+                "cpp_fixits_total": sum(
+                    len(diagnostic.fixits) for diagnostic in self._cpp_diagnostics
+                ),
                 "metrics_summary": f"{fail_count + warn_count} issues",
             },
             required=bool(cfg.get("required", True)),
@@ -163,6 +206,91 @@ class LintEngine(BaseEngine):
             ),
             tool_evidence=tool_evidence,
         )
+        result.findings = self._cpp_findings(result.targets, tool_evidence)
+        return result
+
+    def _cpp_findings(
+        self,
+        targets: list[InspectionTarget],
+        tools: list[ToolEvidence],
+    ) -> list[Finding]:
+        """Enrich compiler and clang findings while retaining target compatibility."""
+
+        key_counts = Counter((target.file_path, target.target_name.strip()) for target in targets)
+        findings: list[Finding] = []
+        for diagnostic in self._cpp_diagnostics:
+            target = diagnostic.target
+            key = (target.file_path, target.target_name.strip())
+            label = target.target_name if key_counts[key] == 1 else ""
+            candidates = reversed(tools) if diagnostic.family == "compiler" else tools
+            tool = next(
+                (
+                    item
+                    for item in candidates
+                    if (item.name == "clang-tidy") != (diagnostic.family == "compiler")
+                ),
+                None,
+            )
+            remediation = self._cpp_remediation(diagnostic)
+            findings.append(
+                Finding(
+                    rule_id="ici.legacy.lint.target",
+                    category=(
+                        FindingCategory.MAINTAINABILITY
+                        if diagnostic.family == "clang-tidy"
+                        else FindingCategory.CORRECTNESS
+                    ),
+                    severity=(
+                        FindingSeverity.HIGH
+                        if target.status == EngineStatus.FAIL
+                        else FindingSeverity.MEDIUM
+                    ),
+                    confidence=(
+                        FindingConfidence.EXACT
+                        if diagnostic.family != "compiler" or self._cpp_analysis_mode == "exact"
+                        else FindingConfidence.MEDIUM
+                    ),
+                    fingerprint="",
+                    primary_location=SourceLocation(
+                        path=target.file_path,
+                        start_line=target.start_line,
+                        end_line=target.end_line,
+                        start_column=target.start_column,
+                        end_column=target.end_column,
+                        label=label,
+                    ),
+                    message=target.message,
+                    explanation=(
+                        "Clang Static Analyzer diagnostic."
+                        if diagnostic.family == "clang-analyzer"
+                        else "clang-tidy diagnostic."
+                        if diagnostic.family == "clang-tidy"
+                        else "Compiler diagnostic from a sanitized translation-unit replay."
+                    ),
+                    remediation=remediation,
+                    tool_rule_id=diagnostic.tool_rule_id,
+                    tool_name=tool.name if tool is not None else "",
+                    tool_version=tool.version if tool is not None else "",
+                )
+            )
+        return findings
+
+    @staticmethod
+    def _cpp_remediation(diagnostic: CppDiagnostic) -> str:
+        if not diagnostic.fixits:
+            return ""
+        suggestions = [
+            (
+                f"{item.file_path}:{item.start_line}:{item.start_column}-"
+                f"{item.end_line}:{item.end_column} replace with {item.replacement!r}"
+            )
+            for item in diagnostic.fixits[:8]
+        ]
+        if len(diagnostic.fixits) > len(suggestions):
+            suggestions.append(
+                f"{len(diagnostic.fixits) - len(suggestions)} additional suggestion(s) omitted"
+            )
+        return "; ".join(suggestions)[:8_192]
 
     def _lint_python(
         self,
@@ -635,8 +763,23 @@ class LintEngine(BaseEngine):
         targets.extend(outcome.targets)
         evidence.extend(outcome.evidence)
         warnings.extend(outcome.warnings)
+        self._cpp_diagnostics.extend(outcome.diagnostics)
         self._cpp_analysis_mode = outcome.mode
         self._cpp_configurations_checked = outcome.configurations_checked
         self._cpp_sources_checked = outcome.sources_checked
         self._cpp_context_missing = outcome.missing_sources
-        return outcome.errors
+        clang_tidy = run_clang_tidy(
+            self.project_root,
+            cpp_files,
+            self.analysis_context,
+            self.get_config("lint"),
+            runner=run_process,
+        )
+        targets.extend(clang_tidy.targets)
+        evidence.extend(clang_tidy.evidence)
+        warnings.extend(clang_tidy.warnings)
+        self._cpp_diagnostics.extend(clang_tidy.diagnostics)
+        self._clang_tidy_mode = clang_tidy.mode
+        self._clang_tidy_configurations_checked = clang_tidy.configurations_checked
+        self._clang_tidy_sources_checked = clang_tidy.sources_checked
+        return [*outcome.errors, *clang_tidy.errors]

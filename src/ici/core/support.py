@@ -78,10 +78,10 @@ _DECLARATIONS = (
         AnalysisMode.TOOL_BACKED,
         FindingConfidence.HIGH,
         frameworks=_QT,
-        optional_tools=("gcc", "g++", "clang", "clang++", "pkg-config"),
+        optional_tools=("gcc", "g++", "clang", "clang++", "clang-tidy", "pkg-config"),
         fallback_mode=AnalysisMode.HEURISTIC,
         limitations=(
-            "Replays sanitized GCC/Clang translation-unit commands when compilation context exists; without it, a fixed c++17 syntax fallback is estimated.",
+            "Replays sanitized GCC/Clang translation-unit commands and optional clang-tidy checks when compilation context exists; without it, a fixed c++17 syntax fallback is estimated.",
         ),
     ),
     SupportDeclaration(
@@ -413,6 +413,12 @@ def _tool_policy(
     promoted = ""
     if declaration.engine_name == "lint" and declaration.language == SupportLanguage.PYTHON:
         promoted = "ruff" if engine_config.get("ruff_required", False) else ""
+    elif declaration.engine_name == "lint" and declaration.language == SupportLanguage.CPP:
+        clang_tidy_mode = engine_config.get("clang_tidy", "auto")
+        if clang_tidy_mode == "required":
+            promoted = "clang-tidy"
+        elif clang_tidy_mode == "off" and "clang-tidy" in optional:
+            optional.remove("clang-tidy")
     elif declaration.engine_name == "type" and declaration.language == SupportLanguage.PYTHON:
         promoted = "mypy" if engine_config.get("mypy_required", False) else ""
     elif declaration.engine_name == "test" and engine_config.get("coverage_required", False):

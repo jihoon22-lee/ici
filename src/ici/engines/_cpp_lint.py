@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from ici.core.capabilities import CapabilityInventory
@@ -23,18 +22,7 @@ from ici.core.cpp_replay import (
 from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
-
-_CPP_DIAGNOSTIC_RE = re.compile(
-    r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
-    r"(?P<kind>fatal error|error|warning|note):\s*(?P<message>\S.*)$"
-)
-_CPP_CONTEXT_RE = re.compile(r"^\s*(?:\d+\s*\|.*|\|.*|[\^~].*)$")
-_CPP_CONTEXT_HEADER_RE = re.compile(
-    r"^.+:\s+In (?:function|member function|constructor|destructor|lambda function|"
-    r"instantiation of)(?: .*)?:$"
-)
-_CPP_REQUIRED_FROM_RE = re.compile(r"^.+:[1-9]\d*(?::[1-9]\d*)?:\s+required from here$")
-_MAX_DIAGNOSTIC_LINE = 2_147_483_647
+from ici.engines._cpp_diagnostics import CppDiagnostic, parse_compiler_diagnostics
 
 
 @dataclass
@@ -46,13 +34,18 @@ class CppLintOutcome:
     errors: list[str]
     warnings: list[str]
     mode: str
+    diagnostics: list[CppDiagnostic] = field(default_factory=list)
     configurations_checked: int = 0
     sources_checked: int = 0
     missing_sources: int = 0
 
 
 def _record_process(
-    evidence: list[ToolEvidence], name: str, command: list[str], result: ProcessResult
+    evidence: list[ToolEvidence],
+    name: str,
+    command: list[str],
+    result: ProcessResult,
+    version: str,
 ) -> ToolEvidence:
     error = ""
     if result.timed_out:
@@ -64,6 +57,7 @@ def _record_process(
     item = ToolEvidence(
         name=name,
         path=command[0],
+        version=version,
         argv=command,
         returncode=result.returncode,
         timed_out=result.timed_out,
@@ -87,72 +81,48 @@ def _record_exception(
     )
 
 
-def _diagnostic_path(project_root: Path, cwd: Path, value: str) -> str | None:
-    try:
-        lexical = Path(value.strip())
-        path = (lexical if lexical.is_absolute() else cwd / lexical).resolve(strict=False)
-    except (OSError, RuntimeError, ValueError):
-        return None
-    try:
-        return path.relative_to(project_root).as_posix()
-    except ValueError:
-        return str(path)
+def _compiler_capability(
+    command: list[str], inventory: CapabilityInventory
+) -> ToolCapability | None:
+    compiler = Path(command[0]).resolve(strict=False)
+    for capability in inventory.capabilities.values():
+        if not capability.path:
+            continue
+        try:
+            if Path(capability.path).resolve(strict=False) == compiler:
+                return capability
+        except (OSError, RuntimeError):
+            continue
+    return None
 
 
-def _diagnostic_number(value: str | None) -> int | None:
-    if value is None or len(value) > 10:
-        return None
-    try:
-        number = int(value)
-    except (ValueError, OverflowError):
-        return None
-    return number if 0 < number <= _MAX_DIAGNOSTIC_LINE else None
+def _diagnostic_command(command: list[str], inventory: CapabilityInventory) -> list[str]:
+    """Request structured GCC diagnostics or bounded text fix-its when supported."""
+
+    compiler = Path(command[0]).resolve(strict=False)
+    gcc_json = False
+    for name in ("gcc", "g++"):
+        capability = inventory.capabilities.get(name)
+        if capability is None or capability.version_tuple < (9,) or not capability.path:
+            continue
+        try:
+            gcc_json = Path(capability.path).resolve(strict=False) == compiler
+        except (OSError, RuntimeError):
+            gcc_json = False
+        if gcc_json:
+            break
+    diagnostic_flag = "-fdiagnostics-format=json" if gcc_json else "-fdiagnostics-parseable-fixits"
+    return [*command[:-1], diagnostic_flag, command[-1]]
 
 
 def parse_cpp_diagnostics(
     project_root: Path, cwd: Path, stdout: str, stderr: str
 ) -> tuple[list[InspectionTarget], bool, bool]:
-    """Parse bounded GCC/Clang text diagnostics and reject unknown output."""
+    """Compatibility facade for the normalized atomic diagnostic parser."""
 
-    parsed: list[InspectionTarget] = []
-    malformed = False
-    found_diagnostic = False
-    for raw_line in (stdout + "\n" + stderr).splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        match = _CPP_DIAGNOSTIC_RE.match(line)
-        if match:
-            file_path = _diagnostic_path(project_root, cwd, match.group("file"))
-            line_number = _diagnostic_number(match.group("line"))
-            column_number = _diagnostic_number(match.group("column"))
-            if (
-                file_path is None
-                or line_number is None
-                or (match.group("column") is not None and column_number is None)
-            ):
-                malformed = True
-                continue
-            found_diagnostic = True
-            kind = match.group("kind")
-            parsed.append(
-                InspectionTarget(
-                    file_path=file_path,
-                    start_line=line_number,
-                    target_name="C++Syntax",
-                    status=EngineStatus.FAIL if "error" in kind else EngineStatus.WARN,
-                    message=f"{kind}: {match.group('message')}",
-                )
-            )
-            continue
-        if line.startswith("In file included from") or line.startswith("from "):
-            continue
-        if found_diagnostic and _CPP_CONTEXT_RE.fullmatch(line) is not None:
-            continue
-        if _CPP_CONTEXT_HEADER_RE.fullmatch(line) or _CPP_REQUIRED_FROM_RE.fullmatch(line):
-            continue
-        malformed = True
-    return parsed, malformed, found_diagnostic
+    result = parse_compiler_diagnostics(project_root, cwd, stdout, stderr)
+    targets = [diagnostic.target for diagnostic in result.diagnostics]
+    return targets, bool(result.error), bool(result.diagnostics)
 
 
 def _syntax_process_error(result: ProcessResult, source_name: str) -> str | None:
@@ -171,17 +141,22 @@ def _syntax_output_error(
     result: ProcessResult,
     source_name: str,
     compiler_name: str,
-) -> tuple[list[InspectionTarget], str | None]:
-    parsed, malformed, found = parse_cpp_diagnostics(
-        project_root, cwd, result.stdout, result.stderr
-    )
-    if malformed:
-        return parsed, f"C++ syntax output was not parseable: {source_name}"
+) -> tuple[list[CppDiagnostic], str | None]:
+    parsed = parse_compiler_diagnostics(project_root, cwd, result.stdout, result.stderr)
+    if parsed.error:
+        return [], f"C++ syntax output was not parseable: {source_name}"
     if result.returncode >= 2:
-        return parsed, f"{compiler_name} failed with exit code {result.returncode}: {source_name}"
-    if result.returncode != 0 and not found:
-        return parsed, f"C++ syntax output had no diagnostics: {source_name}"
-    return parsed, None
+        return [], f"{compiler_name} failed with exit code {result.returncode}: {source_name}"
+    if result.returncode != 0 and not parsed.diagnostics:
+        return [], f"C++ syntax output had no diagnostics: {source_name}"
+    has_error = any(
+        diagnostic.target.status == EngineStatus.FAIL for diagnostic in parsed.diagnostics
+    )
+    if result.returncode == 0 and has_error:
+        return [], f"{compiler_name} reported an error with a successful exit: {source_name}"
+    if result.returncode == 1 and not has_error:
+        return [], f"{compiler_name} failed without an error diagnostic: {source_name}"
+    return list(parsed.diagnostics), None
 
 
 def _evaluate_process(
@@ -196,10 +171,11 @@ def _evaluate_process(
 ) -> None:
     source_name = source.name
     message = _syntax_process_error(result, source_name)
-    parsed: list[InspectionTarget] = []
+    parsed: list[CppDiagnostic] = []
     if message is None:
         parsed, message = _syntax_output_error(project_root, cwd, result, source_name, name)
-        outcome.targets.extend(parsed)
+        outcome.diagnostics.extend(parsed)
+        outcome.targets.extend(diagnostic.target for diagnostic in parsed)
     if message is None:
         if not parsed:
             relative = str(source.relative_to(project_root))
@@ -234,6 +210,7 @@ def _run_command(
     name: str,
     command: list[str],
     cwd: Path,
+    version: str,
     outcome: CppLintOutcome,
     runner: Callable[..., ProcessResult],
 ) -> None:
@@ -259,7 +236,7 @@ def _run_command(
             )
         )
         return
-    tool_record = _record_process(outcome.evidence, name, command, result)
+    tool_record = _record_process(outcome.evidence, name, command, result, version)
     _evaluate_process(
         project_root,
         source,
@@ -382,13 +359,16 @@ def _run_exact(
                 )
             )
             continue
+        command = _diagnostic_command(list(replay.argv), analysis_context.capabilities)
+        capability = _compiler_capability(command, analysis_context.capabilities)
         _run_command(
             project_root,
             replay.source,
             replay.configuration,
             replay.compiler,
-            list(replay.argv),
+            command,
             replay.cwd,
+            capability.version if capability is not None else "",
             outcome,
             runner,
         )
@@ -488,13 +468,16 @@ def _run_fallback(
                 )
             )
             continue
+        command = _diagnostic_command(list(replay.argv), inventory)
+        capability = _compiler_capability(command, inventory)
         _run_command(
             project_root,
             replay.source,
             "",
             "g++",
-            list(replay.argv),
+            command,
             replay.cwd,
+            capability.version if capability is not None else "",
             outcome,
             runner,
         )

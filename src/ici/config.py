@@ -42,6 +42,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "mode": "pass_warn_fail",
             "ruff_required": False,
+            "clang_tidy": "auto",
         },
         "compile_db": {
             "enabled": True,

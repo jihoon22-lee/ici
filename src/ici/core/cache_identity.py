@@ -58,6 +58,7 @@ _SOURCE_SUFFIXES = frozenset(
 _INPUT_SUFFIXES = frozenset({".cmake", ".cfg", ".ini", ".pri", ".pro", ".toml"})
 _INPUT_NAMES = frozenset(
     {
+        ".clang-tidy",
         ".ruff.toml",
         "CMakeLists.txt",
         "CMakePresets.json",

@@ -8,7 +8,7 @@ import tomli
 
 from ici import __version__
 from ici.config import DEFAULT_CONFIG, ConfigError, get_global_config_path, load_config
-from ici.config_schema import validate_config
+from ici.config_schema import validate_config, validate_config_paths
 from ici.core.pipeline import apply_analysis_profile
 from ici.engines.line import LineCountEngine
 
@@ -75,6 +75,7 @@ def test_default_config_has_layout_and_line_gate_keys():
     assert DEFAULT_CONFIG["engines"]["line"]["gate_dirs"] == ["src", "include", "lib", "app"]
     assert DEFAULT_CONFIG["engines"]["line"]["include_dirs"] == []
     assert DEFAULT_CONFIG["engines"]["line"]["exclude_dirs"] == []
+    assert DEFAULT_CONFIG["engines"]["lint"]["clang_tidy"] == "auto"
     assert DEFAULT_CONFIG["doctor"]["required_tools"] == []
 
 
@@ -268,6 +269,78 @@ def test_load_config_accepts_lint_and_type_tool_required_policies(tmp_path: Path
 
     assert config["engines"]["lint"]["ruff_required"] is True
     assert config["engines"]["type"]["mypy_required"] is True
+
+
+def _lint_config(**values):
+    lint = {
+        "clang_tidy": "auto",
+        "clang_tidy_checks": ["-*", "bugprone-*", "readability-identifier-naming"],
+        "clang_tidy_config": "config/.clang-tidy",
+    }
+    lint.update(values)
+    return {"engines": {"lint": lint}}
+
+
+@pytest.mark.parametrize("mode", ["auto", "required", "off"])
+def test_config_schema_accepts_clang_tidy_settings(mode: str):
+    config = _lint_config(clang_tidy=mode)
+
+    validate_config(config)
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("clang_tidy", "always"),
+        ("clang_tidy", 1),
+        ("clang_tidy_checks", "bugprone-*"),
+        ("clang_tidy_config", ["config/.clang-tidy"]),
+    ],
+)
+def test_config_schema_rejects_invalid_clang_tidy_types_and_mode(key, value):
+    with pytest.raises(ConfigError, match=rf"engines\.lint\.{key}"):
+        validate_config(_lint_config(**{key: value}))
+
+
+@pytest.mark.parametrize(
+    "checks",
+    [
+        [],
+        [""],
+        ["bugprone-*", "bugprone-*"],
+        ["bugprone,foo"],
+        ["bugprone foo"],
+        ["bugprone\x00foo"],
+        ["bugprone?foo"],
+        ["a" * 129],
+        [f"check_{index:03d}_" + "a" * 118 for index in range(65)],
+        [f"check{index}" for index in range(129)],
+    ],
+)
+def test_config_schema_rejects_invalid_clang_tidy_checks(checks):
+    with pytest.raises(ConfigError, match=r"engines\.lint\.clang_tidy_checks"):
+        validate_config(_lint_config(clang_tidy_checks=checks))
+
+
+@pytest.mark.parametrize("config", ["", "   ", "a" * 4097])
+def test_config_schema_rejects_invalid_clang_tidy_config(config: str):
+    with pytest.raises(ConfigError, match=r"engines\.lint\.clang_tidy_config"):
+        validate_config(_lint_config(clang_tidy_config=config))
+
+
+def test_validate_config_paths_rejects_clang_tidy_config_outside_project(tmp_path: Path):
+    with pytest.raises(ConfigError, match=r"engines\.lint\.clang_tidy_config|outside project root"):
+        validate_config_paths(
+            _lint_config(clang_tidy_config="../outside/.clang-tidy"),
+            tmp_path,
+        )
+
+
+def test_validate_config_paths_accepts_clang_tidy_config_inside_project(tmp_path: Path):
+    validate_config_paths(
+        _lint_config(clang_tidy_config="config/.clang-tidy"),
+        tmp_path,
+    )
 
 
 def test_load_config_accepts_compile_database_gate_policy(

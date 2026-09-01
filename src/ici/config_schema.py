@@ -18,6 +18,14 @@ class ConfigError(ValueError):
 MODES = frozenset({"pass_warn_fail", "pass_fail", "pass_warn"})
 PROJECT_TYPES = frozenset({"python", "cpp", "hybrid"})
 ANALYSIS_PROFILES = frozenset({"fast", "standard", "deep"})
+CLANG_TIDY_MODES = frozenset({"auto", "required", "off"})
+_CLANG_TIDY_CHECK_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.*-"
+)
+_MAX_CLANG_TIDY_CHECKS = 128
+_MAX_CLANG_TIDY_CHECK_LENGTH = 128
+_MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH = 8192
+_MAX_CLANG_TIDY_CONFIG_LENGTH = 4096
 
 _TOP_LEVEL_KEYS = frozenset(
     {"ici", "project", "engines", "build", "doctor", "name", "type", "version"}
@@ -55,7 +63,8 @@ _ENGINE_KEYS = {
             "exclude_dirs",
         }
     ),
-    "lint": _COMMON_ENGINE_KEYS | frozenset({"ruff_required"}),
+    "lint": _COMMON_ENGINE_KEYS
+    | frozenset({"ruff_required", "clang_tidy", "clang_tidy_checks", "clang_tidy_config"}),
     "compile_db": _COMMON_ENGINE_KEYS
     | frozenset({"database_required", "required_flags", "forbidden_flags"}),
     "test": _COMMON_ENGINE_KEYS
@@ -212,6 +221,54 @@ def _validate_lint(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
     if "ruff_required" in table:
         _require_bool(table["ruff_required"], f"{path}.ruff_required")
+    if "clang_tidy" in table:
+        clang_tidy_path = f"{path}.clang_tidy"
+        _require_string(table["clang_tidy"], clang_tidy_path, non_empty=True)
+        if table["clang_tidy"] not in CLANG_TIDY_MODES:
+            allowed = ", ".join(sorted(CLANG_TIDY_MODES))
+            raise _error(clang_tidy_path, f"must be one of: {allowed}")
+    if "clang_tidy_checks" in table:
+        _validate_clang_tidy_checks(table["clang_tidy_checks"], f"{path}.clang_tidy_checks")
+    if "clang_tidy_config" in table:
+        clang_tidy_config_path = f"{path}.clang_tidy_config"
+        _require_string(table["clang_tidy_config"], clang_tidy_config_path, non_empty=True)
+        if len(table["clang_tidy_config"]) > _MAX_CLANG_TIDY_CONFIG_LENGTH:
+            raise _error(
+                clang_tidy_config_path,
+                f"must be at most {_MAX_CLANG_TIDY_CONFIG_LENGTH} characters",
+            )
+
+
+def _validate_clang_tidy_checks(value: Any, path: str) -> None:
+    if not isinstance(value, list):
+        raise _error(path, "must be a list of 1 to 128 unique non-empty strings")
+    if not 1 <= len(value) <= _MAX_CLANG_TIDY_CHECKS:
+        raise _error(
+            path,
+            f"must contain between 1 and {_MAX_CLANG_TIDY_CHECKS} items",
+        )
+
+    seen: set[str] = set()
+    for index, item in enumerate(value):
+        item_path = f"{path}[{index}]"
+        if not isinstance(item, str) or not item:
+            raise _error(item_path, "must be a non-empty string")
+        if len(item) > _MAX_CLANG_TIDY_CHECK_LENGTH:
+            raise _error(
+                item_path,
+                f"must be at most {_MAX_CLANG_TIDY_CHECK_LENGTH} characters",
+            )
+        if item in seen:
+            raise _error(item_path, "must be unique")
+        if any(character not in _CLANG_TIDY_CHECK_CHARS for character in item):
+            raise _error(item_path, "contains unsafe characters")
+        seen.add(item)
+
+    if len(",".join(value)) > _MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH:
+        raise _error(
+            path,
+            f"joined length must be at most {_MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH} characters",
+        )
 
 
 def _validate_complexity(table: dict[str, Any], path: str) -> None:
@@ -394,11 +451,19 @@ def validate_config_paths(config: dict[str, Any], base: Path) -> None:
     if not isinstance(engines, dict):
         return
     line = engines.get("line")
-    if not isinstance(line, dict):
-        return
-    for key in ("gate_dirs", "include_dirs", "exclude_dirs"):
-        if key in line:
-            _validate_path_list(line[key], f"engines.line.{key}", base)
+    if isinstance(line, dict):
+        for key in ("gate_dirs", "include_dirs", "exclude_dirs"):
+            if key in line:
+                _validate_path_list(line[key], f"engines.line.{key}", base)
+    lint = engines.get("lint")
+    if isinstance(lint, dict) and "clang_tidy_config" in lint:
+        value = lint["clang_tidy_config"]
+        if not isinstance(value, str) or not value:
+            raise _error("engines.lint.clang_tidy_config", "must be a non-empty string")
+        try:
+            resolve_project_path(base, value)
+        except ConfigError as err:
+            raise ConfigError(f"engines.lint.clang_tidy_config: {err}") from err
 
 
 def validate_config(config: dict[str, Any]) -> None:

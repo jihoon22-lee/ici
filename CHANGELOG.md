@@ -7,6 +7,22 @@
 
 ## [Unreleased]
 
+### Added
+- **I4-1 compiler and clang-tidy analysis**: C++ lint now replays only approved, exact,
+  sanitized compilation-context commands without rereading the compilation database directly.
+  GCC 9+ uses structured JSON diagnostics, while Clang and unknown-version fallbacks use bounded
+  parseable fix-it text; parsing is atomic and preserves normalized locations, rule IDs, analyzer
+  families, child diagnostics, and read-only fix-it suggestions.
+- Clang-tidy supports `auto`, `required`, and `off`, with explicit checks taking precedence over
+  built-in defaults and an explicit project config taking precedence over bounded `.clang-tidy`
+  discovery. Config files are contained by the project root; parent-of-project discovery and
+  `ExtraArgs`/`ExtraArgsBefore` compiler-argument injection are rejected. Compiler, clang-tidy,
+  and Clang Static Analyzer diagnostics retain separate families; analyzer correctness findings are
+  distinct from ordinary clang-tidy maintainability findings.
+- Missing or malformed context/output, compile mismatches, timeouts, and translation-unit or
+  global execution-budget violations fail closed. Cache identity now includes project `.clang-tidy`
+  inputs and the clang-tidy/diagnostic helper implementations.
+
 ### Verification
 - **I3 same-basename active-header local compiler edge**: the existing
   `test_trace_uses_compiler_selected_same_basename_without_ambiguity` keeps its mocked
