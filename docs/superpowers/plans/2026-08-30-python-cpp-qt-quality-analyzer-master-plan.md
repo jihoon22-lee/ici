@@ -484,7 +484,8 @@ TEM 4.89, tests 7)였다. 독립적으로 fetch한 [ici Pages](https://jihoon22-
 `Content-Type: text/html; charset=utf-8`, title present, 외부 `script`/`link`/`img`/`iframe`
 dependency 0건이었고 관측 bytes는 각각 4,496,996와 344,663이었다. 이로써 I3-1은 완료됐다.
 이 단락은 I3-1의 범위만 기록하며, CMake DB 생성·qmake capture·lint/include graph 이관은
-아래 I3-2~I3-4 절에서 별도로 추적한다. I3 전체는 아직 완료되지 않았다.
+아래 I3-2~I3-4 절에서 별도로 추적한다. 당시 시점에는 I3 전체가 아직 완료되지 않았고, 아래
+후속 절의 PR #113 및 exact-main evidence로 현재 complete됐다.
 
 ### I3-2. CMake compile DB 생성
 
@@ -532,7 +533,8 @@ TEM 4.89, tests 7, compile_db 5/5 production units, 20 configurations, 0 issues)
 `text/html`, title present, 외부 dependency 0건이었고 관측 bytes는 각각 4,574,483와 337,918이었다.
 v0.8.0 public projection으로 BuildScope target-by-target 대조가 완료됐고 I3-3은 완료됐다.
 I3-4는 기존 구현·원격 evidence에 더해 아래 local actual-process edge revalidation을
-기록하며, 새 테스트의 PR/CI/Pages evidence가 남아 I3 전체는 아직 pending이다.
+기록했고, 새 테스트의 PR/CI/Pages evidence와 exact-main verification도 아래에서 완료했다.
+I3 전체는 complete이며 다음 단계는 I4이다.
 
 ### I3-3. qmake compile capture
 
@@ -621,7 +623,8 @@ Independent [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/103/)와
 I3-3은 완전히 완료됐다. I3-2 BuildScope target-by-target 대조는 v0.8.0 public projection의
 16 unit·6 target·14 field group mismatch 0으로 완료됐다. I3-4 구현·기존 focused local
 test·PR·CI·Pages evidence도 완료됐고, 새 same-basename actual-process edge는 local에서
-완료됐다. 새 테스트의 PR/CI/Pages evidence만 남아 I3 전체는 아직 pending이다.
+완료됐다. 새 테스트의 PR/CI/Pages 및 exact-main evidence도 완료되어 I3 전체가 complete됐다.
+다음 단계는 I4이다.
 
 ### I3-4. lint와 include graph 이관
 
@@ -669,8 +672,8 @@ Skip 2, TEM 4.89, tests 7/7)를 기록했다. 독립 [ici Pages](https://jihoon2
 `text/html;charset=utf-8`, 올바른 title, 외부 `script`/`link`/`img`/`iframe`/`import` 0건을
 확인했으며 관측 bytes는 각각 5,458,757와 344,868이다. BuildScope target-by-target 대조는
 v0.8.0 public projection에서 16 unit·6 target·14 field group mismatch 0으로 완료됐다.
-새 same-basename actual-process test는 local에서 완료됐고, 그 테스트의 PR/CI/Pages evidence가
-남아 있어 I3 전체는 아직 pending이다.
+새 same-basename actual-process test는 local과 PR #113 및 exact-main evidence까지 완료됐다.
+이로써 I3 전체가 complete됐고 다음 단계는 I4이다.
 
 현재 cache key는 `ici.analysis-cache-key/v3`이며, I3-4 engine class가
 `CACHE_IMPLEMENTATION_MODULES`로 명시한 helper/dependency module source digest의 sorted
@@ -686,14 +689,15 @@ monkeypatch한 mock runner로 parser/선택 회귀만 검증한다. 새
 실제 `g++`/`clang++`를 parameterize해 preprocessor trace를 확인한다. 현재 로컬 Python 3.10
 focused 실행은 mock 케이스와 실제 `g++` 케이스가 통과해 `2 passed`였고, 설치되지 않은
 `clang++` 케이스는 `1 skipped`였다. 실제 trace에서 첫 번째 `-I`의 `common.hpp`가 선택되고
-두 번째 동일 basename header는 edge에서 제외됨을 확인했다. 이 결과는 이 브랜치의 local
-process evidence에 한정하며, 이 테스트에 대한 새 PR/CI/Pages evidence는 주장하지 않는다.
+두 번째 동일 basename header는 edge에서 제외됨을 확인했다. 이 문단은 이 브랜치에서의 local
+process evidence를 기록하며, 새 테스트의 PR/CI/Pages 및 exact-main evidence는 I3-5 remote
+evidence 절에 별도로 기록한다.
 
 **현재 I3 상태:** BuildScope에서 target-by-target으로 define·standard·include를 실제 build와
 대조한 public projection은 16 unit·6 target·14 field group에서 mismatch 0으로 완료됐다.
 same-basename active-header edge의 실제 compiler trace 대조도 위 local revalidation으로
-완료됐다. 남은 것은 이 새 actual-process test의 PR/CI/Pages remote evidence이며, 그 전까지
-I3 전체는 pending이다.
+완료됐고, 새 actual-process test의 PR #113·exact-main remote evidence도 아래에 기록했다.
+I3 전체가 complete됐으며 다음 단계는 I4이다.
 
 ### I3-5. 독립 compilation-context export와 교차 구현 대조
 
@@ -720,8 +724,8 @@ POSIX path만, `--output`은 stdout 또는 검증된 atomic file target만 허�
 missing 또는 malformed여도 그 선택은 authoritative하며, `--prepare`가 이를 조용히 대체하지 않는다.
 I3 기능 완료 조건은 same-basename active-header edge를 포함한 BuildScope target-by-target
 대조까지 local/public projection으로 충족됐다. 위 edge checkbox는 local actual-process
-evidence이며, 이 후속 테스트로 새 PR/CI/Pages remote evidence를 추론하지 않는다. 새 테스트의
-PR/CI/Pages evidence가 수집될 때까지 I3 checkpoint는 pending으로 유지한다.
+evidence이며, 새 테스트의 PR #113·exact-main PR/CI/Pages evidence도 아래 기록으로 확인됐다.
+이에 따라 I3 checkpoint 전체를 complete로 닫고 다음 단계는 I4이다.
 
 **I3-5 final local revalidation evidence (2026-09-01):** Python 3.10 full suite 1,333 tests
 passed in 51.99s, Ruff check/format 148 files, mypy 88 source files가 통과했다. quoted relative
@@ -749,7 +753,7 @@ passed, 1 skipped`였다. Ruff check/format은 148 files에서 PASS했고, mypy�
 PASS했다. `build-pyz`와 smoke도 PASS했으며, 현재 artifact는 2,166,828 bytes,
 SHA-256 `0f82aa95eb940072a735c591737f5b77d9dd16b32751aa03600ad3c5978bb158`이다. 이 수치는
 새 actual-process test를 포함한 최신 local evidence이며, 새 PR/CI/Pages remote evidence는
-주장하지 않는다.
+아래에 별도로 기록한다.
 
 ### I3-5 remote PR, main, and release evidence
 
@@ -791,8 +795,39 @@ SHA-256 `0f82aa95eb940072a735c591737f5b77d9dd16b32751aa03600ad3c5978bb158`이다
   모두 0건이었다.
 - 위 I3-5 checkbox는 same-basename active-header edge의 local actual compiler trace 대조가
   완료됐음을 기록한다. BuildScope target-by-target define·standard·include 대조도 public
-  projection에서 16 unit·6 target·14 field group mismatch 0으로 완료됐다. 이 후속 테스트에
-  대한 새 PR/CI/Pages evidence는 주장하지 않으며, 그것만 남아 I3 전체는 여전히 pending이다.
+  projection에서 16 unit·6 target·14 field group mismatch 0으로 완료됐다. 새 테스트의 PR #113
+  및 exact-main PR/CI/Pages evidence까지 확인되어 I3 전체가 complete됐으며, 다음 단계는 I4이다.
+
+### I3 same-basename follow-up remote evidence — PR #113 and exact main
+
+The actual-process follow-up was delivered through [feature PR #113](https://github.com/jihoon22-lee/ici/pull/113),
+whose head was [`61f613f6cd264327956f65db1dc81d5fe5ef5be7`](https://github.com/jihoon22-lee/ici/commit/61f613f6cd264327956f65db1dc81d5fe5ef5be7).
+PR workflow [run 33458308024](https://github.com/jihoon22-lee/ici/actions/runs/33458308024) completed
+all checks green, including `Merge Gate`. Its [sticky comment](https://github.com/jihoon22-lee/ici/pull/113#issuecomment-5487193195)
+had exactly one marker and two report links; the reported ici result was 1,335/1,335 tests with
+TEM 4.84, and viewer was 7/7 tests with TEM 4.89.
+
+Independent PR Pages audits found HTTP 200 `text/html`, exact titles, and zero external references:
+
+- [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/113/): 5,691,035 bytes,
+  SHA-256 `4118bd7f42aa16e6082b56ce65a874d668b23c18a20d3c31876d81885e859561`.
+- [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/113/): 345,176 bytes,
+  SHA-256 `22aff0be7894b4f416169f547ee9862e133ceca55e8caa3bef201e8f924bc2d0`.
+
+PR #113 was squash-merged to exact main
+[`c78b40a15a64423f742aa2e75b09d35cc09a5e62`](https://github.com/jihoon22-lee/ici/commit/c78b40a15a64423f742aa2e75b09d35cc09a5e62).
+Exact-main [run 33458962715](https://github.com/jihoon22-lee/ici/actions/runs/33458962715) was
+SUCCESS, including main `Publish` and `Merge Gate`. Independent main Pages audits also found
+HTTP 200 `text/html`, exact titles, and zero external references:
+
+- [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/): 5,690,362 bytes,
+  SHA-256 `ef9c2869adebf596ab257a19c30ad1f61352d531ec30fa8df8e0a7ec3020e93f`.
+- [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/): 345,176 bytes,
+  SHA-256 `8ba214c4c019db341a44719191a721de8c2aa144743f1b2484d60b7021556dd9`.
+
+This closes the I3 checkpoint end-to-end: the feature conditions were complete locally, and the
+new same-basename actual-process test now has PR and exact-main workflow/Pages evidence. The
+current release/version remains v0.8.0; no version bump is made. The next planned stage is I4.
 
 ---
 
@@ -1098,12 +1133,12 @@ SHA-256 `0f82aa95eb940072a735c591737f5b77d9dd16b32751aa03600ad3c5978bb158`이다
 - [x] I0: 현재 viewer/cycle 계획이 보정된 테스트와 함께 완료
 - [x] I1: v3 finding, support matrix, baseline, issues-first console 완료
 - [x] I2: toolchain inventory, shared context, engine DAG, cache/reproducibility와 PR·CI·Pages 증거 완료
-- [ ] I3: I3-1 compilation model/검증 게이트와 PR·CI·Pages evidence 완료; I3-2 canonical
+- [x] I3: I3-1 compilation model/검증 게이트와 PR·CI·Pages evidence 완료; I3-2 canonical
   CMake generation, PR·CI·Pages evidence, local viewer/LogLens checks, and the v0.8.0 public
   projection target comparison complete; I3-3 implementation/local E2E/quality gates와
   PR·CI·Pages evidence complete; I3-4 implementation/focused local tests, existing PR·CI·Pages
-  evidence, and the new same-basename actual-process local test complete. The new test's
-  PR·CI·Pages remote evidence remains pending.
+  evidence, the new same-basename actual-process local test, and its PR·CI·Pages remote evidence
+  complete. The I3 checkpoint is closed; next is I4.
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
@@ -1130,8 +1165,9 @@ squash merge commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.
 [CI run 33409862110](https://github.com/jihoon22-lee/ici/actions/runs/33409862110),
 [sticky comment](https://github.com/jihoon22-lee/ici/pull/105#issuecomment-5480770505),
 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/105/)와
-[viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/105/)까지 완료됐다. 현재 남은 I3
-조건은 새 same-basename actual-process test의 PR·CI·Pages remote evidence뿐이다. I3-2의
+[viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/105/)까지 완료됐다. 새 same-basename
+actual-process test의 PR #113·exact-main PR/CI/Pages evidence도 완료되어 I3 전체가 complete됐다.
+I3-2의
 BuildScope target-by-target define·standard·include 대조는 v0.8.0 public projection에서
 16 unit·6 target·14 field group mismatch 0으로 완료됐다. I3-3 qmake exact capture는 PR #103의
 CI·Pages evidence까지 완료됐다.

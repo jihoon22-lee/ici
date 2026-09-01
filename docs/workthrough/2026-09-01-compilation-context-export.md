@@ -164,14 +164,14 @@ mocked `run_process` regression for parser and compiler-selection behavior. The 
 process for each `g++`/`clang++` parameter. The local Python 3.10 focused run passed the mock and
 actual `g++` cases (`2 passed`); the `clang++` case was skipped because `clang++` is unavailable.
 The compiler trace selected the first `-I` `common.hpp` and excluded the alternate header with
-the same basename. This closes the edge locally only; it adds no PR/CI/Pages evidence and does
-not change the release/version record below.
+the same basename. This subsection records the local edge condition; the follow-up PR/CI/Pages
+evidence and exact-main result are recorded below. It does not change the release/version record.
 
 The latest local full gate, including this actual-process test, reports Python 3.10 pytest
 `1,334 passed, 1 skipped`; Ruff check/format PASS for 148 files; and mypy PASS for 88 source files.
 `build-pyz` and smoke also passed. The current artifact is 2,166,828 bytes with SHA-256
-`0f82aa95eb940072a735c591737f5b77d9dd16b32751aa03600ad3c5978bb158`. These are local facts only;
-the new test has no PR/CI/Pages remote evidence yet.
+`0f82aa95eb940072a735c591737f5b77d9dd16b32751aa03600ad3c5978bb158`. These are local facts;
+the follow-up PR/CI/Pages evidence is recorded separately below.
 
 ### Remote follow-up
 
@@ -214,15 +214,37 @@ the new test has no PR/CI/Pages remote evidence yet.
   `085f70450cd89171d3fd4011d35ccc35e8658ab5308b64e398ea0b0793c45d8a`였다. Schema validation은
   passed했고, 16 unit·6 target·14 field group에서 mismatch·checkout leak·raw `argv`/`command` key는
   모두 0건이었다.
-- Release와 public artifact evidence는 완료됐고, I3-5의 same-basename active-header edge는
-  위 local actual-process trace 대조로 완료됐다. 이 후속 테스트에 대한 새 PR/CI/Pages
-  evidence는 주장하지 않는다.
+- Feature [PR #113](https://github.com/jihoon22-lee/ici/pull/113)의 head는
+  [`61f613f6cd264327956f65db1dc81d5fe5ef5be7`](https://github.com/jihoon22-lee/ici/commit/61f613f6cd264327956f65db1dc81d5fe5ef5be7)였고,
+  [workflow run 33458308024](https://github.com/jihoon22-lee/ici/actions/runs/33458308024)는
+  `Merge Gate`를 포함해 all checks green이었다. [sticky comment](https://github.com/jihoon22-lee/ici/pull/113#issuecomment-5487193195)는
+  marker 정확히 1개·report link 정확히 2개를 포함했고, ici 1,335/1,335 tests·TEM 4.84와
+  viewer 7/7 tests·TEM 4.89를 기록했다.
+- Independent PR Pages audit는 ici [PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/113/)가
+  HTTP 200 `text/html`, exact title, external reference 0건, 5,691,035 bytes,
+  SHA-256 `4118bd7f42aa16e6082b56ce65a874d668b23c18a20d3c31876d81885e859561`였고, viewer
+  [PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/113/)가 같은 HTTP/content/title 조건과
+  external reference 0건, 345,176 bytes, SHA-256
+  `22aff0be7894b4f416169f547ee9862e133ceca55e8caa3bef201e8f924bc2d0`였다.
+- PR #113은 exact main [`c78b40a15a64423f742aa2e75b09d35cc09a5e62`](https://github.com/jihoon22-lee/ici/commit/c78b40a15a64423f742aa2e75b09d35cc09a5e62)로
+  squash merge됐다. [Exact-main run 33458962715](https://github.com/jihoon22-lee/ici/actions/runs/33458962715)은
+  SUCCESS였고 main `Publish`와 `Merge Gate`를 포함했다. Independent main Pages audit는 ici
+  [main Pages](https://jihoon22-lee.github.io/ici/ici/main/)가 HTTP 200 `text/html`, exact title,
+  external reference 0건, 5,690,362 bytes, SHA-256
+  `ef9c2869adebf596ab257a19c30ad1f61352d531ec30fa8df8e0a7ec3020e93f`였고, viewer [main Pages](https://jihoon22-lee.github.io/ici/viewer/main/)
+  가 같은 조건, 345,176 bytes, SHA-256
+  `8ba214c4c019db341a44719191a721de8c2aa144743f1b2484d60b7021556dd9`였다.
+- Release와 public artifact evidence는 historical v0.8.0 기록으로 유지된다. BuildScope
+  target-by-target 대조와 same-basename actual compiler edge의 local 조건, 새 테스트의 PR 및
+  exact-main workflow/Pages evidence가 모두 완료되어 I3 checkpoint를 닫았다. 다음 단계는 I4며,
+  version bump는 없다.
 
 ## Next Steps
 
-- PR #111의 merge commit·required CI·sticky comment·PR/main Pages와 v0.8.0 release/tag/assets,
-  checksum, version, report, BuildScope/export evidence를 위에 기록했다.
+- PR #113의 merge commit·PR/main required CI·sticky comment·Pages, 그리고 historical v0.8.0
+  release/tag/assets, checksum, version, report, BuildScope/export evidence를 위에 기록했다.
 - I3-5의 same-basename active-header edge local actual-process 대조와 BuildScope
   target-by-target define·standard·include comparison은 완료됐다. public projection은 16
-  unit·6 target·14 field group에서 mismatch 0이었다. 다음 남은 조건은 새 actual-process test의
-  PR/CI/Pages remote evidence이며, 현재 release/version은 v0.8.0으로 유지한다.
+  unit·6 target·14 field group에서 mismatch 0이었고, PR #113 및 exact-main remote evidence도
+  완료됐다. I3 checkpoint는 complete이며 다음 단계는 I4다. 현재 release/version은 v0.8.0으로
+  유지한다.
