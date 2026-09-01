@@ -158,8 +158,8 @@ compilation unit으로 들어가는지, `moc_<stem>.cpp`·`<stem>.moc`·`mocs_co
 Q_OBJECT를 연결하는지를 원본 입력 파일·라인 target에 기록합니다. exact context의 include,
 define, compiler replay로 Qt 5/Qt 6 major를 식별합니다. linkage와 compatibility 모두 성공한
 compiler replay가 있어야 `PASS`이며, 식별 불가·replay 미실행·중복 generated stem은 `WARN`입니다.
-현재 focused local test는 262 passed,
-3 environment skips(로컬 `clang-tidy`·`clazy` 미설치)로 이 계약을 검증했고, CI/release
+현재 full local test는 1507 passed,
+4 environment skips(로컬 `clang-tidy`·`clazy`·`clang++` 미설치)로 이 계약을 검증했고, CI/release
 workflow에는 실제 clazy·Qt fixture를 skip하지 않도록 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`과
 clazy 설치가 설정돼 있습니다. 원격
 I4-2 PR/main CI, BuildScope B5와 release artifact evidence는 아직 pending입니다.

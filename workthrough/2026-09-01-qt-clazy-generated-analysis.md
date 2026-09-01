@@ -117,6 +117,23 @@ CI/release의 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` 경로에서는 같은 조�
 되어야 한다. 이 문서에 기록한 결과는 local evidence이며, PR CI·sticky HTML comment·Pages,
 toy-projects BuildScope B5 및 새 release evidence를 의미하지 않는다.
 
+리뷰 보강 후 최종 mandatory local gate:
+
+```text
+uv run --python 3.10 pytest
+1507 passed, 4 skipped in 52.53s
+uvx ruff check .
+All checks passed!
+uvx ruff format --check .
+158 files already formatted
+./scripts/build-pyz.sh
+10 distributions: py3-none-any; public schemas packaged; dist/ici.pyz built
+./scripts/smoke.sh
+all smoke tests passed; HTML Zero-CDN verification passed (verify exit 1)
+```
+
+네 skip은 로컬 `clang-tidy` 2건, `clazy` 1건, `clang++` 1건의 actual-process 조건이다.
+
 ## Next Steps
 
 - `feat/qt-analysis`를 PR로 제출하고 full Python 3.10 quality gate, 실제 clazy process E2E,
