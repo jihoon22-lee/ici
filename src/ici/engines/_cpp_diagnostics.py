@@ -454,11 +454,14 @@ def _normalize_clazy_rule(rule: str) -> str:
 
 
 def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticParseResult:
-    """Parse only the bounded, warning-option form emitted by clazy."""
+    """Parse clazy output and validate compiler diagnostics before excluding them."""
 
     output: list[CppDiagnostic] = []
     ancillary_output = False
     inherited_rule = ""
+    previous_family = ""
+    saw_diagnostic = False
+    diagnostic_count = 0
     try:
         for raw_line in text.splitlines():
             line = raw_line.strip()
@@ -467,7 +470,8 @@ def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticPar
 
             match = _TEXT_DIAGNOSTIC_RE.fullmatch(line)
             if match:
-                if len(output) >= MAX_DIAGNOSTICS:
+                diagnostic_count += 1
+                if diagnostic_count > MAX_DIAGNOSTICS:
                     raise ValueError("diagnostic count exceeds the bounded limit")
                 kind, status = _kind(match.group("kind"))
                 file_path = _diagnostic_path(project_root, cwd, match.group("file"))
@@ -482,11 +486,27 @@ def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticPar
 
                 rule = match.group("rule") or ""
                 if rule:
+                    if not rule.startswith("-Wclazy-"):
+                        if not rule.startswith("-W"):
+                            raise ValueError("compiler diagnostic rule is unsupported or unsafe")
+                        if kind not in {"warning", "remark", "note"}:
+                            raise ValueError("compiler error cannot be excluded from clazy output")
+                        # The compiler lint replay reports these diagnostics separately.  They are
+                        # still parsed and bounded here so mixed output cannot hide unknown text.
+                        inherited_rule = ""
+                        previous_family = "compiler"
+                        saw_diagnostic = True
+                        continue
                     normalized_rule = _normalize_clazy_rule(rule)
                     inherited_rule = normalized_rule
+                    previous_family = "clazy"
                     target_prefix = "ClazyNote" if kind == "note" else "Clazy"
+                elif kind == "note" and previous_family == "compiler":
+                    saw_diagnostic = True
+                    continue
                 elif kind == "note" and inherited_rule:
                     normalized_rule = inherited_rule
+                    previous_family = "clazy"
                     target_prefix = "ClazyNote"
                 else:
                     raise ValueError("clazy diagnostic has no check identifier")
@@ -505,6 +525,7 @@ def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticPar
                         family="clazy",
                     )
                 )
+                saw_diagnostic = True
                 continue
 
             if _TEXT_FIXIT_RE.fullmatch(line):
@@ -512,7 +533,7 @@ def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticPar
             if line.startswith("In file included from") or line.startswith("from "):
                 ancillary_output = True
                 continue
-            if output and _TEXT_CONTEXT_RE.fullmatch(line):
+            if saw_diagnostic and _TEXT_CONTEXT_RE.fullmatch(line):
                 continue
             if (
                 _TEXT_CONTEXT_HEADER_RE.fullmatch(line)
@@ -523,7 +544,7 @@ def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticPar
                 continue
             raise ValueError(f"unrecognized clazy output line: {line!r}")
 
-        if ancillary_output and not output:
+        if ancillary_output and not saw_diagnostic:
             raise ValueError("clazy context output has no located diagnostic")
         return DiagnosticParseResult(tuple(output), "clazy-text")
     except (OverflowError, ValueError) as err:

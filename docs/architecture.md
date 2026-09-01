@@ -476,7 +476,9 @@ closed stdin, no `-p`, no `--fix`, no compilation-database reread 원칙을 지�
 `_cpp_diagnostics.py`의 clazy parser는 compiler text parser와 별도로 `-Wclazy-*` rule shape,
 located source/line/column, parent-note 관계를 bounded atomic하게 검증한다. `LintEngine`은
 clazy family를 독립적으로 집계하고 rule token을 correctness/resource/compatibility/
-maintainability category로 매핑한다. parser가 일부만 이해한 output을 성공으로 남기지 않기
+maintainability category로 매핑한다. 함께 출력된 일반 compiler warning은 같은 bounded 문법으로
+원자 검증한 뒤 compiler lint의 중복 finding을 만들지 않도록 제외한다. parser가 일부만 이해한
+output을 성공으로 남기지 않기
 때문에 malformed output, replay/context mismatch, process failure는 engine `ERROR`와
 `NOT_RUN` evidence로 격하된다.
 

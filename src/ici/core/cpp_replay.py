@@ -285,15 +285,8 @@ def build_replay_command(
     inventory: CapabilityInventory,
     *,
     operation: Literal["syntax", "includes"],
-    suppress_warnings: bool = False,
 ) -> ReplayCommand:
-    """Build one bounded syntax or include-trace command without executing it.
-
-    ``suppress_warnings`` is an opt-in for consumers such as clazy whose
-    output parser accepts only that tool's diagnostics.  The regular syntax
-    replay keeps its warning-producing ``-Wall``/``-Wextra`` suffix unless a
-    caller explicitly requests suppression.
-    """
+    """Build one bounded syntax or include-trace command without executing it."""
 
     project_root = root.resolve(strict=True)
     try:
@@ -323,8 +316,6 @@ def build_replay_command(
     arguments = list(_filtered_arguments(unit, cwd, source))
     arguments.append("-fdiagnostics-color=never")
     if operation == "syntax":
-        if suppress_warnings:
-            arguments.append("-w")
         arguments.extend(("-Wall", "-Wextra", "-fsyntax-only"))
     elif operation == "includes":
         arguments.extend(("-w", "-E", "-H", "-o", os.devnull))

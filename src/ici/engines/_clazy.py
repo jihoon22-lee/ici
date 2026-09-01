@@ -338,7 +338,6 @@ def _run_unit(
             unit,
             context.capabilities,
             operation="syntax",
-            suppress_warnings=True,
         )
         compiler_arguments = tooling_arguments(replay.argv, replay.source)
         command, environment = _command_and_environment(

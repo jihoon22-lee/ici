@@ -584,12 +584,39 @@ def test_clazy_diagnostics_accept_errors_and_owned_note_rules(tmp_path: Path) ->
     assert result.diagnostics[1].target.target_name == "ClazyNote:clazy-qstring-ref"
 
 
-def test_clazy_diagnostics_reject_mixed_compiler_warning_atomically(tmp_path: Path) -> None:
+def test_clazy_diagnostics_validate_and_exclude_mixed_compiler_warning(tmp_path: Path) -> None:
     root = tmp_path / "project"
     output = (
         "src/widget.cpp:3:2: warning: use QStringLiteral [-Wclazy-qstring-arg]\n"
         "src/widget.cpp:4:2: warning: unused parameter [-Wunused-parameter]\n"
     )
+
+    result = parse_clazy_diagnostics(root, root, output, "")
+
+    assert result.error == ""
+    assert len(result.diagnostics) == 1
+    assert result.diagnostics[0].tool_rule_id == "clazy-qstring-arg"
+
+
+def test_clazy_diagnostics_exclude_compiler_warning_with_note_and_context(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/widget.cpp:4:2: warning: unused parameter [-Wunused-parameter]\n"
+        "    4 | void f(int unused) {}\n"
+        "      |        ^\n"
+        "src/widget.cpp:4:2: note: parameter declared here\n"
+        "1 warning generated.\n"
+    )
+
+    result = parse_clazy_diagnostics(root, root, output, "")
+
+    assert result.error == ""
+    assert result.diagnostics == ()
+
+
+def test_clazy_diagnostics_reject_non_clazy_error_even_with_warning_rule(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    output = "src/widget.cpp:4:2: error: promoted warning [-Wunused-parameter]\n"
 
     result = parse_clazy_diagnostics(root, root, output, "")
 

@@ -20,7 +20,9 @@
 - Strict clazy diagnostic parsing preserves `-Wclazy-*` rule IDs, source/line locations, and notes
   as `family = "clazy"`. QObject/connect/signal/slot, lifetime/ownership, Qt compatibility/API,
   and remaining checks map to correctness, resource, compatibility, and maintainability finding
-  categories respectively; source edits are never applied automatically.
+  categories respectively; source edits are never applied automatically. Mixed ordinary compiler
+  warnings are bounded and validated atomically, then excluded because the compiler lint replay
+  reports them separately; they no longer turn otherwise valid clazy output into a parser error.
 - Qt generated-code verification inspects bounded source-scope `.ui`, `.qrc`, and `Q_OBJECT` inputs
   and proves `ui_<stem>.h`, `qrc_<stem>.cpp`, and moc forms (`moc_<stem>.cpp`, `<stem>.moc`, or
   `mocs_compilation.cpp`) through exact compilation-context linkage. Qt 5/Qt 6 major evidence is
@@ -33,6 +35,8 @@
   and 1,000,000 output characters. The analysis cache now includes the clazy/tooling/codegen helper
   implementations and `.ui`/`.qrc` source inputs. CI and release workflows install clazy and set
   `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` so actual-tool E2E coverage cannot silently skip.
+- Capability probing continues through declared executable aliases when an earlier candidate cannot
+  execute or report a valid version, while preserving the first failure if every candidate fails.
 
 ### Documentation and integration status
 - v0.9.1의 릴리스 provenance·9개 artifact 독립 감사와 toy-projects BuildScope B4 교차 검증

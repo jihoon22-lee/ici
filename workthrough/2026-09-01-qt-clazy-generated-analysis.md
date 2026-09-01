@@ -28,6 +28,8 @@ canonical clazy capability와 두 provider 경로, strict diagnostic normalizati
 - `src/ici/core/toolchain.py`는 canonical `clazy`를 `clazy-standalone` 우선으로 probe하고,
   `clazy` alias를 compiler-wrapper provider로 기록한다. `src/ici/core/support.py`는
   `required` 정책에서 clazy를 optional에서 required로 승격한다.
+- 우선 후보가 실행 또는 version parsing에 실패하면 다음 alias를 probe한다. 모든 후보가
+  실패한 경우에는 첫 실패 증거를 보존하며, 정상 fallback provider의 alias는 결정적으로 기록한다.
 
 ### 2. Exact-context clazy adapter
 
@@ -53,6 +55,9 @@ canonical clazy capability와 두 provider 경로, strict diagnostic normalizati
   `-Wclazy-*` rule shape만 허용하며 located diagnostic과 parent rule을 따르는 note의
   file/line/column을 보존한다. malformed/unknown output과 clazy fix-it output은 atomic
   parse error다.
+- clazy와 함께 출력되는 일반 compiler warning/note는 동일한 path·line·message·rule bound로
+  원자 검증한 뒤 제외한다. compiler lint replay가 이미 이를 별도로 보고하므로 중복 finding과
+  clazy parser 오판을 모두 피하며, compiler error나 unknown text는 계속 거부한다.
 - normalized diagnostic은 `family = "clazy"`, stable `clazy-<check>` rule ID와
   project-relative `InspectionTarget`을 갖는다.
 - `src/ici/engines/lint.py`는 clazy diagnostics를 별도 family counter와 ToolEvidence로

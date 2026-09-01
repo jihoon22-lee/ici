@@ -140,7 +140,8 @@ standalone command는 approved executable에 `--checks`, `--only-qt`, 원본 sou
 sanitized compiler arguments를 전달하고, wrapper는 approved `clang++`를 `CLANGXX`로 고정한
 replacement environment와 `CLAZY_CHECKS`를 사용합니다. 두 경로 모두 exact context에서만
 covered production unit을 replay하며 compilation database를 다시 읽거나 `-p`, `--fix`, shell을
-사용하지 않습니다. stdout/stderr는 strict bounded clazy text parser가 `-Wclazy-*` rule ID와
+사용하지 않습니다. stdout/stderr는 strict bounded clazy text parser가 일반 compiler warning도
+형식 검증 후 중복 보고 없이 제외하고, `-Wclazy-*` rule ID와
 child/note 위치를 보존해 `family = "clazy"`, `ToolEvidence`, project-relative target으로
 정규화합니다. lifetime/ownership은 `RESOURCE`, Qt6/deprecated/QString API는 `COMPATIBILITY`,
 QObject/connect/signal/slot은 `CORRECTNESS`, 그 밖의 clazy check는 `MAINTAINABILITY` finding으로

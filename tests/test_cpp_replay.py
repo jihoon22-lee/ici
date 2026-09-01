@@ -408,31 +408,6 @@ def test_syntax_operation_adds_only_controlled_syntax_flags(tmp_path: Path) -> N
     )
 
 
-def test_syntax_operation_can_suppress_warnings_for_tooling_replays(tmp_path: Path) -> None:
-    root = _project(tmp_path)
-    compiler = _compiler(tmp_path)
-    unit = _unit(compiler, ("-Wall", "../src/main.cpp"))
-
-    replay = build_replay_command(
-        root,
-        unit,
-        _inventory(compiler),
-        operation="syntax",
-        suppress_warnings=True,
-    )
-
-    assert replay.argv == (
-        str(compiler),
-        "-Wall",
-        "-fdiagnostics-color=never",
-        "-w",
-        "-Wall",
-        "-Wextra",
-        "-fsyntax-only",
-        str(root / "src" / "main.cpp"),
-    )
-
-
 def test_includes_operation_uses_bounded_preprocessor_trace_and_dev_null(
     tmp_path: Path,
 ) -> None:

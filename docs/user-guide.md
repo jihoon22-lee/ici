@@ -447,8 +447,10 @@ standalone command는 approved executable에 `--checks=<checks>`, `--only-qt`, �
 다시 읽지 않으며 `-p`, `--fix`, shell, source/context 변경을 사용하지 않습니다. stdin은 닫힌
 빈 입력이고 argv·path·version·return code·timeout/truncation은 `ToolEvidence`로 보존됩니다.
 
-clazy text parser는 `-Wclazy-<check>` 형태만 받아 malformed 또는 알 수 없는 출력을 부분
-성공과 합치지 않고 atomic `ERROR`로 닫습니다. located diagnostic과 parent rule을 따르는 note는
+clazy text parser는 `-Wclazy-<check>`와 함께 섞인 일반 compiler warning을 bounded 문법으로
+원자 검증합니다. 일반 warning은 별도 compiler lint의 중복 보고를 피하려고 제외하며, malformed
+또는 알 수 없는 출력은 부분 성공과 합치지 않고 atomic `ERROR`로 닫습니다. located clazy
+diagnostic과 parent rule을 따르는 note는
 project-relative 파일·1-indexed line/column target으로 보존하고 `family = "clazy"`와
 `clazy-<check>` rule ID를 기록합니다. finding category는 다음과 같이 안정적으로 매핑됩니다.
 
