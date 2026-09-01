@@ -37,7 +37,8 @@
   rendered diagnostics. The parser now requires visible or suppression accounting without falsely
   equating those counters, while duplicate summaries, quiet-only generated summaries, malformed
   lines, and unbounded output remain atomic errors. It also accepts both LLVM 18 and current
-  bounded header-filter hints.
+  bounded header-filter hints. Summary splitting, family normalization, and accounting validation
+  are isolated helpers, returning the repository maximum complexity to the warning-only 25.
 - **Viewer dogfood remediation**: the five real clang-tidy findings exposed after parsing was
   restored were fixed: two unnecessary string copies, an allocation-heavy concatenation, an
   unchecked optional access, and the CLI's uncaught top-level exception boundary. The exact local

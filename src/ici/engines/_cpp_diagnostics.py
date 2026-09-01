@@ -88,6 +88,15 @@ class _Region:
     end_column: int | None
 
 
+@dataclass(frozen=True)
+class _ClangTidyText:
+    retained: tuple[str, ...]
+    generated: int | None = None
+    suppressed: int = 0
+    header_hint: bool = False
+    error: str = ""
+
+
 def _bounded_text(value: Any, label: str, *, limit: int = MAX_MESSAGE_CHARS) -> str:
     if not isinstance(value, str) or not value.strip() or "\x00" in value:
         raise ValueError(f"{label} must be a non-empty string")
@@ -425,6 +434,90 @@ def parse_compiler_diagnostics(
     return _parse_text(root, cwd, text)
 
 
+def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
+    retained: list[str] = []
+    generated: int | None = None
+    suppressed = 0
+    header_hint = False
+    for raw_line in (stdout + "\n" + stderr).splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if match := _CLANG_TIDY_GENERATED_RE.fullmatch(line):
+            if generated is not None:
+                return _ClangTidyText(
+                    (), error="clang-tidy emitted duplicate generated-warning summaries"
+                )
+            generated = int(match.group("count"))
+            continue
+        if match := _CLANG_TIDY_SUPPRESSED_RE.fullmatch(line):
+            if suppressed:
+                return _ClangTidyText(
+                    (), error="clang-tidy emitted duplicate suppression summaries"
+                )
+            suppressed = int(match.group("count"))
+            continue
+        if _CLANG_TIDY_HEADER_HINT_RE.fullmatch(line):
+            header_hint = True
+            continue
+        retained.append(raw_line)
+    return _ClangTidyText(tuple(retained), generated, suppressed, header_hint)
+
+
+def _normalize_clang_tidy(
+    diagnostics: tuple[CppDiagnostic, ...],
+) -> DiagnosticParseResult:
+    normalized: list[CppDiagnostic] = []
+    for diagnostic in diagnostics:
+        rule = diagnostic.tool_rule_id
+        if rule:
+            analyzer = rule.startswith("clang-analyzer-")
+            family = "clang-analyzer" if analyzer else "clang-tidy"
+            prefix = "ClangAnalyzer" if analyzer else "ClangTidy"
+            normalized.append(
+                replace(
+                    diagnostic,
+                    target=replace(diagnostic.target, target_name=f"{prefix}:{rule}"),
+                    family=family,
+                )
+            )
+            continue
+        if not normalized or not diagnostic.target.message.startswith("note:"):
+            return DiagnosticParseResult(
+                format_name="clang-tidy-text",
+                error="clang-tidy diagnostic has no check identifier",
+            )
+        parent = normalized[-1]
+        note_prefix = "ClangAnalyzerNote" if parent.family == "clang-analyzer" else "ClangTidyNote"
+        normalized.append(
+            replace(
+                diagnostic,
+                target=replace(
+                    diagnostic.target,
+                    target_name=f"{note_prefix}:{parent.tool_rule_id}",
+                ),
+                tool_rule_id=parent.tool_rule_id,
+                family=parent.family,
+            )
+        )
+    return DiagnosticParseResult(tuple(normalized), "clang-tidy-text")
+
+
+def _clang_tidy_accounting_error(
+    text: _ClangTidyText, diagnostics: tuple[CppDiagnostic, ...]
+) -> str:
+    # Clang's generated-warning counter and clang-tidy's rendered diagnostic
+    # inventory have different granularity: overlapping checks may be
+    # coalesced into one rendered warning.  The suppression trailer proves
+    # ignored diagnostics were accounted for, but its count therefore cannot
+    # be added to the rendered-message count and compared for equality.
+    if text.generated is not None and not diagnostics and not text.suppressed:
+        return "clang-tidy generated-warning summary has no diagnostic accounting"
+    if text.header_hint and text.generated is None and not text.suppressed and not diagnostics:
+        return "clang-tidy header-filter hint has no diagnostic summary"
+    return ""
+
+
 def parse_clang_tidy_diagnostics(
     project_root: Path,
     cwd: Path,
@@ -444,85 +537,15 @@ def parse_clang_tidy_diagnostics(
             format_name="clang-tidy-text",
             error="clang-tidy diagnostic output contains a null byte",
         )
-    retained: list[str] = []
-    generated: int | None = None
-    suppressed = 0
-    header_hint = False
-    for raw_line in (stdout + "\n" + stderr).splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        if match := _CLANG_TIDY_GENERATED_RE.fullmatch(line):
-            if generated is not None:
-                return DiagnosticParseResult(
-                    format_name="clang-tidy-text",
-                    error="clang-tidy emitted duplicate generated-warning summaries",
-                )
-            generated = int(match.group("count"))
-            continue
-        if match := _CLANG_TIDY_SUPPRESSED_RE.fullmatch(line):
-            if suppressed:
-                return DiagnosticParseResult(
-                    format_name="clang-tidy-text",
-                    error="clang-tidy emitted duplicate suppression summaries",
-                )
-            suppressed = int(match.group("count"))
-            continue
-        if _CLANG_TIDY_HEADER_HINT_RE.fullmatch(line):
-            header_hint = True
-            continue
-        retained.append(raw_line)
-    result = _parse_text(root, cwd, "\n".join(retained))
+    text = _split_clang_tidy_text(stdout, stderr)
+    if text.error:
+        return DiagnosticParseResult(format_name="clang-tidy-text", error=text.error)
+    result = _parse_text(root, cwd, "\n".join(text.retained))
     if result.error:
         return replace(result, format_name="clang-tidy-text")
-    normalized: list[CppDiagnostic] = []
-    for diagnostic in result.diagnostics:
-        rule = diagnostic.tool_rule_id
-        if not rule:
-            if not normalized or not diagnostic.target.message.startswith("note:"):
-                return DiagnosticParseResult(
-                    format_name="clang-tidy-text",
-                    error="clang-tidy diagnostic has no check identifier",
-                )
-            parent = normalized[-1]
-            note_prefix = (
-                "ClangAnalyzerNote" if parent.family == "clang-analyzer" else "ClangTidyNote"
-            )
-            normalized.append(
-                replace(
-                    diagnostic,
-                    target=replace(
-                        diagnostic.target,
-                        target_name=f"{note_prefix}:{parent.tool_rule_id}",
-                    ),
-                    tool_rule_id=parent.tool_rule_id,
-                    family=parent.family,
-                )
-            )
-            continue
-        analyzer = rule.startswith("clang-analyzer-")
-        family = "clang-analyzer" if analyzer else "clang-tidy"
-        prefix = "ClangAnalyzer" if analyzer else "ClangTidy"
-        normalized.append(
-            replace(
-                diagnostic,
-                target=replace(diagnostic.target, target_name=f"{prefix}:{rule}"),
-                family=family,
-            )
-        )
-    # Clang's generated-warning counter and clang-tidy's rendered diagnostic
-    # inventory have different granularity: overlapping checks may be
-    # coalesced into one rendered warning.  The suppression trailer proves
-    # ignored diagnostics were accounted for, but its count therefore cannot
-    # be added to the rendered-message count and compared for equality.
-    if generated is not None and not normalized and not suppressed:
-        return DiagnosticParseResult(
-            format_name="clang-tidy-text",
-            error="clang-tidy generated-warning summary has no diagnostic accounting",
-        )
-    if header_hint and generated is None and not suppressed and not normalized:
-        return DiagnosticParseResult(
-            format_name="clang-tidy-text",
-            error="clang-tidy header-filter hint has no diagnostic summary",
-        )
-    return DiagnosticParseResult(tuple(normalized), "clang-tidy-text")
+    normalized = _normalize_clang_tidy(result.diagnostics)
+    if normalized.error:
+        return normalized
+    if error := _clang_tidy_accounting_error(text, normalized.diagnostics):
+        return DiagnosticParseResult(format_name="clang-tidy-text", error=error)
+    return normalized

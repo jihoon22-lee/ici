@@ -148,6 +148,11 @@ lint reported zero violations, CTest passed 7/7, coverage was 94.4% line / 97.7%
 branch, complexity peaked at 15, and TEM was 4.89/5.0. The uncached run took 96.82 seconds. A fresh
 remote rerun and report publication remain mandatory before merge.
 
+The first root smoke after this correction exposed a self-dogfood regression before push: the
+public parser had reached cyclomatic complexity 26. Its trailer splitting, diagnostic-family
+normalization, and accounting policy are now separate bounded helpers. Focused parser tests remain
+green and the repository maximum is back to the pre-existing warning-only 25.
+
 - Open the feature PR and obtain its CI/Merge Gate, sticky-comment, and independent Pages
   evidence; then verify the exact-main CI/Pages result after merge.
 - Complete the downstream BuildScope B4 validation. Until those remote and cross-repository
