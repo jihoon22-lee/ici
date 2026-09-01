@@ -25,7 +25,10 @@
   and proves `ui_<stem>.h`, `qrc_<stem>.cpp`, and moc forms (`moc_<stem>.cpp`, `<stem>.moc`, or
   `mocs_compilation.cpp`) through exact compilation-context linkage. Qt 5/Qt 6 major evidence is
   reported from exact include/define/compiler replay and is a compatibility PASS only after a
-  successful replay.
+  successful replay. Project-contained indirect includes are followed with a bounded traversal;
+  definitely disabled `Q_OBJECT` declarations are ignored, duplicate generated stems fail closed
+  as warnings, and structural linkage is never a PASS without a successful compiler replay. Exact
+  compiler analysis also covers Qt-generated moc/rcc compilation units from the database.
 - Clazy execution is bounded to 2,048 translation units, 120 seconds per unit, 600 seconds global,
   and 1,000,000 output characters. The analysis cache now includes the clazy/tooling/codegen helper
   implementations and `.ui`/`.qrc` source inputs. CI and release workflows install clazy and set

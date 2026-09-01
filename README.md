@@ -151,11 +151,13 @@ clazy adapter는 최대 2,048 translation units, unit당 120초, 전체 600초 g
 truncation, budget 초과는 heuristic으로 숨기지 않고 `ERROR`/`NOT_RUN`으로 fail-closed합니다.
 
 같은 lint 단계에서 source scope의 `.ui`, `.qrc`, `Q_OBJECT` 선언을 찾아 exact compilation
-database와 연결합니다. `ui_<stem>.h`가 active include로 연결되는지, `qrc_<stem>.cpp`가 generated
+database와 연결합니다. `ui_<stem>.h`가 bounded project include traversal로 exact translation
+unit에 연결되는지, `qrc_<stem>.cpp`가 generated
 compilation unit으로 들어가는지, `moc_<stem>.cpp`·`<stem>.moc`·`mocs_compilation.cpp`가
 Q_OBJECT를 연결하는지를 원본 입력 파일·라인 target에 기록합니다. exact context의 include,
-define, compiler replay로 Qt 5/Qt 6 major를 식별하고 성공한 replay에만 compatibility `PASS`를
-부여하며, 식별 불가·replay 미실행은 `WARN`입니다. 현재 focused local test는 262 passed,
+define, compiler replay로 Qt 5/Qt 6 major를 식별합니다. linkage와 compatibility 모두 성공한
+compiler replay가 있어야 `PASS`이며, 식별 불가·replay 미실행·중복 generated stem은 `WARN`입니다.
+현재 focused local test는 262 passed,
 3 environment skips(로컬 `clang-tidy`·`clazy` 미설치)로 이 계약을 검증했고, CI/release
 workflow에는 실제 clazy·Qt fixture를 skip하지 않도록 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`과
 clazy 설치가 설정돼 있습니다. 원격

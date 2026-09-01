@@ -7,7 +7,7 @@ import stat
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
@@ -295,8 +295,19 @@ def _selected_units(
     if context.unity_build:
         selected = [unit for unit in context.units if unit.language in {"c", "c++"}]
         return selected, []
-    selected = [unit for unit in context.units if unit.source in sources]
+    selected = [
+        unit
+        for unit in context.units
+        if unit.source in sources or _is_qt_generated_source(unit.source)
+    ]
     return selected, sorted(sources - by_source)
+
+
+def _is_qt_generated_source(source: str) -> bool:
+    name = PurePosixPath(source).name
+    return (
+        name == "mocs_compilation.cpp" or name.startswith("moc_") or name.startswith("qrc_")
+    ) and name.endswith((".cpp", ".cc", ".cxx"))
 
 
 def _run_exact(

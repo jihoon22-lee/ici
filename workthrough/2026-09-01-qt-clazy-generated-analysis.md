@@ -68,14 +68,17 @@ canonical clazy capability와 두 provider 경로, strict diagnostic normalizati
 ### 4. Qt generated-code and compatibility verification
 
 - `src/ici/engines/_qt_codegen.py`는 source scope의 `.ui`, `.qrc`, 그리고 C++ comments/
-  literals를 제외한 실제 `Q_OBJECT` 선언을 bounded하게 발견한다.
+  literals·preprocessor directive·확실히 비활성인 `#if 0` branch를 제외한 `Q_OBJECT` 선언을
+  bounded하게 발견한다.
 - exact compilation database와 project-contained include roots를 이용해 다음 linkage를
   원본 입력 파일과 1-indexed line target에 기록한다.
-  - `.ui` → `ui_<stem>.h` active include (`QtUicLinkage`)
+  - `.ui` → `ui_<stem>.h` bounded indirect translation-unit include linkage (`QtUicLinkage`)
   - `.qrc` → `qrc_<stem>.cpp` generated compilation unit (`QtRccLinkage`)
   - `Q_OBJECT` → `moc_<stem>.cpp`, `<stem>.moc`, 또는 `mocs_compilation.cpp`
     (`QtMocLinkage`)
-- CMake AUTOMOC/AUTOUIC/AUTORCC와 qmake direct generated unit을 모두 지원한다. exact
+- CMake AUTOMOC/AUTOUIC/AUTORCC와 qmake direct generated unit을 모두 지원한다. generated
+  compilation unit도 exact compiler replay 대상이며, structural linkage는 successful replay가
+  있어야 PASS다. 중복 generated stem은 오연결하지 않고 WARN으로 닫는다. exact
   include path, define, argv에서 Qt 5/Qt 6 major를 구분하고, successful compiler replay가
   확인된 경우에만 `QtCompatibility:Qt5`/`QtCompatibility:Qt6` PASS를 생성한다. major 불명확
   또는 replay 부재는 WARN이며, conflicting major는 compatibility FAIL이다.

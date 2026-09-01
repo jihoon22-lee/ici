@@ -364,10 +364,12 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   malformed output·context/coverage/replay/process 오류·timeout/truncation·budget 초과는
   `ERROR`/`NOT_RUN`으로 fail-closed합니다.
 - Qt generated-code stage는 source scope의 `.ui`, `.qrc`, `Q_OBJECT`를 bounded하게 찾고,
-  exact database에서 `ui_<stem>.h` active include, `qrc_<stem>.cpp` generated unit,
+  exact database에서 `ui_<stem>.h`의 bounded indirect translation-unit include linkage,
+  `qrc_<stem>.cpp` generated unit,
   `moc_<stem>.cpp`·`<stem>.moc`·`mocs_compilation.cpp` linkage를 원본 입력 위치에 기록합니다.
   include/define/compiler replay evidence에서 Qt 5/Qt 6 major를 구분하고 successful replay가
-  있을 때만 compatibility PASS를 냅니다. CMake AUTOMOC/AUTOUIC/AUTORCC와 qmake direct unit을
+  있을 때만 linkage와 compatibility PASS를 냅니다. 중복 generated stem은 WARN으로 닫습니다.
+  CMake AUTOMOC/AUTOUIC/AUTORCC와 qmake direct unit을
   모두 지원하며, `.ui`/`.qrc`와 I4-2 helper source는 analysis cache identity에 포함됩니다.
 - **C++ (DB 부재 폴백)**: compilation context가 실제로 없을 때만 `g++`를 찾아
   `-fsyntax-only -std=c++17 -Wall -Wextra` 휴리스틱 명령을 실행하고 `ESTIMATED`로 표시합니다.

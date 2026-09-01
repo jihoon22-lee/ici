@@ -464,12 +464,14 @@ clazy adapter는 최대 2,048 translation units, unit당 120초, 전체 600초 g
 truncation, budget 초과는 heuristic으로 숨기지 않고 `ERROR`/`NOT_RUN`으로 기록합니다.
 
 같은 lint 실행에서 source scope의 `.ui`, `.qrc`, `Q_OBJECT` 선언도 bounded하게 찾습니다.
-`ui_<stem>.h`의 active include, `qrc_<stem>.cpp`의 generated compilation unit, 그리고
+`ui_<stem>.h`의 bounded indirect translation-unit include linkage, `qrc_<stem>.cpp`의
+generated compilation unit, 그리고
 `moc_<stem>.cpp`·`<stem>.moc`·`mocs_compilation.cpp`의 Q_OBJECT 연결을 exact compilation
 database로 검증하고, 누락 시 원본 `.ui`/`.qrc`/헤더 파일과 선언 라인에 FAIL target을 남깁니다.
 exact context의 include/define와 successful compiler replay에서 Qt 5/Qt 6 major를 식별하며,
-성공 replay가 확인된 경우에만 `QtCompatibility:Qt5`/`QtCompatibility:Qt6` PASS를 기록합니다.
-major가 불명확하거나 replay가 없으면 WARN으로 남깁니다. 이 검증은 CMake AUTOMOC/AUTOUIC/
+성공 replay가 확인된 경우에만 generated linkage와 `QtCompatibility:Qt5`/`QtCompatibility:Qt6`
+PASS를 기록합니다. major가 불명확하거나 replay가 없거나 generated stem이 중복되면 WARN으로
+남깁니다. 이 검증은 CMake AUTOMOC/AUTOUIC/
 AUTORCC와 qmake의 direct generated unit 양쪽을 다룹니다.
 
 현재 I4-2 focused local contract run은 `262 passed, 3 skipped`였고, skip은 로컬 환경의

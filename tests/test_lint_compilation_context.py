@@ -288,6 +288,46 @@ def test_exact_context_replays_duplicate_configurations_and_preserves_argv(
         assert command[-1] == str(root / "src/main.cpp")
 
 
+def test_exact_context_also_replays_qt_generated_compilation_units(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "project"
+    _write_project(root)
+    generated_path = root / "build/qrc_theme.cpp"
+    generated_path.write_text("int qInitResources_theme() { return 1; }\n", encoding="utf-8")
+    paths = _toolchain(tmp_path)
+    production = _unit(root, paths["g++"])
+    generated = CompilationUnit(
+        **{
+            **production.__dict__,
+            "source": "build/qrc_theme.cpp",
+            "argv": (
+                str(paths["g++"]),
+                "-std=c++20",
+                "-c",
+                str(generated_path),
+                "-o",
+                "qrc_theme.o",
+            ),
+            "output": "build/qrc_theme.o",
+            "configuration": canonical_digest({"configuration": "qrc"}),
+        }
+    )
+    context = _context(root, _inventory(paths), (production, generated))
+
+    result, calls, which_calls = _run_lint(root, context, monkeypatch)
+
+    assert result.status is EngineStatus.PASS
+    assert result.extra["cpp_configurations_checked"] == 2
+    assert result.extra["cpp_sources_checked"] == 2
+    assert len(calls) == 2
+    assert which_calls == []
+    assert {Path(command[-1]).relative_to(root).as_posix() for command, _kwargs in calls} == {
+        "src/main.cpp",
+        "build/qrc_theme.cpp",
+    }
+
+
 @pytest.mark.parametrize("compiler_name", ["gcc", "g++"])
 def test_exact_replay_uses_gcc_json_diagnostics_for_supported_versions(
     tmp_path: Path,

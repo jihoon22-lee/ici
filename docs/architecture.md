@@ -482,11 +482,13 @@ maintainability category로 매핑한다. parser가 일부만 이해한 output�
 
 Qt generated-code verifier는 project source scope에서 `.ui`, `.qrc`, 그리고 주석·문자열을
 제거한 C++에서 실제 `Q_OBJECT` 선언을 bounded하게 발견한다. immutable compilation context의
-include path와 unit source를 이용해 `ui_<stem>.h` active include, `qrc_<stem>.cpp` generated
+include path와 unit source를 이용해 `ui_<stem>.h`의 bounded indirect translation-unit include
+linkage, `qrc_<stem>.cpp` generated
 unit, `moc_<stem>.cpp`·`<stem>.moc`·`mocs_compilation.cpp`의 moc linkage를 확인한다. 모든
 target은 원래 `.ui`/`.qrc`/header의 project-relative path와 1-indexed line을 가리킨다.
 동일 context의 include path, defines, successful compiler replay에서 Qt 5/Qt 6 major를 계산하며,
-successful replay가 확인된 경우에만 compatibility PASS를 생성한다. 따라서 CMake
+successful replay가 확인된 경우에만 generated linkage와 compatibility PASS를 생성한다.
+중복 generated stem은 exact 연결로 주장하지 않고 WARN으로 닫는다. 따라서 CMake
 AUTOMOC/AUTOUIC/AUTORCC와 qmake direct generated unit을 같은 evidence 모델로 다룬다.
 
 clazy는 최대 2,048 translation units, unit당 120초, 전체 600초와 1,000,000자 output bound를

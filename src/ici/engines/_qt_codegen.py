@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import stat
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
@@ -20,13 +21,13 @@ from ici.core.models import (
 from ici.core.project import _iter_project_files
 
 _MAX_INPUTS = 4_096
+_MAX_INCLUDE_FILES = 4_096
 _MAX_FILE_BYTES = 2 * 1_048_576
 _Q_OBJECT_RE = re.compile(r"\bQ_OBJECT\b")
 _INCLUDE_RE = re.compile(
     r"^\s*#\s*include\s*[<\"](?P<name>[^>\"\r\n]{1,1024})[>\"]",
-    re.MULTILINE,
 )
-_QT_INCLUDE_RE = re.compile(r"^\s*#\s*include\s*[<\"](?:Qt[56]?[/A-Za-z]|Q[A-Z])", re.MULTILINE)
+_INCLUDE_DIRECTIVE_RE = re.compile(r"^\s*#\s*include\b")
 _QT5_RE = re.compile(r"(?:^|[/\\_.-])qt5(?:$|[/\\_.-])|\bqt5(?:core|gui|widgets)\b", re.I)
 _QT6_RE = re.compile(r"(?:^|[/\\_.-])qt6(?:$|[/\\_.-])|\bqt6(?:core|gui|widgets)\b", re.I)
 _GENERATED_MARKERS = {
@@ -136,6 +137,40 @@ def _cpp_code(text: str) -> str:
         output.append(char)
         index += 1
     return "".join(output)
+
+
+def _q_object_line(text: str) -> int | None:
+    """Return a lexical Q_OBJECT line outside definitely disabled directives."""
+
+    active = True
+    # parent-active, any-branch-taken, current-branch-active
+    conditions: list[tuple[bool, bool, bool]] = []
+    for line_number, line in enumerate(_cpp_code(text).splitlines(), start=1):
+        directive = re.match(r"^\s*#\s*(?P<name>[A-Za-z]+)(?P<value>.*)$", line)
+        if directive is not None:
+            name = directive.group("name").casefold()
+            value = directive.group("value").strip().casefold()
+            if name in {"if", "ifdef", "ifndef"}:
+                parent = active
+                condition = value not in {"0", "false"} if name == "if" else True
+                active = parent and condition
+                conditions.append((parent, active, active))
+            elif name == "elif" and conditions:
+                parent, taken, _current = conditions[-1]
+                condition = value not in {"0", "false"}
+                active = parent and not taken and condition
+                conditions[-1] = (parent, taken or active, active)
+            elif name == "else" and conditions:
+                parent, taken, _current = conditions[-1]
+                active = parent and not taken
+                conditions[-1] = (parent, True, active)
+            elif name == "endif" and conditions:
+                parent, _taken, _current = conditions.pop()
+                active = parent
+            continue
+        if active and _Q_OBJECT_RE.search(line):
+            return line_number
+    return None
 
 
 def _inside(root: Path, path: Path) -> bool:
@@ -286,10 +321,9 @@ def _discover_inputs(
             )
             continue
         assert text is not None
-        for line, content in enumerate(_cpp_code(text).splitlines(), start=1):
-            if _Q_OBJECT_RE.search(content):
-                inputs.append(_QtInput("moc", relative, line, path.stem))
-                break
+        line = _q_object_line(text)
+        if line is not None:
+            inputs.append(_QtInput("moc", relative, line, path.stem))
     if len(inputs) > _MAX_INPUTS:
         message = "Qt generated-code input count exceeds the bounded limit"
         outcome.errors.append(message)
@@ -373,11 +407,18 @@ def _include_roots(root: Path, unit: CompilationUnit) -> list[Path]:
     return list(dict.fromkeys(roots))[:1_024]
 
 
-def _resolved_include(root: Path, unit: CompilationUnit, include: str) -> Path | None:
+def _resolved_include(
+    root: Path,
+    unit: CompilationUnit,
+    include: str,
+    *,
+    includer: Path | None = None,
+) -> Path | None:
     lexical = PurePosixPath(include)
     if lexical.is_absolute() or ".." in lexical.parts:
         return None
-    for directory in _include_roots(root, unit):
+    directories = ([includer.parent] if includer is not None else []) + _include_roots(root, unit)
+    for directory in dict.fromkeys(directories):
         candidate = directory / lexical
         try:
             if candidate.is_symlink():
@@ -401,7 +442,25 @@ def _is_generated(root: Path, path: Path, kind: str) -> bool:
 
 
 def _unit_includes(root: Path, unit: CompilationUnit) -> tuple[str, ...]:
-    return tuple(match.group("name") for match in _INCLUDE_RE.finditer(_unit_text(root, unit)))
+    return _include_names(_unit_text(root, unit))
+
+
+def _include_names(text: str) -> tuple[str, ...]:
+    names: list[str] = []
+    for original, code in zip(text.splitlines(), _cpp_code(text).splitlines(), strict=True):
+        if _INCLUDE_DIRECTIVE_RE.match(code) is None:
+            continue
+        match = _INCLUDE_RE.match(original)
+        if match is not None:
+            names.append(match.group("name"))
+    return tuple(names)
+
+
+def _file_includes(root: Path, path: Path) -> tuple[str, ...]:
+    text, error = _read_contained(root, path)
+    if error or text is None:
+        return ()
+    return _include_names(text)
 
 
 def _find_ui_link(
@@ -410,12 +469,24 @@ def _find_ui_link(
     expected: str,
 ) -> tuple[CompilationUnit, Path] | None:
     for unit in units:
-        for include in _unit_includes(root, unit):
-            if PurePosixPath(include).name != expected:
+        source = _unit_file(root, unit)
+        if source is None:
+            continue
+        pending = [source]
+        visited: set[Path] = set()
+        while pending and len(visited) < _MAX_INCLUDE_FILES:
+            includer = pending.pop()
+            if includer in visited:
                 continue
-            generated = _resolved_include(root, unit, include)
-            if generated is not None and _is_generated(root, generated, "ui"):
-                return unit, generated
+            visited.add(includer)
+            for include in _file_includes(root, includer):
+                generated = _resolved_include(root, unit, include, includer=includer)
+                if generated is None:
+                    continue
+                if PurePosixPath(include).name == expected and _is_generated(root, generated, "ui"):
+                    return unit, generated
+                if generated not in visited:
+                    pending.append(generated)
     return None
 
 
@@ -478,6 +549,14 @@ def _qt_major(unit: CompilationUnit) -> set[int]:
     return majors
 
 
+def _is_qt_include(name: str) -> bool:
+    if name.startswith(("Qt5", "Qt6")):
+        return True
+    if name.startswith("Qt") and len(name) > 2:
+        return name[2] == "/" or name[2].isupper()
+    return name.startswith("Q") and len(name) > 1 and name[1].isupper()
+
+
 def _qt_relevant(root: Path, unit: CompilationUnit) -> bool:
     metadata = "\n".join(
         [
@@ -489,7 +568,7 @@ def _qt_relevant(root: Path, unit: CompilationUnit) -> bool:
     return bool(
         _qt_major(unit)
         or re.search(r"\bQT_[A-Z0-9_]+_LIB\b", metadata)
-        or _QT_INCLUDE_RE.search(_unit_text(root, unit))
+        or any(_is_qt_include(name) for name in _unit_includes(root, unit))
     )
 
 
@@ -642,12 +721,37 @@ def verify_qt_codegen(
         return outcome
 
     units = context.compilation.units
+    production_sources = set(context.project.cpp_sources)
+    production_units = tuple(unit for unit in units if unit.source in production_sources)
+    successful = compiled_sources or set()
+    duplicate_keys = {
+        key
+        for key, count in Counter((item.kind, item.stem) for item in inputs).items()
+        if count > 1
+    }
     for item in inputs:
         outcome.inputs_checked += 1
         if item.kind == "ui":
             outcome.ui_checked += 1
+        elif item.kind == "qrc":
+            outcome.qrc_checked += 1
+        else:
+            outcome.moc_checked += 1
+        if (item.kind, item.stem) in duplicate_keys:
+            _append(
+                outcome,
+                _target(
+                    item,
+                    EngineStatus.WARN,
+                    f"Qt{item.kind.title()}AmbiguousStem",
+                    f"Multiple Qt {item.kind} inputs share the generated basename stem {item.stem!r}; exact linkage is ambiguous.",
+                ),
+                f"ici.qt.codegen.{item.kind}",
+            )
+            continue
+        if item.kind == "ui":
             expected = f"ui_{item.stem}.h"
-            link = _find_ui_link(root, units, expected)
+            link = _find_ui_link(root, production_units, expected)
             if link is None:
                 target = _target(
                     item,
@@ -657,53 +761,67 @@ def verify_qt_codegen(
                 )
             else:
                 unit, generated = link
+                replayed = unit.source in successful
                 target = _target(
                     item,
-                    EngineStatus.PASS,
+                    EngineStatus.PASS if replayed else EngineStatus.WARN,
                     "QtUicLinkage",
-                    f"uic output {generated.relative_to(root).as_posix()} is linked by {unit.source}.",
+                    (
+                        f"uic output {generated.relative_to(root).as_posix()} is linked by successfully replayed unit {unit.source}."
+                        if replayed
+                        else f"uic output {generated.relative_to(root).as_posix()} is linked by {unit.source}, but that unit has no successful compile replay."
+                    ),
+                    metrics={"compile_replay": int(replayed)},
                 )
             _append(outcome, target, "ici.qt.codegen.ui")
         elif item.kind == "qrc":
-            outcome.qrc_checked += 1
             expected = f"qrc_{item.stem}.cpp"
             unit = _find_generated_unit(root, units, expected, "qrc")
-            target = (
-                _target(
+            if unit is not None:
+                replayed = unit.source in successful
+                target = _target(
                     item,
-                    EngineStatus.PASS,
+                    EngineStatus.PASS if replayed else EngineStatus.WARN,
                     "QtRccLinkage",
-                    f"rcc output {unit.source} is a generated compilation unit.",
+                    (
+                        f"rcc output {unit.source} is a successfully replayed generated compilation unit."
+                        if replayed
+                        else f"rcc output {unit.source} is in the compilation database without a successful replay."
+                    ),
+                    metrics={"compile_replay": int(replayed)},
                 )
-                if unit is not None
-                else _target(
+            else:
+                target = _target(
                     item,
                     EngineStatus.FAIL,
                     "QtRccLinkage",
                     f"rcc output {expected} is absent from the exact compilation database.",
                 )
-            )
             _append(outcome, target, "ici.qt.codegen.qrc")
         else:
-            outcome.moc_checked += 1
             link = _find_moc_link(root, units, item.stem)
-            target = (
-                _target(
+            if link is not None:
+                replayed = link[0].source in successful
+                target = _target(
                     item,
-                    EngineStatus.PASS,
+                    EngineStatus.PASS if replayed else EngineStatus.WARN,
                     "QtMocLinkage",
-                    f"moc output {link[1]} is linked by {link[0].source}.",
+                    (
+                        f"moc output {link[1]} is linked by successfully replayed unit {link[0].source}."
+                        if replayed
+                        else f"moc output {link[1]} is linked by {link[0].source} without a successful replay."
+                    ),
+                    metrics={"compile_replay": int(replayed)},
                 )
-                if link is not None
-                else _target(
+            else:
+                target = _target(
                     item,
                     EngineStatus.FAIL,
                     "QtMocLinkage",
                     f"No linked moc output was found for Q_OBJECT in {item.path}.",
                 )
-            )
             _append(outcome, target, "ici.qt.codegen.moc")
 
-    _verify_major_evidence(root, context, compiled_sources or set(), outcome)
+    _verify_major_evidence(root, context, successful, outcome)
     outcome.mode = "exact" if not outcome.errors else "error"
     return outcome

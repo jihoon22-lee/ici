@@ -140,7 +140,11 @@ def test_cmake_autogen_links_all_inputs_and_qt6_compile_evidence(tmp_path: Path)
         cpp_files,
         headers,
         context,
-        compiled_sources={"src/widget.cpp"},
+        compiled_sources={
+            "src/widget.cpp",
+            "build/autogen/qrc_theme.cpp",
+            "build/autogen/mocs_compilation.cpp",
+        },
     )
 
     assert outcome.mode == "exact"
@@ -243,7 +247,7 @@ def test_qmake_direct_moc_unit_is_accepted(tmp_path: Path) -> None:
         [source],
         [header],
         context,
-        compiled_sources={"src/widget.cpp"},
+        compiled_sources={"src/widget.cpp", "build/qmake/moc_widget.cpp"},
     )
 
     moc = next(target for target in outcome.targets if target.target_name == "QtMocLinkage")
@@ -285,6 +289,126 @@ def test_q_object_in_comments_strings_and_raw_literals_is_ignored(tmp_path: Path
     assert outcome.mode == "not_applicable"
     assert outcome.inputs_checked == 0
     assert outcome.targets == []
+
+
+def test_q_object_in_disabled_branch_and_macro_definition_is_ignored(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    src = root / "src"
+    src.mkdir(parents=True)
+    source = src / "main.cpp"
+    source.write_text(
+        "#define DECLARE_QOBJECT Q_OBJECT\n"
+        "#if 0\nclass Disabled { Q_OBJECT };\n#endif\n"
+        "int main() { return 0; }\n",
+        encoding="utf-8",
+    )
+
+    outcome = verify_qt_codegen(root, [src], [source], [], None)
+
+    assert outcome.mode == "not_applicable"
+    assert outcome.inputs_checked == 0
+    assert outcome.targets == []
+
+
+def test_ui_header_can_be_linked_through_a_project_header(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    source_dirs, cpp_files, headers, context = _full_project(root)
+    source = root / "src/widget.cpp"
+    header = root / "src/widget.h"
+    source.write_text('#include "widget.h"\n', encoding="utf-8")
+    header.write_text('#include "ui_dashboard.h"\nclass Widget { Q_OBJECT };\n', encoding="utf-8")
+
+    outcome = verify_qt_codegen(
+        root,
+        source_dirs,
+        cpp_files,
+        headers,
+        context,
+        compiled_sources={
+            "src/widget.cpp",
+            "build/autogen/qrc_theme.cpp",
+            "build/autogen/mocs_compilation.cpp",
+        },
+    )
+
+    ui = next(target for target in outcome.targets if target.target_name == "QtUicLinkage")
+    assert ui.status is EngineStatus.PASS
+    assert "src/widget.cpp" in ui.message
+
+
+def test_commented_ui_include_does_not_create_linkage(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    source_dirs, cpp_files, headers, context = _full_project(root)
+    (root / "src/widget.cpp").write_text(
+        '#include <QWidget>\n/*\n#include "ui_dashboard.h"\n*/\n', encoding="utf-8"
+    )
+
+    outcome = verify_qt_codegen(
+        root,
+        source_dirs,
+        cpp_files,
+        headers,
+        context,
+        compiled_sources={
+            "src/widget.cpp",
+            "build/autogen/qrc_theme.cpp",
+            "build/autogen/mocs_compilation.cpp",
+        },
+    )
+
+    ui = next(target for target in outcome.targets if target.target_name == "QtUicLinkage")
+    assert ui.status is EngineStatus.FAIL
+
+
+def test_duplicate_generated_stems_warn_closed_instead_of_sharing_one_output(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    source_dirs, cpp_files, headers, context = _full_project(root)
+    duplicate = root / "src/other"
+    duplicate.mkdir()
+    (duplicate / "dashboard.ui").write_text('<ui version="4.0"></ui>\n', encoding="utf-8")
+
+    outcome = verify_qt_codegen(
+        root,
+        source_dirs,
+        cpp_files,
+        headers,
+        context,
+        compiled_sources={
+            "src/widget.cpp",
+            "build/autogen/qrc_theme.cpp",
+            "build/autogen/mocs_compilation.cpp",
+        },
+    )
+
+    ambiguous = [target for target in outcome.targets if target.target_name == "QtUiAmbiguousStem"]
+    assert len(ambiguous) == 2
+    assert {target.file_path for target in ambiguous} == {
+        "src/dashboard.ui",
+        "src/other/dashboard.ui",
+    }
+    assert all(target.status is EngineStatus.WARN for target in ambiguous)
+
+
+def test_structural_codegen_link_without_successful_replay_is_a_warning(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    source_dirs, cpp_files, headers, context = _full_project(root)
+
+    outcome = verify_qt_codegen(
+        root,
+        source_dirs,
+        cpp_files,
+        headers,
+        context,
+        compiled_sources=set(),
+    )
+
+    linkage = [target for target in outcome.targets if target.target_name.endswith("Linkage")]
+    assert len(linkage) == 3
+    assert all(target.status is EngineStatus.WARN for target in linkage)
+    assert all(target.metrics == {"compile_replay": 0} for target in linkage)
+    assert len(outcome.warnings) >= 3
 
 
 def test_conflicting_qt_major_evidence_is_a_compatibility_failure(tmp_path: Path) -> None:

@@ -983,9 +983,11 @@ hosted HTML의 HTTP 200·exact title·Zero-CDN을 확인했고, B4 PR은 toy mai
       correctness/resource/compatibility/maintainability finding으로 정규화한다.
 - [x] exact compilation context에 기반해 CMake AUTOMOC/AUTOUIC/AUTORCC와 qmake의
       `moc_<stem>.cpp`·`<stem>.moc`·`mocs_compilation.cpp`, `ui_<stem>.h`, `qrc_<stem>.cpp`
-      산출물과 build linkage를 원본 입력 위치로 검증한다.
+      산출물과 bounded indirect include/build linkage를 원본 입력 위치로 검증한다. 중복
+      generated stem은 오연결하지 않고 WARN으로 닫는다.
 - [x] exact include/define/compiler replay evidence에서 Qt 5/Qt 6 major를 식별하고,
-      successful replay가 있을 때만 compatibility PASS를 기록한다.
+      generated compilation unit도 compiler replay하며 successful replay가 있을 때만 linkage와
+      compatibility PASS를 기록한다.
 - [x] BuildScope의 `.ui`/`.qrc` 및 기존 Qt 앱의 Q_OBJECT 경로에 적용할 verifier contract와
       local fixture shape를 추가했다. clazy는 2,048 units·unit당 120초·전체 600초와 bounded
       output을 사용하며, CI/release workflow는 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`로 실제
