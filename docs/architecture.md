@@ -96,7 +96,9 @@ ici/
 │       │   ├── base.py              # BaseEngine 인터페이스 & evaluate_status()
 │       │   ├── verify.py            # VerifyOrchestrator (검증 오케스트레이터)
 │       │   ├── line.py              # 코드/주석/공백 분석 및 트리 구조 생성
-│       │   ├── lint.py              # Ruff 및 g++ 문법 린터
+│       │   ├── lint.py              # Ruff 및 GCC/Clang/clang-tidy 린터 facade
+│       │   ├── _cpp_diagnostics.py  # bounded GCC/Clang/clang-tidy diagnostic parser
+│       │   ├── _clang_tidy.py       # exact-context clang-tidy adapter
 │       │   ├── compile_db.py        # compile_commands coverage와 C++ flag policy
 │       │   ├── test.py              # 테스트 실행 & TEM 스코어링 (coverage.py/gcov 실측)
 │       │   ├── type_check.py        # mypy/AST 타입 검사 (C++은 명시적 SKIP)
@@ -413,6 +415,45 @@ stdin은 빈 입력으로 명시적으로 닫습니다. 따라서 엔진이 임�
   include-guard trailer와 pseudo frame을 bounded하게 검증합니다. stale/unrecognized shape는 edge를
   추측하지 않고 `ERROR`/`NOT_RUN`으로 닫힙니다.
 
+#### I4-1 compiler/clang-tidy adapter
+
+I4-1은 I3의 immutable `AnalysisContext`를 C++ compiler diagnostics와 optional clang-tidy의
+단일 입력으로 확장합니다. `LintEngine`은 context를 다시 읽거나 compile database를 직접
+재탐색하지 않고, `run_cpp_lint`와 `run_clang_tidy`에 같은 normalized
+`CompilationUnit`을 전달합니다. 두 adapter는 `build_replay_command`의 approved external
+compiler와 sanitized argv를 공유하며, 결과는 legacy `InspectionTarget`, native v3 `Finding`,
+`ToolEvidence`와 structured `extra` counters로 함께 보존됩니다.
+
+- Compiler diagnostics는 capability path와 version을 기준으로 출력 형식을 선택합니다. approved
+  GCC/`g++`가 version 9 이상이면 `-fdiagnostics-format=json`을 사용하고, approved Clang 또는
+  version metadata를 알 수 없는 compiler는 `-fdiagnostics-parseable-fixits`로 bounded text를
+  사용합니다. controlled diagnostic flag는 source operand 앞에 삽입되어 source가 항상 최종
+  compiler argv로 남습니다. `_cpp_diagnostics.py`는 JSON/text를 atomic하게 파싱하며, malformed
+  일부 결과를 성공한 일부와 섞지 않습니다. project-relative와 external location을 정규화하고
+  stable rule ID, child/note diagnostic, fix-it range/replacement를 보존합니다.
+- clang-tidy는 `auto`/`required`/`off` 정책으로 capability와 exact compilation database를
+  확인한 뒤 covered production unit만 실행합니다. `clang_tidy_checks`가 있으면 built-in
+  checks보다 우선하고, explicit `clang_tidy_config`가 project-bounded `.clang-tidy` discovery보다
+  우선합니다. discovery는 source에서 project root까지만 올라가며 parent-of-project 설정을
+  찾지 않습니다. explicit/discovered config는 project containment·regular-file·size·NUL
+  경계를 통과해야 하고 `ExtraArgs`/`ExtraArgsBefore` compiler-argument injection과
+  `InheritParentConfig` parent inheritance는 거부됩니다.
+- Security boundary는 direct approved compiler/clang-tidy executable, positive replay option
+  allowlist, source/working-directory/project containment, minimal replacement environment,
+  closed stdin, bounded argv/output와 no-shell execution입니다. fix-it은 finding remediation과
+  report metadata의 제안으로만 남으며 기본 실행은 source나 compilation context를 수정하지
+  않습니다. context가 없거나 compile coverage가 맞지 않거나 context/output이 missing/malformed,
+  process가 timeout/truncated/실패하거나 translation-unit/global budget을 넘으면 heuristic으로
+  조용히 대체하지 않고 `ERROR`/`NOT_RUN`으로 fail-closed합니다.
+- Compiler와 clang-tidy adapter는 서로 독립적으로 최대 2,048 translation units, unit당 120초,
+  전체 600초의 실행 예산을 적용합니다. compilation context 자체에 error diagnostic이 있으면
+  compiler replay도 시작하지 않으며, 남은 정상 unit의 부분 결과를 clean evidence로 만들지 않습니다.
+- Evidence는 compiler와 clang-tidy를 별도 `ToolEvidence`와 diagnostic family로 기록하고,
+  `clang-analyzer-*` rule은 clang-tidy 일반 rule과 별도 analyzer family로 유지합니다. optional
+  `auto`에서 unavailable tool은 분석 결과를 무효화하지 않는 경고로, `required`에서는 실행
+  오류로 승격되며, compiler diagnostics와 analyzer findings의 category/confidence/remediation은
+  서로 섞이지 않습니다.
+
 ### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
 
 `src/ici/core/pipeline.py`의 immutable `EngineDescriptor`가 각 엔진의 실행 계약과
@@ -464,8 +505,9 @@ SHA-256 digest입니다.
 - capability inventory의 toolchain path·version·details digest
 - engine descriptor와 engine class source digest, 그리고 engine class가
   `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest
-  목록 (C++ lint/cycle에는 `ici.core._cpp_replay_policy`, cycle에는
-  `ici.engines._cpp_include_trace` 포함)
+  목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`,
+  `ici.engines._clang_tidy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint` 포함;
+  cycle에는 `ici.core._cpp_replay_policy`, `ici.engines._cpp_include_trace` 포함)
 - `none`, `release`, `coverage`, `sanitize` 중 engine build variant
 - compilation context identity: 선택된 database의 project-relative path와 바이트 digest,
   loader schema version, 정규화된 unit configuration/metadata와 diagnostics를 포함한 parse state
