@@ -27,12 +27,15 @@ The temporary LLVM packages, CMake shadow, and captured output were deleted afte
 ### Parser contract
 
 - `src/ici/engines/_cpp_diagnostics.py`
-  - recognizes only a located, bounded empty clang-tidy note;
+- recognizes only a located, bounded empty clang-tidy note attached to the
+  `bugprone-easily-swappable-parameters` primary at the same location;
   - bounds the file field and validates line and column values against the existing diagnostic
     position limit;
   - omits the message-less structural record instead of manufacturing an empty finding;
-  - preserves the following concrete note and assigns its parent clang-tidy rule;
-  - rejects an empty note when the stream contains no diagnostic context.
+- requires the next located diagnostic to be the same-line concrete implicit-conversion note and
+  assigns its parent clang-tidy rule;
+- rejects unrelated, leading, trailing, repeated, out-of-range, mismatched-path, and wrong-child
+  empty-note sequences atomically.
 
 ### Regression coverage
 
@@ -40,6 +43,10 @@ The temporary LLVM packages, CMake shadow, and captured output were deleted afte
   - covers the LLVM 18 warning/empty-note/concrete-note sequence;
   - covers an isolated empty note as an atomic error;
   - proves an out-of-range empty note cannot bypass the ordinary strict parser.
+- `tests/test_cpp_tool_e2e.py`
+  - runs the exact swappable-parameter check through the approved real clang-tidy capability and
+    sanitized compilation context;
+  - requires the primary and concrete conversion findings with no parser or tool-evidence error.
 
 ### Release notes
 
@@ -48,8 +55,10 @@ The temporary LLVM packages, CMake shadow, and captured output were deleted afte
 ## Key Contract
 
 ```python
-if text.empty_notes and not diagnostics:
-    return "clang-tidy empty note has no diagnostic context"
+if pending_empty_note and not _is_expected_conversion_note(
+    pending_empty_note, diagnostic
+):
+    return _empty_note_error()
 ```
 
 This keeps the adapter strict: the recognized line is structural only when the complete stream
@@ -60,12 +69,13 @@ still contains a valid normalized diagnostic.
 ### Focused verification
 
 ```text
-50 passed, 1 skipped
+60 passed, 2 skipped
 Ruff check: PASS
 Ruff format: PASS
 ```
 
-The skip is the existing optional actual-tool E2E when clang-tidy is unavailable on the host.
+The skips are the actual-tool E2Es when clang-tidy is unavailable on the host. The new
+swappable-parameter E2E is required, without skips, in repository CI.
 
 ### Full local gate
 
