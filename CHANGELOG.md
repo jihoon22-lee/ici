@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-01
+
 ### Added
 - **I4-1 compiler and clang-tidy analysis**: C++ lint now replays only approved, exact,
   sanitized compilation-context commands without rereading the compilation database directly.
