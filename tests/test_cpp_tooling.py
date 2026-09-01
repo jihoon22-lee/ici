@@ -251,6 +251,28 @@ def test_gcc_projection_preserves_ordered_cpp_only_directories(tmp_path: Path) -
     )
 
 
+def test_gcc_projection_ignores_a_non_gnu_driver_behind_a_gxx_alias(tmp_path: Path) -> None:
+    paths = _stdlib_directories(tmp_path, "clang-cxx")
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        return ProcessResult(
+            0, "", _stdlib_search_output(paths).replace("COLLECT_GCC=g++\n", ""), 0.01
+        )
+
+    projection = gcc_standard_library_projection(
+        _stdlib_executable(tmp_path / "tools" / "g++"),
+        tmp_path,
+        [],
+        runner=runner,
+    )
+
+    assert len(calls) == 1
+    assert projection.arguments == ()
+    assert projection.error == ""
+
+
 def test_gcc_projection_is_atomic_when_either_search_output_is_invalid(
     tmp_path: Path,
 ) -> None:
@@ -322,6 +344,78 @@ def test_gcc_projection_probe_uses_resolved_compiler_and_bounded_context(
         assert kwargs["env"] == replay_environment()
         assert kwargs["timeout"] == 5.0
         assert kwargs["max_output_chars"] == 131_072
+    assert all(probe.result is not None for probe in projection.probes)
+    assert all(probe.result.stdout == "" for probe in projection.probes if probe.result is not None)
+    assert all(probe.result.stderr == "" for probe in projection.probes if probe.result is not None)
+
+
+def test_gcc_projection_preserves_sanitized_machine_and_sysroot_selectors(
+    tmp_path: Path,
+) -> None:
+    compiler = _stdlib_executable(tmp_path / "tools" / "g++")
+    cxx_paths = _stdlib_directories(tmp_path, "stdlib")
+    c_paths = _stdlib_directories(tmp_path, "common")
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        language = command[command.index("-x") + 1]
+        paths = cxx_paths + c_paths if language == "c++" else c_paths
+        return ProcessResult(0, "", _stdlib_search_output(paths), 0.01)
+
+    projection = gcc_standard_library_projection(
+        compiler,
+        tmp_path,
+        [
+            "-march",
+            "armv8-a",
+            "-mabi=lp64",
+            "-mno-outline-atomics",
+            "--sysroot=/opt/cross-sysroot",
+            "-DIGNORED_BY_PROBE",
+        ],
+        runner=runner,
+    )
+
+    assert projection.error == ""
+    assert len(calls) == 2
+    for command in calls:
+        assert command[1:6] == [
+            "-march",
+            "armv8-a",
+            "-mabi=lp64",
+            "-mno-outline-atomics",
+            "--sysroot=/opt/cross-sysroot",
+        ]
+        assert "-DIGNORED_BY_PROBE" not in command
+
+
+def test_gcc_projection_two_probe_sequence_shares_one_total_time_budget(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiler = _stdlib_executable(tmp_path / "tools" / "g++")
+    paths = _stdlib_directories(tmp_path, "stdlib")
+    calls: list[list[str]] = []
+    clock = iter((100.0, 100.0, 111.0))
+    monkeypatch.setattr("ici.engines._cpp_tooling.time.monotonic", lambda: next(clock))
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        return ProcessResult(0, "", _stdlib_search_output(paths), 0.01)
+
+    projection = gcc_standard_library_projection(
+        compiler,
+        tmp_path,
+        [],
+        runner=runner,
+    )
+
+    assert len(calls) == 1
+    assert len(projection.probes) == 2
+    assert projection.probes[-1].result is None
+    assert projection.arguments == ()
+    assert projection.error_code == "gcc-include-probe-timeout"
 
 
 @pytest.mark.parametrize(
