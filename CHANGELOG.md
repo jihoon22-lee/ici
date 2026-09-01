@@ -57,7 +57,24 @@
   output flags). PR and release workflows install clang-tidy and set
   `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`, so missing or incompletely probed tools fail instead of
   silently skipping. The local GCC path and a temporarily extracted LLVM 18 clang-tidy path both
-  passed; the required installed-tool result remains a remote CI gate.
+  passed. PR #115 and exact-main CI both ran the installed-tool gate without skips.
+- **I4-1 remote completion**: [PR #115](https://github.com/jihoon22-lee/ici/pull/115) final head
+  `b7ed26c68aa61f2d3f3f8e58afb4556a16c681cd` passed
+  [run 33469332734](https://github.com/jihoon22-lee/ici/actions/runs/33469332734) with 1,417/1,417
+  tests, both required actual-tool E2Es, Qt5·Qt6, self/viewer dogfood, report publication, and Merge
+  Gate, then was squash-merged as `973cf2423728f9d808873f548bc00c7878cceadd`. The sticky comment
+  retained one marker and two report links. PR ici/viewer Pages were 6,034,768/345,256 bytes with
+  SHA-256 `f26b34d75a0e0561b48106cf4aaea122f1cd6a558ecc154f02299ac039f38075` and
+  `ae40367d35b7db172b37698422185d3dacf64db83f344860eca6c3a3754c1936`; both returned HTTP 200
+  `text/html`, exact titles, and zero external references.
+- **I4-1 exact-main evidence**: [run 33469789628](https://github.com/jihoon22-lee/ici/actions/runs/33469789628)
+  repeated 1,417/1,417 tests, both required tool E2Es, viewer PASS with lint zero and 7/7 tests,
+  Qt5·Qt6, main report publication, and Merge Gate. Main ici/viewer Pages were
+  5,691,036/345,176 bytes with SHA-256
+  `048421ca94e83250da1a4411900a4748b239d2da211b84dd5e4fb9f1ab057af4` and
+  `6f0e2e10e4a075651c6b893341ab6d2e70798513766c7420179529fe798ed758`; both passed the same
+  HTTP/content/title/Zero-CDN audit. I4-1's ici checkpoint is complete; toy-projects B4 and the
+  release boundary remain pending before I4-2.
 - **I3 same-basename active-header local compiler edge**: the existing
   `test_trace_uses_compiler_selected_same_basename_without_ambiguity` keeps its mocked
   `run_process` regression coverage. The new

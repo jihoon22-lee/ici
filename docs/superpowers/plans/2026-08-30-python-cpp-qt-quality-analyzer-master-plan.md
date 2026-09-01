@@ -874,9 +874,30 @@ compiler와 clang-tidy는 각각 최대 2,048 units, unit당 120초, 전체 600�
 diagnostic은 `[external]`:1 target으로 유지하며, CI/release에서는 실제 GCC JSON과 clang-tidy
 adapter E2E를 필수 도구 gate로 실행한다.
 
-여섯 구현 항목과 focused local contract evidence는 현재 작업대에서 완료됐다. PR 제출,
-CI/Merge Gate, Pages 및 toy-projects B4 validation은 아직 pending이며 이 기록은 원격 완료를
-주장하지 않는다. I4-2는 이 네 가지 후속 증거가 모두 확보된 뒤에만 시작한다.
+여섯 구현 항목과 focused local contract evidence는 완료됐고, [PR #115](https://github.com/jihoon22-lee/ici/pull/115)의
+최종 head `b7ed26c68aa61f2d3f3f8e58afb4556a16c681cd`가 exact `main`
+`973cf2423728f9d808873f548bc00c7878cceadd`로 병합됐다. PR
+[run 33469332734](https://github.com/jihoon22-lee/ici/actions/runs/33469332734)와 exact-main
+[run 33469789628](https://github.com/jihoon22-lee/ici/actions/runs/33469789628)은 실제 GCC와
+clang-tidy E2E를 포함한 1,417/1,417 tests, Qt5·Qt6, self/viewer dogfood, report publication과
+Merge Gate를 모두 통과했다. PR sticky comment는 marker 1개와 report link 2개를 유지했다.
+
+독립 PR Pages audit는 HTTP 200 `text/html`, 정확한 title, external reference 0건이었다.
+
+- [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/115/): 6,034,768 bytes,
+  SHA-256 `f26b34d75a0e0561b48106cf4aaea122f1cd6a558ecc154f02299ac039f38075`
+- [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/115/): 345,256 bytes,
+  SHA-256 `ae40367d35b7db172b37698422185d3dacf64db83f344860eca6c3a3754c1936`
+
+Exact-main Pages도 같은 HTTP/content/title/Zero-CDN 계약을 통과했다.
+
+- [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/): 5,691,036 bytes,
+  SHA-256 `048421ca94e83250da1a4411900a4748b239d2da211b84dd5e4fb9f1ab057af4`
+- [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/): 345,176 bytes,
+  SHA-256 `6f0e2e10e4a075651c6b893341ab6d2e70798513766c7420179529fe798ed758`
+
+따라서 I4-1의 ici 저장소 local/remote checkpoint는 완료됐다. toy-projects B4 validation과
+I4 release boundary는 아직 pending이며, I4-2는 두 downstream 조건을 확인한 뒤 시작한다.
 
 ### I4-2. Qt clazy와 생성 단계
 
