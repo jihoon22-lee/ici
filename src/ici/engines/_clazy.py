@@ -276,7 +276,6 @@ def _command_and_environment(
     executable: Path,
     provider: str,
     source: Path,
-    replay_argv: tuple[str, ...],
     compiler_arguments: list[str],
     checks: str,
     context: AnalysisContext,
@@ -301,7 +300,14 @@ def _command_and_environment(
             "CLAZY_CHECKS": checks,
         }
     )
-    return [str(executable), *replay_argv[1:]], environment
+    return [
+        str(executable),
+        *compiler_arguments,
+        "-Wall",
+        "-Wextra",
+        "-fsyntax-only",
+        str(source),
+    ], environment
 
 
 def _process_error(result: ProcessResult, source: str) -> str:
@@ -344,7 +350,6 @@ def _run_unit(
             executable,
             provider,
             replay.source,
-            replay.argv,
             compiler_arguments,
             checks,
             context,

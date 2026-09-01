@@ -64,7 +64,14 @@ def selected_units(
 
 
 def tooling_arguments(argv: tuple[str, ...], source: Path) -> list[str]:
-    """Strip ici's controlled syntax suffix from an approved replay command."""
+    """Return non-fatal compiler context for diagnostic-only tooling.
+
+    Production builds may intentionally promote warnings to errors.  Reusing
+    that policy with clang-tidy or clazy turns an ordinary finding into a tool
+    execution failure and prevents the adapter from reporting the diagnostic.
+    Keep the selected warning set, but demote warning-as-error switches before
+    handing the exact context to those diagnostic tools.
+    """
 
     expected = ("-Wall", "-Wextra", "-fsyntax-only", str(source))
     if len(argv) < 5 or tuple(argv[-4:]) != expected:
@@ -72,4 +79,17 @@ def tooling_arguments(argv: tuple[str, ...], source: Path) -> list[str]:
             "unexpected-replay-shape",
             "The sanitized compiler replay did not have the expected analysis suffix.",
         )
-    return list(argv[1:-4])
+    arguments: list[str] = []
+    for argument in argv[1:-4]:
+        if argument == "-Werror":
+            continue
+        if argument == "-pedantic-errors":
+            arguments.append("-pedantic")
+            continue
+        if argument.startswith("-Werror="):
+            warning = argument.removeprefix("-Werror=")
+            if warning:
+                arguments.append(f"-W{warning}")
+            continue
+        arguments.append(argument)
+    return arguments
