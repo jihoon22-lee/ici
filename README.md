@@ -161,11 +161,11 @@ compilation unit으로 들어가는지, `moc_<stem>.cpp`·`<stem>.moc`·`mocs_co
 Q_OBJECT를 연결하는지를 원본 입력 파일·라인 target에 기록합니다. exact context의 include,
 define, compiler replay로 Qt 5/Qt 6 major를 식별합니다. linkage와 compatibility 모두 성공한
 compiler replay가 있어야 `PASS`이며, 식별 불가·replay 미실행·중복 generated stem은 `WARN`입니다.
-현재 full local test는 1507 passed,
-4 environment skips(로컬 `clang-tidy`·`clazy`·`clang++` 미설치)로 이 계약을 검증했고, CI/release
-workflow에는 실제 clazy·Qt fixture를 skip하지 않도록 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`과
-clazy 설치가 설정돼 있습니다. 원격
-I4-2 PR/main CI, BuildScope B5와 release artifact evidence는 아직 pending입니다.
+I4-2 기준 PR/main은 actual tool을 포함한 1,517개 테스트와 Qt matrix를 통과했고 v0.10.0의
+release provenance·9개 artifact 감사도 완료됐습니다. v0.10.1 후보의 hardened local gate는
+1,526 passed / 4 environment skips이며, CI/release workflow는 실제 clazy·Qt fixture가 skip되지
+않도록 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`과 clazy 설치를 강제합니다. 남은 delivery evidence는
+v0.10.1 exact-main/tag/release와 released-v0.10.1을 사용하는 BuildScope B5 최종 검증입니다.
 
 ## 💻 빠른 설치 및 사용법
 
