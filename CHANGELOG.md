@@ -7,6 +7,41 @@
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-01
+
+### Fixed
+- **Diagnostic tooling warning policy**: exact C++ compilation contexts may keep production
+  warning gates such as `-Werror`, `-Werror=<rule>`, and `-pedantic-errors`, but clang-tidy and
+  clazy now consume a diagnostic-only projection that cannot turn an ordinary finding into an
+  adapter process failure. Plain `-Werror` is removed, rule-specific escalation is demoted to
+  `-W<rule>`, and `-pedantic-errors`/`--pedantic-errors` become `-pedantic`. GCC's legacy
+  `-Werror-implicit-function-declaration` alias is likewise demoted without disabling its warning;
+  `-Wno-error*`, semantic compile flags, include paths, defines, and other warning selections remain
+  exact. Every generated argument is revalidated against the replay safety policy, so crafted
+  suffixes cannot resurrect rejected preprocessor, assembler, or linker forwarding such as
+  `-Wp,-MD`, `-Wa,...`, or `-Wl,...`.
+- The clazy compiler-wrapper provider now uses the same projected compiler arguments as
+  `clazy-standalone` and clang-tidy before restoring ici's controlled `-Wall -Wextra
+  -fsyntax-only <source>` suffix. This closes the provider-specific bypass that would otherwise
+  retain a production `-Werror` even after the shared projection was corrected.
+
+### Verification
+- The regression contract covers shared flag demotion, malformed replay rejection, clang-tidy,
+  clazy standalone, and the clazy compiler wrapper. Adversarial nested error forms and
+  preprocessor/assembler/linker forwarding projections fail closed before any tool invocation.
+  Linux actual-process fixtures now carry
+  `-Werror` in both clang-tidy and Qt/clazy compilation commands, so CI and release jobs with
+  `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` must prove real findings remain parseable diagnostics.
+- The final local Python 3.10 suite passed `1,526` tests with four expected missing-tool skips;
+  focused adapter tests, Ruff check, and Ruff format check also passed. The trusted PR, exact-main,
+  and release evidence are recorded after their respective remote gates complete.
+
+### Integration status
+- The public v0.10.0 artifact passed its release provenance and artifact audit. The first
+  toy-projects BuildScope B5 PR run then exposed this warning-policy defect on both Qt 5 and Qt 6:
+  all 12 clazy translation units exited nonzero even though compilation-context and test evidence
+  were exact. v0.10.1 is the corrective release required before B5 can be rerun and accepted.
+
 ## [0.10.0] - 2026-09-01
 
 ### Added

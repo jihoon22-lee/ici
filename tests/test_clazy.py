@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -142,6 +143,25 @@ def _run(
     return outcome, calls
 
 
+def _with_fatal_warning_policy(context: AnalysisContext) -> AnalysisContext:
+    unit = context.compilation.units[0]
+    compile_index = unit.argv.index("-c")
+    updated = replace(
+        unit,
+        argv=(
+            *unit.argv[:compile_index],
+            "-Werror",
+            "-Werror=return-type",
+            "-pedantic-errors",
+            "--pedantic-errors",
+            "-Werror-implicit-function-declaration",
+            "-Wno-error=deprecated-declarations",
+            *unit.argv[compile_index:],
+        ),
+    )
+    return replace(context, compilation=replace(context.compilation, units=(updated,)))
+
+
 def test_off_mode_has_no_side_effects(tmp_path: Path) -> None:
     calls: list[list[str]] = []
 
@@ -213,6 +233,33 @@ def test_standalone_receives_explicit_checks_and_sanitized_context(tmp_path: Pat
     assert kwargs["replace_env"] is True
     assert kwargs["env"] == {"LANG": "C", "LC_ALL": "C", "TERM": "dumb", "PATH": "/bin:/usr/bin"}
     assert source.read_bytes() == before
+
+
+@pytest.mark.parametrize("alias", ["clazy-standalone", "clazy"])
+def test_clazy_demotes_build_warning_policy_for_every_provider(tmp_path: Path, alias: str) -> None:
+    root, source, context, _clazy, _compiler = _context(tmp_path, alias=alias)
+
+    outcome, calls = _run(
+        root,
+        source,
+        _with_fatal_warning_policy(context),
+        {"clazy": "auto", "clazy_profile": "level0"},
+    )
+
+    assert outcome.mode == "exact"
+    assert len(calls) == 1
+    command = calls[0][0]
+    assert "-Werror" not in command
+    assert "-Werror=return-type" not in command
+    assert "-pedantic-errors" not in command
+    assert "--pedantic-errors" not in command
+    assert "-Werror-implicit-function-declaration" not in command
+    assert "-Wreturn-type" in command
+    assert "-pedantic" in command
+    assert "-Wimplicit-function-declaration" in command
+    assert "-Wno-error=deprecated-declarations" in command
+    if alias == "clazy":
+        assert command[-4:] == ["-Wall", "-Wextra", "-fsyntax-only", str(source)]
 
 
 def test_compiler_wrapper_pins_approved_clang_and_checks_in_replacement_env(

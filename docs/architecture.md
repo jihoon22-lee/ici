@@ -473,6 +473,21 @@ manual/level2 noisy check를 opt-in한다. standalone argv는 `--checks`, `--onl
 `clang++` 경로를 replacement environment의 `CLANGXX`로 고정한다. 두 provider 모두 no-shell,
 closed stdin, no `-p`, no `--fix`, no compilation-database reread 원칙을 지킨다.
 
+`tooling_arguments`는 include/define/standard/ABI와 warning selection을 포함한 exact semantic
+context를 유지하되 production gate의 warning-as-error 정책만 diagnostic-only projection으로
+낮춘다. `-Werror`는 제거하고 `-Werror=<rule>`은 `-W<rule>`, 두 pedantic-errors 철자는
+`-pedantic`, GCC legacy implicit-declaration alias는 대응 warning으로 바꾸며 `-Wno-error*`는
+그대로 둔다. clang-tidy, clazy standalone, clazy
+compiler-wrapper가 이 단일 projection을 공유하므로 ordinary finding은 tool execution failure가
+아니라 위치 있는 diagnostic으로 보고된다. 실제 syntax/context 오류와 process·parser 오류는
+기존처럼 fail-closed한다.
+
+projection 결과는 core replay의 drop/reject/positive-safe 정책을 다시 통과해야 한다. 따라서
+crafted `-Werror=<suffix>`가 변환 뒤 `-Wp,-MD,...`, `-Wa,...`, `-Wl,...` 같은 compiler
+subtool forwarding으로 바뀌면 명령을 만들지 않고 `unsafe-tooling-warning-policy` replay error로
+닫는다. 중첩 `-Werror=error=<rule>`도 warning flag가 될 때까지 반복 demotion한 뒤 같은 검증을
+적용한다.
+
 `_cpp_diagnostics.py`의 clazy parser는 compiler text parser와 별도로 `-Wclazy-*` rule shape,
 located source/line/column, parent-note 관계를 bounded atomic하게 검증한다. `LintEngine`은
 clazy family를 독립적으로 집계하고 rule token을 correctness/resource/compatibility/

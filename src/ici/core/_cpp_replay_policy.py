@@ -198,6 +198,7 @@ SAFE_EXACT = frozenset(
         "-ansi",
         "-pedantic",
         "-pedantic-errors",
+        "--pedantic-errors",
         "-pthread",
         "-nostdinc",
         "-nostdinc++",
