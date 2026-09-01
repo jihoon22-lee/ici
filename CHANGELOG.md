@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-09-02
+
 ### Release discipline
 
 - `feature`, `test`, `refactor`, `docs` PR은 버전을 자동으로 올리거나 stable release를 만들지
