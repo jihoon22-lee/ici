@@ -26,7 +26,9 @@
   Ubuntu Noble's clazy 1.11 legacy raw-source/caret/replacement context is accepted only when the
   raw source line exactly matches the project source line at the located diagnostic and is followed
   by at most one bounded replacement preview. Source mismatches, forged or extra previews, and all
-  other malformed legacy context are rejected atomically without retaining partial findings.
+  other malformed legacy context are rejected atomically without retaining partial findings. Rule
+  selection, diagnostic construction, and context-state consumption are separated so the strict
+  parser remains below the critical self-analysis complexity threshold.
 - Qt generated-code verification inspects bounded source-scope `.ui`, `.qrc`, and `Q_OBJECT` inputs
   and proves `ui_<stem>.h`, `qrc_<stem>.cpp`, and moc forms (`moc_<stem>.cpp`, `<stem>.moc`, or
   `mocs_compilation.cpp`) through exact compilation-context linkage. Qt 5/Qt 6 major evidence is

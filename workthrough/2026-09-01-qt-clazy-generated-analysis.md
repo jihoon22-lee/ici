@@ -62,6 +62,8 @@ canonical clazy capability와 두 provider 경로, strict diagnostic normalizati
   diagnostic의 project-contained 실제 source line과 raw text가 exact match할 때만 허용한다.
   caret 뒤의 replacement preview는 8,192자 이하 한 줄로 제한하며, source mismatch,
   forged/duplicate/oversized preview와 unknown text는 partial finding 없이 atomic reject한다.
+  rule selection, diagnostic construction, context state consumption을 helper로 분리해 parser의
+  최대 cyclomatic complexity를 35에서 16으로 낮췄다.
 - normalized diagnostic은 `family = "clazy"`, stable `clazy-<check>` rule ID와
   project-relative `InspectionTarget`을 갖는다.
 - `src/ici/engines/lint.py`는 clazy diagnostics를 별도 family counter와 ToolEvidence로

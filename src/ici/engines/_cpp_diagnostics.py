@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 import stat
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -484,17 +484,131 @@ def _normalize_clazy_rule(rule: str) -> str:
     return f"clazy-{match.group('name')}"
 
 
+@dataclass
+class _ClazyTextState:
+    output: list[CppDiagnostic] = field(default_factory=list)
+    ancillary_output: bool = False
+    inherited_rule: str = ""
+    previous_family: str = ""
+    saw_diagnostic: bool = False
+    diagnostic_count: int = 0
+    legacy_source_line: str | None = None
+    legacy_context_stage: int = 0
+
+
+def _select_clazy_rule(
+    rule: str,
+    kind: str,
+    state: _ClazyTextState,
+) -> tuple[str, str] | None:
+    if rule and not rule.startswith("-Wclazy-"):
+        if not rule.startswith("-W"):
+            raise ValueError("compiler diagnostic rule is unsupported or unsafe")
+        if kind not in {"warning", "remark", "note"}:
+            raise ValueError("compiler error cannot be excluded from clazy output")
+        state.inherited_rule = ""
+        state.previous_family = "compiler"
+        return None
+    if rule:
+        normalized_rule = _normalize_clazy_rule(rule)
+        state.inherited_rule = normalized_rule
+        state.previous_family = "clazy"
+        return normalized_rule, "ClazyNote" if kind == "note" else "Clazy"
+    if kind == "note" and state.previous_family == "compiler":
+        return None
+    if kind == "note" and state.inherited_rule:
+        state.previous_family = "clazy"
+        return state.inherited_rule, "ClazyNote"
+    raise ValueError("clazy diagnostic has no check identifier")
+
+
+def _append_clazy_diagnostic(
+    project_root: Path,
+    cwd: Path,
+    match: re.Match[str],
+    state: _ClazyTextState,
+) -> None:
+    state.diagnostic_count += 1
+    if state.diagnostic_count > MAX_DIAGNOSTICS:
+        raise ValueError("diagnostic count exceeds the bounded limit")
+    kind, status = _kind(match.group("kind"))
+    file_path = _diagnostic_path(project_root, cwd, match.group("file"))
+    line_number = _text_number(match.group("line"), "diagnostic line")
+    column = _text_number(match.group("column"), "diagnostic column", optional=True)
+    assert line_number is not None
+    state.legacy_source_line = _project_source_line(project_root, file_path, line_number)
+    state.legacy_context_stage = 0
+    message = _bounded_text(match.group("message"), "diagnostic message")
+    if _CLAZY_RULE_MARKER_RE.search(message):
+        raise ValueError("clazy diagnostic contains a conflicting rule marker")
+
+    selected = _select_clazy_rule(match.group("rule") or "", kind, state)
+    state.saw_diagnostic = True
+    if selected is None:
+        return
+    normalized_rule, target_prefix = selected
+    state.output.append(
+        CppDiagnostic(
+            target=InspectionTarget(
+                file_path=file_path,
+                start_line=line_number,
+                start_column=column,
+                target_name=f"{target_prefix}:{normalized_rule}",
+                status=status,
+                message=f"{kind}: {message}",
+            ),
+            tool_rule_id=normalized_rule,
+            family="clazy",
+        )
+    )
+
+
+def _end_legacy_context(state: _ClazyTextState) -> None:
+    state.legacy_source_line = None
+    state.legacy_context_stage = -1
+
+
+def _consume_clazy_context(raw_line: str, line: str, state: _ClazyTextState) -> bool:
+    if line.startswith("In file included from") or line.startswith("from "):
+        state.ancillary_output = True
+        _end_legacy_context(state)
+        return True
+    if (
+        state.legacy_context_stage == 0
+        and state.legacy_source_line is not None
+        and raw_line == state.legacy_source_line
+    ):
+        state.legacy_context_stage = 1
+        return True
+    if state.saw_diagnostic and _TEXT_CONTEXT_RE.fullmatch(line):
+        if state.legacy_context_stage == 1 and line.startswith(("^", "~")):
+            state.legacy_context_stage = 2
+        else:
+            _end_legacy_context(state)
+        return True
+    if (
+        state.legacy_context_stage == 2
+        and len(raw_line) <= MAX_MESSAGE_CHARS
+        and _TEXT_LEGACY_PREVIEW_RE.fullmatch(raw_line)
+    ):
+        state.legacy_source_line = None
+        state.legacy_context_stage = 3
+        return True
+    if (
+        _TEXT_CONTEXT_HEADER_RE.fullmatch(line)
+        or _TEXT_REQUIRED_FROM_RE.fullmatch(line)
+        or _TEXT_TRAILER_RE.fullmatch(line)
+    ):
+        state.ancillary_output = True
+        _end_legacy_context(state)
+        return True
+    return False
+
+
 def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticParseResult:
     """Parse clazy output and validate compiler diagnostics before excluding them."""
 
-    output: list[CppDiagnostic] = []
-    ancillary_output = False
-    inherited_rule = ""
-    previous_family = ""
-    saw_diagnostic = False
-    diagnostic_count = 0
-    legacy_source_line: str | None = None
-    legacy_context_stage = 0
+    state = _ClazyTextState()
     try:
         for raw_line in text.splitlines():
             line = raw_line.strip()
@@ -503,109 +617,18 @@ def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticPar
 
             match = _TEXT_DIAGNOSTIC_RE.fullmatch(line)
             if match:
-                diagnostic_count += 1
-                if diagnostic_count > MAX_DIAGNOSTICS:
-                    raise ValueError("diagnostic count exceeds the bounded limit")
-                kind, status = _kind(match.group("kind"))
-                file_path = _diagnostic_path(project_root, cwd, match.group("file"))
-                line_number = _text_number(match.group("line"), "diagnostic line")
-                column = _text_number(match.group("column"), "diagnostic column", optional=True)
-                assert line_number is not None
-                legacy_source_line = _project_source_line(project_root, file_path, line_number)
-                legacy_context_stage = 0
-                message = _bounded_text(match.group("message"), "diagnostic message")
-                # A malformed or repeated compiler option must not be hidden in
-                # a note's prose after the parser has selected the last bracket.
-                if _CLAZY_RULE_MARKER_RE.search(message):
-                    raise ValueError("clazy diagnostic contains a conflicting rule marker")
-
-                rule = match.group("rule") or ""
-                if rule:
-                    if not rule.startswith("-Wclazy-"):
-                        if not rule.startswith("-W"):
-                            raise ValueError("compiler diagnostic rule is unsupported or unsafe")
-                        if kind not in {"warning", "remark", "note"}:
-                            raise ValueError("compiler error cannot be excluded from clazy output")
-                        # The compiler lint replay reports these diagnostics separately.  They are
-                        # still parsed and bounded here so mixed output cannot hide unknown text.
-                        inherited_rule = ""
-                        previous_family = "compiler"
-                        saw_diagnostic = True
-                        continue
-                    normalized_rule = _normalize_clazy_rule(rule)
-                    inherited_rule = normalized_rule
-                    previous_family = "clazy"
-                    target_prefix = "ClazyNote" if kind == "note" else "Clazy"
-                elif kind == "note" and previous_family == "compiler":
-                    saw_diagnostic = True
-                    continue
-                elif kind == "note" and inherited_rule:
-                    normalized_rule = inherited_rule
-                    previous_family = "clazy"
-                    target_prefix = "ClazyNote"
-                else:
-                    raise ValueError("clazy diagnostic has no check identifier")
-
-                output.append(
-                    CppDiagnostic(
-                        target=InspectionTarget(
-                            file_path=file_path,
-                            start_line=line_number,
-                            start_column=column,
-                            target_name=f"{target_prefix}:{normalized_rule}",
-                            status=status,
-                            message=f"{kind}: {message}",
-                        ),
-                        tool_rule_id=normalized_rule,
-                        family="clazy",
-                    )
-                )
-                saw_diagnostic = True
+                _append_clazy_diagnostic(project_root, cwd, match, state)
                 continue
 
             if _TEXT_FIXIT_RE.fullmatch(line):
                 raise ValueError("clazy fix-it output is not supported")
-            if line.startswith("In file included from") or line.startswith("from "):
-                ancillary_output = True
-                legacy_source_line = None
-                legacy_context_stage = -1
-                continue
-            if (
-                legacy_context_stage == 0
-                and legacy_source_line is not None
-                and raw_line == legacy_source_line
-            ):
-                legacy_context_stage = 1
-                continue
-            if saw_diagnostic and _TEXT_CONTEXT_RE.fullmatch(line):
-                if legacy_context_stage == 1 and line.startswith(("^", "~")):
-                    legacy_context_stage = 2
-                else:
-                    legacy_source_line = None
-                    legacy_context_stage = -1
-                continue
-            if (
-                legacy_context_stage == 2
-                and len(raw_line) <= MAX_MESSAGE_CHARS
-                and _TEXT_LEGACY_PREVIEW_RE.fullmatch(raw_line)
-            ):
-                legacy_source_line = None
-                legacy_context_stage = 3
-                continue
-            if (
-                _TEXT_CONTEXT_HEADER_RE.fullmatch(line)
-                or _TEXT_REQUIRED_FROM_RE.fullmatch(line)
-                or _TEXT_TRAILER_RE.fullmatch(line)
-            ):
-                ancillary_output = True
-                legacy_source_line = None
-                legacy_context_stage = -1
+            if _consume_clazy_context(raw_line, line, state):
                 continue
             raise ValueError(f"unrecognized clazy output line: {line!r}")
 
-        if ancillary_output and not saw_diagnostic:
+        if state.ancillary_output and not state.saw_diagnostic:
             raise ValueError("clazy context output has no located diagnostic")
-        return DiagnosticParseResult(tuple(output), "clazy-text")
+        return DiagnosticParseResult(tuple(state.output), "clazy-text")
     except (OverflowError, ValueError) as err:
         return DiagnosticParseResult(format_name="clazy-text", error=str(err))
 
