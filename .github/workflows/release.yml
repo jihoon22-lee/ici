@@ -165,12 +165,13 @@ jobs:
           enable-cache: true
 
       # Installed before the tests, not after: the build-adapter E2E tests run
-      # inside pytest and need cmake/qmake/Qt. Letting them skip here would ship
-      # a release whose adapters were never exercised on this runner.
-      - name: Install the Qt6 build toolchain
+      # inside pytest and need cmake/qmake/Qt. clang-tidy also keeps the I4-1
+      # actual-process adapter test non-skippable. Letting either class skip
+      # here would ship a release whose adapters were never exercised.
+      - name: Install the Qt6 and static-analysis toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config
+          sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config clang-tidy
 
       - name: Enforce Ruff Quality Gate
         run: |
@@ -181,6 +182,7 @@ jobs:
         env:
           # A skip means something broke, not that the tests are optional (C-6).
           ICI_REQUIRE_BUILD_ADAPTERS: "1"
+          ICI_REQUIRE_STATIC_ANALYSIS_TOOLS: "1"
         run: |
           uv run --python 3.10 pytest -v
 
