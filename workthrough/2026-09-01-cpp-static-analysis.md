@@ -2,8 +2,8 @@
 
 ## Overview
 
-Commits `19008fd3d3b3a26d35ffdb15ae4dd38d4470cc68`, `4f8fbc5`, `f1cc3d9`, and
-`aaacff4` on `feat/cpp-static-analysis` implement and harden I4-1. C++ lint now consumes the
+Commits `19008fd3d3b3a26d35ffdb15ae4dd38d4470cc68`, `4f8fbc5`, `f1cc3d9`, `aaacff4`,
+and `87e0e8b` on `feat/cpp-static-analysis` implement and harden I4-1. C++ lint now consumes the
 immutable I3 `AnalysisContext` and normalized
 `CompilationUnit` contract to run exact compiler diagnostics and optional clang-tidy checks.
 This is a local implementation record: no release/version bump or remote PR/CI/Pages evidence
@@ -102,10 +102,10 @@ The exact local gate evidence for the current branch head is:
 - Ruff passed for 153 files.
 - mypy passed for 90 source files.
 - `build-pyz` passed with 10 pure-Python distributions and 2 schemas packaged.
-- Smoke and Zero-CDN checks passed even though self-verification returned its expected nonzero
-  quality verdict; the generated report was audited and its temporary HTML/JSON were removed.
+- Smoke, self-verification, and Zero-CDN checks passed with verify exit 0; the generated report was
+  audited and its temporary HTML/JSON were removed.
 - The reproducible packaged artifact SHA-256 is
-  `96058e8076c2342a70bab3dda2743f35eff3a399b3d50752cc8362b219c0f290` (2,180,071 bytes).
+  `6b5cbd0f182dc406f707fe87a354000f151edc93fc10789edfbad3b82b7d5785` (2,180,378 bytes).
 
 The current environment still has no local `clang-tidy` binary, so no real local clang-tidy
 translation-unit run is claimed. Adapter policy, command construction, parser behavior, and
@@ -113,6 +113,13 @@ unavailable-tool handling are covered by the focused tests; in `auto` mode the m
 an explicit warning, while `required` mode fails closed.
 
 ## Next Steps
+
+The first PR #115 run (`33466122397`) proved the required real clang-tidy E2E but failed the
+self-dogfood gate because the new orchestration entry point had cyclomatic complexity 30. Commit
+`87e0e8b` split that path into focused helpers: the entry point is now 10, every helper is at most
+11, the repository maximum is back to the warning-only 25, and local self-verification exits 0.
+That failed run is diagnostic evidence, not completion; the amended head still requires a fully
+green rerun and fresh report publication.
 
 - Open the feature PR and obtain its CI/Merge Gate, sticky-comment, and independent Pages
   evidence; then verify the exact-main CI/Pages result after merge.
