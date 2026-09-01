@@ -6,6 +6,7 @@ import os
 import stat
 from pathlib import Path
 
+from ici.core._cpp_replay_policy import is_rejected, is_safe, should_drop
 from ici.core.context import AnalysisContext, CompilationUnit
 from ici.core.cpp_replay import ReplayCommandError
 from ici.core.toolchain import ToolCapability
@@ -15,6 +16,33 @@ _WARNING_POLICY_DEMOTIONS = {
     "--pedantic-errors": "-pedantic",
     "-Werror-implicit-function-declaration": "-Wimplicit-function-declaration",
 }
+
+
+def _diagnostic_warning_argument(argument: str) -> str | None:
+    """Demote one warning policy without creating an unsafe compiler option."""
+
+    original = argument
+    while True:
+        if argument == "-Werror":
+            return None
+        if argument in _WARNING_POLICY_DEMOTIONS:
+            argument = _WARNING_POLICY_DEMOTIONS[argument]
+            continue
+        if argument.startswith("-Werror="):
+            warning = argument.removeprefix("-Werror=")
+            if not warning:
+                return None
+            argument = f"-W{warning}"
+            continue
+        break
+    if argument != original and (
+        should_drop(argument) or is_rejected(argument) or not is_safe(argument)
+    ):
+        raise ReplayCommandError(
+            "unsafe-tooling-warning-policy",
+            "A warning-as-error option cannot be projected to a safe diagnostic flag.",
+        )
+    return argument
 
 
 def inside(root: Path, path: Path) -> bool:
@@ -87,15 +115,7 @@ def tooling_arguments(argv: tuple[str, ...], source: Path) -> list[str]:
         )
     arguments: list[str] = []
     for argument in argv[1:-4]:
-        if argument == "-Werror":
-            continue
-        if argument in _WARNING_POLICY_DEMOTIONS:
-            arguments.append(_WARNING_POLICY_DEMOTIONS[argument])
-            continue
-        if argument.startswith("-Werror="):
-            warning = argument.removeprefix("-Werror=")
-            if warning:
-                arguments.append(f"-W{warning}")
-            continue
-        arguments.append(argument)
+        projected = _diagnostic_warning_argument(argument)
+        if projected is not None:
+            arguments.append(projected)
     return arguments

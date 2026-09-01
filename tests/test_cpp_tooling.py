@@ -15,6 +15,8 @@ def test_tooling_arguments_demote_fatal_warning_policy_without_losing_checks() -
         "-std=c++20",
         "-Werror",
         "-Werror=return-type",
+        "-Werror=error=unused-result",
+        "-Werror=error",
         "-pedantic-errors",
         "--pedantic-errors",
         "-Werror-implicit-function-declaration",
@@ -31,6 +33,7 @@ def test_tooling_arguments_demote_fatal_warning_policy_without_losing_checks() -
     assert tooling_arguments(replay, source) == [
         "-std=c++20",
         "-Wreturn-type",
+        "-Wunused-result",
         "-pedantic",
         "-pedantic",
         "-Wimplicit-function-declaration",
@@ -39,6 +42,33 @@ def test_tooling_arguments_demote_fatal_warning_policy_without_losing_checks() -
         "-Wconversion",
         "-fdiagnostics-color=never",
     ]
+
+
+@pytest.mark.parametrize(
+    "argument",
+    [
+        "-Werror=p,-MD,/tmp/ici-tooling-dependency.d",
+        "-Werror=l,-Map,/tmp/ici-tooling-link.map",
+        "-Werror=a,-o,/tmp/ici-tooling-object.o",
+        "-Werror=error=p,-MD,/tmp/ici-tooling-nested.d",
+    ],
+)
+def test_tooling_arguments_reject_unsafe_forwarding_after_demotion(argument: str) -> None:
+    source = Path("/project/src/main.cpp")
+    replay = (
+        "/usr/bin/g++",
+        argument,
+        "-fdiagnostics-color=never",
+        "-Wall",
+        "-Wextra",
+        "-fsyntax-only",
+        str(source),
+    )
+
+    with pytest.raises(ReplayCommandError, match="safe diagnostic flag") as caught:
+        tooling_arguments(replay, source)
+
+    assert caught.value.code == "unsafe-tooling-warning-policy"
 
 
 @pytest.mark.parametrize(

@@ -142,19 +142,14 @@ def _run(
     return outcome, calls
 
 
-def _with_fatal_warning_policy(context: AnalysisContext) -> AnalysisContext:
+def _with_compiler_arguments(context: AnalysisContext, *arguments: str) -> AnalysisContext:
     unit = context.compilation.units[0]
     compile_index = unit.argv.index("-c")
     updated = replace(
         unit,
         argv=(
             *unit.argv[:compile_index],
-            "-Werror",
-            "-Werror=return-type",
-            "-pedantic-errors",
-            "--pedantic-errors",
-            "-Werror-implicit-function-declaration",
-            "-Wno-error=deprecated-declarations",
+            *arguments,
             *unit.argv[compile_index:],
         ),
     )
@@ -260,7 +255,15 @@ def test_clang_tidy_demotes_build_warning_policy_but_preserves_selected_checks(
     outcome, calls = _run(
         root,
         source,
-        _with_fatal_warning_policy(context),
+        _with_compiler_arguments(
+            context,
+            "-Werror",
+            "-Werror=return-type",
+            "-pedantic-errors",
+            "--pedantic-errors",
+            "-Werror-implicit-function-declaration",
+            "-Wno-error=deprecated-declarations",
+        ),
         {"clang_tidy": "auto"},
     )
 
@@ -276,6 +279,32 @@ def test_clang_tidy_demotes_build_warning_policy_but_preserves_selected_checks(
     assert "-pedantic" in command
     assert "-Wimplicit-function-declaration" in command
     assert "-Wno-error=deprecated-declarations" in command
+
+
+@pytest.mark.parametrize(
+    "argument",
+    [
+        "-Werror=p,-MD,/tmp/ici-tooling-dependency.d",
+        "-Werror=l,-Map,/tmp/ici-tooling-link.map",
+        "-Werror=a,-o,/tmp/ici-tooling-object.o",
+    ],
+)
+def test_clang_tidy_rejects_unsafe_warning_projection_without_invocation(
+    tmp_path: Path, argument: str
+) -> None:
+    root, source, context, _tidy = _project_context(tmp_path)
+
+    outcome, calls = _run(
+        root,
+        source,
+        _with_compiler_arguments(context, argument),
+        {"clang_tidy": "auto"},
+    )
+
+    assert calls == []
+    assert outcome.mode == "error"
+    assert any("unsafe-tooling-warning-policy" in error for error in outcome.errors)
+    assert any(target.target_name == "ClangTidyReplayError" for target in outcome.targets)
 
 
 def test_explicit_config_and_checks_take_precedence_in_command(tmp_path: Path) -> None:
