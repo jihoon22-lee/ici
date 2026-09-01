@@ -49,8 +49,10 @@ toy-projects BuildScope B4는 released ici v0.9.1을 사용한 [PR #36](https://
 16/16 check, sticky comment의 marker 1개·현재 run·세 report link, 세 hosted HTML의
 HTTP 200/exact title/Zero-CDN을 모두 통과했다. squash merge 후 toy main exact run
 `33488169769`의 14개 prerequisite job과 Merge Gate, Dependency Graph run `33488174425`도
-성공했다. 따라서 I4-1과 B4 precondition은 닫혔고 다음 활성 단계는 I4-2다. I4-2/I4-3/I4-4
-구현이 남아 있으므로 I4 checkpoint는 아직 미완료다.
+성공했다. 따라서 I4-1과 B4 precondition은 닫혔다. `feat/qt-analysis`에서 I4-2의 여섯
+코드 조건과 focused local contract가 완료됐지만, 원격 PR/main CI·toy-projects BuildScope B5
+교차 검증·다음 release evidence는 아직 남아 있다. I4-3/I4-4 구현도 남아 있으므로 I4
+checkpoint는 아직 미완료다.
 
 ---
 
@@ -965,19 +967,34 @@ hosted HTML의 HTTP 200·exact title·Zero-CDN을 확인했고, B4 PR은 toy mai
 
 ### I4-2. Qt clazy와 생성 단계
 
-**현재 활성 단계:** I4-1과 B4 precondition은 완료됐으므로 `feat/qt-analysis`에서 시작한다.
-I4-2의 여섯 구현 조건은 아직 체크하지 않는다. clazy capability/profile, Qt finding 정규화,
-moc/uic/rcc 생성 산출물, Qt5/Qt6 compile evidence와 BuildScope `.ui`/`.qrc`·Q_OBJECT
-실물 검증을 모두 충족해야 I4-2를 완료로 표시한다.
+**구현 상태:** `feat/qt-analysis`에서 여섯 코드 조건과 focused local contract를 완료했다.
+아직 원격 PR/main CI, toy-projects BuildScope B5 교차 검증, release artifact evidence가
+없으므로 이 단계의 전체 delivery gate와 I4 checkpoint는 닫지 않는다.
 
 **브랜치:** `feat/qt-analysis`
 
-- [ ] clazy standalone/tool plugin capability를 탐지한다.
-- [ ] level0/level1 기본 profile과 opt-in noisy checks를 나눈다.
-- [ ] Q_OBJECT, signal/slot, object lifetime, container detach, temporary 사용 finding을 정규화한다.
-- [ ] AUTOMOC/AUTOUIC/AUTORCC 또는 qmake의 moc/uic/rcc 산출물 존재와 build 연결을 검증한다.
-- [ ] Qt major별 API compatibility를 compile evidence로 확인한다.
-- [ ] buildscope의 `.ui`/`.qrc`, 기존 앱의 Q_OBJECT 경로로 검증한다.
+- [x] canonical `clazy` capability를 `clazy-standalone` 우선, `clazy` compiler-wrapper fallback
+      provider로 탐지한다.
+- [x] `clazy = auto|required|off`와 global pipeline profile과 독립적인 명시
+      `clazy_profile = level0|level1`을 제공하고, bounded `clazy_checks`로 level2/manual noisy
+      checks를 opt-in한다.
+- [x] strict `-Wclazy-*` parser와 stable `clazy` family를 추가하고, QObject/connect/signal/slot,
+      lifetime/ownership, Qt compatibility/API, container detach/temporary 등의 rule을
+      correctness/resource/compatibility/maintainability finding으로 정규화한다.
+- [x] exact compilation context에 기반해 CMake AUTOMOC/AUTOUIC/AUTORCC와 qmake의
+      `moc_<stem>.cpp`·`<stem>.moc`·`mocs_compilation.cpp`, `ui_<stem>.h`, `qrc_<stem>.cpp`
+      산출물과 build linkage를 원본 입력 위치로 검증한다.
+- [x] exact include/define/compiler replay evidence에서 Qt 5/Qt 6 major를 식별하고,
+      successful replay가 있을 때만 compatibility PASS를 기록한다.
+- [x] BuildScope의 `.ui`/`.qrc` 및 기존 Qt 앱의 Q_OBJECT 경로에 적용할 verifier contract와
+      local fixture shape를 추가했다. clazy는 2,048 units·unit당 120초·전체 600초와 bounded
+      output을 사용하며, CI/release workflow는 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`로 실제
+      tool E2E를 요구한다. 실제 BuildScope B5 fixture 검증은 다음 delivery 단계다.
+
+I4-2 focused local run은 `262 passed, 3 skipped`였고, skip은 현재 환경의 `clang-tidy`·`clazy`
+미설치에 따른 것이다. 원격 CI가 이 branch를 검증하고 BuildScope B5가 released ici version으로 `.ui`/
+`.qrc`와 Q_OBJECT 경로를 교차 검증한 뒤, release provenance를 새 버전에 고정해야 이 단계의
+delivery evidence를 추가할 수 있다.
 
 ### I4-3. maintainability 분석 정확도
 
@@ -1263,7 +1280,8 @@ moc/uic/rcc 생성 산출물, Qt5/Qt6 compile evidence와 BuildScope `.ui`/`.qrc
   PR·CI·Pages evidence complete; I3-4 implementation/focused local tests, existing PR·CI·Pages
   evidence, the new same-basename actual-process local test, and its PR·CI·Pages remote evidence
   complete. The I3 checkpoint is closed; next is I4.
-- [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료 (I4-1 및 B4 precondition 완료; I4-2/I4-3/I4-4 pending)
+- [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료 (I4-1 및 B4 precondition, I4-2
+  code/local contract 완료; I4-2 원격 CI·BuildScope B5·release evidence 및 I4-3/I4-4 pending)
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
 - [ ] I7: Makefile, artifacts, ABI, hybrid integration 완료
@@ -1295,3 +1313,10 @@ I3-2의
 BuildScope target-by-target define·standard·include 대조는 v0.8.0 public projection에서
 16 unit·6 target·14 field group mismatch 0으로 완료됐다. I3-3 qmake exact capture는 PR #103의
 CI·Pages evidence까지 완료됐다.
+
+I4-2의 현재 local 구현은 위 여섯 조건과 exact-context security/budget 계약을 모두 포함한다.
+focused 관련 run은 `262 passed, 3 skipped`였으며, skip은 현재 환경에서 `clang-tidy`·`clazy`가
+설치되지 않았기 때문이다. 다음 인수인계자는 이 브랜치의 PR CI에서 `clazy` 실제 process E2E와
+Qt5/Qt6 build matrix를 다시 확인하고, toy-projects BuildScope B5가 `.ui`/`.qrc`/Q_OBJECT
+실물 경로를 released ici로 검증한 뒤 새 release artifact와 함께 I4-2를 remote delivery로
+승격해야 한다. 그 전까지 I4 checkpoint는 열린 상태다.

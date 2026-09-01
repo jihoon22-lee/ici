@@ -13,9 +13,10 @@ $ ici doctor
 현재 공개 릴리스는 [v0.9.1](https://github.com/jihoon22-lee/ici/releases/tag/v0.9.1)입니다.
 LLVM 18 clang-tidy의 구조적 `note:` 출력까지 fail-closed 파서로 검증하며, 실제 릴리스
 artifact·checksum·`ici.result/v3` JSON·Zero-CDN HTML을 감사했습니다. 대응 프로젝트인
-toy-projects BuildScope B4도 이 릴리스로 검증을 마쳤습니다. I4-1(compiler/clang-tidy)은
-완료됐고, 현재 다음 활성 작업은 I4-2(Qt clazy·moc/uic/rcc 생성 단계 분석)입니다. I4-3/I4-4와
-I4 전체 완료 판정은 아직 남아 있습니다.
+toy-projects BuildScope B4도 이 릴리스로 검증을 마쳤습니다. I4-1(compiler/clang-tidy)에 이어
+I4-2(Qt clazy·moc/uic/rcc 생성 단계 분석)의 코드 구현과 focused local contract도 완료됐습니다.
+아직 I4-2의 원격 CI/PR·toy-projects BuildScope B5 교차 검증·다음 release evidence가 남아
+있으며, I4-3/I4-4와 I4 전체 완료 판정도 아직 남아 있습니다.
 
 ---
 
@@ -42,8 +43,10 @@ I4 전체 완료 판정은 아직 남아 있습니다.
    - 시스템 기본 `python3`가 3.6/3.8인 구버전 환경에서도 `ICI_PYTHON` 또는 3.10+ 설치 경로를 스스로 찾아 실행.
 3. **14종 품질 검증 엔진 (기본 13종 활성)**:
     - `line`: 파일당 순수 코드 500줄 초과 경고, 1000줄 초과 실패 + **계층형 디렉토리 트리 뷰** (`project.source_dirs` + 기본 소스 디렉터리 전용 스캔, `include_dirs`로 확장)
-    - `lint`: Python Ruff 및 C/C++ compiler 진단과 optional clang-tidy I4-1 adapter
-      (`auto`/`required`/`off`, exact compilation-context replay, 도구 미설치·부분 폴백 증거 포함)
+    - `lint`: Python Ruff 및 C/C++ compiler 진단, optional clang-tidy I4-1와 Qt-aware clazy I4-2
+      adapter (`auto`/`required`/`off`, exact compilation-context replay, 도구 미설치·부분 폴백
+      증거 포함). clazy는 standalone/wrapper provider, level0/level1 profile, Q_OBJECT·signal/slot·
+      lifetime·container·Qt compatibility 진단을 보존합니다.
     - `compile_db`: C/C++ production translation unit coverage, 실제 compiler flag/search path와 stale build context 검증
       - root CMake 프로젝트에 DB가 없으면 `build/ici-cmake-build`에서 Release·`CMAKE_EXPORT_COMPILE_COMMANDS=ON`·unity OFF로 canonical DB를 생성합니다. `Ninja` 또는 `*Makefiles` 단일 구성만 exact context로 인정하고, generated source는 필요한 경우 한 번 build한 뒤 DB를 다시 읽습니다.
       - report/cache에는 DB origin·generator·unity 상태·CMake target과 digest가 남으며, subdirectory output 경로도 working directory와 DB 기준을 일치할 때만 안전하게 보정합니다.
@@ -88,7 +91,7 @@ I4 전체 완료 판정은 아직 남아 있습니다.
    - `ici doctor`는 전체 tool registry를 한 번의 bounded probe snapshot으로 수집하고, 필요한 이유(`engine:language` 또는 `doctor.config`)와 missing/incomplete 상태를 함께 보여 줍니다. `ici doctor --json`의 `capability_inventory`는 status·counts·version/path/details/evidence를 담는 machine-readable 계약이며, 기존 `tools` map도 유지합니다.
    - `ici verify`도 유효한 support matrix의 `applicable`·`enabled` 범위와 `doctor.config`에서 required/optional 정책을 계산한 뒤, 엔진 실행 전에 같은 registry를 정확히 한 번 수집합니다. suite root의 선택적 `capability_inventory`를 console/Markdown/zero-CDN HTML reporter가 그대로 공유하므로 reporter가 도구를 재탐지하지 않습니다. required provenance 우선 규칙과 모든 provenance, capability 메타데이터·probe argv/evidence redaction을 보존하며, 콘솔은 요약하고 Markdown은 전체 inventory를 접어 보여 주고 HTML은 Support & Capabilities 탭에 전체 행을 표시합니다. 기존 inventory 없는 `ici.result/v3` 리포트도 계속 읽을 수 있습니다.
 8. **사용자 로컬 분석 캐시**:
-   - `ici verify`는 프로젝트 루트·소스/빌드 설정 내용·effective ici 설정·toolchain 버전·컴파일 DB digest/parse state·엔진 구현·build variant·ici 버전을 포함한 `ici.analysis-cache-key/v3`로 완료된 엔진 결과를 재사용합니다. 엔진 구현 identity에는 engine class source digest와 `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest 목록이 포함되며, C++ lint는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines.lint`를, cycle은 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`을 명시합니다. 기본 위치는 `~/.cache/ici/analysis/`이며 remote/shared cache는 사용하지 않습니다.
+   - `ici verify`는 프로젝트 루트·소스/빌드 설정 내용·effective ici 설정·toolchain 버전·컴파일 DB digest/parse state·엔진 구현·build variant·ici 버전을 포함한 `ici.analysis-cache-key/v3`로 완료된 엔진 결과를 재사용합니다. 엔진 구현 identity에는 engine class source digest와 `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest 목록이 포함되며, C++ lint는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen`, `ici.engines.lint`를, cycle은 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`을 명시합니다. `.ui`/`.qrc`도 선언된 source suffix로 digest되며, 기본 위치는 `~/.cache/ici/analysis/`이고 remote/shared cache는 사용하지 않습니다.
    - 완전한 `PASS`/`WARN`/`FAIL`은 저장할 수 있지만 `ERROR`/`SKIP`/`NOT_RUN`, timeout·truncation·tool error 및 invalid artifact는 저장하지 않습니다. `--no-cache`, `ici cache`, `ici cache --clear`로 실행별 비활성화·inventory·정리를 제어합니다.
    - v3 engine JSON의 optional `cache_hit`/nullable `cache_key`는 기존 archive 소비자와 호환되며, 캐시는 프로젝트 소스를 변경하지 않고 atomic local entry만 씁니다. 새 entry는 0700/0600 권한 경계를 사용하고, symlink·duplicate key·NaN/Infinity·32 MiB 초과 payload를 거부합니다.
 
@@ -115,6 +118,48 @@ clang-tidy adapter는 각각 최대 2,048 units, unit당 120초, 전체 600초 g
 초과분은 실행하지 않고 `ERROR`/`NOT_RUN`으로 기록합니다. 자세한 설정과
 evidence 계약은 [사용자 가이드](docs/user-guide.md#c-clang-tidy-정책-i4-1)와
 [엔진 레퍼런스](docs/engine-reference.md#22--lint-문법-및-코드-스타일-린터)를 참고하세요.
+
+### I4-2 Qt clazy·생성 단계 분석
+
+Qt 분석은 I3에서 loader가 고정한 immutable `AnalysisContext`를 그대로 소비합니다. capability
+registry의 canonical `clazy` probe는 `clazy-standalone`을 먼저 찾고, 배포판 wrapper인 `clazy`를
+두 번째 provider로 인식합니다. `[engines.lint]`의 `clazy = "auto"`는 선택적 실행,
+`"required"`는 도구·context 부재를 오류로 승격하고, `"off"`는 실행하지 않습니다.
+`clazy_profile`은 global `ici.profile`과 독립적인 명시적 `level0`(기본) 또는 `level1`이며,
+level2·manual noisy check는 bounded `clazy_checks` 목록을 명시했을 때만 선택합니다.
+
+```toml
+[engines.lint]
+clazy = "auto"             # auto | required | off
+clazy_profile = "level0"   # level0 | level1; global ici.profile과 독립
+# level2 또는 특정 noisy check를 의도적으로 선택할 때만 사용
+# clazy_checks = ["qdatetime-utc", "qcolor-from-literal"]
+```
+
+standalone command는 approved executable에 `--checks`, `--only-qt`, 원본 source, `--` 뒤의
+sanitized compiler arguments를 전달하고, wrapper는 approved `clang++`를 `CLANGXX`로 고정한
+replacement environment와 `CLAZY_CHECKS`를 사용합니다. 두 경로 모두 exact context에서만
+covered production unit을 replay하며 compilation database를 다시 읽거나 `-p`, `--fix`, shell을
+사용하지 않습니다. stdout/stderr는 strict bounded clazy text parser가 `-Wclazy-*` rule ID와
+child/note 위치를 보존해 `family = "clazy"`, `ToolEvidence`, project-relative target으로
+정규화합니다. lifetime/ownership은 `RESOURCE`, Qt6/deprecated/QString API는 `COMPATIBILITY`,
+QObject/connect/signal/slot은 `CORRECTNESS`, 그 밖의 clazy check는 `MAINTAINABILITY` finding으로
+매핑하며 fix-it은 자동 적용하지 않습니다.
+
+clazy adapter는 최대 2,048 translation units, unit당 120초, 전체 600초 global budget과
+1,000,000자 output bound를 공유합니다. context/coverage/replay/parse/process 오류와 timeout,
+truncation, budget 초과는 heuristic으로 숨기지 않고 `ERROR`/`NOT_RUN`으로 fail-closed합니다.
+
+같은 lint 단계에서 source scope의 `.ui`, `.qrc`, `Q_OBJECT` 선언을 찾아 exact compilation
+database와 연결합니다. `ui_<stem>.h`가 active include로 연결되는지, `qrc_<stem>.cpp`가 generated
+compilation unit으로 들어가는지, `moc_<stem>.cpp`·`<stem>.moc`·`mocs_compilation.cpp`가
+Q_OBJECT를 연결하는지를 원본 입력 파일·라인 target에 기록합니다. exact context의 include,
+define, compiler replay로 Qt 5/Qt 6 major를 식별하고 성공한 replay에만 compatibility `PASS`를
+부여하며, 식별 불가·replay 미실행은 `WARN`입니다. 현재 focused local test는 262 passed,
+3 environment skips(로컬 `clang-tidy`·`clazy` 미설치)로 이 계약을 검증했고, CI/release
+workflow에는 실제 clazy·Qt fixture를 skip하지 않도록 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`과
+clazy 설치가 설정돼 있습니다. 원격
+I4-2 PR/main CI, BuildScope B5와 release artifact evidence는 아직 pending입니다.
 
 ## 💻 빠른 설치 및 사용법
 

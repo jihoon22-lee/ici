@@ -65,6 +65,12 @@ clang_tidy = "auto"
 clang_tidy_checks = ["-*", "bugprone-*", "performance-*"]
 # Optional project-relative clang-tidy configuration file.
 # clang_tidy_config = "config/.clang-tidy"
+# Qt clazy policy: standalone/wrapper auto, required, or off.
+clazy = "auto"
+# Explicit Clazy level; independent of ici.profile.
+clazy_profile = "level0"
+# Optional explicit level2/manual noisy checks; takes precedence over profile.
+# clazy_checks = ["qdatetime-utc", "qcolor-from-literal"]
 
 [engines.compile_db]
 enabled = true
@@ -302,10 +308,12 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   `ERROR`/`NOT_RUN`으로 닫습니다. warning-level diagnostic은 위치 있는 `WARN`/`MEASURED`로
   남기고 replay를 계속하며, compilation context가 존재하는 동안 고정 `g++ -std=c++17`
   폴백은 사용하지 않습니다. C++ lint cache helper는 `ici.core._cpp_replay_policy`,
-  `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._cpp_diagnostics`,
-  `ici.engines._cpp_lint`, `ici.engines.lint`를 명시하고, cycle cache helper는
+  `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._clazy`,
+  `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`,
+  `ici.engines._qt_codegen`, `ici.engines.lint`를 명시하고, cycle cache helper는
   `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`,
-  `ici.engines._cpp_include_trace`, `ici.engines.cycle`을 명시합니다.
+  `ici.engines._cpp_include_trace`, `ici.engines.cycle`을 명시합니다. `.ui`와 `.qrc`도
+  project source digest에 포함됩니다.
 - **C++ clang-tidy (I4-1)**: `clang_tidy`는 `auto`(도구가 없으면 `WARN`), `required`(도구가
   없으면 `ERROR`), `off`(명령과 evidence 없음) 중 하나로 정책을 정합니다. 이 adapter는
   capability inventory의 approved direct `clang-tidy`와 exact `CompilationContext`의 covered
@@ -339,6 +347,28 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   compilation context 자체에 error diagnostic이 있으면 replay를 시작하지 않습니다. 위치가 없는
   GCC command-line/ICE diagnostic은 버리지 않고 bounded `[external]`:1 target으로 보존하며,
   context가 불완전한 상태에서 정상 unit 일부만 실행해 clean 결과를 만들지 않습니다.
+- **C++ Qt clazy 및 generated-code 검증 (I4-2)**: `clazy`는 capability registry에서
+  `clazy-standalone`을 우선하고 `clazy` compiler-wrapper를 fallback provider로 기록합니다.
+  `clazy = "auto" | "required" | "off"`는 optional/required/disabled 정책이며,
+  `clazy_profile = "level0" | "level1"`은 global `ici.profile`과 독립적인 명시적 profile입니다.
+  `clazy_checks`를 지정한 경우에만 level2/manual noisy checks를 선택하고 profile보다 우선합니다.
+  standalone은 `--checks`·`--only-qt`와 exact context의 sanitized compiler arguments를,
+  wrapper는 approved `clang++`를 `CLANGXX`로 고정한 replacement environment와 `CLAZY_CHECKS`를
+  사용합니다. 두 경로 모두 compilation database 재탐색, `-p`, `--fix`, shell, source/context
+  수정을 하지 않습니다.
+- clazy parser는 `-Wclazy-*` warning option 형태를 strict하게 검증하고 위치 있는 diagnostics와
+  parent rule note를 `family = "clazy"` 및 stable rule ID로 보존합니다. lifetime/ownership은
+  `RESOURCE`, Qt6/deprecated/QString API는 `COMPATIBILITY`, QObject/connect/signal/slot은
+  `CORRECTNESS`, 나머지 rule은 `MAINTAINABILITY` finding으로 매핑합니다. adapter와 parser는
+  최대 2,048 units·unit당 120초·전체 600초 및 1,000,000자 output bound를 적용하고,
+  malformed output·context/coverage/replay/process 오류·timeout/truncation·budget 초과는
+  `ERROR`/`NOT_RUN`으로 fail-closed합니다.
+- Qt generated-code stage는 source scope의 `.ui`, `.qrc`, `Q_OBJECT`를 bounded하게 찾고,
+  exact database에서 `ui_<stem>.h` active include, `qrc_<stem>.cpp` generated unit,
+  `moc_<stem>.cpp`·`<stem>.moc`·`mocs_compilation.cpp` linkage를 원본 입력 위치에 기록합니다.
+  include/define/compiler replay evidence에서 Qt 5/Qt 6 major를 구분하고 successful replay가
+  있을 때만 compatibility PASS를 냅니다. CMake AUTOMOC/AUTOUIC/AUTORCC와 qmake direct unit을
+  모두 지원하며, `.ui`/`.qrc`와 I4-2 helper source는 analysis cache identity에 포함됩니다.
 - **C++ (DB 부재 폴백)**: compilation context가 실제로 없을 때만 `g++`를 찾아
   `-fsyntax-only -std=c++17 -Wall -Wextra` 휴리스틱 명령을 실행하고 `ESTIMATED`로 표시합니다.
   ready capability의 compiler를 우선하며 standalone driver도 canonical/project 경계를 확인합니다.
