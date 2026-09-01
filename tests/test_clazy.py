@@ -334,6 +334,75 @@ def test_failures_are_atomic(tmp_path: Path, result: ProcessResult, fragment: st
     assert outcome.evidence[0].error
 
 
+def test_nonzero_clazy_return_summarizes_located_kinds_without_raw_output(
+    tmp_path: Path,
+) -> None:
+    root, source, context, _clazy, _compiler = _context(tmp_path)
+    external = "/opt/ci-secrets/qt/private_header.h"
+    output = "\n".join(
+        (
+            f"{source}:2:1: fatal error: fatal diagnostic prose [-Wclazy-fatal-check]",
+            f"{source}:2:2: error: error diagnostic prose [-Wclazy-error-check]",
+            f"{source}:2:3: warning: warning diagnostic prose [-Wclazy-warning-check]",
+            f"{source}:2:4: note: note diagnostic prose [-Wclazy-note-check]",
+            f"{source}:2:5: remark: remark diagnostic prose [-Wclazy-remark-check]",
+        )
+    )
+
+    outcome, calls = _run(
+        root,
+        source,
+        context,
+        {"clazy": "auto"},
+        ProcessResult(2, output, f"Error while processing {external}\n", 0.01),
+    )
+
+    assert len(calls) == 1
+    assert outcome.mode == "error"
+    assert outcome.diagnostics == []
+    assert outcome.configurations_checked == 0
+    assert outcome.sources_checked == 0
+    assert len(outcome.errors) == 1
+    message = outcome.errors[0]
+    assert "exit code 2" in message
+    assert all(f"{kind}=1" in message for kind in ("fatal", "error", "warning", "note", "remark"))
+    assert "processing_error=yes" in message
+    assert len(message) <= 512
+    assert "fatal diagnostic prose" not in message
+    assert "error diagnostic prose" not in message
+    assert "warning diagnostic prose" not in message
+    assert "note diagnostic prose" not in message
+    assert "remark diagnostic prose" not in message
+    assert external not in message
+    assert outcome.evidence[0].error == message
+
+
+def test_nonzero_clazy_warning_is_still_an_atomic_error(tmp_path: Path) -> None:
+    root, source, context, _clazy, _compiler = _context(tmp_path)
+    output = f"{source}:2:23: warning: warning diagnostic prose [-Wclazy-qdatetime-utc]\n"
+
+    outcome, calls = _run(
+        root,
+        source,
+        context,
+        {"clazy": "auto"},
+        ProcessResult(1, output, "", 0.01),
+    )
+
+    assert len(calls) == 1
+    assert outcome.mode == "error"
+    assert outcome.diagnostics == []
+    assert outcome.configurations_checked == 0
+    assert outcome.sources_checked == 0
+    assert len(outcome.errors) == 1
+    message = outcome.errors[0]
+    assert "exit code 1" in message
+    assert "warning=1" in message
+    assert len(message) <= 512
+    assert "warning diagnostic prose" not in message
+    assert outcome.evidence[0].error == message
+
+
 def test_wrapper_without_approved_clang_never_executes(tmp_path: Path) -> None:
     root, source, context, _clazy, _compiler = _context(
         tmp_path,
