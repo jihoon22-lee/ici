@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-01
+
 ### Added
 - **I4-2 Qt analysis**: C++ `lint` now probes the canonical `clazy` capability using
   `clazy-standalone` first and the distribution `clazy` wrapper as a recorded fallback provider.
@@ -48,12 +50,32 @@
   (31/35/27/36) are eliminated, generated-linkage branch variables are independently typed, and a
   repository test prevents I4 analysis helpers from exceeding complexity 25 again.
 
+### Verification
+- **I4-2 PR acceptance**: [PR #122](https://github.com/jihoon22-lee/ici/pull/122) exact head
+  `c3a8fe21639cecef395f0bc28777066401927da0` passed
+  [run 33499500259](https://github.com/jihoon22-lee/ici/actions/runs/33499500259) with
+  1,517/1,517 tests, all four actual compiler/clang-tidy/clazy process E2Es, Qt 5 and Qt 6 builds,
+  self/viewer dogfood, report publication, and Merge Gate. Exactly one current sticky comment linked
+  both reports. PR ici/viewer Pages were 6,583,501/356,366 bytes with SHA-256
+  `b651fab1a528ae3b82f0db195322eae6038a4d5cc9492a4fbe86ae2171c9a465` and
+  `2d26731cadbb6e83fa6b7f5a8fe99ae4eb830df2851905e45e130d66e3fbcc13`; both returned HTTP 200,
+  the expected title, and zero external executable/display assets.
+- **I4-2 exact-main acceptance**: squash merge commit
+  `9b3a88f7b216a9a82a988fe2d6d1ba7b35cc2327` passed
+  [run 33500281653](https://github.com/jihoon22-lee/ici/actions/runs/33500281653) with the same
+  1,517 actual-tool tests, Qt matrices, dogfood gates, trusted main publication, and Merge Gate.
+  Main ici/viewer Pages were 6,056,629/345,254 bytes with SHA-256
+  `9acda9e39efd6e084e6d7b36c1bffa1f8eca5fc27709fd77f91f935a6b466238` and
+  `7bedb81c24f2cea10178377ae0280a596b16191039e5e8d9f978eb5b1eae666a`; both passed the same
+  HTTP/content/title/Zero-CDN audit. The local final gate passed 1,513 tests with four expected
+  missing-tool skips, Ruff, mypy over 93 source files, pure-Python pyz build, and packaged smoke.
+
 ### Documentation and integration status
 - v0.9.1의 릴리스 provenance·9개 artifact 독립 감사와 toy-projects BuildScope B4 교차 검증
   (PR #36, released ici v0.9.1, PR/main CI·sticky comment·Zero-CDN Pages)을 인수인계와
-  실행 계획에 기록했다. I4-1 release boundary와 B4 precondition은 닫혔으며, I4-2 코드 구현과
-  `1513 passed, 4 skipped` full local gate도 완료됐다. I4-2 원격 CI/PR, toy-projects BuildScope B5 교차 검증,
-  다음 release evidence와 I4-3/I4-4는 아직 pending이며 I4 전체 checkpoint도 미완료다.
+  실행 계획에 기록했다. I4-1 release boundary와 B4 precondition은 닫혔으며, I4-2 ici 구현은
+  local·PR·exact-main acceptance까지 완료됐다. v0.10.0 release artifact와 toy-projects
+  BuildScope B5 교차 검증, I4-3/I4-4는 아직 pending이며 I4 전체 checkpoint도 미완료다.
 
 ## [0.9.1] - 2026-09-01
 
