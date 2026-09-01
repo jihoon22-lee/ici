@@ -317,6 +317,163 @@ def test_clang_tidy_note_inherits_parent_rule_and_family(tmp_path: Path) -> None
     assert note.target.start_column == 7
 
 
+def test_clang_tidy_llvm18_empty_structural_note_keeps_concrete_note(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/model.cpp:431:50: warning: 3 adjacent parameters are easily swapped "
+        "[bugprone-easily-swappable-parameters]\n"
+        "  431 | QVariant configurationData(qsizetype entryIndex, int column, int role);\n"
+        "      |                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+        "src/model.cpp:431:60: note: the first parameter in the range is 'entryIndex'\n"
+        "  431 | QVariant configurationData(qsizetype entryIndex, int column, int role);\n"
+        "      |                                        ^~~~~~~~~~\n"
+        "src/model.cpp:432:54: note: the last parameter in the range is 'role'\n"
+        "  432 |                                                  int role) const;\n"
+        "      |                                                      ^~~~\n"
+        "src/model.cpp:431:50: note: \n"
+        "  431 | QVariant configurationData(qsizetype entryIndex, int column, int role);\n"
+        "      |                              ^\n"
+        "src/model.cpp:431:80: note: 'qsizetype' and 'int' may be implicitly converted: "
+        "'qsizetype' (as 'long long') -> 'int', 'int' -> 'qsizetype' (as 'long long')\n"
+        "40713 warnings generated.\n"
+        "Suppressed 40712 warnings (40712 in non-user code).\n"
+        "Use -header-filter=.* to display errors from all non-system headers. "
+        "Use -system-headers to display errors from system headers as well.\n"
+    )
+
+    result = parse_clang_tidy_diagnostics(root, root, output, "")
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error == ""
+    assert len(result.diagnostics) == 4
+    primary, first_note, last_note, note = result.diagnostics
+    assert primary.tool_rule_id == "bugprone-easily-swappable-parameters"
+    assert first_note.tool_rule_id == primary.tool_rule_id
+    assert last_note.tool_rule_id == primary.tool_rule_id
+    assert note.tool_rule_id == primary.tool_rule_id
+    assert note.target.message == (
+        "note: 'qsizetype' and 'int' may be implicitly converted: "
+        "'qsizetype' (as 'long long') -> 'int', 'int' -> 'qsizetype' (as 'long long')"
+    )
+
+
+def test_clang_tidy_empty_note_without_diagnostic_context_is_rejected(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+
+    result = parse_clang_tidy_diagnostics(
+        root,
+        root,
+        "src/model.cpp:431:50: note: \n",
+        "",
+    )
+
+    assert result.format_name == "clang-tidy-text"
+    assert "empty note" in result.error
+    assert result.diagnostics == ()
+
+
+def test_clang_tidy_out_of_range_empty_note_is_not_treated_as_structure(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/model.cpp:3:5: warning: valid [bugprone-easily-swappable-parameters]\n"
+        "src/model.cpp:2147483648:5: note: \n"
+    )
+
+    result = parse_clang_tidy_diagnostics(root, root, output, "")
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error
+    assert result.diagnostics == ()
+
+
+@pytest.mark.parametrize(
+    "empty_note",
+    [
+        "src/model.cpp:3:2147483648: note: ",
+        "src/model.cpp:0:5: note: ",
+        "src/model.cpp:03:5: note: ",
+        f"{'x' * 4097}:3:5: note: ",
+    ],
+    ids=["column-overflow", "zero-line", "leading-zero-line", "oversized-path"],
+)
+def test_clang_tidy_malformed_empty_note_cannot_bypass_parser(
+    tmp_path: Path, empty_note: str
+) -> None:
+    root = tmp_path / "project"
+    output = (
+        f"src/model.cpp:3:5: warning: valid [bugprone-easily-swappable-parameters]\n{empty_note}\n"
+    )
+
+    result = parse_clang_tidy_diagnostics(root, root, output, "")
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error
+    assert result.diagnostics == ()
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        ("src/a.cpp:1:1: warning: valid [modernize-use-nullptr]\nsrc/a.cpp:1:1: note: \n"),
+        (
+            "src/a.cpp:1:1: note: \n"
+            "src/a.cpp:1:2: note: 'int' and 'long' may be implicitly converted: "
+            "'int' -> 'long'\n"
+        ),
+        (
+            "src/a.cpp:1:1: warning: valid [bugprone-easily-swappable-parameters]\n"
+            "src/a.cpp:1:1: note: \n"
+        ),
+        (
+            "src/a.cpp:1:1: warning: valid [bugprone-easily-swappable-parameters]\n"
+            "src/b.cpp:1:1: note: \n"
+            "src/b.cpp:1:2: note: 'int' and 'long' may be implicitly converted: "
+            "'int' -> 'long'\n"
+        ),
+        (
+            "src/a.cpp:1:1: warning: valid [bugprone-easily-swappable-parameters]\n"
+            "src/a.cpp:1:1: note: \n"
+            "src/a.cpp:1:1: note: \n"
+        ),
+        (
+            "src/a.cpp:1:1: warning: valid [bugprone-easily-swappable-parameters]\n"
+            "src/a.cpp:1:1: note: \n"
+            "src/a.cpp:1:2: note: unrelated explanation\n"
+        ),
+        (
+            "src/a.cpp:1:1: warning: valid [bugprone-easily-swappable-parameters]\n"
+            "src/a.cpp:1:2: note: unrelated explanation\n"
+            "src/a.cpp:1:1: note: \n"
+            "src/a.cpp:1:2: note: 'int' and 'long' may be implicitly converted: "
+            "'int' -> 'long'\n"
+        ),
+    ],
+    ids=[
+        "unrelated-rule",
+        "before-parent",
+        "missing-child",
+        "mismatched-path",
+        "multiple-empty",
+        "wrong-child",
+        "wrong-intermediate-child",
+    ],
+)
+def test_clang_tidy_empty_note_requires_exact_llvm_context(tmp_path: Path, output: str) -> None:
+    root = tmp_path / "project"
+
+    result = parse_clang_tidy_diagnostics(root, root, output, "")
+
+    assert result.format_name == "clang-tidy-text"
+    assert "empty note" in result.error
+    assert result.diagnostics == ()
+
+
 @pytest.mark.parametrize(
     ("parser", "output"),
     [

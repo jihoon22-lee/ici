@@ -40,6 +40,16 @@ _CLANG_TIDY_HEADER_HINT_RE = re.compile(
     r"from all non-system headers\."
     r"(?: Use -system-headers to display errors from system headers as well\.)?$"
 )
+_CLANG_TIDY_EMPTY_NOTE_RE = re.compile(
+    r"^(?P<file>.+?):(?P<line>[1-9]\d{0,9})"
+    r"(?::(?P<column>[1-9]\d{0,9}))?:\s*note:\s*$"
+)
+_CLANG_TIDY_CONVERSION_NOTE_RE = re.compile(
+    r"^'.{1,256}' and '.{1,256}' may be implicitly converted: \S.{1,4096}$"
+)
+_CLANG_TIDY_PARAMETER_RANGE_NOTE_RE = re.compile(
+    r"^the (?:first|last) parameter in the range is '.{1,256}'$"
+)
 _TEXT_FIXIT_RE = re.compile(
     r'^fix-it:"(?P<file>(?:[^"\\]|\\.)*)":\{'
     r"(?P<start_line>[1-9]\d*):(?P<start_column>[1-9]\d*)-"
@@ -434,15 +444,89 @@ def parse_compiler_diagnostics(
     return _parse_text(root, cwd, text)
 
 
+def _bounded_empty_note(match: re.Match[str]) -> bool:
+    column = match.group("column")
+    return (
+        len(match.group("file")) <= 4_096
+        and int(match.group("line")) <= MAX_DIAGNOSTIC_LINE
+        and (column is None or int(column) <= MAX_DIAGNOSTIC_LINE)
+    )
+
+
+def _empty_note_has_expected_parent(
+    empty_note: re.Match[str], parent: re.Match[str] | None
+) -> bool:
+    return bool(
+        parent
+        and parent.group("kind") == "warning"
+        and parent.group("rule") == "bugprone-easily-swappable-parameters"
+        and parent.group("file") == empty_note.group("file")
+        and parent.group("line") == empty_note.group("line")
+        and parent.group("column") == empty_note.group("column")
+    )
+
+
+def _is_expected_conversion_note(pending: re.Match[str], diagnostic: re.Match[str]) -> bool:
+    return bool(
+        diagnostic.group("kind") == "note"
+        and diagnostic.group("rule") is None
+        and diagnostic.group("file") == pending.group("file")
+        and diagnostic.group("line") == pending.group("line")
+        and _CLANG_TIDY_CONVERSION_NOTE_RE.fullmatch(diagnostic.group("message"))
+    )
+
+
+def _empty_note_error() -> _ClangTidyText:
+    return _ClangTidyText(
+        (), error="clang-tidy empty note is not a valid bugprone structural separator"
+    )
+
+
 def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
     retained: list[str] = []
     generated: int | None = None
     suppressed = 0
     header_hint = False
+    structural_parent: re.Match[str] | None = None
+    pending_empty_note: re.Match[str] | None = None
     for raw_line in (stdout + "\n" + stderr).splitlines():
         line = raw_line.strip()
         if not line:
             continue
+        empty_note = _CLANG_TIDY_EMPTY_NOTE_RE.fullmatch(line)
+        if empty_note:
+            if (
+                pending_empty_note
+                or not _bounded_empty_note(empty_note)
+                or not _empty_note_has_expected_parent(empty_note, structural_parent)
+            ):
+                return _empty_note_error()
+            pending_empty_note = empty_note
+            continue
+        diagnostic = _TEXT_DIAGNOSTIC_RE.fullmatch(line)
+        if diagnostic:
+            if pending_empty_note and not _is_expected_conversion_note(
+                pending_empty_note, diagnostic
+            ):
+                return _empty_note_error()
+            if pending_empty_note:
+                pending_empty_note = None
+                structural_parent = None
+            elif diagnostic.group("rule") is not None:
+                structural_parent = diagnostic
+            elif structural_parent and (
+                diagnostic.group("kind") != "note"
+                or diagnostic.group("file") != structural_parent.group("file")
+                or not _CLANG_TIDY_PARAMETER_RANGE_NOTE_RE.fullmatch(diagnostic.group("message"))
+            ):
+                structural_parent = None
+            retained.append(raw_line)
+            continue
+        if _TEXT_CONTEXT_RE.fullmatch(line):
+            retained.append(raw_line)
+            continue
+        if pending_empty_note:
+            return _empty_note_error()
         if match := _CLANG_TIDY_GENERATED_RE.fullmatch(line):
             if generated is not None:
                 return _ClangTidyText(
@@ -460,8 +544,16 @@ def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
         if _CLANG_TIDY_HEADER_HINT_RE.fullmatch(line):
             header_hint = True
             continue
+        structural_parent = None
         retained.append(raw_line)
-    return _ClangTidyText(tuple(retained), generated, suppressed, header_hint)
+    if pending_empty_note:
+        return _empty_note_error()
+    return _ClangTidyText(
+        retained=tuple(retained),
+        generated=generated,
+        suppressed=suppressed,
+        header_hint=header_hint,
+    )
 
 
 def _normalize_clang_tidy(

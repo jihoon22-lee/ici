@@ -13,7 +13,7 @@ import pytest
 from ici.core.capabilities import CapabilityInventory, collect_capability_inventory
 from ici.core.compile_db import load_compilation_context
 from ici.core.context import AnalysisContext, create_analysis_context, discover_project_model
-from ici.core.runner import run_process
+from ici.core.runner import ProcessResult, run_process
 from ici.core.toolchain import ToolProbe
 from ici.engines._clang_tidy import run_clang_tidy
 from ici.engines._cpp_lint import run_cpp_lint
@@ -92,6 +92,23 @@ def real_cpp_project(tmp_path: Path) -> Path:
         "}\n",
         encoding="utf-8",
     )
+    (source_dir / "tidy_swappable.cpp").write_text(
+        "using qsizetype = long long;\n"
+        "\n"
+        "int tidy_swappable(qsizetype snapshotEntryIndex, int column, int role) {\n"
+        "    if (snapshotEntryIndex < 0) {\n"
+        "        return 1;\n"
+        "    }\n"
+        "    if (column < 0) {\n"
+        "        return 2;\n"
+        "    }\n"
+        "    if (role < 0) {\n"
+        "        return 3;\n"
+        "    }\n"
+        "    return 0;\n"
+        "}\n",
+        encoding="utf-8",
+    )
 
     compile_commands = [
         {
@@ -133,6 +150,26 @@ def real_cpp_project(tmp_path: Path) -> Path:
                 "tidy.o",
             ],
             "output": "tidy.o",
+        },
+        {
+            "directory": str(build),
+            "file": "../src/tidy_swappable.cpp",
+            "arguments": [
+                "g++",
+                "-std=c++17",
+                "-D",
+                "ICI_E2E_VALUE=1",
+                "-I",
+                "../include",
+                "-MMD",
+                "-MF",
+                "tidy_swappable.d",
+                "-c",
+                "../src/tidy_swappable.cpp",
+                "-o",
+                "tidy_swappable.o",
+            ],
+            "output": "tidy_swappable.o",
         },
     ]
     (root / "compile_commands.json").write_text(
@@ -293,5 +330,76 @@ def test_run_clang_tidy_uses_real_binary_and_exact_context(
         "../include",
         "-fdiagnostics-color=never",
     ]
+    assert all(value not in evidence.argv for value in ("-p", "--fix", "compile_commands.json"))
+    assert _source_snapshot(real_cpp_project) == before
+
+
+def test_run_clang_tidy_accepts_real_llvm_swappable_parameter_notes(
+    real_cpp_project: Path,
+) -> None:
+    inventory = _required_inventory("g++", "clang-tidy")
+    context = _analysis_context(real_cpp_project, inventory)
+    source = real_cpp_project / "src" / "tidy_swappable.cpp"
+    before = _source_snapshot(real_cpp_project)
+    process_results: list[ProcessResult] = []
+
+    def recording_runner(*args, **kwargs) -> ProcessResult:
+        result = run_process(*args, **kwargs)
+        process_results.append(result)
+        return result
+
+    outcome = run_clang_tidy(
+        real_cpp_project,
+        [source],
+        context,
+        {
+            "clang_tidy": "required",
+            "clang_tidy_checks": ["-*", "bugprone-easily-swappable-parameters"],
+        },
+        runner=recording_runner,
+    )
+
+    assert outcome.mode == "exact", (
+        outcome.errors,
+        [(item.returncode, item.error) for item in outcome.evidence],
+        [(item.stdout, item.stderr) for item in process_results],
+    )
+    assert outcome.errors == []
+    assert outcome.sources_checked == 1
+    assert outcome.configurations_checked == 1
+    primary_candidates = [
+        item
+        for item in outcome.diagnostics
+        if item.tool_rule_id == "bugprone-easily-swappable-parameters"
+        and item.target.message.startswith("warning:")
+    ]
+    assert primary_candidates, (
+        outcome.diagnostics,
+        [(item.stdout, item.stderr) for item in process_results],
+    )
+    primary = primary_candidates[0]
+    conversion_candidates = [
+        item
+        for item in outcome.diagnostics
+        if item.tool_rule_id == primary.tool_rule_id
+        and "may be implicitly converted:" in item.target.message
+    ]
+    assert conversion_candidates, (
+        outcome.diagnostics,
+        [(item.stdout, item.stderr) for item in process_results],
+    )
+    conversion = conversion_candidates[0]
+    assert primary.target.file_path == "src/tidy_swappable.cpp"
+    assert primary.family == "clang-tidy"
+    assert conversion.target.file_path == primary.target.file_path
+    assert conversion.family == primary.family
+
+    assert len(outcome.evidence) == 1
+    evidence = outcome.evidence[0]
+    assert evidence.returncode == 0
+    assert evidence.error == ""
+    assert evidence.argv is not None
+    assert evidence.argv[3] == "--checks=-*,bugprone-easily-swappable-parameters"
+    assert evidence.argv[4] == str(source.resolve(strict=True))
     assert all(value not in evidence.argv for value in ("-p", "--fix", "compile_commands.json"))
     assert _source_snapshot(real_cpp_project) == before
