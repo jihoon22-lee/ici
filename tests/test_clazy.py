@@ -153,6 +153,8 @@ def _with_fatal_warning_policy(context: AnalysisContext) -> AnalysisContext:
             "-Werror",
             "-Werror=return-type",
             "-pedantic-errors",
+            "--pedantic-errors",
+            "-Werror-implicit-function-declaration",
             "-Wno-error=deprecated-declarations",
             *unit.argv[compile_index:],
         ),
@@ -250,8 +252,11 @@ def test_clazy_demotes_build_warning_policy_for_every_provider(tmp_path: Path, a
     assert "-Werror" not in command
     assert "-Werror=return-type" not in command
     assert "-pedantic-errors" not in command
+    assert "--pedantic-errors" not in command
+    assert "-Werror-implicit-function-declaration" not in command
     assert "-Wreturn-type" in command
     assert "-pedantic" in command
+    assert "-Wimplicit-function-declaration" in command
     assert "-Wno-error=deprecated-declarations" in command
     if alias == "clazy":
         assert command[-4:] == ["-Wall", "-Wextra", "-fsyntax-only", str(source)]

@@ -152,6 +152,8 @@ def _with_fatal_warning_policy(context: AnalysisContext) -> AnalysisContext:
             "-Werror",
             "-Werror=return-type",
             "-pedantic-errors",
+            "--pedantic-errors",
+            "-Werror-implicit-function-declaration",
             "-Wno-error=deprecated-declarations",
             *unit.argv[compile_index:],
         ),
@@ -268,8 +270,11 @@ def test_clang_tidy_demotes_build_warning_policy_but_preserves_selected_checks(
     assert "-Werror" not in command
     assert "-Werror=return-type" not in command
     assert "-pedantic-errors" not in command
+    assert "--pedantic-errors" not in command
+    assert "-Werror-implicit-function-declaration" not in command
     assert "-Wreturn-type" in command
     assert "-pedantic" in command
+    assert "-Wimplicit-function-declaration" in command
     assert "-Wno-error=deprecated-declarations" in command
 
 

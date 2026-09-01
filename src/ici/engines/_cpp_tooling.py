@@ -10,6 +10,12 @@ from ici.core.context import AnalysisContext, CompilationUnit
 from ici.core.cpp_replay import ReplayCommandError
 from ici.core.toolchain import ToolCapability
 
+_WARNING_POLICY_DEMOTIONS = {
+    "-pedantic-errors": "-pedantic",
+    "--pedantic-errors": "-pedantic",
+    "-Werror-implicit-function-declaration": "-Wimplicit-function-declaration",
+}
+
 
 def inside(root: Path, path: Path) -> bool:
     """Return whether an already-normalized path is contained by ``root``."""
@@ -83,8 +89,8 @@ def tooling_arguments(argv: tuple[str, ...], source: Path) -> list[str]:
     for argument in argv[1:-4]:
         if argument == "-Werror":
             continue
-        if argument == "-pedantic-errors":
-            arguments.append("-pedantic")
+        if argument in _WARNING_POLICY_DEMOTIONS:
+            arguments.append(_WARNING_POLICY_DEMOTIONS[argument])
             continue
         if argument.startswith("-Werror="):
             warning = argument.removeprefix("-Werror=")
