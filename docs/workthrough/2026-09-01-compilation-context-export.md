@@ -155,6 +155,24 @@ fatal diagnostic, serialization or write error: 1
   `6f0e99872ab0041f174f9b708cb2a0bd5e60569ce06fe825644541c0ae2162c9`, semantic digest는
   `sha256:a7db541ae2daa0c19365f80c1bdbe5090049c86b423000fdf9b6f8e85a857a48`였다.
 
+### Same-basename active-header edge local revalidation
+
+The existing `test_trace_uses_compiler_selected_same_basename_without_ambiguity` keeps a
+mocked `run_process` regression for parser and compiler-selection behavior. The new
+`test_real_compiler_trace_selects_the_first_same_basename_header` calls
+`build_compiler_cpp_graph(..., runner=run_process)` and executes the actual probed compiler
+process for each `g++`/`clang++` parameter. The local Python 3.10 focused run passed the mock and
+actual `g++` cases (`2 passed`); the `clang++` case was skipped because `clang++` is unavailable.
+The compiler trace selected the first `-I` `common.hpp` and excluded the alternate header with
+the same basename. This closes the edge locally only; it adds no PR/CI/Pages evidence and does
+not change the release/version record below.
+
+The latest local full gate, including this actual-process test, reports Python 3.10 pytest
+`1,334 passed, 1 skipped`; Ruff check/format PASS for 148 files; and mypy PASS for 88 source files.
+`build-pyz` and smoke also passed. The current artifact is 2,166,828 bytes with SHA-256
+`0f82aa95eb940072a735c591737f5b77d9dd16b32751aa03600ad3c5978bb158`. These are local facts only;
+the new test has no PR/CI/Pages remote evidence yet.
+
 ### Remote follow-up
 
 - Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110)은 head `3ce564a`에서
@@ -196,12 +214,15 @@ fatal diagnostic, serialization or write error: 1
   `085f70450cd89171d3fd4011d35ccc35e8658ab5308b64e398ea0b0793c45d8a`였다. Schema validation은
   passed했고, 16 unit·6 target·14 field group에서 mismatch·checkout leak·raw `argv`/`command` key는
   모두 0건이었다.
-- Release와 public artifact evidence는 완료됐고, I3-5에는 same-basename active-header edge를 실제
-  compiler trace와 대조하는 작업만 남아 있다.
+- Release와 public artifact evidence는 완료됐고, I3-5의 same-basename active-header edge는
+  위 local actual-process trace 대조로 완료됐다. 이 후속 테스트에 대한 새 PR/CI/Pages
+  evidence는 주장하지 않는다.
 
 ## Next Steps
 
 - PR #111의 merge commit·required CI·sticky comment·PR/main Pages와 v0.8.0 release/tag/assets,
   checksum, version, report, BuildScope/export evidence를 위에 기록했다.
-- I3-5의 남은 same-basename active-header edge를 toy fixture와 실제 compiler trace로 대조하고,
-  두 구현의 compiler 선택과 동일한 edge임을 확정한다.
+- I3-5의 same-basename active-header edge local actual-process 대조와 BuildScope
+  target-by-target define·standard·include comparison은 완료됐다. public projection은 16
+  unit·6 target·14 field group에서 mismatch 0이었다. 다음 남은 조건은 새 actual-process test의
+  PR/CI/Pages remote evidence이며, 현재 release/version은 v0.8.0으로 유지한다.
