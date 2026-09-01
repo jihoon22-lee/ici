@@ -95,7 +95,7 @@ clang_tidy_config = ".clang-tidy"    # optional project-contained config
 
 The exact local gate evidence for the current branch head is:
 
-- Python 3.10 full pytest collected 1,414 tests; 1,413 passed and the environment-only `clang++`
+- Python 3.10 full pytest collected 1,417 tests; 1,416 passed and the environment-only `clang++`
   case skipped. The required clang-tidy actual-process case ran against an unprivileged LLVM 18
   extraction rather than skipping.
 - The actual-process GCC JSON and clang-tidy adapter E2Es both passed locally. CI and release
@@ -107,7 +107,7 @@ The exact local gate evidence for the current branch head is:
 - Smoke, self-verification, and Zero-CDN checks passed with verify exit 0; the generated report was
   audited and its temporary HTML/JSON were removed.
 - The reproducible packaged artifact SHA-256 is
-  `a0cbeed617e49ca481659e1dfe03da16bd2f073b246c6c692bc0cd1781034aad` (2,180,524 bytes).
+  `3ce24dd703bea3b53c68a76289753353ee7d94a20a4dda4e49df232131856344` (2,180,879 bytes).
 
 The base environment has no installed `clang-tidy` binary. For the CI failure reproduction,
 LLVM 18 packages were extracted without installation into a temporary directory and executed with
@@ -152,6 +152,9 @@ The first root smoke after this correction exposed a self-dogfood regression bef
 public parser had reached cyclomatic complexity 26. Its trailer splitting, diagnostic-family
 normalization, and accounting policy are now separate bounded helpers. Focused parser tests remain
 green and the repository maximum is back to the pre-existing warning-only 25.
+The final full local gate collected 1,417 tests, ran the required LLVM 18 E2E, passed Ruff and
+mypy, rebuilt the pure-Python artifact, and restored smoke/self-verification to exit 0 with a
+successful Zero-CDN audit.
 
 - Open the feature PR and obtain its CI/Merge Gate, sticky-comment, and independent Pages
   evidence; then verify the exact-main CI/Pages result after merge.
