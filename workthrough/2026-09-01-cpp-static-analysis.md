@@ -159,9 +159,9 @@ The final [PR #115 run 33469332734](https://github.com/jihoon22-lee/ici/actions/
 passed 1,417/1,417 tests with both required actual-tool E2Es, Qt5/Qt6, self/viewer dogfood, report
 publication, and Merge Gate. Its sticky comment retained exactly one marker and two report links.
 Independent PR Pages audits returned HTTP 200 `text/html`, exact titles, and zero external
-references: ici was 6,041,398 bytes with SHA-256
-`5dd46241aa8b625ff29cffb47021febde38341ffb460fa6bf76a0ed52fc5ae06`; viewer was 349,445 bytes
-with SHA-256 `d26ff3438397c55bafb82836aec26748dd1b0519f7128cd266bbf5c98b3dd09e`.
+references: ici was 6,034,768 bytes with SHA-256
+`f26b34d75a0e0561b48106cf4aaea122f1cd6a558ecc154f02299ac039f38075`; viewer was 345,256 bytes
+with SHA-256 `ae40367d35b7db172b37698422185d3dacf64db83f344860eca6c3a3754c1936`.
 
 PR #115 was squash-merged as `973cf2423728f9d808873f548bc00c7878cceadd`. Exact-main
 [run 33469789628](https://github.com/jihoon22-lee/ici/actions/runs/33469789628) repeated the

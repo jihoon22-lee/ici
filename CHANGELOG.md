@@ -63,9 +63,9 @@
   [run 33469332734](https://github.com/jihoon22-lee/ici/actions/runs/33469332734) with 1,417/1,417
   tests, both required actual-tool E2Es, Qt5·Qt6, self/viewer dogfood, report publication, and Merge
   Gate, then was squash-merged as `973cf2423728f9d808873f548bc00c7878cceadd`. The sticky comment
-  retained one marker and two report links. PR ici/viewer Pages were 6,041,398/349,445 bytes with
-  SHA-256 `5dd46241aa8b625ff29cffb47021febde38341ffb460fa6bf76a0ed52fc5ae06` and
-  `d26ff3438397c55bafb82836aec26748dd1b0519f7128cd266bbf5c98b3dd09e`; both returned HTTP 200
+  retained one marker and two report links. PR ici/viewer Pages were 6,034,768/345,256 bytes with
+  SHA-256 `f26b34d75a0e0561b48106cf4aaea122f1cd6a558ecc154f02299ac039f38075` and
+  `ae40367d35b7db172b37698422185d3dacf64db83f344860eca6c3a3754c1936`; both returned HTTP 200
   `text/html`, exact titles, and zero external references.
 - **I4-1 exact-main evidence**: [run 33469789628](https://github.com/jihoon22-lee/ici/actions/runs/33469789628)
   repeated 1,417/1,417 tests, both required tool E2Es, viewer PASS with lint zero and 7/7 tests,

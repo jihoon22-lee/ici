@@ -884,10 +884,10 @@ Merge Gate를 모두 통과했다. PR sticky comment는 marker 1개와 report li
 
 독립 PR Pages audit는 HTTP 200 `text/html`, 정확한 title, external reference 0건이었다.
 
-- [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/115/): 6,041,398 bytes,
-  SHA-256 `5dd46241aa8b625ff29cffb47021febde38341ffb460fa6bf76a0ed52fc5ae06`
-- [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/115/): 349,445 bytes,
-  SHA-256 `d26ff3438397c55bafb82836aec26748dd1b0519f7128cd266bbf5c98b3dd09e`
+- [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/115/): 6,034,768 bytes,
+  SHA-256 `f26b34d75a0e0561b48106cf4aaea122f1cd6a558ecc154f02299ac039f38075`
+- [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/115/): 345,256 bytes,
+  SHA-256 `ae40367d35b7db172b37698422185d3dacf64db83f344860eca6c3a3754c1936`
 
 Exact-main Pages도 같은 HTTP/content/title/Zero-CDN 계약을 통과했다.
 
