@@ -95,17 +95,19 @@ clang_tidy_config = ".clang-tidy"    # optional project-contained config
 
 The exact local gate evidence for the current branch head is:
 
-- Python 3.10 full pytest collected 1,412 tests; 1,410 passed and two environment-only cases
-  skipped because local `clang++` and `clang-tidy` binaries are unavailable.
-- The actual-process GCC JSON adapter E2E passed locally. CI and release install clang-tidy and
-  set `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`, so its actual-process E2E cannot skip remotely.
+- Python 3.10 full pytest collected 1,414 tests; 1,413 passed and the environment-only `clang++`
+  case skipped. The required clang-tidy actual-process case ran against an unprivileged LLVM 18
+  extraction rather than skipping.
+- The actual-process GCC JSON and clang-tidy adapter E2Es both passed locally. CI and release
+  install clang-tidy and set `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`, so the clang-tidy case cannot
+  skip remotely.
 - Ruff passed for 153 files.
 - mypy passed for 90 source files.
 - `build-pyz` passed with 10 pure-Python distributions and 2 schemas packaged.
 - Smoke, self-verification, and Zero-CDN checks passed with verify exit 0; the generated report was
   audited and its temporary HTML/JSON were removed.
 - The reproducible packaged artifact SHA-256 is
-  `6b5cbd0f182dc406f707fe87a354000f151edc93fc10789edfbad3b82b7d5785` (2,180,378 bytes).
+  `a0cbeed617e49ca481659e1dfe03da16bd2f073b246c6c692bc0cd1781034aad` (2,180,524 bytes).
 
 The base environment has no installed `clang-tidy` binary. For the CI failure reproduction,
 LLVM 18 packages were extracted without installation into a temporary directory and executed with

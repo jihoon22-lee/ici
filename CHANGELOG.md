@@ -43,8 +43,8 @@
   rule/location evidence and the exact sanitized clang-tidy argv (no `-p`, `--fix`, dependency, or
   output flags). PR and release workflows install clang-tidy and set
   `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`, so missing or incompletely probed tools fail instead of
-  silently skipping. The local GCC path passed; the clang-tidy case skipped because the binary is
-  unavailable locally, and its required actual-process result remains a remote CI gate.
+  silently skipping. The local GCC path and a temporarily extracted LLVM 18 clang-tidy path both
+  passed; the required installed-tool result remains a remote CI gate.
 - **I3 same-basename active-header local compiler edge**: the existing
   `test_trace_uses_compiler_selected_same_basename_without_ambiguity` keeps its mocked
   `run_process` regression coverage. The new
