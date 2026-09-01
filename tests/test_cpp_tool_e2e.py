@@ -94,7 +94,16 @@ def real_cpp_project(tmp_path: Path) -> Path:
     )
     (source_dir / "tidy_swappable.cpp").write_text(
         "int tidy_swappable(long snapshotEntryIndex, int column, int role) {\n"
-        "    return static_cast<int>(snapshotEntryIndex + column + role);\n"
+        "    if (snapshotEntryIndex < 0) {\n"
+        "        return 1;\n"
+        "    }\n"
+        "    if (column < 0) {\n"
+        "        return 2;\n"
+        "    }\n"
+        "    if (role < 0) {\n"
+        "        return 3;\n"
+        "    }\n"
+        "    return 0;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -356,18 +365,28 @@ def test_run_clang_tidy_accepts_real_llvm_swappable_parameter_notes(
     assert outcome.errors == []
     assert outcome.sources_checked == 1
     assert outcome.configurations_checked == 1
-    primary = next(
+    primary_candidates = [
         item
         for item in outcome.diagnostics
         if item.tool_rule_id == "bugprone-easily-swappable-parameters"
         and item.target.message.startswith("warning:")
+    ]
+    assert primary_candidates, (
+        outcome.diagnostics,
+        [(item.stdout, item.stderr) for item in process_results],
     )
-    conversion = next(
+    primary = primary_candidates[0]
+    conversion_candidates = [
         item
         for item in outcome.diagnostics
         if item.tool_rule_id == primary.tool_rule_id
         and "may be implicitly converted:" in item.target.message
+    ]
+    assert conversion_candidates, (
+        outcome.diagnostics,
+        [(item.stdout, item.stderr) for item in process_results],
     )
+    conversion = conversion_candidates[0]
     assert primary.target.file_path == "src/tidy_swappable.cpp"
     assert primary.family == "clang-tidy"
     assert conversion.target.file_path == primary.target.file_path
