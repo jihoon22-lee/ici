@@ -205,6 +205,7 @@ def test_standalone_receives_explicit_checks_and_sanitized_context(tmp_path: Pat
         "/usr/include/qt6",
         "-fPIC",
         "-fdiagnostics-color=never",
+        "-w",
     ]
     assert "-p" not in command
     assert not any(argument.startswith("--fix") for argument in command)
@@ -233,7 +234,7 @@ def test_compiler_wrapper_pins_approved_clang_and_checks_in_replacement_env(
     assert outcome.provider == "compiler-wrapper"
     command, kwargs = calls[0]
     assert command[0] == str(clazy)
-    assert command[-4:] == ["-Wall", "-Wextra", "-fsyntax-only", str(source)]
+    assert command[-5:] == ["-w", "-Wall", "-Wextra", "-fsyntax-only", str(source)]
     assert kwargs["replace_env"] is True
     environment = kwargs["env"]
     assert isinstance(environment, dict)

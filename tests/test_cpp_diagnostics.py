@@ -584,6 +584,19 @@ def test_clazy_diagnostics_accept_errors_and_owned_note_rules(tmp_path: Path) ->
     assert result.diagnostics[1].target.target_name == "ClazyNote:clazy-qstring-ref"
 
 
+def test_clazy_diagnostics_reject_mixed_compiler_warning_atomically(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/widget.cpp:3:2: warning: use QStringLiteral [-Wclazy-qstring-arg]\n"
+        "src/widget.cpp:4:2: warning: unused parameter [-Wunused-parameter]\n"
+    )
+
+    result = parse_clazy_diagnostics(root, root, output, "")
+
+    assert result.error
+    assert result.diagnostics == ()
+
+
 @pytest.mark.parametrize(
     "output",
     [
