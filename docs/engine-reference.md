@@ -499,6 +499,9 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   - $15 < \text{CC} \le 25$: 주의 및 리팩토링 권고 (WARN)
   - $\text{CC} > 25$: 과도한 복잡도 (FAIL)
 - **Max Nesting Depth**: 블록 중첩 깊이 $\ge 4$ 초과 시 경고
+- **Python 함수 경계**: 중첩 함수·클래스·lambda의 실행 본문은 바깥 함수 점수에서 제외하고,
+  중첩된 named function/method는 자체 위치 target으로 별도 측정합니다. decorator·default·annotation·
+  class base/keyword처럼 정의 시점에 평가되는 표현식은 바깥 함수 metric에 유지합니다.
 - **코드 스니펫**: 고복잡도 함수의 실제 원본 소스 코드를 추출하여 HTML 리포트에 즉시 표시
 
 ### 2.6 🛡️ `sanitize` (메모리 안전성 및 리소스 누수 진단)
@@ -557,6 +560,8 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 
 ### 2.11 🧠 `cognitive` (인지 복잡도)
 - **동작**: SonarQube S3776 스타일 인지 복잡도를 함수별로 계산. `if/for/while/except/with`는 중첩 깊이에 따라 가중치를 더하고, `and/or` 체인, `comprehension`, `assert` 등을 반영.
+- **함수 경계**: Python `complexity`와 같은 per-function AST 경계를 사용해 중첩 scope 본문과
+  바깥 loop state가 현재 함수로 새지 않게 하며, 정의 시점 표현식은 보존합니다.
 - **설정**: `[engines.cognitive] enabled=false, mode="pass_warn", warn=30, fail=60, warn_nesting=4`
   (기본 비활성 — 옵트인). `pass_warn` 모드이므로 개별 함수가 `fail` 임계값을 넘어도 엔진
   전체 상태는 `WARN`까지만 올라가고 `FAIL`로 게이트를 막지 않습니다.
