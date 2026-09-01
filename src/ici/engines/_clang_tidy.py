@@ -176,7 +176,11 @@ def _command(
     explicit_config: Path | None,
     discovered_config: Path | None,
 ) -> list[str]:
-    command = [str(executable), "--quiet", "--use-color=false"]
+    # Keep clang-tidy's suppression accounting enabled.  ``--quiet`` removes
+    # the "Suppressed N warnings" trailer while retaining "N warnings
+    # generated", which makes a clean translation unit indistinguishable from
+    # silently discarded diagnostics.
+    command = [str(executable), "--use-color=false"]
     configured_checks = _checks(config)
     selected_config = explicit_config or discovered_config
     if selected_config is not None:

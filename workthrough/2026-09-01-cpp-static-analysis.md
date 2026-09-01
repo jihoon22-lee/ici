@@ -107,10 +107,11 @@ The exact local gate evidence for the current branch head is:
 - The reproducible packaged artifact SHA-256 is
   `6b5cbd0f182dc406f707fe87a354000f151edc93fc10789edfbad3b82b7d5785` (2,180,378 bytes).
 
-The current environment still has no local `clang-tidy` binary, so no real local clang-tidy
-translation-unit run is claimed. Adapter policy, command construction, parser behavior, and
-unavailable-tool handling are covered by the focused tests; in `auto` mode the missing binary is
-an explicit warning, while `required` mode fails closed.
+The base environment has no installed `clang-tidy` binary. For the CI failure reproduction,
+LLVM 18 packages were extracted without installation into a temporary directory and executed with
+their own bounded library paths. Both required actual-process GCC/clang-tidy E2Es then passed; in
+ordinary `auto` mode a missing binary remains an explicit warning, while `required` mode fails
+closed.
 
 ## Next Steps
 
@@ -120,6 +121,15 @@ self-dogfood gate because the new orchestration entry point had cyclomatic compl
 11, the repository maximum is back to the warning-only 25, and local self-verification exits 0.
 That failed run is diagnostic evidence, not completion; the amended head still requires a fully
 green rerun and fresh report publication.
+
+The second PR run (`33466820095`) passed unit tests, isolated smoke, self-dogfood, and both Qt
+builds, then correctly blocked merge when the viewer's eight clean translation units produced an
+LLVM 18 summary that the parser could not account for. Reproduction showed that `--quiet` emitted
+only `15780 warnings generated.`, while normal mode also emitted the matching
+`Suppressed 15780 warnings (15780 in non-user code).` trailer and the extended LLVM 18
+system-header hint. The adapter now preserves suppression accounting, the parser accepts that
+bounded hint variant, and an unaccounted quiet summary remains a fail-closed parse error. Another
+remote rerun is still required before merge.
 
 - Open the feature PR and obtain its CI/Merge Gate, sticky-comment, and independent Pages
   evidence; then verify the exact-main CI/Pages result after merge.

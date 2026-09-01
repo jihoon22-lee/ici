@@ -25,6 +25,12 @@
   inputs and the clang-tidy/diagnostic helper implementations.
 
 ### Verification
+- **Clang-tidy suppression-accounting regression**: PR #115's second real-tool run exposed that
+  `--quiet` retains the generated-warning count while hiding the corresponding suppressed-warning
+  count, so clean Qt translation units failed the atomic parser. The adapter now keeps suppression
+  accounting enabled, recognizes LLVM 18's bounded extended system-header hint, and still rejects
+  an unaccounted generated-warning summary. An unprivileged LLVM 18 reproduction parsed the actual
+  15,780-generated/15,780-suppressed clean output, and both required real-tool E2Es passed locally.
 - **I4-1 self-dogfood maintainability**: the clang-tidy orchestration preflight, source validation,
   capability selection, unit selection, and bounded execution were split into focused helpers after
   the first PR run exposed cyclomatic complexity 30. The adapter entry point is now complexity 10

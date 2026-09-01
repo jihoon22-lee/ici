@@ -36,7 +36,8 @@ _CLANG_TIDY_SUPPRESSED_RE = re.compile(
     r"^Suppressed (?P<count>[1-9]\d*) warnings? \([^\r\n]{1,512}\)\.$"
 )
 _CLANG_TIDY_HEADER_HINT_RE = re.compile(
-    r"^Use -header-filter=.* to display errors from all non-system headers\.$"
+    r"^Use -header-filter=.{1,512} to display errors from all non-system headers\."
+    r"(?: Use -system-headers to display errors from system headers as well\.)?$"
 )
 _TEXT_FIXIT_RE = re.compile(
     r'^fix-it:"(?P<file>(?:[^"\\]|\\.)*)":\{'

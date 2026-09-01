@@ -211,7 +211,6 @@ def test_approved_executable_receives_exact_sanitized_context_command(
     command, kwargs = calls[0]
     assert command == [
         str(tidy),
-        "--quiet",
         "--use-color=false",
         "--config={}",
         "--checks=-*,bugprone-*,performance-*",
@@ -253,8 +252,8 @@ def test_explicit_config_and_checks_take_precedence_in_command(tmp_path: Path) -
     assert outcome.mode == "exact"
     assert len(calls) == 1
     command = calls[0][0]
-    assert command[3] == f"--config-file={explicit.resolve(strict=True)}"
-    assert command[4] == "--checks=-*,readability-*"
+    assert command[2] == f"--config-file={explicit.resolve(strict=True)}"
+    assert command[3] == "--checks=-*,readability-*"
     assert "--config={}" not in command
     assert f"--config-file={discovered}" not in command
     assert "--checks=-*,bugprone-*,clang-analyzer-*,performance-*" not in command
@@ -271,7 +270,7 @@ def test_discovered_clang_tidy_config_suppresses_default_checks(tmp_path: Path) 
     assert len(calls) == 1
     command = calls[0][0]
     assert not any(argument.startswith("--checks=") for argument in command)
-    assert command[3] == f"--config-file={(root / '.clang-tidy').resolve(strict=True)}"
+    assert command[2] == f"--config-file={(root / '.clang-tidy').resolve(strict=True)}"
     assert "--config={}" not in command
 
 

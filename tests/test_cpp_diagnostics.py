@@ -237,6 +237,32 @@ def test_clang_tidy_warning_summary_accepts_parsed_and_suppressed_warnings(
     assert result.diagnostics[0].tool_rule_id == "modernize-use-nullptr"
 
 
+def test_clang_tidy_clean_system_warnings_are_fully_accounted(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    output = (
+        "15780 warnings generated.\n"
+        "Suppressed 15780 warnings (15780 in non-user code).\n"
+        "Use -header-filter=.* to display errors from all non-system headers. "
+        "Use -system-headers to display errors from system headers as well.\n"
+    )
+
+    result = parse_clang_tidy_diagnostics(root, root, "", output)
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error == ""
+    assert result.diagnostics == ()
+
+
+def test_clang_tidy_quiet_summary_without_accounting_is_not_clean(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+
+    result = parse_clang_tidy_diagnostics(root, root, "", "15780 warnings generated.\n")
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error
+    assert result.diagnostics == ()
+
+
 def test_clang_tidy_note_inherits_parent_rule_and_family(tmp_path: Path) -> None:
     root = tmp_path / "project"
     output = (

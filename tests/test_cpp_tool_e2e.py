@@ -281,7 +281,6 @@ def test_run_clang_tidy_uses_real_binary_and_exact_context(
     assert evidence.error == ""
     assert evidence.argv == [
         evidence.path,
-        "--quiet",
         "--use-color=false",
         "--config={}",
         "--checks=-*,modernize-use-nullptr",
