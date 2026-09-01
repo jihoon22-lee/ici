@@ -70,6 +70,9 @@ class ToolCapability:
         object.__setattr__(self, "details", MappingProxyType(dict(self.details)))
 
 
+_RegisteredSelection = tuple[str, tuple[str, ...], ToolCapability]
+
+
 DEFAULT_TOOL_PROBES: tuple[ToolProbe, ...] = (
     ToolProbe("gcc", ("gcc",), ("-dumpfullversion", "-dumpversion"), "target", ("-dumpmachine",)),
     ToolProbe("g++", ("g++",), ("-dumpfullversion", "-dumpversion"), "target", ("-dumpmachine",)),
@@ -438,29 +441,32 @@ def _resolve_probe_prefix(probe: ToolProbe, cwd: Path | None) -> tuple[str, list
     return alias, [resolved]
 
 
-def collect_registered_capability(
-    probe: ToolProbe,
-    cwd: Path | None = None,
-    timeout: float = PROBE_TIMEOUT_SECONDS,
-    max_output_chars: int = PROBE_OUTPUT_LIMIT,
-) -> tuple[ToolCapability, tuple[ProcessResult, ...]]:
-    """Run a registry probe and its optional metadata probe without a shell."""
+def _iter_registered_candidate_resolutions(
+    probe: ToolProbe, cwd: Path | None
+) -> Iterator[tuple[str, list[str]]]:
+    """Yield one or more executable prefixes for a registered probe."""
 
     if probe.python_module:
         resolution = _resolve_probe_prefix(probe, cwd)
-        candidate_resolutions: Iterable[tuple[str, list[str]]] = (
-            (resolution,) if resolution is not None else ()
-        )
-    else:
-        candidate_resolutions = (
-            (alias, [resolved]) for alias, resolved in _iter_candidate_resolutions(probe.candidates)
-        )
+        if resolution is not None:
+            yield resolution
+        return
+    for alias, resolved in _iter_candidate_resolutions(probe.candidates):
+        yield alias, [resolved]
 
-    selected: tuple[str, list[str], ToolCapability] | None = None
-    first_failure: tuple[str, list[str], ToolCapability] | None = None
+
+def _probe_registered_candidates(
+    probe: ToolProbe,
+    cwd: Path | None,
+    timeout: float,
+    max_output_chars: int,
+) -> tuple[_RegisteredSelection | None, ToolCapability | None, tuple[ProcessResult, ...]]:
+    """Probe candidates, selecting the first complete result and retaining fallbacks."""
+
+    first_failure: _RegisteredSelection | None = None
     first_unresolved: ToolCapability | None = None
     results: list[ProcessResult] = []
-    for alias, command_prefix in candidate_resolutions:
+    for alias, command_prefix in _iter_registered_candidate_resolutions(probe, cwd):
         candidate, version_result = collect_tool_capability(
             probe.name,
             [*command_prefix, *probe.version_args],
@@ -473,69 +479,112 @@ def collect_registered_capability(
                 first_unresolved = candidate
             continue
         results.append(version_result)
+        selection = (alias, tuple(command_prefix), candidate)
         if candidate.available and candidate.complete:
-            selected = (alias, command_prefix, candidate)
-            break
+            return selection, None, tuple(results)
         if first_failure is None:
-            first_failure = (alias, command_prefix, candidate)
+            first_failure = selection
 
-    if selected is None:
-        if first_failure is None:
-            if first_unresolved is not None:
-                return first_unresolved, tuple(results)
-            return ToolCapability(name=probe.name, path="", available=False, complete=False), ()
-        alias, command_prefix, base = first_failure
-    else:
-        alias, command_prefix, base = selected
+    if first_failure is not None:
+        return first_failure, None, tuple(results)
+    return None, first_unresolved, tuple(results)
 
+
+def _registered_details(probe: ToolProbe, alias: str, base: ToolCapability) -> dict[str, str]:
     details = dict(probe.static_details)
     details.update(base.details)
     details["resolved_alias"] = alias
     if probe.python_module:
         details["provider"] = "python-module"
         details["module"] = probe.python_module
+    return details
+
+
+def _validate_registered_detail(
+    probe: ToolProbe, result: ProcessResult, details: dict[str, str]
+) -> str:
+    if result.timed_out or result.truncated or result.returncode != 0:
+        return _failure_reason(result, "metadata probe")
+    if probe.detail_kind == "target":
+        target = next(iter(_combined_lines(result.stdout, result.stderr)), "")
+        if _is_target_triple(target):
+            details["target_triple"] = redact_text(target[:200])
+        else:
+            return "metadata probe returned an invalid target triple"
+    elif probe.detail_kind == "qmake-query":
+        query_details = parse_qmake_query(result.stdout or result.stderr)
+        details.update(query_details)
+        if "qt_version" not in query_details:
+            return "metadata probe did not report QT_VERSION"
+    elif probe.detail_kind == "cmake-capabilities":
+        capability_details = parse_cmake_capabilities(result.stdout or result.stderr)
+        details.update(capability_details)
+        if not capability_details:
+            return "metadata probe returned malformed CMake capabilities"
+    return ""
+
+
+def _run_registered_detail_probe(
+    probe: ToolProbe,
+    command_prefix: tuple[str, ...],
+    cwd: Path | None,
+    timeout: float,
+    max_output_chars: int,
+    details: dict[str, str],
+) -> tuple[ProcessResult, ProbeEvidence, str]:
+    detail_argv = [*command_prefix, *probe.detail_args]
+    result = _run_probe(detail_argv, cwd, timeout, max_output_chars)
+    evidence = ProbeEvidence(
+        purpose=probe.detail_kind or "metadata",
+        argv=_safe_argv(detail_argv),
+        returncode=result.returncode,
+        timed_out=result.timed_out,
+        truncated=result.truncated,
+    )
+    error = _validate_registered_detail(probe, result, details)
+    return result, evidence, error
+
+
+def collect_registered_capability(
+    probe: ToolProbe,
+    cwd: Path | None = None,
+    timeout: float = PROBE_TIMEOUT_SECONDS,
+    max_output_chars: int = PROBE_OUTPUT_LIMIT,
+) -> tuple[ToolCapability, tuple[ProcessResult, ...]]:
+    """Run a registry probe and its optional metadata probe without a shell."""
+
+    selected, unresolved, results = _probe_registered_candidates(
+        probe, cwd, timeout, max_output_chars
+    )
+    if selected is None:
+        if unresolved is not None:
+            return unresolved, results
+        return ToolCapability(name=probe.name, path="", available=False, complete=False), ()
+    alias, command_prefix, base = selected
+
+    details = _registered_details(probe, alias, base)
     complete = base.complete
     error = base.error
     timed_out = base.timed_out
     truncated = base.truncated
+    results_list = list(results)
+    detail_evidence: ProbeEvidence | None = None
 
     if base.available and probe.detail_args:
-        detail_argv = [*command_prefix, *probe.detail_args]
-        detail_result = _run_probe(detail_argv, cwd, timeout, max_output_chars)
-        results.append(detail_result)
-        detail_evidence = ProbeEvidence(
-            purpose=probe.detail_kind or "metadata",
-            argv=_safe_argv(detail_argv),
-            returncode=detail_result.returncode,
-            timed_out=detail_result.timed_out,
-            truncated=detail_result.truncated,
+        detail_result, detail_evidence, detail_error = _run_registered_detail_probe(
+            probe,
+            command_prefix,
+            cwd,
+            timeout,
+            max_output_chars,
+            details,
         )
+        results_list.append(detail_result)
         timed_out = timed_out or detail_result.timed_out
         truncated = truncated or detail_result.truncated
-        if detail_result.timed_out or detail_result.truncated or detail_result.returncode != 0:
+        if detail_error:
             complete = False
-            error = _failure_reason(detail_result, "metadata probe")
-        elif probe.detail_kind == "target":
-            target = next(iter(_combined_lines(detail_result.stdout, detail_result.stderr)), "")
-            if _is_target_triple(target):
-                details["target_triple"] = redact_text(target[:200])
-            else:
-                complete = False
-                error = "metadata probe returned an invalid target triple"
-        elif probe.detail_kind == "qmake-query":
-            query_details = parse_qmake_query(detail_result.stdout or detail_result.stderr)
-            details.update(query_details)
-            if "qt_version" not in query_details:
-                complete = False
-                error = "metadata probe did not report QT_VERSION"
-        elif probe.detail_kind == "cmake-capabilities":
-            capability_details = parse_cmake_capabilities(
-                detail_result.stdout or detail_result.stderr
-            )
-            details.update(capability_details)
-            if not capability_details:
-                complete = False
-                error = "metadata probe returned malformed CMake capabilities"
+            error = detail_error
 
     return (
         ToolCapability(
@@ -552,10 +601,8 @@ def collect_registered_capability(
             timed_out=timed_out,
             truncated=truncated,
             evidence=(
-                (*base.evidence, detail_evidence)
-                if base.available and probe.detail_args
-                else base.evidence
+                (*base.evidence, detail_evidence) if detail_evidence is not None else base.evidence
             ),
         ),
-        tuple(results),
+        tuple(results_list),
     )

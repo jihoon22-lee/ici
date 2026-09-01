@@ -745,6 +745,45 @@ def test_clazy_probe_falls_back_to_wrapper_after_standalone_version_failure(
     assert capability.probe_argv == (wrapper, "--version")
 
 
+def test_collect_registered_capability_preserves_first_failed_candidate(monkeypatch):
+    first = "/opt/tools/first"
+    second = "/opt/tools/second"
+    probe = toolchain.ToolProbe("fallback", ("first", "second"), ("--version",))
+    process_results = [
+        _result(returncode=17, stderr="first candidate failed"),
+        _result(stdout="unparseable release output\n"),
+    ]
+    available = {
+        "first": first,
+        first: first,
+        "second": second,
+        second: second,
+    }
+
+    def fake_which(command):
+        return available.get(command)
+
+    def fake_run(argv, *, cwd, timeout, max_output_chars):
+        del cwd, timeout, max_output_chars
+        return process_results.pop(0)
+
+    monkeypatch.setattr(toolchain.shutil, "which", fake_which)
+    monkeypatch.setattr(toolchain, "run_process", fake_run)
+
+    capability, results = toolchain.collect_registered_capability(probe)
+
+    assert results == (
+        _result(returncode=17, stderr="first candidate failed"),
+        _result(stdout="unparseable release output\n"),
+    )
+    assert capability.path == first
+    assert capability.available is False
+    assert capability.complete is False
+    assert capability.error == "probe exited 17"
+    assert capability.details["resolved_alias"] == "first"
+    assert capability.probe_argv == (first, "--version")
+
+
 def test_clazy_version_parser_does_not_fall_back_to_llvm_version():
     assert toolchain.parse_tool_version("clazy", "Ubuntu LLVM version 21.1.8\n") == ("", ())
 
