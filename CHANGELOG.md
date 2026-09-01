@@ -75,8 +75,17 @@
   5,691,036/345,176 bytes with SHA-256
   `048421ca94e83250da1a4411900a4748b239d2da211b84dd5e4fb9f1ab057af4` and
   `6f0e2e10e4a075651c6b893341ab6d2e70798513766c7420179529fe798ed758`; both passed the same
-  HTTP/content/title/Zero-CDN audit. I4-1's ici checkpoint is complete; toy-projects B4 and the
-  release boundary remain pending before I4-2.
+  HTTP/content/title/Zero-CDN audit. I4-1's ici checkpoint and the v0.9.0 release boundary are
+  complete; toy-projects B4 remains pending, so the overall I4 checkpoint and I4-2 remain pending.
+- **v0.9.0 release evidence**: the annotated `v0.9.0` tag resolves to exact `main` commit
+  `061950834a135a30bd5d4e974ec1dfce33df68a9`. [Release workflow 33472668716](https://github.com/jihoon22-lee/ici/actions/runs/33472668716)
+  passed `Validate Release Provenance` and `Build & Publish Release`; the published release is
+  non-draft and non-prerelease. Exactly nine assets were independently downloaded and each matched
+  the GitHub API size and SHA-256 digest: `ici.pyz`, `ici.pyz.sha256`, `ici-self-report.html`,
+  `ici-self-report.json`, `viewer-report.html`, `viewer-report.json`, `icirv`, `icirv-gui`, and
+  `icirv-gui.README.txt`. The package reports `ici 0.9.0`, its checksum manifest passes, both JSON
+  reports parse as `ici.result/v3`, both HTML reports have the expected titles and zero external
+  asset references, and the downloaded static `icirv` parses a report (`ldd`: `not a dynamic executable`).
 - **I3 same-basename active-header local compiler edge**: the existing
   `test_trace_uses_compiler_selected_same_basename_without_ambiguity` keeps its mocked
   `run_process` regression coverage. The new
@@ -164,8 +173,8 @@
   `8ba214c4c019db341a44719191a721de8c2aa144743f1b2484d60b7021556dd9`.
 - These PR #113 and exact-main records close the I3 checkpoint after the local actual-process
   same-basename edge and the v0.8.0 public projection BuildScope comparison (16 units, 6 targets,
-  14 field groups, zero mismatch). The current release/version remains v0.8.0; no version bump is
-  made, and the next planned stage is I4.
+  14 field groups, zero mismatch). At that historical snapshot, the release/version remained
+  v0.8.0; no version bump was made, and the next planned stage was I4.
 - Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110) from head `3ce564a` was merged as
   `6b44f32869944a0941cab63eb94489b92c543a58`. [CI run 33448847117](https://github.com/jihoon22-lee/ici/actions/runs/33448847117)
   completed every required check and `Merge Gate`; its sticky comment retained one marker and two

@@ -826,8 +826,9 @@ HTTP 200 `text/html`, exact titles, and zero external references:
   SHA-256 `8ba214c4c019db341a44719191a721de8c2aa144743f1b2484d60b7021556dd9`.
 
 This closes the I3 checkpoint end-to-end: the feature conditions were complete locally, and the
-new same-basename actual-process test now has PR and exact-main workflow/Pages evidence. The
-current release/version remains v0.8.0; no version bump is made. The next planned stage is I4.
+new same-basename actual-process test now has PR and exact-main workflow/Pages evidence. At that
+historical snapshot, the release/version remained v0.8.0; no version bump was made, and the next
+planned stage was I4.
 
 ---
 
@@ -896,8 +897,25 @@ Exact-main Pages도 같은 HTTP/content/title/Zero-CDN 계약을 통과했다.
 - [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/): 345,176 bytes,
   SHA-256 `6f0e2e10e4a075651c6b893341ab6d2e70798513766c7420179529fe798ed758`
 
-따라서 I4-1의 ici 저장소 local/remote checkpoint는 완료됐다. toy-projects B4 validation과
-I4 release boundary는 아직 pending이며, I4-2는 두 downstream 조건을 확인한 뒤 시작한다.
+따라서 I4-1의 ici 저장소 local/remote checkpoint는 완료됐다. toy-projects B4 validation은
+아직 pending이지만, I4 release boundary는 아래 v0.9.0 release로 완료됐다. I4 전체와 I4-2는
+B4 validation evidence를 확인한 뒤 진행한다.
+
+### I4 release boundary — v0.9.0
+
+annotated `v0.9.0` tag는 exact `main` commit
+`061950834a135a30bd5d4e974ec1dfce33df68a9`을 가리킨다. [release workflow 33472668716](https://github.com/jihoon22-lee/ici/actions/runs/33472668716)의
+`Validate Release Provenance`와 `Build & Publish Release`가 모두 SUCCESS였고, release는
+non-draft·non-prerelease로 게시됐다. 독립 다운로드 audit에서 정확히 다음 9개 asset을 확인했고,
+모든 파일이 GitHub API의 size/SHA-256 digest와 일치했다:
+`ici.pyz`, `ici.pyz.sha256`, `ici-self-report.html`, `ici-self-report.json`, `viewer-report.html`,
+`viewer-report.json`, `icirv`, `icirv-gui`, `icirv-gui.README.txt`.
+
+`ici.pyz`는 `ici 0.9.0`을 보고하고 checksum manifest가 통과했다. 두 JSON은 `ici.result/v3`로
+파싱됐고, 두 HTML은 정확한 report title과 Zero-CDN(external asset reference 0)을 만족했다.
+`icirv`는 static ELF이며 `ldd`가 `not a dynamic executable`을 반환했고, release viewer JSON을
+실제로 파싱했다. 따라서 release 조건은 완료됐지만, toy-projects B4가 남아 있어 I4 전체
+체크포인트와 I4-2는 아직 미완료다.
 
 ### I4-2. Qt clazy와 생성 단계
 
