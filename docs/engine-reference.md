@@ -362,7 +362,10 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   `CORRECTNESS`, 나머지 rule은 `MAINTAINABILITY` finding으로 매핑합니다. adapter와 parser는
   최대 2,048 units·unit당 120초·전체 600초 및 1,000,000자 output bound를 적용하고,
   malformed output·context/coverage/replay/process 오류·timeout/truncation·budget 초과는
-  `ERROR`/`NOT_RUN`으로 fail-closed합니다.
+  `ERROR`/`NOT_RUN`으로 fail-closed합니다. Ubuntu Noble clazy 1.11의 legacy raw-source/caret/
+  replacement context는 located diagnostic의 project source line과 exact match일 때만
+  bounded replacement preview 하나까지 허용하며, source mismatch나 forged/extra preview 등
+  malformed context는 partial finding 없이 atomic하게 거부합니다.
 - Qt generated-code stage는 source scope의 `.ui`, `.qrc`, `Q_OBJECT`를 bounded하게 찾고,
   exact database에서 `ui_<stem>.h`의 bounded indirect translation-unit include linkage,
   `qrc_<stem>.cpp` generated unit,

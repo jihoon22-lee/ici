@@ -23,6 +23,10 @@
   categories respectively; source edits are never applied automatically. Mixed ordinary compiler
   warnings are bounded and validated atomically, then excluded because the compiler lint replay
   reports them separately; they no longer turn otherwise valid clazy output into a parser error.
+  Ubuntu Noble's clazy 1.11 legacy raw-source/caret/replacement context is accepted only when the
+  raw source line exactly matches the project source line at the located diagnostic and is followed
+  by at most one bounded replacement preview. Source mismatches, forged or extra previews, and all
+  other malformed legacy context are rejected atomically without retaining partial findings.
 - Qt generated-code verification inspects bounded source-scope `.ui`, `.qrc`, and `Q_OBJECT` inputs
   and proves `ui_<stem>.h`, `qrc_<stem>.cpp`, and moc forms (`moc_<stem>.cpp`, `<stem>.moc`, or
   `mocs_compilation.cpp`) through exact compilation-context linkage. Qt 5/Qt 6 major evidence is
@@ -42,7 +46,7 @@
 - v0.9.1의 릴리스 provenance·9개 artifact 독립 감사와 toy-projects BuildScope B4 교차 검증
   (PR #36, released ici v0.9.1, PR/main CI·sticky comment·Zero-CDN Pages)을 인수인계와
   실행 계획에 기록했다. I4-1 release boundary와 B4 precondition은 닫혔으며, I4-2 코드 구현과
-  `1507 passed, 4 skipped` full local gate도 완료됐다. I4-2 원격 CI/PR, toy-projects BuildScope B5 교차 검증,
+  `1511 passed, 4 skipped` full local gate도 완료됐다. I4-2 원격 CI/PR, toy-projects BuildScope B5 교차 검증,
   다음 release evidence와 I4-3/I4-4는 아직 pending이며 I4 전체 checkpoint도 미완료다.
 
 ## [0.9.1] - 2026-09-01

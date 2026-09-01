@@ -480,7 +480,10 @@ maintainability category로 매핑한다. 함께 출력된 일반 compiler warni
 원자 검증한 뒤 compiler lint의 중복 finding을 만들지 않도록 제외한다. parser가 일부만 이해한
 output을 성공으로 남기지 않기
 때문에 malformed output, replay/context mismatch, process failure는 engine `ERROR`와
-`NOT_RUN` evidence로 격하된다.
+`NOT_RUN` evidence로 격하된다. Ubuntu Noble clazy 1.11의 legacy raw-source/caret/replacement
+context는 located diagnostic의 project source line과 raw text가 exact match일 때만, 뒤이어
+bounded replacement preview를 최대 하나 허용한다. source mismatch, forged/extra preview와
+그 밖의 malformed legacy context는 partial finding을 남기지 않고 atomic하게 거부한다.
 
 Qt generated-code verifier는 project source scope에서 `.ui`, `.qrc`, 그리고 주석·문자열을
 제거한 C++에서 실제 `Q_OBJECT` 선언을 bounded하게 발견한다. immutable compilation context의

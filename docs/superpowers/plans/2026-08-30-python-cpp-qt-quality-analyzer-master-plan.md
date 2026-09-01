@@ -993,7 +993,7 @@ hosted HTML의 HTTP 200·exact title·Zero-CDN을 확인했고, B4 PR은 toy mai
       output을 사용하며, CI/release workflow는 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`로 실제
       tool E2E를 요구한다. 실제 BuildScope B5 fixture 검증은 다음 delivery 단계다.
 
-I4-2 full local run은 `1507 passed, 4 skipped`였고, skip은 현재 환경의
+I4-2 full local run은 `1511 passed, 4 skipped`였고, skip은 현재 환경의
 `clang-tidy`·`clazy`·`clang++` 미설치에 따른 것이다. 원격 CI가 이 branch를 검증하고
 BuildScope B5가 released ici version으로 `.ui`/
 `.qrc`와 Q_OBJECT 경로를 교차 검증한 뒤, release provenance를 새 버전에 고정해야 이 단계의
@@ -1318,7 +1318,7 @@ BuildScope target-by-target define·standard·include 대조는 v0.8.0 public pr
 CI·Pages evidence까지 완료됐다.
 
 I4-2의 현재 local 구현은 위 여섯 조건과 exact-context security/budget 계약을 모두 포함한다.
-full local run은 `1507 passed, 4 skipped`였으며, skip은 현재 환경에서
+full local run은 `1511 passed, 4 skipped`였으며, skip은 현재 환경에서
 `clang-tidy`·`clazy`·`clang++`가 설치되지 않았기 때문이다. 다음 인수인계자는 이 브랜치의 PR CI에서
 `clazy` 실제 process E2E와
 Qt5/Qt6 build matrix를 다시 확인하고, toy-projects BuildScope B5가 `.ui`/`.qrc`/Q_OBJECT

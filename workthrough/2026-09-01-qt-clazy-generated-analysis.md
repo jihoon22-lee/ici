@@ -58,6 +58,10 @@ canonical clazy capability와 두 provider 경로, strict diagnostic normalizati
 - clazy와 함께 출력되는 일반 compiler warning/note는 동일한 path·line·message·rule bound로
   원자 검증한 뒤 제외한다. compiler lint replay가 이미 이를 별도로 보고하므로 중복 finding과
   clazy parser 오판을 모두 피하며, compiler error나 unknown text는 계속 거부한다.
+- Ubuntu Noble의 clazy 1.11이 내보내는 legacy raw-source/caret/replacement context는 located
+  diagnostic의 project-contained 실제 source line과 raw text가 exact match할 때만 허용한다.
+  caret 뒤의 replacement preview는 8,192자 이하 한 줄로 제한하며, source mismatch,
+  forged/duplicate/oversized preview와 unknown text는 partial finding 없이 atomic reject한다.
 - normalized diagnostic은 `family = "clazy"`, stable `clazy-<check>` rule ID와
   project-relative `InspectionTarget`을 갖는다.
 - `src/ici/engines/lint.py`는 clazy diagnostics를 별도 family counter와 ToolEvidence로
@@ -117,11 +121,11 @@ CI/release의 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` 경로에서는 같은 조�
 되어야 한다. 이 문서에 기록한 결과는 local evidence이며, PR CI·sticky HTML comment·Pages,
 toy-projects BuildScope B5 및 새 release evidence를 의미하지 않는다.
 
-리뷰 보강 후 최종 mandatory local gate:
+리뷰 및 clazy 1.11 legacy context 보강 후 최종 mandatory local gate:
 
 ```text
 uv run --python 3.10 pytest
-1507 passed, 4 skipped in 52.53s
+1511 passed, 4 skipped in 54.44s
 uvx ruff check .
 All checks passed!
 uvx ruff format --check .
@@ -133,6 +137,25 @@ all smoke tests passed; HTML Zero-CDN verification passed (verify exit 1)
 ```
 
 네 skip은 로컬 `clang-tidy` 2건, `clazy` 1건, `clang++` 1건의 actual-process 조건이다.
+`dist/ici.pyz`는 2,198,115 bytes이며 SHA-256은
+`1161adea86caa9c4b22813dd9337b08588745587e2a8415fe4b1252c45fcce84`다.
+
+Ubuntu Noble clazy 1.11의 실제 출력 형태는 다음과 같으며, parser regression은 실제 source
+line 검증 뒤에만 legacy context state를 전진시킨다.
+
+```text
+src/datetime.cpp:2:37: warning: Use QDateTime::currentDateTimeUtc() instead [-Wclazy-qdatetime-utc]
+QDateTime inefficientUtc() { return QDateTime::currentDateTime().toUTC(); }
+                                    ^        ~~~~~
+                                             ::currentDateTimeUtc()
+1 warning generated.
+```
+
+세 차례의 원격 회귀는 순서대로 E2E inventory의 `clang++` probe 누락(run 33495534003), clazy
+1.11에서 불안정한 `qcolor-from-literal` fixture(run 33495778941), 위 legacy context parser
+호환성(run 33496761909)을 드러냈다. 각 원인은 capability fixture, cross-version
+`qdatetime-utc` fixture, project-source exact-match parser로 분리해 보강했다. 현재 변경을 포함한
+다음 PR run과 sticky comment/Pages 감사는 아직 pending이다.
 
 ## Next Steps
 

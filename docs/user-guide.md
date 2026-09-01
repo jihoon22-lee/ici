@@ -452,7 +452,11 @@ clazy text parser는 `-Wclazy-<check>`와 함께 섞인 일반 compiler warning�
 또는 알 수 없는 출력은 부분 성공과 합치지 않고 atomic `ERROR`로 닫습니다. located clazy
 diagnostic과 parent rule을 따르는 note는
 project-relative 파일·1-indexed line/column target으로 보존하고 `family = "clazy"`와
-`clazy-<check>` rule ID를 기록합니다. finding category는 다음과 같이 안정적으로 매핑됩니다.
+`clazy-<check>` rule ID를 기록합니다. Ubuntu Noble clazy 1.11의 legacy raw-source/caret/
+replacement context도 located diagnostic의 project source line과 raw text가 exact match일 때만
+허용하고, 뒤따르는 bounded replacement preview는 하나로 제한합니다. source mismatch,
+forged/extra preview와 그 밖의 malformed legacy context는 partial finding 없이 atomic `ERROR`로
+처리합니다. finding category는 다음과 같이 안정적으로 매핑됩니다.
 
 | clazy rule 의미 | v3 category |
 |---|---|
@@ -476,7 +480,7 @@ PASS를 기록합니다. major가 불명확하거나 replay가 없거나 generat
 남깁니다. 이 검증은 CMake AUTOMOC/AUTOUIC/
 AUTORCC와 qmake의 direct generated unit 양쪽을 다룹니다.
 
-현재 full local contract run은 `1507 passed, 4 skipped`였고, skip은 로컬 환경의
+현재 full local contract run은 `1511 passed, 4 skipped`였고, skip은 로컬 환경의
 `clang-tidy`·`clazy`·`clang++` 미설치에 따른 것입니다. CI와 release workflow는 clazy를 설치하고
 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`을 설정해 실제 clazy/Qt process E2E가 조용히 skip되지
 않게 합니다. I4-2 원격 PR/main CI, toy-projects BuildScope B5 교차 검증과 release artifact
