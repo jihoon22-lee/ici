@@ -50,6 +50,8 @@ _CLANG_TIDY_CONVERSION_NOTE_RE = re.compile(
 _CLANG_TIDY_PARAMETER_RANGE_NOTE_RE = re.compile(
     r"^the (?:first|last) parameter in the range is '.{1,256}'$"
 )
+_CLAZY_RULE_RE = re.compile(r"^-Wclazy-(?P<name>[a-z0-9](?:[a-z0-9_.-]{0,254}[a-z0-9])?)$")
+_CLAZY_RULE_MARKER_RE = re.compile(r"\[-W[^\]\r\n]*")
 _TEXT_FIXIT_RE = re.compile(
     r'^fix-it:"(?P<file>(?:[^"\\]|\\.)*)":\{'
     r"(?P<start_line>[1-9]\d*):(?P<start_column>[1-9]\d*)-"
@@ -442,6 +444,119 @@ def parse_compiler_diagnostics(
     if text.lstrip().startswith(("[", "{")):
         return _parse_json(root, cwd, text)
     return _parse_text(root, cwd, text)
+
+
+def _normalize_clazy_rule(rule: str) -> str:
+    match = _CLAZY_RULE_RE.fullmatch(rule)
+    if match is None:
+        raise ValueError("clazy diagnostic rule is unsupported or unsafe")
+    return f"clazy-{match.group('name')}"
+
+
+def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticParseResult:
+    """Parse only the bounded, warning-option form emitted by clazy."""
+
+    output: list[CppDiagnostic] = []
+    ancillary_output = False
+    inherited_rule = ""
+    try:
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            match = _TEXT_DIAGNOSTIC_RE.fullmatch(line)
+            if match:
+                if len(output) >= MAX_DIAGNOSTICS:
+                    raise ValueError("diagnostic count exceeds the bounded limit")
+                kind, status = _kind(match.group("kind"))
+                file_path = _diagnostic_path(project_root, cwd, match.group("file"))
+                line_number = _text_number(match.group("line"), "diagnostic line")
+                column = _text_number(match.group("column"), "diagnostic column", optional=True)
+                assert line_number is not None
+                message = _bounded_text(match.group("message"), "diagnostic message")
+                # A malformed or repeated compiler option must not be hidden in
+                # a note's prose after the parser has selected the last bracket.
+                if _CLAZY_RULE_MARKER_RE.search(message):
+                    raise ValueError("clazy diagnostic contains a conflicting rule marker")
+
+                rule = match.group("rule") or ""
+                if rule:
+                    normalized_rule = _normalize_clazy_rule(rule)
+                    inherited_rule = normalized_rule
+                    target_prefix = "ClazyNote" if kind == "note" else "Clazy"
+                elif kind == "note" and inherited_rule:
+                    normalized_rule = inherited_rule
+                    target_prefix = "ClazyNote"
+                else:
+                    raise ValueError("clazy diagnostic has no check identifier")
+
+                output.append(
+                    CppDiagnostic(
+                        target=InspectionTarget(
+                            file_path=file_path,
+                            start_line=line_number,
+                            start_column=column,
+                            target_name=f"{target_prefix}:{normalized_rule}",
+                            status=status,
+                            message=f"{kind}: {message}",
+                        ),
+                        tool_rule_id=normalized_rule,
+                        family="clazy",
+                    )
+                )
+                continue
+
+            if _TEXT_FIXIT_RE.fullmatch(line):
+                raise ValueError("clazy fix-it output is not supported")
+            if line.startswith("In file included from") or line.startswith("from "):
+                ancillary_output = True
+                continue
+            if output and _TEXT_CONTEXT_RE.fullmatch(line):
+                continue
+            if (
+                _TEXT_CONTEXT_HEADER_RE.fullmatch(line)
+                or _TEXT_REQUIRED_FROM_RE.fullmatch(line)
+                or _TEXT_TRAILER_RE.fullmatch(line)
+            ):
+                ancillary_output = True
+                continue
+            raise ValueError(f"unrecognized clazy output line: {line!r}")
+
+        if ancillary_output and not output:
+            raise ValueError("clazy context output has no located diagnostic")
+        return DiagnosticParseResult(tuple(output), "clazy-text")
+    except (OverflowError, ValueError) as err:
+        return DiagnosticParseResult(format_name="clazy-text", error=str(err))
+
+
+def parse_clazy_diagnostics(
+    project_root: Path,
+    cwd: Path,
+    stdout: str,
+    stderr: str,
+) -> DiagnosticParseResult:
+    """Parse clazy diagnostics atomically with a strict rule allowlist shape."""
+
+    if not isinstance(stdout, str) or not isinstance(stderr, str):
+        return DiagnosticParseResult(
+            format_name="clazy-text", error="clazy diagnostic output must be text"
+        )
+    if len(stdout) + len(stderr) > MAX_DIAGNOSTIC_OUTPUT_CHARS:
+        return DiagnosticParseResult(
+            format_name="clazy-text",
+            error="clazy diagnostic output exceeds the bounded size",
+        )
+    if "\x00" in stdout or "\x00" in stderr:
+        return DiagnosticParseResult(
+            format_name="clazy-text",
+            error="clazy diagnostic output contains a null byte",
+        )
+    non_empty = [stream.strip() for stream in (stdout, stderr) if stream.strip()]
+    if not non_empty:
+        return DiagnosticParseResult(format_name="clazy-text")
+    root = project_root.resolve(strict=False)
+    return _parse_clazy_text(root, cwd, "\n".join(non_empty))
 
 
 def _bounded_empty_note(match: re.Match[str]) -> bool:

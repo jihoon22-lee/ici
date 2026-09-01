@@ -9,7 +9,11 @@ import pytest
 
 from ici.core.models import EngineStatus
 from ici.engines._cpp_diagnostics import (
+    MAX_DIAGNOSTIC_OUTPUT_CHARS,
+    MAX_DIAGNOSTICS,
+    MAX_MESSAGE_CHARS,
     parse_clang_tidy_diagnostics,
+    parse_clazy_diagnostics,
     parse_compiler_diagnostics,
 )
 
@@ -525,6 +529,178 @@ def test_clang_tidy_header_filter_hint_alone_is_not_clean(tmp_path: Path) -> Non
     output = "Use -header-filter=.* to display errors from all non-system headers.\n"
 
     result = parse_clang_tidy_diagnostics(root, root, "", output)
+
+    assert result.error
+    assert result.diagnostics == ()
+
+
+def test_clazy_diagnostics_normalize_rule_and_inherit_located_notes(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    output = "src/widget.cpp:7:11: warning: use QStringLiteral [ -Wclazy-qstring-arg ]\n"
+    # The real spelling has no spaces inside the option brackets.  Keep the
+    # malformed sample above separate so a parser regression cannot silently
+    # accept a lookalike annotation.
+    malformed = parse_clazy_diagnostics(root, root, output, "")
+    assert malformed.error
+    assert malformed.diagnostics == ()
+
+    stdout = "src/widget.cpp:7:11: warning: use QStringLiteral [-Wclazy-qstring-arg]\n"
+    stderr = "src/widget.cpp:8:5: note: instantiated from this call\n"
+    result = parse_clazy_diagnostics(root, root, stdout, stderr)
+
+    assert result.format_name == "clazy-text"
+    assert result.error == ""
+    assert len(result.diagnostics) == 2
+    primary, note = result.diagnostics
+    assert primary.tool_rule_id == "clazy-qstring-arg"
+    assert primary.family == "clazy"
+    assert primary.target.target_name == "Clazy:clazy-qstring-arg"
+    assert primary.target.status is EngineStatus.WARN
+    assert note.tool_rule_id == primary.tool_rule_id
+    assert note.family == primary.family
+    assert note.target.target_name == "ClazyNote:clazy-qstring-arg"
+    assert note.target.file_path == "src/widget.cpp"
+    assert note.target.start_line == 8
+    assert note.target.start_column == 5
+
+
+def test_clazy_diagnostics_accept_errors_and_owned_note_rules(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/widget.cpp:3:2: error: QObject macro is missing [-Wclazy-missing-qobject-macro]\n"
+        "src/widget.cpp:4:2: note: another check [-Wclazy-qstring-ref]\n"
+        "src/widget.cpp:5:2: note: follows the preceding check\n"
+    )
+
+    result = parse_clazy_diagnostics(root, root, output, "")
+
+    assert result.error == ""
+    assert [item.tool_rule_id for item in result.diagnostics] == [
+        "clazy-missing-qobject-macro",
+        "clazy-qstring-ref",
+        "clazy-qstring-ref",
+    ]
+    assert result.diagnostics[0].target.status is EngineStatus.FAIL
+    assert result.diagnostics[1].target.target_name == "ClazyNote:clazy-qstring-ref"
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "src/widget.cpp:3:2: warning: no option\n",
+        "src/widget.cpp:3:2: error: foreign option [-Wsign-compare]\n",
+        "src/widget.cpp:3:2: warning: unsafe option [-Wclazy-qstring/ref]\n",
+        "src/widget.cpp:3:2: warning: conflicting options [-Wclazy-a,-Wclazy-b]\n",
+        "src/widget.cpp:3:2: note: note before a parent\n",
+    ],
+    ids=["unruled-primary", "foreign-rule", "unsafe-rule", "conflicting-rules", "orphan-note"],
+)
+def test_clazy_diagnostics_reject_unknown_or_unsafe_output_atomically(
+    tmp_path: Path, output: str
+) -> None:
+    root = tmp_path / "project"
+    prefix = (
+        ""
+        if output.startswith("src/widget.cpp:3:2: note:")
+        else ("src/widget.cpp:1:1: warning: valid [-Wclazy-qstring-arg]\n")
+    )
+
+    result = parse_clazy_diagnostics(
+        root,
+        root,
+        prefix + output,
+        "",
+    )
+
+    assert result.format_name == "clazy-text"
+    assert result.error
+    assert result.diagnostics == ()
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "  3 | QObject object;\n      | ^\n",
+        "In file included from src/widget.cpp:1:\n",
+        "src/widget.cpp: In function 'paint':\n",
+        "1 warning generated.\n",
+    ],
+    ids=["source-context", "include-context", "diagnostic-header", "summary-trailer"],
+)
+def test_clazy_diagnostics_allow_only_structural_context_and_require_a_finding(
+    tmp_path: Path, output: str
+) -> None:
+    root = tmp_path / "project"
+    valid = "src/widget.cpp:3:2: warning: valid [-Wclazy-qstring-arg]\n"
+
+    with_context = parse_clazy_diagnostics(root, root, valid + output, "")
+    assert with_context.error == ""
+    assert len(with_context.diagnostics) == 1
+
+    context_only = parse_clazy_diagnostics(root, root, output, "")
+    assert context_only.error
+    assert context_only.diagnostics == ()
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        "\x00trailing",
+        "x" * (MAX_DIAGNOSTIC_OUTPUT_CHARS + 1),
+    ],
+    ids=["nul", "oversized-output"],
+)
+def test_clazy_diagnostics_reject_nul_and_output_overflow_atomically(
+    tmp_path: Path, suffix: str
+) -> None:
+    root = tmp_path / "project"
+    output = "src/widget.cpp:3:2: warning: valid [-Wclazy-qstring-arg]\n"
+
+    result = parse_clazy_diagnostics(root, root, output + suffix, "")
+
+    assert result.error
+    assert result.diagnostics == ()
+
+
+def test_clazy_diagnostics_reject_count_message_and_line_overflow_atomically(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    many = "".join(
+        f"src/widget.cpp:{index}:2: warning: valid [-Wclazy-qstring-arg]\n"
+        for index in range(1, MAX_DIAGNOSTICS + 2)
+    )
+    count_result = parse_clazy_diagnostics(root, root, many, "")
+    assert count_result.error
+    assert count_result.diagnostics == ()
+
+    long_message = (
+        "src/widget.cpp:3:2: warning: "
+        + ("x" * (MAX_MESSAGE_CHARS + 1))
+        + " [-Wclazy-qstring-arg]\n"
+    )
+    message_result = parse_clazy_diagnostics(root, root, long_message, "")
+    assert message_result.error
+    assert message_result.diagnostics == ()
+
+    line_result = parse_clazy_diagnostics(
+        root,
+        root,
+        "src/widget.cpp:2147483648:2: warning: valid [-Wclazy-qstring-arg]\n",
+        "",
+    )
+    assert line_result.error
+    assert line_result.diagnostics == ()
+
+
+def test_clazy_diagnostics_do_not_export_fixits(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/widget.cpp:3:2: warning: use QStringLiteral [-Wclazy-qstring-arg]\n"
+        'fix-it:"src/widget.cpp":{3:2-3:3}:"QStringLiteral"\n'
+    )
+
+    result = parse_clazy_diagnostics(root, root, output, "")
 
     assert result.error
     assert result.diagnostics == ()
