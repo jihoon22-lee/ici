@@ -163,6 +163,30 @@ all smoke tests passed; packaged self-verification and HTML Zero-CDN passed (ver
 `dist/ici.pyz`는 2,198,997 bytes이며 SHA-256은
 `4eea5105ab503cd602575e8ad4b7195a060d87523252ddf135b025b68444a356`다.
 
+v0.10.0 version metadata를 반영한 release-candidate branch에서도 전체 gate를 다시
+실행했다.
+
+```text
+uv run --python 3.10 pytest
+1513 passed, 4 skipped in 70.55s
+uvx ruff check .
+All checks passed!
+uvx ruff format --check .
+158 files already formatted
+uv run --python 3.10 mypy src
+Success: no issues found in 93 source files
+./scripts/build-pyz.sh
+10 distributions: py3-none-any; certifi absent; public schemas packaged
+./scripts/smoke.sh
+all smoke tests passed; ici 0.10.0; Python 3.10 direct execution;
+packaged self-verification and HTML Zero-CDN passed (verify exit 0)
+```
+
+release-candidate `dist/ici.pyz`는 2,198,972 bytes이며 SHA-256은
+`3087d1d538e0c5438bff2760fa086d4ef3d50e804431c937c7bbf15730c68ce6`다. 이 로컬
+산출물은 release workflow의 trusted artifact가 아니며, tag 이후 GitHub release에서 다시
+빌드·검증되는 자산과 구분한다.
+
 Ubuntu Noble clazy 1.11의 실제 출력 형태는 다음과 같으며, parser regression은 실제 source
 line 검증 뒤에만 legacy context state를 전진시킨다.
 
