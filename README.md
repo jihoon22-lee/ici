@@ -160,6 +160,19 @@ QObject/connect/signal/slot은 `CORRECTNESS`, 그 밖의 clazy check는 `MAINTAI
 clazy adapter는 최대 2,048 translation units, unit당 120초, 전체 600초 global budget과
 1,000,000자 output bound를 공유합니다. context/coverage/replay/parse/process 오류와 timeout,
 truncation, budget 초과는 heuristic으로 숨기지 않고 `ERROR`/`NOT_RUN`으로 fail-closed합니다.
+특히 clazy process가 nonzero로 끝나면 warning처럼 보이는 출력이어도 원자적인 `ERROR`로
+닫고, partial diagnostics를 남기지 않습니다. 이때 `ToolEvidence.error`에는 bounded exit code,
+`fatal`/`error`/`warning`/`note`/`remark` kind count와 processing/output flag만 남으며 raw
+tool prose와 host path는 복사하지 않습니다.
+
+Ubuntu의 legacy raw-source/caret/replacement context를 검증할 때는 exact sanitized compiler
+argv에서 얻은 approved include root만 source read 권한으로 추가합니다. project 밖 root도
+검증은 가능하지만 결과 위치는 항상 `[external]`로 export됩니다. 각 root는 bounded directory
+목록(최대 512개)이어야 하며, source line은 `O_NOFOLLOW` regular-file descriptor로 열고
+read 전후 device/inode/size/mtime identity를 확인합니다. source-context 누적 바이트는
+1,000,000 byte, 한 줄은 8,192 characters를 넘을 수 없고, root/regular-file/identity 불일치,
+symlink, source mismatch, forged/extra preview 또는 budget 초과는 partial finding 없이
+atomic `ERROR`가 됩니다.
 
 같은 lint 단계에서 source scope의 `.ui`, `.qrc`, `Q_OBJECT` 선언을 찾아 exact compilation
 database와 연결합니다. `ui_<stem>.h`가 bounded project include traversal로 exact translation
@@ -171,7 +184,11 @@ compiler replay가 있어야 `PASS`이며, 식별 불가·replay 미실행·중�
 I4-2 기준 PR/main은 actual tool을 포함한 1,517개 테스트와 Qt matrix를 통과했고 v0.10.0의
 release provenance·9개 artifact 감사도 완료됐습니다. v0.10.1 후보의 hardened local gate는
 1,526 passed / 4 environment skips이며, CI/release workflow는 실제 clazy·Qt fixture가 skip되지
-않도록 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`과 clazy 설치를 강제합니다. 남은 delivery evidence는
+않도록 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`과 clazy 설치를 강제합니다. 이번 evidence correction의
+Python 3.10 local run은 focused C++/CTest 회귀 161 passed, full suite 1,538 passed / 4 skipped다.
+정확한 Ubuntu 24.04 + Qt 5 + clazy 1.11 run은 full lint 12/12, approved external macro note
+1건, unsuppressed CTest 8의 9 cases와 LeakSanitizer diagnostic을 기록했다. suppression을 넣어
+확인한 작업은 toy repository에 한정되며 ici policy로 해석하지 않는다. 남은 delivery evidence는
 v0.10.1 exact-main/tag/release와 released-v0.10.1을 사용하는 BuildScope B5 최종 검증입니다.
 
 ## 💻 빠른 설치 및 사용법

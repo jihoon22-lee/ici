@@ -465,6 +465,20 @@ replacement context도 located diagnostic의 project source line과 raw text가 
 forged/extra preview와 그 밖의 malformed legacy context는 partial finding 없이 atomic `ERROR`로
 처리합니다. finding category는 다음과 같이 안정적으로 매핑됩니다.
 
+legacy context가 Qt와 같은 외부 header를 가리킬 수 있으므로 parser는 exact sanitized compiler
+argv의 명시적 include root만 추가 read authority로 사용합니다(최대 512개 bounded directory와
+project root). 외부 root의 source preview도 허용되지만 diagnostic target과 report 위치는
+항상 `[external]`로 투영됩니다. source 파일은 `O_NOFOLLOW` regular-file descriptor로 열고
+열기 전후의 device/inode/size/mtime identity를 비교합니다. 읽는 동안 바뀌거나 symlink·비정규
+파일이면 거부하며, source-context 누적은 1,000,000 bytes, 한 줄은 8,192 characters 이하일
+때만 검증합니다. root 부재, identity mismatch, exact source mismatch, forged/extra preview와
+bound 초과는 finding 일부를 남기지 않고 fail-closed합니다.
+
+clazy process 자체가 nonzero로 종료되면 출력에 warning만 있어도 parser를 시도하지 않고
+atomic engine `ERROR`를 발행합니다. `ToolEvidence.error`와 오류 target에는 bounded exit code와
+`fatal`/`error`/`warning`/`note`/`remark` kind count, processing/output 여부만 남기며 raw
+stdout/stderr prose와 host path를 복사하지 않습니다.
+
 | clazy rule 의미 | v3 category |
 |---|---|
 | `lifetime`, `ownership`, `parent-less`, `qobject-cast` | `RESOURCE` |
@@ -752,6 +766,15 @@ shadow를 덮어쓰거나, 리포터가 결과를 표시하는 과정에서 분�
 경로는 `make check`가 실행한 명령을 기준으로 세어 같은 단위를 씁니다. QtTest 바이너리가
 낸 함수 단위 결과는 버리지 않고, 실패했을 때 그 바이너리의 실패 메시지에 함수 이름과
 사유로 붙습니다.
+
+CMake/CTest 경로가 지원하는 경우 CTest는 `--output-junit`으로 shadow 디렉터리의 JUnit 파일을
+만들고, adapter는 이를 최대 1,000,000 bytes까지 stable regular-file/no-follow 방식으로 읽습니다.
+파일이 없거나 malformed·oversized·읽는 중 변경이면 bounded CTest stdout 결과로 폴백하므로
+무제한 XML을 읽지 않습니다. JUnit의 `failure`/`error`와 `system-out`/`system-err`에서
+LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker를 찾으면 각각
+`LeakSanitizer diagnostic`, `AddressSanitizer diagnostic`, `UndefinedBehaviorSanitizer diagnostic`
+으로 분류하고, raw stack·source path는 결과 메시지에 넣지 않습니다. 일반 실패 메시지와
+test name도 512 characters로 제한됩니다.
 
 qmake 경로에서 `-xunitxml`을 신뢰하지 않는 이유가 있습니다. 그 인자는 **QtTest
 바이너리에만** 의미가 있고, 실제 프로젝트는 QtTest와 자체 `main()` 테스트를 섞어

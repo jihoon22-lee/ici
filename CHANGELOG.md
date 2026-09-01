@@ -17,6 +17,33 @@
   E2E, candidate cross-repo/toy 검증, PR/main CI·Pages, docs/CHANGELOG, I4-3/I4-4와 real
   toy-projects/quality-zoo 검증이 끝날 때까지 미룬다. 하나의 PR이 하나의 릴리스를 의미하지 않는다.
 
+### C++ tool evidence corrections
+
+- **Approved external source previews**: exact, sanitized compiler include roots may be used to
+  validate Ubuntu clazy 1.11 Qt macro source previews, but external locations are always exported
+  as `[external]`. The reader follows only approved roots, opens regular files with no-follow
+  semantics, checks the file identity before and after the read, and enforces a 1,000,000-byte
+  (1 MB) aggregate source-context budget plus an 8,192-character line bound. A root, file, identity, preview,
+  or budget violation fails closed without retaining a partial diagnostic.
+- **Atomic clazy process failures**: every nonzero clazy exit remains an atomic engine `ERROR`;
+  no parsed diagnostics or partial clean result is retained. The bounded evidence summary reports
+  only exit status, per-kind counts (`fatal`, `error`, `warning`, `note`, `remark`), processing/output
+  flags, and a bounded source label; raw tool prose and host paths are not copied into the error.
+- **Bounded CTest JUnit evidence**: CTest JUnit files are read through a stable regular-file,
+  no-follow boundary up to 1,000,000 bytes (1 MB), with the bounded CTest stdout parser as fallback. LeakSanitizer,
+  AddressSanitizer, and UndefinedBehaviorSanitizer markers are classified as bounded diagnostic
+  messages, while raw stacks and source paths are omitted.
+
+### Verification boundary
+
+- Local Python 3.10 verification passed the focused C++/CTest regression set (`161 passed`) and the
+  full suite (`1,538 passed, 4 skipped`).
+- Exact Ubuntu 24.04 + Qt 5 + clazy 1.11 evidence recorded 12/12 full-lint units, an accepted
+  targeted external macro note rendered at `[external]`, and an unsuppressed CTest 8 run with
+  9 cases reporting a LeakSanitizer diagnostic.
+- Any suppression work belongs to the toy repository experiment only; it is not an ici policy or
+  an ici suppression contract.
+
 ## [0.10.1] - 2026-09-01
 
 ### Fixed
