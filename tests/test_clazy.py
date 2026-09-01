@@ -474,3 +474,230 @@ def test_lint_engine_maps_qt_diagnostics_and_exact_clazy_evidence(
     assert findings["clazy-range-loop-detach"].category is FindingCategory.MAINTAINABILITY
     assert all(finding.tool_name == "clazy" for finding in findings.values())
     assert all(finding.tool_version == "clazy version 1.17" for finding in findings.values())
+
+
+def _stdlib_unit(
+    root: Path,
+    compiler: Path,
+    source: Path,
+    *,
+    selector: str = "-m64",
+) -> CompilationUnit:
+    return CompilationUnit(
+        source=source.relative_to(root).as_posix(),
+        directory="build",
+        argv=(
+            str(compiler),
+            "-std=c++20",
+            selector,
+            "-I",
+            "../include",
+            "-c",
+            str(source),
+            "-o",
+            f"{source.stem}.o",
+        ),
+        output=f"build/{source.stem}.o",
+        compiler=compiler.name,
+        language="c++",
+        standard="c++20",
+        configuration=canonical_digest({"source": source.name, "selector": selector}),
+    )
+
+
+def _stdlib_clazy_context(
+    tmp_path: Path,
+) -> tuple[Path, list[Path], AnalysisContext]:
+    root = tmp_path / "project"
+    (root / "build").mkdir(parents=True)
+    (root / "include").mkdir()
+    (root / "src").mkdir()
+    gxx = _executable(tmp_path / "tools" / "g++")
+    clazy = _executable(tmp_path / "tools" / "clazy-standalone")
+    sources = [root / "src" / "first.cpp", root / "src" / "second.cpp"]
+    for source in sources:
+        source.write_text("int value() { return 0; }\n", encoding="utf-8")
+    units = tuple(_stdlib_unit(root, gxx, source) for source in sources)
+    relative_sources = tuple(source.relative_to(root).as_posix() for source in sources)
+    context = AnalysisContext(
+        project=ProjectModel(
+            root=root,
+            name="stdlib-projection-project",
+            version="1.0.0",
+            project_type="cpp",
+            source_dirs=("src",),
+            cpp_sources=relative_sources,
+            compilable_cpp_sources=relative_sources,
+        ),
+        capabilities=CapabilityInventory(
+            capabilities={
+                "g++": ToolCapability(
+                    name="g++",
+                    path=str(gxx),
+                    available=True,
+                    version="g++ (GCC) 14.2.0",
+                    version_tuple=(14, 2, 0),
+                    complete=True,
+                    returncode=0,
+                ),
+                "clazy": ToolCapability(
+                    name="clazy",
+                    path=str(clazy),
+                    available=True,
+                    version="clazy version 1.17",
+                    version_tuple=(1, 17),
+                    complete=True,
+                    returncode=0,
+                    details={"resolved_alias": "clazy-standalone"},
+                ),
+            }
+        ),
+        identity=AnalysisIdentity(
+            source_commit="unavailable",
+            config_digest=canonical_digest({"test": "stdlib-projection"}),
+            toolchain_digest=canonical_digest({"test": "fake-toolchain"}),
+        ),
+        compilation=CompilationContext(
+            units=units,
+            database_path="build/compile_commands.json",
+            database_digest=canonical_digest({"units": relative_sources}),
+            origin="cmake",
+            generator="Ninja",
+            unity_build=False,
+        ),
+    )
+    return root, sources, context
+
+
+def _stdlib_search_output(paths: tuple[Path, ...]) -> str:
+    body = "\n".join(f" {path}" for path in paths)
+    return (
+        "Using built-in specs.\n"
+        "COLLECT_GCC=g++\n"
+        "#include <...> search starts here:\n"
+        f"{body}\n"
+        "End of search list.\n"
+    )
+
+
+def test_standalone_receives_gcc_projection_and_reuses_identical_selector_probe(
+    tmp_path: Path,
+) -> None:
+    root, sources, context = _stdlib_clazy_context(tmp_path)
+    cxx_paths = (
+        tmp_path / "toolchain" / "cxx",
+        tmp_path / "toolchain" / "cxx-target",
+    )
+    common = tmp_path / "toolchain" / "common"
+    for path in (*cxx_paths, common):
+        path.mkdir(parents=True)
+    outputs = {
+        "c++": _stdlib_search_output((common, *cxx_paths)),
+        "c": _stdlib_search_output((common,)),
+    }
+    calls: list[tuple[list[str], dict[str, object]]] = []
+
+    def runner(command: list[str], **kwargs: object) -> ProcessResult:
+        calls.append((command, kwargs))
+        executable = Path(command[0]).name
+        if executable == "g++":
+            language = command[command.index("-x") + 1]
+            return ProcessResult(0, "", outputs[language], 0.01)
+        assert executable == "clazy-standalone"
+        return ProcessResult(0, "", "", 0.01)
+
+    outcome = run_clazy(
+        root,
+        sources,
+        context,
+        {"clazy": "required"},
+        runner=runner,
+    )
+
+    assert outcome.mode == "exact"
+    assert outcome.sources_checked == 2
+    probe_indices = [
+        index for index, (command, _kwargs) in enumerate(calls) if Path(command[0]).name == "g++"
+    ]
+    clazy_indices = [
+        index
+        for index, (command, _kwargs) in enumerate(calls)
+        if Path(command[0]).name == "clazy-standalone"
+    ]
+    assert len(probe_indices) == 2, "identical compiler/selector probes must be cached"
+    assert len(clazy_indices) == 2
+    assert max(probe_indices) < min(clazy_indices)
+    assert all("-m64" in calls[index][0] for index in probe_indices)
+    expected_projection = (
+        "-nostdinc++",
+        "-isystem",
+        str(cxx_paths[0].resolve()),
+        "-isystem",
+        str(cxx_paths[1].resolve()),
+    )
+    for index in clazy_indices:
+        command = calls[index][0]
+        tail = tuple(command[command.index("--") + 1 :])
+        cursor = 0
+        for expected in expected_projection:
+            cursor = tail.index(expected, cursor) + 1
+
+
+def test_standalone_keeps_non_gcc_compile_units_unchanged(tmp_path: Path) -> None:
+    root, source, context, _clazy, _compiler = _context(tmp_path)
+
+    outcome, calls = _run(root, source, context, {"clazy": "required"})
+
+    assert outcome.mode == "exact"
+    assert len(calls) == 1
+    command = calls[0][0]
+    assert "-nostdinc++" not in command
+    assert "-isystem" not in command
+    assert command[command.index("--") + 1 :] == [
+        "-std=c++20",
+        "-D",
+        "QT_CORE_LIB",
+        "-I",
+        "../include",
+        "-I",
+        "/usr/include/qt6",
+        "-fPIC",
+        "-fdiagnostics-color=never",
+    ]
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        ProcessResult(3, "", "probe failed", 0.01),
+        ProcessResult(124, "", "", 0.01, timed_out=True),
+        ProcessResult(0, "partial", "", 0.01, truncated=True),
+    ],
+    ids=["nonzero", "timeout", "truncated"],
+)
+def test_clazy_does_not_run_after_atomic_gcc_projection_failure(
+    tmp_path: Path,
+    result: ProcessResult,
+) -> None:
+    root, sources, context = _stdlib_clazy_context(tmp_path)
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        assert Path(command[0]).name == "g++"
+        return result
+
+    outcome = run_clazy(
+        root,
+        sources,
+        context,
+        {"clazy": "required"},
+        runner=runner,
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.diagnostics == []
+    assert outcome.sources_checked == 0
+    assert calls
+    assert all(Path(command[0]).name != "clazy-standalone" for command in calls)
+    assert any(target.status is EngineStatus.ERROR for target in outcome.targets)
