@@ -14,6 +14,7 @@ import pytest
 from ici.core.capabilities import CapabilityInventory, collect_capability_inventory
 from ici.core.compile_db import load_compilation_context
 from ici.core.context import AnalysisContext, create_analysis_context, discover_project_model
+from ici.core.models import ToolEvidence
 from ici.core.runner import ProcessResult, run_process
 from ici.core.toolchain import ToolProbe
 from ici.engines._clang_tidy import run_clang_tidy
@@ -244,6 +245,28 @@ def _assert_sanitized_context(command: list[str], source: Path) -> None:
     )
 
 
+def _assert_gcc_projection_and_analyzer_evidence(
+    evidence: list[ToolEvidence],
+    inventory: CapabilityInventory,
+    analyzer_name: str,
+) -> ToolEvidence:
+    probes = [item for item in evidence if item.name == "g++ stdlib include search"]
+    assert len(probes) == 2
+    assert [item.argv[item.argv.index("-x") + 1] for item in probes] == ["c++", "c"]
+    expected_gxx = Path(inventory.capabilities["g++"].path).resolve(strict=True)
+    for probe in probes:
+        assert Path(probe.path).resolve(strict=True) == expected_gxx
+        assert probe.returncode == 0
+        assert probe.timed_out is False
+        assert probe.truncated is False
+        assert probe.error == ""
+
+    analyzers = [item for item in evidence if item.name == analyzer_name]
+    assert len(analyzers) == 1
+    assert len(evidence) == 3
+    return analyzers[0]
+
+
 def test_run_cpp_lint_uses_real_gcc_json_diagnostics(
     real_cpp_project: Path,
 ) -> None:
@@ -317,9 +340,11 @@ def test_run_clang_tidy_uses_real_binary_and_exact_context(
     assert diagnostic.target.target_name == "ClangTidy:modernize-use-nullptr"
     assert diagnostic.target.status.value == "WARN"
 
-    assert len(outcome.evidence) == 1
-    evidence = outcome.evidence[0]
-    assert evidence.name == "clang-tidy"
+    evidence = _assert_gcc_projection_and_analyzer_evidence(
+        outcome.evidence,
+        inventory,
+        "clang-tidy",
+    )
     assert Path(evidence.path).resolve(strict=True) == Path(
         inventory.capabilities["clang-tidy"].path
     ).resolve(strict=True)
@@ -428,9 +453,11 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
     assert diagnostic.target.start_line == 2
     assert diagnostic.target.target_name == "Clazy:clazy-qdatetime-utc"
     assert diagnostic.target.status.value == "WARN"
-    assert len(outcome.evidence) == 1
-    evidence = outcome.evidence[0]
-    assert evidence.name == "clazy"
+    evidence = _assert_gcc_projection_and_analyzer_evidence(
+        outcome.evidence,
+        inventory,
+        "clazy",
+    )
     assert evidence.returncode == 0
     assert evidence.error == ""
     assert evidence.argv is not None
@@ -501,8 +528,11 @@ def test_run_clang_tidy_accepts_real_llvm_swappable_parameter_notes(
     assert conversion.target.file_path == primary.target.file_path
     assert conversion.family == primary.family
 
-    assert len(outcome.evidence) == 1
-    evidence = outcome.evidence[0]
+    evidence = _assert_gcc_projection_and_analyzer_evidence(
+        outcome.evidence,
+        inventory,
+        "clang-tidy",
+    )
     assert evidence.returncode == 0
     assert evidence.error == ""
     assert evidence.argv is not None
