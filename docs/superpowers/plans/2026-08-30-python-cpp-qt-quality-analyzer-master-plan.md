@@ -495,8 +495,8 @@ dependency 0건이었고 관측 bytes는 각각 4,496,996와 344,663이었다. �
 - [x] coverage/sanitize/release variant 중 analyzer에 사용할 canonical DB 정책을 정한다.
 - [x] generated source가 build 전 필요한 경우 generation 단계 후 DB를 소비한다.
 - [x] I3-2 구현을 PR로 병합하고 CI Merge Gate와 ici/viewer Pages HTML evidence를 독립적으로 확인한다.
-- [ ] buildscope와 viewer에서 실제 target별 명령을 대조한다. viewer는 candidate ici로
-  production 5/5·20 configurations·0 issues를 확인했지만, buildscope 실물 대조는 pending이다.
+- [x] BuildScope와 viewer에서 실제 target별 명령을 대조한다. v0.8.0 public projection은
+  define·standard·include를 포함한 16 unit·6 target·14 field group에서 mismatch 0을 확인했다.
 
 **I3-2 구현 및 로컬 증거 (2026-08-31):** CMake root project에 기존 DB가 없을 때만
 `build/ici-cmake-build` Release shadow를 사용하고, configure에
@@ -530,8 +530,9 @@ TEM 4.89, tests 7, compile_db 5/5 production units, 20 configurations, 0 issues)
 독립적으로 확인한 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/)와
 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/)는 모두 HTTP/2 200,
 `text/html`, title present, 외부 dependency 0건이었고 관측 bytes는 각각 4,574,483와 337,918이었다.
-BuildScope target-by-target 대조는 pending이며 I3-3은 완료됐다. I3-4와 I3 전체는 아직
-완료되지 않았다.
+v0.8.0 public projection으로 BuildScope target-by-target 대조가 완료됐고 I3-3은 완료됐다.
+I3-4는 기존 구현·원격 evidence에 더해 아래 local actual-process edge revalidation을
+기록하며, 새 테스트의 PR/CI/Pages evidence가 남아 I3 전체는 아직 pending이다.
 
 ### I3-3. qmake compile capture
 
@@ -617,9 +618,10 @@ Independent [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/103/)와
 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/103/)는 각각 HTTP 200,
 `text/html`, title `ici Verification Report — ici`와 `ici Verification Report — viewer`,
 관측 bytes 4,716,032와 337,918, 외부 `script`/`link`/`img` reference 0건을 확인했다.
-I3-3은 완전히 완료됐다. I3-2 BuildScope target-by-target 대조는 아직 pending이다. I3-4는
-구현·focused local test·PR·CI·Pages evidence까지 완료했지만 BuildScope 대조가 남아 있으며,
-I3 전체도 완료되지 않았다.
+I3-3은 완전히 완료됐다. I3-2 BuildScope target-by-target 대조는 v0.8.0 public projection의
+16 unit·6 target·14 field group mismatch 0으로 완료됐다. I3-4 구현·기존 focused local
+test·PR·CI·Pages evidence도 완료됐고, 새 same-basename actual-process edge는 local에서
+완료됐다. 새 테스트의 PR/CI/Pages evidence만 남아 I3 전체는 아직 pending이다.
 
 ### I3-4. lint와 include graph 이관
 
@@ -666,7 +668,9 @@ Skip 2, TEM 4.89, tests 7/7)를 기록했다. 독립 [ici Pages](https://jihoon2
 와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/105/)는 모두 HTTP/2 200,
 `text/html;charset=utf-8`, 올바른 title, 외부 `script`/`link`/`img`/`iframe`/`import` 0건을
 확인했으며 관측 bytes는 각각 5,458,757와 344,868이다. BuildScope target-by-target 대조는
-여전히 pending이고, 따라서 I3 전체도 pending이다.
+v0.8.0 public projection에서 16 unit·6 target·14 field group mismatch 0으로 완료됐다.
+새 same-basename actual-process test는 local에서 완료됐고, 그 테스트의 PR/CI/Pages evidence가
+남아 있어 I3 전체는 아직 pending이다.
 
 현재 cache key는 `ici.analysis-cache-key/v3`이며, I3-4 engine class가
 `CACHE_IMPLEMENTATION_MODULES`로 명시한 helper/dependency module source digest의 sorted
@@ -674,9 +678,22 @@ unique 목록을 implementation identity에 포함한다. C++ lint/cycle 선언�
 `ici.core._cpp_replay_policy`와 `ici.engines._cpp_include_trace`가 포함된다. I3-1~I3-3 절의 당시 v2 compilation
 context/cache 문구는 과거 evidence이므로 변경하지 않는다.
 
-**남은 완료 조건:** same-basename active-header edge가 compiler 선택과 일치하는지 실제 compiler
-trace로 확정하는 작업만 pending이다. I3-4 PR·CI·Pages evidence와 공개 release artifact의
-target-by-target 대조는 완료됐고, 이 edge 대조가 남아 있으므로 I3 전체는 아직 pending이다.
+**Same-basename active-header local revalidation (2026-09-01):** 기존
+`test_trace_uses_compiler_selected_same_basename_without_ambiguity`는 `run_process`를
+monkeypatch한 mock runner로 parser/선택 회귀만 검증한다. 새
+`test_real_compiler_trace_selects_the_first_same_basename_header`는
+`build_compiler_cpp_graph(..., runner=run_process)`를 호출하고, capability probe를 통과한
+실제 `g++`/`clang++`를 parameterize해 preprocessor trace를 확인한다. 현재 로컬 Python 3.10
+focused 실행은 mock 케이스와 실제 `g++` 케이스가 통과해 `2 passed`였고, 설치되지 않은
+`clang++` 케이스는 `1 skipped`였다. 실제 trace에서 첫 번째 `-I`의 `common.hpp`가 선택되고
+두 번째 동일 basename header는 edge에서 제외됨을 확인했다. 이 결과는 이 브랜치의 local
+process evidence에 한정하며, 이 테스트에 대한 새 PR/CI/Pages evidence는 주장하지 않는다.
+
+**현재 I3 상태:** BuildScope에서 target-by-target으로 define·standard·include를 실제 build와
+대조한 public projection은 16 unit·6 target·14 field group에서 mismatch 0으로 완료됐다.
+same-basename active-header edge의 실제 compiler trace 대조도 위 local revalidation으로
+완료됐다. 남은 것은 이 새 actual-process test의 PR/CI/Pages remote evidence이며, 그 전까지
+I3 전체는 pending이다.
 
 ### I3-5. 독립 compilation-context export와 교차 구현 대조
 
@@ -691,7 +708,9 @@ target-by-target 대조는 완료됐고, 이 edge 대조가 남아 있으므로 
   containment read, duplicate-key rejection, protected output, symlink-safe atomic replacement를
   테스트한다.
 - [x] 공개 schema가 wheel/ZipApp package data에 실제 포함되는지 build gate로 강제한다.
-- [ ] I3-4의 same-basename active-header edge가 실제 compiler trace와 일치함을 확정한다.
+- [x] I3-4의 same-basename active-header edge가 실제 compiler trace와 일치함을 local
+  actual-process test로 확정한다. 기존 mock runner 회귀와 새 실제 `run_process` 경로를
+  구분하며, compiler 미설치 시 parameterized case는 skip한다.
 
 이 export는 전체 `verify` report의 대체물이 아니라 BuildScope와 같은 독립 consumer가 동일
 compile database 해석을 안전하게 비교하기 위한 최소 계약이다. 기본 호출은 root descriptor와
@@ -699,8 +718,10 @@ metadata, 선택된 DB만 읽고 전역 default config도 생성하지 않는다
 POSIX path만, `--output`은 stdout 또는 검증된 atomic file target만 허용한다. 실제 build가 필요한
 경우에만 `--prepare`가 owned `build/ici-*` shadow를 사용할 수 있다. 명시적으로 설정한 DB가
 missing 또는 malformed여도 그 선택은 authoritative하며, `--prepare`가 이를 조용히 대체하지 않는다.
-I3 완료 판정은 마지막 same-basename active-header edge가 실제 compiler trace와 일치함을
-확인할 때까지 유지한다.
+I3 기능 완료 조건은 same-basename active-header edge를 포함한 BuildScope target-by-target
+대조까지 local/public projection으로 충족됐다. 위 edge checkbox는 local actual-process
+evidence이며, 이 후속 테스트로 새 PR/CI/Pages remote evidence를 추론하지 않는다. 새 테스트의
+PR/CI/Pages evidence가 수집될 때까지 I3 checkpoint는 pending으로 유지한다.
 
 **I3-5 final local revalidation evidence (2026-09-01):** Python 3.10 full suite 1,333 tests
 passed in 51.99s, Ruff check/format 148 files, mypy 88 source files가 통과했다. quoted relative
@@ -721,7 +742,14 @@ SHA-256은 `6f0e99872ab0041f174f9b708cb2a0bd5e60569ce06fe825644541c0ae2162c9`, s
   `sha256:a7db541ae2daa0c19365f80c1bdbe5090049c86b423000fdf9b6f8e85a857a48`였다. 같은 public
 projection으로 16 unit·6 target·14 field group을 대조해 mismatch, checkout leak, raw
 `argv`/`command` 모두 0건이었다. 공개 release artifact와 schema/HTML/JSON/checksum evidence는
-아래에 기록했으며, same-basename header edge 대조만 pending이다.
+아래에 기록했으며, same-basename header edge의 local actual compiler 대조도 완료했다.
+
+**I3-5 latest local follow-up evidence (2026-09-01):** Python 3.10 full pytest는 `1,334
+passed, 1 skipped`였다. Ruff check/format은 148 files에서 PASS했고, mypy는 88 source files에서
+PASS했다. `build-pyz`와 smoke도 PASS했으며, 현재 artifact는 2,166,828 bytes,
+SHA-256 `0f82aa95eb940072a735c591737f5b77d9dd16b32751aa03600ad3c5978bb158`이다. 이 수치는
+새 actual-process test를 포함한 최신 local evidence이며, 새 PR/CI/Pages remote evidence는
+주장하지 않는다.
 
 ### I3-5 remote PR, main, and release evidence
 
@@ -761,8 +789,10 @@ projection으로 16 unit·6 target·14 field group을 대조해 mismatch, checko
   `085f70450cd89171d3fd4011d35ccc35e8658ab5308b64e398ea0b0793c45d8a`였다. Schema validation은
   passed했고, 16 unit·6 target·14 field group에서 mismatch·checkout leak·raw `argv`/`command` key는
   모두 0건이었다.
-- Release/public evidence는 완료됐으며, 위 I3-5 checkbox는 same-basename active-header edge를
-  실제 compiler trace와 대조하는 작업만 pending으로 유지한다.
+- 위 I3-5 checkbox는 same-basename active-header edge의 local actual compiler trace 대조가
+  완료됐음을 기록한다. BuildScope target-by-target define·standard·include 대조도 public
+  projection에서 16 unit·6 target·14 field group mismatch 0으로 완료됐다. 이 후속 테스트에
+  대한 새 PR/CI/Pages evidence는 주장하지 않으며, 그것만 남아 I3 전체는 여전히 pending이다.
 
 ---
 
@@ -1069,10 +1099,11 @@ projection으로 16 unit·6 target·14 field group을 대조해 mismatch, checko
 - [x] I1: v3 finding, support matrix, baseline, issues-first console 완료
 - [x] I2: toolchain inventory, shared context, engine DAG, cache/reproducibility와 PR·CI·Pages 증거 완료
 - [ ] I3: I3-1 compilation model/검증 게이트와 PR·CI·Pages evidence 완료; I3-2 canonical
-  CMake generation first four items, PR·CI·Pages evidence, and local viewer/LogLens checks
-  complete, buildscope target comparison pending; I3-3 implementation/local E2E/quality gates와
-  PR·CI·Pages evidence complete; I3-4 implementation/focused local tests complete, BuildScope
-  target comparison pending, PR·CI·Pages evidence complete
+  CMake generation, PR·CI·Pages evidence, local viewer/LogLens checks, and the v0.8.0 public
+  projection target comparison complete; I3-3 implementation/local E2E/quality gates와
+  PR·CI·Pages evidence complete; I3-4 implementation/focused local tests, existing PR·CI·Pages
+  evidence, and the new same-basename actual-process local test complete. The new test's
+  PR·CI·Pages remote evidence remains pending.
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
@@ -1100,5 +1131,7 @@ squash merge commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.
 [sticky comment](https://github.com/jihoon22-lee/ici/pull/105#issuecomment-5480770505),
 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/105/)와
 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/105/)까지 완료됐다. 현재 남은 I3
-조건은 BuildScope target-by-target comparison뿐이다. I3-3 qmake exact capture는 PR #103의
+조건은 새 same-basename actual-process test의 PR·CI·Pages remote evidence뿐이다. I3-2의
+BuildScope target-by-target define·standard·include 대조는 v0.8.0 public projection에서
+16 unit·6 target·14 field group mismatch 0으로 완료됐다. I3-3 qmake exact capture는 PR #103의
 CI·Pages evidence까지 완료됐다.

@@ -21,8 +21,9 @@ from ici.core.context import (
     canonical_digest,
 )
 from ici.core.models import EngineStatus, EvidenceState
-from ici.core.runner import ProcessResult
+from ici.core.runner import ProcessResult, run_process
 from ici.core.toolchain import ToolProbe
+from ici.engines._cpp_include_graph import build_compiler_cpp_graph
 from ici.engines.cycle import CycleEngine
 
 _CFG = {"engines": {"cycle": {"mode": "pass_warn_fail", "max_reported": 20}}}
@@ -243,6 +244,77 @@ def test_trace_uses_compiler_selected_same_basename_without_ambiguity(
     assert command[command.index("-o") + 1] == os.devnull
     assert command[-1] == str(source.resolve())
     assert result.tool_evidence[0].argv == command
+
+
+@pytest.mark.parametrize("compiler_name", ("g++", "clang++"))
+def test_real_compiler_trace_selects_the_first_same_basename_header(
+    tmp_path: Path,
+    compiler_name: str,
+) -> None:
+    """Cross-check the active edge with an actual GCC/Clang preprocessor trace."""
+
+    if shutil.which(compiler_name) is None:
+        pytest.skip(f"{compiler_name} is unavailable")
+    inventory = collect_capability_inventory(
+        probes=(ToolProbe(compiler_name, (compiler_name,), ("--version",)),)
+    )
+    capability = inventory.capabilities[compiler_name]
+    if not capability.available or not capability.complete:
+        pytest.skip(f"{compiler_name} could not be probed")
+    compiler = capability.path
+
+    root = tmp_path / compiler_name.replace("+", "p")
+    selected = root / "include" / "first" / "common.hpp"
+    alternate = root / "include" / "second" / "common.hpp"
+    source = root / "src" / "main.cpp"
+    (root / "build").mkdir(parents=True)
+    for path in (selected, alternate, source):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    selected.write_text("#define ICI_SELECTED_HEADER 1\n", encoding="utf-8")
+    alternate.write_text("#define ICI_SELECTED_HEADER 2\n", encoding="utf-8")
+    source.write_text(
+        '#include "common.hpp"\nstatic_assert(ICI_SELECTED_HEADER == 1);\n',
+        encoding="utf-8",
+    )
+
+    unit = _unit(
+        root,
+        compiler,
+        include_args=("-I", "../include/first", "-I", "../include/second"),
+        include_paths=(
+            CompilationSearchPath(
+                path="include/first", kind="include", scope="project", exists=True
+            ),
+            CompilationSearchPath(
+                path="include/second", kind="include", scope="project", exists=True
+            ),
+        ),
+    )
+    project = _project(
+        root,
+        sources=("src/main.cpp",),
+        headers=("include/first/common.hpp", "include/second/common.hpp"),
+    )
+    context = _context(root, project, inventory, _compilation(unit))
+
+    outcome = build_compiler_cpp_graph(
+        root,
+        [source],
+        [source, selected, alternate],
+        context,
+        runner=run_process,
+    )
+
+    source_key = source.resolve()
+    assert outcome.errors == []
+    assert outcome.configurations_checked == 1
+    assert selected.resolve() in outcome.graph[source_key]
+    assert alternate.resolve() not in outcome.graph[source_key]
+    assert outcome.resolved_edges >= 1
+    assert any(
+        target.target_name == "CppIncludeTrace" and target.metrics["resolution"] == "compiler_trace"
+        for target in outcome.targets
+    )
 
 
 def test_nested_compiler_trace_follows_real_edges_and_reports_cycle(

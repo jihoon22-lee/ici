@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+### Verification
+- **I3 same-basename active-header local compiler edge**: the existing
+  `test_trace_uses_compiler_selected_same_basename_without_ambiguity` keeps its mocked
+  `run_process` regression coverage. The new
+  `test_real_compiler_trace_selects_the_first_same_basename_header` invokes
+  `build_compiler_cpp_graph` with the actual `run_process` runner and a probed GCC/Clang
+  compiler. In the current local Python 3.10 run, the mocked case and the actual `g++` case
+  passed (2 passed); `clang++` was skipped because it is unavailable. This closes the edge
+  locally only; no new PR/CI/Pages evidence is claimed. The latest local full gate reports
+  Python 3.10 pytest `1,334 passed, 1 skipped`, Ruff check/format PASS for 148 files, and mypy
+  PASS for 88 source files. `build-pyz` and smoke also passed; the current artifact is 2,166,828
+  bytes with SHA-256 `0f82aa95eb940072a735c591737f5b77d9dd16b32751aa03600ad3c5978bb158`.
+
 ## [0.8.0] - 2026-09-01
 
 ### Added
@@ -55,8 +68,9 @@
   The same public projection compared 16 units, 6 targets, and 14 field groups with zero mismatch,
   checkout leak, or raw `argv`/`command` exposure.
 - These are local/candidate measurements; the exact remote PR, main, release, and public artifact
-  evidence is recorded below. The only remaining I3-5 edge is same-basename active-header
-  confirmation against a real compiler trace.
+  evidence is recorded below. The v0.8.0 release snapshot had the same-basename active-header
+  confirmation pending; the unreleased local follow-up above now closes that edge locally. Its
+  new PR/CI/Pages evidence is still pending.
 
 ### Remote evidence
 - Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110) from head `3ce564a` was merged as
@@ -100,8 +114,9 @@
   snapshot SHA-256 `085f70450cd89171d3fd4011d35ccc35e8658ab5308b64e398ea0b0793c45d8a`. Schema
   validation passed; the public projection compared 16 units, 6 targets, and 14 field groups with
   zero mismatch, checkout leak, or raw `argv`/`command` keys.
-- The release and public artifact evidence is complete; only the same-basename active-header edge
-  comparison against a real compiler trace remains pending for I3-5.
+- The release and public artifact evidence remains the v0.8.0 record above. The same-basename
+  active-header comparison was pending at that release snapshot and is now complete locally in
+  the unreleased follow-up; only that follow-up's PR/CI/Pages evidence remains pending for I3-5.
 
 ## [0.7.1] - 2026-09-01
 
