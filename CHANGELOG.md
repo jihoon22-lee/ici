@@ -31,6 +31,18 @@
   accounting enabled, recognizes LLVM 18's bounded extended system-header hint, and still rejects
   an unaccounted generated-warning summary. An unprivileged LLVM 18 reproduction parsed the actual
   15,780-generated/15,780-suppressed clean output, and both required real-tool E2Es passed locally.
+- **Clang-tidy coalesced diagnostic accounting**: a subsequent viewer run proved that Clang's
+  generated-warning counter, clang-tidy's suppression counter, and rendered messages do not share
+  one cardinality: `report_model.cpp` emitted 13,004 generated, 13,000 suppressed, and three
+  rendered diagnostics. The parser now requires visible or suppression accounting without falsely
+  equating those counters, while duplicate summaries, quiet-only generated summaries, malformed
+  lines, and unbounded output remain atomic errors. It also accepts both LLVM 18 and current
+  bounded header-filter hints.
+- **Viewer dogfood remediation**: the five real clang-tidy findings exposed after parsing was
+  restored were fixed: two unnecessary string copies, an allocation-heavy concatenation, an
+  unchecked optional access, and the CLI's uncaught top-level exception boundary. The exact local
+  LLVM 18 viewer verification is now PASS with lint at zero violations, 7/7 C++ tests, 94.4% line,
+  97.7% function, and 80.0% branch coverage, and TEM 4.89/5.0.
 - **I4-1 self-dogfood maintainability**: the clang-tidy orchestration preflight, source validation,
   capability selection, unit selection, and bounded execution were split into focused helpers after
   the first PR run exposed cyclomatic complexity 30. The adapter entry point is now complexity 10

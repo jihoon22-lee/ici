@@ -36,7 +36,8 @@ _CLANG_TIDY_SUPPRESSED_RE = re.compile(
     r"^Suppressed (?P<count>[1-9]\d*) warnings? \([^\r\n]{1,512}\)\.$"
 )
 _CLANG_TIDY_HEADER_HINT_RE = re.compile(
-    r"^Use -header-filter=.{1,512} to display errors from all non-system headers\."
+    r"^Use -header-filter=.{1,512}(?: or leave it as default)? to display errors "
+    r"from all non-system headers\."
     r"(?: Use -system-headers to display errors from system headers as well\.)?$"
 )
 _TEXT_FIXIT_RE = re.compile(
@@ -509,10 +510,15 @@ def parse_clang_tidy_diagnostics(
                 family=family,
             )
         )
-    if generated is not None and generated > len(normalized) + suppressed:
+    # Clang's generated-warning counter and clang-tidy's rendered diagnostic
+    # inventory have different granularity: overlapping checks may be
+    # coalesced into one rendered warning.  The suppression trailer proves
+    # ignored diagnostics were accounted for, but its count therefore cannot
+    # be added to the rendered-message count and compared for equality.
+    if generated is not None and not normalized and not suppressed:
         return DiagnosticParseResult(
             format_name="clang-tidy-text",
-            error="clang-tidy warning summary exceeds parsed and suppressed diagnostics",
+            error="clang-tidy generated-warning summary has no diagnostic accounting",
         )
     if header_hint and generated is None and not suppressed and not normalized:
         return DiagnosticParseResult(

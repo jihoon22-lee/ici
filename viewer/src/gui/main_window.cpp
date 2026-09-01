@@ -201,7 +201,11 @@ void MainWindow::clearReport(const QString& statusMessage) {
 }
 
 void MainWindow::showSuite() {
-    const icirv::Suite& suite = suite_.value();
+    if (!suite_.has_value()) {
+        clearReport(tr("No report is loaded"));
+        return;
+    }
+    const icirv::Suite& suite = *suite_;
     gateLabel_->setText(QString::fromStdString(icirv::gateReason(suite)));
     gateLabel_->setStyleSheet(
         QStringLiteral("color: %1;").arg(colourForStatus(suite.suite_status).name()));

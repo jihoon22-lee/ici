@@ -2,6 +2,7 @@
 #include "icirv/summary.hpp"
 
 #include <cstdio>
+#include <exception>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -228,14 +229,22 @@ int run(const CliOptions& options) {
 } // namespace
 
 int main(int argc, char** argv) {
-    const CliOptions options = parseArgs(argc, argv);
-    if (options.help) {
-        printUsage(std::cout);
-        return 0;
-    }
-    if (!options.valid || options.path.empty()) {
-        printUsage(std::cerr);
+    try {
+        const CliOptions options = parseArgs(argc, argv);
+        if (options.help) {
+            printUsage(std::cout);
+            return 0;
+        }
+        if (!options.valid || options.path.empty()) {
+            printUsage(std::cerr);
+            return 1;
+        }
+        return run(options);
+    } catch (const std::exception& error) {
+        std::cerr << "fatal: " << error.what() << "\n";
+        return 1;
+    } catch (...) {
+        std::cerr << "fatal: unexpected exception\n";
         return 1;
     }
-    return run(options);
 }

@@ -129,7 +129,7 @@ bool readNullableEnumMember(const JsonValue& obj, const std::string& key,
         error.message = "field '" + key + "' must be a string or null";
         return false;
     }
-    const std::string parsed = value.asString();
+    const std::string& parsed = value.asString();
     if (!enumValue(parsed, allowed, count)) {
         error.message = "field '" + key + "' has an unsupported value '" + parsed + "'";
         return false;
@@ -157,7 +157,7 @@ bool readStringArrayMember(const JsonValue& obj, const std::string& key,
             error.message = "field '" + key + "' items must be strings";
             return false;
         }
-        const std::string value = item.asString();
+        const std::string& value = item.asString();
         if (nonemptyItems && value.empty()) {
             error.message = "field '" + key + "' items must be non-empty strings";
             return false;
@@ -175,8 +175,11 @@ bool readLanguageArrayMember(const JsonValue& obj, const std::string& key,
     }
     for (const std::string& language : out) {
         if (!enumValue(language, kLanguages, sizeof(kLanguages) / sizeof(kLanguages[0]))) {
-            error.message = "field '" + key + "' has an unsupported language '" + language +
-                            "'";
+            error.message = "field '";
+            error.message += key;
+            error.message += "' has an unsupported language '";
+            error.message += language;
+            error.message += "'";
             return false;
         }
     }

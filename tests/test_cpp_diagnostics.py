@@ -202,7 +202,7 @@ def test_mixed_valid_and_malformed_json_is_rejected_atomically(tmp_path: Path) -
     assert result.diagnostics == ()
 
 
-def test_clang_tidy_warning_summary_rejects_unaccounted_generated_warnings(
+def test_clang_tidy_warning_summary_accepts_coalesced_rendered_diagnostics(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "project"
@@ -215,8 +215,9 @@ def test_clang_tidy_warning_summary_rejects_unaccounted_generated_warnings(
     result = parse_clang_tidy_diagnostics(root, root, "", output)
 
     assert result.format_name == "clang-tidy-text"
-    assert result.error
-    assert result.diagnostics == ()
+    assert result.error == ""
+    assert len(result.diagnostics) == 1
+    assert result.diagnostics[0].tool_rule_id == "modernize-use-nullptr"
 
 
 def test_clang_tidy_warning_summary_accepts_parsed_and_suppressed_warnings(
@@ -237,13 +238,24 @@ def test_clang_tidy_warning_summary_accepts_parsed_and_suppressed_warnings(
     assert result.diagnostics[0].tool_rule_id == "modernize-use-nullptr"
 
 
-def test_clang_tidy_clean_system_warnings_are_fully_accounted(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "header_hint",
+    [
+        "Use -header-filter=.* to display errors from all non-system headers. "
+        "Use -system-headers to display errors from system headers as well.",
+        "Use -header-filter=.* or leave it as default to display errors from all "
+        "non-system headers. Use -system-headers to display errors from system headers as well.",
+    ],
+    ids=["llvm-18", "llvm-current"],
+)
+def test_clang_tidy_clean_system_warnings_are_fully_accounted(
+    tmp_path: Path, header_hint: str
+) -> None:
     root = tmp_path / "project"
     output = (
         "15780 warnings generated.\n"
         "Suppressed 15780 warnings (15780 in non-user code).\n"
-        "Use -header-filter=.* to display errors from all non-system headers. "
-        "Use -system-headers to display errors from system headers as well.\n"
+        f"{header_hint}\n"
     )
 
     result = parse_clang_tidy_diagnostics(root, root, "", output)
@@ -257,6 +269,26 @@ def test_clang_tidy_quiet_summary_without_accounting_is_not_clean(tmp_path: Path
     root = tmp_path / "project"
 
     result = parse_clang_tidy_diagnostics(root, root, "", "15780 warnings generated.\n")
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error
+    assert result.diagnostics == ()
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "1 warning generated.\n1 warning generated.\n",
+        "Suppressed 1 warning (non-user code).\nSuppressed 1 warning (NOLINT).\n",
+    ],
+    ids=["generated", "suppressed"],
+)
+def test_clang_tidy_duplicate_summaries_are_rejected_atomically(
+    tmp_path: Path, output: str
+) -> None:
+    root = tmp_path / "project"
+
+    result = parse_clang_tidy_diagnostics(root, root, "", output)
 
     assert result.format_name == "clang-tidy-text"
     assert result.error

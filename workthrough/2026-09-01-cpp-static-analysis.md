@@ -133,6 +133,21 @@ system-header hint. The adapter now preserves suppression accounting, the parser
 bounded hint variant, and an unaccounted quiet summary remains a fail-closed parse error. Another
 remote rerun is still required before merge.
 
+The third PR run (`33467937525`) passed both Qt builds, the required real-tool E2Es, isolated
+smoke, and self-dogfood. Its viewer gate narrowed the remaining failure to `report_model.cpp`:
+LLVM 18 reported 13,004 generated warnings, 13,000 suppressed warnings, and three rendered
+diagnostics. Clang's generated counter and clang-tidy's rendered inventory have different
+granularity when checks overlap, so their counts cannot safely be equated. The parser now requires
+either visible diagnostics or a suppression trailer while continuing to reject quiet-only and
+duplicate summaries atomically. The five visible viewer findings were then fixed rather than
+suppressed: two avoidable copies, one temporary-heavy concatenation, an optional access guard, and
+the CLI top-level exception boundary.
+
+With those changes, the exact local LLVM 18 viewer verification passed all applicable engines:
+lint reported zero violations, CTest passed 7/7, coverage was 94.4% line / 97.7% function / 80.0%
+branch, complexity peaked at 15, and TEM was 4.89/5.0. The uncached run took 96.82 seconds. A fresh
+remote rerun and report publication remain mandatory before merge.
+
 - Open the feature PR and obtain its CI/Merge Gate, sticky-comment, and independent Pages
   evidence; then verify the exact-main CI/Pages result after merge.
 - Complete the downstream BuildScope B4 validation. Until those remote and cross-repository
