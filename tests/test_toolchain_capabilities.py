@@ -65,6 +65,14 @@ def _result(
             id="python-vv",
         ),
         pytest.param(
+            "clazy",
+            "Ubuntu LLVM version 21.1.8\nclazy version 1.17\n",
+            "",
+            "clazy version 1.17",
+            (1, 17),
+            id="clazy-standalone-multiline",
+        ),
+        pytest.param(
             "cmake",
             "cmake version 3.30.2\n\nCMake suite maintained and supported by Kitware\n",
             "",
@@ -600,6 +608,7 @@ def test_default_tool_probe_registry_is_deterministic_and_covers_requested_tools
         "clang++",
         "clang-format",
         "clang-tidy",
+        "clazy",
         "clangd",
         "clang-check",
         "cmake",
@@ -634,6 +643,7 @@ def test_default_tool_probe_registry_is_deterministic_and_covers_requested_tools
         "clang++",
         "clang-format",
         "clang-tidy",
+        "clazy",
         "clangd",
         "clang-check",
         "cmake",
@@ -655,6 +665,39 @@ def test_default_tool_probe_registry_is_deterministic_and_covers_requested_tools
     assert names == tuple(probe.name for probe in toolchain.DEFAULT_TOOL_PROBES)
     assert len(names) == len(set(names))
     assert requested.issubset(names)
+
+
+def test_clazy_probe_prefers_standalone_candidate_and_preserves_alias(monkeypatch):
+    path = "/opt/llvm/bin/clazy-standalone"
+    probe = next(item for item in toolchain.DEFAULT_TOOL_PROBES if item.name == "clazy")
+    which_calls = []
+    run_calls = []
+
+    def fake_which(command):
+        which_calls.append(command)
+        return path if command in {"clazy-standalone", path} else None
+
+    def fake_run(argv, *, cwd, timeout, max_output_chars):
+        del cwd, timeout, max_output_chars
+        run_calls.append(tuple(argv))
+        return _result(stdout="Ubuntu LLVM version 21.1.8\nclazy version 1.17\n")
+
+    monkeypatch.setattr(toolchain.shutil, "which", fake_which)
+    monkeypatch.setattr(toolchain, "run_process", fake_run)
+
+    capability, results = toolchain.collect_registered_capability(probe)
+
+    assert which_calls == ["clazy-standalone", path]
+    assert run_calls == [(path, "--version")]
+    assert len(results) == 1
+    assert capability.available is True
+    assert capability.complete is True
+    assert capability.version_tuple == (1, 17)
+    assert capability.details["resolved_alias"] == "clazy-standalone"
+
+
+def test_clazy_version_parser_does_not_fall_back_to_llvm_version():
+    assert toolchain.parse_tool_version("clazy", "Ubuntu LLVM version 21.1.8\n") == ("", ())
 
 
 def test_collect_registered_capability_missing_candidates_returns_no_process_result(monkeypatch):

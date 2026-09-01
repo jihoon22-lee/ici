@@ -19,9 +19,12 @@ MODES = frozenset({"pass_warn_fail", "pass_fail", "pass_warn"})
 PROJECT_TYPES = frozenset({"python", "cpp", "hybrid"})
 ANALYSIS_PROFILES = frozenset({"fast", "standard", "deep"})
 CLANG_TIDY_MODES = frozenset({"auto", "required", "off"})
+CLAZY_MODES = frozenset({"auto", "required", "off"})
+CLAZY_PROFILES = frozenset({"level0", "level1"})
 _CLANG_TIDY_CHECK_CHARS = frozenset(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.*-"
 )
+_CLAZY_CHECK_CHARS = _CLANG_TIDY_CHECK_CHARS
 _MAX_CLANG_TIDY_CHECKS = 128
 _MAX_CLANG_TIDY_CHECK_LENGTH = 128
 _MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH = 8192
@@ -64,7 +67,17 @@ _ENGINE_KEYS = {
         }
     ),
     "lint": _COMMON_ENGINE_KEYS
-    | frozenset({"ruff_required", "clang_tidy", "clang_tidy_checks", "clang_tidy_config"}),
+    | frozenset(
+        {
+            "ruff_required",
+            "clang_tidy",
+            "clang_tidy_checks",
+            "clang_tidy_config",
+            "clazy",
+            "clazy_profile",
+            "clazy_checks",
+        }
+    ),
     "compile_db": _COMMON_ENGINE_KEYS
     | frozenset({"database_required", "required_flags", "forbidden_flags"}),
     "test": _COMMON_ENGINE_KEYS
@@ -237,6 +250,20 @@ def _validate_lint(table: dict[str, Any], path: str) -> None:
                 clang_tidy_config_path,
                 f"must be at most {_MAX_CLANG_TIDY_CONFIG_LENGTH} characters",
             )
+    if "clazy" in table:
+        clazy_path = f"{path}.clazy"
+        _require_string(table["clazy"], clazy_path, non_empty=True)
+        if table["clazy"] not in CLAZY_MODES:
+            allowed = ", ".join(sorted(CLAZY_MODES))
+            raise _error(clazy_path, f"must be one of: {allowed}")
+    if "clazy_profile" in table:
+        profile_path = f"{path}.clazy_profile"
+        _require_string(table["clazy_profile"], profile_path, non_empty=True)
+        if table["clazy_profile"] not in CLAZY_PROFILES:
+            allowed = ", ".join(sorted(CLAZY_PROFILES))
+            raise _error(profile_path, f"must be one of: {allowed}")
+    if "clazy_checks" in table:
+        _validate_clazy_checks(table["clazy_checks"], f"{path}.clazy_checks")
 
 
 def _validate_clang_tidy_checks(value: Any, path: str) -> None:
@@ -261,6 +288,40 @@ def _validate_clang_tidy_checks(value: Any, path: str) -> None:
         if item in seen:
             raise _error(item_path, "must be unique")
         if any(character not in _CLANG_TIDY_CHECK_CHARS for character in item):
+            raise _error(item_path, "contains unsafe characters")
+        seen.add(item)
+
+    if len(",".join(value)) > _MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH:
+        raise _error(
+            path,
+            f"joined length must be at most {_MAX_CLANG_TIDY_CHECKS_JOINED_LENGTH} characters",
+        )
+
+
+def _validate_clazy_checks(value: Any, path: str) -> None:
+    """Validate explicit Clazy check names before an adapter builds argv."""
+
+    if not isinstance(value, list):
+        raise _error(path, "must be a list of 1 to 128 unique non-empty strings")
+    if not 1 <= len(value) <= _MAX_CLANG_TIDY_CHECKS:
+        raise _error(
+            path,
+            f"must contain between 1 and {_MAX_CLANG_TIDY_CHECKS} items",
+        )
+
+    seen: set[str] = set()
+    for index, item in enumerate(value):
+        item_path = f"{path}[{index}]"
+        if not isinstance(item, str) or not item:
+            raise _error(item_path, "must be a non-empty string")
+        if len(item) > _MAX_CLANG_TIDY_CHECK_LENGTH:
+            raise _error(
+                item_path,
+                f"must be at most {_MAX_CLANG_TIDY_CHECK_LENGTH} characters",
+            )
+        if item in seen:
+            raise _error(item_path, "must be unique")
+        if any(character not in _CLAZY_CHECK_CHARS for character in item):
             raise _error(item_path, "contains unsafe characters")
         seen.add(item)
 

@@ -77,6 +77,7 @@ DEFAULT_TOOL_PROBES: tuple[ToolProbe, ...] = (
     ToolProbe("clang++", ("clang++",), ("--version",), "target", ("-dumpmachine",)),
     ToolProbe("clang-format", ("clang-format",), ("--version",)),
     ToolProbe("clang-tidy", ("clang-tidy",), ("--version",)),
+    ToolProbe("clazy", ("clazy-standalone", "clazy"), ("--version",)),
     ToolProbe("clangd", ("clangd",), ("--version",)),
     ToolProbe("clang-check", ("clang-check",), ("--version",)),
     ToolProbe("cmake", ("cmake",), ("--version",), "cmake-capabilities", ("-E", "capabilities")),
@@ -135,6 +136,12 @@ _TOOL_VERSION_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
     "make": (re.compile(r"\b(?:GNU\s+)?Make\s+(?P<version>\d+(?:\.\d+)+)", re.I),),
     "git": (re.compile(r"\bgit\s+version\s+(?P<version>\d+(?:\.\d+)+)", re.I),),
     "pytest": (re.compile(r"\bpytest\s+(?P<version>\d+(?:\.\d+)+)", re.I),),
+    "clazy": (
+        re.compile(
+            r"\bclazy(?:-standalone)?\s+(?:version\s+)?(?P<version>\d+(?:\.\d+)+)\b",
+            re.I,
+        ),
+    ),
 }
 _COMPILER_VERSION_RE = re.compile(
     r"\b(?:Apple\s+|Ubuntu\s+)?(?:gcc|g\+\+|clang(?:\+\+)?)(?:\s+version)?"
@@ -224,7 +231,8 @@ def parse_tool_version(name: str, stdout: str, stderr: str = "") -> tuple[str, t
         "clang-check",
     }:
         patterns = (*patterns, _COMPILER_VERSION_RE)
-    for pattern in (*patterns, _GENERIC_VERSION_RE):
+    fallback_patterns = () if name == "clazy" else (_GENERIC_VERSION_RE,)
+    for pattern in (*patterns, *fallback_patterns):
         for line in lines:
             match = pattern.search(line)
             if match:
