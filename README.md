@@ -8,6 +8,15 @@ $ ici verify --report --html verify_report.html --open
 $ ici doctor
 ```
 
+### 현재 릴리스와 진행 상태
+
+현재 공개 릴리스는 [v0.9.1](https://github.com/jihoon22-lee/ici/releases/tag/v0.9.1)입니다.
+LLVM 18 clang-tidy의 구조적 `note:` 출력까지 fail-closed 파서로 검증하며, 실제 릴리스
+artifact·checksum·`ici.result/v3` JSON·Zero-CDN HTML을 감사했습니다. 대응 프로젝트인
+toy-projects BuildScope B4도 이 릴리스로 검증을 마쳤습니다. I4-1(compiler/clang-tidy)은
+완료됐고, 현재 다음 활성 작업은 I4-2(Qt clazy·moc/uic/rcc 생성 단계 분석)입니다. I4-3/I4-4와
+I4 전체 완료 판정은 아직 남아 있습니다.
+
 ---
 
 ## 📚 문서 허브 (Documentation Hub)

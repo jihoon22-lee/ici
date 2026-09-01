@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+### Documentation and integration status
+- v0.9.1의 릴리스 provenance·9개 artifact 독립 감사와 toy-projects BuildScope B4 교차 검증
+  (PR #36, released ici v0.9.1, PR/main CI·sticky comment·Zero-CDN Pages)을 인수인계와
+  실행 계획에 기록했다. I4-1 release boundary와 B4 precondition은 닫혔으며, 다음 활성 단계는
+  Qt clazy 및 생성 단계 분석(I4-2)이다. I4-3/I4-4와 I4 전체 checkpoint는 아직 미완료다.
+
 ## [0.9.1] - 2026-09-01
 
 ### Fixed

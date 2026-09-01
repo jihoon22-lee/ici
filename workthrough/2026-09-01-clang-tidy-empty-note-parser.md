@@ -53,7 +53,7 @@ The temporary LLVM packages, CMake shadow, and captured output were deleted afte
 
 ### Release notes
 
-- `CHANGELOG.md` records the fix under `Unreleased`.
+- `CHANGELOG.md` records the fix under `[0.9.1] - 2026-09-01`.
 
 ## Key Contract
 
@@ -108,10 +108,43 @@ build-pyz: PASS; all 10 distributions py3-none-any, two public schemas packaged
 smoke: PASS; Python 3.10 launch, artifact integrity, and Zero-CDN HTML verified
 ```
 
+## Final remote, release, and cross-repository evidence
+
+The parser fix was merged through [ici PR #119](https://github.com/jihoon22-lee/ici/pull/119)
+as `74030248345d61c6a394634a9ad9c19b7da4323d`. Exact ici-main [run
+33482849448](https://github.com/jihoon22-lee/ici/actions/runs/33482849448) passed all required
+checks. Release preparation [PR #120](https://github.com/jihoon22-lee/ici/pull/120) produced
+exact main `d6022f613bd997eb557e6af860f5e9b7c6639327`; exact-main [run
+33484388337](https://github.com/jihoon22-lee/ici/actions/runs/33484388337) was also green.
+
+The annotated `v0.9.1` tag object is `ebce6307ff51ba14dfb2368f9807ecd24b544578`, dereferencing
+to `d6022f613bd997eb557e6af860f5e9b7c6639327`. Release workflow
+[33484950163](https://github.com/jihoon22-lee/ici/actions/runs/33484950163) passed provenance and
+publish validation. The public release is non-draft/non-prerelease and contains exactly nine
+independently audited assets; the packaged `ici.pyz` is 2,181,513 bytes with SHA-256
+`8668af0eddf117d31e99e25cff4f64b1da68fb5e6d41fb01ef5c9d8107542284`, reports `ici 0.9.1`, and
+the checksum, both `ici.result/v3` JSON reports, Zero-CDN HTML reports, and static `icirv` checks
+passed. The complete asset table is kept in the current release section of the ici handover.
+
+The released asset was pinned by toy-projects [PR #36](https://github.com/jihoon22-lee/toy-projects/pull/36).
+Its final head `68ae3b59aacfbd5c57bde2a88718641cd1cfb9e0` passed all 16 checks in [run
+33487556779](https://github.com/jihoon22-lee/toy-projects/actions/runs/33487556779). The sticky
+comment retained exactly one marker, the current run, and three report links. BuildScope, DiskMap,
+and LogLens hosted Pages returned HTTP 200 with exact titles and zero external references; their
+audited sizes/digests are recorded in the handover. PR #36 was squash-merged to toy main
+`590899a0a9430e9ce35162b301bfef5d7dfc78a4`, and its feature branch was deleted. Exact toy-main
+[run 33488169769](https://github.com/jihoon22-lee/toy-projects/actions/runs/33488169769) passed
+14 prerequisite jobs and Merge Gate (the PR-only publisher was correctly skipped), while
+[Dependency Graph run 33488174425](https://github.com/jihoon22-lee/toy-projects/actions/runs/33488174425)
+also passed.
+
+This closes the B4 precondition for ici. I4-1 and its v0.9.1 release boundary are complete; the
+next active stage is I4-2 (Qt clazy and generated moc/uic/rcc analysis). I4-2/I4-3/I4-4 and the
+overall I4 checkpoint remain incomplete.
+
 ## Next Steps
 
-- Obtain a green ici PR run with the required installed clang-tidy E2E.
-- Publish a patch release and independently audit its provenance, checksum, packaged version, JSON
-  schema, and Zero-CDN reports.
-- Pin toy-projects to that released asset and rerun PR #36, including sticky-comment and hosted
-  HTML verification.
+- Start I4-2 on `feat/qt-analysis`, beginning with capability/profile contracts and real Qt5/Qt6
+  evidence.
+- Validate clazy diagnostics, Q_OBJECT/lifetime findings, and moc/uic/rcc generated artifacts
+  through BuildScope and the existing Qt applications before marking I4-2 complete.

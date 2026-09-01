@@ -1,7 +1,7 @@
 # Python·C++·Qt 코드 품질 분석기 마스터 실행 계획
 
 **상태:** 승인된 장기 마스터 계획. 2026-08-30 이후 ici 기능 계획의 우선순위와 완료 조건은 이 문서를 기준으로 판단한다.
-**문서 기준일:** 2026-08-31. 이 계획은 ici [PR #78](https://github.com/jihoon22-lee/ici/pull/78)로 `main`에 병합됐고, 현재 상태는 이 체크리스트와 병합된 PR의 실측을 함께 기준으로 삼는다.
+**문서 기준일:** 2026-09-01. 이 계획은 ici [PR #78](https://github.com/jihoon22-lee/ici/pull/78)로 `main`에 병합됐고, 현재 상태는 이 체크리스트와 병합된 PR의 실측을 함께 기준으로 삼는다.
 
 **목표:** ici를 Python, C++, Qt 프로젝트의 실제 빌드·테스트·배포 맥락을 이해하고, 위치와 근거가 있는 상세 진단을 낮은 노이즈로 제공하는 고신뢰 코드 품질 분석기로 발전시킨다.
 
@@ -33,6 +33,24 @@ Merge Gate를 다시 확인한다.
 | toy-projects | [`f267695`](https://github.com/jihoon22-lee/toy-projects/commit/f26769527fa7443aa56cdea693fba278000f0816) | 제품 계획 #12, manifest/report gate #13, loglens state #14, T0-1 계획·환경 #15, diskmap Qt 셸 #16 |
 
 현재 환경에는 Qt 5.15.18과 Qt 6.10.2가 모두 설치돼 있다. ici viewer는 [PR #81](https://github.com/jihoon22-lee/ici/pull/81)에서 Qt 5·Qt 6 각각 4/4 CTest와 Qt-free CLI를 통과했고, toy 쪽 환경·실측 기록은 [PR #15](https://github.com/jihoon22-lee/toy-projects/pull/15)에 있다. 따라서 과거 문서의 “Qt 5 미설치/미검증” 또는 “아직 푸시되지 않음” 표현은 현재 상태가 아니다.
+
+### 1.2 현재 상태 기준 (2026-09-01)
+
+1.1의 기준선은 당시 감사 snapshot으로 보존한다. 현재 병합된 기준은 ici `main`
+[`d6022f613bd997eb557e6af860f5e9b7c6639327`](https://github.com/jihoon22-lee/ici/commit/d6022f613bd997eb557e6af860f5e9b7c6639327)와
+toy-projects `main`
+[`590899a0a9430e9ce35162b301bfef5d7dfc78a4`](https://github.com/jihoon22-lee/toy-projects/commit/590899a0a9430e9ce35162b301bfef5d7dfc78a4)다.
+I4-1의 LLVM 18 structural-note parser 보정은 ici [PR #119](https://github.com/jihoon22-lee/ici/pull/119),
+v0.9.1 release prep은 [PR #120](https://github.com/jihoon22-lee/ici/pull/120)로 병합됐고, 각
+exact-main run `33482849448`/`33484388337`이 green이었다. annotated `v0.9.1`은 release
+provenance와 9개 asset audit까지 완료됐다.
+
+toy-projects BuildScope B4는 released ici v0.9.1을 사용한 [PR #36](https://github.com/jihoon22-lee/toy-projects/pull/36)에서
+16/16 check, sticky comment의 marker 1개·현재 run·세 report link, 세 hosted HTML의
+HTTP 200/exact title/Zero-CDN을 모두 통과했다. squash merge 후 toy main exact run
+`33488169769`의 14개 prerequisite job과 Merge Gate, Dependency Graph run `33488174425`도
+성공했다. 따라서 I4-1과 B4 precondition은 닫혔고 다음 활성 단계는 I4-2다. I4-2/I4-3/I4-4
+구현이 남아 있으므로 I4 checkpoint는 아직 미완료다.
 
 ---
 
@@ -897,11 +915,11 @@ Exact-main Pages도 같은 HTTP/content/title/Zero-CDN 계약을 통과했다.
 - [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/): 345,176 bytes,
   SHA-256 `6f0e2e10e4a075651c6b893341ab6d2e70798513766c7420179529fe798ed758`
 
-따라서 I4-1의 ici 저장소 local/remote checkpoint는 완료됐다. toy-projects B4 validation은
-아직 pending이지만, I4 release boundary는 아래 v0.9.0 release로 완료됐다. I4 전체와 I4-2는
-B4 validation evidence를 확인한 뒤 진행한다.
+따라서 I4-1의 ici 저장소 local/remote checkpoint는 완료됐다. 아래 v0.9.0 release boundary와
+B4 pending 표현은 당시의 historical snapshot이다. current v0.9.1 release와 B4 완료 evidence는
+다음 절에 기록한다.
 
-### I4 release boundary — v0.9.0
+### I4 release boundary — v0.9.0 (historical)
 
 annotated `v0.9.0` tag는 exact `main` commit
 `061950834a135a30bd5d4e974ec1dfce33df68a9`을 가리킨다. [release workflow 33472668716](https://github.com/jihoon22-lee/ici/actions/runs/33472668716)의
@@ -914,10 +932,43 @@ non-draft·non-prerelease로 게시됐다. 독립 다운로드 audit에서 정�
 `ici.pyz`는 `ici 0.9.0`을 보고하고 checksum manifest가 통과했다. 두 JSON은 `ici.result/v3`로
 파싱됐고, 두 HTML은 정확한 report title과 Zero-CDN(external asset reference 0)을 만족했다.
 `icirv`는 static ELF이며 `ldd`가 `not a dynamic executable`을 반환했고, release viewer JSON을
-실제로 파싱했다. 따라서 release 조건은 완료됐지만, toy-projects B4가 남아 있어 I4 전체
-체크포인트와 I4-2는 아직 미완료다.
+실제로 파싱했다. 당시 release 조건은 완료됐지만 toy-projects B4가 남아 있어 I4 전체
+체크포인트와 I4-2는 미완료였다. v0.9.0 기록은 회귀·provenance 비교를 위해 보존한다.
+
+### I4-1 follow-up — v0.9.1 parser fix와 B4 precondition closure
+
+toy-projects BuildScope B4가 실제 LLVM 18의 located message-less structural `note:`를 발견해,
+ici [PR #119](https://github.com/jihoon22-lee/ici/pull/119)에서 bounded parser 보정을 추가했다.
+PR #119는 merge commit `74030248345d61c6a394634a9ad9c19b7da4323d`로 병합됐고 exact-main
+[run 33482849448](https://github.com/jihoon22-lee/ici/actions/runs/33482849448)가 green이었다.
+v0.9.1 release prep [PR #120](https://github.com/jihoon22-lee/ici/pull/120)은
+`d6022f613bd997eb557e6af860f5e9b7c6639327`로 병합됐고 exact-main
+[run 33484388337](https://github.com/jihoon22-lee/ici/actions/runs/33484388337)도 green이었다.
+
+annotated `v0.9.1` tag object `ebce6307ff51ba14dfb2368f9807ecd24b544578`는 exact main
+`d6022f613bd997eb557e6af860f5e9b7c6639327`로 dereference된다. [release workflow
+33484950163](https://github.com/jihoon22-lee/ici/actions/runs/33484950163)의 provenance와
+publish job이 성공했고, 공개 release는 non-draft·non-prerelease이며 정확히 9개 asset을
+독립 감사했다. `ici.pyz`는 2,181,513 bytes, SHA-256
+`8668af0eddf117d31e99e25cff4f64b1da68fb5e6d41fb01ef5c9d8107542284`이고 `ici 0.9.1`을
+보고했다. 나머지 asset size/digest 및 JSON v3·HTML Zero-CDN·정적 `icirv` 검증은
+[인수인계 current release evidence](../2026-08-30-handover.md#v091-release-boundary와-buildscope-b4-교차-검증--current)에
+고정한다.
+
+released ici v0.9.1을 pin한 toy-projects [PR #36](https://github.com/jihoon22-lee/toy-projects/pull/36)은
+head `68ae3b59aacfbd5c57bde2a88718641cd1cfb9e0`에서 [run 33487556779](https://github.com/jihoon22-lee/toy-projects/actions/runs/33487556779)의
+16/16 check를 통과했다. sticky comment marker 1개·현재 run·세 report link와 BuildScope/DiskMap/LogLens
+hosted HTML의 HTTP 200·exact title·Zero-CDN을 확인했고, B4 PR은 toy main
+`590899a0a9430e9ce35162b301bfef5d7dfc78a4`로 squash merge됐다. exact-main [run 33488169769](https://github.com/jihoon22-lee/toy-projects/actions/runs/33488169769)의
+14개 prerequisite job과 Merge Gate, [Dependency Graph run 33488174425](https://github.com/jihoon22-lee/toy-projects/actions/runs/33488174425)도
+성공했고 feature branch는 삭제됐다. 따라서 B4 precondition은 닫혔다.
 
 ### I4-2. Qt clazy와 생성 단계
+
+**현재 활성 단계:** I4-1과 B4 precondition은 완료됐으므로 `feat/qt-analysis`에서 시작한다.
+I4-2의 여섯 구현 조건은 아직 체크하지 않는다. clazy capability/profile, Qt finding 정규화,
+moc/uic/rcc 생성 산출물, Qt5/Qt6 compile evidence와 BuildScope `.ui`/`.qrc`·Q_OBJECT
+실물 검증을 모두 충족해야 I4-2를 완료로 표시한다.
 
 **브랜치:** `feat/qt-analysis`
 
@@ -1212,7 +1263,7 @@ non-draft·non-prerelease로 게시됐다. 독립 다운로드 audit에서 정�
   PR·CI·Pages evidence complete; I3-4 implementation/focused local tests, existing PR·CI·Pages
   evidence, the new same-basename actual-process local test, and its PR·CI·Pages remote evidence
   complete. The I3 checkpoint is closed; next is I4.
-- [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료
+- [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료 (I4-1 및 B4 precondition 완료; I4-2/I4-3/I4-4 pending)
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
 - [ ] I7: Makefile, artifacts, ABI, hybrid integration 완료
