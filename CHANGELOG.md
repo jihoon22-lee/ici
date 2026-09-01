@@ -25,6 +25,10 @@
   inputs and the clang-tidy/diagnostic helper implementations.
 
 ### Verification
+- **I4-1 self-dogfood maintainability**: the clang-tidy orchestration preflight, source validation,
+  capability selection, unit selection, and bounded execution were split into focused helpers after
+  the first PR run exposed cyclomatic complexity 30. The adapter entry point is now complexity 10
+  and every helper is at most 11; the repository maximum returned to the existing warning-only 25.
 - **Deterministic Zero-CDN smoke**: `scripts/smoke.sh` now inspects a generated HTML report even
   when the quality verdict makes `verify` return nonzero, rejects external executable/display
   assets, requires a non-empty report, and removes its temporary HTML/JSON through an exit trap.

@@ -341,35 +341,36 @@ def _run_unit(
     return True
 
 
-def run_clang_tidy(
-    project_root: Path,
-    cpp_files: list[Path],
-    context: AnalysisContext | None,
-    config: Mapping[str, Any],
-    *,
-    runner: Callable[..., ProcessResult],
-) -> ClangTidyOutcome:
-    """Run clang-tidy only with an approved tool and exact sanitized unit context."""
+def _fail(
+    outcome: ClangTidyOutcome,
+    target_name: str,
+    message: str,
+    path: str = ".",
+) -> None:
+    outcome.errors.append(message)
+    outcome.targets.append(_target(EngineStatus.ERROR, target_name, message, path))
+    outcome.mode = "error"
 
-    mode = config.get("clang_tidy", "auto")
-    outcome = ClangTidyOutcome(mode=str(mode))
-    if mode == "off":
-        return outcome
-    if mode not in {"auto", "required"}:
-        message = "clang-tidy mode must be auto, required, or off"
-        outcome.errors.append(message)
-        outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyConfigError", message))
-        outcome.mode = "error"
-        return outcome
+
+def _resolved_project_root(
+    project_root: Path,
+    outcome: ClangTidyOutcome,
+) -> Path | None:
     try:
-        project_root = project_root.resolve(strict=True)
+        return project_root.resolve(strict=True)
     except (OSError, RuntimeError) as err:
         message = f"clang-tidy project root could not be resolved: {type(err).__name__}"
-        outcome.errors.append(message)
-        outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyContextError", message))
-        outcome.mode = "error"
-        return outcome
-    required = mode == "required"
+        _fail(outcome, "ClangTidyContextError", message)
+        return None
+
+
+def _validated_context(
+    project_root: Path,
+    context: AnalysisContext | None,
+    outcome: ClangTidyOutcome,
+    *,
+    required: bool,
+) -> AnalysisContext | None:
     if context is None:
         _unavailable(
             outcome,
@@ -380,14 +381,23 @@ def run_clang_tidy(
             ToolEvidence(name="clang-tidy", path="", error="analysis context unavailable")
         )
         outcome.mode = "unavailable"
-        return outcome
+        return None
     if context.project.root != project_root:
-        message = "clang-tidy analysis context belongs to another project root"
-        outcome.errors.append(message)
-        outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyContextError", message))
-        outcome.mode = "error"
-        return outcome
-    normalized_files: list[Path] = []
+        _fail(
+            outcome,
+            "ClangTidyContextError",
+            "clang-tidy analysis context belongs to another project root",
+        )
+        return None
+    return context
+
+
+def _normalized_sources(
+    project_root: Path,
+    cpp_files: list[Path],
+    outcome: ClangTidyOutcome,
+) -> list[Path] | None:
+    normalized: list[Path] = []
     for source in cpp_files:
         safe_path = "."
         try:
@@ -398,13 +408,10 @@ def run_clang_tidy(
             resolved.relative_to(project_root)
         except (OSError, RuntimeError, ValueError):
             message = f"clang-tidy source is outside the project or unreadable: {source.name}"
-            outcome.errors.append(message)
-            outcome.targets.append(
-                _target(EngineStatus.ERROR, "ClangTidyContextError", message, safe_path)
-            )
+            _fail(outcome, "ClangTidyContextError", message, safe_path)
             continue
         if not resolved.exists():
-            normalized_files.append(resolved)
+            normalized.append(resolved)
             continue
         try:
             details = resolved.stat()
@@ -412,21 +419,28 @@ def run_clang_tidy(
             details = None
         if details is None or not stat.S_ISREG(details.st_mode) or not os.access(resolved, os.R_OK):
             message = f"clang-tidy source is not a readable regular file: {source.name}"
-            outcome.errors.append(message)
-            outcome.targets.append(
-                _target(EngineStatus.ERROR, "ClangTidyContextError", message, relative)
-            )
+            _fail(outcome, "ClangTidyContextError", message, relative)
             continue
-        normalized_files.append(resolved)
+        normalized.append(resolved)
     if outcome.errors:
-        outcome.mode = "error"
-        return outcome
-    if len(normalized_files) > _MAX_SELECTED_UNITS:
-        message = "clang-tidy source count exceeds the bounded limit"
-        outcome.errors.append(message)
-        outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyContextError", message))
-        outcome.mode = "error"
-        return outcome
+        return None
+    if len(normalized) > _MAX_SELECTED_UNITS:
+        _fail(
+            outcome,
+            "ClangTidyContextError",
+            "clang-tidy source count exceeds the bounded limit",
+        )
+        return None
+    return normalized
+
+
+def _ready_tool(
+    project_root: Path,
+    context: AnalysisContext,
+    outcome: ClangTidyOutcome,
+    *,
+    required: bool,
+) -> tuple[ToolCapability, Path] | None:
     capability = context.capabilities.capabilities.get("clang-tidy")
     executable = _regular_executable(project_root, capability)
     if executable is None or capability is None:
@@ -440,7 +454,7 @@ def run_clang_tidy(
             )
         )
         outcome.mode = "unavailable"
-        return outcome
+        return None
     if context.compilation.database_path is None:
         _unavailable(
             outcome, "clang-tidy requires an exact compilation database", required=required
@@ -454,29 +468,31 @@ def run_clang_tidy(
             )
         )
         outcome.mode = "unavailable"
-        return outcome
+        return None
     if any(item.level == "error" for item in context.compilation.diagnostics):
-        message = "clang-tidy did not run because compilation context ingestion has errors"
-        outcome.errors.append(message)
-        outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyContextError", message))
-        outcome.mode = "error"
-        return outcome
-    explicit_config, config_error = _explicit_config(
-        project_root,
-        config.get("clang_tidy_config"),
-    )
-    if config_error:
-        outcome.errors.append(config_error)
-        outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyConfigError", config_error))
-        outcome.mode = "error"
-        return outcome
-    selected, missing = _selected_units(project_root, normalized_files, context)
+        _fail(
+            outcome,
+            "ClangTidyContextError",
+            "clang-tidy did not run because compilation context ingestion has errors",
+        )
+        return None
+    return capability, executable
+
+
+def _selected_context_units(
+    project_root: Path,
+    cpp_files: list[Path],
+    context: AnalysisContext,
+    outcome: ClangTidyOutcome,
+) -> list[CompilationUnit] | None:
+    selected, missing = _selected_units(project_root, cpp_files, context)
     if len(selected) > _MAX_SELECTED_UNITS:
-        message = "clang-tidy translation-unit count exceeds the bounded limit"
-        outcome.errors.append(message)
-        outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyContextError", message))
-        outcome.mode = "error"
-        return outcome
+        _fail(
+            outcome,
+            "ClangTidyContextError",
+            "clang-tidy translation-unit count exceeds the bounded limit",
+        )
+        return None
     if missing:
         message = f"clang-tidy context is missing {len(missing)} production source command(s)"
         outcome.errors.append(message)
@@ -490,11 +506,26 @@ def run_clang_tidy(
             for source in missing
         )
     if not selected:
-        message = "clang-tidy context contains no replayable production units"
-        outcome.errors.append(message)
-        outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyContextError", message))
-        outcome.mode = "error"
-        return outcome
+        _fail(
+            outcome,
+            "ClangTidyContextError",
+            "clang-tidy context contains no replayable production units",
+        )
+        return None
+    return selected
+
+
+def _execute_selected_units(
+    project_root: Path,
+    selected: list[CompilationUnit],
+    context: AnalysisContext,
+    capability: ToolCapability,
+    executable: Path,
+    config: Mapping[str, Any],
+    explicit_config: Path | None,
+    outcome: ClangTidyOutcome,
+    runner: Callable[..., ProcessResult],
+) -> None:
     checked_sources: set[str] = set()
     deadline = time.monotonic() + _GLOBAL_TIMEOUT_SECONDS
     for index, unit in enumerate(selected):
@@ -521,5 +552,63 @@ def run_clang_tidy(
         ):
             checked_sources.add(unit.source)
     outcome.sources_checked = len(checked_sources)
+
+
+def run_clang_tidy(
+    project_root: Path,
+    cpp_files: list[Path],
+    context: AnalysisContext | None,
+    config: Mapping[str, Any],
+    *,
+    runner: Callable[..., ProcessResult],
+) -> ClangTidyOutcome:
+    """Run clang-tidy only with an approved tool and exact sanitized unit context."""
+
+    mode = config.get("clang_tidy", "auto")
+    outcome = ClangTidyOutcome(mode=str(mode))
+    if mode == "off":
+        return outcome
+    if mode not in {"auto", "required"}:
+        _fail(
+            outcome,
+            "ClangTidyConfigError",
+            "clang-tidy mode must be auto, required, or off",
+        )
+        return outcome
+    resolved_root = _resolved_project_root(project_root, outcome)
+    if resolved_root is None:
+        return outcome
+    required = mode == "required"
+    context = _validated_context(resolved_root, context, outcome, required=required)
+    if context is None:
+        return outcome
+    normalized_files = _normalized_sources(resolved_root, cpp_files, outcome)
+    if normalized_files is None:
+        return outcome
+    ready = _ready_tool(resolved_root, context, outcome, required=required)
+    if ready is None:
+        return outcome
+    capability, executable = ready
+    explicit_config, config_error = _explicit_config(
+        resolved_root,
+        config.get("clang_tidy_config"),
+    )
+    if config_error:
+        _fail(outcome, "ClangTidyConfigError", config_error)
+        return outcome
+    selected = _selected_context_units(resolved_root, normalized_files, context, outcome)
+    if selected is None:
+        return outcome
+    _execute_selected_units(
+        resolved_root,
+        selected,
+        context,
+        capability,
+        executable,
+        config,
+        explicit_config,
+        outcome,
+        runner,
+    )
     outcome.mode = "exact" if not outcome.errors else "error"
     return outcome
