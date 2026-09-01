@@ -98,6 +98,33 @@ def test_clang_diagnostics_object_uses_level_and_location_fields(tmp_path: Path)
     assert diagnostic.target.message == "warning: unused variable 'answer'"
 
 
+@pytest.mark.parametrize(
+    ("kind", "status"),
+    [
+        ("internal compiler error", EngineStatus.FAIL),
+        ("sorry, unimplemented", EngineStatus.FAIL),
+        ("anachronism", EngineStatus.WARN),
+    ],
+)
+def test_gcc_json_unlocated_diagnostics_keep_bounded_external_target(
+    tmp_path: Path,
+    kind: str,
+    status: EngineStatus,
+) -> None:
+    root = tmp_path / "project"
+    payload = [{"kind": kind, "message": "command-line diagnostic", "locations": []}]
+
+    result = parse_compiler_diagnostics(root, root, json.dumps(payload), "")
+
+    assert result.error == ""
+    assert len(result.diagnostics) == 1
+    diagnostic = result.diagnostics[0]
+    assert diagnostic.target.file_path == "[external]"
+    assert diagnostic.target.start_line == 1
+    assert diagnostic.target.status is status
+    assert diagnostic.target.message == f"{kind}: command-line diagnostic"
+
+
 def test_text_diagnostics_preserve_rule_and_fixit(tmp_path: Path) -> None:
     root = tmp_path / "project"
     output = "\n".join(

@@ -24,7 +24,10 @@ _MAX_SELECTED_UNITS = 2_048
 _TIMEOUT_SECONDS = 120.0
 _GLOBAL_TIMEOUT_SECONDS = 600.0
 _OUTPUT_CHARS = 1_000_000
-_UNSAFE_CONFIG_ARGUMENT_RE = re.compile(rb"\bExtraArgs(?:Before)?\b", re.IGNORECASE)
+_UNSAFE_CONFIG_ARGUMENT_RE = re.compile(
+    rb"\b(?:ExtraArgs(?:Before)?|InheritParentConfig)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -123,7 +126,7 @@ def _validate_config_file(root: Path, value: Path, *, explicit: bool) -> tuple[P
     if b"\x00" in content:
         return None, "clang-tidy config contains a null byte"
     if _UNSAFE_CONFIG_ARGUMENT_RE.search(content):
-        return None, "clang-tidy config may not add compiler arguments"
+        return None, "clang-tidy config may not add compiler arguments or inherit parent config"
     return path, ""
 
 
@@ -384,6 +387,46 @@ def run_clang_tidy(
         outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyContextError", message))
         outcome.mode = "error"
         return outcome
+    normalized_files: list[Path] = []
+    for source in cpp_files:
+        safe_path = "."
+        try:
+            lexical = (source if source.is_absolute() else project_root / source).absolute()
+            relative = lexical.relative_to(project_root).as_posix()
+            safe_path = relative
+            resolved = lexical.resolve(strict=False)
+            resolved.relative_to(project_root)
+        except (OSError, RuntimeError, ValueError):
+            message = f"clang-tidy source is outside the project or unreadable: {source.name}"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                _target(EngineStatus.ERROR, "ClangTidyContextError", message, safe_path)
+            )
+            continue
+        if not resolved.exists():
+            normalized_files.append(resolved)
+            continue
+        try:
+            details = resolved.stat()
+        except OSError:
+            details = None
+        if details is None or not stat.S_ISREG(details.st_mode) or not os.access(resolved, os.R_OK):
+            message = f"clang-tidy source is not a readable regular file: {source.name}"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                _target(EngineStatus.ERROR, "ClangTidyContextError", message, relative)
+            )
+            continue
+        normalized_files.append(resolved)
+    if outcome.errors:
+        outcome.mode = "error"
+        return outcome
+    if len(normalized_files) > _MAX_SELECTED_UNITS:
+        message = "clang-tidy source count exceeds the bounded limit"
+        outcome.errors.append(message)
+        outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyContextError", message))
+        outcome.mode = "error"
+        return outcome
     capability = context.capabilities.capabilities.get("clang-tidy")
     executable = _regular_executable(project_root, capability)
     if executable is None or capability is None:
@@ -427,7 +470,7 @@ def run_clang_tidy(
         outcome.targets.append(_target(EngineStatus.ERROR, "ClangTidyConfigError", config_error))
         outcome.mode = "error"
         return outcome
-    selected, missing = _selected_units(project_root, cpp_files, context)
+    selected, missing = _selected_units(project_root, normalized_files, context)
     if len(selected) > _MAX_SELECTED_UNITS:
         message = "clang-tidy translation-unit count exceeds the bounded limit"
         outcome.errors.append(message)

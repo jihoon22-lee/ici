@@ -16,7 +16,8 @@
 - Clang-tidy supports `auto`, `required`, and `off`, with explicit checks taking precedence over
   built-in defaults and an explicit project config taking precedence over bounded `.clang-tidy`
   discovery. Config files are contained by the project root; parent-of-project discovery and
-  `ExtraArgs`/`ExtraArgsBefore` compiler-argument injection are rejected. Compiler, clang-tidy,
+  `ExtraArgs`/`ExtraArgsBefore` compiler-argument injection and `InheritParentConfig` parent
+  inheritance are rejected. Compiler, clang-tidy,
   and Clang Static Analyzer diagnostics retain separate families; analyzer correctness findings are
   distinct from ordinary clang-tidy maintainability findings.
 - Missing or malformed context/output, compile mismatches, timeouts, and translation-unit or
@@ -24,6 +25,13 @@
   inputs and the clang-tidy/diagnostic helper implementations.
 
 ### Verification
+- **I4-1 actual-process gate**: a Linux E2E now loads a real compilation database and exercises
+  the production compiler and clang-tidy adapters without source mutation. It asserts GCC 9+ JSON
+  rule/location evidence and the exact sanitized clang-tidy argv (no `-p`, `--fix`, dependency, or
+  output flags). PR and release workflows install clang-tidy and set
+  `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`, so missing or incompletely probed tools fail instead of
+  silently skipping. The local GCC path passed; the clang-tidy case skipped because the binary is
+  unavailable locally, and its required actual-process result remains a remote CI gate.
 - **I3 same-basename active-header local compiler edge**: the existing
   `test_trace_uses_compiler_selected_same_basename_without_ambiguity` keeps its mocked
   `run_process` regression coverage. The new

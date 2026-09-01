@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import stat
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -23,6 +26,11 @@ from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
 from ici.engines._cpp_diagnostics import CppDiagnostic, parse_compiler_diagnostics
+
+_MAX_SELECTED_UNITS = 2_048
+_TIMEOUT_SECONDS = 120.0
+_GLOBAL_TIMEOUT_SECONDS = 600.0
+_OUTPUT_CHARS = 1_000_000
 
 
 @dataclass
@@ -213,6 +221,7 @@ def _run_command(
     version: str,
     outcome: CppLintOutcome,
     runner: Callable[..., ProcessResult],
+    timeout: float,
 ) -> None:
     try:
         result = runner(
@@ -221,6 +230,8 @@ def _run_command(
             env=replay_environment(),
             input_text="",
             replace_env=True,
+            timeout=timeout,
+            max_output_chars=_OUTPUT_CHARS,
         )
     except Exception as exc:
         _record_exception(outcome.evidence, name, command, exc)
@@ -296,14 +307,15 @@ def _run_exact(
     runner: Callable[..., ProcessResult],
 ) -> None:
     context = analysis_context.compilation
-    selected, missing = _selected_units(project_root, cpp_files, context)
-    outcome.missing_sources = len(missing)
-    if _context_has_errors(context):
-        outcome.errors.append("Compilation context contains error diagnostics")
     outcome.targets.extend(
         _context_diagnostic_target(diagnostic, context.database_path or ".")
         for diagnostic in context.diagnostics
     )
+    if _context_has_errors(context):
+        outcome.errors.append("Compilation context contains error diagnostics")
+        return
+    selected, missing = _selected_units(project_root, cpp_files, context)
+    outcome.missing_sources = len(missing)
     for source in missing:
         outcome.targets.append(
             InspectionTarget(
@@ -331,9 +343,38 @@ def _run_exact(
             )
         )
         return
+    if len(selected) > _MAX_SELECTED_UNITS:
+        message = "C++ syntax translation-unit count exceeds the bounded limit"
+        outcome.errors.append(message)
+        outcome.targets.append(
+            InspectionTarget(
+                file_path=context.database_path or ".",
+                start_line=1,
+                target_name="C++SyntaxBudgetError",
+                status=EngineStatus.ERROR,
+                message=message,
+            )
+        )
+        return
 
     checked_sources: set[str] = set()
-    for unit in selected:
+    deadline = time.monotonic() + _GLOBAL_TIMEOUT_SECONDS
+    for index, unit in enumerate(selected):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            unexamined = len(selected) - index
+            message = f"C++ syntax global time budget left {unexamined} unit(s) unexamined"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=unit.source,
+                    start_line=1,
+                    target_name="C++SyntaxBudgetError",
+                    status=EngineStatus.ERROR,
+                    message=message,
+                )
+            )
+            break
         outcome.targets.extend(
             _context_diagnostic_target(diagnostic, unit.source) for diagnostic in unit.diagnostics
         )
@@ -371,6 +412,7 @@ def _run_exact(
             capability.version if capability is not None else "",
             outcome,
             runner,
+            min(_TIMEOUT_SECONDS, remaining),
         )
         outcome.configurations_checked += 1
         checked_sources.add(unit.source)
@@ -426,7 +468,23 @@ def _run_fallback(
         "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback"
     )
     checked_sources = 0
-    for cpp in cpp_files:
+    deadline = time.monotonic() + _GLOBAL_TIMEOUT_SECONDS
+    for index, cpp in enumerate(cpp_files):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            unexamined = len(cpp_files) - index
+            message = f"C++ syntax global time budget left {unexamined} unit(s) unexamined"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=str(cpp.relative_to(project_root)),
+                    start_line=1,
+                    target_name="C++SyntaxBudgetError",
+                    status=EngineStatus.ERROR,
+                    message=message,
+                )
+            )
+            break
         try:
             relative = cpp.relative_to(project_root).as_posix()
         except ValueError:
@@ -480,6 +538,7 @@ def _run_fallback(
             capability.version if capability is not None else "",
             outcome,
             runner,
+            min(_TIMEOUT_SECONDS, remaining),
         )
         outcome.configurations_checked += 1
         checked_sources += 1
@@ -500,13 +559,86 @@ def run_cpp_lint(
     context = analysis_context.compilation if analysis_context is not None else CompilationContext()
     exact = compilation_context_present(context)
     outcome = CppLintOutcome([], [], [], [], "exact" if exact else "heuristic")
+    try:
+        project_root = project_root.resolve(strict=True)
+    except (OSError, RuntimeError) as err:
+        message = f"C++ project root could not be resolved: {type(err).__name__}"
+        outcome.errors.append(message)
+        outcome.targets.append(
+            InspectionTarget(
+                file_path=".",
+                start_line=1,
+                target_name="C++SyntaxContextError",
+                status=EngineStatus.ERROR,
+                message=message,
+            )
+        )
+        return outcome
+    normalized_files: list[Path] = []
+    for source in cpp_files:
+        safe_path = "."
+        try:
+            lexical = (source if source.is_absolute() else project_root / source).absolute()
+            relative = lexical.relative_to(project_root).as_posix()
+            safe_path = relative
+            resolved = lexical.resolve(strict=False)
+            resolved.relative_to(project_root)
+        except (OSError, RuntimeError, ValueError):
+            message = f"C++ source is outside the project or unreadable: {source.name}"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=safe_path,
+                    start_line=1,
+                    target_name="C++SyntaxContextError",
+                    status=EngineStatus.ERROR,
+                    message=message,
+                )
+            )
+            continue
+        if not resolved.exists():
+            normalized_files.append(resolved)
+            continue
+        try:
+            details = resolved.stat()
+        except OSError:
+            details = None
+        if details is None or not stat.S_ISREG(details.st_mode) or not os.access(resolved, os.R_OK):
+            message = f"C++ source is not a readable regular file: {source.name}"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=relative,
+                    start_line=1,
+                    target_name="C++SyntaxContextError",
+                    status=EngineStatus.ERROR,
+                    message=message,
+                )
+            )
+            continue
+        normalized_files.append(resolved)
+    if outcome.errors:
+        return outcome
+    if len(normalized_files) > _MAX_SELECTED_UNITS:
+        message = "C++ source count exceeds the bounded limit"
+        outcome.errors.append(message)
+        outcome.targets.append(
+            InspectionTarget(
+                file_path=".",
+                start_line=1,
+                target_name="C++SyntaxBudgetError",
+                status=EngineStatus.ERROR,
+                message=message,
+            )
+        )
+        return outcome
     if exact:
         assert analysis_context is not None
-        _run_exact(project_root, cpp_files, analysis_context, outcome, runner)
+        _run_exact(project_root, normalized_files, analysis_context, outcome, runner)
     else:
         _run_fallback(
             project_root,
-            cpp_files,
+            normalized_files,
             include_flags,
             analysis_context,
             outcome,

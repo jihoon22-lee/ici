@@ -458,12 +458,13 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
     assert source.read_bytes() == before
 
 
-@pytest.mark.parametrize("field", ["ExtraArgs", "ExtraArgsBefore"])
+@pytest.mark.parametrize("field", ["ExtraArgs", "ExtraArgsBefore", "InheritParentConfig"])
 def test_discovered_config_rejects_compiler_argument_overrides_without_invocation(
     tmp_path: Path, field: str
 ) -> None:
     root, source, context, _tidy = _project_context(tmp_path)
-    (root / ".clang-tidy").write_text(f"{field}: ['-Wno-error']\n", encoding="utf-8")
+    value = "true" if field == "InheritParentConfig" else "['-Wno-error']"
+    (root / ".clang-tidy").write_text(f"{field}: {value}\n", encoding="utf-8")
 
     outcome, calls = _run(root, source, context, {"clang_tidy": "auto"})
 
@@ -471,7 +472,21 @@ def test_discovered_config_rejects_compiler_argument_overrides_without_invocatio
     assert calls == []
     assert outcome.evidence == []
     assert any(target.target_name == "ClangTidyConfigError" for target in outcome.targets)
-    assert any("compiler arguments" in error for error in outcome.errors)
+    assert any("compiler arguments or inherit parent config" in error for error in outcome.errors)
+
+
+def test_source_outside_project_is_rejected_without_invocation(tmp_path: Path) -> None:
+    root, _source, context, _tidy = _project_context(tmp_path)
+    outside = tmp_path / "outside.cpp"
+    outside.write_text("int outside() { return 0; }\n", encoding="utf-8")
+
+    outcome, calls = _run(root, outside, context, {"clang_tidy": "auto"})
+
+    assert outcome.mode == "error"
+    assert calls == []
+    assert outcome.evidence == []
+    assert outcome.targets[0].target_name == "ClangTidyContextError"
+    assert "outside the project" in outcome.errors[0]
 
 
 def test_invalid_clang_tidy_mode_fails_closed_without_invocation(tmp_path: Path) -> None:

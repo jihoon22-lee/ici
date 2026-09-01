@@ -432,6 +432,8 @@ def test_absent_context_uses_cxx17_fallback_with_estimated_warning(
     ]
     assert command[-1] == str(root / "src/main.cpp")
     assert kwargs["cwd"] == root
+    assert kwargs["timeout"] == 120.0
+    assert kwargs["max_output_chars"] == 1_000_000
 
 
 def test_standalone_fallback_rejects_unsafe_include_flag_without_running_runner(
@@ -707,6 +709,75 @@ def test_error_only_empty_context_is_exact_error_without_heuristic_fallback(
         and "qmake-capture-configure-failed" in target.message
         for target in result.targets
     )
+
+
+def test_context_error_prevents_replay_even_when_a_valid_unit_exists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "project"
+    _write_project(root)
+    paths = _toolchain(tmp_path)
+    context = _context(
+        root,
+        _inventory(paths),
+        (_unit(root, paths["g++"]),),
+        diagnostics=(
+            CompilationDiagnostic(
+                "compile-database-partial-read",
+                "the compilation database could not be trusted",
+                level="error",
+                source="compile_commands.json",
+            ),
+        ),
+    )
+
+    result, calls, which_calls = _run_lint(root, context, monkeypatch)
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert calls == []
+    assert which_calls == []
+    assert result.extra["cpp_configurations_checked"] == 0
+    assert any("compile-database-partial-read" in target.message for target in result.targets)
+
+
+def test_compiler_global_budget_fails_closed_without_invocation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "project"
+    _write_project(root)
+    paths = _toolchain(tmp_path)
+    context = _context(root, _inventory(paths), (_unit(root, paths["g++"]),))
+    clock = iter((100.0, 701.0))
+    monkeypatch.setattr("ici.engines._cpp_lint.time.monotonic", lambda: next(clock))
+
+    result, calls, which_calls = _run_lint(root, context, monkeypatch)
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert calls == []
+    assert which_calls == []
+    assert result.extra["cpp_configurations_checked"] == 0
+    assert any(target.target_name == "C++SyntaxBudgetError" for target in result.targets)
+
+
+def test_compiler_unit_limit_fails_closed_without_invocation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "project"
+    _write_project(root)
+    paths = _toolchain(tmp_path)
+    unit = _unit(root, paths["g++"])
+    context = _context(root, _inventory(paths), (unit,) * 2_049)
+
+    result, calls, which_calls = _run_lint(root, context, monkeypatch)
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert calls == []
+    assert which_calls == []
+    assert result.extra["cpp_configurations_checked"] == 0
+    assert any(target.target_name == "C++SyntaxBudgetError" for target in result.targets)
 
 
 def test_stale_translation_unit_is_an_error_target_without_exception(

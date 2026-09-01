@@ -178,9 +178,9 @@ def _json_region(project_root: Path, cwd: Path, value: Any) -> _Region:
 
 def _kind(value: Any) -> tuple[str, EngineStatus]:
     kind = _bounded_text(value, "diagnostic kind", limit=32).casefold()
-    if kind in {"fatal error", "error"}:
+    if kind in {"fatal error", "error", "internal compiler error", "sorry, unimplemented"}:
         return kind, EngineStatus.FAIL
-    if kind in {"warning", "note", "remark"}:
+    if kind in {"warning", "note", "remark", "anachronism"}:
         return kind, EngineStatus.WARN
     raise ValueError(f"unsupported diagnostic kind: {kind}")
 
@@ -233,14 +233,18 @@ def _json_diagnostic(
     message = _bounded_text(value.get("message"), "diagnostic message")
     locations = value.get("locations")
     if locations is not None:
-        if not isinstance(locations, list) or not 1 <= len(locations) <= 128:
-            raise ValueError("diagnostic locations must be a bounded non-empty list")
-        location_value = locations[0]
+        if not isinstance(locations, list) or len(locations) > 128:
+            raise ValueError("diagnostic locations must be a bounded list")
+        location_value = locations[0] if locations else None
         for secondary in locations[1:]:
             _json_region(project_root, cwd, secondary)
     else:
         location_value = value.get("location")
-    region = _json_region(project_root, cwd, location_value)
+    region = (
+        _json_region(project_root, cwd, location_value)
+        if location_value is not None
+        else _Region("[external]", 1, None, None, None)
+    )
     rule_value = value.get("option", value.get("rule", value.get("check_name", "")))
     if rule_value:
         rule = _bounded_text(rule_value, "diagnostic rule", limit=256)
