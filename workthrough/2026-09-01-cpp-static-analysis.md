@@ -105,7 +105,7 @@ The exact local gate evidence for the current branch head is:
 - Smoke and Zero-CDN checks passed even though self-verification returned its expected nonzero
   quality verdict; the generated report was audited and its temporary HTML/JSON were removed.
 - The reproducible packaged artifact SHA-256 is
-  `f2551defcf25f9f2a21d2a334d9d49d66c169537384403e860155aae61e9c99d` (2,180,053 bytes).
+  `96058e8076c2342a70bab3dda2743f35eff3a399b3d50752cc8362b219c0f290` (2,180,071 bytes).
 
 The current environment still has no local `clang-tidy` binary, so no real local clang-tidy
 translation-unit run is claimed. Adapter policy, command construction, parser behavior, and
