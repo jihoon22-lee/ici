@@ -101,6 +101,12 @@ legacy assertions still required exactly one evidence record. The E2E contract n
 ordered `g++ stdlib include search` records plus exactly one analyzer record and checks the probe
 driver identity, language order, return code, timeout, truncation, and error fields.
 
+Follow-up run `33536720854` reduced the hosted failures from three to one: all analyzer and probe
+evidence assertions passed, while the clang-tidy test still compared its argv to the historical
+pre-projection list. The contract now validates the unchanged sanitized prefix separately from a
+bounded `-nostdinc++` plus unique, existing absolute `-isystem` directory tail; the real clazy and
+second clang-tidy paths assert the same projection shape.
+
 ### Exact tool evidence
 
 The exact Ubuntu 24.04 + Qt 5 + clazy 1.11 run recorded 12/12 full-lint units, an accepted
