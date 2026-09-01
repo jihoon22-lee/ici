@@ -46,13 +46,13 @@ jobs:
       # and is linted like the rest of it, so the later verify step needs Qt's
       # headers too — not to build a GUI, but to parse one.
       #
-      # qmake6 is a separate package from qt6-base-dev. clang-tidy keeps the
-      # I4-1 actual-process adapter test and dogfood path non-skippable. cmake
-      # ships with the runner image.
+      # qmake6 is a separate package from qt6-base-dev. clang-tidy and clazy
+      # keep the I4 actual-process adapter tests and dogfood path non-skippable.
+      # cmake ships with the runner image.
       - name: Install the C++ toolchain for the adapters and the C++ gate
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config clang-tidy
+          sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config clang-tidy clazy
 
       - name: Unit Tests & Coverage
         env:

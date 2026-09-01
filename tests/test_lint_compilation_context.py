@@ -216,7 +216,13 @@ def _run_lint(
         root,
         {
             "project": {"source_dirs": ["src"]},
-            "engines": {"lint": {"mode": "pass_warn_fail", "clang_tidy": "off"}},
+            "engines": {
+                "lint": {
+                    "mode": "pass_warn_fail",
+                    "clang_tidy": "off",
+                    "clazy": "off",
+                }
+            },
         },
         analysis_context=context,
     ).run()
