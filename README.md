@@ -10,19 +10,30 @@ $ ici doctor
 
 ### 현재 릴리스와 진행 상태
 
-현재 공개 릴리스는 [v0.10.1](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.1)이며,
-exact-main Merge Gate와 공개 artifact 감사를 통과했습니다. 현재 소스의 `0.10.2`는 공개
-artifact에서 확인된 Qt/clazy 호환성 및 진단 증거 결함만 교정하는 release candidate입니다.
-기능 PR #126, exact-main, toy-projects의 정확한 source candidate 검증은 모두 통과했으며,
-`v0.10.2` tag와 공개 artifact는 이 별도 release-prep PR의 exact-main Merge Gate 뒤에만
-생성합니다.
+현재 공개 stable 릴리스는 [v0.10.2](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.2)다.
+`v0.10.2` tag는 exact `main` commit
+[`3b50dd4c485ddab212beb23ff820e82286a06e77`](https://github.com/jihoon22-lee/ici/commit/3b50dd4c485ddab212beb23ff820e82286a06e77)을
+가리킨다. [exact-main CI run `33541134010`](https://github.com/jihoon22-lee/ici/actions/runs/33541134010)은
+Verify, Qt 5/Qt 6, `Publish Main Verification Report`, `Merge Gate`를 성공시켰고,
+push에서 실행되지 않는 PR publisher는 expected `skipped`였다. [release run
+`33541928666`](https://github.com/jihoon22-lee/ici/actions/runs/33541928666)의 provenance와
+publish job도 모두 성공했으며, [공개 release](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.2)는
+non-draft/non-prerelease와 정확히 9개 asset을 만족한다: `ici.pyz`, `ici.pyz.sha256`,
+`ici-self-report.html`, `ici-self-report.json`, `viewer-report.html`, `viewer-report.json`,
+`icirv`, `icirv-gui`, `icirv-gui.README.txt`. `ici.pyz`의 SHA-256은
+`8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`다.
+독립 main Pages audit도 ici/viewer 모두 HTTP 200·`text/html`·정확한 report title·외부
+resource URL 0건으로 통과했다. 이 release evidence의 상세 표는
+[`v0.10.2 public evidence workthrough`](docs/workthrough/2026-09-02-public-v0.10.2-evidence.md)와
+[인수인계 current release evidence](docs/superpowers/2026-08-30-handover.md#v0102-public-release-boundary--current)에
+보존한다.
 I4-1의 exact compiler/clang-tidy replay에 이어 I4-2에서 Qt-aware clazy와
 `moc`/`uic`/`rcc` generated-code linkage, Qt 5/Qt 6 compile evidence를 추가했습니다. 실제
 clazy 1.11·Qt matrix·1,517개 테스트·self/viewer dogfood·Zero-CDN Pages가 PR과 exact main에서
 통과했습니다. v0.10.1은 production `-Werror`가 clang-tidy/clazy finding을 도구 실패로
 승격하지 않도록 경고 선택은 보존하면서 오류 승격만 낮춥니다. v0.10.2는 외부 Qt macro
 preview와 CTest sanitizer evidence를 bounded하게 보존하고, clang-tidy/clazy가 compilation
-database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합니다. released-v0.10.2를
+database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합니다. 공개된 v0.10.2를
 사용하는 BuildScope 최종 검증과 I4-3/I4-4가 다음 완료 조건이며, 이전 릴리스 증거는 변경
 이력과 실행 계획에 보존합니다.
 
@@ -31,7 +42,7 @@ database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합
 - `feature`·`test`·`refactor`·`docs` PR은 버전 변경이나 stable release를 자동으로 만들지 않습니다.
 - `patch`는 이미 공개된 stable artifact의 defect·security·compatibility 수정에만 사용합니다.
 - `minor`는 사용자에게 보이는 응집된 roadmap checkpoint이며, ici 전체 gate·실제 도구 E2E·candidate cross-repo/toy 검증·PR/main CI·Pages·문서/CHANGELOG가 모두 끝난 뒤에만 정합니다.
-- pre-release/candidate artifact는 stable이 아니며, 하나의 PR이 하나의 릴리스를 뜻하지 않습니다. `v0.10.1`과 준비 중인 `v0.10.2`는 공개 결함에 한정한 corrective stabilization이고, 다음 minor는 I4-3/I4-4와 real toy-projects/quality-zoo 검증 이후로 미룹니다.
+- pre-release/candidate artifact는 stable이 아니며, 하나의 PR이 하나의 릴리스를 뜻하지 않습니다. `v0.10.1`과 공개된 `v0.10.2`는 공개 결함에 한정한 corrective stabilization이고, 다음 minor는 I4-3/I4-4와 real toy-projects/quality-zoo 검증 이후로 미룹니다.
 
 ---
 
@@ -202,9 +213,9 @@ release provenance·9개 artifact 감사도 완료됐습니다. v0.10.1 correcti
 Python 3.10 local run은 focused C++/CTest 회귀 161 passed, full suite 1,538 passed / 4 skipped다.
 정확한 Ubuntu 24.04 + Qt 5 + clazy 1.11 run은 full lint 12/12, approved external macro note
 1건, unsuppressed CTest 8의 9 cases와 LeakSanitizer diagnostic을 기록했다. suppression을 넣어
-확인한 작업은 toy repository에 한정되며 ici policy로 해석하지 않는다. 남은 delivery evidence는
-이번 correction의 ici PR/정확한 main gate, BuildScope candidate 교차 검증, 그리고 그 증거를
-통과한 corrective release를 사용하는 BuildScope 최종 검증입니다.
+확인한 작업은 toy repository에 한정되며 ici policy로 해석하지 않는다. 이번 correction의 ici
+PR/정확한 main gate와 공개 v0.10.2 release evidence는 완료됐다. 남은 delivery evidence는
+공개된 v0.10.2를 사용하는 BuildScope 최종 검증입니다.
 
 다중 GCC 회귀를 재현한 Ubuntu 24.04에서는 GCC 13/14가 함께 설치된 상태에서 toy-projects PR #38
 run `33531285208`의 Qt 5/Qt 6 deep clazy가 실패했습니다. fixed local `dist/ici.pyz`는

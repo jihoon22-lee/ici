@@ -66,6 +66,24 @@
   `/usr/include/c++/13/backward`; clazy exited 0 for all 12 sources, with 2 include-search probes,
   while the expected warnings remained present.
 
+### Public release evidence
+
+- **v0.10.2 is public**: the [release](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.2)
+  is non-draft/non-prerelease, and its tag resolves to exact `main` commit
+  `3b50dd4c485ddab212beb23ff820e82286a06e77`. The [exact-main CI run
+  33541134010](https://github.com/jihoon22-lee/ici/actions/runs/33541134010) passed verification,
+  Qt 5/Qt 6, trusted main publication, and `Merge Gate`; the PR publisher was skipped as expected
+  for a `main` push.
+- [Release run 33541928666](https://github.com/jihoon22-lee/ici/actions/runs/33541928666) passed
+  both `Validate Release Provenance` and `Build & Publish Release`. The release contains exactly
+  nine assets: `ici.pyz`, `ici.pyz.sha256`, `ici-self-report.html`, `ici-self-report.json`,
+  `viewer-report.html`, `viewer-report.json`, `icirv`, `icirv-gui`, and `icirv-gui.README.txt`.
+  The published `ici.pyz` SHA-256 is
+  `8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`.
+- Independent main Pages checks returned HTTP 200 and `text/html` with the exact ici/viewer report
+  titles and zero external resource URLs. The complete asset table and command-level evidence are
+  recorded in [`v0.10.2 public evidence workthrough`](docs/workthrough/2026-09-02-public-v0.10.2-evidence.md).
+
 ## [0.10.1] - 2026-09-01
 
 ### Fixed
