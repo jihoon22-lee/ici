@@ -267,6 +267,16 @@ def _assert_gcc_projection_and_analyzer_evidence(
     return analyzers[0]
 
 
+def _assert_gcc_stdlib_projection_arguments(arguments: list[str]) -> None:
+    assert arguments[0] == "-nostdinc++"
+    assert len(arguments) >= 3
+    assert len(arguments) % 2 == 1
+    assert all(argument == "-isystem" for argument in arguments[1::2])
+    roots = [Path(value).resolve(strict=True) for value in arguments[2::2]]
+    assert all(root.is_dir() for root in roots)
+    assert len(roots) == len(set(roots))
+
+
 def test_run_cpp_lint_uses_real_gcc_json_diagnostics(
     real_cpp_project: Path,
 ) -> None:
@@ -350,7 +360,7 @@ def test_run_clang_tidy_uses_real_binary_and_exact_context(
     ).resolve(strict=True)
     assert evidence.returncode == 0
     assert evidence.error == ""
-    assert evidence.argv == [
+    expected_prefix = [
         evidence.path,
         "--use-color=false",
         "--config={}",
@@ -364,6 +374,9 @@ def test_run_clang_tidy_uses_real_binary_and_exact_context(
         "../include",
         "-fdiagnostics-color=never",
     ]
+    assert evidence.argv is not None
+    assert evidence.argv[: len(expected_prefix)] == expected_prefix
+    _assert_gcc_stdlib_projection_arguments(evidence.argv[len(expected_prefix) :])
     assert all(value not in evidence.argv for value in ("-p", "--fix", "compile_commands.json"))
     assert _source_snapshot(real_cpp_project) == before
 
@@ -462,6 +475,9 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
     assert evidence.error == ""
     assert evidence.argv is not None
     assert evidence.argv[1:3] == ["--checks=qdatetime-utc", "--only-qt"]
+    projection_index = evidence.argv.index("-nostdinc++")
+    assert projection_index > evidence.argv.index("--")
+    _assert_gcc_stdlib_projection_arguments(evidence.argv[projection_index:])
     assert "-Werror" not in evidence.argv
     assert "-p" not in evidence.argv
     assert not any(argument.startswith("--fix") for argument in evidence.argv)
@@ -538,5 +554,8 @@ def test_run_clang_tidy_accepts_real_llvm_swappable_parameter_notes(
     assert evidence.argv is not None
     assert evidence.argv[3] == "--checks=-*,bugprone-easily-swappable-parameters"
     assert evidence.argv[4] == str(source.resolve(strict=True))
+    projection_index = evidence.argv.index("-nostdinc++")
+    assert projection_index > evidence.argv.index("--")
+    _assert_gcc_stdlib_projection_arguments(evidence.argv[projection_index:])
     assert all(value not in evidence.argv for value in ("-p", "--fix", "compile_commands.json"))
     assert _source_snapshot(real_cpp_project) == before
