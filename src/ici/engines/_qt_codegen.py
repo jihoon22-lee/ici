@@ -62,81 +62,145 @@ class QtCodegenOutcome:
     qt6_units: int = 0
 
 
+def _blank_cpp_char(char: str) -> str:
+    """Replace one non-code character without changing line positions."""
+
+    return "\n" if char == "\n" else " "
+
+
+@dataclass
+class _CppMasker:
+    """Small stateful lexer used to hide non-code C++ tokens."""
+
+    text: str
+    output: list[str] = field(default_factory=list)
+    index: int = 0
+    state: str = "code"
+    quote: str = ""
+    raw_end: str = ""
+
+    def run(self) -> str:
+        while self.index < len(self.text):
+            self._step()
+        return "".join(self.output)
+
+    def _step(self) -> None:
+        if self.state == "line-comment":
+            self._step_line_comment()
+        elif self.state == "block-comment":
+            self._step_block_comment()
+        elif self.state == "literal":
+            self._step_literal()
+        elif self.state == "raw":
+            self._step_raw()
+        else:
+            self._step_code()
+
+    def _step_line_comment(self) -> None:
+        if self._blank_current() == "\n":
+            self.state = "code"
+
+    def _step_block_comment(self) -> None:
+        if self._consume_pair("*/"):
+            self.state = "code"
+        else:
+            self._blank_current()
+
+    def _step_literal(self) -> None:
+        if self._consume_escape():
+            return
+        char = self.text[self.index]
+        self._blank_current()
+        if char in {self.quote, "\n"}:
+            self.state = "code"
+
+    def _step_raw(self) -> None:
+        if not self._consume_raw_end():
+            self._blank_current()
+
+    def _step_code(self) -> None:
+        if self._consume_pair("//", "line-comment"):
+            return
+        if self._consume_pair("/*", "block-comment"):
+            return
+        if self._consume_literal():
+            return
+        if self._consume_raw():
+            return
+        self.output.append(self.text[self.index])
+        self.index += 1
+
+    def _blank_current(self) -> str:
+        char = self.text[self.index]
+        self.output.append(_blank_cpp_char(char))
+        self.index += 1
+        return char
+
+    def _blank_span(self, length: int) -> None:
+        self.output.extend(" " for _ in range(length))
+        self.index += length
+
+    def _consume_pair(self, pair: str, state: str = "") -> bool:
+        if not self.text.startswith(pair, self.index):
+            return False
+        self._blank_span(len(pair))
+        if state:
+            self.state = state
+        return True
+
+    def _consume_escape(self) -> bool:
+        if self.text[self.index] != "\\" or self.index + 1 >= len(self.text):
+            return False
+        self.output.append(" ")
+        self.output.append(_blank_cpp_char(self.text[self.index + 1]))
+        self.index += 2
+        return True
+
+    def _consume_literal(self) -> bool:
+        char = self.text[self.index]
+        if char not in {"'", '"'}:
+            return False
+        self.output.append(" ")
+        self.index += 1
+        self.quote = char
+        self.state = "literal"
+        return True
+
+    def _consume_raw(self) -> bool:
+        delimiter = self._raw_delimiter()
+        if delimiter is None:
+            return False
+        opening = self.text.find("(", self.index + 2, min(len(self.text), self.index + 19))
+        self._blank_span(opening - self.index + 1)
+        self.index = opening + 1
+        self.raw_end = f'){delimiter}"'
+        self.state = "raw"
+        return True
+
+    def _raw_delimiter(self) -> str | None:
+        if not self.text.startswith('R"', self.index):
+            return None
+        opening = self.text.find("(", self.index + 2, min(len(self.text), self.index + 19))
+        if opening < 0:
+            return None
+        delimiter = self.text[self.index + 2 : opening]
+        if any(value.isspace() or value in "\\()" for value in delimiter):
+            return None
+        return delimiter
+
+    def _consume_raw_end(self) -> bool:
+        if not self.raw_end or not self.text.startswith(self.raw_end, self.index):
+            return False
+        self._blank_span(len(self.raw_end))
+        self.raw_end = ""
+        self.state = "code"
+        return True
+
+
 def _cpp_code(text: str) -> str:
     """Blank comments and literals while preserving code positions and lines."""
 
-    output: list[str] = []
-    index = 0
-    state = "code"
-    quote = ""
-    raw_end = ""
-    while index < len(text):
-        char = text[index]
-        pair = text[index : index + 2]
-        if state == "line-comment":
-            output.append("\n" if char == "\n" else " ")
-            index += 1
-            if char == "\n":
-                state = "code"
-            continue
-        if state == "block-comment":
-            if pair == "*/":
-                output.extend((" ", " "))
-                index += 2
-                state = "code"
-            else:
-                output.append("\n" if char == "\n" else " ")
-                index += 1
-            continue
-        if state == "literal":
-            if char == "\\" and index + 1 < len(text):
-                output.extend((" ", "\n" if text[index + 1] == "\n" else " "))
-                index += 2
-            else:
-                output.append("\n" if char == "\n" else " ")
-                index += 1
-                if char == quote or char == "\n":
-                    state = "code"
-            continue
-        if state == "raw":
-            if raw_end and text.startswith(raw_end, index):
-                output.extend(" " for _ in raw_end)
-                index += len(raw_end)
-                raw_end = ""
-                state = "code"
-            else:
-                output.append("\n" if char == "\n" else " ")
-                index += 1
-            continue
-        if pair == "//":
-            output.extend((" ", " "))
-            index += 2
-            state = "line-comment"
-            continue
-        if pair == "/*":
-            output.extend((" ", " "))
-            index += 2
-            state = "block-comment"
-            continue
-        if char in {"'", '"'}:
-            output.append(" ")
-            index += 1
-            quote = char
-            state = "literal"
-            continue
-        if pair == 'R"':
-            opening = text.find("(", index + 2, min(len(text), index + 19))
-            delimiter = text[index + 2 : opening] if opening >= 0 else ""
-            if opening >= 0 and not any(value.isspace() or value in "\\()" for value in delimiter):
-                consumed = opening - index + 1
-                output.extend(" " for _ in range(consumed))
-                index = opening + 1
-                raw_end = f'){delimiter}"'
-                state = "raw"
-                continue
-        output.append(char)
-        index += 1
-    return "".join(output)
+    return _CppMasker(text).run()
 
 
 def _q_object_line(text: str) -> int | None:
