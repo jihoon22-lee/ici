@@ -5,6 +5,13 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BIN="$ROOT/dist/ici.pyz"
+SMOKE_REPORT="/tmp/ici_smoke_report.html"
+SMOKE_JSON="/tmp/ici_smoke_report.json"
+
+cleanup() {
+    rm -f "$SMOKE_REPORT" "$SMOKE_JSON"
+}
+trap cleanup EXIT
 
 [ -f "$BIN" ] || { echo "산출물이 없습니다: $BIN (먼저 ./scripts/build-pyz.sh 실행)" >&2; exit 1; }
 
@@ -37,17 +44,31 @@ if [ -f "$ROOT/dist/ici" ]; then
 else
     echo "      dist/ici 없음 (스킵, pyz만 검증)"
 fi
-# HTML 리포트에 외부 CDN이 포함되지 않았는지 확인 (Zero-CDN 불변식)
-if "$BIN" verify --html /tmp/ici_smoke_report.html >/dev/null 2>&1; then
-    if grep -q "http://\|https://.*cdn\|cdn\." /tmp/ici_smoke_report.html 2>/dev/null; then
-        echo "      HTML 리포트에 외부 CDN 링크 발견 (Zero-CDN 위반)" >&2
-        exit 1
-    else
-        echo "      HTML Zero-CDN 검증 통과"
-    fi
-    rm -f /tmp/ici_smoke_report.html /tmp/ici_smoke_report.json
-else
-    echo "      HTML 리포트 생성 스킵 (verify 실패 시 무시)"
+# 품질 finding 때문에 verify 자체가 non-zero여도 리포터 산출물은 반드시 생성·검사한다.
+# 태그 속성에 쓰인 일반 문서 링크는 허용하지만 실행/표시 asset의 외부 의존성은 거부한다.
+rm -f "$SMOKE_REPORT" "$SMOKE_JSON"
+set +e
+"$BIN" verify --html "$SMOKE_REPORT" >/dev/null 2>&1
+verify_status=$?
+set -e
+if [ ! -s "$SMOKE_REPORT" ]; then
+    echo "      HTML 리포트가 생성되지 않음 (verify exit $verify_status)" >&2
+    exit 1
 fi
+python3 - "$SMOKE_REPORT" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+report = Path(sys.argv[1]).read_text(encoding="utf-8")
+patterns = (
+    r"<(?:script|img|iframe)\b[^>]*\bsrc\s*=\s*['\"](?:https?:)?//",
+    r"<link\b[^>]*\bhref\s*=\s*['\"](?:https?:)?//",
+    r"url\(\s*['\"]?(?:https?:)?//",
+)
+if any(re.search(pattern, report, re.IGNORECASE) for pattern in patterns):
+    raise SystemExit("HTML report has an external executable/display asset")
+PY
+echo "      HTML Zero-CDN 검증 통과 (verify exit $verify_status)"
 
 echo "✔ 모든 스모크 테스트 통과: $BIN"

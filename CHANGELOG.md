@@ -25,6 +25,9 @@
   inputs and the clang-tidy/diagnostic helper implementations.
 
 ### Verification
+- **Deterministic Zero-CDN smoke**: `scripts/smoke.sh` now inspects a generated HTML report even
+  when the quality verdict makes `verify` return nonzero, rejects external executable/display
+  assets, requires a non-empty report, and removes its temporary HTML/JSON through an exit trap.
 - **I4-1 actual-process gate**: a Linux E2E now loads a real compilation database and exercises
   the production compiler and clang-tidy adapters without source mutation. It asserts GCC 9+ JSON
   rule/location evidence and the exact sanitized clang-tidy argv (no `-p`, `--fix`, dependency, or
