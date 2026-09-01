@@ -22,6 +22,7 @@ from ici.engines._cpp_lint import run_cpp_lint
 
 _PROBES = {
     "g++": ToolProbe("g++", ("g++",), ("-dumpfullversion", "-dumpversion")),
+    "clang++": ToolProbe("clang++", ("clang++",), ("--version",)),
     "clang-tidy": ToolProbe("clang-tidy", ("clang-tidy",), ("--version",)),
     "clazy": ToolProbe("clazy", ("clazy-standalone", "clazy"), ("--version",)),
 }
@@ -342,7 +343,7 @@ def test_run_clang_tidy_uses_real_binary_and_exact_context(
 
 
 def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> None:
-    inventory = _required_inventory("g++", "clazy")
+    inventory = _required_inventory("g++", "clang++", "clazy")
     pkg_config = shutil.which("pkg-config")
     if pkg_config is None:
         _unavailable("pkg-config is required for the Qt-backed clazy fixture")
