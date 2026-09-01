@@ -94,8 +94,9 @@ class GccStdlibProjection:
     error: str = ""
 
 
+CompilerExecutableIdentity = tuple[int, int, int, int, int]
 GccStdlibProjectionCache = dict[
-    tuple[str, str, tuple[str, ...]],
+    tuple[str, str, tuple[str, ...], CompilerExecutableIdentity],
     GccStdlibProjection,
 ]
 
@@ -258,6 +259,24 @@ def _compact_probe_result(result: ProcessResult) -> ProcessResult:
         duration=result.duration,
         timed_out=result.timed_out,
         truncated=result.truncated,
+    )
+
+
+def _compiler_executable_identity(compiler: Path) -> CompilerExecutableIdentity | None:
+    """Return replacement-sensitive identity for an already approved driver."""
+
+    try:
+        details = compiler.stat()
+    except OSError:
+        return None
+    if not stat.S_ISREG(details.st_mode) or not os.access(compiler, os.X_OK):
+        return None
+    return (
+        details.st_dev,
+        details.st_ino,
+        details.st_size,
+        details.st_mtime_ns,
+        details.st_ctime_ns,
     )
 
 
@@ -463,7 +482,13 @@ def gcc_standard_library_for_replay(
             error_code="gcc-include-probe-cwd",
             error="GCC include search working directory is unavailable.",
         )
-    key = (str(compiler), str(resolved_cwd), selectors)
+    compiler_identity = _compiler_executable_identity(compiler)
+    if compiler_identity is None:
+        return GccStdlibProjection(
+            error_code="gcc-include-probe-compiler",
+            error="GCC include search compiler identity is unavailable.",
+        )
+    key = (str(compiler), str(resolved_cwd), selectors, compiler_identity)
     cached = cache.get(key)
     if cached is not None:
         return cached
@@ -474,6 +499,12 @@ def gcc_standard_library_for_replay(
         runner=runner,
         timeout=timeout,
     )
+    if _compiler_executable_identity(compiler) != compiler_identity:
+        return GccStdlibProjection(
+            probes=projection.probes,
+            error_code="gcc-include-probe-compiler-changed",
+            error="GCC include search compiler identity changed during probing.",
+        )
     cache[key] = projection
     return projection
 

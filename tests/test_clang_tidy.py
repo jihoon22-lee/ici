@@ -266,6 +266,21 @@ def test_approved_executable_receives_exact_sanitized_context_command(
     assert source.read_bytes() == before
 
 
+def test_c_translation_unit_does_not_probe_or_project_cpp_standard_library(
+    tmp_path: Path,
+) -> None:
+    root, source, context, _tidy = _project_context(tmp_path)
+    c_units = tuple(replace(unit, language="c") for unit in context.compilation.units)
+    c_context = replace(context, compilation=replace(context.compilation, units=c_units))
+
+    outcome, calls = _run(root, source, c_context, {"clang_tidy": "required"})
+
+    assert outcome.mode == "exact"
+    assert len(calls) == 1
+    assert all(item.name != "g++ stdlib include search" for item in outcome.evidence)
+    assert "-nostdinc++" not in calls[0][0]
+
+
 def test_clang_tidy_demotes_build_warning_policy_but_preserves_selected_checks(
     tmp_path: Path,
 ) -> None:

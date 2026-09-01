@@ -20,6 +20,7 @@ from ici.core.models import EngineStatus, EvidenceState, FindingCategory
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
 from ici.engines._clazy import run_clazy
+from ici.engines._cpp_tooling import gcc_standard_library_for_replay
 from ici.engines.lint import LintEngine
 
 
@@ -643,6 +644,81 @@ def test_standalone_receives_gcc_projection_and_reuses_identical_selector_probe(
             cursor = tail.index(expected, cursor) + 1
 
 
+def test_gcc_projection_cache_reprobes_after_compiler_file_replacement(tmp_path: Path) -> None:
+    root, _sources, context = _stdlib_clazy_context(tmp_path)
+    compiler = Path(context.capabilities.capabilities["g++"].path)
+    common, cxx = (tmp_path / "toolchain" / name for name in ("common", "cxx"))
+    common.mkdir(parents=True)
+    cxx.mkdir(parents=True)
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        language = command[command.index("-x") + 1]
+        paths = (cxx, common) if language == "c++" else (common,)
+        return ProcessResult(0, "", _stdlib_search_output(paths), 0.01)
+
+    cache = {}
+    first = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        root / "build",
+        context,
+        ["-m64"],
+        cache,
+        runner=runner,
+    )
+    compiler.write_text("#!/bin/sh\n# replaced\nexit 0\n", encoding="utf-8")
+    compiler.chmod(0o700)
+    second = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        root / "build",
+        context,
+        ["-m64"],
+        cache,
+        runner=runner,
+    )
+
+    assert first.error == second.error == ""
+    assert first.arguments == second.arguments
+    assert len(calls) == 4
+
+
+def test_gcc_projection_fails_if_compiler_identity_changes_during_probe(tmp_path: Path) -> None:
+    root, _sources, context = _stdlib_clazy_context(tmp_path)
+    compiler = Path(context.capabilities.capabilities["g++"].path)
+    common, cxx = (tmp_path / "toolchain" / name for name in ("common", "cxx"))
+    common.mkdir(parents=True)
+    cxx.mkdir(parents=True)
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        language = command[command.index("-x") + 1]
+        if len(calls) == 1:
+            compiler.write_text("#!/bin/sh\n# changed mid-probe\nexit 0\n", encoding="utf-8")
+            compiler.chmod(0o700)
+        paths = (cxx, common) if language == "c++" else (common,)
+        return ProcessResult(0, "", _stdlib_search_output(paths), 0.01)
+
+    cache = {}
+    projection = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        root / "build",
+        context,
+        ["-m64"],
+        cache,
+        runner=runner,
+    )
+
+    assert len(calls) == 2
+    assert projection.arguments == ()
+    assert projection.error_code == "gcc-include-probe-compiler-changed"
+    assert cache == {}
+
+
 def test_standalone_keeps_non_gcc_compile_units_unchanged(tmp_path: Path) -> None:
     root, source, context, _clazy, _compiler = _context(tmp_path)
 
@@ -664,6 +740,31 @@ def test_standalone_keeps_non_gcc_compile_units_unchanged(tmp_path: Path) -> Non
         "-fPIC",
         "-fdiagnostics-color=never",
     ]
+
+
+def test_standalone_does_not_project_cpp_standard_library_for_c_units(tmp_path: Path) -> None:
+    root, sources, context = _stdlib_clazy_context(tmp_path)
+    c_units = tuple(replace(unit, language="c") for unit in context.compilation.units)
+    c_context = replace(context, compilation=replace(context.compilation, units=c_units))
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        assert Path(command[0]).name == "clazy-standalone"
+        return ProcessResult(0, "", "", 0.01)
+
+    outcome = run_clazy(
+        root,
+        sources,
+        c_context,
+        {"clazy": "required"},
+        runner=runner,
+    )
+
+    assert outcome.mode == "exact"
+    assert len(calls) == 2
+    assert all("-nostdinc++" not in command for command in calls)
+    assert all(item.name != "g++ stdlib include search" for item in outcome.evidence)
 
 
 @pytest.mark.parametrize(

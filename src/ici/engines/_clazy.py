@@ -425,16 +425,18 @@ def _run_unit(
         )
         compiler_arguments = tooling_arguments(replay.argv, replay.source)
         unit_deadline = time.monotonic() + timeout
-        projection = gcc_standard_library_for_replay(
-            project_root,
-            replay.argv[0],
-            replay.cwd,
-            context,
-            compiler_arguments,
-            projection_cache,
-            runner=runner,
-            timeout=max(0.0, unit_deadline - time.monotonic()),
-        )
+        projection = GccStdlibProjection()
+        if unit.language == "c++":
+            projection = gcc_standard_library_for_replay(
+                project_root,
+                replay.argv[0],
+                replay.cwd,
+                context,
+                compiler_arguments,
+                projection_cache,
+                runner=runner,
+                timeout=max(0.0, unit_deadline - time.monotonic()),
+            )
         _record_gcc_projection_evidence(outcome, context, projection, recorded_probes)
         if projection.error:
             message = (
