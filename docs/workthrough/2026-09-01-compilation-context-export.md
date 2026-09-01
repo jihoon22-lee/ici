@@ -157,25 +157,51 @@ fatal diagnostic, serialization or write error: 1
 
 ### Remote follow-up
 
-- Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110)은 head `3ce564a`에서 exact main
-  commit `6b44f32869944a0941cab63eb94489b92c543a58`로 병합됐다. [CI run 33448847117](https://github.com/jihoon22-lee/ici/actions/runs/33448847117)은
-  required checks와 `Merge Gate`를 모두 성공시켰고, [sticky comment](https://github.com/jihoon22-lee/ici/pull/110#issuecomment-5485964934)는
+- Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110)은 head `3ce564a`에서
+  `6b44f32869944a0941cab63eb94489b92c543a58`로 병합됐다. [CI run 33448847117](https://github.com/jihoon22-lee/ici/actions/runs/33448847117)은
+  required checks와 `Merge Gate`를 모두 통과했고, sticky comment marker 1개·report link 2개 및
+  독립 PR ici/viewer Pages의 HTTP 200·correct title·external resource reference 0건을 확인했다.
+- Release [PR #111](https://github.com/jihoon22-lee/ici/pull/111)은 head
+  [`13d870f`](https://github.com/jihoon22-lee/ici/commit/13d870f6bd8c6bd9ddc89b703e40b1d22b7567f4)에서
+  exact main commit
+  [`27574109e0f3fc24d6e96eca05bfded4e041d3fa`](https://github.com/jihoon22-lee/ici/commit/27574109e0f3fc24d6e96eca05bfded4e041d3fa)로
+  병합됐다. [PR CI run 33450379770](https://github.com/jihoon22-lee/ici/actions/runs/33450379770)은
+  all green이었고, [sticky comment](https://github.com/jihoon22-lee/ici/pull/111#issuecomment-5486185531)는
   marker 1과 두 report link를 기록했다.
-- 독립 PR Pages는 HTTP 200·`text/html`·expected title·external reference 0건이었다. ici는
-  5,690,362 bytes, SHA-256 `fbda099830ee7f0505b76b410963e2531904ea199e36e0292953d2cf73f45014`,
-  viewer는 345,176 bytes, SHA-256
-  `cff8fdc355bf09a5fcceda0f4c1715988b693a2b61f6fac23641dd3d6a6ea115`였다.
-- main [CI run 33449333028](https://github.com/jihoon22-lee/ici/actions/runs/33449333028)도 `Merge Gate`와
-  `Publish Main`을 포함해 성공했다. main Pages는 HTTP 200·`text/html`·expected title·external
-  reference 0건으로, ici 5,690,362 bytes/SHA-256
-  `99445ff8da2458d6bd5d861d63ae9318db374dfbc60a66bc6cc60ff5cc05894d`, viewer 345,176 bytes/SHA-256
-  `4626e354eba2638e07c3c6a254e4ae5cb95291a86c13f4bebe92bef1d892696d`였다.
-- 원격 PR·main Pages 증거는 확보됐지만 release PR/tag/assets와 same-basename active-header
-  비교는 아직 pending이다.
+- 독립 PR [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/111/)와
+  [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/111/)는 HTTP 200·`text/html`·correct
+  title·external reference 0건이었다. ici는 5,690,362 bytes/SHA-256
+  `862c72443ca80040e0bc4524d31c5f5f7e8adb26292faf665f125ce09a9e53af`, viewer는 345,176
+  bytes/SHA-256 `e6c86558ce00666e8151c1b4020abd26115f3dd6846dca06b275d5b7b75366ff`였다.
+- Exact main [CI run 33450906375](https://github.com/jihoon22-lee/ici/actions/runs/33450906375)은 all green이었다.
+  main [ici Pages](https://jihoon22-lee.github.io/ici/ici/main/)와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/main/)
+  도 HTTP 200·`text/html`·correct title·external reference 0건이며 기존 기록 hash를 유지했다:
+  ici 5,690,362 bytes/SHA-256 `99445ff8da2458d6bd5d861d63ae9318db374dfbc60a66bc6cc60ff5cc05894d`,
+  viewer 345,176 bytes/SHA-256 `4626e354eba2638e07c3c6a254e4ae5cb95291a86c13f4bebe92bef1d892696d`.
+- Annotated [`v0.8.0` tag](https://github.com/jihoon22-lee/ici/releases/tag/v0.8.0)는 exact main SHA에
+  연결됐다. [Release run 33451310453](https://github.com/jihoon22-lee/ici/actions/runs/33451310453)은
+  `Validate Release Provenance`와 `Build & Publish Release`를 모두 green으로 완료했고, published
+  release는 non-draft/non-prerelease이며 `ici.pyz`, `ici.pyz.sha256`, self/viewer HTML·JSON,
+  `icirv`, `icirv-gui`, `icirv-gui.README.txt`의 정확히 9개 asset을 포함한다.
+- Downloaded `ici.pyz`는 version `0.8.0`을 보고했고 checksum 검증은 GitHub API digest
+  `sha256:bb723a30b0ed07936fcf81c7e2b4425832fd86210286b0e6b1b619e1b434142e`와 일치했다. Release
+  self/viewer HTML SHA-256은 각각
+  `ccfbb3709864c7bf578a0635d66a63b82448304aefd616e1b57a3d9d59038539`와
+  `6ee8d2e5b29453155af5e84323a8d829c1bcb3be80c345ab6d99d27b6560412a`였고, correct title·external
+  reference 0건 및 두 JSON valid를 확인했다.
+- Public v0.8.0 BuildScope verify는 WARN(Pass 11, Warn 2; tests 45/45; TEM 5.00), HTML SHA-256은
+  `567957be0fcf978d756116262b4075f1655050902227b0b9d1428fe7a1080b6b`였다. Public export SHA-256은
+  `f1d7e1297c773f55777d939a552c11f300a5f59652839f59495037ac227e83d`, semantic digest는
+  `sha256:68f86ddf572ba781573f24d8a7319c6abd0f606b980ea1594e9f0616da71e95f`, native v2 snapshot은
+  `085f70450cd89171d3fd4011d35ccc35e8658ab5308b64e398ea0b0793c45d8a`였다. Schema validation은
+  passed했고, 16 unit·6 target·14 field group에서 mismatch·checkout leak·raw `argv`/`command` key는
+  모두 0건이었다.
+- Release와 public artifact evidence는 완료됐고, I3-5에는 same-basename active-header edge를 실제
+  compiler trace와 대조하는 작업만 남아 있다.
 
 ## Next Steps
 
-- PR #110의 required CI, sticky comment, ici/viewer Pages와 main 반영 증거를 위에 기록했다.
-  별도 release PR/tag/assets와 공개 checksum 검증이 남아 있다.
-- 공개 release artifact를 BuildScope의 교차 구현 비교에 고정하고, I3의 남은 same-basename
-  active header edge 대조를 toy fixture와 실제 compiler trace로 완료한다.
+- PR #111의 merge commit·required CI·sticky comment·PR/main Pages와 v0.8.0 release/tag/assets,
+  checksum, version, report, BuildScope/export evidence를 위에 기록했다.
+- I3-5의 남은 same-basename active-header edge를 toy fixture와 실제 compiler trace로 대조하고,
+  두 구현의 compiler 선택과 동일한 edge임을 확정한다.
