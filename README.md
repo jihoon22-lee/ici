@@ -11,23 +11,27 @@ $ ici doctor
 ### 현재 릴리스와 진행 상태
 
 현재 공개 릴리스는 [v0.10.1](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.1)이며,
-exact-main Merge Gate와 공개 artifact 감사를 통과했습니다. 현재 소스 버전도 `0.10.1`로
-유지합니다. 이번 Qt5/clazy 호환성 보정은 ici PR과 cross-repository candidate 검증이 모두
-끝난 뒤에만 corrective `v0.10.2` patch가 필요한지 확정합니다.
+exact-main Merge Gate와 공개 artifact 감사를 통과했습니다. 현재 소스의 `0.10.2`는 공개
+artifact에서 확인된 Qt/clazy 호환성 및 진단 증거 결함만 교정하는 release candidate입니다.
+기능 PR #126, exact-main, toy-projects의 정확한 source candidate 검증은 모두 통과했으며,
+`v0.10.2` tag와 공개 artifact는 이 별도 release-prep PR의 exact-main Merge Gate 뒤에만
+생성합니다.
 I4-1의 exact compiler/clang-tidy replay에 이어 I4-2에서 Qt-aware clazy와
 `moc`/`uic`/`rcc` generated-code linkage, Qt 5/Qt 6 compile evidence를 추가했습니다. 실제
 clazy 1.11·Qt matrix·1,517개 테스트·self/viewer dogfood·Zero-CDN Pages가 PR과 exact main에서
 통과했습니다. v0.10.1은 production `-Werror`가 clang-tidy/clazy finding을 도구 실패로
-승격하지 않도록 경고 선택은 보존하면서 오류 승격만 낮춥니다. toy-projects BuildScope B5의
-released-v0.10.1 교차 검증과 I4-3/I4-4가 다음 완료 조건이며, 이전 릴리스 증거는 변경 이력과
-실행 계획에 보존합니다.
+승격하지 않도록 경고 선택은 보존하면서 오류 승격만 낮춥니다. v0.10.2는 외부 Qt macro
+preview와 CTest sanitizer evidence를 bounded하게 보존하고, clang-tidy/clazy가 compilation
+database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합니다. released-v0.10.2를
+사용하는 BuildScope 최종 검증과 I4-3/I4-4가 다음 완료 조건이며, 이전 릴리스 증거는 변경
+이력과 실행 계획에 보존합니다.
 
 ### 릴리스 정책
 
 - `feature`·`test`·`refactor`·`docs` PR은 버전 변경이나 stable release를 자동으로 만들지 않습니다.
 - `patch`는 이미 공개된 stable artifact의 defect·security·compatibility 수정에만 사용합니다.
 - `minor`는 사용자에게 보이는 응집된 roadmap checkpoint이며, ici 전체 gate·실제 도구 E2E·candidate cross-repo/toy 검증·PR/main CI·Pages·문서/CHANGELOG가 모두 끝난 뒤에만 정합니다.
-- pre-release/candidate artifact는 stable이 아니며, 하나의 PR이 하나의 릴리스를 뜻하지 않습니다. 현재 `v0.10.1`은 corrective stabilization이고, 다음 minor는 I4-3/I4-4와 real toy-projects/quality-zoo 검증 이후로 미룹니다.
+- pre-release/candidate artifact는 stable이 아니며, 하나의 PR이 하나의 릴리스를 뜻하지 않습니다. `v0.10.1`과 준비 중인 `v0.10.2`는 공개 결함에 한정한 corrective stabilization이고, 다음 minor는 I4-3/I4-4와 real toy-projects/quality-zoo 검증 이후로 미룹니다.
 
 ---
 

@@ -514,7 +514,7 @@ PASS를 기록합니다. major가 불명확하거나 replay가 없거나 generat
 남깁니다. 이 검증은 CMake AUTOMOC/AUTOUIC/
 AUTORCC와 qmake의 direct generated unit 양쪽을 다룹니다.
 
-현재 v0.10.1 후보 full local contract run은 `1526 passed, 4 skipped`였고, skip은 로컬 환경의
+현재 v0.10.2 corrective source의 full local contract는 `1,565 passed, 4 skipped`였고, skip은 로컬 환경의
 `clang-tidy`·`clazy`·`clang++` 미설치에 따른 것입니다. CI와 release workflow는 clazy를 설치하고
 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`을 설정해 실제 clazy/Qt process E2E가 조용히 skip되지
 않게 합니다. I4-2 PR #122의 head `c3a8fe21639cecef395f0bc28777066401927da0`은 [run
@@ -532,6 +532,17 @@ PR #38의 run `33531285208`은 Qt 5와 Qt 6 deep에서 clazy가 compile database
 projection으로 `/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`,
 `/usr/include/c++/13/backward`를 `-nostdinc++` 뒤 ordered `-isystem`으로 전달했고, 2 probes와
 12 sources에서 clazy exit 0을 기록하면서 expected warnings를 보존했습니다.
+
+최종 기능 PR #126의 [run `33537139817`](https://github.com/jihoon22-lee/ici/actions/runs/33537139817)은
+actual compiler/clang-tidy/clazy process E2E를 포함한 1,569/1,569 테스트, Qt 5/Qt 6,
+self/viewer dogfood, 단일 sticky comment, Zero-CDN Pages와 Merge Gate를 통과했습니다. 같은
+exact source를 사용한 toy-projects PR #38의 [run `33537952439`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33537952439)도
+Qt5/Qt6 BuildScope deep 검증과 release contract를 포함한 21개 job 전체를 통과했습니다. squash
+merge commit `b1b3cc149c72eef6f71370364ab7eaf24d48ca40`의 [exact-main run
+`33538985765`](https://github.com/jihoon22-lee/ici/actions/runs/33538985765)은 trusted main
+publication과 Merge Gate까지 성공했고, main ici/viewer Pages는 HTTP 200, 정확한 report title,
+외부 resource 0개였습니다. v0.10.2 tag와 공개 artifact는 별도 release-prep PR의 exact-main
+gate가 성공한 뒤에만 생성합니다.
 
 cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
 path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration
