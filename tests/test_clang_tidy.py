@@ -31,6 +31,11 @@ def _executable(path: Path) -> Path:
     return path.resolve(strict=True)
 
 
+def _include_search_output(*paths: Path) -> str:
+    body = "\n".join(f" {path}" for path in paths)
+    return f"COLLECT_GCC=g++\n#include <...> search starts here:\n{body}\nEnd of search list.\n"
+
+
 def _project_context(
     tmp_path: Path, *, include_clang_tidy: bool = True
 ) -> tuple[Path, Path, AnalysisContext, Path | None]:
@@ -39,6 +44,8 @@ def _project_context(
     source.parent.mkdir(parents=True, exist_ok=True)
     (root / "build").mkdir(parents=True, exist_ok=True)
     (root / "include").mkdir(parents=True, exist_ok=True)
+    (root / "toolchain" / "cxx").mkdir(parents=True, exist_ok=True)
+    (root / "toolchain" / "common").mkdir(parents=True, exist_ok=True)
     source.write_bytes(b"int main() { return 0; }\n")
 
     compiler = _executable(tmp_path / "tools" / "g++")
@@ -127,8 +134,14 @@ def _run(
     tidy_output: ProcessResult | None = None,
 ) -> tuple[object, list[tuple[list[str], dict[str, object]]]]:
     calls: list[tuple[list[str], dict[str, object]]] = []
+    compiler = Path(context.capabilities.capabilities["g++"].path).resolve(strict=True)
 
     def runner(command: list[str], **kwargs: object) -> ProcessResult:
+        if Path(command[0]).resolve(strict=True) == compiler:
+            language = command[command.index("-x") + 1]
+            common = root / "toolchain" / "common"
+            paths = (root / "toolchain" / "cxx", common) if language == "c++" else (common,)
+            return ProcessResult(0, "", _include_search_output(*paths), 0.01)
         calls.append((command, kwargs))
         return tidy_output or ProcessResult(0, "", "", 0.01)
 
@@ -221,6 +234,9 @@ def test_approved_executable_receives_exact_sanitized_context_command(
     assert outcome.mode == "exact"
     assert outcome.errors == []
     assert outcome.sources_checked == 1
+    stdlib_probes = [item for item in outcome.evidence if item.name == "g++ stdlib include search"]
+    assert len(stdlib_probes) == 2
+    assert [item.argv[item.argv.index("-x") + 1] for item in stdlib_probes] == ["c++", "c"]
     assert len(calls) == 1
     command, kwargs = calls[0]
     assert command == [
@@ -236,6 +252,9 @@ def test_approved_executable_receives_exact_sanitized_context_command(
         "-I",
         "../include",
         "-fdiagnostics-color=never",
+        "-nostdinc++",
+        "-isystem",
+        str(root / "toolchain" / "cxx"),
     ]
     assert "-p" not in command
     assert "compile_commands.json" not in command
@@ -245,6 +264,21 @@ def test_approved_executable_receives_exact_sanitized_context_command(
     assert kwargs["input_text"] == ""
     assert kwargs["replace_env"] is True
     assert source.read_bytes() == before
+
+
+def test_c_translation_unit_does_not_probe_or_project_cpp_standard_library(
+    tmp_path: Path,
+) -> None:
+    root, source, context, _tidy = _project_context(tmp_path)
+    c_units = tuple(replace(unit, language="c") for unit in context.compilation.units)
+    c_context = replace(context, compilation=replace(context.compilation, units=c_units))
+
+    outcome, calls = _run(root, source, c_context, {"clang_tidy": "required"})
+
+    assert outcome.mode == "exact"
+    assert len(calls) == 1
+    assert all(item.name != "g++ stdlib include search" for item in outcome.evidence)
+    assert "-nostdinc++" not in calls[0][0]
 
 
 def test_clang_tidy_demotes_build_warning_policy_but_preserves_selected_checks(
@@ -419,7 +453,8 @@ def test_process_failures_and_malformed_output_are_atomic_errors(
     assert len(calls) == 1
     assert outcome.diagnostics == []
     assert any(error_fragment in error for error in outcome.errors)
-    assert outcome.evidence[0].error
+    tidy_evidence = next(item for item in outcome.evidence if item.name == "clang-tidy")
+    assert tidy_evidence.error
     assert any(target.target_name == "ClangTidyExecutionError" for target in outcome.targets)
 
 
@@ -479,6 +514,11 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
         calls.append((command, kwargs))
         executable = Path(command[0]).resolve(strict=True)
         if executable == compiler:
+            if "-x" in command and "-v" in command:
+                language = command[command.index("-x") + 1]
+                common = root / "toolchain" / "common"
+                paths = (root / "toolchain" / "cxx", common) if language == "c++" else (common,)
+                return ProcessResult(0, "", _include_search_output(*paths), 0.01)
             return ProcessResult(0, "", "", 0.01)
         if executable == tidy:
             return ProcessResult(0, "", tidy_output, 0.01)
@@ -502,7 +542,7 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
 
     assert result.status is EngineStatus.WARN
     assert result.evidence is EvidenceState.MEASURED
-    assert len(calls) == 2
+    assert len(calls) == 4
     assert result.extra["cpp_diagnostic_families"] == {
         "compiler": 0,
         "clang-tidy": 1,

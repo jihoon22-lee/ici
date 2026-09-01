@@ -465,6 +465,33 @@ replacement context도 located diagnostic의 project source line과 raw text가 
 forged/extra preview와 그 밖의 malformed legacy context는 partial finding 없이 atomic `ERROR`로
 처리합니다. finding category는 다음과 같이 안정적으로 매핑됩니다.
 
+legacy context가 Qt와 같은 외부 header를 가리킬 수 있으므로 parser는 exact sanitized compiler
+argv의 명시적 include root만 추가 read authority로 사용합니다(최대 512개 bounded directory와
+project root). 외부 root의 source preview도 허용되지만 diagnostic target과 report 위치는
+항상 `[external]`로 투영됩니다. source 파일은 `O_NOFOLLOW` regular-file descriptor로 열고
+열기 전후의 device/inode/size/mtime identity를 비교합니다. 읽는 동안 바뀌거나 symlink·비정규
+파일이면 거부하며, source-context 누적은 1,000,000 bytes, 한 줄은 8,192 characters 이하일
+때만 검증합니다. root 부재, identity mismatch, exact source mismatch, forged/extra preview와
+bound 초과는 finding 일부를 남기지 않고 fail-closed합니다.
+
+clang-tidy/clazy가 Clang 기반이고 compilation context의 compiler가 capability-approved `g++`인
+경우에는 선택 GCC의 libstdc++를 별도로 고정합니다. replay compiler가 선택된 `g++`와 resolved
+file identity가 같은지 먼저 확인하고, 그 GCC를 `c++`와 `c`로 각각 한 번씩 `-E -x <lang> -v -`
+bounded probe합니다. probe에는 sanitized `-m*`와 `--sysroot`/`-isysroot` selector만 보존합니다.
+C++ search roots에서 C search roots를 빼고 남은 디렉터리를 compiler가 보고한
+순서 그대로 `-nostdinc++`와 `-isystem <root>` 쌍으로 두 도구에 투영합니다. 각 probe는 최대
+5초, 합계는 최대 10초이고 131,072 output characters·64 directories 범위입니다. identity가
+다르면 projection 대상이 아니며, 일치한 GCC의 malformed/timeout/truncated/nonzero probe 또는
+C++ 표준 라이브러리 경로 미확인은 analyzer 실행 전 `ERROR`입니다.
+각 probe는 `g++ stdlib include search` `ToolEvidence`로 기록되고 동일 replay key에서는 캐시됩니다.
+C translation unit에는 이 projection을 적용하지 않으며, GCC 파일이 교체되면 cache identity가
+달라져 다시 probe하고 probe 도중 교체는 atomic `ERROR`가 됩니다.
+
+clazy process 자체가 nonzero로 종료되면 출력에 warning만 있어도 parser를 시도하지 않고
+atomic engine `ERROR`를 발행합니다. `ToolEvidence.error`와 오류 target에는 bounded exit code와
+`fatal`/`error`/`warning`/`note`/`remark` kind count, processing/output 여부만 남기며 raw
+stdout/stderr prose와 host path를 복사하지 않습니다.
+
 | clazy rule 의미 | v3 category |
 |---|---|
 | `lifetime`, `ownership`, `parent-less`, `qobject-cast` | `RESOURCE` |
@@ -498,6 +525,13 @@ main publication 및 ici/viewer Pages 감사를 통과했습니다. 따라서 ic
 v0.10.0 release workflow run `33503441322`도 provenance와 9개 artifact 감사를 통과했습니다.
 첫 toy-projects BuildScope B5 run이 production `-Werror`의 diagnostic-tool 승격 결함을 드러내
 v0.10.1 보정과 released-artifact 재검증이 후속 gate가 됐습니다.
+
+다중 GCC 회귀는 Ubuntu 24.04에서 GCC 13과 GCC 14를 함께 설치해 재현했습니다. toy-projects
+PR #38의 run `33531285208`은 Qt 5와 Qt 6 deep에서 clazy가 compile database의 선택 GCC가
+아닌 최신 libstdc++ header를 선택해 실패했습니다. fixed local `dist/ici.pyz`는 선택 GCC의
+projection으로 `/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`,
+`/usr/include/c++/13/backward`를 `-nostdinc++` 뒤 ordered `-isystem`으로 전달했고, 2 probes와
+12 sources에서 clazy exit 0을 기록하면서 expected warnings를 보존했습니다.
 
 cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
 path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration
@@ -752,6 +786,15 @@ shadow를 덮어쓰거나, 리포터가 결과를 표시하는 과정에서 분�
 경로는 `make check`가 실행한 명령을 기준으로 세어 같은 단위를 씁니다. QtTest 바이너리가
 낸 함수 단위 결과는 버리지 않고, 실패했을 때 그 바이너리의 실패 메시지에 함수 이름과
 사유로 붙습니다.
+
+CMake/CTest 경로가 지원하는 경우 CTest는 `--output-junit`으로 shadow 디렉터리의 JUnit 파일을
+만들고, adapter는 이를 최대 1,000,000 bytes까지 stable regular-file/no-follow 방식으로 읽습니다.
+파일이 없거나 malformed·oversized·읽는 중 변경이면 bounded CTest stdout 결과로 폴백하므로
+무제한 XML을 읽지 않습니다. JUnit의 `failure`/`error`와 `system-out`/`system-err`에서
+LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker를 찾으면 각각
+`LeakSanitizer diagnostic`, `AddressSanitizer diagnostic`, `UndefinedBehaviorSanitizer diagnostic`
+으로 분류하고, raw stack·source path는 결과 메시지에 넣지 않습니다. 일반 실패 메시지와
+test name도 512 characters로 제한됩니다.
 
 qmake 경로에서 `-xunitxml`을 신뢰하지 않는 이유가 있습니다. 그 인자는 **QtTest
 바이너리에만** 의미가 있고, 실제 프로젝트는 QtTest와 자체 `main()` 테스트를 섞어

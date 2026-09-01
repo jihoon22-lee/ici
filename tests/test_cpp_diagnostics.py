@@ -811,3 +811,119 @@ def test_clazy_diagnostics_do_not_export_fixits(tmp_path: Path) -> None:
 
     assert result.error
     assert result.diagnostics == ()
+
+
+def test_clazy_diagnostics_accept_exact_external_qt_macro_context_from_approved_root(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    external_include_root = tmp_path / "qt" / "include"
+    header = external_include_root / "QtCore" / "qstring.h"
+    header.parent.mkdir(parents=True)
+    macro_line = "#define QStringLiteral(str) QString::fromUtf8(str)"
+    header.write_text("\n" * 41 + macro_line + "\n", encoding="utf-8")
+
+    output = (
+        "src/widget.cpp:3:2: warning: use QStringLiteral [-Wclazy-qstring-arg]\n"
+        f"{header}:42:5: note: expanded from macro 'QStringLiteral'\n"
+        f"{macro_line}\n"
+        "    ^~~~~~~~~~~~~\n"
+        "    QString::fromUtf8(str)\n"
+    )
+
+    result = parse_clazy_diagnostics(
+        root,
+        root,
+        output,
+        "",
+        source_roots=(external_include_root,),
+    )
+
+    assert result.format_name == "clazy-text"
+    assert result.error == ""
+    assert len(result.diagnostics) == 2
+    primary, note = result.diagnostics
+    assert primary.tool_rule_id == "clazy-qstring-arg"
+    assert primary.target.file_path == "src/widget.cpp"
+    assert note.tool_rule_id == primary.tool_rule_id
+    assert note.target.target_name == "ClazyNote:clazy-qstring-arg"
+    assert note.target.file_path == "[external]"
+    assert note.target.start_line == 42
+    assert note.target.start_column == 5
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "forged-preview",
+        "outside-approved-root",
+    ],
+    ids=["forged-preview", "outside-approved-root"],
+)
+def test_clazy_diagnostics_reject_external_macro_context_atomically(
+    tmp_path: Path,
+    case: str,
+) -> None:
+    root = tmp_path / "project"
+    external_include_root = tmp_path / "qt" / "include"
+    approved_header = external_include_root / "QtCore" / "qstring.h"
+    approved_header.parent.mkdir(parents=True)
+    macro_line = "#define QStringLiteral(str) QString::fromUtf8(str)"
+    approved_header.write_text("\n" * 41 + macro_line + "\n", encoding="utf-8")
+
+    if case == "forged-preview":
+        header = approved_header
+        preview_line = "#define QStringLiteral(str) forged-preview"
+    else:
+        header = tmp_path / "unapproved-qt" / "include" / "QtCore" / "qstring.h"
+        header.parent.mkdir(parents=True)
+        header.write_text("\n" * 41 + macro_line + "\n", encoding="utf-8")
+        preview_line = macro_line
+
+    output = (
+        "src/widget.cpp:3:2: warning: use QStringLiteral [-Wclazy-qstring-arg]\n"
+        f"{header}:42:5: note: expanded from macro 'QStringLiteral'\n"
+        f"{preview_line}\n"
+        "    ^~~~~~~~~~~~~\n"
+        "    QString::fromUtf8(str)\n"
+    )
+
+    result = parse_clazy_diagnostics(
+        root,
+        root,
+        output,
+        "",
+        source_roots=(external_include_root,),
+    )
+
+    assert result.format_name == "clazy-text"
+    assert result.error
+    assert result.diagnostics == ()
+
+
+def test_clazy_external_source_validation_enforces_a_byte_budget(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    external_include_root = tmp_path / "qt" / "include"
+    header = external_include_root / "QtCore" / "qstring.h"
+    header.parent.mkdir(parents=True)
+    prefix = ("U0001f40d" * 1_000 + "\n") * 250
+    macro_line = "#define QStringLiteral(str) QString::fromUtf8(str)"
+    header.write_text(prefix + macro_line + "\n", encoding="utf-8")
+    output = (
+        "src/widget.cpp:3:2: warning: use QStringLiteral [-Wclazy-qstring-arg]\n"
+        f"{header}:251:5: note: expanded from macro 'QStringLiteral'\n"
+        f"{macro_line}\n"
+        "    ^~~~~~~~~~~~~\n"
+        "    QString::fromUtf8(str)\n"
+    )
+
+    result = parse_clazy_diagnostics(
+        root,
+        root,
+        output,
+        "",
+        source_roots=(external_include_root,),
+    )
+
+    assert result.error
+    assert result.diagnostics == ()

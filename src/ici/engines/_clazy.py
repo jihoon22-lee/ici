@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import stat
 import time
 from collections.abc import Callable, Mapping
@@ -16,13 +17,30 @@ from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
 from ici.engines._cpp_diagnostics import CppDiagnostic, parse_clazy_diagnostics
-from ici.engines._cpp_tooling import regular_executable, selected_units, tooling_arguments
+from ici.engines._cpp_tooling import (
+    GccStdlibProjection,
+    GccStdlibProjectionCache,
+    gcc_standard_library_for_replay,
+    regular_executable,
+    selected_units,
+    tooling_arguments,
+    tooling_include_roots,
+)
 
 _MAX_SELECTED_UNITS = 2_048
 _TIMEOUT_SECONDS = 120.0
 _GLOBAL_TIMEOUT_SECONDS = 600.0
 _OUTPUT_CHARS = 1_000_000
 _PROVIDERS = {"clazy-standalone": "standalone", "clazy": "compiler-wrapper"}
+_FAILURE_LOCATION_RE = re.compile(
+    r"^.+?:[1-9]\d*(?::[1-9]\d*)?:\s*"
+    r"(?P<kind>fatal error|error|warning|note|remark):"
+)
+_FAILURE_PREFIX_RE = re.compile(
+    r"^(?:(?:clang(?:\+\+)?|clazy(?:-standalone)?)(?:-[0-9.]+)?:\s*)?"
+    r"(?P<kind>fatal error|error|warning|note|remark):"
+)
+_PROCESSING_ERROR_RE = re.compile(r"^Error while processing(?:\s|$)")
 
 
 @dataclass
@@ -310,6 +328,34 @@ def _command_and_environment(
     ], environment
 
 
+def _failure_summary(result: ProcessResult) -> str:
+    counts = {kind: 0 for kind in ("fatal error", "error", "warning", "note", "remark")}
+    processing_error = False
+    has_output = False
+    for stream in (result.stdout, result.stderr):
+        if not isinstance(stream, str):
+            continue
+        has_output = has_output or bool(stream.strip())
+        for raw_line in stream.splitlines():
+            line = raw_line.strip()
+            match = _FAILURE_LOCATION_RE.match(line) or _FAILURE_PREFIX_RE.match(line)
+            if match is not None:
+                counts[match.group("kind")] += 1
+            if _PROCESSING_ERROR_RE.match(line) is not None:
+                processing_error = True
+    return ", ".join(
+        (
+            f"fatal={counts['fatal error']}",
+            f"error={counts['error']}",
+            f"warning={counts['warning']}",
+            f"note={counts['note']}",
+            f"remark={counts['remark']}",
+            f"processing_error={'yes' if processing_error else 'no'}",
+            f"output={'yes' if has_output else 'no'}",
+        )
+    )
+
+
 def _process_error(result: ProcessResult, source: str) -> str:
     if result.timed_out:
         return f"clazy timed out: {source}"
@@ -318,8 +364,38 @@ def _process_error(result: ProcessResult, source: str) -> str:
     if not isinstance(result.returncode, int) or result.returncode < 0:
         return f"clazy terminated unexpectedly: {source}"
     if result.returncode != 0:
-        return f"clazy failed with exit code {result.returncode}: {source}"
+        bounded_source = source[:256]
+        return (
+            f"clazy failed with exit code {result.returncode} "
+            f"({_failure_summary(result)}): {bounded_source}"
+        )
     return ""
+
+
+def _record_gcc_projection_evidence(
+    outcome: ClazyOutcome,
+    context: AnalysisContext,
+    projection: GccStdlibProjection,
+    recorded: set[tuple[str, ...]],
+) -> None:
+    capability = context.capabilities.capabilities.get("g++")
+    for probe in projection.probes:
+        if probe.argv in recorded:
+            continue
+        recorded.add(probe.argv)
+        result = probe.result
+        item = ToolEvidence(
+            name="g++ stdlib include search",
+            path=probe.argv[0],
+            version=capability.version if capability is not None else "",
+            argv=list(probe.argv),
+            returncode=result.returncode if result is not None else None,
+            timed_out=result.timed_out if result is not None else False,
+            truncated=result.truncated if result is not None else False,
+        )
+        if projection.error and probe is projection.probes[-1]:
+            item.error = projection.error
+        outcome.evidence.append(item)
 
 
 def _run_unit(
@@ -333,6 +409,8 @@ def _run_unit(
     outcome: ClazyOutcome,
     runner: Callable[..., ProcessResult],
     timeout: float,
+    projection_cache: GccStdlibProjectionCache,
+    recorded_probes: set[tuple[str, ...]],
 ) -> bool:
     if any(item.level == "error" for item in unit.diagnostics):
         message = f"clazy skipped a compilation unit with context errors: {unit.source}"
@@ -346,6 +424,35 @@ def _run_unit(
             operation="syntax",
         )
         compiler_arguments = tooling_arguments(replay.argv, replay.source)
+        unit_deadline = time.monotonic() + timeout
+        projection = GccStdlibProjection()
+        if unit.language == "c++":
+            projection = gcc_standard_library_for_replay(
+                project_root,
+                replay.argv[0],
+                replay.cwd,
+                context,
+                compiler_arguments,
+                projection_cache,
+                runner=runner,
+                timeout=max(0.0, unit_deadline - time.monotonic()),
+            )
+        _record_gcc_projection_evidence(outcome, context, projection, recorded_probes)
+        if projection.error:
+            message = (
+                f"clazy GCC stdlib replay {projection.error_code}: "
+                f"{unit.source}: {projection.error}"
+            )
+            _problem(
+                outcome,
+                EngineStatus.ERROR,
+                "ClazyToolchainContextError",
+                message,
+                unit.source,
+            )
+            return False
+        compiler_arguments.extend(projection.arguments)
+        source_roots = tooling_include_roots(compiler_arguments, replay.cwd)
         command, environment = _command_and_environment(
             executable,
             provider,
@@ -359,6 +466,11 @@ def _run_unit(
         message = f"clazy replay {err.code}: {unit.source}: {err}"
         _problem(outcome, EngineStatus.ERROR, "ClazyReplayError", message, unit.source)
         return False
+    remaining = unit_deadline - time.monotonic()
+    if remaining <= 0:
+        message = f"clazy unit time budget expired after GCC stdlib replay: {unit.source}"
+        _problem(outcome, EngineStatus.ERROR, "ClazyBudgetError", message, unit.source)
+        return False
     try:
         result = runner(
             command,
@@ -366,7 +478,7 @@ def _run_unit(
             env=environment,
             input_text="",
             replace_env=True,
-            timeout=timeout,
+            timeout=remaining,
             max_output_chars=_OUTPUT_CHARS,
         )
     except Exception as exc:
@@ -397,7 +509,13 @@ def _run_unit(
         tool_record.error = message
         _problem(outcome, EngineStatus.ERROR, "ClazyExecutionError", message, unit.source)
         return False
-    parsed = parse_clazy_diagnostics(project_root, replay.cwd, result.stdout, result.stderr)
+    parsed = parse_clazy_diagnostics(
+        project_root,
+        replay.cwd,
+        result.stdout,
+        result.stderr,
+        source_roots=source_roots,
+    )
     if parsed.error:
         message = f"clazy output was not parseable: {unit.source}: {parsed.error}"
         tool_record.error = message
@@ -468,6 +586,8 @@ def run_clazy(
         return outcome
     checks = _checks(config)
     checked_sources: set[str] = set()
+    projection_cache: GccStdlibProjectionCache = {}
+    recorded_probes: set[tuple[str, ...]] = set()
     deadline = time.monotonic() + _GLOBAL_TIMEOUT_SECONDS
     for index, unit in enumerate(selected):
         remaining = deadline - time.monotonic()
@@ -487,6 +607,8 @@ def run_clazy(
             outcome,
             runner,
             min(_TIMEOUT_SECONDS, remaining),
+            projection_cache,
+            recorded_probes,
         ):
             checked_sources.add(unit.source)
     outcome.sources_checked = len(checked_sources)

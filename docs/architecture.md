@@ -456,6 +456,22 @@ compiler와 sanitized argv를 공유하며, 결과는 legacy `InspectionTarget`,
   `auto`에서 unavailable tool은 분석 결과를 무효화하지 않는 경고로, `required`에서는 실행
   오류로 승격되며, compiler diagnostics와 analyzer findings의 category/confidence/remediation은
   서로 섞이지 않습니다.
+- Clang 기반 clang-tidy/clazy replay가 compile database의 approved `g++`를 선택하면
+  `_cpp_tooling`은 replay executable과 capability path의 resolved file identity를 비교합니다.
+  일치할 때만 같은 GCC를 `c++`와 `c`로 각각 bounded `-E -x <lang> -v -` probe하고,
+  sanitized `-m*`/sysroot selector만 probe argv에 남깁니다. C++ include-search에서 C include-search를
+  차집합한 경로를 compiler 순서 그대로 `-nostdinc++`와 ordered `-isystem` pairs로 두 adapter의
+  compiler arguments에 붙입니다. probe별 최대 5초·합계 최대 10초·131,072 characters·64
+  directories, replacement environment, closed stdin과 compiler device/inode/size/mtime/ctime을
+  포함한 projection cache key를 사용하며 결과는 별도
+  `g++ stdlib include search` `ToolEvidence`로 발행하고 parsing 뒤 raw compiler prose는 보관하지
+  않습니다. C translation unit 또는 다른 compiler identity에는 projection을 적용하지 않습니다.
+  일치한 GCC가 probe 도중 교체되거나 probe parse/timeout/truncation/nonzero/unresolved 오류가 나면
+  analyzer 실행 전 atomic toolchain-context error입니다.
+  이 경계는 Ubuntu 24.04의 GCC 13/14 혼재를 재현한 toy-projects PR #38 run `33531285208`의
+  Qt 5/Qt 6 deep clazy 실패를 해결했고, fixed local pyz에서 `/usr/include/c++/13`,
+  `/usr/include/x86_64-linux-gnu/c++/13`, `/usr/include/c++/13/backward` projection, 2 probes,
+  12 sources의 exit 0과 expected warning 보존으로 확인했습니다.
 
 #### I4-2 Qt clazy와 generated-code linkage
 
@@ -500,6 +516,16 @@ context는 located diagnostic의 project source line과 raw text가 exact match�
 bounded replacement preview를 최대 하나 허용한다. source mismatch, forged/extra preview와
 그 밖의 malformed legacy context는 partial finding을 남기지 않고 atomic하게 거부한다.
 
+외부 Qt macro context를 검증할 때 parser의 read authority는 exact sanitized compiler argv에서
+추출한 approved include roots와 project root로 한정된다. 최대 512개의 bounded directory만
+허용하고 외부 header 위치는 결과에서 `[external]`로 투영한다. source line은 `O_NOFOLLOW`
+regular-file descriptor로 읽으며 열기 전후 device/inode/size/mtime identity를 비교한다.
+source-context 누적은 1,000,000 bytes, 한 줄은 8,192 characters로 제한되고, symlink·비정규
+파일·identity 변화·root 밖 경로·preview mismatch·extra/forged preview·bound 초과는 partial
+finding 없이 fail-closed한다. clazy process가 nonzero로 끝나는 경우에도 parser를 실행하지
+않고 atomic `ERROR`를 발행하며, `ToolEvidence.error`에는 raw prose/path 대신 bounded exit code,
+kind counts와 processing/output flags만 둔다.
+
 Qt generated-code verifier는 project source scope에서 `.ui`, `.qrc`, 그리고 주석·문자열을
 제거한 C++에서 실제 `Q_OBJECT` 선언을 bounded하게 발견한다. immutable compilation context의
 include path와 unit source를 이용해 `ui_<stem>.h`의 bounded indirect translation-unit include
@@ -515,6 +541,20 @@ clazy는 최대 2,048 translation units, unit당 120초, 전체 600초와 1,000,
 사용한다. generated-code input도 bounded file/input limit과 project containment를 적용한다.
 이 계층은 소스를 수정하거나 generator를 재실행하지 않으며, 생성 산출물의 존재만 확인하는
 heuristic으로 성공을 주장하지 않고 exact compilation database linkage를 요구한다.
+
+#### CTest/JUnit와 sanitizer evidence 경계
+
+CMake adapter는 지원되는 CTest에서 `--output-junit`을 사용해 shadow 디렉터리에 report를
+만들고, `_read_ctest_junit`가 이를 stable regular-file/no-follow descriptor로 최대
+1,000,000 bytes까지 읽는다. `_compile_db_paths._read_bounded_regular`의 containment,
+크기, before/after identity 검사가 XML 입력에도 적용되며, 파일 누락·변경·malformed·oversized
+입력은 bounded CTest stdout parser로 폴백한다. XML parser는 DTD와 NUL도 거부한다.
+
+JUnit `failure`/`error` 및 `system-out`/`system-err`는 raw stack을 결과로 복사하지 않는다.
+LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker가 있으면 각각 bounded
+`<Sanitizer> diagnostic` 메시지로 분류하고, 그 밖의 실패 text와 test name도 512 characters로
+제한한다. 따라서 unsuppressed sanitizer failure는 테스트 실패로 남지만, stack/prose/path가
+report 경계를 넘지 않는다.
 
 ### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
 

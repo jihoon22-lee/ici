@@ -470,6 +470,52 @@ def test_parse_ctest_junit_rejects_malformed_xml():
     assert parse_ctest_junit("<testsuite><testcase") == []
 
 
+def test_parse_ctest_junit_normalizes_sanitizer_failure_evidence():
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ctest" tests="1" failures="1">
+  <testcase name="test_leak" classname="ctest">
+    <failure message="test process exited with status 1">generic test failure</failure>
+    <system-out><![CDATA[
+==123==ERROR: LeakSanitizer: detected memory leaks
+SUMMARY: AddressSanitizer: 64 byte(s) leaked in 1 allocation(s)
+    #0 0x7f00 in operator new /usr/lib/llvm/asan_new_delete.cpp:95
+    #1 0x7f01 in leak_fixture /home/runner/work/project/tests/leaky.cpp:42
+verbose stack frame and source explanation must stay out of the result
+]]></system-out>
+  </testcase>
+</testsuite>
+"""
+
+    results = parse_ctest_junit(xml)
+
+    assert len(results) == 1
+    assert results[0].passed is False
+    message = results[0].message
+    assert "LeakSanitizer" in message
+    assert len(message) <= 512
+    assert "#0" not in message
+    assert "asan_new_delete.cpp" not in message
+    assert "leak_fixture" not in message
+    assert "/home/runner/work/project/tests/leaky.cpp:42" not in message
+    assert "verbose stack frame and source explanation" not in message
+
+
+@pytest.mark.parametrize(
+    "payload",
+    ["x" * 1_000_001, "U0001f40d" * 250_001],
+    ids=["characters", "utf8-bytes"],
+)
+def test_parse_ctest_junit_rejects_oversized_input(payload):
+    xml = (
+        '<testsuite name="ctest" tests="1">'
+        '<testcase name="test_large"><system-out>'
+        + payload
+        + "</system-out></testcase></testsuite>"
+    )
+
+    assert parse_ctest_junit(xml) == []
+
+
 _CTEST_STDOUT = """    Start 1: test_ring_buffer
 1/2 Test #1: test_ring_buffer .................   Passed    0.01 sec
     Start 2: test_log_model
@@ -637,6 +683,27 @@ def test_run_tests_prefers_junit_when_written(tmp_path, monkeypatch):
     # The JUnit file has three cases; stdout has two. Proving which source was
     # used matters, because only one of them reports the skipped test.
     assert len(results) == 3
+
+
+def test_run_tests_rejects_oversized_junit_and_uses_bounded_stdout_fallback(tmp_path, monkeypatch):
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    shadow = tmp_path / "build" / "ici-cmake"
+    shadow.mkdir(parents=True)
+    (shadow / "ici-ctest.xml").write_text("x" * 1_000_001, encoding="utf-8")
+
+    def _run(cmd, **_kwargs):
+        if "--version" in cmd:
+            return ProcessResult(0, "cmake version 3.28.1", "", 0.01)
+        return ProcessResult(1, _CTEST_STDOUT, "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
+
+    results = run_tests(session)
+
+    assert [result.name for result in results] == ["test_ring_buffer", "test_log_model"]
+    assert results[1].passed is False
 
 
 def test_collect_coverage_runs_every_group(tmp_path, monkeypatch):

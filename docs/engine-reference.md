@@ -332,6 +332,17 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   `--fix`를 넣지 않고 source와 context를 read-only로 다루므로 fix-it은 report finding의
   remediation 제안으로만 남습니다. 단위 실행은 120초, 전체 clang-tidy 실행은 최대 600초의
   bounded budget을 공유하며, budget을 넘긴 나머지 unit은 실행하지 않고 `ERROR`로 기록합니다.
+- clang-tidy 또는 clazy가 Clang 기반이고 exact replay의 compiler가 capability-approved `g++`와
+  resolved file identity까지 일치하면, 두 adapter는 같은 GCC driver로 `c++`와 `c` include-search를
+  각각 한 번 probe합니다. probe에는 sanitized `-m*`, `--sysroot`/`-isysroot` selector만 보존하고,
+  C++ search 결과에서 C search 결과를 뺀 나머지를 compiler 출력 순서대로
+  `-nostdinc++`와 `-isystem <root>` 쌍으로 투영합니다. 각 probe는 최대 5초, 두 probe 합계는 최대
+  10초이며 131,072 output characters·64 directories bound와 replacement environment/closed stdin을 사용해
+  `g++ stdlib include search` `ToolEvidence`로 기록합니다. identity가 다르면 projection 대상이
+  아니며, 일치한 GCC의 malformed·timeout·truncated·nonzero probe 또는 표준 라이브러리 경로
+  미확인은 Clang 도구를 실행하기 전에 fail-closed합니다. 이미 `-nostdinc`/`-nostdinc++`가 있으면
+  projection을 중복 적용하지 않고, C translation unit에는 C++ 표준 라이브러리를 투영하지
+  않습니다. compiler file identity가 cache key에 포함되고 probe 전후에도 재검증됩니다.
 - compiler diagnostic format은 approved GCC/`g++` version 9 이상에서
   `-fdiagnostics-format=json`을 사용하고, approved Clang 또는 version을 알 수 없는 compiler는
   `-fdiagnostics-parseable-fixits` text fallback을 사용합니다. JSON/text parser는 malformed
@@ -356,6 +367,12 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   wrapper는 approved `clang++`를 `CLANGXX`로 고정한 replacement environment와 `CLAZY_CHECKS`를
   사용합니다. 두 경로 모두 compilation database 재탐색, `-p`, `--fix`, shell, source/context
   수정을 하지 않습니다.
+- Clang 기반 clazy 실행도 선택 GCC의 exact libstdc++를 사용하도록 위 표준-library projection을
+  공유합니다. Ubuntu 24.04의 GCC 13/14 혼재처럼 최신 header가 잘못 선택될 수 있는 환경에서
+  projection은 `/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`,
+  `/usr/include/c++/13/backward`를 compiler가 보고한 순서로 `-nostdinc++`와 `-isystem`으로
+  전달합니다. toy-projects PR #38 run `33531285208`의 Qt 5/Qt 6 deep 실패를 재현한 뒤 fixed
+  local pyz에서 12 sources, 2 probes, clazy exit 0과 expected warning 보존을 확인했습니다.
 - clazy parser는 `-Wclazy-*` warning option 형태를 strict하게 검증하고 위치 있는 diagnostics와
   parent rule note를 `family = "clazy"` 및 stable rule ID로 보존합니다. lifetime/ownership은
   `RESOURCE`, Qt6/deprecated/QString API는 `COMPATIBILITY`, QObject/connect/signal/slot은
@@ -366,6 +383,15 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   replacement context는 located diagnostic의 project source line과 exact match일 때만
   bounded replacement preview 하나까지 허용하며, source mismatch나 forged/extra preview 등
   malformed context는 partial finding 없이 atomic하게 거부합니다.
+- Legacy macro context의 외부 header source line은 exact sanitized compiler argv에서 추출한
+  approved include root를 통해서만 검증합니다. root는 최대 512개의 bounded directory이며,
+  parser는 외부 위치를 항상 `[external]`로 export합니다. source line은 `O_NOFOLLOW`
+  regular-file descriptor로 읽고 device/inode/size/mtime identity를 열기 전후 비교하며,
+  source-context 누적 1,000,000 bytes와 line 8,192 characters bound를 적용합니다. symlink·비정규
+  파일·identity 변경·root 밖 경로·exact preview mismatch·forged/extra preview와 bound 초과는
+  partial 결과 없이 fail-closed합니다. clazy process의 nonzero 종료도 ordinary warning output과
+  무관하게 atomic `ERROR`이며, evidence에는 raw prose/path 대신 bounded exit code와
+  `fatal`/`error`/`warning`/`note`/`remark` counts 및 processing/output flags만 기록합니다.
 - Qt generated-code stage는 source scope의 `.ui`, `.qrc`, `Q_OBJECT`를 bounded하게 찾고,
   exact database에서 `ui_<stem>.h`의 bounded indirect translation-unit include linkage,
   `qrc_<stem>.cpp` generated unit,
@@ -390,6 +416,12 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   `project.cpp_external_build_dirs`와 `-std=c++17` 고정이 적용되지 않고, `Q_OBJECT` 클래스를
   단위 테스트할 수 있습니다. 두 경로의 테스트 카운트 단위가 다르다는 점을 포함해 자세한 것은
   [`user-guide.md` §2.5](user-guide.md)를 봅니다.
+- CMake의 CTest JUnit 경로는 `--output-junit`으로 생성된 shadow 내 report만 읽으며, stable
+  regular file/no-follow descriptor로 최대 1,000,000 bytes를 제한합니다. 파일 변경·symlink·비정규
+  파일·malformed/oversized XML은 bounded CTest stdout parser로 폴백합니다. JUnit failure/error와
+  output에서 LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker를 찾으면 bounded
+  분류 메시지만 남기고 raw stack과 source path는 버립니다. test name과 일반 failure message도
+  512 characters로 제한합니다.
 - **Python 실행기**: `[engines.test].python`이 지정되면 해당 인터프리터를 우선 사용하고,
   없으면 프로젝트 `.venv`의 Python, 마지막으로 `sys.executable` 순서로 선택합니다. pytest,
   coverage.py, unittest는 모두 이 동일한 인터프리터의 `-m` 모듈 호출로 실행하며 PATH에 있는
@@ -470,7 +502,7 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 - **코드 스니펫**: 고복잡도 함수의 실제 원본 소스 코드를 추출하여 HTML 리포트에 즉시 표시
 
 ### 2.6 🛡️ `sanitize` (메모리 안전성 및 리소스 누수 진단)
-- **C++**: AddressSanitizer(`-fsanitize=address`) 및 UndefinedBehaviorSanitizer(`-fsanitize=undefined`)를 임시 프로젝트 외부 산출물로 빌드·실행한다. 컴파일/실행 도구 오류는 `ERROR`이며, timeout·출력 절단도 `ERROR`/`NOT_RUN`이다. 음수 signal 종료라도 완전한 ASan/UBSan 진단이 있으면 `FAIL`/`MEASURED`로 보존하고, 진단 없는 signal 종료는 `ERROR`로 처리한다.
+- **C++**: AddressSanitizer(`-fsanitize=address`) 및 UndefinedBehaviorSanitizer(`-fsanitize=undefined`)를 임시 프로젝트 외부 산출물로 빌드·실행한다. 컴파일/실행 도구 오류는 `ERROR`이며, timeout·출력 절단도 `ERROR`/`NOT_RUN`이다. 음수 signal 종료라도 완전한 ASan/UBSan 진단이 있으면 `FAIL`/`MEASURED`로 보존하고, 진단 없는 signal 종료는 `ERROR`로 처리한다. CTest JUnit에서 올라온 sanitizer 실패도 동일한 test failure로 유지하되, `LeakSanitizer diagnostic`/`AddressSanitizer diagnostic`/`UndefinedBehaviorSanitizer diagnostic`이라는 bounded 분류만 결과에 남긴다.
 - **Python**: Task 5가 선택한 동일 인터프리터로 `-W error::ResourceWarning -m pytest -o addopts= tests`를 실행해 리소스 경고를 측정한다. `test_*.py`와 `*_test.py`를 모두 대상으로 하며, 0개 실행 테스트(전부 skipped/deselected)·pytest 부재·timeout·출력 절단·실행 실패·잘못된 성공은 통과로 간주하지 않는다. 기존 `PYTHONPATH`와 WSL 임시 디렉터리 정책도 보존한다.
 - **진단 판정**: 출력에 sanitizer 이름만 언급된 경우는 결함으로 판정하지 않는다. 위치가 있는 UBSan `runtime error` 또는 ASan/LSan/UBSan의 `ERROR`/`SUMMARY` 서명만 실제 진단으로 인정한다.
 - **적용 범위**: Python/C++ hybrid에서 한 언어의 scope가 건너뛰면 결과는 `WARN`/`ESTIMATED`이며, 대상 자체가 없으면 명시적 `SKIP`이다. C++ 테스트 파일은 project 경계 안의 실제 파일만 선택하며 외부 symlink는 제외한다. ResourceWarning의 Windows drive/공백 경로도 원본 파일과 라인 위치를 보존한다. 실행 시 기존 `ASAN_OPTIONS`/`UBSAN_OPTIONS`를 보존하면서 leak 검출과 UBSan 중단 옵션을 추가한다.

@@ -10,9 +10,10 @@ $ ici doctor
 
 ### 현재 릴리스와 진행 상태
 
-현재 공개 릴리스는 [v0.10.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.0)이며,
-이 소스 트리의 릴리스 후보 버전은 `0.10.1`입니다. v0.10.1 tag와 공개 artifact는 exact-main
-Merge Gate가 통과한 뒤에만 생성합니다.
+현재 공개 릴리스는 [v0.10.1](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.1)이며,
+exact-main Merge Gate와 공개 artifact 감사를 통과했습니다. 현재 소스 버전도 `0.10.1`로
+유지합니다. 이번 Qt5/clazy 호환성 보정은 ici PR과 cross-repository candidate 검증이 모두
+끝난 뒤에만 corrective `v0.10.2` patch가 필요한지 확정합니다.
 I4-1의 exact compiler/clang-tidy replay에 이어 I4-2에서 Qt-aware clazy와
 `moc`/`uic`/`rcc` generated-code linkage, Qt 5/Qt 6 compile evidence를 추가했습니다. 실제
 clazy 1.11·Qt matrix·1,517개 테스트·self/viewer dogfood·Zero-CDN Pages가 PR과 exact main에서
@@ -160,6 +161,28 @@ QObject/connect/signal/slot은 `CORRECTNESS`, 그 밖의 clazy check는 `MAINTAI
 clazy adapter는 최대 2,048 translation units, unit당 120초, 전체 600초 global budget과
 1,000,000자 output bound를 공유합니다. context/coverage/replay/parse/process 오류와 timeout,
 truncation, budget 초과는 heuristic으로 숨기지 않고 `ERROR`/`NOT_RUN`으로 fail-closed합니다.
+특히 clazy process가 nonzero로 끝나면 warning처럼 보이는 출력이어도 원자적인 `ERROR`로
+닫고, partial diagnostics를 남기지 않습니다. 이때 `ToolEvidence.error`에는 bounded exit code,
+`fatal`/`error`/`warning`/`note`/`remark` kind count와 processing/output flag만 남으며 raw
+tool prose와 host path는 복사하지 않습니다.
+
+Ubuntu의 legacy raw-source/caret/replacement context를 검증할 때는 exact sanitized compiler
+argv에서 얻은 approved include root만 source read 권한으로 추가합니다. project 밖 root도
+검증은 가능하지만 결과 위치는 항상 `[external]`로 export됩니다. 각 root는 bounded directory
+목록(최대 512개)이어야 하며, source line은 `O_NOFOLLOW` regular-file descriptor로 열고
+read 전후 device/inode/size/mtime identity를 확인합니다. source-context 누적 바이트는
+1,000,000 byte, 한 줄은 8,192 characters를 넘을 수 없고, root/regular-file/identity 불일치,
+symlink, source mismatch, forged/extra preview 또는 budget 초과는 partial finding 없이
+atomic `ERROR`가 됩니다.
+
+Clang 기반 clang-tidy/clazy가 exact compilation context의 선택 GCC를 사용할 때는 최신 설치
+libstdc++를 임의로 집지 않도록 별도 표준 라이브러리 projection을 먼저 수행합니다. capability가
+승인한 `g++`와 replay compiler의 resolved file identity가 같은지 확인하고, 해당 GCC를 `c++`와
+`c`로 각각 한 번씩 bounded probe한 뒤 C++ search 결과에서 C search 결과를 뺍니다. 남은 경로를
+compiler가 보고한 순서 그대로 `-nostdinc++`와 `-isystem <root>` 쌍으로 clazy와 clang-tidy에
+전달합니다. probe는 sanitized `-m*`/sysroot selector만 보존합니다. compiler identity가 다르면
+projection 대상이 아니며, identity가 일치한 GCC의 output/timeout/parse/unresolved 오류는
+analyzer를 실행하기 전에 fail-closed합니다. 두 probe는 `ToolEvidence`로 기록됩니다.
 
 같은 lint 단계에서 source scope의 `.ui`, `.qrc`, `Q_OBJECT` 선언을 찾아 exact compilation
 database와 연결합니다. `ui_<stem>.h`가 bounded project include traversal로 exact translation
@@ -168,11 +191,22 @@ compilation unit으로 들어가는지, `moc_<stem>.cpp`·`<stem>.moc`·`mocs_co
 Q_OBJECT를 연결하는지를 원본 입력 파일·라인 target에 기록합니다. exact context의 include,
 define, compiler replay로 Qt 5/Qt 6 major를 식별합니다. linkage와 compatibility 모두 성공한
 compiler replay가 있어야 `PASS`이며, 식별 불가·replay 미실행·중복 generated stem은 `WARN`입니다.
-I4-2 기준 PR/main은 actual tool을 포함한 1,517개 테스트와 Qt matrix를 통과했고 v0.10.0의
-release provenance·9개 artifact 감사도 완료됐습니다. v0.10.1 후보의 hardened local gate는
-1,526 passed / 4 environment skips이며, CI/release workflow는 실제 clazy·Qt fixture가 skip되지
-않도록 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`과 clazy 설치를 강제합니다. 남은 delivery evidence는
-v0.10.1 exact-main/tag/release와 released-v0.10.1을 사용하는 BuildScope B5 최종 검증입니다.
+I4-2 기준 PR/main은 actual tool을 포함한 1,517개 테스트와 Qt matrix를 통과했고 v0.10.1의
+release provenance·9개 artifact 감사도 완료됐습니다. v0.10.1 corrective gate는
+1,526 passed / 4 environment skips였으며, CI/release workflow는 실제 clazy·Qt fixture가 skip되지
+않도록 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`과 clazy 설치를 강제합니다. 이번 evidence correction의
+Python 3.10 local run은 focused C++/CTest 회귀 161 passed, full suite 1,538 passed / 4 skipped다.
+정확한 Ubuntu 24.04 + Qt 5 + clazy 1.11 run은 full lint 12/12, approved external macro note
+1건, unsuppressed CTest 8의 9 cases와 LeakSanitizer diagnostic을 기록했다. suppression을 넣어
+확인한 작업은 toy repository에 한정되며 ici policy로 해석하지 않는다. 남은 delivery evidence는
+이번 correction의 ici PR/정확한 main gate, BuildScope candidate 교차 검증, 그리고 그 증거를
+통과한 corrective release를 사용하는 BuildScope 최종 검증입니다.
+
+다중 GCC 회귀를 재현한 Ubuntu 24.04에서는 GCC 13/14가 함께 설치된 상태에서 toy-projects PR #38
+run `33531285208`의 Qt 5/Qt 6 deep clazy가 실패했습니다. fixed local `dist/ici.pyz`는
+`/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`, `/usr/include/c++/13/backward`를
+projection하고 2 probes 뒤 12 sources에서 clazy exit 0을 기록했으며, expected warnings도
+보존했습니다. 이 경로의 표준 라이브러리 선택은 compile database의 GCC identity에 종속됩니다.
 
 ## 💻 빠른 설치 및 사용법
 

@@ -17,6 +17,53 @@
   E2E, candidate cross-repo/toy 검증, PR/main CI·Pages, docs/CHANGELOG, I4-3/I4-4와 real
   toy-projects/quality-zoo 검증이 끝날 때까지 미룬다. 하나의 PR이 하나의 릴리스를 의미하지 않는다.
 
+### C++ tool evidence corrections
+
+- **Approved external source previews**: exact, sanitized compiler include roots may be used to
+  validate Ubuntu clazy 1.11 Qt macro source previews, but external locations are always exported
+  as `[external]`. The reader follows only approved roots, opens regular files with no-follow
+  semantics, checks the file identity before and after the read, and enforces a 1,000,000-byte
+  (1 MB) aggregate source-context budget plus an 8,192-character line bound. A root, file, identity, preview,
+  or budget violation fails closed without retaining a partial diagnostic.
+- **Atomic clazy process failures**: every nonzero clazy exit remains an atomic engine `ERROR`;
+  no parsed diagnostics or partial clean result is retained. The bounded evidence summary reports
+  only exit status, per-kind counts (`fatal`, `error`, `warning`, `note`, `remark`), processing/output
+  flags, and a bounded source label; raw tool prose and host paths are not copied into the error.
+- **Bounded CTest JUnit evidence**: CTest JUnit files are read through a stable regular-file,
+  no-follow boundary up to 1,000,000 bytes (1 MB), with the bounded CTest stdout parser as fallback. LeakSanitizer,
+  AddressSanitizer, and UndefinedBehaviorSanitizer markers are classified as bounded diagnostic
+  messages, while raw stacks and source paths are omitted.
+
+### Verification boundary
+
+- Local Python 3.10 verification passed the focused C++/CTest regression set (`161 passed`) and the
+  full suite (`1,538 passed, 4 skipped`).
+- Exact Ubuntu 24.04 + Qt 5 + clazy 1.11 evidence recorded 12/12 full-lint units, an accepted
+  targeted external macro note rendered at `[external]`, and an unsuppressed CTest 8 run with
+  9 cases reporting a LeakSanitizer diagnostic.
+- Any suppression work belongs to the toy repository experiment only; it is not an ici policy or
+  an ici suppression contract.
+
+### Selected GCC standard-library replay
+
+- **Clang-based tooling follows the selected GCC**: when an exact compilation replay uses the
+  capability-approved `g++`, ici verifies the replay executable by resolved file identity, probes
+  that same driver once as `c++` and once as `c` with only sanitized `-m*`/sysroot selectors,
+  and subtracts the C search roots from the C++ search roots. The remaining libstdc++ directories
+  are appended in compiler-reported order as `-nostdinc++` followed by ordered `-isystem` pairs for
+  both clang-tidy and clazy. Probe output is bounded and malformed, missing, timed out, truncated,
+  or unresolved projections fail closed before the analyzer runs; the two probe records are retained
+  as `ToolEvidence`. Projection applies only to C++ translation units, and a compiler file identity
+  change invalidates the cache or fails the in-flight probe atomically.
+- **Dual-GCC regression evidence**: the toy-projects PR #38 run
+  [33531285208](https://github.com/jihoon22-lee/toy-projects/actions/runs/33531285208) failed its
+  Qt 5/Qt 6
+  deep checks because Clang-based clazy selected the newest installed libstdc++ instead of the
+  compilation database's GCC. On Ubuntu 24.04 with GCC 13 and GCC 14 installed, the fixed local
+  `dist/ici.pyz` projected `/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`, and
+  `/usr/include/c++/13/backward`; clazy exited 0 for all 12 sources, with 2 include-search probes,
+  while the expected warnings remained present.
+
 ## [0.10.1] - 2026-09-01
 
 ### Fixed
@@ -50,7 +97,10 @@
 - The public v0.10.0 artifact passed its release provenance and artifact audit. The first
   toy-projects BuildScope B5 PR run then exposed this warning-policy defect on both Qt 5 and Qt 6:
   all 12 clazy translation units exited nonzero even though compilation-context and test evidence
-  were exact. v0.10.1 is the corrective release required before B5 can be rerun and accepted.
+  were exact. v0.10.1 shipped the corrective warning-policy projection from exact main
+  `326a12abd4ac56cd88949c15c7748877e713531c`; exact-main CI run `33519475182`, release run
+  `33521155513`, and the nine-asset public release audit passed. The later BuildScope rerun exposed
+  the separate external macro-context and CTest evidence defects recorded under `[Unreleased]`.
 
 ## [0.10.0] - 2026-09-01
 
