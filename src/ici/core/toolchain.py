@@ -7,7 +7,7 @@ import os
 import re
 import shutil
 import sys
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
@@ -391,7 +391,9 @@ def collect_tool_capability(
     )
 
 
-def _resolve_candidate(candidates: tuple[str, ...]) -> tuple[str, str] | None:
+def _iter_candidate_resolutions(candidates: tuple[str, ...]) -> Iterator[tuple[str, str]]:
+    """Yield distinct executable candidates in their declared priority order."""
+
     seen: set[str] = set()
     for candidate in candidates:
         resolved = shutil.which(candidate)
@@ -401,8 +403,13 @@ def _resolve_candidate(candidates: tuple[str, ...]) -> tuple[str, str] | None:
         if real_path in seen:
             continue
         seen.add(real_path)
-        return candidate, resolved
-    return None
+        yield candidate, resolved
+
+
+def _resolve_candidate(candidates: tuple[str, ...]) -> tuple[str, str] | None:
+    """Resolve the first executable candidate without probing its version."""
+
+    return next(_iter_candidate_resolutions(candidates), None)
 
 
 def _resolve_python_module_interpreter(cwd: Path | None) -> str:
@@ -439,19 +446,47 @@ def collect_registered_capability(
 ) -> tuple[ToolCapability, tuple[ProcessResult, ...]]:
     """Run a registry probe and its optional metadata probe without a shell."""
 
-    resolution = _resolve_probe_prefix(probe, cwd)
-    if resolution is None:
-        return ToolCapability(name=probe.name, path="", available=False, complete=False), ()
-    alias, command_prefix = resolution
-    base, version_result = collect_tool_capability(
-        probe.name,
-        [*command_prefix, *probe.version_args],
-        cwd=cwd,
-        timeout=timeout,
-        max_output_chars=max_output_chars,
-    )
-    if version_result is None:
-        return base, ()
+    if probe.python_module:
+        resolution = _resolve_probe_prefix(probe, cwd)
+        candidate_resolutions: Iterable[tuple[str, list[str]]] = (
+            (resolution,) if resolution is not None else ()
+        )
+    else:
+        candidate_resolutions = (
+            (alias, [resolved]) for alias, resolved in _iter_candidate_resolutions(probe.candidates)
+        )
+
+    selected: tuple[str, list[str], ToolCapability] | None = None
+    first_failure: tuple[str, list[str], ToolCapability] | None = None
+    first_unresolved: ToolCapability | None = None
+    results: list[ProcessResult] = []
+    for alias, command_prefix in candidate_resolutions:
+        candidate, version_result = collect_tool_capability(
+            probe.name,
+            [*command_prefix, *probe.version_args],
+            cwd=cwd,
+            timeout=timeout,
+            max_output_chars=max_output_chars,
+        )
+        if version_result is None:
+            if first_unresolved is None:
+                first_unresolved = candidate
+            continue
+        results.append(version_result)
+        if candidate.available and candidate.complete:
+            selected = (alias, command_prefix, candidate)
+            break
+        if first_failure is None:
+            first_failure = (alias, command_prefix, candidate)
+
+    if selected is None:
+        if first_failure is None:
+            if first_unresolved is not None:
+                return first_unresolved, tuple(results)
+            return ToolCapability(name=probe.name, path="", available=False, complete=False), ()
+        alias, command_prefix, base = first_failure
+    else:
+        alias, command_prefix, base = selected
 
     details = dict(probe.static_details)
     details.update(base.details)
@@ -459,7 +494,6 @@ def collect_registered_capability(
     if probe.python_module:
         details["provider"] = "python-module"
         details["module"] = probe.python_module
-    results = [version_result]
     complete = base.complete
     error = base.error
     timed_out = base.timed_out
