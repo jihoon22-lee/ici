@@ -14,8 +14,10 @@
   warning gates such as `-Werror`, `-Werror=<rule>`, and `-pedantic-errors`, but clang-tidy and
   clazy now consume a diagnostic-only projection that cannot turn an ordinary finding into an
   adapter process failure. Plain `-Werror` is removed, rule-specific escalation is demoted to
-  `-W<rule>`, and `-pedantic-errors` becomes `-pedantic`; `-Wno-error*`, semantic compile flags,
-  include paths, defines, and all other warning selections remain exact.
+  `-W<rule>`, and `-pedantic-errors`/`--pedantic-errors` become `-pedantic`. GCC's legacy
+  `-Werror-implicit-function-declaration` alias is likewise demoted without disabling its warning;
+  `-Wno-error*`, semantic compile flags, include paths, defines, and other warning selections remain
+  exact.
 - The clazy compiler-wrapper provider now uses the same projected compiler arguments as
   `clazy-standalone` and clang-tidy before restoring ici's controlled `-Wall -Wextra
   -fsyntax-only <source>` suffix. This closes the provider-specific bypass that would otherwise

@@ -20,7 +20,9 @@ process, parser 오류에 대한 fail-closed 계약은 바꾸지 않는다.
   확인한 뒤 production warning policy를 결정적으로 변환한다.
 - `-Werror`는 warning 선택을 추가하지 않으므로 제거한다.
 - `-Werror=<rule>`은 해당 warning을 계속 선택하도록 `-W<rule>`로 바꾼다.
-- `-pedantic-errors`는 같은 진단 집합을 warning으로 유지하도록 `-pedantic`으로 바꾼다.
+- `-pedantic-errors`와 `--pedantic-errors`는 같은 진단 집합을 warning으로 유지하도록
+  `-pedantic`으로 바꾼다.
+- GCC legacy `-Werror-implicit-function-declaration`은 대응하는 warning flag로 낮춘다.
 - `-Wno-error`와 `-Wno-error=<rule>`, standard, define, include, ABI 및 나머지 warning flag는
   그대로 보존한다.
 
