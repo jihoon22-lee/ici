@@ -418,6 +418,7 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
                 "mode": "pass_warn_fail",
                 "ruff_required": False,
                 "clang_tidy": "auto",
+                "clazy": "off",
                 "clang_tidy_checks": ["-*", "bugprone-*", "performance-*"],
             }
         },
@@ -432,6 +433,7 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
         "compiler": 0,
         "clang-tidy": 1,
         "clang-analyzer": 1,
+        "clazy": 0,
     }
     assert len(result.findings) == 2
     findings_by_rule = {finding.tool_rule_id: finding for finding in result.findings}

@@ -23,6 +23,7 @@ from ici.core.models import (
 )
 from ici.core.runner import ProcessResult, run_process
 from ici.engines._clang_tidy import run_clang_tidy
+from ici.engines._clazy import run_clazy
 from ici.engines._cpp_diagnostics import CppDiagnostic
 from ici.engines._cpp_lint import run_cpp_lint
 from ici.engines.base import BaseEngine
@@ -75,8 +76,10 @@ class LintEngine(BaseEngine):
         "ici.core._cpp_replay_policy",
         "ici.core.cpp_replay",
         "ici.engines._clang_tidy",
+        "ici.engines._clazy",
         "ici.engines._cpp_diagnostics",
         "ici.engines._cpp_lint",
+        "ici.engines._cpp_tooling",
         "ici.engines.lint",
     )
 
@@ -94,6 +97,11 @@ class LintEngine(BaseEngine):
         self._clang_tidy_mode = "not_applicable"
         self._clang_tidy_configurations_checked = 0
         self._clang_tidy_sources_checked = 0
+        self._clazy_mode = "not_applicable"
+        self._clazy_provider = "none"
+        self._clazy_profile = "level0"
+        self._clazy_configurations_checked = 0
+        self._clazy_sources_checked = 0
         self._cpp_diagnostics: list[CppDiagnostic] = []
 
         # 1. Python Linting & Formatting Check
@@ -169,11 +177,16 @@ class LintEngine(BaseEngine):
                 "clang_tidy_mode": self._clang_tidy_mode,
                 "clang_tidy_configurations_checked": self._clang_tidy_configurations_checked,
                 "clang_tidy_sources_checked": self._clang_tidy_sources_checked,
+                "clazy_mode": self._clazy_mode,
+                "clazy_provider": self._clazy_provider,
+                "clazy_profile": self._clazy_profile,
+                "clazy_configurations_checked": self._clazy_configurations_checked,
+                "clazy_sources_checked": self._clazy_sources_checked,
                 "cpp_diagnostic_families": {
                     family: sum(
                         1 for diagnostic in self._cpp_diagnostics if diagnostic.family == family
                     )
-                    for family in ("compiler", "clang-tidy", "clang-analyzer")
+                    for family in ("compiler", "clang-tidy", "clang-analyzer", "clazy")
                 },
                 "cpp_fixits": [
                     {
@@ -214,7 +227,7 @@ class LintEngine(BaseEngine):
         targets: list[InspectionTarget],
         tools: list[ToolEvidence],
     ) -> list[Finding]:
-        """Enrich compiler and clang findings while retaining target compatibility."""
+        """Enrich compiler, clang-tidy, and clazy findings."""
 
         key_counts = Counter((target.file_path, target.target_name.strip()) for target in targets)
         findings: list[Finding] = []
@@ -222,12 +235,23 @@ class LintEngine(BaseEngine):
             target = diagnostic.target
             key = (target.file_path, target.target_name.strip())
             label = target.target_name if key_counts[key] == 1 else ""
+            expected_tool = (
+                "clang-tidy"
+                if diagnostic.family in {"clang-tidy", "clang-analyzer"}
+                else "clazy"
+                if diagnostic.family == "clazy"
+                else ""
+            )
             candidates = reversed(tools) if diagnostic.family == "compiler" else tools
             tool = next(
                 (
                     item
                     for item in candidates
-                    if (item.name == "clang-tidy") != (diagnostic.family == "compiler")
+                    if item.name == expected_tool
+                    or (
+                        not expected_tool
+                        and item.name not in {"clang-tidy", "clazy", "ruff check", "ruff format"}
+                    )
                 ),
                 None,
             )
@@ -235,11 +259,7 @@ class LintEngine(BaseEngine):
             findings.append(
                 Finding(
                     rule_id="ici.legacy.lint.target",
-                    category=(
-                        FindingCategory.MAINTAINABILITY
-                        if diagnostic.family == "clang-tidy"
-                        else FindingCategory.CORRECTNESS
-                    ),
+                    category=self._cpp_finding_category(diagnostic),
                     severity=(
                         FindingSeverity.HIGH
                         if target.status == EngineStatus.FAIL
@@ -265,6 +285,8 @@ class LintEngine(BaseEngine):
                         if diagnostic.family == "clang-analyzer"
                         else "clang-tidy diagnostic."
                         if diagnostic.family == "clang-tidy"
+                        else "Qt-aware clazy diagnostic."
+                        if diagnostic.family == "clazy"
                         else "Compiler diagnostic from a sanitized translation-unit replay."
                     ),
                     remediation=remediation,
@@ -274,6 +296,23 @@ class LintEngine(BaseEngine):
                 )
             )
         return findings
+
+    @staticmethod
+    def _cpp_finding_category(diagnostic: CppDiagnostic) -> FindingCategory:
+        if diagnostic.family != "clazy":
+            return (
+                FindingCategory.MAINTAINABILITY
+                if diagnostic.family == "clang-tidy"
+                else FindingCategory.CORRECTNESS
+            )
+        rule = diagnostic.tool_rule_id.casefold()
+        if any(token in rule for token in ("lifetime", "ownership", "parent-less", "qobject-cast")):
+            return FindingCategory.RESOURCE
+        if any(token in rule for token in ("qt6", "deprecated", "qstring-arg", "qt-keyword")):
+            return FindingCategory.COMPATIBILITY
+        if any(token in rule for token in ("qobject", "connect", "signal", "slot", "qevent-cast")):
+            return FindingCategory.CORRECTNESS
+        return FindingCategory.MAINTAINABILITY
 
     @staticmethod
     def _cpp_remediation(diagnostic: CppDiagnostic) -> str:
@@ -782,4 +821,20 @@ class LintEngine(BaseEngine):
         self._clang_tidy_mode = clang_tidy.mode
         self._clang_tidy_configurations_checked = clang_tidy.configurations_checked
         self._clang_tidy_sources_checked = clang_tidy.sources_checked
-        return [*outcome.errors, *clang_tidy.errors]
+        clazy = run_clazy(
+            self.project_root,
+            cpp_files,
+            self.analysis_context,
+            self.get_config("lint"),
+            runner=run_process,
+        )
+        targets.extend(clazy.targets)
+        evidence.extend(clazy.evidence)
+        warnings.extend(clazy.warnings)
+        self._cpp_diagnostics.extend(clazy.diagnostics)
+        self._clazy_mode = clazy.mode
+        self._clazy_provider = clazy.provider
+        self._clazy_profile = clazy.profile
+        self._clazy_configurations_checked = clazy.configurations_checked
+        self._clazy_sources_checked = clazy.sources_checked
+        return [*outcome.errors, *clang_tidy.errors, *clazy.errors]

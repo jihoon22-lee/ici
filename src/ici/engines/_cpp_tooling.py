@@ -1,0 +1,75 @@
+"""Shared safety primitives for read-only Clang tooling adapters."""
+
+from __future__ import annotations
+
+import os
+import stat
+from pathlib import Path
+
+from ici.core.context import AnalysisContext, CompilationUnit
+from ici.core.cpp_replay import ReplayCommandError
+from ici.core.toolchain import ToolCapability
+
+
+def inside(root: Path, path: Path) -> bool:
+    """Return whether an already-normalized path is contained by ``root``."""
+
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def regular_executable(root: Path, capability: ToolCapability | None) -> Path | None:
+    """Resolve an approved capability to a non-project regular executable."""
+
+    if (
+        capability is None
+        or not capability.available
+        or not capability.complete
+        or not capability.path
+    ):
+        return None
+    try:
+        path = Path(capability.path).resolve(strict=True)
+        details = path.stat()
+    except (OSError, RuntimeError):
+        return None
+    if (
+        not path.is_absolute()
+        or inside(root, path)
+        or not stat.S_ISREG(details.st_mode)
+        or not os.access(path, os.X_OK)
+    ):
+        return None
+    return path
+
+
+def selected_units(
+    project_root: Path,
+    cpp_files: list[Path],
+    context: AnalysisContext,
+) -> tuple[list[CompilationUnit], list[str]]:
+    """Select exact production units, preserving unity-build coverage semantics."""
+
+    sources = {path.relative_to(project_root).as_posix() for path in cpp_files}
+    units = context.compilation.units
+    if context.compilation.unity_build:
+        selected = [unit for unit in units if unit.language in {"c", "c++"}]
+        return selected, []
+    selected = [unit for unit in units if unit.source in sources]
+    covered = {unit.source for unit in selected}
+    return selected, sorted(sources - covered)
+
+
+def tooling_arguments(argv: tuple[str, ...], source: Path) -> list[str]:
+    """Strip ici's controlled syntax suffix from an approved replay command."""
+
+    expected = ("-Wall", "-Wextra", "-fsyntax-only", str(source))
+    if len(argv) < 5 or tuple(argv[-4:]) != expected:
+        raise ReplayCommandError(
+            "unexpected-replay-shape",
+            "The sanitized compiler replay did not have the expected analysis suffix.",
+        )
+    return list(argv[1:-4])
