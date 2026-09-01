@@ -15,7 +15,7 @@
   `build_compiler_cpp_graph` with the actual `run_process` runner and a probed GCC/Clang
   compiler. In the current local Python 3.10 run, the mocked case and the actual `g++` case
   passed (2 passed); `clang++` was skipped because it is unavailable. This closes the edge
-  locally only; no new PR/CI/Pages evidence is claimed. The latest local full gate reports
+  locally; the follow-up PR/CI/Pages evidence is recorded below. The latest local full gate reports
   Python 3.10 pytest `1,334 passed, 1 skipped`, Ruff check/format PASS for 148 files, and mypy
   PASS for 88 source files. `build-pyz` and smoke also passed; the current artifact is 2,166,828
   bytes with SHA-256 `0f82aa95eb940072a735c591737f5b77d9dd16b32751aa03600ad3c5978bb158`.
@@ -68,11 +68,35 @@
   The same public projection compared 16 units, 6 targets, and 14 field groups with zero mismatch,
   checkout leak, or raw `argv`/`command` exposure.
 - These are local/candidate measurements; the exact remote PR, main, release, and public artifact
-  evidence is recorded below. The v0.8.0 release snapshot had the same-basename active-header
-  confirmation pending; the unreleased local follow-up above now closes that edge locally. Its
-  new PR/CI/Pages evidence is still pending.
+  evidence is recorded below. The v0.8.0 release snapshot is historical; its same-basename
+  active-header confirmation was pending at that point, while the unreleased follow-up now has
+  both local and remote evidence.
 
 ### Remote evidence
+- Feature [PR #113](https://github.com/jihoon22-lee/ici/pull/113) had head
+  [`61f613f6cd264327956f65db1dc81d5fe5ef5be7`](https://github.com/jihoon22-lee/ici/commit/61f613f6cd264327956f65db1dc81d5fe5ef5be7).
+  [PR workflow run 33458308024](https://github.com/jihoon22-lee/ici/actions/runs/33458308024) completed
+  all checks green, including `Merge Gate`. Its [sticky comment](https://github.com/jihoon22-lee/ici/pull/113#issuecomment-5487193195)
+  contained exactly one marker and exactly two report links; ici reported 1,335/1,335 tests with
+  TEM 4.84, and viewer reported 7/7 tests with TEM 4.89.
+- Independent PR Pages audits returned HTTP 200 `text/html`, exact titles, and zero external
+  references: [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/113/) was 5,691,035 bytes with
+  SHA-256 `4118bd7f42aa16e6082b56ce65a874d668b23c18a20d3c31876d81885e859561`; [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/113/)
+  was 345,176 bytes with SHA-256
+  `22aff0be7894b4f416169f547ee9862e133ceca55e8caa3bef201e8f924bc2d0`.
+- PR #113 was squash-merged to exact main
+  [`c78b40a15a64423f742aa2e75b09d35cc09a5e62`](https://github.com/jihoon22-lee/ici/commit/c78b40a15a64423f742aa2e75b09d35cc09a5e62).
+  [Exact-main run 33458962715](https://github.com/jihoon22-lee/ici/actions/runs/33458962715) was
+  SUCCESS, including main `Publish` and `Merge Gate`. Independent main Pages audits returned HTTP
+  200 `text/html`, exact titles, and zero external references: [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/)
+  was 5,690,362 bytes with SHA-256
+  `ef9c2869adebf596ab257a19c30ad1f61352d531ec30fa8df8e0a7ec3020e93f`; [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/)
+  was 345,176 bytes with SHA-256
+  `8ba214c4c019db341a44719191a721de8c2aa144743f1b2484d60b7021556dd9`.
+- These PR #113 and exact-main records close the I3 checkpoint after the local actual-process
+  same-basename edge and the v0.8.0 public projection BuildScope comparison (16 units, 6 targets,
+  14 field groups, zero mismatch). The current release/version remains v0.8.0; no version bump is
+  made, and the next planned stage is I4.
 - Feature [PR #110](https://github.com/jihoon22-lee/ici/pull/110) from head `3ce564a` was merged as
   `6b44f32869944a0941cab63eb94489b92c543a58`. [CI run 33448847117](https://github.com/jihoon22-lee/ici/actions/runs/33448847117)
   completed every required check and `Merge Gate`; its sticky comment retained one marker and two
@@ -115,8 +139,8 @@
   validation passed; the public projection compared 16 units, 6 targets, and 14 field groups with
   zero mismatch, checkout leak, or raw `argv`/`command` keys.
 - The release and public artifact evidence remains the v0.8.0 record above. The same-basename
-  active-header comparison was pending at that release snapshot and is now complete locally in
-  the unreleased follow-up; only that follow-up's PR/CI/Pages evidence remains pending for I3-5.
+  active-header comparison was pending at that release snapshot and is now complete locally and
+  remotely in the unreleased follow-up above; I3-5 is complete and the next stage is I4.
 
 ## [0.7.1] - 2026-09-01
 
@@ -205,8 +229,9 @@
     [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/103/) checks returned HTTP 200
     `text/html` with titles `ici Verification Report — ici` and `ici Verification Report — viewer`,
     observed sizes 4,716,032 and 337,918 bytes, and zero external `script`/`link`/`img` references
-    in both reports. I3-3 is complete; I3-2 BuildScope target-by-target validation, I3-4, and I3
-    as a whole remain pending.
+    in both reports. At this historical 0.7.0 snapshot, I3-3 was complete while I3-2 BuildScope
+    target-by-target validation, I3-4, and I3 as a whole remained pending; the later v0.8.0 public
+    projection and current follow-up records above supersede that status.
   - Self-dogfood first exposed an inline qmake dispatch branch that raised
     `VerifyOrchestrator.run_all` complexity from 25 to 26/FAIL; typed dispatch extraction restored
     25/WARN. Moving qmake argv construction into its own module also reduced `cmake.py` from 512
@@ -257,8 +282,9 @@
     Skip 2, TEM 4.89, tests 7/7). Independent [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/105/)
     and [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/105/) both returned HTTP/2 200,
     `text/html;charset=utf-8`, correct titles, and zero external `script`/`link`/`img`/`iframe`/`import`
-    references; observed sizes were 5,458,757 and 344,868 bytes respectively. BuildScope
-    target-by-target comparison remains pending, so I3 as a whole remains pending.
+    references; observed sizes were 5,458,757 and 344,868 bytes respectively. At that historical
+    0.7.0 snapshot, BuildScope target-by-target comparison and I3 as a whole remained pending; the
+    later v0.8.0 public projection and current follow-up records above supersede that status.
 - **I3-2 canonical CMake compilation context**: CMake projects without an existing
   compilation database now receive a deterministic Release analysis preflight in
   `build/ici-cmake-build`. Every CMake configure exports `compile_commands.json`;
@@ -303,9 +329,10 @@
     [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/101/) and
     [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/101/) checks both
     returned HTTP/2 200 `text/html` with a title, zero external dependencies, and
-    observed sizes of 4,574,483 and 337,918 bytes respectively. BuildScope
-    target-by-target validation remains pending; I3-3 is complete, while I3-4 and I3 as a whole
-    are not complete.
+    observed sizes of 4,574,483 and 337,918 bytes respectively. At that historical 0.7.0 snapshot,
+    BuildScope target-by-target validation remained pending; I3-3 was complete, while I3-4 and I3
+    as a whole were not complete. The later v0.8.0 public projection and current follow-up records
+    above supersede that status.
 - **I3-1 compiler-exact compilation context와 `compile_db` 품질 게이트**: root 또는 `build/compile_commands.json`(또는 명시적 project-relative 설정)을 immutable `CompilationContext`로 한 번 읽어 모든 엔진과 리포터가 공유합니다. `arguments` 우선, POSIX/Windows command tokenizer, bounded project-contained response-file 확장으로 shell/compiler를 실행하지 않고 compiler, language, standard, defines, include/search path, sysroot, output과 동일 source의 여러 configuration을 보존합니다.
   - database와 response file은 `O_NOFOLLOW`·`O_NONBLOCK` descriptor, regular-file `fstat`, 크기 제한 읽기, device/inode/size/mtime 재검증을 거칩니다. duplicate JSON key, non-finite/과대 입력, symlink·foreign path escape, malformed row, source/output 불일치와 stale/missing path는 전체 검증을 crash시키지 않고 위치가 있는 진단으로 변환됩니다.
   - GCC/Clang의 `-std`, `-x`, `-D`, `-I`/`-isystem`/`-iquote`, sysroot, `-o`와 MSVC/clang-cl의 `/std:`, `/D`, `/I`, `/external:I`, `/Fo`, `/TC`·`/TP`를 구조화합니다. 중앙/JSON redaction은 module/search/linker/rpath/forced-include/response-file 및 define 안의 embedded absolute POSIX·Windows 경로도 `[external]`로 투영합니다.
@@ -313,7 +340,7 @@
   - cache key를 `ici.analysis-cache-key/v2`로 올리고 database path/digest, loader identity, normalized unit와 parse diagnostic state를 포함해 `build/compile_commands.json` 변경 뒤 stale engine result가 재사용되지 않게 했습니다. v3 schema도 unit/argv/diagnostic 크기와 output·search path·sysroot scope 조합을 제한합니다.
   - loader facade를 `src/ici/core/compile_db.py`에 두고 `_compile_db_paths.py`, `_compile_db_commands.py`, `_compile_db_metadata.py`로 책임을 분리했습니다. 네 모듈은 각각 순수 코드 500줄 미만이며, compile_db 범위의 최종 line·type·high-complexity 이슈는 0건입니다.
   - I3-1 최종 로컬 증거는 focused 109 passed, Python 3.10 full 1,032 passed(46.29s), Ruff check/format 127 files, focused mypy clean, reproducible pyz 두 빌드 동일 SHA-256 `408fcd0fcf153b5e63927d10d34d55cea680eb472dc6f0e95bf174efcf6e8b36`, pure-Python 10 distributions/no certifi, smoke·Zero-CDN PASS입니다. 최종 `--no-cache` self verify는 WARN(13 total: Pass 8, Warn 4, Fail 0, Error 0, Skip 1), compile_db `SKIP`/`NOT_APPLICABLE`(Python-only), test 1,032/1,032, coverage line/function/branch 88.6%/97.1%/79.6%, TEM 4.86, cache hits 0, 109.26s, HTML 4,627,454 bytes였고 compile_db-specific high-complexity/line-threshold/type issues는 0건입니다. 이는 로컬 측정값이다.
-  - I3-1 원격 병합 증거도 완료됐다. [PR #99](https://github.com/jihoon22-lee/ici/pull/99)는 squash로 병합되어 commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.com/jihoon22-lee/ici/commit/64c4f7b57826e088e9b74b5950c7f3d8091188b9)가 되었고, [CI run 33380721019](https://github.com/jihoon22-lee/ici/actions/runs/33380721019)의 `Verify & Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`, `Publish PR Report & Sticky Comment`, `Merge Gate`가 모두 SUCCESS였다(`Publish Main`은 PR에서 expected skipped). [sticky comment](https://github.com/jihoon22-lee/ici/pull/99#issuecomment-5476836988)는 ici와 viewer를 함께 포함했으며, CI stats는 ici WARN(Pass 8, Warn 4, Fail 0, Error 0, Skip 1, TEM 4.86, tests 1,032, branch 79.7%), viewer WARN(Pass 10, Warn 1, Fail 0, Error 0, Skip 2, TEM 4.89, tests 7)였다. 독립적으로 fetch한 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/99/)와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/99/)는 각각 HTTP/2 200, `Content-Type: text/html; charset=utf-8`, title present, 외부 `script`/`link`/`img`/`iframe` dependency 0건이었고 관측 bytes는 각각 4,496,996와 344,663이었다. 이로써 I3-1은 완료됐으며 다음 단계는 I3-2 CMake compile DB 생성이다. I3 전체는 아직 완료되지 않았다.
+  - I3-1 원격 병합 증거도 완료됐다. [PR #99](https://github.com/jihoon22-lee/ici/pull/99)는 squash로 병합되어 commit [`64c4f7b57826e088e9b74b5950c7f3d8091188b9`](https://github.com/jihoon22-lee/ici/commit/64c4f7b57826e088e9b74b5950c7f3d8091188b9)가 되었고, [CI run 33380721019](https://github.com/jihoon22-lee/ici/actions/runs/33380721019)의 `Verify & Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`, `Publish PR Report & Sticky Comment`, `Merge Gate`가 모두 SUCCESS였다(`Publish Main`은 PR에서 expected skipped). [sticky comment](https://github.com/jihoon22-lee/ici/pull/99#issuecomment-5476836988)는 ici와 viewer를 함께 포함했으며, CI stats는 ici WARN(Pass 8, Warn 4, Fail 0, Error 0, Skip 1, TEM 4.86, tests 1,032, branch 79.7%), viewer WARN(Pass 10, Warn 1, Fail 0, Error 0, Skip 2, TEM 4.89, tests 7)였다. 독립적으로 fetch한 [ici Pages](https://jihoon22-lee.github.io/ici/ici/pr/99/)와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/pr/99/)는 각각 HTTP/2 200, `Content-Type: text/html; charset=utf-8`, title present, 외부 `script`/`link`/`img`/`iframe` dependency 0건이었고 관측 bytes는 각각 4,496,996와 344,663이었다. 이로써 I3-1은 완료됐으며 다음 단계는 I3-2 CMake compile DB 생성이다. 이는 당시 0.7.0 snapshot의 상태이며, 이후 v0.8.0 public projection과 현재 follow-up 기록에서 I3 전체가 complete됐다.
 - **I2-1 tool capability probes (first slice)**: 추가한 선언형 bounded·shell-free registry가 compiler/clang tools, CMake/CTest, qmake6→qmake, Make, Ninja, gcov, binutils, pkg-config, Qt5·Qt6 및 Python tooling을 탐지합니다. vendor suffix·multiline stdout/stderr version tuple parser와 compiler target triple, qmake Qt metadata, CMake generator capabilities를 기록하며, 5초/64KiB 제한·redacted immutable evidence와 available/complete 구분을 제공합니다. 이 registry는 Slice 2의 doctor inventory와 Slice 3의 verify/report snapshot에서 공통으로 사용됩니다.
 - **I2-1 shared policy-aware capability inventory (second slice)**: `ToolRequirement`와 immutable `CapabilityInventory`가 전체 registry probe 결과에 required/optional provenance를 붙입니다. required 도구의 missing/incomplete 상태는 명시적으로 WARN health로 집계하고 optional 부재는 healthy 상태를 유지합니다. `ici doctor`와 `ici doctor --json`은 같은 전체 registry를 사용하며, JSON의 `capability_inventory`에 status·counts·도구별 version/path/details/evidence와 `engine:language` 또는 `doctor.config` requirement source를 남깁니다. argv와 metadata는 공통 redaction 경계를 거치고, 기존 `tools` map은 호환용으로 계속 제공합니다. Slice 3에서는 같은 정책과 snapshot을 verify/report까지 확장합니다.
 - **I2-1 verify/report shared capability snapshot (third slice)**: `ici verify`가 유효 support matrix를 엔진 실행 전에 평가하고, `applicable`·`enabled` 범위에 `doctor.config`를 합친 required/optional tool policy를 계산한 뒤 bounded registry를 정확히 한 번 수집합니다. verify 결과와 모든 reporter는 suite-level immutable `CapabilityInventory`를 공유하며 reporter가 도구를 다시 probe하지 않습니다. required provenance가 optional보다 우선하지만 모든 소비자 provenance는 보존하고, 공통 redaction은 capability 이름·경로·버전·오류·details·probe argv·evidence까지 적용합니다. `ici.result/v3`에는 기존 리포트와 호환되는 선택적 root `capability_inventory`와 checked-in schema가 추가됐습니다. 콘솔은 compact health, Markdown은 접힌 complete inventory, zero-CDN HTML은 Support & Capabilities 탭의 전체 tool rows를 표시합니다. 최종 로컬 검증은 Python 3.10 pytest 807 passed(40.32s), Ruff check/format 103 files 및 smoke PASS, reproducible pyz SHA-256 `0d91f4ab698aed53781669125200e5ae2291484c4083d2c181aacee06d5c80e2`를 기록했습니다. self verify는 exit 0(WARN; 12 engines 8 PASS/4 WARN, TEM 4.84, 105.98s)였고 capability inventory는 30 tools 중 21 ready/0 incomplete/9 unavailable, required ruff·pytest·python3 READY, health PASS였습니다. import cycle은 `redaction_values` 추출로 수정했으며, 원격 CI·PR/Pages 증거는 main 통합 후 기록합니다.
