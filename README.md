@@ -21,6 +21,13 @@ clazy 1.11·Qt matrix·1,517개 테스트·self/viewer dogfood·Zero-CDN Pages�
 released-v0.10.1 교차 검증과 I4-3/I4-4가 다음 완료 조건이며, 이전 릴리스 증거는 변경 이력과
 실행 계획에 보존합니다.
 
+### 릴리스 정책
+
+- `feature`·`test`·`refactor`·`docs` PR은 버전 변경이나 stable release를 자동으로 만들지 않습니다.
+- `patch`는 이미 공개된 stable artifact의 defect·security·compatibility 수정에만 사용합니다.
+- `minor`는 사용자에게 보이는 응집된 roadmap checkpoint이며, ici 전체 gate·실제 도구 E2E·candidate cross-repo/toy 검증·PR/main CI·Pages·문서/CHANGELOG가 모두 끝난 뒤에만 정합니다.
+- pre-release/candidate artifact는 stable이 아니며, 하나의 PR이 하나의 릴리스를 뜻하지 않습니다. 현재 `v0.10.1`은 corrective stabilization이고, 다음 minor는 I4-3/I4-4와 real toy-projects/quality-zoo 검증 이후로 미룹니다.
+
 ---
 
 ## 📚 문서 허브 (Documentation Hub)

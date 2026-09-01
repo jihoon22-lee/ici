@@ -7,6 +7,16 @@
 
 ## [Unreleased]
 
+### Release discipline
+
+- `feature`, `test`, `refactor`, `docs` PR은 버전을 자동으로 올리거나 stable release를 만들지
+  않는다. `v0.10.1`은 공개된 v0.10.0의 production warning-policy 결함을 보정하는 corrective
+  stabilization이며, pre-release/candidate artifact는 stable이 아니다.
+- `patch`는 이미 공개된 stable artifact의 defect·security·compatibility 수정에만 사용한다.
+  다음 `minor`는 사용자에게 보이는 응집된 roadmap checkpoint로서 ici 전체 gate, 실제 도구
+  E2E, candidate cross-repo/toy 검증, PR/main CI·Pages, docs/CHANGELOG, I4-3/I4-4와 real
+  toy-projects/quality-zoo 검증이 끝날 때까지 미룬다. 하나의 PR이 하나의 릴리스를 의미하지 않는다.
+
 ## [0.10.1] - 2026-09-01
 
 ### Fixed
