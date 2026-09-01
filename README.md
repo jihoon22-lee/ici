@@ -10,7 +10,9 @@ $ ici doctor
 
 ### 현재 릴리스와 진행 상태
 
-현재 릴리스 기준 버전은 [v0.10.1](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.1)입니다.
+현재 공개 릴리스는 [v0.10.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.0)이며,
+이 소스 트리의 릴리스 후보 버전은 `0.10.1`입니다. v0.10.1 tag와 공개 artifact는 exact-main
+Merge Gate가 통과한 뒤에만 생성합니다.
 I4-1의 exact compiler/clang-tidy replay에 이어 I4-2에서 Qt-aware clazy와
 `moc`/`uic`/`rcc` generated-code linkage, Qt 5/Qt 6 compile evidence를 추가했습니다. 실제
 clazy 1.11·Qt matrix·1,517개 테스트·self/viewer dogfood·Zero-CDN Pages가 PR과 exact main에서

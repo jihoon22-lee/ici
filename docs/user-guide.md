@@ -422,7 +422,8 @@ evidence를 만들지 않습니다. timeout·truncation·nonzero·spawn/malforme
 clang-tidy/clazy 실행에서는 각각 제거, `-W<rule>`, `-pedantic`으로 낮춰집니다. 이 변환은
 warning 선택과 standard/define/include/ABI context를 보존하며 `-Wno-error*`도 변경하지 않습니다.
 따라서 분석 finding은 위치 있는 결과로 수집되고, 실제 syntax 오류·비정상 종료·파서 오류만
-tool execution failure로 처리됩니다.
+tool execution failure로 처리됩니다. 변환 결과가 `-Wp`/`-Wa`/`-Wl` forwarding처럼 replay
+안전 경계를 벗어나면 도구를 실행하지 않고 context error로 fail-closed합니다.
 
 ##### C++ Qt clazy 및 생성 단계 정책 (I4-2)
 
@@ -493,8 +494,10 @@ AUTORCC와 qmake의 direct generated unit 양쪽을 다룹니다.
 `33499500259`](https://github.com/jihoon22-lee/ici/actions/runs/33499500259)에서 1,517/1,517 테스트(네 개 actual compiler/clang-tidy/clazy process E2E
 포함), Qt 5/Qt 6, self/viewer dogfood, publisher/sticky comment, Merge Gate를 통과했고,
 squash merge 뒤 [exact-main run `33500281653`](https://github.com/jihoon22-lee/ici/actions/runs/33500281653)도 같은 tool/matrix/dogfood/Merge Gate와 trusted
-main publication 및 ici/viewer Pages 감사를 통과했습니다. 따라서 ici의 I4-2 PR/main remote acceptance는 완료됐으며,
-v0.10.0 release artifact와 toy-projects BuildScope B5 교차 검증은 아직 pending입니다.
+main publication 및 ici/viewer Pages 감사를 통과했습니다. 따라서 ici의 I4-2 PR/main remote acceptance는 완료됐습니다.
+v0.10.0 release workflow run `33503441322`도 provenance와 9개 artifact 감사를 통과했습니다.
+첫 toy-projects BuildScope B5 run이 production `-Werror`의 diagnostic-tool 승격 결함을 드러내
+v0.10.1 보정과 released-artifact 재검증이 후속 gate가 됐습니다.
 
 cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
 path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration

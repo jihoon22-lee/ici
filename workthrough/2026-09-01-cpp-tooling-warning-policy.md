@@ -39,6 +39,9 @@ process, parser 오류에 대한 fail-closed 계약은 바꾸지 않는다.
   controlled suffix shape의 fail-closed 거부를 검증한다.
 - adapter 테스트는 clang-tidy, clazy standalone, clazy compiler-wrapper의 최종 argv를 각각
   검사한다.
+- demotion 결과를 replay drop/reject/positive-safe 정책으로 다시 검증한다. 조작된
+  `-Werror=p,-MD,...`, `-Werror=a,...`, `-Werror=l,...` 및 중첩 error form은 어떤 analyzer도
+  실행하기 전에 `unsafe-tooling-warning-policy`로 거부한다.
 - Linux actual-process clang-tidy와 Qt/clazy fixtures의 compilation command에 `-Werror`를
   추가했다. CI와 release workflow는 실제 도구를 필수로 설치하고 skip을 실패로 바꾸므로 이
   회귀를 mock만으로 통과시킬 수 없다.
@@ -85,6 +88,9 @@ bytes, SHA-256 `c41c6e00fac57c1219f8e46aab23f37e6756cbf00318897e6f2e30c66c7da6d4
   확장해야 한다.
 - nonzero, timeout, truncation, malformed output은 계속 atomic error다. warning 승격을 낮춘다고
   도구 자체의 실패를 진단 성공으로 오인하지 않는다.
+- 첫 PR head `e76a9b3`은 모든 CI와 실제 도구 E2E를 통과했지만 독립 병합 전 리뷰가 projection
+  뒤 생길 수 있는 compiler-subtool forwarding을 발견했다. green CI만으로 병합하지 않고
+  adversarial regression을 추가해 새 head에서 전체 gate를 다시 실행한다.
 
 ## Next Steps
 

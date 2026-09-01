@@ -17,7 +17,9 @@
   `-W<rule>`, and `-pedantic-errors`/`--pedantic-errors` become `-pedantic`. GCC's legacy
   `-Werror-implicit-function-declaration` alias is likewise demoted without disabling its warning;
   `-Wno-error*`, semantic compile flags, include paths, defines, and other warning selections remain
-  exact.
+  exact. Every generated argument is revalidated against the replay safety policy, so crafted
+  suffixes cannot resurrect rejected preprocessor, assembler, or linker forwarding such as
+  `-Wp,-MD`, `-Wa,...`, or `-Wl,...`.
 - The clazy compiler-wrapper provider now uses the same projected compiler arguments as
   `clazy-standalone` and clang-tidy before restoring ici's controlled `-Wall -Wextra
   -fsyntax-only <source>` suffix. This closes the provider-specific bypass that would otherwise
@@ -25,7 +27,9 @@
 
 ### Verification
 - The regression contract covers shared flag demotion, malformed replay rejection, clang-tidy,
-  clazy standalone, and the clazy compiler wrapper. Linux actual-process fixtures now carry
+  clazy standalone, and the clazy compiler wrapper. Adversarial nested error forms and
+  preprocessor/assembler/linker forwarding projections fail closed before any tool invocation.
+  Linux actual-process fixtures now carry
   `-Werror` in both clang-tidy and Qt/clazy compilation commands, so CI and release jobs with
   `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` must prove real findings remain parseable diagnostics.
 - The pre-PR Python 3.10 suite passed `1,519` tests with four expected local missing-tool skips;
