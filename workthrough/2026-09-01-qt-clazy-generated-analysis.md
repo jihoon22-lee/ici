@@ -5,8 +5,10 @@
 I4-2는 I3의 immutable `AnalysisContext`를 Qt-aware static analysis까지 확장한다. 구현은
 canonical clazy capability와 두 provider 경로, strict diagnostic normalization, Qt
 `moc`/`uic`/`rcc` generated-code linkage, Qt 5/Qt 6 compile evidence를 `lint` facade의
-독립적인 evidence로 묶는다. 기본 실행은 source와 compilation context를 읽기만 하며, 실제
-원격 PR/merge/release 증거는 이 workthrough 작성 시점에 아직 없다.
+독립적인 evidence로 묶는다. 기본 실행은 source와 compilation context를 읽기만 한다. 구현은
+PR #122의 run 33499500259와 squash merge 뒤 exact-main run 33500281653에서 검증되어 ici I4-2
+원격 acceptance까지 완료됐으며, PR/main ici·viewer Pages 감사도 통과했다. v0.10.0 release
+artifact와 toy-projects BuildScope B5는 다음 단계다.
 
 ## Context
 
@@ -133,8 +135,14 @@ uv run --python 3.10 pytest tests/test_clazy.py tests/test_qt_codegen.py \
 
 세 skip은 현재 로컬 환경에서 `clang-tidy`·`clazy`가 설치되지 않은 process-level 조건이다.
 CI/release의 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` 경로에서는 같은 조건이 skip 대신 failure가
-되어야 한다. 이 문서에 기록한 결과는 local evidence이며, PR CI·sticky HTML comment·Pages,
-toy-projects BuildScope B5 및 새 release evidence를 의미하지 않는다.
+되어야 한다. 이 focused 결과는 local evidence로 별도 보존하며, 이후 PR #122의 head
+`c3a8fe21639cecef395f0bc28777066401927da0`가 run `33499500259`에서 1,517/1,517 테스트와
+네 개 actual compiler/clang-tidy/clazy process E2E, Qt 5/Qt 6, self/viewer dogfood,
+publisher/sticky comment, Merge Gate를 통과했고 PR ici/viewer Pages 감사도 통과했다. PR은
+`9b3a88f7b216a9a82a988fe2d6d1ba7b35cc2327`로 squash merge됐고 exact-main run `33500281653`도
+같은 tool/matrix/dogfood/Merge Gate와 trusted main publication, main ici/viewer Pages 감사를
+통과했다. 따라서 ici I4-2의 PR/main remote acceptance는 완료됐으며, 이
+문서의 local 수치가 해당 원격 검증을 대체하지는 않는다.
 
 리뷰 및 clazy 1.11 legacy context 보강 후 최종 mandatory local gate:
 
@@ -169,14 +177,15 @@ QDateTime inefficientUtc() { return QDateTime::currentDateTime().toUTC(); }
 세 차례의 원격 회귀는 순서대로 E2E inventory의 `clang++` probe 누락(run 33495534003), clazy
 1.11에서 불안정한 `qcolor-from-literal` fixture(run 33495778941), 위 legacy context parser
 호환성(run 33496761909)을 드러냈다. 각 원인은 capability fixture, cross-version
-`qdatetime-utc` fixture, project-source exact-match parser로 분리해 보강했다. 현재 변경을 포함한
-다음 PR run과 sticky comment/Pages 감사는 아직 pending이다.
+`qdatetime-utc` fixture, project-source exact-match parser로 분리해 보강했고, 후속 PR #122와
+exact-main run에서 그 수정의 원격 acceptance를 완료했다.
 
 ## Next Steps
 
-- `feat/qt-analysis`를 PR로 제출하고 full Python 3.10 quality gate, 실제 clazy process E2E,
-  Qt5/Qt6 matrix, sticky comment와 hosted HTML을 독립 확인한다.
-- toy-projects BuildScope B5에 `.ui`, `.qrc`, Q_OBJECT 경로를 추가하거나 기존 fixture를
+- [x] `feat/qt-analysis`를 PR로 제출하고 full Python 3.10 quality gate, 실제 clazy process E2E,
+  Qt5/Qt6 matrix, sticky comment와 hosted HTML을 독립 확인했다. PR #122와 exact-main run
+  `33500281653`에서 ici I4-2 원격 acceptance가 완료됐다.
+- [ ] v0.10.0 release artifact/provenance를 확정한다.
+- [ ] toy-projects BuildScope B5에 `.ui`, `.qrc`, Q_OBJECT 경로를 추가하거나 기존 fixture를
   확장하고, released ici로 PR 검증을 수행한다.
-- 위 원격 증거가 모두 green인 뒤에만 I4-2 delivery 상태와 적절한 ici release version을
-  기록한다. I4-3/I4-4와 I4 전체 checkpoint는 그 이후에도 별도 완료 조건을 따른다.
+- [ ] I4-3/I4-4를 진행하고 I4 전체 checkpoint를 별도 완료 조건에 따라 닫는다.

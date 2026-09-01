@@ -483,8 +483,12 @@ AUTORCC와 qmake의 direct generated unit 양쪽을 다룹니다.
 현재 full local contract run은 `1513 passed, 4 skipped`였고, skip은 로컬 환경의
 `clang-tidy`·`clazy`·`clang++` 미설치에 따른 것입니다. CI와 release workflow는 clazy를 설치하고
 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`을 설정해 실제 clazy/Qt process E2E가 조용히 skip되지
-않게 합니다. I4-2 원격 PR/main CI, toy-projects BuildScope B5 교차 검증과 release artifact
-evidence는 아직 pending입니다.
+않게 합니다. I4-2 PR #122의 head `c3a8fe21639cecef395f0bc28777066401927da0`은 [run
+`33499500259`](https://github.com/jihoon22-lee/ici/actions/runs/33499500259)에서 1,517/1,517 테스트(네 개 actual compiler/clang-tidy/clazy process E2E
+포함), Qt 5/Qt 6, self/viewer dogfood, publisher/sticky comment, Merge Gate를 통과했고,
+squash merge 뒤 [exact-main run `33500281653`](https://github.com/jihoon22-lee/ici/actions/runs/33500281653)도 같은 tool/matrix/dogfood/Merge Gate와 trusted
+main publication 및 ici/viewer Pages 감사를 통과했습니다. 따라서 ici의 I4-2 PR/main remote acceptance는 완료됐으며,
+v0.10.0 release artifact와 toy-projects BuildScope B5 교차 검증은 아직 pending입니다.
 
 cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
 path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration
