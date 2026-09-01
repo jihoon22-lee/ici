@@ -51,8 +51,10 @@ _SOURCE_SUFFIXES = frozenset(
         ".sh",
         ".csh",
         ".toml",
+        ".ui",
         ".yaml",
         ".yml",
+        ".qrc",
     }
 )
 _INPUT_SUFFIXES = frozenset({".cmake", ".cfg", ".ini", ".pri", ".pro", ".toml"})

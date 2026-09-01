@@ -65,6 +65,14 @@ def _result(
             id="python-vv",
         ),
         pytest.param(
+            "clazy",
+            "Ubuntu LLVM version 21.1.8\nclazy version 1.17\n",
+            "",
+            "clazy version 1.17",
+            (1, 17),
+            id="clazy-standalone-multiline",
+        ),
+        pytest.param(
             "cmake",
             "cmake version 3.30.2\n\nCMake suite maintained and supported by Kitware\n",
             "",
@@ -600,6 +608,7 @@ def test_default_tool_probe_registry_is_deterministic_and_covers_requested_tools
         "clang++",
         "clang-format",
         "clang-tidy",
+        "clazy",
         "clangd",
         "clang-check",
         "cmake",
@@ -634,6 +643,7 @@ def test_default_tool_probe_registry_is_deterministic_and_covers_requested_tools
         "clang++",
         "clang-format",
         "clang-tidy",
+        "clazy",
         "clangd",
         "clang-check",
         "cmake",
@@ -655,6 +665,134 @@ def test_default_tool_probe_registry_is_deterministic_and_covers_requested_tools
     assert names == tuple(probe.name for probe in toolchain.DEFAULT_TOOL_PROBES)
     assert len(names) == len(set(names))
     assert requested.issubset(names)
+
+
+def test_clazy_probe_prefers_standalone_candidate_and_preserves_alias(monkeypatch):
+    path = "/opt/llvm/bin/clazy-standalone"
+    probe = next(item for item in toolchain.DEFAULT_TOOL_PROBES if item.name == "clazy")
+    which_calls = []
+    run_calls = []
+
+    def fake_which(command):
+        which_calls.append(command)
+        return path if command in {"clazy-standalone", path} else None
+
+    def fake_run(argv, *, cwd, timeout, max_output_chars):
+        del cwd, timeout, max_output_chars
+        run_calls.append(tuple(argv))
+        return _result(stdout="Ubuntu LLVM version 21.1.8\nclazy version 1.17\n")
+
+    monkeypatch.setattr(toolchain.shutil, "which", fake_which)
+    monkeypatch.setattr(toolchain, "run_process", fake_run)
+
+    capability, results = toolchain.collect_registered_capability(probe)
+
+    assert which_calls == ["clazy-standalone", path]
+    assert run_calls == [(path, "--version")]
+    assert len(results) == 1
+    assert capability.available is True
+    assert capability.complete is True
+    assert capability.version_tuple == (1, 17)
+    assert capability.details["resolved_alias"] == "clazy-standalone"
+
+
+@pytest.mark.parametrize(
+    "standalone_result",
+    [
+        pytest.param(_result(returncode=127, stderr="broken"), id="execution-failure"),
+        pytest.param(_result(stdout="Ubuntu LLVM version 21.1.8\n"), id="version-parse-failure"),
+    ],
+)
+def test_clazy_probe_falls_back_to_wrapper_after_standalone_version_failure(
+    monkeypatch, standalone_result
+):
+    standalone = "/opt/llvm/bin/clazy-standalone"
+    wrapper = "/usr/bin/clazy"
+    probe = next(item for item in toolchain.DEFAULT_TOOL_PROBES if item.name == "clazy")
+    which_calls = []
+    run_calls = []
+    wrapper_result = _result(stdout="clazy version: 1.17\n")
+    process_results = [standalone_result, wrapper_result]
+    available = {
+        "clazy-standalone": standalone,
+        standalone: standalone,
+        "clazy": wrapper,
+        wrapper: wrapper,
+    }
+
+    def fake_which(command):
+        which_calls.append(command)
+        return available.get(command)
+
+    def fake_run(argv, *, cwd, timeout, max_output_chars):
+        del cwd, timeout, max_output_chars
+        run_calls.append(tuple(argv))
+        return process_results.pop(0)
+
+    monkeypatch.setattr(toolchain.shutil, "which", fake_which)
+    monkeypatch.setattr(toolchain, "run_process", fake_run)
+
+    capability, results = toolchain.collect_registered_capability(probe)
+
+    assert which_calls == ["clazy-standalone", standalone, "clazy", wrapper]
+    assert run_calls == [(standalone, "--version"), (wrapper, "--version")]
+    assert results == (standalone_result, wrapper_result)
+    assert capability.available is True
+    assert capability.complete is True
+    assert capability.path == wrapper
+    assert capability.version_tuple == (1, 17)
+    assert capability.details["resolved_alias"] == "clazy"
+    assert capability.probe_argv == (wrapper, "--version")
+
+
+def test_collect_registered_capability_preserves_first_failed_candidate(monkeypatch):
+    first = "/opt/tools/first"
+    second = "/opt/tools/second"
+    probe = toolchain.ToolProbe("fallback", ("first", "second"), ("--version",))
+    process_results = [
+        _result(returncode=17, stderr="first candidate failed"),
+        _result(stdout="unparseable release output\n"),
+    ]
+    available = {
+        "first": first,
+        first: first,
+        "second": second,
+        second: second,
+    }
+
+    def fake_which(command):
+        return available.get(command)
+
+    def fake_run(argv, *, cwd, timeout, max_output_chars):
+        del cwd, timeout, max_output_chars
+        return process_results.pop(0)
+
+    monkeypatch.setattr(toolchain.shutil, "which", fake_which)
+    monkeypatch.setattr(toolchain, "run_process", fake_run)
+
+    capability, results = toolchain.collect_registered_capability(probe)
+
+    assert results == (
+        _result(returncode=17, stderr="first candidate failed"),
+        _result(stdout="unparseable release output\n"),
+    )
+    assert capability.path == first
+    assert capability.available is False
+    assert capability.complete is False
+    assert capability.error == "probe exited 17"
+    assert capability.details["resolved_alias"] == "first"
+    assert capability.probe_argv == (first, "--version")
+
+
+def test_clazy_version_parser_does_not_fall_back_to_llvm_version():
+    assert toolchain.parse_tool_version("clazy", "Ubuntu LLVM version 21.1.8\n") == ("", ())
+
+
+def test_clazy_wrapper_version_parser_accepts_packaged_colon_format():
+    assert toolchain.parse_tool_version(
+        "clazy",
+        "clazy version: 1.17\nclang version: 21.1.8\n",
+    ) == ("clazy version: 1.17", (1, 17))
 
 
 def test_collect_registered_capability_missing_candidates_returns_no_process_result(monkeypatch):

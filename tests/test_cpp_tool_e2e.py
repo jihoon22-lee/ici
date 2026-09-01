@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import sys
 from pathlib import Path
@@ -16,11 +17,14 @@ from ici.core.context import AnalysisContext, create_analysis_context, discover_
 from ici.core.runner import ProcessResult, run_process
 from ici.core.toolchain import ToolProbe
 from ici.engines._clang_tidy import run_clang_tidy
+from ici.engines._clazy import run_clazy
 from ici.engines._cpp_lint import run_cpp_lint
 
 _PROBES = {
     "g++": ToolProbe("g++", ("g++",), ("-dumpfullversion", "-dumpversion")),
+    "clang++": ToolProbe("clang++", ("clang++",), ("--version",)),
     "clang-tidy": ToolProbe("clang-tidy", ("clang-tidy",), ("--version",)),
+    "clazy": ToolProbe("clazy", ("clazy-standalone", "clazy"), ("--version",)),
 }
 _REQUIRE_TOOLS_ENV = "ICI_REQUIRE_STATIC_ANALYSIS_TOOLS"
 
@@ -34,7 +38,11 @@ def _unavailable(reason: str) -> None:
 def _required_inventory(*names: str) -> CapabilityInventory:
     if sys.platform != "linux":
         _unavailable("these process-level checks cover the Linux toolchain")
-    missing = [name for name in names if shutil.which(name) is None]
+    missing = [
+        name
+        for name in names
+        if not any(shutil.which(candidate) for candidate in _PROBES[name].candidates)
+    ]
     if missing:
         _unavailable(f"required Linux tool(s) unavailable: {', '.join(missing)}")
 
@@ -332,6 +340,102 @@ def test_run_clang_tidy_uses_real_binary_and_exact_context(
     ]
     assert all(value not in evidence.argv for value in ("-p", "--fix", "compile_commands.json"))
     assert _source_snapshot(real_cpp_project) == before
+
+
+def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> None:
+    inventory = _required_inventory("g++", "clang++", "clazy")
+    pkg_config = shutil.which("pkg-config")
+    if pkg_config is None:
+        _unavailable("pkg-config is required for the Qt-backed clazy fixture")
+    flags_result = run_process(
+        [pkg_config, "--cflags", "Qt6Core"],
+        timeout=10.0,
+        max_output_chars=65_536,
+    )
+    if (
+        flags_result.returncode != 0
+        or flags_result.timed_out
+        or flags_result.truncated
+        or not flags_result.stdout.strip()
+    ):
+        _unavailable("Qt6Core development headers are unavailable")
+
+    root = tmp_path / "clazy-project"
+    source_dir = root / "src"
+    build = root / "build"
+    source_dir.mkdir(parents=True)
+    build.mkdir()
+    source = source_dir / "datetime.cpp"
+    source.write_text(
+        "#include <QDateTime>\n"
+        "QDateTime inefficientUtc() { return QDateTime::currentDateTime().toUTC(); }\n",
+        encoding="utf-8",
+    )
+    before = source.read_bytes()
+    gxx = inventory.capabilities["g++"].path
+    arguments = [
+        gxx,
+        "-std=c++17",
+        *shlex.split(flags_result.stdout),
+        "-fPIC",
+        "-c",
+        str(source),
+        "-o",
+        "datetime.o",
+    ]
+    (root / "compile_commands.json").write_text(
+        json.dumps(
+            [
+                {
+                    "directory": str(build),
+                    "file": str(source),
+                    "arguments": arguments,
+                    "output": "datetime.o",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    config = {"type": "cpp", "project": {"source_dirs": ["src"]}}
+    context = create_analysis_context(
+        root,
+        config,
+        inventory,
+        project=discover_project_model(root, config),
+        compilation=load_compilation_context(root, config),
+    )
+
+    outcome = run_clazy(
+        root,
+        [source],
+        context,
+        {"clazy": "required", "clazy_checks": ["qdatetime-utc"]},
+        runner=run_process,
+    )
+
+    assert outcome.mode == "exact", outcome.errors
+    assert outcome.provider == "standalone"
+    assert outcome.errors == []
+    assert outcome.sources_checked == 1
+    assert outcome.configurations_checked == 1
+    diagnostic = next(
+        item for item in outcome.diagnostics if item.tool_rule_id == "clazy-qdatetime-utc"
+    )
+    assert diagnostic.family == "clazy"
+    assert diagnostic.target.file_path == "src/datetime.cpp"
+    assert diagnostic.target.start_line == 2
+    assert diagnostic.target.target_name == "Clazy:clazy-qdatetime-utc"
+    assert diagnostic.target.status.value == "WARN"
+    assert len(outcome.evidence) == 1
+    evidence = outcome.evidence[0]
+    assert evidence.name == "clazy"
+    assert evidence.returncode == 0
+    assert evidence.error == ""
+    assert evidence.argv is not None
+    assert evidence.argv[1:3] == ["--checks=qdatetime-utc", "--only-qt"]
+    assert "-p" not in evidence.argv
+    assert not any(argument.startswith("--fix") for argument in evidence.argv)
+    assert source.read_bytes() == before
 
 
 def test_run_clang_tidy_accepts_real_llvm_swappable_parameter_notes(

@@ -43,6 +43,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "mode": "pass_warn_fail",
             "ruff_required": False,
             "clang_tidy": "auto",
+            "clazy": "auto",
+            "clazy_profile": "level0",
         },
         "compile_db": {
             "enabled": True,

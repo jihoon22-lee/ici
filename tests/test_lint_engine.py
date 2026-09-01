@@ -11,7 +11,7 @@ from ici.engines.lint import LintEngine
 
 
 def _compiler_only_lint_config():
-    return {"engines": {"lint": {"clang_tidy": "off"}}}
+    return {"engines": {"lint": {"clang_tidy": "off", "clazy": "off"}}}
 
 
 def _use_ruff(monkeypatch):

@@ -123,19 +123,12 @@ def test_effective_policy_promotes_optional_tools_to_required(tmp_path: Path):
     assert "coverage" in _entry(matrix, "test", SupportLanguage.PYTHON).required_tools
 
 
-@pytest.mark.parametrize(
-    ("clang_tidy_mode", "required", "optional"),
-    [
-        pytest.param("auto", False, True, id="auto-default"),
-        pytest.param("required", True, False, id="required"),
-        pytest.param("off", False, False, id="off"),
-    ],
-)
-def test_cpp_lint_clang_tidy_policy_is_mode_dependent_without_affecting_python(
+@pytest.mark.parametrize("clang_tidy_mode", ["auto", "required", "off"])
+@pytest.mark.parametrize("clazy_mode", ["auto", "required", "off"])
+def test_cpp_lint_analyzer_policies_are_independent_without_affecting_python(
     tmp_path: Path,
     clang_tidy_mode: str,
-    required: bool,
-    optional: bool,
+    clazy_mode: str,
 ) -> None:
     source = tmp_path / "src"
     source.mkdir()
@@ -143,13 +136,16 @@ def test_cpp_lint_clang_tidy_policy_is_mode_dependent_without_affecting_python(
     (source / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
     config = _config("src")
     config["engines"]["lint"]["clang_tidy"] = clang_tidy_mode
+    config["engines"]["lint"]["clazy"] = clazy_mode
 
     matrix = evaluate_support_matrix(tmp_path, config)
     cpp_lint = _entry(matrix, "lint", SupportLanguage.CPP)
     py_lint = _entry(matrix, "lint", SupportLanguage.PYTHON)
 
-    assert ("clang-tidy" in cpp_lint.required_tools) is required
-    assert ("clang-tidy" in cpp_lint.optional_tools) is optional
+    assert ("clang-tidy" in cpp_lint.required_tools) is (clang_tidy_mode == "required")
+    assert ("clang-tidy" in cpp_lint.optional_tools) is (clang_tidy_mode == "auto")
+    assert ("clazy" in cpp_lint.required_tools) is (clazy_mode == "required")
+    assert ("clazy" in cpp_lint.optional_tools) is (clazy_mode == "auto")
     assert py_lint.required_tools == []
     assert py_lint.optional_tools == ["ruff"]
 

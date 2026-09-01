@@ -23,8 +23,10 @@ from ici.core.models import (
 )
 from ici.core.runner import ProcessResult, run_process
 from ici.engines._clang_tidy import run_clang_tidy
+from ici.engines._clazy import run_clazy
 from ici.engines._cpp_diagnostics import CppDiagnostic
 from ici.engines._cpp_lint import run_cpp_lint
+from ici.engines._qt_codegen import verify_qt_codegen
 from ici.engines.base import BaseEngine
 
 _RUFF_FORMAT_SUCCESS_RE = re.compile(r"\d+ files? already formatted(?:\r?\n)?\Z")
@@ -75,8 +77,11 @@ class LintEngine(BaseEngine):
         "ici.core._cpp_replay_policy",
         "ici.core.cpp_replay",
         "ici.engines._clang_tidy",
+        "ici.engines._clazy",
         "ici.engines._cpp_diagnostics",
         "ici.engines._cpp_lint",
+        "ici.engines._cpp_tooling",
+        "ici.engines._qt_codegen",
         "ici.engines.lint",
     )
 
@@ -94,7 +99,20 @@ class LintEngine(BaseEngine):
         self._clang_tidy_mode = "not_applicable"
         self._clang_tidy_configurations_checked = 0
         self._clang_tidy_sources_checked = 0
+        self._clazy_mode = "not_applicable"
+        self._clazy_provider = "none"
+        self._clazy_profile = "level0"
+        self._clazy_configurations_checked = 0
+        self._clazy_sources_checked = 0
         self._cpp_diagnostics: list[CppDiagnostic] = []
+        self._qt_findings: list[Finding] = []
+        self._qt_codegen_mode = "not_applicable"
+        self._qt_codegen_inputs_checked = 0
+        self._qt_codegen_ui_checked = 0
+        self._qt_codegen_qrc_checked = 0
+        self._qt_codegen_moc_checked = 0
+        self._qt5_units = 0
+        self._qt6_units = 0
 
         # 1. Python Linting & Formatting Check
         python_files = self.project_python_sources()
@@ -169,11 +187,23 @@ class LintEngine(BaseEngine):
                 "clang_tidy_mode": self._clang_tidy_mode,
                 "clang_tidy_configurations_checked": self._clang_tidy_configurations_checked,
                 "clang_tidy_sources_checked": self._clang_tidy_sources_checked,
+                "clazy_mode": self._clazy_mode,
+                "clazy_provider": self._clazy_provider,
+                "clazy_profile": self._clazy_profile,
+                "clazy_configurations_checked": self._clazy_configurations_checked,
+                "clazy_sources_checked": self._clazy_sources_checked,
+                "qt_codegen_mode": self._qt_codegen_mode,
+                "qt_codegen_inputs_checked": self._qt_codegen_inputs_checked,
+                "qt_codegen_ui_checked": self._qt_codegen_ui_checked,
+                "qt_codegen_qrc_checked": self._qt_codegen_qrc_checked,
+                "qt_codegen_moc_checked": self._qt_codegen_moc_checked,
+                "qt5_compile_units": self._qt5_units,
+                "qt6_compile_units": self._qt6_units,
                 "cpp_diagnostic_families": {
                     family: sum(
                         1 for diagnostic in self._cpp_diagnostics if diagnostic.family == family
                     )
-                    for family in ("compiler", "clang-tidy", "clang-analyzer")
+                    for family in ("compiler", "clang-tidy", "clang-analyzer", "clazy")
                 },
                 "cpp_fixits": [
                     {
@@ -206,7 +236,7 @@ class LintEngine(BaseEngine):
             ),
             tool_evidence=tool_evidence,
         )
-        result.findings = self._cpp_findings(result.targets, tool_evidence)
+        result.findings = [*self._cpp_findings(result.targets, tool_evidence), *self._qt_findings]
         return result
 
     def _cpp_findings(
@@ -214,7 +244,7 @@ class LintEngine(BaseEngine):
         targets: list[InspectionTarget],
         tools: list[ToolEvidence],
     ) -> list[Finding]:
-        """Enrich compiler and clang findings while retaining target compatibility."""
+        """Enrich compiler, clang-tidy, and clazy findings."""
 
         key_counts = Counter((target.file_path, target.target_name.strip()) for target in targets)
         findings: list[Finding] = []
@@ -222,12 +252,23 @@ class LintEngine(BaseEngine):
             target = diagnostic.target
             key = (target.file_path, target.target_name.strip())
             label = target.target_name if key_counts[key] == 1 else ""
+            expected_tool = (
+                "clang-tidy"
+                if diagnostic.family in {"clang-tidy", "clang-analyzer"}
+                else "clazy"
+                if diagnostic.family == "clazy"
+                else ""
+            )
             candidates = reversed(tools) if diagnostic.family == "compiler" else tools
             tool = next(
                 (
                     item
                     for item in candidates
-                    if (item.name == "clang-tidy") != (diagnostic.family == "compiler")
+                    if item.name == expected_tool
+                    or (
+                        not expected_tool
+                        and item.name not in {"clang-tidy", "clazy", "ruff check", "ruff format"}
+                    )
                 ),
                 None,
             )
@@ -235,11 +276,7 @@ class LintEngine(BaseEngine):
             findings.append(
                 Finding(
                     rule_id="ici.legacy.lint.target",
-                    category=(
-                        FindingCategory.MAINTAINABILITY
-                        if diagnostic.family == "clang-tidy"
-                        else FindingCategory.CORRECTNESS
-                    ),
+                    category=self._cpp_finding_category(diagnostic),
                     severity=(
                         FindingSeverity.HIGH
                         if target.status == EngineStatus.FAIL
@@ -265,6 +302,8 @@ class LintEngine(BaseEngine):
                         if diagnostic.family == "clang-analyzer"
                         else "clang-tidy diagnostic."
                         if diagnostic.family == "clang-tidy"
+                        else "Qt-aware clazy diagnostic."
+                        if diagnostic.family == "clazy"
                         else "Compiler diagnostic from a sanitized translation-unit replay."
                     ),
                     remediation=remediation,
@@ -274,6 +313,23 @@ class LintEngine(BaseEngine):
                 )
             )
         return findings
+
+    @staticmethod
+    def _cpp_finding_category(diagnostic: CppDiagnostic) -> FindingCategory:
+        if diagnostic.family != "clazy":
+            return (
+                FindingCategory.MAINTAINABILITY
+                if diagnostic.family == "clang-tidy"
+                else FindingCategory.CORRECTNESS
+            )
+        rule = diagnostic.tool_rule_id.casefold()
+        if any(token in rule for token in ("lifetime", "ownership", "parent-less", "qobject-cast")):
+            return FindingCategory.RESOURCE
+        if any(token in rule for token in ("qt6", "deprecated", "qstring-arg", "qt-keyword")):
+            return FindingCategory.COMPATIBILITY
+        if any(token in rule for token in ("qobject", "connect", "signal", "slot", "qevent-cast")):
+            return FindingCategory.CORRECTNESS
+        return FindingCategory.MAINTAINABILITY
 
     @staticmethod
     def _cpp_remediation(diagnostic: CppDiagnostic) -> str:
@@ -768,6 +824,24 @@ class LintEngine(BaseEngine):
         self._cpp_configurations_checked = outcome.configurations_checked
         self._cpp_sources_checked = outcome.sources_checked
         self._cpp_context_missing = outcome.missing_sources
+        qt_codegen = verify_qt_codegen(
+            self.project_root,
+            self.project_source_dirs(),
+            cpp_files,
+            self.project_cpp_headers() or [],
+            self.analysis_context,
+            compiled_sources=self._successful_cpp_replays(outcome.evidence),
+        )
+        targets.extend(qt_codegen.targets)
+        warnings.extend(qt_codegen.warnings)
+        self._qt_findings.extend(qt_codegen.findings)
+        self._qt_codegen_mode = qt_codegen.mode
+        self._qt_codegen_inputs_checked = qt_codegen.inputs_checked
+        self._qt_codegen_ui_checked = qt_codegen.ui_checked
+        self._qt_codegen_qrc_checked = qt_codegen.qrc_checked
+        self._qt_codegen_moc_checked = qt_codegen.moc_checked
+        self._qt5_units = qt_codegen.qt5_units
+        self._qt6_units = qt_codegen.qt6_units
         clang_tidy = run_clang_tidy(
             self.project_root,
             cpp_files,
@@ -782,4 +856,38 @@ class LintEngine(BaseEngine):
         self._clang_tidy_mode = clang_tidy.mode
         self._clang_tidy_configurations_checked = clang_tidy.configurations_checked
         self._clang_tidy_sources_checked = clang_tidy.sources_checked
-        return [*outcome.errors, *clang_tidy.errors]
+        clazy = run_clazy(
+            self.project_root,
+            cpp_files,
+            self.analysis_context,
+            self.get_config("lint"),
+            runner=run_process,
+        )
+        targets.extend(clazy.targets)
+        evidence.extend(clazy.evidence)
+        warnings.extend(clazy.warnings)
+        self._cpp_diagnostics.extend(clazy.diagnostics)
+        self._clazy_mode = clazy.mode
+        self._clazy_provider = clazy.provider
+        self._clazy_profile = clazy.profile
+        self._clazy_configurations_checked = clazy.configurations_checked
+        self._clazy_sources_checked = clazy.sources_checked
+        return [*outcome.errors, *qt_codegen.errors, *clang_tidy.errors, *clazy.errors]
+
+    def _successful_cpp_replays(self, evidence: list[ToolEvidence]) -> set[str]:
+        sources: set[str] = set()
+        for item in evidence:
+            if (
+                item.returncode != 0
+                or item.error
+                or item.timed_out
+                or item.truncated
+                or not item.argv
+            ):
+                continue
+            try:
+                source = Path(item.argv[-1]).resolve(strict=False)
+                sources.add(source.relative_to(self.project_root).as_posix())
+            except (OSError, RuntimeError, ValueError):
+                continue
+        return sources

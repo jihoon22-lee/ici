@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass, replace
+import stat
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ _TEXT_DIAGNOSTIC_RE = re.compile(
     r"(?P<message>\S.*?)(?:\s+\[(?P<rule>[-A-Za-z0-9_.]+)\])?$"
 )
 _TEXT_CONTEXT_RE = re.compile(r"^\s*(?:\d+\s*\|.*|\|.*|[\^~].*)$")
+_TEXT_LEGACY_PREVIEW_RE = re.compile(r"^[ \t]+[\x21-\x7e][\x20-\x7e]{0,8191}$")
 _TEXT_CONTEXT_HEADER_RE = re.compile(
     r"^.+:\s+(?:At global scope|In (?:function|member function|constructor|destructor|"
     r"lambda function|instantiation of)(?: .*)?):$"
@@ -50,6 +52,8 @@ _CLANG_TIDY_CONVERSION_NOTE_RE = re.compile(
 _CLANG_TIDY_PARAMETER_RANGE_NOTE_RE = re.compile(
     r"^the (?:first|last) parameter in the range is '.{1,256}'$"
 )
+_CLAZY_RULE_RE = re.compile(r"^-Wclazy-(?P<name>[a-z0-9](?:[a-z0-9_.-]{0,254}[a-z0-9])?)$")
+_CLAZY_RULE_MARKER_RE = re.compile(r"\[-W[^\]\r\n]*")
 _TEXT_FIXIT_RE = re.compile(
     r'^fix-it:"(?P<file>(?:[^"\\]|\\.)*)":\{'
     r"(?P<start_line>[1-9]\d*):(?P<start_column>[1-9]\d*)-"
@@ -155,6 +159,35 @@ def _diagnostic_path(project_root: Path, cwd: Path, value: Any) -> str:
         # Tool diagnostics can legitimately originate in system headers. Keep
         # a location without publishing a machine-specific absolute path.
         return "[external]"
+
+
+def _project_source_line(project_root: Path, file_path: str, line_number: int) -> str | None:
+    """Read one bounded project source line for legacy Clang context validation."""
+
+    if file_path == "[external]":
+        return None
+    try:
+        path = (project_root / file_path).resolve(strict=True)
+        path.relative_to(project_root)
+        details = path.stat()
+        if not stat.S_ISREG(details.st_mode):
+            return None
+        consumed = 0
+        with path.open(encoding="utf-8", errors="replace") as handle:
+            for current_number in range(1, line_number + 1):
+                current = handle.readline(MAX_MESSAGE_CHARS + 2)
+                if not current:
+                    return None
+                consumed += len(current)
+                if consumed > MAX_DIAGNOSTIC_OUTPUT_CHARS:
+                    return None
+                if len(current) > MAX_MESSAGE_CHARS and not current.endswith(("\n", "\r")):
+                    return None
+                if current_number == line_number:
+                    return current.rstrip("\r\n")
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return None
 
 
 def _position(value: Any, label: str) -> tuple[str, int, int | None]:
@@ -442,6 +475,191 @@ def parse_compiler_diagnostics(
     if text.lstrip().startswith(("[", "{")):
         return _parse_json(root, cwd, text)
     return _parse_text(root, cwd, text)
+
+
+def _normalize_clazy_rule(rule: str) -> str:
+    match = _CLAZY_RULE_RE.fullmatch(rule)
+    if match is None:
+        raise ValueError("clazy diagnostic rule is unsupported or unsafe")
+    return f"clazy-{match.group('name')}"
+
+
+@dataclass
+class _ClazyTextState:
+    output: list[CppDiagnostic] = field(default_factory=list)
+    ancillary_output: bool = False
+    inherited_rule: str = ""
+    previous_family: str = ""
+    saw_diagnostic: bool = False
+    diagnostic_count: int = 0
+    legacy_source_line: str | None = None
+    legacy_context_stage: int = 0
+
+
+def _select_clazy_rule(
+    rule: str,
+    kind: str,
+    state: _ClazyTextState,
+) -> tuple[str, str] | None:
+    if rule and not rule.startswith("-Wclazy-"):
+        if not rule.startswith("-W"):
+            raise ValueError("compiler diagnostic rule is unsupported or unsafe")
+        if kind not in {"warning", "remark", "note"}:
+            raise ValueError("compiler error cannot be excluded from clazy output")
+        state.inherited_rule = ""
+        state.previous_family = "compiler"
+        return None
+    if rule:
+        normalized_rule = _normalize_clazy_rule(rule)
+        state.inherited_rule = normalized_rule
+        state.previous_family = "clazy"
+        return normalized_rule, "ClazyNote" if kind == "note" else "Clazy"
+    if kind == "note" and state.previous_family == "compiler":
+        return None
+    if kind == "note" and state.inherited_rule:
+        state.previous_family = "clazy"
+        return state.inherited_rule, "ClazyNote"
+    raise ValueError("clazy diagnostic has no check identifier")
+
+
+def _append_clazy_diagnostic(
+    project_root: Path,
+    cwd: Path,
+    match: re.Match[str],
+    state: _ClazyTextState,
+) -> None:
+    state.diagnostic_count += 1
+    if state.diagnostic_count > MAX_DIAGNOSTICS:
+        raise ValueError("diagnostic count exceeds the bounded limit")
+    kind, status = _kind(match.group("kind"))
+    file_path = _diagnostic_path(project_root, cwd, match.group("file"))
+    line_number = _text_number(match.group("line"), "diagnostic line")
+    column = _text_number(match.group("column"), "diagnostic column", optional=True)
+    assert line_number is not None
+    state.legacy_source_line = _project_source_line(project_root, file_path, line_number)
+    state.legacy_context_stage = 0
+    message = _bounded_text(match.group("message"), "diagnostic message")
+    if _CLAZY_RULE_MARKER_RE.search(message):
+        raise ValueError("clazy diagnostic contains a conflicting rule marker")
+
+    selected = _select_clazy_rule(match.group("rule") or "", kind, state)
+    state.saw_diagnostic = True
+    if selected is None:
+        return
+    normalized_rule, target_prefix = selected
+    state.output.append(
+        CppDiagnostic(
+            target=InspectionTarget(
+                file_path=file_path,
+                start_line=line_number,
+                start_column=column,
+                target_name=f"{target_prefix}:{normalized_rule}",
+                status=status,
+                message=f"{kind}: {message}",
+            ),
+            tool_rule_id=normalized_rule,
+            family="clazy",
+        )
+    )
+
+
+def _end_legacy_context(state: _ClazyTextState) -> None:
+    state.legacy_source_line = None
+    state.legacy_context_stage = -1
+
+
+def _consume_clazy_context(raw_line: str, line: str, state: _ClazyTextState) -> bool:
+    if line.startswith("In file included from") or line.startswith("from "):
+        state.ancillary_output = True
+        _end_legacy_context(state)
+        return True
+    if (
+        state.legacy_context_stage == 0
+        and state.legacy_source_line is not None
+        and raw_line == state.legacy_source_line
+    ):
+        state.legacy_context_stage = 1
+        return True
+    if state.saw_diagnostic and _TEXT_CONTEXT_RE.fullmatch(line):
+        if state.legacy_context_stage == 1 and line.startswith(("^", "~")):
+            state.legacy_context_stage = 2
+        else:
+            _end_legacy_context(state)
+        return True
+    if (
+        state.legacy_context_stage == 2
+        and len(raw_line) <= MAX_MESSAGE_CHARS
+        and _TEXT_LEGACY_PREVIEW_RE.fullmatch(raw_line)
+    ):
+        state.legacy_source_line = None
+        state.legacy_context_stage = 3
+        return True
+    if (
+        _TEXT_CONTEXT_HEADER_RE.fullmatch(line)
+        or _TEXT_REQUIRED_FROM_RE.fullmatch(line)
+        or _TEXT_TRAILER_RE.fullmatch(line)
+    ):
+        state.ancillary_output = True
+        _end_legacy_context(state)
+        return True
+    return False
+
+
+def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticParseResult:
+    """Parse clazy output and validate compiler diagnostics before excluding them."""
+
+    state = _ClazyTextState()
+    try:
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            match = _TEXT_DIAGNOSTIC_RE.fullmatch(line)
+            if match:
+                _append_clazy_diagnostic(project_root, cwd, match, state)
+                continue
+
+            if _TEXT_FIXIT_RE.fullmatch(line):
+                raise ValueError("clazy fix-it output is not supported")
+            if _consume_clazy_context(raw_line, line, state):
+                continue
+            raise ValueError(f"unrecognized clazy output line: {line!r}")
+
+        if state.ancillary_output and not state.saw_diagnostic:
+            raise ValueError("clazy context output has no located diagnostic")
+        return DiagnosticParseResult(tuple(state.output), "clazy-text")
+    except (OverflowError, ValueError) as err:
+        return DiagnosticParseResult(format_name="clazy-text", error=str(err))
+
+
+def parse_clazy_diagnostics(
+    project_root: Path,
+    cwd: Path,
+    stdout: str,
+    stderr: str,
+) -> DiagnosticParseResult:
+    """Parse clazy diagnostics atomically with a strict rule allowlist shape."""
+
+    if not isinstance(stdout, str) or not isinstance(stderr, str):
+        return DiagnosticParseResult(
+            format_name="clazy-text", error="clazy diagnostic output must be text"
+        )
+    if len(stdout) + len(stderr) > MAX_DIAGNOSTIC_OUTPUT_CHARS:
+        return DiagnosticParseResult(
+            format_name="clazy-text",
+            error="clazy diagnostic output exceeds the bounded size",
+        )
+    if "\x00" in stdout or "\x00" in stderr:
+        return DiagnosticParseResult(
+            format_name="clazy-text",
+            error="clazy diagnostic output contains a null byte",
+        )
+    non_empty = [stream.strip() for stream in (stdout, stderr) if stream.strip()]
+    if not non_empty:
+        return DiagnosticParseResult(format_name="clazy-text")
+    root = project_root.resolve(strict=False)
+    return _parse_clazy_text(root, cwd, "\n".join(non_empty))
 
 
 def _bounded_empty_note(match: re.Match[str]) -> bool:

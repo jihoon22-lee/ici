@@ -76,6 +76,8 @@ def test_default_config_has_layout_and_line_gate_keys():
     assert DEFAULT_CONFIG["engines"]["line"]["include_dirs"] == []
     assert DEFAULT_CONFIG["engines"]["line"]["exclude_dirs"] == []
     assert DEFAULT_CONFIG["engines"]["lint"]["clang_tidy"] == "auto"
+    assert DEFAULT_CONFIG["engines"]["lint"]["clazy"] == "auto"
+    assert DEFAULT_CONFIG["engines"]["lint"]["clazy_profile"] == "level0"
     assert DEFAULT_CONFIG["doctor"]["required_tools"] == []
 
 
@@ -288,6 +290,20 @@ def test_config_schema_accepts_clang_tidy_settings(mode: str):
     validate_config(config)
 
 
+@pytest.mark.parametrize("mode", ["auto", "required", "off"])
+def test_config_schema_accepts_clazy_settings(mode: str):
+    validate_config(_lint_config(clazy=mode))
+
+
+@pytest.mark.parametrize("profile", ["level0", "level1"])
+def test_config_schema_accepts_clazy_profiles(profile: str):
+    validate_config(_lint_config(clazy_profile=profile))
+
+
+def test_config_schema_accepts_explicit_clazy_checks():
+    validate_config(_lint_config(clazy_checks=["qdatetime-utc", "qstring-arg", "level0"]))
+
+
 @pytest.mark.parametrize(
     ("key", "value"),
     [
@@ -298,6 +314,21 @@ def test_config_schema_accepts_clang_tidy_settings(mode: str):
     ],
 )
 def test_config_schema_rejects_invalid_clang_tidy_types_and_mode(key, value):
+    with pytest.raises(ConfigError, match=rf"engines\.lint\.{key}"):
+        validate_config(_lint_config(**{key: value}))
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("clazy", "always"),
+        ("clazy", 1),
+        ("clazy_profile", "level2"),
+        ("clazy_profile", 1),
+        ("clazy_checks", "qdatetime-utc"),
+    ],
+)
+def test_config_schema_rejects_invalid_clazy_types_and_modes(key, value):
     with pytest.raises(ConfigError, match=rf"engines\.lint\.{key}"):
         validate_config(_lint_config(**{key: value}))
 
@@ -320,6 +351,26 @@ def test_config_schema_rejects_invalid_clang_tidy_types_and_mode(key, value):
 def test_config_schema_rejects_invalid_clang_tidy_checks(checks):
     with pytest.raises(ConfigError, match=r"engines\.lint\.clang_tidy_checks"):
         validate_config(_lint_config(clang_tidy_checks=checks))
+
+
+@pytest.mark.parametrize(
+    "checks",
+    [
+        [],
+        [""],
+        ["qdatetime-utc", "qdatetime-utc"],
+        ["qdatetime,utc"],
+        ["qdatetime utc"],
+        ["qdatetime\x00utc"],
+        ["qdatetime?utc"],
+        ["a" * 129],
+        [f"check_{index:03d}_" + "a" * 118 for index in range(65)],
+        [f"check{index}" for index in range(129)],
+    ],
+)
+def test_config_schema_rejects_invalid_clazy_checks(checks):
+    with pytest.raises(ConfigError, match=r"engines\.lint\.clazy_checks"):
+        validate_config(_lint_config(clazy_checks=checks))
 
 
 @pytest.mark.parametrize("config", ["", "   ", "a" * 4097])

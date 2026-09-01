@@ -96,9 +96,12 @@ ici/
 │       │   ├── base.py              # BaseEngine 인터페이스 & evaluate_status()
 │       │   ├── verify.py            # VerifyOrchestrator (검증 오케스트레이터)
 │       │   ├── line.py              # 코드/주석/공백 분석 및 트리 구조 생성
-│       │   ├── lint.py              # Ruff 및 GCC/Clang/clang-tidy 린터 facade
-│       │   ├── _cpp_diagnostics.py  # bounded GCC/Clang/clang-tidy diagnostic parser
+│       │   ├── lint.py              # Ruff 및 GCC/Clang/clang-tidy/clazy 린터 facade
+│       │   ├── _cpp_diagnostics.py  # bounded GCC/Clang/clang-tidy/clazy diagnostic parser
+│       │   ├── _cpp_tooling.py      # 공통 compiler-tool argument/context helper
 │       │   ├── _clang_tidy.py       # exact-context clang-tidy adapter
+│       │   ├── _clazy.py            # exact-context Qt-aware clazy adapter
+│       │   ├── _qt_codegen.py       # Qt moc/uic/rcc linkage 및 major evidence
 │       │   ├── compile_db.py        # compile_commands coverage와 C++ flag policy
 │       │   ├── test.py              # 테스트 실행 & TEM 스코어링 (coverage.py/gcov 실측)
 │       │   ├── type_check.py        # mypy/AST 타입 검사 (C++은 명시적 SKIP)
@@ -454,6 +457,50 @@ compiler와 sanitized argv를 공유하며, 결과는 legacy `InspectionTarget`,
   오류로 승격되며, compiler diagnostics와 analyzer findings의 category/confidence/remediation은
   서로 섞이지 않습니다.
 
+#### I4-2 Qt clazy와 generated-code linkage
+
+I4-2는 I4-1의 exact-context 경계를 유지하면서 Qt 프레임워크 특화 진단과 빌드 생성 단계를
+추가한다. `LintEngine`은 한 번 만든 `AnalysisContext`를 compiler, clang-tidy, clazy와
+generated-code verifier에 공유하며, 각 adapter는 독립된 `ToolEvidence`·diagnostic family·
+target을 발행한다.
+
+`Toolchain`의 canonical `clazy` capability는 `clazy-standalone`을 먼저 probe하고, 후보
+alias가 `clazy`인 경우 compiler-wrapper provider로 표시한다. `clazy = auto|required|off`는
+선택/필수/비활성 정책이며, `clazy_profile = level0|level1`은 전역 `AnalysisProfile`과
+독립적인 rule selection이다. `clazy_checks`가 있으면 제한된 명시 목록이 profile을 대신해
+manual/level2 noisy check를 opt-in한다. standalone argv는 `--checks`, `--only-qt`, source,
+`--` 뒤의 `tooling_arguments`로 구성되고, wrapper argv는 context replay를 유지하면서 approved
+`clang++` 경로를 replacement environment의 `CLANGXX`로 고정한다. 두 provider 모두 no-shell,
+closed stdin, no `-p`, no `--fix`, no compilation-database reread 원칙을 지킨다.
+
+`_cpp_diagnostics.py`의 clazy parser는 compiler text parser와 별도로 `-Wclazy-*` rule shape,
+located source/line/column, parent-note 관계를 bounded atomic하게 검증한다. `LintEngine`은
+clazy family를 독립적으로 집계하고 rule token을 correctness/resource/compatibility/
+maintainability category로 매핑한다. 함께 출력된 일반 compiler warning은 같은 bounded 문법으로
+원자 검증한 뒤 compiler lint의 중복 finding을 만들지 않도록 제외한다. parser가 일부만 이해한
+output을 성공으로 남기지 않기
+때문에 malformed output, replay/context mismatch, process failure는 engine `ERROR`와
+`NOT_RUN` evidence로 격하된다. Ubuntu Noble clazy 1.11의 legacy raw-source/caret/replacement
+context는 located diagnostic의 project source line과 raw text가 exact match일 때만, 뒤이어
+bounded replacement preview를 최대 하나 허용한다. source mismatch, forged/extra preview와
+그 밖의 malformed legacy context는 partial finding을 남기지 않고 atomic하게 거부한다.
+
+Qt generated-code verifier는 project source scope에서 `.ui`, `.qrc`, 그리고 주석·문자열을
+제거한 C++에서 실제 `Q_OBJECT` 선언을 bounded하게 발견한다. immutable compilation context의
+include path와 unit source를 이용해 `ui_<stem>.h`의 bounded indirect translation-unit include
+linkage, `qrc_<stem>.cpp` generated
+unit, `moc_<stem>.cpp`·`<stem>.moc`·`mocs_compilation.cpp`의 moc linkage를 확인한다. 모든
+target은 원래 `.ui`/`.qrc`/header의 project-relative path와 1-indexed line을 가리킨다.
+동일 context의 include path, defines, successful compiler replay에서 Qt 5/Qt 6 major를 계산하며,
+successful replay가 확인된 경우에만 generated linkage와 compatibility PASS를 생성한다.
+중복 generated stem은 exact 연결로 주장하지 않고 WARN으로 닫는다. 따라서 CMake
+AUTOMOC/AUTOUIC/AUTORCC와 qmake direct generated unit을 같은 evidence 모델로 다룬다.
+
+clazy는 최대 2,048 translation units, unit당 120초, 전체 600초와 1,000,000자 output bound를
+사용한다. generated-code input도 bounded file/input limit과 project containment를 적용한다.
+이 계층은 소스를 수정하거나 generator를 재실행하지 않으며, 생성 산출물의 존재만 확인하는
+heuristic으로 성공을 주장하지 않고 exact compilation database linkage를 요구한다.
+
 ### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
 
 `src/ici/core/pipeline.py`의 immutable `EngineDescriptor`가 각 엔진의 실행 계약과
@@ -500,13 +547,14 @@ cache key(`ici.analysis-cache-key/v3`)는 다음 identity를 canonical JSON으�
 SHA-256 digest입니다.
 
 - canonical project root
-- project source와 인식된 build/config 파일의 path·content·mode digest
+- project source와 인식된 build/config 파일의 path·content·mode digest (`.ui`/`.qrc` 포함)
 - profile을 포함한 effective ici configuration digest
 - capability inventory의 toolchain path·version·details digest
 - engine descriptor와 engine class source digest, 그리고 engine class가
   `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest
   목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`,
-  `ici.engines._clang_tidy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint` 포함;
+  `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostics`,
+  `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen` 포함;
   cycle에는 `ici.core._cpp_replay_policy`, `ici.engines._cpp_include_trace` 포함)
 - `none`, `release`, `coverage`, `sanitize` 중 engine build variant
 - compilation context identity: 선택된 database의 project-relative path와 바이트 digest,

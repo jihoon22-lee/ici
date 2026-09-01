@@ -78,10 +78,18 @@ _DECLARATIONS = (
         AnalysisMode.TOOL_BACKED,
         FindingConfidence.HIGH,
         frameworks=_QT,
-        optional_tools=("gcc", "g++", "clang", "clang++", "clang-tidy", "pkg-config"),
+        optional_tools=(
+            "gcc",
+            "g++",
+            "clang",
+            "clang++",
+            "clang-tidy",
+            "clazy",
+            "pkg-config",
+        ),
         fallback_mode=AnalysisMode.HEURISTIC,
         limitations=(
-            "Replays sanitized GCC/Clang translation-unit commands and optional clang-tidy checks when compilation context exists; without it, a fixed c++17 syntax fallback is estimated.",
+            "Replays sanitized GCC/Clang translation-unit commands and optional clang-tidy/Clazy checks when compilation context exists; without it, a fixed c++17 syntax fallback is estimated.",
         ),
     ),
     SupportDeclaration(
@@ -414,11 +422,22 @@ def _tool_policy(
     if declaration.engine_name == "lint" and declaration.language == SupportLanguage.PYTHON:
         promoted = "ruff" if engine_config.get("ruff_required", False) else ""
     elif declaration.engine_name == "lint" and declaration.language == SupportLanguage.CPP:
-        clang_tidy_mode = engine_config.get("clang_tidy", "auto")
-        if clang_tidy_mode == "required":
-            promoted = "clang-tidy"
-        elif clang_tidy_mode == "off" and "clang-tidy" in optional:
-            optional.remove("clang-tidy")
+        # These are independent optional analyzers.  A required policy must
+        # promote each selected tool, while ``off`` removes only that tool.
+        # Keep the two policy switches independent so enabling Clazy never
+        # changes clang-tidy's requirement (or vice versa).
+        for tool_name, config_key in (
+            ("clang-tidy", "clang_tidy"),
+            ("clazy", "clazy"),
+        ):
+            tool_mode = engine_config.get(config_key, "auto")
+            if tool_mode == "required":
+                if tool_name in optional:
+                    optional.remove(tool_name)
+                if tool_name not in required:
+                    required.append(tool_name)
+            elif tool_mode == "off" and tool_name in optional:
+                optional.remove(tool_name)
     elif declaration.engine_name == "type" and declaration.language == SupportLanguage.PYTHON:
         promoted = "mypy" if engine_config.get("mypy_required", False) else ""
     elif declaration.engine_name == "test" and engine_config.get("coverage_required", False):

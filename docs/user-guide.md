@@ -418,6 +418,74 @@ evidence를 만들지 않습니다. timeout·truncation·nonzero·spawn/malforme
 `ToolEvidence`와 `MEASURED` evidence를 남기며, 위치 있는 compiler/clang-tidy warning과 error는
 각각 finding의 severity와 전체 lint gate에 반영됩니다.
 
+##### C++ Qt clazy 및 생성 단계 정책 (I4-2)
+
+Qt 분석은 exact `CompilationContext`가 있고 capability inventory가 승인한 `clazy` 실행 파일이
+있을 때 covered production translation unit을 검사합니다. canonical probe는
+`clazy-standalone`을 먼저 선택하고, 배포판의 compiler-wrapper인 `clazy`를 두 번째 provider로
+기록합니다. `[engines.lint]`에서 정책과 profile/check를 설정할 수 있습니다.
+
+```toml
+[engines.lint]
+clazy = "auto"             # auto | required | off
+clazy_profile = "level0"   # level0 | level1; ici.profile과 독립
+# level2 또는 특정 noisy check를 의도적으로 선택할 때만 사용
+# clazy_checks = ["qdatetime-utc", "qcolor-from-literal"]
+```
+
+`auto`는 도구 또는 exact context가 없을 때 명령을 실행하지 않고 optional `WARN`을 남기며,
+`required`는 같은 조건을 `ERROR`로 승격합니다. `off`는 clazy를 실행하지 않습니다.
+`clazy_profile`의 기본값은 `level0`이고 global `ici.profile`이 `fast`/`standard`/`deep`으로
+바뀌어도 clazy rule semantics는 바뀌지 않습니다. `clazy_checks`는 1~128개의 중복 없는
+bounded check 이름 목록이며, 지정하면 profile보다 우선하므로 level2/manual noisy check는
+명시적으로 opt-in해야 합니다.
+
+standalone command는 approved executable에 `--checks=<checks>`, `--only-qt`, 원본 source와
+`--` 뒤의 sanitized compiler arguments를 전달합니다. wrapper command는 capability inventory가
+승인한 `clang++`를 `CLANGXX`로 고정하고 replacement environment의 `CLAZY_CHECKS`로 선택을
+전달합니다. 두 provider 모두 loader가 만든 immutable context만 재생하고 compilation database를
+다시 읽지 않으며 `-p`, `--fix`, shell, source/context 변경을 사용하지 않습니다. stdin은 닫힌
+빈 입력이고 argv·path·version·return code·timeout/truncation은 `ToolEvidence`로 보존됩니다.
+
+clazy text parser는 `-Wclazy-<check>`와 함께 섞인 일반 compiler warning을 bounded 문법으로
+원자 검증합니다. 일반 warning은 별도 compiler lint의 중복 보고를 피하려고 제외하며, malformed
+또는 알 수 없는 출력은 부분 성공과 합치지 않고 atomic `ERROR`로 닫습니다. located clazy
+diagnostic과 parent rule을 따르는 note는
+project-relative 파일·1-indexed line/column target으로 보존하고 `family = "clazy"`와
+`clazy-<check>` rule ID를 기록합니다. Ubuntu Noble clazy 1.11의 legacy raw-source/caret/
+replacement context도 located diagnostic의 project source line과 raw text가 exact match일 때만
+허용하고, 뒤따르는 bounded replacement preview는 하나로 제한합니다. source mismatch,
+forged/extra preview와 그 밖의 malformed legacy context는 partial finding 없이 atomic `ERROR`로
+처리합니다. finding category는 다음과 같이 안정적으로 매핑됩니다.
+
+| clazy rule 의미 | v3 category |
+|---|---|
+| `lifetime`, `ownership`, `parent-less`, `qobject-cast` | `RESOURCE` |
+| `qt6`, `deprecated`, `qstring-arg`, `qt-keyword` | `COMPATIBILITY` |
+| `qobject`, `connect`, `signal`, `slot`, `qevent-cast` | `CORRECTNESS` |
+| 그 밖의 clazy rule (container detach/temporary 포함) | `MAINTAINABILITY` |
+
+clazy adapter는 최대 2,048 translation units, unit당 120초, 전체 600초 global budget과
+1,000,000자 output bound를 적용합니다. context/coverage/replay/parse/process 오류와 timeout,
+truncation, budget 초과는 heuristic으로 숨기지 않고 `ERROR`/`NOT_RUN`으로 기록합니다.
+
+같은 lint 실행에서 source scope의 `.ui`, `.qrc`, `Q_OBJECT` 선언도 bounded하게 찾습니다.
+`ui_<stem>.h`의 bounded indirect translation-unit include linkage, `qrc_<stem>.cpp`의
+generated compilation unit, 그리고
+`moc_<stem>.cpp`·`<stem>.moc`·`mocs_compilation.cpp`의 Q_OBJECT 연결을 exact compilation
+database로 검증하고, 누락 시 원본 `.ui`/`.qrc`/헤더 파일과 선언 라인에 FAIL target을 남깁니다.
+exact context의 include/define와 successful compiler replay에서 Qt 5/Qt 6 major를 식별하며,
+성공 replay가 확인된 경우에만 generated linkage와 `QtCompatibility:Qt5`/`QtCompatibility:Qt6`
+PASS를 기록합니다. major가 불명확하거나 replay가 없거나 generated stem이 중복되면 WARN으로
+남깁니다. 이 검증은 CMake AUTOMOC/AUTOUIC/
+AUTORCC와 qmake의 direct generated unit 양쪽을 다룹니다.
+
+현재 full local contract run은 `1513 passed, 4 skipped`였고, skip은 로컬 환경의
+`clang-tidy`·`clazy`·`clang++` 미설치에 따른 것입니다. CI와 release workflow는 clazy를 설치하고
+`ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`을 설정해 실제 clazy/Qt process E2E가 조용히 skip되지
+않게 합니다. I4-2 원격 PR/main CI, toy-projects BuildScope B5 교차 검증과 release artifact
+evidence는 아직 pending입니다.
+
 cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
 path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration
 graph를 독립적으로 분석하고 동일 cycle component만 중복 제거하며 configuration 간 edge는

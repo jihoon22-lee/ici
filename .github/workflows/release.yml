@@ -165,13 +165,13 @@ jobs:
           enable-cache: true
 
       # Installed before the tests, not after: the build-adapter E2E tests run
-      # inside pytest and need cmake/qmake/Qt. clang-tidy also keeps the I4-1
-      # actual-process adapter test non-skippable. Letting either class skip
-      # here would ship a release whose adapters were never exercised.
+      # inside pytest and need cmake/qmake/Qt. clang-tidy and clazy also keep
+      # the I4 actual-process adapter tests non-skippable. Letting either class
+      # skip here would ship a release whose adapters were never exercised.
       - name: Install the Qt6 and static-analysis toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config clang-tidy
+          sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config clang-tidy clazy
 
       - name: Enforce Ruff Quality Gate
         run: |

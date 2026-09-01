@@ -7,11 +7,53 @@
 
 ## [Unreleased]
 
+### Added
+- **I4-2 Qt analysis**: C++ `lint` now probes the canonical `clazy` capability using
+  `clazy-standalone` first and the distribution `clazy` wrapper as a recorded fallback provider.
+  `clazy = "auto" | "required" | "off"` controls optional, required, and disabled execution;
+  the explicit `clazy_profile = "level0" | "level1"` default is independent of the global
+  analysis profile, while bounded `clazy_checks` enables intentional level2/manual noisy checks.
+- The clazy adapter replays only covered production units from the immutable compilation context.
+  Standalone invocations use `--checks`/`--only-qt`; wrapper invocations pin the approved `clang++`
+  through `CLANGXX` and pass `CLAZY_CHECKS`. Both providers use a replacement environment, closed
+  stdin, no shell, no compilation-database reread, no `-p`, and no `--fix`.
+- Strict clazy diagnostic parsing preserves `-Wclazy-*` rule IDs, source/line locations, and notes
+  as `family = "clazy"`. QObject/connect/signal/slot, lifetime/ownership, Qt compatibility/API,
+  and remaining checks map to correctness, resource, compatibility, and maintainability finding
+  categories respectively; source edits are never applied automatically. Mixed ordinary compiler
+  warnings are bounded and validated atomically, then excluded because the compiler lint replay
+  reports them separately; they no longer turn otherwise valid clazy output into a parser error.
+  Ubuntu Noble's clazy 1.11 legacy raw-source/caret/replacement context is accepted only when the
+  raw source line exactly matches the project source line at the located diagnostic and is followed
+  by at most one bounded replacement preview. Source mismatches, forged or extra previews, and all
+  other malformed legacy context are rejected atomically without retaining partial findings. Rule
+  selection, diagnostic construction, and context-state consumption are separated so the strict
+  parser remains below the critical self-analysis complexity threshold.
+- Qt generated-code verification inspects bounded source-scope `.ui`, `.qrc`, and `Q_OBJECT` inputs
+  and proves `ui_<stem>.h`, `qrc_<stem>.cpp`, and moc forms (`moc_<stem>.cpp`, `<stem>.moc`, or
+  `mocs_compilation.cpp`) through exact compilation-context linkage. Qt 5/Qt 6 major evidence is
+  reported from exact include/define/compiler replay and is a compatibility PASS only after a
+  successful replay. Project-contained indirect includes are followed with a bounded traversal;
+  definitely disabled `Q_OBJECT` declarations are ignored, duplicate generated stems fail closed
+  as warnings, and structural linkage is never a PASS without a successful compiler replay. Exact
+  compiler analysis also covers Qt-generated moc/rcc compilation units from the database.
+- Clazy execution is bounded to 2,048 translation units, 120 seconds per unit, 600 seconds global,
+  and 1,000,000 output characters. The analysis cache now includes the clazy/tooling/codegen helper
+  implementations and `.ui`/`.qrc` source inputs. CI and release workflows install clazy and set
+  `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` so actual-tool E2E coverage cannot silently skip.
+- Capability probing continues through declared executable aliases when an earlier candidate cannot
+  execute or report a valid version, while preserving the first failure if every candidate fails.
+- Self-dogfood maintainability now splits candidate probing, C++ source masking, clazy parse state,
+  and per-kind Qt generated linkage into focused helpers. The four new critical-complexity findings
+  (31/35/27/36) are eliminated, generated-linkage branch variables are independently typed, and a
+  repository test prevents I4 analysis helpers from exceeding complexity 25 again.
+
 ### Documentation and integration status
 - v0.9.1의 릴리스 provenance·9개 artifact 독립 감사와 toy-projects BuildScope B4 교차 검증
   (PR #36, released ici v0.9.1, PR/main CI·sticky comment·Zero-CDN Pages)을 인수인계와
-  실행 계획에 기록했다. I4-1 release boundary와 B4 precondition은 닫혔으며, 다음 활성 단계는
-  Qt clazy 및 생성 단계 분석(I4-2)이다. I4-3/I4-4와 I4 전체 checkpoint는 아직 미완료다.
+  실행 계획에 기록했다. I4-1 release boundary와 B4 precondition은 닫혔으며, I4-2 코드 구현과
+  `1513 passed, 4 skipped` full local gate도 완료됐다. I4-2 원격 CI/PR, toy-projects BuildScope B5 교차 검증,
+  다음 release evidence와 I4-3/I4-4는 아직 pending이며 I4 전체 checkpoint도 미완료다.
 
 ## [0.9.1] - 2026-09-01
 
