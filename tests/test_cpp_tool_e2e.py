@@ -348,7 +348,7 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
     if pkg_config is None:
         _unavailable("pkg-config is required for the Qt-backed clazy fixture")
     flags_result = run_process(
-        [pkg_config, "--cflags", "Qt6Gui"],
+        [pkg_config, "--cflags", "Qt6Core"],
         timeout=10.0,
         max_output_chars=65_536,
     )
@@ -358,16 +358,17 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
         or flags_result.truncated
         or not flags_result.stdout.strip()
     ):
-        _unavailable("Qt6Gui development headers are unavailable")
+        _unavailable("Qt6Core development headers are unavailable")
 
     root = tmp_path / "clazy-project"
     source_dir = root / "src"
     build = root / "build"
     source_dir.mkdir(parents=True)
     build.mkdir()
-    source = source_dir / "color.cpp"
+    source = source_dir / "datetime.cpp"
     source.write_text(
-        '#include <QColor>\nQColor invalidColor() { return QColor("#G00011112222"); }\n',
+        "#include <QDateTime>\n"
+        "QDateTime inefficientUtc() { return QDateTime::currentDateTime().toUTC(); }\n",
         encoding="utf-8",
     )
     before = source.read_bytes()
@@ -380,7 +381,7 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
         "-c",
         str(source),
         "-o",
-        "color.o",
+        "datetime.o",
     ]
     (root / "compile_commands.json").write_text(
         json.dumps(
@@ -389,7 +390,7 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
                     "directory": str(build),
                     "file": str(source),
                     "arguments": arguments,
-                    "output": "color.o",
+                    "output": "datetime.o",
                 }
             ]
         ),
@@ -408,22 +409,22 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
         root,
         [source],
         context,
-        {"clazy": "required", "clazy_checks": ["qcolor-from-literal"]},
+        {"clazy": "required", "clazy_checks": ["qdatetime-utc"]},
         runner=run_process,
     )
 
-    assert outcome.mode == "exact"
+    assert outcome.mode == "exact", outcome
     assert outcome.provider == "standalone"
     assert outcome.errors == []
     assert outcome.sources_checked == 1
     assert outcome.configurations_checked == 1
     diagnostic = next(
-        item for item in outcome.diagnostics if item.tool_rule_id == "clazy-qcolor-from-literal"
+        item for item in outcome.diagnostics if item.tool_rule_id == "clazy-qdatetime-utc"
     )
     assert diagnostic.family == "clazy"
-    assert diagnostic.target.file_path == "src/color.cpp"
+    assert diagnostic.target.file_path == "src/datetime.cpp"
     assert diagnostic.target.start_line == 2
-    assert diagnostic.target.target_name == "Clazy:clazy-qcolor-from-literal"
+    assert diagnostic.target.target_name == "Clazy:clazy-qdatetime-utc"
     assert diagnostic.target.status.value == "WARN"
     assert len(outcome.evidence) == 1
     evidence = outcome.evidence[0]
@@ -431,7 +432,7 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
     assert evidence.returncode == 0
     assert evidence.error == ""
     assert evidence.argv is not None
-    assert evidence.argv[1:3] == ["--checks=qcolor-from-literal", "--only-qt"]
+    assert evidence.argv[1:3] == ["--checks=qdatetime-utc", "--only-qt"]
     assert "-p" not in evidence.argv
     assert not any(argument.startswith("--fix") for argument in evidence.argv)
     assert source.read_bytes() == before
