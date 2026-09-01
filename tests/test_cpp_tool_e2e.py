@@ -93,7 +93,9 @@ def real_cpp_project(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     (source_dir / "tidy_swappable.cpp").write_text(
-        "int tidy_swappable(long snapshotEntryIndex, int column, int role) {\n"
+        "using qsizetype = long long;\n"
+        "\n"
+        "int tidy_swappable(qsizetype snapshotEntryIndex, int column, int role) {\n"
         "    if (snapshotEntryIndex < 0) {\n"
         "        return 1;\n"
         "    }\n"

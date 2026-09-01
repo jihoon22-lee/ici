@@ -47,6 +47,9 @@ _CLANG_TIDY_EMPTY_NOTE_RE = re.compile(
 _CLANG_TIDY_CONVERSION_NOTE_RE = re.compile(
     r"^'.{1,256}' and '.{1,256}' may be implicitly converted: \S.{1,4096}$"
 )
+_CLANG_TIDY_PARAMETER_RANGE_NOTE_RE = re.compile(
+    r"^the (?:first|last) parameter in the range is '.{1,256}'$"
+)
 _TEXT_FIXIT_RE = re.compile(
     r'^fix-it:"(?P<file>(?:[^"\\]|\\.)*)":\{'
     r"(?P<start_line>[1-9]\d*):(?P<start_column>[1-9]\d*)-"
@@ -484,7 +487,7 @@ def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
     generated: int | None = None
     suppressed = 0
     header_hint = False
-    previous_diagnostic: re.Match[str] | None = None
+    structural_parent: re.Match[str] | None = None
     pending_empty_note: re.Match[str] | None = None
     for raw_line in (stdout + "\n" + stderr).splitlines():
         line = raw_line.strip()
@@ -495,7 +498,7 @@ def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
             if (
                 pending_empty_note
                 or not _bounded_empty_note(empty_note)
-                or not _empty_note_has_expected_parent(empty_note, previous_diagnostic)
+                or not _empty_note_has_expected_parent(empty_note, structural_parent)
             ):
                 return _empty_note_error()
             pending_empty_note = empty_note
@@ -506,8 +509,17 @@ def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
                 pending_empty_note, diagnostic
             ):
                 return _empty_note_error()
-            pending_empty_note = None
-            previous_diagnostic = diagnostic
+            if pending_empty_note:
+                pending_empty_note = None
+                structural_parent = None
+            elif diagnostic.group("rule") is not None:
+                structural_parent = diagnostic
+            elif structural_parent and (
+                diagnostic.group("kind") != "note"
+                or diagnostic.group("file") != structural_parent.group("file")
+                or not _CLANG_TIDY_PARAMETER_RANGE_NOTE_RE.fullmatch(diagnostic.group("message"))
+            ):
+                structural_parent = None
             retained.append(raw_line)
             continue
         if _TEXT_CONTEXT_RE.fullmatch(line):
@@ -532,7 +544,7 @@ def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
         if _CLANG_TIDY_HEADER_HINT_RE.fullmatch(line):
             header_hint = True
             continue
-        previous_diagnostic = None
+        structural_parent = None
         retained.append(raw_line)
     if pending_empty_note:
         return _empty_note_error()

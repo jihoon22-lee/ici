@@ -326,6 +326,12 @@ def test_clang_tidy_llvm18_empty_structural_note_keeps_concrete_note(
         "[bugprone-easily-swappable-parameters]\n"
         "  431 | QVariant configurationData(qsizetype entryIndex, int column, int role);\n"
         "      |                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+        "src/model.cpp:431:60: note: the first parameter in the range is 'entryIndex'\n"
+        "  431 | QVariant configurationData(qsizetype entryIndex, int column, int role);\n"
+        "      |                                        ^~~~~~~~~~\n"
+        "src/model.cpp:432:54: note: the last parameter in the range is 'role'\n"
+        "  432 |                                                  int role) const;\n"
+        "      |                                                      ^~~~\n"
         "src/model.cpp:431:50: note: \n"
         "  431 | QVariant configurationData(qsizetype entryIndex, int column, int role);\n"
         "      |                              ^\n"
@@ -341,9 +347,11 @@ def test_clang_tidy_llvm18_empty_structural_note_keeps_concrete_note(
 
     assert result.format_name == "clang-tidy-text"
     assert result.error == ""
-    assert len(result.diagnostics) == 2
-    primary, note = result.diagnostics
+    assert len(result.diagnostics) == 4
+    primary, first_note, last_note, note = result.diagnostics
     assert primary.tool_rule_id == "bugprone-easily-swappable-parameters"
+    assert first_note.tool_rule_id == primary.tool_rule_id
+    assert last_note.tool_rule_id == primary.tool_rule_id
     assert note.tool_rule_id == primary.tool_rule_id
     assert note.target.message == (
         "note: 'qsizetype' and 'int' may be implicitly converted: "
@@ -438,6 +446,13 @@ def test_clang_tidy_malformed_empty_note_cannot_bypass_parser(
             "src/a.cpp:1:1: note: \n"
             "src/a.cpp:1:2: note: unrelated explanation\n"
         ),
+        (
+            "src/a.cpp:1:1: warning: valid [bugprone-easily-swappable-parameters]\n"
+            "src/a.cpp:1:2: note: unrelated explanation\n"
+            "src/a.cpp:1:1: note: \n"
+            "src/a.cpp:1:2: note: 'int' and 'long' may be implicitly converted: "
+            "'int' -> 'long'\n"
+        ),
     ],
     ids=[
         "unrelated-rule",
@@ -446,6 +461,7 @@ def test_clang_tidy_malformed_empty_note_cannot_bypass_parser(
         "mismatched-path",
         "multiple-empty",
         "wrong-child",
+        "wrong-intermediate-child",
     ],
 )
 def test_clang_tidy_empty_note_requires_exact_llvm_context(tmp_path: Path, output: str) -> None:
