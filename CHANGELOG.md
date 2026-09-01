@@ -77,7 +77,10 @@
 - The public v0.10.0 artifact passed its release provenance and artifact audit. The first
   toy-projects BuildScope B5 PR run then exposed this warning-policy defect on both Qt 5 and Qt 6:
   all 12 clazy translation units exited nonzero even though compilation-context and test evidence
-  were exact. v0.10.1 is the corrective release required before B5 can be rerun and accepted.
+  were exact. v0.10.1 shipped the corrective warning-policy projection from exact main
+  `326a12abd4ac56cd88949c15c7748877e713531c`; exact-main CI run `33519475182`, release run
+  `33521155513`, and the nine-asset public release audit passed. The later BuildScope rerun exposed
+  the separate external macro-context and CTest evidence defects recorded under `[Unreleased]`.
 
 ## [0.10.0] - 2026-09-01
 

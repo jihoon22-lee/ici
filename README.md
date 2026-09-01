@@ -10,9 +10,10 @@ $ ici doctor
 
 ### 현재 릴리스와 진행 상태
 
-현재 공개 릴리스는 [v0.10.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.0)이며,
-이 소스 트리의 릴리스 후보 버전은 `0.10.1`입니다. v0.10.1 tag와 공개 artifact는 exact-main
-Merge Gate가 통과한 뒤에만 생성합니다.
+현재 공개 릴리스는 [v0.10.1](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.1)이며,
+exact-main Merge Gate와 공개 artifact 감사를 통과했습니다. 현재 소스 버전도 `0.10.1`로
+유지합니다. 이번 Qt5/clazy 호환성 보정은 ici PR과 cross-repository candidate 검증이 모두
+끝난 뒤에만 corrective `v0.10.2` patch가 필요한지 확정합니다.
 I4-1의 exact compiler/clang-tidy replay에 이어 I4-2에서 Qt-aware clazy와
 `moc`/`uic`/`rcc` generated-code linkage, Qt 5/Qt 6 compile evidence를 추가했습니다. 실제
 clazy 1.11·Qt matrix·1,517개 테스트·self/viewer dogfood·Zero-CDN Pages가 PR과 exact main에서
@@ -181,15 +182,16 @@ compilation unit으로 들어가는지, `moc_<stem>.cpp`·`<stem>.moc`·`mocs_co
 Q_OBJECT를 연결하는지를 원본 입력 파일·라인 target에 기록합니다. exact context의 include,
 define, compiler replay로 Qt 5/Qt 6 major를 식별합니다. linkage와 compatibility 모두 성공한
 compiler replay가 있어야 `PASS`이며, 식별 불가·replay 미실행·중복 generated stem은 `WARN`입니다.
-I4-2 기준 PR/main은 actual tool을 포함한 1,517개 테스트와 Qt matrix를 통과했고 v0.10.0의
-release provenance·9개 artifact 감사도 완료됐습니다. v0.10.1 후보의 hardened local gate는
-1,526 passed / 4 environment skips이며, CI/release workflow는 실제 clazy·Qt fixture가 skip되지
+I4-2 기준 PR/main은 actual tool을 포함한 1,517개 테스트와 Qt matrix를 통과했고 v0.10.1의
+release provenance·9개 artifact 감사도 완료됐습니다. v0.10.1 corrective gate는
+1,526 passed / 4 environment skips였으며, CI/release workflow는 실제 clazy·Qt fixture가 skip되지
 않도록 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`과 clazy 설치를 강제합니다. 이번 evidence correction의
 Python 3.10 local run은 focused C++/CTest 회귀 161 passed, full suite 1,538 passed / 4 skipped다.
 정확한 Ubuntu 24.04 + Qt 5 + clazy 1.11 run은 full lint 12/12, approved external macro note
 1건, unsuppressed CTest 8의 9 cases와 LeakSanitizer diagnostic을 기록했다. suppression을 넣어
 확인한 작업은 toy repository에 한정되며 ici policy로 해석하지 않는다. 남은 delivery evidence는
-v0.10.1 exact-main/tag/release와 released-v0.10.1을 사용하는 BuildScope B5 최종 검증입니다.
+이번 correction의 ici PR/정확한 main gate, BuildScope candidate 교차 검증, 그리고 그 증거를
+통과한 corrective release를 사용하는 BuildScope 최종 검증입니다.
 
 ## 💻 빠른 설치 및 사용법
 
