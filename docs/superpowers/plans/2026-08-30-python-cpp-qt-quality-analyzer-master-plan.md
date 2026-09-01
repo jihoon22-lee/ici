@@ -37,7 +37,7 @@ Merge Gate를 다시 확인한다.
 ### 1.2 현재 상태 기준 (2026-09-01)
 
 1.1의 기준선은 당시 감사 snapshot으로 보존한다. 현재 병합된 기준은 ici `main`
-[`d6022f613bd997eb557e6af860f5e9b7c6639327`](https://github.com/jihoon22-lee/ici/commit/d6022f613bd997eb557e6af860f5e9b7c6639327)와
+[`9b3a88f7b216a9a82a988fe2d6d1ba7b35cc2327`](https://github.com/jihoon22-lee/ici/commit/9b3a88f7b216a9a82a988fe2d6d1ba7b35cc2327)와
 toy-projects `main`
 [`590899a0a9430e9ce35162b301bfef5d7dfc78a4`](https://github.com/jihoon22-lee/toy-projects/commit/590899a0a9430e9ce35162b301bfef5d7dfc78a4)다.
 I4-1의 LLVM 18 structural-note parser 보정은 ici [PR #119](https://github.com/jihoon22-lee/ici/pull/119),
@@ -50,9 +50,10 @@ toy-projects BuildScope B4는 released ici v0.9.1을 사용한 [PR #36](https://
 HTTP 200/exact title/Zero-CDN을 모두 통과했다. squash merge 후 toy main exact run
 `33488169769`의 14개 prerequisite job과 Merge Gate, Dependency Graph run `33488174425`도
 성공했다. 따라서 I4-1과 B4 precondition은 닫혔다. `feat/qt-analysis`에서 I4-2의 여섯
-코드 조건과 focused local contract가 완료됐지만, 원격 PR/main CI·toy-projects BuildScope B5
-교차 검증·다음 release evidence는 아직 남아 있다. I4-3/I4-4 구현도 남아 있으므로 I4
-checkpoint는 아직 미완료다.
+코드 조건과 focused local contract가 완료됐고 [PR #122](https://github.com/jihoon22-lee/ici/pull/122)의
+PR CI와 squash merge 뒤 [exact-main run `33500281653`](https://github.com/jihoon22-lee/ici/actions/runs/33500281653)까지
+통과해 ici 원격 acceptance도 완료됐다. v0.10.0 release artifact, toy-projects BuildScope
+B5 교차 검증, I4-3/I4-4 구현은 아직 남아 있으므로 I4 checkpoint는 아직 미완료다.
 
 ---
 
@@ -967,11 +968,20 @@ hosted HTML의 HTTP 200·exact title·Zero-CDN을 확인했고, B4 PR은 toy mai
 
 ### I4-2. Qt clazy와 생성 단계
 
-**구현 상태:** `feat/qt-analysis`에서 여섯 코드 조건과 focused local contract를 완료했다.
-아직 원격 PR/main CI, toy-projects BuildScope B5 교차 검증, release artifact evidence가
-없으므로 이 단계의 전체 delivery gate와 I4 checkpoint는 닫지 않는다.
+**구현 및 ici 원격 상태:** `feat/qt-analysis`에서 여섯 코드 조건과 focused local contract를
+완료했다. [PR #122](https://github.com/jihoon22-lee/ici/pull/122)의 head
+`c3a8fe21639cecef395f0bc28777066401927da0`은 [run `33499500259`](https://github.com/jihoon22-lee/ici/actions/runs/33499500259)에서
+1,517/1,517 테스트(네 개 actual compiler/clang-tidy/clazy process E2E 포함), Qt 5/Qt 6
+build, self/viewer dogfood, publisher/sticky comment, Merge Gate를 통과했다. 정확히 하나의
+현재 sticky comment에 두 report link가 남았으며 PR ici/viewer Pages의 독립 HTTP/title/Zero-CDN
+감사도 통과했다. squash merge commit
+`9b3a88f7b216a9a82a988fe2d6d1ba7b35cc2327` 뒤 [exact-main run `33500281653`](https://github.com/jihoon22-lee/ici/actions/runs/33500281653)도
+같은 tool/matrix/dogfood/Merge Gate와 trusted main publication, main ici/viewer Pages 감사를
+통과했다. 따라서 ici
+I4-2 remote acceptance는 완료됐지만, v0.10.0 release artifact와 toy-projects BuildScope B5
+교차 검증이 남아 있어 이 단계의 전체 delivery gate와 I4 checkpoint는 닫지 않는다.
 
-**브랜치:** `feat/qt-analysis`
+**구현 브랜치:** `feat/qt-analysis` (PR #122로 squash merge 완료)
 
 - [x] canonical `clazy` capability를 `clazy-standalone` 우선, `clazy` compiler-wrapper fallback
       provider로 탐지한다.
@@ -994,10 +1004,9 @@ hosted HTML의 HTTP 200·exact title·Zero-CDN을 확인했고, B4 PR은 toy mai
       tool E2E를 요구한다. 실제 BuildScope B5 fixture 검증은 다음 delivery 단계다.
 
 I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 현재 환경의
-`clang-tidy`·`clazy`·`clang++` 미설치에 따른 것이다. 원격 CI가 이 branch를 검증하고
-BuildScope B5가 released ici version으로 `.ui`/
-`.qrc`와 Q_OBJECT 경로를 교차 검증한 뒤, release provenance를 새 버전에 고정해야 이 단계의
-delivery evidence를 추가할 수 있다.
+`clang-tidy`·`clazy`·`clang++` 미설치에 따른 것이다. 위 PR/main remote acceptance로 ici
+측 원격 delivery gate는 닫혔다. 남은 delivery evidence는 v0.10.0 release artifact/provenance와
+BuildScope B5의 released ici 교차 검증이며, 그 뒤 I4-3/I4-4를 진행한다.
 
 ### I4-3. maintainability 분석 정확도
 
@@ -1284,7 +1293,8 @@ delivery evidence를 추가할 수 있다.
   evidence, the new same-basename actual-process local test, and its PR·CI·Pages remote evidence
   complete. The I3 checkpoint is closed; next is I4.
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료 (I4-1 및 B4 precondition, I4-2
-  code/local contract 완료; I4-2 원격 CI·BuildScope B5·release evidence 및 I4-3/I4-4 pending)
+  code/local contract와 ici PR/main acceptance 완료; v0.10.0 release artifact·BuildScope B5 및
+  I4-3/I4-4 pending)
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
 - [ ] I7: Makefile, artifacts, ABI, hybrid integration 완료
@@ -1319,8 +1329,10 @@ CI·Pages evidence까지 완료됐다.
 
 I4-2의 현재 local 구현은 위 여섯 조건과 exact-context security/budget 계약을 모두 포함한다.
 full local run은 `1513 passed, 4 skipped`였으며, skip은 현재 환경에서
-`clang-tidy`·`clazy`·`clang++`가 설치되지 않았기 때문이다. 다음 인수인계자는 이 브랜치의 PR CI에서
-`clazy` 실제 process E2E와
-Qt5/Qt6 build matrix를 다시 확인하고, toy-projects BuildScope B5가 `.ui`/`.qrc`/Q_OBJECT
-실물 경로를 released ici로 검증한 뒤 새 release artifact와 함께 I4-2를 remote delivery로
-승격해야 한다. 그 전까지 I4 checkpoint는 열린 상태다.
+`clang-tidy`·`clazy`·`clang++`가 설치되지 않았기 때문이다. PR #122 head
+`c3a8fe21639cecef395f0bc28777066401927da0`의 run `33499500259`와 squash merge commit
+`9b3a88f7b216a9a82a988fe2d6d1ba7b35cc2327` 뒤 exact-main run `33500281653`에서 실제
+tool E2E·Qt5/Qt6·dogfood·publication·sticky comment·Merge Gate가 모두 통과해 ici I4-2
+remote acceptance는 완료됐다. 다음 인수인계자는 v0.10.0 release artifact/provenance를 확정하고
+toy-projects BuildScope B5가 `.ui`/`.qrc`/Q_OBJECT 실물 경로를 released ici로 검증하도록
+진행한다. I4-3/I4-4와 I4 전체 checkpoint는 그 이후의 별도 완료 조건을 따른다.

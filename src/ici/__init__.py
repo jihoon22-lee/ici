@@ -4,5 +4,5 @@
 C++/Python 프로젝트 통합 검증 및 빌드 엔진.
 """
 
-__version__ = "0.9.1"
+__version__ = "0.10.0"
 MIN_PYTHON = (3, 10)
