@@ -1,4 +1,4 @@
-# I4-1 C++ Static Analysis Adapters
+# I4-1 C++ Static Analysis Adapters and v0.9.0 Release Evidence
 
 ## Overview
 
@@ -7,7 +7,9 @@ Commits `19008fd3d3b3a26d35ffdb15ae4dd38d4470cc68`, `4f8fbc5`, `f1cc3d9`, `aaacf
 `feat/cpp-static-analysis` implement and harden I4-1. C++ lint now consumes the
 immutable I3 `AnalysisContext` and normalized
 `CompilationUnit` contract to run exact compiler diagnostics and optional clang-tidy checks.
-PR #115 and exact-main PR/CI/Pages evidence are complete; no release/version bump is claimed here.
+PR #115 and exact-main PR/CI/Pages evidence are complete. The follow-up v0.9.0 release boundary
+was also verified from the published tag and downloaded artifacts; toy-projects B4 remains a
+separate downstream condition for the overall I4 checkpoint.
 
 ## Context
 
@@ -171,7 +173,38 @@ external references: ici was 5,691,036 bytes with SHA-256
 `048421ca94e83250da1a4411900a4748b239d2da211b84dd5e4fb9f1ab057af4`; viewer was 345,176 bytes
 with SHA-256 `6f0e2e10e4a075651c6b893341ab6d2e70798513766c7420179529fe798ed758`.
 
+## Release Verification — v0.9.0
+
+The annotated `v0.9.0` tag resolves to exact `main` commit
+`061950834a135a30bd5d4e974ec1dfce33df68a9`. [Release workflow 33472668716](https://github.com/jihoon22-lee/ici/actions/runs/33472668716)
+passed both `Validate Release Provenance` and `Build & Publish Release`, and the published release
+was non-draft and non-prerelease. Its Python 3.10.21 gate installed clang-tidy 18, collected 1,417
+tests, passed `tests/test_cpp_tool_e2e.py` (GCC and clang-tidy actual-process E2Es), and finished
+with `1,417 passed`. Release-candidate dogfood passed ici 1,417/1,417 and viewer 7/7; the static
+`icirv` build also parsed a real report.
+
+An independent download audit created a unique temporary directory and confirmed exactly these nine
+assets; every downloaded size and GitHub API SHA-256 digest matched:
+
+| asset | bytes | SHA-256 |
+|---|---:|---|
+| `ici.pyz` | 2,180,877 | `356cafd5905e8180e7ed2d05be8e82ebea0420c1c31137274d430a48e086165e` |
+| `ici.pyz.sha256` | 74 | `aec969ec3db85cb193c01717760212d5d865f80c9ba32104a504f16e0a37bef0` |
+| `ici-self-report.html` | 6,034,771 | `39ea38f61c9be5284f5550eb37ff8dcb72702507cf6fc39e25d6f0b3abbebf10` |
+| `ici-self-report.json` | 14,377,272 | `a3b471116f30981be34313fd265e300307b589effd64cce47d113a2cff4a4f58` |
+| `viewer-report.html` | 345,254 | `4f8d8f3ab57d4c11fa3b859444bb2d8fa7673d5d88507d82711bd8d7e1f4673e` |
+| `viewer-report.json` | 636,510 | `ea8aa3a1d8a509b29cce7f283b80f38e09f4312e18adaaa3940505b53c3604d3` |
+| `icirv` | 2,573,000 | `56a2c419daba10027d6ca3d2870d0f568283641cf69b1b2e9ca30950e4decbe8` |
+| `icirv-gui` | 268,672 | `d1cd848df70220881a85f8ffc49eabe094b7e713798980ce29dc101321ec2a01` |
+| `icirv-gui.README.txt` | 558 | `c08ae09fd472245f74fa9194186479b40b881fecf2d93082a5c09a1d1df2a749` |
+
+`ici.pyz --version` returned `ici 0.9.0` and its checksum manifest passed. Both JSON reports parsed
+as `ici.result/v3`; the HTML titles were `ici Verification Report — ici` and
+`ici Verification Report — viewer`, with zero external asset references. `icirv` was reported as
+statically linked, `ldd` returned `not a dynamic executable`, and the downloaded viewer JSON parsed
+successfully through the release CLI.
+
 ## Next Steps
 
-- Complete the downstream BuildScope B4 validation and establish the I4 release boundary.
-- Start I4-2 only after those downstream conditions are verified.
+- Complete the downstream BuildScope B4 validation; the v0.9.0 release boundary is complete.
+- Keep the overall I4 checkpoint and I4-2 pending until B4 evidence is verified.
