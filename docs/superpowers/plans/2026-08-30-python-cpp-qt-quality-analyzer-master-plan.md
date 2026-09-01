@@ -1,7 +1,7 @@
 # Python·C++·Qt 코드 품질 분석기 마스터 실행 계획
 
 **상태:** 승인된 장기 마스터 계획. 2026-08-30 이후 ici 기능 계획의 우선순위와 완료 조건은 이 문서를 기준으로 판단한다.
-**문서 기준일:** 2026-09-01. 이 계획은 ici [PR #78](https://github.com/jihoon22-lee/ici/pull/78)로 `main`에 병합됐고, 현재 상태는 이 체크리스트와 병합된 PR의 실측을 함께 기준으로 삼는다.
+**문서 기준일:** 2026-09-02. 이 계획은 ici [PR #78](https://github.com/jihoon22-lee/ici/pull/78)로 `main`에 병합됐고, 현재 상태는 이 체크리스트와 병합된 PR의 실측을 함께 기준으로 삼는다.
 
 **목표:** ici를 Python, C++, Qt 프로젝트의 실제 빌드·테스트·배포 맥락을 이해하고, 위치와 근거가 있는 상세 진단을 낮은 노이즈로 제공하는 고신뢰 코드 품질 분석기로 발전시킨다.
 
@@ -32,9 +32,9 @@ Merge Gate를 다시 확인한다.
 | ici | [`fa3ad28`](https://github.com/jihoon22-lee/ici/commit/fa3ad28dabccac840d2e19246ccf35d8cb30182b) | 계획 #78, cycle #79, CI/리포트 gate #80, viewer Qt 셸 #81, release provenance #82 |
 | toy-projects | [`f267695`](https://github.com/jihoon22-lee/toy-projects/commit/f26769527fa7443aa56cdea693fba278000f0816) | 제품 계획 #12, manifest/report gate #13, loglens state #14, T0-1 계획·환경 #15, diskmap Qt 셸 #16 |
 
-현재 환경에는 Qt 5.15.18과 Qt 6.10.2가 모두 설치돼 있다. ici viewer는 [PR #81](https://github.com/jihoon22-lee/ici/pull/81)에서 Qt 5·Qt 6 각각 4/4 CTest와 Qt-free CLI를 통과했고, toy 쪽 환경·실측 기록은 [PR #15](https://github.com/jihoon22-lee/toy-projects/pull/15)에 있다. 따라서 과거 문서의 “Qt 5 미설치/미검증” 또는 “아직 푸시되지 않음” 표현은 현재 상태가 아니다.
+당시 검증 환경에는 Qt 5.15.18과 Qt 6.10.2가 모두 설치돼 있었다. ici viewer는 [PR #81](https://github.com/jihoon22-lee/ici/pull/81)에서 Qt 5·Qt 6 각각 4/4 CTest와 Qt-free CLI를 통과했고, toy 쪽 환경·실측 기록은 [PR #15](https://github.com/jihoon22-lee/toy-projects/pull/15)에 있다. 따라서 과거 문서의 “Qt 5 미설치/미검증” 또는 “아직 푸시되지 않음” 표현은 당시 기준에서도 현재 상태가 아니었다.
 
-### 1.2 현재 상태 기준 (2026-09-01)
+### 1.2 상태 기준 snapshot (2026-09-01)
 
 1.1의 기준선은 당시 감사 snapshot으로 보존한다. 현재 병합된 기준은 ici `main`
 [`9b3a88f7b216a9a82a988fe2d6d1ba7b35cc2327`](https://github.com/jihoon22-lee/ici/commit/9b3a88f7b216a9a82a988fe2d6d1ba7b35cc2327)와
@@ -53,15 +53,36 @@ HTTP 200/exact title/Zero-CDN을 모두 통과했다. squash merge 후 toy main 
 코드 조건과 focused local contract가 완료됐고 [PR #122](https://github.com/jihoon22-lee/ici/pull/122)의
 PR CI와 squash merge 뒤 [exact-main run `33500281653`](https://github.com/jihoon22-lee/ici/actions/runs/33500281653)까지
 통과해 ici 원격 acceptance도 완료됐다. v0.10.1은 공개 v0.10.0의 production warning-policy
-결함을 교정하는 corrective stabilization으로 취급한다. 다음 minor release는 I4-3/I4-4
-구현과 real toy-projects/quality-zoo 검증이 완료될 때까지 보류하며, BuildScope B5 교차 검증과
-I4 checkpoint는 아직 미완료다.
+결함을 교정하는 corrective stabilization으로 취급한다. 이 단락은 당시의 snapshot이며,
+이후 공개된 v0.10.2와 그 release evidence는 다음 절을 현재 기준으로 삼는다.
+
+### 1.3 현재 공개 release 기준 (2026-09-02)
+
+현재 stable release는 [v0.10.2](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.2)다.
+annotated tag는 exact `main` commit
+[`3b50dd4c485ddab212beb23ff820e82286a06e77`](https://github.com/jihoon22-lee/ici/commit/3b50dd4c485ddab212beb23ff820e82286a06e77)을
+가리킨다. [exact-main CI run `33541134010`](https://github.com/jihoon22-lee/ici/actions/runs/33541134010)은
+Verify, Qt 5/Qt 6, `Publish Main Verification Report`, `Merge Gate`를 성공시켰고, push에서
+실행하지 않는 PR publisher는 expected `skipped`였다. [release run
+`33541928666`](https://github.com/jihoon22-lee/ici/actions/runs/33541928666)의
+`Validate Release Provenance`와 `Build & Publish Release`도 성공했다.
+
+공개 release는 non-draft/non-prerelease이며 정확히 9개 asset
+(`ici.pyz`, `ici.pyz.sha256`, `ici-self-report.html`, `ici-self-report.json`,
+`viewer-report.html`, `viewer-report.json`, `icirv`, `icirv-gui`, `icirv-gui.README.txt`)을
+포함한다. `ici.pyz` SHA-256은
+`8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`다. 독립 main Pages
+audit도 ici `ici Verification Report — ici`, viewer `ici Verification Report — viewer`의
+정확한 title과 HTTP 200·`text/html`·외부 resource URL 0건을 확인했다. 전체 asset 표와
+검증 로그는 [`v0.10.2 public evidence workthrough`](../../workthrough/2026-09-02-public-v0.10.2-evidence.md)에
+고정한다.
 
 ---
 
-## 2. 현재 기준선과 문제 정의
+## 2. 기준선과 문제 정의 (2026-08-31 snapshot)
 
-2026-08-31 실측 기준 (`origin/main@fa3ad28`, self-quality annotation 반영):
+2026-08-31 실측 기준 (`origin/main@fa3ad28`, self-quality annotation 반영)을 historical
+baseline으로 보존한다:
 
 | 대상 | 결과 |
 |---|---|
@@ -921,7 +942,7 @@ Exact-main Pages도 같은 HTTP/content/title/Zero-CDN 계약을 통과했다.
   SHA-256 `6f0e2e10e4a075651c6b893341ab6d2e70798513766c7420179529fe798ed758`
 
 따라서 I4-1의 ici 저장소 local/remote checkpoint는 완료됐다. 아래 v0.9.0 release boundary와
-B4 pending 표현은 당시의 historical snapshot이다. current v0.9.1 release와 B4 완료 evidence는
+B4 pending 표현은 당시의 historical snapshot이다. 당시 v0.9.1 release와 B4 완료 evidence는
 다음 절에 기록한다.
 
 ### I4 release boundary — v0.9.0 (historical)
@@ -957,8 +978,7 @@ publish job이 성공했고, 공개 release는 non-draft·non-prerelease이며 �
 독립 감사했다. `ici.pyz`는 2,181,513 bytes, SHA-256
 `8668af0eddf117d31e99e25cff4f64b1da68fb5e6d41fb01ef5c9d8107542284`이고 `ici 0.9.1`을
 보고했다. 나머지 asset size/digest 및 JSON v3·HTML Zero-CDN·정적 `icirv` 검증은
-[인수인계 current release evidence](../2026-08-30-handover.md#v091-release-boundary와-buildscope-b4-교차-검증--current)에
-고정한다.
+[인수인계 historical release evidence](../2026-08-30-handover.md)에 고정한다.
 
 released ici v0.9.1을 pin한 toy-projects [PR #36](https://github.com/jihoon22-lee/toy-projects/pull/36)은
 head `68ae3b59aacfbd5c57bde2a88718641cd1cfb9e0`에서 [run 33487556779](https://github.com/jihoon22-lee/toy-projects/actions/runs/33487556779)의
@@ -979,9 +999,10 @@ build, self/viewer dogfood, publisher/sticky comment, Merge Gate를 통과했다
 감사도 통과했다. squash merge commit
 `9b3a88f7b216a9a82a988fe2d6d1ba7b35cc2327` 뒤 [exact-main run `33500281653`](https://github.com/jihoon22-lee/ici/actions/runs/33500281653)도
 같은 tool/matrix/dogfood/Merge Gate와 trusted main publication, main ici/viewer Pages 감사를
-통과했다. 따라서 ici
-I4-2 remote acceptance는 완료됐지만, v0.10.0 release artifact와 toy-projects BuildScope B5
-교차 검증이 남아 있어 이 단계의 전체 delivery gate와 I4 checkpoint는 닫지 않는다.
+통과했다. 따라서 ici I4-2 remote acceptance는 완료됐다. 이후 exact-main
+`33541134010`과 [v0.10.2 release](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.2)의
+provenance·9개 asset audit도 완료됐지만, toy-projects BuildScope B5 교차 검증이 남아 있어
+이 단계의 전체 delivery gate와 I4 checkpoint는 아직 닫지 않는다.
 
 **구현 브랜치:** `feat/qt-analysis` (PR #122로 squash merge 완료)
 
@@ -1005,10 +1026,11 @@ I4-2 remote acceptance는 완료됐지만, v0.10.0 release artifact와 toy-proje
       output을 사용하며, CI/release workflow는 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`로 실제
       tool E2E를 요구한다. 실제 BuildScope B5 fixture 검증은 다음 delivery 단계다.
 
-I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 현재 환경의
+I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
 `clang-tidy`·`clazy`·`clang++` 미설치에 따른 것이다. 위 PR/main remote acceptance로 ici
-측 원격 delivery gate는 닫혔다. 남은 delivery evidence는 v0.10.0 release artifact/provenance와
-BuildScope B5의 released ici 교차 검증이며, 그 뒤 I4-3/I4-4를 진행한다.
+측 원격 delivery gate는 닫혔다. v0.10.2 release provenance/artifact evidence는 위 1.3절에
+기록했으며, 남은 delivery evidence는 BuildScope B5의 released ici 교차 검증이다. 그 뒤
+I4-3/I4-4를 진행한다.
 
 ### I4-3. maintainability 분석 정확도
 
@@ -1277,7 +1299,7 @@ BuildScope B5의 released ici 교차 검증이며, 그 뒤 I4-3/I4-4를 진행�
 - `minor`는 사용자에게 보이는 응집된 roadmap checkpoint에만 사용한다. ici 전체 gate, 실제 도구 E2E, candidate cross-repo/toy 검증, PR/main CI·Pages, docs/CHANGELOG 동기화가 모두 끝난 뒤에만 릴리스한다.
 - PR 제목/요약은 `I4-3`, `T0`, `B1`, `D2` 같은 roadmap 코드만으로 작성하지 않으며, 사용자에게 보이는 결과나 기술적 결과를 설명한다. roadmap key는 필요할 때 body의 mapping 항목으로만 덧붙인다.
 - pre-release/candidate artifact는 stable이 아니며, 하나의 PR이 하나의 릴리스를 의미하지 않는다.
-- 현재 `v0.10.1`은 corrective stabilization이다. 다음 minor는 I4-3과 I4-4, 그리고 real toy-projects/quality-zoo 검증이 완료될 때까지 deferred 상태로 둔다.
+- 현재 `v0.10.2`는 공개된 corrective stabilization이다. 다음 minor는 I4-3과 I4-4, 그리고 real toy-projects/quality-zoo 검증이 완료될 때까지 deferred 상태로 둔다.
 
 ---
 
@@ -1304,9 +1326,9 @@ BuildScope B5의 released ici 교차 검증이며, 그 뒤 I4-3/I4-4를 진행�
   evidence, the new same-basename actual-process local test, and its PR·CI·Pages remote evidence
   complete. The I3 checkpoint is closed; next is I4.
 - [ ] I4: C++/Qt tool-backed analyzer와 safety profile 완료 (I4-1 및 B4 precondition, I4-2
-  code/local contract와 ici PR/main acceptance 완료; v0.10.1 corrective stabilization은
-  별도 patch 경계로 기록하며, 다음 minor는 BuildScope B5와 real toy-projects/quality-zoo
-  검증 및 I4-3/I4-4 완료 뒤로 deferred)
+  code/local contract와 ici PR/main acceptance, v0.10.2 public release evidence 완료;
+  다음 minor는 BuildScope B5와 real toy-projects/quality-zoo 검증 및 I4-3/I4-4 완료 뒤로
+  deferred)
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
 - [ ] I7: Makefile, artifacts, ABI, hybrid integration 완료
@@ -1339,15 +1361,14 @@ BuildScope target-by-target define·standard·include 대조는 v0.8.0 public pr
 16 unit·6 target·14 field group mismatch 0으로 완료됐다. I3-3 qmake exact capture는 PR #103의
 CI·Pages evidence까지 완료됐다.
 
-I4-2의 현재 local 구현은 위 여섯 조건과 exact-context security/budget 계약을 모두 포함한다.
-full local run은 `1513 passed, 4 skipped`였으며, skip은 현재 환경에서
+I4-2의 local 구현은 위 여섯 조건과 exact-context security/budget 계약을 모두 포함한다.
+full local run은 `1513 passed, 4 skipped`였으며, skip은 당시 환경에서
 `clang-tidy`·`clazy`·`clang++`가 설치되지 않았기 때문이다. PR #122 head
 `c3a8fe21639cecef395f0bc28777066401927da0`의 run `33499500259`와 squash merge commit
 `9b3a88f7b216a9a82a988fe2d6d1ba7b35cc2327` 뒤 exact-main run `33500281653`에서 실제
 tool E2E·Qt5/Qt6·dogfood·publication·sticky comment·Merge Gate가 모두 통과해 ici I4-2
-remote acceptance는 완료됐다. 다음 인수인계자는 v0.10.1 corrective stabilization의
-exact-main/tag/release evidence를 확정하고 toy-projects BuildScope B5가 `.ui`/`.qrc`/Q_OBJECT
-실물 경로를 released ici로 검증하도록
-진행한다. I4-3/I4-4와 I4 전체 checkpoint는 그 이후의 별도 완료 조건을 따른다.
-v0.10.1은 corrective stabilization으로 유지하고, 다음 minor release는 I4-3/I4-4와 real
-toy-projects/quality-zoo 검증이 끝날 때까지 만들지 않는다.
+remote acceptance는 완료됐다. v0.10.2의 exact-main/tag/release evidence는 위 1.3절에
+확정했고, 다음 인수인계자는 toy-projects BuildScope B5가 `.ui`/`.qrc`/Q_OBJECT 실물 경로를
+released ici로 검증하도록 진행한다. I4-3/I4-4와 I4 전체 checkpoint는 그 이후의 별도 완료
+조건을 따른다. 다음 minor release는 I4-3/I4-4와 real toy-projects/quality-zoo 검증이 끝날
+때까지 만들지 않는다.

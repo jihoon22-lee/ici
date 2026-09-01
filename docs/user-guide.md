@@ -6,6 +6,22 @@
 
 `ici`는 로컬 개발 환경(WSL/Linux), 사내 폐쇄망(RHEL 8.10/CentOS, tcsh/bash), 그리고 GitHub Actions CI/CD 파이프라인에서 같은 정책·결과 계약을 적용하는 단일 실행형 CI 통합 엔진입니다. OS·컴파일러·Python·검증 도구의 가용성과 버전은 실행 증거로 기록되며, 환경이 다르면 실제 결과도 달라질 수 있습니다.
 
+## 현재 공개 릴리스와 검증된 artifact
+
+현재 공개 stable 릴리스는 [v0.10.2](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.2)다.
+`v0.10.2` tag는 exact `main` commit
+[`3b50dd4c485ddab212beb23ff820e82286a06e77`](https://github.com/jihoon22-lee/ici/commit/3b50dd4c485ddab212beb23ff820e82286a06e77)을
+가리키며, [exact-main CI run `33541134010`](https://github.com/jihoon22-lee/ici/actions/runs/33541134010)의
+Verify, Qt 5/Qt 6, `Publish Main Verification Report`, `Merge Gate`가 성공했다. [release run
+`33541928666`](https://github.com/jihoon22-lee/ici/actions/runs/33541928666)의 provenance와
+publish job도 성공했고, 공개 release는 non-draft/non-prerelease와 정확히 9개 asset을
+포함한다. `ici.pyz` SHA-256은
+`8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`다. ici/viewer main
+Pages는 독립 확인에서 HTTP 200·`text/html`·각각 `ici Verification Report — ici`와
+`ici Verification Report — viewer` title·외부 resource URL 0건을 만족했다. asset 목록과
+검증 명령/결과는 [`v0.10.2 public evidence workthrough`](workthrough/2026-09-02-public-v0.10.2-evidence.md)에
+고정한다.
+
 ---
 
 ## 1. 빠른 시작 (Quick Start)
@@ -514,7 +530,12 @@ PASS를 기록합니다. major가 불명확하거나 replay가 없거나 generat
 남깁니다. 이 검증은 CMake AUTOMOC/AUTOUIC/
 AUTORCC와 qmake의 direct generated unit 양쪽을 다룹니다.
 
-현재 v0.10.2 corrective source의 full local contract는 `1,565 passed, 4 skipped`였고, skip은 로컬 환경의
+#### v0.10.2 공개 전 release boundary (historical snapshot)
+
+아래 구현·CI 수치는 v0.10.2 공개 전 release sequence를 보존한 historical snapshot이다.
+현재 공개 경계와 stable artifact는 이 문서 상단의 [현재 공개 릴리스와 검증된 artifact](#현재-공개-릴리스와-검증된-artifact)를 따른다.
+
+v0.10.2 corrective source의 full local contract는 `1,565 passed, 4 skipped`였고, skip은 로컬 환경의
 `clang-tidy`·`clazy`·`clang++` 미설치에 따른 것입니다. CI와 release workflow는 clazy를 설치하고
 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`을 설정해 실제 clazy/Qt process E2E가 조용히 skip되지
 않게 합니다. I4-2 PR #122의 head `c3a8fe21639cecef395f0bc28777066401927da0`은 [run
@@ -541,8 +562,9 @@ Qt5/Qt6 BuildScope deep 검증과 release contract를 포함한 21개 job 전체
 merge commit `b1b3cc149c72eef6f71370364ab7eaf24d48ca40`의 [exact-main run
 `33538985765`](https://github.com/jihoon22-lee/ici/actions/runs/33538985765)은 trusted main
 publication과 Merge Gate까지 성공했고, main ici/viewer Pages는 HTTP 200, 정확한 report title,
-외부 resource 0개였습니다. v0.10.2 tag와 공개 artifact는 별도 release-prep PR의 exact-main
-gate가 성공한 뒤에만 생성합니다.
+외부 resource 0개였습니다. 이 공개 전 release-prep sequence는 historical evidence로 보존한다.
+현재 `v0.10.2` tag와 공개 artifact는 상단 release evidence와
+[`v0.10.2 public evidence workthrough`](workthrough/2026-09-02-public-v0.10.2-evidence.md)를 따른다.
 
 cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
 path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration

@@ -10,6 +10,22 @@
 다르면 실제 결과도 달라질 수 있습니다. 현재 버전은 실행별 시스템 정보와 현재 엔진이 실제로
 확인·호출한 도구의 증거만 기록하며, 전체 툴체인 capability를 자동으로 판정하지 않습니다.
 
+## 현재 공개 release evidence
+
+현재 공개 stable release는 [v0.10.2](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.2)다.
+`v0.10.2` tag는 exact `main` commit
+[`3b50dd4c485ddab212beb23ff820e82286a06e77`](https://github.com/jihoon22-lee/ici/commit/3b50dd4c485ddab212beb23ff820e82286a06e77)을
+가리킨다. [exact-main run `33541134010`](https://github.com/jihoon22-lee/ici/actions/runs/33541134010)은
+검증, Qt 5/Qt 6, `Publish Main Verification Report`, `Merge Gate`를 성공시켰고,
+[release run `33541928666`](https://github.com/jihoon22-lee/ici/actions/runs/33541928666)도
+provenance와 publish를 성공시켰다. [공개 release](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.2)는
+non-draft/non-prerelease이며 `ici.pyz`, checksum, self/viewer HTML·JSON, `icirv`,
+`icirv-gui`, GUI README까지 정확히 9개 asset을 포함한다. `ici.pyz` SHA-256은
+`8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`다. main ici/viewer
+Pages는 HTTP 200·`text/html`·정확한 title·외부 resource URL 0건으로 독립 감사됐다.
+상세 asset 표와 검증 기록은 [`v0.10.2 public evidence workthrough`](workthrough/2026-09-02-public-v0.10.2-evidence.md)를
+참조한다.
+
 ## 1. GitHub Actions 워크플로우
 
 저장소의 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)은 PR과 `main` push에서
@@ -73,9 +89,9 @@ duplicate JSON key 및 `NaN`/`Infinity` 거부로 entry를 신뢰 경계에서 �
 0700/0600 권한으로 만듭니다. artifact manifest가 있으면 hit/store 양쪽에서 containment와
 content·size·mode를 다시 확인합니다.
 
-I2-4의 현재 수치는 로컬 evidence로만 취급합니다. 전체 Python 3.10 run은 935 tests
-passed였고 targeted 테스트와 reproducibility script도 통과했지만, 이 cache 구현의 PR/CI/Pages
-및 release evidence는 아직 pending입니다.
+I2-4의 아래 수치는 당시 local snapshot으로 보존합니다. 전체 Python 3.10 run은 935 tests
+passed였고 targeted 테스트와 reproducibility script도 통과했으며, 이후 PR/CI/Pages 및
+release evidence는 현재 release 기록에서 확인할 수 있습니다.
 
 ### 1.2 PR 리포트 sticky 댓글 (`report-pr`)
 
@@ -167,7 +183,7 @@ commit으로 해석해 detached checkout한 뒤 다음을 모두 검증합니다
 
 검증된 SHA를 출력으로 받은 `build-release`만 `contents: write`를 가집니다. 그 job은
 Ruff, Python 3.10 전체 테스트, ZipApp 빌드·스모크·SHA-256, ici self verify,
-viewer C++/Qt verify, GUI CTest·headless smoke를 candidate에서 다시 실행합니다. GitHub
+viewer C++/Qt verify, GUI CTest·headless smoke를 검증된 tag target에서 다시 실행합니다. GitHub
 Release에는 `ici.pyz`, 체크섬, CLI/GUI viewer와 함께 self/viewer HTML·JSON 검증
 리포트를 첨부합니다. 수동 실행의 `version_tag`는 필수이며 태그가 이미
 존재해야 하므로, 선택한 workflow branch의 소스가 릴리스로 대체되지 않습니다.
