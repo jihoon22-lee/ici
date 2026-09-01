@@ -3,11 +3,11 @@
 ## Overview
 
 Commits `19008fd3d3b3a26d35ffdb15ae4dd38d4470cc68`, `4f8fbc5`, `f1cc3d9`, `aaacff4`,
-and `87e0e8b` on `feat/cpp-static-analysis` implement and harden I4-1. C++ lint now consumes the
+`87e0e8b`, and final head `b7ed26c68aa61f2d3f3f8e58afb4556a16c681cd` on
+`feat/cpp-static-analysis` implement and harden I4-1. C++ lint now consumes the
 immutable I3 `AnalysisContext` and normalized
 `CompilationUnit` contract to run exact compiler diagnostics and optional clang-tidy checks.
-This is a local implementation record: no release/version bump or remote PR/CI/Pages evidence
-is claimed here.
+PR #115 and exact-main PR/CI/Pages evidence are complete; no release/version bump is claimed here.
 
 ## Context
 
@@ -115,14 +115,14 @@ their own bounded library paths. Both required actual-process GCC/clang-tidy E2E
 ordinary `auto` mode a missing binary remains an explicit warning, while `required` mode fails
 closed.
 
-## Next Steps
+## Remote completion
 
 The first PR #115 run (`33466122397`) proved the required real clang-tidy E2E but failed the
 self-dogfood gate because the new orchestration entry point had cyclomatic complexity 30. Commit
 `87e0e8b` split that path into focused helpers: the entry point is now 10, every helper is at most
 11, the repository maximum is back to the warning-only 25, and local self-verification exits 0.
-That failed run is diagnostic evidence, not completion; the amended head still requires a fully
-green rerun and fresh report publication.
+That failed run is diagnostic evidence, not completion; at that point the amended head still
+required a fully green rerun and fresh report publication.
 
 The second PR run (`33466820095`) passed unit tests, isolated smoke, self-dogfood, and both Qt
 builds, then correctly blocked merge when the viewer's eight clean translation units produced an
@@ -130,8 +130,8 @@ LLVM 18 summary that the parser could not account for. Reproduction showed that 
 only `15780 warnings generated.`, while normal mode also emitted the matching
 `Suppressed 15780 warnings (15780 in non-user code).` trailer and the extended LLVM 18
 system-header hint. The adapter now preserves suppression accounting, the parser accepts that
-bounded hint variant, and an unaccounted quiet summary remains a fail-closed parse error. Another
-remote rerun is still required before merge.
+bounded hint variant, and an unaccounted quiet summary remains a fail-closed parse error. At that
+point another remote rerun was still required before merge.
 
 The third PR run (`33467937525`) passed both Qt builds, the required real-tool E2Es, isolated
 smoke, and self-dogfood. Its viewer gate narrowed the remaining failure to `report_model.cpp`:
@@ -145,8 +145,7 @@ the CLI top-level exception boundary.
 
 With those changes, the exact local LLVM 18 viewer verification passed all applicable engines:
 lint reported zero violations, CTest passed 7/7, coverage was 94.4% line / 97.7% function / 80.0%
-branch, complexity peaked at 15, and TEM was 4.89/5.0. The uncached run took 96.82 seconds. A fresh
-remote rerun and report publication remain mandatory before merge.
+branch, complexity peaked at 15, and TEM was 4.89/5.0. The uncached run took 96.82 seconds.
 
 The first root smoke after this correction exposed a self-dogfood regression before push: the
 public parser had reached cyclomatic complexity 26. Its trailer splitting, diagnostic-family
@@ -156,8 +155,23 @@ The final full local gate collected 1,417 tests, ran the required LLVM 18 E2E, p
 mypy, rebuilt the pure-Python artifact, and restored smoke/self-verification to exit 0 with a
 successful Zero-CDN audit.
 
-- Open the feature PR and obtain its CI/Merge Gate, sticky-comment, and independent Pages
-  evidence; then verify the exact-main CI/Pages result after merge.
-- Complete the downstream BuildScope B4 validation. Until those remote and cross-repository
-  checks are complete, I4-1 remains an unreleased implementation checkpoint and no release
-  boundary is advanced.
+The final [PR #115 run 33469332734](https://github.com/jihoon22-lee/ici/actions/runs/33469332734)
+passed 1,417/1,417 tests with both required actual-tool E2Es, Qt5/Qt6, self/viewer dogfood, report
+publication, and Merge Gate. Its sticky comment retained exactly one marker and two report links.
+Independent PR Pages audits returned HTTP 200 `text/html`, exact titles, and zero external
+references: ici was 6,041,398 bytes with SHA-256
+`5dd46241aa8b625ff29cffb47021febde38341ffb460fa6bf76a0ed52fc5ae06`; viewer was 349,445 bytes
+with SHA-256 `d26ff3438397c55bafb82836aec26748dd1b0519f7128cd266bbf5c98b3dd09e`.
+
+PR #115 was squash-merged as `973cf2423728f9d808873f548bc00c7878cceadd`. Exact-main
+[run 33469789628](https://github.com/jihoon22-lee/ici/actions/runs/33469789628) repeated the
+1,417/1,417 tests, required tool E2Es, viewer PASS with lint zero and 7/7 tests, Qt5/Qt6, main report
+publication, and Merge Gate. Main Pages again returned HTTP 200 `text/html`, exact titles, and zero
+external references: ici was 5,691,036 bytes with SHA-256
+`048421ca94e83250da1a4411900a4748b239d2da211b84dd5e4fb9f1ab057af4`; viewer was 345,176 bytes
+with SHA-256 `6f0e2e10e4a075651c6b893341ab6d2e70798513766c7420179529fe798ed758`.
+
+## Next Steps
+
+- Complete the downstream BuildScope B4 validation and establish the I4 release boundary.
+- Start I4-2 only after those downstream conditions are verified.
