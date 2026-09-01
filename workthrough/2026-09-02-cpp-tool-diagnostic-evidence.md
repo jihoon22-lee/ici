@@ -30,14 +30,17 @@ an unbounded XML or stack-trace ingestion path.
 ### Selected GCC standard-library replay
 
 - `_cpp_tooling` now verifies that the replay compiler is the capability-approved `g++` by resolved
-  file identity, then runs two bounded include-search probes (`c++` and `c`) with only architecture
-  and sysroot selectors retained.
+  file identity, then runs two bounded include-search probes (`c++` and `c`) with only sanitized
+  `-m*` and sysroot selectors retained.
 - The C++ search result minus the C search result is projected in compiler order as
   `-nostdinc++` plus ordered `-isystem` pairs. Both clang-tidy and clazy consume this projection;
   probe records are emitted as `g++ stdlib include search` evidence and cached by compiler, working
-  directory, and selector identity.
-- Probe output, timeout, malformed search blocks, nonzero exits, identity mismatch, and unresolved
-  standard-library roots fail closed before a Clang-based analyzer starts.
+  directory, selector, and replacement-sensitive file identity. Raw verbose compiler prose is
+  discarded after parsing. C translation units bypass the C++ standard-library projection, and an
+  in-flight compiler identity change fails atomically.
+- A different compiler identity makes the projection inapplicable. For a matching GCC, bounded
+  output, timeout, malformed search blocks, nonzero exits, and unresolved standard-library roots
+  fail closed before a Clang-based analyzer starts.
 
 ### Atomic clazy and CTest evidence
 

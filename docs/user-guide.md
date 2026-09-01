@@ -477,12 +477,15 @@ bound 초과는 finding 일부를 남기지 않고 fail-closed합니다.
 clang-tidy/clazy가 Clang 기반이고 compilation context의 compiler가 capability-approved `g++`인
 경우에는 선택 GCC의 libstdc++를 별도로 고정합니다. replay compiler가 선택된 `g++`와 resolved
 file identity가 같은지 먼저 확인하고, 그 GCC를 `c++`와 `c`로 각각 한 번씩 `-E -x <lang> -v -`
-bounded probe합니다. probe에는 `-m32`/`-m64`/`-mx32`와 `--sysroot`/`-isysroot` selector만
-보존합니다. C++ search roots에서 C search roots를 빼고 남은 디렉터리를 compiler가 보고한
-순서 그대로 `-nostdinc++`와 `-isystem <root>` 쌍으로 두 도구에 투영합니다. probe는 최대
-5초·131,072 output characters·64 directories 범위이며, malformed/timeout/truncated/nonzero
-probe, identity mismatch 또는 C++ 표준 라이브러리 경로 미확인은 analyzer 실행 전 `ERROR`입니다.
+bounded probe합니다. probe에는 sanitized `-m*`와 `--sysroot`/`-isysroot` selector만 보존합니다.
+C++ search roots에서 C search roots를 빼고 남은 디렉터리를 compiler가 보고한
+순서 그대로 `-nostdinc++`와 `-isystem <root>` 쌍으로 두 도구에 투영합니다. 각 probe는 최대
+5초, 합계는 최대 10초이고 131,072 output characters·64 directories 범위입니다. identity가
+다르면 projection 대상이 아니며, 일치한 GCC의 malformed/timeout/truncated/nonzero probe 또는
+C++ 표준 라이브러리 경로 미확인은 analyzer 실행 전 `ERROR`입니다.
 각 probe는 `g++ stdlib include search` `ToolEvidence`로 기록되고 동일 replay key에서는 캐시됩니다.
+C translation unit에는 이 projection을 적용하지 않으며, GCC 파일이 교체되면 cache identity가
+달라져 다시 probe하고 probe 도중 교체는 atomic `ERROR`가 됩니다.
 
 clazy process 자체가 nonzero로 종료되면 출력에 warning만 있어도 parser를 시도하지 않고
 atomic engine `ERROR`를 발행합니다. `ToolEvidence.error`와 오류 target에는 bounded exit code와

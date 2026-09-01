@@ -180,9 +180,9 @@ libstdc++를 임의로 집지 않도록 별도 표준 라이브러리 projection
 승인한 `g++`와 replay compiler의 resolved file identity가 같은지 확인하고, 해당 GCC를 `c++`와
 `c`로 각각 한 번씩 bounded probe한 뒤 C++ search 결과에서 C search 결과를 뺍니다. 남은 경로를
 compiler가 보고한 순서 그대로 `-nostdinc++`와 `-isystem <root>` 쌍으로 clazy와 clang-tidy에
-전달합니다. probe는 architecture/sysroot selector만 보존하고, output/timeout/parse/identity/
-unresolved 오류는 analyzer를 실행하기 전에 fail-closed합니다. 두 probe는 `ToolEvidence`로
-기록됩니다.
+전달합니다. probe는 sanitized `-m*`/sysroot selector만 보존합니다. compiler identity가 다르면
+projection 대상이 아니며, identity가 일치한 GCC의 output/timeout/parse/unresolved 오류는
+analyzer를 실행하기 전에 fail-closed합니다. 두 probe는 `ToolEvidence`로 기록됩니다.
 
 같은 lint 단계에서 source scope의 `.ui`, `.qrc`, `Q_OBJECT` 선언을 찾아 exact compilation
 database와 연결합니다. `ui_<stem>.h`가 bounded project include traversal로 exact translation

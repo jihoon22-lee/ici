@@ -459,12 +459,15 @@ compiler와 sanitized argv를 공유하며, 결과는 legacy `InspectionTarget`,
 - Clang 기반 clang-tidy/clazy replay가 compile database의 approved `g++`를 선택하면
   `_cpp_tooling`은 replay executable과 capability path의 resolved file identity를 비교합니다.
   일치할 때만 같은 GCC를 `c++`와 `c`로 각각 bounded `-E -x <lang> -v -` probe하고,
-  architecture/sysroot selector만 probe argv에 남깁니다. C++ include-search에서 C include-search를
+  sanitized `-m*`/sysroot selector만 probe argv에 남깁니다. C++ include-search에서 C include-search를
   차집합한 경로를 compiler 순서 그대로 `-nostdinc++`와 ordered `-isystem` pairs로 두 adapter의
-  compiler arguments에 붙입니다. 최대 5초·131,072 characters·64 directories, replacement
-  environment, closed stdin과 projection cache key를 사용하며 probe 결과는 별도
-  `g++ stdlib include search` `ToolEvidence`로 발행합니다. probe parse/identity/timeout/
-  truncation/nonzero/unresolved 오류는 analyzer 실행 전 atomic toolchain-context error입니다.
+  compiler arguments에 붙입니다. probe별 최대 5초·합계 최대 10초·131,072 characters·64
+  directories, replacement environment, closed stdin과 compiler device/inode/size/mtime/ctime을
+  포함한 projection cache key를 사용하며 결과는 별도
+  `g++ stdlib include search` `ToolEvidence`로 발행하고 parsing 뒤 raw compiler prose는 보관하지
+  않습니다. C translation unit 또는 다른 compiler identity에는 projection을 적용하지 않습니다.
+  일치한 GCC가 probe 도중 교체되거나 probe parse/timeout/truncation/nonzero/unresolved 오류가 나면
+  analyzer 실행 전 atomic toolchain-context error입니다.
   이 경계는 Ubuntu 24.04의 GCC 13/14 혼재를 재현한 toy-projects PR #38 run `33531285208`의
   Qt 5/Qt 6 deep clazy 실패를 해결했고, fixed local pyz에서 `/usr/include/c++/13`,
   `/usr/include/x86_64-linux-gnu/c++/13`, `/usr/include/c++/13/backward` projection, 2 probes,

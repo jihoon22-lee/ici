@@ -48,14 +48,16 @@
 
 - **Clang-based tooling follows the selected GCC**: when an exact compilation replay uses the
   capability-approved `g++`, ici verifies the replay executable by resolved file identity, probes
-  that same driver once as `c++` and once as `c` with only bounded architecture/sysroot selectors,
+  that same driver once as `c++` and once as `c` with only sanitized `-m*`/sysroot selectors,
   and subtracts the C search roots from the C++ search roots. The remaining libstdc++ directories
   are appended in compiler-reported order as `-nostdinc++` followed by ordered `-isystem` pairs for
   both clang-tidy and clazy. Probe output is bounded and malformed, missing, timed out, truncated,
   or unresolved projections fail closed before the analyzer runs; the two probe records are retained
-  as `ToolEvidence`.
+  as `ToolEvidence`. Projection applies only to C++ translation units, and a compiler file identity
+  change invalidates the cache or fails the in-flight probe atomically.
 - **Dual-GCC regression evidence**: the toy-projects PR #38 run
-  [33531285208](https://github.com/jihoon22-lee/ici/actions/runs/33531285208) failed its Qt 5/Qt 6
+  [33531285208](https://github.com/jihoon22-lee/toy-projects/actions/runs/33531285208) failed its
+  Qt 5/Qt 6
   deep checks because Clang-based clazy selected the newest installed libstdc++ instead of the
   compilation database's GCC. On Ubuntu 24.04 with GCC 13 and GCC 14 installed, the fixed local
   `dist/ici.pyz` projected `/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`, and

@@ -334,13 +334,15 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   bounded budget을 공유하며, budget을 넘긴 나머지 unit은 실행하지 않고 `ERROR`로 기록합니다.
 - clang-tidy 또는 clazy가 Clang 기반이고 exact replay의 compiler가 capability-approved `g++`와
   resolved file identity까지 일치하면, 두 adapter는 같은 GCC driver로 `c++`와 `c` include-search를
-  각각 한 번 probe합니다. probe에는 `-m32`/`-m64`/`-mx32`, `--sysroot`/`-isysroot` selector만
-  보존하고, C++ search 결과에서 C search 결과를 뺀 나머지를 compiler 출력 순서대로
-  `-nostdinc++`와 `-isystem <root>` 쌍으로 투영합니다. 각 probe는 5초·131,072 output
-  characters·64 directories bound와 replacement environment/closed stdin을 사용해
-  `g++ stdlib include search` `ToolEvidence`로 기록하며, malformed·timeout·truncated·nonzero
-  probe, identity 불일치 또는 표준 라이브러리 경로 미확인은 Clang 도구를 실행하기 전에
-  fail-closed합니다. 이미 `-nostdinc`/`-nostdinc++`가 있으면 projection을 중복 적용하지 않습니다.
+  각각 한 번 probe합니다. probe에는 sanitized `-m*`, `--sysroot`/`-isysroot` selector만 보존하고,
+  C++ search 결과에서 C search 결과를 뺀 나머지를 compiler 출력 순서대로
+  `-nostdinc++`와 `-isystem <root>` 쌍으로 투영합니다. 각 probe는 최대 5초, 두 probe 합계는 최대
+  10초이며 131,072 output characters·64 directories bound와 replacement environment/closed stdin을 사용해
+  `g++ stdlib include search` `ToolEvidence`로 기록합니다. identity가 다르면 projection 대상이
+  아니며, 일치한 GCC의 malformed·timeout·truncated·nonzero probe 또는 표준 라이브러리 경로
+  미확인은 Clang 도구를 실행하기 전에 fail-closed합니다. 이미 `-nostdinc`/`-nostdinc++`가 있으면
+  projection을 중복 적용하지 않고, C translation unit에는 C++ 표준 라이브러리를 투영하지
+  않습니다. compiler file identity가 cache key에 포함되고 probe 전후에도 재검증됩니다.
 - compiler diagnostic format은 approved GCC/`g++` version 9 이상에서
   `-fdiagnostics-format=json`을 사용하고, approved Clang 또는 version을 알 수 없는 compiler는
   `-fdiagnostics-parseable-fixits` text fallback을 사용합니다. JSON/text parser는 malformed
