@@ -59,6 +59,12 @@ enabled = true
 mode = "pass_warn_fail"
 # Optional by default: missing Ruff is reported as WARN/ESTIMATED.
 ruff_required = false
+# C++ clang-tidy policy: auto (optional), required (gate), or off (disabled).
+clang_tidy = "auto"
+# Each item is one check glob; ici joins the list with commas for --checks.
+clang_tidy_checks = ["-*", "bugprone-*", "performance-*"]
+# Optional project-relative clang-tidy configuration file.
+# clang_tidy_config = "config/.clang-tidy"
 
 [engines.compile_db]
 enabled = true
@@ -295,8 +301,44 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   진단과 PASS target은 원래 파일·라인에 보존하며, error-level context/unit diagnostic만
   `ERROR`/`NOT_RUN`으로 닫습니다. warning-level diagnostic은 위치 있는 `WARN`/`MEASURED`로
   남기고 replay를 계속하며, compilation context가 존재하는 동안 고정 `g++ -std=c++17`
-  폴백은 사용하지 않습니다. C++ 엔진 cache dependency에는 `ici.core._cpp_replay_policy`가,
-  cycle에는 `ici.engines._cpp_include_trace`가 명시적으로 포함됩니다.
+  폴백은 사용하지 않습니다. C++ lint cache helper는 `ici.core._cpp_replay_policy`,
+  `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._cpp_diagnostics`,
+  `ici.engines._cpp_lint`, `ici.engines.lint`를 명시하고, cycle cache helper는
+  `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`,
+  `ici.engines._cpp_include_trace`, `ici.engines.cycle`을 명시합니다.
+- **C++ clang-tidy (I4-1)**: `clang_tidy`는 `auto`(도구가 없으면 `WARN`), `required`(도구가
+  없으면 `ERROR`), `off`(명령과 evidence 없음) 중 하나로 정책을 정합니다. 이 adapter는
+  capability inventory의 approved direct `clang-tidy`와 exact `CompilationContext`의 covered
+  production unit만 실행합니다. 설정 우선순위는 명시한 `clang_tidy_config` > source에서 project
+  root까지 올라가 발견한 가장 가까운 project `.clang-tidy` > built-in defaults입니다. 프로젝트
+  밖의 config·프로젝트 밖을 가리키는 symlink·비정규 파일은 거부하고, project root 위의 parent
+  config는 탐색하지 않으며 config가 없을 때 `--config={}`를 전달해 clang-tidy의 암묵적인 parent
+  lookup도 막습니다.
+  `clang_tidy_checks`는 1~128개의 중복 없는 non-empty glob 문자열 목록이며, 각 항목에 쉼표를
+  넣지 않고 별도 항목으로 적습니다. 지정한 checks는 config 파일이나 built-in defaults보다
+  우선합니다. config의 `ExtraArgs`/`ExtraArgsBefore` compiler-argument injection과
+  `InheritParentConfig` parent inheritance도 실행 전에 거부합니다.
+- clang-tidy 명령은 context가 이미 정규화한 compiler replay의 안전한 인자만 `--` 뒤에 전달하며,
+  compilation database를 직접 다시 읽거나 `-p`를 사용하지 않습니다. `-c`, output/dependency
+  생성, plugin/wrapper 주입과 allowlist 밖 옵션은 제거하거나 fail-closed로 거부합니다. 명령에는
+  `--fix`를 넣지 않고 source와 context를 read-only로 다루므로 fix-it은 report finding의
+  remediation 제안으로만 남습니다. 단위 실행은 120초, 전체 clang-tidy 실행은 최대 600초의
+  bounded budget을 공유하며, budget을 넘긴 나머지 unit은 실행하지 않고 `ERROR`로 기록합니다.
+- compiler diagnostic format은 approved GCC/`g++` version 9 이상에서
+  `-fdiagnostics-format=json`을 사용하고, approved Clang 또는 version을 알 수 없는 compiler는
+  `-fdiagnostics-parseable-fixits` text fallback을 사용합니다. JSON/text parser는 malformed
+  output을 일부 성공 결과와 섞지 않고 atomic하게 거부하며, project-relative/external location,
+  stable rule ID, child/note diagnostic과 fix-it range/replacement를 보존합니다. clang-tidy
+  text의 `clang-analyzer-*` rule은 `clang-analyzer` family와 `CORRECTNESS` finding으로,
+  일반 check는 `clang-tidy` family와 `MAINTAINABILITY` finding으로 유지합니다. fix-it은 최대
+  bounded suggestion으로 remediation과 `extra` metadata에 기록되며 자동 적용하지 않습니다.
+  정상 실행 evidence는 `MEASURED`이고, timeout·truncation·nonzero·malformed output·context
+  mismatch/coverage 누락·replay 오류는 heuristic으로 조용히 대체하지 않고 `ERROR`/`NOT_RUN`으로
+  fail-closed 처리합니다.
+- compiler adapter도 최대 2,048 translation units, unit당 120초, 전체 600초로 제한합니다.
+  compilation context 자체에 error diagnostic이 있으면 replay를 시작하지 않습니다. 위치가 없는
+  GCC command-line/ICE diagnostic은 버리지 않고 bounded `[external]`:1 target으로 보존하며,
+  context가 불완전한 상태에서 정상 unit 일부만 실행해 clean 결과를 만들지 않습니다.
 - **C++ (DB 부재 폴백)**: compilation context가 실제로 없을 때만 `g++`를 찾아
   `-fsyntax-only -std=c++17 -Wall -Wextra` 휴리스틱 명령을 실행하고 `ESTIMATED`로 표시합니다.
   ready capability의 compiler를 우선하며 standalone driver도 canonical/project 경계를 확인합니다.

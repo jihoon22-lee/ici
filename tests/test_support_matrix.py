@@ -123,6 +123,37 @@ def test_effective_policy_promotes_optional_tools_to_required(tmp_path: Path):
     assert "coverage" in _entry(matrix, "test", SupportLanguage.PYTHON).required_tools
 
 
+@pytest.mark.parametrize(
+    ("clang_tidy_mode", "required", "optional"),
+    [
+        pytest.param("auto", False, True, id="auto-default"),
+        pytest.param("required", True, False, id="required"),
+        pytest.param("off", False, False, id="off"),
+    ],
+)
+def test_cpp_lint_clang_tidy_policy_is_mode_dependent_without_affecting_python(
+    tmp_path: Path,
+    clang_tidy_mode: str,
+    required: bool,
+    optional: bool,
+) -> None:
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "app.py").write_text("value = 1\n", encoding="utf-8")
+    (source / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    config = _config("src")
+    config["engines"]["lint"]["clang_tidy"] = clang_tidy_mode
+
+    matrix = evaluate_support_matrix(tmp_path, config)
+    cpp_lint = _entry(matrix, "lint", SupportLanguage.CPP)
+    py_lint = _entry(matrix, "lint", SupportLanguage.PYTHON)
+
+    assert ("clang-tidy" in cpp_lint.required_tools) is required
+    assert ("clang-tidy" in cpp_lint.optional_tools) is optional
+    assert py_lint.required_tools == []
+    assert py_lint.optional_tools == ["ruff"]
+
+
 def test_absent_language_is_not_applicable_even_when_engine_is_disabled(tmp_path: Path):
     source = tmp_path / "src"
     source.mkdir()

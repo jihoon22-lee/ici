@@ -7,7 +7,57 @@
 
 ## [Unreleased]
 
+### Added
+- **I4-1 compiler and clang-tidy analysis**: C++ lint now replays only approved, exact,
+  sanitized compilation-context commands without rereading the compilation database directly.
+  GCC 9+ uses structured JSON diagnostics, while Clang and unknown-version fallbacks use bounded
+  parseable fix-it text; parsing is atomic and preserves normalized locations, rule IDs, analyzer
+  families, child diagnostics, and read-only fix-it suggestions.
+- Clang-tidy supports `auto`, `required`, and `off`, with explicit checks taking precedence over
+  built-in defaults and an explicit project config taking precedence over bounded `.clang-tidy`
+  discovery. Config files are contained by the project root; parent-of-project discovery and
+  `ExtraArgs`/`ExtraArgsBefore` compiler-argument injection and `InheritParentConfig` parent
+  inheritance are rejected. Compiler, clang-tidy,
+  and Clang Static Analyzer diagnostics retain separate families; analyzer correctness findings are
+  distinct from ordinary clang-tidy maintainability findings.
+- Missing or malformed context/output, compile mismatches, timeouts, and translation-unit or
+  global execution-budget violations fail closed. Cache identity now includes project `.clang-tidy`
+  inputs and the clang-tidy/diagnostic helper implementations.
+
 ### Verification
+- **Clang-tidy suppression-accounting regression**: PR #115's second real-tool run exposed that
+  `--quiet` retains the generated-warning count while hiding the corresponding suppressed-warning
+  count, so clean Qt translation units failed the atomic parser. The adapter now keeps suppression
+  accounting enabled, recognizes LLVM 18's bounded extended system-header hint, and still rejects
+  an unaccounted generated-warning summary. An unprivileged LLVM 18 reproduction parsed the actual
+  15,780-generated/15,780-suppressed clean output, and both required real-tool E2Es passed locally.
+- **Clang-tidy coalesced diagnostic accounting**: a subsequent viewer run proved that Clang's
+  generated-warning counter, clang-tidy's suppression counter, and rendered messages do not share
+  one cardinality: `report_model.cpp` emitted 13,004 generated, 13,000 suppressed, and three
+  rendered diagnostics. The parser now requires visible or suppression accounting without falsely
+  equating those counters, while duplicate summaries, quiet-only generated summaries, malformed
+  lines, and unbounded output remain atomic errors. It also accepts both LLVM 18 and current
+  bounded header-filter hints. Summary splitting, family normalization, and accounting validation
+  are isolated helpers, returning the repository maximum complexity to the warning-only 25.
+- **Viewer dogfood remediation**: the five real clang-tidy findings exposed after parsing was
+  restored were fixed: two unnecessary string copies, an allocation-heavy concatenation, an
+  unchecked optional access, and the CLI's uncaught top-level exception boundary. The exact local
+  LLVM 18 viewer verification is now PASS with lint at zero violations, 7/7 C++ tests, 94.4% line,
+  97.7% function, and 80.0% branch coverage, and TEM 4.89/5.0.
+- **I4-1 self-dogfood maintainability**: the clang-tidy orchestration preflight, source validation,
+  capability selection, unit selection, and bounded execution were split into focused helpers after
+  the first PR run exposed cyclomatic complexity 30. The adapter entry point is now complexity 10
+  and every helper is at most 11; the repository maximum returned to the existing warning-only 25.
+- **Deterministic Zero-CDN smoke**: `scripts/smoke.sh` now inspects a generated HTML report even
+  when the quality verdict makes `verify` return nonzero, rejects external executable/display
+  assets, requires a non-empty report, and removes its temporary HTML/JSON through an exit trap.
+- **I4-1 actual-process gate**: a Linux E2E now loads a real compilation database and exercises
+  the production compiler and clang-tidy adapters without source mutation. It asserts GCC 9+ JSON
+  rule/location evidence and the exact sanitized clang-tidy argv (no `-p`, `--fix`, dependency, or
+  output flags). PR and release workflows install clang-tidy and set
+  `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`, so missing or incompletely probed tools fail instead of
+  silently skipping. The local GCC path and a temporarily extracted LLVM 18 clang-tidy path both
+  passed; the required installed-tool result remains a remote CI gate.
 - **I3 same-basename active-header local compiler edge**: the existing
   `test_trace_uses_compiler_selected_same_basename_without_ambiguity` keeps its mocked
   `run_process` regression coverage. The new

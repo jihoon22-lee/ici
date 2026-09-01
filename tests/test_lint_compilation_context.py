@@ -66,6 +66,30 @@ def _inventory(paths: dict[str, Path]) -> CapabilityInventory:
     )
 
 
+def _single_compiler_inventory(
+    name: str,
+    path: Path,
+    *,
+    version: str,
+    version_tuple: tuple[int, ...],
+) -> CapabilityInventory:
+    return CapabilityInventory(
+        capabilities={
+            name: ToolCapability(
+                name=name,
+                path=str(path),
+                available=True,
+                version=version,
+                version_tuple=version_tuple,
+                complete=True,
+                details={"target_triple": "x86_64-linux-gnu"},
+                probe_argv=(str(path), "--version"),
+                returncode=0,
+            )
+        }
+    )
+
+
 def _project(root: Path, sources: tuple[str, ...]) -> ProjectModel:
     return ProjectModel(
         root=root,
@@ -192,7 +216,7 @@ def _run_lint(
         root,
         {
             "project": {"source_dirs": ["src"]},
-            "engines": {"lint": {"mode": "pass_warn_fail"}},
+            "engines": {"lint": {"mode": "pass_warn_fail", "clang_tidy": "off"}},
         },
         analysis_context=context,
     ).run()
@@ -256,6 +280,70 @@ def test_exact_context_replays_duplicate_configurations_and_preserves_argv(
         assert "main.o" not in command
         assert "-fsyntax-only" in command
         assert command[-1] == str(root / "src/main.cpp")
+
+
+@pytest.mark.parametrize("compiler_name", ["gcc", "g++"])
+def test_exact_replay_uses_gcc_json_diagnostics_for_supported_versions(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    compiler_name: str,
+) -> None:
+    root = tmp_path / "project"
+    _write_project(root)
+    paths = _toolchain(tmp_path)
+    context = _context(root, _inventory(paths), (_unit(root, paths[compiler_name]),))
+
+    result, calls, which_calls = _run_lint(root, context, monkeypatch)
+
+    assert result.status == EngineStatus.PASS
+    assert len(calls) == 1
+    assert which_calls == []
+    command = calls[0][0]
+    assert "-fdiagnostics-format=json" in command
+    assert "-fdiagnostics-parseable-fixits" not in command
+    assert command[-1] == str(root / "src/main.cpp")
+
+
+@pytest.mark.parametrize(
+    ("compiler_name", "version", "version_tuple"),
+    [
+        pytest.param("clang++", "clang version 18.1.0", (18, 1, 0), id="clang"),
+        pytest.param("g++", "", (), id="unknown-version"),
+    ],
+)
+def test_exact_replay_uses_text_fixit_diagnostics_without_gcc_json(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    compiler_name: str,
+    version: str,
+    version_tuple: tuple[int, ...],
+) -> None:
+    root = tmp_path / "project"
+    _write_project(root)
+    paths = _toolchain(tmp_path)
+    compiler = paths.get(compiler_name)
+    if compiler is None:
+        compiler = paths["g++"].with_name(compiler_name)
+        compiler.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        compiler.chmod(0o700)
+        compiler = compiler.resolve(strict=True)
+    inventory = _single_compiler_inventory(
+        compiler_name,
+        compiler,
+        version=version,
+        version_tuple=version_tuple,
+    )
+    context = _context(root, inventory, (_unit(root, compiler),))
+
+    result, calls, which_calls = _run_lint(root, context, monkeypatch)
+
+    assert result.status == EngineStatus.PASS
+    assert len(calls) == 1
+    assert which_calls == []
+    command = calls[0][0]
+    assert "-fdiagnostics-parseable-fixits" in command
+    assert "-fdiagnostics-format=json" not in command
+    assert command[-1] == str(root / "src/main.cpp")
 
 
 def test_database_present_missing_source_is_error_without_fallback(
@@ -344,6 +432,8 @@ def test_absent_context_uses_cxx17_fallback_with_estimated_warning(
     ]
     assert command[-1] == str(root / "src/main.cpp")
     assert kwargs["cwd"] == root
+    assert kwargs["timeout"] == 120.0
+    assert kwargs["max_output_chars"] == 1_000_000
 
 
 def test_standalone_fallback_rejects_unsafe_include_flag_without_running_runner(
@@ -517,16 +607,17 @@ def test_exact_replay_timeout_and_truncation_are_errors(
 
 
 @pytest.mark.parametrize(
-    ("kind", "target_status", "engine_status"),
+    ("kind", "returncode", "target_status", "engine_status"),
     [
-        ("error", EngineStatus.FAIL, EngineStatus.FAIL),
-        ("warning", EngineStatus.WARN, EngineStatus.WARN),
+        ("error", 1, EngineStatus.FAIL, EngineStatus.FAIL),
+        ("warning", 0, EngineStatus.WARN, EngineStatus.WARN),
     ],
 )
 def test_exact_replay_preserves_compiler_diagnostics_as_targets(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     kind: str,
+    returncode: int,
     target_status: EngineStatus,
     engine_status: EngineStatus,
 ) -> None:
@@ -540,7 +631,7 @@ def test_exact_replay_preserves_compiler_diagnostics_as_targets(
         root,
         context,
         monkeypatch,
-        process_result=ProcessResult(1, "", diagnostic, 0.01),
+        process_result=ProcessResult(returncode, "", diagnostic, 0.01),
     )
 
     assert result.status == engine_status
@@ -555,6 +646,34 @@ def test_exact_replay_preserves_compiler_diagnostics_as_targets(
     assert target.start_line == 7
     assert target.status == target_status
     assert target.target_name == "C++Syntax"
+
+
+@pytest.mark.parametrize(("kind", "returncode"), [("warning", 1), ("error", 0)])
+def test_compiler_exit_status_must_match_diagnostic_severity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    kind: str,
+    returncode: int,
+) -> None:
+    root = tmp_path / "project"
+    _write_project(root)
+    paths = _toolchain(tmp_path)
+    context = _context(root, _inventory(paths), (_unit(root, paths["g++"]),))
+    diagnostic = f"{root / 'src/main.cpp'}:7:3: {kind}: inconsistent result\n"
+
+    result, calls, which_calls = _run_lint(
+        root,
+        context,
+        monkeypatch,
+        process_result=ProcessResult(returncode, "", diagnostic, 0.01),
+    )
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert len(calls) == 1
+    assert which_calls == []
+    assert result.targets[0].target_name == "C++SyntaxExecutionError"
+    assert result.tool_evidence[0].error
 
 
 def test_error_only_empty_context_is_exact_error_without_heuristic_fallback(
@@ -590,6 +709,75 @@ def test_error_only_empty_context_is_exact_error_without_heuristic_fallback(
         and "qmake-capture-configure-failed" in target.message
         for target in result.targets
     )
+
+
+def test_context_error_prevents_replay_even_when_a_valid_unit_exists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "project"
+    _write_project(root)
+    paths = _toolchain(tmp_path)
+    context = _context(
+        root,
+        _inventory(paths),
+        (_unit(root, paths["g++"]),),
+        diagnostics=(
+            CompilationDiagnostic(
+                "compile-database-partial-read",
+                "the compilation database could not be trusted",
+                level="error",
+                source="compile_commands.json",
+            ),
+        ),
+    )
+
+    result, calls, which_calls = _run_lint(root, context, monkeypatch)
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert calls == []
+    assert which_calls == []
+    assert result.extra["cpp_configurations_checked"] == 0
+    assert any("compile-database-partial-read" in target.message for target in result.targets)
+
+
+def test_compiler_global_budget_fails_closed_without_invocation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "project"
+    _write_project(root)
+    paths = _toolchain(tmp_path)
+    context = _context(root, _inventory(paths), (_unit(root, paths["g++"]),))
+    clock = iter((100.0, 701.0))
+    monkeypatch.setattr("ici.engines._cpp_lint.time.monotonic", lambda: next(clock))
+
+    result, calls, which_calls = _run_lint(root, context, monkeypatch)
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert calls == []
+    assert which_calls == []
+    assert result.extra["cpp_configurations_checked"] == 0
+    assert any(target.target_name == "C++SyntaxBudgetError" for target in result.targets)
+
+
+def test_compiler_unit_limit_fails_closed_without_invocation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "project"
+    _write_project(root)
+    paths = _toolchain(tmp_path)
+    unit = _unit(root, paths["g++"])
+    context = _context(root, _inventory(paths), (unit,) * 2_049)
+
+    result, calls, which_calls = _run_lint(root, context, monkeypatch)
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert calls == []
+    assert which_calls == []
+    assert result.extra["cpp_configurations_checked"] == 0
+    assert any(target.target_name == "C++SyntaxBudgetError" for target in result.targets)
 
 
 def test_stale_translation_unit_is_an_error_target_without_exception(
@@ -751,7 +939,7 @@ def test_runner_exception_counts_attempted_configuration(
         root,
         {
             "project": {"source_dirs": ["src"]},
-            "engines": {"lint": {"mode": "pass_warn_fail"}},
+            "engines": {"lint": {"mode": "pass_warn_fail", "clang_tidy": "off"}},
         },
         analysis_context=context,
     ).run()

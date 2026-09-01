@@ -124,7 +124,7 @@ coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따�
 | 소스·build 설정 내용 | project source와 인식된 build/config 파일의 경로·내용·권한 digest |
 | effective ici 설정 | 기본·전역·프로젝트·`ICI_CONFIG` 병합 후 profile이 적용된 설정 digest |
 | toolchain | capability inventory의 도구 경로·버전·세부 정보 digest |
-| 엔진 구현 | engine descriptor, engine class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로 엔진이 명시적으로 선언한 helper/dependency module source digest 목록 (C++ lint/cycle에는 `ici.core._cpp_replay_policy`, cycle에는 `ici.engines._cpp_include_trace` 포함) |
+| 엔진 구현 | engine descriptor, engine class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로 엔진이 명시적으로 선언한 helper/dependency module source digest 목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines.lint`; cycle에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle` 포함) |
 | build variant | `release`, `coverage`, `sanitize` 또는 해당 없는 엔진의 `none` |
 | compilation context | 선택된 compile database의 project-relative path·바이트 digest, loader version, 정규화된 unit configuration/metadata와 parse diagnostics |
 | producer | ici 버전과 cache key schema 버전 |
@@ -137,6 +137,12 @@ build 설정, 유효 설정, 도구 버전, 엔진 구현, build variant,
 compile database의 내용·선택 경로·parse state, ici 버전 중 하나라도 달라지면 다른 key가 되어
 cache miss가 됩니다. 캐시 저장소를 지우지 않아도 이 identity 경계가 이전 결과의 재사용을
 막습니다.
+
+project source digest는 선언된 source와 함께 인식된 build/config suffix 및 이름을 읽습니다.
+clang-tidy 설정 파일 이름 `.clang-tidy`도 이 입력 목록에 포함되므로 내용·권한이 바뀌면
+`project_source_digest`와 해당 cache key가 달라집니다. 반대로 인식 목록에 없는 임의의 hidden
+file은 분석 입력에서 제외되며, `.git`/cache/build 디렉터리와 ici가 생성한 report JSON도
+제외됩니다.
 
 모든 엔진 결과를 저장하지는 않습니다.
 
@@ -353,6 +359,64 @@ replay, malformed 출력, timeout·truncation, spawn 실패 또는 검증할 수
 `ERROR`/`NOT_RUN`으로 fail-closed 처리됩니다. warning-level context/unit diagnostic은 위치 있는
 `WARN` target으로 보존하고 replay를 계속하므로 다른 오류가 없으면 exact evidence는
 `MEASURED`입니다. 이 실행 정보는 `ToolEvidence`에 남습니다.
+
+##### C++ clang-tidy 정책 (I4-1)
+
+clang-tidy는 exact `CompilationContext`가 있고 capability inventory가 승인한 direct executable이
+있을 때만 covered production translation unit을 검사합니다. `[engines.lint]`에서 정책과 check를
+설정할 수 있습니다.
+
+```toml
+[engines.lint]
+clang_tidy = "auto"  # auto | required | off
+clang_tidy_checks = ["-*", "bugprone-*", "performance-*"]
+# clang_tidy_config = "config/.clang-tidy"
+```
+
+`clang_tidy_checks`는 1~128개의 중복 없는 non-empty check glob 목록입니다. 하나의 항목에 여러
+glob을 쉼표로 넣지 않고 목록의 별도 항목으로 적으면 ici가 `--checks=a,b` 형태로 결합합니다.
+check 목록을 지정하면 config 파일의 `Checks`나 built-in default보다 우선합니다.
+
+config 선택 우선순위는 다음과 같습니다.
+
+| 우선순위 | 대상 | 실행 시 전달되는 값 |
+|---|---|---|
+| 1 | `clang_tidy_config`로 명시한 project-contained regular file | `--config-file=<resolved path>` |
+| 2 | source 디렉터리에서 project root까지만 올라가 발견한 가장 가까운 `.clang-tidy` | `--config-file=<resolved path>` |
+| 3 | config가 없을 때의 built-in defaults | `--config={}` 및 기본 `-*,bugprone-*,clang-analyzer-*,performance-*` |
+
+project root 밖의 config, root 밖으로 향하는 symlink, 비정규 파일, NUL/크기 제한을 넘은 파일은
+거부합니다. `.clang-tidy`의 `ExtraArgs`와 `ExtraArgsBefore`는 compiler argument injection으로,
+`InheritParentConfig`는 project 밖 parent 설정 상속으로 간주해 실행 전에 거부합니다.
+source의 parent-of-project에 있는 config는 탐색하지 않으며,
+config가 없는 경우의 `--config={}`가 clang-tidy의 암묵적인 parent config lookup도 차단합니다.
+
+clang-tidy 명령은 이미 loader가 만든 immutable `CompilationContext`의 normalized unit command를
+`build_replay_command`로 안전하게 재생한 뒤, 그 compiler의 허용된 tooling argument만 `--` 뒤에
+전달합니다. compilation database를 직접 다시 읽거나 `-p`를 사용하지 않고, `-c`·output/dependency
+생성·plugin/wrapper 주입·allowlist 밖 option은 제거하거나 fail-closed로 거부합니다. 명령에
+`--fix`를 넣지 않으며 source와 context를 읽기만 하므로 fix-it은 report의 remediation 제안으로만
+남습니다. 각 unit은 최대 120초, 전체 실행은 최대 600초의 global budget을 공유합니다.
+
+Compiler 진단은 approved GCC/`g++` version 9 이상이면 `-fdiagnostics-format=json`을 사용하고,
+approved Clang 또는 version을 알 수 없는 compiler는 `-fdiagnostics-parseable-fixits` text
+fallback을 사용합니다. JSON/text parser는 malformed output 일부를 성공 결과와 합치지 않고
+atomic하게 거부하며, project-relative/external 위치·rule ID·child/note·fix-it 범위를 보존합니다.
+clang-tidy text의 `clang-analyzer-*` rule은 별도 analyzer family와 `CORRECTNESS` category로,
+일반 clang-tidy check는 `clang-tidy` family와 `MAINTAINABILITY` category로 finding에 기록됩니다.
+compiler/clang-tidy가 출력한 fix-it replacement는 최대 bounded suggestion으로 기록되지만 자동
+적용하지 않습니다. 두 adapter는 각각 최대 2,048 translation units, unit당 120초, 전체 600초
+예산을 사용합니다. compilation context 자체에 error diagnostic이 있으면 compiler replay도
+시작하지 않으며, 위치가 없는 GCC command-line/ICE diagnostic은 `[external]`:1 target으로
+보존합니다.
+
+`auto`에서 clang-tidy가 없거나 context/database가 없으면 명령 없이 optional `WARN`과 missing
+`ToolEvidence`를 남깁니다. `required`에서는 같은 조건이 `ERROR`가 됩니다. `off`는 명령과
+evidence를 만들지 않습니다. timeout·truncation·nonzero·spawn/malformed output·context/coverage
+불일치·replay 오류·translation-unit 또는 600초 budget 초과는 heuristic으로 조용히 대체하지 않고
+`ERROR`/`NOT_RUN`으로 fail-closed 처리합니다. 정상 실행은 argv·path·version·return code가 있는
+`ToolEvidence`와 `MEASURED` evidence를 남기며, 위치 있는 compiler/clang-tidy warning과 error는
+각각 finding의 severity와 전체 lint gate에 반영됩니다.
 
 cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
 path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration

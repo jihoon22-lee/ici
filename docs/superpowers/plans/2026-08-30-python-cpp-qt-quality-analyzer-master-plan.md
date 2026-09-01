@@ -837,12 +837,46 @@ current release/version remains v0.8.0; no version bump is made. The next planne
 
 **브랜치:** `feat/cpp-static-analysis`
 
-- [ ] compiler JSON/text diagnostics를 stable rule과 정확한 location으로 파싱한다.
-- [ ] clang-tidy가 있으면 compilation DB를 사용해 선택 check를 실행한다.
-- [ ] Clang Static Analyzer check를 별도 category로 구분한다.
-- [ ] tool config와 project `.clang-tidy`를 존중하고 ici override 우선순위를 문서화한다.
-- [ ] fix-it은 report에 제안으로 보존하되 기본 실행에서 소스를 수정하지 않는다.
-- [ ] tool 부재와 compile failure를 분석 무결함으로 처리하지 않는다.
+- [x] compiler JSON/text diagnostics를 stable rule과 정확한 location으로 파싱한다.
+- [x] clang-tidy가 있으면 compilation DB를 사용해 선택 check를 실행한다.
+- [x] Clang Static Analyzer check를 별도 category로 구분한다.
+- [x] tool config와 project `.clang-tidy`를 존중하고 ici override 우선순위를 문서화한다.
+- [x] fix-it은 report에 제안으로 보존하되 기본 실행에서 소스를 수정하지 않는다.
+- [x] tool 부재와 compile failure를 분석 무결함으로 처리하지 않는다.
+
+I4-1의 로컬 구현은 I3의 immutable `AnalysisContext`와 normalized
+`CompilationUnit`을 단일 입력으로 사용한다. `LintEngine`은 compilation database를 다시
+읽거나 source를 재탐색하지 않고, approved capability와 sanitized exact replay를 compiler와
+clang-tidy adapter에 함께 전달한다. GCC 9+는 JSON diagnostics를, Clang과 version metadata를
+알 수 없는 compiler는 bounded parseable-fixit text를 사용한다. parser는 malformed output을
+부분 성공으로 취급하지 않으며, project-relative/external location, stable rule, child/note,
+analyzer family와 fix-it을 atomic하게 정규화한다.
+
+clang-tidy는 `auto`/`required`/`off` 정책을 따르고, explicit checks가 built-in defaults보다
+우선한다. explicit `clang_tidy_config`는 project-bounded `.clang-tidy` discovery보다 우선하며,
+discovery는 project root 위로 올라가지 않는다. config는 project containment, regular-file,
+size/NUL 경계를 통과해야 하고 `ExtraArgs`/`ExtraArgsBefore` compiler injection 및
+`InheritParentConfig` parent inheritance는 거부한다.
+compiler와 clang-tidy/analyzer 결과는 별도 tool evidence와 category로 보고하며, fix-it은
+remediation 제안으로만 보존한다. 기본 실행은 source/context를 수정하지 않는다.
+
+보안·증거 경계는 approved external executable, positive replay option allowlist, project/source/
+working-directory containment, minimal replacement environment, closed stdin, no-shell 실행과
+bounded argv/output/unit/global budget이다. missing 또는 malformed context/output, compile
+mismatch, timeout/truncation, spawn/검증 불가능한 종료와 budget 초과는 조용한 heuristic fallback
+없이 `ERROR`/`NOT_RUN`으로 fail-closed한다. optional `auto`의 tool 부재는 분석을 무효화하지
+않는 경고로, `required`의 tool 부재는 오류로 남긴다. lint cache implementation identity에는
+`ici.engines._clang_tidy`와 `ici.engines._cpp_diagnostics`를 포함한 declared helper source
+digest가 들어가고, project `.clang-tidy`도 input identity에 포함된다.
+
+compiler와 clang-tidy는 각각 최대 2,048 units, unit당 120초, 전체 600초로 제한한다. context
+자체 error가 있으면 compiler replay도 시작하지 않는다. GCC의 위치 없는 command-line/ICE
+diagnostic은 `[external]`:1 target으로 유지하며, CI/release에서는 실제 GCC JSON과 clang-tidy
+adapter E2E를 필수 도구 gate로 실행한다.
+
+여섯 구현 항목과 focused local contract evidence는 현재 작업대에서 완료됐다. PR 제출,
+CI/Merge Gate, Pages 및 toy-projects B4 validation은 아직 pending이며 이 기록은 원격 완료를
+주장하지 않는다. I4-2는 이 네 가지 후속 증거가 모두 확보된 뒤에만 시작한다.
 
 ### I4-2. Qt clazy와 생성 단계
 

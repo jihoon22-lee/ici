@@ -33,7 +33,8 @@ $ ici doctor
    - 시스템 기본 `python3`가 3.6/3.8인 구버전 환경에서도 `ICI_PYTHON` 또는 3.10+ 설치 경로를 스스로 찾아 실행.
 3. **14종 품질 검증 엔진 (기본 13종 활성)**:
     - `line`: 파일당 순수 코드 500줄 초과 경고, 1000줄 초과 실패 + **계층형 디렉토리 트리 뷰** (`project.source_dirs` + 기본 소스 디렉터리 전용 스캔, `include_dirs`로 확장)
-    - `lint`: Python Ruff 및 C/C++ g++ 문법 진단 (도구 미설치·부분 폴백 증거 포함)
+    - `lint`: Python Ruff 및 C/C++ compiler 진단과 optional clang-tidy I4-1 adapter
+      (`auto`/`required`/`off`, exact compilation-context replay, 도구 미설치·부분 폴백 증거 포함)
     - `compile_db`: C/C++ production translation unit coverage, 실제 compiler flag/search path와 stale build context 검증
       - root CMake 프로젝트에 DB가 없으면 `build/ici-cmake-build`에서 Release·`CMAKE_EXPORT_COMPILE_COMMANDS=ON`·unity OFF로 canonical DB를 생성합니다. `Ninja` 또는 `*Makefiles` 단일 구성만 exact context로 인정하고, generated source는 필요한 경우 한 번 build한 뒤 DB를 다시 읽습니다.
       - report/cache에는 DB origin·generator·unity 상태·CMake target과 digest가 남으며, subdirectory output 경로도 working directory와 DB 기준을 일치할 때만 안전하게 보정합니다.
@@ -78,11 +79,33 @@ $ ici doctor
    - `ici doctor`는 전체 tool registry를 한 번의 bounded probe snapshot으로 수집하고, 필요한 이유(`engine:language` 또는 `doctor.config`)와 missing/incomplete 상태를 함께 보여 줍니다. `ici doctor --json`의 `capability_inventory`는 status·counts·version/path/details/evidence를 담는 machine-readable 계약이며, 기존 `tools` map도 유지합니다.
    - `ici verify`도 유효한 support matrix의 `applicable`·`enabled` 범위와 `doctor.config`에서 required/optional 정책을 계산한 뒤, 엔진 실행 전에 같은 registry를 정확히 한 번 수집합니다. suite root의 선택적 `capability_inventory`를 console/Markdown/zero-CDN HTML reporter가 그대로 공유하므로 reporter가 도구를 재탐지하지 않습니다. required provenance 우선 규칙과 모든 provenance, capability 메타데이터·probe argv/evidence redaction을 보존하며, 콘솔은 요약하고 Markdown은 전체 inventory를 접어 보여 주고 HTML은 Support & Capabilities 탭에 전체 행을 표시합니다. 기존 inventory 없는 `ici.result/v3` 리포트도 계속 읽을 수 있습니다.
 8. **사용자 로컬 분석 캐시**:
-   - `ici verify`는 프로젝트 루트·소스/빌드 설정 내용·effective ici 설정·toolchain 버전·컴파일 DB digest/parse state·엔진 구현·build variant·ici 버전을 포함한 `ici.analysis-cache-key/v3`로 완료된 엔진 결과를 재사용합니다. 엔진 구현 identity에는 engine class source digest와 `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest 목록이 포함되며, C++ lint/cycle은 `ici.core._cpp_replay_policy`를, cycle은 `ici.engines._cpp_include_trace`를 명시합니다. 기본 위치는 `~/.cache/ici/analysis/`이며 remote/shared cache는 사용하지 않습니다.
+   - `ici verify`는 프로젝트 루트·소스/빌드 설정 내용·effective ici 설정·toolchain 버전·컴파일 DB digest/parse state·엔진 구현·build variant·ici 버전을 포함한 `ici.analysis-cache-key/v3`로 완료된 엔진 결과를 재사용합니다. 엔진 구현 identity에는 engine class source digest와 `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest 목록이 포함되며, C++ lint는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines.lint`를, cycle은 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`을 명시합니다. 기본 위치는 `~/.cache/ici/analysis/`이며 remote/shared cache는 사용하지 않습니다.
    - 완전한 `PASS`/`WARN`/`FAIL`은 저장할 수 있지만 `ERROR`/`SKIP`/`NOT_RUN`, timeout·truncation·tool error 및 invalid artifact는 저장하지 않습니다. `--no-cache`, `ici cache`, `ici cache --clear`로 실행별 비활성화·inventory·정리를 제어합니다.
    - v3 engine JSON의 optional `cache_hit`/nullable `cache_key`는 기존 archive 소비자와 호환되며, 캐시는 프로젝트 소스를 변경하지 않고 atomic local entry만 씁니다. 새 entry는 0700/0600 권한 경계를 사용하고, symlink·duplicate key·NaN/Infinity·32 MiB 초과 payload를 거부합니다.
 
 ---
+
+### I4-1 C++ compiler/clang-tidy
+
+C++ `lint`는 측정된 immutable `CompilationContext`의 normalized translation-unit command를
+재생해 approved compiler와 optional clang-tidy를 실행합니다. compile database를 직접 다시 읽거나
+`-p`를 사용하지 않으며, `--fix` 없이 source/context를 read-only로 다룹니다. clang-tidy는
+`clang_tidy = "auto"`(없으면 `WARN`), `"required"`(없으면 `ERROR`), `"off"`(미실행)을
+지원합니다. `clang_tidy_checks = ["-*", "bugprone-*", "performance-*"]`처럼 check glob을
+별도 목록 항목으로 적으면 지정 목록이 config/default보다 우선합니다.
+
+config 우선순위는 명시한 `clang_tidy_config`, source에서 project root까지의 가장 가까운
+`.clang-tidy`, built-in defaults 순서이며, parent-of-project config는 찾지 않습니다. config가
+없으면 `--config={}`로 암묵적인 parent lookup을 막고, `ExtraArgs`/`ExtraArgsBefore`와
+`InheritParentConfig`, project 밖 config와 symlink 탈출은 거부합니다. GCC 9+ compiler는 JSON
+diagnostics를, Clang/unknown version은 bounded text fix-it fallback을 사용하고 malformed 결과는
+atomic error로 처리합니다. diagnostics는
+project-relative 위치·rule ID·child/note·fix-it 제안을 보존하며, `clang-analyzer-*`는
+`CORRECTNESS`, 일반 clang-tidy check는 `MAINTAINABILITY` finding으로 분리합니다. compiler와
+clang-tidy adapter는 각각 최대 2,048 units, unit당 120초, 전체 600초 global budget을 적용하며
+초과분은 실행하지 않고 `ERROR`/`NOT_RUN`으로 기록합니다. 자세한 설정과
+evidence 계약은 [사용자 가이드](docs/user-guide.md#c-clang-tidy-정책-i4-1)와
+[엔진 레퍼런스](docs/engine-reference.md#22--lint-문법-및-코드-스타일-린터)를 참고하세요.
 
 ## 💻 빠른 설치 및 사용법
 
@@ -159,6 +182,8 @@ engine implementation, build variant와 ici version을 포함합니다. engine i
 engine class의 module/qualname와 class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로
 명시한 helper/dependency module 이름의 sorted unique 목록과 각 module source digest를 포함합니다.
 import tree 전체를 암묵적으로 수집하지 않고 명시적으로 선언된 구현 의존성만 반영합니다.
+프로젝트 source digest에는 인식된 설정 이름 `.clang-tidy`가 포함되므로 그 내용·권한 변경은
+cache miss를 만들지만, 인식 목록에 없는 unrelated hidden file은 포함하지 않습니다.
 `verify_report.json`과
 engine별 `*_report.json`처럼 ici가 생성하는 report JSON은 source digest에서 제외됩니다.
 entry reader는 symlink·비정규 파일, duplicate JSON key, non-finite number와 32 MiB 초과

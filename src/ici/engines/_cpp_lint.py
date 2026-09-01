@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-import re
+import os
+import stat
+import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from ici.core.capabilities import CapabilityInventory
@@ -23,18 +25,12 @@ from ici.core.cpp_replay import (
 from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
+from ici.engines._cpp_diagnostics import CppDiagnostic, parse_compiler_diagnostics
 
-_CPP_DIAGNOSTIC_RE = re.compile(
-    r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
-    r"(?P<kind>fatal error|error|warning|note):\s*(?P<message>\S.*)$"
-)
-_CPP_CONTEXT_RE = re.compile(r"^\s*(?:\d+\s*\|.*|\|.*|[\^~].*)$")
-_CPP_CONTEXT_HEADER_RE = re.compile(
-    r"^.+:\s+In (?:function|member function|constructor|destructor|lambda function|"
-    r"instantiation of)(?: .*)?:$"
-)
-_CPP_REQUIRED_FROM_RE = re.compile(r"^.+:[1-9]\d*(?::[1-9]\d*)?:\s+required from here$")
-_MAX_DIAGNOSTIC_LINE = 2_147_483_647
+_MAX_SELECTED_UNITS = 2_048
+_TIMEOUT_SECONDS = 120.0
+_GLOBAL_TIMEOUT_SECONDS = 600.0
+_OUTPUT_CHARS = 1_000_000
 
 
 @dataclass
@@ -46,13 +42,18 @@ class CppLintOutcome:
     errors: list[str]
     warnings: list[str]
     mode: str
+    diagnostics: list[CppDiagnostic] = field(default_factory=list)
     configurations_checked: int = 0
     sources_checked: int = 0
     missing_sources: int = 0
 
 
 def _record_process(
-    evidence: list[ToolEvidence], name: str, command: list[str], result: ProcessResult
+    evidence: list[ToolEvidence],
+    name: str,
+    command: list[str],
+    result: ProcessResult,
+    version: str,
 ) -> ToolEvidence:
     error = ""
     if result.timed_out:
@@ -64,6 +65,7 @@ def _record_process(
     item = ToolEvidence(
         name=name,
         path=command[0],
+        version=version,
         argv=command,
         returncode=result.returncode,
         timed_out=result.timed_out,
@@ -87,72 +89,48 @@ def _record_exception(
     )
 
 
-def _diagnostic_path(project_root: Path, cwd: Path, value: str) -> str | None:
-    try:
-        lexical = Path(value.strip())
-        path = (lexical if lexical.is_absolute() else cwd / lexical).resolve(strict=False)
-    except (OSError, RuntimeError, ValueError):
-        return None
-    try:
-        return path.relative_to(project_root).as_posix()
-    except ValueError:
-        return str(path)
+def _compiler_capability(
+    command: list[str], inventory: CapabilityInventory
+) -> ToolCapability | None:
+    compiler = Path(command[0]).resolve(strict=False)
+    for capability in inventory.capabilities.values():
+        if not capability.path:
+            continue
+        try:
+            if Path(capability.path).resolve(strict=False) == compiler:
+                return capability
+        except (OSError, RuntimeError):
+            continue
+    return None
 
 
-def _diagnostic_number(value: str | None) -> int | None:
-    if value is None or len(value) > 10:
-        return None
-    try:
-        number = int(value)
-    except (ValueError, OverflowError):
-        return None
-    return number if 0 < number <= _MAX_DIAGNOSTIC_LINE else None
+def _diagnostic_command(command: list[str], inventory: CapabilityInventory) -> list[str]:
+    """Request structured GCC diagnostics or bounded text fix-its when supported."""
+
+    compiler = Path(command[0]).resolve(strict=False)
+    gcc_json = False
+    for name in ("gcc", "g++"):
+        capability = inventory.capabilities.get(name)
+        if capability is None or capability.version_tuple < (9,) or not capability.path:
+            continue
+        try:
+            gcc_json = Path(capability.path).resolve(strict=False) == compiler
+        except (OSError, RuntimeError):
+            gcc_json = False
+        if gcc_json:
+            break
+    diagnostic_flag = "-fdiagnostics-format=json" if gcc_json else "-fdiagnostics-parseable-fixits"
+    return [*command[:-1], diagnostic_flag, command[-1]]
 
 
 def parse_cpp_diagnostics(
     project_root: Path, cwd: Path, stdout: str, stderr: str
 ) -> tuple[list[InspectionTarget], bool, bool]:
-    """Parse bounded GCC/Clang text diagnostics and reject unknown output."""
+    """Compatibility facade for the normalized atomic diagnostic parser."""
 
-    parsed: list[InspectionTarget] = []
-    malformed = False
-    found_diagnostic = False
-    for raw_line in (stdout + "\n" + stderr).splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        match = _CPP_DIAGNOSTIC_RE.match(line)
-        if match:
-            file_path = _diagnostic_path(project_root, cwd, match.group("file"))
-            line_number = _diagnostic_number(match.group("line"))
-            column_number = _diagnostic_number(match.group("column"))
-            if (
-                file_path is None
-                or line_number is None
-                or (match.group("column") is not None and column_number is None)
-            ):
-                malformed = True
-                continue
-            found_diagnostic = True
-            kind = match.group("kind")
-            parsed.append(
-                InspectionTarget(
-                    file_path=file_path,
-                    start_line=line_number,
-                    target_name="C++Syntax",
-                    status=EngineStatus.FAIL if "error" in kind else EngineStatus.WARN,
-                    message=f"{kind}: {match.group('message')}",
-                )
-            )
-            continue
-        if line.startswith("In file included from") or line.startswith("from "):
-            continue
-        if found_diagnostic and _CPP_CONTEXT_RE.fullmatch(line) is not None:
-            continue
-        if _CPP_CONTEXT_HEADER_RE.fullmatch(line) or _CPP_REQUIRED_FROM_RE.fullmatch(line):
-            continue
-        malformed = True
-    return parsed, malformed, found_diagnostic
+    result = parse_compiler_diagnostics(project_root, cwd, stdout, stderr)
+    targets = [diagnostic.target for diagnostic in result.diagnostics]
+    return targets, bool(result.error), bool(result.diagnostics)
 
 
 def _syntax_process_error(result: ProcessResult, source_name: str) -> str | None:
@@ -171,17 +149,22 @@ def _syntax_output_error(
     result: ProcessResult,
     source_name: str,
     compiler_name: str,
-) -> tuple[list[InspectionTarget], str | None]:
-    parsed, malformed, found = parse_cpp_diagnostics(
-        project_root, cwd, result.stdout, result.stderr
-    )
-    if malformed:
-        return parsed, f"C++ syntax output was not parseable: {source_name}"
+) -> tuple[list[CppDiagnostic], str | None]:
+    parsed = parse_compiler_diagnostics(project_root, cwd, result.stdout, result.stderr)
+    if parsed.error:
+        return [], f"C++ syntax output was not parseable: {source_name}"
     if result.returncode >= 2:
-        return parsed, f"{compiler_name} failed with exit code {result.returncode}: {source_name}"
-    if result.returncode != 0 and not found:
-        return parsed, f"C++ syntax output had no diagnostics: {source_name}"
-    return parsed, None
+        return [], f"{compiler_name} failed with exit code {result.returncode}: {source_name}"
+    if result.returncode != 0 and not parsed.diagnostics:
+        return [], f"C++ syntax output had no diagnostics: {source_name}"
+    has_error = any(
+        diagnostic.target.status == EngineStatus.FAIL for diagnostic in parsed.diagnostics
+    )
+    if result.returncode == 0 and has_error:
+        return [], f"{compiler_name} reported an error with a successful exit: {source_name}"
+    if result.returncode == 1 and not has_error:
+        return [], f"{compiler_name} failed without an error diagnostic: {source_name}"
+    return list(parsed.diagnostics), None
 
 
 def _evaluate_process(
@@ -196,10 +179,11 @@ def _evaluate_process(
 ) -> None:
     source_name = source.name
     message = _syntax_process_error(result, source_name)
-    parsed: list[InspectionTarget] = []
+    parsed: list[CppDiagnostic] = []
     if message is None:
         parsed, message = _syntax_output_error(project_root, cwd, result, source_name, name)
-        outcome.targets.extend(parsed)
+        outcome.diagnostics.extend(parsed)
+        outcome.targets.extend(diagnostic.target for diagnostic in parsed)
     if message is None:
         if not parsed:
             relative = str(source.relative_to(project_root))
@@ -234,8 +218,10 @@ def _run_command(
     name: str,
     command: list[str],
     cwd: Path,
+    version: str,
     outcome: CppLintOutcome,
     runner: Callable[..., ProcessResult],
+    timeout: float,
 ) -> None:
     try:
         result = runner(
@@ -244,6 +230,8 @@ def _run_command(
             env=replay_environment(),
             input_text="",
             replace_env=True,
+            timeout=timeout,
+            max_output_chars=_OUTPUT_CHARS,
         )
     except Exception as exc:
         _record_exception(outcome.evidence, name, command, exc)
@@ -259,7 +247,7 @@ def _run_command(
             )
         )
         return
-    tool_record = _record_process(outcome.evidence, name, command, result)
+    tool_record = _record_process(outcome.evidence, name, command, result, version)
     _evaluate_process(
         project_root,
         source,
@@ -319,14 +307,15 @@ def _run_exact(
     runner: Callable[..., ProcessResult],
 ) -> None:
     context = analysis_context.compilation
-    selected, missing = _selected_units(project_root, cpp_files, context)
-    outcome.missing_sources = len(missing)
-    if _context_has_errors(context):
-        outcome.errors.append("Compilation context contains error diagnostics")
     outcome.targets.extend(
         _context_diagnostic_target(diagnostic, context.database_path or ".")
         for diagnostic in context.diagnostics
     )
+    if _context_has_errors(context):
+        outcome.errors.append("Compilation context contains error diagnostics")
+        return
+    selected, missing = _selected_units(project_root, cpp_files, context)
+    outcome.missing_sources = len(missing)
     for source in missing:
         outcome.targets.append(
             InspectionTarget(
@@ -354,9 +343,38 @@ def _run_exact(
             )
         )
         return
+    if len(selected) > _MAX_SELECTED_UNITS:
+        message = "C++ syntax translation-unit count exceeds the bounded limit"
+        outcome.errors.append(message)
+        outcome.targets.append(
+            InspectionTarget(
+                file_path=context.database_path or ".",
+                start_line=1,
+                target_name="C++SyntaxBudgetError",
+                status=EngineStatus.ERROR,
+                message=message,
+            )
+        )
+        return
 
     checked_sources: set[str] = set()
-    for unit in selected:
+    deadline = time.monotonic() + _GLOBAL_TIMEOUT_SECONDS
+    for index, unit in enumerate(selected):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            unexamined = len(selected) - index
+            message = f"C++ syntax global time budget left {unexamined} unit(s) unexamined"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=unit.source,
+                    start_line=1,
+                    target_name="C++SyntaxBudgetError",
+                    status=EngineStatus.ERROR,
+                    message=message,
+                )
+            )
+            break
         outcome.targets.extend(
             _context_diagnostic_target(diagnostic, unit.source) for diagnostic in unit.diagnostics
         )
@@ -382,15 +400,19 @@ def _run_exact(
                 )
             )
             continue
+        command = _diagnostic_command(list(replay.argv), analysis_context.capabilities)
+        capability = _compiler_capability(command, analysis_context.capabilities)
         _run_command(
             project_root,
             replay.source,
             replay.configuration,
             replay.compiler,
-            list(replay.argv),
+            command,
             replay.cwd,
+            capability.version if capability is not None else "",
             outcome,
             runner,
+            min(_TIMEOUT_SECONDS, remaining),
         )
         outcome.configurations_checked += 1
         checked_sources.add(unit.source)
@@ -446,7 +468,23 @@ def _run_fallback(
         "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback"
     )
     checked_sources = 0
-    for cpp in cpp_files:
+    deadline = time.monotonic() + _GLOBAL_TIMEOUT_SECONDS
+    for index, cpp in enumerate(cpp_files):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            unexamined = len(cpp_files) - index
+            message = f"C++ syntax global time budget left {unexamined} unit(s) unexamined"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=str(cpp.relative_to(project_root)),
+                    start_line=1,
+                    target_name="C++SyntaxBudgetError",
+                    status=EngineStatus.ERROR,
+                    message=message,
+                )
+            )
+            break
         try:
             relative = cpp.relative_to(project_root).as_posix()
         except ValueError:
@@ -488,15 +526,19 @@ def _run_fallback(
                 )
             )
             continue
+        command = _diagnostic_command(list(replay.argv), inventory)
+        capability = _compiler_capability(command, inventory)
         _run_command(
             project_root,
             replay.source,
             "",
             "g++",
-            list(replay.argv),
+            command,
             replay.cwd,
+            capability.version if capability is not None else "",
             outcome,
             runner,
+            min(_TIMEOUT_SECONDS, remaining),
         )
         outcome.configurations_checked += 1
         checked_sources += 1
@@ -517,13 +559,86 @@ def run_cpp_lint(
     context = analysis_context.compilation if analysis_context is not None else CompilationContext()
     exact = compilation_context_present(context)
     outcome = CppLintOutcome([], [], [], [], "exact" if exact else "heuristic")
+    try:
+        project_root = project_root.resolve(strict=True)
+    except (OSError, RuntimeError) as err:
+        message = f"C++ project root could not be resolved: {type(err).__name__}"
+        outcome.errors.append(message)
+        outcome.targets.append(
+            InspectionTarget(
+                file_path=".",
+                start_line=1,
+                target_name="C++SyntaxContextError",
+                status=EngineStatus.ERROR,
+                message=message,
+            )
+        )
+        return outcome
+    normalized_files: list[Path] = []
+    for source in cpp_files:
+        safe_path = "."
+        try:
+            lexical = (source if source.is_absolute() else project_root / source).absolute()
+            relative = lexical.relative_to(project_root).as_posix()
+            safe_path = relative
+            resolved = lexical.resolve(strict=False)
+            resolved.relative_to(project_root)
+        except (OSError, RuntimeError, ValueError):
+            message = f"C++ source is outside the project or unreadable: {source.name}"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=safe_path,
+                    start_line=1,
+                    target_name="C++SyntaxContextError",
+                    status=EngineStatus.ERROR,
+                    message=message,
+                )
+            )
+            continue
+        if not resolved.exists():
+            normalized_files.append(resolved)
+            continue
+        try:
+            details = resolved.stat()
+        except OSError:
+            details = None
+        if details is None or not stat.S_ISREG(details.st_mode) or not os.access(resolved, os.R_OK):
+            message = f"C++ source is not a readable regular file: {source.name}"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=relative,
+                    start_line=1,
+                    target_name="C++SyntaxContextError",
+                    status=EngineStatus.ERROR,
+                    message=message,
+                )
+            )
+            continue
+        normalized_files.append(resolved)
+    if outcome.errors:
+        return outcome
+    if len(normalized_files) > _MAX_SELECTED_UNITS:
+        message = "C++ source count exceeds the bounded limit"
+        outcome.errors.append(message)
+        outcome.targets.append(
+            InspectionTarget(
+                file_path=".",
+                start_line=1,
+                target_name="C++SyntaxBudgetError",
+                status=EngineStatus.ERROR,
+                message=message,
+            )
+        )
+        return outcome
     if exact:
         assert analysis_context is not None
-        _run_exact(project_root, cpp_files, analysis_context, outcome, runner)
+        _run_exact(project_root, normalized_files, analysis_context, outcome, runner)
     else:
         _run_fallback(
             project_root,
-            cpp_files,
+            normalized_files,
             include_flags,
             analysis_context,
             outcome,

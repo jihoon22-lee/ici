@@ -4,9 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from ici.core.models import EngineStatus, EvidenceState
+from ici.core.findings import findings_for_result
+from ici.core.models import EngineStatus, EvidenceState, FindingCategory, FindingConfidence
 from ici.core.runner import ProcessResult
 from ici.engines.lint import LintEngine
+
+
+def _compiler_only_lint_config():
+    return {"engines": {"lint": {"clang_tidy": "off"}}}
 
 
 def _use_ruff(monkeypatch):
@@ -23,7 +28,7 @@ def test_cpp_source_scope_does_not_activate_python_lint(tmp_cpp_project, monkeyp
     (benchmark / "out.py").write_text("def broken(:\n", encoding="utf-8")
     config = {
         "project": {"source_dirs": ["src"]},
-        "engines": {"lint": {"ruff_required": False}},
+        "engines": {"lint": {"ruff_required": False, "clang_tidy": "off"}},
     }
     calls = []
 
@@ -709,7 +714,7 @@ def test_ruff_exit_two_is_tool_error_even_with_json_diagnostic(tmp_python_projec
 def test_missing_gxx_for_discovered_cpp_is_error(tmp_cpp_project, monkeypatch):
     monkeypatch.setattr("ici.engines.lint.shutil.which", lambda _name: None)
 
-    result = LintEngine(tmp_cpp_project).run()
+    result = LintEngine(tmp_cpp_project, _compiler_only_lint_config()).run()
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
@@ -728,7 +733,7 @@ def test_cpp_diagnostic_uses_reported_file_and_line(tmp_cpp_project, monkeypatch
         lambda *args, **kwargs: ProcessResult(1, "", diagnostic, 0.01),
     )
 
-    result = LintEngine(tmp_cpp_project).run()
+    result = LintEngine(tmp_cpp_project, _compiler_only_lint_config()).run()
 
     assert result.status == EngineStatus.FAIL
     target = next(target for target in result.targets if target.target_name == "C++Syntax")
@@ -750,7 +755,7 @@ def test_cpp_located_note_is_a_non_failure_diagnostic(tmp_cpp_project, monkeypat
         lambda *args, **kwargs: ProcessResult(1, "", diagnostic, 0.01),
     )
 
-    result = LintEngine(tmp_cpp_project).run()
+    result = LintEngine(tmp_cpp_project, _compiler_only_lint_config()).run()
 
     assert result.status == EngineStatus.FAIL
     cpp_targets = [target for target in result.targets if target.target_name == "C++Syntax"]
@@ -776,7 +781,7 @@ def test_cpp_template_context_is_allowed_before_primary_error(tmp_cpp_project, m
         lambda *args, **kwargs: ProcessResult(1, "", diagnostic, 0.01),
     )
 
-    result = LintEngine(tmp_cpp_project).run()
+    result = LintEngine(tmp_cpp_project, _compiler_only_lint_config()).run()
 
     assert result.status == EngineStatus.FAIL
     assert result.evidence == EvidenceState.ESTIMATED
@@ -800,7 +805,7 @@ def test_cpp_unrecognized_context_line_is_not_accepted(tmp_cpp_project, monkeypa
         lambda *args, **kwargs: ProcessResult(0, "", diagnostic, 0.01),
     )
 
-    result = LintEngine(tmp_cpp_project).run()
+    result = LintEngine(tmp_cpp_project, _compiler_only_lint_config()).run()
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
@@ -816,7 +821,7 @@ def test_cpp_signal_failure_is_tool_error(tmp_cpp_project, monkeypatch):
         lambda *args, **kwargs: ProcessResult(-9, "", "src/main.cpp:2: error: crash", 0.01),
     )
 
-    result = LintEngine(tmp_cpp_project).run()
+    result = LintEngine(tmp_cpp_project, _compiler_only_lint_config()).run()
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
@@ -833,7 +838,7 @@ def test_cpp_exit_two_records_error(tmp_cpp_project, monkeypatch):
         lambda *args, **kwargs: ProcessResult(2, "", diagnostic, 0.01),
     )
 
-    result = LintEngine(tmp_cpp_project).run()
+    result = LintEngine(tmp_cpp_project, _compiler_only_lint_config()).run()
 
     assert result.status == EngineStatus.ERROR
     compiler_evidence = next(e for e in result.tool_evidence if e.name == "g++")
@@ -850,7 +855,7 @@ def test_cpp_malformed_success_output_is_tool_error(tmp_cpp_project, monkeypatch
         lambda *args, **kwargs: ProcessResult(0, "unexpected compiler output\n", "", 0.01),
     )
 
-    result = LintEngine(tmp_cpp_project).run()
+    result = LintEngine(tmp_cpp_project, _compiler_only_lint_config()).run()
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
@@ -867,19 +872,28 @@ def test_cpp_warning_context_is_kept_as_a_finding(tmp_cpp_project, monkeypatch):
         "src/main.cpp:3:5: warning: unused variable 'value'\n"
         "    3 | int value = 1;\n"
         "      |     ^~~~~\n"
+        'fix-it:"src/main.cpp":{3:5-3:10}:""\n'
     )
     monkeypatch.setattr(
         "ici.engines.lint.run_process",
         lambda *args, **kwargs: ProcessResult(0, "", diagnostic, 0.01),
     )
 
-    result = LintEngine(tmp_cpp_project).run()
+    result = LintEngine(tmp_cpp_project, _compiler_only_lint_config()).run()
 
     assert result.status == EngineStatus.WARN
     assert result.evidence == EvidenceState.ESTIMATED
     target = next(target for target in result.targets if target.target_name == "C++Syntax")
     assert target.status == EngineStatus.WARN
     assert target.start_line == 3
+    assert result.extra["cpp_fixits_total"] == 1
+    assert result.extra["cpp_fixits"][0]["replacement"] == ""
+    findings = findings_for_result(result, tmp_cpp_project)
+    assert len(findings) == 1
+    assert findings[0].category is FindingCategory.CORRECTNESS
+    assert findings[0].confidence is FindingConfidence.MEDIUM
+    assert findings[0].tool_name == "g++"
+    assert "replace with ''" in findings[0].remediation
 
 
 def _fallback_engine(tmp_path, monkeypatch) -> LintEngine:
