@@ -29,6 +29,11 @@ _INCLUDE_RE = re.compile(
 _QT_INCLUDE_RE = re.compile(r"^\s*#\s*include\s*[<\"](?:Qt[56]?[/A-Za-z]|Q[A-Z])", re.MULTILINE)
 _QT5_RE = re.compile(r"(?:^|[/\\_.-])qt5(?:$|[/\\_.-])|\bqt5(?:core|gui|widgets)\b", re.I)
 _QT6_RE = re.compile(r"(?:^|[/\\_.-])qt6(?:$|[/\\_.-])|\bqt6(?:core|gui|widgets)\b", re.I)
+_GENERATED_MARKERS = {
+    "moc": ("Meta object code", "qt_meta_stringdata_", "qt_static_metacall"),
+    "qrc": ("QT_RCC_MANGLE_NAMESPACE", "qInitResources_", "qt_resource_data"),
+    "ui": ("setupUi(", "retranslateUi(", "Ui_"),
+}
 
 
 @dataclass(frozen=True)
@@ -386,6 +391,15 @@ def _resolved_include(root: Path, unit: CompilationUnit, include: str) -> Path |
     return None
 
 
+def _is_generated(root: Path, path: Path, kind: str) -> bool:
+    text, error = _read_contained(root, path)
+    return (
+        not error
+        and text is not None
+        and any(marker in text for marker in _GENERATED_MARKERS[kind])
+    )
+
+
 def _unit_includes(root: Path, unit: CompilationUnit) -> tuple[str, ...]:
     return tuple(match.group("name") for match in _INCLUDE_RE.finditer(_unit_text(root, unit)))
 
@@ -400,7 +414,7 @@ def _find_ui_link(
             if PurePosixPath(include).name != expected:
                 continue
             generated = _resolved_include(root, unit, include)
-            if generated is not None:
+            if generated is not None and _is_generated(root, generated, "ui"):
                 return unit, generated
     return None
 
@@ -409,12 +423,15 @@ def _find_generated_unit(
     root: Path,
     units: tuple[CompilationUnit, ...],
     expected: str,
+    kind: str,
 ) -> CompilationUnit | None:
     return next(
         (
             unit
             for unit in units
-            if PurePosixPath(unit.source).name == expected and _unit_file(root, unit) is not None
+            if PurePosixPath(unit.source).name == expected
+            and (path := _unit_file(root, unit)) is not None
+            and _is_generated(root, path, kind)
         ),
         None,
     )
@@ -426,22 +443,25 @@ def _find_moc_link(
     stem: str,
 ) -> tuple[CompilationUnit, str] | None:
     generated_cpp = f"moc_{stem}.cpp"
-    direct = _find_generated_unit(root, units, generated_cpp)
+    direct = _find_generated_unit(root, units, generated_cpp, "moc")
     if direct is not None:
         return direct, generated_cpp
     source_moc = f"{stem}.moc"
     for unit in units:
         for include in _unit_includes(root, unit):
             name = PurePosixPath(include).name
-            if name == source_moc and _resolved_include(root, unit, include) is not None:
-                return unit, source_moc
+            if name == source_moc:
+                generated = _resolved_include(root, unit, include)
+                if generated is not None and _is_generated(root, generated, "moc"):
+                    return unit, source_moc
     for unit in units:
         if PurePosixPath(unit.source).name != "mocs_compilation.cpp":
             continue
         for include in _unit_includes(root, unit):
             if PurePosixPath(include).name != generated_cpp:
                 continue
-            if _resolved_include(root, unit, include) is not None:
+            generated = _resolved_include(root, unit, include)
+            if generated is not None and _is_generated(root, generated, "moc"):
                 return unit, generated_cpp
     return None
 
@@ -647,7 +667,7 @@ def verify_qt_codegen(
         elif item.kind == "qrc":
             outcome.qrc_checked += 1
             expected = f"qrc_{item.stem}.cpp"
-            unit = _find_generated_unit(root, units, expected)
+            unit = _find_generated_unit(root, units, expected, "qrc")
             target = (
                 _target(
                     item,

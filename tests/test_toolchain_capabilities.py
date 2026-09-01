@@ -700,6 +700,13 @@ def test_clazy_version_parser_does_not_fall_back_to_llvm_version():
     assert toolchain.parse_tool_version("clazy", "Ubuntu LLVM version 21.1.8\n") == ("", ())
 
 
+def test_clazy_wrapper_version_parser_accepts_packaged_colon_format():
+    assert toolchain.parse_tool_version(
+        "clazy",
+        "clazy version: 1.17\nclang version: 21.1.8\n",
+    ) == ("clazy version: 1.17", (1, 17))
+
+
 def test_collect_registered_capability_missing_candidates_returns_no_process_result(monkeypatch):
     calls = []
 

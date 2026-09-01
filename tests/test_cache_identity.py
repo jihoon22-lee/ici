@@ -70,7 +70,10 @@ def test_project_source_digest_is_deterministic_and_scoped_to_analysis_inputs(
     assert project_source_digest(first_project) != config_changed_digest
 
 
-@pytest.mark.parametrize("name", ["README.md", "policy.json", "check.sh", "workflow.yml"])
+@pytest.mark.parametrize(
+    "name",
+    ["README.md", "policy.json", "check.sh", "workflow.yml", "form.ui", "resources.qrc"],
+)
 def test_project_source_digest_tracks_every_line_engine_input_type(
     tmp_path: Path,
     name: str,

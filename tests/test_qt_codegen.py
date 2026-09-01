@@ -100,7 +100,10 @@ def _full_project(root: Path) -> tuple[list[Path], list[Path], list[Path], Analy
     )
     (source_dir / "dashboard.ui").write_text('<ui version="4.0"></ui>\n', encoding="utf-8")
     (source_dir / "theme.qrc").write_text("<RCC></RCC>\n", encoding="utf-8")
-    (generated / "include" / "ui_dashboard.h").write_text("// generated uic\n", encoding="utf-8")
+    (generated / "include" / "ui_dashboard.h").write_text(
+        "class Ui_Dashboard { void setupUi(); };\n",
+        encoding="utf-8",
+    )
     (generated / "qrc_theme.cpp").write_text(
         "int qInitResources_theme() { return 1; }\n", encoding="utf-8"
     )
@@ -108,7 +111,10 @@ def _full_project(root: Path) -> tuple[list[Path], list[Path], list[Path], Analy
         '#include "ABC/moc_widget.cpp"\n',
         encoding="utf-8",
     )
-    (generated / "ABC" / "moc_widget.cpp").write_text("// generated moc\n", encoding="utf-8")
+    (generated / "ABC" / "moc_widget.cpp").write_text(
+        "// Meta object code from reading C++ file 'widget.h'\n",
+        encoding="utf-8",
+    )
     include = CompilationSearchPath("build/autogen/include", "include", "project", True)
     autogen = CompilationSearchPath("build/autogen", "include", "project", True)
     units = (
@@ -182,6 +188,35 @@ def test_missing_generated_outputs_fail_at_each_original_input(tmp_path: Path) -
     assert outcome.errors == []
 
 
+def test_handwritten_lookalike_outputs_do_not_satisfy_codegen_evidence(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    source_dirs, cpp_files, headers, context = _full_project(root)
+    for path in (
+        root / "build/autogen/include/ui_dashboard.h",
+        root / "build/autogen/qrc_theme.cpp",
+        root / "build/autogen/ABC/moc_widget.cpp",
+    ):
+        path.write_text("int handwritten_lookalike = 1;\n", encoding="utf-8")
+
+    outcome = verify_qt_codegen(
+        root,
+        source_dirs,
+        cpp_files,
+        headers,
+        context,
+        compiled_sources={"src/widget.cpp"},
+    )
+
+    assert sum(target.status is EngineStatus.FAIL for target in outcome.targets) == 3
+    assert {
+        target.target_name for target in outcome.targets if target.status is EngineStatus.FAIL
+    } == {
+        "QtUicLinkage",
+        "QtRccLinkage",
+        "QtMocLinkage",
+    }
+
+
 def test_qmake_direct_moc_unit_is_accepted(tmp_path: Path) -> None:
     root = tmp_path / "project"
     src = root / "src"
@@ -192,7 +227,10 @@ def test_qmake_direct_moc_unit_is_accepted(tmp_path: Path) -> None:
     header = src / "widget.h"
     source.write_text("#include <QWidget>\n", encoding="utf-8")
     header.write_text("class Widget { Q_OBJECT };\n", encoding="utf-8")
-    (generated / "moc_widget.cpp").write_text("// qmake moc\n", encoding="utf-8")
+    (generated / "moc_widget.cpp").write_text(
+        "// Meta object code from reading C++ file 'widget.h'\n",
+        encoding="utf-8",
+    )
     units = (
         _unit(root, "src/widget.cpp", qt_major=5),
         _unit(root, "build/qmake/moc_widget.cpp", directory="build/qmake"),

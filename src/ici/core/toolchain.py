@@ -138,7 +138,8 @@ _TOOL_VERSION_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
     "pytest": (re.compile(r"\bpytest\s+(?P<version>\d+(?:\.\d+)+)", re.I),),
     "clazy": (
         re.compile(
-            r"\bclazy(?:-standalone)?\s+(?:version\s+)?(?P<version>\d+(?:\.\d+)+)\b",
+            r"\bclazy(?:-standalone)?\s+(?:version\s*:?\s*)?"
+            r"(?P<version>\d+(?:\.\d+)+)\b",
             re.I,
         ),
     ),
