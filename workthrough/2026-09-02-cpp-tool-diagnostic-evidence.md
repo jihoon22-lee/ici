@@ -95,6 +95,12 @@ uv run --python 3.10 pytest tests/test_cpp_tooling.py tests/test_clang_tidy.py t
 71 passed in 0.25s
 ```
 
+PR run `33536327520` then exercised the process-level tests on the hosted GCC 13/clang-tidy/clazy
+image. All three analyzers completed successfully with the selected GCC 13 projection, but three
+legacy assertions still required exactly one evidence record. The E2E contract now requires the two
+ordered `g++ stdlib include search` records plus exactly one analyzer record and checks the probe
+driver identity, language order, return code, timeout, truncation, and error fields.
+
 ### Exact tool evidence
 
 The exact Ubuntu 24.04 + Qt 5 + clazy 1.11 run recorded 12/12 full-lint units, an accepted
