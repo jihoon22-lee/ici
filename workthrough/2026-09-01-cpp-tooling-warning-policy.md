@@ -51,18 +51,30 @@ uv run --python 3.10 pytest tests/test_cpp_tooling.py tests/test_clazy.py \
 40 passed
 
 uv run --python 3.10 pytest
-1519 passed, 4 skipped in 57.09s
+1519 passed, 4 skipped in 56.06s
 
-uvx ruff check <changed Python files>
+uvx ruff check .
 All checks passed!
 
-uvx ruff format --check <changed Python files>
-All changed Python files already formatted
+uvx ruff format --check .
+159 files already formatted
+
+uv run --python 3.10 mypy src
+Success: no issues found in 93 source files
+
+./scripts/build-pyz.sh
+10 distributions: py3-none-any; certifi absent; public schemas packaged
+
+./scripts/smoke.sh
+all smoke tests passed; ici 0.10.1; Python 3.10 direct execution;
+packaged self-verification and HTML Zero-CDN passed
 ```
 
 네 skip은 로컬에 없는 clang-tidy, clazy, clang++ actual-process 조건이다. CI/release의
 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` 환경에서는 skip이 허용되지 않으며, 원격 evidence는 PR과
-exact-main gate가 끝난 뒤 문서에 추가한다.
+exact-main gate가 끝난 뒤 문서에 추가한다. 로컬 release-candidate `dist/ici.pyz`는 2,199,411
+bytes, SHA-256 `c41c6e00fac57c1219f8e46aab23f37e6756cbf00318897e6f2e30c66c7da6d4`다. 이
+파일은 tag 기반 release workflow의 trusted artifact와 구분한다.
 
 ## Design Notes
 
