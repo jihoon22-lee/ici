@@ -10,12 +10,14 @@ $ ici doctor
 
 ### 현재 릴리스와 진행 상태
 
-현재 공개 릴리스는 [v0.10.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.0)입니다.
+현재 릴리스 기준 버전은 [v0.10.1](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.1)입니다.
 I4-1의 exact compiler/clang-tidy replay에 이어 I4-2에서 Qt-aware clazy와
 `moc`/`uic`/`rcc` generated-code linkage, Qt 5/Qt 6 compile evidence를 추가했습니다. 실제
 clazy 1.11·Qt matrix·1,517개 테스트·self/viewer dogfood·Zero-CDN Pages가 PR과 exact main에서
-통과했습니다. toy-projects BuildScope B5의 released-v0.10.0 교차 검증과 I4-3/I4-4는 다음
-완료 조건이며, v0.9.1과 BuildScope B4 증거는 변경 이력과 실행 계획에 보존합니다.
+통과했습니다. v0.10.1은 production `-Werror`가 clang-tidy/clazy finding을 도구 실패로
+승격하지 않도록 경고 선택은 보존하면서 오류 승격만 낮춥니다. toy-projects BuildScope B5의
+released-v0.10.1 교차 검증과 I4-3/I4-4가 다음 완료 조건이며, 이전 릴리스 증거는 변경 이력과
+실행 계획에 보존합니다.
 
 ---
 
