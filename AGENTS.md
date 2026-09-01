@@ -14,6 +14,9 @@
   - `docs/<doc-name>`: 문서 추가, `CHANGELOG.md` 및 가이드 작성
   - `test/<test-name>`: 테스트 케이스 추가 및 검증 로직 보강
   - `chore/<task-name>`: 빌드 스크립트, 의존성, CI/CD 설정 변경
+- `I4-3`, `T0`, `B1`, `D2` 같은 roadmap 코드를 PR 제목/요약의 primary 또는 sole 내용으로
+  삼지 않는다. 제목은 사용자에게 보이는 결과나 기술적 결과를 설명해야 하며, roadmap key는
+  필요할 때만 body의 mapping 항목으로 덧붙인다.
 - **GitHub PR 병합 절차 (Standard GitHub PR Workflow)**:
   1. 작업 브랜치 생성: `git checkout -b <type>/<description>`
   2. 코드 구현 및 품질 게이트 검증 (`pytest`, `ruff`, `./scripts/build-pyz.sh`)
@@ -79,3 +82,17 @@ uvx ruff format --check .
 ./scripts/build-pyz.sh
 ./scripts/smoke.sh
 ```
+
+---
+
+## 7. 릴리스 버전 및 cadence 불변식
+
+- `feature`, `test`, `refactor`, `docs` PR은 버전을 자동으로 올리거나 stable release를 자동으로
+  만들지 않는다. PR 병합과 릴리스 결정은 별개다.
+- `patch` 버전은 이미 공개된 stable artifact의 defect, security, compatibility 수정에만 사용한다.
+- `minor` 버전은 사용자에게 보이는 하나의 응집된 roadmap checkpoint에만 사용하며, ici 전체
+  gate, 실제 도구 E2E, candidate의 cross-repo/toy 검증, PR/main CI·Pages, 문서·CHANGELOG
+  동기화가 모두 끝난 뒤에만 결정한다.
+- pre-release와 candidate artifact는 stable release가 아니며 stable artifact의 근거로 사용하지 않는다.
+- 하나의 PR이 하나의 릴리스를 의미하지 않는다. 여러 PR을 하나의 릴리스로 묶을 수 있고,
+  릴리스가 필요 없는 PR은 별도 릴리스 없이 병합할 수 있다.
