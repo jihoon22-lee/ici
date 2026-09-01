@@ -682,6 +682,73 @@ def test_clazy_diagnostics_allow_only_structural_context_and_require_a_finding(
     assert context_only.diagnostics == ()
 
 
+def test_clazy_diagnostics_accept_validated_legacy_clang_context(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    source = root / "src" / "datetime.cpp"
+    source.parent.mkdir(parents=True)
+    source_line = "QDateTime inefficientUtc() { return QDateTime::currentDateTime().toUTC(); }"
+    source.write_text(f"#include <QDateTime>\n{source_line}\n", encoding="utf-8")
+    output = (
+        f"{source}:2:37: warning: Use QDateTime::currentDateTimeUtc() instead "
+        "[-Wclazy-qdatetime-utc]\n"
+        f"{source_line}\n"
+        "                                    ^        ~~~~~\n"
+        "                                             ::currentDateTimeUtc()\n"
+        "1 warning generated.\n"
+    )
+
+    result = parse_clazy_diagnostics(root, root, "", output)
+
+    assert result.error == ""
+    assert len(result.diagnostics) == 1
+    diagnostic = result.diagnostics[0]
+    assert diagnostic.tool_rule_id == "clazy-qdatetime-utc"
+    assert diagnostic.target.file_path == "src/datetime.cpp"
+    assert diagnostic.target.start_line == 2
+
+
+@pytest.mark.parametrize(
+    "context",
+    [
+        "QDateTime forged() {}\n                                    ^\n",
+        (
+            "QDateTime inefficientUtc() { return QDateTime::currentDateTime().toUTC(); }\n"
+            "                                    ^\n"
+            "                                             ::currentDateTimeUtc()\n"
+            "                                             secondPreview()\n"
+        ),
+        (
+            "QDateTime inefficientUtc() { return QDateTime::currentDateTime().toUTC(); }\n"
+            "                                    ^\n"
+            f"{' ' * MAX_MESSAGE_CHARS}replacement()\n"
+        ),
+    ],
+    ids=["source-mismatch", "duplicate-preview", "oversized-preview"],
+)
+def test_clazy_diagnostics_reject_invalid_legacy_clang_context_atomically(
+    tmp_path: Path, context: str
+) -> None:
+    root = tmp_path / "project"
+    source = root / "src" / "datetime.cpp"
+    source.parent.mkdir(parents=True)
+    source.write_text(
+        "#include <QDateTime>\n"
+        "QDateTime inefficientUtc() { return QDateTime::currentDateTime().toUTC(); }\n",
+        encoding="utf-8",
+    )
+    output = (
+        f"{source}:2:37: warning: Use QDateTime::currentDateTimeUtc() instead "
+        "[-Wclazy-qdatetime-utc]\n"
+        f"{context}"
+        "1 warning generated.\n"
+    )
+
+    result = parse_clazy_diagnostics(root, root, "", output)
+
+    assert result.error
+    assert result.diagnostics == ()
+
+
 @pytest.mark.parametrize(
     "suffix",
     [

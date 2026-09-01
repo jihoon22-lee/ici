@@ -413,7 +413,7 @@ def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> Non
         runner=run_process,
     )
 
-    assert outcome.mode == "exact", outcome
+    assert outcome.mode == "exact", outcome.errors
     assert outcome.provider == "standalone"
     assert outcome.errors == []
     assert outcome.sources_checked == 1

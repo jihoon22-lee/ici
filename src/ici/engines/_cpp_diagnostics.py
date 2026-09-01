@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import stat
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,7 @@ _TEXT_DIAGNOSTIC_RE = re.compile(
     r"(?P<message>\S.*?)(?:\s+\[(?P<rule>[-A-Za-z0-9_.]+)\])?$"
 )
 _TEXT_CONTEXT_RE = re.compile(r"^\s*(?:\d+\s*\|.*|\|.*|[\^~].*)$")
+_TEXT_LEGACY_PREVIEW_RE = re.compile(r"^[ \t]+[\x21-\x7e][\x20-\x7e]{0,8191}$")
 _TEXT_CONTEXT_HEADER_RE = re.compile(
     r"^.+:\s+(?:At global scope|In (?:function|member function|constructor|destructor|"
     r"lambda function|instantiation of)(?: .*)?):$"
@@ -157,6 +159,35 @@ def _diagnostic_path(project_root: Path, cwd: Path, value: Any) -> str:
         # Tool diagnostics can legitimately originate in system headers. Keep
         # a location without publishing a machine-specific absolute path.
         return "[external]"
+
+
+def _project_source_line(project_root: Path, file_path: str, line_number: int) -> str | None:
+    """Read one bounded project source line for legacy Clang context validation."""
+
+    if file_path == "[external]":
+        return None
+    try:
+        path = (project_root / file_path).resolve(strict=True)
+        path.relative_to(project_root)
+        details = path.stat()
+        if not stat.S_ISREG(details.st_mode):
+            return None
+        consumed = 0
+        with path.open(encoding="utf-8", errors="replace") as handle:
+            for current_number in range(1, line_number + 1):
+                current = handle.readline(MAX_MESSAGE_CHARS + 2)
+                if not current:
+                    return None
+                consumed += len(current)
+                if consumed > MAX_DIAGNOSTIC_OUTPUT_CHARS:
+                    return None
+                if len(current) > MAX_MESSAGE_CHARS and not current.endswith(("\n", "\r")):
+                    return None
+                if current_number == line_number:
+                    return current.rstrip("\r\n")
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return None
 
 
 def _position(value: Any, label: str) -> tuple[str, int, int | None]:
@@ -462,6 +493,8 @@ def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticPar
     previous_family = ""
     saw_diagnostic = False
     diagnostic_count = 0
+    legacy_source_line: str | None = None
+    legacy_context_stage = 0
     try:
         for raw_line in text.splitlines():
             line = raw_line.strip()
@@ -478,6 +511,8 @@ def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticPar
                 line_number = _text_number(match.group("line"), "diagnostic line")
                 column = _text_number(match.group("column"), "diagnostic column", optional=True)
                 assert line_number is not None
+                legacy_source_line = _project_source_line(project_root, file_path, line_number)
+                legacy_context_stage = 0
                 message = _bounded_text(match.group("message"), "diagnostic message")
                 # A malformed or repeated compiler option must not be hidden in
                 # a note's prose after the parser has selected the last bracket.
@@ -532,8 +567,30 @@ def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticPar
                 raise ValueError("clazy fix-it output is not supported")
             if line.startswith("In file included from") or line.startswith("from "):
                 ancillary_output = True
+                legacy_source_line = None
+                legacy_context_stage = -1
+                continue
+            if (
+                legacy_context_stage == 0
+                and legacy_source_line is not None
+                and raw_line == legacy_source_line
+            ):
+                legacy_context_stage = 1
                 continue
             if saw_diagnostic and _TEXT_CONTEXT_RE.fullmatch(line):
+                if legacy_context_stage == 1 and line.startswith(("^", "~")):
+                    legacy_context_stage = 2
+                else:
+                    legacy_source_line = None
+                    legacy_context_stage = -1
+                continue
+            if (
+                legacy_context_stage == 2
+                and len(raw_line) <= MAX_MESSAGE_CHARS
+                and _TEXT_LEGACY_PREVIEW_RE.fullmatch(raw_line)
+            ):
+                legacy_source_line = None
+                legacy_context_stage = 3
                 continue
             if (
                 _TEXT_CONTEXT_HEADER_RE.fullmatch(line)
@@ -541,6 +598,8 @@ def _parse_clazy_text(project_root: Path, cwd: Path, text: str) -> DiagnosticPar
                 or _TEXT_TRAILER_RE.fullmatch(line)
             ):
                 ancillary_output = True
+                legacy_source_line = None
+                legacy_context_stage = -1
                 continue
             raise ValueError(f"unrecognized clazy output line: {line!r}")
 
