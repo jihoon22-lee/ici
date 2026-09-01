@@ -54,7 +54,7 @@ uv run --python 3.10 pytest tests/test_cpp_tooling.py tests/test_clazy.py \
 40 passed
 
 uv run --python 3.10 pytest
-1519 passed, 4 skipped in 56.06s
+1526 passed, 4 skipped in 56.26s
 
 uvx ruff check .
 All checks passed!
@@ -75,8 +75,8 @@ packaged self-verification and HTML Zero-CDN passed
 
 네 skip은 로컬에 없는 clang-tidy, clazy, clang++ actual-process 조건이다. CI/release의
 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` 환경에서는 skip이 허용되지 않으며, 원격 evidence는 PR과
-exact-main gate가 끝난 뒤 문서에 추가한다. 로컬 release-candidate `dist/ici.pyz`는 2,199,411
-bytes, SHA-256 `c41c6e00fac57c1219f8e46aab23f37e6756cbf00318897e6f2e30c66c7da6d4`다. 이
+exact-main gate가 끝난 뒤 문서에 추가한다. 로컬 release-candidate `dist/ici.pyz`는 2,199,690
+bytes, SHA-256 `9ab1fa89c5d6f765c8ce349ac2614b0ca87706a0cf86b01729b01d284960a624`다. 이
 파일은 tag 기반 release workflow의 trusted artifact와 구분한다.
 
 ## Design Notes

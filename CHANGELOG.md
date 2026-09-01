@@ -32,7 +32,7 @@
   Linux actual-process fixtures now carry
   `-Werror` in both clang-tidy and Qt/clazy compilation commands, so CI and release jobs with
   `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1` must prove real findings remain parseable diagnostics.
-- The pre-PR Python 3.10 suite passed `1,519` tests with four expected local missing-tool skips;
+- The final local Python 3.10 suite passed `1,526` tests with four expected missing-tool skips;
   focused adapter tests, Ruff check, and Ruff format check also passed. The trusted PR, exact-main,
   and release evidence are recorded after their respective remote gates complete.
 
