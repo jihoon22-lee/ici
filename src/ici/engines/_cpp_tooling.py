@@ -95,8 +95,15 @@ class GccStdlibProjection:
 
 
 CompilerExecutableIdentity = tuple[int, int, int, int, int]
+CompilerWorkingDirectoryIdentity = tuple[int, int, int, int, int]
 GccStdlibProjectionCache = dict[
-    tuple[str, str, tuple[str, ...], CompilerExecutableIdentity],
+    tuple[
+        str,
+        str,
+        tuple[str, ...],
+        CompilerExecutableIdentity,
+        CompilerWorkingDirectoryIdentity,
+    ],
     GccStdlibProjection,
 ]
 
@@ -331,6 +338,27 @@ def _compiler_executable_identity(compiler: Path) -> CompilerExecutableIdentity 
     )
 
 
+def _compiler_working_directory_identity(
+    directory: Path,
+) -> CompilerWorkingDirectoryIdentity | None:
+    """Return replacement-sensitive identity for a compiler working directory."""
+
+    try:
+        resolved = directory.resolve(strict=True)
+        details = resolved.stat()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if resolved != directory or not stat.S_ISDIR(details.st_mode):
+        return None
+    return (
+        details.st_dev,
+        details.st_ino,
+        details.st_mode,
+        details.st_mtime_ns,
+        details.st_ctime_ns,
+    )
+
+
 def parse_compiler_include_search(output: str, cwd: Path) -> tuple[Path, ...]:
     """Parse one strict GCC angle-bracket include-search block.
 
@@ -533,23 +561,45 @@ def gcc_standard_library_for_replay(
             error_code="gcc-include-probe-cwd",
             error="GCC include search working directory is unavailable.",
         )
+    cwd_identity = _compiler_working_directory_identity(resolved_cwd)
+    if cwd_identity is None:
+        return GccStdlibProjection(
+            error_code="gcc-include-probe-cwd",
+            error="GCC include search working directory identity is unavailable.",
+        )
     compiler_identity = _compiler_executable_identity(compiler)
     if compiler_identity is None:
         return GccStdlibProjection(
             error_code="gcc-include-probe-compiler",
             error="GCC include search compiler identity is unavailable.",
         )
-    key = (str(compiler), str(resolved_cwd), selectors, compiler_identity)
+    key = (str(compiler), str(resolved_cwd), selectors, compiler_identity, cwd_identity)
     cached = cache.get(key)
     if cached is not None:
+        if _compiler_working_directory_identity(resolved_cwd) != cwd_identity:
+            return GccStdlibProjection(
+                error_code="gcc-include-probe-cwd-changed",
+                error="GCC include search working directory identity changed before cache reuse.",
+            )
+        if _compiler_executable_identity(compiler) != compiler_identity:
+            return GccStdlibProjection(
+                error_code="gcc-include-probe-compiler-changed",
+                error="GCC include search compiler identity changed before cache reuse.",
+            )
         return cached
     projection = gcc_standard_library_projection(
         compiler,
-        cwd,
+        resolved_cwd,
         compiler_arguments,
         runner=runner,
         timeout=timeout,
     )
+    if _compiler_working_directory_identity(resolved_cwd) != cwd_identity:
+        return GccStdlibProjection(
+            probes=projection.probes,
+            error_code="gcc-include-probe-cwd-changed",
+            error="GCC include search working directory identity changed during probing.",
+        )
     if _compiler_executable_identity(compiler) != compiler_identity:
         return GccStdlibProjection(
             probes=projection.probes,
