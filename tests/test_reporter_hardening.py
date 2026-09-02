@@ -358,6 +358,41 @@ def test_github_step_summary_is_deterministically_bounded_at_utf8_boundary(
     assert rendered[0] == rendered[1]
 
 
+def test_github_markdown_bounds_target_rows_and_keeps_actionable_first():
+    targets = [
+        InspectionTarget(
+            file_path=f"src/pass_{index}.py",
+            start_line=index + 1,
+            status=EngineStatus.PASS,
+            message=f"pass-{index}",
+        )
+        for index in range(150)
+    ]
+    targets.append(
+        InspectionTarget(
+            file_path="src/must_keep.py",
+            start_line=1,
+            status=EngineStatus.FAIL,
+            message="must-keep-actionable",
+        )
+    )
+    result = EngineResult(
+        "bounded",
+        EngineStatus.FAIL,
+        "many targets",
+        targets=targets,
+    )
+
+    markdown = generate_markdown_report(
+        VerificationSuiteResult(suite_status=EngineStatus.FAIL, results=[result])
+    )
+
+    assert "must-keep-actionable" in markdown
+    assert "pass-149" not in markdown
+    assert "51 target row(s) omitted from this bounded GitHub view" in markdown
+    assert "JSON and HTML reports retain the full inventory" in markdown
+
+
 def test_github_annotations_are_bounded_and_prioritize_failures(monkeypatch, capsys):
     """Annotation volume is capped while actionable FAIL/ERROR targets survive."""
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
