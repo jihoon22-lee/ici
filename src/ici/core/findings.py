@@ -6,7 +6,7 @@ import hashlib
 import json
 import math
 import re
-from collections import Counter
+from collections import Counter, defaultdict, deque
 from dataclasses import replace
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -342,17 +342,20 @@ def findings_for_result(
     # Native v3 data wins when it deliberately describes the same identity,
     # but adapters are otherwise a lossless one-finding-per-target migration.
     native = [canonicalize_finding(finding, project_root) for finding in result.findings]
-    native_by_fingerprint = {finding.fingerprint: finding for finding in native}
-    emitted_native: set[str] = set()
+    native_by_fingerprint: dict[str, deque[tuple[int, Finding]]] = defaultdict(deque)
+    for index, finding in enumerate(native):
+        native_by_fingerprint[finding.fingerprint].append((index, finding))
+    emitted_native: set[int] = set()
     findings: list[Finding] = []
     for finding in adapted:
-        replacement = native_by_fingerprint.get(finding.fingerprint)
-        if replacement is None:
+        replacements = native_by_fingerprint[finding.fingerprint]
+        if not replacements:
             findings.append(finding)
-        elif replacement.fingerprint not in emitted_native:
+        else:
+            index, replacement = replacements.popleft()
             findings.append(replacement)
-            emitted_native.add(replacement.fingerprint)
-    findings.extend(finding for finding in native if finding.fingerprint not in emitted_native)
+            emitted_native.add(index)
+    findings.extend(finding for index, finding in enumerate(native) if index not in emitted_native)
     return sorted(
         findings,
         key=lambda finding: (
