@@ -25,6 +25,11 @@ from ici.engines.test import TestEngine
 from ici.reporters.html import generate_html_report
 
 
+def test_test_case_result_rejects_passed_without_execution():
+    with pytest.raises(ValueError, match="not executed"):
+        TestCaseResult("impossible", True, executed=False)
+
+
 def test_ctest_junit_notrun_status_is_not_executed():
     results = parse_ctest_junit(
         '<testsuite name="ctest"><testcase name="disabled_case" status="notrun"/></testsuite>'

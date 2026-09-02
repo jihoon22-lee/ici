@@ -204,6 +204,8 @@ _MAKE_INVOCATION_RE = re.compile(r"(?:^|\s)\./(?P<name>[\w.+-]+)(?:\s|$)")
 # a test being run.
 _MAKE_NOISE_RE = re.compile(r"^\s*(?:make(?:\[\d+\])?:|\()")
 _MAKE_ERROR_RE = re.compile(r"^\s*make(?:\[\d+\])?: \*\*\* .*Error \d+")
+_NOT_EXECUTED_STATES = frozenset({"notrun", "skip", "skipped", "disabled", "blacklisted"})
+_PASS_STATES = frozenset({"", "run", "pass", "passed"})
 
 
 @dataclass(frozen=True)
@@ -221,6 +223,14 @@ class TestCaseResult:
     # build system collected but never ran. Keep this last with a default so
     # existing positional construction remains source compatible.
     executed: bool = True
+
+    def __post_init__(self) -> None:
+        if self.passed and not self.executed:
+            raise ValueError("a test that was not executed cannot be marked as passed")
+
+
+def _normalized_test_state(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.casefold())
 
 
 def _bounded_test_result(value: str) -> str:
@@ -267,15 +277,15 @@ def _junit_case(node: ElementTree.Element) -> TestCaseResult:
         return TestCaseResult(name, False, message or "test was skipped", executed=False)
     # A test ctest never ran is not evidence that it passes.
     status = node.get("status", "").strip()
-    normalized_status = re.sub(r"[^a-z0-9]+", "", status.casefold())
-    if normalized_status in {"notrun", "skip", "skipped", "disabled", "blacklisted"}:
+    normalized_status = _normalized_test_state(status)
+    if normalized_status in _NOT_EXECUTED_STATES:
         return TestCaseResult(
             name,
             False,
             _bounded_test_result(f"ctest reported status {status!r}"),
             executed=False,
         )
-    if normalized_status not in {"", "run", "pass", "passed"}:
+    if normalized_status not in _PASS_STATES:
         return TestCaseResult(
             name,
             False,
@@ -339,7 +349,7 @@ def parse_ctest_stdout(text: str) -> list[TestCaseResult]:
         if match is None:
             continue
         verdict = match.group("verdict").strip().lstrip("*")
-        normalized_verdict = re.sub(r"[^a-z0-9]+", "", verdict.casefold())
+        normalized_verdict = _normalized_test_state(verdict)
         executed = not (
             normalized_verdict.startswith("notrun")
             or normalized_verdict.startswith("disabled")
@@ -372,8 +382,8 @@ def parse_qtest_xunit(text: str) -> list[TestCaseResult]:
             case = _junit_case(node)
             name = f"{suite_name}::{case.name}" if suite_name else case.name
             result = node.get("result", "pass").strip()
-            normalized_result = re.sub(r"[^a-z0-9]+", "", result.casefold())
-            if normalized_result in {"skip", "skipped", "notrun", "disabled", "blacklisted"}:
+            normalized_result = _normalized_test_state(result)
+            if normalized_result in _NOT_EXECUTED_STATES:
                 executed = False
                 passed = False
             elif normalized_result in {"pass", "passed", "xfail"}:
