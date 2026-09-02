@@ -1,6 +1,7 @@
 """Unified Verification Suite Orchestrator for ici."""
 
 import time
+from collections.abc import Collection
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,8 @@ from ici.core.cache import (
 from ici.core.capabilities import collect_capability_inventory, derive_tool_policy
 from ici.core.cmake_context import prepare_cmake_compilation_context
 from ici.core.context import (
+    AnalysisContext,
+    BuildVariant,
     CompilationContext,
     ProjectModel,
     create_analysis_context,
@@ -41,6 +44,7 @@ from ici.core.pipeline import (
 )
 from ici.core.qmake_context import prepare_qmake_compilation_context
 from ici.core.support import ENGINE_NAMES, evaluate_support_matrix  # noqa: F401
+from ici.core.toolchain import DEFAULT_TOOL_PROBES
 from ici.engines.cognitive import CognitiveEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.compile_db import CompileDatabaseEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.complexity import ComplexityEngine  # noqa: F401 - dynamic descriptor factory
@@ -75,6 +79,53 @@ def _prepare_compilation_context(
     if project.backend == BACKEND_QMAKE:
         return prepare_qmake_compilation_context(project_root, config, project)
     return prepare_cmake_compilation_context(project_root, config, project)
+
+
+def prepare_analysis_context(
+    project_root: Path,
+    config: dict[str, Any],
+    *,
+    engine_names: Collection[str] | None = None,
+    requested_variants: tuple[BuildVariant, ...] = (),
+    profile: str = "standard",
+    probe_all_tools: bool = True,
+) -> tuple[ProjectModel, AnalysisContext]:
+    """Prepare the immutable project/tool/compilation snapshot shared by engines."""
+
+    project = discover_project_model(project_root, config)
+    declared_support = evaluate_support_matrix(
+        project_root,
+        config,
+        project=project,
+        engine_names=set(engine_names) if engine_names is not None else None,
+    )
+    configured_required = {
+        str(name) for name in config.get("doctor", {}).get("required_tools", []) or []
+    }
+    required_by, optional_by = derive_tool_policy(declared_support, configured_required)
+    selected_tool_names = set(required_by) | set(optional_by)
+    probes = (
+        DEFAULT_TOOL_PROBES
+        if probe_all_tools
+        else tuple(probe for probe in DEFAULT_TOOL_PROBES if probe.name in selected_tool_names)
+    )
+    capability_inventory = collect_capability_inventory(
+        cwd=project_root,
+        probes=probes,
+        required_by=required_by,
+        optional_by=optional_by,
+    )
+    compilation = _prepare_compilation_context(project_root, config, project)
+    analysis_context = create_analysis_context(
+        project_root,
+        config,
+        capability_inventory,
+        requested_variants=requested_variants,
+        profile=profile,
+        project=project,
+        compilation=compilation,
+    )
+    return project, analysis_context
 
 
 class VerifyOrchestrator:
@@ -167,40 +218,19 @@ class VerifyOrchestrator:
             lambda name: bool(get_engine_config(effective_config, name).get("enabled", True)),
         )
 
-        project = discover_project_model(self.project_root, effective_config)
-        declared_support = evaluate_support_matrix(
-            self.project_root,
-            effective_config,
-            project=project,
-        )
-        configured_required = {
-            str(name) for name in effective_config.get("doctor", {}).get("required_tools", []) or []
-        }
-        required_by, optional_by = derive_tool_policy(declared_support, configured_required)
-        capability_inventory = collect_capability_inventory(
-            cwd=self.project_root,
-            required_by=required_by,
-            optional_by=optional_by,
-        )
         requested_variants = tuple(
             descriptor.build_variant
             for descriptor in descriptors
             if descriptor.build_variant is not None
         )
-        compilation = _prepare_compilation_context(
+        project, analysis_context = prepare_analysis_context(
             self.project_root,
             effective_config,
-            project,
-        )
-        analysis_context = create_analysis_context(
-            self.project_root,
-            effective_config,
-            capability_inventory,
+            engine_names={descriptor.name for descriptor in descriptors},
             requested_variants=requested_variants,
             profile=selected_profile.value,
-            project=project,
-            compilation=compilation,
         )
+        capability_inventory = analysis_context.capabilities
         cache: AnalysisCache | None = AnalysisCache() if use_cache else None
         source_digest = ""
         if cache is not None:

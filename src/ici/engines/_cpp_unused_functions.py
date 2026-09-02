@@ -43,7 +43,7 @@ _UNUSED_RULE = "-Wunused-function"
 _CONFIGURATION_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 _ExecutableIdentity = tuple[int, int, int, int, int, int]
-_DiagnosticKey = tuple[str, int, int | None]
+_DiagnosticKey = tuple[str, int, int | None, int | None, int | None]
 
 
 @dataclass(frozen=True)
@@ -54,6 +54,7 @@ class CppUnusedFunction:
     configurations: tuple[str, ...]
     tool_names: tuple[str, ...]
     tool_versions: tuple[str, ...]
+    diagnostic_message: str = ""
 
 
 @dataclass
@@ -68,7 +69,7 @@ class CppUnusedFunctionOutcome:
     mode: str = "unavailable"
     configurations_checked: int = 0
     sources_checked: int = 0
-    header_diagnostics_excluded: int = 0
+    non_tu_diagnostics_excluded: int = 0
 
 
 @dataclass(frozen=True)
@@ -86,7 +87,7 @@ class _PreparedUnit:
 class _Observation:
     source: str
     configuration: str
-    diagnostics: tuple[_DiagnosticKey, ...]
+    diagnostics: tuple[tuple[_DiagnosticKey, str], ...]
     tool_name: str
     tool_version: str
 
@@ -158,6 +159,14 @@ def _prepare_units(
             "Exact C++ unused-function analysis requires a compilation database"
         )
         return None
+    if _CONFIGURATION_RE.fullmatch(context.compilation.database_digest) is None:
+        _append_error(
+            outcome,
+            context.compilation.database_path,
+            "C++ unused-function compilation database has no canonical digest",
+        )
+        outcome.mode = "error"
+        return None
     if context.project.root != root:
         _append_error(outcome, ".", "C++ unused-function context belongs to another project")
         outcome.mode = "error"
@@ -212,7 +221,19 @@ def _prepare_units(
 
     prepared: list[_PreparedUnit] = []
     unit_keys: set[tuple[str, str]] = set()
+    validated_sources: dict[str, str] = {}
     for unit in selected:
+        if any(item.level == "error" for item in unit.diagnostics):
+            codes = ", ".join(
+                sorted({item.code for item in unit.diagnostics if item.level == "error"})
+            )
+            _append_error(
+                outcome,
+                unit.source,
+                f"C++ unused-function translation unit has ingestion errors: {codes}",
+            )
+            outcome.mode = "error"
+            return None
         if _CONFIGURATION_RE.fullmatch(unit.configuration) is None:
             _append_error(
                 outcome,
@@ -231,19 +252,23 @@ def _prepare_units(
             outcome.mode = "error"
             return None
         unit_keys.add(unit_key)
-        expected_text = source_texts.get(unit.source)
-        try:
-            current_text = _source_text(root, unit.source)
-        except ValueError:
-            current_text = ""
-        if expected_text is None or current_text != expected_text:
-            _append_error(
-                outcome,
-                unit.source,
-                "C++ unused-function source snapshot changed before analysis",
-            )
-            outcome.mode = "error"
-            return None
+        if unit.source in validated_sources:
+            current_text = validated_sources[unit.source]
+        else:
+            expected_text = source_texts.get(unit.source)
+            try:
+                current_text = _source_text(root, unit.source)
+            except ValueError:
+                current_text = ""
+            if expected_text is None or current_text != expected_text:
+                _append_error(
+                    outcome,
+                    unit.source,
+                    "C++ unused-function source snapshot changed before analysis",
+                )
+                outcome.mode = "error"
+                return None
+            validated_sources[unit.source] = current_text
         try:
             replay = build_replay_command(
                 root,
@@ -299,18 +324,18 @@ def _located_unused_diagnostics(
     prepared: _PreparedUnit,
     diagnostics: tuple[CppDiagnostic, ...],
     outcome: CppUnusedFunctionOutcome,
-) -> tuple[_DiagnosticKey, ...]:
-    keys: list[_DiagnosticKey] = []
+) -> tuple[tuple[_DiagnosticKey, str], ...]:
+    located: list[tuple[_DiagnosticKey, str]] = []
     seen: set[_DiagnosticKey] = set()
     source_lines = prepared.source_text.splitlines()
     for diagnostic in diagnostics:
         target = diagnostic.target
         if diagnostic.tool_rule_id != _UNUSED_RULE:
             continue
-        if target.status != EngineStatus.WARN:
-            raise ValueError("unused-function diagnostic was not emitted as a warning")
+        if target.status != EngineStatus.WARN or not target.message.startswith("warning: "):
+            continue
         if target.file_path != prepared.unit.source:
-            outcome.header_diagnostics_excluded += 1
+            outcome.non_tu_diagnostics_excluded += 1
             continue
         if target.start_line > len(source_lines):
             raise ValueError("unused-function diagnostic line is outside the source snapshot")
@@ -318,12 +343,35 @@ def _located_unused_diagnostics(
             line_bytes = len(source_lines[target.start_line - 1].encode("utf-8"))
             if target.start_column > line_bytes + 1:
                 raise ValueError("unused-function diagnostic column is outside the source line")
-        key = (target.file_path, target.start_line, target.start_column)
+        if target.end_line is not None and target.end_line > len(source_lines):
+            raise ValueError("unused-function diagnostic end line is outside the source snapshot")
+        if target.end_line is not None and target.end_column is not None:
+            end_line_bytes = len(source_lines[target.end_line - 1].encode("utf-8"))
+            if target.end_column > end_line_bytes + 1:
+                raise ValueError("unused-function diagnostic end column is outside the source line")
+        key = (
+            target.file_path,
+            target.start_line,
+            target.start_column,
+            target.end_line,
+            target.end_column,
+        )
         if key in seen:
             raise ValueError("unused-function output repeats a source location")
-        keys.append(key)
+        located.append((key, target.message))
         seen.add(key)
-    return tuple(sorted(keys, key=lambda item: (item[0], item[1], item[2] or 0)))
+    return tuple(
+        sorted(
+            located,
+            key=lambda item: (
+                item[0][0],
+                item[0][1],
+                item[0][2] or 0,
+                item[0][3] or item[0][1],
+                item[0][4] or 0,
+            ),
+        )
+    )
 
 
 def _run_unit(
@@ -439,9 +487,11 @@ def _merge_observations(
     by_source: dict[str, list[_Observation]] = {}
     for observation in observations:
         by_source.setdefault(observation.source, []).append(observation)
+    accepted_targets: list[InspectionTarget] = []
+    accepted_functions: list[CppUnusedFunction] = []
     for source, rows in sorted(by_source.items()):
         configurations = tuple(sorted(row.configuration for row in rows))
-        diagnostic_sets = {row.diagnostics for row in rows}
+        diagnostic_sets = {tuple(item[0] for item in row.diagnostics) for row in rows}
         if len(diagnostic_sets) != 1:
             _append_error(
                 outcome,
@@ -453,7 +503,7 @@ def _merge_observations(
         tool_names = tuple(sorted({row.tool_name for row in rows}))
         tool_versions = tuple(sorted({row.tool_version for row in rows if row.tool_version}))
         if not diagnostics:
-            outcome.targets.append(
+            accepted_targets.append(
                 InspectionTarget(
                     file_path=source,
                     start_line=1,
@@ -467,28 +517,45 @@ def _merge_observations(
                 )
             )
             continue
-        for file_path, line, column in diagnostics:
+        for file_path, line, column, end_line, end_column in diagnostics:
+            messages = sorted(
+                {
+                    message
+                    for row in rows
+                    for key, message in row.diagnostics
+                    if key == (file_path, line, column, end_line, end_column)
+                }
+            )
+            diagnostic_message = messages[0] if messages else ""
+            detail = diagnostic_message.removeprefix("warning: ")
             target = InspectionTarget(
                 file_path=file_path,
                 start_line=line,
+                end_line=end_line,
                 start_column=column,
+                end_column=end_column,
                 target_name="Compiler:-Wunused-function",
                 status=EngineStatus.WARN,
                 message=(
-                    "Compiler reports an internal-linkage function defined but not used "
-                    f"in all {len(configurations)} analyzed configuration(s)"
+                    f"Compiler reports {detail} in all "
+                    f"{len(configurations)} analyzed configuration(s)"
                 ),
                 metrics={"configurations_checked": len(configurations)},
             )
-            outcome.targets.append(target)
-            outcome.functions.append(
+            accepted_targets.append(target)
+            accepted_functions.append(
                 CppUnusedFunction(
                     target=target,
                     configurations=configurations,
                     tool_names=tool_names,
                     tool_versions=tool_versions,
+                    diagnostic_message=diagnostic_message,
                 )
             )
+    if outcome.errors:
+        return
+    outcome.targets.extend(accepted_targets)
+    outcome.functions.extend(accepted_functions)
 
 
 def run_cpp_unused_functions(

@@ -287,11 +287,12 @@ _DECLARATIONS = (
         optional_tools=("gcc", "g++", "clang", "clang++"),
         limitations=(
             "Exact findings cover only compiler-diagnosed -Wunused-function definitions "
-            "spelled in a production translation unit and agreed across all of that source's "
-            "known configurations.",
-            "Headers, external-linkage symbols, templates, inline/COMDAT functions, linker "
-            "reachability, dynamic lookup, plugins, and Qt meta-object reachability are not "
-            "classified as dead by this probe.",
+            "whose primary location is attributed to a selected owned translation unit and "
+            "agreed across all of that source's known configurations.",
+            "Non-TU/header/external diagnostics, external-linkage symbols, templates, "
+            "inline/COMDAT functions, linker reachability, dynamic lookup, plugins, and Qt "
+            "meta-object reachability are not classified as dead by this probe. Macro-generated "
+            "definitions retain the compiler-attributed expansion location.",
         ),
     ),
     SupportDeclaration(

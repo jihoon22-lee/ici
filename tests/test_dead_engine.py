@@ -74,6 +74,7 @@ def test_dead_engine_reports_exact_compiler_unused_function(tmp_path, monkeypatc
     }
     assert result.extra["cpp_unused_functions_count"] == 1
     assert result.extra["cpp_unused_details"][0]["configurations"] == ["sha256:" + "a" * 64]
+    assert result.extra["cpp_unused_details"][0]["start_column"] == 13
     normalized = findings_for_result(result, tmp_path)
     assert len(normalized) == 1
     assert normalized[0].confidence == FindingConfidence.EXACT
@@ -118,6 +119,50 @@ def test_dead_engine_combines_python_heuristic_and_cpp_exact_evidence(
     assert result.extra["analysis_provenance"] == (
         "python-ast-heuristic+cpp-compiler-unused-function"
     )
+
+
+def test_cpp_failure_does_not_erase_completed_python_evidence(tmp_path, monkeypatch) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text("def public():\n    return 1\n", encoding="utf-8")
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.dead.run_cpp_unused_functions",
+        lambda *_args, **_kwargs: CppUnusedFunctionOutcome(
+            targets=[
+                InspectionTarget(
+                    file_path="src/main.cpp",
+                    start_line=1,
+                    target_name="C++UnusedFunctionError",
+                    status=EngineStatus.ERROR,
+                    message="compiler failed",
+                )
+            ],
+            errors=["compiler failed"],
+            mode="error",
+        ),
+    )
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+    assert result.extra["language_evidence"] == {
+        "python": "ESTIMATED",
+        "cpp": "NOT_RUN",
+    }
+
+
+def test_source_intake_failure_marks_discovered_cpp_scope_not_run(tmp_path) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_bytes(b"\xff\n")
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+    assert result.extra["language_evidence"]["cpp"] == "NOT_RUN"
 
 
 def test_required_cpp_unused_analysis_fails_when_exact_context_is_unavailable(

@@ -42,7 +42,7 @@ from ici.engines.test import TestEngine  # noqa: F401 - resolved dynamically by 
 from ici.engines.type_check import (
     TypeCheckEngine,  # noqa: F401 - resolved dynamically by CLI registry
 )
-from ici.engines.verify import VerifyOrchestrator
+from ici.engines.verify import VerifyOrchestrator, prepare_analysis_context
 from ici.reporters.console import print_line_distribution_chart
 from ici.reporters.issue_view import DEFAULT_MAX_FINDINGS, ConsoleGroupBy, ConsoleOptions
 from ici.reporters.json_rep import save_engine_json_report
@@ -327,13 +327,27 @@ def _run_engine_command(
     # Resolve via module attribute so tests can monkeypatch engine classes.
     engine_cls = getattr(sys.modules[__name__], engine_cls_name)
     config = _effective_config(ctx)
-    engine = _create_engine(engine_cls, config)
+    analysis_context = None
+    project = None
+    context_engines = getattr(engine_cls, "ANALYSIS_CONTEXT_ENGINES", frozenset())
+    if context_engines:
+        root = Path.cwd().resolve()
+        profile = str(config.get("ici", {}).get("profile", AnalysisProfile.STANDARD.value))
+        project, analysis_context = prepare_analysis_context(
+            root,
+            config,
+            engine_names=context_engines,
+            profile=profile,
+            probe_all_tools=False,
+        )
+    engine = _create_engine(engine_cls, config, analysis_context=analysis_context)
     raw_result = engine.run()
     raw_result.support_matrix = evaluate_support_matrix(
         Path.cwd().resolve(),
         config,
         [raw_result],
         engine_names={raw_result.engine_name},
+        project=project,
     )
     res = redact_engine_result(raw_result)
     _print_engine_result(res)
@@ -500,11 +514,15 @@ def _effective_config(ctx: typer.Context):
     return load_config(Path.cwd().resolve())
 
 
-def _create_engine(engine_cls, config=None):
+def _create_engine(engine_cls, config=None, *, analysis_context=None):
     """Construct an engine with the effective policy for the current project."""
 
     root = Path.cwd().resolve()
-    return engine_cls(root, config if config is not None else load_config(root))
+    return engine_cls(
+        root,
+        config if config is not None else load_config(root),
+        analysis_context=analysis_context,
+    )
 
 
 def _exit_for_safety_status(status: EngineStatus) -> None:

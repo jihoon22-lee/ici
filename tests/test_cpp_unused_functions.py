@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,7 @@ from ici.core.context import (
     AnalysisContext,
     AnalysisIdentity,
     CompilationContext,
+    CompilationDiagnostic,
     CompilationUnit,
     ProjectModel,
     canonical_digest,
@@ -181,8 +183,11 @@ def test_exact_unused_function_diagnostic_uses_discarded_assembly_probe(
     function = outcome.functions[0]
     assert function.target.file_path == "src/main.cpp"
     assert (function.target.start_line, function.target.start_column) == (1, 13)
+    assert (function.target.end_line, function.target.end_column) == (1, 13)
     assert function.target.status == EngineStatus.WARN
     assert function.configurations == (context.compilation.units[0].configuration,)
+    assert function.diagnostic_message == "warning: 'void unused_helper()' defined but not used"
+    assert "unused_helper" in function.target.message
     command = commands[0]
     assert command[-1] == str(root / "src/main.cpp")
     assert command[-4:-1] == ["-o", os.devnull, "-fdiagnostics-format=json"]
@@ -294,7 +299,7 @@ def test_header_diagnostics_are_counted_but_outside_the_exact_source_contract(
     )
 
     assert outcome.mode == "exact"
-    assert outcome.header_diagnostics_excluded == 1
+    assert outcome.non_tu_diagnostics_excluded == 1
     assert outcome.functions == []
     assert outcome.targets[0].status == EngineStatus.PASS
 
@@ -334,6 +339,49 @@ def test_configuration_disagreement_fails_closed_without_exact_findings(tmp_path
     assert outcome.targets[-1].status == EngineStatus.ERROR
 
 
+def test_later_configuration_disagreement_discards_earlier_source_targets(
+    tmp_path: Path,
+) -> None:
+    sources = {
+        "src/accepted.cpp": "static void unused_first() {}\n",
+        "src/disagrees.cpp": "static void unused_second() {}\n",
+    }
+    configurations = {
+        "src/accepted.cpp": (canonical_digest({"accepted": 0}),),
+        "src/disagrees.cpp": (
+            canonical_digest({"disagrees": 0}),
+            canonical_digest({"disagrees": 1}),
+        ),
+    }
+    root, context, snapshots = _context(
+        tmp_path,
+        sources,
+        configurations=configurations,
+    )
+    disagree_calls = 0
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        nonlocal disagree_calls
+        source = Path(command[-1])
+        if source.name == "accepted.cpp":
+            return _result([_diagnostic(source, 1, 13)])
+        disagree_calls += 1
+        return _result([] if disagree_calls == 1 else [_diagnostic(source, 1, 13)])
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / path for path in sources],
+        context,
+        source_texts=snapshots,
+        runner=runner,
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.functions == []
+    assert all(target.status == EngineStatus.ERROR for target in outcome.targets)
+    assert not any(target.file_path == "src/accepted.cpp" for target in outcome.targets)
+
+
 def test_missing_compilation_database_is_unavailable_without_execution(tmp_path: Path) -> None:
     root, context, snapshots = _context(
         tmp_path,
@@ -360,6 +408,84 @@ def test_missing_compilation_database_is_unavailable_without_execution(tmp_path:
         "Exact C++ unused-function analysis requires a compilation database"
     ]
     assert not called
+
+
+def test_compilation_database_without_canonical_digest_fails_before_execution(
+    tmp_path: Path,
+) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    context = replace(
+        context,
+        compilation=replace(context.compilation, database_digest=""),
+    )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert "no canonical digest" in outcome.errors[-1]
+
+
+def test_translation_unit_ingestion_error_fails_before_execution(tmp_path: Path) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    unit = replace(
+        context.compilation.units[0],
+        diagnostics=(
+            CompilationDiagnostic(
+                code="ambiguous-standard",
+                message="Conflicting language standards",
+                level="error",
+                source="src/main.cpp",
+            ),
+        ),
+    )
+    context = replace(
+        context,
+        compilation=replace(context.compilation, units=(unit,)),
+    )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert "ambiguous-standard" in outcome.errors[-1]
+
+
+def test_rule_owned_note_is_not_misclassified_as_an_unused_function(
+    tmp_path: Path,
+) -> None:
+    source = "static void helper() {}\nint main() { return 0; }\n"
+    root, context, snapshots = _context(tmp_path, {"src/main.cpp": source})
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: _result(
+            [_diagnostic(root / "src/main.cpp", 1, 13, kind="note")]
+        ),
+    )
+
+    assert outcome.mode == "exact"
+    assert outcome.functions == []
+    assert outcome.targets[0].status == EngineStatus.PASS
 
 
 def test_missing_production_configuration_fails_closed(tmp_path: Path) -> None:

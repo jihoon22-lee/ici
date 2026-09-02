@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 class DeadCodeEngine(BaseEngine):
     """Detect Python heuristics and exact C/C++ TU-local unused functions."""
 
+    ANALYSIS_CONTEXT_ENGINES = frozenset({"dead"})
     CACHE_IMPLEMENTATION_MODULES = (
         "ici.core._cpp_replay_policy",
         "ici.core.cpp_replay",
@@ -101,6 +102,7 @@ class DeadCodeEngine(BaseEngine):
         if python_sources and not self._analysis_errors:
             python_targets = self._detect_python_dead_code(python_sources)
             targets.extend(python_targets)
+        python_evidence = self._python_evidence(python_sources, python_candidates)
 
         cpp_outcome = CppUnusedFunctionOutcome(mode="not-applicable")
         if cpp_sources and not self._analysis_errors:
@@ -153,19 +155,17 @@ class DeadCodeEngine(BaseEngine):
         cpp_issue_count = len(cpp_outcome.functions)
         issue_count = python_issue_count + cpp_issue_count
         duration = time.time() - t0
-        python_evidence = self._python_evidence(python_sources, python_candidates)
         cpp_evidence = self._cpp_evidence(
             cpp_sources,
             bool(cpp_candidates),
             cpp_outcome,
             cpp_policy,
+            bool(self._analysis_errors),
         )
         if self._analysis_errors:
             status = EngineStatus.ERROR
             evidence = EvidenceState.NOT_RUN
             summary = "; ".join(self._analysis_errors[:3])
-            if python_sources:
-                python_evidence = EvidenceState.NOT_RUN
             if cpp_sources and cpp_policy != "off":
                 cpp_evidence = EvidenceState.NOT_RUN
         elif not python_sources and cpp_outcome.mode != "exact":
@@ -226,17 +226,22 @@ class DeadCodeEngine(BaseEngine):
                 "cpp_unused_functions_count": cpp_issue_count,
                 "cpp_unused_configurations_checked": cpp_outcome.configurations_checked,
                 "cpp_unused_sources_checked": cpp_outcome.sources_checked,
-                "cpp_unused_header_diagnostics_excluded": (cpp_outcome.header_diagnostics_excluded),
+                "cpp_unused_non_tu_diagnostics_excluded": (
+                    cpp_outcome.non_tu_diagnostics_excluded
+                ),
                 "cpp_unused_warnings": cpp_outcome.warnings,
                 "cpp_unused_details": [
                     {
                         "file_path": item.target.file_path,
                         "start_line": item.target.start_line,
+                        "end_line": item.target.end_line,
                         "start_column": item.target.start_column,
+                        "end_column": item.target.end_column,
                         "tool_rule_id": "-Wunused-function",
                         "configurations": list(item.configurations),
                         "tool_names": list(item.tool_names),
                         "tool_versions": list(item.tool_versions),
+                        "diagnostic_message": item.diagnostic_message,
                     }
                     for item in cpp_outcome.functions
                 ],
@@ -306,11 +311,12 @@ class DeadCodeEngine(BaseEngine):
         had_candidates: bool,
         outcome: CppUnusedFunctionOutcome,
         policy: str,
+        analysis_failed: bool,
     ) -> EvidenceState:
         if not sources:
             return (
                 EvidenceState.NOT_RUN
-                if had_candidates and outcome.mode == "error"
+                if had_candidates and analysis_failed
                 else EvidenceState.NOT_APPLICABLE
             )
         if policy == "off" or outcome.mode in {"unavailable", "error"}:
