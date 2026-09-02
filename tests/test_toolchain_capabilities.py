@@ -484,7 +484,7 @@ def test_collect_registered_capability_records_compiler_target(monkeypatch):
     capability, results = toolchain.collect_registered_capability(probe)
 
     assert run_calls == [
-        (path, "-dumpfullversion", "-dumpversion"),
+        (path, "--version"),
         (path, "-dumpmachine"),
     ]
     assert len(results) == 2
@@ -492,8 +492,67 @@ def test_collect_registered_capability_records_compiler_target(monkeypatch):
     assert capability.complete is True
     assert capability.version_tuple == (11, 4, 0)
     assert capability.details["vendor"] == "Ubuntu"
+    assert capability.details["compiler_family"] == "gcc"
     assert capability.details["target_triple"] == "x86_64-linux-gnu"
     assert capability.details["resolved_alias"] == "gcc"
+
+
+def test_gxx_registry_probe_identifies_clang_behind_the_only_available_alias(monkeypatch):
+    path = "/opt/toolchain/c++"
+    probe = next(item for item in toolchain.DEFAULT_TOOL_PROBES if item.name == "g++")
+    process_results = [
+        _result(stdout="Apple clang version 18.1.0\n"),
+        _result(stdout="arm64-apple-darwin24.0.0\n"),
+    ]
+    run_calls = []
+
+    def fake_which(command):
+        return path if command in {"g++", path} else None
+
+    def fake_run(argv, *, cwd, timeout, max_output_chars):
+        run_calls.append(tuple(argv))
+        return process_results.pop(0)
+
+    monkeypatch.setattr(toolchain.shutil, "which", fake_which)
+    monkeypatch.setattr(toolchain, "run_process", fake_run)
+
+    capability, results = toolchain.collect_registered_capability(probe)
+
+    assert run_calls == [(path, "--version"), (path, "-dumpmachine")]
+    assert len(results) == 2
+    assert capability.available is True
+    assert capability.complete is True
+    assert capability.version == "Apple clang version 18.1.0"
+    assert capability.version_tuple == (18, 1, 0)
+    assert capability.details["compiler_family"] == "clang"
+    assert capability.details["resolved_alias"] == "g++"
+
+
+def test_compiler_registry_probe_rejects_unidentified_family(monkeypatch):
+    path = "/opt/toolchain/g++"
+    probe = next(item for item in toolchain.DEFAULT_TOOL_PROBES if item.name == "g++")
+    process_results = [
+        _result(stdout="Acme C++ driver 1.2.3\n"),
+        _result(stdout="x86_64-linux-gnu\n"),
+    ]
+
+    def fake_which(command):
+        return path if command in {"g++", path} else None
+
+    def fake_run(argv, *, cwd, timeout, max_output_chars):
+        return process_results.pop(0)
+
+    monkeypatch.setattr(toolchain.shutil, "which", fake_which)
+    monkeypatch.setattr(toolchain, "run_process", fake_run)
+
+    capability, results = toolchain.collect_registered_capability(probe)
+
+    assert len(results) == 2
+    assert capability.available is True
+    assert capability.complete is False
+    assert capability.version_tuple == (1, 2, 3)
+    assert "compiler_family" not in capability.details
+    assert capability.error == "probe did not identify a supported compiler family"
 
 
 def test_collect_registered_capability_metadata_failure_keeps_tool_available_but_incomplete(

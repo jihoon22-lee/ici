@@ -18,7 +18,7 @@ from ici.core.cpp_replay import (
     replay_environment,
 )
 from ici.core.runner import ProcessResult, run_process
-from ici.core.toolchain import ToolCapability
+from ici.core.toolchain import ToolCapability, compiler_family_from_version
 
 _MAX_INCLUDE_ROOTS = 512
 _SEPARATE_INCLUDE_OPTIONS = {
@@ -125,7 +125,7 @@ def compiler_capability(
     # observed version identifies the real family instead of trusting the
     # compilation-database alias. This also keeps the diagnostic format and
     # tool attribution aligned with the process that will actually run.
-    clang_matches = [item for item in matches if "clang" in item.version.casefold()]
+    clang_matches = [item for item in matches if _compiler_family(item) == "clang"]
     if clang_matches:
         return next(
             (item for item in clang_matches if item.name in {"clang", "clang++"}),
@@ -143,12 +143,21 @@ def compiler_capability(
 def _compiler_family(capability: ToolCapability) -> str:
     """Return the observed compiler family before falling back to its probe name."""
 
-    version = capability.version.casefold()
-    if "clang" in version:
+    recorded = capability.details.get("compiler_family", "")
+    if recorded in {"gcc", "clang"}:
+        return recorded
+    observed = compiler_family_from_version(capability.version)
+    if observed:
+        return observed
+    try:
+        executable_name = Path(capability.path).resolve(strict=False).name.casefold()
+    except (OSError, RuntimeError):
+        executable_name = ""
+    if "clang" in executable_name:
         return "clang"
-    if "gcc" in version or "g++" in version or "gnu compiler" in version:
+    if "gcc" in executable_name or "g++" in executable_name:
         return "gcc"
-    return "gcc" if capability.name in {"gcc", "g++"} else "clang"
+    return "unknown"
 
 
 def compiler_diagnostic_command(
@@ -222,11 +231,12 @@ def gcc_compiler_for_replay(
     than an argv basename so ``c++`` and distro alternatives remain exact.
     """
 
+    capability = context.capabilities.capabilities.get("g++")
     approved = regular_executable(
         project_root,
-        context.capabilities.capabilities.get("g++"),
+        capability,
     )
-    if approved is None:
+    if approved is None or capability is None or _compiler_family(capability) != "gcc":
         return None
     try:
         replay = Path(replay_executable).resolve(strict=True)
@@ -235,11 +245,6 @@ def gcc_compiler_for_replay(
         if not replay.samefile(approved):
             return None
     except (OSError, RuntimeError):
-        return None
-    # On Apple platforms and some custom images, a ``g++`` alternative can
-    # resolve to Clang.  Do not apply GCC-specific header projection merely
-    # because the command was reached through a GNU-compatible alias.
-    if "clang" in replay.name.casefold():
         return None
     return replay
 
