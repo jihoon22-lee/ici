@@ -228,6 +228,7 @@ def _assert_sanitized_context(command: list[str], source: Path) -> None:
         "-Wextra",
         "-fsyntax-only",
         "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option",
     ]
     assert all(
         value not in command
