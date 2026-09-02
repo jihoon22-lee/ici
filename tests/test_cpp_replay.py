@@ -259,6 +259,8 @@ def test_strips_compile_output_dependency_color_and_diagnostic_write_options(
             "-fno-color-diagnostics",
             "-fdiagnostics-color=always",
             "-fdiagnostics-format=json",
+            "-fdiagnostics-show-option",
+            "-fno-diagnostics-show-option",
             "-Wp,-MMD,build/main.d",
             "-o",
             "build/main.o",

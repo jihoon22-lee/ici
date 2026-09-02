@@ -198,7 +198,13 @@ def test_exact_unused_function_diagnostic_uses_discarded_assembly_probe(
     assert "unused_helper" in function.target.message
     command = commands[0]
     assert command.count(str(root / "src/main.cpp")) == 1
-    assert command[-4:] == ["-S", "-o", os.devnull, "-fdiagnostics-format=json"]
+    assert command[-5:] == [
+        "-S",
+        "-o",
+        os.devnull,
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option",
+    ]
     assert "-S" in command
     assert "-Wunused-function" in command
     assert "-Wno-error=unused-function" in command

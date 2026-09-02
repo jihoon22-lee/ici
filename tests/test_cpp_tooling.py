@@ -4,14 +4,58 @@ from pathlib import Path
 
 import pytest
 
+from ici.core.capabilities import CapabilityInventory
 from ici.core.cpp_replay import ReplayCommandError, replay_environment
 from ici.core.runner import ProcessResult
+from ici.core.toolchain import ToolCapability
 from ici.engines._cpp_tooling import (
+    compiler_capability,
+    compiler_diagnostic_command,
     gcc_standard_library_projection,
     parse_compiler_include_search,
     tooling_arguments,
     tooling_include_roots,
 )
+
+
+def _compiler_capability(name: str, path: Path, version: str) -> ToolCapability:
+    return ToolCapability(
+        name=name,
+        path=str(path),
+        available=True,
+        version=version,
+        version_tuple=(18, 1, 0),
+        complete=True,
+        returncode=0,
+    )
+
+
+def test_diagnostic_format_follows_reported_family_behind_gxx_alias(tmp_path: Path) -> None:
+    compiler = tmp_path / "clang"
+    compiler.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    compiler.chmod(0o700)
+    inventory = CapabilityInventory(
+        capabilities={
+            "g++": _compiler_capability("g++", compiler, "18.1.0"),
+            "clang++": _compiler_capability("clang++", compiler, "Apple clang version 18.1.0"),
+        }
+    )
+
+    selected = compiler_capability(compiler, inventory)
+    command = compiler_diagnostic_command([str(compiler), "-S", "src/main.cpp"], inventory)
+
+    assert selected is not None and selected.name == "clang++"
+    assert "-fdiagnostics-parseable-fixits" in command
+    assert "-fdiagnostics-format=json" not in command
+    assert command[-1] == "src/main.cpp"
+    assert command[-2] == "-fdiagnostics-show-option"
+
+    alias_only = CapabilityInventory(
+        capabilities={"g++": _compiler_capability("g++", compiler, "Apple clang version 18.1.0")}
+    )
+    alias_command = compiler_diagnostic_command([str(compiler), "-S", "src/main.cpp"], alias_only)
+    assert "-fdiagnostics-parseable-fixits" in alias_command
+    assert "-fdiagnostics-format=json" not in alias_command
 
 
 def test_tooling_arguments_demote_fatal_warning_policy_without_losing_checks() -> None:

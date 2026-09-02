@@ -33,6 +33,8 @@ DROP_EXACT = frozenset(
         "-pipe",
         "-fcolor-diagnostics",
         "-fno-color-diagnostics",
+        "-fdiagnostics-show-option",
+        "-fno-diagnostics-show-option",
         "-v",
         "--verbose",
     }

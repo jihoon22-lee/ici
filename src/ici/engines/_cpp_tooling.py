@@ -9,6 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from ici.core._cpp_replay_policy import COMPILER_CAPABILITIES
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import AnalysisContext, CompilationUnit
 from ici.core.cpp_replay import (
@@ -107,15 +108,47 @@ def compiler_capability(
     """Return the probed capability matching one resolved compiler driver."""
 
     compiler = Path(executable).resolve(strict=False)
+    matches: list[ToolCapability] = []
     for capability in inventory.capabilities.values():
-        if not capability.path:
+        if capability.name not in COMPILER_CAPABILITIES or not capability.path:
             continue
         try:
             if Path(capability.path).resolve(strict=False) == compiler:
-                return capability
+                matches.append(capability)
         except (OSError, RuntimeError):
             continue
-    return None
+    if not matches:
+        return None
+
+    # Apple and distro alternatives can expose one Clang executable through
+    # both g++/gcc and clang++/clang spellings. Prefer the capability whose
+    # observed version identifies the real family instead of trusting the
+    # compilation-database alias. This also keeps the diagnostic format and
+    # tool attribution aligned with the process that will actually run.
+    clang_matches = [item for item in matches if "clang" in item.version.casefold()]
+    if clang_matches:
+        return next(
+            (item for item in clang_matches if item.name in {"clang", "clang++"}),
+            clang_matches[0],
+        )
+    compiler_name = compiler.name.casefold()
+    if "clang" in compiler_name:
+        return next(
+            (item for item in matches if item.name in {"clang", "clang++"}),
+            matches[0],
+        )
+    return matches[0]
+
+
+def _compiler_family(capability: ToolCapability) -> str:
+    """Return the observed compiler family before falling back to its probe name."""
+
+    version = capability.version.casefold()
+    if "clang" in version:
+        return "clang"
+    if "gcc" in version or "g++" in version or "gnu compiler" in version:
+        return "gcc"
+    return "gcc" if capability.name in {"gcc", "g++"} else "clang"
 
 
 def compiler_diagnostic_command(
@@ -131,13 +164,14 @@ def compiler_diagnostic_command(
     capability = compiler_capability(command[0], inventory)
     gcc_json = (
         capability is not None
-        and capability.name in {"gcc", "g++"}
+        and _compiler_family(capability) == "gcc"
         and capability.version_tuple >= (9,)
     )
     diagnostic_flag = "-fdiagnostics-format=json" if gcc_json else "-fdiagnostics-parseable-fixits"
+    controlled = (diagnostic_flag, "-fdiagnostics-show-option")
     if source_last:
-        return [*command[:-1], diagnostic_flag, command[-1]]
-    return [*command, diagnostic_flag]
+        return [*command[:-1], *controlled, command[-1]]
+    return [*command, *controlled]
 
 
 def inside(root: Path, path: Path) -> bool:
