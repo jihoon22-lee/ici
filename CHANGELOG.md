@@ -120,6 +120,25 @@
   execution plus missing cases as `WARN`/`ESTIMATED`; and optional actual failure plus missing
   cases as `FAIL`/`ESTIMATED`. The version remains `0.10.2`; no release is created.
 
+- **PR #132 CI-derived report and tool-path hardening**: Python test-output parsing is isolated in
+  `test_output.py` so the `test` engine remains below the repository line gate without changing
+  its compatibility facade. GitHub Markdown now caps each engine's target table at 100 rows and
+  bounds the appended Step Summary to 900,000 UTF-8 bytes, preserving valid multibyte text and
+  explicitly directing readers to the complete JSON/HTML reports when rows or bytes are omitted.
+  Workflow annotations are capped at 50 entries in deterministic severity order, with FAIL/ERROR
+  targets selected before WARN/SKIP and one omission notice. CI also persists the project
+  `.venv/bin/python` as `ICI_PYTHON` and `.venv/bin` on `GITHUB_PATH` before standalone
+  self-verification, so the installed ruff/pytest tools remain discoverable by ici. The first PR
+  CI run exposed the unbounded summary/annotation and tool-path issues. The post-fix local
+  source-checkout self-verification exits `0` (`WARN`: 7 passed, 5 warnings, 1 skipped), its
+  valid UTF-8 Step Summary is `100,609` bytes, and both `ruff` and `pytest` are reported ready.
+  Python 3.10 has `1,686` collected tests with `1,684` passed and `2` skipped; Ruff check/format
+  and mypy (`97` source files) pass; two builds of the `2,235,838` byte package are identical at
+  SHA-256 `a6e437ba08336d4ced2eb02752be3ec5849d029fa8bff2cbca182956b6b31e9f`; packaged smoke
+  passes. The PR CI rerun, sticky comment, Pages, and extracted-artifact byte-match remain
+  pending, so no remote or release acceptance is claimed. The version remains `0.10.2`; no
+  release is created.
+
 ## [0.10.2] - 2026-09-02
 
 ### Release discipline

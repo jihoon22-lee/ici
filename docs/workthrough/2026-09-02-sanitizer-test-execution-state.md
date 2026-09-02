@@ -76,15 +76,45 @@ failure remains the higher-precedence `FAIL`/`ERROR` result even when another la
 only skipped cases. Coverage generation or a pre-existing coverage artifact cannot substitute for
 execution evidence or promote an all-skipped run to `MEASURED`/`PASS`.
 
+### 4. CI-derived report and tool-path hardening
+
+The first PR #132 CI run exposed a separate integration boundary: a large self-verification
+could write more than GitHub's 1 MiB Step Summary limit and emit thousands of workflow
+annotations, while the standalone `dist/ici.pyz` invocation did not inherit the project virtual
+environment's installed `ruff`/`pytest` path. The follow-up keeps the complete JSON and HTML
+artifacts as the source of truth and bounds only the GitHub presentation surfaces:
+
+- `generate_markdown_report()` shows at most 100 target rows per engine in deterministic severity
+  order and records omitted rows with an explicit full-inventory notice.
+- `write_github_step_summary()` appends at most 900,000 UTF-8 bytes, truncating only at a valid
+  code-point boundary and including an honest notice that the JSON/HTML reports retain all
+  details.
+- `emit_github_actions_annotations()` emits at most 50 annotations, deterministically selecting
+  FAIL/ERROR before WARN/SKIP, followed by one `::notice::` omission message when needed.
+- The CI style step verifies the project `.venv/bin/python`, persists it as `ICI_PYTHON`, and
+  adds `.venv/bin` to `GITHUB_PATH` before standalone self-verification.
+
+These limits apply to GitHub's bounded display surfaces only; the JSON and HTML report contracts
+remain complete. The first CI run failed on the discovered integration boundary and the rerun is
+pending. The post-fix local source-checkout self-verification exits `0` with `WARN` (7 passed,
+5 warnings, 0 failed, 0 errors, 1 skipped across 13 engines), and its Step Summary is valid UTF-8
+and `100,609` bytes. The local package and smoke evidence below are final for this branch, but
+they do not replace PR CI or remote publication acceptance.
+
 ## Files
 
 The implementation commit updates these code and regression files:
 
 - `src/ici/core/cmake.py`
 - `src/ici/engines/test.py`
+- `src/ici/engines/test_output.py`
 - `src/ici/engines/sanitize.py`
+- `src/ici/reporters/markdown.py`
 - `src/ici/reporters/html/sections/test.py`
+- `.github/workflows/ci.yml`
 - `tests/test_execution_state.py`
+- `tests/test_reporter_hardening.py`
+- `tests/test_purity.py`
 
 This documentation update covers:
 
@@ -114,6 +144,11 @@ This documentation update covers:
 - Keep required and optional sanitizer policy separate: required missing execution blocks
   with `ERROR`/`NOT_RUN`; optional missing execution remains visible through
   `SKIP`/`WARN` and `ESTIMATED` evidence.
+- Keep GitHub presentation bounded and deterministic: cap target rows and annotations while
+  preserving FAIL/ERROR before lower-severity annotations, and direct readers to complete JSON/
+  HTML artifacts whenever a display surface omits content.
+- Bound Step Summary by UTF-8 bytes rather than characters, cut only at valid code-point
+  boundaries, and persist the project's installed Python/bin path before standalone dogfooding.
 - Keep the release boundary unchanged. The version remains `0.10.2`, and this slice does
   not create a release.
 
@@ -125,12 +160,15 @@ This documentation update covers:
 | Focused execution-state and real-CMake regression | `24 passed` |
 | Combined related suites | `196 passed`: `test_build_adapter`, `test_build_adapter_e2e`, `test_sanitize_engine`, `test_test_engine`, `test_reporters`, and `test_execution_state` |
 | Real QtTest fixture | Qt `6.10.2` fixture built and ran with `-xunitxml`; QSKIP emitted `<skipped message>`, XFAIL emitted no failure and passed, and XPASS emitted `<failure type="xpass">`; temporary fixture was deleted |
-| Full local Python 3.10 run | With real extracted clang-tidy 21: `1,682 collected; 1,680 passed, 2 skipped` in 63.81s. The skips require unavailable `clazy` or `clang++`; neither an unavailable tool nor a skipped test was silently counted as passed. This is local evidence, not PR CI or release acceptance. |
-| Ruff | check and format checks passed |
-| Mypy | `96` source files passed with no issues |
-| Reproducible package | Two consecutive builds produced byte-identical `dist/ici.pyz`, SHA-256 `9c2a240d3f6be3f13f7bc514baae6ad373bb97b6222da64af3bd2f91f6cf8739`. |
-| Smoke | Version/help, doctor, shell environments, Python 3.10 launch, artifact integrity, and Zero-CDN HTML checks passed; the self-verify exit was `1` because findings remain visible rather than being hidden |
+| Full local Python 3.10 run | With real extracted clang-tidy 21: `1,686 collected; 1,684 passed, 2 skipped`. The skips require unavailable `clazy` or `clang++`; neither an unavailable tool nor a skipped test was silently counted as passed. This is local evidence, not PR CI or release acceptance. |
+| Ruff | `uvx ruff check .` passed; `uvx ruff format --check .` reports `165 files already formatted` |
+| Mypy | `Success: no issues found in 97 source files` |
+| Source-checkout self-verification | Exit `0`; `WARN` with 13 engines (`7` passed, `5` warnings, `0` failed, `0` errors, `1` skipped). The generated HTML is `7,580,686` bytes, has the expected title and no external asset URLs. Capability inventory is healthy (`31` tools, `24` ready, `0` incomplete, `7` unavailable) and required `ruff`/`pytest` are ready. |
+| GitHub Step Summary bound | Valid UTF-8, `100,609` bytes (`<= 900,000`); line summary and ready tool rows are present, while the complete JSON/HTML reports remain unbounded source-of-truth artifacts. |
+| Reproducible package | Two consecutive builds produced byte-identical `dist/ici.pyz`, `2,235,838` bytes, SHA-256 `a6e437ba08336d4ced2eb02752be3ec5849d029fa8bff2cbca182956b6b31e9f`. |
+| Smoke | Version/help, doctor, shell environments, Python 3.10 launch, artifact integrity, and Zero-CDN HTML checks passed; packaged smoke exited `0`. |
 | Documentation hygiene | `git diff --check` passed |
+| PR #132 integration acceptance | First CI run failed after exposing the >1 MiB summary, unbounded annotation, and standalone-tool-path issues. The bounded report/workflow fixes and final local gates are complete; PR CI rerun, sticky comment, Pages, and extracted-artifact byte-match remain pending. |
 
 The focused and related-suite results are local evidence. This workthrough does not claim
 PR CI, sticky-comment publication, Pages readiness, extracted-artifact HTML matching, or a
@@ -140,6 +178,9 @@ full release gate.
 
 - Run the branch through PR CI and record Merge Gate, sticky comment, Pages, and extracted
   artifact evidence before treating the follow-up as remotely accepted.
+- After the CI rerun is green, verify the remote sticky comment, Pages, and extracted artifact
+  byte-match against the final local package evidence above. Until then, do not claim final PR or
+  release acceptance.
 - Keep the remaining I4-4 items (TSan profile, resource/lifetime/security mapping, and
   quality-zoo UAF/leak/UB/Qt lifetime scenarios) pending.
 - Revisit the release decision only after the repository-wide gate and required cross-repo
