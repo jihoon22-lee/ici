@@ -125,6 +125,7 @@ def test_html_and_markdown_render_related_finding_locations(tmp_path: Path):
     assert "Related evidence" in content
     assert 'data-rel-path="include/macros.hpp"' in content
     assert "include/macros.hpp:L9:C7" in content
+    assert 'aria-label="Copy location include/macros.hpp:L9:C7"' in content
     assert "note: expanded from &lt;NULL&gt; &amp; reviewed" in content
     assert "<code>[external]:L1</code>" in content
     assert 'data-rel-path="[external]"' not in content
