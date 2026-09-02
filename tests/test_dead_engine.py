@@ -9,6 +9,7 @@ from ici.core.models import (
     FindingConfidence,
     InspectionTarget,
     ToolEvidence,
+    aggregate_suite_status,
 )
 from ici.engines._cpp_unused_functions import (
     CppUnusedFunction,
@@ -125,6 +126,40 @@ def test_dead_engine_combines_python_heuristic_and_cpp_exact_evidence(
     assert result.extra["analysis_provenance"] == (
         "python-ast-heuristic+cpp-compiler-unused-function"
     )
+
+
+def test_cpp_exact_scope_includes_owned_external_build_directory_units(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    src = tmp_path / "src"
+    gui = src / "gui"
+    gui.mkdir(parents=True)
+    core = src / "core.cpp"
+    widget = gui / "widget.cpp"
+    core.write_text("int core() { return 0; }\n", encoding="utf-8")
+    widget.write_text("int widget() { return 0; }\n", encoding="utf-8")
+    observed: list[str] = []
+
+    def run_scope(_root, cpp_files, _context, **_kwargs):  # type: ignore[no-untyped-def]
+        observed.extend(path.relative_to(tmp_path).as_posix() for path in cpp_files)
+        return CppUnusedFunctionOutcome(
+            mode="exact",
+            configurations_checked=2,
+            sources_checked=2,
+        )
+
+    monkeypatch.setattr("ici.engines.dead.run_cpp_unused_functions", run_scope)
+
+    result = DeadCodeEngine(
+        tmp_path,
+        {"project": {"cpp_external_build_dirs": ["src/gui"]}},
+    ).run()
+
+    assert observed == ["src/core.cpp", "src/gui/widget.cpp"]
+    assert result.status == EngineStatus.PASS
+    assert result.evidence == EvidenceState.MEASURED
+    assert result.extra["cpp_unused_sources_checked"] == 2
 
 
 def test_hybrid_findings_keep_language_confidence_and_tool_attribution(
@@ -332,6 +367,7 @@ def test_required_cpp_unused_analysis_fails_when_exact_context_is_unavailable(
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
     assert result.required is True
+    assert aggregate_suite_status([result]) == EngineStatus.ERROR
     assert result.extra["language_evidence"]["cpp"] == "NOT_RUN"
     assert result.targets[-1].status == EngineStatus.ERROR
 
@@ -354,7 +390,8 @@ def test_auto_cpp_unused_analysis_is_transparently_not_run_without_context(
 
     assert result.status == EngineStatus.SKIP
     assert result.evidence == EvidenceState.NOT_RUN
-    assert result.required is True
+    assert result.required is False
+    assert aggregate_suite_status([result]) == EngineStatus.WARN
     assert result.extra["cpp_unused_mode"] == "unavailable"
     assert result.targets[-1].status == EngineStatus.SKIP
 

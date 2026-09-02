@@ -262,9 +262,20 @@ class DeadCodeEngine(BaseEngine):
         cpp_policy: str,
         cpp_scope_present: bool,
         python_sources: tuple[AnalysisSource, ...],
+        cpp_outcome: CppUnusedFunctionOutcome,
+        analysis_failed: bool,
     ) -> bool:
-        cpp_only_disabled = cpp_scope_present and not python_sources and cpp_policy == "off"
-        return bool(cfg.get("required", True)) and not cpp_only_disabled
+        cpp_only = cpp_scope_present and not python_sources
+        cpp_only_disabled = cpp_only and cpp_policy == "off"
+        cpp_only_auto_unavailable = (
+            cpp_only
+            and cpp_policy == "auto"
+            and not analysis_failed
+            and cpp_outcome.mode in {"not-applicable", "unavailable"}
+        )
+        return bool(cfg.get("required", True)) and not (
+            cpp_only_disabled or cpp_only_auto_unavailable
+        )
 
     def _result_state(
         self,
@@ -369,6 +380,8 @@ class DeadCodeEngine(BaseEngine):
             cpp_policy,
             cpp_scope_present,
             python_sources,
+            cpp_outcome,
+            bool(self._analysis_errors),
         )
         result = self.create_result(
             name="dead",
@@ -433,11 +446,10 @@ class DeadCodeEngine(BaseEngine):
                 ],
                 mode="off",
             )
-        compilable = {
-            path.relative_to(self.project_root).as_posix()
-            for path in self.project_compilable_cpp_sources()
+        production_sources = {
+            path.relative_to(self.project_root).as_posix() for path in self.project_cpp_sources()
         }
-        cpp_files = [source.path for source in sources if source.file_path in compilable]
+        cpp_files = [source.path for source in sources if source.file_path in production_sources]
         if not cpp_files:
             return CppUnusedFunctionOutcome(
                 warnings=["No production C/C++ translation unit is available for analysis"],
