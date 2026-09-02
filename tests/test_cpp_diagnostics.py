@@ -305,6 +305,7 @@ def test_clang_tidy_note_inherits_parent_rule_and_family(tmp_path: Path) -> None
         "src/main.cpp:3:5: warning: prefer nullptr [modernize-use-nullptr]\n"
         "src/main.cpp:4:7: note: expanded from macro 'NULL'\n"
         'fix-it:"src/main.cpp":{4:7-4:11}:"nullptr"\n'
+        "src/main.cpp:5:9: note: replacement is safe [modernize-use-nullptr]\n"
     )
 
     result = parse_clang_tidy_diagnostics(root, root, "", output)
@@ -313,8 +314,8 @@ def test_clang_tidy_note_inherits_parent_rule_and_family(tmp_path: Path) -> None
     assert result.error == ""
     assert len(result.diagnostics) == 1
     primary = result.diagnostics[0]
-    assert len(primary.related_diagnostics) == 1
-    note = primary.related_diagnostics[0]
+    assert len(primary.related_diagnostics) == 2
+    note, ruled_note = primary.related_diagnostics
     assert primary.tool_rule_id == "modernize-use-nullptr"
     assert primary.family == "clang-tidy"
     assert note.tool_rule_id == primary.tool_rule_id
@@ -324,6 +325,8 @@ def test_clang_tidy_note_inherits_parent_rule_and_family(tmp_path: Path) -> None
     assert note.target.start_column == 7
     assert len(note.fixits) == 1
     assert note.fixits[0].replacement == "nullptr"
+    assert ruled_note.tool_rule_id == primary.tool_rule_id
+    assert ruled_note.target.start_line == 5
 
 
 def test_clang_tidy_llvm18_empty_structural_note_keeps_concrete_note(
