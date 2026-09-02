@@ -332,6 +332,21 @@ def test_pytest_summary_only_skip_is_retained_as_not_executed(tmp_path: Path):
     assert targets[0].target_name == "[Python] Skipped (3)"
 
 
+def test_pytest_summary_combines_failures_and_collection_errors(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    targets = []
+
+    passed, total, has_failure = engine._parse_pytest_stdout(
+        "======= 2 passed, 1 failed, 3 errors, 4 skipped, 5 xfailed, 6 xpassed =======\n",
+        targets,
+    )
+
+    assert (passed, total, has_failure) == (7, 21, True)
+    by_name = {target.target_name: target for target in targets}
+    assert by_name["[Python] Failed (4)"].metrics["test_cases"] == 4
+    assert by_name["[Python] XPass (6)"].status is EngineStatus.FAIL
+
+
 @pytest.mark.parametrize(
     ("required", "expected_status", "expected_evidence"),
     [

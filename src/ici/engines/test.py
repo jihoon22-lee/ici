@@ -685,12 +685,12 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             )
         if total == 0:
             passed_match = re.search(r"\b(\d+)\s+passed\b", out)
-            failed_match = re.search(r"\b(\d+)\s+(?:failed|errors?)\b", out)
+            failed_matches = re.finditer(r"\b(\d+)\s+(?:failed|errors?)\b", out)
             skipped_match = re.search(r"\b(\d+)\s+skipped\b", out)
             xfailed_match = re.search(r"\b(\d+)\s+xfailed\b", out)
             xpassed_match = re.search(r"\b(\d+)\s+xpassed\b", out)
             ordinary_passed = int(passed_match.group(1)) if passed_match else 0
-            failed = int(failed_match.group(1)) if failed_match else 0
+            failed = sum(int(match.group(1)) for match in failed_matches)
             skipped = int(skipped_match.group(1)) if skipped_match else 0
             xfailed = int(xfailed_match.group(1)) if xfailed_match else 0
             xpassed = int(xpassed_match.group(1)) if xpassed_match else 0
