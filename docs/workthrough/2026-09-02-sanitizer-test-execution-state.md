@@ -38,6 +38,9 @@ TestCaseResult("filtered", False, "disabled by platform", executed=False)
   that binary's failure detail. It therefore does not claim every function-level skip as a
   separate qmake scope (with case-level XML as a limited fallback only when binary calls cannot
   be recovered).
+- Pytest verbose output and terminal summaries map `SKIPPED` to a collected but non-executed
+  case, `XFAIL` to an executed expected failure that passes, and `XPASS` to an executed failure.
+  A summary-only `N skipped` result is retained as `[Python] Skipped (N)` rather than a clean run.
 
 ### 3. Engine and HTML behavior
 
@@ -58,6 +61,11 @@ Required missing execution promotes the sanitizer engine even when another case 
 the executed failure target is still retained as `FAIL`. Non-executed cases do not count
 as measured sanitizer scopes or sanitizer issues. A project with no applicable scope at
 all remains the separate explicit non-applicable/skip path.
+
+The test engine applies the same all-collected-skipped rule across Python and C++ cases:
+required execution is `ERROR`/`NOT_RUN`, while optional execution is `SKIP`/`ESTIMATED`.
+Coverage generation or a pre-existing coverage artifact cannot substitute for execution
+evidence or promote an all-skipped run to `MEASURED`/`PASS`.
 
 ## Files
 
@@ -98,10 +106,10 @@ This documentation update covers:
 | Check | Result |
 |---|---|
 | Runtime | Python `3.10.21` |
-| Focused execution-state and real-CMake regression | `14 passed` |
-| Combined related suites | `186 passed`: `test_build_adapter`, `test_build_adapter_e2e`, `test_sanitize_engine`, `test_test_engine`, `test_reporters`, and `test_execution_state` |
+| Focused execution-state and real-CMake regression | `18 passed` |
+| Combined related suites | `190 passed`: `test_build_adapter`, `test_build_adapter_e2e`, `test_sanitize_engine`, `test_test_engine`, `test_reporters`, and `test_execution_state` |
 | Real QtTest fixture | Qt `6.10.2` fixture built and ran with `-xunitxml`; QSKIP emitted `<skipped message>`, XFAIL emitted no failure and passed, and XPASS emitted `<failure type="xpass">`; temporary fixture was deleted |
-| Additional local Python run | With real extracted clang-tidy 21: `1,671 collected; 1,669 passed, 2 skipped` (local observation only, not PR CI or release acceptance) |
+| Full local Python 3.10 run | With real extracted clang-tidy 21: `1,676 collected; 1,674 passed, 2 skipped` in 71.78s. The skips require unavailable `clazy` or `clang++`; neither exercised scope was silently counted as passed. This is local evidence, not PR CI or release acceptance. |
 | Ruff | check and format checks passed |
 | Documentation hygiene | `git diff --check` passed |
 

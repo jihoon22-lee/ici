@@ -219,6 +219,13 @@ Python 3.10 local run은 focused C++/CTest 회귀 161 passed, full suite 1,538 p
 PR/정확한 main gate와 공개 v0.10.2 release evidence는 완료됐다. 남은 delivery evidence는
 공개된 v0.10.2를 사용하는 BuildScope 최종 검증입니다.
 
+테스트 실행 상태는 수집 상태와 분리됩니다. CTest/QtTest와 pytest의 skip은 실패로 세지 않지만
+실행 증거로도 세지 않으며, pytest `XFAIL`은 실행된 예상 실패이자 PASS, `XPASS`는 실행된
+실패로 정규화합니다. 수집된 Python 또는 C++ 테스트가 전부 skip이면 필수 `test` 엔진은
+`ERROR`/`NOT_RUN`, 선택 엔진은 `SKIP`/`ESTIMATED`이고, 이때 생성된 coverage만으로 실행을
+증명하지 않습니다. `sanitize`의 필수 C++ scope는 한 case라도 미실행이면 fail-closed합니다.
+버전은 계속 `0.10.2`이며 이 보정만으로 release하지 않습니다.
+
 다중 GCC 회귀를 재현한 Ubuntu 24.04에서는 GCC 13/14가 함께 설치된 상태에서 toy-projects PR #38
 run `33531285208`의 Qt 5/Qt 6 deep clazy가 실패했습니다. fixed local `dist/ici.pyz`는
 `/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`, `/usr/include/c++/13/backward`를

@@ -924,6 +924,13 @@ CTest JUnit의 `<skipped>`와 `status="notrun"`/`skip`/`skipped`/`disabled`/`bla
 처리됩니다. 알 수 없는 `result`도 `executed = true`, `passed = false`로 처리해 조용한
 통과를 막습니다.
 
+pytest도 verbose per-test 출력과 terminal summary를 같은 실행 상태로 정규화합니다.
+`SKIPPED`는 수집됐지만 실행되지 않은 case, `XFAIL`은 실행된 예상 실패이자 PASS, `XPASS`는
+실행된 unexpected pass이자 FAIL입니다. case별 줄이 없고 summary에 `N skipped`만 있어도
+`[Python] Skipped (N)` target으로 미실행 evidence를 보존합니다. 수집된 Python/C++ test가
+전부 skip이면 `[engines.test].required = true`인 test engine은 `ERROR`/`NOT_RUN`,
+`false`인 선택 engine은 `SKIP`/`ESTIMATED`입니다.
+
 이 상태는 테스트 수와 sanitizer 측정 범위에 각각 다음처럼 반영됩니다.
 
 | 결과 | `test` 엔진 | `sanitize` 엔진 (`required = false`) |
@@ -938,6 +945,10 @@ CTest JUnit의 `<skipped>`와 `status="notrun"`/`skip`/`skipped`/`disabled`/`bla
 `ERROR`/`NOT_RUN`으로 승격됩니다. 따라서 sanitizer build가 성공했다는 사실만으로 테스트가
 실행됐다고 간주하지 않습니다. HTML `Tests & Coverage` 탭은 SKIP case를 amber 색상의 별도
 행으로 렌더링해 failure 목록과 섞지 않습니다.
+
+coverage.py/gcov 산출물은 별도의 측정 결과일 뿐 테스트 실행 증거가 아닙니다. Coverage pass나
+기존 coverage JSON이 all-skipped pytest run을 `MEASURED`/`PASS`로 승격하거나, 수집됐지만
+실행되지 않은 case를 실행된 것으로 바꾸지 않습니다.
 
 qmake 경로에서 `-xunitxml`을 신뢰하지 않는 이유가 있습니다. 그 인자는 **QtTest
 바이너리에만** 의미가 있고, 실제 프로젝트는 QtTest와 자체 `main()` 테스트를 섞어

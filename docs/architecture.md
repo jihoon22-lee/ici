@@ -179,6 +179,11 @@ ici/
   식별한 테스트 바이너리 하나입니다. QtTest XML은 해당 바이너리의 failure detail을 보강할
   뿐이며, qmake에서 모든 function-level skip을 개별 scope로 집계한다고 주장하지 않습니다.
 
+  Python pytest 출력도 같은 의미로 projection됩니다. verbose/terminal summary의 `SKIPPED`는
+  미실행, `XFAIL`은 실행된 예상 실패이자 PASS, `XPASS`는 실행된 실패입니다. `test` 엔진은 모든 언어의
+  수집 case가 미실행이면 required에서 `ERROR`/`NOT_RUN`, optional에서 `SKIP`/`ESTIMATED`로
+  집계하고, 해당 run의 coverage 산출물은 테스트 실행 증거로 사용하지 않습니다.
+
 - **`EngineResult`**: 단일 검증 엔진의 종합 결과입니다.
   - `engine_name`: 엔진 식별자 (`line`, `lint`, `test`, ...)
   - `status`: 엔진 종합 평가 상태

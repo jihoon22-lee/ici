@@ -452,6 +452,14 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   qmake에서는 `make check` transcript가 테스트 바이너리 하나를 권위 있는 scope로 세며,
   QtTest XML은 그 바이너리의 failure detail만 보강합니다. 따라서 qmake 경로가 모든
   function-level skip을 개별 scope로 집계한다고 해석하지 않습니다.
+- **pytest 상태 해석**: verbose per-test 출력과 terminal summary에서 `SKIPPED`는 수집됐지만
+  실행되지 않은 case로 `SKIP`/비실행 evidence가 됩니다. `XFAIL`은 실행된 예상 실패이자
+  PASS이고, `XPASS`는 실행된 unexpected pass이자 `FAIL`입니다. case line이 없고 summary에
+  `N skipped`만 있는 경우에도 `[Python] Skipped (N)` aggregate target으로 미실행 상태를
+  보존합니다. 수집된 Python/C++ case가 전부 미실행이면 `[engines.test].required = true`에서
+  test engine은 `ERROR`/`NOT_RUN`, `false`에서 `SKIP`/`ESTIMATED`입니다. coverage.py/gcov
+  생성물이나 별도 coverage pass는 이 execution state를 대체하거나 all-skipped run을 clean
+  measured 결과로 승격할 수 없습니다.
 - **Python 실행기**: `[engines.test].python`이 지정되면 해당 인터프리터를 우선 사용하고,
   없으면 프로젝트 `.venv`의 Python, 마지막으로 `sys.executable` 순서로 선택합니다. pytest,
   coverage.py, unittest는 모두 이 동일한 인터프리터의 `-m` 모듈 호출로 실행하며 PATH에 있는
@@ -469,7 +477,9 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 - **커버리지 정책**: `coverage_required = true`이면 Python `coverage.json` 또는 C++ `gcov`
   산출물이 실제로 생성·파싱되어야 하며, 누락·불완전·잘못된 출력은 `ERROR`/`NOT_RUN`입니다.
   `false`이면 커버리지 수치는 `ESTIMATED`로 표시되고 결과는 최소 `WARN`이며, 추정치는 TEM·
-  커버리지 임계값의 `PASS` 근거로 사용되지 않습니다.
+  커버리지 임계값의 `PASS` 근거로 사용되지 않습니다. Coverage 산출물은 테스트 실행 상태의
+  대체 증거가 아니므로, all-collected-skipped pytest run을 `MEASURED` 또는 `PASS`로 바꾸지
+  않습니다.
 - **실측 JSON 검증**: Python JSON은 파일/전체 statement·branch 수의 일관성, 양의 정수인
   `executed_lines`/`missing_lines` 배열의 개수·중복·교집합을 검증합니다. 0 statement 또는
   측정 불가능한 산출물은 실측으로 인정하지 않으며, coverage `--version`의 timeout·절단·spawn·

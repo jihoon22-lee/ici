@@ -104,7 +104,11 @@
   that binary's failure detail, so qmake does not claim every function-level skip as an individual
   aggregate scope.
   The test engine exposes `skipped_tests` and per-suite skipped counts, and the HTML test view
-  renders skipped cases separately. Sanitizer policy now treats required all/mixed missing test
+  renders skipped cases separately. Pytest verbose and terminal-summary fallbacks preserve
+  `SKIPPED`, treat `XFAIL` as an executed expected failure and pass, and fail closed on `XPASS`. A test-engine
+  run in which every collected Python or C++ test was skipped is `ERROR`/`NOT_RUN` when required and
+  `SKIP`/`ESTIMATED` when optional; coverage output is not accepted as test execution evidence.
+  Sanitizer policy now treats required all/mixed missing test
   execution as `ERROR`/`NOT_RUN`; optional all-missing as `SKIP`/`ESTIMATED`; optional mixed clean
   execution plus missing cases as `WARN`/`ESTIMATED`; and optional actual failure plus missing
   cases as `FAIL`/`ESTIMATED`. The version remains `0.10.2`; no release is created.
