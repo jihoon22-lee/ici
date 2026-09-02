@@ -94,7 +94,8 @@ def test_html_and_markdown_render_related_finding_locations(tmp_path: Path):
                 9,
                 start_column=7,
                 label="note: expanded from <NULL> & reviewed",
-            )
+            ),
+            SourceLocation("[external]", 1, label="note: system declaration"),
         ],
     )
     result = EngineResult(
@@ -114,6 +115,8 @@ def test_html_and_markdown_render_related_finding_locations(tmp_path: Path):
     assert "Related diagnostic locations" in markdown
     assert "include/macros.hpp#L9:C7" in markdown
     assert "note: expanded from &lt;NULL&gt; &amp; reviewed" in markdown
+    assert "<code>&#91;external&#93;#L1</code>" in markdown
+    assert "blob/abc1234/%5Bexternal%5D" not in markdown
 
     html_out = tmp_path / "related.html"
     generate_html_report(suite, html_out, project_name="Related", base_dir=tmp_path)
@@ -123,6 +126,17 @@ def test_html_and_markdown_render_related_finding_locations(tmp_path: Path):
     assert 'data-rel-path="include/macros.hpp"' in content
     assert "include/macros.hpp:L9:C7" in content
     assert "note: expanded from &lt;NULL&gt; &amp; reviewed" in content
+    assert "<code>[external]:L1</code>" in content
+    assert 'data-rel-path="[external]"' not in content
+
+    result.targets = []
+    native_only = generate_markdown_report(
+        suite,
+        repo_url="https://github.com/owner/repo",
+        commit_sha="abc1234",
+    )
+    assert "2 related locations" in native_only
+    assert "include/macros.hpp#L9:C7" in native_only
 
 
 def test_html_report_includes_module_coverage_table(tmp_path: Path):

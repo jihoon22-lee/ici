@@ -74,7 +74,7 @@ def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
                 )
             related_block = (
                 "<div class='issue-related'>"
-                "<div class='issue-related-title'>Related evidence</div>"
+                "<h3 class='issue-related-title'>Related evidence</h3>"
                 f"<ul>{''.join(related_items)}</ul>"
                 "</div>"
             )

@@ -241,47 +241,6 @@ def generate_markdown_report(
 
     # Target Inspections & Breakdown for each Engine
     for res in suite.results:
-        if not res.targets:
-            continue
-
-        target_count = len(res.targets)
-        warn_fail_count = sum(1 for t in res.targets if t.status != EngineStatus.PASS)
-        header_badge = (
-            f" ({warn_fail_count} issues)" if warn_fail_count > 0 else f" ({target_count} targets)"
-        )
-
-        md.append("<details>")
-        md.append(
-            f"<summary><b>🔍 <code>{_escape_inline(res.engine_name)}</code> "
-            f"Detailed Targets & Locations{header_badge}</b></summary>\n"
-        )
-
-        md.append("| Location | Symbol / Rule | Status | Details |")
-        md.append("|---|---|:---:|---|")
-
-        ordered_targets = sorted(
-            enumerate(res.targets),
-            key=lambda item: (_target_status_rank(item[1].status), item[0]),
-        )
-        visible_targets = [
-            target for _, target in ordered_targets[:MAX_GITHUB_TARGET_ROWS_PER_ENGINE]
-        ]
-        for target in visible_targets:
-            loc_link = _make_gh_link(
-                target.file_path, target.start_line, target.end_line, repo_url, commit_sha
-            )
-            status_b = f"`{target.status.value}`"
-            sym = _render_code(target.target_name or "-")
-            msg = _escape_table_cell(target.message or "-")
-            md.append(f"| {loc_link} | {sym} | {status_b} | {msg} |")
-
-        omitted_targets = target_count - len(visible_targets)
-        if omitted_targets:
-            md.append(
-                f"\n> {omitted_targets} target row(s) omitted from this bounded GitHub view. "
-                "The JSON and HTML reports retain the full inventory.\n"
-            )
-
         try:
             related_rows = [
                 (finding.tool_rule_id or finding.rule_id, location)
@@ -291,6 +250,51 @@ def generate_markdown_report(
             ]
         except (TypeError, ValueError):
             related_rows = []
+        if not res.targets and not related_rows:
+            continue
+
+        target_count = len(res.targets)
+        warn_fail_count = sum(1 for t in res.targets if t.status != EngineStatus.PASS)
+        if warn_fail_count > 0:
+            header_badge = f" ({warn_fail_count} issues)"
+        elif target_count:
+            header_badge = f" ({target_count} targets)"
+        else:
+            header_badge = f" ({len(related_rows)} related locations)"
+
+        md.append("<details>")
+        md.append(
+            f"<summary><b>🔍 <code>{_escape_inline(res.engine_name)}</code> "
+            f"Detailed Targets & Locations{header_badge}</b></summary>\n"
+        )
+
+        if res.targets:
+            md.append("| Location | Symbol / Rule | Status | Details |")
+            md.append("|---|---|:---:|---|")
+
+            ordered_targets = sorted(
+                enumerate(res.targets),
+                key=lambda item: (_target_status_rank(item[1].status), item[0]),
+            )
+            visible_targets = [
+                target for _, target in ordered_targets[:MAX_GITHUB_TARGET_ROWS_PER_ENGINE]
+            ]
+            for target in visible_targets:
+                loc_link = _make_gh_link(
+                    target.file_path, target.start_line, target.end_line, repo_url, commit_sha
+                )
+                status_b = f"`{target.status.value}`"
+                sym = _render_code(target.target_name or "-")
+                msg = _escape_table_cell(target.message or "-")
+                md.append(f"| {loc_link} | {sym} | {status_b} | {msg} |")
+
+            omitted_targets = target_count - len(visible_targets)
+            if omitted_targets:
+                md.append(
+                    f"\n> {omitted_targets} target row(s) omitted from this bounded GitHub view. "
+                    "The JSON and HTML reports retain the full inventory.\n"
+                )
+
         if related_rows:
             visible_related = related_rows[:MAX_GITHUB_RELATED_ROWS_PER_ENGINE]
             md.append("\n**Related diagnostic locations:**\n")
@@ -438,7 +442,7 @@ def _make_gh_link(
         display_anchor += f"-C{end_column}"
     display = f"{file_path}#{display_anchor}"
     escaped_display = _render_code(display)
-    if repo_url and commit_sha:
+    if file_path != "[external]" and repo_url and commit_sha:
         parsed = urlsplit(repo_url)
         if parsed.scheme in ("http", "https") and parsed.netloc:
             encoded_file = quote(file_path, safe="/-._~")
