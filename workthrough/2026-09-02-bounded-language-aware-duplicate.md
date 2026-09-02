@@ -4,12 +4,14 @@
 
 This workthrough records the local duplicate-analysis slice that adds language-aware lexical
 normalization and bounded Type-2 clone matching for Python and C/C++. It is deliberately narrower
-than the I4-3 checkpoint: the lexical/token-region sub-scope is locally implemented and tested,
+than the I4-3 checkpoint: the lexical/token-region sub-scope is implemented, locally tested, and
+remotely accepted,
 while compiler/linker-backed exact dead-symbol evidence and full duplicate semantic analysis remain
 pending.
 
-The ici version remains `0.10.2`. This slice has no release, PR, CI, main-branch, Pages, or hosted
-artifact evidence; all results below are local evidence only.
+The ici version remains `0.10.2`, and this slice creates no release. The implementation was later
+accepted through PR #135 and exact-main CI; the local measurements below remain explicitly local,
+while the remote artifact and Pages evidence is recorded in a separate section.
 
 ## Context
 
@@ -165,22 +167,57 @@ fingerprints, both lexical-v1 tokenizers, and the region/signal metadata. Their 
 with exact project titles and zero external HTTP assets. The generated JSON/HTML lived only in the
 detached validation worktree and was removed after inspection.
 
+## Remote Acceptance
+
+[PR #135](https://github.com/jihoon22-lee/ici/pull/135), titled
+`feat(dup): add bounded language-aware clone analysis`, passed [CI run
+`33647055492`](https://github.com/jihoon22-lee/ici/actions/runs/33647055492). The verification,
+Qt 5 and Qt 6 viewer builds, PR report publication, and Merge Gate all succeeded. The single
+[`<!-- ici-report -->` sticky comment](https://github.com/jihoon22-lee/ici/pull/135#issuecomment-5511919126)
+contains the current run and exactly two report links. Both artifact JSON documents identify the
+synthetic PR merge commit `cc3a473f5c79f03fc7e6c310b8b08a171ba34755`, matching
+`refs/pull/135/merge`.
+
+The downloaded `ici-verification-report` artifact and PR Pages were byte-identical after strict
+UTF-8 decoding, exact-title checks, and a zero-external-asset scan:
+
+| Report | HTML bytes | SHA-256 | PR Pages/title |
+|---|---:|---|---|
+| ici | 4,946,007 | `ec96eac7ce3e9edb4b17e924935144f9d13513e638e46d78072020f178b96505` | [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/135/) — `ici Verification Report — ici` |
+| viewer | 363,156 | `f216baf2d9a2a1f488454f20d0f5c1f1bcfb60daccdb065ceb08f62a438255c2` | [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/135/) — `ici Verification Report — viewer` |
+
+PR #135 was squash-merged as
+[`b09af5e0f0dd5f5d1ecbc33f73ab23a96f520882`](https://github.com/jihoon22-lee/ici/commit/b09af5e0f0dd5f5d1ecbc33f73ab23a96f520882).
+Its exact-main [run `33648359498`](https://github.com/jihoon22-lee/ici/actions/runs/33648359498)
+also passed, and both main artifact JSON documents identify that exact commit. The first independent
+Pages read still returned the previous main deployment; after Pages build `1190203953` reached
+`built`, cache-busted reads matched the new artifacts byte for byte:
+
+| Report | HTML bytes | SHA-256 | Main Pages/title |
+|---|---:|---|---|
+| ici | 4,946,007 | `8049bcc83cbb13b0fdfd85b3bcdbc49fd21417ff965ac9e487eb6d20b5691faa` | [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/) — `ici Verification Report — ici` |
+| viewer | 363,156 | `db45e78dfa2e13f08fe273b8e27274976055a4426deef7ce6ea1c1aa9e6ae2cb` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
+
+The merged remote and local branches and their temporary worktree were deleted immediately after
+merge. This acceptance closes only the bounded lexical/token-region slice, not the remaining exact
+dead-symbol or full semantic duplicate requirements.
+
 ## Status and Boundaries
 
-- [x] Language-aware Python and C/C++ lexical tokenization is locally implemented and tested.
+- [x] Language-aware Python and C/C++ lexical tokenization is implemented, locally tested, and
+  remotely accepted.
 - [x] Region-bounded shared-seed Type-2 matching, exact normalized verification, bounded extension,
   and maximal-match deduplication are locally implemented and tested.
 - [ ] Compiler/linker-backed exact dead-symbol evidence remains pending.
 - [ ] Full duplicate semantic analysis remains pending.
 - [ ] I4-3 aggregate checkpoint remains pending.
-- [ ] PR, CI, main-branch, Pages, and hosted artifact acceptance remains pending; no run IDs,
-  artifact hashes, or hosted URLs are asserted for this slice.
+- [x] PR, CI, exact-main, Pages, and hosted artifact acceptance is complete for this bounded slice.
 
 No version or CI configuration change belongs to this slice, and no release is created.
 
 ## Next Steps
 
-1. Keep the lexical/token-region slice labeled heuristic and `ESTIMATED` until its remote
-   acceptance and broader semantic policy are separately completed.
+1. Keep the accepted lexical/token-region slice labeled heuristic and `ESTIMATED` until the broader
+   semantic policy is separately completed.
 2. Add compiler/linker-backed dead-symbol evidence before marking the exact-dead requirement done.
 3. Define and validate full duplicate semantic analysis and the remaining I4-3 acceptance gates.
