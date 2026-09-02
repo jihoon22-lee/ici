@@ -159,19 +159,14 @@ def _append_error(
     outcome.targets.append(_error_target(source, message))
 
 
-def _prepare_units(
-    project_root: Path,
+def _selected_replay_units(
+    root: Path,
     cpp_files: list[Path],
     context: AnalysisContext | None,
-    source_texts: dict[str, str],
     outcome: CppUnusedFunctionOutcome,
-) -> tuple[Path, tuple[_PreparedUnit, ...]] | None:
-    try:
-        root = project_root.resolve(strict=True)
-    except (OSError, RuntimeError):
-        _append_error(outcome, ".", "C++ unused-function project root is unavailable")
-        outcome.mode = "error"
-        return None
+) -> tuple[CompilationUnit, ...] | None:
+    """Validate the shared context and select every required configuration."""
+
     if not cpp_files:
         outcome.mode = "not-applicable"
         return None
@@ -180,10 +175,11 @@ def _prepare_units(
             "Exact C++ unused-function analysis requires a compilation database"
         )
         return None
+    database_path = context.compilation.database_path
     if _SHA256_RE.fullmatch(context.compilation.database_digest) is None:
         _append_error(
             outcome,
-            context.compilation.database_path,
+            database_path,
             "C++ unused-function compilation database has no canonical digest",
         )
         outcome.mode = "error"
@@ -195,7 +191,7 @@ def _prepare_units(
     if context.compilation.unity_build:
         _append_error(
             outcome,
-            context.compilation.database_path,
+            database_path,
             "C++ unused-function analysis cannot prove source ownership through a unity build",
         )
         outcome.mode = "error"
@@ -203,7 +199,7 @@ def _prepare_units(
     if any(item.level == "error" for item in context.compilation.diagnostics):
         _append_error(
             outcome,
-            context.compilation.database_path,
+            database_path,
             "C++ unused-function compilation context has ingestion errors",
         )
         outcome.mode = "error"
@@ -226,7 +222,7 @@ def _prepare_units(
     if not selected:
         _append_error(
             outcome,
-            context.compilation.database_path,
+            database_path,
             "C++ unused-function context has no replayable production units",
         )
         outcome.mode = "error"
@@ -234,123 +230,183 @@ def _prepare_units(
     if len(selected) > _MAX_SELECTED_UNITS:
         _append_error(
             outcome,
-            context.compilation.database_path,
+            database_path,
             "C++ unused-function translation-unit count exceeds the bounded limit",
         )
         outcome.mode = "error"
+        return None
+    return tuple(selected)
+
+
+def _validated_source_text(
+    root: Path,
+    unit: CompilationUnit,
+    source_texts: dict[str, str],
+    validated_sources: dict[str, str],
+    outcome: CppUnusedFunctionOutcome,
+) -> str | None:
+    """Return one source snapshot after matching it to the shared intake."""
+
+    if unit.source in validated_sources:
+        return validated_sources[unit.source]
+    expected_text = source_texts.get(unit.source)
+    try:
+        current_text = _source_text(root, unit.source)
+    except ValueError:
+        current_text = ""
+    if expected_text is None or current_text != expected_text:
+        _append_error(
+            outcome,
+            unit.source,
+            "C++ unused-function source snapshot changed before analysis",
+        )
+        outcome.mode = "error"
+        return None
+    validated_sources[unit.source] = current_text
+    return current_text
+
+
+def _prepare_replay_unit(
+    root: Path,
+    unit: CompilationUnit,
+    context: AnalysisContext,
+    source_texts: dict[str, str],
+    validated_sources: dict[str, str],
+    unit_keys: set[tuple[str, str]],
+    outcome: CppUnusedFunctionOutcome,
+) -> _PreparedUnit | None:
+    """Validate and sanitize one selected compiler configuration."""
+
+    if any(item.level == "error" for item in unit.diagnostics):
+        codes = ", ".join(sorted({item.code for item in unit.diagnostics if item.level == "error"}))
+        _append_error(
+            outcome,
+            unit.source,
+            f"C++ unused-function translation unit has ingestion errors: {codes}",
+        )
+        outcome.mode = "error"
+        return None
+    if _SHA256_RE.fullmatch(unit.configuration) is None:
+        _append_error(
+            outcome,
+            unit.source,
+            "C++ unused-function context has no canonical configuration identity",
+        )
+        outcome.mode = "error"
+        return None
+    if unit.configuration != _configuration_digest(unit):
+        _append_error(
+            outcome,
+            unit.source,
+            "C++ unused-function configuration identity does not match its command",
+        )
+        outcome.mode = "error"
+        return None
+    unit_key = (unit.source, unit.configuration)
+    if unit_key in unit_keys:
+        _append_error(
+            outcome,
+            unit.source,
+            "C++ unused-function context repeats a source configuration",
+        )
+        outcome.mode = "error"
+        return None
+    unit_keys.add(unit_key)
+    source_text = _validated_source_text(
+        root,
+        unit,
+        source_texts,
+        validated_sources,
+        outcome,
+    )
+    if source_text is None:
+        return None
+    try:
+        replay = build_replay_command(
+            root,
+            unit,
+            context.capabilities,
+            operation="unused-functions",
+        )
+    except ReplayCommandError as err:
+        message = f"C++ unused-function replay {err.code}: {unit.source}: {err}"
+        if err.code in {"compiler-unavailable", "compiler-not-probed"}:
+            outcome.warnings.append(message)
+        else:
+            _append_error(outcome, unit.source, message)
+            outcome.mode = "error"
+        return None
+    capability = compiler_capability(replay.argv[0], context.capabilities)
+    executable = regular_executable(root, capability)
+    try:
+        identity = _executable_identity(executable) if executable is not None else None
+    except OSError:
+        identity = None
+    if capability is None or executable is None or identity is None:
+        outcome.warnings.append(
+            f"Approved compiler is unavailable for C++ unused-function analysis: {unit.source}"
+        )
+        return None
+    command = compiler_diagnostic_command(
+        list(replay.argv),
+        context.capabilities,
+        source_last=False,
+    )
+    try:
+        cwd_identity = _directory_identity(replay.cwd)
+    except OSError:
+        _append_error(
+            outcome,
+            unit.source,
+            "C++ unused-function working directory identity is unavailable",
+        )
+        outcome.mode = "error"
+        return None
+    return _PreparedUnit(
+        unit=unit,
+        replay=replay,
+        command=tuple(command),
+        capability=capability,
+        executable=executable,
+        executable_identity=identity,
+        cwd_identity=cwd_identity,
+        source_text=source_text,
+    )
+
+
+def _prepare_units(
+    project_root: Path,
+    cpp_files: list[Path],
+    context: AnalysisContext | None,
+    source_texts: dict[str, str],
+    outcome: CppUnusedFunctionOutcome,
+) -> tuple[Path, tuple[_PreparedUnit, ...]] | None:
+    try:
+        root = project_root.resolve(strict=True)
+    except (OSError, RuntimeError):
+        _append_error(outcome, ".", "C++ unused-function project root is unavailable")
+        outcome.mode = "error"
+        return None
+    selected = _selected_replay_units(root, cpp_files, context, outcome)
+    if selected is None or context is None:
         return None
 
     prepared: list[_PreparedUnit] = []
     unit_keys: set[tuple[str, str]] = set()
     validated_sources: dict[str, str] = {}
     for unit in selected:
-        if any(item.level == "error" for item in unit.diagnostics):
-            codes = ", ".join(
-                sorted({item.code for item in unit.diagnostics if item.level == "error"})
-            )
-            _append_error(
-                outcome,
-                unit.source,
-                f"C++ unused-function translation unit has ingestion errors: {codes}",
-            )
-            outcome.mode = "error"
-            return None
-        if _SHA256_RE.fullmatch(unit.configuration) is None:
-            _append_error(
-                outcome,
-                unit.source,
-                "C++ unused-function context has no canonical configuration identity",
-            )
-            outcome.mode = "error"
-            return None
-        if unit.configuration != _configuration_digest(unit):
-            _append_error(
-                outcome,
-                unit.source,
-                "C++ unused-function configuration identity does not match its command",
-            )
-            outcome.mode = "error"
-            return None
-        unit_key = (unit.source, unit.configuration)
-        if unit_key in unit_keys:
-            _append_error(
-                outcome,
-                unit.source,
-                "C++ unused-function context repeats a source configuration",
-            )
-            outcome.mode = "error"
-            return None
-        unit_keys.add(unit_key)
-        if unit.source in validated_sources:
-            current_text = validated_sources[unit.source]
-        else:
-            expected_text = source_texts.get(unit.source)
-            try:
-                current_text = _source_text(root, unit.source)
-            except ValueError:
-                current_text = ""
-            if expected_text is None or current_text != expected_text:
-                _append_error(
-                    outcome,
-                    unit.source,
-                    "C++ unused-function source snapshot changed before analysis",
-                )
-                outcome.mode = "error"
-                return None
-            validated_sources[unit.source] = current_text
-        try:
-            replay = build_replay_command(
-                root,
-                unit,
-                context.capabilities,
-                operation="unused-functions",
-            )
-        except ReplayCommandError as err:
-            message = f"C++ unused-function replay {err.code}: {unit.source}: {err}"
-            if err.code in {"compiler-unavailable", "compiler-not-probed"}:
-                outcome.warnings.append(message)
-                return None
-            _append_error(outcome, unit.source, message)
-            outcome.mode = "error"
-            return None
-        capability = compiler_capability(replay.argv[0], context.capabilities)
-        executable = regular_executable(root, capability)
-        try:
-            identity = _executable_identity(executable) if executable is not None else None
-        except OSError:
-            identity = None
-        if capability is None or executable is None or identity is None:
-            outcome.warnings.append(
-                f"Approved compiler is unavailable for C++ unused-function analysis: {unit.source}"
-            )
-            return None
-        command = compiler_diagnostic_command(
-            list(replay.argv),
-            context.capabilities,
-            source_last=False,
+        prepared_unit = _prepare_replay_unit(
+            root,
+            unit,
+            context,
+            source_texts,
+            validated_sources,
+            unit_keys,
+            outcome,
         )
-        try:
-            cwd_identity = _directory_identity(replay.cwd)
-        except OSError:
-            _append_error(
-                outcome,
-                unit.source,
-                "C++ unused-function working directory identity is unavailable",
-            )
-            outcome.mode = "error"
+        if prepared_unit is None:
             return None
-        prepared.append(
-            _PreparedUnit(
-                unit=unit,
-                replay=replay,
-                command=tuple(command),
-                capability=capability,
-                executable=executable,
-                executable_identity=identity,
-                cwd_identity=cwd_identity,
-                source_text=current_text,
-            )
-        )
+        prepared.append(prepared_unit)
     return root, tuple(prepared)
 
 
@@ -375,6 +431,35 @@ def _working_directory_matches(project_root: Path, prepared: _PreparedUnit) -> b
         return False
 
 
+def _source_diagnostic_key(
+    prepared: _PreparedUnit,
+    diagnostic: CppDiagnostic,
+) -> _DiagnosticKey:
+    """Validate one selected-TU location against the immutable source bytes."""
+
+    target = diagnostic.target
+    source_lines = prepared.source_text.splitlines()
+    if target.start_line > len(source_lines):
+        raise ValueError("unused-function diagnostic line is outside the source snapshot")
+    if target.start_column is not None:
+        line_bytes = len(source_lines[target.start_line - 1].encode("utf-8"))
+        if target.start_column > line_bytes + 1:
+            raise ValueError("unused-function diagnostic column is outside the source line")
+    if target.end_line is not None and target.end_line > len(source_lines):
+        raise ValueError("unused-function diagnostic end line is outside the source snapshot")
+    if target.end_line is not None and target.end_column is not None:
+        end_line_bytes = len(source_lines[target.end_line - 1].encode("utf-8"))
+        if target.end_column > end_line_bytes + 1:
+            raise ValueError("unused-function diagnostic end column is outside the source line")
+    return (
+        target.file_path,
+        target.start_line,
+        target.start_column,
+        target.end_line,
+        target.end_column,
+    )
+
+
 def _located_unused_diagnostics(
     prepared: _PreparedUnit,
     diagnostics: tuple[CppDiagnostic, ...],
@@ -382,7 +467,6 @@ def _located_unused_diagnostics(
 ) -> tuple[tuple[_DiagnosticKey, str], ...]:
     located: list[tuple[_DiagnosticKey, str]] = []
     seen: set[_DiagnosticKey] = set()
-    source_lines = prepared.source_text.splitlines()
     for diagnostic in diagnostics:
         target = diagnostic.target
         if diagnostic.tool_rule_id != _UNUSED_RULE:
@@ -394,25 +478,7 @@ def _located_unused_diagnostics(
         if target.file_path != prepared.unit.source:
             outcome.non_tu_diagnostics_excluded += 1
             continue
-        if target.start_line > len(source_lines):
-            raise ValueError("unused-function diagnostic line is outside the source snapshot")
-        if target.start_column is not None:
-            line_bytes = len(source_lines[target.start_line - 1].encode("utf-8"))
-            if target.start_column > line_bytes + 1:
-                raise ValueError("unused-function diagnostic column is outside the source line")
-        if target.end_line is not None and target.end_line > len(source_lines):
-            raise ValueError("unused-function diagnostic end line is outside the source snapshot")
-        if target.end_line is not None and target.end_column is not None:
-            end_line_bytes = len(source_lines[target.end_line - 1].encode("utf-8"))
-            if target.end_column > end_line_bytes + 1:
-                raise ValueError("unused-function diagnostic end column is outside the source line")
-        key = (
-            target.file_path,
-            target.start_line,
-            target.start_column,
-            target.end_line,
-            target.end_column,
-        )
+        key = _source_diagnostic_key(prepared, diagnostic)
         if key in seen:
             raise ValueError("unused-function output repeats a source location")
         located.append((key, target.message))
@@ -429,6 +495,79 @@ def _located_unused_diagnostics(
             ),
         )
     )
+
+
+def _execute_compiler(
+    prepared: _PreparedUnit,
+    runner: Callable[..., ProcessResult],
+    timeout: float,
+) -> tuple[ProcessResult | None, ToolEvidence]:
+    """Execute one bounded command and always return auditable tool evidence."""
+
+    command = list(prepared.command)
+    try:
+        result = runner(
+            command,
+            cwd=prepared.replay.cwd,
+            env=replay_environment(),
+            input_text="",
+            replace_env=True,
+            timeout=timeout,
+            max_output_chars=_MAX_OUTPUT_CHARS,
+        )
+    except Exception as exc:
+        message = (
+            f"C++ unused-function compiler could not execute: "
+            f"{prepared.unit.source}: {type(exc).__name__}"
+        )
+        return None, ToolEvidence(
+            name=f"{prepared.capability.name} unused-function",
+            path=command[0],
+            version=prepared.capability.version,
+            argv=command,
+            error=message,
+        )
+    return result, ToolEvidence(
+        name=f"{prepared.capability.name} unused-function",
+        path=command[0],
+        version=prepared.capability.version,
+        argv=command,
+        returncode=result.returncode,
+        timed_out=result.timed_out,
+        truncated=result.truncated,
+    )
+
+
+def _compiler_result_failure(
+    root: Path,
+    prepared: _PreparedUnit,
+    result: ProcessResult,
+    diagnostics: tuple[CppDiagnostic, ...],
+    parse_error: str,
+) -> str:
+    """Return the first reason an otherwise completed replay is not exact."""
+
+    if result.timed_out:
+        return "compiler timed out"
+    if result.truncated:
+        return "compiler diagnostic output was truncated"
+    if not isinstance(result.returncode, int) or result.returncode < 0:
+        return "compiler terminated unexpectedly"
+    if parse_error:
+        return "compiler diagnostic output was not parseable"
+    if result.returncode != 0:
+        return f"compiler exited with code {result.returncode}"
+    if any(item.target.status == EngineStatus.FAIL for item in diagnostics):
+        return "compiler reported an error with a successful exit"
+    if not _identity_matches(root, prepared):
+        return "compiler identity changed during execution"
+    if not _working_directory_matches(root, prepared):
+        return "working directory changed during execution"
+    try:
+        source_changed = _source_text(root, prepared.unit.source) != prepared.source_text
+    except ValueError:
+        source_changed = True
+    return "source changed during compiler analysis" if source_changed else ""
 
 
 def _run_unit(
@@ -462,69 +601,19 @@ def _run_unit(
             "C++ unused-function source changed before execution",
         )
         return None
-    command = list(prepared.command)
-    try:
-        result = runner(
-            command,
-            cwd=prepared.replay.cwd,
-            env=replay_environment(),
-            input_text="",
-            replace_env=True,
-            timeout=timeout,
-            max_output_chars=_MAX_OUTPUT_CHARS,
-        )
-    except Exception as exc:
-        message = (
-            f"C++ unused-function compiler could not execute: "
-            f"{prepared.unit.source}: {type(exc).__name__}"
-        )
-        outcome.evidence.append(
-            ToolEvidence(
-                name=f"{prepared.capability.name} unused-function",
-                path=command[0],
-                version=prepared.capability.version,
-                argv=command,
-                error=message,
-            )
-        )
-        _append_error(outcome, prepared.unit.source, message)
-        return None
-    evidence = ToolEvidence(
-        name=f"{prepared.capability.name} unused-function",
-        path=command[0],
-        version=prepared.capability.version,
-        argv=command,
-        returncode=result.returncode,
-        timed_out=result.timed_out,
-        truncated=result.truncated,
-    )
+    result, evidence = _execute_compiler(prepared, runner, timeout)
     outcome.evidence.append(evidence)
-    failure = ""
-    if result.timed_out:
-        failure = "compiler timed out"
-    elif result.truncated:
-        failure = "compiler diagnostic output was truncated"
-    elif not isinstance(result.returncode, int) or result.returncode < 0:
-        failure = "compiler terminated unexpectedly"
+    if result is None:
+        _append_error(outcome, prepared.unit.source, evidence.error)
+        return None
     parsed = parse_compiler_diagnostics(root, prepared.replay.cwd, result.stdout, result.stderr)
-    if not failure and parsed.error:
-        failure = "compiler diagnostic output was not parseable"
-    elif not failure and result.returncode != 0:
-        failure = f"compiler exited with code {result.returncode}"
-    elif not failure and any(
-        item.target.status == EngineStatus.FAIL for item in parsed.diagnostics
-    ):
-        failure = "compiler reported an error with a successful exit"
-    if not failure and not _identity_matches(root, prepared):
-        failure = "compiler identity changed during execution"
-    if not failure and not _working_directory_matches(root, prepared):
-        failure = "working directory changed during execution"
-    try:
-        source_changed = _source_text(root, prepared.unit.source) != prepared.source_text
-    except ValueError:
-        source_changed = True
-    if not failure and source_changed:
-        failure = "source changed during compiler analysis"
+    failure = _compiler_result_failure(
+        root,
+        prepared,
+        result,
+        parsed.diagnostics,
+        parsed.error,
+    )
     if failure:
         message = f"C++ unused-function {failure}: {prepared.unit.source}"
         evidence.error = message

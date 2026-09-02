@@ -74,12 +74,14 @@ class DeadCodeEngine(BaseEngine):
         policy = str(config.get("engines", {}).get("dead", {}).get("cpp_unused", "auto"))
         return frozenset() if policy == "off" else cls.ANALYSIS_CONTEXT_ENGINES
 
-    def run(self) -> EngineResult:
-        t0 = time.time()
-        self._analysis_errors = []
-        targets: list[InspectionTarget] = []
-        cfg = self.get_config("dead")
-        cpp_policy = str(cfg.get("cpp_unused", "auto"))
+    def _collect_sources(
+        self,
+        cfg: dict[str, Any],
+        cpp_policy: str,
+        targets: list[InspectionTarget],
+    ) -> tuple[AnalysisSourceInventory, list[Path], list[Path], bool]:
+        """Discover scopes and read only the source bytes selected by policy."""
+
         python_candidates = self.project_python_sources()
         cpp_candidates = [
             *self.project_cpp_sources(),
@@ -88,45 +90,69 @@ class DeadCodeEngine(BaseEngine):
         ]
         cpp_scope_present = bool(cpp_candidates)
         inventory = AnalysisSourceInventory((), (), 0)
-        if python_candidates or cpp_candidates:
-            ordered_python = self._ordered_python_sources(
-                self.project_source_dirs(), python_candidates
-            )
-            analysis_candidates = (
-                (*ordered_python, *cpp_candidates) if cpp_policy != "off" else tuple(ordered_python)
-            )
-            try:
-                inventory = read_analysis_sources(
-                    self.project_root,
-                    analysis_candidates,
-                    include_generated=cfg.get("include_generated") is True,
-                    include_vendor=cfg.get("include_vendor") is True,
-                )
-            except AnalysisSourceError as err:
-                self._analysis_errors.append(err.message)
-                targets.append(
-                    InspectionTarget(
-                        file_path=err.file_path,
-                        start_line=1,
-                        target_name="SourceInputError",
-                        status=EngineStatus.ERROR,
-                        message=f"{err.code}: {err.message}",
-                    )
-                )
-        python_sources = tuple(
-            source for source in inventory.sources if source.language == "python"
+        if not python_candidates and not cpp_candidates:
+            return inventory, python_candidates, cpp_candidates, cpp_scope_present
+        ordered_python = self._ordered_python_sources(self.project_source_dirs(), python_candidates)
+        analysis_candidates = (
+            (*ordered_python, *cpp_candidates) if cpp_policy != "off" else tuple(ordered_python)
         )
-        cpp_sources = tuple(source for source in inventory.sources if source.language == "cpp")
-        python_targets: list[InspectionTarget] = []
-        if python_sources and not self._analysis_errors:
-            python_targets = self._detect_python_dead_code(python_sources)
-            targets.extend(python_targets)
-        python_evidence = self._python_evidence(python_sources, python_candidates)
+        try:
+            inventory = read_analysis_sources(
+                self.project_root,
+                analysis_candidates,
+                include_generated=cfg.get("include_generated") is True,
+                include_vendor=cfg.get("include_vendor") is True,
+            )
+        except AnalysisSourceError as err:
+            self._analysis_errors.append(err.message)
+            targets.append(
+                InspectionTarget(
+                    file_path=err.file_path,
+                    start_line=1,
+                    target_name="SourceInputError",
+                    status=EngineStatus.ERROR,
+                    message=f"{err.code}: {err.message}",
+                )
+            )
+        return inventory, python_candidates, cpp_candidates, cpp_scope_present
 
-        cpp_outcome = CppUnusedFunctionOutcome(mode="not-applicable")
-        cpp_targets: list[InspectionTarget] = []
-        if cpp_policy == "off" and cpp_scope_present:
-            cpp_outcome = CppUnusedFunctionOutcome(
+    @staticmethod
+    def _unavailable_cpp_target(
+        outcome: CppUnusedFunctionOutcome,
+        cpp_policy: str,
+        source: str,
+    ) -> tuple[InspectionTarget, str]:
+        message = (
+            outcome.warnings[0]
+            if outcome.warnings
+            else "Exact C++ unused-function analysis is unavailable"
+        )
+        required = cpp_policy == "required"
+        return (
+            InspectionTarget(
+                file_path=source,
+                start_line=1,
+                target_name="C++UnusedFunctionsUnavailable",
+                status=EngineStatus.ERROR if required else EngineStatus.SKIP,
+                message=message,
+            ),
+            message if required else "",
+        )
+
+    def _analyze_cpp_scope(
+        self,
+        cpp_policy: str,
+        cpp_scope_present: bool,
+        cpp_sources: tuple[AnalysisSource, ...],
+        targets: list[InspectionTarget],
+    ) -> tuple[CppUnusedFunctionOutcome, list[InspectionTarget]]:
+        """Evaluate policy and attach one atomic C++ compiler outcome."""
+
+        outcome = CppUnusedFunctionOutcome(mode="not-applicable")
+        if cpp_policy == "off":
+            if not cpp_scope_present:
+                return outcome, []
+            outcome = CppUnusedFunctionOutcome(
                 targets=[
                     InspectionTarget(
                         file_path=".",
@@ -138,50 +164,177 @@ class DeadCodeEngine(BaseEngine):
                 ],
                 mode="off",
             )
-            cpp_targets.extend(cpp_outcome.targets)
-            targets.extend(cpp_outcome.targets)
-        elif cpp_sources and not self._analysis_errors:
-            cpp_outcome = self._run_cpp_scope(cpp_policy, cpp_sources)
-            cpp_targets.extend(cpp_outcome.targets)
-            targets.extend(cpp_outcome.targets)
-            if cpp_outcome.mode == "error":
-                self._analysis_errors.extend(cpp_outcome.errors)
-            elif cpp_outcome.mode == "unavailable":
-                message = (
-                    cpp_outcome.warnings[0]
-                    if cpp_outcome.warnings
-                    else "Exact C++ unused-function analysis is unavailable"
-                )
-                unavailable_status = (
-                    EngineStatus.ERROR if cpp_policy == "required" else EngineStatus.SKIP
-                )
-                unavailable_target = InspectionTarget(
-                    file_path=cpp_sources[0].file_path,
-                    start_line=1,
-                    target_name="C++UnusedFunctionsUnavailable",
-                    status=unavailable_status,
-                    message=message,
-                )
-                cpp_targets.append(unavailable_target)
-                targets.append(unavailable_target)
-                if cpp_policy == "required":
-                    self._analysis_errors.append(message)
-
-        if not inventory.sources and not self._analysis_errors and cpp_outcome.mode != "off":
-            targets.append(
-                InspectionTarget(
-                    file_path=".",
-                    start_line=1,
-                    target_name="DeadCode",
-                    status=EngineStatus.SKIP,
-                    message=(
-                        "All selected sources were excluded by the generated/vendor policy; "
-                        "dead-code analysis was not run"
-                        if inventory.excluded
-                        else "No applicable source files were selected; dead-code analysis was not run"
-                    ),
-                )
+            cpp_targets = list(outcome.targets)
+            targets.extend(cpp_targets)
+            return outcome, cpp_targets
+        if not cpp_sources or self._analysis_errors:
+            return outcome, []
+        outcome = self._run_cpp_scope(cpp_policy, cpp_sources)
+        if outcome.mode == "error":
+            self._analysis_errors.extend(outcome.errors)
+        if outcome.mode == "unavailable":
+            unavailable_target, required_error = self._unavailable_cpp_target(
+                outcome,
+                cpp_policy,
+                cpp_sources[0].file_path,
             )
+            outcome.targets.append(unavailable_target)
+            if required_error:
+                self._analysis_errors.append(required_error)
+        cpp_targets = list(outcome.targets)
+        targets.extend(cpp_targets)
+        return outcome, cpp_targets
+
+    def _analyze_python_scope(
+        self,
+        inventory: AnalysisSourceInventory,
+        python_candidates: list[Path],
+        targets: list[InspectionTarget],
+    ) -> tuple[tuple[AnalysisSource, ...], list[InspectionTarget], EvidenceState]:
+        """Run the bounded Python heuristic independently of the C++ scope."""
+
+        sources = tuple(source for source in inventory.sources if source.language == "python")
+        python_targets: list[InspectionTarget] = []
+        if sources and not self._analysis_errors:
+            python_targets = self._detect_python_dead_code(sources)
+            targets.extend(python_targets)
+        return sources, python_targets, self._python_evidence(sources, python_candidates)
+
+    def _append_empty_scope_target(
+        self,
+        inventory: AnalysisSourceInventory,
+        cpp_outcome: CppUnusedFunctionOutcome,
+        targets: list[InspectionTarget],
+    ) -> None:
+        """Explain why no source bytes were analyzed when that is not policy-off."""
+
+        if inventory.sources or self._analysis_errors or cpp_outcome.mode == "off":
+            return
+        message = (
+            "All selected sources were excluded by the generated/vendor policy; "
+            "dead-code analysis was not run"
+            if inventory.excluded
+            else "No applicable source files were selected; dead-code analysis was not run"
+        )
+        targets.append(
+            InspectionTarget(
+                file_path=".",
+                start_line=1,
+                target_name="DeadCode",
+                status=EngineStatus.SKIP,
+                message=message,
+            )
+        )
+
+    @staticmethod
+    def _analysis_provenance(
+        python_sources: tuple[AnalysisSource, ...],
+        cpp_outcome: CppUnusedFunctionOutcome,
+    ) -> str:
+        names = []
+        if python_sources:
+            names.append("python-ast-heuristic")
+        if cpp_outcome.mode == "exact":
+            names.append("cpp-compiler-unused-function")
+        return "+".join(names) or "not-run"
+
+    @staticmethod
+    def _cpp_details(cpp_outcome: CppUnusedFunctionOutcome) -> list[dict[str, Any]]:
+        return [
+            {
+                "file_path": item.target.file_path,
+                "start_line": item.target.start_line,
+                "end_line": item.target.end_line,
+                "start_column": item.target.start_column,
+                "end_column": item.target.end_column,
+                "tool_rule_id": "-Wunused-function",
+                "configurations": list(item.configurations),
+                "tool_names": list(item.tool_names),
+                "tool_versions": list(item.tool_versions),
+                "diagnostic_message": item.diagnostic_message,
+            }
+            for item in cpp_outcome.functions
+        ]
+
+    @staticmethod
+    def _effective_required(
+        cfg: dict[str, Any],
+        cpp_policy: str,
+        cpp_scope_present: bool,
+        python_sources: tuple[AnalysisSource, ...],
+    ) -> bool:
+        cpp_only_disabled = cpp_scope_present and not python_sources and cpp_policy == "off"
+        return bool(cfg.get("required", True)) and not cpp_only_disabled
+
+    def _result_state(
+        self,
+        *,
+        cfg: dict[str, Any],
+        cpp_policy: str,
+        cpp_scope_present: bool,
+        python_sources: tuple[AnalysisSource, ...],
+        cpp_sources: tuple[AnalysisSource, ...],
+        cpp_outcome: CppUnusedFunctionOutcome,
+        targets: list[InspectionTarget],
+        issue_count: int,
+        python_issue_count: int,
+        cpp_issue_count: int,
+    ) -> tuple[EngineStatus, EvidenceState, str]:
+        """Aggregate language-scoped evidence without upgrading partial work."""
+
+        if self._analysis_errors:
+            return EngineStatus.ERROR, EvidenceState.NOT_RUN, "; ".join(self._analysis_errors[:3])
+        if not python_sources and cpp_outcome.mode != "exact":
+            evidence = EvidenceState.NOT_RUN if cpp_scope_present else EvidenceState.NOT_APPLICABLE
+            if cpp_policy == "off" and cpp_scope_present:
+                summary = "C++ unused-function analysis disabled by policy"
+            elif cpp_sources:
+                summary = "C++ dead-code analysis not run: exact compiler context unavailable"
+            else:
+                summary = "Dead-code analysis skipped: no owned source files"
+            return EngineStatus.SKIP, evidence, summary
+        has_fail = any(target.status == EngineStatus.FAIL for target in targets)
+        has_warn = any(target.status == EngineStatus.WARN for target in targets)
+        if python_sources and cpp_outcome.mode == "unavailable":
+            has_warn = True
+        status = self.evaluate_status(has_fail, has_warn, cfg.get("mode", "pass_warn"))
+        evidence = EvidenceState.ESTIMATED if python_sources else EvidenceState.MEASURED
+        if status == EngineStatus.PASS:
+            summary = "No dead-code findings detected in the analyzed scopes"
+        elif python_sources and cpp_outcome.mode == "unavailable":
+            summary = "Python dead-code analysis completed, but exact C++ analysis was unavailable"
+        else:
+            summary = (
+                f"{issue_count} dead-code finding(s): "
+                f"{python_issue_count} heuristic Python, {cpp_issue_count} exact C/C++"
+            )
+        return status, evidence, summary
+
+    def run(self) -> EngineResult:
+        t0 = time.time()
+        self._analysis_errors = []
+        targets: list[InspectionTarget] = []
+        cfg = self.get_config("dead")
+        cpp_policy = str(cfg.get("cpp_unused", "auto"))
+        inventory, python_candidates, cpp_candidates, cpp_scope_present = self._collect_sources(
+            cfg,
+            cpp_policy,
+            targets,
+        )
+        python_sources, python_targets, python_evidence = self._analyze_python_scope(
+            inventory,
+            python_candidates,
+            targets,
+        )
+        cpp_sources = tuple(source for source in inventory.sources if source.language == "cpp")
+
+        cpp_outcome, cpp_targets = self._analyze_cpp_scope(
+            cpp_policy,
+            cpp_scope_present,
+            cpp_sources,
+            targets,
+        )
+        self._append_empty_scope_target(inventory, cpp_outcome, targets)
 
         python_issue_count = sum(
             1
@@ -199,50 +352,23 @@ class DeadCodeEngine(BaseEngine):
             bool(self._analysis_errors),
             cpp_scope_present,
         )
-        if self._analysis_errors:
-            status = EngineStatus.ERROR
-            evidence = EvidenceState.NOT_RUN
-            summary = "; ".join(self._analysis_errors[:3])
-            if cpp_sources and cpp_policy != "off":
-                cpp_evidence = EvidenceState.NOT_RUN
-        elif not python_sources and cpp_outcome.mode != "exact":
-            status = EngineStatus.SKIP
-            evidence = EvidenceState.NOT_RUN if cpp_scope_present else EvidenceState.NOT_APPLICABLE
-            summary = (
-                "C++ unused-function analysis disabled by policy"
-                if cpp_policy == "off" and cpp_scope_present
-                else "C++ dead-code analysis not run: exact compiler context unavailable"
-                if cpp_sources
-                else "Dead-code analysis skipped: no owned source files"
-            )
-        else:
-            has_fail = any(target.status == EngineStatus.FAIL for target in targets)
-            has_warn = any(target.status == EngineStatus.WARN for target in targets)
-            if python_sources and cpp_outcome.mode == "unavailable":
-                has_warn = True
-            status = self.evaluate_status(has_fail, has_warn, cfg.get("mode", "pass_warn"))
-            evidence = EvidenceState.ESTIMATED if python_sources else EvidenceState.MEASURED
-            summary = (
-                "No dead-code findings detected in the analyzed scopes"
-                if status == EngineStatus.PASS
-                else (
-                    "Python dead-code analysis completed, but exact C++ unused-function "
-                    "analysis was unavailable"
-                )
-                if python_sources and cpp_outcome.mode == "unavailable"
-                else (
-                    f"{issue_count} dead-code finding(s): "
-                    f"{python_issue_count} heuristic Python, "
-                    f"{cpp_issue_count} exact C/C++"
-                )
-            )
-        provenance = []
-        if python_sources:
-            provenance.append("python-ast-heuristic")
-        if cpp_outcome.mode == "exact":
-            provenance.append("cpp-compiler-unused-function")
-        effective_required = bool(cfg.get("required", True)) and not (
-            cpp_scope_present and not python_sources and cpp_policy == "off"
+        status, evidence, summary = self._result_state(
+            cfg=cfg,
+            cpp_policy=cpp_policy,
+            cpp_scope_present=cpp_scope_present,
+            python_sources=python_sources,
+            cpp_sources=cpp_sources,
+            cpp_outcome=cpp_outcome,
+            targets=targets,
+            issue_count=issue_count,
+            python_issue_count=python_issue_count,
+            cpp_issue_count=cpp_issue_count,
+        )
+        effective_required = self._effective_required(
+            cfg,
+            cpp_policy,
+            cpp_scope_present,
+            python_sources,
         )
         result = self.create_result(
             name="dead",
@@ -253,7 +379,10 @@ class DeadCodeEngine(BaseEngine):
             extra={
                 "dead_symbols_count": issue_count,
                 "metrics_summary": f"{issue_count} dead symbols",
-                "analysis_provenance": "+".join(provenance) or "not-run",
+                "analysis_provenance": self._analysis_provenance(
+                    python_sources,
+                    cpp_outcome,
+                ),
                 "language_evidence": {
                     "python": python_evidence.value,
                     "cpp": cpp_evidence.value,
@@ -265,21 +394,7 @@ class DeadCodeEngine(BaseEngine):
                 "cpp_unused_sources_checked": cpp_outcome.sources_checked,
                 "cpp_unused_non_tu_diagnostics_excluded": (cpp_outcome.non_tu_diagnostics_excluded),
                 "cpp_unused_warnings": cpp_outcome.warnings,
-                "cpp_unused_details": [
-                    {
-                        "file_path": item.target.file_path,
-                        "start_line": item.target.start_line,
-                        "end_line": item.target.end_line,
-                        "start_column": item.target.start_column,
-                        "end_column": item.target.end_column,
-                        "tool_rule_id": "-Wunused-function",
-                        "configurations": list(item.configurations),
-                        "tool_names": list(item.tool_names),
-                        "tool_versions": list(item.tool_versions),
-                        "diagnostic_message": item.diagnostic_message,
-                    }
-                    for item in cpp_outcome.functions
-                ],
+                "cpp_unused_details": self._cpp_details(cpp_outcome),
                 "source_files_analyzed": len(python_sources) + cpp_outcome.sources_checked,
                 "source_files_snapshotted": len(inventory.sources),
                 "source_bytes_analyzed": inventory.total_bytes,

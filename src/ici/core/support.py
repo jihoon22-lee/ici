@@ -485,7 +485,7 @@ def _language_evidence(result: EngineResult, language: SupportLanguage) -> Evide
             try:
                 return EvidenceState(value)
             except ValueError:
-                pass
+                return result.evidence
     return result.evidence
 
 
