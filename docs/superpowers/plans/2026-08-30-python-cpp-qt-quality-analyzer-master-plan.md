@@ -1,7 +1,7 @@
 # Python·C++·Qt 코드 품질 분석기 마스터 실행 계획
 
 **상태:** 승인된 장기 마스터 계획. 2026-08-30 이후 ici 기능 계획의 우선순위와 완료 조건은 이 문서를 기준으로 판단한다.
-**문서 기준일:** 2026-09-02. 이 계획은 ici [PR #78](https://github.com/jihoon22-lee/ici/pull/78)로 `main`에 병합됐고, 현재 상태는 이 체크리스트와 병합된 PR의 실측을 함께 기준으로 삼는다.
+**문서 기준일:** 2026-09-03. 이 계획은 ici [PR #78](https://github.com/jihoon22-lee/ici/pull/78)로 `main`에 병합됐고, 현재 상태는 이 체크리스트와 병합된 PR의 실측을 함께 기준으로 삼는다.
 
 **목표:** ici를 Python, C++, Qt 프로젝트의 실제 빌드·테스트·배포 맥락을 이해하고, 위치와 근거가 있는 상세 진단을 낮은 노이즈로 제공하는 고신뢰 코드 품질 분석기로 발전시킨다.
 
@@ -474,6 +474,9 @@ ici WARN(TEM 4.84)과 viewer PASS(TEM 4.89)를 게시했고, 두 Pages는 HTTP 2
 schema에 분리했다. cache는 user-local `entries-v1` 아래에만 atomic write를 수행하고 project
 source/config는 읽기 전용으로 digest한다. 입력을 해시하는 동안 파일 변경을 감지하면 해당
 실행의 cache를 끄며, artifact manifest도 저장·조회 경계에서 다시 검증한다.
+현재 `dead` 엔진은 Python-only, C++-only, hybrid 여부와 관계없이 cache key 계산, load, store를
+모두 비활성화한다. 특히 C++ compiler-backed 결과는 external/generated include closure와
+compiler binary content가 cache identity에 모델링될 때까지 안전하게 재사용할 수 없다.
 
 로컬 Python 3.10 전체 테스트는 935개가 통과했다. `standard` 최초 실행은 118.49초·hits 0,
 동일 입력 재실행은 2.38초·hits 12였으며 cache metadata를 제외한 result SHA-256
@@ -1114,7 +1117,8 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     function-size lines/statements/parameters는 configuration별로 보존한다. metric 차이 또는
     conditional-preprocessor body는 `partial`/low-confidence이고, compiler-backed function metrics
     또는 configuration coverage가 partial/low-confidence로 남으면 `required`는 fail-closed다.
-- [ ] dead/unused symbol은 compiler/linker/clang-tidy evidence가 있을 때만 exact로 표시한다.
+- [ ] dead/unused symbol의 broader whole-program/linker-backed evidence가 있을 때만 전역
+  판정을 exact로 표시한다.
   - [x] `dead`는 공통 bounded UTF-8 source intake를 사용하고, generated/vendor 기본 제외와
     `include_generated`/`include_vendor` literal-boolean opt-in, 8,192 unique candidate·2,048
     owned/analyzed files·파일당 8 MiB·aggregate 64 MiB 한도를 적용한다. policy-excluded file은
@@ -1122,7 +1126,115 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     fallback symlink precheck와 second-read stability 검사를 거친다. 현재 AST
     reachability/name-reference 결과는 위치 target과 함께 `ESTIMATED`/`python-ast-heuristic`으로
     남기고 Python discovery를 한 번만 캡처해 재사용한다.
-  - [ ] compiler/linker-backed exact dead-symbol evidence는 아직 pending이다.
+  - [x] **C++ translation-unit unused-function compiler diagnostic slice**: `[engines.dead]`
+    의 `cpp_unused = "auto" | "required" | "off"` 정책을 Python dead-code 경로와 독립적으로
+    추가했다. 전체 `verify`와 standalone `ici dead`는 동일한 shared immutable
+    project/tool/compilation preflight/context model을 사용한다. standalone 명령은 `dead`가
+    선택한 capability와 configured `[doctor].required_tools`만 probe하도록 범위를 좁힌다.
+    `cpp_unused = "off"`이면 C++ path를 discovery에서만 식별하고 candidate bytes를 읽거나
+    source intake에 넣지 않는다. standalone 명령은 compilation context/tool probe를 요청하지
+    않고 C++ scope만 건너뛴다. exact context의 compilation database에서 owned 및 configured
+    external compilable C/C++ translation unit을 모두 고르고, source가 모든 known configuration에
+    포함되며 각 unit과
+    database가 canonical `sha256:` identity를 가질 때만 replay한다. compilation-database digest는
+    preflight에서 캡처한 immutable context snapshot의 identity이며, database는 copied/frozen
+    `CompilationUnit` 값으로 변환된다. engine은 그 값을 replay하고 실행 중 live
+    `compile_commands.json`을 다시 읽지 않으며, 이후 database mutation은 다음 preflight에서
+    새 digest/context로 관찰한다. 각 unit configuration digest는 directory/argv/output에서
+    다시 계산해 identity와 대조한다. context의
+    `unity_build=true`, 누락된 source configuration, context ingestion error 또는 replay할
+    approved compiler 부재를 추측으로 보완하지 않는다. 선택된 unit의 language는 정확히 `c` 또는
+    `c++`여야 하며, unknown/empty language와 Objective-C 계열 unit은 compiler 실행 전에 거부한다.
+  - [x] compiler replay와 진단 수집은 원래 compile command의 warning-as-error/suppression
+    정책을 diagnostic-only projection으로 정리한 뒤 `-Wunused-function`,
+    `-Wno-error=unused-function`, discarded `-S -o os.devnull`을 사용한다. object, executable,
+    project artifact 또는 linker result를 만들지 않으며, capability-approved GCC/Clang
+    driver와 approved alias만 허용한다. 관측된 family가 GCC이고 version 9 이상이면 structured
+    JSON diagnostics를, older GCC와 approved Clang-family driver/alias는 bounded parseable-text diagnostics를
+    사용해 공통 위치 계약으로 정규화한다. 같은 executable의 관측된 Clang family는 `g++` alias
+    spelling보다 우선하고, project rule-visibility 설정 대신 controlled
+    `-fdiagnostics-show-option`을 강제한다. compiler family는 bounded version banner에서 식별해
+    neutral executable이나 `g++` 이름의 Clang alias를 filename/numeric version만으로 GCC로
+    오인하지 않는다. option separator 뒤에는 canonical source operand 하나만 허용하며 extra
+    operand, second separator, operand 위치의 `-w`는 `extra-compiler-operand`로 실행 전에
+    거부한다. source와 working-directory 및 approved compiler executable identity를 replay
+    전·후에 재검증하고, GCC standard-library include projection cache도 compiler identity와
+    replacement-sensitive working-directory identity(device/inode/mode/mtime/ctime)를 key에
+    포함해 lookup 전, cache hit 반환 전, probe 후 cwd를 재검증한다. accepted finding은 선택된 source의 compiler-attributed
+    `(path, start/end line, start/end column)` 범위와 정확한 `-Wunused-function` rule에
+    한정한다. compiler logical path가 selected TU와 정확히 같고 line/column 범위가 immutable
+    source snapshot 안에 있어야 한다. 범위를 벗어난 `#line`/macro remapping은 fail-closed하며
+    physical macro-definition origin은 재구성하지 않는다. 같은 source의 모든 configuration에서
+    동일한 diagnostic 위치 집합이 관찰될 때만 exact finding을 만들며, clean source도
+    configuration 수를 가진 PASS target으로 남긴다. 실행별 tool argv/version/status는
+    `ToolEvidence`에, finding별 normalized `diagnostic_message`는 `cpp_unused_details`에
+    분리해 보존한다.
+  - [x] 이 경로는 atomic fail-closed 계약을 사용한다. missing/invalid context 또는 canonical
+    digest, compilation ingestion/coverage/configuration 오류, unsafe replay, compiler
+    nonzero/비정상 종료, malformed·truncated output, timeout, source/compiler identity 변경,
+    configuration별 진단 불일치와 bounded budget 초과는 partial finding을 남기지 않고
+    `ERROR`/`NOT_RUN`으로 닫는다. matching `-Wunused-function` warning이 source location 없이
+    오거나 위치를 판별할 수 없으면 excluded count로 세지 않고 fail-closed한다. C++ probe는
+    atomic하며 replay/process/parser 오류에는
+    fail-fast로 첫 오류 뒤 남은 compiler unit을 실행하지 않고, 이미 모은 C++
+    observation/finding도 폐기한다. 최종 merge에서 발견된 configuration disagreement도 모든
+    C++ finding을 폐기한다. 이미 성공적으로 완료·기록된 compiler observation의 source에는 exact PASS/WARN 대신 위치가 있는
+    `C++UnusedFunctionsInvalidated` `SKIP` target을 남겨 폐기 범위를 추적한다. hybrid에서 이미 완료한 Python finding은 유지하며 Python은
+    `ESTIMATED`/`python-ast-heuristic`, native C++ finding은 `EXACT`와 compiler/tool-rule
+    attribution(`tool_name`, `tool_rule_id = "-Wunused-function"`)을 보존한다. 두 scope가 모두 완료되면 aggregate evidence는 보수적으로
+    `ESTIMATED`이고, C++ 실패 시 aggregate status/evidence는 그 결과를 반영한다. C++-only project에서
+    `auto`의 exact context/tool 부재는 `required = false`인 unavailable/`NOT_RUN`과 suite optional
+    `WARN`으로 남기고, `required`의 동일 조건은 `ERROR`/`NOT_RUN`, `off`는 C++ intake/probe만 끈다.
+    context가 존재한 뒤의 invalid
+    context/coverage/configuration/replay/parser/identity 오류는 `auto`와 `required` 모두
+    `ERROR`/`NOT_RUN`으로 닫는다.
+  - [x] `extra.language_evidence`와 provenance는 Python과 C++ 범위를 분리한다. Python AST
+    dead-code는 `ESTIMATED`/`python-ast-heuristic`, 정상 C++ compiler probe는
+    `MEASURED`/`cpp-compiler-unused-function`으로 기록하며, hybrid aggregate evidence는
+    두 scope가 모두 완료된 경우 보수적으로 `ESTIMATED`를 유지한다. C++ native finding의
+    confidence와 compiler/tool-rule attribution 및 support matrix는 그 언어 범위에서만
+    `EXACT`/tool-backed로 표시한다.
+  - [x] non-TU/header/external-location diagnostic은 `cpp_unused_non_tu_diagnostics_excluded`
+    count로만 보존하고 finding으로 만들지 않는다. 단, 이 count는 exact
+    `-Wunused-function` warning이 선택된 TU 밖을 가리킬 때만 증가하며 다른 diagnostic은
+    세지 않는다. macro-generated definition은 compiler가 귀속한 expansion 위치를 그대로
+    유지하며, external-linkage symbol, template,
+    inline/COMDAT definition, linker reachability, dynamic lookup, plugin entry point와 Qt
+    meta-object reachability는 이 TU-local probe가 분류하지 않는다. generated/autogen,
+    `moc_`/`qrc_`/`ui_`/`.moc`, vendor/dependency 입력은 공통 source-ownership 정책상 기본
+    제외되며 이 slice가 Qt generated-code linkage를 대신하지 않는다.
+  - [x] `dead` 결과(Python-only, C++-only, hybrid)는 cache key 계산, load, store를 모두
+    비활성화한다. C++ compiler-backed 결과는 external/generated include closure와 compiler
+    binary content가 cache identity에 모델링될 때까지 안전하게 재사용할 수 없다.
+  - [x] **이 slice의 local acceptance gate (remote acceptance와 별개):** focused regression은
+    `607 passed, 6 skipped`, Python 3.10 `uv run --python 3.10 pytest -ra`는
+    `1,966 passed, 7 skipped`, Ruff check와 format은 184 files에서 pass, mypy는 104 source
+    files pass였다. 두 pyz build는 각각 2,273,944 bytes, SHA-256
+    `2a3c8b011e53d21529ee03e20b0f7eeafbf7fbfaf6b8a9e35f5445b166c88d28`로 동일했고, smoke는
+    pass, packaged self verify는 exit 0이었다. no-cache self verify는 WARN, 14 engines (8 PASS,
+    5 WARN, 0 FAIL, 0 ERROR, 1 SKIP), TEM 4.84였고 HTML 5,526,617 bytes
+    (`159ba3db668127541c4ff56ebc535138fbd5541ad86eccad45879e606e50742d`), JSON 15,590,867
+    bytes (`0d38d3b9daa92977b3933dd3b2bbf58531b52134d87f462d7a9271b659affe1a`)와 title
+    `ici Verification Report — ici`/Zero-CDN을 확인했다. viewer standalone `dead --report`는
+    configured `cpp_unused = "required"` 아래에서 PASS/MEASURED/exact 8/8 source/configuration,
+    0 functions, cache key null, success evidence
+    8건이었다. viewer deep no-cache는 `clang-tidy`/`clazy` 미설치만으로 WARN, 14 engines (12 PASS,
+    1 WARN, 0 FAIL, 0 ERROR, 1 SKIP), TEM 4.89였고 HTML 355,996 bytes
+    (`9098bec837b61d2ed08c15cdb21b4b4f59741a160eb0a09dfb74d8163bb33d8c`), JSON 743,422 bytes
+    (`069eb0dced6c835c2690b8d45da2216ffb15af233b5dc7a3f92e609fd90d67ad`)와 title
+    `ici Verification Report — viewer`/Zero-CDN을 확인했다. 로컬 경로는 기록하지 않으며, 이
+    수치는 remote PR acceptance 수치가 아니다.
+  - [x] 후속 hardening은 `8f8f4d0` (compiler family alias detection), `7522fe7` (strict
+    option-separator operands), `88c18da` (alias-family regression coverage), `3a38997`
+    (compiler/cwd-bound include-projection cache identity), `ea1d4b5` (project formatting),
+    `2b7ff41` (automatic C++ analysis scope), `13099ca` (translation-unit language guard)로
+    반영했다.
+  - [ ] **Whole-program/linker-backed dead-symbol reachability**는 아직 pending이다. 여러
+    object/library를 연결한 결과, external/dynamic lookup, plugin 또는 Qt meta-object 경로를
+    포함하는 전역 unused-symbol 판정은 별도 범위로 남긴다.
+
+  이 C++ TU-local slice의 remote acceptance(PR CI, artifact/Pages, exact-main/Merge Gate)는
+  아직 pending이다. 버전은 `0.10.2`로 유지하고 release는 만들지 않는다.
 - [ ] duplicate는 generated/moc/vendor code를 기본 제외하고 token/region fingerprint를 통합한다.
   - [x] 공통 intake의 generated/moc/vendor 기본 제외와 두 independent literal-boolean opt-in을
     적용하고, overlapping classification은 두 opt-in이 모두 켜져야 포함한다. owned C/C++
@@ -1137,9 +1249,9 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     확인, bounded extension과 maximal-match deduplication을 적용한다. 현재 fingerprint는
     `sha256/type2-region-v2`이고 결과 provenance는
     `language-lexical-region-heuristic`/`ESTIMATED`다.
-  - [ ] full duplicate 의미 분석과 compiler/linker-backed exact dead-symbol evidence는 아직
-    pending이다. bounded lexical slice의 PR/CI/main acceptance만으로 I4-3 전체를 완료로
-    표시하지 않는다.
+  - [ ] full duplicate 의미 분석과 broader whole-program/linker-backed dead-symbol evidence는
+    아직 pending이다. bounded lexical slice나 이번 TU-local compiler diagnostic slice만으로
+    I4-3 전체를 완료로 표시하지 않는다.
 - [x] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
 
 이 source-evidence slice는 PR #133으로 `main` (`fdc797a0c71c46d9301db2569928468ff42e24af`)에
@@ -1179,19 +1291,19 @@ Zero-CDN을 통과했다.
 | viewer | 358,047 | `a212609c54fe6fa10cd8f6abe3318c0094f9b3fd23ba9b7570f59f46612d1d30` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
 
 PR #133의 local/remote branch는 병합 후 삭제됐다. 이 evidence는 source-evidence 구현 delivery를
-닫지만 compiler/linker exact dead-symbol evidence와 full duplicate semantic analysis는 여전히
+닫지만 broader whole-program/linker-backed dead-symbol evidence와 full duplicate semantic analysis는 여전히
 pending이므로 I4-3 또는 I4 전체 checkpoint를 닫지 않는다. 버전은 `0.10.2`로 유지하고 새
 release는 만들지 않는다.
 
 ### Language-aware duplicate tokenization — PR #135 accepted (2026-09-03)
 
-이번 duplicate slice는 PR #135 run `33647055492`와 squash merge `b09af5e`의 exact-main run
+이번 duplicate slice는 PR #135 run `33647055492`와 historical squash merge `b09af5e`의 exact-main run
 `33648359498`을 모두 통과했다. single sticky comment, artifact/Pages byte match, exact UTF-8
 title, Zero-CDN, PR synthetic merge 및 exact-main `source_commit`을 독립 확인했다. 정확한
 local test, DiskMap/BuildScope/LogLens/ici 측정값, 원격 artifact hash는
 [`bounded language-aware duplicate workthrough`](../../../workthrough/2026-09-02-bounded-language-aware-duplicate.md)에
 고정한다. 이 acceptance는 bounded lexical/token-region 하위 범위만 닫으며 full semantic
-duplicate 및 exact dead-symbol evidence는 계속 pending이다. 버전은 `0.10.2`로 유지하고 이
+duplicate 및 broader whole-program/linker-backed dead-symbol evidence는 계속 pending이다. 버전은 `0.10.2`로 유지하고 이
 slice에 대한 release는 만들지 않는다.
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA

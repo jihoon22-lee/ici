@@ -101,6 +101,7 @@ warn_nesting = 4
 cpp_boundaries = "auto"  # auto | required | off
 
 [engines.dead]
+cpp_unused = "auto"         # auto | required | off (C++ compiler probe)
 include_generated = false  # generated/autogen/moc 입력을 포함하려면 true
 include_vendor = false     # vendor/dependency 입력을 포함하려면 true
 
@@ -283,7 +284,7 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 | `cycle` | heuristic | tool-backed (Qt) → heuristic fallback |
 | `complexity` | heuristic | tool-backed (Qt) → heuristic fallback |
 | `sanitize` | tool-backed | tool-backed (Qt) |
-| `dead` | heuristic | unsupported |
+| `dead` | heuristic | tool-backed (Qt) |
 | `dup` | heuristic | heuristic (Qt) |
 | `exception` | heuristic | heuristic (Qt) |
 <!-- ici:support-matrix:end -->
@@ -333,7 +334,8 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   것도 정상 성공으로 인정합니다.
 - **C++ (정확한 compilation context)**: compilation database/context가 있으면 각 production
   translation unit의 각 configuration에 저장된 normalized command를 사용합니다. `CapabilityInventory`가
-  확인한 실행 가능한 직접 GCC/Clang driver만 허용하고, source·working directory 경계도 다시
+  확인한 실행 가능한 직접 GCC/Clang driver만 허용하고, 등록된 `gcc`/`g++` probe는 `--version`
+  banner에서 지원된 GCC 또는 Clang family를 식별한 경우에만 complete로 인정합니다. source·working directory 경계도 다시
   검사합니다. replay adapter는 `-c`·출력·dependency 생성 옵션은 제거하고, positive allowlist
   밖의 option과 plugin/wrapper/toolchain 주입 등 unsafe option은 fail-closed로 거부한 뒤
   controlled syntax operation을 붙여 실행합니다. inherited override를 배제한 minimal
@@ -350,7 +352,7 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`,
   `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`, `ici.engines.cpp_text`를
   명시합니다. `.ui`와 `.qrc`도 project source digest에 포함됩니다.
-- **C++ clang-tidy (I4-1)**: `clang_tidy`는 `auto`(도구가 없으면 `WARN`), `required`(도구가
+- **C++ clang-tidy**: `clang_tidy`는 `auto`(도구가 없으면 `WARN`), `required`(도구가
   없으면 `ERROR`), `off`(명령과 evidence 없음) 중 하나로 정책을 정합니다. 이 adapter는
   capability inventory의 approved direct `clang-tidy`와 exact `CompilationContext`의 covered
   production unit만 실행합니다. 설정 우선순위는 명시한 `clang_tidy_config` > source에서 project
@@ -374,16 +376,24 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   C++ search 결과에서 C search 결과를 뺀 나머지를 compiler 출력 순서대로
   `-nostdinc++`와 `-isystem <root>` 쌍으로 투영합니다. 각 probe는 최대 5초, 두 probe 합계는 최대
   10초이며 131,072 output characters·64 directories bound와 replacement environment/closed stdin을 사용해
-  `g++ stdlib include search` `ToolEvidence`로 기록합니다. identity가 다르면 projection 대상이
+  `g++ stdlib include search` `ToolEvidence`로 기록합니다. compiler의
+  device/inode/mode/size/mtime/ctime 및 working-directory의 device/inode/mode/mtime/ctime
+  identity를 projection cache key와 probe 전후 검증에 함께 묶으며, identity가 다르면 projection 대상이
   아니며, 일치한 GCC의 malformed·timeout·truncated·nonzero probe 또는 표준 라이브러리 경로
   미확인은 Clang 도구를 실행하기 전에 fail-closed합니다. 이미 `-nostdinc`/`-nostdinc++`가 있으면
   projection을 중복 적용하지 않고, C translation unit에는 C++ 표준 라이브러리를 투영하지
-  않습니다. compiler file identity가 cache key에 포함되고 probe 전후에도 재검증됩니다.
-- compiler diagnostic format은 approved GCC/`g++` version 9 이상에서
-  `-fdiagnostics-format=json`을 사용하고, approved Clang 또는 version을 알 수 없는 compiler는
-  `-fdiagnostics-parseable-fixits` text fallback을 사용합니다. JSON/text parser는 malformed
-  output을 일부 성공 결과와 섞지 않고 atomic하게 거부하며, project-relative/external location,
-  stable rule ID, child/note diagnostic과 fix-it range/replacement를 보존합니다. compiler의
+  않습니다.
+- compiler diagnostic format은 capability path와 관측된 family/version을 기준으로 선택합니다.
+  실제 GCC family version 9 이상은 `-fdiagnostics-format=json`, older approved GCC와 approved
+  Clang-family driver/alias는 `-fdiagnostics-parseable-fixits` text를 사용합니다. 같은 executable의 관측된
+  Clang family는 `g++` alias spelling보다 우선하며, 중립 이름이나 Apple alias도 기록된 family를
+  따릅니다. controlled `-fdiagnostics-show-option`이
+  project의 rule-visibility 설정을 대체합니다. capability에 resolve되지 않는 unknown/unapproved
+  compiler는 text fallback 대상이 아니며 replay 전에 거부됩니다. syntax replay는 source를 최종
+  operand로 유지하고, unused-function replay는 source의 원래 positional slot을 보존합니다.
+  JSON/text parser는 malformed output을 일부 성공 결과와 섞지 않고 atomic하게
+  거부하며, project-relative/external location, stable rule ID, child/note diagnostic과 fix-it
+  range/replacement를 보존합니다. compiler의
   child/note와 Clazy의 rule-owned `ClazyNote`는 기존 정책대로 독립 진단으로 유지합니다.
   반대로 clang-tidy text의 `clang-analyzer-*` rule과 일반 check에서 primary를 설명하는
   rule-less `note:`와 primary와 같은 rule을 명시한 `note:`는 같은 contiguous stream에서
@@ -407,7 +417,7 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   compilation context 자체에 error diagnostic이 있으면 replay를 시작하지 않습니다. 위치가 없는
   GCC command-line/ICE diagnostic은 버리지 않고 bounded `[external]`:1 target으로 보존하며,
   context가 불완전한 상태에서 정상 unit 일부만 실행해 clean 결과를 만들지 않습니다.
-- **C++ Qt clazy 및 generated-code 검증 (I4-2)**: `clazy`는 capability registry에서
+- **C++ Qt clazy 및 generated-code 검증**: `clazy`는 capability registry에서
   `clazy-standalone`을 우선하고 `clazy` compiler-wrapper를 fallback provider로 기록합니다.
   `clazy = "auto" | "required" | "off"`는 optional/required/disabled 정책이며,
   `clazy_profile = "level0" | "level1"`은 global `ici.profile`과 독립적인 명시적 profile입니다.
@@ -650,9 +660,9 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   성공했고 main JSON `source_commit`은 같은 SHA와 일치했습니다. main ici/viewer Pages도
   같은 검사를 통과했으며 ici는 `7,454,995` bytes/SHA `182a0d05…5adbb75`, viewer는
   `356,598` bytes/SHA `fb772d4a…c0c4794`로 artifact byte-match됐습니다. 두 run에서 skip된
-  것은 예상된 PR/main publish job뿐입니다. 이 acceptance는 I4-3 dead/duplicate, 남은 I4-4,
-  I4 전체 checkpoint의 완료를 의미하지 않습니다. 버전은 `0.10.2`로 유지하고 release는
-  만들지 않습니다.
+  것은 예상된 PR/main publish job뿐입니다. 이 acceptance는 whole-program/linker dead
+  reachability, duplicate, 남은 I4-4, I4 전체 checkpoint의 완료를 의미하지 않습니다. 버전은
+  `0.10.2`로 유지하고 release는 만들지 않습니다.
 - **코드 스니펫**: 고복잡도 함수의 실제 원본 소스 코드를 추출하여 HTML 리포트에 즉시 표시
 
 ### 2.6 🛡️ `sanitize` (메모리 안전성 및 리소스 누수 진단)
@@ -680,9 +690,91 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   candidate 8,192개, owned/analyzed file 2,048개, 파일당 8 MiB, aggregate 64 MiB 한도를
   적용하며 위반·경계 이탈·읽기 오류·NUL text는 partial 결과로 숨기지 않고 `ERROR`/`NOT_RUN`
   target으로 남긴다. 직접 엔진 config에서는 literal `true`만 opt-in으로 인정한다.
-- Python AST reachability/name-reference는 compiler/linker 증거가 없는 휴리스틱이므로 결과
-  `evidence = ESTIMATED`, `analysis_provenance = python-ast-heuristic`이다. compiler/linker/
-  clang-tidy-backed exact dead-symbol 판정은 아직 이 엔진의 완료 범위가 아니다.
+- **Python evidence**: AST reachability/name-reference에는 compiler/linker 증거가 없으므로
+  `evidence = ESTIMATED`, `analysis_provenance = python-ast-heuristic`이다.
+- **C++ compiler-backed unused-function probe**: `[engines.dead].cpp_unused`는 `auto`,
+  `required`, `off` 중 하나이며 기본값은 `auto`다. exact `CompilationContext`가 정확히 덮는 모든
+  owned project C/C++ source translation unit의 모든 알려진 canonical configuration을 immutable
+  command로 재생하고 `-Wunused-function`을 추가한다. `project.cpp_external_build_dirs`로 지정한
+  external build directory 안의 owned source도 exact database가 해당 unit을 덮으면 포함하며,
+  build/link engine의 self-link 제외 정책은 이 source scan에 적용하지 않는다. 각 selected
+  `CompilationUnit`의 explicit `language`는 `c` 또는 `c++`여야 하고 다른 값이나 빈 값은 compiler
+  실행 전에 거부한다. 각 configuration identity는
+  `directory`/`argv`/`output` payload의 canonical digest를 replay 전에 다시 계산해 대조한다.
+  `unity_build = true`인 context만 이
+  source-ownership 계약에서 거부하며, `false` 또는 `null` 값 자체는 거부하지 않는다.
+  capability inventory가 성공적으로 probe한 외부 regular **직접 GCC/Clang driver**만 허용하며,
+  `gcc`/`g++`/`clang`/`clang++` capability에 resolve되는 `cc`/`c++` 또는 target/version 표기의
+  approved alias만 사용할 수 있다. wrapper·project-contained·unprobed/unknown driver는
+  거부한다. 관측된 compiler family가 GCC이고 version 9 이상이면
+  `-fdiagnostics-format=json`, older GCC와 approved Clang-family driver/alias는
+  `-fdiagnostics-parseable-fixits` bounded text를 사용한다. 같은 executable의 관측된 Clang
+  family는 `g++` alias spelling보다 우선하며, project가 지정한 rule-visibility 설정은 제거하고
+  controlled `-fdiagnostics-show-option`을 강제한다.
+  GCC가 `-fsyntax-only`에서 이 경고를 생략할 수 있으므로 diagnostic-only probe는 `-S -o
+  os.devnull`로 discarded assembly를 생성하며, object·실행 파일·링커 산출물은 만들지 않는다.
+  sanitized command에서는 canonical source operand를 원래 compile argv 위치에 정확히 한 번
+  보존하고 controlled diagnostic arguments를 뒤에 추가한다. option separator 뒤의 추가 operand는
+  `-w`나 두 번째 `--`를 포함해 모두 거부한다.
+- C++ exact finding은 **compiler가 선택된 translation unit source에 귀속한 logical 위치 범위**에
+  있고 rule ID가 정확히 `-Wunused-function`인 warning diagnostic만 보존한다. logical path가
+  selected TU와 정확히 같고 line/column 범위가 immutable source snapshot 안에 있어야 한다.
+  범위를 벗어난 `#line`/macro-expansion remapping은 fail-closed하며, ici는 accepted 위치를
+  physical source provenance 또는 source-spelled declaration으로 역추적하지 않는다. 같은 source에 속한
+  모든 알려진 configuration에서 필터된 위치 집합이 일치할 때만 exact로 승격하며, clean source도
+  configuration 수를 가진 `PASS` target으로 남긴다. 결과 `extra`에는 `cpp_unused_policy`,
+  `cpp_unused_mode`, 검사한 source/configuration 수, tool metadata와 `language_evidence`
+  (`python`/`cpp`별 `NOT_APPLICABLE`·`NOT_RUN`·`ESTIMATED`·`MEASURED`)를 기록한다. target name은
+  `Compiler:-Wunused-function`이고 native finding의 `tool_rule_id`는 `-Wunused-function`이며
+  `FindingConfidence.EXACT`를 사용한다.
+- `cpp_unused_non_tu_diagnostics_excluded`는 rule ID가 정확히 `-Wunused-function`이고 warning인
+  diagnostic이 먼저 확인된 뒤, 그 logical path가 selected source와 다를 때만 증가한다. 따라서
+  header/other-TU/external 위치의 matching warning만 count에 남고 unrelated warning·note·error는
+  세지 않는다. matching warning이 unlocated이면 source 귀속을 증명할 수 없으므로 clean PASS로
+  제외하지 않고 전체 C++ probe를 fail-closed하며, malformed output도 동일하다. macro-generated definition도
+  compiler-attributed expansion 위치를 사용한다. 일반 external-linkage symbol, template,
+  inline/COMDAT definition, linker reachability, dynamic lookup/plugin entry point 및 Qt meta-object
+  reachability도 이 TU-local probe의 dead 증거가 아니다.
+- **정책과 fail-closed**: pure C++ scope에서 compilation context/database/approved compiler가
+  unavailable 또는 not-applicable이고 실제 analysis/context/intake error가 없을 때만 `auto`가
+  required gate를 완화한다. 이때 C++는 `SKIP`/`NOT_RUN`, `required = false`가 되어 suite에는
+  `WARN`만 기여한다. hybrid은 Python 분석을 계속하되 C++ unavailable을 명시하고 정상 완료된
+  Python scope의 aggregate evidence를 `ESTIMATED`로 유지한다. `required`는 unavailable 상태도
+  `ERROR`/`NOT_RUN`으로 승격한다. context가 존재한 뒤의 invalid context, 실행/coverage/configuration/
+  replay/parser/compiler/identity 오류는 `auto`와 `required` 모두 `ERROR`/`NOT_RUN`이며 휴리스틱으로
+  대체하지 않는다. `off`는 `dead`의
+  C++ path를 source intake/replay에 넣지 않고 compiler/tool evidence도 만들지 않으며, standalone
+  `ici dead`에서는 C++ compilation-context preflight도 요청하지 않는다. pure C++ dead gate를
+  활성화하지 않으므로 `off`인 C++ scope는 hybrid의 Python 분석을 차단할 수 없고 혼합 프로젝트의
+  Python 정책은 계속 적용된다.
+- C++ scope는 첫 replay/process/parse/identity 오류에서 fail-fast하며 이후 unit을 실행하지 않는다.
+  모든 replay가 성공해도 source configuration의 diagnostic set이 다르면 C++ exact targets를
+  전부 폐기하는 atomic merge를 적용한다. 이미 성공적으로 완료·기록된 compiler observation의 source에는 exact PASS/WARN
+  대신 위치가 있는 `C++UnusedFunctionsInvalidated` `SKIP` target을 남긴다. 반대로 C++ scope가 나중에 실패해도 이미 완료된
+  Python findings는 유지하며, Python finding은 `FindingConfidence.MEDIUM`과 빈 compiler
+  tool attribution을 유지한다. hybrid에서 Python `ESTIMATED`와 C++ `MEASURED`가 함께 있으면
+  전체 engine evidence는 보수적으로 `ESTIMATED`이고, 언어별 상태는 `extra.language_evidence`
+  와 support matrix에 표시된다.
+- source snapshot은 no-follow regular-file reader의 descriptor identity와 double-read content를
+  검사하고 replay 직전에 다시 읽는다. project-contained working directory의 `device/inode/mode`
+  identity와 approved external compiler의 `device/inode/mode/size/mtime/ctime` identity를 process
+  직전에 검사하고, otherwise-successful replay 뒤에도 working directory·compiler identity와
+  source snapshot bytes를 다시 검사한다. 변경·unsafe replay·timeout·truncated/malformed output·
+  비정상 종료는 partial finding 없이 `ERROR`/`NOT_RUN`이다.
+- verify의 모든 `dead` result cache key/load/store는 현재 비활성화되어 있다. cache-v3 identity가
+  external/generated include의 완전한 dependency closure와 compiler executable content를 아직
+  모델링하지 않기 때문이며, 이 두 identity를 cache v3가 모델링할 때까지 Python-only와 hybrid를
+  포함한 모든 `dead` result를 재사용하거나 저장하지 않는다. `cpp_unused = auto|required`인
+  standalone `ici dead`는 `dead`에 필요한 scoped probes와 설정된 `[doctor].required_tools`만
+  요청하고 전체 tool registry를 무조건 probe하지 않는다. `off`는 C++ path discovery로 scope
+  존재만 판별하고 C++ context/tool probe와 bytes intake를 생략한다.
+- 이 구현이 제공하는 것은 compiler가 증명할 수 있는 internal-linkage 함수의 TU-local
+  `-Wunused-function` 계약뿐이다. 여러 object/library/plugin과 dynamic lookup을 포함하는
+  **whole-program/linker-backed reachability 증거는 아직 보류 범위**이며, 향후 별도 구현으로
+  다룬다. 자세한 focused contract는 [`compiler-backed C/C++ unused-function workthrough`](workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
+  기록한다. 최종 viewer standalone `dead` evidence는 `PASS`/`MEASURED`이며, 정확히 8개 source, 8개
+  configuration, 8개 target, 8개 `tool_evidence` 행, 0개 unused function, `cache_key = null`이다.
+  이 slice의 remote acceptance는 pending이고 public version은 `0.10.2`로 유지한다.
 
 ### 2.8 📦 `dup` (코드 복제 및 중복률 감지기)
 - **언어별 lexical normalization**: Python과 C/C++에 전용 line-preserving lexer를 사용하고
@@ -725,8 +817,9 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   deterministic internal budget이 있다. 이 값들은 `[engines.dup]` 사용자 설정 키가 아니다.
   한도를 넘으면 partial clone/PASS를 만들지 않고 `ERROR`/`NOT_RUN`과 위치 있는
   `SourceTokenizationError` 또는 `DuplicateComparisonLimit` target을 반환한다.
-- compiler/linker 수준의 exact dead-symbol/duplicate 의미 분석과 I4-3 전체 checkpoint는
-  아직 완료 범위가 아니다.
+- whole-program/linker 수준의 reachability와 external/dynamic symbol을 포함하는 exact
+  dead-symbol 증거, 그리고 semantic duplicate 분석과 I4-3 전체 checkpoint는 아직 완료
+  범위가 아니다. C++ TU-local `-Wunused-function` probe의 현재 계약은 §2.7에 기술한다.
 
 ### 2.9 ⚠️ `exception` (예외 처리 안전성 검출기)
 - `except: pass` (예외 무시/삼킴 패턴) 검출
@@ -810,7 +903,9 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   no-follow bounded read입니다. context/report/cache에는 `origin`, generator, unity 상태,
   DB digest 및 `CMakeFiles/<target>.dir`에서 도출한 target이 포함됩니다. CMake subdirectory의
   output이 DB parent 기준으로 기록된 경우에도 entry directory 기준 명령과 같은 canonical
-  파일을 가리킬 때만 보정합니다.
+  파일을 가리킬 때만 보정합니다. DB digest는 preflight가 immutable context로 캡처한 snapshot을
+  식별하며 live-file lease가 아니다. DB가 변경되면 실행 중 context를 바꾸지 않고 다음 preflight에서
+  새 bytes와 context를 반영합니다.
 
 ---
 
