@@ -2,7 +2,17 @@
 
 from pathlib import Path
 
-from ici.core.models import EngineResult, EngineStatus, InspectionTarget, VerificationSuiteResult
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    Finding,
+    FindingCategory,
+    FindingConfidence,
+    FindingSeverity,
+    InspectionTarget,
+    SourceLocation,
+    VerificationSuiteResult,
+)
 from ici.reporters.html import generate_html_report
 from ici.reporters.json_rep import save_json_report
 from ici.reporters.markdown import generate_markdown_report
@@ -55,6 +65,63 @@ def test_reporters_output_generation(tmp_path: Path):
     json_out = tmp_path / "report.json"
     save_json_report(suite, json_out)
     assert json_out.exists()
+
+
+def test_html_and_markdown_render_related_finding_locations(tmp_path: Path):
+    target = InspectionTarget(
+        file_path="src/main.cpp",
+        start_line=3,
+        target_name="ClangTidy:modernize-use-nullptr",
+        status=EngineStatus.WARN,
+        message="warning: prefer nullptr",
+    )
+    finding = Finding(
+        rule_id="ici.legacy.lint.target",
+        category=FindingCategory.MAINTAINABILITY,
+        severity=FindingSeverity.MEDIUM,
+        confidence=FindingConfidence.EXACT,
+        fingerprint="",
+        primary_location=SourceLocation(
+            "src/main.cpp",
+            3,
+            label="ClangTidy:modernize-use-nullptr",
+        ),
+        message="warning: prefer nullptr",
+        tool_rule_id="modernize-use-nullptr",
+        related_locations=[
+            SourceLocation(
+                "include/macros.hpp",
+                9,
+                start_column=7,
+                label="note: expanded from <NULL> & reviewed",
+            )
+        ],
+    )
+    result = EngineResult(
+        engine_name="lint",
+        status=EngineStatus.WARN,
+        summary="0 Errors, 1 Warnings Found",
+        targets=[target],
+        findings=[finding],
+    )
+    suite = VerificationSuiteResult(suite_status=EngineStatus.WARN, results=[result])
+
+    markdown = generate_markdown_report(
+        suite,
+        repo_url="https://github.com/owner/repo",
+        commit_sha="abc1234",
+    )
+    assert "Related diagnostic locations" in markdown
+    assert "include/macros.hpp#L9" in markdown
+    assert "note: expanded from &lt;NULL&gt; &amp; reviewed" in markdown
+
+    html_out = tmp_path / "related.html"
+    generate_html_report(suite, html_out, project_name="Related", base_dir=tmp_path)
+    content = html_out.read_text(encoding="utf-8")
+    assert "Active Quality Gate Issues (1 Findings)" in content
+    assert "Related evidence" in content
+    assert 'data-rel-path="include/macros.hpp"' in content
+    assert "note: expanded from &lt;NULL&gt; &amp; reviewed" in content
 
 
 def test_html_report_includes_module_coverage_table(tmp_path: Path):

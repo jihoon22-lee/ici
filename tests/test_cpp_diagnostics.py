@@ -329,6 +329,31 @@ def test_clang_tidy_note_inherits_parent_rule_and_family(tmp_path: Path) -> None
     assert ruled_note.target.start_line == 5
 
 
+def test_clang_tidy_notes_stay_with_their_contiguous_primary(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/first.cpp:3:5: warning: prefer nullptr [modernize-use-nullptr]\n"
+        "include/first.hpp:4:7: note: expanded from the first macro\n"
+        "src/second.cpp:8:3: warning: moved object reused "
+        "[clang-analyzer-cplusplus.Move]\n"
+        "include/second.hpp:9:2: note: move happened here\n"
+    )
+
+    result = parse_clang_tidy_diagnostics(root, root, "", output)
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error == ""
+    assert len(result.diagnostics) == 2
+    first, second = result.diagnostics
+    assert first.tool_rule_id == "modernize-use-nullptr"
+    assert first.family == "clang-tidy"
+    assert [note.target.file_path for note in first.related_diagnostics] == ["include/first.hpp"]
+    assert second.tool_rule_id == "clang-analyzer-cplusplus.Move"
+    assert second.family == "clang-analyzer"
+    assert [note.target.file_path for note in second.related_diagnostics] == ["include/second.hpp"]
+    assert second.related_diagnostics[0].family == "clang-analyzer"
+
+
 def test_clang_tidy_llvm18_empty_structural_note_keeps_concrete_note(
     tmp_path: Path,
 ) -> None:
