@@ -1543,6 +1543,38 @@ I4 전체 checkpoint를 닫지 않는다.
 
 ## 15. I9 — 회귀 corpus와 1.0 완료 기준
 
+### I9-0. Candidate artifact provenance producer (producer sub-slice)
+
+**브랜치:** `chore/candidate-artifact-provenance`
+**상태:** producer contract/local implementation complete; remote and consumer evidence pending
+
+이 절은 candidate를 소비하는 toy/quality-zoo 검증이나 I4-3 전체를 완료 처리하지 않는다.
+
+- [x] `refs/heads/main`에서만 수동 dispatch하고 full lowercase target SHA가 producer workflow를
+  공급한 exact protected-main dispatch commit과 같으며 fetched main ancestry에 남아 있는지 검증한다.
+- [x] newest exact successful `Merge Gate`만 선택하고 canonical successful main-push
+  `CI Quality Gate (Dogfooding)` run과 선택된 `Merge Gate` job을 각각 독립 Actions Runs/Jobs
+  응답으로 검증하는 bounded auditor를 둔다. job/run/attempt, target SHA, name/workflow,
+  main branch, status/conclusion과 canonical job/run/check URL이 모두 서로 묶여야 한다.
+- [x] 두 번의 reproducible build와 smoke를 거친 exact three-file bundle 및 provenance
+  manifest(`ici.candidate/v1`)를 정의한다.
+- [x] workflow의 `candidate_bundle.py create/verify` 호출과 helper CLI를 정렬하고, exact
+  three-file/mode/bounded canonical JSON/checksum 검증을 focused regression으로 고정한다.
+  manifest는 candidate run ID/attempt와 선택된 Merge Gate `check_run_id`, `job_id`, `run_id`,
+  `run_attempt`, canonical `job_url`/`run_url`을 각각 `merge_gate_check_run_id`,
+  `merge_gate_job_id`, `merge_gate_run_id`, `merge_gate_run_attempt`,
+  `merge_gate_job_url`, `merge_gate_url`로 기록한다. focused 111-test suite와 live API
+  verifier, Python 3.10 full suite(2,061 passed, 환경 의존 7 skipped), Ruff/mypy/actionlint,
+  reproducible build/smoke와 실제 built-pyz bundle round trip이 통과했다.
+  `ici.candidate/v1`은 아직 remote candidate artifact가 없는 local contract이며 stable
+  `v0.10.2` version/tag/release와는 별개다.
+- [ ] 실제 remote dispatch에서 run URL, artifact ID/digest/download URL, 세 파일과 manifest를
+  기록한다. 이 문서 작성 시점에는 해당 remote evidence가 없다.
+- [ ] verified candidate pyz를 toy consumer에 local path로 주입한다. 각 toy PR의 normal gate는
+  released ici `v0.10.2` pin을 유지한다.
+- [ ] 별도 quality-zoo scenario runner와 report/artifact contract를 추가하고, 기존
+  `<!-- ici-report -->` upsert를 확장하더라도 sticky PR comment는 정확히 하나로 유지한다.
+
 ### I9-1. quality-zoo contract runner
 
 **브랜치:** `test/quality-zoo-contract`
