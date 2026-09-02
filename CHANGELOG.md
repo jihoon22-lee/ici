@@ -99,13 +99,25 @@
   note with a conflicting check rule or without a preceding primary diagnostic is rejected
   atomically. Compiler diagnostics and Clazy's rule-owned `ClazyNote` behavior are unchanged.
   The compiler-backed function-boundary parser consumes the nested function-size notes as
-  structural evidence without flattening lint findings. Focused Python 3.10 verification across
-  five related test files passed (`177 passed, 6 skipped`); Ruff check/format and mypy (`98`
-  source files) also passed. An earlier full local attempt (`1750 passed, 7 skipped, 10 failed`)
-  exposed the boundary-consumer mismatch; `e86c982` resolves that downstream contract and the
-  subsequent reporter follow-up preserves the same evidence across outputs, but the full gate has
-  not been rerun after the resolution. PR and CI verification remain pending. The version remains
-  `0.10.2`; no release is created.
+  structural evidence without flattening lint findings. Native-only related evidence is rendered
+  even when an engine has no legacy target rows. Duplicate native occurrences remain a multiset
+  when fingerprints collide; external locations remain non-links, while HTML and Markdown retain
+  accessible labels and exact line/column coordinates. `e1a665d` refactors Markdown detail rendering
+  into bounded target, related-location, and snippet helpers without changing that contract.
+  Focused Python 3.10 verification across five related test files passed (`177 passed, 6 skipped`);
+  Ruff check/format and mypy (`98` source files) also passed. An earlier full local attempt
+  (`1750 passed, 7 skipped, 10 failed`) exposed the boundary-consumer mismatch; `e86c982` resolves
+  that downstream contract and the subsequent reporter follow-up preserves the same evidence
+  across outputs.
+
+  The canonical full local Python 3.10 gate on the clean pre-`e1a665d` candidate passed with
+  `1768 passed, 2 skipped`; the two expected environment skips require unavailable `clang++` and
+  `clazy`. Ruff check/format and mypy (`98` source files) passed. Two reproducible package builds
+  were byte-identical at `2,242,765` bytes with SHA-256
+  `424ce848024249d539ecc530a797b75747e39f77e25d1cf8449203edbb357927`, and packaged smoke passed.
+  The final rebuild and no-cache source self-verification after `e1a665d` remain pending; this
+  follow-up's PR/CI verification is also pending. The version remains `0.10.2`; no release is
+  created.
 
 - **Bounded heuristic source evidence for `dead` and `dup`**: both engines now consume the same
   stable, project-contained UTF-8 source snapshot instead of independently opening files. The
@@ -221,9 +233,13 @@
   Python 3.10 has `1,686` collected tests with `1,684` passed and `2` skipped; Ruff check/format
   and mypy (`97` source files) pass; two builds of the `2,235,838` byte package are identical at
   SHA-256 `a6e437ba08336d4ced2eb02752be3ec5849d029fa8bff2cbca182956b6b31e9f`; packaged smoke
-  passes. The PR CI rerun, sticky comment, Pages, and extracted-artifact byte-match remain
-  pending, so no remote or release acceptance is claimed. The version remains `0.10.2`; no
-  release is created.
+  passes. Final PR run `33601774411`, its single sticky comment, and Merge Gate passed. PR
+  artifact/Pages pairs are byte-identical: ici `7,513,806` bytes at SHA-256
+  `f6b39e7e852a5ca2039bef9287e09359ee082dca9d7dbccc644db1bf0fae0406`, viewer `356,773`
+  bytes at SHA-256 `5bbd432739ccbecf3f36afd882beabff042889a371c12b42e6551e0617bcad82`;
+  both are valid UTF-8 with exact titles and Zero-CDN. PR #132 was squash-merged at `5a7a23f`,
+  and exact-main run `33602697235` passed. This closes the corrective PR, not I4-4 or a new
+  release. The version remains `0.10.2`; no release is created.
 
 ## [0.10.2] - 2026-09-02
 

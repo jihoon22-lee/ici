@@ -52,7 +52,15 @@ independent actionable checks.
   orders the list deterministically by path, start line/column, end line/column, and label. JSON
   and HTML retain the complete canonical related-location inventory. GitHub Markdown renders the
   non-informational, unsuppressed related rows up to 100 rows per engine and emits an omission
-  notice while directing consumers to the full JSON/HTML reports.
+  notice while directing consumers to the full JSON/HTML reports. The Markdown projection also
+  renders native-only related evidence when no legacy target rows exist. External locations are
+  deliberately rendered as non-links; HTML and Markdown preserve accessible location labels and
+  exact line/column coordinates. Native finding occurrences remain a multiset when fingerprints
+  collide, so duplicate evidence is not silently discarded.
+
+- `e1a665d` refactors Markdown detail rendering into bounded target-row, related-location, and
+  failure-snippet helpers. It preserves the native-only, bounded, external-location, and exact
+  coordinate contract while reducing the complexity of the single report-generation path.
 
 ### Function-boundary consumer adaptation
 
@@ -179,10 +187,22 @@ refactor keeps the association linear and contiguous, while `c3108a7` and `0f46e
 exercise the related evidence in HTML and bounded Markdown output; JSON continues to serialize the
 full `Finding.related_locations` list.
 
-This worktree has not rerun the complete quality gate, PR workflow, or CI/Pages evidence after that
-resolution. Those checks remain pending and the failed `1750 passed, 7 skipped, 10 failed` run is
-historical evidence, not the status of a newly claimed green gate. The version remains `0.10.2`;
-no release is created.
+The canonical full local Python 3.10 gate was subsequently run on the clean pre-`e1a665d` candidate:
+
+```text
+uv run --python 3.10 pytest -rs
+1768 passed, 2 skipped in 63.99s (0:01:03)
+```
+
+The two expected skips are the real-tool cases requiring unavailable `clang++`/`clazy`; the
+available clang-tidy path was exercised. `uvx ruff check .`, `uvx ruff format --check .`, and
+`uv run --python 3.10 mypy src` passed (`98` source files). Two consecutive
+`./scripts/build-pyz.sh` runs were byte-identical at `2,242,765` bytes with SHA-256
+`424ce848024249d539ecc530a797b75747e39f77e25d1cf8449203edbb357927`; `./scripts/smoke.sh`
+passed. The final rebuild and no-cache source self-verification after `e1a665d` remain pending,
+as do this follow-up's PR/CI/Pages checks. The earlier `1750 passed, 7 skipped, 10 failed` run is
+historical evidence of the pre-`e86c982` mismatch, not the current local gate status. The version
+remains `0.10.2`; no release is created.
 
 ## Follow-up and roadmap status
 

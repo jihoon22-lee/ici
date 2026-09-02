@@ -34,8 +34,8 @@ clazy 1.11·Qt matrix·1,517개 테스트·self/viewer dogfood·Zero-CDN Pages�
 승격하지 않도록 경고 선택은 보존하면서 오류 승격만 낮춥니다. v0.10.2는 외부 Qt macro
 preview와 CTest sanitizer evidence를 bounded하게 보존하고, clang-tidy/clazy가 compilation
 database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합니다. 공개된 v0.10.2를
-사용하는 BuildScope 최종 검증과 I4-3/I4-4가 다음 완료 조건이며, 이전 릴리스 증거는 변경
-이력과 실행 계획에 보존합니다.
+사용하는 BuildScope B0~B5 최종 검증과 공개 `buildscope-v0.5.0` release audit은 완료됐다.
+남은 ici 범위는 I4-3/I4-4이며, 이전 릴리스 증거는 변경 이력과 실행 계획에 보존합니다.
 
 ### 릴리스 정책
 
@@ -221,8 +221,9 @@ Python 3.10 local run은 focused C++/CTest 회귀 161 passed, full suite 1,538 p
 정확한 Ubuntu 24.04 + Qt 5 + clazy 1.11 run은 full lint 12/12, approved external macro note
 1건, unsuppressed CTest 8의 9 cases와 LeakSanitizer diagnostic을 기록했다. suppression을 넣어
 확인한 작업은 toy repository에 한정되며 ici policy로 해석하지 않는다. 이번 correction의 ici
-PR/정확한 main gate와 공개 v0.10.2 release evidence는 완료됐다. 남은 delivery evidence는
-공개된 v0.10.2를 사용하는 BuildScope 최종 검증입니다.
+PR/정확한 main gate와 공개 v0.10.2 release evidence는 완료됐다. 공개 v0.10.2를 사용하는
+BuildScope B0~B5 최종 검증, exact-main/Pages 확인, `buildscope-v0.5.0` release와 asset audit도
+완료됐다. 남은 delivery 범위는 I4-3/I4-4입니다.
 
 테스트 실행 상태는 수집 상태와 분리됩니다. CTest/QtTest와 pytest의 skip은 실패로 세지 않지만
 실행 증거로도 세지 않으며, pytest `XFAIL`은 실행된 예상 실패이자 PASS, `XPASS`는 실행된
