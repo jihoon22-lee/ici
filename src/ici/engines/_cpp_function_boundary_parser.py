@@ -543,10 +543,17 @@ def parse_function_boundaries(
     cached_bytes = [sum(len(item.text.encode("utf-8")) for item in source_cache.values())]
     if cached_bytes[0] > _MAX_SOURCE_CACHE_BYTES:
         raise ValueError("function boundary source cache exceeds the bounded limit")
-    diagnostics = (
+    primaries = (
         parsed.diagnostics
         if source_file is None
         else tuple(item for item in parsed.diagnostics if item.target.file_path == source_file)
+    )
+    # The shared clang-tidy parser groups explanatory notes under their
+    # actionable primary so the lint engine does not count notes as separate
+    # findings.  This dedicated structural parser still consumes the ordered
+    # function-size metric notes as evidence for that primary.
+    diagnostics = tuple(
+        item for primary in primaries for item in (primary, *primary.related_diagnostics)
     )
     if external_suppression and not diagnostics:
         raise ValueError("function boundary suppression had no visible project diagnostics")
