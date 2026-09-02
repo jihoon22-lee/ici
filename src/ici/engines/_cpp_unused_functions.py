@@ -235,6 +235,18 @@ def _selected_replay_units(
         )
         outcome.mode = "error"
         return None
+    unsupported_languages = sorted(
+        {unit.language or "[unknown]" for unit in selected if unit.language not in {"c", "c++"}}
+    )
+    if unsupported_languages:
+        _append_error(
+            outcome,
+            database_path,
+            "C++ unused-function context contains unsupported translation-unit language(s): "
+            + ", ".join(unsupported_languages),
+        )
+        outcome.mode = "error"
+        return None
     return tuple(selected)
 
 

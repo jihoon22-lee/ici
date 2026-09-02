@@ -865,6 +865,33 @@ def test_translation_unit_limit_is_enforced_before_preparation(
     assert "translation-unit count exceeds the bounded limit" in outcome.errors[-1]
 
 
+@pytest.mark.parametrize("language", ["", "objective-c++"])
+def test_non_c_translation_unit_language_is_rejected_before_execution(
+    tmp_path: Path,
+    language: str,
+) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    unit = replace(context.compilation.units[0], language=language)
+    context = replace(
+        context,
+        compilation=replace(context.compilation, units=(unit,)),
+    )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert "unsupported translation-unit language" in outcome.errors[-1]
+
+
 def test_compilation_database_without_canonical_digest_fails_before_execution(
     tmp_path: Path,
 ) -> None:
