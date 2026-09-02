@@ -388,9 +388,7 @@ def collect_tool_capability(
     compiler_family = compiler_family_from_version(version)
     if compiler_family:
         details["compiler_family"] = compiler_family
-    complete = bool(version_tuple) and (
-        name not in _COMPILER_DRIVER_NAMES or bool(compiler_family)
-    )
+    complete = bool(version_tuple) and (name not in _COMPILER_DRIVER_NAMES or bool(compiler_family))
     if complete:
         error = ""
     elif version_tuple and name in _COMPILER_DRIVER_NAMES:
