@@ -118,9 +118,9 @@ The following repository-relative files were updated to describe the same contra
 - `docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md`
 - `workthrough/2026-09-02-source-analysis-evidence.md`
 
-The plan and handover retain the distinction between this bounded heuristic slice and future exact
-dead-symbol analysis or robust duplicate tokenization. They also retain the fact that this slice
-does not bump the version or create a release.
+The plan and handover retain the distinction between this bounded heuristic snapshot and the exact
+dead-symbol or robust duplicate-tokenization work that was still future work at this stage. They
+also retain the fact that this slice does not bump the version or create a release.
 
 ## Verification Results
 
@@ -210,13 +210,17 @@ titles and zero external resource URLs:
 | viewer | 358,047 | `a212609c54fe6fa10cd8f6abe3318c0094f9b3fd23ba9b7570f59f46612d1d30` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
 
 This final evidence closes the bounded source-evidence implementation delivery, not I4-3 as a
-whole: compiler/linker-backed exact dead-symbol evidence and robust duplicate tokenization remain
-pending. The separate `fix/clang-tidy-related-notes` follow-up has focused local evidence only;
-its PR/CI verification and merge remain pending.
+whole. Compiler/linker-backed exact dead-symbol evidence remains pending. The later bounded
+language-aware duplicate lexical/token-region slice replaced this snapshot's tokenizer and has
+separate local evidence, while full duplicate semantic analysis and its remote acceptance remain
+pending. The separate clang-tidy related-note follow-up subsequently merged through
+[PR #134](https://github.com/jihoon22-lee/ici/pull/134); its PR/main/Pages evidence is recorded in
+[`2026-09-02-clang-tidy-related-notes.md`](2026-09-02-clang-tidy-related-notes.md).
 
 ## Next Steps
 
 - Add compiler/linker-backed exact dead-symbol evidence before changing the dead-code status.
-- Replace the remaining heuristic duplicate tokenizer with robust language-aware tokenization.
+- Complete remote acceptance for the bounded language-aware duplicate slice, then define the
+  remaining full semantic-analysis contract without upgrading its heuristic evidence prematurely.
 - Revisit the I4-3 aggregate only after the required local, real-tool, cross-repository, and remote
   evidence gates are independently available.

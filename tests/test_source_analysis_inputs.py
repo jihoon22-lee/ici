@@ -572,7 +572,7 @@ def test_duplicate_does_not_match_python_and_cpp_token_shapes(tmp_path: Path) ->
 value -= 2
 value *= 3
 value /= 4
-    value = value + 5
+value = value + 5
 return value
 """
     _write(

@@ -118,7 +118,21 @@ path 기준입니다. `dup`는 `.h`/`.hh`/`.hpp`/`.hxx` owned header를 포함�
 symlink precheck와 double-read identity/content stability 검사를 수행하며 잘못 주입된 limit은
 fail-closed합니다. 분석이 실제로 실행되면 `dead`와 `dup`의 휴리스틱 결과는 각각 `ESTIMATED`
 evidence로 보고되며, clean 파일도 PASS 위치 target으로 남습니다. 자세한 source scope와
-fingerprint 계약은 [엔진 레퍼런스 §2.7–2.8](engine-reference.md#27--dead-죽은-코드-및-미사용-심볼)을 참고하세요.
+fingerprint 계약은 [엔진 레퍼런스 §2.7](engine-reference.md#27--dead-죽은-코드-및-미사용-심볼)과
+[§2.8](engine-reference.md#28--dup-코드-복제-및-중복률-감지기)을 참고하세요.
+
+`dup`는 Python과 C/C++를 별도 line-preserving lexer로 정규화합니다. Python `tokenize`와 AST
+context는 주석·multiline import-first statement를 제외하고 `match`/`case` soft keyword와
+import/API anchor를 보존하며 identifier, 숫자·문자열 계열, 들여쓰기·연산자 category를
+구분합니다. C/C++ lexer는 comments/directives를 제거하고 C++ backslash-newline splice의
+physical line을 보존하며 punctuator, literal, UDL과 Qt anchor를 구분합니다. normalized-window
+seed의 exact token verification과 function/class/import/directive region, semantic-signal policy를
+통해 값만 다른 data table은 억제하고 실제 control-flow clone은 유지합니다. 이 동작은
+`sha256/type2-region-v2`와 tokenizer/region/signal metadata를 기록하지만 여전히
+`ESTIMATED`/heuristic입니다. 내부 tokenizer·matching budget 초과는 partial PASS 없이
+`ERROR`/`NOT_RUN`으로 fail-closed하며 해당 budget은 사용자 설정 키가 아닙니다. Python
+tokenizer가 malformed marker를 안정적으로 만들더라도 AST region을 확정할 수 없으면 엔진은
+그 partial lexical 결과를 정상 분석으로 채택하지 않습니다.
 
 모든 파일을 병합한 뒤 엔진 이름, 설정 키, 자료형, 평가 모드와 임계값 관계를 검사합니다.
 알 수 없는 키, 잘못된 TOML, 잘못된 임계값은 조용히 기본값으로 대체되지 않고 설정 오류로
@@ -814,8 +828,9 @@ duplicate는 같은 실행의 같은 clone group 안에서 같은 파일의 겹�
 기반으로 전체 결과를 표시한다. 80-column 터미널에서도 표·링크·상세가 한 글자씩 세로로
 깨지지 않도록 회귀 테스트로 고정했다.
 
-현재 로컬 구현·테스트 기준은 `814679c` + `d80a027`이며 로컬 Python 3.10 전체 품질 게이트는
-756/756 tests, focused console 테스트는 16개다. Ruff check/format,
+다음은 issues-first console을 도입한 PR #89 당시의 고정된 acceptance 기록이다
+(`814679c` + `d80a027`). 당시 로컬 Python 3.10 전체 품질 게이트는 756/756 tests,
+focused console 테스트는 16개였다. Ruff check/format,
 pure-Python 10-distribution·no-certifi·2.0 MiB pyz, smoke 전체 검증도 통과했다. 최종 안정
 self verify에서 built `dist/ici.pyz`는 exit 0, suite는 WARN이었다. self verify 출력은 144
 lines/15,288 bytes, HTML은 3,383,523 bytes였고, 해당 출력에 내장된 test engine 수치는
@@ -1018,7 +1033,7 @@ QtTest parser는 `-xunitxml`의 각 `<testcase>`에서 skip/xfail/xpass/unknown 
 | `ici complexity` | 함수별 CC/중첩 분석; C++ 경계는 clang-tidy AST 우선, unavailable 시 heuristic evidence | [Complexity 엔진 상세](engine-reference.md#25--complexity-순환-복잡도-및-블록-중첩도) |
 | `ici sanitize` | C++ ASan/UBSan 메모리 안전성 및 Python 리소스 누수 검증 | [Sanitize 엔진 상세](engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |
 | `ici dead` | 도달 불능 코드 및 미사용 심볼 검출 | [Dead 엔진 상세](engine-reference.md#27--dead-죽은-코드-및-미사용-심볼) |
-| `ici dup` | 최대 클론 블록 병합 기반 Copy-Paste 코드 중복률 산출 | [Dup 엔진 상세](engine-reference.md#28--dup-코드-복제-및-중복률-감지기) |
+| `ici dup` | 언어별 line-preserving Type-2 lexical normalization과 exact seed/region 확장 기반 Copy-Paste 코드 중복률 산출 | [Dup 엔진 상세](engine-reference.md#28--dup-코드-복제-및-중복률-감지기) |
 | `ici exception` | 예외 삼킴(`except: pass`) 및 소멸자 throw 차단 | [Exception 엔진 상세](engine-reference.md#29-️-exception-예외-처리-안전성-검출기) |
 
 모든 검증 단독 명령과 `verify`/`build`는 공통 종료 코드 정책을 사용합니다. `PASS`/`WARN`은

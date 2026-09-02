@@ -128,6 +128,12 @@ read·지원하지 않는 확장자·invalid UTF-8/NUL·상한 초과는 조용�
 component symlink precheck 후 descriptor identity와 second-read content stability를 확인하고,
 직접 주입되는 limit이 positive integer가 아니면 fail-closed합니다.
 
+위의 source-intake bound와 별도로 `dup` lexer/index/matcher에는 내부 token·normalized-character·
+comparison budget이 적용됩니다. 이 resource bound는 사용자 설정으로 노출하지 않으며, 초과 시
+partial clone 결과나 PASS를 남기지 않고 위치가 있는 `ERROR`/`NOT_RUN`으로 닫습니다. 정상적으로
+실행된 duplicate 분석도 compiler/linker 실측이 아니므로 §2.8의 `ESTIMATED`/heuristic evidence
+계약을 따릅니다.
+
 이 저장소의 dogfood 정책(`ici.toml`)은 2026-08-31 세 번의 연속 self verify에서
 동일하게 측정된 TEM `4.78`, Branch `77.9%`, Function `95.691%`에 변동 여유를 두어
 TEM `4.5`, Branch `70%`, Function `90%`를 floor로 사용합니다. `mode = "pass_fail"`은
@@ -679,11 +685,29 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   clang-tidy-backed exact dead-symbol 판정은 아직 이 엔진의 완료 범위가 아니다.
 
 ### 2.8 📦 `dup` (코드 복제 및 중복률 감지기)
-- **알고리즘**: 토큰 정규화(식별자/리터럴 치환) 슬라이딩 윈도우 해싱 + **최대 클론 병합**
-  - **Type-2 클론 검출**: 변수명/리터럴만 다른 복사-붙여넣기도 동일 구조로 인식
-  - 교차 파일은 갭 허용 블록 매칭(`SequenceMatcher`), 동일 파일은 비중첩 그리디 확장
-  - 중복 라인 집계는 고유 라인 위치 합집합 기준 (과대 집계 방지)
-  - 원본 인덴트와 줄바꿈을 완벽히 보존한 소스 코드 프리뷰 제공
+- **언어별 lexical normalization**: Python과 C/C++에 전용 line-preserving lexer를 사용하고
+  language key를 먼저 분리한 뒤 Type-2 clone window를 만든다.
+  - Python은 stdlib `tokenize`와 AST context를 사용한다. 주석과 import-first logical
+    statement(여러 physical line에 걸친 multiline import 포함)는 window에서 제외하고,
+    `match`/`case` soft keyword의 구조적 사용과 imported/API semantic anchor를 보존한다.
+    ordinary identifier는 `ID`로, literal 값은 각 integer/float/complex 및
+    string/bytes/f-string category 안에서 정규화하며 `INDENT`/`DEDENT`와 operator 경계는
+    그대로 구분한다. tokenizer는 malformed input을
+    결정적인 opaque marker로 만들지만, 엔진이 AST region boundary를 확정할 수 없는 Python
+    source는 partial lexical 결과를 채택하지 않고 `ERROR`/`NOT_RUN`으로 닫는다.
+  - C/C++ lexer는 comments와 preprocessor directives를 제거하고 C++ translation-phase
+    backslash-newline splice를 적용하면서 physical source line을 유지한다. punctuator
+    longest-match 경계, ordinary/raw string·char·number category, UDL suffix와 Qt semantic
+    anchors를 보존한다.
+- **매칭과 구조 경계**: normalized rolling/window seed를 인덱싱한 뒤 seed token을 exact
+  검증하고 양쪽으로 확장해 maximal region을 만든다. Python AST function/class/import scope와
+  C++ function/directive scope를 region key로 사용하므로 함수·import·directive 경계를 넘지
+  않는다. semantic-signal policy는 literal/identifier 위주의 Python 상수표와 C++ array/enum
+  data table을 clone으로 올리지 않으면서 실제 6줄 이상 control-flow 구조를 보존한다. literal
+  대입만 반복되는 block은 low-information으로 제외하지만, identifier 사이의 value-flow 대입은
+  actionable signal로 취급하는 보수적 trade-off를 regression contract로 고정한다.
+  중복 라인 집계는 고유 line 위치 합집합 기준이며, 원본 인덴트와 줄바꿈을 보존한 snippet을
+  제공한다.
 - **평가 기준**: 전체 코드베이스 대비 중복 라인 비율이 `warn_pct`(5%) 초과 시 경고, `fail_pct`(15%) 초과 시 실패
 - `dead`와 동일한 strict UTF-8 bounded intake와 generated/vendor 기본 제외 정책을 사용하며,
   `include_generated`/`include_vendor`를 독립적으로 지정할 수 있다. owned C/C++ headers
@@ -691,10 +715,18 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   `include_generated = true`일 때만 포함된다. 두 정책이 겹친 path는 두 switch가 모두 literal
   `true`여야 한다. 분석된 모든 파일은 `DuplicateScan` 또는 clone 위치의 `PASS`/finding
   target으로 보존한다.
-- Python과 C/C++ source는 같은 token shape가 나와도 언어별로 매칭을 분리한다. clone group과
-  target metric에는 `sha256/type2-region-v1` fingerprint를 기록하고 전체 결과 evidence는
-  `ESTIMATED` (`analysis_provenance = token-region-heuristic`)로 표시한다. robust language
-  tokenization과 compiler/linker 수준의 완전한 duplicate 의미 분석은 pending이다.
+- **결과 metadata와 evidence**: clone group과 target metric에는
+  `sha256/type2-region-v2` fingerprint를 기록하고 `extra`에 `tokenizer_versions`(현재
+  `cpp-lexical-v1`/`python-lexical-v1`), `region_policy = language-function-scope-v1`,
+  `signal_policy = minimum-semantic-lines-v1`를 남긴다. 정상 완료된 결과는 compiler/linker
+  실측이 아닌 `ESTIMATED` (`analysis_provenance = language-lexical-region-heuristic`)다.
+- **내부 한도와 fail-closed**: tokenizer token 수, normalized-character/indexed-record 수,
+  shared-window occurrence, same/cross-file seed pair, extension comparison, raw match에는
+  deterministic internal budget이 있다. 이 값들은 `[engines.dup]` 사용자 설정 키가 아니다.
+  한도를 넘으면 partial clone/PASS를 만들지 않고 `ERROR`/`NOT_RUN`과 위치 있는
+  `SourceTokenizationError` 또는 `DuplicateComparisonLimit` target을 반환한다.
+- compiler/linker 수준의 exact dead-symbol/duplicate 의미 분석과 I4-3 전체 checkpoint는
+  아직 완료 범위가 아니다.
 
 ### 2.9 ⚠️ `exception` (예외 처리 안전성 검출기)
 - `except: pass` (예외 무시/삼킴 패턴) 검출

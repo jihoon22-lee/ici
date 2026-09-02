@@ -108,8 +108,14 @@ ici/
 │       │   ├── complexity.py        # Cyclomatic & Nesting 복잡도 분석기
 │       │   ├── _cpp_function_boundaries.py # bounded clang-tidy AST 경계 adapter
 │       │   ├── sanitize.py          # ASan/UBSan & Python 누수 검증
+│       │   ├── _source_inputs.py    # dead/dup 공통 bounded UTF-8 source snapshot
 │       │   ├── dead.py              # 미사용 심볼 & 데드코드 탐지기
 │       │   ├── dup.py               # 연결 컴포넌트 클러스터링 기반 중복 감지기
+│       │   ├── _cpp_dup_tokenization.py # C/C++/Qt line-preserving lexical records
+│       │   ├── _python_dup_tokenization.py # Python tokenize/AST lexical records
+│       │   ├── _dup_regions.py      # function/import/preprocessor hard boundaries
+│       │   ├── _dup_signal.py       # low-information window suppression policy
+│       │   ├── _dup_matching.py     # bounded rolling-seed exact extension
 │       │   ├── exception.py         # 예외 삼킴 및 소멸자 throw 방지
 │       │   ├── publish.py           # GitHub HTML 리포트 퍼블리셔 (gh-pages/hub)
 │       │   └── publish_baseline.py  # strict delta summary/comment adapter
@@ -599,11 +605,20 @@ symlink를 `lstat`으로 precheck하고, 읽은 descriptor의 identity와 내용
 
 `dead`의 Python AST reachability/name-reference와 `dup`의 token/region matching은 이 snapshot
 위에서 수행되며 compiler/linker exact evidence가 아니다. 따라서 실행 결과는 각각
-`python-ast-heuristic` 및 `token-region-heuristic` provenance와 `ESTIMATED` evidence를
-보존한다. `dup`는 Python과 C/C++ token window를 language key로 분리하고
-`sha256/type2-region-v1` clone fingerprint를 안정적으로 생성하며 분석된 파일마다 PASS
-location target을 남긴다. compiler/linker-backed exact dead-symbol 분석과 robust language
-tokenization은 I4-3의 후속 범위로 남아 있다.
+`python-ast-heuristic` 및 `language-lexical-region-heuristic` provenance와 `ESTIMATED`
+evidence를 보존한다. `dup`의 local language-aware slice는 Python과 C/C++ token window를
+language key로 분리하고, 언어별 line-preserving lexical normalization과 function/class/import 또는
+function/preprocessor region boundary를 적용한다. shared normalized window seed는 rolling hash
+후 실제 normalized equality를 확인하고, blank/comment gap을 허용하되 region을 넘지 않으며,
+bounded extension과 maximal-match deduplication을 수행한다. clone fingerprint는
+`sha256/type2-region-v2`로 안정적으로 생성하고 분석된 파일마다 PASS location target을 남긴다.
+이 lexical/token-region slice는 local implementation evidence 기준으로 완료됐지만,
+compiler/linker-backed exact dead-symbol evidence, full duplicate semantic analysis, I4-3 전체
+acceptance 및 PR/CI/main evidence는 아직 pending이다.
+
+정확한 local test와 toy/project 측정값은
+[`bounded language-aware duplicate workthrough`](../workthrough/2026-09-02-bounded-language-aware-duplicate.md)에
+고정한다. 이 slice는 버전을 올리지 않으며 stable release를 만들지 않는다.
 
 #### Compiler-backed C++ function boundaries (I4-3)
 

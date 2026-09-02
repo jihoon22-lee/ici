@@ -7,10 +7,14 @@ The clang-tidy text parser previously returned every explanatory `note:` as an i
 counts, and report metadata. The `fix/clang-tidy-related-notes` implementation at `f999ee3`, the
 linear grouping refactor at `3fc45a7`, reporter projection at `c3108a7`, and reporter contract
 coverage at `0f46ec5` now attach ordinary clang-tidy and `clang-analyzer-*` explanation notes to
-their preceding primary while preserving their locations, messages, and fix-its.
+their preceding primary while preserving their locations, messages, and fix-its. The completed
+follow-up was delivered in [PR #134](https://github.com/jihoon22-lee/ici/pull/134), whose head was
+`603a00e6574bae1fe2927421a28795780caa7f67` and whose merge commit was
+`b5ebeaecee1737973b407d328bd5d655eca7256a`.
 
 This is a focused analyzer-correctness follow-up. It does not close I4-1 or I4-3 as a new roadmap
-checkpoint, and it does not change compiler-diagnostic or Clazy note policy.
+checkpoint, and it does not change compiler-diagnostic or Clazy note policy. The PR and exact-main
+workflow runs are green; the independent artifact/Pages audit is recorded below.
 
 ## Context
 
@@ -218,16 +222,43 @@ and the final no-cache packaged self-check returned exit `0`:
 | Integrity | UTF-8 exact title `ici Verification Report — ici`; 0 external resources |
 
 The earlier `1750 passed, 7 skipped, 10 failed` run remains historical evidence of the
-pre-`e86c982` boundary-consumer mismatch. This follow-up's PR/CI/Pages checks are still pending.
-The version remains `0.10.2`; no release is created.
+pre-`e86c982` boundary-consumer mismatch. The follow-up is now merged: [PR run
+`33616285870`](https://github.com/jihoon22-lee/ici/actions/runs/33616285870) and exact-main [run
+`33617482194`](https://github.com/jihoon22-lee/ici/actions/runs/33617482194) both report
+`SUCCESS`, and the [PR sticky comment](https://github.com/jihoon22-lee/ici/pull/134#issuecomment-5507780937)
+is recorded. The independent artifact/Pages byte, HTTP, encoding, title, and Zero-CDN audit is
+recorded in the following section. The version remains `0.10.2`; no release is created.
+
+## PR and main acceptance
+
+[PR #134](https://github.com/jihoon22-lee/ici/pull/134) was merged from head
+`603a00e6574bae1fe2927421a28795780caa7f67` as
+`b5ebeaecee1737973b407d328bd5d655eca7256a`. The PR workflow
+[`33616285870`](https://github.com/jihoon22-lee/ici/actions/runs/33616285870) and exact-main
+workflow [`33617482194`](https://github.com/jihoon22-lee/ici/actions/runs/33617482194) both report
+`SUCCESS`. The [PR sticky comment](https://github.com/jihoon22-lee/ici/pull/134#issuecomment-5507780937)
+contains exactly one `<!-- ici-report -->` marker, the current run, and two report links.
+
+The extracted artifact HTML and its corresponding Pages HTML are byte-identical in both the PR and
+main publications. All four Pages responses returned HTTP 200 with
+`text/html;charset=utf-8`, the exact report titles, and zero external `src`/`href` references.
+Artifact identity metadata reports the generated merge ref for the PR artifact and the merge commit
+for the main artifact. This table is the canonical byte/source-commit record:
+
+| Publication | Report | HTML bytes | SHA-256 | Artifact `source_commit` | Pages/title |
+|---|---|---:|---|---|---|
+| PR | ici | 8,226,771 | `396cb3e8d79a4c39647c8dae7c444a10555682c59762fb333c7cbcdcefcde5d9` | `99b522d496adc7d243922a67438bfa107c15502f` | [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/134/) — `ici Verification Report — ici` |
+| PR | viewer | 371,473 | `e180cd3e9647b44e2b4d762c7f9a1d22f664fe44e76584b1aff1bbf4e024d338` | `99b522d496adc7d243922a67438bfa107c15502f` | [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/134/) — `ici Verification Report — viewer` |
+| main | ici | 8,226,771 | `d8de3fa07c0b2ffebb235d160b30671d3bc7893e0824cbbe2b14dc4886d29986` | `b5ebeaecee1737973b407d328bd5d655eca7256a` | [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/) — `ici Verification Report — ici` |
+| main | viewer | 371,473 | `266f9d3c0b770bd38c0de3597a81909b51e37c2905b14276dc4f5216b5185353` | `b5ebeaecee1737973b407d328bd5d655eca7256a` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
 
 ## Follow-up and roadmap status
 
 The primary/related split should remain covered by parser, adapter, reporter, and real-tool tests,
-including LLVM 18 conversion-note output and note fix-it preservation. Before treating this as a
-delivery checkpoint, run the repository's full quality gates and the required PR/CI/Pages evidence.
+including LLVM 18 conversion-note output and note fix-it preservation. PR #134 merge, both workflow
+runs, and the independent artifact/Pages byte audit are recorded above.
 
-Compiler/linker-backed exact dead-symbol evidence and robust language-aware duplicate tokenization
-remain pending I4-3 work. This note aggregation does not change those roadmap statuses.
+Compiler/linker-backed exact dead-symbol evidence and full duplicate semantic analysis remain
+pending I4-3 work. This note aggregation does not change those roadmap statuses.
 
 `git diff --check` is the final whitespace check for the documentation-only follow-up.
