@@ -74,6 +74,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "warn_cc": 15,
             "fail_cc": 25,
             "warn_nesting": 4,
+            "cpp_boundaries": "auto",
         },
         "sanitize": {
             "enabled": True,

@@ -14,12 +14,14 @@ import pytest
 from ici.core.capabilities import CapabilityInventory, collect_capability_inventory
 from ici.core.compile_db import load_compilation_context
 from ici.core.context import AnalysisContext, create_analysis_context, discover_project_model
-from ici.core.models import ToolEvidence
+from ici.core.models import EngineStatus, EvidenceState, ToolEvidence
 from ici.core.runner import ProcessResult, run_process
 from ici.core.toolchain import ToolProbe
 from ici.engines._clang_tidy import run_clang_tidy
 from ici.engines._clazy import run_clazy
+from ici.engines._cpp_function_boundaries import run_cpp_function_boundaries
 from ici.engines._cpp_lint import run_cpp_lint
+from ici.engines.complexity import ComplexityEngine
 
 _PROBES = {
     "g++": ToolProbe("g++", ("g++",), ("-dumpfullversion", "-dumpversion")),
@@ -378,6 +380,157 @@ def test_run_clang_tidy_uses_real_binary_and_exact_context(
     assert evidence.argv[: len(expected_prefix)] == expected_prefix
     _assert_gcc_stdlib_projection_arguments(evidence.argv[len(expected_prefix) :])
     assert all(value not in evidence.argv for value in ("-p", "--fix", "compile_commands.json"))
+    assert _source_snapshot(real_cpp_project) == before
+
+
+def test_cpp_function_boundaries_use_real_clang_ast_and_exact_context(
+    real_cpp_project: Path,
+) -> None:
+    inventory = _required_inventory("g++", "clang-tidy")
+    context = _analysis_context(real_cpp_project, inventory)
+    source = real_cpp_project / "src" / "tidy_swappable.cpp"
+    before = _source_snapshot(real_cpp_project)
+
+    outcome = run_cpp_function_boundaries(
+        real_cpp_project,
+        [source],
+        context,
+        runner=run_process,
+    )
+
+    assert outcome.mode == "exact", outcome.errors
+    assert outcome.errors == []
+    assert outcome.warnings == []
+    assert outcome.sources_checked == 1
+    assert outcome.configurations_checked == 1
+    assert len(outcome.boundaries) == 1
+    boundary = outcome.boundaries[0]
+    assert boundary.file_path == "src/tidy_swappable.cpp"
+    assert boundary.name == "tidy_swappable"
+    assert (boundary.start_line, boundary.end_line) == (3, 14)
+    assert boundary.body_start_line == 3
+    assert boundary.lines == 11
+    assert boundary.statements > 0
+    assert boundary.parameters == 3
+    assert len(boundary.configurations) == 1
+
+    evidence = _assert_gcc_projection_and_analyzer_evidence(
+        outcome.evidence,
+        inventory,
+        "clang-tidy function boundaries",
+    )
+    assert evidence.returncode == 0
+    assert evidence.error == ""
+    assert evidence.argv is not None
+    assert evidence.argv[1:3] == [
+        "--use-color=false",
+        "--checks=-*,readability-function-size",
+    ]
+    assert evidence.argv[3].startswith('--config={"CheckOptions":')
+    assert evidence.argv[4].startswith("--header-filter=^")
+    assert evidence.argv[5:7] == [str(source.resolve(strict=True)), "--"]
+    projection_index = evidence.argv.index("-nostdinc++")
+    assert projection_index > evidence.argv.index("--")
+    assert evidence.argv[-1] == "-w"
+    _assert_gcc_stdlib_projection_arguments(evidence.argv[projection_index:-1])
+    assert all(
+        value not in evidence.argv
+        for value in ("-p", "--fix", "compile_commands.json", "-MMD", "-MF", "-c", "-o")
+    )
+    assert _source_snapshot(real_cpp_project) == before
+
+    integrated = ComplexityEngine(
+        real_cpp_project,
+        {"engines": {"complexity": {"cpp_boundaries": "required"}}},
+        analysis_context=context,
+    ).run()
+    assert integrated.status == EngineStatus.PASS, integrated.extra["cpp_boundary_errors"]
+    assert integrated.evidence == EvidenceState.MEASURED
+    assert integrated.extra["cpp_boundary_mode"] == "exact"
+    assert integrated.extra["cpp_exact_boundaries"] == 3
+    assert integrated.extra["cpp_estimated_boundaries"] == 0
+    assert integrated.extra["total_functions"] == 3
+    assert _source_snapshot(real_cpp_project) == before
+
+
+def test_real_clang_boundaries_cover_braced_declarators_function_try_and_digraphs(
+    real_cpp_project: Path,
+) -> None:
+    inventory = _required_inventory("g++", "clang-tidy")
+    source = real_cpp_project / "src" / "boundary_edges.cpp"
+    source.write_text(
+        "struct Widget { int value; Widget(int input); };\n"
+        "Widget::Widget(int input) try : value{input} {\n"
+        "    if (input < 0) { throw input; }\n"
+        "} catch (...) {\n"
+        "    throw;\n"
+        "}\n"
+        "int default_brace(int value = {1}) { return value; }\n"
+        "int guarded() noexcept(noexcept(int{1})) { return 1; }\n"
+        "int digraph(int value) <% if (value) <% return 1; %> return 0; %>\n"
+        "template <class T> int constrained(T value) requires requires { value + 1; } "
+        "{ if (value) { return 1; } return 0; }\n",
+        encoding="utf-8",
+    )
+    database_path = real_cpp_project / "compile_commands.json"
+    database = json.loads(database_path.read_text(encoding="utf-8"))
+    database.append(
+        {
+            "directory": str(real_cpp_project / "build"),
+            "file": "../src/boundary_edges.cpp",
+            "arguments": [
+                "g++",
+                "-std=c++20",
+                "-I",
+                "../include",
+                "-c",
+                "../src/boundary_edges.cpp",
+                "-o",
+                "boundary_edges.o",
+            ],
+            "output": "boundary_edges.o",
+        }
+    )
+    database_path.write_text(json.dumps(database), encoding="utf-8")
+    context = _analysis_context(real_cpp_project, inventory)
+    before = _source_snapshot(real_cpp_project)
+
+    outcome = run_cpp_function_boundaries(
+        real_cpp_project,
+        [source],
+        context,
+        runner=run_process,
+    )
+
+    assert outcome.mode == "exact", outcome.errors
+    assert outcome.errors == []
+    assert outcome.warnings == []
+    assert outcome.sources_checked == 1
+    assert outcome.configurations_checked == 1
+    assert {item.name for item in outcome.boundaries} == {
+        "Widget",
+        "default_brace",
+        "digraph",
+        "guarded",
+        "constrained",
+    }
+    widget = next(item for item in outcome.boundaries if item.name == "Widget")
+    assert (widget.body_start_line, widget.end_line) == (2, 6)
+    digraph = next(item for item in outcome.boundaries if item.name == "digraph")
+    assert digraph.body_start_line == digraph.end_line == 9
+    assert _source_snapshot(real_cpp_project) == before
+
+    integrated = ComplexityEngine(
+        real_cpp_project,
+        {"engines": {"complexity": {"cpp_boundaries": "required"}}},
+        analysis_context=context,
+    ).run()
+    assert integrated.status == EngineStatus.PASS, integrated.extra["cpp_boundary_errors"]
+    assert integrated.evidence == EvidenceState.MEASURED
+    assert integrated.extra["cpp_boundary_mode"] == "exact"
+    assert integrated.extra["cpp_exact_boundaries"] == 8
+    assert integrated.extra["cpp_estimated_boundaries"] == 0
+    assert integrated.extra["total_functions"] == 8
     assert _source_snapshot(real_cpp_project) == before
 
 

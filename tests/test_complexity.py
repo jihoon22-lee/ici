@@ -3,7 +3,9 @@
 import ast
 from pathlib import Path
 
-from ici.core.models import EngineStatus
+import pytest
+
+from ici.core.models import EngineStatus, EvidenceState
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.exception import ExceptionSafetyEngine
 
@@ -267,6 +269,92 @@ def test_cpp_single_line_definition_closes_itself(tmp_path: Path):
     assert targets["busy()"].metrics["complexity"] == 3
 
 
+def test_cpp_same_line_definitions_are_scanned_independently(tmp_path: Path):
+    targets = _cpp_targets(
+        tmp_path,
+        "int first() { return 1; } int second(int value) { if (value) { return 2; } return 0; }\n",
+    )
+
+    assert set(targets) == {"first()", "second()"}
+    assert targets["first()"].metrics["complexity"] == 1
+    assert targets["second()"].metrics["complexity"] == 2
+
+
+def test_cpp_scanner_keeps_remainder_after_namespace_and_enum_braces(tmp_path: Path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "sample.cpp").write_text(
+        "namespace nested { int first() { return 1; } int second() { return 2; } }\n"
+        "enum class Flag { One }; int third() { return 3; }\n",
+        encoding="utf-8",
+    )
+
+    result = ComplexityEngine(tmp_path).run()
+    names = [target.target_name for target in result.targets]
+
+    assert names.count("first()") == 1
+    assert names.count("second()") == 1
+    assert names.count("third()") == 1
+    assert len(names) == 3
+
+
+def test_cpp_scanner_skips_initializers_and_extends_function_try_handlers(tmp_path: Path):
+    targets = _cpp_targets(
+        tmp_path,
+        "struct Widget { int value; Widget(int input); };\n"
+        "Widget::Widget(int input) try : value{input} {\n"
+        "    if (input < 0) { throw input; }\n"
+        "} catch (...) {\n"
+        "    value = 0;\n"
+        "}\n"
+        "int measured(int value = {1}) { if (value) { return value; } return 0; }\n",
+    )
+
+    assert set(targets) == {"Widget::Widget()", "measured()"}
+    assert targets["Widget::Widget()"].end_line == 6
+    assert targets["Widget::Widget()"].metrics["complexity"] == 3
+    assert targets["measured()"].end_line == 7
+    assert targets["measured()"].metrics["complexity"] == 2
+
+
+def test_cpp_scanner_understands_brace_digraphs(tmp_path: Path):
+    targets = _cpp_targets(
+        tmp_path,
+        "int digraph(int value) <% if (value) <% return 1; %> return 0; %>\n",
+    )
+
+    assert set(targets) == {"digraph()"}
+    assert targets["digraph()"].metrics["complexity"] == 2
+    assert targets["digraph()"].metrics["nesting"] == 1
+
+
+def test_cpp_scanner_skips_trailing_requires_expression(tmp_path: Path):
+    targets = _cpp_targets(
+        tmp_path,
+        "template <class T> int constrained(T value) requires requires(T candidate) "
+        "{ candidate + 1; } { if (value) { return 1; } return 0; }\n",
+    )
+
+    assert set(targets) == {"constrained()"}
+    assert targets["constrained()"].metrics["complexity"] == 2
+    assert targets["constrained()"].metrics["nesting"] == 1
+
+
+@pytest.mark.parametrize("initializer", ["[]", "+[]"])
+def test_cpp_scanner_does_not_invent_a_function_for_lambda_initializer(
+    tmp_path: Path,
+    initializer: str,
+):
+    targets = _cpp_targets(
+        tmp_path,
+        f"void (*callback)() = {initializer} {{ return; }};\n"
+        "int measured(int value) { if (value) { return 1; } return 0; }\n",
+    )
+
+    assert set(targets) == {"measured()"}
+    assert targets["measured()"].metrics["complexity"] == 2
+
+
 def test_cpp_control_flow_is_not_reported_as_a_function(tmp_path: Path):
     """`for (int i = ...)` has parens, a brace and a type, but is not a definition."""
     targets = _cpp_targets(
@@ -310,6 +398,41 @@ def test_cpp_literals_do_not_create_decision_points(tmp_path: Path):
     )
     assert set(targets) == {"text()"}
     assert targets["text()"].metrics["complexity"] == 1
+
+
+def test_cpp_token_metric_counts_if_constexpr_and_case_branches(tmp_path: Path):
+    targets = _cpp_targets(
+        tmp_path,
+        "int classify(int value) {\n"
+        "    if constexpr (true) {\n"
+        "        switch (value) {\n"
+        "        case 1: return 1;\n"
+        "        case 2: return 2;\n"
+        "        default: return 0;\n"
+        "        }\n"
+        "    }\n"
+        "    return -1;\n"
+        "}\n",
+    )
+
+    # Base path + if constexpr + two explicit case alternatives. The switch
+    # dispatch and default label do not add separate McCabe decision points.
+    assert targets["classify()"].metrics["complexity"] == 4
+
+
+def test_cpp_complexity_fails_closed_on_an_oversized_source(tmp_path: Path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "oversized.cpp").write_bytes(b"int oversized() {}\n" + b" " * (8 * 1024 * 1024))
+
+    result = ComplexityEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+    assert result.extra["total_functions"] == 0
+    assert result.extra["issues_count"] == 1
+    assert result.extra["metrics_summary"].endswith("1 issues / 0 funcs)")
+    assert result.targets[0].target_name == "CppComplexityAnalysisError"
 
 
 def test_cpp_nesting_depth_counts_blocks_inside_the_body(tmp_path: Path):

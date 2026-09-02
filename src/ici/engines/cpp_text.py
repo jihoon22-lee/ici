@@ -16,6 +16,7 @@ from pathlib import Path
 CPP_RAW_START_RE = re.compile(r'(?:u8|u|U|L)?R"(?P<delimiter>[^\s()\\]{0,16})\(')
 
 MAIN_DEFINITION_RE = re.compile(r"\bint\s+main\s*\([^{};]*\)\s*(?:noexcept\s*)?\{")
+_REQUIRES_KEYWORD_RE = re.compile(r"\brequires\b")
 
 
 def blank_cpp_region(chars: list[str], start: int, end: int) -> None:
@@ -80,6 +81,37 @@ def mask_cpp_literals(text: str) -> str:
             continue
         index += 1
     return "".join(chars)
+
+
+def cpp_requires_expression_before_brace(prefix: str) -> bool:
+    """Whether the next brace starts a trailing C++20 requires-expression.
+
+    From a function-name diagnostic onward, a trailing requires-expression has
+    two ``requires`` keywords: one introduces the requires-clause and the last
+    introduces the expression, optionally with a parameter list.  A single
+    ``requires (constraint)`` is only a parenthesized constraint followed by the
+    real function body and must not be skipped.
+    """
+
+    matches = tuple(_REQUIRES_KEYWORD_RE.finditer(prefix))
+    if len(matches) < 2:
+        return False
+    suffix = prefix[matches[-1].end() :].strip()
+    if not suffix:
+        return True
+    if not suffix.startswith("("):
+        return False
+    depth = 0
+    for index, char in enumerate(suffix):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth < 0:
+                return False
+            if depth == 0:
+                return not suffix[index + 1 :].strip()
+    return False
 
 
 def defines_main(path: Path) -> bool:

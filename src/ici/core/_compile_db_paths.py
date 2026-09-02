@@ -166,6 +166,23 @@ def _read_bounded_regular(
         after_identity = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
         if before_identity != after_identity or total != after.st_size:
             raise _ReadError("changed", "The file changed while it was being read.")
+        if containment_root is not None:
+            try:
+                root = containment_root.resolve(strict=True)
+                named_path = path.resolve(strict=True)
+                named_path.relative_to(root)
+                named = os.stat(named_path, follow_symlinks=False)
+            except (OSError, RuntimeError, ValueError) as err:
+                raise _ReadError(
+                    "changed",
+                    "The contained file path changed while it was being read.",
+                ) from err
+            named_identity = (named.st_dev, named.st_ino, named.st_size, named.st_mtime_ns)
+            if named_identity != after_identity:
+                raise _ReadError(
+                    "changed",
+                    "The contained file identity changed while it was being read.",
+                )
         return b"".join(chunks)
     except OSError as err:
         raise _ReadError("unreadable", "The file could not be read safely.") from err

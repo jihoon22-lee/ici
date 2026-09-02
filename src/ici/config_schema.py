@@ -89,7 +89,8 @@ _ENGINE_KEYS = {
     ),
     "type": _COMMON_ENGINE_KEYS
     | frozenset({"fail_on_error", "warn_on_missing_annotation", "mypy_required"}),
-    "complexity": _COMMON_ENGINE_KEYS | frozenset({"warn_cc", "fail_cc", "warn_nesting"}),
+    "complexity": _COMMON_ENGINE_KEYS
+    | frozenset({"warn_cc", "fail_cc", "warn_nesting", "cpp_boundaries"}),
     "sanitize": _COMMON_ENGINE_KEYS,
     "dead": _COMMON_ENGINE_KEYS,
     "dup": _COMMON_ENGINE_KEYS | frozenset({"warn_pct", "fail_pct", "min_window"}),
@@ -314,6 +315,11 @@ def _validate_complexity(table: dict[str, Any], path: str) -> None:
     fail_cc = table.get("fail_cc", 25)
     if fail_cc < warn_cc:
         raise _error(f"{path}.warn_cc", "must be less than or equal to engines.complexity.fail_cc")
+    if "cpp_boundaries" in table:
+        boundary_path = f"{path}.cpp_boundaries"
+        _require_string(table["cpp_boundaries"], boundary_path, non_empty=True)
+        if table["cpp_boundaries"] not in {"auto", "required", "off"}:
+            raise _error(boundary_path, "must be one of: auto, off, required")
 
 
 def _validate_dup(table: dict[str, Any], path: str) -> None:

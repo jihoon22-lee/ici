@@ -78,7 +78,9 @@ database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합
       - report/cache에는 DB origin·generator·unity 상태·CMake target과 digest가 남으며, subdirectory output 경로도 working directory와 DB 기준을 일치할 때만 안전하게 보정합니다.
      - `test` & `tem`: 단위 테스트 전수 통과 + Line/Branch/Function 커버리지 및 PassRate 기반 **TEM 5.0 스코어링** (`min(Line,80)/80 * Func/100 * PassRate *5`, Branch는 `*5/4` 보정; 모듈별 실측: Python `coverage.py` / C++ `gcov`)
     - `type`: Mypy 정적 타입 검사 및 AST 부분 폴백 (C++ 타입 검증은 명시적 SKIP)
-    - `complexity`: 함수별 순환 복잡도(Cyclomatic) 및 중첩 깊이 분석 + **원본 소스 코드 블록 프리뷰**
+    - `complexity`: Python AST와 exact context/tool이 있을 때 C++ clang-tidy
+      `readability-function-size`로 함수 경계를 정하고, 경계 내부 CC/중첩은 masked token/brace
+      metric으로 계산 + **원본 소스 코드 블록 프리뷰**
     - `sanitize`: C++ AddressSanitizer/UBSan 메모리 안전성 및 Python 리소스 누수 검증
     - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출
     - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출
@@ -117,7 +119,7 @@ database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합
    - `ici doctor`는 전체 tool registry를 한 번의 bounded probe snapshot으로 수집하고, 필요한 이유(`engine:language` 또는 `doctor.config`)와 missing/incomplete 상태를 함께 보여 줍니다. `ici doctor --json`의 `capability_inventory`는 status·counts·version/path/details/evidence를 담는 machine-readable 계약이며, 기존 `tools` map도 유지합니다.
    - `ici verify`도 유효한 support matrix의 `applicable`·`enabled` 범위와 `doctor.config`에서 required/optional 정책을 계산한 뒤, 엔진 실행 전에 같은 registry를 정확히 한 번 수집합니다. suite root의 선택적 `capability_inventory`를 console/Markdown/zero-CDN HTML reporter가 그대로 공유하므로 reporter가 도구를 재탐지하지 않습니다. required provenance 우선 규칙과 모든 provenance, capability 메타데이터·probe argv/evidence redaction을 보존하며, 콘솔은 요약하고 Markdown은 전체 inventory를 접어 보여 주고 HTML은 Support & Capabilities 탭에 전체 행을 표시합니다. 기존 inventory 없는 `ici.result/v3` 리포트도 계속 읽을 수 있습니다.
 8. **사용자 로컬 분석 캐시**:
-   - `ici verify`는 프로젝트 루트·소스/빌드 설정 내용·effective ici 설정·toolchain 버전·컴파일 DB digest/parse state·엔진 구현·build variant·ici 버전을 포함한 `ici.analysis-cache-key/v3`로 완료된 엔진 결과를 재사용합니다. 엔진 구현 identity에는 engine class source digest와 `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest 목록이 포함되며, C++ lint는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen`, `ici.engines.lint`를, cycle은 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`을 명시합니다. `.ui`/`.qrc`도 선언된 source suffix로 digest되며, 기본 위치는 `~/.cache/ici/analysis/`이고 remote/shared cache는 사용하지 않습니다.
+   - `ici verify`는 프로젝트 루트·소스/빌드 설정 내용·effective ici 설정·toolchain 버전·컴파일 DB digest/parse state·엔진 구현·build variant·ici 버전을 포함한 `ici.analysis-cache-key/v3`로 완료된 엔진 결과를 재사용합니다. 엔진 구현 identity에는 engine class source digest와 `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest 목록이 포함되며, C++ lint는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen`, `ici.engines.lint`를, cycle은 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`을, complexity는 `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`, `ici.engines.cpp_text`를 명시합니다. `.ui`/`.qrc`도 선언된 source suffix로 digest되며, 기본 위치는 `~/.cache/ici/analysis/`이고 remote/shared cache는 사용하지 않습니다.
    - 완전한 `PASS`/`WARN`/`FAIL`은 저장할 수 있지만 `ERROR`/`SKIP`/`NOT_RUN`, timeout·truncation·tool error 및 invalid artifact는 저장하지 않습니다. `--no-cache`, `ici cache`, `ici cache --clear`로 실행별 비활성화·inventory·정리를 제어합니다.
    - v3 engine JSON의 optional `cache_hit`/nullable `cache_key`는 기존 archive 소비자와 호환되며, 캐시는 프로젝트 소스를 변경하지 않고 atomic local entry만 씁니다. 새 entry는 0700/0600 권한 경계를 사용하고, symlink·duplicate key·NaN/Infinity·32 MiB 초과 payload를 거부합니다.
 
@@ -222,6 +224,41 @@ run `33531285208`의 Qt 5/Qt 6 deep clazy가 실패했습니다. fixed local `di
 `/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`, `/usr/include/c++/13/backward`를
 projection하고 2 probes 뒤 12 sources에서 clazy exit 0을 기록했으며, expected warnings도
 보존했습니다. 이 경로의 표준 라이브러리 선택은 compile database의 GCC identity에 종속됩니다.
+
+### I4-3 C++ complexity function boundaries (unreleased)
+
+`complexity`는 `[engines.complexity] cpp_boundaries = "auto" | "required" | "off"`를
+지원합니다. exact compilation context/database와 capability-approved direct `clang-tidy`가
+있을 때만 `readability-function-size`의 AST diagnostic으로 함수 경계 geometry를 확정합니다.
+경계 안의 CC/nesting은 여전히 ici의 masked token/brace metric이며 `metric_confidence`는
+`medium`입니다. `auto`는 context/tool 부재에만 source scanner로 fallback하고
+`ESTIMATED`를 남깁니다. 빈/미보고 또는 macro definition은 heuristic으로 남을 수 있고,
+시도된 tool·replay·parser·timeout·truncation·coverage·budget 오류는 `ERROR`/`NOT_RUN`으로
+닫습니다. 단, clang-tidy가 visible project diagnostics와 함께 정확한
+`Suppressed N warnings (N in non-user code).`를 내는 회계는 외부/system 진단만 억제한 경우로
+허용합니다. NOLINT/project/mixed/malformed/count-mismatch suppression은 계속
+`ERROR`/`NOT_RUN`으로 fail-closed합니다. `required`는 unavailable 또는 partial/estimated
+boundary도 오류로 승격하며, `off`는 의도적으로 heuristic 경로를 사용합니다. probe는 호출자가
+제공한 bounded source snapshot과 mapped-source cache를 사용하고 replay 전·도구 완료 후 source
+identity를 재검증합니다. C++ source inventory도 최대 2,048 source files와 64 MiB aggregate
+UTF-8 source bytes cap 아래에서 수집하며,
+동일 geometry가 성공한 모든 configuration에 존재할 때만 exact로 승격합니다. 누락 또는 config별
+상이한 geometry는 partial로 남고 `required`에서는 오류입니다. 실행 한도는 2,048 units,
+source당 8 MiB, run source bytes 64 MiB, mapped-source cache bytes 16 MiB, output 1,000,000자,
+parser 10초, unit당 120초, 전체 600초입니다. 같은 줄의 인접/overload 함수, braced declarator와
+default/noexcept/trailing `requires` 표현식, function-try/catch, `<%`/`%>` body를 포함해
+geometry를 매핑합니다. approved tool executable은 매 process 실행 직전에 다시 resolve하며
+device/inode/mode/size/mtime/ctime identity가 바뀌거나 사라지면 fail-closed합니다. assigned
+`[]`/`+[]` lambda initializer brace는 fallback에서 phantom 함수로 만들지 않습니다. descriptor 경로는
+`dir_fd`/`O_DIRECTORY`를 사용할 수 없는 fallback에서도
+resolved named path와 device/inode/size/mtime identity를 다시 검사해 intermediate symlink와
+TOCTOU를 fail-closed합니다.
+
+현재 candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
+`7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`이며, `clang-tidy-21` full
+suite는 `1,626 passed, 2 skipped`입니다. BuildScope/DiskMap/LogLens와 HTML SHA, toy exact-main
+evidence는 [compiler-boundary workthrough](docs/workthrough/2026-09-02-compiler-backed-cpp-function-boundaries.md)에
+기록되어 있고, candidate smoke 및 HTML Zero-CDN checks는 통과했습니다.
 
 ## 💻 빠른 설치 및 사용법
 
