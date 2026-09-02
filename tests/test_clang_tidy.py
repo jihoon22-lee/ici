@@ -507,6 +507,7 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
         "[clang-analyzer-core.NullDereference]\n"
         f"{source}:4:5: warning: prefer nullptr [modernize-use-nullptr]\n"
         f"{source}:5:7: note: replace the macro expansion here\n"
+        f'fix-it:"{source}":{{5:7-5:11}}:"nullptr"\n'
     )
     calls: list[tuple[list[str], dict[str, object]]] = []
     compiler = Path(context.compilation.units[0].argv[0]).resolve(strict=True)
@@ -552,6 +553,9 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
     }
     assert result.extra["violations_count"] == 2
     assert result.extra["cpp_related_notes"] == 1
+    assert result.extra["cpp_fixits_total"] == 1
+    assert result.extra["cpp_fixits"][0]["family"] == "clang-tidy"
+    assert result.extra["cpp_fixits"][0]["rule"] == "modernize-use-nullptr"
     assert result.summary == "0 Errors, 2 Warnings Found"
     assert len(result.findings) == 2
     findings_by_rule = {finding.tool_rule_id: finding for finding in result.findings}
@@ -565,6 +569,7 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
     assert note.start_line == 5
     assert note.start_column == 7
     assert note.label == "note: replace the macro expansion here"
+    assert "replace with 'nullptr'" in findings_by_rule["modernize-use-nullptr"].remediation
     assert all(finding.tool_name == "clang-tidy" for finding in result.findings)
     assert all(finding.tool_version == "clang-tidy version 18.1.0" for finding in result.findings)
     assert set(findings_by_rule) == {
