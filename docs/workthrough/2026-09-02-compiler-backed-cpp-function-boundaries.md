@@ -4,8 +4,8 @@
 
 This workthrough records the historical PR #130 `feat/compiler-backed-cpp-functions` checkpoint.
 It was merged into `main` at merge commit `8083267d864d3f29e6f3ae7c53358ce0b1674b44` after the
-exact-main CI run `33580383887`. The current unmerged `feat/cpp-function-scope-policy` follow-up
-is documented separately. This baseline is historical evidence, not a stable release record.
+exact-main CI run `33580383887`. The later PR #131 `feat/cpp-function-scope-policy` acceptance is
+documented separately. This baseline is historical evidence, not a stable release record.
 
 ## Design
 
@@ -97,7 +97,7 @@ were green for that baseline.
 All three extracted HTML artifacts passed the published checker and the Zero-CDN checker. The toy
 exact-main run `33574455762` succeeded at `d5f248...`, with 21 successful checks and 1 expected skip;
 main Pages and the extracted artifact HTML bytes matched. These are historical PR #130 cross-repository
-results, not evidence for the current scope-policy follow-up.
+results; the later PR #131 acceptance is recorded in the scope-policy workthrough.
 
 ## Delivery status
 
@@ -108,8 +108,8 @@ The historical PR #130 candidate evidence is complete for this workthrough:
 | ici smoke and HTML Zero-CDN check | passed |
 
 Lambda and macro-generated-code policy was not closed by the PR #130 baseline; template/operator
-coverage did not close that broader policy item. The current unmerged scope-policy follow-up tracks
-that classification contract separately. C++ cognitive complexity and the remaining I4-3
+coverage did not close that broader policy item. The later PR #131 scope-policy slice tracks that
+classification contract separately. C++ cognitive complexity and the remaining I4-3
 maintainability items are also outside this workthrough.
 
 No version was bumped. This is a feature/refactor checkpoint, and the repository release policy

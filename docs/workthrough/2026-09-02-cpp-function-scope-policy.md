@@ -2,10 +2,11 @@
 
 ## Overview
 
-This workthrough records the unmerged `feat/cpp-function-scope-policy` slice. It closes the
-classification contract around compiler-backed C++ complexity boundaries while keeping the public
-stable release at `v0.10.2`. The slice is intentionally narrower than the remaining I4-3 aggregate,
-dead-symbol, and duplicate-code work.
+This workthrough records the `feat/cpp-function-scope-policy` slice delivered by PR #131, now
+merged into `main` at `41690c9c2848fbc0332db4b80a4a1e2ed35db5d7`. It closes the classification
+contract around compiler-backed C++ complexity boundaries while keeping the public stable release
+at `v0.10.2`. The slice is intentionally narrower than the remaining I4-3 aggregate, dead-symbol,
+and duplicate-code work.
 
 ## Context
 
@@ -75,12 +76,12 @@ external resource URLs. The first remote attempt for this follow-up, workflow
 merge because `_cpp_function_boundaries.py` had reached 1,031 pure code lines over the 1,000-line
 self gate. Its Qt 5 and Qt 6 jobs passed. The viewer publisher failure was downstream rather than a
 separate uploader defect: the failed root dogfood step did not produce a viewer report, while the
-publisher required both report directories. PR #131 still retained exactly one sticky marker/comment
-and published the available ici report. Parser/source mapping was then separated from process
+publisher required both report directories. That first remote attempt retained exactly one PR #131
+sticky marker/comment and published the available ici report. Parser/source mapping was then separated from process
 orchestration behind the existing import and monkeypatch facade; focused and full regressions prove
 the split did not change the analysis contract.
 
-The current unmerged policy candidate's exact SHA is recorded only in package-external
+The PR #131 policy candidate's exact local SHA is recorded only in package-external
 documentation because `README.md` is embedded in `dist-info/METADATA`; adding it to README would
 change the artifact hash. Its local verification is:
 
@@ -94,8 +95,8 @@ change the artifact hash. Its local verification is:
 | ZipApp | Two candidate builds were byte-identical at SHA `2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7` |
 | Packaged smoke | passed, including Python 3.10 execution, artifact integrity, and Zero-CDN self-report checks (`verify` exit 0) |
 
-The Python 3.10 and smoke results above are local evidence; they do not close the remote delivery
-gate. The final candidate was then injected into a fresh clean
+The Python 3.10 and smoke results above are local evidence. The final candidate was then injected
+into a fresh clean
 `toy-projects` `main` checkout (commit `d5f248c41375e2c0b4286890e1b359f59e11e728`) with Python
 `3.10.21` and extracted `clang-tidy-21` reporting version `Ubuntu LLVM 21.1.8`. BuildScope used the `deep` profile for both
 `auto` and `required`; DiskMap and LogLens used their `auto` probes. Every probe wrote both JSON and
@@ -131,6 +132,25 @@ invocations exited 0 and passed the report-title and Zero-CDN checks. The ici so
 pre-existing worktree status were unchanged before and after the probe; the isolated toy checkout
 remained clean at exact `main` commit `d5f248c41375e2c0b4286890e1b359f59e11e728`. The final
 temporary checkout `/tmp/ici-final-candidate.B63bi6` and its reports were deleted after collection.
+
+## PR #131 exact-main acceptance
+
+PR #131, titled `feat(complexity): classify C++ function scopes and metric provenance`, merged as
+[`41690c9c2848fbc0332db4b80a4a1e2ed35db5d7`](https://github.com/jihoon22-lee/ici/commit/41690c9c2848fbc0332db4b80a4a1e2ed35db5d7).
+PR CI [run `33592482495`](https://github.com/jihoon22-lee/ici/actions/runs/33592482495) succeeded,
+with exactly one sticky marker/current run. PR ici/viewer Pages passed HTTP/title/Zero-CDN checks
+and artifact byte-match at `7,454,995` and `356,598` bytes. Exact-main [run
+`33593218450`](https://github.com/jihoon22-lee/ici/actions/runs/33593218450) also succeeded;
+main JSON `source_commit` matched the same SHA, and main ici/viewer Pages passed HTTP/title/Zero-CDN
+and artifact byte-match checks:
+
+| Report | Bytes | Artifact SHA |
+|---|---:|---|
+| ici | 7,454,995 | `182a0d05…5adbb75` |
+| viewer | 356,598 | `fb772d4a…c0c4794` |
+
+Only the expected PR/main publish jobs were skipped. This remote acceptance closes the scope-policy
+slice, not the remaining I4-3 aggregate, dead/duplicate policy, I4-4, or the broader I4 checkpoint.
 
 ## Reviewer-hardening coverage
 

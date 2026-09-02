@@ -448,7 +448,7 @@ warning 선택과 standard/define/include/ABI context를 보존하며 `-Wno-erro
 tool execution failure로 처리됩니다. 변환 결과가 `-Wp`/`-Wa`/`-Wl` forwarding처럼 replay
 안전 경계를 벗어나면 도구를 실행하지 않고 context error로 fail-closed합니다.
 
-##### C++ complexity 함수 경계 정책 (I4-3; scope-policy follow-up unreleased)
+##### C++ complexity 함수 경계 정책 (I4-3; PR #131 merged)
 
 `complexity`의 `cpp_boundaries`는 `[engines.lint].clang_tidy`와 독립적인 전용 probe입니다.
 exact `CompilationContext`/compilation database와 capability-approved direct `clang-tidy`가
@@ -498,16 +498,29 @@ fail-closed합니다.
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
-`1,626 passed, 2 skipped`를 남겼습니다. 이는 현재 follow-up의 근거가 아닙니다. 현재
-unmerged `feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz`
-SHA `2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`이며, real extracted
+`1,626 passed, 2 skipped`를 남겼습니다. 이후 local
+`feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
+`2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`이며, real extracted
 `clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`, Ruff check/format,
 mypy와 packaged smoke가 통과했습니다. Parser/source mapping(628 pure code lines)과 process
 runner facade(487 pure code lines)는 분리되어 self line gate도 통과합니다. Fresh clean toy
-`main`의 BuildScope `auto`/`required`,
-DiskMap `auto`, LogLens `auto` 교차 probe와 4/4 title·Zero-CDN 검사도 완료됐습니다. PR CI,
-sticky comment, Pages readiness, extracted artifact HTML byte-match는 아직 pending이며 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
-기록합니다. 버전은 `0.10.2`로 유지하고 release는 만들지 않습니다.
+`main`의 BuildScope `auto`/`required`, DiskMap `auto`, LogLens `auto` 교차 probe와 4/4
+title·Zero-CDN 검사도 완료됐으며 상세는 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
+기록합니다.
+
+[PR #131](https://github.com/jihoon22-lee/ici/pull/131) `feat(complexity): classify C++ function
+scopes and metric provenance`는
+[`41690c9c2848fbc0332db4b80a4a1e2ed35db5d7`](https://github.com/jihoon22-lee/ici/commit/41690c9c2848fbc0332db4b80a4a1e2ed35db5d7)로
+squash merge됐습니다. PR CI [run `33592482495`](https://github.com/jihoon22-lee/ici/actions/runs/33592482495)은
+성공했고 sticky marker/current run은 정확히 하나였습니다. PR ici/viewer Pages는 HTTP/title/
+Zero-CDN과 artifact byte-match를 통과했으며 각각 `7,454,995`/`356,598` bytes였습니다.
+Exact-main [run `33593218450`](https://github.com/jihoon22-lee/ici/actions/runs/33593218450)도
+성공했고 main JSON `source_commit`이 같은 SHA와 일치했습니다. main ici/viewer Pages 역시
+HTTP/title/Zero-CDN과 byte-match를 통과했으며 ici는 `7,454,995` bytes/SHA
+`182a0d05…5adbb75`, viewer는 `356,598` bytes/SHA `fb772d4a…c0c4794`였습니다. 두 run의
+skip은 예상된 PR/main publish job뿐입니다. 이 acceptance는 scope-policy slice에 해당하며
+I4-3 dead/duplicate, 남은 I4-4, I4 전체 checkpoint를 닫지 않습니다. 버전은 `0.10.2`로
+유지하고 release는 만들지 않습니다.
 
 ##### C++ Qt clazy 및 생성 단계 정책 (I4-2)
 
@@ -898,9 +911,43 @@ LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker를 찾으면 
 으로 분류하고, raw stack·source path는 결과 메시지에 넣지 않습니다. 일반 실패 메시지와
 test name도 512 characters로 제한됩니다.
 
+adapter 결과의 `TestCaseResult`는 `name`, `passed`, `message`, `executed`를 가지며,
+마지막 네 번째 필드 `executed`는 기본값 `true`인 하위 호환 확장입니다. 따라서 기존 세 인자
+positional 생성은 계속 동작하고, 실행되지 않은 case를 `passed = false`인 일반 실패와
+구분할 수 있습니다. `passed = true`와 `executed = false` 조합은 허용하지 않습니다.
+
+CTest JUnit의 `<skipped>`와 `status="notrun"`/`skip`/`skipped`/`disabled`/`blacklisted`는
+`executed = false`가 됩니다. JUnit의 알 수 없는 status는 `executed = true`, `passed = false`인
+실패로 fail-closed합니다. CTest stdout 폴백에서도 `Not Run`, `Disabled`, `Skipped` verdict를
+같은 상태로 보존하고 bounded 사유를 `message`에 남깁니다. QtTest에서는 `skip`과
+`<skipped>`가 미실행, `xfail`이 실행된 예상 실패이자 통과, `xpass`가 실행된 실패로
+처리됩니다. 알 수 없는 `result`도 `executed = true`, `passed = false`로 처리해 조용한
+통과를 막습니다.
+
+이 상태는 테스트 수와 sanitizer 측정 범위에 각각 다음처럼 반영됩니다.
+
+| 결과 | `test` 엔진 | `sanitize` 엔진 (`required = false`) |
+|---|---|---|
+| 실행된 case | PASS/FAIL 및 `total_tests`에 포함 | 측정 scope 및 PASS/FAIL에 포함 |
+| 미실행 case | `SKIP`, `extra.skipped_tests`·`test_suites[*].skipped`에 포함, 실패 수에는 미포함 | 측정 scope·issue 수에는 미포함 |
+| 모두 미실행 | 테스트 target은 SKIP으로 보존 | `SKIP`/`ESTIMATED` |
+| clean 실행 + 미실행 혼합 | 실행 결과와 SKIP을 각각 보존 | `WARN`/`ESTIMATED` |
+| 실제 failure + 미실행 혼합 | 실행 failure와 SKIP을 각각 보존 | `FAIL`/`ESTIMATED` |
+
+`sanitize`의 기본 required 정책에서 적용 가능한 C++ test가 하나라도 미실행이면 모두
+`ERROR`/`NOT_RUN`으로 승격됩니다. 따라서 sanitizer build가 성공했다는 사실만으로 테스트가
+실행됐다고 간주하지 않습니다. HTML `Tests & Coverage` 탭은 SKIP case를 amber 색상의 별도
+행으로 렌더링해 failure 목록과 섞지 않습니다.
+
 qmake 경로에서 `-xunitxml`을 신뢰하지 않는 이유가 있습니다. 그 인자는 **QtTest
 바이너리에만** 의미가 있고, 실제 프로젝트는 QtTest와 자체 `main()` 테스트를 섞어
-갖습니다. XML만 읽으면 QtTest가 아닌 테스트가 보고에서 조용히 사라집니다.
+갖습니다. XML만 읽으면 QtTest가 아닌 테스트가 보고에서 조용히 사라집니다. 따라서
+QtTest parser는 `-xunitxml`의 각 `<testcase>`에서 skip/xfail/xpass/unknown 상태를 읽어
+`TestCaseResult`로 정규화하지만, qmake adapter의 권위 있는 집계는 `make check` transcript의
+테스트 바이너리 단위입니다. XML은 해당 바이너리의 failure detail을 보강할 뿐이며, qmake가
+모든 function-level skip을 개별 scope로 집계한다고 의미하지 않습니다. make transcript에서
+바이너리 호출을 복구할 수 없는 경우에만 case-level XML parser가 제한적인 fallback으로
+사용됩니다.
 
 ---
 

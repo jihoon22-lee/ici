@@ -54,6 +54,12 @@ min_func_cov = 90.0
 # python = "/workspace/.venv/bin/python"
 coverage_required = false
 
+[engines.sanitize]
+enabled = true
+mode = "pass_fail"
+# Set required = false when missing applicable sanitizer tests are optional.
+# required = false
+
 [engines.lint]
 enabled = true
 mode = "pass_warn_fail"
@@ -426,6 +432,26 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   output에서 LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker를 찾으면 bounded
   분류 메시지만 남기고 raw stack과 source path는 버립니다. test name과 일반 failure message도
   512 characters로 제한합니다.
+- **테스트 실행 상태 계약**: adapter가 반환하는 `TestCaseResult`는
+  `name`, `passed`, `message`, `executed` 네 필드를 가지며, 마지막 `executed`는 기본값이
+  `true`인 하위 호환 필드입니다. 따라서 기존의 세 인자 positional 생성은 그대로 동작하고,
+  `passed = false`만으로 실행된 실패와 수집됐지만 실행되지 않은 case를 혼동하지 않습니다.
+  `passed = true`와 `executed = false` 조합은 유효하지 않습니다.
+- **CTest 상태 해석**: JUnit `<skipped>`와 `status="notrun"`, `skip`, `skipped`, `disabled`,
+  `blacklisted`는 `passed = false`, `executed = false`로 기록합니다. JUnit의 알 수 없는
+  status는 `executed = true`인 실패로 남겨 조용한 통과를 막습니다. stdout 폴백에서도
+  `Not Run`·`Disabled`·`Skipped` verdict는 같은 미실행 상태로 보존하며 bounded 사유를
+  `message`에 남깁니다.
+- **QtTest 상태 해석**: `skip` 또는 `<skipped>`는 미실행 case, `xfail`은 실행된 예상 실패로서
+  통과, `xpass`는 실행됐지만 예상 밖으로 통과한 실패, 알 수 없는 `result`는 실행 여부를
+  알 수 없는 실행 상태를 통과로 추정하지 않고 `executed = true`, `passed = false`인 실패로
+  처리합니다. 즉 `xpass`와 unknown state는 fail-closed이며, skip은 실패 카운트에 섞이지
+  않습니다. `test` 엔진 JSON의 `extra.skipped_tests`와 각
+  `test_suites[*].skipped`가 이 상태를 집계하고, HTML은 SKIP case를 별도 amber 행으로
+  표시합니다. 이 parsing은 QtTest `-xunitxml`의 각 `<testcase>` 상태를 해석하는 범위입니다.
+  qmake에서는 `make check` transcript가 테스트 바이너리 하나를 권위 있는 scope로 세며,
+  QtTest XML은 그 바이너리의 failure detail만 보강합니다. 따라서 qmake 경로가 모든
+  function-level skip을 개별 scope로 집계한다고 해석하지 않습니다.
 - **Python 실행기**: `[engines.test].python`이 지정되면 해당 인터프리터를 우선 사용하고,
   없으면 프로젝트 `.venv`의 Python, 마지막으로 `sys.executable` 순서로 선택합니다. pytest,
   coverage.py, unittest는 모두 이 동일한 인터프리터의 `-m` 모듈 호출로 실행하며 PATH에 있는
@@ -552,16 +578,29 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   identity를 재검증해 intermediate symlink/TOCTOU를 fail-closed합니다.
 - **검증 상태**: PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인
   candidate SHA `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python
-  3.10 `1,626 passed, 2 skipped`를 남겼습니다. 이는 현재 follow-up의 근거가 아닙니다. 현재
-  unmerged `feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz`
-  SHA `2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`이며, real extracted
+  3.10 `1,626 passed, 2 skipped`를 남겼습니다. 이후 local
+  `feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
+  `2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`이며, real extracted
   `clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`, Ruff check/format,
   mypy와 packaged smoke가 통과했습니다. Parser/source mapping(628 pure code lines)과 process
   runner facade(487 pure code lines)는 분리되어 self line gate도 통과합니다. Fresh clean toy
-  `main`의 BuildScope `auto`/`required`,
-  DiskMap `auto`, LogLens `auto` 교차 probe와 4/4 title·Zero-CDN 검사도 완료됐습니다. PR CI,
-  sticky comment, Pages readiness, extracted artifact HTML byte-match는 아직 pending이며 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
-  기록합니다. 버전은 `0.10.2`로 유지하고 release는 만들지 않습니다.
+  `main`의 BuildScope `auto`/`required`, DiskMap `auto`, LogLens `auto` 교차 probe와 4/4
+  title·Zero-CDN 검사도 완료됐으며 상세는 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
+  기록합니다.
+
+  [PR #131](https://github.com/jihoon22-lee/ici/pull/131) `feat(complexity): classify C++ function
+  scopes and metric provenance`는
+  [`41690c9c2848fbc0332db4b80a4a1e2ed35db5d7`](https://github.com/jihoon22-lee/ici/commit/41690c9c2848fbc0332db4b80a4a1e2ed35db5d7)로
+  squash merge됐습니다. PR CI [run `33592482495`](https://github.com/jihoon22-lee/ici/actions/runs/33592482495)은
+  성공했고 sticky marker/current run은 정확히 하나였습니다. PR ici/viewer Pages는
+  HTTP/title/Zero-CDN과 artifact byte-match를 통과했으며 `7,454,995`/`356,598` bytes였습니다.
+  Exact-main [run `33593218450`](https://github.com/jihoon22-lee/ici/actions/runs/33593218450)도
+  성공했고 main JSON `source_commit`은 같은 SHA와 일치했습니다. main ici/viewer Pages도
+  같은 검사를 통과했으며 ici는 `7,454,995` bytes/SHA `182a0d05…5adbb75`, viewer는
+  `356,598` bytes/SHA `fb772d4a…c0c4794`로 artifact byte-match됐습니다. 두 run에서 skip된
+  것은 예상된 PR/main publish job뿐입니다. 이 acceptance는 I4-3 dead/duplicate, 남은 I4-4,
+  I4 전체 checkpoint의 완료를 의미하지 않습니다. 버전은 `0.10.2`로 유지하고 release는
+  만들지 않습니다.
 - **코드 스니펫**: 고복잡도 함수의 실제 원본 소스 코드를 추출하여 HTML 리포트에 즉시 표시
 
 ### 2.6 🛡️ `sanitize` (메모리 안전성 및 리소스 누수 진단)
@@ -569,6 +608,13 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 - **Python**: Task 5가 선택한 동일 인터프리터로 `-W error::ResourceWarning -m pytest -o addopts= tests`를 실행해 리소스 경고를 측정한다. `test_*.py`와 `*_test.py`를 모두 대상으로 하며, 0개 실행 테스트(전부 skipped/deselected)·pytest 부재·timeout·출력 절단·실행 실패·잘못된 성공은 통과로 간주하지 않는다. 기존 `PYTHONPATH`와 WSL 임시 디렉터리 정책도 보존한다.
 - **진단 판정**: 출력에 sanitizer 이름만 언급된 경우는 결함으로 판정하지 않는다. 위치가 있는 UBSan `runtime error` 또는 ASan/LSan/UBSan의 `ERROR`/`SUMMARY` 서명만 실제 진단으로 인정한다.
 - **적용 범위**: Python/C++ hybrid에서 한 언어의 scope가 건너뛰면 결과는 `WARN`/`ESTIMATED`이며, 대상 자체가 없으면 명시적 `SKIP`이다. C++ 테스트 파일은 project 경계 안의 실제 파일만 선택하며 외부 symlink는 제외한다. ResourceWarning의 Windows drive/공백 경로도 원본 파일과 라인 위치를 보존한다. 실행 시 기존 `ASAN_OPTIONS`/`UBSAN_OPTIONS`를 보존하면서 leak 검출과 UBSan 중단 옵션을 추가한다.
+- **sanitizer 테스트 누락 정책**: CTest/QtTest가 build된 sanitizer scope를 수집했지만
+  실행하지 않은 case를 `executed = false`로 보고하면, required 정책에서는 모든 case가
+  미실행인 경우와 실행된 case와 섞인 경우 모두 `ERROR`/`NOT_RUN`입니다. 실행된 실제
+  sanitizer failure target은 이때도 `FAIL`로 보존합니다. `required = false`인 선택 정책은
+  모든 case가 미실행이면 `SKIP`/`ESTIMATED`, 실행된 clean case와 미실행 case가 섞이면
+  `WARN`/`ESTIMATED`, 실행된 실제 failure와 미실행 case가 섞이면 `FAIL`/`ESTIMATED`로
+  집계합니다. 미실행 case는 issue 수나 측정 scope에 포함하지 않습니다.
 
 ### 2.7 💀 `dead` (죽은 코드 및 미사용 심볼)
 - 도달할 수 없는 블록과 private module-level Python 함수의 실제 `Name`/호출 및 cross-module `from`/attribute 참조를 분석한다.

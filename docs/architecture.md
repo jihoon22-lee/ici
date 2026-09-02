@@ -169,6 +169,16 @@ ici/
   - `metrics`: 세부 수치 데이터 (`complexity`, `nesting`, `duplicate_lines` 등)와 엔진별
     provenance (`boundary_source`, `boundary_confidence`, `metric_confidence` 등)
 
+- **`TestCaseResult`** (`src/ici/core/cmake.py`): CMake/CTest와 qmake/QtTest가 서로 다른
+  출력 형식을 공통 테스트 case 상태로 정규화한 adapter 모델입니다. `name`, `passed`,
+  `message` 뒤에 네 번째 필드 `executed`를 두며 기본값은 `true`입니다. 이 필드는 마지막에
+  추가되어 기존 세 인자 positional 생성과 호환되고, `passed = false`인 실행 실패와 수집됐지만
+  실행되지 않은 case를 구분합니다. `passed = true`·`executed = false` 조합은 불변식 위반으로
+  거부됩니다. QtTest XML parser는 `<testcase>`별 `skip`/`xfail`/`xpass`/unknown 상태를
+  이 계약으로 해석하지만, qmake adapter의 권위 있는 집계 단위는 `make check` transcript가
+  식별한 테스트 바이너리 하나입니다. QtTest XML은 해당 바이너리의 failure detail을 보강할
+  뿐이며, qmake에서 모든 function-level skip을 개별 scope로 집계한다고 주장하지 않습니다.
+
 - **`EngineResult`**: 단일 검증 엔진의 종합 결과입니다.
   - `engine_name`: 엔진 식별자 (`line`, `lint`, `test`, ...)
   - `status`: 엔진 종합 평가 상태
@@ -592,16 +602,29 @@ fallback도 resolved named path의 containment와 device/inode/size/mtime identi
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
-`1,626 passed, 2 skipped`를 남겼습니다. 이는 현재 follow-up의 근거가 아닙니다. 현재
-unmerged `feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz`
-SHA `2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`이며, real extracted
+`1,626 passed, 2 skipped`를 남겼습니다. 이후 local `feat/cpp-function-scope-policy`
+candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
+`2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`와 real extracted
 `clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`, Ruff check/format,
-mypy와 packaged smoke가 통과했습니다. Parser/source mapping(628 pure code lines)과 process
-runner facade(487 pure code lines)는 분리되어 self line gate도 통과합니다. Fresh clean toy
-`main`의 BuildScope `auto`/`required`,
-DiskMap `auto`, LogLens `auto` 교차 probe와 4/4 title·Zero-CDN 검사도 완료됐습니다. PR CI,
-sticky comment, Pages readiness, extracted artifact HTML byte-match는 아직 pending이며 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
-기록합니다. 버전은 `0.10.2`로 유지하고 release는 만들지 않습니다.
+mypy, packaged smoke, parser/source mapping 628 pure code lines 및 process runner facade 487
+pure code lines의 self line gate 통과를 남겼습니다. Fresh clean toy `main`의 BuildScope
+`auto`/`required`, DiskMap `auto`, LogLens `auto` 교차 probe와 4/4 title·Zero-CDN 검사도
+완료됐으며 exact/partial 수치와 required 오류는 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
+기록합니다.
+
+[PR #131](https://github.com/jihoon22-lee/ici/pull/131) `feat(complexity): classify C++ function
+scopes and metric provenance`는
+[`41690c9c2848fbc0332db4b80a4a1e2ed35db5d7`](https://github.com/jihoon22-lee/ici/commit/41690c9c2848fbc0332db4b80a4a1e2ed35db5d7)로
+squash merge됐습니다. PR CI [run `33592482495`](https://github.com/jihoon22-lee/ici/actions/runs/33592482495)은
+성공했고 exactly one sticky marker/current run을 남겼습니다. PR ici/viewer Pages는 HTTP/title/
+Zero-CDN과 artifact byte-match를 통과했으며 각각 `7,454,995`/`356,598` bytes였습니다.
+Exact-main [run `33593218450`](https://github.com/jihoon22-lee/ici/actions/runs/33593218450)도
+성공했고 main JSON `source_commit`은 같은 SHA와 일치했습니다. main ici/viewer Pages 역시
+HTTP/title/Zero-CDN과 byte-match를 통과했으며 ici는 `7,454,995` bytes/SHA
+`182a0d05…5adbb75`, viewer는 `356,598` bytes/SHA `fb772d4a…c0c4794`였습니다. 두 run의
+skip은 예상된 PR/main publish job뿐입니다. 이는 scope-policy slice acceptance이며 I4-3
+dead/duplicate, 남은 I4-4, I4 전체 checkpoint를 닫지 않습니다. 버전은 `0.10.2`로 유지하고
+release는 만들지 않습니다.
 
 #### CTest/JUnit와 sanitizer evidence 경계
 
@@ -616,6 +639,28 @@ LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker가 있으면 
 `<Sanitizer> diagnostic` 메시지로 분류하고, 그 밖의 실패 text와 test name도 512 characters로
 제한한다. 따라서 unsuppressed sanitizer failure는 테스트 실패로 남지만, stack/prose/path가
 report 경계를 넘지 않는다.
+
+CTest/QtTest 상태도 같은 `TestCaseResult`로 보존한다. CTest JUnit의 `<skipped>`와
+`status="notrun"`/skip/skipped/disabled/blacklisted, 그리고 stdout의 `Not Run`/`Disabled`/
+`Skipped` verdict는 `passed = false`, `executed = false`입니다. 알 수 없는 CTest status는
+`executed = true`, `passed = false`인 실패로 fail-closed합니다. QtTest의 `skip`/`<skipped>`는
+미실행, `xfail`은 실행된 예상 실패이자 통과, `xpass`와 알 수 없는 `result`는 실행된 실패로
+처리합니다. 이렇게 미실행 case는 측정 scope나 failure count에 섞이지 않으면서, 알 수 없는
+상태가 통과로 축약되지 않습니다.
+
+QtTest case-state parsing은 `-xunitxml`이 제공한 각 `<testcase>`를 읽는 경계이며, qmake의
+`make check` transcript를 대체하지 않습니다. qmake adapter는 우선 transcript에서 테스트
+바이너리별 결과를 권위 있는 scope로 세고, QtTest XML은 그 바이너리에서 관찰된 failure
+detail을 보강하는 데만 사용합니다. 따라서 QtTest와 자체 `main()` 테스트가 섞인 qmake
+프로젝트에서도 함수-level skip 전부를 개별 qmake scope로 추정하지 않습니다.
+
+Sanitizer build가 성공했어도 적용 가능한 테스트 실행이 빠졌다면 evidence는 다음 정책을
+따릅니다. required에서는 모든 case가 미실행이거나 실행된 case와 미실행 case가 섞인 경우
+모두 `ERROR`/`NOT_RUN`이고, 실행된 실제 failure target은 `FAIL`로 보존합니다. optional에서는
+모두 미실행이면 `SKIP`/`ESTIMATED`, clean 실행과 미실행의 혼합이면 `WARN`/`ESTIMATED`,
+실제 failure와 미실행의 혼합이면 `FAIL`/`ESTIMATED`입니다. Test reporter는
+`extra.skipped_tests`와 suite별 `skipped`를 보존하고 HTML에서는 SKIP을 별도 그룹으로
+렌더링하므로, adapter state와 gate state가 서로 다른 층에서 사라지지 않습니다.
 
 ### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
 

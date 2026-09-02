@@ -58,24 +58,31 @@
   Historical PR #130 baseline evidence is recorded in the compiler-boundary workthrough: its
   candidate builds were byte-identical at SHA
   `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`, and its Python 3.10
-  full suite was `1,626 passed, 2 skipped`. That merged baseline is not evidence for the current
-  follow-up. The current unmerged `feat/cpp-function-scope-policy` candidate has two
-  byte-identical builds at SHA
+  full suite was `1,626 passed, 2 skipped`. The subsequent local
+  `feat/cpp-function-scope-policy` candidate had two byte-identical builds at SHA
   `2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`; with real extracted
-  `clang-tidy-21`, its Python 3.10 full suite is `1,656 passed, 2 skipped`, and Ruff check/format,
-  mypy, and packaged smoke pass. The parser/source-mapping responsibilities now live in a dedicated
-  helper (628 pure code lines) while the process runner remains a compatibility facade (487 pure
-  code lines); this removes the initial PR run's 1,031-line self-dogfood failure without changing
-  the boundary contract or established imports. Because `README.md` is embedded in
-  `dist-info/METADATA`, this exact current candidate SHA is recorded only in package-external
-  documentation; adding it to README would change the artifact hash. Injecting that SHA into a fresh
-  clean `toy-projects` `main`
-  completed the local
-  cross-repo candidate probes for BuildScope deep `auto`/`required`, DiskMap `auto`, and LogLens
-  `auto`, with JSON/HTML reports and 4/4 title·Zero-CDN checker passes; exact/partial counts and
-  the required error are recorded in the [scope-policy workthrough](docs/workthrough/2026-09-02-cpp-function-scope-policy.md).
-  PR CI, sticky comment, Pages readiness, and extracted artifact HTML byte-match remain pending.
-  The version remains `0.10.2`; no release is created.
+  `clang-tidy-21`, its Python 3.10 full suite was `1,656 passed, 2 skipped`, and Ruff check/format,
+  mypy, and packaged smoke passed. The parser/source-mapping responsibilities now live in a
+  dedicated helper (628 pure code lines) while the process runner remains a compatibility facade
+  (487 pure code lines); this removed the initial PR run's 1,031-line self-dogfood failure without
+  changing the boundary contract or established imports. Because `README.md` is embedded in
+  `dist-info/METADATA`, the exact local candidate SHA and cross-repo details remain in package-
+  external documentation; the local BuildScope deep `auto`/`required`, DiskMap `auto`, and LogLens
+  `auto` probes produced JSON/HTML and 4/4 title·Zero-CDN checker passes, with exact/partial counts
+  and the required error recorded in the [scope-policy workthrough](docs/workthrough/2026-09-02-cpp-function-scope-policy.md).
+
+  [PR #131](https://github.com/jihoon22-lee/ici/pull/131), titled `feat(complexity): classify C++
+  function scopes and metric provenance`, merged squash as
+  [`41690c9c2848fbc0332db4b80a4a1e2ed35db5d7`](https://github.com/jihoon22-lee/ici/commit/41690c9c2848fbc0332db4b80a4a1e2ed35db5d7).
+  PR CI [run `33592482495`](https://github.com/jihoon22-lee/ici/actions/runs/33592482495) succeeded
+  with exactly one sticky marker/current run. PR ici/viewer Pages passed HTTP/title/Zero-CDN and
+  artifact byte-match checks at `7,454,995` and `356,598` bytes. Exact-main [run
+  `33593218450`](https://github.com/jihoon22-lee/ici/actions/runs/33593218450) also succeeded;
+  main JSON `source_commit` matched the same SHA, and main ici/viewer Pages passed the same checks
+  with byte-matched artifacts: ici `7,454,995` bytes (`182a0d05…5adbb75`) and viewer `356,598`
+  bytes (`fb772d4a…c0c4794`). Only the expected PR/main publish jobs were skipped. This records
+  the scope-policy acceptance, not completion of I4-3 dead/duplicate work, remaining I4-4, or the
+  broader I4 checkpoint. The version remains `0.10.2`; no release is created.
 
 ### Fixed
 
@@ -85,6 +92,22 @@
   class keywords remain in the enclosing metric, while nested named functions and methods continue
   to receive their own file/line targets. Async nested loops, inherited loop state, lambdas, class
   bodies, definition expressions, and comprehensions have explicit regression coverage.
+
+- **Explicit test execution state across adapters and reporters**: `TestCaseResult` now has a
+  backward-compatible trailing fourth field, `executed: bool = true`, so `passed = false` can
+  distinguish an executed failure from a collected test that never ran. CTest JUnit `<skipped>`
+  and `status="notrun"`/skip/disabled/blacklisted, together with stdout `Not Run`/`Disabled`,
+  become `executed = false`. The QtTest parser applies the same state contract per XML
+  `<testcase>`: skip and explicit skipped cases are not executed; `xfail` is an executed pass,
+  while `xpass` and unknown result states remain executed failures (fail-closed). In qmake, the
+  `make check` transcript is authoritative at one scope per test binary; QtTest XML only enriches
+  that binary's failure detail, so qmake does not claim every function-level skip as an individual
+  aggregate scope.
+  The test engine exposes `skipped_tests` and per-suite skipped counts, and the HTML test view
+  renders skipped cases separately. Sanitizer policy now treats required all/mixed missing test
+  execution as `ERROR`/`NOT_RUN`; optional all-missing as `SKIP`/`ESTIMATED`; optional mixed clean
+  execution plus missing cases as `WARN`/`ESTIMATED`; and optional actual failure plus missing
+  cases as `FAIL`/`ESTIMATED`. The version remains `0.10.2`; no release is created.
 
 ## [0.10.2] - 2026-09-02
 
