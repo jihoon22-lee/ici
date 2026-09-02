@@ -28,7 +28,10 @@
   `ESTIMATED` with `language-lexical-region-heuristic` provenance, while bounded failures are
   `NOT_RUN`; compiler/linker-backed exact
   semantics and the complete I4-3 checkpoint remain pending. This slice keeps version `0.10.2`
-  and creates no release.
+  and creates no release. [PR #135](https://github.com/jihoon22-lee/ici/pull/135) passed required
+  PR CI, its single sticky report comment, and artifact/Pages byte-match checks, then merged as
+  `b09af5e0f0dd5f5d1ecbc33f73ab23a96f520882`. Exact-main run `33648359498` and the refreshed main
+  Pages passed the same source-commit, UTF-8 title, Zero-CDN, and byte-match audit.
 
 - **C++ function-scope classification and configuration disclosure**: compiler-backed complexity
   boundaries now retain source-spelled named functions, including function templates, conversion/

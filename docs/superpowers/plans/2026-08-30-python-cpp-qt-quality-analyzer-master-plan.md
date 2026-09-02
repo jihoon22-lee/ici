@@ -1130,7 +1130,7 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     matching을 언어별로 격리하고 당시의 `sha256/type2-region-v1` fingerprint와 PASS 위치 target을
     보존한다. unique excluded file count와 reason별 overlapping count를 구분하며 현재
     source-intake slice의 token/region 분석은 `ESTIMATED`/`token-region-heuristic`이었다.
-  - [x] local language-aware lexical tokenization slice를 구현한다. Python과 C/C++를 language
+  - [x] language-aware lexical tokenization slice를 구현하고 remote acceptance를 완료한다. Python과 C/C++를 language
     key로 격리하고, Python의 line-preserving token/AST context와 C/C++의 line-preserving lexer,
     line-splicing/directive 처리를 사용한다. function/class/import 또는 function/preprocessor
     region boundary를 넘지 않는 shared normalized-window seed, rolling-hash 뒤의 exact equality
@@ -1138,7 +1138,7 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     `sha256/type2-region-v2`이고 결과 provenance는
     `language-lexical-region-heuristic`/`ESTIMATED`다.
   - [ ] full duplicate 의미 분석과 compiler/linker-backed exact dead-symbol evidence는 아직
-    pending이다. 이 local slice만으로 I4-3 전체 또는 remote PR/CI/main acceptance를 완료로
+    pending이다. bounded lexical slice의 PR/CI/main acceptance만으로 I4-3 전체를 완료로
     표시하지 않는다.
 - [x] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
 
@@ -1183,13 +1183,16 @@ PR #133의 local/remote branch는 병합 후 삭제됐다. 이 evidence는 sourc
 pending이므로 I4-3 또는 I4 전체 checkpoint를 닫지 않는다. 버전은 `0.10.2`로 유지하고 새
 release는 만들지 않는다.
 
-### Language-aware duplicate tokenization — local candidate (2026-09-02)
+### Language-aware duplicate tokenization — PR #135 accepted (2026-09-03)
 
-이번 duplicate slice는 local implementation/test evidence만 가진다. PR, CI, main merge,
-Pages 또는 hosted artifact evidence는 아직 없으므로 이 문서에서 주장하지 않는다. 정확한
-local test와 DiskMap/BuildScope/LogLens/ici 측정값은
+이번 duplicate slice는 PR #135 run `33647055492`와 squash merge `b09af5e`의 exact-main run
+`33648359498`을 모두 통과했다. single sticky comment, artifact/Pages byte match, exact UTF-8
+title, Zero-CDN, PR synthetic merge 및 exact-main `source_commit`을 독립 확인했다. 정확한
+local test, DiskMap/BuildScope/LogLens/ici 측정값, 원격 artifact hash는
 [`bounded language-aware duplicate workthrough`](../../../workthrough/2026-09-02-bounded-language-aware-duplicate.md)에
-표를 고정한다. 버전은 `0.10.2`로 유지하고 이 slice에 대한 release는 만들지 않는다.
+고정한다. 이 acceptance는 bounded lexical/token-region 하위 범위만 닫으며 full semantic
+duplicate 및 exact dead-symbol evidence는 계속 pending이다. 버전은 `0.10.2`로 유지하고 이
+slice에 대한 release는 만들지 않는다.
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
