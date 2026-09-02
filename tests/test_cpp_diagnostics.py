@@ -310,8 +310,10 @@ def test_clang_tidy_note_inherits_parent_rule_and_family(tmp_path: Path) -> None
 
     assert result.format_name == "clang-tidy-text"
     assert result.error == ""
-    assert len(result.diagnostics) == 2
-    primary, note = result.diagnostics
+    assert len(result.diagnostics) == 1
+    primary = result.diagnostics[0]
+    assert len(primary.related_diagnostics) == 1
+    note = primary.related_diagnostics[0]
     assert primary.tool_rule_id == "modernize-use-nullptr"
     assert primary.family == "clang-tidy"
     assert note.tool_rule_id == primary.tool_rule_id
@@ -351,8 +353,10 @@ def test_clang_tidy_llvm18_empty_structural_note_keeps_concrete_note(
 
     assert result.format_name == "clang-tidy-text"
     assert result.error == ""
-    assert len(result.diagnostics) == 4
-    primary, first_note, last_note, note = result.diagnostics
+    assert len(result.diagnostics) == 1
+    primary = result.diagnostics[0]
+    assert len(primary.related_diagnostics) == 3
+    first_note, last_note, note = primary.related_diagnostics
     assert primary.tool_rule_id == "bugprone-easily-swappable-parameters"
     assert first_note.tool_rule_id == primary.tool_rule_id
     assert last_note.tool_rule_id == primary.tool_rule_id
@@ -361,6 +365,22 @@ def test_clang_tidy_llvm18_empty_structural_note_keeps_concrete_note(
         "note: 'qsizetype' and 'int' may be implicitly converted: "
         "'qsizetype' (as 'long long') -> 'int', 'int' -> 'qsizetype' (as 'long long')"
     )
+
+
+def test_clang_tidy_note_with_conflicting_rule_is_rejected_atomically(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/main.cpp:3:5: warning: prefer nullptr [modernize-use-nullptr]\n"
+        "src/main.cpp:4:7: note: unrelated check [bugprone-use-after-move]\n"
+    )
+
+    result = parse_clang_tidy_diagnostics(root, root, "", output)
+
+    assert result.format_name == "clang-tidy-text"
+    assert "does not match" in result.error
+    assert result.diagnostics == ()
 
 
 def test_clang_tidy_empty_note_without_diagnostic_context_is_rejected(

@@ -207,8 +207,8 @@ class LintEngine(BaseEngine):
                 },
                 "cpp_fixits": [
                     {
-                        "family": diagnostic.family,
-                        "rule": diagnostic.tool_rule_id,
+                        "family": primary.family,
+                        "rule": primary.tool_rule_id,
                         "file_path": fixit.file_path,
                         "start_line": fixit.start_line,
                         "start_column": fixit.start_column,
@@ -216,11 +216,17 @@ class LintEngine(BaseEngine):
                         "end_column": fixit.end_column,
                         "replacement": fixit.replacement,
                     }
-                    for diagnostic in self._cpp_diagnostics
+                    for primary in self._cpp_diagnostics
+                    for diagnostic in (primary, *primary.related_diagnostics)
                     for fixit in diagnostic.fixits
                 ][:1_000],
                 "cpp_fixits_total": sum(
-                    len(diagnostic.fixits) for diagnostic in self._cpp_diagnostics
+                    len(diagnostic.fixits)
+                    for primary in self._cpp_diagnostics
+                    for diagnostic in (primary, *primary.related_diagnostics)
+                ),
+                "cpp_related_notes": sum(
+                    len(diagnostic.related_diagnostics) for diagnostic in self._cpp_diagnostics
                 ),
                 "metrics_summary": f"{fail_count + warn_count} issues",
             },
@@ -297,6 +303,17 @@ class LintEngine(BaseEngine):
                         label=label,
                     ),
                     message=target.message,
+                    related_locations=[
+                        SourceLocation(
+                            path=related.target.file_path,
+                            start_line=related.target.start_line,
+                            end_line=related.target.end_line,
+                            start_column=related.target.start_column,
+                            end_column=related.target.end_column,
+                            label=related.target.message,
+                        )
+                        for related in diagnostic.related_diagnostics
+                    ],
                     explanation=(
                         "Clang Static Analyzer diagnostic."
                         if diagnostic.family == "clang-analyzer"
@@ -333,19 +350,20 @@ class LintEngine(BaseEngine):
 
     @staticmethod
     def _cpp_remediation(diagnostic: CppDiagnostic) -> str:
-        if not diagnostic.fixits:
+        fixits = [
+            fixit for item in (diagnostic, *diagnostic.related_diagnostics) for fixit in item.fixits
+        ]
+        if not fixits:
             return ""
         suggestions = [
             (
                 f"{item.file_path}:{item.start_line}:{item.start_column}-"
                 f"{item.end_line}:{item.end_column} replace with {item.replacement!r}"
             )
-            for item in diagnostic.fixits[:8]
+            for item in fixits[:8]
         ]
-        if len(diagnostic.fixits) > len(suggestions):
-            suggestions.append(
-                f"{len(diagnostic.fixits) - len(suggestions)} additional suggestion(s) omitted"
-            )
+        if len(fixits) > len(suggestions):
+            suggestions.append(f"{len(fixits) - len(suggestions)} additional suggestion(s) omitted")
         return "; ".join(suggestions)[:8_192]
 
     def _lint_python(

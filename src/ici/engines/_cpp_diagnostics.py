@@ -86,6 +86,10 @@ class CppDiagnostic:
     tool_rule_id: str = ""
     family: str = "compiler"
     fixits: tuple[CppFixIt, ...] = ()
+    # Explanatory clang-tool notes belong to one actionable primary
+    # diagnostic.  Keeping them nested preserves their locations, messages,
+    # and fix-its without inflating warning or finding counts.
+    related_diagnostics: tuple[CppDiagnostic, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -875,6 +879,35 @@ def _normalize_clang_tidy(
     normalized: list[CppDiagnostic] = []
     for diagnostic in diagnostics:
         rule = diagnostic.tool_rule_id
+        if diagnostic.target.message.startswith("note:"):
+            if not normalized:
+                return DiagnosticParseResult(
+                    format_name="clang-tidy-text",
+                    error="clang-tidy note has no preceding primary diagnostic",
+                )
+            parent = normalized[-1]
+            if rule and rule != parent.tool_rule_id:
+                return DiagnosticParseResult(
+                    format_name="clang-tidy-text",
+                    error="clang-tidy note check does not match its primary diagnostic",
+                )
+            note_prefix = (
+                "ClangAnalyzerNote" if parent.family == "clang-analyzer" else "ClangTidyNote"
+            )
+            note = replace(
+                diagnostic,
+                target=replace(
+                    diagnostic.target,
+                    target_name=f"{note_prefix}:{parent.tool_rule_id}",
+                ),
+                tool_rule_id=parent.tool_rule_id,
+                family=parent.family,
+            )
+            normalized[-1] = replace(
+                parent,
+                related_diagnostics=(*parent.related_diagnostics, note),
+            )
+            continue
         if rule:
             analyzer = rule.startswith("clang-analyzer-")
             family = "clang-analyzer" if analyzer else "clang-tidy"
@@ -887,23 +920,9 @@ def _normalize_clang_tidy(
                 )
             )
             continue
-        if not normalized or not diagnostic.target.message.startswith("note:"):
-            return DiagnosticParseResult(
-                format_name="clang-tidy-text",
-                error="clang-tidy diagnostic has no check identifier",
-            )
-        parent = normalized[-1]
-        note_prefix = "ClangAnalyzerNote" if parent.family == "clang-analyzer" else "ClangTidyNote"
-        normalized.append(
-            replace(
-                diagnostic,
-                target=replace(
-                    diagnostic.target,
-                    target_name=f"{note_prefix}:{parent.tool_rule_id}",
-                ),
-                tool_rule_id=parent.tool_rule_id,
-                family=parent.family,
-            )
+        return DiagnosticParseResult(
+            format_name="clang-tidy-text",
+            error="clang-tidy diagnostic has no check identifier",
         )
     return DiagnosticParseResult(tuple(normalized), "clang-tidy-text")
 

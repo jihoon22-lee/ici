@@ -503,9 +503,10 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
     assert tidy is not None
     before = source.read_bytes()
     tidy_output = (
-        "src/main.cpp:3:5: warning: possible null dereference "
+        f"{source}:3:5: warning: possible null dereference "
         "[clang-analyzer-core.NullDereference]\n"
-        "src/main.cpp:4:5: warning: prefer nullptr [modernize-use-nullptr]\n"
+        f"{source}:4:5: warning: prefer nullptr [modernize-use-nullptr]\n"
+        f"{source}:5:7: note: replace the macro expansion here\n"
     )
     calls: list[tuple[list[str], dict[str, object]]] = []
     compiler = Path(context.compilation.units[0].argv[0]).resolve(strict=True)
@@ -549,12 +550,21 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
         "clang-analyzer": 1,
         "clazy": 0,
     }
+    assert result.extra["violations_count"] == 2
+    assert result.extra["cpp_related_notes"] == 1
+    assert result.summary == "0 Errors, 2 Warnings Found"
     assert len(result.findings) == 2
     findings_by_rule = {finding.tool_rule_id: finding for finding in result.findings}
     assert findings_by_rule["clang-analyzer-core.NullDereference"].category is (
         FindingCategory.CORRECTNESS
     )
     assert findings_by_rule["modernize-use-nullptr"].category is FindingCategory.MAINTAINABILITY
+    assert len(findings_by_rule["modernize-use-nullptr"].related_locations) == 1
+    note = findings_by_rule["modernize-use-nullptr"].related_locations[0]
+    assert note.path == "src/main.cpp"
+    assert note.start_line == 5
+    assert note.start_column == 7
+    assert note.label == "note: replace the macro expansion here"
     assert all(finding.tool_name == "clang-tidy" for finding in result.findings)
     assert all(finding.tool_version == "clang-tidy version 18.1.0" for finding in result.findings)
     assert set(findings_by_rule) == {

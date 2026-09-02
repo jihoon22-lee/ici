@@ -785,7 +785,7 @@ def test_run_clang_tidy_accepts_real_llvm_swappable_parameter_notes(
     primary = primary_candidates[0]
     conversion_candidates = [
         item
-        for item in outcome.diagnostics
+        for item in primary.related_diagnostics
         if item.tool_rule_id == primary.tool_rule_id
         and "may be implicitly converted:" in item.target.message
     ]
