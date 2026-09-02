@@ -945,6 +945,20 @@ Exact-main Pages도 같은 HTTP/content/title/Zero-CDN 계약을 통과했다.
 B4 pending 표현은 당시의 historical snapshot이다. 당시 v0.9.1 release와 B4 완료 evidence는
 다음 절에 기록한다.
 
+#### clang-tidy/analyzer related-note aggregation follow-up (candidate)
+
+`fix/clang-tidy-related-notes`의 `f999ee3`는 일반 clang-tidy 및 `clang-analyzer-*` 설명용
+`note:`를 rule-less이거나 primary와 같은 rule일 때 직전 primary
+`CppDiagnostic.related_diagnostics`에 결합한다. note의 위치·메시지는
+`Finding.related_locations`로 보존하고, note fix-it은 primary remediation과 `extra` metadata에
+남긴다. 이 경로의 warning/violation/diagnostic-family/finding 집계는 primary만 대상으로 하며,
+conflicting-rule 또는 orphan note는 atomic하게 fail-closed한다. compiler 진단과 Clazy의
+rule-owned `ClazyNote` 정책은 변경하지 않았다. 이는 I4-1의 finding 노이즈를 줄이는 correctness
+follow-up이지 기존 I4-1 체크박스를 새로 닫는 근거가 아니다. Python 3.10 focused pytest는 관련
+5개 파일에서 `177 passed, 6 skipped`, Ruff check/format과 mypy 98 source files가 통과했다.
+Full local/PR/CI verification은 아직 pending이며, 버전은 `0.10.2`로 유지하고 release는
+만들지 않는다.
+
 ### I4 release boundary — v0.9.0 (historical)
 
 annotated `v0.9.0` tag는 exact `main` commit
@@ -1085,7 +1099,8 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
   - [ ] robust language tokenization과 full duplicate 의미 분석은 아직 pending이다.
 - [x] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
 
-이 source-evidence slice는 현재 `fix/source-analysis-evidence` rebased branch에 반영됐다.
+이 source-evidence slice는 PR #133으로 `main` (`fdc797a0c71c46d9301db2569928468ff42e24af`)에
+squash merge됐다.
 2026-09-02 Python 3.10 focused evidence는 source-input 79 tests passed, 직접 관련
 config/dead/dup bundle 238 tests passed다. 전체 local suite는 `1764 passed, 2 skipped`
 (1766 collected)로 green이다. Ruff check/format과 mypy(98 source files)는 clean이고, 두 번의
@@ -1097,8 +1112,8 @@ Error 0, Skip 1)이며 test `1764/1766`, TEM `4.84`, line/function/branch `89.1%
 HTML `7763578` bytes, 정확한 title 및 외부 resource 0개를 확인했다. 버전은 `0.10.2`로
 유지하고 release는 만들지 않는다.
 
-[PR #133](https://github.com/jihoon22-lee/ici/pull/133)은 `fix(analysis): make heuristic
-source evidence bounded and deterministic` 제목으로 열려 있다. 첫 implementation
+구현 PR [#133](https://github.com/jihoon22-lee/ici/pull/133)은 `fix(analysis): make heuristic
+source evidence bounded and deterministic` 제목으로 squash merge됐다. 첫 implementation
 [workflow run `33605000619`](https://github.com/jihoon22-lee/ici/actions/runs/33605000619)은
 `Verify & Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`, `Publish PR Report &
 Sticky Comment`, `Merge Gate`를 포함한 모든 required check가 green이었다. [sticky comment](https://github.com/jihoon22-lee/ici/pull/133#issuecomment-5506324653)는
@@ -1110,8 +1125,20 @@ PR Pages는 byte-identical이며, 두 Pages 응답은 UTF-8 exact title과 Zero-
 | ici | 7,701,814 | `071d83ef1fac4d39102bcb8eecad68d614dda736d74a6b3a93b210c9feecf38b` | [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/133/) — `ici Verification Report — ici` |
 | viewer | 358,047 | `9e7e295e8d28fe0633039f58099c82a5914d30cb6fcd8c9f2ba82d25e84c4305` | [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/133/) — `ici Verification Report — viewer` |
 
-PR #133은 아직 병합되지 않았다. 이 문서 업데이트 이후의 후속 CI와 Merge Gate 확인이
-남아 있으며, 위 원격 증거만으로 merge 또는 release를 선언하지 않는다.
+병합 결과 main은 [`fdc797a0c71c46d9301db2569928468ff42e24af`](https://github.com/jihoon22-lee/ici/commit/fdc797a0c71c46d9301db2569928468ff42e24af)이며,
+exact-main [run `33607859423`](https://github.com/jihoon22-lee/ici/actions/runs/33607859423)의
+모든 required check가 성공했다. main artifact와 Pages는 byte-identical이고 UTF-8 exact title과
+Zero-CDN을 통과했다.
+
+| Report | HTML bytes | SHA-256 | Main Pages/title |
+|---|---:|---|---|
+| ici | 7,701,815 | `dc2f0c83206881eccb83a41dde336c1656ab78bb7858675090319079a9ab212a` | [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/) — `ici Verification Report — ici` |
+| viewer | 358,047 | `a212609c54fe6fa10cd8f6abe3318c0094f9b3fd23ba9b7570f59f46612d1d30` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
+
+PR #133의 local/remote branch는 병합 후 삭제됐다. 이 evidence는 source-evidence 구현 delivery를
+닫지만 compiler/linker exact dead-symbol evidence와 robust duplicate tokenization은 여전히
+pending이므로 I4-3 또는 I4 전체 checkpoint를 닫지 않는다. 버전은 `0.10.2`로 유지하고 새
+release는 만들지 않는다.
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10

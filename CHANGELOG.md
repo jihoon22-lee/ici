@@ -86,6 +86,20 @@
 
 ### Fixed
 
+- **Clang-tidy explanatory-note aggregation**: ordinary `clang-tidy` and
+  `clang-analyzer-*` explanation notes are now attached to the preceding primary
+  `CppDiagnostic.related_diagnostics` instead of becoming independent targets or
+  findings. Their project-relative locations and messages are exported through
+  `Finding.related_locations`, and note fix-its remain available to the primary
+  finding's remediation and `extra` metadata. Warning, violation, diagnostic-family,
+  and finding counts therefore include only actionable primary diagnostics. A note
+  with a conflicting check rule or without a preceding primary diagnostic is rejected
+  atomically. Compiler diagnostics and Clazy's rule-owned `ClazyNote` behavior are
+  unchanged. Focused Python 3.10 verification across five related test files passed
+  (`177 passed, 6 skipped`); Ruff check/format and mypy (`98` source files) also passed.
+  Full local, PR, and CI verification remains pending. The version remains `0.10.2`;
+  no release is created.
+
 - **Bounded heuristic source evidence for `dead` and `dup`**: both engines now consume the same
   stable, project-contained UTF-8 source snapshot instead of independently opening files. The
   intake lexically normalizes and sorts unique project-relative paths, rejects escaped paths,
@@ -136,8 +150,20 @@
   | ici | 7,701,814 | `071d83ef1fac4d39102bcb8eecad68d614dda736d74a6b3a93b210c9feecf38b` | [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/133/) — `ici Verification Report — ici` |
   | viewer | 358,047 | `9e7e295e8d28fe0633039f58099c82a5914d30cb6fcd8c9f2ba82d25e84c4305` | [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/133/) — `ici Verification Report — viewer` |
 
-  PR #133 remains unmerged. The documentation follow-up still requires its own CI/merge-gate
-  confirmation before squash merge; this evidence does not close I4-3 or authorize a release.
+  PR #133 was subsequently squash-merged into `main` at
+  [`fdc797a0c71c46d9301db2569928468ff42e24af`](https://github.com/jihoon22-lee/ici/commit/fdc797a0c71c46d9301db2569928468ff42e24af).
+  Exact-main [run `33607859423`](https://github.com/jihoon22-lee/ici/actions/runs/33607859423)
+  passed all required checks. The merged main artifact and Pages remained byte-identical and
+  passed UTF-8 exact-title and Zero-CDN checks:
+
+  | Report | HTML bytes | SHA-256 | Main Pages/title |
+  |---|---:|---|---|
+  | ici | 7,701,815 | `dc2f0c83206881eccb83a41dde336c1656ab78bb7858675090319079a9ab212a` | [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/) — `ici Verification Report — ici` |
+  | viewer | 358,047 | `a212609c54fe6fa10cd8f6abe3318c0094f9b3fd23ba9b7570f59f46612d1d30` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
+
+  The merged PR branch was deleted locally and remotely. This closes the bounded source-evidence
+  implementation delivery, but compiler/linker-backed exact dead-symbol evidence and robust
+  duplicate tokenization remain pending, so it does not close I4-3 or authorize a new release.
 
 - **Python function metric scope boundaries**: cyclomatic and cognitive complexity now measure each
   named function independently instead of charging nested function, class, and lambda bodies to

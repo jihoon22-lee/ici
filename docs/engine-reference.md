@@ -377,10 +377,18 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   `-fdiagnostics-format=json`을 사용하고, approved Clang 또는 version을 알 수 없는 compiler는
   `-fdiagnostics-parseable-fixits` text fallback을 사용합니다. JSON/text parser는 malformed
   output을 일부 성공 결과와 섞지 않고 atomic하게 거부하며, project-relative/external location,
-  stable rule ID, child/note diagnostic과 fix-it range/replacement를 보존합니다. clang-tidy
-  text의 `clang-analyzer-*` rule은 `clang-analyzer` family와 `CORRECTNESS` finding으로,
-  일반 check는 `clang-tidy` family와 `MAINTAINABILITY` finding으로 유지합니다. fix-it은 최대
-  bounded suggestion으로 remediation과 `extra` metadata에 기록되며 자동 적용하지 않습니다.
+  stable rule ID, child/note diagnostic과 fix-it range/replacement를 보존합니다. compiler의
+  child/note와 Clazy의 rule-owned `ClazyNote`는 기존 정책대로 독립 진단으로 유지합니다.
+  반대로 clang-tidy text의 `clang-analyzer-*` rule과 일반 check에서 primary를 설명하는
+  rule-less `note:`와 primary와 같은 rule을 명시한 `note:`는 직전 primary
+  `CppDiagnostic.related_diagnostics`에 결합합니다. note의
+  위치·메시지는 `Finding.related_locations`로 보존하고 note fix-it은 primary finding의
+  remediation과 `extra` metadata에 포함하지만, clang-tidy/analyzer의 warning, violation,
+  diagnostic-family, finding 집계에는 primary만 포함합니다. primary가 없거나 note가 다른
+  check rule을 명시하면 전체 stream을 atomic하게 거부합니다. `clang-analyzer-*` rule은
+  `clang-analyzer` family와 `CORRECTNESS` finding으로, 일반 check는 `clang-tidy` family와
+  `MAINTAINABILITY` finding으로 유지합니다. fix-it은 최대 bounded suggestion으로
+  remediation과 `extra` metadata에 기록되며 자동 적용하지 않습니다.
   정상 실행 evidence는 `MEASURED`이고, timeout·truncation·nonzero·malformed output·context
   mismatch/coverage 누락·replay 오류는 heuristic으로 조용히 대체하지 않고 `ERROR`/`NOT_RUN`으로
   fail-closed 처리합니다.
