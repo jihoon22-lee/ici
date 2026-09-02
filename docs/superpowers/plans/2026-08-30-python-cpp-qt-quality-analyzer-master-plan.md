@@ -1546,7 +1546,7 @@ I4 전체 checkpoint를 닫지 않는다.
 ### I9-0. Candidate artifact provenance producer (producer sub-slice)
 
 **브랜치:** `chore/candidate-artifact-provenance`
-**상태:** producer contract/local implementation complete; remote and consumer evidence pending
+**상태:** producer contract/local implementation and remote producer evidence complete; consumer evidence pending
 
 이 절은 candidate를 소비하는 toy/quality-zoo 검증이나 I4-3 전체를 완료 처리하지 않는다.
 
@@ -1566,10 +1566,22 @@ I4 전체 checkpoint를 닫지 않는다.
   `merge_gate_job_url`, `merge_gate_url`로 기록한다. focused 111-test suite와 live API
   verifier, Python 3.10 full suite(2,061 passed, 환경 의존 7 skipped), Ruff/mypy/actionlint,
   reproducible build/smoke와 실제 built-pyz bundle round trip이 통과했다.
-  `ici.candidate/v1`은 아직 remote candidate artifact가 없는 local contract이며 stable
-  `v0.10.2` version/tag/release와는 별개다.
-- [ ] 실제 remote dispatch에서 run URL, artifact ID/digest/download URL, 세 파일과 manifest를
-  기록한다. 이 문서 작성 시점에는 해당 remote evidence가 없다.
+  `ici.candidate/v1`은 stable `v0.10.2` version/tag/release와는 별개다.
+- [x] 실제 remote dispatch producer evidence를 exact source SHA
+  `7872a7b80899cbd3d40d92d18e7920cd7e2283e7`에 대해 기록했다. [Main run `33688279264`](https://github.com/jihoon22-lee/ici/actions/runs/33688279264)는
+  all green이고 [Merge Gate check/job `100442919168`](https://api.github.com/repos/jihoon22-lee/ici/check-runs/100442919168)은
+  attempt 1이다. Main [ici Pages](https://jihoon22-lee.github.io/ici/ici/main/)와 [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/main/)
+  는 main artifact bytes와 byte-match되고 exact source SHA, correct titles 및 Zero-CDN을 통과했다.
+  Candidate [run `33689056008`](https://github.com/jihoon22-lee/ici/actions/runs/33689056008)는 success이며,
+  [artifact ID `9869395069`](https://github.com/jihoon22-lee/ici/actions/artifacts/9869395069), name
+  `ici-candidate-7872a7b80899cbd3d40d92d18e7920cd7e2283e7`, API/raw ZIP digest
+  `sha256:640e50ecf5b099174c16f1ef5d2b5b87945329711e96f926d94c3cc04109081e`, size `2,277,109`,
+  expiry `2026-09-16T22:14:38Z`를 남겼다. ZIP은 정확히 `candidate-provenance.json` (`0644`, 859),
+  `ici.pyz.sha256` (`0644`, 74), `ici.pyz` (`0755`, 2,275,786) 세 entry였고, pyz SHA-256은
+  `53fc75f0a073a74689babfe9ef8a4b2378995002d7d563bdc52da548fdbb9ee8`, bundled version은
+  `ici 0.10.2`다. Candidate manifest는 independent verifier와 byte-match됐으며 check/job/run
+  canonical API identities, `workflow_name`, `head_branch`, attempts 및 모든 canonical URL이
+  일치했다. 실제 v7 upload ZIP은 요구 mode를 보존했으므로 generic mode-loss assumption은 적용되지 않는다.
 - [ ] verified candidate pyz를 toy consumer에 local path로 주입한다. 각 toy PR의 normal gate는
   released ici `v0.10.2` pin을 유지한다.
 - [ ] 별도 quality-zoo scenario runner와 report/artifact contract를 추가하고, 기존

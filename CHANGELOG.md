@@ -9,7 +9,7 @@
 
 ### Added
 
-- **Candidate artifact producer (local contract complete):** Added the main-only `workflow_dispatch`
+- **Candidate artifact producer (local contract and remote producer evidence complete):** Added the main-only `workflow_dispatch`
   contract and bounded provenance helpers for a non-release `ici.pyz` bundle. The workflow
   requires a full target SHA equal to the protected-main dispatch commit and verifies that commit
   remains in `main` ancestry, selects the newest exact successful `Merge Gate`, and independently
@@ -23,10 +23,27 @@
   `merge_gate_job_id`, `merge_gate_run_id`, `merge_gate_run_attempt`, `merge_gate_job_url`, and
   `merge_gate_url`. The candidate reports its target commit's package version but never changes or
   publishes that version. The focused 111-test suite, live API verifier, full Python 3.10 suite,
-  static/type/workflow checks, reproducible build, smoke, and real built-pyz bundle round trip pass;
-  remote dispatch, toy-project consumer injection, and quality-zoo acceptance remain pending, and
-  no successful remote candidate run is claimed here.
-  See [`candidate artifact provenance workthrough`](docs/workthrough/2026-09-03-candidate-artifact-provenance.md).
+  static/type/workflow checks, reproducible build, smoke, and real built-pyz bundle round trip pass.
+  The remote producer audit is now complete: protected-main source SHA
+  `7872a7b80899cbd3d40d92d18e7920cd7e2283e7` passed [main run `33688279264`](https://github.com/jihoon22-lee/ici/actions/runs/33688279264)
+  with every job green, including [Merge Gate check `100442919168`](https://api.github.com/repos/jihoon22-lee/ici/check-runs/100442919168)
+  and [job `100442919168`](https://api.github.com/repos/jihoon22-lee/ici/actions/jobs/100442919168), attempt 1. Main
+  [ici Pages](https://jihoon22-lee.github.io/ici/ici/main/) and [viewer Pages](https://jihoon22-lee.github.io/ici/viewer/main/)
+  matched their extracted main artifact bytes, retained the exact source SHA and report titles, and passed
+  the Zero-CDN audit. Candidate [run `33689056008`](https://github.com/jihoon22-lee/ici/actions/runs/33689056008)
+  succeeded and published artifact ID `9869395069`, name
+  `ici-candidate-7872a7b80899cbd3d40d92d18e7920cd7e2283e7`,
+  [artifact API metadata](https://api.github.com/repos/jihoon22-lee/ici/actions/artifacts/9869395069),
+  ZIP/API digest `sha256:640e50ecf5b099174c16f1ef5d2b5b87945329711e96f926d94c3cc04109081e`,
+  size `2,277,109` bytes, and expiry `2026-09-16T22:14:38Z`. The downloaded v7 ZIP contained exactly
+  `candidate-provenance.json` (`0644`, 859 bytes), `ici.pyz.sha256` (`0644`, 74 bytes), and
+  `ici.pyz` (`0755`, 2,275,786 bytes), whose SHA-256 is
+  `53fc75f0a073a74689babfe9ef8a4b2378995002d7d563bdc52da548fdbb9ee8`; the bundled version is
+  `ici 0.10.2`. The candidate manifest byte-matched the independent verifier, and the check/job/run
+  canonical API identities, workflow name, main branch, attempts, and URLs all matched. This closes
+  the remote producer only; toy-project consumer injection and quality-zoo acceptance remain pending.
+  The observed upload ZIP preserved the required file modes; the earlier generic mode-loss assumption
+  does not apply to this v7 artifact. See [`candidate artifact provenance workthrough`](docs/workthrough/2026-09-03-candidate-artifact-provenance.md).
 - **Compiler-backed C/C++ translation-unit unused-function evidence**: `dead` now exposes
   `[engines.dead].cpp_unused = "auto" | "required" | "off"` as a C++-scope policy independent of
   the Python AST dead-code heuristic. The full verifier and standalone `ici dead` command use the
