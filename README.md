@@ -335,8 +335,12 @@ context를 사용합니다. standalone은 `dead` support scope에 필요한 capa
 configuration, 8개 target, 8개 `tool_evidence` 행을 확인했습니다. unused function은 0개이고
 `cache_key`는 `null`입니다.
 
-이 slice의 remote acceptance는 아직 pending입니다. 버전은 `0.10.2`로 유지하며 새 release는
-만들지 않습니다.
+이 slice는 [PR #137 CI](https://github.com/jihoon22-lee/ici/actions/runs/33675765436),
+단일 sticky comment의 ici/viewer 링크, PR·main artifact/Pages byte match, exact-main CI와
+Pages 배포까지 수락됐습니다. 상세 해시와 run ID는
+[`compiler-backed C/C++ unused-function workthrough`](docs/workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
+기록합니다. whole-program/linker dead-symbol 분석과 full duplicate semantics는 아직
+지원 범위가 아니며, 버전은 `0.10.2`로 유지하고 새 release는 만들지 않습니다.
 
 ### C++ complexity function boundaries
 

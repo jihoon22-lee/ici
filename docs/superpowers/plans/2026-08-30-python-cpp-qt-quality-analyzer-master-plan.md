@@ -1233,8 +1233,36 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     object/library를 연결한 결과, external/dynamic lookup, plugin 또는 Qt meta-object 경로를
     포함하는 전역 unused-symbol 판정은 별도 범위로 남긴다.
 
-  이 C++ TU-local slice의 remote acceptance(PR CI, artifact/Pages, exact-main/Merge Gate)는
-  아직 pending이다. 버전은 `0.10.2`로 유지하고 release는 만들지 않는다.
+  - [x] **이 C++ TU-local slice의 remote acceptance:** descriptive PR #137,
+    `feat(dead): add compiler-backed C/C++ unused-function evidence`의 required checks가
+    [workflow run `33675765436`](https://github.com/jihoon22-lee/ici/actions/runs/33675765436)에서
+    통과했다. PR head는 `9c9d83cdaae02384bbc58e7cb79b4bbb098b86d3`, synthetic merge source는
+    `f2cfce8b8a7ebc90308bb442f3a323e01ed9ef34`다. current-run sticky comment는 정확히 하나
+    ([comment `5515582296`](https://github.com/jihoon22-lee/ici/pull/137#issuecomment-5515582296))였고
+    report link 두 개를 포함했다. PR artifact와 PR Pages copy는 byte-identical이며, synthetic
+    merge `source_commit`, 정확한 title, UTF-8, Zero-CDN을 통과했다.
+
+    | Report | PR HTML bytes / SHA-256 | PR JSON bytes / SHA-256 |
+    | --- | ---: | ---: |
+    | ici | 5,188,748 / `8648d7ac06fded3afaa004568a9665bb3bc2b10c7e41f1da06af41b0eb3952f8` | 15,288,643 / `f9401da10828ab3d0c1c6b9430789d25b4ef4ac15e8dbe410f0f244a584aefef` |
+    | viewer | 363,787 / `0123db7d6e5c820fc0bd952a0fd55b82752b63d873b4f0502e12f676b3e71cda` | 905,151 / `edde8208502d4af5c060e556ece1650518893c7274487cca2283c02f63322f98` |
+
+    PR #137은 `782589a4ef02209703e882a09cc0d8b0c7940218`로 squash merge됐고 feature branch는
+    삭제됐다. squash merge 뒤 exact-main [workflow run `33676873412`](https://github.com/jihoon22-lee/ici/actions/runs/33676873412),
+    Pages build API run `1190632325`, Pages workflow run
+    [`33677689026`](https://github.com/jihoon22-lee/ici/actions/runs/33677689026)이 모두 성공했다.
+    main artifact와 main Pages copy도 byte-identical이며 merged main `source_commit`, 정확한 title,
+    UTF-8, Zero-CDN을 통과했다.
+
+    | Report | Main HTML bytes / SHA-256 | Main JSON bytes / SHA-256 |
+    | --- | ---: | ---: |
+    | ici | 5,188,748 / `7d9a23d5eb47bcf0ab82f074a85e65eb264869f8f0333318673890d75b0c4eaf` | 15,288,649 / `99d5c208a30518e0c356c4e9a26b2306a99468d51369dd91e9eaa19b71a22e19` |
+    | viewer | 363,788 / `223c027a6cbbef5aa08c464f210286c6a90ae2a702451739aa94bf704648188f` | 905,152 / `152e6c2f6d2b53728f39680b3198b5fb46d1c28e915731c6a7693f85c0175557` |
+
+    이 acceptance는 narrow TU-local compiler-diagnostic slice만 닫는다. broader
+    linker/whole-program dead-symbol analysis와 full semantic duplicate analysis, I4-3 aggregate/I4
+    checkpoint는 계속 pending이다. 버전은 `0.10.2`로 유지하며 이 slice를 위한 release는 만들지
+    않는다.
 - [ ] duplicate는 generated/moc/vendor code를 기본 제외하고 token/region fingerprint를 통합한다.
   - [x] 공통 intake의 generated/moc/vendor 기본 제외와 두 independent literal-boolean opt-in을
     적용하고, overlapping classification은 두 opt-in이 모두 켜져야 포함한다. owned C/C++

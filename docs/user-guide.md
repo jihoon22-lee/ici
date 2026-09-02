@@ -520,8 +520,12 @@ matrix와 report consumer는 이 언어별 metadata를 사용해 C++ tool-backed
 whole-program/linker-backed dead reachability 증거는 아직 지원 범위가 아니며 후속 구현으로
 남아 있습니다. 최종 viewer standalone `dead` evidence는 `PASS`/`MEASURED`이며, 정확히 8개 source,
 8개 configuration, 8개 target, 8개 `tool_evidence` 행, 0개 unused function, `cache_key = null`을
-기록했습니다. 이 compiler-backed slice의 remote acceptance도 아직 pending이며, 버전은
-`0.10.2`로 유지하고 새 release는 만들지 않습니다.
+기록했습니다. 이 slice는 PR #137 required CI, 단일 sticky comment의 ici/viewer
+링크, PR·main artifact/Pages byte match, exact-main CI와 Pages 배포까지 수락됐습니다.
+상세 provenance와 해시는
+[`compiler-backed C/C++ unused-function workthrough`](workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
+기록합니다. whole-program/linker dead reachability는 여전히 지원 범위가 아니며,
+버전은 `0.10.2`로 유지하고 새 release는 만들지 않습니다.
 
 ##### C++ clang-tidy 정책
 

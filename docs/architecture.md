@@ -737,10 +737,12 @@ Python `dead`를 `HEURISTIC`으로 표시하고, 관측 confidence는 실제 lan
 [`compiler-backed C/C++ unused-function workthrough`](workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
 고정한다. 최종 viewer standalone `dead` evidence는 `PASS`/`MEASURED`이며, 정확히 8개 source, 8개
 configuration, 8개 target, 8개 `tool_evidence` 행, 0개 unused function, `cache_key = null`을 기록한다.
-이 slice는 버전을 `0.10.2`로 유지하며 별도 release를 만들지 않는다. 앞서 수락된
-compiler-backed function-boundary/metric slice와 이번 TU-local unused-function slice보다 넓은
-whole-program dead-symbol, linker/dynamic reachability, full duplicate semantics 및 I4 aggregate는
-여전히 미완료 범위이며, 이번 slice의 remote acceptance도 pending이다.
+이 slice는 PR #137의 required CI, 단일 sticky comment의 두 report 링크,
+PR·main artifact/Pages byte match, exact-main CI와 Pages 배포까지 수락됐다. 상세
+provenance와 해시는 위 workthrough에 고정한다. 앞서 수락된 function-boundary/metric
+slice와 이번 TU-local slice보다 넓은 whole-program dead-symbol, linker/dynamic
+reachability, full duplicate semantics 및 I4 aggregate는 여전히 미완료 범위이다.
+버전은 `0.10.2`로 유지하고 별도 release는 만들지 않는다.
 
 #### Compiler-backed C++ function boundaries
 
