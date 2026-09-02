@@ -111,6 +111,9 @@ This documentation update covers:
 | Real QtTest fixture | Qt `6.10.2` fixture built and ran with `-xunitxml`; QSKIP emitted `<skipped message>`, XFAIL emitted no failure and passed, and XPASS emitted `<failure type="xpass">`; temporary fixture was deleted |
 | Full local Python 3.10 run | With real extracted clang-tidy 21: `1,676 collected; 1,674 passed, 2 skipped` in 71.78s. The skips require unavailable `clazy` or `clang++`; neither exercised scope was silently counted as passed. This is local evidence, not PR CI or release acceptance. |
 | Ruff | check and format checks passed |
+| Mypy | `96` source files passed with no issues |
+| Reproducible package | Two consecutive builds produced byte-identical `dist/ici.pyz`, SHA-256 `cb570a760d7355bb66f4fde003cbc9a8331a06a5c081d3258e86727d62a66a5b` |
+| Smoke | Version/help, doctor, shell environments, Python 3.10 launch, artifact integrity, and Zero-CDN HTML checks passed; the self-verify exit was `1` because findings remain visible rather than being hidden |
 | Documentation hygiene | `git diff --check` passed |
 
 The focused and related-suite results are local evidence. This workthrough does not claim
