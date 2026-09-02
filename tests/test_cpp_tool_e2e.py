@@ -24,7 +24,7 @@ from ici.engines._cpp_lint import run_cpp_lint
 from ici.engines.complexity import ComplexityEngine
 
 _PROBES = {
-    "g++": ToolProbe("g++", ("g++",), ("-dumpfullversion", "-dumpversion")),
+    "g++": ToolProbe("g++", ("g++",), ("--version",)),
     "clang++": ToolProbe("clang++", ("clang++",), ("--version",)),
     "clang-tidy": ToolProbe("clang-tidy", ("clang-tidy",), ("--version",)),
     "clazy": ToolProbe("clazy", ("clazy-standalone", "clazy"), ("--version",)),
