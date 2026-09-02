@@ -1,13 +1,22 @@
 """8. Code Clone & Duplication Detection Engine with Type-2 Token Matching."""
 
-import difflib
 import hashlib
-import re
 import time
 from collections import defaultdict
-from dataclasses import dataclass, replace
+from dataclasses import replace
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
+from ici.engines._cpp_dup_tokenization import tokenize_cpp_lines
+from ici.engines._dup_matching import (
+    DuplicateComparisonLimit,
+    DuplicateFileData,
+    DuplicateMatchLimits,
+    MatchPair,
+    filter_subsumed_matches,
+    find_raw_matches,
+)
+from ici.engines._dup_regions import cpp_duplicate_regions, python_duplicate_regions
+from ici.engines._python_dup_tokenization import tokenize_python_lines
 from ici.engines._source_inputs import (
     AnalysisSource,
     AnalysisSourceError,
@@ -17,86 +26,53 @@ from ici.engines._source_inputs import (
 from ici.engines.base import BaseEngine
 
 LocTuple = tuple[int, int, int]  # (file_idx, start_line, end_line)
-MatchPair = tuple[int, int, int, int, int, int, int]  # (f1, s1, e1, f2, s2, e2, k)
 
-
-@dataclass(frozen=True)
-class FileData:
-    file_path: str
-    language: str
-    raw_lines: list[str]
-    indexed: list[tuple[int, str]]
-
-
-_STRUCT_KEYWORDS = {
-    "if",
-    "elif",
-    "else",
-    "for",
-    "while",
-    "return",
-    "def",
-    "class",
-    "try",
-    "except",
-    "finally",
-    "with",
-    "as",
-    "lambda",
-    "yield",
-    "import",
-    "from",
-    "pass",
-    "break",
-    "continue",
-    "raise",
-    "assert",
-    "global",
-    "nonlocal",
-    "del",
-    "and",
-    "or",
-    "not",
-    "in",
-    "is",
-    "switch",
-    "case",
-    "default",
-    "do",
-    "goto",
-    "struct",
-    "enum",
-    "union",
-    "template",
-    "typename",
-    "namespace",
-    "using",
-    "public",
-    "private",
-    "protected",
-    "virtual",
-    "override",
-    "const",
-    "static",
-    "inline",
-    "new",
-    "delete",
-    "this",
-    "true",
-    "false",
-    "nullptr",
-    "None",
-    "True",
-    "False",
-    "catch",
-    "throw",
+MAX_DUPLICATE_NORMALIZED_CHARS = 128 * 1024 * 1024
+MAX_DUPLICATE_INDEXED_RECORDS = 500_000
+MAX_DUPLICATE_WINDOW_OCCURRENCES = 2_048
+MAX_DUPLICATE_SAME_FILE_SEED_PAIRS = 100_000
+MAX_DUPLICATE_CROSS_FILE_PAIRS = 20_000
+MAX_DUPLICATE_CROSS_FILE_SEED_PAIRS = 250_000
+MAX_DUPLICATE_EXTENSION_COMPARISONS = 5_000_000
+MAX_DUPLICATE_RAW_MATCHES = 10_000
+_FINGERPRINT_ALGORITHM = "sha256/type2-region-v2"
+_REGION_POLICY = "language-function-scope-v1"
+_SIGNAL_POLICY = "minimum-semantic-lines-v1"
+_TOKENIZER_VERSIONS = {
+    "cpp": "cpp-lexical-v1",
+    "python": "python-lexical-v1",
 }
 
-_TOKEN_RE = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"|\b\d+(?:\.\d+)?\b|\b[A-Za-z_]\w*\b")
+
+class _SourceTokenizationError(ValueError):
+    """One source failed lexical normalization or its resource budget."""
+
+    def __init__(self, file_path: str, message: str) -> None:
+        super().__init__(message)
+        self.file_path = file_path
+        self.message = message
+
+
+FileData = DuplicateFileData
 
 
 class DuplicateEngine(BaseEngine):
     """Detects maximal copy-pasted code blocks across files and groups them into unified clusters."""
+
+    CACHE_IMPLEMENTATION_MODULES = (
+        "ici.core._compile_db_paths",
+        "ici.core.project",
+        "ici.engines._cpp_dup_tokenization",
+        "ici.engines._dup_matching",
+        "ici.engines._dup_regions",
+        "ici.engines._dup_signal",
+        "ici.engines._python_dup_tokenization",
+        "ici.engines._source_inputs",
+        "ici.engines.base",
+        "ici.engines.complexity",
+        "ici.engines.cpp_text",
+        "ici.engines.dup",
+    )
 
     def run(self) -> EngineResult:
         t0 = time.time()
@@ -165,12 +141,54 @@ class DuplicateEngine(BaseEngine):
             )
 
         ordered_sources = tuple(sorted(inventory.sources, key=lambda source: source.file_path))
-        files_data, total_code_lines = self._load_and_index_files(ordered_sources)
-        raw_matches = self._find_raw_matches(files_data, window_size)
-        filtered_matches = self._filter_subsumed_matches(raw_matches)
-        clone_groups, targets, duplicate_lines_count = self._cluster_matches(
-            filtered_matches, files_data
-        )
+        try:
+            files_data, total_code_lines = self._load_and_index_files(ordered_sources)
+        except _SourceTokenizationError as err:
+            duration = time.time() - t0
+            return self.create_result(
+                name="dup",
+                status=EngineStatus.ERROR,
+                summary=f"Duplicate analysis could not normalize {err.file_path}",
+                duration=duration,
+                targets=[
+                    InspectionTarget(
+                        file_path=err.file_path,
+                        start_line=1,
+                        target_name="SourceTokenizationError",
+                        status=EngineStatus.ERROR,
+                        message=err.message,
+                    )
+                ],
+                extra=self._source_evidence(inventory),
+                required=bool(cfg.get("required", True)),
+                evidence=EvidenceState.NOT_RUN,
+            )
+        try:
+            raw_matches = self._find_raw_matches(files_data, window_size)
+            filtered_matches = self._filter_subsumed_matches(raw_matches)
+            clone_groups, targets, duplicate_lines_count = self._cluster_matches(
+                filtered_matches, files_data
+            )
+        except DuplicateComparisonLimit as err:
+            duration = time.time() - t0
+            return self.create_result(
+                name="dup",
+                status=EngineStatus.ERROR,
+                summary="Duplicate analysis exceeded a bounded comparison limit",
+                duration=duration,
+                targets=[
+                    InspectionTarget(
+                        file_path=err.file_path,
+                        start_line=1,
+                        target_name="DuplicateComparisonLimit",
+                        status=EngineStatus.ERROR,
+                        message=err.message,
+                    )
+                ],
+                extra=self._source_evidence(inventory),
+                required=bool(cfg.get("required", True)),
+                evidence=EvidenceState.NOT_RUN,
+            )
 
         dup_pct = (
             (duplicate_lines_count / total_code_lines * 100.0) if total_code_lines > 0 else 0.0
@@ -227,7 +245,10 @@ class DuplicateEngine(BaseEngine):
                 "clone_groups_count": len(clone_groups),
                 "clone_groups": clone_groups,
                 "metrics_summary": f"Duplication: {dup_pct:.1f}% ({len(clone_groups)} groups)",
-                "fingerprint_algorithm": "sha256/type2-region-v1",
+                "fingerprint_algorithm": _FINGERPRINT_ALGORITHM,
+                "tokenizer_versions": dict(_TOKENIZER_VERSIONS),
+                "region_policy": _REGION_POLICY,
+                "signal_policy": _SIGNAL_POLICY,
                 **self._source_evidence(inventory),
             },
             required=bool(cfg.get("required", True)),
@@ -237,7 +258,7 @@ class DuplicateEngine(BaseEngine):
     @staticmethod
     def _source_evidence(inventory: AnalysisSourceInventory) -> dict:
         return {
-            "analysis_provenance": "token-region-heuristic",
+            "analysis_provenance": "language-lexical-region-heuristic",
             "source_files_analyzed": len(inventory.sources),
             "source_bytes_analyzed": inventory.total_bytes,
             "source_files_excluded": len(inventory.excluded),
@@ -245,129 +266,86 @@ class DuplicateEngine(BaseEngine):
         }
 
     def _load_and_index_files(
-        self, all_sources: tuple[AnalysisSource, ...]
+        self,
+        all_sources: tuple[AnalysisSource, ...],
+        *,
+        max_normalized_chars: int | None = None,
+        max_indexed_records: int | None = None,
     ) -> tuple[list[FileData], int]:
+        normalized_limit = (
+            MAX_DUPLICATE_NORMALIZED_CHARS if max_normalized_chars is None else max_normalized_chars
+        )
+        if type(normalized_limit) is not int or normalized_limit <= 0:
+            raise ValueError("max_normalized_chars must be a positive integer")
+        record_limit = (
+            MAX_DUPLICATE_INDEXED_RECORDS if max_indexed_records is None else max_indexed_records
+        )
+        if type(record_limit) is not int or record_limit <= 0:
+            raise ValueError("max_indexed_records must be a positive integer")
+
         files_data: list[FileData] = []
         total_code_lines = 0
+        normalized_chars = 0
+        indexed_records = 0
 
         for source in all_sources:
             raw_lines = source.lines
-            indexed = []
-            for idx, r_line in enumerate(raw_lines, 1):
-                s = r_line.strip()
-                if s and not s.startswith(("#", "//", "/*", "*", "import ", "from ", "#include")):
-                    norm = self._tokenize_line(s)
-                    if norm:
-                        indexed.append((idx, norm))
-                        total_code_lines += 1
+            try:
+                if source.language == "cpp":
+                    indexed = list(tokenize_cpp_lines(source.text))
+                    regions = cpp_duplicate_regions(
+                        source.text,
+                        (line for line, _tokens in indexed),
+                    )
+                else:
+                    indexed = list(tokenize_python_lines(source.text))
+                    regions = python_duplicate_regions(
+                        source.text,
+                        (line for line, _tokens in indexed),
+                    )
+            except ValueError as err:
+                raise _SourceTokenizationError(
+                    source.file_path,
+                    f"Source lexical normalization failed: {err}",
+                ) from err
 
-            files_data.append(FileData(source.file_path, source.language, raw_lines, indexed))
+            normalized_chars += sum(len(tokens) for _line, tokens in indexed)
+            if normalized_chars > normalized_limit:
+                raise _SourceTokenizationError(
+                    source.file_path,
+                    "Normalized duplicate-analysis input exceeds "
+                    f"max_normalized_chars={normalized_limit}",
+                )
+            indexed_records += len(indexed)
+            if indexed_records > record_limit:
+                raise _SourceTokenizationError(
+                    source.file_path,
+                    "Normalized duplicate-analysis input exceeds "
+                    f"MAX_DUPLICATE_INDEXED_RECORDS={record_limit}",
+                )
+            total_code_lines += len(indexed)
+
+            files_data.append(
+                FileData(source.file_path, source.language, raw_lines, indexed, regions)
+            )
 
         return files_data, total_code_lines
 
     def _find_raw_matches(self, files_data: list[FileData], window_size: int) -> list[MatchPair]:
-        """Finds Type-1/Type-2 clones via token windows, greedy extension (same-file)
-        and gap-tolerant block matching (cross-file)."""
-        window_map: dict[tuple[str, str], list[tuple[int, int]]] = defaultdict(list)
-        for f_idx, file_data in enumerate(files_data):
-            indexed = file_data.indexed
-            if len(indexed) < window_size:
-                continue
-            for t_pos in range(len(indexed) - window_size + 1):
-                w_str = "\x00".join(indexed[t_pos + k][1] for k in range(window_size))
-                w_hash = hashlib.sha256(w_str.encode("utf-8")).hexdigest()
-                # Python and C++ may normalize to the same token shapes but are
-                # not actionable clones of each other.
-                window_map[(file_data.language, w_hash)].append((f_idx, t_pos))
+        """Find exact Type-2 clones through bounded shared-window seed extension."""
 
-        same_occ: dict[int, list[int]] = defaultdict(list)
-        cross_files: set[tuple[int, int]] = set()
-        for occs in window_map.values():
-            if len(occs) < 2:
-                continue
-            files_in = {f for f, _ in occs}
-            cross_files.update((a, b) for a in files_in for b in files_in if a < b)
-            for f, p in occs:
-                same_occ[f].append(p)
-
-        raw_matches: list[MatchPair] = []
-
-        # 1. Same-file internal duplication: greedy window extension
-        for f_idx, positions in same_occ.items():
-            positions = sorted(set(positions))
-            if len(positions) < 2:
-                continue
-            idx = files_data[f_idx].indexed
-            matched: set[tuple[int, int]] = set()
-            for i in range(len(positions)):
-                p1 = positions[i]
-                for j in range(i + 1, len(positions)):
-                    p2 = positions[j]
-                    if p2 - p1 < window_size:
-                        continue
-                    if (p1, p2) in matched:
-                        continue
-                    k = 0
-                    while p1 + k < p2 and p2 + k < len(idx) and idx[p1 + k][1] == idx[p2 + k][1]:
-                        matched.add((p1 + k, p2 + k))
-                        k += 1
-                    if k >= window_size:
-                        raw_matches.append(
-                            (
-                                f_idx,
-                                idx[p1][0],
-                                idx[p1 + k - 1][0],
-                                f_idx,
-                                idx[p2][0],
-                                idx[p2 + k - 1][0],
-                                k,
-                            )
-                        )
-
-        # 2. Cross-file duplication: gap-tolerant SequenceMatcher blocks
-        for f1, f2 in sorted(cross_files):
-            idx1 = files_data[f1].indexed
-            idx2 = files_data[f2].indexed
-            seq1 = [norm for _, norm in idx1]
-            seq2 = [norm for _, norm in idx2]
-            sm = difflib.SequenceMatcher(None, seq1, seq2, autojunk=False)
-            for block in sm.get_matching_blocks():
-                if block.size < window_size:
-                    continue
-                raw_matches.append(
-                    (
-                        f1,
-                        idx1[block.a][0],
-                        idx1[block.a + block.size - 1][0],
-                        f2,
-                        idx2[block.b][0],
-                        idx2[block.b + block.size - 1][0],
-                        block.size,
-                    )
-                )
-
-        return raw_matches
+        limits = DuplicateMatchLimits(
+            window_occurrences=MAX_DUPLICATE_WINDOW_OCCURRENCES,
+            same_file_seed_pairs=MAX_DUPLICATE_SAME_FILE_SEED_PAIRS,
+            cross_file_pairs=MAX_DUPLICATE_CROSS_FILE_PAIRS,
+            cross_file_seed_pairs=MAX_DUPLICATE_CROSS_FILE_SEED_PAIRS,
+            extension_comparisons=MAX_DUPLICATE_EXTENSION_COMPARISONS,
+            raw_matches=MAX_DUPLICATE_RAW_MATCHES,
+        )
+        return find_raw_matches(files_data, window_size, limits)
 
     def _filter_subsumed_matches(self, raw_matches: list[MatchPair]) -> list[MatchPair]:
-        """Keeps maximal clones: drops matches overlapping a larger kept match on both sides."""
-        raw_matches.sort(key=lambda x: x[6], reverse=True)
-        filtered: list[MatchPair] = []
-
-        for match in raw_matches:
-            f1, s1, e1, f2, s2, e2, _ = match
-            redundant = False
-            for pf1, ps1, pe1, pf2, ps2, pe2, _ in filtered:
-                if f1 != pf1 or f2 != pf2:
-                    continue
-                overlaps_1 = not (e1 < ps1 or s1 > pe1)
-                overlaps_2 = not (e2 < ps2 or s2 > pe2)
-                if overlaps_1 and overlaps_2:
-                    redundant = True
-                    break
-            if not redundant:
-                filtered.append(match)
-
-        return filtered
+        return filter_subsumed_matches(raw_matches)
 
     def _cluster_matches(
         self, matches: list[MatchPair], files_data: list[FileData]
@@ -445,7 +423,7 @@ class DuplicateEngine(BaseEngine):
                 if rep_s <= line_no <= rep_e
             )
             fingerprint = hashlib.sha256(
-                f"{representative.language}\0{normalized_region}".encode()
+                f"{_FINGERPRINT_ALGORITHM}\0{representative.language}\0{normalized_region}".encode()
             ).hexdigest()
 
             # Preserve exact raw indentation (do not strip leading whitespace of line 1!)
@@ -481,6 +459,7 @@ class DuplicateEngine(BaseEngine):
                             "clone_group": group_idx,
                             "duplicate_lines": lines_k,
                             "fingerprint": fingerprint,
+                            "fingerprint_algorithm": _FINGERPRINT_ALGORITHM,
                         },
                     )
                 )
@@ -489,6 +468,7 @@ class DuplicateEngine(BaseEngine):
                 {
                     "id": group_idx,
                     "fingerprint": fingerprint,
+                    "fingerprint_algorithm": _FINGERPRINT_ALGORITHM,
                     "language": representative.language,
                     "lines_count": lines_k,
                     "occurrences_count": len(occ_list),
@@ -498,17 +478,3 @@ class DuplicateEngine(BaseEngine):
             )
 
         return clone_groups, targets, len(duplicated_positions)
-
-    def _tokenize_line(self, line: str) -> str:
-        """Normalizes identifiers to ID and literals to LIT (Type-2 clone support)."""
-
-        def _repl(match: re.Match) -> str:
-            tok = match.group(0)
-            if tok.startswith(("'", '"')):
-                return "LIT"
-            if tok[0].isdigit():
-                return "LIT"
-            return tok if tok in _STRUCT_KEYWORDS else "ID"
-
-        tokenized = _TOKEN_RE.sub(_repl, line)
-        return "".join(c for c in tokenized if not c.isspace())
