@@ -408,7 +408,7 @@ class _CppScanner:
             return False
         name = match.group("name")
         return name in self._macro_names or (
-            name == name.upper() and any(char.isalpha() for char in name)
+            self._depth == 0 and name == name.upper() and any(char.isalpha() for char in name)
         )
 
 

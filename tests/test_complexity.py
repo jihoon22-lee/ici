@@ -337,6 +337,20 @@ def test_cpp_scanner_skips_local_and_uppercase_macro_calls_before_next_function(
     assert targets["real_function()"].end_line == 9
 
 
+def test_cpp_scanner_keeps_uppercase_inline_constructor_with_next_line_body(
+    tmp_path: Path,
+):
+    targets = _cpp_targets(
+        tmp_path,
+        "struct FOO {\n    FOO(int value)\n    {\n        if (value) { return; }\n    }\n};\n",
+    )
+
+    assert set(targets) == {"FOO()"}
+    assert targets["FOO()"].start_line == 2
+    assert targets["FOO()"].end_line == 5
+    assert targets["FOO()"].metrics["complexity"] == 2
+
+
 def test_cpp_scanner_excludes_nested_lambdas_from_enclosing_metrics(tmp_path: Path):
     targets = _cpp_targets(
         tmp_path,
