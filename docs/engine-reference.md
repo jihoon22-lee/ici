@@ -100,13 +100,33 @@ fail_cc = 25
 warn_nesting = 4
 cpp_boundaries = "auto"  # auto | required | off
 
+[engines.dead]
+include_generated = false  # generated/autogen/moc 입력을 포함하려면 true
+include_vendor = false     # vendor/dependency 입력을 포함하려면 true
+
 [engines.dup]
 enabled = true
 mode = "pass_warn"
 min_window = 6
 warn_pct = 5.0
 fail_pct = 15.0
+include_generated = false
+include_vendor = false
 ```
+
+`dead`와 `dup`는 같은 bounded source intake 정책을 공유합니다. 생성물·moc와 vendor/dependency
+경로는 기본적으로 소유한 분석 범위에서 제외하며, 프로젝트별로 필요한 경우 엔진마다 독립적으로
+opt-in할 수 있습니다. `include_generated`와 `include_vendor`는 각각 boolean입니다.
+
+선택된 입력은 먼저 lexical normalization/deduplication 뒤 deterministic lexical sorting을
+거치며, 최대 8,192개의 unique candidate path와 정책 적용 후 2,048개의 owned/analyzed source
+file, 파일당 8 MiB, 전체 64 MiB의 UTF-8 source bytes를 넘을 수 없습니다. generated/vendor로
+제외된 파일은 owned cap을 소비하지 않습니다. 프로젝트 경계 이탈·symlink·missing/unsafe
+read·지원하지 않는 확장자·invalid UTF-8/NUL·상한 초과는 조용히 건너뛰지 않고 위치가 있는
+`ERROR`/`NOT_RUN`으로 닫습니다. 겹치는 generated/vendor path는 두 opt-in이 모두 literal
+`true`여야 포함되며, exclusion file count는 unique path 기준입니다. no-dirfd fallback은
+component symlink precheck 후 descriptor identity와 second-read content stability를 확인하고,
+직접 주입되는 limit이 positive integer가 아니면 fail-closed합니다.
 
 이 저장소의 dogfood 정책(`ici.toml`)은 2026-08-31 세 번의 연속 self verify에서
 동일하게 측정된 TEM `4.78`, Branch `77.9%`, Function `95.691%`에 변동 여유를 두어
@@ -632,6 +652,15 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 - package `__init__.py`의 `.a`/`from . import a` 상대 import도 package-qualified 모듈로 해석한다. `project.source_dirs`가 충돌하면 앞선 source directory의 모듈 정의만 선택하며, 동일 alias의 여러 lexical import 후보는 누락 없이 보수적으로 연결한다.
 - `if`/loop/`try`의 `else`·`finally` 및 `match` case를 포함한 모든 statement-list에서 terminal statement 뒤의 코드를 검사한다.
 - decorator 등록 함수, `__all__` export, class method, nested callback function은 합리적인 false positive를 피하기 위해 제외하며, 분석된 정상 source 위치도 `PASS` target으로 보존한다.
+- 공통 intake는 Python discovery를 한 번만 캡처한 뒤 deterministic lexical order로 정렬된
+  strict UTF-8 snapshot을 읽는다. `generated`/`autogen` 디렉터리와 `moc_`·`qrc_`·`ui_`·
+  `mocs_compilation`·`.moc` 입력 및 vendor/dependency 디렉터리를 기본 제외한다. unique
+  candidate 8,192개, owned/analyzed file 2,048개, 파일당 8 MiB, aggregate 64 MiB 한도를
+  적용하며 위반·경계 이탈·읽기 오류·NUL text는 partial 결과로 숨기지 않고 `ERROR`/`NOT_RUN`
+  target으로 남긴다. 직접 엔진 config에서는 literal `true`만 opt-in으로 인정한다.
+- Python AST reachability/name-reference는 compiler/linker 증거가 없는 휴리스틱이므로 결과
+  `evidence = ESTIMATED`, `analysis_provenance = python-ast-heuristic`이다. compiler/linker/
+  clang-tidy-backed exact dead-symbol 판정은 아직 이 엔진의 완료 범위가 아니다.
 
 ### 2.8 📦 `dup` (코드 복제 및 중복률 감지기)
 - **알고리즘**: 토큰 정규화(식별자/리터럴 치환) 슬라이딩 윈도우 해싱 + **최대 클론 병합**
@@ -640,6 +669,16 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   - 중복 라인 집계는 고유 라인 위치 합집합 기준 (과대 집계 방지)
   - 원본 인덴트와 줄바꿈을 완벽히 보존한 소스 코드 프리뷰 제공
 - **평가 기준**: 전체 코드베이스 대비 중복 라인 비율이 `warn_pct`(5%) 초과 시 경고, `fail_pct`(15%) 초과 시 실패
+- `dead`와 동일한 strict UTF-8 bounded intake와 generated/vendor 기본 제외 정책을 사용하며,
+  `include_generated`/`include_vendor`를 독립적으로 지정할 수 있다. owned C/C++ headers
+  (`.h`, `.hh`, `.hpp`, `.hxx`)도 discoverable하며 standalone `.moc`는 generated로 분류되어
+  `include_generated = true`일 때만 포함된다. 두 정책이 겹친 path는 두 switch가 모두 literal
+  `true`여야 한다. 분석된 모든 파일은 `DuplicateScan` 또는 clone 위치의 `PASS`/finding
+  target으로 보존한다.
+- Python과 C/C++ source는 같은 token shape가 나와도 언어별로 매칭을 분리한다. clone group과
+  target metric에는 `sha256/type2-region-v1` fingerprint를 기록하고 전체 결과 evidence는
+  `ESTIMATED` (`analysis_provenance = token-region-heuristic`)로 표시한다. robust language
+  tokenization과 compiler/linker 수준의 완전한 duplicate 의미 분석은 pending이다.
 
 ### 2.9 ⚠️ `exception` (예외 처리 안전성 검출기)
 - `except: pass` (예외 무시/삼킴 패턴) 검출

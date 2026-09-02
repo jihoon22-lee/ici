@@ -86,6 +86,36 @@
 
 ### Fixed
 
+- **Bounded heuristic source evidence for `dead` and `dup`**: both engines now consume the same
+  stable, project-contained UTF-8 source snapshot instead of independently opening files. The
+  intake lexically normalizes and sorts unique project-relative paths, rejects escaped paths,
+  symlinks, unsupported extensions, invalid UTF-8/NUL text, missing files, and unsafe reads, and
+  fails closed with a located `ERROR`/`NOT_RUN` result. It caps each intake at 8,192 unique
+  candidate paths, then at 2,048 owned/analyzed source files, 8 MiB per file, and 64 MiB of
+  aggregate source bytes; policy-excluded files do not consume the owned-file cap.
+  - Generated/autogen and moc forms (`moc_`, `qrc_`, `ui_`, `mocs_compilation`, `.moc`) plus
+    common vendor/dependency directories are excluded by default. Owned C/C++ headers (`.h`,
+    `.hh`, `.hpp`, `.hxx`) are discoverable for `dup`; standalone `.moc` is discoverable but
+    remains generated and therefore needs `include_generated = true`. Each engine exposes
+    independent literal-boolean `include_generated` and `include_vendor` opt-ins; a path with
+    both properties remains excluded until both switches are literally `true`, and the defaults
+    remain `false`. Exclusion file counts are unique paths even when reason counts overlap.
+  - The bounded reader prechecks every path component for symlinks on platforms without
+    directory-relative open support, then verifies file identity and performs a second content
+    read to reject changes during intake. Injected resource limits must be positive integers;
+    malformed values fail closed.
+  - `dead` captures Python source discovery once and reuses that snapshot for ordering and intake.
+  - `dead` preserves PASS location targets for clean Python sources and reports its AST
+    reachability/name-reference result as `ESTIMATED` with `python-ast-heuristic` provenance.
+    `dup` keeps PASS location targets for analyzed files, isolates Python and C/C++ matching, and
+    records stable `sha256/type2-region-v1` clone fingerprints while remaining
+    `ESTIMATED`/`token-region-heuristic` evidence.
+  - Compiler/linker-backed exact dead-symbol evidence and robust language tokenization for full
+    duplicate semantics remain pending; this slice does not close I4-3 or create a release.
+  Local Python 3.10 evidence for this slice is 79 focused source-input tests and 238 directly
+  related config/dead/dup tests passed; focused Ruff and mypy checks are clean. No PR or CI result
+  is implied, and the version remains `0.10.2`.
+
 - **Python function metric scope boundaries**: cyclomatic and cognitive complexity now measure each
   named function independently instead of charging nested function, class, and lambda bodies to
   the enclosing function. Definition-time decorators, defaults, annotations, class bases, and

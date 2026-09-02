@@ -82,8 +82,8 @@ database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합
       `readability-function-size`로 함수 경계를 정하고, 경계 내부 CC/중첩은 masked token/brace
       metric으로 계산 + **원본 소스 코드 블록 프리뷰**
     - `sanitize`: C++ AddressSanitizer/UBSan 메모리 안전성 및 Python 리소스 누수 검증
-    - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출
-    - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출
+    - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출. 공통 bounded UTF-8 source intake를 사용하며 generated/vendor는 기본 제외(`include_generated`/`include_vendor` literal-boolean opt-in), 결과 evidence는 Python AST 휴리스틱 `ESTIMATED`. intake는 8,192개 unique candidate와 2,048개 owned/analyzed 파일·파일당 8 MiB·aggregate 64 MiB로 제한하고, 제외된 파일은 owned 한도에 포함하지 않음
+    - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출. Python/C/C++ 매칭을 언어별로 격리하고 `sha256/type2-region-v1` fingerprint를 기록하며 generated/moc/vendor는 기본 제외; owned C/C++ header도 검사하고 standalone `.moc`는 `include_generated = true`일 때만 포함하며 같은 bounded source 한도를 사용
     - `exception`: 예외 삼킴(`except: pass`), Traceback 유실, 소멸자 throw 차단
     - `cycle`: Python import / C++ include **순환 참조 탐지** (Tarjan SCC, C++ path-suffix 해석의 미해결·모호 위치도 보고)
     - `security`: 하드코딩 시크릿, 약한 해시, `eval`/`pickle`/`shell=True` 등 위험 패턴 탐지

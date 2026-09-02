@@ -559,6 +559,42 @@ clazy는 최대 2,048 translation units, unit당 120초, 전체 600초와 1,000,
 이 계층은 소스를 수정하거나 generator를 재실행하지 않으며, 생성 산출물의 존재만 확인하는
 heuristic으로 성공을 주장하지 않고 exact compilation database linkage를 요구한다.
 
+#### `dead`/`dup` 공통 bounded source intake
+
+`dead`와 `dup`는 엔진별 파일 열기 대신 `engines/_source_inputs.py`의 공통 intake를 사용한다.
+각 엔진이 선택한 path를 symlink를 따라가지 않는 lexical `.`/`..` 정규화로 project-relative
+POSIX 경로에 매핑하고 unique path로 deduplicate한 뒤, deterministic lexical order로 정렬한다.
+그 후 project containment와 regular-file/no-follow read를 확인하고 strict UTF-8 immutable
+snapshot으로 만든다. 이 경계를 공유하므로 변경·누락·symlink escape·invalid UTF-8/NUL·지원하지
+않는 source 확장자 같은 입력 오류가 한 엔진에서만 조용히 사라지지 않는다.
+
+기본 ownership 정책은 generated/autogen 디렉터리, `moc_`/`qrc_`/`ui_`/
+`mocs_compilation`/`.moc` 이름과 vendor/dependency 디렉터리를 제외한다. `dead`와 `dup`의
+`include_generated` 및 `include_vendor`는 각각 이 정책을 해제하는 boolean opt-in이며 기본값은
+`false`다. 두 분류가 겹치는 path는 두 opt-in이 모두 literal `true`일 때만 포함된다. `dup`의
+owned C/C++ headers (`.h`, `.hh`, `.hpp`, `.hxx`)도 inventory에 포함되며, standalone `.moc`는
+discoverable하지만 generated 분류로 기본 제외된다. unique candidate는 최대 8,192개,
+정책 적용 뒤 owned/analyzed source는 최대 2,048개, source당 8 MiB, aggregate 64 MiB UTF-8
+bytes를 사용한다. 정책으로 제외된 파일은 owned cap을 소비하지 않으며, `source_files_excluded`
+는 unique path 수이고 `source_exclusion_counts`는 겹치는 reason을 각각 세므로 합계가 더 클 수
+있다. 한도를 넘거나 read가 안전하지 않으면 위치가 있는 `SourceInputError` `ERROR`/`NOT_RUN`을
+발행하고 partial source 결과를 만들지 않는다. 전부 제외된 inventory는 `SKIP`/`NOT_APPLICABLE`로
+구분해 기록한다.
+
+directory-relative open을 제공하지 않는 플랫폼에서는 reader가 열기 전에 모든 path component의
+symlink를 `lstat`으로 precheck하고, 읽은 descriptor의 identity와 내용을 second read로 다시
+확인해 intake 중 변경을 fail-closed한다. 직접 주입되는 resource limit도 positive integer가
+아니면 `invalid-limit`로 닫힌다. `dead`는 Python source discovery를 한 번만 캡처한 뒤 그
+목록을 ordering과 intake에 재사용한다.
+
+`dead`의 Python AST reachability/name-reference와 `dup`의 token/region matching은 이 snapshot
+위에서 수행되며 compiler/linker exact evidence가 아니다. 따라서 실행 결과는 각각
+`python-ast-heuristic` 및 `token-region-heuristic` provenance와 `ESTIMATED` evidence를
+보존한다. `dup`는 Python과 C/C++ token window를 language key로 분리하고
+`sha256/type2-region-v1` clone fingerprint를 안정적으로 생성하며 분석된 파일마다 PASS
+location target을 남긴다. compiler/linker-backed exact dead-symbol 분석과 robust language
+tokenization은 I4-3의 후속 범위로 남아 있다.
+
 #### Compiler-backed C++ function boundaries (I4-3)
 
 `ComplexityEngine`은 shared immutable `AnalysisContext`의 exact `CompilationContext`와 covered

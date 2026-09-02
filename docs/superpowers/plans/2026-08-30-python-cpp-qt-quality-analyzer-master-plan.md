@@ -1067,8 +1067,30 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     conditional-preprocessor body는 `partial`/low-confidence이고, compiler-backed function metrics
     또는 configuration coverage가 partial/low-confidence로 남으면 `required`는 fail-closed다.
 - [ ] dead/unused symbol은 compiler/linker/clang-tidy evidence가 있을 때만 exact로 표시한다.
+  - [x] `dead`는 공통 bounded UTF-8 source intake를 사용하고, generated/vendor 기본 제외와
+    `include_generated`/`include_vendor` literal-boolean opt-in, 8,192 unique candidate·2,048
+    owned/analyzed files·파일당 8 MiB·aggregate 64 MiB 한도를 적용한다. policy-excluded file은
+    owned cap을 소비하지 않으며, lexical normalization/deduplication/sorting, NUL rejection,
+    fallback symlink precheck와 second-read stability 검사를 거친다. 현재 AST
+    reachability/name-reference 결과는 위치 target과 함께 `ESTIMATED`/`python-ast-heuristic`으로
+    남기고 Python discovery를 한 번만 캡처해 재사용한다.
+  - [ ] compiler/linker-backed exact dead-symbol evidence는 아직 pending이다.
 - [ ] duplicate는 generated/moc/vendor code를 기본 제외하고 token/region fingerprint를 통합한다.
+  - [x] 공통 intake의 generated/moc/vendor 기본 제외와 두 independent literal-boolean opt-in을
+    적용하고, overlapping classification은 두 opt-in이 모두 켜져야 포함한다. owned C/C++
+    headers를 포함하고 standalone `.moc`는 discoverable하지만 기본 제외하며, Python과 C/C++
+    matching을 언어별로 격리하고 `sha256/type2-region-v1` fingerprint와 PASS 위치 target을
+    보존한다. unique excluded file count와 reason별 overlapping count를 구분하며 현재
+    token/region 분석은 `ESTIMATED`/`token-region-heuristic`이다.
+  - [ ] robust language tokenization과 full duplicate 의미 분석은 아직 pending이다.
 - [x] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
+
+이 source-evidence slice는 `fix/source-analysis-evidence`의 implementation commits `8ee3865`
+와 `4de110b`에 반영됐다. 2026-09-02 Python 3.10 local evidence는 focused source-input 79
+tests passed, 직접 관련 config/dead/dup bundle 238 tests passed, 전체 source에 대한 mypy와
+focused Ruff check/format이 clean이다. 이는 local focused evidence일 뿐 full-suite,
+package/build/smoke, PR/CI evidence가 아니며, 버전은 `0.10.2`로 유지하고 release는 만들지
+않는다.
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
