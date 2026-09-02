@@ -170,6 +170,69 @@ def test_preserves_exact_semantic_arguments_and_counts_only_the_real_source(tmp_
     )
 
 
+def test_unused_function_replay_discards_assembly_and_demotes_warning_errors(
+    tmp_path: Path,
+) -> None:
+    root = _project(tmp_path)
+    compiler = _compiler(tmp_path)
+    source = root / "src" / "main.cpp"
+    unit = _unit(
+        compiler,
+        (
+            "-std=c++20",
+            "-Werror",
+            "-Werror=unused-function",
+            "-pedantic-errors",
+            "-w",
+            "-Wno-unused-function",
+            "-c",
+            "-o",
+            "main.o",
+            "../src/main.cpp",
+        ),
+    )
+
+    replay = build_replay_command(
+        root,
+        unit,
+        _inventory(compiler),
+        operation="unused-functions",
+    )
+
+    assert replay.argv == (
+        str(compiler),
+        "-std=c++20",
+        "-Wunused-function",
+        "-pedantic",
+        "-Wno-unused-function",
+        str(source),
+        "-fdiagnostics-color=never",
+        "-Wunused-function",
+        "-Wno-error=unused-function",
+        "-S",
+        "-o",
+        os.devnull,
+    )
+    assert str(root / "build" / "main.o") not in replay.argv
+
+
+def test_unused_function_replay_preserves_positional_source_semantics(tmp_path: Path) -> None:
+    root = _project(tmp_path)
+    compiler = _compiler(tmp_path)
+    source = root / "src" / "main.cpp"
+    unit = _unit(compiler, ("../src/main.cpp", "-x", "c"))
+
+    replay = build_replay_command(
+        root,
+        unit,
+        _inventory(compiler),
+        operation="unused-functions",
+    )
+
+    assert replay.argv.count(str(source)) == 1
+    assert replay.argv.index(str(source)) < replay.argv.index("-x")
+
+
 def test_strips_compile_output_dependency_color_and_diagnostic_write_options(
     tmp_path: Path,
 ) -> None:
@@ -196,6 +259,8 @@ def test_strips_compile_output_dependency_color_and_diagnostic_write_options(
             "-fno-color-diagnostics",
             "-fdiagnostics-color=always",
             "-fdiagnostics-format=json",
+            "-fdiagnostics-show-option",
+            "-fno-diagnostics-show-option",
             "-Wp,-MMD,build/main.d",
             "-o",
             "build/main.o",
@@ -470,6 +535,32 @@ def test_accepts_the_exact_source_after_option_separator(tmp_path: Path) -> None
     replay = build_replay_command(root, unit, _inventory(compiler), operation="syntax")
 
     assert replay.argv[-1] == str(root / "src" / "main.cpp")
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--", "../src/main.cpp", "-w"),
+        ("--", "-w", "../src/main.cpp"),
+        ("--", "../src/main.cpp", "--"),
+    ],
+)
+def test_rejects_every_extra_operand_after_option_separator(
+    tmp_path: Path,
+    args: tuple[str, ...],
+) -> None:
+    root = _project(tmp_path)
+    compiler = _compiler(tmp_path)
+    unit = _unit(compiler, args)
+
+    error = _error(
+        root,
+        unit,
+        _inventory(compiler),
+        operation="unused-functions",
+    )
+
+    assert error.code == "extra-compiler-operand"
 
 
 def test_option_values_that_look_like_sources_do_not_count_as_source_operands(

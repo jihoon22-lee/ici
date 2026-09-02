@@ -18,6 +18,7 @@ from ici.core.runner import ProcessResult, run_process
 PROBE_TIMEOUT_SECONDS = 5.0
 PROBE_OUTPUT_LIMIT = 65_536
 _PYTHON_MODULE_RE = re.compile(r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$")
+_COMPILER_DRIVER_NAMES = frozenset({"gcc", "g++", "clang", "clang++"})
 
 
 @dataclass(frozen=True)
@@ -74,8 +75,8 @@ _RegisteredSelection = tuple[str, tuple[str, ...], ToolCapability]
 
 
 DEFAULT_TOOL_PROBES: tuple[ToolProbe, ...] = (
-    ToolProbe("gcc", ("gcc",), ("-dumpfullversion", "-dumpversion"), "target", ("-dumpmachine",)),
-    ToolProbe("g++", ("g++",), ("-dumpfullversion", "-dumpversion"), "target", ("-dumpmachine",)),
+    ToolProbe("gcc", ("gcc",), ("--version",), "target", ("-dumpmachine",)),
+    ToolProbe("g++", ("g++",), ("--version",), "target", ("-dumpmachine",)),
     ToolProbe("clang", ("clang",), ("--version",), "target", ("-dumpmachine",)),
     ToolProbe("clang++", ("clang++",), ("--version",), "target", ("-dumpmachine",)),
     ToolProbe("clang-format", ("clang-format",), ("--version",)),
@@ -155,7 +156,7 @@ _COMPILER_VERSION_RE = re.compile(
 _GENERIC_VERSION_RE = re.compile(r"(?<![A-Za-z0-9_])(?P<version>\d+(?:\.\d+)+)")
 _TARGET_TRIPLE_RE = re.compile(r"^[A-Za-z0-9_+.]+(?:-[A-Za-z0-9_+.]+){1,4}$")
 _TARGET_ARCH_RE = re.compile(
-    r"^(?:aarch64|arm(?:v[0-9.]+)?|avr|bpf|hexagon|i[3-6]86|loongarch64|mips(?:64)?(?:el)?|"
+    r"^(?:aarch64|arm64|arm(?:v[0-9.]+)?|avr|bpf|hexagon|i[3-6]86|loongarch64|mips(?:64)?(?:el)?|"
     r"msp430|nvptx64|powerpc(?:64le)?|ppc(?:64le)?|riscv(?:32|64)|s390x|sparc(?:64)?|"
     r"wasm(?:32|64)|x86_64)$",
     re.I,
@@ -243,6 +244,17 @@ def parse_tool_version(name: str, stdout: str, stderr: str = "") -> tuple[str, t
                 numeric = match.group("version")
                 return redact_text(line[:200]), tuple(int(part) for part in numeric.split("."))
     return "", ()
+
+
+def compiler_family_from_version(version: str) -> str:
+    """Identify a compiler driver family from its bounded version banner."""
+
+    folded = version.casefold()
+    if "clang" in folded:
+        return "clang"
+    if "gcc" in folded or "g++" in folded or "gnu compiler" in folded:
+        return "gcc"
+    return ""
 
 
 def parse_qmake_query(text: str) -> dict[str, str]:
@@ -373,7 +385,16 @@ def collect_tool_capability(
     vendor = _vendor(version)
     if vendor:
         details["vendor"] = vendor
-    complete = bool(version_tuple)
+    compiler_family = compiler_family_from_version(version)
+    if compiler_family:
+        details["compiler_family"] = compiler_family
+    complete = bool(version_tuple) and (name not in _COMPILER_DRIVER_NAMES or bool(compiler_family))
+    if complete:
+        error = ""
+    elif version_tuple and name in _COMPILER_DRIVER_NAMES:
+        error = "probe did not identify a supported compiler family"
+    else:
+        error = "probe did not report a parseable version"
     return (
         ToolCapability(
             name=name,
@@ -382,7 +403,7 @@ def collect_tool_capability(
             version=version,
             version_tuple=version_tuple,
             complete=complete,
-            error="" if complete else "probe did not report a parseable version",
+            error=error,
             details=details,
             probe_argv=safe_argv,
             returncode=result.returncode,

@@ -167,6 +167,33 @@ The local regression suite records these scope-policy outcomes:
 
 ## Delivery boundary
 
-No version was bumped and no release was created. `v0.10.2` remains the public stable artifact.
-The remaining I4-3 aggregate, dead/unused-symbol exactness, and generated/moc/vendor duplicate
-policy are still open, as is the broader I4 checkpoint.
+This boundary is a historical snapshot of the function-scope policy work. No version was bumped
+and no release was created; `v0.10.2` remains the public stable artifact. The current
+compiler-backed C/C++ unused-function slice is recorded in the [`compiler-backed C/C++
+unused-function workthrough`](2026-09-03-compiler-backed-cpp-unused-functions.md). Its narrow
+TU-local exactness is no longer the open dead-code item; the remaining dead/unused-symbol
+exactness is the broader whole-program/linker-backed reachability scope. Generated/moc/vendor
+duplicate policy and the broader I4-3/I4 checkpoint remain open.
+
+## Current compiler-backed unused-function follow-up
+
+The separate TU-local unused-function slice remains remote-pending and does not change the
+historical function-scope policy recorded above. Its final commits through `13099ca` are
+`8f8f4d0` (compiler-family alias detection), `7522fe7` (strict option-separator operands),
+`88c18da` (alias-family regression coverage), `3a38997` (compiler/cwd-bound include-projection
+cache identity), `ea1d4b5` (project formatting), `2b7ff41` (all owned/external C/C++ source scope
+and automatic-policy alignment), and `13099ca` (the strict `c`/`c++` translation-unit language
+guard). The current local gate is focused `607 passed, 6 skipped` (17.99s), full `1,966 passed,
+7 skipped` (68.60s), Ruff 184 files, mypy 104 files, two byte-identical pyz builds at 2,273,944
+bytes with SHA-256
+`2a3c8b011e53d21529ee03e20b0f7eeafbf7fbfaf6b8a9e35f5445b166c88d28`, and smoke PASS.
+
+The corresponding no-cache self verify is WARN with 8 pass/5 warn/0 fail/0 error/1 skip, TEM 4.84,
+duration 184.31s, wall 188.75s, RSS 605,144, HTML 5,526,617 bytes / `159ba3db…`, and JSON
+15,590,867 bytes / `0d38d3b…`; the title is `ici Verification Report — ici` and Zero-CDN is
+`[]`. Viewer standalone is PASS with `8/8/8 targets/tools`, wall 10.73s, RSS 360,320. Viewer
+deep no-cache is WARN with 12 pass/1 warn/0 fail/0 error/1 skip, 14 engines, 7/7, TEM 4.89,
+duration 20.00s, wall 20.42s, RSS 360,556, HTML 355,996 bytes / `9098…`, and JSON 743,422
+bytes / `069eb0…`; the title is `ici Verification Report — viewer` and Zero-CDN is `[]`.
+Remote PR CI, artifact/Pages, exact-main, and Merge Gate evidence remain pending; no release or
+version bump is implied.

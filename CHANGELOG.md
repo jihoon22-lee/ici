@@ -9,6 +9,89 @@
 
 ### Added
 
+- **Compiler-backed C/C++ translation-unit unused-function evidence**: `dead` now exposes
+  `[engines.dead].cpp_unused = "auto" | "required" | "off"` as a C++-scope policy independent of
+  the Python AST dead-code heuristic. The full verifier and standalone `ici dead` command use the
+  same shared immutable project/tool/compilation preflight and context model. The registered `gcc`
+  and `g++` probes use `--version` and mark the capability complete only when the observed banner
+  identifies a supported GCC or Clang family. Neutral and Apple aliases follow that recorded family
+  rather than their executable spelling. The compilation database digest identifies the immutable
+  context captured by preflight, not a live-file lease; a database mutation is incorporated by the
+  next preflight. Standalone `ici dead`
+  scopes capability probes to the tools selected by `dead` plus configured
+  `[doctor].required_tools`, while preserving the compilation database as the source of truth.
+  With `cpp_unused = "off"`, C++ candidates are omitted from source intake and the C++ probe is
+  skipped; Python dead-code analysis remains independent. Exact mode selects all owned and configured
+  external, compilable C/C++ translation units in the project source inventory and requires every
+  known canonical `sha256:` source configuration; contexts with `unity_build=true` and missing
+  coverage are rejected rather than guessed through. Every selected compilation unit must declare
+  language exactly `c` or `c++`; unknown, empty, and Objective-C-family units are rejected before
+  compiler execution.
+  Each selected source/configuration replays a sanitized compiler command with warning-as-error
+  policy projected for diagnostics, `-Wunused-function`, `-Wno-error=unused-function`, and
+  discarded `-S -o os.devnull` output, so no project object, executable, or linker result is
+  produced. Only capability-approved GCC/Clang drivers and approved aliases are replayed. The
+  observed compiler family wins over an alias spelling (including a `g++` alias backed by Clang):
+  GCC >= 9 uses structured JSON diagnostics, while older GCC and Clang use bounded parseable text.
+  Project diagnostic-option visibility flags are replaced by ici's controlled
+  `-fdiagnostics-show-option`, so exact rule matching cannot be disabled by the compile command.
+  Source, working-directory, and approved compiler identity are revalidated around
+  execution; each unit configuration digest is recomputed from its directory/argv/output and must
+  match its canonical identity. Missing or invalid context, unsafe replay, ingestion/coverage/
+  configuration gaps, compiler failure, and unlocated matching warnings with no source attribution,
+  malformed/nonzero/timeout/truncated output, identity changes, and configuration disagreement all
+  fail closed. The unused-function replay rejects every extra operand after its `--` separator,
+  including `-w` and a second `--`, before invoking the compiler. The C++ probe is atomic:
+  replay/process/parser errors are fail-fast, so completed C++
+  observations/findings are discarded and remaining compiler units are not run; configuration
+  disagreement discovered during the final merge also discards every C++ finding. A located
+  `C++UnusedFunctionsInvalidated` `SKIP` target remains for
+  each previously completed and recorded compiler observation, so discarded work is traceable without presenting it as
+  exact evidence. No heuristic fallback is presented as exact. For a C++-only project, unavailable
+  exact context/tool state in `auto` remains `SKIP`/`NOT_RUN` with `required = false`, so suite
+  aggregation reports an optional `WARN`; an explicit `required` policy remains `ERROR`/`NOT_RUN`.
+  Once an exact context exists, invalid context, coverage, configuration, replay, parser, and
+  identity failures remain errors in both policies. In a hybrid result,
+  completed Python findings are retained with `ESTIMATED`/`python-ast-heuristic` evidence. When both
+  scopes complete, native C++ findings retain exact confidence and compiler/tool-rule attribution
+  (`tool_name` plus `tool_rule_id = "-Wunused-function"`) while the aggregate remains conservatively
+  `ESTIMATED`; a C++ failure instead leaves the aggregate status/evidence reflecting that failure.
+  Only a matching `-Wunused-function` warning whose location is outside the selected TU is counted
+  in `cpp_unused_non_tu_diagnostics_excluded`; other non-TU/header/external diagnostics are ignored.
+  Accepted source positions retain the compiler's logical path and line/column range only when the
+  path equals the selected TU and the range fits its immutable source snapshot. Out-of-range
+  `#line` or macro remapping fails closed; the physical macro-definition origin is not reconstructed.
+  External-linkage symbols, templates, inline/COMDAT definitions, linker
+  reachability, dynamic lookup, plugins, Qt meta-object reachability, and generated/moc/vendor inputs
+  outside the source-ownership policy are not classified by this probe. `dead` result cache-key
+  generation, load, and store are disabled for every result, including Python-only and hybrid
+  results, until external/generated include closure and compiler binary content are modeled.
+  Clang-based tooling's GCC standard-library projection binds both its bounded probes and cache to
+  the resolved compiler and working-directory identities; replacement during probing fails closed.
+  A local self-quality run initially exposed a FAIL in the new probe functions' complexity; the
+  probe was refactored below the existing fail threshold, and the real-GCC E2E expectation was
+  updated to match compiler diagnostic replay. Final local gates recorded focused regression
+  `607 passed/6 skipped`, Python 3.10 full `1,966 passed/7 skipped`, Ruff check/format PASS on
+  184 files, mypy PASS on 104 files, and two byte-identical 2,273,944-byte pyz builds with SHA-256
+  `2a3c8b011e53d21529ee03e20b0f7eeafbf7fbfaf6b8a9e35f5445b166c88d28`; smoke PASS and packaged
+  verify exit 0. ici self deep `--no-cache` was WARN with 14 engines (8 PASS, 5 WARN, 0 FAIL,
+  0 ERROR, 1 SKIP), TEM 4.84, HTML `5,526,617` bytes/SHA-256
+  `159ba3db668127541c4ff56ebc535138fbd5541ad86eccad45879e606e50742d`, JSON `15,590,867`
+  bytes/SHA-256 `0d38d3b9daa92977b3933dd3b2bbf58531b52134d87f462d7a9271b659affe1a`, exact title
+  `ici Verification Report — ici`, and Zero-CDN PASS. Viewer standalone `dead --report` under its
+  configured `cpp_unused = "required"` policy was PASS/MEASURED with an exact 8/8
+  source/configuration scan, 0 unused functions, a null
+  `cache_key`, and 8 successful compiler evidence rows. Viewer deep `--no-cache` was WARN only
+  because clang-tidy/clazy were unavailable, with 14 engines (12 PASS, 1 WARN, 0 FAIL, 0 ERROR,
+  1 SKIP), TEM 4.89, HTML `355,996` bytes/SHA-256
+  `9098bec837b61d2ed08c15cdb21b4b4f59741a160eb0a09dfb74d8163bb33d8c`, JSON `743,422` bytes/
+  SHA-256 `069eb0dced6c835c2690b8d45da2216ffb15af233b5dc7a3f92e609fd90d67ad`, exact title
+  `ici Verification Report — viewer`, and Zero-CDN PASS. Detailed local report evidence is
+  recorded in the compiler-backed unused-function workthrough below.
+  This closes only the narrow TU-local compiler-diagnostic slice: whole-program/linker dead-symbol
+  analysis, full duplicate semantics, and the complete I4-3 checkpoint remain pending.
+  Remote acceptance is pending. The version remains `0.10.2`; no release is created.
+
 - **Bounded language-aware duplicate tokenization and matching**: `dup` now uses dedicated,
   line-preserving lexical normalizers for Python and C/C++ before building language-isolated Type-2
   clone windows. Python tokenization removes comments and import-first logical statements (including
@@ -26,11 +109,12 @@
   records `sha256/type2-region-v2`, `cpp-lexical-v1`/`python-lexical-v1`,
   `language-function-scope-v1`, and `minimum-semantic-lines-v1`. Successfully completed results remain
   `ESTIMATED` with `language-lexical-region-heuristic` provenance, while bounded failures are
-  `NOT_RUN`; compiler/linker-backed exact
-  semantics and the complete I4-3 checkpoint remain pending. This slice keeps version `0.10.2`
-  and creates no release. [PR #135](https://github.com/jihoon22-lee/ici/pull/135) passed required
-  PR CI, its single sticky report comment, and artifact/Pages byte-match checks, then merged as
-  `b09af5e0f0dd5f5d1ecbc33f73ab23a96f520882`. Exact-main run `33648359498` and the refreshed main
+  `NOT_RUN`; broader whole-program/linker-backed dead-symbol semantics and the complete I4-3
+  checkpoint remain pending. This slice keeps version `0.10.2`
+  and creates no release. Historical [PR #135](https://github.com/jihoon22-lee/ici/pull/135) passed
+  required PR CI, its single sticky report comment, and artifact/Pages byte-match checks, then
+  merged as historical `b09af5e0f0dd5f5d1ecbc33f73ab23a96f520882`. Historical exact-main run
+  `33648359498` and its refreshed main
   Pages passed the same source-commit, UTF-8 title, Zero-CDN, and byte-match audit.
 
 - **C++ function-scope classification and configuration disclosure**: compiler-backed complexity
@@ -105,8 +189,9 @@
   main JSON `source_commit` matched the same SHA, and main ici/viewer Pages passed the same checks
   with byte-matched artifacts: ici `7,454,995` bytes (`182a0d05…5adbb75`) and viewer `356,598`
   bytes (`fb772d4a…c0c4794`). Only the expected PR/main publish jobs were skipped. This records
-  the scope-policy acceptance, not completion of I4-3 dead/duplicate work, remaining I4-4, or the
-  broader I4 checkpoint. The version remains `0.10.2`; no release is created.
+  the scope-policy acceptance, not completion of broader whole-program/linker dead analysis, full
+  duplicate semantics, remaining I4-4, or the broader I4 checkpoint. The version remains `0.10.2`;
+  no release is created.
 
 ### Fixed
 
@@ -174,7 +259,7 @@
     `dup` keeps PASS location targets for analyzed files, isolates Python and C/C++ matching, and
     records stable `sha256/type2-region-v1` clone fingerprints while remaining
     `ESTIMATED`/`token-region-heuristic` evidence.
-  - At this source-intake-only stage, compiler/linker-backed exact dead-symbol evidence and robust
+  - At this source-intake-only stage, broader whole-program/linker-backed dead-symbol evidence and robust
     language tokenization for full duplicate semantics remained pending; the later bounded
     language-aware lexical follow-up is recorded above. That earlier slice did not close I4-3 or
     create a release.
@@ -215,7 +300,7 @@
 
   The merged PR branch was deleted locally and remotely. This closes the bounded source-evidence
   implementation delivery recorded at that point; the later bounded language-aware duplicate
-  follow-up is recorded above. Compiler/linker-backed exact dead-symbol evidence, full duplicate
+  follow-up is recorded above. Broader whole-program/linker-backed dead-symbol evidence, full duplicate
   semantics, and the rest of I4-3 remain pending, so no new release is authorized.
 
 - **Python function metric scope boundaries**: cyclomatic and cognitive complexity now measure each
@@ -912,6 +997,9 @@
     `ici verify --no-cache`, `ici cache`, `ici cache --clear`를 제공합니다. entry는 local
     temp file + flush/`fsync` + atomic replace로만 발행하고 project source는 읽기만 하므로
     remote cache나 project-file mutation이 없습니다.
+  - 현재 `dead` engine은 Python-only와 hybrid를 포함한 모든 result의 cache key 생성·load·store를
+    비활성화합니다. external/generated include closure와 compiler binary content가 모델링될
+    때까지 `dead` 결과를 cache에서 재사용하거나 저장하지 않습니다.
   - v3 engine JSON에 optional `cache_hit`와 nullable `cache_key`를 추가해 hit identity를
     표시하면서 기존 archive 소비자와 호환합니다. Python 3.10 전체 935 tests, Ruff
     check/format, pyz 이중 빌드 SHA-256

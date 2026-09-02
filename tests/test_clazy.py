@@ -719,6 +719,186 @@ def test_gcc_projection_fails_if_compiler_identity_changes_during_probe(tmp_path
     assert cache == {}
 
 
+def test_gcc_projection_cache_reprobes_after_cwd_directory_replacement(tmp_path: Path) -> None:
+    root, _sources, context = _stdlib_clazy_context(tmp_path)
+    compiler = Path(context.capabilities.capabilities["g++"].path)
+    cwd = root / "build"
+    common, cxx = (tmp_path / "toolchain" / name for name in ("common", "cxx"))
+    common.mkdir(parents=True)
+    cxx.mkdir(parents=True)
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        language = command[command.index("-x") + 1]
+        paths = (cxx, common) if language == "c++" else (common,)
+        return ProcessResult(0, "", _stdlib_search_output(paths), 0.01)
+
+    cache = {}
+    first = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        cwd,
+        context,
+        ["-m64"],
+        cache,
+        runner=runner,
+    )
+    cwd.rename(root / "build-before-replacement")
+    cwd.mkdir()
+    second = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        cwd,
+        context,
+        ["-m64"],
+        cache,
+        runner=runner,
+    )
+
+    assert first.error == second.error == ""
+    assert first.arguments == second.arguments
+    assert len(calls) == 4
+
+
+def test_gcc_projection_fails_if_cwd_identity_changes_during_probe(tmp_path: Path) -> None:
+    root, _sources, context = _stdlib_clazy_context(tmp_path)
+    compiler = Path(context.capabilities.capabilities["g++"].path)
+    cwd = root / "build"
+    common, cxx = (tmp_path / "toolchain" / name for name in ("common", "cxx"))
+    common.mkdir(parents=True)
+    cxx.mkdir(parents=True)
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        if len(calls) == 1:
+            cwd.rename(root / "build-during-probe")
+            cwd.mkdir()
+        language = command[command.index("-x") + 1]
+        paths = (cxx, common) if language == "c++" else (common,)
+        return ProcessResult(0, "", _stdlib_search_output(paths), 0.01)
+
+    cache = {}
+    projection = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        cwd,
+        context,
+        ["-m64"],
+        cache,
+        runner=runner,
+    )
+
+    assert len(calls) == 2
+    assert projection.arguments == ()
+    assert projection.error_code == "gcc-include-probe-cwd-changed"
+    assert cache == {}
+
+
+def test_gcc_projection_cache_hit_rechecks_cwd_identity(tmp_path: Path) -> None:
+    root, _sources, context = _stdlib_clazy_context(tmp_path)
+    compiler = Path(context.capabilities.capabilities["g++"].path)
+    cwd = root / "build"
+    common, cxx = (tmp_path / "toolchain" / name for name in ("common", "cxx"))
+    common.mkdir(parents=True)
+    cxx.mkdir(parents=True)
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        language = command[command.index("-x") + 1]
+        paths = (cxx, common) if language == "c++" else (common,)
+        return ProcessResult(0, "", _stdlib_search_output(paths), 0.01)
+
+    class MutatingCache(dict):
+        mutate_on_get = False
+
+        def get(self, key, default=None):  # type: ignore[no-untyped-def]
+            if self.mutate_on_get:
+                self.mutate_on_get = False
+                cwd.rename(root / "build-before-cache-hit")
+                cwd.mkdir()
+            return super().get(key, default)
+
+    cache = MutatingCache()
+    first = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        cwd,
+        context,
+        ["-m64"],
+        cache,
+        runner=runner,
+    )
+    assert first.error == ""
+    cache.mutate_on_get = True
+    second = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        cwd,
+        context,
+        ["-m64"],
+        cache,
+        runner=runner,
+    )
+
+    assert len(calls) == 2
+    assert second.arguments == ()
+    assert second.error_code == "gcc-include-probe-cwd-changed"
+
+
+def test_gcc_projection_cache_hit_rechecks_compiler_identity(tmp_path: Path) -> None:
+    root, _sources, context = _stdlib_clazy_context(tmp_path)
+    compiler = Path(context.capabilities.capabilities["g++"].path)
+    common, cxx = (tmp_path / "toolchain" / name for name in ("common", "cxx"))
+    common.mkdir(parents=True)
+    cxx.mkdir(parents=True)
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        language = command[command.index("-x") + 1]
+        paths = (cxx, common) if language == "c++" else (common,)
+        return ProcessResult(0, "", _stdlib_search_output(paths), 0.01)
+
+    class MutatingCache(dict):
+        mutate_on_get = False
+
+        def get(self, key, default=None):  # type: ignore[no-untyped-def]
+            if self.mutate_on_get:
+                self.mutate_on_get = False
+                compiler.write_text("#!/bin/sh\n# replaced during cache lookup\n", encoding="utf-8")
+                compiler.chmod(0o700)
+            return super().get(key, default)
+
+    cache = MutatingCache()
+    first = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        root / "build",
+        context,
+        ["-m64"],
+        cache,
+        runner=runner,
+    )
+    assert first.error == ""
+    cache.mutate_on_get = True
+    second = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        root / "build",
+        context,
+        ["-m64"],
+        cache,
+        runner=runner,
+    )
+
+    assert len(calls) == 2
+    assert second.arguments == ()
+    assert second.error_code == "gcc-include-probe-compiler-changed"
+
+
 def test_standalone_keeps_non_gcc_compile_units_unchanged(tmp_path: Path) -> None:
     root, source, context, _clazy, _compiler = _context(tmp_path)
 

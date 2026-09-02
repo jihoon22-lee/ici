@@ -9,7 +9,7 @@ from typer.testing import CliRunner
 from ici import __version__
 from ici.__main__ import app
 from ici.core.baseline import BaselineError
-from ici.core.models import EngineResult, EngineStatus, VerificationSuiteResult
+from ici.core.models import EngineResult, EngineStatus, SupportMatrix, VerificationSuiteResult
 from ici.core.pipeline import AnalysisProfile
 from ici.reporters.issue_view import DEFAULT_MAX_FINDINGS, ConsoleGroupBy, ConsoleOptions
 
@@ -470,6 +470,69 @@ def test_cli_safety_commands_map_error_and_skip_to_exit_codes(
     result = runner.invoke(app, [command])
 
     assert result.exit_code == exit_code
+
+
+def test_cli_dead_prepares_and_injects_shared_analysis_context(tmp_path, monkeypatch):
+    marker = object()
+    project = object()
+    captured = {}
+
+    class ContextDead:
+        ANALYSIS_CONTEXT_ENGINES = frozenset({"dead"})
+
+        def __init__(self, project_root, config, *, analysis_context=None):
+            captured["engine_root"] = project_root
+            captured["engine_config"] = config
+            captured["analysis_context"] = analysis_context
+
+        def run(self):
+            return EngineResult("dead", EngineStatus.PASS, "exact context received")
+
+    def prepare(project_root, config, **kwargs):
+        captured["prepare_root"] = project_root
+        captured["prepare_config"] = config
+        captured["prepare_kwargs"] = kwargs
+        return project, marker
+
+    config = {"ici": {"profile": "deep"}}
+    monkeypatch.setattr("ici.__main__.DeadCodeEngine", ContextDead)
+    monkeypatch.setattr("ici.__main__.prepare_analysis_context", prepare)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: config)
+    monkeypatch.setattr(
+        "ici.__main__.evaluate_support_matrix",
+        lambda *args, **kwargs: SupportMatrix(),
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["dead"])
+
+    assert result.exit_code == 0
+    assert captured["analysis_context"] is marker
+    assert captured["engine_root"] == tmp_path.resolve()
+    assert captured["prepare_root"] == tmp_path.resolve()
+    assert captured["prepare_kwargs"] == {
+        "engine_names": frozenset({"dead"}),
+        "profile": "deep",
+        "probe_all_tools": False,
+    }
+
+
+def test_cli_dead_off_skips_compilation_context_preflight(tmp_path, monkeypatch):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "main.cpp").write_bytes(b"\xff\n")
+    config = {"engines": {"dead": {"cpp_unused": "off"}}}
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: config)
+    monkeypatch.setattr(
+        "ici.__main__.prepare_analysis_context",
+        lambda *_args, **_kwargs: pytest.fail("disabled C++ scope must not prepare context"),
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["dead"])
+
+    assert result.exit_code == 2
+    assert "C++ unused-function analysis disabled by policy" in result.output
 
 
 @pytest.mark.parametrize(

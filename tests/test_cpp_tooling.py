@@ -4,14 +4,129 @@ from pathlib import Path
 
 import pytest
 
+from ici.core.capabilities import CapabilityInventory
+from ici.core.context import AnalysisContext, AnalysisIdentity, ProjectModel, canonical_digest
 from ici.core.cpp_replay import ReplayCommandError, replay_environment
 from ici.core.runner import ProcessResult
+from ici.core.toolchain import ToolCapability
 from ici.engines._cpp_tooling import (
+    compiler_capability,
+    compiler_diagnostic_command,
+    gcc_standard_library_for_replay,
     gcc_standard_library_projection,
     parse_compiler_include_search,
     tooling_arguments,
     tooling_include_roots,
 )
+
+
+def _compiler_capability(
+    name: str,
+    path: Path,
+    version: str,
+    *,
+    details: dict[str, str] | None = None,
+) -> ToolCapability:
+    return ToolCapability(
+        name=name,
+        path=str(path),
+        available=True,
+        version=version,
+        version_tuple=(18, 1, 0),
+        complete=True,
+        returncode=0,
+        details=details or {},
+    )
+
+
+def test_diagnostic_format_follows_reported_family_behind_gxx_alias(tmp_path: Path) -> None:
+    # Keep the filename vendor-neutral so the assertion proves that the
+    # co-resolved capability evidence, rather than a convenient path spelling,
+    # selects Clang diagnostics behind a g++ alias.
+    compiler = tmp_path / "cxx-driver"
+    compiler.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    compiler.chmod(0o700)
+    inventory = CapabilityInventory(
+        capabilities={
+            "g++": _compiler_capability("g++", compiler, "18.1.0"),
+            "clang++": _compiler_capability("clang++", compiler, "Apple clang version 18.1.0"),
+        }
+    )
+
+    selected = compiler_capability(compiler, inventory)
+    command = compiler_diagnostic_command([str(compiler), "-S", "src/main.cpp"], inventory)
+
+    assert selected is not None and selected.name == "clang++"
+    assert "-fdiagnostics-parseable-fixits" in command
+    assert "-fdiagnostics-format=json" not in command
+    assert command[-1] == "src/main.cpp"
+    assert command[-2] == "-fdiagnostics-show-option"
+
+    alias_only = CapabilityInventory(
+        capabilities={"g++": _compiler_capability("g++", compiler, "Apple clang version 18.1.0")}
+    )
+    alias_command = compiler_diagnostic_command([str(compiler), "-S", "src/main.cpp"], alias_only)
+    assert "-fdiagnostics-parseable-fixits" in alias_command
+    assert "-fdiagnostics-format=json" not in alias_command
+
+
+def test_compiler_family_detail_controls_alias_diagnostics_and_gcc_projection(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    compiler = _stdlib_executable(tmp_path / "tools" / "cxx-driver")
+    inventory = CapabilityInventory(
+        capabilities={
+            "g++": _compiler_capability(
+                "g++",
+                compiler,
+                "18.1.0",
+                details={"compiler_family": "clang"},
+            )
+        }
+    )
+
+    command = compiler_diagnostic_command(
+        [str(compiler), "-S", "src/main.cpp"],
+        inventory,
+    )
+    assert "-fdiagnostics-parseable-fixits" in command
+    assert "-fdiagnostics-format=json" not in command
+
+    context = AnalysisContext(
+        project=ProjectModel(
+            root=root,
+            name="neutral-driver",
+            version="1.0.0",
+            project_type="cpp",
+        ),
+        capabilities=inventory,
+        identity=AnalysisIdentity(
+            source_commit="unavailable",
+            config_digest=canonical_digest({}),
+            toolchain_digest=canonical_digest({}),
+        ),
+    )
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(command)
+        return ProcessResult(0, "", "", 0.01)
+
+    projection = gcc_standard_library_for_replay(
+        root,
+        str(compiler),
+        root,
+        context,
+        [],
+        {},
+        runner=runner,
+    )
+    assert projection.arguments == ()
+    assert projection.probes == ()
+    assert projection.error == ""
+    assert calls == []
 
 
 def test_tooling_arguments_demote_fatal_warning_policy_without_losing_checks() -> None:

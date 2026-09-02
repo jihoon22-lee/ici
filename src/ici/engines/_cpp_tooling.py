@@ -9,17 +9,17 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from ici.core._cpp_replay_policy import is_rejected, is_safe, should_drop
+from ici.core._cpp_replay_policy import COMPILER_CAPABILITIES
+from ici.core.capabilities import CapabilityInventory
 from ici.core.context import AnalysisContext, CompilationUnit
-from ici.core.cpp_replay import ReplayCommandError, replay_environment
+from ici.core.cpp_replay import (
+    ReplayCommandError,
+    diagnostic_warning_argument,
+    replay_environment,
+)
 from ici.core.runner import ProcessResult, run_process
-from ici.core.toolchain import ToolCapability
+from ici.core.toolchain import ToolCapability, compiler_family_from_version
 
-_WARNING_POLICY_DEMOTIONS = {
-    "-pedantic-errors": "-pedantic",
-    "--pedantic-errors": "-pedantic",
-    "-Werror-implicit-function-declaration": "-Wimplicit-function-declaration",
-}
 _MAX_INCLUDE_ROOTS = 512
 _SEPARATE_INCLUDE_OPTIONS = {
     "-I",
@@ -95,37 +95,99 @@ class GccStdlibProjection:
 
 
 CompilerExecutableIdentity = tuple[int, int, int, int, int]
+CompilerWorkingDirectoryIdentity = tuple[int, int, int, int, int]
 GccStdlibProjectionCache = dict[
-    tuple[str, str, tuple[str, ...], CompilerExecutableIdentity],
+    tuple[
+        str,
+        str,
+        tuple[str, ...],
+        CompilerExecutableIdentity,
+        CompilerWorkingDirectoryIdentity,
+    ],
     GccStdlibProjection,
 ]
 
 
-def _diagnostic_warning_argument(argument: str) -> str | None:
-    """Demote one warning policy without creating an unsafe compiler option."""
+def compiler_capability(
+    executable: str | Path,
+    inventory: CapabilityInventory,
+) -> ToolCapability | None:
+    """Return the probed capability matching one resolved compiler driver."""
 
-    original = argument
-    while True:
-        if argument == "-Werror":
-            return None
-        if argument in _WARNING_POLICY_DEMOTIONS:
-            argument = _WARNING_POLICY_DEMOTIONS[argument]
+    compiler = Path(executable).resolve(strict=False)
+    matches: list[ToolCapability] = []
+    for capability in inventory.capabilities.values():
+        if capability.name not in COMPILER_CAPABILITIES or not capability.path:
             continue
-        if argument.startswith("-Werror="):
-            warning = argument.removeprefix("-Werror=")
-            if not warning:
-                return None
-            argument = f"-W{warning}"
+        try:
+            if Path(capability.path).resolve(strict=False) == compiler:
+                matches.append(capability)
+        except (OSError, RuntimeError):
             continue
-        break
-    if argument != original and (
-        should_drop(argument) or is_rejected(argument) or not is_safe(argument)
-    ):
-        raise ReplayCommandError(
-            "unsafe-tooling-warning-policy",
-            "A warning-as-error option cannot be projected to a safe diagnostic flag.",
+    if not matches:
+        return None
+
+    # Apple and distro alternatives can expose one Clang executable through
+    # both g++/gcc and clang++/clang spellings. Prefer the capability whose
+    # observed version identifies the real family instead of trusting the
+    # compilation-database alias. This also keeps the diagnostic format and
+    # tool attribution aligned with the process that will actually run.
+    clang_matches = [item for item in matches if _compiler_family(item) == "clang"]
+    if clang_matches:
+        return next(
+            (item for item in clang_matches if item.name in {"clang", "clang++"}),
+            clang_matches[0],
         )
-    return argument
+    compiler_name = compiler.name.casefold()
+    if "clang" in compiler_name:
+        return next(
+            (item for item in matches if item.name in {"clang", "clang++"}),
+            matches[0],
+        )
+    return matches[0]
+
+
+def _compiler_family(capability: ToolCapability) -> str:
+    """Return the observed compiler family before falling back to its probe name."""
+
+    recorded = capability.details.get("compiler_family", "")
+    if recorded in {"gcc", "clang"}:
+        return recorded
+    observed = compiler_family_from_version(capability.version)
+    if observed:
+        return observed
+    try:
+        executable_name = Path(capability.path).resolve(strict=False).name.casefold()
+    except (OSError, RuntimeError):
+        executable_name = ""
+    if "clang" in executable_name:
+        return "clang"
+    if "gcc" in executable_name or "g++" in executable_name:
+        return "gcc"
+    return "unknown"
+
+
+def compiler_diagnostic_command(
+    command: list[str],
+    inventory: CapabilityInventory,
+    *,
+    source_last: bool = True,
+) -> list[str]:
+    """Request bounded structured diagnostics from an approved compiler."""
+
+    if len(command) < 2:
+        raise ValueError("compiler diagnostic command is incomplete")
+    capability = compiler_capability(command[0], inventory)
+    gcc_json = (
+        capability is not None
+        and _compiler_family(capability) == "gcc"
+        and capability.version_tuple >= (9,)
+    )
+    diagnostic_flag = "-fdiagnostics-format=json" if gcc_json else "-fdiagnostics-parseable-fixits"
+    controlled = (diagnostic_flag, "-fdiagnostics-show-option")
+    if source_last:
+        return [*command[:-1], *controlled, command[-1]]
+    return [*command, *controlled]
 
 
 def inside(root: Path, path: Path) -> bool:
@@ -176,11 +238,12 @@ def gcc_compiler_for_replay(
     than an argv basename so ``c++`` and distro alternatives remain exact.
     """
 
+    capability = context.capabilities.capabilities.get("g++")
     approved = regular_executable(
         project_root,
-        context.capabilities.capabilities.get("g++"),
+        capability,
     )
-    if approved is None:
+    if approved is None or capability is None or _compiler_family(capability) != "gcc":
         return None
     try:
         replay = Path(replay_executable).resolve(strict=True)
@@ -189,11 +252,6 @@ def gcc_compiler_for_replay(
         if not replay.samefile(approved):
             return None
     except (OSError, RuntimeError):
-        return None
-    # On Apple platforms and some custom images, a ``g++`` alternative can
-    # resolve to Clang.  Do not apply GCC-specific header projection merely
-    # because the command was reached through a GNU-compatible alias.
-    if "clang" in replay.name.casefold():
         return None
     return replay
 
@@ -275,6 +333,27 @@ def _compiler_executable_identity(compiler: Path) -> CompilerExecutableIdentity 
         details.st_dev,
         details.st_ino,
         details.st_size,
+        details.st_mtime_ns,
+        details.st_ctime_ns,
+    )
+
+
+def _compiler_working_directory_identity(
+    directory: Path,
+) -> CompilerWorkingDirectoryIdentity | None:
+    """Return replacement-sensitive identity for a compiler working directory."""
+
+    try:
+        resolved = directory.resolve(strict=True)
+        details = resolved.stat()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if resolved != directory or not stat.S_ISDIR(details.st_mode):
+        return None
+    return (
+        details.st_dev,
+        details.st_ino,
+        details.st_mode,
         details.st_mtime_ns,
         details.st_ctime_ns,
     )
@@ -482,23 +561,45 @@ def gcc_standard_library_for_replay(
             error_code="gcc-include-probe-cwd",
             error="GCC include search working directory is unavailable.",
         )
+    cwd_identity = _compiler_working_directory_identity(resolved_cwd)
+    if cwd_identity is None:
+        return GccStdlibProjection(
+            error_code="gcc-include-probe-cwd",
+            error="GCC include search working directory identity is unavailable.",
+        )
     compiler_identity = _compiler_executable_identity(compiler)
     if compiler_identity is None:
         return GccStdlibProjection(
             error_code="gcc-include-probe-compiler",
             error="GCC include search compiler identity is unavailable.",
         )
-    key = (str(compiler), str(resolved_cwd), selectors, compiler_identity)
+    key = (str(compiler), str(resolved_cwd), selectors, compiler_identity, cwd_identity)
     cached = cache.get(key)
     if cached is not None:
+        if _compiler_working_directory_identity(resolved_cwd) != cwd_identity:
+            return GccStdlibProjection(
+                error_code="gcc-include-probe-cwd-changed",
+                error="GCC include search working directory identity changed before cache reuse.",
+            )
+        if _compiler_executable_identity(compiler) != compiler_identity:
+            return GccStdlibProjection(
+                error_code="gcc-include-probe-compiler-changed",
+                error="GCC include search compiler identity changed before cache reuse.",
+            )
         return cached
     projection = gcc_standard_library_projection(
         compiler,
-        cwd,
+        resolved_cwd,
         compiler_arguments,
         runner=runner,
         timeout=timeout,
     )
+    if _compiler_working_directory_identity(resolved_cwd) != cwd_identity:
+        return GccStdlibProjection(
+            probes=projection.probes,
+            error_code="gcc-include-probe-cwd-changed",
+            error="GCC include search working directory identity changed during probing.",
+        )
     if _compiler_executable_identity(compiler) != compiler_identity:
         return GccStdlibProjection(
             probes=projection.probes,
@@ -544,7 +645,7 @@ def tooling_arguments(argv: tuple[str, ...], source: Path) -> list[str]:
         )
     arguments: list[str] = []
     for argument in argv[1:-4]:
-        projected = _diagnostic_warning_argument(argument)
+        projected = diagnostic_warning_argument(argument)
         if projected is not None:
             arguments.append(projected)
     return arguments

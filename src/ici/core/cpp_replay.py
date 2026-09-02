@@ -32,6 +32,12 @@ from ici.core.context import CompilationContext, CompilationUnit
 MAX_REPLAY_ARGUMENTS = 32_768
 MAX_REPLAY_ARGUMENT_CHARS = 1024 * 1024
 
+_WARNING_POLICY_DEMOTIONS = {
+    "-pedantic-errors": "-pedantic",
+    "--pedantic-errors": "-pedantic",
+    "-Werror-implicit-function-declaration": "-Wimplicit-function-declaration",
+}
+
 
 class ReplayCommandError(ValueError):
     """A compilation command cannot be replayed without unsafe guessing."""
@@ -50,6 +56,33 @@ class ReplayCommand:
     source: Path
     compiler: str
     configuration: str
+
+
+def diagnostic_warning_argument(argument: str) -> str | None:
+    """Demote one warning policy for a diagnostic-only compiler invocation."""
+
+    original = argument
+    while True:
+        if argument == "-Werror":
+            return None
+        if argument in _WARNING_POLICY_DEMOTIONS:
+            argument = _WARNING_POLICY_DEMOTIONS[argument]
+            continue
+        if argument.startswith("-Werror="):
+            warning = argument.removeprefix("-Werror=")
+            if not warning:
+                return None
+            argument = f"-W{warning}"
+            continue
+        break
+    if argument != original and (
+        should_drop(argument) or is_rejected(argument) or not is_safe(argument)
+    ):
+        raise ReplayCommandError(
+            "unsafe-tooling-warning-policy",
+            "A warning-as-error option cannot be projected to a safe diagnostic flag.",
+        )
+    return argument
 
 
 def compilation_context_present(context: CompilationContext) -> bool:
@@ -222,7 +255,58 @@ def _consume_option(argv: tuple[str, ...], index: int) -> tuple[int, tuple[str, 
     )
 
 
-def _filtered_arguments(unit: CompilationUnit, cwd: Path, source: Path) -> tuple[str, ...]:
+def _consume_replay_argument(
+    argv: tuple[str, ...],
+    index: int,
+    cwd: Path,
+    source: Path,
+    *,
+    after_separator: bool,
+    drop_warning_suppression: bool,
+    preserve_source_position: bool,
+) -> tuple[int, bool, int, tuple[str, ...]]:
+    """Consume one argv position and disclose whether it was the source."""
+
+    token = argv[index]
+    if token == "--":
+        if after_separator:
+            raise ReplayCommandError(
+                "extra-compiler-operand",
+                "The translation unit command contains an extra or mismatched input operand.",
+            )
+        return index + 1, True, 0, ()
+    if token.startswith("@"):
+        raise ReplayCommandError(
+            "unexpanded-response-file",
+            "Compiler response files must be expanded before replay.",
+        )
+    if token == "-":
+        raise ReplayCommandError(
+            "extra-compiler-operand",
+            "Compiler stdin cannot be used as an additional replay input.",
+        )
+    if _resolved_operand(token, cwd) == source:
+        preserved: tuple[str, ...] = (str(source),) if preserve_source_position else ()
+        return index + 1, after_separator, 1, preserved
+    if after_separator or not token.startswith("-"):
+        raise ReplayCommandError(
+            "extra-compiler-operand",
+            "The translation unit command contains an extra or mismatched input operand.",
+        )
+    if token == "-w" and drop_warning_suppression:
+        return index + 1, after_separator, 0, ()
+    next_index, preserved = _consume_option(argv, index)
+    return next_index, after_separator, 0, preserved
+
+
+def _filtered_arguments(
+    unit: CompilationUnit,
+    cwd: Path,
+    source: Path,
+    *,
+    drop_warning_suppression: bool = False,
+    preserve_source_position: bool = False,
+) -> tuple[str, ...]:
     argv = unit.argv
     if (
         len(argv) > MAX_REPLAY_ARGUMENTS
@@ -243,32 +327,16 @@ def _filtered_arguments(unit: CompilationUnit, cwd: Path, source: Path) -> tuple
     after_separator = False
     index = 1
     while index < len(argv):
-        token = argv[index]
-        if token == "--":
-            after_separator = True
-            index += 1
-            continue
-        if token.startswith("@"):
-            raise ReplayCommandError(
-                "unexpanded-response-file",
-                "Compiler response files must be expanded before replay.",
-            )
-        if token == "-":
-            raise ReplayCommandError(
-                "extra-compiler-operand",
-                "Compiler stdin cannot be used as an additional replay input.",
-            )
-        operand = _resolved_operand(token, cwd)
-        if operand == source:
-            source_operands += 1
-            index += 1
-            continue
-        if after_separator or not token.startswith("-"):
-            raise ReplayCommandError(
-                "extra-compiler-operand",
-                "The translation unit command contains an extra or mismatched input operand.",
-            )
-        index, preserved = _consume_option(argv, index)
+        index, after_separator, source_increment, preserved = _consume_replay_argument(
+            argv,
+            index,
+            cwd,
+            source,
+            after_separator=after_separator,
+            drop_warning_suppression=drop_warning_suppression,
+            preserve_source_position=preserve_source_position,
+        )
+        source_operands += source_increment
         kept.extend(preserved)
 
     if source_operands != 1:
@@ -279,14 +347,51 @@ def _filtered_arguments(unit: CompilationUnit, cwd: Path, source: Path) -> tuple
     return tuple(kept)
 
 
+def _diagnostic_operation_arguments(
+    arguments: list[str],
+    operation: Literal["syntax", "includes", "unused-functions"],
+    source: Path,
+) -> list[str]:
+    """Apply one read-only diagnostic operation to sanitized semantic argv."""
+
+    arguments.append("-fdiagnostics-color=never")
+    if operation == "syntax":
+        arguments.extend(("-Wall", "-Wextra", "-fsyntax-only", str(source)))
+        return arguments
+    if operation == "includes":
+        arguments.extend(("-w", "-E", "-H", "-o", os.devnull, str(source)))
+        return arguments
+    if operation != "unused-functions":
+        raise ReplayCommandError("unsupported-operation", "Unsupported compiler replay operation.")
+    projected = [
+        warning_argument
+        for argument in arguments
+        if argument != "-w"
+        if (warning_argument := diagnostic_warning_argument(argument)) is not None
+    ]
+    # GCC intentionally omits -Wunused-function during -fsyntax-only. Compile
+    # to discarded assembly so the front end completes the diagnostic phase
+    # without creating a project artifact or invoking assembler/linker.
+    projected.extend(
+        (
+            "-Wunused-function",
+            "-Wno-error=unused-function",
+            "-S",
+            "-o",
+            os.devnull,
+        )
+    )
+    return projected
+
+
 def build_replay_command(
     root: Path,
     unit: CompilationUnit,
     inventory: CapabilityInventory,
     *,
-    operation: Literal["syntax", "includes"],
+    operation: Literal["syntax", "includes", "unused-functions"],
 ) -> ReplayCommand:
-    """Build one bounded syntax or include-trace command without executing it."""
+    """Build one bounded diagnostic command without executing it."""
 
     project_root = root.resolve(strict=True)
     try:
@@ -313,15 +418,16 @@ def build_replay_command(
         cwd=cwd,
         inventory=inventory,
     )
-    arguments = list(_filtered_arguments(unit, cwd, source))
-    arguments.append("-fdiagnostics-color=never")
-    if operation == "syntax":
-        arguments.extend(("-Wall", "-Wextra", "-fsyntax-only"))
-    elif operation == "includes":
-        arguments.extend(("-w", "-E", "-H", "-o", os.devnull))
-    else:  # pragma: no cover - Literal plus runtime guard for non-typed callers
-        raise ReplayCommandError("unsupported-operation", "Unsupported compiler replay operation.")
-    arguments.append(str(source))
+    arguments = list(
+        _filtered_arguments(
+            unit,
+            cwd,
+            source,
+            drop_warning_suppression=operation == "unused-functions",
+            preserve_source_position=operation == "unused-functions",
+        )
+    )
+    arguments = _diagnostic_operation_arguments(arguments, operation, source)
     command = (str(compiler), *arguments)
     if (
         len(command) > MAX_REPLAY_ARGUMENTS

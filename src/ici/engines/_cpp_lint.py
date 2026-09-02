@@ -26,6 +26,7 @@ from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
 from ici.engines._cpp_diagnostics import CppDiagnostic, parse_compiler_diagnostics
+from ici.engines._cpp_tooling import compiler_capability, compiler_diagnostic_command
 
 _MAX_SELECTED_UNITS = 2_048
 _TIMEOUT_SECONDS = 120.0
@@ -87,40 +88,6 @@ def _record_exception(
             error=f"{type(exc).__name__}: {exc}",
         )
     )
-
-
-def _compiler_capability(
-    command: list[str], inventory: CapabilityInventory
-) -> ToolCapability | None:
-    compiler = Path(command[0]).resolve(strict=False)
-    for capability in inventory.capabilities.values():
-        if not capability.path:
-            continue
-        try:
-            if Path(capability.path).resolve(strict=False) == compiler:
-                return capability
-        except (OSError, RuntimeError):
-            continue
-    return None
-
-
-def _diagnostic_command(command: list[str], inventory: CapabilityInventory) -> list[str]:
-    """Request structured GCC diagnostics or bounded text fix-its when supported."""
-
-    compiler = Path(command[0]).resolve(strict=False)
-    gcc_json = False
-    for name in ("gcc", "g++"):
-        capability = inventory.capabilities.get(name)
-        if capability is None or capability.version_tuple < (9,) or not capability.path:
-            continue
-        try:
-            gcc_json = Path(capability.path).resolve(strict=False) == compiler
-        except (OSError, RuntimeError):
-            gcc_json = False
-        if gcc_json:
-            break
-    diagnostic_flag = "-fdiagnostics-format=json" if gcc_json else "-fdiagnostics-parseable-fixits"
-    return [*command[:-1], diagnostic_flag, command[-1]]
 
 
 def parse_cpp_diagnostics(
@@ -411,8 +378,8 @@ def _run_exact(
                 )
             )
             continue
-        command = _diagnostic_command(list(replay.argv), analysis_context.capabilities)
-        capability = _compiler_capability(command, analysis_context.capabilities)
+        command = compiler_diagnostic_command(list(replay.argv), analysis_context.capabilities)
+        capability = compiler_capability(command[0], analysis_context.capabilities)
         _run_command(
             project_root,
             replay.source,
@@ -537,8 +504,8 @@ def _run_fallback(
                 )
             )
             continue
-        command = _diagnostic_command(list(replay.argv), inventory)
-        capability = _compiler_capability(command, inventory)
+        command = compiler_diagnostic_command(list(replay.argv), inventory)
+        capability = compiler_capability(command[0], inventory)
         _run_command(
             project_root,
             replay.source,
