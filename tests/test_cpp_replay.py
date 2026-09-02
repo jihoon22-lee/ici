@@ -537,6 +537,32 @@ def test_accepts_the_exact_source_after_option_separator(tmp_path: Path) -> None
     assert replay.argv[-1] == str(root / "src" / "main.cpp")
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--", "../src/main.cpp", "-w"),
+        ("--", "-w", "../src/main.cpp"),
+        ("--", "../src/main.cpp", "--"),
+    ],
+)
+def test_rejects_every_extra_operand_after_option_separator(
+    tmp_path: Path,
+    args: tuple[str, ...],
+) -> None:
+    root = _project(tmp_path)
+    compiler = _compiler(tmp_path)
+    unit = _unit(compiler, args)
+
+    error = _error(
+        root,
+        unit,
+        _inventory(compiler),
+        operation="unused-functions",
+    )
+
+    assert error.code == "extra-compiler-operand"
+
+
 def test_option_values_that_look_like_sources_do_not_count_as_source_operands(
     tmp_path: Path,
 ) -> None:

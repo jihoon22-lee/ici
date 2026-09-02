@@ -269,6 +269,11 @@ def _consume_replay_argument(
 
     token = argv[index]
     if token == "--":
+        if after_separator:
+            raise ReplayCommandError(
+                "extra-compiler-operand",
+                "The translation unit command contains an extra or mismatched input operand.",
+            )
         return index + 1, True, 0, ()
     if token.startswith("@"):
         raise ReplayCommandError(
@@ -280,8 +285,6 @@ def _consume_replay_argument(
             "extra-compiler-operand",
             "Compiler stdin cannot be used as an additional replay input.",
         )
-    if token == "-w" and drop_warning_suppression:
-        return index + 1, after_separator, 0, ()
     if _resolved_operand(token, cwd) == source:
         preserved: tuple[str, ...] = (str(source),) if preserve_source_position else ()
         return index + 1, after_separator, 1, preserved
@@ -290,6 +293,8 @@ def _consume_replay_argument(
             "extra-compiler-operand",
             "The translation unit command contains an extra or mismatched input operand.",
         )
+    if token == "-w" and drop_warning_suppression:
+        return index + 1, after_separator, 0, ()
     next_index, preserved = _consume_option(argv, index)
     return next_index, after_separator, 0, preserved
 
