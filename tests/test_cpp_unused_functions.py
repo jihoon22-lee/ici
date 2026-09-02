@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+import ici.engines._cpp_unused_functions as cpp_unused
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
     AnalysisContext,
@@ -268,6 +269,98 @@ def test_clang_text_unused_function_diagnostic_is_normalized(tmp_path: Path) -> 
     assert "-fdiagnostics-format=json" not in commands[0]
 
 
+def test_gcc_before_version_nine_uses_bounded_text_diagnostics(tmp_path: Path) -> None:
+    source_text = "static void unused_helper() {}\nint main() { return 0; }\n"
+    root, context, snapshots = _context(tmp_path, {"src/main.cpp": source_text})
+    gcc = context.capabilities.capabilities["g++"]
+    context = replace(
+        context,
+        capabilities=CapabilityInventory(
+            capabilities={
+                "g++": replace(
+                    gcc,
+                    version="g++ (GCC) 8.5.0",
+                    version_tuple=(8, 5, 0),
+                )
+            }
+        ),
+    )
+    commands: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        commands.append(command)
+        return ProcessResult(
+            0,
+            "",
+            f"{root / 'src/main.cpp'}:1:13: warning: unused function "
+            "'unused_helper' [-Wunused-function]\n",
+            0.01,
+        )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=runner,
+    )
+
+    assert outcome.mode == "exact"
+    assert len(outcome.functions) == 1
+    assert "-fdiagnostics-parseable-fixits" in commands[0]
+    assert "-fdiagnostics-format=json" not in commands[0]
+
+
+def test_cxx_alias_uses_the_co_resolved_clang_capability_end_to_end(tmp_path: Path) -> None:
+    compiler = _executable(tmp_path / "tools" / "c++")
+    source_text = "static void unused_helper() {}\nint main() { return 0; }\n"
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": source_text},
+        compiler=compiler,
+    )
+    gxx = context.capabilities.capabilities["g++"]
+    context = replace(
+        context,
+        capabilities=CapabilityInventory(
+            capabilities={
+                "g++": replace(gxx, version="18.1.0", version_tuple=(18, 1, 0)),
+                "clang++": replace(
+                    gxx,
+                    name="clang++",
+                    version="Apple clang version 18.1.0",
+                    version_tuple=(18, 1, 0),
+                ),
+            }
+        ),
+    )
+    commands: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        commands.append(command)
+        return ProcessResult(
+            0,
+            "",
+            f"{root / 'src/main.cpp'}:1:13: warning: unused function "
+            "'unused_helper' [-Wunused-function]\n",
+            0.01,
+        )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=runner,
+    )
+
+    assert outcome.mode == "exact"
+    assert outcome.functions[0].tool_names == ("clang++",)
+    assert outcome.evidence[0].name == "clang++ unused-function"
+    assert "-fdiagnostics-parseable-fixits" in commands[0]
+    assert "-fdiagnostics-format=json" not in commands[0]
+
+
 def test_unrelated_compiler_warnings_do_not_become_dead_findings(tmp_path: Path) -> None:
     text = "int main() { int value = 1; return 0; }\n"
     root, context, snapshots = _context(tmp_path, {"src/main.cpp": text})
@@ -318,6 +411,38 @@ def test_header_diagnostics_are_counted_but_outside_the_exact_source_contract(
     assert outcome.targets[0].status == EngineStatus.PASS
 
 
+def test_non_tu_count_includes_only_matching_warnings_alongside_local_findings(
+    tmp_path: Path,
+) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "static void unused_helper() {}\nint main() { return 0; }\n"},
+    )
+    first_header = root / "src/first.hpp"
+    second_header = root / "src/second.hpp"
+    unrelated_header = root / "src/unrelated.hpp"
+    for header in (first_header, second_header, unrelated_header):
+        header.write_text("static void helper() {}\n", encoding="utf-8")
+    diagnostics = [
+        _diagnostic(root / "src/main.cpp", 1, 13),
+        _diagnostic(first_header, 1, 13),
+        _diagnostic(second_header, 1, 13),
+        _diagnostic(unrelated_header, 1, 13, option="-Wunused-variable"),
+    ]
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: _result(diagnostics),
+    )
+
+    assert outcome.mode == "exact"
+    assert outcome.non_tu_diagnostics_excluded == 2
+    assert len(outcome.functions) == 1
+
+
 def test_unlocated_matching_warning_fails_closed_instead_of_becoming_clean(
     tmp_path: Path,
 ) -> None:
@@ -340,6 +465,104 @@ def test_unlocated_matching_warning_fails_closed_instead_of_becoming_clean(
     assert outcome.functions == []
     assert outcome.non_tu_diagnostics_excluded == 0
     assert "has no source location" in outcome.errors[-1]
+
+
+@pytest.mark.parametrize(
+    ("line", "column", "reason"),
+    [
+        (3, 1, "line is outside the source snapshot"),
+        (1, 10_000, "column is outside the source line"),
+    ],
+)
+def test_out_of_snapshot_diagnostic_location_fails_closed(
+    tmp_path: Path,
+    line: int,
+    column: int,
+    reason: str,
+) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "static void unused_helper() {}\nint main() { return 0; }\n"},
+    )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: _result(
+            [_diagnostic(root / "src/main.cpp", line, column)]
+        ),
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.functions == []
+    assert reason in outcome.errors[-1]
+
+
+def test_out_of_snapshot_diagnostic_end_range_fails_closed(tmp_path: Path) -> None:
+    source = "static void unused_helper() {}\nint main() { return 0; }\n"
+    root, context, snapshots = _context(tmp_path, {"src/main.cpp": source})
+    diagnostic = _diagnostic(root / "src/main.cpp", 1, 13)
+    location = diagnostic["locations"][0]
+    assert isinstance(location, dict)
+    location["finish"] = {
+        "file": str(root / "src/main.cpp"),
+        "line": 3,
+        "display-column": 1,
+    }
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: _result([diagnostic]),
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.functions == []
+    assert "end line is outside the source snapshot" in outcome.errors[-1]
+
+
+def test_duplicate_unused_location_in_one_output_fails_closed(tmp_path: Path) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "static void unused_helper() {}\nint main() { return 0; }\n"},
+    )
+    diagnostic = _diagnostic(root / "src/main.cpp", 1, 13)
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: _result([diagnostic, diagnostic]),
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.functions == []
+    assert "repeats a source location" in outcome.errors[-1]
+
+
+def test_utf8_byte_column_within_snapshot_is_retained(tmp_path: Path) -> None:
+    source_line = "static void 함수() {}"
+    source = f"{source_line}\nint main() {{ return 0; }}\n"
+    root, context, snapshots = _context(tmp_path, {"src/main.cpp": source})
+    byte_column = len(source_line.encode("utf-8")) + 1
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: _result(
+            [_diagnostic(root / "src/main.cpp", 1, byte_column)]
+        ),
+    )
+
+    assert outcome.mode == "exact"
+    assert outcome.functions[0].target.start_column == byte_column
 
 
 def test_configuration_disagreement_fails_closed_without_exact_findings(tmp_path: Path) -> None:
@@ -488,6 +711,118 @@ def test_missing_compilation_database_is_unavailable_without_execution(tmp_path:
         "Exact C++ unused-function analysis requires a compilation database"
     ]
     assert not called
+
+
+def test_unity_build_is_rejected_before_compiler_execution(tmp_path: Path) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    context = replace(
+        context,
+        compilation=replace(context.compilation, unity_build=True),
+    )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert "cannot prove source ownership through a unity build" in outcome.errors[-1]
+
+
+def test_unknown_unity_state_does_not_block_otherwise_exact_context(tmp_path: Path) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    context = replace(
+        context,
+        compilation=replace(context.compilation, unity_build=None),
+    )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: _result(),
+    )
+
+    assert outcome.mode == "exact"
+    assert outcome.errors == []
+
+
+@pytest.mark.parametrize("snapshots", [{}, {"src/main.cpp": "int changed;\n"}])
+def test_source_snapshot_must_match_before_replay_preparation(
+    tmp_path: Path,
+    snapshots: dict[str, str],
+) -> None:
+    root, context, _source_texts = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert "source snapshot changed before analysis" in outcome.errors[-1]
+
+
+def test_duplicate_source_configuration_is_rejected_before_execution(tmp_path: Path) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    unit = context.compilation.units[0]
+    context = replace(
+        context,
+        compilation=replace(context.compilation, units=(unit, unit)),
+    )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert "repeats a source configuration" in outcome.errors[-1]
+
+
+def test_translation_unit_limit_is_enforced_before_preparation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sources = {
+        "src/first.cpp": "int first() { return 1; }\n",
+        "src/second.cpp": "int second() { return 2; }\n",
+    }
+    root, context, snapshots = _context(tmp_path, sources)
+    monkeypatch.setattr(cpp_unused, "_MAX_SELECTED_UNITS", 1)
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / path for path in sources],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert "translation-unit count exceeds the bounded limit" in outcome.errors[-1]
 
 
 def test_compilation_database_without_canonical_digest_fails_before_execution(
@@ -650,6 +985,153 @@ def test_process_and_output_failures_are_not_partial_evidence(
     assert outcome.functions == []
     assert outcome.targets[-1].status == EngineStatus.ERROR
     assert outcome.evidence[-1].error
+
+
+def test_runner_exception_is_normalized_without_escaping(tmp_path: Path) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+
+    def runner(*_args: object, **_kwargs: object) -> ProcessResult:
+        raise OSError("host-specific detail must not escape")
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=runner,
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.functions == []
+    assert outcome.evidence[-1].error.endswith(": OSError")
+    assert "host-specific detail" not in outcome.errors[-1]
+
+
+def test_successful_process_with_compiler_error_diagnostic_fails_closed(tmp_path: Path) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: _result(
+            [_diagnostic(root / "src/main.cpp", 1, 1, kind="error")]
+        ),
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.functions == []
+    assert "reported an error with a successful exit" in outcome.errors[-1]
+
+
+def test_compiler_identity_change_before_execution_stops_the_runner(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    monkeypatch.setattr(cpp_unused, "_identity_matches", lambda *_args: False)
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.evidence == []
+    assert "compiler identity changed before execution" in outcome.errors[-1]
+
+
+def test_working_directory_change_before_execution_stops_the_runner(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    monkeypatch.setattr(cpp_unused, "_working_directory_matches", lambda *_args: False)
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.evidence == []
+    assert "working directory changed before execution" in outcome.errors[-1]
+
+
+def test_source_change_before_execution_stops_the_runner(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    real_source_text = cpp_unused._source_text
+    calls = 0
+
+    def changing_source_text(project_root: Path, file_path: str) -> str:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            return "int main() { return 1; }\n"
+        return real_source_text(project_root, file_path)
+
+    monkeypatch.setattr(cpp_unused, "_source_text", changing_source_text)
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.evidence == []
+    assert "source changed before execution" in outcome.errors[-1]
+
+
+def test_expired_global_budget_stops_before_the_first_replay(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    readings = iter((100.0, 100.0 + cpp_unused._GLOBAL_TIMEOUT_SECONDS + 1.0))
+    monkeypatch.setattr(cpp_unused.time, "monotonic", lambda: next(readings))
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.configurations_checked == 0
+    assert "global budget left 1 configuration(s) unexamined" in outcome.errors[-1]
 
 
 def test_first_unit_failure_stops_later_compiler_replays(tmp_path: Path) -> None:

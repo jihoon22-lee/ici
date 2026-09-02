@@ -221,6 +221,83 @@ def test_cpp_failure_does_not_erase_completed_python_evidence(tmp_path, monkeypa
     assert python_finding.tool_name == ""
 
 
+def test_invalidated_cpp_observation_is_low_confidence_tool_attributed_evidence(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    invalidated = InspectionTarget(
+        file_path="src/main.cpp",
+        start_line=1,
+        target_name="C++UnusedFunctionsInvalidated",
+        status=EngineStatus.SKIP,
+        message="Compiler observations were discarded",
+    )
+    monkeypatch.setattr(
+        "ici.engines.dead.run_cpp_unused_functions",
+        lambda *_args, **_kwargs: CppUnusedFunctionOutcome(
+            targets=[invalidated],
+            evidence=[
+                ToolEvidence(
+                    name="g++ unused-function",
+                    path="/usr/bin/g++",
+                    version="14.2.0",
+                    error="later configuration failed",
+                )
+            ],
+            errors=["later configuration failed"],
+            mode="error",
+        ),
+    )
+
+    result = DeadCodeEngine(tmp_path).run()
+    finding = next(
+        item
+        for item in result.findings
+        if item.primary_location.path == "src/main.cpp"
+        and item.primary_location.label == "C++UnusedFunctionsInvalidated"
+    )
+
+    assert result.status == EngineStatus.ERROR
+    assert finding.confidence == FindingConfidence.LOW
+    assert finding.tool_name == "g++ unused-function"
+    assert finding.tool_version == "14.2.0"
+
+
+def test_hybrid_auto_mode_keeps_python_evidence_when_cpp_context_is_unavailable(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text("def _unused():\n    return 1\n", encoding="utf-8")
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.dead.run_cpp_unused_functions",
+        lambda *_args, **_kwargs: CppUnusedFunctionOutcome(
+            warnings=["Exact C++ unused-function analysis requires a compilation database"],
+            mode="unavailable",
+        ),
+    )
+
+    result = DeadCodeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.WARN
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert result.extra["language_evidence"] == {
+        "python": "ESTIMATED",
+        "cpp": "NOT_RUN",
+    }
+    assert "exact C++ analysis was unavailable" in result.summary
+    python_finding = next(
+        finding for finding in result.findings if finding.primary_location.path == "src/mod.py"
+    )
+    assert python_finding.confidence == FindingConfidence.MEDIUM
+    assert python_finding.tool_name == ""
+
+
 def test_source_intake_failure_marks_discovered_cpp_scope_not_run(tmp_path) -> None:
     src = tmp_path / "src"
     src.mkdir()

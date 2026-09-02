@@ -4,6 +4,7 @@ import pytest
 
 from ici.core.baseline import BaselineError
 from ici.core.models import BaselineComparison, EngineResult, EngineStatus, EvidenceState
+from ici.engines.dead import DeadCodeEngine
 from ici.engines.verify import VerifyOrchestrator
 from ici.reporters.issue_view import ConsoleGroupBy, ConsoleOptions
 
@@ -177,6 +178,52 @@ def test_engine_can_disable_cache_reuse_for_unmodeled_external_inputs(
     first = VerifyOrchestrator(tmp_path, config).run_all()
     second = VerifyOrchestrator(tmp_path, config).run_all()
 
+    assert calls == [1, 2]
+    assert first.results[0].cache_hit is False
+    assert first.results[0].cache_key == ""
+    assert second.results[0].cache_hit is False
+    assert second.results[0].cache_key == ""
+    assert not list((cache_root / "entries-v1").glob("*.json"))
+
+
+def test_real_dead_engine_never_builds_loads_or_stores_a_cache_entry(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text("def _unused():\n    return 1\n", encoding="utf-8")
+    cache_root = tmp_path.parent / f"{tmp_path.name}-real-dead-cache"
+    monkeypatch.setenv("ICI_CACHE_DIR", str(cache_root))
+    monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
+    monkeypatch.setattr(
+        "ici.engines.verify.build_analysis_cache_key",
+        lambda *_args, **_kwargs: pytest.fail("dead cache key must not be built"),
+    )
+    monkeypatch.setattr(
+        "ici.engines.verify.AnalysisCache.load",
+        lambda *_args, **_kwargs: pytest.fail("dead cache must not be loaded"),
+    )
+    monkeypatch.setattr(
+        "ici.engines.verify.AnalysisCache.store",
+        lambda *_args, **_kwargs: pytest.fail("dead cache must not be stored"),
+    )
+    real_run = DeadCodeEngine.run
+    calls: list[int] = []
+
+    def counted_run(engine):
+        calls.append(len(calls) + 1)
+        return real_run(engine)
+
+    monkeypatch.setattr(DeadCodeEngine, "run", counted_run)
+    config = _only_lint_enabled()
+    config["engines"]["lint"]["enabled"] = False
+    config["engines"]["dead"] = {"enabled": True, "cpp_unused": "off"}
+
+    first = VerifyOrchestrator(tmp_path, config).run_all()
+    second = VerifyOrchestrator(tmp_path, config).run_all()
+
+    assert DeadCodeEngine.CACHE_REUSE_SAFE is False
     assert calls == [1, 2]
     assert first.results[0].cache_hit is False
     assert first.results[0].cache_key == ""
