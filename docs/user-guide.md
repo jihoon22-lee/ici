@@ -90,6 +90,36 @@ C++ `complexity` 함수 경계 정책은 별도로 지정할 수 있습니다.
 cpp_boundaries = "auto"  # auto | required | off
 ```
 
+`dead`와 `dup`의 heuristic source 분석은 동일한 bounded UTF-8 intake를 사용합니다. generated/
+autogen 및 moc 산출물과 vendor/dependency 디렉터리는 소유한 제품 코드가 아니므로 기본 제외하며,
+필요한 경우 두 엔진에서 각각 opt-in할 수 있습니다.
+
+```toml
+[engines.dead]
+include_generated = false
+include_vendor = false
+
+[engines.dup]
+include_generated = false
+include_vendor = false
+```
+
+`include_generated`와 `include_vendor`의 기본값은 `false`이며 두 설정은 서로 독립적입니다.
+직접 엔진 설정에서는 값이 literal `true`인 경우에만 opt-in으로 인정됩니다. generated와
+vendor가 겹치는 path는 두 값을 모두 `true`로 해야 포함됩니다. 선택 path는 lexical
+normalization/deduplication과 deterministic sorting을 거친 뒤 최대 8,192개의 unique
+candidate와 2,048개의 owned/analyzed 파일, 파일당 8 MiB, 전체 64 MiB UTF-8 bytes로
+제한됩니다. 정책으로 제외된 파일은 owned cap을 소비하지 않으며 excluded file count는 unique
+path 기준입니다. `dup`는 `.h`/`.hh`/`.hpp`/`.hxx` owned header를 포함하고 standalone
+`.moc`는 discoverable하지만 generated 기본 제외를 따릅니다.
+
+프로젝트 밖 경로·symlink·사라진 파일·비 UTF-8/NUL 파일·지원하지 않는 확장자·상한 초과는
+무시하지 않고 위치가 있는 `ERROR`/`NOT_RUN`으로 닫습니다. fallback reader도 component
+symlink precheck와 double-read identity/content stability 검사를 수행하며 잘못 주입된 limit은
+fail-closed합니다. 분석이 실제로 실행되면 `dead`와 `dup`의 휴리스틱 결과는 각각 `ESTIMATED`
+evidence로 보고되며, clean 파일도 PASS 위치 target으로 남습니다. 자세한 source scope와
+fingerprint 계약은 [엔진 레퍼런스 §2.7–2.8](engine-reference.md#27--dead-죽은-코드-및-미사용-심볼)을 참고하세요.
+
 모든 파일을 병합한 뒤 엔진 이름, 설정 키, 자료형, 평가 모드와 임계값 관계를 검사합니다.
 알 수 없는 키, 잘못된 TOML, 잘못된 임계값은 조용히 기본값으로 대체되지 않고 설정 오류로
 실패합니다. `ICI_CONFIG`가 존재하지 않는 파일을 가리키는 경우에도 동일하게 실패합니다.

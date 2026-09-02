@@ -83,6 +83,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "dead": {
             "enabled": True,
             "mode": "pass_warn",
+            "include_generated": False,
+            "include_vendor": False,
         },
         "dup": {
             "enabled": True,
@@ -90,6 +92,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "warn_pct": 5.0,
             "fail_pct": 15.0,
             "min_window": 6,
+            "include_generated": False,
+            "include_vendor": False,
         },
         "exception": {
             "enabled": True,

@@ -22,8 +22,8 @@ from typing import Any
 from ici.core.backend import select_backend
 from ici.core.capabilities import CapabilityInventory
 from ici.core.project import (
-    _iter_project_files,
     detect_project_type,
+    get_all_cpp_headers,
     get_all_cpp_includes,
     get_all_cpp_sources,
     get_all_python_sources,
@@ -174,20 +174,6 @@ def discover_project_model(root: Path, config: dict[str, Any]) -> ProjectModel:
         return tuple(sorted(_relative_project_path(canonical_root, path) for path in paths))
 
     source_dirs = get_source_dirs(canonical_root, config)
-    header_roots = list(source_dirs)
-    include_root = canonical_root / "include"
-    if include_root.is_dir() and include_root not in header_roots:
-        header_roots.append(include_root)
-    cpp_headers = (
-        path
-        for source_dir in header_roots
-        for path in _iter_project_files(
-            source_dir,
-            canonical_root,
-            (".h", ".hh", ".hpp", ".hxx"),
-        )
-    )
-
     return ProjectModel(
         root=canonical_root,
         name=get_project_name(canonical_root),
@@ -196,7 +182,7 @@ def discover_project_model(root: Path, config: dict[str, Any]) -> ProjectModel:
         source_dirs=relative(source_dirs),
         python_sources=relative(get_all_python_sources(canonical_root, config)),
         cpp_sources=relative(get_all_cpp_sources(canonical_root, config)),
-        cpp_headers=relative(cpp_headers),
+        cpp_headers=relative(get_all_cpp_headers(canonical_root, config)),
         compilable_cpp_sources=relative(get_compilable_cpp_sources(canonical_root, config)),
         external_cpp_dirs=relative(get_cpp_external_build_dirs(canonical_root, config)),
         cpp_include_flags=tuple(get_all_cpp_includes(canonical_root, config)),

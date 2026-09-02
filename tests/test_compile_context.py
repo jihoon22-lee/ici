@@ -928,6 +928,33 @@ def test_contained_bounded_open_fallback_revalidates_the_named_path(
             containment_root=root,
         )
 
+    assert error.value.code == "unreadable"
+
+
+def test_bounded_reader_rejects_a_different_second_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "stable.txt"
+    path.write_bytes(b"stable")
+    real_read = compile_db_paths_module.os.read
+    reached_first_eof = False
+
+    def changing_read(descriptor: int, count: int) -> bytes:
+        nonlocal reached_first_eof
+        payload = real_read(descriptor, count)
+        if not payload:
+            reached_first_eof = True
+            return payload
+        if reached_first_eof:
+            return b"changed"[: len(payload)]
+        return payload
+
+    monkeypatch.setattr(compile_db_paths_module.os, "read", changing_read)
+
+    with pytest.raises(compile_db_paths_module._ReadError) as error:
+        compile_db_paths_module._read_bounded_regular(path, 1024)
+
     assert error.value.code == "changed"
 
 

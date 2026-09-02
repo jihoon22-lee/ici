@@ -5,15 +5,28 @@ import hashlib
 import re
 import time
 from collections import defaultdict
-from dataclasses import replace
-from pathlib import Path
+from dataclasses import dataclass, replace
 
-from ici.core.models import EngineResult, EngineStatus, InspectionTarget
+from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
+from ici.engines._source_inputs import (
+    AnalysisSource,
+    AnalysisSourceError,
+    AnalysisSourceInventory,
+    read_analysis_sources,
+)
 from ici.engines.base import BaseEngine
 
-FileData = tuple[str, list[str], list[tuple[int, str]]]
 LocTuple = tuple[int, int, int]  # (file_idx, start_line, end_line)
 MatchPair = tuple[int, int, int, int, int, int, int]  # (f1, s1, e1, f2, s2, e2, k)
+
+
+@dataclass(frozen=True)
+class FileData:
+    file_path: str
+    language: str
+    raw_lines: list[str]
+    indexed: list[tuple[int, str]]
+
 
 _STRUCT_KEYWORDS = {
     "if",
@@ -95,9 +108,64 @@ class DuplicateEngine(BaseEngine):
 
         py_sources = self.project_python_sources()
         cpp_sources = self.project_cpp_sources()
-        all_sources = py_sources + cpp_sources
+        cpp_headers = self.project_cpp_headers() or []
+        all_sources = py_sources + cpp_sources + cpp_headers
 
-        files_data, total_code_lines = self._load_and_index_files(all_sources)
+        try:
+            inventory = read_analysis_sources(
+                self.project_root,
+                all_sources,
+                include_generated=cfg.get("include_generated") is True,
+                include_vendor=cfg.get("include_vendor") is True,
+            )
+        except AnalysisSourceError as err:
+            duration = time.time() - t0
+            return self.create_result(
+                name="dup",
+                status=EngineStatus.ERROR,
+                summary=err.message,
+                duration=duration,
+                targets=[
+                    InspectionTarget(
+                        file_path=err.file_path,
+                        start_line=1,
+                        target_name="SourceInputError",
+                        status=EngineStatus.ERROR,
+                        message=f"{err.code}: {err.message}",
+                    )
+                ],
+                extra=self._source_evidence(AnalysisSourceInventory((), (), 0)),
+                required=bool(cfg.get("required", True)),
+                evidence=EvidenceState.NOT_RUN,
+            )
+
+        if not inventory.sources:
+            duration = time.time() - t0
+            return self.create_result(
+                name="dup",
+                status=EngineStatus.SKIP,
+                summary="Duplicate analysis skipped: no owned source files",
+                duration=duration,
+                targets=[
+                    InspectionTarget(
+                        file_path=".",
+                        start_line=1,
+                        target_name="DuplicateCode",
+                        status=EngineStatus.SKIP,
+                        message=(
+                            "All selected sources were excluded by the generated/vendor policy"
+                            if inventory.excluded
+                            else "No applicable source files were selected"
+                        ),
+                    )
+                ],
+                extra=self._source_evidence(inventory),
+                required=bool(cfg.get("required", True)),
+                evidence=EvidenceState.NOT_APPLICABLE,
+            )
+
+        ordered_sources = tuple(sorted(inventory.sources, key=lambda source: source.file_path))
+        files_data, total_code_lines = self._load_and_index_files(ordered_sources)
         raw_matches = self._find_raw_matches(files_data, window_size)
         filtered_matches = self._filter_subsumed_matches(raw_matches)
         clone_groups, targets, duplicate_lines_count = self._cluster_matches(
@@ -131,6 +199,20 @@ class DuplicateEngine(BaseEngine):
                 for target in targets
             ]
 
+        represented = {target.file_path for target in targets}
+        for file_data in files_data:
+            if file_data.file_path in represented:
+                continue
+            targets.append(
+                InspectionTarget(
+                    file_path=file_data.file_path,
+                    start_line=1,
+                    target_name="DuplicateScan",
+                    status=EngineStatus.PASS,
+                    message="Source was analyzed and has no reported duplicate region",
+                )
+            )
+
         summary = f"Code Duplication Rate: {dup_pct:.1f}% ({len(clone_groups)} distinct clone groups found)"
 
         return self.create_result(
@@ -145,48 +227,58 @@ class DuplicateEngine(BaseEngine):
                 "clone_groups_count": len(clone_groups),
                 "clone_groups": clone_groups,
                 "metrics_summary": f"Duplication: {dup_pct:.1f}% ({len(clone_groups)} groups)",
+                "fingerprint_algorithm": "sha256/type2-region-v1",
+                **self._source_evidence(inventory),
             },
             required=bool(cfg.get("required", True)),
+            evidence=EvidenceState.ESTIMATED,
         )
 
-    def _load_and_index_files(self, all_sources: list[Path]) -> tuple[list[FileData], int]:
+    @staticmethod
+    def _source_evidence(inventory: AnalysisSourceInventory) -> dict:
+        return {
+            "analysis_provenance": "token-region-heuristic",
+            "source_files_analyzed": len(inventory.sources),
+            "source_bytes_analyzed": inventory.total_bytes,
+            "source_files_excluded": len(inventory.excluded),
+            "source_exclusion_counts": inventory.exclusion_counts,
+        }
+
+    def _load_and_index_files(
+        self, all_sources: tuple[AnalysisSource, ...]
+    ) -> tuple[list[FileData], int]:
         files_data: list[FileData] = []
         total_code_lines = 0
 
-        for src_file in all_sources:
-            try:
-                rel_p = str(src_file.relative_to(self.project_root))
-                with open(src_file, encoding="utf-8", errors="ignore") as f:
-                    raw_lines = f.readlines()
+        for source in all_sources:
+            raw_lines = source.lines
+            indexed = []
+            for idx, r_line in enumerate(raw_lines, 1):
+                s = r_line.strip()
+                if s and not s.startswith(("#", "//", "/*", "*", "import ", "from ", "#include")):
+                    norm = self._tokenize_line(s)
+                    if norm:
+                        indexed.append((idx, norm))
+                        total_code_lines += 1
 
-                indexed = []
-                for idx, r_line in enumerate(raw_lines, 1):
-                    s = r_line.strip()
-                    if s and not s.startswith(
-                        ("#", "//", "/*", "*", "import ", "from ", "#include")
-                    ):
-                        norm = self._tokenize_line(s)
-                        if norm:
-                            indexed.append((idx, norm))
-                            total_code_lines += 1
-
-                files_data.append((rel_p, raw_lines, indexed))
-            except (OSError, UnicodeDecodeError) as err:
-                _ = err
+            files_data.append(FileData(source.file_path, source.language, raw_lines, indexed))
 
         return files_data, total_code_lines
 
     def _find_raw_matches(self, files_data: list[FileData], window_size: int) -> list[MatchPair]:
         """Finds Type-1/Type-2 clones via token windows, greedy extension (same-file)
         and gap-tolerant block matching (cross-file)."""
-        window_map: dict[str, list[tuple[int, int]]] = defaultdict(list)
-        for f_idx, (_, _, indexed) in enumerate(files_data):
+        window_map: dict[tuple[str, str], list[tuple[int, int]]] = defaultdict(list)
+        for f_idx, file_data in enumerate(files_data):
+            indexed = file_data.indexed
             if len(indexed) < window_size:
                 continue
             for t_pos in range(len(indexed) - window_size + 1):
                 w_str = "\x00".join(indexed[t_pos + k][1] for k in range(window_size))
                 w_hash = hashlib.sha256(w_str.encode("utf-8")).hexdigest()
-                window_map[w_hash].append((f_idx, t_pos))
+                # Python and C++ may normalize to the same token shapes but are
+                # not actionable clones of each other.
+                window_map[(file_data.language, w_hash)].append((f_idx, t_pos))
 
         same_occ: dict[int, list[int]] = defaultdict(list)
         cross_files: set[tuple[int, int]] = set()
@@ -205,7 +297,7 @@ class DuplicateEngine(BaseEngine):
             positions = sorted(set(positions))
             if len(positions) < 2:
                 continue
-            _, _, idx = files_data[f_idx]
+            idx = files_data[f_idx].indexed
             matched: set[tuple[int, int]] = set()
             for i in range(len(positions)):
                 p1 = positions[i]
@@ -234,8 +326,8 @@ class DuplicateEngine(BaseEngine):
 
         # 2. Cross-file duplication: gap-tolerant SequenceMatcher blocks
         for f1, f2 in sorted(cross_files):
-            _, _, idx1 = files_data[f1]
-            _, _, idx2 = files_data[f2]
+            idx1 = files_data[f1].indexed
+            idx2 = files_data[f2].indexed
             seq1 = [norm for _, norm in idx1]
             seq2 = [norm for _, norm in idx2]
             sm = difflib.SequenceMatcher(None, seq1, seq2, autojunk=False)
@@ -312,9 +404,14 @@ class DuplicateEngine(BaseEngine):
                 clusters.append(component)
 
         # 3. Sort clusters by match size descending
+        for component in clusters:
+            component.sort(key=lambda loc: (files_data[loc[0]].file_path, loc[1], loc[2]))
         clusters.sort(
-            key=lambda c: (max(match_len_map.get(loc, 0) for loc in c), len(c)),
-            reverse=True,
+            key=lambda component: (
+                -max(match_len_map.get(loc, 0) for loc in component),
+                -len(component),
+                tuple((files_data[loc[0]].file_path, loc[1], loc[2]) for loc in component),
+            )
         )
 
         clone_groups: list[dict] = []
@@ -324,15 +421,32 @@ class DuplicateEngine(BaseEngine):
         # total_code_lines excludes blanks, comments and import lines, while a
         # clone span covers every physical line between its endpoints — counting
         # those against each other is how the "rate" could read above 100%.
-        code_lines_by_file = [{line_no for line_no, _ in indexed} for (_, _, indexed) in files_data]
+        code_lines_by_file = [
+            {line_no for line_no, _ in file_data.indexed} for file_data in files_data
+        ]
 
         for group_idx, component in enumerate(clusters, 1):
             # Sort occurrences inside component by (file_path, start_line)
-            component.sort(key=lambda loc: (files_data[loc[0]][0], loc[1]))
-
-            rep_f, rep_s, rep_e = component[0]
-            _, rep_raw, _ = files_data[rep_f]
+            rep_f, rep_s, rep_e = min(
+                component,
+                key=lambda loc: (
+                    -match_len_map.get(loc, 0),
+                    files_data[loc[0]].file_path,
+                    loc[1],
+                    loc[2],
+                ),
+            )
+            representative = files_data[rep_f]
+            rep_raw = representative.raw_lines
             lines_k = max(match_len_map.get(loc, 0) for loc in component)
+            normalized_region = "\n".join(
+                normalized
+                for line_no, normalized in representative.indexed
+                if rep_s <= line_no <= rep_e
+            )
+            fingerprint = hashlib.sha256(
+                f"{representative.language}\0{normalized_region}".encode()
+            ).hexdigest()
 
             # Preserve exact raw indentation (do not strip leading whitespace of line 1!)
             raw_snippet = "".join(rep_raw[rep_s - 1 : rep_e]).rstrip()
@@ -345,7 +459,7 @@ class DuplicateEngine(BaseEngine):
 
             occ_list = []
             for f_idx, s_l, e_l in component:
-                f_path = files_data[f_idx][0]
+                f_path = files_data[f_idx].file_path
                 occ_list.append(
                     {
                         "file_path": f_path,
@@ -363,13 +477,19 @@ class DuplicateEngine(BaseEngine):
                         status=EngineStatus.WARN,
                         message=f"Duplicate code block ({lines_k} lines) shared across {len(component)} locations",
                         snippet=raw_snippet[:300],
-                        metrics={"clone_group": group_idx, "duplicate_lines": lines_k},
+                        metrics={
+                            "clone_group": group_idx,
+                            "duplicate_lines": lines_k,
+                            "fingerprint": fingerprint,
+                        },
                     )
                 )
 
             clone_groups.append(
                 {
                     "id": group_idx,
+                    "fingerprint": fingerprint,
+                    "language": representative.language,
                     "lines_count": lines_k,
                     "occurrences_count": len(occ_list),
                     "occurrences": occ_list,

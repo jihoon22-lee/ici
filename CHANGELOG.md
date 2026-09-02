@@ -86,6 +86,59 @@
 
 ### Fixed
 
+- **Bounded heuristic source evidence for `dead` and `dup`**: both engines now consume the same
+  stable, project-contained UTF-8 source snapshot instead of independently opening files. The
+  intake lexically normalizes and sorts unique project-relative paths, rejects escaped paths,
+  symlinks, unsupported extensions, invalid UTF-8/NUL text, missing files, and unsafe reads, and
+  fails closed with a located `ERROR`/`NOT_RUN` result. It caps each intake at 8,192 unique
+  candidate paths, then at 2,048 owned/analyzed source files, 8 MiB per file, and 64 MiB of
+  aggregate source bytes; policy-excluded files do not consume the owned-file cap.
+  - Generated/autogen and moc forms (`moc_`, `qrc_`, `ui_`, `mocs_compilation`, `.moc`) plus
+    common vendor/dependency directories are excluded by default. Owned C/C++ headers (`.h`,
+    `.hh`, `.hpp`, `.hxx`) are discoverable for `dup`; standalone `.moc` is discoverable but
+    remains generated and therefore needs `include_generated = true`. Each engine exposes
+    independent literal-boolean `include_generated` and `include_vendor` opt-ins; a path with
+    both properties remains excluded until both switches are literally `true`, and the defaults
+    remain `false`. Exclusion file counts are unique paths even when reason counts overlap.
+  - The bounded reader prechecks every path component for symlinks on platforms without
+    directory-relative open support, then verifies file identity and performs a second content
+    read to reject changes during intake. Injected resource limits must be positive integers;
+    malformed values fail closed.
+  - `dead` captures Python source discovery once and reuses that snapshot for ordering and intake.
+  - `dead` preserves PASS location targets for clean Python sources and reports its AST
+    reachability/name-reference result as `ESTIMATED` with `python-ast-heuristic` provenance.
+    `dup` keeps PASS location targets for analyzed files, isolates Python and C/C++ matching, and
+    records stable `sha256/type2-region-v1` clone fingerprints while remaining
+    `ESTIMATED`/`token-region-heuristic` evidence.
+  - Compiler/linker-backed exact dead-symbol evidence and robust language tokenization for full
+    duplicate semantics remain pending; this slice does not close I4-3 or create a release.
+  Local Python 3.10 focused evidence for this slice is 79 source-input tests and 238 directly
+  related config/dead/dup tests passed. The final complete local suite is green at
+  `1764 passed, 2 skipped` out of 1,766 collected. Ruff check/format and mypy (98 source files)
+  are clean. Two reproducible package builds are byte-identical at 2,240,881 bytes with SHA-256
+  `715bddd5d76540f97d6f78c9349a5177ce5935a80925a5761ea39fb0988d9b0d`, and the packaged smoke
+  wrapper passes. Source self-verify exits 0 with WARN(Pass 7, Warn 5, Fail 0, Error 0, Skip 1),
+  test `1764/1766`, TEM `4.84`, line/function/branch `89.1%/96.8%/81.5%`, HTML `7763578`
+  bytes, the exact title, and zero external resource references. The version remains `0.10.2`;
+  no release is created.
+
+  [PR #133](https://github.com/jihoon22-lee/ici/pull/133), titled `fix(analysis): make heuristic
+  source evidence bounded and deterministic`, has its first implementation workflow green in
+  [run `33605000619`](https://github.com/jihoon22-lee/ici/actions/runs/33605000619): `Verify &
+  Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`, `Publish PR Report & Sticky
+  Comment`, and `Merge Gate` all succeeded. The [sticky comment](https://github.com/jihoon22-lee/ici/pull/133#issuecomment-5506324653)
+  contains exactly one `github-actions` marker/current-run comment. Its extracted artifact HTML
+  and PR Pages are byte-identical; both Pages responses have UTF-8 exact titles and zero external
+  resource URLs:
+
+  | Report | HTML bytes | SHA-256 | Pages |
+  |---|---:|---|---|
+  | ici | 7,701,814 | `071d83ef1fac4d39102bcb8eecad68d614dda736d74a6b3a93b210c9feecf38b` | [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/133/) — `ici Verification Report — ici` |
+  | viewer | 358,047 | `9e7e295e8d28fe0633039f58099c82a5914d30cb6fcd8c9f2ba82d25e84c4305` | [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/133/) — `ici Verification Report — viewer` |
+
+  PR #133 remains unmerged. The documentation follow-up still requires its own CI/merge-gate
+  confirmation before squash merge; this evidence does not close I4-3 or authorize a release.
+
 - **Python function metric scope boundaries**: cyclomatic and cognitive complexity now measure each
   named function independently instead of charging nested function, class, and lambda bodies to
   the enclosing function. Definition-time decorators, defaults, annotations, class bases, and

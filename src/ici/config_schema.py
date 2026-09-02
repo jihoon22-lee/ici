@@ -92,8 +92,9 @@ _ENGINE_KEYS = {
     "complexity": _COMMON_ENGINE_KEYS
     | frozenset({"warn_cc", "fail_cc", "warn_nesting", "cpp_boundaries"}),
     "sanitize": _COMMON_ENGINE_KEYS,
-    "dead": _COMMON_ENGINE_KEYS,
-    "dup": _COMMON_ENGINE_KEYS | frozenset({"warn_pct", "fail_pct", "min_window"}),
+    "dead": _COMMON_ENGINE_KEYS | frozenset({"include_generated", "include_vendor"}),
+    "dup": _COMMON_ENGINE_KEYS
+    | frozenset({"warn_pct", "fail_pct", "min_window", "include_generated", "include_vendor"}),
     "exception": _COMMON_ENGINE_KEYS,
     "cycle": _COMMON_ENGINE_KEYS | frozenset({"max_reported"}),
     "cognitive": _COMMON_ENGINE_KEYS | frozenset({"warn", "fail", "warn_nesting"}),
@@ -324,6 +325,7 @@ def _validate_complexity(table: dict[str, Any], path: str) -> None:
 
 def _validate_dup(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
+    _validate_analysis_includes(table, path)
     for key in ("warn_pct", "fail_pct"):
         if key in table:
             _require_number(table[key], f"{path}.{key}", minimum=0, maximum=100)
@@ -333,6 +335,17 @@ def _validate_dup(table: dict[str, Any], path: str) -> None:
     fail_pct = table.get("fail_pct", 15.0)
     if fail_pct < warn_pct:
         raise _error(f"{path}.warn_pct", "must be less than or equal to engines.dup.fail_pct")
+
+
+def _validate_analysis_includes(table: dict[str, Any], path: str) -> None:
+    for key in ("include_generated", "include_vendor"):
+        if key in table:
+            _require_bool(table[key], f"{path}.{key}")
+
+
+def _validate_dead(table: dict[str, Any], path: str) -> None:
+    _validate_common_engine(table, path)
+    _validate_analysis_includes(table, path)
 
 
 def _validate_build(table: Any) -> None:
@@ -405,6 +418,7 @@ def _validate_engine(name: str, table: Any) -> None:
         "lint": _validate_lint,
         "compile_db": _validate_compile_db,
         "complexity": _validate_complexity,
+        "dead": _validate_dead,
         "dup": _validate_dup,
         "cycle": _validate_cycle,
         "cognitive": _validate_cognitive,
