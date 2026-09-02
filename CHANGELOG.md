@@ -110,14 +110,17 @@
   that downstream contract and the subsequent reporter follow-up preserves the same evidence
   across outputs.
 
-  The canonical full local Python 3.10 gate on the clean pre-`e1a665d` candidate passed with
-  `1768 passed, 2 skipped`; the two expected environment skips require unavailable `clang++` and
-  `clazy`. Ruff check/format and mypy (`98` source files) passed. Two reproducible package builds
-  were byte-identical at `2,242,765` bytes with SHA-256
-  `424ce848024249d539ecc530a797b75747e39f77e25d1cf8449203edbb357927`, and packaged smoke passed.
-  The final rebuild and no-cache source self-verification after `e1a665d` remain pending; this
-  follow-up's PR/CI verification is also pending. The version remains `0.10.2`; no release is
-  created.
+  The final Python 3.10 gate passed with `1768 passed, 2 skipped`; the two expected environment
+  skips require unavailable `clang++` and `clazy`, while real LLVM 21 clang-tidy tests ran. Ruff
+  check/format and mypy (`98` source files) passed. Two reproducible package builds are
+  byte-identical at `2,242,724` bytes with SHA-256
+  `3602c2cb1b6998a54f00bf809a88d81617bec58c891bfaf12bf22bc882e71890`, and packaged smoke passed.
+  An intermediate no-cache self-check correctly failed when the newly expanded Markdown function
+  reached critical complexity 31; `e1a665d` split that path without changing output. The final
+  no-cache self-check exits 0 with suite WARN, 7 PASS/5 WARN/0 FAIL/0 ERROR/1 SKIP, test
+  `1768/1770`, TEM `4.84`, line/function/branch coverage `89.1%/96.8%/81.5%`, complexity 25, exact
+  UTF-8 title, and Zero-CDN HTML. This follow-up's PR/CI verification remains pending. The version
+  remains `0.10.2`; no release is created.
 
 - **Bounded heuristic source evidence for `dead` and `dup`**: both engines now consume the same
   stable, project-contained UTF-8 source snapshot instead of independently opening files. The

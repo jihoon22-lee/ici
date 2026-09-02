@@ -952,7 +952,10 @@ B4 pending 표현은 당시의 historical snapshot이다. 당시 v0.9.1 release�
 `CppDiagnostic.related_diagnostics`에 결합한다. 이는 contiguous group 단위의 association이며,
 다음 primary가 나오면 새 group을 시작한다. conflicting-rule 또는 orphan note는 partial
 결과를 남기지 않고 atomic하게 fail-closed한다. `3fc45a7`은 이 grouping을 linear하게
-구성하고, `c3108a7`은 reporter projection을, `0f46ec5`는 그 contract coverage를 추가했다.
+구성하고, `c3108a7`/`0f46ec5`는 reporter projection과 contract coverage를 추가했다. 후속
+reporter/finding 보강은 native-only related evidence, 동일 fingerprint occurrence의 multiset
+보존, external non-link, exact line/column과 accessible controls를 고정했고, `e1a665d`는
+dogfood가 잡은 Markdown critical complexity를 output-equivalent bounded helpers로 분리했다.
 
 관련 note의 위치·메시지는 `Finding.related_locations`로 보존하고, note fix-it은 primary
 remediation과 `extra` metadata에 남긴다. Finding canonicalization은 related location을
@@ -969,11 +972,14 @@ full report 위치를 표시한다. warning/violation/diagnostic-family/finding 
 correctness follow-up이지 기존 I4-1 체크박스를 새로 닫는 근거가 아니며 I4-3 aggregate도 닫지
 않는다.
 
-Python 3.10 focused pytest는 관련 5개 파일에서 `177 passed, 6 skipped`, Ruff check/format과
-mypy 98 source files가 통과했다. 이전 full local attempt의 `1750 passed, 7 skipped, 10 failed`
-는 function-boundary consumer mismatch를 발견한 historical evidence이며, `e86c982`로 원인이
-보정됐다. 이 후속 commit 묶음 기준 full local gate, PR/CI/Pages verification은 아직 재실행하지
-않았고 pending이다. 버전은 `0.10.2`로 유지하고 release는 만들지 않는다.
+최종 Python 3.10 gate는 실제 LLVM 21 clang-tidy를 포함해 `1768 passed, 2 skipped`이며,
+Ruff check/format과 mypy 98 source files가 통과했다. 두 pyz 빌드는 `2,242,724` bytes와
+SHA-256 `3602c2cb1b6998a54f00bf809a88d81617bec58c891bfaf12bf22bc882e71890`로
+byte-identical이고 packaged smoke 및 no-cache self-check(exit 0/WARN, complexity max 25,
+exact UTF-8 title, Zero-CDN)도 통과했다. 이전 full local attempt의
+`1750 passed, 7 skipped, 10 failed`는 function-boundary consumer mismatch를 발견한 historical
+evidence이며 `e86c982`로 보정됐다. PR/CI/Pages verification은 아직 pending이다. 버전은
+`0.10.2`로 유지하고 release는 만들지 않는다.
 
 ### I4 release boundary — v0.9.0 (historical)
 

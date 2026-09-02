@@ -187,22 +187,39 @@ refactor keeps the association linear and contiguous, while `c3108a7` and `0f46e
 exercise the related evidence in HTML and bounded Markdown output; JSON continues to serialize the
 full `Finding.related_locations` list.
 
-The canonical full local Python 3.10 gate was subsequently run on the clean pre-`e1a665d` candidate:
+The final canonical Python 3.10 gate was subsequently run on clean commit `20cadb0`:
 
 ```text
 uv run --python 3.10 pytest -rs
-1768 passed, 2 skipped in 63.99s (0:01:03)
+1768 passed, 2 skipped in 63.45s (0:01:03)
 ```
 
 The two expected skips are the real-tool cases requiring unavailable `clang++`/`clazy`; the
-available clang-tidy path was exercised. `uvx ruff check .`, `uvx ruff format --check .`, and
-`uv run --python 3.10 mypy src` passed (`98` source files). Two consecutive
-`./scripts/build-pyz.sh` runs were byte-identical at `2,242,765` bytes with SHA-256
-`424ce848024249d539ecc530a797b75747e39f77e25d1cf8449203edbb357927`; `./scripts/smoke.sh`
-passed. The final rebuild and no-cache source self-verification after `e1a665d` remain pending,
-as do this follow-up's PR/CI/Pages checks. The earlier `1750 passed, 7 skipped, 10 failed` run is
-historical evidence of the pre-`e86c982` mismatch, not the current local gate status. The version
-remains `0.10.2`; no release is created.
+available LLVM 21 clang-tidy path was exercised. `uvx ruff check .`,
+`uvx ruff format --check .`, and `uv run --python 3.10 mypy src` passed (`98` source files).
+Two consecutive `./scripts/build-pyz.sh` runs were byte-identical at `2,242,724` bytes with
+SHA-256 `3602c2cb1b6998a54f00bf809a88d81617bec58c891bfaf12bf22bc882e71890`;
+`./scripts/smoke.sh` passed, including its packaged verify and Zero-CDN check.
+
+An intermediate no-cache self-check on `d1e5931` returned suite `FAIL` because the newly expanded
+`generate_markdown_report()` reached critical complexity 31. That was a useful dogfood finding,
+not an accepted warning: `e1a665d` split target, related-location, and snippet rendering into
+bounded helpers. Focused reporter tests stayed byte-equivalent at 0/100/101/200-row boundaries,
+and the final no-cache packaged self-check returned exit `0`:
+
+| Metric | Final result |
+|---|---|
+| Engines | 13 total: 7 PASS, 5 WARN, 0 FAIL, 0 ERROR, 1 SKIP |
+| Test engine | `1768/1770` tests passed |
+| Coverage | line `89.1%`, function `96.8%`, branch `81.5%` |
+| Complexity | maximum 25 across 1,267 functions; no critical finding |
+| TEM/cache/time | `4.84 / 5.0`; 0 cache hits; `162.60s` |
+| HTML | `8,288,600` bytes; SHA-256 `565854796c2ceb8e18f3ef6adf7771854a091a7e4996a148a6e3185664decab3` |
+| Integrity | UTF-8 exact title `ici Verification Report — ici`; 0 external resources |
+
+The earlier `1750 passed, 7 skipped, 10 failed` run remains historical evidence of the
+pre-`e86c982` boundary-consumer mismatch. This follow-up's PR/CI/Pages checks are still pending.
+The version remains `0.10.2`; no release is created.
 
 ## Follow-up and roadmap status
 
