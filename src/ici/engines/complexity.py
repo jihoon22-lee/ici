@@ -21,7 +21,16 @@ from ici.engines._cpp_function_boundaries import (
 )
 from ici.engines._python_metrics import iter_metric_children, walk_metric_scope
 from ici.engines.base import BaseEngine
-from ici.engines.cpp_text import cpp_requires_expression_before_brace, mask_cpp_literals
+from ici.engines.cpp_text import (
+    cpp_definition_name,
+    cpp_function_like_macro_names,
+    cpp_has_conditional_directive,
+    cpp_is_operator_name,
+    cpp_requires_expression_before_brace,
+    mask_cpp_lambda_bodies,
+    mask_cpp_literals,
+    mask_cpp_preprocessor_directives,
+)
 
 # --- C++ function scanning -------------------------------------------------
 #
@@ -43,10 +52,6 @@ from ici.engines.cpp_text import cpp_requires_expression_before_brace, mask_cpp_
 # removes all three. Names are rejected when the token before "(" is a control
 # keyword, which is what keeps loops and conditionals out of the results.
 
-_CPP_CONTROL_HEADS = frozenset(
-    {"if", "for", "while", "switch", "catch", "do", "else", "return", "sizeof"}
-)
-
 _CPP_DECISION_TOKENS = ("&&", "||", "?")
 
 _CPP_DECISION_HEAD_RE = re.compile(
@@ -67,8 +72,12 @@ class _CppFunctionSpan:
         "complexity",
         "end_column",
         "end_line",
+        "excluded_lambdas",
+        "function_kind",
+        "is_template",
         "max_nesting",
         "name",
+        "preprocessor_conditional",
         "start_column",
         "start_line",
     )
@@ -80,6 +89,9 @@ class _CppFunctionSpan:
         start_column: int,
         body_start_line: int,
         body_start_column: int,
+        *,
+        function_kind: str,
+        is_template: bool,
     ) -> None:
         self.name = name
         self.start_line = start_line
@@ -89,6 +101,10 @@ class _CppFunctionSpan:
         self.end_line = start_line
         self.end_column: int | None = None
         self.complexity = 1
+        self.excluded_lambdas = 0
+        self.function_kind = function_kind
+        self.is_template = is_template
+        self.preprocessor_conditional = False
         # Counted the way the Python side counts it: how many blocks deep the
         # code goes *inside* the function, so a body with no branches is 0.
         self.max_nesting = 0
@@ -100,33 +116,85 @@ def _cpp_decision_count(text: str) -> int:
     return total + len(_CPP_DECISION_HEAD_RE.findall(text)) + len(_CPP_CASE_RE.findall(text))
 
 
-def _cpp_definition_name(signature: str) -> str | None:
-    """Return the function name for a definition header, or None if it is not one."""
-    if "(" not in signature:
-        return None
-    head = signature.split("(", 1)[0].strip()
-    if not head:
-        return None
-    token = head.split()[-1].lstrip("*&")
-    if not token or token in _CPP_CONTROL_HEADS:
-        return None
-    if not (token[0].isalpha() or token[0] == "_"):
-        return None
-    return token
-
-
 def _cpp_function_spans(lines: list[str]) -> list[_CppFunctionSpan]:
     """Scan a translation unit and measure every function definition in it."""
-    scanner = _CppScanner()
+    spans, _metric_lines = _cpp_function_inventory(lines)
+    return spans
+
+
+def _cpp_function_inventory(
+    lines: list[str],
+) -> tuple[list[_CppFunctionSpan], list[str]]:
     # Mask the complete file in one pass so block comments, raw strings, and
     # line-spliced comments cannot leak fake braces across line boundaries.
-    masked_lines = (
-        mask_cpp_literals("\n".join(lines)).replace("<%", "{ ").replace("%>", "} ").splitlines()
-    )
-    for number, text in enumerate(masked_lines, 1):
+    masked_source = mask_cpp_literals("\n".join(lines)).replace("<%", "{ ").replace("%>", "} ")
+    scanner = _CppScanner(cpp_function_like_macro_names(masked_source))
+    metric_lines = masked_source.splitlines()
+    scanner_lines = mask_cpp_preprocessor_directives(masked_source).splitlines()
+    for number, text in enumerate(scanner_lines, 1):
         scanner.feed(number, text)
     scanner.finish(len(lines))
-    return scanner.spans
+    for span in scanner.spans:
+        if span.end_column is None:
+            continue
+        details = _cpp_metric_details_from_lines(
+            metric_lines,
+            span.body_start_line,
+            span.body_start_column,
+            span.end_line,
+            span.end_column,
+        )
+        span.complexity = details[0]
+        span.max_nesting = details[1]
+        span.excluded_lambdas = details[2]
+        span.preprocessor_conditional = details[3]
+    return scanner.spans, metric_lines
+
+
+def _cpp_metric_details(
+    text: str,
+    body_start_line: int,
+    body_start_column: int,
+    end_line: int,
+    end_column: int,
+) -> tuple[int, int, int, bool]:
+    lines = mask_cpp_literals(text).replace("<%", "{ ").replace("%>", "} ").splitlines()
+    return _cpp_metric_details_from_lines(
+        lines,
+        body_start_line,
+        body_start_column,
+        end_line,
+        end_column,
+    )
+
+
+def _cpp_metric_details_from_lines(
+    lines: list[str],
+    body_start_line: int,
+    body_start_column: int,
+    end_line: int,
+    end_column: int,
+) -> tuple[int, int, int, bool]:
+    selected = lines[body_start_line - 1 : end_line]
+    if not selected:
+        return 1, 0, 0, False
+    if body_start_line == end_line:
+        selected[0] = selected[0][body_start_column - 1 : end_column]
+    else:
+        selected[0] = selected[0][body_start_column - 1 :]
+        selected[-1] = selected[-1][:end_column]
+    body = "\n".join(selected)
+    metric_body, lambda_ranges = mask_cpp_lambda_bodies(body)
+    complexity = 1 + sum(_cpp_decision_count(line) for line in metric_body.splitlines())
+    depth = 0
+    max_nesting = 0
+    for char in metric_body:
+        if char == "{":
+            depth += 1
+            max_nesting = max(max_nesting, max(0, depth - 1))
+        elif char == "}":
+            depth = max(0, depth - 1)
+    return complexity, max_nesting, len(lambda_ranges), cpp_has_conditional_directive(metric_body)
 
 
 @dataclass
@@ -141,15 +209,17 @@ class _CppComplexityAnalysis:
     estimated_boundaries: int = 0
     configurations_checked: int = 0
     sources_checked: int = 0
+    lambdas_excluded: int = 0
+    macro_functions_excluded: int = 0
 
 
-_CppSourceRows = dict[str, tuple[str, list[_CppFunctionSpan]]]
+_CppSourceRows = dict[str, tuple[str, list[_CppFunctionSpan], list[str]]]
 
 
 class _CppScanner:
     """Brace-depth state machine over one file."""
 
-    def __init__(self) -> None:
+    def __init__(self, macro_names: frozenset[str] = frozenset()) -> None:
         self.spans: list[_CppFunctionSpan] = []
         self._depth = 0
         self._current: _CppFunctionSpan | None = None
@@ -161,6 +231,7 @@ class _CppScanner:
         self._function_try = False
         self._awaiting_catch = False
         self._catch_header = False
+        self._macro_names = macro_names
 
     def feed(self, number: int, text: str) -> None:
         remaining = text
@@ -278,6 +349,9 @@ class _CppScanner:
         if text.lstrip().startswith("#"):
             self._clear_pending()
             return len(text)
+        if not self._pending and self._standalone_macro_invocation(text):
+            self._clear_pending()
+            return len(text)
         delimiters = [(index, char) for index, char in enumerate(text) if char in "{};"]
         if not delimiters:
             self._append_pending(number, column, text)
@@ -303,7 +377,7 @@ class _CppScanner:
         ):
             self._expression_depth = 1
             return index + 1
-        name = _cpp_definition_name(signature)
+        name = cpp_definition_name(signature)
         if name is None:
             self._clear_pending()
             self._depth += 1
@@ -314,6 +388,8 @@ class _CppScanner:
             self._pending_column,
             number,
             column + index,
+            function_kind="operator" if cpp_is_operator_name(name) else "function",
+            is_template=bool(re.search(r"\btemplate\s*<", signature)),
         )
         self._clear_pending()
         self._base_depth = self._depth
@@ -322,6 +398,18 @@ class _CppScanner:
         self._function_try = bool(re.search(r"\btry\b", signature))
         span.complexity += _cpp_decision_count(signature)
         return index + 1
+
+    def _standalone_macro_invocation(self, text: str) -> bool:
+        match = re.fullmatch(
+            r"[ \t]*(?P<name>[A-Za-z_][A-Za-z0-9_]*)[ \t]*\(.*\)[ \t]*",
+            text,
+        )
+        if match is None:
+            return False
+        name = match.group("name")
+        return name in self._macro_names or (
+            name == name.upper() and any(char.isalpha() for char in name)
+        )
 
 
 def _cpp_delimiter_depth(text: str) -> tuple[int, int]:
@@ -471,6 +559,10 @@ class ComplexityEngine(BaseEngine):
                 "cpp_boundary_sources_checked": cpp_analysis.sources_checked,
                 "cpp_boundary_warnings": cpp_analysis.warnings,
                 "cpp_boundary_errors": cpp_analysis.errors,
+                "cpp_scope_exclusions": {
+                    "lambda": cpp_analysis.lambdas_excluded,
+                    "macro_generated_function": cpp_analysis.macro_functions_excluded,
+                },
             },
             required=bool(cfg.get("required", True)),
             evidence=(
@@ -643,7 +735,14 @@ class ComplexityEngine(BaseEngine):
             if source_bytes > _MAX_CPP_COMPLEXITY_SOURCE_BYTES:
                 analysis.errors.append("C++ complexity source inventory exceeds the bounded limit")
                 return {}
-            source_rows[rel_p] = (text, _cpp_function_spans(text.splitlines()))
+            try:
+                spans, metric_lines = _cpp_function_inventory(text.splitlines())
+                _lambda_masked, lambda_ranges = mask_cpp_lambda_bodies(mask_cpp_literals(text))
+            except ValueError as err:
+                analysis.errors.append(f"C++ complexity source scope is invalid: {rel_p}: {err}")
+                return {}
+            source_rows[rel_p] = (text, spans, metric_lines)
+            analysis.lambdas_excluded += len(lambda_ranges)
         return source_rows
 
     def _compiler_boundary_rows(
@@ -659,7 +758,7 @@ class ComplexityEngine(BaseEngine):
             self.project_compilable_cpp_sources(),
             self.analysis_context,
             runner=run_process,
-            source_texts={path: text for path, (text, _spans) in source_rows.items()},
+            source_texts={path: text for path, (text, _spans, _lines) in source_rows.items()},
         )
         self._record_boundary_outcome(analysis, outcome)
         if outcome.mode in {"exact", "partial"}:
@@ -685,6 +784,9 @@ class ComplexityEngine(BaseEngine):
         analysis.tool_evidence.extend(outcome.evidence)
         analysis.configurations_checked = outcome.configurations_checked
         analysis.sources_checked = outcome.sources_checked
+        if outcome.mode != "unavailable":
+            analysis.lambdas_excluded = outcome.lambdas_excluded
+            analysis.macro_functions_excluded = outcome.macro_functions_excluded
         analysis.warnings.extend(outcome.warnings)
         if outcome.mode in {"exact", "partial"}:
             analysis.boundary_mode = outcome.mode
@@ -700,16 +802,38 @@ class ComplexityEngine(BaseEngine):
     ) -> dict[str, set[int]]:
         matched_heuristic: dict[str, set[int]] = {path: set() for path in source_rows}
         for boundary in exact_boundaries:
-            text, spans = source_rows[boundary.file_path]
-            cc, nesting = self._cpp_boundary_metrics(text, boundary)
-            metrics = {
+            _text, spans, metric_lines = source_rows[boundary.file_path]
+            cc, nesting, excluded_lambdas, conditional = _cpp_metric_details_from_lines(
+                metric_lines,
+                boundary.body_start_line,
+                boundary.body_start_column,
+                boundary.end_line,
+                boundary.end_column or 1,
+            )
+            metric_variant = boundary.metric_variant or conditional
+            metrics: dict[str, object] = {
                 "boundary_source": "clang-tidy-ast",
                 "boundary_confidence": "exact",
-                "metric_confidence": "medium",
+                "metric_confidence": "low" if metric_variant else "medium",
                 "tool_lines": boundary.lines,
                 "tool_statements": boundary.statements,
                 "tool_parameters": boundary.parameters,
                 "configurations": list(boundary.configurations),
+                "configuration_metrics": [
+                    {
+                        "configuration": item.configuration,
+                        "lines": item.lines,
+                        "statements": item.statements,
+                        "parameters": item.parameters,
+                    }
+                    for item in boundary.configuration_metrics
+                ],
+                "function_kind": boundary.function_kind,
+                "function_template": boundary.is_template,
+                "function_origin": boundary.origin,
+                "metric_variant": metric_variant,
+                "preprocessor_conditional": conditional,
+                "excluded_nested_lambdas": excluded_lambdas,
             }
             analysis.targets.append(
                 self._make_cpp_target(
@@ -765,7 +889,7 @@ class ComplexityEngine(BaseEngine):
         fail_cc: int,
         warn_nesting: int,
     ) -> None:
-        for rel_p, (_text, spans) in source_rows.items():
+        for rel_p, (_text, spans, _metric_lines) in source_rows.items():
             for index, span in enumerate(spans):
                 if index in matched_heuristic[rel_p]:
                     continue
@@ -785,8 +909,16 @@ class ComplexityEngine(BaseEngine):
                         extra_metrics={
                             "boundary_source": "heuristic",
                             "boundary_confidence": "medium",
-                            "metric_confidence": "medium",
+                            "metric_confidence": (
+                                "low" if span.preprocessor_conditional else "medium"
+                            ),
                             "configurations": [],
+                            "function_kind": span.function_kind,
+                            "function_template": span.is_template,
+                            "function_origin": "source-scanner",
+                            "metric_variant": span.preprocessor_conditional,
+                            "preprocessor_conditional": span.preprocessor_conditional,
+                            "excluded_nested_lambdas": span.excluded_lambdas,
                         },
                     )
                 )
@@ -808,6 +940,11 @@ class ComplexityEngine(BaseEngine):
             )
         elif analysis.boundary_mode == "partial":
             return
+        elif analysis.estimated_boundaries and analysis.boundary_mode == "exact":
+            analysis.warnings.append(
+                "compiler-backed function output omitted source-scanned definitions"
+            )
+            analysis.boundary_mode = "partial"
         elif analysis.exact_boundaries and analysis.estimated_boundaries:
             analysis.boundary_mode = "mixed"
         elif analysis.exact_boundaries and analysis.boundary_mode != "partial":
@@ -820,25 +957,23 @@ class ComplexityEngine(BaseEngine):
         text: str,
         boundary: CppFunctionBoundary,
     ) -> tuple[int, int]:
-        lines = mask_cpp_literals(text).replace("<%", "{ ").replace("%>", "} ").splitlines()
-        selected = lines[boundary.body_start_line - 1 : boundary.end_line]
-        if not selected:
-            return 1, 0
-        if boundary.body_start_line == boundary.end_line:
-            selected[0] = selected[0][boundary.body_start_column - 1 : boundary.end_column]
-        else:
-            selected[0] = selected[0][boundary.body_start_column - 1 :]
-            selected[-1] = selected[-1][: boundary.end_column]
-        complexity = 1 + sum(_cpp_decision_count(line) for line in selected)
-        depth = 0
-        max_nesting = 0
-        for char in "\n".join(selected):
-            if char == "{":
-                depth += 1
-                max_nesting = max(max_nesting, max(0, depth - 1))
-            elif char == "}":
-                depth = max(0, depth - 1)
-        return complexity, max_nesting
+        complexity, nesting, _lambdas, _conditional = ComplexityEngine._cpp_boundary_metric_details(
+            text, boundary
+        )
+        return complexity, nesting
+
+    @staticmethod
+    def _cpp_boundary_metric_details(
+        text: str,
+        boundary: CppFunctionBoundary,
+    ) -> tuple[int, int, int, bool]:
+        return _cpp_metric_details(
+            text,
+            boundary.body_start_line,
+            boundary.body_start_column,
+            boundary.end_line,
+            boundary.end_column or 1,
+        )
 
     def _make_cpp_target(
         self,

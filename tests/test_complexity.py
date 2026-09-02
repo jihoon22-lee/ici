@@ -298,6 +298,150 @@ def test_cpp_scanner_keeps_remainder_after_namespace_and_enum_braces(tmp_path: P
     assert len(names) == 3
 
 
+def test_cpp_scanner_masks_multiline_macro_definition_before_real_function(
+    tmp_path: Path,
+):
+    targets = _cpp_targets(
+        tmp_path,
+        "#define DECLARE_FUNCTION(name) \\\n"
+        "    int name() { \\\n"
+        "        if (true) { \\\n"
+        "            return 1; \\\n"
+        "        } \\\n"
+        "    }\n"
+        "int real_function() { return 0; }\n",
+    )
+
+    assert set(targets) == {"real_function()"}
+    assert targets["real_function()"].start_line == 7
+
+
+def test_cpp_scanner_skips_local_and_uppercase_macro_calls_before_next_function(
+    tmp_path: Path,
+):
+    targets = _cpp_targets(
+        tmp_path,
+        "#define DECLARE_LOCAL(name) int name() { return 0; }\n"
+        "DECLARE_LOCAL(generated)\n"
+        "UPPER_GENERATE(generated_again)\n"
+        "int real_function(int value) {\n"
+        "    if (value) {\n"
+        "        return 1;\n"
+        "    }\n"
+        "    return 0;\n"
+        "}\n",
+    )
+
+    assert set(targets) == {"real_function()"}
+    assert targets["real_function()"].metrics["complexity"] == 2
+    assert targets["real_function()"].end_line == 9
+
+
+def test_cpp_scanner_excludes_nested_lambdas_from_enclosing_metrics(tmp_path: Path):
+    targets = _cpp_targets(
+        tmp_path,
+        "int outer(int value) {\n"
+        "    auto callback = [value]() {\n"
+        "        if (value) {\n"
+        "            return value;\n"
+        "        }\n"
+        "        return 0;\n"
+        "    };\n"
+        "    if (value > 1) {\n"
+        "        return callback();\n"
+        "    }\n"
+        "    return 0;\n"
+        "}\n",
+    )
+
+    assert set(targets) == {"outer()"}
+    target = targets["outer()"]
+    assert target.metrics["complexity"] == 2
+    assert target.metrics["nesting"] == 1
+    assert target.metrics["excluded_nested_lambdas"] == 1
+    assert target.end_line == 12
+
+    result = ComplexityEngine(tmp_path).run()
+    assert result.extra["cpp_scope_exclusions"] == {
+        "lambda": 1,
+        "macro_generated_function": 0,
+    }
+
+
+def test_cpp_scanner_masks_nested_lambdas_in_capture_initializers_and_bodies(
+    tmp_path: Path,
+):
+    targets = _cpp_targets(
+        tmp_path,
+        "int outer(int value) {\n"
+        "    auto callback = [value, captured = [value]() {\n"
+        "        if (value) { return 1; }\n"
+        "        return 0;\n"
+        "    }]() {\n"
+        "        auto nested = [value]() {\n"
+        "            while (value) { return 2; }\n"
+        "            return 0;\n"
+        "        };\n"
+        "        if (value > 1) {\n"
+        "            return nested();\n"
+        "        }\n"
+        "        return captured();\n"
+        "    };\n"
+        "    if (value > 2) {\n"
+        "        return callback();\n"
+        "    }\n"
+        "    return 0;\n"
+        "}\n",
+    )
+
+    target = targets["outer()"]
+    assert target.metrics["complexity"] == 2
+    assert target.metrics["nesting"] == 1
+    assert target.metrics["excluded_nested_lambdas"] == 3
+
+    result = ComplexityEngine(tmp_path).run()
+    assert result.extra["cpp_scope_exclusions"] == {
+        "lambda": 3,
+        "macro_generated_function": 0,
+    }
+
+
+def test_cpp_scanner_excludes_generic_returned_lambda_from_enclosing_metrics(
+    tmp_path: Path,
+):
+    targets = _cpp_targets(
+        tmp_path,
+        "auto make_callback() {\n"
+        "    return []<class T>(T value) requires (sizeof(T) > 0) {\n"
+        "        if (value) { return 1; }\n"
+        "        return 0;\n"
+        "    };\n"
+        "}\n",
+    )
+
+    target = targets["make_callback()"]
+    assert target.metrics["complexity"] == 1
+    assert target.metrics["nesting"] == 0
+    assert target.metrics["excluded_nested_lambdas"] == 1
+
+
+def test_cpp_lambda_scope_scanner_does_not_confuse_cpp_bracket_constructs(
+    tmp_path: Path,
+):
+    targets = _cpp_targets(
+        tmp_path,
+        "[[nodiscard]] int indexed(int* values, int index) {\n"
+        "    auto [left, right] = pair();\n"
+        "    if (values[index] && left) { return right; }\n"
+        "    return 0;\n"
+        "}\n",
+    )
+
+    target = targets["indexed()"]
+    assert target.metrics["complexity"] == 3
+    assert target.metrics["excluded_nested_lambdas"] == 0
+
+
 def test_cpp_scanner_skips_initializers_and_extends_function_try_handlers(tmp_path: Path):
     targets = _cpp_targets(
         tmp_path,
@@ -338,6 +482,32 @@ def test_cpp_scanner_skips_trailing_requires_expression(tmp_path: Path):
     assert set(targets) == {"constrained()"}
     assert targets["constrained()"].metrics["complexity"] == 2
     assert targets["constrained()"].metrics["nesting"] == 1
+
+
+def test_cpp_scanner_does_not_invent_a_function_for_a_concept_requires_expression(
+    tmp_path: Path,
+):
+    targets = _cpp_targets(
+        tmp_path,
+        "template <class T>\n"
+        "concept HasValue = requires(T value) {\n"
+        "    value + 1;\n"
+        "};\n"
+        "int measured(int value) { if (value) { return 1; } return 0; }\n",
+    )
+
+    assert set(targets) == {"measured()"}
+    assert targets["measured()"].metrics["complexity"] == 2
+
+
+def test_cpp_scanner_keeps_operator_prefixed_identifiers_as_functions(tmp_path: Path):
+    targets = _cpp_targets(
+        tmp_path,
+        "int operatorHelper() { return 1; }\nint operator_helper() { return 2; }\n",
+    )
+
+    assert set(targets) == {"operatorHelper()", "operator_helper()"}
+    assert {target.metrics["function_kind"] for target in targets.values()} == {"function"}
 
 
 @pytest.mark.parametrize("initializer", ["[]", "+[]"])

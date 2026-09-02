@@ -21,11 +21,13 @@ from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
 from ici.engines._cpp_function_boundaries import (
     CppFunctionBoundary,
+    CppFunctionConfigurationMetric,
     parse_function_boundaries,
     read_cpp_source_text,
     run_cpp_function_boundaries,
 )
 from ici.engines.complexity import ComplexityEngine
+from ici.engines.cpp_text import cpp_definition_name
 
 
 def _executable(path: Path) -> Path:
@@ -133,6 +135,38 @@ def _diagnostic(source: Path, line: int, column: int, name: str, notes: list[str
     return "\n".join(rows) + "\n"
 
 
+@pytest.mark.parametrize(
+    ("signature", "expected"),
+    [
+        ("int Functor::operator()(int value)", "operator()"),
+        ("int Vector::operator[](std::size_t index)", "operator[]"),
+        ("explicit operator bool() const", "operator bool"),
+        ("bool operator ==(const Value& other) const", "operator=="),
+        ("bool operator <(const Value& other) const", "operator<"),
+        ("void* operator new [](std::size_t size)", "operator new[]"),
+        (
+            'std::chrono::milliseconds operator""_ms(const char* value, std::size_t size)',
+            'operator""_ms',
+        ),
+        (
+            "auto foo(int value = fallback.operator+(1)) "
+            "noexcept(noexcept(value.operator+(1))) "
+            "-> decltype(value.operator+(1))",
+            "foo",
+        ),
+        (
+            "auto operator +(Value lhs, Value rhs) -> decltype(operator +(lhs, rhs))",
+            "operator+",
+        ),
+    ],
+)
+def test_cpp_definition_name_preserves_special_operator_spelling(
+    signature: str,
+    expected: str,
+) -> None:
+    assert cpp_definition_name(signature) == expected
+
+
 def test_parser_maps_template_operator_to_the_clang_confirmed_body(tmp_path: Path) -> None:
     root = tmp_path / "project"
     source = root / "src" / "operator.cpp"
@@ -177,6 +211,271 @@ def test_parser_maps_template_operator_to_the_clang_confirmed_body(tmp_path: Pat
     assert boundary.lines == 5
     assert boundary.statements == 3
     assert boundary.parameters == 1
+    assert boundary.function_kind == "operator"
+    assert boundary.is_template is True
+    assert boundary.origin == "source-spelled"
+    assert boundary.configuration_metrics == (
+        CppFunctionConfigurationMetric(
+            configuration="sha256:one",
+            lines=5,
+            statements=3,
+            parameters=1,
+        ),
+    )
+
+
+def test_parser_maps_literal_operator_from_suffix_diagnostic_column(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    source = root / "src" / "literal_operator.cpp"
+    source.parent.mkdir(parents=True)
+    source_text = (
+        'unsigned long long operator""_units(unsigned long long value) {\n'
+        "    if (value) { return value; }\n"
+        "    return 0;\n"
+        "}\n"
+    )
+    source.write_text(source_text, encoding="utf-8")
+    output = _diagnostic(
+        source,
+        1,
+        source_text.index("_units") + 1,
+        'operator""_units',
+        [
+            "3 lines including whitespace and comments (threshold 0)",
+            "4 statements (threshold 0)",
+            "1 parameters (threshold 0)",
+        ],
+    )
+
+    boundary = parse_function_boundaries(
+        root,
+        root,
+        "",
+        output,
+        configuration="sha256:literal",
+    )[0]
+
+    assert boundary.name == 'operator""_units'
+    assert boundary.function_kind == "operator"
+    assert (boundary.body_start_line, boundary.end_line) == (1, 4)
+
+
+def test_parser_excludes_macro_generated_function_with_scope_record(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    source = root / "src" / "macro.cpp"
+    source.parent.mkdir(parents=True)
+    source.write_text(
+        "#define DEFINE_FUNCTION(name) int name() { return 1; }\n"
+        "DEFINE_FUNCTION(generated)\n"
+        "int real_function() { return 2; }\n",
+        encoding="utf-8",
+    )
+    excluded_scopes: list[tuple[str, int, int | None, str]] = []
+
+    boundaries = parse_function_boundaries(
+        root,
+        root,
+        "",
+        _diagnostic(
+            source,
+            2,
+            1,
+            "generated",
+            ["1 statements (threshold 0)"],
+        ),
+        configuration="sha256:macro",
+        excluded_scopes=excluded_scopes,
+    )
+
+    assert boundaries == ()
+    assert excluded_scopes == [("src/macro.cpp", 2, 1, "generated")]
+
+
+def test_parser_excludes_multiline_local_macro_invocation_without_next_brace_mapping(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    source = root / "src" / "macro.cpp"
+    source.parent.mkdir(parents=True)
+    source.write_text(
+        "#define DECLARE_FUNCTION(name) int name() { return 1; }\n"
+        "DECLARE_FUNCTION(\n"
+        "    generated\n"
+        ")\n"
+        "int real_function() { return 2; }\n",
+        encoding="utf-8",
+    )
+    excluded_scopes: list[tuple[str, int, int | None, str]] = []
+    generated = _diagnostic(
+        source,
+        2,
+        5,
+        "generated",
+        ["1 statements (threshold 0)"],
+    ).replace("1 warning generated.\n", "")
+    real = _diagnostic(
+        source,
+        5,
+        5,
+        "real_function",
+        ["1 statements (threshold 0)"],
+    )
+
+    boundaries = parse_function_boundaries(
+        root,
+        root,
+        "",
+        generated + real,
+        configuration="sha256:multiline-macro",
+        excluded_scopes=excluded_scopes,
+    )
+
+    assert [boundary.name for boundary in boundaries] == ["real_function"]
+    assert excluded_scopes == [("src/macro.cpp", 2, 5, "generated")]
+
+
+def test_parser_keeps_uppercase_source_functions_unless_a_macro_call_proves_expansion(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    source = root / "src" / "uppercase.cpp"
+    source.parent.mkdir(parents=True)
+    source_text = (
+        "#define DECLARE_FUNCTION(name) int name() { return 1; }\n"
+        "DECLARE_FUNCTION(generated)\n"
+        "int FOO() { return 2; }\n"
+        "int DEFINE_FUNCTION() { return 3; }\n"
+    )
+    source.write_text(source_text, encoding="utf-8")
+    excluded_scopes: list[tuple[str, int, int | None, str]] = []
+    generated = _diagnostic(
+        source,
+        2,
+        1,
+        "generated",
+        ["1 statements (threshold 0)"],
+    ).replace("1 warning generated.\n", "")
+    foo = _diagnostic(
+        source,
+        3,
+        source_text.splitlines()[2].index("FOO") + 1,
+        "FOO",
+        ["1 statements (threshold 0)"],
+    ).replace("1 warning generated.\n", "")
+    define_function = _diagnostic(
+        source,
+        4,
+        source_text.splitlines()[3].index("DEFINE_FUNCTION") + 1,
+        "DEFINE_FUNCTION",
+        ["1 statements (threshold 0)"],
+    )
+
+    boundaries = parse_function_boundaries(
+        root,
+        root,
+        "",
+        generated + foo + define_function,
+        configuration="sha256:uppercase",
+        excluded_scopes=excluded_scopes,
+    )
+
+    assert [boundary.name for boundary in boundaries] == ["FOO", "DEFINE_FUNCTION"]
+    assert excluded_scopes == [("src/uppercase.cpp", 2, 1, "generated")]
+
+
+def test_parser_maps_same_line_class_and_namespace_members_independently(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    source = root / "src" / "inline.cpp"
+    source.parent.mkdir(parents=True)
+    source_text = (
+        "struct Box { int first() { return 1; } "
+        "int second(int value) { if (value) { return 2; } return 0; } }; "
+        "namespace ns { int third() { return 3; } "
+        "int fourth(int value) { if (value) { return 4; } return 0; } }\n"
+    )
+    source.write_text(source_text, encoding="utf-8")
+    diagnostics: list[str] = []
+    for name, statements in (
+        ("first", 1),
+        ("second", 3),
+        ("third", 1),
+        ("fourth", 3),
+    ):
+        diagnostics.append(
+            _diagnostic(
+                source,
+                1,
+                source_text.index(name) + 1,
+                name,
+                [f"{statements} statements (threshold 0)"],
+            ).replace("1 warning generated.\n", "")
+        )
+
+    boundaries = parse_function_boundaries(
+        root,
+        root,
+        "",
+        "".join(diagnostics) + "4 warnings generated.\n",
+        configuration="sha256:inline-members",
+    )
+
+    assert [boundary.name for boundary in boundaries] == ["first", "second", "third", "fourth"]
+    for boundary in boundaries:
+        start = source_text.index(boundary.name)
+        opened = source_text.index("{", start)
+        assert boundary.start_line == boundary.end_line == 1
+        assert boundary.start_column == start + 1
+        assert boundary.body_start_column == opened + 1
+    first = boundaries[0]
+    second = boundaries[1]
+    third = boundaries[2]
+    fourth = boundaries[3]
+    assert (
+        first.end_column
+        == source_text.index("}", source_text.index("{", source_text.index("first"))) + 1
+    )
+    class_close = source_text.index("};", source_text.index("second"))
+    assert second.end_column == class_close - 1
+    assert (
+        third.end_column
+        == source_text.index("}", source_text.index("{", source_text.index("third"))) + 1
+    )
+    namespace_close = source_text.rfind("}")
+    assert fourth.end_column == namespace_close - 1
+
+
+def test_parser_keeps_operator_prefixed_identifiers_as_ordinary_functions(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    source = root / "src" / "ordinary.cpp"
+    source.parent.mkdir(parents=True)
+    source_text = "int operatorHelper() { return 1; } int operator_helper() { return 2; }\n"
+    source.write_text(source_text, encoding="utf-8")
+    diagnostics = []
+    for name in ("operatorHelper", "operator_helper"):
+        diagnostics.append(
+            _diagnostic(
+                source,
+                1,
+                source_text.index(name) + 1,
+                name,
+                ["1 statements (threshold 0)"],
+            ).replace("1 warning generated.\n", "")
+        )
+
+    boundaries = parse_function_boundaries(
+        root,
+        root,
+        "",
+        "".join(diagnostics) + "2 warnings generated.\n",
+        configuration="sha256:ordinary",
+    )
+
+    assert [boundary.name for boundary in boundaries] == ["operatorHelper", "operator_helper"]
+    assert [boundary.function_kind for boundary in boundaries] == ["function", "function"]
 
 
 def test_parser_chooses_constructor_body_after_braced_initializer(tmp_path: Path) -> None:
@@ -485,6 +784,22 @@ def test_parser_allows_only_external_suppression_summary(tmp_path: Path) -> None
     assert [boundary.name for boundary in boundaries] == ["main"]
 
 
+def test_parser_rejects_suppression_only_output_even_for_external_only_summary(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+
+    with pytest.raises(ValueError):
+        parse_function_boundaries(
+            root,
+            root,
+            "",
+            "Suppressed 1 warning (1 in non-user code).\n",
+            configuration="sha256:suppression-only",
+        )
+
+
 def test_adapter_uses_exact_sanitized_context_and_records_evidence(tmp_path: Path) -> None:
     root, source, context = _context(
         tmp_path,
@@ -786,6 +1101,165 @@ def test_configuration_dependent_geometry_stays_partial_and_estimated(
     assert required.status == EngineStatus.ERROR
     assert required.evidence == EvidenceState.NOT_RUN
     assert required.extra["cpp_boundary_mode"] == "error"
+
+
+def test_same_geometry_with_metric_variants_stays_partial_and_exposes_configs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, source, context = _context(
+        tmp_path,
+        "int configured(int value) {\n"
+        "    if (value) {\n"
+        "        return value;\n"
+        "    }\n"
+        "    return 0;\n"
+        "}\n",
+    )
+    first = context.compilation.units[0]
+    second_argv = list(first.argv)
+    second_argv.insert(second_argv.index("-c"), "-DSECOND_CONFIGURATION")
+    second = replace(
+        first,
+        argv=tuple(second_argv),
+        configuration=canonical_digest({"configuration": "second"}),
+    )
+    context = replace(
+        context,
+        compilation=replace(context.compilation, units=(first, second)),
+    )
+    first_output = _diagnostic(
+        source,
+        1,
+        5,
+        "configured",
+        [
+            "5 lines including whitespace and comments (threshold 0)",
+            "1 statements (threshold 0)",
+            "1 parameters (threshold 0)",
+        ],
+    )
+    second_output = _diagnostic(
+        source,
+        1,
+        5,
+        "configured",
+        [
+            "5 lines including whitespace and comments (threshold 0)",
+            "3 statements (threshold 0)",
+            "1 parameters (threshold 0)",
+        ],
+    )
+    compiler = Path(context.capabilities.capabilities["g++"].path).resolve(strict=True)
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        if Path(command[0]).resolve(strict=True) == compiler:
+            language = command[command.index("-x") + 1]
+            common = root / "toolchain" / "common"
+            paths = (root / "toolchain" / "cxx", common) if language == "c++" else (common,)
+            return ProcessResult(0, "", _include_search_output(*paths), 0.01)
+        output = second_output if "-DSECOND_CONFIGURATION" in command else first_output
+        return ProcessResult(0, "", output, 0.01)
+
+    outcome = run_cpp_function_boundaries(root, [source], context, runner=runner)
+
+    assert outcome.mode == "partial"
+    assert outcome.errors == []
+    assert len(outcome.boundaries) == 1
+    boundary = outcome.boundaries[0]
+    assert boundary.metric_variant is True
+    assert boundary.configurations == tuple(sorted({first.configuration, second.configuration}))
+    assert {
+        item.configuration: (item.lines, item.statements, item.parameters)
+        for item in boundary.configuration_metrics
+    } == {
+        first.configuration: (5, 1, 1),
+        second.configuration: (5, 3, 1),
+    }
+    assert any("metrics remain estimated" in warning for warning in outcome.warnings)
+
+    monkeypatch.setattr("ici.engines.complexity.run_process", runner)
+    automatic = ComplexityEngine(root, analysis_context=context).run()
+    required = ComplexityEngine(
+        root,
+        {"engines": {"complexity": {"cpp_boundaries": "required"}}},
+        analysis_context=context,
+    ).run()
+
+    assert automatic.status == EngineStatus.PASS
+    assert automatic.evidence == EvidenceState.ESTIMATED
+    assert automatic.extra["cpp_boundary_mode"] == "partial"
+    assert automatic.extra["cpp_exact_boundaries"] == 1
+    assert automatic.extra["cpp_estimated_boundaries"] == 0
+    assert automatic.targets[0].metrics["metric_variant"] is True
+    assert automatic.targets[0].metrics["metric_confidence"] == "low"
+    assert required.status == EngineStatus.ERROR
+    assert required.evidence == EvidenceState.NOT_RUN
+    assert required.extra["cpp_boundary_mode"] == "error"
+    assert required.extra["cpp_boundary_errors"]
+
+
+def test_preprocessor_conditional_boundary_is_partial_and_low_confidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, source, context = _context(
+        tmp_path,
+        "int conditional(int value) {\n"
+        "#if defined(VARIANT)\n"
+        "    if (value) {\n"
+        "        return 1;\n"
+        "    }\n"
+        "#endif\n"
+        "    return 0;\n"
+        "}\n",
+    )
+    output = _diagnostic(
+        source,
+        1,
+        5,
+        "conditional",
+        [
+            "7 lines including whitespace and comments (threshold 0)",
+            "1 statements (threshold 0)",
+            "1 parameters (threshold 0)",
+        ],
+    )
+    compiler = Path(context.capabilities.capabilities["g++"].path).resolve(strict=True)
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        if Path(command[0]).resolve(strict=True) == compiler:
+            language = command[command.index("-x") + 1]
+            common = root / "toolchain" / "common"
+            paths = (root / "toolchain" / "cxx", common) if language == "c++" else (common,)
+            return ProcessResult(0, "", _include_search_output(*paths), 0.01)
+        return ProcessResult(0, "", output, 0.01)
+
+    outcome = run_cpp_function_boundaries(root, [source], context, runner=runner)
+
+    assert outcome.mode == "partial"
+    assert outcome.errors == []
+    assert len(outcome.boundaries) == 1
+    assert outcome.boundaries[0].preprocessor_conditional is True
+    assert any("preprocessor-dependent" in warning for warning in outcome.warnings)
+
+    monkeypatch.setattr("ici.engines.complexity.run_process", runner)
+    automatic = ComplexityEngine(root, analysis_context=context).run()
+    required = ComplexityEngine(
+        root,
+        {"engines": {"complexity": {"cpp_boundaries": "required"}}},
+        analysis_context=context,
+    ).run()
+
+    assert automatic.status == EngineStatus.PASS
+    assert automatic.evidence == EvidenceState.ESTIMATED
+    assert automatic.extra["cpp_boundary_mode"] == "partial"
+    assert automatic.targets[0].metrics["metric_confidence"] == "low"
+    assert automatic.targets[0].metrics["preprocessor_conditional"] is True
+    assert required.status == EngineStatus.ERROR
+    assert required.evidence == EvidenceState.NOT_RUN
+    assert required.extra["cpp_boundary_mode"] == "error"
+    assert required.extra["cpp_boundary_errors"]
 
 
 def test_boundary_missing_from_one_successful_configuration_stays_partial(
@@ -1115,6 +1589,47 @@ def test_successful_empty_cpp_analysis_remains_exact_and_measured(
     assert result.extra["total_functions"] == 0
 
 
+def test_successful_empty_cpp_output_with_fallback_targets_is_not_exact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, _source, context = _context(
+        tmp_path,
+        "int fallback(int value) { if (value) { return 1; } return 0; }\n",
+    )
+    compiler = Path(context.capabilities.capabilities["g++"].path).resolve(strict=True)
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        if Path(command[0]).resolve(strict=True) == compiler:
+            language = command[command.index("-x") + 1]
+            common = root / "toolchain" / "common"
+            paths = (root / "toolchain" / "cxx", common) if language == "c++" else (common,)
+            return ProcessResult(0, "", _include_search_output(*paths), 0.01)
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.complexity.run_process", runner)
+    automatic = ComplexityEngine(root, analysis_context=context).run()
+    required = ComplexityEngine(
+        root,
+        {"engines": {"complexity": {"cpp_boundaries": "required"}}},
+        analysis_context=context,
+    ).run()
+
+    assert automatic.status == EngineStatus.PASS
+    assert automatic.evidence == EvidenceState.ESTIMATED
+    assert automatic.extra["cpp_boundary_mode"] == "partial"
+    assert automatic.extra["cpp_boundary_warnings"] == [
+        "compiler-backed function output omitted source-scanned definitions"
+    ]
+    assert automatic.extra["cpp_exact_boundaries"] == 0
+    assert automatic.extra["cpp_estimated_boundaries"] == 1
+    assert automatic.targets[0].metrics["boundary_source"] == "heuristic"
+    assert required.status == EngineStatus.ERROR
+    assert required.evidence == EvidenceState.NOT_RUN
+    assert required.extra["cpp_boundary_mode"] == "error"
+    assert required.extra["cpp_boundary_errors"]
+
+
 def test_complexity_stops_before_tooling_when_source_inventory_exceeds_limit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1162,6 +1677,47 @@ def test_adapter_stops_before_snapshotting_units_over_the_run_limit(
     assert outcome.mode == "error"
     assert outcome.boundaries == []
     assert outcome.errors == ["function boundary translation-unit count exceeds the bounded limit"]
+    assert outcome.sources_checked == 0
+    assert outcome.configurations_checked == 0
+
+
+def test_adapter_fails_closed_when_prepared_mapped_source_cache_exceeds_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, source, context = _context(tmp_path, "int first() { return 1; }\n")
+    second = root / "src" / "second.cpp"
+    second.write_text("int second() { return 2; }\n", encoding="utf-8")
+    first_unit = context.compilation.units[0]
+    second_argv = tuple(
+        str(second) if argument == str(source) else argument for argument in first_unit.argv
+    )
+    second_unit = replace(
+        first_unit,
+        source="src/second.cpp",
+        argv=second_argv,
+        output="build/second.o",
+        configuration=canonical_digest({"configuration": "second"}),
+    )
+    context = replace(
+        context,
+        compilation=replace(context.compilation, units=(first_unit, second_unit)),
+    )
+    monkeypatch.setattr(
+        "ici.engines._cpp_function_boundaries._MAX_SOURCE_CACHE_BYTES",
+        len(source.read_bytes()),
+    )
+
+    outcome = run_cpp_function_boundaries(
+        root,
+        [source, second],
+        context,
+        runner=lambda *_args, **_kwargs: pytest.fail("runner must not be called"),
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.boundaries == []
+    assert outcome.errors == ["function boundary source cache exceeds the bounded limit"]
     assert outcome.sources_checked == 0
     assert outcome.configurations_checked == 0
 
