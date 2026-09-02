@@ -49,11 +49,11 @@ def module_unavailable(result, module: str) -> bool:
 
 
 def pytest_result_has_evidence(output: str) -> bool:
-    """Return whether pytest output reports an executed result."""
+    """Return whether pytest output reports a parseable test result."""
 
     return bool(
-        re.search(r"::\S+\s+(?:PASSED|FAILED|ERROR)\b", output)
-        or re.search(r"\b\d+\s+(?:passed|failed|errors?)\b", output)
+        re.search(r"::[^\r\n]*\s+(?:PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS)\b", output)
+        or re.search(r"\b\d+\s+(?:passed|failed|errors?|skipped|xfailed|xpassed)\b", output)
     )
 
 

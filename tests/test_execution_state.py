@@ -19,7 +19,14 @@ from ici.core.cmake import (
     run_tests,
 )
 from ici.core.context import BuildVariant
-from ici.core.models import EngineResult, EngineStatus, EvidenceState, VerificationSuiteResult
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    EvidenceState,
+    InspectionTarget,
+    VerificationSuiteResult,
+)
+from ici.core.runner import ProcessResult
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
 from ici.reporters.html import generate_html_report
@@ -345,6 +352,119 @@ def test_pytest_summary_combines_failures_and_collection_errors(tmp_path: Path):
     by_name = {target.target_name: target for target in targets}
     assert by_name["[Python] Failed (4)"].metrics["test_cases"] == 4
     assert by_name["[Python] XPass (6)"].status is EngineStatus.FAIL
+
+
+def test_pytest_summary_uses_last_authoritative_collection_error_count(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    targets = []
+
+    passed, total, has_failure = engine._parse_pytest_stdout(
+        "collected 0 items / 1 error\n"
+        "!!!!!!!! Interrupted: 1 error during collection !!!!!!!!\n"
+        "===================== 1 error in 0.10s =====================\n",
+        targets,
+    )
+
+    assert (passed, total, has_failure) == (0, 1, True)
+    assert targets[0].target_name == "[Python] Failed (1)"
+    assert targets[0].metrics["test_cases"] == 1
+
+
+@pytest.mark.parametrize(
+    ("summary", "returncode", "expected_status"),
+    [
+        ("1 xfailed in 0.01s", 0, EngineStatus.PASS),
+        ("1 xpassed in 0.01s", 1, EngineStatus.FAIL),
+    ],
+)
+def test_summary_only_expected_failure_states_are_parseable_evidence(
+    tmp_path: Path,
+    summary: str,
+    returncode: int,
+    expected_status: EngineStatus,
+):
+    engine = TestEngine(tmp_path)
+    targets = []
+
+    passed, total, has_failure = engine._parse_pytest_result(
+        ProcessResult(returncode, summary, "", 0.01), targets
+    )
+
+    assert total == 1
+    assert passed == int(expected_status is EngineStatus.PASS)
+    assert has_failure is (expected_status is EngineStatus.FAIL)
+    assert targets[0].status is expected_status
+    assert engine._tool_errors == []
+
+
+def test_unittest_parser_preserves_skip_and_expected_failure_states(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    targets = []
+    result = ProcessResult(
+        1,
+        "test_skip (suite.Case) ... skipped 'platform'\n"
+        "test_expected (suite.Case) ... expected failure\n"
+        "test_unexpected (suite.Case) ... unexpected success\n",
+        "",
+        0.01,
+    )
+
+    passed, total, has_failure = engine._parse_unittest_stdout(result, targets)
+
+    assert (passed, total, has_failure) == (1, 3, True)
+    assert [target.status for target in targets] == [
+        EngineStatus.SKIP,
+        EngineStatus.PASS,
+        EngineStatus.FAIL,
+    ]
+
+
+def test_actual_failure_takes_precedence_over_all_skipped_policy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    engine = TestEngine(
+        tmp_path,
+        {
+            "engines": {
+                "test": {
+                    "required": False,
+                    "coverage_required": False,
+                    "min_tem_score": 0.0,
+                    "min_branch_cov": 0.0,
+                    "min_func_cov": 0.0,
+                }
+            }
+        },
+    )
+
+    def fake_project_tests(_project_type, targets):
+        targets.extend(
+            [
+                InspectionTarget(
+                    file_path="tests/test_skip.py",
+                    start_line=1,
+                    target_name="[Python] skipped",
+                    status=EngineStatus.SKIP,
+                    message="not executed",
+                ),
+                InspectionTarget(
+                    file_path="tests",
+                    start_line=1,
+                    target_name="[C++] Tests",
+                    status=EngineStatus.FAIL,
+                    message="No tests collected",
+                ),
+            ]
+        )
+        return 0, 1, True
+
+    monkeypatch.setattr(engine, "_run_project_tests", fake_project_tests)
+    monkeypatch.setattr(engine, "_measure_coverage", lambda *_args: (0.0, 0.0, []))
+
+    result = engine.run()
+
+    assert result.status is EngineStatus.FAIL
+    assert "every collected test was skipped" not in result.summary
 
 
 @pytest.mark.parametrize(

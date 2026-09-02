@@ -108,7 +108,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             for target in targets
             if target.status == EngineStatus.SKIP
         )
-        no_tests_executed = total_tests > 0 and skipped_tests >= total_tests
+        no_tests_executed = total_tests > 0 and not has_failure and skipped_tests >= total_tests
         required_coverage_missing, optional_coverage_warning = self._apply_coverage_policy(cfg)
         branch_cov, func_cov, missed_targets = self._measure_coverage(proj_type, has_failure)
         targets.extend(missed_targets)
@@ -610,30 +610,41 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         total = 0
         has_failure = False
         for line in (result.stdout + "\n" + result.stderr).splitlines():
-            if " ... ok" in line:
-                total += 1
+            if " ... " not in line:
+                continue
+            name, verdict = line.split(" ... ", 1)
+            verdict = verdict.strip()
+            if verdict == "ok":
+                status = EngineStatus.PASS
+                message = "Unittest passed"
                 passed += 1
-                targets.append(
-                    InspectionTarget(
-                        file_path="tests",
-                        start_line=1,
-                        target_name=line.replace(" ... ok", "").strip(),
-                        status=EngineStatus.PASS,
-                        message="Unittest passed",
-                    )
+            elif verdict.startswith("expected failure"):
+                status = EngineStatus.PASS
+                message = "Expected failure was exercised"
+                passed += 1
+            elif verdict.startswith("skipped"):
+                status = EngineStatus.SKIP
+                message = verdict
+            elif verdict.startswith(("FAIL", "ERROR", "unexpected success")):
+                status = EngineStatus.FAIL
+                message = (
+                    "Unexpected success violated the expected-failure contract"
+                    if verdict.startswith("unexpected success")
+                    else "Unittest assertion failure"
                 )
-            elif " ... FAIL" in line or " ... ERROR" in line:
-                total += 1
                 has_failure = True
-                targets.append(
-                    InspectionTarget(
-                        file_path="tests",
-                        start_line=1,
-                        target_name=line.split(" ...")[0].strip(),
-                        status=EngineStatus.FAIL,
-                        message="Unittest assertion failure",
-                    )
+            else:
+                continue
+            total += 1
+            targets.append(
+                InspectionTarget(
+                    file_path="tests",
+                    start_line=1,
+                    target_name=name.strip(),
+                    status=status,
+                    message=message,
                 )
+            )
         return passed, total, has_failure
 
     def _parse_pytest_stdout(
@@ -684,16 +695,16 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
                 )
             )
         if total == 0:
-            passed_match = re.search(r"\b(\d+)\s+passed\b", out)
-            failed_matches = re.finditer(r"\b(\d+)\s+(?:failed|errors?)\b", out)
-            skipped_match = re.search(r"\b(\d+)\s+skipped\b", out)
-            xfailed_match = re.search(r"\b(\d+)\s+xfailed\b", out)
-            xpassed_match = re.search(r"\b(\d+)\s+xpassed\b", out)
-            ordinary_passed = int(passed_match.group(1)) if passed_match else 0
-            failed = sum(int(match.group(1)) for match in failed_matches)
-            skipped = int(skipped_match.group(1)) if skipped_match else 0
-            xfailed = int(xfailed_match.group(1)) if xfailed_match else 0
-            xpassed = int(xpassed_match.group(1)) if xpassed_match else 0
+
+            def last_count(label: str) -> int:
+                matches = re.findall(rf"\b(\d+)\s+{label}\b", out)
+                return int(matches[-1]) if matches else 0
+
+            ordinary_passed = last_count("passed")
+            failed = last_count("failed") + last_count("errors?")
+            skipped = last_count("skipped")
+            xfailed = last_count("xfailed")
+            xpassed = last_count("xpassed")
             passed = ordinary_passed + xfailed
             total = passed + failed + skipped + xpassed
             has_failure = failed > 0 or xpassed > 0
