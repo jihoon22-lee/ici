@@ -7,6 +7,7 @@ source cannot be silently ignored by one engine and accepted by another.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,6 +15,7 @@ from pathlib import Path
 from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
 
 MAX_ANALYSIS_SOURCE_FILES = 2_048
+MAX_ANALYSIS_SOURCE_CANDIDATES = 8_192
 MAX_ANALYSIS_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_ANALYSIS_INVENTORY_BYTES = 64 * 1024 * 1024
 
@@ -65,7 +67,13 @@ class ExcludedAnalysisSource:
     """One selected source omitted by the default ownership policy."""
 
     file_path: str
-    reason: str
+    reasons: tuple[str, ...]
+
+    @property
+    def reason(self) -> str:
+        """Return the first blocking reason for compatibility with older callers."""
+
+        return self.reasons[0]
 
 
 @dataclass(frozen=True)
@@ -80,7 +88,8 @@ class AnalysisSourceInventory:
     def exclusion_counts(self) -> dict[str, int]:
         counts: dict[str, int] = {}
         for item in self.excluded:
-            counts[item.reason] = counts.get(item.reason, 0) + 1
+            for reason in item.reasons:
+                counts[reason] = counts.get(reason, 0) + 1
         return dict(sorted(counts.items()))
 
 
@@ -95,43 +104,64 @@ class AnalysisSourceError(ValueError):
 
 
 def _relative_path(root: Path, source: Path) -> tuple[Path, str]:
-    candidate = source if source.is_absolute() else root / source
+    lexical = source if source.is_absolute() else root / source
     try:
+        # Normalize lexical ``.``/``..`` segments without resolving symlinks.
+        # A path that returns to the project is safe to name; the descriptor
+        # reader below independently rejects symlink traversal while opening.
+        candidate = Path(os.path.abspath(os.fspath(lexical)))
         relative = candidate.relative_to(root)
-    except ValueError as err:
+    except (OSError, RuntimeError, TypeError, ValueError) as err:
         raise AnalysisSourceError(
             ".",
             "outside-project",
             "Selected analysis source is outside the project root",
         ) from err
-    if not relative.parts or ".." in relative.parts:
+    if not relative.parts:
         raise AnalysisSourceError(
             ".",
-            "outside-project" if ".." in relative.parts else "not-file",
-            "Selected analysis source is outside the project root"
-            if ".." in relative.parts
-            else "Selected analysis source is not a project file",
+            "not-file",
+            "Selected analysis source is not a project file",
         )
     return candidate, relative.as_posix()
 
 
-def analysis_exclusion_reason(file_path: str) -> str | None:
-    """Classify generated and third-party paths without filesystem access."""
+def analysis_exclusion_reasons(file_path: str) -> tuple[str, ...]:
+    """Classify every generated/third-party property without filesystem access."""
 
     parts = tuple(part.casefold() for part in Path(file_path).parts)
     directories = parts[:-1]
     name = parts[-1] if parts else ""
+    reasons: list[str] = []
     if any(part in _VENDOR_PARTS for part in directories):
-        return "vendor"
-    if any(part in _GENERATED_PARTS or part.endswith("_autogen") for part in directories):
-        return "generated"
-    if (
+        reasons.append("vendor")
+    generated = any(
+        part in _GENERATED_PARTS or part.endswith("_autogen") for part in directories
+    ) or (
         name.startswith(("moc_", "qrc_", "ui_"))
         or name.startswith("mocs_compilation")
         or name.endswith(".moc")
-    ):
-        return "generated"
-    return None
+    )
+    if generated:
+        reasons.append("generated")
+    return tuple(reasons)
+
+
+def analysis_exclusion_reason(file_path: str) -> str | None:
+    """Return the first exclusion reason for compatibility with existing callers."""
+
+    reasons = analysis_exclusion_reasons(file_path)
+    return reasons[0] if reasons else None
+
+
+def _positive_limit(name: str, value: object) -> int:
+    if type(value) is not int or value <= 0:
+        raise AnalysisSourceError(
+            ".",
+            "invalid-limit",
+            f"{name} must be a positive integer",
+        )
+    return value
 
 
 def read_analysis_sources(
@@ -141,11 +171,16 @@ def read_analysis_sources(
     include_generated: bool = False,
     include_vendor: bool = False,
     max_files: int = MAX_ANALYSIS_SOURCE_FILES,
+    max_candidates: int = MAX_ANALYSIS_SOURCE_CANDIDATES,
     max_file_bytes: int = MAX_ANALYSIS_SOURCE_BYTES,
     max_total_bytes: int = MAX_ANALYSIS_INVENTORY_BYTES,
 ) -> AnalysisSourceInventory:
     """Read deterministic, stable and bounded UTF-8 project source snapshots."""
 
+    max_files = _positive_limit("max_files", max_files)
+    max_candidates = _positive_limit("max_candidates", max_candidates)
+    max_file_bytes = _positive_limit("max_file_bytes", max_file_bytes)
+    max_total_bytes = _positive_limit("max_total_bytes", max_total_bytes)
     project_root = root.resolve(strict=True)
     selected: list[tuple[Path, str]] = []
     seen: set[str] = set()
@@ -155,24 +190,36 @@ def read_analysis_sources(
             continue
         seen.add(relative)
         selected.append((candidate, relative))
-        if len(selected) > max_files:
+        if len(selected) > max_candidates:
             raise AnalysisSourceError(
                 ".",
-                "too-many-files",
-                f"Analysis source count exceeds the bounded limit ({max_files})",
+                "too-many-candidates",
+                f"Analysis source candidate count exceeds the bounded limit ({max_candidates})",
             )
+
+    selected.sort(key=lambda item: item[1])
 
     snapshots: list[AnalysisSource] = []
     excluded: list[ExcludedAnalysisSource] = []
     total_bytes = 0
     for candidate, relative in selected:
-        reason = analysis_exclusion_reason(relative)
-        if reason == "generated" and not include_generated:
-            excluded.append(ExcludedAnalysisSource(relative, reason))
+        reasons = analysis_exclusion_reasons(relative)
+        blocked = tuple(
+            reason
+            for reason in reasons
+            if (reason == "generated" and not include_generated)
+            or (reason == "vendor" and not include_vendor)
+        )
+        if blocked:
+            excluded.append(ExcludedAnalysisSource(relative, blocked))
             continue
-        if reason == "vendor" and not include_vendor:
-            excluded.append(ExcludedAnalysisSource(relative, reason))
-            continue
+
+        if len(snapshots) >= max_files:
+            raise AnalysisSourceError(
+                ".",
+                "too-many-files",
+                f"Owned analysis source count exceeds the bounded limit ({max_files})",
+            )
 
         language = _LANGUAGES.get(candidate.suffix.casefold())
         if language is None:
@@ -215,6 +262,12 @@ def read_analysis_sources(
                 "invalid-utf8",
                 "Analysis source is not valid UTF-8",
             ) from err
+        if "\x00" in text:
+            raise AnalysisSourceError(
+                relative,
+                "invalid-text",
+                "Analysis source contains a NUL character",
+            )
         snapshots.append(
             AnalysisSource(
                 path=candidate,

@@ -11,6 +11,7 @@ from ici.config_schema import validate_config_paths
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, ToolEvidence
 from ici.core.project import (
     detect_project_type,
+    get_all_cpp_headers,
     get_all_cpp_includes,
     get_all_cpp_sources,
     get_all_python_sources,
@@ -77,9 +78,10 @@ class BaseEngine(ABC):
         return paths if paths is not None else get_all_cpp_sources(self.project_root, self.config)
 
     def project_cpp_headers(self) -> list[Path] | None:
-        """Return snapshotted headers, or None when no shared context exists."""
+        """Return snapshotted or directly discovered C/C++ header inputs."""
 
-        return self._context_paths("cpp_headers")
+        paths = self._context_paths("cpp_headers")
+        return paths if paths is not None else get_all_cpp_headers(self.project_root, self.config)
 
     def project_compilable_cpp_sources(self) -> list[Path]:
         paths = self._context_paths("compilable_cpp_sources")

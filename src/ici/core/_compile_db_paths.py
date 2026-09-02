@@ -100,6 +100,26 @@ def _open_contained(path: Path, root: Path, file_flags: int) -> int:
     if not relative.parts:
         raise _ReadError("not-file", "The selected path is not a regular file.")
     if os.open not in os.supports_dir_fd or not hasattr(os, "O_DIRECTORY"):
+        # Platforms without directory-relative opens cannot make the entire
+        # component walk atomic. Reject every symlink visible before opening,
+        # then retain the identity/containment revalidation after reading.
+        inspected_path = root
+        try:
+            for part in relative.parts:
+                inspected_path /= part
+                if stat.S_ISLNK(os.stat(inspected_path, follow_symlinks=False).st_mode):
+                    raise _ReadError(
+                        "unreadable",
+                        "The contained path traverses a symbolic link.",
+                    )
+        except FileNotFoundError:
+            raise
+        except _ReadError:
+            raise
+        except OSError as err:
+            raise _ReadError(
+                "unreadable", "The contained path could not be inspected safely."
+            ) from err
         return os.open(path, file_flags)
     directory_flags = (
         os.O_RDONLY
@@ -151,20 +171,35 @@ def _read_bounded_regular(
             raise _ReadError("not-file", "The selected path is not a regular file.")
         if before.st_size > limit:
             raise _ReadError("too-large", "The file exceeds the bounded input size.")
-        chunks: list[bytes] = []
-        total = 0
-        while total <= limit:
-            chunk = os.read(descriptor, min(1024 * 1024, limit + 1 - total))
-            if not chunk:
-                break
-            chunks.append(chunk)
-            total += len(chunk)
-        if total > limit:
-            raise _ReadError("too-large", "The file exceeds the bounded input size.")
+
+        def read_payload() -> bytes:
+            chunks: list[bytes] = []
+            total = 0
+            while total <= limit:
+                chunk = os.read(descriptor, min(1024 * 1024, limit + 1 - total))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                total += len(chunk)
+            if total > limit:
+                raise _ReadError("too-large", "The file exceeds the bounded input size.")
+            return b"".join(chunks)
+
+        payload = read_payload()
         after = os.fstat(descriptor)
         before_identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
         after_identity = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
-        if before_identity != after_identity or total != after.st_size:
+        if before_identity != after_identity or len(payload) != after.st_size:
+            raise _ReadError("changed", "The file changed while it was being read.")
+
+        # A writer can preserve size and restore timestamps while a large file
+        # is being streamed. A second descriptor read detects the practical
+        # form of that race instead of accepting a mixed-generation snapshot.
+        os.lseek(descriptor, 0, os.SEEK_SET)
+        repeated = read_payload()
+        final = os.fstat(descriptor)
+        final_identity = (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns)
+        if repeated != payload or final_identity != after_identity:
             raise _ReadError("changed", "The file changed while it was being read.")
         if containment_root is not None:
             try:
@@ -178,12 +213,12 @@ def _read_bounded_regular(
                     "The contained file path changed while it was being read.",
                 ) from err
             named_identity = (named.st_dev, named.st_ino, named.st_size, named.st_mtime_ns)
-            if named_identity != after_identity:
+            if named_identity != final_identity:
                 raise _ReadError(
                     "changed",
                     "The contained file identity changed while it was being read.",
                 )
-        return b"".join(chunks)
+        return payload
     except OSError as err:
         raise _ReadError("unreadable", "The file could not be read safely.") from err
     finally:

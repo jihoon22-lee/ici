@@ -40,13 +40,13 @@ class DeadCodeEngine(BaseEngine):
         cfg = self.get_config("dead")
         inventory = AnalysisSourceInventory((), (), 0)
         if selected_sources:
-            ordered = self._ordered_python_sources(self.project_source_dirs())
+            ordered = self._ordered_python_sources(self.project_source_dirs(), selected_sources)
             try:
                 inventory = read_analysis_sources(
                     self.project_root,
                     ordered,
-                    include_generated=bool(cfg.get("include_generated", False)),
-                    include_vendor=bool(cfg.get("include_vendor", False)),
+                    include_generated=cfg.get("include_generated") is True,
+                    include_vendor=cfg.get("include_vendor") is True,
                 )
             except AnalysisSourceError as err:
                 self._analysis_errors.append(err.message)
@@ -187,10 +187,9 @@ class DeadCodeEngine(BaseEngine):
                 )
         return targets
 
-    def _ordered_python_sources(self, source_dirs: list[Path]) -> list[Path]:
+    def _ordered_python_sources(self, source_dirs: list[Path], sources: list[Path]) -> list[Path]:
         """Return source files in configured root precedence order."""
 
-        sources = self.project_python_sources()
         ordered: list[Path] = []
         seen: set[Path] = set()
         for source_dir in source_dirs:

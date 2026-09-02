@@ -292,6 +292,28 @@ def get_all_cpp_sources(
     return sorted(cpp_files)
 
 
+def get_all_cpp_headers(
+    base_path: Path | None = None, config: dict[str, Any] | None = None
+) -> list[Path]:
+    """Find owned C/C++ headers and opt-in generated ``.moc`` inputs."""
+
+    base = _resolve_project_root(base_path or Path.cwd())
+    roots = list(get_source_dirs(base, config))
+    include_root = _safe_project_dir(base, base / "include")
+    if include_root is not None and include_root not in roots:
+        roots.append(include_root)
+    headers = {
+        path
+        for source_dir in roots
+        for path in _iter_project_files(
+            source_dir,
+            base,
+            (".h", ".hh", ".hpp", ".hxx", ".moc"),
+        )
+    }
+    return sorted(headers)
+
+
 def _project_string_list(config: dict[str, Any] | None, key: str) -> list[str]:
     """Read a `[project]` list-of-strings setting, tolerating an absent table."""
     if not config:

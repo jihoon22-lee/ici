@@ -108,14 +108,15 @@ class DuplicateEngine(BaseEngine):
 
         py_sources = self.project_python_sources()
         cpp_sources = self.project_cpp_sources()
-        all_sources = py_sources + cpp_sources
+        cpp_headers = self.project_cpp_headers() or []
+        all_sources = py_sources + cpp_sources + cpp_headers
 
         try:
             inventory = read_analysis_sources(
                 self.project_root,
                 all_sources,
-                include_generated=bool(cfg.get("include_generated", False)),
-                include_vendor=bool(cfg.get("include_vendor", False)),
+                include_generated=cfg.get("include_generated") is True,
+                include_vendor=cfg.get("include_vendor") is True,
             )
         except AnalysisSourceError as err:
             duration = time.time() - t0

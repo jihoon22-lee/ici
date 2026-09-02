@@ -102,11 +102,96 @@ def test_source_intake_deduplicates_relative_and_absolute_paths(tmp_path: Path) 
 
     inventory = read_analysis_sources(
         tmp_path,
-        [Path("src/clean.py"), path, Path("src/./clean.py"), Path("src/clean.py")],
+        [
+            Path("src/clean.py"),
+            path,
+            Path("src/./clean.py"),
+            Path("src/nested/../clean.py"),
+            Path("src/clean.py"),
+        ],
     )
 
     assert [source.file_path for source in inventory.sources] == ["src/clean.py"]
     assert inventory.total_bytes == path.stat().st_size
+
+
+def test_source_intake_limit_errors_are_deterministic_after_sorting(tmp_path: Path) -> None:
+    """Input discovery order must not choose a different failing source."""
+
+    first = _write(tmp_path, "src/a.py", "1234")
+    second = _write(tmp_path, "src/z.py", "5")
+    candidates = [first, second]
+
+    errors = []
+    for paths in (candidates, list(reversed(candidates))):
+        with pytest.raises(AnalysisSourceError) as raised:
+            read_analysis_sources(tmp_path, paths, max_total_bytes=4)
+        errors.append((raised.value.code, raised.value.file_path))
+
+    assert errors == [
+        ("inventory-too-large", "src/z.py"),
+        ("inventory-too-large", "src/z.py"),
+    ]
+
+    file_limit_errors = []
+    for paths in (candidates, list(reversed(candidates))):
+        with pytest.raises(AnalysisSourceError) as raised:
+            read_analysis_sources(tmp_path, paths, max_files=1)
+        file_limit_errors.append((raised.value.code, raised.value.file_path))
+
+    assert file_limit_errors == [("too-many-files", "."), ("too-many-files", ".")]
+
+
+def test_excluded_candidates_do_not_consume_owned_file_limit(tmp_path: Path) -> None:
+    _write(tmp_path, "src/vendor/ignored.py", "value = 0\n")
+    _write(tmp_path, "src/a.py", "value = 1\n")
+    _write(tmp_path, "src/b.py", "value = 2\n")
+
+    inventory = read_analysis_sources(
+        tmp_path,
+        [Path("src/vendor/ignored.py"), Path("src/a.py")],
+        max_files=1,
+    )
+
+    assert [source.file_path for source in inventory.sources] == ["src/a.py"]
+    assert inventory.exclusion_counts == {"vendor": 1}
+
+    with pytest.raises(AnalysisSourceError) as raised:
+        read_analysis_sources(
+            tmp_path,
+            [Path("src/vendor/ignored.py"), Path("src/a.py"), Path("src/b.py")],
+            max_files=1,
+        )
+    assert raised.value.code == "too-many-files"
+
+
+def test_source_intake_enforces_candidate_limit_before_policy_filtering(tmp_path: Path) -> None:
+    paths = []
+    for index in range(3):
+        relative = f"src/vendor/ignored-{index}.py"
+        _write(tmp_path, relative, "value = 0\n")
+        paths.append(Path(relative))
+
+    with pytest.raises(AnalysisSourceError) as raised:
+        read_analysis_sources(tmp_path, paths, max_candidates=2)
+
+    assert raised.value.code == "too-many-candidates"
+    assert raised.value.file_path == "."
+
+
+@pytest.mark.parametrize(
+    "limit_name",
+    ["max_files", "max_candidates", "max_file_bytes", "max_total_bytes"],
+)
+@pytest.mark.parametrize("invalid_limit", [True, False, 0, -1, None])
+def test_source_intake_rejects_invalid_injectable_bounds(
+    tmp_path: Path, limit_name: str, invalid_limit: object
+) -> None:
+    with pytest.raises(AnalysisSourceError) as raised:
+        read_analysis_sources(tmp_path, [], **{limit_name: invalid_limit})
+
+    assert raised.value.code == "invalid-limit"
+    assert raised.value.file_path == "."
 
 
 def test_source_intake_excludes_generated_moc_and_vendor_by_default(tmp_path: Path) -> None:
@@ -170,6 +255,39 @@ def test_source_intake_opt_ins_restore_generated_and_vendor_sources(tmp_path: Pa
     assert all_owned.excluded == ()
 
 
+@pytest.mark.parametrize("include_generated", [False, True])
+@pytest.mark.parametrize("include_vendor", [False, True])
+def test_source_intake_independently_gates_nested_generated_vendor_path(
+    tmp_path: Path, include_generated: bool, include_vendor: bool
+) -> None:
+    """A dual-classified path is counted once but obeys both opt-ins."""
+
+    _write(tmp_path, "src/owned.py", "value = 1\n")
+    _write(tmp_path, "src/vendor/generated/shared.py", "value = 2\n")
+    inventory = read_analysis_sources(
+        tmp_path,
+        [Path("src/owned.py"), Path("src/vendor/generated/shared.py")],
+        include_generated=include_generated,
+        include_vendor=include_vendor,
+    )
+
+    included = include_generated and include_vendor
+    assert len(inventory.sources) == (2 if included else 1)
+    assert len(inventory.excluded) == (0 if included else 1)
+    assert inventory.exclusion_counts == (
+        {}
+        if included
+        else {
+            reason: 1
+            for reason, enabled in (
+                ("generated", include_generated),
+                ("vendor", include_vendor),
+            )
+            if not enabled
+        }
+    )
+
+
 def test_dead_engine_reports_estimated_evidence_and_clean_location(tmp_path: Path) -> None:
     _write(tmp_path, "src/clean.py", "def public():\n    return 1\n")
 
@@ -209,6 +327,7 @@ def test_duplicate_engine_reports_estimated_evidence_and_clean_locations(tmp_pat
     [
         ("src/missing.py", None, "missing"),
         ("src/invalid.py", b"value = \xff\n", "invalid-utf8"),
+        ("src/nul.py", b"value = \x00\n", "invalid-text"),
     ],
 )
 def test_engine_source_read_errors_are_error_not_run(
@@ -235,6 +354,29 @@ def test_engine_source_read_errors_are_error_not_run(
     assert f"{expected_code}:" in target.message
 
 
+def test_dead_engine_uses_one_captured_python_source_discovery(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = _write(tmp_path, "src/clean.py", "value = 1\n")
+    calls = 0
+
+    def discover_once() -> list[Path]:
+        nonlocal calls
+        calls += 1
+        if calls > 1:
+            raise AssertionError("Python source discovery must be captured once")
+        return [path]
+
+    engine = DeadCodeEngine(tmp_path)
+    monkeypatch.setattr(engine, "project_python_sources", discover_once)
+
+    result = engine.run()
+
+    assert calls == 1
+    assert result.status == EngineStatus.PASS
+    assert result.extra["source_files_analyzed"] == 1
+
+
 @pytest.mark.parametrize("include_generated", [False, True])
 @pytest.mark.parametrize("include_vendor", [False, True])
 def test_duplicate_engine_applies_generated_vendor_opt_ins(
@@ -258,6 +400,58 @@ def test_duplicate_engine_applies_generated_vendor_opt_ins(
     expected = 1 + int(include_generated) + int(include_vendor)
     assert result.extra["source_files_analyzed"] == expected
     assert result.extra["source_files_excluded"] == 2 - int(include_generated) - int(include_vendor)
+
+
+@pytest.mark.parametrize("include_generated", [False, True])
+def test_duplicate_engine_discovers_owned_headers_and_generated_moc_without_context(
+    tmp_path: Path, include_generated: bool
+) -> None:
+    """Direct engine runs include project headers and gate standalone .moc files."""
+
+    _write(tmp_path, "include/widget.hpp", "struct Widget { int value; };\n")
+    _write(tmp_path, "include/widget.moc", "int generated_meta_object() { return 1; }\n")
+    config = {
+        "project": {"source_dirs": []},
+        "engines": {"dup": {"include_generated": include_generated}},
+    }
+
+    result = DuplicateEngine(tmp_path, config).run()
+
+    assert result.extra["source_files_analyzed"] == (2 if include_generated else 1)
+    assert result.extra["source_files_excluded"] == (0 if include_generated else 1)
+    if include_generated:
+        assert result.extra["source_exclusion_counts"] == {}
+        assert {target.file_path for target in result.targets} == {
+            "include/widget.hpp",
+            "include/widget.moc",
+        }
+    else:
+        assert result.extra["source_exclusion_counts"] == {"generated": 1}
+        assert {target.file_path for target in result.targets} == {"include/widget.hpp"}
+
+
+@pytest.mark.parametrize(
+    ("engine_type", "engine_name"),
+    [(DeadCodeEngine, "dead"), (DuplicateEngine, "dup")],
+)
+def test_direct_config_string_does_not_enable_generated_or_vendor_sources(
+    tmp_path: Path,
+    engine_type: type[DeadCodeEngine] | type[DuplicateEngine],
+    engine_name: str,
+) -> None:
+    _write(tmp_path, "src/owned.py", "value = 1\n")
+    _write(tmp_path, "src/generated/generated.py", "value = 2\n")
+    _write(tmp_path, "src/vendor/vendor.py", "value = 3\n")
+    config = {
+        "project": {"source_dirs": ["src"]},
+        "engines": {engine_name: {"include_generated": "true", "include_vendor": "true"}},
+    }
+
+    result = engine_type(tmp_path, config).run()
+
+    assert result.extra["source_files_analyzed"] == 1
+    assert result.extra["source_files_excluded"] == 2
+    assert result.extra["source_exclusion_counts"] == {"generated": 1, "vendor": 1}
 
 
 @pytest.mark.parametrize("include_generated", [False, True])
