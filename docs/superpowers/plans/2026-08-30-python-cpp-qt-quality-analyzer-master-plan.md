@@ -1094,9 +1094,24 @@ config/dead/dup bundle 238 tests passed다. 전체 local suite는 `1764 passed, 
 `715bddd5d76540f97d6f78c9349a5177ce5935a80925a5761ea39fb0988d9b0d`로 byte-identical이며
 packaged smoke wrapper는 PASS다. self verify는 exit 0의 WARN(Pass 7, Warn 5, Fail 0,
 Error 0, Skip 1)이며 test `1764/1766`, TEM `4.84`, line/function/branch `89.1%/96.8%/81.5%`,
-HTML `7763578` bytes, 정확한 title 및 외부 resource 0개를 확인했다. 따라서 이 기록은
-local evidence일 뿐 PR/CI 결과를 뜻하지 않으며, PR/CI 결과는 아직 없다. 버전은 `0.10.2`로
+HTML `7763578` bytes, 정확한 title 및 외부 resource 0개를 확인했다. 버전은 `0.10.2`로
 유지하고 release는 만들지 않는다.
+
+[PR #133](https://github.com/jihoon22-lee/ici/pull/133)은 `fix(analysis): make heuristic
+source evidence bounded and deterministic` 제목으로 열려 있다. 첫 implementation
+[workflow run `33605000619`](https://github.com/jihoon22-lee/ici/actions/runs/33605000619)은
+`Verify & Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`, `Publish PR Report &
+Sticky Comment`, `Merge Gate`를 포함한 모든 required check가 green이었다. [sticky comment](https://github.com/jihoon22-lee/ici/pull/133#issuecomment-5506324653)는
+`github-actions` marker/current-run 댓글 정확히 하나를 유지한다. PR artifact에서 추출한 HTML과
+PR Pages는 byte-identical이며, 두 Pages 응답은 UTF-8 exact title과 Zero-CDN을 통과했다.
+
+| Report | HTML bytes | SHA-256 | Pages/title |
+|---|---:|---|---|
+| ici | 7,701,814 | `071d83ef1fac4d39102bcb8eecad68d614dda736d74a6b3a93b210c9feecf38b` | [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/133/) — `ici Verification Report — ici` |
+| viewer | 358,047 | `9e7e295e8d28fe0633039f58099c82a5914d30cb6fcd8c9f2ba82d25e84c4305` | [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/133/) — `ici Verification Report — viewer` |
+
+PR #133은 아직 병합되지 않았다. 이 문서 업데이트 이후의 후속 CI와 Merge Gate 확인이
+남아 있으며, 위 원격 증거만으로 merge 또는 release를 선언하지 않는다.
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10

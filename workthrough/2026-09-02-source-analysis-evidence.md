@@ -8,9 +8,10 @@ and containment boundary, resource limits, evidence semantics, and the remaining
 without treating heuristic analysis as exact. The implementation history is intentionally
 referred to by branch and change description rather than by ephemeral pre-rebase commit IDs.
 
-The current version remains `0.10.2`. This is an unmerged local documentation/evidence update;
-it contains no PR, CI, release, or version-bump claim. Local package/build and smoke observations
-are recorded below, but they do not constitute a merge gate.
+The current version remains `0.10.2`. This is a documentation follow-up for open PR #133; the
+implementation workflow evidence is recorded below, but the PR remains unmerged. The documentation
+follow-up still requires its own CI and merge-gate confirmation. No release or version bump is
+claimed.
 
 ## Context
 
@@ -173,8 +174,23 @@ suite is green at 1764 passed and 2 skipped out of 1766 collected. The two packa
 byte-identical, packaged smoke passes, and the source self-verify exits 0 with the expected WARN
 suite status.
 
-No PR or remote CI result is asserted by this workthrough. The package and local HTML are
-development evidence only; the version remains `0.10.2` and no release is created.
+The implementation PR is [#133](https://github.com/jihoon22-lee/ici/pull/133), titled
+`fix(analysis): make heuristic source evidence bounded and deterministic`. Its first
+[workflow run `33605000619`](https://github.com/jihoon22-lee/ici/actions/runs/33605000619) passed
+all required checks: `Verify & Dogfood ici`, `Viewer GUI build Qt5`, `Viewer GUI build Qt6`,
+`Publish PR Report & Sticky Comment`, and `Merge Gate`. The [sticky comment](https://github.com/jihoon22-lee/ici/pull/133#issuecomment-5506324653)
+contains exactly one `github-actions` marker/current-run comment.
+
+The extracted artifact HTML and PR Pages are byte-identical. Independent Pages checks also found
+UTF-8 exact titles and zero external resource URLs:
+
+| Report | HTML bytes | SHA-256 | Pages/title |
+|---|---:|---|---|
+| ici | 7,701,814 | `071d83ef1fac4d39102bcb8eecad68d614dda736d74a6b3a93b210c9feecf38b` | [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/133/) — `ici Verification Report — ici` |
+| viewer | 358,047 | `9e7e295e8d28fe0633039f58099c82a5914d30cb6fcd8c9f2ba82d25e84c4305` | [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/133/) — `ici Verification Report — viewer` |
+
+PR #133 remains open and unmerged. The documentation follow-up's CI and Merge Gate are still
+pending; the version remains `0.10.2` and no release is created.
 
 `git diff --check` is run after the documentation edits as the final whitespace gate.
 
