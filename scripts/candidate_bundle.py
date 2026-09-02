@@ -49,11 +49,13 @@ _PROVENANCE_FIELDS = (
     "target_sha",
     "package_version",
     "candidate_workflow",
-    "workflow_definition_sha",
+    "candidate_workflow_definition_sha",
     "candidate_run_id",
     "candidate_run_attempt",
     "merge_gate_check_run_id",
+    "merge_gate_job_id",
     "merge_gate_run_id",
+    "merge_gate_run_attempt",
     "merge_gate_job_url",
     "merge_gate_url",
     "artifact_file",
@@ -316,7 +318,7 @@ def _validate_merge_gate_url(repository: str, run_id: int, value: object) -> str
     return value
 
 
-def _validate_merge_gate_job_url(repository: str, run_id: int, value: object) -> str:
+def _validate_merge_gate_job_url(repository: str, run_id: int, job_id: int, value: object) -> str:
     if not isinstance(value, str) or len(value.encode("utf-8")) > 512:
         raise CandidateBundleError(
             "merge_gate_job_url must be the canonical GitHub Actions job URL"
@@ -326,11 +328,10 @@ def _validate_merge_gate_job_url(repository: str, run_id: int, value: object) ->
         rf"({_URL_ID_PATTERN})/job/({_URL_ID_PATTERN})$"
     )
     match = pattern.fullmatch(value)
-    if match is None or int(match.group(1)) != run_id:
+    if match is None or int(match.group(1)) != run_id or int(match.group(2)) != job_id:
         raise CandidateBundleError(
             "merge_gate_job_url must be the canonical GitHub Actions job URL"
         )
-    _positive_id(int(match.group(2)), "merge_gate_job_id")
     return value
 
 
@@ -338,24 +339,35 @@ def _validate_arguments(
     repository: object,
     target_sha: object,
     package_version: object,
-    workflow_definition_sha: object,
+    candidate_workflow_definition_sha: object,
     candidate_run_id: object,
     candidate_run_attempt: object,
     merge_gate_check_run_id: object,
+    merge_gate_job_id: object,
     merge_gate_run_id: object,
+    merge_gate_run_attempt: object,
     merge_gate_job_url: object,
     merge_gate_url: object,
-) -> tuple[str, str, str, str, int, int, int, int, str, str]:
+) -> tuple[str, str, str, str, int, int, int, int, int, int, str, str]:
     valid_repository = _validate_repository(repository)
     valid_target_sha = _validate_sha(target_sha, "target_sha")
     valid_package_version = _validate_semver(package_version)
-    valid_workflow_sha = _validate_sha(workflow_definition_sha, "workflow_definition_sha")
+    valid_workflow_sha = _validate_sha(
+        candidate_workflow_definition_sha, "candidate_workflow_definition_sha"
+    )
+    if valid_workflow_sha != valid_target_sha:
+        raise CandidateBundleError("candidate_workflow_definition_sha must equal target_sha")
     valid_candidate_run_id = _positive_id(candidate_run_id, "candidate_run_id")
     valid_candidate_run_attempt = _positive_id(candidate_run_attempt, "candidate_run_attempt")
     valid_merge_gate_check_run_id = _positive_id(merge_gate_check_run_id, "merge_gate_check_run_id")
+    valid_merge_gate_job_id = _positive_id(merge_gate_job_id, "merge_gate_job_id")
     valid_merge_gate_run_id = _positive_id(merge_gate_run_id, "merge_gate_run_id")
+    valid_merge_gate_run_attempt = _positive_id(merge_gate_run_attempt, "merge_gate_run_attempt")
     valid_job_url = _validate_merge_gate_job_url(
-        valid_repository, valid_merge_gate_run_id, merge_gate_job_url
+        valid_repository,
+        valid_merge_gate_run_id,
+        valid_merge_gate_job_id,
+        merge_gate_job_url,
     )
     valid_url = _validate_merge_gate_url(valid_repository, valid_merge_gate_run_id, merge_gate_url)
     return (
@@ -366,7 +378,9 @@ def _validate_arguments(
         valid_candidate_run_id,
         valid_candidate_run_attempt,
         valid_merge_gate_check_run_id,
+        valid_merge_gate_job_id,
         valid_merge_gate_run_id,
+        valid_merge_gate_run_attempt,
         valid_job_url,
         valid_url,
     )
@@ -526,12 +540,24 @@ def _validate_provenance(value: object) -> dict[str, Any]:
     _validate_semver(value["package_version"])
     if value["candidate_workflow"] != CANDIDATE_WORKFLOW:
         raise CandidateBundleError("candidate workflow path is invalid")
-    _validate_sha(value["workflow_definition_sha"], "workflow_definition_sha")
+    workflow_sha = _validate_sha(
+        value["candidate_workflow_definition_sha"],
+        "candidate_workflow_definition_sha",
+    )
+    if workflow_sha != value["target_sha"]:
+        raise CandidateBundleError("candidate_workflow_definition_sha must equal target_sha")
     _positive_id(value["candidate_run_id"], "candidate_run_id")
     _positive_id(value["candidate_run_attempt"], "candidate_run_attempt")
     _positive_id(value["merge_gate_check_run_id"], "merge_gate_check_run_id")
+    merge_gate_job_id = _positive_id(value["merge_gate_job_id"], "merge_gate_job_id")
     merge_gate_run_id = _positive_id(value["merge_gate_run_id"], "merge_gate_run_id")
-    _validate_merge_gate_job_url(repository, merge_gate_run_id, value["merge_gate_job_url"])
+    _positive_id(value["merge_gate_run_attempt"], "merge_gate_run_attempt")
+    _validate_merge_gate_job_url(
+        repository,
+        merge_gate_run_id,
+        merge_gate_job_id,
+        value["merge_gate_job_url"],
+    )
     _validate_merge_gate_url(repository, merge_gate_run_id, value["merge_gate_url"])
     if value["artifact_file"] != "ici.pyz":
         raise CandidateBundleError("candidate artifact filename is invalid")
@@ -772,11 +798,13 @@ def create_bundle(
     repository: str,
     target_sha: str,
     package_version: str,
-    workflow_definition_sha: str,
+    candidate_workflow_definition_sha: str,
     candidate_run_id: int,
     candidate_run_attempt: int,
     merge_gate_check_run_id: int,
+    merge_gate_job_id: int,
     merge_gate_run_id: int,
+    merge_gate_run_attempt: int,
     merge_gate_job_url: str,
     merge_gate_url: str,
 ) -> dict[str, Any]:
@@ -786,11 +814,13 @@ def create_bundle(
         repository,
         target_sha,
         package_version,
-        workflow_definition_sha,
+        candidate_workflow_definition_sha,
         candidate_run_id,
         candidate_run_attempt,
         merge_gate_check_run_id,
+        merge_gate_job_id,
         merge_gate_run_id,
+        merge_gate_run_attempt,
         merge_gate_job_url,
         merge_gate_url,
     )
@@ -802,7 +832,9 @@ def create_bundle(
         valid_candidate_run_id,
         valid_candidate_run_attempt,
         valid_merge_gate_check_run_id,
+        valid_merge_gate_job_id,
         valid_merge_gate_run_id,
+        valid_merge_gate_run_attempt,
         valid_merge_gate_job_url,
         valid_merge_gate_url,
     ) = valid
@@ -835,11 +867,13 @@ def create_bundle(
             "target_sha": valid_target_sha,
             "package_version": valid_package_version,
             "candidate_workflow": CANDIDATE_WORKFLOW,
-            "workflow_definition_sha": valid_workflow_sha,
+            "candidate_workflow_definition_sha": valid_workflow_sha,
             "candidate_run_id": valid_candidate_run_id,
             "candidate_run_attempt": valid_candidate_run_attempt,
             "merge_gate_check_run_id": valid_merge_gate_check_run_id,
+            "merge_gate_job_id": valid_merge_gate_job_id,
             "merge_gate_run_id": valid_merge_gate_run_id,
+            "merge_gate_run_attempt": valid_merge_gate_run_attempt,
             "merge_gate_job_url": valid_merge_gate_job_url,
             "merge_gate_url": valid_merge_gate_url,
             "artifact_file": "ici.pyz",
@@ -897,11 +931,13 @@ def _parser() -> argparse.ArgumentParser:
     create.add_argument("--repository", required=True)
     create.add_argument("--target-sha", required=True)
     create.add_argument("--package-version", required=True)
-    create.add_argument("--workflow-definition-sha", required=True)
+    create.add_argument("--candidate-workflow-definition-sha", required=True)
     create.add_argument("--candidate-run-id", required=True, type=_cli_id)
     create.add_argument("--candidate-run-attempt", required=True, type=_cli_id)
     create.add_argument("--merge-gate-check-run-id", required=True, type=_cli_id)
+    create.add_argument("--merge-gate-job-id", required=True, type=_cli_id)
     create.add_argument("--merge-gate-run-id", required=True, type=_cli_id)
+    create.add_argument("--merge-gate-run-attempt", required=True, type=_cli_id)
     create.add_argument("--merge-gate-job-url", required=True)
     create.add_argument("--merge-gate-url", required=True)
     verify = commands.add_parser("verify", help="verify a candidate artifact bundle")
@@ -920,11 +956,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 repository=args.repository,
                 target_sha=args.target_sha,
                 package_version=args.package_version,
-                workflow_definition_sha=args.workflow_definition_sha,
+                candidate_workflow_definition_sha=(args.candidate_workflow_definition_sha),
                 candidate_run_id=args.candidate_run_id,
                 candidate_run_attempt=args.candidate_run_attempt,
                 merge_gate_check_run_id=args.merge_gate_check_run_id,
+                merge_gate_job_id=args.merge_gate_job_id,
                 merge_gate_run_id=args.merge_gate_run_id,
+                merge_gate_run_attempt=args.merge_gate_run_attempt,
                 merge_gate_job_url=args.merge_gate_job_url,
                 merge_gate_url=args.merge_gate_url,
             )

@@ -29,10 +29,11 @@ candidate_bundle = _load_module()
 
 REPOSITORY = "jihoon22-lee/ici"
 TARGET_SHA = "a" * 40
-WORKFLOW_SHA = "b" * 40
+WORKFLOW_SHA = TARGET_SHA
 MERGE_GATE_RUN_ID = 456
+MERGE_GATE_JOB_ID = 789
 MERGE_GATE_URL = f"https://github.com/{REPOSITORY}/actions/runs/{MERGE_GATE_RUN_ID}"
-MERGE_GATE_JOB_URL = f"{MERGE_GATE_URL}/job/789"
+MERGE_GATE_JOB_URL = f"{MERGE_GATE_URL}/job/{MERGE_GATE_JOB_ID}"
 
 
 def _arguments() -> dict[str, object]:
@@ -40,11 +41,13 @@ def _arguments() -> dict[str, object]:
         "repository": REPOSITORY,
         "target_sha": TARGET_SHA,
         "package_version": "0.10.2",
-        "workflow_definition_sha": WORKFLOW_SHA,
+        "candidate_workflow_definition_sha": WORKFLOW_SHA,
         "candidate_run_id": 123,
         "candidate_run_attempt": 1,
         "merge_gate_check_run_id": 234,
+        "merge_gate_job_id": MERGE_GATE_JOB_ID,
         "merge_gate_run_id": MERGE_GATE_RUN_ID,
+        "merge_gate_run_attempt": 2,
         "merge_gate_job_url": MERGE_GATE_JOB_URL,
         "merge_gate_url": MERGE_GATE_URL,
     }
@@ -86,11 +89,13 @@ def test_happy_path_has_exact_bundle_and_provenance(tmp_path: Path):
     assert provenance["target_sha"] == TARGET_SHA
     assert provenance["package_version"] == "0.10.2"
     assert provenance["candidate_workflow"] == candidate_bundle.CANDIDATE_WORKFLOW
-    assert provenance["workflow_definition_sha"] == WORKFLOW_SHA
+    assert provenance["candidate_workflow_definition_sha"] == WORKFLOW_SHA
     assert provenance["candidate_run_id"] == 123
     assert provenance["candidate_run_attempt"] == 1
     assert provenance["merge_gate_check_run_id"] == 234
+    assert provenance["merge_gate_job_id"] == MERGE_GATE_JOB_ID
     assert provenance["merge_gate_run_id"] == MERGE_GATE_RUN_ID
+    assert provenance["merge_gate_run_attempt"] == 2
     assert provenance["merge_gate_job_url"] == MERGE_GATE_JOB_URL
     assert provenance["merge_gate_url"] == MERGE_GATE_URL
     assert provenance["artifact_file"] == "ici.pyz"
@@ -133,7 +138,8 @@ def test_manifest_is_deterministic_and_utf8_with_final_newline(tmp_path: Path):
         ("repository", "owner/name?query"),
         ("target_sha", "A" * 40),
         ("target_sha", "a" * 39),
-        ("workflow_definition_sha", "g" * 40),
+        ("candidate_workflow_definition_sha", "g" * 40),
+        ("candidate_workflow_definition_sha", "b" * 40),
         ("package_version", "v0.10.2"),
         ("package_version", "1.2"),
         ("package_version", "1.02.3"),
@@ -143,8 +149,10 @@ def test_manifest_is_deterministic_and_utf8_with_final_newline(tmp_path: Path):
         ("candidate_run_id", True),
         ("candidate_run_attempt", 0),
         ("merge_gate_check_run_id", 0),
+        ("merge_gate_job_id", 0),
         ("merge_gate_run_id", 0),
         ("merge_gate_run_id", "456"),
+        ("merge_gate_run_attempt", 0),
         ("merge_gate_url", "https://github.com/jihoon22-lee/ici/actions/runs/457"),
         ("merge_gate_url", "https://github.com/jihoon22-lee/ici/actions/runs/456/"),
         ("merge_gate_url", "https://github.com/other/ici/actions/runs/456"),
@@ -155,6 +163,10 @@ def test_manifest_is_deterministic_and_utf8_with_final_newline(tmp_path: Path):
         (
             "merge_gate_job_url",
             "https://github.com/jihoon22-lee/ici/actions/runs/456/job/0",
+        ),
+        (
+            "merge_gate_job_id",
+            790,
         ),
     ],
 )
@@ -411,7 +423,7 @@ def test_cli_success_and_failure(tmp_path: Path):
         TARGET_SHA,
         "--package-version",
         "0.10.2",
-        "--workflow-definition-sha",
+        "--candidate-workflow-definition-sha",
         WORKFLOW_SHA,
         "--candidate-run-id",
         "123",
@@ -419,8 +431,12 @@ def test_cli_success_and_failure(tmp_path: Path):
         "1",
         "--merge-gate-check-run-id",
         "234",
+        "--merge-gate-job-id",
+        str(MERGE_GATE_JOB_ID),
         "--merge-gate-run-id",
         str(MERGE_GATE_RUN_ID),
+        "--merge-gate-run-attempt",
+        "2",
         "--merge-gate-job-url",
         MERGE_GATE_JOB_URL,
         "--merge-gate-url",

@@ -20,8 +20,13 @@ from candidate_merge_gate import (  # noqa: E402
     MAX_JSON_BYTES,
     CandidateMergeGateError,
     MergeGateSelection,
+    WorkflowJobVerification,
+    WorkflowRunVerification,
     main,
+    required_check_pages,
     select_merge_gate,
+    select_merge_gate_pages,
+    verify_workflow_job,
     verify_workflow_run,
 )
 
@@ -37,6 +42,7 @@ def _check(
     check_id: int,
     *,
     run_id: int = 2001,
+    job_id: int = 3001,
     sha: str = TARGET_SHA,
     app: str = "github-actions",
     status: str = "completed",
@@ -50,7 +56,7 @@ def _check(
         "app": {"slug": app},
         "status": status,
         "conclusion": conclusion,
-        "details_url": (f"https://github.com/{repository}/actions/runs/{run_id}/job/3001"),
+        "details_url": (f"https://github.com/{repository}/actions/runs/{run_id}/job/{job_id}"),
     }
 
 
@@ -81,6 +87,30 @@ def _run(run_id: int = 2001) -> dict[str, object]:
     }
 
 
+def _job(
+    *,
+    check_run_id: int = 101,
+    job_id: int = 3001,
+    run_id: int = 2001,
+    run_attempt: int = 1,
+) -> dict[str, object]:
+    return {
+        "id": job_id,
+        "run_id": run_id,
+        "run_attempt": run_attempt,
+        "name": "Merge Gate",
+        "workflow_name": "CI Quality Gate (Dogfooding)",
+        "head_branch": "main",
+        "head_sha": TARGET_SHA,
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": (f"https://github.com/{REPOSITORY}/actions/runs/{run_id}/job/{job_id}"),
+        "url": f"https://api.github.com/repos/{REPOSITORY}/actions/jobs/{job_id}",
+        "run_url": f"https://api.github.com/repos/{REPOSITORY}/actions/runs/{run_id}",
+        "check_run_url": (f"https://api.github.com/repos/{REPOSITORY}/check-runs/{check_run_id}"),
+    }
+
+
 def test_selects_newest_exact_success(tmp_path: Path) -> None:
     path = tmp_path / "checks.json"
     _checks(path, [_check(100, run_id=2000), _check(101)])
@@ -88,6 +118,7 @@ def test_selects_newest_exact_success(tmp_path: Path) -> None:
     assert select_merge_gate(path, TARGET_SHA, REPOSITORY) == MergeGateSelection(
         check_run_id=101,
         workflow_run_id=2001,
+        workflow_job_id=3001,
         details_url=f"https://github.com/{REPOSITORY}/actions/runs/2001/job/3001",
     )
 
@@ -163,6 +194,33 @@ def test_paginated_response_must_be_complete_and_unique(tmp_path: Path) -> None:
         select_merge_gate(path, TARGET_SHA, REPOSITORY)
 
 
+def test_explicit_page_plan_and_selection_are_bounded(tmp_path: Path) -> None:
+    first = tmp_path / "page-01.json"
+    second = tmp_path / "page-02.json"
+    first_entries = [_check(check_id, run_id=2000) for check_id in range(1, 101)]
+    _checks(first, first_entries, total=101)
+    _checks(second, [_check(101)], total=101)
+
+    assert required_check_pages(first) == 2
+    assert select_merge_gate_pages([first, second], TARGET_SHA, REPOSITORY) == MergeGateSelection(
+        check_run_id=101,
+        workflow_run_id=2001,
+        workflow_job_id=3001,
+        details_url=f"https://github.com/{REPOSITORY}/actions/runs/2001/job/3001",
+    )
+
+    with pytest.raises(CandidateMergeGateError, match="page count"):
+        select_merge_gate_pages([first], TARGET_SHA, REPOSITORY)
+
+    _checks(first, first_entries, total=1001)
+    with pytest.raises(CandidateMergeGateError, match="too many pages"):
+        required_check_pages(first)
+
+    _checks(first, [_check(1)], total=2)
+    with pytest.raises(CandidateMergeGateError, match="incomplete"):
+        required_check_pages(first)
+
+
 def test_check_response_rejects_bad_url_counts_and_shape(tmp_path: Path) -> None:
     path = tmp_path / "checks.json"
     bad = _check(100)
@@ -209,9 +267,78 @@ def test_bounded_json_rejects_duplicate_key_oversize_symlink_and_fifo(
 def test_verifies_exact_canonical_main_workflow(tmp_path: Path) -> None:
     path = tmp_path / "run.json"
     _write(path, _run())
-    assert verify_workflow_run(path, TARGET_SHA, REPOSITORY, 2001) == (
-        f"https://github.com/{REPOSITORY}/actions/runs/2001"
+    assert verify_workflow_run(path, TARGET_SHA, REPOSITORY, 2001) == WorkflowRunVerification(
+        workflow_run_id=2001,
+        run_attempt=1,
+        html_url=f"https://github.com/{REPOSITORY}/actions/runs/2001",
     )
+
+
+def test_verifies_job_binding_for_exact_workflow_attempt(tmp_path: Path) -> None:
+    path = tmp_path / "job.json"
+    _write(path, _job())
+
+    assert verify_workflow_job(
+        path,
+        TARGET_SHA,
+        REPOSITORY,
+        expected_check_run_id=101,
+        expected_job_id=3001,
+        expected_run_id=2001,
+        expected_run_attempt=1,
+    ) == WorkflowJobVerification(
+        check_run_id=101,
+        workflow_job_id=3001,
+        workflow_run_id=2001,
+        run_attempt=1,
+        html_url=f"https://github.com/{REPOSITORY}/actions/runs/2001/job/3001",
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "message"),
+    [
+        ("id", 3002, "job ID"),
+        ("run_id", 2002, "run ID"),
+        ("run_attempt", 2, "attempt"),
+        ("name", "Other", "name"),
+        ("workflow_name", "Other", "workflow_name"),
+        ("head_branch", "feature", "head_branch"),
+        ("head_sha", "b" * 40, "head_sha"),
+        ("status", "in_progress", "status"),
+        ("conclusion", "failure", "conclusion"),
+        (
+            "html_url",
+            f"https://github.com/{REPOSITORY}/actions/runs/2001/job/3002",
+            "html_url",
+        ),
+        (
+            "url",
+            f"https://api.github.com/repos/{REPOSITORY}/actions/jobs/3002",
+            "url",
+        ),
+        (
+            "run_url",
+            f"https://api.github.com/repos/{REPOSITORY}/actions/runs/2002",
+            "run_url",
+        ),
+        (
+            "check_run_url",
+            f"https://api.github.com/repos/{REPOSITORY}/check-runs/102",
+            "check_run_url",
+        ),
+    ],
+)
+def test_rejects_wrong_workflow_job_binding(
+    tmp_path: Path, field: str, replacement: object, message: str
+) -> None:
+    path = tmp_path / "job.json"
+    payload = _job()
+    payload[field] = replacement
+    _write(path, payload)
+
+    with pytest.raises(CandidateMergeGateError, match=message):
+        verify_workflow_job(path, TARGET_SHA, REPOSITORY, 101, 3001, 2001, 1)
 
 
 @pytest.mark.parametrize(
@@ -266,14 +393,18 @@ def test_rejects_unsafe_identity_inputs(tmp_path: Path, sha: str, repository: st
 def test_cli_emits_bounded_json_and_fails_without_success_output(tmp_path: Path) -> None:
     checks = tmp_path / "checks.json"
     run = tmp_path / "run.json"
+    job = tmp_path / "job.json"
     _checks(checks, [_check(100)])
     _write(run, _run())
+    _write(job, _job(check_run_id=100))
 
     output = StringIO()
     with redirect_stdout(output):
         assert main(["select", str(checks), TARGET_SHA, REPOSITORY]) == 0
     assert json.loads(output.getvalue()) == {
+        "check_run_id": 100,
         "details_url": f"https://github.com/{REPOSITORY}/actions/runs/2001/job/3001",
+        "workflow_job_id": 3001,
         "workflow_run_id": 2001,
     }
 
@@ -282,6 +413,32 @@ def test_cli_emits_bounded_json_and_fails_without_success_output(tmp_path: Path)
         assert main(["verify", str(run), TARGET_SHA, REPOSITORY, "2001"]) == 0
     assert json.loads(output.getvalue()) == {
         "html_url": f"https://github.com/{REPOSITORY}/actions/runs/2001",
+        "run_attempt": 1,
+        "workflow_run_id": 2001,
+    }
+
+    output = StringIO()
+    with redirect_stdout(output):
+        assert (
+            main(
+                [
+                    "verify-job",
+                    str(job),
+                    TARGET_SHA,
+                    REPOSITORY,
+                    "100",
+                    "3001",
+                    "2001",
+                    "1",
+                ]
+            )
+            == 0
+        )
+    assert json.loads(output.getvalue()) == {
+        "check_run_id": 100,
+        "html_url": f"https://github.com/{REPOSITORY}/actions/runs/2001/job/3001",
+        "run_attempt": 1,
+        "workflow_job_id": 3001,
         "workflow_run_id": 2001,
     }
 

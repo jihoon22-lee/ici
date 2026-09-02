@@ -1,0 +1,354 @@
+name: Build ici Candidate Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "Exact protected-main commit to package (40 lowercase hex characters)"
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: ici-candidate-${{ inputs.target_sha }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Candidate Provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+    outputs:
+      target_sha: ${{ steps.provenance.outputs.target_sha }}
+      merge_gate_check_run_id: ${{ steps.provenance.outputs.merge_gate_check_run_id }}
+      merge_gate_job_id: ${{ steps.provenance.outputs.merge_gate_job_id }}
+      merge_gate_run_id: ${{ steps.provenance.outputs.merge_gate_run_id }}
+      merge_gate_run_attempt: ${{ steps.provenance.outputs.merge_gate_run_attempt }}
+      merge_gate_job_url: ${{ steps.provenance.outputs.merge_gate_job_url }}
+      merge_gate_url: ${{ steps.provenance.outputs.merge_gate_url }}
+      candidate_workflow_definition_sha: ${{ steps.provenance.outputs.candidate_workflow_definition_sha }}
+
+    steps:
+      - name: Checkout Trusted Workflow Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.10"
+
+      - name: Validate Exact Main Commit and Merge Gate
+        id: provenance
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED_TARGET_SHA: ${{ inputs.target_sha }}
+        run: |
+          set -euo pipefail
+
+          test "$GITHUB_REPOSITORY" = "jihoon22-lee/ici"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          if ! printf '%s' "$REQUESTED_TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::target_sha must be a full lowercase commit SHA"
+            exit 1
+          fi
+          if [ "$REQUESTED_TARGET_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error::target_sha must equal the protected-main dispatch commit"
+            exit 1
+          fi
+
+          git fetch --force origin refs/heads/main:refs/remotes/origin/main
+          git cat-file -e "${REQUESTED_TARGET_SHA}^{commit}"
+          test "$(git rev-parse "${REQUESTED_TARGET_SHA}^{commit}")" = "$REQUESTED_TARGET_SHA"
+          git merge-base --is-ancestor "$REQUESTED_TARGET_SHA" refs/remotes/origin/main
+
+          checks_dir="$RUNNER_TEMP/candidate-check-pages"
+          mkdir -- "$checks_dir"
+          first_checks_page="$checks_dir/page-01.json"
+          page_plan_json="$RUNNER_TEMP/candidate-page-plan.json"
+          selection_json="$RUNNER_TEMP/candidate-selection.json"
+          workflow_json="$RUNNER_TEMP/candidate-workflow-run.json"
+          verified_json="$RUNNER_TEMP/candidate-verified-run.json"
+          workflow_job_json="$RUNNER_TEMP/candidate-workflow-job.json"
+          verified_job_json="$RUNNER_TEMP/candidate-verified-job.json"
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/commits/${REQUESTED_TARGET_SHA}/check-runs?per_page=100&filter=all&page=1" \
+            > "$first_checks_page"
+          python3 scripts/candidate_merge_gate.py page-count \
+            "$first_checks_page" > "$page_plan_json"
+          page_count="$(python3 - "$page_plan_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["page_count"])
+          PY
+          )"
+          check_pages=("$first_checks_page")
+          for ((page = 2; page <= page_count; page++)); do
+            printf -v page_file '%s/page-%02d.json' "$checks_dir" "$page"
+            gh api \
+              -H 'Accept: application/vnd.github+json' \
+              "repos/${GITHUB_REPOSITORY}/commits/${REQUESTED_TARGET_SHA}/check-runs?per_page=100&filter=all&page=${page}" \
+              > "$page_file"
+            check_pages+=("$page_file")
+          done
+          test "${#check_pages[@]}" = "$page_count"
+          python3 scripts/candidate_merge_gate.py select-pages \
+            "$REQUESTED_TARGET_SHA" "$GITHUB_REPOSITORY" "${check_pages[@]}" \
+            > "$selection_json"
+          merge_gate_run_id="$(python3 - "$selection_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["workflow_run_id"])
+          PY
+          )"
+          merge_gate_check_run_id="$(python3 - "$selection_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["check_run_id"])
+          PY
+          )"
+          merge_gate_job_id="$(python3 - "$selection_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["workflow_job_id"])
+          PY
+          )"
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${merge_gate_run_id}" \
+            > "$workflow_json"
+          python3 scripts/candidate_merge_gate.py verify \
+            "$workflow_json" "$REQUESTED_TARGET_SHA" "$GITHUB_REPOSITORY" \
+            "$merge_gate_run_id" > "$verified_json"
+          merge_gate_url="$(python3 - "$verified_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["html_url"])
+          PY
+          )"
+          merge_gate_run_attempt="$(python3 - "$verified_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["run_attempt"])
+          PY
+          )"
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/jobs/${merge_gate_job_id}" \
+            > "$workflow_job_json"
+          python3 scripts/candidate_merge_gate.py verify-job \
+            "$workflow_job_json" "$REQUESTED_TARGET_SHA" "$GITHUB_REPOSITORY" \
+            "$merge_gate_check_run_id" "$merge_gate_job_id" \
+            "$merge_gate_run_id" "$merge_gate_run_attempt" > "$verified_job_json"
+          merge_gate_check_run_id="$(python3 - "$verified_job_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["check_run_id"])
+          PY
+          )"
+          merge_gate_job_id="$(python3 - "$verified_job_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["workflow_job_id"])
+          PY
+          )"
+          merge_gate_run_id="$(python3 - "$verified_job_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["workflow_run_id"])
+          PY
+          )"
+          merge_gate_run_attempt="$(python3 - "$verified_job_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["run_attempt"])
+          PY
+          )"
+          merge_gate_job_url="$(python3 - "$verified_job_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(value["html_url"])
+          PY
+          )"
+
+          {
+            printf 'target_sha=%s\n' "$REQUESTED_TARGET_SHA"
+            printf 'merge_gate_check_run_id=%s\n' "$merge_gate_check_run_id"
+            printf 'merge_gate_job_id=%s\n' "$merge_gate_job_id"
+            printf 'merge_gate_run_id=%s\n' "$merge_gate_run_id"
+            printf 'merge_gate_run_attempt=%s\n' "$merge_gate_run_attempt"
+            printf 'merge_gate_job_url=%s\n' "$merge_gate_job_url"
+            printf 'merge_gate_url=%s\n' "$merge_gate_url"
+            printf 'candidate_workflow_definition_sha=%s\n' "$GITHUB_SHA"
+          } >> "$GITHUB_OUTPUT"
+          echo "Validated candidate target $REQUESTED_TARGET_SHA via $merge_gate_url"
+
+  build:
+    name: Build Reproducible Candidate
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Validated Candidate Commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate.outputs.target_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Confirm Exact Candidate Commit
+        env:
+          TARGET_SHA: ${{ needs.validate.outputs.target_sha }}
+        run: test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Build Twice and Run Isolated Smoke
+        run: |
+          set -euo pipefail
+          # Candidate-controlled scripts must not inherit publication, OIDC,
+          # artifact, or cache credentials. This shell-local scrub does not
+          # affect the later trusted upload action.
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
+          unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
+          chmod +x scripts/build-pyz.sh scripts/launcher.sh scripts/smoke.sh \
+            scripts/verify-reproducibility.sh
+          ./scripts/verify-reproducibility.sh
+          ./scripts/smoke.sh
+
+      - name: Stage Exact Candidate Bundle
+        env:
+          TARGET_SHA: ${{ needs.validate.outputs.target_sha }}
+          CANDIDATE_WORKFLOW_DEFINITION_SHA: ${{ needs.validate.outputs.candidate_workflow_definition_sha }}
+          MERGE_GATE_CHECK_RUN_ID: ${{ needs.validate.outputs.merge_gate_check_run_id }}
+          MERGE_GATE_JOB_ID: ${{ needs.validate.outputs.merge_gate_job_id }}
+          MERGE_GATE_RUN_ID: ${{ needs.validate.outputs.merge_gate_run_id }}
+          MERGE_GATE_RUN_ATTEMPT: ${{ needs.validate.outputs.merge_gate_run_attempt }}
+          MERGE_GATE_JOB_URL: ${{ needs.validate.outputs.merge_gate_job_url }}
+          MERGE_GATE_URL: ${{ needs.validate.outputs.merge_gate_url }}
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
+          unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
+          package_version="$(python3 - <<'PY'
+          import ast
+          from pathlib import Path
+
+          tree = ast.parse(Path("src/ici/__init__.py").read_text(encoding="utf-8"))
+          for node in tree.body:
+              if isinstance(node, ast.Assign):
+                  for target in node.targets:
+                      if isinstance(target, ast.Name) and target.id == "__version__":
+                          value = ast.literal_eval(node.value)
+                          if isinstance(value, str):
+                              print(value)
+                              raise SystemExit(0)
+          raise SystemExit("missing string __version__")
+          PY
+          )"
+          test "$(dist/ici.pyz --version)" = "ici $package_version"
+          bundle_dir="$RUNNER_TEMP/ici-candidate-bundle"
+          python3 scripts/candidate_bundle.py create \
+            --source dist/ici.pyz \
+            --output "$bundle_dir" \
+            --repository "$GITHUB_REPOSITORY" \
+            --target-sha "$TARGET_SHA" \
+            --package-version "$package_version" \
+            --candidate-workflow-definition-sha "$CANDIDATE_WORKFLOW_DEFINITION_SHA" \
+            --candidate-run-id "$GITHUB_RUN_ID" \
+            --candidate-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --merge-gate-check-run-id "$MERGE_GATE_CHECK_RUN_ID" \
+            --merge-gate-job-id "$MERGE_GATE_JOB_ID" \
+            --merge-gate-run-id "$MERGE_GATE_RUN_ID" \
+            --merge-gate-run-attempt "$MERGE_GATE_RUN_ATTEMPT" \
+            --merge-gate-job-url "$MERGE_GATE_JOB_URL" \
+            --merge-gate-url "$MERGE_GATE_URL"
+          python3 scripts/candidate_bundle.py verify "$bundle_dir"
+
+      - name: Upload Immutable Candidate Bundle
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ici-candidate-${{ needs.validate.outputs.target_sha }}
+          path: ${{ runner.temp }}/ici-candidate-bundle
+          if-no-files-found: error
+          overwrite: false
+          include-hidden-files: false
+          retention-days: 14
+          compression-level: 0
+
+      - name: Record Candidate Coordinates
+        env:
+          TARGET_SHA: ${{ needs.validate.outputs.target_sha }}
+          MERGE_GATE_URL: ${{ needs.validate.outputs.merge_gate_url }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          set -euo pipefail
+          test -n "$ARTIFACT_ID"
+          test -n "$ARTIFACT_DIGEST"
+          test -n "$ARTIFACT_URL"
+          {
+            echo "## ici candidate (not a release)"
+            echo
+            echo "- target commit: \`$TARGET_SHA\`"
+            echo "- Merge Gate: $MERGE_GATE_URL"
+            echo "- artifact ID: \`$ARTIFACT_ID\`"
+            echo "- artifact digest: \`$ARTIFACT_DIGEST\`"
+            echo "- authenticated download: $ARTIFACT_URL"
+            echo "- retention: 14 days"
+          } >> "$GITHUB_STEP_SUMMARY"
