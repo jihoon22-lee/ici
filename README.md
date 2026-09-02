@@ -80,9 +80,35 @@ Contents access; candidate-controlled build commands run after publication crede
 scrubbed and have no publication authority. The bounded helper implements and tests the workflow's
 `create` and `verify` subcommands. The focused local suite has 111 passing tests, and the live API
 verifier, full Python 3.10 repository suite, static/type/workflow checks, reproducible build, smoke,
-and real built-pyz bundle round trip pass. This is not a candidate-dispatch result: no remote run or
-artifact is claimed until this change reaches `main` and a successful dispatch is independently
-audited. A future consumer
+and real built-pyz bundle round trip pass. The remote producer evidence is now complete. Exact source
+SHA `7872a7b80899cbd3d40d92d18e7920cd7e2283e7` passed [main run `33688279264`](https://github.com/jihoon22-lee/ici/actions/runs/33688279264)
+with every job green; [Merge Gate check/job `100442919168`](https://api.github.com/repos/jihoon22-lee/ici/check-runs/100442919168)
+was attempt 1. Independent [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/) and [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/)
+matched the extracted main artifact bytes, carried the exact source SHA, used the expected titles
+`ici Verification Report — ici` and `ici Verification Report — viewer`, and passed Zero-CDN checks.
+
+Candidate [run `33689056008`](https://github.com/jihoon22-lee/ici/actions/runs/33689056008) succeeded.
+Its [artifact ID `9869395069`](https://github.com/jihoon22-lee/ici/actions/artifacts/9869395069) is named
+`ici-candidate-7872a7b80899cbd3d40d92d18e7920cd7e2283e7`; the [artifact API](https://api.github.com/repos/jihoon22-lee/ici/actions/artifacts/9869395069)
+and raw downloaded ZIP both have digest
+`sha256:640e50ecf5b099174c16f1ef5d2b5b87945329711e96f926d94c3cc04109081e`, size `2,277,109` bytes,
+and expiry `2026-09-16T22:14:38Z`. The ZIP contains exactly these entries:
+
+| Entry | Mode | Bytes |
+|---|---:|---:|
+| `candidate-provenance.json` | `0644` | 859 |
+| `ici.pyz.sha256` | `0644` | 74 |
+| `ici.pyz` | `0755` | 2,275,786 |
+
+The bundled `ici.pyz` SHA-256 is
+`53fc75f0a073a74689babfe9ef8a4b2378995002d7d563bdc52da548fdbb9ee8`, and it reports `ici 0.10.2`.
+The candidate manifest byte-matched the independent verifier. The check/job/run canonical API
+identities all matched, including `workflow_name`, `head_branch`, attempts, and canonical [check](https://api.github.com/repos/jihoon22-lee/ici/check-runs/100442919168),
+[job](https://api.github.com/repos/jihoon22-lee/ici/actions/jobs/100442919168), and [run](https://api.github.com/repos/jihoon22-lee/ici/actions/runs/33688279264)
+URLs. The observed v7 upload ZIP preserved these modes; an earlier generic assumption that upload
+ZIPs lose modes does not apply to this artifact.
+
+This closes the remote producer only. A future consumer
 must inject the verified candidate by local path in a separate quality-zoo runner; every toy PR's
 normal gate remains pinned to released ici `v0.10.2`. Its quality-zoo result may be linked or added
 as a section of the existing `<!-- ici-report -->` body, but must preserve exactly one sticky

@@ -4,8 +4,8 @@
 
 This workthrough records the candidate-artifact producer contract currently present in the ici
 worktree. It is a non-release path for producing a short-lived `ici.pyz` bundle from an exact
-protected-main dispatch commit. The producer slice and its local contract are implemented;
-remote dispatch, consumer injection, and quality-zoo acceptance remain pending.
+protected-main dispatch commit. The producer slice, its local contract, and its remote producer
+evidence are complete; consumer injection and quality-zoo acceptance remain pending.
 
 ## Context
 
@@ -82,9 +82,9 @@ The upload directory contract contains exactly:
 - `ici.pyz.sha256`, containing `<sha256>  ici.pyz` and a final newline.
 - `candidate-provenance.json`, canonical UTF-8 JSON with a final newline.
 
-The manifest is schema `ici.candidate/v1`, channel `candidate`, and `stable: false`. Because no
-candidate artifact has been dispatched yet, this remains the local v1 contract rather than a
-stable-release compatibility promise. Its exact fields are `schema`, `channel`, `stable`,
+The manifest is schema `ici.candidate/v1`, channel `candidate`, and `stable: false`. This remains a
+candidate-only contract rather than a stable-release compatibility promise. Its exact fields are
+`schema`, `channel`, `stable`,
 `repository`, `target_sha`, `package_version`, `candidate_workflow`,
 `candidate_workflow_definition_sha`, `candidate_run_id`, `candidate_run_attempt`,
 `merge_gate_check_run_id`, `merge_gate_job_id`, `merge_gate_run_id`, `merge_gate_run_attempt`,
@@ -95,6 +95,60 @@ symlinks/non-regular files/pre-existing output/source mutation, and requires the
 directory. Actions upload is configured with the target SHA in its name, `overwrite: false`,
 compression level 0, and 14-day retention. Artifact ID, digest, and authenticated download URL
 are recorded in the Actions step summary rather than added to the three-file bundle.
+
+The remote v7 archive audit below confirms that the uploaded ZIP preserved these required modes;
+there was no mode-loss exception for this artifact. The consumer must still verify the modes after
+download rather than assuming any archive implementation's behavior.
+
+## Remote producer evidence
+
+The producer was dispatched from protected `main` with exact source SHA
+`7872a7b80899cbd3d40d92d18e7920cd7e2283e7`. The remote evidence is complete for the producer
+boundary, but it does not close candidate consumer or quality-zoo acceptance.
+
+### Main source and report evidence
+
+[Main run `33688279264`](https://github.com/jihoon22-lee/ici/actions/runs/33688279264) was successful
+with every required job green. Its selected Merge Gate was check/job `100442919168`, run attempt 1.
+Independent [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/) and [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/)
+matched the corresponding extracted main artifact bytes, retained the exact source SHA, used the
+correct titles `ici Verification Report — ici` and `ici Verification Report — viewer`, and passed
+the Zero-CDN audit.
+
+The independently verified check-to-job-to-run identity chain was:
+
+| Object | Bound identity and canonical URL |
+| --- | --- |
+| Check run | ID `100442919168`, target SHA above, [Checks API URL](https://api.github.com/repos/jihoon22-lee/ici/check-runs/100442919168) |
+| Workflow job | ID `100442919168`, `run_id=33688279264`, `run_attempt=1`, name `Merge Gate`, `workflow_name=CI Quality Gate (Dogfooding)`, `head_branch=main`, [job HTML URL](https://github.com/jihoon22-lee/ici/actions/runs/33688279264/job/100442919168), [job API URL](https://api.github.com/repos/jihoon22-lee/ici/actions/jobs/100442919168) |
+| Workflow run | ID `33688279264`, `run_attempt=1`, `name=CI Quality Gate (Dogfooding)`, `head_branch=main`, [run HTML URL](https://github.com/jihoon22-lee/ici/actions/runs/33688279264), [run API URL](https://api.github.com/repos/jihoon22-lee/ici/actions/runs/33688279264) |
+
+The job's canonical `run_url` matched the run API URL and its canonical `check_run_url` matched the
+Checks API URL; all check/job/run IDs, attempts, target SHA, workflow name, branch, status/conclusion,
+and canonical URLs matched independently fetched API responses.
+
+### Candidate run and archive evidence
+
+[Candidate run `33689056008`](https://github.com/jihoon22-lee/ici/actions/runs/33689056008) completed
+successfully. It published [artifact ID `9869395069`](https://github.com/jihoon22-lee/ici/actions/artifacts/9869395069)
+with name `ici-candidate-7872a7b80899cbd3d40d92d18e7920cd7e2283e7`. The [artifact API metadata](https://api.github.com/repos/jihoon22-lee/ici/actions/artifacts/9869395069)
+and the authenticated [raw ZIP download](https://api.github.com/repos/jihoon22-lee/ici/actions/artifacts/9869395069/zip)
+have digest `sha256:640e50ecf5b099174c16f1ef5d2b5b87945329711e96f926d94c3cc04109081e`, ZIP size
+`2,277,109` bytes, and expiry `2026-09-16T22:14:38Z`.
+
+The downloaded v7 ZIP contained exactly these three regular files:
+
+| Entry | Mode | Bytes |
+| --- | ---: | ---: |
+| `candidate-provenance.json` | `0644` | 859 |
+| `ici.pyz.sha256` | `0644` | 74 |
+| `ici.pyz` | `0755` | 2,275,786 |
+
+The pyz SHA-256 was
+`53fc75f0a073a74689babfe9ef8a4b2378995002d7d563bdc52da548fdbb9ee8`, and the bundled executable
+reported `ici 0.10.2`. The candidate manifest bytes matched the independent verifier's canonical
+output. The observed v7 ZIP preserved all three required modes, correcting the earlier generic
+assumption that an upload ZIP loses executable/file modes.
 
 ### Sticky-comment boundary
 
@@ -208,15 +262,14 @@ create output == verify output; sidecar OK; bundled executable reports ici 0.10.
 
 The helper's `create` and `verify` subcommands match the workflow invocation; verification reopens
 the exact three regular files through a directory descriptor and checks modes, bounded canonical
-JSON, provenance types/constants, artifact size/hash, and the checksum sidecar. No candidate
-workflow was dispatched and no candidate artifact was downloaded, so no remote candidate run IDs,
-artifact IDs, digests, or download URLs are asserted here.
+JSON, provenance types/constants, artifact size/hash, and the checksum sidecar. The remote producer
+evidence in [Remote producer evidence](#remote-producer-evidence) records the independently checked
+main and candidate runs, artifact ID/digest/expiry, exact ZIP entries, preserved modes, pyz digest,
+manifest byte match, and canonical check/job/run API identities. Consumer injection and
+quality-zoo acceptance are not yet evidenced.
 
 ## Next Steps
 
-- From `refs/heads/main`, dispatch with an exact full target SHA and record the verified Merge Gate
-  check/job/run IDs and attempts, canonical job/run URLs, candidate run, artifact ID/digest,
-  authenticated URL, and exact three-file listing.
 - Add the separate toy consumer/quality-zoo runner that verifies the candidate manifest before
   injecting the pyz by local path.
 - Keep every toy PR's normal gate pinned to released `ici v0.10.2`; if quality-zoo output is shown
