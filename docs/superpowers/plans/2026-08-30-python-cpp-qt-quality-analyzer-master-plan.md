@@ -1073,9 +1073,12 @@ PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 ca
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
 `1,626 passed, 2 skipped`를 남겼다. 이는 현재 follow-up의 근거가 아니다. 현재 unmerged
 `feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
-`61a97093f5034b1ad2e78e157d2b08f634a4933e7eb68498da4065aa76b4487a`이며, real extracted
+`2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`이며, real extracted
 `clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`, Ruff check/format,
-mypy와 packaged smoke가 통과했다. 이 SHA를 fresh clean `toy-projects` `main`에 주입한
+mypy와 packaged smoke가 통과했다. 최초 PR run에서 드러난 1,031-pure-code-line self gate는
+parser/source mapping helper 628줄과 process runner compatibility facade 487줄로 분리해
+닫았고, 집중 회귀 89개와 전체 suite가 같은 결과를 유지했다. 이 SHA를 fresh clean
+`toy-projects` `main`에 주입한
 BuildScope deep
 `auto`/`required`, DiskMap `auto`, LogLens `auto`의 local cross-repo candidate evidence와
 JSON/HTML report, 4/4 title·Zero-CDN checker pass는 [scope-policy workthrough](../../workthrough/2026-09-02-cpp-function-scope-policy.md)에

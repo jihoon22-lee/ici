@@ -70,15 +70,29 @@ byte-matched to the extracted HTML in the `ici-verification-report` artifact:
 | viewer | 356,596 | `29cd2bc0af33ca9fe60378350d65dfa723c00a690e2fb8fe1008a1981b7aa83b` |
 
 Both pages returned HTTP 200 and `text/html`, carried the expected report title, and contained no
-external resource URLs. The current unmerged policy candidate's local verification is:
+external resource URLs. The first remote attempt for this follow-up, workflow
+[`33588501321`](https://github.com/jihoon22-lee/ici/actions/runs/33588501321), correctly blocked the
+merge because `_cpp_function_boundaries.py` had reached 1,031 pure code lines over the 1,000-line
+self gate. Its Qt 5 and Qt 6 jobs passed. The viewer publisher failure was downstream rather than a
+separate uploader defect: the failed root dogfood step did not produce a viewer report, while the
+publisher required both report directories. PR #131 still retained exactly one sticky marker/comment
+and published the available ici report. Parser/source mapping was then separated from process
+orchestration behind the existing import and monkeypatch facade; focused and full regressions prove
+the split did not change the analysis contract.
+
+The current unmerged policy candidate's exact SHA is recorded only in package-external
+documentation because `README.md` is embedded in `dist-info/METADATA`; adding it to README would
+change the artifact hash. Its local verification is:
 
 | Check | Result |
 |---|---|
 | Python 3.10 full suite with real extracted `clang-tidy-21` | `1,656 passed, 2 skipped` |
 | Ruff | `check` and `format --check` passed |
 | Mypy | passed |
-| ZipApp | Two candidate builds were byte-identical at SHA `61a97093f5034b1ad2e78e157d2b08f634a4933e7eb68498da4065aa76b4487a` |
-| Packaged smoke | passed, including Python 3.10 execution, artifact integrity, and Zero-CDN self-report checks (`verify` expected exit 1) |
+| Focused split regression | `89 passed, 6 skipped`; Ruff and Python byte-compilation passed |
+| Boundary-module self gate | parser/source mapping 628 pure code lines; process-runner compatibility facade 487; `ici line` exit 0 |
+| ZipApp | Two candidate builds were byte-identical at SHA `2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7` |
+| Packaged smoke | passed, including Python 3.10 execution, artifact integrity, and Zero-CDN self-report checks (`verify` exit 0) |
 
 The Python 3.10 and smoke results above are local evidence; they do not close the remote delivery
 gate. The final candidate was then injected into a fresh clean
@@ -89,10 +103,10 @@ HTML reports.
 
 | Probe | Exit | Suite | Complexity / evidence | Mode | Exact / estimated | Config | Source | Functions / result targets | Lambda / macro exclusions | HTML bytes / SHA-256 |
 |---|---:|---|---|---|---:|---:|---:|---:|---:|---|
-| BuildScope `auto` | 0 | `WARN` (total 14; pass 10, warn 4, fail 0, error 0, skip 0) | `WARN` / `ESTIMATED` | `partial` | 214 / 0 | 12 | 12 | 393 / 393 | 10 / 0 | 1,330,564 / `5a75e5b68c160cf995518c2c31b9a14a7b32d0cc11dcef5d944b64890d09c680` |
-| BuildScope `required` | 1 | `ERROR` (total 14; pass 10, warn 3, fail 0, error 1, skip 0) | `ERROR` / `NOT_RUN` | `error` | 214 / 0 | 12 | 12 | 393 / 394 | 10 / 0 | 1,331,375 / `2a2e8d147f3a0c90ac23449db13db18e972fd9eb632cd1167678526fc9cee599` |
-| DiskMap `auto` | 0 | `WARN` (total 13; pass 10, warn 1, fail 0, error 0, skip 2) | `PASS` / `ESTIMATED` | `partial` | 127 / 2 | 9 | 9 | 129 / 129 | 7 / 0 | 337,286 / `c9ef2d6bc5a624b8537d0c1ad7a885addd95646169d7fa741ed4faf40c3deb03` |
-| LogLens `auto` | 0 | `WARN` (total 13; pass 10, warn 1, fail 0, error 0, skip 2) | `PASS` / `ESTIMATED` | `partial` | 207 / 1 | 14 | 14 | 208 / 208 | 8 / 0 | 489,910 / `b2f50efedf5fea76ff9cb72d87443c12bb6691a76f90226b6f3ce04a7f0c4f11` |
+| BuildScope `auto` | 0 | `WARN` (total 14; pass 10, warn 4, fail 0, error 0, skip 0) | `WARN` / `ESTIMATED` | `partial` | 214 / 0 | 12 | 12 | 393 / 393 | 10 / 0 | 1,330,564 / `2ab94e917d308acf64ba55ccd0a0e445f0d10cb384c189e3aa07604c11dd4646` |
+| BuildScope `required` | 1 | `ERROR` (total 14; pass 10, warn 3, fail 0, error 1, skip 0) | `ERROR` / `NOT_RUN` | `error` | 214 / 0 | 12 | 12 | 393 / 394 | 10 / 0 | 1,331,375 / `3f96fd23427c56b4fbc7254ee186128cad4d99b5812e69bd96bf2d63ff08c91a` |
+| DiskMap `auto` | 0 | `WARN` (total 13; pass 10, warn 1, fail 0, error 0, skip 2) | `PASS` / `ESTIMATED` | `partial` | 127 / 2 | 9 | 9 | 129 / 129 | 7 / 0 | 337,286 / `0f7ab818b87b03c09bdbdf0da258760481a858292d7e5bbf101b8229678924f3` |
+| LogLens `auto` | 0 | `WARN` (total 13; pass 10, warn 1, fail 0, error 0, skip 2) | `PASS` / `ESTIMATED` | `partial` | 207 / 1 | 14 | 14 | 208 / 208 | 8 / 0 | 489,910 / `5fec22e7bbc723b4268dbbc26cd8b05bfd361818f7689f90a920be620aa9e42b` |
 
 The BuildScope `required` overlay was `[engines.complexity] cpp_boundaries = "required"`. It
 failed closed with this exact error (the partial conditional metrics are not silently promoted):
@@ -100,6 +114,10 @@ failed closed with this exact error (the partial conditional metrics are not sil
 ```text
 compiler-backed C++ function boundaries were required, but compiler-backed function metrics or configuration coverage remained partial/low-confidence
 ```
+
+Its console accounting was `fail 0, error 1`; the v3 suite JSON also retained aggregate
+`failed_count=1` together with `error_count=1`, so the required failure is not mistaken for a
+measured complexity defect.
 
 The `auto` partial evidence was retained in the reports: BuildScope warned at
 `src/core/contract.cpp:43`, `:57`, and `:117`; DiskMap at `src/fs_source.cpp:52` and
@@ -110,9 +128,9 @@ remain explicit in the table.
 
 `ci/check_published_html.py` was run once against each of the four generated HTML files. All four
 invocations exited 0 and passed the report-title and Zero-CDN checks. The ici source files and its
-pre-existing worktree status were unchanged before and after the probe; the toy-projects source
-checkout remained clean on `main`. The exact temporary checkout
-`/tmp/ici-final-candidate.aQcKqt` and its reports were deleted after collection.
+pre-existing worktree status were unchanged before and after the probe; the isolated toy checkout
+remained clean at exact `main` commit `d5f248c41375e2c0b4286890e1b359f59e11e728`. The final
+temporary checkout `/tmp/ici-final-candidate.B63bi6` and its reports were deleted after collection.
 
 ## Reviewer-hardening coverage
 

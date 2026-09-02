@@ -277,10 +277,13 @@ TOCTOU를 fail-closed합니다.
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
 `1,626 passed, 2 skipped`를 남겼습니다. 이는 현재 follow-up의 근거가 아닙니다. 현재
-unmerged `feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz`
-SHA `61a97093f5034b1ad2e78e157d2b08f634a4933e7eb68498da4065aa76b4487a`이며, real extracted
+unmerged `feat/cpp-function-scope-policy` candidate의 재현 가능한 `dist/ici.pyz` SHA와
+교차 검증 상세는 패키지 메타데이터에 자기 해시를 포함하지 않도록 아래 workthrough에만
+고정합니다. 이 candidate는 real extracted
 `clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`, Ruff check/format,
-mypy와 packaged smoke가 통과했습니다. 이 SHA를 fresh clean `toy-projects` `main`에 주입한
+mypy와 packaged smoke가 통과했습니다. 최초 PR run에서 드러난 1,031 pure-code-line self gate는
+parser/source mapping helper 628줄과 process runner compatibility facade 487줄로 분리해
+해소했습니다. 이 SHA를 fresh clean `toy-projects` `main`에 주입한
 local cross-repo
 candidate probe(BuildScope deep `auto`/`required`, DiskMap `auto`, LogLens `auto`)의 JSON/HTML과
 4/4 title·Zero-CDN checker도 완료됐으며, exact/partial 수치와 required 오류는 [C++ function-scope

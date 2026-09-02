@@ -61,9 +61,15 @@
   full suite was `1,626 passed, 2 skipped`. That merged baseline is not evidence for the current
   follow-up. The current unmerged `feat/cpp-function-scope-policy` candidate has two
   byte-identical builds at SHA
-  `61a97093f5034b1ad2e78e157d2b08f634a4933e7eb68498da4065aa76b4487a`; with real extracted
+  `2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`; with real extracted
   `clang-tidy-21`, its Python 3.10 full suite is `1,656 passed, 2 skipped`, and Ruff check/format,
-  mypy, and packaged smoke pass. Injecting that SHA into a fresh clean `toy-projects` `main`
+  mypy, and packaged smoke pass. The parser/source-mapping responsibilities now live in a dedicated
+  helper (628 pure code lines) while the process runner remains a compatibility facade (487 pure
+  code lines); this removes the initial PR run's 1,031-line self-dogfood failure without changing
+  the boundary contract or established imports. Because `README.md` is embedded in
+  `dist-info/METADATA`, this exact current candidate SHA is recorded only in package-external
+  documentation; adding it to README would change the artifact hash. Injecting that SHA into a fresh
+  clean `toy-projects` `main`
   completed the local
   cross-repo candidate probes for BuildScope deep `auto`/`required`, DiskMap `auto`, and LogLens
   `auto`, with JSON/HTML reports and 4/4 title·Zero-CDN checker passes; exact/partial counts and
