@@ -177,7 +177,7 @@ duplicate policy and the broader I4-3/I4 checkpoint remain open.
 
 ## Current compiler-backed unused-function follow-up
 
-The separate TU-local unused-function slice remains remote-pending and does not change the
+The separate TU-local unused-function slice is now accepted remotely and does not change the
 historical function-scope policy recorded above. Its final commits through `13099ca` are
 `8f8f4d0` (compiler-family alias detection), `7522fe7` (strict option-separator operands),
 `88c18da` (alias-family regression coverage), `3a38997` (compiler/cwd-bound include-projection
@@ -195,5 +195,29 @@ duration 184.31s, wall 188.75s, RSS 605,144, HTML 5,526,617 bytes / `159ba3db…
 deep no-cache is WARN with 12 pass/1 warn/0 fail/0 error/1 skip, 14 engines, 7/7, TEM 4.89,
 duration 20.00s, wall 20.42s, RSS 360,556, HTML 355,996 bytes / `9098…`, and JSON 743,422
 bytes / `069eb0…`; the title is `ici Verification Report — viewer` and Zero-CDN is `[]`.
-Remote PR CI, artifact/Pages, exact-main, and Merge Gate evidence remain pending; no release or
-version bump is implied.
+PR #137, titled `feat(dead): add compiler-backed C/C++ unused-function evidence`, passed all
+required checks in workflow run [`33675765436`](https://github.com/jihoon22-lee/ici/actions/runs/33675765436)
+at head `9c9d83cdaae02384bbc58e7cb79b4bbb098b86d3` with synthetic merge
+`f2cfce8b8a7ebc90308bb442f3a323e01ed9ef34`. Its single current-run sticky comment
+([comment](https://github.com/jihoon22-lee/ici/pull/137#issuecomment-5515582296)) contained exactly
+two report links. PR report artifacts and Pages copies were byte-identical, with synthetic-merge
+`source_commit`, exact titles, valid UTF-8, and Zero-CDN checks:
+
+| Report | HTML bytes / SHA-256 | JSON bytes / SHA-256 |
+| --- | --- | --- |
+| ici | 5,188,748 / `8648d7ac06fded3afaa004568a9665bb3bc2b10c7e41f1da06af41b0eb3952f8` | 15,288,643 / `f9401da10828ab3d0c1c6b9430789d25b4ef4ac15e8dbe410f0f244a584aefef` |
+| viewer | 363,787 / `0123db7d6e5c820fc0bd952a0fd55b82752b63d873b4f0502e12f676b3e71cda` | 905,151 / `edde8208502d4af5c060e556ece1650518893c7274487cca2283c02f63322f98` |
+
+The PR was squash-merged as `782589a4ef02209703e882a09cc0d8b0c7940218`, and the feature branch
+was deleted. Exact-main run [`33676873412`](https://github.com/jihoon22-lee/ici/actions/runs/33676873412)
+completed all relevant checks successfully. Pages build API run `1190632325` and workflow run
+[`33677689026`](https://github.com/jihoon22-lee/ici/actions/runs/33677689026) succeeded as well. Main
+report artifacts and Pages copies were byte-identical, with `source_commit` matching the merged
+main SHA and exact title, UTF-8, and Zero-CDN checks passing:
+
+| Report | HTML bytes / SHA-256 | JSON bytes / SHA-256 |
+| --- | --- | --- |
+| ici | 5,188,748 / `7d9a23d5eb47bcf0ab82f074a85e65eb264869f8f0333318673890d75b0c4eaf` | 15,288,649 / `99d5c208a30518e0c356c4e9a26b2306a99468d51369dd91e9eaa19b71a22e19` |
+| viewer | 363,788 / `223c027a6cbbef5aa08c464f210286c6a90ae2a702451739aa94bf704648188f` | 905,152 / `152e6c2f6d2b53728f39680b3198b5fb46d1c28e915731c6a7693f85c0175557` |
+
+No release or version bump is implied; `v0.10.2` remains the public stable artifact.

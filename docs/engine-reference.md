@@ -774,7 +774,11 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   다룬다. 자세한 focused contract는 [`compiler-backed C/C++ unused-function workthrough`](workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
   기록한다. 최종 viewer standalone `dead` evidence는 `PASS`/`MEASURED`이며, 정확히 8개 source, 8개
   configuration, 8개 target, 8개 `tool_evidence` 행, 0개 unused function, `cache_key = null`이다.
-  이 slice의 remote acceptance는 pending이고 public version은 `0.10.2`로 유지한다.
+  이 slice는 PR #137 required CI, 단일 sticky comment의 ici/viewer 링크,
+  PR·main artifact/Pages byte match, exact-main CI와 Pages 배포까지 수락됐다.
+  상세 provenance와 해시는 위 workthrough에 기록한다. whole-program/linker-backed
+  reachability, full duplicate semantics 및 I4 aggregate는 여전히 보류 범위이며,
+  public version은 `0.10.2`로 유지하고 release는 만들지 않는다.
 
 ### 2.8 📦 `dup` (코드 복제 및 중복률 감지기)
 - **언어별 lexical normalization**: Python과 C/C++에 전용 line-preserving lexer를 사용하고

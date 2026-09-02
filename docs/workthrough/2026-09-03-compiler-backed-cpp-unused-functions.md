@@ -11,7 +11,7 @@ GCC/Clang drivers and approved aliases.
 
 The implementation is intentionally a translation-unit-local diagnostic contract. It does not
 claim whole-program, linker, dynamic-loading, plugin, or Qt meta-object reachability. The public
-version remains `0.10.2`; no release is created for this slice. Remote acceptance is still pending.
+version remains `0.10.2`; no release is created for this slice.
 
 The implementation work is represented by:
 
@@ -401,12 +401,36 @@ The final local verification evidence is:
 
 ### Remote acceptance
 
-Remote PR CI, artifact/Pages checks, exact-main verification, and Merge Gate evidence for this
-feature have not been recorded here.
+PR #137, titled `feat(dead): add compiler-backed C/C++ unused-function evidence`, passed the
+required remote checks in workflow run [`33675765436`](https://github.com/jihoon22-lee/ici/actions/runs/33675765436)
+with head `9c9d83cdaae02384bbc58e7cb79b4bbb098b86d3` and synthetic merge
+`f2cfce8b8a7ebc90308bb442f3a323e01ed9ef34`. The PR had one current-run sticky comment
+([comment](https://github.com/jihoon22-lee/ici/pull/137#issuecomment-5515582296)) with exactly two
+report links. Both report artifacts matched their PR Pages copies byte-for-byte; the JSON
+`source_commit` was the synthetic merge SHA, and both reports had their exact titles, valid UTF-8,
+and Zero-CDN results.
 
-> **PENDING ROOT UPDATE — factual remote evidence:** add the actual PR number, workflow run IDs,
-> required-check outcome, artifact/Pages byte-match evidence, and merge/main SHA only after those
-> remote checks have completed. Until then, remote acceptance remains pending.
+| Report | HTML bytes / SHA-256 | JSON bytes / SHA-256 |
+| --- | --- | --- |
+| ici | 5,188,748 / `8648d7ac06fded3afaa004568a9665bb3bc2b10c7e41f1da06af41b0eb3952f8` | 15,288,643 / `f9401da10828ab3d0c1c6b9430789d25b4ef4ac15e8dbe410f0f244a584aefef` |
+| viewer | 363,787 / `0123db7d6e5c820fc0bd952a0fd55b82752b63d873b4f0502e12f676b3e71cda` | 905,151 / `edde8208502d4af5c060e556ece1650518893c7274487cca2283c02f63322f98` |
+
+The PR was squash-merged as `782589a4ef02209703e882a09cc0d8b0c7940218`, and its feature branch
+was deleted. Exact-main workflow run [`33676873412`](https://github.com/jihoon22-lee/ici/actions/runs/33676873412)
+completed all relevant checks successfully. The Pages build API run `1190632325` and workflow run
+[`33677689026`](https://github.com/jihoon22-lee/ici/actions/runs/33677689026) also succeeded. Main
+report artifacts matched their Pages copies byte-for-byte; their JSON `source_commit` matched the
+merged main SHA `782589a4ef02209703e882a09cc0d8b0c7940218`, and the exact titles, UTF-8 checks, and
+Zero-CDN checks passed.
+
+| Report | HTML bytes / SHA-256 | JSON bytes / SHA-256 |
+| --- | --- | --- |
+| ici | 5,188,748 / `7d9a23d5eb47bcf0ab82f074a85e65eb264869f8f0333318673890d75b0c4eaf` | 15,288,649 / `99d5c208a30518e0c356c4e9a26b2306a99468d51369dd91e9eaa19b71a22e19` |
+| viewer | 363,788 / `223c027a6cbbef5aa08c464f210286c6a90ae2a702451739aa94bf704648188f` | 905,152 / `152e6c2f6d2b53728f39680b3198b5fb46d1c28e915731c6a7693f85c0175557` |
+
+This acceptance closes the remote PR, exact-main, Merge Gate, artifact, and Pages evidence for the
+slice. It does not create a release or bump the public version; `0.10.2` remains the stable
+release until a separate release decision.
 
 ## Limitations and Next Steps
 

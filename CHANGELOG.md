@@ -89,8 +89,38 @@
   `ici Verification Report — viewer`, and Zero-CDN PASS. Detailed local report evidence is
   recorded in the compiler-backed unused-function workthrough below.
   This closes only the narrow TU-local compiler-diagnostic slice: whole-program/linker dead-symbol
-  analysis, full duplicate semantics, and the complete I4-3 checkpoint remain pending.
-  Remote acceptance is pending. The version remains `0.10.2`; no release is created.
+  analysis, full duplicate semantics, and the complete I4-3 checkpoint remain pending. The slice was
+  accepted remotely through descriptive PR #137, `feat(dead): add compiler-backed C/C++
+  unused-function evidence`. Its required PR checks passed in
+  [workflow run `33675765436`](https://github.com/jihoon22-lee/ici/actions/runs/33675765436) for
+  head `9c9d83cdaae02384bbc58e7cb79b4bbb098b86d3` and synthetic merge
+  `f2cfce8b8a7ebc90308bb442f3a323e01ed9ef34`. Exactly one current-run sticky comment
+  ([comment `5515582296`](https://github.com/jihoon22-lee/ici/pull/137#issuecomment-5515582296))
+  remained and contained exactly two report links. The PR artifact and PR Pages copies were
+  byte-identical, with the synthetic merge as `source_commit`, exact titles, valid UTF-8, and
+  Zero-CDN checks passing:
+
+  | Report | HTML bytes / SHA-256 | JSON bytes / SHA-256 |
+  | --- | --- | --- |
+  | ici | 5,188,748 / `8648d7ac06fded3afaa004568a9665bb3bc2b10c7e41f1da06af41b0eb3952f8` | 15,288,643 / `f9401da10828ab3d0c1c6b9430789d25b4ef4ac15e8dbe410f0f244a584aefef` |
+  | viewer | 363,787 / `0123db7d6e5c820fc0bd952a0fd55b82752b63d873b4f0502e12f676b3e71cda` | 905,151 / `edde8208502d4af5c060e556ece1650518893c7274487cca2283c02f63322f98` |
+
+  PR #137 was squash-merged as `782589a4ef02209703e882a09cc0d8b0c7940218`, and its feature
+  branch was deleted. Exact-main verification run
+  [`33676873412`](https://github.com/jihoon22-lee/ici/actions/runs/33676873412), Pages build API run
+  `1190632325`, and Pages workflow run
+  [`33677689026`](https://github.com/jihoon22-lee/ici/actions/runs/33677689026) all succeeded.
+  Main artifacts and their Pages copies were byte-identical, with `source_commit` equal to the
+  merged main SHA and the same title, UTF-8, and Zero-CDN checks:
+
+  | Report | HTML bytes / SHA-256 | JSON bytes / SHA-256 |
+  | --- | --- | --- |
+  | ici | 5,188,748 / `7d9a23d5eb47bcf0ab82f074a85e65eb264869f8f0333318673890d75b0c4eaf` | 15,288,649 / `99d5c208a30518e0c356c4e9a26b2306a99468d51369dd91e9eaa19b71a22e19` |
+  | viewer | 363,788 / `223c027a6cbbef5aa08c464f210286c6a90ae2a702451739aa94bf704648188f` | 905,152 / `152e6c2f6d2b53728f39680b3198b5fb46d1c28e915731c6a7693f85c0175557` |
+
+  This remote acceptance does not create a release or change the public version: `0.10.2`
+  remains stable while broader linker/whole-program dead-symbol analysis and full semantic
+  duplicate analysis remain pending.
 
 - **Bounded language-aware duplicate tokenization and matching**: `dup` now uses dedicated,
   line-preserving lexical normalizers for Python and C/C++ before building language-isolated Type-2
