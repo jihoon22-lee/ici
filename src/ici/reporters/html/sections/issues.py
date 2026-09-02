@@ -3,7 +3,25 @@
 import html
 from pathlib import Path
 
+from ici.core.models import SourceLocation
 from ici.reporters.html.utils import HtmlIssue, _location_controls, _status_color
+
+
+def _related_location_label(location: SourceLocation) -> str:
+    start_line = location.start_line
+    end_line = location.end_line or start_line
+    start_column = location.start_column
+    end_column = location.end_column
+    label = f"{location.path}:L{start_line}"
+    if start_column is not None:
+        label += f":C{start_column}"
+    if end_line > start_line:
+        label += f"-L{end_line}"
+        if end_column is not None:
+            label += f":C{end_column}"
+    elif end_column is not None and end_column != start_column:
+        label += f"-C{end_column}"
+    return label
 
 
 def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
@@ -43,15 +61,11 @@ def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
         if issue.related_locations:
             related_items = []
             for related in issue.related_locations:
-                related_end = related.end_line or related.start_line
-                related_label = f"{related.path}:L{related.start_line}"
-                if related_end > related.start_line:
-                    related_label += f"-L{related_end}"
                 controls = _location_controls(
                     related.path,
                     related.start_line,
                     base,
-                    label=related_label,
+                    label=_related_location_label(related),
                 )
                 message = html.escape(related.label or "Related diagnostic location")
                 related_items.append(

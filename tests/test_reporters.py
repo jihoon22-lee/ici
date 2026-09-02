@@ -112,7 +112,7 @@ def test_html_and_markdown_render_related_finding_locations(tmp_path: Path):
         commit_sha="abc1234",
     )
     assert "Related diagnostic locations" in markdown
-    assert "include/macros.hpp#L9" in markdown
+    assert "include/macros.hpp#L9:C7" in markdown
     assert "note: expanded from &lt;NULL&gt; &amp; reviewed" in markdown
 
     html_out = tmp_path / "related.html"
@@ -121,6 +121,7 @@ def test_html_and_markdown_render_related_finding_locations(tmp_path: Path):
     assert "Active Quality Gate Issues (1 Findings)" in content
     assert "Related evidence" in content
     assert 'data-rel-path="include/macros.hpp"' in content
+    assert "include/macros.hpp:L9:C7" in content
     assert "note: expanded from &lt;NULL&gt; &amp; reviewed" in content
 
 

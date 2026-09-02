@@ -303,6 +303,8 @@ def generate_markdown_report(
                     location.end_line,
                     repo_url,
                     commit_sha,
+                    start_column=location.start_column,
+                    end_column=location.end_column,
                 )
                 md.append(
                     f"| {_render_code(rule_id)} | {link} | "
@@ -417,12 +419,24 @@ def _make_gh_link(
     end_line: int | None = None,
     repo_url: str | None = None,
     commit_sha: str | None = None,
+    *,
+    start_column: int | None = None,
+    end_column: int | None = None,
 ) -> str:
     line_anchor = f"L{start_line}"
     if end_line and end_line > start_line:
         line_anchor += f"-L{end_line}"
 
-    display = f"{file_path}#{line_anchor}"
+    display_anchor = f"L{start_line}"
+    if start_column is not None:
+        display_anchor += f":C{start_column}"
+    if end_line and end_line > start_line:
+        display_anchor += f"-L{end_line}"
+        if end_column is not None:
+            display_anchor += f":C{end_column}"
+    elif end_column is not None and end_column != start_column:
+        display_anchor += f"-C{end_column}"
+    display = f"{file_path}#{display_anchor}"
     escaped_display = _render_code(display)
     if repo_url and commit_sha:
         parsed = urlsplit(repo_url)
