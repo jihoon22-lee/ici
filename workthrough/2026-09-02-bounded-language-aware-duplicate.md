@@ -120,21 +120,21 @@ clang-tidy cases, one clang++/clazy case, and one clang++ cycle-context case una
 host environment. Ruff check and format covered 182 files, and mypy reported no issues in 103
 source files.
 
-Two consecutive package builds were byte-identical at 2,257,882 bytes with SHA-256
-`cd4252f83933072170eaf32e3c9f5cea372f9e6db766d91cdc6529157d10007b`. The build verified ten
+Two consecutive final package builds were byte-identical at 2,257,887 bytes with SHA-256
+`c9fdc732b483f090f10a228f3e3b82aafb73b1209edeebabf4cda7ab560c430a`. The build verified ten
 `py3-none-any` distributions, no certifi, and two packaged public schemas. `./scripts/smoke.sh`
 passed launcher, Python 3.10 direct execution, artifact integrity, and Zero-CDN checks; its packaged
 self-verification exited 0.
 
 An independent packaged `verify --no-cache --report --html ...` at source commit
-`62aa7401116e57eaf00700bf13c649dc8fcb044a` also exited 0 with suite `WARN`: 8 PASS, 4 WARN,
+`ce3885ffd7911c24e53822123fc8a248f3e796c8` also exited 0 with suite `WARN`: 8 PASS, 4 WARN,
 0 FAIL, 0 ERROR, 1 SKIP, TEM 4.84, and 0 cache hits. The test engine recorded 1,879/1,886,
 line/function/branch coverage 89.3%/97.1%/81.7%, and the complexity engine returned maximum 25.
 The duplicate result was `ESTIMATED`, 10.4%/403 groups with
 `language-lexical-region-heuristic`, v2 fingerprint, both lexical-v1 tokenizers, and the documented
-region/signal policies. Its v3 JSON was 14,474,692 bytes with SHA-256
-`abd37281efcc6ad5f85c92026c9edfbfeaeee7f6a1c468f7cd1b317b6c70567d`; the HTML was 4,945,918
-bytes with SHA-256 `48b5a9e985ccf9215fcf318d10f4643e83694ae9d22c63eed3416c7c3a856791`, exact UTF-8 title
+region/signal policies. Its v3 JSON was 14,474,694 bytes with SHA-256
+`084256ae60a4bdb4bdcffbab77fc0d0da709fd33c88857f355a07d3ac9208849`; the HTML was 4,945,919
+bytes with SHA-256 `4853c7211776945b99fbb2c865220662254ba08eb8ccf5a8d64760f73fe60a94`, exact UTF-8 title
 `ici Verification Report — ici`, and zero external executable/display assets.
 
 ### Clean toy-project cross-check
@@ -146,6 +146,13 @@ Python 3.10 tool environment used by CI. The first BuildScope invocation left th
 environment implicit; it selected a system Python 3.14 without pytest/coverage and
 correctly failed closed as `ERROR`/`NOT_RUN`. Repeating it with explicit `ICI_PYTHON` and PATH
 removed that environment-only failure.
+
+These deep runs used the immediately preceding 2,257,882-byte package build at SHA-256
+`cd4252f83933072170eaf32e3c9f5cea372f9e6db766d91cdc6529157d10007b`. The later package-size
+change came only from README/evidence wording; `src/` and `tests/` were unchanged. The final
+2,257,887-byte package identified above then repeated the standalone `dup --report` command on all
+three clean projects and reproduced the same rates, group counts, statuses, v2 fingerprint,
+lexical-v1 tokenizer versions, and region/signal policies.
 
 | Project | Suite | Build context | Tests / TEM | Sanitizer | Duplicate | HTML bytes / SHA-256 |
 |---|---|---|---|---|---|---|
