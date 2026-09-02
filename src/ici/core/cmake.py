@@ -217,6 +217,10 @@ class TestCaseResult:
     name: str
     passed: bool
     message: str = ""
+    # ``passed`` alone cannot distinguish an executed failure from a test the
+    # build system collected but never ran. Keep this last with a default so
+    # existing positional construction remains source compatible.
+    executed: bool = True
 
 
 def _bounded_test_result(value: str) -> str:
@@ -256,13 +260,26 @@ def _junit_case(node: ElementTree.Element) -> TestCaseResult:
             False,
             _bounded_test_result("; ".join(p for p in parts if p)),
         )
+    skipped = node.findall("skipped")
+    if skipped:
+        parts = [item.get("message", "") or (item.text or "").strip() for item in skipped]
+        message = _bounded_test_result("; ".join(part for part in parts if part))
+        return TestCaseResult(name, False, message or "test was skipped", executed=False)
     # A test ctest never ran is not evidence that it passes.
-    status = node.get("status", "")
-    if status and status not in ("run", "passed"):
+    status = node.get("status", "").strip()
+    normalized_status = re.sub(r"[^a-z0-9]+", "", status.casefold())
+    if normalized_status in {"notrun", "skip", "skipped", "disabled", "blacklisted"}:
         return TestCaseResult(
             name,
             False,
             _bounded_test_result(f"ctest reported status {status!r}"),
+            executed=False,
+        )
+    if normalized_status not in {"", "run", "pass", "passed"}:
+        return TestCaseResult(
+            name,
+            False,
+            _bounded_test_result(f"test framework reported unknown status {status!r}"),
         )
     return TestCaseResult(name, True)
 
@@ -322,11 +339,18 @@ def parse_ctest_stdout(text: str) -> list[TestCaseResult]:
         if match is None:
             continue
         verdict = match.group("verdict").strip().lstrip("*")
+        normalized_verdict = re.sub(r"[^a-z0-9]+", "", verdict.casefold())
+        executed = not (
+            normalized_verdict.startswith("notrun")
+            or normalized_verdict.startswith("disabled")
+            or normalized_verdict.startswith("skip")
+        )
         results.append(
             TestCaseResult(
                 match.group("name"),
-                verdict == "Passed",
+                executed and verdict == "Passed",
                 "" if verdict == "Passed" else verdict,
+                executed=executed,
             )
         )
     return results
@@ -347,11 +371,25 @@ def parse_qtest_xunit(text: str) -> list[TestCaseResult]:
         for node in suite.iter("testcase"):
             case = _junit_case(node)
             name = f"{suite_name}::{case.name}" if suite_name else case.name
-            passed = case.passed and node.get("result", "pass") == "pass"
+            result = node.get("result", "pass").strip()
+            normalized_result = re.sub(r"[^a-z0-9]+", "", result.casefold())
+            if normalized_result in {"skip", "skipped", "notrun", "disabled", "blacklisted"}:
+                executed = False
+                passed = False
+            elif normalized_result in {"pass", "passed", "xfail"}:
+                executed = case.executed
+                passed = case.passed and executed
+            elif normalized_result in {"fail", "failed", "error", "xpass"}:
+                executed = True
+                passed = False
+            else:
+                # Unknown framework states must not become a silent pass.
+                executed = True
+                passed = False
             message = case.message
             if not passed and not message:
-                message = f"QtTest reported result {node.get('result', '')!r}"
-            results.append(TestCaseResult(name, passed, message))
+                message = f"QtTest reported result {result!r}"
+            results.append(TestCaseResult(name, passed, message, executed=executed))
     return results
 
 
@@ -650,7 +688,7 @@ def _qmake_results(output: str, returncode: int) -> list[TestCaseResult]:
     if not results:
         return parse_qtest_xunit(output)
 
-    failures = [case for case in parse_qtest_xunit(output) if not case.passed]
+    failures = [case for case in parse_qtest_xunit(output) if case.executed and not case.passed]
     if not failures:
         return results
     detail = "; ".join(f"{case.name}: {case.message}".strip(": ") for case in failures)

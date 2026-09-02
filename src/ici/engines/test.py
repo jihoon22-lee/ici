@@ -114,6 +114,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         targets.extend(threshold_breaches)
         has_warn = bool(threshold_breaches) or optional_coverage_warning
         test_suites = self._build_test_suites(targets)
+        skipped_tests = sum(int(suite.get("skipped", 0)) for suite in test_suites)
         overall_status = self._result_status(
             cfg, has_failure, has_warn, optional_coverage_warning, required_coverage_missing
         )
@@ -144,6 +145,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             extra={
                 "passed_tests": passed_tests,
                 "total_tests": total_tests,
+                "skipped_tests": skipped_tests,
                 "pass_rate": pass_rate,
                 "branch_coverage": branch_cov,
                 "function_coverage": func_cov,
@@ -257,10 +259,20 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
                 continue
             suite = suite_map.setdefault(
                 target.file_path,
-                {"file": target.file_path, "passed": 0, "failed": 0, "total": 0, "tests": []},
+                {
+                    "file": target.file_path,
+                    "passed": 0,
+                    "failed": 0,
+                    "skipped": 0,
+                    "total": 0,
+                    "tests": [],
+                },
             )
             suite["total"] += 1
-            key = "passed" if target.status == EngineStatus.PASS else "failed"
+            key = {
+                EngineStatus.PASS: "passed",
+                EngineStatus.SKIP: "skipped",
+            }.get(target.status, "failed")
             suite[key] += 1
             suite["tests"].append(
                 {
@@ -744,7 +756,17 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         has_failure = False
         for case in results:
             relative = self._resolve_test_source(case.name)
-            if case.passed:
+            if not case.executed:
+                targets.append(
+                    InspectionTarget(
+                        file_path=relative,
+                        start_line=1,
+                        target_name=f"[C++] {case.name}",
+                        status=EngineStatus.SKIP,
+                        message=f"Execution skipped: {case.message or 'no reason reported'}",
+                    )
+                )
+            elif case.passed:
                 passed += 1
                 targets.append(
                     InspectionTarget(

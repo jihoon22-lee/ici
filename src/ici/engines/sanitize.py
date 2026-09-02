@@ -343,6 +343,14 @@ class SanitizeEngine(BaseEngine):
 
         has_failure = False
         for case in results:
+            if not case.executed:
+                self._mark_scope_skip(
+                    targets,
+                    session.descriptor or ".",
+                    f"[C++ ASan/UBSan] {case.name}",
+                    f"Sanitizer test was not executed: {case.message or 'no reason reported'}",
+                )
+                continue
             status = EngineStatus.PASS if case.passed else EngineStatus.FAIL
             has_failure = has_failure or not case.passed
             # Each executed binary is a measured scope. Without this the engine
