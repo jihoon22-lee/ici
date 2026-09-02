@@ -44,6 +44,50 @@ source configuration에서 일치할 때 `MEASURED`/`EXACT`가 됩니다. 이는
 dead-symbol 분석·full duplicate semantics·I4-3 전체를 완료했다는 뜻은 아닙니다. 버전은
 `0.10.2`로 유지하고 별도 release는 만들지 않습니다.
 
+### Candidate artifact (not a release)
+
+The candidate producer is a separate, manual `workflow_dispatch` path. It must be dispatched
+from `refs/heads/main` with a required full lowercase 40-character `target_sha`; the target must
+equal the protected-main commit that supplies this workflow and remain an ancestor of the fetched
+`main`. It selects the newest exact successful `Merge Gate`
+check for that SHA from at most ten explicit 100-check pages, refuses fallback to an older success,
+and verifies the check→job→run/attempt chain before checking out the exact target. The canonical
+`CI Quality Gate (Dogfooding)` main-push run is fetched independently from the Actions Runs API;
+the selected `Merge Gate` job is fetched independently from the Jobs API. The run response must
+match the repository/head repository, `name`, `path`, `event`, `head_branch`, target `head_sha`,
+`status`, `conclusion`, positive `run_attempt`, and canonical run `html_url`. The job response
+must match its `id`, `run_id`, `run_attempt`, target `head_sha`, `name`, `workflow_name`,
+`head_branch`, `status`, and `conclusion`, plus canonical job `html_url`, API `url`, `run_url`,
+and `check_run_url`.
+
+The build runs `scripts/verify-reproducibility.sh` (two byte-identical builds with unchanged
+source status) and `scripts/smoke.sh` (version/help, doctor, shell environment, report generation,
+and Zero-CDN checks). The immutable Actions artifact contract has exactly these three files:
+`ici.pyz`, `ici.pyz.sha256`, and `candidate-provenance.json`. The manifest schema is
+`ici.candidate/v1` and records the repository, `target_sha`,
+`candidate_workflow_definition_sha`, package version, `candidate_run_id`,
+`candidate_run_attempt`, `merge_gate_check_run_id`, `merge_gate_job_id`, `merge_gate_run_id`,
+`merge_gate_run_attempt`, `merge_gate_job_url`, `merge_gate_url`, artifact SHA/size, and
+`retention_days: 14`; the upload uses
+`overwrite: false`, 14-day retention, and no compression. The producer records artifact ID,
+digest, and authenticated download coordinates in the Actions summary.
+
+This path does not tag, release, publish Pages, or write a PR comment, and it does not bump the
+version: `v0.10.2` remains the stable release. `package_version` describes the selected target and
+does not authorize or create a tag/release even if it differs from the stable version in the future.
+The validation job has read-only Actions/Checks/
+Contents access; candidate-controlled build commands run after publication credentials are
+scrubbed and have no publication authority. The bounded helper implements and tests the workflow's
+`create` and `verify` subcommands. The focused local suite has 111 passing tests, and the live API
+verifier, full Python 3.10 repository suite, static/type/workflow checks, reproducible build, smoke,
+and real built-pyz bundle round trip pass. This is not a candidate-dispatch result: no remote run or
+artifact is claimed until this change reaches `main` and a successful dispatch is independently
+audited. A future consumer
+must inject the verified candidate by local path in a separate quality-zoo runner; every toy PR's
+normal gate remains pinned to released ici `v0.10.2`. Its quality-zoo result may be linked or added
+as a section of the existing `<!-- ici-report -->` body, but must preserve exactly one sticky
+comment rather than creating a second marker/comment.
+
 ### 릴리스 정책
 
 - `feature`·`test`·`refactor`·`docs` PR은 버전 변경이나 stable release를 자동으로 만들지 않습니다.

@@ -42,6 +42,15 @@ def _job_block(workflow: str, job_name: str) -> str:
     return match.group("body")
 
 
+def _step_block(job: str, step_name: str) -> str:
+    match = re.search(
+        rf"(?ms)^      - name: {re.escape(step_name)}\n(?P<body>.*?)(?=^      - name:|\Z)",
+        job,
+    )
+    assert match is not None, f"workflow step not found: {step_name}"
+    return match.group("body")
+
+
 # Matches either way ici can be told to publish, so the security assertions
 # below track the behaviour rather than one command-line spelling.
 _PUBLISH_INVOCATION = re.compile(r"ici\.pyz (?:verify [^\n]*--publish|publish\b)")
@@ -141,8 +150,8 @@ def test_pyz_build_requires_every_public_json_schema():
     assert 'if [ ! -f "$SITE/ici/schemas/$schema" ]' in script
 
 
-def test_all_ci_and_release_checkouts_disable_credential_persistence():
-    for workflow_name in ("ci.yml", "release.yml"):
+def test_all_ci_release_and_candidate_checkouts_disable_credential_persistence():
+    for workflow_name in ("ci.yml", "release.yml", "candidate-artifact.yml"):
         workflow = _workflow(workflow_name)
         checkouts = re.findall(
             r"(?ms)^      - name: [^\n]*Checkout[^\n]*\n(?P<body>.*?)(?=^      - name:|\Z)",
@@ -214,7 +223,7 @@ def test_merge_gate_requires_every_pr_quality_job():
     assert 'test "$REPORT_RESULT" = success' in merge_gate
 
 
-def test_ci_and_release_actions_are_immutable_node24_pins():
+def test_ci_release_and_candidate_actions_are_immutable_node24_pins():
     expected = {
         "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
         "actions/setup-python": "5fda3b95a4ea91299a34e894583c3862153e4b97",
@@ -224,7 +233,7 @@ def test_ci_and_release_actions_are_immutable_node24_pins():
         "softprops/action-gh-release": "3d0d9888cb7fd7b750713d6e236d1fcb99157228",
     }
 
-    for workflow_name in ("ci.yml", "release.yml"):
+    for workflow_name in ("ci.yml", "release.yml", "candidate-artifact.yml"):
         workflow = _workflow(workflow_name)
         for uses in _uses_lines(workflow):
             action, _, ref = uses.partition("@")
@@ -235,6 +244,193 @@ def test_ci_and_release_actions_are_immutable_node24_pins():
             assert ref == expected[action], f"unexpected action pin in {workflow_name}: {uses}"
         assert "node20" not in workflow.lower()
         assert not re.search(r"@[vV][0-9]+(?:\.[0-9]+){0,2}\b", workflow)
+
+
+def test_candidate_workflow_is_manual_and_requires_exact_target_sha():
+    workflow = _workflow("candidate-artifact.yml")
+    event_block = workflow.split("\n\npermissions:", 1)[0]
+    dispatch = event_block.split("  workflow_dispatch:\n", 1)[1]
+    target_input = dispatch.split("      target_sha:\n", 1)[1]
+
+    assert "  workflow_dispatch:" in event_block
+    assert not re.search(r"(?m)^  (?!workflow_dispatch:)[A-Za-z0-9_-]+:", event_block)
+    assert re.search(r"(?m)^        required: true$", target_input)
+    assert re.search(r"(?m)^        type: string$", target_input)
+    assert not re.search(r"(?m)^        default:", target_input)
+
+
+def test_candidate_validate_job_has_read_only_provenance_permissions():
+    workflow = _workflow("candidate-artifact.yml")
+    validate = _job_block(workflow, "validate")
+    permission_block = re.search(r"(?ms)^    permissions:\n(?P<body>(?:      [^\n]+\n)+)", validate)
+    assert permission_block is not None
+    assert {
+        line.strip() for line in permission_block.group("body").splitlines() if line.strip()
+    } == {"actions: read", "checks: read", "contents: read"}
+    assert not re.search(r"(?m)^      \S+:\s*write$", permission_block.group("body"))
+    assert "permissions: {}" in workflow.split("jobs:", 1)[0]
+
+
+def test_candidate_validate_binds_input_to_env_and_validates_main_ancestry():
+    validate = _job_block(_workflow("candidate-artifact.yml"), "validate")
+    provenance = _step_block(validate, "Validate Exact Main Commit and Merge Gate")
+    run_script = provenance.split("        run: |\n", 1)[1]
+
+    assert "REQUESTED_TARGET_SHA: ${{ inputs.target_sha }}" in provenance
+    assert "${{ inputs.target_sha }}" not in run_script
+    assert 'test "$GITHUB_REF" = "refs/heads/main"' in run_script
+    assert "^[0-9a-f]{40}$" in run_script
+    assert '[ "$REQUESTED_TARGET_SHA" != "$GITHUB_SHA" ]' in run_script
+    assert "git fetch --force origin refs/heads/main:refs/remotes/origin/main" in run_script
+    assert 'git cat-file -e "${REQUESTED_TARGET_SHA}^{commit}"' in run_script
+    assert (
+        'test "$(git rev-parse "${REQUESTED_TARGET_SHA}^{commit}")" = "$REQUESTED_TARGET_SHA"'
+        in run_script
+    )
+    assert (
+        'git merge-base --is-ancestor "$REQUESTED_TARGET_SHA" refs/remotes/origin/main'
+        in run_script
+    )
+
+
+def test_candidate_validate_uses_bounded_pages_and_independent_gate_apis():
+    validate = _job_block(_workflow("candidate-artifact.yml"), "validate")
+    run_script = _step_block(validate, "Validate Exact Main Commit and Merge Gate").split(
+        "        run: |\n", 1
+    )[1]
+
+    assert "gh api --paginate" not in run_script
+    assert "python3 scripts/candidate_merge_gate.py page-count" in run_script
+    assert (
+        '"repos/${GITHUB_REPOSITORY}/commits/${REQUESTED_TARGET_SHA}/check-runs?'
+        'per_page=100&filter=all&page=1"' in run_script
+    )
+    assert "for ((page = 2; page <= page_count; page++))" in run_script
+    assert 'test "${#check_pages[@]}" = "$page_count"' in run_script
+    select = "python3 scripts/candidate_merge_gate.py select-pages"
+    verify = "python3 scripts/candidate_merge_gate.py verify"
+    verify_job = "python3 scripts/candidate_merge_gate.py verify-job"
+    assert select in run_script
+    assert verify in run_script
+    assert verify_job in run_script
+    run_fetch = '"repos/${GITHUB_REPOSITORY}/actions/runs/${merge_gate_run_id}"' in run_script
+    job_fetch = '"repos/${GITHUB_REPOSITORY}/actions/jobs/${merge_gate_job_id}"' in run_script
+    assert run_fetch
+    assert job_fetch
+    assert (
+        run_script.index(select)
+        < run_script.index('"repos/${GITHUB_REPOSITORY}/actions/runs/${merge_gate_run_id}"')
+        < run_script.index(verify)
+        < run_script.index('"repos/${GITHUB_REPOSITORY}/actions/jobs/${merge_gate_job_id}"')
+        < run_script.index(verify_job)
+    )
+
+
+def test_candidate_validate_outputs_bind_target_gate_and_workflow_definition():
+    validate = _job_block(_workflow("candidate-artifact.yml"), "validate")
+    for output in (
+        "target_sha",
+        "merge_gate_check_run_id",
+        "merge_gate_job_id",
+        "merge_gate_run_id",
+        "merge_gate_run_attempt",
+        "merge_gate_job_url",
+        "merge_gate_url",
+        "candidate_workflow_definition_sha",
+    ):
+        assert f"{output}: ${{{{ steps.provenance.outputs.{output} }}}}" in validate
+
+    run_script = _step_block(validate, "Validate Exact Main Commit and Merge Gate").split(
+        "        run: |\n", 1
+    )[1]
+    for output in (
+        "target_sha",
+        "merge_gate_check_run_id",
+        "merge_gate_job_id",
+        "merge_gate_run_id",
+        "merge_gate_run_attempt",
+        "merge_gate_job_url",
+        "merge_gate_url",
+    ):
+        assert f"printf '{output}=%s\\n'" in run_script
+    assert "printf 'candidate_workflow_definition_sha=%s\\n' \"$GITHUB_SHA\"" in run_script
+
+
+def test_candidate_build_is_read_only_and_uses_validated_commit():
+    workflow = _workflow("candidate-artifact.yml")
+    build = _job_block(workflow, "build")
+    permission_block = re.search(r"(?ms)^    permissions:\n(?P<body>(?:      [^\n]+\n)+)", build)
+    assert permission_block is not None
+    assert [
+        line.strip() for line in permission_block.group("body").splitlines() if line.strip()
+    ] == ["contents: read"]
+    assert "needs: validate" in build
+
+    forbidden_capability = re.compile(
+        r"(?i)(?:secrets\.|\bgithub\.token\b|"
+        r"\b(?:GH_TOKEN|GITHUB_TOKEN)\s*:|--publish|\bpublish\b|\bcomment\b|"
+        r"\bpages\b|softprops/action-gh-release|gh\s+release|release-action)"
+    )
+    assert not forbidden_capability.search(build)
+    token_lines = [
+        line.strip()
+        for line in build.splitlines()
+        if re.search(r"(?i)\b(?:GH_TOKEN|GITHUB_TOKEN|ACTIONS_\w+TOKEN)\b", line)
+    ]
+    assert token_lines
+    assert all(line.startswith("unset ") for line in token_lines)
+
+    checkout = _step_block(build, "Checkout Validated Candidate Commit")
+    assert "ref: ${{ needs.validate.outputs.target_sha }}" in checkout
+    assert "${{ inputs.target_sha }}" not in checkout
+    assert "persist-credentials: false" in checkout
+
+
+def test_candidate_build_confirms_head_and_repeats_reproducibility_smoke_gates():
+    build = _job_block(_workflow("candidate-artifact.yml"), "build")
+    confirm = _step_block(build, "Confirm Exact Candidate Commit")
+    assert "TARGET_SHA: ${{ needs.validate.outputs.target_sha }}" in confirm
+    assert 'test "$(git rev-parse HEAD)" = "$TARGET_SHA"' in confirm
+    assert "./scripts/verify-reproducibility.sh" in build
+    assert "./scripts/smoke.sh" in build
+
+
+def test_candidate_bundle_is_created_and_verified_before_upload():
+    build = _job_block(_workflow("candidate-artifact.yml"), "build")
+    bundle = _step_block(build, "Stage Exact Candidate Bundle")
+    create = "python3 scripts/candidate_bundle.py create"
+    verify = 'python3 scripts/candidate_bundle.py verify "$bundle_dir"'
+    assert create in bundle
+    assert verify in bundle
+    assert bundle.index(create) < bundle.index(verify)
+    assert "MERGE_GATE_JOB_ID: ${{ needs.validate.outputs.merge_gate_job_id }}" in bundle
+    assert '--merge-gate-job-id "$MERGE_GATE_JOB_ID"' in bundle
+
+
+def test_candidate_upload_is_immutable_and_named_for_validated_target():
+    build = _job_block(_workflow("candidate-artifact.yml"), "build")
+    upload = _step_block(build, "Upload Immutable Candidate Bundle")
+    assert "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" in upload
+    assert "name: ici-candidate-${{ needs.validate.outputs.target_sha }}" in upload
+    assert "if-no-files-found: error" in upload
+    assert "overwrite: false" in upload
+    assert "retention-days: 14" in upload
+    assert "path: ${{ runner.temp }}/ici-candidate-bundle" in upload
+
+
+def test_candidate_summary_keeps_artifact_coordinates_separate():
+    build = _job_block(_workflow("candidate-artifact.yml"), "build")
+    summary = _step_block(build, "Record Candidate Coordinates")
+    for variable, output in (
+        ("ARTIFACT_ID", "artifact-id"),
+        ("ARTIFACT_DIGEST", "artifact-digest"),
+        ("ARTIFACT_URL", "artifact-url"),
+    ):
+        assert f"{variable}: ${{{{ steps.upload.outputs.{output} }}}}" in summary
+        assert f"${variable}" in summary
+    assert "- artifact ID:" in summary
+    assert "- artifact digest:" in summary
+    assert "- authenticated download:" in summary
 
 
 def test_release_workflow_requires_validated_tag_without_stale_fallback():

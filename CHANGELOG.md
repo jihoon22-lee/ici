@@ -9,6 +9,24 @@
 
 ### Added
 
+- **Candidate artifact producer (local contract complete):** Added the main-only `workflow_dispatch`
+  contract and bounded provenance helpers for a non-release `ici.pyz` bundle. The workflow
+  requires a full target SHA equal to the protected-main dispatch commit and verifies that commit
+  remains in `main` ancestry, selects the newest exact successful `Merge Gate`, and independently
+  verifies both the canonical main-push Actions run and the selected `Merge Gate` job through
+  separate Actions API responses. The job/run/attempt, target SHA, name/workflow, main branch,
+  completed/success conclusion, and canonical job/run/check URLs must all bind. It then performs
+  two reproducible builds and an isolated smoke check. The artifact contract contains exactly
+  `ici.pyz`, `ici.pyz.sha256`, and `candidate-provenance.json`, is retained for 14 days without
+  overwrite, and does not change the `v0.10.2` stable tag, release, or version. Its canonical
+  provenance records `candidate_run_id`, `candidate_run_attempt`, `merge_gate_check_run_id`,
+  `merge_gate_job_id`, `merge_gate_run_id`, `merge_gate_run_attempt`, `merge_gate_job_url`, and
+  `merge_gate_url`. The candidate reports its target commit's package version but never changes or
+  publishes that version. The focused 111-test suite, live API verifier, full Python 3.10 suite,
+  static/type/workflow checks, reproducible build, smoke, and real built-pyz bundle round trip pass;
+  remote dispatch, toy-project consumer injection, and quality-zoo acceptance remain pending, and
+  no successful remote candidate run is claimed here.
+  See [`candidate artifact provenance workthrough`](docs/workthrough/2026-09-03-candidate-artifact-provenance.md).
 - **Compiler-backed C/C++ translation-unit unused-function evidence**: `dead` now exposes
   `[engines.dead].cpp_unused = "auto" | "required" | "off"` as a C++-scope policy independent of
   the Python AST dead-code heuristic. The full verifier and standalone `ici dead` command use the
