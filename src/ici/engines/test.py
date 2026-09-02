@@ -103,6 +103,12 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         targets: list[InspectionTarget] = []
         passed_tests, total_tests, has_failure = self._run_project_tests(proj_type, targets)
         cfg = self.get_config("test")
+        skipped_tests = sum(
+            int(target.metrics.get("test_cases", 1))
+            for target in targets
+            if target.status == EngineStatus.SKIP
+        )
+        no_tests_executed = total_tests > 0 and skipped_tests >= total_tests
         required_coverage_missing, optional_coverage_warning = self._apply_coverage_policy(cfg)
         branch_cov, func_cov, missed_targets = self._measure_coverage(proj_type, has_failure)
         targets.extend(missed_targets)
@@ -114,9 +120,13 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         targets.extend(threshold_breaches)
         has_warn = bool(threshold_breaches) or optional_coverage_warning
         test_suites = self._build_test_suites(targets)
-        skipped_tests = sum(int(suite.get("skipped", 0)) for suite in test_suites)
         overall_status = self._result_status(
-            cfg, has_failure, has_warn, optional_coverage_warning, required_coverage_missing
+            cfg,
+            has_failure,
+            has_warn,
+            optional_coverage_warning,
+            required_coverage_missing,
+            no_tests_executed,
         )
         summary = self._result_summary(
             passed_tests,
@@ -126,6 +136,7 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             tem_info,
             optional_coverage_warning,
             branch_cov=branch_cov,
+            no_tests_executed=no_tests_executed,
         )
         duration = time.time() - t0
         line_cov = tem_info["line_coverage"]
@@ -133,7 +144,12 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         cov_label = tem_info["cov_label"]
         cov_shown = tem_info["cov_shown"]
         self._has_run = True
-        evidence = self._result_evidence(optional_coverage_warning, required_coverage_missing)
+        evidence = self._result_evidence(
+            optional_coverage_warning,
+            required_coverage_missing,
+            no_tests_executed,
+            bool(cfg.get("required", True)),
+        )
         return self.create_result(
             name="test",
             status=overall_status,
@@ -268,12 +284,13 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
                     "tests": [],
                 },
             )
-            suite["total"] += 1
+            case_count = int(target.metrics.get("test_cases", 1))
+            suite["total"] += case_count
             key = {
                 EngineStatus.PASS: "passed",
                 EngineStatus.SKIP: "skipped",
             }.get(target.status, "failed")
-            suite[key] += 1
+            suite[key] += case_count
             suite["tests"].append(
                 {
                     "name": target.target_name,
@@ -290,9 +307,12 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         has_warn: bool,
         optional: bool,
         required: bool,
+        no_tests_executed: bool,
     ) -> EngineStatus:
         if self._tool_errors or required:
             return EngineStatus.ERROR
+        if no_tests_executed:
+            return EngineStatus.ERROR if bool(cfg.get("required", True)) else EngineStatus.SKIP
         if optional and not has_failure:
             return EngineStatus.WARN
         return self.evaluate_status(has_failure, has_warn, cfg.get("mode", "pass_fail"))
@@ -306,9 +326,12 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         tem_info: dict[str, Any],
         optional: bool,
         branch_cov: float = 0.0,
+        no_tests_executed: bool = False,
     ) -> str:
         if self._tool_errors:
             return "; ".join(self._tool_errors[:3])
+        if no_tests_executed:
+            return f"0/{total_tests} Tests Executed; every collected test was skipped"
         summary = (
             f"{passed_tests}/{total_tests} Tests Passed | "
             f"{tem_info['cov_label']}: {tem_info['cov_shown']:.1f}%{tem_info['cov_suffix']}, "
@@ -323,9 +346,17 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
             summary += "; Coverage evidence ESTIMATED (optional; not threshold evidence)"
         return summary
 
-    def _result_evidence(self, optional: bool, required: bool) -> EvidenceState:
+    def _result_evidence(
+        self,
+        optional: bool,
+        required: bool,
+        no_tests_executed: bool,
+        engine_required: bool,
+    ) -> EvidenceState:
         if self._tool_errors or required:
             return EvidenceState.NOT_RUN
+        if no_tests_executed:
+            return EvidenceState.NOT_RUN if engine_required else EvidenceState.ESTIMATED
         return EvidenceState.ESTIMATED if optional else EvidenceState.MEASURED
 
     def _mark_zero_tests(
@@ -411,6 +442,14 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         if self._module_unavailable(result, "pytest"):
             return None
         parsed = self._parse_pytest_result(result, targets)
+        skipped = sum(
+            int(target.metrics.get("test_cases", 1))
+            for target in targets
+            if target.status == EngineStatus.SKIP
+        )
+        if skipped >= parsed[1] > 0:
+            self._coverage_errors.append("Python tests were collected but not executed")
+            return parsed
         if self._tool_errors or parsed[1] == 0 or result.returncode not in (0, 1):
             return parsed
         self._generate_coverage_json(cov_cmd, cov_dir, cov_env)
@@ -508,6 +547,11 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         collected = re.search(r"\bcollected\s+(\d+)\s+items?\b", output)
         if total == 0 and collected is not None:
             total = int(collected.group(1))
+        skipped = sum(
+            int(target.metrics.get("test_cases", 1))
+            for target in targets
+            if target.status == EngineStatus.SKIP
+        )
         if result.returncode == 5 or (total == 0 and result.returncode == 0):
             has_failure = True
             if not any(t.target_name == "[Python] Tests" for t in targets):
@@ -520,7 +564,11 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
                         message="No tests collected",
                     )
                 )
-        elif result.returncode == 0 and not pytest_result_has_evidence(output):
+        elif (
+            result.returncode == 0
+            and not pytest_result_has_evidence(output)
+            and not (total > 0 and skipped >= total)
+        ):
             self._record_tool_error("Pytest returned success without parseable test results")
         elif result.returncode not in (0, 1):
             self._record_tool_error(f"Pytest failed with exit code {result.returncode}")
@@ -594,41 +642,79 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
         passed = 0
         total = 0
         has_failure = False
+        verdicts = ("PASSED", "FAILED", "ERROR", "SKIPPED", "XFAIL", "XPASS")
         for line in out.splitlines():
-            if "::" in line and ("PASSED" in line or "FAILED" in line or "ERROR" in line):
-                total += 1
-                parts = line.split()
-                tname = parts[0]
-                test_file = tname.split("::")[0] if "::" in tname else "tests"
-                if "PASSED" in line:
-                    passed += 1
-                    targets.append(
-                        InspectionTarget(
-                            file_path=test_file,
-                            start_line=1,
-                            target_name=tname,
-                            status=EngineStatus.PASS,
-                            message="Test passed successfully",
-                        )
-                    )
-                else:
-                    has_failure = True
-                    targets.append(
-                        InspectionTarget(
-                            file_path=test_file,
-                            start_line=1,
-                            target_name=tname,
-                            status=EngineStatus.FAIL,
-                            message="Test assertion failed",
-                        )
-                    )
+            if "::" not in line:
+                continue
+            parts = line.split()
+            if not parts:
+                continue
+            verdict = next((item for item in parts[1:] if item in verdicts), None)
+            if verdict is None:
+                continue
+            total += 1
+            tname = parts[0]
+            test_file = tname.split("::")[0] if "::" in tname else "tests"
+            if verdict in ("PASSED", "XFAIL"):
+                passed += 1
+                status = EngineStatus.PASS
+                message = (
+                    "Expected failure was exercised"
+                    if verdict == "XFAIL"
+                    else "Test passed successfully"
+                )
+            elif verdict == "SKIPPED":
+                status = EngineStatus.SKIP
+                message = "Test was collected but not executed"
+            else:
+                has_failure = True
+                status = EngineStatus.FAIL
+                message = (
+                    "Unexpected pass violated the expected-failure contract"
+                    if verdict == "XPASS"
+                    else "Test assertion failed"
+                )
+            targets.append(
+                InspectionTarget(
+                    file_path=test_file,
+                    start_line=1,
+                    target_name=tname,
+                    status=status,
+                    message=message,
+                )
+            )
         if total == 0:
             passed_match = re.search(r"\b(\d+)\s+passed\b", out)
             failed_match = re.search(r"\b(\d+)\s+(?:failed|errors?)\b", out)
-            passed = int(passed_match.group(1)) if passed_match else 0
+            skipped_match = re.search(r"\b(\d+)\s+skipped\b", out)
+            xfailed_match = re.search(r"\b(\d+)\s+xfailed\b", out)
+            xpassed_match = re.search(r"\b(\d+)\s+xpassed\b", out)
+            ordinary_passed = int(passed_match.group(1)) if passed_match else 0
             failed = int(failed_match.group(1)) if failed_match else 0
-            total = passed + failed
-            has_failure = failed > 0
+            skipped = int(skipped_match.group(1)) if skipped_match else 0
+            xfailed = int(xfailed_match.group(1)) if xfailed_match else 0
+            xpassed = int(xpassed_match.group(1)) if xpassed_match else 0
+            passed = ordinary_passed + xfailed
+            total = passed + failed + skipped + xpassed
+            has_failure = failed > 0 or xpassed > 0
+            for label, count, status, message in (
+                ("Passed", ordinary_passed, EngineStatus.PASS, "Pytest summary: passed"),
+                ("XFail", xfailed, EngineStatus.PASS, "Pytest summary: expected failure"),
+                ("Skipped", skipped, EngineStatus.SKIP, "Pytest summary: not executed"),
+                ("Failed", failed, EngineStatus.FAIL, "Pytest summary: failed"),
+                ("XPass", xpassed, EngineStatus.FAIL, "Pytest summary: unexpected pass"),
+            ):
+                if count:
+                    targets.append(
+                        InspectionTarget(
+                            file_path="tests",
+                            start_line=1,
+                            target_name=f"[Python] {label} ({count})",
+                            status=status,
+                            message=message,
+                            metrics={"test_cases": count},
+                        )
+                    )
         return passed, total, has_failure
 
     def _parse_coverage_json(
@@ -790,7 +876,11 @@ class TestEngine(TestInterpreterMixin, BaseEngine):
                 )
 
         # gcov only after the tests ran: .gcda does not exist until then.
-        gcov_dir = adapter_collect_coverage(session)
+        gcov_dir = (
+            adapter_collect_coverage(session) if any(case.executed for case in results) else None
+        )
+        if results and not any(case.executed for case in results):
+            self._coverage_errors.append("C++ tests were collected but not executed")
         # One copy at the end, covering configure, build, ctest and gcov.
         self._tool_evidence.extend(session.tool_evidence)
         if gcov_dir is None:

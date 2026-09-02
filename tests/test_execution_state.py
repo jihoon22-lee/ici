@@ -297,6 +297,94 @@ def test_test_engine_emits_skip_target_and_suite_skip_count_without_failed_case(
     assert sum(suite["failed"] for suite in result.extra["test_suites"]) == 0
 
 
+def test_pytest_parser_preserves_skip_xfail_and_xpass_execution_semantics(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    targets = []
+
+    passed, total, has_failure = engine._parse_pytest_stdout(
+        "tests/test_states.py::test_pass PASSED\n"
+        "tests/test_states.py::test_skip SKIPPED (platform)\n"
+        "tests/test_states.py::test_expected XFAIL (known defect)\n"
+        "tests/test_states.py::test_unexpected XPASS (fixed)\n",
+        targets,
+    )
+
+    assert (passed, total, has_failure) == (2, 4, True)
+    by_name = {target.target_name.rsplit("::", 1)[-1]: target for target in targets}
+    assert by_name["test_pass"].status is EngineStatus.PASS
+    assert by_name["test_skip"].status is EngineStatus.SKIP
+    assert by_name["test_expected"].status is EngineStatus.PASS
+    assert by_name["test_unexpected"].status is EngineStatus.FAIL
+
+
+def test_pytest_summary_only_skip_is_retained_as_not_executed(tmp_path: Path):
+    engine = TestEngine(tmp_path)
+    targets = []
+
+    passed, total, has_failure = engine._parse_pytest_stdout(
+        "===================== 3 skipped in 0.01s =====================\n",
+        targets,
+    )
+
+    assert (passed, total, has_failure) == (0, 3, False)
+    assert len(targets) == 1
+    assert targets[0].status is EngineStatus.SKIP
+    assert targets[0].target_name == "[Python] Skipped (3)"
+
+
+@pytest.mark.parametrize(
+    ("required", "expected_status", "expected_evidence"),
+    [
+        (True, EngineStatus.ERROR, EvidenceState.NOT_RUN),
+        (False, EngineStatus.SKIP, EvidenceState.ESTIMATED),
+    ],
+    ids=["required", "optional"],
+)
+def test_real_pytest_all_skipped_never_becomes_clean_evidence(
+    tmp_path: Path,
+    required: bool,
+    expected_status: EngineStatus,
+    expected_evidence: EvidenceState,
+):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "module.py").write_text("VALUE = 1\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_skip.py").write_text(
+        "import pytest\n\n@pytest.mark.skip(reason='platform')\ndef test_skipped():\n    pass\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "ici.toml").write_text(
+        'name = "pytest_skip"\ntype = "python"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    engine = TestEngine(
+        tmp_path,
+        {
+            "engines": {
+                "test": {
+                    "required": required,
+                    "coverage_required": False,
+                    "min_tem_score": 0.0,
+                    "min_branch_cov": 0.0,
+                    "min_func_cov": 0.0,
+                }
+            }
+        },
+    )
+
+    result = engine.run()
+
+    assert result.status is expected_status
+    assert result.evidence is expected_evidence
+    assert result.extra["passed_tests"] == 0
+    assert result.extra["total_tests"] == 1
+    assert result.extra["skipped_tests"] == 1
+    assert "every collected test was skipped" in result.summary
+    assert any(target.status is EngineStatus.SKIP for target in result.targets)
+
+
 def test_html_renders_skipped_test_case_as_skip(tmp_path: Path):
     result = EngineResult(
         engine_name="test",
