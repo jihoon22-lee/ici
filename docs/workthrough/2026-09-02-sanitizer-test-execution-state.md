@@ -40,7 +40,14 @@ TestCaseResult("filtered", False, "disabled by platform", executed=False)
   be recovered).
 - Pytest verbose output and terminal summaries map `SKIPPED` to a collected but non-executed
   case, `XFAIL` to an executed expected failure that passes, and `XPASS` to an executed failure.
-  A summary-only `N skipped` result is retained as `[Python] Skipped (N)` rather than a clean run.
+  All of those per-test markers and summary tokens count as parseable result evidence, even when
+  a run has no ordinary `passed` case. If pytest emits a terminal summary, its last authoritative
+  count for each state is used; repeated collection/interruption/detail lines do not inflate the
+  test total or failure count. A summary-only `N skipped` result is retained as `[Python] Skipped
+  (N)` rather than a clean run.
+- The unittest fallback preserves the same execution distinction: `... ok` is an executed pass,
+  `... skipped` is a collected but non-executed skip, `... expected failure` is an executed
+  expected pass, and `... unexpected success`, `... FAIL`, or `... ERROR` are executed failures.
 
 ### 3. Engine and HTML behavior
 
@@ -64,8 +71,10 @@ all remains the separate explicit non-applicable/skip path.
 
 The test engine applies the same all-collected-skipped rule across Python and C++ cases:
 required execution is `ERROR`/`NOT_RUN`, while optional execution is `SKIP`/`ESTIMATED`.
-Coverage generation or a pre-existing coverage artifact cannot substitute for execution
-evidence or promote an all-skipped run to `MEASURED`/`PASS`.
+The all-skipped shortcut is used only when no actual test or collection failure exists; a real
+failure remains the higher-precedence `FAIL`/`ERROR` result even when another language contributes
+only skipped cases. Coverage generation or a pre-existing coverage artifact cannot substitute for
+execution evidence or promote an all-skipped run to `MEASURED`/`PASS`.
 
 ## Files
 
@@ -95,6 +104,13 @@ This documentation update covers:
   an executed failure. Preserve locations and bounded reasons in `InspectionTarget`.
 - Map `xfail` to a genuine executed pass, but map `xpass` and unknown framework states to
   executed failures. The parser must fail closed when it cannot interpret a state.
+- Treat pytest per-test markers and the authoritative terminal summary (`SKIPPED`, `XFAIL`, and
+  `XPASS` included) as execution evidence, and use only the terminal summary's final counts when
+  collection output repeats the same error.
+- Keep unittest's verbose-state mapping aligned with pytest: skipped cases are non-executed,
+  expected failures are executed passes, and unexpected successes are executed failures.
+- Give actual test/collection failures precedence over the all-collected-skipped shortcut during
+  cross-language aggregation.
 - Keep required and optional sanitizer policy separate: required missing execution blocks
   with `ERROR`/`NOT_RUN`; optional missing execution remains visible through
   `SKIP`/`WARN` and `ESTIMATED` evidence.
@@ -106,13 +122,13 @@ This documentation update covers:
 | Check | Result |
 |---|---|
 | Runtime | Python `3.10.21` |
-| Focused execution-state and real-CMake regression | `18 passed` |
-| Combined related suites | `190 passed`: `test_build_adapter`, `test_build_adapter_e2e`, `test_sanitize_engine`, `test_test_engine`, `test_reporters`, and `test_execution_state` |
+| Focused execution-state and real-CMake regression | `24 passed` |
+| Combined related suites | `196 passed`: `test_build_adapter`, `test_build_adapter_e2e`, `test_sanitize_engine`, `test_test_engine`, `test_reporters`, and `test_execution_state` |
 | Real QtTest fixture | Qt `6.10.2` fixture built and ran with `-xunitxml`; QSKIP emitted `<skipped message>`, XFAIL emitted no failure and passed, and XPASS emitted `<failure type="xpass">`; temporary fixture was deleted |
-| Full local Python 3.10 run | With real extracted clang-tidy 21: `1,676 collected; 1,674 passed, 2 skipped` in 71.78s. The skips require unavailable `clazy` or `clang++`; neither exercised scope was silently counted as passed. This is local evidence, not PR CI or release acceptance. |
+| Full local Python 3.10 run | With real extracted clang-tidy 21: `1,682 collected; 1,680 passed, 2 skipped` in 63.81s. The skips require unavailable `clazy` or `clang++`; neither an unavailable tool nor a skipped test was silently counted as passed. This is local evidence, not PR CI or release acceptance. |
 | Ruff | check and format checks passed |
 | Mypy | `96` source files passed with no issues |
-| Reproducible package | Two consecutive builds produced byte-identical `dist/ici.pyz`, SHA-256 `cb570a760d7355bb66f4fde003cbc9a8331a06a5c081d3258e86727d62a66a5b` |
+| Reproducible package | Two consecutive builds produced byte-identical `dist/ici.pyz`, SHA-256 `9c2a240d3f6be3f13f7bc514baae6ad373bb97b6222da64af3bd2f91f6cf8739`. |
 | Smoke | Version/help, doctor, shell environments, Python 3.10 launch, artifact integrity, and Zero-CDN HTML checks passed; the self-verify exit was `1` because findings remain visible rather than being hidden |
 | Documentation hygiene | `git diff --check` passed |
 

@@ -105,9 +105,16 @@
   aggregate scope.
   The test engine exposes `skipped_tests` and per-suite skipped counts, and the HTML test view
   renders skipped cases separately. Pytest verbose and terminal-summary fallbacks preserve
-  `SKIPPED`, treat `XFAIL` as an executed expected failure and pass, and fail closed on `XPASS`. A test-engine
-  run in which every collected Python or C++ test was skipped is `ERROR`/`NOT_RUN` when required and
-  `SKIP`/`ESTIMATED` when optional; coverage output is not accepted as test execution evidence.
+  `SKIPPED`, treat `XFAIL` as an executed expected failure and pass, and fail closed on `XPASS`.
+  Per-test markers and terminal-summary counts for all three states count as parseable pytest
+  evidence, including runs with no ordinary `passed` case. When a terminal summary is present,
+  its counts are authoritative; repeated collection/interruption lines are not summed as extra
+  failures. The unittest fallback maps `ok` to an executed pass, `skipped` to a collected but
+  non-executed case, `expected failure` to an executed expected pass, and `unexpected success`,
+  `FAIL`, or `ERROR` to executed failures. A test-engine run in which every collected Python or
+  C++ test was skipped is `ERROR`/`NOT_RUN` when required and `SKIP`/`ESTIMATED` when optional;
+  an actual test or collection failure takes precedence over that all-skipped classification.
+  Coverage output is not accepted as test execution evidence.
   Sanitizer policy now treats required all/mixed missing test
   execution as `ERROR`/`NOT_RUN`; optional all-missing as `SKIP`/`ESTIMATED`; optional mixed clean
   execution plus missing cases as `WARN`/`ESTIMATED`; and optional actual failure plus missing
