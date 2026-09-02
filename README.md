@@ -36,6 +36,10 @@ preview와 CTest sanitizer evidence를 bounded하게 보존하고, clang-tidy/cl
 database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합니다. 공개된 v0.10.2를
 사용하는 BuildScope B0~B5 최종 검증과 공개 `buildscope-v0.5.0` release audit은 완료됐다.
 남은 ici 범위는 I4-3/I4-4이며, 이전 릴리스 증거는 변경 이력과 실행 계획에 보존합니다.
+이번 bounded language-aware `dup` slice는 위 범위 안에서 lexical token/region/signal 정확도와
+fail-closed resource budget을 보강하지만, 결과 evidence는 계속 `ESTIMATED`/heuristic이며
+compiler/linker exact dead-symbol 분석·full duplicate semantics·I4-3 전체를 완료했다는 뜻은
+아닙니다. 버전은 `0.10.2`로 유지하고 별도 release는 만들지 않습니다.
 
 ### 릴리스 정책
 
@@ -83,7 +87,7 @@ database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합
       metric으로 계산 + **원본 소스 코드 블록 프리뷰**
     - `sanitize`: C++ AddressSanitizer/UBSan 메모리 안전성 및 Python 리소스 누수 검증
     - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출. 공통 bounded UTF-8 source intake를 사용하며 generated/vendor는 기본 제외(`include_generated`/`include_vendor` literal-boolean opt-in), 결과 evidence는 Python AST 휴리스틱 `ESTIMATED`. intake는 8,192개 unique candidate와 2,048개 owned/analyzed 파일·파일당 8 MiB·aggregate 64 MiB로 제한하고, 제외된 파일은 owned 한도에 포함하지 않음
-    - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출. Python/C/C++ 매칭을 언어별로 격리하고 `sha256/type2-region-v1` fingerprint를 기록하며 generated/moc/vendor는 기본 제외; owned C/C++ header도 검사하고 standalone `.moc`는 `include_generated = true`일 때만 포함하며 같은 bounded source 한도를 사용
+    - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출. Python/C/C++는 전용 line-preserving lexer로 정규화해 언어별로 격리한다. Python `tokenize`/AST context는 주석·multiline import와 `match`/`case` soft keyword를 처리하고 identifier, 숫자·문자열 계열, 들여쓰기·연산자 category를 보존하며, C/C++ lexer는 comments/directives, C++ backslash-newline splice, punctuator 경계와 Qt semantic anchor를 보존한다. rolling normalized-window seed와 exact token extension, function/import/directive region 및 semantic-signal policy로 data-table 오탐은 줄이고 실제 control-flow clone은 유지한다. `sha256/type2-region-v2` fingerprint와 tokenizer/region/signal metadata를 기록하며 generated/moc/vendor는 기본 제외; owned C/C++ header도 검사하고 standalone `.moc`는 `include_generated = true`일 때만 포함하며 같은 bounded source 한도를 사용. 결과는 여전히 `ESTIMATED`/heuristic이고 내부 budget 초과는 partial PASS 없이 `ERROR`/`NOT_RUN`으로 닫힌다.
     - `exception`: 예외 삼킴(`except: pass`), Traceback 유실, 소멸자 throw 차단
     - `cycle`: Python import / C++ include **순환 참조 탐지** (Tarjan SCC, C++ path-suffix 해석의 미해결·모호 위치도 보고)
     - `security`: 하드코딩 시크릿, 약한 해시, `eval`/`pickle`/`shell=True` 등 위험 패턴 탐지
@@ -423,8 +427,9 @@ clone group은 합치지 않습니다. HTML `Issues` 탭도 native v3 finding in
 표시 순서와 줄바꿈은 deterministic하게 유지하고, 80-column 터미널에서도 표와 상세 링크가
 한 글자씩 세로로 깨지지 않도록 회귀 테스트로 고정했습니다.
 
-현재 로컬 구현·테스트 기준은 `814679c` + `d80a027`입니다. 로컬 Python 3.10 전체 품질
-게이트는 756/756 tests, focused console 테스트는 16개입니다. 최종 안정 self verify에서
+다음 수치는 issues-first console을 도입한 PR #89 당시의 고정된 acceptance 기록입니다
+(`814679c` + `d80a027`). 당시 로컬 Python 3.10 전체 품질 게이트는 756/756 tests,
+focused console 테스트는 16개였습니다. 최종 안정 self verify에서
 built `dist/ici.pyz`가 exit 0으로 실행됐고 suite는 WARN을 반환했습니다. self verify 출력은
 144 lines/15,288 bytes, HTML은 3,383,523 bytes였습니다. 해당 self verify 출력에 내장된
 test engine 수치는 756/756이며, local self verify line/function/branch coverage는 87.8%/96.6%/78.8%, TEM

@@ -9,6 +9,26 @@
 
 ### Added
 
+- **Bounded language-aware duplicate tokenization and matching**: `dup` now uses dedicated,
+  line-preserving lexical normalizers for Python and C/C++ before building language-isolated Type-2
+  clone windows. Python tokenization removes comments and import-first logical statements (including
+  multiline imports), uses Python AST context for `match`/`case` soft keywords and imported/API names,
+  and keeps identifier, integer/float/complex, string/bytes/f-string, indentation, and operator
+  categories distinct while normalizing values. The C++ lexer removes comments/directives, applies
+  translation-phase backslash-newline splicing with physical-line provenance, preserves punctuator
+  boundaries and literal categories, and keeps Qt semantic anchors stable. Matching indexes rolling
+  normalized-window seeds and verifies exact token equality while extending regions within the
+  language/function/import/directive policy. A semantic-signal policy suppresses low-information
+  Python tables and C++ array/enum-style data without suppressing real control-flow clones. Internal
+  tokenizer, normalized-character, aggregate indexed-record, occurrence, seed-pair, extension, and
+  raw-match budgets fail closed deterministically as `ERROR`/`NOT_RUN` with `SourceTokenizationError` or
+  `DuplicateComparisonLimit` targets; they are not user configuration keys. Clone metadata now
+  records `sha256/type2-region-v2`, `cpp-lexical-v1`/`python-lexical-v1`,
+  `language-function-scope-v1`, and `minimum-semantic-lines-v1`. Results remain
+  `ESTIMATED` with `language-lexical-region-heuristic` provenance; compiler/linker-backed exact
+  semantics and the complete I4-3 checkpoint remain pending. This slice keeps version `0.10.2`
+  and creates no release.
+
 - **C++ function-scope classification and configuration disclosure**: compiler-backed complexity
   boundaries now retain source-spelled named functions, including function templates, conversion/
   call/subscript operators, and literal operators, with `function_kind`, `function_template`, and
@@ -119,8 +139,12 @@
   reached critical complexity 31; `e1a665d` split that path without changing output. The final
   no-cache self-check exits 0 with suite WARN, 7 PASS/5 WARN/0 FAIL/0 ERROR/1 SKIP, test
   `1768/1770`, TEM `4.84`, line/function/branch coverage `89.1%/96.8%/81.5%`, complexity 25, exact
-  UTF-8 title, and Zero-CDN HTML. This follow-up's PR/CI verification remains pending. The version
-  remains `0.10.2`; no release is created.
+  UTF-8 title, and Zero-CDN HTML. [PR #134](https://github.com/jihoon22-lee/ici/pull/134)
+  subsequently merged as `b5ebeaecee1737973b407d328bd5d655eca7256a`; PR run
+  [`33616285870`](https://github.com/jihoon22-lee/ici/actions/runs/33616285870), exact-main run
+  [`33617482194`](https://github.com/jihoon22-lee/ici/actions/runs/33617482194), the single sticky
+  report comment, and independent artifact/Pages byte, title, and Zero-CDN checks all passed. The
+  version remains `0.10.2`; no release is created.
 
 - **Bounded heuristic source evidence for `dead` and `dup`**: both engines now consume the same
   stable, project-contained UTF-8 source snapshot instead of independently opening files. The
@@ -146,8 +170,10 @@
     `dup` keeps PASS location targets for analyzed files, isolates Python and C/C++ matching, and
     records stable `sha256/type2-region-v1` clone fingerprints while remaining
     `ESTIMATED`/`token-region-heuristic` evidence.
-  - Compiler/linker-backed exact dead-symbol evidence and robust language tokenization for full
-    duplicate semantics remain pending; this slice does not close I4-3 or create a release.
+  - At this source-intake-only stage, compiler/linker-backed exact dead-symbol evidence and robust
+    language tokenization for full duplicate semantics remained pending; the later bounded
+    language-aware lexical follow-up is recorded above. That earlier slice did not close I4-3 or
+    create a release.
   Local Python 3.10 focused evidence for this slice is 79 source-input tests and 238 directly
   related config/dead/dup tests passed. The final complete local suite is green at
   `1764 passed, 2 skipped` out of 1,766 collected. Ruff check/format and mypy (98 source files)
@@ -184,8 +210,9 @@
   | viewer | 358,047 | `a212609c54fe6fa10cd8f6abe3318c0094f9b3fd23ba9b7570f59f46612d1d30` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
 
   The merged PR branch was deleted locally and remotely. This closes the bounded source-evidence
-  implementation delivery, but compiler/linker-backed exact dead-symbol evidence and robust
-  duplicate tokenization remain pending, so it does not close I4-3 or authorize a new release.
+  implementation delivery recorded at that point; the later bounded language-aware duplicate
+  follow-up is recorded above. Compiler/linker-backed exact dead-symbol evidence, full duplicate
+  semantics, and the rest of I4-3 remain pending, so no new release is authorized.
 
 - **Python function metric scope boundaries**: cyclomatic and cognitive complexity now measure each
   named function independently instead of charging nested function, class, and lambda bodies to

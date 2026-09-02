@@ -945,13 +945,18 @@ Exact-main Pages도 같은 HTTP/content/title/Zero-CDN 계약을 통과했다.
 B4 pending 표현은 당시의 historical snapshot이다. 당시 v0.9.1 release와 B4 완료 evidence는
 다음 절에 기록한다.
 
-#### clang-tidy/analyzer related-note aggregation follow-up (implementation candidate)
+#### Clang-tidy/analyzer related-note aggregation follow-up (PR #134 merged; artifact/Pages audit complete)
 
-`fix/clang-tidy-related-notes`의 `f999ee3`는 일반 clang-tidy 및 `clang-analyzer-*` 설명용
-`note:`를 rule-less이거나 primary와 같은 rule일 때 출력 stream의 바로 앞 primary
-`CppDiagnostic.related_diagnostics`에 결합한다. 이는 contiguous group 단위의 association이며,
-다음 primary가 나오면 새 group을 시작한다. conflicting-rule 또는 orphan note는 partial
-결과를 남기지 않고 atomic하게 fail-closed한다. `3fc45a7`은 이 grouping을 linear하게
+[`PR #134`](https://github.com/jihoon22-lee/ici/pull/134)의
+`fix/clang-tidy-related-notes`는 head
+[`603a00e6574bae1fe2927421a28795780caa7f67`](https://github.com/jihoon22-lee/ici/commit/603a00e6574bae1fe2927421a28795780caa7f67)에서
+merge commit
+[`b5ebeaecee1737973b407d328bd5d655eca7256a`](https://github.com/jihoon22-lee/ici/commit/b5ebeaecee1737973b407d328bd5d655eca7256a)로
+병합됐다. `f999ee3`는 일반 clang-tidy 및 `clang-analyzer-*` 설명용 `note:`를 rule-less이거나
+primary와 같은 rule일 때 출력 stream의 바로 앞 primary `CppDiagnostic.related_diagnostics`에
+결합한다. 이는 contiguous group 단위의 association이며, 다음 primary가 나오면 새 group을
+시작한다. conflicting-rule 또는 orphan note는 partial 결과를 남기지 않고 atomic하게
+fail-closed한다. `3fc45a7`은 이 grouping을 linear하게
 구성하고, `c3108a7`/`0f46ec5`는 reporter projection과 contract coverage를 추가했다. 후속
 reporter/finding 보강은 native-only related evidence, 동일 fingerprint occurrence의 multiset
 보존, external non-link, exact line/column과 accessible controls를 고정했고, `e1a665d`는
@@ -978,8 +983,15 @@ SHA-256 `3602c2cb1b6998a54f00bf809a88d81617bec58c891bfaf12bf22bc882e71890`로
 byte-identical이고 packaged smoke 및 no-cache self-check(exit 0/WARN, complexity max 25,
 exact UTF-8 title, Zero-CDN)도 통과했다. 이전 full local attempt의
 `1750 passed, 7 skipped, 10 failed`는 function-boundary consumer mismatch를 발견한 historical
-evidence이며 `e86c982`로 보정됐다. PR/CI/Pages verification은 아직 pending이다. 버전은
-`0.10.2`로 유지하고 release는 만들지 않는다.
+evidence이며 `e86c982`로 보정됐다. [PR CI run `33616285870`](https://github.com/jihoon22-lee/ici/actions/runs/33616285870)와
+exact-main [run `33617482194`](https://github.com/jihoon22-lee/ici/actions/runs/33617482194)은
+각각 `SUCCESS`다. [PR sticky comment](https://github.com/jihoon22-lee/ici/pull/134#issuecomment-5507780937)는
+현재 근거로 기록한다. marker `<!-- ici-report -->`는 정확히 1개이고 현재 run 및 report link
+2개를 가리킨다. PR artifact/Pages와 main artifact/Pages는 각각 byte-identical이며, 네 Pages는
+HTTP 200·`text/html;charset=utf-8`·정확한 title·external `src`/`href` 0건을 통과했다. 네
+HTML의 bytes/SHA-256 및 artifact `source_commit`은
+[`clang-tidy related-note workthrough`](../../../workthrough/2026-09-02-clang-tidy-related-notes.md)의
+canonical table에 고정한다. 버전은 `0.10.2`로 유지하고 release는 만들지 않는다.
 
 ### I4 release boundary — v0.9.0 (historical)
 
@@ -1115,10 +1127,19 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
   - [x] 공통 intake의 generated/moc/vendor 기본 제외와 두 independent literal-boolean opt-in을
     적용하고, overlapping classification은 두 opt-in이 모두 켜져야 포함한다. owned C/C++
     headers를 포함하고 standalone `.moc`는 discoverable하지만 기본 제외하며, Python과 C/C++
-    matching을 언어별로 격리하고 `sha256/type2-region-v1` fingerprint와 PASS 위치 target을
+    matching을 언어별로 격리하고 당시의 `sha256/type2-region-v1` fingerprint와 PASS 위치 target을
     보존한다. unique excluded file count와 reason별 overlapping count를 구분하며 현재
-    token/region 분석은 `ESTIMATED`/`token-region-heuristic`이다.
-  - [ ] robust language tokenization과 full duplicate 의미 분석은 아직 pending이다.
+    source-intake slice의 token/region 분석은 `ESTIMATED`/`token-region-heuristic`이었다.
+  - [x] local language-aware lexical tokenization slice를 구현한다. Python과 C/C++를 language
+    key로 격리하고, Python의 line-preserving token/AST context와 C/C++의 line-preserving lexer,
+    line-splicing/directive 처리를 사용한다. function/class/import 또는 function/preprocessor
+    region boundary를 넘지 않는 shared normalized-window seed, rolling-hash 뒤의 exact equality
+    확인, bounded extension과 maximal-match deduplication을 적용한다. 현재 fingerprint는
+    `sha256/type2-region-v2`이고 결과 provenance는
+    `language-lexical-region-heuristic`/`ESTIMATED`다.
+  - [ ] full duplicate 의미 분석과 compiler/linker-backed exact dead-symbol evidence는 아직
+    pending이다. 이 local slice만으로 I4-3 전체 또는 remote PR/CI/main acceptance를 완료로
+    표시하지 않는다.
 - [x] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
 
 이 source-evidence slice는 PR #133으로 `main` (`fdc797a0c71c46d9301db2569928468ff42e24af`)에
@@ -1158,9 +1179,17 @@ Zero-CDN을 통과했다.
 | viewer | 358,047 | `a212609c54fe6fa10cd8f6abe3318c0094f9b3fd23ba9b7570f59f46612d1d30` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
 
 PR #133의 local/remote branch는 병합 후 삭제됐다. 이 evidence는 source-evidence 구현 delivery를
-닫지만 compiler/linker exact dead-symbol evidence와 robust duplicate tokenization은 여전히
+닫지만 compiler/linker exact dead-symbol evidence와 full duplicate semantic analysis는 여전히
 pending이므로 I4-3 또는 I4 전체 checkpoint를 닫지 않는다. 버전은 `0.10.2`로 유지하고 새
 release는 만들지 않는다.
+
+### Language-aware duplicate tokenization — local candidate (2026-09-02)
+
+이번 duplicate slice는 local implementation/test evidence만 가진다. PR, CI, main merge,
+Pages 또는 hosted artifact evidence는 아직 없으므로 이 문서에서 주장하지 않는다. 정확한
+local test와 DiskMap/BuildScope/LogLens/ici 측정값은
+[`bounded language-aware duplicate workthrough`](../../../workthrough/2026-09-02-bounded-language-aware-duplicate.md)에
+표를 고정한다. 버전은 `0.10.2`로 유지하고 이 slice에 대한 release는 만들지 않는다.
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
