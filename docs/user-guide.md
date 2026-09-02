@@ -448,7 +448,7 @@ warning 선택과 standard/define/include/ABI context를 보존하며 `-Wno-erro
 tool execution failure로 처리됩니다. 변환 결과가 `-Wp`/`-Wa`/`-Wl` forwarding처럼 replay
 안전 경계를 벗어나면 도구를 실행하지 않고 context error로 fail-closed합니다.
 
-##### C++ complexity 함수 경계 정책 (I4-3, unreleased)
+##### C++ complexity 함수 경계 정책 (I4-3; scope-policy follow-up unreleased)
 
 `complexity`의 `cpp_boundaries`는 `[engines.lint].clang_tidy`와 독립적인 전용 probe입니다.
 exact `CompilationContext`/compilation database와 capability-approved direct `clang-tidy`가
@@ -457,9 +457,25 @@ exact `CompilationContext`/compilation database와 capability-approved direct `c
 `metric_confidence = "medium"`입니다. tool의 lines/statements/parameters notes는 별도 metadata로
 보존됩니다.
 
+AST boundary target은 source-spelled named function이며 function template, conversion/call/subscript
+operator, literal operator를 포함합니다. `function_kind`, `function_template`, `function_origin`으로
+kind/template/provenance를 보존합니다. lambda는 독립 함수 target으로 만들지 않고 lambda body는
+enclosing function의 CC/nesting에서 제외합니다. Macro-generated function이 expansion site에서
+진단되면 해당 scope는 명시적으로 제외하고 `extra.cpp_scope_exclusions.macro_generated_function`에
+개수를 남깁니다. 파일의 다음 brace를 그 함수의 body로 매핑하지 않으며, fallback scanner는
+operator 이름을 보존하고 multiline preprocessor definition/continuation과 standalone macro
+invocation을 skip합니다. lambda 제외 개수는 `extra.cpp_scope_exclusions.lambda`에서
+확인할 수 있습니다.
+
 `auto`는 context/database 또는 approved tool이 없을 때만 source scanner로 폴백하고
-`ESTIMATED`/heuristic 경계를 남깁니다. 빈/미보고 또는 macro definition은 heuristic으로 남을 수
-있습니다. 시도된 tool·replay·parser·timeout·truncation·coverage·budget 오류는 조용한 폴백 없이
+`ESTIMATED`/heuristic 경계를 남깁니다. 빈/미보고 source-spelled definition은 heuristic으로 남을 수
+있지만 macro-generated expansion은 target에서 제외됩니다. 성공한 각 configuration의 boundary는
+geometry뿐 아니라 name, kind, provenance가 일치해야 promotion됩니다. configuration별
+clang-tidy lines/statements/parameters는 `configuration_metrics`에 보존됩니다. geometry가 다르면
+boundary promotion을 보류하고, function-size metric 값이 configuration마다 다르거나 body에
+conditional preprocessor branch가 있으면 run은 `partial`, 해당 target의 `metric_confidence`는
+`low`가 됩니다. compiler-backed function metrics 또는 configuration coverage가 partial/low-confidence로
+남으면 `required`에서는 `ERROR`/`NOT_RUN`으로 fail-closed합니다. 시도된 tool·replay·parser·timeout·truncation·coverage·budget 오류는 조용한 폴백 없이
 `ERROR`/`NOT_RUN`으로 fail-closed합니다. 단, clang-tidy가 visible project diagnostics와 함께
 정확한 `Suppressed N warnings (N in non-user code).`를 보고하는 경우는 외부/system 진단만 억제한
 정형 회계로 허용합니다. NOLINT/project/mixed/malformed/count-mismatch suppression은 계속
@@ -467,10 +483,9 @@ exact `CompilationContext`/compilation database와 capability-approved direct `c
 `ERROR`로 올리고, `off`는 probe 없이 의도적으로 heuristic 경로를
 사용합니다. probe는 caller가 고정한 bounded source snapshot과 mapped-source cache를 사용하며
 replay 전과 도구 완료 후 source identity를 재검증합니다. C++ 전체 source inventory는 최대 2,048
-source files와 64 MiB aggregate UTF-8 source bytes cap을 넘지 않도록 수집하고, 동일 geometry가 성공한
-모든 configuration에서 관찰될 때만
-exact boundary로 승격합니다. 누락 또는 configuration-dependent geometry는 partial warning이고
-`required`에서는 오류입니다. 한 실행의 한도는 2,048 units, source당 8 MiB, run source bytes
+source files와 64 MiB aggregate UTF-8 source bytes cap을 넘지 않도록 수집합니다. 성공한 configuration
+coverage가 누락되거나 configuration-dependent geometry가 관찰되면 partial warning이고 `required`에서는
+오류입니다. 한 실행의 한도는 2,048 units, source당 8 MiB, run source bytes
 64 MiB, mapped-source cache bytes 16 MiB, output 1,000,000자, parser 10초, unit당 120초, 전체
 600초입니다. same-line/overload, constructor와 braced parameter/default/noexcept/trailing
 `requires` expression, function-try/catch, `<%`/`%>` digraph body를 regression mapping으로
@@ -481,11 +496,16 @@ device/inode/mode/size/mtime/ctime identity를 확인하며, 변경·부재는 f
 containment 및 device/inode/size/mtime identity를 재검사해 intermediate symlink/TOCTOU를
 fail-closed합니다.
 
-현재 candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
-`7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`이며, `clang-tidy-21` full
-suite는 `1,626 passed, 2 skipped`입니다. 세 프로젝트의 결과·HTML SHA와 toy exact-main evidence는
-[compiler-boundary workthrough](workthrough/2026-09-02-compiler-backed-cpp-function-boundaries.md)에
-기록되어 있고, candidate smoke 및 HTML Zero-CDN checks는 통과했습니다.
+PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
+`7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
+`1,626 passed, 2 skipped`를 남겼습니다. 이는 현재 follow-up의 근거가 아닙니다. 현재
+unmerged `feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz`
+SHA `61a97093f5034b1ad2e78e157d2b08f634a4933e7eb68498da4065aa76b4487a`이며, real extracted
+`clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`, Ruff check/format,
+mypy와 packaged smoke가 통과했습니다. Fresh clean toy `main`의 BuildScope `auto`/`required`,
+DiskMap `auto`, LogLens `auto` 교차 probe와 4/4 title·Zero-CDN 검사도 완료됐습니다. PR CI,
+sticky comment, Pages readiness, extracted artifact HTML byte-match는 아직 pending이며 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
+기록합니다. 버전은 `0.10.2`로 유지하고 release는 만들지 않습니다.
 
 ##### C++ Qt clazy 및 생성 단계 정책 (I4-2)
 

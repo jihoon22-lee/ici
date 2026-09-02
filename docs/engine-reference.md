@@ -513,9 +513,19 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   경계에만 해당하며, 경계 안의 CC/nesting은 masked source token/brace metric이고
   `metric_confidence = "medium"`입니다. clang-tidy의 lines/statements/parameters notes는
   별도 tool metadata로 보존합니다.
+- **C++ scope classification**: AST boundary target은 source-spelled named function이며 function
+  template, conversion/call/subscript operator, literal operator를 포함합니다. `function_kind`,
+  `function_template`, `function_origin` metadata로 kind/template/provenance를 보존합니다.
+  lambda는 독립 함수 target으로 만들지 않고 lambda body는 enclosing function의 CC/nesting에서
+  제외합니다. Macro-generated function이 expansion site에서 진단되면 해당 scope를 명시적으로
+  제외하고 `extra.cpp_scope_exclusions.macro_generated_function`에 count를 기록하며, 파일의
+  다음 brace로 body를 추정하지 않습니다. fallback scanner는 operator 이름을 보존하고 multiline
+  preprocessor definition/continuation과 standalone macro invocation을 skip합니다.
+  lambda 제외 수는 `extra.cpp_scope_exclusions.lambda`에서 확인할 수 있습니다.
 - **C++ 폴백·실패 경계**: `auto`는 exact context/database 또는 approved tool이 없을 때만
   source scanner로 폴백하며 `ESTIMATED`와 `boundary_source = "heuristic"`를 남깁니다. 빈/미보고
-  또는 macro definition은 heuristic으로 남을 수 있습니다. 시도된 tool·replay·parser·timeout·
+  source-spelled definition은 heuristic으로 남을 수 있지만 macro-generated expansion은 target에서
+  제외됩니다. 시도된 tool·replay·parser·timeout·
   truncation·coverage·budget 오류는 heuristic으로 숨기지 않고 `ERROR`/`NOT_RUN`입니다. 단,
   clang-tidy가 visible project diagnostics와 함께 `Suppressed N warnings (N in non-user code).`를
   정확히 보고하면 외부/system 진단만 억제한 정형 회계로 허용합니다. NOLINT/project/mixed/malformed/
@@ -524,9 +534,13 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   의도적으로 heuristic 경로를 사용합니다. probe 입력은 caller의 bounded source snapshot과
   mapped-source cache이며, replay 전·도구 완료 후 source identity를 재검증합니다. C++ 전체
   source inventory는 최대 2,048 source files와 64 MiB aggregate UTF-8 source bytes cap 안에서만 만들고,
-  같은 geometry가 성공한 모든
-  configuration에 존재할 때만 exact로 merge합니다. missing 또는 configuration-dependent
-  geometry는 partial warning으로 남으며 `required`에서는 오류입니다. 단위/캐시/출력 경계는
+  같은 geometry, name, kind, provenance가 성공한 모든 configuration에서 일치할 때만 exact로
+  merge합니다. configuration별 clang-tidy lines/statements/parameters는 `configuration_metrics`에
+  보존합니다. missing 또는 configuration-dependent geometry는 partial warning으로 남으며,
+  function-size metric 값이 configuration마다 다르거나 body에 conditional preprocessor branch가
+  있으면 mode도 `partial`, 해당 metric confidence도 `low`가 됩니다. compiler-backed function
+  metrics 또는 configuration coverage가 partial/low-confidence로 남으면 `required`에서는
+  `ERROR`/`NOT_RUN`으로 fail-closed합니다. 단위/캐시/출력 경계는
   2,048 units, source당 8 MiB, run source bytes 64 MiB, mapped-source cache bytes 16 MiB,
   output 1,000,000자, parser 10초, unit당 120초, 전체 600초입니다. approved tool executable은
   매 process 실행 직전에 다시 resolve하고 device/inode/mode/size/mtime/ctime identity를 확인하며,
@@ -536,11 +550,16 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   phantom-function 배제를 포함합니다. `dir_fd`/`O_DIRECTORY`가
   없는 descriptor fallback도 read 뒤 resolved named path의 containment와 device/inode/size/mtime
   identity를 재검증해 intermediate symlink/TOCTOU를 fail-closed합니다.
-- **현재 candidate evidence**: 두 번 byte-identical인 `dist/ici.pyz` SHA
-  `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`, `clang-tidy-21` full suite
-  `1,626 passed, 2 skipped` 및 BuildScope/DiskMap/LogLens의 exact/estimated/configuration 결과와
-  HTML SHA는 [compiler-boundary workthrough](workthrough/2026-09-02-compiler-backed-cpp-function-boundaries.md)에
-  기록합니다. Candidate smoke 및 HTML Zero-CDN checks는 통과했습니다.
+- **검증 상태**: PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인
+  candidate SHA `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python
+  3.10 `1,626 passed, 2 skipped`를 남겼습니다. 이는 현재 follow-up의 근거가 아닙니다. 현재
+  unmerged `feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz`
+  SHA `61a97093f5034b1ad2e78e157d2b08f634a4933e7eb68498da4065aa76b4487a`이며, real extracted
+  `clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`, Ruff check/format,
+  mypy와 packaged smoke가 통과했습니다. Fresh clean toy `main`의 BuildScope `auto`/`required`,
+  DiskMap `auto`, LogLens `auto` 교차 probe와 4/4 title·Zero-CDN 검사도 완료됐습니다. PR CI,
+  sticky comment, Pages readiness, extracted artifact HTML byte-match는 아직 pending이며 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
+  기록합니다. 버전은 `0.10.2`로 유지하고 release는 만들지 않습니다.
 - **코드 스니펫**: 고복잡도 함수의 실제 원본 소스 코드를 추출하여 HTML 리포트에 즉시 표시
 
 ### 2.6 🛡️ `sanitize` (메모리 안전성 및 리소스 누수 진단)

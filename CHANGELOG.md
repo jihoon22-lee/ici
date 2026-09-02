@@ -9,13 +9,32 @@
 
 ### Added
 
+- **C++ function-scope classification and configuration disclosure**: compiler-backed complexity
+  boundaries now retain source-spelled named functions, including function templates, conversion/
+  call/subscript operators, and literal operators, with `function_kind`, `function_template`, and
+  `function_origin` metadata. Lambdas are not independent function targets; their masked bodies are
+  excluded from the enclosing CC/nesting metric and the exclusion count is disclosed in
+  `extra.cpp_scope_exclusions.lambda`. A macro-generated function diagnosed at its expansion site
+  is explicitly excluded, counted in `extra.cpp_scope_exclusions.macro_generated_function`, and is
+  never mapped to the next brace in the file. The fallback scanner preserves operator names and
+  blanks multiline preprocessor definitions/continuations and skips standalone macro invocations.
+  Uppercase inline constructors remain source-spelled functions instead of being guessed as
+  external macro calls.
+  Successful configurations must agree on boundary geometry, name, kind, and provenance. Each
+  configuration's clang-tidy lines/statements/parameters remain in `configuration_metrics`;
+  differing values, or a conditional-preprocessor body, makes the boundary run `partial` and the
+  metric confidence `low`; compiler-backed function metrics or configuration coverage that remains
+  partial/low-confidence fails closed in `required`. This documentation and policy slice does not
+  bump the version or create a release.
+
 - **Compiler-backed C++ complexity function boundaries**: `complexity.cpp_boundaries` now accepts
   `auto` (default), `required`, or `off`. With an exact `CompilationContext`/compilation database
   and capability-approved direct `clang-tidy`, the dedicated `readability-function-size` check
   supplies function-boundary geometry. Cyclomatic and nesting values inside that geometry remain
   ici's masked token/brace metrics with `metric_confidence=medium`; clang-tidy line/statement/
   parameter notes are separate evidence. `auto` uses the source scanner only when context or the
-  tool is unavailable; empty/unreported or macro definitions may remain heuristic. Attempted-tool,
+  tool is unavailable; empty/unreported source-spelled definitions may remain heuristic, while
+  macro-generated expansion diagnostics are excluded and counted rather than mapped. Attempted-tool,
   replay, parser, timeout, truncation, coverage, or budget failures are `ERROR`/`NOT_RUN`, not
   silent fallback. The only accepted suppression summary is when clang-tidy emits
   `Suppressed N warnings (N in non-user code).` alongside visible project diagnostics, which
@@ -23,8 +42,9 @@
   count-mismatched suppression remains `ERROR`/`NOT_RUN`. `required` also errors on unavailable or
   partial/estimated boundaries, while `off` intentionally remains heuristic. The run uses a bounded
   caller source snapshot and mapped-source cache, revalidates source identity before replay and after
-  the tool, and requires the same geometry to be present in every successfully checked configuration;
-  missing or differing configuration coverage remains partial. The C++ source inventory is capped at
+  the tool, and requires the same geometry, name, kind, and provenance to be present in every
+  successfully checked configuration; missing or differing configuration coverage remains partial.
+  The C++ source inventory is capped at
   2,048 source files and 64 MiB of aggregate UTF-8 source bytes. The per-run limits cover 2,048 units, 8 MiB
   per source, 64 MiB source bytes, 16 MiB mapped-source cache bytes, 1,000,000 output characters,
   10 seconds of parser time, 120 seconds per unit, and 600 seconds globally. The approved tool
@@ -35,10 +55,21 @@
   reads also revalidate the resolved named path when `dir_fd`/`O_DIRECTORY` is unavailable, so
   intermediate-symlink and TOCTOU changes fail closed.
 
-  Current candidate evidence is recorded in the compiler-boundary workthrough: two byte-identical
-  candidate builds at SHA `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`,
-  `clang-tidy-21` full suite `1,626 passed, 2 skipped`, and the three project reports. Candidate
-  smoke and HTML Zero-CDN checks passed; this is not a version bump.
+  Historical PR #130 baseline evidence is recorded in the compiler-boundary workthrough: its
+  candidate builds were byte-identical at SHA
+  `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`, and its Python 3.10
+  full suite was `1,626 passed, 2 skipped`. That merged baseline is not evidence for the current
+  follow-up. The current unmerged `feat/cpp-function-scope-policy` candidate has two
+  byte-identical builds at SHA
+  `61a97093f5034b1ad2e78e157d2b08f634a4933e7eb68498da4065aa76b4487a`; with real extracted
+  `clang-tidy-21`, its Python 3.10 full suite is `1,656 passed, 2 skipped`, and Ruff check/format,
+  mypy, and packaged smoke pass. Injecting that SHA into a fresh clean `toy-projects` `main`
+  completed the local
+  cross-repo candidate probes for BuildScope deep `auto`/`required`, DiskMap `auto`, and LogLens
+  `auto`, with JSON/HTML reports and 4/4 title·Zero-CDN checker passes; exact/partial counts and
+  the required error are recorded in the [scope-policy workthrough](docs/workthrough/2026-09-02-cpp-function-scope-policy.md).
+  PR CI, sticky comment, Pages readiness, and extracted artifact HTML byte-match remain pending.
+  The version remains `0.10.2`; no release is created.
 
 ### Fixed
 
@@ -231,8 +262,9 @@
 - v0.9.1의 릴리스 provenance·9개 artifact 독립 감사와 toy-projects BuildScope B4 교차 검증
   (PR #36, released ici v0.9.1, PR/main CI·sticky comment·Zero-CDN Pages)을 인수인계와
   실행 계획에 기록했다. I4-1 release boundary와 B4 precondition은 닫혔으며, I4-2 ici 구현은
-  local·PR·exact-main acceptance까지 완료됐다. v0.10.0 release artifact와 toy-projects
-  BuildScope B5 교차 검증, I4-3/I4-4는 아직 pending이며 I4 전체 checkpoint도 미완료다.
+  local·PR·exact-main acceptance까지 완료됐다. 이 릴리스 시점에는 v0.10.0 release artifact와
+  toy-projects BuildScope B5 교차 검증, I4-3/I4-4가 pending이었으며 I4 전체 checkpoint도
+  미완료였다. B5는 이후 BuildScope 0.5.0 공개와 함께 완료됐다.
 
 ## [0.9.1] - 2026-09-01
 

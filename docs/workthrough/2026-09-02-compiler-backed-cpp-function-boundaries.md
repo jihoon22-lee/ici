@@ -2,10 +2,10 @@
 
 ## Overview
 
-This workthrough records the unmerged `feat/compiler-backed-cpp-functions` checkpoint. The
-`complexity` engine now prefers compiler/tool output for C++ function-boundary geometry while
-keeping its maintainability metrics explicit and conservative. This is not a stable release or
-remote acceptance record.
+This workthrough records the historical PR #130 `feat/compiler-backed-cpp-functions` checkpoint.
+It was merged into `main` at merge commit `8083267d864d3f29e6f3ae7c53358ce0b1674b44` after the
+exact-main CI run `33580383887`. The current unmerged `feat/cpp-function-scope-policy` follow-up
+is documented separately. This baseline is historical evidence, not a stable release record.
 
 ## Design
 
@@ -65,7 +65,7 @@ after the read to close intermediate-symlink/TOCTOU races. The sole accepted sup
 because it accounts only for external/system diagnostics. NOLINT, project, mixed, malformed, or
 count-mismatched suppression is otherwise `ERROR`/`NOT_RUN` and fail-closed.
 
-## Verification
+## Historical PR #130 verification
 
 | Check | Result |
 |---|---|
@@ -76,14 +76,17 @@ count-mismatched suppression is otherwise `ERROR`/`NOT_RUN` and fail-closed.
 | ZipApp | Two candidate `dist/ici.pyz` builds were byte-identical |
 | Smoke | `./scripts/smoke.sh` passed; HTML Zero-CDN verification exited 0 |
 
-The full-gate count above includes the current suppression, executable-identity, and source-inventory
-regression tests. Candidate smoke and the HTML Zero-CDN check are green.
+The full-gate count above includes the historical PR #130 suppression, executable-identity, and
+source-inventory regression tests. Candidate smoke and the HTML Zero-CDN check were green for that
+baseline. The merged baseline was accepted by [exact-main CI run `33580383887`](https://github.com/jihoon22-lee/ici/actions/runs/33580383887)
+on merge commit `8083267d864d3f29e6f3ae7c53358ce0b1674b44`.
 
-## Candidate toy verification
+## Historical PR #130 candidate toy verification
 
 A temporary clean checkout was tested with candidate `dist/ici.pyz` SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`; two candidate builds produced
-the same SHA. These are candidate cross-repository results; candidate smoke and HTML checks are green.
+the same SHA. These are historical PR #130 cross-repository results; candidate smoke and HTML checks
+were green for that baseline.
 
 | Project | Result | HTML SHA |
 |---|---|---|
@@ -91,20 +94,22 @@ the same SHA. These are candidate cross-repository results; candidate smoke and 
 | DiskMap | `auto = PASS/ESTIMATED/mixed`; exact 127, estimated 2; configurations/sources 9/9; total functions 129; `required` expected `ERROR` for 2 inactive Windows functions | `cf6025d44601aa40d649e5c131ec58e87435321e90f417c1baa65a7fea933506` |
 | LogLens | `auto = PASS/ESTIMATED/mixed`; exact 207, estimated 1; configurations/sources 14/14; total functions 208; `required` expected `ERROR` for 1 inactive portable Windows function | `133395792a401b6ea748954cfabbf75c51f86badec8fd4a6d83d97af018d4fc1` |
 
-All three HTML artifacts passed the published checker and the Zero-CDN checker. The toy exact-main run
-`33574455762` succeeded at `d5f248...`, with 21 successful checks and 1 expected skip; main
-Pages and artifact bytes matched.
+All three extracted HTML artifacts passed the published checker and the Zero-CDN checker. The toy
+exact-main run `33574455762` succeeded at `d5f248...`, with 21 successful checks and 1 expected skip;
+main Pages and the extracted artifact HTML bytes matched. These are historical PR #130 cross-repository
+results, not evidence for the current scope-policy follow-up.
 
 ## Delivery status
 
-The candidate evidence is complete for this workthrough:
+The historical PR #130 candidate evidence is complete for this workthrough:
 
 | Boundary | Status |
 |---|---|
 | ici smoke and HTML Zero-CDN check | passed |
 
-Lambda and macro-generated-code policy is not closed by this checkpoint; template/operator coverage
-does not close that broader policy item. C++ cognitive complexity and the remaining I4-3
+Lambda and macro-generated-code policy was not closed by the PR #130 baseline; template/operator
+coverage did not close that broader policy item. The current unmerged scope-policy follow-up tracks
+that classification contract separately. C++ cognitive complexity and the remaining I4-3
 maintainability items are also outside this workthrough.
 
 No version was bumped. This is a feature/refactor checkpoint, and the repository release policy
