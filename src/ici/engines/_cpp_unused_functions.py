@@ -622,6 +622,32 @@ def _merge_observations(
     outcome.functions.extend(accepted_functions)
 
 
+def _record_invalidated_observations(
+    observations: list[_Observation],
+    outcome: CppUnusedFunctionOutcome,
+) -> None:
+    """Locate compiler-executed sources without presenting partial exact evidence."""
+
+    invalidated = {
+        target.file_path
+        for target in outcome.targets
+        if target.target_name == "C++UnusedFunctionsInvalidated"
+    }
+    for source in sorted({observation.source for observation in observations} - invalidated):
+        outcome.targets.append(
+            InspectionTarget(
+                file_path=source,
+                start_line=1,
+                target_name="C++UnusedFunctionsInvalidated",
+                status=EngineStatus.SKIP,
+                message=(
+                    "Compiler observations were discarded because the exact C++ "
+                    "unused-function scope did not complete atomically"
+                ),
+            )
+        )
+
+
 def run_cpp_unused_functions(
     project_root: Path,
     cpp_files: list[Path],
@@ -676,11 +702,13 @@ def run_cpp_unused_functions(
     if outcome.errors or len(observations) != len(prepared_units):
         outcome.mode = "error"
         outcome.functions.clear()
+        _record_invalidated_observations(observations, outcome)
         return outcome
     _merge_observations(observations, outcome)
     if outcome.errors:
         outcome.mode = "error"
         outcome.functions.clear()
+        _record_invalidated_observations(observations, outcome)
         return outcome
     outcome.mode = "exact"
     return outcome

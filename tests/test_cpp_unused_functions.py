@@ -350,10 +350,14 @@ def test_configuration_disagreement_fails_closed_without_exact_findings(tmp_path
     assert outcome.mode == "error"
     assert outcome.functions == []
     assert "vary across source configurations" in outcome.errors[-1]
-    assert outcome.targets[-1].status == EngineStatus.ERROR
+    assert any(target.status == EngineStatus.ERROR for target in outcome.targets)
+    assert any(
+        target.target_name == "C++UnusedFunctionsInvalidated" and target.status == EngineStatus.SKIP
+        for target in outcome.targets
+    )
 
 
-def test_later_configuration_disagreement_discards_earlier_source_targets(
+def test_later_configuration_disagreement_invalidates_earlier_source_targets(
     tmp_path: Path,
 ) -> None:
     sources = {
@@ -392,8 +396,46 @@ def test_later_configuration_disagreement_discards_earlier_source_targets(
 
     assert outcome.mode == "error"
     assert outcome.functions == []
-    assert all(target.status == EngineStatus.ERROR for target in outcome.targets)
-    assert not any(target.file_path == "src/accepted.cpp" for target in outcome.targets)
+    accepted = [target for target in outcome.targets if target.file_path == "src/accepted.cpp"]
+    assert len(accepted) == 1
+    assert accepted[0].target_name == "C++UnusedFunctionsInvalidated"
+    assert accepted[0].status == EngineStatus.SKIP
+    assert any(target.status == EngineStatus.ERROR for target in outcome.targets)
+
+
+def test_later_process_failure_invalidates_executed_sources_and_stops_replay(
+    tmp_path: Path,
+) -> None:
+    sources = {
+        "src/a.cpp": "int a() { return 0; }\n",
+        "src/b.cpp": "int b() { return 0; }\n",
+        "src/c.cpp": "int c() { return 0; }\n",
+    }
+    root, context, snapshots = _context(tmp_path, sources)
+    commands: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        commands.append(command)
+        return _result() if len(commands) == 1 else _result(returncode=1)
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / path for path in sources],
+        context,
+        source_texts=snapshots,
+        runner=runner,
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.functions == []
+    assert len(commands) == 2
+    assert any(
+        target.file_path == "src/a.cpp"
+        and target.target_name == "C++UnusedFunctionsInvalidated"
+        and target.status == EngineStatus.SKIP
+        for target in outcome.targets
+    )
+    assert not any(target.file_path == "src/c.cpp" for target in outcome.targets)
 
 
 def test_missing_compilation_database_is_unavailable_without_execution(tmp_path: Path) -> None:
