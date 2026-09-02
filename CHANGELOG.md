@@ -112,9 +112,15 @@
     `ESTIMATED`/`token-region-heuristic` evidence.
   - Compiler/linker-backed exact dead-symbol evidence and robust language tokenization for full
     duplicate semantics remain pending; this slice does not close I4-3 or create a release.
-  Local Python 3.10 evidence for this slice is 79 focused source-input tests and 238 directly
-  related config/dead/dup tests passed; focused Ruff and mypy checks are clean. No PR or CI result
-  is implied, and the version remains `0.10.2`.
+  Local Python 3.10 focused evidence for this slice is 79 source-input tests and 238 directly
+  related config/dead/dup tests passed. The final complete local suite is green at
+  `1764 passed, 2 skipped` out of 1,766 collected. Ruff check/format and mypy (98 source files)
+  are clean. Two reproducible package builds are byte-identical at 2,240,881 bytes with SHA-256
+  `715bddd5d76540f97d6f78c9349a5177ce5935a80925a5761ea39fb0988d9b0d`, and the packaged smoke
+  wrapper passes. Source self-verify exits 0 with WARN(Pass 7, Warn 5, Fail 0, Error 0, Skip 1),
+  test `1764/1766`, TEM `4.84`, line/function/branch `89.1%/96.8%/81.5%`, HTML `7763578`
+  bytes, the exact title, and zero external resource references. No PR or CI result is implied,
+  and the version remains `0.10.2`; no release is created.
 
 - **Python function metric scope boundaries**: cyclomatic and cognitive complexity now measure each
   named function independently instead of charging nested function, class, and lambda bodies to

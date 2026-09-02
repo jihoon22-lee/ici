@@ -1085,12 +1085,18 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
   - [ ] robust language tokenization과 full duplicate 의미 분석은 아직 pending이다.
 - [x] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
 
-이 source-evidence slice는 `fix/source-analysis-evidence`의 implementation commits `8ee3865`
-와 `4de110b`에 반영됐다. 2026-09-02 Python 3.10 local evidence는 focused source-input 79
-tests passed, 직접 관련 config/dead/dup bundle 238 tests passed, 전체 source에 대한 mypy와
-focused Ruff check/format이 clean이다. 이는 local focused evidence일 뿐 full-suite,
-package/build/smoke, PR/CI evidence가 아니며, 버전은 `0.10.2`로 유지하고 release는 만들지
-않는다.
+이 source-evidence slice는 현재 `fix/source-analysis-evidence` rebased branch에 반영됐다.
+2026-09-02 Python 3.10 focused evidence는 source-input 79 tests passed, 직접 관련
+config/dead/dup bundle 238 tests passed다. 전체 local suite는 `1764 passed, 2 skipped`
+(1766 collected)로 green이다. Ruff check/format과 mypy(98 source files)는 clean이고, 두 번의
+`dist/ici.pyz` 빌드는
+`2240881` bytes와 SHA-256
+`715bddd5d76540f97d6f78c9349a5177ce5935a80925a5761ea39fb0988d9b0d`로 byte-identical이며
+packaged smoke wrapper는 PASS다. self verify는 exit 0의 WARN(Pass 7, Warn 5, Fail 0,
+Error 0, Skip 1)이며 test `1764/1766`, TEM `4.84`, line/function/branch `89.1%/96.8%/81.5%`,
+HTML `7763578` bytes, 정확한 title 및 외부 resource 0개를 확인했다. 따라서 이 기록은
+local evidence일 뿐 PR/CI 결과를 뜻하지 않으며, PR/CI 결과는 아직 없다. 버전은 `0.10.2`로
+유지하고 release는 만들지 않는다.
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10

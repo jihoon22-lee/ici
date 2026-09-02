@@ -2,14 +2,15 @@
 
 ## Overview
 
-Implementation commits `8ee3865` (`fix(analysis): bound heuristic source evidence`) and
-`4de110b` (`fix(analysis): close source snapshot race gaps`) give the `dead` and `dup` engines
-one bounded, stable source-intake contract. This documentation follow-up records the ownership
-policy, UTF-8 and containment boundary, resource limits, evidence semantics, and the remaining
-I4-3 work without treating heuristic analysis as exact.
+The rebased `fix/source-analysis-evidence` branch gives the `dead` and `dup` engines one bounded,
+stable source-intake contract. This documentation follow-up records the ownership policy, UTF-8
+and containment boundary, resource limits, evidence semantics, and the remaining I4-3 work
+without treating heuristic analysis as exact. The implementation history is intentionally
+referred to by branch and change description rather than by ephemeral pre-rebase commit IDs.
 
 The current version remains `0.10.2`. This is an unmerged local documentation/evidence update;
-it contains no PR, CI, package/build, release, or version-bump claim.
+it contains no PR, CI, release, or version-bump claim. Local package/build and smoke observations
+are recorded below, but they do not constitute a merge gate.
 
 ## Context
 
@@ -123,7 +124,9 @@ does not bump the version or create a release.
 
 ## Verification Results
 
-The following focused checks were run locally in this checkout with Python 3.10:
+The following final local checks were run in this checkout with Python 3.10. The complete local
+gate is green; the suite-level WARN consists only of the repository's documented heuristic and
+tool-availability findings, not a required-engine failure:
 
 ```text
 uv run --python 3.10 pytest tests/test_source_analysis_inputs.py
@@ -138,14 +141,40 @@ All checks passed!
 uv run --python 3.10 ruff format --check src tests/test_source_analysis_inputs.py tests/test_compile_context.py
 99 files already formatted
 
+uv run --python 3.10 pytest -q
+1764 passed, 2 skipped (1766 collected)
+
+uvx ruff check .
+All checks passed!
+
+uvx ruff format --check .
+167 files already formatted
+
 uv run --python 3.10 mypy src/ici
-Success: no issues found in 97 source files
+Success: no issues found in 98 source files
+
+./scripts/build-pyz.sh  # run twice
+both builds: 2240881 bytes, SHA-256
+715bddd5d76540f97d6f78c9349a5177ce5935a80925a5761ea39fb0988d9b0d
+
+./scripts/smoke.sh
+PASS (artifact, launcher, Python 3.10 compatibility, packaged verify, and Zero-CDN checks)
+
+source self verify with a temporary HTML output:
+ici verify --no-cache --report --html <temporary-report>.html
+exit 0; suite WARN; Pass 7, Warn 5, Fail 0, Error 0, Skip 1; 1764/1766 tests passed;
+TEM 4.84; line/function/branch 89.1%/96.8%/81.5%; HTML 7763578 bytes;
+title `ici Verification Report — ici`; external resource references 0
 ```
 
 The focused source-input module collected and passed 79 tests. The directly selected adjacent
-`config`/`dead`/`dup` bundle collected and passed 238 tests in this checkout. These are focused
-local results only. No full-suite, package/build, smoke, PR, or CI result is asserted by this
-workthrough.
+`config`/`dead`/`dup` bundle collected and passed 238 tests in this checkout. The full Python 3.10
+suite is green at 1764 passed and 2 skipped out of 1766 collected. The two package builds are
+byte-identical, packaged smoke passes, and the source self-verify exits 0 with the expected WARN
+suite status.
+
+No PR or remote CI result is asserted by this workthrough. The package and local HTML are
+development evidence only; the version remains `0.10.2` and no release is created.
 
 `git diff --check` is run after the documentation edits as the final whitespace gate.
 
