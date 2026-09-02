@@ -6,10 +6,13 @@ import re
 from urllib.parse import quote, urlsplit
 
 from ici.core.capabilities import CapabilityInventory
+from ici.core.findings import findings_for_result
 from ici.core.models import (
     BaselineComparison,
     DeltaState,
+    EngineResult,
     EngineStatus,
+    FindingSeverity,
     SourceLocation,
     VerificationSuiteResult,
     format_score_display,
@@ -19,6 +22,7 @@ from ici.core.redaction import redact_suite
 from ici.reporters.baseline_view import enum_value, select_baseline_details, severity_transition
 
 MAX_GITHUB_TARGET_ROWS_PER_ENGINE = 100
+MAX_GITHUB_RELATED_ROWS_PER_ENGINE = 100
 MAX_GITHUB_ANNOTATIONS = 50
 MAX_GITHUB_SUMMARY_BYTES = 900_000
 _SUMMARY_TRUNCATION_NOTICE = (
@@ -169,6 +173,128 @@ def _render_baseline_markdown(
     return lines
 
 
+def _related_rows_for_result(result: EngineResult) -> list[tuple[str, SourceLocation]]:
+    try:
+        return [
+            (finding.tool_rule_id or finding.rule_id, location)
+            for finding in findings_for_result(result)
+            if finding.severity != FindingSeverity.INFO and not finding.suppression.suppressed
+            for location in finding.related_locations
+        ]
+    except (TypeError, ValueError):
+        return []
+
+
+def _render_target_rows(
+    result: EngineResult,
+    repo_url: str | None,
+    commit_sha: str | None,
+) -> list[str]:
+    if not result.targets:
+        return []
+    lines = [
+        "| Location | Symbol / Rule | Status | Details |",
+        "|---|---|:---:|---|",
+    ]
+    ordered_targets = sorted(
+        enumerate(result.targets),
+        key=lambda item: (_target_status_rank(item[1].status), item[0]),
+    )
+    visible_targets = [target for _, target in ordered_targets[:MAX_GITHUB_TARGET_ROWS_PER_ENGINE]]
+    for target in visible_targets:
+        loc_link = _make_gh_link(
+            target.file_path,
+            target.start_line,
+            target.end_line,
+            repo_url,
+            commit_sha,
+        )
+        lines.append(
+            f"| {loc_link} | {_render_code(target.target_name or '-')} | "
+            f"`{target.status.value}` | {_escape_table_cell(target.message or '-')} |"
+        )
+    omitted = len(result.targets) - len(visible_targets)
+    if omitted:
+        lines.append(
+            f"\n> {omitted} target row(s) omitted from this bounded GitHub view. "
+            "The JSON and HTML reports retain the full inventory.\n"
+        )
+    return lines
+
+
+def _render_related_rows(
+    related_rows: list[tuple[str, SourceLocation]],
+    repo_url: str | None,
+    commit_sha: str | None,
+) -> list[str]:
+    if not related_rows:
+        return []
+    lines = [
+        "\n**Related diagnostic locations:**\n",
+        "| Primary rule | Related location | Details |",
+        "|---|---|---|",
+    ]
+    visible = related_rows[:MAX_GITHUB_RELATED_ROWS_PER_ENGINE]
+    for rule_id, location in visible:
+        link = _make_gh_link(
+            location.path,
+            location.start_line,
+            location.end_line,
+            repo_url,
+            commit_sha,
+            start_column=location.start_column,
+            end_column=location.end_column,
+        )
+        lines.append(
+            f"| {_render_code(rule_id)} | {link} | "
+            f"{_escape_table_cell(location.label or 'Related diagnostic location')} |"
+        )
+    omitted = len(related_rows) - len(visible)
+    if omitted:
+        lines.append(
+            f"\n> {omitted} related diagnostic row(s) omitted from this bounded GitHub view. "
+            "The JSON and HTML reports retain the full inventory.\n"
+        )
+    return lines
+
+
+def _render_result_details(
+    result: EngineResult,
+    repo_url: str | None,
+    commit_sha: str | None,
+) -> list[str]:
+    related_rows = _related_rows_for_result(result)
+    if not result.targets and not related_rows:
+        return []
+    warn_fail_count = sum(target.status != EngineStatus.PASS for target in result.targets)
+    if warn_fail_count:
+        badge = f" ({warn_fail_count} issues)"
+    elif result.targets:
+        badge = f" ({len(result.targets)} targets)"
+    else:
+        badge = f" ({len(related_rows)} related locations)"
+    lines = [
+        "<details>",
+        f"<summary><b>🔍 <code>{_escape_inline(result.engine_name)}</code> "
+        f"Detailed Targets & Locations{badge}</b></summary>\n",
+    ]
+    lines.extend(_render_target_rows(result, repo_url, commit_sha))
+    lines.extend(_render_related_rows(related_rows, repo_url, commit_sha))
+    failed_targets = [
+        target
+        for target in result.targets
+        if target.status in (EngineStatus.FAIL, EngineStatus.ERROR) and target.snippet
+    ]
+    if failed_targets:
+        lines.append("\n**Failure Snippets:**\n")
+        lines.extend(
+            _fenced_snippet(target.file_path, target.start_line, target.snippet)
+            for target in failed_targets[:5]
+        )
+    lines.append("</details>\n")
+    return lines
+
+
 def generate_markdown_report(
     suite: VerificationSuiteResult,
     repo_url: str | None = None,
@@ -236,61 +362,8 @@ def generate_markdown_report(
 
     md.append("\n---\n")
 
-    # Target Inspections & Breakdown for each Engine
-    for res in suite.results:
-        if not res.targets:
-            continue
-
-        target_count = len(res.targets)
-        warn_fail_count = sum(1 for t in res.targets if t.status != EngineStatus.PASS)
-        header_badge = (
-            f" ({warn_fail_count} issues)" if warn_fail_count > 0 else f" ({target_count} targets)"
-        )
-
-        md.append("<details>")
-        md.append(
-            f"<summary><b>🔍 <code>{_escape_inline(res.engine_name)}</code> "
-            f"Detailed Targets & Locations{header_badge}</b></summary>\n"
-        )
-
-        md.append("| Location | Symbol / Rule | Status | Details |")
-        md.append("|---|---|:---:|---|")
-
-        ordered_targets = sorted(
-            enumerate(res.targets),
-            key=lambda item: (_target_status_rank(item[1].status), item[0]),
-        )
-        visible_targets = [
-            target for _, target in ordered_targets[:MAX_GITHUB_TARGET_ROWS_PER_ENGINE]
-        ]
-        for target in visible_targets:
-            loc_link = _make_gh_link(
-                target.file_path, target.start_line, target.end_line, repo_url, commit_sha
-            )
-            status_b = f"`{target.status.value}`"
-            sym = _render_code(target.target_name or "-")
-            msg = _escape_table_cell(target.message or "-")
-            md.append(f"| {loc_link} | {sym} | {status_b} | {msg} |")
-
-        omitted_targets = target_count - len(visible_targets)
-        if omitted_targets:
-            md.append(
-                f"\n> {omitted_targets} target row(s) omitted from this bounded GitHub view. "
-                "The JSON and HTML reports retain the full inventory.\n"
-            )
-
-        # Include snippet if failures exist
-        failed_targets = [
-            t
-            for t in res.targets
-            if t.status in (EngineStatus.FAIL, EngineStatus.ERROR) and t.snippet
-        ]
-        if failed_targets:
-            md.append("\n**Failure Snippets:**\n")
-            for ft in failed_targets[:5]:
-                md.append(_fenced_snippet(ft.file_path, ft.start_line, ft.snippet))
-
-        md.append("</details>\n")
+    for result in suite.results:
+        md.extend(_render_result_details(result, repo_url, commit_sha))
 
     return "\n".join(md)
 
@@ -381,14 +454,26 @@ def _make_gh_link(
     end_line: int | None = None,
     repo_url: str | None = None,
     commit_sha: str | None = None,
+    *,
+    start_column: int | None = None,
+    end_column: int | None = None,
 ) -> str:
     line_anchor = f"L{start_line}"
     if end_line and end_line > start_line:
         line_anchor += f"-L{end_line}"
 
-    display = f"{file_path}#{line_anchor}"
+    display_anchor = f"L{start_line}"
+    if start_column is not None:
+        display_anchor += f":C{start_column}"
+    if end_line and end_line > start_line:
+        display_anchor += f"-L{end_line}"
+        if end_column is not None:
+            display_anchor += f":C{end_column}"
+    elif end_column is not None and end_column != start_column:
+        display_anchor += f"-C{end_column}"
+    display = f"{file_path}#{display_anchor}"
     escaped_display = _render_code(display)
-    if repo_url and commit_sha:
+    if file_path != "[external]" and repo_url and commit_sha:
         parsed = urlsplit(repo_url)
         if parsed.scheme in ("http", "https") and parsed.netloc:
             encoded_file = quote(file_path, safe="/-._~")

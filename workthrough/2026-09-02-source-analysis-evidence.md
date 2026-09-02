@@ -8,10 +8,9 @@ and containment boundary, resource limits, evidence semantics, and the remaining
 without treating heuristic analysis as exact. The implementation history is intentionally
 referred to by branch and change description rather than by ephemeral pre-rebase commit IDs.
 
-The current version remains `0.10.2`. This is a documentation follow-up for open PR #133; the
-implementation workflow evidence is recorded below, but the PR remains unmerged. The documentation
-follow-up still requires its own CI and merge-gate confirmation. No release or version bump is
-claimed.
+The current version remains `0.10.2`. At the original implementation snapshot, PR #133 was open;
+its later squash merge and exact-main evidence are recorded in the final section below. No release
+or version bump is claimed for this source-evidence slice.
 
 ## Context
 
@@ -189,10 +188,31 @@ UTF-8 exact titles and zero external resource URLs:
 | ici | 7,701,814 | `071d83ef1fac4d39102bcb8eecad68d614dda736d74a6b3a93b210c9feecf38b` | [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/133/) — `ici Verification Report — ici` |
 | viewer | 358,047 | `9e7e295e8d28fe0633039f58099c82a5914d30cb6fcd8c9f2ba82d25e84c4305` | [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/133/) — `ici Verification Report — viewer` |
 
-PR #133 remains open and unmerged. The documentation follow-up's CI and Merge Gate are still
-pending; the version remains `0.10.2` and no release is created.
+At the time of this workthrough's implementation snapshot, PR #133 was open and unmerged. The
+later final remote evidence is recorded below; the version remains `0.10.2` and no release is
+created for this source-evidence slice.
 
 `git diff --check` is run after the documentation edits as the final whitespace gate.
+
+## Final remote evidence after the implementation merge
+
+PR #133 was subsequently squash-merged into `main` at
+[`fdc797a0c71c46d9301db2569928468ff42e24af`](https://github.com/jihoon22-lee/ici/commit/fdc797a0c71c46d9301db2569928468ff42e24af).
+Exact-main [run `33607859423`](https://github.com/jihoon22-lee/ici/actions/runs/33607859423)
+passed all required checks. The local and remote PR branches were deleted after the merge.
+
+The merged main artifact and Pages were byte-identical; independent checks also passed UTF-8 exact
+titles and zero external resource URLs:
+
+| Report | HTML bytes | SHA-256 | Pages/title |
+|---|---:|---|---|
+| ici | 7,701,815 | `dc2f0c83206881eccb83a41dde336c1656ab78bb7858675090319079a9ab212a` | [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/) — `ici Verification Report — ici` |
+| viewer | 358,047 | `a212609c54fe6fa10cd8f6abe3318c0094f9b3fd23ba9b7570f59f46612d1d30` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
+
+This final evidence closes the bounded source-evidence implementation delivery, not I4-3 as a
+whole: compiler/linker-backed exact dead-symbol evidence and robust duplicate tokenization remain
+pending. The separate `fix/clang-tidy-related-notes` follow-up has focused local evidence only;
+its PR/CI verification and merge remain pending.
 
 ## Next Steps
 

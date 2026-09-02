@@ -443,6 +443,24 @@
   .issue-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; font-size: 0.85rem; }
   .issue-engine { font-weight: 700; color: #94a3b8; }
   .issue-msg { font-size: 0.9rem; color: #e2e8f0; }
+  .issue-related { margin-top: 0.65rem; }
+  .issue-related-title {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+  .issue-related ul { list-style: none; margin: 0.35rem 0 0; padding: 0; }
+  .issue-related li {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.3rem;
+  }
+  .issue-related-message { color: #cbd5e1; font-size: 0.82rem; overflow-wrap: anywhere; }
   .issue-snippet-details { margin-top: 0.65rem; }
   .issue-snippet-summary {
     cursor: pointer;

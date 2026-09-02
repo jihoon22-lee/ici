@@ -35,7 +35,9 @@ The compiler-backed part ends at the function boundary:
   brace metrics (`if`/`for`/`while`/`case`/`catch`, `&&`/`||`/`?`, and braces), with
   `metric_confidence = "medium"`.
 - clang-tidy `lines`/`statements`/`parameters` notes remain separate tool metadata, not compiler-
-  computed CC or nesting.
+  computed CC or nesting. The shared clang-tidy parser stores those explanatory notes under the
+  primary as `related_diagnostics`; the function-boundary parser consumes the primary-plus-related
+  stream to recover the metric evidence for body mapping, while lint findings remain primary-only.
 
 ## Boundary policy
 

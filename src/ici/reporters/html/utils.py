@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ici.core.findings import findings_for_result
-from ici.core.models import EngineResult, EngineStatus, FindingSeverity
+from ici.core.models import EngineResult, EngineStatus, FindingSeverity, SourceLocation
 
 
 @dataclass(frozen=True)
@@ -21,6 +21,7 @@ class HtmlIssue:
     rule_id: str
     message: str
     snippet: str
+    related_locations: tuple[SourceLocation, ...] = ()
 
 
 def _get_status_theme(status: EngineStatus) -> tuple[str, str, str]:
@@ -86,6 +87,7 @@ def _extract_suite_data(
                     rule_id=finding.tool_rule_id or finding.rule_id,
                     message=finding.message,
                     snippet=finding.snippet,
+                    related_locations=tuple(finding.related_locations),
                 )
             )
             issue_count += 1
@@ -116,17 +118,20 @@ def _location_controls(file_path: str, line: int, base: Path, label: str | None 
     """Render a location control using escaped data attributes only."""
     rel_path = str(file_path)
     display = label if label is not None else f"{rel_path}:{line}"
+    display_html = html.escape(display)
+    if rel_path == "[external]":
+        return f"<span class='issue-no-location'><code>{display_html}</code></span>"
     abs_path = str((base / rel_path).resolve())
     rel_attr = _escape_html_attr(rel_path)
     abs_attr = _escape_html_attr(abs_path)
     line_attr = _escape_html_attr(line)
-    display_html = html.escape(display)
+    copy_label = _escape_html_attr(f"Copy location {display}")
     return (
         "<span class='loc-link-group'>"
         f"<a href='#' class='loc-link' data-abs-path=\"{abs_attr}\" "
         f'data-rel-path="{rel_attr}" data-line="{line_attr}"><code>{display_html}</code></a>'
         f'<button class=\'btn-copy-loc\' data-rel-path="{rel_attr}" data-line="{line_attr}" '
-        "title='경로 복사 (gvim/CLI용)'>📋</button>"
+        f"aria-label=\"{copy_label}\" title='경로 복사 (gvim/CLI용)'>📋</button>"
         "</span>"
     )
 

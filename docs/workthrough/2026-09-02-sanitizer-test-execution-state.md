@@ -95,11 +95,22 @@ artifacts as the source of truth and bounds only the GitHub presentation surface
   adds `.venv/bin` to `GITHUB_PATH` before standalone self-verification.
 
 These limits apply to GitHub's bounded display surfaces only; the JSON and HTML report contracts
-remain complete. The first CI run failed on the discovered integration boundary and the rerun is
-pending. The post-fix local source-checkout self-verification exits `0` with `WARN` (7 passed,
-5 warnings, 0 failed, 0 errors, 1 skipped across 13 engines), and its Step Summary is valid UTF-8
-and `100,609` bytes. The local package and smoke evidence below are final for this branch, but
-they do not replace PR CI or remote publication acceptance.
+remain complete. The first CI run failed on the discovered integration boundary. PR #132 was
+subsequently squash-merged into `main` at
+[`5a7a23f032b6b56c737ad7124d24646763cf10d1`](https://github.com/jihoon22-lee/ici/commit/5a7a23f032b6b56c737ad7124d24646763cf10d1),
+and exact-main [run `33602697235`](https://github.com/jihoon22-lee/ici/actions/runs/33602697235)
+completed successfully. Final PR
+[run `33601774411`](https://github.com/jihoon22-lee/ici/actions/runs/33601774411) and Merge Gate
+were green, and the [sticky comment](https://github.com/jihoon22-lee/ici/pull/132#issuecomment-5505498518)
+is the sole `github-actions` marker/current-run comment. Extracted PR artifact and Pages HTML are
+byte-identical for ici (`7,513,806` bytes,
+`f6b39e7e852a5ca2039bef9287e09359ee082dca9d7dbccc644db1bf0fae0406`) and viewer
+(`356,773` bytes, `5bbd432739ccbecf3f36afd882beabff042889a371c12b42e6551e0617bcad82`);
+both pass UTF-8 exact-title and Zero-CDN checks. The post-fix local source-checkout
+self-verification exits `0` with
+`WARN` (7 passed, 5 warnings, 0 failed, 0 errors, 1 skipped across 13 engines), and its Step
+Summary is valid UTF-8 and `100,609` bytes. The local package and smoke evidence below remain
+historical for this sanitizer slice; the remote merge evidence is now complete.
 
 ## Files
 
@@ -168,19 +179,16 @@ This documentation update covers:
 | Reproducible package | Two consecutive builds produced byte-identical `dist/ici.pyz`, `2,235,838` bytes, SHA-256 `a6e437ba08336d4ced2eb02752be3ec5849d029fa8bff2cbca182956b6b31e9f`. |
 | Smoke | Version/help, doctor, shell environments, Python 3.10 launch, artifact integrity, and Zero-CDN HTML checks passed; packaged smoke exited `0`. |
 | Documentation hygiene | `git diff --check` passed |
-| PR #132 integration acceptance | First CI run failed after exposing the >1 MiB summary, unbounded annotation, and standalone-tool-path issues. The bounded report/workflow fixes and final local gates are complete; PR CI rerun, sticky comment, Pages, and extracted-artifact byte-match remain pending. |
+| PR #132 integration acceptance | First CI run exposed the >1 MiB summary, unbounded annotation, and standalone-tool-path issues. Final PR run `33601774411`, single sticky comment, Merge Gate, artifact/Pages byte-match, exact titles and Zero-CDN passed; PR #132 was squash-merged at `5a7a23f`, then exact-main run `33602697235` succeeded. |
 
-The focused and related-suite results are local evidence. This workthrough does not claim
-PR CI, sticky-comment publication, Pages readiness, extracted-artifact HTML matching, or a
-full release gate.
+The focused and related-suite rows remain local evidence; the separate final paragraph and table
+row record remote PR/main acceptance. This corrective slice did not create a release or close the
+remaining I4-4 roadmap scope.
 
 ## Follow-ups
 
-- Run the branch through PR CI and record Merge Gate, sticky comment, Pages, and extracted
-  artifact evidence before treating the follow-up as remotely accepted.
-- After the CI rerun is green, verify the remote sticky comment, Pages, and extracted artifact
-  byte-match against the final local package evidence above. Until then, do not claim final PR or
-  release acceptance.
+- Keep the merged PR #132 and exact-main run evidence linked above when comparing future changes;
+  a later source/reporting follow-up still needs its own PR CI, Pages, and artifact evidence.
 - Keep the remaining I4-4 items (TSan profile, resource/lifetime/security mapping, and
   quality-zoo UAF/leak/UB/Qt lifetime scenarios) pending.
 - Revisit the release decision only after the repository-wide gate and required cross-repo

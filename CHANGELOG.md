@@ -86,6 +86,42 @@
 
 ### Fixed
 
+- **Clang-tidy explanatory-note aggregation**: ordinary `clang-tidy` and
+  `clang-analyzer-*` explanation notes are now attached only to the immediately preceding primary
+  in the same contiguous diagnostic stream through `CppDiagnostic.related_diagnostics`; a new
+  primary starts a new group. Their project-relative locations and messages are exported through
+  `Finding.related_locations`, and note fix-its remain available to the primary finding's
+  remediation and `extra` metadata. Finding canonicalization orders related locations
+  deterministically by canonical path, line/column region, and label. JSON and HTML retain the
+  complete related-location inventory; the GitHub Markdown view renders non-informational,
+  unsuppressed rows with a 100-row-per-engine bound and an omission notice. Warning, violation,
+  diagnostic-family, and finding counts therefore include only actionable primary diagnostics. A
+  note with a conflicting check rule or without a preceding primary diagnostic is rejected
+  atomically. Compiler diagnostics and Clazy's rule-owned `ClazyNote` behavior are unchanged.
+  The compiler-backed function-boundary parser consumes the nested function-size notes as
+  structural evidence without flattening lint findings. Native-only related evidence is rendered
+  even when an engine has no legacy target rows. Duplicate native occurrences remain a multiset
+  when fingerprints collide; external locations remain non-links, while HTML and Markdown retain
+  accessible labels and exact line/column coordinates. `e1a665d` refactors Markdown detail rendering
+  into bounded target, related-location, and snippet helpers without changing that contract.
+  Focused Python 3.10 verification across five related test files passed (`177 passed, 6 skipped`);
+  Ruff check/format and mypy (`98` source files) also passed. An earlier full local attempt
+  (`1750 passed, 7 skipped, 10 failed`) exposed the boundary-consumer mismatch; `e86c982` resolves
+  that downstream contract and the subsequent reporter follow-up preserves the same evidence
+  across outputs.
+
+  The final Python 3.10 gate passed with `1768 passed, 2 skipped`; the two expected environment
+  skips require unavailable `clang++` and `clazy`, while real LLVM 21 clang-tidy tests ran. Ruff
+  check/format and mypy (`98` source files) passed. Two reproducible package builds are
+  byte-identical at `2,242,724` bytes with SHA-256
+  `3602c2cb1b6998a54f00bf809a88d81617bec58c891bfaf12bf22bc882e71890`, and packaged smoke passed.
+  An intermediate no-cache self-check correctly failed when the newly expanded Markdown function
+  reached critical complexity 31; `e1a665d` split that path without changing output. The final
+  no-cache self-check exits 0 with suite WARN, 7 PASS/5 WARN/0 FAIL/0 ERROR/1 SKIP, test
+  `1768/1770`, TEM `4.84`, line/function/branch coverage `89.1%/96.8%/81.5%`, complexity 25, exact
+  UTF-8 title, and Zero-CDN HTML. This follow-up's PR/CI verification remains pending. The version
+  remains `0.10.2`; no release is created.
+
 - **Bounded heuristic source evidence for `dead` and `dup`**: both engines now consume the same
   stable, project-contained UTF-8 source snapshot instead of independently opening files. The
   intake lexically normalizes and sorts unique project-relative paths, rejects escaped paths,
@@ -136,8 +172,20 @@
   | ici | 7,701,814 | `071d83ef1fac4d39102bcb8eecad68d614dda736d74a6b3a93b210c9feecf38b` | [ici PR Pages](https://jihoon22-lee.github.io/ici/ici/pr/133/) — `ici Verification Report — ici` |
   | viewer | 358,047 | `9e7e295e8d28fe0633039f58099c82a5914d30cb6fcd8c9f2ba82d25e84c4305` | [viewer PR Pages](https://jihoon22-lee.github.io/ici/viewer/pr/133/) — `ici Verification Report — viewer` |
 
-  PR #133 remains unmerged. The documentation follow-up still requires its own CI/merge-gate
-  confirmation before squash merge; this evidence does not close I4-3 or authorize a release.
+  PR #133 was subsequently squash-merged into `main` at
+  [`fdc797a0c71c46d9301db2569928468ff42e24af`](https://github.com/jihoon22-lee/ici/commit/fdc797a0c71c46d9301db2569928468ff42e24af).
+  Exact-main [run `33607859423`](https://github.com/jihoon22-lee/ici/actions/runs/33607859423)
+  passed all required checks. The merged main artifact and Pages remained byte-identical and
+  passed UTF-8 exact-title and Zero-CDN checks:
+
+  | Report | HTML bytes | SHA-256 | Main Pages/title |
+  |---|---:|---|---|
+  | ici | 7,701,815 | `dc2f0c83206881eccb83a41dde336c1656ab78bb7858675090319079a9ab212a` | [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/) — `ici Verification Report — ici` |
+  | viewer | 358,047 | `a212609c54fe6fa10cd8f6abe3318c0094f9b3fd23ba9b7570f59f46612d1d30` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
+
+  The merged PR branch was deleted locally and remotely. This closes the bounded source-evidence
+  implementation delivery, but compiler/linker-backed exact dead-symbol evidence and robust
+  duplicate tokenization remain pending, so it does not close I4-3 or authorize a new release.
 
 - **Python function metric scope boundaries**: cyclomatic and cognitive complexity now measure each
   named function independently instead of charging nested function, class, and lambda bodies to
@@ -188,9 +236,13 @@
   Python 3.10 has `1,686` collected tests with `1,684` passed and `2` skipped; Ruff check/format
   and mypy (`97` source files) pass; two builds of the `2,235,838` byte package are identical at
   SHA-256 `a6e437ba08336d4ced2eb02752be3ec5849d029fa8bff2cbca182956b6b31e9f`; packaged smoke
-  passes. The PR CI rerun, sticky comment, Pages, and extracted-artifact byte-match remain
-  pending, so no remote or release acceptance is claimed. The version remains `0.10.2`; no
-  release is created.
+  passes. Final PR run `33601774411`, its single sticky comment, and Merge Gate passed. PR
+  artifact/Pages pairs are byte-identical: ici `7,513,806` bytes at SHA-256
+  `f6b39e7e852a5ca2039bef9287e09359ee082dca9d7dbccc644db1bf0fae0406`, viewer `356,773`
+  bytes at SHA-256 `5bbd432739ccbecf3f36afd882beabff042889a371c12b42e6551e0617bcad82`;
+  both are valid UTF-8 with exact titles and Zero-CDN. PR #132 was squash-merged at `5a7a23f`,
+  and exact-main run `33602697235` passed. This closes the corrective PR, not I4-4 or a new
+  release. The version remains `0.10.2`; no release is created.
 
 ## [0.10.2] - 2026-09-02
 

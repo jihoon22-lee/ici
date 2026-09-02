@@ -3,7 +3,25 @@
 import html
 from pathlib import Path
 
+from ici.core.models import SourceLocation
 from ici.reporters.html.utils import HtmlIssue, _location_controls, _status_color
+
+
+def _related_location_label(location: SourceLocation) -> str:
+    start_line = location.start_line
+    end_line = location.end_line or start_line
+    start_column = location.start_column
+    end_column = location.end_column
+    label = f"{location.path}:L{start_line}"
+    if start_column is not None:
+        label += f":C{start_column}"
+    if end_line > start_line:
+        label += f"-L{end_line}"
+        if end_column is not None:
+            label += f":C{end_column}"
+    elif end_column is not None and end_column != start_column:
+        label += f"-C{end_column}"
+    return label
 
 
 def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
@@ -39,6 +57,28 @@ def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
                 f"</details>"
             )
 
+        related_block = ""
+        if issue.related_locations:
+            related_items = []
+            for related in issue.related_locations:
+                controls = _location_controls(
+                    related.path,
+                    related.start_line,
+                    base,
+                    label=_related_location_label(related),
+                )
+                message = html.escape(related.label or "Related diagnostic location")
+                related_items.append(
+                    f"<li><span class='issue-related-location'>{controls}</span>"
+                    f"<span class='issue-related-message'>{message}</span></li>"
+                )
+            related_block = (
+                "<div class='issue-related'>"
+                "<h3 class='issue-related-title'>Related evidence</h3>"
+                f"<ul>{''.join(related_items)}</ul>"
+                "</div>"
+            )
+
         items.append(
             f"<div class='issue-item'>"
             f"  <div class='issue-header'>"
@@ -48,6 +88,7 @@ def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
             f"    <span class='target-sym'>[{html.escape(issue.rule_id)}]</span>"
             f"  </div>"
             f"  <div class='issue-msg'>{html.escape(issue.message)}</div>"
+            f"  {related_block}"
             f"  {snippet_block}"
             f"</div>"
         )

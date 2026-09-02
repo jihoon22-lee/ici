@@ -371,6 +371,33 @@ def test_native_finding_wins_over_legacy_adapter_with_same_fingerprint():
     assert findings[0].confidence == FindingConfidence.EXACT
 
 
+def test_native_finding_occurrences_with_one_fingerprint_remain_a_multiset():
+    result = _legacy_result()
+    adapted = findings_for_result(result)[0]
+    result.findings = [
+        Finding(
+            rule_id=adapted.rule_id,
+            category=FindingCategory.SECURITY,
+            severity=FindingSeverity.CRITICAL,
+            confidence=FindingConfidence.EXACT,
+            fingerprint="",
+            primary_location=adapted.primary_location,
+            message="native detail",
+            related_locations=[SourceLocation("include/context.hpp", line, label=label)],
+        )
+        for line, label in ((11, "first occurrence"), (22, "second occurrence"))
+    ]
+
+    findings = findings_for_result(result)
+
+    assert len(findings) == 2
+    assert len({finding.fingerprint for finding in findings}) == 1
+    assert {location.label for finding in findings for location in finding.related_locations} == {
+        "first occurrence",
+        "second occurrence",
+    }
+
+
 def test_native_locations_are_canonicalized_and_fingerprint_is_rederived():
     finding = Finding(
         rule_id="ici.security.secret",
