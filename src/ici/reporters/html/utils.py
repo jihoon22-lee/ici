@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ici.core.findings import findings_for_result
-from ici.core.models import EngineResult, EngineStatus, FindingSeverity
+from ici.core.models import EngineResult, EngineStatus, FindingSeverity, SourceLocation
 
 
 @dataclass(frozen=True)
@@ -21,6 +21,7 @@ class HtmlIssue:
     rule_id: str
     message: str
     snippet: str
+    related_locations: tuple[SourceLocation, ...] = ()
 
 
 def _get_status_theme(status: EngineStatus) -> tuple[str, str, str]:
@@ -86,6 +87,7 @@ def _extract_suite_data(
                     rule_id=finding.tool_rule_id or finding.rule_id,
                     message=finding.message,
                     snippet=finding.snippet,
+                    related_locations=tuple(finding.related_locations),
                 )
             )
             issue_count += 1

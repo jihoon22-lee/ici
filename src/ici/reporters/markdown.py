@@ -6,10 +6,12 @@ import re
 from urllib.parse import quote, urlsplit
 
 from ici.core.capabilities import CapabilityInventory
+from ici.core.findings import findings_for_result
 from ici.core.models import (
     BaselineComparison,
     DeltaState,
     EngineStatus,
+    FindingSeverity,
     SourceLocation,
     VerificationSuiteResult,
     format_score_display,
@@ -19,6 +21,7 @@ from ici.core.redaction import redact_suite
 from ici.reporters.baseline_view import enum_value, select_baseline_details, severity_transition
 
 MAX_GITHUB_TARGET_ROWS_PER_ENGINE = 100
+MAX_GITHUB_RELATED_ROWS_PER_ENGINE = 100
 MAX_GITHUB_ANNOTATIONS = 50
 MAX_GITHUB_SUMMARY_BYTES = 900_000
 _SUMMARY_TRUNCATION_NOTICE = (
@@ -278,6 +281,39 @@ def generate_markdown_report(
                 f"\n> {omitted_targets} target row(s) omitted from this bounded GitHub view. "
                 "The JSON and HTML reports retain the full inventory.\n"
             )
+
+        try:
+            related_rows = [
+                (finding.tool_rule_id or finding.rule_id, location)
+                for finding in findings_for_result(res)
+                if finding.severity != FindingSeverity.INFO and not finding.suppression.suppressed
+                for location in finding.related_locations
+            ]
+        except (TypeError, ValueError):
+            related_rows = []
+        if related_rows:
+            visible_related = related_rows[:MAX_GITHUB_RELATED_ROWS_PER_ENGINE]
+            md.append("\n**Related diagnostic locations:**\n")
+            md.append("| Primary rule | Related location | Details |")
+            md.append("|---|---|---|")
+            for rule_id, location in visible_related:
+                link = _make_gh_link(
+                    location.path,
+                    location.start_line,
+                    location.end_line,
+                    repo_url,
+                    commit_sha,
+                )
+                md.append(
+                    f"| {_render_code(rule_id)} | {link} | "
+                    f"{_escape_table_cell(location.label or 'Related diagnostic location')} |"
+                )
+            omitted_related = len(related_rows) - len(visible_related)
+            if omitted_related:
+                md.append(
+                    f"\n> {omitted_related} related diagnostic row(s) omitted from this "
+                    "bounded GitHub view. The JSON and HTML reports retain the full inventory.\n"
+                )
 
         # Include snippet if failures exist
         failed_targets = [

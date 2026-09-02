@@ -39,6 +39,32 @@ def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
                 f"</details>"
             )
 
+        related_block = ""
+        if issue.related_locations:
+            related_items = []
+            for related in issue.related_locations:
+                related_end = related.end_line or related.start_line
+                related_label = f"{related.path}:L{related.start_line}"
+                if related_end > related.start_line:
+                    related_label += f"-L{related_end}"
+                controls = _location_controls(
+                    related.path,
+                    related.start_line,
+                    base,
+                    label=related_label,
+                )
+                message = html.escape(related.label or "Related diagnostic location")
+                related_items.append(
+                    f"<li><span class='issue-related-location'>{controls}</span>"
+                    f"<span class='issue-related-message'>{message}</span></li>"
+                )
+            related_block = (
+                "<div class='issue-related'>"
+                "<div class='issue-related-title'>Related evidence</div>"
+                f"<ul>{''.join(related_items)}</ul>"
+                "</div>"
+            )
+
         items.append(
             f"<div class='issue-item'>"
             f"  <div class='issue-header'>"
@@ -48,6 +74,7 @@ def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
             f"    <span class='target-sym'>[{html.escape(issue.rule_id)}]</span>"
             f"  </div>"
             f"  <div class='issue-msg'>{html.escape(issue.message)}</div>"
+            f"  {related_block}"
             f"  {snippet_block}"
             f"</div>"
         )
