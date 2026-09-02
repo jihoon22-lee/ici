@@ -534,6 +534,108 @@ def test_real_clang_boundaries_cover_braced_declarators_function_try_and_digraph
     assert _source_snapshot(real_cpp_project) == before
 
 
+def test_real_clang_boundary_scope_distinguishes_templates_operators_lambdas_and_macros(
+    real_cpp_project: Path,
+) -> None:
+    inventory = _required_inventory("g++", "clang-tidy")
+    source = real_cpp_project / "src" / "boundary_scope.cpp"
+    source.write_text(
+        "#define DEFINE_FUNCTION(name) \\\n"
+        "    int name(int value) { if (value) { return 1; } return 0; }\n"
+        "DEFINE_FUNCTION(macro_generated)\n"
+        "template <class T> int templated(T value) {\n"
+        "    if (value) { return 1; }\n"
+        "    return 0;\n"
+        "}\n"
+        "struct Functor {\n"
+        "    explicit operator bool() const { if (flag) { return true; } return false; }\n"
+        "    int operator()(int value) const { if (value) { return 1; } return 0; }\n"
+        "    bool flag = false;\n"
+        "};\n"
+        'unsigned long long operator""_units(unsigned long long value) {\n'
+        "    if (value) { return value; }\n"
+        "    return 0;\n"
+        "}\n"
+        "int use_scope(int value) {\n"
+        "    auto callback = [value]() { if (value) { return 1; } return 0; };\n"
+        "    if (value > 1) { return callback(); }\n"
+        "    return templated(value) + Functor{}(value);\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    database_path = real_cpp_project / "compile_commands.json"
+    database = json.loads(database_path.read_text(encoding="utf-8"))
+    database.append(
+        {
+            "directory": str(real_cpp_project / "build"),
+            "file": "../src/boundary_scope.cpp",
+            "arguments": [
+                "g++",
+                "-std=c++20",
+                "-I",
+                "../include",
+                "-c",
+                "../src/boundary_scope.cpp",
+                "-o",
+                "boundary_scope.o",
+            ],
+            "output": "boundary_scope.o",
+        }
+    )
+    database_path.write_text(json.dumps(database), encoding="utf-8")
+    context = _analysis_context(real_cpp_project, inventory)
+    before = _source_snapshot(real_cpp_project)
+
+    outcome = run_cpp_function_boundaries(
+        real_cpp_project,
+        [source],
+        context,
+        runner=run_process,
+    )
+
+    assert outcome.mode == "exact", outcome.errors
+    assert outcome.errors == []
+    assert outcome.warnings == []
+    assert outcome.lambdas_excluded == 1
+    assert outcome.macro_functions_excluded == 1
+    assert {item.name for item in outcome.boundaries} == {
+        "templated",
+        "operator bool",
+        "operator()",
+        'operator""_units',
+        "use_scope",
+    }
+    templated = next(item for item in outcome.boundaries if item.name == "templated")
+    assert templated.is_template is True
+    assert templated.function_kind == "function"
+    assert templated.origin == "source-spelled"
+    assert len(templated.configuration_metrics) == 1
+    assert all(
+        item.function_kind == "operator"
+        for item in outcome.boundaries
+        if item.name.startswith("operator")
+    )
+
+    integrated = ComplexityEngine(
+        real_cpp_project,
+        {"engines": {"complexity": {"cpp_boundaries": "required"}}},
+        analysis_context=context,
+    ).run()
+    assert integrated.status == EngineStatus.PASS, integrated.extra["cpp_boundary_errors"]
+    assert integrated.evidence == EvidenceState.MEASURED
+    assert integrated.extra["cpp_boundary_mode"] == "exact"
+    assert integrated.extra["cpp_exact_boundaries"] == 8
+    assert integrated.extra["cpp_estimated_boundaries"] == 0
+    assert integrated.extra["cpp_scope_exclusions"] == {
+        "lambda": 1,
+        "macro_generated_function": 1,
+    }
+    use_scope = next(item for item in integrated.targets if item.target_name == "use_scope()")
+    assert use_scope.metrics["complexity"] == 2
+    assert use_scope.metrics["excluded_nested_lambdas"] == 1
+    assert _source_snapshot(real_cpp_project) == before
+
+
 def test_run_clazy_uses_real_qt_headers_and_exact_context(tmp_path: Path) -> None:
     inventory = _required_inventory("g++", "clang++", "clazy")
     pkg_config = shutil.which("pkg-config")

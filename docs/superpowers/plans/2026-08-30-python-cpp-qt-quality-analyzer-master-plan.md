@@ -1001,8 +1001,10 @@ build, self/viewer dogfood, publisher/sticky comment, Merge Gate를 통과했다
 같은 tool/matrix/dogfood/Merge Gate와 trusted main publication, main ici/viewer Pages 감사를
 통과했다. 따라서 ici I4-2 remote acceptance는 완료됐다. 이후 exact-main
 `33541134010`과 [v0.10.2 release](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.2)의
-provenance·9개 asset audit도 완료됐지만, toy-projects BuildScope B5 교차 검증이 남아 있어
-이 단계의 전체 delivery gate와 I4 checkpoint는 아직 닫지 않는다.
+provenance·9개 asset audit도 완료됐다. toy-projects BuildScope B5는 PR #38~#42의 remote
+acceptance, exact-main/Pages, [immutable BuildScope 0.5.0 release](https://github.com/jihoon22-lee/toy-projects/releases/tag/buildscope-v0.5.0)
+(ID `380863869`)와 public asset audit까지 완료됐다. I4-2 delivery gate는 닫혔지만 I4-3/I4-4가
+남아 있으므로 I4 전체 checkpoint는 아직 닫지 않는다.
 
 **구현 브랜치:** `feat/qt-analysis` (PR #122로 squash merge 완료)
 
@@ -1024,17 +1026,19 @@ provenance·9개 asset audit도 완료됐지만, toy-projects BuildScope B5 교�
 - [x] BuildScope의 `.ui`/`.qrc` 및 기존 Qt 앱의 Q_OBJECT 경로에 적용할 verifier contract와
       local fixture shape를 추가했다. clazy는 2,048 units·unit당 120초·전체 600초와 bounded
       output을 사용하며, CI/release workflow는 `ICI_REQUIRE_STATIC_ANALYSIS_TOOLS=1`로 실제
-      tool E2E를 요구한다. 실제 BuildScope B5 fixture 검증은 다음 delivery 단계다.
+      tool E2E를 요구한다. 실제 BuildScope B5 fixture 검증과 공개 release audit도 완료됐다.
 
 I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
 `clang-tidy`·`clazy`·`clang++` 미설치에 따른 것이다. 위 PR/main remote acceptance로 ici
 측 원격 delivery gate는 닫혔다. v0.10.2 release provenance/artifact evidence는 위 1.3절에
-기록했으며, 남은 delivery evidence는 BuildScope B5의 released ici 교차 검증이다. 그 뒤
-I4-3/I4-4를 진행한다.
+기록했고, BuildScope B5의 released ici 교차 검증·remote acceptance·0.5.0 release audit도
+완료됐다. 다음 delivery 범위는 I4-3 잔여 항목과 I4-4다.
 
-### I4-3. maintainability 분석 정확도
+### Maintainability 분석 정확도 (I4-3)
 
-**브랜치:** `feat/compiler-backed-cpp-functions`
+**기준 branch (PR #130, merged):** `feat/compiler-backed-cpp-functions`
+(`8083267d864d3f29e6f3ae7c53358ce0b1674b44`)
+**현재 follow-up branch (unmerged):** `feat/cpp-function-scope-policy`
 
 - [ ] complexity/cognitive/function boundary를 AST/tool output 우선으로 바꾼다.
   - [x] Python complexity/cognitive는 nested function/class/lambda body를 enclosing function에서
@@ -1049,16 +1053,37 @@ I4-3/I4-4를 진행한다.
       phantom 배제와 no-dirfd named-path revalidation을
       regression contract로 고정했다. Approved tool executable은 매 process 직전에 다시 resolve해
       device/inode/mode/size/mtime/ctime identity를 확인하고 변경·부재를 fail-closed한다.
-- [ ] template, lambda, operator, macro-generated code 처리 정책을 정한다.
+- [x] template, lambda, operator, macro-generated code 처리 정책을 정한다.
+  - source-spelled named function만 target으로 유지하며 function template, conversion/call/subscript
+    operator, literal operator의 `function_kind`/template/provenance를 보존한다.
+  - lambda는 독립 target으로 만들지 않고 enclosing function의 CC/nesting에서 body를 제외한다.
+    expansion-site macro-generated function은 명시적으로 제외하고 count를
+    `extra.cpp_scope_exclusions.macro_generated_function`에
+    남기며 다음 brace로 매핑하지 않는다. fallback scanner는 operator 이름을 보존하고 multiline
+    preprocessor definition/continuation과 standalone macro invocation을 skip한다.
+  - 성공 configuration 사이에는 geometry/name/kind/provenance가 일치해야 하며, clang-tidy
+    function-size lines/statements/parameters는 configuration별로 보존한다. metric 차이 또는
+    conditional-preprocessor body는 `partial`/low-confidence이고, compiler-backed function metrics
+    또는 configuration coverage가 partial/low-confidence로 남으면 `required`는 fail-closed다.
 - [ ] dead/unused symbol은 compiler/linker/clang-tidy evidence가 있을 때만 exact로 표시한다.
 - [ ] duplicate는 generated/moc/vendor code를 기본 제외하고 token/region fingerprint를 통합한다.
 - [x] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
 
-현재 candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
-`7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`이며, `clang-tidy-21` full
-suite는 `1,626 passed, 2 skipped`다. 세 toy project 결과와 HTML SHA, exact-main evidence는
-compiler-boundary workthrough에 기록했고 candidate smoke/HTML Zero-CDN checks도 통과했다. 이
-증거는 I4-3 aggregate, lambda/macro 정책 또는 I4 전체 checkpoint를 닫지 않는다.
+PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
+`7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
+`1,626 passed, 2 skipped`를 남겼다. 이는 현재 follow-up의 근거가 아니다. 현재 unmerged
+`feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
+`2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`이며, real extracted
+`clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`, Ruff check/format,
+mypy와 packaged smoke가 통과했다. 최초 PR run에서 드러난 1,031-pure-code-line self gate는
+parser/source mapping helper 628줄과 process runner compatibility facade 487줄로 분리해
+닫았고, 집중 회귀 89개와 전체 suite가 같은 결과를 유지했다. 이 SHA를 fresh clean
+`toy-projects` `main`에 주입한
+BuildScope deep
+`auto`/`required`, DiskMap `auto`, LogLens `auto`의 local cross-repo candidate evidence와
+JSON/HTML report, 4/4 title·Zero-CDN checker pass는 [scope-policy workthrough](../../workthrough/2026-09-02-cpp-function-scope-policy.md)에
+기록한다. PR CI, sticky comment, Pages readiness, extracted artifact HTML byte-match는 아직
+pending이다. 이 증거는 I4-3 aggregate, dead/duplicate 정책 또는 I4 전체 checkpoint를 닫지 않는다.
 
 ### I4-4. C++ safety
 

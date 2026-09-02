@@ -544,7 +544,7 @@ clazy는 최대 2,048 translation units, unit당 120초, 전체 600초와 1,000,
 이 계층은 소스를 수정하거나 generator를 재실행하지 않으며, 생성 산출물의 존재만 확인하는
 heuristic으로 성공을 주장하지 않고 exact compilation database linkage를 요구한다.
 
-#### I4-3 compiler-backed C++ function boundaries
+#### Compiler-backed C++ function boundaries (I4-3)
 
 `ComplexityEngine`은 shared immutable `AnalysisContext`의 exact `CompilationContext`와 covered
 production units를 사용해 전용 clang-tidy probe를 실행합니다. probe는 프로젝트나 lint 정책을
@@ -553,10 +553,19 @@ location/size notes를 source body geometry로 매핑합니다. `boundary_source
 는 함수 경계에만 해당합니다. 경계 안의 CC는 masked `if`/`for`/`while`/`case`/`catch`/`&&`/`||`/`?`
 token을, nesting은 brace를 세는 ici metric이며 `metric_confidence = "medium"`입니다.
 
+AST boundary target은 source-spelled named function이며 function template, conversion/call/subscript
+operator, literal operator를 포함합니다. `function_kind`, `function_template`, `function_origin`으로
+kind/template/provenance를 보존합니다. lambda는 독립 함수 target으로 만들지 않으며 그 body는
+enclosing function의 CC/nesting에서 제외합니다. Macro-generated function이 expansion site에서
+진단되면 해당 scope를 명시적으로 제외하고 `extra.cpp_scope_exclusions.macro_generated_function`에
+count를 기록합니다. 이 경우 파일의 다음 brace를 body로 추정하지 않습니다. fallback scanner는
+operator 이름을 보존하고 multiline preprocessor definition/continuation과 standalone macro
+invocation을 skip하며, lambda 제외 count는 `extra.cpp_scope_exclusions.lambda`로 공개합니다.
+
 `cpp_boundaries = "auto" | "required" | "off"` (기본 `auto`)는 lint의 `clang_tidy` 정책과
 독립적입니다. `auto`는 exact context/database 또는 approved direct clang-tidy가 없을 때만
-source scanner로 폴백해 `ESTIMATED`/heuristic 경계를 남깁니다. 빈/미보고 또는 macro definition은
-heuristic으로 남을 수 있습니다. 시도된 tool·replay·parser·timeout·truncation·coverage·budget
+source scanner로 폴백해 `ESTIMATED`/heuristic 경계를 남깁니다. 빈/미보고 source-spelled definition은
+heuristic으로 남을 수 있지만 macro-generated expansion은 target에서 제외됩니다. 시도된 tool·replay·parser·timeout·truncation·coverage·budget
 오류는 silent fallback 없이 `ERROR`/`NOT_RUN`으로 닫습니다. 단, clang-tidy가 visible project
 diagnostics와 함께 정확한 `Suppressed N warnings (N in non-user code).`를 보고하는 경우는
 외부/system 진단만
@@ -565,9 +574,13 @@ diagnostics와 함께 정확한 `Suppressed N warnings (N in non-user code).`를
 오류로 승격합니다. `off`는 probe를 실행하지 않고 heuristic
 경로를 사용합니다. caller가 만든 bounded source snapshot과 mapped-source cache를 전달하고,
 replay 전·도구 완료 후 source identity를 재검증합니다. C++ 전체 source inventory는 최대 2,048
-source files와 64 MiB aggregate UTF-8 source bytes cap을 적용하며, 같은 body geometry가 성공한 모든
-configuration에 존재할 때만 merge합니다.
-누락이나 configuration-dependent geometry는 partial warning으로 보존되고 `required`에서는 오류입니다.
+source files와 64 MiB aggregate UTF-8 source bytes cap을 적용하며, 성공한 configuration마다
+geometry, name, kind, provenance가 일치할 때만 merge합니다. configuration별 clang-tidy
+lines/statements/parameters는 `configuration_metrics`에 보존합니다. 누락이나 configuration-dependent
+geometry는 partial warning으로 보존됩니다. function-size metric 값이 configuration마다 다르거나
+body에 conditional preprocessor branch가 있으면 mode가 `partial`, 해당 metric confidence가 `low`가
+됩니다. compiler-backed function metrics 또는 configuration coverage가 partial/low-confidence로
+남으면 `required`에서는 `ERROR`/`NOT_RUN`으로 fail-closed합니다.
 한 실행의 한도는 2,048 units, source당 8 MiB, run source bytes 64 MiB, mapped-source cache bytes
 16 MiB, output 1,000,000자, parser 10초, unit당 120초, 전체 600초입니다. approved tool executable은
 매 process 실행 직전에 다시 resolve해 device/inode/mode/size/mtime/ctime identity를 확인하며 변경·부재는
@@ -577,11 +590,18 @@ constructor·parameter/default·noexcept·trailing `requires`의 braced expressi
 fallback도 resolved named path의 containment와 device/inode/size/mtime identity를 read 뒤
 재검증해 intermediate symlink/TOCTOU를 fail-closed합니다.
 
-현재 candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
-`7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`이며, `clang-tidy-21` full
-suite는 `1,626 passed, 2 skipped`입니다. 세 프로젝트의 결과·HTML SHA와 toy exact-main evidence는
-[compiler-boundary workthrough](workthrough/2026-09-02-compiler-backed-cpp-function-boundaries.md)에
-기록되어 있고, candidate smoke 및 HTML Zero-CDN checks는 통과했습니다.
+PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
+`7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
+`1,626 passed, 2 skipped`를 남겼습니다. 이는 현재 follow-up의 근거가 아닙니다. 현재
+unmerged `feat/cpp-function-scope-policy` candidate는 두 번 byte-identical인 `dist/ici.pyz`
+SHA `2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`이며, real extracted
+`clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`, Ruff check/format,
+mypy와 packaged smoke가 통과했습니다. Parser/source mapping(628 pure code lines)과 process
+runner facade(487 pure code lines)는 분리되어 self line gate도 통과합니다. Fresh clean toy
+`main`의 BuildScope `auto`/`required`,
+DiskMap `auto`, LogLens `auto` 교차 probe와 4/4 title·Zero-CDN 검사도 완료됐습니다. PR CI,
+sticky comment, Pages readiness, extracted artifact HTML byte-match는 아직 pending이며 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
+기록합니다. 버전은 `0.10.2`로 유지하고 release는 만들지 않습니다.
 
 #### CTest/JUnit와 sanitizer evidence 경계
 

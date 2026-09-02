@@ -13,17 +13,32 @@ from __future__ import annotations
 import json
 import re
 import time
-from collections.abc import Callable, Iterator, Sequence
-from dataclasses import dataclass, field, replace
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 
-from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
 from ici.core.context import AnalysisContext, CompilationUnit
 from ici.core.cpp_replay import ReplayCommandError, build_replay_command, replay_environment
 from ici.core.models import ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
-from ici.engines._cpp_diagnostics import CppDiagnostic, parse_clang_tidy_diagnostics
+from ici.engines._cpp_function_boundary_parser import (
+    _MAX_BOUNDARIES,
+    _MAX_FUNCTION_NAME_CHARS,
+    _MAX_SOURCE_BYTES,
+    _MAX_SOURCE_CACHE_BYTES,
+    _PARSER_TIMEOUT_SECONDS,
+    CppFunctionBoundary,
+    CppFunctionConfigurationMetric,
+    _mapped_source,
+    _MappedSource,
+    _merge_boundaries,
+    _PendingBoundary,
+    read_cpp_source_text,
+)
+from ici.engines._cpp_function_boundary_parser import (
+    parse_function_boundaries as _parse_function_boundaries,
+)
 from ici.engines._cpp_tooling import (
     GccStdlibProjectionCache,
     gcc_standard_library_for_replay,
@@ -31,93 +46,32 @@ from ici.engines._cpp_tooling import (
     selected_units,
     tooling_arguments,
 )
-from ici.engines.cpp_text import cpp_requires_expression_before_brace, mask_cpp_literals
+
+__all__ = [
+    "_MAX_BOUNDARIES",
+    "_MAX_FUNCTION_NAME_CHARS",
+    "_MAX_SOURCE_BYTES",
+    "_MAX_SOURCE_CACHE_BYTES",
+    "_PARSER_TIMEOUT_SECONDS",
+    "CppFunctionBoundary",
+    "CppFunctionBoundaryOutcome",
+    "CppFunctionConfigurationMetric",
+    "_MappedSource",
+    "_PendingBoundary",
+    "_mapped_source",
+    "_merge_boundaries",
+    "parse_function_boundaries",
+    "read_cpp_source_text",
+    "run_cpp_function_boundaries",
+]
 
 _CHECK = "readability-function-size"
 _CHECKS = f"-*,{_CHECK}"
 _MAX_SELECTED_UNITS = 2_048
-_MAX_BOUNDARIES = 100_000
-_MAX_SOURCE_BYTES = 8 * 1024 * 1024
-_MAX_SOURCE_CACHE_BYTES = 16 * 1024 * 1024
 _MAX_RUN_SOURCE_BYTES = 64 * 1024 * 1024
 _MAX_OUTPUT_CHARS = 1_000_000
-_MAX_FUNCTION_NAME_CHARS = 2_048
 _UNIT_TIMEOUT_SECONDS = 120.0
 _GLOBAL_TIMEOUT_SECONDS = 600.0
-_PARSER_TIMEOUT_SECONDS = 10.0
-
-_PARENT_RE = re.compile(
-    r"^warning: function '(?P<name>.+)' exceeds recommended size/complexity thresholds$"
-)
-_LINES_RE = re.compile(
-    r"^note: (?P<value>[0-9]+) lines including whitespace and comments \(threshold 0\)$"
-)
-_STATEMENTS_RE = re.compile(r"^note: (?P<value>[0-9]+) statements \(threshold 0\)$")
-_PARAMETERS_RE = re.compile(r"^note: (?P<value>[0-9]+) parameters \(threshold 0\)$")
-_SUPPRESSED_RE = re.compile(r"^Suppressed [1-9][0-9]* warnings? \(")
-_EXTERNAL_ONLY_SUPPRESSED_RE = re.compile(
-    r"^Suppressed (?P<total>[1-9][0-9]*) warnings? "
-    r"\((?P<external>[1-9][0-9]*) in non-user code\)\.$"
-)
-
-
-@dataclass(frozen=True)
-class CppFunctionBoundary:
-    """One AST-confirmed function definition mapped back to project source."""
-
-    file_path: str
-    start_line: int
-    end_line: int
-    start_column: int | None
-    end_column: int | None
-    body_start_line: int
-    body_start_column: int
-    name: str
-    lines: int = 0
-    statements: int = 0
-    parameters: int = 0
-    configurations: tuple[str, ...] = ()
-
-
-@dataclass
-class CppFunctionBoundaryOutcome:
-    """Bounded adapter result consumed by :class:`ComplexityEngine`."""
-
-    boundaries: list[CppFunctionBoundary] = field(default_factory=list)
-    evidence: list[ToolEvidence] = field(default_factory=list)
-    errors: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-    mode: str = "unavailable"
-    configurations_checked: int = 0
-    sources_checked: int = 0
-
-
-@dataclass
-class _PendingBoundary:
-    diagnostic: CppDiagnostic
-    name: str
-    lines: int = 0
-    statements: int = 0
-    parameters: int = 0
-    seen_notes: set[str] = field(default_factory=set)
-
-
-@dataclass(frozen=True)
-class _MappedSource:
-    text: str
-    masked: str
-    offsets: tuple[int, ...]
-
-
-@dataclass(frozen=True)
-class _BoundaryRun:
-    root: Path
-    context: AnalysisContext
-    capability: ToolCapability
-    executable: Path
-    executable_identity: tuple[int, int, int, int, int, int]
-    units: tuple[CompilationUnit, ...]
-    sources: dict[str, _MappedSource]
 
 
 def _metrics_config() -> str:
@@ -166,273 +120,6 @@ def _command(
     ]
 
 
-def read_cpp_source_text(project_root: Path, file_path: str) -> str:
-    """Read one bounded, stable, project-contained C++ source as UTF-8."""
-
-    if file_path == "[external]":
-        raise ValueError("function boundary resolved outside the project")
-    try:
-        root = project_root.resolve(strict=True)
-        path = (root / file_path).resolve(strict=True)
-        path.relative_to(root)
-        payload = _read_bounded_regular(path, _MAX_SOURCE_BYTES, containment_root=root)
-    except (OSError, RuntimeError, ValueError, _ReadError) as err:
-        raise ValueError("function boundary source is unavailable") from err
-    try:
-        return payload.decode("utf-8")
-    except UnicodeError as err:
-        raise ValueError("function boundary source is not valid UTF-8") from err
-
-
-def _line_offsets(text: str) -> list[int]:
-    offsets = [0]
-    offsets.extend(index + 1 for index, char in enumerate(text) if char == "\n")
-    return offsets
-
-
-def _line_number(offsets: Sequence[int], position: int) -> int:
-    # ``bisect`` is avoided here because this loop only walks bounded brace
-    # inventories and retaining the small helper keeps 3.10 compatibility
-    # obvious.  Binary search still makes large generated sources inexpensive.
-    low = 0
-    high = len(offsets)
-    while low < high:
-        middle = (low + high) // 2
-        if offsets[middle] <= position:
-            low = middle + 1
-        else:
-            high = middle
-    return max(1, low)
-
-
-def _mapped_source(text: str) -> _MappedSource:
-    masked = mask_cpp_literals(text).replace("<%", "{ ").replace("%>", "} ")
-    return _MappedSource(text=text, masked=masked, offsets=tuple(_line_offsets(masked)))
-
-
-def _top_level_brace_pairs(
-    source: _MappedSource,
-    start_offset: int,
-) -> Iterator[tuple[int, int, int, int]]:
-    stack: list[tuple[int, int, int, int]] = []
-    parentheses = 0
-    brackets = 0
-    for position in range(start_offset, len(source.masked)):
-        char = source.masked[position]
-        if char == "(":
-            parentheses += 1
-        elif char == ")":
-            parentheses = max(0, parentheses - 1)
-        elif char == "[":
-            brackets += 1
-        elif char == "]":
-            brackets = max(0, brackets - 1)
-        elif char == "{":
-            stack.append((position, parentheses, brackets, len(stack)))
-        elif char == "}" and stack:
-            opened, open_parentheses, open_brackets, depth = stack.pop()
-            if depth == 0:
-                yield opened, position, open_parentheses, open_brackets
-
-
-def _has_top_level_initializer_colon(prefix: str) -> bool:
-    parentheses = 0
-    brackets = 0
-    found = False
-    for index, char in enumerate(prefix):
-        if char == "(":
-            parentheses += 1
-        elif char == ")":
-            parentheses = max(0, parentheses - 1)
-        elif char == "[":
-            brackets += 1
-        elif char == "]":
-            brackets = max(0, brackets - 1)
-        elif (
-            char == ":"
-            and parentheses == 0
-            and brackets == 0
-            and (index == 0 or prefix[index - 1] != ":")
-            and (index + 1 == len(prefix) or prefix[index + 1] != ":")
-        ):
-            found = True
-    return found
-
-
-def _constructor_initializer_brace(prefix: str) -> bool:
-    if not _has_top_level_initializer_colon(prefix):
-        return False
-    stripped = prefix.rstrip()
-    if not stripped:
-        return False
-    # A braced member/delegating initializer is introduced by an identifier.
-    # Once that initializer is complete, the real body is preceded by its
-    # closing '}' (or ')' for a parenthesized initializer) instead.
-    return bool(re.search(r"(?:[A-Za-z_][A-Za-z0-9_]*|[>\]])$", stripped))
-
-
-def _catch_extended_close(source: _MappedSource, close_position: int) -> int:
-    final_close = close_position
-    cursor = close_position + 1
-    while True:
-        match = re.match(r"\s*catch\b", source.masked[cursor:])
-        if match is None:
-            return final_close
-        catch_start = cursor + match.end()
-        pair = next(_top_level_brace_pairs(source, catch_start), None)
-        if pair is None:
-            return final_close
-        _opened, closed, parentheses, brackets = pair
-        if parentheses or brackets:
-            return final_close
-        final_close = closed
-        cursor = final_close + 1
-
-
-def _locate_body(
-    source: _MappedSource,
-    *,
-    start_line: int,
-    start_column: int | None,
-    line_count: int | None,
-) -> tuple[int, int, int, int]:
-    """Return function geometry using Clang's location and line-count note."""
-
-    offsets = source.offsets
-    if start_line > len(offsets):
-        raise ValueError("function boundary starts beyond the source")
-    start_offset = offsets[start_line - 1] + max(0, (start_column or 1) - 1)
-    for opened, closed, parentheses, brackets in _top_level_brace_pairs(source, start_offset):
-        if parentheses or brackets:
-            continue
-        open_line = _line_number(offsets, opened)
-        prefix = source.masked[start_offset:opened]
-        if cpp_requires_expression_before_brace(prefix):
-            continue
-        if _constructor_initializer_brace(prefix):
-            continue
-        final_close = _catch_extended_close(source, closed)
-        close_line = _line_number(offsets, final_close)
-        expected_lines = 0 if line_count is None else line_count
-        if close_line - open_line != expected_lines:
-            if line_count is None:
-                raise ValueError("function-size lines note is required for a multi-line body")
-            raise ValueError("function-size lines note does not match the mapped body")
-        open_column = opened - offsets[open_line - 1] + 1
-        close_column = final_close - offsets[close_line - 1] + 1
-        return open_line, open_column, close_line, close_column
-    raise ValueError("function body could not be mapped from clang-tidy evidence")
-
-
-def _note_value(pending: _PendingBoundary, diagnostic: CppDiagnostic) -> None:
-    target = diagnostic.target
-    parent = pending.diagnostic.target
-    if (
-        target.file_path,
-        target.start_line,
-        target.start_column,
-    ) != (
-        parent.file_path,
-        parent.start_line,
-        parent.start_column,
-    ):
-        raise ValueError("function-size note does not match its parent location")
-    patterns = (
-        ("lines", _LINES_RE),
-        ("statements", _STATEMENTS_RE),
-        ("parameters", _PARAMETERS_RE),
-    )
-    for field_name, pattern in patterns:
-        match = pattern.fullmatch(target.message)
-        if match is None:
-            continue
-        if field_name in pending.seen_notes:
-            raise ValueError(f"function-size emitted duplicate {field_name} notes")
-        value = int(match.group("value"))
-        if value <= 0:
-            raise ValueError("function-size note must contain a positive metric")
-        setattr(pending, field_name, value)
-        pending.seen_notes.add(field_name)
-        return
-    raise ValueError(f"unexpected function-size note: {target.message!r}")
-
-
-def _finish_pending(
-    project_root: Path,
-    configuration: str,
-    pending: _PendingBoundary,
-    sources: dict[str, _MappedSource],
-    cached_bytes: list[int],
-) -> CppFunctionBoundary:
-    target = pending.diagnostic.target
-    source = sources.get(target.file_path)
-    if source is None:
-        text = read_cpp_source_text(project_root, target.file_path)
-        cached_bytes[0] += len(text.encode("utf-8"))
-        if cached_bytes[0] > _MAX_SOURCE_CACHE_BYTES:
-            raise ValueError("function boundary source cache exceeds the bounded limit")
-        source = _mapped_source(text)
-        sources[target.file_path] = source
-    body_start, body_column, end_line, end_column = _locate_body(
-        source,
-        start_line=target.start_line,
-        start_column=target.start_column,
-        line_count=pending.lines if "lines" in pending.seen_notes else None,
-    )
-    return CppFunctionBoundary(
-        file_path=target.file_path,
-        start_line=target.start_line,
-        end_line=end_line,
-        start_column=target.start_column,
-        end_column=end_column,
-        body_start_line=body_start,
-        body_start_column=body_column,
-        name=pending.name,
-        lines=pending.lines,
-        statements=pending.statements,
-        parameters=pending.parameters,
-        configurations=(configuration,),
-    )
-
-
-def _pending_name(match: re.Match[str]) -> str:
-    name = match.group("name")
-    if not name or len(name) > _MAX_FUNCTION_NAME_CHARS or "\x00" in name:
-        raise ValueError("function boundary name is outside the bounded shape")
-    return name
-
-
-def _consume_boundary_diagnostic(
-    project_root: Path,
-    configuration: str,
-    diagnostic: CppDiagnostic,
-    pending: _PendingBoundary | None,
-    boundaries: list[CppFunctionBoundary],
-    sources: dict[str, _MappedSource],
-    cached_bytes: list[int],
-) -> _PendingBoundary:
-    if diagnostic.tool_rule_id != _CHECK:
-        raise ValueError("function boundary output contains an unexpected check")
-    message = diagnostic.target.message
-    parent_match = _PARENT_RE.fullmatch(message)
-    if parent_match is not None:
-        if pending is not None:
-            boundaries.append(
-                _finish_pending(
-                    project_root,
-                    configuration,
-                    pending,
-                    sources,
-                    cached_bytes,
-                )
-            )
-        return _PendingBoundary(diagnostic=diagnostic, name=_pending_name(parent_match))
-    if pending is None or not message.startswith("note:"):
-        raise ValueError("function-size note appeared without a function warning")
-    _note_value(pending, diagnostic)
-    return pending
-
-
 def parse_function_boundaries(
     project_root: Path,
     cwd: Path,
@@ -443,121 +130,58 @@ def parse_function_boundaries(
     source_file: str | None = None,
     sources: dict[str, _MappedSource] | None = None,
     deadline: float | None = None,
+    excluded_scopes: list[tuple[str, int, int | None, str]] | None = None,
 ) -> tuple[CppFunctionBoundary, ...]:
-    """Strictly parse one dedicated clang-tidy function-size invocation."""
+    """Compatibility wrapper around the parser module.
 
-    combined = stdout + "\n" + stderr
-    for line in combined.splitlines():
-        summary = line.strip()
-        if _SUPPRESSED_RE.match(summary) is None:
-            continue
-        external_only = _EXTERNAL_ONLY_SUPPRESSED_RE.fullmatch(summary)
-        if external_only is None or external_only.group("total") != external_only.group("external"):
-            raise ValueError("function boundary diagnostics were suppressed")
-    parsed = parse_clang_tidy_diagnostics(project_root, cwd, stdout, stderr)
-    if parsed.error:
-        raise ValueError(f"function boundary output is not parseable: {parsed.error}")
+    The source reader remains late-bound through this module so callers that
+    historically monkeypatch ``read_cpp_source_text`` keep working.
+    """
 
-    parse_deadline = (
-        deadline if deadline is not None else time.monotonic() + _PARSER_TIMEOUT_SECONDS
+    return _parse_function_boundaries(
+        project_root,
+        cwd,
+        stdout,
+        stderr,
+        configuration=configuration,
+        source_file=source_file,
+        sources=sources,
+        deadline=deadline,
+        excluded_scopes=excluded_scopes,
+        source_reader=read_cpp_source_text,
     )
-    source_cache = {} if sources is None else sources
-    cached_bytes = [sum(len(item.text.encode("utf-8")) for item in source_cache.values())]
-    diagnostics = (
-        parsed.diagnostics
-        if source_file is None
-        else tuple(item for item in parsed.diagnostics if item.target.file_path == source_file)
-    )
-    if len(diagnostics) > _MAX_BOUNDARIES * 4:
-        raise ValueError("function boundary diagnostic count exceeds the bounded limit")
-    boundaries: list[CppFunctionBoundary] = []
-    pending: _PendingBoundary | None = None
-    for diagnostic in diagnostics:
-        if time.monotonic() > parse_deadline:
-            raise ValueError("function boundary parser budget expired")
-        pending = _consume_boundary_diagnostic(
-            project_root,
-            configuration,
-            diagnostic,
-            pending,
-            boundaries,
-            source_cache,
-            cached_bytes,
-        )
-    if pending is not None:
-        boundaries.append(
-            _finish_pending(
-                project_root,
-                configuration,
-                pending,
-                source_cache,
-                cached_bytes,
-            )
-        )
-    if len(boundaries) > _MAX_BOUNDARIES:
-        raise ValueError("function boundary count exceeds the bounded limit")
-    return tuple(boundaries)
 
 
-def _merge_boundaries(
-    boundaries: list[CppFunctionBoundary],
-    successful_configurations: dict[str, set[str]],
-) -> tuple[list[CppFunctionBoundary], list[str]]:
-    grouped: dict[tuple[str, int, int | None, str], CppFunctionBoundary] = {}
-    rejected: set[tuple[str, int, int | None, str]] = set()
-    warnings: list[str] = []
-    for boundary in boundaries:
-        key = (
-            boundary.file_path,
-            boundary.start_line,
-            boundary.start_column,
-            boundary.name,
-        )
-        if key in rejected:
-            continue
-        existing = grouped.get(key)
-        if existing is None:
-            grouped[key] = boundary
-            continue
-        if (
-            existing.end_line,
-            existing.end_column,
-            existing.body_start_line,
-            existing.body_start_column,
-        ) != (
-            boundary.end_line,
-            boundary.end_column,
-            boundary.body_start_line,
-            boundary.body_start_column,
-        ):
-            warnings.append(
-                f"configuration-dependent function boundary was not promoted: "
-                f"{boundary.file_path}:{boundary.start_line}"
-            )
-            grouped.pop(key, None)
-            rejected.add(key)
-            continue
-        grouped[key] = replace(
-            existing,
-            lines=max(existing.lines, boundary.lines),
-            statements=max(existing.statements, boundary.statements),
-            parameters=max(existing.parameters, boundary.parameters),
-            configurations=tuple(sorted({*existing.configurations, *boundary.configurations})),
-        )
-    for key, boundary in tuple(grouped.items()):
-        expected = successful_configurations.get(boundary.file_path)
-        if expected is None or set(boundary.configurations) == expected:
-            continue
-        warnings.append(
-            f"configuration-dependent function boundary was not promoted: "
-            f"{boundary.file_path}:{boundary.start_line}"
-        )
-        grouped.pop(key, None)
-    ordered = sorted(
-        grouped.values(),
-        key=lambda item: (item.file_path, item.start_line, item.start_column or 0, item.name),
-    )
-    return ordered, warnings
+@dataclass
+class CppFunctionBoundaryOutcome:
+    """Bounded adapter result consumed by :class:`ComplexityEngine`."""
+
+    boundaries: list[CppFunctionBoundary] = field(default_factory=list)
+    evidence: list[ToolEvidence] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    mode: str = "unavailable"
+    configurations_checked: int = 0
+    sources_checked: int = 0
+    lambdas_excluded: int = 0
+    macro_functions_excluded: int = 0
+
+
+@dataclass(frozen=True)
+class _BoundaryRun:
+    root: Path
+    context: AnalysisContext
+    capability: ToolCapability
+    executable: Path
+    executable_identity: tuple[int, int, int, int, int, int]
+    units: tuple[CompilationUnit, ...]
+    sources: dict[str, _MappedSource]
+
+
+@dataclass(frozen=True)
+class _BoundaryUnitResult:
+    boundaries: tuple[CppFunctionBoundary, ...]
+    excluded_macro_functions: tuple[tuple[str, int, int | None, str], ...]
 
 
 def _record_projection(
@@ -601,7 +225,7 @@ def _run_unit(
     projection_cache: GccStdlibProjectionCache,
     recorded_probes: set[tuple[str, ...]],
     source_snapshot: _MappedSource,
-) -> list[CppFunctionBoundary] | None:
+) -> _BoundaryUnitResult | None:
     if any(item.level == "error" for item in unit.diagnostics):
         outcome.errors.append(f"function boundary context has errors: {unit.source}")
         return None
@@ -719,18 +343,19 @@ def _run_unit(
         outcome.errors.append(message)
         return None
     try:
-        return list(
-            parse_function_boundaries(
-                project_root,
-                replay.cwd,
-                result.stdout,
-                result.stderr,
-                configuration=unit.configuration,
-                source_file=unit.source,
-                sources={unit.source: source_snapshot},
-                deadline=deadline,
-            )
+        excluded_scopes: list[tuple[str, int, int | None, str]] = []
+        boundaries = parse_function_boundaries(
+            project_root,
+            replay.cwd,
+            result.stdout,
+            result.stderr,
+            configuration=unit.configuration,
+            source_file=unit.source,
+            sources={unit.source: source_snapshot},
+            deadline=deadline,
+            excluded_scopes=excluded_scopes,
         )
+        return _BoundaryUnitResult(boundaries, tuple(excluded_scopes))
     except ValueError as err:
         message = f"function boundary output rejected for {unit.source}: {err}"
         evidence.error = message
@@ -802,7 +427,18 @@ def _prepare_boundary_run(
         if source_bytes > _MAX_RUN_SOURCE_BYTES:
             outcome.errors.append("function boundary source snapshot budget exceeded")
             break
-        sources[unit.source] = _mapped_source(text)
+        if source_bytes > _MAX_SOURCE_CACHE_BYTES:
+            outcome.errors.append("function boundary source cache exceeds the bounded limit")
+            break
+        try:
+            mapped = _mapped_source(text)
+        except ValueError as err:
+            outcome.errors.append(
+                f"function boundary source scope is invalid: {unit.source}: {err}"
+            )
+            continue
+        sources[unit.source] = mapped
+        outcome.lambdas_excluded += mapped.lambda_count
     if outcome.errors:
         outcome.mode = "error"
         return None
@@ -828,6 +464,7 @@ def _collect_boundary_rows(
     projection_cache: GccStdlibProjectionCache = {}
     recorded_probes: set[tuple[str, ...]] = set()
     successful_configurations: dict[str, set[str]] = {}
+    excluded_macro_functions: set[tuple[str, int, int | None, str]] = set()
     for index, unit in enumerate(prepared.units):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -836,7 +473,7 @@ def _collect_boundary_rows(
                 f"{len(prepared.units) - index} unit(s) unexamined"
             )
             break
-        boundaries = _run_unit(
+        unit_result = _run_unit(
             prepared.root,
             unit,
             prepared.context,
@@ -850,14 +487,16 @@ def _collect_boundary_rows(
             recorded_probes,
             prepared.sources[unit.source],
         )
-        if boundaries is not None:
-            collected.extend(boundaries)
+        if unit_result is not None:
+            collected.extend(unit_result.boundaries)
+            excluded_macro_functions.update(unit_result.excluded_macro_functions)
             checked_sources.add(unit.source)
             successful_configurations.setdefault(unit.source, set()).add(unit.configuration)
             outcome.configurations_checked += 1
         if len(collected) > _MAX_BOUNDARIES:
             outcome.errors.append("function boundary count exceeds the bounded limit")
             break
+    outcome.macro_functions_excluded = len(excluded_macro_functions)
     outcome.sources_checked = len(checked_sources)
     return collected, successful_configurations
 
