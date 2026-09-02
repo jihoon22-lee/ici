@@ -8,6 +8,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
+from ici.engines._source_inputs import (
+    AnalysisSource,
+    AnalysisSourceError,
+    AnalysisSourceInventory,
+    read_analysis_sources,
+)
 from ici.engines.base import BaseEngine
 
 if TYPE_CHECKING:
@@ -29,55 +35,72 @@ class DeadCodeEngine(BaseEngine):
     def run(self) -> EngineResult:
         t0 = time.time()
         self._analysis_errors = []
-        sources = self.project_python_sources()
+        selected_sources = self.project_python_sources()
         targets: list[InspectionTarget] = []
-        proj_type = self.project_type()
-        has_python_scope = bool(sources) or proj_type in ("python", "hybrid")
-        if has_python_scope and sources:
-            targets.extend(self._detect_python_dead_code())
-        elif has_python_scope:
-            targets.append(
-                InspectionTarget(
-                    file_path=".",
-                    start_line=1,
-                    target_name="DeadCode",
-                    status=EngineStatus.SKIP,
-                    message="No applicable Python source files were selected; dead-code analysis was not run",
+        cfg = self.get_config("dead")
+        inventory = AnalysisSourceInventory((), (), 0)
+        if selected_sources:
+            ordered = self._ordered_python_sources(self.project_source_dirs())
+            try:
+                inventory = read_analysis_sources(
+                    self.project_root,
+                    ordered,
+                    include_generated=bool(cfg.get("include_generated", False)),
+                    include_vendor=bool(cfg.get("include_vendor", False)),
                 )
-            )
-        else:
+            except AnalysisSourceError as err:
+                self._analysis_errors.append(err.message)
+                targets.append(
+                    InspectionTarget(
+                        file_path=err.file_path,
+                        start_line=1,
+                        target_name="SourceInputError",
+                        status=EngineStatus.ERROR,
+                        message=f"{err.code}: {err.message}",
+                    )
+                )
+            else:
+                targets.extend(self._detect_python_dead_code(inventory.sources))
+
+        if not inventory.sources and not self._analysis_errors:
             targets.append(
                 InspectionTarget(
                     file_path=".",
                     start_line=1,
                     target_name="DeadCode",
                     status=EngineStatus.SKIP,
-                    message="No applicable Python source files were selected; dead-code analysis was not run",
+                    message=(
+                        "All selected Python sources were excluded by the generated/vendor policy; "
+                        "dead-code analysis was not run"
+                        if inventory.excluded
+                        else "No applicable Python source files were selected; dead-code analysis was not run"
+                    ),
                 )
             )
 
         issue_count = sum(
             1 for target in targets if target.status in (EngineStatus.WARN, EngineStatus.FAIL)
         )
-        cfg = self.get_config("dead")
         duration = time.time() - t0
         if self._analysis_errors:
             status = EngineStatus.ERROR
             evidence = EvidenceState.NOT_RUN
             summary = "; ".join(self._analysis_errors[:3])
-        elif not sources:
+        elif not inventory.sources:
             status = EngineStatus.SKIP
-            # Nothing was estimated: this engine only reads Python and the
-            # project has none. NOT_APPLICABLE keeps it out of the gate.
+            # Nothing was estimated: there was no owned source in scope.
             evidence = EvidenceState.NOT_APPLICABLE
-            summary = "Dead-code analysis skipped: no Python source files"
+            summary = "Dead-code analysis skipped: no owned Python source files"
         else:
             has_fail = any(target.status == EngineStatus.FAIL for target in targets)
             has_warn = any(target.status == EngineStatus.WARN for target in targets)
             status = self.evaluate_status(has_fail, has_warn, cfg.get("mode", "pass_warn"))
-            evidence = EvidenceState.MEASURED
+            # AST reachability/name-reference analysis is intentionally a
+            # heuristic. Exact dead-symbol evidence is reserved for compiler or
+            # linker-backed analysis.
+            evidence = EvidenceState.ESTIMATED
             summary = (
-                "No Dead Code Detected"
+                "No heuristic dead-code findings detected"
                 if status == EngineStatus.PASS
                 else f"{issue_count} Unused Symbols / Unreachable Blocks Detected"
             )
@@ -90,19 +113,27 @@ class DeadCodeEngine(BaseEngine):
             extra={
                 "dead_symbols_count": issue_count,
                 "metrics_summary": f"{issue_count} dead symbols",
+                "analysis_provenance": "python-ast-heuristic",
+                "source_files_analyzed": len(inventory.sources),
+                "source_bytes_analyzed": inventory.total_bytes,
+                "source_files_excluded": len(inventory.excluded),
+                "source_exclusion_counts": inventory.exclusion_counts,
             },
             required=bool(cfg.get("required", True)),
             evidence=evidence,
         )
 
-    def _detect_python_dead_code(self) -> list[InspectionTarget]:
+    def _detect_python_dead_code(
+        self, sources: tuple[AnalysisSource, ...]
+    ) -> list[InspectionTarget]:
         targets: list[InspectionTarget] = []
         modules: list[dict] = []
         source_dirs = self.project_source_dirs()
         module_paths: dict[str, str] = {}
-        for py_file in self._ordered_python_sources(source_dirs):
+        for source in sources:
+            py_file = source.path
             try:
-                content = py_file.read_text(encoding="utf-8")
+                content = source.text
                 tree = ast.parse(content, filename=str(py_file))
             except SyntaxError as err:
                 self._append_analysis_error(
@@ -113,14 +144,8 @@ class DeadCodeEngine(BaseEngine):
                     err.lineno or 1,
                 )
                 continue
-            except (OSError, UnicodeDecodeError) as err:
-                self._append_analysis_error(
-                    targets, py_file, "ReadError", f"Could not read Python source: {err}", 1
-                )
-                continue
-
             module_name = self._module_name(py_file, source_dirs)
-            module_id = str(py_file.relative_to(self.project_root))
+            module_id = source.file_path
             module_paths.setdefault(module_name, module_id)
             modules.append(
                 {
