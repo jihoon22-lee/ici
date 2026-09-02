@@ -707,9 +707,19 @@ class ComplexityEngine(BaseEngine):
             and not analysis.errors
             and (analysis.estimated_boundaries or analysis.boundary_mode == "partial")
         ):
+            shortfalls: list[str] = []
+            if analysis.estimated_boundaries:
+                shortfalls.append(
+                    f"{analysis.estimated_boundaries} function(s) still needed source scanning"
+                )
+            if analysis.boundary_mode == "partial":
+                shortfalls.append(
+                    "compiler-backed function metrics or configuration coverage remained "
+                    "partial/low-confidence"
+                )
             analysis.errors.append(
                 "compiler-backed C++ function boundaries were required, but "
-                f"{analysis.estimated_boundaries} function(s) still needed source scanning"
+                + "; ".join(shortfalls)
             )
             analysis.boundary_mode = "error"
         self._finish_cpp_analysis(analysis)

@@ -1196,7 +1196,7 @@ def test_same_geometry_with_metric_variants_stays_partial_and_exposes_configs(
     assert required.status == EngineStatus.ERROR
     assert required.evidence == EvidenceState.NOT_RUN
     assert required.extra["cpp_boundary_mode"] == "error"
-    assert required.extra["cpp_boundary_errors"]
+    assert "partial/low-confidence" in required.extra["cpp_boundary_errors"][-1]
 
 
 def test_preprocessor_conditional_boundary_is_partial_and_low_confidence(
