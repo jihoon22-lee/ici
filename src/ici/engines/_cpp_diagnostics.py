@@ -877,6 +877,7 @@ def _normalize_clang_tidy(
     diagnostics: tuple[CppDiagnostic, ...],
 ) -> DiagnosticParseResult:
     normalized: list[CppDiagnostic] = []
+    related_by_primary: list[list[CppDiagnostic]] = []
     for diagnostic in diagnostics:
         rule = diagnostic.tool_rule_id
         if diagnostic.target.message.startswith("note:"):
@@ -903,10 +904,7 @@ def _normalize_clang_tidy(
                 tool_rule_id=parent.tool_rule_id,
                 family=parent.family,
             )
-            normalized[-1] = replace(
-                parent,
-                related_diagnostics=(*parent.related_diagnostics, note),
-            )
+            related_by_primary[-1].append(note)
             continue
         if rule:
             analyzer = rule.startswith("clang-analyzer-")
@@ -919,12 +917,17 @@ def _normalize_clang_tidy(
                     family=family,
                 )
             )
+            related_by_primary.append([])
             continue
         return DiagnosticParseResult(
             format_name="clang-tidy-text",
             error="clang-tidy diagnostic has no check identifier",
         )
-    return DiagnosticParseResult(tuple(normalized), "clang-tidy-text")
+    grouped = tuple(
+        replace(primary, related_diagnostics=tuple(related))
+        for primary, related in zip(normalized, related_by_primary, strict=True)
+    )
+    return DiagnosticParseResult(grouped, "clang-tidy-text")
 
 
 def _clang_tidy_accounting_error(
