@@ -41,6 +41,7 @@ def _context(
     configurations: dict[str, tuple[str, ...]] | None = None,
     compiler: Path | None = None,
     database: bool = True,
+    language: str = "c++",
 ) -> tuple[Path, AnalysisContext, dict[str, str]]:
     root = tmp_path / "project"
     (root / "src").mkdir(parents=True)
@@ -50,7 +51,11 @@ def _context(
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
     compiler = compiler or _executable(tmp_path / "tools" / "g++")
-    compiler_name = "clang++" if "clang" in compiler.name else "g++"
+    if "clang" in compiler.name:
+        compiler_name = "clang" if language == "c" else "clang++"
+    else:
+        compiler_name = "gcc" if language == "c" else "g++"
+    standard = "c11" if language == "c" else "c++20"
     configuration_rows = configurations or {
         source: (canonical_digest({"source": source}),) for source in sources
     }
@@ -61,7 +66,7 @@ def _context(
             output = f"build/unit-{index}.o"
             argv = (
                 str(compiler),
-                "-std=c++20",
+                f"-std={standard}",
                 f"-DCONFIGURATION={index}",
                 "-Werror",
                 "-c",
@@ -76,8 +81,8 @@ def _context(
                     argv=argv,
                     output=output,
                     compiler=compiler_name,
-                    language="c++",
-                    standard="c++20",
+                    language=language,
+                    standard=standard,
                     configuration=canonical_digest(
                         {
                             "directory": "build",
@@ -91,8 +96,12 @@ def _context(
         name=compiler_name,
         path=str(compiler),
         available=True,
-        version=("clang version 18.1.0" if compiler_name == "clang++" else "g++ (GCC) 14.2.0"),
-        version_tuple=(18, 1, 0) if compiler_name == "clang++" else (14, 2, 0),
+        version=(
+            "clang version 18.1.0"
+            if compiler_name in {"clang", "clang++"}
+            else f"{compiler_name} (GCC) 14.2.0"
+        ),
+        version_tuple=(18, 1, 0) if compiler_name in {"clang", "clang++"} else (14, 2, 0),
         complete=True,
         returncode=0,
     )
@@ -212,6 +221,37 @@ def test_exact_unused_function_diagnostic_uses_discarded_assembly_probe(
     assert "-Werror" not in command
     assert not (root / "build/unit-0.o").exists()
     assert outcome.evidence[0].argv == command
+
+
+def test_exact_c_translation_unit_uses_the_approved_gcc_driver(tmp_path: Path) -> None:
+    compiler = _executable(tmp_path / "tools" / "gcc")
+    source = "static void unused_helper(void) {}\nint main(void) { return 0; }\n"
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.c": source},
+        compiler=compiler,
+        language="c",
+    )
+    commands: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        commands.append(command)
+        return _result([_diagnostic(root / "src/main.c", 1, 13)])
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.c"],
+        context,
+        source_texts=snapshots,
+        runner=runner,
+    )
+
+    assert outcome.mode == "exact"
+    assert outcome.functions[0].target.file_path == "src/main.c"
+    assert outcome.functions[0].tool_names == ("gcc",)
+    assert outcome.evidence[0].name == "gcc unused-function"
+    assert "-std=c11" in commands[0]
+    assert "-fdiagnostics-format=json" in commands[0]
 
 
 def test_exact_clean_source_has_a_located_pass_target(tmp_path: Path) -> None:
