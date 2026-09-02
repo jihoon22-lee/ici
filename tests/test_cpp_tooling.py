@@ -31,7 +31,10 @@ def _compiler_capability(name: str, path: Path, version: str) -> ToolCapability:
 
 
 def test_diagnostic_format_follows_reported_family_behind_gxx_alias(tmp_path: Path) -> None:
-    compiler = tmp_path / "clang"
+    # Keep the filename vendor-neutral so the assertion proves that the
+    # co-resolved capability evidence, rather than a convenient path spelling,
+    # selects Clang diagnostics behind a g++ alias.
+    compiler = tmp_path / "cxx-driver"
     compiler.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     compiler.chmod(0o700)
     inventory = CapabilityInventory(
