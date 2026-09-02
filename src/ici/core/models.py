@@ -25,9 +25,9 @@ class EvidenceState(str, Enum):
     NOT_RUN = "NOT_RUN"
     # The engine does not apply to this project at all — it analyses a language
     # the project does not contain. Distinct from NOT_RUN, which means the
-    # engine should have run and could not. Conflating the two is what made a
-    # C++-only project unable to reach a green gate: dead only reads Python, so
-    # it skipped, and a required engine that skips escalated the whole suite.
+    # engine should have run and could not. Conflating the two historically
+    # made projects without an applicable language scope unable to reach a
+    # green gate even though no analysis had been expected there.
     NOT_APPLICABLE = "NOT_APPLICABLE"
 
 
@@ -281,10 +281,10 @@ def aggregate_suite_status(results: list[EngineResult]) -> EngineStatus:
     if not results:
         return EngineStatus.ERROR
     # A required engine that could not verify anything blocks the gate — except
-    # when it never applied in the first place. "This project has no Python for
-    # the dead-code engine to read" is not a verification failure, and treating
-    # it as one left C++-only projects permanently red no matter how good the
-    # code was.
+    # when it never applied in the first place. A project with no source scope
+    # for an engine is not a verification failure; conflating that case with a
+    # supported scope whose required tool did not run leaves valid projects
+    # permanently red and hides the actual availability problem.
     if any(
         r.required
         and r.evidence != EvidenceState.NOT_APPLICABLE

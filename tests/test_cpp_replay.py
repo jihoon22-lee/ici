@@ -170,6 +170,52 @@ def test_preserves_exact_semantic_arguments_and_counts_only_the_real_source(tmp_
     )
 
 
+def test_unused_function_replay_discards_assembly_and_demotes_warning_errors(
+    tmp_path: Path,
+) -> None:
+    root = _project(tmp_path)
+    compiler = _compiler(tmp_path)
+    source = root / "src" / "main.cpp"
+    unit = _unit(
+        compiler,
+        (
+            "-std=c++20",
+            "-Werror",
+            "-Werror=unused-function",
+            "-pedantic-errors",
+            "-w",
+            "-Wno-unused-function",
+            "-c",
+            "-o",
+            "main.o",
+            "../src/main.cpp",
+        ),
+    )
+
+    replay = build_replay_command(
+        root,
+        unit,
+        _inventory(compiler),
+        operation="unused-functions",
+    )
+
+    assert replay.argv == (
+        str(compiler),
+        "-std=c++20",
+        "-Wunused-function",
+        "-pedantic",
+        "-Wno-unused-function",
+        "-fdiagnostics-color=never",
+        "-Wunused-function",
+        "-Wno-error=unused-function",
+        "-S",
+        "-o",
+        os.devnull,
+        str(source),
+    )
+    assert str(root / "build" / "main.o") not in replay.argv
+
+
 def test_strips_compile_output_dependency_color_and_diagnostic_write_options(
     tmp_path: Path,
 ) -> None:

@@ -9,17 +9,16 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from ici.core._cpp_replay_policy import is_rejected, is_safe, should_drop
+from ici.core.capabilities import CapabilityInventory
 from ici.core.context import AnalysisContext, CompilationUnit
-from ici.core.cpp_replay import ReplayCommandError, replay_environment
+from ici.core.cpp_replay import (
+    ReplayCommandError,
+    diagnostic_warning_argument,
+    replay_environment,
+)
 from ici.core.runner import ProcessResult, run_process
 from ici.core.toolchain import ToolCapability
 
-_WARNING_POLICY_DEMOTIONS = {
-    "-pedantic-errors": "-pedantic",
-    "--pedantic-errors": "-pedantic",
-    "-Werror-implicit-function-declaration": "-Wimplicit-function-declaration",
-}
 _MAX_INCLUDE_ROOTS = 512
 _SEPARATE_INCLUDE_OPTIONS = {
     "-I",
@@ -101,31 +100,40 @@ GccStdlibProjectionCache = dict[
 ]
 
 
-def _diagnostic_warning_argument(argument: str) -> str | None:
-    """Demote one warning policy without creating an unsafe compiler option."""
+def compiler_capability(
+    executable: str | Path,
+    inventory: CapabilityInventory,
+) -> ToolCapability | None:
+    """Return the probed capability matching one resolved compiler driver."""
 
-    original = argument
-    while True:
-        if argument == "-Werror":
-            return None
-        if argument in _WARNING_POLICY_DEMOTIONS:
-            argument = _WARNING_POLICY_DEMOTIONS[argument]
+    compiler = Path(executable).resolve(strict=False)
+    for capability in inventory.capabilities.values():
+        if not capability.path:
             continue
-        if argument.startswith("-Werror="):
-            warning = argument.removeprefix("-Werror=")
-            if not warning:
-                return None
-            argument = f"-W{warning}"
+        try:
+            if Path(capability.path).resolve(strict=False) == compiler:
+                return capability
+        except (OSError, RuntimeError):
             continue
-        break
-    if argument != original and (
-        should_drop(argument) or is_rejected(argument) or not is_safe(argument)
-    ):
-        raise ReplayCommandError(
-            "unsafe-tooling-warning-policy",
-            "A warning-as-error option cannot be projected to a safe diagnostic flag.",
-        )
-    return argument
+    return None
+
+
+def compiler_diagnostic_command(
+    command: list[str],
+    inventory: CapabilityInventory,
+) -> list[str]:
+    """Request bounded structured diagnostics from an approved compiler."""
+
+    if len(command) < 2:
+        raise ValueError("compiler diagnostic command is incomplete")
+    capability = compiler_capability(command[0], inventory)
+    gcc_json = (
+        capability is not None
+        and capability.name in {"gcc", "g++"}
+        and capability.version_tuple >= (9,)
+    )
+    diagnostic_flag = "-fdiagnostics-format=json" if gcc_json else "-fdiagnostics-parseable-fixits"
+    return [*command[:-1], diagnostic_flag, command[-1]]
 
 
 def inside(root: Path, path: Path) -> bool:
@@ -544,7 +552,7 @@ def tooling_arguments(argv: tuple[str, ...], source: Path) -> list[str]:
         )
     arguments: list[str] = []
     for argument in argv[1:-4]:
-        projected = _diagnostic_warning_argument(argument)
+        projected = diagnostic_warning_argument(argument)
         if projected is not None:
             arguments.append(projected)
     return arguments

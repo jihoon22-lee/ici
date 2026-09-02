@@ -281,9 +281,18 @@ _DECLARATIONS = (
     SupportDeclaration(
         "dead",
         SupportLanguage.CPP,
-        AnalysisMode.UNSUPPORTED,
-        FindingConfidence.LOW,
-        limitations=("C++ dead-code analysis is not implemented.",),
+        AnalysisMode.TOOL_BACKED,
+        FindingConfidence.EXACT,
+        frameworks=_QT,
+        optional_tools=("gcc", "g++", "clang", "clang++"),
+        limitations=(
+            "Exact findings cover only compiler-diagnosed -Wunused-function definitions "
+            "spelled in a production translation unit and agreed across all of that source's "
+            "known configurations.",
+            "Headers, external-linkage symbols, templates, inline/COMDAT functions, linker "
+            "reachability, dynamic lookup, plugins, and Qt meta-object reachability are not "
+            "classified as dead by this probe.",
+        ),
     ),
     SupportDeclaration(
         "dup",
@@ -456,6 +465,29 @@ def _tool_policy(
     return required, optional
 
 
+def _language_enabled(declaration: SupportDeclaration, config: dict[str, Any]) -> bool:
+    enabled = bool(get_engine_config(config, declaration.engine_name).get("enabled", True))
+    if (
+        enabled
+        and declaration.engine_name == "dead"
+        and declaration.language == SupportLanguage.CPP
+    ):
+        return get_engine_config(config, "dead").get("cpp_unused", "auto") != "off"
+    return enabled
+
+
+def _language_evidence(result: EngineResult, language: SupportLanguage) -> EvidenceState:
+    values = result.extra.get("language_evidence")
+    if isinstance(values, dict):
+        value = values.get(language.value)
+        if isinstance(value, str):
+            try:
+                return EvidenceState(value)
+            except ValueError:
+                pass
+    return result.evidence
+
+
 def evaluate_support_matrix(
     project_root: Path,
     config: dict[str, Any],
@@ -478,7 +510,7 @@ def evaluate_support_matrix(
     for declaration in _DECLARATIONS:
         if engine_names is not None and declaration.engine_name not in engine_names:
             continue
-        enabled = bool(get_engine_config(config, declaration.engine_name).get("enabled", True))
+        enabled = _language_enabled(declaration, config)
         language_present = declaration.language in languages
         supported = declaration.mode != AnalysisMode.UNSUPPORTED
         applicable = language_present and supported
@@ -497,8 +529,8 @@ def evaluate_support_matrix(
             evidence = EvidenceState.NOT_RUN
             reason = "applicable engine has not been run"
         else:
-            evidence = result.evidence
-            reason = f"observed engine result reported {result.evidence.value} evidence"
+            evidence = _language_evidence(result, declaration.language)
+            reason = f"observed engine result reported {evidence.value} evidence"
 
         active_mode: AnalysisMode | None = None
         if applicable and enabled and evidence == EvidenceState.MEASURED:

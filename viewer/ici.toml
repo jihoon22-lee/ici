@@ -27,3 +27,8 @@ mode = "pass_fail"
 min_tem_score = 4.0
 min_branch_cov = 80.0
 min_func_cov = 90.0
+
+# The viewer is ici's in-repository exact C++ acceptance target. Its CMake
+# compilation database must cover every production TU for this probe.
+[engines.dead]
+cpp_unused = "required"

@@ -106,6 +106,56 @@ def test_observed_evidence_selects_declared_or_fallback_mode(tmp_path: Path):
     assert py_lint.confidence == FindingConfidence.HIGH
 
 
+def test_language_specific_evidence_preserves_hybrid_dead_analysis_modes(tmp_path: Path) -> None:
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "app.py").write_text("value = 1\n", encoding="utf-8")
+    (source / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    config = _config("src")
+    result = EngineResult(
+        engine_name="dead",
+        status=EngineStatus.PASS,
+        summary="hybrid analysis",
+        evidence=EvidenceState.ESTIMATED,
+        extra={
+            "language_evidence": {
+                "python": "ESTIMATED",
+                "cpp": "MEASURED",
+            }
+        },
+    )
+
+    matrix = evaluate_support_matrix(tmp_path, config, [result])
+
+    python = _entry(matrix, "dead", SupportLanguage.PYTHON)
+    cpp = _entry(matrix, "dead", SupportLanguage.CPP)
+    assert python.evidence == EvidenceState.ESTIMATED
+    assert python.active_mode == AnalysisMode.HEURISTIC
+    assert python.confidence == FindingConfidence.MEDIUM
+    assert cpp.evidence == EvidenceState.MEASURED
+    assert cpp.active_mode == AnalysisMode.TOOL_BACKED
+    assert cpp.confidence == FindingConfidence.EXACT
+
+
+def test_cpp_unused_off_disables_only_dead_cpp_support(tmp_path: Path) -> None:
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "app.py").write_text("value = 1\n", encoding="utf-8")
+    (source / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    config = _config("src")
+    config["engines"]["dead"]["cpp_unused"] = "off"
+
+    matrix = evaluate_support_matrix(tmp_path, config)
+
+    python = _entry(matrix, "dead", SupportLanguage.PYTHON)
+    cpp = _entry(matrix, "dead", SupportLanguage.CPP)
+    assert python.enabled is True
+    assert cpp.applicable is True
+    assert cpp.enabled is False
+    assert cpp.evidence == EvidenceState.NOT_RUN
+    assert "disabled" in cpp.reason
+
+
 def test_effective_policy_promotes_optional_tools_to_required(tmp_path: Path):
     source = tmp_path / "src"
     source.mkdir()
@@ -185,6 +235,7 @@ def test_markdown_table_is_generated_in_registry_order():
     assert [row.split("`")[1] for row in rows] == list(ENGINE_NAMES)
     assert "| `type` | tool-backed → heuristic fallback | unsupported |" in table
     assert "| `sanitize` | tool-backed | tool-backed (Qt) |" in table
+    assert "| `dead` | heuristic | tool-backed (Qt) |" in table
 
 
 def test_documented_support_table_exactly_matches_registry():

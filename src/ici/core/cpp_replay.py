@@ -32,6 +32,12 @@ from ici.core.context import CompilationContext, CompilationUnit
 MAX_REPLAY_ARGUMENTS = 32_768
 MAX_REPLAY_ARGUMENT_CHARS = 1024 * 1024
 
+_WARNING_POLICY_DEMOTIONS = {
+    "-pedantic-errors": "-pedantic",
+    "--pedantic-errors": "-pedantic",
+    "-Werror-implicit-function-declaration": "-Wimplicit-function-declaration",
+}
+
 
 class ReplayCommandError(ValueError):
     """A compilation command cannot be replayed without unsafe guessing."""
@@ -50,6 +56,33 @@ class ReplayCommand:
     source: Path
     compiler: str
     configuration: str
+
+
+def diagnostic_warning_argument(argument: str) -> str | None:
+    """Demote one warning policy for a diagnostic-only compiler invocation."""
+
+    original = argument
+    while True:
+        if argument == "-Werror":
+            return None
+        if argument in _WARNING_POLICY_DEMOTIONS:
+            argument = _WARNING_POLICY_DEMOTIONS[argument]
+            continue
+        if argument.startswith("-Werror="):
+            warning = argument.removeprefix("-Werror=")
+            if not warning:
+                return None
+            argument = f"-W{warning}"
+            continue
+        break
+    if argument != original and (
+        should_drop(argument) or is_rejected(argument) or not is_safe(argument)
+    ):
+        raise ReplayCommandError(
+            "unsafe-tooling-warning-policy",
+            "A warning-as-error option cannot be projected to a safe diagnostic flag.",
+        )
+    return argument
 
 
 def compilation_context_present(context: CompilationContext) -> bool:
@@ -222,7 +255,13 @@ def _consume_option(argv: tuple[str, ...], index: int) -> tuple[int, tuple[str, 
     )
 
 
-def _filtered_arguments(unit: CompilationUnit, cwd: Path, source: Path) -> tuple[str, ...]:
+def _filtered_arguments(
+    unit: CompilationUnit,
+    cwd: Path,
+    source: Path,
+    *,
+    drop_warning_suppression: bool = False,
+) -> tuple[str, ...]:
     argv = unit.argv
     if (
         len(argv) > MAX_REPLAY_ARGUMENTS
@@ -258,6 +297,9 @@ def _filtered_arguments(unit: CompilationUnit, cwd: Path, source: Path) -> tuple
                 "extra-compiler-operand",
                 "Compiler stdin cannot be used as an additional replay input.",
             )
+        if token == "-w" and drop_warning_suppression:
+            index += 1
+            continue
         operand = _resolved_operand(token, cwd)
         if operand == source:
             source_operands += 1
@@ -284,9 +326,9 @@ def build_replay_command(
     unit: CompilationUnit,
     inventory: CapabilityInventory,
     *,
-    operation: Literal["syntax", "includes"],
+    operation: Literal["syntax", "includes", "unused-functions"],
 ) -> ReplayCommand:
-    """Build one bounded syntax or include-trace command without executing it."""
+    """Build one bounded diagnostic command without executing it."""
 
     project_root = root.resolve(strict=True)
     try:
@@ -313,12 +355,41 @@ def build_replay_command(
         cwd=cwd,
         inventory=inventory,
     )
-    arguments = list(_filtered_arguments(unit, cwd, source))
+    arguments = list(
+        _filtered_arguments(
+            unit,
+            cwd,
+            source,
+            drop_warning_suppression=operation == "unused-functions",
+        )
+    )
     arguments.append("-fdiagnostics-color=never")
     if operation == "syntax":
         arguments.extend(("-Wall", "-Wextra", "-fsyntax-only"))
     elif operation == "includes":
         arguments.extend(("-w", "-E", "-H", "-o", os.devnull))
+    elif operation == "unused-functions":
+        projected: list[str] = []
+        for argument in arguments:
+            if argument == "-w":
+                continue
+            warning_argument = diagnostic_warning_argument(argument)
+            if warning_argument is not None:
+                projected.append(warning_argument)
+        arguments = projected
+        # GCC intentionally omits -Wunused-function during -fsyntax-only.
+        # Compile to discarded assembly so the front end completes the phase
+        # that owns this diagnostic without creating a project artifact or
+        # invoking the assembler/linker.
+        arguments.extend(
+            (
+                "-Wunused-function",
+                "-Wno-error=unused-function",
+                "-S",
+                "-o",
+                os.devnull,
+            )
+        )
     else:  # pragma: no cover - Literal plus runtime guard for non-typed callers
         raise ReplayCommandError("unsupported-operation", "Unsupported compiler replay operation.")
     arguments.append(str(source))

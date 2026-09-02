@@ -60,6 +60,7 @@ mode = "pass_fail"
 [engines.dead]
 enabled = true
 mode = "pass_warn"
+cpp_unused = "auto"      # auto | required | off
 
 [engines.dup]
 enabled = true

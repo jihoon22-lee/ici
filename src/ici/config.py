@@ -83,6 +83,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "dead": {
             "enabled": True,
             "mode": "pass_warn",
+            "cpp_unused": "auto",
             "include_generated": False,
             "include_vendor": False,
         },

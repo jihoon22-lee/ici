@@ -1,8 +1,9 @@
-"""Bounded, stable source snapshots for heuristic analysis engines.
+"""Bounded, stable source snapshots for source-reading analysis engines.
 
 The dead-code and duplicate-code engines inspect repository-controlled input.
 They share this intake layer so a changed, escaped, oversized, or malformed
-source cannot be silently ignored by one engine and accepted by another.
+source cannot be silently ignored by one engine and accepted by another. The
+same snapshots also anchor exact compiler probes before and after execution.
 """
 
 from __future__ import annotations
