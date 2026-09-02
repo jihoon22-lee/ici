@@ -18,6 +18,14 @@ from ici.core.models import (
 from ici.core.redaction import redact_suite
 from ici.reporters.baseline_view import enum_value, select_baseline_details, severity_transition
 
+MAX_GITHUB_TARGET_ROWS_PER_ENGINE = 100
+MAX_GITHUB_ANNOTATIONS = 50
+MAX_GITHUB_SUMMARY_BYTES = 900_000
+_SUMMARY_TRUNCATION_NOTICE = (
+    "\n\n> ⚠️ GitHub step summary truncated at its bounded byte limit. "
+    "Full JSON and HTML reports retain all details.\n"
+)
+
 
 def _render_capability_markdown(inventory: CapabilityInventory) -> list[str]:
     """Render a compact summary plus a collapsed complete tool inventory."""
@@ -166,7 +174,7 @@ def generate_markdown_report(
     repo_url: str | None = None,
     commit_sha: str | None = None,
 ) -> str:
-    """Generates a complete, beautiful GitHub-flavored Markdown report."""
+    """Generate a bounded, issues-first GitHub-flavored Markdown report."""
     suite = redact_suite(suite)
     status_emoji = {
         EngineStatus.PASS: "✅",
@@ -248,7 +256,14 @@ def generate_markdown_report(
         md.append("| Location | Symbol / Rule | Status | Details |")
         md.append("|---|---|:---:|---|")
 
-        for target in res.targets:
+        ordered_targets = sorted(
+            enumerate(res.targets),
+            key=lambda item: (_target_status_rank(item[1].status), item[0]),
+        )
+        visible_targets = [
+            target for _, target in ordered_targets[:MAX_GITHUB_TARGET_ROWS_PER_ENGINE]
+        ]
+        for target in visible_targets:
             loc_link = _make_gh_link(
                 target.file_path, target.start_line, target.end_line, repo_url, commit_sha
             )
@@ -256,6 +271,13 @@ def generate_markdown_report(
             sym = _render_code(target.target_name or "-")
             msg = _escape_table_cell(target.message or "-")
             md.append(f"| {loc_link} | {sym} | {status_b} | {msg} |")
+
+        omitted_targets = target_count - len(visible_targets)
+        if omitted_targets:
+            md.append(
+                f"\n> {omitted_targets} target row(s) omitted from this bounded GitHub view. "
+                "The JSON and HTML reports retain the full inventory.\n"
+            )
 
         # Include snippet if failures exist
         failed_targets = [
@@ -278,19 +300,34 @@ def emit_github_actions_annotations(suite: VerificationSuiteResult) -> None:
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return
 
-    for res in redact_suite(suite).results:
-        for t in res.targets:
-            if t.status in (EngineStatus.FAIL, EngineStatus.ERROR):
-                command = "error"
-            elif t.status in (EngineStatus.WARN, EngineStatus.SKIP):
-                command = "warning"
-            else:
-                continue
-            file_path = _escape_workflow_property(t.file_path)
-            engine_name = _escape_workflow_data(res.engine_name)
-            message = _escape_workflow_data(t.message)
-            line = _escape_workflow_property(t.start_line)
-            print(f"::{command} file={file_path},line={line}::[{engine_name}] {message}")
+    candidates = [
+        (result_index, target_index, result.engine_name, target)
+        for result_index, result in enumerate(redact_suite(suite).results)
+        for target_index, target in enumerate(result.targets)
+        if target.status
+        in (EngineStatus.FAIL, EngineStatus.ERROR, EngineStatus.WARN, EngineStatus.SKIP)
+    ]
+    candidates.sort(
+        key=lambda item: (
+            _annotation_status_rank(item[3].status),
+            item[0],
+            item[1],
+        )
+    )
+    for _, _, engine_name_raw, target in candidates[:MAX_GITHUB_ANNOTATIONS]:
+        command = "error" if target.status in (EngineStatus.FAIL, EngineStatus.ERROR) else "warning"
+        file_path = _escape_workflow_property(target.file_path)
+        engine_name = _escape_workflow_data(engine_name_raw)
+        message = _escape_workflow_data(target.message)
+        line = _escape_workflow_property(target.start_line)
+        print(f"::{command} file={file_path},line={line}::[{engine_name}] {message}")
+    omitted = len(candidates) - min(len(candidates), MAX_GITHUB_ANNOTATIONS)
+    if omitted:
+        notice = _escape_workflow_data(
+            f"{omitted} additional ici annotation(s) omitted from this bounded workflow view; "
+            "the JSON and HTML reports retain the full inventory"
+        )
+        print(f"::notice::{notice}")
 
 
 def write_github_step_summary(markdown_content: str) -> None:
@@ -298,10 +335,44 @@ def write_github_step_summary(markdown_content: str) -> None:
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_path:
         try:
+            existing_size = os.path.getsize(summary_path) if os.path.exists(summary_path) else 0
+            remaining = max(0, MAX_GITHUB_SUMMARY_BYTES - existing_size)
+            payload = _bounded_summary_payload(markdown_content, remaining)
             with open(summary_path, "a", encoding="utf-8") as f:
-                f.write("\n" + markdown_content + "\n")
+                f.write(payload)
         except OSError as err:
             _ = err
+
+
+def _target_status_rank(status: EngineStatus) -> int:
+    return {
+        EngineStatus.ERROR: 0,
+        EngineStatus.FAIL: 0,
+        EngineStatus.WARN: 1,
+        EngineStatus.SKIP: 2,
+        EngineStatus.PASS: 3,
+    }[status]
+
+
+def _annotation_status_rank(status: EngineStatus) -> int:
+    return 0 if status in (EngineStatus.ERROR, EngineStatus.FAIL) else 1
+
+
+def _bounded_summary_payload(markdown_content: str, maximum: int) -> str:
+    """Return one valid UTF-8 append payload no larger than ``maximum`` bytes."""
+
+    if maximum <= 0:
+        return ""
+    payload = f"\n{markdown_content}\n"
+    encoded = payload.encode("utf-8")
+    if len(encoded) <= maximum:
+        return payload
+
+    suffix = _SUMMARY_TRUNCATION_NOTICE.encode("utf-8")
+    if maximum <= len(suffix):
+        return suffix[:maximum].decode("utf-8", errors="ignore")
+    prefix = encoded[: maximum - len(suffix)].decode("utf-8", errors="ignore").rstrip()
+    return prefix + _SUMMARY_TRUNCATION_NOTICE
 
 
 def _make_gh_link(

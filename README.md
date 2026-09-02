@@ -219,13 +219,20 @@ Python 3.10 local run은 focused C++/CTest 회귀 161 passed, full suite 1,538 p
 PR/정확한 main gate와 공개 v0.10.2 release evidence는 완료됐다. 남은 delivery evidence는
 공개된 v0.10.2를 사용하는 BuildScope 최종 검증입니다.
 
+테스트 실행 상태는 수집 상태와 분리됩니다. CTest/QtTest와 pytest의 skip은 실패로 세지 않지만
+실행 증거로도 세지 않으며, pytest `XFAIL`은 실행된 예상 실패이자 PASS, `XPASS`는 실행된
+실패로 정규화합니다. 수집된 Python 또는 C++ 테스트가 전부 skip이면 필수 `test` 엔진은
+`ERROR`/`NOT_RUN`, 선택 엔진은 `SKIP`/`ESTIMATED`이고, 이때 생성된 coverage만으로 실행을
+증명하지 않습니다. `sanitize`의 필수 C++ scope는 한 case라도 미실행이면 fail-closed합니다.
+버전은 계속 `0.10.2`이며 이 보정만으로 release하지 않습니다.
+
 다중 GCC 회귀를 재현한 Ubuntu 24.04에서는 GCC 13/14가 함께 설치된 상태에서 toy-projects PR #38
 run `33531285208`의 Qt 5/Qt 6 deep clazy가 실패했습니다. fixed local `dist/ici.pyz`는
 `/usr/include/c++/13`, `/usr/include/x86_64-linux-gnu/c++/13`, `/usr/include/c++/13/backward`를
 projection하고 2 probes 뒤 12 sources에서 clazy exit 0을 기록했으며, expected warnings도
 보존했습니다. 이 경로의 표준 라이브러리 선택은 compile database의 GCC identity에 종속됩니다.
 
-### C++ complexity function boundaries (I4-3; scope-policy follow-up unreleased)
+### C++ complexity function boundaries (I4-3; PR #131 merged)
 
 `complexity`는 `[engines.complexity] cpp_boundaries = "auto" | "required" | "off"`를
 지원합니다. exact compilation context/database와 capability-approved direct `clang-tidy`가
@@ -276,20 +283,27 @@ TOCTOU를 fail-closed합니다.
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
-`1,626 passed, 2 skipped`를 남겼습니다. 이는 현재 follow-up의 근거가 아닙니다. 현재
-unmerged `feat/cpp-function-scope-policy` candidate의 재현 가능한 `dist/ici.pyz` SHA와
-교차 검증 상세는 패키지 메타데이터에 자기 해시를 포함하지 않도록 아래 workthrough에만
-고정합니다. 이 candidate는 real extracted
-`clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`, Ruff check/format,
-mypy와 packaged smoke가 통과했습니다. 최초 PR run에서 드러난 1,031 pure-code-line self gate는
-parser/source mapping helper 628줄과 process runner compatibility facade 487줄로 분리해
-해소했습니다. 이 SHA를 fresh clean `toy-projects` `main`에 주입한
-local cross-repo
-candidate probe(BuildScope deep `auto`/`required`, DiskMap `auto`, LogLens `auto`)의 JSON/HTML과
-4/4 title·Zero-CDN checker도 완료됐으며, exact/partial 수치와 required 오류는 [C++ function-scope
-policy workthrough](docs/workthrough/2026-09-02-cpp-function-scope-policy.md)에 기록합니다. PR
-CI, sticky comment, Pages readiness, extracted artifact HTML byte-match는 아직 pending입니다.
-버전은 `0.10.2`로 유지하고 release는 만들지 않습니다.
+`1,626 passed, 2 skipped`를 남겼습니다. 이후 `feat/cpp-function-scope-policy` candidate는
+real extracted `clang-tidy-21`을 사용한 Python 3.10 full suite `1,656 passed, 2 skipped`,
+Ruff check/format, mypy와 packaged smoke를 통과했습니다. 최초 PR run에서 드러난
+1,031 pure-code-line self gate는 parser/source mapping helper 628줄과 process runner
+compatibility facade 487줄로 분리해 해소했습니다. 이 local candidate의 재현 가능한
+`dist/ici.pyz` SHA와 fresh clean `toy-projects` `main` 교차 검증 상세는 [C++ function-scope
+policy workthrough](docs/workthrough/2026-09-02-cpp-function-scope-policy.md)에 고정합니다.
+
+[PR #131](https://github.com/jihoon22-lee/ici/pull/131) `feat(complexity): classify C++ function
+scopes and metric provenance`는
+[`41690c9c2848fbc0332db4b80a4a1e2ed35db5d7`](https://github.com/jihoon22-lee/ici/commit/41690c9c2848fbc0332db4b80a4a1e2ed35db5d7)로
+squash merge됐습니다. [PR CI run `33592482495`](https://github.com/jihoon22-lee/ici/actions/runs/33592482495)은
+성공했고 sticky marker/current run은 정확히 하나였습니다. PR ici/viewer Pages는 HTTP/title/
+Zero-CDN 검사를 통과하고 각각 `7,454,995`/`356,598` bytes와 artifact HTML byte-match를
+기록했습니다. [exact-main run `33593218450`](https://github.com/jihoon22-lee/ici/actions/runs/33593218450)도
+성공했으며 main JSON `source_commit`이 같은 SHA를 가리켰고, main ici/viewer Pages도 HTTP/title/
+Zero-CDN과 artifact byte-match를 통과했습니다(각각 `7,454,995` bytes,
+`182a0d05…5adbb75`; `356,598` bytes, `fb772d4a…c0c4794`). 두 run에서 skip된 것은 각
+workflow의 예상된 PR/main publish job뿐입니다. 이 acceptance는 scope-policy slice에 해당하며
+I4-3 dead/duplicate 항목, 남은 I4-4, I4 전체 checkpoint를 닫지 않습니다. 버전은 `0.10.2`로
+유지하고 release는 만들지 않습니다.
 
 ## 💻 빠른 설치 및 사용법
 

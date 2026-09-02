@@ -58,24 +58,31 @@
   Historical PR #130 baseline evidence is recorded in the compiler-boundary workthrough: its
   candidate builds were byte-identical at SHA
   `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`, and its Python 3.10
-  full suite was `1,626 passed, 2 skipped`. That merged baseline is not evidence for the current
-  follow-up. The current unmerged `feat/cpp-function-scope-policy` candidate has two
-  byte-identical builds at SHA
+  full suite was `1,626 passed, 2 skipped`. The subsequent local
+  `feat/cpp-function-scope-policy` candidate had two byte-identical builds at SHA
   `2af5198d1348a64c39f4f37d12657aa9a2c4bf3ddf034a9099909c41e86e30e7`; with real extracted
-  `clang-tidy-21`, its Python 3.10 full suite is `1,656 passed, 2 skipped`, and Ruff check/format,
-  mypy, and packaged smoke pass. The parser/source-mapping responsibilities now live in a dedicated
-  helper (628 pure code lines) while the process runner remains a compatibility facade (487 pure
-  code lines); this removes the initial PR run's 1,031-line self-dogfood failure without changing
-  the boundary contract or established imports. Because `README.md` is embedded in
-  `dist-info/METADATA`, this exact current candidate SHA is recorded only in package-external
-  documentation; adding it to README would change the artifact hash. Injecting that SHA into a fresh
-  clean `toy-projects` `main`
-  completed the local
-  cross-repo candidate probes for BuildScope deep `auto`/`required`, DiskMap `auto`, and LogLens
-  `auto`, with JSON/HTML reports and 4/4 title·Zero-CDN checker passes; exact/partial counts and
-  the required error are recorded in the [scope-policy workthrough](docs/workthrough/2026-09-02-cpp-function-scope-policy.md).
-  PR CI, sticky comment, Pages readiness, and extracted artifact HTML byte-match remain pending.
-  The version remains `0.10.2`; no release is created.
+  `clang-tidy-21`, its Python 3.10 full suite was `1,656 passed, 2 skipped`, and Ruff check/format,
+  mypy, and packaged smoke passed. The parser/source-mapping responsibilities now live in a
+  dedicated helper (628 pure code lines) while the process runner remains a compatibility facade
+  (487 pure code lines); this removed the initial PR run's 1,031-line self-dogfood failure without
+  changing the boundary contract or established imports. Because `README.md` is embedded in
+  `dist-info/METADATA`, the exact local candidate SHA and cross-repo details remain in package-
+  external documentation; the local BuildScope deep `auto`/`required`, DiskMap `auto`, and LogLens
+  `auto` probes produced JSON/HTML and 4/4 title·Zero-CDN checker passes, with exact/partial counts
+  and the required error recorded in the [scope-policy workthrough](docs/workthrough/2026-09-02-cpp-function-scope-policy.md).
+
+  [PR #131](https://github.com/jihoon22-lee/ici/pull/131), titled `feat(complexity): classify C++
+  function scopes and metric provenance`, merged squash as
+  [`41690c9c2848fbc0332db4b80a4a1e2ed35db5d7`](https://github.com/jihoon22-lee/ici/commit/41690c9c2848fbc0332db4b80a4a1e2ed35db5d7).
+  PR CI [run `33592482495`](https://github.com/jihoon22-lee/ici/actions/runs/33592482495) succeeded
+  with exactly one sticky marker/current run. PR ici/viewer Pages passed HTTP/title/Zero-CDN and
+  artifact byte-match checks at `7,454,995` and `356,598` bytes. Exact-main [run
+  `33593218450`](https://github.com/jihoon22-lee/ici/actions/runs/33593218450) also succeeded;
+  main JSON `source_commit` matched the same SHA, and main ici/viewer Pages passed the same checks
+  with byte-matched artifacts: ici `7,454,995` bytes (`182a0d05…5adbb75`) and viewer `356,598`
+  bytes (`fb772d4a…c0c4794`). Only the expected PR/main publish jobs were skipped. This records
+  the scope-policy acceptance, not completion of I4-3 dead/duplicate work, remaining I4-4, or the
+  broader I4 checkpoint. The version remains `0.10.2`; no release is created.
 
 ### Fixed
 
@@ -85,6 +92,52 @@
   class keywords remain in the enclosing metric, while nested named functions and methods continue
   to receive their own file/line targets. Async nested loops, inherited loop state, lambdas, class
   bodies, definition expressions, and comprehensions have explicit regression coverage.
+
+- **Explicit test execution state across adapters and reporters**: `TestCaseResult` now has a
+  backward-compatible trailing fourth field, `executed: bool = true`, so `passed = false` can
+  distinguish an executed failure from a collected test that never ran. CTest JUnit `<skipped>`
+  and `status="notrun"`/skip/disabled/blacklisted, together with stdout `Not Run`/`Disabled`,
+  become `executed = false`. The QtTest parser applies the same state contract per XML
+  `<testcase>`: skip and explicit skipped cases are not executed; `xfail` is an executed pass,
+  while `xpass` and unknown result states remain executed failures (fail-closed). In qmake, the
+  `make check` transcript is authoritative at one scope per test binary; QtTest XML only enriches
+  that binary's failure detail, so qmake does not claim every function-level skip as an individual
+  aggregate scope.
+  The test engine exposes `skipped_tests` and per-suite skipped counts, and the HTML test view
+  renders skipped cases separately. Pytest verbose and terminal-summary fallbacks preserve
+  `SKIPPED`, treat `XFAIL` as an executed expected failure and pass, and fail closed on `XPASS`.
+  Per-test markers and terminal-summary counts for all three states count as parseable pytest
+  evidence, including runs with no ordinary `passed` case. When a terminal summary is present,
+  its counts are authoritative; repeated collection/interruption lines are not summed as extra
+  failures. The unittest fallback maps `ok` to an executed pass, `skipped` to a collected but
+  non-executed case, `expected failure` to an executed expected pass, and `unexpected success`,
+  `FAIL`, or `ERROR` to executed failures. A test-engine run in which every collected Python or
+  C++ test was skipped is `ERROR`/`NOT_RUN` when required and `SKIP`/`ESTIMATED` when optional;
+  an actual test or collection failure takes precedence over that all-skipped classification.
+  Coverage output is not accepted as test execution evidence.
+  Sanitizer policy now treats required all/mixed missing test
+  execution as `ERROR`/`NOT_RUN`; optional all-missing as `SKIP`/`ESTIMATED`; optional mixed clean
+  execution plus missing cases as `WARN`/`ESTIMATED`; and optional actual failure plus missing
+  cases as `FAIL`/`ESTIMATED`. The version remains `0.10.2`; no release is created.
+
+- **PR #132 CI-derived report and tool-path hardening**: Python test-output parsing is isolated in
+  `test_output.py` so the `test` engine remains below the repository line gate without changing
+  its compatibility facade. GitHub Markdown now caps each engine's target table at 100 rows and
+  bounds the appended Step Summary to 900,000 UTF-8 bytes, preserving valid multibyte text and
+  explicitly directing readers to the complete JSON/HTML reports when rows or bytes are omitted.
+  Workflow annotations are capped at 50 entries in deterministic severity order, with FAIL/ERROR
+  targets selected before WARN/SKIP and one omission notice. CI also persists the project
+  `.venv/bin/python` as `ICI_PYTHON` and `.venv/bin` on `GITHUB_PATH` before standalone
+  self-verification, so the installed ruff/pytest tools remain discoverable by ici. The first PR
+  CI run exposed the unbounded summary/annotation and tool-path issues. The post-fix local
+  source-checkout self-verification exits `0` (`WARN`: 7 passed, 5 warnings, 1 skipped), its
+  valid UTF-8 Step Summary is `100,609` bytes, and both `ruff` and `pytest` are reported ready.
+  Python 3.10 has `1,686` collected tests with `1,684` passed and `2` skipped; Ruff check/format
+  and mypy (`97` source files) pass; two builds of the `2,235,838` byte package are identical at
+  SHA-256 `a6e437ba08336d4ced2eb02752be3ec5849d029fa8bff2cbca182956b6b31e9f`; packaged smoke
+  passes. The PR CI rerun, sticky comment, Pages, and extracted-artifact byte-match remain
+  pending, so no remote or release acceptance is claimed. The version remains `0.10.2`; no
+  release is created.
 
 ## [0.10.2] - 2026-09-02
 

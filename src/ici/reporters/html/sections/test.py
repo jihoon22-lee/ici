@@ -225,21 +225,29 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
         s_file = s.get("file", "tests")
         s_passed = s.get("passed", 0)
         s_failed = s.get("failed", 0)
+        s_skipped = s.get("skipped", 0)
         s_total = s.get("total", 0)
         tests_list = s.get("tests", [])
 
-        st_badge_color = "#10b981" if s_failed == 0 else "#ef4444"
+        st_badge_color = "#ef4444" if s_failed else ("#f59e0b" if s_skipped else "#10b981")
         st_badge_text = f"{s_passed}/{s_total} Passed"
+        if s_skipped:
+            st_badge_text += f" · {s_skipped} Skipped"
         location = _location_controls(str(s_file), 1, base, label=str(s_file))
 
         failed_rows: list[str] = []
+        skipped_rows: list[str] = []
         passed_rows: list[str] = []
         for t in tests_list:
             t_name = html.escape(t.get("name", "test"))
             t_status = t.get("status", "PASS")
             t_status_html = html.escape(str(t_status))
             t_msg = html.escape(t.get("message", ""))
-            t_color = "#10b981" if t_status == "PASS" else "#ef4444"
+            t_color = (
+                "#10b981"
+                if t_status == "PASS"
+                else ("#f59e0b" if t_status == "SKIP" else "#ef4444")
+            )
             row = (
                 f"<div class='test-case-row'>"
                 f"  <span class='badge' style='color:{t_color}; border:1px solid {t_color}33'>{t_status_html}</span>"
@@ -247,10 +255,16 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
                 f"  <span class='test-case-msg'>{t_msg}</span>"
                 f"</div>"
             )
-            (failed_rows if t_status != "PASS" else passed_rows).append(row)
+            if t_status == "PASS":
+                passed_rows.append(row)
+            elif t_status == "SKIP":
+                skipped_rows.append(row)
+            else:
+                failed_rows.append(row)
 
         failed_html = "".join(failed_rows)
-        if s_failed == 0:
+        skipped_html = "".join(skipped_rows)
+        if s_failed == 0 and s_skipped == 0:
             cases_body = (
                 f"<div class='test-case-row' style='color:#10b981;'>"
                 f"  <span class='badge' style='color:#10b981; border:1px solid #10b98133'>PASS</span>"
@@ -266,13 +280,17 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
                 )
             )
         else:
-            cases_body = failed_html + (
-                f"<details class='test-case-details'>"
-                f"  <summary>Show {len(passed_rows)} passed cases ▾</summary>"
-                f"  {''.join(passed_rows)}"
-                f"</details>"
-                if passed_rows
-                else ""
+            cases_body = (
+                failed_html
+                + skipped_html
+                + (
+                    f"<details class='test-case-details'>"
+                    f"  <summary>Show {len(passed_rows)} passed cases ▾</summary>"
+                    f"  {''.join(passed_rows)}"
+                    f"</details>"
+                    if passed_rows
+                    else ""
+                )
             )
 
         suite_cards.append(
