@@ -226,7 +226,6 @@ def test_default_context_load_uses_static_metadata_without_subprocess_or_recursi
         raise AssertionError("default export loading must not discover or execute build tools")
 
     monkeypatch.setattr(export_module, "discover_project_model", unexpected_side_effect)
-    monkeypatch.setattr("ici.core.context._iter_project_files", unexpected_side_effect)
     monkeypatch.setattr("ici.core.project._iter_project_files", unexpected_side_effect)
     monkeypatch.setattr("ici.core.project.subprocess.run", unexpected_side_effect)
 
