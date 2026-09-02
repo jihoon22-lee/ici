@@ -101,6 +101,23 @@ def test_ci_verify_keeps_reports_summary_and_artifacts_without_publish():
     assert {"verify_report.html", "verify_report.json"} <= uploaded
 
 
+def test_ci_self_verification_persists_project_python_and_bin_path():
+    """The standalone dogfood step must resolve the project's installed tools."""
+    verify = _job_block(_workflow("ci.yml"), "verify")
+    self_verify_marker = "- name: 🐶 Dogfooding — Self-Verification Gate via ici"
+    self_verify_index = verify.index(self_verify_marker)
+    setup_prefix = verify[:self_verify_index]
+
+    project_python = 'project_python="$GITHUB_WORKSPACE/.venv/bin/python"'
+    assert project_python in setup_prefix
+    assert 'test -x "$project_python"' in setup_prefix
+    assert 'printf \'ICI_PYTHON=%s\\n\' "$project_python" >> "$GITHUB_ENV"' in setup_prefix
+    assert 'printf \'%s\\n\' "$(dirname "$project_python")" >> "$GITHUB_PATH"' in setup_prefix
+
+    self_verify = verify[self_verify_index:]
+    assert "dist/ici.pyz verify" in self_verify
+
+
 def test_ci_builds_pyz_twice_and_rejects_project_mutation():
     verify = _job_block(_workflow("ci.yml"), "verify")
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "verify-reproducibility.sh"

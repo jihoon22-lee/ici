@@ -24,7 +24,11 @@ from ici.reporters.console import make_terminal_link, print_suite_dashboard
 from ici.reporters.html import _get_status_theme, generate_html_report
 from ici.reporters.html_assets import HTML_JS
 from ici.reporters.json_rep import save_json_report
-from ici.reporters.markdown import emit_github_actions_annotations, generate_markdown_report
+from ici.reporters.markdown import (
+    emit_github_actions_annotations,
+    generate_markdown_report,
+    write_github_step_summary,
+)
 
 
 def _malicious_suite() -> VerificationSuiteResult:
@@ -329,6 +333,89 @@ def test_github_annotations_escape_command_data(monkeypatch, capsys):
     assert "%3A" in output
     assert "%2C" in output
     assert "::warning" not in output
+
+
+def test_github_step_summary_is_deterministically_bounded_at_utf8_boundary(
+    monkeypatch, tmp_path: Path
+):
+    """A pathological report must stay below GitHub's one MiB step-summary limit."""
+    content = "## 결과 요약\n" + ("한글🙂/경로/" * 300_000)
+    paths = [tmp_path / "summary-a.md", tmp_path / "summary-b.md"]
+    rendered = []
+
+    for path in paths:
+        monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(path))
+        write_github_step_summary(content)
+        raw = path.read_bytes()
+        # Reading as text also verifies that byte-oriented truncation did not
+        # split a multi-byte UTF-8 scalar.
+        decoded = raw.decode("utf-8")
+        assert len(raw) < 1_048_576
+        assert decoded.startswith("\n## 결과 요약")
+        assert re.search(r"(?i)truncat", decoded)
+        rendered.append(raw)
+
+    assert rendered[0] == rendered[1]
+
+
+def test_github_annotations_are_bounded_and_prioritize_failures(monkeypatch, capsys):
+    """Annotation volume is capped while actionable FAIL/ERROR targets survive."""
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    warning_targets = [
+        InspectionTarget(
+            file_path=f"src/warn_{index}.py",
+            start_line=index + 1,
+            status=EngineStatus.WARN,
+            message=f"warning-{index}",
+        )
+        for index in range(200)
+    ]
+    skipped_targets = [
+        InspectionTarget(
+            file_path=f"src/skip_{index}.py",
+            start_line=index + 1,
+            status=EngineStatus.SKIP,
+            message=f"skip-{index}",
+        )
+        for index in range(200)
+    ]
+    high_priority_targets = [
+        InspectionTarget(
+            file_path="src/error.py",
+            start_line=10,
+            status=EngineStatus.ERROR,
+            message="must-keep-error",
+        ),
+        InspectionTarget(
+            file_path="src/fail.py",
+            start_line=20,
+            status=EngineStatus.FAIL,
+            message="must-keep-fail",
+        ),
+    ]
+    result = EngineResult(
+        "bounded",
+        EngineStatus.ERROR,
+        "many findings",
+        targets=warning_targets + skipped_targets + high_priority_targets,
+    )
+
+    emit_github_actions_annotations(
+        VerificationSuiteResult(suite_status=EngineStatus.ERROR, results=[result])
+    )
+
+    output = capsys.readouterr().out
+    lines = [line for line in output.splitlines() if line]
+    annotation_lines = [
+        line for line in lines if line.startswith("::error") or line.startswith("::warning")
+    ]
+    assert len(annotation_lines) <= 50
+    assert "::error file=src/error.py,line=10::[bounded] must-keep-error" in output
+    assert "::error file=src/fail.py,line=20::[bounded] must-keep-fail" in output
+    first_warning = output.index("::warning")
+    assert output.index("must-keep-error") < first_warning
+    assert output.index("must-keep-fail") < first_warning
+    assert re.search(r"(?i)(omitt|truncat)", output)
 
 
 @pytest.mark.parametrize(

@@ -40,6 +40,10 @@ jobs:
         run: |
           uv run --python 3.10 ruff check .
           uv run --python 3.10 ruff format --check .
+          project_python="$GITHUB_WORKSPACE/.venv/bin/python"
+          test -x "$project_python"
+          printf 'ICI_PYTHON=%s\n' "$project_python" >> "$GITHUB_ENV"
+          printf '%s\n' "$(dirname "$project_python")" >> "$GITHUB_PATH"
 
       # Installed before pytest, not after: the build-adapter E2E tests run
       # inside pytest and need cmake/qmake/Qt. viewer/src/gui is project source
