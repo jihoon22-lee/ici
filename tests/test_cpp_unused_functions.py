@@ -55,27 +55,35 @@ def _context(
     }
     units: list[CompilationUnit] = []
     for source, identities in configuration_rows.items():
-        for index, identity in enumerate(identities):
+        for index, _identity in enumerate(identities):
             source_path = root / source
+            output = f"build/unit-{index}.o"
+            argv = (
+                str(compiler),
+                "-std=c++20",
+                f"-DCONFIGURATION={index}",
+                "-Werror",
+                "-c",
+                str(source_path),
+                "-o",
+                f"unit-{index}.o",
+            )
             units.append(
                 CompilationUnit(
                     source=source,
                     directory="build",
-                    argv=(
-                        str(compiler),
-                        "-std=c++20",
-                        f"-DCONFIGURATION={index}",
-                        "-Werror",
-                        "-c",
-                        str(source_path),
-                        "-o",
-                        f"unit-{index}.o",
-                    ),
-                    output=f"build/unit-{index}.o",
+                    argv=argv,
+                    output=output,
                     compiler=compiler_name,
                     language="c++",
                     standard="c++20",
-                    configuration=identity,
+                    configuration=canonical_digest(
+                        {
+                            "directory": "build",
+                            "argv": list(argv),
+                            "output": output,
+                        }
+                    ),
                 )
             )
     capability = ToolCapability(
@@ -189,8 +197,8 @@ def test_exact_unused_function_diagnostic_uses_discarded_assembly_probe(
     assert function.diagnostic_message == "warning: 'void unused_helper()' defined but not used"
     assert "unused_helper" in function.target.message
     command = commands[0]
-    assert command[-1] == str(root / "src/main.cpp")
-    assert command[-4:-1] == ["-o", os.devnull, "-fdiagnostics-format=json"]
+    assert command.count(str(root / "src/main.cpp")) == 1
+    assert command[-4:] == ["-S", "-o", os.devnull, "-fdiagnostics-format=json"]
     assert "-S" in command
     assert "-Wunused-function" in command
     assert "-Wno-error=unused-function" in command
@@ -362,7 +370,7 @@ def test_later_configuration_disagreement_discards_earlier_source_targets(
 
     def runner(command: list[str], **_kwargs: object) -> ProcessResult:
         nonlocal disagree_calls
-        source = Path(command[-1])
+        source = next(Path(value) for value in command if value.endswith(".cpp"))
         if source.name == "accepted.cpp":
             return _result([_diagnostic(source, 1, 13)])
         disagree_calls += 1
@@ -467,6 +475,32 @@ def test_translation_unit_ingestion_error_fails_before_execution(tmp_path: Path)
     assert "ambiguous-standard" in outcome.errors[-1]
 
 
+def test_configuration_digest_must_match_the_normalized_command(tmp_path: Path) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    unit = replace(
+        context.compilation.units[0],
+        configuration=canonical_digest({"fabricated": True}),
+    )
+    context = replace(
+        context,
+        compilation=replace(context.compilation, units=(unit,)),
+    )
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: pytest.fail("compiler must not run"),
+    )
+
+    assert outcome.mode == "error"
+    assert "configuration identity does not match" in outcome.errors[-1]
+
+
 def test_rule_owned_note_is_not_misclassified_as_an_unused_function(
     tmp_path: Path,
 ) -> None:
@@ -546,6 +580,31 @@ def test_process_and_output_failures_are_not_partial_evidence(
     assert outcome.evidence[-1].error
 
 
+def test_first_unit_failure_stops_later_compiler_replays(tmp_path: Path) -> None:
+    sources = {
+        "src/a.cpp": "int a() { return 0; }\n",
+        "src/b.cpp": "int b() { return 0; }\n",
+    }
+    root, context, snapshots = _context(tmp_path, sources)
+    commands: list[list[str]] = []
+
+    def runner(command: list[str], **_kwargs: object) -> ProcessResult:
+        commands.append(command)
+        return ProcessResult(1, "", json.dumps([]), 0.01)
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / path for path in sources],
+        context,
+        source_texts=snapshots,
+        runner=runner,
+    )
+
+    assert outcome.mode == "error"
+    assert len(commands) == 1
+    assert any(Path(value).name == "a.cpp" for value in commands[0])
+
+
 def test_source_change_during_probe_is_rejected(tmp_path: Path) -> None:
     root, context, snapshots = _context(
         tmp_path,
@@ -589,6 +648,31 @@ def test_compiler_replacement_during_probe_is_rejected(tmp_path: Path) -> None:
 
     assert outcome.mode == "error"
     assert "compiler identity changed during execution" in outcome.errors[-1]
+
+
+def test_working_directory_replacement_during_probe_is_rejected(tmp_path: Path) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "int main() { return 0; }\n"},
+    )
+    outside = tmp_path / "outside"
+    outside.mkdir()
+
+    def runner(*_args: object, **_kwargs: object) -> ProcessResult:
+        (root / "build").rename(root / "original-build")
+        (root / "build").symlink_to(outside, target_is_directory=True)
+        return _result()
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=runner,
+    )
+
+    assert outcome.mode == "error"
+    assert "working directory changed during execution" in outcome.errors[-1]
 
 
 def test_real_gcc_reports_only_the_unused_internal_function(tmp_path: Path) -> None:

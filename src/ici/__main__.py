@@ -329,7 +329,12 @@ def _run_engine_command(
     config = _effective_config(ctx)
     analysis_context = None
     project = None
-    context_engines = getattr(engine_cls, "ANALYSIS_CONTEXT_ENGINES", frozenset())
+    context_selector = getattr(engine_cls, "standalone_analysis_context_engines", None)
+    context_engines: frozenset[str] = (
+        frozenset(context_selector(config))
+        if callable(context_selector)
+        else getattr(engine_cls, "ANALYSIS_CONTEXT_ENGINES", frozenset())
+    )
     if context_engines:
         root = Path.cwd().resolve()
         profile = str(config.get("ici", {}).get("profile", AnalysisProfile.STANDARD.value))

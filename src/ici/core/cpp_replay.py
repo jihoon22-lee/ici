@@ -261,6 +261,7 @@ def _filtered_arguments(
     source: Path,
     *,
     drop_warning_suppression: bool = False,
+    preserve_source_position: bool = False,
 ) -> tuple[str, ...]:
     argv = unit.argv
     if (
@@ -303,6 +304,8 @@ def _filtered_arguments(
         operand = _resolved_operand(token, cwd)
         if operand == source:
             source_operands += 1
+            if preserve_source_position:
+                kept.append(str(source))
             index += 1
             continue
         if after_separator or not token.startswith("-"):
@@ -361,6 +364,7 @@ def build_replay_command(
             cwd,
             source,
             drop_warning_suppression=operation == "unused-functions",
+            preserve_source_position=operation == "unused-functions",
         )
     )
     arguments.append("-fdiagnostics-color=never")
@@ -392,7 +396,8 @@ def build_replay_command(
         )
     else:  # pragma: no cover - Literal plus runtime guard for non-typed callers
         raise ReplayCommandError("unsupported-operation", "Unsupported compiler replay operation.")
-    arguments.append(str(source))
+    if operation != "unused-functions":
+        arguments.append(str(source))
     command = (str(compiler), *arguments)
     if (
         len(command) > MAX_REPLAY_ARGUMENTS

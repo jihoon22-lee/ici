@@ -517,6 +517,24 @@ def test_cli_dead_prepares_and_injects_shared_analysis_context(tmp_path, monkeyp
     }
 
 
+def test_cli_dead_off_skips_compilation_context_preflight(tmp_path, monkeypatch):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "main.cpp").write_bytes(b"\xff\n")
+    config = {"engines": {"dead": {"cpp_unused": "off"}}}
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: config)
+    monkeypatch.setattr(
+        "ici.__main__.prepare_analysis_context",
+        lambda *_args, **_kwargs: pytest.fail("disabled C++ scope must not prepare context"),
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["dead"])
+
+    assert result.exit_code == 2
+    assert "C++ unused-function analysis disabled by policy" in result.output
+
+
 @pytest.mark.parametrize(
     ("command", "engine_attr", "engine_name"),
     [

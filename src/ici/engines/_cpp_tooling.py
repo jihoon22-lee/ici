@@ -121,6 +121,8 @@ def compiler_capability(
 def compiler_diagnostic_command(
     command: list[str],
     inventory: CapabilityInventory,
+    *,
+    source_last: bool = True,
 ) -> list[str]:
     """Request bounded structured diagnostics from an approved compiler."""
 
@@ -133,7 +135,9 @@ def compiler_diagnostic_command(
         and capability.version_tuple >= (9,)
     )
     diagnostic_flag = "-fdiagnostics-format=json" if gcc_json else "-fdiagnostics-parseable-fixits"
-    return [*command[:-1], diagnostic_flag, command[-1]]
+    if source_last:
+        return [*command[:-1], diagnostic_flag, command[-1]]
+    return [*command, diagnostic_flag]
 
 
 def inside(root: Path, path: Path) -> bool:

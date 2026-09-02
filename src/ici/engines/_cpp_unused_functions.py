@@ -11,12 +11,13 @@ source-owned contract.
 from __future__ import annotations
 
 import re
+import stat
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ici.core.context import AnalysisContext, CompilationUnit
+from ici.core.context import AnalysisContext, CompilationUnit, canonical_digest
 from ici.core.cpp_replay import (
     ReplayCommand,
     ReplayCommandError,
@@ -40,9 +41,10 @@ _MAX_OUTPUT_CHARS = 1_000_000
 _UNIT_TIMEOUT_SECONDS = 120.0
 _GLOBAL_TIMEOUT_SECONDS = 600.0
 _UNUSED_RULE = "-Wunused-function"
-_CONFIGURATION_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+_SHA256_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 _ExecutableIdentity = tuple[int, int, int, int, int, int]
+_DirectoryIdentity = tuple[int, int, int]
 _DiagnosticKey = tuple[str, int, int | None, int | None, int | None]
 
 
@@ -80,6 +82,7 @@ class _PreparedUnit:
     capability: ToolCapability
     executable: Path
     executable_identity: _ExecutableIdentity
+    cwd_identity: _DirectoryIdentity
     source_text: str
 
 
@@ -101,6 +104,24 @@ def _executable_identity(path: Path) -> _ExecutableIdentity:
         details.st_size,
         details.st_mtime_ns,
         details.st_ctime_ns,
+    )
+
+
+def _directory_identity(path: Path) -> _DirectoryIdentity:
+    resolved = path.resolve(strict=True)
+    details = resolved.stat()
+    if resolved != path or not stat.S_ISDIR(details.st_mode):
+        raise OSError("working directory identity is unsafe")
+    return details.st_dev, details.st_ino, details.st_mode
+
+
+def _configuration_digest(unit: CompilationUnit) -> str:
+    return canonical_digest(
+        {
+            "directory": unit.directory,
+            "argv": list(unit.argv),
+            "output": unit.output,
+        }
     )
 
 
@@ -159,7 +180,7 @@ def _prepare_units(
             "Exact C++ unused-function analysis requires a compilation database"
         )
         return None
-    if _CONFIGURATION_RE.fullmatch(context.compilation.database_digest) is None:
+    if _SHA256_RE.fullmatch(context.compilation.database_digest) is None:
         _append_error(
             outcome,
             context.compilation.database_path,
@@ -234,11 +255,19 @@ def _prepare_units(
             )
             outcome.mode = "error"
             return None
-        if _CONFIGURATION_RE.fullmatch(unit.configuration) is None:
+        if _SHA256_RE.fullmatch(unit.configuration) is None:
             _append_error(
                 outcome,
                 unit.source,
                 "C++ unused-function context has no canonical configuration identity",
+            )
+            outcome.mode = "error"
+            return None
+        if unit.configuration != _configuration_digest(unit):
+            _append_error(
+                outcome,
+                unit.source,
+                "C++ unused-function configuration identity does not match its command",
             )
             outcome.mode = "error"
             return None
@@ -295,7 +324,21 @@ def _prepare_units(
                 f"Approved compiler is unavailable for C++ unused-function analysis: {unit.source}"
             )
             return None
-        command = compiler_diagnostic_command(list(replay.argv), context.capabilities)
+        command = compiler_diagnostic_command(
+            list(replay.argv),
+            context.capabilities,
+            source_last=False,
+        )
+        try:
+            cwd_identity = _directory_identity(replay.cwd)
+        except OSError:
+            _append_error(
+                outcome,
+                unit.source,
+                "C++ unused-function working directory identity is unavailable",
+            )
+            outcome.mode = "error"
+            return None
         prepared.append(
             _PreparedUnit(
                 unit=unit,
@@ -304,6 +347,7 @@ def _prepare_units(
                 capability=capability,
                 executable=executable,
                 executable_identity=identity,
+                cwd_identity=cwd_identity,
                 source_text=current_text,
             )
         )
@@ -317,6 +361,17 @@ def _identity_matches(project_root: Path, prepared: _PreparedUnit) -> bool:
     try:
         return _executable_identity(current) == prepared.executable_identity
     except OSError:
+        return False
+
+
+def _working_directory_matches(project_root: Path, prepared: _PreparedUnit) -> bool:
+    try:
+        current = prepared.replay.cwd.resolve(strict=True)
+        current.relative_to(project_root)
+        return (
+            current == prepared.replay.cwd and _directory_identity(current) == prepared.cwd_identity
+        )
+    except (OSError, RuntimeError, ValueError):
         return False
 
 
@@ -388,6 +443,13 @@ def _run_unit(
             "C++ unused-function compiler identity changed before execution",
         )
         return None
+    if not _working_directory_matches(root, prepared):
+        _append_error(
+            outcome,
+            prepared.unit.source,
+            "C++ unused-function working directory changed before execution",
+        )
+        return None
     try:
         if _source_text(root, prepared.unit.source) != prepared.source_text:
             raise ValueError
@@ -453,6 +515,8 @@ def _run_unit(
         failure = "compiler reported an error with a successful exit"
     if not failure and not _identity_matches(root, prepared):
         failure = "compiler identity changed during execution"
+    if not failure and not _working_directory_matches(root, prepared):
+        failure = "working directory changed during execution"
     try:
         source_changed = _source_text(root, prepared.unit.source) != prepared.source_text
     except ValueError:
@@ -603,6 +667,11 @@ def run_cpp_unused_functions(
             observations.append(observation)
             checked_sources.add(observation.source)
             outcome.configurations_checked += 1
+        elif outcome.errors:
+            # Exact evidence is atomic. Once one unit invalidates the run,
+            # executing more project-controlled compiler inputs cannot recover
+            # a result and only consumes the remaining resource budget.
+            break
     outcome.sources_checked = len(checked_sources)
     if outcome.errors or len(observations) != len(prepared_units):
         outcome.mode = "error"

@@ -378,9 +378,7 @@ def _run_exact(
                 )
             )
             continue
-        command = compiler_diagnostic_command(
-            list(replay.argv), analysis_context.capabilities
-        )
+        command = compiler_diagnostic_command(list(replay.argv), analysis_context.capabilities)
         capability = compiler_capability(command[0], analysis_context.capabilities)
         _run_command(
             project_root,

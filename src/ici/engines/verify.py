@@ -266,7 +266,8 @@ class VerifyOrchestrator:
                 return candidate
             eng_cfg = get_engine_config(effective_config, descriptor.name)
             cache_key = None
-            if cache is not None:
+            cache_reuse_safe = bool(getattr(candidate, "CACHE_REUSE_SAFE", True))
+            if cache is not None and cache_reuse_safe:
                 cache_key = build_analysis_cache_key(
                     descriptor,
                     analysis_context,

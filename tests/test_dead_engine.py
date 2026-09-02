@@ -3,7 +3,13 @@
 import pytest
 
 from ici.core.findings import findings_for_result
-from ici.core.models import EngineStatus, EvidenceState, FindingConfidence, InspectionTarget
+from ici.core.models import (
+    EngineStatus,
+    EvidenceState,
+    FindingConfidence,
+    InspectionTarget,
+    ToolEvidence,
+)
 from ici.engines._cpp_unused_functions import (
     CppUnusedFunction,
     CppUnusedFunctionOutcome,
@@ -121,10 +127,57 @@ def test_dead_engine_combines_python_heuristic_and_cpp_exact_evidence(
     )
 
 
+def test_hybrid_findings_keep_language_confidence_and_tool_attribution(
+    tmp_path, monkeypatch
+) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text("def _unused():\n    return 1\n", encoding="utf-8")
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    cpp_target = InspectionTarget(
+        file_path="src/main.cpp",
+        start_line=1,
+        target_name="C++UnusedFunctions",
+        status=EngineStatus.PASS,
+        message="Compiler found no unused internal-linkage function",
+        metrics={"configurations_checked": 1},
+    )
+    monkeypatch.setattr(
+        "ici.engines.dead.run_cpp_unused_functions",
+        lambda *_args, **_kwargs: CppUnusedFunctionOutcome(
+            targets=[cpp_target],
+            evidence=[
+                ToolEvidence(
+                    name="g++ unused-function",
+                    path="/usr/bin/g++",
+                    version="14.2.0",
+                )
+            ],
+            mode="exact",
+            configurations_checked=1,
+            sources_checked=1,
+        ),
+    )
+
+    result = DeadCodeEngine(tmp_path).run()
+    findings = findings_for_result(result, tmp_path)
+    python_finding = next(
+        finding for finding in findings if finding.primary_location.path == "src/mod.py"
+    )
+    cpp_finding = next(
+        finding for finding in findings if finding.primary_location.path == "src/main.cpp"
+    )
+
+    assert python_finding.confidence == FindingConfidence.MEDIUM
+    assert python_finding.tool_name == ""
+    assert cpp_finding.confidence == FindingConfidence.EXACT
+    assert cpp_finding.tool_name == "g++ unused-function"
+
+
 def test_cpp_failure_does_not_erase_completed_python_evidence(tmp_path, monkeypatch) -> None:
     src = tmp_path / "src"
     src.mkdir()
-    (src / "mod.py").write_text("def public():\n    return 1\n", encoding="utf-8")
+    (src / "mod.py").write_text("def _unused():\n    return 1\n", encoding="utf-8")
     (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
     monkeypatch.setattr(
         "ici.engines.dead.run_cpp_unused_functions",
@@ -139,6 +192,14 @@ def test_cpp_failure_does_not_erase_completed_python_evidence(tmp_path, monkeypa
                 )
             ],
             errors=["compiler failed"],
+            evidence=[
+                ToolEvidence(
+                    name="g++ unused-function",
+                    path="/usr/bin/g++",
+                    version="14.2.0",
+                    error="compiler failed",
+                )
+            ],
             mode="error",
         ),
     )
@@ -151,6 +212,13 @@ def test_cpp_failure_does_not_erase_completed_python_evidence(tmp_path, monkeypa
         "python": "ESTIMATED",
         "cpp": "NOT_RUN",
     }
+    python_finding = next(
+        finding
+        for finding in findings_for_result(result, tmp_path)
+        if finding.primary_location.path == "src/mod.py"
+    )
+    assert python_finding.confidence == FindingConfidence.MEDIUM
+    assert python_finding.tool_name == ""
 
 
 def test_source_intake_failure_marks_discovered_cpp_scope_not_run(tmp_path) -> None:
@@ -235,6 +303,34 @@ def test_cpp_unused_off_disables_only_the_cpp_scope_without_running_a_compiler(
     assert result.required is False
     assert result.extra["cpp_unused_mode"] == "off"
     assert result.extra["language_evidence"]["cpp"] == "NOT_RUN"
+
+
+def test_cpp_unused_off_does_not_read_or_block_python_with_invalid_cpp(
+    tmp_path, monkeypatch
+) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_text("def _unused():\n    return 1\n", encoding="utf-8")
+    (src / "main.cpp").write_bytes(b"\xff\n")
+    monkeypatch.setattr(
+        "ici.engines.dead.run_cpp_unused_functions",
+        lambda *_args, **_kwargs: pytest.fail("compiler adapter must not run"),
+    )
+
+    result = DeadCodeEngine(
+        tmp_path,
+        {"engines": {"dead": {"cpp_unused": "off"}}},
+    ).run()
+
+    assert result.status == EngineStatus.WARN
+    assert result.evidence == EvidenceState.ESTIMATED
+    assert result.extra["language_evidence"] == {
+        "python": "ESTIMATED",
+        "cpp": "NOT_RUN",
+    }
+    assert result.extra["cpp_unused_mode"] == "off"
+    assert result.extra["source_files_snapshotted"] == 1
+    assert not any(target.status == EngineStatus.ERROR for target in result.targets)
 
 
 def test_dead_engine_does_not_cross_contaminate_same_name_modules(tmp_path):

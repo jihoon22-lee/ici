@@ -146,6 +146,45 @@ def test_orchestrator_cache_miss_hit_and_no_cache_bypass(monkeypatch, tmp_path):
     assert after_bypass.results[0].cache_hit is True
 
 
+def test_engine_can_disable_cache_reuse_for_unmodeled_external_inputs(
+    monkeypatch, tmp_path
+) -> None:
+    calls: list[int] = []
+
+    class NonCacheableDeadEngine:
+        CACHE_REUSE_SAFE = False
+
+        def __init__(self, project_root, config, analysis_context=None):
+            del project_root, config, analysis_context
+
+        def run(self):
+            calls.append(len(calls) + 1)
+            return EngineResult(
+                engine_name="dead",
+                status=EngineStatus.PASS,
+                summary=f"run {len(calls)}",
+                evidence=EvidenceState.ESTIMATED,
+            )
+
+    cache_root = tmp_path.parent / f"{tmp_path.name}-non-cacheable"
+    monkeypatch.setenv("ICI_CACHE_DIR", str(cache_root))
+    monkeypatch.setattr("ici.engines.verify.DeadCodeEngine", NonCacheableDeadEngine)
+    monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
+    config = _only_lint_enabled()
+    config["engines"]["lint"]["enabled"] = False
+    config["engines"]["dead"]["enabled"] = True
+
+    first = VerifyOrchestrator(tmp_path, config).run_all()
+    second = VerifyOrchestrator(tmp_path, config).run_all()
+
+    assert calls == [1, 2]
+    assert first.results[0].cache_hit is False
+    assert first.results[0].cache_key == ""
+    assert second.results[0].cache_hit is False
+    assert second.results[0].cache_key == ""
+    assert not list((cache_root / "entries-v1").glob("*.json"))
+
+
 def test_baseline_gate_changes_suite_verdict_without_inventing_an_engine(monkeypatch, tmp_path):
     class PassingEngine:
         def __init__(self, project_root, config, analysis_context=None):

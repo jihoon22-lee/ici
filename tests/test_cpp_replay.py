@@ -205,15 +205,32 @@ def test_unused_function_replay_discards_assembly_and_demotes_warning_errors(
         "-Wunused-function",
         "-pedantic",
         "-Wno-unused-function",
+        str(source),
         "-fdiagnostics-color=never",
         "-Wunused-function",
         "-Wno-error=unused-function",
         "-S",
         "-o",
         os.devnull,
-        str(source),
     )
     assert str(root / "build" / "main.o") not in replay.argv
+
+
+def test_unused_function_replay_preserves_positional_source_semantics(tmp_path: Path) -> None:
+    root = _project(tmp_path)
+    compiler = _compiler(tmp_path)
+    source = root / "src" / "main.cpp"
+    unit = _unit(compiler, ("../src/main.cpp", "-x", "c"))
+
+    replay = build_replay_command(
+        root,
+        unit,
+        _inventory(compiler),
+        operation="unused-functions",
+    )
+
+    assert replay.argv.count(str(source)) == 1
+    assert replay.argv.index(str(source)) < replay.argv.index("-x")
 
 
 def test_strips_compile_output_dependency_color_and_diagnostic_write_options(
