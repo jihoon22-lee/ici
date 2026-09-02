@@ -361,28 +361,56 @@ def _import_token_indexes(tokens: list[tokenize.TokenInfo]) -> set[int]:
     return excluded
 
 
-def tokenize_python_lines(
-    text: str, *, max_tokens: int | None = None
-) -> tuple[tuple[int, str], ...]:
-    """Return canonical Python tokens grouped by their physical start line.
-
-    Comments and import-first logical statements are excluded to retain the
-    engine's existing boilerplate policy.  Lexical errors become opaque bounded
-    markers instead of making an in-progress source tree crash clone analysis.
-    """
-
+def _validated_source_and_limit(text: str, max_tokens: int | None) -> tuple[str, int]:
     if not isinstance(text, str):
         raise TypeError("Python source must be text")
     if "\x00" in text:
         raise ValueError("Python source must not contain a null byte")
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
     token_limit = MAX_PYTHON_DUPLICATE_TOKENS if max_tokens is None else max_tokens
     if type(token_limit) is not int or token_limit <= 0:
         raise ValueError("max_tokens must be a positive integer")
+    return text.replace("\r\n", "\n").replace("\r", "\n"), token_limit
 
-    tokens, error = _collect_tokens(text, token_limit)
-    excluded_indexes = _import_token_indexes(tokens)
-    soft_keywords, imported_names = _syntax_context(text, tokens)
+
+def _canonical_token(
+    tokens: list[tokenize.TokenInfo],
+    index: int,
+    soft_keywords: set[tuple[int, int]],
+    imported_names: set[str],
+) -> str | None:
+    item = tokens[index]
+    if item.type == token.NAME:
+        previous = _neighbor_syntax(tokens, index, -1)
+        following = _neighbor_syntax(tokens, index, 1)
+        imported_root = _qualified_root(tokens, index) in imported_names
+        return _name_token(
+            item.string,
+            item.start,
+            soft_keywords,
+            following,
+            imported_root and (previous == "." or following in {".", "("}),
+        )
+    if item.type == token.NUMBER:
+        return _number_token(item.string)
+    if item.type == token.STRING:
+        return _string_token(item.string)
+    if item.type == token.INDENT:
+        return "INDENT"
+    if item.type == token.DEDENT:
+        return "DEDENT"
+    if item.type == token.OP:
+        return item.string
+    if item.type == token.ERRORTOKEN:
+        return _error_token(item.string)
+    return f"TOKEN_TYPE({item.type})"
+
+
+def _canonical_tokens_by_line(
+    tokens: list[tokenize.TokenInfo],
+    excluded_indexes: set[int],
+    soft_keywords: set[tuple[int, int]],
+    imported_names: set[str],
+) -> dict[int, list[str]]:
     by_line: dict[int, list[str]] = defaultdict(list)
     fstring_depth = 0
     for index, item in enumerate(tokens):
@@ -399,34 +427,27 @@ def tokenize_python_lines(
             if token_name == "FSTRING_END":
                 fstring_depth -= 1
             continue
-        canonical: str | None
-        if item.type == token.NAME:
-            previous = _neighbor_syntax(tokens, index, -1)
-            following = _neighbor_syntax(tokens, index, 1)
-            imported_root = _qualified_root(tokens, index) in imported_names
-            canonical = _name_token(
-                item.string,
-                item.start,
-                soft_keywords,
-                following,
-                imported_root and (previous == "." or following in {".", "("}),
-            )
-        elif item.type == token.NUMBER:
-            canonical = _number_token(item.string)
-        elif item.type == token.STRING:
-            canonical = _string_token(item.string)
-        elif item.type == token.INDENT:
-            canonical = "INDENT"
-        elif item.type == token.DEDENT:
-            canonical = "DEDENT"
-        elif item.type == token.OP:
-            canonical = item.string
-        elif item.type == token.ERRORTOKEN:
-            canonical = _error_token(item.string)
-        else:
-            canonical = f"TOKEN_TYPE({item.type})"
+        canonical = _canonical_token(tokens, index, soft_keywords, imported_names)
         if canonical:
             by_line[line].append(canonical)
+    return by_line
+
+
+def tokenize_python_lines(
+    text: str, *, max_tokens: int | None = None
+) -> tuple[tuple[int, str], ...]:
+    """Return canonical Python tokens grouped by their physical start line.
+
+    Comments and import-first logical statements are excluded to retain the
+    engine's existing boilerplate policy.  Lexical errors become opaque bounded
+    markers instead of making an in-progress source tree crash clone analysis.
+    """
+
+    text, token_limit = _validated_source_and_limit(text, max_tokens)
+    tokens, error = _collect_tokens(text, token_limit)
+    excluded_indexes = _import_token_indexes(tokens)
+    soft_keywords, imported_names = _syntax_context(text, tokens)
+    by_line = _canonical_tokens_by_line(tokens, excluded_indexes, soft_keywords, imported_names)
 
     if error is not None:
         error_line, marker = error
