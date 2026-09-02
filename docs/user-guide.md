@@ -458,7 +458,17 @@ atomic하게 거부하며, project-relative/external 위치·rule ID·child/note
 clang-tidy text의 `clang-analyzer-*` rule은 별도 analyzer family와 `CORRECTNESS` category로,
 일반 clang-tidy check는 `clang-tidy` family와 `MAINTAINABILITY` category로 finding에 기록됩니다.
 compiler/clang-tidy가 출력한 fix-it replacement는 최대 bounded suggestion으로 기록되지만 자동
-적용하지 않습니다. 두 adapter는 각각 최대 2,048 translation units, unit당 120초, 전체 600초
+적용하지 않습니다. clang-tidy의 rule-less `note:` 또는 primary와 같은 rule을 가진 설명 note는
+출력 순서상 바로 앞의 primary와 같은 contiguous group에만 `related_diagnostics`로 결합되고,
+다음 primary가 시작되면 그 group을 닫습니다. orphan note나 다른 check rule을 가진 note는
+일부 finding을 남기지 않고 atomic하게 거부합니다. lint의 target/finding과 warning·violation·
+family 집계는 primary만 세며, 관련 note의 위치·메시지는 `Finding.related_locations`로,
+fix-it은 primary remediation과 `extra` metadata로 보존합니다. Finding을 report로 내보낼 때
+related location은 canonical project-relative path와 1-indexed region으로 정규화한 다음
+path, 시작/끝 line·column, label 순으로 deterministic하게 정렬합니다. JSON과 HTML은 전체
+related location을 보존하고, GitHub Markdown은 informational/suppressed finding을 제외한
+related row를 engine당 최대 100개까지만 렌더링하며 생략 안내와 full report 참조를 표시합니다.
+두 adapter는 각각 최대 2,048 translation units, unit당 120초, 전체 600초
 예산을 사용합니다. compilation context 자체에 error diagnostic이 있으면 compiler replay도
 시작하지 않으며, 위치가 없는 GCC command-line/ICE diagnostic은 `[external]`:1 target으로
 보존합니다.
@@ -485,7 +495,10 @@ exact `CompilationContext`/compilation database와 capability-approved direct `c
 있을 때만 `readability-function-size` diagnostic의 AST 결과로 함수 경계 geometry를 확정합니다.
 경계 안의 CC/nesting은 여전히 ici의 masked source token/brace metric이며
 `metric_confidence = "medium"`입니다. tool의 lines/statements/parameters notes는 별도 metadata로
-보존됩니다.
+보존됩니다. 공유 clang-tidy parser가 이 notes를 primary의 `related_diagnostics`로 보존하므로,
+function-boundary consumer는 primary 뒤의 related stream을 다시 순서대로 읽어 lines/
+statements/parameters evidence를 body geometry에 매핑합니다. 이 consumer 전용 확장은 lint의
+primary-only target/finding 집계와 reporter의 related-location 보존을 변경하지 않습니다.
 
 AST boundary target은 source-spelled named function이며 function template, conversion/call/subscript
 operator, literal operator를 포함합니다. `function_kind`, `function_template`, `function_origin`으로

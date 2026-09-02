@@ -945,19 +945,35 @@ Exact-main Pages도 같은 HTTP/content/title/Zero-CDN 계약을 통과했다.
 B4 pending 표현은 당시의 historical snapshot이다. 당시 v0.9.1 release와 B4 완료 evidence는
 다음 절에 기록한다.
 
-#### clang-tidy/analyzer related-note aggregation follow-up (candidate)
+#### clang-tidy/analyzer related-note aggregation follow-up (implementation candidate)
 
 `fix/clang-tidy-related-notes`의 `f999ee3`는 일반 clang-tidy 및 `clang-analyzer-*` 설명용
-`note:`를 rule-less이거나 primary와 같은 rule일 때 직전 primary
-`CppDiagnostic.related_diagnostics`에 결합한다. note의 위치·메시지는
-`Finding.related_locations`로 보존하고, note fix-it은 primary remediation과 `extra` metadata에
-남긴다. 이 경로의 warning/violation/diagnostic-family/finding 집계는 primary만 대상으로 하며,
-conflicting-rule 또는 orphan note는 atomic하게 fail-closed한다. compiler 진단과 Clazy의
-rule-owned `ClazyNote` 정책은 변경하지 않았다. 이는 I4-1의 finding 노이즈를 줄이는 correctness
-follow-up이지 기존 I4-1 체크박스를 새로 닫는 근거가 아니다. Python 3.10 focused pytest는 관련
-5개 파일에서 `177 passed, 6 skipped`, Ruff check/format과 mypy 98 source files가 통과했다.
-Full local/PR/CI verification은 아직 pending이며, 버전은 `0.10.2`로 유지하고 release는
-만들지 않는다.
+`note:`를 rule-less이거나 primary와 같은 rule일 때 출력 stream의 바로 앞 primary
+`CppDiagnostic.related_diagnostics`에 결합한다. 이는 contiguous group 단위의 association이며,
+다음 primary가 나오면 새 group을 시작한다. conflicting-rule 또는 orphan note는 partial
+결과를 남기지 않고 atomic하게 fail-closed한다. `3fc45a7`은 이 grouping을 linear하게
+구성하고, `c3108a7`은 reporter projection을, `0f46ec5`는 그 contract coverage를 추가했다.
+
+관련 note의 위치·메시지는 `Finding.related_locations`로 보존하고, note fix-it은 primary
+remediation과 `extra` metadata에 남긴다. Finding canonicalization은 related location을
+canonical project-relative path/region으로 정규화한 뒤 path, line/column region, label 기준으로
+deterministic하게 정렬한다. JSON과 HTML은 전체 related inventory를 보존하며 GitHub Markdown은
+informational/suppressed finding을 제외한 row를 engine당 최대 100개로 제한하고 생략 사실과
+full report 위치를 표시한다. warning/violation/diagnostic-family/finding 집계는 primary만
+대상으로 하며, compiler 진단과 Clazy의 rule-owned `ClazyNote` 정책은 변경하지 않았다.
+
+`e86c982`는 이 nested parser contract를 소비하는 compiler-backed function-boundary parser를
+보정했다. 해당 structural consumer만 primary와 `related_diagnostics`를 stream 순서대로
+읽어 `readability-function-size`의 lines/statements/parameters note를 body geometry mapping에
+사용하고, lint finding을 독립 finding으로 되돌리지 않는다. 이는 I4-1 finding noise를 줄이는
+correctness follow-up이지 기존 I4-1 체크박스를 새로 닫는 근거가 아니며 I4-3 aggregate도 닫지
+않는다.
+
+Python 3.10 focused pytest는 관련 5개 파일에서 `177 passed, 6 skipped`, Ruff check/format과
+mypy 98 source files가 통과했다. 이전 full local attempt의 `1750 passed, 7 skipped, 10 failed`
+는 function-boundary consumer mismatch를 발견한 historical evidence이며, `e86c982`로 원인이
+보정됐다. 이 후속 commit 묶음 기준 full local gate, PR/CI/Pages verification은 아직 재실행하지
+않았고 pending이다. 버전은 `0.10.2`로 유지하고 release는 만들지 않는다.
 
 ### I4 release boundary — v0.9.0 (historical)
 

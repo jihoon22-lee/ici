@@ -139,10 +139,15 @@ config 우선순위는 명시한 `clang_tidy_config`, source에서 project root�
 없으면 `--config={}`로 암묵적인 parent lookup을 막고, `ExtraArgs`/`ExtraArgsBefore`와
 `InheritParentConfig`, project 밖 config와 symlink 탈출은 거부합니다. GCC 9+ compiler는 JSON
 diagnostics를, Clang/unknown version은 bounded text fix-it fallback을 사용하고 malformed 결과는
-atomic error로 처리합니다. diagnostics는
-project-relative 위치·rule ID·child/note·fix-it 제안을 보존하며, `clang-analyzer-*`는
-`CORRECTNESS`, 일반 clang-tidy check는 `MAINTAINABILITY` finding으로 분리합니다. compiler와
-clang-tidy adapter는 각각 최대 2,048 units, unit당 120초, 전체 600초 global budget을 적용하며
+atomic error로 처리합니다. clang-tidy의 rule-less 또는 primary와 같은 rule을 가진 `note:`는
+출력 순서상 바로 앞의 primary와 같은 contiguous group의 `related_diagnostics`로 결합되고,
+다음 primary가 새 group을 시작합니다. orphan/conflicting-rule note는 atomic error이며,
+lint의 target/finding/count에는 primary만 포함됩니다. 관련 위치·메시지는
+`Finding.related_locations`로, note fix-it은 primary remediation과 `extra` metadata로
+보존되고, canonical related-location 순서는 path·region·label 기준으로 결정됩니다. JSON/HTML은
+전체 related evidence를 보존하며 GitHub Markdown은 engine당 100개로 bounded하게 표시합니다.
+`clang-analyzer-*`는 `CORRECTNESS`, 일반 clang-tidy check는 `MAINTAINABILITY` finding으로 분리합니다.
+compiler와 clang-tidy adapter는 각각 최대 2,048 units, unit당 120초, 전체 600초 global budget을 적용하며
 초과분은 실행하지 않고 `ERROR`/`NOT_RUN`으로 기록합니다. 자세한 설정과
 evidence 계약은 [사용자 가이드](docs/user-guide.md#c-clang-tidy-정책-i4-1)와
 [엔진 레퍼런스](docs/engine-reference.md#22--lint-문법-및-코드-스타일-린터)를 참고하세요.

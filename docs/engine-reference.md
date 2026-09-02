@@ -380,14 +380,19 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   stable rule ID, child/note diagnostic과 fix-it range/replacement를 보존합니다. compiler의
   child/note와 Clazy의 rule-owned `ClazyNote`는 기존 정책대로 독립 진단으로 유지합니다.
   반대로 clang-tidy text의 `clang-analyzer-*` rule과 일반 check에서 primary를 설명하는
-  rule-less `note:`와 primary와 같은 rule을 명시한 `note:`는 직전 primary
-  `CppDiagnostic.related_diagnostics`에 결합합니다. note의
-  위치·메시지는 `Finding.related_locations`로 보존하고 note fix-it은 primary finding의
-  remediation과 `extra` metadata에 포함하지만, clang-tidy/analyzer의 warning, violation,
-  diagnostic-family, finding 집계에는 primary만 포함합니다. primary가 없거나 note가 다른
-  check rule을 명시하면 전체 stream을 atomic하게 거부합니다. `clang-analyzer-*` rule은
-  `clang-analyzer` family와 `CORRECTNESS` finding으로, 일반 check는 `clang-tidy` family와
-  `MAINTAINABILITY` finding으로 유지합니다. fix-it은 최대 bounded suggestion으로
+  rule-less `note:`와 primary와 같은 rule을 명시한 `note:`는 같은 contiguous stream에서
+  직전 primary의 `CppDiagnostic.related_diagnostics`에만 결합합니다. 새 primary가 나오면
+  다음 group이 시작되고, orphan note 또는 다른 check rule을 명시한 note는 전체 stream을
+  atomic하게 거부합니다. note의 위치·메시지는 `Finding.related_locations`로 보존하고 note
+  fix-it은 primary finding의 remediation과 `extra` metadata에 포함하지만,
+  clang-tidy/analyzer의 warning, violation, diagnostic-family, finding 집계에는 primary만
+  포함합니다. Native finding canonicalization은 related location을 canonical project-relative
+  path와 1-indexed region으로 정규화한 뒤 `(path, start line/column, end line/column, label)`
+  순서로 deterministic하게 정렬합니다. `clang-analyzer-*` rule은 `clang-analyzer` family와
+  `CORRECTNESS` finding으로, 일반 check는 `clang-tidy` family와 `MAINTAINABILITY` finding으로
+  유지합니다. JSON/HTML은 전체 related-location inventory를 보존하고, GitHub Markdown은
+  informational/suppressed finding을 제외한 related row를 engine당 최대 100개까지만 표에
+  표시하며 생략 수와 full JSON/HTML 안내를 남깁니다. fix-it은 최대 bounded suggestion으로
   remediation과 `extra` metadata에 기록되며 자동 적용하지 않습니다.
   정상 실행 evidence는 `MEASURED`이고, timeout·truncation·nonzero·malformed output·context
   mismatch/coverage 누락·replay 오류는 heuristic으로 조용히 대체하지 않고 `ERROR`/`NOT_RUN`으로
@@ -576,7 +581,10 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   확정합니다. `boundary_source = "clang-tidy-ast"`와 `boundary_confidence = "exact"`는
   경계에만 해당하며, 경계 안의 CC/nesting은 masked source token/brace metric이고
   `metric_confidence = "medium"`입니다. clang-tidy의 lines/statements/parameters notes는
-  별도 tool metadata로 보존합니다.
+  별도 tool metadata로 보존합니다. 공유 parser가 이 metric notes를 primary 아래
+  `related_diagnostics`로 보관하더라도, boundary parser는 primary와 related stream을 순서대로
+  소비해 notes를 geometry mapping에 사용합니다. 이 구조적 소비는 lint finding을 다시
+  독립 finding으로 flatten하지 않습니다.
 - **C++ scope classification**: AST boundary target은 source-spelled named function이며 function
   template, conversion/call/subscript operator, literal operator를 포함합니다. `function_kind`,
   `function_template`, `function_origin` metadata로 kind/template/provenance를 보존합니다.

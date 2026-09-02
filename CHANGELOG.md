@@ -87,18 +87,25 @@
 ### Fixed
 
 - **Clang-tidy explanatory-note aggregation**: ordinary `clang-tidy` and
-  `clang-analyzer-*` explanation notes are now attached to the preceding primary
-  `CppDiagnostic.related_diagnostics` instead of becoming independent targets or
-  findings. Their project-relative locations and messages are exported through
-  `Finding.related_locations`, and note fix-its remain available to the primary
-  finding's remediation and `extra` metadata. Warning, violation, diagnostic-family,
-  and finding counts therefore include only actionable primary diagnostics. A note
-  with a conflicting check rule or without a preceding primary diagnostic is rejected
-  atomically. Compiler diagnostics and Clazy's rule-owned `ClazyNote` behavior are
-  unchanged. Focused Python 3.10 verification across five related test files passed
-  (`177 passed, 6 skipped`); Ruff check/format and mypy (`98` source files) also passed.
-  Full local, PR, and CI verification remains pending. The version remains `0.10.2`;
-  no release is created.
+  `clang-analyzer-*` explanation notes are now attached only to the immediately preceding primary
+  in the same contiguous diagnostic stream through `CppDiagnostic.related_diagnostics`; a new
+  primary starts a new group. Their project-relative locations and messages are exported through
+  `Finding.related_locations`, and note fix-its remain available to the primary finding's
+  remediation and `extra` metadata. Finding canonicalization orders related locations
+  deterministically by canonical path, line/column region, and label. JSON and HTML retain the
+  complete related-location inventory; the GitHub Markdown view renders non-informational,
+  unsuppressed rows with a 100-row-per-engine bound and an omission notice. Warning, violation,
+  diagnostic-family, and finding counts therefore include only actionable primary diagnostics. A
+  note with a conflicting check rule or without a preceding primary diagnostic is rejected
+  atomically. Compiler diagnostics and Clazy's rule-owned `ClazyNote` behavior are unchanged.
+  The compiler-backed function-boundary parser consumes the nested function-size notes as
+  structural evidence without flattening lint findings. Focused Python 3.10 verification across
+  five related test files passed (`177 passed, 6 skipped`); Ruff check/format and mypy (`98`
+  source files) also passed. An earlier full local attempt (`1750 passed, 7 skipped, 10 failed`)
+  exposed the boundary-consumer mismatch; `e86c982` resolves that downstream contract and the
+  subsequent reporter follow-up preserves the same evidence across outputs, but the full gate has
+  not been rerun after the resolution. PR and CI verification remain pending. The version remains
+  `0.10.2`; no release is created.
 
 - **Bounded heuristic source evidence for `dead` and `dup`**: both engines now consume the same
   stable, project-contained UTF-8 source snapshot instead of independently opening files. The

@@ -135,7 +135,7 @@ ici/
 `ici`는 배포 단순화를 위해 단일 실행형 ZipApp(`ici.pyz`)으로 패키징됩니다.
 
 ```text
-[ici 실행] 
+[ici 실행]
     ↓
 [scripts/launcher.sh 프리앰블 해석] (Bash/Sh 실행)
     ↓
@@ -206,6 +206,11 @@ ici/
   - `primary_location`, `related_locations`: 1-indexed line/column을 가진 위치
   - `message`, `explanation`, `remediation`, tool identity, suppression 근거
   - `metrics`: 숫자 값과 단위를 분리한 측정치. 문자열형 보조 정보는 finding metric으로 승격하지 않습니다.
+  - native finding은 primary와 related location을 canonical project-relative path/region으로
+    정규화하고 related 목록을 `(path, start line/column, end line/column, label)` 순으로
+    deterministic하게 정렬합니다. JSON과 HTML은 전체 related inventory를 유지하고, GitHub
+    Markdown은 informational/suppressed finding을 제외한 related row를 engine당 100개로
+    제한하며 생략 수를 명시합니다.
 
 - **`AnalysisMetadata`**: baseline과 현재 분석이 같은 계약을 사용했는지 판별하는 네 가지
   identity를 보존합니다. `producer_version`, `fingerprint_version`, `policy_digest`,
@@ -469,10 +474,15 @@ compiler와 sanitized argv를 공유하며, 결과는 legacy `InspectionTarget`,
   전체 600초의 실행 예산을 적용합니다. compilation context 자체에 error diagnostic이 있으면
   compiler replay도 시작하지 않으며, 남은 정상 unit의 부분 결과를 clean evidence로 만들지 않습니다.
 - Evidence는 compiler와 clang-tidy를 별도 `ToolEvidence`와 diagnostic family로 기록하고,
-  `clang-analyzer-*` rule은 clang-tidy 일반 rule과 별도 analyzer family로 유지합니다. optional
-  `auto`에서 unavailable tool은 분석 결과를 무효화하지 않는 경고로, `required`에서는 실행
-  오류로 승격되며, compiler diagnostics와 analyzer findings의 category/confidence/remediation은
-  서로 섞이지 않습니다.
+  `clang-analyzer-*` rule은 clang-tidy 일반 rule과 별도 analyzer family로 유지합니다. clang-tidy
+  rule-less 또는 primary와 같은 rule의 `note:`는 출력 stream에서 바로 앞의 primary에만
+  contiguous하게 귀속되고 다음 primary가 새 group을 시작합니다. 이 관련 진단은 lint의
+  primary-only target/finding/count를 늘리지 않으면서 `Finding.related_locations`와 fix-it
+  metadata로 투영됩니다. canonicalization은 관련 위치를 deterministic 순서로 정렬하며 JSON/
+  HTML은 전체 inventory를, GitHub Markdown은 engine당 최대 100개의 visible related row를
+  보존/표시합니다. optional `auto`에서 unavailable tool은 분석 결과를 무효화하지 않는 경고로,
+  `required`에서는 실행 오류로 승격되며, compiler diagnostics와 analyzer findings의
+  category/confidence/remediation은 서로 섞이지 않습니다.
 - Clang 기반 clang-tidy/clazy replay가 compile database의 approved `g++`를 선택하면
   `_cpp_tooling`은 replay executable과 capability path의 resolved file identity를 비교합니다.
   일치할 때만 같은 GCC를 `c++`와 `c`로 각각 bounded `-E -x <lang> -v -` probe하고,
@@ -600,7 +610,11 @@ tokenization은 I4-3의 후속 범위로 남아 있다.
 `ComplexityEngine`은 shared immutable `AnalysisContext`의 exact `CompilationContext`와 covered
 production units를 사용해 전용 clang-tidy probe를 실행합니다. probe는 프로젝트나 lint 정책을
 재사용하지 않고 `readability-function-size`와 threshold-zero options만 전달하며, diagnostic
-location/size notes를 source body geometry로 매핑합니다. `boundary_source = "clang-tidy-ast"`
+location/size notes를 source body geometry로 매핑합니다. shared clang-tidy parser는 설명 note를
+primary 아래 `related_diagnostics`에 보관하지만, boundary parser는 각 primary와 그 related
+diagnostic을 stream 순서로 소비해 function-size lines/statements/parameters evidence를 다시
+매핑합니다. 이는 structural consumer의 입력만 확장하며 lint의 primary-only finding/count
+계약은 유지합니다. `boundary_source = "clang-tidy-ast"`
 는 함수 경계에만 해당합니다. 경계 안의 CC는 masked `if`/`for`/`while`/`case`/`catch`/`&&`/`||`/`?`
 token을, nesting은 brace를 세는 ici metric이며 `metric_confidence = "medium"`입니다.
 
