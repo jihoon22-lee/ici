@@ -1034,17 +1034,31 @@ I4-3/I4-4를 진행한다.
 
 ### I4-3. maintainability 분석 정확도
 
-**브랜치:** `refactor/cpp-maintainability`
+**브랜치:** `feat/compiler-backed-cpp-functions`
 
 - [ ] complexity/cognitive/function boundary를 AST/tool output 우선으로 바꾼다.
   - [x] Python complexity/cognitive는 nested function/class/lambda body를 enclosing function에서
     제외하고 named nested function/method를 독립 target으로 유지한다. definition-time 표현식과
     comprehension 정책, async loop-state 경계는 regression test로 고정했다.
-  - [ ] C++ function boundary는 compiler/tool output 우선으로 전환한다.
+  - [x] C++ function boundary는 compiler/tool output 우선으로 전환한다.
+    - 경계 probe는 bounded source snapshot/cache와 최대 2,048 source files·64 MiB aggregate
+      UTF-8 source-bytes cap을 사용하고, replay 전·도구 완료 후 source identity를 재검증한다. 동일 geometry가 성공한
+      모든 configuration에 있을 때만 exact로 승격하며, missing/config-dependent boundary는
+      partial로 남긴다. same-line/overload, braced declarator·default/noexcept/trailing
+      `requires`, function-try/catch, `<%`/`%>` digraph body, assigned `[]`/`+[]` lambda initializer
+      phantom 배제와 no-dirfd named-path revalidation을
+      regression contract로 고정했다. Approved tool executable은 매 process 직전에 다시 resolve해
+      device/inode/mode/size/mtime/ctime identity를 확인하고 변경·부재를 fail-closed한다.
 - [ ] template, lambda, operator, macro-generated code 처리 정책을 정한다.
 - [ ] dead/unused symbol은 compiler/linker/clang-tidy evidence가 있을 때만 exact로 표시한다.
 - [ ] duplicate는 generated/moc/vendor code를 기본 제외하고 token/region fingerprint를 통합한다.
-- [ ] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
+- [x] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
+
+현재 candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
+`7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`이며, `clang-tidy-21` full
+suite는 `1,626 passed, 2 skipped`다. 세 toy project 결과와 HTML SHA, exact-main evidence는
+compiler-boundary workthrough에 기록했고 candidate smoke/HTML Zero-CDN checks도 통과했다. 이
+증거는 I4-3 aggregate, lambda/macro 정책 또는 I4 전체 checkpoint를 닫지 않는다.
 
 ### I4-4. C++ safety
 

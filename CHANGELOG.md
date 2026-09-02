@@ -7,6 +7,39 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Compiler-backed C++ complexity function boundaries**: `complexity.cpp_boundaries` now accepts
+  `auto` (default), `required`, or `off`. With an exact `CompilationContext`/compilation database
+  and capability-approved direct `clang-tidy`, the dedicated `readability-function-size` check
+  supplies function-boundary geometry. Cyclomatic and nesting values inside that geometry remain
+  ici's masked token/brace metrics with `metric_confidence=medium`; clang-tidy line/statement/
+  parameter notes are separate evidence. `auto` uses the source scanner only when context or the
+  tool is unavailable; empty/unreported or macro definitions may remain heuristic. Attempted-tool,
+  replay, parser, timeout, truncation, coverage, or budget failures are `ERROR`/`NOT_RUN`, not
+  silent fallback. The only accepted suppression summary is when clang-tidy emits
+  `Suppressed N warnings (N in non-user code).` alongside visible project diagnostics, which
+  accounts for external/system diagnostics only; NOLINT, project, mixed, malformed, or
+  count-mismatched suppression remains `ERROR`/`NOT_RUN`. `required` also errors on unavailable or
+  partial/estimated boundaries, while `off` intentionally remains heuristic. The run uses a bounded
+  caller source snapshot and mapped-source cache, revalidates source identity before replay and after
+  the tool, and requires the same geometry to be present in every successfully checked configuration;
+  missing or differing configuration coverage remains partial. The C++ source inventory is capped at
+  2,048 source files and 64 MiB of aggregate UTF-8 source bytes. The per-run limits cover 2,048 units, 8 MiB
+  per source, 64 MiB source bytes, 16 MiB mapped-source cache bytes, 1,000,000 output characters,
+  10 seconds of parser time, 120 seconds per unit, and 600 seconds globally. The approved tool
+  executable is re-resolved and its device/inode/mode/size/mtime/ctime identity is checked immediately
+  before each process; changes fail closed. Same-line, braced declarator/default/noexcept/
+  trailing-requires, function-try, and `<%`/`%>` bodies are mapped as regression cases; assigned
+  `[]`/`+[]` lambda initializers cannot create phantom fallback functions. Descriptor
+  reads also revalidate the resolved named path when `dir_fd`/`O_DIRECTORY` is unavailable, so
+  intermediate-symlink and TOCTOU changes fail closed.
+
+  Current candidate evidence is recorded in the compiler-boundary workthrough: two byte-identical
+  candidate builds at SHA `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`,
+  `clang-tidy-21` full suite `1,626 passed, 2 skipped`, and the three project reports. Candidate
+  smoke and HTML Zero-CDN checks passed; this is not a version bump.
+
 ### Fixed
 
 - **Python function metric scope boundaries**: cyclomatic and cognitive complexity now measure each

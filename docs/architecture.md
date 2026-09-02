@@ -106,6 +106,7 @@ ici/
 │       │   ├── test.py              # 테스트 실행 & TEM 스코어링 (coverage.py/gcov 실측)
 │       │   ├── type_check.py        # mypy/AST 타입 검사 (C++은 명시적 SKIP)
 │       │   ├── complexity.py        # Cyclomatic & Nesting 복잡도 분석기
+│       │   ├── _cpp_function_boundaries.py # bounded clang-tidy AST 경계 adapter
 │       │   ├── sanitize.py          # ASan/UBSan & Python 누수 검증
 │       │   ├── dead.py              # 미사용 심볼 & 데드코드 탐지기
 │       │   ├── dup.py               # 연결 컴포넌트 클러스터링 기반 중복 감지기
@@ -165,7 +166,8 @@ ici/
   - `status`: `EngineStatus` (`PASS`, `WARN`, `FAIL`, `ERROR`, `SKIP`)
   - `message`: 진단 메시지
   - `snippet`: 원본 소스 코드 블록 (포맷팅 보존)
-  - `metrics`: 세부 수치 데이터 (`complexity`, `nesting`, `duplicate_lines` 등)
+  - `metrics`: 세부 수치 데이터 (`complexity`, `nesting`, `duplicate_lines` 등)와 엔진별
+    provenance (`boundary_source`, `boundary_confidence`, `metric_confidence` 등)
 
 - **`EngineResult`**: 단일 검증 엔진의 종합 결과입니다.
   - `engine_name`: 엔진 식별자 (`line`, `lint`, `test`, ...)
@@ -542,6 +544,45 @@ clazy는 최대 2,048 translation units, unit당 120초, 전체 600초와 1,000,
 이 계층은 소스를 수정하거나 generator를 재실행하지 않으며, 생성 산출물의 존재만 확인하는
 heuristic으로 성공을 주장하지 않고 exact compilation database linkage를 요구한다.
 
+#### I4-3 compiler-backed C++ function boundaries
+
+`ComplexityEngine`은 shared immutable `AnalysisContext`의 exact `CompilationContext`와 covered
+production units를 사용해 전용 clang-tidy probe를 실행합니다. probe는 프로젝트나 lint 정책을
+재사용하지 않고 `readability-function-size`와 threshold-zero options만 전달하며, diagnostic
+location/size notes를 source body geometry로 매핑합니다. `boundary_source = "clang-tidy-ast"`
+는 함수 경계에만 해당합니다. 경계 안의 CC는 masked `if`/`for`/`while`/`case`/`catch`/`&&`/`||`/`?`
+token을, nesting은 brace를 세는 ici metric이며 `metric_confidence = "medium"`입니다.
+
+`cpp_boundaries = "auto" | "required" | "off"` (기본 `auto`)는 lint의 `clang_tidy` 정책과
+독립적입니다. `auto`는 exact context/database 또는 approved direct clang-tidy가 없을 때만
+source scanner로 폴백해 `ESTIMATED`/heuristic 경계를 남깁니다. 빈/미보고 또는 macro definition은
+heuristic으로 남을 수 있습니다. 시도된 tool·replay·parser·timeout·truncation·coverage·budget
+오류는 silent fallback 없이 `ERROR`/`NOT_RUN`으로 닫습니다. 단, clang-tidy가 visible project
+diagnostics와 함께 정확한 `Suppressed N warnings (N in non-user code).`를 보고하는 경우는
+외부/system 진단만
+억제한 정형 회계로 허용합니다. NOLINT/project/mixed/malformed/count-mismatch suppression은 계속
+`ERROR`/`NOT_RUN`으로 fail-closed합니다. `required`는 unavailable 또는 partial/estimated boundary도
+오류로 승격합니다. `off`는 probe를 실행하지 않고 heuristic
+경로를 사용합니다. caller가 만든 bounded source snapshot과 mapped-source cache를 전달하고,
+replay 전·도구 완료 후 source identity를 재검증합니다. C++ 전체 source inventory는 최대 2,048
+source files와 64 MiB aggregate UTF-8 source bytes cap을 적용하며, 같은 body geometry가 성공한 모든
+configuration에 존재할 때만 merge합니다.
+누락이나 configuration-dependent geometry는 partial warning으로 보존되고 `required`에서는 오류입니다.
+한 실행의 한도는 2,048 units, source당 8 MiB, run source bytes 64 MiB, mapped-source cache bytes
+16 MiB, output 1,000,000자, parser 10초, unit당 120초, 전체 600초입니다. approved tool executable은
+매 process 실행 직전에 다시 resolve해 device/inode/mode/size/mtime/ctime identity를 확인하며 변경·부재는
+fail-closed입니다. assigned `[]`/`+[]` lambda initializer는 phantom fallback 함수로 만들지 않습니다. same-line/overload,
+constructor·parameter/default·noexcept·trailing `requires`의 braced expression, function-try/catch,
+`<%`/`%>` digraph body를 parser regression으로 고정합니다. `dir_fd`/`O_DIRECTORY`가 없는
+fallback도 resolved named path의 containment와 device/inode/size/mtime identity를 read 뒤
+재검증해 intermediate symlink/TOCTOU를 fail-closed합니다.
+
+현재 candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
+`7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`이며, `clang-tidy-21` full
+suite는 `1,626 passed, 2 skipped`입니다. 세 프로젝트의 결과·HTML SHA와 toy exact-main evidence는
+[compiler-boundary workthrough](workthrough/2026-09-02-compiler-backed-cpp-function-boundaries.md)에
+기록되어 있고, candidate smoke 및 HTML Zero-CDN checks는 통과했습니다.
+
 #### CTest/JUnit와 sanitizer evidence 경계
 
 CMake adapter는 지원되는 CTest에서 `--output-junit`을 사용해 shadow 디렉터리에 report를
@@ -610,7 +651,10 @@ SHA-256 digest입니다.
   목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`,
   `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostics`,
   `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen` 포함;
-  cycle에는 `ici.core._cpp_replay_policy`, `ici.engines._cpp_include_trace` 포함)
+  cycle에는 `ici.core._cpp_replay_policy`, `ici.engines._cpp_include_trace` 포함;
+  complexity에는 `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`,
+  `ici.core.cpp_replay`, `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`,
+  `ici.engines.cpp_text` 포함)
 - `none`, `release`, `coverage`, `sanitize` 중 engine build variant
 - compilation context identity: 선택된 database의 project-relative path와 바이트 digest,
   loader schema version, 정규화된 unit configuration/metadata와 diagnostics를 포함한 parse state

@@ -83,6 +83,13 @@ warn_limit = 400
 fail_limit = 900
 ```
 
+C++ `complexity` 함수 경계 정책은 별도로 지정할 수 있습니다.
+
+```toml
+[engines.complexity]
+cpp_boundaries = "auto"  # auto | required | off
+```
+
 모든 파일을 병합한 뒤 엔진 이름, 설정 키, 자료형, 평가 모드와 임계값 관계를 검사합니다.
 알 수 없는 키, 잘못된 TOML, 잘못된 임계값은 조용히 기본값으로 대체되지 않고 설정 오류로
 실패합니다. `ICI_CONFIG`가 존재하지 않는 파일을 가리키는 경우에도 동일하게 실패합니다.
@@ -140,7 +147,7 @@ coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따�
 | 소스·build 설정 내용 | project source와 인식된 build/config 파일의 경로·내용·권한 digest |
 | effective ici 설정 | 기본·전역·프로젝트·`ICI_CONFIG` 병합 후 profile이 적용된 설정 digest |
 | toolchain | capability inventory의 도구 경로·버전·세부 정보 digest |
-| 엔진 구현 | engine descriptor, engine class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로 엔진이 명시적으로 선언한 helper/dependency module source digest 목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines.lint`; cycle에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle` 포함) |
+| 엔진 구현 | engine descriptor, engine class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로 엔진이 명시적으로 선언한 helper/dependency module source digest 목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines.lint`; cycle에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`; complexity에는 `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`, `ici.engines.cpp_text` 포함) |
 | build variant | `release`, `coverage`, `sanitize` 또는 해당 없는 엔진의 `none` |
 | compilation context | 선택된 compile database의 project-relative path·바이트 digest, loader version, 정규화된 unit configuration/metadata와 parse diagnostics |
 | producer | ici 버전과 cache key schema 버전 |
@@ -441,6 +448,45 @@ warning 선택과 standard/define/include/ABI context를 보존하며 `-Wno-erro
 tool execution failure로 처리됩니다. 변환 결과가 `-Wp`/`-Wa`/`-Wl` forwarding처럼 replay
 안전 경계를 벗어나면 도구를 실행하지 않고 context error로 fail-closed합니다.
 
+##### C++ complexity 함수 경계 정책 (I4-3, unreleased)
+
+`complexity`의 `cpp_boundaries`는 `[engines.lint].clang_tidy`와 독립적인 전용 probe입니다.
+exact `CompilationContext`/compilation database와 capability-approved direct `clang-tidy`가
+있을 때만 `readability-function-size` diagnostic의 AST 결과로 함수 경계 geometry를 확정합니다.
+경계 안의 CC/nesting은 여전히 ici의 masked source token/brace metric이며
+`metric_confidence = "medium"`입니다. tool의 lines/statements/parameters notes는 별도 metadata로
+보존됩니다.
+
+`auto`는 context/database 또는 approved tool이 없을 때만 source scanner로 폴백하고
+`ESTIMATED`/heuristic 경계를 남깁니다. 빈/미보고 또는 macro definition은 heuristic으로 남을 수
+있습니다. 시도된 tool·replay·parser·timeout·truncation·coverage·budget 오류는 조용한 폴백 없이
+`ERROR`/`NOT_RUN`으로 fail-closed합니다. 단, clang-tidy가 visible project diagnostics와 함께
+정확한 `Suppressed N warnings (N in non-user code).`를 보고하는 경우는 외부/system 진단만 억제한
+정형 회계로 허용합니다. NOLINT/project/mixed/malformed/count-mismatch suppression은 계속
+`ERROR`/`NOT_RUN`으로 fail-closed합니다. `required`는 unavailable 또는 partial/estimated boundary도
+`ERROR`로 올리고, `off`는 probe 없이 의도적으로 heuristic 경로를
+사용합니다. probe는 caller가 고정한 bounded source snapshot과 mapped-source cache를 사용하며
+replay 전과 도구 완료 후 source identity를 재검증합니다. C++ 전체 source inventory는 최대 2,048
+source files와 64 MiB aggregate UTF-8 source bytes cap을 넘지 않도록 수집하고, 동일 geometry가 성공한
+모든 configuration에서 관찰될 때만
+exact boundary로 승격합니다. 누락 또는 configuration-dependent geometry는 partial warning이고
+`required`에서는 오류입니다. 한 실행의 한도는 2,048 units, source당 8 MiB, run source bytes
+64 MiB, mapped-source cache bytes 16 MiB, output 1,000,000자, parser 10초, unit당 120초, 전체
+600초입니다. same-line/overload, constructor와 braced parameter/default/noexcept/trailing
+`requires` expression, function-try/catch, `<%`/`%>` digraph body를 regression mapping으로
+검증하고 assigned `[]`/`+[]` lambda initializer의 phantom fallback 함수를 배제합니다. approved
+tool executable은 매 process 실행 직전에 다시 resolve하고
+device/inode/mode/size/mtime/ctime identity를 확인하며, 변경·부재는 fail-closed입니다.
+`dir_fd`/`O_DIRECTORY`를 쓸 수 없는 fallback도 read 뒤 resolved named path의
+containment 및 device/inode/size/mtime identity를 재검사해 intermediate symlink/TOCTOU를
+fail-closed합니다.
+
+현재 candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
+`7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`이며, `clang-tidy-21` full
+suite는 `1,626 passed, 2 skipped`입니다. 세 프로젝트의 결과·HTML SHA와 toy exact-main evidence는
+[compiler-boundary workthrough](workthrough/2026-09-02-compiler-backed-cpp-function-boundaries.md)에
+기록되어 있고, candidate smoke 및 HTML Zero-CDN checks는 통과했습니다.
+
 ##### C++ Qt clazy 및 생성 단계 정책 (I4-2)
 
 Qt 분석은 exact `CompilationContext`가 있고 capability inventory가 승인한 `clazy` 실행 파일이
@@ -490,7 +536,8 @@ project root). 외부 root의 source preview도 허용되지만 diagnostic targe
 때만 검증합니다. root 부재, identity mismatch, exact source mismatch, forged/extra preview와
 bound 초과는 finding 일부를 남기지 않고 fail-closed합니다.
 
-clang-tidy/clazy가 Clang 기반이고 compilation context의 compiler가 capability-approved `g++`인
+clang-tidy/clazy 또는 complexity function-boundary probe가 Clang 기반이고
+compilation context의 compiler가 capability-approved `g++`인
 경우에는 선택 GCC의 libstdc++를 별도로 고정합니다. replay compiler가 선택된 `g++`와 resolved
 file identity가 같은지 먼저 확인하고, 그 GCC를 `c++`와 `c`로 각각 한 번씩 `-E -x <lang> -v -`
 bounded probe합니다. probe에는 sanitized `-m*`와 `--sysroot`/`-isysroot` selector만 보존합니다.
@@ -845,7 +892,7 @@ qmake 경로에서 `-xunitxml`을 신뢰하지 않는 이유가 있습니다. �
 | `ici lint` | 문법 린팅 및 코드 스타일 정렬 검사 | [Lint 엔진 상세](engine-reference.md#22--lint-문법-및-코드-스타일-린터) |
 | `ici test` | 단위 테스트 실행 및 Branch/Function 커버리지, TEM 5.0 스코어링 | [Test 엔진 상세](engine-reference.md#23--test--tem-스코어링-단위-테스트-및-테스트-효과성-지표) |
 | `ici type` | Mypy 정적 타입 및 AST 부분 폴백 (C++ 타입 검증은 명시적 SKIP) | [Type 엔진 상세](engine-reference.md#24-️-type-정적-타입-안정성-검사기) |
-| `ici complexity` | 함수별 Cyclomatic 복잡도 및 블록 중첩 깊이 분석 | [Complexity 엔진 상세](engine-reference.md#25--complexity-순환-복잡도-및-블록-중첩도) |
+| `ici complexity` | 함수별 CC/중첩 분석; C++ 경계는 clang-tidy AST 우선, unavailable 시 heuristic evidence | [Complexity 엔진 상세](engine-reference.md#25--complexity-순환-복잡도-및-블록-중첩도) |
 | `ici sanitize` | C++ ASan/UBSan 메모리 안전성 및 Python 리소스 누수 검증 | [Sanitize 엔진 상세](engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |
 | `ici dead` | 도달 불능 코드 및 미사용 심볼 검출 | [Dead 엔진 상세](engine-reference.md#27--dead-죽은-코드-및-미사용-심볼) |
 | `ici dup` | 최대 클론 블록 병합 기반 Copy-Paste 코드 중복률 산출 | [Dup 엔진 상세](engine-reference.md#28--dup-코드-복제-및-중복률-감지기) |

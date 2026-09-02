@@ -92,6 +92,7 @@ mode = "pass_warn_fail"
 warn_cc = 15
 fail_cc = 25
 warn_nesting = 4
+cpp_boundaries = "auto"  # auto | required | off
 
 [engines.dup]
 enabled = true
@@ -248,7 +249,7 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 | `resource` | heuristic | unsupported |
 | `security` | heuristic | unsupported |
 | `cycle` | heuristic | tool-backed (Qt) → heuristic fallback |
-| `complexity` | heuristic | heuristic (Qt) |
+| `complexity` | heuristic | tool-backed (Qt) → heuristic fallback |
 | `sanitize` | tool-backed | tool-backed (Qt) |
 | `dead` | heuristic | unsupported |
 | `dup` | heuristic | heuristic (Qt) |
@@ -258,7 +259,8 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 표의 mode는 다음 뜻입니다.
 
 - `exact`: 소스 텍스트의 결정적 값을 계산합니다. 의미적 정확성을 넓게 주장하지 않습니다.
-- `tool-backed`: 외부 compiler/test/lint/type 도구의 실제 실행 증거를 사용합니다.
+- `tool-backed`: 외부 compiler/test/lint/type 도구의 실제 실행 증거를 사용합니다. `complexity`의
+  C++에서는 도구가 함수 경계 geometry를 제공하며, 경계 안의 CC/nesting 자체는 ici metric입니다.
 - `heuristic`: AST, 경량 parser, token 또는 pattern 기반으로 한계를 명시하는 분석입니다.
 - `unsupported`: 현재 그 언어를 분석하지 않습니다. 언어가 없거나 지원하지 않는 행은
   `NOT_APPLICABLE`, 대상이 있지만 실행하지 못한 행은 `NOT_RUN`, 제한된 fallback만 수행한
@@ -312,8 +314,10 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`,
   `ici.engines._qt_codegen`, `ici.engines.lint`를 명시하고, cycle cache helper는
   `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`,
-  `ici.engines._cpp_include_trace`, `ici.engines.cycle`을 명시합니다. `.ui`와 `.qrc`도
-  project source digest에 포함됩니다.
+  `ici.engines._cpp_include_trace`, `ici.engines.cycle`을, complexity cache helper는
+  `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`,
+  `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`, `ici.engines.cpp_text`를
+  명시합니다. `.ui`와 `.qrc`도 project source digest에 포함됩니다.
 - **C++ clang-tidy (I4-1)**: `clang_tidy`는 `auto`(도구가 없으면 `WARN`), `required`(도구가
   없으면 `ERROR`), `off`(명령과 evidence 없음) 중 하나로 정책을 정합니다. 이 adapter는
   capability inventory의 approved direct `clang-tidy`와 exact `CompilationContext`의 covered
@@ -502,6 +506,41 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 - **Python 함수 경계**: 중첩 함수·클래스·lambda의 실행 본문은 바깥 함수 점수에서 제외하고,
   중첩된 named function/method는 자체 위치 target으로 별도 측정합니다. decorator·default·annotation·
   class base/keyword처럼 정의 시점에 평가되는 표현식은 바깥 함수 metric에 유지합니다.
+- **C++ 함수 경계**: `cpp_boundaries = "auto" | "required" | "off"` (기본 `auto`)를 사용합니다.
+  exact `CompilationContext`/compilation database와 capability-approved direct `clang-tidy`가
+  있을 때만 전용 `readability-function-size` diagnostic의 AST 결과로 함수 경계 geometry를
+  확정합니다. `boundary_source = "clang-tidy-ast"`와 `boundary_confidence = "exact"`는
+  경계에만 해당하며, 경계 안의 CC/nesting은 masked source token/brace metric이고
+  `metric_confidence = "medium"`입니다. clang-tidy의 lines/statements/parameters notes는
+  별도 tool metadata로 보존합니다.
+- **C++ 폴백·실패 경계**: `auto`는 exact context/database 또는 approved tool이 없을 때만
+  source scanner로 폴백하며 `ESTIMATED`와 `boundary_source = "heuristic"`를 남깁니다. 빈/미보고
+  또는 macro definition은 heuristic으로 남을 수 있습니다. 시도된 tool·replay·parser·timeout·
+  truncation·coverage·budget 오류는 heuristic으로 숨기지 않고 `ERROR`/`NOT_RUN`입니다. 단,
+  clang-tidy가 visible project diagnostics와 함께 `Suppressed N warnings (N in non-user code).`를
+  정확히 보고하면 외부/system 진단만 억제한 정형 회계로 허용합니다. NOLINT/project/mixed/malformed/
+  count-mismatch suppression은 계속 `ERROR`/`NOT_RUN`으로 fail-closed합니다. `required`는
+  unavailable 또는 partial/estimated boundary도 오류로 승격하고, `off`는 probe 없이
+  의도적으로 heuristic 경로를 사용합니다. probe 입력은 caller의 bounded source snapshot과
+  mapped-source cache이며, replay 전·도구 완료 후 source identity를 재검증합니다. C++ 전체
+  source inventory는 최대 2,048 source files와 64 MiB aggregate UTF-8 source bytes cap 안에서만 만들고,
+  같은 geometry가 성공한 모든
+  configuration에 존재할 때만 exact로 merge합니다. missing 또는 configuration-dependent
+  geometry는 partial warning으로 남으며 `required`에서는 오류입니다. 단위/캐시/출력 경계는
+  2,048 units, source당 8 MiB, run source bytes 64 MiB, mapped-source cache bytes 16 MiB,
+  output 1,000,000자, parser 10초, unit당 120초, 전체 600초입니다. approved tool executable은
+  매 process 실행 직전에 다시 resolve하고 device/inode/mode/size/mtime/ctime identity를 확인하며,
+  변경·부재는 fail-closed입니다. parser regression은
+  same-line 인접·overload, constructor/parameter/default/noexcept/trailing `requires`의
+  brace, function-try/catch, `<%`/`%>` digraph body 및 assigned `[]`/`+[]` lambda initializer의
+  phantom-function 배제를 포함합니다. `dir_fd`/`O_DIRECTORY`가
+  없는 descriptor fallback도 read 뒤 resolved named path의 containment와 device/inode/size/mtime
+  identity를 재검증해 intermediate symlink/TOCTOU를 fail-closed합니다.
+- **현재 candidate evidence**: 두 번 byte-identical인 `dist/ici.pyz` SHA
+  `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`, `clang-tidy-21` full suite
+  `1,626 passed, 2 skipped` 및 BuildScope/DiskMap/LogLens의 exact/estimated/configuration 결과와
+  HTML SHA는 [compiler-boundary workthrough](workthrough/2026-09-02-compiler-backed-cpp-function-boundaries.md)에
+  기록합니다. Candidate smoke 및 HTML Zero-CDN checks는 통과했습니다.
 - **코드 스니펫**: 고복잡도 함수의 실제 원본 소스 코드를 추출하여 HTML 리포트에 즉시 표시
 
 ### 2.6 🛡️ `sanitize` (메모리 안전성 및 리소스 누수 진단)

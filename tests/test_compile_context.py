@@ -905,6 +905,32 @@ def test_contained_bounded_open_rejects_intermediate_symlink(tmp_path: Path) -> 
     assert error.value.code == "unreadable"
 
 
+@pytest.mark.skipif(
+    compile_db_paths_module.os.name == "nt",
+    reason="directory symlink fallback coverage is POSIX-specific",
+)
+def test_contained_bounded_open_fallback_revalidates_the_named_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "project"
+    outside = tmp_path / "outside"
+    root.mkdir()
+    outside.mkdir()
+    (outside / "flags.rsp").write_text("-DOUTSIDE=1", encoding="utf-8")
+    (root / "nested").symlink_to(outside, target_is_directory=True)
+    monkeypatch.setattr(compile_db_paths_module.os, "supports_dir_fd", set())
+
+    with pytest.raises(compile_db_paths_module._ReadError) as error:
+        compile_db_paths_module._read_bounded_regular(
+            root / "nested" / "flags.rsp",
+            1024,
+            containment_root=root,
+        )
+
+    assert error.value.code == "changed"
+
+
 def test_similar_long_options_are_not_misclassified_as_compilation_metadata(
     tmp_path: Path,
 ) -> None:

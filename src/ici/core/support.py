@@ -236,10 +236,18 @@ _DECLARATIONS = (
     SupportDeclaration(
         "complexity",
         SupportLanguage.CPP,
-        AnalysisMode.HEURISTIC,
+        AnalysisMode.TOOL_BACKED,
         FindingConfidence.MEDIUM,
         frameworks=_QT,
-        limitations=("Lightweight C++ parsing does not expand macros or fully model templates.",),
+        optional_tools=("clang-tidy",),
+        fallback_mode=AnalysisMode.HEURISTIC,
+        limitations=(
+            "Clang AST-backed function boundaries require an exact compilation database; "
+            "empty, unreported, or macro-generated definitions may use the lower-confidence "
+            "source scanner.",
+            "Suppressed or malformed diagnostics and attempted-tool failures fail closed.",
+            "Cyclomatic and nesting counts within a confirmed boundary remain token-based.",
+        ),
     ),
     SupportDeclaration(
         "sanitize",

@@ -78,6 +78,7 @@ def test_default_config_has_layout_and_line_gate_keys():
     assert DEFAULT_CONFIG["engines"]["lint"]["clang_tidy"] == "auto"
     assert DEFAULT_CONFIG["engines"]["lint"]["clazy"] == "auto"
     assert DEFAULT_CONFIG["engines"]["lint"]["clazy_profile"] == "level0"
+    assert DEFAULT_CONFIG["engines"]["complexity"]["cpp_boundaries"] == "auto"
     assert DEFAULT_CONFIG["doctor"]["required_tools"] == []
 
 
@@ -316,6 +317,17 @@ def test_config_schema_accepts_explicit_clazy_checks():
 def test_config_schema_rejects_invalid_clang_tidy_types_and_mode(key, value):
     with pytest.raises(ConfigError, match=rf"engines\.lint\.{key}"):
         validate_config(_lint_config(**{key: value}))
+
+
+@pytest.mark.parametrize("mode", ["auto", "required", "off"])
+def test_config_schema_accepts_cpp_function_boundary_modes(mode: str) -> None:
+    validate_config({"engines": {"complexity": {"cpp_boundaries": mode}}})
+
+
+@pytest.mark.parametrize("mode", ["always", "", 1, True, None])
+def test_config_schema_rejects_invalid_cpp_function_boundary_modes(mode: object) -> None:
+    with pytest.raises(ConfigError, match=r"engines\.complexity\.cpp_boundaries"):
+        validate_config({"engines": {"complexity": {"cpp_boundaries": mode}}})
 
 
 @pytest.mark.parametrize(

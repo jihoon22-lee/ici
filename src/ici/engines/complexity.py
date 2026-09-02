@@ -3,11 +3,25 @@
 import ast
 import re
 import time
+from dataclasses import dataclass, field
 
-from ici.core.models import EngineResult, EngineStatus, InspectionTarget
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    EvidenceState,
+    InspectionTarget,
+    ToolEvidence,
+)
+from ici.core.runner import run_process
+from ici.engines._cpp_function_boundaries import (
+    CppFunctionBoundary,
+    CppFunctionBoundaryOutcome,
+    read_cpp_source_text,
+    run_cpp_function_boundaries,
+)
 from ici.engines._python_metrics import iter_metric_children, walk_metric_scope
 from ici.engines.base import BaseEngine
-from ici.engines.cpp_text import mask_cpp_literals
+from ici.engines.cpp_text import cpp_requires_expression_before_brace, mask_cpp_literals
 
 # --- C++ function scanning -------------------------------------------------
 #
@@ -35,36 +49,55 @@ _CPP_CONTROL_HEADS = frozenset(
 
 _CPP_DECISION_TOKENS = ("&&", "||", "?")
 
-_CPP_DECISION_KEYWORDS = ("if", "for", "while", "case", "catch")
+_CPP_DECISION_HEAD_RE = re.compile(
+    r"\b(?:for|while|catch)\s*\(|\bif\s+(?:constexpr\s*\(|!?consteval\b)|\bif\s*\("
+)
+_CPP_CASE_RE = re.compile(r"\bcase\b[^:\n]*:")
+_CPP_LAMBDA_INITIALIZER_RE = re.compile(r"(?<![=!<>])=\s*(?:\+\s*)?\[")
+_MAX_CPP_COMPLEXITY_SOURCES = 2_048
+_MAX_CPP_COMPLEXITY_SOURCE_BYTES = 64 * 1024 * 1024
 
 
 class _CppFunctionSpan:
     """One C++ function definition and its measured complexity."""
 
-    __slots__ = ("complexity", "end_line", "max_nesting", "name", "start_line")
+    __slots__ = (
+        "body_start_column",
+        "body_start_line",
+        "complexity",
+        "end_column",
+        "end_line",
+        "max_nesting",
+        "name",
+        "start_column",
+        "start_line",
+    )
 
-    def __init__(self, name: str, start_line: int) -> None:
+    def __init__(
+        self,
+        name: str,
+        start_line: int,
+        start_column: int,
+        body_start_line: int,
+        body_start_column: int,
+    ) -> None:
         self.name = name
         self.start_line = start_line
+        self.start_column = start_column
+        self.body_start_line = body_start_line
+        self.body_start_column = body_start_column
         self.end_line = start_line
+        self.end_column: int | None = None
         self.complexity = 1
         # Counted the way the Python side counts it: how many blocks deep the
         # code goes *inside* the function, so a body with no branches is 0.
         self.max_nesting = 0
 
 
-def _strip_cpp_noise(line: str) -> str:
-    """Drop line comments and string/char literals so they cannot fake tokens."""
-    text = line.split("//", 1)[0]
-    return mask_cpp_literals(text)
-
-
 def _cpp_decision_count(text: str) -> int:
     """Count decision points on one line, the usual cyclomatic contributors."""
     total = sum(text.count(token) for token in _CPP_DECISION_TOKENS)
-    for keyword in _CPP_DECISION_KEYWORDS:
-        total += len(re.findall(r"\b" + keyword + r"\b\s*[({:]", text))
-    return total
+    return total + len(_CPP_DECISION_HEAD_RE.findall(text)) + len(_CPP_CASE_RE.findall(text))
 
 
 def _cpp_definition_name(signature: str) -> str | None:
@@ -85,10 +118,32 @@ def _cpp_definition_name(signature: str) -> str | None:
 def _cpp_function_spans(lines: list[str]) -> list[_CppFunctionSpan]:
     """Scan a translation unit and measure every function definition in it."""
     scanner = _CppScanner()
-    for number, raw in enumerate(lines, 1):
-        scanner.feed(number, _strip_cpp_noise(raw))
+    # Mask the complete file in one pass so block comments, raw strings, and
+    # line-spliced comments cannot leak fake braces across line boundaries.
+    masked_lines = (
+        mask_cpp_literals("\n".join(lines)).replace("<%", "{ ").replace("%>", "} ").splitlines()
+    )
+    for number, text in enumerate(masked_lines, 1):
+        scanner.feed(number, text)
     scanner.finish(len(lines))
     return scanner.spans
+
+
+@dataclass
+class _CppComplexityAnalysis:
+    max_complexity: int = 0
+    targets: list[InspectionTarget] = field(default_factory=list)
+    tool_evidence: list[ToolEvidence] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    boundary_mode: str = "not_applicable"
+    exact_boundaries: int = 0
+    estimated_boundaries: int = 0
+    configurations_checked: int = 0
+    sources_checked: int = 0
+
+
+_CppSourceRows = dict[str, tuple[str, list[_CppFunctionSpan]]]
 
 
 class _CppScanner:
@@ -101,12 +156,28 @@ class _CppScanner:
         self._base_depth = 0
         self._pending = ""
         self._pending_line = 0
+        self._pending_column = 0
+        self._expression_depth = 0
+        self._function_try = False
+        self._awaiting_catch = False
+        self._catch_header = False
 
     def feed(self, number: int, text: str) -> None:
-        if self._current is not None:
-            self._feed_body(number, text)
-            return
-        self._feed_outside(number, text)
+        remaining = text
+        column = 1
+        while remaining:
+            if self._current is not None:
+                consumed = self._feed_body(number, remaining, column)
+            elif self._expression_depth:
+                consumed = self._feed_expression(remaining)
+            else:
+                consumed = self._feed_outside(number, remaining, column)
+            if consumed <= 0:
+                if self._current is None:
+                    continue
+                return
+            remaining = remaining[consumed:]
+            column += consumed
 
     def finish(self, last_line: int) -> None:
         """Close an unterminated function so its findings are still reported."""
@@ -116,66 +187,193 @@ class _CppScanner:
         self.spans.append(self._current)
         self._current = None
 
-    def _feed_body(self, number: int, text: str) -> None:
+    def _feed_body(self, number: int, text: str, column: int) -> int:
         current = self._current
         if current is None:
-            return
-        current.complexity += _cpp_decision_count(text)
-        opened = text.count("{")
-        closed = text.count("}")
-        if opened:
-            self._depth += opened
-            # Subtract the function's own brace: it is not nesting, it is the body.
-            # Without this C++ read one level deeper than Python for identical
-            # code, so the shared warn_nesting threshold was effectively stricter
-            # for C++ — which is where every complexity warning in the dogfooded
-            # C++ projects was coming from.
-            current.max_nesting = max(current.max_nesting, self._depth - self._base_depth - 1)
-        self._depth -= closed
-        if self._depth <= self._base_depth:
-            current.end_line = number
-            self.spans.append(current)
-            self._current = None
-            self._depth = max(self._depth, self._base_depth)
+            return len(text)
+        if self._awaiting_catch:
+            return self._feed_catch(number, text, column)
+        close_at: int | None = None
+        for index, char in enumerate(text):
+            if char == "{":
+                self._depth += 1
+                # The function's own brace is not nesting; only blocks inside
+                # it contribute to the shared Python/C++ nesting policy.
+                current.max_nesting = max(
+                    current.max_nesting,
+                    self._depth - self._base_depth - 1,
+                )
+            elif char == "}":
+                self._depth -= 1
+                if self._depth <= self._base_depth:
+                    close_at = index
+                    break
+        body = text if close_at is None else text[: close_at + 1]
+        current.complexity += _cpp_decision_count(body)
+        if close_at is None:
+            return len(text)
+        current.end_line = number
+        current.end_column = column + close_at
+        self._depth = max(self._depth, self._base_depth)
+        if self._function_try:
+            self._awaiting_catch = True
+            return close_at + 1
+        self.spans.append(current)
+        self._current = None
+        return close_at + 1
 
-    def _feed_outside(self, number: int, text: str) -> None:
+    def _feed_catch(self, number: int, text: str, column: int) -> int:
+        current = self._current
+        if current is None:
+            return 0
+        stripped = text.lstrip()
+        leading = len(text) - len(stripped)
+        if not stripped:
+            return len(text)
+        if not self._catch_header:
+            match = re.match(r"catch\b", stripped)
+            if match is None:
+                self.spans.append(current)
+                self._current = None
+                self._function_try = False
+                self._awaiting_catch = False
+                return 0
+            current.complexity += 1
+            self._catch_header = True
+        opening = text.find("{")
+        if opening < 0:
+            return len(text)
+        self._catch_header = False
+        self._awaiting_catch = False
+        self._depth = self._base_depth + 1
+        current.max_nesting = max(current.max_nesting, 0)
+        return max(opening + 1, leading + 1)
+
+    def _append_pending(self, number: int, column: int, text: str) -> None:
         stripped = text.strip()
-        if not stripped or stripped.startswith("#"):
-            self._pending = ""
+        if not stripped:
             return
         if not self._pending:
             self._pending_line = number
+            self._pending_column = column + len(text) - len(text.lstrip())
         self._pending = f"{self._pending} {stripped}".strip()
-        if "{" not in stripped:
-            # A ';' at this level ends a declaration or statement, not a body.
-            if ";" in stripped:
-                self._pending = ""
-            return
-        self._open_or_discard(number, stripped)
 
-    def _open_or_discard(self, number: int, stripped: str) -> None:
-        signature = self._pending
+    def _clear_pending(self) -> None:
         self._pending = ""
+        self._pending_line = 0
+        self._pending_column = 0
+
+    def _feed_expression(self, text: str) -> int:
+        for index, char in enumerate(text):
+            if char == "{":
+                self._expression_depth += 1
+            elif char == "}":
+                self._expression_depth -= 1
+                if self._expression_depth == 0:
+                    self._pending = f"{self._pending} {{}}".strip()
+                    return index + 1
+        return len(text)
+
+    def _feed_outside(self, number: int, text: str, column: int) -> int:
+        if text.lstrip().startswith("#"):
+            self._clear_pending()
+            return len(text)
+        delimiters = [(index, char) for index, char in enumerate(text) if char in "{};"]
+        if not delimiters:
+            self._append_pending(number, column, text)
+            return len(text)
+        index, delimiter = delimiters[0]
+        self._append_pending(number, column, text[:index])
+        if delimiter == ";":
+            self._clear_pending()
+            return index + 1
+        if delimiter == "}":
+            self._clear_pending()
+            self._depth = max(0, self._depth - 1)
+            return index + 1
+
+        signature = self._pending
+        parentheses, brackets = _cpp_delimiter_depth(signature)
+        if (
+            parentheses
+            or brackets
+            or _CPP_LAMBDA_INITIALIZER_RE.search(signature) is not None
+            or cpp_requires_expression_before_brace(signature)
+            or _cpp_constructor_initializer_candidate(signature)
+        ):
+            self._expression_depth = 1
+            return index + 1
         name = _cpp_definition_name(signature)
         if name is None:
-            # Not a function: keep the braces balanced for anything that follows
-            # (a struct body, a namespace, an initialiser list).
-            self._depth += stripped.count("{") - stripped.count("}")
-            self._depth = max(self._depth, 0)
-            return
-        span = _CppFunctionSpan(name, self._pending_line)
+            self._clear_pending()
+            self._depth += 1
+            return index + 1
+        span = _CppFunctionSpan(
+            name,
+            self._pending_line,
+            self._pending_column,
+            number,
+            column + index,
+        )
+        self._clear_pending()
         self._base_depth = self._depth
         self._depth += 1
         self._current = span
+        self._function_try = bool(re.search(r"\btry\b", signature))
         span.complexity += _cpp_decision_count(signature)
-        # The rest of the line can close the body outright: `void f() { g(); }`.
-        after = stripped.split("{", 1)[1]
-        self._current = span
-        self._feed_body(number, after)
+        return index + 1
+
+
+def _cpp_delimiter_depth(text: str) -> tuple[int, int]:
+    parentheses = 0
+    brackets = 0
+    for char in text:
+        if char == "(":
+            parentheses += 1
+        elif char == ")":
+            parentheses = max(0, parentheses - 1)
+        elif char == "[":
+            brackets += 1
+        elif char == "]":
+            brackets = max(0, brackets - 1)
+    return parentheses, brackets
+
+
+def _cpp_constructor_initializer_candidate(text: str) -> bool:
+    parentheses = 0
+    brackets = 0
+    has_colon = False
+    for index, char in enumerate(text):
+        if char == "(":
+            parentheses += 1
+        elif char == ")":
+            parentheses = max(0, parentheses - 1)
+        elif char == "[":
+            brackets += 1
+        elif char == "]":
+            brackets = max(0, brackets - 1)
+        elif (
+            char == ":"
+            and parentheses == 0
+            and brackets == 0
+            and (index == 0 or text[index - 1] != ":")
+            and (index + 1 == len(text) or text[index + 1] != ":")
+        ):
+            has_colon = True
+    return has_colon and bool(re.search(r"(?:[A-Za-z_][A-Za-z0-9_]*|[>\]])$", text.rstrip()))
 
 
 class ComplexityEngine(BaseEngine):
     """Calculates Cyclomatic Complexity and Max Nesting Depth for functions."""
+
+    CACHE_IMPLEMENTATION_MODULES = (
+        "ici.core._compile_db_paths",
+        "ici.core._cpp_replay_policy",
+        "ici.core.cpp_replay",
+        "ici.engines._cpp_function_boundaries",
+        "ici.engines._cpp_tooling",
+        "ici.engines.cpp_text",
+    )
 
     def run(self) -> EngineResult:
         t0 = time.time()
@@ -190,6 +388,7 @@ class ComplexityEngine(BaseEngine):
         max_cc = 0
         has_error = False
         has_warn = False
+        cpp_analysis = _CppComplexityAnalysis()
 
         # 1. Python Complexity (AST analysis)
         if proj_type in ("python", "hybrid") or any(self.project_root.rglob("*.py")):
@@ -199,29 +398,42 @@ class ComplexityEngine(BaseEngine):
 
         # 2. C++ Complexity (Brace/Nesting parser)
         if proj_type in ("cpp", "hybrid") or any(self.project_root.rglob("*.cpp")):
-            c_max, c_targets = self._analyze_cpp_complexity(warn_cc, fail_cc, warn_nesting)
-            max_cc = max(max_cc, c_max)
-            all_targets.extend(c_targets)
+            cpp_analysis = self._analyze_cpp_complexity(
+                warn_cc,
+                fail_cc,
+                warn_nesting,
+                str(cfg.get("cpp_boundaries", "auto")),
+            )
+            max_cc = max(max_cc, cpp_analysis.max_complexity)
+            all_targets.extend(cpp_analysis.targets)
 
+        function_targets = [target for target in all_targets if "complexity" in target.metrics]
         issue_targets = [
-            t for t in all_targets if t.status in (EngineStatus.WARN, EngineStatus.FAIL)
+            target
+            for target in all_targets
+            if target.status in (EngineStatus.WARN, EngineStatus.FAIL, EngineStatus.ERROR)
         ]
         for t in issue_targets:
-            if t.status == EngineStatus.FAIL:
+            if t.status in {EngineStatus.FAIL, EngineStatus.ERROR}:
                 has_error = True
             elif t.status == EngineStatus.WARN:
                 has_warn = True
 
         duration = time.time() - t0
-        overall_status = self.evaluate_status(has_error, has_warn, mode)
+        overall_status = (
+            EngineStatus.ERROR
+            if cpp_analysis.errors
+            else self.evaluate_status(has_error, has_warn, mode)
+        )
         summary = (
-            f"Max Cyclomatic Complexity: {max_cc} (limit {warn_cc}) across {len(all_targets)} functions "
+            f"Max Cyclomatic Complexity: {max_cc} (limit {warn_cc}) across "
+            f"{len(function_targets)} functions "
             f"({len(issue_targets)} issues)"
         )
 
         # Sort all targets by complexity descending
         sorted_targets = sorted(
-            all_targets, key=lambda x: x.metrics.get("complexity", 0), reverse=True
+            function_targets, key=lambda x: x.metrics.get("complexity", 0), reverse=True
         )
 
         top_funcs_data = [
@@ -247,12 +459,31 @@ class ComplexityEngine(BaseEngine):
             targets=all_targets,  # Full list kept for toggle inspection
             extra={
                 "max_complexity": max_cc,
-                "total_functions": len(all_targets),
+                "total_functions": len(function_targets),
                 "issues_count": len(issue_targets),
                 "top_complex_funcs": top_funcs_data,
-                "metrics_summary": f"Max CC: {max_cc} ({len(issue_targets)} issues / {len(all_targets)} funcs)",
+                "metrics_summary": f"Max CC: {max_cc} "
+                f"({len(issue_targets)} issues / {len(function_targets)} funcs)",
+                "cpp_boundary_mode": cpp_analysis.boundary_mode,
+                "cpp_exact_boundaries": cpp_analysis.exact_boundaries,
+                "cpp_estimated_boundaries": cpp_analysis.estimated_boundaries,
+                "cpp_boundary_configurations_checked": cpp_analysis.configurations_checked,
+                "cpp_boundary_sources_checked": cpp_analysis.sources_checked,
+                "cpp_boundary_warnings": cpp_analysis.warnings,
+                "cpp_boundary_errors": cpp_analysis.errors,
             },
             required=bool(cfg.get("required", True)),
+            evidence=(
+                EvidenceState.NOT_RUN
+                if cpp_analysis.errors
+                else (
+                    EvidenceState.ESTIMATED
+                    if cpp_analysis.estimated_boundaries
+                    or cpp_analysis.boundary_mode in {"heuristic", "mixed", "partial"}
+                    else EvidenceState.MEASURED
+                )
+            ),
+            tool_evidence=cpp_analysis.tool_evidence,
         )
 
     def _analyze_python_complexity(
@@ -346,19 +577,199 @@ class ComplexityEngine(BaseEngine):
         return _get_depth(node, 0)
 
     def _analyze_cpp_complexity(
-        self, warn_cc: int, fail_cc: int, warn_nesting: int
-    ) -> tuple[int, list[InspectionTarget]]:
-        targets: list[InspectionTarget] = []
-        max_cc = 0
+        self,
+        warn_cc: int,
+        fail_cc: int,
+        warn_nesting: int,
+        boundary_policy: str = "auto",
+    ) -> _CppComplexityAnalysis:
+        analysis = _CppComplexityAnalysis(boundary_mode="heuristic")
+        source_rows = self._cpp_source_rows(analysis)
+        if analysis.errors:
+            analysis.boundary_mode = "error"
+            self._finish_cpp_analysis(analysis)
+            return analysis
+        exact_boundaries = self._compiler_boundary_rows(
+            boundary_policy,
+            source_rows,
+            analysis,
+        )
+        matched_heuristic = self._append_exact_cpp_targets(
+            analysis,
+            source_rows,
+            exact_boundaries,
+            warn_cc,
+            fail_cc,
+            warn_nesting,
+        )
+        self._append_estimated_cpp_targets(
+            analysis,
+            source_rows,
+            matched_heuristic,
+            warn_cc,
+            fail_cc,
+            warn_nesting,
+        )
+        if (
+            boundary_policy == "required"
+            and not analysis.errors
+            and (analysis.estimated_boundaries or analysis.boundary_mode == "partial")
+        ):
+            analysis.errors.append(
+                "compiler-backed C++ function boundaries were required, but "
+                f"{analysis.estimated_boundaries} function(s) still needed source scanning"
+            )
+            analysis.boundary_mode = "error"
+        self._finish_cpp_analysis(analysis)
+        return analysis
 
-        for cpp_file in self.project_cpp_sources():
+    def _cpp_source_rows(self, analysis: _CppComplexityAnalysis) -> _CppSourceRows:
+        source_rows: _CppSourceRows = {}
+        cpp_sources = self.project_cpp_sources()
+        if len(cpp_sources) > _MAX_CPP_COMPLEXITY_SOURCES:
+            analysis.errors.append("C++ complexity source count exceeds the bounded limit")
+            return source_rows
+        source_bytes = 0
+        for cpp_file in cpp_sources:
             try:
-                rel_p = str(cpp_file.relative_to(self.project_root))
-                lines = cpp_file.read_text(encoding="utf-8", errors="ignore").splitlines()
-            except (OSError, UnicodeDecodeError, ValueError):
+                rel_p = cpp_file.relative_to(self.project_root).as_posix()
+                text = read_cpp_source_text(self.project_root, rel_p)
+            except (OSError, UnicodeError, ValueError):
+                analysis.errors.append(
+                    f"C++ complexity source is not a bounded project file: {cpp_file.name}"
+                )
                 continue
-            for span in _cpp_function_spans(lines):
-                targets.append(
+            source_bytes += len(text.encode("utf-8"))
+            if source_bytes > _MAX_CPP_COMPLEXITY_SOURCE_BYTES:
+                analysis.errors.append("C++ complexity source inventory exceeds the bounded limit")
+                return {}
+            source_rows[rel_p] = (text, _cpp_function_spans(text.splitlines()))
+        return source_rows
+
+    def _compiler_boundary_rows(
+        self,
+        boundary_policy: str,
+        source_rows: _CppSourceRows,
+        analysis: _CppComplexityAnalysis,
+    ) -> list[CppFunctionBoundary]:
+        if boundary_policy == "off":
+            return []
+        outcome = run_cpp_function_boundaries(
+            self.project_root,
+            self.project_compilable_cpp_sources(),
+            self.analysis_context,
+            runner=run_process,
+            source_texts={path: text for path, (text, _spans) in source_rows.items()},
+        )
+        self._record_boundary_outcome(analysis, outcome)
+        if outcome.mode in {"exact", "partial"}:
+            return [
+                boundary for boundary in outcome.boundaries if boundary.file_path in source_rows
+            ]
+        if outcome.mode == "error":
+            analysis.errors.extend(outcome.errors)
+            analysis.boundary_mode = "error"
+        elif boundary_policy == "required":
+            analysis.errors.append(
+                "compiler-backed C++ function boundaries require an exact compilation "
+                "database and approved clang-tidy"
+            )
+            analysis.boundary_mode = "error"
+        return []
+
+    @staticmethod
+    def _record_boundary_outcome(
+        analysis: _CppComplexityAnalysis,
+        outcome: CppFunctionBoundaryOutcome,
+    ) -> None:
+        analysis.tool_evidence.extend(outcome.evidence)
+        analysis.configurations_checked = outcome.configurations_checked
+        analysis.sources_checked = outcome.sources_checked
+        analysis.warnings.extend(outcome.warnings)
+        if outcome.mode in {"exact", "partial"}:
+            analysis.boundary_mode = outcome.mode
+
+    def _append_exact_cpp_targets(
+        self,
+        analysis: _CppComplexityAnalysis,
+        source_rows: _CppSourceRows,
+        exact_boundaries: list[CppFunctionBoundary],
+        warn_cc: int,
+        fail_cc: int,
+        warn_nesting: int,
+    ) -> dict[str, set[int]]:
+        matched_heuristic: dict[str, set[int]] = {path: set() for path in source_rows}
+        for boundary in exact_boundaries:
+            text, spans = source_rows[boundary.file_path]
+            cc, nesting = self._cpp_boundary_metrics(text, boundary)
+            metrics = {
+                "boundary_source": "clang-tidy-ast",
+                "boundary_confidence": "exact",
+                "metric_confidence": "medium",
+                "tool_lines": boundary.lines,
+                "tool_statements": boundary.statements,
+                "tool_parameters": boundary.parameters,
+                "configurations": list(boundary.configurations),
+            }
+            analysis.targets.append(
+                self._make_cpp_target(
+                    boundary.file_path,
+                    boundary.start_line,
+                    boundary.end_line,
+                    boundary.name,
+                    cc,
+                    nesting,
+                    warn_cc,
+                    fail_cc,
+                    warn_nesting,
+                    start_column=boundary.start_column,
+                    end_column=boundary.end_column,
+                    extra_metrics=metrics,
+                )
+            )
+            analysis.exact_boundaries += 1
+            analysis.max_complexity = max(analysis.max_complexity, cc)
+            matched = self._matching_heuristic_span(boundary, spans)
+            if matched is not None:
+                matched_heuristic[boundary.file_path].add(matched)
+        return matched_heuristic
+
+    @staticmethod
+    def _matching_heuristic_span(
+        boundary: CppFunctionBoundary,
+        spans: list[_CppFunctionSpan],
+    ) -> int | None:
+        exact_name = boundary.name.removesuffix("()").rsplit("::", 1)[-1]
+        candidates = [
+            (index, span)
+            for index, span in enumerate(spans)
+            if span.body_start_line == boundary.body_start_line
+            and span.body_start_column == boundary.body_start_column
+            and span.end_line == boundary.end_line
+            and span.end_column == boundary.end_column
+            and span.name.removesuffix("()").rsplit("::", 1)[-1] == exact_name
+        ]
+        if not candidates:
+            return None
+        return min(
+            candidates,
+            key=lambda item: (item[1].end_line - item[1].start_line, item[0]),
+        )[0]
+
+    def _append_estimated_cpp_targets(
+        self,
+        analysis: _CppComplexityAnalysis,
+        source_rows: _CppSourceRows,
+        matched_heuristic: dict[str, set[int]],
+        warn_cc: int,
+        fail_cc: int,
+        warn_nesting: int,
+    ) -> None:
+        for rel_p, (_text, spans) in source_rows.items():
+            for index, span in enumerate(spans):
+                if index in matched_heuristic[rel_p]:
+                    continue
+                analysis.targets.append(
                     self._make_cpp_target(
                         rel_p,
                         span.start_line,
@@ -369,11 +780,65 @@ class ComplexityEngine(BaseEngine):
                         warn_cc,
                         fail_cc,
                         warn_nesting,
+                        start_column=span.start_column,
+                        end_column=span.end_column,
+                        extra_metrics={
+                            "boundary_source": "heuristic",
+                            "boundary_confidence": "medium",
+                            "metric_confidence": "medium",
+                            "configurations": [],
+                        },
                     )
                 )
-                max_cc = max(max_cc, span.complexity)
+                analysis.estimated_boundaries += 1
+                analysis.max_complexity = max(analysis.max_complexity, span.complexity)
 
-        return max_cc, targets
+    @staticmethod
+    def _finish_cpp_analysis(analysis: _CppComplexityAnalysis) -> None:
+        if analysis.errors:
+            analysis.targets.append(
+                InspectionTarget(
+                    file_path=".",
+                    start_line=1,
+                    target_name="CppComplexityAnalysisError",
+                    status=EngineStatus.ERROR,
+                    message="; ".join(analysis.errors[:10]),
+                    metrics={"boundary_source": "compiler-tool-error"},
+                )
+            )
+        elif analysis.boundary_mode == "partial":
+            return
+        elif analysis.exact_boundaries and analysis.estimated_boundaries:
+            analysis.boundary_mode = "mixed"
+        elif analysis.exact_boundaries and analysis.boundary_mode != "partial":
+            analysis.boundary_mode = "exact"
+        elif not analysis.exact_boundaries and analysis.boundary_mode != "exact":
+            analysis.boundary_mode = "heuristic"
+
+    @staticmethod
+    def _cpp_boundary_metrics(
+        text: str,
+        boundary: CppFunctionBoundary,
+    ) -> tuple[int, int]:
+        lines = mask_cpp_literals(text).replace("<%", "{ ").replace("%>", "} ").splitlines()
+        selected = lines[boundary.body_start_line - 1 : boundary.end_line]
+        if not selected:
+            return 1, 0
+        if boundary.body_start_line == boundary.end_line:
+            selected[0] = selected[0][boundary.body_start_column - 1 : boundary.end_column]
+        else:
+            selected[0] = selected[0][boundary.body_start_column - 1 :]
+            selected[-1] = selected[-1][: boundary.end_column]
+        complexity = 1 + sum(_cpp_decision_count(line) for line in selected)
+        depth = 0
+        max_nesting = 0
+        for char in "\n".join(selected):
+            if char == "{":
+                depth += 1
+                max_nesting = max(max_nesting, max(0, depth - 1))
+            elif char == "}":
+                depth = max(0, depth - 1)
+        return complexity, max_nesting
 
     def _make_cpp_target(
         self,
@@ -386,6 +851,10 @@ class ComplexityEngine(BaseEngine):
         warn_cc: int = 15,
         fail_cc: int = 25,
         warn_nesting: int = 4,
+        *,
+        start_column: int | None = None,
+        end_column: int | None = None,
+        extra_metrics: dict[str, object] | None = None,
     ) -> InspectionTarget:
         if cc > fail_cc:
             st = EngineStatus.FAIL
@@ -397,12 +866,17 @@ class ComplexityEngine(BaseEngine):
             st = EngineStatus.PASS
             msg = f"Complexity: {cc}, Nesting: {nesting}"
 
+        metrics: dict[str, object] = {"complexity": cc, "nesting": nesting}
+        metrics.update(extra_metrics or {})
+        display_name = name if name.endswith("()") else f"{name}()"
         return InspectionTarget(
             file_path=rel_p,
             start_line=start,
             end_line=end,
-            target_name=f"{name}()",
+            start_column=start_column,
+            end_column=end_column,
+            target_name=display_name,
             status=st,
             message=msg,
-            metrics={"complexity": cc, "nesting": nesting},
+            metrics=metrics,
         )
