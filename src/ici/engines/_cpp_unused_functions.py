@@ -389,6 +389,8 @@ def _located_unused_diagnostics(
             continue
         if target.status != EngineStatus.WARN or not target.message.startswith("warning: "):
             continue
+        if not diagnostic.has_location:
+            raise ValueError("unused-function diagnostic has no source location")
         if target.file_path != prepared.unit.source:
             outcome.non_tu_diagnostics_excluded += 1
             continue

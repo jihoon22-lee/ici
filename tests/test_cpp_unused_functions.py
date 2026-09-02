@@ -318,6 +318,30 @@ def test_header_diagnostics_are_counted_but_outside_the_exact_source_contract(
     assert outcome.targets[0].status == EngineStatus.PASS
 
 
+def test_unlocated_matching_warning_fails_closed_instead_of_becoming_clean(
+    tmp_path: Path,
+) -> None:
+    root, context, snapshots = _context(
+        tmp_path,
+        {"src/main.cpp": "static void unused_helper() {}\nint main() { return 0; }\n"},
+    )
+    diagnostic = _diagnostic(root / "src/main.cpp", 1, 13)
+    diagnostic.pop("locations")
+
+    outcome = run_cpp_unused_functions(
+        root,
+        [root / "src/main.cpp"],
+        context,
+        source_texts=snapshots,
+        runner=lambda *_args, **_kwargs: _result([diagnostic]),
+    )
+
+    assert outcome.mode == "error"
+    assert outcome.functions == []
+    assert outcome.non_tu_diagnostics_excluded == 0
+    assert "has no source location" in outcome.errors[-1]
+
+
 def test_configuration_disagreement_fails_closed_without_exact_findings(tmp_path: Path) -> None:
     source = "#if CONFIGURATION\nstatic void unused_helper() {}\n#endif\n"
     configurations = {

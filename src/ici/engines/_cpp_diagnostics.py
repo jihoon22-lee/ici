@@ -90,6 +90,10 @@ class CppDiagnostic:
     # diagnostic.  Keeping them nested preserves their locations, messages,
     # and fix-its without inflating warning or finding counts.
     related_diagnostics: tuple[CppDiagnostic, ...] = ()
+    # JSON diagnostics may omit their location entirely. The shared parser
+    # retains a safe external sentinel for reporting, while exact adapters use
+    # this bit to distinguish "unlocated" from a genuinely external path.
+    has_location: bool = True
 
 
 @dataclass(frozen=True)
@@ -304,6 +308,7 @@ def _json_diagnostic(
             ),
             tool_rule_id=rule,
             fixits=fixits,
+            has_location=location_value is not None,
         )
     )
     children = value.get("children", [])
