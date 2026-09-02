@@ -18,14 +18,15 @@
   translation-phase backslash-newline splicing with physical-line provenance, preserves punctuator
   boundaries and literal categories, and keeps Qt semantic anchors stable. Matching indexes rolling
   normalized-window seeds and verifies exact token equality while extending regions within the
-  language/function/import/directive policy. A semantic-signal policy suppresses low-information
+  language/function/class/import/directive policy. A semantic-signal policy suppresses low-information
   Python tables and C++ array/enum-style data without suppressing real control-flow clones. Internal
   tokenizer, normalized-character, aggregate indexed-record, occurrence, seed-pair, extension, and
   raw-match budgets fail closed deterministically as `ERROR`/`NOT_RUN` with `SourceTokenizationError` or
   `DuplicateComparisonLimit` targets; they are not user configuration keys. Clone metadata now
   records `sha256/type2-region-v2`, `cpp-lexical-v1`/`python-lexical-v1`,
-  `language-function-scope-v1`, and `minimum-semantic-lines-v1`. Results remain
-  `ESTIMATED` with `language-lexical-region-heuristic` provenance; compiler/linker-backed exact
+  `language-function-scope-v1`, and `minimum-semantic-lines-v1`. Successfully completed results remain
+  `ESTIMATED` with `language-lexical-region-heuristic` provenance, while bounded failures are
+  `NOT_RUN`; compiler/linker-backed exact
   semantics and the complete I4-3 checkpoint remain pending. This slice keeps version `0.10.2`
   and creates no release.
 

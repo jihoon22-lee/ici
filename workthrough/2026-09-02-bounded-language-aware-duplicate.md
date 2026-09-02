@@ -75,8 +75,9 @@ self-dogfood failure.
 ### 3. Engine evidence and fixtures
 
 `src/ici/engines/dup.py` wires the common bounded source intake to the language tokenizers and
-regions, preserves generated/vendor exclusion policy, emits per-file PASS locations, and reports
-`language-lexical-region-heuristic` provenance with `ESTIMATED` evidence. Clone fingerprints use
+regions, preserves generated/vendor exclusion policy, and emits per-file PASS locations. A
+successfully completed analysis reports `language-lexical-region-heuristic` provenance with
+`ESTIMATED` evidence; bounded failures return `NOT_RUN`. Clone fingerprints use
 `sha256/type2-region-v2`.
 
 The focused fixtures cover Python and C/C++ syntax normalization, literal/API anchors, line

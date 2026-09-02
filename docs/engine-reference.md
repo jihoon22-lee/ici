@@ -718,8 +718,8 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 - **결과 metadata와 evidence**: clone group과 target metric에는
   `sha256/type2-region-v2` fingerprint를 기록하고 `extra`에 `tokenizer_versions`(현재
   `cpp-lexical-v1`/`python-lexical-v1`), `region_policy = language-function-scope-v1`,
-  `signal_policy = minimum-semantic-lines-v1`를 남긴다. 전체 결과는 compiler/linker 실측이
-  아닌 `ESTIMATED` (`analysis_provenance = language-lexical-region-heuristic`)다.
+  `signal_policy = minimum-semantic-lines-v1`를 남긴다. 정상 완료된 결과는 compiler/linker
+  실측이 아닌 `ESTIMATED` (`analysis_provenance = language-lexical-region-heuristic`)다.
 - **내부 한도와 fail-closed**: tokenizer token 수, normalized-character/indexed-record 수,
   shared-window occurrence, same/cross-file seed pair, extension comparison, raw match에는
   deterministic internal budget이 있다. 이 값들은 `[engines.dup]` 사용자 설정 키가 아니다.
