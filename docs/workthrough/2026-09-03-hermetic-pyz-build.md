@@ -142,7 +142,7 @@ The implementation and documentation boundary for this slice is:
 | Cross-path/source-mtime audit | PASS — the committed tree built in a second absolute worktree after all `src/` and `scripts/` mtimes were changed still produced the same SHA-256. |
 | Artifact boundary | Native/platform wheels, sdist execution, `certifi`, missing schemas, input/output symlinks, special entries, leaked locks, and source mutation fail closed. |
 | Focused regression | `uv run --python 3.10 pytest tests/test_pyz_assembly.py tests/test_purity.py -q` — 41 passed. |
-| Full Python 3.10 suite | The pre-review branch passed 2,171 tests with 7 environment-dependent C++ tool skips; the final post-review suite is recorded after rerun below. |
+| Full Python 3.10 suite | `uv run --python 3.10 pytest -ra` — 2,179 passed, 7 environment-dependent C++ tool skips. |
 | Static quality | Ruff check and format — 195 files PASS; mypy including the assembler — 108 source files PASS. |
 | Script/static checks | `bash -n scripts/build-pyz.sh scripts/verify-reproducibility.sh`, `actionlint .github/workflows/*.yml`, and focused Ruff check/format — PASS. |
 | Packaged smoke | `./scripts/smoke.sh` — direct/3.10 execution, doctor/env, artifact identity, self verification, and Zero-CDN PASS. |
