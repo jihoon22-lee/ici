@@ -1,5 +1,7 @@
 """Contracts for the deep-profile ThreadSanitizer engine."""
 
+import os
+import shutil
 from pathlib import Path
 
 import pytest
@@ -63,6 +65,7 @@ def test_generic_thread_sanitize_uses_isolated_flags_and_environment(
     assert result.extra["thread_sanitize_issues"] == 0
     assert result.extra["sanitizer_diagnostics"] == []
     assert "-fsanitize=thread" in calls[0][0]
+    assert "-pthread" in calls[0][0]
     assert "-fsanitize=address,undefined" not in calls[0][0]
     assert calls[0][0][-2:] == ["-o", calls[0][0][-1]]
     assert calls[1][0][0].endswith("test_race_tsan")
@@ -233,3 +236,43 @@ def test_adapter_thread_sanitize_keeps_process_linked_diagnostic(
     assert result.extra["sanitizer_diagnostics"][0]["process_evidence_index"] == 1
     assert result.tool_evidence[1].name == "ctest"
     assert result.findings[0].tool_rule_id == "tsan.data-race"
+
+
+def test_real_thread_sanitizer_publishes_project_owned_data_race(tmp_path: Path) -> None:
+    if shutil.which("g++") is None:
+        message = "g++ is unavailable for the real ThreadSanitizer integration test"
+        if os.environ.get("ICI_REQUIRE_BUILD_ADAPTERS") == "1":
+            pytest.fail(message)
+        pytest.skip(message)
+    source = tmp_path / "src/race.cpp"
+    source.parent.mkdir(parents=True)
+    source.write_text(
+        "int shared_value = 0;\n"
+        "void write_shared() {\n"
+        "    for (int i = 0; i < 100000; ++i) { ++shared_value; }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    test = tmp_path / "tests/test_race.cpp"
+    test.parent.mkdir(parents=True)
+    test.write_text(
+        "#include <thread>\n"
+        "void write_shared();\n"
+        "int main() {\n"
+        "    std::thread first(write_shared);\n"
+        "    std::thread second(write_shared);\n"
+        "    first.join();\n"
+        "    second.join();\n"
+        "    return 0;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = ThreadSanitizeEngine(tmp_path).run()
+
+    if result.status is EngineStatus.ERROR and os.environ.get("ICI_REQUIRE_BUILD_ADAPTERS") != "1":
+        pytest.skip(f"ThreadSanitizer runtime unavailable: {result.summary}")
+    assert result.status is EngineStatus.FAIL, result.summary
+    assert result.extra["sanitizer_diagnostics"][0]["kind"] == "tsan"
+    assert result.extra["sanitizer_diagnostics"][0]["defect"] == "data-race"
+    assert result.extra["sanitizer_diagnostics"][0]["primary_location"]["path"] == "src/race.cpp"
