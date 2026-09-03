@@ -77,6 +77,7 @@ def test_generic_thread_sanitize_uses_isolated_flags_and_environment(
     assert "UBSAN_OPTIONS" not in calls[1][1]
     assert result.targets[0].file_path == str(test.relative_to(tmp_path))
     assert result.targets[0].target_name == "TSan"
+    assert result.targets[0].message == "ThreadSanitizer completed without diagnostics"
 
 
 def test_thread_sanitize_publishes_normalized_data_race(

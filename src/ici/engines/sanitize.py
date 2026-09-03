@@ -77,6 +77,7 @@ class SanitizeEngine(BaseEngine):
     TEMP_PREFIX = "ici-sanitize-"
     BINARY_SUFFIX = "_asan"
     CPP_LABEL = "ASan/UBSan"
+    CPP_CLEAN_MESSAGE = "AddressSanitizer and UndefinedBehaviorSanitizer completed"
     CPP_COMPILE_FLAGS = (
         "-fsanitize=address,undefined",
         "-fno-omit-frame-pointer",
@@ -380,7 +381,7 @@ class SanitizeEngine(BaseEngine):
                             start_line=1,
                             target_name=self.CPP_LABEL,
                             status=EngineStatus.PASS,
-                            message=f"{self.CPP_LABEL} completed without diagnostics",
+                            message=self.CPP_CLEAN_MESSAGE,
                         )
                     )
         return has_failure
