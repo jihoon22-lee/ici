@@ -441,7 +441,12 @@ def test_cli_verify_allows_same_baseline_input_and_output_path(tmp_path, monkeyp
 
 @pytest.mark.parametrize(
     "command, engine_name",
-    [("sanitize", "sanitize"), ("dead", "dead"), ("exception", "exception")],
+    [
+        ("sanitize", "sanitize"),
+        ("thread-sanitize", "thread_sanitize"),
+        ("dead", "dead"),
+        ("exception", "exception"),
+    ],
 )
 @pytest.mark.parametrize("status, exit_code", [(EngineStatus.ERROR, 1), (EngineStatus.SKIP, 2)])
 def test_cli_safety_commands_map_error_and_skip_to_exit_codes(
@@ -461,6 +466,7 @@ def test_cli_safety_commands_map_error_and_skip_to_exit_codes(
 
     engine_attr = {
         "sanitize": "SanitizeEngine",
+        "thread-sanitize": "ThreadSanitizeEngine",
         "dead": "DeadCodeEngine",
         "exception": "ExceptionSafetyEngine",
     }[command]
@@ -546,6 +552,7 @@ def test_cli_dead_off_skips_compilation_context_preflight(tmp_path, monkeypatch)
         ("complexity", "ComplexityEngine", "complexity"),
         ("dup", "DuplicateEngine", "dup"),
         ("sanitize", "SanitizeEngine", "sanitize"),
+        ("thread-sanitize", "ThreadSanitizeEngine", "thread_sanitize"),
         ("dead", "DeadCodeEngine", "dead"),
         ("exception", "ExceptionSafetyEngine", "exception"),
     ],
