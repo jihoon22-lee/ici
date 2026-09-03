@@ -39,8 +39,19 @@ archive = sys.argv[1]
 expected_timestamp = datetime.fromtimestamp(1700000000, timezone.utc).timetuple()[:6]
 with zipfile.ZipFile(archive) as bundle:
     members = bundle.infolist()
+    names = [member.filename for member in members]
     if not members or any(member.date_time != expected_timestamp for member in members):
         raise SystemExit("ZipApp members do not use the canonical archive timestamp")
+    if len(names) != len(set(names)):
+        raise SystemExit("ZipApp contains duplicate member names")
+    site_members = [name for name in names if name.startswith("site-packages/")]
+    bootstrap_members = [name for name in names if name.startswith("_bootstrap/")]
+    expected_order = sorted(site_members) + sorted(bootstrap_members) + [
+        "environment.json",
+        "__main__.py",
+    ]
+    if names != expected_order:
+        raise SystemExit("ZipApp members are not in canonical archive order")
     for member in members:
         mode = member.external_attr >> 16
         if member.filename in {"environment.json", "__main__.py"}:

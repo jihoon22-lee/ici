@@ -625,13 +625,24 @@ non-symlink `dist` directory descriptor 안에 bounded payload를 임시 파일�
 set을 복구하고, 원래 없던 이름은 제거합니다. 쓰기·flush·`fsync` 실패 때 임시 파일도
 정리되며, 최종 `dist/ici.pyz`와 `dist/ici`는 byte-identical `0755`인지 확인합니다.
 
+shiv `1.0.8`은 bootstrap 입력을 `importlib.resources`의 filesystem iteration 결과에 따라
+읽을 수 있어 checkout 환경에 따라 `_bootstrap/` 내부 archive member 순서가 달라질 수
+있습니다. 따라서 `build-pyz.sh`는 선택된 helper Python으로 `scripts/run_shiv.py`를
+호출하고, wrapper가 shiv의 bootstrap resource를 archive 이름 기준으로 정렬한 뒤 shiv에
+위임합니다. `verify-reproducibility.sh`는 중복 member를 거부하고
+`site-packages/` → `_bootstrap/` → `environment.json` → `__main__.py`의 canonical entry
+순서를 확인합니다. 이 검사는 archive entry order 계약에 한정되며 zlib 버전이나 플랫폼
+전체의 byte identity를 주장하는 검사는 아닙니다.
+
 재현성 검증은 `scripts/verify-reproducibility.sh`가 의도적으로 서로 다른 환경에서 두 번
 빌드하는 방식입니다. 첫 빌드는 `umask 077`, `SOURCE_DATE_EPOCH=1`,
 `PYTHONHASHSEED=random`, 다른 locale/UTF-8 설정, `TZ=Pacific/Honolulu`, 두 번째 빌드는 `umask 002`,
 `SOURCE_DATE_EPOCH=4102444800`, `PYTHONHASHSEED=123`, `TZ=Asia/Seoul`을 사용합니다.
 두 SHA-256이 같아야 하며, verifier는 모든 ZipApp member의 canonical epoch/mode, shiv
-environment timestamp, 두 executable의 byte/mode 일치, `site-packages/.lock` 부재와 git
-source status 불변도 확인합니다.
+environment timestamp와 canonical entry order, duplicate member 부재, 두 executable의
+byte/mode 일치, `site-packages/.lock` 부재와 git source status 불변도 확인합니다. entry-order
+계약과 cross-environment digest는 각각 독립적으로 확인하며, 최종 digest는 현재 작업의
+acceptance gate에서 다시 확정합니다.
 
 ### 3. 기준선 비교와 delta gate
 

@@ -183,8 +183,10 @@ ici/
    흔적을 제거하고 `RECORD`를 갱신합니다. 이후 package tree와 packaging-tool tree를
    순회하며 symlink와 special/unsupported entry를 거부하고 regular file은 `0644`,
    directory는 `0755`로 설정합니다.
-4. **Archive and launcher:** canonicalized trees are passed to `shiv --reproducible` to
-   create the raw ZipApp. `scripts/assemble_pyz.py` pre-checks each input with nonblocking
+4. **Archive and launcher:** canonicalized trees are passed to `scripts/run_shiv.py` with the
+   selected helper Python. The wrapper sorts shiv 1.0.8's private bootstrap resources by archive
+   name before delegating to `shiv --reproducible`, making the `_bootstrap/` entry order
+   independent of filesystem iteration. `scripts/assemble_pyz.py` pre-checks each input with nonblocking
    `lstat`/open semantics and then opens bounded regular files without following symlinks, so FIFO
    and other special inputs fail closed without blocking. It anchors the non-symlink output
    directory by descriptor and rejects existing symlink or special outputs. Same-directory
@@ -203,11 +205,14 @@ locale/UTF-8 setting, and `TZ=Pacific/Honolulu`; the second uses `umask 002`,
 `dist/ici.pyz` SHA-256 values must match.
 The verifier also requires every ZipApp member to carry the canonical `1700000000` timestamp,
 checks `0644` modes for installed/bootstrap files and shiv's deterministic `0600` modes for its
-two synthetic top-level members, rejects a leaked `site-packages/.lock`, checks shiv's `built_at`,
-requires the two final outputs to be byte-identical `0755` files, and confirms that the build
-leaves git source status unchanged. The assembler's rollback and special-input boundaries are
-covered by focused regression tests, including a simulated second-output replacement failure,
-FIFO rejection without a blocking open, and temporary-file cleanup after write/sync failure.
+two synthetic top-level members, rejects duplicate members and any order other than
+`site-packages/` → `_bootstrap/` → `environment.json` → `__main__.py`, rejects a leaked
+`site-packages/.lock`, checks shiv's `built_at`, requires the two final outputs to be
+byte-identical `0755` files, and confirms that the build leaves git source status unchanged.
+The assembler's rollback and special-input boundaries are covered by focused regression tests,
+including a simulated second-output replacement failure, FIFO rejection without a blocking open,
+and temporary-file cleanup after write/sync failure. The archive-order check is deliberately
+limited to canonical member ordering; it is not a claim of zlib- or platform-independent bytes.
 
 ---
 

@@ -371,6 +371,17 @@
 
 ### Fixed
 
+- **Deterministic ZipApp bootstrap entry ordering (acceptance pending):** The packaging entrypoint
+  now delegates to a small `scripts/run_shiv.py` wrapper inside the selected Python 3.10+ helper
+  interpreter. The wrapper sorts shiv 1.0.8's private bootstrap resource entries by their archive
+  name before invoking shiv, closing a cross-checkout divergence caused by filesystem-dependent
+  `importlib.resources` iteration. `scripts/verify-reproducibility.sh` now rejects duplicate
+  archive members and requires the canonical `site-packages/`, `_bootstrap/`, `environment.json`,
+  and `__main__.py` entry order. This scope fixes archive entry ordering only; it does not claim
+  platform- or zlib-independent byte identity. The reproduced digest divergence and final gates
+  are recorded in the deterministic-bootstrap-order workthrough. No version bump or release is
+  implied; ici remains at `v0.10.2`.
+
 - **Hermetic and reproducible ZipApp builds:** `scripts/build-pyz.sh` now exports two
   independently scoped, frozen requirement files from `uv.lock`: the shipped runtime graph
   (`--no-dev`) and the packaging-tool group (`--only-group package`, currently `hatchling` and

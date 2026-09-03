@@ -171,8 +171,8 @@ for path in sorted(root.rglob("*")):
 root.chmod(0o755)
 PY
 
-echo "[3/4] shiv zipapp 생성"
-PYTHONPATH="$TOOLS" "$build_python" -m shiv \
+echo "[3/4] 정렬된 shiv zipapp 생성"
+PYTHONPATH="$TOOLS" "$build_python" scripts/run_shiv.py \
     --site-packages "$SITE" \
     --console-script ici \
     --compressed \
