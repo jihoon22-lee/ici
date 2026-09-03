@@ -149,7 +149,7 @@ def cpp_diagnostic_category(diagnostic: CppDiagnostic) -> FindingCategory:
     if family == "compiler":
         return FindingCategory.CORRECTNESS
     if family in {"clang-analyzer", "clang-tidy"}:
-        if rule.startswith(_CLANG_SECURITY_PREFIXES) or (
+        if (family == "clang-analyzer" and rule.startswith(_CLANG_SECURITY_PREFIXES)) or (
             family == "clang-tidy"
             and (
                 rule.startswith(_CLANG_TIDY_SECURITY_PREFIXES) or rule in _CLANG_TIDY_SECURITY_RULES

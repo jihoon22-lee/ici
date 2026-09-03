@@ -38,6 +38,11 @@ def _use_ruff(monkeypatch):
         ("clang-analyzer", "clang-analyzer-alpha.security.ArrayBoundV2", FindingCategory.SECURITY),
         ("clang-analyzer", "clang-analyzer-optin.taint.GenericTaint", FindingCategory.SECURITY),
         (
+            "clang-tidy",
+            "clang-analyzer-security.insecureAPI.strcpy",
+            FindingCategory.MAINTAINABILITY,
+        ),
+        (
             "clang-analyzer",
             "clang-analyzer-alpha.core.UseAfterLifetimeEnd",
             FindingCategory.RESOURCE,
@@ -100,6 +105,28 @@ def test_cpp_diagnostic_categories_use_only_bounded_rule_names(
     )
 
     assert LintEngine._cpp_finding_category(diagnostic) is category
+
+
+def test_cpp_diagnostic_category_does_not_depend_on_message() -> None:
+    def diagnostic(message: str) -> CppDiagnostic:
+        return CppDiagnostic(
+            target=InspectionTarget(
+                file_path="src/main.cpp",
+                start_line=1,
+                status=EngineStatus.WARN,
+                message=message,
+            ),
+            tool_rule_id="bugprone-use-after-move",
+            family="clang-tidy",
+        )
+
+    assert (
+        LintEngine._cpp_finding_category(diagnostic("free-form security ownership lifetime prose"))
+        is FindingCategory.RESOURCE
+    )
+    assert (
+        LintEngine._cpp_finding_category(diagnostic("unrelated text")) is FindingCategory.RESOURCE
+    )
 
 
 def test_cpp_diagnostic_category_policy_participates_in_cache_identity() -> None:
