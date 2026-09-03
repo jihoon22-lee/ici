@@ -9,6 +9,23 @@
 
 ### Added
 
+- **Runtime sanitizer diagnostic normalization (local slice):** ASan, LSan, and UBSan output is
+  recognized only from bounded report signatures and normalized into deterministic `kind`, `defect`,
+  detail rule identity, related stack-frame locations, and observed/project frame counts, plus a
+  project-owned primary location when validation succeeds. `SanitizeEngine` preserves the finding's
+  `tool_name`/`tool_rule_id` and links each
+  diagnostic detail to the recorded sanitizer process evidence. Project paths are validated with
+  the bounded no-follow stable-file reader; external frames are retained only as `[external]`
+  related locations, while diagnostics without a valid owned location remain explicit errors. The CTest
+  adapter keeps raw diagnostic transport private, bounds it to 65,536 UTF-8 bytes, and marks a
+  truncated transport instead of publishing partial evidence. It removes a stale JUnit file before
+  each CTest run, rejects sanitizer output attached to a nominally passing case, and treats timeout,
+  process-output truncation, malformed/oversized transcripts, or diagnostics without a validated
+  project location as `ERROR`/`NOT_RUN` rather than a clean result. Signal termination with a complete
+  located report remains a measured `FAIL`. Real `g++` ASan/UBSan/LSan regression projects pass in
+  the focused 132-test suite; the current full local Python 3.10 suite is `2,088 passed, 7 skipped`.
+  TSan, broader safety mappings, Quality Zoo/candidate cross-repository evidence, the wider I4-4
+  checkpoint, and any release remain pending; ici stays at `v0.10.2`.
 - **Candidate artifact producer (local contract and remote producer evidence complete):** Added the main-only `workflow_dispatch`
   contract and bounded provenance helpers for a non-release `ici.pyz` bundle. The workflow
   requires a full target SHA equal to the protected-main dispatch commit and verifies that commit

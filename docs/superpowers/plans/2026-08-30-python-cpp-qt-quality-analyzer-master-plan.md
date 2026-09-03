@@ -1360,9 +1360,12 @@ I4 전체 checkpoint를 닫지 않는다.
 
 ### I4-4. C++ safety
 
-**브랜치:** `feat/cpp-safety`
+**현재 normalization 브랜치:** `feat/sanitizer-diagnostic-normalization`
 
-- [ ] ASan/UBSan/LSan 결과를 sanitizer kind, stack location, process evidence로 정규화한다.
+- [x] ASan/UBSan/LSan 결과를 structured sanitizer kind와 defect, 검증된 project-owned primary
+  location, related stack-frame locations(프로젝트 밖은 `[external]`로 redacted), 그리고 연결된
+  process evidence로 정규화한다. bounded/private transport, timeout·truncation·unlocated
+  diagnostic은 fail-closed한다.
 - [ ] TSan은 별도 deep profile과 build variant로 제공한다.
 - [ ] resource/lifetime/security는 clang analyzer·clang-tidy·clazy 결과를 category별로 매핑한다.
 - [x] sanitizer가 build됐지만 테스트가 실행되지 않은 경우 ERROR로 구분한다.

@@ -1064,17 +1064,30 @@ shadow를 덮어쓰거나, 리포터가 결과를 표시하는 과정에서 분�
 낸 함수 단위 결과는 버리지 않고, 실패했을 때 그 바이너리의 실패 메시지에 함수 이름과
 사유로 붙습니다.
 
-CMake/CTest 경로가 지원하는 경우 CTest는 `--output-junit`으로 shadow 디렉터리의 JUnit 파일을
-만들고, adapter는 이를 최대 1,000,000 bytes까지 stable regular-file/no-follow 방식으로 읽습니다.
-파일이 없거나 malformed·oversized·읽는 중 변경이면 bounded CTest stdout 결과로 폴백하므로
-무제한 XML을 읽지 않습니다. JUnit의 `failure`/`error`와 `system-out`/`system-err`에서
-LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker를 찾으면 각각
-`LeakSanitizer diagnostic`, `AddressSanitizer diagnostic`, `UndefinedBehaviorSanitizer diagnostic`
-으로 분류하고, raw stack·source path는 결과 메시지에 넣지 않습니다. 일반 실패 메시지와
-test name도 512 characters로 제한됩니다.
+CMake/CTest 경로가 지원하는 경우 CTest는 실행 전에 예정된 shadow JUnit 파일을 제거한 뒤
+`--output-junit`으로 새 report를 만들고, adapter는 그 report만 최대 1,000,000 bytes까지
+stable regular-file/no-follow 방식으로 읽습니다. 파일이 없거나 malformed·oversized·읽는 중
+변경이면 bounded CTest stdout 결과로 폴백하므로 stale 또는 무제한 XML을 읽지 않습니다.
+JUnit의 `failure`/`error`와 `system-out`/`system-err`에서 LeakSanitizer, AddressSanitizer,
+UndefinedBehaviorSanitizer marker를 찾으면 nominal PASS status라도 해당 executed case를
+실패로 보존하고 public `message`에는 `LeakSanitizer diagnostic` 같은 bounded 분류만 남깁니다.
+raw transcript는 sanitizer engine 전용 private `TestCaseResult.diagnostic_output`으로 분리해
+UTF-8 최대 65,536 bytes와 truncation flag를 적용합니다. engine은 이를 deterministic
+`kind`/`defect`, `ici.sanitize.*` detail rule, related stack-frame locations, 관측/프로젝트
+frame count와 process evidence link를 가진 normalized detail로 변환하고, 검증 가능한 경우
+project-owned primary location과 native finding을 제공합니다. native finding은 호환 `rule_id`인
+`ici.legacy.sanitize.target`을 유지하고
+상세 sanitizer identity는 `tool_rule_id`에 두며, 프로젝트 밖의 frame path는 `[external]`로
+redacted합니다. timeout,
+process-output truncation, malformed/oversized diagnostic, 정규화 오류 또는 project location이
+없는 진단은 clean result로 축약하지 않고 `ERROR`/`NOT_RUN` 또는 위치 오류 target으로
+fail-closed합니다. 완전한 project-owned location을 가진 signal failure만 measured `FAIL`로
+보존하며, 일반 실패 메시지와 test name도 512 characters로 제한됩니다.
 
-adapter 결과의 `TestCaseResult`는 `name`, `passed`, `message`, `executed`를 가지며,
-마지막 네 번째 필드 `executed`는 기본값 `true`인 하위 호환 확장입니다. 따라서 기존 세 인자
+adapter 결과의 public `TestCaseResult` 계약은 `name`, `passed`, `message`, `executed`를 가지며,
+마지막 네 번째 필드 `executed`는 기본값 `true`인 하위 호환 확장입니다. sanitizer engine만
+읽는 private `diagnostic_output`과 `diagnostic_output_truncated`는 raw transport를 bounded하게
+전달하기 위한 내부 필드이며 일반 test reporter에는 노출하지 않습니다. 따라서 기존 세 인자
 positional 생성은 계속 동작하고, 실행되지 않은 case를 `passed = false`인 일반 실패와
 구분할 수 있습니다. `passed = true`와 `executed = false` 조합은 허용하지 않습니다.
 
