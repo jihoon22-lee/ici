@@ -34,6 +34,7 @@ class ThreadSanitizeEngine(SanitizeEngine):
     )
     CLEAN_SUMMARY = "Thread Safety & TSan Clean (0 Defects)"
     SKIP_SUMMARY = "ThreadSanitizer skipped: no applicable C++ checks were executed"
+    ISSUE_NOUN = "Thread Safety"
 
     @staticmethod
     def _contains_sanitizer_diagnostic(output: str) -> bool:

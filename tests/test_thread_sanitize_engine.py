@@ -57,6 +57,8 @@ def test_generic_thread_sanitize_uses_isolated_flags_and_environment(
 
     monkeypatch.setattr("ici.engines.sanitize.run_process", fake_run)
     monkeypatch.setenv("TSAN_OPTIONS", "history_size=4")
+    monkeypatch.delenv("ASAN_OPTIONS", raising=False)
+    monkeypatch.delenv("UBSAN_OPTIONS", raising=False)
 
     result = ThreadSanitizeEngine(tmp_path).run()
 
@@ -71,6 +73,8 @@ def test_generic_thread_sanitize_uses_isolated_flags_and_environment(
     assert calls[1][0][0].endswith("test_race_tsan")
     assert calls[1][1] is not None
     assert calls[1][1]["TSAN_OPTIONS"] == "history_size=4:halt_on_error=1"
+    assert "ASAN_OPTIONS" not in calls[1][1]
+    assert "UBSAN_OPTIONS" not in calls[1][1]
     assert result.targets[0].file_path == str(test.relative_to(tmp_path))
     assert result.targets[0].target_name == "TSan"
 
@@ -100,6 +104,7 @@ SUMMARY: ThreadSanitizer: data race {source}:1 in write_value
 
     assert result.status is EngineStatus.FAIL
     assert result.evidence is EvidenceState.MEASURED
+    assert result.summary == "1 Thread Safety Defect(s) Detected"
     assert result.extra["thread_sanitize_issues"] == 1
     assert result.extra["sanitizer_diagnostics"][0]["kind"] == "tsan"
     assert result.targets[0].target_name == "TSan Error"
@@ -236,6 +241,41 @@ def test_adapter_thread_sanitize_keeps_process_linked_diagnostic(
     assert result.extra["sanitizer_diagnostics"][0]["process_evidence_index"] == 1
     assert result.tool_evidence[1].name == "ctest"
     assert result.findings[0].tool_rule_id == "tsan.data-race"
+
+
+@pytest.mark.parametrize(
+    ("required", "expected_status"),
+    [(True, EngineStatus.ERROR), (False, EngineStatus.SKIP)],
+)
+def test_unexecuted_adapter_case_honors_thread_sanitize_required_policy(
+    tmp_path: Path,
+    required: bool,
+    expected_status: EngineStatus,
+) -> None:
+    engine = ThreadSanitizeEngine(
+        tmp_path,
+        {"engines": {"thread_sanitize": {"required": required}}},
+    )
+    session = BuildSession(
+        root=tmp_path,
+        shadow=tmp_path / "build/ici-cmake-tsan",
+        variant=BuildVariant.THREAD_SANITIZE,
+        backend="cmake",
+        descriptor="CMakeLists.txt",
+    )
+    targets = []
+
+    failed = engine._record_adapter_cases(
+        targets,
+        session,
+        [TestCaseResult("disabled_race", False, "disabled", executed=False)],
+        process_index=0,
+    )
+
+    assert failed is False
+    assert targets[0].status is expected_status
+    assert engine._skipped_scopes == 1
+    assert bool(engine._tool_errors) is required
 
 
 def test_real_thread_sanitizer_publishes_project_owned_data_race(tmp_path: Path) -> None:

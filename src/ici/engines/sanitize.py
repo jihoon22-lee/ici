@@ -87,6 +87,7 @@ class SanitizeEngine(BaseEngine):
     PARTIAL_SUMMARY = "Sanitize partially executed: one or more applicable scopes were skipped"
     CLEAN_SUMMARY = "Memory Safety & Sanitize Clean (0 Defects)"
     SKIP_SUMMARY = "Sanitize skipped: no applicable checks were executed"
+    ISSUE_NOUN = "Memory / Resource"
 
     # Runtime diagnostics and test execution are observations, not reusable
     # source-only analysis results.
@@ -184,7 +185,7 @@ class SanitizeEngine(BaseEngine):
             summary = (
                 self.CLEAN_SUMMARY
                 if overall_status == EngineStatus.PASS
-                else f"{self._issue_count(targets)} Memory / Resource Defect(s) Detected"
+                else f"{self._issue_count(targets)} {self.ISSUE_NOUN} Defect(s) Detected"
             )
         else:
             overall_status = EngineStatus.SKIP
