@@ -340,6 +340,31 @@ def test_candidate_quality_zoo_separates_tokens_from_candidate_execution():
     )
 
 
+def test_candidate_quality_zoo_prefers_candidate_manifest_with_stable_fallback():
+    accept = _job_block(_workflow("candidate-quality-zoo.yml"), "accept")
+    select = _step_block(accept, "Select Candidate Quality Zoo Manifest")
+    execute = _step_block(accept, "Verify Candidate Provenance and Run Quality Zoo")
+
+    assert "id: select-manifest" in select
+    assert 'candidate_manifest="candidate-manifest.json"' in select
+    assert 'stable_manifest="manifest.json"' in select
+    assert select.index('selected_manifest="$candidate_manifest"') < select.index(
+        'selected_manifest="$stable_manifest"'
+    )
+    assert 'selected_source="candidate"' in select
+    assert 'selected_source="stable-fallback"' in select
+    assert "must be a regular non-symlink file" in select
+    assert 'sha256sum -- "$selected_manifest"' in select
+
+    assert "MANIFEST_PATH: ${{ steps.select-manifest.outputs.path }}" in execute
+    assert "MANIFEST_SOURCE: ${{ steps.select-manifest.outputs.source }}" in execute
+    assert "MANIFEST_SHA256: ${{ steps.select-manifest.outputs.sha256 }}" in execute
+    assert "candidate:candidate-manifest.json|stable-fallback:manifest.json" in execute
+    assert '--manifest "$MANIFEST_PATH"' in execute
+    assert 'sha256sum -- "$MANIFEST_PATH"' in execute
+    assert "quality-zoo.manifest-selection/v1" in execute
+
+
 def test_candidate_quality_zoo_installs_cpp_qt_analysis_tools_without_credentials():
     accept = _job_block(_workflow("candidate-quality-zoo.yml"), "accept")
     install = _step_block(accept, "Install C++ and Qt analysis tools")

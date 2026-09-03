@@ -199,9 +199,11 @@ candidate consumer job은 Qt lifetime 및 C++ static-analysis scenario가 도구
 skip되지 않도록 hosted runner provisioning 단계에서 `clang`, `clang-tidy`, `clazy`, `cmake`,
 `g++`, `pkg-config`, `qt6-base-dev`를 준비한다. 이 CI 전용 단계는 ici/Quality Zoo 실행과
 분리되며 candidate preflight/실행은 비특권·무인증 상태로 유지되고 `GH_TOKEN`/
-`GITHUB_TOKEN`을 사용하지 않는다. 현재 로컬 purity contract는 `31 passed`, `actionlint`도
-PASS다. 첫 sanitizer 범위의 exact-revision acceptance는 완료됐지만, 이 feature head와 Qt
-lifetime expectation을 포함한 새 candidate dispatch/acceptance는 별도로 pending이다.
+`GITHUB_TOKEN`을 사용하지 않는다. 현재 로컬 purity contract는 `32 passed`, `actionlint`도
+PASS다. 첫 sanitizer 범위의 exact-revision acceptance에 이어 run `33718024450`이 category
+taxonomy와 Qt lifetime expectation을 포함한 6개 scenario를 모두 수용했다(artifact
+`9879217928`). 현재 ThreadSanitizer feature head는 별도 candidate artifact와 candidate-only
+manifest 수용이 필요하며, 앞선 증거를 재사용하지 않는다.
 
 실행 전 toy-projects의 `quality-zoo` 기대값이 포함된 최신 `main` SHA와 ici candidate producer
 artifact의 좌표를 별도로 확인한다. workflow는 네 개의 입력을 모두 요구한다.
@@ -230,6 +232,15 @@ candidate run, Merge Gate check/job/run ID와 attempt·URL을 독립 Actions API
 별도 읽기 전용 API 조회를 한 뒤 provenance를 완전히 검증한다. Quality Zoo 실행은 검증된
 로컬 `ici.pyz` 경로만 사용하며, candidate preflight와 실행 단계에서는
 `GH_TOKEN`/`GITHUB_TOKEN`/OIDC·runtime token을 명시적으로 제거한다.
+
+검증된 exact toy revision에 `quality-zoo/candidate-manifest.json`이 있으면 이를 우선
+선택하고, 파일이 없을 때만 기존 `quality-zoo/manifest.json`으로 fallback한다. 두 파일 모두
+regular non-symlink 파일이어야 하며 candidate가 malformed candidate manifest를 제공한 경우
+stable manifest로 조용히 우회하지 않고 실패한다. 선택 직후와 Quality Zoo 실행 직후 SHA-256을
+재확인하고, 결과 artifact의 `results/manifest-selection.json`에
+`quality-zoo.manifest-selection/v1`, 선택 source/path/digest를 기록한다. 따라서 candidate-only
+시나리오를 stable toy PR gate에 섞지 않으면서 어떤 기대값 집합을 실행했는지 독립적으로
+감사할 수 있다.
 
 성공 조건은 `quality-zoo.suite/v1`, non-empty scenario 결과, `scenario_count` 일치,
 `contract_verdict: PASS`, runner error 없음이다. preflight/intake 결과, API evidence와

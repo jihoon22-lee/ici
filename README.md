@@ -135,15 +135,23 @@ This closes the remote producer. The separate ici-hosted `candidate-quality-zoo.
 defines the manual consumer path: it injects the verified candidate by local path into a read-only
 Quality Zoo run while every toy PR's normal gate remains pinned to released ici `v0.10.2`. The first
 exact-revision candidate acceptance completed at run `33710695336` for the existing sanitizer
-contract; it does not cover this newer category taxonomy or Qt scenario. The released-artifact Q0
-result may be linked or added as a section of the existing `<!-- ici-report -->` body, but must
-preserve exactly one sticky comment rather than creating a second marker/comment.
+contract. The follow-up run `33718024450` then accepted the category-taxonomy candidate against the
+six-scenario toy main revision, including the Qt parent-ownership expectation; acceptance artifact
+`9879217928` records all six contracts as passing. The released-artifact Q0 result may be linked or
+added as a section of the existing `<!-- ici-report -->` body, but must preserve exactly one sticky
+comment rather than creating a second marker/comment.
 
 The consumer job provisions `clang`, `clang-tidy`, `clazy`, `cmake`, `g++`, `pkg-config`, and
 `qt6-base-dev` on its runner so a future Qt lifetime/C++ static-analysis scenario can execute.
 Provisioning and candidate preflight/execution do not use GitHub credentials; local purity coverage
-is `31 passed` and actionlint passes. A new candidate dispatch for this feature head and the Qt
-lifetime expectation remains pending.
+is `32 passed` and actionlint passes. Before the candidate run, the consumer prefers
+`quality-zoo/candidate-manifest.json` from the exact toy-projects commit when present; otherwise it
+uses `quality-zoo/manifest.json`. A selected manifest must be a regular non-symlink file, and its
+SHA-256 is checked before and after execution. The acceptance artifact records the selected path,
+source (`candidate` or `stable-fallback`), and digest as `quality-zoo.manifest-selection/v1`, so a
+candidate-only expectation set is auditable without changing the released-artifact toy gate. The
+new ThreadSanitizer feature head still requires a fresh candidate artifact and candidate-manifest
+acceptance; prior Qt/category evidence is not reused for that scope.
 
 ### Candidate-to-Quality-Zoo acceptance (manual, not a release)
 

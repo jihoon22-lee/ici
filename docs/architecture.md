@@ -1093,12 +1093,21 @@ evidence를 가져오는 단계에만 사용하며, candidate preflight·intake�
 Quality Zoo runner에 전달하고, preflight/intake/API evidence/runner 결과는 별도 bounded
 14일 artifact로 보존한다.
 
+Quality Zoo 입력은 exact toy revision에 결합된 두 단계 선택 규칙을 사용한다. 먼저
+`quality-zoo/candidate-manifest.json`이 regular non-symlink 파일로 존재하면 candidate-only
+기대값을 선택하고, 파일이 없을 때만 `quality-zoo/manifest.json`을 stable fallback으로
+선택한다. candidate 파일이 디렉터리·symlink·기타 비정규 파일이면 fallback하지 않고
+실패한다. 선택 파일의 SHA-256은 실행 전후에 고정되고, acceptance artifact의
+`results/manifest-selection.json`(`quality-zoo.manifest-selection/v1`)이 source/path/digest를
+기록하므로, exact toy SHA와 함께 실제로 어떤 기대값이 실행됐는지 재현할 수 있다.
+
 이 경계에서는 `publish`, Pages 배포, PR comment 또는 `<!-- ici-report -->` marker를 생성하지
 않는다. 따라서 toy PR의 normal gate는 계속 released ici `v0.10.2`를 사용하고, released
 artifact Q0 acceptance와 candidate consumer acceptance는 서로 다른 증거다. 첫 sanitizer
 범위는 exact-revision remote acceptance를 완료했다. 이 feature head의 taxonomy/tool
-provisioning과 후속 Qt lifetime expectation은 아직 별도 candidate acceptance가 필요하며,
-이전 candidate evidence를 재사용하지 않는다.
+provisioning과 Qt lifetime expectation도 run `33718024450`의 6개 scenario acceptance로
+완료했다. 이후 ThreadSanitizer feature head와 candidate-only manifest는 새 candidate
+acceptance가 필요하며, 이전 candidate evidence를 재사용하지 않는다.
 
 ## 5. 다중 리포터 계층 설계
 

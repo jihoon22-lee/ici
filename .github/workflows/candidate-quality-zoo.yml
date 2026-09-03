@@ -157,10 +157,45 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/actions/runs/${MERGE_GATE_RUN_ID}" \
             > "$evidence/gate-run.json"
 
+      - name: Select Candidate Quality Zoo Manifest
+        id: select-manifest
+        working-directory: toy-projects/quality-zoo
+        run: |
+          set -euo pipefail
+          candidate_manifest="candidate-manifest.json"
+          stable_manifest="manifest.json"
+          if [[ -e "$candidate_manifest" || -L "$candidate_manifest" ]]; then
+            if [[ ! -f "$candidate_manifest" || -L "$candidate_manifest" ]]; then
+              echo "candidate-manifest.json must be a regular non-symlink file" >&2
+              exit 1
+            fi
+            selected_manifest="$candidate_manifest"
+            selected_source="candidate"
+          elif [[ -e "$stable_manifest" || -L "$stable_manifest" ]]; then
+            if [[ ! -f "$stable_manifest" || -L "$stable_manifest" ]]; then
+              echo "manifest.json must be a regular non-symlink file" >&2
+              exit 1
+            fi
+            selected_manifest="$stable_manifest"
+            selected_source="stable-fallback"
+          else
+            echo "Quality Zoo has no supported manifest" >&2
+            exit 1
+          fi
+          selected_sha256="$(sha256sum -- "$selected_manifest" | cut -d ' ' -f1)"
+          {
+            printf 'path=%s\n' "$selected_manifest"
+            printf 'source=%s\n' "$selected_source"
+            printf 'sha256=%s\n' "$selected_sha256"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Verify Candidate Provenance and Run Quality Zoo
         env:
           ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
           CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
+          MANIFEST_PATH: ${{ steps.select-manifest.outputs.path }}
+          MANIFEST_SOURCE: ${{ steps.select-manifest.outputs.source }}
+          MANIFEST_SHA256: ${{ steps.select-manifest.outputs.sha256 }}
         working-directory: toy-projects/quality-zoo
         run: |
           set -euo pipefail
@@ -174,11 +209,38 @@ jobs:
             --destination "$RUNNER_TEMP/candidate-verified" \
             --github-evidence "$RUNNER_TEMP/candidate-evidence" \
             --json > "$RUNNER_TEMP/candidate-intake.json"
+          case "$MANIFEST_SOURCE:$MANIFEST_PATH" in
+            candidate:candidate-manifest.json|stable-fallback:manifest.json) ;;
+            *) echo "unexpected Quality Zoo manifest selection" >&2; exit 1 ;;
+          esac
+          test "$(sha256sum -- "$MANIFEST_PATH" | cut -d ' ' -f1)" = "$MANIFEST_SHA256"
           ICI_PYTHON=python3.10 python3.10 -m runner.run \
-            --manifest manifest.json \
+            --manifest "$MANIFEST_PATH" \
             --ici-bin "$RUNNER_TEMP/candidate-verified/ici.pyz" \
             --output-dir "$RUNNER_TEMP/quality-zoo-results" \
             --timeout-seconds 300
+          test "$(sha256sum -- "$MANIFEST_PATH" | cut -d ' ' -f1)" = "$MANIFEST_SHA256"
+          python3.10 - "$RUNNER_TEMP/quality-zoo-results/manifest-selection.json" \
+            "$MANIFEST_PATH" "$MANIFEST_SOURCE" "$MANIFEST_SHA256" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          output, path, source, sha256 = sys.argv[1:]
+          Path(output).write_text(
+              json.dumps(
+                  {
+                      "schema": "quality-zoo.manifest-selection/v1",
+                      "path": path,
+                      "sha256": sha256,
+                      "source": source,
+                  },
+                  sort_keys=True,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          PY
           python3.10 - "$RUNNER_TEMP/quality-zoo-results/suite.json" <<'PY'
           import json
           import sys
