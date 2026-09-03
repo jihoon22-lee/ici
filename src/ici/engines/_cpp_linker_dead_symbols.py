@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 import shlex
 import stat
+import sys
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -886,6 +887,9 @@ def run_cpp_linker_dead_symbols(
     root = project_root.resolve(strict=False)
     if not source_texts:
         outcome.mode = "not-applicable"
+        return outcome
+    if sys.platform != "linux":
+        outcome.warnings.append("Exact GNU ELF reachability is supported only on Linux")
         return outcome
     if context is None or context.project.backend != BACKEND_CMAKE:
         outcome.warnings.append("Exact GNU ELF reachability requires a root CMake project")

@@ -528,6 +528,27 @@ def test_off_policy_short_circuits_before_context_or_tool_execution(tmp_path: Pa
     assert outcome.evidence == []
 
 
+def test_non_linux_platform_is_unavailable_without_running_tools(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, context, _compiler = _context(tmp_path)
+    monkeypatch.setattr(linker.sys, "platform", "darwin")
+
+    outcome = linker.run_cpp_linker_dead_symbols(
+        root,
+        context,
+        source_texts={"src/main.cpp": "int main() { return 0; }\n"},
+        policy="auto",
+        runner=lambda *_args, **_kwargs: pytest.fail("unsupported platform must not execute tools"),
+    )
+
+    assert outcome.mode == "unavailable"
+    assert outcome.symbols == []
+    assert outcome.evidence == []
+    assert outcome.warnings == ["Exact GNU ELF reachability is supported only on Linux"]
+
+
 @pytest.mark.parametrize(
     ("policy", "mode", "has_error"),
     [("auto", "unavailable", False), ("required", "error", True)],
