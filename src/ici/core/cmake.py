@@ -281,7 +281,17 @@ def _attach_sanitizer_output(
             None,
         )
     if failed_index is None:
-        return results
+        diagnostic_output, transport_truncated = _bounded_sanitizer_transport(output)
+        return [
+            *results,
+            TestCaseResult(
+                "sanitizer-process",
+                False,
+                f"{sanitizer} diagnostic",
+                diagnostic_output=diagnostic_output,
+                diagnostic_output_truncated=truncated or transport_truncated,
+            ),
+        ]
     diagnostic_output, transport_truncated = _bounded_sanitizer_transport(output)
     attached = list(results)
     selected = attached[failed_index]

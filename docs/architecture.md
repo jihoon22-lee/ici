@@ -901,7 +901,8 @@ stable taxonomy rule로 정규화하고 unknown wording은
 남기고 외부 frame은 `[external]` sentinel로 redacted합니다. Python은 이 engine의 scope가
 아니므로 ResourceWarning을 실행하지 않습니다. TSan taxonomy는 memory sanitizer defect prefix와
 분리하며, aggregate CTest/qmake stream의 complete marker는 process exit 0 또는 framework PASS보다
-우선해 첫 executed case를 failure evidence에 연결합니다. 실제 g++ race regression은 local에서 통과했지만,
+우선해 첫 executed case를 failure evidence에 연결하고, executed case가 없으면 synthetic process
+case로 진단을 보존합니다. 실제 g++ race regression은 local에서 통과했지만,
 이 구현은 아직 feature PR/main 및 Quality Zoo TSan acceptance 전의 증거이고 I4-4 전체와
 release 완료를 뜻하지 않습니다.
 

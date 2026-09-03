@@ -763,7 +763,8 @@ evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트�
   failure는 measured `FAIL`이며 malformed·oversized·unlocated evidence는 clean으로 축약하지
   않고 fail-closed한다. TSan taxonomy는 ASan/LSan/UBSan prefix와 분리한다. Aggregate CTest 또는
   qmake stream에 complete TSan report가 있으면 framework가 모든 case를 PASS로 표시하거나 process가
-  0으로 끝나도 첫 executed case에 진단을 연결해 measured failure로 보존한다.
+  0으로 끝나도 첫 executed case에 진단을 연결해 measured failure로 보존한다. Executed case가
+  하나도 없으면 synthetic process case를 추가해 aggregate 진단 자체가 사라지지 않게 한다.
 - **검증 상태**: 실제 `g++` data-race fixture를 포함한 local regression은 통과했다. 이는
   현재 local implementation evidence이며 feature PR/main과 Quality Zoo TSan acceptance가
   아직 pending이므로 I4-4 전체 checkpoint나 release 완료를 의미하지 않는다.

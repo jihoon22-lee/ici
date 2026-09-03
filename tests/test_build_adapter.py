@@ -595,6 +595,40 @@ SUMMARY: ThreadSanitizer: data race /workspace/src/race.cpp:8 in writer
     assert "data race" in result.diagnostic_output
 
 
+def test_ctest_process_thread_sanitizer_report_survives_unexecuted_cases(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-cmake-tsan"
+    shadow.mkdir(parents=True)
+    session = BuildSession(
+        root=tmp_path,
+        shadow=shadow,
+        backend=BACKEND_CMAKE,
+        descriptor="CMakeLists.txt",
+        variant=BuildVariant.THREAD_SANITIZE,
+        configured=True,
+        cmake_version=(3, 20),
+    )
+    output = """1/1 Test #1: test_race ... Not Run 0.00 sec
+WARNING: ThreadSanitizer: data race
+    #0 writer /workspace/src/race.cpp:8
+SUMMARY: ThreadSanitizer: data race /workspace/src/race.cpp:8 in writer
+"""
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(
+        cmake_mod,
+        "run_process",
+        lambda *_args, **_kwargs: ProcessResult(0, output, "", 0.01),
+    )
+
+    results = run_tests(session)
+
+    assert results[0].executed is False
+    assert results[1].name == "sanitizer-process"
+    assert results[1].passed is False
+    assert results[1].executed is True
+    assert results[1].message == "ThreadSanitizer diagnostic"
+    assert "data race" in results[1].diagnostic_output
+
+
 @pytest.mark.parametrize(
     "payload",
     ["x" * 1_000_001, "U0001f40d" * 250_001],

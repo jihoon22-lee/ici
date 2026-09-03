@@ -58,7 +58,8 @@ evidence fails closed instead of becoming a clean result.
 
 CTest and qmake can report a passing case or return zero when runtime options change the sanitizer
 exit policy. A complete sanitizer marker in their aggregate process stream therefore overrides that
-nominal pass and is attached to the first executed case as private bounded diagnostic evidence.
+nominal pass and is attached to the first executed case as private bounded diagnostic evidence. If
+the framework exposes no executed case, a synthetic process case retains the aggregate diagnostic.
 
 ### 4. Documentation and status boundary
 

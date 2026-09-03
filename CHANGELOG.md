@@ -22,7 +22,9 @@
   project locations are bounded and validated, and external frames are redacted as `[external]`.
   TSan defect prefixes are isolated from the ASan/LSan/UBSan taxonomy. A complete aggregate
   CTest/qmake sanitizer report also overrides an otherwise passing case and zero process exit, so
-  runtime exit-code policy cannot turn observed race evidence into a clean result.
+  runtime exit-code policy cannot turn observed race evidence into a clean result. If a framework
+  reports no executed case, the aggregate diagnostic is retained as a synthetic process case rather
+  than discarded.
   The real g++ race regression passes locally. This is local implementation evidence only:
   feature PR/main and Quality Zoo TSan acceptance remain pending, I4-4 remains open, and ici stays
   at `v0.10.2` with no release.
