@@ -196,11 +196,22 @@ def test_thread_sanitize_requests_its_own_adapter_variant(
     assert seen[0].coverage is False
 
 
+@pytest.mark.parametrize(
+    ("backend", "descriptor", "process_name"),
+    [
+        ("cmake", "CMakeLists.txt", "ctest"),
+        ("qmake", "app.pro", "make check"),
+    ],
+)
 def test_adapter_thread_sanitize_keeps_process_linked_diagnostic(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    backend: str,
+    descriptor: str,
+    process_name: str,
 ) -> None:
     source, _test = _write_cpp_project(tmp_path)
-    (tmp_path / "CMakeLists.txt").write_text("project(tsan)\n", encoding="utf-8")
+    (tmp_path / descriptor).write_text("project(tsan)\n", encoding="utf-8")
     transcript = (
         "WARNING: ThreadSanitizer: data race\n"
         f"    #0 write_value {source}:1\n"
@@ -208,12 +219,12 @@ def test_adapter_thread_sanitize_keeps_process_linked_diagnostic(
     )
     session = BuildSession(
         root=tmp_path,
-        shadow=tmp_path / "build/ici-cmake-tsan",
+        shadow=tmp_path / f"build/ici-{backend}-tsan",
         variant=BuildVariant.THREAD_SANITIZE,
-        backend="cmake",
-        descriptor="CMakeLists.txt",
+        backend=backend,
+        descriptor=descriptor,
         configured=True,
-        tool_evidence=[ToolEvidence(name="cmake configure", path="/usr/bin/cmake")],
+        tool_evidence=[ToolEvidence(name=f"{backend} configure", path=f"/usr/bin/{backend}")],
     )
 
     monkeypatch.setattr("ici.engines.sanitize.adapter_configure", lambda *_args: session)
@@ -222,7 +233,11 @@ def test_adapter_thread_sanitize_keeps_process_linked_diagnostic(
     def fake_run_tests(_session, env=None):
         assert env is not None and "halt_on_error=1" in env["TSAN_OPTIONS"]
         session.tool_evidence.append(
-            ToolEvidence(name="ctest", path="/usr/bin/ctest", argv=["/usr/bin/ctest"])
+            ToolEvidence(
+                name=process_name,
+                path=f"/usr/bin/{process_name.split()[0]}",
+                argv=[f"/usr/bin/{process_name.split()[0]}"],
+            )
         )
         return [
             TestCaseResult(
@@ -239,7 +254,7 @@ def test_adapter_thread_sanitize_keeps_process_linked_diagnostic(
 
     assert result.status is EngineStatus.FAIL
     assert result.extra["sanitizer_diagnostics"][0]["process_evidence_index"] == 1
-    assert result.tool_evidence[1].name == "ctest"
+    assert result.tool_evidence[1].name == process_name
     assert result.findings[0].tool_rule_id == "tsan.data-race"
 
 

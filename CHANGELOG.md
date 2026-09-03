@@ -20,6 +20,9 @@
   `SUMMARY: ThreadSanitizer:` signatures enter the bounded normalizer. Known defect prefixes map to
   stable rule IDs, unknown TSan wording falls back to `ici.sanitize.tsan.thread-safety-defect`,
   project locations are bounded and validated, and external frames are redacted as `[external]`.
+  TSan defect prefixes are isolated from the ASan/LSan/UBSan taxonomy. A complete aggregate
+  CTest/qmake sanitizer report also overrides an otherwise passing case and zero process exit, so
+  runtime exit-code policy cannot turn observed race evidence into a clean result.
   The real g++ race regression passes locally. This is local implementation evidence only:
   feature PR/main and Quality Zoo TSan acceptance remain pending, I4-4 remains open, and ici stays
   at `v0.10.2` with no release.

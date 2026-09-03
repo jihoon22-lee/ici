@@ -51,9 +51,14 @@ source-file intake; it validates project-owned locations and represents external
 
 Known defect prefixes such as data races, lock-order inversions, thread leaks, and mutex failures
 map to deterministic defect and rule IDs. Unknown TSan wording never becomes a public rule ID;
-it falls back to `ici.sanitize.tsan.thread-safety-defect`. A complete report with a validated
+it falls back to `ici.sanitize.tsan.thread-safety-defect`, and TSan never borrows defect prefixes
+from the memory-sanitizer taxonomy. A complete report with a validated
 project location remains a measured failure, while malformed, oversized, incomplete, or unlocated
 evidence fails closed instead of becoming a clean result.
+
+CTest and qmake can report a passing case or return zero when runtime options change the sanitizer
+exit policy. A complete sanitizer marker in their aggregate process stream therefore overrides that
+nominal pass and is attached to the first executed case as private bounded diagnostic evidence.
 
 ### 4. Documentation and status boundary
 
@@ -92,6 +97,7 @@ TSAN_OPTIONS=history_size=4
 | Build isolation | `THREAD_SANITIZE` uses `-tsan` and TSan-only flags; ASan/UBSan flags are absent from the variant. |
 | Runtime environment | Existing `TSAN_OPTIONS` is preserved and `halt_on_error=1` is added. |
 | Parser contract | Exact TSan `WARNING`/`SUMMARY` signatures, bounded locations, external redaction, known IDs, and stable unknown fallback are covered by regression tests. |
+| Adapter exit policy | Complete process-level TSan evidence overrides nominal CTest/qmake PASS and exit code zero. |
 | Real runtime | The real `g++` data-race regression passes locally. |
 | Repository quality | Parent session reports the full local test gate passing; this worktree change is documentation-only. |
 | Release state | No version or release change; ici remains `v0.10.2`. |

@@ -562,6 +562,39 @@ SUMMARY: ThreadSanitizer: data race /workspace/src/race.cpp:8 in writer
     assert "data race" in result.diagnostic_output
 
 
+def test_ctest_process_thread_sanitizer_report_overrides_passing_case(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-cmake-tsan"
+    shadow.mkdir(parents=True)
+    session = BuildSession(
+        root=tmp_path,
+        shadow=shadow,
+        backend=BACKEND_CMAKE,
+        descriptor="CMakeLists.txt",
+        variant=BuildVariant.THREAD_SANITIZE,
+        configured=True,
+        cmake_version=(3, 20),
+    )
+    output = """1/1 Test #1: test_race ... Passed 0.01 sec
+WARNING: ThreadSanitizer: data race
+    #0 writer /workspace/src/race.cpp:8
+SUMMARY: ThreadSanitizer: data race /workspace/src/race.cpp:8 in writer
+"""
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(
+        cmake_mod,
+        "run_process",
+        lambda *_args, **_kwargs: ProcessResult(0, output, "", 0.01),
+    )
+
+    result = run_tests(session)[0]
+
+    assert result.name == "test_race"
+    assert result.passed is False
+    assert result.executed is True
+    assert result.message == "ThreadSanitizer diagnostic"
+    assert "data race" in result.diagnostic_output
+
+
 @pytest.mark.parametrize(
     "payload",
     ["x" * 1_000_001, "U0001f40d" * 250_001],
@@ -825,6 +858,38 @@ make: *** [Makefile:10: check] Error 1
     assert "heap-use-after-free" in results[0].diagnostic_output
     assert results[0].diagnostic_output_truncated is False
     assert session.tool_evidence[-1].name == "make check"
+
+
+def test_run_tests_qmake_thread_sanitizer_report_overrides_zero_exit(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-qmake-tsan"
+    shadow.mkdir(parents=True)
+    session = BuildSession(
+        root=tmp_path,
+        shadow=shadow,
+        backend=BACKEND_QMAKE,
+        descriptor="app.pro",
+        variant=BuildVariant.THREAD_SANITIZE,
+        configured=True,
+    )
+    output = """./test_race -xunitxml
+WARNING: ThreadSanitizer: data race
+    #0 writer /workspace/src/race.cpp:8
+SUMMARY: ThreadSanitizer: data race /workspace/src/race.cpp:8 in writer
+"""
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(
+        cmake_mod,
+        "run_process",
+        lambda *_args, **_kwargs: ProcessResult(0, output, "", 0.01),
+    )
+
+    result = run_tests(session)[0]
+
+    assert result.name == "test_race"
+    assert result.passed is False
+    assert result.executed is True
+    assert result.message == "ThreadSanitizer diagnostic"
+    assert "data race" in result.diagnostic_output
 
 
 def test_run_tests_rejects_oversized_junit_and_uses_bounded_stdout_fallback(tmp_path, monkeypatch):

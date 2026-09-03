@@ -260,18 +260,39 @@ def _attach_sanitizer_output(
             replace(case, diagnostic_output_truncated=True) if case.diagnostic_output else case
             for case in results
         ]
-    if not any(marker.search(output) is not None for _name, marker in _SANITIZER_FAILURE_MARKERS):
+    sanitizer = next(
+        (name for name, marker in _SANITIZER_FAILURE_MARKERS if marker.search(output) is not None),
+        None,
+    )
+    if sanitizer is None:
         return results
     failed_index = next(
         (index for index, case in enumerate(results) if case.executed and not case.passed),
         None,
     )
     if failed_index is None:
+        # Sanitizer runtimes can be configured to return zero even after a
+        # complete report. CTest and make may therefore label every case as a
+        # pass while the aggregate process stream still contains the only
+        # defect evidence. Attribute that evidence conservatively to the first
+        # executed case instead of turning a real report into a clean run.
+        failed_index = next(
+            (index for index, case in enumerate(results) if case.executed),
+            None,
+        )
+    if failed_index is None:
         return results
     diagnostic_output, transport_truncated = _bounded_sanitizer_transport(output)
     attached = list(results)
+    selected = attached[failed_index]
     attached[failed_index] = replace(
-        attached[failed_index],
+        selected,
+        passed=False,
+        message=(
+            selected.message
+            if not selected.passed and selected.message
+            else f"{sanitizer} diagnostic"
+        ),
         diagnostic_output=diagnostic_output,
         diagnostic_output_truncated=truncated or transport_truncated,
     )

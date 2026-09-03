@@ -280,3 +280,18 @@ def test_unknown_thread_sanitizer_wording_never_becomes_a_rule_id(tmp_path: Path
 
     assert {item.defect for item in diagnostics} == {"thread-safety-defect"}
     assert {item.rule_id for item in diagnostics} == {"ici.sanitize.tsan.thread-safety-defect"}
+
+
+def test_thread_sanitizer_never_borrows_memory_sanitizer_defect_ids(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "race.cpp"
+    source.write_text("int main() { return 0; }\n", encoding="utf-8")
+
+    diagnostics = parse_sanitizer_diagnostics(
+        f"WARNING: ThreadSanitizer: heap-use-after-free\n    #0 run {source}:1\n",
+        tmp_path,
+    )
+
+    assert diagnostics[0].defect == "thread-safety-defect"
+    assert diagnostics[0].rule_id == "ici.sanitize.tsan.thread-safety-defect"

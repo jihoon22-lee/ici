@@ -43,13 +43,16 @@ _ADDRESS_RE = re.compile(r"\b0x[0-9a-f]+\b", re.IGNORECASE)
 _NUMBER_RE = re.compile(r"\b\d+\b")
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
-_DEFECT_PREFIXES = (
+_TSAN_DEFECT_PREFIXES = (
     ("data race", "data-race"),
     ("lock-order-inversion", "lock-order-inversion"),
     ("thread leak", "thread-leak"),
     ("mutex destroyed while busy", "mutex-destroyed-while-busy"),
     ("unlock of an unlocked mutex", "invalid-mutex-unlock"),
     ("double lock of a mutex", "double-mutex-lock"),
+)
+
+_MEMORY_DEFECT_PREFIXES = (
     ("heap-use-after-free", "heap-use-after-free"),
     ("stack-use-after-return", "stack-use-after-return"),
     ("stack-use-after-scope", "stack-use-after-scope"),
@@ -115,7 +118,8 @@ def _kind(tool: str, summary: str) -> str:
 
 def _defect(tool: str, summary: str) -> str:
     lowered = " ".join(summary.casefold().split())
-    for prefix, defect in _DEFECT_PREFIXES:
+    prefixes = _TSAN_DEFECT_PREFIXES if tool == "ThreadSanitizer" else _MEMORY_DEFECT_PREFIXES
+    for prefix, defect in prefixes:
         if lowered.startswith(prefix) or f": {prefix}" in lowered:
             return defect
     if tool == "ThreadSanitizer":

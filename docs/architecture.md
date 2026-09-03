@@ -899,7 +899,9 @@ signature만 starter로 받아 diagnostic/frame/source 한도를 적용합니다
 stable taxonomy rule로 정규화하고 unknown wording은
 `ici.sanitize.tsan.thread-safety-defect`로 수렴하며, validated project location만 primary로
 남기고 외부 frame은 `[external]` sentinel로 redacted합니다. Python은 이 engine의 scope가
-아니므로 ResourceWarning을 실행하지 않습니다. 실제 g++ race regression은 local에서 통과했지만,
+아니므로 ResourceWarning을 실행하지 않습니다. TSan taxonomy는 memory sanitizer defect prefix와
+분리하며, aggregate CTest/qmake stream의 complete marker는 process exit 0 또는 framework PASS보다
+우선해 첫 executed case를 failure evidence에 연결합니다. 실제 g++ race regression은 local에서 통과했지만,
 이 구현은 아직 feature PR/main 및 Quality Zoo TSan acceptance 전의 증거이고 I4-4 전체와
 release 완료를 뜻하지 않습니다.
 
