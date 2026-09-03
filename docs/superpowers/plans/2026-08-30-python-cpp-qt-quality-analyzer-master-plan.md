@@ -1231,9 +1231,29 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     (compiler/cwd-bound include-projection cache identity), `ea1d4b5` (project formatting),
     `2b7ff41` (automatic C++ analysis scope), `13099ca` (translation-unit language guard)로
     반영했다.
+  - [x] **GNU ELF target-local linker discarded-function slice**를 별도
+    `[engines.dead].cpp_linker = "auto" | "required" | "off"` 정책으로 추가했다. 이 slice는
+    root CMake project의 isolated Release shadow에서 capability-approved GCC driver와 GNU
+    `ld`를 확인하고, direct-object executable link command에 `-ffunction-sections`,
+    `--gc-sections`, `--print-gc-sections`, no-PIE/no-LTO를 적용한 뒤 GNU `ld`가 실제로
+    discard한 project-owned local/hidden function section만 `addr2line`으로 위치화한다. 단일
+    symbol/section/target 매핑과 source location이 확인될 때만 `EXACT`/`MEASURED` finding을
+    만들고, ambiguous/COMDAT/clone/default-visible/archive/shared/LTO/linker-script 경로는
+    제외한다. `auto`의 unavailable context/tool은 `SKIP`/`NOT_RUN`, `required`는
+    `ERROR`/`NOT_RUN`, `off`는 probe 자체를 끈다. 이 결과는 여러 object/library의 전역
+    reachability 증명이 아니다.
+  - [x] 위 linker adapter에는 discovered `link.txt` 256개, link file 4 MiB, argument
+    32,768개/1 MiB, direct object 4,096개, tool-output cap 4 MiB, discarded section 16,384개,
+    command 180초/전체
+    900초의 bounded contract와 shell/response-file/unsafe linker flag 거부, owned shadow 및
+    source mapping 검증을 적용했다. `examples/cpp-fixtures/cmake_elf_dead`는 live entry/leaf와
+    discarded `dead_leaf`/hidden `dead_entry`를 함께 가진 CMake fixture이며, focused real-tool
+    E2E에서 두 discarded 위치만 finding으로 보고하고 live/main은 discarded
+    symbol로 보고하지 않는다(PASS scan target은 남을 수 있다).
   - [ ] **Whole-program/linker-backed dead-symbol reachability**는 아직 pending이다. 여러
     object/library를 연결한 결과, external/dynamic lookup, plugin 또는 Qt meta-object 경로를
-    포함하는 전역 unused-symbol 판정은 별도 범위로 남긴다.
+    포함하는 전역 unused-symbol 판정은 별도 범위로 남긴다. 위 target-local GNU ELF 증거를
+    broader whole-program deadness의 완료로 해석하지 않는다.
 
   - [x] **이 C++ TU-local slice의 remote acceptance:** descriptive PR #137,
     `feat(dead): add compiler-backed C/C++ unused-function evidence`의 required checks가
@@ -1262,9 +1282,9 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     | viewer | 363,788 / `223c027a6cbbef5aa08c464f210286c6a90ae2a702451739aa94bf704648188f` | 905,152 / `152e6c2f6d2b53728f39680b3198b5fb46d1c28e915731c6a7693f85c0175557` |
 
     이 acceptance는 narrow TU-local compiler-diagnostic slice만 닫는다. broader
-    linker/whole-program dead-symbol analysis와 full semantic duplicate analysis, I4-3 aggregate/I4
-    checkpoint는 계속 pending이다. 버전은 `0.10.2`로 유지하며 이 slice를 위한 release는 만들지
-    않는다.
+    linker/whole-program dead-symbol analysis와 C++ AST/semantic duplicate analysis, behavioral
+    equivalence, I4-3 aggregate/I4 checkpoint는 계속 pending이다. 버전은 `0.10.2`로 유지하며 이
+    slice를 위한 release는 만들지 않는다.
 - [ ] duplicate는 generated/moc/vendor code를 기본 제외하고 token/region fingerprint를 통합한다.
   - [x] 공통 intake의 generated/moc/vendor 기본 제외와 두 independent literal-boolean opt-in을
     적용하고, overlapping classification은 두 opt-in이 모두 켜져야 포함한다. owned C/C++
@@ -1279,9 +1299,27 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     확인, bounded extension과 maximal-match deduplication을 적용한다. 현재 fingerprint는
     `sha256/type2-region-v2`이고 결과 provenance는
     `language-lexical-region-heuristic`/`ESTIMATED`다.
-  - [ ] full duplicate 의미 분석과 broader whole-program/linker-backed dead-symbol evidence는
-    아직 pending이다. bounded lexical slice나 이번 TU-local compiler diagnostic slice만으로
-    I4-3 전체를 완료로 표시하지 않는다.
+  - [x] **bounded Python AST-shape duplicate slice**를 `[engines.dup].python_semantic =
+    "auto" | "required" | "off"` 정책으로 추가했다. Python 3.10 AST의 named function,
+    async function, method, class region을 line-preserving source target으로 추출하고,
+    nested named scope는 parent shape에서 prune한 뒤 별도 region으로 보존한다. local binding은
+    alpha-normalize하지만 source-spelled import/name/attribute anchors, operators,
+    control-flow, literals, defaults,
+    annotations, decorators와 recursion anchor는 보존하며 canonical shape를
+    `sha256/semantic-shape-v1`로 fingerprint한다. lexical group과 중복되는 occurrence는
+    억제하고, callable region만 bounded semantic group으로 추가한다.
+  - [x] Python semantic shape는 `eval`/`exec` 호출과 그 이름의 literal `getattr` lookup,
+    `global`/`nonlocal`, star import,
+    lambda/comprehension scope, malformed 또는 unsupported AST를 보수적으로 제외한다.
+    제외 위치와 이유는 `extra`에 남기고 `required` 오류는 위치 있는 `InspectionTarget`으로
+    만든다. `auto`는 usable region이 있으면 `partial`, `required`는 exclusion을
+    `ERROR`/`NOT_RUN`, `off`는 `off`로 보고한다. 파일
+    256개, named region 20,000개, AST node 500,000개, serialized shape 16 MiB 한도를 넘으면
+    partial region을 내지 않고 fail-closed한다. 이 slice는 C++ AST/semantic duplicate analysis,
+    near-clone edit equivalence 또는 behavioral equivalence를 주장하지 않는다.
+  - [ ] C++ AST/semantic duplicate analysis, behavioral equivalence와 broader
+    whole-program/linker-backed dead-symbol evidence는 아직 pending이다. bounded Python AST
+    shape와 target-local GNU ELF 증거만으로 I4-3 전체를 완료로 표시하지 않는다.
 - [x] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
 
 이 source-evidence slice는 PR #133으로 `main` (`fdc797a0c71c46d9301db2569928468ff42e24af`)에
@@ -1321,9 +1359,9 @@ Zero-CDN을 통과했다.
 | viewer | 358,047 | `a212609c54fe6fa10cd8f6abe3318c0094f9b3fd23ba9b7570f59f46612d1d30` | [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/) — `ici Verification Report — viewer` |
 
 PR #133의 local/remote branch는 병합 후 삭제됐다. 이 evidence는 source-evidence 구현 delivery를
-닫지만 broader whole-program/linker-backed dead-symbol evidence와 full duplicate semantic analysis는 여전히
-pending이므로 I4-3 또는 I4 전체 checkpoint를 닫지 않는다. 버전은 `0.10.2`로 유지하고 새
-release는 만들지 않는다.
+닫지만 broader whole-program/linker-backed dead-symbol evidence와 C++ AST/semantic 또는 behavioral
+duplicate analysis는 여전히 pending이므로 I4-3 또는 I4 전체 checkpoint를 닫지 않는다. 버전은
+`0.10.2`로 유지하고 새 release는 만들지 않는다.
 
 ### Language-aware duplicate tokenization — PR #135 accepted (2026-09-03)
 
@@ -1332,9 +1370,32 @@ release는 만들지 않는다.
 title, Zero-CDN, PR synthetic merge 및 exact-main `source_commit`을 독립 확인했다. 정확한
 local test, DiskMap/BuildScope/LogLens/ici 측정값, 원격 artifact hash는
 [`bounded language-aware duplicate workthrough`](../../../workthrough/2026-09-02-bounded-language-aware-duplicate.md)에
-고정한다. 이 acceptance는 bounded lexical/token-region 하위 범위만 닫으며 full semantic
-duplicate 및 broader whole-program/linker-backed dead-symbol evidence는 계속 pending이다. 버전은 `0.10.2`로 유지하고 이
-slice에 대한 release는 만들지 않는다.
+고정한다. 이 acceptance는 bounded lexical/token-region 하위 범위만 닫으며 C++ AST/semantic
+duplicate 및 broader whole-program/linker-backed dead-symbol evidence는 계속 pending이다. 이
+후속 combined slice의 bounded Python AST-shape 결과는 별도 local implementation으로
+기록하며, C++ AST/semantic duplicate와 behavioral equivalence는 여전히 pending이다. 버전은
+`0.10.2`로 유지하고 이 slice에 대한 release는 만들지 않는다.
+
+### Combined maintainability slices — local implementation, PR/CI pending (2026-09-03)
+
+현재 `feat/maintainability-analysis-completion` 브랜치는 서로 관련된 두 maintainability
+slice를 하나의 PR로 묶는다. `6f2ba70`의 GNU ELF target-local linker discarded-function
+evidence와 `5c0224e`의 bounded Python AST-shape duplicate analysis가 핵심이며, `e6b20a6`은
+CLI regression 계약, `36f30cc`은 Linux-only 실행 경계를 고정한다. 두 slice의 local
+implementation과 Python 3.10 regression은 완료됐지만, 이 브랜치에 대한 PR,
+PR CI, exact-main, Pages 또는 cross-repository acceptance는 아직 생성·검증하지 않았다.
+
+- GNU linker slice는 `[engines.dead].cpp_linker`를 기존 `cpp_unused`와 독립적으로 적용하며,
+  CMake direct-object executable, GNU `ld`, local/hidden uniquely mapped function section과
+  compiler/source-owned location만 exact로 인정한다.
+- Python slice는 `[engines.dup].python_semantic`을 기존 lexical detector와 병행하고,
+  deterministic canonical AST shape와 bounded exclusions/limits를 보존한다. aggregate duplicate
+  status/evidence는 기존 보수적 계약을 유지한다.
+- 전체 I4-3 aggregate, C++ AST/semantic duplicate analysis, behavioral equivalence,
+  whole-program deadness/linker reachability 및 I4 checkpoint는 닫지 않는다.
+- Local evidence: related focused bundle `362 passed`; full Python 3.10 suite `2295 passed,
+  7 skipped`; Ruff check/format pass. 버전은 `0.10.2`로 유지하며 release/tag/version bump는
+  없다.
 
 PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 candidate SHA
 `7945475868717131b1a908d93ec84e86e42020567182485b686e736e79268f7f`와 Python 3.10
@@ -1357,29 +1418,30 @@ exact-main run `33593218450`은 성공했으며, PR run은 exactly one sticky ma
 `7,454,995`/`356,598` bytes였고, exact-main JSON/main `source_commit`은 같은 SHA와 일치했다.
 main Pages도 같은 검사를 통과하고 ici `7,454,995` bytes/SHA `182a0d05…5adbb75`, viewer
 `356,598` bytes/SHA `fb772d4a…c0c4794`로 byte-match됐다. 두 run에서 skip된 것은 예상된
-PR/main publish job뿐이다. 이 evidence는 I4-3 aggregate, dead/duplicate 정책, 남은 I4-4 또는
-I4 전체 checkpoint를 닫지 않는다.
+PR/main publish job뿐이다. 이 evidence는 I4-3 aggregate, broader dead/unused-symbol reachability,
+C++ AST/semantic/behavioral duplicate analysis, 남은 I4-4 또는 I4 전체 checkpoint를 닫지 않는다.
 
 ### I4-4. C++ safety
 
-**현재 normalization 브랜치:** `feat/sanitizer-diagnostic-normalization`
+**Sanitizer normalization accepted slice:** `feat/sanitizer-diagnostic-normalization`은 PR #142로
+병합됐고 exact-main 및 sanitizer candidate acceptance를 완료했다.
 
-**현재 TSan local slice:** `feat/thread-sanitizer-deep-profile`. `ThreadSanitizeEngine`과
-`BuildVariant.THREAD_SANITIZE`(`thread-sanitize`) 구현은 local branch에 존재하지만, 아래
-checkbox는 PR/main/Quality Zoo acceptance까지 확인할 때까지 닫지 않는다. TSan은 `-tsan`
+**TSan accepted slice:** `feat/thread-sanitizer-deep-profile`은 PR #146에서
+`cfd706605bad57cf5476de9af06ed98322605d13`으로 병합됐다. PR run `33717584710`, exact-main run
+`33718399268`과 아래 exact candidate Quality Zoo acceptance가 완료됐다. TSan은 `-tsan`
 shadow와 `-fsanitize=thread -fno-omit-frame-pointer -g`, CMake/qmake adapter 및 generic
 `-pthread` link를 사용하고, Python scope는 unsupported다. 기존 `TSAN_OPTIONS`는 보존하면서
 `halt_on_error=1`을 추가하며, bounded `WARNING`/`SUMMARY` parser·project location 검증·외부
-frame redaction·stable known/unknown defect rule을 적용한다. 실제 g++ race regression은
-통과했지만 분류/Qt candidate evidence는 별도 진행 중이고 version `0.10.2` 및 release 상태는
-변경하지 않는다.
+frame redaction·stable known/unknown defect rule을 적용한다. 실제 g++ race regression과 별도
+category/Qt candidate evidence도 각각 수용됐지만 broader I4-4와 version `0.10.2` 및 release
+상태는 변경하지 않는다.
 
 - [x] ASan/UBSan/LSan 결과를 structured sanitizer kind와 defect, 검증된 project-owned primary
   location, related stack-frame locations(프로젝트 밖은 `[external]`로 redacted), 그리고 연결된
   process evidence로 정규화한다. bounded/private transport, timeout·truncation·unlocated
   diagnostic은 fail-closed한다.
-- [ ] TSan은 별도 deep profile과 build variant로 제공한다. (local implementation은 존재하나
-  feature PR/main 및 Quality Zoo TSan acceptance가 pending이므로 완료 처리하지 않는다.)
+- [x] TSan은 별도 deep profile과 build variant로 제공하며 PR #146, exact-main CI, toy PR #56,
+  exact candidate Quality Zoo acceptance까지 완료했다. 이 체크는 TSan sub-scope만 닫는다.
 - [ ] resource/lifetime/security는 clang analyzer·clang-tidy·clazy 결과를 category별로 매핑한다.
 - [x] sanitizer가 build됐지만 테스트가 실행되지 않은 경우 ERROR로 구분한다.
 - [x] Quality Zoo의 ASan UAF, LSan leak, UBSan signed-overflow 및 sanitizer-clean fixture가
@@ -1387,16 +1449,29 @@ frame redaction·stable known/unknown defect rule을 적용한다. 실제 g++ ra
   검증한다.
 - [ ] Qt lifetime/ownership scenario와 broader resource/lifetime/security taxonomy를 검증한다.
 
-**C++ diagnostic category slice (feature-head acceptance pending):** normalized
+**TSan exact candidate acceptance (별도 완료 evidence):** ici SHA
+`6ee08b14fa598a19074af7afed4368fd79b19b2b`에서 생성한 candidate artifact `9884927798`의 raw
+ZIP SHA-256은
+`9a50972a5cb4ad96b2b0cf912e27c17a600fc19d6d899c6e33028d4449b1122d`이며, exact toy-projects
+target SHA는 `d0b84d376d3f736da86308a49d21d8600297eb27`이다. [Quality Zoo workflow run
+`33737405098`](https://github.com/jihoon22-lee/ici/actions/runs/33737405098)은 `success`로
+완료됐고, 8/8 scenario contracts가 `PASS`, `errors`는 `0`이었다. 별도 acceptance artifact
+`9886336618`의 ZIP SHA-256은
+`70f298a33a251241033882a5bd1eea1a7f863dd86c1939321d531cee39b32bf3`이다. 이 evidence는 TSan
+candidate consumer의 exact contract만 닫으며, 현재 combined branch의 PR/CI/exact-main
+acceptance 또는 broader I4-4 전체 완료를 주장하지 않는다.
+
+**C++ diagnostic category slice (PR/main and candidate acceptance complete):** normalized
 `family`/`tool_rule_id`만 사용하는 isolated `_cpp_diagnostic_categories.py`의 보수적
-`tool-rule-v1` projection을 현재 작업 브랜치에 담는다. free-form message는 입력하지 않고,
+`tool-rule-v1` projection을 병합된 구현에 담는다. free-form message는 입력하지 않고,
 family별 ordered rules와 bounded clazy stems 뒤에 보수적인 fallback을 적용한다. 정확한 rule
 목록과 precedence는 [사용자 가이드](../../user-guide.md#c-diagnostic-category-policy)를
 canonical reference로 삼는다. lint `extra`에는 policy ID와 모든 category count가 포함되고,
 분류 helper source는 cache identity에 반영된다. focused C++ lint/tidy/clazy `160 passed`, cache
-identity/store `51 passed`, Ruff PASS를 확인했지만 이 feature head의 PR/main/Quality Zoo
-acceptance는 아직 없으므로 위 mapping checkbox는 완료로 표시하지 않는다. 이전 sanitizer
-candidate acceptance는 해당 exact scope의 별도 증거이며, 버전 변경이나 release는 없다.
+identity/store `51 passed`, Ruff PASS를 확인했다. PR #145는 `e7a9f55`로 병합됐고 PR run
+`33713591229`, exact-main run `33714515219`, six-scenario category/Qt candidate run
+`33718024450`이 통과했다. 이는 category projection과 해당 Qt scenario의 exact scope만 닫으며,
+broader resource/lifetime/security mapping과 release는 여전히 별도다.
 
 ---
 
@@ -1576,7 +1651,7 @@ candidate acceptance는 해당 exact scope의 별도 증거이며, 버전 변경
 ### I9-0. Candidate artifact provenance producer (producer sub-slice)
 
 **브랜치:** producer `chore/candidate-artifact-provenance`; consumer `feat/candidate-quality-zoo-acceptance`
-**상태:** producer contract/local implementation and remote producer evidence complete; released-artifact Q0 accepted; candidate consumer remote acceptance complete for the exact existing sanitizer contract; Qt lifetime, broader Q1–Q5 and release boundaries remain pending
+**상태:** producer contract/local implementation and remote producer evidence complete; released-artifact Q0 accepted; exact existing sanitizer and separate TSan candidate contracts accepted; broader Qt lifetime, Q1–Q5 and release boundaries remain pending
 
 이 절은 released `ici v0.10.2` Q0와 candidate pyz의 기존 sanitizer known-answer subset만
 완료 처리한다. candidate acceptance는 exact rule/status/evidence/confidence/path/line
@@ -1648,6 +1723,15 @@ candidate·broader Q1–Q5·I4 aggregate·version/release는 완료 처리하지
   sanitizer-clean `PASS`/`MEASURED`/`high` `tests/test_clean.cpp:1`, Python existing case `WARN`을
   기록했다. 각 toy PR의 normal gate는 계속 released ici `v0.10.2` pin을 유지하며, 이
   workflow는 Pages/comment/publish/tag/release/version side effect를 만들지 않는다.
+- [x] 별도 TSan candidate acceptance는 ici SHA
+  `6ee08b14fa598a19074af7afed4368fd79b19b2b`, candidate artifact `9884927798`, raw ZIP SHA-256
+  `9a50972a5cb4ad96b2b0cf912e27c17a600fc19d6d899c6e33028d4449b1122d`, exact toy SHA
+  `d0b84d376d3f736da86308a49d21d8600297eb27`에 바인딩됐다. [workflow run
+  `33737405098`](https://github.com/jihoon22-lee/ici/actions/runs/33737405098)은 `success`,
+  scenario contracts `8/8 PASS`, `errors = 0`이며, acceptance artifact `9886336618`의 ZIP
+  SHA-256은
+  `70f298a33a251241033882a5bd1eea1a7f863dd86c1939321d531cee39b32bf3`이다. 이는 exact TSan
+  candidate contract만 닫으며 feature PR/main 및 I4-4 전체 checkpoint의 근거는 아니다.
 - [ ] 새 category taxonomy와 Qt tool provisioning을 포함한 feature head로 candidate를 만들고,
   Qt lifetime expectation이 포함된 exact toy `main`에 다시 dispatch해 resource category와
   expected rule/location 및 clean-path absence를 감사한다. 위 기존 sanitizer acceptance를 이
@@ -1665,11 +1749,12 @@ candidate·broader Q1–Q5·I4 aggregate·version/release는 완료 처리하지
   Pages는 trusted artifact와 byte-identical이었다. 이 check는 released-artifact Q0 경계이며,
   candidate sanitizer consumer evidence는 위의 별도 exact dispatch 기록으로 관리한다.
 
-### I9-1. quality-zoo contract runner — Q0 and candidate sanitizer acceptance complete; Q1–Q5 pending
+### I9-1. quality-zoo contract runner — Q0, sanitizer, and TSan candidate acceptance complete; Q1–Q5 pending
 
 **브랜치:** `test/quality-zoo-contract`
-**상태:** released-artifact Q0 known-answer acceptance와 exact candidate sanitizer acceptance가
-완료됐다. Qt lifetime과 broader Q1–Q5 scenario/support matrix는 pending이다.
+**상태:** released-artifact Q0 known-answer acceptance, exact candidate sanitizer acceptance와
+별도 exact TSan candidate acceptance가 완료됐다. Qt lifetime과 broader Q1–Q5
+scenario/support matrix는 pending이다.
 
 - [x] Q0 released-artifact path의 toy manifest schema와 ici v3 report matcher가 PR #49의
   `quality-zoo-contract` artifact에 기록되고 exact-main run에서도 재검증됐다.
@@ -1715,9 +1800,22 @@ candidate·broader Q1–Q5·I4 aggregate·version/release는 완료 처리하지
 
 ### 16.1 PR 크기
 
-- 위 하위 절 하나가 기본 PR 상한이다.
-- schema migration처럼 큰 절은 model/serialization/reporter migration으로 더 나눈다.
-- 서로 무관한 viewer UI와 engine 알고리즘을 같은 PR에 넣지 않는다.
+- 체크박스·roadmap key·하위 절은 추적 단위이지 PR 경계가 아니다. 관련 model, engine,
+  reporter, fixture, 문서와 acceptance를 하나의 응집된 PR에 함께 넣어 CI·리뷰·Pages 검증을
+  반복하지 않는다.
+- 구현 커밋은 의미 있는 단위로 유지하되, 독립 rollback이 꼭 필요하거나 선행 계약이 아직
+  준비되지 않은 경우에만 PR을 분리한다. 단순히 파일이나 엔진이 다르다는 이유로 쪼개지 않는다.
+- 현재 combined maintainability PR 이후 ici의 남은 범위는 다음 **3개 큰 delivery PR**로
+  묶는 것을 목표로 한다. PR 제목은 결과를 설명하고 괄호형 roadmap code를 primary/sole 제목으로 쓰지 않는다.
+  1. Python 도구 설정·AST 안전성·runtime/package 호환성과 coverage/test-quality를 함께 닫는다.
+  2. configured Makefile·typed artifact·ELF/hybrid integration과 reporter/viewer 소비 계약을
+     end-to-end로 함께 닫는다.
+  3. expanded Quality Zoo·self dogfood·support contract를 검증한다. 모든 gate가 끝난 뒤에만
+     이 delivery와 별개로 신중한 version/release 결정을 검토한다.
+- toy-projects도 대응 마스터 계획에서 기존 앱 완성, AbiLens/Quality Zoo 확장, path-aware
+  최종 CI의 3개 큰 delivery로 묶는다. 세부 기능마다 별도 PR을 만들지 않는다.
+- 서로 무관한 변경을 무작정 합치지는 않되, 같은 사용자 결과와 같은 acceptance를 공유하는
+  engine·viewer·문서 변경은 한 PR의 범위로 본다.
 - toy에서 발견한 ici 결함은 재현 scenario 또는 fixture를 먼저 기록하고 ici PR에서 수정한다.
 
 ### 16.2 교차 저장소 순서

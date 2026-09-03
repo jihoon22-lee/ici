@@ -113,7 +113,10 @@ ici/
 │       │   ├── _sanitizer_diagnostics.py # bounded ASan/LSan/UBSan/TSan parser
 │       │   ├── _source_inputs.py    # dead/dup 공통 bounded UTF-8 source snapshot
 │       │   ├── dead.py              # 미사용 심볼 & 데드코드 탐지기
+│       │   ├── _cpp_linker_dead_symbols.py # GNU ELF target-local section-GC evidence
 │       │   ├── dup.py               # 연결 컴포넌트 클러스터링 기반 중복 감지기
+│       │   ├── _dup_semantic.py      # Python semantic-shape public facade
+│       │   ├── _python_dup_semantics.py # bounded Python 3.10 AST-shape canonicalizer
 │       │   ├── _cpp_dup_tokenization.py # C/C++/Qt line-preserving lexical records
 │       │   ├── _python_dup_tokenization.py # Python tokenize/AST lexical records
 │       │   ├── _dup_regions.py      # function/import/preprocessor hard boundaries
@@ -685,19 +688,23 @@ symlink를 `lstat`으로 precheck하고, 읽은 descriptor의 identity와 내용
 
 Python `dead`의 AST reachability/name-reference와 `dup`의 token/region matching은 이 snapshot
 위에서 수행되며 각각 `python-ast-heuristic` 및 `language-lexical-region-heuristic`
-provenance와 `ESTIMATED` evidence를 보존한다. C/C++ `dead`의 별도 compiler-backed slice는
-아래에 정의한 좁은 TU-local claim만 `MEASURED`/`EXACT`로 기록한다. `dup`의 accepted bounded
-language-aware slice는 Python과 C/C++ token window를 language key로 분리하고, 언어별
-line-preserving lexical normalization과 function/class/import 또는 function/preprocessor
-region boundary를 적용한다. shared normalized window seed는 rolling hash 후 실제 normalized
+provenance와 `ESTIMATED` evidence를 보존한다. C/C++ `dead`의 compiler-backed 경로는
+TU-local `-Wunused-function`과 별도 Linux GNU ELF target-local section-GC claim을 각각
+`MEASURED`/`EXACT`로 기록한다. `dup`의 accepted bounded language-aware slice는 Python과
+C/C++ token window를 language key로 분리하고, 언어별 line-preserving lexical normalization과
+function/class/import 또는 function/preprocessor region boundary를 적용한다. Python에는
+추가로 위치 필드를 제거하고 local binding을 alpha-renaming하는 `sha256/semantic-shape-v1`
+AST-shape pass가 있으며, leaf function/method의 exact canonical shape만 완전한 occurrence
+집합이 같은 lexical group과 중복되지 않게 추가한다. shared normalized window seed는 rolling hash 후 실제 normalized
 equality를 확인하고, blank/comment gap을 허용하되 region을 넘지 않으며, bounded extension과
 maximal-match deduplication을 수행한다. clone fingerprint는 `sha256/type2-region-v2`로
-안정적으로 생성하고 분석된 파일마다 PASS location target을 남긴다. 이 lexical/token-region
-slice는 PR #135와 exact-main CI/Pages evidence까지 완료됐지만, whole-program/linker dead-symbol
-분석, full duplicate semantic analysis 및 I4-3 전체 checkpoint는 아직 pending이다.
+안정적으로 생성하고 분석된 파일마다 PASS location target을 남긴다. lexical 및 AST-shape
+duplicate 결과는 모두 구조적 신호라 `ESTIMATED`이며 behavioral equivalence가 아니다.
 
-정확한 local test, toy/project 측정값과 remote acceptance는
-[`bounded language-aware duplicate workthrough`](../workthrough/2026-09-02-bounded-language-aware-duplicate.md)에
+기존 lexical slice의 local/toy/remote acceptance는
+[`bounded language-aware duplicate workthrough`](../workthrough/2026-09-02-bounded-language-aware-duplicate.md)에,
+현재 Python AST-shape slice의 local evidence와 pending remote 경계는
+[`combined maintainability workthrough`](../workthrough/2026-09-03-maintainability-linker-and-python-ast-shapes.md)에
 고정한다. 이 slice는 버전을 올리지 않으며 stable release를 만들지 않는다.
 
 #### Compiler-backed C/C++ unused internal functions
@@ -808,9 +815,36 @@ configuration, 8개 target, 8개 `tool_evidence` 행, 0개 unused function, `cac
 이 slice는 PR #137의 required CI, 단일 sticky comment의 두 report 링크,
 PR·main artifact/Pages byte match, exact-main CI와 Pages 배포까지 수락됐다. 상세
 provenance와 해시는 위 workthrough에 고정한다. 앞서 수락된 function-boundary/metric
-slice와 이번 TU-local slice보다 넓은 whole-program dead-symbol, linker/dynamic
-reachability, full duplicate semantics 및 I4 aggregate는 여전히 미완료 범위이다.
+slice와 이번 TU-local slice보다 넓은 whole-program/dynamic dead-symbol reachability,
+C++ semantic/behavioral duplicate equivalence 및 I4 aggregate는 여전히 미완료 범위이다.
 버전은 `0.10.2`로 유지하고 별도 release는 만들지 않는다.
+
+#### GNU ELF target-local discarded-function evidence
+
+`dead.py`는 `cpp_unused`와 독립적인 `cpp_linker` policy로 Linux root CMake 프로젝트의
+target-local linker evidence를 선택한다. `_cpp_linker_dead_symbols.py`는 ici 소유
+`-link-reachability` Release shadow를 `Unix Makefiles`와 compile database export로 구성하고,
+function sections와 GNU ld section-GC/diagnostic flags를 주입한다. 생성된 CMake `link.txt`를
+읽어 capability-approved GCC driver와 direct `.o`/`.obj` inputs를 확인하고, driver의 linker
+banner가 GNU `ld`인지 검증한 뒤 target별로 relink한다.
+
+`cmake` configure/build, `readelf`의 linked `EXEC`/section/symbol/group inspection,
+`addr2line`의 immutable source mapping을 모두 통과한 경우에만, GNU `ld`가 명시적으로 버린
+`.text.*`/`.gnu.linkonce.t.*` 중 direct project object에 있고 uniquely mapped `LOCAL` 또는
+`HIDDEN`/`INTERNAL` function symbol 하나로 연결되는 section을 exact target으로 발행한다.
+archives/archive members, shared links, LTO, PIE, dynamic/export/whole-archive roots, linker
+scripts, COMDAT/grouped sections, clone-generated symbols와 ambiguous/non-project mappings는
+제외한다. 결과에는 target/symbol/section/object/link-command digest와 도구 `ToolEvidence`가
+남고 source location은 `addr2line`으로 snapshot에 매핑된다.
+
+`auto`는 지원 context/tool/target이 없을 때 `SKIP`/`NOT_RUN` optional scope로 끝나고,
+`required`는 `ERROR`/`NOT_RUN`으로 승격한다. 준비된 context에서 malformed link command,
+relink/ELF/binutils/source identity 오류, timeout/truncation 또는 resource limit 초과가 나면
+partial findings를 만들지 않는 atomic fail-closed 결과를 발행한다. link file 256개, direct
+object 4,096개/target, link command 4 MiB·32,768 arguments·1 MiB argument characters,
+discarded section 16,384개, tool-output cap 4 MiB, 전체 900초의 bounded limit을 적용한다. 이
+section-GC 관찰은 특정 executable target에만 해당하며 whole-program deadness나 behavioral
+unreachability를 주장하지 않는다.
 
 #### Compiler-backed C++ function boundaries
 
@@ -885,8 +919,9 @@ Exact-main [run `33593218450`](https://github.com/jihoon22-lee/ici/actions/runs/
 HTTP/title/Zero-CDN과 byte-match를 통과했으며 ici는 `7,454,995` bytes/SHA
 `182a0d05…5adbb75`, viewer는 `356,598` bytes/SHA `fb772d4a…c0c4794`였습니다. 두 run의
 skip은 예상된 PR/main publish job뿐입니다. 이는 scope-policy slice acceptance이며
-compiler-backed C/C++ unused-function의 narrow TU-local 범위를 넘어서는 whole-program/linker
-dead 분석, full duplicate semantics, 남은 I4-3/I4-4 및 I4 전체 checkpoint를 닫지 않습니다.
+compiler-backed C/C++ unused-function 및 target-local GNU ELF section-GC 범위를 넘어서는
+whole-program/dynamic dead 분석, full C++ semantic/behavioral duplicate equivalence, 남은
+I4-3/I4-4 및 I4 전체 checkpoint를 닫지 않습니다.
 버전은 `0.10.2`로 유지하고 release는 만들지 않습니다.
 
 #### CTest/JUnit와 sanitizer evidence 경계
@@ -954,9 +989,10 @@ stable taxonomy rule로 정규화하고 unknown wording은
 아니므로 ResourceWarning을 실행하지 않습니다. TSan taxonomy는 memory sanitizer defect prefix와
 분리하며, aggregate CTest/qmake stream의 complete marker는 process exit 0 또는 framework PASS보다
 우선해 첫 executed case를 failure evidence에 연결하고, executed case가 없으면 synthetic process
-case로 진단을 보존합니다. 실제 g++ race regression은 local에서 통과했지만,
-이 구현은 아직 feature PR/main 및 Quality Zoo TSan acceptance 전의 증거이고 I4-4 전체와
-release 완료를 뜻하지 않습니다.
+case로 진단을 보존합니다. 실제 g++ race regression과 PR #146, exact-main run `33718399268`,
+toy PR #56 및 candidate run `33737405098`의 8/8 contract가 통과했습니다. 이는 TSan sub-scope의
+완료 증거이며 broader resource/lifetime/security taxonomy, I4-4 전체와 release 완료를 뜻하지
+않습니다.
 
 ### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
 
@@ -1158,8 +1194,9 @@ Quality Zoo 입력은 exact toy revision에 결합된 두 단계 선택 규칙�
 artifact Q0 acceptance와 candidate consumer acceptance는 서로 다른 증거다. 첫 sanitizer
 범위는 exact-revision remote acceptance를 완료했다. 이 feature head의 taxonomy/tool
 provisioning과 Qt lifetime expectation도 run `33718024450`의 6개 scenario acceptance로
-완료했다. 이후 ThreadSanitizer feature head와 candidate-only manifest는 새 candidate
-acceptance가 필요하며, 이전 candidate evidence를 재사용하지 않는다.
+완료했다. ThreadSanitizer도 별도 candidate-only manifest와 exact artifact를 사용한 run
+`33737405098`에서 8/8 contract를 수용했다. 각 candidate evidence는 해당 exact feature head와
+toy SHA에만 유효하며 이후 변경에 재사용하지 않는다.
 
 ## 5. 다중 리포터 계층 설계
 

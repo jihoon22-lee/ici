@@ -61,6 +61,7 @@ mode = "pass_fail"
 enabled = true
 mode = "pass_warn"
 cpp_unused = "auto"      # auto | required | off
+cpp_linker = "off"       # auto | required | off (Linux GNU ELF CMake section-GC)
 
 [engines.dup]
 enabled = true
@@ -68,6 +69,7 @@ mode = "pass_warn"
 warn_pct = 5.0            # 중복률 5.0% 초과 시 경고
 fail_pct = 15.0           # 중복률 15.0% 초과 시 실패
 min_window = 6            # 6라인 이상 연속 복제 감지
+python_semantic = "auto"  # auto | required | off (bounded Python AST-shape clones)
 
 [engines.exception]
 enabled = true

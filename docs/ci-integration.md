@@ -202,8 +202,9 @@ skip되지 않도록 hosted runner provisioning 단계에서 `clang`, `clang-tid
 `GITHUB_TOKEN`을 사용하지 않는다. 현재 로컬 purity contract는 `32 passed`, `actionlint`도
 PASS다. 첫 sanitizer 범위의 exact-revision acceptance에 이어 run `33718024450`이 category
 taxonomy와 Qt lifetime expectation을 포함한 6개 scenario를 모두 수용했다(artifact
-`9879217928`). 현재 ThreadSanitizer feature head는 별도 candidate artifact와 candidate-only
-manifest 수용이 필요하며, 앞선 증거를 재사용하지 않는다.
+`9879217928`). ThreadSanitizer도 별도 candidate artifact와 candidate-only manifest를 사용한
+run `33737405098`에서 8/8 contract를 수용했다. 앞선 category/Qt evidence나 이 TSan evidence는
+다른 feature head에 재사용하지 않는다.
 
 실행 전 toy-projects의 `quality-zoo` 기대값이 포함된 최신 `main` SHA와 ici candidate producer
 artifact의 좌표를 별도로 확인한다. workflow는 네 개의 입력을 모두 요구한다.
@@ -275,8 +276,9 @@ runner error 0을 기록했다. 후보 executable SHA와 각 expected contract�
 | `python.dead-private-function` | `WARN` / `ESTIMATED` / `medium` | 기존 Python known-answer |
 
 이는 exact remote dispatch와 rule/status/evidence/confidence/path/line contract, 그리고
-ASan/LSan/UBSan 및 clean runtime evidence만 닫는다. Qt lifetime/ownership, static taxonomy
-candidate, TSan, broader Q1-Q5, I4 aggregate, version/release는 계속 pending이다. 이 workflow는
+ASan/LSan/UBSan 및 clean runtime evidence만 닫는다. 별도 TSan exact acceptance는 run
+`33737405098`에 기록하며, broader Qt lifetime/ownership, Q1-Q5, I4 aggregate,
+version/release는 계속 pending이다. 이 workflow는
 별도 acceptance artifact만 업로드하며 Pages 배포, PR comment/marker, normal publisher,
 tag/release 또는 version 변경을 수행하지 않는다.
 

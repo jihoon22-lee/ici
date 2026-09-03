@@ -109,6 +109,7 @@ cpp_boundaries = "auto"  # auto | required | off
 
 [engines.dead]
 cpp_unused = "auto"         # auto | required | off (C++ compiler probe)
+cpp_linker = "off"          # auto | required | off (Linux GNU ELF CMake section-GC)
 include_generated = false  # generated/autogen/moc 입력을 포함하려면 true
 include_vendor = false     # vendor/dependency 입력을 포함하려면 true
 
@@ -118,6 +119,7 @@ mode = "pass_warn"
 min_window = 6
 warn_pct = 5.0
 fail_pct = 15.0
+python_semantic = "auto"   # auto | required | off (bounded Python 3.10 AST-shape clones)
 include_generated = false
 include_vendor = false
 ```
@@ -709,8 +711,9 @@ evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트�
   성공했고 main JSON `source_commit`은 같은 SHA와 일치했습니다. main ici/viewer Pages도
   같은 검사를 통과했으며 ici는 `7,454,995` bytes/SHA `182a0d05…5adbb75`, viewer는
   `356,598` bytes/SHA `fb772d4a…c0c4794`로 artifact byte-match됐습니다. 두 run에서 skip된
-  것은 예상된 PR/main publish job뿐입니다. 이 acceptance는 whole-program/linker dead
-  reachability, duplicate, 남은 I4-4, I4 전체 checkpoint의 완료를 의미하지 않습니다. 버전은
+  것은 예상된 PR/main publish job뿐입니다. 이 acceptance는 target-local GNU ELF section-GC를
+  넘어서는 whole-program/dynamic dead reachability, full semantic duplicate, 남은 I4-4, I4 전체
+  checkpoint의 완료를 의미하지 않습니다. 버전은
   `0.10.2`로 유지하고 release는 만들지 않습니다.
 - **코드 스니펫**: 고복잡도 함수의 실제 원본 소스 코드를 추출하여 HTML 리포트에 즉시 표시
 
@@ -765,9 +768,10 @@ evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트�
   qmake stream에 complete TSan report가 있으면 framework가 모든 case를 PASS로 표시하거나 process가
   0으로 끝나도 첫 executed case에 진단을 연결해 measured failure로 보존한다. Executed case가
   하나도 없으면 synthetic process case를 추가해 aggregate 진단 자체가 사라지지 않게 한다.
-- **검증 상태**: 실제 `g++` data-race fixture를 포함한 local regression은 통과했다. 이는
-  현재 local implementation evidence이며 feature PR/main과 Quality Zoo TSan acceptance가
-  아직 pending이므로 I4-4 전체 checkpoint나 release 완료를 의미하지 않는다.
+- **검증 상태**: 실제 `g++` data-race fixture를 포함한 local regression, PR #146 run
+  `33717584710`, exact-main run `33718399268`, toy PR #56과 exact candidate run
+  `33737405098`의 8/8 contract가 통과했다. 이는 TSan sub-scope의 완료 증거이며 broader
+  resource/lifetime/security taxonomy, I4-4 전체 checkpoint나 release 완료를 의미하지 않는다.
 
 ### 2.7 💀 `dead` (죽은 코드 및 미사용 심볼)
 - 도달할 수 없는 블록과 private module-level Python 함수의 실제 `Name`/호출 및 cross-module `from`/attribute 참조를 분석한다.
@@ -825,7 +829,8 @@ evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트�
   제외하지 않고 전체 C++ probe를 fail-closed하며, malformed output도 동일하다. macro-generated definition도
   compiler-attributed expansion 위치를 사용한다. 일반 external-linkage symbol, template,
   inline/COMDAT definition, linker reachability, dynamic lookup/plugin entry point 및 Qt meta-object
-  reachability도 이 TU-local probe의 dead 증거가 아니다.
+  reachability도 이 `cpp_unused` TU-local probe의 dead 증거가 아니다. GNU ELF target-local
+  discarded-function 증거는 아래의 독립 `cpp_linker` 정책으로 다룬다.
 - **정책과 fail-closed**: pure C++ scope에서 compilation context/database/approved compiler가
   unavailable 또는 not-applicable이고 실제 analysis/context/intake error가 없을 때만 `auto`가
   required gate를 완화한다. 이때 C++는 `SKIP`/`NOT_RUN`, `required = false`가 되어 suite에는
@@ -859,17 +864,30 @@ evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트�
   standalone `ici dead`는 `dead`에 필요한 scoped probes와 설정된 `[doctor].required_tools`만
   요청하고 전체 tool registry를 무조건 probe하지 않는다. `off`는 C++ path discovery로 scope
   존재만 판별하고 C++ context/tool probe와 bytes intake를 생략한다.
-- 이 구현이 제공하는 것은 compiler가 증명할 수 있는 internal-linkage 함수의 TU-local
-  `-Wunused-function` 계약뿐이다. 여러 object/library/plugin과 dynamic lookup을 포함하는
-  **whole-program/linker-backed reachability 증거는 아직 보류 범위**이며, 향후 별도 구현으로
-  다룬다. 자세한 focused contract는 [`compiler-backed C/C++ unused-function workthrough`](workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
-  기록한다. 최종 viewer standalone `dead` evidence는 `PASS`/`MEASURED`이며, 정확히 8개 source, 8개
-  configuration, 8개 target, 8개 `tool_evidence` 행, 0개 unused function, `cache_key = null`이다.
-  이 slice는 PR #137 required CI, 단일 sticky comment의 ici/viewer 링크,
-  PR·main artifact/Pages byte match, exact-main CI와 Pages 배포까지 수락됐다.
-  상세 provenance와 해시는 위 workthrough에 기록한다. whole-program/linker-backed
-  reachability, full duplicate semantics 및 I4 aggregate는 여전히 보류 범위이며,
-  public version은 `0.10.2`로 유지하고 release는 만들지 않는다.
+- 이 구현은 compiler의 `-Wunused-function` TU-local 계약과 Linux GNU ELF target-local
+  section-GC 계약을 함께 제공한다. 후자는 특정 CMake executable에서 GNU `ld`가 버린 uniquely
+  mapped local/hidden function section만 `EXACT`로 보존하며 `cmake`/`readelf`/`addr2line`
+  도구 증거와 link-target/symbol/section/source 위치를 함께 기록한다. archives/shared/LTO/
+  PIE/COMDAT/dynamic/export/linker-script/whole-archive와 ambiguous mapping은 제외한다.
+  따라서 여러 target/object/library/plugin과 dynamic lookup을 포함하는 whole-program
+  dead-symbol reachability와 C++ semantic/behavioral duplicate equivalence는 여전히 지원
+  범위가 아니다. public version은 `0.10.2`로 유지하고 이 feature PR만으로 release를 만들지 않는다.
+
+#### C++ GNU ELF target-local discarded-function 정책
+
+`[engines.dead].cpp_linker = "auto" | "required" | "off"`의 기본값은 `off`이며 `cpp_unused`와
+독립적이다. Linux root CMake project에서 ici 소유 Release shadow를 `Unix Makefiles`와
+`CMAKE_EXPORT_COMPILE_COMMANDS=ON`으로 구성하고 function-section/section-GC flags를 적용한
+뒤 direct-object executable `link.txt`만 검증한다. capability-approved GCC driver가 GNU
+`ld`를 실제로 사용한다는 banner도 확인한다. `auto`에서 계약 밖 context/tool/target은
+`SKIP`/`NOT_RUN`으로, `required`에서는 `ERROR`/`NOT_RUN`으로 닫는다. context가 시작된 뒤의
+malformed command, relink/ELF/binutils/source identity 오류, timeout/truncation은 두 정책 모두
+partial finding 없이 fail-closed한다.
+
+link file 256개, direct object 4,096개/target, link command 4 MiB·32,768 arguments·1 MiB
+argument characters, discarded section 16,384개, tool-output cap 4 MiB, 전체 900초의 내부 한도를
+넘으면 같은 fail-closed 계약을 적용한다. 이 증거는 target-local reachability observation일
+뿐 whole-program deadness나 behavioral unreachability 주장이 아니다.
 
 ### 2.8 📦 `dup` (코드 복제 및 중복률 감지기)
 - **언어별 lexical normalization**: Python과 C/C++에 전용 line-preserving lexer를 사용하고
@@ -907,14 +925,28 @@ evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트�
   `cpp-lexical-v1`/`python-lexical-v1`), `region_policy = language-function-scope-v1`,
   `signal_policy = minimum-semantic-lines-v1`를 남긴다. 정상 완료된 결과는 compiler/linker
   실측이 아닌 `ESTIMATED` (`analysis_provenance = language-lexical-region-heuristic`)다.
+- **Python AST-shape semantic groups**: `[engines.dup].python_semantic = "auto" | "required" | "off"`
+  (기본값 `auto`)는 Python 3.10 AST에서 named region을 추출하고 nested callable parent를
+  제외한 leaf function/method만 group 대상으로 삼는다. local binding은 alpha-renaming하고
+  AST 위치/물리적 layout은 무시하지만 control flow, operator, literal 종류·값, source-spelled
+  imported-name/attribute anchor는 보존한다. `sha256/semantic-shape-v1` canonical shape가
+  exact하게 같을 때만 group을 생성하며, 같은 occurrence의 lexical Type-2 group은 dedup한다.
+  malformed/unsupported AST, lambda/comprehension, `global`/`nonlocal`, star import,
+  `eval`/`exec` 호출과 그 이름의 literal `getattr` lookup, nested parent span과 trivial region은
+  보수적으로 제외한다.
+  `auto`는 exclusion을 partial metadata로 남기고 `required`는 `ERROR`/`NOT_RUN`으로 닫으며,
+  `off`는 이 pass를 실행하지 않는다. 파일 256개·named region 20,000개·AST node 500,000개·
+  serialized shape 16 MiB 한도 초과는 semantic partial을 버린다. `auto`는 lexical 결과를
+  유지하고 `required`는 `ERROR`/`NOT_RUN`으로 닫는다. 이 구조적 clone 신호는
+  behavioral equivalence가 아니며 `dup` evidence는 계속 `ESTIMATED`다.
 - **내부 한도와 fail-closed**: tokenizer token 수, normalized-character/indexed-record 수,
   shared-window occurrence, same/cross-file seed pair, extension comparison, raw match에는
   deterministic internal budget이 있다. 이 값들은 `[engines.dup]` 사용자 설정 키가 아니다.
   한도를 넘으면 partial clone/PASS를 만들지 않고 `ERROR`/`NOT_RUN`과 위치 있는
   `SourceTokenizationError` 또는 `DuplicateComparisonLimit` target을 반환한다.
-- whole-program/linker 수준의 reachability와 external/dynamic symbol을 포함하는 exact
-  dead-symbol 증거, 그리고 semantic duplicate 분석과 I4-3 전체 checkpoint는 아직 완료
-  범위가 아니다. C++ TU-local `-Wunused-function` probe의 현재 계약은 §2.7에 기술한다.
+- target-local GNU ELF section-GC를 넘어 whole-program/dynamic symbol reachability를 포함하는
+  exact dead-symbol 증거와 C++ semantic/behavioral duplicate equivalence는 아직 완료 범위가
+  아니다. C++ TU-local `-Wunused-function` 및 GNU ELF target-local probe 계약은 §2.7에 기술한다.
 
 ### 2.9 ⚠️ `exception` (예외 처리 안전성 검출기)
 - `except: pass` (예외 무시/삼킴 패턴) 검출

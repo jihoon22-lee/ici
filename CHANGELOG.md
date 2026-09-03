@@ -9,6 +9,33 @@
 
 ### Added
 
+- **GNU ELF target-local discarded-function evidence (local feature PR):** Added the opt-in
+  `[engines.dead].cpp_linker = "auto" | "required" | "off"` policy, defaulting to `off` and
+  independent of `cpp_unused`. On Linux root-CMake projects, the probe creates an isolated Release
+  shadow with the `Unix Makefiles` generator, validates direct-object executable `link.txt` targets,
+  proves the capability-approved GCC driver delegates to GNU `ld`, and combines `cmake`, `readelf`,
+  and `addr2line` evidence. Only a uniquely mapped local/hidden function section explicitly
+  discarded by section GC is emitted as an `EXACT` target-local finding. Archives, shared links,
+  LTO, PIE, COMDAT/grouped sections, dynamic/export/whole-archive roots and whole-program claims
+  remain outside the contract. Link-command/object/section/tool-output/time budgets and malformed,
+  timeout, truncation, prevalidated command/tool-evidence, or relink failures fail closed without
+  partial findings. `auto`
+  records an unavailable linker scope as an optional `SKIP` target; `required` promotes it to
+  `ERROR`/`NOT_RUN`.
+  The feature keeps version `0.10.2` and authorizes no release.
+- **Bounded Python AST-shape duplicate groups (local feature PR):** Added
+  `[engines.dup].python_semantic = "auto" | "required" | "off"`, defaulting to `auto`. Python 3.10
+  AST shapes are collected for leaf functions/methods; local bindings are alpha-renamed and source
+  layout is ignored, while control flow, operators, literal kinds/values, and source-spelled
+  imported-name/attribute anchors remain exact. Groups require exact
+  `sha256/semantic-shape-v1` canonical-shape equality
+  and are deduplicated against identical lexical clone occurrence sets. Malformed/unsupported AST,
+  lambda/comprehension, global/nonlocal, star-import, `eval`/`exec` calls or their literal
+  `getattr` lookup, nested parent, trivial regions, and bounded file/region/node/serialization
+  overages are conservatively excluded; `required` fails closed and `off` skips only the Python
+  AST-shape pass while lexical duplicate analysis remains enabled. Results remain `ESTIMATED`
+  structural clone evidence, not behavioral equivalence or full C++/whole-program semantic
+  analysis. The feature keeps version `0.10.2` and authorizes no release.
 - **Candidate Quality Zoo manifest selection:** The read-only candidate consumer now prefers a
   checked-out `quality-zoo/candidate-manifest.json` when the exact toy-projects revision provides
   one, and falls back to the stable `manifest.json` only when the candidate manifest is absent.
@@ -17,7 +44,7 @@
   selected path, source, and digest in the acceptance artifact. This keeps candidate-only
   expectations separate from the released-artifact toy gate without weakening exact toy SHA or
   candidate provenance binding. No version bump or release is implied; ici remains at `v0.10.2`.
-- **Deep ThreadSanitizer profile (local implementation; acceptance pending):** Added the
+- **Deep ThreadSanitizer profile and exact acceptance:** Added the
   deep-only `thread_sanitize` engine and direct `ici thread-sanitize` command for C++ thread-safety
   checks. Its isolated `BuildVariant.THREAD_SANITIZE` (`thread-sanitize`) uses a `-tsan` shadow and
   exact `-fsanitize=thread`, `-fno-omit-frame-pointer`, and `-g` instrumentation. CMake and qmake
@@ -33,10 +60,12 @@
   runtime exit-code policy cannot turn observed race evidence into a clean result. If a framework
   reports no executed case, the aggregate diagnostic is retained as a synthetic process case rather
   than discarded.
-  The real g++ race regression passes locally. This is local implementation evidence only:
-  feature PR/main and Quality Zoo TSan acceptance remain pending, I4-4 remains open, and ici stays
-  at `v0.10.2` with no release.
-- **Rule-only C++ diagnostic category projection (feature-head acceptance pending):**
+  The real g++ race regression passes locally. PR #146 merged as `cfd7066`; its PR run
+  `33717584710` and exact-main run `33718399268` passed. Toy PR #56 and candidate run
+  `33737405098` then accepted all 8/8 contracts with zero runner errors. This closes the TSan
+  sub-scope only: broader I4-4 resource/lifetime/security work remains open, and ici stays at
+  `v0.10.2` with no release.
+- **Rule-only C++ diagnostic category projection and acceptance:**
   C++ compiler, clang-analyzer, clang-tidy, and clazy findings now use the isolated
   `_cpp_diagnostic_categories.py` `tool-rule-v1` policy. The projection reads only normalized
   `family` and `tool_rule_id`; free-form diagnostic messages cannot change the category. Analyzer
@@ -51,16 +80,17 @@
   of lint cache implementation identity. The focused C++ lint, clang-tidy, and clazy regression set
   passes `160` tests, the cache
   identity/store focused set passes `51`, and Ruff passes locally.
-  No version or release change is implied, and acceptance of this feature head through
-  PR/main/Quality Zoo remains pending; the earlier sanitizer candidate acceptance is separate.
-- **Candidate Quality Zoo C++/Qt tool provisioning (local workflow contract; remote acceptance
-  pending):** The manual `candidate-quality-zoo.yml` consumer job now installs `clang`, `clang-tidy`,
+  PR #145 merged as `e7a9f55`; PR run `33713591229`, exact-main run `33714515219`, and the
+  six-scenario category/Qt candidate run `33718024450` succeeded. No version or release change is
+  implied; later feature heads require their own exact evidence.
+- **Candidate Quality Zoo C++/Qt tool provisioning and acceptance:** The manual
+  `candidate-quality-zoo.yml` consumer job installs `clang`, `clang-tidy`,
   `clazy`, `cmake`, `g++`, `pkg-config`, and `qt6-base-dev` so future Qt lifetime/C++ static-analysis
   scenarios can execute instead of being skipped for missing tools. Provisioning and candidate
   preflight/execution remain credential-free; local purity coverage is `31 passed` and actionlint
-  passes. No new feature-head candidate dispatch, Qt Quality Zoo acceptance, version bump, or
-  release is implied; the earlier sanitizer candidate acceptance remains valid only for its exact scope.
-- **Runtime sanitizer diagnostic normalization (local slice):** ASan, LSan, and UBSan output is
+  passes. The provisioned six-scenario category/Qt run `33718024450` succeeded. No version bump or
+  release is implied, and that evidence remains valid only for its exact scope.
+- **Runtime sanitizer diagnostic normalization and acceptance:** ASan, LSan, and UBSan output is
   recognized only from bounded report signatures and normalized into deterministic `kind`, `defect`,
   detail rule identity, related stack-frame locations, and observed/project frame counts, plus a
   project-owned primary location when validation succeeds. `SanitizeEngine` preserves the finding's
@@ -75,9 +105,10 @@
   project location as `ERROR`/`NOT_RUN` rather than a clean result. Signal termination with a complete
   located report remains a measured `FAIL`. Real `g++` ASan/UBSan/LSan regression projects pass in
   the focused 132-test suite; the current full local Python 3.10 suite is `2,088 passed, 7 skipped`.
-  The exact candidate Quality Zoo acceptance now covers ASan/LSan/UBSan and the sanitizer-clean
-  fixture; TSan, Qt lifetime, broader safety mappings, the wider I4-4 checkpoint, and any release
-  remain pending; ici stays at `v0.10.2`.
+  PR #142 merged as `9d470ed`; PR run `33704709734`, exact-main run `33705500603`, and exact
+  sanitizer candidate run `33710695336` succeeded. The separate TSan acceptance is recorded above.
+  Broader safety mappings, the wider I4-4 checkpoint, and any release remain pending; ici stays at
+  `v0.10.2`.
 - **Candidate artifact producer (local contract and remote producer evidence complete):** Added the main-only `workflow_dispatch`
   contract and bounded provenance helpers for a non-release `ici.pyz` bundle. The workflow
   requires a full target SHA equal to the protected-main dispatch commit and verifies that commit
@@ -371,16 +402,17 @@
 
 ### Fixed
 
-- **Deterministic ZipApp bootstrap entry ordering (acceptance pending):** The packaging entrypoint
+- **Deterministic ZipApp bootstrap entry ordering and acceptance:** The packaging entrypoint
   now delegates to a small `scripts/run_shiv.py` wrapper inside the selected Python 3.10+ helper
   interpreter. The wrapper sorts shiv 1.0.8's private bootstrap resource entries by their archive
   name before invoking shiv, closing a cross-checkout divergence caused by filesystem-dependent
   `importlib.resources` iteration. `scripts/verify-reproducibility.sh` now rejects duplicate
   archive members and requires the canonical `site-packages/`, `_bootstrap/`, `environment.json`,
   and `__main__.py` entry order. This scope fixes archive entry ordering only; it does not claim
-  platform- or zlib-independent byte identity. The reproduced digest divergence and final gates
-  are recorded in the deterministic-bootstrap-order workthrough. No version bump or release is
-  implied; ici remains at `v0.10.2`.
+  platform- or zlib-independent byte identity. PR #150 merged as `6ee08b1`; PR run `33731740155`
+  and exact-main run `33732817172` passed, and candidate producer run `33733780877` emitted the
+  audited artifact used by later Quality Zoo acceptance. No version bump or release is implied;
+  ici remains at `v0.10.2`.
 
 - **Hermetic and reproducible ZipApp builds:** `scripts/build-pyz.sh` now exports two
   independently scoped, frozen requirement files from `uv.lock`: the shipped runtime graph
