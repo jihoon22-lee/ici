@@ -1502,8 +1502,11 @@ broader resource/lifetime/security mapping과 release는 여전히 별도다.
 
 **브랜치:** `refactor/python-rules`
 
-- [ ] security regex를 call/assignment/import-aware AST 규칙으로 옮긴다.
-- [ ] secret detector는 entropy/context와 allowlist를 지원하고 항상 redaction한다.
+- [x] security regex를 call/assignment/import-aware AST 규칙으로 옮긴다. weak crypto/random,
+  dynamic execution, pickle, command processor와 constant `shell=True`를 구조적으로 구분하고
+  comment-token `# nosec`, bounded no-follow source input, invalid syntax fail-closed를 포함한다.
+- [x] secret detector는 이름 context, 알려진 credential prefix, 길이/entropy와 bounded exact
+  name allowlist를 지원하며 source value를 target/message/snippet/extra 어디에도 보존하지 않는다.
 - [ ] resource engine이 `close()`, context manager, ownership transfer와 escaping return을 구분한다.
 - [ ] mutable default는 correctness category로 분리한다.
 - [ ] exception, dead, cognitive와 Ruff/mypy 중복 rule을 fingerprint로 합친다.

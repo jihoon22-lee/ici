@@ -125,6 +125,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "mode": "pass_warn",
             "scan_tests": False,
+            "secret_name_allowlist": [],
         },
         "resource": {
             "enabled": True,

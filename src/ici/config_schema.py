@@ -110,7 +110,7 @@ _ENGINE_KEYS = {
     "exception": _COMMON_ENGINE_KEYS,
     "cycle": _COMMON_ENGINE_KEYS | frozenset({"max_reported"}),
     "cognitive": _COMMON_ENGINE_KEYS | frozenset({"warn", "fail", "warn_nesting"}),
-    "security": _COMMON_ENGINE_KEYS | frozenset({"scan_tests"}),
+    "security": _COMMON_ENGINE_KEYS | frozenset({"scan_tests", "secret_name_allowlist"}),
     "resource": _COMMON_ENGINE_KEYS,
 }
 
@@ -406,6 +406,23 @@ def _validate_security(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
     if "scan_tests" in table:
         _require_bool(table["scan_tests"], f"{path}.scan_tests")
+    if "secret_name_allowlist" in table:
+        allowlist_path = f"{path}.secret_name_allowlist"
+        _require_string_list(table["secret_name_allowlist"], allowlist_path)
+        values = table["secret_name_allowlist"]
+        if len(values) > 128:
+            raise _error(allowlist_path, "must contain at most 128 names")
+        normalized: set[str] = set()
+        for index, value in enumerate(values):
+            item_path = f"{allowlist_path}[{index}]"
+            if len(value) > 128:
+                raise _error(item_path, "must be at most 128 characters")
+            if not value.isidentifier():
+                raise _error(item_path, "must be a Python identifier")
+            folded = value.casefold()
+            if folded in normalized:
+                raise _error(item_path, "must be unique ignoring case")
+            normalized.add(folded)
 
 
 def _validate_compile_db(table: dict[str, Any], path: str) -> None:

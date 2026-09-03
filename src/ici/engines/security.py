@@ -1,144 +1,128 @@
-"""Security hygiene — hardcoded secrets and weak crypto, offline regex."""
+"""Python security hygiene using bounded, redaction-safe AST rules."""
 
-import re
+from __future__ import annotations
+
 import time
 from pathlib import Path
 
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
 from ici.core.project import _iter_project_files
+from ici.engines._python_security import analyze_python_security
+from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
 from ici.engines.base import BaseEngine
-
-# Patterns whose match text contains actual confidential material. These drive
-# redaction and are applied to EVERY reported line, independently of which
-# pattern produced the finding -- one line can match a secret pattern and a
-# non-secret one at once (e.g. `password = "..." ; eval(x)`), and the
-# non-secret finding must not echo the secret back into the report.
-_SECRET_VALUE_RE = re.compile(
-    r"(?i)(?P<key>password|passwd|secret|api_key|aws_access_key|aws_secret)"
-    r'(?P<op>\s*[=:]\s*)(?P<quote>["\'])(?P<value>[^"\']{6,})(?P=quote)'
-)
-_PRIVATE_KEY_RE = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*$")
-
-# Patterns: (name, regex, message)
-_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
-    ("HardcodedSecret", _SECRET_VALUE_RE, "Hardcoded secret-like assignment"),
-    ("PrivateKey", _PRIVATE_KEY_RE, "Private key block"),
-    ("WeakCryptoMD5", re.compile(r"hashlib\.md5\s*\("), "Weak crypto: hashlib.md5"),
-    ("WeakCryptoSHA1", re.compile(r"hashlib\.sha1\s*\("), "Weak crypto: hashlib.sha1"),
-    (
-        "WeakRandom",
-        re.compile(r"\brandom\.(random|randint|choice|randrange)\s*\("),
-        "Weak random: use secrets module",
-    ),
-    ("EvalExec", re.compile(r"\b(eval|exec)\s*\("), "Dangerous eval/exec"),
-    ("PickleLoad", re.compile(r"pickle\.loads?\s*\("), "Pickle deserialization"),
-    (
-        "ShellTrue",
-        re.compile(r"subprocess\.\w+\([^)]*shell\s*=\s*True"),
-        "subprocess with shell=True",
-    ),
-]
-
-_REDACTED = "***REDACTED***"
-
-
-def _mask_secret_assignment(match: re.Match[str]) -> str:
-    return (
-        f"{match.group('key')}{match.group('op')}{match.group('quote')}"
-        f"{_REDACTED}{match.group('quote')}"
-    )
-
-
-def redact_secrets(line: str) -> str:
-    """Return a display-safe copy of ``line`` with every secret span masked.
-
-    Applied once per source line and reused for all findings on that line, so
-    a non-secret pattern (weak crypto, eval/exec, ...) can never smuggle a
-    co-located secret into the report. The reports this feeds -- HTML, JSON,
-    and the gh-pages copy published by ``--publish`` -- are routinely shared
-    more widely than the source itself.
-    """
-    masked = _SECRET_VALUE_RE.sub(_mask_secret_assignment, line)
-    masked = _PRIVATE_KEY_RE.sub("-----BEGIN [REDACTED] PRIVATE KEY-----", masked)
-    return masked.strip()
 
 
 class SecurityEngine(BaseEngine):
-    """Detects hardcoded secrets and weak crypto via offline regex."""
+    """Detect Python secret, crypto, deserialization, and command risks."""
+
+    CACHE_IMPLEMENTATION_MODULES = (
+        "ici.engines._python_security",
+        "ici.engines._source_inputs",
+        "ici.engines.security",
+    )
 
     def run(self) -> EngineResult:
-        t0 = time.time()
+        started = time.time()
         cfg = self.get_config("security")
         mode = cfg.get("mode", "pass_warn")
         required = bool(cfg.get("required", False))
+        allowlist = frozenset(name.casefold() for name in cfg.get("secret_name_allowlist", []))
+        selected = self.project_python_sources()
+        if cfg.get("scan_tests", False):
+            selected.extend(self._test_python_files())
 
-        # Allow disabling via config, and allow scanning tests if explicitly enabled
-        scan_tests = bool(cfg.get("scan_tests", False))
         targets: list[InspectionTarget] = []
-
-        seen: set[Path] = set()
-        sources = self.project_python_sources()
-        if scan_tests:
-            sources.extend(self._test_python_files())
-
-        for py_file in sources:
-            if py_file in seen:
-                continue
-            seen.add(py_file)
-            rel = str(py_file.relative_to(self.project_root))
-            if not scan_tests and "tests" in Path(rel).parts:
-                continue
-            try:
-                content = py_file.read_text(encoding="utf-8", errors="ignore")
-            except OSError:
-                continue
-            lines = content.splitlines()
-            for idx, line in enumerate(lines, 1):
-                stripped = line.strip()
-                # Skip lines with # nosec, and skip comment-only lines to cut noise
-                # from documentation/examples that merely mention these patterns.
-                if "nosec" in line or stripped.startswith("#"):
+        errors: list[str] = []
+        files_checked = 0
+        calls_checked = 0
+        secret_literals_checked = 0
+        excluded_counts: dict[str, int] = {}
+        try:
+            inventory = read_analysis_sources(self.project_root, selected)
+            excluded_counts = inventory.exclusion_counts
+            for source in inventory.sources:
+                if source.language != "python":
                     continue
-                matched = [(name, msg) for name, pattern, msg in _PATTERNS if pattern.search(line)]
-                if not matched:
-                    continue
-                # Redact once per line, then reuse for every finding on it — a
-                # non-secret pattern must not echo a co-located secret.
-                display = redact_secrets(line)
-                for name, msg in matched:
+                files_checked += 1
+                try:
+                    analysis = analyze_python_security(
+                        source.file_path,
+                        source.text,
+                        secret_name_allowlist=allowlist,
+                    )
+                except SyntaxError as error:
+                    line = max(1, error.lineno or 1)
                     targets.append(
                         InspectionTarget(
-                            file_path=rel,
-                            start_line=idx,
-                            target_name=f"Security:{name}",
-                            status=EngineStatus.WARN,
-                            message=f"{msg}: {display[:120]}",
-                            snippet=display[:200],
+                            file_path=source.file_path,
+                            start_line=line,
+                            start_column=error.offset,
+                            target_name="Security:SyntaxUnavailable",
+                            status=EngineStatus.ERROR,
+                            message="Python syntax is invalid; AST security analysis was not run",
                         )
                     )
+                    errors.append(f"{source.file_path}:{line}: syntax prevents security analysis")
+                    continue
+                calls_checked += analysis.checked_calls
+                secret_literals_checked += analysis.secret_literals_checked
+                targets.extend(analysis.findings)
+                targets.append(
+                    InspectionTarget(
+                        file_path=source.file_path,
+                        start_line=1,
+                        target_name="Security:ASTScan",
+                        status=EngineStatus.PASS,
+                        message="Bounded Python AST security rules completed",
+                    )
+                )
+        except (AnalysisSourceError, OSError, RuntimeError, ValueError) as error:
+            file_path = error.file_path if isinstance(error, AnalysisSourceError) else "."
+            targets.append(
+                InspectionTarget(
+                    file_path=file_path,
+                    start_line=1,
+                    target_name="Security:SourceInput",
+                    status=EngineStatus.ERROR,
+                    message=str(error),
+                )
+            )
+            errors.append(str(error))
 
-        has_warn = bool(targets)
-        status = self.evaluate_status(False, has_warn, mode)
-        summary = (
-            f"Security hygiene: {len(targets)} finding(s)" if has_warn else "Security hygiene clean"
-        )
+        finding_count = sum(target.status == EngineStatus.WARN for target in targets)
+        if errors:
+            status = EngineStatus.ERROR
+            summary = f"Security analysis incomplete: {errors[0]}"
+        else:
+            status = self.evaluate_status(False, finding_count > 0, mode)
+            summary = (
+                f"Security hygiene: {finding_count} finding(s)"
+                if finding_count
+                else f"Security hygiene clean across {files_checked} file(s)"
+            )
         return self.create_result(
             name="security",
             status=status,
             summary=summary,
-            duration=time.time() - t0,
+            duration=time.time() - started,
             targets=targets,
+            extra={
+                "analysis_mode": "python-ast-rules-v1",
+                "files_checked": files_checked,
+                "calls_checked": calls_checked,
+                "secret_literals_checked": secret_literals_checked,
+                "secret_name_allowlist_count": len(allowlist),
+                "excluded_source_counts": excluded_counts,
+                "limitations": [
+                    "Rules identify risky syntax and import aliases, not runtime taint flow",
+                    "Exact secret names can be allowlisted; secret values are never retained",
+                ],
+            },
             required=required,
-            evidence=EvidenceState.MEASURED,
+            evidence=EvidenceState.NOT_RUN if errors else EvidenceState.MEASURED,
         )
 
     def _test_python_files(self) -> list[Path]:
-        """Yields Python files under the conventional top-level ``tests/`` dir.
-
-        ``get_all_python_sources`` only walks ``project.source_dirs``, which
-        never includes ``tests/`` — so ``scan_tests`` needs its own explicit
-        walk to actually have an effect.
-        """
         tests_dir = self.project_root / "tests"
         if not tests_dir.is_dir():
             return []

@@ -9,6 +9,19 @@
 
 ### Added
 
+- **Bounded, redaction-safe Python security AST rules (unreleased language-analysis bundle):**
+  Replaced line-oriented regular-expression matching with Python AST rules that resolve supported
+  import aliases and distinguish calls, assignments, dictionary keys, and literal values. The
+  engine now detects weak hashes and randomness, dynamic execution, unsafe pickle loads, command
+  processors, constant `subprocess(..., shell=True)`, private-key markers, and context-sensitive
+  hardcoded secrets without retaining or reporting source secret values. Secret detection combines
+  name context, known credential prefixes, length, and entropy; exact case-insensitive names can be
+  exempted with the bounded `secret_name_allowlist`. Only real comment tokens can apply `# nosec`.
+  Source reads retain ici's bounded, symlink-safe snapshot policy, and unreadable or invalid Python
+  fails closed with located `ERROR` targets instead of silently skipping analysis. Per-file PASS
+  targets, counters, evidence mode, and explicit limitations make the inspected scope auditable.
+  This remains part of the consolidated language-analysis work and does not change version
+  `0.10.2` or authorize a release.
 - **Project-respecting Python tool policy (unreleased language-analysis bundle):** Ruff continues
   to consume its structured JSON diagnostics and rule codes while leaving the project's discovered
   select/ignore/per-file configuration in control. Mypy no longer receives a global

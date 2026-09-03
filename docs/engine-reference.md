@@ -999,12 +999,24 @@ argument characters, discarded section 16,384개, tool-output cap 4 MiB, 전체 
 - **대상**: Python 소스만 분석, `__dunder__` 함수는 제외.
 
 ### 2.12 🔒 `security` (보안 위생)
-- **동작**: 하드코딩 시크릿(`password|secret` 등), 프라이빗 키 블록, `hashlib.md5/sha1`, `random` 약한 난수, `eval/exec`, `pickle.loads`, `shell=True` 등을 정규식으로 탐지. `# nosec` 주석과 전체가 주석인 줄은 억제됩니다.
-- **시크릿 마스킹**: `HardcodedSecret`/`PrivateKey` 발견 사항은 실제 시크릿 값을
-  `***REDACTED***`로 치환한 뒤 리포트(콘솔/HTML/JSON/gh-pages 게시본)에 기록합니다 —
-  시크릿 스캐너가 찾아낸 시크릿 원문 자체를 노출하지 않기 위함입니다.
-- **설정**: `[engines.security] enabled=true, mode="pass_warn", scan_tests=false`. `scan_tests=true`면
-  `project.source_dirs`와 별개로 프로젝트 최상위 `tests/` 디렉터리도 함께 스캔합니다.
+- **동작**: bounded UTF-8 source snapshot을 Python AST로 파싱해 call, assignment, dictionary
+  key와 import alias를 구분합니다. `hashlib.md5/sha1`, 보안 용도의 `random`, `eval/exec`,
+  `pickle.load/loads`, `os.system/popen`, 상수 `subprocess(..., shell=True)`, private-key marker와
+  하드코딩 시크릿을 탐지합니다. 문자열 안의 `# nosec`는 무시하고 실제 comment token이
+  겹치는 AST node만 억제합니다.
+- **시크릿 탐지와 마스킹**: 이름 context, 알려진 credential prefix, 길이와 entropy를
+  함께 사용합니다. 발견 사항은 값이나 source line을 보존하지 않고 항상
+  `***REDACTED***` evidence만 리포트(콘솔/HTML/JSON/gh-pages 게시본)에 전달합니다.
+- **설정**: `[engines.security] enabled=true, mode="pass_warn", scan_tests=false,
+  secret_name_allowlist=[]`. allowlist는 대소문자를 구분하지 않는 정확한 identifier 이름만
+  허용하며 최대 128개로 제한됩니다. `scan_tests=true`면 `project.source_dirs`와 별개로
+  프로젝트 최상위 `tests/` 디렉터리도 함께 스캔합니다.
+- **입력·evidence 정책**: generated/vendor 기본 제외와 no-follow bounded source read를
+  적용합니다. 읽기 실패나 Python syntax 오류는 위치가 있는 `ERROR`/`NOT_RUN`이며, 성공한
+  파일에는 `Security:ASTScan` PASS target과 검사 counter가 남습니다.
+- **한계와 confidence**: import alias와 정적인 constant 구문까지만 식별하며 runtime taint
+  flow 또는 동적으로 계산된 call target을 증명하지 않습니다. 따라서 결과는 syntax-level
+  `MEASURED` evidence이지 프로그램 실행 전체의 보안성을 보장하는 판정은 아닙니다.
 - **대상**: Python 소스만, `tests/`는 기본 제외.
 
 ### 2.13 🧹 `resource` (리소스 누수)
