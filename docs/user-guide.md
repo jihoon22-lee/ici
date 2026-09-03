@@ -90,6 +90,41 @@ C++ `complexity` 함수 경계 정책은 별도로 지정할 수 있습니다.
 cpp_boundaries = "auto"  # auto | required | off
 ```
 
+Python runtime 호환성도 같은 설정 파일에서 선택합니다.
+
+```toml
+[engines.python_compat]
+enabled = true
+mode = "pass_warn_fail"
+required = false            # engine-level gate policy
+interpreters = []           # empty: current interpreter, required
+required_interpreters = []  # configured entries that must pass
+imports = []                # explicit import-smoke opt-in
+target_version = ""         # empty: infer from requires-python
+```
+
+`interpreters = []`인 기본 경로는 `ici`를 실행 중인 `sys.executable`을 required runtime으로
+검사합니다. 목록을 명시하면 각 interpreter는 optional이고, `required_interpreters`에 포함한
+entry만 required가 됩니다. optional runtime이 없거나 검사에 실패하면 `WARN`, required runtime이
+없으면 `ERROR`/`NOT_RUN`, version mismatch·compile/import failure면 `FAIL`입니다. required 목록은
+configured 목록의 부분집합이어야 합니다.
+
+각 runtime은 shell 없이 `-VV`로 version을 확인하고 선택된 Python source root에
+`python -B -m compileall -q -f`를 실행합니다. compileall bytecode는 임시 cache prefix로 보내므로
+project에 `__pycache__`를 남기지 않습니다. `pyproject.toml`의 `project.requires-python`은
+PEP 440 specifier로 검증해 실제 runtime version과 비교합니다. `target_version`을 지정하면
+그 Python minor를 syntax/API floor로 사용하고, 비워 두면 `requires-python`이 허용하는 가장
+이른 지원 minor를 추론합니다. floor 위반은 1-indexed line과 가능한 line/column 범위를 가진
+target으로 기록됩니다.
+
+Import smoke는 안전한 기본 동작이 아닙니다. 모듈 import가 top-level code를 실행할 수 있으므로
+자동 발견한 import 이름은 metadata로만 남기고 실행하지 않으며, `imports = ["package",
+"package.cli"]`처럼 사용자가 명시한 dotted module만 `-I -B` contained subprocess에서 실행합니다.
+이 subprocess는 shell 없이 실행되지만 sandbox는 아닙니다. 정상 결과는 `MEASURED`이고, 각
+`-VV`·compileall·선택 import 호출의 path/version/argv/return code/timeout/truncation이
+`ToolEvidence`에 남습니다. 외부 interpreter 교체가 결과를 바꿀 수 있으므로 이 engine은 cache
+key/entry를 만들거나 재사용하지 않고 매번 fresh 검사합니다.
+
 `dead`와 `dup`의 heuristic source 분석은 동일한 bounded UTF-8 intake를 사용합니다. generated/
 autogen 및 moc 산출물과 vendor/dependency 디렉터리는 소유한 제품 코드가 아니므로 기본 제외하며,
 필요한 경우 두 엔진에서 각각 opt-in할 수 있습니다.
@@ -166,13 +201,14 @@ ici verify --profile standard
 ici verify --profile deep
 ~~~
 
-현재 내장 descriptor 기준으로 선택되는 범위는 다음과 같습니다.
+현재 내장 descriptor 기준으로 선택되는 범위는 다음과 같습니다. 총 descriptor는 16종이며,
+`python_compat`는 fast·standard·deep 모두에서 선택됩니다.
 
 | profile | 선택되는 내장 엔진 | 용도 |
 |---|---|---|
-| `fast` | read-only 엔진 11종(`compile_db` 포함) | 빠른 편집·pre-commit 피드백 |
-| `standard` | 기본 엔진 13종(`compile_db`/`test`/`sanitize` 포함) | 일반 로컬·CI 검증 |
-| `deep` | 내장 엔진 15종(`compile_db`/`cognitive`/`thread_sanitize` 포함) | 가장 넓은 분석 범위 |
+| `fast` | read-only 엔진 12종(`compile_db` 포함) | 빠른 편집·pre-commit 피드백 |
+| `standard` | 기본 엔진 14종(`compile_db`/`test`/`sanitize` 포함) | 일반 로컬·CI 검증 |
+| `deep` | 내장 엔진 16종(`compile_db`/`cognitive`/`thread_sanitize` 포함) | 가장 넓은 분석 범위 |
 
 profile은 engine set만 바꿉니다. 예를 들어 line·complexity의 설정 임계값, test의
 coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따라 낮아지거나 높아지지
@@ -283,9 +319,37 @@ source status unchanged를 확인했습니다. I2-4는 PR #97의 merge commit
 `ef30059522729b376c5409e5bb49164aa538b128`, CI run `33345993304`, sticky comment
 `5472411964`의 ici/viewer Pages 게시까지 완료됐습니다.
 
+### 2.0.3 Python runtime compatibility
+
+`python_compat`는 Python source가 있을 때 현재 runtime과 선택한 추가 interpreter의 호환성을
+검사합니다. 기본 `interpreters = []`는 `ici`를 실행 중인 `sys.executable`을 하나의 required
+runtime으로 선택합니다. 명시 목록의 entry는 optional이며, `required_interpreters`에 포함한
+entry만 required입니다. engine-level `required`는 이 runtime entry 정책과 별개의 suite gate
+설정입니다.
+
+각 resolved interpreter는 shell 없이 `-VV`로 실제 version을 확인하고, 선택된 Python source
+root에 `python -B -m compileall -q -f`를 실행합니다. compileall은 임시
+`PYTHONPYCACHEPREFIX`로 bytecode를 보내 project에 `__pycache__`를 남기지 않습니다.
+`project.requires-python`은 `pyproject.toml`에서 읽어 PEP 440 specifier로 파싱하고, 각 `-VV`
+version이 허용 범위에 있는지 비교합니다. `target_version`을 지정하면 그 minor를 syntax/API
+floor로 사용하고, 빈 값이면 `requires-python`이 허용하는 가장 이른 지원 Python 3 minor를
+추론합니다. 현재 ici runtime이 해석 가능한 syntax와 bounded standard-library API inventory를
+검사하며, 위반은 정확한 1-indexed line/column target으로 남깁니다.
+
+Import smoke는 명시적 opt-in입니다. import는 module top-level code를 실행할 수 있으므로
+자동 발견한 import name은 metadata로만 기록하고 실행하지 않습니다. 사용자가
+`imports = ["package", "package.cli"]`로 지정한 dotted module만 `-I -B` contained subprocess와
+명시적 project/source path로 실행합니다. 이 프로세스는 shell 없이 실행되지만 sandbox는 아닙니다.
+정상 runtime 검사는 `MEASURED` evidence이며 `-VV`, compileall, 선택 import 호출의 executable
+path/version/argv/return code/timeout/truncation을 `ToolEvidence`에 보존합니다. optional runtime의
+unavailable/incompatible는 `WARN`, required runtime의 unavailable는 `ERROR`/`NOT_RUN`,
+version mismatch·compile/import failure는 `FAIL`입니다. 외부 interpreter를 설정으로 교체할 수
+있어 `python_compat`는 cache key/entry를 만들거나 재사용하지 않고 매번 fresh 검사합니다.
+
 ### 2.1 로컬 전체 검증
 현재 프로젝트 디렉토리에서 선택된 profile의 엔진을 일괄 수행하고 터미널 컬러 대시보드를
-출력합니다. 내장 엔진은 총 15종이며 기본 `standard` profile은 13종을 활성화하고,
+출력합니다. 내장 엔진은 총 16종이며 `fast`는 12종, 기본 `standard` profile은 14종을
+활성화하고,
 `thread_sanitize`는 `deep` profile에서만 선택됩니다.
 
 ```bash
@@ -1014,12 +1078,21 @@ ici verify --max-findings 0
 ici verify --verbose --max-findings 10 --group-by severity
 ```
 
-cap과 grouping은 console-only projection이다. `--report` JSON, HTML, Markdown 및 baseline의
-원본 inventory·target·finding·delta occurrence는 상한과 무관하게 전체를 보존해야 한다.
-duplicate는 같은 실행의 같은 clone group 안에서 같은 파일의 겹치는 line region만 표시상
-병합한다. 인접하지만 겹치지 않는 region과 서로 다른 clone group은 병합하지 않으며, 병합 전
-원본 occurrence와 fingerprint를 모두 유지한다. HTML `Issues` 탭도 native v3 finding inventory를
-기반으로 전체 결과를 표시한다. 80-column 터미널에서도 표·링크·상세가 한 글자씩 세로로
+console cap만 console 전용이며, canonical Python rule grouping은 console·HTML·Markdown이
+공유하는 표시 projection이다. Review된 rule family만 canonical id로 표시하고, broad Ruff
+rule은 bounded AST/tool context가 같은 operation을 증명할 때만 native AST rule과 묶는다.
+cross-producer merge에는 같은 canonical project-relative Python path, 양쪽의 `end_line`·
+`start_column`·`end_column`을 포함한 1-indexed precise region, 실제 source overlap이 모두
+필요하다. line-only 위치, column이 빠진 finding, 인접하지만 겹치지 않는 위치, 다른 파일,
+unknown rule은 별도 그룹으로 남긴다. 그룹은 `original_finding_count`, producer별 count와
+engine/rule/tool version provenance를 표시한다.
+
+`--report` JSON과 baseline은 이 projection을 적용하지 않는다. 각 producer의 원본
+`targets`/`findings`, fingerprint, 정확한 line+column location, tool identity와 delta
+occurrence를 그대로 보존하며 projection이 suite나 baseline을 변경하지 않는다. HTML `Issues`
+탭은 전체 display projection, Markdown은 bounded canonical table, console은 cap이 적용된
+projection을 보여준다. duplicate의 별도 clone-group 병합도 같은 표시 원칙을 따르며 원본
+occurrence와 fingerprint를 유지한다. 80-column 터미널에서 표·링크·상세가 한 글자씩 세로로
 깨지지 않도록 회귀 테스트로 고정했다.
 
 다음은 issues-first console을 도입한 PR #89 당시의 고정된 acceptance 기록이다
@@ -1267,6 +1340,7 @@ QtTest parser는 `-xunitxml`의 각 `<testcase>`에서 skip/xfail/xpass/unknown 
 | `ici lint` | 문법 린팅 및 코드 스타일 정렬 검사 | [Lint 엔진 상세](engine-reference.md#22--lint-문법-및-코드-스타일-린터) |
 | `ici test` | 단위 테스트 실행 및 Branch/Function 커버리지, TEM 5.0 스코어링 | [Test 엔진 상세](engine-reference.md#23--test--tem-스코어링-단위-테스트-및-테스트-효과성-지표) |
 | `ici type` | Mypy 정적 타입 및 AST 부분 폴백 (C++ 타입 검증은 명시적 SKIP) | [Type 엔진 상세](engine-reference.md#24-️-type-정적-타입-안정성-검사기) |
+| `ici python-compat` | Python runtime `-VV`·compileall·선택 import 및 `requires-python`/syntax/API floor 검증 | [Python 호환성 엔진 상세](engine-reference.md#215--python_compat-python-runtime-호환성) |
 | `ici complexity` | 함수별 CC/중첩 분석; C++ 경계는 clang-tidy AST 우선, unavailable 시 heuristic evidence | [Complexity 엔진 상세](engine-reference.md#25--complexity-순환-복잡도-및-블록-중첩도) |
 | `ici sanitize` | C++ ASan/UBSan 메모리 안전성 및 Python 리소스 누수 검증 | [Sanitize 엔진 상세](engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |
 | `ici thread-sanitize` | deep profile 전용 C++ ThreadSanitizer thread-safety 검증 | [ThreadSanitizer 엔진 상세](engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |

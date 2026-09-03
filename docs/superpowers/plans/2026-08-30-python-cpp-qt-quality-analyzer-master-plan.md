@@ -109,7 +109,7 @@ baseline으로 보존한다:
 - C++ type, dead, cognitive, resource 분석은 구현되지 않았거나 Python 전용이다.
 - C++ cycle은 텍스트 include와 basename 휴리스틱이며 실제 `-I` 순서를 모른다.
 - C++ 함수 coverage 위치가 gcov text 한계 때문에 1행으로 기록된다.
-- security/resource 일부 규칙은 단순 정규식·얕은 AST임에도 분석 정밀도를 별도로 표현하지 못한다.
+- security/resource 일부 규칙은 당시 구조 인식과 분석 정밀도를 별도로 표현하지 못했다.
 - duplicate와 console drill-down이 결과를 과도하게 펼쳐 issues-first 불변식을 위반한다.
 - self gate 임계값이 실제 baseline보다 지나치게 낮다.
 
@@ -1477,6 +1477,10 @@ broader resource/lifetime/security mapping과 release는 여전히 별도다.
 
 ## 11. I5 — Python 정밀 분석과 호환성
 
+현재 내장 pipeline은 16종 descriptor를 제공한다. `fast`는 12종, `standard`는 14종,
+`deep`는 16종을 선택하며, `python_compat`는 세 profile 모두에 포함된다. 아래 I5 구현은
+이 profile count를 바꾸지 않고 Python 범위와 reporter contract만 확장한다.
+
 ### I5-1. Ruff와 mypy의 프로젝트 설정 존중
 
 **브랜치:** `fix/python-tool-config`
@@ -1502,7 +1506,7 @@ broader resource/lifetime/security mapping과 release는 여전히 별도다.
 
 **브랜치:** `refactor/python-rules`
 
-- [x] security regex를 call/assignment/import-aware AST 규칙으로 옮긴다. weak crypto/random,
+- [x] security 탐지를 call/assignment/import-aware AST 규칙으로 구현한다. weak crypto/random,
   dynamic execution, pickle, command processor와 constant `shell=True`를 구조적으로 구분하고
   comment-token `# nosec`, bounded no-follow source input, invalid syntax fail-closed를 포함한다.
 - [x] secret detector는 이름 context, 알려진 credential prefix, 길이/entropy와 bounded exact
@@ -1510,20 +1514,36 @@ broader resource/lifetime/security mapping과 release는 여전히 별도다.
 - [x] resource engine이 bounded intraprocedural flow로 `close()`/`aclose()`, context manager,
   alias/branch/`try-finally`, `ExitStack`, ownership transfer와 escaping return을 구분한다.
 - [x] mutable literal/constructor default는 native correctness category와 exact AST 위치로 분리한다.
-- [ ] exception, dead, cognitive와 Ruff/mypy 중복 rule을 fingerprint로 합친다.
+- [x] exception, dead, cognitive와 Ruff/mypy 진단의 중복 후보를 보수적인 display-only
+  canonical Python rule projection으로 표현한다. precise line+column overlap과 trusted semantic
+  context가 없으면 merge하지 않으며, JSON/baseline 원본 inventory와 provenance는 변경하지 않는다.
 - [x] security/resource rule의 source/evidence bound, limitation과 confidence를 engine extra와
-  engine reference에 문서화한다. cross-tool canonical dedup 대상의 confidence/provenance는
-  해당 미완료 항목에서 계속 확장한다.
+  engine reference에 문서화한다. cross-tool canonical display projection은 confidence와
+  provenance를 보존하며, 원본 JSON/baseline inventory를 변경하지 않는다.
 
 ### I5-3. Python runtime compatibility
 
 **브랜치:** `feat/python-compatibility`
 
-- [ ] configured interpreter마다 `-VV`, compileall, import smoke를 argv로 실행한다.
-- [ ] `requires-python`과 실제 interpreter version을 비교한다.
-- [ ] 3.10 하한 위반 문법/API를 위치와 함께 보고한다.
-- [ ] interpreter별 optional/required 정책과 unavailable 상태를 구분한다.
-- [ ] envlens를 3.10과 최신 설치 interpreter에서 검증한다.
+- [x] configured interpreter마다 `-VV`, compileall, import smoke를 argv로 실행한다. 현재
+  runtime은 `interpreters = []`일 때 기본 required이며, import smoke는 `imports`에 명시된
+  모듈에만 opt-in한다(top-level code 실행 경계).
+- [x] `requires-python`과 실제 interpreter version을 비교한다.
+- [x] 3.10 하한 위반 문법/API를 위치와 함께 보고한다.
+- [x] interpreter별 optional/required 정책과 unavailable 상태를 구분한다.
+- [x] envlens를 Python 3.10.21과 최신 설치 interpreter인 Python 3.14.7에서 각각
+  feature candidate `ici.pyz python-compat`로 검증한다.
+
+현재 구현은 Python source가 선택된 프로젝트에서 bounded `pyproject.toml` metadata를 읽고,
+각 resolved runtime의 `-VV` version, `python -B -m compileall -q -f`, 선택 import smoke를
+`ToolEvidence`로 보존한다. `target_version` 또는 `requires-python`에서 추론한 floor는 syntax
+`feature_version`과 문서화된 standard-library API inventory에 적용하며, 위반에는 precise
+line/column target을 남긴다. optional runtime의 unavailable/incompatible는 `WARN`, required
+runtime의 unavailable는 `ERROR`/`NOT_RUN`, version/compile/import 불일치는 `FAIL`이다. 자동
+발견 import는 실행하지 않고, 명시적 import만 contained subprocess에서 실행한다. 외부
+interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 의도적으로 비활성화한다.
+정상 실행 evidence는 `MEASURED`이다. envlens는 Python 3.10.21과 3.14.7에서 모두 통과했지만,
+이는 아직 I5-4 이후 작업이나 I5 전체 완료를 의미하지 않는다.
 
 ### I5-4. packaging과 환경 무결성
 
