@@ -233,6 +233,7 @@ def test_no_python_source_is_not_applicable(tmp_path: Path) -> None:
 
 def test_runtime_version_and_requires_python_parsing_is_pep_440_aware() -> None:
     assert parse_runtime_version("Python 3.13.2 (main, build)\n[GCC]") == Version("3.13.2")
+    assert parse_runtime_version("Python 3.14.0rc2 (main, build)\n[GCC]") == Version("3.14.0rc2")
     assert requires_python_allows(">=3.10,<3.13", Version("3.12.9"))
     assert not requires_python_allows(">=3.10,<3.13", Version("3.13.0"))
     assert inferred_target_version(">=3.10,<3.13") == (3, 10)

@@ -23,7 +23,7 @@ from ici.engines._python_resource_scopes import (
 MAX_PYPROJECT_BYTES = 2 * 1024 * 1024
 MAX_COMPAT_AST_NODES = 100_000
 MAX_COMPAT_TOTAL_AST_NODES = 1_000_000
-_VERSION_RE = re.compile(r"Python\s+(\d+)\.(\d+)\.(\d+)")
+_VERSION_RE = re.compile(r"Python\s+(\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?)(?![A-Za-z0-9])")
 _TARGET_RE = re.compile(r"^(\d+)\.(\d+)$")
 _INTRODUCED_APIS = {
     "datetime.UTC": (3, 11),
@@ -64,7 +64,7 @@ def parse_runtime_version(output: str) -> Version | None:
     if match is None:
         return None
     try:
-        return Version(".".join(match.groups()))
+        return Version(match.group(1))
     except InvalidVersion:
         return None
 
