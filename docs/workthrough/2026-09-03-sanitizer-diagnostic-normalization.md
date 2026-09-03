@@ -13,7 +13,8 @@ diagnostics`), `5f031ba` (`test(build): reject sanitizer output from passing JUn
 `9a108dc` (`test(sanitize): model adapter process evidence in state fixtures`), `48831c3`
 (`refactor(sanitize): use canonical sanitizer kind names`), and `69559ed` (`test(build): preserve
 qmake sanitizer diagnostics`), and `9be72c5` (`fix(sanitize): reject unsafe diagnostic source
-paths`). This workthrough documents local branch
+paths`), and `b07c66d` (`refactor(sanitize): split adapter execution stages`). This workthrough
+documents local branch
 evidence only. Remote PR/main/Pages acceptance, Quality Zoo cross-repository scenarios, and
 candidate evidence remain pending. ici remains at `v0.10.2`; this slice does not create a release
 or a version bump.
@@ -89,6 +90,10 @@ diagnostics, and unlocated diagnostics fail closed as `ERROR`/`NOT_RUN` or an ex
 error target. A complete located report accompanying signal termination remains a measured
 `FAIL`; a partial report cannot be used to claim a clean run.
 
+The adapter path is split into configure/build preparation, process validation, case recording,
+diagnostic normalization, and error-recording helpers. This keeps the orchestration method at
+cyclomatic complexity 3 while retaining the same execution-state and evidence boundaries.
+
 ### 4. Documentation and roadmap boundary
 
 The following documentation now describes the same private/public boundary and the fresh-JUnit
@@ -149,6 +154,7 @@ a measured finding.
 | Runtime | Python `3.10.21` |
 | Focused sanitizer/adapter regression | `uv run --python 3.10 pytest tests/test_sanitizer_diagnostics.py tests/test_sanitize_engine.py tests/test_build_adapter.py -o addopts=''` — `132 passed` |
 | Real sanitizer coverage | The focused suite includes real `g++` ASan heap-use-after-free, UBSan signed-integer-overflow, and LSan leak fixtures; all three pass. |
+| Adapter orchestration complexity | `_run_cpp_sanitizer_via_adapter` — cyclomatic complexity `3`, `PASS`. |
 | Full local Python 3.10 suite | `2,088 passed, 7 skipped` (authoritative local result for the current implementation). |
 | Documentation hygiene | `git diff --check` passes. |
 | Release state | No version or release change; ici remains `v0.10.2`. |
