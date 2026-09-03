@@ -18,6 +18,10 @@ def _render_dup_section(dup_res: EngineResult | None, base: Path) -> str:
 
     cards = []
     for g in groups:
+        technique = {
+            "python-ast-semantic-shape": "Python AST shape",
+            "type2-lexical-region": "Type-2 lexical region",
+        }.get(g.get("detection"), "Clone analysis")
         occ_html = []
         for occ in g["occurrences"]:
             s_line = occ["start_line"]
@@ -29,7 +33,9 @@ def _render_dup_section(dup_res: EngineResult | None, base: Path) -> str:
         snippet_html = f"<pre class='snippet'><code>{html.escape(g['snippet'])}</code></pre>"
         cards.append(
             f"<div class='clone-group-card'>"
-            f"  <div class='clone-group-title'>📦 Clone Group #{g['id']} ({g['lines_count']} Duplicate Lines &bull; {g['occurrences_count']} Locations)</div>"
+            f"  <div class='clone-group-title'>📦 Clone Group #{g['id']} "
+            f"({g['lines_count']} Duplicate Lines &bull; {g['occurrences_count']} Locations "
+            f"&bull; {technique})</div>"
             f"  <div class='clone-occurrences'>{''.join(occ_html)}</div>"
             f"  {snippet_html}"
             f"</div>"

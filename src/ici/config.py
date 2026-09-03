@@ -98,6 +98,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "warn_pct": 5.0,
             "fail_pct": 15.0,
             "min_window": 6,
+            "python_semantic": "auto",
             "include_generated": False,
             "include_vendor": False,
         },

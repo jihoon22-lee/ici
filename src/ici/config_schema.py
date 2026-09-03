@@ -96,7 +96,16 @@ _ENGINE_KEYS = {
     "dead": _COMMON_ENGINE_KEYS
     | frozenset({"cpp_unused", "cpp_linker", "include_generated", "include_vendor"}),
     "dup": _COMMON_ENGINE_KEYS
-    | frozenset({"warn_pct", "fail_pct", "min_window", "include_generated", "include_vendor"}),
+    | frozenset(
+        {
+            "warn_pct",
+            "fail_pct",
+            "min_window",
+            "python_semantic",
+            "include_generated",
+            "include_vendor",
+        }
+    ),
     "exception": _COMMON_ENGINE_KEYS,
     "cycle": _COMMON_ENGINE_KEYS | frozenset({"max_reported"}),
     "cognitive": _COMMON_ENGINE_KEYS | frozenset({"warn", "fail", "warn_nesting"}),
@@ -333,6 +342,11 @@ def _validate_dup(table: dict[str, Any], path: str) -> None:
             _require_number(table[key], f"{path}.{key}", minimum=0, maximum=100)
     if "min_window" in table:
         _require_int(table["min_window"], f"{path}.min_window", minimum=1)
+    if "python_semantic" in table:
+        semantic_path = f"{path}.python_semantic"
+        _require_string(table["python_semantic"], semantic_path, non_empty=True)
+        if table["python_semantic"] not in {"auto", "required", "off"}:
+            raise _error(semantic_path, "must be one of: auto, off, required")
     warn_pct = table.get("warn_pct", 5.0)
     fail_pct = table.get("fail_pct", 15.0)
     if fail_pct < warn_pct:

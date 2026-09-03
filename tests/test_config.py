@@ -82,6 +82,7 @@ def test_default_config_has_layout_and_line_gate_keys():
     assert DEFAULT_CONFIG["engines"]["complexity"]["cpp_boundaries"] == "auto"
     assert DEFAULT_CONFIG["engines"]["dead"]["cpp_unused"] == "auto"
     assert DEFAULT_CONFIG["engines"]["dead"]["cpp_linker"] == "off"
+    assert DEFAULT_CONFIG["engines"]["dup"]["python_semantic"] == "auto"
     assert DEFAULT_CONFIG["doctor"]["required_tools"] == []
 
 
@@ -356,6 +357,17 @@ def test_config_schema_accepts_cpp_linker_modes(mode: str) -> None:
 def test_config_schema_rejects_invalid_cpp_linker_modes(mode: object) -> None:
     with pytest.raises(ConfigError, match=r"engines\.dead\.cpp_linker"):
         validate_config({"engines": {"dead": {"cpp_linker": mode}}})
+
+
+@pytest.mark.parametrize("mode", ["auto", "required", "off"])
+def test_config_schema_accepts_python_semantic_dup_modes(mode: str) -> None:
+    validate_config({"engines": {"dup": {"python_semantic": mode}}})
+
+
+@pytest.mark.parametrize("mode", ["", "always", None, 1, True])
+def test_config_schema_rejects_invalid_python_semantic_dup_modes(mode: object) -> None:
+    with pytest.raises(ConfigError, match=r"engines\.dup\.python_semantic"):
+        validate_config({"engines": {"dup": {"python_semantic": mode}}})
 
 
 @pytest.mark.parametrize(
