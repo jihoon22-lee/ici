@@ -345,8 +345,9 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   남기고 replay를 계속하며, compilation context가 존재하는 동안 고정 `g++ -std=c++17`
   폴백은 사용하지 않습니다. C++ lint cache helper는 `ici.core._cpp_replay_policy`,
   `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._clazy`,
-  `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`,
-  `ici.engines._qt_codegen`, `ici.engines.lint`를 명시하고, cycle cache helper는
+  `ici.engines._cpp_diagnostic_categories`, `ici.engines._cpp_diagnostics`,
+  `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen`,
+  `ici.engines.lint`를 명시하고, cycle cache helper는
   `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`,
   `ici.engines._cpp_include_trace`, `ici.engines.cycle`을, complexity cache helper는
   `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`,
@@ -404,12 +405,26 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   clang-tidy/analyzer의 warning, violation, diagnostic-family, finding 집계에는 primary만
   포함합니다. Native finding canonicalization은 related location을 canonical project-relative
   path와 1-indexed region으로 정규화한 뒤 `(path, start line/column, end line/column, label)`
-  순서로 deterministic하게 정렬합니다. `clang-analyzer-*` rule은 `clang-analyzer` family와
-  `CORRECTNESS` finding으로, 일반 check는 `clang-tidy` family와 `MAINTAINABILITY` finding으로
-  유지합니다. JSON/HTML은 전체 related-location inventory를 보존하고, GitHub Markdown은
+  순서로 deterministic하게 정렬합니다. C++ category projection은 isolated
+  `_cpp_diagnostic_categories.py`의 `tool-rule-v1`이며 free-form diagnostic message가 아닌
+  normalized `family`/`tool_rule_id`만 읽습니다. `clang-analyzer-security.*`,
+  `clang-analyzer-alpha.security.*`, `clang-analyzer-optin.taint.*`, 그리고 clang-tidy의
+  `cert-*`/`android-cloexec-*`와 exact `bugprone-command-processor`,
+  `bugprone-signal-handler`, `bugprone-unsafe-functions`, `concurrency-mt-unsafe` rules는
+  `SECURITY`입니다. Analyzer의
+  exact resource IDs 및 `clang-analyzer-alpha.webkit.*`/`clang-analyzer-webkit.*` prefixes와
+  tidy의 exact resource IDs는 `RESOURCE`로 승격하고, 나머지 analyzer는 `CORRECTNESS`로
+  fallback합니다. tidy의 `portability-*`와 `modernize-deprecated-headers`는
+  `COMPATIBILITY`, security/resource 예외를 제외한 모든 `bugprone-*`/`concurrency-*`는
+  `CORRECTNESS`, 나머지 tidy는 `MAINTAINABILITY`입니다. compiler와 unknown family는
+  `CORRECTNESS`로 안전하게 fallback합니다. exact ID 목록은 [사용자 가이드의 정책 표](user-guide.md#c-diagnostic-category-policy)에
+  고정합니다.
+  JSON/HTML은 전체 related-location inventory를 보존하고, GitHub Markdown은
   informational/suppressed finding을 제외한 related row를 engine당 최대 100개까지만 표에
   표시하며 생략 수와 full JSON/HTML 안내를 남깁니다. fix-it은 최대 bounded suggestion으로
-  remediation과 `extra` metadata에 기록되며 자동 적용하지 않습니다.
+  remediation과 `extra` metadata에 기록되며 자동 적용하지 않습니다. lint `extra`의
+  `cpp_diagnostic_category_policy`는 정책 ID를, `cpp_diagnostic_categories`는 모든 v3
+  category의 primary diagnostic count를 제공합니다.
   정상 실행 evidence는 `MEASURED`이고, timeout·truncation·nonzero·malformed output·context
   mismatch/coverage 누락·replay 오류는 heuristic으로 조용히 대체하지 않고 `ERROR`/`NOT_RUN`으로
   fail-closed 처리합니다.
@@ -433,9 +448,19 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   전달합니다. toy-projects PR #38 run `33531285208`의 Qt 5/Qt 6 deep 실패를 재현한 뒤 fixed
   local pyz에서 12 sources, 2 probes, clazy exit 0과 expected warning 보존을 확인했습니다.
 - clazy parser는 `-Wclazy-*` warning option 형태를 strict하게 검증하고 위치 있는 diagnostics와
-  parent rule note를 `family = "clazy"` 및 stable rule ID로 보존합니다. lifetime/ownership은
-  `RESOURCE`, Qt6/deprecated/QString API는 `COMPATIBILITY`, QObject/connect/signal/slot은
-  `CORRECTNESS`, 나머지 rule은 `MAINTAINABILITY` finding으로 매핑합니다. adapter와 parser는
+  parent rule note를 `family = "clazy"` 및 stable rule ID로 보존합니다. `tool-rule-v1`은
+  `clazy-lifetime`, `clazy-ownership`, `clazy-parent-less`, `clazy-qobject-cast`의 bounded
+  stem과 `clazy-connect-3arg-lambda`, `clazy-ctor-missing-parent-argument`,
+  `clazy-lambda-in-connect`, `clazy-post-event`, `clazy-returning-data-from-temporary`,
+  `clazy-temporary-iterator` exact rules를 `RESOURCE`로, `clazy-qt6`, `clazy-deprecated`,
+  `clazy-qstring-arg`, `clazy-qt-keyword`의 bounded stem과
+  `clazy-modernize-overloaded-connects`, `clazy-no-module-include`, `clazy-old-style-connect`,
+  `clazy-qenums`, `clazy-qstring-ref`, `clazy-use-chrono-in-qtimer` exact rules를
+  `COMPATIBILITY`로, `clazy-qobject`, `clazy-connect`, `clazy-signal`, `clazy-slot`,
+  `clazy-qevent-cast`의 bounded stem과 stable correctness exact rules를 `CORRECTNESS`로
+  매핑하고, 그 밖의 rule은 `MAINTAINABILITY`로 fallback합니다. stem 자체 또는 `-`/`.` child만
+  매칭하며 arbitrary substring은 인정하지 않습니다. stable correctness exact rule의 전체 목록은
+  [사용자 가이드의 clazy 표](user-guide.md#c-diagnostic-category-policy)에 고정합니다. adapter와 parser는
   최대 2,048 units·unit당 120초·전체 600초 및 1,000,000자 output bound를 적용하고,
   malformed output·context/coverage/replay/process 오류·timeout/truncation·budget 초과는
   `ERROR`/`NOT_RUN`으로 fail-closed합니다. Ubuntu Noble clazy 1.11의 legacy raw-source/caret/

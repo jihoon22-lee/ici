@@ -193,7 +193,7 @@ coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따�
 | 소스·build 설정 내용 | project source와 인식된 build/config 파일의 경로·내용·권한 digest |
 | effective ici 설정 | 기본·전역·프로젝트·`ICI_CONFIG` 병합 후 profile이 적용된 설정 digest |
 | toolchain | capability inventory의 도구 경로·버전·세부 정보 digest |
-| 엔진 구현 | engine descriptor, engine class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로 엔진이 명시적으로 선언한 helper/dependency module source digest 목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines.lint`; cycle에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`; complexity에는 `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`, `ici.engines.cpp_text` 포함) |
+| 엔진 구현 | engine descriptor, engine class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로 엔진이 명시적으로 선언한 helper/dependency module source digest 목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostic_categories`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen`, `ici.engines.lint`; cycle에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`; complexity에는 `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`, `ici.engines.cpp_text` 포함) |
 | build variant | `release`, `coverage`, `sanitize` 또는 해당 없는 엔진의 `none` |
 | compilation context | 선택된 compile database의 project-relative path·바이트 digest, loader version, 정규화된 unit configuration/metadata와 parse diagnostics. digest는 preflight가 immutable context로 캡처한 snapshot identity이며 live-file lease가 아님 |
 | producer | ici 버전과 cache key schema 버전 |
@@ -570,8 +570,41 @@ Compiler 진단은 완전하게 probe된 실제 GCC family version 9 이상이�
 `-fdiagnostics-parseable-fixits` text를 사용합니다. family/version을 확정하지 못한 capability는
 replay 전에 거부합니다. JSON/text parser는 malformed output 일부를 성공 결과와 합치지 않고
 atomic하게 거부하며, project-relative/external 위치·rule ID·child/note·fix-it 범위를 보존합니다.
-clang-tidy text의 `clang-analyzer-*` rule은 별도 analyzer family와 `CORRECTNESS` category로,
-일반 clang-tidy check는 `clang-tidy` family와 `MAINTAINABILITY` category로 finding에 기록됩니다.
+#### C++ diagnostic category policy
+
+Compiler, clang-analyzer, clang-tidy, clazy finding의 category는 isolated
+`_cpp_diagnostic_categories.py`의 `tool-rule-v1` 정책으로 결정됩니다. 비교 대상은 parser가
+정규화한 `family`와 `tool_rule_id`뿐이며, diagnostic의 free-form message·caret text·note prose는
+category에 영향을 주지 않습니다. rule은 case-fold한 뒤 아래 순서를 적용하고, 명시되지 않은
+경우에는 family별 안전한 fallback을 사용합니다.
+
+| 우선순위 | normalized family / `tool_rule_id` | v3 category |
+|---|---|---|
+| 1 | `family = compiler` | `CORRECTNESS` |
+| 2 | Analyzer `clang-analyzer-security.*`, `clang-analyzer-alpha.security.*`, `clang-analyzer-optin.taint.*`; tidy `cert-*`, `android-cloexec-*`, `bugprone-command-processor`, `bugprone-signal-handler`, `bugprone-unsafe-functions`, `concurrency-mt-unsafe` | `SECURITY` |
+| 3 | Analyzer exact resource IDs and `clang-analyzer-alpha.webkit.*`/`clang-analyzer-webkit.*` prefixes; tidy exact resource IDs listed below | `RESOURCE` |
+| 4 | `family = clang-analyzer`의 나머지 rule | `CORRECTNESS` |
+| 5 | `family = clang-tidy`의 `portability-*` 또는 정확히 `modernize-deprecated-headers` | `COMPATIBILITY` |
+| 6 | `family = clang-tidy`의 security/resource 예외를 제외한 모든 `bugprone-*` 또는 `concurrency-*` | `CORRECTNESS` |
+| 7 | `family = clang-tidy`의 나머지 rule | `MAINTAINABILITY` |
+| fallback | `compiler`/`clang-analyzer`/`clang-tidy`/`clazy`가 아닌 unknown family | `CORRECTNESS` |
+
+Analyzer resource exact IDs는 `clang-analyzer-alpha.core.danglingptrderef`,
+`clang-analyzer-alpha.core.useafterlifetimeend`, `clang-analyzer-alpha.cplusplus.smartptr`,
+`clang-analyzer-cplusplus.arraydelete`, `clang-analyzer-cplusplus.innerpointer`,
+`clang-analyzer-cplusplus.newdelete`, `clang-analyzer-cplusplus.newdeleteleaks`,
+`clang-analyzer-fuchsia.handlechecker`, `clang-analyzer-osx.cocoa.retaincount`,
+`clang-analyzer-osx.cocoa.runloopautoreleaseleak`,
+`clang-analyzer-osx.corefoundation.cfretainrelease`, `clang-analyzer-unix.malloc`,
+`clang-analyzer-unix.mismatcheddeallocator`, `clang-analyzer-unix.stream`입니다. Tidy resource
+exact IDs는 `bugprone-dangling-handle`, `bugprone-dangling-reference`,
+`bugprone-multiple-new-in-one-expression`, `bugprone-shared-ptr-array-mismatch`,
+`bugprone-suspicious-realloc-usage`, `bugprone-unique-ptr-array-mismatch`,
+`bugprone-unused-raii`, `bugprone-use-after-move`, `cppcoreguidelines-owning-memory`,
+`misc-new-delete-overloads`입니다. 따라서 새로운 임의 rule이나 message의 단어만으로
+resource/security가 되지 않습니다. 결과
+`extra.cpp_diagnostic_category_policy`에는 정책 ID가, `extra.cpp_diagnostic_categories`에는
+`FindingCategory`의 모든 category별 primary diagnostic count가 기록됩니다.
 compiler/clang-tidy가 출력한 fix-it replacement는 최대 bounded suggestion으로 기록되지만 자동
 적용하지 않습니다. clang-tidy의 rule-less `note:` 또는 primary와 같은 rule을 가진 설명 note는
 출력 순서상 바로 앞의 primary와 같은 contiguous group에만 `related_diagnostics`로 결합되고,
@@ -751,12 +784,19 @@ atomic engine `ERROR`를 발행합니다. `ToolEvidence.error`와 오류 target�
 `fatal`/`error`/`warning`/`note`/`remark` kind count, processing/output 여부만 남기며 raw
 stdout/stderr prose와 host path를 복사하지 않습니다.
 
-| clazy rule 의미 | v3 category |
+| clazy normalized rule group | v3 category |
 |---|---|
-| `lifetime`, `ownership`, `parent-less`, `qobject-cast` | `RESOURCE` |
-| `qt6`, `deprecated`, `qstring-arg`, `qt-keyword` | `COMPATIBILITY` |
-| `qobject`, `connect`, `signal`, `slot`, `qevent-cast` | `CORRECTNESS` |
-| 그 밖의 clazy rule (container detach/temporary 포함) | `MAINTAINABILITY` |
+| `clazy-lifetime`, `clazy-ownership`, `clazy-parent-less`, `clazy-qobject-cast` 자체 또는 `-`/`.` child | `RESOURCE` |
+| exact resource rules: `clazy-connect-3arg-lambda`, `clazy-ctor-missing-parent-argument`, `clazy-lambda-in-connect`, `clazy-post-event`, `clazy-returning-data-from-temporary`, `clazy-temporary-iterator` | `RESOURCE` |
+| `clazy-qt6`, `clazy-deprecated`, `clazy-qstring-arg`, `clazy-qt-keyword` 자체 또는 `-`/`.` child | `COMPATIBILITY` |
+| exact compatibility rules: `clazy-modernize-overloaded-connects`, `clazy-no-module-include`, `clazy-old-style-connect`, `clazy-qenums`, `clazy-qstring-ref`, `clazy-use-chrono-in-qtimer` | `COMPATIBILITY` |
+| `clazy-qobject`, `clazy-connect`, `clazy-signal`, `clazy-slot`, `clazy-qevent-cast` 자체 또는 `-`/`.` child | `CORRECTNESS` |
+| exact correctness rules: `clazy-assert-with-side-effects`, `clazy-base-class-event`, `clazy-child-event-qobject-cast`, `clazy-const-signal-or-slot`, `clazy-copyable-polymorphic`, `clazy-ifndef-define-typo`, `clazy-incorrect-emit`, `clazy-install-event-filter`, `clazy-jni-signatures`, `clazy-lambda-unique-connection`, `clazy-missing-qobject-macro`, `clazy-missing-typeinfo`, `clazy-mutable-container-key`, `clazy-overloaded-signal`, `clazy-overridden-signal`, `clazy-qhash-with-char-pointer-key`, `clazy-qproperty-type-mismatch`, `clazy-qproperty-without-notify`, `clazy-qstring-varargs`, `clazy-rule-of-three`, `clazy-rule-of-two-soft`, `clazy-signal-with-return-value`, `clazy-skipped-base-method`, `clazy-thread-with-slots`, `clazy-unexpected-flag-enumerator-value`, `clazy-virtual-call-ctor`, `clazy-virtual-signal`, `clazy-writing-to-temporary`, `clazy-wrong-qevent-cast` | `CORRECTNESS` |
+| 그 밖의 clazy rule (container detach/temporary 및 stem을 임의 substring으로만 포함하는 rule 포함) | `MAINTAINABILITY` |
+
+행 순서가 precedence입니다. 특히 `clazy-qobject-cast`는 `clazy-qobject`보다 먼저
+`RESOURCE`로 분류됩니다. `extra.cpp_diagnostic_category_policy`는 `tool-rule-v1`이고,
+`extra.cpp_diagnostic_categories`는 모든 v3 category의 count를 포함합니다.
 
 clazy adapter는 최대 2,048 translation units, unit당 120초, 전체 600초 global budget과
 1,000,000자 output bound를 적용합니다. context/coverage/replay/parse/process 오류와 timeout,

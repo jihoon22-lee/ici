@@ -508,6 +508,12 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
         f"{source}:4:5: warning: prefer nullptr [modernize-use-nullptr]\n"
         f"{source}:5:7: note: replace the macro expansion here\n"
         f'fix-it:"{source}":{{5:7-5:11}}:"nullptr"\n'
+        f"{source}:6:5: warning: insecure API "
+        "[clang-analyzer-security.insecureAPI.strcpy]\n"
+        f"{source}:7:5: warning: allocation may leak "
+        "[clang-analyzer-cplusplus.NewDeleteLeaks]\n"
+        f"{source}:8:5: warning: non-portable SIMD intrinsic "
+        "[portability-simd-intrinsics]\n"
     )
     calls: list[tuple[list[str], dict[str, object]]] = []
     compiler = Path(context.compilation.units[0].argv[0]).resolve(strict=True)
@@ -547,22 +553,43 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
     assert len(calls) == 4
     assert result.extra["cpp_diagnostic_families"] == {
         "compiler": 0,
-        "clang-tidy": 1,
-        "clang-analyzer": 1,
+        "clang-tidy": 2,
+        "clang-analyzer": 3,
         "clazy": 0,
     }
-    assert result.extra["violations_count"] == 2
+    assert result.extra["cpp_diagnostic_category_policy"] == "tool-rule-v1"
+    assert result.extra["cpp_diagnostic_categories"] == {
+        "architecture": 0,
+        "build": 0,
+        "compatibility": 1,
+        "correctness": 1,
+        "maintainability": 1,
+        "resource": 1,
+        "security": 1,
+        "test": 0,
+        "type": 0,
+    }
+    assert result.extra["violations_count"] == 5
     assert result.extra["cpp_related_notes"] == 1
     assert result.extra["cpp_fixits_total"] == 1
     assert result.extra["cpp_fixits"][0]["family"] == "clang-tidy"
     assert result.extra["cpp_fixits"][0]["rule"] == "modernize-use-nullptr"
-    assert result.summary == "0 Errors, 2 Warnings Found"
-    assert len(result.findings) == 2
+    assert result.summary == "0 Errors, 5 Warnings Found"
+    assert len(result.findings) == 5
     findings_by_rule = {finding.tool_rule_id: finding for finding in result.findings}
     assert findings_by_rule["clang-analyzer-core.NullDereference"].category is (
         FindingCategory.CORRECTNESS
     )
     assert findings_by_rule["modernize-use-nullptr"].category is FindingCategory.MAINTAINABILITY
+    assert findings_by_rule["clang-analyzer-security.insecureAPI.strcpy"].category is (
+        FindingCategory.SECURITY
+    )
+    assert findings_by_rule["clang-analyzer-cplusplus.NewDeleteLeaks"].category is (
+        FindingCategory.RESOURCE
+    )
+    assert findings_by_rule["portability-simd-intrinsics"].category is (
+        FindingCategory.COMPATIBILITY
+    )
     assert len(findings_by_rule["modernize-use-nullptr"].related_locations) == 1
     note = findings_by_rule["modernize-use-nullptr"].related_locations[0]
     assert note.path == "src/main.cpp"
@@ -574,14 +601,17 @@ def test_lint_engine_publishes_native_clang_diagnostic_findings(
     assert all(finding.tool_version == "clang-tidy version 18.1.0" for finding in result.findings)
     assert set(findings_by_rule) == {
         "clang-analyzer-core.NullDereference",
+        "clang-analyzer-cplusplus.NewDeleteLeaks",
+        "clang-analyzer-security.insecureAPI.strcpy",
         "modernize-use-nullptr",
+        "portability-simd-intrinsics",
     }
 
     projected = findings_for_result(result, root)
     projected_diagnostic_findings = [
         finding for finding in projected if finding.tool_rule_id in findings_by_rule
     ]
-    assert len(projected_diagnostic_findings) == 2
+    assert len(projected_diagnostic_findings) == 5
     assert {finding.tool_rule_id for finding in projected_diagnostic_findings} == set(
         findings_by_rule
     )

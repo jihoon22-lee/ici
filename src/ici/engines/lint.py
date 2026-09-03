@@ -24,6 +24,10 @@ from ici.core.models import (
 from ici.core.runner import ProcessResult, run_process
 from ici.engines._clang_tidy import run_clang_tidy
 from ici.engines._clazy import run_clazy
+from ici.engines._cpp_diagnostic_categories import (
+    CPP_DIAGNOSTIC_CATEGORY_POLICY,
+    cpp_diagnostic_category,
+)
 from ici.engines._cpp_diagnostics import CppDiagnostic
 from ici.engines._cpp_lint import run_cpp_lint
 from ici.engines._qt_codegen import verify_qt_codegen
@@ -78,6 +82,7 @@ class LintEngine(BaseEngine):
         "ici.core.cpp_replay",
         "ici.engines._clang_tidy",
         "ici.engines._clazy",
+        "ici.engines._cpp_diagnostic_categories",
         "ici.engines._cpp_diagnostics",
         "ici.engines._cpp_lint",
         "ici.engines._cpp_tooling",
@@ -204,6 +209,14 @@ class LintEngine(BaseEngine):
                         1 for diagnostic in self._cpp_diagnostics if diagnostic.family == family
                     )
                     for family in ("compiler", "clang-tidy", "clang-analyzer", "clazy")
+                },
+                "cpp_diagnostic_category_policy": CPP_DIAGNOSTIC_CATEGORY_POLICY,
+                "cpp_diagnostic_categories": {
+                    category.value: sum(
+                        self._cpp_finding_category(diagnostic) is category
+                        for diagnostic in self._cpp_diagnostics
+                    )
+                    for category in FindingCategory
                 },
                 "cpp_fixits": [
                     {
@@ -333,20 +346,7 @@ class LintEngine(BaseEngine):
 
     @staticmethod
     def _cpp_finding_category(diagnostic: CppDiagnostic) -> FindingCategory:
-        if diagnostic.family != "clazy":
-            return (
-                FindingCategory.MAINTAINABILITY
-                if diagnostic.family == "clang-tidy"
-                else FindingCategory.CORRECTNESS
-            )
-        rule = diagnostic.tool_rule_id.casefold()
-        if any(token in rule for token in ("lifetime", "ownership", "parent-less", "qobject-cast")):
-            return FindingCategory.RESOURCE
-        if any(token in rule for token in ("qt6", "deprecated", "qstring-arg", "qt-keyword")):
-            return FindingCategory.COMPATIBILITY
-        if any(token in rule for token in ("qobject", "connect", "signal", "slot", "qevent-cast")):
-            return FindingCategory.CORRECTNESS
-        return FindingCategory.MAINTAINABILITY
+        return cpp_diagnostic_category(diagnostic)
 
     @staticmethod
     def _cpp_remediation(diagnostic: CppDiagnostic) -> str:

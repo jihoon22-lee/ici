@@ -195,6 +195,14 @@ ici-hosted `workflow_dispatch` workflow다. 후보 pyz를 Quality Zoo에 주입�
 수용을 수행할 때만 사용한다. 이 경로의 원격 수용은 별도 read-only acceptance artifact로
 감사하며, 일반 toy PR gate와 stable release 경계에는 영향을 주지 않는다.
 
+candidate consumer job은 Qt lifetime 및 C++ static-analysis scenario가 도구 부재로 조용히
+skip되지 않도록 hosted runner provisioning 단계에서 `clang`, `clang-tidy`, `clazy`, `cmake`,
+`g++`, `pkg-config`, `qt6-base-dev`를 준비한다. 이 CI 전용 단계는 ici/Quality Zoo 실행과
+분리되며 candidate preflight/실행은 비특권·무인증 상태로 유지되고 `GH_TOKEN`/
+`GITHUB_TOKEN`을 사용하지 않는다. 현재 로컬 purity contract는 `31 passed`, `actionlint`도
+PASS다. 첫 sanitizer 범위의 exact-revision acceptance는 완료됐지만, 이 feature head와 Qt
+lifetime expectation을 포함한 새 candidate dispatch/acceptance는 별도로 pending이다.
+
 실행 전 toy-projects의 `quality-zoo` 기대값이 포함된 최신 `main` SHA와 ici candidate producer
 artifact의 좌표를 별도로 확인한다. workflow는 네 개의 입력을 모두 요구한다.
 

@@ -9,6 +9,30 @@
 
 ### Added
 
+- **Rule-only C++ diagnostic category projection (feature-head acceptance pending):**
+  C++ compiler, clang-analyzer, clang-tidy, and clazy findings now use the isolated
+  `_cpp_diagnostic_categories.py` `tool-rule-v1` policy. The projection reads only normalized
+  `family` and `tool_rule_id`; free-form diagnostic messages cannot change the category. Analyzer
+  security namespaces include `security.*`, `alpha.security.*`, and `optin.taint.*`; tidy security
+  includes CERT/Android CLOEXEC plus exact `bugprone-command-processor`, `bugprone-signal-handler`,
+  `bugprone-unsafe-functions`, and `concurrency-mt-unsafe` rules. Explicit analyzer/tidy resource IDs and analyzer WebKit prefixes take
+  precedence, analyzer fallback is `CORRECTNESS`, tidy portability/deprecated-header rules map to
+  `COMPATIBILITY`, all remaining `bugprone-*`/`concurrency-*` tidy rules map to `CORRECTNESS`, and
+  other tidy rules safely fall back to `MAINTAINABILITY`. Clazy combines bounded stems with stable
+  exact resource/compatibility/correctness rule sets and keeps maintainability as the fallback.
+  Lint `extra` records the policy ID and a count for every v3 category; the isolated helper is part
+  of lint cache implementation identity. The focused C++ lint, clang-tidy, and clazy regression set
+  passes `160` tests, the cache
+  identity/store focused set passes `51`, and Ruff passes locally.
+  No version or release change is implied, and acceptance of this feature head through
+  PR/main/Quality Zoo remains pending; the earlier sanitizer candidate acceptance is separate.
+- **Candidate Quality Zoo C++/Qt tool provisioning (local workflow contract; remote acceptance
+  pending):** The manual `candidate-quality-zoo.yml` consumer job now installs `clang`, `clang-tidy`,
+  `clazy`, `cmake`, `g++`, `pkg-config`, and `qt6-base-dev` so future Qt lifetime/C++ static-analysis
+  scenarios can execute instead of being skipped for missing tools. Provisioning and candidate
+  preflight/execution remain credential-free; local purity coverage is `31 passed` and actionlint
+  passes. No new feature-head candidate dispatch, Qt Quality Zoo acceptance, version bump, or
+  release is implied; the earlier sanitizer candidate acceptance remains valid only for its exact scope.
 - **Runtime sanitizer diagnostic normalization (local slice):** ASan, LSan, and UBSan output is
   recognized only from bounded report signatures and normalized into deterministic `kind`, `defect`,
   detail rule identity, related stack-frame locations, and observed/project frame counts, plus a
