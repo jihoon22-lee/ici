@@ -30,6 +30,12 @@ dev = [
     # 상한을 두는 이유: ruff format 규칙이 마이너 버전에서 바뀌면 --check 가 갑자기 깨진다.
     "ruff>=0.16,<0.17",
 ]
+package = [
+    # Packaging tools are locked separately from the shipped runtime graph.
+    # build-pyz.sh uses only this group while constructing the wheel/ZipApp.
+    "hatchling>=1.27,<2",
+    "shiv==1.0.8",
+]
 
 [tool.hatch.version]
 path = "src/ici/__init__.py"

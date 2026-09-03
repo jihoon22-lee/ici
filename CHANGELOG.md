@@ -371,6 +371,29 @@
 
 ### Fixed
 
+- **Hermetic and reproducible ZipApp builds:** `scripts/build-pyz.sh` now exports two
+  independently scoped, frozen requirement files from `uv.lock`: the shipped runtime graph
+  (`--no-dev`) and the packaging-tool group (`--only-group package`, currently `hatchling` and
+  `shiv==1.0.8`). Both installs require lock-provided hashes and wheels, use copied files, and target
+  Python 3.10; packaging tools stay outside the shipped runtime graph. The build resolves one
+  selected Python 3.10+ helper interpreter and uses it consistently for package/build,
+  cleanup, and assembly helpers rather than relying on a caller's bare `python3`. It forces the
+  canonical epoch `SOURCE_DATE_EPOCH=1700000000` (2023-11-14 22:13:20 UTC), `PYTHONHASHSEED=0`,
+  Python UTF-8, the C locale, `TZ=UTC`, and `umask 022`, removes machine-specific metadata and
+  target locks, normalizes installed archive inputs to `0644` and directories to `0755`, and
+  rejects symlinks or other unsupported filesystem entries. CI and the build entrypoint require uv
+  `0.12.5`.
+  A bounded no-follow assembler pre-checks inputs with nonblocking `lstat`/open semantics, so FIFO
+  and other special entries are rejected without blocking. It rejects symlink/special output
+  targets, stages each executable in the opened output directory, and creates hard-link backups
+  for every existing output before publication. Each name is replaced atomically in its own
+  directory; if a replacement or post-publication check fails, the previous consistent output set
+  is restored (or names absent before the build are removed). Final `dist/ici.pyz` and `dist/ici`
+  contents and modes are checked for byte identity and `0755`. The reproducibility verifier builds
+  twice under adversarial umasks, source epochs, hash seeds, and time zones, then checks canonical
+  ZipApp timestamps/modes and unchanged source status. No version bump or release is implied; ici
+  remains at `v0.10.2`.
+
 - **Sanitizer clean-result compatibility:** Restored the pre-ThreadSanitizer generic C++ clean
   message (`AddressSanitizer and UndefinedBehaviorSanitizer completed`) after the shared sanitizer
   refactor accidentally changed it to an abbreviated label. ThreadSanitizer retains its own

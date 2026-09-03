@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dist/ici.pyz 를 만든다 — 단일 독립 실행 파일.
 #
-#   1) 3.10 을 대상으로 의존성을 풀어 build/site-packages 에 설치
+#   1) uv.lock으로 고정한 runtime/package 도구를 Python 3.10 대상으로 설치
 #   2) 네이티브 확장이 섞이지 않았는지 검사 (AGENTS.md 규약의 기계적 강제)
 #   3) 빌드 환경 흔적 제거 (재현 가능 빌드)
 #   4) shiv 로 zipapp 생성
@@ -11,23 +11,74 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# The artifact must not inherit caller-controlled archive timestamps, locale,
+# hash randomization, or permission masks. 1700000000 is the repository's
+# documented canonical packaging epoch and is deliberately independent of a
+# commit timestamp.
+readonly CANONICAL_SOURCE_DATE_EPOCH=1700000000
+export SOURCE_DATE_EPOCH="$CANONICAL_SOURCE_DATE_EPOCH"
+export PYTHONHASHSEED=0
+export PYTHONUTF8=1
+export TZ=UTC
+export LANG=C
+export LC_ALL=C
+umask 022
+
 PY_TARGET="${ICI_BUILD_PYTHON:-3.10}"   # 산출물이 돌아야 하는 하한 = 3.10
 BUILD="$ROOT/build"
 SITE="$BUILD/site-packages"
+TOOLS="$BUILD/package-tools"
+WHEELS="$BUILD/wheels"
+RUNTIME_REQUIREMENTS="$BUILD/runtime-requirements.txt"
+PACKAGE_REQUIREMENTS="$BUILD/package-requirements.txt"
 RAW="$BUILD/ici-raw.pyz"
 OUT="$ROOT/dist/ici.pyz"
 
 command -v uv >/dev/null || { echo "uv 가 필요합니다: https://docs.astral.sh/uv/" >&2; exit 1; }
+readonly EXPECTED_UV_VERSION="0.12.5"
+actual_uv_version="$(uv --version)"
+actual_uv_number="$(printf '%s\n' "$actual_uv_version" | awk '{print $2}')"
+if [ "$actual_uv_number" != "$EXPECTED_UV_VERSION" ]; then
+    echo "uv $EXPECTED_UV_VERSION가 필요합니다: $actual_uv_version" >&2
+    exit 1
+fi
+
+if [ -L "$ROOT/dist" ]; then
+    echo "dist 경로는 symlink일 수 없습니다: $ROOT/dist" >&2
+    exit 1
+fi
+if [ -e "$ROOT/dist" ] && [ ! -d "$ROOT/dist" ]; then
+    echo "dist 경로는 directory여야 합니다: $ROOT/dist" >&2
+    exit 1
+fi
 
 case "$ROOT" in
     /mnt/*) echo "경고: $ROOT 는 Windows 드라이브입니다. 파일 권한이 0777 로 기록됩니다." >&2
             echo "      반입용 빌드는 ~/ 아래 등 ext4 경로에서 하세요." >&2 ;;
 esac
 
-echo "[1/4] 의존성 설치 (python $PY_TARGET 대상)"
+echo "[1/4] 잠긴 의존성 설치 (python $PY_TARGET 대상)"
 rm -rf "$BUILD"
-mkdir -p "$SITE" "$ROOT/dist"
-uv pip install --quiet --python "$PY_TARGET" --target "$SITE" "$ROOT"
+mkdir -p "$SITE" "$TOOLS" "$WHEELS" "$ROOT/dist"
+uv export --quiet --frozen --no-dev --no-emit-project --no-header \
+    --output-file "$RUNTIME_REQUIREMENTS"
+uv export --quiet --frozen --only-group package --no-emit-project --no-header \
+    --output-file "$PACKAGE_REQUIREMENTS"
+uv pip install --quiet --python "$PY_TARGET" --target "$TOOLS" --link-mode copy \
+    --require-hashes --only-binary :all: --requirements "$PACKAGE_REQUIREMENTS"
+build_python="$(uv python find "$PY_TARGET")"
+PYTHONPATH="$TOOLS" "$build_python" -m hatchling build \
+    --target wheel --directory "$WHEELS"
+wheel_count="$(find "$WHEELS" -maxdepth 1 -type f -name 'ici-*.whl' | wc -l)"
+if [ "$wheel_count" -ne 1 ]; then
+    echo "ici wheel이 정확히 하나여야 합니다: $wheel_count" >&2
+    exit 1
+fi
+wheel="$(find "$WHEELS" -maxdepth 1 -type f -name 'ici-*.whl' -print)"
+uv pip install --quiet --python "$PY_TARGET" --target "$SITE" --link-mode copy \
+    --require-hashes --only-binary :all: --requirements "$RUNTIME_REQUIREMENTS"
+uv pip install --quiet --python "$PY_TARGET" --target "$SITE" --link-mode copy \
+    --no-deps --only-binary :all: "$wheel"
 
 echo "[2/4] 순수 파이썬 검사"
 impure="$(find "$SITE" \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' \) -print)"
@@ -57,7 +108,7 @@ done
 echo "      공개 JSON schema 2개 패키징 확인"
 
 echo "      빌드 환경 흔적 제거 (재현 가능 빌드)"
-python3 - "$SITE" <<'PY'
+"$build_python" - "$SITE" <<'PY'
 import sys
 from pathlib import Path
 
@@ -84,11 +135,44 @@ for record in site.glob("*.dist-info/RECORD"):
     kept = [ln for ln in lines if not (site / ln.split(",", 1)[0]) in removed]
     record.write_text("".join(kept), encoding="utf-8")
 
+lock = site / ".lock"
+if lock.is_file():
+    removed.add(lock)
+    lock.unlink()
+
+for path in sorted(site.rglob("*")):
+    if path.is_symlink():
+        raise SystemExit(f"symbolic link is not allowed in the ZipApp: {path}")
+    if path.is_dir():
+        path.chmod(0o755)
+    elif path.is_file():
+        path.chmod(0o644)
+    else:
+        raise SystemExit(f"unsupported packaged filesystem entry: {path}")
+site.chmod(0o755)
+
 print(f"      {len(removed)} 개 항목 제거")
 PY
 
+"$build_python" - "$TOOLS" <<'PY'
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+for path in sorted(root.rglob("*")):
+    if path.is_symlink():
+        raise SystemExit(f"symbolic link is not allowed in packaging tools: {path}")
+    if path.is_dir():
+        path.chmod(0o755)
+    elif path.is_file():
+        path.chmod(0o644)
+    else:
+        raise SystemExit(f"unsupported packaging-tool filesystem entry: {path}")
+root.chmod(0o755)
+PY
+
 echo "[3/4] shiv zipapp 생성"
-uv run --quiet --with shiv -- shiv \
+PYTHONPATH="$TOOLS" "$build_python" -m shiv \
     --site-packages "$SITE" \
     --console-script ici \
     --compressed \
@@ -96,23 +180,23 @@ uv run --quiet --with shiv -- shiv \
     -o "$RAW"
 
 echo "[4/4] sh 런처 프리앰블 부착"
-python3 - "$RAW" "$ROOT/scripts/launcher.sh" "$OUT" <<'PY'
-import sys
+"$build_python" scripts/assemble_pyz.py \
+    --raw "$RAW" \
+    --preamble "$ROOT/scripts/launcher.sh" \
+    --output "$OUT" \
+    --output "$ROOT/dist/ici"
 
-raw_path, preamble_path, out_path = sys.argv[1:4]
-body = open(raw_path, "rb").read()
-if body.startswith(b"#!"):
-    body = body[body.index(b"\n") + 1:]
-if not body.startswith(b"PK\x03\x04"):
-    sys.exit("zip 시그니처가 아닙니다 — shiv 산출물이 예상과 다릅니다")
-preamble = open(preamble_path, "rb").read()
-if not preamble.endswith(b"\n"):
-    sys.exit("launcher.sh 가 개행으로 끝나야 합니다")
-with open(out_path, "wb") as fh:
-    fh.write(preamble + body)
-PY
-chmod +x "$OUT"
-cp -f "$OUT" "$ROOT/dist/ici"
+if ! cmp -s "$OUT" "$ROOT/dist/ici"; then
+    echo "발행된 실행 파일 두 개의 내용이 일치하지 않습니다." >&2
+    exit 1
+fi
+for published in "$OUT" "$ROOT/dist/ici"; do
+    published_mode="$(stat -c '%a' "$published")"
+    if [ "$published_mode" != "755" ]; then
+        echo "발행된 실행 파일의 mode가 0755가 아닙니다: $published ($published_mode)" >&2
+        exit 1
+    fi
+done
 
 printf '완료: %s (%s)\n' "$OUT" "$(du -h "$OUT" | cut -f1)"
 echo "스모크 테스트: ./scripts/smoke.sh"

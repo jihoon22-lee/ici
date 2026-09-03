@@ -138,6 +138,54 @@ def test_ci_builds_pyz_twice_and_rejects_project_mutation():
     assert "second_sha256=$(sha256sum dist/ici.pyz" in script
     assert "git status --porcelain=v1 --untracked-files=all" in script
     assert '[[ "$status_before" != "$status_after" ]]' in script
+    assert "umask 077" in script
+    assert "umask 002" in script
+    assert "SOURCE_DATE_EPOCH=1" in script
+    assert "SOURCE_DATE_EPOCH=4102444800" in script
+    assert "ZipApp members do not use the canonical archive timestamp" in script
+
+
+def test_pyz_build_is_hermetic_against_dependency_and_permission_drift():
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "build-pyz.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "readonly CANONICAL_SOURCE_DATE_EPOCH=1700000000" in script
+    assert 'export SOURCE_DATE_EPOCH="$CANONICAL_SOURCE_DATE_EPOCH"' in script
+    assert 'readonly EXPECTED_UV_VERSION="0.12.5"' in script
+    assert "umask 022" in script
+    assert script.count("uv export --quiet --frozen") == 2
+    assert script.count("--require-hashes") == 2
+    assert script.count("--link-mode copy") == 3
+    assert script.count("--only-binary :all:") == 3
+    assert "--only-group package" in script
+    assert "--with shiv" not in script
+    assert "path.chmod(0o644)" in script
+    assert "path.chmod(0o755)" in script
+    assert "symbolic link is not allowed in the ZipApp" in script
+    assert '"$build_python" - "$SITE" <<\'PY\'' in script
+    assert '"$build_python" - "$TOOLS" <<\'PY\'' in script
+    assert '"$build_python" scripts/assemble_pyz.py' in script
+
+    resolved_build = script.split('build_python="$(uv python find "$PY_TARGET")"', 1)[1]
+    assert "python3" not in resolved_build
+
+    published_checks = resolved_build.split('"$build_python" scripts/assemble_pyz.py', 1)[1]
+    assert 'cmp -s "$OUT" "$ROOT/dist/ici"' in published_checks
+    assert "stat" in published_checks
+    assert re.search(r"(?:0o755|0755|755)", published_checks)
+
+
+def test_every_setup_uv_step_pins_the_build_tool_version():
+    for workflow_name in ("ci.yml", "release.yml", "candidate-artifact.yml"):
+        workflow = _workflow(workflow_name)
+        setup_steps = re.findall(
+            r"(?ms)^      - name: Install uv\n(?P<body>.*?)(?=^      - name:|\Z)", workflow
+        )
+        assert setup_steps, f"no setup-uv step found in {workflow_name}"
+        for step in setup_steps:
+            assert "astral-sh/setup-uv@" in step
+            assert 'version: "0.12.5"' in step
 
 
 def test_pyz_build_requires_every_public_json_schema():

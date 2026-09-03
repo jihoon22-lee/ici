@@ -156,11 +156,58 @@ ici/
 ```
 
 ### 3.1 결정론적 재현 빌드 (Deterministic Reproducible Builds)
-`scripts/build-pyz.sh`는 다음 4단계 파이프라인을 거칩니다:
-1. `uv pip install`로 Python 3.10 타깃 순수 파이썬(`py3-none-any`) 의존성만 격리 설치
-2. `*.dist-info` 내 `direct_url.json`, `uv_cache.json`, `RECORD` 등 빌드 머신 의존 메타데이터 제거
-3. `shiv`를 통해 ZipApp 아카이브 생성 (고정 타임스탬프 `SOURCE_DATE_EPOCH=1700000000` 적용)
-4. 생성된 아카이브 앞단에 `scripts/launcher.sh` 셸 프리앰블 결합
+`scripts/build-pyz.sh`는 의존성 해석, filesystem 입력, archive metadata를 모두 고정하는
+4단계 파이프라인을 거칩니다.
+
+1. **Canonical build environment:** `SOURCE_DATE_EPOCH=1700000000`을 모든 archive
+   timestamp의 기준으로 내보냅니다. 이 값은 UTC `2023-11-14 22:13:20`이며 commit
+   timestamp와 무관한 repository-wide packaging epoch입니다. 함께 `PYTHONHASHSEED=0`,
+   `PYTHONUTF8=1`, C locale, `TZ=UTC`, `umask 022`를 설정해 hash 순서, text encoding,
+   timezone, 기본 permission mask가 caller
+   환경에서 전파되지 않게 합니다.
+2. **Locked dependency groups:** `uv export --frozen --no-dev --no-emit-project`가
+   `uv.lock`에서 shipped runtime requirement를 만들고,
+   `uv export --frozen --only-group package --no-emit-project`가 packaging-tool
+   requirement를 별도로 만듭니다. 두 파일은 lock의 hash를 보존하며
+   `uv pip install --require-hashes --only-binary :all: --link-mode copy`로 Python 3.10
+   대상 wheel만 설치됩니다. 따라서 잠긴 sdist hash가 존재해도 build backend가 실행되지
+   않습니다. build entrypoint와 모든 packaging CI는 uv `0.12.5`를 요구합니다.
+   `package` 그룹의 `hatchling`과 `shiv==1.0.8`은 `build/package-tools`에만 있고,
+   runtime graph에는 dev 도구나 packaging tool이 섞이지 않습니다. Hatchling이 만든
+   project wheel 하나를 runtime site-packages에 `--no-deps`로 설치합니다. 빌드 스크립트는
+   선택한 Python 3.10+ helper interpreter를 package/build, cleanup, assembly
+   helper 전체에 사용하며 caller의 bare `python3`에 의존하지 않습니다.
+3. **Pure, stable package tree:** native extension(`*.so`, `*.pyd`, `*.dylib`),
+   platform-dependent wheel tag, `certifi`, 누락된 public schema를 fail-closed로 검사합니다.
+   `direct_url.json`, `uv_cache.json`, `uv_build.json`, target `.lock` 및 설치된 `bin/`
+   흔적을 제거하고 `RECORD`를 갱신합니다. 이후 package tree와 packaging-tool tree를
+   순회하며 symlink와 special/unsupported entry를 거부하고 regular file은 `0644`,
+   directory는 `0755`로 설정합니다.
+4. **Archive and launcher:** canonicalized trees are passed to `shiv --reproducible` to
+   create the raw ZipApp. `scripts/assemble_pyz.py` pre-checks each input with nonblocking
+   `lstat`/open semantics and then opens bounded regular files without following symlinks, so FIFO
+   and other special inputs fail closed without blocking. It anchors the non-symlink output
+   directory by descriptor and rejects existing symlink or special outputs. Same-directory
+   temporary files are written and synced; hard-link backups for all existing outputs are created
+   before publication. Each output name is then atomically replaced with `os.replace`. If any
+   replacement or post-check fails, the prior consistent output set is restored (or a name that
+   was absent before the build is removed), while write/flush/`fsync` failures clean their temporary
+   files. The final `dist/ici.pyz` and `dist/ici` are checked for byte identity and mode `0755`.
+   The resulting polyglot keeps the normal `$ICI_PYTHON`/Python 3.10+ discovery path described
+   above.
+
+`scripts/verify-reproducibility.sh` exercises this contract with two adversarial builds. The
+first runs under `umask 077`, `SOURCE_DATE_EPOCH=1`, `PYTHONHASHSEED=random`, a different
+locale/UTF-8 setting, and `TZ=Pacific/Honolulu`; the second uses `umask 002`,
+`SOURCE_DATE_EPOCH=4102444800`, `PYTHONHASHSEED=123`, and `TZ=Asia/Seoul`. The two
+`dist/ici.pyz` SHA-256 values must match.
+The verifier also requires every ZipApp member to carry the canonical `1700000000` timestamp,
+checks `0644` modes for installed/bootstrap files and shiv's deterministic `0600` modes for its
+two synthetic top-level members, rejects a leaked `site-packages/.lock`, checks shiv's `built_at`,
+requires the two final outputs to be byte-identical `0755` files, and confirms that the build
+leaves git source status unchanged. The assembler's rollback and special-input boundaries are
+covered by focused regression tests, including a simulated second-output replacement failure,
+FIFO rejection without a blocking open, and temporary-file cleanup after write/sync failure.
 
 ---
 
