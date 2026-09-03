@@ -154,11 +154,11 @@ The implementation and documentation boundary for this slice is:
 | Static quality | Ruff check and format — 195 files PASS; mypy including the assembler — 108 source files PASS. |
 | Script/static checks | `bash -n scripts/build-pyz.sh scripts/verify-reproducibility.sh` and `actionlint .github/workflows/*.yml` — PASS. |
 | Packaged smoke | `./scripts/smoke.sh` — direct/3.10 execution, doctor/env, artifact identity, self verification, and Zero-CDN PASS. |
-| Documentation check | `git diff --check` — PASS. Full build/test gates remain parent-branch integration evidence. |
+| Documentation check | `git diff --check` — PASS. The current branch's full build/test evidence is recorded above. |
 | Release state | No version bump, tag, or release; ici remains at `v0.10.2`. |
 
 ## Scope boundary
 
-This slice documents and verifies build determinism. It does not alter runtime behavior, release
-cadence, the plans/handover documents, or the stable artifact contract. The normal full test,
-static-quality, ZipApp, and smoke gates remain the integration evidence for the parent branch.
+This slice documents and verifies build determinism. It does not alter analyzer runtime behavior,
+release cadence, the plans/handover documents, or the stable artifact contract. The current branch
+passed the normal full test, static-quality, ZipApp, and smoke integration gates recorded above.
