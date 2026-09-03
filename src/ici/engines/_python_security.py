@@ -11,6 +11,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 from ici.core.models import EngineStatus, InspectionTarget
+from ici.engines._python_resource_scopes import collect_import_aliases, collect_scope_bindings
 
 _SECRET_NAME_RE = re.compile(
     r"(?:^|_)(?:api_?key|access_?key|auth_?token|client_?secret|passw(?:or)?d|passwd|"
@@ -129,28 +130,96 @@ def _literal_string(node: ast.AST | None) -> str | None:
     return None
 
 
-def _imports(tree: ast.AST) -> dict[str, str]:
-    aliases: dict[str, str] = {}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for item in node.names:
-                local = item.asname or item.name.split(".", 1)[0]
-                aliases[local] = item.name if item.asname else local
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            for item in node.names:
-                if item.name != "*":
-                    aliases[item.asname or item.name] = f"{node.module}.{item.name}"
-    return aliases
+class _ScopeMap(ast.NodeVisitor):
+    """Map expression nodes to the lexical scope that resolves their names."""
+
+    def __init__(self, tree: ast.AST) -> None:
+        self.current = tree
+        self.scope_by_node: dict[int, ast.AST] = {}
+        self.parent_scope: dict[int, ast.AST | None] = {id(tree): None}
+        self.visit(tree)
+
+    def visit(self, node: ast.AST) -> None:
+        self.scope_by_node[id(node)] = self.current
+        super().visit(node)
+
+    def _visit_function_signature(
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+    ) -> None:
+        for decorator in node.decorator_list:
+            self.visit(decorator)
+        for argument in [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs]:
+            if argument.annotation is not None:
+                self.visit(argument.annotation)
+        if node.args.vararg is not None and node.args.vararg.annotation is not None:
+            self.visit(node.args.vararg.annotation)
+        if node.args.kwarg is not None and node.args.kwarg.annotation is not None:
+            self.visit(node.args.kwarg.annotation)
+        for default in [*node.args.defaults, *node.args.kw_defaults]:
+            if default is not None:
+                self.visit(default)
+        if node.returns is not None:
+            self.visit(node.returns)
+
+    def _visit_child_scope(self, node: ast.AST, body: list[ast.stmt]) -> None:
+        parent = self.current
+        self.parent_scope[id(node)] = parent
+        self.current = node
+        for statement in body:
+            self.visit(statement)
+        self.current = parent
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._visit_function_signature(node)
+        self._visit_child_scope(node, node.body)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._visit_function_signature(node)
+        self._visit_child_scope(node, node.body)
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        for expression in [*node.decorator_list, *node.bases, *node.keywords]:
+            self.visit(expression)
+        self._visit_child_scope(node, node.body)
+
+    def visit_Lambda(self, node: ast.Lambda) -> None:
+        for default in [*node.args.defaults, *node.args.kw_defaults]:
+            if default is not None:
+                self.visit(default)
+        parent = self.current
+        self.parent_scope[id(node)] = parent
+        self.current = node
+        self.visit(node.body)
+        self.current = parent
 
 
-def _shadowed_builtins(tree: ast.AST) -> frozenset[str]:
-    names: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
-            names.add(node.id)
-        elif isinstance(node, ast.arg):
-            names.add(node.arg)
-    return frozenset(names)
+class _NameResolver:
+    def __init__(self, tree: ast.AST) -> None:
+        self.scope_map = _ScopeMap(tree)
+        self.alias_cache: dict[int, dict[str, str]] = {}
+        self.binding_cache: dict[int, frozenset[str]] = {}
+
+    def _aliases_for_scope(self, scope: ast.AST) -> dict[str, str]:
+        key = id(scope)
+        cached = self.alias_cache.get(key)
+        if cached is not None:
+            return cached
+        parent = self.scope_map.parent_scope.get(key)
+        aliases = dict(self._aliases_for_scope(parent)) if parent is not None else {}
+        aliases.update(collect_import_aliases(scope))
+        self.alias_cache[key] = aliases
+        return aliases
+
+    def aliases(self, node: ast.AST) -> dict[str, str]:
+        return self._aliases_for_scope(self.scope_map.scope_by_node[id(node)])
+
+    def shadowed(self, node: ast.AST) -> frozenset[str]:
+        scope = self.scope_map.scope_by_node[id(node)]
+        key = id(scope)
+        if key not in self.binding_cache:
+            self.binding_cache[key] = collect_scope_bindings(scope)
+        return self.binding_cache[key]
 
 
 def _qualified_name(
@@ -175,6 +244,60 @@ def _shell_true(call: ast.Call) -> bool:
     )
 
 
+def _risky_call_rule(
+    qualified: str,
+    call: ast.Call,
+    shadowed: frozenset[str],
+) -> tuple[str, str, str] | None:
+    if qualified in {"hashlib.md5", "Crypto.Hash.MD5.new", "Cryptodome.Hash.MD5.new"}:
+        return ("WeakCryptoMD5", "MD5 is not collision resistant", "md5(...)")
+    if qualified in {
+        "hashlib.sha1",
+        "Crypto.Hash.SHA1.new",
+        "Cryptodome.Hash.SHA1.new",
+    }:
+        return ("WeakCryptoSHA1", "SHA-1 is not collision resistant", "sha1(...)")
+    if qualified in {
+        "random.choice",
+        "random.randint",
+        "random.random",
+        "random.randbytes",
+        "random.randrange",
+    }:
+        return (
+            "WeakRandom",
+            "The random module is not suitable for security-sensitive randomness",
+            f"{qualified}(...)",
+        )
+    if qualified in {"eval", "exec", "builtins.eval", "builtins.exec"} and not (
+        isinstance(call.func, ast.Name) and call.func.id in shadowed
+    ):
+        return (
+            "EvalExec",
+            "Dynamic code execution accepts untrusted input",
+            f"{qualified}(...)",
+        )
+    if qualified in {"pickle.load", "pickle.loads", "_pickle.load", "_pickle.loads"}:
+        return (
+            "PickleLoad",
+            "Pickle deserialization can execute attacker-controlled code",
+            f"{qualified}(...)",
+        )
+    if qualified in {"os.system", "os.popen"}:
+        return (
+            "CommandProcessor",
+            "Command text is executed through a system shell",
+            f"{qualified}(...)",
+        )
+    if qualified.startswith("subprocess.") and _shell_true(call):
+        return (
+            "ShellTrue",
+            "subprocess shell=True expands input through a command processor",
+            f"{qualified}(..., shell=True)",
+        )
+    return None
+
+
 class _SecurityVisitor(ast.NodeVisitor):
     def __init__(
         self,
@@ -184,8 +307,7 @@ class _SecurityVisitor(ast.NodeVisitor):
         allowlist: frozenset[str],
     ) -> None:
         self.file_path = file_path
-        self.aliases = _imports(tree)
-        self.shadowed = _shadowed_builtins(tree)
+        self.resolver = _NameResolver(tree)
         self.suppressed = _suppressed_lines(text)
         self.allowlist = allowlist
         self.findings: list[InspectionTarget] = []
@@ -253,54 +375,9 @@ class _SecurityVisitor(ast.NodeVisitor):
         if self._is_suppressed(node):
             self.generic_visit(node)
             return
-        qualified = _qualified_name(node.func, self.aliases, self.shadowed)
-        rule: tuple[str, str, str] | None = None
-        if qualified in {"hashlib.md5", "Crypto.Hash.MD5.new", "Cryptodome.Hash.MD5.new"}:
-            rule = ("WeakCryptoMD5", "MD5 is not collision resistant", "md5(...)")
-        elif qualified in {
-            "hashlib.sha1",
-            "Crypto.Hash.SHA1.new",
-            "Cryptodome.Hash.SHA1.new",
-        }:
-            rule = ("WeakCryptoSHA1", "SHA-1 is not collision resistant", "sha1(...)")
-        elif qualified in {
-            "random.choice",
-            "random.randint",
-            "random.random",
-            "random.randbytes",
-            "random.randrange",
-        }:
-            rule = (
-                "WeakRandom",
-                "The random module is not suitable for security-sensitive randomness",
-                f"{qualified}(...)",
-            )
-        elif qualified in {"eval", "exec", "builtins.eval", "builtins.exec"} and not (
-            isinstance(node.func, ast.Name) and node.func.id in self.shadowed
-        ):
-            rule = (
-                "EvalExec",
-                "Dynamic code execution accepts untrusted input",
-                f"{qualified}(...)",
-            )
-        elif qualified in {"pickle.load", "pickle.loads", "_pickle.load", "_pickle.loads"}:
-            rule = (
-                "PickleLoad",
-                "Pickle deserialization can execute attacker-controlled code",
-                f"{qualified}(...)",
-            )
-        elif qualified in {"os.system", "os.popen"}:
-            rule = (
-                "CommandProcessor",
-                "Command text is executed through a system shell",
-                f"{qualified}(...)",
-            )
-        elif qualified.startswith("subprocess.") and _shell_true(node):
-            rule = (
-                "ShellTrue",
-                "subprocess shell=True expands input through a command processor",
-                f"{qualified}(..., shell=True)",
-            )
+        shadowed = self.resolver.shadowed(node)
+        qualified = _qualified_name(node.func, self.resolver.aliases(node), shadowed)
+        rule = _risky_call_rule(qualified, node, shadowed)
         if rule is not None:
             self.findings.append(_finding(self.file_path, node, *rule))
         self.generic_visit(node)

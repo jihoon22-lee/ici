@@ -168,6 +168,42 @@ def test_import_aliases_are_resolved_for_security_calls(tmp_path: Path):
     assert result.extra["calls_checked"] == 4
 
 
+def test_nested_parameter_does_not_shadow_outer_builtin(tmp_path: Path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text(
+        "eval(payload)\ndef inner(eval):\n    return eval(payload)\n",
+        encoding="utf-8",
+    )
+
+    result = SecurityEngine(tmp_path, _CFG).run()
+
+    eval_targets = [
+        target for target in result.targets if target.target_name == "Security:EvalExec"
+    ]
+    assert [target.start_line for target in eval_targets] == [1]
+
+
+def test_function_import_aliases_do_not_leak_to_sibling_scope(tmp_path: Path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text(
+        "def unsafe(items):\n"
+        "    import random as chooser\n"
+        "    return chooser.choice(items)\n"
+        "def safe(chooser, items):\n"
+        "    return chooser.choice(items)\n",
+        encoding="utf-8",
+    )
+
+    result = SecurityEngine(tmp_path, _CFG).run()
+
+    weak_random = [
+        target for target in result.targets if target.target_name == "Security:WeakRandom"
+    ]
+    assert [target.start_line for target in weak_random] == [3]
+
+
 def test_similar_text_without_risky_call_shape_is_clean(tmp_path: Path):
     src = tmp_path / "src"
     src.mkdir()
@@ -256,6 +292,17 @@ def test_invalid_python_is_an_explicit_incomplete_analysis(tmp_path: Path):
     target = next(target for target in result.targets if target.status == EngineStatus.ERROR)
     assert target.target_name == "Security:SyntaxUnavailable"
     assert target.file_path == "src/a.py"
+
+
+def test_no_python_scope_is_not_applicable(tmp_path: Path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "main.cpp").write_text("int main() {}\n", encoding="utf-8")
+
+    result = SecurityEngine(tmp_path, _CFG).run()
+
+    assert result.status == EngineStatus.SKIP
+    assert result.evidence == EvidenceState.NOT_APPLICABLE
+    assert result.targets[0].file_path == "."
 
 
 @pytest.mark.skipif(not hasattr(os, "symlink"), reason="symlinks unavailable")

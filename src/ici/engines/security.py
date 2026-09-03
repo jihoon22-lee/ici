@@ -16,6 +16,7 @@ class SecurityEngine(BaseEngine):
     """Detect Python secret, crypto, deserialization, and command risks."""
 
     CACHE_IMPLEMENTATION_MODULES = (
+        "ici.engines._python_resource_scopes",
         "ici.engines._python_security",
         "ici.engines._source_inputs",
         "ici.engines.security",
@@ -30,6 +31,24 @@ class SecurityEngine(BaseEngine):
         selected = self.project_python_sources()
         if cfg.get("scan_tests", False):
             selected.extend(self._test_python_files())
+        if not selected:
+            return self.create_result(
+                name="security",
+                status=EngineStatus.SKIP,
+                summary="Security analysis skipped: no Python source files",
+                duration=time.time() - started,
+                targets=[
+                    InspectionTarget(
+                        file_path=".",
+                        start_line=1,
+                        target_name="Security:NotApplicable",
+                        status=EngineStatus.SKIP,
+                        message="No applicable Python source files were selected",
+                    )
+                ],
+                required=required,
+                evidence=EvidenceState.NOT_APPLICABLE,
+            )
 
         targets: list[InspectionTarget] = []
         errors: list[str] = []

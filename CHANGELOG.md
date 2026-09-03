@@ -9,9 +9,22 @@
 
 ### Added
 
+- **Flow-sensitive Python resource ownership rules (unreleased language-analysis bundle):**
+  Replaced the former unconditional `open()` warning with bounded, intraprocedural AST flow that
+  distinguishes context managers, direct `close()`/`aclose()`, aliases, branch exits,
+  `try/finally`, returned ownership, attribute/subscript transfers, and resources registered with
+  an `ExitStack`. Supported import aliases cover built-in/`io` file handles, temporary files,
+  sockets, and `Path(...).open()`. A finding is retained whenever an open outcome remains after
+  branch merging, with closed/transferred outcome evidence recorded separately. Mutable literal
+  and supported constructor defaults now produce a native `correctness` finding instead of being
+  mislabeled as a resource defect. The engine uses bounded no-follow source snapshots, reports
+  syntax/input/AST-limit failures as located `ERROR`/`NOT_RUN`, emits per-file PASS targets, and
+  reports `NOT_APPLICABLE` when no Python source exists. This remains in the consolidated
+  language-analysis work and does not change version `0.10.2` or authorize a release.
 - **Bounded, redaction-safe Python security AST rules (unreleased language-analysis bundle):**
   Replaced line-oriented regular-expression matching with Python AST rules that resolve supported
-  import aliases and distinguish calls, assignments, dictionary keys, and literal values. The
+  lexical-scope-aware import aliases and distinguish calls, assignments, dictionary keys, and
+  literal values. The
   engine now detects weak hashes and randomness, dynamic execution, unsafe pickle loads, command
   processors, constant `subprocess(..., shell=True)`, private-key markers, and context-sensitive
   hardcoded secrets without retaining or reporting source secret values. Secret detection combines

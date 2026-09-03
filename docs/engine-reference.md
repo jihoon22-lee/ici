@@ -1013,14 +1013,30 @@ argument characters, discarded section 16,384개, tool-output cap 4 MiB, 전체 
   프로젝트 최상위 `tests/` 디렉터리도 함께 스캔합니다.
 - **입력·evidence 정책**: generated/vendor 기본 제외와 no-follow bounded source read를
   적용합니다. 읽기 실패나 Python syntax 오류는 위치가 있는 `ERROR`/`NOT_RUN`이며, 성공한
-  파일에는 `Security:ASTScan` PASS target과 검사 counter가 남습니다.
+  파일에는 `Security:ASTScan` PASS target과 검사 counter가 남습니다. Python source가 없으면
+  위치가 있는 `SKIP`/`NOT_APPLICABLE`입니다.
 - **한계와 confidence**: import alias와 정적인 constant 구문까지만 식별하며 runtime taint
   flow 또는 동적으로 계산된 call target을 증명하지 않습니다. 따라서 결과는 syntax-level
   `MEASURED` evidence이지 프로그램 실행 전체의 보안성을 보장하는 판정은 아닙니다.
 - **대상**: Python 소스만, `tests/`는 기본 제외.
 
 ### 2.13 🧹 `resource` (리소스 누수)
-- **동작**: `open()`이 `with` 밖에서 사용되거나 `close()` 없이 방치된 경우, `List/Dict/Set` 가변 기본 인자 등을 AST로 탐지.
+- **동작**: bounded intraprocedural AST flow로 built-in/`io.open`, `Path(...).open()`,
+  `tempfile` handle과 `socket.socket` acquisition을 추적합니다. context manager, direct
+  `close()`/`aclose()`, alias, branch exit, `try/finally`, escaping return, attribute/subscript
+  ownership transfer, `ExitStack.enter_context()`를 구분하며 병합된 경로 중 open outcome이
+  하나라도 남을 때만 경고합니다.
+- **가변 default**: list/dict/set literal과 지원되는 mutable constructor default는 별도 native
+  `correctness` category finding입니다. Python 정의 시 한 번만 평가되는 의미를 resource leak과
+  혼동하지 않습니다.
+- **입력·evidence 정책**: generated/vendor 기본 제외, no-follow bounded UTF-8 source snapshot,
+  파일당 100,000 AST node 제한을 적용합니다. syntax/input/limit 실패는 위치가 있는
+  `ERROR`/`NOT_RUN`, 성공한 모든 파일은 `Resource:ASTFlow` PASS target을 남기며 Python
+  source가 없으면 `SKIP`/`NOT_APPLICABLE`입니다.
+- **한계와 confidence**: arbitrary user-defined factory나 interprocedural ownership contract는
+  추론하지 않습니다. direct close는 lexical evidence이며 close 호출 자체가 예외 없이
+  완료됐다는 runtime proof가 아니므로 resource finding confidence는 `MEDIUM`입니다. mutable
+  default AST shape는 `EXACT`입니다.
 - **설정**: `[engines.resource] enabled=true, mode="pass_warn"`.
 - **대상**: Python 소스만 분석.
 

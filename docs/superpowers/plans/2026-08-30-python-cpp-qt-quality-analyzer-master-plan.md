@@ -1507,10 +1507,13 @@ broader resource/lifetime/security mapping과 release는 여전히 별도다.
   comment-token `# nosec`, bounded no-follow source input, invalid syntax fail-closed를 포함한다.
 - [x] secret detector는 이름 context, 알려진 credential prefix, 길이/entropy와 bounded exact
   name allowlist를 지원하며 source value를 target/message/snippet/extra 어디에도 보존하지 않는다.
-- [ ] resource engine이 `close()`, context manager, ownership transfer와 escaping return을 구분한다.
-- [ ] mutable default는 correctness category로 분리한다.
+- [x] resource engine이 bounded intraprocedural flow로 `close()`/`aclose()`, context manager,
+  alias/branch/`try-finally`, `ExitStack`, ownership transfer와 escaping return을 구분한다.
+- [x] mutable literal/constructor default는 native correctness category와 exact AST 위치로 분리한다.
 - [ ] exception, dead, cognitive와 Ruff/mypy 중복 rule을 fingerprint로 합친다.
-- [ ] rule별 limitation과 confidence를 문서화한다.
+- [x] security/resource rule의 source/evidence bound, limitation과 confidence를 engine extra와
+  engine reference에 문서화한다. cross-tool canonical dedup 대상의 confidence/provenance는
+  해당 미완료 항목에서 계속 확장한다.
 
 ### I5-3. Python runtime compatibility
 
