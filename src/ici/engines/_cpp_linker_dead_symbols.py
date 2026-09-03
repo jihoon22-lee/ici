@@ -17,6 +17,7 @@ import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
+from typing import TypeGuard
 
 from ici.core._build_paths import prepare_owned_shadow, shadow_dir
 from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
@@ -256,7 +257,7 @@ def _run(
     return result
 
 
-def _successful(result: ProcessResult | None) -> bool:
+def _successful(result: ProcessResult | None) -> TypeGuard[ProcessResult]:
     return bool(
         result is not None
         and result.returncode == 0
@@ -870,6 +871,99 @@ def _record_pass_targets(
     ]
 
 
+def _collect_removals(
+    commands: tuple[_LinkCommand, ...],
+    tools: _Toolset,
+    outcome: CppLinkerDeadOutcome,
+    runner: Callable[..., ProcessResult],
+    shadow: Path,
+    deadline: float,
+) -> list[_DiscardedSection]:
+    removals: list[_DiscardedSection] = []
+    for command in commands:
+        if time.monotonic() >= deadline:
+            _append_error(
+                outcome,
+                "CMakeLists.txt",
+                "GNU ELF reachability exceeded its global budget",
+            )
+            break
+        observed = _relink(command, shadow, outcome, runner, deadline)
+        if observed is None:
+            break
+        if not _validate_elf_executable(command, tools, outcome, runner, shadow, deadline):
+            break
+        outcome.link_targets_checked += 1
+        removals.extend(observed)
+    outcome.discarded_sections_observed = len(removals)
+    return removals
+
+
+def _inspect_removals(
+    removals: list[_DiscardedSection],
+    tools: _Toolset,
+    outcome: CppLinkerDeadOutcome,
+    runner: Callable[..., ProcessResult],
+    root: Path,
+    shadow: Path,
+    source_texts: Mapping[str, str],
+    unit_map: Mapping[Path, CompilationUnit],
+    deadline: float,
+) -> list[CppLinkerDeadSymbol]:
+    accepted: list[CppLinkerDeadSymbol] = []
+    for removal in removals:
+        try:
+            finding = _inspect_removal(
+                removal,
+                tools,
+                outcome,
+                runner,
+                root,
+                shadow,
+                source_texts,
+                unit_map,
+                deadline,
+            )
+        except ValueError as err:
+            _append_error(outcome, "CMakeLists.txt", str(err))
+            break
+        if finding is None:
+            outcome.ambiguous_sections_excluded += 1
+        else:
+            accepted.append(finding)
+    return accepted
+
+
+def _record_success(
+    outcome: CppLinkerDeadOutcome,
+    accepted: list[CppLinkerDeadSymbol],
+    commands: tuple[_LinkCommand, ...],
+    unit_map: Mapping[Path, CompilationUnit],
+    source_texts: Mapping[str, str],
+) -> None:
+    unique = {
+        (item.target.file_path, item.target.start_line, item.link_target, item.symbol): item
+        for item in accepted
+    }
+    outcome.symbols = [unique[key] for key in sorted(unique)]
+    outcome.targets.extend(item.target for item in outcome.symbols)
+    linked_sources = {
+        unit_map[object_path].source
+        for command in commands
+        for object_path in command.objects
+        if object_path in unit_map and unit_map[object_path].source in source_texts
+    }
+    outcome.sources_checked = len(linked_sources)
+    outcome.targets.extend(
+        _record_pass_targets(
+            {path: source_texts[path] for path in sorted(linked_sources)},
+            outcome.symbols,
+            outcome.link_targets_checked,
+        )
+    )
+    outcome.mode = "exact"
+
+
 def run_cpp_linker_dead_symbols(
     project_root: Path,
     context: AnalysisContext | None,
@@ -933,70 +1027,27 @@ def run_cpp_linker_dead_symbols(
     if commands is None:
         outcome.mode = "error" if outcome.errors else "unavailable"
         return outcome
-    removals: list[_DiscardedSection] = []
-    for command in commands:
-        if time.monotonic() >= deadline:
-            _append_error(
-                outcome, "CMakeLists.txt", "GNU ELF reachability exceeded its global budget"
-            )
-            break
-        observed = _relink(command, shadow, outcome, runner, deadline)
-        if observed is None:
-            break
-        if not _validate_elf_executable(command, tools, outcome, runner, shadow, deadline):
-            break
-        outcome.link_targets_checked += 1
-        removals.extend(observed)
-    outcome.discarded_sections_observed = len(removals)
+    removals = _collect_removals(commands, tools, outcome, runner, shadow, deadline)
     accepted: list[CppLinkerDeadSymbol] = []
     if not outcome.errors:
-        for removal in removals:
-            try:
-                finding = _inspect_removal(
-                    removal,
-                    tools,
-                    outcome,
-                    runner,
-                    root,
-                    shadow,
-                    source_texts,
-                    unit_map,
-                    deadline,
-                )
-            except ValueError as err:
-                _append_error(outcome, "CMakeLists.txt", str(err))
-                break
-            if finding is None:
-                outcome.ambiguous_sections_excluded += 1
-            else:
-                accepted.append(finding)
+        accepted = _inspect_removals(
+            removals,
+            tools,
+            outcome,
+            runner,
+            root,
+            shadow,
+            source_texts,
+            unit_map,
+            deadline,
+        )
     if not outcome.errors and not _sources_unchanged(root, source_texts):
         _append_error(outcome, ".", "Project source changed during GNU ELF reachability analysis")
     if outcome.errors:
         outcome.mode = "error"
         outcome.symbols.clear()
         return outcome
-    unique: dict[tuple[str, int, str, str], CppLinkerDeadSymbol] = {}
-    for item in accepted:
-        key = (item.target.file_path, item.target.start_line, item.link_target, item.symbol)
-        unique[key] = item
-    outcome.symbols = [unique[key] for key in sorted(unique)]
-    outcome.targets.extend(item.target for item in outcome.symbols)
-    linked_sources = {
-        unit_map[object_path].source
-        for command in commands
-        for object_path in command.objects
-        if object_path in unit_map and unit_map[object_path].source in source_texts
-    }
-    outcome.sources_checked = len(linked_sources)
-    outcome.targets.extend(
-        _record_pass_targets(
-            {path: source_texts[path] for path in sorted(linked_sources)},
-            outcome.symbols,
-            outcome.link_targets_checked,
-        )
-    )
-    outcome.mode = "exact"
+    _record_success(outcome, accepted, commands, unit_map, source_texts)
     return outcome
 
 

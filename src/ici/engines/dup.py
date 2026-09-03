@@ -182,7 +182,7 @@ class DuplicateEngine(BaseEngine):
         }
         semantic_outcome: SemanticAnalysisOutcome | None = None
         if python_semantic_policy != "off" and python_source_texts:
-            semantic_outcome = analyze_python_sources(python_source_texts)
+            semantic_outcome = analyze_python_sources(tuple(python_source_texts.items()))
             if python_semantic_policy == "required" and semantic_outcome.exclusions:
                 duration = time.time() - t0
                 return self.create_result(

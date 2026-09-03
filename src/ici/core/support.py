@@ -459,6 +459,46 @@ def _confidence_for_evidence(
     return declared
 
 
+def _promote_optional_tool(required: list[str], optional: list[str], tool_name: str) -> None:
+    if tool_name in optional:
+        optional.remove(tool_name)
+    if tool_name not in required:
+        required.append(tool_name)
+
+
+def _apply_independent_tool_policies(
+    required: list[str],
+    optional: list[str],
+    engine_config: dict[str, Any],
+    policies: tuple[tuple[str, str], ...],
+) -> None:
+    for tool_name, config_key in policies:
+        tool_mode = engine_config.get(config_key, "auto")
+        if tool_mode == "required":
+            _promote_optional_tool(required, optional, tool_name)
+        elif tool_mode == "off" and tool_name in optional:
+            optional.remove(tool_name)
+
+
+def _apply_dead_cpp_tool_policy(
+    required: list[str],
+    optional: list[str],
+    engine_config: dict[str, Any],
+) -> None:
+    if engine_config.get("cpp_unused", "auto") == "off":
+        for tool_name in ("clang", "clang++"):
+            if tool_name in optional:
+                optional.remove(tool_name)
+    linker_policy = engine_config.get("cpp_linker", "off")
+    if linker_policy == "off":
+        for tool_name in ("cmake", "readelf", "addr2line"):
+            if tool_name in optional:
+                optional.remove(tool_name)
+    elif linker_policy == "required":
+        for tool_name in ("cmake", "readelf", "addr2line"):
+            _promote_optional_tool(required, optional, tool_name)
+
+
 def _tool_policy(
     declaration: SupportDeclaration, config: dict[str, Any]
 ) -> tuple[list[str], list[str]]:
@@ -473,42 +513,20 @@ def _tool_policy(
         # promote each selected tool, while ``off`` removes only that tool.
         # Keep the two policy switches independent so enabling Clazy never
         # changes clang-tidy's requirement (or vice versa).
-        for tool_name, config_key in (
-            ("clang-tidy", "clang_tidy"),
-            ("clazy", "clazy"),
-        ):
-            tool_mode = engine_config.get(config_key, "auto")
-            if tool_mode == "required":
-                if tool_name in optional:
-                    optional.remove(tool_name)
-                if tool_name not in required:
-                    required.append(tool_name)
-            elif tool_mode == "off" and tool_name in optional:
-                optional.remove(tool_name)
+        _apply_independent_tool_policies(
+            required,
+            optional,
+            engine_config,
+            (("clang-tidy", "clang_tidy"), ("clazy", "clazy")),
+        )
     elif declaration.engine_name == "type" and declaration.language == SupportLanguage.PYTHON:
         promoted = "mypy" if engine_config.get("mypy_required", False) else ""
     elif declaration.engine_name == "test" and engine_config.get("coverage_required", False):
         promoted = "coverage" if declaration.language == SupportLanguage.PYTHON else "gcov"
     elif declaration.engine_name == "dead" and declaration.language == SupportLanguage.CPP:
-        unused_policy = engine_config.get("cpp_unused", "auto")
-        linker_policy = engine_config.get("cpp_linker", "off")
-        if unused_policy == "off":
-            for tool_name in ("clang", "clang++"):
-                if tool_name in optional:
-                    optional.remove(tool_name)
-        if linker_policy == "off":
-            for tool_name in ("cmake", "readelf", "addr2line"):
-                if tool_name in optional:
-                    optional.remove(tool_name)
-        if linker_policy == "required":
-            for tool_name in ("cmake", "readelf", "addr2line"):
-                if tool_name in optional:
-                    optional.remove(tool_name)
-                if tool_name not in required:
-                    required.append(tool_name)
+        _apply_dead_cpp_tool_policy(required, optional, engine_config)
     if promoted and promoted in optional:
-        optional.remove(promoted)
-        required.append(promoted)
+        _promote_optional_tool(required, optional, promoted)
     return required, optional
 
 

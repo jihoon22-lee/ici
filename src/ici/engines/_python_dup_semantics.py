@@ -587,61 +587,87 @@ class _Canonicalizer:
         if node_name not in _KNOWN_AST_NODE_NAMES or type(node).__module__ != "ast":
             raise _UnsupportedShape(node_name)
         if isinstance(node, ast.Constant):
-            self.node_count += 1
-            fields = [["value", _literal_shape(node.value)]]
-            if hasattr(node, "kind"):
-                fields.append(["kind", node.kind])
-            return [node_name, fields]
+            return self._constant_node(node_name, node)
 
         self.node_count += 1
-        fields: list[list[object]] = []
         try:
-            ast_fields = ast.iter_fields(node)
-            for field_name, value in ast_fields:
-                if field_name in _LOCATION_FIELDS:
-                    continue
-                if field_name in _VERSION_OPTIONAL_EMPTY_FIELDS and value == []:
-                    continue
-                if (
-                    field_name == "name"
-                    and node is self.root
-                    and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                ):
-                    encoded = "<function-name>"
-                elif field_name == "name" and node is self.root and isinstance(node, ast.ClassDef):
-                    encoded = "<class-name>"
-                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and (
-                    field_name == "type_comment" and value is None
-                ):
-                    # Keep explicit type comments, but omit the parser's
-                    # absent-value noise from every version's shape.
-                    continue
-                else:
-                    field_alpha_names = alpha_names
-                    if node is self.root and isinstance(
-                        node, (ast.FunctionDef, ast.AsyncFunctionDef)
-                    ):
-                        if field_name in {"decorator_list", "returns", "type_params"}:
-                            field_alpha_names = False
-                    elif node is self.root and isinstance(node, ast.ClassDef):
-                        if field_name in {"bases", "decorator_list", "keywords", "type_params"}:
-                            field_alpha_names = False
-                    elif (
-                        isinstance(node, ast.arguments)
-                        and field_name in {"defaults", "kw_defaults"}
-                    ) or (isinstance(node, ast.arg) and field_name == "annotation"):
-                        field_alpha_names = False
-                    encoded = self._value(
-                        value,
-                        node,
-                        field_name,
-                        alpha_names=field_alpha_names,
-                    )
-                if encoded is not _OMIT:
-                    fields.append([field_name, encoded])
+            fields = self._node_fields(node, alpha_names=alpha_names)
         except (AttributeError, TypeError, ValueError) as error:
             raise _UnsupportedShape(node_name) from error
         return [node_name, fields]
+
+    def _constant_node(self, node_name: str, node: ast.Constant) -> object:
+        self.node_count += 1
+        fields: list[list[object]] = [["value", _literal_shape(node.value)]]
+        if node.kind is not None:
+            fields.append(["kind", node.kind])
+        return [node_name, fields]
+
+    def _node_fields(self, node: ast.AST, *, alpha_names: bool) -> list[list[object]]:
+        fields: list[list[object]] = []
+        for field_name, value in ast.iter_fields(node):
+            encoded = self._encode_node_field(
+                node,
+                field_name,
+                value,
+                alpha_names=alpha_names,
+            )
+            if encoded is not _OMIT:
+                fields.append([field_name, encoded])
+        return fields
+
+    def _encode_node_field(
+        self,
+        node: ast.AST,
+        field_name: str,
+        value: object,
+        *,
+        alpha_names: bool,
+    ) -> object:
+        if field_name in _LOCATION_FIELDS:
+            return _OMIT
+        if field_name in _VERSION_OPTIONAL_EMPTY_FIELDS and value == []:
+            return _OMIT
+        if field_name == "name" and node is self.root:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return "<function-name>"
+            if isinstance(node, ast.ClassDef):
+                return "<class-name>"
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+            and field_name == "type_comment"
+            and value is None
+        ):
+            # Keep explicit type comments, but omit the parser's absent-value
+            # noise from every supported Python version's shape.
+            return _OMIT
+        return self._value(
+            value,
+            node,
+            field_name,
+            alpha_names=self._field_uses_alpha_names(node, field_name, alpha_names),
+        )
+
+    def _field_uses_alpha_names(
+        self,
+        node: ast.AST,
+        field_name: str,
+        default: bool,
+    ) -> bool:
+        if node is self.root and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return default and field_name not in {"decorator_list", "returns", "type_params"}
+        if node is self.root and isinstance(node, ast.ClassDef):
+            return default and field_name not in {
+                "bases",
+                "decorator_list",
+                "keywords",
+                "type_params",
+            }
+        if isinstance(node, ast.arguments) and field_name in {"defaults", "kw_defaults"}:
+            return False
+        if isinstance(node, ast.arg) and field_name == "annotation":
+            return False
+        return default
 
     def serialize(self, *, max_chars: int) -> tuple[str, int]:
         payload = self._node(self.root)
