@@ -84,6 +84,7 @@ class ConfigureOptions:
             BuildVariant.RELEASE: "-build",
             BuildVariant.COVERAGE: "",
             BuildVariant.SANITIZE: "-asan",
+            BuildVariant.THREAD_SANITIZE: "-tsan",
         }[self.variant]
 
     @property
@@ -99,6 +100,11 @@ class ConfigureOptions:
                 "-fno-omit-frame-pointer",
                 "-g",
             ],
+            BuildVariant.THREAD_SANITIZE: [
+                "-fsanitize=thread",
+                "-fno-omit-frame-pointer",
+                "-g",
+            ],
         }[self.variant]
         return flags + list(self.extra_cxx_flags)
 
@@ -107,6 +113,7 @@ class ConfigureOptions:
             BuildVariant.RELEASE: [],
             BuildVariant.COVERAGE: ["--coverage"],
             BuildVariant.SANITIZE: ["-fsanitize=address,undefined"],
+            BuildVariant.THREAD_SANITIZE: ["-fsanitize=thread"],
         }[self.variant]
         return flags + list(self.extra_link_flags)
 

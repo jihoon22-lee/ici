@@ -74,6 +74,7 @@ def test_build_variant_members_have_stable_declared_order() -> None:
         "RELEASE",
         "COVERAGE",
         "SANITIZE",
+        "THREAD_SANITIZE",
     )
 
 
