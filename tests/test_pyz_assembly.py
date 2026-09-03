@@ -110,6 +110,40 @@ def test_assemble_removes_new_outputs_when_second_publish_fails(
     assert not list(first.parent.iterdir())
 
 
+def test_assemble_preserves_backup_when_rollback_itself_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw, preamble = _inputs(tmp_path)
+    first = tmp_path / "dist" / "ici.pyz"
+    second = tmp_path / "dist" / "ici"
+    first.parent.mkdir()
+    first.write_bytes(b"recoverable previous pyz")
+    second.write_bytes(b"previous launcher")
+    original_replace = assemble_pyz.os.replace
+
+    def fail_publish_and_rollback(
+        src: object, dst: object, *args: object, **kwargs: object
+    ) -> None:
+        source_name = Path(os.fspath(src)).name
+        destination_name = os.fspath(dst)
+        if destination_name == second.name and ".tmp" in source_name:
+            raise OSError("simulated second output publish failure")
+        if destination_name == first.name and ".backup" in source_name:
+            raise OSError("simulated rollback failure")
+        original_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(assemble_pyz.os, "replace", fail_publish_and_rollback)
+
+    with pytest.raises(assemble_pyz.AssemblyError, match="previous inode preserved as"):
+        assemble_pyz.assemble(raw, preamble, [first, second])
+
+    recovery_files = list(first.parent.glob(f".{first.name}.backup-*"))
+    assert len(recovery_files) == 1
+    assert recovery_files[0].read_bytes() == b"recoverable previous pyz"
+    assert second.read_bytes() == b"previous launcher"
+    assert not list(first.parent.glob(".*.tmp-*"))
+
+
 def test_assemble_rejects_existing_output_symlink_without_touching_target(
     tmp_path: Path,
 ) -> None:
