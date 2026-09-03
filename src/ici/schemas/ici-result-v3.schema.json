@@ -570,7 +570,10 @@
             { "type": "null" }
           ]
         },
-        "variant": { "type": "string", "enum": ["release", "coverage", "sanitize"] },
+        "variant": {
+          "type": "string",
+          "enum": ["release", "coverage", "sanitize", "thread-sanitize"]
+        },
         "source_commit": {
           "type": "string",
           "pattern": "^(?:unavailable|[0-9a-f]{40,64})$"
@@ -822,7 +825,10 @@
         },
         "requested_variants": {
           "type": "array",
-          "items": { "type": "string", "enum": ["release", "coverage", "sanitize"] },
+          "items": {
+            "type": "string",
+            "enum": ["release", "coverage", "sanitize", "thread-sanitize"]
+          },
           "uniqueItems": true
         },
         "artifact_manifests": {

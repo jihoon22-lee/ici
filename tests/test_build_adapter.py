@@ -541,6 +541,94 @@ ERROR: AddressSanitizer: heap-buffer-overflow
     assert "heap-buffer-overflow" in result.diagnostic_output
 
 
+def test_parse_ctest_junit_preserves_thread_sanitizer_failure_evidence():
+    xml = """<testsuite tests="1" failures="1">
+  <testcase name="test_race">
+    <failure message="failed"/>
+    <system-err><![CDATA[
+WARNING: ThreadSanitizer: data race
+    #0 writer /workspace/src/race.cpp:8
+SUMMARY: ThreadSanitizer: data race /workspace/src/race.cpp:8 in writer
+]]></system-err>
+  </testcase>
+</testsuite>
+"""
+
+    result = parse_ctest_junit(xml)[0]
+
+    assert result.passed is False
+    assert result.executed is True
+    assert result.message == "ThreadSanitizer diagnostic"
+    assert "data race" in result.diagnostic_output
+
+
+def test_ctest_process_thread_sanitizer_report_overrides_passing_case(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-cmake-tsan"
+    shadow.mkdir(parents=True)
+    session = BuildSession(
+        root=tmp_path,
+        shadow=shadow,
+        backend=BACKEND_CMAKE,
+        descriptor="CMakeLists.txt",
+        variant=BuildVariant.THREAD_SANITIZE,
+        configured=True,
+        cmake_version=(3, 20),
+    )
+    output = """1/1 Test #1: test_race ... Passed 0.01 sec
+WARNING: ThreadSanitizer: data race
+    #0 writer /workspace/src/race.cpp:8
+SUMMARY: ThreadSanitizer: data race /workspace/src/race.cpp:8 in writer
+"""
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(
+        cmake_mod,
+        "run_process",
+        lambda *_args, **_kwargs: ProcessResult(0, output, "", 0.01),
+    )
+
+    result = run_tests(session)[0]
+
+    assert result.name == "test_race"
+    assert result.passed is False
+    assert result.executed is True
+    assert result.message == "ThreadSanitizer diagnostic"
+    assert "data race" in result.diagnostic_output
+
+
+def test_ctest_process_thread_sanitizer_report_survives_unexecuted_cases(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-cmake-tsan"
+    shadow.mkdir(parents=True)
+    session = BuildSession(
+        root=tmp_path,
+        shadow=shadow,
+        backend=BACKEND_CMAKE,
+        descriptor="CMakeLists.txt",
+        variant=BuildVariant.THREAD_SANITIZE,
+        configured=True,
+        cmake_version=(3, 20),
+    )
+    output = """1/1 Test #1: test_race ... Not Run 0.00 sec
+WARNING: ThreadSanitizer: data race
+    #0 writer /workspace/src/race.cpp:8
+SUMMARY: ThreadSanitizer: data race /workspace/src/race.cpp:8 in writer
+"""
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(
+        cmake_mod,
+        "run_process",
+        lambda *_args, **_kwargs: ProcessResult(0, output, "", 0.01),
+    )
+
+    results = run_tests(session)
+
+    assert results[0].executed is False
+    assert results[1].name == "sanitizer-process"
+    assert results[1].passed is False
+    assert results[1].executed is True
+    assert results[1].message == "ThreadSanitizer diagnostic"
+    assert "data race" in results[1].diagnostic_output
+
+
 @pytest.mark.parametrize(
     "payload",
     ["x" * 1_000_001, "U0001f40d" * 250_001],
@@ -806,6 +894,38 @@ make: *** [Makefile:10: check] Error 1
     assert session.tool_evidence[-1].name == "make check"
 
 
+def test_run_tests_qmake_thread_sanitizer_report_overrides_zero_exit(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-qmake-tsan"
+    shadow.mkdir(parents=True)
+    session = BuildSession(
+        root=tmp_path,
+        shadow=shadow,
+        backend=BACKEND_QMAKE,
+        descriptor="app.pro",
+        variant=BuildVariant.THREAD_SANITIZE,
+        configured=True,
+    )
+    output = """./test_race -xunitxml
+WARNING: ThreadSanitizer: data race
+    #0 writer /workspace/src/race.cpp:8
+SUMMARY: ThreadSanitizer: data race /workspace/src/race.cpp:8 in writer
+"""
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(
+        cmake_mod,
+        "run_process",
+        lambda *_args, **_kwargs: ProcessResult(0, output, "", 0.01),
+    )
+
+    result = run_tests(session)[0]
+
+    assert result.name == "test_race"
+    assert result.passed is False
+    assert result.executed is True
+    assert result.message == "ThreadSanitizer diagnostic"
+    assert "data race" in result.diagnostic_output
+
+
 def test_run_tests_rejects_oversized_junit_and_uses_bounded_stdout_fallback(tmp_path, monkeypatch):
     (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
     monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
@@ -901,6 +1021,21 @@ def test_sanitize_options_carry_the_sanitizer_and_drop_coverage(tmp_path):
     assert "--coverage" not in " ".join(argv)
 
 
+def test_thread_sanitize_options_are_isolated_from_other_instrumentation(tmp_path):
+    options = ConfigureOptions(BuildVariant.THREAD_SANITIZE)
+    cmake_argv = cmake_configure_argv("/usr/bin/cmake", tmp_path, tmp_path / "s", options)
+    qmake_argv = qmake_configure_argv("/usr/bin/qmake6", tmp_path / "a.pro", options)
+
+    assert "-DCMAKE_CXX_FLAGS=-fsanitize=thread -fno-omit-frame-pointer -g" in cmake_argv
+    assert "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread" in cmake_argv
+    assert "QMAKE_CXXFLAGS+=-fsanitize=thread" in qmake_argv
+    assert "QMAKE_LFLAGS+=-fsanitize=thread" in qmake_argv
+    joined = " ".join((*cmake_argv, *qmake_argv))
+    assert "--coverage" not in joined
+    assert "-fsanitize=address" not in joined
+    assert "-fsanitize=undefined" not in joined
+
+
 def test_qmake_options_use_qmake_flag_variables(tmp_path):
     options = ConfigureOptions(
         BuildVariant.RELEASE,
@@ -916,6 +1051,10 @@ def test_shadow_suffix_keeps_engines_out_of_each_others_trees(tmp_path):
     # would make each run rebuild the other's objects with the wrong flags.
     assert shadow_dir(tmp_path, BACKEND_CMAKE) != shadow_dir(tmp_path, BACKEND_CMAKE, "-asan")
     assert shadow_dir(tmp_path, BACKEND_CMAKE, "-asan").name == "ici-cmake-asan"
+    assert shadow_dir(tmp_path, BACKEND_CMAKE, "-tsan").name == "ici-cmake-tsan"
+    assert shadow_dir(tmp_path, BACKEND_CMAKE, "-tsan") != shadow_dir(
+        tmp_path, BACKEND_CMAKE, "-asan"
+    )
 
 
 def test_run_tests_passes_the_runner_environment_through(tmp_path, monkeypatch):

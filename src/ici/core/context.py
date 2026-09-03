@@ -45,6 +45,7 @@ class BuildVariant(str, Enum):
     RELEASE = "release"
     COVERAGE = "coverage"
     SANITIZE = "sanitize"
+    THREAD_SANITIZE = "thread-sanitize"
 
 
 class ArtifactScope(str, Enum):

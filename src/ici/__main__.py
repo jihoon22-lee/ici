@@ -39,6 +39,9 @@ from ici.engines.resource import ResourceEngine  # noqa: F401
 from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.security import SecurityEngine  # noqa: F401
 from ici.engines.test import TestEngine  # noqa: F401 - resolved dynamically by CLI registry
+from ici.engines.thread_sanitize import (  # noqa: F401 - resolved dynamically by CLI registry
+    ThreadSanitizeEngine,
+)
 from ici.engines.type_check import (
     TypeCheckEngine,  # noqa: F401 - resolved dynamically by CLI registry
 )
@@ -299,6 +302,12 @@ _ENGINE_COMMANDS = [
         "SanitizeEngine",
         "sanitize_report.json",
         "Runs AddressSanitizer/UBSan for C++ and resource leak checks for Python.",
+    ),
+    (
+        "thread-sanitize",
+        "ThreadSanitizeEngine",
+        "thread_sanitize_report.json",
+        "Runs C++ tests under ThreadSanitizer using an isolated build variant.",
     ),
     (
         "dead",

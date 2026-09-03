@@ -45,6 +45,7 @@ def test_verify_orchestrator_preserves_required_policy_for_line_complexity_and_d
                 "type",
                 "complexity",
                 "sanitize",
+                "thread_sanitize",
                 "dead",
                 "dup",
                 "exception",

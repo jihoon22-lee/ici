@@ -48,6 +48,17 @@ process-output truncation, malformed/oversized diagnostic 또는 project locatio
 clean result로 축약하지 않고 `ERROR`/`NOT_RUN`으로 닫습니다. 이는 아직 remote PR/main,
 Quality Zoo/candidate cross-repository evidence나 release를 뜻하지 않으며 공개 버전은 계속
 `0.10.2`입니다.
+현재 unreleased `feat/thread-sanitizer-deep-profile` local slice는 deep profile에서만 선택되는
+`thread_sanitize` engine과 `ici thread-sanitize` direct command를 제공합니다. 별도
+`BuildVariant.THREAD_SANITIZE`(`thread-sanitize`)와 `-tsan` shadow에
+`-fsanitize=thread -fno-omit-frame-pointer -g`를 적용하고, CMake/qmake adapter와 generic
+g++ 경로를 분리합니다. generic 경로는 `-pthread`를 추가하며 `TSAN_OPTIONS`의 기존 값을
+보존한 채 `halt_on_error=1`을 덧붙입니다. Python은 unsupported이고 ASan/LSan/UBSan
+`sanitize` variant와 절대 섞지 않습니다. `WARNING`/`SUMMARY` report signature만 bounded
+normalizer에 넣고 known defect ID와 stable unknown fallback, bounded project location 및
+`[external]` frame redaction을 적용합니다. 실제 g++ race 회귀는 통과했지만 이 구현은 아직
+feature PR/main 및 Quality Zoo TSan acceptance의 근거가 아니며, `I4-4`와 release는 pending입니다.
+공개 버전은 계속 `0.10.2`입니다.
 이번 bounded language-aware `dup` slice는 위 범위 안에서 lexical token/region/signal 정확도와
 fail-closed resource budget을 보강하고, `dead`에는 좁은 compiler-backed C/C++
 translation-unit unused-function slice를 추가합니다. `dup`와 Python `dead`의 정상 완료
@@ -179,7 +190,7 @@ an older accepted candidate is not evidence for a newer feature head.
 | 문서 | 설명 | 바로가기 |
 |---|---|---|
 | **🚀 사용자 가이드** | 빠른 시작, 설치, 전체 CLI 사용법 및 IDE 원클릭 점프 | [docs/user-guide.md](docs/user-guide.md) |
-| **📏 검증 엔진 레퍼런스** | 14종 품질 검증 엔진 (기본 13종 활성), TEM 스코어링 공식, `ici.toml` 정책 설정 | [docs/engine-reference.md](docs/engine-reference.md) |
+| **📏 검증 엔진 레퍼런스** | 15종 품질 검증 엔진 (기본 13종 활성), TEM 스코어링 공식, `ici.toml` 정책 설정 | [docs/engine-reference.md](docs/engine-reference.md) |
 | **⚙️ CI/CD 연동 가이드** | GitHub Actions, Step Summary, PR 어노테이션, 사내 폐쇄망 러너 | [docs/ci-integration.md](docs/ci-integration.md) |
 | **🏛️ 시스템 아키텍처** | ZipApp 패키징, Polyglot 런처, 오케스트레이터 및 리포터 계층 설계 | [docs/architecture.md](docs/architecture.md) |
 | **🧭 품질 분석기 실행 계획** | Python·C++·Qt 분석기 로드맵과 toy-projects 교차 검증 순서 | [ici 마스터 계획](docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md) · [toy-projects 마스터 계획](https://github.com/jihoon22-lee/toy-projects/blob/main/docs/superpowers/plans/2026-08-30-product-portfolio-master-plan.md) |
@@ -195,7 +206,7 @@ an older accepted candidate is not evidence for a newer feature head.
    - 최초 실행 시 `~/.config/ici/ici.toml`에 전사 기본 정책이 자동 생성되며, `src` 외 `lib`/`app` 등 소스 레이아웃도 자동 탐색
 2. **스마트 런처 (Smart Polyglot)**:
    - 시스템 기본 `python3`가 3.6/3.8인 구버전 환경에서도 `ICI_PYTHON` 또는 3.10+ 설치 경로를 스스로 찾아 실행.
-3. **14종 품질 검증 엔진 (기본 13종 활성)**:
+3. **15종 품질 검증 엔진 (기본 13종 활성)**:
     - `line`: 파일당 순수 코드 500줄 초과 경고, 1000줄 초과 실패 + **계층형 디렉토리 트리 뷰** (`project.source_dirs` + 기본 소스 디렉터리 전용 스캔, `include_dirs`로 확장)
     - `lint`: Python Ruff 및 C/C++ compiler 진단, optional clang-tidy I4-1와 Qt-aware clazy I4-2
       adapter (`auto`/`required`/`off`, exact compilation-context replay, 도구 미설치·부분 폴백
@@ -210,6 +221,7 @@ an older accepted candidate is not evidence for a newer feature head.
       `readability-function-size`로 함수 경계를 정하고, 경계 내부 CC/중첩은 masked token/brace
       metric으로 계산 + **원본 소스 코드 블록 프리뷰**
     - `sanitize`: C++ ASan/LSan/UBSan 구조화 진단을 포함한 메모리 안전성 및 Python 리소스 누수 검증
+    - `thread_sanitize`: deep profile 전용 C++ ThreadSanitizer 실행과 bounded thread-safety 진단
     - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출. 공통 bounded UTF-8 source intake를 사용하며 generated/vendor는 기본 제외(`include_generated`/`include_vendor` literal-boolean opt-in)합니다. Python AST reachability/name-reference는 `ESTIMATED`/heuristic이고, 승인된 GCC/Clang(및 그 capability-approved alias)이 선택된 owned C/C++ translation unit에 귀속한 internal-linkage 함수 `-Wunused-function` 진단은 `[engines.dead] cpp_unused = "auto" | "required" | "off"` 정책으로 재생할 수 있습니다. 모든 알려진 configuration에서 같은 위치 범위의 진단이 확인된 경우에만 C/C++ 결과를 `MEASURED`/`EXACT`로 기록하며, intake는 8,192개 unique candidate와 2,048개 owned/analyzed 파일·파일당 8 MiB·aggregate 64 MiB로 제한하고, 제외된 파일은 owned 한도에 포함하지 않습니다.
     - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출. Python/C/C++는 전용 line-preserving lexer로 정규화해 언어별로 격리한다. Python `tokenize`/AST context는 주석·multiline import와 `match`/`case` soft keyword를 처리하고 identifier, 숫자·문자열 계열, 들여쓰기·연산자 category를 보존하며, C/C++ lexer는 comments/directives, C++ backslash-newline splice, punctuator 경계와 Qt semantic anchor를 보존한다. rolling normalized-window seed와 exact token extension, function/class/import/directive region 및 semantic-signal policy로 data-table 오탐은 줄이고 실제 control-flow clone은 유지한다. `sha256/type2-region-v2` fingerprint와 tokenizer/region/signal metadata를 기록하며 generated/moc/vendor는 기본 제외; owned C/C++ header도 검사하고 standalone `.moc`는 `include_generated = true`일 때만 포함하며 같은 bounded source 한도를 사용. 정상 완료 결과는 `ESTIMATED`/heuristic이고 내부 budget 초과는 partial PASS 없이 `ERROR`/`NOT_RUN`으로 닫힌다.
     - `exception`: 예외 삼킴(`except: pass`), Traceback 유실, 소멸자 throw 차단
@@ -242,7 +254,7 @@ an older accepted candidate is not evidence for a newer feature head.
    - `--write-baseline`으로 현재 finding inventory를 보관하고 `--baseline`으로 다음 실행과 비교할 수 있습니다. `--fail-on-new`는 새 actionable finding 또는 severity/suppression regression만 gate에 반영합니다.
    - 기준선 비교 결과는 JSON·HTML·Markdown Summary·콘솔에 표시되고, 신뢰된 publish job의 sticky PR 댓글에는 새 finding·regression·gate·호환성 warning 요약이 포함됩니다.
 7. **과장 없는 언어·도구 지원 매트릭스**:
-   - 14개 엔진 × Python/C++ 범위를 `exact`/`heuristic`/`tool-backed`/`unsupported`로 선언하고 Qt 호환성, 필요 도구, fallback과 한계를 함께 공개합니다.
+   - 15개 엔진 × Python/C++ 범위를 `exact`/`heuristic`/`tool-backed`/`unsupported`로 선언하고 Qt 호환성, 필요 도구, fallback과 한계를 함께 공개합니다.
    - 프로젝트별 적용 여부와 실제 증거 상태를 계산해 doctor, JSON, HTML과 Qt viewer에서 같은 데이터로 표시합니다. 상세 표는 [엔진 레퍼런스 §1.4](docs/engine-reference.md#14-엔진-지원기능-매트릭스)를 참고하세요.
    - `ici doctor`는 전체 tool registry를 한 번의 bounded probe snapshot으로 수집하고, 필요한 이유(`engine:language` 또는 `doctor.config`)와 missing/incomplete 상태를 함께 보여 줍니다. `ici doctor --json`의 `capability_inventory`는 status·counts·version/path/details/evidence를 담는 machine-readable 계약이며, 기존 `tools` map도 유지합니다.
    - `ici verify`도 유효한 support matrix의 `applicable`·`enabled` 범위와 `doctor.config`에서 required/optional 정책을 계산한 뒤, 엔진 실행 전에 같은 registry를 정확히 한 번 수집합니다. suite root의 선택적 `capability_inventory`를 console/Markdown/zero-CDN HTML reporter가 그대로 공유하므로 reporter가 도구를 재탐지하지 않습니다. required provenance 우선 규칙과 모든 provenance, capability 메타데이터·probe argv/evidence redaction을 보존하며, 콘솔은 요약하고 Markdown은 전체 inventory를 접어 보여 주고 HTML은 Support & Capabilities 탭에 전체 행을 표시합니다. 기존 inventory 없는 `ici.result/v3` 리포트도 계속 읽을 수 있습니다.
@@ -759,6 +771,7 @@ response file도 깊이 4, 파일/aggregate 4 MiB와 동일한 per-row argument 
 | `ici type` | 정적 타입 검사 | [엔진 레퍼런스](docs/engine-reference.md#24-️-type-정적-타입-안정성-검사기) |
 | `ici complexity` | 순환 복잡도 및 중첩 깊이 분석 | [엔진 레퍼런스](docs/engine-reference.md#25--complexity-순환-복잡도-및-블록-중첩도) |
 | `ici sanitize` | C++ ASan/UBSan 메모리 안전성 검증 | [엔진 레퍼런스](docs/engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |
+| `ici thread-sanitize` | deep profile 전용 C++ ThreadSanitizer thread-safety 검증 | [엔진 레퍼런스](docs/engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |
 | `ici dead` | 죽은 코드 및 미사용 심볼 검출 | [엔진 레퍼런스](docs/engine-reference.md#27--dead-죽은-코드-및-미사용-심볼) |
 | `ici dup` | 중복 코드 / Copy-Paste 감지 | [엔진 레퍼런스](docs/engine-reference.md#28--dup-코드-복제-및-중복률-감지기) |
 | `ici exception` | 예외 처리 안전성 검출 | [엔진 레퍼런스](docs/engine-reference.md#29-️-exception-예외-처리-안전성-검출기) |

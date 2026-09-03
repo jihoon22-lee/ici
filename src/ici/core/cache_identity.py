@@ -92,6 +92,7 @@ _GENERATED_REPORT_NAMES = frozenset(
         "lint_report.json",
         "resource_report.json",
         "sanitize_report.json",
+        "thread_sanitize_report.json",
         "security_report.json",
         "test_report.json",
         "type_report.json",

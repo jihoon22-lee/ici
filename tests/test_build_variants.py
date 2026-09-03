@@ -34,6 +34,13 @@ def test_configure_options_requires_an_explicit_variant() -> None:
             ["-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-g"],
             ["-fsanitize=address,undefined"],
         ),
+        (
+            BuildVariant.THREAD_SANITIZE,
+            False,
+            "-tsan",
+            ["-fsanitize=thread", "-fno-omit-frame-pointer", "-g"],
+            ["-fsanitize=thread"],
+        ),
     ),
 )
 def test_variant_policy_is_exact_and_isolated(
@@ -54,6 +61,7 @@ def test_variant_policy_is_exact_and_isolated(
         for flag in (
             "--coverage",
             "-fsanitize=address,undefined",
+            "-fsanitize=thread",
         )
         if flag not in cxx_flags + link_flags
     )

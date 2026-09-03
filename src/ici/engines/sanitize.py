@@ -69,6 +69,26 @@ class _SanitizerFinding:
 class SanitizeEngine(BaseEngine):
     """Run C++ sanitizers and Python ResourceWarning checks with evidence."""
 
+    ENGINE_NAME = "sanitize"
+    CONFIG_SECTION = "sanitize"
+    ISSUE_COUNT_KEY = "sanitize_issues"
+    BUILD_VARIANT = BuildVariant.SANITIZE
+    CHECK_PYTHON_RESOURCES = True
+    TEMP_PREFIX = "ici-sanitize-"
+    BINARY_SUFFIX = "_asan"
+    CPP_LABEL = "ASan/UBSan"
+    CPP_COMPILE_FLAGS = (
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-g",
+    )
+    NO_SCOPE_NAME = "Sanitize"
+    NO_SCOPE_MESSAGE = "No applicable Python or C++ sources were selected; sanitize was not run"
+    PARTIAL_SUMMARY = "Sanitize partially executed: one or more applicable scopes were skipped"
+    CLEAN_SUMMARY = "Memory Safety & Sanitize Clean (0 Defects)"
+    SKIP_SUMMARY = "Sanitize skipped: no applicable checks were executed"
+    ISSUE_NOUN = "Memory / Resource"
+
     # Runtime diagnostics and test execution are observations, not reusable
     # source-only analysis results.
     CACHE_REUSE_SAFE = False
@@ -107,9 +127,15 @@ class SanitizeEngine(BaseEngine):
         cpp_tests = self._cpp_test_sources()
         py_sources = self.project_python_sources()
         tests_root = self.project_root / "tests"
-        has_python_scope = bool(py_sources) or self._has_python_tests(tests_root)
+        has_python_scope = self.CHECK_PYTHON_RESOURCES and (
+            bool(py_sources) or self._has_python_tests(tests_root)
+        )
         has_cpp_scope = bool(cpp_sources) or bool(cpp_tests)
-        if proj_type in ("python", "hybrid") and (py_sources or tests_root.exists()):
+        if (
+            self.CHECK_PYTHON_RESOURCES
+            and proj_type in ("python", "hybrid")
+            and (py_sources or tests_root.exists())
+        ):
             has_python_scope = True
         if proj_type in ("cpp", "hybrid") and (cpp_sources or tests_root.exists()):
             has_cpp_scope = has_cpp_scope or bool(cpp_tests)
@@ -127,15 +153,17 @@ class SanitizeEngine(BaseEngine):
             has_failure = has_failure or py_failure
             has_warning = has_warning or py_warning
         if not has_cpp_scope and not has_python_scope:
-            self._mark_scope_skip(
-                targets,
-                ".",
-                "Sanitize",
-                "No applicable Python or C++ sources were selected; sanitize was not run",
-                required=False,
+            targets.append(
+                InspectionTarget(
+                    file_path=".",
+                    start_line=1,
+                    target_name=self.NO_SCOPE_NAME,
+                    status=EngineStatus.SKIP,
+                    message=self.NO_SCOPE_MESSAGE,
+                )
             )
 
-        cfg = self.get_config("sanitize")
+        cfg = self.get_config(self.CONFIG_SECTION)
         mode = cfg.get("mode", "pass_fail")
         required = bool(cfg.get("required", True))
         duration = time.time() - t0
@@ -150,14 +178,14 @@ class SanitizeEngine(BaseEngine):
                 else EngineStatus.WARN
             )
             evidence = EvidenceState.ESTIMATED
-            summary = "Sanitize partially executed: one or more applicable scopes were skipped"
+            summary = self.PARTIAL_SUMMARY
         elif self._measured_scopes:
             overall_status = self.evaluate_status(has_failure, has_warning, mode)
             evidence = EvidenceState.MEASURED
             summary = (
-                "Memory Safety & Sanitize Clean (0 Defects)"
+                self.CLEAN_SUMMARY
                 if overall_status == EngineStatus.PASS
-                else f"{self._issue_count(targets)} Memory / Resource Defect(s) Detected"
+                else f"{self._issue_count(targets)} {self.ISSUE_NOUN} Defect(s) Detected"
             )
         else:
             overall_status = EngineStatus.SKIP
@@ -173,16 +201,16 @@ class SanitizeEngine(BaseEngine):
             evidence = (
                 EvidenceState.ESTIMATED if self._skipped_scopes else EvidenceState.NOT_APPLICABLE
             )
-            summary = "Sanitize skipped: no applicable checks were executed"
+            summary = self.SKIP_SUMMARY
 
         result = self.create_result(
-            name="sanitize",
+            name=self.ENGINE_NAME,
             status=overall_status,
             summary=summary,
             duration=duration,
             targets=targets,
             extra={
-                "sanitize_issues": self._issue_count(targets),
+                self.ISSUE_COUNT_KEY: self._issue_count(targets),
                 "sanitizer_diagnostics": self._sanitizer_details(),
             },
             required=required,
@@ -236,16 +264,14 @@ class SanitizeEngine(BaseEngine):
         inc_flags = self.project_cpp_include_flags()
         src_files = [str(path) for path in cpp_sources if not defines_main(path)]
         lib_flags = self._cpp_library_flags()
-        with tempfile.TemporaryDirectory(prefix="ici-sanitize-") as temp_name:
+        with tempfile.TemporaryDirectory(prefix=self.TEMP_PREFIX) as temp_name:
             temp_root = Path(temp_name)
             for test_src in cpp_tests:
-                runner_bin = temp_root / f"{test_src.stem}_asan"
+                runner_bin = temp_root / f"{test_src.stem}{self.BINARY_SUFFIX}"
                 command = [
                     gxx,
                     "-std=c++17",
-                    "-fsanitize=address,undefined",
-                    "-fno-omit-frame-pointer",
-                    "-g",
+                    *self.CPP_COMPILE_FLAGS,
                     *inc_flags,
                     str(test_src),
                     *src_files,
@@ -352,9 +378,9 @@ class SanitizeEngine(BaseEngine):
                         InspectionTarget(
                             file_path=str(test_src.relative_to(self.project_root)),
                             start_line=1,
-                            target_name="ASan/UBSan",
+                            target_name=self.CPP_LABEL,
                             status=EngineStatus.PASS,
-                            message="AddressSanitizer and UndefinedBehaviorSanitizer completed",
+                            message=f"{self.CPP_LABEL} completed without diagnostics",
                         )
                     )
         return has_failure
@@ -384,7 +410,7 @@ class SanitizeEngine(BaseEngine):
     ) -> tuple[BuildSession, int] | None:
         session = adapter_configure(
             self.project_root,
-            ConfigureOptions(BuildVariant.SANITIZE),
+            ConfigureOptions(self.BUILD_VARIANT),
         )
         session.analysis_context = self.analysis_context
         self._tool_evidence.extend(session.tool_evidence)
@@ -451,7 +477,7 @@ class SanitizeEngine(BaseEngine):
                 self._mark_scope_skip(
                     targets,
                     session.descriptor or ".",
-                    f"[C++ ASan/UBSan] {case.name}",
+                    f"[C++ {self.CPP_LABEL}] {case.name}",
                     f"Sanitizer test was not executed: {case.message or 'no reason reported'}",
                 )
                 continue
@@ -522,8 +548,8 @@ class SanitizeEngine(BaseEngine):
             message,
         )
 
-    @staticmethod
     def _append_adapter_case_target(
+        self,
         targets: list[InspectionTarget],
         session: BuildSession,
         case: TestCaseResult,
@@ -532,7 +558,7 @@ class SanitizeEngine(BaseEngine):
             InspectionTarget(
                 file_path=session.descriptor or ".",
                 start_line=1,
-                target_name=f"[C++ ASan/UBSan] {case.name}",
+                target_name=f"[C++ {self.CPP_LABEL}] {case.name}",
                 status=EngineStatus.PASS if case.passed else EngineStatus.FAIL,
                 message=(
                     "Sanitizers reported no diagnostics"
@@ -586,7 +612,13 @@ class SanitizeEngine(BaseEngine):
             else:
                 message = diagnostic.message
                 status = EngineStatus.FAIL
-                target_name = "LSan Error" if diagnostic.kind == "lsan" else "ASan/UBSan Error"
+                target_name = (
+                    "LSan Error"
+                    if diagnostic.kind == "lsan"
+                    else "TSan Error"
+                    if diagnostic.kind == "tsan"
+                    else "ASan/UBSan Error"
+                )
             target = InspectionTarget(
                 file_path=location.path,
                 start_line=location.start_line,
@@ -629,7 +661,7 @@ class SanitizeEngine(BaseEngine):
                 Finding(
                     # Keep the legacy rule identity so this native record replaces,
                     # rather than duplicates, its required InspectionTarget adapter.
-                    rule_id="ici.legacy.sanitize.target",
+                    rule_id=f"ici.legacy.{self.ENGINE_NAME.replace('_', '-')}.target",
                     category=(
                         FindingCategory.RESOURCE
                         if diagnostic.kind == "lsan"
@@ -703,6 +735,11 @@ class SanitizeEngine(BaseEngine):
 
     @staticmethod
     def _sanitizer_remediation(kind: str) -> str:
+        if kind == "tsan":
+            return (
+                "Synchronize every access to the shared state and add a deterministic "
+                "multithreaded regression test that runs under TSan."
+            )
         if kind == "lsan":
             return (
                 "Release the allocation on every ownership path or transfer ownership explicitly."
@@ -869,7 +906,7 @@ class SanitizeEngine(BaseEngine):
             )
         else:
             self._tool_evidence[-1].error = message
-        required = bool(self.get_config("sanitize").get("required", True))
+        required = bool(self.get_config(self.CONFIG_SECTION).get("required", True))
         if required:
             self._tool_errors.append(message)
             status = EngineStatus.ERROR
@@ -997,7 +1034,7 @@ class SanitizeEngine(BaseEngine):
     ) -> None:
         self._skipped_scopes += 1
         if required is None:
-            required = bool(self.get_config("sanitize").get("required", True))
+            required = bool(self.get_config(self.CONFIG_SECTION).get("required", True))
         if required:
             self._required_scope_missing = True
             self._tool_errors.append(message)

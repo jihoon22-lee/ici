@@ -80,6 +80,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "mode": "pass_fail",
         },
+        "thread_sanitize": {
+            "enabled": True,
+            "mode": "pass_fail",
+        },
         "dead": {
             "enabled": True,
             "mode": "pass_warn",

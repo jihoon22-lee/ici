@@ -4,6 +4,7 @@ import pytest
 
 from ici.core.baseline import BaselineError
 from ici.core.models import BaselineComparison, EngineResult, EngineStatus, EvidenceState
+from ici.core.pipeline import ENGINE_DESCRIPTORS
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.verify import VerifyOrchestrator
 from ici.reporters.issue_view import ConsoleGroupBy, ConsoleOptions
@@ -49,6 +50,7 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
             "type",
             "complexity",
             "sanitize",
+            "thread_sanitize",
             "dead",
             "dup",
             "exception",
@@ -66,7 +68,7 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
     assert suite.results[0].evidence == EvidenceState.NOT_RUN
     assert suite.results[1].engine_name == "lint"
     assert suite.support_matrix is not None
-    assert len(suite.support_matrix.entries) == 28
+    assert len(suite.support_matrix.entries) == len(ENGINE_DESCRIPTORS) * 2
     assert suite.analysis_metadata is not None
     assert suite.analysis_metadata.fingerprint_version == "ici-fingerprint/v1"
 
@@ -83,6 +85,7 @@ def _only_lint_enabled():
                 "type",
                 "complexity",
                 "sanitize",
+                "thread_sanitize",
                 "dead",
                 "dup",
                 "exception",

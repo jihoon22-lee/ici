@@ -20,6 +20,7 @@ ENGINE_NAMES = (
     "type",
     "complexity",
     "sanitize",
+    "thread_sanitize",
     "dead",
     "dup",
     "exception",
@@ -83,13 +84,16 @@ def test_default_config_has_layout_and_line_gate_keys():
     assert DEFAULT_CONFIG["doctor"]["required_tools"] == []
 
 
-def test_default_cognitive_engine_is_selected_only_by_deep_profile():
+def test_default_deep_only_engines_are_selected_only_by_deep_profile():
     standard, _ = apply_analysis_profile(DEFAULT_CONFIG, "standard")
     deep, _ = apply_analysis_profile(DEFAULT_CONFIG, "deep")
 
     assert DEFAULT_CONFIG["engines"]["cognitive"]["enabled"] is True
+    assert DEFAULT_CONFIG["engines"]["thread_sanitize"]["enabled"] is True
     assert standard["engines"]["cognitive"]["enabled"] is False
+    assert standard["engines"]["thread_sanitize"]["enabled"] is False
     assert deep["engines"]["cognitive"]["enabled"] is True
+    assert deep["engines"]["thread_sanitize"]["enabled"] is True
 
 
 @pytest.mark.parametrize("profile", ["fast", "standard", "deep"])

@@ -92,6 +92,7 @@ _ENGINE_KEYS = {
     "complexity": _COMMON_ENGINE_KEYS
     | frozenset({"warn_cc", "fail_cc", "warn_nesting", "cpp_boundaries"}),
     "sanitize": _COMMON_ENGINE_KEYS,
+    "thread_sanitize": _COMMON_ENGINE_KEYS,
     "dead": _COMMON_ENGINE_KEYS | frozenset({"cpp_unused", "include_generated", "include_vendor"}),
     "dup": _COMMON_ENGINE_KEYS
     | frozenset({"warn_pct", "fail_pct", "min_window", "include_generated", "include_vendor"}),
