@@ -1,4 +1,4 @@
-"""Bounded normalization of ASan, LSan, and UBSan diagnostics."""
+"""Bounded normalization of ASan, LSan, UBSan, and TSan diagnostics."""
 
 from __future__ import annotations
 
@@ -23,9 +23,13 @@ _ERROR_RE = re.compile(
     r"(?P<tool>AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer):\s*"
     r"(?P<summary>\S.*)$"
 )
+_TSAN_WARNING_RE = re.compile(
+    r"^\s*(?:==\d+==)?\s*WARNING:\s*"
+    r"(?P<tool>ThreadSanitizer):\s*(?P<summary>\S.*)$"
+)
 _SUMMARY_RE = re.compile(
     r"^\s*(?:==\d+==)?\s*SUMMARY:\s*"
-    r"(?P<tool>AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer):\s*"
+    r"(?P<tool>AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer):\s*"
     r"(?P<summary>\S.*)$"
 )
 _PATH = r"(?:[A-Za-z]:[\\/][^:\r\n]*|/[^:\r\n]*|(?:\.{1,2}[\\/])?[^:\s]+)"
@@ -40,6 +44,12 @@ _NUMBER_RE = re.compile(r"\b\d+\b")
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 _DEFECT_PREFIXES = (
+    ("data race", "data-race"),
+    ("lock-order-inversion", "lock-order-inversion"),
+    ("thread leak", "thread-leak"),
+    ("mutex destroyed while busy", "mutex-destroyed-while-busy"),
+    ("unlock of an unlocked mutex", "invalid-mutex-unlock"),
+    ("double lock of a mutex", "double-mutex-lock"),
     ("heap-use-after-free", "heap-use-after-free"),
     ("stack-use-after-return", "stack-use-after-return"),
     ("stack-use-after-scope", "stack-use-after-scope"),
@@ -94,6 +104,8 @@ class SanitizerDiagnostic:
 
 def _kind(tool: str, summary: str) -> str:
     lowered = summary.casefold()
+    if tool == "ThreadSanitizer":
+        return "tsan"
     if tool == "LeakSanitizer" or "leak" in lowered:
         return "lsan"
     if tool == "UndefinedBehaviorSanitizer":
@@ -247,7 +259,11 @@ def _locations(
             continue
         frame = _STACK_RE.match(line)
         if frame is None:
-            if _ERROR_RE.match(line) is not None or _SUMMARY_RE.match(line) is not None:
+            if (
+                _ERROR_RE.match(line) is not None
+                or _TSAN_WARNING_RE.match(line) is not None
+                or _SUMMARY_RE.match(line) is not None
+            ):
                 location = _location_from_line(
                     line,
                     project_root,
@@ -351,6 +367,10 @@ def parse_sanitizer_diagnostics(
         error = _ERROR_RE.match(line)
         if error is not None:
             starters.append((index, error.group("tool"), error.group("summary")))
+            continue
+        warning = _TSAN_WARNING_RE.match(line)
+        if warning is not None:
+            starters.append((index, warning.group("tool"), warning.group("summary")))
             continue
         runtime = _RUNTIME_RE.match(line)
         if runtime is not None:

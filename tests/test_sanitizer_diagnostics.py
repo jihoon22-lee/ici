@@ -213,7 +213,34 @@ def test_project_path_with_spaces_is_normalized_and_windows_path_is_external(
     assert "C:\\sdk" not in repr(diagnostic)
 
 
-def test_thread_sanitizer_is_not_misclassified(tmp_path: Path) -> None:
-    output = "WARNING: ThreadSanitizer: data race\nSUMMARY: ThreadSanitizer: data race\n"
+def test_thread_sanitizer_normalizes_data_race_and_project_stack(tmp_path: Path) -> None:
+    writer = _source(tmp_path, "src/writer.cpp")
+    reader = _source(tmp_path, "src/reader.cpp")
+    output = f"""WARNING: ThreadSanitizer: data race (pid=41)
+  Write of size 4 at 0x7b0400000800 by thread T1:
+    #0 write_value {writer}:17:9 (race+0x1234)
+  Previous read of size 4 at 0x7b0400000800 by main thread:
+    #1 read_value {reader}:29:5 (race+0x5678)
+SUMMARY: ThreadSanitizer: data race {writer}:17 in write_value
+"""
+
+    diagnostic = parse_sanitizer_diagnostics(output, tmp_path)[0]
+
+    assert diagnostic.kind == "tsan"
+    assert diagnostic.tool_name == "ThreadSanitizer"
+    assert diagnostic.defect == "data-race"
+    assert diagnostic.rule_id == "ici.sanitize.tsan.data-race"
+    assert diagnostic.primary_location is not None
+    assert diagnostic.primary_location.path == "src/writer.cpp"
+    assert diagnostic.primary_location.start_line == 17
+    assert [(item.path, item.start_line) for item in diagnostic.related_locations] == [
+        ("src/reader.cpp", 29)
+    ]
+    assert diagnostic.frames_observed == 2
+    assert diagnostic.project_frames == 2
+
+
+def test_thread_sanitizer_name_without_report_signature_is_ignored(tmp_path: Path) -> None:
+    output = "ThreadSanitizer: data race checks enabled\n"
 
     assert parse_sanitizer_diagnostics(output, tmp_path) == ()

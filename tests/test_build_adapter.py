@@ -541,6 +541,27 @@ ERROR: AddressSanitizer: heap-buffer-overflow
     assert "heap-buffer-overflow" in result.diagnostic_output
 
 
+def test_parse_ctest_junit_preserves_thread_sanitizer_failure_evidence():
+    xml = """<testsuite tests="1" failures="1">
+  <testcase name="test_race">
+    <failure message="failed"/>
+    <system-err><![CDATA[
+WARNING: ThreadSanitizer: data race
+    #0 writer /workspace/src/race.cpp:8
+SUMMARY: ThreadSanitizer: data race /workspace/src/race.cpp:8 in writer
+]]></system-err>
+  </testcase>
+</testsuite>
+"""
+
+    result = parse_ctest_junit(xml)[0]
+
+    assert result.passed is False
+    assert result.executed is True
+    assert result.message == "ThreadSanitizer diagnostic"
+    assert "data race" in result.diagnostic_output
+
+
 @pytest.mark.parametrize(
     "payload",
     ["x" * 1_000_001, "U0001f40d" * 250_001],

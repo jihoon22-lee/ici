@@ -198,6 +198,10 @@ _SANITIZER_FAILURE_MARKERS = (
             re.IGNORECASE,
         ),
     ),
+    (
+        "ThreadSanitizer",
+        re.compile(r"\b(?:WARNING|SUMMARY):\s*ThreadSanitizer:\s*\S", re.IGNORECASE),
+    ),
 )
 # `make check` echoes each test command before running it. Two shapes occur:
 #
