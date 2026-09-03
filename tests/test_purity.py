@@ -176,6 +176,37 @@ def test_pyz_build_is_hermetic_against_dependency_and_permission_drift():
     assert re.search(r"(?:0o755|0755|755)", published_checks)
 
 
+def test_pyz_build_uses_the_selected_python_for_ordered_shiv_bootstrap():
+    """Keep the shiv ordering shim inside the hermetic helper interpreter."""
+    root = Path(__file__).resolve().parents[1]
+    build_script = (root / "scripts" / "build-pyz.sh").read_text(encoding="utf-8")
+    wrapper = (root / "scripts" / "run_shiv.py").read_text(encoding="utf-8")
+
+    assert 'PYTHONPATH="$TOOLS" "$build_python" scripts/run_shiv.py' in build_script
+    assert 'PYTHONPATH="$TOOLS" "$build_python" -m shiv' not in build_script
+    assert "resources.sort(key=lambda item: item[1])" in wrapper
+    assert "builder.iter_package_files = _sorted_package_files" in wrapper
+    assert 'runpy.run_module("shiv", run_name="__main__")' in wrapper
+
+
+def test_reproducibility_verifier_rejects_duplicate_and_noncanonical_member_order():
+    """Archive verification must pin entry order as well as metadata."""
+    script = (
+        Path(__file__).resolve().parents[1] / "scripts" / "verify-reproducibility.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "names = [member.filename for member in members]" in script
+    assert "if len(names) != len(set(names))" in script
+    assert 'site_members = [name for name in names if name.startswith("site-packages/")]' in script
+    assert (
+        'bootstrap_members = [name for name in names if name.startswith("_bootstrap/")]' in script
+    )
+    assert "expected_order = sorted(site_members) + sorted(bootstrap_members) + [" in script
+    assert '"environment.json",' in script
+    assert '"__main__.py",' in script
+    assert "if names != expected_order" in script
+
+
 def test_every_setup_uv_step_pins_the_build_tool_version():
     for workflow_name in ("ci.yml", "release.yml", "candidate-artifact.yml"):
         workflow = _workflow(workflow_name)
