@@ -522,6 +522,25 @@ def test_parse_ctest_junit_bounds_private_sanitizer_transport():
     assert result.message == "AddressSanitizer diagnostic"
 
 
+def test_parse_ctest_junit_never_accepts_a_passing_case_with_sanitizer_output():
+    xml = """<testsuite tests="1">
+  <testcase name="reported_pass" status="run">
+    <system-err><![CDATA[
+ERROR: AddressSanitizer: heap-buffer-overflow
+    #0 0x1 in fault /workspace/src/fault.cpp:4
+]]></system-err>
+  </testcase>
+</testsuite>
+"""
+
+    result = parse_ctest_junit(xml)[0]
+
+    assert result.passed is False
+    assert result.executed is True
+    assert result.message == "AddressSanitizer diagnostic"
+    assert "heap-buffer-overflow" in result.diagnostic_output
+
+
 @pytest.mark.parametrize(
     "payload",
     ["x" * 1_000_001, "U0001f40d" * 250_001],
