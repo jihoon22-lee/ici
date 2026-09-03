@@ -356,13 +356,13 @@ def test_candidate_quality_zoo_prefers_candidate_manifest_with_stable_fallback()
     assert "must be a regular non-symlink file" in select
     assert 'sha256sum -- "$selected_manifest"' in select
 
-    assert 'MANIFEST_PATH: ${{ steps.select-manifest.outputs.path }}' in execute
-    assert 'MANIFEST_SOURCE: ${{ steps.select-manifest.outputs.source }}' in execute
-    assert 'MANIFEST_SHA256: ${{ steps.select-manifest.outputs.sha256 }}' in execute
+    assert "MANIFEST_PATH: ${{ steps.select-manifest.outputs.path }}" in execute
+    assert "MANIFEST_SOURCE: ${{ steps.select-manifest.outputs.source }}" in execute
+    assert "MANIFEST_SHA256: ${{ steps.select-manifest.outputs.sha256 }}" in execute
     assert "candidate:candidate-manifest.json|stable-fallback:manifest.json" in execute
     assert '--manifest "$MANIFEST_PATH"' in execute
     assert 'sha256sum -- "$MANIFEST_PATH"' in execute
-    assert 'quality-zoo.manifest-selection/v1' in execute
+    assert "quality-zoo.manifest-selection/v1" in execute
 
 
 def test_candidate_quality_zoo_installs_cpp_qt_analysis_tools_without_credentials():
