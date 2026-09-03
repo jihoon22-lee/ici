@@ -36,6 +36,18 @@ preview와 CTest sanitizer evidence를 bounded하게 보존하고, clang-tidy/cl
 database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합니다. 공개된 v0.10.2를
 사용하는 BuildScope B0~B5 최종 검증과 공개 `buildscope-v0.5.0` release audit은 완료됐다.
 남은 ici 범위는 I4-3/I4-4이며, 이전 릴리스 증거는 변경 이력과 실행 계획에 보존합니다.
+현재 unreleased `feat/sanitizer-diagnostic-normalization` local slice는 ASan/LSan/UBSan
+출력을 deterministic `kind`/`defect`, bounded related stack-frame locations와 관측/프로젝트
+frame count를 갖는 engine detail로 정규화하고, 검증 가능한 경우 project-owned primary
+location과 native finding을 제공합니다. 호환 `rule_id`는 유지하면서 상세 sanitizer identity는
+`tool_rule_id`로 제공합니다.
+프로젝트 밖의 frame path는 `[external]`로 redacted되고 sanitizer process evidence와 연결됩니다.
+CTest/QtTest의 raw transcript는 public message와 분리한 private `diagnostic_output`으로만
+최대 65,536 UTF-8 bytes를 보존하며, CTest는 실행 전에 stale JUnit을 제거합니다. timeout,
+process-output truncation, malformed/oversized diagnostic 또는 project location이 없는 진단은
+clean result로 축약하지 않고 `ERROR`/`NOT_RUN`으로 닫습니다. 이는 아직 remote PR/main,
+Quality Zoo/candidate cross-repository evidence나 release를 뜻하지 않으며 공개 버전은 계속
+`0.10.2`입니다.
 이번 bounded language-aware `dup` slice는 위 범위 안에서 lexical token/region/signal 정확도와
 fail-closed resource budget을 보강하고, `dead`에는 좁은 compiler-backed C/C++
 translation-unit unused-function slice를 추가합니다. `dup`와 Python `dead`의 정상 완료
@@ -158,7 +170,7 @@ comment rather than creating a second marker/comment.
     - `complexity`: Python AST와 exact context/tool이 있을 때 C++ clang-tidy
       `readability-function-size`로 함수 경계를 정하고, 경계 내부 CC/중첩은 masked token/brace
       metric으로 계산 + **원본 소스 코드 블록 프리뷰**
-    - `sanitize`: C++ AddressSanitizer/UBSan 메모리 안전성 및 Python 리소스 누수 검증
+    - `sanitize`: C++ ASan/LSan/UBSan 구조화 진단을 포함한 메모리 안전성 및 Python 리소스 누수 검증
     - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출. 공통 bounded UTF-8 source intake를 사용하며 generated/vendor는 기본 제외(`include_generated`/`include_vendor` literal-boolean opt-in)합니다. Python AST reachability/name-reference는 `ESTIMATED`/heuristic이고, 승인된 GCC/Clang(및 그 capability-approved alias)이 선택된 owned C/C++ translation unit에 귀속한 internal-linkage 함수 `-Wunused-function` 진단은 `[engines.dead] cpp_unused = "auto" | "required" | "off"` 정책으로 재생할 수 있습니다. 모든 알려진 configuration에서 같은 위치 범위의 진단이 확인된 경우에만 C/C++ 결과를 `MEASURED`/`EXACT`로 기록하며, intake는 8,192개 unique candidate와 2,048개 owned/analyzed 파일·파일당 8 MiB·aggregate 64 MiB로 제한하고, 제외된 파일은 owned 한도에 포함하지 않습니다.
     - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출. Python/C/C++는 전용 line-preserving lexer로 정규화해 언어별로 격리한다. Python `tokenize`/AST context는 주석·multiline import와 `match`/`case` soft keyword를 처리하고 identifier, 숫자·문자열 계열, 들여쓰기·연산자 category를 보존하며, C/C++ lexer는 comments/directives, C++ backslash-newline splice, punctuator 경계와 Qt semantic anchor를 보존한다. rolling normalized-window seed와 exact token extension, function/class/import/directive region 및 semantic-signal policy로 data-table 오탐은 줄이고 실제 control-flow clone은 유지한다. `sha256/type2-region-v2` fingerprint와 tokenizer/region/signal metadata를 기록하며 generated/moc/vendor는 기본 제외; owned C/C++ header도 검사하고 standalone `.moc`는 `include_generated = true`일 때만 포함하며 같은 bounded source 한도를 사용. 정상 완료 결과는 `ESTIMATED`/heuristic이고 내부 budget 초과는 partial PASS 없이 `ERROR`/`NOT_RUN`으로 닫힌다.
     - `exception`: 예외 삼킴(`except: pass`), Traceback 유실, 소멸자 throw 차단

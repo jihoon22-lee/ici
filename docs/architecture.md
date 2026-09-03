@@ -824,16 +824,26 @@ dead 분석, full duplicate semantics, 남은 I4-3/I4-4 및 I4 전체 checkpoint
 #### CTest/JUnit와 sanitizer evidence 경계
 
 CMake adapter는 지원되는 CTest에서 `--output-junit`을 사용해 shadow 디렉터리에 report를
-만들고, `_read_ctest_junit`가 이를 stable regular-file/no-follow descriptor로 최대
+만들고, 실행 전에 예정된 `ici-ctest.xml`을 제거해 이전 실행의 stale report를 읽지 않는다.
+그 뒤 `_read_ctest_junit`가 새 report만 stable regular-file/no-follow descriptor로 최대
 1,000,000 bytes까지 읽는다. `_compile_db_paths._read_bounded_regular`의 containment,
 크기, before/after identity 검사가 XML 입력에도 적용되며, 파일 누락·변경·malformed·oversized
 입력은 bounded CTest stdout parser로 폴백한다. XML parser는 DTD와 NUL도 거부한다.
 
-JUnit `failure`/`error` 및 `system-out`/`system-err`는 raw stack을 결과로 복사하지 않는다.
-LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker가 있으면 각각 bounded
-`<Sanitizer> diagnostic` 메시지로 분류하고, 그 밖의 실패 text와 test name도 512 characters로
-제한한다. 따라서 unsuppressed sanitizer failure는 테스트 실패로 남지만, stack/prose/path가
-report 경계를 넘지 않는다.
+JUnit `failure`/`error` 및 `system-out`/`system-err`에 LeakSanitizer, AddressSanitizer,
+UndefinedBehaviorSanitizer marker가 있으면 nominal PASS status라도 해당 executed case를
+실패로 보존하고, public `message`에는 bounded 분류만 남긴다. sanitizer engine은 별도의
+private `TestCaseResult.diagnostic_output` transport(UTF-8 최대 65,536 bytes, truncation flag)를
+소비해 deterministic `kind`/`defect`, `ici.sanitize.*` detail rule, related stack-frame
+locations, 관측/프로젝트 frame count 및 sanitizer process evidence link를 갖는 normalized
+detail을 발행하고, 검증 가능한 경우 project-owned primary location과 native finding을
+제공한다. native finding은 기존 `ici.legacy.sanitize.target` 호환 rule을 유지하고 상세
+식별자는 `tool_rule_id`에 둔다. 외부 frame path는 `[external]`로
+redacted되고 raw transcript/prose는 public finding이나 일반 test message에 복사되지 않는다.
+timeout·process-output truncation·정규화 오류·project location이 없는 diagnostic은 clean
+결과로 축약하지 않고 `ERROR`/`NOT_RUN` 또는 위치 오류 target으로 fail-closed한다. 완전한
+project-owned location을 가진 signal 종료만 measured `FAIL`로 보존한다. 그 밖의 실패 text와
+test name도 512 characters로 제한한다.
 
 CTest/QtTest 상태도 같은 `TestCaseResult`로 보존한다. CTest JUnit의 `<skipped>`와
 `status="notrun"`/skip/skipped/disabled/blacklisted, 그리고 stdout의 `Not Run`/`Disabled`/

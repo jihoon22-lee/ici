@@ -24,6 +24,7 @@ from ici.core.models import (
     EngineStatus,
     EvidenceState,
     InspectionTarget,
+    ToolEvidence,
     VerificationSuiteResult,
 )
 from ici.core.runner import ProcessResult
@@ -131,6 +132,18 @@ def _run_sanitizer_cases(
     required: bool,
 ) -> tuple[SanitizeEngine, EngineResult]:
     session = _configured_session(root)
+
+    def run_cases(actual_session: BuildSession, env=None) -> list[TestCaseResult]:
+        actual_session.tool_evidence.append(
+            ToolEvidence(
+                name="ctest",
+                path="/usr/bin/ctest",
+                argv=["/usr/bin/ctest", "--output-on-failure"],
+                returncode=0 if all(case.passed or not case.executed for case in cases) else 1,
+            )
+        )
+        return cases
+
     monkeypatch.setattr(
         "ici.engines.sanitize.adapter_configure",
         lambda _root, _options=None: session,
@@ -138,7 +151,7 @@ def _run_sanitizer_cases(
     monkeypatch.setattr("ici.engines.sanitize.adapter_build", lambda _session: True)
     monkeypatch.setattr(
         "ici.engines.sanitize.adapter_run_tests",
-        lambda _session, env=None: cases,
+        run_cases,
     )
     engine = SanitizeEngine(
         root,

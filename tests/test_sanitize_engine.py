@@ -1,9 +1,13 @@
 """Tests for sanitizer tool failure handling and evidence contracts."""
 
+import os
+import shutil
+
 import pytest
 
-from ici.core.cmake import BACKEND_CMAKE, BuildSession
-from ici.core.models import EngineStatus, EvidenceState
+from ici.core.cmake import BACKEND_CMAKE, BuildSession, TestCaseResult
+from ici.core.findings import findings_for_result
+from ici.core.models import EngineStatus, EvidenceState, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.engines.sanitize import SanitizeEngine
 
@@ -233,7 +237,8 @@ def test_python_resource_warning_without_tests_is_not_pass(tmp_path):
 def test_cpp_sanitizer_diagnostic_with_zero_exit_is_measured_failure(tmp_path, monkeypatch):
     src = tmp_path / "src"
     src.mkdir()
-    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    source = src / "main.cpp"
+    source.write_text("int main() { return 0; }\n", encoding="utf-8")
     tests = tmp_path / "tests"
     tests.mkdir()
     (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
@@ -244,7 +249,12 @@ def test_cpp_sanitizer_diagnostic_with_zero_exit_is_measured_failure(tmp_path, m
     results = iter(
         [
             ProcessResult(0, "", "", 0.01),
-            ProcessResult(0, "", "/tmp/test.cpp:8:5: runtime error: signed integer overflow", 0.01),
+            ProcessResult(
+                0,
+                "",
+                f"{source}:1:5: runtime error: signed integer overflow",
+                0.01,
+            ),
         ]
     )
     monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
@@ -256,16 +266,195 @@ def test_cpp_sanitizer_diagnostic_with_zero_exit_is_measured_failure(tmp_path, m
     assert any(target.target_name == "ASan/UBSan Error" for target in result.targets)
 
 
+def test_cpp_sanitizer_publishes_kind_location_stack_and_process_evidence(tmp_path, monkeypatch):
+    src = tmp_path / "src"
+    src.mkdir()
+    source = src / "worker.cpp"
+    source.write_text("int one;\nint two;\nint worker() { return one; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    test_source = tests / "test_worker.cpp"
+    test_source.write_text("int helper;\nint main() { return helper; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    diagnostic = f"""==7==ERROR: AddressSanitizer: heap-use-after-free on address 0x1234
+    #0 0x1 in runtime /usr/lib/asan.cpp:1
+    #1 0x2 in worker {source}:3:5
+    #2 0x3 in main {test_source}:2
+SUMMARY: AddressSanitizer: heap-use-after-free {source}:3 in worker
+"""
+    results = iter(
+        [
+            ProcessResult(0, "", "", 0.01),
+            ProcessResult(-6, "", diagnostic, 0.01),
+        ]
+    )
+    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.targets[0].file_path == "src/worker.cpp"
+    assert result.targets[0].start_line == 3
+    assert result.targets[0].start_column == 5
+    details = result.extra["sanitizer_diagnostics"]
+    assert details == [
+        {
+            "kind": "asan",
+            "tool_name": "AddressSanitizer",
+            "defect": "heap-use-after-free",
+            "rule_id": "ici.sanitize.asan.heap-use-after-free",
+            "message": "AddressSanitizer detected heap use after free",
+            "test_name": "test_worker.cpp",
+            "process_evidence_index": 1,
+            "frames_observed": 3,
+            "project_frames": 2,
+            "primary_location": {
+                "path": "src/worker.cpp",
+                "start_line": 3,
+                "start_column": 5,
+            },
+            "related_locations": [
+                {
+                    "path": "[external]",
+                    "start_line": 1,
+                    "start_column": None,
+                    "label": "frame #0: runtime",
+                },
+                {
+                    "path": "tests/test_worker.cpp",
+                    "start_line": 2,
+                    "start_column": None,
+                    "label": "frame #2: main",
+                },
+            ],
+        }
+    ]
+    assert result.tool_evidence[1].name == "sanitizer execution"
+    assert result.findings[0].tool_rule_id == "asan.heap-use-after-free"
+    assert result.findings[0].tool_name == "AddressSanitizer"
+    assert any(
+        location.path == "tests/test_worker.cpp"
+        for location in result.findings[0].related_locations
+    )
+    normalized = findings_for_result(result, project_root=tmp_path)
+    assert len(normalized) == 1
+    assert normalized[0].confidence.value == "exact"
+
+
+def test_adapter_sanitizer_trace_is_normalized_with_ctest_process_evidence(tmp_path, monkeypatch):
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    src = tmp_path / "src"
+    src.mkdir()
+    source = src / "fault.cpp"
+    source.write_text("int one;\nint fault() { return one; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_fault.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    session = BuildSession(
+        root=tmp_path,
+        shadow=tmp_path / "build/ici-cmake-asan",
+        backend=BACKEND_CMAKE,
+        descriptor="CMakeLists.txt",
+        reason="root CMakeLists.txt",
+        configured=True,
+    )
+    output = f"""{source}:2:5: runtime error: signed integer overflow: 1 + 2
+    #0 0x1 in fault {source}:2:5
+"""
+
+    def fake_tests(actual_session, env=None):
+        actual_session.tool_evidence.append(
+            ToolEvidence(name="ctest", path="/usr/bin/ctest", argv=["ctest"], returncode=1)
+        )
+        return [
+            TestCaseResult(
+                "test_fault",
+                False,
+                "UndefinedBehaviorSanitizer diagnostic",
+                diagnostic_output=output,
+            )
+        ]
+
+    monkeypatch.setattr("ici.engines.sanitize.adapter_configure", lambda *_args: session)
+    monkeypatch.setattr("ici.engines.sanitize.adapter_build", lambda _session: True)
+    monkeypatch.setattr("ici.engines.sanitize.adapter_run_tests", fake_tests)
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status == EngineStatus.FAIL
+    assert result.extra["sanitizer_diagnostics"][0]["kind"] == "ubsan"
+    assert result.extra["sanitizer_diagnostics"][0]["process_evidence_index"] == 0
+    assert result.targets[0].file_path == "src/fault.cpp"
+    assert result.targets[0].start_line == 2
+    assert result.findings[0].tool_rule_id == "ubsan.signed-integer-overflow"
+
+
+def test_adapter_sanitizer_rejects_truncated_private_diagnostic_transport(tmp_path, monkeypatch):
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    src = tmp_path / "src"
+    src.mkdir()
+    source = src / "fault.cpp"
+    source.write_text("int fault() { return 1; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_fault.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    session = BuildSession(
+        root=tmp_path,
+        shadow=tmp_path / "build/ici-cmake-asan",
+        backend=BACKEND_CMAKE,
+        descriptor="CMakeLists.txt",
+        reason="root CMakeLists.txt",
+        configured=True,
+    )
+
+    def fake_tests(actual_session, env=None):
+        actual_session.tool_evidence.append(
+            ToolEvidence(name="ctest", path="/usr/bin/ctest", argv=["ctest"], returncode=1)
+        )
+        return [
+            TestCaseResult(
+                "test_fault",
+                False,
+                "AddressSanitizer diagnostic",
+                diagnostic_output=(
+                    "ERROR: AddressSanitizer: heap-use-after-free\n"
+                    f"    #0 0x1 in fault {source}:1:5"
+                ),
+                diagnostic_output_truncated=True,
+            )
+        ]
+
+    monkeypatch.setattr("ici.engines.sanitize.adapter_configure", lambda *_args: session)
+    monkeypatch.setattr("ici.engines.sanitize.adapter_build", lambda _session: True)
+    monkeypatch.setattr("ici.engines.sanitize.adapter_run_tests", fake_tests)
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert result.extra["sanitizer_diagnostics"] == []
+    assert "truncated" in result.summary
+
+
 @pytest.mark.parametrize(
-    ("diagnostic", "expected"),
+    ("diagnostic", "expected_status"),
     [
-        ("the test mentions AddressSanitizer but has no failure", False),
-        ("ERROR: LeakSanitizer: detected memory leaks\nSUMMARY: AddressSanitizer", True),
-        ("/tmp/test.cpp:8:5: runtime error: signed integer overflow", True),
+        ("the test mentions AddressSanitizer but has no failure", EngineStatus.PASS),
+        (
+            "ERROR: LeakSanitizer: detected memory leaks\nSUMMARY: AddressSanitizer",
+            EngineStatus.ERROR,
+        ),
+        (
+            "/tmp/test.cpp:8:5: runtime error: signed integer overflow",
+            EngineStatus.ERROR,
+        ),
     ],
 )
 def test_sanitizer_diagnostic_requires_a_real_report_signature(
-    diagnostic, expected, tmp_path, monkeypatch
+    diagnostic, expected_status, tmp_path, monkeypatch
 ):
     src = tmp_path / "src"
     src.mkdir()
@@ -287,7 +476,6 @@ def test_sanitizer_diagnostic_requires_a_real_report_signature(
 
     result = SanitizeEngine(tmp_path).run()
 
-    expected_status = EngineStatus.FAIL if expected else EngineStatus.PASS
     assert result.status == expected_status
 
 
@@ -332,7 +520,7 @@ def test_cpp_sanitizer_passes_configured_include_flags_to_compile(tmp_path, monk
     assert f"-I{include}" in seen["command"]
 
 
-def test_cpp_sanitizer_nonzero_diagnostic_is_measured_failure(tmp_path, monkeypatch):
+def test_cpp_sanitizer_nonzero_unlocated_diagnostic_is_error(tmp_path, monkeypatch):
     src = tmp_path / "src"
     src.mkdir()
     (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
@@ -353,8 +541,8 @@ def test_cpp_sanitizer_nonzero_diagnostic_is_measured_failure(tmp_path, monkeypa
 
     result = SanitizeEngine(tmp_path).run()
 
-    assert result.status == EngineStatus.FAIL
-    assert result.evidence == EvidenceState.MEASURED
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
 
 
 @pytest.mark.parametrize(
@@ -387,7 +575,8 @@ def test_cpp_sanitizer_execution_timeout_or_truncation_is_error(tmp_path, monkey
 def test_cpp_sanitizer_signal_with_complete_diagnostic_is_measured_failure(tmp_path, monkeypatch):
     src = tmp_path / "src"
     src.mkdir()
-    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    source = src / "main.cpp"
+    source.write_text("int main() { return 0; }\n", encoding="utf-8")
     tests = tmp_path / "tests"
     tests.mkdir()
     (tests / "test_cpp.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
@@ -398,7 +587,12 @@ def test_cpp_sanitizer_signal_with_complete_diagnostic_is_measured_failure(tmp_p
     results = iter(
         [
             ProcessResult(0, "", "", 0.01),
-            ProcessResult(-6, "", "ERROR: AddressSanitizer: heap-use-after-free", 0.01),
+            ProcessResult(
+                -6,
+                "",
+                f"ERROR: AddressSanitizer: heap-use-after-free\n    #0 0x1 in main {source}:1:5",
+                0.01,
+            ),
         ]
     )
     monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
@@ -663,3 +857,59 @@ def test_adapter_build_failure_is_not_reported_as_inapplicable(tmp_path, monkeyp
     assert result.status is EngineStatus.ERROR
     assert result.evidence is EvidenceState.NOT_RUN
     assert any("-static" in t.message for t in result.targets)
+
+
+@pytest.mark.parametrize(
+    ("implementation", "test_body", "expected_kind", "expected_defect"),
+    [
+        (
+            "int fault() { int* value = new int(7); delete value; return *value; }\n",
+            "int fault(); int main() { return fault() == 7 ? 0 : 1; }\n",
+            "asan",
+            "heap-use-after-free",
+        ),
+        (
+            "int overflow(int lhs, int rhs) { return lhs + rhs; }\n",
+            "#include <climits>\nint overflow(int, int);\n"
+            "int main() { return overflow(INT_MAX, 1); }\n",
+            "ubsan",
+            "signed-integer-overflow",
+        ),
+        (
+            "int* leak() { return new int(7); }\n",
+            "int* leak(); int main() { (void)leak(); return 0; }\n",
+            "lsan",
+            "memory-leak",
+        ),
+    ],
+    ids=["asan-use-after-free", "ubsan-overflow", "lsan-leak"],
+)
+def test_real_sanitizers_publish_project_owned_diagnostics(
+    tmp_path,
+    implementation,
+    test_body,
+    expected_kind,
+    expected_defect,
+):
+    if shutil.which("g++") is None:
+        message = "g++ is unavailable for the real sanitizer integration test"
+        if os.environ.get("ICI_REQUIRE_BUILD_ADAPTERS") == "1":
+            pytest.fail(message)
+        pytest.skip(message)
+    src = tmp_path / "src"
+    tests = tmp_path / "tests"
+    src.mkdir()
+    tests.mkdir()
+    (src / "fault.cpp").write_text(implementation, encoding="utf-8")
+    (tests / "test_fault.cpp").write_text(test_body, encoding="utf-8")
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status is EngineStatus.FAIL, result.summary
+    diagnostics = result.extra["sanitizer_diagnostics"]
+    assert len(diagnostics) == 1
+    assert diagnostics[0]["kind"] == expected_kind
+    assert diagnostics[0]["defect"] == expected_defect
+    assert diagnostics[0]["primary_location"]["path"] == "src/fault.cpp"
+    evidence_index = diagnostics[0]["process_evidence_index"]
+    assert result.tool_evidence[evidence_index].name == "sanitizer execution"

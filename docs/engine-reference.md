@@ -475,12 +475,21 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   `project.cpp_external_build_dirs`와 `-std=c++17` 고정이 적용되지 않고, `Q_OBJECT` 클래스를
   단위 테스트할 수 있습니다. 두 경로의 테스트 카운트 단위가 다르다는 점을 포함해 자세한 것은
   [`user-guide.md` §2.5](user-guide.md)를 봅니다.
-- CMake의 CTest JUnit 경로는 `--output-junit`으로 생성된 shadow 내 report만 읽으며, stable
-  regular file/no-follow descriptor로 최대 1,000,000 bytes를 제한합니다. 파일 변경·symlink·비정규
-  파일·malformed/oversized XML은 bounded CTest stdout parser로 폴백합니다. JUnit failure/error와
-  output에서 LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker를 찾으면 bounded
-  분류 메시지만 남기고 raw stack과 source path는 버립니다. test name과 일반 failure message도
-  512 characters로 제한합니다.
+- CMake의 CTest JUnit 경로는 실행 전에 예정된 shadow report를 제거하고, 그 실행이 만든
+  `--output-junit` report만 stable regular file/no-follow descriptor로 최대 1,000,000 bytes까지
+  읽습니다. 파일 변경·symlink·비정규 파일·malformed/oversized XML은 bounded CTest stdout
+  parser로 폴백합니다. JUnit failure/error와 `system-out`/`system-err`에서
+  LeakSanitizer, AddressSanitizer, UndefinedBehaviorSanitizer marker를 찾으면 nominal PASS라도
+  executed failure로 바꾸고, public message에는 bounded 분류만 남깁니다. raw transcript는
+  private `TestCaseResult.diagnostic_output`(UTF-8 최대 65,536 bytes)으로 sanitizer engine에
+  전달되며, engine은 `kind`/`defect`, `ici.sanitize.*` detail rule, related frame locations,
+  frame counts와 process evidence link를 가진 normalized detail을 발행하고, 검증 가능한 경우
+  project-owned primary location과 native finding을 제공합니다. native finding은 호환 `rule_id`인
+  `ici.legacy.sanitize.target`을 유지하고 상세 sanitizer identity는 `tool_rule_id`에 둡니다.
+  외부 path는 related location에서 `[external]`로 redacted됩니다.
+  timeout·process-output truncation·정규화 오류·unlocated diagnostic은 clean result가 아닌
+  `ERROR`/`NOT_RUN`으로 fail-closed하고, complete located signal failure만 measured `FAIL`로
+  보존합니다. test name과 일반 failure message도 512 characters로 제한합니다.
 - **테스트 실행 상태 계약**: adapter가 반환하는 `TestCaseResult`는
   `name`, `passed`, `message`, `executed` 네 필드를 가지며, 마지막 `executed`는 기본값이
   `true`인 하위 호환 필드입니다. 따라서 기존의 세 인자 positional 생성은 그대로 동작하고,
@@ -666,9 +675,23 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 - **코드 스니펫**: 고복잡도 함수의 실제 원본 소스 코드를 추출하여 HTML 리포트에 즉시 표시
 
 ### 2.6 🛡️ `sanitize` (메모리 안전성 및 리소스 누수 진단)
-- **C++**: AddressSanitizer(`-fsanitize=address`) 및 UndefinedBehaviorSanitizer(`-fsanitize=undefined`)를 임시 프로젝트 외부 산출물로 빌드·실행한다. 컴파일/실행 도구 오류는 `ERROR`이며, timeout·출력 절단도 `ERROR`/`NOT_RUN`이다. 음수 signal 종료라도 완전한 ASan/UBSan 진단이 있으면 `FAIL`/`MEASURED`로 보존하고, 진단 없는 signal 종료는 `ERROR`로 처리한다. CTest JUnit에서 올라온 sanitizer 실패도 동일한 test failure로 유지하되, `LeakSanitizer diagnostic`/`AddressSanitizer diagnostic`/`UndefinedBehaviorSanitizer diagnostic`이라는 bounded 분류만 결과에 남긴다.
+- **C++**: AddressSanitizer(`-fsanitize=address`) 및 UndefinedBehaviorSanitizer(`-fsanitize=undefined`)를
+  임시 프로젝트 외부 산출물로 빌드·실행하고, 실행 환경에 leak 검출을 활성화해 LSan 결과도
+  수집한다. ASan/LSan/UBSan의 bounded `ERROR`/`SUMMARY` 또는 UBSan `runtime error` 서명만
+  normalized diagnostic으로 인정하며, 각 결과는 deterministic `kind`/`defect`,
+  `ici.sanitize.*` detail rule, related stack-frame locations, 관측/프로젝트 frame count와
+  sanitizer process evidence link를 갖고, 검증 가능한 경우 project-owned primary location과
+  native finding을 제공한다. native
+  finding은 호환 `rule_id`인 `ici.legacy.sanitize.target`을 유지하고 상세 sanitizer identity는
+  `tool_rule_id`에 둔다. 외부 frame path는 `[external]`로
+  redacted된다. CTest/QtTest adapter의 raw transcript는 public message와 분리한 private
+  transport로 최대 65,536 UTF-8 bytes만 전달한다. 컴파일/실행 도구 오류, timeout·출력 절단,
+  malformed/oversized transcript, 정규화 오류 또는 project location이 없는 diagnostic은
+  `ERROR`/`NOT_RUN`으로 fail-closed한다. 완전한 project-owned location을 가진 signal 종료의
+  failure만 `FAIL`/`MEASURED`로 보존하며, nominal PASS case에 붙은 sanitizer marker도
+  executed failure로 승격한다.
 - **Python**: Task 5가 선택한 동일 인터프리터로 `-W error::ResourceWarning -m pytest -o addopts= tests`를 실행해 리소스 경고를 측정한다. `test_*.py`와 `*_test.py`를 모두 대상으로 하며, 0개 실행 테스트(전부 skipped/deselected)·pytest 부재·timeout·출력 절단·실행 실패·잘못된 성공은 통과로 간주하지 않는다. 기존 `PYTHONPATH`와 WSL 임시 디렉터리 정책도 보존한다.
-- **진단 판정**: 출력에 sanitizer 이름만 언급된 경우는 결함으로 판정하지 않는다. 위치가 있는 UBSan `runtime error` 또는 ASan/LSan/UBSan의 `ERROR`/`SUMMARY` 서명만 실제 진단으로 인정한다.
+- **진단 판정**: 출력에 sanitizer 이름만 언급된 경우는 결함으로 판정하지 않는다. 위치가 있는 UBSan `runtime error` 또는 ASan/LSan/UBSan의 `ERROR`/`SUMMARY` 서명만 실제 진단으로 인정하며, project-owned 위치가 검증되지 않은 진단은 clean 결과가 아닌 위치 오류로 남긴다. TSan은 현재 이 매핑 범위에 포함하지 않는다.
 - **적용 범위**: Python/C++ hybrid에서 한 언어의 scope가 건너뛰면 결과는 `WARN`/`ESTIMATED`이며, 대상 자체가 없으면 명시적 `SKIP`이다. C++ 테스트 파일은 project 경계 안의 실제 파일만 선택하며 외부 symlink는 제외한다. ResourceWarning의 Windows drive/공백 경로도 원본 파일과 라인 위치를 보존한다. 실행 시 기존 `ASAN_OPTIONS`/`UBSAN_OPTIONS`를 보존하면서 leak 검출과 UBSan 중단 옵션을 추가한다.
 - **sanitizer 테스트 누락 정책**: CTest/QtTest가 build된 sanitizer scope를 수집했지만
   실행하지 않은 case를 `executed = false`로 보고하면, required 정책에서는 모든 case가
