@@ -43,6 +43,7 @@ def test_verify_orchestrator_preserves_required_policy_for_line_complexity_and_d
                 "compile_db",
                 "test",
                 "type",
+                "python_compat",
                 "complexity",
                 "sanitize",
                 "thread_sanitize",

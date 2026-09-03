@@ -18,6 +18,7 @@ ENGINE_NAMES = (
     "compile_db",
     "test",
     "type",
+    "python_compat",
     "complexity",
     "sanitize",
     "thread_sanitize",

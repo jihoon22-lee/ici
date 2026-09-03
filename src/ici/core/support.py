@@ -156,6 +156,24 @@ _DECLARATIONS = (
         ),
     ),
     SupportDeclaration(
+        "python_compat",
+        SupportLanguage.PYTHON,
+        AnalysisMode.TOOL_BACKED,
+        FindingConfidence.HIGH,
+        required_tools=("python3",),
+        limitations=(
+            "Configured interpreters compile and import selected project modules in contained subprocesses; this is not a sandbox.",
+            "Static standard-library API compatibility uses a bounded documented inventory.",
+        ),
+    ),
+    SupportDeclaration(
+        "python_compat",
+        SupportLanguage.CPP,
+        AnalysisMode.UNSUPPORTED,
+        FindingConfidence.LOW,
+        limitations=("Python runtime compatibility does not apply to C++ source.",),
+    ),
+    SupportDeclaration(
         "cognitive",
         SupportLanguage.PYTHON,
         AnalysisMode.HEURISTIC,

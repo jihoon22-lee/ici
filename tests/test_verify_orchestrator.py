@@ -83,6 +83,7 @@ def _only_lint_enabled():
                 "compile_db",
                 "test",
                 "type",
+                "python_compat",
                 "complexity",
                 "sanitize",
                 "thread_sanitize",

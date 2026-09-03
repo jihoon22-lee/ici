@@ -35,6 +35,7 @@ from ici.engines.exception import (
 from ici.engines.line import LineCountEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.lint import LintEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.publish import ReportInput, ReportPublisher, load_suite_from_json
+from ici.engines.python_compat import PythonCompatibilityEngine  # noqa: F401
 from ici.engines.resource import ResourceEngine  # noqa: F401
 from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.security import SecurityEngine  # noqa: F401
@@ -243,6 +244,12 @@ def cmd_build(ctx: typer.Context):
 # boilerplate free of per-engine duplication; see dogfood dup gate). ---
 
 _ENGINE_COMMANDS = [
+    (
+        "python-compat",
+        "PythonCompatibilityEngine",
+        "python_compat_report.json",
+        "Checks configured Python runtimes, syntax floors, compileall, and import smoke.",
+    ),
     (
         "resource",
         "ResourceEngine",

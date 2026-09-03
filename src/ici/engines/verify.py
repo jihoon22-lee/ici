@@ -55,6 +55,7 @@ from ici.engines.exception import ExceptionSafetyEngine  # noqa: F401 - dynamic 
 from ici.engines.line import LineCountEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.lint import LintEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.publish import ReportPublisher
+from ici.engines.python_compat import PythonCompatibilityEngine  # noqa: F401
 from ici.engines.resource import ResourceEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.security import SecurityEngine  # noqa: F401 - dynamic descriptor factory

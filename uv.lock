@@ -261,6 +261,7 @@ wheels = [
 name = "ici"
 source = { editable = "." }
 dependencies = [
+    { name = "packaging" },
     { name = "rich" },
     { name = "tomli" },
     { name = "tomli-w" },
@@ -282,6 +283,7 @@ package = [
 
 [package.metadata]
 requires-dist = [
+    { name = "packaging", specifier = ">=24.0" },
     { name = "rich", specifier = ">=13.7" },
     { name = "tomli", specifier = ">=2.0" },
     { name = "tomli-w", specifier = ">=1.0" },

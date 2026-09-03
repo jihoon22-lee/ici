@@ -71,6 +71,18 @@ DEFAULT_CONFIG: dict[str, Any] = {
             # ici: explicit opt-in overlay for additional untyped-body hygiene.
             "mypy_profile": "project",
         },
+        "python_compat": {
+            "enabled": True,
+            "mode": "pass_warn_fail",
+            "required": False,
+            # Empty means the interpreter currently running ici, treated as required.
+            "interpreters": [],
+            "required_interpreters": [],
+            # Importing executes module top-level code, so smoke targets are opt-in.
+            "imports": [],
+            # Empty means infer the earliest supported minor from requires-python.
+            "target_version": "",
+        },
         "complexity": {
             "enabled": True,
             "mode": "pass_warn_fail",
