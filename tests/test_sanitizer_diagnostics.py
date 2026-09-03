@@ -136,6 +136,25 @@ def test_outside_missing_and_out_of_range_locations_are_not_published(tmp_path: 
     assert diagnostic.frames_observed == 3
 
 
+def test_project_symlink_location_is_not_published(tmp_path: Path) -> None:
+    outside = _source(tmp_path.parent, f"{tmp_path.name}-outside-link.cpp", lines=10)
+    linked = tmp_path / "src/linked.cpp"
+    linked.parent.mkdir(parents=True)
+    try:
+        linked.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink creation is not available")
+    output = f"""ERROR: AddressSanitizer: heap-use-after-free
+    #0 0x1 in linked {linked}:4
+"""
+
+    diagnostic = parse_sanitizer_diagnostics(output, tmp_path)[0]
+
+    assert diagnostic.primary_location is None
+    assert diagnostic.related_locations == ()
+    assert diagnostic.project_frames == 0
+
+
 @pytest.mark.parametrize(
     "output",
     [

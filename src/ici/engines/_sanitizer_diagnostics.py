@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import re
-import stat
 from dataclasses import dataclass
 from pathlib import Path
 
+from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
 from ici.core.findings import canonical_project_path
 from ici.core.models import SourceLocation
 
@@ -129,22 +129,23 @@ def _safe_source_location(
         return None
     try:
         relative = canonical_project_path(raw_path, project_root)
-        candidate = (project_root / relative).resolve(strict=True)
+        candidate = project_root / relative
         candidate.relative_to(project_root)
-        details = candidate.stat()
-        if not stat.S_ISREG(details.st_mode) or details.st_size > MAX_SANITIZER_SOURCE_BYTES:
-            return None
     except (OSError, RuntimeError, ValueError):
         return None
 
     if candidate not in source_cache:
         try:
-            payload = candidate.read_bytes()
-            if len(payload) > MAX_SANITIZER_SOURCE_BYTES or b"\x00" in payload:
+            payload = _read_bounded_regular(
+                candidate,
+                MAX_SANITIZER_SOURCE_BYTES,
+                containment_root=project_root,
+            )
+            if b"\x00" in payload:
                 source_cache[candidate] = None
             else:
                 source_cache[candidate] = tuple(payload.decode("utf-8").splitlines())
-        except (OSError, UnicodeError):
+        except (FileNotFoundError, _ReadError, UnicodeError):
             source_cache[candidate] = None
     lines = source_cache[candidate]
     if lines is None or line > len(lines):
