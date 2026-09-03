@@ -773,6 +773,39 @@ def test_run_tests_rejects_incomplete_process_evidence(tmp_path, monkeypatch, pr
     assert any("incomplete" in error for error in session.errors)
 
 
+def test_run_tests_qmake_preserves_bounded_sanitizer_transport(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-qmake-asan"
+    shadow.mkdir(parents=True)
+    session = BuildSession(
+        root=tmp_path,
+        shadow=shadow,
+        backend=BACKEND_QMAKE,
+        descriptor="app.pro",
+        configured=True,
+    )
+    output = """./test_fault -xunitxml
+ERROR: AddressSanitizer: heap-use-after-free
+    #0 0x1 in fault /workspace/src/fault.cpp:4
+make: *** [Makefile:10: check] Error 1
+"""
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(
+        cmake_mod,
+        "run_process",
+        lambda *_args, **_kwargs: ProcessResult(2, output, "", 0.01),
+    )
+
+    results = run_tests(session)
+
+    assert len(results) == 1
+    assert results[0].name == "test_fault"
+    assert results[0].passed is False
+    assert results[0].message == "make check failed"
+    assert "heap-use-after-free" in results[0].diagnostic_output
+    assert results[0].diagnostic_output_truncated is False
+    assert session.tool_evidence[-1].name == "make check"
+
+
 def test_run_tests_rejects_oversized_junit_and_uses_bounded_stdout_fallback(tmp_path, monkeypatch):
     (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
     monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
