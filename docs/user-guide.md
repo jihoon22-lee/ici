@@ -97,10 +97,12 @@ autogen 및 moc 산출물과 vendor/dependency 디렉터리는 소유한 제품 
 ```toml
 [engines.dead]
 cpp_unused = "auto"  # auto | required | off (C++ compiler-backed unused-function probe)
+cpp_linker = "off"   # auto | required | off (Linux GNU ELF CMake section-GC; opt-in)
 include_generated = false
 include_vendor = false
 
 [engines.dup]
+python_semantic = "auto"  # auto | required | off (bounded Python 3.10 AST-shape clones)
 include_generated = false
 include_vendor = false
 ```
@@ -126,15 +128,23 @@ fingerprint 계약은 [엔진 레퍼런스 §2.7](engine-reference.md#27--dead-�
 `dup`는 Python과 C/C++를 별도 line-preserving lexer로 정규화합니다. Python `tokenize`와 AST
 context는 주석·multiline import-first statement를 제외하고 `match`/`case` soft keyword와
 import/API anchor를 보존하며 identifier, 숫자·문자열 계열, 들여쓰기·연산자 category를
-구분합니다. C/C++ lexer는 comments/directives를 제거하고 C++ backslash-newline splice의
-physical line을 보존하며 punctuator, literal, UDL과 Qt anchor를 구분합니다. normalized-window
-seed의 exact token verification과 function/class/import/directive region, semantic-signal policy를
-통해 값만 다른 data table은 억제하고 실제 control-flow clone은 유지합니다. 이 동작은
-`sha256/type2-region-v2`와 tokenizer/region/signal metadata를 기록하지만 여전히
-`ESTIMATED`/heuristic입니다. 내부 tokenizer·matching budget 초과는 partial PASS 없이
-`ERROR`/`NOT_RUN`으로 fail-closed하며 해당 budget은 사용자 설정 키가 아닙니다. Python
-tokenizer가 malformed marker를 안정적으로 만들더라도 AST region을 확정할 수 없으면 엔진은
-그 partial lexical 결과를 정상 분석으로 채택하지 않습니다.
+구분합니다. 기본 `python_semantic = "auto"` 경로는 여기에 Python 3.10 AST-shape 분석을
+추가해 nested named scope를 품은 parent가 아닌 leaf function/method를 비교합니다. local
+binding은 alpha-renaming하고 AST 위치/물리적 줄 배치는 무시하지만 control flow, operator,
+literal 종류·값, source-spelled imported name·attribute anchor는 보존하며, exact canonical
+shape가 같은 경우만 semantic group을 만듭니다. C/C++ lexer는 comments/directives를 제거하고
+C++ backslash-newline splice의 physical line을 보존하며 punctuator, literal, UDL과 Qt anchor를
+구분합니다. normalized-window seed의 exact token verification과 function/class/import/directive
+region, semantic-signal policy를 통해 값만 다른 data table은 억제하고 실제 control-flow clone은
+유지합니다. lexical fingerprint는 `sha256/type2-region-v2`, AST-shape fingerprint는
+`sha256/semantic-shape-v1`로 기록하지만 두 경로 모두 compiler/linker 실측이 아니므로 결과는
+`ESTIMATED`/heuristic이며 behavioral equivalence를 뜻하지 않습니다. 동일 occurrence가 이미
+lexical group에 있으면 AST-shape group은 중복 보고하지 않습니다. 내부 tokenizer/matching와
+lexical tokenizer/matching budget 초과는 엔진 전체를 `ERROR`/`NOT_RUN`으로 닫습니다.
+AST-shape budget 초과는 semantic partial을 버리고 `auto`에서는 lexical 결과만 유지하며,
+`required`에서는 `ERROR`/`NOT_RUN`으로 닫습니다. 해당 budget은 사용자 설정 키가 아닙니다.
+Python tokenizer가 malformed marker를 안정적으로 만들더라도 AST
+region을 확정할 수 없으면 엔진은 그 partial lexical 결과를 정상 분석으로 채택하지 않습니다.
 
 모든 파일을 병합한 뒤 엔진 이름, 설정 키, 자료형, 평가 모드와 임계값 관계를 검사합니다.
 알 수 없는 키, 잘못된 TOML, 잘못된 임계값은 조용히 기본값으로 대체되지 않고 설정 오류로
@@ -517,17 +527,54 @@ finding은 `FindingConfidence.EXACT`, `tool_rule_id = "-Wunused-function"`, comp
 matrix와 report consumer는 이 언어별 metadata를 사용해 C++ tool-backed 상태를 Python 휴리스틱과
 혼동하지 않습니다.
 
-이 구현의 exact 주장은 compiler가 확인한 internal-linkage 함수의 TU-local
-`-Wunused-function`에 한정됩니다. 여러 object/library/plugin과 dynamic lookup까지 판단하는
-whole-program/linker-backed dead reachability 증거는 아직 지원 범위가 아니며 후속 구현으로
-남아 있습니다. 최종 viewer standalone `dead` evidence는 `PASS`/`MEASURED`이며, 정확히 8개 source,
+이 구현의 compiler exact 주장은 internal-linkage 함수의 TU-local `-Wunused-function`과 아래
+target-local GNU ELF section-GC 계약으로 한정됩니다. 여러 object/library/plugin과 dynamic
+lookup까지 판단하는 whole-program/dynamic dead reachability는 아직 지원 범위가 아니며, 후자의
+target-local evidence와 구분됩니다. 최종 viewer standalone `dead` evidence는 `PASS`/`MEASURED`이며, 정확히 8개 source,
 8개 configuration, 8개 target, 8개 `tool_evidence` 행, 0개 unused function, `cache_key = null`을
 기록했습니다. 이 slice는 PR #137 required CI, 단일 sticky comment의 ici/viewer
 링크, PR·main artifact/Pages byte match, exact-main CI와 Pages 배포까지 수락됐습니다.
 상세 provenance와 해시는
 [`compiler-backed C/C++ unused-function workthrough`](workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
-기록합니다. whole-program/linker dead reachability는 여전히 지원 범위가 아니며,
-버전은 `0.10.2`로 유지하고 새 release는 만들지 않습니다.
+기록합니다. target-local GNU ELF section-GC 증거는 아래 정책으로 지원하지만, whole-program/
+dynamic dead reachability와 full C++ semantic/behavioral duplicate equivalence는 여전히
+지원 범위가 아닙니다. 버전은 `0.10.2`로 유지하고 이 feature PR로 새 release를 만들지 않습니다.
+
+##### C++ GNU ELF target-local discarded-function 정책
+
+`[engines.dead].cpp_linker = "auto" | "required" | "off"`의 기본값은 `off`이며 `cpp_unused`와
+독립된 opt-in 경로입니다. 지원 범위는 Linux root CMake project의 별도 Release shadow,
+`Unix Makefiles`, direct-object ELF executable link target입니다. `cmake`/`readelf`/`addr2line`과
+capability-approved GCC driver가 GNU `ld`를 사용한다는 증거, function-section/section-GC
+flags 및 CMake `link.txt`를 모두 확인합니다. GNU `ld`가 버린 section 중 direct project object의
+uniquely mapped `LOCAL`/`HIDDEN`/`INTERNAL` function만 source 위치가 있는
+`ici.dead.gnu-elf-discarded-function` `EXACT` target-local finding으로 기록합니다.
+
+지원 context/tool/target이 없으면 `auto`는 `SKIP`/`NOT_RUN`, `required`는 `ERROR`/`NOT_RUN`으로
+닫습니다. 준비된 context에서 malformed command, relink/ELF/binutils/source identity 오류,
+timeout/truncation 또는 link/object/section/tool/time 한도 초과가 발생하면 partial finding 없이
+atomic fail-closed합니다. archives/shared/LTO/PIE/COMDAT/dynamic/export/whole-archive/linker
+script와 clone/모호한 mapping은 제외하며, 이 결과는 whole-program deadness나 behavioral
+unreachability 주장이 아닙니다. 주요 한도는 link file 256개, direct object 4,096개/target,
+discarded section 16,384개, 전체 900초입니다.
+
+##### Python AST-shape duplicate 정책
+
+`[engines.dup].python_semantic`은 `auto`(기본값), `required`, `off` 중 하나입니다. Python 3.10
+AST에서 nested named scope를 품은 parent를 제외한 leaf function/method만 대상으로 하며, local
+binding은 alpha-renaming하고 물리적 layout은 무시합니다. control flow·operator·literal 종류·값과
+source-spelled imported-name/attribute anchor는 보존하고, `sha256/semantic-shape-v1`
+canonical shape가 정확히
+같은 경우만 group으로 만듭니다. lexical occurrence 집합과 동일한 AST group은 dedup합니다.
+
+malformed/unsupported AST, lambda/comprehension, `global`/`nonlocal`, star import,
+`eval`/`exec` 호출과 그 이름의 literal `getattr` lookup, nested parent 및 trivial region은
+보수적으로 제외합니다.
+`auto`는 제외 사유를 metadata로 남기고, `required`는 `ERROR`/`NOT_RUN`, `off`는 skip합니다.
+파일 256개·named region 20,000개·AST node 500,000개·serialized shape 16 MiB 한도를 넘으면
+semantic partial을 버리고 `auto`는 lexical 결과만 유지하며, `required`는 `ERROR`/`NOT_RUN`으로
+닫습니다. 결과는 구조적 clone 신호로서 계속 `ESTIMATED`이며 behavioral
+equivalence나 전체 semantic duplicate 분석을 뜻하지 않습니다.
 
 ##### C++ clang-tidy 정책
 
@@ -712,8 +759,9 @@ Exact-main [run `33593218450`](https://github.com/jihoon22-lee/ici/actions/runs/
 HTTP/title/Zero-CDN과 byte-match를 통과했으며 ici는 `7,454,995` bytes/SHA
 `182a0d05…5adbb75`, viewer는 `356,598` bytes/SHA `fb772d4a…c0c4794`였습니다. 두 run의
 skip은 예상된 PR/main publish job뿐입니다. 이 acceptance는 scope-policy slice에 해당하며
-whole-program/linker dead reachability, duplicate, 남은 I4-4, I4 전체 checkpoint를 닫지
-않습니다. 버전은 `0.10.2`로 유지하고 release는 만들지 않습니다.
+target-local GNU ELF section-GC를 넘어서는 whole-program/dynamic dead reachability, full
+semantic duplicate, 남은 I4-4, I4 전체 checkpoint를 닫지 않습니다. 버전은 `0.10.2`로 유지하고
+release는 만들지 않습니다.
 
 ##### C++ Qt clazy 및 생성 단계 정책
 
@@ -1131,9 +1179,10 @@ compile instrumentation과 debug/frame-pointer flag를 사용하고 generic `-pt
 위치만 primary로 채택하고 외부 stack frame은 `[external]`로 redacted합니다. Python scope는
 이 엔진에서 unsupported이며, Python ResourceWarning을 대신 실행하지 않습니다.
 
-실제 `g++` data-race fixture를 포함한 local regression은 통과했지만, 현재 구현은 feature
-PR/main 및 Quality Zoo TSan acceptance 전의 local evidence입니다. `I4-4` 전체 checkpoint,
-분류/Qt candidate evidence, version bump 및 release는 이 결과로 닫히지 않습니다.
+실제 `g++` data-race fixture를 포함한 local regression, PR #146 run `33717584710`, exact-main
+run `33718399268`, toy PR #56과 exact candidate run `33737405098`의 8/8 contract가 통과했습니다.
+이는 TSan sub-scope를 닫지만 broader resource/lifetime/security taxonomy, `I4-4` 전체
+checkpoint, version bump 및 release는 이 결과로 닫히지 않습니다.
 
 CMake/CTest 경로가 지원하는 경우 CTest는 실행 전에 예정된 shadow JUnit 파일을 제거한 뒤
 `--output-junit`으로 새 report를 만들고, adapter는 그 report만 최대 1,000,000 bytes까지

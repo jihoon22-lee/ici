@@ -156,6 +156,27 @@ def test_cpp_unused_off_disables_only_dead_cpp_support(tmp_path: Path) -> None:
     assert "disabled" in cpp.reason
 
 
+def test_required_cpp_linker_scope_enables_dead_support_and_promotes_binutils(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    config = _config("src")
+    config["engines"]["dead"]["cpp_unused"] = "off"
+    config["engines"]["dead"]["cpp_linker"] = "required"
+
+    cpp = _entry(
+        evaluate_support_matrix(tmp_path, config),
+        "dead",
+        SupportLanguage.CPP,
+    )
+
+    assert cpp.enabled is True
+    assert {"cmake", "readelf", "addr2line"}.issubset(cpp.required_tools)
+    assert {"gcc", "g++"}.issubset(cpp.optional_tools)
+
+
 def test_effective_policy_promotes_optional_tools_to_required(tmp_path: Path):
     source = tmp_path / "src"
     source.mkdir()

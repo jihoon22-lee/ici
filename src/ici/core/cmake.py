@@ -67,9 +67,12 @@ class ConfigureOptions:
     """
 
     variant: BuildVariant
+    extra_c_flags: tuple[str, ...] = ()
     extra_cxx_flags: tuple[str, ...] = ()
     extra_link_flags: tuple[str, ...] = ()
     analysis_database: bool = False
+    generator: str = ""
+    shadow_suffix_override: str = ""
     qmake_capture_wrapper: str = ""
     qmake_capture_cxx: str = ""
     qmake_capture_cc: str = ""
@@ -80,6 +83,10 @@ class ConfigureOptions:
 
     @property
     def shadow_suffix(self) -> str:
+        if self.shadow_suffix_override:
+            if re.fullmatch(r"-[a-z0-9][a-z0-9-]{0,63}", self.shadow_suffix_override) is None:
+                raise ValueError("shadow suffix override must be a bounded lowercase suffix")
+            return self.shadow_suffix_override
         return {
             BuildVariant.RELEASE: "-build",
             BuildVariant.COVERAGE: "",
@@ -108,6 +115,11 @@ class ConfigureOptions:
         }[self.variant]
         return flags + list(self.extra_cxx_flags)
 
+    def c_flags(self) -> list[str]:
+        """Return optional C-only instrumentation without changing existing variants."""
+
+        return list(self.extra_c_flags)
+
     def link_flags(self) -> list[str]:
         flags = {
             BuildVariant.RELEASE: [],
@@ -127,13 +139,24 @@ def cmake_configure_argv(
         str(root),
         "-B",
         str(shadow),
-        f"-DCMAKE_BUILD_TYPE={options.build_type}",
-        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
     ]
+    if options.generator:
+        if options.generator != "Unix Makefiles":
+            raise ValueError("only the audited Unix Makefiles generator may be forced")
+        argv.extend(["-G", options.generator])
+    argv.extend(
+        [
+            f"-DCMAKE_BUILD_TYPE={options.build_type}",
+            "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        ]
+    )
     if options.analysis_database:
         argv.append("-DCMAKE_UNITY_BUILD=OFF")
+    c = " ".join(options.c_flags())
     cxx = " ".join(options.cxx_flags())
     link = " ".join(options.link_flags())
+    if c:
+        argv.append(f"-DCMAKE_C_FLAGS={c}")
     if cxx:
         argv.append(f"-DCMAKE_CXX_FLAGS={cxx}")
     if link:

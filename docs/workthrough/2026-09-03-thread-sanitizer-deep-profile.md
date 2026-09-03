@@ -2,12 +2,12 @@
 
 ## Overview
 
-This workthrough records the local `feat/thread-sanitizer-deep-profile` slice for a separated
+This workthrough records the merged `feat/thread-sanitizer-deep-profile` slice for a separated
 ThreadSanitizer (TSan) execution profile. It adds a C++/Qt-capable, deep-only engine and a direct
 command while keeping the existing ASan/LSan/UBSan `sanitize` path unchanged and isolated. The
-implementation has local regression evidence, including a real `g++` race fixture; feature
-PR/main and Quality Zoo TSan acceptance remain pending. ici stays at `v0.10.2`, and this slice does
-not create a release.
+implementation has local regression evidence, including a real `g++` race fixture. PR #146,
+exact-main CI, toy PR #56, and the exact candidate Quality Zoo run have since accepted the scope.
+ici stays at `v0.10.2`, and this slice does not create a release.
 
 ## Context
 
@@ -64,9 +64,8 @@ the framework exposes no executed case, a synthetic process case retains the agg
 ### 4. Documentation and status boundary
 
 The user guide, engine reference, architecture guide, README, changelog, master plan, and handover
-now describe the same variant, engine, parser, and support-matrix boundary. The plan deliberately
-keeps the I4-4 TSan checkbox open. Classification and Qt candidate evidence are separate ongoing
-work; no statement here represents remote PR/main, Pages, Quality Zoo, version, or release evidence.
+now describe the same variant, engine, parser, and support-matrix boundary. The TSan sub-scope is
+complete; the broader I4-4 resource/lifetime/security and release checkpoints remain open.
 
 ## Code Examples
 
@@ -100,14 +99,16 @@ TSAN_OPTIONS=history_size=4
 | Parser contract | Exact TSan `WARNING`/`SUMMARY` signatures, bounded locations, external redaction, known IDs, and stable unknown fallback are covered by regression tests. |
 | Adapter exit policy | Complete process-level TSan evidence overrides nominal CTest/qmake PASS and exit code zero. |
 | Real runtime | The real `g++` data-race regression passes locally. |
-| Repository quality | Parent session reports the full local test gate passing; this worktree change is documentation-only. |
+| ici PR | PR #146 merged as `cfd706605bad57cf5476de9af06ed98322605d13`; run `33717584710` passed every required check. |
+| Exact main | Run `33718399268` passed, including the main report publisher and Merge Gate. |
+| Cross-repository | Toy PR #56 merged; candidate run `33737405098` passed all 8/8 contracts with zero runner errors. |
+| Acceptance artifact | Artifact `9886336618`, ZIP SHA-256 `70f298a33a251241033882a5bd1eea1a7f863dd86c1939321d531cee39b32bf3`. |
 | Release state | No version or release change; ici remains `v0.10.2`. |
 
 ## Next Steps
 
-- Run the feature branch through the normal PR and exact-main CI/Pages gates.
-- Produce and independently verify a candidate artifact before any Quality Zoo TSan dispatch.
-- Add the separate classification and Qt candidate expectations, then audit their exact rule and
-  location contracts.
+- Preserve the exact PR/main/candidate evidence above when later feature heads change.
+- Add the remaining broader resource/lifetime/security and Qt ownership scenarios without treating
+  this narrow TSan acceptance as their evidence.
 - Revisit the I4-4 checkpoint and release decision only after the broader safety mappings and
   cross-repository evidence are complete.

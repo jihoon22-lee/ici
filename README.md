@@ -36,7 +36,7 @@ preview와 CTest sanitizer evidence를 bounded하게 보존하고, clang-tidy/cl
 database에서 선택한 GCC의 libstdc++를 정확히 재생하도록 보정합니다. 공개된 v0.10.2를
 사용하는 BuildScope B0~B5 최종 검증과 공개 `buildscope-v0.5.0` release audit은 완료됐다.
 남은 ici 범위는 I4-3/I4-4이며, 이전 릴리스 증거는 변경 이력과 실행 계획에 보존합니다.
-현재 unreleased `feat/sanitizer-diagnostic-normalization` local slice는 ASan/LSan/UBSan
+병합된 sanitizer diagnostic normalization은 ASan/LSan/UBSan
 출력을 deterministic `kind`/`defect`, bounded related stack-frame locations와 관측/프로젝트
 frame count를 갖는 engine detail로 정규화하고, 검증 가능한 경우 project-owned primary
 location과 native finding을 제공합니다. 호환 `rule_id`는 유지하면서 상세 sanitizer identity는
@@ -45,10 +45,10 @@ location과 native finding을 제공합니다. 호환 `rule_id`는 유지하면�
 CTest/QtTest의 raw transcript는 public message와 분리한 private `diagnostic_output`으로만
 최대 65,536 UTF-8 bytes를 보존하며, CTest는 실행 전에 stale JUnit을 제거합니다. timeout,
 process-output truncation, malformed/oversized diagnostic 또는 project location이 없는 진단은
-clean result로 축약하지 않고 `ERROR`/`NOT_RUN`으로 닫습니다. 이는 아직 remote PR/main,
-Quality Zoo/candidate cross-repository evidence나 release를 뜻하지 않으며 공개 버전은 계속
-`0.10.2`입니다.
-현재 unreleased `feat/thread-sanitizer-deep-profile` local slice는 deep profile에서만 선택되는
+clean result로 축약하지 않고 `ERROR`/`NOT_RUN`으로 닫습니다. PR #142와 exact-main run
+`33705500603`, 별도 sanitizer candidate acceptance run `33710695336`까지 통과했습니다. 이
+범위와 release 결정은 별개이며 공개 버전은 계속 `0.10.2`입니다.
+병합된 ThreadSanitizer slice는 deep profile에서만 선택되는
 `thread_sanitize` engine과 `ici thread-sanitize` direct command를 제공합니다. 별도
 `BuildVariant.THREAD_SANITIZE`(`thread-sanitize`)와 `-tsan` shadow에
 `-fsanitize=thread -fno-omit-frame-pointer -g`를 적용하고, CMake/qmake adapter와 generic
@@ -56,16 +56,24 @@ g++ 경로를 분리합니다. generic 경로는 `-pthread`를 추가하며 `TSA
 보존한 채 `halt_on_error=1`을 덧붙입니다. Python은 unsupported이고 ASan/LSan/UBSan
 `sanitize` variant와 절대 섞지 않습니다. `WARNING`/`SUMMARY` report signature만 bounded
 normalizer에 넣고 known defect ID와 stable unknown fallback, bounded project location 및
-`[external]` frame redaction을 적용합니다. 실제 g++ race 회귀는 통과했지만 이 구현은 아직
-feature PR/main 및 Quality Zoo TSan acceptance의 근거가 아니며, `I4-4`와 release는 pending입니다.
+`[external]` frame redaction을 적용합니다. PR #146과 exact-main run `33718399268`, toy PR #56,
+candidate acceptance run `33737405098`의 8/8 contract까지 통과했습니다. 이 완료 범위는 TSan
+sub-scope이며 broader resource/lifetime/security taxonomy, I4-4 전체와 release는 pending입니다.
 공개 버전은 계속 `0.10.2`입니다.
-이번 bounded language-aware `dup` slice는 위 범위 안에서 lexical token/region/signal 정확도와
-fail-closed resource budget을 보강하고, `dead`에는 좁은 compiler-backed C/C++
-translation-unit unused-function slice를 추가합니다. `dup`와 Python `dead`의 정상 완료
-evidence는 계속 `ESTIMATED`/heuristic이며, 새 C/C++ slice만 승인된 compiler 진단이 모든
-source configuration에서 일치할 때 `MEASURED`/`EXACT`가 됩니다. 이는 whole-program/linker
-dead-symbol 분석·full duplicate semantics·I4-3 전체를 완료했다는 뜻은 아닙니다. 버전은
-`0.10.2`로 유지하고 별도 release는 만들지 않습니다.
+이번 bounded language-aware slice는 `dup`의 lexical token/region/signal 정확도와
+fail-closed resource budget을 보강하고, `[engines.dup].python_semantic = "auto" | "required" | "off"`
+(기본값 `auto`)로 Python 3.10 AST-shape clone group을 추가합니다. 이름이 다른 local binding과
+물리적 줄 배치는 정규화하지만 control flow·operator·literal·source-spelled imported-name/
+attribute anchor는 보존하며,
+같은 canonical shape일 때만 group을 만듭니다. 이 구조 분석은 계속 `ESTIMATED`이고 behavioral
+equivalence를 주장하지 않습니다. `dead`에는 좁은 compiler-backed C/C++ translation-unit
+unused-function slice와 별도로 `[engines.dead].cpp_linker = "auto" | "required" | "off"`
+(기본값 `off`)인 Linux GNU ELF target-local discarded-function evidence를 추가했습니다.
+이는 root CMake/Unix Makefiles/Release의 direct-object executable link에서 `cmake`, `readelf`,
+`addr2line`과 GCC GNU ld의 section-GC 증거를 사용할 때만 `MEASURED`/`EXACT`가 됩니다.
+whole-program/dynamic dead-symbol reachability, archives/shared/LTO/PIE/COMDAT 범위와 C++
+semantic/behavioral duplicate equivalence는 여전히 지원 범위가 아닙니다. 버전은 `0.10.2`로
+유지하고 이 feature PR만으로 release를 만들거나 승인하지 않습니다.
 
 ### Candidate artifact (not a release)
 
@@ -150,8 +158,8 @@ uses `quality-zoo/manifest.json`. A selected manifest must be a regular non-syml
 SHA-256 is checked before and after execution. The acceptance artifact records the selected path,
 source (`candidate` or `stable-fallback`), and digest as `quality-zoo.manifest-selection/v1`, so a
 candidate-only expectation set is auditable without changing the released-artifact toy gate. The
-new ThreadSanitizer feature head still requires a fresh candidate artifact and candidate-manifest
-acceptance; prior Qt/category evidence is not reused for that scope.
+ThreadSanitizer는 별도 candidate artifact와 candidate manifest로 run `33737405098`의 8/8
+contract를 수용했으며, 그 exact evidence는 다른 feature head에 재사용하지 않는다.
 
 ### Candidate-to-Quality-Zoo acceptance (manual, not a release)
 
@@ -230,8 +238,8 @@ an older accepted candidate is not evidence for a newer feature head.
       metric으로 계산 + **원본 소스 코드 블록 프리뷰**
     - `sanitize`: C++ ASan/LSan/UBSan 구조화 진단을 포함한 메모리 안전성 및 Python 리소스 누수 검증
     - `thread_sanitize`: deep profile 전용 C++ ThreadSanitizer 실행과 bounded thread-safety 진단
-    - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출. 공통 bounded UTF-8 source intake를 사용하며 generated/vendor는 기본 제외(`include_generated`/`include_vendor` literal-boolean opt-in)합니다. Python AST reachability/name-reference는 `ESTIMATED`/heuristic이고, 승인된 GCC/Clang(및 그 capability-approved alias)이 선택된 owned C/C++ translation unit에 귀속한 internal-linkage 함수 `-Wunused-function` 진단은 `[engines.dead] cpp_unused = "auto" | "required" | "off"` 정책으로 재생할 수 있습니다. 모든 알려진 configuration에서 같은 위치 범위의 진단이 확인된 경우에만 C/C++ 결과를 `MEASURED`/`EXACT`로 기록하며, intake는 8,192개 unique candidate와 2,048개 owned/analyzed 파일·파일당 8 MiB·aggregate 64 MiB로 제한하고, 제외된 파일은 owned 한도에 포함하지 않습니다.
-    - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출. Python/C/C++는 전용 line-preserving lexer로 정규화해 언어별로 격리한다. Python `tokenize`/AST context는 주석·multiline import와 `match`/`case` soft keyword를 처리하고 identifier, 숫자·문자열 계열, 들여쓰기·연산자 category를 보존하며, C/C++ lexer는 comments/directives, C++ backslash-newline splice, punctuator 경계와 Qt semantic anchor를 보존한다. rolling normalized-window seed와 exact token extension, function/class/import/directive region 및 semantic-signal policy로 data-table 오탐은 줄이고 실제 control-flow clone은 유지한다. `sha256/type2-region-v2` fingerprint와 tokenizer/region/signal metadata를 기록하며 generated/moc/vendor는 기본 제외; owned C/C++ header도 검사하고 standalone `.moc`는 `include_generated = true`일 때만 포함하며 같은 bounded source 한도를 사용. 정상 완료 결과는 `ESTIMATED`/heuristic이고 내부 budget 초과는 partial PASS 없이 `ERROR`/`NOT_RUN`으로 닫힌다.
+    - `dead`: 죽은 코드, 도달 불가능 코드, 미사용 심볼 검출. 공통 bounded UTF-8 source intake를 사용하며 generated/vendor는 기본 제외(`include_generated`/`include_vendor` literal-boolean opt-in)합니다. Python AST reachability/name-reference는 `ESTIMATED`/heuristic이고, 승인된 GCC/Clang(및 그 capability-approved alias)이 선택된 owned C/C++ translation unit에 귀속한 internal-linkage 함수 `-Wunused-function` 진단은 `[engines.dead].cpp_unused = "auto" | "required" | "off"` 정책으로 재생할 수 있습니다. 별도 `[engines.dead].cpp_linker = "auto" | "required" | "off"`(기본값 `off`)는 Linux root CMake/Unix Makefiles/Release direct-object ELF executable에서 GCC GNU ld가 버린 uniquely mapped local/hidden function section을 `cmake`/`readelf`/`addr2line`으로 확인합니다. linker finding은 target-local `MEASURED`/`EXACT`이며 whole-program 주장이 아닙니다. 모든 알려진 configuration에서 같은 위치 범위의 compiler 진단이 확인된 경우에만 C++ 결과를 `MEASURED`/`EXACT`로 기록하며, intake는 8,192개 unique candidate와 2,048개 owned/analyzed 파일·파일당 8 MiB·aggregate 64 MiB로 제한하고, 제외된 파일은 owned 한도에 포함하지 않습니다.
+    - `dup`: **Type-2 클론 검출** (변수명/리터럴만 다른 복사-붙여넣기도 감지) + 최대 클론 병합 및 원본 인덴트 보존 중복률 산출. Python/C/C++는 전용 line-preserving lexer로 정규화해 언어별로 격리한다. Python `tokenize`/AST context는 주석·multiline import와 `match`/`case` soft keyword를 처리하고 identifier, 숫자·문자열 계열, 들여쓰기·연산자 category를 보존하며, `python_semantic = "auto"` 기본 정책은 leaf function/method의 bounded AST shape도 canonicalize한다. local alpha renaming과 layout insensitivity를 적용하되 control flow·operator·literal·source-spelled imported-name/attribute anchor를 보존하고 `sha256/semantic-shape-v1`가 exact하게 같은 경우만 semantic-shape group을 보고한다. C/C++ lexer는 comments/directives를 제거하고 C++ backslash-newline splice의 physical line을 보존하며 punctuator, literal, UDL과 Qt anchor를 구분한다. normalized-window seed의 exact token verification과 function/class/import/directive region, semantic-signal policy를 통해 값만 다른 data table은 억제하고 실제 control-flow clone은 유지한다. lexical fingerprint는 `sha256/type2-region-v2`, AST-shape fingerprint는 `sha256/semantic-shape-v1`로 기록하지만 두 경로 모두 compiler/linker 실측이 아니므로 결과는 `ESTIMATED`/heuristic이며 behavioral equivalence를 뜻하지 않는다. lexical tokenizer/matching budget은 엔진 전체를 `ERROR`/`NOT_RUN`으로 닫고, AST-shape budget은 semantic partial을 버린 뒤 `auto`에서는 lexical 결과만 유지하며 `required`에서는 `ERROR`/`NOT_RUN`으로 닫는다. generated/moc/vendor는 기본 제외하고 owned C/C++ header도 검사하며, standalone `.moc`는 `include_generated = true`일 때만 포함한다.
     - `exception`: 예외 삼킴(`except: pass`), Traceback 유실, 소멸자 throw 차단
     - `cycle`: Python import / C++ include **순환 참조 탐지** (Tarjan SCC, C++ path-suffix 해석의 미해결·모호 위치도 보고)
     - `security`: 하드코딩 시크릿, 약한 해시, `eval`/`pickle`/`shell=True` 등 위험 패턴 탐지
@@ -463,8 +471,9 @@ remapping은 fail-closed하며, physical origin은 ici가 별도로 재구성하
 matching `-Wunused-function` warning에 위치가 전혀 없으면 source 귀속을 증명할 수 없으므로
 clean PASS로 바꾸지 않고 `ERROR`/`NOT_RUN`으로 닫습니다.
 external-linkage 함수, template, inline/COMDAT, linker reachability, dynamic lookup,
-plugin, Qt meta-object reachability는 분류하지 않습니다. 따라서 이것은 whole-program dead
-symbol 분석이 아니며, generated/moc source도 기본 source ownership 정책 밖에 있습니다.
+plugin, Qt meta-object reachability는 이 `cpp_unused` TU-local probe에서 분류하지 않습니다.
+`cpp_linker`의 별도 범위는 아래에 설명하며, generated/moc source도 기본 source ownership
+정책 밖에 있습니다.
 
 probe는 최대 2,048 translation units, unit당 120초, 전체 600초, compiler output
 1,000,000 characters를 사용합니다. shared source intake의 candidate/file/8 MiB per-file/
@@ -498,8 +507,24 @@ configuration, 8개 target, 8개 `tool_evidence` 행을 확인했습니다. unus
 단일 sticky comment의 ici/viewer 링크, PR·main artifact/Pages byte match, exact-main CI와
 Pages 배포까지 수락됐습니다. 상세 해시와 run ID는
 [`compiler-backed C/C++ unused-function workthrough`](docs/workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
-기록합니다. whole-program/linker dead-symbol 분석과 full duplicate semantics는 아직
-지원 범위가 아니며, 버전은 `0.10.2`로 유지하고 새 release는 만들지 않습니다.
+기록합니다. target-local GNU ELF section-GC 증거는 지원하지만, whole-program/dynamic
+dead-symbol reachability와 full C++ semantic/behavioral duplicate equivalence는 아직
+지원 범위가 아닙니다. 버전은 `0.10.2`로 유지하고 새 release는 만들지 않습니다.
+
+### C++ GNU ELF and Python AST-shape extensions
+
+`[engines.dead].cpp_linker = "auto" | "required" | "off"`(기본값 `off`)는 Linux root CMake/
+`Unix Makefiles`/Release의 direct-object ELF executable을 GNU `ld` section-GC로 재링크하고,
+`cmake`·`readelf`·`addr2line`이 확인한 uniquely mapped local/hidden discarded function
+section만 target-local `MEASURED`/`EXACT` finding으로 기록합니다. archives/shared/LTO/PIE/
+COMDAT/dynamic/whole-program 범위와 malformed·timeout·truncation은 제외하거나 fail-closed합니다.
+`[engines.dup].python_semantic = "auto" | "required" | "off"`(기본값 `auto`)는 Python 3.10
+leaf function/method AST shape를 canonicalize해 local alpha-renaming·layout insensitivity를
+적용하면서 control flow/operator/literal/source-spelled imported-name/attribute anchor를
+보존하고, exact shape group만
+완전한 occurrence 집합이 같은 lexical group과 dedup합니다. 두 기능의 bounded 결과는
+구조/target-local 증거이며 behavioral equivalence가 아닙니다. 버전은 `0.10.2`로 유지하고 이
+feature PR만으로 release를 만들지 않습니다.
 
 ### C++ complexity function boundaries
 
@@ -571,8 +596,9 @@ Zero-CDN 검사를 통과하고 각각 `7,454,995`/`356,598` bytes와 artifact H
 Zero-CDN과 artifact byte-match를 통과했습니다(각각 `7,454,995` bytes,
 `182a0d05…5adbb75`; `356,598` bytes, `fb772d4a…c0c4794`). 두 run에서 skip된 것은 각
 workflow의 예상된 PR/main publish job뿐입니다. 이 acceptance는 scope-policy slice에 해당하며
-compiler-backed C/C++ unused-function의 narrow TU-local 범위를 넘어서는 whole-program/linker
-dead 분석, full duplicate semantics, 남은 I4-3/I4-4 및 I4 전체 checkpoint를 닫지 않습니다.
+compiler-backed C/C++ unused-function과 target-local GNU ELF section-GC 범위를 넘어서는
+whole-program/dynamic dead 분석, full C++ semantic/behavioral duplicate equivalence, 남은
+I4-3/I4-4 및 I4 전체 checkpoint를 닫지 않습니다.
 버전은 `0.10.2`로 유지하고 release는 만들지 않습니다.
 
 ## 💻 빠른 설치 및 사용법

@@ -93,9 +93,19 @@ _ENGINE_KEYS = {
     | frozenset({"warn_cc", "fail_cc", "warn_nesting", "cpp_boundaries"}),
     "sanitize": _COMMON_ENGINE_KEYS,
     "thread_sanitize": _COMMON_ENGINE_KEYS,
-    "dead": _COMMON_ENGINE_KEYS | frozenset({"cpp_unused", "include_generated", "include_vendor"}),
+    "dead": _COMMON_ENGINE_KEYS
+    | frozenset({"cpp_unused", "cpp_linker", "include_generated", "include_vendor"}),
     "dup": _COMMON_ENGINE_KEYS
-    | frozenset({"warn_pct", "fail_pct", "min_window", "include_generated", "include_vendor"}),
+    | frozenset(
+        {
+            "warn_pct",
+            "fail_pct",
+            "min_window",
+            "python_semantic",
+            "include_generated",
+            "include_vendor",
+        }
+    ),
     "exception": _COMMON_ENGINE_KEYS,
     "cycle": _COMMON_ENGINE_KEYS | frozenset({"max_reported"}),
     "cognitive": _COMMON_ENGINE_KEYS | frozenset({"warn", "fail", "warn_nesting"}),
@@ -332,6 +342,11 @@ def _validate_dup(table: dict[str, Any], path: str) -> None:
             _require_number(table[key], f"{path}.{key}", minimum=0, maximum=100)
     if "min_window" in table:
         _require_int(table["min_window"], f"{path}.min_window", minimum=1)
+    if "python_semantic" in table:
+        semantic_path = f"{path}.python_semantic"
+        _require_string(table["python_semantic"], semantic_path, non_empty=True)
+        if table["python_semantic"] not in {"auto", "required", "off"}:
+            raise _error(semantic_path, "must be one of: auto, off, required")
     warn_pct = table.get("warn_pct", 5.0)
     fail_pct = table.get("fail_pct", 15.0)
     if fail_pct < warn_pct:
@@ -347,11 +362,13 @@ def _validate_analysis_includes(table: dict[str, Any], path: str) -> None:
 def _validate_dead(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
     _validate_analysis_includes(table, path)
-    if "cpp_unused" in table:
-        unused_path = f"{path}.cpp_unused"
-        _require_string(table["cpp_unused"], unused_path, non_empty=True)
-        if table["cpp_unused"] not in {"auto", "required", "off"}:
-            raise _error(unused_path, "must be one of: auto, off, required")
+    for key in ("cpp_unused", "cpp_linker"):
+        if key not in table:
+            continue
+        policy_path = f"{path}.{key}"
+        _require_string(table[key], policy_path, non_empty=True)
+        if table[key] not in {"auto", "required", "off"}:
+            raise _error(policy_path, "must be one of: auto, off, required")
 
 
 def _validate_build(table: Any) -> None:
