@@ -159,7 +159,9 @@ diagnostic message   ───────────────────�
 | Focused C++ lint/category regression | `uv run --python 3.10 pytest tests/test_lint_engine.py tests/test_clang_tidy.py tests/test_clazy.py` — `160 passed` |
 | Focused cache identity/store regression | `uv run --python 3.10 pytest tests/test_cache_identity.py tests/test_cache_store.py` — `51 passed` |
 | Candidate workflow purity | `uv run --python 3.10 pytest tests/test_purity.py` — `31 passed`; `actionlint .github/workflows/candidate-quality-zoo.yml` — PASS |
-| Ruff | `uvx ruff check .` — `All checks passed!` |
+| Full Python 3.10 suite | `uv run --python 3.10 pytest -o addopts=''` — `2,138 passed, 7 skipped` |
+| Static quality | `uvx ruff check .` and `uvx ruff format --check .` — PASS (`191` files formatted); `uv run --python 3.10 mypy src` — `106` source files, no issues |
+| Standalone artifact | `./scripts/build-pyz.sh` — pure-Python dependency/schema audit and build PASS; `./scripts/smoke.sh` — direct execution, Python 3.10, artifact identity, and Zero-CDN PASS |
 | Version/release | No version bump, tag, or release; ici remains `v0.10.2` |
 | Acceptance boundary | Local feature-head evidence only; the prior exact sanitizer candidate acceptance is not claimed for this taxonomy |
 
