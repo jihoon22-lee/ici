@@ -142,8 +142,13 @@ preserve exactly one sticky comment rather than creating a second marker/comment
 The consumer job provisions `clang`, `clang-tidy`, `clazy`, `cmake`, `g++`, `pkg-config`, and
 `qt6-base-dev` on its runner so a future Qt lifetime/C++ static-analysis scenario can execute.
 Provisioning and candidate preflight/execution do not use GitHub credentials; local purity coverage
-is `31 passed` and actionlint passes. A new candidate dispatch for this feature head and the Qt
-lifetime expectation remains pending.
+is `32 passed` and actionlint passes. Before the candidate run, the consumer prefers
+`quality-zoo/candidate-manifest.json` from the exact toy-projects commit when present; otherwise it
+uses `quality-zoo/manifest.json`. A selected manifest must be a regular non-symlink file, and its
+SHA-256 is checked before and after execution. The acceptance artifact records the selected path,
+source (`candidate` or `stable-fallback`), and digest as `quality-zoo.manifest-selection/v1`, so a
+candidate-only expectation set is auditable without changing the released-artifact toy gate. A
+new candidate dispatch for this feature head and the Qt lifetime expectation remains pending.
 
 ### Candidate-to-Quality-Zoo acceptance (manual, not a release)
 

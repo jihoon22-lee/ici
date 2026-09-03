@@ -9,6 +9,14 @@
 
 ### Added
 
+- **Candidate Quality Zoo manifest selection:** The read-only candidate consumer now prefers a
+  checked-out `quality-zoo/candidate-manifest.json` when the exact toy-projects revision provides
+  one, and falls back to the stable `manifest.json` only when the candidate manifest is absent.
+  Both choices must be regular non-symlink files, the selected manifest is SHA-256 checked before
+  and after candidate execution, and `quality-zoo.manifest-selection/v1` evidence records the
+  selected path, source, and digest in the acceptance artifact. This keeps candidate-only
+  expectations separate from the released-artifact toy gate without weakening exact toy SHA or
+  candidate provenance binding. No version bump or release is implied; ici remains at `v0.10.2`.
 - **Deep ThreadSanitizer profile (local implementation; acceptance pending):** Added the
   deep-only `thread_sanitize` engine and direct `ici thread-sanitize` command for C++ thread-safety
   checks. Its isolated `BuildVariant.THREAD_SANITIZE` (`thread-sanitize`) uses a `-tsan` shadow and
