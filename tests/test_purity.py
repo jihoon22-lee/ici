@@ -340,6 +340,18 @@ def test_candidate_quality_zoo_separates_tokens_from_candidate_execution():
     )
 
 
+def test_candidate_quality_zoo_installs_cpp_qt_analysis_tools_without_credentials():
+    accept = _job_block(_workflow("candidate-quality-zoo.yml"), "accept")
+    install = _step_block(accept, "Install C++ and Qt analysis tools")
+
+    assert "sudo apt-get update" in install
+    assert "--no-install-recommends" in install
+    for package in ("clang", "clang-tidy", "clazy", "cmake", "g++", "pkg-config", "qt6-base-dev"):
+        assert re.search(rf"(?:^|\s){re.escape(package)}(?:\s|$)", install)
+    assert "GH_TOKEN" not in install
+    assert "GITHUB_TOKEN" not in install
+
+
 def test_candidate_quality_zoo_verifies_provenance_and_uploads_separate_evidence():
     accept = _job_block(_workflow("candidate-quality-zoo.yml"), "accept")
     evidence = _step_block(accept, "Fetch Authenticated GitHub Evidence")

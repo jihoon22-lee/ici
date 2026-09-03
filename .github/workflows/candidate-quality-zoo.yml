@@ -51,6 +51,13 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Install C++ and Qt analysis tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang clang-tidy clazy cmake g++ pkg-config qt6-base-dev
+
       - name: Validate Workflow Inputs and Exact Main Revisions
         env:
           ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
