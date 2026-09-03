@@ -108,7 +108,7 @@ done
 echo "      공개 JSON schema 2개 패키징 확인"
 
 echo "      빌드 환경 흔적 제거 (재현 가능 빌드)"
-python3 - "$SITE" <<'PY'
+"$build_python" - "$SITE" <<'PY'
 import sys
 from pathlib import Path
 
@@ -154,7 +154,7 @@ site.chmod(0o755)
 print(f"      {len(removed)} 개 항목 제거")
 PY
 
-python3 - "$TOOLS" <<'PY'
+"$build_python" - "$TOOLS" <<'PY'
 import sys
 from pathlib import Path
 
@@ -180,11 +180,23 @@ PYTHONPATH="$TOOLS" "$build_python" -m shiv \
     -o "$RAW"
 
 echo "[4/4] sh 런처 프리앰블 부착"
-python3 scripts/assemble_pyz.py \
+"$build_python" scripts/assemble_pyz.py \
     --raw "$RAW" \
     --preamble "$ROOT/scripts/launcher.sh" \
     --output "$OUT" \
     --output "$ROOT/dist/ici"
+
+if ! cmp -s "$OUT" "$ROOT/dist/ici"; then
+    echo "발행된 실행 파일 두 개의 내용이 일치하지 않습니다." >&2
+    exit 1
+fi
+for published in "$OUT" "$ROOT/dist/ici"; do
+    published_mode="$(stat -c '%a' "$published")"
+    if [ "$published_mode" != "755" ]; then
+        echo "발행된 실행 파일의 mode가 0755가 아닙니다: $published ($published_mode)" >&2
+        exit 1
+    fi
+done
 
 printf '완료: %s (%s)\n' "$OUT" "$(du -h "$OUT" | cut -f1)"
 echo "스모크 테스트: ./scripts/smoke.sh"

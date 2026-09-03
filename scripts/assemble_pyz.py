@@ -2,8 +2,8 @@
 """Safely assemble launcher-prefixed ZipApp outputs.
 
 The builder writes only through opened, non-symlink directory descriptors and
-atomically replaces regular output files. Existing symlinks and special files
-are rejected before any output is changed.
+atomically replaces each regular output file. Existing outputs are backed up
+before publication so a later replacement failure restores the previous set.
 """
 
 from __future__ import annotations
@@ -55,9 +55,19 @@ def _read_bounded(stream: BinaryIO, maximum: int, label: str) -> bytes:
 
 def _read_regular(path: Path, label: str, maximum: int) -> bytes:
     absolute = path.absolute()
+    try:
+        named_before = os.stat(absolute, follow_symlinks=False)
+    except OSError as exc:
+        raise AssemblyError(f"could not inspect {label}: {exc}") from exc
+    if stat.S_ISLNK(named_before.st_mode):
+        raise AssemblyError(f"could not open {label} as a non-symlink file")
+    if not stat.S_ISREG(named_before.st_mode):
+        raise AssemblyError(f"{label} must be a regular file")
     flags = os.O_RDONLY
     if hasattr(os, "O_CLOEXEC"):
         flags |= os.O_CLOEXEC
+    if hasattr(os, "O_NONBLOCK"):
+        flags |= os.O_NONBLOCK
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
     try:
@@ -68,6 +78,8 @@ def _read_regular(path: Path, label: str, maximum: int) -> bytes:
         initial = os.fstat(descriptor)
         if not stat.S_ISREG(initial.st_mode):
             raise AssemblyError(f"{label} must be a regular file")
+        if _identity(named_before) != _identity(initial):
+            raise AssemblyError(f"{label} changed while it was opened")
         with os.fdopen(descriptor, "rb", closefd=False) as stream:
             payload = _read_bounded(stream, maximum, label)
         final = os.fstat(descriptor)
@@ -108,17 +120,23 @@ def _open_output_parent(path: Path) -> tuple[int, os.stat_result]:
     return descriptor, opened
 
 
-def _validate_output(descriptor: int, name: str) -> None:
+def _validate_output(descriptor: int, name: str) -> os.stat_result | None:
     try:
         current = os.stat(name, dir_fd=descriptor, follow_symlinks=False)
     except FileNotFoundError:
-        return
+        return None
     except OSError as exc:
         raise AssemblyError(f"could not inspect output {name}: {exc}") from exc
     if stat.S_ISLNK(current.st_mode):
         raise AssemblyError(f"output must not be a symbolic link: {name}")
     if not stat.S_ISREG(current.st_mode):
         raise AssemblyError(f"output must be absent or a regular file: {name}")
+    return current
+
+
+def _unlink_if_present(descriptor: int, name: str) -> None:
+    with suppress(FileNotFoundError):
+        os.unlink(name, dir_fd=descriptor)
 
 
 def _create_temp(descriptor: int, name: str, payload: bytes) -> str:
@@ -137,18 +155,188 @@ def _create_temp(descriptor: int, name: str, payload: bytes) -> str:
             raise AssemblyError(f"could not create atomic output for {name}: {exc}") from exc
         try:
             with os.fdopen(output, "wb", closefd=False) as stream:
-                stream.write(payload)
+                written = stream.write(payload)
                 stream.flush()
+            if written != len(payload):
+                raise AssemblyError(f"short write while creating atomic output for {name}")
             os.fchmod(output, 0o755)
             os.fsync(output)
-        finally:
+        except BaseException as exc:
+            with suppress(OSError):
+                os.close(output)
+            _unlink_if_present(descriptor, temporary)
+            if isinstance(exc, OSError):
+                raise AssemblyError(f"could not write atomic output for {name}: {exc}") from exc
+            raise
+        try:
             os.close(output)
+        except BaseException as exc:
+            _unlink_if_present(descriptor, temporary)
+            if isinstance(exc, OSError):
+                raise AssemblyError(f"could not close atomic output for {name}: {exc}") from exc
+            raise
         return temporary
     raise AssemblyError(f"could not allocate an atomic output name for {name}")
 
 
+def _create_backup(
+    descriptor: int,
+    name: str,
+    previous: os.stat_result,
+) -> str:
+    """Hard-link one existing regular output before any replacement starts."""
+
+    for _ in range(32):
+        backup = f".{name}.backup-{os.getpid()}-{secrets.token_hex(8)}"
+        try:
+            os.link(
+                name,
+                backup,
+                src_dir_fd=descriptor,
+                dst_dir_fd=descriptor,
+                follow_symlinks=False,
+            )
+        except FileExistsError:
+            continue
+        except OSError as exc:
+            raise AssemblyError(f"could not back up existing output {name}: {exc}") from exc
+        try:
+            current = os.stat(name, dir_fd=descriptor, follow_symlinks=False)
+            saved = os.stat(backup, dir_fd=descriptor, follow_symlinks=False)
+            if (
+                not stat.S_ISREG(current.st_mode)
+                or not stat.S_ISREG(saved.st_mode)
+                or (current.st_dev, current.st_ino) != (saved.st_dev, saved.st_ino)
+                or (previous.st_dev, previous.st_ino) != (saved.st_dev, saved.st_ino)
+            ):
+                raise AssemblyError(f"output changed while it was backed up: {name}")
+        except BaseException:
+            _unlink_if_present(descriptor, backup)
+            raise
+        return backup
+    raise AssemblyError(f"could not allocate a backup name for {name}")
+
+
+def _assert_previous_output(
+    descriptor: int,
+    name: str,
+    previous: os.stat_result | None,
+    backup: str | None,
+) -> None:
+    """Confirm that publication will replace exactly the state we backed up."""
+
+    try:
+        current = os.stat(name, dir_fd=descriptor, follow_symlinks=False)
+    except FileNotFoundError:
+        if previous is None:
+            return
+        raise AssemblyError(f"output disappeared before publication: {name}") from None
+    except OSError as exc:
+        raise AssemblyError(f"could not recheck output {name}: {exc}") from exc
+    if previous is None:
+        raise AssemblyError(f"output appeared before publication: {name}")
+    if backup is None:
+        raise AssemblyError(f"existing output has no rollback backup: {name}")
+    saved = os.stat(backup, dir_fd=descriptor, follow_symlinks=False)
+    if (
+        not stat.S_ISREG(current.st_mode)
+        or not stat.S_ISREG(saved.st_mode)
+        or (current.st_dev, current.st_ino) != (saved.st_dev, saved.st_ino)
+    ):
+        raise AssemblyError(f"output changed before publication: {name}")
+
+
+def _verify_published(descriptor: int, name: str, payload: bytes) -> None:
+    """Verify one published name before its rollback backup is discarded."""
+
+    flags = os.O_RDONLY
+    if hasattr(os, "O_CLOEXEC"):
+        flags |= os.O_CLOEXEC
+    if hasattr(os, "O_NONBLOCK"):
+        flags |= os.O_NONBLOCK
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        published = os.open(name, flags, dir_fd=descriptor)
+    except OSError as exc:
+        raise AssemblyError(f"could not verify published output {name}: {exc}") from exc
+    try:
+        initial = os.fstat(published)
+        if (
+            not stat.S_ISREG(initial.st_mode)
+            or stat.S_IMODE(initial.st_mode) != 0o755
+            or initial.st_size != len(payload)
+        ):
+            raise AssemblyError(f"published output has invalid metadata: {name}")
+        with os.fdopen(published, "rb", closefd=False) as stream:
+            observed = _read_bounded(stream, len(payload), f"published output {name}")
+        final = os.fstat(published)
+        named = os.stat(name, dir_fd=descriptor, follow_symlinks=False)
+        if (
+            observed != payload
+            or _identity(initial) != _identity(final)
+            or _identity(final) != _identity(named)
+        ):
+            raise AssemblyError(f"published output failed content verification: {name}")
+    finally:
+        os.close(published)
+
+
+class _OutputState:
+    """Mutable publication state kept private to one assembly transaction."""
+
+    def __init__(
+        self,
+        path: Path,
+        descriptor: int,
+        previous: os.stat_result | None,
+    ) -> None:
+        self.path = path
+        self.descriptor = descriptor
+        self.previous = previous
+        self.temporary: str | None = None
+        self.backup: str | None = None
+        self.published = False
+
+
+def _rollback(states: Sequence[_OutputState], cause: BaseException) -> AssemblyError:
+    failures: list[str] = []
+    restored_directories: set[int] = set()
+    for state in reversed(states):
+        if not state.published:
+            continue
+        try:
+            if state.backup is None:
+                os.unlink(state.path.name, dir_fd=state.descriptor)
+            else:
+                os.replace(
+                    state.backup,
+                    state.path.name,
+                    src_dir_fd=state.descriptor,
+                    dst_dir_fd=state.descriptor,
+                )
+                state.backup = None
+            state.published = False
+            restored_directories.add(state.descriptor)
+        except OSError as exc:
+            recovery = state.backup
+            if recovery is not None:
+                # Do not let the outer cleanup destroy the only recovery copy.
+                state.backup = None
+                failures.append(f"{state.path}: {exc} (previous inode preserved as {recovery})")
+            else:
+                failures.append(f"{state.path}: {exc}")
+    for descriptor in restored_directories:
+        with suppress(OSError):
+            os.fsync(descriptor)
+    message = f"could not publish a consistent output set: {cause}"
+    if failures:
+        message += "; rollback also failed: " + "; ".join(failures)
+    return AssemblyError(message)
+
+
 def assemble(raw_path: Path, preamble_path: Path, output_paths: Sequence[Path]) -> None:
-    """Assemble one payload and atomically publish it to every output path."""
+    """Assemble one payload with atomic per-name replacement and set rollback."""
 
     if not output_paths:
         raise AssemblyError("at least one output path is required")
@@ -170,36 +358,67 @@ def assemble(raw_path: Path, preamble_path: Path, output_paths: Sequence[Path]) 
     payload = preamble + raw
 
     opened: dict[Path, tuple[int, os.stat_result]] = {}
-    pending: list[tuple[int, str]] = []
+    states: list[_OutputState] = []
     try:
         for output in absolute_outputs:
             parent = output.parent
             if parent not in opened:
                 opened[parent] = _open_output_parent(output)
             descriptor, _ = opened[parent]
-            _validate_output(descriptor, output.name)
+            states.append(
+                _OutputState(output, descriptor, _validate_output(descriptor, output.name))
+            )
 
-        for output in absolute_outputs:
-            descriptor, _ = opened[output.parent]
-            pending.append((descriptor, _create_temp(descriptor, output.name, payload)))
+        for state in states:
+            state.temporary = _create_temp(state.descriptor, state.path.name, payload)
+        for state in states:
+            if state.previous is not None:
+                state.backup = _create_backup(
+                    state.descriptor,
+                    state.path.name,
+                    state.previous,
+                )
+        for state in states:
+            _assert_previous_output(
+                state.descriptor,
+                state.path.name,
+                state.previous,
+                state.backup,
+            )
 
-        for output in absolute_outputs:
-            descriptor, temporary = pending[0]
-            os.replace(temporary, output.name, src_dir_fd=descriptor, dst_dir_fd=descriptor)
-            pending.pop(0)
-            written = os.stat(output.name, dir_fd=descriptor, follow_symlinks=False)
-            if not stat.S_ISREG(written.st_mode) or stat.S_IMODE(written.st_mode) != 0o755:
-                raise AssemblyError(f"atomic output has unexpected mode: {output}")
+        try:
+            for state in states:
+                assert state.temporary is not None
+                os.replace(
+                    state.temporary,
+                    state.path.name,
+                    src_dir_fd=state.descriptor,
+                    dst_dir_fd=state.descriptor,
+                )
+                state.temporary = None
+                state.published = True
+                _verify_published(state.descriptor, state.path.name, payload)
 
-        for parent, (descriptor, opened_info) in opened.items():
+            for parent, (descriptor, opened_info) in opened.items():
+                os.fsync(descriptor)
+                named = os.stat(parent, follow_symlinks=False)
+                if _directory_identity(opened_info) != _directory_identity(named):
+                    raise AssemblyError(f"output directory changed during assembly: {parent}")
+        except BaseException as exc:
+            raise _rollback(states, exc) from exc
+
+        for state in states:
+            if state.backup is not None:
+                _unlink_if_present(state.descriptor, state.backup)
+                state.backup = None
+        for descriptor, _ in opened.values():
             os.fsync(descriptor)
-            named = os.stat(parent, follow_symlinks=False)
-            if _directory_identity(opened_info) != _directory_identity(named):
-                raise AssemblyError(f"output directory changed during assembly: {parent}")
     finally:
-        for descriptor, temporary in pending:
-            with suppress(FileNotFoundError):
-                os.unlink(temporary, dir_fd=descriptor)
+        for state in states:
+            if state.temporary is not None:
+                _unlink_if_present(state.descriptor, state.temporary)
+            if state.backup is not None:
+                _unlink_if_present(state.descriptor, state.backup)
         for descriptor, _ in opened.values():
             os.close(descriptor)
 

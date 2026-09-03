@@ -163,7 +163,17 @@ def test_pyz_build_is_hermetic_against_dependency_and_permission_drift():
     assert "path.chmod(0o644)" in script
     assert "path.chmod(0o755)" in script
     assert "symbolic link is not allowed in the ZipApp" in script
-    assert "python3 scripts/assemble_pyz.py" in script
+    assert '"$build_python" - "$SITE" <<\'PY\'' in script
+    assert '"$build_python" - "$TOOLS" <<\'PY\'' in script
+    assert '"$build_python" scripts/assemble_pyz.py' in script
+
+    resolved_build = script.split('build_python="$(uv python find "$PY_TARGET")"', 1)[1]
+    assert "python3" not in resolved_build
+
+    published_checks = resolved_build.split('"$build_python" scripts/assemble_pyz.py', 1)[1]
+    assert 'cmp -s "$OUT" "$ROOT/dist/ici"' in published_checks
+    assert "stat" in published_checks
+    assert re.search(r"(?:0o755|0755|755)", published_checks)
 
 
 def test_every_setup_uv_step_pins_the_build_tool_version():
