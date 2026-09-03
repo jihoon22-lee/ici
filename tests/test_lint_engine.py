@@ -5,8 +5,15 @@ from pathlib import Path
 import pytest
 
 from ici.core.findings import findings_for_result
-from ici.core.models import EngineStatus, EvidenceState, FindingCategory, FindingConfidence
+from ici.core.models import (
+    EngineStatus,
+    EvidenceState,
+    FindingCategory,
+    FindingConfidence,
+    InspectionTarget,
+)
 from ici.core.runner import ProcessResult
+from ici.engines._cpp_diagnostics import CppDiagnostic
 from ici.engines.lint import LintEngine
 
 
@@ -19,6 +26,52 @@ def _use_ruff(monkeypatch):
         "ici.engines.lint.shutil.which",
         lambda name: "/usr/bin/ruff" if name == "ruff" else None,
     )
+
+
+@pytest.mark.parametrize(
+    ("family", "rule", "category"),
+    [
+        ("compiler", "cert-env33-c", FindingCategory.CORRECTNESS),
+        ("unknown", "clang-analyzer-security.insecureapi", FindingCategory.CORRECTNESS),
+        ("clang-analyzer", "clang-analyzer-core.NullDereference", FindingCategory.CORRECTNESS),
+        ("clang-analyzer", "clang-analyzer-security.insecureAPI.strcpy", FindingCategory.SECURITY),
+        ("clang-analyzer", "clang-analyzer-alpha.security.ArrayBoundV2", FindingCategory.SECURITY),
+        ("clang-analyzer", "clang-analyzer-cplusplus.NewDeleteLeaks", FindingCategory.RESOURCE),
+        ("clang-analyzer", "clang-analyzer-unix.Malloc", FindingCategory.RESOURCE),
+        ("clang-tidy", "CERT-ENV33-C", FindingCategory.SECURITY),
+        ("clang-tidy", "android-cloexec-open", FindingCategory.SECURITY),
+        ("clang-tidy", "bugprone-dangling-handle", FindingCategory.RESOURCE),
+        ("clang-tidy", "bugprone-use-after-move", FindingCategory.RESOURCE),
+        ("clang-tidy", "cppcoreguidelines-owning-memory", FindingCategory.RESOURCE),
+        ("clang-tidy", "bugprone-infinite-loop", FindingCategory.CORRECTNESS),
+        ("clang-tidy", "portability-simd-intrinsics", FindingCategory.COMPATIBILITY),
+        ("clang-tidy", "modernize-deprecated-headers", FindingCategory.COMPATIBILITY),
+        ("clang-tidy", "modernize-use-nullptr", FindingCategory.MAINTAINABILITY),
+        ("clazy", "clazy-lifetime-issue", FindingCategory.RESOURCE),
+        ("clazy", "clazy-qobject-cast", FindingCategory.RESOURCE),
+        ("clazy", "clazy-qt6-deprecated-api-fixes", FindingCategory.COMPATIBILITY),
+        ("clazy", "clazy-connect-non-signal", FindingCategory.CORRECTNESS),
+        ("clazy", "clazy-not-lifetime", FindingCategory.MAINTAINABILITY),
+        ("clazy", "clazy-range-loop-detach", FindingCategory.MAINTAINABILITY),
+    ],
+)
+def test_cpp_diagnostic_categories_use_only_bounded_rule_names(
+    family: str,
+    rule: str,
+    category: FindingCategory,
+) -> None:
+    diagnostic = CppDiagnostic(
+        target=InspectionTarget(
+            file_path="src/main.cpp",
+            start_line=1,
+            status=EngineStatus.WARN,
+            message="free-form text must not affect the category",
+        ),
+        tool_rule_id=rule,
+        family=family,
+    )
+
+    assert LintEngine._cpp_finding_category(diagnostic) is category
 
 
 def test_cpp_source_scope_does_not_activate_python_lint(tmp_cpp_project, monkeypatch):
@@ -888,6 +941,9 @@ def test_cpp_warning_context_is_kept_as_a_finding(tmp_cpp_project, monkeypatch):
     assert target.start_line == 3
     assert result.extra["cpp_fixits_total"] == 1
     assert result.extra["cpp_fixits"][0]["replacement"] == ""
+    assert result.extra["cpp_diagnostic_category_policy"] == "tool-rule-v1"
+    assert result.extra["cpp_diagnostic_categories"]["correctness"] == 1
+    assert sum(result.extra["cpp_diagnostic_categories"].values()) == 1
     findings = findings_for_result(result, tmp_cpp_project)
     assert len(findings) == 1
     assert findings[0].category is FindingCategory.CORRECTNESS

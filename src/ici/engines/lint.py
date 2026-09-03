@@ -38,6 +38,64 @@ _RUFF_REFORMAT_SUMMARY_RE = re.compile(
 _RUFF_WARNING_RE = re.compile(r"^warning:\s+\S.*$")
 _RUFF_FORMAT_PREVIEW_ONLY_RE = re.compile(r"only respected in preview mode", re.IGNORECASE)
 
+_CPP_DIAGNOSTIC_CATEGORY_POLICY = "tool-rule-v1"
+_CLANG_SECURITY_PREFIXES = (
+    "clang-analyzer-security.",
+    "clang-analyzer-alpha.security.",
+)
+_CLANG_TIDY_SECURITY_PREFIXES = ("cert-", "android-cloexec-")
+_CLANG_RESOURCE_RULES = frozenset(
+    {
+        "clang-analyzer-cplusplus.innerpointer",
+        "clang-analyzer-cplusplus.newdelete",
+        "clang-analyzer-cplusplus.newdeleteleaks",
+        "clang-analyzer-cplusplus.smartptr",
+        "clang-analyzer-osx.cocoa.retaincount",
+        "clang-analyzer-unix.malloc",
+        "clang-analyzer-unix.mismatcheddeallocator",
+        "clang-analyzer-webkit.nouncountedmemberchecker",
+        "bugprone-dangling-handle",
+        "bugprone-dangling-reference",
+        "bugprone-use-after-move",
+        "cppcoreguidelines-owning-memory",
+        "misc-new-delete-overloads",
+    }
+)
+_CLANG_TIDY_CORRECTNESS_RULES = frozenset(
+    {
+        "bugprone-infinite-loop",
+        "bugprone-suspicious-memory-comparison",
+        "bugprone-unchecked-optional-access",
+    }
+)
+_CLAZY_RESOURCE_STEMS = (
+    "clazy-lifetime",
+    "clazy-ownership",
+    "clazy-parent-less",
+    "clazy-qobject-cast",
+)
+_CLAZY_COMPATIBILITY_STEMS = (
+    "clazy-qt6",
+    "clazy-deprecated",
+    "clazy-qstring-arg",
+    "clazy-qt-keyword",
+)
+_CLAZY_CORRECTNESS_STEMS = (
+    "clazy-qobject",
+    "clazy-connect",
+    "clazy-signal",
+    "clazy-slot",
+    "clazy-qevent-cast",
+)
+
+
+def _matches_rule_stem(rule: str, stems: tuple[str, ...]) -> bool:
+    """Match a normalized rule stem without accepting arbitrary substrings."""
+
+    return any(
+        rule == stem or rule.startswith(f"{stem}-") or rule.startswith(f"{stem}.") for stem in stems
+    )
+
 
 def _parse_ruff_warning_blocks(stderr: str) -> tuple[list[str], str | None]:
     """Parse Ruff's line-oriented warning blocks without accepting arbitrary stderr."""
@@ -205,6 +263,14 @@ class LintEngine(BaseEngine):
                     )
                     for family in ("compiler", "clang-tidy", "clang-analyzer", "clazy")
                 },
+                "cpp_diagnostic_category_policy": _CPP_DIAGNOSTIC_CATEGORY_POLICY,
+                "cpp_diagnostic_categories": {
+                    category.value: sum(
+                        self._cpp_finding_category(diagnostic) is category
+                        for diagnostic in self._cpp_diagnostics
+                    )
+                    for category in FindingCategory
+                },
                 "cpp_fixits": [
                     {
                         "family": primary.family,
@@ -333,18 +399,33 @@ class LintEngine(BaseEngine):
 
     @staticmethod
     def _cpp_finding_category(diagnostic: CppDiagnostic) -> FindingCategory:
-        if diagnostic.family != "clazy":
-            return (
-                FindingCategory.MAINTAINABILITY
-                if diagnostic.family == "clang-tidy"
-                else FindingCategory.CORRECTNESS
-            )
+        family = diagnostic.family.casefold()
         rule = diagnostic.tool_rule_id.casefold()
-        if any(token in rule for token in ("lifetime", "ownership", "parent-less", "qobject-cast")):
+
+        if family == "compiler":
+            return FindingCategory.CORRECTNESS
+        if family in {"clang-analyzer", "clang-tidy"}:
+            if rule.startswith(_CLANG_SECURITY_PREFIXES) or (
+                family == "clang-tidy" and rule.startswith(_CLANG_TIDY_SECURITY_PREFIXES)
+            ):
+                return FindingCategory.SECURITY
+            if rule in _CLANG_RESOURCE_RULES:
+                return FindingCategory.RESOURCE
+            if family == "clang-analyzer":
+                return FindingCategory.CORRECTNESS
+            if rule.startswith("portability-") or rule == "modernize-deprecated-headers":
+                return FindingCategory.COMPATIBILITY
+            if rule in _CLANG_TIDY_CORRECTNESS_RULES:
+                return FindingCategory.CORRECTNESS
+            return FindingCategory.MAINTAINABILITY
+
+        if family != "clazy":
+            return FindingCategory.CORRECTNESS
+        if _matches_rule_stem(rule, _CLAZY_RESOURCE_STEMS):
             return FindingCategory.RESOURCE
-        if any(token in rule for token in ("qt6", "deprecated", "qstring-arg", "qt-keyword")):
+        if _matches_rule_stem(rule, _CLAZY_COMPATIBILITY_STEMS):
             return FindingCategory.COMPATIBILITY
-        if any(token in rule for token in ("qobject", "connect", "signal", "slot", "qevent-cast")):
+        if _matches_rule_stem(rule, _CLAZY_CORRECTNESS_STEMS):
             return FindingCategory.CORRECTNESS
         return FindingCategory.MAINTAINABILITY
 
