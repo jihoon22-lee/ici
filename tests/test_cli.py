@@ -538,7 +538,7 @@ def test_cli_dead_off_skips_compilation_context_preflight(tmp_path, monkeypatch)
     result = runner.invoke(app, ["dead"])
 
     assert result.exit_code == 2
-    assert "C++ unused-function analysis disabled by policy" in result.output
+    assert "C++ dead-code analysis disabled by policy" in result.output
 
 
 @pytest.mark.parametrize(
