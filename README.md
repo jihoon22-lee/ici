@@ -599,6 +599,28 @@ ici verify --report --html verify_report.html --open
 ./scripts/smoke.sh        # 격리 환경 스모크 테스트
 ```
 
+`build-pyz.sh`는 `uv.lock`을 단일 의존성 원천으로 사용하는 hermetic 재현 빌드입니다. 잠긴
+runtime 그룹은 `--no-dev`로 내보내고, wheel/ZipApp을 만드는 `package` 그룹은 별도로
+`--only-group package`로 내보냅니다. 두 requirements 파일 모두 lock에 기록된 hash를
+포함하며 `uv pip install --require-hashes`로 검증됩니다. 현재 package 그룹은
+`hatchling`과 `shiv==1.0.8`이고, 이 도구들은 `build/package-tools`에만 설치되어
+배포 runtime에 들어가지 않습니다. 프로젝트 wheel은 Python 3.10 대상으로 만든 뒤 runtime
+site-packages에 의존성 없이 넣습니다.
+
+빌드가 호출자의 환경에 좌우되지 않도록 `SOURCE_DATE_EPOCH=1700000000`(UTC
+`2023-11-14 22:13:20`), `PYTHONHASHSEED=0`, `TZ=UTC`, `umask 022`를 고정합니다.
+머신별 `direct_url.json`/`uv_cache.json`/`uv_build.json`, target `.lock`, 실행 파일
+링크는 제거되며, 설치된 runtime·bootstrap 입력 파일은 `0644`, directory는 `0755`로
+정규화됩니다. symlink·special file은 fail-closed로 거부되고 launcher가 붙은 최종
+`dist/ici.pyz`만 실행 권한 `0755`를 갖습니다.
+
+재현성 검증은 `scripts/verify-reproducibility.sh`가 의도적으로 서로 다른 환경에서 두 번
+빌드하는 방식입니다. 첫 빌드는 `umask 077`, `SOURCE_DATE_EPOCH=1`,
+`PYTHONHASHSEED=random`, `TZ=Pacific/Honolulu`, 두 번째 빌드는 `umask 002`,
+`SOURCE_DATE_EPOCH=4102444800`, `PYTHONHASHSEED=123`, `TZ=Asia/Seoul`을 사용합니다.
+두 SHA-256이 같아야 하며, verifier는 모든 ZipApp member의 canonical epoch/mode, shiv
+environment timestamp, `site-packages/.lock` 부재와 git source status 불변도 확인합니다.
+
 ### 3. 기준선 비교와 delta gate
 
 ```bash

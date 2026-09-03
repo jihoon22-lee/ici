@@ -138,6 +138,29 @@ def test_ci_builds_pyz_twice_and_rejects_project_mutation():
     assert "second_sha256=$(sha256sum dist/ici.pyz" in script
     assert "git status --porcelain=v1 --untracked-files=all" in script
     assert '[[ "$status_before" != "$status_after" ]]' in script
+    assert "umask 077" in script
+    assert "umask 002" in script
+    assert "SOURCE_DATE_EPOCH=1" in script
+    assert "SOURCE_DATE_EPOCH=4102444800" in script
+    assert "ZipApp members do not use the canonical archive timestamp" in script
+
+
+def test_pyz_build_is_hermetic_against_dependency_and_permission_drift():
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "build-pyz.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "readonly CANONICAL_SOURCE_DATE_EPOCH=1700000000" in script
+    assert 'export SOURCE_DATE_EPOCH="$CANONICAL_SOURCE_DATE_EPOCH"' in script
+    assert "umask 022" in script
+    assert script.count("uv export --quiet --frozen") == 2
+    assert script.count("--require-hashes") == 2
+    assert script.count("--link-mode copy") == 3
+    assert "--only-group package" in script
+    assert "--with shiv" not in script
+    assert "path.chmod(0o644)" in script
+    assert "path.chmod(0o755)" in script
+    assert "symbolic link is not allowed in the ZipApp" in script
 
 
 def test_pyz_build_requires_every_public_json_schema():
