@@ -120,13 +120,19 @@ identities all matched, including `workflow_name`, `head_branch`, attempts, and 
 URLs. The observed v7 upload ZIP preserved these modes; an earlier generic assumption that upload
 ZIPs lose modes does not apply to this artifact.
 
-This closes the remote producer only. The separate ici-hosted
-`candidate-quality-zoo.yml` workflow now defines the manual consumer path: it injects the verified
-candidate by local path into a read-only Quality Zoo run while every toy PR's normal gate remains
-pinned to released ici `v0.10.2`. No remote candidate-consumer dispatch has been accepted yet, so
-this workflow must not be read as additional Q0 evidence. The released-artifact Q0 result may be
-linked or added as a section of the existing `<!-- ici-report -->` body, but must preserve exactly
-one sticky comment rather than creating a second marker/comment.
+This closes the remote producer. The separate ici-hosted `candidate-quality-zoo.yml` workflow
+defines the manual consumer path: it injects the verified candidate by local path into a read-only
+Quality Zoo run while every toy PR's normal gate remains pinned to released ici `v0.10.2`. The first
+exact-revision candidate acceptance completed at run `33710695336` for the existing sanitizer
+contract; it does not cover this newer category taxonomy or Qt scenario. The released-artifact Q0
+result may be linked or added as a section of the existing `<!-- ici-report -->` body, but must
+preserve exactly one sticky comment rather than creating a second marker/comment.
+
+The consumer job provisions `clang`, `clang-tidy`, `clazy`, `cmake`, `g++`, `pkg-config`, and
+`qt6-base-dev` on its runner so a future Qt lifetime/C++ static-analysis scenario can execute.
+Provisioning and candidate preflight/execution do not use GitHub credentials; local purity coverage
+is `31 passed` and actionlint passes. A new candidate dispatch for this feature head and the Qt
+lifetime expectation remains pending.
 
 ### Candidate-to-Quality-Zoo acceptance (manual, not a release)
 
@@ -155,8 +161,9 @@ GitHub evidence, and Quality Zoo results.
 
 This path does not run `publish`, publish Pages, write or update a PR comment, or alter the stable
 version/release. The existing released-artifact Q0 acceptance and its single sticky
-`<!-- ici-report -->` comment remain the normal toy CI boundary; candidate acceptance stays pending
-until this workflow is dispatched against exact current ici/toy commits and its evidence is audited.
+`<!-- ici-report -->` comment remain the normal toy CI boundary. Each new candidate scope is
+accepted only after a dispatch against its exact ici/toy commits and an independent evidence audit;
+an older accepted candidate is not evidence for a newer feature head.
 
 ### 릴리스 정책
 
@@ -240,7 +247,7 @@ until this workflow is dispatched against exact current ici/toy commits and its 
    - `ici doctor`는 전체 tool registry를 한 번의 bounded probe snapshot으로 수집하고, 필요한 이유(`engine:language` 또는 `doctor.config`)와 missing/incomplete 상태를 함께 보여 줍니다. `ici doctor --json`의 `capability_inventory`는 status·counts·version/path/details/evidence를 담는 machine-readable 계약이며, 기존 `tools` map도 유지합니다.
    - `ici verify`도 유효한 support matrix의 `applicable`·`enabled` 범위와 `doctor.config`에서 required/optional 정책을 계산한 뒤, 엔진 실행 전에 같은 registry를 정확히 한 번 수집합니다. suite root의 선택적 `capability_inventory`를 console/Markdown/zero-CDN HTML reporter가 그대로 공유하므로 reporter가 도구를 재탐지하지 않습니다. required provenance 우선 규칙과 모든 provenance, capability 메타데이터·probe argv/evidence redaction을 보존하며, 콘솔은 요약하고 Markdown은 전체 inventory를 접어 보여 주고 HTML은 Support & Capabilities 탭에 전체 행을 표시합니다. 기존 inventory 없는 `ici.result/v3` 리포트도 계속 읽을 수 있습니다.
 8. **사용자 로컬 분석 캐시**:
-   - `ici verify`는 프로젝트 루트·소스/빌드 설정 내용·effective ici 설정·toolchain 버전·컴파일 DB digest/parse state·엔진 구현·build variant·ici 버전을 포함한 `ici.analysis-cache-key/v3`로 완료된 엔진 결과를 재사용합니다. compilation database digest는 preflight가 immutable context로 캡처한 snapshot을 식별하는 값이며 live-file lease가 아닙니다. DB가 변경되면 다음 preflight에서 새 digest와 context를 캡처합니다. 엔진 구현 identity에는 engine class source digest와 `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest 목록이 포함되며, C++ lint는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen`, `ici.engines.lint`를, cycle은 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`을, complexity는 `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`, `ici.engines.cpp_text`를 명시합니다. `.ui`/`.qrc`도 선언된 source suffix로 digest되며, 기본 위치는 `~/.cache/ici/analysis/`이고 remote/shared cache는 사용하지 않습니다.
+   - `ici verify`는 프로젝트 루트·소스/빌드 설정 내용·effective ici 설정·toolchain 버전·컴파일 DB digest/parse state·엔진 구현·build variant·ici 버전을 포함한 `ici.analysis-cache-key/v3`로 완료된 엔진 결과를 재사용합니다. compilation database digest는 preflight가 immutable context로 캡처한 snapshot을 식별하는 값이며 live-file lease가 아닙니다. DB가 변경되면 다음 preflight에서 새 digest와 context를 캡처합니다. 엔진 구현 identity에는 engine class source digest와 `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest 목록이 포함되며, C++ lint는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostic_categories`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen`, `ici.engines.lint`를, cycle은 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`을, complexity는 `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`, `ici.engines.cpp_text`를 명시합니다. `.ui`/`.qrc`도 선언된 source suffix로 digest되며, 기본 위치는 `~/.cache/ici/analysis/`이고 remote/shared cache는 사용하지 않습니다.
    - 완전한 `PASS`/`WARN`/`FAIL`은 저장할 수 있지만 `ERROR`/`SKIP`/`NOT_RUN`, timeout·truncation·tool error 및 invalid artifact는 저장하지 않습니다. 단, `dead` 엔진은 C++ compiler probe의 외부/generated include closure와 compiler binary content가 cache v3에 완전히 표현되지 않으므로 exact 결과 재사용을 항상 비활성화합니다. `dead`는 cache key/entry를 만들지 않고 매번 새로 실행되며, hybrid/Python-only 실행도 같은 경계를 따릅니다. `--no-cache`, `ici cache`, `ici cache --clear`로 실행별 비활성화·inventory·정리를 제어합니다.
    - v3 engine JSON의 optional `cache_hit`/nullable `cache_key`는 기존 archive 소비자와 호환되며, 캐시는 프로젝트 소스를 변경하지 않고 atomic local entry만 씁니다. 새 entry는 0700/0600 권한 경계를 사용하고, symlink·duplicate key·NaN/Infinity·32 MiB 초과 payload를 거부합니다.
 
@@ -270,7 +277,15 @@ lint의 target/finding/count에는 primary만 포함됩니다. 관련 위치·�
 `Finding.related_locations`로, note fix-it은 primary remediation과 `extra` metadata로
 보존되고, canonical related-location 순서는 path·region·label 기준으로 결정됩니다. JSON/HTML은
 전체 related evidence를 보존하며 GitHub Markdown은 engine당 100개로 bounded하게 표시합니다.
-`clang-analyzer-*`는 `CORRECTNESS`, 일반 clang-tidy check는 `MAINTAINABILITY` finding으로 분리합니다.
+C++ diagnostic category projection은 isolated `_cpp_diagnostic_categories.py`의
+`tool-rule-v1`로 고정하며 free-form message가 아니라 normalized `family`와 `tool_rule_id`만
+사용합니다. recognized family별 ordered security/resource/compatibility/correctness rules 뒤에
+보수적인 fallback을 적용하고, clazy stem은 exact stem 또는 `-`/`.` child만 인정합니다. 결과
+`extra`에는 policy ID와 모든 category count가 함께 기록되며, helper source는 lint cache
+identity에 포함됩니다. 정확한 precedence와 rule 목록은
+[사용자 가이드](docs/user-guide.md#c-diagnostic-category-policy)가 canonical reference입니다.
+관련 focused C++ lint/tidy/clazy set은 `160 passed`, cache identity/store set은 `51 passed`인
+local evidence입니다.
 compiler와 clang-tidy adapter는 각각 최대 2,048 units, unit당 120초, 전체 600초 global budget을 적용하며
 초과분은 실행하지 않고 `ERROR`/`NOT_RUN`으로 기록합니다. 자세한 설정과
 evidence 계약은 [사용자 가이드](docs/user-guide.md#c-clang-tidy-정책)와
@@ -300,9 +315,19 @@ covered production unit을 replay하며 compilation database를 다시 읽거나
 사용하지 않습니다. stdout/stderr는 strict bounded clazy text parser가 일반 compiler warning도
 형식 검증 후 중복 보고 없이 제외하고, `-Wclazy-*` rule ID와
 child/note 위치를 보존해 `family = "clazy"`, `ToolEvidence`, project-relative target으로
-정규화합니다. lifetime/ownership은 `RESOURCE`, Qt6/deprecated/QString API는 `COMPATIBILITY`,
-QObject/connect/signal/slot은 `CORRECTNESS`, 그 밖의 clazy check는 `MAINTAINABILITY` finding으로
-매핑하며 fix-it은 자동 적용하지 않습니다.
+정규화합니다. `tool-rule-v1`은 normalized rule이 exact stable rule이거나 bounded stem 자체,
+또는 `-`/`.`로 이어지는 child일 때만 매칭합니다. resource는
+`clazy-lifetime`/`clazy-ownership`/`clazy-parent-less`/`clazy-qobject-cast` bounded stem과
+`clazy-connect-3arg-lambda`, `clazy-ctor-missing-parent-argument`,
+`clazy-lambda-in-connect`, `clazy-post-event`, `clazy-returning-data-from-temporary`,
+`clazy-temporary-iterator` exact rules, compatibility는 `clazy-qt6`/`clazy-deprecated`/
+`clazy-qstring-arg`/`clazy-qt-keyword` bounded stem과 `clazy-modernize-overloaded-connects`,
+`clazy-no-module-include`, `clazy-old-style-connect`, `clazy-qenums`, `clazy-qstring-ref`,
+`clazy-use-chrono-in-qtimer` exact rules, correctness는 `clazy-qobject`/`clazy-connect`/
+`clazy-signal`/`clazy-slot`/`clazy-qevent-cast` bounded stem과 stable correctness exact rules로
+매핑합니다. Resource row가
+correctness row보다 우선하며, arbitrary substring만 포함한 rule과 미매칭 rule은
+`MAINTAINABILITY`로 안전하게 귀결됩니다. fix-it은 자동 적용하지 않습니다.
 
 clazy adapter는 최대 2,048 translation units, unit당 120초, 전체 600초 global budget과
 1,000,000자 output bound를 공유합니다. context/coverage/replay/parse/process 오류와 timeout,

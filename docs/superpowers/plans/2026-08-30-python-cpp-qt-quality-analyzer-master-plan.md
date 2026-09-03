@@ -724,7 +724,8 @@ v0.8.0 public projection에서 16 unit·6 target·14 field group mismatch 0으�
 
 현재 cache key는 `ici.analysis-cache-key/v3`이며, I3-4 engine class가
 `CACHE_IMPLEMENTATION_MODULES`로 명시한 helper/dependency module source digest의 sorted
-unique 목록을 implementation identity에 포함한다. C++ lint/cycle 선언에는
+unique 목록을 implementation identity에 포함한다. C++ lint 선언에는 isolated
+`ici.engines._cpp_diagnostic_categories` taxonomy helper가 포함되고, cycle 선언에는
 `ici.core._cpp_replay_policy`와 `ici.engines._cpp_include_trace`가 포함된다. I3-1~I3-3 절의 당시 v2 compilation
 context/cache 문구는 과거 evidence이므로 변경하지 않는다.
 
@@ -914,8 +915,9 @@ bounded argv/output/unit/global budget이다. missing 또는 malformed context/o
 mismatch, timeout/truncation, spawn/검증 불가능한 종료와 budget 초과는 조용한 heuristic fallback
 없이 `ERROR`/`NOT_RUN`으로 fail-closed한다. optional `auto`의 tool 부재는 분석을 무효화하지
 않는 경고로, `required`의 tool 부재는 오류로 남긴다. lint cache implementation identity에는
-`ici.engines._clang_tidy`와 `ici.engines._cpp_diagnostics`를 포함한 declared helper source
-digest가 들어가고, project `.clang-tidy`도 input identity에 포함된다.
+`ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostic_categories`와
+`ici.engines._cpp_diagnostics`를 포함한 declared helper source digest가 들어가고, project
+`.clang-tidy`도 input identity에 포함된다.
 
 compiler와 clang-tidy는 각각 최대 2,048 units, unit당 120초, 전체 600초로 제한한다. context
 자체 error가 있으면 compiler replay도 시작하지 않는다. GCC의 위치 없는 command-line/ICE
@@ -1374,6 +1376,17 @@ I4 전체 checkpoint를 닫지 않는다.
   검증한다.
 - [ ] Qt lifetime/ownership scenario와 broader resource/lifetime/security taxonomy를 검증한다.
 
+**C++ diagnostic category slice (feature-head acceptance pending):** normalized
+`family`/`tool_rule_id`만 사용하는 isolated `_cpp_diagnostic_categories.py`의 보수적
+`tool-rule-v1` projection을 현재 작업 브랜치에 담는다. free-form message는 입력하지 않고,
+family별 ordered rules와 bounded clazy stems 뒤에 보수적인 fallback을 적용한다. 정확한 rule
+목록과 precedence는 [사용자 가이드](../../user-guide.md#c-diagnostic-category-policy)를
+canonical reference로 삼는다. lint `extra`에는 policy ID와 모든 category count가 포함되고,
+분류 helper source는 cache identity에 반영된다. focused C++ lint/tidy/clazy `160 passed`, cache
+identity/store `51 passed`, Ruff PASS를 확인했지만 이 feature head의 PR/main/Quality Zoo
+acceptance는 아직 없으므로 위 mapping checkbox는 완료로 표시하지 않는다. 이전 sanitizer
+candidate acceptance는 해당 exact scope의 별도 증거이며, 버전 변경이나 release는 없다.
+
 ---
 
 ## 11. I5 — Python 정밀 분석과 호환성
@@ -1602,7 +1615,10 @@ candidate·broader Q1–Q5·I4 aggregate·version/release는 완료 처리하지
   candidate provenance의 Actions run/check/job evidence를 독립 API 응답으로 재검증한 뒤
   검증된 local `ici.pyz`를 Quality Zoo runner에 전달한다. candidate preflight와 실행은
   publication/OIDC/runtime credential 없이 수행하고, preflight/intake/API evidence/runner
-  결과는 별도 14일 acceptance artifact로 남긴다. 이 구현은 `publish`, Pages, PR comment,
+  결과는 별도 14일 acceptance artifact로 남긴다. 현재 기능 브랜치는 후속 Qt lifetime/C++
+  static-analysis scenario를 위해 hosted runner에 `clang`, `clang-tidy`, `clazy`, `cmake`, `g++`,
+  `pkg-config`, `qt6-base-dev`도 준비한다. CI provisioning과 별개로 candidate preflight/실행에는
+  `GH_TOKEN`/`GITHUB_TOKEN`을 사용하지 않으며, workflow는 `publish`, Pages, PR comment,
   `<!-- ici-report -->` marker 또는 version/release를 만들지 않는다.
 - [x] 위 workflow를 exact ici workflow-main `6df011f98be1a19092b112cb56c596dc35bcae4d`와
   exact toy `main` `2d0d7c0b2dcc137a782d6042438fc287bffdf570`에 실제 dispatch하고, [acceptance
@@ -1621,6 +1637,10 @@ candidate·broader Q1–Q5·I4 aggregate·version/release는 완료 처리하지
   sanitizer-clean `PASS`/`MEASURED`/`high` `tests/test_clean.cpp:1`, Python existing case `WARN`을
   기록했다. 각 toy PR의 normal gate는 계속 released ici `v0.10.2` pin을 유지하며, 이
   workflow는 Pages/comment/publish/tag/release/version side effect를 만들지 않는다.
+- [ ] 새 category taxonomy와 Qt tool provisioning을 포함한 feature head로 candidate를 만들고,
+  Qt lifetime expectation이 포함된 exact toy `main`에 다시 dispatch해 resource category와
+  expected rule/location 및 clean-path absence를 감사한다. 위 기존 sanitizer acceptance를 이
+  새 feature-head acceptance의 근거로 재사용하지 않는다.
 - [x] released ici `v0.10.2`를 사용하는 Q0 quality-zoo scenario runner와 report/artifact
   contract를 toy-projects PR #49에서 수락했다. [PR run `33693241255`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33693241255)는
   green이고 [artifact `9870829400`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9870829400)는

@@ -98,6 +98,7 @@ ici/
 │       │   ├── line.py              # 코드/주석/공백 분석 및 트리 구조 생성
 │       │   ├── lint.py              # Ruff 및 GCC/Clang/clang-tidy/clazy 린터 facade
 │       │   ├── _cpp_diagnostics.py  # bounded GCC/Clang/clang-tidy/clazy diagnostic parser
+│       │   ├── _cpp_diagnostic_categories.py # isolated rule-only C++ category policy
 │       │   ├── _cpp_tooling.py      # 공통 compiler-tool argument/context helper
 │       │   ├── _clang_tidy.py       # exact-context clang-tidy adapter
 │       │   ├── _clazy.py            # exact-context Qt-aware clazy adapter
@@ -499,6 +500,13 @@ compiler와 sanitized argv를 공유하며, 결과는 legacy `InspectionTarget`,
   보존/표시합니다. optional `auto`에서 unavailable tool은 분석 결과를 무효화하지 않는 경고로,
   `required`에서는 실행 오류로 승격되며, compiler diagnostics와 analyzer findings의
   category/confidence/remediation은 서로 섞이지 않습니다.
+- C++ primary finding category는 isolated `_cpp_diagnostic_categories.py`의 `tool-rule-v1`
+  정책으로 투영되며 free-form diagnostic message가 아닌 normalized `family`와 `tool_rule_id`만
+  입력으로 사용합니다. compiler와 unknown family는 `CORRECTNESS`로 fallback하고, recognized
+  family별 ordered security/resource/compatibility/correctness exceptions 뒤에 보수적인
+  fallback을 적용합니다. lint `extra`에는 policy ID와 모든 v3 category의 primary diagnostic
+  count가 함께 남습니다. 정확한 ID 목록과 precedence table은
+  [사용자 가이드](user-guide.md#c-diagnostic-category-policy)에 고정합니다.
 - Clang 기반 clang-tidy/clazy replay가 compile database의 approved `g++`를 선택하면
   `_cpp_tooling`은 replay executable과 capability path의 resolved file identity를 비교합니다.
   일치할 때만 같은 GCC를 `c++`와 `c`로 각각 bounded `-E -x <lang> -v -` probe하고,
@@ -551,8 +559,14 @@ subtool forwarding으로 바뀌면 명령을 만들지 않고 `unsafe-tooling-wa
 
 `_cpp_diagnostics.py`의 clazy parser는 compiler text parser와 별도로 `-Wclazy-*` rule shape,
 located source/line/column, parent-note 관계를 bounded atomic하게 검증한다. `LintEngine`은
-clazy family를 독립적으로 집계하고 rule token을 correctness/resource/compatibility/
-maintainability category로 매핑한다. 함께 출력된 일반 compiler warning은 같은 bounded 문법으로
+clazy family를 독립적으로 집계하고 `tool-rule-v1`의 bounded stem과 stable exact rule set
+precedence로 category를 매핑한다. `clazy-lifetime`/`clazy-ownership`/`clazy-parent-less`/
+`clazy-qobject-cast` bounded stems와 stable resource rules는 `RESOURCE`, `clazy-qt6`/
+`clazy-deprecated`/`clazy-qstring-arg`/`clazy-qt-keyword` bounded stems와 stable compatibility
+rules는 `COMPATIBILITY`, `clazy-qobject`/`clazy-connect`/`clazy-signal`/`clazy-slot`/
+`clazy-qevent-cast` bounded stems와 stable correctness rules는 `CORRECTNESS`, 나머지는
+`MAINTAINABILITY`이다. stem 자체 또는 `-`/`.` child만 인정하고 arbitrary substring은
+분류하지 않으며 resource row가 correctness row보다 우선한다. 함께 출력된 일반 compiler warning은 같은 bounded 문법으로
 원자 검증한 뒤 compiler lint의 중복 finding을 만들지 않도록 제외한다. parser가 일부만 이해한
 output을 성공으로 남기지 않기
 때문에 malformed output, replay/context mismatch, process failure는 engine `ERROR`와
@@ -919,8 +933,9 @@ SHA-256 digest입니다.
 - engine descriptor와 engine class source digest, 그리고 engine class가
   `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest
   목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`,
-  `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostics`,
-  `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen` 포함;
+  `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostic_categories`,
+  `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`,
+  `ici.engines._qt_codegen` 포함;
   cycle에는 `ici.core._cpp_replay_policy`, `ici.engines._cpp_include_trace` 포함;
   complexity에는 `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`,
   `ici.core.cpp_replay`, `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`,
@@ -1055,9 +1070,10 @@ Quality Zoo runner에 전달하고, preflight/intake/API evidence/runner 결과�
 
 이 경계에서는 `publish`, Pages 배포, PR comment 또는 `<!-- ici-report -->` marker를 생성하지
 않는다. 따라서 toy PR의 normal gate는 계속 released ici `v0.10.2`를 사용하고, released
-artifact Q0 acceptance와 candidate consumer acceptance는 서로 다른 증거다. 현재 workflow
-구현은 manual/local contract이며, exact current ici/toy revisions를 대상으로 한 원격
-candidate acceptance run은 아직 pending이다.
+artifact Q0 acceptance와 candidate consumer acceptance는 서로 다른 증거다. 첫 sanitizer
+범위는 exact-revision remote acceptance를 완료했다. 이 feature head의 taxonomy/tool
+provisioning과 후속 Qt lifetime expectation은 아직 별도 candidate acceptance가 필요하며,
+이전 candidate evidence를 재사용하지 않는다.
 
 ## 5. 다중 리포터 계층 설계
 
