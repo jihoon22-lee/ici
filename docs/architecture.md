@@ -174,7 +174,9 @@ ici/
    않습니다. build entrypoint와 모든 packaging CI는 uv `0.12.5`를 요구합니다.
    `package` 그룹의 `hatchling`과 `shiv==1.0.8`은 `build/package-tools`에만 있고,
    runtime graph에는 dev 도구나 packaging tool이 섞이지 않습니다. Hatchling이 만든
-   project wheel 하나를 runtime site-packages에 `--no-deps`로 설치합니다.
+   project wheel 하나를 runtime site-packages에 `--no-deps`로 설치합니다. 빌드 스크립트는
+   선택한 Python 3.10+ helper interpreter를 package/build, cleanup, assembly
+   helper 전체에 사용하며 caller의 bare `python3`에 의존하지 않습니다.
 3. **Pure, stable package tree:** native extension(`*.so`, `*.pyd`, `*.dylib`),
    platform-dependent wheel tag, `certifi`, 누락된 public schema를 fail-closed로 검사합니다.
    `direct_url.json`, `uv_cache.json`, `uv_build.json`, target `.lock` 및 설치된 `bin/`
@@ -182,11 +184,17 @@ ici/
    순회하며 symlink와 special/unsupported entry를 거부하고 regular file은 `0644`,
    directory는 `0755`로 설정합니다.
 4. **Archive and launcher:** canonicalized trees are passed to `shiv --reproducible` to
-   create the raw ZipApp. `scripts/assemble_pyz.py` opens bounded regular inputs without following
-   symlinks, anchors the non-symlink output directory by descriptor, rejects existing symlink or
-   special outputs, and uses same-directory temporary files plus `fsync`/`os.replace` to publish
-   byte-identical `dist/ici.pyz` and `dist/ici` executables (`0755`). The resulting polyglot keeps the normal `$ICI_PYTHON`/Python 3.10+
-   discovery path described above.
+   create the raw ZipApp. `scripts/assemble_pyz.py` pre-checks each input with nonblocking
+   `lstat`/open semantics and then opens bounded regular files without following symlinks, so FIFO
+   and other special inputs fail closed without blocking. It anchors the non-symlink output
+   directory by descriptor and rejects existing symlink or special outputs. Same-directory
+   temporary files are written and synced; hard-link backups for all existing outputs are created
+   before publication. Each output name is then atomically replaced with `os.replace`. If any
+   replacement or post-check fails, the prior consistent output set is restored (or a name that
+   was absent before the build is removed), while write/flush/`fsync` failures clean their temporary
+   files. The final `dist/ici.pyz` and `dist/ici` are checked for byte identity and mode `0755`.
+   The resulting polyglot keeps the normal `$ICI_PYTHON`/Python 3.10+ discovery path described
+   above.
 
 `scripts/verify-reproducibility.sh` exercises this contract with two adversarial builds. The
 first runs under `umask 077`, `SOURCE_DATE_EPOCH=1`, `PYTHONHASHSEED=random`, a different
@@ -197,7 +205,9 @@ The verifier also requires every ZipApp member to carry the canonical `170000000
 checks `0644` modes for installed/bootstrap files and shiv's deterministic `0600` modes for its
 two synthetic top-level members, rejects a leaked `site-packages/.lock`, checks shiv's `built_at`,
 requires the two final outputs to be byte-identical `0755` files, and confirms that the build
-leaves git source status unchanged.
+leaves git source status unchanged. The assembler's rollback and special-input boundaries are
+covered by focused regression tests, including a simulated second-output replacement failure,
+FIFO rejection without a blocking open, and temporary-file cleanup after write/sync failure.
 
 ---
 

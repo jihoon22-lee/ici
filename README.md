@@ -606,7 +606,9 @@ runtime 그룹은 `--no-dev`로 내보내고, wheel/ZipApp을 만드는 `package
 실행하지 않으며, 빌드 entrypoint와 GitHub workflow는 uv `0.12.5`를 요구합니다. 현재 package 그룹은
 `hatchling`과 `shiv==1.0.8`이고, 이 도구들은 `build/package-tools`에만 설치되어
 배포 runtime에 들어가지 않습니다. 프로젝트 wheel은 Python 3.10 대상으로 만든 뒤 runtime
-site-packages에 의존성 없이 넣습니다.
+site-packages에 의존성 없이 넣습니다. 빌드 스크립트는 선택한 Python 3.10+ helper interpreter
+하나를 선택해 package/build, 정리, 조립 단계 전체에 전달하므로 호출자의 bare `python3`
+선택에 의존하지 않습니다.
 
 빌드가 호출자의 환경에 좌우되지 않도록 `SOURCE_DATE_EPOCH=1700000000`(UTC
 `2023-11-14 22:13:20`), `PYTHONHASHSEED=0`, `PYTHONUTF8=1`, C locale, `TZ=UTC`,
@@ -614,10 +616,14 @@ site-packages에 의존성 없이 넣습니다.
 머신별 `direct_url.json`/`uv_cache.json`/`uv_build.json`, target `.lock`, 실행 파일
 링크는 제거되며, 설치된 runtime·bootstrap 입력 파일은 `0644`, directory는 `0755`로
 정규화됩니다. shiv가 자체 생성하는 top-level `environment.json`과 `__main__.py`는
-고정 `0600` metadata를 사용합니다. 입력과 기존 output의 symlink·special file은
-fail-closed로 거부됩니다. 최종 조립기는 열린 non-symlink `dist` directory descriptor 안에
-bounded payload를 임시 파일로 쓰고 `fsync`한 다음 원자적으로 `dist/ici.pyz`와 `dist/ici`를
-교체하며, 두 파일만 실행 권한 `0755`를 갖습니다.
+고정 `0600` metadata를 사용합니다. 입력은 열기 전 nonblocking `lstat`로 regular file임을
+확인하고 no-follow descriptor로 읽으므로 FIFO 같은 special file도 block 없이 fail-closed로
+거부됩니다. 기존 output의 symlink·special file도 거부됩니다. 최종 조립기는 열린
+non-symlink `dist` directory descriptor 안에 bounded payload를 임시 파일로 쓰고 `fsync`한
+뒤, 기존 output마다 hard-link backup을 먼저 만든 다음 각 이름을 같은 디렉터리에서
+원자적으로 교체합니다. 중간 교체나 사후 byte/mode 검증이 실패하면 이전의 일관된 output
+set을 복구하고, 원래 없던 이름은 제거합니다. 쓰기·flush·`fsync` 실패 때 임시 파일도
+정리되며, 최종 `dist/ici.pyz`와 `dist/ici`는 byte-identical `0755`인지 확인합니다.
 
 재현성 검증은 `scripts/verify-reproducibility.sh`가 의도적으로 서로 다른 환경에서 두 번
 빌드하는 방식입니다. 첫 빌드는 `umask 077`, `SOURCE_DATE_EPOCH=1`,
