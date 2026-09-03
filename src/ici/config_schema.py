@@ -93,7 +93,8 @@ _ENGINE_KEYS = {
     | frozenset({"warn_cc", "fail_cc", "warn_nesting", "cpp_boundaries"}),
     "sanitize": _COMMON_ENGINE_KEYS,
     "thread_sanitize": _COMMON_ENGINE_KEYS,
-    "dead": _COMMON_ENGINE_KEYS | frozenset({"cpp_unused", "include_generated", "include_vendor"}),
+    "dead": _COMMON_ENGINE_KEYS
+    | frozenset({"cpp_unused", "cpp_linker", "include_generated", "include_vendor"}),
     "dup": _COMMON_ENGINE_KEYS
     | frozenset({"warn_pct", "fail_pct", "min_window", "include_generated", "include_vendor"}),
     "exception": _COMMON_ENGINE_KEYS,
@@ -347,11 +348,13 @@ def _validate_analysis_includes(table: dict[str, Any], path: str) -> None:
 def _validate_dead(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
     _validate_analysis_includes(table, path)
-    if "cpp_unused" in table:
-        unused_path = f"{path}.cpp_unused"
-        _require_string(table["cpp_unused"], unused_path, non_empty=True)
-        if table["cpp_unused"] not in {"auto", "required", "off"}:
-            raise _error(unused_path, "must be one of: auto, off, required")
+    for key in ("cpp_unused", "cpp_linker"):
+        if key not in table:
+            continue
+        policy_path = f"{path}.{key}"
+        _require_string(table[key], policy_path, non_empty=True)
+        if table[key] not in {"auto", "required", "off"}:
+            raise _error(policy_path, "must be one of: auto, off, required")
 
 
 def _validate_build(table: Any) -> None:

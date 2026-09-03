@@ -55,6 +55,7 @@ def test_variant_policy_is_exact_and_isolated(
     assert options.coverage is coverage
     assert options.shadow_suffix == suffix
     assert options.cxx_flags() == cxx_flags
+    assert options.c_flags() == []
     assert options.link_flags() == link_flags
     assert all(
         flag not in options.cxx_flags() + options.link_flags()
@@ -65,6 +66,30 @@ def test_variant_policy_is_exact_and_isolated(
         )
         if flag not in cxx_flags + link_flags
     )
+
+
+def test_link_reachability_options_use_an_isolated_audited_shadow() -> None:
+    options = ConfigureOptions(
+        BuildVariant.RELEASE,
+        extra_c_flags=("-ffunction-sections",),
+        extra_cxx_flags=("-ffunction-sections",),
+        extra_link_flags=("-Wl,--gc-sections",),
+        generator="Unix Makefiles",
+        shadow_suffix_override="-link-reachability",
+    )
+
+    assert options.shadow_suffix == "-link-reachability"
+    assert options.c_flags() == ["-ffunction-sections"]
+    assert options.cxx_flags() == ["-ffunction-sections"]
+    assert options.link_flags() == ["-Wl,--gc-sections"]
+
+
+@pytest.mark.parametrize("suffix", ["link", "-UPPER", "-", "-unsafe/path", "-x" * 40])
+def test_shadow_suffix_override_rejects_unbounded_or_unsafe_values(suffix: str) -> None:
+    options = ConfigureOptions(BuildVariant.RELEASE, shadow_suffix_override=suffix)
+
+    with pytest.raises(ValueError, match="bounded lowercase suffix"):
+        _ = options.shadow_suffix
 
 
 @pytest.mark.parametrize("variant", tuple(BuildVariant))

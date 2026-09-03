@@ -88,6 +88,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "mode": "pass_warn",
             "cpp_unused": "auto",
+            "cpp_linker": "off",
             "include_generated": False,
             "include_vendor": False,
         },

@@ -11,6 +11,10 @@ from ici.core.models import (
     ToolEvidence,
     aggregate_suite_status,
 )
+from ici.engines._cpp_linker_dead_symbols import (
+    CppLinkerDeadOutcome,
+    CppLinkerDeadSymbol,
+)
 from ici.engines._cpp_unused_functions import (
     CppUnusedFunction,
     CppUnusedFunctionOutcome,
@@ -87,6 +91,94 @@ def test_dead_engine_reports_exact_compiler_unused_function(tmp_path, monkeypatc
     assert normalized[0].confidence == FindingConfidence.EXACT
     assert normalized[0].tool_rule_id == "-Wunused-function"
     assert normalized[0].primary_location.path == "src/main.cpp"
+
+
+def test_dead_engine_reports_exact_target_local_linker_symbol(tmp_path, monkeypatch) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int dead_entry() { return 1; }\n", encoding="utf-8")
+    target = InspectionTarget(
+        file_path="src/main.cpp",
+        start_line=1,
+        target_name="GNU ld discarded function",
+        status=EngineStatus.WARN,
+        message="GNU ld discarded function section from CMake target app",
+        metrics={"link_target": "app"},
+    )
+    linker = CppLinkerDeadOutcome(
+        targets=[target],
+        symbols=[
+            CppLinkerDeadSymbol(
+                target=target,
+                link_target="app",
+                symbol="_Z10dead_entryv",
+                section=".text._Z10dead_entryv",
+                object_path="CMakeFiles/app.dir/src/main.cpp.o",
+                tool_name="g++",
+                tool_version="14.2.0",
+                link_command_digest="sha256:" + "a" * 64,
+            )
+        ],
+        mode="exact",
+        link_targets_checked=1,
+        sources_checked=1,
+        discarded_sections_observed=1,
+    )
+    monkeypatch.setattr(
+        "ici.engines.dead.run_cpp_linker_dead_symbols",
+        lambda *_args, **_kwargs: linker,
+    )
+    monkeypatch.setattr(
+        "ici.engines.dead.run_cpp_unused_functions",
+        lambda *_args, **_kwargs: CppUnusedFunctionOutcome(mode="exact", sources_checked=1),
+    )
+
+    result = DeadCodeEngine(
+        tmp_path,
+        {"engines": {"dead": {"cpp_linker": "required"}}},
+    ).run()
+
+    assert result.status == EngineStatus.WARN
+    assert result.evidence == EvidenceState.MEASURED
+    assert result.extra["analysis_provenance"] == (
+        "cpp-compiler-unused-function+cpp-gnu-elf-section-gc"
+    )
+    assert result.extra["cpp_linker_symbols_count"] == 1
+    assert result.extra["cpp_linker_details"][0]["link_target"] == "app"
+    finding = next(
+        finding
+        for finding in findings_for_result(result, tmp_path)
+        if finding.rule_id == "ici.dead.gnu-elf-discarded-function"
+    )
+    assert finding.confidence == FindingConfidence.EXACT
+    assert finding.tool_rule_id == "--gc-sections/--print-gc-sections"
+
+
+def test_required_linker_scope_fails_closed_when_unavailable(tmp_path, monkeypatch) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.dead.run_cpp_unused_functions",
+        lambda *_args, **_kwargs: CppUnusedFunctionOutcome(mode="exact", sources_checked=1),
+    )
+    monkeypatch.setattr(
+        "ici.engines.dead.run_cpp_linker_dead_symbols",
+        lambda *_args, **_kwargs: CppLinkerDeadOutcome(
+            mode="unavailable",
+            warnings=["GNU ELF tools unavailable"],
+        ),
+    )
+
+    result = DeadCodeEngine(
+        tmp_path,
+        {"engines": {"dead": {"cpp_linker": "required"}}},
+    ).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+    assert result.extra["cpp_linker_mode"] == "unavailable"
+    assert any(target.status == EngineStatus.ERROR for target in result.targets)
 
 
 def test_dead_engine_combines_python_heuristic_and_cpp_exact_evidence(

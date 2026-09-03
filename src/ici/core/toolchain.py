@@ -91,6 +91,7 @@ DEFAULT_TOOL_PROBES: tuple[ToolProbe, ...] = (
     ToolProbe("ninja", ("ninja",), ("--version",)),
     ToolProbe("gcov", ("gcov",), ("--version",)),
     ToolProbe("readelf", ("readelf",), ("--version",)),
+    ToolProbe("addr2line", ("addr2line",), ("--version",)),
     ToolProbe("objdump", ("objdump",), ("--version",)),
     ToolProbe("nm", ("nm",), ("--version",)),
     ToolProbe("ld", ("ld",), ("--version",)),

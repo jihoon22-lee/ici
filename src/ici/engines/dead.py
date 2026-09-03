@@ -22,6 +22,10 @@ from ici.core.models import (
     SourceLocation,
 )
 from ici.core.runner import run_process
+from ici.engines._cpp_linker_dead_symbols import (
+    CppLinkerDeadOutcome,
+    run_cpp_linker_dead_symbols,
+)
 from ici.engines._cpp_unused_functions import (
     CppUnusedFunctionOutcome,
     run_cpp_unused_functions,
@@ -50,6 +54,7 @@ class DeadCodeEngine(BaseEngine):
         "ici.core._cpp_replay_policy",
         "ici.core.cpp_replay",
         "ici.engines._cpp_diagnostics",
+        "ici.engines._cpp_linker_dead_symbols",
         "ici.engines._cpp_tooling",
         "ici.engines._cpp_unused_functions",
         "ici.engines._source_inputs",
@@ -71,13 +76,19 @@ class DeadCodeEngine(BaseEngine):
     ) -> frozenset[str]:
         """Avoid build-context preparation when the standalone C++ scope is off."""
 
-        policy = str(config.get("engines", {}).get("dead", {}).get("cpp_unused", "auto"))
-        return frozenset() if policy == "off" else cls.ANALYSIS_CONTEXT_ENGINES
+        dead = config.get("engines", {}).get("dead", {})
+        unused_policy = str(dead.get("cpp_unused", "auto"))
+        linker_policy = str(dead.get("cpp_linker", "off"))
+        return (
+            frozenset()
+            if unused_policy == "off" and linker_policy == "off"
+            else cls.ANALYSIS_CONTEXT_ENGINES
+        )
 
     def _collect_sources(
         self,
         cfg: dict[str, Any],
-        cpp_policy: str,
+        cpp_enabled: bool,
         targets: list[InspectionTarget],
     ) -> tuple[AnalysisSourceInventory, list[Path], list[Path], bool]:
         """Discover scopes and read only the source bytes selected by policy."""
@@ -94,7 +105,7 @@ class DeadCodeEngine(BaseEngine):
             return inventory, python_candidates, cpp_candidates, cpp_scope_present
         ordered_python = self._ordered_python_sources(self.project_source_dirs(), python_candidates)
         analysis_candidates = (
-            (*ordered_python, *cpp_candidates) if cpp_policy != "off" else tuple(ordered_python)
+            (*ordered_python, *cpp_candidates) if cpp_enabled else tuple(ordered_python)
         )
         try:
             inventory = read_analysis_sources(
@@ -185,6 +196,49 @@ class DeadCodeEngine(BaseEngine):
         targets.extend(cpp_targets)
         return outcome, cpp_targets
 
+    def _analyze_linker_scope(
+        self,
+        policy: str,
+        cpp_scope_present: bool,
+        cpp_sources: tuple[AnalysisSource, ...],
+        targets: list[InspectionTarget],
+    ) -> tuple[CppLinkerDeadOutcome, list[InspectionTarget]]:
+        """Evaluate the independent target-local GNU ELF reachability policy."""
+
+        if policy == "off":
+            return CppLinkerDeadOutcome(mode="off"), []
+        if not cpp_sources or self._analysis_errors:
+            return CppLinkerDeadOutcome(mode="not-applicable"), []
+        outcome = run_cpp_linker_dead_symbols(
+            self.project_root,
+            self.analysis_context,
+            source_texts={source.file_path: source.text for source in cpp_sources},
+            policy=policy,
+            runner=run_process,
+        )
+        if outcome.mode == "error":
+            self._analysis_errors.extend(outcome.errors)
+        elif outcome.mode == "unavailable":
+            message = (
+                outcome.warnings[0]
+                if outcome.warnings
+                else "Exact GNU ELF target-local reachability is unavailable"
+            )
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=cpp_sources[0].file_path,
+                    start_line=1,
+                    target_name="C++LinkerReachabilityUnavailable",
+                    status=EngineStatus.ERROR if policy == "required" else EngineStatus.SKIP,
+                    message=message,
+                )
+            )
+            if policy == "required":
+                self._analysis_errors.append(message)
+        linker_targets = list(outcome.targets)
+        targets.extend(linker_targets)
+        return outcome, linker_targets
+
     def _analyze_python_scope(
         self,
         inventory: AnalysisSourceInventory,
@@ -204,11 +258,16 @@ class DeadCodeEngine(BaseEngine):
         self,
         inventory: AnalysisSourceInventory,
         cpp_outcome: CppUnusedFunctionOutcome,
+        linker_outcome: CppLinkerDeadOutcome,
         targets: list[InspectionTarget],
     ) -> None:
         """Explain why no source bytes were analyzed when that is not policy-off."""
 
-        if inventory.sources or self._analysis_errors or cpp_outcome.mode == "off":
+        if (
+            inventory.sources
+            or self._analysis_errors
+            or (cpp_outcome.mode == "off" and linker_outcome.mode == "off")
+        ):
             return
         message = (
             "All selected sources were excluded by the generated/vendor policy; "
@@ -230,12 +289,15 @@ class DeadCodeEngine(BaseEngine):
     def _analysis_provenance(
         python_sources: tuple[AnalysisSource, ...],
         cpp_outcome: CppUnusedFunctionOutcome,
+        linker_outcome: CppLinkerDeadOutcome,
     ) -> str:
         names = []
         if python_sources:
             names.append("python-ast-heuristic")
         if cpp_outcome.mode == "exact":
             names.append("cpp-compiler-unused-function")
+        if linker_outcome.mode == "exact":
+            names.append("cpp-gnu-elf-section-gc")
         return "+".join(names) or "not-run"
 
     @staticmethod
@@ -257,21 +319,42 @@ class DeadCodeEngine(BaseEngine):
         ]
 
     @staticmethod
+    def _linker_details(linker_outcome: CppLinkerDeadOutcome) -> list[dict[str, Any]]:
+        return [
+            {
+                "file_path": item.target.file_path,
+                "start_line": item.target.start_line,
+                "link_target": item.link_target,
+                "symbol": item.symbol,
+                "section": item.section,
+                "object_path": item.object_path,
+                "tool_name": item.tool_name,
+                "tool_version": item.tool_version,
+                "link_command_digest": item.link_command_digest,
+            }
+            for item in linker_outcome.symbols
+        ]
+
+    @staticmethod
     def _effective_required(
         cfg: dict[str, Any],
         cpp_policy: str,
+        linker_policy: str,
         cpp_scope_present: bool,
         python_sources: tuple[AnalysisSource, ...],
         cpp_outcome: CppUnusedFunctionOutcome,
+        linker_outcome: CppLinkerDeadOutcome,
         analysis_failed: bool,
     ) -> bool:
         cpp_only = cpp_scope_present and not python_sources
-        cpp_only_disabled = cpp_only and cpp_policy == "off"
+        cpp_only_disabled = cpp_only and cpp_policy == "off" and linker_policy == "off"
         cpp_only_auto_unavailable = (
             cpp_only
-            and cpp_policy == "auto"
+            and cpp_policy != "required"
+            and linker_policy != "required"
             and not analysis_failed
-            and cpp_outcome.mode in {"not-applicable", "unavailable"}
+            and (cpp_policy == "off" or cpp_outcome.mode in {"not-applicable", "unavailable"})
+            and (linker_policy == "off" or linker_outcome.mode in {"not-applicable", "unavailable"})
         )
         return bool(cfg.get("required", True)) and not (
             cpp_only_disabled or cpp_only_auto_unavailable
@@ -282,42 +365,51 @@ class DeadCodeEngine(BaseEngine):
         *,
         cfg: dict[str, Any],
         cpp_policy: str,
+        linker_policy: str,
         cpp_scope_present: bool,
         python_sources: tuple[AnalysisSource, ...],
         cpp_sources: tuple[AnalysisSource, ...],
         cpp_outcome: CppUnusedFunctionOutcome,
+        linker_outcome: CppLinkerDeadOutcome,
         targets: list[InspectionTarget],
         issue_count: int,
         python_issue_count: int,
         cpp_issue_count: int,
+        linker_issue_count: int,
     ) -> tuple[EngineStatus, EvidenceState, str]:
         """Aggregate language-scoped evidence without upgrading partial work."""
 
         if self._analysis_errors:
             return EngineStatus.ERROR, EvidenceState.NOT_RUN, "; ".join(self._analysis_errors[:3])
-        if not python_sources and cpp_outcome.mode != "exact":
+        cpp_exact = cpp_outcome.mode == "exact" or linker_outcome.mode == "exact"
+        if not python_sources and not cpp_exact:
             evidence = EvidenceState.NOT_RUN if cpp_scope_present else EvidenceState.NOT_APPLICABLE
-            if cpp_policy == "off" and cpp_scope_present:
-                summary = "C++ unused-function analysis disabled by policy"
+            if cpp_policy == "off" and linker_policy == "off" and cpp_scope_present:
+                summary = "C++ dead-code analysis disabled by policy"
             elif cpp_sources:
-                summary = "C++ dead-code analysis not run: exact compiler context unavailable"
+                summary = "C++ dead-code analysis not run: exact native context unavailable"
             else:
                 summary = "Dead-code analysis skipped: no owned source files"
             return EngineStatus.SKIP, evidence, summary
         has_fail = any(target.status == EngineStatus.FAIL for target in targets)
         has_warn = any(target.status == EngineStatus.WARN for target in targets)
-        if python_sources and cpp_outcome.mode == "unavailable":
+        cpp_partial_unavailable = not cpp_exact and (
+            (cpp_policy != "off" and cpp_outcome.mode == "unavailable")
+            or (linker_policy != "off" and linker_outcome.mode == "unavailable")
+        )
+        if python_sources and cpp_partial_unavailable:
             has_warn = True
         status = self.evaluate_status(has_fail, has_warn, cfg.get("mode", "pass_warn"))
         evidence = EvidenceState.ESTIMATED if python_sources else EvidenceState.MEASURED
         if status == EngineStatus.PASS:
             summary = "No dead-code findings detected in the analyzed scopes"
-        elif python_sources and cpp_outcome.mode == "unavailable":
+        elif python_sources and cpp_partial_unavailable:
             summary = "Python dead-code analysis completed, but exact C++ analysis was unavailable"
         else:
             summary = (
                 f"{issue_count} dead-code finding(s): "
-                f"{python_issue_count} heuristic Python, {cpp_issue_count} exact C/C++"
+                f"{python_issue_count} heuristic Python, {cpp_issue_count} compiler-local C/C++, "
+                f"{linker_issue_count} target-local GNU ELF"
             )
         return status, evidence, summary
 
@@ -327,9 +419,11 @@ class DeadCodeEngine(BaseEngine):
         targets: list[InspectionTarget] = []
         cfg = self.get_config("dead")
         cpp_policy = str(cfg.get("cpp_unused", "auto"))
+        linker_policy = str(cfg.get("cpp_linker", "off"))
+        cpp_enabled = cpp_policy != "off" or linker_policy != "off"
         inventory, python_candidates, cpp_candidates, cpp_scope_present = self._collect_sources(
             cfg,
-            cpp_policy,
+            cpp_enabled,
             targets,
         )
         python_sources, python_targets, python_evidence = self._analyze_python_scope(
@@ -345,7 +439,13 @@ class DeadCodeEngine(BaseEngine):
             cpp_sources,
             targets,
         )
-        self._append_empty_scope_target(inventory, cpp_outcome, targets)
+        linker_outcome, linker_targets = self._analyze_linker_scope(
+            linker_policy,
+            cpp_scope_present,
+            cpp_sources,
+            targets,
+        )
+        self._append_empty_scope_target(inventory, cpp_outcome, linker_outcome, targets)
 
         python_issue_count = sum(
             1
@@ -353,9 +453,10 @@ class DeadCodeEngine(BaseEngine):
             if target.status in (EngineStatus.WARN, EngineStatus.FAIL)
         )
         cpp_issue_count = len(cpp_outcome.functions)
-        issue_count = python_issue_count + cpp_issue_count
+        linker_issue_count = len(linker_outcome.symbols)
+        issue_count = python_issue_count + cpp_issue_count + linker_issue_count
         duration = time.time() - t0
-        cpp_evidence = self._cpp_evidence(
+        compiler_evidence = self._cpp_evidence(
             cpp_sources,
             bool(cpp_candidates),
             cpp_outcome,
@@ -363,24 +464,44 @@ class DeadCodeEngine(BaseEngine):
             bool(self._analysis_errors),
             cpp_scope_present,
         )
+        linker_evidence = self._linker_evidence(
+            cpp_sources,
+            bool(cpp_candidates),
+            linker_outcome,
+            linker_policy,
+            bool(self._analysis_errors),
+            cpp_scope_present,
+        )
+        cpp_evidence = (
+            EvidenceState.MEASURED
+            if EvidenceState.MEASURED in {compiler_evidence, linker_evidence}
+            else EvidenceState.NOT_RUN
+            if cpp_scope_present
+            else EvidenceState.NOT_APPLICABLE
+        )
         status, evidence, summary = self._result_state(
             cfg=cfg,
             cpp_policy=cpp_policy,
+            linker_policy=linker_policy,
             cpp_scope_present=cpp_scope_present,
             python_sources=python_sources,
             cpp_sources=cpp_sources,
             cpp_outcome=cpp_outcome,
+            linker_outcome=linker_outcome,
             targets=targets,
             issue_count=issue_count,
             python_issue_count=python_issue_count,
             cpp_issue_count=cpp_issue_count,
+            linker_issue_count=linker_issue_count,
         )
         effective_required = self._effective_required(
             cfg,
             cpp_policy,
+            linker_policy,
             cpp_scope_present,
             python_sources,
             cpp_outcome,
+            linker_outcome,
             bool(self._analysis_errors),
         )
         result = self.create_result(
@@ -395,6 +516,7 @@ class DeadCodeEngine(BaseEngine):
                 "analysis_provenance": self._analysis_provenance(
                     python_sources,
                     cpp_outcome,
+                    linker_outcome,
                 ),
                 "language_evidence": {
                     "python": python_evidence.value,
@@ -408,7 +530,27 @@ class DeadCodeEngine(BaseEngine):
                 "cpp_unused_non_tu_diagnostics_excluded": (cpp_outcome.non_tu_diagnostics_excluded),
                 "cpp_unused_warnings": cpp_outcome.warnings,
                 "cpp_unused_details": self._cpp_details(cpp_outcome),
-                "source_files_analyzed": len(python_sources) + cpp_outcome.sources_checked,
+                "cpp_linker_policy": linker_policy,
+                "cpp_linker_mode": linker_outcome.mode,
+                "cpp_linker_symbols_count": linker_issue_count,
+                "cpp_linker_targets_checked": linker_outcome.link_targets_checked,
+                "cpp_linker_sources_checked": linker_outcome.sources_checked,
+                "cpp_linker_discarded_sections_observed": (
+                    linker_outcome.discarded_sections_observed
+                ),
+                "cpp_linker_ambiguous_sections_excluded": (
+                    linker_outcome.ambiguous_sections_excluded
+                ),
+                "cpp_linker_warnings": linker_outcome.warnings,
+                "cpp_linker_details": self._linker_details(linker_outcome),
+                "cpp_scope_evidence": {
+                    "compiler_unused": compiler_evidence.value,
+                    "gnu_elf_linker": linker_evidence.value,
+                },
+                "source_files_analyzed": (
+                    len(python_sources)
+                    + max(cpp_outcome.sources_checked, linker_outcome.sources_checked)
+                ),
                 "source_files_snapshotted": len(inventory.sources),
                 "source_bytes_analyzed": inventory.total_bytes,
                 "source_files_excluded": len(inventory.excluded),
@@ -416,13 +558,15 @@ class DeadCodeEngine(BaseEngine):
             },
             required=effective_required,
             evidence=evidence,
-            tool_evidence=cpp_outcome.evidence,
+            tool_evidence=[*cpp_outcome.evidence, *linker_outcome.evidence],
         )
         result.findings = self._scoped_findings(
             targets,
             python_targets,
             cpp_targets,
+            linker_targets,
             cpp_outcome,
+            linker_outcome,
             python_evidence,
             cpp_evidence,
         )
@@ -498,6 +642,25 @@ class DeadCodeEngine(BaseEngine):
         return EvidenceState.NOT_RUN
 
     @staticmethod
+    def _linker_evidence(
+        sources: tuple[AnalysisSource, ...],
+        had_candidates: bool,
+        outcome: CppLinkerDeadOutcome,
+        policy: str,
+        analysis_failed: bool,
+        scope_present: bool,
+    ) -> EvidenceState:
+        if policy == "off":
+            return EvidenceState.NOT_RUN if scope_present else EvidenceState.NOT_APPLICABLE
+        if not sources:
+            return (
+                EvidenceState.NOT_RUN
+                if had_candidates and analysis_failed
+                else EvidenceState.NOT_APPLICABLE
+            )
+        return EvidenceState.MEASURED if outcome.mode == "exact" else EvidenceState.NOT_RUN
+
+    @staticmethod
     def _cpp_findings(
         targets: list[InspectionTarget],
         outcome: CppUnusedFunctionOutcome,
@@ -548,20 +711,69 @@ class DeadCodeEngine(BaseEngine):
             )
         return findings
 
+    @staticmethod
+    def _linker_findings(
+        targets: list[InspectionTarget],
+        outcome: CppLinkerDeadOutcome,
+    ) -> list[Finding]:
+        key_counts = Counter((target.file_path, target.target_name.strip()) for target in targets)
+        findings: list[Finding] = []
+        for item in outcome.symbols:
+            target = item.target
+            key = (target.file_path, target.target_name.strip())
+            findings.append(
+                Finding(
+                    rule_id="ici.dead.gnu-elf-discarded-function",
+                    category=FindingCategory.MAINTAINABILITY,
+                    severity=FindingSeverity.MEDIUM,
+                    confidence=FindingConfidence.EXACT,
+                    fingerprint="",
+                    primary_location=SourceLocation(
+                        path=target.file_path,
+                        start_line=target.start_line,
+                        end_line=target.end_line,
+                        label=target.target_name if key_counts[key] == 1 else "",
+                    ),
+                    message=target.message,
+                    explanation=(
+                        "GNU ld explicitly discarded this uniquely mapped local or hidden "
+                        "function section while relinking the named CMake executable in the "
+                        "isolated Release reachability shadow. The claim is target-local, not "
+                        "project-wide behavioral unreachability."
+                    ),
+                    remediation=(
+                        "Review the function and its target-specific call path. Remove it when "
+                        "the target no longer needs it, or retain/reference it explicitly when "
+                        "the discarded section is intentional."
+                    ),
+                    tool_rule_id="--gc-sections/--print-gc-sections",
+                    tool_name=item.tool_name,
+                    tool_version=item.tool_version,
+                    metrics={"link_targets": FindingMetric(value=1, unit="targets")},
+                )
+            )
+        return findings
+
     @classmethod
     def _scoped_findings(
         cls,
         all_targets: list[InspectionTarget],
         python_targets: list[InspectionTarget],
         cpp_targets: list[InspectionTarget],
+        linker_targets: list[InspectionTarget],
         cpp_outcome: CppUnusedFunctionOutcome,
+        linker_outcome: CppLinkerDeadOutcome,
         python_evidence: EvidenceState,
         cpp_evidence: EvidenceState,
     ) -> list[Finding]:
         """Keep finding confidence and tool attribution within each language scope."""
 
-        findings = cls._cpp_findings(all_targets, cpp_outcome)
+        findings = [
+            *cls._cpp_findings(all_targets, cpp_outcome),
+            *cls._linker_findings(all_targets, linker_outcome),
+        ]
         exact_cpp_target_ids = {id(item.target) for item in cpp_outcome.functions}
+        exact_linker_target_ids = {id(item.target) for item in linker_outcome.symbols}
         key_counts = Counter(
             (target.file_path, target.target_name.strip()) for target in all_targets
         )
@@ -578,6 +790,12 @@ class DeadCodeEngine(BaseEngine):
         cpp_tool_names = "+".join(sorted({item.name for item in cpp_outcome.evidence if item.name}))
         cpp_tool_versions = ", ".join(
             sorted({item.version for item in cpp_outcome.evidence if item.version})
+        )
+        linker_tool_names = "+".join(
+            sorted({item.name for item in linker_outcome.evidence if item.name})
+        )
+        linker_tool_versions = ", ".join(
+            sorted({item.version for item in linker_outcome.evidence if item.version})
         )
         for target in python_targets:
             findings.append(
@@ -614,6 +832,31 @@ class DeadCodeEngine(BaseEngine):
                     ),
                     tool_name=cpp_tool_names,
                     tool_version=cpp_tool_versions,
+                )
+            )
+        for target in linker_targets:
+            if id(target) in exact_linker_target_ids:
+                continue
+            findings.append(
+                cls._scope_finding(
+                    target,
+                    key_counts,
+                    confidence=(
+                        FindingConfidence.EXACT
+                        if linker_outcome.mode == "exact"
+                        else FindingConfidence.LOW
+                    ),
+                    explanation=(
+                        "This target records the bounded target-local GNU ELF section-GC scope."
+                    ),
+                    remediation=(
+                        "Restore the supported GNU ELF CMake Release context when exact "
+                        "target-local analysis did not run."
+                        if linker_outcome.mode != "exact"
+                        else ""
+                    ),
+                    tool_name=linker_tool_names,
+                    tool_version=linker_tool_versions,
                 )
             )
         return findings

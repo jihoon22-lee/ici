@@ -1,0 +1,7 @@
+name = "cmake-elf-dead-fixture"
+type = "cpp"
+version = "1.0.0"
+
+[engines.dead]
+cpp_unused = "required"
+cpp_linker = "required"
