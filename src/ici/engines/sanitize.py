@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from ici.core.cmake import ConfigureOptions, select_backend
+from ici.core.cmake import BuildSession, ConfigureOptions, TestCaseResult, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
 from ici.core.cmake import run_tests as adapter_run_tests
@@ -368,32 +368,49 @@ class SanitizeEngine(BaseEngine):
         test engine does, only with -fsanitize instead of --coverage.
         """
 
-        options = ConfigureOptions(BuildVariant.SANITIZE)
-        session = adapter_configure(self.project_root, options)
+        prepared = self._prepare_sanitizer_adapter(targets)
+        if prepared is None:
+            return False
+        session, recorded_evidence = prepared
+        results = adapter_run_tests(session, env=self._sanitizer_environment())
+        self._tool_evidence.extend(session.tool_evidence[recorded_evidence:])
+        process_index = self._validated_adapter_process(targets, session, results)
+        if process_index is None:
+            return False
+        return self._record_adapter_cases(targets, session, results, process_index)
+
+    def _prepare_sanitizer_adapter(
+        self, targets: list[InspectionTarget]
+    ) -> tuple[BuildSession, int] | None:
+        session = adapter_configure(
+            self.project_root,
+            ConfigureOptions(BuildVariant.SANITIZE),
+        )
         session.analysis_context = self.analysis_context
         self._tool_evidence.extend(session.tool_evidence)
         recorded_evidence = len(session.tool_evidence)
-
         if not session.configured:
             self._fail_adapter_scope(
                 targets, session, session.errors or ["sanitizer configure reported no reason"]
             )
-            return False
-
+            return None
         if not adapter_build(session):
             self._tool_evidence.extend(session.tool_evidence[recorded_evidence:])
             self._fail_adapter_scope(
                 targets, session, session.errors or ["sanitizer build reported no reason"]
             )
-            return False
+            return None
         self._tool_evidence.extend(session.tool_evidence[recorded_evidence:])
-        recorded_evidence = len(session.tool_evidence)
-
         if session.artifact_manifest is not None:
             self._artifact_manifests.append(session.artifact_manifest)
+        return session, len(session.tool_evidence)
 
-        results = adapter_run_tests(session, env=self._sanitizer_environment())
-        self._tool_evidence.extend(session.tool_evidence[recorded_evidence:])
+    def _validated_adapter_process(
+        self,
+        targets: list[InspectionTarget],
+        session: BuildSession,
+        results: list[TestCaseResult],
+    ) -> int | None:
         if not results:
             self._fail_adapter_scope(
                 targets,
@@ -401,8 +418,7 @@ class SanitizeEngine(BaseEngine):
                 session.errors
                 or ["The build system reported no tests, so nothing ran under the sanitizers"],
             )
-            return False
-
+            return None
         process_index = self._adapter_process_evidence_index()
         if process_index is None:
             self._fail_adapter_scope(
@@ -410,7 +426,7 @@ class SanitizeEngine(BaseEngine):
                 session,
                 ["Sanitizer tests ran without recorded process evidence"],
             )
-            return False
+            return None
         process_evidence = self._tool_evidence[process_index]
         if process_evidence.timed_out or process_evidence.truncated:
             reason = "timed out" if process_evidence.timed_out else "truncated its output"
@@ -419,8 +435,16 @@ class SanitizeEngine(BaseEngine):
                 session,
                 [f"Sanitizer test process {reason}; diagnostics are incomplete"],
             )
-            return False
+            return None
+        return process_index
 
+    def _record_adapter_cases(
+        self,
+        targets: list[InspectionTarget],
+        session: BuildSession,
+        results: list[TestCaseResult],
+        process_index: int,
+    ) -> bool:
         has_failure = False
         for case in results:
             if not case.executed:
@@ -432,69 +456,91 @@ class SanitizeEngine(BaseEngine):
                 )
                 continue
             has_failure = has_failure or not case.passed
-            # Each executed binary is a measured scope. Without this the engine
-            # reports "no applicable checks were executed" and skips, which is
-            # the silent-gap shape the gate exists to catch.
             self._measured_scopes += 1
             if not case.passed and case.diagnostic_output:
-                if case.diagnostic_output_truncated:
-                    message = "Sanitizer test diagnostic transport was truncated"
-                    self._tool_evidence[process_index].error = message
-                    self._tool_errors.append(message)
-                    self._append_scope_error(
-                        targets,
-                        session.descriptor or ".",
-                        "SanitizerDiagnostic",
-                        message,
-                    )
-                    continue
-                try:
-                    diagnostics = parse_sanitizer_diagnostics(
-                        case.diagnostic_output,
-                        self.project_root,
-                    )
-                except SanitizerDiagnosticError as err:
-                    message = f"Sanitizer diagnostic could not be normalized: {err}"
-                    self._tool_evidence[process_index].error = message
-                    self._tool_errors.append(message)
-                    self._append_scope_error(
-                        targets,
-                        session.descriptor or ".",
-                        "SanitizerDiagnostic",
-                        message,
-                    )
-                    continue
-                if not diagnostics:
-                    message = "Sanitizer test output contained no complete diagnostic"
-                    self._tool_evidence[process_index].error = message
-                    self._tool_errors.append(message)
-                    self._append_scope_error(
-                        targets,
-                        session.descriptor or ".",
-                        "SanitizerDiagnostic",
-                        message,
-                    )
-                    continue
-                self._append_sanitizer_diagnostics(
-                    targets,
-                    diagnostics,
-                    test_name=case.name,
-                    process_evidence_index=process_index,
-                )
+                self._record_adapter_diagnostic(targets, session, case, process_index)
                 continue
-            status = EngineStatus.PASS if case.passed else EngineStatus.FAIL
-            targets.append(
-                InspectionTarget(
-                    file_path=session.descriptor or ".",
-                    start_line=1,
-                    target_name=f"[C++ ASan/UBSan] {case.name}",
-                    status=status,
-                    message="Sanitizers reported no diagnostics"
-                    if case.passed
-                    else f"Sanitizer run failed: {case.message}",
-                )
-            )
+            self._append_adapter_case_target(targets, session, case)
         return has_failure
+
+    def _record_adapter_diagnostic(
+        self,
+        targets: list[InspectionTarget],
+        session: BuildSession,
+        case: TestCaseResult,
+        process_index: int,
+    ) -> None:
+        if case.diagnostic_output_truncated:
+            self._record_adapter_diagnostic_error(
+                targets,
+                session,
+                process_index,
+                "Sanitizer test diagnostic transport was truncated",
+            )
+            return
+        try:
+            diagnostics = parse_sanitizer_diagnostics(
+                case.diagnostic_output,
+                self.project_root,
+            )
+        except SanitizerDiagnosticError as err:
+            self._record_adapter_diagnostic_error(
+                targets,
+                session,
+                process_index,
+                f"Sanitizer diagnostic could not be normalized: {err}",
+            )
+            return
+        if not diagnostics:
+            self._record_adapter_diagnostic_error(
+                targets,
+                session,
+                process_index,
+                "Sanitizer test output contained no complete diagnostic",
+            )
+            return
+        self._append_sanitizer_diagnostics(
+            targets,
+            diagnostics,
+            test_name=case.name,
+            process_evidence_index=process_index,
+        )
+
+    def _record_adapter_diagnostic_error(
+        self,
+        targets: list[InspectionTarget],
+        session: BuildSession,
+        process_index: int,
+        message: str,
+    ) -> None:
+        self._tool_evidence[process_index].error = message
+        self._tool_errors.append(message)
+        self._append_scope_error(
+            targets,
+            session.descriptor or ".",
+            "SanitizerDiagnostic",
+            message,
+        )
+
+    @staticmethod
+    def _append_adapter_case_target(
+        targets: list[InspectionTarget],
+        session: BuildSession,
+        case: TestCaseResult,
+    ) -> None:
+        targets.append(
+            InspectionTarget(
+                file_path=session.descriptor or ".",
+                start_line=1,
+                target_name=f"[C++ ASan/UBSan] {case.name}",
+                status=EngineStatus.PASS if case.passed else EngineStatus.FAIL,
+                message=(
+                    "Sanitizers reported no diagnostics"
+                    if case.passed
+                    else f"Sanitizer run failed: {case.message}"
+                ),
+            )
+        )
 
     def _adapter_process_evidence_index(self) -> int | None:
         for index in range(len(self._tool_evidence) - 1, -1, -1):
