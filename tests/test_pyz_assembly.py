@@ -84,6 +84,32 @@ def test_assemble_restores_preexisting_outputs_when_second_publish_fails(
     assert not [entry for entry in first.parent.iterdir() if entry.name.startswith(".")]
 
 
+def test_assemble_removes_new_outputs_when_second_publish_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw, preamble = _inputs(tmp_path)
+    first = tmp_path / "dist" / "ici.pyz"
+    second = tmp_path / "dist" / "ici"
+    first.parent.mkdir()
+    original_replace = assemble_pyz.os.replace
+
+    def fail_second_new_publish(src: object, dst: object, *args: object, **kwargs: object) -> None:
+        source_name = Path(os.fspath(src)).name
+        destination_name = os.fspath(dst)
+        if destination_name == second.name and ".tmp" in source_name:
+            raise OSError("simulated second output publish failure")
+        original_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(assemble_pyz.os, "replace", fail_second_new_publish)
+
+    with pytest.raises(assemble_pyz.AssemblyError):
+        assemble_pyz.assemble(raw, preamble, [first, second])
+
+    assert not first.exists()
+    assert not second.exists()
+    assert not list(first.parent.iterdir())
+
+
 def test_assemble_rejects_existing_output_symlink_without_touching_target(
     tmp_path: Path,
 ) -> None:
