@@ -40,10 +40,29 @@
   `ici.pyz` (`0755`, 2,275,786 bytes), whose SHA-256 is
   `53fc75f0a073a74689babfe9ef8a4b2378995002d7d563bdc52da548fdbb9ee8`; the bundled version is
   `ici 0.10.2`. The candidate manifest byte-matched the independent verifier, and the check/job/run
-  canonical API identities, workflow name, main branch, attempts, and URLs all matched. This closes
-  the remote producer only; toy-project consumer injection and quality-zoo acceptance remain pending.
-  The observed upload ZIP preserved the required file modes; the earlier generic mode-loss assumption
-  does not apply to this v7 artifact. See [`candidate artifact provenance workthrough`](docs/workthrough/2026-09-03-candidate-artifact-provenance.md).
+  canonical API identities, workflow name, main branch, attempts, and URLs all matched. The observed
+  upload ZIP preserved the required file modes; the earlier generic mode-loss assumption does not
+  apply to this v7 artifact. See [`candidate artifact provenance workthrough`](docs/workthrough/2026-09-03-candidate-artifact-provenance.md).
+  The follow-up documentation PR #140 is now merged at main SHA
+  `cc73531ca33d5e781f027a2c55d341d29034990f`. Its exact-main
+  [run `33691782482`](https://github.com/jihoon22-lee/ici/actions/runs/33691782482) was green, and the
+  [verification artifact `9870465295`](https://github.com/jihoon22-lee/ici/actions/artifacts/9870465295)
+  and main ici/viewer Pages were audited for trusted report contents, exact source/title identity,
+  Zero-CDN behavior, and byte identity. This closes the current producer/artifact/Pages audit;
+  candidate-pyz consumer injection remains a separate follow-up.
+- **Quality Zoo Q0 released-artifact acceptance:** [toy-projects PR #49](https://github.com/jihoon22-lee/toy-projects/pull/49)
+  passed [run `33693241255`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33693241255) and
+  published [artifact `9870829400`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9870829400).
+  The artifact’s contract verdict was `PASS` for the stable `python.dead-private-function` scenario,
+  using released ici `v0.10.2` at SHA
+  `8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`; observed suite status was
+  `WARN`, with exit code `0` and an empty error list. At that time the PR had exactly one sticky
+  `<!-- ici-report -->` comment/marker and three product HTML links. The PR was squash-merged as
+  `ed5fea2e881da77ac95482cf665e4e40bfe172f1`; exact-main [run `33694452357`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33694452357)
+  was green and its stable [Quality Zoo artifact `9871249913`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9871249913)
+  repeated contract `PASS`, observed `WARN`, empty errors, and exit code `0`. The product Pages
+  were byte-identical to the trusted artifacts. This closes Q0 for the released-artifact boundary;
+  candidate-pyz injection and Q1–Q5 remain pending. No version bump or release is implied.
 - **Compiler-backed C/C++ translation-unit unused-function evidence**: `dead` now exposes
   `[engines.dead].cpp_unused = "auto" | "required" | "off"` as a C++-scope policy independent of
   the Python AST dead-code heuristic. The full verifier and standalone `ici dead` command use the

@@ -1546,9 +1546,10 @@ I4 전체 checkpoint를 닫지 않는다.
 ### I9-0. Candidate artifact provenance producer (producer sub-slice)
 
 **브랜치:** `chore/candidate-artifact-provenance`
-**상태:** producer contract/local implementation and remote producer evidence complete; consumer evidence pending
+**상태:** producer contract/local implementation and remote producer evidence complete; released-artifact Q0 accepted; candidate-pyz consumer evidence pending
 
-이 절은 candidate를 소비하는 toy/quality-zoo 검증이나 I4-3 전체를 완료 처리하지 않는다.
+이 절은 released `ici v0.10.2`를 사용하는 Q0 known-answer acceptance만 완료 처리한다. candidate
+pyz를 소비하는 toy 검증과 I4-3 전체는 완료 처리하지 않는다.
 
 - [x] `refs/heads/main`에서만 수동 dispatch하고 full lowercase target SHA가 producer workflow를
   공급한 exact protected-main dispatch commit과 같으며 fetched main ancestry에 남아 있는지 검증한다.
@@ -1582,16 +1583,35 @@ I4 전체 checkpoint를 닫지 않는다.
   `ici 0.10.2`다. Candidate manifest는 independent verifier와 byte-match됐으며 check/job/run
   canonical API identities, `workflow_name`, `head_branch`, attempts 및 모든 canonical URL이
   일치했다. 실제 v7 upload ZIP은 요구 mode를 보존했으므로 generic mode-loss assumption은 적용되지 않는다.
+- [x] 후속 문서 PR #140이 main SHA
+  `cc73531ca33d5e781f027a2c55d341d29034990f`로 병합됐고, exact-main [run `33691782482`](https://github.com/jihoon22-lee/ici/actions/runs/33691782482)가
+  green이었다. [verification artifact `9870465295`](https://github.com/jihoon22-lee/ici/actions/artifacts/9870465295)의
+  digest는 `sha256:e4b59ff4a88290049b537efe573a820a09e6d953b850bcde2d9ff06239f72bea`, size는
+  `2,396,261` bytes이며, main ici/viewer Pages는 trusted artifact와 byte-identical이고
+  source/title/Zero-CDN audit을 통과했다.
 - [ ] verified candidate pyz를 toy consumer에 local path로 주입한다. 각 toy PR의 normal gate는
   released ici `v0.10.2` pin을 유지한다.
-- [ ] 별도 quality-zoo scenario runner와 report/artifact contract를 추가하고, 기존
-  `<!-- ici-report -->` upsert를 확장하더라도 sticky PR comment는 정확히 하나로 유지한다.
+- [x] released ici `v0.10.2`를 사용하는 Q0 quality-zoo scenario runner와 report/artifact
+  contract를 toy-projects PR #49에서 수락했다. [PR run `33693241255`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33693241255)는
+  green이고 [artifact `9870829400`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9870829400)는
+  `contract_verdict: PASS`, stable `python.dead-private-function` 1개 scenario, released ici
+  SHA `8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`, observed suite
+  `WARN`, exit `0`, empty `errors`를 기록했다. 당시 PR에는 sticky `<!-- ici-report -->`
+  comment/marker가 정확히 하나였고 product HTML link가 3개였다. PR #49는
+  `ed5fea2e881da77ac95482cf665e4e40bfe172f1`로 squash merge됐으며, exact-main [run `33694452357`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33694452357)와
+  stable [artifact `9871249913`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9871249913)도
+  각각 green과 contract `PASS`/observed `WARN`/empty `errors`/exit `0`를 확인했다. product
+  Pages는 trusted artifact와 byte-identical이었다. 이 check는 released-artifact Q0 경계만
+  닫으며 candidate-pyz injection은 별도 unchecked follow-up이다.
 
-### I9-1. quality-zoo contract runner
+### I9-1. quality-zoo contract runner — Q0 acceptance complete; Q1–Q5 pending
 
 **브랜치:** `test/quality-zoo-contract`
+**상태:** released-artifact Q0 known-answer acceptance is complete; candidate-pyz injection and
+the broader Q1–Q5 scenario/support matrix remain pending
 
-- [ ] toy repository의 manifest schema와 ici v3 report matcher를 정의한다.
+- [x] Q0 released-artifact path의 toy manifest schema와 ici v3 report matcher가 PR #49의
+  `quality-zoo-contract` artifact에 기록되고 exact-main run에서도 재검증됐다.
 - [ ] expected rule id, status/evidence/confidence, path, line 범위를 검증한다.
 - [ ] expected absence를 지원해 false positive도 고정한다.
 - [ ] ici release candidate pyz를 local path로 주입할 수 있게 한다.
