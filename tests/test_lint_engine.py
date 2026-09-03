@@ -102,6 +102,10 @@ def test_cpp_diagnostic_categories_use_only_bounded_rule_names(
     assert LintEngine._cpp_finding_category(diagnostic) is category
 
 
+def test_cpp_diagnostic_category_policy_participates_in_cache_identity() -> None:
+    assert "ici.engines._cpp_diagnostic_categories" in LintEngine.CACHE_IMPLEMENTATION_MODULES
+
+
 def test_cpp_source_scope_does_not_activate_python_lint(tmp_cpp_project, monkeypatch):
     """Python outside configured C++ sources must not trigger lint fallback."""
     benchmark = tmp_cpp_project / "benchmarks"
