@@ -1369,7 +1369,10 @@ I4 전체 checkpoint를 닫지 않는다.
 - [ ] TSan은 별도 deep profile과 build variant로 제공한다.
 - [ ] resource/lifetime/security는 clang analyzer·clang-tidy·clazy 결과를 category별로 매핑한다.
 - [x] sanitizer가 build됐지만 테스트가 실행되지 않은 경우 ERROR로 구분한다.
-- [ ] quality-zoo의 UAF, leak, UB, Qt lifetime scenario가 예상 rule/location을 검증한다.
+- [x] Quality Zoo의 ASan UAF, LSan leak, UBSan signed-overflow 및 sanitizer-clean fixture가
+  exact candidate acceptance에서 expected rule/status/evidence/confidence/path/line 계약을
+  검증한다.
+- [ ] Qt lifetime/ownership scenario와 broader resource/lifetime/security taxonomy를 검증한다.
 
 ---
 
@@ -1549,10 +1552,12 @@ I4 전체 checkpoint를 닫지 않는다.
 ### I9-0. Candidate artifact provenance producer (producer sub-slice)
 
 **브랜치:** producer `chore/candidate-artifact-provenance`; consumer `feat/candidate-quality-zoo-acceptance`
-**상태:** producer contract/local implementation and remote producer evidence complete; released-artifact Q0 accepted; candidate consumer workflow local/manual contract exists; remote candidate-consumer evidence pending
+**상태:** producer contract/local implementation and remote producer evidence complete; released-artifact Q0 accepted; candidate consumer remote acceptance complete for the exact existing sanitizer contract; Qt lifetime, broader Q1–Q5 and release boundaries remain pending
 
-이 절은 released `ici v0.10.2`를 사용하는 Q0 known-answer acceptance만 완료 처리한다. candidate
-pyz를 소비하는 toy 검증과 I4-3 전체는 완료 처리하지 않는다.
+이 절은 released `ici v0.10.2` Q0와 candidate pyz의 기존 sanitizer known-answer subset만
+완료 처리한다. candidate acceptance는 exact rule/status/evidence/confidence/path/line
+contract와 ASan/LSan/UBSan/clean runtime evidence에 한정되며, Qt lifetime·static taxonomy
+candidate·broader Q1–Q5·I4 aggregate·version/release는 완료 처리하지 않는다.
 
 - [x] `refs/heads/main`에서만 수동 dispatch하고 full lowercase target SHA가 producer workflow를
   공급한 exact protected-main dispatch commit과 같으며 fetched main ancestry에 남아 있는지 검증한다.
@@ -1599,9 +1604,23 @@ pyz를 소비하는 toy 검증과 I4-3 전체는 완료 처리하지 않는다.
   publication/OIDC/runtime credential 없이 수행하고, preflight/intake/API evidence/runner
   결과는 별도 14일 acceptance artifact로 남긴다. 이 구현은 `publish`, Pages, PR comment,
   `<!-- ici-report -->` marker 또는 version/release를 만들지 않는다.
-- [ ] 위 workflow를 candidate artifact와 candidate 기대값이 포함된 exact current toy `main`에
-  실제로 dispatch하고, 원격 Quality Zoo contract/expected finding·location evidence를 감사한다.
-  각 toy PR의 normal gate는 계속 released ici `v0.10.2` pin을 유지한다.
+- [x] 위 workflow를 exact ici workflow-main `6df011f98be1a19092b112cb56c596dc35bcae4d`와
+  exact toy `main` `2d0d7c0b2dcc137a782d6042438fc287bffdf570`에 실제 dispatch하고, [acceptance
+  run `33710695336`](https://github.com/jihoon22-lee/ici/actions/runs/33710695336)/[artifact
+  `9876797536`](https://github.com/jihoon22-lee/ici/actions/artifacts/9876797536)를 독립 감사했다.
+  candidate target `9d470edca7ab037a24dcd6594531a822f116548b`의 producer [run
+  `33706057540`](https://github.com/jihoon22-lee/ici/actions/runs/33706057540)/[artifact
+  `9875319095`](https://github.com/jihoon22-lee/ici/actions/artifacts/9875319095)는 raw ZIP
+  SHA-256 `4aec084b3a30ac01a1df5124fa3b42b7f51d23f66c12b490194a84549be9db27` (2,285,368 bytes),
+  contained `ici.pyz` SHA-256 `e7f1a2ce7147057538873a802715c7bf2b12e530a85070af862e02e378caceb8`
+  (2,284,045 bytes)로 확인됐다. Acceptance ZIP은 SHA-256
+  `e66ae2b65988abe10fc5ddb92a5c3bb6fc238ec2f77b7fd27ccfe75c24194a5f` (1,104,307 bytes)다.
+  `quality-zoo.suite/v1`는 5/5 contract `PASS`, runner error 0이며 ASan UAF
+  `FAIL`/`MEASURED`/`exact` `src/fault.cpp:5`, LSan leak `FAIL`/`MEASURED`/`exact`
+  `src/fault.cpp:3`, UBSan signed overflow `FAIL`/`MEASURED`/`exact` `src/fault.cpp:3`,
+  sanitizer-clean `PASS`/`MEASURED`/`high` `tests/test_clean.cpp:1`, Python existing case `WARN`을
+  기록했다. 각 toy PR의 normal gate는 계속 released ici `v0.10.2` pin을 유지하며, 이
+  workflow는 Pages/comment/publish/tag/release/version side effect를 만들지 않는다.
 - [x] released ici `v0.10.2`를 사용하는 Q0 quality-zoo scenario runner와 report/artifact
   contract를 toy-projects PR #49에서 수락했다. [PR run `33693241255`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33693241255)는
   green이고 [artifact `9870829400`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9870829400)는
@@ -1612,25 +1631,29 @@ pyz를 소비하는 toy 검증과 I4-3 전체는 완료 처리하지 않는다.
   `ed5fea2e881da77ac95482cf665e4e40bfe172f1`로 squash merge됐으며, exact-main [run `33694452357`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33694452357)와
   stable [artifact `9871249913`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9871249913)도
   각각 green과 contract `PASS`/observed `WARN`/empty `errors`/exit `0`를 확인했다. product
-  Pages는 trusted artifact와 byte-identical이었다. 이 check는 released-artifact Q0 경계만
-  닫으며 candidate consumer workflow의 local/manual contract와 실제 원격 dispatch는 별도다.
+  Pages는 trusted artifact와 byte-identical이었다. 이 check는 released-artifact Q0 경계이며,
+  candidate sanitizer consumer evidence는 위의 별도 exact dispatch 기록으로 관리한다.
 
-### I9-1. quality-zoo contract runner — Q0 acceptance complete; Q1–Q5 pending
+### I9-1. quality-zoo contract runner — Q0 and candidate sanitizer acceptance complete; Q1–Q5 pending
 
 **브랜치:** `test/quality-zoo-contract`
-**상태:** released-artifact Q0 known-answer acceptance is complete; candidate consumer workflow
-local/manual contract is implemented, but remote dispatch and the broader Q1–Q5 scenario/support
-matrix remain pending
+**상태:** released-artifact Q0 known-answer acceptance와 exact candidate sanitizer acceptance가
+완료됐다. Qt lifetime과 broader Q1–Q5 scenario/support matrix는 pending이다.
 
 - [x] Q0 released-artifact path의 toy manifest schema와 ici v3 report matcher가 PR #49의
   `quality-zoo-contract` artifact에 기록되고 exact-main run에서도 재검증됐다.
-- [ ] expected rule id, status/evidence/confidence, path, line 범위를 검증한다.
-- [ ] expected absence를 지원해 false positive도 고정한다.
+- [x] exact candidate run에서 expected rule id, status/evidence/confidence, path, line 범위를
+  검증한다. UAF/LSan/UBSan defect는 각각 `FAIL`/`MEASURED`/`exact`와
+  `src/fault.cpp:5`, `src/fault.cpp:3`, `src/fault.cpp:3`를 만족했고, clean은
+  `PASS`/`MEASURED`/`high` 및 `tests/test_clean.cpp:1` completion target을 만족했다.
+- [ ] expected absence를 지원해 false positive도 고정한다. Narrow sanitizer-clean absence는
+  위 candidate runtime evidence에 포함되지만, broader false-positive corpus는 pending이다.
 - [x] ici-hosted candidate workflow가 verified candidate pyz를 local path로 주입하는 계약을
-  갖춘다. workflow 자체는 read-only/manual이며, 실제 원격 candidate acceptance는 아래 unchecked
-  dispatch 항목과 별개다.
-- [ ] exact current ici/toy `main`과 candidate artifact를 대상으로 원격 workflow를 dispatch하고
-  candidate report의 expected rule/status/evidence/confidence/path/line을 검증한다.
+  갖춘다. workflow 자체는 read-only/manual이며, 실제 원격 candidate acceptance는 위 exact
+  sanitizer dispatch evidence와 별개로 broader scenario coverage를 계속 요구한다.
+- [x] exact current ici/toy `main`과 candidate artifact를 대상으로 원격 workflow를 dispatch하고
+  candidate report의 expected rule/status/evidence/confidence/path/line을 검증한다. 이는 기존
+  sanitizer corpus에만 해당하며 Qt lifetime 또는 broader Q1–Q5 acceptance는 포함하지 않는다.
 - [ ] quality-zoo 실패가 어떤 engine regression인지 한 화면에 요약된다.
 
 ### I9-2. self dogfood ratchet

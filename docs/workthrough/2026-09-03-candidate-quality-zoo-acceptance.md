@@ -1,12 +1,12 @@
-# Candidate-to-Quality-Zoo 수동 수용 경계 구현
+# Candidate-to-Quality-Zoo 수용 경계 — 원격 acceptance audit
 
 ## Overview
 
-ici candidate artifact를 toy-projects Quality Zoo에 주입해 확인하는 별도 수용 경계를 구현하고 문서화했다.
-이 경계는 일반 toy PR의 released-artifact 검증과 stable release를 대체하지 않는다. 현재 작업은
-`.github/workflows/candidate-quality-zoo.yml`의 local/manual workflow contract를 설명하는
-단계이며, exact current ici/toy `main`을 대상으로 한 원격 candidate acceptance run은 아직
-수행하지 않았다.
+ici candidate artifact를 toy-projects Quality Zoo에 주입해 확인하는 별도 수용 경계를 구현하고,
+exact ici/toy revisions에 대한 원격 acceptance를 독립 감사했다. 이 경계는 일반 toy PR의
+released-artifact 검증과 stable release를 대체하지 않으며, 이번 acceptance도 기존 sanitizer
+corpus의 rule/status/evidence/confidence/path/line 계약과 runtime ASan/LSan/UBSan/clean
+증거만 닫는다.
 
 ## Context
 
@@ -53,15 +53,46 @@ evidence와 runner 결과도 일반 PR comment/Pages와 분리했다.
 
 - `docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md`
   - I9-0/I9-1에 workflow local/manual contract 구현을 표시했다.
-  - 실제 remote dispatch와 expected finding/location audit은 미완료로 유지했다.
+  - exact remote dispatch와 expected rule/status/evidence/confidence/path/line audit을 완료로
+    기록하고 Qt lifetime 및 broader checkpoints는 pending으로 유지했다.
 - `docs/superpowers/2026-08-30-handover.md`
-  - Q0 released-artifact evidence와 candidate consumer evidence를 분리하고, 다음 작업을
-    exact current ici/toy revisions에 대한 remote dispatch 및 결과 audit으로 고정했다.
+  - Q0 released-artifact evidence와 candidate consumer evidence를 분리하고, exact current
+    ici/toy revisions에 대한 remote dispatch 및 결과 audit을 기록했다.
 
 ### 4. 버전·릴리스 경계
 
 문서 변경은 `v0.10.2`를 유지한다. candidate artifact는 release/tag/Pages/PR comment를
 생성하는 경로가 아니며, toy PR의 normal gate도 계속 released ici `v0.10.2`에 고정된다.
+
+### 5. 독립 원격 acceptance audit
+
+다음 exact binding을 GitHub Actions API와 raw artifact 다운로드로 다시 확인했다.
+
+| 항목 | 확인값 |
+|---|---|
+| ici exact-main | [run `33707430378`](https://github.com/jihoon22-lee/ici/actions/runs/33707430378), `success`, attempt 1, `6df011f98be1a19092b112cb56c596dc35bcae4d` |
+| candidate producer | [run `33706057540`](https://github.com/jihoon22-lee/ici/actions/runs/33706057540), target `9d470edca7ab037a24dcd6594531a822f116548b`, [artifact `9875319095`](https://github.com/jihoon22-lee/ici/actions/artifacts/9875319095) |
+| candidate ZIP | `2,285,368` bytes, SHA-256 `4aec084b3a30ac01a1df5124fa3b42b7f51d23f66c12b490194a84549be9db27` |
+| candidate `ici.pyz` | `2,284,045` bytes, SHA-256 `e7f1a2ce7147057538873a802715c7bf2b12e530a85070af862e02e378caceb8` |
+| toy-projects input | exact `main` `2d0d7c0b2dcc137a782d6042438fc287bffdf570` ([commit](https://github.com/jihoon22-lee/toy-projects/commit/2d0d7c0b2dcc137a782d6042438fc287bffdf570)) |
+| acceptance | [run `33710695336`](https://github.com/jihoon22-lee/ici/actions/runs/33710695336), job `100509326331`, `success`, head `6df011f98be1a19092b112cb56c596dc35bcae4d` |
+| acceptance artifact | [ID `9876797536`](https://github.com/jihoon22-lee/ici/actions/artifacts/9876797536), `1,104,307` bytes, SHA-256 `e66ae2b65988abe10fc5ddb92a5c3bb6fc238ec2f77b7fd27ccfe75c24194a5f` |
+
+Acceptance ZIP의 `quality-zoo.suite/v1`는 5개 scenario 모두 `contract_verdict: PASS`와
+runner error 0을 기록했다. 후보 digest가 선택한 expected contract와 report evidence는
+다음과 같다.
+
+| Scenario | Expected rule / status / evidence / confidence / location |
+|---|---|
+| `cpp.asan-use-after-free` | `asan.heap-use-after-free` / `FAIL` / `MEASURED` / `exact` / `src/fault.cpp:5` |
+| `cpp.lsan-memory-leak` | `lsan.memory-leak` / `FAIL` / `MEASURED` / `exact` / `src/fault.cpp:3` |
+| `cpp.ubsan-signed-overflow` | `ubsan.signed-integer-overflow` / `FAIL` / `MEASURED` / `exact` / `src/fault.cpp:3` |
+| `cpp.sanitizer-clean` | informational completion / `PASS` / `MEASURED` / `high` / `tests/test_clean.cpp:1`; active defect forbidden |
+| `python.dead-private-function` | existing known-answer / `WARN` / `ESTIMATED` |
+
+The acceptance workflow uploaded only the separate 14-day evidence artifact. It did not publish
+Pages, write a PR comment/marker, invoke the normal publisher, create a tag/release, or change the
+stable `v0.10.2` version. The audited temp directory was removed after verification.
 
 ## Workflow contract
 
@@ -109,12 +140,11 @@ git diff --check
 exit 0
 ```
 
-No release, remote candidate acceptance dispatch, PR comment, Pages publication, or candidate
-expected-result evidence is claimed here.
+No release, Pages publication, PR comment, or version change is claimed here; the remote candidate
+acceptance evidence is recorded above.
 
 ## Next Steps
 
-- Merge candidate expectation scenarios into an exact toy-projects `main` revision.
-- Dispatch this workflow from the exact ici `main` revision with the producer artifact coordinates.
-- Audit the acceptance artifact and expected rule/status/evidence/path/line results before marking
-  candidate consumer acceptance complete.
+- Add and independently accept the Qt lifetime/ownership Quality Zoo scenario.
+- Keep broader Q1–Q5, TSan, static taxonomy candidate, I4 aggregate, version, and release work
+  pending until their separate evidence exists.
