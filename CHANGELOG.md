@@ -371,6 +371,12 @@
 
 ### Fixed
 
+- **Sanitizer clean-result compatibility:** Restored the pre-ThreadSanitizer generic C++ clean
+  message (`AddressSanitizer and UndefinedBehaviorSanitizer completed`) after the shared sanitizer
+  refactor accidentally changed it to an abbreviated label. ThreadSanitizer retains its own
+  explicit clean message. This keeps digest-bound Quality Zoo expectations compatible without a
+  version bump or release; ici remains at `v0.10.2`.
+
 - **Clang-tidy explanatory-note aggregation**: ordinary `clang-tidy` and
   `clang-analyzer-*` explanation notes are now attached only to the immediately preceding primary
   in the same contiguous diagnostic stream through `CppDiagnostic.related_diagnostics`; a new

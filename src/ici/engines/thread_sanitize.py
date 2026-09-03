@@ -22,6 +22,7 @@ class ThreadSanitizeEngine(SanitizeEngine):
     TEMP_PREFIX = "ici-thread-sanitize-"
     BINARY_SUFFIX = "_tsan"
     CPP_LABEL = "TSan"
+    CPP_CLEAN_MESSAGE = "ThreadSanitizer completed without diagnostics"
     CPP_COMPILE_FLAGS = (
         "-fsanitize=thread",
         "-fno-omit-frame-pointer",

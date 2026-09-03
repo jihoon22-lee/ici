@@ -70,6 +70,37 @@ def test_cpp_without_test_sources_is_explicitly_skipped(tmp_path):
     assert any(target.status == EngineStatus.SKIP for target in result.targets)
 
 
+def test_generic_cpp_clean_message_preserves_the_published_sanitizer_contract(
+    tmp_path, monkeypatch
+):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "clean.cpp").write_text("int clean() { return 7; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_clean.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    results = iter(
+        (
+            ProcessResult(0, "", "", 0.01),
+            ProcessResult(0, "", "", 0.01),
+        )
+    )
+    monkeypatch.setattr(
+        "ici.engines.sanitize.run_process",
+        lambda *args, **kwargs: next(results),
+    )
+
+    result = SanitizeEngine(tmp_path).run()
+
+    assert result.status is EngineStatus.PASS
+    assert result.targets[0].target_name == "ASan/UBSan"
+    assert result.targets[0].message == "AddressSanitizer and UndefinedBehaviorSanitizer completed"
+
+
 def test_python_resource_warning_check_uses_resolved_python_module(tmp_path, monkeypatch):
     src = tmp_path / "src"
     src.mkdir()
