@@ -31,7 +31,9 @@ runtime-requirements.txt  ← uv export --frozen --no-dev --no-emit-project
 package-requirements.txt  ← uv export --frozen --only-group package --no-emit-project
 ```
 
-Both installations use `--require-hashes` and `--link-mode copy`. The package group is installed
+Both installations use `--require-hashes`, `--only-binary :all:`, and `--link-mode copy`, so a
+locked sdist cannot execute an unmodeled build backend. The build entrypoint and packaging
+workflows require uv `0.12.5`. The package group is installed
 into `build/package-tools`, while the runtime graph is installed into
 `build/site-packages`. Hatchling builds exactly one Python 3.10-targeted project wheel in
 `build/wheels`; that wheel is then installed into the runtime tree with `--no-deps`. The
@@ -46,6 +48,7 @@ The build exports the repository's canonical packaging environment:
 |---|---|---|
 | `SOURCE_DATE_EPOCH` | `1700000000` (`2023-11-14 22:13:20` UTC) | archive/member and shiv timestamps |
 | `PYTHONHASHSEED` | `0` | stable hash-dependent ordering |
+| `PYTHONUTF8` / locale | `1` / `C` | stable Python text decoding and process locale |
 | `TZ` | `UTC` | stable time formatting |
 | `umask` | `022` | stable default permissions |
 
@@ -53,8 +56,11 @@ The epoch is deliberately fixed rather than derived from the commit or wall cloc
 `shiv` runs, machine-specific `direct_url.json`, `uv_cache.json`, and `uv_build.json` metadata,
 the target `.lock`, and installed `bin/` launchers are removed. `RECORD` is updated after those
 removals. The runtime and packaging-tool trees are traversed afterward: symlinks and unsupported
-filesystem entries fail closed; regular files become `0644` and directories `0755`. The final
-launcher-bearing `dist/ici.pyz` is executable at `0755`.
+filesystem entries fail closed; regular files become `0644` and directories `0755`.
+Shiv-generated `environment.json` and `__main__.py` keep its deterministic synthetic `0600`
+mode. `scripts/assemble_pyz.py` reads bounded regular inputs without following symlinks, anchors
+the output directory by descriptor, rejects existing symlink/special outputs, and atomically
+publishes byte-identical `dist/ici.pyz` and `dist/ici` files at `0755`.
 
 ### 3. Pure-Python and package contract checks
 
@@ -70,15 +76,16 @@ uses the normal Python 3.10+ discovery path.
 and compares the resulting `dist/ici.pyz` SHA-256 values. Each invocation deliberately supplies
 different values to every common source of packaging drift:
 
-| Build | `umask` | `SOURCE_DATE_EPOCH` | `PYTHONHASHSEED` | `TZ` |
-|---|---:|---:|---|---|
-| First | `077` | `1` | `random` | `Pacific/Honolulu` |
-| Second | `002` | `4102444800` | `123` | `Asia/Seoul` |
+| Build | `umask` | `SOURCE_DATE_EPOCH` | `PYTHONHASHSEED` / `PYTHONUTF8` | locale | `TZ` |
+|---|---:|---:|---|---|---|
+| First | `077` | `1` | `random` / `0` | `C.utf8` | `Pacific/Honolulu` |
+| Second | `002` | `4102444800` | `123` / `1` | `POSIX` | `Asia/Seoul` |
 
 The build script must override these settings with its canonical values. The verifier then opens
 the archive and requires every member to use the timestamp for epoch `1700000000`, checks the
-canonical packaged-file mode, rejects `site-packages/.lock`, and confirms shiv's
-`environment.json` has `built_at = "2023-11-14 22:13:20"`. Finally it compares the source-status
+canonical installed/bootstrap and synthetic top-level modes, rejects `site-packages/.lock`,
+confirms shiv's `environment.json` has `built_at = "2023-11-14 22:13:20"`, and requires the two
+final executable names to be byte-identical `0755` files. Finally it compares the source-status
 snapshot with the post-build status so generated artifacts cannot mutate the checkout.
 
 ## Code Examples
@@ -89,13 +96,17 @@ The build's two lock scopes and canonical environment are represented by this co
 readonly CANONICAL_SOURCE_DATE_EPOCH=1700000000
 export SOURCE_DATE_EPOCH="$CANONICAL_SOURCE_DATE_EPOCH"
 export PYTHONHASHSEED=0
+export PYTHONUTF8=1
+export LANG=C
+export LC_ALL=C
 export TZ=UTC
 umask 022
 
 uv export --frozen --no-dev --no-emit-project --output-file build/runtime-requirements.txt
 uv export --frozen --only-group package --no-emit-project \
   --output-file build/package-requirements.txt
-uv pip install --require-hashes --link-mode copy --requirements build/package-requirements.txt
+uv pip install --require-hashes --only-binary :all: --link-mode copy \
+  --requirements build/package-requirements.txt
 ```
 
 The reproducibility verifier supplies deliberately hostile inputs around each build:
@@ -113,6 +124,7 @@ The implementation and documentation boundary for this slice is:
 
 - `scripts/build-pyz.sh` — locked installs, canonical environment, cleanup, mode normalization,
   symlink rejection, and ZipApp assembly.
+- `scripts/assemble_pyz.py` — bounded no-follow reads and descriptor-anchored atomic outputs.
 - `scripts/verify-reproducibility.sh` — adversarial two-build and archive/source-status checks.
 - `pyproject.toml` and `uv.lock` — the separate `package` group and its locked hashes.
 - `tests/test_purity.py` — source-level regression assertions for the hermetic build contract.
@@ -123,15 +135,15 @@ The implementation and documentation boundary for this slice is:
 
 | Check | Result |
 |---|---|
-| Lock separation | Runtime and `package` requirements are exported with `--frozen`; both installs use `--require-hashes`. |
+| Lock separation | Runtime and `package` requirements are exported with `--frozen`; both installs use hashes and wheels only; uv is pinned to `0.12.5`. |
 | Packaging isolation | Hatchling and `shiv==1.0.8` run from `build/package-tools`; the shipped tree receives the project wheel and runtime graph only. |
 | Hermetic inputs | Canonical epoch `1700000000`, `PYTHONHASHSEED=0`, `TZ=UTC`, `umask 022`, fixed modes, metadata cleanup, and symlink rejection are enforced. |
-| Adversarial builds | PASS — both differing umask/epoch/hash-seed/timezone invocations produced SHA-256 `23befa93bd7f18bb1a3b2a0db46b9d37cab0e23b92064c7e9d149475938cbbf1`. |
+| Adversarial builds | PASS — both differing umask/epoch/hash-seed/timezone/locale invocations produced SHA-256 `f0d25021ef730bae1e94a9ca925418875666cf72967b9cd44354468d69ad83c1`. |
 | Cross-path/source-mtime audit | PASS — the committed tree built in a second absolute worktree after all `src/` and `scripts/` mtimes were changed still produced the same SHA-256. |
-| Artifact boundary | Native/platform wheels, `certifi`, missing schemas, symlinks, special entries, leaked locks, and source mutation fail closed. |
-| Focused regression | `uv run --python 3.10 pytest tests/test_purity.py -q` — 33 passed. |
-| Full Python 3.10 suite | `uv run --python 3.10 pytest -ra` — 2,171 passed, 7 environment-dependent C++ tool skips. |
-| Static quality | Ruff check and format — 193 files PASS; mypy — 107 source files PASS. |
+| Artifact boundary | Native/platform wheels, sdist execution, `certifi`, missing schemas, input/output symlinks, special entries, leaked locks, and source mutation fail closed. |
+| Focused regression | `uv run --python 3.10 pytest tests/test_pyz_assembly.py tests/test_purity.py -q` — 41 passed. |
+| Full Python 3.10 suite | The pre-review branch passed 2,171 tests with 7 environment-dependent C++ tool skips; the final post-review suite is recorded after rerun below. |
+| Static quality | Ruff check and format — 195 files PASS; mypy including the assembler — 108 source files PASS. |
 | Script/static checks | `bash -n scripts/build-pyz.sh scripts/verify-reproducibility.sh`, `actionlint .github/workflows/*.yml`, and focused Ruff check/format — PASS. |
 | Packaged smoke | `./scripts/smoke.sh` — direct/3.10 execution, doctor/env, artifact identity, self verification, and Zero-CDN PASS. |
 | Documentation check | `git diff --check` — PASS. Full build/test gates remain parent-branch integration evidence. |

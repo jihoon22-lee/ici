@@ -374,12 +374,15 @@
 - **Hermetic and reproducible ZipApp builds:** `scripts/build-pyz.sh` now exports two
   independently scoped, frozen requirement files from `uv.lock`: the shipped runtime graph
   (`--no-dev`) and the packaging-tool group (`--only-group package`, currently `hatchling` and
-  `shiv==1.0.8`). Both installs require lock-provided hashes, use copied files, and target
+  `shiv==1.0.8`). Both installs require lock-provided hashes and wheels, use copied files, and target
   Python 3.10; packaging tools stay outside the shipped runtime graph. The build forces the
   canonical epoch `SOURCE_DATE_EPOCH=1700000000` (2023-11-14 22:13:20 UTC),
-  `PYTHONHASHSEED=0`, `TZ=UTC`, and `umask 022`, removes machine-specific metadata and target
+  `PYTHONHASHSEED=0`, Python UTF-8, the C locale, `TZ=UTC`, and `umask 022`, removes
+  machine-specific metadata and target
   locks, normalizes installed archive inputs to `0644` and directories to `0755`, and rejects symlinks or
-  other unsupported filesystem entries. The reproducibility verifier builds twice under
+  other unsupported filesystem entries. CI and the build entrypoint require uv `0.12.5`.
+  A bounded no-follow assembler rejects symlink/special output targets and atomically publishes
+  both executable names through an opened directory descriptor. The reproducibility verifier builds twice under
   adversarial umasks, source epochs, hash seeds, and time zones, then checks byte identity,
   canonical ZipApp timestamps/modes, and unchanged source status. No version bump or release is
   implied; ici remains at `v0.10.2`.

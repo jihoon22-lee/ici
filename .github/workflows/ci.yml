@@ -31,6 +31,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: "0.12.5"
           enable-cache: true
 
       # uv run 을 쓰는 이유: uvx 는 ruff 를 임시로 내려받아 실행할 뿐 PATH 에 남기지 않아,
@@ -228,6 +229,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: "0.12.5"
           enable-cache: true
 
       - name: Build Standalone ZipApp (dist/ici.pyz)
@@ -360,6 +362,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: "0.12.5"
           enable-cache: true
 
       - name: Build Standalone ZipApp (dist/ici.pyz)

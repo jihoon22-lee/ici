@@ -152,15 +152,30 @@ def test_pyz_build_is_hermetic_against_dependency_and_permission_drift():
 
     assert "readonly CANONICAL_SOURCE_DATE_EPOCH=1700000000" in script
     assert 'export SOURCE_DATE_EPOCH="$CANONICAL_SOURCE_DATE_EPOCH"' in script
+    assert 'readonly EXPECTED_UV_VERSION="0.12.5"' in script
     assert "umask 022" in script
     assert script.count("uv export --quiet --frozen") == 2
     assert script.count("--require-hashes") == 2
     assert script.count("--link-mode copy") == 3
+    assert script.count("--only-binary :all:") == 3
     assert "--only-group package" in script
     assert "--with shiv" not in script
     assert "path.chmod(0o644)" in script
     assert "path.chmod(0o755)" in script
     assert "symbolic link is not allowed in the ZipApp" in script
+    assert "python3 scripts/assemble_pyz.py" in script
+
+
+def test_every_setup_uv_step_pins_the_build_tool_version():
+    for workflow_name in ("ci.yml", "release.yml", "candidate-artifact.yml"):
+        workflow = _workflow(workflow_name)
+        setup_steps = re.findall(
+            r"(?ms)^      - name: Install uv\n(?P<body>.*?)(?=^      - name:|\Z)", workflow
+        )
+        assert setup_steps, f"no setup-uv step found in {workflow_name}"
+        for step in setup_steps:
+            assert "astral-sh/setup-uv@" in step
+            assert 'version: "0.12.5"' in step
 
 
 def test_pyz_build_requires_every_public_json_schema():

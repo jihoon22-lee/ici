@@ -162,13 +162,16 @@ ici/
 1. **Canonical build environment:** `SOURCE_DATE_EPOCH=1700000000`을 모든 archive
    timestamp의 기준으로 내보냅니다. 이 값은 UTC `2023-11-14 22:13:20`이며 commit
    timestamp와 무관한 repository-wide packaging epoch입니다. 함께 `PYTHONHASHSEED=0`,
-   `TZ=UTC`, `umask 022`를 설정해 hash 순서, timezone, 기본 permission mask가 caller
+   `PYTHONUTF8=1`, C locale, `TZ=UTC`, `umask 022`를 설정해 hash 순서, text encoding,
+   timezone, 기본 permission mask가 caller
    환경에서 전파되지 않게 합니다.
 2. **Locked dependency groups:** `uv export --frozen --no-dev --no-emit-project`가
    `uv.lock`에서 shipped runtime requirement를 만들고,
    `uv export --frozen --only-group package --no-emit-project`가 packaging-tool
    requirement를 별도로 만듭니다. 두 파일은 lock의 hash를 보존하며
-   `uv pip install --require-hashes --link-mode copy`로 Python 3.10 대상에 설치됩니다.
+   `uv pip install --require-hashes --only-binary :all: --link-mode copy`로 Python 3.10
+   대상 wheel만 설치됩니다. 따라서 잠긴 sdist hash가 존재해도 build backend가 실행되지
+   않습니다. build entrypoint와 모든 packaging CI는 uv `0.12.5`를 요구합니다.
    `package` 그룹의 `hatchling`과 `shiv==1.0.8`은 `build/package-tools`에만 있고,
    runtime graph에는 dev 도구나 packaging tool이 섞이지 않습니다. Hatchling이 만든
    project wheel 하나를 runtime site-packages에 `--no-deps`로 설치합니다.
@@ -179,19 +182,22 @@ ici/
    순회하며 symlink와 special/unsupported entry를 거부하고 regular file은 `0644`,
    directory는 `0755`로 설정합니다.
 4. **Archive and launcher:** canonicalized trees are passed to `shiv --reproducible` to
-   create the raw ZipApp. The output is checked for a ZIP signature, then the
-   `scripts/launcher.sh` shell preamble is prepended and the final `dist/ici.pyz` is marked
-   executable (`0755`). The resulting polyglot keeps the normal `$ICI_PYTHON`/Python 3.10+
+   create the raw ZipApp. `scripts/assemble_pyz.py` opens bounded regular inputs without following
+   symlinks, anchors the non-symlink output directory by descriptor, rejects existing symlink or
+   special outputs, and uses same-directory temporary files plus `fsync`/`os.replace` to publish
+   byte-identical `dist/ici.pyz` and `dist/ici` executables (`0755`). The resulting polyglot keeps the normal `$ICI_PYTHON`/Python 3.10+
    discovery path described above.
 
 `scripts/verify-reproducibility.sh` exercises this contract with two adversarial builds. The
-first runs under `umask 077`, `SOURCE_DATE_EPOCH=1`, `PYTHONHASHSEED=random`, and
-`TZ=Pacific/Honolulu`; the second uses `umask 002`, `SOURCE_DATE_EPOCH=4102444800`,
-`PYTHONHASHSEED=123`, and `TZ=Asia/Seoul`. The two `dist/ici.pyz` SHA-256 values must match.
+first runs under `umask 077`, `SOURCE_DATE_EPOCH=1`, `PYTHONHASHSEED=random`, a different
+locale/UTF-8 setting, and `TZ=Pacific/Honolulu`; the second uses `umask 002`,
+`SOURCE_DATE_EPOCH=4102444800`, `PYTHONHASHSEED=123`, and `TZ=Asia/Seoul`. The two
+`dist/ici.pyz` SHA-256 values must match.
 The verifier also requires every ZipApp member to carry the canonical `1700000000` timestamp,
-checks canonical `0644` modes for packaged files and `0755` directories, rejects a leaked
-`site-packages/.lock`, checks shiv's `built_at`, and confirms that the build leaves git source
-status unchanged.
+checks `0644` modes for installed/bootstrap files and shiv's deterministic `0600` modes for its
+two synthetic top-level members, rejects a leaked `site-packages/.lock`, checks shiv's `built_at`,
+requires the two final outputs to be byte-identical `0755` files, and confirms that the build
+leaves git source status unchanged.
 
 ---
 

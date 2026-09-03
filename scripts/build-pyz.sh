@@ -18,7 +18,10 @@ cd "$ROOT"
 readonly CANONICAL_SOURCE_DATE_EPOCH=1700000000
 export SOURCE_DATE_EPOCH="$CANONICAL_SOURCE_DATE_EPOCH"
 export PYTHONHASHSEED=0
+export PYTHONUTF8=1
 export TZ=UTC
+export LANG=C
+export LC_ALL=C
 umask 022
 
 PY_TARGET="${ICI_BUILD_PYTHON:-3.10}"   # 산출물이 돌아야 하는 하한 = 3.10
@@ -32,6 +35,22 @@ RAW="$BUILD/ici-raw.pyz"
 OUT="$ROOT/dist/ici.pyz"
 
 command -v uv >/dev/null || { echo "uv 가 필요합니다: https://docs.astral.sh/uv/" >&2; exit 1; }
+readonly EXPECTED_UV_VERSION="0.12.5"
+actual_uv_version="$(uv --version)"
+actual_uv_number="$(printf '%s\n' "$actual_uv_version" | awk '{print $2}')"
+if [ "$actual_uv_number" != "$EXPECTED_UV_VERSION" ]; then
+    echo "uv $EXPECTED_UV_VERSION가 필요합니다: $actual_uv_version" >&2
+    exit 1
+fi
+
+if [ -L "$ROOT/dist" ]; then
+    echo "dist 경로는 symlink일 수 없습니다: $ROOT/dist" >&2
+    exit 1
+fi
+if [ -e "$ROOT/dist" ] && [ ! -d "$ROOT/dist" ]; then
+    echo "dist 경로는 directory여야 합니다: $ROOT/dist" >&2
+    exit 1
+fi
 
 case "$ROOT" in
     /mnt/*) echo "경고: $ROOT 는 Windows 드라이브입니다. 파일 권한이 0777 로 기록됩니다." >&2
@@ -46,7 +65,7 @@ uv export --quiet --frozen --no-dev --no-emit-project --no-header \
 uv export --quiet --frozen --only-group package --no-emit-project --no-header \
     --output-file "$PACKAGE_REQUIREMENTS"
 uv pip install --quiet --python "$PY_TARGET" --target "$TOOLS" --link-mode copy \
-    --require-hashes --requirements "$PACKAGE_REQUIREMENTS"
+    --require-hashes --only-binary :all: --requirements "$PACKAGE_REQUIREMENTS"
 build_python="$(uv python find "$PY_TARGET")"
 PYTHONPATH="$TOOLS" "$build_python" -m hatchling build \
     --target wheel --directory "$WHEELS"
@@ -57,9 +76,9 @@ if [ "$wheel_count" -ne 1 ]; then
 fi
 wheel="$(find "$WHEELS" -maxdepth 1 -type f -name 'ici-*.whl' -print)"
 uv pip install --quiet --python "$PY_TARGET" --target "$SITE" --link-mode copy \
-    --require-hashes --requirements "$RUNTIME_REQUIREMENTS"
+    --require-hashes --only-binary :all: --requirements "$RUNTIME_REQUIREMENTS"
 uv pip install --quiet --python "$PY_TARGET" --target "$SITE" --link-mode copy \
-    --no-deps "$wheel"
+    --no-deps --only-binary :all: "$wheel"
 
 echo "[2/4] 순수 파이썬 검사"
 impure="$(find "$SITE" \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' \) -print)"
@@ -161,23 +180,11 @@ PYTHONPATH="$TOOLS" "$build_python" -m shiv \
     -o "$RAW"
 
 echo "[4/4] sh 런처 프리앰블 부착"
-python3 - "$RAW" "$ROOT/scripts/launcher.sh" "$OUT" <<'PY'
-import sys
-
-raw_path, preamble_path, out_path = sys.argv[1:4]
-body = open(raw_path, "rb").read()
-if body.startswith(b"#!"):
-    body = body[body.index(b"\n") + 1:]
-if not body.startswith(b"PK\x03\x04"):
-    sys.exit("zip 시그니처가 아닙니다 — shiv 산출물이 예상과 다릅니다")
-preamble = open(preamble_path, "rb").read()
-if not preamble.endswith(b"\n"):
-    sys.exit("launcher.sh 가 개행으로 끝나야 합니다")
-with open(out_path, "wb") as fh:
-    fh.write(preamble + body)
-PY
-chmod +x "$OUT"
-cp -f "$OUT" "$ROOT/dist/ici"
+python3 scripts/assemble_pyz.py \
+    --raw "$RAW" \
+    --preamble "$ROOT/scripts/launcher.sh" \
+    --output "$OUT" \
+    --output "$ROOT/dist/ici"
 
 printf '완료: %s (%s)\n' "$OUT" "$(du -h "$OUT" | cut -f1)"
 echo "스모크 테스트: ./scripts/smoke.sh"
