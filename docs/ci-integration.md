@@ -200,8 +200,10 @@ skip되지 않도록 hosted runner provisioning 단계에서 `clang`, `clang-tid
 `g++`, `pkg-config`, `qt6-base-dev`를 준비한다. 이 CI 전용 단계는 ici/Quality Zoo 실행과
 분리되며 candidate preflight/실행은 비특권·무인증 상태로 유지되고 `GH_TOKEN`/
 `GITHUB_TOKEN`을 사용하지 않는다. 현재 로컬 purity contract는 `32 passed`, `actionlint`도
-PASS다. 첫 sanitizer 범위의 exact-revision acceptance는 완료됐지만, 이 feature head와 Qt
-lifetime expectation을 포함한 새 candidate dispatch/acceptance는 별도로 pending이다.
+PASS다. 첫 sanitizer 범위의 exact-revision acceptance에 이어 run `33718024450`이 category
+taxonomy와 Qt lifetime expectation을 포함한 6개 scenario를 모두 수용했다(artifact
+`9879217928`). 현재 ThreadSanitizer feature head는 별도 candidate artifact와 candidate-only
+manifest 수용이 필요하며, 앞선 증거를 재사용하지 않는다.
 
 실행 전 toy-projects의 `quality-zoo` 기대값이 포함된 최신 `main` SHA와 ici candidate producer
 artifact의 좌표를 별도로 확인한다. workflow는 네 개의 입력을 모두 요구한다.

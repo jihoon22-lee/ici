@@ -16,7 +16,9 @@ acceptance artifact에 남겨 원격 수용 결과가 실제로 어느 기대값
 stable toy PR gate와 같은 manifest를 변경해야 하므로, released ici `v0.10.2` 경계를
 오염시키거나 candidate-only 시나리오를 일반 gate에서 실행할 위험이 있었다. workflow는
 여전히 exact toy SHA와 candidate provenance를 먼저 검증하고, 이 변경은 그 이후의 local
-manifest 선택만 확장한다.
+manifest 선택만 확장한다. 기존 six-scenario category/Qt acceptance는 run `33718024450`
+(artifact `9879217928`)에서 이미 완료됐으며, 이 변경은 후속 ThreadSanitizer candidate에
+새로운 독립 수용 증거를 요구한다.
 
 ## Changes Made
 

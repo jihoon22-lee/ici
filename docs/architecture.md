@@ -1105,8 +1105,9 @@ Quality Zoo 입력은 exact toy revision에 결합된 두 단계 선택 규칙�
 않는다. 따라서 toy PR의 normal gate는 계속 released ici `v0.10.2`를 사용하고, released
 artifact Q0 acceptance와 candidate consumer acceptance는 서로 다른 증거다. 첫 sanitizer
 범위는 exact-revision remote acceptance를 완료했다. 이 feature head의 taxonomy/tool
-provisioning과 후속 Qt lifetime expectation은 아직 별도 candidate acceptance가 필요하며,
-이전 candidate evidence를 재사용하지 않는다.
+provisioning과 Qt lifetime expectation도 run `33718024450`의 6개 scenario acceptance로
+완료했다. 이후 ThreadSanitizer feature head와 candidate-only manifest는 새 candidate
+acceptance가 필요하며, 이전 candidate evidence를 재사용하지 않는다.
 
 ## 5. 다중 리포터 계층 설계
 
