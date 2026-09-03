@@ -120,11 +120,43 @@ identities all matched, including `workflow_name`, `head_branch`, attempts, and 
 URLs. The observed v7 upload ZIP preserved these modes; an earlier generic assumption that upload
 ZIPs lose modes does not apply to this artifact.
 
-This closes the remote producer only. A future consumer
-must inject the verified candidate by local path in a separate quality-zoo runner; every toy PR's
-normal gate remains pinned to released ici `v0.10.2`. Its quality-zoo result may be linked or added
-as a section of the existing `<!-- ici-report -->` body, but must preserve exactly one sticky
-comment rather than creating a second marker/comment.
+This closes the remote producer only. The separate ici-hosted
+`candidate-quality-zoo.yml` workflow now defines the manual consumer path: it injects the verified
+candidate by local path into a read-only Quality Zoo run while every toy PR's normal gate remains
+pinned to released ici `v0.10.2`. No remote candidate-consumer dispatch has been accepted yet, so
+this workflow must not be read as additional Q0 evidence. The released-artifact Q0 result may be
+linked or added as a section of the existing `<!-- ici-report -->` body, but must preserve exactly
+one sticky comment rather than creating a second marker/comment.
+
+### Candidate-to-Quality-Zoo acceptance (manual, not a release)
+
+`.github/workflows/candidate-quality-zoo.yml` is an ici-hosted, `workflow_dispatch`-only path for
+cross-repository candidate validation. Dispatch it from `refs/heads/main` only after the toy
+`quality-zoo` commit contains the candidate expectations and the candidate artifact has been
+independently recorded:
+
+```bash
+gh workflow run candidate-quality-zoo.yml --ref main \
+  -f ici_target_sha=<40-lowercase-hex-ici-main-sha> \
+  -f candidate_artifact_id=<positive-actions-artifact-id> \
+  -f candidate_archive_sha256=<64-lowercase-hex-archive-sha256> \
+  -f toy_target_sha=<40-lowercase-hex-toy-main-sha>
+```
+
+The workflow verifies the exact ici and toy `main` revisions, downloads the named candidate ZIP,
+checks its raw archive digest, and rechecks the manifest's provenance against independently fetched
+Actions run/check/job evidence. It runs candidate intake once as a no-credential preflight, fetches
+the authenticated evidence separately, then runs the Quality Zoo runner with the verified local
+`ici.pyz` path and requires `quality-zoo.suite/v1` with `contract_verdict: PASS` and no runner errors.
+Candidate-controlled preflight and execution have GitHub publication/OIDC credentials unset; the
+read-only Actions/Checks/Contents token is used only for artifact and evidence API reads. The result
+is uploaded as a separate, uncompressed 14-day acceptance artifact containing preflight, intake,
+GitHub evidence, and Quality Zoo results.
+
+This path does not run `publish`, publish Pages, write or update a PR comment, or alter the stable
+version/release. The existing released-artifact Q0 acceptance and its single sticky
+`<!-- ici-report -->` comment remain the normal toy CI boundary; candidate acceptance stays pending
+until this workflow is dispatched against exact current ici/toy commits and its evidence is audited.
 
 ### 릴리스 정책
 

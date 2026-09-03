@@ -67,6 +67,20 @@
   and main ici/viewer Pages were audited for trusted report contents, exact source/title identity,
   Zero-CDN behavior, and byte identity. This closes the current producer/artifact/Pages audit;
   candidate-pyz consumer injection remains a separate follow-up.
+- **Manual candidate-to-Quality-Zoo acceptance workflow (local contract; remote run pending):** Added
+  the ici-hosted `candidate-quality-zoo.yml` `workflow_dispatch` path for a separately verified
+  candidate archive. The workflow binds the exact ici target SHA and current toy-projects main SHA,
+  checks the candidate artifact ID and raw archive SHA-256, revalidates the candidate provenance
+  manifest against independently fetched Actions run/check/job API evidence, and passes the verified
+  local `ici.pyz` path to the Quality Zoo runner. Candidate preflight and execution explicitly run
+  without GitHub publication credentials; authenticated API reads happen only in the separate
+  evidence-fetch step. The run uploads bounded preflight, intake, API-evidence, and Quality Zoo
+  results as a separate 14-day evidence artifact. It does not publish Pages, write a PR comment,
+  invoke the normal report publisher, tag/release, or change the stable `v0.10.2` version. The
+  workflow contract is implemented and locally testable, but no remote candidate-to-Quality-Zoo
+  dispatch has been accepted yet. The previously accepted Q0 remains the released-artifact
+  `v0.10.2` boundary only; candidate consumer acceptance and expected rule/location scenarios remain
+  pending.
 - **Quality Zoo Q0 released-artifact acceptance:** [toy-projects PR #49](https://github.com/jihoon22-lee/toy-projects/pull/49)
   passed [run `33693241255`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33693241255) and
   published [artifact `9870829400`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9870829400).

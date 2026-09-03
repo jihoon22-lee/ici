@@ -1,0 +1,211 @@
+name: Verify ici Candidate with Quality Zoo
+
+on:
+  workflow_dispatch:
+    inputs:
+      ici_target_sha:
+        description: "Exact protected ici main commit packaged by the candidate producer"
+        required: true
+        type: string
+      candidate_artifact_id:
+        description: "Actions artifact ID for the provenance-bound candidate ZIP"
+        required: true
+        type: string
+      candidate_archive_sha256:
+        description: "Out-of-band SHA-256 of the raw candidate artifact ZIP"
+        required: true
+        type: string
+      toy_target_sha:
+        description: "Exact current toy-projects main commit containing candidate expectations"
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.toy_target_sha }}
+  cancel-in-progress: false
+
+jobs:
+  accept:
+    name: Verify Candidate against Quality Zoo
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+
+    steps:
+      - name: Checkout Exact Quality Zoo Commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: jihoon22-lee/toy-projects
+          ref: ${{ inputs.toy_target_sha }}
+          path: toy-projects
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.10"
+
+      - name: Validate Workflow Inputs and Exact Main Revisions
+        env:
+          ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
+          CANDIDATE_ARTIFACT_ID: ${{ inputs.candidate_artifact_id }}
+          CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
+          TOY_TARGET_SHA: ${{ inputs.toy_target_sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "jihoon22-lee/ici"
+          test "$GITHUB_REF" = "refs/heads/main"
+          printf '%s' "$ICI_TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$CANDIDATE_ARTIFACT_ID" | grep -Eq '^[1-9][0-9]*$'
+          printf '%s' "$CANDIDATE_ARCHIVE_SHA256" | grep -Eq '^[0-9a-f]{64}$'
+          printf '%s' "$TOY_TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          test "$(git -C toy-projects rev-parse HEAD)" = "$TOY_TARGET_SHA"
+          ici_main="$(git ls-remote --exit-code https://github.com/jihoon22-lee/ici.git refs/heads/main | cut -f1)"
+          toy_main="$(git ls-remote --exit-code https://github.com/jihoon22-lee/toy-projects.git refs/heads/main | cut -f1)"
+          test "$GITHUB_SHA" = "$ici_main"
+          test "$TOY_TARGET_SHA" = "$toy_main"
+
+      - name: Download Exact Candidate Archive and Metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CANDIDATE_ARTIFACT_ID: ${{ inputs.candidate_artifact_id }}
+          CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
+        run: |
+          set -euo pipefail
+          mkdir -- "$RUNNER_TEMP/candidate-evidence"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CANDIDATE_ARTIFACT_ID}" \
+            > "$RUNNER_TEMP/candidate-evidence/artifact.json"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CANDIDATE_ARTIFACT_ID}/zip" \
+            > "$RUNNER_TEMP/candidate.zip"
+          printf '%s  %s\n' "$CANDIDATE_ARCHIVE_SHA256" "$RUNNER_TEMP/candidate.zip" \
+            | sha256sum --check --strict
+
+      - name: Preflight Candidate without Credentials
+        id: preflight
+        env:
+          ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
+          CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
+        working-directory: toy-projects/quality-zoo
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
+          unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
+          python3.10 -m runner.candidate_intake \
+            --archive "$RUNNER_TEMP/candidate.zip" \
+            --archive-sha256 "$CANDIDATE_ARCHIVE_SHA256" \
+            --repository "$GITHUB_REPOSITORY" \
+            --target-sha "$ICI_TARGET_SHA" \
+            --destination "$RUNNER_TEMP/candidate-preflight" \
+            --json > "$RUNNER_TEMP/candidate-preflight.json"
+          python3.10 - "$RUNNER_TEMP/candidate-preflight/candidate-provenance.json" \
+            "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          output = Path(sys.argv[2])
+          names = (
+              "candidate_run_id",
+              "merge_gate_check_run_id",
+              "merge_gate_job_id",
+              "merge_gate_run_id",
+          )
+          with output.open("a", encoding="utf-8") as stream:
+              for name in names:
+                  value = payload[name]
+                  if type(value) is not int or value < 1:
+                      raise SystemExit(f"invalid provenance ID: {name}")
+                  stream.write(f"{name}={value}\n")
+          PY
+
+      - name: Fetch Authenticated GitHub Evidence
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CANDIDATE_RUN_ID: ${{ steps.preflight.outputs.candidate_run_id }}
+          MERGE_GATE_CHECK_RUN_ID: ${{ steps.preflight.outputs.merge_gate_check_run_id }}
+          MERGE_GATE_JOB_ID: ${{ steps.preflight.outputs.merge_gate_job_id }}
+          MERGE_GATE_RUN_ID: ${{ steps.preflight.outputs.merge_gate_run_id }}
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/candidate-evidence"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN_ID}" \
+            > "$evidence/candidate-run.json"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/check-runs/${MERGE_GATE_CHECK_RUN_ID}" \
+            > "$evidence/gate-check.json"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/jobs/${MERGE_GATE_JOB_ID}" \
+            > "$evidence/gate-job.json"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${MERGE_GATE_RUN_ID}" \
+            > "$evidence/gate-run.json"
+
+      - name: Verify Candidate Provenance and Run Quality Zoo
+        env:
+          ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
+          CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
+        working-directory: toy-projects/quality-zoo
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
+          unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
+          python3.10 -m runner.candidate_intake \
+            --archive "$RUNNER_TEMP/candidate.zip" \
+            --archive-sha256 "$CANDIDATE_ARCHIVE_SHA256" \
+            --repository "$GITHUB_REPOSITORY" \
+            --target-sha "$ICI_TARGET_SHA" \
+            --destination "$RUNNER_TEMP/candidate-verified" \
+            --github-evidence "$RUNNER_TEMP/candidate-evidence" \
+            --json > "$RUNNER_TEMP/candidate-intake.json"
+          ICI_PYTHON=python3.10 python3.10 -m runner.run \
+            --manifest manifest.json \
+            --ici-bin "$RUNNER_TEMP/candidate-verified/ici.pyz" \
+            --output-dir "$RUNNER_TEMP/quality-zoo-results" \
+            --timeout-seconds 300
+          python3.10 - "$RUNNER_TEMP/quality-zoo-results/suite.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          if payload.get("schema") != "quality-zoo.suite/v1":
+              raise SystemExit("unexpected Quality Zoo suite schema")
+          results = payload.get("results")
+          if not isinstance(results, list) or not results:
+              raise SystemExit("Quality Zoo returned no scenarios")
+          if payload.get("scenario_count") != len(results):
+              raise SystemExit("Quality Zoo scenario count differs")
+          if payload.get("contract_verdict") != "PASS":
+              raise SystemExit("Quality Zoo candidate contract did not pass")
+          if any(item.get("errors") for item in results if isinstance(item, dict)):
+              raise SystemExit("Quality Zoo candidate result contains runner errors")
+          PY
+
+      - name: Stage Candidate Acceptance Evidence
+        run: |
+          set -euo pipefail
+          destination="$RUNNER_TEMP/candidate-acceptance"
+          mkdir -- "$destination"
+          cp -- "$RUNNER_TEMP/candidate-preflight.json" "$destination/preflight.json"
+          cp -- "$RUNNER_TEMP/candidate-intake.json" "$destination/intake.json"
+          cp -R -- "$RUNNER_TEMP/candidate-evidence" "$destination/github-evidence"
+          cp -R -- "$RUNNER_TEMP/quality-zoo-results" "$destination/results"
+
+      - name: Upload Candidate Acceptance Evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v6.0.0
+        with:
+          name: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.toy_target_sha }}
+          path: ${{ runner.temp }}/candidate-acceptance
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

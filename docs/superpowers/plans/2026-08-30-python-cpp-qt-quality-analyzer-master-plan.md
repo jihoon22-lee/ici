@@ -1548,8 +1548,8 @@ I4 전체 checkpoint를 닫지 않는다.
 
 ### I9-0. Candidate artifact provenance producer (producer sub-slice)
 
-**브랜치:** `chore/candidate-artifact-provenance`
-**상태:** producer contract/local implementation and remote producer evidence complete; released-artifact Q0 accepted; candidate-pyz consumer evidence pending
+**브랜치:** producer `chore/candidate-artifact-provenance`; consumer `feat/candidate-quality-zoo-acceptance`
+**상태:** producer contract/local implementation and remote producer evidence complete; released-artifact Q0 accepted; candidate consumer workflow local/manual contract exists; remote candidate-consumer evidence pending
 
 이 절은 released `ici v0.10.2`를 사용하는 Q0 known-answer acceptance만 완료 처리한다. candidate
 pyz를 소비하는 toy 검증과 I4-3 전체는 완료 처리하지 않는다.
@@ -1592,8 +1592,16 @@ pyz를 소비하는 toy 검증과 I4-3 전체는 완료 처리하지 않는다.
   digest는 `sha256:e4b59ff4a88290049b537efe573a820a09e6d953b850bcde2d9ff06239f72bea`, size는
   `2,396,261` bytes이며, main ici/viewer Pages는 trusted artifact와 byte-identical이고
   source/title/Zero-CDN audit을 통과했다.
-- [ ] verified candidate pyz를 toy consumer에 local path로 주입한다. 각 toy PR의 normal gate는
-  released ici `v0.10.2` pin을 유지한다.
+- [x] ici-hosted `candidate-quality-zoo.yml` manual workflow의 local contract를 구현한다.
+  workflow는 exact ici/toy `main` SHA, candidate artifact ID와 원본 ZIP digest를 binding하고,
+  candidate provenance의 Actions run/check/job evidence를 독립 API 응답으로 재검증한 뒤
+  검증된 local `ici.pyz`를 Quality Zoo runner에 전달한다. candidate preflight와 실행은
+  publication/OIDC/runtime credential 없이 수행하고, preflight/intake/API evidence/runner
+  결과는 별도 14일 acceptance artifact로 남긴다. 이 구현은 `publish`, Pages, PR comment,
+  `<!-- ici-report -->` marker 또는 version/release를 만들지 않는다.
+- [ ] 위 workflow를 candidate artifact와 candidate 기대값이 포함된 exact current toy `main`에
+  실제로 dispatch하고, 원격 Quality Zoo contract/expected finding·location evidence를 감사한다.
+  각 toy PR의 normal gate는 계속 released ici `v0.10.2` pin을 유지한다.
 - [x] released ici `v0.10.2`를 사용하는 Q0 quality-zoo scenario runner와 report/artifact
   contract를 toy-projects PR #49에서 수락했다. [PR run `33693241255`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33693241255)는
   green이고 [artifact `9870829400`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9870829400)는
@@ -1605,19 +1613,24 @@ pyz를 소비하는 toy 검증과 I4-3 전체는 완료 처리하지 않는다.
   stable [artifact `9871249913`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9871249913)도
   각각 green과 contract `PASS`/observed `WARN`/empty `errors`/exit `0`를 확인했다. product
   Pages는 trusted artifact와 byte-identical이었다. 이 check는 released-artifact Q0 경계만
-  닫으며 candidate-pyz injection은 별도 unchecked follow-up이다.
+  닫으며 candidate consumer workflow의 local/manual contract와 실제 원격 dispatch는 별도다.
 
 ### I9-1. quality-zoo contract runner — Q0 acceptance complete; Q1–Q5 pending
 
 **브랜치:** `test/quality-zoo-contract`
-**상태:** released-artifact Q0 known-answer acceptance is complete; candidate-pyz injection and
-the broader Q1–Q5 scenario/support matrix remain pending
+**상태:** released-artifact Q0 known-answer acceptance is complete; candidate consumer workflow
+local/manual contract is implemented, but remote dispatch and the broader Q1–Q5 scenario/support
+matrix remain pending
 
 - [x] Q0 released-artifact path의 toy manifest schema와 ici v3 report matcher가 PR #49의
   `quality-zoo-contract` artifact에 기록되고 exact-main run에서도 재검증됐다.
 - [ ] expected rule id, status/evidence/confidence, path, line 범위를 검증한다.
 - [ ] expected absence를 지원해 false positive도 고정한다.
-- [ ] ici release candidate pyz를 local path로 주입할 수 있게 한다.
+- [x] ici-hosted candidate workflow가 verified candidate pyz를 local path로 주입하는 계약을
+  갖춘다. workflow 자체는 read-only/manual이며, 실제 원격 candidate acceptance는 아래 unchecked
+  dispatch 항목과 별개다.
+- [ ] exact current ici/toy `main`과 candidate artifact를 대상으로 원격 workflow를 dispatch하고
+  candidate report의 expected rule/status/evidence/confidence/path/line을 검증한다.
 - [ ] quality-zoo 실패가 어떤 engine regression인지 한 화면에 요약된다.
 
 ### I9-2. self dogfood ratchet

@@ -188,6 +188,49 @@ Release에는 `ici.pyz`, 체크섬, CLI/GUI viewer와 함께 self/viewer HTML·J
 리포트를 첨부합니다. 수동 실행의 `version_tag`는 필수이며 태그가 이미
 존재해야 하므로, 선택한 workflow branch의 소스가 릴리스로 대체되지 않습니다.
 
+### 1.6 Candidate → Quality Zoo 수용 (수동·읽기 전용 경로)
+
+`.github/workflows/candidate-quality-zoo.yml`은 stable release나 일반 toy PR gate와 분리된
+ici-hosted `workflow_dispatch` workflow다. 후보 pyz를 Quality Zoo에 주입해 교차 저장소
+수용을 수행할 때만 사용한다. 현재 문서 시점에는 workflow 계약이 구현되어 있고 로컬에서
+검토할 수 있지만, 원격 candidate 수용 dispatch와 그 evidence는 아직 완료되지 않았다.
+
+실행 전 toy-projects의 `quality-zoo` 기대값이 포함된 최신 `main` SHA와 ici candidate producer
+artifact의 좌표를 별도로 확인한다. workflow는 네 개의 입력을 모두 요구한다.
+
+| 입력 | 의미와 검증 |
+|---|---|
+| `ici_target_sha` | candidate가 빌드된 ici `main`의 전체 소문자 40자리 SHA |
+| `candidate_artifact_id` | ici Actions candidate ZIP의 양의 정수 artifact ID |
+| `candidate_archive_sha256` | API에서 내려받은 원본 ZIP의 전체 소문자 64자리 SHA-256 |
+| `toy_target_sha` | 기대값을 포함한 toy-projects `main`의 전체 소문자 40자리 SHA |
+
+ici `main`에서 다음처럼 수동 dispatch한다.
+
+```bash
+gh workflow run candidate-quality-zoo.yml --ref main \
+  -f ici_target_sha=<ici-main-sha> \
+  -f candidate_artifact_id=<artifact-id> \
+  -f candidate_archive_sha256=<archive-sha256> \
+  -f toy_target_sha=<toy-main-sha>
+```
+
+workflow는 실행 ref가 ici `main`인지, 두 SHA가 각 저장소의 현재 `main`과 일치하는지,
+artifact ID·원본 ZIP digest가 입력과 일치하는지 확인한다. 이어 candidate manifest의 target,
+candidate run, Merge Gate check/job/run ID와 attempt·URL을 독립 Actions API 응답으로 다시
+검증한다. `candidate_intake`는 먼저 토큰 없이 preflight를 수행하고, 그 결과를 바탕으로
+별도 읽기 전용 API 조회를 한 뒤 provenance를 완전히 검증한다. Quality Zoo 실행은 검증된
+로컬 `ici.pyz` 경로만 사용하며, candidate preflight와 실행 단계에서는
+`GH_TOKEN`/`GITHUB_TOKEN`/OIDC·runtime token을 명시적으로 제거한다.
+
+성공 조건은 `quality-zoo.suite/v1`, non-empty scenario 결과, `scenario_count` 일치,
+`contract_verdict: PASS`, runner error 없음이다. preflight/intake 결과, API evidence와
+Quality Zoo 결과는 별도의 uncompressed 14일 Actions artifact로 업로드한다. 이 workflow는
+`publish`, Pages 배포, PR comment 작성·갱신, `<!-- ici-report -->` marker 추가를 하지 않는다.
+따라서 기존 toy PR의 normal gate와 released ici `v0.10.2` pin은 그대로 유지되고, Q0의
+released-artifact acceptance는 candidate 수용의 근거로 재사용되지 않는다. 실제 원격
+candidate 수용이 끝난 뒤에만 해당 run/artifact/sha를 이 문서와 master plan에 추가한다.
+
 ## 2. 리포팅과 위치 추적
 
 ### 2.1 GitHub Step Summary (`--github-summary`)
