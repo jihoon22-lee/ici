@@ -540,7 +540,7 @@ class SanitizeEngine(BaseEngine):
             else:
                 message = diagnostic.message
                 status = EngineStatus.FAIL
-                target_name = "LSan Error" if diagnostic.kind == "leak" else "ASan/UBSan Error"
+                target_name = "LSan Error" if diagnostic.kind == "lsan" else "ASan/UBSan Error"
             target = InspectionTarget(
                 file_path=location.path,
                 start_line=location.start_line,
@@ -586,7 +586,7 @@ class SanitizeEngine(BaseEngine):
                     rule_id="ici.legacy.sanitize.target",
                     category=(
                         FindingCategory.RESOURCE
-                        if diagnostic.kind == "leak"
+                        if diagnostic.kind == "lsan"
                         else FindingCategory.CORRECTNESS
                     ),
                     severity=FindingSeverity.HIGH,
@@ -657,11 +657,11 @@ class SanitizeEngine(BaseEngine):
 
     @staticmethod
     def _sanitizer_remediation(kind: str) -> str:
-        if kind == "leak":
+        if kind == "lsan":
             return (
                 "Release the allocation on every ownership path or transfer ownership explicitly."
             )
-        if kind == "undefined-behavior":
+        if kind == "ubsan":
             return (
                 "Remove the reported undefined operation and add a regression test for the input."
             )

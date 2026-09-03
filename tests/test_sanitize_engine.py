@@ -302,10 +302,10 @@ SUMMARY: AddressSanitizer: heap-use-after-free {source}:3 in worker
     details = result.extra["sanitizer_diagnostics"]
     assert details == [
         {
-            "kind": "address",
+            "kind": "asan",
             "tool_name": "AddressSanitizer",
             "defect": "heap-use-after-free",
-            "rule_id": "ici.sanitize.address.heap-use-after-free",
+            "rule_id": "ici.sanitize.asan.heap-use-after-free",
             "message": "AddressSanitizer detected heap use after free",
             "test_name": "test_worker.cpp",
             "process_evidence_index": 1,
@@ -333,7 +333,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free {source}:3 in worker
         }
     ]
     assert result.tool_evidence[1].name == "sanitizer execution"
-    assert result.findings[0].tool_rule_id == "address.heap-use-after-free"
+    assert result.findings[0].tool_rule_id == "asan.heap-use-after-free"
     assert result.findings[0].tool_name == "AddressSanitizer"
     assert any(
         location.path == "tests/test_worker.cpp"
@@ -385,11 +385,11 @@ def test_adapter_sanitizer_trace_is_normalized_with_ctest_process_evidence(tmp_p
     result = SanitizeEngine(tmp_path).run()
 
     assert result.status == EngineStatus.FAIL
-    assert result.extra["sanitizer_diagnostics"][0]["kind"] == "undefined-behavior"
+    assert result.extra["sanitizer_diagnostics"][0]["kind"] == "ubsan"
     assert result.extra["sanitizer_diagnostics"][0]["process_evidence_index"] == 0
     assert result.targets[0].file_path == "src/fault.cpp"
     assert result.targets[0].start_line == 2
-    assert result.findings[0].tool_rule_id == "undefined-behavior.signed-integer-overflow"
+    assert result.findings[0].tool_rule_id == "ubsan.signed-integer-overflow"
 
 
 def test_adapter_sanitizer_rejects_truncated_private_diagnostic_transport(tmp_path, monkeypatch):
@@ -865,20 +865,20 @@ def test_adapter_build_failure_is_not_reported_as_inapplicable(tmp_path, monkeyp
         (
             "int fault() { int* value = new int(7); delete value; return *value; }\n",
             "int fault(); int main() { return fault() == 7 ? 0 : 1; }\n",
-            "address",
+            "asan",
             "heap-use-after-free",
         ),
         (
             "int overflow(int lhs, int rhs) { return lhs + rhs; }\n",
             "#include <climits>\nint overflow(int, int);\n"
             "int main() { return overflow(INT_MAX, 1); }\n",
-            "undefined-behavior",
+            "ubsan",
             "signed-integer-overflow",
         ),
         (
             "int* leak() { return new int(7); }\n",
             "int* leak(); int main() { (void)leak(); return 0; }\n",
-            "leak",
+            "lsan",
             "memory-leak",
         ),
     ],

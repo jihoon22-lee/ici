@@ -95,10 +95,10 @@ class SanitizerDiagnostic:
 def _kind(tool: str, summary: str) -> str:
     lowered = summary.casefold()
     if tool == "LeakSanitizer" or "leak" in lowered:
-        return "leak"
+        return "lsan"
     if tool == "UndefinedBehaviorSanitizer":
-        return "undefined-behavior"
-    return "address"
+        return "ubsan"
+    return "asan"
 
 
 def _defect(summary: str) -> str:

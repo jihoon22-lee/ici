@@ -35,10 +35,10 @@ SUMMARY: AddressSanitizer: heap-use-after-free {source}:42 in Worker::read()
 
     assert len(diagnostics) == 1
     diagnostic = diagnostics[0]
-    assert diagnostic.kind == "address"
+    assert diagnostic.kind == "asan"
     assert diagnostic.tool_name == "AddressSanitizer"
     assert diagnostic.defect == "heap-use-after-free"
-    assert diagnostic.rule_id == "ici.sanitize.address.heap-use-after-free"
+    assert diagnostic.rule_id == "ici.sanitize.asan.heap-use-after-free"
     assert diagnostic.primary_location is not None
     assert diagnostic.primary_location.path == "src/worker.cpp"
     assert diagnostic.primary_location.start_line == 42
@@ -58,9 +58,9 @@ def test_ubsan_runtime_location_is_primary_without_stack(tmp_path: Path) -> None
 
     diagnostic = parse_sanitizer_diagnostics(output, tmp_path)[0]
 
-    assert diagnostic.kind == "undefined-behavior"
+    assert diagnostic.kind == "ubsan"
     assert diagnostic.defect == "signed-integer-overflow"
-    assert diagnostic.rule_id == "ici.sanitize.undefined-behavior.signed-integer-overflow"
+    assert diagnostic.rule_id == "ici.sanitize.ubsan.signed-integer-overflow"
     assert diagnostic.primary_location is not None
     assert diagnostic.primary_location.path == "src/math.cpp"
     assert diagnostic.primary_location.start_line == 8
@@ -78,7 +78,7 @@ SUMMARY: AddressSanitizer: 64 byte(s) leaked in 1 allocation(s)
 
     diagnostic = parse_sanitizer_diagnostics(output, tmp_path)[0]
 
-    assert diagnostic.kind == "leak"
+    assert diagnostic.kind == "lsan"
     assert diagnostic.defect == "memory-leak"
     assert diagnostic.primary_location is None
     assert [(item.path, item.start_line) for item in diagnostic.related_locations] == [
