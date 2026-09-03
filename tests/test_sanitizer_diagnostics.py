@@ -244,3 +244,39 @@ def test_thread_sanitizer_name_without_report_signature_is_ignored(tmp_path: Pat
     output = "ThreadSanitizer: data race checks enabled\n"
 
     assert parse_sanitizer_diagnostics(output, tmp_path) == ()
+
+
+def test_clang_thread_sanitizer_keeps_columns_and_redacts_external_frames(
+    tmp_path: Path,
+) -> None:
+    source = _source(tmp_path, "src/clang-race.cpp")
+    output = f"""WARNING: ThreadSanitizer: data race
+  Read of size 8 at 0x7b0400000800 by thread T2:
+    #0 read_value /opt/llvm/lib/tsan_interceptors.cpp:44:2 (race+0x1000)
+    #1 consume {source}:31:7 (race+0x1001)
+SUMMARY: ThreadSanitizer: data race {source}:31:7 in consume
+"""
+
+    diagnostic = parse_sanitizer_diagnostics(output, tmp_path)[0]
+
+    assert diagnostic.rule_id == "ici.sanitize.tsan.data-race"
+    assert diagnostic.primary_location is not None
+    assert diagnostic.primary_location.path == "src/clang-race.cpp"
+    assert diagnostic.primary_location.start_line == 31
+    assert diagnostic.primary_location.start_column == 7
+    assert [
+        (item.path, item.start_line, item.start_column) for item in diagnostic.related_locations
+    ] == [("[external]", 44, 2)]
+
+
+def test_unknown_thread_sanitizer_wording_never_becomes_a_rule_id(tmp_path: Path) -> None:
+    source = _source(tmp_path, "src/unknown.cpp")
+    outputs = (
+        f"WARNING: ThreadSanitizer: runtime wording 0x1234\n    #0 run {source}:4\n",
+        f"WARNING: ThreadSanitizer: unrelated changing wording 99\n    #0 run {source}:4\n",
+    )
+
+    diagnostics = [parse_sanitizer_diagnostics(output, tmp_path)[0] for output in outputs]
+
+    assert {item.defect for item in diagnostics} == {"thread-safety-defect"}
+    assert {item.rule_id for item in diagnostics} == {"ici.sanitize.tsan.thread-safety-defect"}

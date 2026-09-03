@@ -28,6 +28,7 @@ from ici.engines import verify as verify_module
 from ici.engines.build import BuildEngine
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
+from ici.engines.thread_sanitize import ThreadSanitizeEngine
 from ici.engines.verify import VerifyOrchestrator
 
 _IDENTITY = AnalysisIdentity(
@@ -287,6 +288,34 @@ def test_sanitize_engine_result_carries_the_sanitize_manifest(
     result = SanitizeEngine(root, {}, analysis_context=context).run()
 
     assert result.artifact_manifests == (manifest,)
+
+
+def test_thread_sanitize_engine_carries_only_its_isolated_manifest(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "CMakeLists.txt").write_text("project(thread_manifest)\n", encoding="utf-8")
+    tests_root = root / "tests"
+    tests_root.mkdir()
+    (tests_root / "test_case.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    context = _context(root)
+    session = _session(root, context, variant=BuildVariant.THREAD_SANITIZE)
+    manifest = _manifest_for_session(session, context)
+    session.artifact_manifest = manifest
+    monkeypatch.setattr(sanitize_module, "adapter_configure", lambda *_args, **_kwargs: session)
+    monkeypatch.setattr(sanitize_module, "adapter_build", lambda _session: True)
+    monkeypatch.setattr(
+        sanitize_module,
+        "adapter_run_tests",
+        lambda _session, env=None: [TestCaseResult("test_case", True)],
+    )
+
+    result = ThreadSanitizeEngine(root, {}, analysis_context=context).run()
+
+    assert result.engine_name == "thread_sanitize"
+    assert result.artifact_manifests == (manifest,)
+    assert result.artifact_manifests[0].variant is BuildVariant.THREAD_SANITIZE
 
 
 def test_verify_derives_manifest_context_without_mutating_original_context(

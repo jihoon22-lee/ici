@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from ici.core.cmake import BuildSession, ConfigureOptions
+from ici.core.cmake import BuildSession, ConfigureOptions, TestCaseResult
 from ici.core.context import BuildVariant
-from ici.core.models import EngineStatus, EvidenceState
+from ici.core.models import EngineStatus, EvidenceState, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.engines.thread_sanitize import ThreadSanitizeEngine
 
@@ -110,6 +110,58 @@ SUMMARY: ThreadSanitizer: data race {source}:1 in write_value
     assert finding.primary_location.start_line == 1
 
 
+def test_thread_sanitize_nonzero_without_a_report_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write_cpp_project(tmp_path)
+    results = iter(
+        (
+            ProcessResult(0, "", "", 0.01),
+            ProcessResult(66, "", "FATAL: ThreadSanitizer: unexpected memory mapping", 0.01),
+        )
+    )
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
+
+    result = ThreadSanitizeEngine(tmp_path).run()
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert result.extra["sanitizer_diagnostics"] == []
+    assert result.tool_evidence[-1].error
+
+
+@pytest.mark.parametrize("returncode", [0, -6])
+def test_thread_sanitize_complete_report_is_measured_even_with_unusual_exit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, returncode: int
+) -> None:
+    source, _test = _write_cpp_project(tmp_path)
+    transcript = (
+        "WARNING: ThreadSanitizer: data race\n"
+        f"    #0 write_value {source}:1\n"
+        f"SUMMARY: ThreadSanitizer: data race {source}:1 in write_value\n"
+    )
+    results = iter(
+        (
+            ProcessResult(0, "", "", 0.01),
+            ProcessResult(returncode, "", transcript, 0.01),
+        )
+    )
+    monkeypatch.setattr(
+        "ici.engines.sanitize.shutil.which",
+        lambda name: "/usr/bin/g++" if name == "g++" else None,
+    )
+    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: next(results))
+
+    result = ThreadSanitizeEngine(tmp_path).run()
+
+    assert result.status is EngineStatus.FAIL
+    assert result.evidence is EvidenceState.MEASURED
+
+
 def test_thread_sanitize_requests_its_own_adapter_variant(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -134,3 +186,50 @@ def test_thread_sanitize_requests_its_own_adapter_variant(
     assert len(seen) == 1
     assert seen[0].variant is BuildVariant.THREAD_SANITIZE
     assert seen[0].coverage is False
+
+
+def test_adapter_thread_sanitize_keeps_process_linked_diagnostic(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source, _test = _write_cpp_project(tmp_path)
+    (tmp_path / "CMakeLists.txt").write_text("project(tsan)\n", encoding="utf-8")
+    transcript = (
+        "WARNING: ThreadSanitizer: data race\n"
+        f"    #0 write_value {source}:1\n"
+        f"SUMMARY: ThreadSanitizer: data race {source}:1 in write_value\n"
+    )
+    session = BuildSession(
+        root=tmp_path,
+        shadow=tmp_path / "build/ici-cmake-tsan",
+        variant=BuildVariant.THREAD_SANITIZE,
+        backend="cmake",
+        descriptor="CMakeLists.txt",
+        configured=True,
+        tool_evidence=[ToolEvidence(name="cmake configure", path="/usr/bin/cmake")],
+    )
+
+    monkeypatch.setattr("ici.engines.sanitize.adapter_configure", lambda *_args: session)
+    monkeypatch.setattr("ici.engines.sanitize.adapter_build", lambda _session: True)
+
+    def fake_run_tests(_session, env=None):
+        assert env is not None and "halt_on_error=1" in env["TSAN_OPTIONS"]
+        session.tool_evidence.append(
+            ToolEvidence(name="ctest", path="/usr/bin/ctest", argv=["/usr/bin/ctest"])
+        )
+        return [
+            TestCaseResult(
+                "test_race",
+                False,
+                "ThreadSanitizer diagnostic",
+                diagnostic_output=transcript,
+            )
+        ]
+
+    monkeypatch.setattr("ici.engines.sanitize.adapter_run_tests", fake_run_tests)
+
+    result = ThreadSanitizeEngine(tmp_path).run()
+
+    assert result.status is EngineStatus.FAIL
+    assert result.extra["sanitizer_diagnostics"][0]["process_evidence_index"] == 1
+    assert result.tool_evidence[1].name == "ctest"
+    assert result.findings[0].tool_rule_id == "tsan.data-race"

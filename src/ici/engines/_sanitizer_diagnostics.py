@@ -113,11 +113,16 @@ def _kind(tool: str, summary: str) -> str:
     return "asan"
 
 
-def _defect(summary: str) -> str:
+def _defect(tool: str, summary: str) -> str:
     lowered = " ".join(summary.casefold().split())
     for prefix, defect in _DEFECT_PREFIXES:
         if lowered.startswith(prefix) or f": {prefix}" in lowered:
             return defect
+    if tool == "ThreadSanitizer":
+        # TSan summaries may contain unstable addresses, process details, and
+        # free-form runtime wording. Never derive a public rule ID from that
+        # text when it is outside the explicit taxonomy above.
+        return "thread-safety-defect"
     stable = _ADDRESS_RE.sub("address", lowered)
     stable = _NUMBER_RE.sub("number", stable)
     stable = stable.split(" on address", 1)[0].split(" at address", 1)[0]
@@ -325,7 +330,7 @@ def _diagnostic(
     source_cache: dict[Path, tuple[str, ...] | None],
 ) -> SanitizerDiagnostic:
     kind = _kind(tool, summary)
-    defect = _defect(summary)
+    defect = _defect(tool, summary)
     primary, related, observed, project_frames = _locations(block, project_root, source_cache)
     return SanitizerDiagnostic(
         kind=kind,

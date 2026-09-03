@@ -408,14 +408,24 @@ def test_factory_retains_capability_identity_and_normalizes_variants(
         root,
         config,
         capabilities,
-        requested_variants=[BuildVariant.SANITIZE, BuildVariant.RELEASE, BuildVariant.SANITIZE],
+        requested_variants=[
+            BuildVariant.THREAD_SANITIZE,
+            BuildVariant.SANITIZE,
+            BuildVariant.RELEASE,
+            BuildVariant.SANITIZE,
+            BuildVariant.THREAD_SANITIZE,
+        ],
         compilation=compilation,
     )
     second = create_analysis_context(
         root,
         config,
         capabilities,
-        requested_variants=[BuildVariant.RELEASE, BuildVariant.SANITIZE],
+        requested_variants=[
+            BuildVariant.RELEASE,
+            BuildVariant.SANITIZE,
+            BuildVariant.THREAD_SANITIZE,
+        ],
     )
 
     assert first.capabilities is capabilities
@@ -424,6 +434,7 @@ def test_factory_retains_capability_identity_and_normalizes_variants(
     assert first.requested_variants == (
         BuildVariant.RELEASE,
         BuildVariant.SANITIZE,
+        BuildVariant.THREAD_SANITIZE,
     )
     assert second.requested_variants == first.requested_variants
     assert first.project == second.project

@@ -147,6 +147,7 @@ def _line_only_config() -> dict[str, Any]:
         "type",
         "complexity",
         "sanitize",
+        "thread_sanitize",
         "dead",
         "dup",
         "exception",

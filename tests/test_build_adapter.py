@@ -922,6 +922,21 @@ def test_sanitize_options_carry_the_sanitizer_and_drop_coverage(tmp_path):
     assert "--coverage" not in " ".join(argv)
 
 
+def test_thread_sanitize_options_are_isolated_from_other_instrumentation(tmp_path):
+    options = ConfigureOptions(BuildVariant.THREAD_SANITIZE)
+    cmake_argv = cmake_configure_argv("/usr/bin/cmake", tmp_path, tmp_path / "s", options)
+    qmake_argv = qmake_configure_argv("/usr/bin/qmake6", tmp_path / "a.pro", options)
+
+    assert "-DCMAKE_CXX_FLAGS=-fsanitize=thread -fno-omit-frame-pointer -g" in cmake_argv
+    assert "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread" in cmake_argv
+    assert "QMAKE_CXXFLAGS+=-fsanitize=thread" in qmake_argv
+    assert "QMAKE_LFLAGS+=-fsanitize=thread" in qmake_argv
+    joined = " ".join((*cmake_argv, *qmake_argv))
+    assert "--coverage" not in joined
+    assert "-fsanitize=address" not in joined
+    assert "-fsanitize=undefined" not in joined
+
+
 def test_qmake_options_use_qmake_flag_variables(tmp_path):
     options = ConfigureOptions(
         BuildVariant.RELEASE,
@@ -937,6 +952,10 @@ def test_shadow_suffix_keeps_engines_out_of_each_others_trees(tmp_path):
     # would make each run rebuild the other's objects with the wrong flags.
     assert shadow_dir(tmp_path, BACKEND_CMAKE) != shadow_dir(tmp_path, BACKEND_CMAKE, "-asan")
     assert shadow_dir(tmp_path, BACKEND_CMAKE, "-asan").name == "ici-cmake-asan"
+    assert shadow_dir(tmp_path, BACKEND_CMAKE, "-tsan").name == "ici-cmake-tsan"
+    assert shadow_dir(tmp_path, BACKEND_CMAKE, "-tsan") != shadow_dir(
+        tmp_path, BACKEND_CMAKE, "-asan"
+    )
 
 
 def test_run_tests_passes_the_runner_environment_through(tmp_path, monkeypatch):
