@@ -79,6 +79,17 @@ def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
                 "</div>"
             )
 
+        provenance_block = ""
+        if issue.provenance:
+            sources = " · ".join(html.escape(source) for source in issue.provenance)
+            provenance_block = f"<div class='issue-provenance'>Sources: {sources}</div>"
+        represented_block = ""
+        if issue.original_finding_count > 1:
+            represented_block = (
+                f"<div class='issue-provenance'>{issue.original_finding_count} original findings "
+                "represented without changing JSON or baseline inventory</div>"
+            )
+
         items.append(
             f"<div class='issue-item'>"
             f"  <div class='issue-header'>"
@@ -88,15 +99,18 @@ def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
             f"    <span class='target-sym'>[{html.escape(issue.rule_id)}]</span>"
             f"  </div>"
             f"  <div class='issue-msg'>{html.escape(issue.message)}</div>"
+            f"  {represented_block}"
+            f"  {provenance_block}"
             f"  {related_block}"
             f"  {snippet_block}"
             f"</div>"
         )
 
+    finding_count = sum(issue.original_finding_count for issue in all_issues)
     return f"""
     <div class="issues-header-bar">
       <div>
-        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">⚠️ Active Quality Gate Issues ({len(all_issues)} Findings)</h2>
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">⚠️ Active Quality Gate Issues ({finding_count} Findings)</h2>
         <p style="font-size: 0.875rem; color: var(--text-muted);">
           전체 검증 엔진에서 PASS가 아닌 WARN/FAIL/ERROR/SKIP 항목을 통합하여 확인합니다.
         </p>

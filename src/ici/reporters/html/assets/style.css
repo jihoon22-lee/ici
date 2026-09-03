@@ -443,6 +443,7 @@
   .issue-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; font-size: 0.85rem; }
   .issue-engine { font-weight: 700; color: #94a3b8; }
   .issue-msg { font-size: 0.9rem; color: #e2e8f0; }
+  .issue-provenance { margin-top: 0.35rem; color: #94a3b8; font-size: 0.78rem; overflow-wrap: anywhere; }
   .issue-related { margin-top: 0.65rem; }
   .issue-related-title {
     color: var(--text-muted);

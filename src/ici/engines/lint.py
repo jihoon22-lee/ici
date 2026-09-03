@@ -74,6 +74,35 @@ def _parse_ruff_warning_blocks(stderr: str) -> tuple[list[str], str | None]:
     return warnings, None
 
 
+def _ruff_coordinate(value: object, label: str, *, minimum: int = 1) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+        raise ValueError(f"Ruff JSON {label} is invalid")
+    return value
+
+
+def _ruff_source_range(
+    item: dict[object, object],
+) -> tuple[int, int | None, int | None, int | None]:
+    location = item.get("location", {})
+    if not isinstance(location, dict):
+        raise ValueError("Ruff JSON location is not an object")
+    row = _ruff_coordinate(location.get("row"), "row")
+    raw_column = location.get("column")
+    column = None if raw_column is None else _ruff_coordinate(raw_column, "column")
+
+    end_location = item.get("end_location")
+    if end_location is None:
+        return row, None, column, None
+    if not isinstance(end_location, dict):
+        raise ValueError("Ruff JSON end_location is not an object")
+    end_row = _ruff_coordinate(end_location.get("row"), "end row", minimum=row)
+    exclusive_end = _ruff_coordinate(end_location.get("column"), "end column")
+    end_column = max(1, exclusive_end - 1)
+    if end_row == row and column is not None and end_column < column:
+        raise ValueError("Ruff JSON source range is invalid")
+    return row, end_row, column, end_column
+
+
 class LintEngine(BaseEngine):
     """Verifies linting, syntax, and formatting rules across C++ and Python."""
 
@@ -539,16 +568,14 @@ class LintEngine(BaseEngine):
                 rel_path = str(Path(fpath).relative_to(self.project_root))
             except (TypeError, ValueError):
                 rel_path = str(fpath)
-            location = item.get("location", {})
-            if not isinstance(location, dict):
-                raise ValueError("Ruff JSON location is not an object")
-            row = location.get("row")
-            if isinstance(row, bool) or not isinstance(row, int) or row < 1:
-                raise ValueError("Ruff JSON row is invalid")
+            row, end_row, column, end_column = _ruff_source_range(item)
             parsed.append(
                 InspectionTarget(
                     file_path=rel_path,
                     start_line=row,
+                    end_line=end_row,
+                    start_column=column,
+                    end_column=end_column,
                     target_name=f"Ruff:{code}",
                     status=EngineStatus.FAIL,
                     message=message,

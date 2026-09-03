@@ -325,6 +325,9 @@ class _PythonDeadAnalyzer:
                     InspectionTarget(
                         file_path=rel_path,
                         start_line=stmt.lineno,
+                        end_line=getattr(stmt, "end_lineno", stmt.lineno),
+                        start_column=getattr(stmt, "col_offset", 0) + 1,
+                        end_column=getattr(stmt, "end_col_offset", None),
                         target_name="UnreachableCode",
                         status=EngineStatus.WARN,
                         message=("Unreachable code statement detected after terminal return/raise"),

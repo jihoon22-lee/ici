@@ -4,8 +4,8 @@ import html
 from dataclasses import dataclass
 from pathlib import Path
 
-from ici.core.findings import findings_for_result
 from ici.core.models import EngineResult, EngineStatus, FindingSeverity, SourceLocation
+from ici.reporters.issue_view import project_issue_groups
 
 
 @dataclass(frozen=True)
@@ -22,6 +22,8 @@ class HtmlIssue:
     message: str
     snippet: str
     related_locations: tuple[SourceLocation, ...] = ()
+    original_finding_count: int = 1
+    provenance: tuple[str, ...] = ()
 
 
 def _get_status_theme(status: EngineStatus) -> tuple[str, str, str]:
@@ -63,35 +65,43 @@ def _extract_suite_data(
         else:
             s_cnt += 1
 
-        try:
-            findings = findings_for_result(r, project_root)
-        except (TypeError, ValueError):
-            findings = []
-        issue_count = 0
-        for finding in findings:
-            if finding.severity == FindingSeverity.INFO or finding.suppression.suppressed:
-                continue
-            severity_status = (
-                EngineStatus.FAIL
-                if finding.severity in (FindingSeverity.CRITICAL, FindingSeverity.HIGH)
-                else EngineStatus.WARN
+    root = project_root or Path.cwd()
+    groups, _total_findings = project_issue_groups(results, root)
+    engines_with_issues = {
+        engine_name for group in groups for engine_name, count in group.producer_counts if count > 0
+    }
+    for group in groups:
+        primary = group.primary_location
+        if primary is None and group.locations:
+            location = group.locations[0]
+            primary = SourceLocation(location.path, location.start_line, location.end_line)
+        severity_status = (
+            EngineStatus.FAIL
+            if group.severity in (FindingSeverity.CRITICAL, FindingSeverity.HIGH)
+            else EngineStatus.WARN
+        )
+        all_issues.append(
+            HtmlIssue(
+                engine_name=group.engine_name,
+                badge=group.severity.value.upper(),
+                status=severity_status,
+                file_path=primary.path if primary else "",
+                start_line=primary.start_line if primary else 1,
+                end_line=primary.end_line if primary else None,
+                rule_id=group.rule_id,
+                message=group.message,
+                snippet=group.snippet,
+                related_locations=group.related_locations,
+                original_finding_count=group.original_finding_count,
+                provenance=group.provenance,
             )
-            all_issues.append(
-                HtmlIssue(
-                    engine_name=r.engine_name,
-                    badge=finding.severity.value.upper(),
-                    status=severity_status,
-                    file_path=finding.primary_location.path,
-                    start_line=finding.primary_location.start_line,
-                    end_line=finding.primary_location.end_line,
-                    rule_id=finding.tool_rule_id or finding.rule_id,
-                    message=finding.message,
-                    snippet=finding.snippet,
-                    related_locations=tuple(finding.related_locations),
-                )
-            )
-            issue_count += 1
-        if r.status in (EngineStatus.ERROR, EngineStatus.SKIP) and issue_count == 0:
+        )
+
+    for r in results:
+        if (
+            r.status in (EngineStatus.ERROR, EngineStatus.SKIP)
+            and r.engine_name not in engines_with_issues
+        ):
             all_issues.append(
                 HtmlIssue(
                     engine_name=r.engine_name,

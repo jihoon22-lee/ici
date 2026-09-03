@@ -246,6 +246,9 @@ def _render_issue_group(
         lines.append(f"    [dim white]│[/dim white] {escape(snippet_line)}")
     if group.original_finding_count > 1:
         lines.append(f"    [dim]{group.original_finding_count} original findings represented[/]")
+    if group.provenance:
+        sources = ", ".join(group.provenance)
+        lines.append(f"    [dim]sources: {escape(sources)}[/]")
     return lines
 
 
@@ -321,9 +324,9 @@ def print_suite_dashboard(
     selection = select_issue_groups(suite, base, selected_options)
     findings_by_engine: dict[str, int] = {}
     for group in selection.all_groups:
-        findings_by_engine[group.engine_name] = (
-            findings_by_engine.get(group.engine_name, 0) + group.original_finding_count
-        )
+        counts = group.producer_counts or ((group.engine_name, group.original_finding_count),)
+        for engine_name, count in counts:
+            findings_by_engine[engine_name] = findings_by_engine.get(engine_name, 0) + count
 
     compact = active_console.width < 100
     table = Table(box=box.ROUNDED, header_style="bold cyan", expand=True)
