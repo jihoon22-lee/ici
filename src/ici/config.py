@@ -67,6 +67,21 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "fail_on_error": True,
             "warn_on_missing_annotation": False,  # Missing annotations do not warn by default
             "mypy_required": False,
+            # project: preserve Mypy's own discovered configuration unchanged.
+            # ici: explicit opt-in overlay for additional untyped-body hygiene.
+            "mypy_profile": "project",
+        },
+        "python_compat": {
+            "enabled": True,
+            "mode": "pass_warn_fail",
+            "required": False,
+            # Empty means the interpreter currently running ici, treated as required.
+            "interpreters": [],
+            "required_interpreters": [],
+            # Importing executes module top-level code, so smoke targets are opt-in.
+            "imports": [],
+            # Empty means infer the earliest supported minor from requires-python.
+            "target_version": "",
         },
         "complexity": {
             "enabled": True,
@@ -122,6 +137,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "mode": "pass_warn",
             "scan_tests": False,
+            "secret_name_allowlist": [],
         },
         "resource": {
             "enabled": True,

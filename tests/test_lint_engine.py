@@ -398,6 +398,52 @@ def test_ruff_01517_preview_only_format_json_flag_uses_legacy_output(
     assert any("--help" in cmd for cmd in calls)
 
 
+def test_ruff_json_preserves_precise_inclusive_source_range(tmp_python_project) -> None:
+    engine = LintEngine(tmp_python_project)
+
+    targets = engine._parse_ruff_findings(
+        [
+            {
+                "filename": str(tmp_python_project / "src" / "sample_pkg" / "core.py"),
+                "location": {"row": 2, "column": 5},
+                "end_location": {"row": 2, "column": 11},
+                "code": "E722",
+                "message": "Do not use bare except",
+            }
+        ]
+    )
+
+    assert len(targets) == 1
+    assert targets[0].start_line == 2
+    assert targets[0].end_line == 2
+    assert targets[0].start_column == 5
+    assert targets[0].end_column == 10
+
+
+@pytest.mark.parametrize(
+    "end_location",
+    ["2:11", {"row": 1, "column": 11}, {"row": 2, "column": 0}],
+)
+def test_ruff_json_rejects_malformed_source_range(
+    tmp_python_project,
+    end_location: object,
+) -> None:
+    engine = LintEngine(tmp_python_project)
+
+    with pytest.raises(ValueError, match="Ruff JSON end"):
+        engine._parse_ruff_findings(
+            [
+                {
+                    "filename": "src/sample_pkg/core.py",
+                    "location": {"row": 2, "column": 5},
+                    "end_location": end_location,
+                    "code": "E722",
+                    "message": "Do not use bare except",
+                }
+            ]
+        )
+
+
 def test_ruff_check_warning_is_preserved_as_warn(tmp_python_project, monkeypatch):
     _use_ruff(monkeypatch)
 

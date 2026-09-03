@@ -549,6 +549,7 @@ def test_cli_dead_off_skips_compilation_context_preflight(tmp_path, monkeypatch)
         ("lint", "LintEngine", "lint"),
         ("test", "TestEngine", "test"),
         ("type", "TypeCheckEngine", "type"),
+        ("python-compat", "PythonCompatibilityEngine", "python_compat"),
         ("complexity", "ComplexityEngine", "complexity"),
         ("dup", "DuplicateEngine", "dup"),
         ("sanitize", "SanitizeEngine", "sanitize"),

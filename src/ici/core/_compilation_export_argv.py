@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Any, cast
+from typing import Any
 
 from ici.core.context import CompilationUnit, canonical_digest
 from ici.core.redaction import _redact_compilation_argv, _redact_compilation_path
@@ -113,17 +113,17 @@ def _safe_compiler_path(value: str, unit: CompilationUnit, root: Path) -> str:
     if windows.is_absolute() and not path.is_absolute():
         return "[external]"
     if path.is_absolute():
-        return cast(str, _redact_compilation_path(value, root))
+        return _redact_compilation_path(value, root)
     if "/" not in value and "\\" not in value:
-        return cast(str, redact_text(value))
+        return redact_text(value)
     if "\\" in value and os.name != "nt":
         return "[external]"
     try:
         base = (root / unit.directory).resolve(strict=False)
         absolute = (base / path).resolve(strict=False)
     except (OSError, RuntimeError, ValueError):
-        return cast(str, REDACTED)
-    return cast(str, _redact_compilation_path(absolute.as_posix(), root))
+        return REDACTED
+    return _redact_compilation_path(absolute.as_posix(), root)
 
 
 def compiler_record(unit: CompilationUnit, root: Path) -> dict[str, Any]:

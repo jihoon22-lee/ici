@@ -3,6 +3,7 @@
 import html
 import os
 import re
+from pathlib import Path
 from urllib.parse import quote, urlsplit
 
 from ici.core.capabilities import CapabilityInventory
@@ -20,6 +21,7 @@ from ici.core.models import (
 )
 from ici.core.redaction import redact_suite
 from ici.reporters.baseline_view import enum_value, select_baseline_details, severity_transition
+from ici.reporters.issue_view import project_issue_groups
 
 MAX_GITHUB_TARGET_ROWS_PER_ENGINE = 100
 MAX_GITHUB_RELATED_ROWS_PER_ENGINE = 100
@@ -295,6 +297,61 @@ def _render_result_details(
     return lines
 
 
+def _render_issue_projection(
+    suite: VerificationSuiteResult,
+    repo_url: str | None,
+    commit_sha: str | None,
+) -> list[str]:
+    groups, total_findings = project_issue_groups(suite.results, Path.cwd())
+    if not groups:
+        return []
+    lines = [
+        "### Canonical issue groups\n",
+        f"> **Display projection**: {total_findings} original finding(s) shown as "
+        f"{len(groups)} group(s). JSON and baseline inventories retain every producer record.\n",
+        "| Severity | Producers / Canonical rule | Location | Findings | Message |",
+        "|:---:|---|---|---:|---|",
+    ]
+    visible = groups[:MAX_GITHUB_TARGET_ROWS_PER_ENGINE]
+    for group in visible:
+        primary = group.primary_location
+        if primary is not None:
+            location = _make_gh_link(
+                primary.path,
+                primary.start_line,
+                primary.end_line,
+                repo_url,
+                commit_sha,
+                start_column=primary.start_column,
+                end_column=primary.end_column,
+            )
+        elif group.locations:
+            first = group.locations[0]
+            location = _make_gh_link(
+                first.path,
+                first.start_line,
+                first.end_line,
+                repo_url,
+                commit_sha,
+            )
+        else:
+            location = _render_code("—")
+        sources = ", ".join(group.provenance) or group.engine_name
+        identity = f"{sources} → {group.rule_id}"
+        lines.append(
+            f"| {_render_code(group.severity.value.upper())} | {_render_code(identity)} | "
+            f"{location} | **{group.original_finding_count}** | "
+            f"{_escape_table_cell(group.message or '—')} |"
+        )
+    omitted = len(groups) - len(visible)
+    if omitted:
+        lines.append(
+            f"\n> {omitted} canonical issue group(s) omitted from this bounded Markdown view. "
+            "The HTML report retains the full display projection.\n"
+        )
+    return lines
+
+
 def generate_markdown_report(
     suite: VerificationSuiteResult,
     repo_url: str | None = None,
@@ -359,6 +416,8 @@ def generate_markdown_report(
                 commit_sha,
             )
         )
+
+    md.extend(_render_issue_projection(suite, repo_url, commit_sha))
 
     md.append("\n---\n")
 

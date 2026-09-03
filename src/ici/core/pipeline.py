@@ -108,6 +108,11 @@ ENGINE_DESCRIPTORS = (
     ),
     EngineDescriptor("type", "TypeCheckEngine", produces=("findings:type",)),
     EngineDescriptor(
+        "python_compat",
+        "PythonCompatibilityEngine",
+        produces=("findings:python-compat", "python-runtime-evidence"),
+    ),
+    EngineDescriptor(
         "cognitive",
         "CognitiveEngine",
         produces=("findings:cognitive",),

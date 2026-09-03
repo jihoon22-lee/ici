@@ -18,6 +18,7 @@ ENGINE_NAMES = (
     "compile_db",
     "test",
     "type",
+    "python_compat",
     "complexity",
     "sanitize",
     "thread_sanitize",
@@ -279,6 +280,17 @@ def test_load_config_accepts_lint_and_type_tool_required_policies(tmp_path: Path
 
     assert config["engines"]["lint"]["ruff_required"] is True
     assert config["engines"]["type"]["mypy_required"] is True
+
+
+@pytest.mark.parametrize("profile", ["project", "ici"])
+def test_config_schema_accepts_mypy_profiles(profile: str):
+    validate_config({"engines": {"type": {"mypy_profile": profile}}})
+
+
+@pytest.mark.parametrize("profile", ["", "strict", 1, True, None])
+def test_config_schema_rejects_invalid_mypy_profiles(profile: object):
+    with pytest.raises(ConfigError, match=r"engines\.type\.mypy_profile"):
+        validate_config({"engines": {"type": {"mypy_profile": profile}}})
 
 
 def _lint_config(**values):

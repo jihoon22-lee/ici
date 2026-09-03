@@ -4,9 +4,10 @@
 
 ---
 
-`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 15종 검증 엔진을 제공합니다.
-`standard` profile은 13종(`line/lint/compile_db/test/type/resource/security/cycle/complexity/sanitize/dead/dup/exception`)을
-선택하고, `deep` profile은 여기에 `cognitive`와 C++ 전용 `thread_sanitize`를 더합니다.
+`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 16종 검증 엔진을 제공합니다.
+`fast` profile은 12종, `standard` profile은 14종(`line/lint/compile_db/test/type/python_compat/resource/security/cycle/complexity/sanitize/dead/dup/exception`)을
+선택하고, `deep` profile은 여기에 `cognitive`와 C++ 전용 `thread_sanitize`를 더한 16종을
+선택합니다.
 `thread_sanitize`는 deep-only이며 Python에서는 unsupported입니다.
 
 ---
@@ -98,6 +99,18 @@ enabled = true
 mode = "pass_warn"
 # Optional by default: missing Mypy is reported as WARN/ESTIMATED.
 mypy_required = false
+# "project" preserves Mypy's discovered project config. "ici" is an explicit
+# overlay that also checks untyped bodies, redundant casts, and unused ignores.
+mypy_profile = "project"  # project | ici
+
+[engines.python_compat]
+enabled = true
+mode = "pass_warn_fail"
+required = false            # engine gate policy; runtime entries have their own policy
+interpreters = []           # empty: current ici interpreter, treated as required
+required_interpreters = []  # subset of interpreters; these entries must pass
+imports = []                # explicit smoke-import opt-in; top-level code executes
+target_version = ""         # empty: infer earliest minor allowed by requires-python
 
 [engines.complexity]
 enabled = true
@@ -123,6 +136,39 @@ python_semantic = "auto"   # auto | required | off (bounded Python 3.10 AST-shap
 include_generated = false
 include_vendor = false
 ```
+
+`python_compat`의 `required`는 engine-level gate 정책이고, runtime entry의 required/optional
+여부는 `interpreters`와 `required_interpreters`가 별도로 결정합니다. `interpreters = []`이면
+현재 `ici`를 실행 중인 `sys.executable` 하나를 선택해 required로 검사합니다. 명시적인
+`interpreters` 목록을 사용하면 각 entry는 optional이며, 그중 `required_interpreters`에도 있는
+entry만 필수입니다. 선택 runtime의 unavailable/incompatible 결과는 `WARN`으로, 필수 runtime의
+unavailable은 `ERROR`/`NOT_RUN`, version mismatch·compile/import 실패는 `FAIL`로 기록합니다.
+required 목록은 interpreters의 부분집합이어야 하며, path 또는 PATH에서 해석되는 executable을
+shell 없이 실행합니다.
+
+각 resolved interpreter는 `-VV`로 version을 측정하고, 선택된 Python source root를
+`python -B -m compileall -q -f`로 검사합니다. compileall은 임시 `PYTHONPYCACHEPREFIX`를 사용해
+프로젝트에 bytecode를 남기지 않습니다. `imports`는 자동 발견 목록이 아니라 사용자가 명시한
+모듈 이름만 받는 opt-in 목록입니다. import는 module top-level code를 실행할 수 있으므로,
+자동 discovery는 metadata로만 보존하고 실행하지 않습니다. 명시된 smoke import는 `-I -B`와
+명시적 project/source paths를 가진 contained subprocess에서 실행되지만 sandbox는 아닙니다.
+
+`pyproject.toml`의 `project.requires-python`은 bounded read 뒤 PEP 440 specifier로 파싱하고,
+각 `-VV` version이 그 범위에 포함되는지 검사합니다. `target_version = "3.10"`처럼 지정하면
+그 minor를 syntax/API floor로 사용합니다. 빈 값이면 `requires-python`이 허용하는 가장 이른
+지원 Python 3 minor를 추론합니다. syntax floor는 현재 ici runtime이 해석 가능한 경우
+`ast.parse(..., feature_version=...)`로 검사하고, standard-library API floor는 문서화된 bounded
+inventory(`datetime.UTC`, `tomllib`, `typing.Self` 등)로 검사합니다. 위반 target에는 정확한
+1-indexed line과 가능한 start/end column을 기록합니다. metadata가 없거나 floor를 추론할 수
+없으면 runtime/compile 검사는 계속하되 inferred source floor는 적용하지 않습니다.
+
+정상적으로 완료된 결과는 `MEASURED` evidence이며, `python -VV`, `python -B -m compileall`,
+`python import smoke` 각각의 executable path·version·argv·return code·timeout/truncation을
+`ToolEvidence`로 보존합니다. static syntax/API 진단은 bounded inventory 안의 exact source
+location을 사용하지만, 이 engine이 프로그램의 모든 runtime behavior나 C-extension ABI를
+증명하는 것은 아닙니다. configured external interpreter는 현재 process·toolchain과 독립적으로
+교체될 수 있으므로 `python_compat`는 cache key/entry를 만들거나 재사용하지 않고 매 실행 fresh
+검사를 수행합니다.
 
 `dead`와 `dup`는 같은 bounded source intake 정책을 공유합니다. 생성물·moc와 vendor/dependency
 경로는 기본적으로 소유한 분석 범위에서 제외하며, 프로젝트별로 필요한 경우 엔진마다 독립적으로
@@ -270,6 +316,29 @@ v3입니다. JSON writer는 `baseline_comparison.entries` 전체 inventory를 �
 덮어써지지 않습니다. 입력과 출력이 같은 갱신에서 `fail-on-new` gate가 실패하면 원본을
 그대로 보존하며, 실패 snapshot이 필요하면 다른 출력 경로를 사용해야 합니다.
 
+### 1.3.2 Python rule display projection
+
+console·HTML·Markdown은 동일한 reporter-neutral projection을 사용해 여러 Python producer가
+보고한 같은 원인을 표시상 한 그룹으로 묶을 수 있습니다. projection은 review된 registry의
+canonical rule family만 사용하며, broad Ruff rule을 native AST rule과 자동으로 동일시하지
+않습니다. broad rule은 bounded AST/tool context가 같은 operation을 증명할 때만 canonical
+family에 참여합니다.
+
+cross-producer merge에는 다음 조건이 모두 필요합니다.
+
+- 두 finding이 Python source(`.py`/`.pyi`)의 같은 canonical project-relative path에 있어야 합니다.
+- 양쪽 모두 `end_line`, `start_column`, `end_column`을 포함한 1-indexed precise region이어야
+  합니다. line number만 같거나 column 하나라도 없으면 merge하지 않습니다.
+- source region이 실제로 겹쳐야 합니다. 인접하지만 겹치지 않는 호출, 다른 파일, unknown
+  external rule은 별도 그룹으로 남깁니다.
+
+표시 그룹에는 canonical rule id와 함께 `original_finding_count`, producer별 count 및
+원래 engine/rule/tool version provenance를 표시합니다. 이 projection은 표시 전용이며
+`EngineResult`를 수정하지 않습니다. JSON의 `findings`/`targets`와 baseline inventory/delta는
+각 producer의 원본 rule id, fingerprint, precise line·column location, tool identity를
+그대로 보존합니다. 따라서 console의 cap, Markdown의 bounded table, HTML의 전체 display
+projection은 모두 원본 inventory의 개수와 baseline 비교 결과를 바꾸지 않습니다.
+
 ### 1.4 엔진 지원·기능 매트릭스
 
 아래 표는 설명용으로 손으로 관리하지 않습니다. `ici.core.support`의 실행 가능한 선언에서
@@ -287,6 +356,7 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 | `compile_db` | unsupported | exact (Qt) → heuristic fallback |
 | `test` | tool-backed → heuristic fallback | tool-backed (Qt) → heuristic fallback |
 | `type` | tool-backed → heuristic fallback | unsupported |
+| `python_compat` | tool-backed | unsupported |
 | `cognitive` | heuristic | unsupported |
 | `resource` | heuristic | unsupported |
 | `security` | heuristic | unsupported |
@@ -621,6 +691,11 @@ evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트�
   전달하므로 C++ 전용 `src`/`include` 경로가 도구 오류를 만들지 않습니다. 적용할 Python
   소스가 0개이면 Mypy를 실행하지 않고 명시적 `SKIP` 대상과 `WARN`/`ESTIMATED`를 남깁니다.
   따라서 `Success: no issues found in 0 source files`도 실측 성공 문법으로 인정하지 않습니다.
+  기본 `mypy_profile = "project"`는 project root를 working directory로 사용해 Mypy의
+  `mypy.ini`, `.mypy.ini`, `pyproject.toml`, `setup.cfg` 탐색과 import/error 정책을 그대로
+  보존하며 `--ignore-missing-imports`를 강제하지 않습니다. `mypy_profile = "ici"`는 명시적
+  argv overlay로 `--check-untyped-defs`, `--warn-redundant-casts`, `--warn-unused-ignores`만
+  추가합니다. 두 profile 모두 오류와 note를 구분하고 도구가 제공한 line/column을 보존합니다.
 - **C++**: 현재 C++ 타입 검증은 구현되어 있지 않습니다. C++ 소스가 발견되면 소스별 `SKIP`
   대상을 남기고 요약에 미구현 범위를 명시하며 `WARN`/`ESTIMATED`로 기록합니다. `type = "cpp"`
   로 선언했지만 적용 가능한 C/C++ 소스가 0개인 경우에도 프로젝트 범위를 검증하지 않았다는
@@ -991,16 +1066,44 @@ argument characters, discarded section 16,384개, tool-output cap 4 MiB, 전체 
 - **대상**: Python 소스만 분석, `__dunder__` 함수는 제외.
 
 ### 2.12 🔒 `security` (보안 위생)
-- **동작**: 하드코딩 시크릿(`password|secret` 등), 프라이빗 키 블록, `hashlib.md5/sha1`, `random` 약한 난수, `eval/exec`, `pickle.loads`, `shell=True` 등을 정규식으로 탐지. `# nosec` 주석과 전체가 주석인 줄은 억제됩니다.
-- **시크릿 마스킹**: `HardcodedSecret`/`PrivateKey` 발견 사항은 실제 시크릿 값을
-  `***REDACTED***`로 치환한 뒤 리포트(콘솔/HTML/JSON/gh-pages 게시본)에 기록합니다 —
-  시크릿 스캐너가 찾아낸 시크릿 원문 자체를 노출하지 않기 위함입니다.
-- **설정**: `[engines.security] enabled=true, mode="pass_warn", scan_tests=false`. `scan_tests=true`면
-  `project.source_dirs`와 별개로 프로젝트 최상위 `tests/` 디렉터리도 함께 스캔합니다.
+- **동작**: bounded UTF-8 source snapshot을 Python AST로 파싱해 call, assignment, dictionary
+  key와 import alias를 구분합니다. `hashlib.md5/sha1`, 보안 용도의 `random`, `eval/exec`,
+  `pickle.load/loads`, `os.system/popen`, 상수 `subprocess(..., shell=True)`, private-key marker와
+  하드코딩 시크릿을 탐지합니다. 문자열 안의 `# nosec`는 무시하고 실제 comment token이
+  겹치는 AST node만 억제합니다.
+- **시크릿 탐지와 마스킹**: 이름 context, 알려진 credential prefix, 길이와 entropy를
+  함께 사용합니다. 발견 사항은 값이나 source line을 보존하지 않고 항상
+  `***REDACTED***` evidence만 리포트(콘솔/HTML/JSON/gh-pages 게시본)에 전달합니다.
+- **설정**: `[engines.security] enabled=true, mode="pass_warn", scan_tests=false,
+  secret_name_allowlist=[]`. allowlist는 대소문자를 구분하지 않는 정확한 identifier 이름만
+  허용하며 최대 128개로 제한됩니다. `scan_tests=true`면 `project.source_dirs`와 별개로
+  프로젝트 최상위 `tests/` 디렉터리도 함께 스캔합니다.
+- **입력·evidence 정책**: generated/vendor 기본 제외와 no-follow bounded source read를
+  적용합니다. 읽기 실패나 Python syntax 오류는 위치가 있는 `ERROR`/`NOT_RUN`이며, 성공한
+  파일에는 `Security:ASTScan` PASS target과 검사 counter가 남습니다. Python source가 없으면
+  위치가 있는 `SKIP`/`NOT_APPLICABLE`입니다.
+- **한계와 confidence**: import alias와 정적인 constant 구문까지만 식별하며 runtime taint
+  flow 또는 동적으로 계산된 call target을 증명하지 않습니다. 따라서 결과는 syntax-level
+  `MEASURED` evidence이지 프로그램 실행 전체의 보안성을 보장하는 판정은 아닙니다.
 - **대상**: Python 소스만, `tests/`는 기본 제외.
 
 ### 2.13 🧹 `resource` (리소스 누수)
-- **동작**: `open()`이 `with` 밖에서 사용되거나 `close()` 없이 방치된 경우, `List/Dict/Set` 가변 기본 인자 등을 AST로 탐지.
+- **동작**: bounded intraprocedural AST flow로 built-in/`io.open`, `Path(...).open()`,
+  `tempfile` handle과 `socket.socket` acquisition을 추적합니다. context manager, direct
+  `close()`/`aclose()`, alias, branch exit, `try/finally`, escaping return, attribute/subscript
+  ownership transfer, `ExitStack.enter_context()`를 구분하며 병합된 경로 중 open outcome이
+  하나라도 남을 때만 경고합니다.
+- **가변 default**: list/dict/set literal과 지원되는 mutable constructor default는 별도 native
+  `correctness` category finding입니다. Python 정의 시 한 번만 평가되는 의미를 resource leak과
+  혼동하지 않습니다.
+- **입력·evidence 정책**: generated/vendor 기본 제외, no-follow bounded UTF-8 source snapshot,
+  파일당 100,000 AST node 제한을 적용합니다. syntax/input/limit 실패는 위치가 있는
+  `ERROR`/`NOT_RUN`, 성공한 모든 파일은 `Resource:ASTFlow` PASS target을 남기며 Python
+  source가 없으면 `SKIP`/`NOT_APPLICABLE`입니다.
+- **한계와 confidence**: arbitrary user-defined factory나 interprocedural ownership contract는
+  추론하지 않습니다. direct close는 lexical evidence이며 close 호출 자체가 예외 없이
+  완료됐다는 runtime proof가 아니므로 resource finding confidence는 `MEDIUM`입니다. mutable
+  default AST shape는 `EXACT`입니다.
 - **설정**: `[engines.resource] enabled=true, mode="pass_warn"`.
 - **대상**: Python 소스만 분석.
 
@@ -1033,6 +1136,42 @@ argument characters, discarded section 16,384개, tool-output cap 4 MiB, 전체 
   파일을 가리킬 때만 보정합니다. DB digest는 preflight가 immutable context로 캡처한 snapshot을
   식별하며 live-file lease가 아니다. DB가 변경되면 실행 중 context를 바꾸지 않고 다음 preflight에서
   새 bytes와 context를 반영합니다.
+
+### 2.15 🐍 `python_compat` (Python runtime 호환성)
+
+- **대상과 기본 runtime**: Python source가 선택된 프로젝트만 대상으로 합니다. `interpreters`
+  가 비어 있으면 `ici`를 실행 중인 `sys.executable`을 하나의 required runtime으로 선택합니다.
+  명시적인 interpreter 목록은 기본 optional이며, `required_interpreters`에 같은 값을 넣은
+  entry만 required입니다. `required_interpreters`는 `interpreters`의 부분집합입니다.
+- **실행 순서와 증거**: resolved executable마다 shell 없이 `-VV`를 호출해 실제 version을
+  파싱하고, 선택된 source root를 `python -B -m compileall -q -f`로 강제 컴파일합니다. compileall
+  은 temporary `PYTHONPYCACHEPREFIX`에서 실행돼 project bytecode를 만들지 않습니다. 각 호출은
+  executable path, version, argv, return code, timeout/truncation을 가진 `ToolEvidence`로
+  남습니다. import를 설정한 경우에는 `-I -B`와 명시적 project/source path를 사용한 contained
+  subprocess에서 `python import smoke`를 추가합니다.
+- **import safety boundary**: project module import는 top-level code를 실행할 수 있습니다.
+  따라서 metadata에서 자동 발견한 import name은 `discovered_imports`로만 보존하고 실행하지
+  않습니다. 사용자가 `[engines.python_compat].imports = ["package", "package.cli"]`로
+  명시한 dotted module만 실행하며, 이 경로는 contained subprocess이지 sandbox가 아닙니다.
+- **project metadata**: bounded `pyproject.toml`에서 `project.requires-python`을 읽어 PEP 440
+  specifier로 검증하고 각 runtime `-VV` version이 허용되는지 비교합니다. metadata가 없거나
+  specifier에서 floor를 추론할 수 없으면 runtime/compile 검사는 계속하되 source floor는
+  생략합니다.
+- **syntax/API floor**: `target_version = "3.10"`처럼 지정하면 해당 Python minor를 floor로
+  사용하고, 빈 값이면 `requires-python`이 허용하는 가장 이른 지원 Python 3 minor를 추론합니다.
+  현재 ici runtime이 파싱 가능한 경우 `ast.parse(..., feature_version=...)`로 newer syntax를
+  찾고, bounded standard-library inventory(`datetime.UTC`, `enum.StrEnum`, `itertools.batched`,
+  `pathlib.Path.walk`, `sys.monitoring`, `tomllib`, `typing.Self` 등)로 API 도입 version을 검사합니다.
+  syntax/API violation은 정확한 1-indexed line과 가능한 start/end column을 가진 target으로
+  보고합니다. 현재 host가 해석할 수 없는 source 자체는 위치 있는 `ERROR`/`NOT_RUN`으로
+  fail-closed합니다.
+- **상태와 한계**: 모든 runtime check가 정상 완료되면 engine evidence는 `MEASURED`입니다.
+  optional runtime의 unavailable/incompatible 결과는 `WARN`, required runtime의 unavailable은
+  `ERROR`/`NOT_RUN`, version mismatch·compile/import failure는 `FAIL`입니다. static API inventory는
+  문서화된 범위만 다루며 전체 runtime behavior나 C-extension ABI 호환성을 증명하지 않습니다.
+- **cache**: configured external interpreter는 현재 process와 독립적으로 교체될 수 있어
+  일반 cache key만으로 capability를 고정할 수 없습니다. `python_compat`는 cache key/entry를
+  만들거나 재사용하지 않고 매번 fresh run을 수행합니다.
 
 ---
 

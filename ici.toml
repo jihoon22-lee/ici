@@ -43,8 +43,20 @@ enabled = true
 mode = "pass_warn"
 fail_on_error = true
 warn_on_missing_annotation = false
-# Set true to make missing mypy an ERROR/NOT_RUN result.
-mypy_required = false
+# ici dogfood requires the tool and opts into additional untyped-body hygiene.
+# Project configuration remains auto-discovered by mypy from this repository.
+mypy_required = true
+mypy_profile = "ici"
+
+[engines.python_compat]
+enabled = true
+mode = "pass_warn_fail"
+required = false
+# Self dogfood validates both the Python 3.10 floor and the currently selected interpreter.
+target_version = "3.10"
+interpreters = []
+required_interpreters = []
+imports = ["ici"]
 
 [engines.complexity]
 enabled = true

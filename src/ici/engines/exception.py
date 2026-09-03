@@ -473,8 +473,10 @@ class ExceptionSafetyEngine(BaseEngine):
                     targets.append(
                         InspectionTarget(
                             file_path=rel_path,
-                            start_line=node.lineno,
-                            end_line=getattr(node, "end_lineno", node.lineno),
+                            start_line=getattr(node.type, "lineno", node.lineno),
+                            end_line=getattr(node.type, "end_lineno", node.lineno),
+                            start_column=getattr(node.type, "col_offset", 0) + 1,
+                            end_column=getattr(node.type, "end_col_offset", None),
                             target_name="BaseException",
                             status=EngineStatus.FAIL,
                             message=(
@@ -489,6 +491,9 @@ class ExceptionSafetyEngine(BaseEngine):
                         InspectionTarget(
                             file_path=rel_path,
                             start_line=node.lineno,
+                            end_line=getattr(node, "end_lineno", node.lineno),
+                            start_column=getattr(node, "col_offset", 0) + 1,
+                            end_column=getattr(node, "end_col_offset", None),
                             target_name="BareExcept",
                             status=EngineStatus.FAIL,
                             message="Dangerous bare 'except:' clause catches all exceptions",
@@ -500,6 +505,9 @@ class ExceptionSafetyEngine(BaseEngine):
                         InspectionTarget(
                             file_path=rel_path,
                             start_line=node.lineno,
+                            end_line=getattr(node, "end_lineno", node.lineno),
+                            start_column=getattr(node, "col_offset", 0) + 1,
+                            end_column=getattr(node, "end_col_offset", None),
                             target_name="ErrorSwallowing",
                             status=EngineStatus.FAIL,
                             message="Silent exception swallowing: handler only contains pass",
@@ -516,6 +524,8 @@ class ExceptionSafetyEngine(BaseEngine):
                                 file_path=rel_path,
                                 start_line=raise_node.lineno,
                                 end_line=getattr(raise_node, "end_lineno", raise_node.lineno),
+                                start_column=getattr(raise_node, "col_offset", 0) + 1,
+                                end_column=getattr(raise_node, "end_col_offset", None),
                                 target_name="LostTraceback",
                                 status=EngineStatus.WARN,
                                 message=(

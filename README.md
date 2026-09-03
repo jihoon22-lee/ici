@@ -206,7 +206,7 @@ an older accepted candidate is not evidence for a newer feature head.
 | 문서 | 설명 | 바로가기 |
 |---|---|---|
 | **🚀 사용자 가이드** | 빠른 시작, 설치, 전체 CLI 사용법 및 IDE 원클릭 점프 | [docs/user-guide.md](docs/user-guide.md) |
-| **📏 검증 엔진 레퍼런스** | 15종 품질 검증 엔진 (기본 13종 활성), TEM 스코어링 공식, `ici.toml` 정책 설정 | [docs/engine-reference.md](docs/engine-reference.md) |
+| **📏 검증 엔진 레퍼런스** | 16종 품질 검증 엔진 (fast 12 / standard 14 / deep 16), TEM 스코어링 공식, `ici.toml` 정책 설정 | [docs/engine-reference.md](docs/engine-reference.md) |
 | **⚙️ CI/CD 연동 가이드** | GitHub Actions, Step Summary, PR 어노테이션, 사내 폐쇄망 러너 | [docs/ci-integration.md](docs/ci-integration.md) |
 | **🏛️ 시스템 아키텍처** | ZipApp 패키징, Polyglot 런처, 오케스트레이터 및 리포터 계층 설계 | [docs/architecture.md](docs/architecture.md) |
 | **🧭 품질 분석기 실행 계획** | Python·C++·Qt 분석기 로드맵과 toy-projects 교차 검증 순서 | [ici 마스터 계획](docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md) · [toy-projects 마스터 계획](https://github.com/jihoon22-lee/toy-projects/blob/main/docs/superpowers/plans/2026-08-30-product-portfolio-master-plan.md) |
@@ -222,7 +222,7 @@ an older accepted candidate is not evidence for a newer feature head.
    - 최초 실행 시 `~/.config/ici/ici.toml`에 전사 기본 정책이 자동 생성되며, `src` 외 `lib`/`app` 등 소스 레이아웃도 자동 탐색
 2. **스마트 런처 (Smart Polyglot)**:
    - 시스템 기본 `python3`가 3.6/3.8인 구버전 환경에서도 `ICI_PYTHON` 또는 3.10+ 설치 경로를 스스로 찾아 실행.
-3. **15종 품질 검증 엔진 (기본 13종 활성)**:
+3. **16종 품질 검증 엔진 (fast 12 / standard 14 / deep 16)**:
     - `line`: 파일당 순수 코드 500줄 초과 경고, 1000줄 초과 실패 + **계층형 디렉토리 트리 뷰** (`project.source_dirs` + 기본 소스 디렉터리 전용 스캔, `include_dirs`로 확장)
     - `lint`: Python Ruff 및 C/C++ compiler 진단, optional clang-tidy I4-1와 Qt-aware clazy I4-2
       adapter (`auto`/`required`/`off`, exact compilation-context replay, 도구 미설치·부분 폴백
@@ -233,6 +233,12 @@ an older accepted candidate is not evidence for a newer feature head.
       - report/cache에는 DB origin·generator·unity 상태·CMake target과 digest가 남으며, subdirectory output 경로도 working directory와 DB 기준을 일치할 때만 안전하게 보정합니다.
      - `test` & `tem`: 단위 테스트 전수 통과 + Line/Branch/Function 커버리지 및 PassRate 기반 **TEM 5.0 스코어링** (`min(Line,80)/80 * Func/100 * PassRate *5`, Branch는 `*5/4` 보정; 모듈별 실측: Python `coverage.py` / C++ `gcov`)
     - `type`: Mypy 정적 타입 검사 및 AST 부분 폴백 (C++ 타입 검증은 명시적 SKIP)
+    - `python_compat`: 현재 실행 중인 Python을 기본 필수 runtime으로 확인하고, 설정한
+      interpreter의 `-VV`·`compileall`·선택적 import smoke를 실행합니다. `requires-python`과
+      설정된 syntax/API floor를 위치와 함께 검사하며, import는 모듈 top-level code를 실행하므로
+      `[engines.python_compat].imports`에 명시한 모듈만 opt-in합니다. runtime 호출 증거는
+      `MEASURED`/정확한 `ToolEvidence`로 남고, 외부 interpreter 경로가 바뀔 수 있어 결과 cache는
+      사용하지 않습니다.
     - `complexity`: Python AST와 exact context/tool이 있을 때 C++ clang-tidy
       `readability-function-size`로 함수 경계를 정하고, 경계 내부 CC/중첩은 masked token/brace
       metric으로 계산 + **원본 소스 코드 블록 프리뷰**
@@ -270,7 +276,7 @@ an older accepted candidate is not evidence for a newer feature head.
    - `--write-baseline`으로 현재 finding inventory를 보관하고 `--baseline`으로 다음 실행과 비교할 수 있습니다. `--fail-on-new`는 새 actionable finding 또는 severity/suppression regression만 gate에 반영합니다.
    - 기준선 비교 결과는 JSON·HTML·Markdown Summary·콘솔에 표시되고, 신뢰된 publish job의 sticky PR 댓글에는 새 finding·regression·gate·호환성 warning 요약이 포함됩니다.
 7. **과장 없는 언어·도구 지원 매트릭스**:
-   - 15개 엔진 × Python/C++ 범위를 `exact`/`heuristic`/`tool-backed`/`unsupported`로 선언하고 Qt 호환성, 필요 도구, fallback과 한계를 함께 공개합니다.
+   - 16개 엔진 × Python/C++ 범위를 `exact`/`heuristic`/`tool-backed`/`unsupported`로 선언하고 Qt 호환성, 필요 도구, fallback과 한계를 함께 공개합니다.
    - 프로젝트별 적용 여부와 실제 증거 상태를 계산해 doctor, JSON, HTML과 Qt viewer에서 같은 데이터로 표시합니다. 상세 표는 [엔진 레퍼런스 §1.4](docs/engine-reference.md#14-엔진-지원기능-매트릭스)를 참고하세요.
    - `ici doctor`는 전체 tool registry를 한 번의 bounded probe snapshot으로 수집하고, 필요한 이유(`engine:language` 또는 `doctor.config`)와 missing/incomplete 상태를 함께 보여 줍니다. `ici doctor --json`의 `capability_inventory`는 status·counts·version/path/details/evidence를 담는 machine-readable 계약이며, 기존 `tools` map도 유지합니다.
    - `ici verify`도 유효한 support matrix의 `applicable`·`enabled` 범위와 `doctor.config`에서 required/optional 정책을 계산한 뒤, 엔진 실행 전에 같은 registry를 정확히 한 번 수집합니다. suite root의 선택적 `capability_inventory`를 console/Markdown/zero-CDN HTML reporter가 그대로 공유하므로 reporter가 도구를 재탐지하지 않습니다. required provenance 우선 규칙과 모든 provenance, capability 메타데이터·probe argv/evidence redaction을 보존하며, 콘솔은 요약하고 Markdown은 전체 inventory를 접어 보여 주고 HTML은 Support & Capabilities 탭에 전체 행을 표시합니다. 기존 inventory 없는 `ici.result/v3` 리포트도 계속 읽을 수 있습니다.
@@ -280,6 +286,63 @@ an older accepted candidate is not evidence for a newer feature head.
    - v3 engine JSON의 optional `cache_hit`/nullable `cache_key`는 기존 archive 소비자와 호환되며, 캐시는 프로젝트 소스를 변경하지 않고 atomic local entry만 씁니다. 새 entry는 0700/0600 권한 경계를 사용하고, symlink·duplicate key·NaN/Infinity·32 MiB 초과 payload를 거부합니다.
 
 ---
+
+### Python runtime compatibility
+
+`python_compat`은 Python source가 있는 프로젝트에서 현재 runtime과 선택한 추가 runtime이
+프로젝트 metadata·source floor와 함께 동작하는지 확인합니다. 기본 설정은 다음과 같습니다.
+
+```toml
+[engines.python_compat]
+enabled = true
+mode = "pass_warn_fail"
+required = false             # engine gate policy; runtime selection is described below
+interpreters = []            # empty: the interpreter running ici, required
+required_interpreters = []   # entries from interpreters that must satisfy the checks
+imports = []                 # explicit smoke-import opt-in; never auto-executed
+target_version = ""          # empty: infer the earliest minor allowed by requires-python
+```
+
+`interpreters`가 비어 있으면 `sys.executable` 하나를 선택하고 해당 runtime은 항상 required로
+취급합니다. 목록을 지정하면 각 entry는 optional이며, 같은 문자열을 `required_interpreters`에도
+넣은 entry만 unavailable/incompatible일 때 필수 결과가 됩니다. optional runtime의 unavailable
+또는 check failure는 `WARN`이고, required runtime의 unavailable은 `ERROR`/`NOT_RUN`,
+불일치·실패는 `FAIL`입니다. `required_interpreters`는 `interpreters`의 부분집합이어야 합니다.
+
+각 resolved interpreter는 shell 없이 `-VV`로 version을 확인하고, 선택된 Python source root를
+`python -B -m compileall -q -f`로 강제 재컴파일합니다. compileall bytecode는 임시 cache prefix로 보내
+프로젝트에 `__pycache__`를 만들지 않습니다. import smoke는 module top-level code를 실행할 수
+있으므로 자동 발견한 import 이름은 metadata로만 남기고 실행하지 않으며,
+`imports = ["package", "package.cli"]`처럼 사용자가 명시한 모듈만 `-I`/`-B` 격리 subprocess에서
+실행합니다.
+
+`pyproject.toml`의 `project.requires-python`은 PEP 440 specifier로 파싱해 실제 `-VV` version과
+비교합니다. `target_version`을 지정하면 그 Python minor를 syntax/API floor로 사용하고, 비워
+두면 `requires-python`이 허용하는 가장 이른 지원 minor를 추론합니다. 현재 runtime이 파싱할 수
+있는 범위에서 AST syntax floor와 문서화된 standard-library API inventory를 검사하며, 위반은
+정확한 1-indexed line/column target으로 보고합니다. metadata가 없으면 runtime/compile 검사는
+계속하되 inferred source floor는 적용하지 않습니다.
+
+정상 실행의 engine evidence는 `MEASURED`이며, 각 `-VV`·compileall·import smoke 호출은
+executable path, version, argv, return code, timeout/truncation을 가진 `ToolEvidence`로 보존됩니다.
+외부 interpreter를 설정으로 교체할 수 있어 일반 engine cache identity만으로 실행 capability를
+안전하게 고정할 수 없으므로 `python_compat` 결과는 cache key를 만들거나 재사용하지 않고 매번
+새로 실행합니다.
+
+### Python finding display projection
+
+console·HTML·Markdown은 원인 중복을 줄이기 위해 보수적인 canonical Python rule projection을
+공유합니다. registry에 review된 rule family만 canonical id로 표시하고, broad Ruff rule은
+AST-derived semantic context가 같은 경우에만 내부 rule과 합칩니다. 두 finding이 같은 project
+path에서 **end line과 start/end column을 모두 가진 1-indexed precise region**으로 서로 겹쳐야
+하며, line-only 위치·인접하지만 겹치지 않는 위치·서로 다른 path·알 수 없는 rule은 합치지
+않습니다. 그룹에는 `original_finding_count`, producer별 count와 원래 engine/rule/tool version
+provenance가 표시됩니다.
+
+이것은 표시 전용 projection입니다. JSON `findings`/`targets`와 baseline inventory/delta는 각
+producer의 원본 finding, fingerprint, precise line/column, tool identity를 그대로 보존하며,
+projection이 suite나 baseline을 변경하지 않습니다. console은 cap을 적용하고 Markdown은
+bounded table을 사용하지만 HTML은 전체 display projection을 유지합니다.
 
 ### C++ compiler/clang-tidy
 
@@ -848,6 +911,7 @@ response file도 깊이 4, 파일/aggregate 4 MiB와 동일한 per-row argument 
 | `ici lint` | 문법 린팅 및 스타일/포맷팅 검증 | [엔진 레퍼런스](docs/engine-reference.md#22--lint-문법-및-코드-스타일-린터) |
 | `ici test` | 단위 테스트 실행 및 커버리지/TEM 스코어 산출 | [엔진 레퍼런스](docs/engine-reference.md#23--test--tem-스코어링-단위-테스트-및-테스트-효과성-지표) |
 | `ici type` | 정적 타입 검사 | [엔진 레퍼런스](docs/engine-reference.md#24-️-type-정적-타입-안정성-검사기) |
+| `ici python-compat` | Python runtime `-VV`·compileall·선택 import 및 `requires-python`/syntax/API floor 검증 | [엔진 레퍼런스](docs/engine-reference.md#215--python_compat-python-runtime-호환성) |
 | `ici complexity` | 순환 복잡도 및 중첩 깊이 분석 | [엔진 레퍼런스](docs/engine-reference.md#25--complexity-순환-복잡도-및-블록-중첩도) |
 | `ici sanitize` | C++ ASan/UBSan 메모리 안전성 검증 | [엔진 레퍼런스](docs/engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |
 | `ici thread-sanitize` | deep profile 전용 C++ ThreadSanitizer thread-safety 검증 | [엔진 레퍼런스](docs/engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |

@@ -37,6 +37,7 @@ _CATEGORY_BY_ENGINE = {
     "exception": FindingCategory.CORRECTNESS,
     "line": FindingCategory.MAINTAINABILITY,
     "lint": FindingCategory.MAINTAINABILITY,
+    "python_compat": FindingCategory.CORRECTNESS,
     "resource": FindingCategory.RESOURCE,
     "sanitize": FindingCategory.CORRECTNESS,
     "security": FindingCategory.SECURITY,

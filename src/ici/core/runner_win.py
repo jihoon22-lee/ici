@@ -63,7 +63,10 @@ class _ThreadEntry32(ctypes.Structure):
 def _get_windows_kernel32():
     """Load the Windows kernel32 APIs used for process-tree management."""
 
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    win_dll = getattr(ctypes, "WinDLL", None)
+    if win_dll is None:
+        raise OSError("Windows DLL loading is unavailable on this platform")
+    kernel32 = win_dll("kernel32", use_last_error=True)
     kernel32.CreateJobObjectW.argtypes = [wintypes.LPVOID, wintypes.LPCWSTR]
     kernel32.CreateJobObjectW.restype = wintypes.HANDLE
     kernel32.SetInformationJobObject.argtypes = [

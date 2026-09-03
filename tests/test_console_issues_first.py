@@ -28,6 +28,8 @@ from ici.core.models import (
     SourceLocation,
     VerificationSuiteResult,
 )
+from ici.engines.exception import ExceptionSafetyEngine
+from ici.engines.lint import LintEngine
 from ici.reporters.console import print_suite_dashboard
 from ici.reporters.html import generate_html_report
 from ici.reporters.issue_view import (
@@ -37,6 +39,7 @@ from ici.reporters.issue_view import (
     select_issue_groups,
 )
 from ici.reporters.json_rep import serialize_suite_result
+from ici.reporters.markdown import generate_markdown_report
 
 
 def _finding(
@@ -50,6 +53,11 @@ def _finding(
     severity: FindingSeverity = FindingSeverity.HIGH,
     label: str = "",
     related: list[SourceLocation] | None = None,
+    start_column: int | None = None,
+    end_column: int | None = None,
+    tool_rule_id: str = "",
+    tool_name: str = "",
+    tool_version: str = "",
 ) -> Finding:
     return Finding(
         rule_id=rule_id,
@@ -57,9 +65,19 @@ def _finding(
         severity=severity,
         confidence=FindingConfidence.EXACT,
         fingerprint=fingerprint or f"sha256:{start:064x}",
-        primary_location=SourceLocation(path, start, end, label=label),
+        primary_location=SourceLocation(
+            path,
+            start,
+            end,
+            start_column=start_column,
+            end_column=end_column,
+            label=label,
+        ),
         message=message,
         related_locations=related or [],
+        tool_rule_id=tool_rule_id,
+        tool_name=tool_name,
+        tool_version=tool_version,
     )
 
 
@@ -224,6 +242,201 @@ def test_native_v3_finding_without_legacy_targets_is_displayed(tmp_path: Path):
     assert "native-v3-only-marker" in output
     assert "ici.security.native" in output
     assert "src/native.py" in output
+
+
+def test_equivalent_python_rules_merge_only_in_display_reporters(tmp_path: Path) -> None:
+    internal = _finding(
+        path="src/app.py",
+        start=9,
+        end=9,
+        start_column=5,
+        end_column=11,
+        rule_id="ici.legacy.exception.target",
+        label="BareExcept",
+        message="bare except catches every exception",
+    )
+    ruff = _finding(
+        path="src/app.py",
+        start=9,
+        end=9,
+        start_column=5,
+        end_column=11,
+        rule_id="ici.legacy.lint.target",
+        label="Ruff:E722",
+        tool_rule_id="Ruff:E722",
+        tool_name="ruff",
+        tool_version="0.16.3",
+        message="do not use bare except",
+    )
+    suite = _suite([_result("lint", [ruff]), _result("exception", [internal])])
+
+    selection = _select(suite, tmp_path, ConsoleOptions(verbose=True))
+
+    assert selection.total_findings == 2
+    assert len(selection.all_groups) == 1
+    group = selection.all_groups[0]
+    assert group.rule_id == "ici.python.exception.bare-except"
+    assert group.original_finding_count == 2
+    assert group.producer_counts == (("exception", 1), ("lint", 1))
+    assert group.provenance == (
+        "exception/BareExcept",
+        "lint/Ruff:E722 (ruff 0.16.3)",
+    )
+
+    json_report = serialize_suite_result(suite, project_root=tmp_path)
+    assert sum(len(result["findings"]) for result in json_report["results"]) == 2
+
+    output = _render(suite, tmp_path, options=ConsoleOptions(verbose=True))
+    assert "2 original findings represented" in output
+    assert "ici.python.exception.bare-except" in output
+
+    html_path = tmp_path / "deduplicated.html"
+    generate_html_report(suite, html_path, base_dir=tmp_path)
+    html_report = html_path.read_text(encoding="utf-8")
+    assert "Active Quality Gate Issues (2 Findings)" in html_report
+    assert html_report.count("class='issue-item'") == 1
+    assert "JSON or baseline inventory" in html_report
+
+    markdown = generate_markdown_report(suite)
+    assert "Canonical issue groups" in markdown
+    assert "2 original finding(s) shown as 1 group(s)" in markdown
+    assert "ici.python.exception.bare-except" in markdown
+
+
+def test_equivalent_line_only_python_rules_remain_separate(tmp_path: Path) -> None:
+    internal = _finding(
+        path="src/app.py",
+        start=9,
+        end=9,
+        rule_id="ici.legacy.exception.target",
+        label="BareExcept",
+    )
+    ruff = _finding(
+        path="src/app.py",
+        start=9,
+        end=9,
+        rule_id="ici.legacy.lint.target",
+        label="Ruff:E722",
+        tool_rule_id="Ruff:E722",
+    )
+
+    selection = _select(
+        _suite([_result("lint", [ruff]), _result("exception", [internal])]), tmp_path
+    )
+
+    assert selection.total_findings == 2
+    assert len(selection.all_groups) == 2
+
+
+@pytest.mark.parametrize(
+    ("engine", "internal_rule", "ruff_rule", "canonical_rule"),
+    [
+        (
+            "exception",
+            "BaseException",
+            "BLE001",
+            "ici.python.exception.base-exception",
+        ),
+        (
+            "resource",
+            "Resource:OpenWithoutWith",
+            "SIM115",
+            "ici.python.resource.open-without-context",
+        ),
+        (
+            "security",
+            "Security:WeakCryptoMD5",
+            "S324",
+            "ici.python.security.weak-md5",
+        ),
+        (
+            "security",
+            "Security:EvalExec",
+            "S307",
+            "ici.python.security.eval",
+        ),
+    ],
+)
+def test_display_projection_uses_trusted_rule_context_for_broad_ruff_aliases(
+    tmp_path: Path,
+    engine: str,
+    internal_rule: str,
+    ruff_rule: str,
+    canonical_rule: str,
+) -> None:
+    internal = _finding(
+        path="src/app.py",
+        start=12,
+        end=12,
+        start_column=3,
+        end_column=18,
+        rule_id=f"ici.legacy.{engine}.target",
+        label=internal_rule,
+        tool_rule_id=internal_rule,
+    )
+    ruff = _finding(
+        path="src/app.py",
+        start=12,
+        end=12,
+        start_column=3,
+        end_column=18,
+        rule_id="ici.legacy.lint.target",
+        label=f"Ruff:{ruff_rule}",
+        tool_rule_id=f"Ruff:{ruff_rule}",
+        tool_name="ruff",
+    )
+
+    selection = _select(
+        _suite([_result("lint", [ruff]), _result(engine, [internal])]),
+        tmp_path,
+        ConsoleOptions(verbose=True),
+    )
+
+    assert len(selection.all_groups) == 1
+    assert selection.all_groups[0].rule_id == canonical_rule
+    assert selection.all_groups[0].original_finding_count == 2
+
+
+def test_real_ruff_and_exception_engines_coalesce_bare_except_occurrence(
+    tmp_path: Path,
+) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text(
+        "def run():\n    try:\n        work()\n    except:\n        recover()\n",
+        encoding="utf-8",
+    )
+    config = {
+        "project": {"source_dirs": ["src"]},
+        "engines": {
+            "lint": {"mode": "pass_warn_fail", "ruff_required": True},
+            "exception": {"mode": "pass_warn_fail"},
+        },
+    }
+    results = [
+        LintEngine(tmp_path, config).run(),
+        ExceptionSafetyEngine(tmp_path, config).run(),
+    ]
+    ruff_target = next(target for target in results[0].targets if target.target_name == "Ruff:E722")
+    assert (
+        ruff_target.start_line,
+        ruff_target.end_line,
+        ruff_target.start_column,
+        ruff_target.end_column,
+    ) == (4, 4, 5, 10)
+
+    selection = _select(_suite(results), tmp_path, ConsoleOptions(verbose=True))
+
+    group = next(
+        group
+        for group in selection.all_groups
+        if group.rule_id == "ici.python.exception.bare-except"
+    )
+    assert group.original_finding_count == 2, [
+        (item.engine_name, item.rule_id, item.locations, item.provenance)
+        for item in selection.all_groups
+    ]
+    assert group.producer_counts == (("exception", 1), ("lint", 1))
 
 
 def test_same_fingerprint_same_file_unions_only_overlapping_regions(tmp_path: Path, monkeypatch):

@@ -117,6 +117,8 @@ class CognitiveEngine(BaseEngine):
                             file_path=rel,
                             start_line=getattr(node, "lineno", 1),
                             end_line=getattr(node, "end_lineno", None),
+                            start_column=getattr(node, "col_offset", 0) + 1,
+                            end_column=getattr(node, "end_col_offset", None),
                             target_name=node.name,
                             status=status,
                             message=f"Cognitive {cog} (nesting {nesting})",

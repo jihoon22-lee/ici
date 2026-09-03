@@ -9,6 +9,65 @@
 
 ### Added
 
+- **Flow-sensitive Python resource ownership rules (unreleased language-analysis bundle):**
+  Replaced the former unconditional `open()` warning with bounded, intraprocedural AST flow that
+  distinguishes context managers, direct `close()`/`aclose()`, aliases, branch exits,
+  `try/finally`, returned ownership, attribute/subscript transfers, and resources registered with
+  an `ExitStack`. Supported import aliases cover built-in/`io` file handles, temporary files,
+  sockets, and `Path(...).open()`. A finding is retained whenever an open outcome remains after
+  branch merging, with closed/transferred outcome evidence recorded separately. Mutable literal
+  and supported constructor defaults now produce a native `correctness` finding instead of being
+  mislabeled as a resource defect. The engine uses bounded no-follow source snapshots, reports
+  syntax/input/AST-limit failures as located `ERROR`/`NOT_RUN`, emits per-file PASS targets, and
+  reports `NOT_APPLICABLE` when no Python source exists. This remains in the consolidated
+  language-analysis work and does not change version `0.10.2` or authorize a release.
+- **Bounded, redaction-safe Python security AST rules (unreleased language-analysis bundle):**
+  Replaced line-oriented regular-expression matching with Python AST rules that resolve supported
+  lexical-scope-aware import aliases and distinguish calls, assignments, dictionary keys, and
+  literal values. The
+  engine now detects weak hashes and randomness, dynamic execution, unsafe pickle loads, command
+  processors, constant `subprocess(..., shell=True)`, private-key markers, and context-sensitive
+  hardcoded secrets without retaining or reporting source secret values. Secret detection combines
+  name context, known credential prefixes, length, and entropy; exact case-insensitive names can be
+  exempted with the bounded `secret_name_allowlist`. Only real comment tokens can apply `# nosec`.
+  Source reads retain ici's bounded, symlink-safe snapshot policy, and unreadable or invalid Python
+  fails closed with located `ERROR` targets instead of silently skipping analysis. Per-file PASS
+  targets, counters, evidence mode, and explicit limitations make the inspected scope auditable.
+  This remains part of the consolidated language-analysis work and does not change version
+  `0.10.2` or authorize a release.
+- **Project-respecting Python tool policy (unreleased language-analysis bundle):** Ruff continues
+  to consume its structured JSON diagnostics and rule codes while leaving the project's discovered
+  select/ignore/per-file configuration in control. Mypy no longer receives a global
+  `--ignore-missing-imports` override: the default `mypy_profile = "project"` runs from the project
+  root and preserves Mypy's normal config discovery. The explicit `mypy_profile = "ici"` overlay
+  adds `--check-untyped-defs`, redundant-cast warnings, and unused-ignore warnings without changing
+  import policy. Mypy error/note targets now retain reported columns. Ici's own dogfood policy
+  requires Mypy and uses the overlay; the newly exposed checks were cleaned rather than suppressed.
+  This remains part of the consolidated language-analysis work and does not change version
+  `0.10.2` or authorize a release.
+- **Configured Python runtime compatibility checks (unreleased language-analysis bundle):** Added
+  the `python_compat` engine to all profiles, bringing the built-in inventory to 16 engines:
+  fast 12, standard 14, and deep 16. With `interpreters = []`, the interpreter currently running
+  ici is checked as a required runtime; configured entries are optional unless repeated in
+  `required_interpreters`. Each resolved executable is invoked directly with `-VV` and
+  `python -B -m compileall -q -f`, while import smoke is an explicit `imports` opt-in because importing
+  a module executes its top-level code. The engine validates PEP 440 `project.requires-python`,
+  applies the configured or inferred Python syntax/API floor, and records precise source locations
+  for floor violations. Successful checks are `MEASURED` with per-command `ToolEvidence`; optional
+  unavailable runtimes warn, required unavailable runtimes are `ERROR`/`NOT_RUN`, and runtime
+  incompatibilities fail required entries. Because an external configured interpreter can be
+  replaced independently of ici's current process, this engine deliberately disables result cache
+  key creation and reuse. The feature candidate passed EnvLens compatibility checks when invoked by
+  Python 3.10.21 and Python 3.14.7. This remains unreleased and does not change version `0.10.2`.
+- **Conservative canonical Python issue display (unreleased language-analysis bundle):** Console,
+  HTML, and Markdown now share a display-only canonical rule projection for reviewed overlapping
+  Python rule families. Cross-producer grouping requires the same canonical project-relative path,
+  precise 1-indexed end-line/start-column/end-column locations, and an actual overlapping region;
+  broad Ruff aliases require trusted semantic context, and line-only or ambiguous occurrences stay
+  separate. Groups expose original finding counts, producer counts, and engine/rule/tool-version
+  provenance. JSON `findings`/`targets` and baseline inventories continue to retain every original
+  producer record, fingerprint, precise location, and tool identity; projection never mutates the
+  suite or baseline. This remains unreleased and does not change version `0.10.2`.
 - **GNU ELF target-local discarded-function evidence (local feature PR):** Added the opt-in
   `[engines.dead].cpp_linker = "auto" | "required" | "off"` policy, defaulting to `off` and
   independent of `cpp_unused`. On Linux root-CMake projects, the probe creates an isolated Release
@@ -1520,7 +1579,7 @@
 
 ### Added
 - **리소스 누수 (`resource`)**: `open()` 후 close 누락, 가변 기본 인자 등 리소스 누수 AST 패턴을 탐지.
-- **보안 위생 (`security`)**: 하드코딩 시크릿, 프라이빗 키, `hashlib.md5/sha1`, `random`, `eval/exec`, `pickle`, `shell=True` 등을 정규식으로 탐지. `scan_tests` 설정 지원.
+- **보안 위생 (`security`)**: 하드코딩 시크릿, 프라이빗 키, `hashlib.md5/sha1`, `random`, `eval/exec`, `pickle`, `shell=True` 등을 Python AST 규칙으로 탐지. `scan_tests` 설정 지원.
 - **인지 복잡도 (`cognitive`)**: SonarQube S3776 스타일 인지 복잡도를 함수별로 계산. 중첩 깊이에 따라 가중치를 더함. `warn/fail/warn_nesting` 설정 지원. 자체 검증 baseline 대비 오탐을 줄이기 위해 **기본 비활성(`enabled = false`)**, 임계값은 warn 30 / fail 60으로 조정.
 - **순환 참조 탐지 (`cycle`)**: Python `import` 그래프와 C++ `#include` 그래프를 Tarjan SCC로 분석해 순환을 탐지. `max_reported` 설정 지원.
 - **PR sticky 리포트 댓글 복원 (`report-pr` + `ici publish`)**: v0.4.0 권한 분리 이후 중단됐던 PR 리포트 댓글을 아티팩트 기반으로 재도입. 검증 job은 계속 읽기 전용이고, 새 `report-pr` job(`pull_request` 전용, `contents:write`+`pull-requests:write`)이 업로드된 `verify_report.html/json`을 받아 gh-pages에 게시하고 `<!-- ici-report -->` 마커로 sticky 댓글을 갱신합니다. 댓글은 배지형 링크·통계 표·접을 수 있는 엔진 상세로 리디자인됐습니다. 신규 CLI `ici publish --html --json`으로 기존 리포트를 단독 게시할 수 있습니다.

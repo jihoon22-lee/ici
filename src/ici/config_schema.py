@@ -7,6 +7,7 @@ lets us report the exact dotted key that caused a configuration error.
 
 import math
 import os
+import re
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
@@ -21,6 +22,7 @@ ANALYSIS_PROFILES = frozenset({"fast", "standard", "deep"})
 CLANG_TIDY_MODES = frozenset({"auto", "required", "off"})
 CLAZY_MODES = frozenset({"auto", "required", "off"})
 CLAZY_PROFILES = frozenset({"level0", "level1"})
+MYPY_PROFILES = frozenset({"project", "ici"})
 _TOOL_CHECK_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.*-")
 _MAX_TOOL_CHECKS = 128
 _MAX_TOOL_CHECK_LENGTH = 128
@@ -88,7 +90,9 @@ _ENGINE_KEYS = {
         }
     ),
     "type": _COMMON_ENGINE_KEYS
-    | frozenset({"fail_on_error", "warn_on_missing_annotation", "mypy_required"}),
+    | frozenset({"fail_on_error", "warn_on_missing_annotation", "mypy_required", "mypy_profile"}),
+    "python_compat": _COMMON_ENGINE_KEYS
+    | frozenset({"interpreters", "required_interpreters", "imports", "target_version"}),
     "complexity": _COMMON_ENGINE_KEYS
     | frozenset({"warn_cc", "fail_cc", "warn_nesting", "cpp_boundaries"}),
     "sanitize": _COMMON_ENGINE_KEYS,
@@ -109,7 +113,7 @@ _ENGINE_KEYS = {
     "exception": _COMMON_ENGINE_KEYS,
     "cycle": _COMMON_ENGINE_KEYS | frozenset({"max_reported"}),
     "cognitive": _COMMON_ENGINE_KEYS | frozenset({"warn", "fail", "warn_nesting"}),
-    "security": _COMMON_ENGINE_KEYS | frozenset({"scan_tests"}),
+    "security": _COMMON_ENGINE_KEYS | frozenset({"scan_tests", "secret_name_allowlist"}),
     "resource": _COMMON_ENGINE_KEYS,
 }
 
@@ -238,6 +242,12 @@ def _validate_type(table: dict[str, Any], path: str) -> None:
     for key in ("fail_on_error", "warn_on_missing_annotation", "mypy_required"):
         if key in table:
             _require_bool(table[key], f"{path}.{key}")
+    if "mypy_profile" in table:
+        profile_path = f"{path}.mypy_profile"
+        _require_string(table["mypy_profile"], profile_path, non_empty=True)
+        if table["mypy_profile"] not in MYPY_PROFILES:
+            allowed = ", ".join(sorted(MYPY_PROFILES))
+            raise _error(profile_path, f"must be one of: {allowed}")
 
 
 def _validate_lint(table: dict[str, Any], path: str) -> None:
@@ -399,6 +409,53 @@ def _validate_security(table: dict[str, Any], path: str) -> None:
     _validate_common_engine(table, path)
     if "scan_tests" in table:
         _require_bool(table["scan_tests"], f"{path}.scan_tests")
+    if "secret_name_allowlist" in table:
+        allowlist_path = f"{path}.secret_name_allowlist"
+        _require_string_list(table["secret_name_allowlist"], allowlist_path)
+        values = table["secret_name_allowlist"]
+        if len(values) > 128:
+            raise _error(allowlist_path, "must contain at most 128 names")
+        normalized: set[str] = set()
+        for index, value in enumerate(values):
+            item_path = f"{allowlist_path}[{index}]"
+            if len(value) > 128:
+                raise _error(item_path, "must be at most 128 characters")
+            if not value.isidentifier():
+                raise _error(item_path, "must be a Python identifier")
+            folded = value.casefold()
+            if folded in normalized:
+                raise _error(item_path, "must be unique ignoring case")
+            normalized.add(folded)
+
+
+def _validate_python_compat(table: dict[str, Any], path: str) -> None:
+    _validate_common_engine(table, path)
+    for key, limit in (("interpreters", 32), ("required_interpreters", 32), ("imports", 64)):
+        if key not in table:
+            continue
+        item_path = f"{path}.{key}"
+        _require_string_list(table[key], item_path)
+        values = table[key]
+        if len(values) > limit:
+            raise _error(item_path, f"must contain at most {limit} values")
+        if len(values) != len(set(values)):
+            raise _error(item_path, "must not contain duplicate values")
+        for index, value in enumerate(values):
+            if len(value) > 1024 or any(ord(character) < 32 for character in value):
+                raise _error(
+                    f"{item_path}[{index}]", "must be a safe string of at most 1024 characters"
+                )
+            if key == "imports" and not all(part.isidentifier() for part in value.split(".")):
+                raise _error(f"{item_path}[{index}]", "must be a dotted Python module name")
+    interpreters = table.get("interpreters", [])
+    required = table.get("required_interpreters", [])
+    if any(value not in interpreters for value in required):
+        raise _error(f"{path}.required_interpreters", "must be a subset of interpreters")
+    if "target_version" in table:
+        value = table["target_version"]
+        _require_string(value, f"{path}.target_version")
+        if value and not re.fullmatch(r"3\.(?:[7-9]|[1-9][0-9])", value):
+            raise _error(f"{path}.target_version", "must be empty or a Python 3 minor such as 3.10")
 
 
 def _validate_compile_db(table: dict[str, Any], path: str) -> None:
@@ -438,6 +495,7 @@ def _validate_engine(name: str, table: Any) -> None:
         "line": _validate_line,
         "test": _validate_test,
         "type": _validate_type,
+        "python_compat": _validate_python_compat,
         "lint": _validate_lint,
         "compile_db": _validate_compile_db,
         "complexity": _validate_complexity,

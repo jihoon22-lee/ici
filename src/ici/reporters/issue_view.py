@@ -21,6 +21,8 @@ from ici.core.models import (
     SourceLocation,
     VerificationSuiteResult,
 )
+from ici.reporters.issue_models import IssueComponent, IssueGroup, IssueLocation
+from ici.reporters.python_issue_projection import merge_python_components
 
 DEFAULT_MAX_FINDINGS = 5
 DEFAULT_MAX_LOCATIONS = 4
@@ -50,32 +52,6 @@ class ConsoleOptions:
             raise ValueError("max_findings must be zero or greater")
         if isinstance(self.group_by, str):
             object.__setattr__(self, "group_by", ConsoleGroupBy(self.group_by))
-
-
-@dataclass(frozen=True)
-class IssueLocation:
-    """One display location, possibly the union of overlapping source spans."""
-
-    path: str
-    start_line: int
-    end_line: int
-    labels: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
-class IssueGroup:
-    """A console-only logical issue with every represented location retained."""
-
-    engine_name: str
-    rule_id: str
-    category: str
-    severity: FindingSeverity
-    fingerprints: tuple[str, ...]
-    message: str
-    snippet: str
-    locations: tuple[IssueLocation, ...]
-    original_finding_count: int
-    clone_group_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -178,7 +154,7 @@ def _location_from_source(location: SourceLocation) -> IssueLocation:
     )
 
 
-def _generic_groups(engine_name: str, findings: list[Finding]) -> list[IssueGroup]:
+def _generic_components(engine_name: str, findings: list[Finding]) -> list[IssueComponent]:
     """Merge only overlapping occurrences with an identical v3 identity."""
 
     by_identity: dict[tuple[str, str, str], list[Finding]] = {}
@@ -187,7 +163,7 @@ def _generic_groups(engine_name: str, findings: list[Finding]) -> list[IssueGrou
         key = (finding.rule_id, finding.fingerprint, location.path)
         by_identity.setdefault(key, []).append(finding)
 
-    groups: list[IssueGroup] = []
+    components_out: list[IssueComponent] = []
     for identity in sorted(by_identity):
         ordered = sorted(
             by_identity[identity],
@@ -216,20 +192,24 @@ def _generic_groups(engine_name: str, findings: list[Finding]) -> list[IssueGrou
                 for finding in component
                 for location in (finding.primary_location, *finding.related_locations)
             ]
-            groups.append(
-                IssueGroup(
-                    engine_name=engine_name,
-                    rule_id=representative.rule_id,
-                    category=representative.category.value,
-                    severity=representative.severity,
-                    fingerprints=tuple(sorted({finding.fingerprint for finding in component})),
-                    message=representative.message,
-                    snippet=representative.snippet,
-                    locations=_merge_locations(display_locations),
-                    original_finding_count=len(component),
-                )
+            group = IssueGroup(
+                engine_name=engine_name,
+                rule_id=representative.rule_id,
+                category=representative.category.value,
+                severity=representative.severity,
+                fingerprints=tuple(sorted({finding.fingerprint for finding in component})),
+                message=representative.message,
+                snippet=representative.snippet,
+                locations=_merge_locations(display_locations),
+                original_finding_count=len(component),
+                producer_counts=((engine_name, len(component)),),
+                primary_location=representative.primary_location,
+                related_locations=tuple(representative.related_locations),
             )
-    return groups
+            components_out.append(
+                IssueComponent(group, tuple((engine_name, finding) for finding in component))
+            )
+    return components_out
 
 
 def _positive_line(value: object) -> int | None:
@@ -332,6 +312,9 @@ def _clone_groups(
                 locations=merged_locations,
                 original_finding_count=len(matched),
                 clone_group_id=group_id,
+                producer_counts=((result.engine_name, len(matched)),),
+                primary_location=representative.primary_location,
+                related_locations=tuple(representative.related_locations),
             )
         )
     return groups, consumed
@@ -352,19 +335,18 @@ def _group_sort_key(group: IssueGroup) -> tuple[object, ...]:
     )
 
 
-def select_issue_groups(
-    suite: VerificationSuiteResult,
+def project_issue_groups(
+    results: Iterable[EngineResult],
     project_root: str | Path,
-    options: ConsoleOptions | None = None,
-) -> IssueSelection:
-    """Return a deterministic console projection capped independently per engine."""
+) -> tuple[tuple[IssueGroup, ...], int]:
+    """Return the full reporter-neutral issue projection and source count."""
 
-    selected_options = options or ConsoleOptions()
     root = Path(project_root).resolve()
     all_groups: list[IssueGroup] = []
+    generic_components: list[IssueComponent] = []
     total_findings = 0
 
-    for result in suite.results:
+    for result in results:
         try:
             findings = _actionable(findings_for_result(result, root))
         except (TypeError, ValueError):
@@ -376,11 +358,24 @@ def select_issue_groups(
             clone_groups, consumed = _clone_groups(result, findings, root)
             all_groups.extend(clone_groups)
             remaining = [finding for index, finding in enumerate(findings) if index not in consumed]
-            all_groups.extend(_generic_groups(result.engine_name, remaining))
+            generic_components.extend(_generic_components(result.engine_name, remaining))
         else:
-            all_groups.extend(_generic_groups(result.engine_name, findings))
+            generic_components.extend(_generic_components(result.engine_name, findings))
 
-    ordered = tuple(sorted(all_groups, key=_group_sort_key))
+    all_groups.extend(merge_python_components(generic_components, root))
+    return tuple(sorted(all_groups, key=_group_sort_key)), total_findings
+
+
+def select_issue_groups(
+    suite: VerificationSuiteResult,
+    project_root: str | Path,
+    options: ConsoleOptions | None = None,
+) -> IssueSelection:
+    """Return a deterministic console projection capped independently per engine."""
+
+    selected_options = options or ConsoleOptions()
+    ordered, total_findings = project_issue_groups(suite.results, project_root)
+
     if selected_options.verbose:
         visible = ordered
     else:
