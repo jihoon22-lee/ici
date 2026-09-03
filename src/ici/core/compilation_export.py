@@ -8,7 +8,7 @@ import os
 import re
 from collections import Counter, defaultdict
 from pathlib import Path, PureWindowsPath
-from typing import Any, cast
+from typing import Any
 
 from ici import __version__
 from ici.core._compilation_export_argv import (
@@ -85,7 +85,7 @@ def config_with_database(
 
 
 def _path(value: str, root: Path) -> str:
-    return cast(str, _redact_compilation_path(value, root))
+    return _redact_compilation_path(value, root)
 
 
 def _diagnostic(value: CompilationDiagnostic, root: Path) -> dict[str, Any]:
@@ -99,12 +99,12 @@ def _diagnostic(value: CompilationDiagnostic, root: Path) -> dict[str, Any]:
 
 
 def _safe_path_value(value: str, root: Path, directory: str) -> str:
-    plain = cast(str, redact_text(value))
-    safe = cast(str, _redact_path_assignment(value, root))
+    plain = redact_text(value)
+    safe = _redact_path_assignment(value, root)
     if safe != plain or not any(separator in value for separator in ("/", "\\")):
         return safe
     if "\\" in value and os.name != "nt":
-        return cast(str, REDACTED)
+        return REDACTED
     left, separator, candidate = value.partition("=")
     path_text = candidate if separator and any(mark in candidate for mark in ("/", "\\")) else value
     quote = (
@@ -117,7 +117,7 @@ def _safe_path_value(value: str, root: Path, directory: str) -> str:
         base = (root / directory).resolve(strict=False)
         absolute = (base / raw_path).resolve(strict=False)
     except (OSError, RuntimeError, ValueError):
-        return cast(str, REDACTED)
+        return REDACTED
     redacted_path = _path(absolute.as_posix(), root)
     redacted = f"{quote}{redacted_path}{quote}"
     return f"{redact_text(left)}={redacted}" if separator and path_text == candidate else redacted
@@ -283,7 +283,7 @@ def _validate_context(context: CompilationContext) -> str:
         )
     if any(not unit.compiler for unit in context.units):
         raise CompilationExportError("compilation context contains an unidentified compiler")
-    return cast(str, database_path)
+    return database_path
 
 
 def _comparison_state(context: CompilationContext, units: list[dict[str, Any]]) -> str:
@@ -299,23 +299,20 @@ def _semantic_digest(
     units: list[dict[str, Any]],
     generator: str | None,
 ) -> str:
-    return cast(
-        str,
-        canonical_digest(
-            {
-                "generator": generator,
-                "origin": context.origin,
-                "units": [
-                    {
-                        "configuration_digest": unit["configuration_digest"],
-                        "source": unit["source"],
-                        "target": unit["target"],
-                    }
-                    for unit in units
-                ],
-                "unity_build": context.unity_build,
-            }
-        ),
+    return canonical_digest(
+        {
+            "generator": generator,
+            "origin": context.origin,
+            "units": [
+                {
+                    "configuration_digest": unit["configuration_digest"],
+                    "source": unit["source"],
+                    "target": unit["target"],
+                }
+                for unit in units
+            ],
+            "unity_build": context.unity_build,
+        }
     )
 
 

@@ -67,6 +67,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "fail_on_error": True,
             "warn_on_missing_annotation": False,  # Missing annotations do not warn by default
             "mypy_required": False,
+            # project: preserve Mypy's own discovered configuration unchanged.
+            # ici: explicit opt-in overlay for additional untyped-body hygiene.
+            "mypy_profile": "project",
         },
         "complexity": {
             "enabled": True,

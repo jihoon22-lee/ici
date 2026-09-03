@@ -24,6 +24,11 @@ _MYPY_DIAGNOSTIC_RE = re.compile(
     r"(?P<kind>error|note):\s*(?P<message>\S.*)$"
 )
 _MYPY_SUMMARY_RE = re.compile(r"Found \d+ errors? in \d+ files? \(checked \d+ source files?\)")
+_ICI_MYPY_PROFILE_ARGS = (
+    "--check-untyped-defs",
+    "--warn-redundant-casts",
+    "--warn-unused-ignores",
+)
 
 
 class TypeCheckEngine(BaseEngine):
@@ -87,7 +92,12 @@ class TypeCheckEngine(BaseEngine):
             summary=summary,
             duration=duration,
             targets=targets,
-            extra={"type_issues": len(targets), "metrics_summary": f"{len(targets)} type targets"},
+            extra={
+                "type_issues": len(targets),
+                "metrics_summary": f"{len(targets)} type targets",
+                "mypy_profile": cfg.get("mypy_profile", "project"),
+                "mypy_project_config_discovery": True,
+            },
             required=bool(cfg.get("required", True)),
             evidence=(
                 EvidenceState.NOT_RUN
@@ -156,7 +166,7 @@ class TypeCheckEngine(BaseEngine):
         python_sources: list[Path],
     ) -> bool:
         mypy_targets = self._mypy_targets(python_sources)
-        mypy_argv = [*mypy_cmd, "--ignore-missing-imports", *mypy_targets]
+        mypy_argv = [*mypy_cmd, *self._mypy_profile_args(), *mypy_targets]
         try:
             result = run_process(mypy_argv, cwd=self.project_root)
         except Exception as exc:
@@ -244,6 +254,9 @@ class TypeCheckEngine(BaseEngine):
                         target_name="MypyError" if is_error else "MypyNote",
                         status=EngineStatus.FAIL if is_error else EngineStatus.WARN,
                         message=message,
+                        start_column=(
+                            int(match.group("column")) if match.group("column") else None
+                        ),
                     )
                 )
                 continue
@@ -271,8 +284,13 @@ class TypeCheckEngine(BaseEngine):
                 target_name="MypyError" if kind == "error" else "MypyNote",
                 status=EngineStatus.FAIL if kind == "error" else EngineStatus.WARN,
                 message=message,
+                start_column=(int(match.group("column")) if match.group("column") else None),
             )
         )
+
+    def _mypy_profile_args(self) -> list[str]:
+        profile = self.get_config("type").get("mypy_profile", "project")
+        return list(_ICI_MYPY_PROFILE_ARGS) if profile == "ici" else []
 
     @staticmethod
     def _validated_mypy_success(output: str) -> tuple[bool, list[str]]:

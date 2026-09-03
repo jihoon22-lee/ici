@@ -1487,12 +1487,16 @@ broader resource/lifetime/security mapping과 release는 여전히 별도다.
 > capability를 선택 interpreter의 `-m` probe로 통일한다. 아래 project-config 존중 작업을
 > 완료한 것으로 표시하지는 않는다.
 
-- [ ] Ruff JSON/JSON-lines output과 rule code를 직접 파싱한다.
-- [ ] project `pyproject.toml`/ruff config의 select, ignore, per-file policy를 보존한다.
-- [ ] mypy의 project config를 자동 발견하게 하고 전역 `--ignore-missing-imports` 강제를 제거한다.
-- [ ] opt-in ici profile은 별도 argv/config overlay로 명시한다.
-- [ ] self project에서 mypy를 required로 만들고 `check_untyped_defs`를 단계적으로 켠다.
-- [ ] tool note와 actual error를 구분하되 위치가 있는 note를 유실하지 않는다.
+- [x] Ruff JSON output과 rule code를 직접 파싱한다. JSON format capability가 없는 formatter는
+  strict legacy parser로만 제한하고 임의 출력을 성공으로 인정하지 않는다.
+- [x] project `pyproject.toml`/ruff config의 select, ignore, per-file policy를 보존한다. ici는
+  scoped relative path와 structured output format만 지정하고 rule policy를 override하지 않는다.
+- [x] mypy의 project config를 project-root working directory에서 자동 발견하게 하고 전역
+  `--ignore-missing-imports` 강제를 제거한다.
+- [x] opt-in `mypy_profile = "ici"`를 별도 argv overlay로 명시하고 기본은 `project`로 둔다.
+- [x] self project에서 mypy를 required로 만들고 `check_untyped_defs`, redundant-cast,
+  unused-ignore 검사를 켰으며 드러난 진단을 source에서 정리했다.
+- [x] tool note와 actual error를 구분하고 위치가 있는 note/error의 line/column을 보존한다.
 
 ### I5-2. 내장 AST 규칙 재설계
 

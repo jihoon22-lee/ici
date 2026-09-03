@@ -98,6 +98,9 @@ enabled = true
 mode = "pass_warn"
 # Optional by default: missing Mypy is reported as WARN/ESTIMATED.
 mypy_required = false
+# "project" preserves Mypy's discovered project config. "ici" is an explicit
+# overlay that also checks untyped bodies, redundant casts, and unused ignores.
+mypy_profile = "project"  # project | ici
 
 [engines.complexity]
 enabled = true
@@ -621,6 +624,11 @@ evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트�
   전달하므로 C++ 전용 `src`/`include` 경로가 도구 오류를 만들지 않습니다. 적용할 Python
   소스가 0개이면 Mypy를 실행하지 않고 명시적 `SKIP` 대상과 `WARN`/`ESTIMATED`를 남깁니다.
   따라서 `Success: no issues found in 0 source files`도 실측 성공 문법으로 인정하지 않습니다.
+  기본 `mypy_profile = "project"`는 project root를 working directory로 사용해 Mypy의
+  `mypy.ini`, `.mypy.ini`, `pyproject.toml`, `setup.cfg` 탐색과 import/error 정책을 그대로
+  보존하며 `--ignore-missing-imports`를 강제하지 않습니다. `mypy_profile = "ici"`는 명시적
+  argv overlay로 `--check-untyped-defs`, `--warn-redundant-casts`, `--warn-unused-ignores`만
+  추가합니다. 두 profile 모두 오류와 note를 구분하고 도구가 제공한 line/column을 보존합니다.
 - **C++**: 현재 C++ 타입 검증은 구현되어 있지 않습니다. C++ 소스가 발견되면 소스별 `SKIP`
   대상을 남기고 요약에 미구현 범위를 명시하며 `WARN`/`ESTIMATED`로 기록합니다. `type = "cpp"`
   로 선언했지만 적용 가능한 C/C++ 소스가 0개인 경우에도 프로젝트 범위를 검증하지 않았다는

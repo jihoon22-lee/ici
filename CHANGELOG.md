@@ -9,6 +9,16 @@
 
 ### Added
 
+- **Project-respecting Python tool policy (unreleased language-analysis bundle):** Ruff continues
+  to consume its structured JSON diagnostics and rule codes while leaving the project's discovered
+  select/ignore/per-file configuration in control. Mypy no longer receives a global
+  `--ignore-missing-imports` override: the default `mypy_profile = "project"` runs from the project
+  root and preserves Mypy's normal config discovery. The explicit `mypy_profile = "ici"` overlay
+  adds `--check-untyped-defs`, redundant-cast warnings, and unused-ignore warnings without changing
+  import policy. Mypy error/note targets now retain reported columns. Ici's own dogfood policy
+  requires Mypy and uses the overlay; the newly exposed checks were cleaned rather than suppressed.
+  This remains part of the consolidated language-analysis work and does not change version
+  `0.10.2` or authorize a release.
 - **GNU ELF target-local discarded-function evidence (local feature PR):** Added the opt-in
   `[engines.dead].cpp_linker = "auto" | "required" | "off"` policy, defaulting to `off` and
   independent of `cpp_unused`. On Linux root-CMake projects, the probe creates an isolated Release

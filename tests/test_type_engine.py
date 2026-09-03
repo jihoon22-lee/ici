@@ -125,6 +125,25 @@ def test_mypy_success_with_valid_notes_is_accepted_and_preserves_note_targets(
     ]
 
 
+def test_mypy_diagnostic_preserves_source_column(tmp_python_project, monkeypatch):
+    _use_mypy(monkeypatch)
+    monkeypatch.setattr(
+        "ici.engines.type_check.run_process",
+        lambda *args, **kwargs: ProcessResult(
+            1,
+            "src/sample_pkg/core.py:3:17: error: incompatible type [assignment]\n",
+            "",
+            0.01,
+        ),
+    )
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    finding = next(target for target in result.targets if target.target_name == "MypyError")
+    assert finding.start_line == 3
+    assert finding.start_column == 17
+
+
 def test_mypy_repeated_identical_notes_fold_with_visible_count(tmp_python_project, monkeypatch):
     _use_mypy(monkeypatch)
     monkeypatch.setattr(
@@ -462,6 +481,51 @@ def test_hybrid_mypy_receives_only_python_source_roots(tmp_path, monkeypatch):
     result = TypeCheckEngine(tmp_path, config).run()
 
     assert result.status == EngineStatus.WARN
-    assert commands == [["/usr/bin/mypy", "--ignore-missing-imports", "python"]]
+    assert commands == [["/usr/bin/mypy", "python"]]
     assert "src" not in commands[0]
     assert "include" not in commands[0]
+
+
+def test_default_mypy_profile_preserves_project_configuration(tmp_python_project, monkeypatch):
+    _use_mypy(monkeypatch)
+    commands: list[list[str]] = []
+
+    def fake_run(argv, **_kwargs):
+        commands.append(argv)
+        return ProcessResult(0, "Success: no issues found in 1 source file\n", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.type_check.run_process", fake_run)
+
+    result = TypeCheckEngine(tmp_python_project).run()
+
+    assert result.status == EngineStatus.PASS
+    assert commands == [["/usr/bin/mypy", "src"]]
+    assert "--ignore-missing-imports" not in commands[0]
+    assert result.extra["mypy_profile"] == "project"
+    assert result.extra["mypy_project_config_discovery"] is True
+
+
+def test_ici_mypy_profile_is_an_explicit_argv_overlay(tmp_python_project, monkeypatch):
+    _use_mypy(monkeypatch)
+    commands: list[list[str]] = []
+
+    def fake_run(argv, **_kwargs):
+        commands.append(argv)
+        return ProcessResult(0, "Success: no issues found in 1 source file\n", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.type_check.run_process", fake_run)
+    config = {"engines": {"type": {"mypy_profile": "ici"}}}
+
+    result = TypeCheckEngine(tmp_python_project, config).run()
+
+    assert result.status == EngineStatus.PASS
+    assert commands == [
+        [
+            "/usr/bin/mypy",
+            "--check-untyped-defs",
+            "--warn-redundant-casts",
+            "--warn-unused-ignores",
+            "src",
+        ]
+    ]
+    assert result.extra["mypy_profile"] == "ici"

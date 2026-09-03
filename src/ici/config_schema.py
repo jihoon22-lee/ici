@@ -21,6 +21,7 @@ ANALYSIS_PROFILES = frozenset({"fast", "standard", "deep"})
 CLANG_TIDY_MODES = frozenset({"auto", "required", "off"})
 CLAZY_MODES = frozenset({"auto", "required", "off"})
 CLAZY_PROFILES = frozenset({"level0", "level1"})
+MYPY_PROFILES = frozenset({"project", "ici"})
 _TOOL_CHECK_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.*-")
 _MAX_TOOL_CHECKS = 128
 _MAX_TOOL_CHECK_LENGTH = 128
@@ -88,7 +89,7 @@ _ENGINE_KEYS = {
         }
     ),
     "type": _COMMON_ENGINE_KEYS
-    | frozenset({"fail_on_error", "warn_on_missing_annotation", "mypy_required"}),
+    | frozenset({"fail_on_error", "warn_on_missing_annotation", "mypy_required", "mypy_profile"}),
     "complexity": _COMMON_ENGINE_KEYS
     | frozenset({"warn_cc", "fail_cc", "warn_nesting", "cpp_boundaries"}),
     "sanitize": _COMMON_ENGINE_KEYS,
@@ -238,6 +239,12 @@ def _validate_type(table: dict[str, Any], path: str) -> None:
     for key in ("fail_on_error", "warn_on_missing_annotation", "mypy_required"):
         if key in table:
             _require_bool(table[key], f"{path}.{key}")
+    if "mypy_profile" in table:
+        profile_path = f"{path}.mypy_profile"
+        _require_string(table["mypy_profile"], profile_path, non_empty=True)
+        if table["mypy_profile"] not in MYPY_PROFILES:
+            allowed = ", ".join(sorted(MYPY_PROFILES))
+            raise _error(profile_path, f"must be one of: {allowed}")
 
 
 def _validate_lint(table: dict[str, Any], path: str) -> None:
