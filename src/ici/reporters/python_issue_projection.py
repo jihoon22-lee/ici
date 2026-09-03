@@ -164,9 +164,7 @@ def _candidate_pairs(
                 buckets.setdefault(key, set()).add(index)
 
     return {
-        pair
-        for indices in buckets.values()
-        for pair in _overlapping_pairs(indices, components)
+        pair for indices in buckets.values() for pair in _overlapping_pairs(indices, components)
     }
 
 
