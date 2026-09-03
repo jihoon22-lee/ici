@@ -1038,6 +1038,27 @@ v3 copy로 변환할 수 있지만, baseline loader가 직접 비교하는 입�
 
 ---
 
+### 4.6 Candidate artifact와 Quality Zoo 수용 경계
+
+candidate 검증은 일반 PR 검증·stable release·HTML publish와 분리된 두 단계 control plane이다.
+`candidate-artifact.yml`은 exact ici `main` commit의 Merge Gate와 재현 빌드에 결합된
+`ici.pyz`/checksum/provenance 세 파일을 만들고, `candidate-quality-zoo.yml`은 ici 저장소에서
+수동으로 실행된다. consumer workflow는 exact ici target SHA와 toy-projects `main` SHA,
+artifact ID, 원본 ZIP SHA-256을 먼저 검증한 뒤 후보 ZIP을 내려받는다.
+
+consumer는 candidate manifest가 가리키는 Actions run/check/job/attempt와 canonical URL을
+독립 API 응답으로 재검증한다. 인증된 Actions/Checks/Contents 읽기는 artifact와 provenance
+evidence를 가져오는 단계에만 사용하며, candidate preflight·intake·Quality Zoo 실행 전에는
+`GH_TOKEN`, `GITHUB_TOKEN`, OIDC/runtime token을 제거한다. 검증된 로컬 `ici.pyz` 경로만
+Quality Zoo runner에 전달하고, preflight/intake/API evidence/runner 결과는 별도 bounded
+14일 artifact로 보존한다.
+
+이 경계에서는 `publish`, Pages 배포, PR comment 또는 `<!-- ici-report -->` marker를 생성하지
+않는다. 따라서 toy PR의 normal gate는 계속 released ici `v0.10.2`를 사용하고, released
+artifact Q0 acceptance와 candidate consumer acceptance는 서로 다른 증거다. 현재 workflow
+구현은 manual/local contract이며, exact current ici/toy revisions를 대상으로 한 원격
+candidate acceptance run은 아직 pending이다.
+
 ## 5. 다중 리포터 계층 설계
 
 모든 리포터는 동일한 `VerificationSuiteResult`를 소비하여 각 플랫폼에 최적화된 출력을 만듭니다:
