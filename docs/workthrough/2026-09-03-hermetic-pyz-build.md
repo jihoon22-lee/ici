@@ -126,7 +126,8 @@ The implementation and documentation boundary for this slice is:
 | Lock separation | Runtime and `package` requirements are exported with `--frozen`; both installs use `--require-hashes`. |
 | Packaging isolation | Hatchling and `shiv==1.0.8` run from `build/package-tools`; the shipped tree receives the project wheel and runtime graph only. |
 | Hermetic inputs | Canonical epoch `1700000000`, `PYTHONHASHSEED=0`, `TZ=UTC`, `umask 022`, fixed modes, metadata cleanup, and symlink rejection are enforced. |
-| Adversarial builds | PASS — both differing umask/epoch/hash-seed/timezone invocations produced SHA-256 `01d6ff6080763a7dc706e60d2ed209fe647fc4f12985c653ea3fd2422398b2f8`. |
+| Adversarial builds | PASS — both differing umask/epoch/hash-seed/timezone invocations produced SHA-256 `23befa93bd7f18bb1a3b2a0db46b9d37cab0e23b92064c7e9d149475938cbbf1`. |
+| Cross-path/source-mtime audit | PASS — the committed tree built in a second absolute worktree after all `src/` and `scripts/` mtimes were changed still produced the same SHA-256. |
 | Artifact boundary | Native/platform wheels, `certifi`, missing schemas, symlinks, special entries, leaked locks, and source mutation fail closed. |
 | Focused regression | `uv run --python 3.10 pytest tests/test_purity.py -q` — 33 passed. |
 | Script/static checks | `bash -n scripts/build-pyz.sh scripts/verify-reproducibility.sh`, `actionlint .github/workflows/*.yml`, and focused Ruff check/format — PASS. |
