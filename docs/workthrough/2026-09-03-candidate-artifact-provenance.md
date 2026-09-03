@@ -5,7 +5,8 @@
 This workthrough records the candidate-artifact producer contract currently present in the ici
 worktree. It is a non-release path for producing a short-lived `ici.pyz` bundle from an exact
 protected-main dispatch commit. The producer slice, its local contract, and its remote producer
-evidence are complete; consumer injection and quality-zoo acceptance remain pending.
+evidence are complete. The released-artifact Quality Zoo Q0 boundary is now accepted; verified
+candidate-pyz consumer injection remains a separate follow-up.
 
 ## Context
 
@@ -13,8 +14,9 @@ Stable `v0.10.2` remains the released ici artifact and its version, tag, and rel
 changed by this path. The normal toy-project PR gate must continue using the released `v0.10.2`.
 The manifest's `package_version` is read from the selected target commit; it may differ from the
 stable version in a future candidate, but it never authorizes a version bump, tag, or release.
-Candidate validation is intentionally a separate manual workflow so a candidate can be consumed by
-a later quality-zoo runner without replacing the normal gate.
+Candidate validation is intentionally a separate manual workflow. Q0 currently consumes the
+released `v0.10.2` artifact without replacing the normal gate; verified candidate-pyz injection is
+reserved for a later consumer path.
 
 ## Changes Made
 
@@ -103,8 +105,9 @@ download rather than assuming any archive implementation's behavior.
 ## Remote producer evidence
 
 The producer was dispatched from protected `main` with exact source SHA
-`7872a7b80899cbd3d40d92d18e7920cd7e2283e7`. The remote evidence is complete for the producer
-boundary, but it does not close candidate consumer or quality-zoo acceptance.
+`7872a7b80899cbd3d40d92d18e7920cd7e2283e7`. The evidence below closes the producer boundary; the
+later Q0 section records released-artifact acceptance, while verified candidate-pyz consumer
+injection remains pending.
 
 ### Main source and report evidence
 
@@ -149,6 +152,50 @@ The pyz SHA-256 was
 reported `ici 0.10.2`. The candidate manifest bytes matched the independent verifier's canonical
 output. The observed v7 ZIP preserved all three required modes, correcting the earlier generic
 assumption that an upload ZIP loses executable/file modes.
+
+### Current ici main audit after documentation PR #140
+
+The follow-up documentation PR #140 was squash-merged and is now represented by ici main
+`cc73531ca33d5e781f027a2c55d341d29034990f`. Exact-main [run `33691782482`](https://github.com/jihoon22-lee/ici/actions/runs/33691782482)
+was green. Its [verification artifact `9870465295`](https://github.com/jihoon22-lee/ici/actions/artifacts/9870465295)
+(`ici-verification-report`, `2,396,261` bytes, digest
+`sha256:e4b59ff4a88290049b537efe573a820a09e6d953b850bcde2d9ff06239f72bea`) and the main ici/viewer
+Pages were audited for trusted report contents, exact source/title identity, Zero-CDN behavior, and
+byte identity. The audit passed; the older candidate archive above remains the producer artifact
+record, not a stable release.
+
+## Quality Zoo Q0 released-artifact acceptance
+
+Q0 is accepted at the released-artifact boundary through [toy-projects PR #49](https://github.com/jihoon22-lee/toy-projects/pull/49),
+not through candidate-pyz injection. Its [PR run `33693241255`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33693241255)
+was green and published [artifact `9870829400`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9870829400)
+(`quality-zoo-contract`, digest
+`sha256:eba0c82ca6046eba6e51dc5b588e04609dd29d6b0c188d49173d36fbd166a375`). The artifact recorded
+`contract_verdict: PASS` for one stable `python.dead-private-function` scenario, using released ici
+`v0.10.2` at SHA `8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`. Its observed
+suite status was `WARN`, with `exit_code: 0`, `errors: []`, empty stderr, one matched finding, and
+no stdout truncation. At that time the PR had exactly one sticky `<!-- ici-report -->` comment/marker
+and three product HTML links.
+
+PR #49 was squash-merged as
+`ed5fea2e881da77ac95482cf665e4e40bfe172f1`. Exact-main [run `33694452357`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33694452357)
+was green and published stable [artifact `9871249913`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9871249913)
+(`quality-zoo-contract`, digest
+`sha256:9419ec64b7bac2e6bcb93f10e9230f1c9398ef5995911152b11eb5124c546a46`). Its suite again reported
+contract `PASS`, observed `WARN`, empty errors, and exit code `0` for the released ici SHA. The
+product Pages were byte-identical to the trusted artifacts.
+
+Toy main subsequently advanced through [PR #50](https://github.com/jihoon22-lee/toy-projects/pull/50) to
+`c307ac1ab01e12e4ac81a34623eb669da0e43641`. Exact-main [run `33698248293`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33698248293)
+also succeeded with the expected PR publisher skip and successful main publisher/Merge Gate. Its
+Quality Zoo artifact `9872561713`, EnvLens artifacts `9872574260`, `9872561889`, and `9872564898`,
+and the four product Pages were byte-identical and passed title/Zero-CDN audits. EnvLens reported
+13 total checks (12 pass, one expected C++ skip), 50/50 tests, line/function/branch coverage
+93.0/100/84.6, and TEM 5.0; the Quality Zoo scenario remained contract `PASS` with observed
+`WARN` and released ici `v0.10.2`.
+
+This closes Q0 for the released-artifact known-answer path. Verified candidate-pyz consumer
+injection, Q1–Q5, I9-2, and I9-3 remain pending; no version bump or release is implied.
 
 ### Sticky-comment boundary
 
@@ -265,12 +312,14 @@ the exact three regular files through a directory descriptor and checks modes, b
 JSON, provenance types/constants, artifact size/hash, and the checksum sidecar. The remote producer
 evidence in [Remote producer evidence](#remote-producer-evidence) records the independently checked
 main and candidate runs, artifact ID/digest/expiry, exact ZIP entries, preserved modes, pyz digest,
-manifest byte match, and canonical check/job/run API identities. Consumer injection and
-quality-zoo acceptance are not yet evidenced.
+manifest byte match, and canonical check/job/run API identities. The [Q0 acceptance](#quality-zoo-q0-released-artifact-acceptance)
+section records the separate released-artifact consumer run, sticky-comment cardinality, stable
+ici SHA, contract verdict, exact-main rerun, and Pages byte identity. Candidate-pyz injection is
+not implied by that released-artifact evidence.
 
 ## Next Steps
 
-- Add the separate toy consumer/quality-zoo runner that verifies the candidate manifest before
-  injecting the pyz by local path.
+- Add the verified candidate-pyz local-path consumer injection as a separate follow-up to the
+  accepted released-artifact Q0 runner; keep its manifest and source identity checks bounded.
 - Keep every toy PR's normal gate pinned to released `ici v0.10.2`; if quality-zoo output is shown
   in a PR, extend the existing single sticky comment rather than creating another one.
