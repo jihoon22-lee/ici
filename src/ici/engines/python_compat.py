@@ -159,16 +159,17 @@ class PythonCompatibilityEngine(BaseEngine):
                         message="Python syntax-floor and standard-library API scan completed",
                     )
                 )
-            runtime_failures, runtime_warnings = self._check_runtimes(
-                cfg,
-                requires_python,
-                import_names,
-                selected,
-                targets,
-                evidence,
-            )
-            failures += runtime_failures
-            warnings += runtime_warnings
+            if not errors:
+                runtime_failures, runtime_warnings = self._check_runtimes(
+                    cfg,
+                    requires_python,
+                    import_names,
+                    selected,
+                    targets,
+                    evidence,
+                )
+                failures += runtime_failures
+                warnings += runtime_warnings
         except (
             AnalysisSourceError,
             PythonMetadataError,
@@ -429,7 +430,15 @@ class PythonCompatibilityEngine(BaseEngine):
         selected: list[Path],
     ) -> tuple[ProcessResult, ToolEvidence]:
         with tempfile.TemporaryDirectory(prefix="ici-python-compat-") as cache:
-            argv = [executable, "-m", "compileall", "-q", "-f", *self._compile_targets(selected)]
+            argv = [
+                executable,
+                "-B",
+                "-m",
+                "compileall",
+                "-q",
+                "-f",
+                *self._compile_targets(selected),
+            ]
             result = run_process(
                 argv,
                 cwd=self.project_root,

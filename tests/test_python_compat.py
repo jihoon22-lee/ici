@@ -67,6 +67,8 @@ def test_current_interpreter_compiles_and_imports_without_project_bytecode(
     ]
     assert result.tool_evidence[0].argv == [str(Path(sys.executable).resolve()), "-VV"]
     assert result.tool_evidence[0].version.startswith("3.10")
+    assert result.tool_evidence[1].argv[1:4] == ["-B", "-m", "compileall"]
+    assert result.tool_evidence[2].argv[1:3] == ["-I", "-B"]
     assert any(target.target_name.endswith(":Verified") for target in result.targets)
     assert not list(tmp_path.rglob("__pycache__"))
 
@@ -76,7 +78,7 @@ def test_required_runtime_version_mismatch_is_a_failure(
 ) -> None:
     _project(tmp_path, requires_python=">=3.12")
 
-    def fake_run(argv, **_kwargs):
+    def fake_run(argv: list[str], **_kwargs: object) -> ProcessResult:
         stdout = "Python 3.10.21" if argv[-1] == "-VV" else ""
         return ProcessResult(0, stdout, "", 0.01)
 
@@ -181,16 +183,40 @@ def test_aggregate_ast_budget_fails_closed_before_runtime_execution(
     _project(tmp_path)
     monkeypatch.setattr("ici.engines.python_compat.MAX_COMPAT_TOTAL_AST_NODES", 1)
     calls: list[list[str]] = []
-    monkeypatch.setattr(
-        "ici.engines.python_compat.run_process",
-        lambda argv, **_kwargs: calls.append(argv) or ProcessResult(0, "", "", 0.01),
-    )
+
+    def fake_run(argv: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(argv)
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.python_compat.run_process", fake_run)
 
     result = PythonCompatibilityEngine(tmp_path, _config(imports=[])).run()
 
     assert result.status == EngineStatus.ERROR
     assert result.evidence == EvidenceState.NOT_RUN
     assert "aggregate AST exceeds" in result.summary
+    assert calls == []
+
+
+def test_unparseable_source_does_not_execute_runtime_or_import_checks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "broken.py").write_text("def broken(:\n", encoding="utf-8")
+    calls: list[list[str]] = []
+
+    def fake_run(argv: list[str], **_kwargs: object) -> ProcessResult:
+        calls.append(argv)
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr("ici.engines.python_compat.run_process", fake_run)
+
+    result = PythonCompatibilityEngine(tmp_path, _config(imports=["broken"])).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.evidence == EvidenceState.NOT_RUN
+    assert "syntax could not be parsed" in result.summary
     assert calls == []
 
 
