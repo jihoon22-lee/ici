@@ -24,8 +24,9 @@
   project location as `ERROR`/`NOT_RUN` rather than a clean result. Signal termination with a complete
   located report remains a measured `FAIL`. Real `g++` ASan/UBSan/LSan regression projects pass in
   the focused 132-test suite; the current full local Python 3.10 suite is `2,088 passed, 7 skipped`.
-  TSan, broader safety mappings, Quality Zoo/candidate cross-repository evidence, the wider I4-4
-  checkpoint, and any release remain pending; ici stays at `v0.10.2`.
+  The exact candidate Quality Zoo acceptance now covers ASan/LSan/UBSan and the sanitizer-clean
+  fixture; TSan, Qt lifetime, broader safety mappings, the wider I4-4 checkpoint, and any release
+  remain pending; ici stays at `v0.10.2`.
 - **Candidate artifact producer (local contract and remote producer evidence complete):** Added the main-only `workflow_dispatch`
   contract and bounded provenance helpers for a non-release `ici.pyz` bundle. The workflow
   requires a full target SHA equal to the protected-main dispatch commit and verifies that commit
@@ -67,20 +68,29 @@
   and main ici/viewer Pages were audited for trusted report contents, exact source/title identity,
   Zero-CDN behavior, and byte identity. This closes the current producer/artifact/Pages audit;
   candidate-pyz consumer injection remains a separate follow-up.
-- **Manual candidate-to-Quality-Zoo acceptance workflow (local contract; remote run pending):** Added
-  the ici-hosted `candidate-quality-zoo.yml` `workflow_dispatch` path for a separately verified
-  candidate archive. The workflow binds the exact ici target SHA and current toy-projects main SHA,
-  checks the candidate artifact ID and raw archive SHA-256, revalidates the candidate provenance
-  manifest against independently fetched Actions run/check/job API evidence, and passes the verified
-  local `ici.pyz` path to the Quality Zoo runner. Candidate preflight and execution explicitly run
-  without GitHub publication credentials; authenticated API reads happen only in the separate
-  evidence-fetch step. The run uploads bounded preflight, intake, API-evidence, and Quality Zoo
-  results as a separate 14-day evidence artifact. It does not publish Pages, write a PR comment,
-  invoke the normal report publisher, tag/release, or change the stable `v0.10.2` version. The
-  workflow contract is implemented and locally testable, but no remote candidate-to-Quality-Zoo
-  dispatch has been accepted yet. The previously accepted Q0 remains the released-artifact
-  `v0.10.2` boundary only; candidate consumer acceptance and expected rule/location scenarios remain
-  pending.
+- **Candidate-to-Quality-Zoo acceptance evidence (narrow runtime slice):** The read-only
+  `candidate-quality-zoo.yml` dispatch was independently audited at [run `33710695336`](https://github.com/jihoon22-lee/ici/actions/runs/33710695336)
+  (attempt 1, success, exact ici workflow-main SHA
+  `6df011f98be1a19092b112cb56c596dc35bcae4d`) against candidate target
+  `9d470edca7ab037a24dcd6594531a822f116548b` and exact toy-projects main
+  `2d0d7c0b2dcc137a782d6042438fc287bffdf570`. The producer [run `33706057540`](https://github.com/jihoon22-lee/ici/actions/runs/33706057540)
+  and [candidate artifact `9875319095`](https://github.com/jihoon22-lee/ici/actions/artifacts/9875319095)
+  were independently downloaded: raw ZIP SHA-256
+  `4aec084b3a30ac01a1df5124fa3b42b7f51d23f66c12b490194a84549be9db27` (2,285,368 bytes),
+  containing `ici.pyz` SHA-256
+  `e7f1a2ce7147057538873a802715c7bf2b12e530a85070af862e02e378caceb8` (2,284,045 bytes).
+  The acceptance [artifact `9876797536`](https://github.com/jihoon22-lee/ici/actions/artifacts/9876797536)
+  raw ZIP/API digest is
+  `e66ae2b65988abe10fc5ddb92a5c3bb6fc238ec2f77b7fd27ccfe75c24194a5f` (1,104,307 bytes).
+  Its `quality-zoo.suite/v1` contains five scenarios, all `contract_verdict: PASS` with no
+  runner errors: ASan UAF `FAIL`/`MEASURED`/`exact` at `src/fault.cpp:5`, LSan leak
+  `FAIL`/`MEASURED`/`exact` at `src/fault.cpp:3`, UBSan signed overflow
+  `FAIL`/`MEASURED`/`exact` at `src/fault.cpp:3`, sanitizer-clean `PASS`/`MEASURED` at
+  `tests/test_clean.cpp:1`, and the existing Python case `WARN`. This closes only the exact
+  remote dispatch and rule/status/evidence/confidence/path/line contract plus runtime
+  ASan/LSan/UBSan/clean evidence. It does not close Qt lifetime, static taxonomy candidate,
+  broader Q1-Q5, I4 aggregate, TSan, version, or release work. The workflow produced no Pages,
+  PR-comment, publish, tag, release, or version side effect; stable `v0.10.2` remains unchanged.
 - **Quality Zoo Q0 released-artifact acceptance:** [toy-projects PR #49](https://github.com/jihoon22-lee/toy-projects/pull/49)
   passed [run `33693241255`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33693241255) and
   published [artifact `9870829400`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9870829400).

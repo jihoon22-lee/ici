@@ -192,8 +192,8 @@ Release에는 `ici.pyz`, 체크섬, CLI/GUI viewer와 함께 self/viewer HTML·J
 
 `.github/workflows/candidate-quality-zoo.yml`은 stable release나 일반 toy PR gate와 분리된
 ici-hosted `workflow_dispatch` workflow다. 후보 pyz를 Quality Zoo에 주입해 교차 저장소
-수용을 수행할 때만 사용한다. 현재 문서 시점에는 workflow 계약이 구현되어 있고 로컬에서
-검토할 수 있지만, 원격 candidate 수용 dispatch와 그 evidence는 아직 완료되지 않았다.
+수용을 수행할 때만 사용한다. 이 경로의 원격 수용은 별도 read-only acceptance artifact로
+감사하며, 일반 toy PR gate와 stable release 경계에는 영향을 주지 않는다.
 
 실행 전 toy-projects의 `quality-zoo` 기대값이 포함된 최신 `main` SHA와 ici candidate producer
 artifact의 좌표를 별도로 확인한다. workflow는 네 개의 입력을 모두 요구한다.
@@ -228,8 +228,38 @@ candidate run, Merge Gate check/job/run ID와 attempt·URL을 독립 Actions API
 Quality Zoo 결과는 별도의 uncompressed 14일 Actions artifact로 업로드한다. 이 workflow는
 `publish`, Pages 배포, PR comment 작성·갱신, `<!-- ici-report -->` marker 추가를 하지 않는다.
 따라서 기존 toy PR의 normal gate와 released ici `v0.10.2` pin은 그대로 유지되고, Q0의
-released-artifact acceptance는 candidate 수용의 근거로 재사용되지 않는다. 실제 원격
-candidate 수용이 끝난 뒤에만 해당 run/artifact/sha를 이 문서와 master plan에 추가한다.
+released-artifact acceptance는 candidate 수용의 근거로 재사용되지 않는다.
+
+#### 독립 감사된 candidate 수용 증거
+
+정확한 revision과 artifact 좌표는 다음과 같다.
+
+| 항목 | 독립 감사 결과 |
+|---|---|
+| ici exact-main workflow | [run `33707430378`](https://github.com/jihoon22-lee/ici/actions/runs/33707430378), `success`, attempt 1, head `6df011f98be1a19092b112cb56c596dc35bcae4d` |
+| ici required jobs | Qt5 GUI, Qt6 GUI, Verify & Dogfood ici, Publish Main Verification Report, Merge Gate 모두 `success`; push에서 PR publisher만 예상 `skipped` |
+| candidate producer | [run `33706057540`](https://github.com/jihoon22-lee/ici/actions/runs/33706057540), target `9d470edca7ab037a24dcd6594531a822f116548b`, `success` |
+| candidate artifact | [ID `9875319095`](https://github.com/jihoon22-lee/ici/actions/artifacts/9875319095), raw ZIP `2,285,368` bytes, SHA-256 `4aec084b3a30ac01a1df5124fa3b42b7f51d23f66c12b490194a84549be9db27`; contained `ici.pyz` `2,284,045` bytes, SHA-256 `e7f1a2ce7147057538873a802715c7bf2b12e530a85070af862e02e378caceb8` |
+| toy-projects input | exact `main` `2d0d7c0b2dcc137a782d6042438fc287bffdf570` ([commit](https://github.com/jihoon22-lee/toy-projects/commit/2d0d7c0b2dcc137a782d6042438fc287bffdf570)) |
+| acceptance | [run `33710695336`](https://github.com/jihoon22-lee/ici/actions/runs/33710695336), job `100509326331`, `success`, head `6df011f98be1a19092b112cb56c596dc35bcae4d` |
+| acceptance artifact | [ID `9876797536`](https://github.com/jihoon22-lee/ici/actions/artifacts/9876797536), raw ZIP `1,104,307` bytes, SHA-256 `e66ae2b65988abe10fc5ddb92a5c3bb6fc238ec2f77b7fd27ccfe75c24194a5f` |
+
+Acceptance artifact의 `quality-zoo.suite/v1`는 5개 scenario 모두 `contract_verdict: PASS`,
+runner error 0을 기록했다. 후보 executable SHA와 각 expected contract의 핵심은 다음과 같다.
+
+| Scenario | Observed / evidence / confidence | Expected rule · location |
+|---|---|---|
+| `cpp.asan-use-after-free` | `FAIL` / `MEASURED` / `exact` | `asan.heap-use-after-free` · `src/fault.cpp:5` |
+| `cpp.lsan-memory-leak` | `FAIL` / `MEASURED` / `exact` | `lsan.memory-leak` · `src/fault.cpp:3` |
+| `cpp.ubsan-signed-overflow` | `FAIL` / `MEASURED` / `exact` | `ubsan.signed-integer-overflow` · `src/fault.cpp:3` |
+| `cpp.sanitizer-clean` | `PASS` / `MEASURED` / `high` | informational completion · `tests/test_clean.cpp:1`; active sanitizer defect 금지 |
+| `python.dead-private-function` | `WARN` / `ESTIMATED` / `medium` | 기존 Python known-answer |
+
+이는 exact remote dispatch와 rule/status/evidence/confidence/path/line contract, 그리고
+ASan/LSan/UBSan 및 clean runtime evidence만 닫는다. Qt lifetime/ownership, static taxonomy
+candidate, TSan, broader Q1-Q5, I4 aggregate, version/release는 계속 pending이다. 이 workflow는
+별도 acceptance artifact만 업로드하며 Pages 배포, PR comment/marker, normal publisher,
+tag/release 또는 version 변경을 수행하지 않는다.
 
 ## 2. 리포팅과 위치 추적
 
