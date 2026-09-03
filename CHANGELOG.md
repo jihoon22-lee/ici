@@ -9,6 +9,20 @@
 
 ### Added
 
+- **Deep ThreadSanitizer profile (local implementation; acceptance pending):** Added the
+  deep-only `thread_sanitize` engine and direct `ici thread-sanitize` command for C++ thread-safety
+  checks. Its isolated `BuildVariant.THREAD_SANITIZE` (`thread-sanitize`) uses a `-tsan` shadow and
+  exact `-fsanitize=thread`, `-fno-omit-frame-pointer`, and `-g` instrumentation. CMake and qmake
+  adapters receive the same TSan compile/link variant, while the generic g++ path adds a generic
+  `-pthread` link. The TSan environment preserves existing `TSAN_OPTIONS` entries and appends
+  `halt_on_error=1`; it never mixes TSan with the ASan/LSan/UBSan `sanitize` variant, and Python is
+  explicitly unsupported for this engine. Only complete `WARNING: ThreadSanitizer:` or
+  `SUMMARY: ThreadSanitizer:` signatures enter the bounded normalizer. Known defect prefixes map to
+  stable rule IDs, unknown TSan wording falls back to `ici.sanitize.tsan.thread-safety-defect`,
+  project locations are bounded and validated, and external frames are redacted as `[external]`.
+  The real g++ race regression passes locally. This is local implementation evidence only:
+  feature PR/main and Quality Zoo TSan acceptance remain pending, I4-4 remains open, and ici stays
+  at `v0.10.2` with no release.
 - **Rule-only C++ diagnostic category projection (feature-head acceptance pending):**
   C++ compiler, clang-analyzer, clang-tidy, and clazy findings now use the isolated
   `_cpp_diagnostic_categories.py` `tool-rule-v1` policy. The projection reads only normalized

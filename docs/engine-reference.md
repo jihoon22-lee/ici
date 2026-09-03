@@ -4,9 +4,10 @@
 
 ---
 
-`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 14종 검증 엔진을 제공합니다.
-기본 활성은 13종(`line/lint/compile_db/test/type/resource/security/cycle/complexity/sanitize/dead/dup/exception`)이며,
-`cognitive`(인지 복잡도)는 `enabled = false` 기본값으로 필요 시 옵트인합니다.
+`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 15종 검증 엔진을 제공합니다.
+`standard` profile은 13종(`line/lint/compile_db/test/type/resource/security/cycle/complexity/sanitize/dead/dup/exception`)을
+선택하고, `deep` profile은 여기에 `cognitive`와 C++ 전용 `thread_sanitize`를 더합니다.
+`thread_sanitize`는 deep-only이며 Python에서는 unsupported입니다.
 
 ---
 
@@ -58,6 +59,12 @@ coverage_required = false
 enabled = true
 mode = "pass_fail"
 # Set required = false when missing applicable sanitizer tests are optional.
+# required = false
+
+[engines.thread_sanitize]
+enabled = true
+mode = "pass_fail"
+# Deep profile only; this engine applies TSan to C++/Qt test scopes.
 # required = false
 
 [engines.lint]
@@ -299,6 +306,13 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 - `unsupported`: 현재 그 언어를 분석하지 않습니다. 언어가 없거나 지원하지 않는 행은
   `NOT_APPLICABLE`, 대상이 있지만 실행하지 못한 행은 `NOT_RUN`, 제한된 fallback만 수행한
   행은 `ESTIMATED`로 남으므로 미지원 범위가 PASS로 보이지 않습니다.
+
+`thread_sanitize` 행은 C++/Qt 지원을 선언하지만 실행 범위는 `deep` profile의 compiled C/C++
+test뿐입니다. Python row는 의도적인 `unsupported`이며 Python ResourceWarning을 실행하지
+않습니다. CMake/qmake가 선택되면 각 adapter의 `THREAD_SANITIZE` build variant를 사용하고,
+descriptor가 없으면 generic g++ 경로를 사용합니다. 표의 `tool-backed`는 이 실제 tool execution
+evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트되지 않은 경로의 부재를 증명하지
+않습니다.
 
 ## 2. 검증 엔진 상세
 
@@ -717,7 +731,7 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   failure만 `FAIL`/`MEASURED`로 보존하며, nominal PASS case에 붙은 sanitizer marker도
   executed failure로 승격한다.
 - **Python**: Task 5가 선택한 동일 인터프리터로 `-W error::ResourceWarning -m pytest -o addopts= tests`를 실행해 리소스 경고를 측정한다. `test_*.py`와 `*_test.py`를 모두 대상으로 하며, 0개 실행 테스트(전부 skipped/deselected)·pytest 부재·timeout·출력 절단·실행 실패·잘못된 성공은 통과로 간주하지 않는다. 기존 `PYTHONPATH`와 WSL 임시 디렉터리 정책도 보존한다.
-- **진단 판정**: 출력에 sanitizer 이름만 언급된 경우는 결함으로 판정하지 않는다. 위치가 있는 UBSan `runtime error` 또는 ASan/LSan/UBSan의 `ERROR`/`SUMMARY` 서명만 실제 진단으로 인정하며, project-owned 위치가 검증되지 않은 진단은 clean 결과가 아닌 위치 오류로 남긴다. TSan은 현재 이 매핑 범위에 포함하지 않는다.
+- **진단 판정**: 출력에 sanitizer 이름만 언급된 경우는 결함으로 판정하지 않는다. 위치가 있는 UBSan `runtime error` 또는 ASan/LSan/UBSan의 `ERROR`/`SUMMARY` 서명만 `sanitize`에서 실제 진단으로 인정하며, project-owned 위치가 검증되지 않은 진단은 clean 결과가 아닌 위치 오류로 남긴다. TSan은 별도 deep-only `thread_sanitize` 경계에서 `WARNING`/`SUMMARY` report signature를 처리하며 `sanitize`와 섞지 않는다.
 - **적용 범위**: Python/C++ hybrid에서 한 언어의 scope가 건너뛰면 결과는 `WARN`/`ESTIMATED`이며, 대상 자체가 없으면 명시적 `SKIP`이다. C++ 테스트 파일은 project 경계 안의 실제 파일만 선택하며 외부 symlink는 제외한다. ResourceWarning의 Windows drive/공백 경로도 원본 파일과 라인 위치를 보존한다. 실행 시 기존 `ASAN_OPTIONS`/`UBSAN_OPTIONS`를 보존하면서 leak 검출과 UBSan 중단 옵션을 추가한다.
 - **sanitizer 테스트 누락 정책**: CTest/QtTest가 build된 sanitizer scope를 수집했지만
   실행하지 않은 case를 `executed = false`로 보고하면, required 정책에서는 모든 case가
@@ -726,6 +740,31 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
   모든 case가 미실행이면 `SKIP`/`ESTIMATED`, 실행된 clean case와 미실행 case가 섞이면
   `WARN`/`ESTIMATED`, 실행된 실제 failure와 미실행 case가 섞이면 `FAIL`/`ESTIMATED`로
   집계합니다. 미실행 case는 issue 수나 측정 scope에 포함하지 않습니다.
+
+#### 2.6.1 🧵 `thread_sanitize` (deep ThreadSanitizer profile)
+
+- **적용 범위**: `thread_sanitize`는 `deep` profile에서만 선택되는 C++ 전용 build engine이다.
+  `ici thread-sanitize` direct command도 같은 `ThreadSanitizeEngine`을 호출한다. Python은
+  support matrix에서 `unsupported`이며 Python ResourceWarning 검사를 수행하지 않는다.
+- **격리된 계측**: `BuildVariant.THREAD_SANITIZE`의 값은 `thread-sanitize`이고 shadow suffix는
+  `-tsan`이다. CMake/qmake adapter에는 `-fsanitize=thread` compile/link flag와
+  `-fno-omit-frame-pointer -g` compile flag를 전달한다. descriptor가 없는 generic g++ 경로는
+  같은 TSan/debug/frame-pointer flags와 generic `-pthread` link를 사용한다. ASan/LSan/UBSan
+  `sanitize` variant와 같은 build tree나 instrumentation을 공유하지 않는다.
+- **실행 환경**: 기존 `TSAN_OPTIONS`를 지우거나 덮어쓰지 않고 `halt_on_error=1`을 추가한다.
+  TSan output은 complete `WARNING: ThreadSanitizer:` 또는 `SUMMARY: ThreadSanitizer:`
+  signature만 report starter로 인정하며 bounded UTF-8 transcript, diagnostic count, stack
+  frame, source-file read limits를 적용한다.
+- **정규화와 위치**: data race, lock-order inversion, thread leak, mutex 오류 등 알려진
+  defect prefix는 deterministic `ici.sanitize.tsan.<defect>` rule로 매핑한다. 알 수 없는
+  TSan wording은 불안정한 자유 문구를 public rule로 만들지 않고
+  `ici.sanitize.tsan.thread-safety-defect`로 수렴한다. 검증된 project-owned 위치만 primary로
+  보존하고 외부 frame은 `[external]`로 redacted한다. complete located report가 있는 signal
+  failure는 measured `FAIL`이며 malformed·oversized·unlocated evidence는 clean으로 축약하지
+  않고 fail-closed한다.
+- **검증 상태**: 실제 `g++` data-race fixture를 포함한 local regression은 통과했다. 이는
+  현재 local implementation evidence이며 feature PR/main과 Quality Zoo TSan acceptance가
+  아직 pending이므로 I4-4 전체 checkpoint나 release 완료를 의미하지 않는다.
 
 ### 2.7 💀 `dead` (죽은 코드 및 미사용 심볼)
 - 도달할 수 없는 블록과 private module-level Python 함수의 실제 `Name`/호출 및 cross-module `from`/attribute 참조를 분석한다.

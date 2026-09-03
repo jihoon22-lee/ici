@@ -109,6 +109,8 @@ ici/
 │       │   ├── complexity.py        # Cyclomatic & Nesting 복잡도 분석기
 │       │   ├── _cpp_function_boundaries.py # bounded clang-tidy AST 경계 adapter
 │       │   ├── sanitize.py          # ASan/UBSan & Python 누수 검증
+│       │   ├── thread_sanitize.py   # deep-only TSan thread-safety 검증
+│       │   ├── _sanitizer_diagnostics.py # bounded ASan/LSan/UBSan/TSan parser
 │       │   ├── _source_inputs.py    # dead/dup 공통 bounded UTF-8 source snapshot
 │       │   ├── dead.py              # 미사용 심볼 & 데드코드 탐지기
 │       │   ├── dup.py               # 연결 컴포넌트 클러스터링 기반 중복 감지기
@@ -263,7 +265,7 @@ snapshot을 생성하고 모든 엔진과 리포터가 이를 읽기 전용으�
   여러 configuration도 합치지 않습니다.
 - **`BuildSession`**: configure/build/test 중 누적되는 도구 evidence와 오류를 보유하는
   유일한 mutable adapter 상태입니다. session은 명시적인 `RELEASE`, `COVERAGE`,
-  `SANITIZE` variant를 받아 각 shadow tree와 계측 flags를 분리합니다.
+  `SANITIZE`, `THREAD_SANITIZE` variant를 받아 각 shadow tree와 계측 flags를 분리합니다.
 - **`ArtifactManifest`**: 성공한 session이 발행하는 frozen 산출물 목록입니다. project 또는
   shadow root 아래의 regular file만 허용하고, 각 record에 variant·producer·source/config/
   toolchain identity와 SHA-256, size, mode를 남깁니다. project/shadow root와 symlink
@@ -881,6 +883,26 @@ Sanitizer build가 성공했어도 적용 가능한 테스트 실행이 빠졌�
 `extra.skipped_tests`와 suite별 `skipped`를 보존하고 HTML에서는 SKIP을 별도 그룹으로
 렌더링하므로, adapter state와 gate state가 서로 다른 층에서 사라지지 않습니다.
 
+#### ThreadSanitizer deep profile의 격리 경계
+
+`ThreadSanitizeEngine`은 `AnalysisProfile.DEEP`에만 등록된 별도 build owner이며,
+`BuildVariant.THREAD_SANITIZE`(`thread-sanitize`)와 `-tsan` shadow를 요청합니다. CMake와
+qmake adapter는 `-fsanitize=thread`를 compile/link에, `-fno-omit-frame-pointer -g`를
+compile에 전달합니다. build descriptor가 없는 generic g++ 경로는 같은 instrumentation과
+debug/frame-pointer flags에 generic `-pthread` link를 추가합니다. 이 shadow와 flags는
+ASan/LSan/UBSan `SanitizeEngine` 경로와 분리되어 서로의 object나 runtime option을 재사용하지
+않습니다.
+
+실행 시 기존 `TSAN_OPTIONS`는 보존되고 `halt_on_error=1`이 추가됩니다. 공통 bounded
+normalizer는 TSan의 완전한 `WARNING: ThreadSanitizer:` 또는 `SUMMARY: ThreadSanitizer:`
+signature만 starter로 받아 diagnostic/frame/source 한도를 적용합니다. 알려진 defect는
+stable taxonomy rule로 정규화하고 unknown wording은
+`ici.sanitize.tsan.thread-safety-defect`로 수렴하며, validated project location만 primary로
+남기고 외부 frame은 `[external]` sentinel로 redacted합니다. Python은 이 engine의 scope가
+아니므로 ResourceWarning을 실행하지 않습니다. 실제 g++ race regression은 local에서 통과했지만,
+이 구현은 아직 feature PR/main 및 Quality Zoo TSan acceptance 전의 증거이고 I4-4 전체와
+release 완료를 뜻하지 않습니다.
+
 ### 4.3 선언형 엔진 파이프라인과 예외 격리 (`VerifyOrchestrator`)
 
 `src/ici/core/pipeline.py`의 immutable `EngineDescriptor`가 각 엔진의 실행 계약과
@@ -889,7 +911,7 @@ Sanitizer build가 성공했어도 적용 가능한 테스트 실행이 빠졌�
 - `name`, `dependencies`: 엔진 식별자와 선행 엔진
 - `produces`, `consumes`: 엔진이 발행하거나 요구하는 artifact 이름
 - `profiles`: 엔진이 선택될 수 있는 `fast`/`standard`/`deep` 집합
-- `execution`, `build_variant`: 읽기 전용 관찰인지, `COVERAGE`/`SANITIZE` 같은
+- `execution`, `build_variant`: 읽기 전용 관찰인지, `COVERAGE`/`SANITIZE`/`THREAD_SANITIZE` 같은
   mutable build session 소유자인지
 
 내장 descriptor registry는 import 시점과 executor 생성 시점에 검증됩니다. 검증은 중복

@@ -162,12 +162,12 @@ ici verify --profile deep
 |---|---|---|
 | `fast` | read-only 엔진 11종(`compile_db` 포함) | 빠른 편집·pre-commit 피드백 |
 | `standard` | 기본 엔진 13종(`compile_db`/`test`/`sanitize` 포함) | 일반 로컬·CI 검증 |
-| `deep` | 내장 엔진 14종(`compile_db`/`cognitive` 포함) | 가장 넓은 분석 범위 |
+| `deep` | 내장 엔진 15종(`compile_db`/`cognitive`/`thread_sanitize` 포함) | 가장 넓은 분석 범위 |
 
 profile은 engine set만 바꿉니다. 예를 들어 line·complexity의 설정 임계값, test의
 coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따라 낮아지거나 높아지지
 않습니다. 프로젝트가 개별 엔진을 `enabled = false`로 명시하면 해당 profile에서도 그 엔진은
-제외됩니다. `test`/`sanitize`처럼 build session을 소유하는 선택 엔진은 서로
+제외됩니다. `test`/`sanitize`/`thread_sanitize`처럼 build session을 소유하는 선택 엔진은 서로
 겹치지 않도록 직렬화되고, 나머지 read-only 엔진은 내부적으로 최대 4개까지만 병렬 실행됩니다.
 이 제한은 결과의 재현성을 위해 두며 사용자가 worker 수를 조정할 필요는 없습니다.
 
@@ -194,7 +194,7 @@ coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따�
 | effective ici 설정 | 기본·전역·프로젝트·`ICI_CONFIG` 병합 후 profile이 적용된 설정 digest |
 | toolchain | capability inventory의 도구 경로·버전·세부 정보 digest |
 | 엔진 구현 | engine descriptor, engine class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로 엔진이 명시적으로 선언한 helper/dependency module source digest 목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostic_categories`, `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen`, `ici.engines.lint`; cycle에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`, `ici.engines._cpp_include_trace`, `ici.engines.cycle`; complexity에는 `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`, `ici.engines.cpp_text` 포함) |
-| build variant | `release`, `coverage`, `sanitize` 또는 해당 없는 엔진의 `none` |
+| build variant | `release`, `coverage`, `sanitize`, `thread-sanitize` 또는 해당 없는 엔진의 `none` |
 | compilation context | 선택된 compile database의 project-relative path·바이트 digest, loader version, 정규화된 unit configuration/metadata와 parse diagnostics. digest는 preflight가 immutable context로 캡처한 snapshot identity이며 live-file lease가 아님 |
 | producer | ici 버전과 cache key schema 버전 |
 
@@ -274,7 +274,9 @@ source status unchanged를 확인했습니다. I2-4는 PR #97의 merge commit
 `5472411964`의 ici/viewer Pages 게시까지 완료됐습니다.
 
 ### 2.1 로컬 전체 검증
-현재 프로젝트 디렉토리에서 14종 핵심 품질 검증 (기본 13종 활성)을 일괄 수행하고 터미널 컬러 대시보드를 출력합니다.
+현재 프로젝트 디렉토리에서 선택된 profile의 엔진을 일괄 수행하고 터미널 컬러 대시보드를
+출력합니다. 내장 엔진은 총 15종이며 기본 `standard` profile은 13종을 활성화하고,
+`thread_sanitize`는 `deep` profile에서만 선택됩니다.
 
 ```bash
 ici verify
@@ -1046,9 +1048,10 @@ timeout·절단·signal·spawn 오류와 rc 0인데 regular binary가 없는 경
 | `CMakeLists.txt` | CMake로 configure·build하고 CTest로 테스트한다 |
 | `*.pro` | qmake로 configure·build하고 `make check`로 테스트한다 |
 
-세 엔진은 각자의 shadow 디렉터리를 씁니다 — `build/ici-<backend>-build`(계측 없음),
-`build/ici-<backend>`(`--coverage`), `build/ici-<backend>-asan`(`-fsanitize`). 하나를
-공유하면 엔진이 돌 때마다 상대의 오브젝트를 다른 플래그로 다시 빌드하게 됩니다.
+네 build 엔진은 각자의 shadow 디렉터리를 씁니다 — `build/ici-<backend>-build`(계측 없음),
+`build/ici-<backend>`(`--coverage`), `build/ici-<backend>-asan`(ASan/UBSan),
+`build/ici-<backend>-tsan`(TSan). 하나를 공유하면 엔진이 돌 때마다 상대의 오브젝트를
+다른 플래그로 다시 빌드하게 됩니다.
 
 **정적 링크를 쓰는 프로젝트는 주의가 필요합니다.** `-static`과 `-fsanitize=address`는
 함께 쓸 수 없으므로, 정적 링크를 sanitizer 빌드에서는 끄도록 빌드 정의에 조건을 두어야
@@ -1093,8 +1096,8 @@ Qt를 링크하지 않으며, 정적 배포가 필요하면 `ICIRV_STATIC=ON`을
 커버리지 빌드를 따로 선언할 필요는 없습니다. 어댑터는 프로젝트의 빌드 트리를 건드리지
 않고 `build/ici-cmake` 또는 `build/ici-qmake`에 별도로 빌드합니다.
 
-이 세 엔진은 같은 `AnalysisContext`의 project/capability snapshot을 읽고, adapter를
-호출할 때 각각 release·coverage·sanitize variant를 명시합니다. configure/build/test 중
+이 네 엔진은 같은 `AnalysisContext`의 project/capability snapshot을 읽고, adapter를
+호출할 때 각각 release·coverage·sanitize·thread-sanitize variant를 명시합니다. configure/build/test 중
 변하는 상태는 mutable `BuildSession`에만 남고, 성공한 파일은 이후 엔진이 수정할 수 없는
 frozen `ArtifactManifest`로 발행됩니다. 이 구조로 coverage나 sanitizer 산출물이 release
 shadow를 덮어쓰거나, 리포터가 결과를 표시하는 과정에서 분석 입력을 바꾸는 일을 막습니다.
@@ -1103,6 +1106,34 @@ shadow를 덮어쓰거나, 리포터가 결과를 표시하는 과정에서 분�
 경로는 `make check`가 실행한 명령을 기준으로 세어 같은 단위를 씁니다. QtTest 바이너리가
 낸 함수 단위 결과는 버리지 않고, 실패했을 때 그 바이너리의 실패 메시지에 함수 이름과
 사유로 붙습니다.
+
+#### ThreadSanitizer deep profile
+
+`thread_sanitize`는 `deep` profile에서만 선택되는 C++ 전용 엔진입니다. `ici verify --profile deep`
+에서는 일반 `sanitize`와 별도 build owner로 실행되고, 필요한 경우 다음 direct command로
+단독 실행할 수 있습니다.
+
+```bash
+ici thread-sanitize
+```
+
+`BuildVariant.THREAD_SANITIZE`의 canonical value는 `thread-sanitize`이며, CMake/qmake
+adapter는 `-tsan` shadow에 C++ compile flag `-fsanitize=thread -fno-omit-frame-pointer -g`와
+link flag `-fsanitize=thread`를 전달합니다. build descriptor가 없는 generic g++ 경로도 같은
+compile instrumentation과 debug/frame-pointer flag를 사용하고 generic `-pthread` link를
+추가합니다. 이 variant는 ASan/LSan/UBSan `sanitize` variant와 절대 혼합하지 않습니다.
+
+실행 환경은 기존 `TSAN_OPTIONS` 문자열을 보존하면서 `halt_on_error=1`을 추가합니다. parser는
+`WARNING: ThreadSanitizer:` 또는 `SUMMARY: ThreadSanitizer:`의 complete report signature만
+진단으로 인정하며, bounded transcript·diagnostic count·stack frame·source read 경계를
+적용합니다. 알려진 defect prefix는 deterministic rule ID로 정규화하고, 알 수 없는 TSan
+문구는 `ici.sanitize.tsan.thread-safety-defect`로 안정적으로 수렴합니다. project-owned
+위치만 primary로 채택하고 외부 stack frame은 `[external]`로 redacted합니다. Python scope는
+이 엔진에서 unsupported이며, Python ResourceWarning을 대신 실행하지 않습니다.
+
+실제 `g++` data-race fixture를 포함한 local regression은 통과했지만, 현재 구현은 feature
+PR/main 및 Quality Zoo TSan acceptance 전의 local evidence입니다. `I4-4` 전체 checkpoint,
+분류/Qt candidate evidence, version bump 및 release는 이 결과로 닫히지 않습니다.
 
 CMake/CTest 경로가 지원하는 경우 CTest는 실행 전에 예정된 shadow JUnit 파일을 제거한 뒤
 `--output-junit`으로 새 report를 만들고, adapter는 그 report만 최대 1,000,000 bytes까지
@@ -1189,6 +1220,7 @@ QtTest parser는 `-xunitxml`의 각 `<testcase>`에서 skip/xfail/xpass/unknown 
 | `ici type` | Mypy 정적 타입 및 AST 부분 폴백 (C++ 타입 검증은 명시적 SKIP) | [Type 엔진 상세](engine-reference.md#24-️-type-정적-타입-안정성-검사기) |
 | `ici complexity` | 함수별 CC/중첩 분석; C++ 경계는 clang-tidy AST 우선, unavailable 시 heuristic evidence | [Complexity 엔진 상세](engine-reference.md#25--complexity-순환-복잡도-및-블록-중첩도) |
 | `ici sanitize` | C++ ASan/UBSan 메모리 안전성 및 Python 리소스 누수 검증 | [Sanitize 엔진 상세](engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |
+| `ici thread-sanitize` | deep profile 전용 C++ ThreadSanitizer thread-safety 검증 | [ThreadSanitizer 엔진 상세](engine-reference.md#26-️-sanitize-메모리-안전성-및-리소스-누수-진단) |
 | `ici dead` | Python 도달 불능/미사용 코드 휴리스틱 및 C++ `-Wunused-function` compiler 증거 | [Dead 엔진 상세](engine-reference.md#27--dead-죽은-코드-및-미사용-심볼) |
 | `ici dup` | 언어별 line-preserving Type-2 lexical normalization과 exact seed/region 확장 기반 Copy-Paste 코드 중복률 산출 | [Dup 엔진 상세](engine-reference.md#28--dup-코드-복제-및-중복률-감지기) |
 | `ici exception` | 예외 삼킴(`except: pass`) 및 소멸자 throw 차단 | [Exception 엔진 상세](engine-reference.md#29-️-exception-예외-처리-안전성-검출기) |

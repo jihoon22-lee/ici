@@ -1364,11 +1364,22 @@ I4 전체 checkpoint를 닫지 않는다.
 
 **현재 normalization 브랜치:** `feat/sanitizer-diagnostic-normalization`
 
+**현재 TSan local slice:** `feat/thread-sanitizer-deep-profile`. `ThreadSanitizeEngine`과
+`BuildVariant.THREAD_SANITIZE`(`thread-sanitize`) 구현은 local branch에 존재하지만, 아래
+checkbox는 PR/main/Quality Zoo acceptance까지 확인할 때까지 닫지 않는다. TSan은 `-tsan`
+shadow와 `-fsanitize=thread -fno-omit-frame-pointer -g`, CMake/qmake adapter 및 generic
+`-pthread` link를 사용하고, Python scope는 unsupported다. 기존 `TSAN_OPTIONS`는 보존하면서
+`halt_on_error=1`을 추가하며, bounded `WARNING`/`SUMMARY` parser·project location 검증·외부
+frame redaction·stable known/unknown defect rule을 적용한다. 실제 g++ race regression은
+통과했지만 분류/Qt candidate evidence는 별도 진행 중이고 version `0.10.2` 및 release 상태는
+변경하지 않는다.
+
 - [x] ASan/UBSan/LSan 결과를 structured sanitizer kind와 defect, 검증된 project-owned primary
   location, related stack-frame locations(프로젝트 밖은 `[external]`로 redacted), 그리고 연결된
   process evidence로 정규화한다. bounded/private transport, timeout·truncation·unlocated
   diagnostic은 fail-closed한다.
-- [ ] TSan은 별도 deep profile과 build variant로 제공한다.
+- [ ] TSan은 별도 deep profile과 build variant로 제공한다. (local implementation은 존재하나
+  feature PR/main 및 Quality Zoo TSan acceptance가 pending이므로 완료 처리하지 않는다.)
 - [ ] resource/lifetime/security는 clang analyzer·clang-tidy·clazy 결과를 category별로 매핑한다.
 - [x] sanitizer가 build됐지만 테스트가 실행되지 않은 경우 ERROR로 구분한다.
 - [x] Quality Zoo의 ASan UAF, LSan leak, UBSan signed-overflow 및 sanitizer-clean fixture가
