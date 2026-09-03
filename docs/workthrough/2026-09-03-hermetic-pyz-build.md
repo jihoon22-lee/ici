@@ -149,8 +149,8 @@ The implementation and documentation boundary for this slice is:
 | Adversarial builds | PASS — both differing umask/epoch/hash-seed/timezone/locale invocations produced a byte-identical 2,291,840-byte artifact with SHA-256 `ca57959e76c6c1421943b99e737190264e3c1c4dfdcfd883caba0873d0fee3c8`. |
 | Cross-path/source-mtime audit | PASS — a copied tree at a second absolute path, with all `src/` and `scripts/` mtimes changed to 2001-02-03 and a hostile caller environment, produced the same SHA-256. The temporary tree was removed afterward. |
 | Artifact boundary | PASS — native/platform wheels, sdist execution, `certifi`, missing schemas, input/output symlinks, FIFO/special entries, leaked locks, source mutation, rollback, and temporary-file cleanup are covered. |
-| Focused regression | `uv run --python 3.10 pytest -q tests/test_pyz_assembly.py tests/test_purity.py` — 46 passed. |
-| Full Python 3.10 suite | `uv run --python 3.10 pytest` — 2,184 passed, 7 environment-dependent C++ tool skips (2,191 collected). |
+| Focused regression | `uv run --python 3.10 pytest -q tests/test_pyz_assembly.py tests/test_purity.py` — 47 passed. |
+| Full Python 3.10 suite | `uv run --python 3.10 pytest` — 2,185 passed, 7 environment-dependent C++ tool skips (2,192 collected). |
 | Static quality | Ruff check and format — 195 files PASS; mypy including the assembler — 108 source files PASS. |
 | Script/static checks | `bash -n scripts/build-pyz.sh scripts/verify-reproducibility.sh` and `actionlint .github/workflows/*.yml` — PASS. |
 | Packaged smoke | `./scripts/smoke.sh` — direct/3.10 execution, doctor/env, artifact identity, self verification, and Zero-CDN PASS. |
