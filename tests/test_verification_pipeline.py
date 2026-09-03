@@ -110,6 +110,7 @@ def test_profiles_select_engines_without_changing_shared_rule_configuration(
     assert deep.analysis_context.requested_variants == (
         BuildVariant.COVERAGE,
         BuildVariant.SANITIZE,
+        BuildVariant.THREAD_SANITIZE,
     )
     line_policies = [config["engines"]["line"] for config in seen_configs["line"]]
     assert line_policies == [line_policies[0]] * 3

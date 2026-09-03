@@ -270,6 +270,25 @@ _DECLARATIONS = (
         limitations=("Runs ASan/UBSan tests; unexecuted code paths remain unobserved.",),
     ),
     SupportDeclaration(
+        "thread_sanitize",
+        SupportLanguage.PYTHON,
+        AnalysisMode.UNSUPPORTED,
+        FindingConfidence.LOW,
+        limitations=("ThreadSanitizer applies only to compiled C/C++ tests.",),
+    ),
+    SupportDeclaration(
+        "thread_sanitize",
+        SupportLanguage.CPP,
+        AnalysisMode.TOOL_BACKED,
+        FindingConfidence.HIGH,
+        frameworks=_QT,
+        required_tools=("g++",),
+        optional_tools=("cmake", "qmake", "make", "pkg-config"),
+        limitations=(
+            "Runs only in the deep profile and observes only thread interleavings reached by tests.",
+        ),
+    ),
+    SupportDeclaration(
         "dead",
         SupportLanguage.PYTHON,
         AnalysisMode.HEURISTIC,

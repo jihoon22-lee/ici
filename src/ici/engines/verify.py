@@ -59,6 +59,9 @@ from ici.engines.resource import ResourceEngine  # noqa: F401 - dynamic descript
 from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.security import SecurityEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.test import TestEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.thread_sanitize import (  # noqa: F401 - dynamic descriptor factory
+    ThreadSanitizeEngine,
+)
 from ici.engines.type_check import TypeCheckEngine  # noqa: F401 - dynamic descriptor factory
 from ici.reporters.console import print_suite_dashboard
 from ici.reporters.html import generate_html_report

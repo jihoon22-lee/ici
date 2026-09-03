@@ -284,6 +284,7 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 | `cycle` | heuristic | tool-backed (Qt) → heuristic fallback |
 | `complexity` | heuristic | tool-backed (Qt) → heuristic fallback |
 | `sanitize` | tool-backed | tool-backed (Qt) |
+| `thread_sanitize` | unsupported | tool-backed (Qt) |
 | `dead` | heuristic | tool-backed (Qt) |
 | `dup` | heuristic | heuristic (Qt) |
 | `exception` | heuristic | heuristic (Qt) |
