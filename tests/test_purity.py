@@ -151,7 +151,12 @@ def test_pyz_build_requires_every_public_json_schema():
 
 
 def test_all_ci_release_and_candidate_checkouts_disable_credential_persistence():
-    for workflow_name in ("ci.yml", "release.yml", "candidate-artifact.yml"):
+    for workflow_name in (
+        "ci.yml",
+        "release.yml",
+        "candidate-artifact.yml",
+        "candidate-quality-zoo.yml",
+    ):
         workflow = _workflow(workflow_name)
         checkouts = re.findall(
             r"(?ms)^      - name: [^\n]*Checkout[^\n]*\n(?P<body>.*?)(?=^      - name:|\Z)",
@@ -233,7 +238,12 @@ def test_ci_release_and_candidate_actions_are_immutable_node24_pins():
         "softprops/action-gh-release": "3d0d9888cb7fd7b750713d6e236d1fcb99157228",
     }
 
-    for workflow_name in ("ci.yml", "release.yml", "candidate-artifact.yml"):
+    for workflow_name in (
+        "ci.yml",
+        "release.yml",
+        "candidate-artifact.yml",
+        "candidate-quality-zoo.yml",
+    ):
         workflow = _workflow(workflow_name)
         for uses in _uses_lines(workflow):
             action, _, ref = uses.partition("@")
@@ -257,6 +267,103 @@ def test_candidate_workflow_is_manual_and_requires_exact_target_sha():
     assert re.search(r"(?m)^        required: true$", target_input)
     assert re.search(r"(?m)^        type: string$", target_input)
     assert not re.search(r"(?m)^        default:", target_input)
+
+
+def test_candidate_quality_zoo_workflow_is_manual_and_requires_exact_coordinates():
+    workflow = _workflow("candidate-quality-zoo.yml")
+    event_block = workflow.split("\n\npermissions:", 1)[0]
+    dispatch = event_block.split("  workflow_dispatch:\n", 1)[1]
+
+    assert not re.search(r"(?m)^  (?!workflow_dispatch:)[A-Za-z0-9_-]+:", event_block)
+    for name in (
+        "ici_target_sha",
+        "candidate_artifact_id",
+        "candidate_archive_sha256",
+        "toy_target_sha",
+    ):
+        value = dispatch.split(f"      {name}:\n", 1)[1]
+        assert re.search(r"(?m)^        required: true$", value)
+        assert re.search(r"(?m)^        type: string$", value)
+        assert not re.search(r"(?m)^        default:", value)
+
+
+def test_candidate_quality_zoo_job_is_read_only_and_exact_main_bound():
+    workflow = _workflow("candidate-quality-zoo.yml")
+    accept = _job_block(workflow, "accept")
+    permission_block = re.search(r"(?ms)^    permissions:\n(?P<body>(?:      [^\n]+\n)+)", accept)
+    assert permission_block is not None
+    assert {
+        line.strip() for line in permission_block.group("body").splitlines() if line.strip()
+    } == {"actions: read", "checks: read", "contents: read"}
+    assert "write" not in permission_block.group("body")
+    assert "permissions: {}" in workflow.split("jobs:", 1)[0]
+    assert "--publish" not in workflow
+    assert "<!-- ici-report -->" not in workflow
+    assert "pull-requests:" not in workflow
+    assert "pages:" not in workflow
+
+    checkout = _step_block(accept, "Checkout Exact Quality Zoo Commit")
+    assert "repository: jihoon22-lee/toy-projects" in checkout
+    assert "ref: ${{ inputs.toy_target_sha }}" in checkout
+    assert "persist-credentials: false" in checkout
+
+    validate = _step_block(accept, "Validate Workflow Inputs and Exact Main Revisions")
+    run_script = validate.split("        run: |\n", 1)[1]
+    assert "${{ inputs." not in run_script
+    assert 'test "$GITHUB_REPOSITORY" = "jihoon22-lee/ici"' in run_script
+    assert 'test "$GITHUB_REF" = "refs/heads/main"' in run_script
+    assert 'test "$GITHUB_SHA" = "$ici_main"' in run_script
+    assert 'test "$TOY_TARGET_SHA" = "$toy_main"' in run_script
+    assert run_script.count("^[0-9a-f]{40}$") == 2
+    assert "^[0-9a-f]{64}$" in run_script
+    assert "^[1-9][0-9]*$" in run_script
+
+
+def test_candidate_quality_zoo_separates_tokens_from_candidate_execution():
+    accept = _job_block(_workflow("candidate-quality-zoo.yml"), "accept")
+    download = _step_block(accept, "Download Exact Candidate Archive and Metadata")
+    preflight = _step_block(accept, "Preflight Candidate without Credentials")
+    evidence = _step_block(accept, "Fetch Authenticated GitHub Evidence")
+    execute = _step_block(accept, "Verify Candidate Provenance and Run Quality Zoo")
+
+    assert "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in download
+    assert "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in evidence
+    for candidate_step in (preflight, execute):
+        assert "GH_TOKEN:" not in candidate_step
+        assert "GITHUB_TOKEN:" not in candidate_step
+        assert "unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN" in candidate_step
+        assert "unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL" in candidate_step
+    assert (
+        accept.index("Preflight Candidate without Credentials")
+        < accept.index("Fetch Authenticated GitHub Evidence")
+        < accept.index("Verify Candidate Provenance and Run Quality Zoo")
+    )
+
+
+def test_candidate_quality_zoo_verifies_provenance_and_uploads_separate_evidence():
+    accept = _job_block(_workflow("candidate-quality-zoo.yml"), "accept")
+    evidence = _step_block(accept, "Fetch Authenticated GitHub Evidence")
+    execute = _step_block(accept, "Verify Candidate Provenance and Run Quality Zoo")
+    upload = _step_block(accept, "Upload Candidate Acceptance Evidence")
+
+    for suffix in (
+        "actions/runs/${CANDIDATE_RUN_ID}",
+        "check-runs/${MERGE_GATE_CHECK_RUN_ID}",
+        "actions/jobs/${MERGE_GATE_JOB_ID}",
+        "actions/runs/${MERGE_GATE_RUN_ID}",
+    ):
+        assert suffix in evidence
+    assert '--github-evidence "$RUNNER_TEMP/candidate-evidence"' in execute
+    assert "python3.10 -m runner.run" in execute
+    assert 'payload.get("contract_verdict") != "PASS"' in execute
+    assert "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" in upload
+    assert (
+        "name: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.toy_target_sha }}"
+        in upload
+    )
+    assert "ici-report-" not in upload
+    assert "if-no-files-found: error" in upload
+    assert "compression-level: 0" in upload
 
 
 def test_candidate_validate_job_has_read_only_provenance_permissions():
