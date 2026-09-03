@@ -498,6 +498,28 @@ verbose stack frame and source explanation must stay out of the result
     assert "leak_fixture" not in message
     assert "/home/runner/work/project/tests/leaky.cpp:42" not in message
     assert "verbose stack frame and source explanation" not in message
+    assert "LeakSanitizer" in results[0].diagnostic_output
+    assert "leak_fixture" in results[0].diagnostic_output
+    assert "/home/runner/work/project/tests/leaky.cpp:42" in results[0].diagnostic_output
+
+
+def test_parse_ctest_junit_bounds_private_sanitizer_transport():
+    diagnostic = (
+        "ERROR: AddressSanitizer: heap-use-after-free\n"
+        "    #0 0x1 in fault /workspace/src/fault.cpp:4\n" + "detail " * 12_000
+    )
+    xml = (
+        '<testsuite tests="1"><testcase name="fault">'
+        '<failure message="failed"/><system-err>'
+        + diagnostic
+        + "</system-err></testcase></testsuite>"
+    )
+
+    result = parse_ctest_junit(xml)[0]
+
+    assert len(result.diagnostic_output.encode("utf-8")) <= 65_536
+    assert result.diagnostic_output_truncated is True
+    assert result.message == "AddressSanitizer diagnostic"
 
 
 @pytest.mark.parametrize(
@@ -674,6 +696,8 @@ def test_run_tests_prefers_junit_when_written(tmp_path, monkeypatch):
     def _run(cmd, **_kwargs):
         if "--version" in cmd:
             return ProcessResult(0, "cmake version 3.28.1", "", 0.01)
+        if cmd[0].endswith("ctest"):
+            (shadow / "ici-ctest.xml").write_text(_CTEST_JUNIT, encoding="utf-8")
         return ProcessResult(0, _CTEST_STDOUT, "", 0.01)
 
     monkeypatch.setattr(cmake_mod, "run_process", _run)
@@ -683,6 +707,51 @@ def test_run_tests_prefers_junit_when_written(tmp_path, monkeypatch):
     # The JUnit file has three cases; stdout has two. Proving which source was
     # used matters, because only one of them reports the skipped test.
     assert len(results) == 3
+
+
+def test_run_tests_rejects_stale_junit_when_current_ctest_does_not_write_one(tmp_path, monkeypatch):
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    shadow = tmp_path / "build" / "ici-cmake"
+    shadow.mkdir(parents=True)
+    (shadow / "ici-ctest.xml").write_text(_CTEST_JUNIT, encoding="utf-8")
+
+    def _run(cmd, **_kwargs):
+        if "--version" in cmd:
+            return ProcessResult(0, "cmake version 3.28.1", "", 0.01)
+        return ProcessResult(0, _CTEST_STDOUT, "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
+
+    results = run_tests(session)
+
+    assert [case.name for case in results] == ["test_ring_buffer", "test_log_model"]
+    assert not (shadow / "ici-ctest.xml").exists()
+
+
+@pytest.mark.parametrize(
+    "process_result",
+    [
+        ProcessResult(124, _CTEST_STDOUT, "", 0.01, timed_out=True),
+        ProcessResult(0, _CTEST_STDOUT, "", 0.01, truncated=True),
+    ],
+    ids=["timeout", "truncated"],
+)
+def test_run_tests_rejects_incomplete_process_evidence(tmp_path, monkeypatch, process_result):
+    (tmp_path / "CMakeLists.txt").write_text("project(x)\n", encoding="utf-8")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+
+    def _run(cmd, **_kwargs):
+        if "--version" in cmd:
+            return ProcessResult(0, "cmake version 3.28.1", "", 0.01)
+        return process_result
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+    session = configure(tmp_path, _COVERAGE_OPTIONS)
+
+    assert run_tests(session) == []
+    assert any("incomplete" in error for error in session.errors)
 
 
 def test_run_tests_rejects_oversized_junit_and_uses_bounded_stdout_fallback(tmp_path, monkeypatch):
@@ -695,6 +764,8 @@ def test_run_tests_rejects_oversized_junit_and_uses_bounded_stdout_fallback(tmp_
     def _run(cmd, **_kwargs):
         if "--version" in cmd:
             return ProcessResult(0, "cmake version 3.28.1", "", 0.01)
+        if cmd[0].endswith("ctest"):
+            (shadow / "ici-ctest.xml").write_text("x" * 1_000_001, encoding="utf-8")
         return ProcessResult(1, _CTEST_STDOUT, "", 0.01)
 
     monkeypatch.setattr(cmake_mod, "run_process", _run)

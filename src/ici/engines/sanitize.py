@@ -8,6 +8,8 @@ import shutil
 import sys
 import tempfile
 import time
+from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -21,11 +23,22 @@ from ici.core.models import (
     EngineResult,
     EngineStatus,
     EvidenceState,
+    Finding,
+    FindingCategory,
+    FindingConfidence,
+    FindingSeverity,
     InspectionTarget,
+    SourceLocation,
     ToolEvidence,
 )
 from ici.core.project import _iter_project_files
 from ici.core.runner import ProcessResult, run_process
+from ici.engines._sanitizer_diagnostics import (
+    MAX_SANITIZER_OUTPUT_BYTES,
+    SanitizerDiagnostic,
+    SanitizerDiagnosticError,
+    parse_sanitizer_diagnostics,
+)
 from ici.engines.base import BaseEngine
 from ici.engines.cpp_text import defines_main
 
@@ -45,8 +58,24 @@ _SANITIZER_SUMMARY_RE = re.compile(
 _UBSAN_RUNTIME_RE = re.compile(r"(?m)^.*:\d+(?::\d+)?:\s*runtime error:\s*\S+")
 
 
+@dataclass(frozen=True)
+class _SanitizerFinding:
+    target: InspectionTarget
+    diagnostic: SanitizerDiagnostic
+    process_evidence_index: int
+    test_name: str
+
+
 class SanitizeEngine(BaseEngine):
     """Run C++ sanitizers and Python ResourceWarning checks with evidence."""
+
+    # Runtime diagnostics and test execution are observations, not reusable
+    # source-only analysis results.
+    CACHE_REUSE_SAFE = False
+    CACHE_IMPLEMENTATION_MODULES = (
+        "ici.core.cmake",
+        "ici.engines._sanitizer_diagnostics",
+    )
 
     def __init__(
         self,
@@ -61,6 +90,7 @@ class SanitizeEngine(BaseEngine):
         self._measured_scopes = 0
         self._skipped_scopes = 0
         self._required_scope_missing = False
+        self._sanitizer_findings: list[_SanitizerFinding] = []
 
     def run(self) -> EngineResult:
         t0 = time.time()
@@ -70,6 +100,7 @@ class SanitizeEngine(BaseEngine):
         self._measured_scopes = 0
         self._skipped_scopes = 0
         self._required_scope_missing = False
+        self._sanitizer_findings = []
         targets: list[InspectionTarget] = []
         proj_type = self.project_type()
         cpp_sources = self.project_cpp_sources()
@@ -144,18 +175,23 @@ class SanitizeEngine(BaseEngine):
             )
             summary = "Sanitize skipped: no applicable checks were executed"
 
-        return self.create_result(
+        result = self.create_result(
             name="sanitize",
             status=overall_status,
             summary=summary,
             duration=duration,
             targets=targets,
-            extra={"sanitize_issues": self._issue_count(targets)},
+            extra={
+                "sanitize_issues": self._issue_count(targets),
+                "sanitizer_diagnostics": self._sanitizer_details(),
+            },
             required=required,
             evidence=evidence,
             tool_evidence=self._tool_evidence,
             artifact_manifests=self._artifact_manifests,
         )
+        result.findings = self._normalized_findings()
+        return result
 
     def _cpp_test_sources(self) -> list[Path]:
         tests_root = self.project_root / "tests"
@@ -252,6 +288,7 @@ class SanitizeEngine(BaseEngine):
                         run_command,
                         cwd=self.project_root,
                         env=self._sanitizer_environment(),
+                        max_output_chars=(MAX_SANITIZER_OUTPUT_BYTES - 1) // 2,
                     )
                 except Exception as exc:
                     self._record_tool_exception("sanitizer execution", run_command, exc)
@@ -272,16 +309,37 @@ class SanitizeEngine(BaseEngine):
                 output = f"{run_result.stderr}\n{run_result.stdout}"
                 has_diagnostic = self._contains_sanitizer_diagnostic(output)
                 if has_diagnostic:
+                    try:
+                        diagnostics = parse_sanitizer_diagnostics(output, self.project_root)
+                    except SanitizerDiagnosticError as err:
+                        message = f"Sanitizer diagnostic could not be normalized: {err}"
+                        run_evidence.error = message
+                        self._tool_errors.append(message)
+                        self._append_error_target(
+                            targets,
+                            test_src,
+                            "SanitizerDiagnostic",
+                            message,
+                        )
+                        continue
+                    if not diagnostics:
+                        message = "Sanitizer output had a report marker but no complete diagnostic"
+                        run_evidence.error = message
+                        self._tool_errors.append(message)
+                        self._append_error_target(
+                            targets,
+                            test_src,
+                            "SanitizerDiagnostic",
+                            message,
+                        )
+                        continue
                     self._measured_scopes += 1
                     has_failure = True
-                    targets.append(
-                        InspectionTarget(
-                            file_path=str(test_src.relative_to(self.project_root)),
-                            start_line=1,
-                            target_name="ASan/UBSan Error",
-                            status=EngineStatus.FAIL,
-                            message=f"Memory/Runtime defect detected: {self._snippet(output)}",
-                        )
+                    self._append_sanitizer_diagnostics(
+                        targets,
+                        diagnostics,
+                        test_name=test_src.name,
+                        process_evidence_index=len(self._tool_evidence) - 1,
                     )
                 elif run_result.returncode != 0:
                     message = self._tool_failure_message("Sanitizer execution", run_result)
@@ -314,6 +372,7 @@ class SanitizeEngine(BaseEngine):
         session = adapter_configure(self.project_root, options)
         session.analysis_context = self.analysis_context
         self._tool_evidence.extend(session.tool_evidence)
+        recorded_evidence = len(session.tool_evidence)
 
         if not session.configured:
             self._fail_adapter_scope(
@@ -322,22 +381,43 @@ class SanitizeEngine(BaseEngine):
             return False
 
         if not adapter_build(session):
-            self._tool_evidence.extend(session.tool_evidence)
+            self._tool_evidence.extend(session.tool_evidence[recorded_evidence:])
             self._fail_adapter_scope(
                 targets, session, session.errors or ["sanitizer build reported no reason"]
             )
             return False
+        self._tool_evidence.extend(session.tool_evidence[recorded_evidence:])
+        recorded_evidence = len(session.tool_evidence)
 
         if session.artifact_manifest is not None:
             self._artifact_manifests.append(session.artifact_manifest)
 
         results = adapter_run_tests(session, env=self._sanitizer_environment())
-        self._tool_evidence.extend(session.tool_evidence)
+        self._tool_evidence.extend(session.tool_evidence[recorded_evidence:])
         if not results:
             self._fail_adapter_scope(
                 targets,
                 session,
-                ["The build system reported no tests, so nothing ran under the sanitizers"],
+                session.errors
+                or ["The build system reported no tests, so nothing ran under the sanitizers"],
+            )
+            return False
+
+        process_index = self._adapter_process_evidence_index()
+        if process_index is None:
+            self._fail_adapter_scope(
+                targets,
+                session,
+                ["Sanitizer tests ran without recorded process evidence"],
+            )
+            return False
+        process_evidence = self._tool_evidence[process_index]
+        if process_evidence.timed_out or process_evidence.truncated:
+            reason = "timed out" if process_evidence.timed_out else "truncated its output"
+            self._fail_adapter_scope(
+                targets,
+                session,
+                [f"Sanitizer test process {reason}; diagnostics are incomplete"],
             )
             return False
 
@@ -351,12 +431,58 @@ class SanitizeEngine(BaseEngine):
                     f"Sanitizer test was not executed: {case.message or 'no reason reported'}",
                 )
                 continue
-            status = EngineStatus.PASS if case.passed else EngineStatus.FAIL
             has_failure = has_failure or not case.passed
             # Each executed binary is a measured scope. Without this the engine
             # reports "no applicable checks were executed" and skips, which is
             # the silent-gap shape the gate exists to catch.
             self._measured_scopes += 1
+            if not case.passed and case.diagnostic_output:
+                if case.diagnostic_output_truncated:
+                    message = "Sanitizer test diagnostic transport was truncated"
+                    self._tool_evidence[process_index].error = message
+                    self._tool_errors.append(message)
+                    self._append_scope_error(
+                        targets,
+                        session.descriptor or ".",
+                        "SanitizerDiagnostic",
+                        message,
+                    )
+                    continue
+                try:
+                    diagnostics = parse_sanitizer_diagnostics(
+                        case.diagnostic_output,
+                        self.project_root,
+                    )
+                except SanitizerDiagnosticError as err:
+                    message = f"Sanitizer diagnostic could not be normalized: {err}"
+                    self._tool_evidence[process_index].error = message
+                    self._tool_errors.append(message)
+                    self._append_scope_error(
+                        targets,
+                        session.descriptor or ".",
+                        "SanitizerDiagnostic",
+                        message,
+                    )
+                    continue
+                if not diagnostics:
+                    message = "Sanitizer test output contained no complete diagnostic"
+                    self._tool_evidence[process_index].error = message
+                    self._tool_errors.append(message)
+                    self._append_scope_error(
+                        targets,
+                        session.descriptor or ".",
+                        "SanitizerDiagnostic",
+                        message,
+                    )
+                    continue
+                self._append_sanitizer_diagnostics(
+                    targets,
+                    diagnostics,
+                    test_name=case.name,
+                    process_evidence_index=process_index,
+                )
+                continue
+            status = EngineStatus.PASS if case.passed else EngineStatus.FAIL
             targets.append(
                 InspectionTarget(
                     file_path=session.descriptor or ".",
@@ -369,6 +495,177 @@ class SanitizeEngine(BaseEngine):
                 )
             )
         return has_failure
+
+    def _adapter_process_evidence_index(self) -> int | None:
+        for index in range(len(self._tool_evidence) - 1, -1, -1):
+            if self._tool_evidence[index].name in {"ctest", "make check"}:
+                return index
+        return None
+
+    def _append_sanitizer_diagnostics(
+        self,
+        targets: list[InspectionTarget],
+        diagnostics: tuple[SanitizerDiagnostic, ...],
+        *,
+        test_name: str,
+        process_evidence_index: int,
+    ) -> None:
+        """Attach normalized source targets while retaining their process evidence."""
+
+        for diagnostic in diagnostics:
+            location = diagnostic.primary_location
+            if location is None:
+                external = next(
+                    (
+                        related
+                        for related in diagnostic.related_locations
+                        if related.path == "[external]"
+                    ),
+                    None,
+                )
+                location = external or SourceLocation(
+                    path="[external]",
+                    start_line=1,
+                    label="unlocated sanitizer diagnostic",
+                )
+                message = (
+                    f"{diagnostic.tool_name} diagnostic has no validated "
+                    "project-owned source location"
+                )
+                if message not in self._tool_errors:
+                    self._tool_errors.append(message)
+                self._tool_evidence[process_evidence_index].error = message
+                status = EngineStatus.ERROR
+                target_name = "SanitizerDiagnosticLocation"
+            else:
+                message = diagnostic.message
+                status = EngineStatus.FAIL
+                target_name = "LSan Error" if diagnostic.kind == "leak" else "ASan/UBSan Error"
+            target = InspectionTarget(
+                file_path=location.path,
+                start_line=location.start_line,
+                end_line=location.end_line,
+                start_column=location.start_column,
+                end_column=location.end_column,
+                target_name=target_name,
+                status=status,
+                message=message,
+                metrics={
+                    "frames_observed": diagnostic.frames_observed,
+                    "project_frames": diagnostic.project_frames,
+                    "process_evidence_index": process_evidence_index,
+                },
+            )
+            targets.append(target)
+            self._sanitizer_findings.append(
+                _SanitizerFinding(
+                    target=target,
+                    diagnostic=diagnostic,
+                    process_evidence_index=process_evidence_index,
+                    test_name=test_name,
+                )
+            )
+
+    def _normalized_findings(self) -> list[Finding]:
+        key_counts = Counter(
+            (item.target.file_path, item.target.target_name.strip())
+            for item in self._sanitizer_findings
+        )
+        findings: list[Finding] = []
+        for item in self._sanitizer_findings:
+            target = item.target
+            diagnostic = item.diagnostic
+            if diagnostic.primary_location is None:
+                continue
+            key = (target.file_path, target.target_name.strip())
+            label = target.target_name if key_counts[key] == 1 else ""
+            findings.append(
+                Finding(
+                    # Keep the legacy rule identity so this native record replaces,
+                    # rather than duplicates, its required InspectionTarget adapter.
+                    rule_id="ici.legacy.sanitize.target",
+                    category=(
+                        FindingCategory.RESOURCE
+                        if diagnostic.kind == "leak"
+                        else FindingCategory.CORRECTNESS
+                    ),
+                    severity=FindingSeverity.HIGH,
+                    confidence=(
+                        FindingConfidence.EXACT
+                        if diagnostic.primary_location is not None
+                        else FindingConfidence.HIGH
+                    ),
+                    fingerprint="",
+                    primary_location=SourceLocation(
+                        path=target.file_path,
+                        start_line=target.start_line,
+                        end_line=target.end_line,
+                        start_column=target.start_column,
+                        end_column=target.end_column,
+                        label=label,
+                    ),
+                    message=diagnostic.message,
+                    related_locations=list(diagnostic.related_locations),
+                    explanation=(
+                        "Normalized from a bounded runtime-sanitizer report and linked "
+                        "to its recorded process invocation."
+                    ),
+                    remediation=self._sanitizer_remediation(diagnostic.kind),
+                    tool_rule_id=f"{diagnostic.kind}.{diagnostic.defect}",
+                    tool_name=diagnostic.tool_name,
+                )
+            )
+        return findings
+
+    def _sanitizer_details(self) -> list[dict[str, Any]]:
+        details: list[dict[str, Any]] = []
+        for item in self._sanitizer_findings:
+            diagnostic = item.diagnostic
+            primary = diagnostic.primary_location
+            details.append(
+                {
+                    "kind": diagnostic.kind,
+                    "tool_name": diagnostic.tool_name,
+                    "defect": diagnostic.defect,
+                    "rule_id": diagnostic.rule_id,
+                    "message": diagnostic.message,
+                    "test_name": item.test_name,
+                    "process_evidence_index": item.process_evidence_index,
+                    "frames_observed": diagnostic.frames_observed,
+                    "project_frames": diagnostic.project_frames,
+                    "primary_location": (
+                        {
+                            "path": primary.path,
+                            "start_line": primary.start_line,
+                            "start_column": primary.start_column,
+                        }
+                        if primary is not None
+                        else None
+                    ),
+                    "related_locations": [
+                        {
+                            "path": location.path,
+                            "start_line": location.start_line,
+                            "start_column": location.start_column,
+                            "label": location.label,
+                        }
+                        for location in diagnostic.related_locations
+                    ],
+                }
+            )
+        return details
+
+    @staticmethod
+    def _sanitizer_remediation(kind: str) -> str:
+        if kind == "leak":
+            return (
+                "Release the allocation on every ownership path or transfer ownership explicitly."
+            )
+        if kind == "undefined-behavior":
+            return (
+                "Remove the reported undefined operation and add a regression test for the input."
+            )
+        return "Fix the invalid memory access and add a regression test that runs under ASan."
 
     def _fail_adapter_scope(self, targets, session, messages: list[str]) -> None:
         """Record an adapter failure as an unmeasured scope, not an absent one.

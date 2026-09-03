@@ -10,7 +10,7 @@ starts in one place.
 import os
 import re
 import shutil
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -45,6 +45,7 @@ _CTEST_TEST_DIR_MIN = (3, 20)
 _CTEST_JUNIT_MIN = (3, 21)
 _MAX_CTEST_REPORT_BYTES = 1_000_000
 _MAX_TEST_RESULT_CHARS = 512
+_MAX_SANITIZER_TRANSPORT_BYTES = 65_536
 
 _CMAKE_VERSION_RE = re.compile(r"cmake version (\d+)\.(\d+)")
 
@@ -223,10 +224,60 @@ class TestCaseResult:
     # build system collected but never ran. Keep this last with a default so
     # existing positional construction remains source compatible.
     executed: bool = True
+    # Kept internal to the sanitizer engine. Generic test reporting continues
+    # to expose only the bounded ``message`` above.
+    diagnostic_output: str = ""
+    diagnostic_output_truncated: bool = False
 
     def __post_init__(self) -> None:
         if self.passed and not self.executed:
             raise ValueError("a test that was not executed cannot be marked as passed")
+
+
+def _attach_sanitizer_output(
+    results: list[TestCaseResult],
+    output: str,
+    *,
+    truncated: bool = False,
+) -> list[TestCaseResult]:
+    """Attach one captured sanitizer transcript without changing test messages."""
+
+    if any(case.diagnostic_output for case in results):
+        if not truncated:
+            return results
+        return [
+            replace(case, diagnostic_output_truncated=True) if case.diagnostic_output else case
+            for case in results
+        ]
+    if not any(marker.search(output) is not None for _name, marker in _SANITIZER_FAILURE_MARKERS):
+        return results
+    failed_index = next(
+        (index for index, case in enumerate(results) if case.executed and not case.passed),
+        None,
+    )
+    if failed_index is None:
+        return results
+    diagnostic_output, transport_truncated = _bounded_sanitizer_transport(output)
+    attached = list(results)
+    attached[failed_index] = replace(
+        attached[failed_index],
+        diagnostic_output=diagnostic_output,
+        diagnostic_output_truncated=truncated or transport_truncated,
+    )
+    return attached
+
+
+def _bounded_sanitizer_transport(value: str) -> tuple[str, bool]:
+    """Bound private diagnostic transport by UTF-8 bytes, not code points."""
+
+    try:
+        payload = value.encode("utf-8")
+    except UnicodeError:
+        return "", True
+    if len(payload) <= _MAX_SANITIZER_TRANSPORT_BYTES:
+        return value, False
+    bounded = payload[:_MAX_SANITIZER_TRANSPORT_BYTES].decode("utf-8", errors="ignore")
+    return bounded, True
 
 
 def _normalized_test_state(value: str) -> str:
@@ -240,10 +291,10 @@ def _bounded_test_result(value: str) -> str:
     return f"{normalized[: _MAX_TEST_RESULT_CHARS - 3]}..."
 
 
-def _sanitizer_failure_message(
+def _sanitizer_failure_evidence(
     node: ElementTree.Element,
     failures: list[ElementTree.Element],
-) -> str:
+) -> tuple[str, str, bool]:
     """Return a bounded class of sanitizer evidence without exporting its trace."""
 
     evidence: list[str] = []
@@ -253,17 +304,26 @@ def _sanitizer_failure_message(
         evidence.extend(child.text or "" for child in node.findall(tag))
     for sanitizer, marker in _SANITIZER_FAILURE_MARKERS:
         if any(marker.search(value) is not None for value in evidence):
-            return f"{sanitizer} diagnostic"
-    return ""
+            diagnostic_output, truncated = _bounded_sanitizer_transport("\n".join(evidence))
+            return f"{sanitizer} diagnostic", diagnostic_output, truncated
+    return "", "", False
 
 
 def _junit_case(node: ElementTree.Element) -> TestCaseResult:
     name = _bounded_test_result(node.get("name", ""))
     failures = node.findall("failure") + node.findall("error")
     if failures:
-        sanitizer = _sanitizer_failure_message(node, failures)
+        sanitizer, diagnostic_output, diagnostic_output_truncated = _sanitizer_failure_evidence(
+            node, failures
+        )
         if sanitizer:
-            return TestCaseResult(name, False, sanitizer)
+            return TestCaseResult(
+                name,
+                False,
+                sanitizer,
+                diagnostic_output=diagnostic_output,
+                diagnostic_output_truncated=diagnostic_output_truncated,
+            )
         parts = [f.get("message", "") or (f.text or "").strip() for f in failures]
         return TestCaseResult(
             name,
@@ -275,6 +335,17 @@ def _junit_case(node: ElementTree.Element) -> TestCaseResult:
         parts = [item.get("message", "") or (item.text or "").strip() for item in skipped]
         message = _bounded_test_result("; ".join(part for part in parts if part))
         return TestCaseResult(name, False, message or "test was skipped", executed=False)
+    sanitizer, diagnostic_output, diagnostic_output_truncated = _sanitizer_failure_evidence(
+        node, []
+    )
+    if sanitizer:
+        return TestCaseResult(
+            name,
+            False,
+            sanitizer,
+            diagnostic_output=diagnostic_output,
+            diagnostic_output_truncated=diagnostic_output_truncated,
+        )
     # A test ctest never ran is not evidence that it passes.
     status = node.get("status", "").strip()
     normalized_status = _normalized_test_state(status)
@@ -399,7 +470,16 @@ def parse_qtest_xunit(text: str) -> list[TestCaseResult]:
             message = case.message
             if not passed and not message:
                 message = f"QtTest reported result {result!r}"
-            results.append(TestCaseResult(name, passed, message, executed=executed))
+            results.append(
+                TestCaseResult(
+                    name,
+                    passed,
+                    message,
+                    executed=executed,
+                    diagnostic_output=case.diagnostic_output,
+                    diagnostic_output_truncated=case.diagnostic_output_truncated,
+                )
+            )
     return results
 
 
@@ -661,14 +741,27 @@ def run_tests(session: BuildSession, env: dict[str, str] | None = None) -> list[
         if ctest_bin is None:
             return []
         argv, junit = cmake_test_argv(ctest_bin, session.shadow, session.cmake_version)
+        if junit is not None:
+            try:
+                junit.unlink(missing_ok=True)
+            except OSError as err:
+                _fail(session, f"could not remove stale CTest JUnit report: {err}")
+                return []
         result = run_process(argv, cwd=session.shadow, env=env)
         _record(session, "ctest", argv, result)
+        if result.timed_out or result.truncated:
+            reason = "timed out" if result.timed_out else "truncated its output"
+            _fail(session, f"ctest {reason}; test evidence is incomplete")
+            return []
         if junit is not None:
             report = _read_ctest_junit(junit, session.shadow)
             parsed = parse_ctest_junit(report) if report is not None else []
             if parsed:
-                return parsed
-        return parse_ctest_stdout(result.stdout)
+                return _attach_sanitizer_output(parsed, result.stdout + result.stderr)
+        return _attach_sanitizer_output(
+            parse_ctest_stdout(result.stdout),
+            result.stdout + result.stderr,
+        )
 
     make_bin = _which(session, "make")
     if make_bin is None:
@@ -676,8 +769,13 @@ def run_tests(session: BuildSession, env: dict[str, str] | None = None) -> list[
     argv = qmake_test_argv(make_bin)
     result = run_process(argv, cwd=session.shadow, env=env)
     _record(session, "make check", argv, result)
+    if result.timed_out or result.truncated:
+        reason = "timed out" if result.timed_out else "truncated its output"
+        _fail(session, f"make check {reason}; test evidence is incomplete")
+        return []
 
-    return _qmake_results(result.stdout + result.stderr, result.returncode)
+    output = result.stdout + result.stderr
+    return _attach_sanitizer_output(_qmake_results(output, result.returncode), output)
 
 
 def _qmake_results(output: str, returncode: int) -> list[TestCaseResult]:
@@ -703,7 +801,15 @@ def _qmake_results(output: str, returncode: int) -> list[TestCaseResult]:
         return results
     detail = "; ".join(f"{case.name}: {case.message}".strip(": ") for case in failures)
     return [
-        case if case.passed else TestCaseResult(case.name, False, f"{case.message} — {detail}")
+        case
+        if case.passed
+        else TestCaseResult(
+            case.name,
+            False,
+            f"{case.message} — {detail}",
+            diagnostic_output=case.diagnostic_output,
+            diagnostic_output_truncated=case.diagnostic_output_truncated,
+        )
         for case in results
     ]
 
