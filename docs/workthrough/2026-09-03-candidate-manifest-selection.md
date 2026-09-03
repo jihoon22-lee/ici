@@ -70,13 +70,21 @@ File: `tests/test_purity.py`
 ```text
 uv run --python 3.10 pytest -o addopts='' tests/test_purity.py
 32 passed
-```
 
-추가 검증은 다음을 실행했고, 결과를 커밋 전에 확인한다.
+uv run --python 3.10 pytest -o addopts=''
+2169 passed, 7 skipped
 
-```text
-actionlint .github/workflows/candidate-quality-zoo.yml
+uvx ruff check .
+All checks passed!
+
+uvx ruff format --check .
+193 files already formatted
+
+actionlint .github/workflows/*.yml
+exit 0
+
 git diff --check
+exit 0
 ```
 
 이 변경은 version/tag/release, candidate artifact producer, toy-projects 파일, PR 또는
