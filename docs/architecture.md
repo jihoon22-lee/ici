@@ -113,6 +113,7 @@ ici/
 │       │   ├── _sanitizer_diagnostics.py # bounded ASan/LSan/UBSan/TSan parser
 │       │   ├── _source_inputs.py    # dead/dup 공통 bounded UTF-8 source snapshot
 │       │   ├── dead.py              # 미사용 심볼 & 데드코드 탐지기
+│       │   ├── _python_dead_code.py # Python AST dead-code heuristic helper
 │       │   ├── _cpp_linker_dead_symbols.py # GNU ELF target-local section-GC evidence
 │       │   ├── dup.py               # 연결 컴포넌트 클러스터링 기반 중복 감지기
 │       │   ├── _dup_semantic.py      # Python semantic-shape public facade

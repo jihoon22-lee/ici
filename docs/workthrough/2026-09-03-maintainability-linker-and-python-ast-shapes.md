@@ -9,11 +9,13 @@ This workthrough records the two related maintainability slices combined on
 - `5c0224e` — `feat(dup): add bounded Python AST-shape clone analysis`
 - `e6b20a6` — `test(dead): align disabled-scope CLI contract`
 - `36f30cc` — `fix(dead): enforce the Linux GNU ELF platform boundary`
+- `161b844` — `refactor(analysis): satisfy self-verification quality gates`
 
 The first slice adds target-local GNU ELF section-GC evidence to the `dead` engine. The second
 adds a bounded Python AST-shape grouping path to the `dup` engine. Both implementations have local
-Python 3.10 evidence. This document does not claim PR, PR-CI, exact-main, Pages, or
-cross-repository acceptance for the combined branch; those fields remain pending.
+Python 3.10 evidence. PR #151 exists, but this document does not claim successful PR CI,
+exact-main, Pages, or cross-repository acceptance for the combined branch; those fields remain
+pending until the corrected head is independently accepted.
 
 The public version remains `0.10.2`. No version bump, tag, or release is part of this work.
 
@@ -156,6 +158,22 @@ Generated/moc/vendor source ownership and the existing bounded strict-UTF-8 inta
 in force. The `dead` cache remains disabled because external/generated include closure and compiler
 or linker binary identity are not yet fully represented in its cache key.
 
+### 4. Self-verification-driven module boundaries
+
+The first PR run correctly rejected the branch because the combined implementation exposed one
+overlong `dead.py` module, three new high-complexity functions, and nine mypy diagnostics. The fix
+remains inside the same cohesive PR:
+
+- existing Python dead-code traversal moved from `dead.py` to `_python_dead_code.py`, retaining the
+  same immutable source snapshot and target contract;
+- linker collection, inspection, and success projection became small orchestration helpers;
+- Python shape field encoding became typed helpers without changing canonical payload semantics;
+- support-matrix optional/required tool promotion became shared policy helpers;
+- process-success narrowing uses Python 3.10's `TypeGuard`, and the semantic source mapping is
+  passed through its iterable input contract.
+
+This is a code-boundary and type-safety correction, not an expansion of either analysis claim.
+
 ## Code Examples
 
 This linker-only `dead` result (`cpp_unused = "off"`) keeps native scopes distinguishable rather
@@ -229,11 +247,26 @@ uvx ruff check .
 All checks passed!
 
 uvx ruff format --check .
-204 files already formatted
+205 files already formatted
+
+uv run --python 3.10 mypy src
+Success: no issues found in 111 source files
+
+dist/ici.pyz verify --report --html <temporary-report>
+Suite WARN; 13 engines; 8 PASS, 4 WARN, 0 FAIL, 0 ERROR, 1 SKIP;
+2295/2302 tests passed; TEM 4.82/5.0; line/function/branch 89.3%/96.8%/82.1%
+
+./scripts/build-pyz.sh
+ici 0.10.2 pure-Python reproducible zipapp built
+
+./scripts/smoke.sh
+all launcher, Python 3.10, artifact-integrity, report, and Zero-CDN checks passed
 ```
 
 The seven full-suite skips are existing environment/tool-dependent skips; no skip is treated as a
-pass by this workthrough. No PR or CI result is inferred from these local commands.
+pass by this workthrough. The self-verification WARN state contains the accepted repository policy
+warnings for line, cycle, complexity, and duplication; it contains no FAIL or ERROR. No PR-CI
+success is inferred from these local commands.
 
 ## Separate TSan candidate acceptance evidence
 
@@ -258,14 +291,18 @@ PR/CI validation, or any release boundary.
 
 ## Verification and status boundary
 
-The combined branch has no PR number, PR workflow run, exact-main run, Pages copy, or
-cross-repository acceptance identifier yet. Those fields are intentionally pending until the
-combined PR is submitted and its required checks are independently audited. The public version
-remains `0.10.2`; no version bump, tag, or release was made.
+The combined branch is PR #151. Its first workflow run `33744139992` passed Qt5, Qt6, tests, build,
+reproducibility, and smoke checks but failed the self-verification job on the line, complexity, and
+mypy findings listed above; the report publisher consequently had no viewer report to publish.
+That run is failure evidence, not acceptance. A corrected PR workflow, exact-main run, Pages copy,
+and cross-repository acceptance identifier remain pending. The public version remains `0.10.2`;
+no version bump, tag, or release was made.
 
 ## Next Steps
 
-- Submit the combined maintainability PR and record its exact PR/CI/exact-main evidence separately.
+- Push the corrected combined PR head, require every check to pass, and audit its single sticky HTML
+  report comment before merge.
+- Record exact-main CI and Pages evidence only after the corrected PR merges.
 - Keep broader whole-program deadness, C++ AST/semantic duplicate analysis, and behavioral
   equivalence as explicit follow-up scopes.
 - Do not reuse the separate TSan candidate acceptance as acceptance for this combined branch.

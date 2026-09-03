@@ -22,6 +22,9 @@
   partial findings. `auto`
   records an unavailable linker scope as an optional `SKIP` target; `required` promotes it to
   `ERROR`/`NOT_RUN`.
+  The final implementation also separates the existing Python dead-code heuristic into a dedicated
+  helper and decomposes linker orchestration/tool-policy branches so ici's own line, complexity,
+  and mypy gates validate the combined analyzer code without changing the evidence contract.
   The feature keeps version `0.10.2` and authorizes no release.
 - **Bounded Python AST-shape duplicate groups (local feature PR):** Added
   `[engines.dup].python_semantic = "auto" | "required" | "off"`, defaulting to `auto`. Python 3.10
@@ -35,7 +38,9 @@
   overages are conservatively excluded; `required` fails closed and `off` skips only the Python
   AST-shape pass while lexical duplicate analysis remains enabled. Results remain `ESTIMATED`
   structural clone evidence, not behavioral equivalence or full C++/whole-program semantic
-  analysis. The feature keeps version `0.10.2` and authorizes no release.
+  analysis. Canonical field encoding is split into typed helpers so Python 3.10 mypy and ici's
+  self-complexity gate cover the shipped path. The feature keeps version `0.10.2` and authorizes
+  no release.
 - **Candidate Quality Zoo manifest selection:** The read-only candidate consumer now prefers a
   checked-out `quality-zoo/candidate-manifest.json` when the exact toy-projects revision provides
   one, and falls back to the stable `manifest.json` only when the candidate manifest is absent.
