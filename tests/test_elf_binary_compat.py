@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from ici.engines._elf import ElfParseError, maximum_version, parse_readelf
@@ -47,7 +49,9 @@ def test_parser_rejects_missing_headers_and_oversized_output() -> None:
         parse_readelf("x" * (8 * 1024 * 1024 + 1))
 
 
-def test_policy_reports_rpath_dependency_and_version_violations() -> None:
+def test_policy_reports_rpath_dependency_version_and_build_path_violations(
+    tmp_path: Path,
+) -> None:
     facts = parse_readelf(_READELF)
     cfg = {
         "forbid_absolute_rpath": True,
@@ -58,7 +62,12 @@ def test_policy_reports_rpath_dependency_and_version_violations() -> None:
         "expected_class": "ELF32",
     }
 
-    findings = BinaryCompatibilityEngine._abi_violations("out/app", facts, cfg)
+    findings = BinaryCompatibilityEngine._abi_violations(
+        "out/app",
+        facts,
+        cfg,
+        (tmp_path, Path("/tmp").resolve()),
+    )
 
     assert {finding.rule_id for finding in findings} == {
         "ici.binary.class-mismatch",
@@ -66,6 +75,7 @@ def test_policy_reports_rpath_dependency_and_version_violations() -> None:
         "ici.binary.glibcxx-floor",
         "ici.binary.cxxabi-floor",
         "ici.binary.forbidden-rpath",
+        "ici.binary.build-path-leak",
         "ici.binary.forbidden-dependency",
     }
     assert all(finding.primary_location.path == "out/app" for finding in findings)

@@ -38,6 +38,7 @@ class BuildEngine(BaseEngine):
     def run(self) -> EngineResult:
         t0 = time.time()
         base = self.project_root
+        engine_config = self.get_config("build")
         targets: list[InspectionTarget] = []
         self._tool_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
@@ -101,7 +102,11 @@ class BuildEngine(BaseEngine):
             status = EngineStatus.ERROR
             summary = "; ".join(self._tool_errors[:3])
         elif self._has_fail:
-            status = EngineStatus.FAIL
+            status = self.evaluate_status(
+                True,
+                False,
+                engine_config.get("mode", "pass_warn_fail"),
+            )
             summary = "Build did not produce a complete artifact set"
         else:
             status = EngineStatus.PASS
@@ -126,7 +131,7 @@ class BuildEngine(BaseEngine):
                     else "Build target was not prepared"
                 ),
             },
-            required=True,
+            required=bool(engine_config.get("required", True)),
             evidence=(EvidenceState.NOT_RUN if self._tool_errors else EvidenceState.MEASURED),
             tool_evidence=self._tool_evidence,
             artifact_manifests=self._artifact_manifests,

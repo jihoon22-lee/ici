@@ -100,7 +100,12 @@ class BinaryCompatibilityEngine(BaseEngine):
         return (path or "", "")
 
     @staticmethod
-    def _abi_violations(path: str, facts: ElfFacts, cfg: dict[str, Any]) -> list[Finding]:
+    def _abi_violations(
+        path: str,
+        facts: ElfFacts,
+        cfg: dict[str, Any],
+        build_roots: tuple[Path, ...] = (),
+    ) -> list[Finding]:
         findings: list[Finding] = []
         for label, actual in (("class", facts.elf_class), ("machine", facts.machine)):
             expected = str(cfg.get(f"expected_{label}", ""))
@@ -139,6 +144,27 @@ class BinaryCompatibilityEngine(BaseEngine):
                         path,
                         f"ELF loader path contains absolute entries: {', '.join(absolute)}",
                         "elf.rpath.forbidden",
+                    )
+                )
+        if cfg.get("forbid_build_paths", True):
+            leaked = []
+            for value in paths:
+                candidate = Path(value)
+                if not candidate.is_absolute():
+                    continue
+                try:
+                    resolved = candidate.resolve(strict=False)
+                except (OSError, RuntimeError):
+                    resolved = candidate
+                if any(resolved == root or root in resolved.parents for root in build_roots):
+                    leaked.append(value)
+            if leaked:
+                findings.append(
+                    _finding(
+                        "ici.binary.build-path-leak",
+                        path,
+                        f"ELF loader path exposes build roots: {', '.join(leaked)}",
+                        "elf.rpath.build-path",
                     )
                 )
         forbidden = set(cfg.get("forbidden_needed", []))
@@ -193,6 +219,14 @@ class BinaryCompatibilityEngine(BaseEngine):
             tool, version = self._readelf()
             if not tool:
                 raise ValueError("readelf capability is unavailable")
+            build_roots = {self.project_root}
+            if self.analysis_context is not None:
+                build_roots.update(
+                    manifest.shadow_root
+                    for manifest in self.analysis_context.manifests
+                    if manifest.shadow_root is not None
+                )
+            canonical_build_roots = tuple(sorted(build_roots, key=str))
             for record, path in records:
                 relative = record.path
                 try:
@@ -219,6 +253,15 @@ class BinaryCompatibilityEngine(BaseEngine):
                             relative,
                             "Selected binary manifest artifact is not an ELF object",
                             "elf.magic",
+                        )
+                    )
+                    targets.append(
+                        InspectionTarget(
+                            file_path=relative,
+                            start_line=1,
+                            target_name=f"BinaryCompatibility:{_artifact_id(record)}",
+                            status=EngineStatus.FAIL,
+                            message="Selected binary manifest artifact is not an ELF object",
                         )
                     )
                     continue
@@ -250,7 +293,12 @@ class BinaryCompatibilityEngine(BaseEngine):
                     raise ValueError(f"readelf did not produce complete evidence for {relative}")
                 facts = parse_readelf(result.stdout)
                 checked += 1
-                artifact_findings = self._abi_violations(relative, facts, cfg)
+                artifact_findings = self._abi_violations(
+                    relative,
+                    facts,
+                    cfg,
+                    canonical_build_roots,
+                )
                 findings.extend(artifact_findings)
                 targets.append(
                     InspectionTarget(
