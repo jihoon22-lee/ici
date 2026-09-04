@@ -470,6 +470,13 @@
   duplicate semantics, remaining I4-4, or the broader I4 checkpoint. The version remains `0.10.2`;
   no release is created.
 
+### Changed
+
+- **Documentation status reconciliation:** The canonical master plan and handover now record merged
+  PRs #151/#152, their successful PR/exact-main CI, and exact-head-scoped Quality Zoo acceptance.
+  Future Python packaging, Make/ABI/hybrid integration, reporting, broader I4/I9 work, and stable
+  version `0.10.2` remain unchanged.
+
 ### Fixed
 
 - **Deterministic ZipApp bootstrap entry ordering and acceptance:** The packaging entrypoint
