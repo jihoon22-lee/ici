@@ -380,6 +380,73 @@ _DECLARATIONS = (
             "Lightweight parsing checks selected exception-safety patterns without full semantic analysis.",
         ),
     ),
+    SupportDeclaration(
+        "build",
+        SupportLanguage.PYTHON,
+        AnalysisMode.TOOL_BACKED,
+        FindingConfidence.HIGH,
+        required_tools=("python3",),
+        limitations=(
+            "Packages configured Python sources and entry points into a contained release tree; it does not build or publish a wheel.",
+            "Generated launchers use the selected runtime at execution time, so deployment environment dependencies remain outside this check.",
+        ),
+    ),
+    SupportDeclaration(
+        "build",
+        SupportLanguage.CPP,
+        AnalysisMode.TOOL_BACKED,
+        FindingConfidence.HIGH,
+        frameworks=_QT,
+        required_tools=("g++",),
+        optional_tools=("cmake", "qmake", "make", "pkg-config"),
+        limitations=(
+            "Builds a contained Release artifact with the declared CMake, qmake, Make, or direct g++ path; unsupported build descriptions fail closed.",
+            "The manifest records produced files and build evidence, not deployment host libraries or runtime behavior.",
+        ),
+    ),
+    SupportDeclaration(
+        "binary_compat",
+        SupportLanguage.PYTHON,
+        AnalysisMode.UNSUPPORTED,
+        FindingConfidence.LOW,
+        limitations=(
+            "ELF dependency and ABI checks apply to compiled artifacts, not Python source or pure-Python launchers.",
+        ),
+    ),
+    SupportDeclaration(
+        "binary_compat",
+        SupportLanguage.CPP,
+        AnalysisMode.TOOL_BACKED,
+        FindingConfidence.EXACT,
+        frameworks=_QT,
+        required_tools=("readelf",),
+        limitations=(
+            "Inspects only executable and shared-library artifacts published by the Release build manifest; it never executes or loads them.",
+            "ABI floors and loader/dependency policy cover the parsed ELF metadata and do not prove behavior on every deployment host.",
+        ),
+    ),
+    SupportDeclaration(
+        "integration",
+        SupportLanguage.PYTHON,
+        AnalysisMode.TOOL_BACKED,
+        FindingConfidence.HIGH,
+        required_tools=("python3",),
+        limitations=(
+            "Runs explicitly declared, shell-free process contracts with bounded output and timeout; undeclared runtime behavior is out of scope.",
+            "Python and artifact placeholders resolve only to validated targets published by the current analysis context.",
+        ),
+    ),
+    SupportDeclaration(
+        "integration",
+        SupportLanguage.CPP,
+        AnalysisMode.TOOL_BACKED,
+        FindingConfidence.HIGH,
+        frameworks=_QT,
+        limitations=(
+            "Runs explicitly declared, shell-free contracts against validated C++ artifacts; it does not replace unit, GUI, or protocol test coverage.",
+            "The process boundary is verified for declared exit, output, environment, and artifact assertions only.",
+        ),
+    ),
 )
 
 _DECLARED_ENGINE_NAMES = tuple(dict.fromkeys(item.engine_name for item in _DECLARATIONS))

@@ -7,12 +7,14 @@ from pathlib import Path
 import pytest
 
 from ici.config import DEFAULT_CONFIG
+from ici.core.findings import legacy_target_to_finding
 from ici.core.models import (
     AnalysisMode,
     EngineResult,
     EngineStatus,
     EvidenceState,
     FindingConfidence,
+    InspectionTarget,
     SupportLanguage,
     VerificationSuiteResult,
 )
@@ -48,6 +50,56 @@ def test_registry_declares_every_engine_language_pair_once():
             SupportLanguage.PYTHON,
             SupportLanguage.CPP,
         ]
+
+
+def test_build_binary_and_integration_declarations_match_their_execution_boundaries():
+    declarations = {(item.engine_name, item.language): item for item in support_declarations()}
+
+    build_python = declarations[("build", SupportLanguage.PYTHON)]
+    assert build_python.mode is AnalysisMode.TOOL_BACKED
+    assert build_python.required_tools == ("python3",)
+
+    build_cpp = declarations[("build", SupportLanguage.CPP)]
+    assert "qt" in build_cpp.frameworks
+    assert "g++" in build_cpp.required_tools
+    assert {"cmake", "qmake", "make"}.issubset(build_cpp.optional_tools)
+
+    assert declarations[("binary_compat", SupportLanguage.PYTHON)].mode is AnalysisMode.UNSUPPORTED
+    binary_cpp = declarations[("binary_compat", SupportLanguage.CPP)]
+    assert binary_cpp.mode is AnalysisMode.TOOL_BACKED
+    assert binary_cpp.confidence is FindingConfidence.EXACT
+    assert binary_cpp.required_tools == ("readelf",)
+
+    integration_python = declarations[("integration", SupportLanguage.PYTHON)]
+    integration_cpp = declarations[("integration", SupportLanguage.CPP)]
+    assert integration_python.mode is AnalysisMode.TOOL_BACKED
+    assert integration_cpp.mode is AnalysisMode.TOOL_BACKED
+    assert "qt" in integration_cpp.frameworks
+
+
+@pytest.mark.parametrize(
+    ("engine_name", "category"),
+    [
+        ("build", "build"),
+        ("binary_compat", "compatibility"),
+        ("integration", "correctness"),
+    ],
+)
+def test_new_engine_legacy_targets_use_stable_finding_categories(engine_name: str, category: str):
+    result = EngineResult(engine_name, EngineStatus.PASS, "ok")
+    finding = legacy_target_to_finding(
+        result,
+        # The target is deliberately minimal: this exercises the same adapter
+        # used when an engine has not yet emitted native v3 findings.
+        InspectionTarget(
+            file_path="src/main.cpp",
+            start_line=1,
+            target_name="contract",
+            status=EngineStatus.PASS,
+        ),
+        project_root=Path("/workspace/project"),
+    )
+    assert finding.category.value == category
 
 
 def test_matrix_discovers_hybrid_qt_scope_and_does_not_claim_unrun_evidence(tmp_path: Path):

@@ -28,6 +28,7 @@ FINGERPRINT_VERSION = "ici-fingerprint/v1"
 
 _CATEGORY_BY_ENGINE = {
     "build": FindingCategory.BUILD,
+    "binary_compat": FindingCategory.COMPATIBILITY,
     "complexity": FindingCategory.MAINTAINABILITY,
     "cognitive": FindingCategory.MAINTAINABILITY,
     "compile_db": FindingCategory.BUILD,
@@ -35,6 +36,7 @@ _CATEGORY_BY_ENGINE = {
     "dead": FindingCategory.MAINTAINABILITY,
     "dup": FindingCategory.MAINTAINABILITY,
     "exception": FindingCategory.CORRECTNESS,
+    "integration": FindingCategory.CORRECTNESS,
     "line": FindingCategory.MAINTAINABILITY,
     "lint": FindingCategory.MAINTAINABILITY,
     "python_compat": FindingCategory.CORRECTNESS,
