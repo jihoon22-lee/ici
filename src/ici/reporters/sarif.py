@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from ici import __version__
 from ici.core.findings import canonicalize_finding, findings_for_result
@@ -119,7 +120,7 @@ def _location(location: SourceLocation) -> dict[str, Any]:
         region["endColumn"] = location.end_column
     physical: dict[str, Any] = {
         "artifactLocation": {
-            "uri": location.path,
+            "uri": quote(location.path, safe="/"),
             "uriBaseId": "%SRCROOT%",
         },
         "region": region,

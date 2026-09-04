@@ -143,6 +143,17 @@ def test_sarif_orders_rules_and_results_independently_of_input_order(tmp_path: P
     ]
 
 
+def test_sarif_artifact_locations_are_valid_percent_encoded_uris(tmp_path: Path):
+    payload = sarif.serialize_sarif(
+        _suite([_result(_finding(path="src/space #한글%.py"))]), project_root=tmp_path
+    )
+
+    artifact = payload["runs"][0]["results"][0]["locations"][0]["physicalLocation"][
+        "artifactLocation"
+    ]
+    assert artifact["uri"] == "src/space%20%23%ED%95%9C%EA%B8%80%25.py"
+
+
 def test_sarif_maps_baseline_delta_and_emits_resolved_result(tmp_path: Path):
     current = _finding(path="src/current.py", line=7)
     old = _finding(path="src/old.py", line=3)
