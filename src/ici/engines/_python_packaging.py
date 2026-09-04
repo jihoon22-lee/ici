@@ -367,8 +367,68 @@ def _wheel_paths(root: Path, policy: PackagingPolicy) -> list[Path]:
 
 
 def _safe_member_name(value: str) -> bool:
-    path = PurePosixPath(value)
-    return bool(value) and not path.is_absolute() and ".." not in path.parts and "\\" not in value
+    """Return whether a wheel member uses one unambiguous POSIX spelling.
+
+    ZIP archives permit spellings such as ``pkg//module.py`` and
+    ``pkg/./module.py`` even though extraction APIs usually normalize them to
+    the same filesystem path as ``pkg/module.py``.  Treating those spellings
+    as distinct lets an archive contain two logical files with different
+    RECORD rows.  A single trailing slash is retained only for an explicit
+    directory member; all other members must be regular canonical paths.
+    """
+
+    if not value or "\\" in value:
+        return False
+    is_directory = value.endswith("/")
+    path_text = value[:-1] if is_directory else value
+    if not path_text:
+        return False
+    path = PurePosixPath(path_text)
+    if path.is_absolute() or ".." in path.parts:
+        return False
+    canonical = path.as_posix()
+    if not canonical or canonical == ".":
+        return False
+    return value == (canonical + "/" if is_directory else canonical)
+
+
+def _dist_info_directories(names: list[str]) -> set[str]:
+    """Return every archive path containing a ``.dist-info`` directory."""
+
+    directories: set[str] = set()
+    for name in names:
+        parts = name.split("/")
+        for index, component in enumerate(parts):
+            if component.endswith(".dist-info"):
+                directories.add("/".join(parts[: index + 1]))
+    return directories
+
+
+def _dist_info_identity_matches(
+    directory: str, filename_name: str, filename_version: Version
+) -> bool:
+    """Check a dist-info directory against normalized wheel filename identity."""
+
+    if "/" in directory or not directory.endswith(".dist-info"):
+        return False
+    stem = directory[: -len(".dist-info")]
+    if "-" not in stem:
+        return False
+    directory_name, directory_version = stem.rsplit("-", 1)
+    try:
+        parsed_version = Version(directory_version)
+    except InvalidVersion:
+        return False
+    return (
+        canonicalize_name(directory_name) == canonicalize_name(filename_name)
+        and parsed_version == filename_version
+    )
+
+
+def _duplicate_headers(headers: dict[str, list[str]], names: tuple[str, ...]) -> tuple[str, ...]:
+    """Return duplicate singleton header names in deterministic order."""
+
+    return tuple(sorted(name for name in names if len(headers.get(name, [])) > 1))
 
 
 def _read_member(archive: zipfile.ZipFile, info: zipfile.ZipInfo) -> bytes:
@@ -489,7 +549,9 @@ def _headers(payload: bytes, member: str) -> dict[str, list[str]]:
         raise PythonPackagingError(f"wheel metadata is not UTF-8: {member}") from err
     result: dict[str, list[str]] = {}
     for line in text.splitlines():
-        if not line or line[0].isspace() or ":" not in line:
+        if not line:
+            break
+        if line[0].isspace() or ":" not in line:
             continue
         name, value = line.split(":", 1)
         result.setdefault(name.casefold(), []).append(value.strip())
@@ -521,7 +583,10 @@ def _wheel_findings(
         names = [info.filename for info in infos]
         if len(names) != len(set(names)):
             raise PythonPackagingError(f"wheel contains duplicate member names: {relative}")
-        portable_names = [unicodedata.normalize("NFC", name).casefold() for name in names]
+        portable_names = [
+            unicodedata.normalize("NFC", name[:-1] if name.endswith("/") else name).casefold()
+            for name in names
+        ]
         if len(portable_names) != len(set(portable_names)):
             raise PythonPackagingError(
                 f"wheel contains names that collide on portable filesystems: {relative}"
@@ -529,6 +594,10 @@ def _wheel_findings(
         if any(not _safe_member_name(name) for name in names):
             raise PythonPackagingError(f"wheel contains an unsafe member path: {relative}")
         for info in infos:
+            if info.is_dir() and info.file_size:
+                raise PythonPackagingError(
+                    f"wheel contains a non-empty directory member: {relative}"
+                )
             mode = (info.external_attr >> 16) & 0xFFFF
             file_type = stat.S_IFMT(mode)
             if stat.S_ISLNK(mode) or (
@@ -551,10 +620,53 @@ def _wheel_findings(
             raise PythonPackagingError(
                 f"wheel must contain exactly one WHEEL, METADATA, and RECORD file: {relative}"
             )
+        dist_info_directories = _dist_info_directories(names)
+        if len(dist_info_directories) != 1:
+            raise PythonPackagingError(
+                f"wheel must contain exactly one .dist-info directory: {relative}"
+            )
+        dist_info_directory = next(iter(dist_info_directories))
+        if "/" in dist_info_directory:
+            raise PythonPackagingError(
+                f"wheel .dist-info directory must be at the archive root: {relative}"
+            )
+        if not _dist_info_identity_matches(
+            dist_info_directory, str(filename_name), filename_version
+        ):
+            findings.append(
+                _finding(
+                    "ici.package.wheel-metadata-mismatch",
+                    relative,
+                    1,
+                    "Wheel .dist-info directory identity does not match its filename",
+                    severity=FindingSeverity.HIGH,
+                    tool_rule_id="wheel.dist-info-identity",
+                )
+            )
+        if any(
+            info.filename != f"{dist_info_directory}/{required_name}"
+            for info, required_name in (
+                (wheel_infos[0], "WHEEL"),
+                (metadata_infos[0], "METADATA"),
+                (record_infos[0], "RECORD"),
+            )
+        ):
+            raise PythonPackagingError(
+                f"wheel must contain exactly one WHEEL, METADATA, and RECORD file: {relative}"
+            )
         wheel_headers = _headers(_read_member(archive, wheel_infos[0]), wheel_infos[0].filename)
         metadata_headers = _headers(
             _read_member(archive, metadata_infos[0]), metadata_infos[0].filename
         )
+        duplicate_wheel_headers = _duplicate_headers(
+            wheel_headers, ("wheel-version", "generator", "root-is-purelib")
+        )
+        duplicate_metadata_headers = _duplicate_headers(metadata_headers, ("name", "version"))
+        duplicate_headers = duplicate_metadata_headers + duplicate_wheel_headers
+        if duplicate_headers:
+            raise PythonPackagingError(
+                "wheel contains duplicate singleton headers: " + ", ".join(duplicate_headers)
+            )
         record_rows = _record_rows(_read_member(archive, record_infos[0]), record_infos[0].filename)
         record_violations = _record_violations(archive, infos, record_infos[0], record_rows)
         if record_violations:
@@ -640,7 +752,7 @@ def _wheel_findings(
                     )
                 )
         entrypoint_files = [
-            info for info in infos if info.filename.endswith(".dist-info/entry_points.txt")
+            info for info in infos if info.filename == f"{dist_info_directory}/entry_points.txt"
         ]
         if policy.check_entrypoints and package.entrypoints and len(entrypoint_files) != 1:
             findings.append(

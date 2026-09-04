@@ -23,15 +23,21 @@ from ici.engines._python_packaging import (
 from ici.engines.python_compat import PythonCompatibilityEngine
 
 
-def _project(root: Path, *, target: str = "demo.cli:main") -> list[Path]:
-    package = root / "src" / "demo"
+def _project(
+    root: Path,
+    *,
+    target: str = "demo.cli:main",
+    name: str = "demo",
+    package_name: str = "demo",
+) -> list[Path]:
+    package = root / "src" / package_name
     package.mkdir(parents=True)
     init = package / "__init__.py"
     cli = package / "cli.py"
     init.write_text("VALUE = 1\n", encoding="utf-8")
     cli.write_text("def main():\n    return 0\n", encoding="utf-8")
     (root / "pyproject.toml").write_text(
-        f'[project]\nname = "demo"\nversion = "1.2.3"\n[project.scripts]\ndemo = "{target}"\n',
+        f'[project]\nname = "{name}"\nversion = "1.2.3"\n[project.scripts]\ndemo = "{target}"\n',
         encoding="utf-8",
     )
     return [init, cli]
@@ -47,28 +53,46 @@ def _wheel(
     native: bool = False,
     valid_record: bool = True,
     wheel_entrypoint: str = "demo.cli:main",
-    metadata_name: str = "demo",
+    metadata_name: str | None = None,
+    dist_info: str = "demo-1.2.3.dist-info",
+    metadata_extra: str = "",
+    wheel_extra: str = "",
+    extra_members: dict[str, bytes] | None = None,
+    filename_name: str = "demo",
+    filename_version: str = "1.2.3",
+    package_name: str = "demo",
 ) -> Path:
-    path = root / "dist" / f"demo-1.2.3-{tag}.whl"
+    path = root / "dist" / f"{filename_name}-{filename_version}-{tag}.whl"
     path.parent.mkdir()
+    if metadata_name is None:
+        metadata_name = filename_name
     members: dict[str, bytes] = {
-        "demo-1.2.3.dist-info/WHEEL": (
+        f"{dist_info}/WHEEL": (
             "Wheel-Version: 1.0\n"
             "Generator: test\n"
             f"Root-Is-Purelib: {'true' if root_is_pure else 'false'}\n"
             f"Tag: {tag}\n"
+            f"{wheel_extra}"
         ).encode(),
-        "demo-1.2.3.dist-info/METADATA": (f"Name: {metadata_name}\nVersion: 1.2.3\n".encode()),
+        f"{dist_info}/METADATA": (
+            f"Name: {metadata_name}\nVersion: 1.2.3\n{metadata_extra}".encode()
+        ),
     }
     if include_sources:
-        members.update({"demo/__init__.py": b"VALUE = 1\n", "demo/cli.py": b"def main(): pass\n"})
+        members.update(
+            {
+                f"{package_name}/__init__.py": b"VALUE = 1\n",
+                f"{package_name}/cli.py": b"def main(): pass\n",
+            }
+        )
     if include_entrypoints:
-        members["demo-1.2.3.dist-info/entry_points.txt"] = (
+        members[f"{dist_info}/entry_points.txt"] = (
             f"[console_scripts]\ndemo={wheel_entrypoint}\n".encode()
         )
     if native:
-        members["demo/native.so"] = b"\x7fELF"
-    record_name = "demo-1.2.3.dist-info/RECORD"
+        members[f"{package_name}/native.so"] = b"\x7fELF"
+    members.update(extra_members or {})
+    record_name = f"{dist_info}/RECORD"
     rows = [
         [
             name,
@@ -238,6 +262,128 @@ def test_wheel_symlink_member_is_rejected(tmp_path: Path) -> None:
     assert result.metadata["attempted"] == 1
     assert result.metadata["checked"] == 0
     assert result.metadata["invalid"] == 1
+
+
+@pytest.mark.parametrize(
+    "member_name",
+    ["demo//extra.py", "demo/./extra.py", "./demo/extra.py", "demo//", "demo/./"],
+)
+def test_wheel_rejects_noncanonical_member_paths(tmp_path: Path, member_name: str) -> None:
+    sources = _project(tmp_path)
+    _wheel(tmp_path, extra_members={member_name: b""})
+
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert [finding.rule_id for finding in result.findings] == ["ici.package.wheel-invalid"]
+    assert result.targets[1].status is EngineStatus.FAIL
+
+
+def test_wheel_accepts_canonical_directory_member(tmp_path: Path) -> None:
+    sources = _project(tmp_path)
+    _wheel(tmp_path, extra_members={"demo/": b""})
+
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert result.findings == ()
+
+
+def test_wheel_rejects_file_directory_alias(tmp_path: Path) -> None:
+    sources = _project(tmp_path)
+    _wheel(tmp_path, extra_members={"demo": b"file", "demo/": b""})
+
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert [finding.rule_id for finding in result.findings] == ["ici.package.wheel-invalid"]
+    assert "portable filesystems" in result.findings[0].message
+
+
+def test_wheel_rejects_non_empty_directory_member(tmp_path: Path) -> None:
+    sources = _project(tmp_path)
+    _wheel(tmp_path, extra_members={"extra/": b"unexpected payload"})
+
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert [finding.rule_id for finding in result.findings] == ["ici.package.wheel-invalid"]
+    assert "non-empty directory" in result.findings[0].message
+
+
+def test_wheel_dist_info_directory_matches_normalized_filename_identity(tmp_path: Path) -> None:
+    sources = _project(
+        tmp_path,
+        name="demo-pkg",
+        package_name="demo_pkg",
+        target="demo_pkg.cli:main",
+    )
+    _wheel(
+        tmp_path,
+        filename_name="demo_pkg",
+        metadata_name="demo-pkg",
+        package_name="demo_pkg",
+        wheel_entrypoint="demo_pkg.cli:main",
+        dist_info="demo_pkg-1.2.3.dist-info",
+    )
+
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert result.findings == ()
+
+
+def test_wheel_rejects_dist_info_directory_identity_mismatch(tmp_path: Path) -> None:
+    sources = _project(tmp_path)
+    _wheel(tmp_path, dist_info="evil-9.9.9.dist-info")
+
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert {finding.rule_id for finding in result.findings} == {
+        "ici.package.wheel-metadata-mismatch"
+    }
+    assert result.targets[1].status is EngineStatus.FAIL
+
+
+def test_wheel_rejects_multiple_dist_info_directories(tmp_path: Path) -> None:
+    sources = _project(tmp_path)
+    _wheel(tmp_path, extra_members={"other-1.0.dist-info/NOTICE": b""})
+
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert [finding.rule_id for finding in result.findings] == ["ici.package.wheel-invalid"]
+
+
+@pytest.mark.parametrize(
+    ("metadata_extra", "wheel_extra"),
+    [
+        ("Name: conflicting\n", ""),
+        ("Version: 9.9.9\n", ""),
+        ("", "Wheel-Version: 2.0\n"),
+        ("", "Generator: conflicting\n"),
+        ("", "Root-Is-Purelib: false\n"),
+    ],
+)
+def test_wheel_rejects_duplicate_singleton_headers(
+    tmp_path: Path, metadata_extra: str, wheel_extra: str
+) -> None:
+    sources = _project(tmp_path)
+    _wheel(tmp_path, metadata_extra=metadata_extra, wheel_extra=wheel_extra)
+
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert [finding.rule_id for finding in result.findings] == ["ici.package.wheel-invalid"]
 
 
 def test_wheel_member_and_uncompressed_bounds_fail_closed(tmp_path: Path) -> None:
