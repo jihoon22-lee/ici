@@ -110,15 +110,21 @@ def cpp_cognitive_metric(body: str) -> CppCognitiveMetric:
     cognitive = 0
     max_nesting = 0
     control_depth = 0
-    block_controls: list[bool] = []
+    block_controls: list[str | None] = []
     pending_control: str | None = None
     logical_operator: str | None = None
     logical_sequences = 0
     unbraced_controls = 0
     skip_if_after_else = False
+    skip_do_while = False
     parenthesis_depth = 0
 
     for index, token in enumerate(tokens):
+        if skip_do_while:
+            skip_do_while = False
+            if token == "while":
+                logical_operator = None
+                continue
         if skip_if_after_else and token == "if":
             skip_if_after_else = False
             continue
@@ -156,17 +162,18 @@ def cpp_cognitive_metric(body: str) -> CppCognitiveMetric:
             parenthesis_depth = max(0, parenthesis_depth - 1)
             continue
         if token == "{":
-            is_control = pending_control is not None
-            block_controls.append(is_control)
-            if is_control:
+            block_controls.append(pending_control)
+            if pending_control is not None:
                 control_depth += 1
                 max_nesting = max(max_nesting, control_depth)
             pending_control = None
             logical_operator = None
             continue
         if token == "}":
-            if block_controls and block_controls.pop():
+            closed_control = block_controls.pop() if block_controls else None
+            if closed_control is not None:
                 control_depth = max(0, control_depth - 1)
+            skip_do_while = closed_control == "do"
             pending_control = None
             logical_operator = None
             continue

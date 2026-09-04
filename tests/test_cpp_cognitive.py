@@ -55,6 +55,14 @@ def test_metric_marks_unbraced_control_as_lower_confidence() -> None:
     assert metric.max_nesting == 0
 
 
+def test_do_while_is_counted_as_one_loop() -> None:
+    metric = cpp_cognitive_metric("{ do { work(); } while (retry && ready); }")
+
+    assert metric.cognitive == 2
+    assert metric.max_nesting == 1
+    assert metric.logical_sequences == 1
+
+
 def test_cpp_engine_reports_every_function_with_estimated_evidence(tmp_path: Path) -> None:
     source = tmp_path / "src"
     source.mkdir()
