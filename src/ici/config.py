@@ -21,6 +21,28 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "project": {
         "source_dirs": ["src", "lib", "app", "packages", "python"],
     },
+    "build": {
+        # Handwritten Make projects opt in explicitly.  Empty command vectors
+        # keep the default safe and make the required build/test contract
+        # visible when a project enables this backend.
+        "make": {
+            "enabled": False,
+            "workdir": ".",
+            "shadow_dir": "build/ici-make",
+            "out_of_tree": "allow",
+            "configure_argv": [],
+            "build_argv": [],
+            "test_argv": [],
+            "clean_argv": [],
+            "jobs": 1,
+            "coverage_build_argv": [],
+            "coverage_test_argv": [],
+            "sanitize_build_argv": [],
+            "sanitize_test_argv": [],
+            "thread_sanitize_build_argv": [],
+            "thread_sanitize_test_argv": [],
+        }
+    },
     "doctor": {
         # Tools named here are still probed even if missing, but a missing
         # required tool renders as a WARN row in `ici doctor` instead of a
@@ -29,6 +51,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "required_tools": [],
     },
     "engines": {
+        "build": {
+            "enabled": False,
+            "mode": "pass_warn_fail",
+            "required": False,
+        },
         "line": {
             "enabled": True,
             "mode": "pass_warn_fail",  # pass_warn_fail | pass_fail | pass_warn
@@ -167,6 +194,32 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "resource": {
             "enabled": True,
             "mode": "pass_warn",
+        },
+        "binary_compat": {
+            "enabled": False,
+            "mode": "pass_warn_fail",
+            "required": False,
+            "artifacts": [],
+            "expected_class": "",
+            "expected_machine": "",
+            "max_glibc": "",
+            "max_glibcxx": "",
+            "max_cxxabi": "",
+            "forbid_absolute_rpath": True,
+            "forbidden_needed": [],
+            "allowed_needed": [],
+            "forbid_build_paths": True,
+            "allow_non_elf": False,
+            "max_artifacts": 64,
+        },
+        "integration": {
+            "enabled": False,
+            "mode": "pass_warn_fail",
+            "required": False,
+            "max_cases": 32,
+            "max_output_bytes": 64 * 1024,
+            "python_targets": {},
+            "cases": [],
         },
     },
 }
