@@ -31,9 +31,12 @@ from ici.engines.cpp_text import (
 
 _MAX_SOURCES = 2_048
 _MAX_SOURCE_BYTES = 64 * 1024 * 1024
-_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|&&|\|\||::|->|[{}();?:]")
-_CONTROL_WORDS = frozenset({"if", "for", "while", "switch", "catch", "do"})
+_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|&&|\|\||::|->|[{}(),;?:!]")
+_CONTROL_WORDS = frozenset({"if", "for", "while", "switch", "do"})
 _JUMP_WORDS = frozenset({"break", "continue", "goto"})
+_LOGICAL_WORDS = {"&&": "and", "and": "and", "||": "or", "or": "or"}
+_MAX_TOKENS_PER_FUNCTION = 1_000_000
+_MAX_CONTROL_NESTING = 128
 
 
 @dataclass(frozen=True)
@@ -64,6 +67,7 @@ class CppCognitiveOutcome:
     lambdas_excluded: int = 0
     macro_functions_excluded: int = 0
     max_cognitive: int = 0
+    functions_analyzed: int = 0
 
 
 def _source_slice(
@@ -83,6 +87,10 @@ def _source_slice(
         or end_column < 1
     ):
         raise ValueError("function body range is outside its source")
+    start_width = len(lines[start_line - 1]) + 1
+    end_width = len(lines[end_line - 1]) + 1
+    if start_column > start_width or end_column > end_width:
+        raise ValueError("function body column is outside its source line")
     selected = lines[start_line - 1 : end_line]
     if start_line == end_line:
         if end_column < start_column:
@@ -105,95 +113,246 @@ def cpp_cognitive_metric(body: str) -> CppCognitiveMetric:
     masked = mask_cpp_literals(body)
     without_lambdas, lambda_ranges = mask_cpp_lambda_bodies(masked)
     conditional = cpp_has_conditional_directive(without_lambdas)
-    tokens = _TOKEN_RE.findall(mask_cpp_preprocessor_directives(without_lambdas))
+    directive_free = mask_cpp_preprocessor_directives(without_lambdas)
+    # Alternative brace tokens are part of the C++ grammar. They are replaced
+    # only after literal/comment masking so text inside a string cannot become
+    # structure.
+    tokens = _TOKEN_RE.findall(directive_free.replace("<%", "{").replace("%>", "}"))
+    if len(tokens) > _MAX_TOKENS_PER_FUNCTION:
+        raise ValueError("function token count exceeds the bounded limit")
 
-    cognitive = 0
-    max_nesting = 0
-    control_depth = 0
-    block_controls: list[str | None] = []
-    pending_control: str | None = None
+    expression_cognitive = 0
     logical_operator: str | None = None
     logical_sequences = 0
-    unbraced_controls = 0
-    skip_if_after_else = False
-    skip_do_while = False
-    parenthesis_depth = 0
-
-    for index, token in enumerate(tokens):
-        if skip_do_while:
-            skip_do_while = False
-            if token == "while":
-                logical_operator = None
-                continue
-        if skip_if_after_else and token == "if":
-            skip_if_after_else = False
-            continue
-        skip_if_after_else = False
-
-        if token == "else":
-            cognitive += 1 + control_depth
-            pending_control = "else"
-            if index + 1 < len(tokens) and tokens[index + 1] == "if":
-                pending_control = "if"
-                skip_if_after_else = True
-            logical_operator = None
-            continue
-        if token in _CONTROL_WORDS:
-            cognitive += 1 + control_depth
-            pending_control = token
-            logical_operator = None
+    for token in tokens:
+        normalized_logical = _LOGICAL_WORDS.get(token)
+        if normalized_logical is not None:
+            if logical_operator != normalized_logical:
+                expression_cognitive += 1
+                logical_sequences += 1
+                logical_operator = normalized_logical
             continue
         if token in _JUMP_WORDS:
-            cognitive += 1
+            expression_cognitive += 1
             continue
         if token == "?":
-            cognitive += 1
-            continue
-        if token in {"&&", "||"}:
-            if logical_operator != token:
-                cognitive += 1
-                logical_sequences += 1
-                logical_operator = token
-            continue
-        if token == "(":
-            parenthesis_depth += 1
-            continue
-        if token == ")":
-            parenthesis_depth = max(0, parenthesis_depth - 1)
-            continue
-        if token == "{":
-            block_controls.append(pending_control)
-            if pending_control is not None:
-                control_depth += 1
-                max_nesting = max(max_nesting, control_depth)
-            pending_control = None
+            expression_cognitive += 1
             logical_operator = None
             continue
-        if token == "}":
-            closed_control = block_controls.pop() if block_controls else None
-            if closed_control is not None:
-                control_depth = max(0, control_depth - 1)
-            skip_do_while = closed_control == "do"
-            pending_control = None
+        # Each expression/statement boundary starts a new logical sequence.
+        # Commas and for-header semicolons count even inside parentheses.
+        if token in {",", ";", "{", "}", ":"} or token in _CONTROL_WORDS | {
+            "catch",
+            "else",
+        }:
             logical_operator = None
-            continue
-        if token == ";":
-            if parenthesis_depth == 0 and pending_control is not None:
-                unbraced_controls += 1
-                pending_control = None
-            if parenthesis_depth == 0:
-                logical_operator = None
 
-    if pending_control is not None:
-        unbraced_controls += 1
+    parser = _CppControlParser(tokens)
+    parser.parse()
     return CppCognitiveMetric(
-        cognitive=cognitive,
-        max_nesting=max_nesting,
-        unbraced_controls=unbraced_controls,
+        cognitive=parser.cognitive + expression_cognitive,
+        max_nesting=parser.max_nesting,
+        unbraced_controls=parser.unbraced_controls,
         logical_sequences=logical_sequences,
         excluded_lambdas=len(lambda_ranges),
         preprocessor_conditional=conditional,
     )
+
+
+class _CppControlParser:
+    """Small statement parser used only for nesting weights.
+
+    It intentionally ignores types and expressions, but unlike a pending-token
+    counter it understands the recursive shape of controlled statements. This
+    is enough to distinguish nested unbraced flow, do/while tails, and
+    initializer-list braces without claiming compiler-grade semantics.
+    """
+
+    def __init__(self, tokens: list[str]) -> None:
+        self.tokens = tokens
+        self.position = 0
+        self.cognitive = 0
+        self.max_nesting = 0
+        self.unbraced_controls = 0
+        self.recursion_depth = 0
+
+    def parse(self) -> None:
+        while self.position < len(self.tokens):
+            self._statement(0)
+
+    def _peek(self) -> str | None:
+        return self.tokens[self.position] if self.position < len(self.tokens) else None
+
+    def _take(self, expected: str | None = None) -> str:
+        token = self._peek()
+        if token is None:
+            raise ValueError("function token stream ended unexpectedly")
+        if expected is not None and token != expected:
+            raise ValueError(f"expected {expected!r}, found {token!r}")
+        self.position += 1
+        return token
+
+    def _balanced(self, opening: str, closing: str) -> None:
+        self._take(opening)
+        depth = 1
+        while depth:
+            token = self._take()
+            if token == opening:
+                depth += 1
+            elif token == closing:
+                depth -= 1
+
+    def _compound(self, nesting: int) -> None:
+        self._take("{")
+        while self._peek() not in {None, "}"}:
+            self._statement(nesting)
+        self._take("}")
+
+    def _controlled_body(self, nesting: int) -> None:
+        if self._peek() == "{":
+            self.max_nesting = max(self.max_nesting, nesting)
+            self._compound(nesting)
+            return
+        self.unbraced_controls += 1
+        self._statement(nesting)
+
+    def _header(self) -> None:
+        if self._peek() != "(":
+            raise ValueError("control statement is missing its parenthesized header")
+        self._balanced("(", ")")
+
+    def _if(self, nesting: int, *, score: bool = True) -> None:
+        self._take("if")
+        if score:
+            self.cognitive += 1 + nesting
+        if self._peek() == "constexpr":
+            self._take("constexpr")
+        is_consteval = False
+        if self._peek() == "!":
+            self._take("!")
+            if self._peek() != "consteval":
+                raise ValueError("if ! must be followed by consteval")
+        if self._peek() == "consteval":
+            self._take("consteval")
+            is_consteval = True
+        else:
+            self._header()
+        if is_consteval and self._peek() != "{":
+            raise ValueError("if consteval requires a compound statement")
+        self._controlled_body(nesting + 1)
+        if self._peek() != "else":
+            return
+        self._take("else")
+        self.cognitive += 1 + nesting
+        if self._peek() == "if":
+            # An else-if extends the current decision chain; the else branch is
+            # the increment, rather than an additional nested `if` increment.
+            self._if(nesting, score=False)
+        else:
+            if is_consteval and self._peek() != "{":
+                raise ValueError("if consteval else requires a compound statement")
+            self._controlled_body(nesting + 1)
+
+    def _do(self, nesting: int) -> None:
+        self._take("do")
+        self.cognitive += 1 + nesting
+        self._controlled_body(nesting + 1)
+        self._take("while")
+        self._header()
+        if self._peek() == ";":
+            self._take(";")
+
+    def _try(self, nesting: int) -> None:
+        self._take("try")
+        if self._peek() != "{":
+            raise ValueError("try must be followed by a compound statement")
+        self._compound(nesting)
+        catches = 0
+        while self._peek() == "catch":
+            catches += 1
+            self._take("catch")
+            self.cognitive += 1 + nesting
+            self._header()
+            self._controlled_body(nesting + 1)
+        if catches == 0:
+            raise ValueError("try statement is missing a catch handler")
+
+    def _control(self, nesting: int) -> None:
+        token = self._peek()
+        if token == "if":
+            self._if(nesting)
+            return
+        if token == "do":
+            self._do(nesting)
+            return
+        if token not in _CONTROL_WORDS:
+            raise ValueError("internal control parser mismatch")
+        self._take()
+        self.cognitive += 1 + nesting
+        self._header()
+        self._controlled_body(nesting + 1)
+
+    def _simple(self) -> None:
+        start = self.position
+        parentheses = 0
+        initializer_braces = 0
+        while self.position < len(self.tokens):
+            token = self._peek()
+            if (
+                self.position > start
+                and parentheses == 0
+                and initializer_braces == 0
+                and (token in _CONTROL_WORDS or token in {"catch", "else", "try"})
+            ):
+                # A label (`case value:`, `default:`, or a user label) may be
+                # followed immediately by a controlled statement. Do not let
+                # the label's otherwise-simple token run swallow that flow.
+                break
+            if token == "(":
+                parentheses += 1
+            elif token == ")":
+                if parentheses == 0:
+                    raise ValueError("unmatched closing parenthesis in function body")
+                parentheses -= 1
+            elif token == "{":
+                initializer_braces += 1
+            elif token == "}":
+                if initializer_braces:
+                    initializer_braces -= 1
+                elif parentheses == 0:
+                    break
+            self.position += 1
+            if token == ":" and parentheses == 0 and initializer_braces == 0:
+                break
+            if token == ";" and parentheses == 0 and initializer_braces == 0:
+                break
+        if parentheses or initializer_braces:
+            raise ValueError("unclosed expression delimiter in function body")
+
+    def _statement(self, nesting: int) -> None:
+        self.recursion_depth += 1
+        try:
+            if self.recursion_depth > _MAX_CONTROL_NESTING:
+                raise ValueError("control nesting exceeds the bounded limit")
+            token = self._peek()
+            if token is None:
+                return
+            if token == "{":
+                self._compound(nesting)
+            elif token == "try":
+                self._try(nesting)
+            elif token in _CONTROL_WORDS:
+                self._control(nesting)
+            elif token == "catch":
+                raise ValueError("catch handler is missing its matching try")
+            elif token == "else":
+                raise ValueError("else statement is missing its matching if")
+            elif token == "}":
+                raise ValueError("unmatched closing brace in function body")
+            else:
+                self._simple()
+        finally:
+            self.recursion_depth -= 1
 
 
 def _matching_span(boundary: CppFunctionBoundary, spans: list[_CppFunctionSpan]) -> int | None:
@@ -287,9 +446,25 @@ def analyze_cpp_cognitive(
             relative = source.relative_to(project_root).as_posix()
             text = read_cpp_source_text(project_root, relative)
             spans, _metric_lines = _cpp_function_inventory(text.splitlines())
-        except (OSError, UnicodeError, ValueError):
-            outcome.errors.append(
-                f"C++ cognitive source is not a bounded project file: {source.name}"
+        except (OSError, UnicodeError, ValueError) as err:
+            try:
+                relative = source.relative_to(project_root).as_posix()
+            except ValueError:
+                relative = source.name
+            message = (
+                f"C++ cognitive source is not a bounded project file: {relative} "
+                f"({type(err).__name__})"
+            )
+            outcome.errors.append(message)
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=relative,
+                    start_line=1,
+                    target_name="CppCognitiveSourceError",
+                    status=EngineStatus.ERROR,
+                    message=message,
+                    metrics={"boundary_source": "source-intake"},
+                )
             )
             continue
         source_bytes += len(text.encode("utf-8"))
@@ -347,8 +522,20 @@ def analyze_cpp_cognitive(
             )
             metric = cpp_cognitive_metric(body)
         except ValueError as err:
-            outcome.errors.append(
-                f"C++ cognitive function range is invalid: {boundary.file_path}: {err}"
+            message = f"C++ cognitive function range is invalid: {boundary.file_path}: {err}"
+            outcome.errors.append(message)
+            outcome.targets.append(
+                InspectionTarget(
+                    file_path=boundary.file_path,
+                    start_line=boundary.start_line,
+                    end_line=boundary.end_line,
+                    start_column=boundary.start_column,
+                    end_column=boundary.end_column,
+                    target_name=boundary.name,
+                    status=EngineStatus.ERROR,
+                    message=message,
+                    metrics={"boundary_source": "clang-tidy-ast"},
+                )
             )
             continue
         outcome.targets.append(
@@ -368,6 +555,7 @@ def analyze_cpp_cognitive(
             )
         )
         outcome.exact_boundaries += 1
+        outcome.functions_analyzed += 1
         outcome.max_cognitive = max(outcome.max_cognitive, metric.cognitive)
         index = _matching_span(boundary, spans)
         if index is not None:
@@ -375,7 +563,23 @@ def analyze_cpp_cognitive(
 
     for path, (text, spans) in source_rows.items():
         for index, span in enumerate(spans):
-            if index in matched[path] or span.end_column is None:
+            if index in matched[path]:
+                continue
+            if span.end_column is None:
+                message = f"C++ cognitive function range is unterminated: {path}:{span.start_line}"
+                outcome.errors.append(message)
+                outcome.targets.append(
+                    InspectionTarget(
+                        file_path=path,
+                        start_line=span.start_line,
+                        end_line=span.end_line,
+                        start_column=span.start_column,
+                        target_name=span.name,
+                        status=EngineStatus.ERROR,
+                        message=message,
+                        metrics={"boundary_source": "source-scanner"},
+                    )
+                )
                 continue
             try:
                 body = _source_slice(
@@ -387,7 +591,21 @@ def analyze_cpp_cognitive(
                 )
                 metric = cpp_cognitive_metric(body)
             except ValueError as err:
-                outcome.errors.append(f"C++ cognitive function range is invalid: {path}: {err}")
+                message = f"C++ cognitive function range is invalid: {path}: {err}"
+                outcome.errors.append(message)
+                outcome.targets.append(
+                    InspectionTarget(
+                        file_path=path,
+                        start_line=span.start_line,
+                        end_line=span.end_line,
+                        start_column=span.start_column,
+                        end_column=span.end_column,
+                        target_name=span.name,
+                        status=EngineStatus.ERROR,
+                        message=message,
+                        metrics={"boundary_source": "source-scanner"},
+                    )
+                )
                 continue
             outcome.targets.append(
                 _target(
@@ -405,6 +623,7 @@ def analyze_cpp_cognitive(
                 )
             )
             outcome.estimated_boundaries += 1
+            outcome.functions_analyzed += 1
             outcome.max_cognitive = max(outcome.max_cognitive, metric.cognitive)
 
     if outcome.errors:

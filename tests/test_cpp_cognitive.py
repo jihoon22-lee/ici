@@ -113,6 +113,55 @@ def test_alternative_logical_tokens_match_symbolic_operators() -> None:
 
 
 @pytest.mark.parametrize(
+    "condition",
+    ["constexpr (ready)", "consteval", "! consteval"],
+)
+def test_cpp_if_variants_preserve_control_nesting(condition: str) -> None:
+    metric = cpp_cognitive_metric(
+        f"{{ if {condition} {{ while (ready) work(); }} else {{ work(); }} }}"
+    )
+
+    assert metric.cognitive == 4
+    assert metric.max_nesting == 1
+    assert metric.unbraced_controls == 1
+
+
+def test_try_catch_and_labelled_controls_are_not_swallowed() -> None:
+    metric = cpp_cognitive_metric(
+        "{ try { work(); } catch (const Error&) { retry: if (ready) work(); } "
+        "catch (...) { switch (code) { case bad: while (retry) work(); default: break; } } }"
+    )
+
+    assert metric.cognitive == 10
+    assert metric.max_nesting == 2
+    assert metric.unbraced_controls == 2
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        ("{ if ! (ready) work(); }", "if ! must be followed by consteval"),
+        ("{ if consteval work(); }", "requires a compound statement"),
+        ("{ catch (...) { work(); } }", "missing its matching try"),
+        ("{ try { work(); } }", "missing a catch handler"),
+        ("{ else work(); }", "missing its matching if"),
+    ],
+)
+def test_malformed_cpp_control_flow_fails_closed(body: str, message: str) -> None:
+    with pytest.raises(ValueError, match=message):
+        cpp_cognitive_metric(body)
+
+
+def test_cpp_control_nesting_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("ici.engines._cpp_cognitive._MAX_CONTROL_NESTING", 4)
+
+    with pytest.raises(ValueError, match="control nesting exceeds"):
+        cpp_cognitive_metric("{ " + "if (ready) " * 6 + "work(); }")
+    with pytest.raises(ValueError, match="control nesting exceeds"):
+        cpp_cognitive_metric("{" * 6 + "work();" + "}" * 6)
+
+
+@pytest.mark.parametrize(
     "body",
     [
         "{ for (int i = first && second; i < limit && ready; ++i) {} }",

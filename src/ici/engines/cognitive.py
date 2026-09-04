@@ -77,6 +77,7 @@ class CognitiveEngine(BaseEngine):
         "ici.engines._cpp_cognitive",
         "ici.engines._cpp_function_boundaries",
         "ici.engines._cpp_tooling",
+        "ici.engines.complexity",
         "ici.engines.cpp_text",
     )
 
@@ -177,7 +178,7 @@ class CognitiveEngine(BaseEngine):
                 has_fail = True
             elif target.status == EngineStatus.WARN:
                 has_warn = True
-        if cpp.errors:
+        if cpp.errors and not any(target.status == EngineStatus.ERROR for target in cpp.targets):
             targets.append(
                 InspectionTarget(
                     file_path=".",
@@ -190,7 +191,7 @@ class CognitiveEngine(BaseEngine):
             )
 
         status = EngineStatus.ERROR if has_error else self.evaluate_status(has_fail, has_warn, mode)
-        function_count = python_functions + len(cpp.targets)
+        function_count = python_functions + cpp.functions_analyzed
         summary = f"Max cognitive complexity: {max_cog} across {function_count} functions"
         if has_error:
             summary = "Cognitive complexity analysis did not complete"
@@ -209,7 +210,7 @@ class CognitiveEngine(BaseEngine):
                 "max_cognitive": max_cog,
                 "total_functions": function_count,
                 "python_functions": python_functions,
-                "cpp_functions": len(cpp.targets),
+                "cpp_functions": cpp.functions_analyzed,
                 "cpp_boundary_mode": cpp.boundary_mode,
                 "cpp_exact_boundaries": cpp.exact_boundaries,
                 "cpp_estimated_boundaries": cpp.estimated_boundaries,
