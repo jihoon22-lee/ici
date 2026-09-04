@@ -130,6 +130,31 @@ def test_quality_repeat_is_capped_at_three_total_runs_and_reports_flaky_test(
     assert flaky.start_line == 7
 
 
+def test_quality_repeat_does_not_claim_flaky_evidence_without_base_outcomes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = _deep_engine(tmp_path, {"repeat_runs": 3, "slow_test_threshold": 0})
+    engine._python_test_attempted = True
+    engine._last_pytest_outcomes = {}
+    results = iter(
+        [
+            ProcessResult(0, "tests/test_case.py::test_case PASSED\n", "", 0.01),
+            ProcessResult(1, "tests/test_case.py::test_case FAILED\n", "", 0.01),
+        ]
+    )
+    monkeypatch.setattr(engine, "_run_quality_pytest", lambda *_args, **_kwargs: next(results))
+    targets = []
+
+    info = engine._run_deep_test_quality("python", targets)
+
+    assert info["repeat_runs"] == 3
+    assert info["repeat_unavailable"] == 1
+    assert info["repeat_cases"] == 0
+    assert info["flaky_tests"] == 0
+    assert any(target.target_name == "[test-quality] Base run outcomes" for target in targets)
+    assert not any("Flaky test" in target.target_name for target in targets)
+
+
 def test_quality_is_deep_context_only_and_default_has_no_repeat_or_mutation_cost(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):

@@ -515,8 +515,24 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         info["repeat_runs"] = 1
         repeat_runs = int(settings["repeat_runs"])
         outcome_runs: list[dict[str, str]] = []
-        if self._last_pytest_outcomes:
+        base_outcomes_available = bool(self._last_pytest_outcomes)
+        if base_outcomes_available:
             outcome_runs.append(dict(self._last_pytest_outcomes))
+        elif repeat_runs > 1:
+            info["repeat_unavailable"] += 1
+            targets.append(
+                InspectionTarget(
+                    file_path="tests",
+                    start_line=1,
+                    target_name="[test-quality] Base run outcomes",
+                    status=EngineStatus.WARN,
+                    message=(
+                        "base pytest run had no per-test outcome evidence; "
+                        "flaky comparison is unavailable"
+                    ),
+                    metrics={"run": 1},
+                )
+            )
 
         if repeat_runs > 1:
             for run_number in range(2, repeat_runs + 1):
@@ -572,9 +588,9 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
 
         info["repeat_reruns"] = max(0, int(info["repeat_runs"]) - 1)
 
-        if outcome_runs:
+        if base_outcomes_available and outcome_runs:
             info["repeat_cases"] = len(set().union(*(run.keys() for run in outcome_runs)))
-        self._append_flaky_targets(outcome_runs, targets, info)
+            self._append_flaky_targets(outcome_runs, targets, info)
 
         mutation = self._probe_mutation_capability(
             settings,
