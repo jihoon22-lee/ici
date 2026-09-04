@@ -96,7 +96,7 @@ def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
         artifact.artifact_id or artifact.target or artifact.command
         for artifact in manifest.artifacts
     )
-    artifacts = [
+    artifacts: list[dict[str, Any]] = [
         {
             "path": artifact.path,
             "scope": artifact.scope.value,

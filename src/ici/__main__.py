@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 import typer
 from rich.console import Console
@@ -84,6 +85,22 @@ _VERIFY_NO_CACHE_OPTION = typer.Option(
     "--no-cache",
     help="Disable analysis cache reads and writes for this verification run",
 )
+
+
+class _VerifyRunOptions(TypedDict, total=False):
+    """Keyword arguments shared by the normal and SARIF verify paths."""
+
+    report_json: str | None
+    report_html: str | None
+    github_summary: bool
+    publish: bool
+    baseline_path: str | Path | None
+    fail_on_new: bool
+    write_baseline: str | Path | None
+    console_options: ConsoleOptions | None
+    profile: AnalysisProfile | str | None
+    use_cache: bool
+    report_sarif: str | None
 
 
 def version_callback(value: bool):
@@ -211,7 +228,7 @@ def cmd_verify(
         report=report,
     )
 
-    run_options = {
+    run_options: _VerifyRunOptions = {
         "report_json": json_path,
         "report_html": html_path,
         "github_summary": github_summary,

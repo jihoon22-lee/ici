@@ -15,6 +15,7 @@ from ici.core.models import (
     EngineResult,
     EngineStatus,
     EvidenceState,
+    Finding,
     InspectionTarget,
     ToolEvidence,
 )
@@ -121,7 +122,7 @@ class PythonCompatibilityEngine(BaseEngine):
             "checked": 0,
             "findings": [],
         }
-        package_findings = []
+        package_findings: list[Finding] = []
         try:
             inventory = read_analysis_sources(self.project_root, selected)
             metadata = load_python_metadata(self.project_root, selected)

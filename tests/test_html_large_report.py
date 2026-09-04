@@ -149,3 +149,19 @@ def test_html_report_cleans_temporary_file_when_fsync_fails(
 
     assert not output.exists()
     assert not list(tmp_path.glob(f".{output.name}.*.tmp"))
+
+
+def test_html_report_cleans_temporary_file_when_cancelled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    output = tmp_path / "cancelled.html"
+
+    def cancel_fsync(_fd: int) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(html_report.os, "fsync", cancel_fsync)
+    with pytest.raises(KeyboardInterrupt):
+        generate_html_report(_suite(1), output, base_dir=tmp_path)
+
+    assert not output.exists()
+    assert not list(tmp_path.glob(f".{output.name}.*.tmp"))

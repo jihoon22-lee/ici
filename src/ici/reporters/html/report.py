@@ -55,11 +55,10 @@ def _save_html(content: str, output_path: Path) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         temporary.replace(output_path)
-    except BaseException:
+    finally:
         if temporary is not None:
             with suppress(OSError):
                 temporary.unlink(missing_ok=True)
-        raise
 
 
 def generate_html_report(

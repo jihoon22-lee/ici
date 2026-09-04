@@ -350,13 +350,13 @@ def _all_findings(
                 _enum_value(finding.severity),
             )
         ]
-        delta = candidates.popleft() if candidates else None
-        records.append((engine_name, finding, delta))
+        current_delta = candidates.popleft() if candidates else None
+        records.append((engine_name, finding, current_delta))
 
     for delta in resolved:
-        finding = _resolved_finding(delta, project_root)
-        if finding is not None:
-            records.append((str(delta.engine_name), finding, delta))
+        resolved_finding = _resolved_finding(delta, project_root)
+        if resolved_finding is not None:
+            records.append((str(delta.engine_name), resolved_finding, delta))
 
     records.sort(key=lambda item: (*_finding_sort_key(item[0], item[1]), _delta_sort_key(item[2])))
     return records, baseline

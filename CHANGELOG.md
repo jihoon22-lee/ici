@@ -533,6 +533,13 @@
 
 ### Fixed
 
+- **Self-analysis type and cancellation cleanup regressions:** The unreleased SARIF, artifact
+  provenance, Python packaging, CLI, and ELF compatibility paths now retain explicit result types
+  under the project Mypy policy instead of leaking ambiguous local/container inference. HTML
+  atomic publication uses unconditional `finally` cleanup, so ordinary failures and process
+  cancellation both remove the unpublished temporary file without catching control-flow
+  exceptions. This is unreleased validation hardening only; version `0.10.2` remains unchanged.
+
 - **Deterministic ZipApp bootstrap entry ordering and acceptance:** The packaging entrypoint
   now delegates to a small `scripts/run_shiv.py` wrapper inside the selected Python 3.10+ helper
   interpreter. The wrapper sorts shiv 1.0.8's private bootstrap resource entries by their archive

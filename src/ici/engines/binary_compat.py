@@ -274,7 +274,7 @@ class BinaryCompatibilityEngine(BaseEngine):
                     "--wide",
                     str(path),
                 ]
-                result = run_process(
+                process_result = run_process(
                     argv, cwd=self.project_root, timeout=30.0, max_output_chars=8 * 1024 * 1024
                 )
                 evidence.append(
@@ -283,15 +283,21 @@ class BinaryCompatibilityEngine(BaseEngine):
                         path=tool,
                         version=version,
                         argv=argv,
-                        returncode=result.returncode,
-                        timed_out=result.timed_out,
-                        truncated=result.truncated,
-                        error=result.stderr[:512] if result.returncode != 0 else "",
+                        returncode=process_result.returncode,
+                        timed_out=process_result.timed_out,
+                        truncated=process_result.truncated,
+                        error=(
+                            process_result.stderr[:512] if process_result.returncode != 0 else ""
+                        ),
                     )
                 )
-                if result.returncode != 0 or result.timed_out or result.truncated:
+                if (
+                    process_result.returncode != 0
+                    or process_result.timed_out
+                    or process_result.truncated
+                ):
                     raise ValueError(f"readelf did not produce complete evidence for {relative}")
-                facts = parse_readelf(result.stdout)
+                facts = parse_readelf(process_result.stdout)
                 checked += 1
                 artifact_findings = self._abi_violations(
                     relative,
@@ -351,7 +357,7 @@ class BinaryCompatibilityEngine(BaseEngine):
             status = self.evaluate_status(bool(findings), False, cfg.get("mode", "pass_warn_fail"))
             state = EvidenceState.MEASURED
             summary = f"ELF compatibility: {checked} checked, {len(findings)} violation(s), {skipped} skipped"
-        result = self.create_result(
+        engine_result = self.create_result(
             name="binary_compat",
             status=status,
             summary=summary,
@@ -364,5 +370,5 @@ class BinaryCompatibilityEngine(BaseEngine):
             evidence=state,
             tool_evidence=evidence,
         )
-        result.findings = findings
-        return result
+        engine_result.findings = findings
+        return engine_result
