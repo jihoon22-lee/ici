@@ -63,8 +63,22 @@ def _record(
     size: int = 1,
     mode: int = 0o644,
     producer: str = "pytest",
+    artifact_id: str = "",
+    target: str = "",
+    command: tuple[str, ...] = (),
 ) -> ArtifactRecord:
-    return ArtifactRecord(path, scope, kind, sha256, size, mode, producer)
+    return ArtifactRecord(
+        path,
+        scope,
+        kind,
+        sha256,
+        size,
+        mode,
+        producer,
+        artifact_id,
+        target,
+        command,
+    )
 
 
 def _manifest(
@@ -338,6 +352,52 @@ def test_manifest_and_records_are_immutable(tmp_path: Path):
         manifest.artifacts[0].path = "other"
     with pytest.raises(FrozenInstanceError):
         manifest.artifacts += (manifest.artifacts[0],)
+
+
+def test_legacy_artifact_record_positionals_keep_empty_typed_metadata_defaults():
+    record = _record("app")
+
+    assert record.artifact_id == ""
+    assert record.target == ""
+    assert record.command == ()
+
+
+def test_artifact_record_normalizes_command_and_rejects_untyped_metadata():
+    record = ArtifactRecord(
+        "app",
+        ArtifactScope.PROJECT,
+        "binary",
+        "sha256:" + "a" * 64,
+        1,
+        0o644,
+        "pytest",
+        target="app",
+        command=["cmake", "--build"],
+    )
+
+    assert record.command == ("cmake", "--build")
+    with pytest.raises(ValueError, match="command"):
+        ArtifactRecord(
+            "app",
+            ArtifactScope.PROJECT,
+            "binary",
+            "sha256:" + "a" * 64,
+            1,
+            0o644,
+            "pytest",
+            command="cmake",
+        )
+    with pytest.raises(ValueError, match="target"):
+        ArtifactRecord(
+            "app",
+            ArtifactScope.PROJECT,
+            "binary",
+            "sha256:" + "a" * 64,
+            1,
+            0o644,
+            "pytest",
+            target=1,
+        )
 
 
 def test_validate_rejects_a_manually_constructed_duplicate_manifest(tmp_path: Path):

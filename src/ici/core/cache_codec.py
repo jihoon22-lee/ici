@@ -140,6 +140,16 @@ def _string_list(value: Any, context: str) -> list[str]:
     return [_string(item, f"{context} item") for item in _sequence(value, context)]
 
 
+def _artifact_command(value: Any, context: str) -> tuple[str, ...]:
+    items = _sequence(value, context)
+    if len(items) > 32_768:
+        raise CacheEntryError(f"{context} exceeds the argument limit")
+    command = tuple(_string(item, f"{context} item") for item in items)
+    if any(len(item) > 1_048_576 for item in command):
+        raise CacheEntryError(f"{context} argument exceeds the size limit")
+    return command
+
+
 def _location(payload: Any, context: str) -> SourceLocation:
     value = _mapping(payload, context)
     return SourceLocation(
@@ -278,8 +288,13 @@ def _support(payload: Any) -> SupportMatrix | None:
 
 def _manifest(payload: Any, project_root: Path) -> ArtifactManifest:
     value = _mapping(payload, "cache artifact manifest")
-    if value.get("schema_version") != "ici.artifacts/v1" or value.get("project_root") != ".":
+    schema_version = value.get("schema_version")
+    if (
+        schema_version not in {"ici.artifacts/v1", "ici.artifacts/v2"}
+        or value.get("project_root") != "."
+    ):
         raise CacheEntryError("cache artifact manifest identity is invalid")
+    has_producer_metadata = schema_version == "ici.artifacts/v2"
     shadow_value = value.get("shadow_root")
     shadow_root = None
     if shadow_value is not None:
@@ -304,6 +319,19 @@ def _manifest(payload: Any, project_root: Path) -> ArtifactManifest:
                 size=size,
                 mode=mode,
                 producer=_string(record.get("producer"), "cache artifact producer", nonempty=True),
+                artifact_id=(
+                    _string(record.get("id"), "cache artifact id") if has_producer_metadata else ""
+                ),
+                target=(
+                    _string(record.get("target"), "cache artifact target")
+                    if has_producer_metadata
+                    else ""
+                ),
+                command=(
+                    _artifact_command(record.get("command"), "cache artifact command")
+                    if has_producer_metadata
+                    else ()
+                ),
             )
         )
     manifest = ArtifactManifest(

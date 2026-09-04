@@ -325,6 +325,43 @@ def test_engine_serializer_includes_standalone_artifact_manifest_projection(
     assert str(tmp_path) not in _strings(payload)
 
 
+def test_artifact_manifest_uses_v2_for_producer_metadata_and_emits_typed_fields(
+    tmp_path: Path,
+) -> None:
+    suite, context, manifest = _suite_fixture(tmp_path)
+    enriched = replace(
+        manifest,
+        artifacts=(
+            replace(
+                manifest.artifacts[0],
+                artifact_id="dist/a.bin",
+                target="report_app",
+                command=("cmake", "--build", "build"),
+            ),
+            manifest.artifacts[1],
+            manifest.artifacts[2],
+            manifest.artifacts[3],
+        ),
+    )
+    enriched_context = replace(context, manifests=(enriched,))
+    enriched_suite = replace(
+        suite,
+        analysis_context=enriched_context,
+        results=[replace(suite.results[0], artifact_manifests=(enriched,))],
+    )
+
+    payload = serialize_suite_result(enriched_suite)
+    manifest_payload = payload["analysis_context"]["artifact_manifests"][0]
+
+    assert manifest_payload["schema_version"] == "ici.artifacts/v2"
+    assert manifest_payload["artifacts"][0]["id"] == "dist/a.bin"
+    assert manifest_payload["artifacts"][0]["target"] == "report_app"
+    assert manifest_payload["artifacts"][0]["command"] == ["cmake", "--build", "build"]
+    assert all(
+        {"id", "target", "command"} <= set(record) for record in manifest_payload["artifacts"]
+    )
+
+
 def test_manifest_and_context_report_order_is_deterministic(tmp_path: Path) -> None:
     suite, _context, _manifest_value = _suite_fixture(tmp_path)
 

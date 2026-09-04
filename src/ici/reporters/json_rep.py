@@ -57,8 +57,33 @@ def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
             shadow_root = manifest.shadow_root.relative_to(manifest.project_root).as_posix()
         except ValueError as err:
             raise ValueError("artifact shadow root must be project-relative") from err
+    has_producer_metadata = any(
+        artifact.artifact_id or artifact.target or artifact.command
+        for artifact in manifest.artifacts
+    )
+    artifacts = [
+        {
+            "path": artifact.path,
+            "scope": artifact.scope.value,
+            "kind": artifact.kind,
+            "sha256": _require_digest(artifact.sha256, "artifact.sha256"),
+            "size": artifact.size,
+            "mode": artifact.mode,
+            "producer": artifact.producer,
+        }
+        for artifact in manifest.artifacts
+    ]
+    if has_producer_metadata:
+        for artifact, payload in zip(manifest.artifacts, artifacts, strict=True):
+            payload.update(
+                {
+                    "id": artifact.artifact_id,
+                    "target": artifact.target,
+                    "command": list(artifact.command),
+                }
+            )
     return {
-        "schema_version": "ici.artifacts/v1",
+        "schema_version": "ici.artifacts/v2" if has_producer_metadata else "ici.artifacts/v1",
         "project_root": ".",
         "shadow_root": shadow_root,
         "variant": manifest.variant.value,
@@ -68,18 +93,7 @@ def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
             manifest.toolchain_digest,
             "manifest.toolchain_digest",
         ),
-        "artifacts": [
-            {
-                "path": artifact.path,
-                "scope": artifact.scope.value,
-                "kind": artifact.kind,
-                "sha256": _require_digest(artifact.sha256, "artifact.sha256"),
-                "size": artifact.size,
-                "mode": artifact.mode,
-                "producer": artifact.producer,
-            }
-            for artifact in manifest.artifacts
-        ],
+        "artifacts": artifacts,
     }
 
 

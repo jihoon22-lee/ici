@@ -37,6 +37,9 @@ from ici.core.runner import run_process
 
 _DIGEST_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _COMMIT_RE = re.compile(r"[0-9a-f]{40,64}\Z")
+_ARTIFACT_METADATA_TEXT_LIMIT = 512
+_ARTIFACT_COMMAND_ARGS_LIMIT = 32_768
+_ARTIFACT_COMMAND_ARG_LIMIT = 1_048_576
 
 
 class BuildVariant(str, Enum):
@@ -445,6 +448,9 @@ class ArtifactRecord:
     size: int
     mode: int
     producer: str
+    artifact_id: str = ""
+    target: str = ""
+    command: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _validate_relative_path(self.path, "artifact", allow_dot=False)
@@ -452,6 +458,22 @@ class ArtifactRecord:
             object.__setattr__(self, "scope", ArtifactScope(self.scope))
         if not self.kind or not self.producer:
             raise ValueError("artifact kind and producer must not be empty")
+        for field_name in ("artifact_id", "target"):
+            value = getattr(self, field_name)
+            if not isinstance(value, str):
+                raise ValueError(f"artifact {field_name} must be a string")
+            if len(value) > _ARTIFACT_METADATA_TEXT_LIMIT:
+                raise ValueError(f"artifact {field_name} exceeds the size limit")
+        if isinstance(self.command, (str, bytes)) or not isinstance(self.command, (tuple, list)):
+            raise ValueError("artifact command must be an array of strings")
+        command = tuple(self.command)
+        if len(command) > _ARTIFACT_COMMAND_ARGS_LIMIT:
+            raise ValueError("artifact command exceeds the argument limit")
+        if any(not isinstance(argument, str) for argument in command):
+            raise ValueError("artifact command arguments must be strings")
+        if any(len(argument) > _ARTIFACT_COMMAND_ARG_LIMIT for argument in command):
+            raise ValueError("artifact command argument exceeds the size limit")
+        object.__setattr__(self, "command", command)
         if _DIGEST_RE.fullmatch(self.sha256) is None:
             raise ValueError("artifact sha256 must be a canonical digest")
         if type(self.size) is not int or self.size < 0:
