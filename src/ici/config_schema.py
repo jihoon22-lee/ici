@@ -56,6 +56,7 @@ _DOCTOR_KEYS = frozenset({"required_tools"})
 _TEST_QUALITY_KEYS = frozenset(
     {
         "enabled",
+        "mode",
         "repeat_runs",
         "repeat",
         "timeout",
@@ -277,6 +278,11 @@ def _validate_test_quality(table: Any, path: str) -> None:
     _reject_unknown(table, _TEST_QUALITY_KEYS, path)
     if "enabled" in table:
         _require_bool(table["enabled"], f"{path}.enabled")
+    if "mode" in table:
+        mode_path = f"{path}.mode"
+        _require_string(table["mode"], mode_path, non_empty=True)
+        if table["mode"] not in {"report", "warn"}:
+            raise _error(mode_path, "must be one of: report, warn")
     for key in ("repeat_runs", "repeat"):
         if key in table:
             _require_int(table[key], f"{path}.{key}", minimum=1)

@@ -65,6 +65,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             # add no default subprocess cost.
             "quality": {
                 "enabled": True,
+                "mode": "report",
                 "repeat_runs": 1,
                 "timeout": 300.0,
                 "slow_test_threshold": 1.0,

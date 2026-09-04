@@ -23,7 +23,13 @@ from ici.core.models import (
     EngineResult,
     EngineStatus,
     EvidenceState,
+    Finding,
+    FindingCategory,
+    FindingConfidence,
+    FindingMetric,
+    FindingSeverity,
     InspectionTarget,
+    SourceLocation,
     ToolEvidence,
 )
 from ici.core.runner import ProcessResult, run_process
@@ -62,6 +68,7 @@ def _empty_quality_info() -> dict[str, Any]:
     return {
         "enabled": False,
         "profile": "",
+        "mode": "report",
         "repeat_runs": 0,
         "repeat_reruns": 0,
         "repeat_cases": 0,
@@ -143,6 +150,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         targets: list[InspectionTarget] = []
         passed_tests, total_tests, has_failure = self._run_project_tests(proj_type, targets)
         quality_info = self._run_deep_test_quality(proj_type, targets)
+        quality_targets = [target for target in targets if self._is_quality_target(target)]
         cfg = self.get_config("test")
         skipped_tests = sum(
             int(target.metrics.get("test_cases", 1))
@@ -159,7 +167,10 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             cfg, optional_coverage_warning, has_failure, tem_score, branch_cov, func_cov
         )
         targets.extend(threshold_breaches)
-        has_warn = bool(threshold_breaches) or optional_coverage_warning
+        quality_warn = quality_info["mode"] == "warn" and any(
+            target.status == EngineStatus.WARN for target in quality_targets
+        )
+        has_warn = bool(threshold_breaches) or optional_coverage_warning or quality_warn
         test_suites = self._build_test_suites(targets)
         overall_status = self._result_status(
             cfg,
@@ -191,13 +202,17 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             no_tests_executed,
             bool(cfg.get("required", True)),
         )
-        return self.create_result(
+        result = self.create_result(
             name="test",
             status=overall_status,
             summary=summary,
             score=tem_score,
             max_score=5.0,
             duration=duration,
+            # Keep quality observations in the established target/evidence
+            # contract. ``findings_for_result`` canonicalizes the native
+            # quality finding and replaces the matching legacy target adapter,
+            # so reporters still receive one issue per observation.
             targets=targets,
             extra={
                 "passed_tests": passed_tests,
@@ -242,6 +257,8 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             tool_evidence=self._tool_evidence,
             artifact_manifests=self._artifact_manifests,
         )
+        result.findings = self._quality_findings(quality_targets)
+        return result
 
     def _deep_profile_selected(self) -> bool:
         """Return true only for the immutable context's deep profile.
@@ -257,6 +274,81 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
     @staticmethod
     def _is_quality_target(target: InspectionTarget) -> bool:
         return target.target_name.startswith("[test-quality]")
+
+    @staticmethod
+    def _quality_findings(targets: list[InspectionTarget]) -> list[Finding]:
+        """Build one stable native v3 finding for each quality observation."""
+
+        findings: list[Finding] = []
+        for target in targets:
+            if "Slow test:" in target.target_name:
+                rule_id = "ici.test.slow-test"
+                severity = FindingSeverity.MEDIUM
+                explanation = (
+                    "Pytest reported a test setup, call, or teardown duration at or above "
+                    "the configured deep-profile threshold."
+                )
+                remediation = (
+                    "Profile the test and reduce fixture or assertion work, or raise the "
+                    "threshold deliberately when the duration is expected."
+                )
+                tool_rule_id = "pytest --durations=0"
+            elif "Flaky test:" in target.target_name:
+                rule_id = "ici.test.flaky-test"
+                severity = FindingSeverity.HIGH
+                explanation = (
+                    "The same pytest node produced different terminal verdicts across the "
+                    "bounded repeat runs requested by the deep profile."
+                )
+                remediation = (
+                    "Remove order, time, or external-state dependence so repeated executions "
+                    "produce one deterministic verdict."
+                )
+                tool_rule_id = "pytest repeat"
+            else:
+                continue
+            metrics = {
+                str(name): FindingMetric(
+                    value=value,
+                    unit=(
+                        "seconds"
+                        if name in {"duration", "threshold"}
+                        else "runs"
+                        if name == "runs"
+                        else "tests"
+                        if name in {"passes", "failures"}
+                        else ""
+                    ),
+                )
+                for name, value in sorted(target.metrics.items())
+                if isinstance(value, (int, float))
+                and not isinstance(value, bool)
+                and math.isfinite(float(value))
+            }
+            findings.append(
+                Finding(
+                    rule_id=rule_id,
+                    category=FindingCategory.TEST,
+                    severity=severity,
+                    confidence=FindingConfidence.HIGH,
+                    fingerprint="",
+                    primary_location=SourceLocation(
+                        path=target.file_path,
+                        start_line=target.start_line,
+                        end_line=target.end_line,
+                        start_column=target.start_column,
+                        end_column=target.end_column,
+                        label=target.target_name,
+                    ),
+                    message=target.message,
+                    explanation=explanation,
+                    remediation=remediation,
+                    tool_rule_id=tool_rule_id,
+                    tool_name="pytest",
+                    metrics=metrics,
+                )
+            )
+        return findings
 
     def _quality_config(self) -> dict[str, Any]:
         """Normalize validated quality settings and fail safe for direct callers."""
@@ -331,6 +423,9 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
 
         return {
             "enabled": enabled,
+            "mode": raw.get("mode", "report")
+            if raw.get("mode", "report") in {"report", "warn"}
+            else "report",
             "repeat_runs": repeat_runs,
             "timeout": timeout,
             "slow_test_threshold": slow_threshold,
@@ -375,6 +470,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         if not settings["enabled"] or not self._python_test_attempted:
             return info
         info["enabled"] = True
+        info["mode"] = settings["mode"]
 
         threshold = float(settings["slow_test_threshold"])
         max_slow_tests = int(settings["max_slow_tests"])
@@ -395,7 +491,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
                     InspectionTarget(
                         file_path=str(row["file_path"]),
                         start_line=int(row["start_line"]),
-                        target_name=f"[test-quality] Slow test: {row['nodeid']}",
+                        target_name=(f"[test-quality] Slow test: {row['nodeid']} ({row['phase']})"),
                         status=EngineStatus.WARN,
                         message=(
                             f"pytest {row['phase']} phase took {float(row['duration']):.3f}s "
