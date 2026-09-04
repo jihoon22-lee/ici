@@ -248,7 +248,7 @@ class SanitizeEngine(BaseEngine):
             )
             return False
 
-        if select_backend(self.project_root).kind is not None:
+        if select_backend(self.project_root, self.config).kind is not None:
             return self._run_cpp_sanitizer_via_adapter(targets)
 
         gxx = shutil.which("g++")

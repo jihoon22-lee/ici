@@ -390,7 +390,7 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
         bin_dir: Path,
         targets: list[InspectionTarget],
     ) -> None:
-        choice = select_backend(base)
+        choice = select_backend(base, self.config)
         if choice.kind is not None:
             self._build_with_adapter(base, targets)
             return
@@ -398,7 +398,8 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
             self._record_error(
                 targets,
                 f"{choice.descriptor or 'A build descriptor'} at the project root has no "
-                "adapter; only CMake and qmake are supported, and generic g++ was not invoked",
+                "configured adapter; CMake, qmake, and explicitly enabled Make are supported, "
+                "and generic g++ was not invoked",
             )
             return
 

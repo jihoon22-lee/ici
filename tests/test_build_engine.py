@@ -616,11 +616,10 @@ def test_makefile_only_project_still_refuses_with_a_precise_reason(tmp_path):
     result = BuildEngine(tmp_path).run()
 
     assert result.status is EngineStatus.ERROR
-    # The old message predates the adapters existing at all. Now that CMake and
-    # qmake are handled, it has to say which adapter is missing.
+    # Make remains fail-closed until an explicit command plan enables it.
     messages = " ".join(t.message for t in result.targets)
     assert "Makefile" in messages
-    assert "CMake and qmake" in messages
+    assert "explicitly enabled Make" in messages
 
 
 @pytest.mark.parametrize("descriptor", ["CMakeLists.txt", "project.pro"])

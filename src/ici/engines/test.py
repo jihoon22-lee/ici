@@ -1114,7 +1114,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         return parse_coverage_json(json_path, self.project_root, expected_files)
 
     def _run_cpp_tests(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
-        if select_backend(self.project_root).kind is not None:
+        if select_backend(self.project_root, self.config).kind is not None:
             return self._run_cpp_tests_via_adapter(targets)
         gxx = shutil.which("g++")
         if not gxx:
@@ -1186,7 +1186,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             for candidate in sorted(tests_root.rglob("*.cpp")):
                 if candidate.stem == stem:
                     return str(candidate.relative_to(self.project_root))
-        return select_backend(self.project_root).descriptor or "."
+        return select_backend(self.project_root, self.config).descriptor or "."
 
     def _run_cpp_tests_via_adapter(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
         self._cpp_coverage_rows = []
