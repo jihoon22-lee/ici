@@ -1132,6 +1132,12 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
       phantom 배제와 no-dirfd named-path revalidation을
       regression contract로 고정했다. Approved tool executable은 매 process 직전에 다시 resolve해
       device/inode/mode/size/mtime/ctime identity를 확인하고 변경·부재를 fail-closed한다.
+  - [x] C++ cognitive metric은 compiler-backed exact function geometry 안에서만 계산하도록
+    전환했다. bounded statement parser는 unbraced nested control flow, `do`/`while`,
+    function-try/catch, labels/case, alternative operators, `if constexpr`/`consteval`, attributes와
+    digraph를 구분하며 delimiter·statement 구조가 모호하면 위치 있는 오류로 fail-closed한다.
+    이 결과의 함수 경계는 compiler-backed이지만 metric 자체는 AST 의미 분석이 아닌
+    `bounded-cpp-statement-v1` lexical estimate이므로 상위 aggregate는 계속 열린 상태다.
 - [x] template, lambda, operator, macro-generated code 처리 정책을 정한다.
   - source-spelled named function만 target으로 유지하며 function template, conversion/call/subscript
     operator, literal operator의 `function_kind`/template/provenance를 보존한다.
@@ -1603,22 +1609,22 @@ acceptance와 함께 수행한다.
 
 **브랜치:** `fix/gcov-json-coverage`
 
-- [ ] 지원 GCC에서는 `gcov --json-format`을 우선 사용한다.
-- [ ] function start/end line, demangled name, line, branch, call을 파싱한다.
-- [ ] format version과 GCC version을 검증한다.
-- [ ] gzip corruption, missing data, path relocation을 ERROR로 구분한다.
-- [ ] 오래된 GCC는 text fallback과 제한을 명시한다.
-- [ ] 기존 throw branch 정책을 JSON 결과와 재검증한다.
+- [x] 지원 GCC에서는 `gcov --json-format`을 우선 사용한다.
+- [x] function start/end line, demangled name, line, branch, call을 파싱한다.
+- [x] format version과 GCC version을 검증한다.
+- [x] gzip corruption, missing data, path relocation을 ERROR로 구분한다.
+- [x] 오래된 GCC는 text fallback과 제한을 명시한다.
+- [x] 기존 throw branch 정책을 JSON 결과와 재검증한다.
 
 ### I6-2. coverage policy
 
 **브랜치:** `feat/coverage-policy`
 
-- [ ] 전체, 파일, 함수, changed-line threshold를 분리한다.
-- [ ] generated, entry point, test, vendor 제외 근거를 report에 남긴다.
-- [ ] Python coverage contexts와 C++ test/binary coverage mapping을 검토한다.
-- [ ] uncovered function은 정확한 symbol location과 관련 test scope를 표시한다.
-- [ ] baseline 대비 coverage regression을 별도 finding으로 만든다.
+- [x] 전체, 파일, 함수, changed-line threshold를 분리한다.
+- [x] generated, entry point, test, vendor 제외 근거를 report에 남긴다.
+- [x] Python coverage contexts와 C++ test/binary coverage mapping을 검토한다.
+- [x] uncovered function은 정확한 symbol location과 관련 test scope를 표시한다.
+- [x] baseline 대비 coverage regression을 source-located delta finding으로 만든다.
 
 ### I6-3. test quality deep profile
 
@@ -1627,13 +1633,28 @@ acceptance와 함께 수행한다.
 - [x] test count, pass/fail, collection evidence와 coverage를 계속 분리한다.
 - [x] retry/repeat를 통한 flaky test 탐지를 opt-in으로 제공한다.
 - [x] timeout과 slow-test inventory를 제공한다.
-- [ ] Python mutation 도구와 C++ mutation 가능성을 spike하고, 재현 가능한 범위만 deep profile로 채택한다.
+- [x] Python mutation 도구와 C++ mutation 가능성을 spike하고, 재현 가능한 범위만 deep profile로 채택한다.
 - [x] mutation unavailable은 기본 test gate를 왜곡하지 않는다.
 
 Deep quality는 총 실행 3회, slow inventory 1,000개와 subprocess timeout/output 상한을 지키며
-`report`와 `warn`을 분리한다. Runtime outcome·timing은 cache하지 않고, mutation은 현재
-Python 도구 capability probe까지만 제공한다. 실제 mutation score와 C++ mutation 채택 여부는
-아직 미완료이므로 해당 항목은 열린 상태로 둔다.
+`report`와 `warn`을 분리한다. Runtime outcome·timing은 cache하지 않는다. mutation spike에서는
+Python/C++ 모두 프로젝트 빌드·테스트 명령을 변형마다 재현 가능하게 격리하고, 등가 mutant와
+timeout, tool/version provenance를 동일한 bounded evidence 계약으로 판정할 수 있는 내장
+pure-Python provider가 없음을 확인했다. 따라서 실제 mutation score는 현재 profile에 채택하지
+않고 Python 도구의 capability probe만 유지한다. unavailable은 품질 점수나 기본 test gate를
+바꾸지 않으며, 실제 score는 위 격리·bounded·provenance 계약이 충족되는 별도 기능 제안 전까지
+의도적으로 범위 밖이다.
+
+2026-09-04 local implementation은 strict gzip gcov JSON v2를 GCC version과 함께 검증하고,
+source relocation·완전성·function geometry·branch/call record를 bounded parser로 정규화한다.
+지원 도구의 JSON 손상이나 불완전 evidence는 text로 조용히 강등하지 않으며, JSON capability가
+없는 구형 gcov에만 제한된 text fallback을 허용한다. coverage policy는 aggregate/file/function/
+caller-declared changed-line gate를 분리하고, 실제 regular source와 canonical project-relative
+path만 받는다. v3 baseline은 aggregate 및 per-file regression delta를 별도 finding으로 만들며
+`--fail-on-new`일 때만 baseline delta가 gate가 된다. real GCC 15.2 Qt fixture는 5개 JSON report,
+3개 exact function과 line/function/branch 100%를 확인했다. 이 완료 표시는 구현·local gate 범위며,
+remote PR/main 및 candidate acceptance는 아래 delivery 기록에서 별도로 확정한다. 버전은
+`0.10.2`로 유지하고 이 범위를 위한 release는 만들지 않는다.
 
 ---
 
