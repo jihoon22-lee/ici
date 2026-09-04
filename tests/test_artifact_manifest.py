@@ -429,3 +429,45 @@ def test_validate_rejects_a_manually_constructed_duplicate_manifest(tmp_path: Pa
 
     with pytest.raises(ValueError, match="duplicate"):
         manifest.validate()
+
+
+def test_validate_rejects_duplicate_nonempty_artifact_ids(tmp_path: Path):
+    project_root = tmp_path / "project"
+    shadow_root = project_root / "shadow"
+    project_root.mkdir()
+    shadow_root.mkdir()
+    (project_root / "app").write_bytes(b"app")
+    (project_root / "other").write_bytes(b"other")
+    valid = _create(
+        project_root,
+        shadow_root,
+        _paths(
+            ("app", ArtifactScope.PROJECT, "binary"),
+            ("other", ArtifactScope.PROJECT, "binary"),
+        ),
+    )
+    record, second_record = valid.artifacts
+    duplicate = ArtifactRecord(
+        second_record.path,
+        second_record.scope,
+        "binary-copy",
+        second_record.sha256,
+        second_record.size,
+        second_record.mode,
+        second_record.producer,
+        artifact_id="release:project:app",
+    )
+    first = ArtifactRecord(
+        record.path,
+        record.scope,
+        record.kind,
+        record.sha256,
+        record.size,
+        record.mode,
+        record.producer,
+        artifact_id="release:project:app",
+    )
+    manifest = _manifest(project_root, shadow_root, (first, duplicate))
+
+    with pytest.raises(ValueError, match="duplicate artifact id"):
+        manifest.validate()

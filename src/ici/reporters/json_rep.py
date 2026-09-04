@@ -9,7 +9,7 @@ import os
 import re
 import tempfile
 from contextlib import suppress
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from ici.core.capabilities import serialize_capability_inventory
@@ -50,6 +50,25 @@ _SECRET_DEFINE_RE = re.compile(
 )
 
 
+def _serialize_artifact_command(command: tuple[str, ...], project_root: Path) -> list[str]:
+    """Return a portable, reporting-safe producer command."""
+
+    if not command:
+        return []
+    argv = list(command)
+    executable = argv[0]
+    if Path(executable).is_absolute() or PureWindowsPath(executable).is_absolute():
+        argv[0] = PureWindowsPath(executable).name if "\\" in executable else Path(executable).name
+    safe = list(_redact_compilation_argv(tuple(argv), project_root))
+    root_text = project_root.as_posix().rstrip("/")
+    if root_text:
+        for index, value in enumerate(safe):
+            if root_text in value:
+                value = value.replace(root_text + "/", "")
+                safe[index] = value.replace(root_text, ".")
+    return safe
+
+
 def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
     shadow_root = None
     if manifest.shadow_root is not None:
@@ -69,7 +88,7 @@ def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
             "sha256": _require_digest(artifact.sha256, "artifact.sha256"),
             "size": artifact.size,
             "mode": artifact.mode,
-            "producer": artifact.producer,
+            "producer": redact_text(artifact.producer),
         }
         for artifact in manifest.artifacts
     ]
@@ -77,9 +96,9 @@ def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
         for artifact, payload in zip(manifest.artifacts, artifacts, strict=True):
             payload.update(
                 {
-                    "id": artifact.artifact_id,
-                    "target": artifact.target,
-                    "command": list(artifact.command),
+                    "id": redact_text(artifact.artifact_id),
+                    "target": redact_text(artifact.target),
+                    "command": _serialize_artifact_command(artifact.command, manifest.project_root),
                 }
             )
     return {

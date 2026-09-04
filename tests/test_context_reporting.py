@@ -362,6 +362,40 @@ def test_artifact_manifest_uses_v2_for_producer_metadata_and_emits_typed_fields(
     )
 
 
+def test_artifact_producer_command_is_redacted_at_json_boundary(tmp_path: Path) -> None:
+    suite, context, manifest = _suite_fixture(tmp_path)
+    command = (
+        "/usr/bin/cmake",
+        "--build",
+        str(tmp_path / "build" / "ici-coverage"),
+        "--api-key",
+        "super-secret-value",
+    )
+    enriched = replace(
+        manifest,
+        artifacts=(replace(manifest.artifacts[0], artifact_id="dist/a.bin", command=command),),
+    )
+    enriched_context = replace(context, manifests=(enriched,))
+    enriched_suite = replace(
+        suite,
+        analysis_context=enriched_context,
+        results=[replace(suite.results[0], artifact_manifests=(enriched,))],
+    )
+
+    payload = serialize_suite_result(enriched_suite)
+    serialized = payload["analysis_context"]["artifact_manifests"][0]["artifacts"][0]
+
+    assert serialized["command"] == [
+        "cmake",
+        "--build",
+        "build/ici-coverage",
+        "--api-key",
+        REDACTED,
+    ]
+    assert all(str(tmp_path) not in item for item in serialized["command"])
+    assert all("super-secret-value" not in item for item in serialized["command"])
+
+
 def test_manifest_and_context_report_order_is_deterministic(tmp_path: Path) -> None:
     suite, _context, _manifest_value = _suite_fixture(tmp_path)
 

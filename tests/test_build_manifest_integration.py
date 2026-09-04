@@ -19,7 +19,7 @@ from ici.core.context import (
     BuildVariant,
     ProjectModel,
 )
-from ici.core.models import EngineResult, EngineStatus, SupportMatrix
+from ici.core.models import EngineResult, EngineStatus, SupportMatrix, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.engines import build as build_module
 from ici.engines import sanitize as sanitize_module
@@ -148,11 +148,51 @@ def test_cmake_build_publishes_deterministic_manifest_for_linked_outputs(
     assert [record.path for record in manifest.artifacts] == ["bin/app", "lib/libdemo.a"]
     assert all(record.scope is ArtifactScope.SHADOW for record in manifest.artifacts)
     assert all(record.producer == "cmake.build" for record in manifest.artifacts)
+    assert [record.artifact_id for record in manifest.artifacts] == [
+        "release:shadow:bin/app",
+        "release:shadow:lib/libdemo.a",
+    ]
+    assert [record.target for record in manifest.artifacts] == ["app", "demo"]
+    assert all(
+        record.command == ("cmake", "--build", "build/ici-cmake-build", "--parallel")
+        for record in manifest.artifacts
+    )
 
     second_session = _session(root, context)
     _fake_successful_build(monkeypatch, second_session)
     assert adapter_build(second_session)
     assert second_session.artifact_manifest == manifest
+
+
+def test_producer_command_is_normalized_and_redacted(tmp_path: Path):
+    root = tmp_path / "project"
+    root.mkdir()
+    session = _session(root, _context(root))
+    session.tool_evidence.append(
+        ToolEvidence(
+            name="cmake build",
+            path="/usr/bin/cmake",
+            argv=[
+                "/usr/bin/cmake",
+                "--build",
+                str(session.shadow),
+                "--client-secret",
+                "super-secret-value",
+            ],
+        )
+    )
+
+    command = cmake_module._producer_command(session)
+
+    assert command == (
+        "cmake",
+        "--build",
+        "build/ici-cmake-build",
+        "--client-secret",
+        "***REDACTED***",
+    )
+    assert all(str(root) not in item for item in command)
+    assert all("super-secret-value" not in item for item in command)
 
 
 def test_cmake_build_does_not_publish_an_escaped_symlink_artifact(

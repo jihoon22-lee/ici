@@ -600,6 +600,7 @@ class ArtifactManifest:
         if self.shadow_root is not None and not _is_within(self.shadow_root, self.project_root):
             raise ValueError("shadow root is outside project root")
         seen: set[tuple[ArtifactScope, str]] = set()
+        seen_ids: set[str] = set()
         for artifact in self.artifacts:
             key = (artifact.scope, artifact.path)
             if key in seen:
@@ -607,6 +608,10 @@ class ArtifactManifest:
                     f"duplicate artifact record: {artifact.scope.value}:{artifact.path}"
                 )
             seen.add(key)
+            if artifact.artifact_id:
+                if artifact.artifact_id in seen_ids:
+                    raise ValueError(f"duplicate artifact id: {artifact.artifact_id}")
+                seen_ids.add(artifact.artifact_id)
             declared_root = (
                 self.project_root if artifact.scope is ArtifactScope.PROJECT else self.shadow_root
             )

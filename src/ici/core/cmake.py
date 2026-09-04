@@ -7,11 +7,12 @@ problem this repository has already hit twice (B-1, C-9), so the new build path
 starts in one place.
 """
 
+import hashlib
 import os
 import re
 import shutil
 from dataclasses import dataclass, field, replace
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from xml.etree import ElementTree
 
 from ici.core._build_paths import prepare_owned_shadow, shadow_dir
@@ -32,6 +33,7 @@ from ici.core.context import (
 )
 from ici.core.make import MakeConfigError, MakePlan, make_plan, resolved_argv
 from ici.core.models import ToolEvidence
+from ici.core.redaction import _redact_compilation_argv
 from ici.core.runner import run_process
 
 __all__ = [
@@ -49,6 +51,12 @@ _CTEST_JUNIT_MIN = (3, 21)
 _MAX_CTEST_REPORT_BYTES = 1_000_000
 _MAX_TEST_RESULT_CHARS = 512
 _MAX_SANITIZER_TRANSPORT_BYTES = 65_536
+_ARTIFACT_ID_LIMIT = 512
+_PRODUCER_SECRET_FLAG_RE = re.compile(
+    r"^--?(?:api[_-]?key|access[_-]?key|auth[_-]?token|client[_-]?secret|"
+    r"password|passwd|secret|token)(?:=|$)",
+    re.IGNORECASE,
+)
 
 _CMAKE_VERSION_RE = re.compile(r"cmake version (\d+)\.(\d+)")
 
@@ -803,6 +811,92 @@ def _artifact_kind(path: Path) -> str:
     return "executable"
 
 
+def _artifact_target(path: str, kind: str) -> str:
+    """Derive a stable build-target label when the adapter exposes no target map.
+
+    CMake/qmake/Make output discovery gives us a path, not the logical target
+    name.  The filename is the most useful portable approximation: strip the
+    conventional library prefix/suffix while retaining names such as versioned
+    shared libraries.  A path fallback keeps unusual names non-empty.
+    """
+
+    name = PureWindowsPath(path).name if "\\" in path else Path(path).name
+    if kind == "static-library":
+        for suffix in (".a", ".lib"):
+            if name.casefold().endswith(suffix):
+                name = name[: -len(suffix)]
+                break
+    elif kind == "shared-library":
+        if ".so." in name:
+            name = name.split(".so.", 1)[0]
+        else:
+            for suffix in (".so", ".dylib", ".dll"):
+                if name.casefold().endswith(suffix):
+                    name = name[: -len(suffix)]
+                    break
+    else:
+        name = Path(name).stem
+    if name.startswith("lib") and len(name) > 3:
+        name = name[3:]
+    return name or path
+
+
+def _redact_producer_argv(argv: tuple[str, ...], root: Path) -> tuple[str, ...]:
+    """Normalize build argv and apply both compiler and generic flag redaction."""
+
+    if not argv:
+        return ()
+    executable = argv[0]
+    if Path(executable).is_absolute() or PureWindowsPath(executable).is_absolute():
+        executable = (
+            PureWindowsPath(executable).name if "\\" in executable else Path(executable).name
+        )
+    normalized = (executable, *argv[1:])
+    redacted = list(_redact_compilation_argv(normalized, root))
+    hide_next = False
+    root_text = root.as_posix().rstrip("/")
+    for index, raw in enumerate(normalized):
+        if hide_next:
+            redacted[index] = "***REDACTED***"
+            hide_next = False
+        flag = raw.split("=", 1)[0]
+        if _PRODUCER_SECRET_FLAG_RE.fullmatch(flag + ("=" if "=" in raw else "")):
+            if "=" in raw:
+                redacted[index] = f"{flag}=***REDACTED***"
+            else:
+                hide_next = True
+        # The compiler redactor handles standalone path arguments.  This
+        # additional replacement covers Make/CMake options that embed a
+        # project/build path in an otherwise opaque token.
+        if root_text and root_text in redacted[index]:
+            redacted[index] = redacted[index].replace(root_text + "/", "")
+            redacted[index] = redacted[index].replace(root_text, ".")
+    return tuple(redacted)
+
+
+def _artifact_id(variant: BuildVariant, scope: ArtifactScope, path: str) -> str:
+    """Build a stable address, hashing only exceptionally long paths."""
+
+    value = f"{variant.value}:{scope.value}:{path}"
+    if len(value) <= _ARTIFACT_ID_LIMIT:
+        return value
+    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
+    return f"{variant.value}:{scope.value}:path-{digest}"
+
+
+def _producer_command(session: BuildSession) -> tuple[str, ...]:
+    """Return bounded, report-safe argv for the command that emitted outputs."""
+
+    expected_name = f"{session.backend or 'unknown'} build"
+    evidence = next(
+        (item for item in reversed(session.tool_evidence) if item.name == expected_name),
+        None,
+    )
+    if evidence is None or not evidence.argv:
+        return ()
+    return _redact_producer_argv(tuple(evidence.argv), session.root)
+
+
 def _linked_artifact_paths(shadow: Path) -> list[tuple[Path, ArtifactScope, str]]:
     """Find linked binaries/libraries without treating generated scripts as products."""
 
@@ -846,7 +940,7 @@ def _capture_artifact_manifest(session: BuildSession) -> bool:
     if context is None:
         return True
     try:
-        session.artifact_manifest = ArtifactManifest.create(
+        manifest = ArtifactManifest.create(
             project_root=session.root,
             shadow_root=session.shadow,
             variant=session.variant,
@@ -854,6 +948,22 @@ def _capture_artifact_manifest(session: BuildSession) -> bool:
             paths=_linked_artifact_paths(session.shadow),
             producer=f"{session.backend or 'unknown'}.build",
         )
+        command = _producer_command(session)
+        enriched = []
+        for record in manifest.artifacts:
+            target = _artifact_target(record.path, record.kind)
+            # Include the variant and scope so the same output name from two
+            # build trees remains addressable when manifests are combined.
+            artifact_id = _artifact_id(session.variant, record.scope, record.path)
+            enriched.append(
+                replace(
+                    record,
+                    artifact_id=artifact_id,
+                    target=target,
+                    command=command,
+                )
+            )
+        session.artifact_manifest = replace(manifest, artifacts=tuple(enriched)).validate()
         return True
     except (OSError, ValueError) as err:
         session.artifact_manifest = None
