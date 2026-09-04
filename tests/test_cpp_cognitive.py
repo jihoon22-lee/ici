@@ -5,7 +5,11 @@ from pathlib import Path
 import pytest
 
 from ici.core.models import EngineStatus, EvidenceState
-from ici.engines._cpp_cognitive import cpp_cognitive_metric
+from ici.engines._cpp_cognitive import _source_slice, analyze_cpp_cognitive, cpp_cognitive_metric
+from ici.engines._cpp_function_boundaries import (
+    CppFunctionBoundary,
+    CppFunctionBoundaryOutcome,
+)
 from ici.engines.cognitive import CognitiveEngine
 
 
@@ -61,6 +65,220 @@ def test_do_while_is_counted_as_one_loop() -> None:
     assert metric.cognitive == 2
     assert metric.max_nesting == 1
     assert metric.logical_sequences == 1
+
+
+def test_unbraced_nested_controls_preserve_cognitive_nesting() -> None:
+    metric = cpp_cognitive_metric("{ if (ready) while (retry) work(); }")
+
+    assert metric.cognitive == 3
+    assert metric.unbraced_controls == 2
+
+
+def test_unbraced_do_while_is_counted_as_one_loop() -> None:
+    metric = cpp_cognitive_metric("{ do work(); while (retry); }")
+
+    assert metric.cognitive == 1
+    assert metric.unbraced_controls == 1
+
+
+def test_initializer_braces_are_not_control_bodies() -> None:
+    metric = cpp_cognitive_metric("{ if (ready) Widget value{1}; return 0; }")
+
+    assert metric.cognitive == 1
+    assert metric.max_nesting == 0
+    assert metric.unbraced_controls == 1
+
+
+def test_initializer_in_condition_does_not_hide_nested_control() -> None:
+    metric = cpp_cognitive_metric("{ if (Widget{1}) { if (ready) { return 1; } } return 0; }")
+
+    assert metric.cognitive == 3
+    assert metric.max_nesting == 2
+
+
+def test_metric_supports_cpp_brace_digraphs() -> None:
+    metric = cpp_cognitive_metric("<% if (ready) <% return 1; %> return 0; %>")
+
+    assert metric.cognitive == 1
+    assert metric.max_nesting == 1
+    assert metric.unbraced_controls == 0
+
+
+def test_alternative_logical_tokens_match_symbolic_operators() -> None:
+    symbolic = cpp_cognitive_metric("{ if (ready && valid) return 1; }")
+    alternative = cpp_cognitive_metric("{ if (ready and valid) return 1; }")
+
+    assert alternative.cognitive == symbolic.cognitive
+    assert alternative.logical_sequences == symbolic.logical_sequences
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "{ for (int i = first && second; i < limit && ready; ++i) {} }",
+        "{ consume(first && second, ready && valid); }",
+    ],
+)
+def test_logical_sequences_reset_at_expression_boundaries(body: str) -> None:
+    metric = cpp_cognitive_metric(body)
+
+    assert metric.logical_sequences == 2
+
+
+def test_source_slice_rejects_columns_outside_the_source_line() -> None:
+    with pytest.raises(ValueError, match="outside its source"):
+        _source_slice("abc\n", 1, 10, 1, 10)
+
+
+def test_exact_cpp_boundary_path_uses_compiler_geometry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "src" / "metrics.cpp"
+    source.parent.mkdir()
+    source.write_text(
+        "int measured(bool ready) {\n"
+        "    if (ready) {\n"
+        "        return 1;\n"
+        "    }\n"
+        "    return 0;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    boundary = CppFunctionBoundary(
+        file_path="src/metrics.cpp",
+        start_line=1,
+        end_line=6,
+        start_column=5,
+        end_column=1,
+        body_start_line=1,
+        body_start_column=26,
+        name="measured",
+        configurations=("sha256:test",),
+    )
+
+    def fake_boundaries(*args, **kwargs) -> CppFunctionBoundaryOutcome:
+        return CppFunctionBoundaryOutcome(
+            boundaries=[boundary],
+            mode="exact",
+            configurations_checked=1,
+            sources_checked=1,
+        )
+
+    monkeypatch.setattr(
+        "ici.engines._cpp_cognitive.run_cpp_function_boundaries",
+        fake_boundaries,
+    )
+    outcome = analyze_cpp_cognitive(
+        tmp_path,
+        [source],
+        [source],
+        None,
+        warn=30,
+        fail=60,
+        warn_nesting=4,
+        boundary_policy="auto",
+        runner=lambda *args, **kwargs: None,
+    )
+
+    assert outcome.errors == []
+    assert outcome.boundary_mode == "exact"
+    assert outcome.exact_boundaries == 1
+    assert outcome.estimated_boundaries == 0
+    assert len(outcome.targets) == 1
+    assert outcome.targets[0].metrics["boundary_source"] == "clang-tidy-ast"
+    assert outcome.targets[0].metrics["cognitive"] == 1
+    assert outcome.targets[0].metrics["nesting"] == 1
+    assert outcome.targets[0].start_column == 5
+    assert outcome.targets[0].end_column == 1
+
+
+def test_cpp_source_intake_error_is_located_at_the_source(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "src" / "broken.cpp"
+    source.parent.mkdir()
+    source.write_bytes(b"int broken() {\xff }\n")
+
+    result = CognitiveEngine(
+        tmp_path,
+        {
+            "project": {"type": "cpp", "source_dirs": ["src"]},
+            "engines": {"cognitive": {"cpp_boundaries": "off"}},
+        },
+    ).run()
+
+    assert result.status == EngineStatus.ERROR
+    error_target = next(target for target in result.targets if target.file_path == "src/broken.cpp")
+    assert error_target.target_name == "CppCognitiveSourceError"
+    assert error_target.file_path == "src/broken.cpp"
+    assert error_target.start_line == 1
+
+
+def test_cpp_geometry_error_is_located_at_the_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "src" / "metrics.cpp"
+    source.parent.mkdir()
+    source.write_text("int measured() { return 1; }\n", encoding="utf-8")
+    boundary = CppFunctionBoundary(
+        file_path="src/metrics.cpp",
+        start_line=1,
+        end_line=1,
+        start_column=5,
+        end_column=999,
+        body_start_line=1,
+        body_start_column=16,
+        name="measured",
+    )
+
+    def fake_boundaries(*args, **kwargs) -> CppFunctionBoundaryOutcome:
+        return CppFunctionBoundaryOutcome(boundaries=[boundary], mode="exact")
+
+    monkeypatch.setattr(
+        "ici.engines._cpp_cognitive.run_cpp_function_boundaries",
+        fake_boundaries,
+    )
+    result = CognitiveEngine(
+        tmp_path,
+        {
+            "project": {"type": "cpp", "source_dirs": ["src"]},
+            "engines": {"cognitive": {"cpp_boundaries": "auto"}},
+        },
+    ).run()
+
+    assert result.status == EngineStatus.ERROR
+    error_target = next(
+        target for target in result.targets if target.file_path == "src/metrics.cpp"
+    )
+    assert error_target.status == EngineStatus.ERROR
+    assert error_target.file_path == "src/metrics.cpp"
+    assert error_target.start_line == 1
+
+
+def test_unterminated_cpp_function_does_not_silently_pass(tmp_path: Path) -> None:
+    source = tmp_path / "src" / "broken.cpp"
+    source.parent.mkdir()
+    source.write_text(
+        "int broken(bool ready) {\n    if (ready) {\n        return 1;\n    }\n",
+        encoding="utf-8",
+    )
+
+    result = CognitiveEngine(
+        tmp_path,
+        {
+            "project": {"type": "cpp", "source_dirs": ["src"]},
+            "engines": {"cognitive": {"cpp_boundaries": "off"}},
+        },
+    ).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert any(target.file_path == "src/broken.cpp" for target in result.targets)
+
+
+def test_cpp_cognitive_cache_tracks_fallback_scanner_dependency() -> None:
+    assert "ici.engines.complexity" in CognitiveEngine.CACHE_IMPLEMENTATION_MODULES
 
 
 def test_cpp_engine_reports_every_function_with_estimated_evidence(tmp_path: Path) -> None:
