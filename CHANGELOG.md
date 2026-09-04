@@ -9,17 +9,25 @@
 
 ### Added
 
-- **Deeper native analysis and gcov JSON coverage (unreleased):** C++ cognitive complexity now
-  inspects bounded function regions with compiler-derived boundaries when available and an explicit
-  lexical-estimate fallback. Native lint diagnostics recognize additional compiler/analyzer,
-  clang-tidy, and clazy lifetime, ownership, iterator, allocation, and Qt detach categories by
-  normalized rule id. On supported GCC, test coverage now prefers bounded gzip JSON, validates the
-  advertised format/tool versions, preserves exact function line/column geometry and demangled
-  names, filters exceptional throw edges, verifies the complete expected production-source set,
-  and records source-mapping and exclusion provenance. A successful legacy `gcov --help` probe that
-  does not advertise JSON uses the documented lower-fidelity text fallback; indeterminate probes or
-  malformed JSON never fall back silently. This consolidated feature work retains stable version
-  `0.10.2` and does not authorize a release.
+- **Deeper native analysis and gcov JSON coverage (unreleased):** C++ cognitive analysis now uses
+  compiler-backed function boundaries when available, but the CC/nesting value inside that boundary
+  is always a bounded lexical estimate (`bounded-cpp-tokens`), never an exact compiler metric;
+  boundary provenance and metric confidence remain separate. Native lint diagnostics recognize
+  additional compiler/analyzer, clang-tidy, and clazy lifetime, ownership, iterator, allocation,
+  and Qt detach categories by normalized rule id. On supported GCC, test coverage now prefers
+  bounded gzip JSON, validates the advertised format/tool versions, preserves exact function
+  line/column geometry and demangled names, filters exceptional throw edges, verifies the complete
+  expected production-source set, and records source-mapping and explicit scope/exclusion
+  provenance. A successful legacy `gcov --help` probe that does not advertise JSON uses the
+  documented lower-fidelity text fallback; indeterminate probes or malformed JSON never fall back
+  silently. Coverage policy targets now cover overall line, per-file line (with a minimum statement
+  floor), aggregate/function scope, and caller-declared changed lines; PASS targets are retained,
+  JSON uncovered functions keep exact locations, and baseline coverage regression is opt-in. The real
+  CMake/Qt fixture under GCC 15.2 reached 100% line/function/branch coverage with three exact
+  functions; its JSON evidence contained five reports for one expected production source and 19
+  ignored generated/external records. Mutation remains capability probing only and contributes no
+  mutation score. This consolidated feature work retains stable version `0.10.2` and does not
+  authorize a release. See [native analysis and coverage depth workthrough](docs/workthrough/2026-09-04-native-analysis-and-coverage-depth.md).
 
 - **LLVM 18 multi-pair clang-tidy diagnostics:** The strict C++ diagnostic parser now retains one
   `bugprone-easily-swappable-parameters` primary while LLVM emits multiple bounded empty-note and
