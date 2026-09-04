@@ -952,6 +952,11 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             )
         )
 
+    def _run_test_process(self, argv: list[str], *, cwd: Path) -> ProcessResult:
+        """Keep mixin probes on the same patchable, bounded process runner."""
+
+        return run_process(argv, cwd=cwd)
+
     def _record_tool_error(self, message: str) -> None:
         if message not in self._tool_errors:
             self._tool_errors.append(message)

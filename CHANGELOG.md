@@ -540,6 +540,11 @@
   cancellation both remove the unpublished temporary file without catching control-flow
   exceptions. This is unreleased validation hardening only; version `0.10.2` remains unchanged.
 
+- **Test-engine import direction:** Coverage probing now calls a runner hook supplied by
+  `TestEngine` instead of importing its owning module from `test_interpreter` at runtime. Existing
+  patchability and bounded process behavior are preserved while removing the
+  `test -> test_interpreter -> test` dependency cycle reported by ici's own cycle engine.
+
 - **Deterministic ZipApp bootstrap entry ordering and acceptance:** The packaging entrypoint
   now delegates to a small `scripts/run_shiv.py` wrapper inside the selected Python 3.10+ helper
   interpreter. The wrapper sorts shiv 1.0.8's private bootstrap resource entries by their archive

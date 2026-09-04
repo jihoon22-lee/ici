@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 
+from ici.core.runner import ProcessResult
+
 
 class TestInterpreterMixin:
     """Mixin providing interpreter resolution for pytest/coverage."""
@@ -46,10 +48,10 @@ class TestInterpreterMixin:
         interpreter = self._interpreter_from_command(python_cmd)
         candidate = [*interpreter, "-m", "coverage"]
         probe = [*candidate, "--version"]
-        # Import through ici.engines.test so monkeypatched run_process applies.
-        from ici.engines.test import run_process as _run
-
-        result = _run(probe, cwd=self.project_root)  # type: ignore[attr-defined]
+        result = self._run_test_process(  # type: ignore[attr-defined]
+            probe,
+            cwd=self.project_root,  # type: ignore[attr-defined]
+        )
         self._record_tool("coverage --version", probe, result)  # type: ignore[attr-defined]
         if result.returncode == 0 and not result.timed_out and not result.truncated:
             return candidate
@@ -66,6 +68,11 @@ class TestInterpreterMixin:
                 f"Coverage module probe failed with exit code {result.returncode}"
             )
         return None
+
+    def _run_test_process(self, argv: list[str], *, cwd: Path) -> ProcessResult:
+        """Execute a test helper through the owning engine's runner binding."""
+
+        raise NotImplementedError
 
     def _interpreter_from_command(self, command: list[str] | None) -> list[str]:
         """Normalize legacy pytest argv into its interpreter prefix."""
