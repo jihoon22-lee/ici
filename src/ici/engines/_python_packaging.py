@@ -706,10 +706,27 @@ def analyze_python_packaging(
         )
     evidence: list[_WheelEvidence] = []
     for wheel in wheels:
-        wheel_findings, wheel_evidence = _wheel_findings(canonical_root, wheel, package, policy)
+        relative = wheel.relative_to(canonical_root).as_posix()
+        try:
+            wheel_findings, wheel_evidence = _wheel_findings(canonical_root, wheel, package, policy)
+        except PythonPackagingError as err:
+            findings.append(
+                _finding(
+                    "ici.package.wheel-invalid",
+                    relative,
+                    1,
+                    f"Wheel could not be inspected safely: {err}",
+                    severity=FindingSeverity.HIGH,
+                    tool_rule_id="wheel.structure",
+                )
+            )
+            continue
         findings.extend(wheel_findings)
         evidence.append(wheel_evidence)
-    inspected_paths = ["pyproject.toml", *(item.path for item in evidence)]
+    inspected_paths = [
+        "pyproject.toml",
+        *(wheel.relative_to(canonical_root).as_posix() for wheel in wheels),
+    ]
     targets = tuple(
         _summary_target(
             path,
@@ -731,7 +748,9 @@ def analyze_python_packaging(
             "state": "MEASURED",
             "policy": policy.wheel_policy,
             "requested": list(policy.wheel_globs),
+            "attempted": len(wheels),
             "checked": len(evidence),
+            "invalid": len(wheels) - len(evidence),
             "members": sum(item.members for item in evidence),
             "uncompressed_bytes": sum(item.uncompressed_bytes for item in evidence),
             "pure": bool(evidence) and all(item.pure for item in evidence),

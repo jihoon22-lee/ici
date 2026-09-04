@@ -14,6 +14,7 @@ import pytest
 
 from ici.config import DEFAULT_CONFIG
 from ici.config_schema import ConfigError, validate_config
+from ici.core.models import EngineStatus
 from ici.engines._python_packaging import (
     PackagingPolicy,
     PythonPackagingError,
@@ -227,26 +228,37 @@ def test_wheel_symlink_member_is_rejected(tmp_path: Path) -> None:
     with zipfile.ZipFile(path, "a") as archive:
         archive.writestr(link, "cli.py")
 
-    with pytest.raises(PythonPackagingError, match="symlink or special"):
-        analyze_python_packaging(tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",)))
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert [finding.rule_id for finding in result.findings] == ["ici.package.wheel-invalid"]
+    assert result.targets[1].file_path == "dist/demo-1.2.3-py3-none-any.whl"
+    assert result.targets[1].status is EngineStatus.FAIL
+    assert result.metadata["attempted"] == 1
+    assert result.metadata["checked"] == 0
+    assert result.metadata["invalid"] == 1
 
 
 def test_wheel_member_and_uncompressed_bounds_fail_closed(tmp_path: Path) -> None:
     sources = _project(tmp_path)
     _wheel(tmp_path)
 
-    with pytest.raises(PythonPackagingError, match="member count"):
-        analyze_python_packaging(
-            tmp_path,
-            sources,
-            PackagingPolicy(wheel_globs=("dist/*.whl",), max_wheel_members=1),
-        )
-    with pytest.raises(PythonPackagingError, match="uncompressed size"):
-        analyze_python_packaging(
-            tmp_path,
-            sources,
-            PackagingPolicy(wheel_globs=("dist/*.whl",), max_wheel_uncompressed_bytes=1),
-        )
+    members = analyze_python_packaging(
+        tmp_path,
+        sources,
+        PackagingPolicy(wheel_globs=("dist/*.whl",), max_wheel_members=1),
+    )
+    assert members.findings[0].rule_id == "ici.package.wheel-invalid"
+    assert "member count" in members.findings[0].message
+
+    size = analyze_python_packaging(
+        tmp_path,
+        sources,
+        PackagingPolicy(wheel_globs=("dist/*.whl",), max_wheel_uncompressed_bytes=1),
+    )
+    assert size.findings[0].rule_id == "ici.package.wheel-invalid"
+    assert "uncompressed size" in size.findings[0].message
 
 
 def test_unsafe_wheel_glob_and_oversized_metadata_are_rejected(tmp_path: Path) -> None:
@@ -257,8 +269,11 @@ def test_unsafe_wheel_glob_and_oversized_metadata_are_rejected(tmp_path: Path) -
     path = _wheel(tmp_path)
     with zipfile.ZipFile(path, "a") as archive:
         archive.writestr("other-1.dist-info/WHEEL", b"x" * (1024 * 1024 + 1))
-    with pytest.raises(PythonPackagingError, match="exactly one WHEEL"):
-        analyze_python_packaging(tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",)))
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+    assert result.findings[0].rule_id == "ici.package.wheel-invalid"
+    assert "exactly one WHEEL" in result.findings[0].message
 
 
 def test_distribution_import_mismatch_is_warning_not_failure(tmp_path: Path) -> None:
