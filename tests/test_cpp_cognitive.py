@@ -147,6 +147,27 @@ def test_control_attributes_preserve_the_following_statement_shape() -> None:
     assert metric.unbraced_controls == 0
 
 
+def test_statement_attribute_before_control_preserves_statement_shape() -> None:
+    metric = cpp_cognitive_metric(
+        "{ [[likely]] if (ready) { [[unlikely]] while (retry) work(); } }"
+    )
+
+    assert metric.cognitive == 3
+    assert metric.max_nesting == 1
+    assert metric.unbraced_controls == 1
+
+
+def test_digraph_lambda_body_is_excluded_from_enclosing_metric() -> None:
+    metric = cpp_cognitive_metric(
+        "<% auto nested = [](int value) <% if (value && ready) return 1; %>; "
+        "if (actual) return 2; %>"
+    )
+
+    assert metric.cognitive == 1
+    assert metric.logical_sequences == 0
+    assert metric.excluded_lambdas == 1
+
+
 def test_function_try_block_is_a_valid_function_region(tmp_path: Path) -> None:
     source = tmp_path / "src" / "guarded.cpp"
     source.parent.mkdir()

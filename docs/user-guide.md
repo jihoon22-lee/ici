@@ -470,7 +470,10 @@ CMake/qmake coverage adapter는 먼저 `gcov --help`를 bounded하게 확인합�
 non-finite number·schema/type/count/position을 엄격히 검증합니다. format version 1/2와
 비어 있지 않은 numeric GCC version만 허용하며, line/count·branch(fallthrough/throw)·call과
 function의 start/end line/column, name/demangled name, execution count를 보존합니다. throw
-unwind edge는 branch score에서 제외됩니다. malformed/불완전 JSON, capability probe 실패·
+unwind edge는 branch score에서 제외됩니다. gcov JSON v1처럼 basic block ID가 없는 branch는
+같은 source line 안의 안정된 출력 순서로 구분하고
+`branch_identity = basic-block-or-line-order` provenance를 남깁니다. ID가 있으면 basic-block
+identity를 우선 사용합니다. malformed/불완전 JSON, capability probe 실패·
 timeout·truncation은 text로 조용히 재시도하지 않고 fail-closed합니다.
 
 JSON을 광고하지 않는 성공한 legacy `gcov --help`만 bounded text parser로 제한적으로

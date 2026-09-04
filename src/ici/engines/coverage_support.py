@@ -8,7 +8,13 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ici.core.project import get_all_python_sources
-from ici.engines.gcov_json import GcovJsonError, GcovReport, parse_gcov_json_gz
+from ici.engines.gcov_json import (
+    MAX_COMPRESSED_BYTES,
+    MAX_DECOMPRESSED_BYTES,
+    GcovJsonError,
+    GcovReport,
+    parse_gcov_json_gz,
+)
 
 _COVERAGE_KEYS = (
     "covered_lines",
@@ -17,6 +23,15 @@ _COVERAGE_KEYS = (
     "num_branches",
     "covered_branches",
 )
+
+_MAX_GCOV_JSON_REPORTS = 4_096
+_MAX_GCOV_JSON_COMPRESSED_BYTES = 64 * 1024 * 1024
+_MAX_GCOV_JSON_DECOMPRESSED_BYTES = 256 * 1024 * 1024
+_MAX_GCOV_JSON_FILE_RECORDS = 16_384
+_MAX_GCOV_JSON_FUNCTION_RECORDS = 500_000
+_MAX_GCOV_JSON_LINE_RECORDS = 4_000_000
+_MAX_GCOV_JSON_BRANCH_RECORDS = 8_000_000
+_MAX_GCOV_JSON_CALL_RECORDS = 8_000_000
 
 # gcc emits an extra arm marked "(throw)" around nearly every call that may
 # raise — which, with exceptions enabled, is essentially every STL allocation.
@@ -484,7 +499,7 @@ def _merge_gcov_json_report(
     source_files: set[str],
     project_root: Path,
     lines_by_file: dict[str, dict[int, bool]],
-    branches_by_file: dict[str, dict[tuple[int, str, int, int, bool], bool]],
+    branches_by_file: dict[str, dict[tuple[int, str, int | None, int | None, bool, int], bool]],
     functions_by_file: dict[str, dict[tuple[str, int, int, int, int], dict]],
 ) -> tuple[int, int]:
     matched = 0
@@ -505,28 +520,34 @@ def _merge_gcov_json_report(
         functions = functions_by_file.setdefault(relative, {})
         for line in source.lines:
             lines[line.line_number] = lines.get(line.line_number, False) or line.count > 0
-            for branch in line.branches:
+            for branch_index, branch in enumerate(line.branches):
                 if branch.throw:
                     continue
-                identity = (
+                ordered_v1_index = (
+                    branch_index
+                    if branch.source_block_id is None or branch.destination_block_id is None
+                    else -1
+                )
+                branch_identity = (
                     line.line_number,
                     line.function_name,
                     branch.source_block_id,
                     branch.destination_block_id,
                     branch.fallthrough,
+                    ordered_v1_index,
                 )
-                branches[identity] = branches.get(identity, False) or branch.count > 0
+                branches[branch_identity] = branches.get(branch_identity, False) or branch.count > 0
         for function in source.functions:
             name = function.demangled_name or function.name or "<unnamed>"
-            identity = (
+            function_identity = (
                 function.name,
                 function.start_line,
                 function.start_column,
                 function.end_line,
                 function.end_column,
             )
-            previous = functions.get(identity)
-            functions[identity] = {
+            previous = functions.get(function_identity)
+            functions[function_identity] = {
                 "file": relative,
                 "name": name,
                 "symbol": function.name,
@@ -552,19 +573,96 @@ def parse_gcov_json_dir(
     must not retry the same evidence through the lossy text parser.
     """
 
-    reports = sorted(cov_dir.glob("*.gcov.json.gz"))
+    reports: list[Path] = []
+    try:
+        for candidate in cov_dir.iterdir():
+            if not candidate.name.endswith(".gcov.json.gz"):
+                continue
+            reports.append(candidate)
+            if len(reports) > _MAX_GCOV_JSON_REPORTS:
+                raise GcovJsonError(
+                    f"gcov JSON report count exceeds {_MAX_GCOV_JSON_REPORTS}",
+                    code="aggregate_limit",
+                )
+    except GcovJsonError:
+        raise
+    except OSError as exc:
+        raise GcovJsonError(
+            f"cannot enumerate gcov JSON evidence: {exc}", code="read_error"
+        ) from exc
+    reports.sort(key=lambda path: path.name)
     if not reports:
         raise GcovJsonError("no .gcov.json.gz reports were found", code="missing_data")
 
     lines_by_file: dict[str, dict[int, bool]] = {}
-    branches_by_file: dict[str, dict[tuple[int, str, int, int, bool], bool]] = {}
+    branches_by_file: dict[str, dict[tuple[int, str, int | None, int | None, bool, int], bool]] = {}
     functions_by_file: dict[str, dict[tuple[str, int, int, int, int], dict]] = {}
     versions: set[int] = set()
     gcc_versions: set[str] = set()
     matched_records = 0
     ignored_records = 0
+    compressed_bytes = 0
+    decompressed_bytes = 0
+    file_records = 0
+    function_records = 0
+    line_records = 0
+    branch_records = 0
+    call_records = 0
+    lines_without_block_ids = 0
+    ordered_branch_records = 0
     for report_path in reports:
-        report = parse_gcov_json_gz(report_path)
+        compressed_remaining = _MAX_GCOV_JSON_COMPRESSED_BYTES - compressed_bytes
+        decompressed_remaining = _MAX_GCOV_JSON_DECOMPRESSED_BYTES - decompressed_bytes
+        if compressed_remaining <= 0 or decompressed_remaining <= 0:
+            raise GcovJsonError(
+                "cumulative gcov JSON byte budget is exhausted", code="aggregate_limit"
+            )
+        try:
+            report = parse_gcov_json_gz(
+                report_path,
+                max_compressed_bytes=min(MAX_COMPRESSED_BYTES, compressed_remaining),
+                max_decompressed_bytes=min(MAX_DECOMPRESSED_BYTES, decompressed_remaining),
+            )
+        except GcovJsonError as exc:
+            if exc.code in {"compressed_limit", "decompressed_limit"} and (
+                compressed_remaining < MAX_COMPRESSED_BYTES
+                or decompressed_remaining < MAX_DECOMPRESSED_BYTES
+            ):
+                raise GcovJsonError(
+                    "cumulative gcov JSON byte budget was exceeded", code="aggregate_limit"
+                ) from exc
+            raise
+        compressed_bytes += report.compressed_bytes
+        decompressed_bytes += report.decompressed_bytes
+        file_records += len(report.files)
+        function_records += sum(len(source.functions) for source in report.files)
+        line_records += sum(len(source.lines) for source in report.files)
+        branch_records += sum(
+            len(line.branches) for source in report.files for line in source.lines
+        )
+        call_records += sum(len(line.calls) for source in report.files for line in source.lines)
+        lines_without_block_ids += sum(
+            not line.block_ids for source in report.files for line in source.lines
+        )
+        ordered_branch_records += sum(
+            branch.source_block_id is None or branch.destination_block_id is None
+            for source in report.files
+            for line in source.lines
+            for branch in line.branches
+        )
+        limits = (
+            (file_records, _MAX_GCOV_JSON_FILE_RECORDS, "file"),
+            (function_records, _MAX_GCOV_JSON_FUNCTION_RECORDS, "function"),
+            (line_records, _MAX_GCOV_JSON_LINE_RECORDS, "line"),
+            (branch_records, _MAX_GCOV_JSON_BRANCH_RECORDS, "branch"),
+            (call_records, _MAX_GCOV_JSON_CALL_RECORDS, "call"),
+        )
+        for observed_count, maximum, label in limits:
+            if observed_count > maximum:
+                raise GcovJsonError(
+                    f"cumulative gcov JSON {label} records exceed {maximum}",
+                    code="aggregate_limit",
+                )
         versions.add(report.format_version)
         gcc_versions.add(report.gcc_version)
         matched, ignored = _merge_gcov_json_report(
@@ -632,6 +730,18 @@ def parse_gcov_json_dir(
         "format_versions": sorted(versions),
         "gcc_versions": sorted(gcc_versions),
         "report_count": len(reports),
+        "compressed_bytes": compressed_bytes,
+        "decompressed_bytes": decompressed_bytes,
+        "file_records": file_records,
+        "function_records": function_records,
+        "line_records": line_records,
+        "branch_records": branch_records,
+        "call_records": call_records,
+        "lines_without_block_ids": lines_without_block_ids,
+        "ordered_branch_records": ordered_branch_records,
+        "branch_identity": (
+            "basic-block" if ordered_branch_records == 0 else "basic-block-or-line-order"
+        ),
         "matched_file_records": matched_records,
         "ignored_file_records": ignored_records,
         "expected_sources": len(source_files),

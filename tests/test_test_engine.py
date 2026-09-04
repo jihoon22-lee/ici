@@ -501,11 +501,12 @@ def _write_gcov_json(
     project_root: Path,
     source: str = "src/calc.cpp",
     function_count: int = 0,
+    format_version: str = "2",
 ) -> None:
     document = {
         "current_working_directory": str(project_root),
         "data_file": "calc.gcda",
-        "format_version": "2",
+        "format_version": format_version,
         "gcc_version": "14.2.0",
         "files": [
             {
@@ -570,6 +571,13 @@ def _write_gcov_json(
             }
         ],
     }
+    if format_version == "1":
+        for line in document["files"][0]["lines"]:
+            line.pop("block_ids")
+            line.pop("calls")
+            for branch in line["branches"]:
+                branch.pop("source_block_id")
+                branch.pop("destination_block_id")
     path.write_bytes(gzip.compress(json.dumps(document).encode("utf-8")))
 
 
@@ -619,6 +627,30 @@ def test_gcov_json_consumption_preserves_geometry_and_throw_policy(tmp_path: Pat
     assert engine._coverage_provenance["cpp"]["throw_branches_excluded"] is True
 
 
+def test_gcov_json_v1_uses_ordered_branch_identity(tmp_path: Path):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc(int);\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(
+        cov_dir / "calc.cpp.gcov.json.gz",
+        project_root=tmp_path,
+        function_count=2,
+        format_version="1",
+    )
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._tool_errors == []
+    assert engine._cpp_coverage_rows[0]["branch_cover"] == 50.0
+    provenance = engine._coverage_provenance["cpp"]
+    assert provenance["format_versions"] == [1]
+    assert provenance["branch_identity"] == "basic-block-or-line-order"
+    assert provenance["ordered_branch_records"] == 3
+
+
 def test_gcov_json_rejects_missing_expected_source_without_text_fallback(tmp_path: Path):
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "calc.cpp").write_text("int calc();\n", encoding="utf-8")
@@ -641,6 +673,55 @@ def test_gcov_json_rejects_missing_expected_source_without_text_fallback(tmp_pat
     assert engine._cpp_coverage_rows == []
     assert engine._cpp_function_rows == []
     assert any("incomplete_source_coverage" in message for message in engine._tool_errors)
+
+
+def test_gcov_json_directory_rejects_aggregate_report_count(tmp_path: Path, monkeypatch):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc();\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(cov_dir / "one.gcov.json.gz", project_root=tmp_path)
+    _write_gcov_json(cov_dir / "two.gcov.json.gz", project_root=tmp_path)
+    monkeypatch.setattr("ici.engines.coverage_support._MAX_GCOV_JSON_REPORTS", 1)
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._cpp_coverage_rows == []
+    assert any("aggregate_limit" in message for message in engine._tool_errors)
+
+
+def test_gcov_json_directory_rejects_cumulative_record_count(tmp_path: Path, monkeypatch):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc();\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(cov_dir / "calc.gcov.json.gz", project_root=tmp_path)
+    monkeypatch.setattr("ici.engines.coverage_support._MAX_GCOV_JSON_LINE_RECORDS", 1)
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._cpp_coverage_rows == []
+    assert any("aggregate_limit" in message for message in engine._tool_errors)
+
+
+def test_gcov_json_directory_rejects_cumulative_byte_budget(tmp_path: Path, monkeypatch):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc();\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(cov_dir / "calc.gcov.json.gz", project_root=tmp_path)
+    monkeypatch.setattr("ici.engines.coverage_support._MAX_GCOV_JSON_DECOMPRESSED_BYTES", 32)
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._cpp_coverage_rows == []
+    assert any("aggregate_limit" in message for message in engine._tool_errors)
 
 
 def test_find_coverage_cmd_uses_venv_module_probe(tmp_path: Path, monkeypatch):

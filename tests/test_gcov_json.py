@@ -171,12 +171,41 @@ def test_accepts_missing_compilation_directory_on_empty_gcc_report():
 
 def test_accepts_version_one_without_optional_calls():
     document = _document(version="1")
-    del document["files"][0]["lines"][0]["calls"]
+    line = document["files"][0]["lines"][0]
+    del line["calls"]
+    del line["block_ids"]
+    del line["branches"][0]["source_block_id"]
+    del line["branches"][0]["destination_block_id"]
 
     report = parse_gcov_json_gz(_gzip(document))
 
     assert report.format_version == 1
-    assert report.files[0].lines[0].calls == ()
+    parsed_line = report.files[0].lines[0]
+    assert parsed_line.block_ids == ()
+    assert parsed_line.calls == ()
+    assert parsed_line.branches[0].source_block_id is None
+    assert parsed_line.branches[0].destination_block_id is None
+
+
+def test_version_one_rejects_calls_and_partial_branch_block_ids():
+    document = _document(version="1")
+    line = document["files"][0]["lines"][0]
+    del line["block_ids"]
+    del line["branches"][0]["destination_block_id"]
+    _error(document, code="version_field")
+
+    del line["calls"]
+    _error(document, code="missing_field")
+
+
+def test_version_two_requires_line_and_branch_block_ids():
+    document = _document()
+    del document["files"][0]["lines"][0]["block_ids"]
+    _error(document, code="missing_field")
+
+    document = _document()
+    del document["files"][0]["lines"][0]["branches"][0]["source_block_id"]
+    _error(document, code="missing_field")
 
 
 def test_document_and_convenience_byte_apis_accept_uncompressed_json():

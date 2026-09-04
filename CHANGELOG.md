@@ -20,7 +20,12 @@
   expected production-source set, and records source-mapping and explicit scope/exclusion
   provenance. A successful legacy `gcov --help` probe that does not advertise JSON uses the
   documented lower-fidelity text fallback; indeterminate probes or malformed JSON never fall back
-  silently. Coverage policy targets now cover overall line, per-file line (with a minimum statement
+  silently. Directory aggregation additionally caps report count, cumulative compressed/
+  decompressed bytes, and cumulative file/function/line/branch/call records. Statement attributes
+  before control flow and lambda bodies written with C++ brace digraphs retain the same cognitive
+  semantics as their ordinary spellings. gcov JSON v1 reports without basic-block IDs use
+  source-line branch order with explicit provenance. Coverage policy targets now cover
+  overall line, per-file line (with a minimum statement
   floor), aggregate/function scope, and caller-declared changed lines; PASS targets are retained,
   JSON uncovered functions keep exact locations, and baseline coverage regression is opt-in. The real
   CMake/Qt fixture under GCC 15.2 reached 100% line/function/branch coverage with three exact

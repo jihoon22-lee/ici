@@ -2,7 +2,7 @@
 
 ## 개요
 
-이 문서는 `2e979e5..867bcb8` 범위에서 진행한 C++ cognitive 분석, gcov JSON coverage
+이 문서는 `2e979e5` 이후 feature branch에서 진행한 C++ cognitive 분석, gcov JSON coverage
 수집, coverage policy와 baseline regression 보강을 기록한다. 구현은 아직 stable release에
 포함되지 않은 feature branch의 결과이며, 공개 stable version `0.10.2`와 release artifact는
 변경하지 않았다.
@@ -35,7 +35,8 @@ Mutation은 이 범위에서도 실제 mutation score를 산출하지 않고 cap
   estimate다. `boundary_source`/boundary provenance와 `metric_confidence`를 별도로
   보존하며, 이 숫자를 compiler가 계산한 exact cognitive metric이라고 주장하지 않는다.
 - literal/comment, nested lambda body와 preprocessor directive를 masking하고, initializer
-  brace·`do/while`·unbraced control·digraph brace 등 경계 사례를 bounded parser로 처리한다.
+  brace·`do/while`·unbraced control·statement-prefix attribute·digraph brace와 digraph lambda 등
+  경계 사례를 bounded parser로 처리한다.
   C++ 전체 grammar 또는 runtime semantics를 증명하는 parser는 아니다.
 - `auto`는 context/tool이 unavailable일 때에만 source scanner의 `ESTIMATED` 경계를 사용한다.
   tool을 시도한 뒤의 process/parser/replay/timeout/truncation/budget 오류는 estimate로
@@ -50,9 +51,16 @@ Mutation은 이 범위에서도 실제 mutation score를 산출하지 않고 cap
 
 - gzip member, UTF-8, duplicate JSON key, non-finite/floating number, object depth/cardinality와
   각 nested count를 bounded하게 검증한다.
+- 디렉터리 집계는 report 4,096개, compressed 64 MiB, decompressed 256 MiB와 누적
+  file/function/line/branch/call record 상한을 추가로 적용한다. 각 report의 실제 입력 크기를
+  파서가 반환하므로 남은 누적 byte budget보다 큰 다음 report는 merge 전에 거부한다.
 - format version `1`/`2`와 numeric GCC version을 허용하고, file/line/count, branch의
   fallthrough/throw, call, function의 name/demangled name·execution count·start/end
   line/column을 immutable tuple dataclass로 보존한다.
+- v1 gcov가 basic-block ID를 생략하는 경우 branch를 source line 내 출력
+  순서로 구분하고 `basic-block-or-line-order` provenance를 남긴다. ID가 있는 report는
+  source/destination basic-block identity를 우선 사용하며, 한 branch에서 ID 한쪽만 빠진
+  evidence는 거부한다.
 - throw unwind edge는 branch coverage 계산에서 제외한다. integration은 기록된 compilation
   directory 또는 project root를 통해 source를 매핑하고, 모든 expected production source가
   관찰되지 않으면 incomplete evidence로 거부한다.
@@ -169,7 +177,8 @@ generator, generated-source layout에서는 capability와 source mapping 결과�
 
 ## 보안 경계
 
-- gcov parser는 compressed 8 MiB, decompressed 64 MiB, JSON depth/cardinality와 file/line/
+- gcov parser는 report당 compressed 8 MiB/decompressed 64 MiB와 디렉터리 누적 compressed
+  64 MiB/decompressed 256 MiB, report 4,096개, JSON depth/cardinality 및 누적 file/line/
   function/branch/call/count를 bounded하게 제한한다. path 입력은 `O_NOFOLLOW` regular-file
   descriptor로 읽고 read 전후 identity를 확인하며, gzip trailing member와 malformed UTF-8/
   JSON을 거부한다.

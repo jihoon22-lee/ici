@@ -14,9 +14,9 @@ import os
 import re
 import stat
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 # These limits are intentionally conservative defaults for a single gcov
 # evidence file.  Callers can lower the byte limits for untrusted CI inputs.
@@ -57,9 +57,9 @@ class GcovBranch:
     """One branch edge attached to a source line."""
 
     count: int
-    destination_block_id: int
+    destination_block_id: int | None
     fallthrough: bool
-    source_block_id: int
+    source_block_id: int | None
     throw: bool
 
 
@@ -173,6 +173,8 @@ class GcovReport:
     format_version: int
     gcc_version: str
     files: tuple[GcovFile, ...]
+    compressed_bytes: int = field(default=0, compare=False, repr=False)
+    decompressed_bytes: int = field(default=0, compare=False, repr=False)
 
     @property
     def version(self) -> int:
@@ -220,7 +222,7 @@ __all__ = [
 ]
 
 
-def _fail(code: str, message: str) -> None:
+def _fail(code: str, message: str) -> NoReturn:
     raise GcovJsonError(message, code=code)
 
 
@@ -377,24 +379,42 @@ def _parse_block_ids(value: object, context: str) -> tuple[int, ...]:
     )
 
 
-def _parse_branch(value: object, index: int) -> GcovBranch:
+def _parse_branch(value: object, index: int, format_version: int) -> GcovBranch:
     context = f"branch[{index}]"
+    common = {"count", "fallthrough", "throw"}
+    block_fields = {"destination_block_id", "source_block_id"}
     item = _object(
         value,
         context,
-        required={"count", "destination_block_id", "fallthrough", "source_block_id", "throw"},
-        allowed={"count", "destination_block_id", "fallthrough", "source_block_id", "throw"},
+        required=common | (block_fields if format_version >= 2 else set()),
+        allowed=common | block_fields,
     )
+    present_block_fields = block_fields.intersection(item)
+    if present_block_fields and present_block_fields != block_fields:
+        _fail(
+            "missing_field",
+            f"{context} must provide both block IDs when either is present",
+        )
     return GcovBranch(
         count=_integer(item["count"], f"{context}.count"),
-        destination_block_id=_integer(
-            item["destination_block_id"],
-            f"{context}.destination_block_id",
-            maximum=MAX_SOURCE_POSITION,
+        destination_block_id=(
+            _integer(
+                item["destination_block_id"],
+                f"{context}.destination_block_id",
+                maximum=MAX_SOURCE_POSITION,
+            )
+            if present_block_fields
+            else None
         ),
         fallthrough=_boolean(item["fallthrough"], f"{context}.fallthrough"),
-        source_block_id=_integer(
-            item["source_block_id"], f"{context}.source_block_id", maximum=MAX_SOURCE_POSITION
+        source_block_id=(
+            _integer(
+                item["source_block_id"],
+                f"{context}.source_block_id",
+                maximum=MAX_SOURCE_POSITION,
+            )
+            if present_block_fields
+            else None
         ),
         throw=_boolean(item["throw"], f"{context}.throw"),
     )
@@ -609,7 +629,7 @@ def _parse_function(value: object, index: int) -> GcovFunction:
     )
 
 
-def _parse_line(value: object, index: int) -> GcovLine:
+def _parse_line(value: object, index: int, format_version: int) -> GcovLine:
     context = f"line[{index}]"
     allowed = {
         "block_ids",
@@ -621,15 +641,18 @@ def _parse_line(value: object, index: int) -> GcovLine:
         "unexecuted_block",
         "function_name",
     }
-    # block_ids, count, line_number and unexecuted_block are emitted for each
-    # line.  branches/calls are intentionally optional because gcov emits them
-    # only when invoked with -b; function_name may be absent for inline code.
+    # GCC JSON v1 predates block IDs and call records.  Version 2 requires
+    # block IDs, while branches/calls are otherwise optional because gcov emits
+    # them only with -b; function_name may be absent for inline code.
     item = _object(
         value,
         context,
-        required={"block_ids", "count", "line_number", "unexecuted_block"},
+        required={"count", "line_number", "unexecuted_block"}
+        | ({"block_ids"} if format_version >= 2 else set()),
         allowed=allowed,
     )
+    if format_version < 2 and "calls" in item:
+        _fail("version_field", f"{context}.calls requires format_version 2")
     branches_value = item.get("branches", [])
     branches = _array(branches_value, f"{context}.branches", maximum=MAX_BRANCHES_PER_LINE)
     calls_value = item.get("calls", [])
@@ -640,9 +663,14 @@ def _parse_line(value: object, index: int) -> GcovLine:
         item["line_number"], f"{context}.line_number", minimum=1, maximum=MAX_SOURCE_POSITION
     )
     return GcovLine(
-        block_ids=_parse_block_ids(item["block_ids"], f"{context}.block_ids"),
+        block_ids=(
+            _parse_block_ids(item["block_ids"], f"{context}.block_ids")
+            if "block_ids" in item
+            else ()
+        ),
         branches=tuple(
-            _parse_branch(branch, branch_index) for branch_index, branch in enumerate(branches)
+            _parse_branch(branch, branch_index, format_version)
+            for branch_index, branch in enumerate(branches)
         ),
         calls=tuple(_parse_call(call, call_index) for call_index, call in enumerate(calls)),
         conditions=tuple(
@@ -658,7 +686,7 @@ def _parse_line(value: object, index: int) -> GcovLine:
     )
 
 
-def _parse_file(value: object, index: int) -> GcovFile:
+def _parse_file(value: object, index: int, format_version: int) -> GcovFile:
     context = f"file[{index}]"
     item = _object(
         value,
@@ -674,7 +702,9 @@ def _parse_file(value: object, index: int) -> GcovFile:
         _parse_function(function, function_index)
         for function_index, function in enumerate(functions_value)
     )
-    lines = tuple(_parse_line(line, line_index) for line_index, line in enumerate(lines_value))
+    lines = tuple(
+        _parse_line(line, line_index, format_version) for line_index, line in enumerate(lines_value)
+    )
     # GCC emits repeated line numbers for template instantiations and inlined
     # functions.  Integration merges their execution/branch evidence by
     # function and block identity; line number alone is not a unique key.
@@ -701,8 +731,11 @@ def _parse_document(value: object) -> GcovReport:
     required = {"data_file", "format_version", "gcc_version", "files"}
     allowed = required | {"current_working_directory"}
     root = _object(value, "root", required=required, allowed=allowed)
+    format_version = _format_version(root["format_version"])
     files_value = _array(root["files"], "root.files", maximum=MAX_FILES)
-    files = tuple(_parse_file(item, index) for index, item in enumerate(files_value))
+    files = tuple(
+        _parse_file(item, index, format_version) for index, item in enumerate(files_value)
+    )
     paths = [item.file for item in files]
     if len(paths) != len(set(paths)):
         _fail("duplicate_file", "root.files contains duplicate source paths")
@@ -713,7 +746,7 @@ def _parse_document(value: object) -> GcovReport:
             allow_empty=True,
         ),
         data_file=_string(root["data_file"], "root.data_file"),
-        format_version=_format_version(root["format_version"]),
+        format_version=format_version,
         gcc_version=_gcc_version(root["gcc_version"]),
         files=files,
     )
@@ -740,7 +773,7 @@ def parse_gcov_json_bytes(
     raw = bytes(payload)
     document = _decode_json(raw, max_decompressed_bytes=max_decompressed_bytes)
     _validate_json_tree(document)
-    return _parse_document(document)
+    return replace(_parse_document(document), decompressed_bytes=len(raw))
 
 
 def parse_gcov_json_document(
@@ -882,7 +915,10 @@ def parse_gcov_json_gz(
     else:
         _fail("type", "source must be a path or bytes-like gzip payload")
     document = _decompress_gzip(payload, max_decompressed_bytes)
-    return parse_gcov_json_bytes(document, max_decompressed_bytes=max_decompressed_bytes)
+    return replace(
+        parse_gcov_json_bytes(document, max_decompressed_bytes=max_decompressed_bytes),
+        compressed_bytes=len(payload),
+    )
 
 
 def parse_gcov_json_file(

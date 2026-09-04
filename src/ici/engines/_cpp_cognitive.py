@@ -111,13 +111,17 @@ def cpp_cognitive_metric(body: str) -> CppCognitiveMetric:
     """
 
     masked = mask_cpp_literals(body)
-    without_lambdas, lambda_ranges = mask_cpp_lambda_bodies(masked)
+    # Preserve byte offsets while normalizing brace digraphs so the shared
+    # lambda masker recognizes both standard spellings.  The added spaces are
+    # discarded by tokenization and keep newlines/source geometry unchanged.
+    structural = masked.replace("<%", "{ ").replace("%>", "} ")
+    without_lambdas, lambda_ranges = mask_cpp_lambda_bodies(structural)
     conditional = cpp_has_conditional_directive(without_lambdas)
     directive_free = mask_cpp_preprocessor_directives(without_lambdas)
     # Alternative brace tokens are part of the C++ grammar. They are replaced
     # only after literal/comment masking so text inside a string cannot become
     # structure.
-    tokens = _TOKEN_RE.findall(directive_free.replace("<%", "{").replace("%>", "}"))
+    tokens = _TOKEN_RE.findall(directive_free)
     if len(tokens) > _MAX_TOKENS_PER_FUNCTION:
         raise ValueError("function token count exceeds the bounded limit")
     _validate_delimiters(tokens)
@@ -404,6 +408,10 @@ class _CppControlParser:
         try:
             if self.recursion_depth > _MAX_CONTROL_NESTING:
                 raise ValueError("control nesting exceeds the bounded limit")
+            # An attribute-specifier-seq may prefix any C++ statement, not only
+            # a controlled body.  Consume it before dispatch so e.g.
+            # ``[[likely]] if (...)`` retains the following statement shape.
+            self._attributes()
             token = self._peek()
             if token is None:
                 return
