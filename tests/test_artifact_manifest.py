@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from ici.core import context as context_module
 from ici.core.context import (
     AnalysisIdentity,
     ArtifactManifest,
@@ -471,3 +472,48 @@ def test_validate_rejects_duplicate_nonempty_artifact_ids(tmp_path: Path):
 
     with pytest.raises(ValueError, match="duplicate artifact id"):
         manifest.validate()
+
+
+def test_create_rejects_manifest_record_count_over_bound(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "one").write_bytes(b"1")
+    (project_root / "two").write_bytes(b"2")
+    monkeypatch.setattr(context_module, "MAX_ARTIFACT_MANIFEST_RECORDS", 1)
+
+    with pytest.raises(ValueError, match="record limit"):
+        _create(
+            project_root,
+            None,
+            _paths(
+                ("one", ArtifactScope.PROJECT, "binary"),
+                ("two", ArtifactScope.PROJECT, "binary"),
+            ),
+        )
+
+
+def test_create_rejects_per_file_and_aggregate_byte_bounds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "one").write_bytes(b"1234")
+    (project_root / "two").write_bytes(b"5678")
+
+    monkeypatch.setattr(context_module, "MAX_ARTIFACT_FILE_BYTES", 3)
+    with pytest.raises(ValueError, match="per-file byte limit"):
+        _create(project_root, None, _paths(("one", ArtifactScope.PROJECT, "binary")))
+
+    monkeypatch.setattr(context_module, "MAX_ARTIFACT_FILE_BYTES", 4)
+    monkeypatch.setattr(context_module, "MAX_ARTIFACT_TOTAL_BYTES", 7)
+    with pytest.raises(ValueError, match="aggregate byte limit"):
+        _create(
+            project_root,
+            None,
+            _paths(
+                ("one", ArtifactScope.PROJECT, "binary"),
+                ("two", ArtifactScope.PROJECT, "binary"),
+            ),
+        )

@@ -26,6 +26,7 @@ from ici.core.backend import (
     select_backend,
 )
 from ici.core.context import (
+    MAX_ARTIFACT_MANIFEST_RECORDS,
     AnalysisContext,
     ArtifactManifest,
     ArtifactScope,
@@ -53,6 +54,7 @@ _MAX_CTEST_REPORT_BYTES = 1_000_000
 _MAX_TEST_RESULT_CHARS = 512
 _MAX_SANITIZER_TRANSPORT_BYTES = 65_536
 _ARTIFACT_ID_LIMIT = 512
+_MAX_ARTIFACT_DISCOVERY_ENTRIES = 200_000
 _PRODUCER_SECRET_FLAG_RE = re.compile(
     r"^--?(?:api[_-]?key|access[_-]?key|auth[_-]?token|client[_-]?secret|"
     r"password|passwd|secret|token)(?:=|$)",
@@ -910,20 +912,26 @@ def _linked_artifact_paths(shadow: Path) -> list[tuple[Path, ArtifactScope, str]
         b"\xce\xfa\xed\xfe",
         b"\xcf\xfa\xed\xfe",
     )
-    for candidate in sorted(shadow.rglob("*")):
+    candidates: list[Path] = []
+    for candidate in shadow.rglob("*"):
+        candidates.append(candidate)
+        if len(candidates) > _MAX_ARTIFACT_DISCOVERY_ENTRIES:
+            raise ValueError(
+                f"artifact discovery exceeds the {_MAX_ARTIFACT_DISCOVERY_ENTRIES} entry limit"
+            )
+    for candidate in sorted(candidates):
         try:
-            if not candidate.is_file():
+            if candidate.is_symlink() or not candidate.is_file():
                 continue
             if candidate.suffix in (".o", ".obj", ".gcno", ".gcda"):
                 continue
             with candidate.open("rb") as stream:
-                prefix = stream.read(4)
+                prefix = stream.read(8)
         except OSError:
             continue
-        is_library = candidate.suffix in (".a", ".lib", ".so", ".dylib", ".dll") or (
-            ".so." in candidate.name
-        )
-        if not is_library and not any(prefix.startswith(magic) for magic in binary_magics):
+        is_static_library = candidate.suffix in (".a", ".lib") and prefix.startswith(b"!<arch>\n")
+        is_linked_binary = any(prefix.startswith(magic) for magic in binary_magics)
+        if not is_static_library and not is_linked_binary:
             continue
         try:
             resolved = candidate.resolve(strict=True)
@@ -931,6 +939,10 @@ def _linked_artifact_paths(shadow: Path) -> list[tuple[Path, ArtifactScope, str]
         except (OSError, RuntimeError, ValueError):
             continue
         paths[resolved] = (Path(relative), ArtifactScope.SHADOW, _artifact_kind(resolved))
+        if len(paths) > MAX_ARTIFACT_MANIFEST_RECORDS:
+            raise ValueError(
+                f"artifact discovery exceeds the {MAX_ARTIFACT_MANIFEST_RECORDS} record limit"
+            )
     return [paths[path] for path in sorted(paths)]
 
 

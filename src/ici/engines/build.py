@@ -11,7 +11,7 @@ import tomli
 from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
-from ici.core.context import ArtifactManifest, BuildVariant
+from ici.core.context import MAX_ARTIFACT_MANIFEST_RECORDS, ArtifactManifest, BuildVariant
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
     EngineResult,
@@ -30,6 +30,7 @@ _ENTRYPOINT_RE = re.compile(
     r"(?P<callable>[A-Za-z_][A-Za-z0-9_]*)$"
 )
 _SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+_MAX_ARTIFACT_DISCOVERY_ENTRIES = 200_000
 
 
 class BuildEngine(BaseEngine):
@@ -655,6 +656,7 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
         """Count linked outputs in the shadow tree: executables and libraries."""
 
         count = 0
+        visited = 0
         binary_magics = (
             b"\x7fELF",
             b"MZ",
@@ -664,18 +666,29 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
             b"\xcf\xfa\xed\xfe",
         )
         for path in shadow.rglob("*"):
+            visited += 1
+            if visited > _MAX_ARTIFACT_DISCOVERY_ENTRIES:
+                raise ValueError(
+                    f"artifact discovery exceeds the {_MAX_ARTIFACT_DISCOVERY_ENTRIES} entry limit"
+                )
             if not path.is_file() or path.is_symlink():
                 continue
-            if path.suffix in (".a", ".lib", ".so", ".dylib", ".dll") or ".so." in path.name:
-                count += 1
+            if path.suffix in (".o", ".obj", ".gcno", ".gcda"):
                 continue
             try:
                 with path.open("rb") as stream:
-                    prefix = stream.read(4)
+                    prefix = stream.read(8)
             except OSError:
                 continue
-            if any(prefix.startswith(magic) for magic in binary_magics):
+            is_static_library = path.suffix in (".a", ".lib") and prefix.startswith(b"!<arch>\n")
+            is_linked_binary = any(prefix.startswith(magic) for magic in binary_magics)
+            if is_static_library or is_linked_binary:
                 count += 1
+                if count > MAX_ARTIFACT_MANIFEST_RECORDS:
+                    raise ValueError(
+                        "artifact discovery exceeds the "
+                        f"{MAX_ARTIFACT_MANIFEST_RECORDS} record limit"
+                    )
         return count
 
     def _record_error(

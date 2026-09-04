@@ -659,8 +659,9 @@ def test_adapter_artifact_fallback_reads_only_binary_magic(tmp_path, monkeypatch
     shadow.mkdir()
     (shadow / "app").write_bytes(b"\x7fELF" + b"x" * 64)
     (shadow / "demo.exe").write_bytes(b"MZ" + b"x" * 64)
-    (shadow / "libdemo.so.1").write_bytes(b"shared")
-    (shadow / "libdemo.a").write_bytes(b"static")
+    (shadow / "libdemo.so.1").write_bytes(b"not a shared library")
+    (shadow / "libdemo.a").write_bytes(b"!<arch>\nstatic")
+    (shadow / "main.o").write_bytes(b"\x7fELF" + b"object")
     (shadow / "notes.txt").write_text("not an artifact", encoding="utf-8")
     monkeypatch.setattr(
         Path,
@@ -668,4 +669,20 @@ def test_adapter_artifact_fallback_reads_only_binary_magic(tmp_path, monkeypatch
         lambda _path: pytest.fail("artifact counting must not read a whole binary"),
     )
 
-    assert BuildEngine._count_adapter_artifacts(shadow) == 4
+    assert BuildEngine._count_adapter_artifacts(shadow) == 3
+
+
+def test_adapter_artifact_fallback_bounds_tree_and_artifact_count(tmp_path, monkeypatch):
+    shadow = tmp_path / "shadow"
+    shadow.mkdir()
+    (shadow / "one").write_bytes(b"\x7fELFone")
+    (shadow / "two").write_bytes(b"\x7fELFtwo")
+
+    monkeypatch.setattr("ici.engines.build._MAX_ARTIFACT_DISCOVERY_ENTRIES", 1)
+    with pytest.raises(ValueError, match="entry limit"):
+        BuildEngine._count_adapter_artifacts(shadow)
+
+    monkeypatch.setattr("ici.engines.build._MAX_ARTIFACT_DISCOVERY_ENTRIES", 10)
+    monkeypatch.setattr("ici.engines.build.MAX_ARTIFACT_MANIFEST_RECORDS", 1)
+    with pytest.raises(ValueError, match="record limit"):
+        BuildEngine._count_adapter_artifacts(shadow)

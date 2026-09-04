@@ -639,7 +639,52 @@ def test_checked_in_schema_declares_context_and_manifest_extensions_as_optional(
         "diagnostics",
     } <= set(unit["properties"])
     manifest_definition = schema["$defs"]["artifactManifest"]
-    assert manifest_definition["properties"]["schema_version"] == {"const": "ici.artifacts/v1"}
+    assert manifest_definition["properties"]["schema_version"] == {
+        "type": "string",
+        "enum": ["ici.artifacts/v1", "ici.artifacts/v2"],
+    }
+
+
+def test_checked_in_schema_accepts_v1_and_v2_artifact_manifests(tmp_path: Path) -> None:
+    try:
+        import jsonschema
+    except ImportError:
+        pytest.skip("jsonschema is unavailable")
+
+    schema_path = (
+        Path(__file__).parents[1] / "src" / "ici" / "schemas" / "ici-result-v3.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    suite, context, manifest = _suite_fixture(tmp_path)
+    v1_payload = serialize_suite_result(suite)
+    jsonschema.validate(v1_payload, schema)
+    v1_payload["analysis_context"]["artifact_manifests"][0]["artifacts"][0]["id"] = "invalid"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(v1_payload, schema)
+
+    enriched = replace(
+        manifest,
+        artifacts=tuple(
+            replace(
+                artifact,
+                artifact_id=f"release:{artifact.scope.value}:{artifact.path}",
+                target=Path(artifact.path).name,
+                command=("cmake", "--build", "build"),
+            )
+            for artifact in manifest.artifacts
+        ),
+    )
+    enriched_context = replace(context, manifests=(enriched,))
+    enriched_suite = replace(
+        suite,
+        analysis_context=enriched_context,
+        results=[replace(suite.results[0], artifact_manifests=(enriched,))],
+    )
+    v2_payload = serialize_suite_result(enriched_suite)
+    jsonschema.validate(v2_payload, schema)
+    del v2_payload["analysis_context"]["artifact_manifests"][0]["artifacts"][0]["id"]
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(v2_payload, schema)
 
 
 def test_checked_in_schema_bounds_and_constrains_compilation_context() -> None:
@@ -678,7 +723,7 @@ def test_checked_in_schema_bounds_and_constrains_compilation_context() -> None:
 
     search_path = definitions["compilationSearchPath"]
     assert search_path["properties"]["scope"]["enum"] == ["project", "external"]
-    assert search_path["properties"]["path"]["oneOf"] == [
+    assert search_path["properties"]["path"]["anyOf"] == [
         {"$ref": "#/$defs/relativePath"},
         {"const": "[external]"},
     ]

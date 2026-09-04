@@ -164,6 +164,21 @@ def test_cmake_build_publishes_deterministic_manifest_for_linked_outputs(
     assert second_session.artifact_manifest == manifest
 
 
+def test_cmake_artifact_discovery_fails_closed_on_entry_bound(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "CMakeLists.txt").write_text("project(manifest)\n", encoding="utf-8")
+    session = _session(root, _context(root))
+    _fake_successful_build(monkeypatch, session)
+    monkeypatch.setattr(cmake_module, "_MAX_ARTIFACT_DISCOVERY_ENTRIES", 1)
+
+    assert not adapter_build(session)
+    assert session.artifact_manifest is None
+    assert any("artifact discovery exceeds" in error for error in session.errors)
+
+
 def test_producer_command_is_normalized_and_redacted(tmp_path: Path):
     root = tmp_path / "project"
     root.mkdir()

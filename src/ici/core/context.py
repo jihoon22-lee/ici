@@ -40,6 +40,9 @@ _COMMIT_RE = re.compile(r"[0-9a-f]{40,64}\Z")
 _ARTIFACT_METADATA_TEXT_LIMIT = 512
 _ARTIFACT_COMMAND_ARGS_LIMIT = 32_768
 _ARTIFACT_COMMAND_ARG_LIMIT = 1_048_576
+MAX_ARTIFACT_MANIFEST_RECORDS = 512
+MAX_ARTIFACT_FILE_BYTES = 512 * 1024 * 1024
+MAX_ARTIFACT_TOTAL_BYTES = 1024 * 1024 * 1024
 
 
 class BuildVariant(str, Enum):
@@ -503,8 +506,12 @@ def _is_within(path: Path, root: Path) -> bool:
 
 def _file_digest(path: Path) -> str:
     digest = hashlib.sha256()
+    consumed = 0
     with path.open("rb") as stream:
         while chunk := stream.read(1024 * 1024):
+            consumed += len(chunk)
+            if consumed > MAX_ARTIFACT_FILE_BYTES:
+                raise ValueError(f"artifact exceeds the per-file byte limit: {path.name}")
             digest.update(chunk)
     return "sha256:" + digest.hexdigest()
 
@@ -547,7 +554,12 @@ class ArtifactManifest:
 
         root = project_root.resolve(strict=False)
         shadow = shadow_root.resolve(strict=False) if shadow_root is not None else None
+        if len(paths) > MAX_ARTIFACT_MANIFEST_RECORDS:
+            raise ValueError(
+                f"artifact manifest exceeds the {MAX_ARTIFACT_MANIFEST_RECORDS} record limit"
+            )
         records: list[ArtifactRecord] = []
+        total_size = 0
         for path, scope, kind in paths:
             declared_root = root if scope is ArtifactScope.PROJECT else shadow
             if declared_root is None:
@@ -567,6 +579,11 @@ class ArtifactManifest:
                 raise ValueError(f"artifact is not a regular file: {path}")
             relative = resolved.relative_to(declared_root).as_posix()
             details = resolved.stat()
+            if details.st_size > MAX_ARTIFACT_FILE_BYTES:
+                raise ValueError(f"artifact exceeds the per-file byte limit: {relative}")
+            total_size += details.st_size
+            if total_size > MAX_ARTIFACT_TOTAL_BYTES:
+                raise ValueError("artifact manifest exceeds the aggregate byte limit")
             records.append(
                 ArtifactRecord(
                     path=relative,
@@ -599,6 +616,15 @@ class ArtifactManifest:
 
         if self.shadow_root is not None and not _is_within(self.shadow_root, self.project_root):
             raise ValueError("shadow root is outside project root")
+        if len(self.artifacts) > MAX_ARTIFACT_MANIFEST_RECORDS:
+            raise ValueError(
+                f"artifact manifest exceeds the {MAX_ARTIFACT_MANIFEST_RECORDS} record limit"
+            )
+        total_size = sum(artifact.size for artifact in self.artifacts)
+        if any(artifact.size > MAX_ARTIFACT_FILE_BYTES for artifact in self.artifacts):
+            raise ValueError("artifact manifest contains an oversized artifact")
+        if total_size > MAX_ARTIFACT_TOTAL_BYTES:
+            raise ValueError("artifact manifest exceeds the aggregate byte limit")
         seen: set[tuple[ArtifactScope, str]] = set()
         seen_ids: set[str] = set()
         for artifact in self.artifacts:
