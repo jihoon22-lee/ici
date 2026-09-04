@@ -8,9 +8,14 @@ returns native v3 findings so packaging defects have stable rule identities.
 from __future__ import annotations
 
 import ast
+import base64
+import configparser
 import csv
+import hashlib
 import io
 import re
+import stat
+import unicodedata
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -38,11 +43,14 @@ MAX_WHEEL_GLOBS = 32
 MAX_WHEELS = 32
 MAX_WHEEL_MEMBERS = 8192
 MAX_WHEEL_UNCOMPRESSED_BYTES = 64 * 1024 * 1024
+MAX_PACKAGE_SOURCE_BYTES = 2 * 1024 * 1024
+MAX_PACKAGE_AST_NODES = 200_000
 _ENTRYPOINT_RE = re.compile(
     r"^(?P<module>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*):"
     r"(?P<attribute>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)$"
 )
 _NATIVE_SUFFIXES = (".so", ".pyd", ".dll", ".dylib")
+_RECORD_HASH_RE = re.compile(r"^(sha256|sha384|sha512)=([A-Za-z0-9_-]+)$")
 
 
 class PythonPackagingError(ValueError):
@@ -123,17 +131,24 @@ def _finding(
     )
 
 
-def _target(finding: Finding) -> InspectionTarget:
+def _summary_target(path: str, label: str, findings: list[Finding]) -> InspectionTarget:
+    relevant = [item for item in findings if item.primary_location.path == path]
+    if any(item.severity in {FindingSeverity.HIGH, FindingSeverity.CRITICAL} for item in relevant):
+        status = EngineStatus.FAIL
+    elif relevant:
+        status = EngineStatus.WARN
+    else:
+        status = EngineStatus.PASS
     return InspectionTarget(
-        file_path=finding.primary_location.path,
-        start_line=finding.primary_location.start_line,
-        target_name=f"Package:{finding.tool_rule_id}",
-        status=(
-            EngineStatus.FAIL
-            if finding.severity in {FindingSeverity.HIGH, FindingSeverity.CRITICAL}
-            else EngineStatus.WARN
+        file_path=path,
+        start_line=1,
+        target_name=f"Package:{label}",
+        status=status,
+        message=(
+            f"Package inspection found {len(relevant)} issue(s)"
+            if relevant
+            else "Package contract inspection completed"
         ),
-        message=finding.message,
     )
 
 
@@ -183,7 +198,10 @@ def _entrypoints(project: dict[str, Any]) -> tuple[tuple[str, str], ...]:
         table = project.get(table_name, {})
         if isinstance(table, dict):
             result.extend(
-                (str(name), value)
+                (
+                    f"{'console_scripts' if table_name == 'scripts' else 'gui_scripts'}:{name}",
+                    value,
+                )
                 for name, value in table.items()
                 if isinstance(name, str) and isinstance(value, str)
             )
@@ -232,27 +250,44 @@ def _project_package(root: Path, source_files: list[Path]) -> _ProjectPackage:
 
 def _module_attribute_exists(path: Path, attribute: str) -> bool:
     try:
-        payload = path.read_text(encoding="utf-8")
-        tree = ast.parse(payload, filename=str(path))
-    except (OSError, UnicodeError, SyntaxError):
+        payload = _read_bounded_regular(path, MAX_PACKAGE_SOURCE_BYTES)
+        tree = ast.parse(payload.decode("utf-8", errors="strict"), filename=str(path))
+    except (OSError, UnicodeError, SyntaxError, _ReadError):
+        return False
+    if sum(1 for _node in ast.walk(tree)) > MAX_PACKAGE_AST_NODES:
         return False
     nodes: list[ast.AST] = list(tree.body)
-    for part in attribute.split("."):
+    parts = attribute.split(".")
+    for index, part in enumerate(parts):
         match: ast.AST | None = None
         for node in nodes:
             names: set[str] = set()
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 names.add(node.name)
-            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
-                values = node.targets if isinstance(node, ast.Assign) else [node.target]
-                names.update(item.id for item in values if isinstance(item, ast.Name))
+            elif isinstance(node, ast.Assign) and isinstance(node.value, ast.Lambda):
+                names.update(item.id for item in node.targets if isinstance(item, ast.Name))
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.value, ast.Lambda):
+                if isinstance(node.target, ast.Name):
+                    names.add(node.target.id)
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                for alias in node.names:
+                    names.add(alias.asname or alias.name.split(".", 1)[0])
             if part in names:
                 match = node
                 break
         if match is None:
             return False
+        final = index == len(parts) - 1
+        if final:
+            return isinstance(
+                match,
+                (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Import, ast.ImportFrom),
+            ) or (
+                isinstance(match, (ast.Assign, ast.AnnAssign))
+                and isinstance(match.value, ast.Lambda)
+            )
         nodes = list(match.body) if isinstance(match, ast.ClassDef) else []
-    return True
+    return False
 
 
 def _source_findings(package: _ProjectPackage, policy: PackagingPolicy) -> list[Finding]:
@@ -284,7 +319,7 @@ def _source_findings(package: _ProjectPackage, policy: PackagingPolicy) -> list[
                     "ici.package.entrypoint-missing",
                     "pyproject.toml",
                     _line_for(package.pyproject_text, value),
-                    f"Entry point {name!r} target {value!r} does not resolve to a declared callable",
+                    f"Entry point {name!r} target {value!r} does not resolve to a callable or imported symbol",
                     severity=FindingSeverity.HIGH,
                     tool_rule_id="entrypoint-target",
                 )
@@ -348,6 +383,105 @@ def _read_member(archive: zipfile.ZipFile, info: zipfile.ZipInfo) -> bytes:
     return payload
 
 
+def _record_rows(payload: bytes, member: str) -> dict[str, tuple[str, str]]:
+    try:
+        text = payload.decode("utf-8", errors="strict")
+        rows = list(csv.reader(io.StringIO(text), strict=True))
+    except (UnicodeDecodeError, csv.Error) as err:
+        raise PythonPackagingError(f"wheel RECORD could not be parsed: {member}") from err
+    result: dict[str, tuple[str, str]] = {}
+    for row in rows:
+        if len(row) != 3 or not _safe_member_name(row[0]):
+            raise PythonPackagingError(f"wheel RECORD contains a malformed row: {member}")
+        if row[0] in result:
+            raise PythonPackagingError(f"wheel RECORD contains a duplicate path: {member}")
+        result[row[0]] = (row[1], row[2])
+    return result
+
+
+def _member_digest(archive: zipfile.ZipFile, info: zipfile.ZipInfo, algorithm: str) -> str:
+    digest = hashlib.new(algorithm)
+    size = 0
+    try:
+        with archive.open(info) as stream:
+            while True:
+                chunk = stream.read(1024 * 1024)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > info.file_size:
+                    raise PythonPackagingError(
+                        f"wheel member expanded beyond its declared size: {info.filename}"
+                    )
+                digest.update(chunk)
+    except (OSError, RuntimeError, zipfile.BadZipFile) as err:
+        raise PythonPackagingError(f"wheel member could not be hashed: {info.filename}") from err
+    if size != info.file_size:
+        raise PythonPackagingError(f"wheel member size changed while hashing: {info.filename}")
+    return base64.urlsafe_b64encode(digest.digest()).rstrip(b"=").decode("ascii")
+
+
+def _record_violations(
+    archive: zipfile.ZipFile,
+    infos: list[zipfile.ZipInfo],
+    record_info: zipfile.ZipInfo,
+    rows: dict[str, tuple[str, str]],
+) -> list[str]:
+    names = {info.filename for info in infos}
+    signatures = {f"{record_info.filename}.jws", f"{record_info.filename}.p7s"}
+    violations: list[str] = []
+    missing = sorted(names - signatures - set(rows))
+    extra = sorted(set(rows) - names)
+    if missing:
+        violations.append(f"omits {len(missing)} member(s)")
+    if extra:
+        violations.append(f"references {len(extra)} absent member(s)")
+    for info in infos:
+        if info.filename in signatures:
+            continue
+        record = rows.get(info.filename)
+        if record is None:
+            continue
+        hash_value, size_value = record
+        if info.filename == record_info.filename:
+            if hash_value or size_value:
+                violations.append("hashes or sizes RECORD itself")
+            continue
+        match = _RECORD_HASH_RE.fullmatch(hash_value)
+        try:
+            declared_size = int(size_value)
+        except ValueError:
+            declared_size = -1
+        if match is None or declared_size != info.file_size:
+            violations.append(f"has invalid hash/size metadata for {info.filename}")
+            continue
+        algorithm, declared_digest = match.groups()
+        if _member_digest(archive, info, algorithm) != declared_digest:
+            violations.append(f"has a digest mismatch for {info.filename}")
+    return violations
+
+
+def _archive_entrypoints(
+    archive: zipfile.ZipFile, info: zipfile.ZipInfo
+) -> tuple[tuple[str, str], ...]:
+    try:
+        text = _read_member(archive, info).decode("utf-8", errors="strict")
+        parser = configparser.ConfigParser(interpolation=None, strict=True)
+        parser.optionxform = str
+        parser.read_string(text)
+    except (UnicodeDecodeError, configparser.Error) as err:
+        raise PythonPackagingError(
+            f"wheel entry_points.txt could not be parsed: {info.filename}"
+        ) from err
+    return tuple(
+        sorted(
+            (f"{section}:{name}", value.strip())
+            for section in parser.sections()
+            for name, value in parser.items(section)
+        )
+    )
+
+
 def _headers(payload: bytes, member: str) -> dict[str, list[str]]:
     try:
         text = payload.decode("utf-8", errors="strict")
@@ -387,8 +521,22 @@ def _wheel_findings(
         names = [info.filename for info in infos]
         if len(names) != len(set(names)):
             raise PythonPackagingError(f"wheel contains duplicate member names: {relative}")
+        portable_names = [unicodedata.normalize("NFC", name).casefold() for name in names]
+        if len(portable_names) != len(set(portable_names)):
+            raise PythonPackagingError(
+                f"wheel contains names that collide on portable filesystems: {relative}"
+            )
         if any(not _safe_member_name(name) for name in names):
             raise PythonPackagingError(f"wheel contains an unsafe member path: {relative}")
+        for info in infos:
+            mode = (info.external_attr >> 16) & 0xFFFF
+            file_type = stat.S_IFMT(mode)
+            if stat.S_ISLNK(mode) or (
+                file_type and not stat.S_ISREG(mode) and not stat.S_ISDIR(mode)
+            ):
+                raise PythonPackagingError(
+                    f"wheel contains a symlink or special member: {relative}"
+                )
         if any(info.flag_bits & 0x1 for info in infos):
             raise PythonPackagingError(f"encrypted wheel members are unsupported: {relative}")
         total_bytes = sum(info.file_size for info in infos)
@@ -407,19 +555,15 @@ def _wheel_findings(
         metadata_headers = _headers(
             _read_member(archive, metadata_infos[0]), metadata_infos[0].filename
         )
-        try:
-            record_text = _read_member(archive, record_infos[0]).decode("utf-8", errors="strict")
-            record_names = {row[0] for row in csv.reader(io.StringIO(record_text)) if row}
-        except (UnicodeDecodeError, csv.Error) as err:
-            raise PythonPackagingError(f"wheel RECORD could not be parsed: {relative}") from err
-        missing_record = sorted(set(names) - record_names)
-        if missing_record:
+        record_rows = _record_rows(_read_member(archive, record_infos[0]), record_infos[0].filename)
+        record_violations = _record_violations(archive, infos, record_infos[0], record_rows)
+        if record_violations:
             findings.append(
                 _finding(
-                    "ici.package.wheel-record-incomplete",
+                    "ici.package.wheel-record-integrity",
                     relative,
                     1,
-                    f"Wheel RECORD omits {len(missing_record)} member(s)",
+                    f"Wheel RECORD integrity failed: {'; '.join(record_violations[:3])}",
                     severity=FindingSeverity.HIGH,
                     tool_rule_id="wheel.record",
                 )
@@ -427,7 +571,9 @@ def _wheel_findings(
         metadata_name = next(iter(metadata_headers.get("name", [])), "")
         metadata_version = next(iter(metadata_headers.get("version", [])), "")
         if (
-            canonicalize_name(str(filename_name)) != canonicalize_name(package.name)
+            not metadata_name
+            or not metadata_version
+            or canonicalize_name(str(filename_name)) != canonicalize_name(package.name)
             or (
                 package.version
                 and (
@@ -507,6 +653,21 @@ def _wheel_findings(
                     tool_rule_id="wheel.entry-points",
                 )
             )
+        elif (
+            policy.check_entrypoints
+            and package.entrypoints
+            and _archive_entrypoints(archive, entrypoint_files[0]) != package.entrypoints
+        ):
+            findings.append(
+                _finding(
+                    "ici.package.wheel-entrypoints-mismatch",
+                    relative,
+                    1,
+                    "Wheel entry_points.txt does not match declared project entry points",
+                    severity=FindingSeverity.HIGH,
+                    tool_rule_id="wheel.entry-points",
+                )
+            )
         evidence = _WheelEvidence(
             path=relative,
             members=len(infos),
@@ -548,7 +709,15 @@ def analyze_python_packaging(
         wheel_findings, wheel_evidence = _wheel_findings(canonical_root, wheel, package, policy)
         findings.extend(wheel_findings)
         evidence.append(wheel_evidence)
-    targets = tuple(_target(finding) for finding in findings)
+    inspected_paths = ["pyproject.toml", *(item.path for item in evidence)]
+    targets = tuple(
+        _summary_target(
+            path,
+            "SourceMetadata" if path == "pyproject.toml" else "Wheel",
+            findings,
+        )
+        for path in inspected_paths
+    )
     failures = sum(
         item.severity in {FindingSeverity.HIGH, FindingSeverity.CRITICAL} for item in findings
     )

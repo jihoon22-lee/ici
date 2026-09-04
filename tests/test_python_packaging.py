@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 import csv
+import hashlib
 import io
+import stat
 import zipfile
 from pathlib import Path
 
@@ -41,6 +44,9 @@ def _wheel(
     include_entrypoints: bool = True,
     include_sources: bool = True,
     native: bool = False,
+    valid_record: bool = True,
+    wheel_entrypoint: str = "demo.cli:main",
+    metadata_name: str = "demo",
 ) -> Path:
     path = root / "dist" / f"demo-1.2.3-{tag}.whl"
     path.parent.mkdir()
@@ -51,18 +57,33 @@ def _wheel(
             f"Root-Is-Purelib: {'true' if root_is_pure else 'false'}\n"
             f"Tag: {tag}\n"
         ).encode(),
-        "demo-1.2.3.dist-info/METADATA": b"Name: demo\nVersion: 1.2.3\n",
+        "demo-1.2.3.dist-info/METADATA": (f"Name: {metadata_name}\nVersion: 1.2.3\n".encode()),
     }
     if include_sources:
         members.update({"demo/__init__.py": b"VALUE = 1\n", "demo/cli.py": b"def main(): pass\n"})
     if include_entrypoints:
         members["demo-1.2.3.dist-info/entry_points.txt"] = (
-            b"[console_scripts]\ndemo=demo.cli:main\n"
+            f"[console_scripts]\ndemo={wheel_entrypoint}\n".encode()
         )
     if native:
         members["demo/native.so"] = b"\x7fELF"
     record_name = "demo-1.2.3.dist-info/RECORD"
-    rows = [[name, "", ""] for name in [*members, record_name]]
+    rows = [
+        [
+            name,
+            (
+                "sha256="
+                + base64.urlsafe_b64encode(hashlib.sha256(payload).digest())
+                .rstrip(b"=")
+                .decode("ascii")
+                if valid_record
+                else ""
+            ),
+            str(len(payload)) if valid_record else "",
+        ]
+        for name, payload in members.items()
+    ]
+    rows.append([record_name, "", ""])
     stream = io.StringIO()
     csv.writer(stream, lineterminator="\n").writerows(rows)
     members[record_name] = stream.getvalue().encode()
@@ -84,7 +105,10 @@ def test_source_and_pure_wheel_contract_passes(tmp_path: Path) -> None:
 
     assert result.failures == 0
     assert result.warnings == 0
-    assert result.targets == ()
+    assert [(target.file_path, target.status.value) for target in result.targets] == [
+        ("pyproject.toml", "PASS"),
+        ("dist/demo-1.2.3-py3-none-any.whl", "PASS"),
+    ]
     assert result.metadata["checked"] == 1
     assert result.metadata["pure"] is True
     assert result.metadata["members"] == 6
@@ -102,6 +126,23 @@ def test_missing_entrypoint_is_native_exact_finding(tmp_path: Path) -> None:
     assert finding.primary_location.path == "pyproject.toml"
     assert finding.primary_location.start_line == 5
     assert result.targets[0].file_path == "pyproject.toml"
+
+
+def test_entrypoint_constant_is_rejected_but_imported_symbol_is_accepted(tmp_path: Path) -> None:
+    sources = _project(tmp_path)
+    sources[1].write_text("main = 3\n", encoding="utf-8")
+    rejected = analyze_python_packaging(tmp_path, sources, PackagingPolicy())
+    assert [finding.rule_id for finding in rejected.findings] == ["ici.package.entrypoint-missing"]
+
+    sources[0].write_text("from .cli import main\n", encoding="utf-8")
+    sources[1].write_text("def main():\n    return 0\n", encoding="utf-8")
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text(encoding="utf-8").replace("demo.cli:main", "demo:main"),
+        encoding="utf-8",
+    )
+    accepted = analyze_python_packaging(tmp_path, sources, PackagingPolicy())
+    assert accepted.findings == ()
 
 
 def test_missing_optional_and_required_wheel_are_distinct(tmp_path: Path) -> None:
@@ -148,6 +189,46 @@ def test_wheel_missing_source_and_entrypoint_files_reports_both(tmp_path: Path) 
         "ici.package.package-files-missing",
         "ici.package.wheel-entrypoints-missing",
     }
+
+
+def test_wheel_record_hashes_and_declared_entrypoints_are_verified(tmp_path: Path) -> None:
+    sources = _project(tmp_path)
+    _wheel(tmp_path, valid_record=False, wheel_entrypoint="demo.cli:other")
+
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert {finding.rule_id for finding in result.findings} == {
+        "ici.package.wheel-record-integrity",
+        "ici.package.wheel-entrypoints-mismatch",
+    }
+    assert result.targets[1].file_path.endswith(".whl")
+    assert result.targets[1].status.value == "FAIL"
+
+
+def test_wheel_missing_metadata_identity_is_not_accepted(tmp_path: Path) -> None:
+    sources = _project(tmp_path)
+    _wheel(tmp_path, metadata_name="")
+
+    result = analyze_python_packaging(
+        tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",))
+    )
+
+    assert "ici.package.wheel-metadata-mismatch" in {finding.rule_id for finding in result.findings}
+
+
+def test_wheel_symlink_member_is_rejected(tmp_path: Path) -> None:
+    sources = _project(tmp_path)
+    path = _wheel(tmp_path)
+    link = zipfile.ZipInfo("demo/link.py")
+    link.create_system = 3
+    link.external_attr = (stat.S_IFLNK | 0o777) << 16
+    with zipfile.ZipFile(path, "a") as archive:
+        archive.writestr(link, "cli.py")
+
+    with pytest.raises(PythonPackagingError, match="symlink or special"):
+        analyze_python_packaging(tmp_path, sources, PackagingPolicy(wheel_globs=("dist/*.whl",)))
 
 
 def test_wheel_member_and_uncompressed_bounds_fail_closed(tmp_path: Path) -> None:
