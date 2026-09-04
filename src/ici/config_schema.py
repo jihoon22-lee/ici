@@ -169,7 +169,8 @@ _ENGINE_KEYS = {
     ),
     "exception": _COMMON_ENGINE_KEYS,
     "cycle": _COMMON_ENGINE_KEYS | frozenset({"max_reported"}),
-    "cognitive": _COMMON_ENGINE_KEYS | frozenset({"warn", "fail", "warn_nesting"}),
+    "cognitive": _COMMON_ENGINE_KEYS
+    | frozenset({"warn", "fail", "warn_nesting", "cpp_boundaries"}),
     "security": _COMMON_ENGINE_KEYS | frozenset({"scan_tests", "secret_name_allowlist"}),
     "resource": _COMMON_ENGINE_KEYS,
     "build": _COMMON_ENGINE_KEYS,
@@ -498,6 +499,11 @@ def _validate_cognitive(table: dict[str, Any], path: str) -> None:
     f = table.get("fail", 60)
     if f < w:
         raise _error(f"{path}.warn", "must be <= fail")
+    if "cpp_boundaries" in table:
+        boundary_path = f"{path}.cpp_boundaries"
+        _require_string(table["cpp_boundaries"], boundary_path, non_empty=True)
+        if table["cpp_boundaries"] not in {"auto", "required", "off"}:
+            raise _error(boundary_path, "must be one of: auto, off, required")
 
 
 def _validate_cycle(table: dict[str, Any], path: str) -> None:

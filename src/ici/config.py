@@ -184,6 +184,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "warn": 30,
             "fail": 60,
             "warn_nesting": 4,
+            # Exact compiler-backed geometry is preferred; the C++ cognitive
+            # metric remains an explicitly estimated bounded-token metric.
+            "cpp_boundaries": "auto",
         },
         "security": {
             "enabled": True,
