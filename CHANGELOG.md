@@ -533,6 +533,15 @@
 
 ### Fixed
 
+- **Bounded clang-tidy text state transitions:** LLVM 18 multi-pair structural notes, diagnostic
+  context, and generated/suppressed summaries now pass through focused state-transition helpers.
+  The parser preserves atomic rejection and the existing evidence contract while its coordinator
+  drops from cognitive complexity 73 to 6 (cyclomatic complexity 5); every extracted helper also
+  remains below the configured warning thresholds. Generated-warning summaries and header-filter
+  hints now terminate structural-note context, so a detached empty note after either boundary is
+  rejected atomically; focused tests also pin multi-pair related-note order and locations. Stable
+  version `0.10.2` remains unchanged.
+
 - **Dogfood type-policy cleanup:** The extracted test interpreter and deep-quality mixins no longer
   carry eight stale `attr-defined` suppressions. The stricter project Mypy overlay now reports zero
   type findings across all 133 source files, while the ordinary project profile remains clean.

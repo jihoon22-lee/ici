@@ -131,6 +131,29 @@ class _ClangTidySummary:
     error: str = ""
 
 
+@dataclass
+class _ClangTidyTextState:
+    retained: list[str] = field(default_factory=list)
+    generated: int | None = None
+    suppressed: int = 0
+    header_hint: bool = False
+    structural_parent: re.Match[str] | None = None
+    structural_last_parameter_line: str | None = None
+    pending_empty_note: re.Match[str] | None = None
+
+    def clear_structural_context(self) -> None:
+        self.structural_parent = None
+        self.structural_last_parameter_line = None
+
+    def result(self) -> _ClangTidyText:
+        return _ClangTidyText(
+            retained=tuple(self.retained),
+            generated=self.generated,
+            suppressed=self.suppressed,
+            header_hint=self.header_hint,
+        )
+
+
 def _consume_clang_tidy_summary(
     line: str,
     generated: int | None,
@@ -858,81 +881,110 @@ def _empty_note_error() -> _ClangTidyText:
     )
 
 
-def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
-    retained: list[str] = []
-    generated: int | None = None
-    suppressed = 0
-    header_hint = False
-    structural_parent: re.Match[str] | None = None
-    structural_last_parameter_line: str | None = None
-    pending_empty_note: re.Match[str] | None = None
-    for raw_line in (stdout + "\n" + stderr).splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        empty_note = _CLANG_TIDY_EMPTY_NOTE_RE.fullmatch(line)
-        if empty_note:
-            if (
-                pending_empty_note
-                or not _bounded_empty_note(empty_note)
-                or not _empty_note_has_expected_parent(empty_note, structural_parent)
-            ):
-                return _empty_note_error()
-            pending_empty_note = empty_note
-            continue
-        diagnostic = _TEXT_DIAGNOSTIC_RE.fullmatch(line)
-        if diagnostic:
-            if pending_empty_note and not _is_expected_conversion_note(
-                pending_empty_note,
-                diagnostic,
-                structural_parent,
-                structural_last_parameter_line,
-            ):
-                return _empty_note_error()
-            if pending_empty_note:
-                pending_empty_note = None
-                # LLVM 18 can emit one empty structural separator and
-                # conversion note for every convertible pair within the same
-                # easily-swappable parameter range. Keep the bounded primary
-                # context until a different diagnostic shape ends the group.
-            elif diagnostic.group("rule") is not None:
-                structural_parent = diagnostic
-                structural_last_parameter_line = None
-            elif structural_parent and (
-                diagnostic.group("kind") != "note"
-                or diagnostic.group("file") != structural_parent.group("file")
-                or not _CLANG_TIDY_PARAMETER_RANGE_NOTE_RE.fullmatch(diagnostic.group("message"))
-            ):
-                structural_parent = None
-                structural_last_parameter_line = None
-            elif structural_parent and diagnostic.group("message").startswith("the last parameter"):
-                structural_last_parameter_line = diagnostic.group("line")
-            retained.append(raw_line)
-            continue
-        if _TEXT_CONTEXT_RE.fullmatch(line):
-            retained.append(raw_line)
-            continue
-        if pending_empty_note:
-            return _empty_note_error()
-        summary = _consume_clang_tidy_summary(line, generated, suppressed, header_hint)
-        if summary is not None:
-            if summary.error:
-                return _ClangTidyText((), error=summary.error)
-            generated = summary.generated
-            suppressed = summary.suppressed
-            header_hint = summary.header_hint
-            continue
-        structural_parent = None
-        structural_last_parameter_line = None
-        retained.append(raw_line)
-    if pending_empty_note:
-        return _empty_note_error()
-    return _ClangTidyText(
-        retained=tuple(retained),
-        generated=generated,
-        suppressed=suppressed,
-        header_hint=header_hint,
+def _remember_clang_tidy_empty_note(state: _ClangTidyTextState, empty_note: re.Match[str]) -> bool:
+    if (
+        state.pending_empty_note
+        or not _bounded_empty_note(empty_note)
+        or not _empty_note_has_expected_parent(empty_note, state.structural_parent)
+    ):
+        return False
+    state.pending_empty_note = empty_note
+    return True
+
+
+def _is_parameter_range_note(diagnostic: re.Match[str], parent: re.Match[str]) -> bool:
+    return bool(
+        diagnostic.group("kind") == "note"
+        and diagnostic.group("file") == parent.group("file")
+        and _CLANG_TIDY_PARAMETER_RANGE_NOTE_RE.fullmatch(diagnostic.group("message"))
     )
+
+
+def _update_clang_tidy_diagnostic_context(
+    state: _ClangTidyTextState, diagnostic: re.Match[str]
+) -> None:
+    if diagnostic.group("rule") is not None:
+        state.structural_parent = diagnostic
+        state.structural_last_parameter_line = None
+        return
+    parent = state.structural_parent
+    if parent is None:
+        return
+    if not _is_parameter_range_note(diagnostic, parent):
+        state.clear_structural_context()
+        return
+    if diagnostic.group("message").startswith("the last parameter"):
+        state.structural_last_parameter_line = diagnostic.group("line")
+
+
+def _remember_clang_tidy_diagnostic(
+    state: _ClangTidyTextState,
+    diagnostic: re.Match[str],
+    raw_line: str,
+) -> bool:
+    pending = state.pending_empty_note
+    if pending is not None:
+        if not _is_expected_conversion_note(
+            pending,
+            diagnostic,
+            state.structural_parent,
+            state.structural_last_parameter_line,
+        ):
+            return False
+        state.pending_empty_note = None
+        # LLVM 18 can emit one empty structural separator and conversion note
+        # for every convertible pair in a range. Retain the bounded primary
+        # context until a different diagnostic shape ends the group.
+    else:
+        _update_clang_tidy_diagnostic_context(state, diagnostic)
+    state.retained.append(raw_line)
+    return True
+
+
+def _apply_clang_tidy_summary(state: _ClangTidyTextState, summary: _ClangTidySummary) -> str:
+    if summary.error:
+        return summary.error
+    state.clear_structural_context()
+    state.generated = summary.generated
+    state.suppressed = summary.suppressed
+    state.header_hint = summary.header_hint
+    return ""
+
+
+def _consume_clang_tidy_text_line(state: _ClangTidyTextState, raw_line: str) -> str:
+    line = raw_line.strip()
+    if not line:
+        return ""
+    if empty_note := _CLANG_TIDY_EMPTY_NOTE_RE.fullmatch(line):
+        return "" if _remember_clang_tidy_empty_note(state, empty_note) else "empty-note"
+    if diagnostic := _TEXT_DIAGNOSTIC_RE.fullmatch(line):
+        return "" if _remember_clang_tidy_diagnostic(state, diagnostic, raw_line) else "empty-note"
+    if _TEXT_CONTEXT_RE.fullmatch(line):
+        state.retained.append(raw_line)
+        return ""
+    if state.pending_empty_note:
+        return "empty-note"
+    summary = _consume_clang_tidy_summary(
+        line, state.generated, state.suppressed, state.header_hint
+    )
+    if summary is not None:
+        return _apply_clang_tidy_summary(state, summary)
+    state.clear_structural_context()
+    state.retained.append(raw_line)
+    return ""
+
+
+def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
+    state = _ClangTidyTextState()
+    for raw_line in (stdout + "\n" + stderr).splitlines():
+        error = _consume_clang_tidy_text_line(state, raw_line)
+        if error == "empty-note":
+            return _empty_note_error()
+        if error:
+            return _ClangTidyText((), error=error)
+    if state.pending_empty_note:
+        return _empty_note_error()
+    return state.result()
 
 
 def _normalize_clang_tidy(

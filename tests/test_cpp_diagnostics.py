@@ -434,6 +434,49 @@ def test_clang_tidy_llvm18_accepts_multiple_conversion_pairs_for_one_range(
         )
         == 2
     )
+    conversions = [
+        note
+        for note in primary.related_diagnostics
+        if "may be implicitly converted" in note.target.message
+    ]
+    assert [note.target.start_line for note in conversions] == [15, 16]
+    assert [note.target.start_column for note in conversions] == [55, 15]
+
+
+@pytest.mark.parametrize(
+    "boundary",
+    [
+        "1 warning generated.",
+        (
+            "Use -header-filter=.* to display errors from all non-system headers. "
+            "Use -system-headers to display errors from system headers as well."
+        ),
+    ],
+    ids=["generated-summary", "header-hint"],
+)
+def test_clang_tidy_empty_note_after_terminal_boundary_is_rejected(
+    tmp_path: Path, boundary: str
+) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/codec.cpp:15:35: warning: 3 adjacent parameters are easily swapped "
+        "[bugprone-easily-swappable-parameters]\n"
+        "src/codec.cpp:15:48: note: the first parameter in the range is 'width'\n"
+        "src/codec.cpp:16:30: note: the last parameter in the range is 'minimum'\n"
+        "src/codec.cpp:15:35: note: \n"
+        "src/codec.cpp:15:55: note: 'size_t &' and 'uint32_t &' may be implicitly "
+        "converted: 'size_t &' -> 'uint32_t &', 'uint32_t &' -> 'size_t &'\n"
+        f"{boundary}\n"
+        "src/codec.cpp:15:35: note: \n"
+        "src/codec.cpp:16:15: note: 'size_t &' and 'uint32_t &' may be implicitly "
+        "converted: 'size_t &' -> 'uint32_t &', 'uint32_t &' -> 'size_t &'\n"
+    )
+
+    result = parse_clang_tidy_diagnostics(root, root, output, "")
+
+    assert result.format_name == "clang-tidy-text"
+    assert "empty note" in result.error
+    assert result.diagnostics == ()
 
 
 def test_clang_tidy_note_with_conflicting_rule_is_rejected_atomically(
