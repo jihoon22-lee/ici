@@ -11,6 +11,7 @@ import hashlib
 import os
 import re
 import shutil
+import stat
 from dataclasses import dataclass, field, replace
 from pathlib import Path, PureWindowsPath
 from xml.etree import ElementTree
@@ -625,6 +626,50 @@ def _fail(session: BuildSession, message: str) -> None:
         session.errors.append(message)
 
 
+def _clear_owned_gcov_output(shadow: Path) -> tuple[bool, str]:
+    """Remove only ici's exact coverage-output directory before Make clean.
+
+    ``collect_coverage`` writes its generated ``.gcov`` files below the
+    dedicated ``ici-gcov`` directory.  A project's clean recipe may enforce
+    ownership of everything below its shadow and reject that directory on the
+    next run.  The directory name is the ownership boundary here: nothing
+    else in the shadow is eligible for this cleanup.
+
+    The lstat checks intentionally reject symlinks and non-directories before
+    any deletion.  ``shutil.rmtree`` is then used only for the validated
+    regular directory; an exception is returned to the caller so Make never
+    runs after an incomplete cleanup.
+    """
+
+    try:
+        shadow_info = shadow.lstat()
+    except FileNotFoundError:
+        # A fresh configured Make shadow has no analyzer output to clear.
+        return True, ""
+    except (OSError, RuntimeError) as err:
+        return False, f"ici-gcov cleanup could not inspect the Make shadow: {err}"
+    if stat.S_ISLNK(shadow_info.st_mode) or not stat.S_ISDIR(shadow_info.st_mode):
+        return False, "Make shadow is not a regular directory; refusing ici-gcov cleanup"
+
+    output = shadow / GCOV_OUTPUT_DIRNAME
+    try:
+        output_info = output.lstat()
+    except FileNotFoundError:
+        return True, ""
+    except (OSError, RuntimeError) as err:
+        return False, f"ici-gcov cleanup could not inspect {output}: {err}"
+    if stat.S_ISLNK(output_info.st_mode):
+        return False, f"refusing to remove symlinked ici-gcov output: {output}"
+    if not stat.S_ISDIR(output_info.st_mode):
+        return False, f"refusing to remove non-directory ici-gcov output: {output}"
+
+    try:
+        shutil.rmtree(output)
+    except (OSError, RuntimeError) as err:
+        return False, f"ici-gcov cleanup failed for {output}: {err}"
+    return True, ""
+
+
 def _which(session: BuildSession, name: str) -> str | None:
     found = shutil.which(name)
     if found is None:
@@ -760,6 +805,10 @@ def build(session: BuildSession, *, env: dict[str, str] | None = None) -> bool:
             _fail(session, "Make command plan is unavailable")
             return False
         if plan.clean_argv:
+            cleared, cleanup_error = _clear_owned_gcov_output(session.shadow)
+            if not cleared:
+                _fail(session, cleanup_error)
+                return False
             clean_result = _run_make_command(session, "make clean", plan.clean_argv, env)
             if clean_result is None or (
                 clean_result.returncode != 0 or clean_result.timed_out or clean_result.truncated
