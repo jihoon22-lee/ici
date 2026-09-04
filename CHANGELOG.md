@@ -560,6 +560,12 @@
   orchestration. The bounded runner is injected through the existing patchable engine binding;
   ici's own pure-code count drops to 960 lines for `test.py` and 547 for `test_quality.py`.
 
+- **Configuration validation boundaries:** Public `ici.config_schema` imports remain compatible,
+  while dependency-free primitives, opt-in analysis-contract rules, and project path containment
+  now live in focused internal modules. `config_schema.py` drops from 1,179 to 589 lines, and the
+  formerly critical integration/Python-package/path validators are split below the cyclomatic hard
+  limit without weakening exact dotted errors, shell-free argv rules, or containment checks.
+
 - **Binary and integration execution coverage:** Focused engine tests now exercise a
   manifest-backed ELF success path, allowed non-ELF evidence, and the required-empty-manifest
   error state in addition to parser and policy rules. Integration coverage now also distinguishes
