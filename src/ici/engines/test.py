@@ -90,6 +90,9 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
     """Executes unit tests and calculates TEM score based on branch & function coverage."""
 
     __test__ = False
+    # Test outcomes, timings, flaky reruns, and mutation availability are
+    # runtime observations rather than source-derived facts.
+    CACHE_REUSE_SAFE = False
 
     def __init__(
         self,
@@ -407,7 +410,10 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             if not isinstance(mutation_enabled, bool):
                 mutation_enabled = False
             mutation_tool = mutation_raw.get("tool", "auto")
-            if mutation_tool not in {"auto", *_MUTATION_TOOLS}:
+            if not isinstance(mutation_tool, str) or mutation_tool not in {
+                "auto",
+                *_MUTATION_TOOLS,
+            }:
                 mutation_tool = "auto"
             command_value = mutation_raw.get("command", [])
             mutation_command = (
@@ -421,10 +427,11 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             mutation_tool = "auto"
             mutation_command = []
 
+        mode_value = raw.get("mode", "report")
         return {
             "enabled": enabled,
-            "mode": raw.get("mode", "report")
-            if raw.get("mode", "report") in {"report", "warn"}
+            "mode": mode_value
+            if isinstance(mode_value, str) and mode_value in {"report", "warn"}
             else "report",
             "repeat_runs": repeat_runs,
             "timeout": timeout,
@@ -475,7 +482,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         threshold = float(settings["slow_test_threshold"])
         max_slow_tests = int(settings["max_slow_tests"])
         if threshold > 0 and self._last_pytest_output:
-            slow_rows = self._parse_pytest_durations(
+            slow_rows, slow_observed = self._parse_pytest_duration_summary(
                 self._last_pytest_output,
                 self.project_root,
                 threshold=threshold,
@@ -483,7 +490,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
                 # inventory while never letting a noisy report grow unbounded.
                 max_items=max_slow_tests,
             )
-            info["slow_tests_observed"] = len(slow_rows)
+            info["slow_tests_observed"] = slow_observed
             info["slow_tests"] = len(slow_rows)
             info["slow_test_inventory"] = [dict(row) for row in slow_rows]
             for row in slow_rows:

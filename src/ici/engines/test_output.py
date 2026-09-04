@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ _PYTEST_DURATION_RE = re.compile(
     r"(?P<phase>[A-Za-z][A-Za-z0-9_-]*)\s+(?P<nodeid>\S.*?)\s*$"
 )
 _ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+_MAX_DURATION_TOKEN_CHARS = 32
 
 
 def _strip_ansi(value: str) -> str:
@@ -87,25 +89,28 @@ def pytest_node_location(nodeid: str, project_root: Path) -> tuple[str, int]:
     return _node_location(nodeid, project_root)
 
 
-def parse_pytest_durations(
+def _pytest_duration_summary(
     output: str,
     project_root: Path,
     *,
     threshold: float = 0.0,
     max_items: int = 50,
-) -> list[dict[str, Any]]:
-    """Parse pytest ``--durations=0`` rows into bounded source-aware records.
+) -> tuple[list[dict[str, Any]], int]:
+    """Parse pytest duration rows and retain a bounded, source-aware inventory.
 
     Pytest prints the slowest rows in a presentation-oriented table.  Parsing
     and sorting here gives callers stable ordering across pytest versions and
-    keeps duplicate plugin rows from inflating the inventory.  ``max_items``
-    limits retained rows while callers can use the returned count before the
-    limit to report how much was observed.
+    keeps duplicate plugin rows from inflating the observed count.
     """
 
-    if threshold < 0:
-        raise ValueError("duration threshold must be non-negative")
-    if max_items < 1:
+    if (
+        isinstance(threshold, bool)
+        or not isinstance(threshold, (int, float))
+        or not math.isfinite(threshold)
+        or threshold < 0
+    ):
+        raise ValueError("duration threshold must be a finite non-negative number")
+    if type(max_items) is not int or max_items < 1:
         raise ValueError("max_items must be positive")
 
     rows: dict[tuple[str, str], dict[str, Any]] = {}
@@ -113,7 +118,12 @@ def parse_pytest_durations(
         match = _PYTEST_DURATION_RE.match(line)
         if match is None:
             continue
-        seconds = float(match.group("seconds"))
+        seconds_text = match.group("seconds")
+        if len(seconds_text) > _MAX_DURATION_TOKEN_CHARS:
+            continue
+        seconds = float(seconds_text)
+        if not math.isfinite(seconds):
+            continue
         if seconds < threshold:
             continue
         phase = match.group("phase")
@@ -143,7 +153,25 @@ def parse_pytest_durations(
             str(row["phase"]),
         ),
     )
-    return ordered[:max_items]
+    return ordered[:max_items], len(ordered)
+
+
+def parse_pytest_durations(
+    output: str,
+    project_root: Path,
+    *,
+    threshold: float = 0.0,
+    max_items: int = 50,
+) -> list[dict[str, Any]]:
+    """Return the bounded retained portion of a pytest duration report."""
+
+    rows, _observed = _pytest_duration_summary(
+        output,
+        project_root,
+        threshold=threshold,
+        max_items=max_items,
+    )
+    return rows
 
 
 class TestOutputMixin:
@@ -166,6 +194,21 @@ class TestOutputMixin:
         """Compatibility wrapper for the deterministic duration parser."""
 
         return parse_pytest_durations(
+            output,
+            project_root,
+            threshold=threshold,
+            max_items=max_items,
+        )
+
+    @staticmethod
+    def _parse_pytest_duration_summary(
+        output: str,
+        project_root: Path,
+        *,
+        threshold: float = 0.0,
+        max_items: int = 50,
+    ) -> tuple[list[dict[str, Any]], int]:
+        return _pytest_duration_summary(
             output,
             project_root,
             threshold=threshold,

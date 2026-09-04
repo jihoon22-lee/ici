@@ -45,6 +45,34 @@ def test_parse_pytest_durations_is_sorted_bounded_and_source_aware(tmp_path: Pat
     assert rows[0]["duration"] == 2.5
 
 
+def test_duration_observed_count_precedes_inventory_cap_and_nonfinite_is_rejected(
+    tmp_path: Path,
+):
+    engine = _deep_engine(
+        tmp_path,
+        {"slow_test_threshold": 0.1, "max_slow_tests": 1},
+    )
+    engine._python_test_attempted = True
+    engine._last_pytest_output = (
+        "3.0s call tests/test_slow.py::test_three\n"
+        "2.0s call tests/test_slow.py::test_two\n"
+        "1.0s call tests/test_slow.py::test_one\n"
+        + "9" * 400
+        + "s call tests/test_slow.py::test_invalid\n"
+    )
+
+    info = engine._run_deep_test_quality("python", [])
+
+    assert info["slow_tests_observed"] == 3
+    assert info["slow_tests"] == 1
+    assert len(info["slow_test_inventory"]) == 1
+    assert info["slow_test_inventory"][0]["duration"] == 3.0
+
+
+def test_test_engine_runtime_observations_are_not_cache_reusable():
+    assert TestEngine.CACHE_REUSE_SAFE is False
+
+
 def test_parse_pytest_outcomes_replaces_duplicate_report_with_last_verdict():
     output = (
         "tests/test_flaky.py::test_toggle PASSED\n"
@@ -137,6 +165,15 @@ def test_mutation_unavailable_is_a_skip_without_tool_error_or_gate_effect(
     assert len(targets) == 1
     assert targets[0].status is EngineStatus.SKIP
     assert "base test gate unchanged" in targets[0].message
+
+
+@pytest.mark.parametrize("tool", [[], {}, 42, None])
+def test_direct_malformed_mutation_tool_falls_back_safely(tmp_path: Path, tool: object):
+    engine = _deep_engine(tmp_path, {"mutation": {"enabled": True, "tool": tool}})
+
+    settings = engine._quality_config()
+
+    assert settings["mutation_tool"] == "auto"
 
 
 def test_quality_findings_are_native_and_report_mode_does_not_change_engine_status(
