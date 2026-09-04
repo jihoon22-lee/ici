@@ -124,8 +124,14 @@ _ENGINE_KEYS = {
     | frozenset(
         {
             "min_tem_score",
+            "min_line_cov",
+            "min_file_cov",
+            "min_file_statements",
             "min_branch_cov",
             "min_func_cov",
+            "min_changed_line_cov",
+            "changed_lines",
+            "max_coverage_regression",
             "coverage_required",
             "python",
             "quality",
@@ -226,10 +232,32 @@ def _validate_test(table: dict[str, Any], path: str) -> None:
         _require_string(table["python"], f"{path}.python", non_empty=True)
     if "min_tem_score" in table:
         _require_number(table["min_tem_score"], f"{path}.min_tem_score", minimum=0, maximum=5)
+    if "min_line_cov" in table:
+        _require_number(table["min_line_cov"], f"{path}.min_line_cov", minimum=0, maximum=100)
+    if "min_file_cov" in table:
+        _require_number(table["min_file_cov"], f"{path}.min_file_cov", minimum=0, maximum=100)
+    if "min_file_statements" in table:
+        _require_int(table["min_file_statements"], f"{path}.min_file_statements", minimum=1)
     if "min_branch_cov" in table:
         _require_number(table["min_branch_cov"], f"{path}.min_branch_cov", minimum=0, maximum=100)
     if "min_func_cov" in table:
         _require_number(table["min_func_cov"], f"{path}.min_func_cov", minimum=0, maximum=100)
+    if "min_changed_line_cov" in table:
+        _require_number(
+            table["min_changed_line_cov"],
+            f"{path}.min_changed_line_cov",
+            minimum=0,
+            maximum=100,
+        )
+    if "changed_lines" in table:
+        _require_string_list(table["changed_lines"], f"{path}.changed_lines")
+    if "max_coverage_regression" in table:
+        _require_number(
+            table["max_coverage_regression"],
+            f"{path}.max_coverage_regression",
+            minimum=0,
+            maximum=100,
+        )
     if "quality" in table:
         _validate_test_quality(table["quality"], f"{path}.quality")
 

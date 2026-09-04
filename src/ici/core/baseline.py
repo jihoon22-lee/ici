@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections import defaultdict, deque
 from dataclasses import dataclass
@@ -69,6 +70,14 @@ class _FindingRecord:
 class _BaselineDocument:
     metadata: AnalysisMetadata | None
     findings: tuple[_FindingRecord, ...]
+    coverage: _CoverageSnapshot | None = None
+
+
+@dataclass(frozen=True)
+class _CoverageSnapshot:
+    metrics: tuple[tuple[str, float], ...]
+    files: tuple[tuple[str, float], ...]
+    regression_tolerance: float | None
 
 
 def _digest(value: Any) -> str:
@@ -213,6 +222,70 @@ def _require_digest(value: Any, context: str) -> str:
     return digest
 
 
+def _coverage_number(value: Any, context: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise BaselineError(f"{context} must be a number")
+    number = float(value)
+    if not math.isfinite(number) or not 0.0 <= number <= 100.0:
+        raise BaselineError(f"{context} must be between 0 and 100")
+    return number
+
+
+def _coverage_snapshot_from_payload(
+    value: Any,
+    project_root: Path,
+    context: str,
+) -> _CoverageSnapshot | None:
+    if value is None:
+        return None
+    payload = _require_object(value, context)
+    metrics_payload = _require_object(payload.get("metrics"), f"{context}.metrics")
+    allowed_metrics = frozenset({"line", "branch", "function", "changed_line"})
+    unknown_metrics = set(metrics_payload) - allowed_metrics
+    if unknown_metrics:
+        raise BaselineError(
+            f"{context}.metrics contains unsupported keys: {', '.join(sorted(unknown_metrics))}"
+        )
+    metrics = tuple(
+        (key, _coverage_number(metrics_payload[key], f"{context}.metrics.{key}"))
+        for key in sorted(metrics_payload)
+    )
+
+    files_payload = _require_object(payload.get("files"), f"{context}.files")
+    if len(files_payload) > 10_000:
+        raise BaselineError(f"{context}.files exceeds the bounded 10000-file limit")
+    files: list[tuple[str, float]] = []
+    for raw_path in sorted(files_payload):
+        try:
+            canonical = canonical_project_path(raw_path)
+        except ValueError as err:
+            raise BaselineError(f"{context}.files path is unsafe: {raw_path!r}") from err
+        if raw_path != canonical or canonical == ".":
+            raise BaselineError(f"{context}.files path must be canonical: {raw_path!r}")
+        try:
+            resolve_project_path(project_root, canonical)
+        except ValueError as err:
+            raise BaselineError(f"{context}.files path is unsafe: {raw_path!r}") from err
+        files.append(
+            (
+                canonical,
+                _coverage_number(files_payload[raw_path], f"{context}.files[{raw_path!r}]"),
+            )
+        )
+
+    raw_tolerance = payload.get("regression_tolerance")
+    tolerance = (
+        None
+        if raw_tolerance is None
+        else _coverage_number(raw_tolerance, f"{context}.regression_tolerance")
+    )
+    return _CoverageSnapshot(
+        metrics=metrics,
+        files=tuple(files),
+        regression_tolerance=tolerance,
+    )
+
+
 def _finding_from_payload(
     value: Any, *, engine_name: str, project_root: Path, index: int
 ) -> _FindingRecord:
@@ -286,6 +359,7 @@ def load_baseline(path: Path, project_root: Path) -> _BaselineDocument:
         )
 
     records: list[_FindingRecord] = []
+    coverage: _CoverageSnapshot | None = None
     for engine_index, engine_value in enumerate(
         _require_list(root_payload.get("results"), "baseline.results")
     ):
@@ -307,9 +381,19 @@ def load_baseline(path: Path, project_root: Path) -> _BaselineDocument:
             )
             for finding_index, finding in enumerate(findings)
         )
+        if engine_name == "test":
+            if coverage is not None:
+                raise BaselineError("baseline contains multiple test coverage snapshots")
+            extra = _require_object(engine.get("extra"), f"baseline.results[{engine_index}].extra")
+            coverage = _coverage_snapshot_from_payload(
+                extra.get("coverage_policy"),
+                root,
+                f"baseline.results[{engine_index}].extra.coverage_policy",
+            )
     return _BaselineDocument(
         metadata=_metadata_from_payload(root_payload.get("analysis_metadata")),
         findings=tuple(records),
+        coverage=coverage,
     )
 
 
@@ -323,6 +407,66 @@ def _record_from_finding(engine_name: str, finding: Finding) -> _FindingRecord:
         message=finding.message,
         suppressed=finding.suppression.suppressed,
     )
+
+
+def _current_coverage_snapshot(
+    suite: VerificationSuiteResult,
+    project_root: Path,
+) -> _CoverageSnapshot | None:
+    test_results = [result for result in suite.results if result.engine_name == "test"]
+    if not test_results:
+        return None
+    if len(test_results) > 1:
+        raise BaselineError("current suite contains multiple test coverage snapshots")
+    return _coverage_snapshot_from_payload(
+        test_results[0].extra.get("coverage_policy"),
+        project_root,
+        "current.results['test'].extra.coverage_policy",
+    )
+
+
+def _coverage_regression_records(
+    current: _CoverageSnapshot | None,
+    baseline: _CoverageSnapshot | None,
+) -> tuple[list[_FindingRecord], list[str]]:
+    if current is None or current.regression_tolerance is None:
+        return [], []
+    if baseline is None:
+        return [], ["baseline has no coverage policy snapshot; regressions were not compared"]
+
+    tolerance = current.regression_tolerance
+    candidates: list[tuple[str, str, float, float]] = []
+    current_metrics = dict(current.metrics)
+    for metric, baseline_value in baseline.metrics:
+        current_value = current_metrics.get(metric)
+        if current_value is not None and baseline_value - current_value > tolerance:
+            candidates.append((f"aggregate-{metric}", ".", current_value, baseline_value))
+    current_files = dict(current.files)
+    for path, baseline_value in baseline.files:
+        current_value = current_files.get(path)
+        if current_value is not None and baseline_value - current_value > tolerance:
+            candidates.append(("file-line", path, current_value, baseline_value))
+
+    records: list[_FindingRecord] = []
+    for kind, path, current_value, baseline_value in candidates:
+        label = f"coverage:{kind}"
+        location = SourceLocation(path=path, start_line=1, label=label)
+        rule_id = f"ici.test.coverage-regression.{kind}"
+        records.append(
+            _FindingRecord(
+                engine_name="test",
+                fingerprint=finding_fingerprint(rule_id, location, symbol=label),
+                rule_id=rule_id,
+                severity=FindingSeverity.MEDIUM,
+                location=location,
+                message=(
+                    f"Coverage regressed from {baseline_value:.1f}% to {current_value:.1f}% "
+                    f"(allowed drop {tolerance:.1f}%)"
+                ),
+                suppressed=False,
+            )
+        )
+    return records, []
 
 
 def _location_key(location: SourceLocation) -> tuple[Any, ...]:
@@ -474,6 +618,11 @@ def compare_suite_to_baseline(
         for result in suite.results
         for finding in findings_for_result(result, project_root=root)
     ]
+    coverage_records, coverage_warnings = _coverage_regression_records(
+        _current_coverage_snapshot(suite, root),
+        document.coverage,
+    )
+    current_records.extend(coverage_records)
     current_groups: dict[tuple[str, str], list[_FindingRecord]] = defaultdict(list)
     baseline_groups: dict[tuple[str, str], list[_FindingRecord]] = defaultdict(list)
     for record in current_records:
@@ -501,7 +650,10 @@ def compare_suite_to_baseline(
     return BaselineComparison(
         source_path=source_path,
         entries=entries,
-        warnings=_compatibility_warnings(document.metadata, current_metadata),
+        warnings=[
+            *_compatibility_warnings(document.metadata, current_metadata),
+            *coverage_warnings,
+        ],
         baseline_metadata=document.metadata,
         fail_on_new=fail_on_new,
         gate_failed=fail_on_new and gated_count > 0,

@@ -600,6 +600,8 @@ def test_gcov_json_consumption_preserves_geometry_and_throw_policy(tmp_path: Pat
             "nb": 2,
             "cb": 1,
             "missing_lines": [5],
+            "executable_lines": [3, 5],
+            "covered_lines": [3],
         }
     ]
     assert engine._cpp_function_rows[0] == {

@@ -27,6 +27,11 @@ from ici.core.models import (
 )
 from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
+from ici.engines.coverage_policy import (
+    build_changed_line_status,
+    evaluate_coverage_policy,
+    parse_changed_lines,
+)
 from ici.engines.coverage_support import (
     build_coverage_summary,
     calculate_tem,
@@ -77,6 +82,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         self._coverage_totals: dict | None = None
         self._coverage_source = "estimated"
         self._coverage_provenance: dict[str, Any] = {}
+        self._coverage_policy: dict[str, Any] = {}
         self._tool_errors: list[str] = []
         self._coverage_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
@@ -100,6 +106,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         self._coverage_totals = None
         self._coverage_source = "estimated"
         self._coverage_provenance = {}
+        self._coverage_policy = {}
         self._tool_errors = []
         self._coverage_errors = []
         self._tool_evidence = []
@@ -131,9 +138,12 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
             if target.status == EngineStatus.SKIP and not self._is_quality_target(target)
         )
         no_tests_executed = total_tests > 0 and not has_failure and skipped_tests >= total_tests
+        branch_cov, func_cov, coverage_targets = self._measure_coverage(proj_type, has_failure)
+        targets.extend(coverage_targets)
+        for target in coverage_targets:
+            if target.status == EngineStatus.ERROR:
+                self._record_tool_error(target.message)
         required_coverage_missing, optional_coverage_warning = self._apply_coverage_policy(cfg)
-        branch_cov, func_cov, missed_targets = self._measure_coverage(proj_type, has_failure)
-        targets.extend(missed_targets)
         tem_info = self._calc_tem(branch_cov, func_cov, passed_tests, total_tests)
         tem_score = tem_info["tem_score"]
         threshold_breaches = self._threshold_breaches(
@@ -143,7 +153,16 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         quality_warn = quality_info["mode"] == "warn" and any(
             target.status == EngineStatus.WARN for target in quality_targets
         )
-        has_warn = bool(threshold_breaches) or optional_coverage_warning or quality_warn
+        coverage_policy_warn = any(
+            target.status == EngineStatus.WARN and bool(target.metrics.get("gated"))
+            for target in coverage_targets
+        )
+        has_warn = (
+            bool(threshold_breaches)
+            or optional_coverage_warning
+            or quality_warn
+            or coverage_policy_warn
+        )
         test_suites = self._build_test_suites(targets)
         overall_status = self._result_status(
             cfg,
@@ -200,6 +219,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
                 "coverage_files": self._coverage_files,
                 "coverage_source": self._coverage_source,
                 "coverage_provenance": self._coverage_provenance,
+                "coverage_policy": self._coverage_policy or None,
                 "coverage_totals": self._coverage_totals,
                 "function_rows": self._function_rows,
                 # Keep quality counters both grouped and flat. The grouped
@@ -1076,14 +1096,17 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
             self._coverage_source = f"{source} (partial)"
 
     def _measure_coverage(
-        self, proj_type: str, has_test_failures: bool
+        self,
+        proj_type: str,
+        has_test_failures: bool,
     ) -> tuple[float, float, list[InspectionTarget]]:
         """Calculates branch coverage, function coverage, and per-module coverage rows."""
-        missed_targets: list[InspectionTarget] = []
+        policy_targets: list[InspectionTarget] = []
         py_sources = self.project_python_sources()
         cpp_sources = self.project_cpp_sources()
 
         cov_data = self._coverage_data
+        changed_line_status = build_changed_line_status(cov_data, self._cpp_coverage_rows)
         self._build_coverage_summary()
 
         py_func_rows = self._compute_python_function_coverage(cov_data) if cov_data else []
@@ -1115,26 +1138,108 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         if self._function_rows:
             covered_funcs = sum(1 for r in self._function_rows if r["covered"])
             func_cov = covered_funcs / len(self._function_rows) * 100.0
+        elif self._coverage_measured:
+            func_cov = 100.0
 
         totals = self._coverage_totals
         if totals and totals.get("branch_cover") is not None:
             branch_cov = totals["branch_cover"]
+        elif totals and self._coverage_measured:
+            branch_cov = 100.0
         elif cov_data and cov_data.get("branch_cov") is not None:
             branch_cov = cov_data["branch_cov"]
 
-        for row in self._coverage_files:
-            if row["stmts"] >= 5 and row["cover"] < 80.0:
-                missed_targets.append(
-                    InspectionTarget(
-                        file_path=row["file"],
-                        start_line=1,
-                        target_name="Coverage:Module",
-                        status=EngineStatus.WARN,
-                        message=(
-                            f"Module coverage {row['cover']:.1f}% — {row['miss']} missed statements"
-                        ),
-                        metrics={"coverage": row["cover"]},
-                    )
+        policy = self.get_config("test")
+        coverage_complete = self._coverage_measured and not self._coverage_failure_messages()
+        try:
+            changed_lines = parse_changed_lines(
+                self.project_root,
+                policy.get("changed_lines", []),
+            )
+            if coverage_complete:
+                policy_targets = evaluate_coverage_policy(
+                    policy,
+                    self._coverage_files,
+                    self._function_rows,
+                    changed_line_status,
+                    changed_lines=changed_lines,
                 )
+        except (OSError, ValueError) as err:
+            policy_targets = [
+                InspectionTarget(
+                    file_path=".",
+                    start_line=1,
+                    target_name="Coverage:Policy configuration",
+                    status=EngineStatus.ERROR,
+                    message=f"Coverage policy could not be evaluated: {err}",
+                    metrics={"gated": True},
+                )
+            ]
+        self._record_coverage_scope(py_sources, cpp_sources)
+        self._coverage_policy = (
+            self._coverage_policy_snapshot(policy_targets, branch_cov, policy)
+            if coverage_complete
+            else {}
+        )
+        return branch_cov, func_cov, policy_targets
 
-        return branch_cov, func_cov, missed_targets
+    def _record_coverage_scope(self, py_sources: list[Path], cpp_sources: list[Path]) -> None:
+        """Expose why production, test, generated, vendor, and entry sources differ."""
+
+        entry_points = sorted(
+            str(path.relative_to(self.project_root)) for path in cpp_sources if defines_main(path)
+        )
+        self._coverage_provenance["scope"] = {
+            "included_sources": sorted(row["file"] for row in self._coverage_files),
+            "excluded_entry_points": entry_points,
+            "exclusion_rules": [
+                {
+                    "kind": "tests",
+                    "basis": "tests are execution inputs, not production coverage sources",
+                },
+                {
+                    "kind": "generated-vendor-cache",
+                    "basis": "bounded project source discovery excludes ignored directories",
+                },
+                {
+                    "kind": "entry-point",
+                    "basis": "C++ main definitions are excluded from the test-link coverage set",
+                },
+            ],
+            "python_context": "aggregate-project-suite",
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_python_sources": len(py_sources),
+            "discovered_cpp_sources": len(cpp_sources),
+        }
+
+    @staticmethod
+    def _coverage_policy_snapshot(
+        targets: list[InspectionTarget],
+        branch_cov: float,
+        cfg: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Return bounded numeric state suitable for a later v3 baseline comparison."""
+
+        metrics: dict[str, float] = {"branch": round(branch_cov, 1)}
+        files: dict[str, float] = {}
+        changed_covered = 0
+        changed_executable = 0
+        for target in targets:
+            actual = target.metrics.get("actual")
+            if target.target_name == "Coverage:Overall line" and isinstance(actual, (int, float)):
+                metrics["line"] = float(actual)
+            elif target.target_name == "Coverage:Functions" and isinstance(actual, (int, float)):
+                metrics["function"] = float(actual)
+            elif target.target_name == "Coverage:File" and isinstance(actual, (int, float)):
+                files[target.file_path] = float(actual)
+            elif target.target_name == "Coverage:Changed lines":
+                changed_covered += int(target.metrics.get("covered_lines", 0))
+                changed_executable += int(target.metrics.get("executable_lines", 0))
+        if changed_executable:
+            metrics["changed_line"] = round(changed_covered / changed_executable * 100.0, 1)
+        tolerance = cfg.get("max_coverage_regression")
+        return {
+            "metrics": metrics,
+            "files": {path: files[path] for path in sorted(files)},
+            "regression_tolerance": float(tolerance) if tolerance is not None else None,
+        }

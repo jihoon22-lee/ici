@@ -78,7 +78,6 @@ class TestQualityMixin:
         checks = (
             ("TEM score", tem, float(cfg.get("min_tem_score", 4.0)), "{:.2f}"),
             ("Branch coverage", branch, float(cfg.get("min_branch_cov", 80.0)), "{:.1f}%"),
-            ("Function coverage", func, float(cfg.get("min_func_cov", 90.0)), "{:.1f}%"),
         )
         breaches = []
         for label, actual, threshold, fmt in checks:

@@ -296,6 +296,7 @@ def parse_gcov_dir(cov_dir: Path, source_files: set[str], project_root: Path) ->
         branches = 0
         covered_branches = 0
         missing: list[int] = []
+        covered_lines: list[int] = []
         try:
             content = gcov_file.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -334,6 +335,7 @@ def parse_gcov_dir(cov_dir: Path, source_files: set[str], project_root: Path) ->
                 digits = count.rstrip("*")
                 if digits.isdigit() and int(digits) > 0:
                     covered += 1
+                    covered_lines.append(number)
 
         statements = covered + miss
         if statements == 0:
@@ -349,6 +351,11 @@ def parse_gcov_dir(cov_dir: Path, source_files: set[str], project_root: Path) ->
                 "nb": branches,
                 "cb": covered_branches,
                 "missing_lines": missing[:30],
+                # Internal policy evidence. ``build_coverage_summary`` strips
+                # these complete lists from public report rows after changed-
+                # line policy has consumed them.
+                "executable_lines": sorted({*covered_lines, *missing}),
+                "covered_lines": sorted(set(covered_lines)),
             }
         )
     return rows
@@ -606,6 +613,8 @@ def parse_gcov_json_dir(
                 "nb": len(branches),
                 "cb": covered_branches,
                 "missing_lines": missing_lines[:30],
+                "executable_lines": sorted(lines),
+                "covered_lines": sorted(number for number, executed in lines.items() if executed),
             }
         )
         function_rows.extend(functions_by_file.get(relative, {}).values())
@@ -665,7 +674,19 @@ def build_coverage_summary(
                 }
             )
 
-    files = [*python_rows, *cpp_rows]
+    public_keys = (
+        "file",
+        "stmts",
+        "covered",
+        "miss",
+        "cover",
+        "branch_cover",
+        "nb",
+        "cb",
+        "missing_lines",
+    )
+    public_cpp_rows = [{key: row.get(key) for key in public_keys} for row in cpp_rows]
+    files = [*python_rows, *public_cpp_rows]
     files.sort(key=lambda row: (row["cover"], row["file"]))
     if not files:
         totals = coverage_data.get("totals") if coverage_data else None

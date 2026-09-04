@@ -92,6 +92,32 @@ def _suite(
     )
 
 
+def _coverage_suite(
+    *,
+    metrics: dict[str, float],
+    files: dict[str, float],
+    tolerance: float | None,
+    metadata: AnalysisMetadata | None = None,
+) -> VerificationSuiteResult:
+    result = EngineResult(
+        engine_name="test",
+        status=EngineStatus.PASS,
+        summary="coverage",
+        extra={
+            "coverage_policy": {
+                "metrics": metrics,
+                "files": files,
+                "regression_tolerance": tolerance,
+            }
+        },
+    )
+    return VerificationSuiteResult(
+        suite_status=EngineStatus.PASS,
+        results=[result],
+        analysis_metadata=metadata,
+    )
+
+
 def _write_baseline(
     root: Path,
     findings: list[Finding],
@@ -251,6 +277,73 @@ def test_older_v3_without_metadata_is_accepted_with_an_explicit_warning(tmp_path
         "baseline has no analysis_metadata; producer, fingerprint, policy, and tool "
         "compatibility could not be verified"
     ]
+
+
+def test_coverage_regression_creates_source_located_gated_deltas(tmp_path):
+    baseline = tmp_path / "baseline.json"
+    save_json_report(
+        _coverage_suite(
+            metrics={"line": 90.0, "branch": 80.0, "function": 95.0},
+            files={"src/service.py": 92.0},
+            tolerance=None,
+            metadata=_metadata(),
+        ),
+        baseline,
+        project_root=tmp_path,
+    )
+    current = _coverage_suite(
+        metrics={"line": 88.0, "branch": 79.0, "function": 95.0},
+        files={"src/service.py": 85.0},
+        tolerance=1.0,
+    )
+
+    comparison = _compare(tmp_path, current, baseline, fail_on_new=True)
+
+    regressions = [
+        entry
+        for entry in comparison.entries
+        if entry.rule_id.startswith("ici.test.coverage-regression")
+    ]
+    assert len(regressions) == 2
+    assert {entry.current_location.path for entry in regressions} == {".", "src/service.py"}
+    assert all(entry.state == DeltaState.NEW and entry.gated for entry in regressions)
+    assert comparison.gate_failed is True
+    assert any("90.0% to 88.0%" in entry.message for entry in regressions)
+    assert not any("branch" in entry.rule_id for entry in regressions)
+
+
+def test_coverage_regression_is_opt_in_and_missing_snapshot_warns(tmp_path):
+    baseline = _write_baseline(tmp_path, [], metadata=_metadata())
+    current = _coverage_suite(
+        metrics={"line": 50.0},
+        files={},
+        tolerance=0.0,
+    )
+
+    comparison = _compare(tmp_path, current, baseline, fail_on_new=True)
+
+    assert comparison.entries == []
+    assert comparison.gate_failed is False
+    assert any("no coverage policy snapshot" in warning for warning in comparison.warnings)
+
+
+def test_baseline_rejects_malformed_coverage_snapshot(tmp_path):
+    baseline = tmp_path / "baseline.json"
+    save_json_report(
+        _coverage_suite(
+            metrics={"line": 90.0},
+            files={"src/service.py": 92.0},
+            tolerance=None,
+        ),
+        baseline,
+        project_root=tmp_path,
+    )
+    payload = json.loads(baseline.read_text(encoding="utf-8"))
+    payload["results"][0]["extra"]["coverage_policy"]["files"] = {"../outside.py": 80}
+    baseline.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(BaselineError, match=r"canonical|unsafe"):
+        load_baseline(baseline, tmp_path)
 
 
 @pytest.mark.parametrize(
