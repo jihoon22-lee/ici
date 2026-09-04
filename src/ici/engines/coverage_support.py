@@ -561,17 +561,8 @@ def _merge_gcov_json_report(
     return matched, ignored
 
 
-def parse_gcov_json_dir(
-    cov_dir: Path,
-    source_files: set[str],
-    project_root: Path,
-) -> tuple[list[dict], list[dict], dict[str, Any]]:
-    """Parse and aggregate bounded gcov JSON reports with exact source geometry.
-
-    Every expected production translation unit must be present.  A malformed
-    JSON report or incomplete source set raises :class:`GcovJsonError`; callers
-    must not retry the same evidence through the lossy text parser.
-    """
+def _bounded_gcov_json_report_paths(cov_dir: Path) -> list[Path]:
+    """Return a deterministic, count-bounded snapshot of report paths."""
 
     reports: list[Path] = []
     try:
@@ -593,6 +584,22 @@ def parse_gcov_json_dir(
     reports.sort(key=lambda path: path.name)
     if not reports:
         raise GcovJsonError("no .gcov.json.gz reports were found", code="missing_data")
+    return reports
+
+
+def parse_gcov_json_dir(
+    cov_dir: Path,
+    source_files: set[str],
+    project_root: Path,
+) -> tuple[list[dict], list[dict], dict[str, Any]]:
+    """Parse and aggregate bounded gcov JSON reports with exact source geometry.
+
+    Every expected production translation unit must be present.  A malformed
+    JSON report or incomplete source set raises :class:`GcovJsonError`; callers
+    must not retry the same evidence through the lossy text parser.
+    """
+
+    reports = _bounded_gcov_json_report_paths(cov_dir)
 
     lines_by_file: dict[str, dict[int, bool]] = {}
     branches_by_file: dict[str, dict[tuple[int, str, int | None, int | None, bool, int], bool]] = {}
