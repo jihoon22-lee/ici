@@ -20,6 +20,7 @@ from ici.core.models import (
 )
 from ici.reporters.html import generate_html_report
 from ici.reporters.html import large as large_report
+from ici.reporters.html import report as html_report
 
 
 def _suite(finding_count: int, *, first_message: str | None = None) -> VerificationSuiteResult:
@@ -115,3 +116,36 @@ def test_large_report_rejects_oversized_embedded_json(
 
     with pytest.raises(ValueError, match="64 MiB embedded JSON limit"):
         generate_html_report(_suite(2_001), tmp_path / "too-large.html", base_dir=tmp_path)
+
+
+def test_html_report_replaces_output_symlink_without_touching_referent(tmp_path: Path):
+    referent = tmp_path / "referent.html"
+    referent.write_text("keep this report", encoding="utf-8")
+    output = tmp_path / "report.html"
+    try:
+        output.symlink_to(referent)
+    except OSError:
+        pytest.skip("symlink creation is unavailable")
+
+    generate_html_report(_suite(1), output, base_dir=tmp_path)
+
+    assert not output.is_symlink()
+    assert referent.read_text(encoding="utf-8") == "keep this report"
+    assert output.read_text(encoding="utf-8").startswith("<!DOCTYPE html>")
+    assert not list(tmp_path.glob(f".{output.name}.*.tmp"))
+
+
+def test_html_report_cleans_temporary_file_when_fsync_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    output = tmp_path / "failed.html"
+
+    def fail_fsync(_fd: int) -> None:
+        raise OSError("injected fsync failure")
+
+    monkeypatch.setattr(html_report.os, "fsync", fail_fsync)
+    with pytest.raises(OSError, match="injected fsync failure"):
+        generate_html_report(_suite(1), output, base_dir=tmp_path)
+
+    assert not output.exists()
+    assert not list(tmp_path.glob(f".{output.name}.*.tmp"))

@@ -1,6 +1,9 @@
 """Top-level HTML report assembly — page shell, tabs, and stat cards."""
 
 import html
+import os
+import tempfile
+from contextlib import suppress
 from pathlib import Path
 
 from ici.core.models import VerificationSuiteResult
@@ -25,6 +28,38 @@ from ici.reporters.html.sections.support import _render_support_section
 from ici.reporters.html.sections.test import _render_test_section
 from ici.reporters.html.sections.type_check import _render_type_section
 from ici.reporters.html.utils import _extract_suite_data, _get_status_theme
+
+
+def _save_html(content: str, output_path: Path) -> None:
+    """Write HTML through a same-directory fsynced replacement.
+
+    Replacing the directory entry keeps an existing output symlink from being
+    followed and leaves readers with either the old complete report or the new
+    complete report.  Cleanup also covers encoding, fsync, and replacement
+    failures so a failed report cannot accumulate temporary files.
+    """
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=output_path.parent,
+            prefix=f".{output_path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary.replace(output_path)
+    except BaseException:
+        if temporary is not None:
+            with suppress(OSError):
+                temporary.unlink(missing_ok=True)
+        raise
 
 
 def generate_html_report(
@@ -306,5 +341,4 @@ def generate_html_report(
 </body>
 </html>
 """
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(html_content, encoding="utf-8")
+    _save_html(html_content, output_path)
