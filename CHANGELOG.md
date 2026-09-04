@@ -526,6 +526,12 @@
 
 ### Changed
 
+- **Consolidated local acceptance record:** The final analysis-platform workthrough records the
+  Python 3.10 suite, strict type/lint/action checks, reproducible ZipApp checksum, packaged smoke,
+  deep self-dogfood inventory, and JSON/HTML/SARIF contract validation. It distinguishes four
+  visible structural-debt warnings and two inapplicable C++ skips from failures, and explicitly
+  defers cross-repository candidate acceptance and any release decision.
+
 - **Documentation status reconciliation:** The canonical master plan and handover now record merged
   PRs #151/#152, their successful PR/exact-main CI, and exact-head-scoped Quality Zoo acceptance.
   Future Python packaging, Make/ABI/hybrid integration, reporting, broader I4/I9 work, and stable
