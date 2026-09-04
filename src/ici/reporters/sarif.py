@@ -9,6 +9,7 @@ interpretation of an engine result.
 
 from __future__ import annotations
 
+from collections import defaultdict, deque
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -128,13 +129,21 @@ def _location(location: SourceLocation) -> dict[str, Any]:
     return {"physicalLocation": physical}
 
 
-def _related_locations(finding: Finding) -> list[dict[str, Any]]:
+def _related_locations(finding: Finding, delta: Any = None) -> list[dict[str, Any]]:
     related = []
-    for index, location in enumerate(finding.related_locations, start=1):
+    locations = [(location, location.label) for location in finding.related_locations]
+    if (
+        delta is not None
+        and _delta_state(delta.state) == DeltaState.MOVED
+        and delta.baseline_location is not None
+        and delta.baseline_location != finding.primary_location
+    ):
+        locations.append((delta.baseline_location, "Baseline location before move"))
+    for index, (location, label) in enumerate(locations, start=1):
         item = _location(location)
         item["id"] = index
-        if location.label:
-            item["message"] = {"text": location.label}
+        if label:
+            item["message"] = {"text": label}
         related.append(item)
     return related
 
@@ -211,7 +220,7 @@ def _result_for_finding(
         "fingerprints": {"ici/v3": finding.fingerprint},
         "properties": _finding_properties(finding, engine_name, delta),
     }
-    related = _related_locations(finding)
+    related = _related_locations(finding, delta)
     if related:
         result["relatedLocations"] = related
     suppressions = _suppression(finding)
@@ -251,42 +260,105 @@ def _resolved_finding(
     return canonicalize_finding(finding, project_root=project_root)
 
 
+def _finding_sort_key(engine_name: str, finding: Finding) -> tuple[Any, ...]:
+    """Order every field that can affect a SARIF rule or result."""
+
+    suppression = finding.suppression
+    metrics = tuple(
+        (name, repr(metric.value), metric.unit) for name, metric in sorted(finding.metrics.items())
+    )
+    return (
+        engine_name,
+        finding.rule_id,
+        finding.fingerprint,
+        _location_sort_key(finding.primary_location),
+        finding.message,
+        _enum_value(finding.severity),
+        _enum_value(finding.category),
+        _enum_value(finding.confidence),
+        finding.explanation,
+        finding.remediation,
+        finding.tool_name,
+        finding.tool_rule_id,
+        finding.tool_version,
+        bool(suppression.suppressed),
+        _enum_value(suppression.kind),
+        suppression.reason,
+        tuple(_location_sort_key(location) for location in finding.related_locations),
+        metrics,
+        finding.snippet,
+    )
+
+
+def _delta_sort_key(delta: Any) -> tuple[Any, ...]:
+    if delta is None:
+        return ("", "", "", (), (), "", "", False, False, False)
+    return (
+        str(delta.engine_name),
+        str(delta.fingerprint),
+        _enum_value(delta.state),
+        _location_sort_key(delta.current_location),
+        _location_sort_key(delta.baseline_location),
+        str(delta.message),
+        _enum_value(delta.current_severity) if delta.current_severity is not None else "",
+        _enum_value(delta.baseline_severity) if delta.baseline_severity is not None else "",
+        bool(delta.regressed),
+        bool(delta.suppressed),
+        bool(delta.gated),
+    )
+
+
+def _current_delta_key(delta: Any) -> tuple[Any, ...]:
+    return (
+        str(delta.engine_name),
+        str(delta.fingerprint),
+        _location_sort_key(delta.current_location),
+        str(delta.message),
+        _enum_value(delta.current_severity) if delta.current_severity is not None else "",
+    )
+
+
 def _all_findings(
     suite: VerificationSuiteResult,
     project_root: str | Path | None,
 ) -> tuple[list[tuple[str, Finding, Any]], BaselineComparison | None]:
     records: list[tuple[str, Finding, Any]] = []
     baseline = suite.baseline_comparison
-    delta_by_key: dict[tuple[str, str], Any] = {}
+    delta_by_key: dict[tuple[Any, ...], deque[Any]] = defaultdict(deque)
     resolved: list[Any] = []
     if baseline is not None:
-        for delta in baseline.entries:
+        for delta in sorted(baseline.entries, key=_delta_sort_key):
             state = _delta_state(delta.state)
             if state == DeltaState.RESOLVED:
                 resolved.append(delta)
-            else:
-                delta_by_key[(str(delta.engine_name), str(delta.fingerprint))] = delta
+            elif delta.current_location is not None:
+                delta_by_key[_current_delta_key(delta)].append(delta)
 
+    current: list[tuple[str, Finding]] = []
     for result in suite.results:
         engine_name = str(result.engine_name)
         for finding in findings_for_result(result, project_root=project_root):
-            delta = delta_by_key.get((engine_name, finding.fingerprint))
-            records.append((engine_name, finding, delta))
+            current.append((engine_name, finding))
+    current.sort(key=lambda item: _finding_sort_key(item[0], item[1]))
+    for engine_name, finding in current:
+        candidates = delta_by_key[
+            (
+                engine_name,
+                finding.fingerprint,
+                _location_sort_key(finding.primary_location),
+                finding.message,
+                _enum_value(finding.severity),
+            )
+        ]
+        delta = candidates.popleft() if candidates else None
+        records.append((engine_name, finding, delta))
 
     for delta in resolved:
         finding = _resolved_finding(delta, project_root)
         if finding is not None:
             records.append((str(delta.engine_name), finding, delta))
 
-    records.sort(
-        key=lambda item: (
-            item[0],
-            item[1].rule_id,
-            item[1].fingerprint,
-            _location_sort_key(item[1].primary_location),
-            item[1].message,
-        )
-    )
+    records.sort(key=lambda item: (*_finding_sort_key(item[0], item[1]), _delta_sort_key(item[2])))
     return records, baseline
 
 

@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from ici import __version__
-from ici.core.findings import finding_fingerprint
+from ici.core.findings import canonicalize_finding, finding_fingerprint
 from ici.core.models import (
     BaselineComparison,
     DeltaState,
@@ -195,6 +196,14 @@ def test_sarif_maps_baseline_delta_and_emits_resolved_result(tmp_path: Path):
     assert current_result["properties"]["delta_state"] == "moved"
     assert current_result["properties"]["delta_regressed"] is True
     assert current_result["properties"]["delta_gated"] is True
+    assert current_result["relatedLocations"][-1] == {
+        "id": 2,
+        "message": {"text": "Baseline location before move"},
+        "physicalLocation": {
+            "artifactLocation": {"uri": "src/old.py", "uriBaseId": "%SRCROOT%"},
+            "region": {"startLine": 3},
+        },
+    }
 
     resolved_result = next(item for item in results if item["ruleId"] == "ici.lint.old")
     assert resolved_result["baselineState"] == "absent"
@@ -202,6 +211,63 @@ def test_sarif_maps_baseline_delta_and_emits_resolved_result(tmp_path: Path):
         "src/removed.py"
     )
     assert payload["runs"][0]["properties"]["finding_count"] == 2
+
+
+def test_sarif_matches_duplicate_fingerprint_deltas_by_current_occurrence(tmp_path: Path):
+    first = canonicalize_finding(_finding(path="src/shared.py", line=2), tmp_path)
+    second = canonicalize_finding(_finding(path="src/shared.py", line=4), tmp_path)
+    assert first.fingerprint == second.fingerprint
+    first_delta = FindingDelta(
+        state=DeltaState.NEW,
+        engine_name="security",
+        fingerprint=first.fingerprint,
+        rule_id=first.rule_id,
+        message=first.message,
+        current_location=first.primary_location,
+        current_severity=first.severity,
+    )
+    second_delta = FindingDelta(
+        state=DeltaState.UNCHANGED,
+        engine_name="security",
+        fingerprint=second.fingerprint,
+        rule_id=second.rule_id,
+        message=second.message,
+        current_location=second.primary_location,
+        baseline_location=second.primary_location,
+        current_severity=second.severity,
+        baseline_severity=second.severity,
+    )
+    baseline = BaselineComparison(
+        source_path="baseline.json",
+        entries=[second_delta, first_delta],
+    )
+
+    payload = sarif.serialize_sarif(
+        _suite([_result(second), _result(first)], baseline=baseline), project_root=tmp_path
+    )
+    results = payload["runs"][0]["results"]
+    states = {
+        item["locations"][0]["physicalLocation"]["region"]["startLine"]: item["baselineState"]
+        for item in results
+    }
+
+    assert states == {2: "new", 4: "unchanged"}
+
+
+def test_sarif_tied_finding_metadata_is_order_independent(tmp_path: Path):
+    base = _finding()
+    first = replace(base, tool_name="alpha", explanation="alpha explanation")
+    second = replace(base, tool_name="beta", explanation="beta explanation")
+
+    forward = sarif.serialize_sarif(
+        _suite([_result(first), _result(second)]), project_root=tmp_path
+    )
+    reverse = sarif.serialize_sarif(
+        _suite([_result(second), _result(first)]), project_root=tmp_path
+    )
+
+    assert forward == reverse
+    assert forward["runs"][0]["tool"]["driver"]["rules"][0]["properties"]["tool"] == ("alpha")
 
 
 def test_sarif_save_is_json_and_atomic(tmp_path: Path):
