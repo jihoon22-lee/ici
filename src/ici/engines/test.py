@@ -1195,6 +1195,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         session = adapter_configure(
             self.project_root,
             ConfigureOptions(BuildVariant.COVERAGE),
+            self.config,
         )
         session.analysis_context = self.analysis_context
 

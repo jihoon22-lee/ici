@@ -879,7 +879,8 @@ def test_adapter_build_failure_is_not_reported_as_inapplicable(tmp_path, monkeyp
     )
     session.errors.append("cmake build failed: cannot specify -static with -fsanitize=address")
     monkeypatch.setattr(
-        "ici.engines.sanitize.adapter_configure", lambda _root, _options=None: session
+        "ici.engines.sanitize.adapter_configure",
+        lambda _root, _options=None, _config=None: session,
     )
     monkeypatch.setattr("ici.engines.sanitize.adapter_build", lambda _s: False)
 

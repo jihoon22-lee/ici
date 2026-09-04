@@ -412,6 +412,7 @@ class SanitizeEngine(BaseEngine):
         session = adapter_configure(
             self.project_root,
             ConfigureOptions(self.BUILD_VARIANT),
+            self.config,
         )
         session.analysis_context = self.analysis_context
         self._tool_evidence.extend(session.tool_evidence)

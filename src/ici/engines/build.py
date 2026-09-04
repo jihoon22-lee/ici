@@ -589,7 +589,11 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
         """Delegate configure and build to the project's own build system."""
 
         # No coverage and no sanitizers: these are release artifacts.
-        session = adapter_configure(base, ConfigureOptions(BuildVariant.RELEASE))
+        session = adapter_configure(
+            base,
+            ConfigureOptions(BuildVariant.RELEASE),
+            self.config,
+        )
         session.analysis_context = self.analysis_context
         if not session.configured:
             self._tool_evidence.extend(session.tool_evidence)

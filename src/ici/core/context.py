@@ -163,7 +163,7 @@ def discover_project_model(root: Path, config: dict[str, Any]) -> ProjectModel:
     """Discover project metadata and source scope exactly once."""
 
     canonical_root = root.resolve(strict=False)
-    backend = select_backend(canonical_root)
+    backend = select_backend(canonical_root, config)
     project_config = config.get("project", {})
     configured_type = config.get("type")
     if configured_type is None and isinstance(project_config, dict):
