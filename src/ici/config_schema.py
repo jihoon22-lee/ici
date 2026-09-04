@@ -53,6 +53,20 @@ _PROJECT_KEYS = frozenset(
 _BUILD_KEYS = frozenset({"python"})
 _BUILD_PYTHON_KEYS = frozenset({"entrypoint"})
 _DOCTOR_KEYS = frozenset({"required_tools"})
+_TEST_QUALITY_KEYS = frozenset(
+    {
+        "enabled",
+        "repeat_runs",
+        "repeat",
+        "timeout",
+        "slow_test_threshold",
+        "slow_threshold",
+        "max_slow_tests",
+        "mutation",
+    }
+)
+_MUTATION_KEYS = frozenset({"enabled", "tool", "command"})
+_MUTATION_TOOLS = frozenset({"auto", "mutmut", "cosmic-ray", "mutpy"})
 _COMMON_ENGINE_KEYS = frozenset({"enabled", "mode", "required"})
 _ENGINE_KEYS = {
     "line": _COMMON_ENGINE_KEYS
@@ -87,6 +101,7 @@ _ENGINE_KEYS = {
             "min_func_cov",
             "coverage_required",
             "python",
+            "quality",
         }
     ),
     "type": _COMMON_ENGINE_KEYS
@@ -235,6 +250,75 @@ def _validate_test(table: dict[str, Any], path: str) -> None:
         _require_number(table["min_branch_cov"], f"{path}.min_branch_cov", minimum=0, maximum=100)
     if "min_func_cov" in table:
         _require_number(table["min_func_cov"], f"{path}.min_func_cov", minimum=0, maximum=100)
+    if "quality" in table:
+        _validate_test_quality(table["quality"], f"{path}.quality")
+
+
+def _validate_test_quality(table: Any, path: str) -> None:
+    """Validate bounded deep-profile test-quality observations."""
+
+    if not isinstance(table, dict):
+        raise _error(path, "must be a table")
+    _reject_unknown(table, _TEST_QUALITY_KEYS, path)
+    if "enabled" in table:
+        _require_bool(table["enabled"], f"{path}.enabled")
+    for key in ("repeat_runs", "repeat"):
+        if key in table:
+            _require_int(table[key], f"{path}.{key}", minimum=1)
+            if table[key] > 3:
+                raise _error(f"{path}.{key}", "must be less than or equal to 3 total runs")
+    if "repeat_runs" in table and "repeat" in table:
+        raise _error(path, "must define only one of repeat_runs or repeat")
+    if "timeout" in table:
+        _require_number(table["timeout"], f"{path}.timeout", minimum=0.1, maximum=3600)
+    for key in ("slow_test_threshold", "slow_threshold"):
+        if key in table:
+            _require_number(table[key], f"{path}.{key}", minimum=0, maximum=86400)
+    if "slow_test_threshold" in table and "slow_threshold" in table:
+        raise _error(path, "must define only one of slow_test_threshold or slow_threshold")
+    if "max_slow_tests" in table:
+        _require_int(table["max_slow_tests"], f"{path}.max_slow_tests", minimum=1)
+        if table["max_slow_tests"] > 1000:
+            raise _error(f"{path}.max_slow_tests", "must be less than or equal to 1000")
+    if "mutation" not in table:
+        return
+
+    mutation = table["mutation"]
+    if isinstance(mutation, bool):
+        return
+    mutation_path = f"{path}.mutation"
+    if not isinstance(mutation, dict):
+        raise _error(mutation_path, "must be a boolean or table")
+    _reject_unknown(mutation, _MUTATION_KEYS, mutation_path)
+    if "enabled" in mutation:
+        _require_bool(mutation["enabled"], f"{mutation_path}.enabled")
+    if "tool" in mutation:
+        tool_path = f"{mutation_path}.tool"
+        _require_string(mutation["tool"], tool_path, non_empty=True)
+        if mutation["tool"] not in _MUTATION_TOOLS:
+            allowed = ", ".join(sorted(_MUTATION_TOOLS))
+            raise _error(tool_path, f"must be one of: {allowed}")
+    if "command" in mutation:
+        _validate_bounded_argv(mutation["command"], f"{mutation_path}.command")
+
+
+def _validate_bounded_argv(value: Any, path: str) -> None:
+    """Validate a shell-free probe argv with a small deterministic budget."""
+
+    if not isinstance(value, list) or not 1 <= len(value) <= 32:
+        raise _error(path, "must be a list of 1 to 32 non-empty strings")
+    shell_names = {"sh", "bash", "dash", "zsh", "fish", "cmd", "powershell", "pwsh"}
+    first_name = Path(str(value[0])).name.casefold() if value else ""
+    if first_name in shell_names:
+        raise _error(path, "must invoke a tool directly without a shell wrapper")
+    for index, item in enumerate(value):
+        item_path = f"{path}[{index}]"
+        if not isinstance(item, str) or not item:
+            raise _error(item_path, "must be a non-empty string")
+        if len(item) > 1024 or any(ord(character) < 32 for character in item):
+            raise _error(item_path, "must be a safe string of at most 1024 characters")
+    if any(item in {"-c", "/c", "-Command", "-command"} for item in value[1:]):
+        raise _error(path, "must invoke a tool directly without a shell wrapper")
 
 
 def _validate_type(table: dict[str, Any], path: str) -> None:

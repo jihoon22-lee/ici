@@ -60,6 +60,20 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "min_branch_cov": 80.0,
             "min_func_cov": 90.0,
             "coverage_required": False,
+            # Deep-profile quality observations reuse the base pytest output.
+            # Repeats and mutation probing are explicitly opt-in and therefore
+            # add no default subprocess cost.
+            "quality": {
+                "enabled": True,
+                "repeat_runs": 1,
+                "timeout": 300.0,
+                "slow_test_threshold": 1.0,
+                "max_slow_tests": 50,
+                "mutation": {
+                    "enabled": False,
+                    "tool": "auto",
+                },
+            },
         },
         "type": {
             "enabled": True,

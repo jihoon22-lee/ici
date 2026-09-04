@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import math
 import shutil
 import time
 from pathlib import Path
@@ -25,7 +26,7 @@ from ici.core.models import (
     InspectionTarget,
     ToolEvidence,
 )
-from ici.core.runner import run_process
+from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 from ici.engines.coverage_support import (
     build_coverage_summary,
@@ -38,10 +39,44 @@ from ici.engines.coverage_support import (
 )
 from ici.engines.cpp_text import defines_main
 from ici.engines.test_interpreter import TestInterpreterMixin
-from ici.engines.test_output import TestOutputMixin
+from ici.engines.test_output import (
+    TestOutputMixin,
+    pytest_node_location,
+)
 
 if TYPE_CHECKING:
     from ici.core.context import AnalysisContext
+
+
+_MAX_QUALITY_RUNS = 3
+_MAX_SLOW_TESTS = 1000
+_QUALITY_TIMEOUT_DEFAULT = 300.0
+_QUALITY_SLOW_THRESHOLD_DEFAULT = 1.0
+_QUALITY_SLOW_TESTS_DEFAULT = 50
+_MUTATION_TOOLS = ("mutmut", "cosmic-ray", "mutpy")
+
+
+def _empty_quality_info() -> dict[str, Any]:
+    """Return a JSON-safe, explicit deep test-quality counter set."""
+
+    return {
+        "enabled": False,
+        "profile": "",
+        "repeat_runs": 0,
+        "repeat_reruns": 0,
+        "repeat_cases": 0,
+        "repeat_unavailable": 0,
+        "repeat_timeouts": 0,
+        "flaky_tests": 0,
+        "slow_tests": 0,
+        "slow_tests_observed": 0,
+        "slow_test_inventory": [],
+        "flaky_test_inventory": [],
+        "mutation_probes": 0,
+        "mutation_available": 0,
+        "mutation_unavailable": 0,
+        "mutation_status": "disabled",
+    }
 
 
 class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
@@ -70,6 +105,9 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
+        self._last_pytest_output = ""
+        self._last_pytest_outcomes: dict[str, str] = {}
+        self._quality_info = _empty_quality_info()
         self._has_run = False
 
     def _reset_run_state(self) -> None:
@@ -89,6 +127,9 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
+        self._last_pytest_output = ""
+        self._last_pytest_outcomes = {}
+        self._quality_info = _empty_quality_info()
 
     def run(self) -> EngineResult:
         t0 = time.time()
@@ -101,11 +142,12 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         proj_type = self.project_type()
         targets: list[InspectionTarget] = []
         passed_tests, total_tests, has_failure = self._run_project_tests(proj_type, targets)
+        quality_info = self._run_deep_test_quality(proj_type, targets)
         cfg = self.get_config("test")
         skipped_tests = sum(
             int(target.metrics.get("test_cases", 1))
             for target in targets
-            if target.status == EngineStatus.SKIP
+            if target.status == EngineStatus.SKIP and not self._is_quality_target(target)
         )
         no_tests_executed = total_tests > 0 and not has_failure and skipped_tests >= total_tests
         required_coverage_missing, optional_coverage_warning = self._apply_coverage_policy(cfg)
@@ -171,6 +213,25 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
                 "coverage_source": self._coverage_source,
                 "coverage_totals": self._coverage_totals,
                 "function_rows": self._function_rows,
+                # Keep quality counters both grouped and flat. The grouped
+                # object is convenient for API consumers; flat fields retain
+                # the established metrics style used by reporters and CI.
+                "test_quality": quality_info,
+                "quality_enabled": bool(quality_info["enabled"]),
+                "repeat_runs": int(quality_info["repeat_runs"]),
+                "repeat_reruns": int(quality_info["repeat_reruns"]),
+                "repeat_cases": int(quality_info["repeat_cases"]),
+                "repeat_unavailable": int(quality_info["repeat_unavailable"]),
+                "repeat_timeouts": int(quality_info["repeat_timeouts"]),
+                "flaky_tests": int(quality_info["flaky_tests"]),
+                "slow_tests": int(quality_info["slow_tests"]),
+                "slow_tests_observed": int(quality_info["slow_tests_observed"]),
+                "slow_test_inventory": list(quality_info["slow_test_inventory"]),
+                "flaky_test_inventory": list(quality_info["flaky_test_inventory"]),
+                "mutation_probes": int(quality_info["mutation_probes"]),
+                "mutation_available": int(quality_info["mutation_available"]),
+                "mutation_unavailable": int(quality_info["mutation_unavailable"]),
+                "mutation_status": str(quality_info["mutation_status"]),
                 "metrics_summary": (
                     f"TEM: {tem_score:.2f}/5.0 ({cov_label}: {cov_shown:.0f}%, "
                     f"Func: {func_cov:.0f}%, PassRate: {pass_rate:.0%})"
@@ -181,6 +242,382 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             tool_evidence=self._tool_evidence,
             artifact_manifests=self._artifact_manifests,
         )
+
+    def _deep_profile_selected(self) -> bool:
+        """Return true only for the immutable context's deep profile.
+
+        A standalone engine may receive a partial config containing
+        ``ici.profile`` for another command.  Deep-only test-quality work is
+        deliberately tied to ``AnalysisContext.profile`` so that such a
+        standalone call cannot accidentally spend extra subprocess time.
+        """
+
+        return self.analysis_context is not None and self.analysis_context.profile == "deep"
+
+    @staticmethod
+    def _is_quality_target(target: InspectionTarget) -> bool:
+        return target.target_name.startswith("[test-quality]")
+
+    def _quality_config(self) -> dict[str, Any]:
+        """Normalize validated quality settings and fail safe for direct callers."""
+
+        raw = self.get_config("test").get("quality", {})
+        if not isinstance(raw, dict):
+            raw = {}
+
+        enabled = raw.get("enabled", True)
+        if not isinstance(enabled, bool):
+            enabled = True
+
+        # ``repeat_runs`` is the canonical name and means total executions,
+        # including the base run. ``repeat`` is retained as a small compatibility
+        # alias for callers that used the roadmap wording; both are bounded.
+        repeat_value = raw.get("repeat_runs", raw.get("repeat", 1))
+        try:
+            repeat_runs = int(repeat_value)
+        except (TypeError, ValueError, OverflowError):
+            repeat_runs = 1
+        repeat_runs = max(1, min(_MAX_QUALITY_RUNS, repeat_runs))
+
+        try:
+            timeout = float(raw.get("timeout", _QUALITY_TIMEOUT_DEFAULT))
+        except (TypeError, ValueError, OverflowError):
+            timeout = _QUALITY_TIMEOUT_DEFAULT
+        if not math.isfinite(timeout):
+            timeout = _QUALITY_TIMEOUT_DEFAULT
+        timeout = max(0.1, min(3600.0, timeout))
+
+        threshold_value = raw.get(
+            "slow_test_threshold",
+            raw.get("slow_threshold", _QUALITY_SLOW_THRESHOLD_DEFAULT),
+        )
+        try:
+            slow_threshold = float(threshold_value)
+        except (TypeError, ValueError, OverflowError):
+            slow_threshold = _QUALITY_SLOW_THRESHOLD_DEFAULT
+        if not math.isfinite(slow_threshold):
+            slow_threshold = _QUALITY_SLOW_THRESHOLD_DEFAULT
+        slow_threshold = max(0.0, min(86400.0, slow_threshold))
+
+        try:
+            max_slow_tests = int(raw.get("max_slow_tests", _QUALITY_SLOW_TESTS_DEFAULT))
+        except (TypeError, ValueError, OverflowError):
+            max_slow_tests = _QUALITY_SLOW_TESTS_DEFAULT
+        max_slow_tests = max(1, min(_MAX_SLOW_TESTS, max_slow_tests))
+
+        mutation_raw = raw.get("mutation", {})
+        if isinstance(mutation_raw, bool):
+            mutation_enabled = mutation_raw
+            mutation_tool = "auto"
+            mutation_command: list[str] = []
+        elif isinstance(mutation_raw, dict):
+            mutation_enabled = mutation_raw.get("enabled", False)
+            if not isinstance(mutation_enabled, bool):
+                mutation_enabled = False
+            mutation_tool = mutation_raw.get("tool", "auto")
+            if mutation_tool not in {"auto", *_MUTATION_TOOLS}:
+                mutation_tool = "auto"
+            command_value = mutation_raw.get("command", [])
+            mutation_command = (
+                [str(item) for item in command_value]
+                if isinstance(command_value, list)
+                and all(isinstance(item, str) and item for item in command_value)
+                else []
+            )
+        else:
+            mutation_enabled = False
+            mutation_tool = "auto"
+            mutation_command = []
+
+        return {
+            "enabled": enabled,
+            "repeat_runs": repeat_runs,
+            "timeout": timeout,
+            "slow_test_threshold": slow_threshold,
+            "max_slow_tests": max_slow_tests,
+            "mutation_enabled": mutation_enabled,
+            "mutation_tool": mutation_tool,
+            "mutation_command": mutation_command,
+        }
+
+    def _remember_pytest_output(self, result: ProcessResult) -> None:
+        output = result.stdout + ("\n" + result.stderr if result.stderr else "")
+        self._last_pytest_output = output
+        self._last_pytest_outcomes = self._parse_pytest_outcomes(output)
+
+    def _pytest_duration_args(self) -> list[str]:
+        settings = self._quality_config()
+        if (
+            self._deep_profile_selected()
+            and settings["enabled"]
+            and settings["slow_test_threshold"] > 0
+        ):
+            return ["--durations=0"]
+        return []
+
+    def _run_deep_test_quality(
+        self, proj_type: str, targets: list[InspectionTarget]
+    ) -> dict[str, Any]:
+        """Run opt-in, bounded Python quality observations for deep analysis.
+
+        These observations never rewrite the base test counts or coverage
+        measurement.  Optional tool absence is represented in the result
+        payload and a SKIP target, not as a base test error.
+        """
+
+        info = _empty_quality_info()
+        if self.analysis_context is not None:
+            info["profile"] = self.analysis_context.profile
+        if not self._deep_profile_selected() or proj_type not in ("python", "hybrid"):
+            return info
+
+        settings = self._quality_config()
+        if not settings["enabled"] or not self._python_test_attempted:
+            return info
+        info["enabled"] = True
+
+        threshold = float(settings["slow_test_threshold"])
+        max_slow_tests = int(settings["max_slow_tests"])
+        if threshold > 0 and self._last_pytest_output:
+            slow_rows = self._parse_pytest_durations(
+                self._last_pytest_output,
+                self.project_root,
+                threshold=threshold,
+                # The parser itself is bounded; this retains the full policy
+                # inventory while never letting a noisy report grow unbounded.
+                max_items=max_slow_tests,
+            )
+            info["slow_tests_observed"] = len(slow_rows)
+            info["slow_tests"] = len(slow_rows)
+            info["slow_test_inventory"] = [dict(row) for row in slow_rows]
+            for row in slow_rows:
+                targets.append(
+                    InspectionTarget(
+                        file_path=str(row["file_path"]),
+                        start_line=int(row["start_line"]),
+                        target_name=f"[test-quality] Slow test: {row['nodeid']}",
+                        status=EngineStatus.WARN,
+                        message=(
+                            f"pytest {row['phase']} phase took {float(row['duration']):.3f}s "
+                            f"(threshold {threshold:.3f}s)"
+                        ),
+                        metrics={
+                            "duration": float(row["duration"]),
+                            "threshold": threshold,
+                            "phase": str(row["phase"]),
+                        },
+                    )
+                )
+
+        info["repeat_runs"] = 1
+        repeat_runs = int(settings["repeat_runs"])
+        outcome_runs: list[dict[str, str]] = []
+        if self._last_pytest_outcomes:
+            outcome_runs.append(dict(self._last_pytest_outcomes))
+
+        if repeat_runs > 1:
+            for run_number in range(2, repeat_runs + 1):
+                result = self._run_quality_pytest(
+                    run_number,
+                    timeout=float(settings["timeout"]),
+                    include_durations=threshold > 0,
+                )
+                info["repeat_runs"] += 1
+                if result.timed_out:
+                    info["repeat_timeouts"] += 1
+                    targets.append(
+                        InspectionTarget(
+                            file_path="tests",
+                            start_line=1,
+                            target_name=f"[test-quality] Repeat run {run_number}",
+                            status=EngineStatus.WARN,
+                            message="pytest repeat run timed out",
+                            metrics={"run": run_number, "timeout": float(settings["timeout"])},
+                        )
+                    )
+                    continue
+                if result.truncated or result.returncode < 0 or result.returncode not in (0, 1):
+                    info["repeat_unavailable"] += 1
+                    targets.append(
+                        InspectionTarget(
+                            file_path="tests",
+                            start_line=1,
+                            target_name=f"[test-quality] Repeat run {run_number}",
+                            status=EngineStatus.WARN,
+                            message="pytest repeat run did not produce bounded evidence",
+                            metrics={"run": run_number, "returncode": result.returncode},
+                        )
+                    )
+                    continue
+                outcomes = self._parse_pytest_outcomes(
+                    result.stdout + ("\n" + result.stderr if result.stderr else "")
+                )
+                if not outcomes:
+                    info["repeat_unavailable"] += 1
+                    targets.append(
+                        InspectionTarget(
+                            file_path="tests",
+                            start_line=1,
+                            target_name=f"[test-quality] Repeat run {run_number}",
+                            status=EngineStatus.WARN,
+                            message="pytest repeat run had no per-test collection evidence",
+                            metrics={"run": run_number},
+                        )
+                    )
+                    continue
+                outcome_runs.append(outcomes)
+
+        info["repeat_reruns"] = max(0, int(info["repeat_runs"]) - 1)
+
+        if outcome_runs:
+            info["repeat_cases"] = len(set().union(*(run.keys() for run in outcome_runs)))
+        self._append_flaky_targets(outcome_runs, targets, info)
+
+        mutation = self._probe_mutation_capability(
+            settings,
+            targets,
+        )
+        info.update(mutation)
+        self._quality_info = info
+        return info
+
+    def _run_quality_pytest(
+        self,
+        run_number: int,
+        *,
+        timeout: float,
+        include_durations: bool,
+    ) -> ProcessResult:
+        command = [*self._resolve_python(), "-m", "pytest", "-o", "addopts=", "-v"]
+        if include_durations:
+            command.extend(["--durations=0"])
+        command.append("tests")
+        result = run_process(
+            command,
+            cwd=self.project_root,
+            env=self._build_python_test_env(),
+            timeout=timeout,
+            max_output_chars=1_000_000,
+        )
+        self._record_tool(f"pytest repeat {run_number}", command, result)
+        return result
+
+    def _append_flaky_targets(
+        self,
+        outcome_runs: list[dict[str, str]],
+        targets: list[InspectionTarget],
+        info: dict[str, Any],
+    ) -> None:
+        if len(outcome_runs) < 2:
+            return
+        nodes = sorted(set().union(*(run.keys() for run in outcome_runs)))
+        for nodeid in nodes:
+            statuses = [run.get(nodeid, "NOT_COLLECTED") for run in outcome_runs]
+            if len(set(statuses)) == 1:
+                continue
+            file_path, start_line = pytest_node_location(nodeid, self.project_root)
+            info["flaky_tests"] += 1
+            info["flaky_test_inventory"].append(
+                {
+                    "nodeid": nodeid,
+                    "file_path": file_path,
+                    "start_line": start_line,
+                    "statuses": statuses,
+                }
+            )
+            targets.append(
+                InspectionTarget(
+                    file_path=file_path,
+                    start_line=start_line,
+                    target_name=f"[test-quality] Flaky test: {nodeid}",
+                    status=EngineStatus.WARN,
+                    message="pytest verdict changed across bounded repeat runs: "
+                    + ", ".join(f"run {idx + 1}={value}" for idx, value in enumerate(statuses)),
+                    metrics={
+                        "runs": len(statuses),
+                        "statuses": statuses,
+                        "passes": statuses.count("PASSED") + statuses.count("XFAIL"),
+                        "failures": statuses.count("FAILED")
+                        + statuses.count("ERROR")
+                        + statuses.count("XPASS"),
+                    },
+                )
+            )
+
+    def _probe_mutation_capability(
+        self,
+        settings: dict[str, Any],
+        targets: list[InspectionTarget],
+    ) -> dict[str, Any]:
+        result = {
+            "mutation_probes": 0,
+            "mutation_available": 0,
+            "mutation_unavailable": 0,
+            "mutation_status": "disabled",
+        }
+        if not settings["mutation_enabled"]:
+            return result
+
+        result["mutation_probes"] = 1
+        command = list(settings["mutation_command"])
+        tool = str(settings["mutation_tool"])
+        if not command:
+            candidates = _MUTATION_TOOLS if tool == "auto" else (tool,)
+            for candidate in candidates:
+                executable = shutil.which(candidate)
+                if executable:
+                    command = [executable, "--version"]
+                    tool = candidate
+                    break
+
+        if not command:
+            result["mutation_unavailable"] = 1
+            result["mutation_status"] = "unavailable"
+            targets.append(
+                InspectionTarget(
+                    file_path="tests",
+                    start_line=1,
+                    target_name="[test-quality] Mutation capability",
+                    status=EngineStatus.SKIP,
+                    message="No supported mutation tool was found; base test gate unchanged",
+                    metrics={"available": False, "tool": tool},
+                )
+            )
+            return result
+
+        probe = run_process(
+            command,
+            cwd=self.project_root,
+            timeout=float(settings["timeout"]),
+            max_output_chars=8192,
+        )
+        self._record_tool("mutation capability", command, probe)
+        available = probe.returncode == 0 and not probe.timed_out and not probe.truncated
+        if available:
+            result["mutation_available"] = 1
+            result["mutation_status"] = "available"
+            message = f"Mutation tool capability available: {tool}"
+            status = EngineStatus.PASS
+        else:
+            result["mutation_unavailable"] = 1
+            result["mutation_status"] = "unavailable"
+            message = "Mutation capability probe unavailable; base test gate unchanged"
+            status = EngineStatus.SKIP
+        targets.append(
+            InspectionTarget(
+                file_path="tests",
+                start_line=1,
+                target_name="[test-quality] Mutation capability",
+                status=status,
+                message=message,
+                metrics={
+                    "available": available,
+                    "tool": tool,
+                    "returncode": probe.returncode,
+                },
+            )
+        )
+        return result
 
     def _run_project_tests(
         self, proj_type: str, targets: list[InspectionTarget]
@@ -270,7 +707,9 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
     def _build_test_suites(targets: list[InspectionTarget]) -> list[dict]:
         suite_map: dict[str, dict] = {}
         for target in targets:
-            if target.target_name.startswith("Coverage:"):
+            if target.target_name.startswith("Coverage:") or target.target_name.startswith(
+                "[test-quality]"
+            ):
                 continue
             suite = suite_map.setdefault(
                 target.file_path,
@@ -384,7 +823,14 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
 
     def _record_tool(self, name: str, argv: list[str], result) -> None:
         self._tool_evidence.append(
-            ToolEvidence(name=name, path=argv[0], argv=argv, returncode=result.returncode)
+            ToolEvidence(
+                name=name,
+                path=argv[0],
+                argv=argv,
+                returncode=result.returncode,
+                timed_out=bool(getattr(result, "timed_out", False)),
+                truncated=bool(getattr(result, "truncated", False)),
+            )
         )
 
     def _record_tool_error(self, message: str) -> None:
@@ -429,6 +875,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         cov_run_cmd = self._build_coverage_run_cmd(cov_cmd)
         result = run_process(cov_run_cmd, cwd=self.project_root, env=cov_env)
         self._record_tool("coverage pytest", cov_run_cmd, result)
+        self._remember_pytest_output(result)
         if result.timed_out:
             self._record_tool_error("Coverage test run timed out")
             return 0, 0, False
@@ -466,6 +913,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             "-o",
             "addopts=",
             "-v",
+            *self._pytest_duration_args(),
             "tests",
         ]
 
@@ -511,10 +959,12 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             "-o",
             "addopts=",
             "-v",
+            *self._pytest_duration_args(),
             "tests",
         ]
         result = run_process(command, cwd=self.project_root, env=env)
         self._record_tool("pytest", command, result)
+        self._remember_pytest_output(result)
         if result.timed_out:
             self._record_tool_error("Pytest timed out")
             return 0, 0, False
