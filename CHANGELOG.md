@@ -550,6 +550,15 @@
   paths are preserved while the execution-contract parser stays below ici's own critical
   cyclomatic threshold.
 
+- **Wheel-inspection module boundary:** Source-package discovery and untrusted wheel archive
+  inspection now live in separate cache-identified modules. Both modules remain below the hard
+  file-size policy, and the wheel coordinator's cyclomatic complexity falls from 57 to 5 without
+  weakening canonical-path, metadata, RECORD, entry-point, or byte-bound checks.
+
+- **Binary compatibility execution coverage:** Focused engine tests now exercise a manifest-backed
+  ELF success path, allowed non-ELF evidence, and the required-empty-manifest error state in
+  addition to parser and policy rules.
+
 - **Deterministic ZipApp bootstrap entry ordering and acceptance:** The packaging entrypoint
   now delegates to a small `scripts/run_shiv.py` wrapper inside the selected Python 3.10+ helper
   interpreter. The wrapper sorts shiv 1.0.8's private bootstrap resource entries by their archive

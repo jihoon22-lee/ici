@@ -92,6 +92,7 @@ class PythonCompatibilityEngine(BaseEngine):
     CACHE_IMPLEMENTATION_MODULES = (
         "ici.engines._python_compatibility",
         "ici.engines._python_packaging",
+        "ici.engines._python_wheel",
         "ici.engines._python_resource_scopes",
         "ici.engines._source_inputs",
         "ici.engines.python_compat",
