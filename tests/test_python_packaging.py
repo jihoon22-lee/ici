@@ -14,6 +14,7 @@ from ici.engines._python_packaging import (
     PythonPackagingError,
     analyze_python_packaging,
 )
+from ici.engines.python_compat import PythonCompatibilityEngine
 
 
 def _project(root: Path, *, target: str = "demo.cli:main") -> list[Path]:
@@ -189,3 +190,29 @@ def test_distribution_import_mismatch_is_warning_not_failure(tmp_path: Path) -> 
     assert result.failures == 0
     assert result.warnings == 1
     assert result.findings[0].rule_id == "ici.package.import-distribution-mismatch"
+
+
+def test_python_compat_engine_exposes_native_package_findings(tmp_path: Path) -> None:
+    _project(tmp_path, target="demo.cli:missing")
+    config = {
+        "project": {"source_dirs": ["src"]},
+        "engines": {
+            "python_compat": {
+                "enabled": True,
+                "mode": "pass_warn_fail",
+                "required": True,
+                "imports": [],
+                "interpreters": [],
+                "required_interpreters": [],
+                "target_version": "3.10",
+                "wheel_globs": [],
+                "wheel_policy": "allow-native",
+            }
+        },
+    }
+
+    result = PythonCompatibilityEngine(tmp_path, config).run()
+
+    assert result.status.value == "FAIL"
+    assert [finding.rule_id for finding in result.findings] == ["ici.package.entrypoint-missing"]
+    assert result.extra["wheel"]["state"] == "MEASURED"

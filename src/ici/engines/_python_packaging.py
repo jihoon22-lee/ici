@@ -255,7 +255,7 @@ def _module_attribute_exists(path: Path, attribute: str) -> bool:
     return True
 
 
-def _source_findings(package: _ProjectPackage) -> list[Finding]:
+def _source_findings(package: _ProjectPackage, policy: PackagingPolicy) -> list[Finding]:
     findings: list[Finding] = []
     top_level = {name.split(".", 1)[0] for name in package.modules}
     expected = canonicalize_name(package.name).replace("-", "_")
@@ -271,23 +271,24 @@ def _source_findings(package: _ProjectPackage) -> list[Finding]:
                 tool_rule_id="import-distribution-name",
             )
         )
-    for name, value in package.entrypoints:
-        match = _ENTRYPOINT_RE.fullmatch(value.strip())
-        module = match.group("module") if match else ""
-        attribute = match.group("attribute") if match else ""
-        source = package.modules.get(module)
-        if source is not None and _module_attribute_exists(source, attribute):
-            continue
-        findings.append(
-            _finding(
-                "ici.package.entrypoint-missing",
-                "pyproject.toml",
-                _line_for(package.pyproject_text, value),
-                f"Entry point {name!r} target {value!r} does not resolve to a declared callable",
-                severity=FindingSeverity.HIGH,
-                tool_rule_id="entrypoint-target",
+    if policy.check_entrypoints:
+        for name, value in package.entrypoints:
+            match = _ENTRYPOINT_RE.fullmatch(value.strip())
+            module = match.group("module") if match else ""
+            attribute = match.group("attribute") if match else ""
+            source = package.modules.get(module)
+            if source is not None and _module_attribute_exists(source, attribute):
+                continue
+            findings.append(
+                _finding(
+                    "ici.package.entrypoint-missing",
+                    "pyproject.toml",
+                    _line_for(package.pyproject_text, value),
+                    f"Entry point {name!r} target {value!r} does not resolve to a declared callable",
+                    severity=FindingSeverity.HIGH,
+                    tool_rule_id="entrypoint-target",
+                )
             )
-        )
     if not package.modules:
         findings.append(
             _finding(
@@ -527,7 +528,7 @@ def analyze_python_packaging(
 
     canonical_root = root.resolve(strict=True)
     package = _project_package(canonical_root, source_files)
-    findings = _source_findings(package) if policy.check_entrypoints else []
+    findings = _source_findings(package, policy)
     wheels = _wheel_paths(canonical_root, policy)
     if policy.wheel_globs and not wheels:
         if policy.wheel_required:

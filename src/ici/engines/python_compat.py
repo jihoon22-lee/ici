@@ -29,6 +29,11 @@ from ici.engines._python_compatibility import (
     parse_target_version,
     requires_python_allows,
 )
+from ici.engines._python_packaging import (
+    PackagingPolicy,
+    PythonPackagingError,
+    analyze_python_packaging,
+)
 from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
 from ici.engines.base import BaseEngine
 
@@ -85,6 +90,7 @@ class PythonCompatibilityEngine(BaseEngine):
 
     CACHE_IMPLEMENTATION_MODULES = (
         "ici.engines._python_compatibility",
+        "ici.engines._python_packaging",
         "ici.engines._python_resource_scopes",
         "ici.engines._source_inputs",
         "ici.engines.python_compat",
@@ -108,6 +114,14 @@ class PythonCompatibilityEngine(BaseEngine):
         discovered_imports: tuple[str, ...] = ()
         import_names: tuple[str, ...] = ()
         target_version: tuple[int, int] | None = None
+        package_evidence: dict[str, Any] = {
+            "state": "NOT_APPLICABLE",
+            "policy": str(cfg.get("wheel_policy", "allow-native")),
+            "requested": list(cfg.get("wheel_globs", [])),
+            "checked": 0,
+            "findings": [],
+        }
+        package_findings = []
         try:
             inventory = read_analysis_sources(self.project_root, selected)
             metadata = load_python_metadata(self.project_root, selected)
@@ -159,6 +173,28 @@ class PythonCompatibilityEngine(BaseEngine):
                         message="Python syntax-floor and standard-library API scan completed",
                     )
                 )
+            if metadata.pyproject_present:
+                package_analysis = analyze_python_packaging(
+                    self.project_root,
+                    selected,
+                    PackagingPolicy(
+                        wheel_globs=tuple(cfg.get("wheel_globs", [])),
+                        wheel_required=bool(cfg.get("wheel_required", False)),
+                        wheel_policy=str(cfg.get("wheel_policy", "allow-native")),
+                        check_entrypoints=bool(cfg.get("check_entrypoints", True)),
+                        check_package_files=bool(cfg.get("check_package_files", True)),
+                        max_wheels=int(cfg.get("max_wheels", 32)),
+                        max_wheel_members=int(cfg.get("max_wheel_members", 8192)),
+                        max_wheel_uncompressed_bytes=int(
+                            cfg.get("max_wheel_uncompressed_bytes", 64 * 1024 * 1024)
+                        ),
+                    ),
+                )
+                targets.extend(package_analysis.targets)
+                package_findings.extend(package_analysis.findings)
+                failures += package_analysis.failures
+                warnings += package_analysis.warnings
+                package_evidence = package_analysis.metadata
             if not errors:
                 runtime_failures, runtime_warnings = self._check_runtimes(
                     cfg,
@@ -173,6 +209,7 @@ class PythonCompatibilityEngine(BaseEngine):
         except (
             AnalysisSourceError,
             PythonMetadataError,
+            PythonPackagingError,
             OSError,
             RuntimeError,
             ValueError,
@@ -210,7 +247,7 @@ class PythonCompatibilityEngine(BaseEngine):
                 else "Python runtime and source compatibility verified"
             )
             result_evidence = EvidenceState.MEASURED
-        return self.create_result(
+        result = self.create_result(
             name="python_compat",
             status=status,
             summary=summary,
@@ -228,6 +265,7 @@ class PythonCompatibilityEngine(BaseEngine):
                 ),
                 "discovered_imports": list(discovered_imports),
                 "configured_imports": list(import_names),
+                "wheel": package_evidence,
                 "limitations": [
                     "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
                     "Static API rules cover a documented standard-library compatibility inventory",
@@ -238,6 +276,8 @@ class PythonCompatibilityEngine(BaseEngine):
             evidence=result_evidence,
             tool_evidence=evidence,
         )
+        result.findings = package_findings
+        return result
 
     def _not_applicable(self, started: float, cfg: dict[str, Any]) -> EngineResult:
         return self.create_result(
