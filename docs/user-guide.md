@@ -101,6 +101,14 @@ interpreters = []           # empty: current interpreter, required
 required_interpreters = []  # configured entries that must pass
 imports = []                # explicit import-smoke opt-in
 target_version = ""         # empty: infer from requires-python
+wheel_globs = []            # project-relative *.whl paths; inspection is opt-in
+wheel_required = false
+wheel_policy = "allow-native" # allow-native | pure
+check_entrypoints = true
+check_package_files = true
+max_wheels = 32
+max_wheel_members = 8192
+max_wheel_uncompressed_bytes = 67108864
 ```
 
 `interpreters = []`인 기본 경로는 `ici`를 실행 중인 `sys.executable`을 required runtime으로
@@ -124,6 +132,16 @@ Import smoke는 안전한 기본 동작이 아닙니다. 모듈 import가 top-le
 `-VV`·compileall·선택 import 호출의 path/version/argv/return code/timeout/truncation이
 `ToolEvidence`에 남습니다. 외부 interpreter 교체가 결과를 바꿀 수 있으므로 이 engine은 cache
 key/entry를 만들거나 재사용하지 않고 매번 fresh 검사합니다.
+
+`pyproject.toml`이 있으면 package metadata도 정적으로 검사합니다. distribution/import package,
+entry-point의 `module:attribute` target과 package file 목록을 비교하며, pyproject와 wheel 입력 및
+각 wheel에는 PASS/FAIL 위치 target을 남깁니다. `wheel_globs`를 지정한 경우에만 wheel을 읽으며,
+WHEEL/METADATA/RECORD의 존재·identity·완전성과 RECORD의 sha256/sha384/sha512 hash·size를
+검증합니다. symlink/special member, portable-name collision, 누락된 METADATA identity, pyproject와
+불일치하는 wheel `entry_points.txt`는 실패로 닫습니다. entry-point는 bounded AST/read로 callable
+선언 또는 imported symbol을 확인하고 단순 대입을 호출 가능한 함수로 오인하지 않습니다. 손상된
+wheel 구조는 해당 wheel의 `ici.package.wheel-invalid` 실패로 남습니다. package code를 import하거나
+wheel을 build/extract하지 않으며, native extension은 `wheel_policy = "pure"`일 때만 거부합니다.
 
 `dead`와 `dup`의 heuristic source 분석은 동일한 bounded UTF-8 intake를 사용합니다. generated/
 autogen 및 moc 산출물과 vendor/dependency 디렉터리는 소유한 제품 코드가 아니므로 기본 제외하며,
@@ -201,19 +219,22 @@ ici verify --profile standard
 ici verify --profile deep
 ~~~
 
-현재 내장 descriptor 기준으로 선택되는 범위는 다음과 같습니다. 총 descriptor는 16종이며,
-`python_compat`는 fast·standard·deep 모두에서 선택됩니다.
+현재 registry에는 19개 descriptor가 있으며, 기본 정책에서 선택되는 범위는 다음과 같습니다.
+`python_compat`는 fast·standard·deep 모두에서 선택됩니다. `build`, `binary_compat`,
+`integration`은 deep-only opt-in이고 세 엔진을 모두 활성화하면 dependency closure를 포함해
+deep이 19종이 됩니다.
 
 | profile | 선택되는 내장 엔진 | 용도 |
 |---|---|---|
 | `fast` | read-only 엔진 12종(`compile_db` 포함) | 빠른 편집·pre-commit 피드백 |
 | `standard` | 기본 엔진 14종(`compile_db`/`test`/`sanitize` 포함) | 일반 로컬·CI 검증 |
-| `deep` | 내장 엔진 16종(`compile_db`/`cognitive`/`thread_sanitize` 포함) | 가장 넓은 분석 범위 |
+| `deep` | 기본 엔진 16종(`compile_db`/`cognitive`/`thread_sanitize` 포함) | 가장 넓은 기본 분석 범위 |
+| `deep` + release contract opt-in | 최대 19종(`build`/`binary_compat`/`integration` 포함) | 산출물·ABI·혼합 프로세스까지 검증 |
 
 profile은 engine set만 바꿉니다. 예를 들어 line·complexity의 설정 임계값, test의
 coverage 정책 등 동일 rule의 threshold와 판정 의미는 profile에 따라 낮아지거나 높아지지
 않습니다. 프로젝트가 개별 엔진을 `enabled = false`로 명시하면 해당 profile에서도 그 엔진은
-제외됩니다. `test`/`sanitize`/`thread_sanitize`처럼 build session을 소유하는 선택 엔진은 서로
+제외됩니다. `test`/`sanitize`/`thread_sanitize`/`build`/`integration`처럼 build session을 소유하는 선택 엔진은 서로
 겹치지 않도록 직렬화되고, 나머지 read-only 엔진은 내부적으로 최대 4개까지만 병렬 실행됩니다.
 이 제한은 결과의 재현성을 위해 두며 사용자가 worker 수를 조정할 필요는 없습니다.
 
@@ -302,11 +323,11 @@ cache entry는 사용자 로컬 디렉터리 안에서 임시 파일에 쓰고 f
 `cache_hit: true`가 됩니다. `--no-cache`, 초기화 오류 또는 cache miss 결과는 hit가 아니며,
 오래된 v3 archive는 두 필드가 없을 수 있으므로 소비자는 필드 부재를 허용해야 합니다.
 
-`dead` 엔진은 C++ compiler probe가 읽는 external/generated include closure와 compiler binary content가
-cache v3에 완전히 표현되지 않으므로 exact 결과 cache 재사용을 지원하지 않습니다. 따라서 `dead`는
-verify에서 cache key를 만들거나 결과를 저장하지 않고 매번 fresh run을 수행하며, C++/Python hybrid와
-Python-only 실행도 같은 정책을 따릅니다. 이 결과의 `cache_hit`는 `false`, `cache_key`는 `null`로
-직렬화됩니다.
+`dead` 엔진은 C++ compiler probe가 읽는 external/generated include closure와 compiler binary
+content가 cache v3에 완전히 표현되지 않아 결과 cache 재사용을 지원하지 않습니다. `test` 엔진도
+outcome·timing·flaky rerun 같은 실행 시점 관측을 source digest로 재현할 수 없으므로 cache하지
+않습니다. 두 엔진은 verify에서 cache key를 만들거나 결과를 저장하지 않고 매번 fresh run을
+수행합니다. 이 결과의 `cache_hit`는 `false`, `cache_key`는 `null`로 직렬화됩니다.
 
 로컬 검증 snapshot은 다음과 같습니다. 전체 Python 3.10 실행은 935 tests passed였고,
 현재 cache identity/store/orchestrator/CLI/purity targeted 테스트도 통과했습니다. 동일한
@@ -346,11 +367,44 @@ unavailable/incompatible는 `WARN`, required runtime의 unavailable는 `ERROR`/`
 version mismatch·compile/import failure는 `FAIL`입니다. 외부 interpreter를 설정으로 교체할 수
 있어 `python_compat`는 cache key/entry를 만들거나 재사용하지 않고 매번 fresh 검사합니다.
 
+### 2.0.4 Deep 테스트 품질 관측
+
+`test.quality`는 `deep` profile에서 Python 테스트의 실행 품질을 추가로 관측합니다. 기본값은
+기존 test gate를 바꾸지 않는 `report` 모드이며, 반복 실행·slow inventory·flaky verdict·mutation
+도구 capability probe를 명시적으로 bounded하게 설정할 수 있습니다.
+
+```toml
+[engines.test.quality]
+enabled = true
+mode = "report"             # report | warn
+repeat_runs = 1              # 총 실행 횟수, 최대 3
+timeout = 300.0              # quality subprocess별 최대 초
+slow_test_threshold = 1.0    # pytest duration 기준 초
+max_slow_tests = 50
+
+[engines.test.quality.mutation]
+enabled = false              # capability probe만 수행; mutation gate 자체는 만들지 않음
+tool = "auto"               # auto | mutmut | cosmic-ray | mutpy
+```
+
+`repeat_runs`가 1보다 크면 동일한 pytest 수집 집합의 verdict를 비교해 변동한 case를
+`ici.test.flaky-test`로 기록합니다. pytest duration 결과에서 threshold를 넘은 case는
+`ici.test.slow-test`로 기록하며, slow/flaky target과 inventory는 base test target 및 test 수를
+덮어쓰지 않습니다. `mode = "report"`에서는 관측이 보고서에만 반영되고, `mode = "warn"`에서는
+해당 quality warning이 test engine 상태에 영향을 줍니다. mutation 설정은 도구를 실제로
+실행해 변이를 평가하지 않고 capability만 확인하며 기본 test gate를 바꾸지 않습니다. 반복,
+timeout, 출력 및 slow 목록에는 고정 상한이 적용되고, 불완전한 evidence는 PASS로 축약되지
+않습니다. Test runtime 결과와 timing은 analysis cache에서 재사용하지 않으며,
+`slow_tests_observed`는 `max_slow_tests`로 잘라낸 inventory보다 먼저 threshold를 넘은 고유
+행 전체를 셉니다. 비유한·과도하게 긴 duration token은 관측에서 제외됩니다. 정식 config
+loader는 malformed mode/mutation selector를 `ConfigError`로 거부하고, 직접 engine 호출
+경계에서만 report/auto로 안전하게 정규화합니다.
+
 ### 2.1 로컬 전체 검증
 현재 프로젝트 디렉토리에서 선택된 profile의 엔진을 일괄 수행하고 터미널 컬러 대시보드를
-출력합니다. 내장 엔진은 총 16종이며 `fast`는 12종, 기본 `standard` profile은 14종을
-활성화하고,
-`thread_sanitize`는 `deep` profile에서만 선택됩니다.
+출력합니다. registry에는 19개 descriptor가 있고 기본 `fast`/`standard`/`deep`은 각각
+12/14/16종을 선택합니다. `build`/`binary_compat`/`integration`을 명시적으로 켜면 deep
+선택 수가 19종까지 늘어나며, `thread_sanitize`는 deep profile에서만 선택됩니다.
 
 ```bash
 ici verify
@@ -367,6 +421,14 @@ ici verify --report --html verify_report.html --open
   [`src/ici/schemas/ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)입니다.
   프로젝트 언어·Qt 발견 결과와 엔진별 mode/tool/fallback/evidence/confidence를 담은
   `support_matrix`도 함께 저장됩니다. 단독 엔진 리포트에는 그 엔진의 두 언어 행만 들어갑니다.
+- `--sarif <path>`: 같은 canonical finding inventory를 SARIF 2.1.0으로 저장합니다. source-relative
+  위치 URI(공백·유니코드·예약 문자는 percent-encoding), severity, fingerprint, related location, suppression과 baseline 상태를 결정적으로
+  보존하며 100,000 result/10,000 rule 상한을 넘으면 실패합니다.
+- issues가 2,000개를 초과하는 대형 HTML은 초기 50개 row만 server-render하고, 나머지는
+  `ici.html-report/v1` inline JSON을 browser가 50개 단위로 검색·페이지네이션합니다. embedded
+  JSON은 64 MiB에서 fail-closed하며 JSON report의 전체 inventory는 유지됩니다.
+- HTML 파일은 같은 디렉터리의 임시 파일을 flush·`fsync`한 뒤 atomic replace합니다. 기존 출력이
+  symlink이면 referent를 따라 덮어쓰지 않고 symlink directory entry 자체를 완성된 report로 교체합니다.
 
 ### 2.2.0 공유 분석 맥락과 산출물
 
@@ -382,8 +444,10 @@ snapshot, source commit·config digest·toolchain digest, 요청된 `release`/`c
 - `analysis_context`: `ici.analysis-context/v1` — project/source/header/compile 경로는
   project-relative POSIX 경로입니다. project root 자체는 JSON에 넣지 않습니다. `profile`은
   선택 필드이며 engine set 선택 결과만 기록합니다.
-- engine의 `artifact_manifests`: `ici.artifacts/v1` — project/shadow root와 각 artifact의
-  상대 경로 및 전체 provenance를 기록합니다.
+- engine의 `artifact_manifests`: producer metadata가 있는 신규 산출물은 `ici.artifacts/v2`,
+  legacy record는 `ici.artifacts/v1` — project/shadow root, 상대 경로, SHA-256/size/mode와
+  variant/config/toolchain identity를 기록합니다. v2에는 stable artifact `id`, target, redacted
+  producer command를 추가해 build→ABI/integration 소비 경계를 추적합니다.
 
 외부 include/search path처럼 호스트 절대 경로가 섞일 수 있는 값은 `analysis_context` JSON
 projection에서 `-I[external]`로 치환됩니다. HTML의 로컬 editor-link용 absolute path와 기존
@@ -1160,7 +1224,7 @@ Python library는 `project.source_dirs`에 설정된 모든 source directory의 
 경로에서는 `int main(...)` 정의가 정확히 하나인 단순 executable만 허용하며, g++
 timeout·절단·signal·spawn 오류와 rc 0인데 regular binary가 없는 경우는 `ERROR`입니다.
 
-### 2.5 C++ 빌드 경로는 두 가지다
+### 2.5 C++ 빌드 경로는 여러 가지다
 
 `ici`는 **프로젝트 루트**의 빌드 디스크립터를 보고 경로를 고릅니다.
 
@@ -1168,17 +1232,51 @@ timeout·절단·signal·spawn 오류와 rc 0인데 regular binary가 없는 경
 |---|---|
 | `CMakeLists.txt` | CMake로 configure·build하고 CTest로 테스트한다 |
 | `*.pro` | qmake로 configure·build하고 `make check`로 테스트한다 |
+| `Makefile`/`makefile`/`GNUmakefile` + `[build.make].enabled=true` | 설정한 Make direct argv로 configure·build·test한다 |
+| `Makefile` 계열 + Make 설정 비활성화 | backend를 추측하지 않고 명시적 오류로 거부한다 |
+| 루트 디스크립터 없음 | 지원 가능한 source를 generic `g++` 경로로 처리한다 |
 
-네 build 엔진은 각자의 shadow 디렉터리를 씁니다 — `build/ici-<backend>-build`(계측 없음),
-`build/ici-<backend>`(`--coverage`), `build/ici-<backend>-asan`(ASan/UBSan),
-`build/ici-<backend>-tsan`(TSan). 하나를 공유하면 엔진이 돌 때마다 상대의 오브젝트를
-다른 플래그로 다시 빌드하게 됩니다.
+CMake/qmake adapter는 각자의 variant shadow 디렉터리를 씁니다 —
+`build/ici-<backend>-build`(계측 없음), `build/ici-<backend>`(coverage),
+`build/ici-<backend>-asan`(ASan/UBSan), `build/ici-<backend>-tsan`(TSan). configured Make는
+설정한 하나의 `shadow_dir`를 variant 간 공유하므로 `clean_argv`와 각 build command가 실행
+전에 shadow를 정리·재생성해야 합니다. generic g++ 경로는 자체 release output과 임시 test
+경로를 사용합니다.
+
+Make backend는 다음처럼 명령을 명시해야 합니다. `workdir`와 `shadow_dir`는 project root
+안에 있어야 하고, build/test/coverage/sanitize/TSan variant별 direct argv를 독립적으로
+지정할 수 있습니다. `build_argv`는 필수이며, coverage/sanitize/TSan variant의 build 명령은
+해당 override가 없으면 명시적 오류로 거부합니다(variant test 명령은 기본 `test_argv`로
+fallback할 수 있습니다).
+
+```toml
+[build.make]
+enabled = true
+workdir = "."
+shadow_dir = "build/ici-make"
+out_of_tree = "allow"       # allow | required
+configure_argv = []
+build_argv = ["make", "all", "-j", "{jobs}"]
+coverage_build_argv = ["make", "coverage", "-j", "{jobs}"]
+sanitize_build_argv = ["make", "sanitize", "-j", "{jobs}"]
+thread_sanitize_build_argv = ["make", "thread-sanitize", "-j", "{jobs}"]
+test_argv = ["make", "check"]
+clean_argv = ["make", "clean"]
+jobs = 2
+# 위 target 이름은 프로젝트의 실제 Make target으로 바꿉니다. 모든 variant가 이 shadow를
+# 공유하므로 clean/recreate가 각 command에 보장되어야 합니다.
+```
+
+각 명령은 최대 64 token/32 KiB 범위의 shell-free argv여야 하며 `$()`·backtick·`sh -c`와
+같은 shell 실행이나 `{jobs}`를 다른 문자열에 삽입하는 방식은 허용하지 않습니다. Build adapter는
+toolchain 발견을 위해 ici process 환경과 variant 계측 환경을 전달하므로 sandbox가 아닙니다. 재현성
+검증에는 환경이 고정된 CI runner를 사용해야 합니다.
+명령·backend 선택·workdir·shadow 경계는 `ToolEvidence`에 기록되고, 성공한 binary/library는
+producer target과 redacted command provenance를 포함한 `ici.artifacts/v2` manifest가 됩니다.
 
 **정적 링크를 쓰는 프로젝트는 주의가 필요합니다.** `-static`과 `-fsanitize=address`는
 함께 쓸 수 없으므로, 정적 링크를 sanitizer 빌드에서는 끄도록 빌드 정의에 조건을 두어야
 합니다. `viewer/CMakeLists.txt`가 그 예입니다.
-| `Makefile`만 | 어댑터가 없어 거부한다 |
-| 없음 | 모든 소스를 `g++`로 직접 컴파일·링크한다 |
 
 하위 디렉터리의 디스크립터는 보지 않습니다. `src/gui/CMakeLists.txt`만 있는
 프로젝트는 g++ 경로를 씁니다. 둘 다 있으면 CMake를 고르고, **왜 그 백엔드가
@@ -1206,27 +1304,90 @@ Qt를 링크하지 않으며, 정적 배포가 필요하면 `ICIRV_STATIC=ON`을
 
 - **`project.cpp_external_build_dirs`가 무시됩니다.** 이 설정은 "moc가 필요해 ici가
   직접 빌드할 수 없는 소스를 링크 대상에서 뺀다"는 뜻인데, 어댑터 경로에서는 빌드
-  시스템이 moc를 돌리므로 그 전제가 사라집니다. 바이너리를 만드는 세 엔진
-  (`build`·`test`·`sanitize`)이 모두 어댑터를 쓰므로, 빌드 시스템이 빌드한 전부가
-  대상입니다. 디스크립터가 없는 g++ 경로에서는 세 엔진 모두 이 설정을 그대로 따릅니다.
+  시스템이 moc를 돌리므로 그 전제가 사라집니다. 바이너리를 만드는 네 엔진
+  (`build`·`test`·`sanitize`·`thread_sanitize`)이 모두 어댑터를 쓰므로, 빌드 시스템이 빌드한
+  전부가 대상입니다. 디스크립터가 없는 g++ 경로에서는 네 엔진 모두 이 설정을 그대로 따릅니다.
 - **`-std=c++17` 고정이 사라집니다.** C++ 표준을 프로젝트의 빌드 정의가 정합니다.
 - **`Q_OBJECT` 클래스를 단위 테스트할 수 있습니다.** g++ 경로에서는 moc 실행 단계가
   없어 vtable 미해결로 링크에 실패합니다.
 
-커버리지 계측 플래그(`--coverage`)는 어느 경로에서든 `ici`가 주입합니다. 프로젝트가
-커버리지 빌드를 따로 선언할 필요는 없습니다. 어댑터는 프로젝트의 빌드 트리를 건드리지
-않고 `build/ici-cmake` 또는 `build/ici-qmake`에 별도로 빌드합니다.
+커버리지 계측 플래그(`--coverage`)는 CMake/qmake adapter 경로에서 ici가 주입합니다. configured
+Make는 자동 주입하지 않으므로 `coverage_build_argv`를 프로젝트가 선언해야 합니다. CMake/qmake
+adapter는 프로젝트의 빌드 트리를 건드리지 않고 `build/ici-cmake` 또는 `build/ici-qmake`에
+variant별로 별도 빌드합니다. configured Make는 하나의 설정된 shadow를 사용하므로 command가
+clean/recreate를 담당해야 합니다.
 
 이 네 엔진은 같은 `AnalysisContext`의 project/capability snapshot을 읽고, adapter를
 호출할 때 각각 release·coverage·sanitize·thread-sanitize variant를 명시합니다. configure/build/test 중
 변하는 상태는 mutable `BuildSession`에만 남고, 성공한 파일은 이후 엔진이 수정할 수 없는
-frozen `ArtifactManifest`로 발행됩니다. 이 구조로 coverage나 sanitizer 산출물이 release
-shadow를 덮어쓰거나, 리포터가 결과를 표시하는 과정에서 분석 입력을 바꾸는 일을 막습니다.
+frozen `ArtifactManifest`로 발행됩니다. CMake/qmake는 variant별 shadow로 서로의 산출물을
+덮어쓰지 않습니다. configured Make는 pipeline에서 직렬 실행되지만 한 shadow를 공유하므로
+각 command의 clean/recreate 계약이 stale 혼합을 막아야 하며, manifest는 각 실행 시점의
+identity와 digest를 보존합니다.
 
 **두 어댑터 모두 테스트 바이너리 하나를 1건으로 셉니다.** CTest는 원래 그렇고, qmake
 경로는 `make check`가 실행한 명령을 기준으로 세어 같은 단위를 씁니다. QtTest 바이너리가
 낸 함수 단위 결과는 버리지 않고, 실패했을 때 그 바이너리의 실패 메시지에 함수 이름과
-사유로 붙습니다.
+사유로 붙습니다. Make backend의 test 결과도 동일하게 configured `test_argv` transcript를
+기준으로 bounded하게 집계합니다.
+
+### 2.5.1 ELF binary compatibility
+
+`binary_compat`는 `deep`에서만 선택되는 release-contract engine이며 기본 비활성입니다.
+`build`가 현재 실행에서 발행한 manifest 중 `executable`/`shared-library` artifact만 선택해
+`readelf`로 검사합니다. 바이너리를 실행하거나 로드하지 않으므로 runtime 동작 또는 호스트
+배포 성공 자체를 증명하지는 않습니다.
+
+```toml
+[engines.binary_compat]
+enabled = true
+required = true
+expected_class = "ELF64"
+expected_machine = "Advanced Micro Devices X86-64"
+max_glibc = "2.35"
+max_glibcxx = "3.4.30"
+max_cxxabi = "1.3.13"
+forbid_absolute_rpath = true
+forbid_build_paths = true
+forbidden_needed = ["libasan.so"]
+allowed_needed = []
+allow_non_elf = false
+max_artifacts = 64
+```
+
+ELF class/machine, GLIBC·GLIBCXX·CXXABI version 상한, DT_NEEDED, RPATH/RUNPATH, build path
+leak 및 non-ELF 정책을 확인합니다. manifest가 없거나 `readelf` evidence가 불완전하면
+partial PASS가 아니라 `SKIP`/`ERROR`/`NOT_RUN`으로 남고, Python source에는
+`unsupported`입니다.
+
+### 2.5.2 Typed Python/C++ integration contracts
+
+`integration`도 deep-only·기본 비활성이고 현재 run의 build manifest를 소비합니다. 설정한
+각 case는 shell 없이 argv를 실행하며 `{python:id}` 또는 `{artifact:id}` placeholder는 반드시
+하나의 token이어야 합니다. `python_targets`와 상속할 환경변수 이름을 명시한 경우 외에는
+프로세스 환경을 넘기지 않습니다.
+
+```toml
+[engines.integration]
+enabled = true
+required = true
+max_cases = 32
+max_output_bytes = 65536
+python_targets = { current = ".venv/bin/python" }
+cases = [
+  { name = "smoke", argv = ["{artifact:release:shadow:bin/app}"], expected_exit = 0,
+    stdout_contains = ["ready"], stderr_not_contains = ["Traceback"], timeout_seconds = 30.0,
+    required = true },
+]
+```
+
+case는 expected exit code, stdout/stderr contains·not-contains, 0.1~300초 timeout, bounded
+output artifact(프로젝트 내부 regular file·최소 크기)를 검사할 수 있습니다. 최대 32 case와
+64 argv token, 1 KiB~8 MiB output bound를 적용하며 timeout·truncation·unknown/non-whole
+placeholder·symlink output 같은 process/configuration 오류는 partial PASS가 아닌
+`ERROR`/`NOT_RUN`으로 닫습니다. output artifact가 없거나 최소 크기를 충족하지 못한
+assertion은 required case의 `FAIL`, 선택 case의 `WARN`으로 기록합니다. 이 엔진은
+sandbox가 아니며 broad end-to-end behavior 또는 arbitrary shell workflow를 대신하지 않습니다.
 
 #### ThreadSanitizer deep profile
 
@@ -1347,6 +1508,11 @@ QtTest parser는 `-xunitxml`의 각 `<testcase>`에서 skip/xfail/xpass/unknown 
 | `ici dead` | Python 도달 불능/미사용 코드 휴리스틱 및 C++ `-Wunused-function` compiler 증거 | [Dead 엔진 상세](engine-reference.md#27--dead-죽은-코드-및-미사용-심볼) |
 | `ici dup` | 언어별 line-preserving Type-2 lexical normalization과 exact seed/region 확장 기반 Copy-Paste 코드 중복률 산출 | [Dup 엔진 상세](engine-reference.md#28--dup-코드-복제-및-중복률-감지기) |
 | `ici exception` | 예외 삼킴(`except: pass`) 및 소멸자 throw 차단 | [Exception 엔진 상세](engine-reference.md#29-️-exception-예외-처리-안전성-검출기) |
+
+`binary_compat`와 `integration`은 독립 direct command가 아니라 `ici verify --profile deep`의
+release-contract dependency graph에서 실행됩니다. `ici build`는 release artifact producer를
+직접 실행하는 standalone command이며, 세 release-contract 엔진을 verify에서 사용하려면
+해당 설정을 명시적으로 활성화하고 build manifest가 없는 상태를 성공으로 해석하지 않아야 합니다.
 
 모든 검증 단독 명령과 `verify`/`build`는 공통 종료 코드 정책을 사용합니다. `PASS`/`WARN`은
 `0`, `FAIL`/실행 `ERROR`는 `1`, 검증을 수행하지 못한 `SKIP`은 `2`를 반환합니다.

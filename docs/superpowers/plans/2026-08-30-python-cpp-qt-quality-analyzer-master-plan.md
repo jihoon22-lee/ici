@@ -1582,11 +1582,18 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 
 **브랜치:** `feat/python-package-analysis`
 
-- [ ] pyproject metadata, src layout, package discovery와 entry point를 검증한다.
-- [ ] wheel build가 요청된 경우 tag, included files, native extension, direct_url/build trace를 검사한다.
-- [ ] pure-Python 정책과 일반 프로젝트의 native wheel 허용 정책을 분리한다.
-- [ ] import name/distribution name 불일치와 누락 package data를 finding으로 만든다.
+- [x] pyproject metadata, src layout, package discovery와 entry point를 검증한다.
+- [x] configured wheel input을 build/extract하지 않고 tag, included files, native extension과
+  `direct_url.json`/`build-details.json` provenance file의 존재를 관측한다.
+- [x] pure-Python 정책과 일반 프로젝트의 native wheel 허용 정책을 분리한다.
+- [x] import name/distribution name 불일치와 누락 package data를 finding으로 만든다.
 - [ ] envlens와 ici pyz build를 서로 다른 packaging 사례로 사용한다.
+
+2026-09-04 local implementation은 import/build/extract 없이 bounded pyproject/wheel을 읽고,
+WHEEL/METADATA/RECORD identity·tag·package file·entry-point 일치와 RECORD hash/size를 검증한다.
+모든 pyproject/wheel 입력은 PASS/FAIL target을 남기며 손상된 wheel은 해당 경로의
+`ici.package.wheel-invalid`로 닫힌다. 마지막 envlens/ici 실물 교차 검증은 toy candidate
+acceptance와 함께 수행한다.
 
 ---
 
@@ -1617,11 +1624,16 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 
 **브랜치:** `feat/test-quality`
 
-- [ ] test count, pass/fail, collection evidence와 coverage를 계속 분리한다.
-- [ ] retry/repeat를 통한 flaky test 탐지를 opt-in으로 제공한다.
-- [ ] timeout과 slow-test inventory를 제공한다.
+- [x] test count, pass/fail, collection evidence와 coverage를 계속 분리한다.
+- [x] retry/repeat를 통한 flaky test 탐지를 opt-in으로 제공한다.
+- [x] timeout과 slow-test inventory를 제공한다.
 - [ ] Python mutation 도구와 C++ mutation 가능성을 spike하고, 재현 가능한 범위만 deep profile로 채택한다.
-- [ ] mutation unavailable은 기본 test gate를 왜곡하지 않는다.
+- [x] mutation unavailable은 기본 test gate를 왜곡하지 않는다.
+
+Deep quality는 총 실행 3회, slow inventory 1,000개와 subprocess timeout/output 상한을 지키며
+`report`와 `warn`을 분리한다. Runtime outcome·timing은 cache하지 않고, mutation은 현재
+Python 도구 capability probe까지만 제공한다. 실제 mutation score와 C++ mutation 채택 여부는
+아직 미완료이므로 해당 항목은 열린 상태로 둔다.
 
 ---
 
@@ -1631,10 +1643,10 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 
 **브랜치:** `feat/make-adapter`
 
-- [ ] 암묵적으로 임의 target을 추측하지 않고 config에 build/test/clean argv 계약을 둔다.
-- [ ] shadow 또는 out-of-tree 지원 여부를 사전 진단한다.
-- [ ] parallel jobs, coverage/sanitize flag 주입 방식을 명시한다.
-- [ ] build target 0개, test target 0개, ignored failure를 구분한다.
+- [x] 암묵적으로 임의 target을 추측하지 않고 config에 build/test/clean argv 계약을 둔다.
+- [x] shadow 또는 out-of-tree 지원 여부를 사전 진단한다.
+- [x] parallel jobs, coverage/sanitize flag 주입 방식을 명시한다.
+- [x] build target 0개, test target 0개, ignored failure를 구분한다.
 - [ ] abilens의 실제 Makefile로 build/test/sanitize/coverage를 검증한다.
 
 ### I7-2. artifact manifest
@@ -1642,16 +1654,21 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 **브랜치:** `feat/artifact-manifest`
 
 - [ ] executable, shared/static library, Python wheel, report artifact를 typed record로 남긴다.
-- [ ] hash, size, mode, producing target/command와 build variant를 기록한다.
+- [x] hash, size, mode, producing target/command와 build variant를 기록한다.
 - [ ] artifact glob이 빈 결과거나 project 밖으로 나가면 ERROR로 처리한다.
-- [ ] downstream binary/integration engine은 manifest만 소비한다.
+- [x] downstream binary/integration engine은 manifest만 소비한다.
+
+현재 v2 manifest는 executable/shared/static library에 stable id, filename-derived target label,
+redacted producer argv와 build identity를 기록하고 v1 reader 호환성을 유지한다. Python wheel과
+report artifact의 typed producer, configurable artifact glob 계약은 아직 남아 있으므로 첫째와
+셋째 항목은 닫지 않는다.
 
 ### I7-3. binary compatibility
 
 **브랜치:** `feat/binary-compatibility`
 
-- [ ] ELF class, machine, NEEDED, RPATH/RUNPATH를 readelf/objdump evidence로 읽는다.
-- [ ] GLIBC, GLIBCXX, CXXABI maximum required version을 계산한다.
+- [x] ELF class, machine, NEEDED, RPATH/RUNPATH를 `readelf` evidence로 읽는다.
+- [x] GLIBC, GLIBCXX, CXXABI maximum required version을 계산한다.
 - [ ] static requirement, forbidden dependency/path와 configured floor를 정책화한다.
 - [ ] stripped/malformed/non-ELF를 구분한다.
 - [ ] abilens의 executable/shared library와 viewer static CLI를 실측한다.
@@ -1660,10 +1677,10 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 
 **브랜치:** `feat/hybrid-integration`
 
-- [ ] shell 없는 argv case와 typed placeholder를 제공한다.
-- [ ] Python interpreter와 artifact id를 manifest에서 안전하게 해석한다.
-- [ ] stdout/stderr substring, exit code, timeout, output artifact assertion을 지원한다.
-- [ ] 빈 required case, unknown placeholder, missing artifact를 config ERROR로 처리한다.
+- [x] shell 없는 argv case와 typed placeholder를 제공한다.
+- [x] Python interpreter와 artifact id를 manifest에서 안전하게 해석한다.
+- [x] stdout/stderr substring, exit code, timeout, output artifact assertion을 지원한다.
+- [x] 빈 required case, unknown placeholder, missing artifact를 config ERROR로 처리한다.
 - [ ] buildscope의 Python analyzer → C++/Qt consumer E2E를 검증한다.
 
 ---
@@ -1677,7 +1694,12 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 - [ ] 모든 reporter가 v3 finding, related location, confidence, suppression, delta를 보존하는지 contract test를 만든다.
 - [ ] SARIF 2.1.0 export를 추가하고 rule/result/location/fix mapping을 검증한다.
 - [ ] GitHub annotation은 new/high-priority finding만 제한적으로 발행한다.
-- [ ] HTML은 full inventory를 검색/필터할 수 있지만 초기 DOM 크기를 제한한다.
+- [x] HTML은 full inventory를 검색/필터할 수 있지만 초기 DOM 크기를 제한한다.
+
+SARIF 2.1.0의 deterministic rule/result/location, suppression, duplicate occurrence와 baseline
+location mapping은 구현됐지만 source fix model은 아직 없으므로 SARIF 전체 항목은 닫지 않는다.
+HTML은 2,000 actionable finding 초과 시 초기 50행과 bounded inline inventory를 사용하며
+100,000 finding 회귀 fixture를 통과한다. 실제 browser startup/memory benchmark는 I8-4에 남는다.
 
 ### I8-2. viewer report diff
 

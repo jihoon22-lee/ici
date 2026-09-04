@@ -4,11 +4,11 @@
 
 ---
 
-`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 16종 검증 엔진을 제공합니다.
-`fast` profile은 12종, `standard` profile은 14종(`line/lint/compile_db/test/type/python_compat/resource/security/cycle/complexity/sanitize/dead/dup/exception`)을
-선택하고, `deep` profile은 여기에 `cognitive`와 C++ 전용 `thread_sanitize`를 더한 16종을
-선택합니다.
-`thread_sanitize`는 deep-only이며 Python에서는 unsupported입니다.
+`ici`는 소프트웨어 공학적 품질과 보안을 보장하기 위해 19개 engine descriptor를 제공합니다.
+기본 정책에서 `fast` profile은 12종, `standard` profile은 14종, `deep` profile은 16종을
+선택합니다. `build`, `binary_compat`, `integration`은 비용·산출물·프로세스 경계가 큰
+deep-only opt-in descriptor이며, 세 엔진을 모두 활성화하면 deep dependency closure는 19종이
+됩니다. `thread_sanitize`는 deep-only이며 Python에서는 unsupported입니다.
 
 ---
 
@@ -111,6 +111,14 @@ interpreters = []           # empty: current ici interpreter, treated as require
 required_interpreters = []  # subset of interpreters; these entries must pass
 imports = []                # explicit smoke-import opt-in; top-level code executes
 target_version = ""         # empty: infer earliest minor allowed by requires-python
+wheel_globs = []             # project-relative *.whl paths; empty means no wheel scan
+wheel_required = false
+wheel_policy = "allow-native" # allow-native | pure
+check_entrypoints = true
+check_package_files = true
+max_wheels = 32
+max_wheel_members = 8192
+max_wheel_uncompressed_bytes = 67108864
 
 [engines.complexity]
 enabled = true
@@ -135,6 +143,51 @@ fail_pct = 15.0
 python_semantic = "auto"   # auto | required | off (bounded Python 3.10 AST-shape clones)
 include_generated = false
 include_vendor = false
+
+[build.make]
+enabled = false
+workdir = "."
+shadow_dir = "build/ici-make"
+out_of_tree = "allow"       # allow | required
+configure_argv = []          # optional direct argv; no shell
+build_argv = []              # required when enabled
+test_argv = []
+clean_argv = []
+jobs = 1
+# coverage_*, sanitize_*, thread_sanitize_*_argv may override build/test per variant.
+# configured Make variants share this shadow_dir; commands must clean/recreate it.
+# CMake/qmake adapters use separate variant shadows.
+
+[engines.build]
+enabled = false              # deep-only; enables the release artifact producer
+mode = "pass_warn_fail"
+required = false
+
+[engines.binary_compat]
+enabled = false              # deep-only; consumes build artifact manifests
+mode = "pass_warn_fail"
+required = false
+artifacts = []               # manifest id or project-relative path; empty = binaries only
+expected_class = ""
+expected_machine = ""
+max_glibc = ""
+max_glibcxx = ""
+max_cxxabi = ""
+forbid_absolute_rpath = true
+forbidden_needed = []
+allowed_needed = []
+forbid_build_paths = true
+allow_non_elf = false
+max_artifacts = 64
+
+[engines.integration]
+enabled = false              # deep-only; consumes the current build manifest
+mode = "pass_warn_fail"
+required = false
+max_cases = 32
+max_output_bytes = 65536
+python_targets = {}          # name = executable path
+cases = []                   # typed shell-free process cases; see §2.18
 ```
 
 `python_compat`의 `required`는 engine-level gate 정책이고, runtime entry의 required/optional
@@ -169,6 +222,26 @@ location을 사용하지만, 이 engine이 프로그램의 모든 runtime behavi
 증명하는 것은 아닙니다. configured external interpreter는 현재 process·toolchain과 독립적으로
 교체될 수 있으므로 `python_compat`는 cache key/entry를 만들거나 재사용하지 않고 매 실행 fresh
 검사를 수행합니다.
+
+`pyproject.toml`이 있으면 package contract도 이 engine의 정적 단계에서 점검합니다. distribution
+name과 import package top-level, `project.scripts`/`gui-scripts`/entry-points의
+`module:attribute` target, discovered package files를 비교하며 project code를 import하거나
+wheel을 생성하지 않습니다. `wheel_globs`가 비어 있으면 wheel 입력은 의도적으로 검사하지
+않습니다. 지정된 wheel은 project-relative regular file만 받으며, bounded ZIP member 수와
+uncompressed bytes 안에서 WHEEL/METADATA/RECORD의 존재·중복·안전한 경로·완전성,
+filename/metadata/version·name·tag identity를 검증합니다. `wheel_policy = "pure"`이면
+`.so`/`.pyd` 등 native member를 거부하고, `allow-native`는 이를 관측 정보로 남깁니다.
+package metadata와 각 wheel 및 입력 경계에는 PASS/FAIL 위치 target이 남습니다. RECORD의
+sha256/sha384/sha512 hash와 declared size를 실제 member에 대조하고 symlink/special member와
+portable-name collision을 거부합니다.
+`direct_url.json`/`build-details.json`은 provenance metadata로 기록할 수 있지만 결과를
+승인하는 근거로 확대하지 않습니다. wheel `entry_points.txt`와 pyproject의 exact identity,
+METADATA identity, bounded entry-point AST를 확인하며 callable 선언 또는 imported symbol은
+인정하지만 단순 assignment는 callable로 간주하지 않습니다. 손상되거나 제한을 넘은 wheel은
+해당 wheel 경로의 `ici.package.wheel-invalid` failure, optional missing wheel과 entry-point target
+누락·package discovery 불일치는 위치 있는 package finding으로 남습니다. unsafe glob이나
+required wheel 부재처럼 검사를 시작할 수 없는 입력 경계는 partial PASS 대신
+`ERROR`/`NOT_RUN`으로 닫힙니다.
 
 `dead`와 `dup`는 같은 bounded source intake 정책을 공유합니다. 생성물·moc와 vendor/dependency
 경로는 기본적으로 소유한 분석 범위에서 제외하며, 프로젝트별로 필요한 경우 엔진마다 독립적으로
@@ -339,6 +412,31 @@ cross-producer merge에는 다음 조건이 모두 필요합니다.
 그대로 보존합니다. 따라서 console의 cap, Markdown의 bounded table, HTML의 전체 display
 projection은 모두 원본 inventory의 개수와 baseline 비교 결과를 바꾸지 않습니다.
 
+### 1.3.3 SARIF 출력 (`--sarif`)
+
+`ici verify --sarif <path>`는 JSON·Markdown·HTML과 동일한 canonical v3 finding projection을
+결정적 SARIF 2.1.0 문서로 저장합니다. `ruleId`, severity level, source-relative URI(공백·유니코드·예약
+문자는 percent-encoding)와
+1-indexed region, `ici/v3` fingerprint, related locations, suppression 및 baseline
+`new`/`unchanged`/`updated`/`absent` 상태를 SARIF 표준 필드와 run properties에 매핑합니다.
+동일 suite를 다시 직렬화해도 rule/result 순서와 JSON key order가 달라지지 않습니다.
+
+```bash
+ici verify --report --sarif build/ici-results.sarif
+```
+
+SARIF는 결과를 reporter 전용으로 재분석하지 않으며, `--report`를 함께 요청한 경우 JSON
+`ici.result/v3`가 원본 inventory의 완전한 보관본입니다. `--sarif`만 사용하면 별도 JSON 파일은
+생성되지 않지만 SARIF는 canonical projection을 그대로 담습니다. 결과는 최대 100,000개,
+rule은 최대 10,000개까지이며 상한을 넘으면 조용히 잘라내지 않고 bounded serialization error로
+종료합니다. SARIF schema URL은 문서의 `$schema` field에 기록되며, credential redaction은 다른
+reporter와 같은 경계를 사용합니다.
+
+대형 issues HTML도 동일한 canonical inventory를 사용합니다. actionable finding이 2,000개를
+초과하면 server-side initial view는 50개 row로 제한되고, 나머지는 `ici.html-report/v1`
+inline JSON에서 browser가 50개 단위로 검색·페이지네이션합니다. embedded JSON이 64 MiB를
+초과하면 partial report 대신 serialization error를 반환합니다.
+
 ### 1.4 엔진 지원·기능 매트릭스
 
 아래 표는 설명용으로 손으로 관리하지 않습니다. `ici.core.support`의 실행 가능한 선언에서
@@ -367,6 +465,9 @@ Qt 의미 분석을 뜻하지 않고, 해당 C++ 경로가 Qt 프로젝트 소�
 | `dead` | heuristic | tool-backed (Qt) |
 | `dup` | heuristic | heuristic (Qt) |
 | `exception` | heuristic | heuristic (Qt) |
+| `build` | tool-backed | tool-backed (Qt) |
+| `binary_compat` | unsupported | tool-backed (Qt) |
+| `integration` | tool-backed | tool-backed (Qt) |
 <!-- ici:support-matrix:end -->
 
 표의 mode는 다음 뜻입니다.
@@ -677,6 +778,41 @@ evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트�
   - 이 저장소 dogfood 정책은 2026-08-31 기준 TEM $\ge 4.5$, Branch $\ge 70\%$, Function $\ge 90\%$ floor를 사용하며, 세 번 연속 실측과 변동 여유를 둔 ratchet 조건은 위 정책 설명과 기준선 파일에 기록
   - 실측 커버리지가 있는 경우 Branch Coverage는 실측값(coverage.py/gcov)으로 대체됨
   - 커버리지 80% 미만 모듈은 `Coverage:Module` WARN 타깃으로 Issues 탭/PR 어노테이션에 노출
+
+#### Deep test quality observations
+
+`[engines.test.quality]`는 `deep` profile의 Python test run에만 적용되는 추가 관측 계층입니다.
+기본 `enabled = true`, `mode = "report"`, `repeat_runs = 1`, timeout 300초,
+`slow_test_threshold = 1.0`, `max_slow_tests = 50`이며, 기존 base test 결과·coverage·TEM
+계산과 분리됩니다.
+
+```toml
+[engines.test.quality]
+enabled = true
+mode = "report"             # report | warn
+repeat_runs = 2              # total runs, maximum 3
+timeout = 300.0
+slow_test_threshold = 1.0
+max_slow_tests = 50
+
+[engines.test.quality.mutation]
+enabled = false              # capability probe only
+tool = "auto"               # auto | mutmut | cosmic-ray | mutpy
+```
+
+pytest의 duration 출력에서 threshold를 넘은 case는 `ici.test.slow-test` finding과
+`slow_test_inventory`로 기록합니다. `repeat_runs`가 1보다 크면 동일한 수집 집합의 실행
+verdict를 비교하고 변동 case를 `ici.test.flaky-test` 및 `flaky_test_inventory`로 기록합니다.
+각 관측은 위치 있는 `[test-quality]` target으로 남지만 base test의 `total_tests`를 다시 세거나
+덮어쓰지 않습니다. `mode = "report"`는 관측만 추가하고, `mode = "warn"`에서는 quality
+warning이 test engine 상태에 반영됩니다. mutation은 실제 변이를 실행하지 않고 선택 도구의
+capability만 probe하며 base test gate를 대체하지 않습니다. 반복 횟수(최대 3), timeout, slow
+목록과 process output에는 설정 및 내부 bound가 적용되고 timeout/truncation/incomplete
+evidence는 PASS로 축약되지 않습니다. Runtime test 결과와 timing은 analysis cache에서 재사용하지
+않으며, `slow_tests_observed`는 `max_slow_tests`로 보관 목록을 제한하기 전에 threshold를 넘은
+고유 행 전체를 셉니다. 비유한·과도하게 긴 duration token은 관측에서 제외되고, 비정상적인
+mode/mutation selector 입력은 안전한 report/auto capability 경로로 닫혀 base gate를 넓히지
+않습니다.
 
 ### 2.4 🏷️ `type` (정적 타입 안정성 검사기)
 - **Python**: `mypy`의 정상 성공 문법과 위치가 있는 `error`/`note` 진단을 엄격히 파싱합니다.
@@ -1172,6 +1308,78 @@ argument characters, discarded section 16,384개, tool-output cap 4 MiB, 전체 
 - **cache**: configured external interpreter는 현재 process와 독립적으로 교체될 수 있어
   일반 cache key만으로 capability를 고정할 수 없습니다. `python_compat`는 cache key/entry를
   만들거나 재사용하지 않고 매번 fresh run을 수행합니다.
+
+### 2.16 🧰 `build` (release artifact producer)
+
+- **profile과 역할**: `build`는 `deep`에서만 선택되는 release build owner이며 기본값은
+  `enabled = false`입니다. `CMakeLists.txt`는 CMake, 루트 `*.pro`는 qmake, 루트
+  `Makefile`/`makefile`/`GNUmakefile`은 `[build.make].enabled = true`일 때만 configured Make,
+  빌드 descriptor가 없으면 기존 generic `g++` 경로를 사용합니다. backend 선택 이유와 실제
+  명령은 `ToolEvidence`에 남습니다.
+- **Make 계약**: `workdir`·`shadow_dir`는 project root 안의 POSIX 경로이고, `build_argv`는
+  필수 direct argv입니다. `configure_argv`, `clean_argv`, `test_argv`와
+  `coverage_*`/`sanitize_*`/`thread_sanitize_*` variant override를 독립적으로 지정할 수
+  있습니다. 각 명령은 최대 64 token·token당 1,024자·aggregate 32 KiB, `jobs` 1~64 범위이며
+  shell executable/`-c`, `$()`·backtick, unknown placeholder와 `{jobs}` partial embedding을
+  거부합니다. 명령 실행은 shell 없이 bounded process runner를 사용하지만 toolchain 발견을 위해
+  ici process 환경과 variant 계측 환경을 전달하므로 sandbox는 아닙니다. configured Make는
+  모든 variant가 하나의 `shadow_dir`를 공유하므로 `clean_argv`와 각 variant build command가
+  실행 전에 shadow를 정리·재생성해야 합니다. CMake/qmake adapter는 variant별 별도 shadow를
+  사용합니다.
+- **산출물과 격리**: CMake/qmake의 Release/coverage/sanitize/TSan은 서로 다른 shadow를 사용하고,
+  configured Make는 설정된 하나의 shadow에서 serial하게 실행하며 command가 clean/recreate를
+  책임집니다. build
+  상태는 mutable session에만 기록합니다. 성공한 executable/shared/static library는
+  project-relative path, scope, SHA-256, size, mode, variant/config/toolchain identity와
+  producer를 가진 frozen `ArtifactManifest`로 발행합니다. producer metadata가 있는 manifest는
+  `ici.artifacts/v2`로 `id`, target, redacted command provenance를 추가하고 metadata가 없는
+  legacy record는 `ici.artifacts/v1`로 유지합니다.
+- **경계**: manifest는 release를 publish하거나 배포 가능성을 보증하지 않습니다. output이
+  없거나 adapter command/manifest가 실패하면 partial artifact와 PASS를 남기지 않고 원인에
+  따라 `FAIL` 또는 `ERROR`/`NOT_RUN`으로 닫습니다. `binary_compat`와 `integration`은 이
+  engine의 현재 run manifest를 dependency로 소비합니다. Discovery는 최대 200,000 tree entry와
+  512 artifact record로 제한하고, artifact 하나는 512 MiB, manifest 합계는 1 GiB를 넘을 수
+  없습니다. 확장자만 binary로 인정하지 않으며 linked binary/archive magic을 함께 확인합니다.
+
+### 2.17 🔗 `binary_compat` (ELF/ABI deployment policy)
+
+- **profile과 입력**: `deep` 전용·기본 비활성이며 `build`에 의존합니다. `artifacts`를 명시한
+  경우 id/path로 선택한 manifest record(정적 library 포함)를 검사하고, 비어 있으면 manifest의
+  `executable`/`shared-library` record만 검사합니다. 다른 파일을 발견해 임의로 추가하지 않으며
+  Python row는 `unsupported`입니다.
+- **정적 검사**: `readelf`를 실행해 ELF class/machine, DT_NEEDED, RPATH/RUNPATH, GLIBC·
+  GLIBCXX·CXXABI 최대 버전과 build-path leak를 확인합니다. `expected_class`/
+  `expected_machine`, `max_glibc`/`max_glibcxx`/`max_cxxabi`, `forbidden_needed`/
+  `allowed_needed`, `forbid_absolute_rpath`, `forbid_build_paths`, `allow_non_elf` 정책으로
+  허용 범위를 명시할 수 있습니다. 바이너리를 실행·load하지 않으므로 ABI 정책과 실제 loader
+  환경의 모든 동작을 증명하는 검사는 아닙니다.
+- **상한과 상태**: 최대 64 artifact, artifact당 bounded `readelf` output만 허용합니다.
+  manifest/파일이 없으면 optional은 명시적 `SKIP`, required는 `ERROR`/`NOT_RUN`이며,
+  `readelf` capability·출력이 불완전하면 분석 오류로 `ERROR`/`NOT_RUN`을 남깁니다
+  (선택 엔진의 suite gate 영향은 `required` 정책으로 결정됩니다). 비호환 ELF는 위치 있는
+  `FAIL` finding입니다.
+  non-ELF는 `allow_non_elf = true`일 때만 명시적 `SKIP`입니다.
+
+### 2.18 🔄 `integration` (typed Python/C++ process contract)
+
+- **profile과 입력**: `deep` 전용·기본 비활성이고 `build` manifest와 현재
+  `AnalysisContext`를 소비합니다. `python_targets`의 executable과 manifest artifact는 실행
+  직전에 resolve·containment를 확인하며, 같은 key가 다른 path를 가리키면 거부합니다.
+- **typed shell-free argv**: case는 최대 32개이며 argv는 최대 64 token입니다. 첫 token을
+  포함한 `{python:id}` 또는 `{artifact:id}` placeholder는 반드시 whole token이어야 하고,
+  unknown/partial placeholder와 shell wrapper는 거부합니다. 환경은 기본적으로 비우며
+  `inherit_env` 이름과 명시적 `env` map만 전달합니다.
+- **assertions와 안전 경계**: expected exit code, stdout/stderr contains·not-contains,
+  0.1~300초 timeout, 1 KiB~8 MiB bounded output, project-contained regular output artifact의
+  최소 크기를 검사합니다. stale output은 실행 전에 regular file인지 확인한 뒤 제거하고,
+  symlink·directory·project 밖 경로는 거부합니다. timeout·truncation·negative signal과
+  unknown/non-whole placeholder 같은 process/configuration 오류는 partial PASS가 아닌
+  `ERROR`/`NOT_RUN`입니다. output artifact가 없거나 최소 크기를 충족하지 못한 assertion은
+  required case의 `FAIL` 또는 optional case의 `WARN`으로 기록됩니다.
+- **판정과 한계**: required case 실패는 `ici.hybrid.process-contract` high finding,
+  optional case 실패는 medium warning으로 보존하고 case별 process evidence/assertion을
+  report에 남깁니다. 이 엔진은 sandbox가 아니며 broad end-to-end behavior, arbitrary shell
+  workflow 또는 모든 운영 환경의 호환성을 주장하지 않습니다.
 
 ---
 

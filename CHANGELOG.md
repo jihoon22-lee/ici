@@ -15,6 +15,40 @@
   errors. This fixes a stable `0.10.2` interoperability defect without changing the version or
   authorizing a release.
 
+- **Unreleased analysis-platform contracts:** The deep profile now has opt-in `build`,
+  `binary_compat`, and `integration` descriptors. Configured root Make projects use bounded,
+  shell-free direct argv and variant-specific plans; successful outputs carry `ici.artifacts/v2`
+  provenance (`id`, target, redacted producer command, digest, size, mode, and build identity),
+  while legacy manifests remain readable as v1. The checked-in v3 JSON Schema now accepts and
+  distinguishes both record versions. Artifact discovery and hashing have explicit entry/count,
+  per-file, and aggregate byte ceilings, and suffix-shaped text files or object intermediates are
+  not counted as linked outputs. `binary_compat` consumes only manifest-declared
+  executable/shared-library artifacts by default (or explicitly selected manifest records) and
+  inspects ELF/ABI, loader paths, dependencies, and build path leaks with `readelf` without executing
+  binaries. `integration` runs typed whole-token
+  `{python:id}`/`{artifact:id}` process cases with bounded output, timeout, environment, and output
+  artifact assertions. These contracts are implemented on the feature branch, remain opt-in, and
+  do not change stable version `0.10.2` or authorize a release.
+
+- **Test quality and report scalability (unreleased):** Deep Python test runs can optionally record
+  bounded slow-test inventory and repeat-run flaky verdicts as native `ici.test.slow-test` and
+  `ici.test.flaky-test` findings. `quality.mode = "report"` is informational; `"warn"` feeds the
+  quality warning into the test engine policy. Runtime test outcomes and timings are never reused
+  from the analysis cache; `slow_tests_observed` counts all unique threshold-matching rows before
+  the capped inventory is retained, while non-finite or overlong duration tokens are excluded from
+  observation. Repeat mode records unavailable evidence and suppresses flaky claims when the base
+  run has no per-test outcomes. Mutation configuration is capability-only. The validated config loader rejects
+  malformed mode/tool values; direct engine callers normalize them safely without replacing the
+  base test gate. `ici verify --sarif <path>` now emits deterministic SARIF 2.1.0
+  from the canonical finding projection with bounded rule/result counts, occurrence-safe duplicate
+  baseline matching, moved-from locations, and percent-encoded source URIs. HTML files are published
+  by fsynced same-directory atomic replacement so an existing output symlink is replaced rather than
+  followed. HTML reports with more than
+  2,000 actionable findings server-render 50 rows and hydrate the remaining pages from bounded
+  inline `ici.html-report/v1` JSON; when `--report` is also requested, the complete inventory remains
+  in `ici.result/v3` (SARIF-only runs do not create a separate JSON file). No version
+  bump or release is implied; final CI/toy-project acceptance remains separate.
+
 - **Flow-sensitive Python resource ownership rules (unreleased language-analysis bundle):**
   Replaced the former unconditional `open()` warning with bounded, intraprocedural AST flow that
   distinguishes context managers, direct `close()`/`aclose()`, aliases, branch exits,
@@ -52,9 +86,11 @@
   This remains part of the consolidated language-analysis work and does not change version
   `0.10.2` or authorize a release.
 - **Configured Python runtime compatibility checks (unreleased language-analysis bundle):** Added
-  the `python_compat` engine to all profiles, bringing the built-in inventory to 16 engines:
-  fast 12, standard 14, and deep 16. With `interpreters = []`, the interpreter currently running
-  ici is checked as a required runtime; configured entries are optional unless repeated in
+  the `python_compat` engine to all profiles; the registry now contains 19 descriptors while the
+  default profile selections remain fast 12, standard 14, and deep 16. Enabling the deep-only
+  `build`, `binary_compat`, and `integration` release-contract engines brings deep to 19. With
+  `interpreters = []`, the interpreter currently running ici is checked as a required runtime;
+  configured entries are optional unless repeated in
   `required_interpreters`. Each resolved executable is invoked directly with `-VV` and
   `python -B -m compileall -q -f`, while import smoke is an explicit `imports` opt-in because importing
   a module executes its top-level code. The engine validates PEP 440 `project.requires-python`,
@@ -64,7 +100,17 @@
   incompatibilities fail required entries. Because an external configured interpreter can be
   replaced independently of ici's current process, this engine deliberately disables result cache
   key creation and reuse. The feature candidate passed EnvLens compatibility checks when invoked by
-  Python 3.10.21 and Python 3.14.7. This remains unreleased and does not change version `0.10.2`.
+  Python 3.10.21 and Python 3.14.7. Package metadata and optional wheels are inspected without
+  import/build: pyproject and each wheel retain PASS/FAIL targets, wheel filename/METADATA/WHEEL/
+  RECORD identity and completeness are checked, RECORD sha256/sha384/sha512 hashes and sizes are
+  verified, and symlink/special members, portable-name collisions, missing METADATA identity, and
+  mismatched wheel entry points fail closed. Entry-point resolution uses bounded AST/read, accepts
+  callable declarations or imported symbols, and does not treat plain assignments as callables.
+  Non-canonical member paths, file/directory aliases, non-empty directory records, mismatched or
+  multiple `.dist-info` roots, and duplicate singleton metadata headers are rejected. Malformed
+  wheel structure becomes a located `ici.package.wheel-invalid` failure instead of losing the
+  offending path in an engine-wide error. This remains unreleased and does not change version
+  `0.10.2`.
 - **Conservative canonical Python issue display (unreleased language-analysis bundle):** Console,
   HTML, and Markdown now share a display-only canonical rule projection for reviewed overlapping
   Python rule families. Cross-producer grouping requires the same canonical project-relative path,
@@ -106,6 +152,14 @@
   analysis. Canonical field encoding is split into typed helpers so Python 3.10 mypy and ici's
   self-complexity gate cover the shipped path. The feature keeps version `0.10.2` and authorizes
   no release.
+- **Candidate Quality Zoo open-PR revision mode:** The manual candidate consumer can now validate
+  an exact open same-repository toy-projects PR head before checking out its Quality Zoo
+  expectations. It keeps `main` as the backward-compatible default, while PR mode requires the
+  exact number and SHA, an unmerged open state, `main` as the base branch, and matching canonical
+  base/head repository names and IDs; fork heads are rejected. The trusted audit helper is checked
+  out separately, the exact accepted toy revision is retained as bounded machine-readable evidence,
+  and candidate preflight/execution remain credential-free. No version bump or
+  release is implied; ici remains at `v0.10.2`.
 - **Candidate Quality Zoo manifest selection:** The read-only candidate consumer now prefers a
   checked-out `quality-zoo/candidate-manifest.json` when the exact toy-projects revision provides
   one, and falls back to the stable `manifest.json` only when the candidate manifest is absent.
