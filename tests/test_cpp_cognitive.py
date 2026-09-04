@@ -137,6 +137,68 @@ def test_try_catch_and_labelled_controls_are_not_swallowed() -> None:
     assert metric.unbraced_controls == 2
 
 
+def test_control_attributes_preserve_the_following_statement_shape() -> None:
+    metric = cpp_cognitive_metric(
+        "{ if (ready) [[likely]] { if (nested) [[unlikely]] { work(); } } }"
+    )
+
+    assert metric.cognitive == 3
+    assert metric.max_nesting == 2
+    assert metric.unbraced_controls == 0
+
+
+def test_function_try_block_is_a_valid_function_region(tmp_path: Path) -> None:
+    source = tmp_path / "src" / "guarded.cpp"
+    source.parent.mkdir()
+    source.write_text(
+        "int guarded(bool ready) try {\n"
+        "    if (ready) return 1;\n"
+        "    return 0;\n"
+        "} catch (...) {\n"
+        "    return -1;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = CognitiveEngine(
+        tmp_path,
+        {
+            "project": {"type": "cpp", "source_dirs": ["src"]},
+            "engines": {"cognitive": {"cpp_boundaries": "off"}},
+        },
+    ).run()
+
+    assert result.status != EngineStatus.ERROR
+    assert result.extra["cpp_functions"] == 1
+    assert len(result.targets) == 1
+    assert result.targets[0].file_path == "src/guarded.cpp"
+
+
+def test_long_else_if_chain_fails_with_a_bounded_error() -> None:
+    body = "{ " + "if (ready) work(); else " * 1000 + "work(); }"
+
+    with pytest.raises(ValueError, match="else-if chain exceeds"):
+        cpp_cognitive_metric(body)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "{ if (ready) return 1 }",
+        "{ work() }",
+        "{ do { work(); } while (ready) }",
+        "{ case value: return 1; }",
+        "{ break; }",
+        "{ continue; }",
+        "{ if (values[0) { work(); } }",
+        "{ if (Widget{1) { work(); } }",
+    ],
+)
+def test_malformed_cpp_statements_and_delimiters_fail_closed(body: str) -> None:
+    with pytest.raises(ValueError):
+        cpp_cognitive_metric(body)
+
+
 @pytest.mark.parametrize(
     ("body", "message"),
     [
@@ -177,6 +239,9 @@ def test_logical_sequences_reset_at_expression_boundaries(body: str) -> None:
 def test_source_slice_rejects_columns_outside_the_source_line() -> None:
     with pytest.raises(ValueError, match="outside its source"):
         _source_slice("abc\n", 1, 10, 1, 10)
+
+    with pytest.raises(ValueError, match="outside its source"):
+        _source_slice("abc\n", 1, 4, 1, 4)
 
 
 def test_exact_cpp_boundary_path_uses_compiler_geometry(
@@ -304,6 +369,43 @@ def test_cpp_geometry_error_is_located_at_the_source(
     assert error_target.status == EngineStatus.ERROR
     assert error_target.file_path == "src/metrics.cpp"
     assert error_target.start_line == 1
+
+
+def test_missing_exact_end_column_is_error_without_fallback_duplicate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "src" / "metrics.cpp"
+    source.parent.mkdir()
+    source.write_text("int measured() { return 1; }\n", encoding="utf-8")
+    boundary = CppFunctionBoundary(
+        file_path="src/metrics.cpp",
+        start_line=1,
+        end_line=1,
+        start_column=5,
+        end_column=None,
+        body_start_line=1,
+        body_start_column=16,
+        name="measured",
+    )
+
+    monkeypatch.setattr(
+        "ici.engines._cpp_cognitive.run_cpp_function_boundaries",
+        lambda *args, **kwargs: CppFunctionBoundaryOutcome(boundaries=[boundary], mode="exact"),
+    )
+    result = CognitiveEngine(
+        tmp_path,
+        {
+            "project": {"type": "cpp", "source_dirs": ["src"]},
+            "engines": {"cognitive": {"cpp_boundaries": "auto"}},
+        },
+    ).run()
+
+    assert result.status == EngineStatus.ERROR
+    assert result.extra["cpp_functions"] == 0
+    assert len(result.targets) == 1
+    assert result.targets[0].status == EngineStatus.ERROR
+    assert "no end column" in result.targets[0].message
 
 
 def test_unterminated_cpp_function_does_not_silently_pass(tmp_path: Path) -> None:

@@ -31,7 +31,7 @@ from ici.engines.cpp_text import (
 
 _MAX_SOURCES = 2_048
 _MAX_SOURCE_BYTES = 64 * 1024 * 1024
-_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|&&|\|\||::|->|[{}(),;?:!]")
+_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|&&|\|\||::|->|\[\[|\]\]|[{}\[\](),;?:!]")
 _CONTROL_WORDS = frozenset({"if", "for", "while", "switch", "do"})
 _JUMP_WORDS = frozenset({"break", "continue", "goto"})
 _LOGICAL_WORDS = {"&&": "and", "and": "and", "||": "or", "or": "or"}
@@ -87,8 +87,8 @@ def _source_slice(
         or end_column < 1
     ):
         raise ValueError("function body range is outside its source")
-    start_width = len(lines[start_line - 1]) + 1
-    end_width = len(lines[end_line - 1]) + 1
+    start_width = len(lines[start_line - 1])
+    end_width = len(lines[end_line - 1])
     if start_column > start_width or end_column > end_width:
         raise ValueError("function body column is outside its source line")
     selected = lines[start_line - 1 : end_line]
@@ -120,6 +120,7 @@ def cpp_cognitive_metric(body: str) -> CppCognitiveMetric:
     tokens = _TOKEN_RE.findall(directive_free.replace("<%", "{").replace("%>", "}"))
     if len(tokens) > _MAX_TOKENS_PER_FUNCTION:
         raise ValueError("function token count exceeds the bounded limit")
+    _validate_delimiters(tokens)
 
     expression_cognitive = 0
     logical_operator: str | None = None
@@ -159,6 +160,21 @@ def cpp_cognitive_metric(body: str) -> CppCognitiveMetric:
     )
 
 
+def _validate_delimiters(tokens: list[str]) -> None:
+    """Reject mismatched structural delimiters before estimating flow."""
+
+    pairs = {")": "(", "]": "[", "}": "{", "]]": "[["}
+    opening = frozenset(pairs.values())
+    stack: list[str] = []
+    for token in tokens:
+        if token in opening:
+            stack.append(token)
+        elif token in pairs and (not stack or stack.pop() != pairs[token]):
+            raise ValueError("mismatched delimiter in function body")
+    if stack:
+        raise ValueError("unclosed delimiter in function body")
+
+
 class _CppControlParser:
     """Small statement parser used only for nesting weights.
 
@@ -175,8 +191,18 @@ class _CppControlParser:
         self.max_nesting = 0
         self.unbraced_controls = 0
         self.recursion_depth = 0
+        self.loop_depth = 0
+        self.switch_depth = 0
 
     def parse(self) -> None:
+        # A compiler/source-scanner function range starts at its body brace. A
+        # function-try-block then appends handlers outside that first compound,
+        # so those top-level catches are valid even though the leading `try`
+        # keyword lies before the measured body slice.
+        if self._peek() == "{":
+            self._compound(0)
+            while self._peek() == "catch":
+                self._catch(0)
         while self.position < len(self.tokens):
             self._statement(0)
 
@@ -221,46 +247,69 @@ class _CppControlParser:
             raise ValueError("control statement is missing its parenthesized header")
         self._balanced("(", ")")
 
+    def _attributes(self) -> None:
+        while self._peek() == "[[":
+            self._balanced("[[", "]]")
+
     def _if(self, nesting: int, *, score: bool = True) -> None:
-        self._take("if")
-        if score:
+        score_if = score
+        chain_length = 0
+        while True:
+            chain_length += 1
+            if chain_length > _MAX_CONTROL_NESTING:
+                raise ValueError("else-if chain exceeds the bounded limit")
+            self._take("if")
+            if score_if:
+                self.cognitive += 1 + nesting
+            if self._peek() == "constexpr":
+                self._take("constexpr")
+            is_consteval = False
+            if self._peek() == "!":
+                self._take("!")
+                if self._peek() != "consteval":
+                    raise ValueError("if ! must be followed by consteval")
+            if self._peek() == "consteval":
+                self._take("consteval")
+                is_consteval = True
+            else:
+                self._header()
+            self._attributes()
+            if is_consteval and self._peek() != "{":
+                raise ValueError("if consteval requires a compound statement")
+            self._controlled_body(nesting + 1)
+            if self._peek() != "else":
+                return
+            self._take("else")
             self.cognitive += 1 + nesting
-        if self._peek() == "constexpr":
-            self._take("constexpr")
-        is_consteval = False
-        if self._peek() == "!":
-            self._take("!")
-            if self._peek() != "consteval":
-                raise ValueError("if ! must be followed by consteval")
-        if self._peek() == "consteval":
-            self._take("consteval")
-            is_consteval = True
-        else:
-            self._header()
-        if is_consteval and self._peek() != "{":
-            raise ValueError("if consteval requires a compound statement")
-        self._controlled_body(nesting + 1)
-        if self._peek() != "else":
-            return
-        self._take("else")
-        self.cognitive += 1 + nesting
-        if self._peek() == "if":
+            self._attributes()
+            if self._peek() != "if":
+                if is_consteval and self._peek() != "{":
+                    raise ValueError("if consteval else requires a compound statement")
+                self._controlled_body(nesting + 1)
+                return
             # An else-if extends the current decision chain; the else branch is
             # the increment, rather than an additional nested `if` increment.
-            self._if(nesting, score=False)
-        else:
-            if is_consteval and self._peek() != "{":
-                raise ValueError("if consteval else requires a compound statement")
-            self._controlled_body(nesting + 1)
+            score_if = False
 
     def _do(self, nesting: int) -> None:
         self._take("do")
         self.cognitive += 1 + nesting
-        self._controlled_body(nesting + 1)
+        self._attributes()
+        self.loop_depth += 1
+        try:
+            self._controlled_body(nesting + 1)
+        finally:
+            self.loop_depth -= 1
         self._take("while")
         self._header()
-        if self._peek() == ";":
-            self._take(";")
+        self._take(";")
+
+    def _catch(self, nesting: int) -> None:
+        self._take("catch")
+        self.cognitive += 1 + nesting
+        self._header()
+        self._attributes()
+        self._controlled_body(nesting + 1)
 
     def _try(self, nesting: int) -> None:
         self._take("try")
@@ -270,10 +319,7 @@ class _CppControlParser:
         catches = 0
         while self._peek() == "catch":
             catches += 1
-            self._take("catch")
-            self.cognitive += 1 + nesting
-            self._header()
-            self._controlled_body(nesting + 1)
+            self._catch(nesting)
         if catches == 0:
             raise ValueError("try statement is missing a catch handler")
 
@@ -287,15 +333,35 @@ class _CppControlParser:
             return
         if token not in _CONTROL_WORDS:
             raise ValueError("internal control parser mismatch")
-        self._take()
+        control = self._take()
         self.cognitive += 1 + nesting
         self._header()
-        self._controlled_body(nesting + 1)
+        self._attributes()
+        if control in {"for", "while"}:
+            self.loop_depth += 1
+        elif control == "switch":
+            self.switch_depth += 1
+        try:
+            self._controlled_body(nesting + 1)
+        finally:
+            if control in {"for", "while"}:
+                self.loop_depth -= 1
+            elif control == "switch":
+                self.switch_depth -= 1
 
     def _simple(self) -> None:
         start = self.position
+        first = self._peek()
+        if first in {"case", "default"} and self.switch_depth == 0:
+            raise ValueError(f"{first} label is outside a switch statement")
+        if first == "break" and self.loop_depth == 0 and self.switch_depth == 0:
+            raise ValueError("break statement is outside a loop or switch")
+        if first == "continue" and self.loop_depth == 0:
+            raise ValueError("continue statement is outside a loop")
         parentheses = 0
         initializer_braces = 0
+        terminated = False
+        labelled = False
         while self.position < len(self.tokens):
             token = self._peek()
             if (
@@ -323,11 +389,15 @@ class _CppControlParser:
                     break
             self.position += 1
             if token == ":" and parentheses == 0 and initializer_braces == 0:
+                labelled = True
                 break
             if token == ";" and parentheses == 0 and initializer_braces == 0:
+                terminated = True
                 break
         if parentheses or initializer_braces:
             raise ValueError("unclosed expression delimiter in function body")
+        if not terminated and not labelled:
+            raise ValueError("simple statement is missing its terminating semicolon")
 
     def _statement(self, nesting: int) -> None:
         self.recursion_depth += 1
@@ -369,6 +439,19 @@ def _matching_span(boundary: CppFunctionBoundary, spans: list[_CppFunctionSpan])
     if not candidates:
         return None
     return min(candidates, key=lambda item: (item[1].end_line - item[1].start_line, item[0]))[0]
+
+
+def _claimed_span(boundary: CppFunctionBoundary, spans: list[_CppFunctionSpan]) -> int | None:
+    """Match enough compiler geometry to suppress a duplicate fallback row."""
+
+    expected_name = boundary.name.removesuffix("()").rsplit("::", 1)[-1]
+    for index, span in enumerate(spans):
+        if (
+            span.start_line == boundary.start_line
+            and span.name.removesuffix("()").rsplit("::", 1)[-1] == expected_name
+        ):
+            return index
+    return None
 
 
 def _target(
@@ -512,16 +595,22 @@ def analyze_cpp_cognitive(
     matched: dict[str, set[int]] = {path: set() for path in source_rows}
     for boundary in boundaries:
         text, spans = source_rows[boundary.file_path]
+        index = _matching_span(boundary, spans)
+        claimed_index = index if index is not None else _claimed_span(boundary, spans)
+        if claimed_index is not None:
+            matched[boundary.file_path].add(claimed_index)
         try:
+            if boundary.end_column is None:
+                raise ValueError("compiler-backed function range has no end column")
             body = _source_slice(
                 text,
                 boundary.body_start_line,
                 boundary.body_start_column,
                 boundary.end_line,
-                boundary.end_column or 1,
+                boundary.end_column,
             )
             metric = cpp_cognitive_metric(body)
-        except ValueError as err:
+        except (RecursionError, ValueError) as err:
             message = f"C++ cognitive function range is invalid: {boundary.file_path}: {err}"
             outcome.errors.append(message)
             outcome.targets.append(
@@ -557,9 +646,6 @@ def analyze_cpp_cognitive(
         outcome.exact_boundaries += 1
         outcome.functions_analyzed += 1
         outcome.max_cognitive = max(outcome.max_cognitive, metric.cognitive)
-        index = _matching_span(boundary, spans)
-        if index is not None:
-            matched[boundary.file_path].add(index)
 
     for path, (text, spans) in source_rows.items():
         for index, span in enumerate(spans):
@@ -590,7 +676,7 @@ def analyze_cpp_cognitive(
                     span.end_column,
                 )
                 metric = cpp_cognitive_metric(body)
-            except ValueError as err:
+            except (RecursionError, ValueError) as err:
                 message = f"C++ cognitive function range is invalid: {path}: {err}"
                 outcome.errors.append(message)
                 outcome.targets.append(
