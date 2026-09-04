@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from pathlib import Path
 from typing import Any
@@ -29,7 +30,7 @@ def parse_changed_lines(
     """
 
     if type(max_lines) is not int or not 1 <= max_lines <= _MAX_COVERAGE_ROWS:
-        raise ValueError("changed-line limit must be between 1 and 100000")
+        raise ValueError("changed-line limit must be between 1 and 10000")
     if not isinstance(specs, list):
         raise ValueError("engines.test.changed_lines must be a list of strings")
 
@@ -48,8 +49,15 @@ def parse_changed_lines(
         canonical = canonical_project_path(raw_path)
         if canonical in {"", "."} or canonical != raw_path:
             raise ValueError(f"changed_lines[{index}] path must already be canonical")
+        lexical = root
+        has_symlink_component = False
+        for part in Path(canonical).parts:
+            lexical /= part
+            if lexical.is_symlink():
+                has_symlink_component = True
+                break
         candidate = resolve_project_path(root, canonical)
-        if candidate.is_symlink() or not candidate.is_file():
+        if has_symlink_component or not candidate.is_file():
             raise ValueError(f"changed_lines[{index}] path is not a regular project file")
 
         start = int(match.group(1))
@@ -108,7 +116,10 @@ def _number(cfg: dict[str, Any], key: str, default: float) -> float:
     value = cfg.get(key, default)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"engines.test.{key} must be a number")
-    return float(value)
+    number = float(value)
+    if not math.isfinite(number) or not 0.0 <= number <= 100.0:
+        raise ValueError(f"engines.test.{key} must be between 0 and 100")
+    return number
 
 
 def _threshold_target(

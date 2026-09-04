@@ -151,6 +151,29 @@ def test_parse_changed_lines_rejects_duplicates_non_files_and_bounds(tmp_path: P
         parse_changed_lines(root, ["src/a.cpp:1"], max_lines=0)
 
 
+def test_parse_changed_lines_rejects_symlinked_source(tmp_path: Path):
+    root = _project(tmp_path)
+    link = root / "src" / "alias.cpp"
+    try:
+        link.symlink_to(root / "src" / "a.cpp")
+    except OSError as err:
+        pytest.skip(f"symlinks unavailable: {err}")
+
+    with pytest.raises(ValueError, match="regular project file"):
+        parse_changed_lines(root, ["src/alias.cpp:1"])
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -1.0, 101.0])
+def test_coverage_thresholds_must_be_finite_percentages(value: float):
+    with pytest.raises(ValueError, match="between 0 and 100"):
+        evaluate_coverage_policy(
+            _policy(min_line_cov=value),
+            _coverage_files(),
+            _function_rows(),
+            {},
+        )
+
+
 def test_evaluate_coverage_policy_leaves_a_pass_target_for_each_scope():
     targets = evaluate_coverage_policy(
         _policy(),
