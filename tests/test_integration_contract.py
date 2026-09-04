@@ -143,3 +143,80 @@ def test_engine_returns_not_run_error_for_unknown_artifact(tmp_path: Path) -> No
     assert result.status is EngineStatus.ERROR
     assert result.evidence is EvidenceState.NOT_RUN
     assert "unknown artifact" in result.summary
+
+
+def test_optional_failed_assertions_warn_with_native_finding(tmp_path: Path) -> None:
+    config = {
+        "engines": {
+            "integration": {
+                "enabled": True,
+                "cases": [
+                    {
+                        "name": "optional-contract",
+                        "argv": [
+                            "{python:current}",
+                            "-c",
+                            "import sys; print('actual'); sys.stderr.write('unsafe'); sys.exit(2)",
+                        ],
+                        "expected_exit": 0,
+                        "stdout_contains": ["expected"],
+                        "stderr_not_contains": ["unsafe"],
+                        "required": False,
+                    }
+                ],
+            }
+        }
+    }
+
+    result = IntegrationEngine(tmp_path, config).run()
+
+    assert result.status is EngineStatus.WARN
+    assert result.evidence is EvidenceState.MEASURED
+    assert result.findings[0].rule_id == "ici.hybrid.process-contract"
+    assert result.targets[0].status is EngineStatus.WARN
+    assert result.extra["integration"]["cases"][0]["status"] == "WARN"
+    assert result.extra["integration"]["cases"][0]["assertions"] == {
+        "exit_code": False,
+        "stdout_contains": False,
+        "stderr_contains": True,
+        "stdout_not_contains": True,
+        "stderr_not_contains": False,
+        "output_artifacts": True,
+    }
+
+
+def test_empty_case_policy_distinguishes_optional_and_required(tmp_path: Path) -> None:
+    optional = IntegrationEngine(
+        tmp_path,
+        {"engines": {"integration": {"enabled": True}}},
+    ).run()
+    required = IntegrationEngine(
+        tmp_path,
+        {"engines": {"integration": {"enabled": True, "required": True}}},
+    ).run()
+
+    assert optional.status is EngineStatus.SKIP
+    assert optional.evidence is EvidenceState.NOT_APPLICABLE
+    assert optional.targets[0].status is EngineStatus.SKIP
+    assert required.status is EngineStatus.ERROR
+    assert required.evidence is EvidenceState.NOT_RUN
+    assert "has no cases" in required.summary
+
+
+def test_unavailable_python_target_fails_before_case_execution(tmp_path: Path) -> None:
+    config = {
+        "engines": {
+            "integration": {
+                "enabled": True,
+                "python_targets": {"missing": "tools/missing-python"},
+                "cases": [{"name": "smoke", "argv": ["{python:missing}"]}],
+            }
+        }
+    }
+
+    result = IntegrationEngine(tmp_path, config).run()
+
+    assert result.status is EngineStatus.ERROR
+    assert result.evidence is EvidenceState.NOT_RUN
+    assert "Python target is unavailable" in result.summary
+    assert not result.tool_evidence

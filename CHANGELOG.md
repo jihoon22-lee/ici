@@ -555,9 +555,11 @@
   file-size policy, and the wheel coordinator's cyclomatic complexity falls from 57 to 5 without
   weakening canonical-path, metadata, RECORD, entry-point, or byte-bound checks.
 
-- **Binary compatibility execution coverage:** Focused engine tests now exercise a manifest-backed
-  ELF success path, allowed non-ELF evidence, and the required-empty-manifest error state in
-  addition to parser and policy rules.
+- **Binary and integration execution coverage:** Focused engine tests now exercise a
+  manifest-backed ELF success path, allowed non-ELF evidence, and the required-empty-manifest
+  error state in addition to parser and policy rules. Integration coverage now also distinguishes
+  optional assertion warnings, optional/required empty suites, and invalid interpreter targets;
+  focused line coverage reaches 87% for `binary_compat.py` and 81% for `integration.py`.
 
 - **Deterministic ZipApp bootstrap entry ordering and acceptance:** The packaging entrypoint
   now delegates to a small `scripts/run_shiv.py` wrapper inside the selected Python 3.10+ helper
