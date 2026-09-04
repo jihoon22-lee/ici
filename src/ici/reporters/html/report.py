@@ -6,6 +6,13 @@ from pathlib import Path
 from ici.core.models import VerificationSuiteResult
 from ici.core.redaction import redact_suite
 from ici.reporters.html.assets_loader import HTML_CSS, HTML_JS
+from ici.reporters.html.large import (
+    HTML_LARGE_REPORT_JS,
+    LARGE_REPORT_FINDING_THRESHOLD,
+    LARGE_REPORT_INITIAL_ROWS,
+    canonical_finding_count,
+    serialize_large_report_data,
+)
 from ici.reporters.html.sections.baseline import _render_baseline_section
 from ici.reporters.html.sections.complexity import _render_complexity_section
 from ici.reporters.html.sections.cycles import _render_cycles_section
@@ -52,7 +59,24 @@ def generate_html_report(
     cycles_tab_content = _render_cycles_section(eng_map.get("cycle"), base)
     security_engines = [eng_map[name] for name in ("security", "resource") if name in eng_map]
     security_tab_content = _render_static_analysis_section(security_engines, base)
-    issues_tab_content = _render_issues_section(all_issues, base)
+    large_report = canonical_finding_count(all_issues) > LARGE_REPORT_FINDING_THRESHOLD
+    if large_report:
+        issues_tab_content = _render_issues_section(
+            all_issues,
+            base,
+            initial_limit=LARGE_REPORT_INITIAL_ROWS,
+        )
+        large_report_data = serialize_large_report_data(all_issues, base)
+        report_scripts = f"""<script type="application/json" id="ici-report-data">{large_report_data}</script>
+<script>
+{HTML_JS}
+{HTML_LARGE_REPORT_JS}
+</script>"""
+    else:
+        issues_tab_content = _render_issues_section(all_issues, base)
+        report_scripts = f"""<script>
+{HTML_JS}
+</script>"""
     support_tab_content = _render_support_section(
         suite.support_matrix,
         suite.capability_inventory,
@@ -278,9 +302,7 @@ def generate_html_report(
   </div>
 </div>
 
-<script>
-{HTML_JS}
-</script>
+{report_scripts}
 </body>
 </html>
 """

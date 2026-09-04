@@ -24,13 +24,24 @@ def _related_location_label(location: SourceLocation) -> str:
     return label
 
 
-def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
-    """Renders aggregated actionable issues tab."""
+def _render_issues_section(
+    all_issues: list[HtmlIssue],
+    base: Path,
+    *,
+    initial_limit: int | None = None,
+) -> str:
+    """Renders aggregated actionable issues tab.
+
+    The default remains the historical fully server-rendered view.  Large
+    reports pass an explicit limit and let the companion browser hydrator
+    replace the bounded initial window from the embedded canonical data.
+    """
     if not all_issues:
         return "<div class='empty-clean'>✨ No actionable issues found! All active quality gate checks passed cleanly.</div>"
 
     items = []
-    for issue in all_issues:
+    visible_issues = all_issues if initial_limit is None else all_issues[:initial_limit]
+    for issue in visible_issues:
         badge_color = _status_color(issue.status)
         end_line = issue.end_line or issue.start_line
         location_label = f"{issue.file_path}:L{issue.start_line}"
@@ -107,6 +118,25 @@ def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
         )
 
     finding_count = sum(issue.original_finding_count for issue in all_issues)
+    issue_items = "".join(items)
+    if initial_limit is not None:
+        issue_items = f"""
+    <div class='large-issues-controls' style='display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; margin-bottom:1rem;'>
+      <label style='display:flex; align-items:center; gap:0.5rem; color:var(--text-muted); font-size:0.85rem;'>
+        Search issues
+        <input id='ici-report-search' class='tree-search-input' type='search' placeholder='Search engine, file, rule, or message...' autocomplete='off' />
+      </label>
+      <div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'>
+        <span id='ici-report-count' class='text-muted'></span>
+        <button id='ici-report-previous' class='jump-tab-btn' type='button'>Previous</button>
+        <span id='ici-report-page' class='text-muted'>Page 1</span>
+        <button id='ici-report-next' class='jump-tab-btn' type='button'>Next</button>
+      </div>
+    </div>
+    <div id='ici-report-issue-list'>
+      {issue_items}
+    </div>
+    """
     return f"""
     <div class="issues-header-bar">
       <div>
@@ -119,5 +149,5 @@ def _render_issues_section(all_issues: list[HtmlIssue], base: Path) -> str:
         <button class="jump-tab-btn" data-toggle-details=".issue-snippet-details">📂 Toggle All Code</button>
       </div>
     </div>
-    {"".join(items)}
+    {issue_items}
     """
