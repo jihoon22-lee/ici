@@ -555,6 +555,11 @@
   file-size policy, and the wheel coordinator's cyclomatic complexity falls from 57 to 5 without
   weakening canonical-path, metadata, RECORD, entry-point, or byte-bound checks.
 
+- **Test-quality module boundary:** Deep-profile slow/flaky/mutation observations now live in a
+  dedicated cache-identified mixin while `TestEngine` retains the execution, coverage, and TEM
+  orchestration. The bounded runner is injected through the existing patchable engine binding;
+  ici's own pure-code count drops to 960 lines for `test.py` and 547 for `test_quality.py`.
+
 - **Binary and integration execution coverage:** Focused engine tests now exercise a
   manifest-backed ELF success path, allowed non-ELF evidence, and the required-empty-manifest
   error state in addition to parser and policy rules. Integration coverage now also distinguishes

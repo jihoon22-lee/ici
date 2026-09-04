@@ -69,7 +69,15 @@ class TestInterpreterMixin:
             )
         return None
 
-    def _run_test_process(self, argv: list[str], *, cwd: Path) -> ProcessResult:
+    def _run_test_process(
+        self,
+        argv: list[str],
+        *,
+        cwd: Path,
+        env: dict[str, str] | None = None,
+        timeout: float | None = None,
+        max_output_chars: int | None = None,
+    ) -> ProcessResult:
         """Execute a test helper through the owning engine's runner binding."""
 
         raise NotImplementedError
