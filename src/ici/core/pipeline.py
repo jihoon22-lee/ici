@@ -147,6 +147,33 @@ ENGINE_DESCRIPTORS = (
     EngineDescriptor("dead", "DeadCodeEngine", produces=("findings:dead",)),
     EngineDescriptor("dup", "DuplicateEngine", produces=("findings:dup",)),
     EngineDescriptor("exception", "ExceptionSafetyEngine", produces=("findings:exception",)),
+    EngineDescriptor(
+        "build",
+        "BuildEngine",
+        produces=("findings:build", "artifact-manifests", "build:release"),
+        consumes=("analysis-context", "capability-inventory"),
+        profiles=frozenset({AnalysisProfile.DEEP}),
+        execution=EngineExecution.BUILD,
+        build_variant=BuildVariant.RELEASE,
+    ),
+    EngineDescriptor(
+        "binary_compat",
+        "BinaryCompatibilityEngine",
+        dependencies=("build",),
+        produces=("findings:binary-compat", "elf-facts"),
+        consumes=("analysis-context", "capability-inventory", "artifact-manifests"),
+        profiles=frozenset({AnalysisProfile.DEEP}),
+    ),
+    EngineDescriptor(
+        "integration",
+        "IntegrationEngine",
+        dependencies=("build",),
+        produces=("findings:integration", "integration-results"),
+        consumes=("analysis-context", "artifact-manifests"),
+        profiles=frozenset({AnalysisProfile.DEEP}),
+        execution=EngineExecution.BUILD,
+        build_variant=BuildVariant.RELEASE,
+    ),
 )
 
 
