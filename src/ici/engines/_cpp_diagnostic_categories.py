@@ -16,25 +16,39 @@ _CLANG_TIDY_SECURITY_PREFIXES = ("cert-", "android-cloexec-")
 _CLANG_TIDY_SECURITY_RULES = frozenset(
     {
         "bugprone-command-processor",
+        # These checks identify unsafe C/POSIX API usage or predictable
+        # randomness. Keep them explicit: the remaining bugprone/misc checks
+        # intentionally retain their generic correctness fallback.
+        "bugprone-not-null-terminated-result",
+        "bugprone-random-generator-seed",
         "bugprone-signal-handler",
         "bugprone-unsafe-functions",
         "concurrency-mt-unsafe",
+        "misc-predictable-rand",
     }
 )
 _CLANG_ANALYZER_RESOURCE_RULES = frozenset(
     {
         "clang-analyzer-alpha.core.danglingptrderef",
         "clang-analyzer-alpha.core.useafterlifetimeend",
+        "clang-analyzer-alpha.cplusplus.deletewithnonvirtualdtor",
+        "clang-analyzer-alpha.cplusplus.invalidatediterator",
+        "clang-analyzer-alpha.cplusplus.iteratorrange",
+        "clang-analyzer-alpha.cplusplus.mismatchediterator",
         "clang-analyzer-alpha.cplusplus.smartptr",
         "clang-analyzer-cplusplus.arraydelete",
         "clang-analyzer-cplusplus.innerpointer",
+        "clang-analyzer-cplusplus.move",
         "clang-analyzer-cplusplus.newdelete",
         "clang-analyzer-cplusplus.newdeleteleaks",
+        "clang-analyzer-cplusplus.placementnew",
         "clang-analyzer-fuchsia.handlechecker",
+        "clang-analyzer-core.stackaddressescape",
         "clang-analyzer-osx.cocoa.retaincount",
         "clang-analyzer-osx.cocoa.runloopautoreleaseleak",
         "clang-analyzer-osx.corefoundation.cfretainrelease",
         "clang-analyzer-unix.malloc",
+        "clang-analyzer-unix.mallocsizeof",
         "clang-analyzer-unix.mismatcheddeallocator",
         "clang-analyzer-unix.stream",
     }
@@ -45,16 +59,27 @@ _CLANG_ANALYZER_RESOURCE_PREFIXES = (
 )
 _CLANG_TIDY_RESOURCE_RULES = frozenset(
     {
+        "bugprone-capturing-this-in-member-variable",
+        "bugprone-default-operator-new-on-overaligned-type",
         "bugprone-dangling-handle",
         "bugprone-dangling-reference",
+        "bugprone-incorrect-enable-shared-from-this",
         "bugprone-multiple-new-in-one-expression",
+        "bugprone-raw-memory-call-on-non-trivial-type",
+        "bugprone-return-const-ref-from-parameter",
         "bugprone-shared-ptr-array-mismatch",
+        "bugprone-suspicious-memset-usage",
         "bugprone-suspicious-realloc-usage",
+        "bugprone-undefined-memory-manipulation",
+        "bugprone-unhandled-exception-at-new",
         "bugprone-unique-ptr-array-mismatch",
         "bugprone-unused-raii",
         "bugprone-use-after-move",
+        "cppcoreguidelines-no-malloc",
         "cppcoreguidelines-owning-memory",
+        "cppcoreguidelines-virtual-class-destructor",
         "misc-new-delete-overloads",
+        "misc-uniqueptr-reset-release",
     }
 )
 
@@ -68,8 +93,11 @@ _CLAZY_RESOURCE_RULES = frozenset(
     {
         "clazy-connect-3arg-lambda",
         "clazy-ctor-missing-parent-argument",
+        "clazy-detaching-temporary",
+        "clazy-heap-allocated-small-trivial-type",
         "clazy-lambda-in-connect",
         "clazy-post-event",
+        "clazy-qdeleteall",
         "clazy-returning-data-from-temporary",
         "clazy-temporary-iterator",
     }
