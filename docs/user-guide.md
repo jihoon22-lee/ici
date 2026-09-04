@@ -90,6 +90,16 @@ C++ `complexity` 함수 경계 정책은 별도로 지정할 수 있습니다.
 cpp_boundaries = "auto"  # auto | required | off
 ```
 
+`cpp_boundaries`는 함수가 차지하는 source geometry를 compiler/AST로 확인할지 선택하는
+정책입니다. 경계가 `clang-tidy-ast`로 확인되어도 그 안의 C++ cognitive CC/nesting 값은
+`bounded-cpp-tokens` 기반의 제한된 lexical estimate입니다. 따라서 경계의 `exact` provenance를
+metric 자체의 compiler-grade/exact 보장으로 해석하면 안 됩니다. `auto`는 context/database와
+승인된 tool이 없을 때만 source scanner의 `ESTIMATED` 경계를 사용하고, tool 실행 뒤의
+timeout·truncation·parser·replay 오류는 조용히 estimate로 바꾸지 않습니다. `required`는
+partial/estimated 경계를 `ERROR`/`NOT_RUN`으로 닫고, `off`는 probe 없이 의도적으로 bounded
+lexical 경로를 사용합니다. cognitive 엔진에서 같은 정책을 직접 지정하려면
+`[engines.cognitive] cpp_boundaries = "auto"`를 사용합니다.
+
 Python runtime 호환성도 같은 설정 파일에서 선택합니다.
 
 ```toml
@@ -399,6 +409,106 @@ timeout, 출력 및 slow 목록에는 고정 상한이 적용되고, 불완전�
 행 전체를 셉니다. 비유한·과도하게 긴 duration token은 관측에서 제외됩니다. 정식 config
 loader는 malformed mode/mutation selector를 `ConfigError`로 거부하고, 직접 engine 호출
 경계에서만 report/auto로 안전하게 정규화합니다.
+
+### 2.0.5 커버리지 임계값과 측정 범위
+
+`[engines.test]`의 coverage policy는 측정된 executable line/function을 여러 scope로 나누어
+검사합니다. 프로젝트 설정에서는 필요한 gate를 명시적으로 선언하는 방식을 권장합니다.
+
+```toml
+[engines.test]
+min_line_cov = 80.0
+min_file_cov = 80.0
+min_file_statements = 5
+min_func_cov = 90.0
+min_changed_line_cov = 100.0
+changed_lines = ["src/a.cpp:12-14", "project/relative.py:10"]
+max_coverage_regression = 2.0
+```
+
+각 키의 의미는 다음과 같습니다.
+
+| 키 | 의미 |
+|---|---|
+| `min_line_cov` | 모든 측정 source의 aggregate executable line coverage 최소값. 기본 `80.0`입니다. |
+| `min_file_cov` | 파일별 line coverage 최소값. `min_file_statements` 이상인 파일만 per-file gate 대상이 됩니다. 기본 `80.0`입니다. |
+| `min_file_statements` | 작은 파일을 별도 per-file gate에서 제외하는 executable statement 하한. 기본 `5`입니다. |
+| `min_func_cov` | Python과 C++ function evidence를 합친 aggregate function coverage 최소값. 기본 `90.0`입니다. |
+| `min_changed_line_cov` | caller가 선언한 changed executable-line coverage 최소값. 선언된 범위에만 적용됩니다. |
+| `changed_lines` | `path:line` 또는 `path:start-end` 형식의 명시적 changed-line 목록입니다. |
+| `max_coverage_regression` | baseline 대비 aggregate/file coverage 하락 허용 폭(% points). 지정했을 때만 regression 비교를 활성화합니다. |
+
+기존 `min_branch_cov`와 `min_tem_score` gate는 별도로 유지됩니다. coverage evidence가
+완전하게 수집되면 overall line, statement 하한을 통과한 각 file, aggregate function, 각
+function, changed-line 범위에 source-located target을 남깁니다. gate를 통과한 scope도
+`PASS` target으로 보존하므로 결과가 warning만 나열하는 목록으로 축소되지 않습니다. JSON
+function evidence에서 실행되지 않은 function은 정확한 file, start/end line과 start/end column을
+가진 `WARN` target으로 남고, `metrics.test_scope`는 `aggregate-project-suite`입니다. legacy
+text fallback에서는 function geometry가 line-1 수준이므로 column/end-line의 정밀성을 제공하지
+않습니다. 이 function target 자체는
+coverage threshold를 중복으로 gate하지 않지만, aggregate function target과 함께 전체 범위를
+보여줍니다.
+
+#### Changed lines는 caller가 명시한다
+
+`changed_lines`의 path는 project-relative POSIX canonical path여야 하며, line은 1부터
+시작합니다. 예를 들어 `src/a.cpp:12-14`와 `project/relative.py:10`은 유효한 형태지만
+절대 경로, `..` 탈출, 빈 path, 역순/중복/겹침 범위, regular project file이 아닌 path는
+거부됩니다. 전체 입력에도 bounded line 수가 적용됩니다.
+
+ici는 `git diff`를 읽어 changed line을 추측하거나 자동 생성하지 않습니다. Pull Request,
+배포 파이프라인, 상위 호출자가 검토한 범위를 `changed_lines`로 직접 전달해야 합니다.
+caller가 선언한 범위에 측정된 executable line이 하나도 없으면 해당 changed-line target은
+`ERROR`가 되며, 이를 0% 또는 `PASS`로 축약하지 않습니다. Python coverage.py의 executed/
+missing line과 C++ coverage의 내부 executable/covered line evidence는 이 정책 계산에만
+사용되고, 공개 `coverage_files` row에는 전체 내부 line list를 다시 노출하지 않습니다.
+
+#### C++/gcov 증거와 legacy 경계
+
+CMake/qmake coverage adapter는 먼저 `gcov --help`를 bounded하게 확인합니다. 성공한 help가
+`--json-format`을 광고하면 `.gcov.json.gz`를 우선 사용하고, gzip·UTF-8·JSON duplicate key/
+non-finite number·schema/type/count/position을 엄격히 검증합니다. format version 1/2와
+비어 있지 않은 numeric GCC version만 허용하며, line/count·branch(fallthrough/throw)·call과
+function의 start/end line/column, name/demangled name, execution count를 보존합니다. throw
+unwind edge는 branch score에서 제외됩니다. gcov JSON v1처럼 basic block ID가 없는 branch는
+같은 source line 안의 안정된 출력 순서로 구분하고
+`branch_identity = basic-block-or-line-order` provenance를 남깁니다. ID가 있으면 basic-block
+identity를 우선 사용합니다. malformed/불완전 JSON, capability probe 실패·
+timeout·truncation은 text로 조용히 재시도하지 않고 fail-closed합니다. 한 coverage
+디렉터리 안에서 format version 또는 GCC version이 섞인 report도 stale/오염 evidence로
+거부합니다.
+
+JSON을 광고하지 않는 성공한 legacy `gcov --help`만 bounded text parser로 제한적으로
+fallback합니다. 이 경로는 `function_geometry = line-1-fallback` 및
+`source_mapping = legacy-header-suffix` provenance를 남기며, function column/end-line과
+JSON의 정밀한 nested evidence를 제공하지 않습니다. 따라서 legacy text 결과를 JSON과 같은
+정확도로 해석하면 안 됩니다. 모든 경로에서 expected production source set의 누락은 오류로
+드러나고, tests/generated/vendor/external/entry-point를 포함·제외한 이유와
+`aggregate-project-suite`/`aggregate-test-binaries` context가 `coverage_provenance`에 남습니다.
+
+실제 `examples/cpp-fixtures/cmake_project` Qt fixture를 GCC 15.2에서 실행한 evidence는 JSON
+경로에서 line/function/branch 모두 `100.0%`였고, `counter.cpp`의 세 function이 exact
+geometry로 관찰되었습니다. 다섯 개 JSON report가 한 expected production source로 매핑되었고,
+generated/external record 19개는 ignored provenance로 남았습니다. 이는 해당 CMake/Qt fixture와
+toolchain의 재현 결과이지 모든 프로젝트·GCC 버전에 대한 보장은 아닙니다.
+
+#### Coverage baseline regression은 opt-in
+
+`max_coverage_regression`을 지정하지 않으면 baseline finding 비교를 하더라도 coverage
+regression target을 만들지 않습니다. 값을 지정하고 `ici.result/v3` baseline에 test engine의
+coverage snapshot이 있으면 aggregate line/branch/function/changed-line 및 기존 file line
+coverage를 허용 폭과 비교합니다. 하락 폭을 넘으면 `ici.test.coverage-regression.*` source-
+located delta로 남기며 `--fail-on-new`와 함께 gate 대상이 됩니다. baseline에 coverage snapshot이
+없으면 비교하지 않고 warning만 남깁니다. 이 기능은 현재 실행 설정으로 명시적으로 켜야 하며,
+기준선을 자동으로 새 결과에 승격하지 않습니다.
+
+#### Mutation 품질 관측의 현재 범위
+
+`[engines.test.quality.mutation]`은 `mutmut`, `cosmic-ray`, `mutpy` 등의 설치/capability를
+probe하는 설정일 뿐입니다. 실제 mutant 생성·실행·kill 계산을 수행하지 않으며, mutation
+score를 coverage 또는 test gate에 채택하지 않습니다. 따라서 보고서의 mutation counters는
+가용성 관측으로만 해석해야 하고, quality `mode = "report"` 또는 `"warn"`도 mutation score를
+통과 기준으로 만들지 않습니다.
 
 ### 2.1 로컬 전체 검증
 현재 프로젝트 디렉토리에서 선택된 profile의 엔진을 일괄 수행하고 터미널 컬러 대시보드를

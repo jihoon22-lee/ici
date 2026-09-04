@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from ici.core.cmake import ConfigureOptions, select_backend
+from ici.core.cmake import ConfigureOptions, gcov_json_capability, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import collect_coverage as adapter_collect_coverage
 from ici.core.cmake import configure as adapter_configure
@@ -28,15 +28,16 @@ from ici.core.models import (
 from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 from ici.engines.coverage_support import (
-    build_coverage_summary,
     calculate_tem,
     compute_python_function_coverage,
     module_unavailable,
     parse_coverage_json,
     parse_gcov_dir,
     parse_gcov_functions,
+    parse_gcov_json_dir,
 )
 from ici.engines.cpp_text import defines_main
+from ici.engines.test_coverage import TestCoverageMixin
 from ici.engines.test_interpreter import TestInterpreterMixin
 from ici.engines.test_output import TestOutputMixin
 from ici.engines.test_quality import TestQualityMixin
@@ -46,7 +47,9 @@ if TYPE_CHECKING:
     from ici.core.context import AnalysisContext
 
 
-class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEngine):
+class TestEngine(
+    TestCoverageMixin, TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEngine
+):
     """Executes unit tests and calculates TEM score based on branch & function coverage."""
 
     __test__ = False
@@ -55,6 +58,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
     CACHE_REUSE_SAFE = False
     CACHE_IMPLEMENTATION_MODULES = (
         "ici.engines.test",
+        "ici.engines.test_coverage",
         "ici.engines.test_interpreter",
         "ici.engines.test_output",
         "ici.engines.test_quality",
@@ -74,6 +78,8 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         self._coverage_files: list[dict] = []
         self._coverage_totals: dict | None = None
         self._coverage_source = "estimated"
+        self._coverage_provenance: dict[str, Any] = {}
+        self._coverage_policy: dict[str, Any] = {}
         self._tool_errors: list[str] = []
         self._coverage_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
@@ -96,6 +102,8 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         self._coverage_files = []
         self._coverage_totals = None
         self._coverage_source = "estimated"
+        self._coverage_provenance = {}
+        self._coverage_policy = {}
         self._tool_errors = []
         self._coverage_errors = []
         self._tool_evidence = []
@@ -127,9 +135,12 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
             if target.status == EngineStatus.SKIP and not self._is_quality_target(target)
         )
         no_tests_executed = total_tests > 0 and not has_failure and skipped_tests >= total_tests
+        branch_cov, func_cov, coverage_targets = self._measure_coverage(proj_type, has_failure)
+        targets.extend(coverage_targets)
+        for target in coverage_targets:
+            if target.status == EngineStatus.ERROR:
+                self._record_tool_error(target.message)
         required_coverage_missing, optional_coverage_warning = self._apply_coverage_policy(cfg)
-        branch_cov, func_cov, missed_targets = self._measure_coverage(proj_type, has_failure)
-        targets.extend(missed_targets)
         tem_info = self._calc_tem(branch_cov, func_cov, passed_tests, total_tests)
         tem_score = tem_info["tem_score"]
         threshold_breaches = self._threshold_breaches(
@@ -139,7 +150,16 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         quality_warn = quality_info["mode"] == "warn" and any(
             target.status == EngineStatus.WARN for target in quality_targets
         )
-        has_warn = bool(threshold_breaches) or optional_coverage_warning or quality_warn
+        coverage_policy_warn = any(
+            target.status == EngineStatus.WARN and bool(target.metrics.get("gated"))
+            for target in coverage_targets
+        )
+        has_warn = (
+            bool(threshold_breaches)
+            or optional_coverage_warning
+            or quality_warn
+            or coverage_policy_warn
+        )
         test_suites = self._build_test_suites(targets)
         overall_status = self._result_status(
             cfg,
@@ -195,6 +215,8 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
                 "test_suites": test_suites,
                 "coverage_files": self._coverage_files,
                 "coverage_source": self._coverage_source,
+                "coverage_provenance": self._coverage_provenance,
+                "coverage_policy": self._coverage_policy or None,
                 "coverage_totals": self._coverage_totals,
                 "function_rows": self._function_rows,
                 # Keep quality counters both grouped and flat. The grouped
@@ -386,6 +408,19 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
             max_output_chars=(max_output_chars if max_output_chars is not None else 1_000_000),
         )
 
+    def _coverage_process(
+        self,
+        argv: list[str],
+        *,
+        cwd: Path,
+        env: dict[str, str] | None = None,
+    ) -> ProcessResult:
+        """Keep extracted coverage calls on the legacy patchable runner binding."""
+
+        if env is None:
+            return run_process(argv, cwd=cwd)
+        return run_process(argv, cwd=cwd, env=env)
+
     def _record_tool_error(self, message: str) -> None:
         if message not in self._tool_errors:
             self._tool_errors.append(message)
@@ -406,100 +441,6 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         if pytest_result is not None:
             return pytest_result
         return self._run_unittest(env, targets, python_cmd)
-
-    def _run_coverage_tests(
-        self,
-        python_cmd: list[str],
-        env: dict[str, str],
-        targets: list[InspectionTarget],
-    ) -> tuple[int, int, bool] | None:
-        cov_cmd = self._find_coverage_cmd(python_cmd)
-        if cov_cmd is None:
-            return None
-        cov_dir = self.project_root / "build" / "coverage"
-        cov_dir.mkdir(parents=True, exist_ok=True)
-        json_path = cov_dir / "coverage.json"
-        with contextlib.suppress(OSError):
-            json_path.unlink()
-        with contextlib.suppress(OSError):
-            (cov_dir / ".coverage").unlink()
-        cov_env = dict(env)
-        cov_env["COVERAGE_FILE"] = str(cov_dir / ".coverage")
-        cov_run_cmd = self._build_coverage_run_cmd(cov_cmd)
-        result = run_process(cov_run_cmd, cwd=self.project_root, env=cov_env)
-        self._record_tool("coverage pytest", cov_run_cmd, result)
-        self._remember_pytest_output(result)
-        if result.timed_out:
-            self._record_tool_error("Coverage test run timed out")
-            return 0, 0, False
-        if result.truncated:
-            self._record_tool_error("Coverage test output was truncated")
-            return 0, 0, False
-        if result.returncode < 0:
-            self._record_tool_error("Coverage test process terminated before reporting results")
-            return 0, 0, False
-        if self._module_unavailable(result, "pytest"):
-            return None
-        parsed = self._parse_pytest_result(result, targets)
-        skipped = sum(
-            int(target.metrics.get("test_cases", 1))
-            for target in targets
-            if target.status == EngineStatus.SKIP
-        )
-        if skipped >= parsed[1] > 0:
-            self._coverage_errors.append("Python tests were collected but not executed")
-            return parsed
-        if self._tool_errors or parsed[1] == 0 or result.returncode not in (0, 1):
-            return parsed
-        self._generate_coverage_json(cov_cmd, cov_dir, cov_env)
-        return parsed
-
-    def _build_coverage_run_cmd(self, cov_cmd: list[str]) -> list[str]:
-        command = [*cov_cmd, "run", "--branch"]
-        rel_dirs = [str(d.relative_to(self.project_root)) for d in self.project_source_dirs()]
-        if rel_dirs:
-            command.append(f"--source={','.join(rel_dirs)}")
-        return [
-            *command,
-            "-m",
-            "pytest",
-            "-o",
-            "addopts=",
-            "-v",
-            *self._pytest_duration_args(),
-            "tests",
-        ]
-
-    def _generate_coverage_json(
-        self, cov_cmd: list[str], cov_dir: Path, cov_env: dict[str, str]
-    ) -> None:
-        json_path = cov_dir / "coverage.json"
-        with contextlib.suppress(OSError):
-            json_path.unlink()
-        command = [*cov_cmd, "json", "-o", str(json_path)]
-        result = run_process(command, cwd=self.project_root, env=cov_env)
-        self._record_tool("coverage json", command, result)
-        self._coverage_data = None
-        self._coverage_measured = False
-        if result.timed_out:
-            self._record_tool_error("Coverage JSON generation timed out")
-        elif result.truncated:
-            self._record_tool_error("Coverage JSON output was truncated")
-        elif result.returncode == -1:
-            self._record_tool_error("Coverage JSON executable was unavailable")
-        elif result.returncode != 0:
-            self._record_tool_error(
-                f"Coverage JSON generation failed with exit code {result.returncode}"
-            )
-        else:
-            expected_files = {
-                str(path.relative_to(self.project_root)) for path in self.project_python_sources()
-            }
-            self._coverage_data = self._parse_coverage_json(json_path, expected_files)
-            if self._coverage_data is None:
-                self._coverage_errors.append("Python coverage JSON was missing or malformed")
-            else:
-                self._coverage_measured = True
 
     def _run_plain_pytest(
         self,
@@ -598,7 +539,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
 
         build_tmp = self.project_root / "build/tests"
         build_tmp.mkdir(parents=True, exist_ok=True)
-        for suffix in ("*.gcno", "*.gcda", "*.gcov"):
+        for suffix in ("*.gcno", "*.gcda", "*.gcov", "*.gcov.json.gz"):
             for coverage_file in build_tmp.glob(suffix):
                 with contextlib.suppress(OSError):
                     coverage_file.unlink()
@@ -733,6 +674,8 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         # One copy at the end, covering configure, build, ctest and gcov.
         self._tool_evidence.extend(session.tool_evidence)
         if gcov_dir is None:
+            for message in session.errors:
+                self._record_tool_error(message)
             self._coverage_errors.append("C++ gcov coverage output was missing or malformed")
         else:
             # cpp_external_build_dirs does not apply here — the build system
@@ -745,8 +688,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
                 for path in self.project_cpp_sources()
                 if not defines_main(path)
             }
-            self._cpp_coverage_rows = self._parse_gcov_dir(gcov_dir, sources)
-            self._cpp_function_rows = self._parse_gcov_functions(gcov_dir, sources)
+            self._consume_cpp_coverage(gcov_dir, sources, session.coverage_format)
             if self._cpp_coverage_rows:
                 self._coverage_measured = True
             else:
@@ -908,63 +850,6 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
             )
         )
 
-    def _collect_cpp_coverage(self, gcov_bin: str, build_tmp: Path, source_files: set[str]) -> None:
-        gcno_files = sorted(str(p) for p in build_tmp.glob("*.gcno"))
-        if gcno_files:
-            gcov_cmd = [gcov_bin, "-b", "-p", "-o", ".", *gcno_files]
-            gcov_result = run_process(gcov_cmd, cwd=build_tmp)
-            self._record_tool("gcov", gcov_cmd, gcov_result)
-            if gcov_result.timed_out or gcov_result.truncated:
-                self._record_tool_error("gcov output was incomplete")
-            elif gcov_result.returncode != 0:
-                self._record_tool_error(f"gcov failed with exit code {gcov_result.returncode}")
-        else:
-            self._coverage_errors.append("C++ gcov data files were unavailable")
-        self._cpp_coverage_rows = self._parse_gcov_dir(build_tmp, source_files)
-        self._cpp_function_rows = self._parse_gcov_functions(build_tmp, source_files)
-        if not self._cpp_coverage_rows:
-            self._coverage_errors.append("C++ gcov coverage output was missing or malformed")
-        else:
-            self._coverage_measured = True
-
-    def _compile_cpp_objects(
-        self,
-        gxx: str,
-        inc_flags: list[str],
-        src_files: list[str],
-        test_src: str,
-        build_tmp: Path,
-    ) -> tuple[bool, list[Path], str]:
-        objs: list[Path] = []
-        for idx, src_abs in enumerate([*src_files, test_src]):
-            obj = build_tmp / f"obj_{idx}.o"
-            compile_cmd = [
-                gxx,
-                "--coverage",
-                "-std=c++17",
-                *inc_flags,
-                "-c",
-                src_abs,
-                "-o",
-                str(obj),
-            ]
-            compile_result = run_process(compile_cmd, cwd=self.project_root)
-            self._record_tool("g++ coverage compile", compile_cmd, compile_result)
-            c_code = compile_result.returncode
-            c_err = compile_result.stderr
-            if compile_result.timed_out or compile_result.truncated:
-                self._record_tool_error(f"C++ coverage compilation incomplete: {src_abs}")
-                return False, objs, c_err
-            if c_code < 0:
-                self._record_tool_error(
-                    f"C++ coverage compiler terminated before reporting results: {src_abs}"
-                )
-                return False, objs, c_err
-            if c_code != 0:
-                return False, objs, c_err
-            objs.append(obj)
-        return True, objs, ""
-
     def _parse_gcov_dir(self, cov_dir: Path, source_files: set[str]) -> list[dict]:
         return parse_gcov_dir(cov_dir, source_files, self.project_root)
 
@@ -979,78 +864,11 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
     def _parse_gcov_functions(self, cov_dir: Path, source_files: set[str]) -> list[dict]:
         return parse_gcov_functions(cov_dir, source_files, self.project_root)
 
-    def _build_coverage_summary(self) -> None:
-        files, totals, source = build_coverage_summary(
-            self._coverage_data, getattr(self, "_cpp_coverage_rows", [])
-        )
-        self._coverage_files = files
-        self._coverage_totals = totals
-        self._coverage_source = source
-        missing_python = self._python_test_attempted and not self._coverage_data
-        missing_cpp = self._cpp_test_attempted and not self._cpp_coverage_rows
-        if source != "estimated" and (missing_python or missing_cpp):
-            self._coverage_source = f"{source} (partial)"
+    def _parse_gcov_json_dir(
+        self, cov_dir: Path, source_files: set[str]
+    ) -> tuple[list[dict], list[dict], dict[str, Any]]:
+        return parse_gcov_json_dir(cov_dir, source_files, self.project_root)
 
-    def _measure_coverage(
-        self, proj_type: str, has_test_failures: bool
-    ) -> tuple[float, float, list[InspectionTarget]]:
-        """Calculates branch coverage, function coverage, and per-module coverage rows."""
-        missed_targets: list[InspectionTarget] = []
-        py_sources = self.project_python_sources()
-        cpp_sources = self.project_cpp_sources()
-
-        cov_data = self._coverage_data
-        self._build_coverage_summary()
-
-        py_func_rows = self._compute_python_function_coverage(cov_data) if cov_data else []
-        cpp_func_rows = getattr(self, "_cpp_function_rows", [])
-        self._function_rows = [*py_func_rows, *cpp_func_rows]
-
-        total_lines = 0
-        for p in py_sources + cpp_sources:
-            try:
-                with open(p, encoding="utf-8", errors="ignore") as f:
-                    total_lines += sum(
-                        1
-                        for line in f
-                        if line.strip() and not line.strip().startswith(("#", "//", "/*"))
-                    )
-            except (OSError, UnicodeDecodeError) as err:
-                _ = err
-
-        if total_lines == 0:
-            return 100.0, 100.0, []
-
-        if has_test_failures:
-            branch_cov = 45.0
-            func_cov = 50.0
-        else:
-            branch_cov = 85.0
-            func_cov = 95.0
-
-        if self._function_rows:
-            covered_funcs = sum(1 for r in self._function_rows if r["covered"])
-            func_cov = covered_funcs / len(self._function_rows) * 100.0
-
-        totals = self._coverage_totals
-        if totals and totals.get("branch_cover") is not None:
-            branch_cov = totals["branch_cover"]
-        elif cov_data and cov_data.get("branch_cov") is not None:
-            branch_cov = cov_data["branch_cov"]
-
-        for row in self._coverage_files:
-            if row["stmts"] >= 5 and row["cover"] < 80.0:
-                missed_targets.append(
-                    InspectionTarget(
-                        file_path=row["file"],
-                        start_line=1,
-                        target_name="Coverage:Module",
-                        status=EngineStatus.WARN,
-                        message=(
-                            f"Module coverage {row['cover']:.1f}% — {row['miss']} missed statements"
-                        ),
-                        metrics={"coverage": row["cover"]},
-                    )
-                )
-
-        return branch_cov, func_cov, missed_targets
+    @staticmethod
+    def _gcov_json_capability(result: ProcessResult) -> bool | None:
+        return gcov_json_capability(result)

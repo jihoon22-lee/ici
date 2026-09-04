@@ -9,6 +9,38 @@
 
 ### Added
 
+- **Deeper native analysis and gcov JSON coverage (unreleased):** C++ cognitive analysis now uses
+  compiler-backed function boundaries when available, but the CC/nesting value inside that boundary
+  is always a bounded lexical estimate (`bounded-cpp-tokens`), never an exact compiler metric;
+  boundary provenance and metric confidence remain separate. Native lint diagnostics recognize
+  additional compiler/analyzer, clang-tidy, and clazy lifetime, ownership, iterator, allocation,
+  and Qt detach categories by normalized rule id. On supported GCC, test coverage now prefers
+  bounded gzip JSON, validates the advertised format/tool versions, preserves exact function
+  line/column geometry and demangled names, filters exceptional throw edges, verifies the complete
+  expected production-source set, and records source-mapping and explicit scope/exclusion
+  provenance. A successful legacy `gcov --help` probe that does not advertise JSON uses the
+  documented lower-fidelity text fallback; indeterminate probes or malformed JSON never fall back
+  silently. Directory aggregation additionally caps report count, cumulative compressed/
+  decompressed bytes, and cumulative file/function/line/branch/call records. Statement attributes
+  before control flow and lambda bodies written with C++ brace digraphs retain the same cognitive
+  semantics as their ordinary spellings. gcov JSON v1 reports without basic-block IDs use
+  source-line branch order with explicit provenance; mixed format/GCC-version directories are
+  rejected as inconsistent evidence. Coverage policy targets now cover
+  overall line, per-file line (with a minimum statement
+  floor), aggregate/function scope, and caller-declared changed lines; PASS targets are retained,
+  JSON uncovered functions keep exact locations, and baseline coverage regression is opt-in. The real
+  CMake/Qt fixture under GCC 15.2 reached 100% line/function/branch coverage with three exact
+  functions; its JSON evidence contained five reports for one expected production source and 19
+  ignored generated/external records. Mutation remains capability probing only and contributes no
+  mutation score. Ici's own dogfood policy now pins the new aggregate/file dimensions explicitly:
+  the `10%` per-file floor records existing low-coverage debt separately from the distribution's
+  `80%` default and is intended to be ratcheted from repeated measured runs. Oversized CMake test
+  parsing and test-coverage orchestration were extracted into focused modules, and the C++
+  cognitive orchestration/parser was split into bounded stages so the feature passes the same
+  line/complexity rules it applies to consumers. This consolidated feature work retains stable
+  version `0.10.2` and does not authorize a release. See [native analysis and coverage depth
+  workthrough](docs/workthrough/2026-09-04-native-analysis-and-coverage-depth.md).
+
 - **LLVM 18 multi-pair clang-tidy diagnostics:** The strict C++ diagnostic parser now retains one
   `bugprone-easily-swappable-parameters` primary while LLVM emits multiple bounded empty-note and
   conversion-note pairs for that range. Malformed or detached empty notes remain atomic parse

@@ -18,7 +18,9 @@ import pytest
 
 from ici.core.cmake import ConfigureOptions, build, collect_coverage, configure, run_tests
 from ici.core.context import BuildVariant, discover_project_model
+from ici.core.models import EngineStatus, EvidenceState
 from ici.core.qmake_context import prepare_qmake_compilation_context
+from ici.engines.test import TestEngine
 
 FIXTURES = Path(__file__).resolve().parents[1] / "examples" / "cpp-fixtures"
 
@@ -64,7 +66,41 @@ def test_cmake_fixture_builds_and_tests_a_q_object(tmp_path):
 
     gcov_dir = collect_coverage(session)
     assert gcov_dir is not None, session.errors
-    assert list(gcov_dir.glob("*.gcov")), "gcov produced no output"
+    pattern = "*.gcov.json.gz" if session.coverage_format == "gcov-json" else "*.gcov"
+    assert list(gcov_dir.glob(pattern)), "gcov produced no output"
+
+
+def test_cmake_fixture_reports_exact_gcov_values_and_geometry(tmp_path):
+    _require("cmake", "ctest", "gcov")
+    root = _copy("cmake_project", tmp_path)
+
+    result = TestEngine(root).run()
+
+    assert result.status == EngineStatus.PASS, result.summary
+    assert result.evidence == EvidenceState.MEASURED
+    assert result.extra["line_coverage"] == 100.0
+    assert result.extra["branch_coverage"] == 100.0
+    assert result.extra["function_coverage"] == 100.0
+    assert result.extra["coverage_source"] == "gcov"
+    provenance = result.extra["coverage_provenance"]["cpp"]
+    if provenance["format"] == "gcov-json":
+        assert provenance["function_geometry"] == "exact"
+        assert provenance["source_mapping"] == "recorded-compilation-directory-or-project-root"
+        assert provenance["throw_branches_excluded"] is True
+        assert provenance["covered_sources"] == provenance["expected_sources"] == 1
+        function_targets = [
+            target
+            for target in result.targets
+            if target.target_name.startswith("Coverage:Function:")
+        ]
+        assert {target.start_line for target in function_targets} == {3, 5, 9}
+        assert all(target.start_column and target.end_column for target in function_targets)
+    else:
+        assert provenance["format"] == "gcov-text"
+        assert "limitations" in provenance
+    policy = result.extra["coverage_policy"]
+    assert policy["metrics"] == {"branch": 100.0, "function": 100.0, "line": 100.0}
+    assert policy["files"] == {"src/counter.cpp": 100.0}
 
 
 def test_qmake_fixture_builds_and_tests_a_q_object(tmp_path):

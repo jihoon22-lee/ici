@@ -84,6 +84,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "mode": "pass_fail",
             "min_tem_score": 4.0,
+            "min_line_cov": 80.0,
+            "min_file_cov": 80.0,
+            "min_file_statements": 5,
             "min_branch_cov": 80.0,
             "min_func_cov": 90.0,
             "coverage_required": False,
@@ -184,6 +187,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "warn": 30,
             "fail": 60,
             "warn_nesting": 4,
+            # Exact compiler-backed geometry is preferred; the C++ cognitive
+            # metric remains an explicitly estimated bounded-token metric.
+            "cpp_boundaries": "auto",
         },
         "security": {
             "enabled": True,

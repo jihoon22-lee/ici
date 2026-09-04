@@ -94,6 +94,7 @@ class SanitizeEngine(BaseEngine):
     # source-only analysis results.
     CACHE_REUSE_SAFE = False
     CACHE_IMPLEMENTATION_MODULES = (
+        "ici.core._cmake_test_results",
         "ici.core.cmake",
         "ici.engines._sanitizer_diagnostics",
     )

@@ -1,5 +1,6 @@
 """Tests for Test Execution Engine, Coverage & TEM 5.0 Scoring."""
 
+import gzip
 import json
 import sys
 from pathlib import Path
@@ -492,6 +493,261 @@ def test_parse_gcov_dir_skips_files_without_statements(tmp_path: Path):
     )
 
     assert engine._parse_gcov_dir(cov_dir, {"src/calc.cpp"}) == []
+
+
+def _write_gcov_json(
+    path: Path,
+    *,
+    project_root: Path,
+    source: str = "src/calc.cpp",
+    function_count: int = 0,
+    format_version: str = "2",
+) -> None:
+    document = {
+        "current_working_directory": str(project_root),
+        "data_file": "calc.gcda",
+        "format_version": format_version,
+        "gcc_version": "14.2.0",
+        "files": [
+            {
+                "file": source,
+                "functions": [
+                    {
+                        "blocks": 2,
+                        "blocks_executed": 1 if function_count else 0,
+                        "demangled_name": "calc(int)",
+                        "end_column": 1,
+                        "end_line": 6,
+                        "execution_count": function_count,
+                        "name": "_Z4calci",
+                        "start_column": 1,
+                        "start_line": 2,
+                    }
+                ],
+                "lines": [
+                    {
+                        "block_ids": [1],
+                        "branches": [
+                            {
+                                "count": 2,
+                                "destination_block_id": 2,
+                                "fallthrough": True,
+                                "source_block_id": 1,
+                                "throw": False,
+                            },
+                            {
+                                "count": 0,
+                                "destination_block_id": 3,
+                                "fallthrough": False,
+                                "source_block_id": 1,
+                                "throw": False,
+                            },
+                            {
+                                "count": 0,
+                                "destination_block_id": 4,
+                                "fallthrough": False,
+                                "source_block_id": 1,
+                                "throw": True,
+                            },
+                        ],
+                        "calls": [],
+                        "conditions": [],
+                        "count": 2,
+                        "line_number": 3,
+                        "unexecuted_block": False,
+                        "function_name": "_Z4calci",
+                    },
+                    {
+                        "block_ids": [3],
+                        "branches": [],
+                        "calls": [],
+                        "conditions": [],
+                        "count": 0,
+                        "line_number": 5,
+                        "unexecuted_block": True,
+                        "function_name": "_Z4calci",
+                    },
+                ],
+            }
+        ],
+    }
+    if format_version == "1":
+        for line in document["files"][0]["lines"]:
+            line.pop("block_ids")
+            line.pop("calls")
+            for branch in line["branches"]:
+                branch.pop("source_block_id")
+                branch.pop("destination_block_id")
+    path.write_bytes(gzip.compress(json.dumps(document).encode("utf-8")))
+
+
+def test_gcov_json_consumption_preserves_geometry_and_throw_policy(tmp_path: Path):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc(int);\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(
+        cov_dir / "calc.cpp.gcov.json.gz",
+        project_root=tmp_path,
+        function_count=2,
+    )
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._tool_errors == []
+    assert engine._cpp_coverage_rows == [
+        {
+            "file": "src/calc.cpp",
+            "stmts": 2,
+            "covered": 1,
+            "miss": 1,
+            "cover": 50.0,
+            "branch_cover": 50.0,
+            "nb": 2,
+            "cb": 1,
+            "missing_lines": [5],
+            "executable_lines": [3, 5],
+            "covered_lines": [3],
+        }
+    ]
+    assert engine._cpp_function_rows[0] == {
+        "file": "src/calc.cpp",
+        "name": "calc(int)",
+        "symbol": "_Z4calci",
+        "start_line": 2,
+        "start_column": 1,
+        "end_line": 6,
+        "end_column": 1,
+        "covered": True,
+        "missing_lines": [],
+    }
+    assert engine._coverage_provenance["cpp"]["function_geometry"] == "exact"
+    assert engine._coverage_provenance["cpp"]["throw_branches_excluded"] is True
+
+
+def test_gcov_json_v1_uses_ordered_branch_identity(tmp_path: Path):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc(int);\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(
+        cov_dir / "calc.cpp.gcov.json.gz",
+        project_root=tmp_path,
+        function_count=2,
+        format_version="1",
+    )
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._tool_errors == []
+    assert engine._cpp_coverage_rows[0]["branch_cover"] == 50.0
+    provenance = engine._coverage_provenance["cpp"]
+    assert provenance["format_versions"] == [1]
+    assert provenance["branch_identity"] == "basic-block-or-line-order"
+    assert provenance["ordered_branch_records"] == 3
+
+
+def test_gcov_json_directory_rejects_mixed_format_versions(tmp_path: Path):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc(int);\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(
+        cov_dir / "old.gcov.json.gz",
+        project_root=tmp_path,
+        function_count=1,
+        format_version="1",
+    )
+    _write_gcov_json(
+        cov_dir / "new.gcov.json.gz",
+        project_root=tmp_path,
+        function_count=1,
+        format_version="2",
+    )
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._cpp_coverage_rows == []
+    assert any("inconsistent_report_set" in message for message in engine._tool_errors)
+
+
+def test_gcov_json_rejects_missing_expected_source_without_text_fallback(tmp_path: Path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "calc.cpp").write_text("int calc();\n", encoding="utf-8")
+    (tmp_path / "src" / "missing.cpp").write_text("int missing();\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(cov_dir / "calc.cpp.gcov.json.gz", project_root=tmp_path)
+    # A valid-looking text report must not rescue rejected JSON evidence.
+    (cov_dir / "src#missing.cpp.gcov").write_text(
+        "        1:    1:int missing();\n", encoding="utf-8"
+    )
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(
+        cov_dir,
+        {"src/calc.cpp", "src/missing.cpp"},
+        "gcov-json",
+    )
+
+    assert engine._cpp_coverage_rows == []
+    assert engine._cpp_function_rows == []
+    assert any("incomplete_source_coverage" in message for message in engine._tool_errors)
+
+
+def test_gcov_json_directory_rejects_aggregate_report_count(tmp_path: Path, monkeypatch):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc();\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(cov_dir / "one.gcov.json.gz", project_root=tmp_path)
+    _write_gcov_json(cov_dir / "two.gcov.json.gz", project_root=tmp_path)
+    monkeypatch.setattr("ici.engines.coverage_support._MAX_GCOV_JSON_REPORTS", 1)
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._cpp_coverage_rows == []
+    assert any("aggregate_limit" in message for message in engine._tool_errors)
+
+
+def test_gcov_json_directory_rejects_cumulative_record_count(tmp_path: Path, monkeypatch):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc();\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(cov_dir / "calc.gcov.json.gz", project_root=tmp_path)
+    monkeypatch.setattr("ici.engines.coverage_support._MAX_GCOV_JSON_LINE_RECORDS", 1)
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._cpp_coverage_rows == []
+    assert any("aggregate_limit" in message for message in engine._tool_errors)
+
+
+def test_gcov_json_directory_rejects_cumulative_byte_budget(tmp_path: Path, monkeypatch):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc();\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(cov_dir / "calc.gcov.json.gz", project_root=tmp_path)
+    monkeypatch.setattr("ici.engines.coverage_support._MAX_GCOV_JSON_DECOMPRESSED_BYTES", 32)
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._cpp_coverage_rows == []
+    assert any("aggregate_limit" in message for message in engine._tool_errors)
 
 
 def test_find_coverage_cmd_uses_venv_module_probe(tmp_path: Path, monkeypatch):

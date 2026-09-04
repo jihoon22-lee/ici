@@ -124,8 +124,14 @@ _ENGINE_KEYS = {
     | frozenset(
         {
             "min_tem_score",
+            "min_line_cov",
+            "min_file_cov",
+            "min_file_statements",
             "min_branch_cov",
             "min_func_cov",
+            "min_changed_line_cov",
+            "changed_lines",
+            "max_coverage_regression",
             "coverage_required",
             "python",
             "quality",
@@ -169,7 +175,8 @@ _ENGINE_KEYS = {
     ),
     "exception": _COMMON_ENGINE_KEYS,
     "cycle": _COMMON_ENGINE_KEYS | frozenset({"max_reported"}),
-    "cognitive": _COMMON_ENGINE_KEYS | frozenset({"warn", "fail", "warn_nesting"}),
+    "cognitive": _COMMON_ENGINE_KEYS
+    | frozenset({"warn", "fail", "warn_nesting", "cpp_boundaries"}),
     "security": _COMMON_ENGINE_KEYS | frozenset({"scan_tests", "secret_name_allowlist"}),
     "resource": _COMMON_ENGINE_KEYS,
     "build": _COMMON_ENGINE_KEYS,
@@ -225,10 +232,32 @@ def _validate_test(table: dict[str, Any], path: str) -> None:
         _require_string(table["python"], f"{path}.python", non_empty=True)
     if "min_tem_score" in table:
         _require_number(table["min_tem_score"], f"{path}.min_tem_score", minimum=0, maximum=5)
+    if "min_line_cov" in table:
+        _require_number(table["min_line_cov"], f"{path}.min_line_cov", minimum=0, maximum=100)
+    if "min_file_cov" in table:
+        _require_number(table["min_file_cov"], f"{path}.min_file_cov", minimum=0, maximum=100)
+    if "min_file_statements" in table:
+        _require_int(table["min_file_statements"], f"{path}.min_file_statements", minimum=1)
     if "min_branch_cov" in table:
         _require_number(table["min_branch_cov"], f"{path}.min_branch_cov", minimum=0, maximum=100)
     if "min_func_cov" in table:
         _require_number(table["min_func_cov"], f"{path}.min_func_cov", minimum=0, maximum=100)
+    if "min_changed_line_cov" in table:
+        _require_number(
+            table["min_changed_line_cov"],
+            f"{path}.min_changed_line_cov",
+            minimum=0,
+            maximum=100,
+        )
+    if "changed_lines" in table:
+        _require_string_list(table["changed_lines"], f"{path}.changed_lines")
+    if "max_coverage_regression" in table:
+        _require_number(
+            table["max_coverage_regression"],
+            f"{path}.max_coverage_regression",
+            minimum=0,
+            maximum=100,
+        )
     if "quality" in table:
         _validate_test_quality(table["quality"], f"{path}.quality")
 
@@ -498,6 +527,11 @@ def _validate_cognitive(table: dict[str, Any], path: str) -> None:
     f = table.get("fail", 60)
     if f < w:
         raise _error(f"{path}.warn", "must be <= fail")
+    if "cpp_boundaries" in table:
+        boundary_path = f"{path}.cpp_boundaries"
+        _require_string(table["cpp_boundaries"], boundary_path, non_empty=True)
+        if table["cpp_boundaries"] not in {"auto", "required", "off"}:
+            raise _error(boundary_path, "must be one of: auto, off, required")
 
 
 def _validate_cycle(table: dict[str, Any], path: str) -> None:
