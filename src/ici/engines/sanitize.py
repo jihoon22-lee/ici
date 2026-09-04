@@ -572,7 +572,7 @@ class SanitizeEngine(BaseEngine):
 
     def _adapter_process_evidence_index(self) -> int | None:
         for index in range(len(self._tool_evidence) - 1, -1, -1):
-            if self._tool_evidence[index].name in {"ctest", "make check"}:
+            if self._tool_evidence[index].name in {"ctest", "make check", "make test"}:
                 return index
         return None
 

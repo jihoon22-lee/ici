@@ -539,6 +539,10 @@
 
 ### Fixed
 
+- **Make-backed sanitizer process evidence:** Sanitizer and ThreadSanitizer adapter runs now
+  recognize the actual `make test` invocation as process evidence, so clean Make projects with
+  successful test execution report `PASS`/`MEASURED` instead of a false `ERROR`/`NOT_RUN`.
+
 - **Bounded clang-tidy text state transitions:** LLVM 18 multi-pair structural notes, diagnostic
   context, and generated/suppressed summaries now pass through focused state-transition helpers.
   The parser preserves atomic rejection and the existing evidence contract while its coordinator

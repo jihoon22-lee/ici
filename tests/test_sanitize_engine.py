@@ -5,7 +5,7 @@ import shutil
 
 import pytest
 
-from ici.core.cmake import BACKEND_CMAKE, BuildSession, TestCaseResult
+from ici.core.cmake import BACKEND_CMAKE, BACKEND_MAKE, BuildSession, TestCaseResult
 from ici.core.findings import findings_for_result
 from ici.core.models import EngineStatus, EvidenceState, ToolEvidence
 from ici.core.runner import ProcessResult
@@ -421,6 +421,50 @@ def test_adapter_sanitizer_trace_is_normalized_with_ctest_process_evidence(tmp_p
     assert result.targets[0].file_path == "src/fault.cpp"
     assert result.targets[0].start_line == 2
     assert result.findings[0].tool_rule_id == "ubsan.signed-integer-overflow"
+
+
+def test_adapter_sanitizer_accepts_make_test_process_evidence(tmp_path, monkeypatch):
+    (tmp_path / "Makefile").write_text("all:\n\t@true\n", encoding="utf-8")
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "clean.cpp").write_text("int clean() { return 0; }\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_clean.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    session = BuildSession(
+        root=tmp_path,
+        shadow=tmp_path / "build/ici-make-asan",
+        backend=BACKEND_MAKE,
+        descriptor="Makefile",
+        reason="Makefile at the project root selected the configured Make backend",
+        configured=True,
+        tool_evidence=[ToolEvidence(name="make configure", path="/usr/bin/make")],
+    )
+
+    def fake_tests(actual_session, env=None):
+        actual_session.tool_evidence.append(
+            ToolEvidence(
+                name="make test",
+                path="/usr/bin/make",
+                argv=["/usr/bin/make", "test"],
+                returncode=0,
+            )
+        )
+        return [TestCaseResult("test_clean", True)]
+
+    monkeypatch.setattr("ici.engines.sanitize.adapter_configure", lambda *_args: session)
+    monkeypatch.setattr("ici.engines.sanitize.adapter_build", lambda _session: True)
+    monkeypatch.setattr("ici.engines.sanitize.adapter_run_tests", fake_tests)
+
+    result = SanitizeEngine(
+        tmp_path,
+        {"build": {"make": {"enabled": True}}},
+    ).run()
+
+    assert result.status is EngineStatus.PASS
+    assert result.evidence is EvidenceState.MEASURED
+    assert result.extra["sanitize_issues"] == 0
+    assert result.tool_evidence[1].name == "make test"
 
 
 def test_adapter_sanitizer_rejects_truncated_private_diagnostic_transport(tmp_path, monkeypatch):
