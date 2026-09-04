@@ -535,7 +535,9 @@
 
 - **Self-analysis type and cancellation cleanup regressions:** The unreleased SARIF, artifact
   provenance, Python packaging, CLI, and ELF compatibility paths now retain explicit result types
-  under the project Mypy policy instead of leaking ambiguous local/container inference. HTML
+  under the project Mypy policy instead of leaking ambiguous local/container inference. The
+  trusted candidate Merge Gate helper also types its mixed JSON output explicitly and passes a
+  direct Mypy run. HTML
   atomic publication uses unconditional `finally` cleanup, so ordinary failures and process
   cancellation both remove the unpublished temporary file without catching control-flow
   exceptions. This is unreleased validation hardening only; version `0.10.2` remains unchanged.
@@ -552,8 +554,9 @@
 
 - **Wheel-inspection module boundary:** Source-package discovery and untrusted wheel archive
   inspection now live in separate cache-identified modules. Both modules remain below the hard
-  file-size policy, and the wheel coordinator's cyclomatic complexity falls from 57 to 5 without
-  weakening canonical-path, metadata, RECORD, entry-point, or byte-bound checks.
+  file-size policy, the wheel coordinator's cyclomatic complexity falls from 57 to 5, and static
+  entry-point resolution cognitive complexity falls from 76 to 9 without weakening
+  canonical-path, metadata, RECORD, entry-point, or byte-bound checks.
 
 - **Test-quality module boundary:** Deep-profile slow/flaky/mutation observations now live in a
   dedicated cache-identified mixin while `TestEngine` retains the execution, coverage, and TEM

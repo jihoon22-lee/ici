@@ -227,7 +227,43 @@ def _project_package(root: Path, source_files: list[Path]) -> _ProjectPackage:
     )
 
 
+def _binding_names(node: ast.AST) -> set[str]:
+    """Return names introduced by one supported module/class statement."""
+
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return {node.name}
+    if isinstance(node, ast.Assign) and isinstance(node.value, ast.Lambda):
+        return {target.id for target in node.targets if isinstance(target, ast.Name)}
+    if (
+        isinstance(node, ast.AnnAssign)
+        and isinstance(node.value, ast.Lambda)
+        and isinstance(node.target, ast.Name)
+    ):
+        return {node.target.id}
+    if isinstance(node, (ast.Import, ast.ImportFrom)):
+        return {alias.asname or alias.name.split(".", 1)[0] for alias in node.names}
+    return set()
+
+
+def _named_binding(nodes: list[ast.AST], name: str) -> ast.AST | None:
+    """Locate the first supported binding for ``name`` in one lexical body."""
+
+    return next((node for node in nodes if name in _binding_names(node)), None)
+
+
+def _entrypoint_binding_supported(node: ast.AST) -> bool:
+    """Return whether a final binding is callable or an imported symbol."""
+
+    if isinstance(
+        node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Import, ast.ImportFrom)
+    ):
+        return True
+    return isinstance(node, (ast.Assign, ast.AnnAssign)) and isinstance(node.value, ast.Lambda)
+
+
 def _module_attribute_exists(path: Path, attribute: str) -> bool:
+    """Resolve a bounded dotted entry-point target without importing project code."""
+
     try:
         payload = _read_bounded_regular(path, MAX_PACKAGE_SOURCE_BYTES)
         tree = ast.parse(payload.decode("utf-8", errors="strict"), filename=str(path))
@@ -238,33 +274,12 @@ def _module_attribute_exists(path: Path, attribute: str) -> bool:
     nodes: list[ast.AST] = list(tree.body)
     parts = attribute.split(".")
     for index, part in enumerate(parts):
-        match: ast.AST | None = None
-        for node in nodes:
-            names: set[str] = set()
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                names.add(node.name)
-            elif isinstance(node, ast.Assign) and isinstance(node.value, ast.Lambda):
-                names.update(item.id for item in node.targets if isinstance(item, ast.Name))
-            elif isinstance(node, ast.AnnAssign) and isinstance(node.value, ast.Lambda):
-                if isinstance(node.target, ast.Name):
-                    names.add(node.target.id)
-            elif isinstance(node, (ast.Import, ast.ImportFrom)):
-                for alias in node.names:
-                    names.add(alias.asname or alias.name.split(".", 1)[0])
-            if part in names:
-                match = node
-                break
+        match = _named_binding(nodes, part)
         if match is None:
             return False
         final = index == len(parts) - 1
         if final:
-            return isinstance(
-                match,
-                (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Import, ast.ImportFrom),
-            ) or (
-                isinstance(match, (ast.Assign, ast.AnnAssign))
-                and isinstance(match.value, ast.Lambda)
-            )
+            return _entrypoint_binding_supported(match)
         nodes = list(match.body) if isinstance(match, ast.ClassDef) else []
     return False
 

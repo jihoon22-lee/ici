@@ -421,8 +421,8 @@ def verify_workflow_job(
         "run_id": (run_id, "workflow job run ID"),
         "run_attempt": (run_attempt, "workflow job run attempt"),
     }
-    for field, (wanted, label) in identifiers.items():
-        if _positive_id(value.get(field), label) != wanted:
+    for field, (expected_id, label) in identifiers.items():
+        if _positive_id(value.get(field), label) != expected_id:
             raise CandidateMergeGateError(f"{label} does not match")
     expected = {
         "name": "Merge Gate",
@@ -432,10 +432,10 @@ def verify_workflow_job(
         "status": "completed",
         "conclusion": "success",
     }
-    for field, wanted in expected.items():
-        if value.get(field) != wanted:
+    for field, expected_value in expected.items():
+        if value.get(field) != expected_value:
             raise CandidateMergeGateError(
-                f"workflow job {field} mismatch: {value.get(field)!r} != {wanted!r}"
+                f"workflow job {field} mismatch: {value.get(field)!r} != {expected_value!r}"
             )
 
     html_url = f"https://github.com/{repository}/actions/runs/{run_id}/job/{job_id}"
@@ -448,8 +448,8 @@ def verify_workflow_job(
         "run_url": run_url,
         "check_run_url": check_run_url,
     }
-    for field, wanted in expected_urls.items():
-        if value.get(field) != wanted:
+    for field, expected_url in expected_urls.items():
+        if value.get(field) != expected_url:
             raise CandidateMergeGateError(f"workflow job {field} is not canonical")
     return WorkflowJobVerification(check_run_id, job_id, run_id, run_attempt, html_url)
 
@@ -548,6 +548,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     verify_toy_pr.add_argument("head_sha")
     verify_toy_pr.add_argument("repository")
     args = parser.parse_args(argv)
+    payload: dict[str, object]
     try:
         if args.command == "page-count":
             payload = {"page_count": required_check_pages(args.first_check_runs_page)}
