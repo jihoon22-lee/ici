@@ -48,6 +48,11 @@ _SHA256_RE = re.compile(r"sha256:[0-9a-f]{64}")
 _SECRET_DEFINE_RE = re.compile(
     r"(?i)(?:password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)"
 )
+_ARTIFACT_SECRET_FLAG_RE = re.compile(
+    r"^--?(?:api[_-]?key|access[_-]?key|auth[_-]?token|client[_-]?secret|"
+    r"password|passwd|secret|token)(?:=|$)",
+    re.IGNORECASE,
+)
 
 
 def _serialize_artifact_command(command: tuple[str, ...], project_root: Path) -> list[str]:
@@ -60,6 +65,17 @@ def _serialize_artifact_command(command: tuple[str, ...], project_root: Path) ->
     if Path(executable).is_absolute() or PureWindowsPath(executable).is_absolute():
         argv[0] = PureWindowsPath(executable).name if "\\" in executable else Path(executable).name
     safe = list(_redact_compilation_argv(tuple(argv), project_root))
+    hide_next = False
+    for index, raw in enumerate(argv):
+        if hide_next:
+            safe[index] = REDACTED
+            hide_next = False
+        flag = raw.split("=", 1)[0]
+        if _ARTIFACT_SECRET_FLAG_RE.fullmatch(flag + ("=" if "=" in raw else "")):
+            if "=" in raw:
+                safe[index] = f"{flag}={REDACTED}"
+            else:
+                hide_next = True
     root_text = project_root.as_posix().rstrip("/")
     if root_text:
         for index, value in enumerate(safe):

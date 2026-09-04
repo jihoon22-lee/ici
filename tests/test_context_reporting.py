@@ -368,7 +368,7 @@ def test_artifact_producer_command_is_redacted_at_json_boundary(tmp_path: Path) 
         "/usr/bin/cmake",
         "--build",
         str(tmp_path / "build" / "ici-coverage"),
-        "--api-key",
+        "--client-secret",
         "super-secret-value",
     )
     enriched = replace(
@@ -389,7 +389,7 @@ def test_artifact_producer_command_is_redacted_at_json_boundary(tmp_path: Path) 
         "cmake",
         "--build",
         "build/ici-coverage",
-        "--api-key",
+        "--client-secret",
         REDACTED,
     ]
     assert all(str(tmp_path) not in item for item in serialized["command"])
