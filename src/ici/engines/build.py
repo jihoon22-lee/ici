@@ -634,7 +634,11 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
         if session.artifact_manifest is not None:
             self._artifact_manifests.append(session.artifact_manifest)
 
-        produced = self._count_adapter_artifacts(session.shadow)
+        produced = (
+            len(session.artifact_manifest.artifacts)
+            if session.artifact_manifest is not None
+            else self._count_adapter_artifacts(session.shadow)
+        )
         self._artifact_count += produced
         targets.append(
             InspectionTarget(
@@ -651,17 +655,26 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
         """Count linked outputs in the shadow tree: executables and libraries."""
 
         count = 0
+        binary_magics = (
+            b"\x7fELF",
+            b"MZ",
+            b"\xfe\xed\xfa\xce",
+            b"\xfe\xed\xfa\xcf",
+            b"\xce\xfa\xed\xfe",
+            b"\xcf\xfa\xed\xfe",
+        )
         for path in shadow.rglob("*"):
             if not path.is_file() or path.is_symlink():
                 continue
-            if path.suffix in (".a", ".so"):
+            if path.suffix in (".a", ".lib", ".so", ".dylib", ".dll") or ".so." in path.name:
                 count += 1
                 continue
             try:
-                is_elf = os.access(path, os.X_OK) and path.read_bytes()[:4] == b"\x7fELF"
+                with path.open("rb") as stream:
+                    prefix = stream.read(4)
             except OSError:
                 continue
-            if is_elf:
+            if any(prefix.startswith(magic) for magic in binary_magics):
                 count += 1
         return count
 

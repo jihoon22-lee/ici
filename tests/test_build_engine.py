@@ -652,3 +652,20 @@ def test_adapter_path_never_falls_back_to_gxx(tmp_path, monkeypatch, descriptor)
     # configure() reported nothing configured, so this is an unmeasured build,
     # not an inapplicable one.
     assert result.status == EngineStatus.ERROR
+
+
+def test_adapter_artifact_fallback_reads_only_binary_magic(tmp_path, monkeypatch):
+    shadow = tmp_path / "shadow"
+    shadow.mkdir()
+    (shadow / "app").write_bytes(b"\x7fELF" + b"x" * 64)
+    (shadow / "demo.exe").write_bytes(b"MZ" + b"x" * 64)
+    (shadow / "libdemo.so.1").write_bytes(b"shared")
+    (shadow / "libdemo.a").write_bytes(b"static")
+    (shadow / "notes.txt").write_text("not an artifact", encoding="utf-8")
+    monkeypatch.setattr(
+        Path,
+        "read_bytes",
+        lambda _path: pytest.fail("artifact counting must not read a whole binary"),
+    )
+
+    assert BuildEngine._count_adapter_artifacts(shadow) == 4
