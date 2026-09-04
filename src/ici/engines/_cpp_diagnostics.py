@@ -123,6 +123,43 @@ class _ClangTidyText:
     error: str = ""
 
 
+@dataclass(frozen=True)
+class _ClangTidySummary:
+    generated: int | None
+    suppressed: int
+    header_hint: bool
+    error: str = ""
+
+
+def _consume_clang_tidy_summary(
+    line: str,
+    generated: int | None,
+    suppressed: int,
+    header_hint: bool,
+) -> _ClangTidySummary | None:
+    if match := _CLANG_TIDY_GENERATED_RE.fullmatch(line):
+        if generated is not None:
+            return _ClangTidySummary(
+                generated,
+                suppressed,
+                header_hint,
+                "clang-tidy emitted duplicate generated-warning summaries",
+            )
+        return _ClangTidySummary(int(match.group("count")), suppressed, header_hint)
+    if match := _CLANG_TIDY_SUPPRESSED_RE.fullmatch(line):
+        if suppressed:
+            return _ClangTidySummary(
+                generated,
+                suppressed,
+                header_hint,
+                "clang-tidy emitted duplicate suppression summaries",
+            )
+        return _ClangTidySummary(generated, int(match.group("count")), header_hint)
+    if _CLANG_TIDY_HEADER_HINT_RE.fullmatch(line):
+        return _ClangTidySummary(generated, suppressed, True)
+    return None
+
+
 def _bounded_text(value: Any, label: str, *, limit: int = MAX_MESSAGE_CHARS) -> str:
     if not isinstance(value, str) or not value.strip() or "\x00" in value:
         raise ValueError(f"{label} must be a non-empty string")
@@ -877,22 +914,13 @@ def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
             continue
         if pending_empty_note:
             return _empty_note_error()
-        if match := _CLANG_TIDY_GENERATED_RE.fullmatch(line):
-            if generated is not None:
-                return _ClangTidyText(
-                    (), error="clang-tidy emitted duplicate generated-warning summaries"
-                )
-            generated = int(match.group("count"))
-            continue
-        if match := _CLANG_TIDY_SUPPRESSED_RE.fullmatch(line):
-            if suppressed:
-                return _ClangTidyText(
-                    (), error="clang-tidy emitted duplicate suppression summaries"
-                )
-            suppressed = int(match.group("count"))
-            continue
-        if _CLANG_TIDY_HEADER_HINT_RE.fullmatch(line):
-            header_hint = True
+        summary = _consume_clang_tidy_summary(line, generated, suppressed, header_hint)
+        if summary is not None:
+            if summary.error:
+                return _ClangTidyText((), error=summary.error)
+            generated = summary.generated
+            suppressed = summary.suppressed
+            header_hint = summary.header_hint
             continue
         structural_parent = None
         structural_last_parameter_line = None
