@@ -21,6 +21,25 @@
 
 Mutation은 이 범위에서도 실제 mutation score를 산출하지 않고 capability 관측으로만 남긴다.
 
+### 자체 검증에서 발견한 구조 부채
+
+원격 dogfood가 새 coverage policy를 실제 ici 코드에 적용하면서 기존 대형 모듈과 복잡한
+오케스트레이션을 정확히 드러냈다. 기능 임계값을 낮춰 숨기지 않고 다음처럼 구조를 분리했다.
+
+- `core/cmake.py`에서 CTest/QtTest/qmake 결과 파싱과 sanitizer evidence 정규화를
+  `core/_cmake_test_results.py`로 옮겼다. 기존 `ici.core.cmake` import와 monkeypatch 지점은
+  re-export로 유지한다.
+- `engines/test.py`에서 coverage 실행·집계·policy projection을 `TestCoverageMixin`으로 옮기고
+  새 모듈을 cache implementation identity에 포함했다. 외부 실행은 기존 `test.run_process`
+  patch 지점을 통과한다.
+- `_cpp_cognitive.py`의 단순 statement parser와 전체 분석 orchestration을 작은 bounded 단계로
+  나눴다. 관련 C++ metric과 exact/estimated boundary 결과는 변경하지 않았다.
+
+Ici 자체 `[engines.test]`에는 aggregate line `80%`, file line `10%`와 statement floor `5`를
+명시했다. `10%`는 배포 기본값(`80%`)을 낮춘 값이 아니라 현재 최소 파일 실측 `12.9%`를
+기록하는 별도의 self-debt floor다. 세 번의 연속 실측을 근거로 한 단계씩 올리고, 기본 정책은
+그대로 유지한다.
+
 ## 변경 사항
 
 ### C++ cognitive: 경계와 metric을 분리

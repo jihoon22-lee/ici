@@ -32,8 +32,14 @@
   CMake/Qt fixture under GCC 15.2 reached 100% line/function/branch coverage with three exact
   functions; its JSON evidence contained five reports for one expected production source and 19
   ignored generated/external records. Mutation remains capability probing only and contributes no
-  mutation score. This consolidated feature work retains stable version `0.10.2` and does not
-  authorize a release. See [native analysis and coverage depth workthrough](docs/workthrough/2026-09-04-native-analysis-and-coverage-depth.md).
+  mutation score. Ici's own dogfood policy now pins the new aggregate/file dimensions explicitly:
+  the `10%` per-file floor records existing low-coverage debt separately from the distribution's
+  `80%` default and is intended to be ratcheted from repeated measured runs. Oversized CMake test
+  parsing and test-coverage orchestration were extracted into focused modules, and the C++
+  cognitive orchestration/parser was split into bounded stages so the feature passes the same
+  line/complexity rules it applies to consumers. This consolidated feature work retains stable
+  version `0.10.2` and does not authorize a release. See [native analysis and coverage depth
+  workthrough](docs/workthrough/2026-09-04-native-analysis-and-coverage-depth.md).
 
 - **LLVM 18 multi-pair clang-tidy diagnostics:** The strict C++ diagnostic parser now retains one
   `bugprone-easily-swappable-parameters` primary while LLVM emits multiple bounded empty-note and
