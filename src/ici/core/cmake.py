@@ -566,7 +566,9 @@ def parse_qtest_xunit(text: str) -> list[TestCaseResult]:
 GCOV_OUTPUT_DIRNAME = "ici-gcov"
 
 
-def plan_gcov(shadow: Path, gcov_bin: str) -> tuple[Path, list[list[str]]]:
+def plan_gcov(
+    shadow: Path, gcov_bin: str, *, json_format: bool = False
+) -> tuple[Path, list[list[str]]]:
     """Group .gcno files by object directory and return one gcov argv per group.
 
     Callers must run every argv with ``cwd`` set to the returned directory.
@@ -582,11 +584,27 @@ def plan_gcov(shadow: Path, gcov_bin: str) -> tuple[Path, list[list[str]]]:
             continue
         groups.setdefault(gcno.parent, []).append(str(gcno))
 
+    format_flags = ["--json-format"] if json_format else []
     argvs = [
-        [gcov_bin, "-b", "-p", "-o", str(obj_dir), *files]
+        [gcov_bin, *format_flags, "-b", "-p", "-o", str(obj_dir), *files]
         for obj_dir, files in sorted(groups.items())
     ]
     return out_dir, argvs
+
+
+def gcov_json_capability(result) -> bool | None:
+    """Classify a bounded ``gcov --help`` result.
+
+    ``False`` is reserved for a successful old-gcov help transcript that does
+    not advertise JSON.  Failed, timed-out, or truncated probes return ``None``
+    so callers cannot silently turn an indeterminate modern tool into the
+    lower-fidelity text fallback.
+    """
+
+    if result.returncode != 0 or result.timed_out or result.truncated:
+        return None
+    output = f"{result.stdout}\n{result.stderr}"
+    return "--json-format" in output
 
 
 @dataclass
@@ -606,6 +624,8 @@ class BuildSession:
     make_plan: MakePlan | None = None
     tool_evidence: list[ToolEvidence] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    coverage_format: str = ""
+    coverage_report_count: int = 0
 
 
 def _record(session: BuildSession, name: str, argv: list[str], result) -> None:
@@ -1139,14 +1159,39 @@ def collect_coverage(session: BuildSession) -> Path | None:
     gcov_bin = _which(session, "gcov")
     if gcov_bin is None:
         return None
-    out_dir, argvs = plan_gcov(session.shadow, gcov_bin)
+    probe_argv = [gcov_bin, "--help"]
+    probe = run_process(probe_argv, cwd=session.root)
+    _record(session, "gcov capability", probe_argv, probe)
+    json_capability = gcov_json_capability(probe)
+    if json_capability is None:
+        _fail(session, "gcov JSON capability probe was incomplete")
+        return None
+
+    out_dir, argvs = plan_gcov(session.shadow, gcov_bin, json_format=json_capability)
     if not argvs:
         _fail(session, "C++ gcov data files were unavailable")
+        return None
+    cleared, cleanup_error = _clear_owned_gcov_output(session.shadow)
+    if not cleared:
+        _fail(session, cleanup_error)
         return None
     out_dir.mkdir(parents=True, exist_ok=True)
     for argv in argvs:
         result = run_process(argv, cwd=out_dir)
         _record(session, "gcov", argv, result)
+        if result.timed_out or result.truncated:
+            _fail(session, "gcov output was incomplete")
+            return None
+        if result.returncode != 0:
+            _fail(session, f"gcov failed with exit code {result.returncode}")
+            return None
+    pattern = "*.gcov.json.gz" if json_capability else "*.gcov"
+    reports = sorted(out_dir.glob(pattern))
+    if not reports:
+        _fail(session, f"gcov produced no {'JSON' if json_capability else 'text'} reports")
+        return None
+    session.coverage_format = "gcov-json" if json_capability else "gcov-text"
+    session.coverage_report_count = len(reports)
     return out_dir
 
 

@@ -90,6 +90,12 @@ class GcovFunction:
     name: str
     start_column: int
     start_line: int
+    # GCC 15 adds prime-path summary fields to format v2 even when path
+    # instrumentation was not enabled.  The detailed path graph is bounded and
+    # schema-checked at intake, but ici deliberately does not turn it into a
+    # coverage score yet.
+    total_prime_paths: int | None = None
+    covered_prime_paths: int | None = None
 
 
 @dataclass(frozen=True)
@@ -413,7 +419,12 @@ def _parse_function(value: object, index: int) -> GcovFunction:
         "start_column",
         "start_line",
     }
-    item = _object(value, context, required=fields, allowed=fields)
+    prime_path_fields = {
+        "total_prime_paths",
+        "covered_prime_paths",
+        "prime_path_coverage",
+    }
+    item = _object(value, context, required=fields, allowed=fields | prime_path_fields)
     blocks = _integer(item["blocks"], f"{context}.blocks")
     blocks_executed = _integer(item["blocks_executed"], f"{context}.blocks_executed")
     if blocks_executed > blocks:
@@ -432,6 +443,29 @@ def _parse_function(value: object, index: int) -> GcovFunction:
     )
     if (end_line, end_column) < (start_line, start_column):
         _fail("position_order", f"{context} ends before it starts")
+    present_prime_fields = prime_path_fields.intersection(item)
+    if present_prime_fields and present_prime_fields != prime_path_fields:
+        _fail(
+            "missing_field",
+            f"{context} must provide all prime-path fields when any are present",
+        )
+    total_prime_paths: int | None = None
+    covered_prime_paths: int | None = None
+    if present_prime_fields:
+        total_prime_paths = _integer(item["total_prime_paths"], f"{context}.total_prime_paths")
+        covered_prime_paths = _integer(
+            item["covered_prime_paths"], f"{context}.covered_prime_paths"
+        )
+        if covered_prime_paths > total_prime_paths:
+            _fail(
+                "count_bound",
+                f"{context}.covered_prime_paths cannot exceed total_prime_paths",
+            )
+        _array(
+            item["prime_path_coverage"],
+            f"{context}.prime_path_coverage",
+            maximum=MAX_JSON_ARRAY_ITEMS,
+        )
     return GcovFunction(
         blocks=blocks,
         blocks_executed=blocks_executed,
@@ -444,6 +478,8 @@ def _parse_function(value: object, index: int) -> GcovFunction:
         name=_string(item["name"], f"{context}.name", allow_empty=True),
         start_column=start_column,
         start_line=start_line,
+        total_prime_paths=total_prime_paths,
+        covered_prime_paths=covered_prime_paths,
     )
 
 
@@ -508,13 +544,30 @@ def _parse_file(value: object, index: int) -> GcovFile:
         item["functions"], f"{context}.functions", maximum=MAX_FUNCTIONS_PER_FILE
     )
     lines_value = _array(item["lines"], f"{context}.lines", maximum=MAX_LINES_PER_FILE)
+    functions = tuple(
+        _parse_function(function, function_index)
+        for function_index, function in enumerate(functions_value)
+    )
+    lines = tuple(_parse_line(line, line_index) for line_index, line in enumerate(lines_value))
+    line_numbers = [line.line_number for line in lines]
+    if len(line_numbers) != len(set(line_numbers)):
+        _fail("duplicate_line", f"{context}.lines contains duplicate line numbers")
+    function_ids = [
+        (
+            function.name,
+            function.start_line,
+            function.start_column,
+            function.end_line,
+            function.end_column,
+        )
+        for function in functions
+    ]
+    if len(function_ids) != len(set(function_ids)):
+        _fail("duplicate_function", f"{context}.functions contains duplicate function identities")
     return GcovFile(
         file=_string(item["file"], f"{context}.file"),
-        functions=tuple(
-            _parse_function(function, function_index)
-            for function_index, function in enumerate(functions_value)
-        ),
-        lines=tuple(_parse_line(line, line_index) for line_index, line in enumerate(lines_value)),
+        functions=functions,
+        lines=lines,
     )
 
 
@@ -528,8 +581,6 @@ def _parse_document(value: object) -> GcovReport:
     }
     root = _object(value, "root", required=fields, allowed=fields)
     files_value = _array(root["files"], "root.files", maximum=MAX_FILES)
-    if not files_value:
-        _fail("missing_data", "root.files must contain at least one file")
     files = tuple(_parse_file(item, index) for index, item in enumerate(files_value))
     paths = [item.file for item in files]
     if len(paths) != len(set(paths)):

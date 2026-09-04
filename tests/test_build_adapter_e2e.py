@@ -64,7 +64,8 @@ def test_cmake_fixture_builds_and_tests_a_q_object(tmp_path):
 
     gcov_dir = collect_coverage(session)
     assert gcov_dir is not None, session.errors
-    assert list(gcov_dir.glob("*.gcov")), "gcov produced no output"
+    pattern = "*.gcov.json.gz" if session.coverage_format == "gcov-json" else "*.gcov"
+    assert list(gcov_dir.glob(pattern)), "gcov produced no output"
 
 
 def test_qmake_fixture_builds_and_tests_a_q_object(tmp_path):

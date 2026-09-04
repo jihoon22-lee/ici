@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ici.core.project import get_all_python_sources
+from ici.engines.gcov_json import GcovJsonError, GcovReport, parse_gcov_json_gz
 
 _COVERAGE_KEYS = (
     "covered_lines",
@@ -434,6 +435,203 @@ def parse_gcov_functions(cov_dir: Path, source_files: set[str], project_root: Pa
                 }
             )
     return rows
+
+
+def _gcov_json_source_path(
+    declared: str,
+    compilation_directory: str,
+    source_files: set[str],
+    project_root: Path,
+) -> str | None:
+    """Map one gcov JSON source through its recorded compilation directory."""
+
+    root = project_root.resolve()
+    declared_path = Path(declared)
+    candidates: list[Path] = []
+    if declared_path.is_absolute():
+        candidates.append(declared_path)
+    else:
+        cwd = Path(compilation_directory)
+        if cwd.is_absolute():
+            candidates.append(cwd / declared_path)
+        candidates.append(root / declared_path)
+
+    matches: list[str] = []
+    for candidate in candidates:
+        try:
+            relative = str(candidate.resolve().relative_to(root))
+        except (OSError, RuntimeError, ValueError):
+            continue
+        if relative in source_files and relative not in matches:
+            matches.append(relative)
+    if len(matches) > 1:
+        raise GcovJsonError(
+            f"source path {declared!r} maps to multiple project files",
+            code="ambiguous_source_path",
+        )
+    return matches[0] if matches else None
+
+
+def _merge_gcov_json_report(
+    report: GcovReport,
+    source_files: set[str],
+    project_root: Path,
+    lines_by_file: dict[str, dict[int, bool]],
+    branches_by_file: dict[str, dict[tuple[int, int, int, bool], bool]],
+    functions_by_file: dict[str, dict[tuple[str, int, int, int, int], dict]],
+) -> tuple[int, int]:
+    matched = 0
+    ignored = 0
+    for source in report.files:
+        relative = _gcov_json_source_path(
+            source.file,
+            report.current_working_directory,
+            source_files,
+            project_root,
+        )
+        if relative is None:
+            ignored += 1
+            continue
+        matched += 1
+        lines = lines_by_file.setdefault(relative, {})
+        branches = branches_by_file.setdefault(relative, {})
+        functions = functions_by_file.setdefault(relative, {})
+        for line in source.lines:
+            lines[line.line_number] = lines.get(line.line_number, False) or line.count > 0
+            for branch in line.branches:
+                if branch.throw:
+                    continue
+                identity = (
+                    line.line_number,
+                    branch.source_block_id,
+                    branch.destination_block_id,
+                    branch.fallthrough,
+                )
+                branches[identity] = branches.get(identity, False) or branch.count > 0
+        for function in source.functions:
+            name = function.demangled_name or function.name or "<unnamed>"
+            identity = (
+                function.name,
+                function.start_line,
+                function.start_column,
+                function.end_line,
+                function.end_column,
+            )
+            previous = functions.get(identity)
+            functions[identity] = {
+                "file": relative,
+                "name": name,
+                "symbol": function.name,
+                "start_line": function.start_line,
+                "start_column": function.start_column,
+                "end_line": function.end_line,
+                "end_column": function.end_column,
+                "covered": function.execution_count > 0 or bool(previous and previous["covered"]),
+                "missing_lines": [],
+            }
+    return matched, ignored
+
+
+def parse_gcov_json_dir(
+    cov_dir: Path,
+    source_files: set[str],
+    project_root: Path,
+) -> tuple[list[dict], list[dict], dict[str, Any]]:
+    """Parse and aggregate bounded gcov JSON reports with exact source geometry.
+
+    Every expected production translation unit must be present.  A malformed
+    JSON report or incomplete source set raises :class:`GcovJsonError`; callers
+    must not retry the same evidence through the lossy text parser.
+    """
+
+    reports = sorted(cov_dir.glob("*.gcov.json.gz"))
+    if not reports:
+        raise GcovJsonError("no .gcov.json.gz reports were found", code="missing_data")
+
+    lines_by_file: dict[str, dict[int, bool]] = {}
+    branches_by_file: dict[str, dict[tuple[int, int, int, bool], bool]] = {}
+    functions_by_file: dict[str, dict[tuple[str, int, int, int, int], dict]] = {}
+    versions: set[int] = set()
+    gcc_versions: set[str] = set()
+    matched_records = 0
+    ignored_records = 0
+    for report_path in reports:
+        report = parse_gcov_json_gz(report_path)
+        versions.add(report.format_version)
+        gcc_versions.add(report.gcc_version)
+        matched, ignored = _merge_gcov_json_report(
+            report,
+            source_files,
+            project_root,
+            lines_by_file,
+            branches_by_file,
+            functions_by_file,
+        )
+        matched_records += matched
+        ignored_records += ignored
+
+    observed = set(lines_by_file) | set(functions_by_file)
+    missing_sources = sorted(source_files - observed)
+    if missing_sources:
+        preview = ", ".join(missing_sources[:8])
+        suffix = f" (+{len(missing_sources) - 8} more)" if len(missing_sources) > 8 else ""
+        raise GcovJsonError(
+            f"coverage evidence is missing {len(missing_sources)} source(s): {preview}{suffix}",
+            code="incomplete_source_coverage",
+        )
+
+    rows: list[dict] = []
+    function_rows: list[dict] = []
+    empty_sources: list[str] = []
+    for relative in sorted(source_files):
+        lines = lines_by_file.get(relative, {})
+        branches = branches_by_file.get(relative, {})
+        covered = sum(lines.values())
+        statements = len(lines)
+        missing_lines = sorted(number for number, executed in lines.items() if not executed)
+        covered_branches = sum(branches.values())
+        if statements == 0:
+            empty_sources.append(relative)
+        rows.append(
+            {
+                "file": relative,
+                "stmts": statements,
+                "covered": covered,
+                "miss": statements - covered,
+                "cover": round(covered / statements * 100.0, 1) if statements else 100.0,
+                "branch_cover": (
+                    round(covered_branches / len(branches) * 100.0, 1) if branches else None
+                ),
+                "nb": len(branches),
+                "cb": covered_branches,
+                "missing_lines": missing_lines[:30],
+            }
+        )
+        function_rows.extend(functions_by_file.get(relative, {}).values())
+
+    function_rows.sort(
+        key=lambda row: (
+            row["file"],
+            row["start_line"],
+            row["start_column"],
+            row["name"],
+        )
+    )
+    provenance: dict[str, Any] = {
+        "format": "gcov-json",
+        "format_versions": sorted(versions),
+        "gcc_versions": sorted(gcc_versions),
+        "report_count": len(reports),
+        "matched_file_records": matched_records,
+        "ignored_file_records": ignored_records,
+        "expected_sources": len(source_files),
+        "covered_sources": len(observed),
+        "empty_sources": empty_sources,
+        "function_geometry": "exact",
+        "source_mapping": "recorded-compilation-directory",
+        "throw_branches_excluded": True,
+    }
+    return rows, function_rows, provenance
 
 
 def build_coverage_summary(

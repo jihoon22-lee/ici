@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from ici.core.cmake import ConfigureOptions, select_backend
+from ici.core.cmake import ConfigureOptions, gcov_json_capability, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import collect_coverage as adapter_collect_coverage
 from ici.core.cmake import configure as adapter_configure
@@ -35,8 +35,10 @@ from ici.engines.coverage_support import (
     parse_coverage_json,
     parse_gcov_dir,
     parse_gcov_functions,
+    parse_gcov_json_dir,
 )
 from ici.engines.cpp_text import defines_main
+from ici.engines.gcov_json import GcovJsonError
 from ici.engines.test_interpreter import TestInterpreterMixin
 from ici.engines.test_output import TestOutputMixin
 from ici.engines.test_quality import TestQualityMixin
@@ -74,6 +76,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         self._coverage_files: list[dict] = []
         self._coverage_totals: dict | None = None
         self._coverage_source = "estimated"
+        self._coverage_provenance: dict[str, Any] = {}
         self._tool_errors: list[str] = []
         self._coverage_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
@@ -96,6 +99,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         self._coverage_files = []
         self._coverage_totals = None
         self._coverage_source = "estimated"
+        self._coverage_provenance = {}
         self._tool_errors = []
         self._coverage_errors = []
         self._tool_evidence = []
@@ -195,6 +199,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
                 "test_suites": test_suites,
                 "coverage_files": self._coverage_files,
                 "coverage_source": self._coverage_source,
+                "coverage_provenance": self._coverage_provenance,
                 "coverage_totals": self._coverage_totals,
                 "function_rows": self._function_rows,
                 # Keep quality counters both grouped and flat. The grouped
@@ -500,6 +505,13 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
                 self._coverage_errors.append("Python coverage JSON was missing or malformed")
             else:
                 self._coverage_measured = True
+                self._coverage_provenance["python"] = {
+                    "format": "coverage.py-json",
+                    "expected_sources": len(expected_files),
+                    "covered_sources": len(self._coverage_data.get("files", {})),
+                    "function_geometry": "python-ast",
+                    "source_mapping": "project-relative-exact",
+                }
 
     def _run_plain_pytest(
         self,
@@ -598,7 +610,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
 
         build_tmp = self.project_root / "build/tests"
         build_tmp.mkdir(parents=True, exist_ok=True)
-        for suffix in ("*.gcno", "*.gcda", "*.gcov"):
+        for suffix in ("*.gcno", "*.gcda", "*.gcov", "*.gcov.json.gz"):
             for coverage_file in build_tmp.glob(suffix):
                 with contextlib.suppress(OSError):
                     coverage_file.unlink()
@@ -733,6 +745,8 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
         # One copy at the end, covering configure, build, ctest and gcov.
         self._tool_evidence.extend(session.tool_evidence)
         if gcov_dir is None:
+            for message in session.errors:
+                self._record_tool_error(message)
             self._coverage_errors.append("C++ gcov coverage output was missing or malformed")
         else:
             # cpp_external_build_dirs does not apply here — the build system
@@ -745,8 +759,7 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
                 for path in self.project_cpp_sources()
                 if not defines_main(path)
             }
-            self._cpp_coverage_rows = self._parse_gcov_dir(gcov_dir, sources)
-            self._cpp_function_rows = self._parse_gcov_functions(gcov_dir, sources)
+            self._consume_cpp_coverage(gcov_dir, sources, session.coverage_format)
             if self._cpp_coverage_rows:
                 self._coverage_measured = True
             else:
@@ -911,21 +924,92 @@ class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEn
     def _collect_cpp_coverage(self, gcov_bin: str, build_tmp: Path, source_files: set[str]) -> None:
         gcno_files = sorted(str(p) for p in build_tmp.glob("*.gcno"))
         if gcno_files:
-            gcov_cmd = [gcov_bin, "-b", "-p", "-o", ".", *gcno_files]
+            probe_cmd = [gcov_bin, "--help"]
+            probe = run_process(probe_cmd, cwd=build_tmp)
+            self._record_tool("gcov capability", probe_cmd, probe)
+            json_capability = gcov_json_capability(probe)
+            if json_capability is None:
+                self._record_tool_error("gcov JSON capability probe was incomplete")
+                self._coverage_errors.append("C++ gcov capability could not be determined")
+                return
+            format_flags = ["--json-format"] if json_capability else []
+            gcov_cmd = [gcov_bin, *format_flags, "-b", "-p", "-o", ".", *gcno_files]
             gcov_result = run_process(gcov_cmd, cwd=build_tmp)
             self._record_tool("gcov", gcov_cmd, gcov_result)
             if gcov_result.timed_out or gcov_result.truncated:
                 self._record_tool_error("gcov output was incomplete")
             elif gcov_result.returncode != 0:
                 self._record_tool_error(f"gcov failed with exit code {gcov_result.returncode}")
+            else:
+                self._consume_cpp_coverage(
+                    build_tmp,
+                    source_files,
+                    "gcov-json" if json_capability else "gcov-text",
+                )
         else:
             self._coverage_errors.append("C++ gcov data files were unavailable")
-        self._cpp_coverage_rows = self._parse_gcov_dir(build_tmp, source_files)
-        self._cpp_function_rows = self._parse_gcov_functions(build_tmp, source_files)
         if not self._cpp_coverage_rows:
             self._coverage_errors.append("C++ gcov coverage output was missing or malformed")
         else:
             self._coverage_measured = True
+
+    def _consume_cpp_coverage(
+        self,
+        cov_dir: Path,
+        source_files: set[str],
+        coverage_format: str,
+    ) -> None:
+        """Consume exactly the format selected by the capability probe."""
+
+        self._cpp_coverage_rows = []
+        self._cpp_function_rows = []
+        if not coverage_format:
+            has_json = any(cov_dir.glob("*.gcov.json.gz"))
+            has_text = any(cov_dir.glob("*.gcov"))
+            if has_json != has_text:
+                coverage_format = "gcov-json" if has_json else "gcov-text"
+        if coverage_format == "gcov-json":
+            try:
+                rows, functions, provenance = parse_gcov_json_dir(
+                    cov_dir, source_files, self.project_root
+                )
+            except GcovJsonError as exc:
+                message = f"gcov JSON evidence rejected ({exc.code}): {exc}"
+                self._coverage_errors.append(message)
+                self._record_tool_error(message)
+                return
+            self._cpp_coverage_rows = rows
+            self._cpp_function_rows = functions
+            self._coverage_provenance["cpp"] = provenance
+            return
+
+        if coverage_format != "gcov-text":
+            message = f"unknown gcov coverage format: {coverage_format or 'unreported'}"
+            self._coverage_errors.append(message)
+            self._record_tool_error(message)
+            return
+        self._cpp_coverage_rows = self._parse_gcov_dir(cov_dir, source_files)
+        self._cpp_function_rows = self._parse_gcov_functions(cov_dir, source_files)
+        observed = {row["file"] for row in self._cpp_coverage_rows}
+        missing = sorted(source_files - observed)
+        self._coverage_provenance["cpp"] = {
+            "format": "gcov-text",
+            "expected_sources": len(source_files),
+            "covered_sources": len(observed),
+            "function_geometry": "line-1-fallback",
+            "source_mapping": "legacy-header-suffix",
+            "throw_branches_excluded": True,
+            "limitations": [
+                "function columns and end lines are unavailable",
+                "source relocation uses an exact known-suffix fallback",
+            ],
+        }
+        if missing:
+            preview = ", ".join(missing[:8])
+            suffix = f" (+{len(missing) - 8} more)" if len(missing) > 8 else ""
+            self._coverage_errors.append(
+                f"legacy gcov text evidence is missing {len(missing)} source(s): {preview}{suffix}"
+            )
 
     def _compile_cpp_objects(
         self,

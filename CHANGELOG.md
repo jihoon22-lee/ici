@@ -9,6 +9,18 @@
 
 ### Added
 
+- **Deeper native analysis and gcov JSON coverage (unreleased):** C++ cognitive complexity now
+  inspects bounded function regions with compiler-derived boundaries when available and an explicit
+  lexical-estimate fallback. Native lint diagnostics recognize additional compiler/analyzer,
+  clang-tidy, and clazy lifetime, ownership, iterator, allocation, and Qt detach categories by
+  normalized rule id. On supported GCC, test coverage now prefers bounded gzip JSON, validates the
+  advertised format/tool versions, preserves exact function line/column geometry and demangled
+  names, filters exceptional throw edges, verifies the complete expected production-source set,
+  and records source-mapping and exclusion provenance. A successful legacy `gcov --help` probe that
+  does not advertise JSON uses the documented lower-fidelity text fallback; indeterminate probes or
+  malformed JSON never fall back silently. This consolidated feature work retains stable version
+  `0.10.2` and does not authorize a release.
+
 - **LLVM 18 multi-pair clang-tidy diagnostics:** The strict C++ diagnostic parser now retains one
   `bugprone-easily-swappable-parameters` primary while LLVM emits multiple bounded empty-note and
   conversion-note pairs for that range. Malformed or detached empty notes remain atomic parse

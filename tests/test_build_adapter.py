@@ -958,7 +958,13 @@ def test_collect_coverage_runs_every_group(tmp_path, monkeypatch):
 
     def _run(cmd, **kwargs):
         calls.append(cmd)
+        if "--help" in cmd:
+            assert kwargs.get("cwd") == tmp_path
+            return ProcessResult(0, "Usage: gcov", "", 0.01)
         assert kwargs.get("cwd") == shadow / "ici-gcov"
+        (shadow / "ici-gcov" / f"report-{len(calls)}.gcov").write_text(
+            "        1:    1:int value;\n", encoding="utf-8"
+        )
         return ProcessResult(0, "", "", 0.01)
 
     monkeypatch.setattr(cmake_mod, "run_process", _run)
@@ -967,7 +973,44 @@ def test_collect_coverage_runs_every_group(tmp_path, monkeypatch):
     out_dir = collect_coverage(session)
 
     assert out_dir == shadow / "ici-gcov"
-    assert len(calls) == 2
+    assert len(calls) == 3
+    assert session.coverage_format == "gcov-text"
+    assert session.coverage_report_count == 2
+
+
+def test_collect_coverage_prefers_json_when_capability_is_advertised(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-cmake"
+    _touch(shadow / "CMakeFiles" / "core.dir" / "a.cpp.gcno")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+
+    def _run(cmd, **kwargs):
+        if "--help" in cmd:
+            return ProcessResult(0, "  -j, --json-format", "", 0.01)
+        assert "--json-format" in cmd
+        (shadow / "ici-gcov" / "a.cpp.gcov.json.gz").write_bytes(b"evidence")
+        return ProcessResult(0, "", "", 0.01)
+
+    monkeypatch.setattr(cmake_mod, "run_process", _run)
+    session = BuildSession(root=tmp_path, shadow=shadow, backend=BACKEND_CMAKE)
+
+    assert collect_coverage(session) == shadow / "ici-gcov"
+    assert session.coverage_format == "gcov-json"
+    assert session.coverage_report_count == 1
+
+
+def test_collect_coverage_does_not_fallback_after_indeterminate_probe(tmp_path, monkeypatch):
+    shadow = tmp_path / "build" / "ici-cmake"
+    _touch(shadow / "CMakeFiles" / "core.dir" / "a.cpp.gcno")
+    monkeypatch.setattr(cmake_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(
+        cmake_mod,
+        "run_process",
+        lambda *_args, **_kwargs: ProcessResult(1, "", "probe failed", 0.01),
+    )
+    session = BuildSession(root=tmp_path, shadow=shadow, backend=BACKEND_CMAKE)
+
+    assert collect_coverage(session) is None
+    assert "capability probe" in session.errors[-1]
 
 
 _XML_BOMB = """<?xml version="1.0"?>

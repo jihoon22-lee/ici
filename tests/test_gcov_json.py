@@ -106,6 +106,39 @@ def test_parses_version_two_gzip_and_retains_nested_evidence(tmp_path: Path):
     assert line.conditions[0].covered == 1
 
 
+def test_accepts_and_bounds_gcc_15_prime_path_metadata():
+    document = _document()
+    function = document["files"][0]["functions"][0]
+    function.update(
+        total_prime_paths=3,
+        covered_prime_paths=2,
+        prime_path_coverage=[],
+    )
+
+    report = parse_gcov_json_gz(_gzip(document))
+
+    parsed = report.files[0].functions[0]
+    assert parsed.total_prime_paths == 3
+    assert parsed.covered_prime_paths == 2
+
+    function["covered_prime_paths"] = 4
+    _error(document, code="count_bound")
+
+
+def test_rejects_partial_prime_path_metadata_and_duplicate_geometry():
+    document = _document()
+    document["files"][0]["functions"][0]["total_prime_paths"] = 0
+    _error(document, code="missing_field")
+
+    document = _document()
+    document["files"][0]["functions"].append(copy.deepcopy(_function()))
+    _error(document, code="duplicate_function")
+
+    document = _document()
+    document["files"][0]["lines"].append(copy.deepcopy(_line()))
+    _error(document, code="duplicate_line")
+
+
 def test_accepts_version_one_without_optional_calls():
     document = _document(version="1")
     del document["files"][0]["lines"][0]["calls"]
@@ -132,7 +165,6 @@ def test_document_and_convenience_byte_apis_accept_uncompressed_json():
         ("format_version", "3"),
         ("gcc_version", "gcc version unknown"),
         ("data_file", ""),
-        ("files", []),
     ],
 )
 def test_rejects_invalid_root_metadata(field: str, value: object):
@@ -140,6 +172,15 @@ def test_rejects_invalid_root_metadata(field: str, value: object):
     document[field] = value
 
     _error(document)
+
+
+def test_accepts_empty_file_inventory_from_non_source_compiler_artifact():
+    document = _document()
+    document["files"] = []
+
+    report = parse_gcov_json_gz(_gzip(document))
+
+    assert report.files == ()
 
 
 def test_rejects_missing_required_nested_structure():
