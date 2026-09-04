@@ -477,7 +477,7 @@ def _merge_gcov_json_report(
     source_files: set[str],
     project_root: Path,
     lines_by_file: dict[str, dict[int, bool]],
-    branches_by_file: dict[str, dict[tuple[int, int, int, bool], bool]],
+    branches_by_file: dict[str, dict[tuple[int, str, int, int, bool], bool]],
     functions_by_file: dict[str, dict[tuple[str, int, int, int, int], dict]],
 ) -> tuple[int, int]:
     matched = 0
@@ -503,6 +503,7 @@ def _merge_gcov_json_report(
                     continue
                 identity = (
                     line.line_number,
+                    line.function_name,
                     branch.source_block_id,
                     branch.destination_block_id,
                     branch.fallthrough,
@@ -549,7 +550,7 @@ def parse_gcov_json_dir(
         raise GcovJsonError("no .gcov.json.gz reports were found", code="missing_data")
 
     lines_by_file: dict[str, dict[int, bool]] = {}
-    branches_by_file: dict[str, dict[tuple[int, int, int, bool], bool]] = {}
+    branches_by_file: dict[str, dict[tuple[int, str, int, int, bool], bool]] = {}
     functions_by_file: dict[str, dict[tuple[str, int, int, int, int], dict]] = {}
     versions: set[int] = set()
     gcc_versions: set[str] = set()
@@ -628,7 +629,7 @@ def parse_gcov_json_dir(
         "covered_sources": len(observed),
         "empty_sources": empty_sources,
         "function_geometry": "exact",
-        "source_mapping": "recorded-compilation-directory",
+        "source_mapping": "recorded-compilation-directory-or-project-root",
         "throw_branches_excluded": True,
     }
     return rows, function_rows, provenance

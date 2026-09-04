@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import gzip
 import json
+import os
 from dataclasses import FrozenInstanceError
 from pathlib import Path
 
@@ -112,7 +113,18 @@ def test_accepts_and_bounds_gcc_15_prime_path_metadata():
     function.update(
         total_prime_paths=3,
         covered_prime_paths=2,
-        prime_path_coverage=[],
+        prime_path_coverage=[
+            {
+                "id": 0,
+                "sequence": [
+                    {
+                        "block_id": 2,
+                        "locations": [{"file": "demo.cpp", "line_numbers": [2, 3]}],
+                        "edge_kind": "fallthru",
+                    }
+                ],
+            }
+        ],
     )
 
     report = parse_gcov_json_gz(_gzip(document))
@@ -120,12 +132,13 @@ def test_accepts_and_bounds_gcc_15_prime_path_metadata():
     parsed = report.files[0].functions[0]
     assert parsed.total_prime_paths == 3
     assert parsed.covered_prime_paths == 2
+    assert parsed.prime_path_coverage[0].sequence[0].locations[0].line_numbers == (2, 3)
 
     function["covered_prime_paths"] = 4
     _error(document, code="count_bound")
 
 
-def test_rejects_partial_prime_path_metadata_and_duplicate_geometry():
+def test_rejects_partial_prime_path_metadata_and_duplicate_function_geometry():
     document = _document()
     document["files"][0]["functions"][0]["total_prime_paths"] = 0
     _error(document, code="missing_field")
@@ -134,9 +147,26 @@ def test_rejects_partial_prime_path_metadata_and_duplicate_geometry():
     document["files"][0]["functions"].append(copy.deepcopy(_function()))
     _error(document, code="duplicate_function")
 
+
+def test_accepts_repeated_line_numbers_from_template_instantiations():
     document = _document()
-    document["files"][0]["lines"].append(copy.deepcopy(_line()))
-    _error(document, code="duplicate_line")
+    duplicate = copy.deepcopy(_line())
+    duplicate["function_name"] = "demo::run<long>()"
+    document["files"][0]["lines"].append(duplicate)
+
+    report = parse_gcov_json_gz(_gzip(document))
+
+    assert [line.line_number for line in report.files[0].lines] == [2, 2]
+
+
+def test_accepts_missing_compilation_directory_on_empty_gcc_report():
+    document = _document()
+    document.pop("current_working_directory")
+    document["files"] = []
+
+    report = parse_gcov_json_gz(_gzip(document))
+
+    assert report.current_working_directory == ""
 
 
 def test_accepts_version_one_without_optional_calls():
@@ -250,6 +280,15 @@ def test_rejects_strict_json_encoding_and_numbers(payload: bytes, code: str):
     assert caught.value.code == code
 
 
+def test_rejects_oversized_json_integer_with_typed_error():
+    payload = b'{"value":' + (b"9" * 5_000) + b"}"
+
+    with pytest.raises(GcovJsonError) as caught:
+        parse_gcov_json_gz(gzip.compress(payload))
+
+    assert caught.value.code == "number_bound"
+
+
 def test_rejects_invalid_gzip_and_trailing_members():
     with pytest.raises(GcovJsonError, match="invalid_gzip"):
         parse_gcov_json_gz(b"\x1f\x8bnot-a-stream")
@@ -265,6 +304,24 @@ def test_enforces_compressed_and_decompressed_bounds():
         parse_gcov_json_gz(payload, max_decompressed_bytes=32)
     with pytest.raises(GcovJsonError, match="invalid_limit"):
         parse_gcov_json_gz(payload, max_compressed_bytes=0)
+    with pytest.raises(GcovJsonError, match="invalid_limit"):
+        parse_gcov_json_gz(payload, max_decompressed_bytes=10**100)
+
+
+def test_path_reader_rejects_symlinks_and_special_files(tmp_path: Path):
+    artifact = tmp_path / "report.gcov.json.gz"
+    artifact.write_bytes(_gzip(_document()))
+    link = tmp_path / "link.gcov.json.gz"
+    link.symlink_to(artifact)
+
+    with pytest.raises(GcovJsonError, match="read_error"):
+        parse_gcov_json_gz(link)
+
+    if hasattr(os, "mkfifo"):
+        fifo = tmp_path / "report.fifo"
+        os.mkfifo(fifo)
+        with pytest.raises(GcovJsonError, match="regular non-symlink"):
+            parse_gcov_json_gz(fifo)
 
 
 def test_enforces_count_bounds_and_rejects_duplicate_file_paths():

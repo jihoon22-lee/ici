@@ -8,9 +8,11 @@ independent makes it useful for both the C++ engine and focused parser tests.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
+import stat
 import zlib
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,6 +30,9 @@ MAX_CALLS_PER_LINE = 1_000_000
 MAX_CONDITIONS_PER_LINE = 1_000_000
 MAX_BLOCK_IDS_PER_LINE = 1_000_000
 MAX_CONDITION_TERMS = 1_000_000
+MAX_PRIME_PATHS_PER_FUNCTION = 1_000_000
+MAX_PRIME_PATH_STEPS = 1_000_000
+MAX_PRIME_PATH_LOCATIONS = 1_000_000
 MAX_STRING_BYTES = 1 * 1024 * 1024
 MAX_JSON_DEPTH = 64
 MAX_JSON_ARRAY_ITEMS = 2_000_000
@@ -78,6 +83,31 @@ class GcovCondition:
 
 
 @dataclass(frozen=True)
+class GcovPrimePathLocation:
+    """Source locations associated with one prime-path basic block."""
+
+    file: str
+    line_numbers: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class GcovPrimePathStep:
+    """One basic-block step in GCC 15 prime-path evidence."""
+
+    block_id: int
+    locations: tuple[GcovPrimePathLocation, ...]
+    edge_kind: str
+
+
+@dataclass(frozen=True)
+class GcovPrimePath:
+    """One uncovered prime path retained from GCC 15 JSON."""
+
+    id: int
+    sequence: tuple[GcovPrimePathStep, ...]
+
+
+@dataclass(frozen=True)
 class GcovFunction:
     """Function execution and source-position data."""
 
@@ -96,6 +126,7 @@ class GcovFunction:
     # coverage score yet.
     total_prime_paths: int | None = None
     covered_prime_paths: int | None = None
+    prime_path_coverage: tuple[GcovPrimePath, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -177,6 +208,9 @@ __all__ = [
     "GcovJsonLine",
     "GcovJsonReport",
     "GcovLine",
+    "GcovPrimePath",
+    "GcovPrimePathLocation",
+    "GcovPrimePathStep",
     "GcovReport",
     "parse_gcov_json",
     "parse_gcov_json_bytes",
@@ -190,9 +224,9 @@ def _fail(code: str, message: str) -> None:
     raise GcovJsonError(message, code=code)
 
 
-def _validate_limit(value: int, name: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-        _fail("invalid_limit", f"{name} must be a positive integer")
+def _validate_limit(value: int, name: str, *, maximum: int) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0 or value > maximum:
+        _fail("invalid_limit", f"{name} must be an integer between 1 and {maximum}")
     return value
 
 
@@ -215,6 +249,16 @@ def _reject_float(value: str) -> object:
     return None  # pragma: no cover - _fail always raises
 
 
+def _bounded_json_integer(value: str) -> int:
+    if len(value.lstrip("-")) > 20:
+        _fail("number_bound", "JSON integer exceeds the supported 64-bit range")
+    try:
+        return int(value)
+    except ValueError as exc:  # pragma: no cover - json already enforces integer grammar
+        _fail("number_type", f"invalid JSON integer: {exc}")
+    return 0  # pragma: no cover - _fail always raises
+
+
 def _decode_json(payload: bytes, *, max_decompressed_bytes: int) -> object:
     if len(payload) > max_decompressed_bytes:
         _fail(
@@ -231,10 +275,11 @@ def _decode_json(payload: bytes, *, max_decompressed_bytes: int) -> object:
             object_pairs_hook=_reject_duplicate_keys,
             parse_constant=_reject_nonfinite,
             parse_float=_reject_float,
+            parse_int=_bounded_json_integer,
         )
     except GcovJsonError:
         raise
-    except (json.JSONDecodeError, RecursionError, UnicodeDecodeError) as exc:
+    except (json.JSONDecodeError, RecursionError, UnicodeDecodeError, ValueError) as exc:
         _fail("invalid_json", f"malformed gcov JSON: {exc}")
     return None  # pragma: no cover - all successful paths return from json.loads
 
@@ -406,6 +451,74 @@ def _parse_condition(value: object, index: int) -> GcovCondition:
     )
 
 
+def _parse_prime_path_location(value: object, context: str) -> GcovPrimePathLocation:
+    item = _object(
+        value,
+        context,
+        required={"file", "line_numbers"},
+        allowed={"file", "line_numbers"},
+    )
+    line_numbers = _array(
+        item["line_numbers"],
+        f"{context}.line_numbers",
+        maximum=MAX_LINES_PER_FILE,
+    )
+    return GcovPrimePathLocation(
+        file=_string(item["file"], f"{context}.file"),
+        line_numbers=tuple(
+            _integer(
+                line_number,
+                f"{context}.line_numbers[{index}]",
+                minimum=1,
+                maximum=MAX_SOURCE_POSITION,
+            )
+            for index, line_number in enumerate(line_numbers)
+        ),
+    )
+
+
+def _parse_prime_path_step(value: object, context: str) -> GcovPrimePathStep:
+    item = _object(
+        value,
+        context,
+        required={"block_id", "locations", "edge_kind"},
+        allowed={"block_id", "locations", "edge_kind"},
+    )
+    locations = _array(
+        item["locations"],
+        f"{context}.locations",
+        maximum=MAX_PRIME_PATH_LOCATIONS,
+    )
+    return GcovPrimePathStep(
+        block_id=_integer(item["block_id"], f"{context}.block_id", maximum=MAX_SOURCE_POSITION),
+        locations=tuple(
+            _parse_prime_path_location(location, f"{context}.locations[{index}]")
+            for index, location in enumerate(locations)
+        ),
+        edge_kind=_string(item["edge_kind"], f"{context}.edge_kind", allow_empty=True),
+    )
+
+
+def _parse_prime_path(value: object, index: int) -> GcovPrimePath:
+    context = f"prime_path[{index}]"
+    item = _object(
+        value,
+        context,
+        required={"id", "sequence"},
+        allowed={"id", "sequence"},
+    )
+    sequence = _array(item["sequence"], f"{context}.sequence", maximum=MAX_PRIME_PATH_STEPS)
+    if not sequence:
+        _fail("missing_data", f"{context}.sequence must not be empty")
+    return GcovPrimePath(
+        id=_integer(item["id"], f"{context}.id", maximum=MAX_SOURCE_POSITION),
+        sequence=tuple(
+            _parse_prime_path_step(step, f"{context}.sequence[{step_index}]")
+            for step_index, step in enumerate(sequence)
+        ),
+    )
+
+
 def _parse_function(value: object, index: int) -> GcovFunction:
     context = f"function[{index}]"
     fields = {
@@ -451,6 +564,7 @@ def _parse_function(value: object, index: int) -> GcovFunction:
         )
     total_prime_paths: int | None = None
     covered_prime_paths: int | None = None
+    prime_path_coverage: tuple[GcovPrimePath, ...] = ()
     if present_prime_fields:
         total_prime_paths = _integer(item["total_prime_paths"], f"{context}.total_prime_paths")
         covered_prime_paths = _integer(
@@ -461,11 +575,22 @@ def _parse_function(value: object, index: int) -> GcovFunction:
                 "count_bound",
                 f"{context}.covered_prime_paths cannot exceed total_prime_paths",
             )
-        _array(
+        prime_paths = _array(
             item["prime_path_coverage"],
             f"{context}.prime_path_coverage",
-            maximum=MAX_JSON_ARRAY_ITEMS,
+            maximum=MAX_PRIME_PATHS_PER_FUNCTION,
         )
+        if len(prime_paths) > total_prime_paths:
+            _fail(
+                "count_bound",
+                f"{context}.prime_path_coverage cannot exceed total_prime_paths",
+            )
+        prime_path_coverage = tuple(
+            _parse_prime_path(path, path_index) for path_index, path in enumerate(prime_paths)
+        )
+        path_ids = [path.id for path in prime_path_coverage]
+        if len(path_ids) != len(set(path_ids)):
+            _fail("duplicate_prime_path", f"{context} contains duplicate prime-path ids")
     return GcovFunction(
         blocks=blocks,
         blocks_executed=blocks_executed,
@@ -480,6 +605,7 @@ def _parse_function(value: object, index: int) -> GcovFunction:
         start_line=start_line,
         total_prime_paths=total_prime_paths,
         covered_prime_paths=covered_prime_paths,
+        prime_path_coverage=prime_path_coverage,
     )
 
 
@@ -549,9 +675,9 @@ def _parse_file(value: object, index: int) -> GcovFile:
         for function_index, function in enumerate(functions_value)
     )
     lines = tuple(_parse_line(line, line_index) for line_index, line in enumerate(lines_value))
-    line_numbers = [line.line_number for line in lines]
-    if len(line_numbers) != len(set(line_numbers)):
-        _fail("duplicate_line", f"{context}.lines contains duplicate line numbers")
+    # GCC emits repeated line numbers for template instantiations and inlined
+    # functions.  Integration merges their execution/branch evidence by
+    # function and block identity; line number alone is not a unique key.
     function_ids = [
         (
             function.name,
@@ -572,14 +698,9 @@ def _parse_file(value: object, index: int) -> GcovFile:
 
 
 def _parse_document(value: object) -> GcovReport:
-    fields = {
-        "current_working_directory",
-        "data_file",
-        "format_version",
-        "gcc_version",
-        "files",
-    }
-    root = _object(value, "root", required=fields, allowed=fields)
+    required = {"data_file", "format_version", "gcc_version", "files"}
+    allowed = required | {"current_working_directory"}
+    root = _object(value, "root", required=required, allowed=allowed)
     files_value = _array(root["files"], "root.files", maximum=MAX_FILES)
     files = tuple(_parse_file(item, index) for index, item in enumerate(files_value))
     paths = [item.file for item in files]
@@ -587,7 +708,9 @@ def _parse_document(value: object) -> GcovReport:
         _fail("duplicate_file", "root.files contains duplicate source paths")
     return GcovReport(
         current_working_directory=_string(
-            root["current_working_directory"], "root.current_working_directory"
+            root.get("current_working_directory", ""),
+            "root.current_working_directory",
+            allow_empty=True,
         ),
         data_file=_string(root["data_file"], "root.data_file"),
         format_version=_format_version(root["format_version"]),
@@ -607,7 +730,11 @@ def parse_gcov_json_bytes(
     :func:`parse_gcov_json_gz` for gcov's normal ``.gcov.json.gz`` artifact.
     """
 
-    _validate_limit(max_decompressed_bytes, "max_decompressed_bytes")
+    _validate_limit(
+        max_decompressed_bytes,
+        "max_decompressed_bytes",
+        maximum=MAX_DECOMPRESSED_BYTES,
+    )
     if not isinstance(payload, (bytes, bytearray, memoryview)):
         _fail("type", "payload must be bytes-like")
     raw = bytes(payload)
@@ -636,20 +763,53 @@ def parse_gcov_json_document(
 
 
 def _read_compressed_file(path: str | os.PathLike[str], max_compressed_bytes: int) -> bytes:
+    descriptor = -1
     try:
         file_path = Path(path)
-        size = file_path.stat().st_size
-        if size > max_compressed_bytes:
+        nofollow = getattr(os, "O_NOFOLLOW", None)
+        if nofollow is None:
+            _fail("read_error", "this platform cannot safely refuse gcov JSON symlinks")
+        flags = os.O_RDONLY | nofollow | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
+        descriptor = os.open(file_path, flags)
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            _fail("read_error", "gcov JSON evidence must be a regular non-symlink file")
+        if before.st_size > max_compressed_bytes:
             _fail(
                 "compressed_limit",
                 f"compressed gcov JSON is larger than {max_compressed_bytes} bytes",
             )
-        with file_path.open("rb") as handle:
-            payload = handle.read(max_compressed_bytes + 1)
+        chunks: list[bytes] = []
+        size = 0
+        while size <= max_compressed_bytes:
+            chunk = os.read(descriptor, min(65_536, max_compressed_bytes + 1 - size))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            size += len(chunk)
+        payload = b"".join(chunks)
+        after = os.fstat(descriptor)
+
+        def signature(info: os.stat_result) -> tuple[int, ...]:
+            return (
+                info.st_dev,
+                info.st_ino,
+                stat.S_IFMT(info.st_mode),
+                info.st_size,
+                info.st_mtime_ns,
+                info.st_ctime_ns,
+            )
+
+        if signature(before) != signature(after):
+            _fail("read_error", "gcov JSON evidence changed while it was read")
     except GcovJsonError:
         raise
     except (OSError, TypeError, ValueError) as exc:
         _fail("read_error", f"cannot read gcov JSON gzip file: {exc}")
+    finally:
+        if descriptor >= 0:
+            with contextlib.suppress(OSError):
+                os.close(descriptor)
     if len(payload) > max_compressed_bytes:
         _fail(
             "compressed_limit",
@@ -700,8 +860,16 @@ def parse_gcov_json_gz(
     or build-tree access is performed here.
     """
 
-    _validate_limit(max_compressed_bytes, "max_compressed_bytes")
-    _validate_limit(max_decompressed_bytes, "max_decompressed_bytes")
+    _validate_limit(
+        max_compressed_bytes,
+        "max_compressed_bytes",
+        maximum=MAX_COMPRESSED_BYTES,
+    )
+    _validate_limit(
+        max_decompressed_bytes,
+        "max_decompressed_bytes",
+        maximum=MAX_DECOMPRESSED_BYTES,
+    )
     if isinstance(source, (bytes, bytearray, memoryview)):
         payload = bytes(source)
         if len(payload) > max_compressed_bytes:
