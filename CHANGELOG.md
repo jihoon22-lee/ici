@@ -9,6 +9,12 @@
 
 ### Added
 
+- **LLVM 18 multi-pair clang-tidy diagnostics:** The strict C++ diagnostic parser now retains one
+  `bugprone-easily-swappable-parameters` primary while LLVM emits multiple bounded empty-note and
+  conversion-note pairs for that range. Malformed or detached empty notes remain atomic parse
+  errors. This fixes a stable `0.10.2` interoperability defect without changing the version or
+  authorizing a release.
+
 - **Flow-sensitive Python resource ownership rules (unreleased language-analysis bundle):**
   Replaced the former unconditional `open()` warning with bounded, intraprocedural AST flow that
   distinguishes context managers, direct `close()`/`aclose()`, aliases, branch exits,

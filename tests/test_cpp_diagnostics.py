@@ -398,6 +398,44 @@ def test_clang_tidy_llvm18_empty_structural_note_keeps_concrete_note(
     )
 
 
+def test_clang_tidy_llvm18_accepts_multiple_conversion_pairs_for_one_range(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    output = (
+        "src/codec.cpp:15:35: warning: 3 adjacent parameters are easily swapped "
+        "[bugprone-easily-swappable-parameters]\n"
+        "src/codec.cpp:15:48: note: the first parameter in the range is 'width'\n"
+        "src/codec.cpp:16:30: note: the last parameter in the range is 'minimum'\n"
+        "src/codec.cpp:15:35: note: \n"
+        "src/codec.cpp:15:55: note: 'size_t &' and 'uint32_t &' may be implicitly "
+        "converted: 'size_t &' -> 'uint32_t &', 'uint32_t &' -> 'size_t &'\n"
+        "src/codec.cpp:15:35: note: \n"
+        "src/codec.cpp:16:15: note: 'size_t &' and 'uint32_t &' may be implicitly "
+        "converted: 'size_t &' -> 'uint32_t &', 'uint32_t &' -> 'size_t &'\n"
+        "src/codec.cpp:15:55: note: after resolving type aliases, the common type is "
+        "'unsigned int &'\n"
+        "16905 warnings generated.\n"
+        "Suppressed 16904 warnings (16904 in non-user code).\n"
+    )
+
+    result = parse_clang_tidy_diagnostics(root, root, output, "")
+
+    assert result.format_name == "clang-tidy-text"
+    assert result.error == ""
+    assert len(result.diagnostics) == 1
+    primary = result.diagnostics[0]
+    assert primary.tool_rule_id == "bugprone-easily-swappable-parameters"
+    assert len(primary.related_diagnostics) == 5
+    assert (
+        sum(
+            "may be implicitly converted" in note.target.message
+            for note in primary.related_diagnostics
+        )
+        == 2
+    )
+
+
 def test_clang_tidy_note_with_conflicting_rule_is_rejected_atomically(
     tmp_path: Path,
 ) -> None:
