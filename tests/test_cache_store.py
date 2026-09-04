@@ -150,6 +150,72 @@ def test_artifact_manifest_is_revalidated_on_store_and_load(tmp_path: Path) -> N
     assert cache.load(key, root) is None
 
 
+def test_v2_artifact_manifest_roundtrips_producer_metadata(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    context = _context(root)
+    descriptor = _descriptor(variant=BuildVariant.RELEASE)
+    key = _key(context, descriptor=descriptor)
+    manifest, _output = _artifact_manifest(root, context.identity)
+    enriched = replace(
+        manifest,
+        artifacts=(
+            replace(
+                manifest.artifacts[0],
+                artifact_id="build/app",
+                target="app",
+                command=("cmake", "--build", "build", "--target", "app"),
+            ),
+        ),
+    )
+    cache = AnalysisCache(tmp_path / "cache")
+
+    assert cache.store(key, _result(artifact_manifests=(enriched,)), root)
+    payload = json.loads(_entry_path(cache, key).read_text(encoding="utf-8"))
+    assert payload["result"]["artifact_manifests"][0]["schema_version"] == "ici.artifacts/v2"
+    assert payload["result"]["artifact_manifests"][0]["artifacts"][0]["id"] == "build/app"
+
+    loaded = cache.load(key, root)
+
+    assert loaded is not None
+    assert loaded.artifact_manifests == (enriched,)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("id", 1),
+        ("target", None),
+        ("command", "cmake"),
+        ("command", ["cmake", 1]),
+    ],
+)
+def test_v2_artifact_metadata_is_typed_and_bounded_on_load(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    context = _context(root)
+    descriptor = _descriptor(variant=BuildVariant.RELEASE)
+    key = _key(context, descriptor=descriptor)
+    manifest, _output = _artifact_manifest(root, context.identity)
+    enriched = replace(
+        manifest,
+        artifacts=(replace(manifest.artifacts[0], artifact_id="build/app"),),
+    )
+    cache = AnalysisCache(tmp_path / "cache")
+    assert cache.store(key, _result(artifact_manifests=(enriched,)), root)
+
+    path = _entry_path(cache, key)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["result"]["artifact_manifests"][0]["artifacts"][0][field] = value
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert cache.load(key, root) is None
+
+
 def test_artifact_manifest_identity_and_variant_mismatches_are_not_cacheable(
     tmp_path: Path,
 ) -> None:

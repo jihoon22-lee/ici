@@ -37,12 +37,23 @@
 > Qt 5.15와 Qt 6 각각 4/4 CTest로 검증됐다. Toolchain capability inventory, compile DB,
 > Python compatibility, ELF/ABI, hybrid integration은 여전히 마스터 계획의 후속 범위다.
 
+> **현재 feature branch 상태 (2026-09-04, 미출시):** 위 문구 이후 구현 범위가 확장됐다.
+> `python_compat`는 package metadata와 선택 wheel의 filename/METADATA/WHEEL/RECORD·entry-point·
+> pure/native 정책을 정적으로 검사하고, `test.quality`는 deep에서 bounded slow/flaky 관측과
+> report/warn 정책을 제공한다. SARIF 2.1.0 출력, 2,000 finding 초과 HTML의 50-row lazy view,
+> 명시적 shell-free Make plan, `ici.artifacts/v2` provenance, readelf 기반 ELF compatibility,
+> typed Python/C++ integration case도 구현됐다. 실행 가능한 registry는 19개 descriptor이며
+> 기본 fast/standard/deep는 12/14/16개, `build`·`binary_compat`·`integration`을 모두 opt-in하면
+> deep dependency closure가 19개가 된다. stable 버전은 `0.10.2`로 유지하며, 이 상태 표기는
+> 최종 전체 CI·toy-project 교차 수용과 release 완료를 의미하지 않는다.
+
 ## 2. 명시적 제외 범위
 
 다음 항목은 현재 로드맵에 포함하지 않는다.
 
 - Rust 전환 또는 Rust 가속기
-- SARIF 생성 및 GitHub Code Scanning 연동
+- SARIF 생성 및 GitHub Code Scanning 연동 (당시 v0.4~v0.6 제외 결정; 현재 feature branch에는
+  deterministic `ici verify --sarif` 출력이 구현됐지만 stable 연동·release 승인은 별도)
 - 여러 OS에서 생성된 결과를 하나로 모으는 매트릭스 집계기
 - 변경분 전용 검사, 기준선 비교, 장기 추세 대시보드
 - 플러그인 SDK 또는 외부 엔진 마켓플레이스
@@ -91,8 +102,9 @@ RHEL 7.9, 8.10, 이후 버전은 각자 별도의 CI 실행 환경으로 취급�
   각각 해당 인터프리터의 `-m` 모듈 호출로 실행한다.
 
 다중 Target Python의 `compileall`, import smoke, package metadata와 `Requires-Python`을
-검증하는 전용 Python 호환성 엔진은 개발 축 B의 미래 기능이다. v0.4.0은 여러 Target Python을
-순회하는 호환성 검증을 제공하지 않는다.
+검증하는 전용 Python 호환성 엔진은 v0.4.0에는 없었지만 현재 feature branch에서 구현됐다.
+선택 wheel은 opt-in 정적 입력이며, package/wheel 검사도 project code import나 wheel build를
+수행하지 않는다. 이 문서의 historical v0.4.0 경계를 현재 stable release 계약으로 읽지 않는다.
 
 ### 3.4 OS 이름 대신 실제 실행 증거 사용
 
@@ -106,14 +118,16 @@ OS별 CI 작업은 독립적으로 실행한다. v0.4.0의 현재 범위는 다�
 - RHEL 7.9, 8.10 또는 이후 OS의 결과는 각각 독립적으로 보며 공통 PASS나 자동 비교를 하지
   않는다.
 
-다음 항목은 현재 기능이 아닌 개발 축 B의 미래 범위다.
+다음 항목은 당시 문서가 작성될 때 현재 기능이 아닌 개발 축 B의 미래 범위였다. 현재 feature
+branch에서 구현된 항목의 상세와 stable acceptance 여부는 위 상태 보정과 마스터 계획을 따른다.
 
 - qmake/Qt, Ninja, CTest 및 `readelf`/`objdump`/`nm`을 포함한 전체 capability inventory
 - compiler target triple과 도구별 최소/최대 버전 정책
 
 프로젝트 정의 기반 CMake/qmake build adapter는 위 미래 목록에서 제외한다. 이 기능은
 `v0.6.0`에서 완료됐으며 [PR #76](https://github.com/jihoon22-lee/ici/pull/76)의 실제
-구현·회귀 근거를 따른다. 전용 toolchain 엔진과 전체 capability 정책은 여전히 미래 범위다.
+구현·회귀 근거를 따른다. 현재 feature branch에서는 실행별 capability snapshot과 support
+matrix가 추가됐지만, 이를 전체 host/toolchain 보증으로 해석하지 않는다.
 
 이 미래 범위의 도구 누락·버전 정책·shadow build 검증은
 [`2026-08-19-ci-validation-features.md`](../superpowers/plans/2026-08-19-ci-validation-features.md)에
@@ -142,18 +156,20 @@ v0.4.0에서는 위 10개 항목을 모두 구현·검증했다. 결과/증거 �
 프로세스 격리, 테스트·커버리지·lint/type·sanitize/dead/exception, build 산출물, 리포터·CLI,
 그리고 CI 읽기/쓰기 권한 분리를 포함한다.
 
-## 5. 개발 축 B: 신규 CI 검증 기능 (v0.6.0에서 adapter 부분 완료)
+## 5. 개발 축 B: 신규 CI 검증 기능 (역사 기준 + 현재 feature branch 상태)
 
-아래 항목 중 CMake/CTest·qmake/Make adapter는 `v0.6.0`에서 구현·출시됐다. 나머지는
-설계와 작업 순서만 정의한 미래 범위이며, 현재 `ici`가 제공하는 기능으로 간주해서는 안 된다.
-v0.4.0의 `verify`에 신규 엔진이나 신규 CLI가 등록되어 있지 않았다는 설명은 당시 릴리스
-경계를 가리킨다.
+아래 항목 중 CMake/CTest·qmake/Make adapter는 `v0.6.0`에서 구현·출시됐고, 이후 현재
+feature branch에서 compile DB 맥락, Python package/wheel, release artifact, ELF/ABI와
+hybrid integration 범위가 구현됐다. 이 문서의 각 항목은 역사적 설계 근거와 현재 구현
+상태를 함께 보존하며, `0.10.2` stable release가 이 feature branch의 최종 수용을 뜻하지는
+않는다.
 
 ### 5.1 Toolchain 검증
 
-향후 Toolchain 엔진이 실행 환경의 컴파일러·빌드 도구·Python을 체계적으로 기록하고 프로젝트가
-요구하는 최소/최대 버전과 필수 도구를 검사한다. 서로 다른 OS의 결과는 각 실행의 JSON/HTML에서
-독립적으로 확인한다.
+현재 실행은 실행 환경의 compiler/build tool/Python capability snapshot과 project support
+matrix를 기록하고, 실제로 호출한 도구의 provenance를 engine evidence로 보존한다. 다만 이는
+모든 host 조합을 보증하는 독립 Toolchain 엔진이나 전역 최소/최대 버전 정책이 아니다. 서로
+다른 OS의 결과는 각 실행의 JSON/HTML에서 독립적으로 확인한다.
 
 ### 5.2 CMake/CTest 및 qmake/Make 빌드 어댑터
 
@@ -168,26 +184,35 @@ build 디렉터리를 사용한다.
 확정된 계약은 다음과 같다.
 
 - **백엔드 선택은 프로젝트 루트의 빌드 디스크립터로 정한다.** `CMakeLists.txt`면 CMake,
-  `*.pro`면 qmake, 둘 다면 CMake, 손으로 쓴 `Makefile`만 있으면 거부를 유지하고, 아무것도
-  없으면 기존 g++ 경로를 쓴다. 지금 A-2가 거부하는 조건이 그대로 어댑터 진입 조건이 된다.
-  어느 백엔드를 왜 골랐는지는 `ToolEvidence`에 남긴다.
+  `*.pro`면 qmake, 둘 다면 CMake, 손으로 쓴 `Makefile`은 `[build.make].enabled = true`와
+  명시적 shell-free argv가 있을 때만 configured Make로 실행하고, 그렇지 않으면 명시적 오류로
+  거부한다. 아무것도 없으면 기존 g++ 경로를 쓴다. 어느 백엔드를 왜 골랐는지는
+  `ToolEvidence`에 남긴다.
 - **`build`와 `test` 엔진은 하나의 어댑터 모듈을 공유한다.** 두 엔진이 모두 configure를
   필요로 하므로 각자 구현하면 플래그가 갈라진다. 엔진마다 규칙이 다른 문제는 B-1과 C-9에서
   이미 두 번 겪었다.
-- **커버리지 계측 플래그는 ici가 주입한다.** 프로젝트가 커버리지 빌드를 선언하도록 요구하지
-  않는다. 설정을 빠뜨리면 측정이 조용히 사라지고, TEM 점수가 그 측정 위에 서 있다.
+- **CMake/qmake 경로의 커버리지 계측 플래그는 ici가 주입한다.** configured Make는 자동
+  주입하지 않으므로 프로젝트가 `coverage_build_argv` 등 variant별 build command를 선언해야
+  한다. 설정을 빠뜨리면 해당 측정이 조용히 사라지지 않고 명시적 오류로 닫힌다.
 - **빌드 도구 부재는 `NOT_APPLICABLE`이 아니라 `ERROR`다.** 대상이 있었는데 측정하지 못한
   것이므로 §3.2에 따라 게이트를 막아야 한다.
 - **`project.cpp_external_build_dirs`는 어댑터 경로에서 무시된다.** 이 설정은 ici가 moc를
   돌리지 못한다는 전제 위에 있었고, 어댑터가 그 전제를 없앤다. g++ 경로에서는 계속 유효하다.
 - **`-std=c++17` 고정이 사라진다.** 표준을 프로젝트의 빌드 정의가 정한다.
+- **Make 명령은 직접 argv로만 전달한다.** `workdir`/shadow는 project root 안에 있고,
+  각 variant의 명령·jobs·token/aggregate 상한과 shell metacharacter 거부를 검증한다.
+  configured Make는 하나의 `shadow_dir`를 variant 간 공유하므로 각 command가 clean/recreate를
+  책임진다. CMake/qmake adapter는 variant별 별도 shadow를 사용한다.
 
-qmake의 테스트 결과 계약(`make check`와 QtTest 출력 형식)은 가장 덜 확정된 부분이며, `diskmap`을
-실제로 qmake로 전환하면서 정한다. §7의 원칙대로 지금 더 정밀하게 적는 것은 추측이 된다.
+qmake의 테스트 결과 계약(`make check`와 QtTest 출력 형식)은 `diskmap` 실측을 바탕으로
+구현됐다. configured Make는 사용자가 선언한 `test_argv` transcript를 읽는다. 각 adapter
+backend는 bounded process evidence와 frozen artifact manifest를 남긴다.
 
 ### 5.3 Compile Commands 검증
 
-`compile_commands.json`을 읽어 다음을 확인한다.
+현재 `compile_db` 엔진은 `compile_commands.json`을 읽어 다음을 확인한다. 이 항목은
+현재 feature branch의 구현 범위이며, 아래 검사가 전체 compiler/toolchain 동작을 보증하는
+것은 아니다.
 
 - 프로젝트 C++ 소스가 컴파일 DB에 포함되는지
 - 컴파일러 경로, C++ 표준, include 경로가 예상과 일치하는지
@@ -196,17 +221,22 @@ qmake의 테스트 결과 계약(`make check`와 QtTest 출력 형식)은 가장
 
 ### 5.4 Python Runtime/Package 호환성 검증
 
-향후 기능은 설정된 각 Target Python에서 다음을 독립적으로 검사한다.
+현재 `python_compat`는 설정된 각 Target Python에서 다음을 독립적으로 검사한다.
 
 - 전체 소스 `compileall`
 - 설정된 모듈 import smoke
 - `Requires-Python`
-- console script 진입점 import
-- wheel 파일을 제공한 경우 wheel tag와 순수 Python 정책
+- console script 진입점의 bounded static resolution
+- wheel 파일을 제공한 경우 wheel filename/tag, metadata/RECORD integrity와 순수 Python 정책
+
+package/wheel 입력은 bounded 정적 검사이며 pyproject와 각 wheel에 위치 target을 남긴다. entry
+point는 bounded AST/read로 callable 선언 또는 imported symbol을 확인하고 단순 assignment를
+callable로 인정하지 않는다. 손상된 wheel은 해당 입력 경로의 failure로 남긴다.
 
 ### 5.5 ELF/ABI 검증
 
-빌드 산출물에 대해 실행 없이 `readelf` 중심으로 다음을 검사한다.
+현재 opt-in `binary_compat`는 build manifest의 산출물에 대해 실행 없이 `readelf` 중심으로
+다음을 검사한다.
 
 - CPU 아키텍처와 ELF class
 - `DT_NEEDED`
@@ -216,9 +246,10 @@ qmake의 테스트 결과 계약(`make check`와 QtTest 출력 형식)은 가장
 
 ### 5.6 C++/Python 혼합 통합 스모크
 
-향후 기능은 사용자가 선언한 argv 기반 시나리오로 Python→C++ 실행, Python 네이티브 모듈 import,
-C++ 실행 파일의 Python 호출을 검증한다. 기대 종료 코드와 stdout/stderr 정규식을 검사하되
-shell은 사용하지 않는다.
+현재 opt-in `integration`은 사용자가 선언한 typed whole-token placeholder와 shell-free argv
+기반 시나리오로 Python→C++ 실행 또는 artifact→Python 호출을 검증한다. 기대 종료 코드와
+stdout/stderr contains/not-contains, timeout, 명시적 환경·output artifact assertion을
+bounded하게 검사하되 shell은 사용하지 않는다.
 
 상세 구현 순서는
 [`2026-08-19-ci-validation-features.md`](../superpowers/plans/2026-08-19-ci-validation-features.md)에
@@ -227,13 +258,14 @@ shell은 사용하지 않는다.
 ## 6. 구현 순서와 릴리스 경계
 
 신규 기능은 기존 기능 보강 계획이 완료된 뒤 별도 승인과 PR로 시작한다. v0.4.0은 신뢰성
-릴리스 경계였고, v0.6.0에서 CMake/qmake adapter가 추가됐다. 나머지 단계는 아직 구현되지
-않았다.
+릴리스 경계였고, v0.6.0에서 CMake/qmake adapter가 추가됐다. 현재 feature branch는 아래
+후속 구현을 포함하지만, stable release와 최종 cross-repository acceptance는 별도 경계다.
 
 1. **완료 — 신뢰성 릴리스 (v0.4.0)**: 개발 축 A 전체 완료
-2. **부분 완료 — 빌드 인식 릴리스 (v0.6.0)**: CMake/qmake build adapter 완료; Toolchain + Compile Commands는 미래
-3. **미래 — 언어 호환성 릴리스**: Python Runtime/Package + ELF/ABI
-4. **미래 — 혼합 프로젝트 릴리스**: 통합 스모크
+2. **부분 완료 — 빌드 인식 릴리스 (v0.6.0 + 후속 구현)**: CMake/qmake adapter와
+   configured Make, compile DB·공통 capability 맥락 구현
+3. **구현 완료·수용 대기 — 언어 호환성 범위**: Python Runtime/Package + ELF/ABI opt-in
+4. **구현 완료·수용 대기 — 혼합 프로젝트 범위**: typed integration smoke
 
 각 릴리스는 Python 3.10 품질 게이트, ruff, 재현 가능한 pyz 빌드, smoke 테스트를 통과해야 한다.
 
@@ -331,7 +363,12 @@ qmake는 §7.3을 쓸 당시 실측 대상이 없었다. `diskmap`을 qmake로 �
 ### 8.2 축 B의 완료 기준
 
 - [x] CMake와 qmake 프로젝트가 실제 빌드 정의로 검증된다 (`v0.6.0`, PR #76).
-- Target Python과 `ici.pyz` 실행 Python이 보고서에서 구분된다.
-- 각 OS의 독립 실행 결과만으로 사용 툴체인과 실패 원인을 재현할 수 있다.
-- C++/Python 혼합 프로젝트의 경계 동작을 CI에서 자동 검증할 수 있다.
-- 신규 엔진은 별도 계획·승인·PR과 동일한 품질 게이트를 통과한다.
+- [x] 루트 Makefile 프로젝트가 명시적 shell-free Make plan으로 검증된다 (현재 feature branch;
+  stable acceptance는 별도).
+- [x] Target Python과 `ici.pyz` 실행 Python이 보고서에서 구분된다.
+- [x] package/wheel·ELF/ABI·typed hybrid integration 경계가 구현되고 위치·실행 증거를 남긴다
+  (현재 feature branch; 최종 toy/CI 수용은 pending).
+- [ ] 각 OS의 독립 실행 결과만으로 사용 툴체인과 실패 원인을 재현할 수 있다 (전체 OS matrix
+  acceptance pending).
+- [ ] 신규 엔진은 별도 계획·승인·PR과 동일한 최종 품질 게이트를 통과한다 (current feature
+  branch implementation exists; final full gate pending).

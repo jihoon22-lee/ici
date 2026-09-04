@@ -25,7 +25,7 @@ from ici.core.models import (
     InspectionTarget,
     ToolEvidence,
 )
-from ici.core.runner import run_process
+from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 from ici.engines.coverage_support import (
     build_coverage_summary,
@@ -39,15 +39,26 @@ from ici.engines.coverage_support import (
 from ici.engines.cpp_text import defines_main
 from ici.engines.test_interpreter import TestInterpreterMixin
 from ici.engines.test_output import TestOutputMixin
+from ici.engines.test_quality import TestQualityMixin
+from ici.engines.test_quality import empty_quality_info as _empty_quality_info
 
 if TYPE_CHECKING:
     from ici.core.context import AnalysisContext
 
 
-class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
+class TestEngine(TestQualityMixin, TestOutputMixin, TestInterpreterMixin, BaseEngine):
     """Executes unit tests and calculates TEM score based on branch & function coverage."""
 
     __test__ = False
+    # Test outcomes, timings, flaky reruns, and mutation availability are
+    # runtime observations rather than source-derived facts.
+    CACHE_REUSE_SAFE = False
+    CACHE_IMPLEMENTATION_MODULES = (
+        "ici.engines.test",
+        "ici.engines.test_interpreter",
+        "ici.engines.test_output",
+        "ici.engines.test_quality",
+    )
 
     def __init__(
         self,
@@ -70,6 +81,9 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
+        self._last_pytest_output = ""
+        self._last_pytest_outcomes: dict[str, str] = {}
+        self._quality_info = _empty_quality_info()
         self._has_run = False
 
     def _reset_run_state(self) -> None:
@@ -89,6 +103,9 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         self._coverage_measured = False
         self._python_test_attempted = False
         self._cpp_test_attempted = False
+        self._last_pytest_output = ""
+        self._last_pytest_outcomes = {}
+        self._quality_info = _empty_quality_info()
 
     def run(self) -> EngineResult:
         t0 = time.time()
@@ -101,11 +118,13 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         proj_type = self.project_type()
         targets: list[InspectionTarget] = []
         passed_tests, total_tests, has_failure = self._run_project_tests(proj_type, targets)
+        quality_info = self._run_deep_test_quality(proj_type, targets)
+        quality_targets = [target for target in targets if self._is_quality_target(target)]
         cfg = self.get_config("test")
         skipped_tests = sum(
             int(target.metrics.get("test_cases", 1))
             for target in targets
-            if target.status == EngineStatus.SKIP
+            if target.status == EngineStatus.SKIP and not self._is_quality_target(target)
         )
         no_tests_executed = total_tests > 0 and not has_failure and skipped_tests >= total_tests
         required_coverage_missing, optional_coverage_warning = self._apply_coverage_policy(cfg)
@@ -117,7 +136,10 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             cfg, optional_coverage_warning, has_failure, tem_score, branch_cov, func_cov
         )
         targets.extend(threshold_breaches)
-        has_warn = bool(threshold_breaches) or optional_coverage_warning
+        quality_warn = quality_info["mode"] == "warn" and any(
+            target.status == EngineStatus.WARN for target in quality_targets
+        )
+        has_warn = bool(threshold_breaches) or optional_coverage_warning or quality_warn
         test_suites = self._build_test_suites(targets)
         overall_status = self._result_status(
             cfg,
@@ -149,13 +171,17 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             no_tests_executed,
             bool(cfg.get("required", True)),
         )
-        return self.create_result(
+        result = self.create_result(
             name="test",
             status=overall_status,
             summary=summary,
             score=tem_score,
             max_score=5.0,
             duration=duration,
+            # Keep quality observations in the established target/evidence
+            # contract. ``findings_for_result`` canonicalizes the native
+            # quality finding and replaces the matching legacy target adapter,
+            # so reporters still receive one issue per observation.
             targets=targets,
             extra={
                 "passed_tests": passed_tests,
@@ -171,6 +197,25 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
                 "coverage_source": self._coverage_source,
                 "coverage_totals": self._coverage_totals,
                 "function_rows": self._function_rows,
+                # Keep quality counters both grouped and flat. The grouped
+                # object is convenient for API consumers; flat fields retain
+                # the established metrics style used by reporters and CI.
+                "test_quality": quality_info,
+                "quality_enabled": bool(quality_info["enabled"]),
+                "repeat_runs": int(quality_info["repeat_runs"]),
+                "repeat_reruns": int(quality_info["repeat_reruns"]),
+                "repeat_cases": int(quality_info["repeat_cases"]),
+                "repeat_unavailable": int(quality_info["repeat_unavailable"]),
+                "repeat_timeouts": int(quality_info["repeat_timeouts"]),
+                "flaky_tests": int(quality_info["flaky_tests"]),
+                "slow_tests": int(quality_info["slow_tests"]),
+                "slow_tests_observed": int(quality_info["slow_tests_observed"]),
+                "slow_test_inventory": list(quality_info["slow_test_inventory"]),
+                "flaky_test_inventory": list(quality_info["flaky_test_inventory"]),
+                "mutation_probes": int(quality_info["mutation_probes"]),
+                "mutation_available": int(quality_info["mutation_available"]),
+                "mutation_unavailable": int(quality_info["mutation_unavailable"]),
+                "mutation_status": str(quality_info["mutation_status"]),
                 "metrics_summary": (
                     f"TEM: {tem_score:.2f}/5.0 ({cov_label}: {cov_shown:.0f}%, "
                     f"Func: {func_cov:.0f}%, PassRate: {pass_rate:.0%})"
@@ -181,6 +226,8 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             tool_evidence=self._tool_evidence,
             artifact_manifests=self._artifact_manifests,
         )
+        result.findings = self._quality_findings(quality_targets)
+        return result
 
     def _run_project_tests(
         self, proj_type: str, targets: list[InspectionTarget]
@@ -222,82 +269,6 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             for message in missing:
                 self._record_tool_error(message)
         return required, optional
-
-    @staticmethod
-    def _threshold_breaches(
-        cfg: dict[str, Any],
-        optional: bool,
-        has_failure: bool,
-        tem: float,
-        branch: float,
-        func: float,
-    ) -> list[InspectionTarget]:
-        """One target per threshold the run came in under.
-
-        This used to return a bare bool, so a run could report FAIL with every
-        test passing, no non-PASS target anywhere, and the deciding number —
-        branch coverage — absent from the summary. The only way to find out why
-        was to open the JSON. Engines are supposed to report what they looked
-        at (AGENTS.md 5-1); a gate decision is no exception.
-        """
-        if optional or has_failure:
-            return []
-        checks = (
-            ("TEM score", tem, float(cfg.get("min_tem_score", 4.0)), "{:.2f}"),
-            ("Branch coverage", branch, float(cfg.get("min_branch_cov", 80.0)), "{:.1f}%"),
-            ("Function coverage", func, float(cfg.get("min_func_cov", 90.0)), "{:.1f}%"),
-        )
-        breaches = []
-        for label, actual, threshold, fmt in checks:
-            if actual >= threshold:
-                continue
-            breaches.append(
-                InspectionTarget(
-                    file_path=".",
-                    start_line=1,
-                    target_name=f"Threshold: {label}",
-                    status=EngineStatus.WARN,
-                    message=(
-                        f"{label} {fmt.format(actual)} is below the configured "
-                        f"minimum {fmt.format(threshold)}"
-                    ),
-                    metrics={"actual": actual, "threshold": threshold},
-                )
-            )
-        return breaches
-
-    @staticmethod
-    def _build_test_suites(targets: list[InspectionTarget]) -> list[dict]:
-        suite_map: dict[str, dict] = {}
-        for target in targets:
-            if target.target_name.startswith("Coverage:"):
-                continue
-            suite = suite_map.setdefault(
-                target.file_path,
-                {
-                    "file": target.file_path,
-                    "passed": 0,
-                    "failed": 0,
-                    "skipped": 0,
-                    "total": 0,
-                    "tests": [],
-                },
-            )
-            case_count = int(target.metrics.get("test_cases", 1))
-            suite["total"] += case_count
-            key = {
-                EngineStatus.PASS: "passed",
-                EngineStatus.SKIP: "skipped",
-            }.get(target.status, "failed")
-            suite[key] += case_count
-            suite["tests"].append(
-                {
-                    "name": target.target_name,
-                    "status": target.status.value,
-                    "message": target.message,
-                }
-            )
-        return list(suite_map.values())
 
     def _result_status(
         self,
@@ -384,7 +355,35 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
 
     def _record_tool(self, name: str, argv: list[str], result) -> None:
         self._tool_evidence.append(
-            ToolEvidence(name=name, path=argv[0], argv=argv, returncode=result.returncode)
+            ToolEvidence(
+                name=name,
+                path=argv[0],
+                argv=argv,
+                returncode=result.returncode,
+                timed_out=bool(getattr(result, "timed_out", False)),
+                truncated=bool(getattr(result, "truncated", False)),
+            )
+        )
+
+    def _run_test_process(
+        self,
+        argv: list[str],
+        *,
+        cwd: Path,
+        env: dict[str, str] | None = None,
+        timeout: float | None = None,
+        max_output_chars: int | None = None,
+    ) -> ProcessResult:
+        """Keep mixin probes on the same patchable, bounded process runner."""
+
+        if env is None and timeout is None and max_output_chars is None:
+            return run_process(argv, cwd=cwd)
+        return run_process(
+            argv,
+            cwd=cwd,
+            env=env,
+            timeout=timeout,
+            max_output_chars=(max_output_chars if max_output_chars is not None else 1_000_000),
         )
 
     def _record_tool_error(self, message: str) -> None:
@@ -429,6 +428,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         cov_run_cmd = self._build_coverage_run_cmd(cov_cmd)
         result = run_process(cov_run_cmd, cwd=self.project_root, env=cov_env)
         self._record_tool("coverage pytest", cov_run_cmd, result)
+        self._remember_pytest_output(result)
         if result.timed_out:
             self._record_tool_error("Coverage test run timed out")
             return 0, 0, False
@@ -466,6 +466,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             "-o",
             "addopts=",
             "-v",
+            *self._pytest_duration_args(),
             "tests",
         ]
 
@@ -511,10 +512,12 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             "-o",
             "addopts=",
             "-v",
+            *self._pytest_duration_args(),
             "tests",
         ]
         result = run_process(command, cwd=self.project_root, env=env)
         self._record_tool("pytest", command, result)
+        self._remember_pytest_output(result)
         if result.timed_out:
             self._record_tool_error("Pytest timed out")
             return 0, 0, False
@@ -568,7 +571,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         return parse_coverage_json(json_path, self.project_root, expected_files)
 
     def _run_cpp_tests(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
-        if select_backend(self.project_root).kind is not None:
+        if select_backend(self.project_root, self.config).kind is not None:
             return self._run_cpp_tests_via_adapter(targets)
         gxx = shutil.which("g++")
         if not gxx:
@@ -640,7 +643,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
             for candidate in sorted(tests_root.rglob("*.cpp")):
                 if candidate.stem == stem:
                     return str(candidate.relative_to(self.project_root))
-        return select_backend(self.project_root).descriptor or "."
+        return select_backend(self.project_root, self.config).descriptor or "."
 
     def _run_cpp_tests_via_adapter(self, targets: list[InspectionTarget]) -> tuple[int, int, bool]:
         self._cpp_coverage_rows = []
@@ -649,6 +652,7 @@ class TestEngine(TestOutputMixin, TestInterpreterMixin, BaseEngine):
         session = adapter_configure(
             self.project_root,
             ConfigureOptions(BuildVariant.COVERAGE),
+            self.config,
         )
         session.analysis_context = self.analysis_context
 

@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 
 from ici.core.capabilities import CapabilityInventory
-from ici.core.context import BuildVariant
+from ici.core.context import ArtifactManifest, ArtifactScope, BuildVariant
 from ici.core.models import EngineResult, EngineStatus
 from ici.core.pipeline import ENGINE_DESCRIPTORS, AnalysisProfile
 from ici.engines import verify as verify_module
@@ -108,12 +108,86 @@ def test_profiles_select_engines_without_changing_shared_rule_configuration(
         BuildVariant.SANITIZE,
     )
     assert deep.analysis_context.requested_variants == (
+        BuildVariant.RELEASE,
         BuildVariant.COVERAGE,
         BuildVariant.SANITIZE,
         BuildVariant.THREAD_SANITIZE,
     )
     line_policies = [config["engines"]["line"] for config in seen_configs["line"]]
     assert line_policies == [line_policies[0]] * 3
+
+
+def test_release_manifest_flows_only_to_declared_build_consumers(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _project(tmp_path)
+    (tmp_path / "build" / "release").mkdir(parents=True)
+    artifact = tmp_path / "build" / "release" / "app"
+    artifact.write_bytes(b"\x7fELF")
+    artifact.chmod(0o755)
+    _isolate_orchestrator(monkeypatch)
+    observed: dict[str, tuple[ArtifactManifest, ...]] = {}
+
+    class ProducingBuild:
+        def __init__(self, project_root, config, analysis_context=None) -> None:
+            del config
+            self.project_root = project_root
+            self.context = analysis_context
+
+        def run(self) -> EngineResult:
+            assert self.context is not None
+            manifest = ArtifactManifest.create(
+                self.project_root,
+                self.project_root / "build" / "release",
+                BuildVariant.RELEASE,
+                self.context.identity,
+                [(Path("app"), ArtifactScope.SHADOW, "executable")],
+                "test.build",
+            )
+            return EngineResult(
+                "build",
+                EngineStatus.PASS,
+                "built",
+                artifact_manifests=(manifest,),
+            )
+
+    def consumer_type(name: str):
+        class ConsumingEngine:
+            def __init__(self, project_root, config, analysis_context=None) -> None:
+                del project_root, config
+                observed[name] = analysis_context.manifests
+
+            def run(self) -> EngineResult:
+                return EngineResult(name, EngineStatus.PASS, "consumed")
+
+        return ConsumingEngine
+
+    monkeypatch.setattr(verify_module, "BuildEngine", ProducingBuild)
+    monkeypatch.setattr(
+        verify_module,
+        "BinaryCompatibilityEngine",
+        consumer_type("binary_compat"),
+    )
+    monkeypatch.setattr(
+        verify_module,
+        "IntegrationEngine",
+        consumer_type("integration"),
+    )
+
+    suite = VerifyOrchestrator(
+        tmp_path,
+        _config("build", "binary_compat", "integration"),
+    ).run_all(profile=AnalysisProfile.DEEP)
+
+    assert [result.engine_name for result in suite.results] == [
+        "build",
+        "binary_compat",
+        "integration",
+    ]
+    assert len(observed["binary_compat"]) == 1
+    assert observed["integration"] == observed["binary_compat"]
+    assert suite.analysis_context is not None
+    assert suite.analysis_context.manifests == observed["binary_compat"]
 
 
 def test_orchestrator_parallelizes_only_read_only_engines_and_preserves_result_order(

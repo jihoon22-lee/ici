@@ -540,7 +540,7 @@
       "minLength": 1,
       "pattern": "^(?!\\.$)(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
     },
-    "artifactRecord": {
+    "artifactRecordV1": {
       "type": "object",
       "additionalProperties": false,
       "required": ["path", "scope", "kind", "sha256", "size", "mode", "producer"],
@@ -549,9 +549,33 @@
         "scope": { "type": "string", "enum": ["project", "shadow"] },
         "kind": { "type": "string", "minLength": 1 },
         "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
-        "size": { "type": "integer", "minimum": 0 },
+        "size": { "type": "integer", "minimum": 0, "maximum": 536870912 },
         "mode": { "type": "integer", "minimum": 0 },
         "producer": { "type": "string", "minLength": 1 }
+      }
+    },
+    "artifactRecordV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path", "scope", "kind", "sha256", "size", "mode", "producer",
+        "id", "target", "command"
+      ],
+      "properties": {
+        "path": { "$ref": "#/$defs/relativePath" },
+        "scope": { "type": "string", "enum": ["project", "shadow"] },
+        "kind": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "size": { "type": "integer", "minimum": 0, "maximum": 536870912 },
+        "mode": { "type": "integer", "minimum": 0 },
+        "producer": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "maxLength": 512 },
+        "target": { "type": "string", "maxLength": 512 },
+        "command": {
+          "type": "array",
+          "maxItems": 32768,
+          "items": { "type": "string", "maxLength": 1048576 }
+        }
       }
     },
     "artifactManifest": {
@@ -562,7 +586,10 @@
         "config_digest", "toolchain_digest", "artifacts"
       ],
       "properties": {
-        "schema_version": { "const": "ici.artifacts/v1" },
+        "schema_version": {
+          "type": "string",
+          "enum": ["ici.artifacts/v1", "ici.artifacts/v2"]
+        },
         "project_root": { "const": "." },
         "shadow_root": {
           "oneOf": [
@@ -582,9 +609,33 @@
         "toolchain_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
         "artifacts": {
           "type": "array",
-          "items": { "$ref": "#/$defs/artifactRecord" }
+          "maxItems": 512
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "schema_version": { "const": "ici.artifacts/v1" } },
+            "required": ["schema_version"]
+          },
+          "then": {
+            "properties": {
+              "artifacts": { "items": { "$ref": "#/$defs/artifactRecordV1" } }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "schema_version": { "const": "ici.artifacts/v2" } },
+            "required": ["schema_version"]
+          },
+          "then": {
+            "properties": {
+              "artifacts": { "items": { "$ref": "#/$defs/artifactRecordV2" } }
+            }
+          }
+        }
+      ]
     },
     "compilationDiagnostic": {
       "type": "object",
@@ -618,7 +669,7 @@
       "required": ["path", "kind", "scope", "exists"],
       "properties": {
         "path": {
-          "oneOf": [
+          "anyOf": [
             { "$ref": "#/$defs/relativePath" },
             { "const": "[external]" }
           ]
@@ -765,7 +816,7 @@
                     "items": { "$ref": "#/$defs/compilationSearchPath" }
                   },
                   "sysroot": {
-                    "oneOf": [
+                    "anyOf": [
                       { "$ref": "#/$defs/relativePath" },
                       { "const": "[external]" },
                       { "const": "" }

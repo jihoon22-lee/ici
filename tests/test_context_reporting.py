@@ -325,6 +325,77 @@ def test_engine_serializer_includes_standalone_artifact_manifest_projection(
     assert str(tmp_path) not in _strings(payload)
 
 
+def test_artifact_manifest_uses_v2_for_producer_metadata_and_emits_typed_fields(
+    tmp_path: Path,
+) -> None:
+    suite, context, manifest = _suite_fixture(tmp_path)
+    enriched = replace(
+        manifest,
+        artifacts=(
+            replace(
+                manifest.artifacts[0],
+                artifact_id="dist/a.bin",
+                target="report_app",
+                command=("cmake", "--build", "build"),
+            ),
+            manifest.artifacts[1],
+            manifest.artifacts[2],
+            manifest.artifacts[3],
+        ),
+    )
+    enriched_context = replace(context, manifests=(enriched,))
+    enriched_suite = replace(
+        suite,
+        analysis_context=enriched_context,
+        results=[replace(suite.results[0], artifact_manifests=(enriched,))],
+    )
+
+    payload = serialize_suite_result(enriched_suite)
+    manifest_payload = payload["analysis_context"]["artifact_manifests"][0]
+
+    assert manifest_payload["schema_version"] == "ici.artifacts/v2"
+    assert manifest_payload["artifacts"][0]["id"] == "dist/a.bin"
+    assert manifest_payload["artifacts"][0]["target"] == "report_app"
+    assert manifest_payload["artifacts"][0]["command"] == ["cmake", "--build", "build"]
+    assert all(
+        {"id", "target", "command"} <= set(record) for record in manifest_payload["artifacts"]
+    )
+
+
+def test_artifact_producer_command_is_redacted_at_json_boundary(tmp_path: Path) -> None:
+    suite, context, manifest = _suite_fixture(tmp_path)
+    command = (
+        "/usr/bin/cmake",
+        "--build",
+        str(tmp_path / "build" / "ici-coverage"),
+        "--client-secret",
+        "super-secret-value",
+    )
+    enriched = replace(
+        manifest,
+        artifacts=(replace(manifest.artifacts[0], artifact_id="dist/a.bin", command=command),),
+    )
+    enriched_context = replace(context, manifests=(enriched,))
+    enriched_suite = replace(
+        suite,
+        analysis_context=enriched_context,
+        results=[replace(suite.results[0], artifact_manifests=(enriched,))],
+    )
+
+    payload = serialize_suite_result(enriched_suite)
+    serialized = payload["analysis_context"]["artifact_manifests"][0]["artifacts"][0]
+
+    assert serialized["command"] == [
+        "cmake",
+        "--build",
+        "build/ici-coverage",
+        "--client-secret",
+        REDACTED,
+    ]
+    assert all(str(tmp_path) not in item for item in serialized["command"])
+    assert all("super-secret-value" not in item for item in serialized["command"])
+
+
 def test_manifest_and_context_report_order_is_deterministic(tmp_path: Path) -> None:
     suite, _context, _manifest_value = _suite_fixture(tmp_path)
 
@@ -568,7 +639,52 @@ def test_checked_in_schema_declares_context_and_manifest_extensions_as_optional(
         "diagnostics",
     } <= set(unit["properties"])
     manifest_definition = schema["$defs"]["artifactManifest"]
-    assert manifest_definition["properties"]["schema_version"] == {"const": "ici.artifacts/v1"}
+    assert manifest_definition["properties"]["schema_version"] == {
+        "type": "string",
+        "enum": ["ici.artifacts/v1", "ici.artifacts/v2"],
+    }
+
+
+def test_checked_in_schema_accepts_v1_and_v2_artifact_manifests(tmp_path: Path) -> None:
+    try:
+        import jsonschema
+    except ImportError:
+        pytest.skip("jsonschema is unavailable")
+
+    schema_path = (
+        Path(__file__).parents[1] / "src" / "ici" / "schemas" / "ici-result-v3.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    suite, context, manifest = _suite_fixture(tmp_path)
+    v1_payload = serialize_suite_result(suite)
+    jsonschema.validate(v1_payload, schema)
+    v1_payload["analysis_context"]["artifact_manifests"][0]["artifacts"][0]["id"] = "invalid"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(v1_payload, schema)
+
+    enriched = replace(
+        manifest,
+        artifacts=tuple(
+            replace(
+                artifact,
+                artifact_id=f"release:{artifact.scope.value}:{artifact.path}",
+                target=Path(artifact.path).name,
+                command=("cmake", "--build", "build"),
+            )
+            for artifact in manifest.artifacts
+        ),
+    )
+    enriched_context = replace(context, manifests=(enriched,))
+    enriched_suite = replace(
+        suite,
+        analysis_context=enriched_context,
+        results=[replace(suite.results[0], artifact_manifests=(enriched,))],
+    )
+    v2_payload = serialize_suite_result(enriched_suite)
+    jsonschema.validate(v2_payload, schema)
+    del v2_payload["analysis_context"]["artifact_manifests"][0]["artifacts"][0]["id"]
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(v2_payload, schema)
 
 
 def test_checked_in_schema_bounds_and_constrains_compilation_context() -> None:
@@ -607,7 +723,7 @@ def test_checked_in_schema_bounds_and_constrains_compilation_context() -> None:
 
     search_path = definitions["compilationSearchPath"]
     assert search_path["properties"]["scope"]["enum"] == ["project", "external"]
-    assert search_path["properties"]["path"]["oneOf"] == [
+    assert search_path["properties"]["path"]["anyOf"] == [
         {"$ref": "#/$defs/relativePath"},
         {"const": "[external]"},
     ]

@@ -11,7 +11,7 @@ import tomli
 from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
-from ici.core.context import ArtifactManifest, BuildVariant
+from ici.core.context import MAX_ARTIFACT_MANIFEST_RECORDS, ArtifactManifest, BuildVariant
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
     EngineResult,
@@ -30,6 +30,7 @@ _ENTRYPOINT_RE = re.compile(
     r"(?P<callable>[A-Za-z_][A-Za-z0-9_]*)$"
 )
 _SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+_MAX_ARTIFACT_DISCOVERY_ENTRIES = 200_000
 
 
 class BuildEngine(BaseEngine):
@@ -38,6 +39,7 @@ class BuildEngine(BaseEngine):
     def run(self) -> EngineResult:
         t0 = time.time()
         base = self.project_root
+        engine_config = self.get_config("build")
         targets: list[InspectionTarget] = []
         self._tool_errors: list[str] = []
         self._tool_evidence: list[ToolEvidence] = []
@@ -101,7 +103,11 @@ class BuildEngine(BaseEngine):
             status = EngineStatus.ERROR
             summary = "; ".join(self._tool_errors[:3])
         elif self._has_fail:
-            status = EngineStatus.FAIL
+            status = self.evaluate_status(
+                True,
+                False,
+                engine_config.get("mode", "pass_warn_fail"),
+            )
             summary = "Build did not produce a complete artifact set"
         else:
             status = EngineStatus.PASS
@@ -126,7 +132,7 @@ class BuildEngine(BaseEngine):
                     else "Build target was not prepared"
                 ),
             },
-            required=True,
+            required=bool(engine_config.get("required", True)),
             evidence=(EvidenceState.NOT_RUN if self._tool_errors else EvidenceState.MEASURED),
             tool_evidence=self._tool_evidence,
             artifact_manifests=self._artifact_manifests,
@@ -385,7 +391,7 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
         bin_dir: Path,
         targets: list[InspectionTarget],
     ) -> None:
-        choice = select_backend(base)
+        choice = select_backend(base, self.config)
         if choice.kind is not None:
             self._build_with_adapter(base, targets)
             return
@@ -393,7 +399,8 @@ exec "$PYTHON" -c 'import importlib, sys; sys.exit(importlib.import_module("{mod
             self._record_error(
                 targets,
                 f"{choice.descriptor or 'A build descriptor'} at the project root has no "
-                "adapter; only CMake and qmake are supported, and generic g++ was not invoked",
+                "configured adapter; CMake, qmake, and explicitly enabled Make are supported, "
+                "and generic g++ was not invoked",
             )
             return
 
@@ -589,7 +596,11 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
         """Delegate configure and build to the project's own build system."""
 
         # No coverage and no sanitizers: these are release artifacts.
-        session = adapter_configure(base, ConfigureOptions(BuildVariant.RELEASE))
+        session = adapter_configure(
+            base,
+            ConfigureOptions(BuildVariant.RELEASE),
+            self.config,
+        )
         session.analysis_context = self.analysis_context
         if not session.configured:
             self._tool_evidence.extend(session.tool_evidence)
@@ -624,7 +635,11 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
         if session.artifact_manifest is not None:
             self._artifact_manifests.append(session.artifact_manifest)
 
-        produced = self._count_adapter_artifacts(session.shadow)
+        produced = (
+            len(session.artifact_manifest.artifacts)
+            if session.artifact_manifest is not None
+            else self._count_adapter_artifacts(session.shadow)
+        )
         self._artifact_count += produced
         targets.append(
             InspectionTarget(
@@ -641,18 +656,39 @@ echo \"[ici Env] Loaded release environment from ${FULL_DIR}\"
         """Count linked outputs in the shadow tree: executables and libraries."""
 
         count = 0
+        visited = 0
+        binary_magics = (
+            b"\x7fELF",
+            b"MZ",
+            b"\xfe\xed\xfa\xce",
+            b"\xfe\xed\xfa\xcf",
+            b"\xce\xfa\xed\xfe",
+            b"\xcf\xfa\xed\xfe",
+        )
         for path in shadow.rglob("*"):
+            visited += 1
+            if visited > _MAX_ARTIFACT_DISCOVERY_ENTRIES:
+                raise ValueError(
+                    f"artifact discovery exceeds the {_MAX_ARTIFACT_DISCOVERY_ENTRIES} entry limit"
+                )
             if not path.is_file() or path.is_symlink():
                 continue
-            if path.suffix in (".a", ".so"):
-                count += 1
+            if path.suffix in (".o", ".obj", ".gcno", ".gcda"):
                 continue
             try:
-                is_elf = os.access(path, os.X_OK) and path.read_bytes()[:4] == b"\x7fELF"
+                with path.open("rb") as stream:
+                    prefix = stream.read(8)
             except OSError:
                 continue
-            if is_elf:
+            is_static_library = path.suffix in (".a", ".lib") and prefix.startswith(b"!<arch>\n")
+            is_linked_binary = any(prefix.startswith(magic) for magic in binary_magics)
+            if is_static_library or is_linked_binary:
                 count += 1
+                if count > MAX_ARTIFACT_MANIFEST_RECORDS:
+                    raise ValueError(
+                        "artifact discovery exceeds the "
+                        f"{MAX_ARTIFACT_MANIFEST_RECORDS} record limit"
+                    )
         return count
 
     def _record_error(

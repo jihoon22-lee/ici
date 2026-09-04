@@ -123,6 +123,66 @@ class _ClangTidyText:
     error: str = ""
 
 
+@dataclass(frozen=True)
+class _ClangTidySummary:
+    generated: int | None
+    suppressed: int
+    header_hint: bool
+    error: str = ""
+
+
+@dataclass
+class _ClangTidyTextState:
+    retained: list[str] = field(default_factory=list)
+    generated: int | None = None
+    suppressed: int = 0
+    header_hint: bool = False
+    structural_parent: re.Match[str] | None = None
+    structural_last_parameter_line: str | None = None
+    pending_empty_note: re.Match[str] | None = None
+
+    def clear_structural_context(self) -> None:
+        self.structural_parent = None
+        self.structural_last_parameter_line = None
+
+    def result(self) -> _ClangTidyText:
+        return _ClangTidyText(
+            retained=tuple(self.retained),
+            generated=self.generated,
+            suppressed=self.suppressed,
+            header_hint=self.header_hint,
+        )
+
+
+def _consume_clang_tidy_summary(
+    line: str,
+    generated: int | None,
+    suppressed: int,
+    header_hint: bool,
+) -> _ClangTidySummary | None:
+    if match := _CLANG_TIDY_GENERATED_RE.fullmatch(line):
+        if generated is not None:
+            return _ClangTidySummary(
+                generated,
+                suppressed,
+                header_hint,
+                "clang-tidy emitted duplicate generated-warning summaries",
+            )
+        return _ClangTidySummary(int(match.group("count")), suppressed, header_hint)
+    if match := _CLANG_TIDY_SUPPRESSED_RE.fullmatch(line):
+        if suppressed:
+            return _ClangTidySummary(
+                generated,
+                suppressed,
+                header_hint,
+                "clang-tidy emitted duplicate suppression summaries",
+            )
+        return _ClangTidySummary(generated, int(match.group("count")), header_hint)
+    if _CLANG_TIDY_HEADER_HINT_RE.fullmatch(line):
+        return _ClangTidySummary(generated, suppressed, True)
+    return None
+
+
 def _bounded_text(value: Any, label: str, *, limit: int = MAX_MESSAGE_CHARS) -> str:
     if not isinstance(value, str) or not value.strip() or "\x00" in value:
         raise ValueError(f"{label} must be a non-empty string")
@@ -788,14 +848,31 @@ def _empty_note_has_expected_parent(
     )
 
 
-def _is_expected_conversion_note(pending: re.Match[str], diagnostic: re.Match[str]) -> bool:
-    return bool(
-        diagnostic.group("kind") == "note"
-        and diagnostic.group("rule") is None
-        and diagnostic.group("file") == pending.group("file")
-        and diagnostic.group("line") == pending.group("line")
-        and _CLANG_TIDY_CONVERSION_NOTE_RE.fullmatch(diagnostic.group("message"))
+def _is_expected_conversion_note(
+    pending: re.Match[str],
+    diagnostic: re.Match[str],
+    parent: re.Match[str] | None,
+    last_parameter_line: str | None,
+) -> bool:
+    if (
+        parent is None
+        or last_parameter_line is None
+        or diagnostic.group("kind") != "note"
+        or diagnostic.group("rule") is not None
+        or diagnostic.group("file") != pending.group("file")
+        or diagnostic.group("file") != parent.group("file")
+        or not _CLANG_TIDY_CONVERSION_NOTE_RE.fullmatch(diagnostic.group("message"))
+    ):
+        return False
+    line_values = (
+        parent.group("line"),
+        diagnostic.group("line"),
+        last_parameter_line,
     )
+    if any(len(value) > 10 for value in line_values):
+        return False
+    first_line, diagnostic_line, last_line = (int(value) for value in line_values)
+    return first_line <= diagnostic_line <= last_line <= MAX_DIAGNOSTIC_LINE
 
 
 def _empty_note_error() -> _ClangTidyText:
@@ -804,78 +881,110 @@ def _empty_note_error() -> _ClangTidyText:
     )
 
 
-def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
-    retained: list[str] = []
-    generated: int | None = None
-    suppressed = 0
-    header_hint = False
-    structural_parent: re.Match[str] | None = None
-    pending_empty_note: re.Match[str] | None = None
-    for raw_line in (stdout + "\n" + stderr).splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        empty_note = _CLANG_TIDY_EMPTY_NOTE_RE.fullmatch(line)
-        if empty_note:
-            if (
-                pending_empty_note
-                or not _bounded_empty_note(empty_note)
-                or not _empty_note_has_expected_parent(empty_note, structural_parent)
-            ):
-                return _empty_note_error()
-            pending_empty_note = empty_note
-            continue
-        diagnostic = _TEXT_DIAGNOSTIC_RE.fullmatch(line)
-        if diagnostic:
-            if pending_empty_note and not _is_expected_conversion_note(
-                pending_empty_note, diagnostic
-            ):
-                return _empty_note_error()
-            if pending_empty_note:
-                pending_empty_note = None
-                structural_parent = None
-            elif diagnostic.group("rule") is not None:
-                structural_parent = diagnostic
-            elif structural_parent and (
-                diagnostic.group("kind") != "note"
-                or diagnostic.group("file") != structural_parent.group("file")
-                or not _CLANG_TIDY_PARAMETER_RANGE_NOTE_RE.fullmatch(diagnostic.group("message"))
-            ):
-                structural_parent = None
-            retained.append(raw_line)
-            continue
-        if _TEXT_CONTEXT_RE.fullmatch(line):
-            retained.append(raw_line)
-            continue
-        if pending_empty_note:
-            return _empty_note_error()
-        if match := _CLANG_TIDY_GENERATED_RE.fullmatch(line):
-            if generated is not None:
-                return _ClangTidyText(
-                    (), error="clang-tidy emitted duplicate generated-warning summaries"
-                )
-            generated = int(match.group("count"))
-            continue
-        if match := _CLANG_TIDY_SUPPRESSED_RE.fullmatch(line):
-            if suppressed:
-                return _ClangTidyText(
-                    (), error="clang-tidy emitted duplicate suppression summaries"
-                )
-            suppressed = int(match.group("count"))
-            continue
-        if _CLANG_TIDY_HEADER_HINT_RE.fullmatch(line):
-            header_hint = True
-            continue
-        structural_parent = None
-        retained.append(raw_line)
-    if pending_empty_note:
-        return _empty_note_error()
-    return _ClangTidyText(
-        retained=tuple(retained),
-        generated=generated,
-        suppressed=suppressed,
-        header_hint=header_hint,
+def _remember_clang_tidy_empty_note(state: _ClangTidyTextState, empty_note: re.Match[str]) -> bool:
+    if (
+        state.pending_empty_note
+        or not _bounded_empty_note(empty_note)
+        or not _empty_note_has_expected_parent(empty_note, state.structural_parent)
+    ):
+        return False
+    state.pending_empty_note = empty_note
+    return True
+
+
+def _is_parameter_range_note(diagnostic: re.Match[str], parent: re.Match[str]) -> bool:
+    return bool(
+        diagnostic.group("kind") == "note"
+        and diagnostic.group("file") == parent.group("file")
+        and _CLANG_TIDY_PARAMETER_RANGE_NOTE_RE.fullmatch(diagnostic.group("message"))
     )
+
+
+def _update_clang_tidy_diagnostic_context(
+    state: _ClangTidyTextState, diagnostic: re.Match[str]
+) -> None:
+    if diagnostic.group("rule") is not None:
+        state.structural_parent = diagnostic
+        state.structural_last_parameter_line = None
+        return
+    parent = state.structural_parent
+    if parent is None:
+        return
+    if not _is_parameter_range_note(diagnostic, parent):
+        state.clear_structural_context()
+        return
+    if diagnostic.group("message").startswith("the last parameter"):
+        state.structural_last_parameter_line = diagnostic.group("line")
+
+
+def _remember_clang_tidy_diagnostic(
+    state: _ClangTidyTextState,
+    diagnostic: re.Match[str],
+    raw_line: str,
+) -> bool:
+    pending = state.pending_empty_note
+    if pending is not None:
+        if not _is_expected_conversion_note(
+            pending,
+            diagnostic,
+            state.structural_parent,
+            state.structural_last_parameter_line,
+        ):
+            return False
+        state.pending_empty_note = None
+        # LLVM 18 can emit one empty structural separator and conversion note
+        # for every convertible pair in a range. Retain the bounded primary
+        # context until a different diagnostic shape ends the group.
+    else:
+        _update_clang_tidy_diagnostic_context(state, diagnostic)
+    state.retained.append(raw_line)
+    return True
+
+
+def _apply_clang_tidy_summary(state: _ClangTidyTextState, summary: _ClangTidySummary) -> str:
+    if summary.error:
+        return summary.error
+    state.clear_structural_context()
+    state.generated = summary.generated
+    state.suppressed = summary.suppressed
+    state.header_hint = summary.header_hint
+    return ""
+
+
+def _consume_clang_tidy_text_line(state: _ClangTidyTextState, raw_line: str) -> str:
+    line = raw_line.strip()
+    if not line:
+        return ""
+    if empty_note := _CLANG_TIDY_EMPTY_NOTE_RE.fullmatch(line):
+        return "" if _remember_clang_tidy_empty_note(state, empty_note) else "empty-note"
+    if diagnostic := _TEXT_DIAGNOSTIC_RE.fullmatch(line):
+        return "" if _remember_clang_tidy_diagnostic(state, diagnostic, raw_line) else "empty-note"
+    if _TEXT_CONTEXT_RE.fullmatch(line):
+        state.retained.append(raw_line)
+        return ""
+    if state.pending_empty_note:
+        return "empty-note"
+    summary = _consume_clang_tidy_summary(
+        line, state.generated, state.suppressed, state.header_hint
+    )
+    if summary is not None:
+        return _apply_clang_tidy_summary(state, summary)
+    state.clear_structural_context()
+    state.retained.append(raw_line)
+    return ""
+
+
+def _split_clang_tidy_text(stdout: str, stderr: str) -> _ClangTidyText:
+    state = _ClangTidyTextState()
+    for raw_line in (stdout + "\n" + stderr).splitlines():
+        error = _consume_clang_tidy_text_line(state, raw_line)
+        if error == "empty-note":
+            return _empty_note_error()
+        if error:
+            return _ClangTidyText((), error=error)
+    if state.pending_empty_note:
+        return _empty_note_error()
+    return state.result()
 
 
 def _normalize_clang_tidy(

@@ -146,7 +146,7 @@ def _run_sanitizer_cases(
 
     monkeypatch.setattr(
         "ici.engines.sanitize.adapter_configure",
-        lambda _root, _options=None: session,
+        lambda _root, _options=None, _config=None: session,
     )
     monkeypatch.setattr("ici.engines.sanitize.adapter_build", lambda _session: True)
     monkeypatch.setattr(
@@ -271,7 +271,7 @@ def test_test_engine_emits_skip_target_and_suite_skip_count_without_failed_case(
     session = _configured_session(tmp_path, suffix="coverage")
     monkeypatch.setattr(
         "ici.engines.test.adapter_configure",
-        lambda _root, _options=None: session,
+        lambda _root, _options=None, _config=None: session,
     )
     monkeypatch.setattr("ici.engines.test.adapter_build", lambda _session: True)
     monkeypatch.setattr(

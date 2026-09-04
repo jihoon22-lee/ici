@@ -7,8 +7,10 @@
 `ici`는 로컬, GitHub Actions, 사내 러너에서 같은 정책·결과 계약을 적용합니다. 결과가
 항상 동일하다는 뜻은 아닙니다. OS, 컴파일러, Python, Ruff/Mypy/pytest 등의 가용성과
 버전은 `doctor` 및 각 엔진의 `ToolEvidence`에 기록되고, 도구 체인이나 소스 환경이
-다르면 실제 결과도 달라질 수 있습니다. 현재 버전은 실행별 시스템 정보와 현재 엔진이 실제로
-확인·호출한 도구의 증거만 기록하며, 전체 툴체인 capability를 자동으로 판정하지 않습니다.
+다르면 실제 결과도 달라질 수 있습니다. 현재 실행은 bounded capability snapshot과 생성된
+support matrix를 공통 맥락으로 사용하고, feature별 외부 도구는 해당 엔진이 실제로 호출한
+경우에만 `ToolEvidence`를 기록합니다. 이 snapshot은 전체 배포 환경의 성공을 보증하지 않으며,
+최종 feature acceptance와 release 결정은 별도 gate입니다.
 
 ## 현재 공개 release evidence
 
@@ -49,11 +51,76 @@ checkout은 `persist-credentials: false`로 설정되어 작업 디렉터리에 
 `Merge Gate` job은 verify, viewer GUI, PR report 게시 결과를 모두 집계합니다. branch
 protection은 개별 job 이름 대신 이 안정적인 최종 체크를 필수로 사용합니다.
 
+### 1.1.2 선택적 release-contract 검증
+
+기본 `standard` CI는 기존 분석 범위를 유지합니다. package/wheel은 모든 profile의
+`python_compat`에서 `wheel_globs`로 opt-in할 수 있습니다. test quality, configured Make,
+ELF ABI, typed integration 검증은 `deep` profile과 해당 정책을 명시적으로 opt-in해야 합니다.
+현재 feature branch의 구현을 설명하는 설정 예시는 다음과 같습니다. 이 문서는 해당 설정의
+최종 CI·toy-project acceptance 또는 stable release를 주장하지 않습니다.
+
+```toml
+[ici]
+profile = "deep"
+
+[engines.python_compat]
+wheel_globs = ["dist/*.whl"]
+wheel_required = true
+wheel_policy = "pure"
+
+[engines.test.quality]
+enabled = true
+mode = "warn"       # report | warn
+repeat_runs = 2      # bounded total runs, maximum 3
+slow_test_threshold = 1.0
+
+[build.make]
+enabled = true
+build_argv = ["make", "all", "-j", "{jobs}"]
+coverage_build_argv = ["make", "coverage", "-j", "{jobs}"]
+sanitize_build_argv = ["make", "sanitize", "-j", "{jobs}"]
+thread_sanitize_build_argv = ["make", "thread-sanitize", "-j", "{jobs}"]
+test_argv = ["make", "check"]
+clean_argv = ["make", "clean"]
+jobs = 2
+
+[engines.build]
+enabled = true
+[engines.binary_compat]
+enabled = true
+required = true
+[engines.integration]
+enabled = true
+required = true
+```
+
+Make 계획과 integration case는 shell-free direct argv/typed whole-token placeholder만
+허용하며 project root 밖 경로와 unbounded output을 거부합니다. Integration은 명시되지 않은
+환경 상속도 거부하지만, build adapter는 toolchain 발견을 위해 CI process 환경을 사용합니다. build가
+발행하는 `ici.artifacts/v2` manifest의 id/target/redacted command provenance는
+`binary_compat`와 `integration`의 입력으로 연결됩니다. PR에서 실행한다면 verify job의
+읽기 전용 권한과 artifact 전달 경계를 유지하고, 권한 있는 publish/comment job이 신뢰되지
+않은 PR 코드를 다시 실행하지 않도록 분리해야 합니다. 위 variant target 이름은 프로젝트의
+실제 Make target으로 바꿔야 합니다. configured Make는 모든 variant가 하나의 `shadow_dir`를
+공유하므로 `clean_argv`와 각 variant build command가 실행 전에 해당 shadow를 정리·재생성해야
+합니다. CMake/qmake adapter는 variant별 별도 shadow를 소유합니다.
+
+test quality 관측은 base test 결과와 별도 target/inventory로 `ici.test.slow-test` 및
+`ici.test.flaky-test` finding을 남깁니다. `mode = "report"`는 정보를 보고서에만 추가하고,
+`mode = "warn"`은 해당 warning을 test engine gate에 반영합니다. mutation 설정은 capability
+probe만 수행하므로 변이 도구가 없다는 이유로 base test gate를 바꾸지 않습니다. Runtime test
+결과와 timing은 cache에서 재사용하지 않으며, `slow_tests_observed`는 capped inventory보다
+먼저 고유 slow row 전체를 셉니다. 비유한·과도하게 긴 duration token은 관측에서 제외됩니다.
+정식 config loader는 malformed mode/mutation selector를 `ConfigError`로 거부하고, 직접 engine
+호출 경계에서만 report/auto로 안전하게 정규화합니다.
+
 PR에서 확인할 수 있는 결과는 다음과 같습니다.
 
 - GitHub Step Summary: 엔진별 상태와 위치 링크
 - GitHub Actions annotations: FAIL/ERROR/WARN/SKIP 위치 진단
 - `ici-verification-report` 아티팩트: `verify_report.json`, `verify_report.html`
+- 선택한 경우 `verify_report.sarif`: 동일 canonical finding을 SARIF 2.1.0으로 전달하는
+  deterministic 결과(100,000 results/10,000 rules 상한)
 - **sticky PR 댓글** (`report-pr` job): HTML 리포트 링크 + 엔진 상세 (아래 1.3)
 
 ### 1.1.1 분석 캐시와 CI 실행
@@ -206,15 +273,20 @@ taxonomy와 Qt lifetime expectation을 포함한 6개 scenario를 모두 수용�
 run `33737405098`에서 8/8 contract를 수용했다. 앞선 category/Qt evidence나 이 TSan evidence는
 다른 feature head에 재사용하지 않는다.
 
-실행 전 toy-projects의 `quality-zoo` 기대값이 포함된 최신 `main` SHA와 ici candidate producer
-artifact의 좌표를 별도로 확인한다. workflow는 네 개의 입력을 모두 요구한다.
+실행 전 toy-projects의 `quality-zoo` 기대값이 포함된 정확한 revision과 ici candidate producer
+artifact의 좌표를 별도로 확인한다. 기본 `toy_revision_mode=main`은 기존처럼 보호된
+toy-projects `main` tip만 허용한다. 아직 병합되지 않은 Quality Zoo 기대값으로 후보를
+검증하려면 `toy_revision_mode=pull_request`와 같은 저장소의 열린 PR 번호를 함께 지정한다.
+workflow는 네 개의 필수 입력과 두 개의 선택 입력을 받는다.
 
 | 입력 | 의미와 검증 |
 |---|---|
 | `ici_target_sha` | candidate가 빌드된 ici `main`의 전체 소문자 40자리 SHA |
 | `candidate_artifact_id` | ici Actions candidate ZIP의 양의 정수 artifact ID |
 | `candidate_archive_sha256` | API에서 내려받은 원본 ZIP의 전체 소문자 64자리 SHA-256 |
-| `toy_target_sha` | 기대값을 포함한 toy-projects `main`의 전체 소문자 40자리 SHA |
+| `toy_target_sha` | 기대값을 포함한 toy-projects `main` 또는 PR head의 전체 소문자 40자리 SHA |
+| `toy_revision_mode` | `main`(기본값) 또는 `pull_request`; revision의 출처를 선택 |
+| `toy_pr_number` | `pull_request` 모드에서만 필요한 toy-projects 열린 PR 번호 |
 
 ici `main`에서 다음처럼 수동 dispatch한다.
 
@@ -226,12 +298,29 @@ gh workflow run candidate-quality-zoo.yml --ref main \
   -f toy_target_sha=<toy-main-sha>
 ```
 
-workflow는 실행 ref가 ici `main`인지, 두 SHA가 각 저장소의 현재 `main`과 일치하는지,
-artifact ID·원본 ZIP digest가 입력과 일치하는지 확인한다. 이어 candidate manifest의 target,
+병합 전 toy PR head를 검증할 때는 PR API 응답에서 번호와 head SHA를 읽어 정확히 넣는다.
+
+```bash
+gh workflow run candidate-quality-zoo.yml --ref main \
+  -f ici_target_sha=<ici-main-sha> \
+  -f candidate_artifact_id=<artifact-id> \
+  -f candidate_archive_sha256=<archive-sha256> \
+  -f toy_revision_mode=pull_request \
+  -f toy_pr_number=<open-toy-pr-number> \
+  -f toy_target_sha=<exact-open-toy-pr-head-sha>
+```
+
+workflow는 실행 ref가 ici `main`인지, `main` 모드에서는 toy SHA가 현재 `main`과 일치하는지,
+`pull_request` 모드에서는 지정한 PR이 아직 열려 있고 병합되지 않았는지 확인한다. 후자의
+경우 base branch가 `main`이고 base/head repository의 전체 이름과 numeric ID가 모두
+`jihoon22-lee/toy-projects`와 일치해야 하며, head SHA도 입력과 정확히 같아야 한다. 따라서
+fork PR은 거부되고, 다른 번호·branch·repository·stale head를 재사용할 수 없다. 두 모드 모두
+canonical toy repository를 검증된 exact SHA로 checkout한다. 이어 candidate manifest의 target,
 candidate run, Merge Gate check/job/run ID와 attempt·URL을 독립 Actions API 응답으로 다시
 검증한다. `candidate_intake`는 먼저 토큰 없이 preflight를 수행하고, 그 결과를 바탕으로
 별도 읽기 전용 API 조회를 한 뒤 provenance를 완전히 검증한다. Quality Zoo 실행은 검증된
-로컬 `ici.pyz` 경로만 사용하며, candidate preflight와 실행 단계에서는
+로컬 `ici.pyz` 경로만 사용하며, 선택한 mode/repository/exact SHA와 PR mode의 번호·repository
+ID는 acceptance artifact의 `toy-revision.json`에 함께 남긴다. Candidate preflight와 실행 단계에서는
 `GH_TOKEN`/`GITHUB_TOKEN`/OIDC·runtime token을 명시적으로 제거한다.
 
 검증된 exact toy revision에 `quality-zoo/candidate-manifest.json`이 있으면 이를 우선
@@ -298,13 +387,24 @@ FAIL/ERROR는 `::error`, WARN/SKIP은 `::warning` annotation으로 변환됩니�
 줄 번호, 메시지는 GitHub workflow command escaping을 거쳐 출력되므로 소스 내용이
 annotation 문법을 깨뜨리지 않습니다.
 
-### 2.3 HTML 아티팩트
+### 2.3 HTML·SARIF 아티팩트
 
 `--html verify_report.html`은 외부 CDN 없이 동작하는 기본 10개 탭 HTML을 생성하며, baseline을
 함께 비교하면 `Baseline Delta` 탭이 추가됩니다. `verify` job 자체는 파일을 아티팩트로
 업로드만 하고 브랜치나 PR 댓글에 직접 게시하지 않습니다 — sticky
 댓글 게시는 별도 권한을 가진 `report-pr` job이 그 아티팩트를 소비해 수행합니다 (1.2 참조).
 다운로드한 HTML은 폐쇄망에서도 로컬로 열 수 있습니다.
+
+`--sarif <path>`는 JSON/HTML과 같은 canonical v3 finding inventory에서 SARIF 2.1.0을
+결정적으로 생성합니다. rule/result 순서, percent-encoded source-relative URI, severity, `ici/v3`
+fingerprint, related location, suppression 및 baseline 상태를 보존합니다. `--report`를 함께
+요청한 경우에만 원본 전체 inventory가 별도 `ici.result/v3` JSON에도 남으며, SARIF 상한
+(100,000 result·10,000 rule)을 넘으면 결과를 자르지 않고 serialization error로 실패합니다.
+
+Actionable finding이 2,000개를 초과하는 HTML은 초기 server-render row를 50개로 제한하고,
+`ici.html-report/v1` inline JSON을 browser가 50개 단위로 검색·페이지네이션합니다. embedded JSON
+64 MiB 상한을 넘으면 partial HTML을 게시하지 않고 실패합니다. 이 lazy hydration은 표시 비용만
+줄이며 JSON/HTML inventory의 finding 개수를 줄이지 않습니다.
 
 ### 2.4 CI baseline/delta gate
 
@@ -397,31 +497,38 @@ publish 대상의 Pages 설정, 브랜치 정책, 토큰 범위는 조직 정책
   보관합니다. `doctor`는 현재 구현에 포함된 git, gcc, g++, clang, clang-format, make, cmake,
   ruff, mypy, pytest, uv를 확인하고, 각 엔진은 실제로 호출한 도구의 경로·argv·버전·종료
   상태를 기록합니다.
-- qmake/Qt·Ninja·binutils 전체 capability inventory와 도구별 버전 정책은 아직 별도
-  capability 계약이 아니다. 반면 프로젝트 정의 기반 CMake/qmake build adapter는
-  `v0.6.0`에서 지원하며 `build`·`test`·`sanitize` 엔진이 실제 CMake/CTest 또는 qmake/Make
-  경로를 사용한다([adapter 구현 PR #76](https://github.com/jihoon22-lee/ici/pull/76)).
-  adapter의 실행 증거는 해당 프로젝트의 `ici verify` 결과에서 확인하고, 전체 toolchain
-  inventory를 자동 판정한다고 가정하지 않는다. 남은 toolchain·compile DB·Python
-  compatibility·ELF/ABI·hybrid 범위는
-  [`2026-08-19-ci-validation-features.md`](superpowers/plans/2026-08-19-ci-validation-features.md)의
-  역사 설계와 [마스터 계획](superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md)
-  I2·I3·I5·I7을 따른다.
+- capability snapshot은 qmake/Qt·Ninja·binutils를 무조건 설치하거나 모든 host 조합을
+  보증하는 목록이 아니다. support matrix와 각 엔진의 실제 `ToolEvidence`를 기준으로
+  적용 가능 여부와 fallback을 확인한다. 프로젝트 정의 기반 CMake/qmake adapter는
+  `v0.6.0`부터 지원하며, 현재 feature branch는 root Makefile을 `[build.make]` 설정으로
+  명시적으로 실행하는 shell-free Make backend도 제공한다. `build`·`test`·`sanitize`는
+  CMake/CTest, qmake/Make 또는 configured Make 경로를 사용하며, 결과에는 backend·argv·variant
+  evidence가 남는다.
+- 현재 feature branch에는 package/wheel 정적 계약, deep test-quality report/warn 관측,
+  deterministic SARIF, 대형 HTML lazy rendering, `ici.artifacts/v2` provenance, readelf 기반
+  ELF/ABI 정책, typed Python/C++ integration contract도 구현되어 있다. package/wheel은
+  import/build 없이 검사하고, binary compatibility는 binary를 실행하지 않으며, integration은
+  shell-free bounded case만 실행한다. 이 문서의 feature 설명은 구현 범위이며, 최종 cross-repo
+  toy acceptance·전체 CI gate·stable release 근거로 해석하지 않는다.
 
 ### 4.2 Python 런타임
 
 시스템 기본 `python3`가 구버전이어도 `scripts/launcher.sh`가 `ICI_PYTHON` 또는 설치된
 Python 3.10 이상 후보를 탐색합니다. 폐쇄망 배포 전에는 대상 OS에서 실행 가능한 Python
-인터프리터와 pure-Python wheel을 준비하고 `scripts/smoke.sh`로 확인합니다.
+인터프리터와 pure-Python wheel을 준비하고 `scripts/smoke.sh`로 확인합니다. 프로젝트 wheel을
+검사하려면 `python_compat.wheel_globs`를 명시하고, `wheel_policy = "pure"`를 선택하면 native
+extension member가 실패합니다. wheel의 RECORD hash/size와 package/entry-point identity도
+bounded하게 확인되며 wheel을 ici가 만들거나 추출하지는 않습니다.
 
 ### 4.3 도구 실행 증거
 
-현재 기능은 모든 도구를 일괄 검사하지 않는다. 기존 엔진이 `gcc/g++`, `ruff`, `mypy`,
+기능별로 필요한 도구만 bounded probe/실행하며 모든 도구를 무조건 검사하지 않는다. 엔진이
+`gcc/g++`, `clang`, `clang-tidy`, `clazy`, `cmake`, `qmake`, `make`, `readelf`, `ruff`, `mypy`,
 `pytest`, `coverage`, `gcov` 등을 실제로 호출한 경우에만 실행 증거를 남기며, 해당 엔진의
-필수/선택 정책에 따라 누락·실패를 `SKIP`, `WARN`, `FAIL`, `ERROR`로 구분한다. qmake나
-binutils capability를 현재 `ici`가 자동 판정한다고 해석해서는 안 된다. 각 실행의 상태와
-함께 실제 도구 경로·버전·argv를 확인하고, 전체 toolchain 정책이 필요하면 미래 계획을
-별도 PR로 진행한다.
+필수/선택 정책에 따라 누락·실패를 `SKIP`, `WARN`, `FAIL`, `ERROR`로 구분한다. qmake/Make와
+binutils가 설치됐다는 사실만으로 모든 project target을 검증했다고 해석해서는 안 된다. 각
+실행의 상태와 함께 실제 도구 경로·버전·argv·timeout/truncation을 확인하고, feature branch의
+최종 acceptance와 release 판단은 별도 gate에서 수행한다.
 
 ---
 

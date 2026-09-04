@@ -65,6 +65,17 @@ class WorkflowJobVerification:
     html_url: str
 
 
+@dataclass(frozen=True)
+class ToyPullRequestVerification:
+    """Exact open same-repository toy-projects pull-request identity."""
+
+    number: int
+    target_sha: str
+    repository: str
+    repository_id: int
+    base_branch: str
+
+
 def _bounded_int(raw: str) -> int:
     if len(raw.lstrip("-")) > 19:
         raise ValueError("JSON integer exceeds 19 decimal digits")
@@ -410,8 +421,8 @@ def verify_workflow_job(
         "run_id": (run_id, "workflow job run ID"),
         "run_attempt": (run_attempt, "workflow job run attempt"),
     }
-    for field, (wanted, label) in identifiers.items():
-        if _positive_id(value.get(field), label) != wanted:
+    for field, (expected_id, label) in identifiers.items():
+        if _positive_id(value.get(field), label) != expected_id:
             raise CandidateMergeGateError(f"{label} does not match")
     expected = {
         "name": "Merge Gate",
@@ -421,10 +432,10 @@ def verify_workflow_job(
         "status": "completed",
         "conclusion": "success",
     }
-    for field, wanted in expected.items():
-        if value.get(field) != wanted:
+    for field, expected_value in expected.items():
+        if value.get(field) != expected_value:
             raise CandidateMergeGateError(
-                f"workflow job {field} mismatch: {value.get(field)!r} != {wanted!r}"
+                f"workflow job {field} mismatch: {value.get(field)!r} != {expected_value!r}"
             )
 
     html_url = f"https://github.com/{repository}/actions/runs/{run_id}/job/{job_id}"
@@ -437,10 +448,63 @@ def verify_workflow_job(
         "run_url": run_url,
         "check_run_url": check_run_url,
     }
-    for field, wanted in expected_urls.items():
-        if value.get(field) != wanted:
+    for field, expected_url in expected_urls.items():
+        if value.get(field) != expected_url:
             raise CandidateMergeGateError(f"workflow job {field} is not canonical")
     return WorkflowJobVerification(check_run_id, job_id, run_id, run_attempt, html_url)
+
+
+def verify_toy_pull_request(
+    path: Path,
+    expected_number: int,
+    target_sha: str,
+    repository: str,
+) -> ToyPullRequestVerification:
+    """Verify an exact open, same-repository toy pull-request head.
+
+    The candidate Quality Zoo workflow checks out the canonical repository at
+    ``target_sha``.  This response audit binds that checkout to one still-open
+    PR targeting ``main`` and rejects fork heads, stale numbers, and mutable
+    refs.  The API response is parsed through the same bounded duplicate-key
+    safe reader used by the Merge Gate provenance checks.
+    """
+
+    _validate_sha(target_sha)
+    _validate_repository(repository)
+    number = _positive_id(expected_number, "expected pull request number")
+    value = _read_json(path, "toy pull-request response")
+    if not isinstance(value, dict):
+        raise CandidateMergeGateError("toy pull-request response must be an object")
+    if _positive_id(value.get("number"), "pull request number") != number:
+        raise CandidateMergeGateError("pull request number does not match")
+    if value.get("state") != "open":
+        raise CandidateMergeGateError("toy pull request is not open")
+    if "merged_at" not in value or value.get("merged_at") is not None:
+        raise CandidateMergeGateError("toy pull request is merged or has no merged_at field")
+
+    base = value.get("base")
+    head = value.get("head")
+    if not isinstance(base, dict) or not isinstance(head, dict):
+        raise CandidateMergeGateError("toy pull request base and head must be objects")
+    if base.get("ref") != "main":
+        raise CandidateMergeGateError("toy pull request base branch must be main")
+    if head.get("sha") != target_sha:
+        raise CandidateMergeGateError("toy pull request head SHA does not match")
+
+    base_repo = base.get("repo")
+    head_repo = head.get("repo")
+    if not isinstance(base_repo, dict) or not isinstance(head_repo, dict):
+        raise CandidateMergeGateError("toy pull request base and head repositories are required")
+    if base_repo.get("full_name") != repository:
+        raise CandidateMergeGateError("toy pull request base repository does not match")
+    if head_repo.get("full_name") != repository:
+        raise CandidateMergeGateError("toy pull request head repository does not match")
+    base_id = _positive_id(base_repo.get("id"), "base repository ID")
+    head_id = _positive_id(head_repo.get("id"), "head repository ID")
+    if head_id != base_id:
+        raise CandidateMergeGateError("toy pull request head repository ID does not match")
+
+    return ToyPullRequestVerification(number, target_sha, repository, base_id, "main")
 
 
 def _cli_id(raw: str) -> int:
@@ -478,7 +542,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     verify_job.add_argument("workflow_job_id", type=_cli_id)
     verify_job.add_argument("workflow_run_id", type=_cli_id)
     verify_job.add_argument("workflow_run_attempt", type=_cli_id)
+    verify_toy_pr = commands.add_parser("verify-toy-pr")
+    verify_toy_pr.add_argument("pull_request_json", type=Path)
+    verify_toy_pr.add_argument("pull_request_number", type=_cli_id)
+    verify_toy_pr.add_argument("head_sha")
+    verify_toy_pr.add_argument("repository")
     args = parser.parse_args(argv)
+    payload: dict[str, object]
     try:
         if args.command == "page-count":
             payload = {"page_count": required_check_pages(args.first_check_runs_page)}
@@ -511,6 +581,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "html_url": verified.html_url,
                 "run_attempt": verified.run_attempt,
                 "workflow_run_id": verified.workflow_run_id,
+            }
+        elif args.command == "verify-toy-pr":
+            verified_toy_pr = verify_toy_pull_request(
+                args.pull_request_json,
+                args.pull_request_number,
+                args.head_sha,
+                args.repository,
+            )
+            payload = {
+                "base_branch": verified_toy_pr.base_branch,
+                "number": verified_toy_pr.number,
+                "repository": verified_toy_pr.repository,
+                "repository_id": verified_toy_pr.repository_id,
+                "revision_mode": "pull_request",
+                "schema_version": "ici.quality-zoo-toy-revision/v1",
+                "target_sha": verified_toy_pr.target_sha,
             }
         else:
             verified_job = verify_workflow_job(

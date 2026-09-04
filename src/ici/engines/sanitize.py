@@ -248,7 +248,7 @@ class SanitizeEngine(BaseEngine):
             )
             return False
 
-        if select_backend(self.project_root).kind is not None:
+        if select_backend(self.project_root, self.config).kind is not None:
             return self._run_cpp_sanitizer_via_adapter(targets)
 
         gxx = shutil.which("g++")
@@ -412,6 +412,7 @@ class SanitizeEngine(BaseEngine):
         session = adapter_configure(
             self.project_root,
             ConfigureOptions(self.BUILD_VARIANT),
+            self.config,
         )
         session.analysis_context = self.analysis_context
         self._tool_evidence.extend(session.tool_evidence)

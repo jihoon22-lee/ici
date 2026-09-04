@@ -35,7 +35,7 @@ def discover_export_project(root: Path, config: dict[str, Any]) -> ProjectModel:
     """Discover only export metadata, without subprocesses or recursive source scans."""
 
     canonical = root.resolve(strict=False)
-    backend = select_backend(canonical)
+    backend = select_backend(canonical, config)
     name, version = read_project_metadata(canonical, allow_git=False)
     return ProjectModel(
         root=canonical,

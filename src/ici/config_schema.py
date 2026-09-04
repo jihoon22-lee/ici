@@ -5,18 +5,44 @@ library.  Keeping the schema in Python makes the zipapp self-contained and
 lets us report the exact dotted key that caused a configuration error.
 """
 
-import math
-import os
-import re
-from pathlib import Path, PureWindowsPath
 from typing import Any
 
+from ici._analysis_config import (
+    _validate_binary_compat,
+    _validate_build_make,
+    _validate_integration,
+    _validate_python_compat,
+)
+from ici._config_paths import validate_config_paths
+from ici._config_validation import (
+    MODES,
+    ConfigError,
+    _error,
+    _reject_unknown,
+    _require_bool,
+    _require_int,
+    _require_number,
+    _require_string,
+    _require_string_list,
+    _validate_bounded_argv,
+    _validate_common_engine,
+    resolve_project_path,
+)
 
-class ConfigError(ValueError):
-    """Raised when an ici configuration is malformed or violates policy."""
+__all__ = [
+    "ANALYSIS_PROFILES",
+    "CLANG_TIDY_MODES",
+    "CLAZY_MODES",
+    "CLAZY_PROFILES",
+    "MODES",
+    "MYPY_PROFILES",
+    "PROJECT_TYPES",
+    "ConfigError",
+    "resolve_project_path",
+    "validate_config",
+    "validate_config_paths",
+]
 
-
-MODES = frozenset({"pass_warn_fail", "pass_fail", "pass_warn"})
 PROJECT_TYPES = frozenset({"python", "cpp", "hybrid"})
 ANALYSIS_PROFILES = frozenset({"fast", "standard", "deep"})
 CLANG_TIDY_MODES = frozenset({"auto", "required", "off"})
@@ -50,9 +76,24 @@ _PROJECT_KEYS = frozenset(
         "compile_database",
     }
 )
-_BUILD_KEYS = frozenset({"python"})
+_BUILD_KEYS = frozenset({"python", "make"})
 _BUILD_PYTHON_KEYS = frozenset({"entrypoint"})
 _DOCTOR_KEYS = frozenset({"required_tools"})
+_TEST_QUALITY_KEYS = frozenset(
+    {
+        "enabled",
+        "mode",
+        "repeat_runs",
+        "repeat",
+        "timeout",
+        "slow_test_threshold",
+        "slow_threshold",
+        "max_slow_tests",
+        "mutation",
+    }
+)
+_MUTATION_KEYS = frozenset({"enabled", "tool", "command"})
+_MUTATION_TOOLS = frozenset({"auto", "mutmut", "cosmic-ray", "mutpy"})
 _COMMON_ENGINE_KEYS = frozenset({"enabled", "mode", "required"})
 _ENGINE_KEYS = {
     "line": _COMMON_ENGINE_KEYS
@@ -87,12 +128,28 @@ _ENGINE_KEYS = {
             "min_func_cov",
             "coverage_required",
             "python",
+            "quality",
         }
     ),
     "type": _COMMON_ENGINE_KEYS
     | frozenset({"fail_on_error", "warn_on_missing_annotation", "mypy_required", "mypy_profile"}),
     "python_compat": _COMMON_ENGINE_KEYS
-    | frozenset({"interpreters", "required_interpreters", "imports", "target_version"}),
+    | frozenset(
+        {
+            "interpreters",
+            "required_interpreters",
+            "imports",
+            "target_version",
+            "wheel_globs",
+            "wheel_required",
+            "wheel_policy",
+            "check_entrypoints",
+            "check_package_files",
+            "max_wheels",
+            "max_wheel_members",
+            "max_wheel_uncompressed_bytes",
+        }
+    ),
     "complexity": _COMMON_ENGINE_KEYS
     | frozenset({"warn_cc", "fail_cc", "warn_nesting", "cpp_boundaries"}),
     "sanitize": _COMMON_ENGINE_KEYS,
@@ -115,90 +172,27 @@ _ENGINE_KEYS = {
     "cognitive": _COMMON_ENGINE_KEYS | frozenset({"warn", "fail", "warn_nesting"}),
     "security": _COMMON_ENGINE_KEYS | frozenset({"scan_tests", "secret_name_allowlist"}),
     "resource": _COMMON_ENGINE_KEYS,
+    "build": _COMMON_ENGINE_KEYS,
+    "binary_compat": _COMMON_ENGINE_KEYS
+    | frozenset(
+        {
+            "artifacts",
+            "expected_class",
+            "expected_machine",
+            "max_glibc",
+            "max_glibcxx",
+            "max_cxxabi",
+            "forbid_absolute_rpath",
+            "forbidden_needed",
+            "allowed_needed",
+            "forbid_build_paths",
+            "allow_non_elf",
+            "max_artifacts",
+        }
+    ),
+    "integration": _COMMON_ENGINE_KEYS
+    | frozenset({"max_cases", "max_output_bytes", "python_targets", "cases"}),
 }
-
-
-def resolve_project_path(base: Path, value: str) -> Path:
-    """Resolve a project-relative setting and require it to stay in ``base``."""
-
-    from ici.core.path_utils import resolve_project_path as _core_resolve
-
-    try:
-        return _core_resolve(base, value)
-    except ValueError as err:
-        raise ConfigError(str(err)) from err
-
-
-def _error(path: str, message: str) -> ConfigError:
-    return ConfigError(f"{path} {message}" if path else message)
-
-
-def _reject_unknown(table: dict[str, Any], allowed: set[str] | frozenset[str], path: str) -> None:
-    for key in table:
-        if key not in allowed:
-            raise _error(f"{path}.{key}" if path else str(key), "is an unknown configuration key")
-
-
-def _require_bool(value: Any, path: str) -> None:
-    if not isinstance(value, bool):
-        raise _error(path, "must be a boolean")
-
-
-def _require_string(value: Any, path: str, *, non_empty: bool = False) -> None:
-    if not isinstance(value, str) or (non_empty and not value.strip()):
-        suffix = " non-empty" if non_empty else ""
-        raise _error(path, f"must be a{suffix} string")
-
-
-def _require_int(value: Any, path: str, *, minimum: int | None = None) -> None:
-    if not isinstance(value, int) or isinstance(value, bool):
-        raise _error(path, "must be an integer")
-    if minimum is not None and value < minimum:
-        raise _error(path, f"must be greater than or equal to {minimum}")
-
-
-def _require_number(
-    value: Any,
-    path: str,
-    *,
-    minimum: float | None = None,
-    maximum: float | None = None,
-) -> None:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise _error(path, "must be a number")
-    try:
-        numeric_value = float(value)
-    except (OverflowError, TypeError, ValueError) as err:
-        raise _error(path, "must be a finite number") from err
-    if not math.isfinite(numeric_value):
-        raise _error(path, "must be finite")
-    if minimum is not None and numeric_value < minimum:
-        raise _error(path, f"must be greater than or equal to {minimum:g}")
-    if maximum is not None and numeric_value > maximum:
-        raise _error(path, f"must be less than or equal to {maximum:g}")
-
-
-def _require_string_list(value: Any, path: str) -> None:
-    if not isinstance(value, list) or any(not isinstance(item, str) or not item for item in value):
-        raise _error(path, "must be a list of non-empty strings")
-
-
-def _validate_mode(table: dict[str, Any], path: str) -> None:
-    if "mode" not in table:
-        return
-    mode = table["mode"]
-    _require_string(mode, f"{path}.mode", non_empty=True)
-    if mode not in MODES:
-        allowed = ", ".join(sorted(MODES))
-        raise _error(f"{path}.mode", f"must be one of: {allowed}")
-
-
-def _validate_common_engine(table: dict[str, Any], path: str) -> None:
-    if "enabled" in table:
-        _require_bool(table["enabled"], f"{path}.enabled")
-    if "required" in table:
-        _require_bool(table["required"], f"{path}.required")
-    _validate_mode(table, path)
 
 
 def _validate_line(table: dict[str, Any], path: str) -> None:
@@ -235,6 +229,61 @@ def _validate_test(table: dict[str, Any], path: str) -> None:
         _require_number(table["min_branch_cov"], f"{path}.min_branch_cov", minimum=0, maximum=100)
     if "min_func_cov" in table:
         _require_number(table["min_func_cov"], f"{path}.min_func_cov", minimum=0, maximum=100)
+    if "quality" in table:
+        _validate_test_quality(table["quality"], f"{path}.quality")
+
+
+def _validate_test_quality(table: Any, path: str) -> None:
+    """Validate bounded deep-profile test-quality observations."""
+
+    if not isinstance(table, dict):
+        raise _error(path, "must be a table")
+    _reject_unknown(table, _TEST_QUALITY_KEYS, path)
+    if "enabled" in table:
+        _require_bool(table["enabled"], f"{path}.enabled")
+    if "mode" in table:
+        mode_path = f"{path}.mode"
+        _require_string(table["mode"], mode_path, non_empty=True)
+        if table["mode"] not in {"report", "warn"}:
+            raise _error(mode_path, "must be one of: report, warn")
+    for key in ("repeat_runs", "repeat"):
+        if key in table:
+            _require_int(table[key], f"{path}.{key}", minimum=1)
+            if table[key] > 3:
+                raise _error(f"{path}.{key}", "must be less than or equal to 3 total runs")
+    if "repeat_runs" in table and "repeat" in table:
+        raise _error(path, "must define only one of repeat_runs or repeat")
+    if "timeout" in table:
+        _require_number(table["timeout"], f"{path}.timeout", minimum=0.1, maximum=3600)
+    for key in ("slow_test_threshold", "slow_threshold"):
+        if key in table:
+            _require_number(table[key], f"{path}.{key}", minimum=0, maximum=86400)
+    if "slow_test_threshold" in table and "slow_threshold" in table:
+        raise _error(path, "must define only one of slow_test_threshold or slow_threshold")
+    if "max_slow_tests" in table:
+        _require_int(table["max_slow_tests"], f"{path}.max_slow_tests", minimum=1)
+        if table["max_slow_tests"] > 1000:
+            raise _error(f"{path}.max_slow_tests", "must be less than or equal to 1000")
+    if "mutation" not in table:
+        return
+
+    mutation = table["mutation"]
+    if isinstance(mutation, bool):
+        return
+    mutation_path = f"{path}.mutation"
+    if not isinstance(mutation, dict):
+        raise _error(mutation_path, "must be a boolean or table")
+    _reject_unknown(mutation, _MUTATION_KEYS, mutation_path)
+    if "enabled" in mutation:
+        _require_bool(mutation["enabled"], f"{mutation_path}.enabled")
+    if "tool" in mutation:
+        tool_path = f"{mutation_path}.tool"
+        _require_string(mutation["tool"], tool_path, non_empty=True)
+        if mutation["tool"] not in _MUTATION_TOOLS:
+            allowed = ", ".join(sorted(_MUTATION_TOOLS))
+            raise _error(tool_path, f"must be one of: {allowed}")
+    if "command" in mutation:
+        _validate_bounded_argv(mutation["command"], f"{mutation_path}.command")
 
 
 def _validate_type(table: dict[str, Any], path: str) -> None:
@@ -386,14 +435,15 @@ def _validate_build(table: Any) -> None:
     if not isinstance(table, dict):
         raise _error(path, "must be a table")
     _reject_unknown(table, _BUILD_KEYS, path)
-    if "python" not in table:
-        return
-    python = table["python"]
-    if not isinstance(python, dict):
-        raise _error("build.python", "must be a table")
-    _reject_unknown(python, _BUILD_PYTHON_KEYS, "build.python")
-    if "entrypoint" in python:
-        _require_string(python["entrypoint"], "build.python.entrypoint", non_empty=True)
+    if "python" in table:
+        python = table["python"]
+        if not isinstance(python, dict):
+            raise _error("build.python", "must be a table")
+        _reject_unknown(python, _BUILD_PYTHON_KEYS, "build.python")
+        if "entrypoint" in python:
+            _require_string(python["entrypoint"], "build.python.entrypoint", non_empty=True)
+    if "make" in table:
+        _validate_build_make(table["make"], "build.make")
 
 
 def _validate_doctor(table: Any) -> None:
@@ -426,36 +476,6 @@ def _validate_security(table: dict[str, Any], path: str) -> None:
             if folded in normalized:
                 raise _error(item_path, "must be unique ignoring case")
             normalized.add(folded)
-
-
-def _validate_python_compat(table: dict[str, Any], path: str) -> None:
-    _validate_common_engine(table, path)
-    for key, limit in (("interpreters", 32), ("required_interpreters", 32), ("imports", 64)):
-        if key not in table:
-            continue
-        item_path = f"{path}.{key}"
-        _require_string_list(table[key], item_path)
-        values = table[key]
-        if len(values) > limit:
-            raise _error(item_path, f"must contain at most {limit} values")
-        if len(values) != len(set(values)):
-            raise _error(item_path, "must not contain duplicate values")
-        for index, value in enumerate(values):
-            if len(value) > 1024 or any(ord(character) < 32 for character in value):
-                raise _error(
-                    f"{item_path}[{index}]", "must be a safe string of at most 1024 characters"
-                )
-            if key == "imports" and not all(part.isidentifier() for part in value.split(".")):
-                raise _error(f"{item_path}[{index}]", "must be a dotted Python module name")
-    interpreters = table.get("interpreters", [])
-    required = table.get("required_interpreters", [])
-    if any(value not in interpreters for value in required):
-        raise _error(f"{path}.required_interpreters", "must be a subset of interpreters")
-    if "target_version" in table:
-        value = table["target_version"]
-        _require_string(value, f"{path}.target_version")
-        if value and not re.fullmatch(r"3\.(?:[7-9]|[1-9][0-9])", value):
-            raise _error(f"{path}.target_version", "must be empty or a Python 3 minor such as 3.10")
 
 
 def _validate_compile_db(table: dict[str, Any], path: str) -> None:
@@ -505,6 +525,9 @@ def _validate_engine(name: str, table: Any) -> None:
         "cognitive": _validate_cognitive,
         "security": _validate_security,
         "resource": _validate_common_engine,
+        "build": _validate_common_engine,
+        "binary_compat": _validate_binary_compat,
+        "integration": _validate_integration,
     }
     validator = validators.get(name, _validate_common_engine)
     validator(table, path)
@@ -532,73 +555,6 @@ def _validate_metadata(table: Any, path: str) -> None:
                 raise _error("ici.profile", "must be one of: deep, fast, standard")
         else:
             _require_string(value, f"{path}.{key}", non_empty=True)
-
-
-def _validate_path_list(value: Any, setting: str, base: Path) -> None:
-    """Validate and canonicalize a list of project-relative path settings."""
-
-    if not isinstance(value, list):
-        raise _error(setting, "must be a list of non-empty strings")
-    for index, item in enumerate(value):
-        item_path = f"{setting}[{index}]"
-        if not isinstance(item, str) or not item:
-            raise _error(item_path, "must be a non-empty string")
-        try:
-            resolve_project_path(base, item)
-        except ConfigError as err:
-            raise ConfigError(f"{item_path}: {err}") from err
-
-
-def validate_config_paths(config: dict[str, Any], base: Path) -> None:
-    """Reject configured paths that resolve outside the project root.
-
-    This function deliberately accepts partial engine configurations so
-    standalone engine construction remains safe even when tests or callers
-    provide only the relevant engine table instead of a fully merged policy.
-    """
-
-    if not isinstance(config, dict):
-        raise ConfigError("configuration must be a table")
-
-    project = config.get("project")
-    if isinstance(project, dict):
-        # cpp_pkg_config holds package names, not paths, so it is not resolved here.
-        for key in ("source_dirs", "cpp_external_build_dirs"):
-            if key in project:
-                _validate_path_list(project[key], f"project.{key}", base)
-        compile_database = project.get("compile_database")
-        if compile_database is not None:
-            if not isinstance(compile_database, str) or not compile_database:
-                raise _error("project.compile_database", "must be a non-empty string")
-            if os.name != "nt" and (
-                "\\" in compile_database or bool(PureWindowsPath(compile_database).drive)
-            ):
-                raise _error(
-                    "project.compile_database",
-                    "must use native project path syntax",
-                )
-            try:
-                resolve_project_path(base, compile_database)
-            except ConfigError as err:
-                raise ConfigError(f"project.compile_database: {err}") from err
-
-    engines = config.get("engines")
-    if not isinstance(engines, dict):
-        return
-    line = engines.get("line")
-    if isinstance(line, dict):
-        for key in ("gate_dirs", "include_dirs", "exclude_dirs"):
-            if key in line:
-                _validate_path_list(line[key], f"engines.line.{key}", base)
-    lint = engines.get("lint")
-    if isinstance(lint, dict) and "clang_tidy_config" in lint:
-        value = lint["clang_tidy_config"]
-        if not isinstance(value, str) or not value:
-            raise _error("engines.lint.clang_tidy_config", "must be a non-empty string")
-        try:
-            resolve_project_path(base, value)
-        except ConfigError as err:
-            raise ConfigError(f"engines.lint.clang_tidy_config: {err}") from err
 
 
 def validate_config(config: dict[str, Any]) -> None:

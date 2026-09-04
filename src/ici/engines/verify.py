@@ -45,6 +45,8 @@ from ici.core.pipeline import (
 from ici.core.qmake_context import prepare_qmake_compilation_context
 from ici.core.support import ENGINE_NAMES, evaluate_support_matrix  # noqa: F401
 from ici.core.toolchain import DEFAULT_TOOL_PROBES
+from ici.engines.binary_compat import BinaryCompatibilityEngine  # noqa: F401
+from ici.engines.build import BuildEngine  # noqa: F401
 from ici.engines.cognitive import CognitiveEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.compile_db import CompileDatabaseEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.complexity import ComplexityEngine  # noqa: F401 - dynamic descriptor factory
@@ -52,6 +54,7 @@ from ici.engines.cycle import CycleEngine  # noqa: F401 - dynamic descriptor fac
 from ici.engines.dead import DeadCodeEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.dup import DuplicateEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.exception import ExceptionSafetyEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.integration import IntegrationEngine  # noqa: F401
 from ici.engines.line import LineCountEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.lint import LintEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.publish import ReportPublisher
@@ -73,6 +76,7 @@ from ici.reporters.markdown import (
     generate_markdown_report,
     write_github_step_summary,
 )
+from ici.reporters.sarif import save_sarif_report
 
 
 def _prepare_compilation_context(
@@ -213,6 +217,7 @@ class VerifyOrchestrator:
         console_options: ConsoleOptions | None = None,
         profile: AnalysisProfile | str | None = None,
         use_cache: bool = True,
+        report_sarif: str | None = None,
     ) -> VerificationSuiteResult:
         t0 = time.time()
         effective_config, selected_profile = apply_analysis_profile(self.config, profile)
@@ -243,32 +248,52 @@ class VerifyOrchestrator:
             except CacheEntryError:
                 cache = None
 
-        prepared: dict[str, Any] = {}
-        for descriptor in descriptors:
+        completed_results: dict[str, EngineResult] = {}
+        descriptor_by_name = {descriptor.name: descriptor for descriptor in descriptors}
+
+        def dependency_names(name: str) -> set[str]:
+            found: set[str] = set()
+            pending = list(descriptor_by_name[name].dependencies)
+            while pending:
+                dependency = pending.pop()
+                if dependency in found:
+                    continue
+                found.add(dependency)
+                pending.extend(descriptor_by_name[dependency].dependencies)
+            return found
+
+        def context_for(descriptor: EngineDescriptor) -> AnalysisContext:
+            context = analysis_context
+            for dependency in descriptors:
+                if dependency.name not in dependency_names(descriptor.name):
+                    continue
+                result = completed_results.get(dependency.name)
+                if result is None:
+                    continue
+                for manifest in result.artifact_manifests:
+                    if manifest not in context.manifests:
+                        context = context.with_manifest(manifest)
+            return context
+
+        def execute(descriptor: EngineDescriptor) -> EngineResult:
             eng_cfg = get_engine_config(effective_config, descriptor.name)
             try:
                 engine_cls = globals()[descriptor.factory_name]
-                engine_instance = engine_cls(
+                candidate = engine_cls(
                     self.project_root,
                     effective_config,
-                    analysis_context=analysis_context,
+                    analysis_context=context_for(descriptor),
                 )
             except Exception as exc:
-                prepared[descriptor.name] = EngineResult(
+                result = EngineResult(
                     engine_name=descriptor.name,
                     status=EngineStatus.ERROR,
                     summary=f"Engine crashed: {type(exc).__name__}: {exc}",
                     required=bool(eng_cfg.get("required", True)),
                     evidence=EvidenceState.NOT_RUN,
                 )
-            else:
-                prepared[descriptor.name] = engine_instance
-
-        def execute(descriptor: EngineDescriptor) -> EngineResult:
-            candidate = prepared[descriptor.name]
-            if isinstance(candidate, EngineResult):
-                return candidate
-            eng_cfg = get_engine_config(effective_config, descriptor.name)
+                completed_results[descriptor.name] = result
+                return result
             cache_key = None
             cache_reuse_safe = bool(getattr(candidate, "CACHE_REUSE_SAFE", True))
             if cache is not None and cache_reuse_safe:
@@ -280,20 +305,24 @@ class VerifyOrchestrator:
                 )
                 cached = cache.load(cache_key, self.project_root)
                 if cached is not None:
+                    completed_results[descriptor.name] = cached
                     return cached
             try:
                 result = candidate.run()
             except Exception as exc:
-                return EngineResult(
+                result = EngineResult(
                     engine_name=descriptor.name,
                     status=EngineStatus.ERROR,
                     summary=f"Engine crashed: {type(exc).__name__}: {exc}",
                     required=bool(eng_cfg.get("required", True)),
                     evidence=EvidenceState.NOT_RUN,
                 )
+                completed_results[descriptor.name] = result
+                return result
             if cache_key is not None and cache is not None:
                 result = replace(result, cache_hit=False, cache_key=cache_key.digest)
                 cache.store(cache_key, result, self.project_root)
+            completed_results[descriptor.name] = result
             return result
 
         results = PipelineExecutor[EngineResult](descriptors).run(execute)
@@ -345,7 +374,13 @@ class VerifyOrchestrator:
         if report_json:
             save_json_report(suite, Path(report_json), project_root=self.project_root)
 
-        # 3. HTML Report if requested
+        # 3. SARIF report if requested.  This is deliberately additive to the
+        # existing JSON/HTML/Markdown outputs; the SARIF writer consumes the
+        # same canonical findings projection and does not recompute the gate.
+        if report_sarif:
+            save_sarif_report(suite, Path(report_sarif), project_root=self.project_root)
+
+        # 4. HTML Report if requested
         if report_html:
             generate_html_report(
                 suite,
@@ -354,13 +389,13 @@ class VerifyOrchestrator:
                 base_dir=self.project_root,
             )
 
-        # 4. Markdown Report & GitHub Actions Summary
+        # 5. Markdown Report & GitHub Actions Summary
         md_content = generate_markdown_report(suite, repo_url=repo_url, commit_sha=commit_sha)
         if github_summary:
             write_github_step_summary(md_content)
             emit_github_actions_annotations(suite)
 
-        # 5. Publish HTML report to GitHub (gh-pages / hub) with sticky PR comment
+        # 6. Publish HTML report to GitHub (gh-pages / hub) with sticky PR comment
         if publish:
             html_target = Path(report_html) if report_html else Path("verify_report.html")
             pub_result = ReportPublisher(project_name=reporting_context.project.name).publish(

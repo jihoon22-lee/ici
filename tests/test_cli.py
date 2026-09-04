@@ -154,6 +154,35 @@ def test_cli_verify_forwards_profile_to_orchestrator(tmp_path, monkeypatch):
     assert captured["profile"] is AnalysisProfile.DEEP
 
 
+def test_cli_verify_forwards_sarif_output_to_orchestrator(tmp_path, monkeypatch):
+    captured = {}
+
+    class FakeOrchestrator:
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
+
+        def run_all(self, **kwargs):
+            captured.update(kwargs)
+            return VerificationSuiteResult(suite_status=EngineStatus.PASS, results=[])
+
+    monkeypatch.setattr("ici.__main__.VerifyOrchestrator", FakeOrchestrator)
+    monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["verify", "--sarif", "artifacts/report.sarif"])
+
+    assert result.exit_code == 0
+    assert captured["report_sarif"] == "artifacts/report.sarif"
+
+
+def test_cli_verify_help_documents_sarif_option():
+    result = runner.invoke(app, ["verify", "--help"], color=False)
+    output = click.unstyle(result.output)
+
+    assert result.exit_code == 0
+    assert "--sarif" in output
+
+
 def test_cli_verify_help_documents_profile_option():
     result = runner.invoke(app, ["verify", "--help"], color=False)
     output = click.unstyle(result.output)

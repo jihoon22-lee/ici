@@ -178,7 +178,7 @@ def test_thread_sanitize_requests_its_own_adapter_variant(
     (tmp_path / "CMakeLists.txt").write_text("project(tsan)\n", encoding="utf-8")
     seen: list[ConfigureOptions] = []
 
-    def fake_configure(root: Path, options: ConfigureOptions) -> BuildSession:
+    def fake_configure(root: Path, options: ConfigureOptions, _config=None) -> BuildSession:
         seen.append(options)
         return BuildSession(
             root=root,

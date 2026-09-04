@@ -5,6 +5,7 @@ from pathlib import Path
 
 BACKEND_CMAKE = "cmake"
 BACKEND_QMAKE = "qmake"
+BACKEND_MAKE = "make"
 
 # Only the project root is inspected. Descriptors in subdirectories do not
 # select a backend, which keeps partially migrated projects on their existing
@@ -25,7 +26,7 @@ def _is_real_file(path: Path) -> bool:
     return path.is_file() and not path.is_symlink()
 
 
-def select_backend(root: Path) -> BackendChoice:
+def select_backend(root: Path, config: dict | None = None) -> BackendChoice:
     """Pick a build backend from the descriptor at the project root."""
 
     cmake_file = root / "CMakeLists.txt"
@@ -47,10 +48,18 @@ def select_backend(root: Path) -> BackendChoice:
         )
 
     if makefiles:
+        build = config.get("build", {}) if isinstance(config, dict) else {}
+        make_config = build.get("make", {}) if isinstance(build, dict) else {}
+        if isinstance(make_config, dict) and make_config.get("enabled") is True:
+            return BackendChoice(
+                BACKEND_MAKE,
+                f"{makefiles[0]} at the project root selected the configured Make backend",
+                makefiles[0],
+            )
         return BackendChoice(
             None,
-            f"{makefiles[0]} at the project root has no adapter; "
-            "only CMake and qmake are supported",
+            f"{makefiles[0]} at the project root requires build.make.enabled=true "
+            "and explicit shell-free command argv",
             makefiles[0],
         )
 

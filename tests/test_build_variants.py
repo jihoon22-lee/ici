@@ -131,7 +131,7 @@ def test_build_engine_requests_release_variant_at_adapter_boundary(
     _write_cpp_project(tmp_path)
     seen: list[ConfigureOptions] = []
 
-    def fake_configure(root: Path, options: ConfigureOptions) -> BuildSession:
+    def fake_configure(root: Path, options: ConfigureOptions, _config=None) -> BuildSession:
         seen.append(options)
         return _cmake_session(root, options.variant)
 
@@ -150,7 +150,7 @@ def test_test_engine_requests_coverage_variant_at_adapter_boundary(
     _write_cpp_project(tmp_path)
     seen: list[ConfigureOptions] = []
 
-    def fake_configure(root: Path, options: ConfigureOptions) -> BuildSession:
+    def fake_configure(root: Path, options: ConfigureOptions, _config=None) -> BuildSession:
         seen.append(options)
         return _cmake_session(root, options.variant)
 
@@ -169,7 +169,7 @@ def test_sanitize_engine_requests_sanitize_variant_at_adapter_boundary(
     _write_cpp_project(tmp_path)
     seen: list[ConfigureOptions] = []
 
-    def fake_configure(root: Path, options: ConfigureOptions) -> BuildSession:
+    def fake_configure(root: Path, options: ConfigureOptions, _config=None) -> BuildSession:
         seen.append(options)
         return _cmake_session(root, options.variant)
 

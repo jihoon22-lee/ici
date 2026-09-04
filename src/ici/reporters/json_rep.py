@@ -9,7 +9,7 @@ import os
 import re
 import tempfile
 from contextlib import suppress
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from ici.core.capabilities import serialize_capability_inventory
@@ -48,6 +48,41 @@ _SHA256_RE = re.compile(r"sha256:[0-9a-f]{64}")
 _SECRET_DEFINE_RE = re.compile(
     r"(?i)(?:password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)"
 )
+_ARTIFACT_SECRET_FLAG_RE = re.compile(
+    r"^--?(?:api[_-]?key|access[_-]?key|auth[_-]?token|client[_-]?secret|"
+    r"password|passwd|secret|token)(?:=|$)",
+    re.IGNORECASE,
+)
+
+
+def _serialize_artifact_command(command: tuple[str, ...], project_root: Path) -> list[str]:
+    """Return a portable, reporting-safe producer command."""
+
+    if not command:
+        return []
+    argv = list(command)
+    executable = argv[0]
+    if Path(executable).is_absolute() or PureWindowsPath(executable).is_absolute():
+        argv[0] = PureWindowsPath(executable).name if "\\" in executable else Path(executable).name
+    safe = list(_redact_compilation_argv(tuple(argv), project_root))
+    hide_next = False
+    for index, raw in enumerate(argv):
+        if hide_next:
+            safe[index] = REDACTED
+            hide_next = False
+        flag = raw.split("=", 1)[0]
+        if _ARTIFACT_SECRET_FLAG_RE.fullmatch(flag + ("=" if "=" in raw else "")):
+            if "=" in raw:
+                safe[index] = f"{flag}={REDACTED}"
+            else:
+                hide_next = True
+    root_text = project_root.as_posix().rstrip("/")
+    if root_text:
+        for index, value in enumerate(safe):
+            if root_text in value:
+                value = value.replace(root_text + "/", "")
+                safe[index] = value.replace(root_text, ".")
+    return safe
 
 
 def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
@@ -57,8 +92,33 @@ def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
             shadow_root = manifest.shadow_root.relative_to(manifest.project_root).as_posix()
         except ValueError as err:
             raise ValueError("artifact shadow root must be project-relative") from err
+    has_producer_metadata = any(
+        artifact.artifact_id or artifact.target or artifact.command
+        for artifact in manifest.artifacts
+    )
+    artifacts: list[dict[str, Any]] = [
+        {
+            "path": artifact.path,
+            "scope": artifact.scope.value,
+            "kind": artifact.kind,
+            "sha256": _require_digest(artifact.sha256, "artifact.sha256"),
+            "size": artifact.size,
+            "mode": artifact.mode,
+            "producer": redact_text(artifact.producer),
+        }
+        for artifact in manifest.artifacts
+    ]
+    if has_producer_metadata:
+        for artifact, payload in zip(manifest.artifacts, artifacts, strict=True):
+            payload.update(
+                {
+                    "id": redact_text(artifact.artifact_id),
+                    "target": redact_text(artifact.target),
+                    "command": _serialize_artifact_command(artifact.command, manifest.project_root),
+                }
+            )
     return {
-        "schema_version": "ici.artifacts/v1",
+        "schema_version": "ici.artifacts/v2" if has_producer_metadata else "ici.artifacts/v1",
         "project_root": ".",
         "shadow_root": shadow_root,
         "variant": manifest.variant.value,
@@ -68,18 +128,7 @@ def _serialize_artifact_manifest(manifest: ArtifactManifest) -> dict[str, Any]:
             manifest.toolchain_digest,
             "manifest.toolchain_digest",
         ),
-        "artifacts": [
-            {
-                "path": artifact.path,
-                "scope": artifact.scope.value,
-                "kind": artifact.kind,
-                "sha256": _require_digest(artifact.sha256, "artifact.sha256"),
-                "size": artifact.size,
-                "mode": artifact.mode,
-                "producer": artifact.producer,
-            }
-            for artifact in manifest.artifacts
-        ],
+        "artifacts": artifacts,
     }
 
 

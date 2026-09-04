@@ -20,18 +20,22 @@ from candidate_merge_gate import (  # noqa: E402
     MAX_JSON_BYTES,
     CandidateMergeGateError,
     MergeGateSelection,
+    ToyPullRequestVerification,
     WorkflowJobVerification,
     WorkflowRunVerification,
     main,
     required_check_pages,
     select_merge_gate,
     select_merge_gate_pages,
+    verify_toy_pull_request,
     verify_workflow_job,
     verify_workflow_run,
 )
 
 REPOSITORY = "jihoon22-lee/ici"
 TARGET_SHA = "a" * 40
+TOY_REPOSITORY = "jihoon22-lee/toy-projects"
+TOY_TARGET_SHA = "b" * 40
 
 
 def _write(path: Path, value: object) -> None:
@@ -108,6 +112,34 @@ def _job(
         "url": f"https://api.github.com/repos/{REPOSITORY}/actions/jobs/{job_id}",
         "run_url": f"https://api.github.com/repos/{REPOSITORY}/actions/runs/{run_id}",
         "check_run_url": (f"https://api.github.com/repos/{REPOSITORY}/check-runs/{check_run_id}"),
+    }
+
+
+def _toy_pull_request(
+    *,
+    number: int = 42,
+    sha: str = TOY_TARGET_SHA,
+    state: str = "open",
+    merged_at: object = None,
+    base_ref: str = "main",
+    base_repository: str = TOY_REPOSITORY,
+    head_repository: str = TOY_REPOSITORY,
+    base_id: int = 7001,
+    head_id: int = 7001,
+) -> dict[str, object]:
+    return {
+        "number": number,
+        "state": state,
+        "merged_at": merged_at,
+        "base": {
+            "ref": base_ref,
+            "repo": {"full_name": base_repository, "id": base_id},
+        },
+        "head": {
+            "ref": "feature/quality-zoo",
+            "sha": sha,
+            "repo": {"full_name": head_repository, "id": head_id},
+        },
     }
 
 
@@ -295,6 +327,94 @@ def test_verifies_job_binding_for_exact_workflow_attempt(tmp_path: Path) -> None
     )
 
 
+def test_verifies_exact_open_same_repository_toy_pull_request(tmp_path: Path) -> None:
+    path = tmp_path / "toy-pr.json"
+    _write(path, _toy_pull_request())
+
+    assert verify_toy_pull_request(path, 42, TOY_TARGET_SHA, TOY_REPOSITORY) == (
+        ToyPullRequestVerification(
+            number=42,
+            target_sha=TOY_TARGET_SHA,
+            repository=TOY_REPOSITORY,
+            repository_id=7001,
+            base_branch="main",
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "message"),
+    [
+        ("number", 43, "number"),
+        ("state", "closed", "not open"),
+        ("merged_at", "2026-09-04T00:00:00Z", "merged"),
+        ("base_ref", "develop", "base branch"),
+        ("head_sha", "c" * 40, "head SHA"),
+        ("base_repository", "other/toy-projects", "base repository"),
+        ("head_repository", "fork/toy-projects", "head repository"),
+        ("base_id", 7002, "repository ID"),
+        ("head_id", 7002, "repository ID"),
+    ],
+)
+def test_rejects_wrong_toy_pull_request_identity(
+    tmp_path: Path, field: str, replacement: object, message: str
+) -> None:
+    path = tmp_path / "toy-pr.json"
+    payload = _toy_pull_request()
+    if field in {"number", "state", "merged_at"}:
+        payload[field] = replacement
+    elif field == "base_ref":
+        payload["base"]["ref"] = replacement  # type: ignore[index]
+    elif field == "head_sha":
+        payload["head"]["sha"] = replacement  # type: ignore[index]
+    elif field == "base_repository":
+        payload["base"]["repo"]["full_name"] = replacement  # type: ignore[index]
+    elif field == "head_repository":
+        payload["head"]["repo"]["full_name"] = replacement  # type: ignore[index]
+    elif field == "base_id":
+        payload["base"]["repo"]["id"] = replacement  # type: ignore[index]
+    else:
+        payload["head"]["repo"]["id"] = replacement  # type: ignore[index]
+    _write(path, payload)
+
+    with pytest.raises(CandidateMergeGateError, match=message):
+        verify_toy_pull_request(path, 42, TOY_TARGET_SHA, TOY_REPOSITORY)
+
+
+def test_toy_pull_request_requires_explicit_unmerged_marker_and_bounded_json(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "toy-pr.json"
+    payload = _toy_pull_request()
+    del payload["merged_at"]
+    _write(path, payload)
+    with pytest.raises(CandidateMergeGateError, match="merged_at"):
+        verify_toy_pull_request(path, 42, TOY_TARGET_SHA, TOY_REPOSITORY)
+
+    path.write_text('{"number":42,"number":42}', encoding="utf-8")
+    with pytest.raises(CandidateMergeGateError, match="bounded JSON"):
+        verify_toy_pull_request(path, 42, TOY_TARGET_SHA, TOY_REPOSITORY)
+
+
+@pytest.mark.parametrize("side", ["base", "head"])
+def test_toy_pull_request_requires_repository_objects(tmp_path: Path, side: str) -> None:
+    path = tmp_path / "toy-pr.json"
+    payload = _toy_pull_request()
+    payload[side]["repo"] = None  # type: ignore[index]
+    _write(path, payload)
+
+    with pytest.raises(CandidateMergeGateError, match="repositories are required"):
+        verify_toy_pull_request(path, 42, TOY_TARGET_SHA, TOY_REPOSITORY)
+
+
+def test_toy_pull_request_rejects_noncanonical_target_sha(tmp_path: Path) -> None:
+    path = tmp_path / "toy-pr.json"
+    _write(path, _toy_pull_request())
+
+    with pytest.raises(CandidateMergeGateError, match="lowercase 40-character"):
+        verify_toy_pull_request(path, 42, "B" * 40, TOY_REPOSITORY)
+
+
 @pytest.mark.parametrize(
     ("field", "replacement", "message"),
     [
@@ -415,6 +535,32 @@ def test_cli_emits_bounded_json_and_fails_without_success_output(tmp_path: Path)
         "html_url": f"https://github.com/{REPOSITORY}/actions/runs/2001",
         "run_attempt": 1,
         "workflow_run_id": 2001,
+    }
+
+    toy_pr = tmp_path / "toy-pr.json"
+    _write(toy_pr, _toy_pull_request())
+    output = StringIO()
+    with redirect_stdout(output):
+        assert (
+            main(
+                [
+                    "verify-toy-pr",
+                    str(toy_pr),
+                    "42",
+                    TOY_TARGET_SHA,
+                    TOY_REPOSITORY,
+                ]
+            )
+            == 0
+        )
+    assert json.loads(output.getvalue()) == {
+        "base_branch": "main",
+        "number": 42,
+        "repository": TOY_REPOSITORY,
+        "repository_id": 7001,
+        "revision_mode": "pull_request",
+        "schema_version": "ici.quality-zoo-toy-revision/v1",
+        "target_sha": TOY_TARGET_SHA,
     }
 
     output = StringIO()

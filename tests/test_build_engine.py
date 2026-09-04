@@ -575,7 +575,7 @@ def test_cmake_project_is_built_through_the_adapter(tmp_path, monkeypatch):
 
     shadow = tmp_path / "build" / "ici-cmake"
 
-    def _fake_configure(root, options=None):
+    def _fake_configure(root, options=None, _config=None):
         # The engine now passes ConfigureOptions(coverage=False): release
         # artifacts must not be instrumented.
         assert options is not None and options.coverage is False
@@ -616,11 +616,10 @@ def test_makefile_only_project_still_refuses_with_a_precise_reason(tmp_path):
     result = BuildEngine(tmp_path).run()
 
     assert result.status is EngineStatus.ERROR
-    # The old message predates the adapters existing at all. Now that CMake and
-    # qmake are handled, it has to say which adapter is missing.
+    # Make remains fail-closed until an explicit command plan enables it.
     messages = " ".join(t.message for t in result.targets)
     assert "Makefile" in messages
-    assert "CMake and qmake" in messages
+    assert "explicitly enabled Make" in messages
 
 
 @pytest.mark.parametrize("descriptor", ["CMakeLists.txt", "project.pro"])
@@ -639,7 +638,7 @@ def test_adapter_path_never_falls_back_to_gxx(tmp_path, monkeypatch, descriptor)
     )
     monkeypatch.setattr(
         "ici.engines.build.adapter_configure",
-        lambda root, options=None: BuildSession(
+        lambda root, options=None, _config=None: BuildSession(
             root=root,
             shadow=root / "build" / "ici-cmake",
             backend=BACKEND_CMAKE,
@@ -653,3 +652,37 @@ def test_adapter_path_never_falls_back_to_gxx(tmp_path, monkeypatch, descriptor)
     # configure() reported nothing configured, so this is an unmeasured build,
     # not an inapplicable one.
     assert result.status == EngineStatus.ERROR
+
+
+def test_adapter_artifact_fallback_reads_only_binary_magic(tmp_path, monkeypatch):
+    shadow = tmp_path / "shadow"
+    shadow.mkdir()
+    (shadow / "app").write_bytes(b"\x7fELF" + b"x" * 64)
+    (shadow / "demo.exe").write_bytes(b"MZ" + b"x" * 64)
+    (shadow / "libdemo.so.1").write_bytes(b"not a shared library")
+    (shadow / "libdemo.a").write_bytes(b"!<arch>\nstatic")
+    (shadow / "main.o").write_bytes(b"\x7fELF" + b"object")
+    (shadow / "notes.txt").write_text("not an artifact", encoding="utf-8")
+    monkeypatch.setattr(
+        Path,
+        "read_bytes",
+        lambda _path: pytest.fail("artifact counting must not read a whole binary"),
+    )
+
+    assert BuildEngine._count_adapter_artifacts(shadow) == 3
+
+
+def test_adapter_artifact_fallback_bounds_tree_and_artifact_count(tmp_path, monkeypatch):
+    shadow = tmp_path / "shadow"
+    shadow.mkdir()
+    (shadow / "one").write_bytes(b"\x7fELFone")
+    (shadow / "two").write_bytes(b"\x7fELFtwo")
+
+    monkeypatch.setattr("ici.engines.build._MAX_ARTIFACT_DISCOVERY_ENTRIES", 1)
+    with pytest.raises(ValueError, match="entry limit"):
+        BuildEngine._count_adapter_artifacts(shadow)
+
+    monkeypatch.setattr("ici.engines.build._MAX_ARTIFACT_DISCOVERY_ENTRIES", 10)
+    monkeypatch.setattr("ici.engines.build.MAX_ARTIFACT_MANIFEST_RECORDS", 1)
+    with pytest.raises(ValueError, match="record limit"):
+        BuildEngine._count_adapter_artifacts(shadow)

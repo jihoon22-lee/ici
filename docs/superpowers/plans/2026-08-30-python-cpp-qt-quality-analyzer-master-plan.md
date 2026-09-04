@@ -1,7 +1,7 @@
 # Python·C++·Qt 코드 품질 분석기 마스터 실행 계획
 
 **상태:** 승인된 장기 마스터 계획. 2026-08-30 이후 ici 기능 계획의 우선순위와 완료 조건은 이 문서를 기준으로 판단한다.
-**문서 기준일:** 2026-09-03. 이 계획은 ici [PR #78](https://github.com/jihoon22-lee/ici/pull/78)로 `main`에 병합됐고, 현재 상태는 이 체크리스트와 병합된 PR의 실측을 함께 기준으로 삼는다.
+**문서 기준일:** 2026-09-04. 이 계획은 ici [PR #78](https://github.com/jihoon22-lee/ici/pull/78)로 `main`에 병합됐고, 현재 상태는 이 체크리스트와 병합된 PR의 실측을 함께 기준으로 삼는다.
 
 **목표:** ici를 Python, C++, Qt 프로젝트의 실제 빌드·테스트·배포 맥락을 이해하고, 위치와 근거가 있는 상세 진단을 낮은 노이즈로 제공하는 고신뢰 코드 품질 분석기로 발전시킨다.
 
@@ -76,6 +76,31 @@ audit도 ici `ici Verification Report — ici`, viewer `ici Verification Report 
 정확한 title과 HTTP 200·`text/html`·외부 resource URL 0건을 확인했다. 전체 asset 표와
 검증 로그는 [`v0.10.2 public evidence workthrough`](../../workthrough/2026-09-02-public-v0.10.2-evidence.md)에
 고정한다.
+
+### 1.4 최신 main 기준과 candidate acceptance 경계 (2026-09-04)
+
+현재 ici `main`은 PR #151의 GNU ELF target-local discarded-function 및 bounded Python
+AST-shape duplicate slice가 병합된
+[`c87e4075634fceea0770435e7a513787c10122ed`](https://github.com/jihoon22-lee/ici/commit/c87e4075634fceea0770435e7a513787c10122ed)에서
+PR #152의 Python compatibility·semantic-analysis 보정이 이어진
+[`2113b5ddc21905660afa4002ee8b25af6a8f5fcf`](https://github.com/jihoon22-lee/ici/commit/2113b5ddc21905660afa4002ee8b25af6a8f5fcf)다.
+[PR #151](https://github.com/jihoon22-lee/ici/pull/151)의 PR CI
+[`33746819016`](https://github.com/jihoon22-lee/ici/actions/runs/33746819016)과 exact-main
+[`33747985638`](https://github.com/jihoon22-lee/ici/actions/runs/33747985638), [PR #152](https://github.com/jihoon22-lee/ici/pull/152)의
+PR CI [`33763034968`](https://github.com/jihoon22-lee/ici/actions/runs/33763034968)과 exact-main
+[`33763926843`](https://github.com/jihoon22-lee/ici/actions/runs/33763926843)은 Verify, Qt 5·Qt 6,
+해당 report publisher와 Merge Gate를 성공시켰다. 각 PR에서 push에 적용되지 않는 반대 publisher만
+expected `skipped`였다. 따라서 두 PR의 implementation과 PR/main CI acceptance는 현재 main에
+반영됐지만, 버전 `0.10.2`와 release 경계는 그대로다.
+
+Quality Zoo acceptance는 candidate가 생성된 exact feature head에만 귀속한다. 기존 sanitizer
+run [`33710695336`](https://github.com/jihoon22-lee/ici/actions/runs/33710695336)은 5개 scenario,
+category/Qt run [`33718024450`](https://github.com/jihoon22-lee/ici/actions/runs/33718024450)은
+6개 scenario, 별도 TSan run [`33737405098`](https://github.com/jihoon22-lee/ici/actions/runs/33737405098)은
+8/8 scenario contract를 모두 `PASS`로 기록했다. 이 runs는 각각의 이전 exact target을 검증한
+historical candidate evidence이며, 현재 `main@2113b5ddc21905660afa4002ee8b25af6a8f5fcf`에
+대한 Quality Zoo 재실행을 의미하지 않는다. 그러므로 broader Qt lifetime/ownership, resource·
+lifetime·security taxonomy, Q1–Q5, I4 aggregate와 release는 계속 pending이다.
 
 ---
 
@@ -1372,18 +1397,26 @@ local test, DiskMap/BuildScope/LogLens/ici 측정값, 원격 artifact hash는
 [`bounded language-aware duplicate workthrough`](../../../workthrough/2026-09-02-bounded-language-aware-duplicate.md)에
 고정한다. 이 acceptance는 bounded lexical/token-region 하위 범위만 닫으며 C++ AST/semantic
 duplicate 및 broader whole-program/linker-backed dead-symbol evidence는 계속 pending이다. 이
-후속 combined slice의 bounded Python AST-shape 결과는 별도 local implementation으로
-기록하며, C++ AST/semantic duplicate와 behavioral equivalence는 여전히 pending이다. 버전은
+후속 combined slice의 bounded Python AST-shape 결과는 PR #151에 병합되어 현재 `main`에
+포함됐으며, C++ AST/semantic duplicate와 behavioral equivalence는 여전히 pending이다. 버전은
 `0.10.2`로 유지하고 이 slice에 대한 release는 만들지 않는다.
 
-### Combined maintainability slices — local implementation, PR/CI pending (2026-09-03)
+### Combined maintainability slices — PR #151/#152 merged; current main accepted (2026-09-04)
 
-현재 `feat/maintainability-analysis-completion` 브랜치는 서로 관련된 두 maintainability
-slice를 하나의 PR로 묶는다. `6f2ba70`의 GNU ELF target-local linker discarded-function
-evidence와 `5c0224e`의 bounded Python AST-shape duplicate analysis가 핵심이며, `e6b20a6`은
-CLI regression 계약, `36f30cc`은 Linux-only 실행 경계를 고정한다. 두 slice의 local
-implementation과 Python 3.10 regression은 완료됐지만, 이 브랜치에 대한 PR,
-PR CI, exact-main, Pages 또는 cross-repository acceptance는 아직 생성·검증하지 않았다.
+PR #151은 `6f2ba70`의 GNU ELF target-local linker discarded-function evidence와 `5c0224e`의
+bounded Python AST-shape duplicate analysis를 `e6b20a6` CLI regression 계약 및 `36f30cc`
+Linux-only 실행 경계와 함께 병합했다. PR #151은
+[`c87e4075634fceea0770435e7a513787c10122ed`](https://github.com/jihoon22-lee/ici/commit/c87e4075634fceea0770435e7a513787c10122ed)로
+완료됐고 PR CI [`33746819016`](https://github.com/jihoon22-lee/ici/actions/runs/33746819016)과
+exact-main [`33747985638`](https://github.com/jihoon22-lee/ici/actions/runs/33747985638)이
+성공했다. 이어 PR #152는 project-respecting Python tool policy, bounded security/resource AST,
+configured runtime compatibility와 display-only issue projection을 보강해
+[`2113b5ddc21905660afa4002ee8b25af6a8f5fcf`](https://github.com/jihoon22-lee/ici/commit/2113b5ddc21905660afa4002ee8b25af6a8f5fcf)로
+병합됐고 PR CI [`33763034968`](https://github.com/jihoon22-lee/ici/actions/runs/33763034968)과
+exact-main [`33763926843`](https://github.com/jihoon22-lee/ici/actions/runs/33763926843)이
+성공했다. 따라서 두 slice와 #152의 보강은 현재 main에 반영됐으며, 더 이상 local-only 또는
+PR/CI pending으로 표시하지 않는다. 현재 두 head를 대상으로 한 Quality Zoo candidate run은
+없으므로 acceptance는 위 1.4절의 exact-head 경계를 따른다.
 
 - GNU linker slice는 `[engines.dead].cpp_linker`를 기존 `cpp_unused`와 독립적으로 적용하며,
   CMake direct-object executable, GNU `ld`, local/hidden uniquely mapped function section과
@@ -1393,7 +1426,7 @@ PR CI, exact-main, Pages 또는 cross-repository acceptance는 아직 생성·�
   status/evidence는 기존 보수적 계약을 유지한다.
 - 전체 I4-3 aggregate, C++ AST/semantic duplicate analysis, behavioral equivalence,
   whole-program deadness/linker reachability 및 I4 checkpoint는 닫지 않는다.
-- Local evidence: related focused bundle `362 passed`; full Python 3.10 suite `2295 passed,
+- Pre-merge local evidence: related focused bundle `362 passed`; full Python 3.10 suite `2295 passed,
   7 skipped`; Ruff check/format pass. 버전은 `0.10.2`로 유지하며 release/tag/version bump는
   없다.
 
@@ -1458,8 +1491,8 @@ target SHA는 `d0b84d376d3f736da86308a49d21d8600297eb27`이다. [Quality Zoo wor
 완료됐고, 8/8 scenario contracts가 `PASS`, `errors`는 `0`이었다. 별도 acceptance artifact
 `9886336618`의 ZIP SHA-256은
 `70f298a33a251241033882a5bd1eea1a7f863dd86c1939321d531cee39b32bf3`이다. 이 evidence는 TSan
-candidate consumer의 exact contract만 닫으며, 현재 combined branch의 PR/CI/exact-main
-acceptance 또는 broader I4-4 전체 완료를 주장하지 않는다.
+candidate consumer의 exact contract만 닫으며, 현재 ici `main@2113b5d`에 대한 candidate 재실행이나
+broader I4-4 전체 완료를 주장하지 않는다.
 
 **C++ diagnostic category slice (PR/main and candidate acceptance complete):** normalized
 `family`/`tool_rule_id`만 사용하는 isolated `_cpp_diagnostic_categories.py`의 보수적
@@ -1549,11 +1582,18 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 
 **브랜치:** `feat/python-package-analysis`
 
-- [ ] pyproject metadata, src layout, package discovery와 entry point를 검증한다.
-- [ ] wheel build가 요청된 경우 tag, included files, native extension, direct_url/build trace를 검사한다.
-- [ ] pure-Python 정책과 일반 프로젝트의 native wheel 허용 정책을 분리한다.
-- [ ] import name/distribution name 불일치와 누락 package data를 finding으로 만든다.
+- [x] pyproject metadata, src layout, package discovery와 entry point를 검증한다.
+- [x] configured wheel input을 build/extract하지 않고 tag, included files, native extension과
+  `direct_url.json`/`build-details.json` provenance file의 존재를 관측한다.
+- [x] pure-Python 정책과 일반 프로젝트의 native wheel 허용 정책을 분리한다.
+- [x] import name/distribution name 불일치와 누락 package data를 finding으로 만든다.
 - [ ] envlens와 ici pyz build를 서로 다른 packaging 사례로 사용한다.
+
+2026-09-04 local implementation은 import/build/extract 없이 bounded pyproject/wheel을 읽고,
+WHEEL/METADATA/RECORD identity·tag·package file·entry-point 일치와 RECORD hash/size를 검증한다.
+모든 pyproject/wheel 입력은 PASS/FAIL target을 남기며 손상된 wheel은 해당 경로의
+`ici.package.wheel-invalid`로 닫힌다. 마지막 envlens/ici 실물 교차 검증은 toy candidate
+acceptance와 함께 수행한다.
 
 ---
 
@@ -1584,11 +1624,16 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 
 **브랜치:** `feat/test-quality`
 
-- [ ] test count, pass/fail, collection evidence와 coverage를 계속 분리한다.
-- [ ] retry/repeat를 통한 flaky test 탐지를 opt-in으로 제공한다.
-- [ ] timeout과 slow-test inventory를 제공한다.
+- [x] test count, pass/fail, collection evidence와 coverage를 계속 분리한다.
+- [x] retry/repeat를 통한 flaky test 탐지를 opt-in으로 제공한다.
+- [x] timeout과 slow-test inventory를 제공한다.
 - [ ] Python mutation 도구와 C++ mutation 가능성을 spike하고, 재현 가능한 범위만 deep profile로 채택한다.
-- [ ] mutation unavailable은 기본 test gate를 왜곡하지 않는다.
+- [x] mutation unavailable은 기본 test gate를 왜곡하지 않는다.
+
+Deep quality는 총 실행 3회, slow inventory 1,000개와 subprocess timeout/output 상한을 지키며
+`report`와 `warn`을 분리한다. Runtime outcome·timing은 cache하지 않고, mutation은 현재
+Python 도구 capability probe까지만 제공한다. 실제 mutation score와 C++ mutation 채택 여부는
+아직 미완료이므로 해당 항목은 열린 상태로 둔다.
 
 ---
 
@@ -1598,10 +1643,10 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 
 **브랜치:** `feat/make-adapter`
 
-- [ ] 암묵적으로 임의 target을 추측하지 않고 config에 build/test/clean argv 계약을 둔다.
-- [ ] shadow 또는 out-of-tree 지원 여부를 사전 진단한다.
-- [ ] parallel jobs, coverage/sanitize flag 주입 방식을 명시한다.
-- [ ] build target 0개, test target 0개, ignored failure를 구분한다.
+- [x] 암묵적으로 임의 target을 추측하지 않고 config에 build/test/clean argv 계약을 둔다.
+- [x] shadow 또는 out-of-tree 지원 여부를 사전 진단한다.
+- [x] parallel jobs, coverage/sanitize flag 주입 방식을 명시한다.
+- [x] build target 0개, test target 0개, ignored failure를 구분한다.
 - [ ] abilens의 실제 Makefile로 build/test/sanitize/coverage를 검증한다.
 
 ### I7-2. artifact manifest
@@ -1609,16 +1654,21 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 **브랜치:** `feat/artifact-manifest`
 
 - [ ] executable, shared/static library, Python wheel, report artifact를 typed record로 남긴다.
-- [ ] hash, size, mode, producing target/command와 build variant를 기록한다.
+- [x] hash, size, mode, producing target/command와 build variant를 기록한다.
 - [ ] artifact glob이 빈 결과거나 project 밖으로 나가면 ERROR로 처리한다.
-- [ ] downstream binary/integration engine은 manifest만 소비한다.
+- [x] downstream binary/integration engine은 manifest만 소비한다.
+
+현재 v2 manifest는 executable/shared/static library에 stable id, filename-derived target label,
+redacted producer argv와 build identity를 기록하고 v1 reader 호환성을 유지한다. Python wheel과
+report artifact의 typed producer, configurable artifact glob 계약은 아직 남아 있으므로 첫째와
+셋째 항목은 닫지 않는다.
 
 ### I7-3. binary compatibility
 
 **브랜치:** `feat/binary-compatibility`
 
-- [ ] ELF class, machine, NEEDED, RPATH/RUNPATH를 readelf/objdump evidence로 읽는다.
-- [ ] GLIBC, GLIBCXX, CXXABI maximum required version을 계산한다.
+- [x] ELF class, machine, NEEDED, RPATH/RUNPATH를 `readelf` evidence로 읽는다.
+- [x] GLIBC, GLIBCXX, CXXABI maximum required version을 계산한다.
 - [ ] static requirement, forbidden dependency/path와 configured floor를 정책화한다.
 - [ ] stripped/malformed/non-ELF를 구분한다.
 - [ ] abilens의 executable/shared library와 viewer static CLI를 실측한다.
@@ -1627,10 +1677,10 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 
 **브랜치:** `feat/hybrid-integration`
 
-- [ ] shell 없는 argv case와 typed placeholder를 제공한다.
-- [ ] Python interpreter와 artifact id를 manifest에서 안전하게 해석한다.
-- [ ] stdout/stderr substring, exit code, timeout, output artifact assertion을 지원한다.
-- [ ] 빈 required case, unknown placeholder, missing artifact를 config ERROR로 처리한다.
+- [x] shell 없는 argv case와 typed placeholder를 제공한다.
+- [x] Python interpreter와 artifact id를 manifest에서 안전하게 해석한다.
+- [x] stdout/stderr substring, exit code, timeout, output artifact assertion을 지원한다.
+- [x] 빈 required case, unknown placeholder, missing artifact를 config ERROR로 처리한다.
 - [ ] buildscope의 Python analyzer → C++/Qt consumer E2E를 검증한다.
 
 ---
@@ -1644,7 +1694,12 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 - [ ] 모든 reporter가 v3 finding, related location, confidence, suppression, delta를 보존하는지 contract test를 만든다.
 - [ ] SARIF 2.1.0 export를 추가하고 rule/result/location/fix mapping을 검증한다.
 - [ ] GitHub annotation은 new/high-priority finding만 제한적으로 발행한다.
-- [ ] HTML은 full inventory를 검색/필터할 수 있지만 초기 DOM 크기를 제한한다.
+- [x] HTML은 full inventory를 검색/필터할 수 있지만 초기 DOM 크기를 제한한다.
+
+SARIF 2.1.0의 deterministic rule/result/location, suppression, duplicate occurrence와 baseline
+location mapping은 구현됐지만 source fix model은 아직 없으므로 SARIF 전체 항목은 닫지 않는다.
+HTML은 2,000 actionable finding 초과 시 초기 50행과 bounded inline inventory를 사용하며
+100,000 finding 회귀 fixture를 통과한다. 실제 browser startup/memory benchmark는 I8-4에 남는다.
 
 ### I8-2. viewer report diff
 
@@ -1681,12 +1736,13 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 ### I9-0. Candidate artifact provenance producer (producer sub-slice)
 
 **브랜치:** producer `chore/candidate-artifact-provenance`; consumer `feat/candidate-quality-zoo-acceptance`
-**상태:** producer contract/local implementation and remote producer evidence complete; released-artifact Q0 accepted; exact existing sanitizer and separate TSan candidate contracts accepted; broader Qt lifetime, Q1–Q5 and release boundaries remain pending
+**상태:** producer contract/local implementation and remote producer evidence complete; released-artifact Q0 accepted; exact sanitizer, category/Qt, and separate TSan candidate contracts accepted; broader Qt lifetime/ownership, resource/lifetime/security taxonomy, Q1–Q5 and release boundaries remain pending
 
-이 절은 released `ici v0.10.2` Q0와 candidate pyz의 기존 sanitizer known-answer subset만
+이 절은 released `ici v0.10.2` Q0와 exact-head candidate known-answer subset을
 완료 처리한다. candidate acceptance는 exact rule/status/evidence/confidence/path/line
-contract와 ASan/LSan/UBSan/clean runtime evidence에 한정되며, Qt lifetime·static taxonomy
-candidate·broader Q1–Q5·I4 aggregate·version/release는 완료 처리하지 않는다.
+contract와 ASan/LSan/UBSan/clean runtime, category/Qt, 별도 TSan evidence에 한정되며,
+broader Qt lifetime·ownership, resource/lifetime/security taxonomy, Q1–Q5·I4 aggregate·
+version/release는 완료 처리하지 않는다.
 
 - [x] `refs/heads/main`에서만 수동 dispatch하고 full lowercase target SHA가 producer workflow를
   공급한 exact protected-main dispatch commit과 같으며 fetched main ancestry에 남아 있는지 검증한다.
@@ -1731,12 +1787,12 @@ candidate·broader Q1–Q5·I4 aggregate·version/release는 완료 처리하지
   candidate provenance의 Actions run/check/job evidence를 독립 API 응답으로 재검증한 뒤
   검증된 local `ici.pyz`를 Quality Zoo runner에 전달한다. candidate preflight와 실행은
   publication/OIDC/runtime credential 없이 수행하고, preflight/intake/API evidence/runner
-  결과는 별도 14일 acceptance artifact로 남긴다. 현재 기능 브랜치는 후속 Qt lifetime/C++
-  static-analysis scenario를 위해 hosted runner에 `clang`, `clang-tidy`, `clazy`, `cmake`, `g++`,
+  결과는 별도 14일 acceptance artifact로 남긴다. broader Qt lifetime/C++ static-analysis
+  scenario를 실행할 수 있도록 hosted runner에 `clang`, `clang-tidy`, `clazy`, `cmake`, `g++`,
   `pkg-config`, `qt6-base-dev`도 준비한다. CI provisioning과 별개로 candidate preflight/실행에는
   `GH_TOKEN`/`GITHUB_TOKEN`을 사용하지 않으며, workflow는 `publish`, Pages, PR comment,
   `<!-- ici-report -->` marker 또는 version/release를 만들지 않는다.
-- [x] 위 workflow를 exact ici workflow-main `6df011f98be1a19092b112cb56c596dc35bcae4d`와
+- [x] 위 workflow를 historical exact ici workflow-main `6df011f98be1a19092b112cb56c596dc35bcae4d`와
   exact toy `main` `2d0d7c0b2dcc137a782d6042438fc287bffdf570`에 실제 dispatch하고, [acceptance
   run `33710695336`](https://github.com/jihoon22-lee/ici/actions/runs/33710695336)/[artifact
   `9876797536`](https://github.com/jihoon22-lee/ici/actions/artifacts/9876797536)를 독립 감사했다.
@@ -1762,10 +1818,15 @@ candidate·broader Q1–Q5·I4 aggregate·version/release는 완료 처리하지
   SHA-256은
   `70f298a33a251241033882a5bd1eea1a7f863dd86c1939321d531cee39b32bf3`이다. 이는 exact TSan
   candidate contract만 닫으며 feature PR/main 및 I4-4 전체 checkpoint의 근거는 아니다.
-- [ ] 새 category taxonomy와 Qt tool provisioning을 포함한 feature head로 candidate를 만들고,
-  Qt lifetime expectation이 포함된 exact toy `main`에 다시 dispatch해 resource category와
-  expected rule/location 및 clean-path absence를 감사한다. 위 기존 sanitizer acceptance를 이
-  새 feature-head acceptance의 근거로 재사용하지 않는다.
+- [x] category taxonomy와 Qt tool provisioning을 포함한 exact feature head로 candidate를 만들고,
+  Qt parent/lifetime expectation이 포함된 exact toy `main`에 dispatch해 expected
+  rule/location 및 clean-path contract를 감사했다. ici target
+  `e7a9f55be8893d91497a6e1d0bff6e2e5f4af5f3`와 toy target
+  `a59461acaf0f2e967e6ba51e07e56ac7e73acbc6`에 묶인 [Quality Zoo run
+  `33718024450`](https://github.com/jihoon22-lee/ici/actions/runs/33718024450)의 six scenario
+  contracts는 모두 `PASS`, runner `errors`는 `0`이었다. 이는 category projection과 해당 Qt
+  scenario의 exact scope만 닫으며 현재 `main@2113b5d`, broader Qt lifetime/ownership,
+  resource/lifetime/security taxonomy, I4 aggregate 또는 release를 주장하지 않는다.
 - [x] released ici `v0.10.2`를 사용하는 Q0 quality-zoo scenario runner와 report/artifact
   contract를 toy-projects PR #49에서 수락했다. [PR run `33693241255`](https://github.com/jihoon22-lee/toy-projects/actions/runs/33693241255)는
   green이고 [artifact `9870829400`](https://github.com/jihoon22-lee/toy-projects/actions/artifacts/9870829400)는
@@ -1779,12 +1840,13 @@ candidate·broader Q1–Q5·I4 aggregate·version/release는 완료 처리하지
   Pages는 trusted artifact와 byte-identical이었다. 이 check는 released-artifact Q0 경계이며,
   candidate sanitizer consumer evidence는 위의 별도 exact dispatch 기록으로 관리한다.
 
-### I9-1. quality-zoo contract runner — Q0, sanitizer, and TSan candidate acceptance complete; Q1–Q5 pending
+### I9-1. quality-zoo contract runner — Q0, sanitizer, category/Qt, and TSan candidate acceptance complete; Q1–Q5 pending
 
 **브랜치:** `test/quality-zoo-contract`
-**상태:** released-artifact Q0 known-answer acceptance, exact candidate sanitizer acceptance와
-별도 exact TSan candidate acceptance가 완료됐다. Qt lifetime과 broader Q1–Q5
-scenario/support matrix는 pending이다.
+**상태:** released-artifact Q0 known-answer acceptance, exact candidate sanitizer 및
+category/Qt acceptance와 별도 exact TSan candidate acceptance가 완료됐다. broader Qt
+lifetime/ownership, resource/lifetime/security taxonomy와 Q1–Q5 scenario/support matrix는
+pending이다.
 
 - [x] Q0 released-artifact path의 toy manifest schema와 ici v3 report matcher가 PR #49의
   `quality-zoo-contract` artifact에 기록되고 exact-main run에서도 재검증됐다.
@@ -1797,9 +1859,11 @@ scenario/support matrix는 pending이다.
 - [x] ici-hosted candidate workflow가 verified candidate pyz를 local path로 주입하는 계약을
   갖춘다. workflow 자체는 read-only/manual이며, 실제 원격 candidate acceptance는 위 exact
   sanitizer dispatch evidence와 별개로 broader scenario coverage를 계속 요구한다.
-- [x] exact current ici/toy `main`과 candidate artifact를 대상으로 원격 workflow를 dispatch하고
-  candidate report의 expected rule/status/evidence/confidence/path/line을 검증한다. 이는 기존
-  sanitizer corpus에만 해당하며 Qt lifetime 또는 broader Q1–Q5 acceptance는 포함하지 않는다.
+- [x] exact ici/toy `main` revision과 candidate artifact를 binding한 원격 workflow를 dispatch하고
+  candidate report의 expected rule/status/evidence/confidence/path/line을 검증한다. 기존
+  sanitizer(`33710695336`), category/Qt(`33718024450`) 및 TSan(`33737405098`) acceptance는
+  각각의 exact feature head에 한정되며, 현재 `ici main@2113b5d`에 대한 Quality Zoo 재실행이나
+  broader Qt lifetime/ownership 또는 Q1–Q5 acceptance를 포함하지 않는다.
 - [ ] quality-zoo 실패가 어떤 engine regression인지 한 화면에 요약된다.
 
 ### I9-2. self dogfood ratchet

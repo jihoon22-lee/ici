@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 import typer
 from rich.console import Console
@@ -86,6 +87,22 @@ _VERIFY_NO_CACHE_OPTION = typer.Option(
 )
 
 
+class _VerifyRunOptions(TypedDict, total=False):
+    """Keyword arguments shared by the normal and SARIF verify paths."""
+
+    report_json: str | None
+    report_html: str | None
+    github_summary: bool
+    publish: bool
+    baseline_path: str | Path | None
+    fail_on_new: bool
+    write_baseline: str | Path | None
+    console_options: ConsoleOptions | None
+    profile: AnalysisProfile | str | None
+    use_cache: bool
+    report_sarif: str | None
+
+
 def version_callback(value: bool):
     if value:
         print(f"ici {__version__}")
@@ -157,6 +174,9 @@ def cmd_verify(
     html: str | None = typer.Option(
         None, "--html", help="Save standalone HTML report to specified path"
     ),
+    sarif: str | None = typer.Option(
+        None, "--sarif", help="Save a SARIF 2.1.0 report to the specified path"
+    ),
     open_browser: bool = typer.Option(
         False, "--open", help="Open generated HTML report in default browser"
     ),
@@ -208,19 +228,25 @@ def cmd_verify(
         report=report,
     )
 
+    run_options: _VerifyRunOptions = {
+        "report_json": json_path,
+        "report_html": html_path,
+        "github_summary": github_summary,
+        "publish": publish,
+        "baseline_path": baseline_path,
+        "fail_on_new": fail_on_new,
+        "write_baseline": baseline_output,
+        "console_options": console_options,
+        "profile": profile,
+        "use_cache": not no_cache,
+    }
+    # Keep the pre-SARIF call shape when the new output is not requested.  It
+    # matters to embedders that provide a small run_all-compatible adapter.
+    if sarif is not None:
+        run_options["report_sarif"] = sarif
+
     try:
-        suite = orchestrator.run_all(
-            report_json=json_path,
-            report_html=html_path,
-            github_summary=github_summary,
-            publish=publish,
-            baseline_path=baseline_path,
-            fail_on_new=fail_on_new,
-            write_baseline=baseline_output,
-            console_options=console_options,
-            profile=profile,
-            use_cache=not no_cache,
-        )
+        suite = orchestrator.run_all(**run_options)
     except BaselineError as err:
         typer.echo(f"Baseline error: {err}", err=True)
         raise typer.Exit(code=2) from err
