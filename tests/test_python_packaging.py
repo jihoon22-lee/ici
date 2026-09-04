@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from ici.config import DEFAULT_CONFIG
+from ici.config_schema import ConfigError, validate_config
 from ici.engines._python_packaging import (
     PackagingPolicy,
     PythonPackagingError,
@@ -216,3 +218,35 @@ def test_python_compat_engine_exposes_native_package_findings(tmp_path: Path) ->
     assert result.status.value == "FAIL"
     assert [finding.rule_id for finding in result.findings] == ["ici.package.entrypoint-missing"]
     assert result.extra["wheel"]["state"] == "MEASURED"
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "message"),
+    [
+        ("wheel_policy", "unknown", "allow-native, pure"),
+        ("wheel_globs", ["../dist/*.whl"], "contained POSIX glob"),
+        ("max_wheels", 33, "less than or equal to 32"),
+        ("max_wheel_members", 8193, "less than or equal to 8192"),
+        (
+            "max_wheel_uncompressed_bytes",
+            64 * 1024 * 1024 + 1,
+            "less than or equal",
+        ),
+    ],
+)
+def test_package_policy_schema_rejects_unbounded_values(
+    key: str, value: object, message: str
+) -> None:
+    config = {
+        **DEFAULT_CONFIG,
+        "engines": {
+            **DEFAULT_CONFIG["engines"],
+            "python_compat": {
+                **DEFAULT_CONFIG["engines"]["python_compat"],
+                key: value,
+            },
+        },
+    }
+
+    with pytest.raises(ConfigError, match=message):
+        validate_config(config)

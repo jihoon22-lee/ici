@@ -96,6 +96,16 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "imports": [],
             # Empty means infer the earliest supported minor from requires-python.
             "target_version": "",
+            # Package metadata is inspected without importing project code.
+            # Wheels are opt-in evidence and are never built or extracted.
+            "wheel_globs": [],
+            "wheel_required": False,
+            "wheel_policy": "allow-native",
+            "check_entrypoints": True,
+            "check_package_files": True,
+            "max_wheels": 32,
+            "max_wheel_members": 8192,
+            "max_wheel_uncompressed_bytes": 64 * 1024 * 1024,
         },
         "complexity": {
             "enabled": True,

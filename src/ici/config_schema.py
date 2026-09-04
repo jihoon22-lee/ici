@@ -107,7 +107,22 @@ _ENGINE_KEYS = {
     "type": _COMMON_ENGINE_KEYS
     | frozenset({"fail_on_error", "warn_on_missing_annotation", "mypy_required", "mypy_profile"}),
     "python_compat": _COMMON_ENGINE_KEYS
-    | frozenset({"interpreters", "required_interpreters", "imports", "target_version"}),
+    | frozenset(
+        {
+            "interpreters",
+            "required_interpreters",
+            "imports",
+            "target_version",
+            "wheel_globs",
+            "wheel_required",
+            "wheel_policy",
+            "check_entrypoints",
+            "check_package_files",
+            "max_wheels",
+            "max_wheel_members",
+            "max_wheel_uncompressed_bytes",
+        }
+    ),
     "complexity": _COMMON_ENGINE_KEYS
     | frozenset({"warn_cc", "fail_cc", "warn_nesting", "cpp_boundaries"}),
     "sanitize": _COMMON_ENGINE_KEYS,
@@ -540,6 +555,46 @@ def _validate_python_compat(table: dict[str, Any], path: str) -> None:
         _require_string(value, f"{path}.target_version")
         if value and not re.fullmatch(r"3\.(?:[7-9]|[1-9][0-9])", value):
             raise _error(f"{path}.target_version", "must be empty or a Python 3 minor such as 3.10")
+    for key in ("wheel_required", "check_entrypoints", "check_package_files"):
+        if key in table:
+            _require_bool(table[key], f"{path}.{key}")
+    if "wheel_policy" in table:
+        value = table["wheel_policy"]
+        _require_string(value, f"{path}.wheel_policy", non_empty=True)
+        if value not in {"allow-native", "pure"}:
+            raise _error(f"{path}.wheel_policy", "must be one of: allow-native, pure")
+    if "wheel_globs" in table:
+        item_path = f"{path}.wheel_globs"
+        _require_string_list(table["wheel_globs"], item_path)
+        values = table["wheel_globs"]
+        if len(values) > 32:
+            raise _error(item_path, "must contain at most 32 values")
+        if len(values) != len(set(values)):
+            raise _error(item_path, "must not contain duplicate values")
+        for index, value in enumerate(values):
+            pure = PureWindowsPath(value)
+            if (
+                len(value) > 256
+                or not value
+                or "\\" in value
+                or value.startswith("/")
+                or pure.drive
+                or ".." in Path(value).parts
+                or any(ord(character) < 32 for character in value)
+            ):
+                raise _error(
+                    f"{item_path}[{index}]",
+                    "must be a contained POSIX glob of at most 256 characters",
+                )
+    for key, maximum in (
+        ("max_wheels", 32),
+        ("max_wheel_members", 8192),
+        ("max_wheel_uncompressed_bytes", 64 * 1024 * 1024),
+    ):
+        if key in table:
+            _require_int(table[key], f"{path}.{key}", minimum=1)
+            if table[key] > maximum:
+                raise _error(f"{path}.{key}", f"must be less than or equal to {maximum}")
 
 
 def _validate_compile_db(table: dict[str, Any], path: str) -> None:
