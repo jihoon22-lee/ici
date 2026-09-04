@@ -353,54 +353,78 @@ class _CppControlParser:
             elif control == "switch":
                 self.switch_depth -= 1
 
-    def _simple(self) -> None:
-        start = self.position
-        first = self._peek()
+    def _validate_simple_start(self, first: str | None) -> None:
         if first in {"case", "default"} and self.switch_depth == 0:
             raise ValueError(f"{first} label is outside a switch statement")
         if first == "break" and self.loop_depth == 0 and self.switch_depth == 0:
             raise ValueError("break statement is outside a loop or switch")
         if first == "continue" and self.loop_depth == 0:
             raise ValueError("continue statement is outside a loop")
+
+    def _starts_statement_after_label(
+        self,
+        start: int,
+        token: str | None,
+        parentheses: int,
+        initializer_braces: int,
+    ) -> bool:
+        return (
+            self.position > start
+            and parentheses == 0
+            and initializer_braces == 0
+            and (token in _CONTROL_WORDS or token in {"catch", "else", "try"})
+        )
+
+    def _consume_simple_token(
+        self,
+        token: str,
+        parentheses: int,
+        initializer_braces: int,
+    ) -> tuple[int, int, str | None, bool]:
+        if token == "(":
+            parentheses += 1
+        elif token == ")":
+            if parentheses == 0:
+                raise ValueError("unmatched closing parenthesis in function body")
+            parentheses -= 1
+        elif token == "{":
+            initializer_braces += 1
+        elif token == "}":
+            if initializer_braces:
+                initializer_braces -= 1
+            elif parentheses == 0:
+                return parentheses, initializer_braces, None, True
+
+        self.position += 1
+        if token == ":" and parentheses == 0 and initializer_braces == 0:
+            return parentheses, initializer_braces, "label", False
+        if token == ";" and parentheses == 0 and initializer_braces == 0:
+            return parentheses, initializer_braces, "terminated", False
+        return parentheses, initializer_braces, None, False
+
+    def _simple(self) -> None:
+        start = self.position
+        self._validate_simple_start(self._peek())
         parentheses = 0
         initializer_braces = 0
-        terminated = False
-        labelled = False
+        terminal: str | None = None
         while self.position < len(self.tokens):
             token = self._peek()
-            if (
-                self.position > start
-                and parentheses == 0
-                and initializer_braces == 0
-                and (token in _CONTROL_WORDS or token in {"catch", "else", "try"})
-            ):
+            if self._starts_statement_after_label(start, token, parentheses, initializer_braces):
                 # A label (`case value:`, `default:`, or a user label) may be
                 # followed immediately by a controlled statement. Do not let
                 # the label's otherwise-simple token run swallow that flow.
                 break
-            if token == "(":
-                parentheses += 1
-            elif token == ")":
-                if parentheses == 0:
-                    raise ValueError("unmatched closing parenthesis in function body")
-                parentheses -= 1
-            elif token == "{":
-                initializer_braces += 1
-            elif token == "}":
-                if initializer_braces:
-                    initializer_braces -= 1
-                elif parentheses == 0:
-                    break
-            self.position += 1
-            if token == ":" and parentheses == 0 and initializer_braces == 0:
-                labelled = True
+            if token is None:
                 break
-            if token == ";" and parentheses == 0 and initializer_braces == 0:
-                terminated = True
+            parentheses, initializer_braces, terminal, stop = self._consume_simple_token(
+                token, parentheses, initializer_braces
+            )
+            if terminal is not None or stop:
                 break
         if parentheses or initializer_braces:
             raise ValueError("unclosed expression delimiter in function body")
-        if not terminated and not labelled:
+        if terminal is None:
             raise ValueError("simple statement is missing its terminating semicolon")
 
     def _statement(self, nesting: int) -> None:
@@ -510,53 +534,55 @@ def _target(
     )
 
 
-def analyze_cpp_cognitive(
+_CppSourceRows = dict[str, tuple[str, list[_CppFunctionSpan]]]
+
+
+def _display_source_path(project_root: Path, source: Path) -> str:
+    try:
+        return source.relative_to(project_root).as_posix()
+    except ValueError:
+        return source.name
+
+
+def _append_source_error(
+    outcome: CppCognitiveOutcome,
+    relative: str,
+    error: BaseException,
+) -> None:
+    message = (
+        f"C++ cognitive source is not a bounded project file: {relative} ({type(error).__name__})"
+    )
+    outcome.errors.append(message)
+    outcome.targets.append(
+        InspectionTarget(
+            file_path=relative,
+            start_line=1,
+            target_name="CppCognitiveSourceError",
+            status=EngineStatus.ERROR,
+            message=message,
+            metrics={"boundary_source": "source-intake"},
+        )
+    )
+
+
+def _load_cpp_sources(
     project_root: Path,
     cpp_files: list[Path],
-    compilable_files: list[Path],
-    context: AnalysisContext | None,
-    *,
-    warn: int,
-    fail: int,
-    warn_nesting: int,
-    boundary_policy: str,
-    runner: Callable[..., ProcessResult],
-) -> CppCognitiveOutcome:
-    """Analyze C++ functions with exact boundaries when available."""
-
-    outcome = CppCognitiveOutcome(boundary_mode="heuristic")
+    outcome: CppCognitiveOutcome,
+) -> _CppSourceRows:
+    source_rows: _CppSourceRows = {}
     if len(cpp_files) > _MAX_SOURCES:
         outcome.errors.append("C++ cognitive source count exceeds the bounded limit")
-        outcome.boundary_mode = "error"
-        return outcome
+        return source_rows
 
-    source_rows: dict[str, tuple[str, list[_CppFunctionSpan]]] = {}
     source_bytes = 0
     for source in cpp_files:
+        relative = _display_source_path(project_root, source)
         try:
-            relative = source.relative_to(project_root).as_posix()
             text = read_cpp_source_text(project_root, relative)
             spans, _metric_lines = _cpp_function_inventory(text.splitlines())
         except (OSError, UnicodeError, ValueError) as err:
-            try:
-                relative = source.relative_to(project_root).as_posix()
-            except ValueError:
-                relative = source.name
-            message = (
-                f"C++ cognitive source is not a bounded project file: {relative} "
-                f"({type(err).__name__})"
-            )
-            outcome.errors.append(message)
-            outcome.targets.append(
-                InspectionTarget(
-                    file_path=relative,
-                    start_line=1,
-                    target_name="CppCognitiveSourceError",
-                    status=EngineStatus.ERROR,
-                    message=message,
-                    metrics={"boundary_source": "source-intake"},
-                )
-            )
+            _append_source_error(outcome, relative, err)
             continue
         source_bytes += len(text.encode("utf-8"))
         if source_bytes > _MAX_SOURCE_BYTES:
@@ -564,162 +590,237 @@ def analyze_cpp_cognitive(
             source_rows.clear()
             break
         source_rows[relative] = (text, spans)
-    if outcome.errors:
-        outcome.boundary_mode = "error"
-        return outcome
+    return source_rows
 
-    boundaries: list[CppFunctionBoundary] = []
-    if boundary_policy != "off":
-        boundary_result = run_cpp_function_boundaries(
-            project_root,
-            compilable_files,
-            context,
-            runner=runner,
-            source_texts={path: text for path, (text, _spans) in source_rows.items()},
-        )
-        outcome.evidence.extend(boundary_result.evidence)
-        outcome.warnings.extend(boundary_result.warnings)
-        outcome.configurations_checked = boundary_result.configurations_checked
-        outcome.sources_checked = boundary_result.sources_checked
-        outcome.lambdas_excluded = boundary_result.lambdas_excluded
-        outcome.macro_functions_excluded = boundary_result.macro_functions_excluded
-        if boundary_result.mode == "error":
-            outcome.errors.extend(boundary_result.errors)
-            outcome.boundary_mode = "error"
-            return outcome
-        if boundary_result.mode in {"exact", "partial"}:
-            outcome.boundary_mode = boundary_result.mode
-            boundaries = [
-                item for item in boundary_result.boundaries if item.file_path in source_rows
-            ]
-        elif boundary_policy == "required":
-            outcome.errors.append(
-                "compiler-backed C++ cognitive boundaries require an exact compilation "
-                "database and approved clang-tidy"
-            )
-            outcome.boundary_mode = "error"
-            return outcome
 
-    matched: dict[str, set[int]] = {path: set() for path in source_rows}
-    for boundary in boundaries:
-        text, spans = source_rows[boundary.file_path]
-        index = _matching_span(boundary, spans)
-        claimed_index = index if index is not None else _claimed_span(boundary, spans)
-        if claimed_index is not None:
-            matched[boundary.file_path].add(claimed_index)
-        try:
-            if boundary.end_column is None:
-                raise ValueError("compiler-backed function range has no end column")
-            body = _source_slice(
-                text,
-                boundary.body_start_line,
-                boundary.body_start_column,
-                boundary.end_line,
-                boundary.end_column,
-            )
-            metric = cpp_cognitive_metric(body)
-        except (RecursionError, ValueError) as err:
-            message = f"C++ cognitive function range is invalid: {boundary.file_path}: {err}"
-            outcome.errors.append(message)
-            outcome.targets.append(
-                InspectionTarget(
-                    file_path=boundary.file_path,
-                    start_line=boundary.start_line,
-                    end_line=boundary.end_line,
-                    start_column=boundary.start_column,
-                    end_column=boundary.end_column,
-                    target_name=boundary.name,
-                    status=EngineStatus.ERROR,
-                    message=message,
-                    metrics={"boundary_source": "clang-tidy-ast"},
-                )
-            )
-            continue
-        outcome.targets.append(
-            _target(
-                boundary.file_path,
-                boundary.name,
-                boundary.start_line,
-                boundary.end_line,
-                boundary.start_column,
-                boundary.end_column,
-                metric,
-                warn=warn,
-                fail=fail,
-                warn_nesting=warn_nesting,
-                boundary_source="clang-tidy-ast",
-                configurations=boundary.configurations,
-            )
+def _resolve_cpp_boundaries(
+    project_root: Path,
+    compilable_files: list[Path],
+    context: AnalysisContext | None,
+    source_rows: _CppSourceRows,
+    outcome: CppCognitiveOutcome,
+    *,
+    boundary_policy: str,
+    runner: Callable[..., ProcessResult],
+) -> list[CppFunctionBoundary]:
+    if boundary_policy == "off":
+        return []
+    boundary_result = run_cpp_function_boundaries(
+        project_root,
+        compilable_files,
+        context,
+        runner=runner,
+        source_texts={path: text for path, (text, _spans) in source_rows.items()},
+    )
+    outcome.evidence.extend(boundary_result.evidence)
+    outcome.warnings.extend(boundary_result.warnings)
+    outcome.configurations_checked = boundary_result.configurations_checked
+    outcome.sources_checked = boundary_result.sources_checked
+    outcome.lambdas_excluded = boundary_result.lambdas_excluded
+    outcome.macro_functions_excluded = boundary_result.macro_functions_excluded
+    if boundary_result.mode == "error":
+        outcome.errors.extend(boundary_result.errors)
+        return []
+    if boundary_result.mode in {"exact", "partial"}:
+        outcome.boundary_mode = boundary_result.mode
+        return [item for item in boundary_result.boundaries if item.file_path in source_rows]
+    if boundary_policy == "required":
+        outcome.errors.append(
+            "compiler-backed C++ cognitive boundaries require an exact compilation "
+            "database and approved clang-tidy"
         )
+    return []
+
+
+def _append_range_error(
+    outcome: CppCognitiveOutcome,
+    *,
+    path: str,
+    name: str,
+    start_line: int,
+    end_line: int,
+    start_column: int | None,
+    end_column: int | None,
+    message: str,
+    boundary_source: str,
+) -> None:
+    outcome.errors.append(message)
+    outcome.targets.append(
+        InspectionTarget(
+            file_path=path,
+            start_line=start_line,
+            end_line=end_line,
+            start_column=start_column,
+            end_column=end_column,
+            target_name=name,
+            status=EngineStatus.ERROR,
+            message=message,
+            metrics={"boundary_source": boundary_source},
+        )
+    )
+
+
+def _append_metric(
+    outcome: CppCognitiveOutcome,
+    *,
+    path: str,
+    name: str,
+    start_line: int,
+    end_line: int,
+    start_column: int | None,
+    end_column: int | None,
+    metric: CppCognitiveMetric,
+    warn: int,
+    fail: int,
+    warn_nesting: int,
+    boundary_source: str,
+    configurations: tuple[str, ...] = (),
+    exact: bool,
+) -> None:
+    outcome.targets.append(
+        _target(
+            path,
+            name,
+            start_line,
+            end_line,
+            start_column,
+            end_column,
+            metric,
+            warn=warn,
+            fail=fail,
+            warn_nesting=warn_nesting,
+            boundary_source=boundary_source,
+            configurations=configurations,
+        )
+    )
+    if exact:
         outcome.exact_boundaries += 1
-        outcome.functions_analyzed += 1
-        outcome.max_cognitive = max(outcome.max_cognitive, metric.cognitive)
+    else:
+        outcome.estimated_boundaries += 1
+    outcome.functions_analyzed += 1
+    outcome.max_cognitive = max(outcome.max_cognitive, metric.cognitive)
 
-    for path, (text, spans) in source_rows.items():
-        for index, span in enumerate(spans):
-            if index in matched[path]:
-                continue
-            if span.end_column is None:
-                message = f"C++ cognitive function range is unterminated: {path}:{span.start_line}"
-                outcome.errors.append(message)
-                outcome.targets.append(
-                    InspectionTarget(
-                        file_path=path,
-                        start_line=span.start_line,
-                        end_line=span.end_line,
-                        start_column=span.start_column,
-                        target_name=span.name,
-                        status=EngineStatus.ERROR,
-                        message=message,
-                        metrics={"boundary_source": "source-scanner"},
-                    )
-                )
-                continue
-            try:
-                body = _source_slice(
-                    text,
-                    span.body_start_line,
-                    span.body_start_column,
-                    span.end_line,
-                    span.end_column,
-                )
-                metric = cpp_cognitive_metric(body)
-            except (RecursionError, ValueError) as err:
-                message = f"C++ cognitive function range is invalid: {path}: {err}"
-                outcome.errors.append(message)
-                outcome.targets.append(
-                    InspectionTarget(
-                        file_path=path,
-                        start_line=span.start_line,
-                        end_line=span.end_line,
-                        start_column=span.start_column,
-                        end_column=span.end_column,
-                        target_name=span.name,
-                        status=EngineStatus.ERROR,
-                        message=message,
-                        metrics={"boundary_source": "source-scanner"},
-                    )
-                )
-                continue
-            outcome.targets.append(
-                _target(
-                    path,
-                    span.name,
-                    span.start_line,
-                    span.end_line,
-                    span.start_column,
-                    span.end_column,
-                    metric,
-                    warn=warn,
-                    fail=fail,
-                    warn_nesting=warn_nesting,
-                    boundary_source="source-scanner",
-                )
-            )
-            outcome.estimated_boundaries += 1
-            outcome.functions_analyzed += 1
-            outcome.max_cognitive = max(outcome.max_cognitive, metric.cognitive)
 
+def _append_exact_boundary(
+    boundary: CppFunctionBoundary,
+    source_rows: _CppSourceRows,
+    matched: dict[str, set[int]],
+    outcome: CppCognitiveOutcome,
+    *,
+    warn: int,
+    fail: int,
+    warn_nesting: int,
+) -> None:
+    text, spans = source_rows[boundary.file_path]
+    index = _matching_span(boundary, spans)
+    claimed_index = index if index is not None else _claimed_span(boundary, spans)
+    if claimed_index is not None:
+        matched[boundary.file_path].add(claimed_index)
+    try:
+        if boundary.end_column is None:
+            raise ValueError("compiler-backed function range has no end column")
+        body = _source_slice(
+            text,
+            boundary.body_start_line,
+            boundary.body_start_column,
+            boundary.end_line,
+            boundary.end_column,
+        )
+        metric = cpp_cognitive_metric(body)
+    except (RecursionError, ValueError) as err:
+        _append_range_error(
+            outcome,
+            path=boundary.file_path,
+            name=boundary.name,
+            start_line=boundary.start_line,
+            end_line=boundary.end_line,
+            start_column=boundary.start_column,
+            end_column=boundary.end_column,
+            message=f"C++ cognitive function range is invalid: {boundary.file_path}: {err}",
+            boundary_source="clang-tidy-ast",
+        )
+        return
+    _append_metric(
+        outcome,
+        path=boundary.file_path,
+        name=boundary.name,
+        start_line=boundary.start_line,
+        end_line=boundary.end_line,
+        start_column=boundary.start_column,
+        end_column=boundary.end_column,
+        metric=metric,
+        warn=warn,
+        fail=fail,
+        warn_nesting=warn_nesting,
+        boundary_source="clang-tidy-ast",
+        configurations=boundary.configurations,
+        exact=True,
+    )
+
+
+def _append_estimated_span(
+    path: str,
+    text: str,
+    span: _CppFunctionSpan,
+    outcome: CppCognitiveOutcome,
+    *,
+    warn: int,
+    fail: int,
+    warn_nesting: int,
+) -> None:
+    if span.end_column is None:
+        _append_range_error(
+            outcome,
+            path=path,
+            name=span.name,
+            start_line=span.start_line,
+            end_line=span.end_line,
+            start_column=span.start_column,
+            end_column=None,
+            message=f"C++ cognitive function range is unterminated: {path}:{span.start_line}",
+            boundary_source="source-scanner",
+        )
+        return
+    try:
+        body = _source_slice(
+            text,
+            span.body_start_line,
+            span.body_start_column,
+            span.end_line,
+            span.end_column,
+        )
+        metric = cpp_cognitive_metric(body)
+    except (RecursionError, ValueError) as err:
+        _append_range_error(
+            outcome,
+            path=path,
+            name=span.name,
+            start_line=span.start_line,
+            end_line=span.end_line,
+            start_column=span.start_column,
+            end_column=span.end_column,
+            message=f"C++ cognitive function range is invalid: {path}: {err}",
+            boundary_source="source-scanner",
+        )
+        return
+    _append_metric(
+        outcome,
+        path=path,
+        name=span.name,
+        start_line=span.start_line,
+        end_line=span.end_line,
+        start_column=span.start_column,
+        end_column=span.end_column,
+        metric=metric,
+        warn=warn,
+        fail=fail,
+        warn_nesting=warn_nesting,
+        boundary_source="source-scanner",
+        exact=False,
+    )
+
+
+def _finish_boundary_mode(outcome: CppCognitiveOutcome, boundary_policy: str) -> None:
     if outcome.errors:
         outcome.boundary_mode = "error"
     elif boundary_policy == "required" and (
@@ -735,4 +836,66 @@ def analyze_cpp_cognitive(
         outcome.boundary_mode = "exact"
     elif not outcome.exact_boundaries:
         outcome.boundary_mode = "heuristic"
+
+
+def analyze_cpp_cognitive(
+    project_root: Path,
+    cpp_files: list[Path],
+    compilable_files: list[Path],
+    context: AnalysisContext | None,
+    *,
+    warn: int,
+    fail: int,
+    warn_nesting: int,
+    boundary_policy: str,
+    runner: Callable[..., ProcessResult],
+) -> CppCognitiveOutcome:
+    """Analyze C++ functions with exact boundaries when available."""
+
+    outcome = CppCognitiveOutcome(boundary_mode="heuristic")
+    source_rows = _load_cpp_sources(project_root, cpp_files, outcome)
+    if outcome.errors:
+        outcome.boundary_mode = "error"
+        return outcome
+
+    boundaries = _resolve_cpp_boundaries(
+        project_root,
+        compilable_files,
+        context,
+        source_rows,
+        outcome,
+        boundary_policy=boundary_policy,
+        runner=runner,
+    )
+    if outcome.errors:
+        outcome.boundary_mode = "error"
+        return outcome
+
+    matched: dict[str, set[int]] = {path: set() for path in source_rows}
+    for boundary in boundaries:
+        _append_exact_boundary(
+            boundary,
+            source_rows,
+            matched,
+            outcome,
+            warn=warn,
+            fail=fail,
+            warn_nesting=warn_nesting,
+        )
+
+    for path, (text, spans) in source_rows.items():
+        for index, span in enumerate(spans):
+            if index in matched[path]:
+                continue
+            _append_estimated_span(
+                path,
+                text,
+                span,
+                outcome,
+                warn=warn,
+                fail=fail,
+                warn_nesting=warn_nesting,
+            )
+
+    _finish_boundary_mode(outcome, boundary_policy)
     return outcome
