@@ -73,6 +73,7 @@ from ici.reporters.markdown import (
     generate_markdown_report,
     write_github_step_summary,
 )
+from ici.reporters.sarif import save_sarif_report
 
 
 def _prepare_compilation_context(
@@ -213,6 +214,7 @@ class VerifyOrchestrator:
         console_options: ConsoleOptions | None = None,
         profile: AnalysisProfile | str | None = None,
         use_cache: bool = True,
+        report_sarif: str | None = None,
     ) -> VerificationSuiteResult:
         t0 = time.time()
         effective_config, selected_profile = apply_analysis_profile(self.config, profile)
@@ -345,7 +347,13 @@ class VerifyOrchestrator:
         if report_json:
             save_json_report(suite, Path(report_json), project_root=self.project_root)
 
-        # 3. HTML Report if requested
+        # 3. SARIF report if requested.  This is deliberately additive to the
+        # existing JSON/HTML/Markdown outputs; the SARIF writer consumes the
+        # same canonical findings projection and does not recompute the gate.
+        if report_sarif:
+            save_sarif_report(suite, Path(report_sarif), project_root=self.project_root)
+
+        # 4. HTML Report if requested
         if report_html:
             generate_html_report(
                 suite,
@@ -354,13 +362,13 @@ class VerifyOrchestrator:
                 base_dir=self.project_root,
             )
 
-        # 4. Markdown Report & GitHub Actions Summary
+        # 5. Markdown Report & GitHub Actions Summary
         md_content = generate_markdown_report(suite, repo_url=repo_url, commit_sha=commit_sha)
         if github_summary:
             write_github_step_summary(md_content)
             emit_github_actions_annotations(suite)
 
-        # 5. Publish HTML report to GitHub (gh-pages / hub) with sticky PR comment
+        # 6. Publish HTML report to GitHub (gh-pages / hub) with sticky PR comment
         if publish:
             html_target = Path(report_html) if report_html else Path("verify_report.html")
             pub_result = ReportPublisher(project_name=reporting_context.project.name).publish(
