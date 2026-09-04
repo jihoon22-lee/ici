@@ -545,6 +545,11 @@
   patchability and bounded process behavior are preserved while removing the
   `test -> test_interpreter -> test` dependency cycle reported by ici's own cycle engine.
 
+- **Integration configuration maintainability:** Typed integration-case parsing now separates
+  case identity, scalar policy, environment, and assertion construction. The same bounds and error
+  paths are preserved while the execution-contract parser stays below ici's own critical
+  cyclomatic threshold.
+
 - **Deterministic ZipApp bootstrap entry ordering and acceptance:** The packaging entrypoint
   now delegates to a small `scripts/run_shiv.py` wrapper inside the selected Python 3.10+ helper
   interpreter. The wrapper sorts shiv 1.0.8's private bootstrap resource entries by their archive
