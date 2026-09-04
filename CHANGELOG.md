@@ -24,7 +24,8 @@
   decompressed bytes, and cumulative file/function/line/branch/call records. Statement attributes
   before control flow and lambda bodies written with C++ brace digraphs retain the same cognitive
   semantics as their ordinary spellings. gcov JSON v1 reports without basic-block IDs use
-  source-line branch order with explicit provenance. Coverage policy targets now cover
+  source-line branch order with explicit provenance; mixed format/GCC-version directories are
+  rejected as inconsistent evidence. Coverage policy targets now cover
   overall line, per-file line (with a minimum statement
   floor), aggregate/function scope, and caller-declared changed lines; PASS targets are retained,
   JSON uncovered functions keep exact locations, and baseline coverage regression is opt-in. The real

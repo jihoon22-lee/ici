@@ -651,6 +651,32 @@ def test_gcov_json_v1_uses_ordered_branch_identity(tmp_path: Path):
     assert provenance["ordered_branch_records"] == 3
 
 
+def test_gcov_json_directory_rejects_mixed_format_versions(tmp_path: Path):
+    source = tmp_path / "src" / "calc.cpp"
+    source.parent.mkdir()
+    source.write_text("int calc(int);\n", encoding="utf-8")
+    cov_dir = tmp_path / "coverage"
+    cov_dir.mkdir()
+    _write_gcov_json(
+        cov_dir / "old.gcov.json.gz",
+        project_root=tmp_path,
+        function_count=1,
+        format_version="1",
+    )
+    _write_gcov_json(
+        cov_dir / "new.gcov.json.gz",
+        project_root=tmp_path,
+        function_count=1,
+        format_version="2",
+    )
+    engine = TestEngine(tmp_path)
+
+    engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
+
+    assert engine._cpp_coverage_rows == []
+    assert any("inconsistent_report_set" in message for message in engine._tool_errors)
+
+
 def test_gcov_json_rejects_missing_expected_source_without_text_fallback(tmp_path: Path):
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "calc.cpp").write_text("int calc();\n", encoding="utf-8")

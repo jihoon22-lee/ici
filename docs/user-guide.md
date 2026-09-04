@@ -474,7 +474,9 @@ unwind edge는 branch score에서 제외됩니다. gcov JSON v1처럼 basic bloc
 같은 source line 안의 안정된 출력 순서로 구분하고
 `branch_identity = basic-block-or-line-order` provenance를 남깁니다. ID가 있으면 basic-block
 identity를 우선 사용합니다. malformed/불완전 JSON, capability probe 실패·
-timeout·truncation은 text로 조용히 재시도하지 않고 fail-closed합니다.
+timeout·truncation은 text로 조용히 재시도하지 않고 fail-closed합니다. 한 coverage
+디렉터리 안에서 format version 또는 GCC version이 섞인 report도 stale/오염 evidence로
+거부합니다.
 
 JSON을 광고하지 않는 성공한 legacy `gcov --help`만 bounded text parser로 제한적으로
 fallback합니다. 이 경로는 `function_geometry = line-1-fallback` 및

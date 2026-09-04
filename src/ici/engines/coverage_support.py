@@ -670,6 +670,16 @@ def parse_gcov_json_dir(
                     f"cumulative gcov JSON {label} records exceed {maximum}",
                     code="aggregate_limit",
                 )
+        if versions and report.format_version not in versions:
+            raise GcovJsonError(
+                "gcov JSON reports contain mixed format versions",
+                code="inconsistent_report_set",
+            )
+        if gcc_versions and report.gcc_version not in gcc_versions:
+            raise GcovJsonError(
+                "gcov JSON reports contain mixed GCC versions",
+                code="inconsistent_report_set",
+            )
         versions.add(report.format_version)
         gcc_versions.add(report.gcc_version)
         matched, ignored = _merge_gcov_json_report(

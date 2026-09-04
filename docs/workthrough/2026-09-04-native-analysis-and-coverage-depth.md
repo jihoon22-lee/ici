@@ -60,7 +60,8 @@ Mutation은 이 범위에서도 실제 mutation score를 산출하지 않고 cap
 - v1 gcov가 basic-block ID를 생략하는 경우 branch를 source line 내 출력
   순서로 구분하고 `basic-block-or-line-order` provenance를 남긴다. ID가 있는 report는
   source/destination basic-block identity를 우선 사용하며, 한 branch에서 ID 한쪽만 빠진
-  evidence는 거부한다.
+  evidence는 거부한다. 동일 디렉터리의 format/GCC version이 섞이면 stale report가 branch
+  identity를 이중 계산할 수 있으므로 전체 report set을 거부한다.
 - throw unwind edge는 branch coverage 계산에서 제외한다. integration은 기록된 compilation
   directory 또는 project root를 통해 source를 매핑하고, 모든 expected production source가
   관찰되지 않으면 incomplete evidence로 거부한다.
