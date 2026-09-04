@@ -309,7 +309,7 @@ class TestQualityMixin:
 
     def _remember_pytest_output(self, result: ProcessResult) -> None:
         output = result.stdout + ("\n" + result.stderr if result.stderr else "")
-        self._last_pytest_output = output  # type: ignore[attr-defined]
+        self._last_pytest_output = output
         self._last_pytest_outcomes = self._parse_pytest_outcomes(output)  # type: ignore[attr-defined]
 
     def _pytest_duration_args(self) -> list[str]:
@@ -341,9 +341,9 @@ class TestQualityMixin:
 
         threshold = float(settings["slow_test_threshold"])
         max_slow_tests = int(settings["max_slow_tests"])
-        if threshold > 0 and self._last_pytest_output:  # type: ignore[attr-defined]
+        if threshold > 0 and self._last_pytest_output:
             slow_rows, slow_observed = self._parse_pytest_duration_summary(  # type: ignore[attr-defined]
-                self._last_pytest_output,  # type: ignore[attr-defined]
+                self._last_pytest_output,
                 self.project_root,  # type: ignore[attr-defined]
                 threshold=threshold,
                 max_items=max_slow_tests,
@@ -373,9 +373,9 @@ class TestQualityMixin:
         info["repeat_runs"] = 1
         repeat_runs = int(settings["repeat_runs"])
         outcome_runs: list[dict[str, str]] = []
-        base_outcomes_available = bool(self._last_pytest_outcomes)  # type: ignore[attr-defined]
+        base_outcomes_available = bool(self._last_pytest_outcomes)
         if base_outcomes_available:
-            outcome_runs.append(dict(self._last_pytest_outcomes))  # type: ignore[attr-defined]
+            outcome_runs.append(dict(self._last_pytest_outcomes))
         elif repeat_runs > 1:
             info["repeat_unavailable"] += 1
             targets.append(
@@ -394,7 +394,7 @@ class TestQualityMixin:
 
         if repeat_runs > 1:
             for run_number in range(2, repeat_runs + 1):
-                result = self._run_quality_pytest(  # type: ignore[attr-defined]
+                result = self._run_quality_pytest(
                     run_number,
                     timeout=float(settings["timeout"]),
                     include_durations=threshold > 0,
@@ -452,7 +452,7 @@ class TestQualityMixin:
 
         mutation = self._probe_mutation_capability(settings, targets)
         info.update(mutation)
-        self._quality_info = info  # type: ignore[attr-defined]
+        self._quality_info = info
         return info
 
     def _run_quality_pytest(

@@ -533,6 +533,12 @@
 
 ### Fixed
 
+- **Dogfood type-policy cleanup:** The extracted test interpreter and deep-quality mixins no longer
+  carry eight stale `attr-defined` suppressions. The stricter project Mypy overlay now reports zero
+  type findings across all 133 source files, while the ordinary project profile remains clean.
+  This is validation cleanup for the unreleased analysis-platform work; stable version `0.10.2`
+  remains unchanged.
+
 - **Self-analysis type and cancellation cleanup regressions:** The unreleased SARIF, artifact
   provenance, Python packaging, CLI, and ELF compatibility paths now retain explicit result types
   under the project Mypy policy instead of leaking ambiguous local/container inference. The
@@ -561,7 +567,7 @@
 - **Test-quality module boundary:** Deep-profile slow/flaky/mutation observations now live in a
   dedicated cache-identified mixin while `TestEngine` retains the execution, coverage, and TEM
   orchestration. The bounded runner is injected through the existing patchable engine binding;
-  ici's own pure-code count drops to 960 lines for `test.py` and 547 for `test_quality.py`.
+  ici's own pure-code count drops to 956 lines for `test.py` and 547 for `test_quality.py`.
 
 - **Configuration validation boundaries:** Public `ici.config_schema` imports remain compatible,
   while dependency-free primitives, opt-in analysis-contract rules, and project path containment

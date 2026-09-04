@@ -48,7 +48,7 @@ class TestInterpreterMixin:
         interpreter = self._interpreter_from_command(python_cmd)
         candidate = [*interpreter, "-m", "coverage"]
         probe = [*candidate, "--version"]
-        result = self._run_test_process(  # type: ignore[attr-defined]
+        result = self._run_test_process(
             probe,
             cwd=self.project_root,  # type: ignore[attr-defined]
         )
