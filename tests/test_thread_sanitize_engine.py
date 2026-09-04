@@ -202,6 +202,7 @@ def test_thread_sanitize_requests_its_own_adapter_variant(
     [
         ("cmake", "CMakeLists.txt", "ctest"),
         ("qmake", "app.pro", "make check"),
+        ("make", "Makefile", "make test"),
     ],
 )
 def test_adapter_thread_sanitize_keeps_process_linked_diagnostic(
@@ -251,9 +252,11 @@ def test_adapter_thread_sanitize_keeps_process_linked_diagnostic(
 
     monkeypatch.setattr("ici.engines.sanitize.adapter_run_tests", fake_run_tests)
 
-    result = ThreadSanitizeEngine(tmp_path).run()
+    config = {"build": {"make": {"enabled": True}}} if backend == "make" else None
+    result = ThreadSanitizeEngine(tmp_path, config).run()
 
     assert result.status is EngineStatus.FAIL
+    assert result.evidence is EvidenceState.MEASURED
     assert result.extra["sanitizer_diagnostics"][0]["process_evidence_index"] == 1
     assert result.tool_evidence[1].name == process_name
     assert result.findings[0].tool_rule_id == "tsan.data-race"
