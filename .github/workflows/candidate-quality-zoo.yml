@@ -16,14 +16,26 @@ on:
         required: true
         type: string
       toy_target_sha:
-        description: "Exact current toy-projects main commit containing candidate expectations"
+        description: "Exact toy-projects commit containing candidate expectations (main or PR head)"
         required: true
+        type: string
+      toy_revision_mode:
+        description: "Toy revision source: protected main tip or an open same-repository PR head"
+        required: false
+        default: main
+        type: choice
+        options:
+          - main
+          - pull_request
+      toy_pr_number:
+        description: "Open same-repository toy-projects PR number (required in pull_request mode)"
+        required: false
         type: string
 
 permissions: {}
 
 concurrency:
-  group: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.toy_target_sha }}
+  group: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.toy_revision_mode }}-${{ inputs.toy_pr_number }}-${{ inputs.toy_target_sha }}
   cancel-in-progress: false
 
 jobs:
@@ -35,8 +47,19 @@ jobs:
       actions: read
       checks: read
       contents: read
+      pull-requests: read
 
     steps:
+      - name: Checkout Trusted Candidate Helper
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: ici-workflow
+          sparse-checkout: scripts/candidate_merge_gate.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          persist-credentials: false
+
       - name: Checkout Exact Quality Zoo Commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -58,12 +81,15 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             clang clang-tidy clazy cmake g++ pkg-config qt6-base-dev
 
-      - name: Validate Workflow Inputs and Exact Main Revisions
+      - name: Validate Workflow Inputs and Exact Revisions
         env:
           ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
           CANDIDATE_ARTIFACT_ID: ${{ inputs.candidate_artifact_id }}
           CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
           TOY_TARGET_SHA: ${{ inputs.toy_target_sha }}
+          TOY_REVISION_MODE: ${{ inputs.toy_revision_mode }}
+          TOY_PR_NUMBER: ${{ inputs.toy_pr_number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "jihoon22-lee/ici"
@@ -72,11 +98,30 @@ jobs:
           printf '%s' "$CANDIDATE_ARTIFACT_ID" | grep -Eq '^[1-9][0-9]*$'
           printf '%s' "$CANDIDATE_ARCHIVE_SHA256" | grep -Eq '^[0-9a-f]{64}$'
           printf '%s' "$TOY_TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$TOY_REVISION_MODE" | grep -Eq '^(main|pull_request)$'
           test "$(git -C toy-projects rev-parse HEAD)" = "$TOY_TARGET_SHA"
           ici_main="$(git ls-remote --exit-code https://github.com/jihoon22-lee/ici.git refs/heads/main | cut -f1)"
-          toy_main="$(git ls-remote --exit-code https://github.com/jihoon22-lee/toy-projects.git refs/heads/main | cut -f1)"
           test "$GITHUB_SHA" = "$ici_main"
-          test "$TOY_TARGET_SHA" = "$toy_main"
+          case "$TOY_REVISION_MODE" in
+            main)
+              test -z "$TOY_PR_NUMBER"
+              toy_main="$(git ls-remote --exit-code https://github.com/jihoon22-lee/toy-projects.git refs/heads/main | cut -f1)"
+              test "$TOY_TARGET_SHA" = "$toy_main"
+              printf '{"repository":"jihoon22-lee/toy-projects","revision_mode":"main","schema_version":"ici.quality-zoo-toy-revision/v1","target_sha":"%s"}\n' \
+                "$TOY_TARGET_SHA" > "$RUNNER_TEMP/toy-revision.json"
+              ;;
+            pull_request)
+              printf '%s' "$TOY_PR_NUMBER" | grep -Eq '^[1-9][0-9]{0,18}$'
+              toy_repository="jihoon22-lee/toy-projects"
+              gh api -H 'Accept: application/vnd.github+json' \
+                "repos/${toy_repository}/pulls/${TOY_PR_NUMBER}" \
+                > "$RUNNER_TEMP/toy-pull-request.json"
+              python3.10 ici-workflow/scripts/candidate_merge_gate.py verify-toy-pr \
+                "$RUNNER_TEMP/toy-pull-request.json" \
+                "$TOY_PR_NUMBER" "$TOY_TARGET_SHA" "$toy_repository" \
+                > "$RUNNER_TEMP/toy-revision.json"
+              ;;
+          esac
 
       - name: Download Exact Candidate Archive and Metadata
         env:
@@ -267,6 +312,7 @@ jobs:
           mkdir -- "$destination"
           cp -- "$RUNNER_TEMP/candidate-preflight.json" "$destination/preflight.json"
           cp -- "$RUNNER_TEMP/candidate-intake.json" "$destination/intake.json"
+          cp -- "$RUNNER_TEMP/toy-revision.json" "$destination/toy-revision.json"
           cp -R -- "$RUNNER_TEMP/candidate-evidence" "$destination/github-evidence"
           cp -R -- "$RUNNER_TEMP/quality-zoo-results" "$destination/results"
 
