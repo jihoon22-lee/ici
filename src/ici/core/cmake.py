@@ -34,6 +34,7 @@ from ici.core.context import (
 from ici.core.make import MakeConfigError, MakePlan, make_plan, resolved_argv
 from ici.core.models import ToolEvidence
 from ici.core.redaction import _redact_compilation_argv
+from ici.core.redaction_values import REDACTED
 from ici.core.runner import run_process
 
 __all__ = [
@@ -857,12 +858,12 @@ def _redact_producer_argv(argv: tuple[str, ...], root: Path) -> tuple[str, ...]:
     root_text = root.as_posix().rstrip("/")
     for index, raw in enumerate(normalized):
         if hide_next:
-            redacted[index] = "***REDACTED***"
+            redacted[index] = REDACTED
             hide_next = False
         flag = raw.split("=", 1)[0]
         if _PRODUCER_SECRET_FLAG_RE.fullmatch(flag + ("=" if "=" in raw else "")):
             if "=" in raw:
-                redacted[index] = f"{flag}=***REDACTED***"
+                redacted[index] = f"{flag}={REDACTED}"
             else:
                 hide_next = True
         # The compiler redactor handles standalone path arguments.  This
