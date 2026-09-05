@@ -76,6 +76,50 @@ def parse_changed_lines(
     return {path: parsed[path] for path in sorted(parsed)}
 
 
+def _record_lines(lines: dict[int, bool], raw: Any, *, covered: bool) -> None:
+    """Record positive integer line numbers, without downgrading a covered line.
+
+    ``type(line) is int`` rather than ``isinstance`` on purpose: ``bool`` is an
+    ``int`` subclass and a JSON ``true`` must not be read as line 1.
+    """
+
+    for line in raw:
+        if type(line) is not int or line <= 0:
+            continue
+        if covered:
+            lines[line] = True
+        else:
+            lines.setdefault(line, False)
+
+
+def _merge_python_lines(
+    status: dict[str, dict[int, bool]],
+    coverage_data: dict[str, Any] | None,
+) -> None:
+    files = (coverage_data or {}).get("files")
+    if not isinstance(files, dict):
+        return
+    for raw_path, raw_info in files.items():
+        if not isinstance(raw_path, str) or not isinstance(raw_info, dict):
+            continue
+        lines = status.setdefault(raw_path, {})
+        _record_lines(lines, raw_info.get("executed_lines", []), covered=True)
+        _record_lines(lines, raw_info.get("missing_lines", []), covered=False)
+
+
+def _merge_cpp_lines(
+    status: dict[str, dict[int, bool]],
+    cpp_rows: list[dict[str, Any]],
+) -> None:
+    for row in cpp_rows:
+        raw_path = row.get("file")
+        if not isinstance(raw_path, str):
+            continue
+        lines = status.setdefault(raw_path, {})
+        _record_lines(lines, row.get("executable_lines", []), covered=False)
+        _record_lines(lines, row.get("covered_lines", []), covered=True)
+
+
 def build_changed_line_status(
     coverage_data: dict[str, Any] | None,
     cpp_rows: list[dict[str, Any]],
@@ -83,30 +127,8 @@ def build_changed_line_status(
     """Build an internal executable-line map without enlarging report rows."""
 
     status: dict[str, dict[int, bool]] = {}
-    if coverage_data:
-        files = coverage_data.get("files")
-        if isinstance(files, dict):
-            for raw_path, raw_info in files.items():
-                if not isinstance(raw_path, str) or not isinstance(raw_info, dict):
-                    continue
-                lines = status.setdefault(raw_path, {})
-                for line in raw_info.get("executed_lines", []):
-                    if type(line) is int and line > 0:
-                        lines[line] = True
-                for line in raw_info.get("missing_lines", []):
-                    if type(line) is int and line > 0:
-                        lines.setdefault(line, False)
-    for row in cpp_rows:
-        raw_path = row.get("file")
-        if not isinstance(raw_path, str):
-            continue
-        lines = status.setdefault(raw_path, {})
-        for line in row.get("executable_lines", []):
-            if type(line) is int and line > 0:
-                lines.setdefault(line, False)
-        for line in row.get("covered_lines", []):
-            if type(line) is int and line > 0:
-                lines[line] = True
+    _merge_python_lines(status, coverage_data)
+    _merge_cpp_lines(status, cpp_rows)
     return {
         path: {line: status[path][line] for line in sorted(status[path])} for path in sorted(status)
     }

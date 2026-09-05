@@ -297,6 +297,92 @@ def _gcov_source_path(gcov_file: Path, source_files: set[str], project_root: Pat
     return _match_source_suffix(declared, source_files)
 
 
+class _GcovCounts:
+    """Mutable per-file tallies collected while scanning one ``.gcov`` text."""
+
+    __slots__ = ("branches", "covered", "covered_branches", "covered_lines", "miss", "missing")
+
+    def __init__(self) -> None:
+        self.covered = 0
+        self.miss = 0
+        self.branches = 0
+        self.covered_branches = 0
+        self.missing: list[int] = []
+        self.covered_lines: list[int] = []
+
+
+def _count_gcov_branch(line: str, counts: _GcovCounts) -> None:
+    """Tally one ``branch`` record, ignoring exception-unwind arms."""
+
+    if _EXCEPTION_UNWIND_ARM in line:
+        return
+    parts = line.split()
+    counts.branches += 1
+    if "taken" not in parts:
+        return
+    index = parts.index("taken")
+    value = parts[index + 1] if index + 1 < len(parts) else "0"
+    try:
+        if int(value.rstrip("%")) > 0:
+            counts.covered_branches += 1
+    except ValueError as error:
+        _ = error
+
+
+def _count_gcov_source(line: str, counts: _GcovCounts) -> None:
+    """Tally one ``count:line:source`` record; non-executable lines are ignored."""
+
+    parts = line.split(":", 2)
+    if len(parts) < 3:
+        return
+    count, line_number, _ = parts
+    count = count.strip()
+    line_number = line_number.strip()
+    if count.startswith("-") or not line_number.isdigit():
+        return
+    number = int(line_number)
+    if count.startswith("#"):
+        counts.miss += 1
+        counts.missing.append(number)
+        return
+    digits = count.rstrip("*")
+    if digits.isdigit() and int(digits) > 0:
+        counts.covered += 1
+        counts.covered_lines.append(number)
+
+
+def _count_gcov_text(content: str) -> _GcovCounts:
+    counts = _GcovCounts()
+    for line in content.splitlines():
+        if line.startswith("branch"):
+            _count_gcov_branch(line, counts)
+        elif ":" in line:
+            _count_gcov_source(line, counts)
+    return counts
+
+
+def _gcov_row(relative: str, counts: _GcovCounts) -> dict:
+    statements = counts.covered + counts.miss
+    return {
+        "file": relative,
+        "stmts": statements,
+        "covered": counts.covered,
+        "miss": counts.miss,
+        "cover": round(counts.covered / statements * 100.0, 1) if statements else 100.0,
+        "branch_cover": (
+            round(counts.covered_branches / counts.branches * 100.0, 1) if counts.branches else None
+        ),
+        "nb": counts.branches,
+        "cb": counts.covered_branches,
+        "missing_lines": counts.missing[:30],
+        # Internal policy evidence. ``build_coverage_summary`` strips these
+        # complete lists from public report rows after changed-line policy has
+        # consumed them.
+        "executable_lines": sorted({*counts.covered_lines, *counts.missing}),
+        "covered_lines": sorted(set(counts.covered_lines)),
+    }
+
+
 def parse_gcov_dir(cov_dir: Path, source_files: set[str], project_root: Path) -> list[dict]:
     """Parse gcov branch and line output into per-module coverage rows."""
 
@@ -305,74 +391,14 @@ def parse_gcov_dir(cov_dir: Path, source_files: set[str], project_root: Path) ->
         relative = _gcov_source_path(gcov_file, source_files, project_root)
         if relative is None:
             continue
-
-        covered = 0
-        miss = 0
-        branches = 0
-        covered_branches = 0
-        missing: list[int] = []
-        covered_lines: list[int] = []
         try:
             content = gcov_file.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-
-        for line in content.splitlines():
-            if line.startswith("branch"):
-                if _EXCEPTION_UNWIND_ARM in line:
-                    continue
-                parts = line.split()
-                branches += 1
-                if "taken" in parts:
-                    index = parts.index("taken")
-                    value = parts[index + 1] if index + 1 < len(parts) else "0"
-                    try:
-                        if int(value.rstrip("%")) > 0:
-                            covered_branches += 1
-                    except ValueError as error:
-                        _ = error
-                continue
-            if ":" not in line:
-                continue
-            parts = line.split(":", 2)
-            if len(parts) < 3:
-                continue
-            count, line_number, _ = parts
-            count = count.strip()
-            line_number = line_number.strip()
-            if count.startswith("-") or not line_number.isdigit():
-                continue
-            number = int(line_number)
-            if count.startswith("#"):
-                miss += 1
-                missing.append(number)
-            else:
-                digits = count.rstrip("*")
-                if digits.isdigit() and int(digits) > 0:
-                    covered += 1
-                    covered_lines.append(number)
-
-        statements = covered + miss
-        if statements == 0:
+        counts = _count_gcov_text(content)
+        if counts.covered + counts.miss == 0:
             continue
-        rows.append(
-            {
-                "file": relative,
-                "stmts": statements,
-                "covered": covered,
-                "miss": miss,
-                "cover": round(covered / statements * 100.0, 1) if statements else 100.0,
-                "branch_cover": round(covered_branches / branches * 100.0, 1) if branches else None,
-                "nb": branches,
-                "cb": covered_branches,
-                "missing_lines": missing[:30],
-                # Internal policy evidence. ``build_coverage_summary`` strips
-                # these complete lists from public report rows after changed-
-                # line policy has consumed them.
-                "executable_lines": sorted({*covered_lines, *missing}),
-                "covered_lines": sorted(set(covered_lines)),
-            }
-        )
+        rows.append(_gcov_row(relative, counts))
     return rows
 
 
