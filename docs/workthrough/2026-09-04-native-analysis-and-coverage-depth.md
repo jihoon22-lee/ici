@@ -218,3 +218,106 @@ generator, generated-source layout에서는 capability와 source mapping 결과�
 이번 문서화와 feature branch 변경은 version/tag/GitHub release를 만들지 않는다. stable
 `0.10.2`는 유지되고 release 승인은 없다. 다음 release 판단에는 전체 ici gate, 실제 C++/Qt와
 toy-projects candidate 검증, PR/main CI·Pages와 문서/CHANGELOG 동기화를 별도로 완료해야 한다.
+
+## 병합과 원격 인수
+
+이 절은 위 구현이 병합된 뒤 실측한 원격 증거다. 문서 작성 시점의 재측정 결과이며 새로운
+구현 변경은 포함하지 않는다.
+
+[`PR #155`](https://github.com/jihoon22-lee/ici/pull/155)는 head
+[`b2830789396a4849636d1730aaada3fcb904abf5`](https://github.com/jihoon22-lee/ici/commit/b2830789396a4849636d1730aaada3fcb904abf5)에서
+squash merge
+[`b7122676cfc8c9e939bf4cabedb0b6f4f3359797`](https://github.com/jihoon22-lee/ici/commit/b7122676cfc8c9e939bf4cabedb0b6f4f3359797)로
+병합됐다.
+
+| 항목 | 실측 결과 |
+|---|---|
+| PR head CI | [`33868240776`](https://github.com/jihoon22-lee/ici/actions/runs/33868240776) `success` (`b283078`) |
+| 앞선 PR 시도 | [`33864781340`](https://github.com/jihoon22-lee/ici/actions/runs/33864781340) `failure` (`d62140a`), [`33862149487`](https://github.com/jihoon22-lee/ici/actions/runs/33862149487) `failure` (`3db6913`) |
+| exact-main CI | [`33873322908`](https://github.com/jihoon22-lee/ici/actions/runs/33873322908) `success` (`b712267`) |
+| main job 결과 | `Verify & Dogfood ici`, `Viewer GUI build (Qt6)`, `Viewer GUI build (Qt5)`, `Publish Main Verification Report`, `Merge Gate` 성공 / `Publish PR Report & Sticky Comment` skip |
+
+브랜치 내부에서 수정된 두 번의 `failure`는 historical evidence로 남긴다. 마지막 PR head와
+exact-main만 acceptance 근거다.
+
+### main Pages
+
+두 산출물은 2026-09-04 12:49:57Z와 12:49:59Z에 발행됐다. gh-pages blob과 live Pages 응답이
+byte-identical이다.
+
+| Pages | bytes | SHA-256 | title |
+|---|---|---|---|
+| [`ici/main/index.html`](https://jihoon22-lee.github.io/ici/ici/main/index.html) | 6,067,548 | `57b6118f78f07616850663a9cb2fc674c35001e868178e905cbf447eed3509f7` | `ici Verification Report — ici` |
+| [`viewer/main/index.html`](https://jihoon22-lee.github.io/ici/viewer/main/index.html) | 401,292 | `c01898ba266779f1adfc10cb037fb94e22ce41bcc777667e12f9bad98c3394c9` | `ici Verification Report — viewer` |
+
+두 Pages 모두 HTTP 200, `text/html; charset=utf-8`, 정확한 title, external `src`/`href` 0건이다.
+
+### 병합된 main 재검증
+
+```text
+uv run --python 3.10 pytest
+2708 passed, 9 skipped in 132.60s
+
+uv run --python 3.10 mypy src/ici
+Success: no issues found in 138 source files
+
+uvx ruff check .
+All checks passed!
+
+uvx ruff format --check .
+248 files already formatted
+```
+
+skip 수는 병합 전 검증과 같은 9개이고, 이 문서는 그 개수만 재확인했다. 개별 skip 사유는
+이 host의 capability/runtime 경계이며 synthetic pass로 바꾸지 않았다.
+
+`dist/ici.pyz`는 #155가 설정 schema를 바꾼 뒤 재빌드가 필요했다. 구 빌드는
+`engines.test.min_line_cov`를 모르는 `Configuration error`로 종료하므로 인수인계 문서의
+`./dist/ici.pyz verify` 명령이 실패하는 상태였다. `./scripts/verify-reproducibility.sh`로 다시
+만든 zipapp은 2,572,444 bytes, SHA-256
+`e90140186f84ff17c4cda039d34c241b99f9ba74b07ea3b089a542c4bb620d9b`로 PR #155 본문이 기록한
+재현 빌드 digest와 정확히 일치한다. 서로 다른 시점·환경에서 같은 digest가 나왔으므로 빌드
+재현성은 교차 확인된다.
+
+그 zipapp의 자기 검증은 exit `0`이다.
+
+```text
+Total Engines: 14  (Pass: 9, Warn: 4, Fail: 0, Error: 0, Skip: 1)
+TEM Score: 4.80 / 5.0   Total Time: 321.69s
+test: PASS — 2708/2717 Tests Passed
+compile_db: SKIP — No production C/C++
+Suite: WARN — line, type, complexity (+1 more)
+```
+
+네 WARN은 이전 기록과 같은 가시적 구조 부채이며 억제하지 않았다. `compile_db` SKIP도 ici
+자체에 production C/C++ translation unit이 없다는 같은 이유다.
+
+### 이 인수가 닫지 않는 것
+
+버전은 `0.10.2`로 유지되고 tag, GitHub release, stable 승격은 없다. broader Qt
+lifetime/ownership과 resource/lifetime/security taxonomy, whole-program dead-symbol
+reachability, I4 aggregate checkpoint는 계속 pending이다.
+
+### candidate Quality Zoo current-main 인수
+
+이전까지 pending이던 current-main rerun은 이 문서를 쓰면서 닫았다. candidate producer
+[run `33949687988`](https://github.com/jihoon22-lee/ici/actions/runs/33949687988)이
+`b7122676cfc8c9e939bf4cabedb0b6f4f3359797`에서 artifact `9964414571`을 만들었고,
+provenance는 같은 commit의 `Merge Gate` run `33873322908`에 결합된다.
+
+| 항목 | 실측 |
+|---|---|
+| `ici.pyz` | 2,572,444 bytes, SHA-256 `e90140186f84ff17c4cda039d34c241b99f9ba74b07ea3b089a542c4bb620d9b` |
+| raw candidate ZIP | 2,573,767 bytes, SHA-256 `236e50befa651e73012f7f840eabcf81346be373274418590eb815ff71a00d81` |
+| acceptance run | [`33950030497`](https://github.com/jihoon22-lee/ici/actions/runs/33950030497) `success` |
+| acceptance artifact | `9964528956`, 4,423,409 bytes, ZIP SHA-256 `f5ead9b50e9c404cbe545e80a476d875c70cb3033f72193784ba7ed32f22cf67` |
+| suite | `quality-zoo.suite/v1` — 16/16 `PASS`, errors `0` |
+
+CI가 만든 `ici.pyz` digest는 같은 commit을 `./scripts/verify-reproducibility.sh`로 로컬
+빌드한 결과와 byte 단위로 같다. 따라서 이 재현성은 로컬끼리가 아니라 CI와 로컬 사이에서도
+확인된다.
+
+이 dispatch는 `toy_revision_mode = pull_request`로 toy-projects PR #60 head
+`9ae6e2547f6c5af385c2dec2feb75a4562424cf2`를 대상으로 했다. 따라서 인수는 그 exact PR head의
+레지스트리에 귀속되며, toy `main`에 대한 인수는 해당 PR이 병합된 뒤에 성립한다. 이 실행은
+Pages, PR comment, tag, release를 만들지 않았다.
