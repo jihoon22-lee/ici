@@ -317,7 +317,7 @@ jobs:
           cp -R -- "$RUNNER_TEMP/quality-zoo-results" "$destination/results"
 
       - name: Upload Candidate Acceptance Evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.toy_target_sha }}
           path: ${{ runner.temp }}/candidate-acceptance
