@@ -23,7 +23,7 @@ compiler-backed C++ 분석과 gcov JSON coverage 정책이 여기에 해당한�
 
 - [CHANGELOG](CHANGELOG.md) — 버전별 변경과 릴리스 증거
 - [인수인계 문서](docs/superpowers/2026-08-30-handover.md) — 현재 진행 상태와 결정의 이유
-- [workthrough](docs/workthrough/) — 개별 작업의 실측 기록
+- [workthrough](workthrough/) — 개별 작업의 실측 기록
 - [CI/CD 연동 가이드의 candidate 채널](docs/ci-integration.md#5-candidate-채널-stable-release가-아님) — candidate artifact와 Quality Zoo 인수 절차
 
 ### 릴리스 정책

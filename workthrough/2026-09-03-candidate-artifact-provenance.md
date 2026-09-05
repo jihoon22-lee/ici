@@ -34,7 +34,7 @@ The implementation and documentation changes covered these repository-root paths
 - `README.md`
 - `docs/superpowers/2026-08-30-handover.md`
 - `docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md`
-- `docs/workthrough/2026-09-03-candidate-artifact-provenance.md`
+- `workthrough/2026-09-03-candidate-artifact-provenance.md`
 
 ### Main-only workflow and exact dispatch commit
 

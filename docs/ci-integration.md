@@ -25,7 +25,7 @@ non-draft/non-prerelease이며 `ici.pyz`, checksum, self/viewer HTML·JSON, `ici
 `icirv-gui`, GUI README까지 정확히 9개 asset을 포함한다. `ici.pyz` SHA-256은
 `8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`다. main ici/viewer
 Pages는 HTTP 200·`text/html`·정확한 title·외부 resource URL 0건으로 독립 감사됐다.
-상세 asset 표와 검증 기록은 [`v0.10.2 public evidence workthrough`](workthrough/2026-09-02-public-v0.10.2-evidence.md)를
+상세 asset 표와 검증 기록은 [`v0.10.2 public evidence workthrough`](../workthrough/2026-09-02-public-v0.10.2-evidence.md)를
 참조한다.
 
 ## 1. GitHub Actions 워크플로우

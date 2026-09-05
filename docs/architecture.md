@@ -705,7 +705,7 @@ duplicate 결과는 모두 구조적 신호라 `ESTIMATED`이며 behavioral equi
 기존 lexical slice의 local/toy/remote acceptance는
 [`bounded language-aware duplicate workthrough`](../workthrough/2026-09-02-bounded-language-aware-duplicate.md)에,
 현재 Python AST-shape slice의 local evidence와 pending remote 경계는
-[`combined maintainability workthrough`](workthrough/2026-09-03-maintainability-linker-and-python-ast-shapes.md)에
+[`combined maintainability workthrough`](../workthrough/2026-09-03-maintainability-linker-and-python-ast-shapes.md)에
 고정한다. 이 slice는 버전을 올리지 않으며 stable release를 만들지 않는다.
 
 #### Compiler-backed C/C++ unused internal functions
@@ -810,7 +810,7 @@ Python `dead`를 `HEURISTIC`으로 표시하고, 관측 confidence는 실제 lan
 `MEASURED`일 때만 `EXACT`가 된다.
 
 정확한 focused test와 toy/project 측정값은
-[`compiler-backed C/C++ unused-function workthrough`](workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
+[`compiler-backed C/C++ unused-function workthrough`](../workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
 고정한다. 최종 viewer standalone `dead` evidence는 `PASS`/`MEASURED`이며, 정확히 8개 source, 8개
 configuration, 8개 target, 8개 `tool_evidence` 행, 0개 unused function, `cache_key = null`을 기록한다.
 이 slice는 PR #137의 required CI, 단일 sticky comment의 두 report 링크,
@@ -906,7 +906,7 @@ candidate는 두 번 byte-identical인 `dist/ici.pyz` SHA
 mypy, packaged smoke, parser/source mapping 628 pure code lines 및 process runner facade 487
 pure code lines의 self line gate 통과를 남겼습니다. Fresh clean toy `main`의 BuildScope
 `auto`/`required`, DiskMap `auto`, LogLens `auto` 교차 probe와 4/4 title·Zero-CDN 검사도
-완료됐으며 exact/partial 수치와 required 오류는 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
+완료됐으며 exact/partial 수치와 required 오류는 [C++ function-scope policy workthrough](../workthrough/2026-09-02-cpp-function-scope-policy.md)에
 기록합니다.
 
 [PR #131](https://github.com/jihoon22-lee/ici/pull/131) `feat(complexity): classify C++ function

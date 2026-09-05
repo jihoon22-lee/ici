@@ -39,7 +39,7 @@
   cognitive orchestration/parser was split into bounded stages so the feature passes the same
   line/complexity rules it applies to consumers. This consolidated feature work retains stable
   version `0.10.2` and does not authorize a release. See [native analysis and coverage depth
-  workthrough](docs/workthrough/2026-09-04-native-analysis-and-coverage-depth.md).
+  workthrough](workthrough/2026-09-04-native-analysis-and-coverage-depth.md).
   This work merged as
   [`b7122676cfc8c9e939bf4cabedb0b6f4f3359797`](https://github.com/jihoon22-lee/ici/commit/b7122676cfc8c9e939bf4cabedb0b6f4f3359797);
   its PR head [run `33868240776`](https://github.com/jihoon22-lee/ici/actions/runs/33868240776) and
@@ -321,7 +321,7 @@
   `ici 0.10.2`. The candidate manifest byte-matched the independent verifier, and the check/job/run
   canonical API identities, workflow name, main branch, attempts, and URLs all matched. The observed
   upload ZIP preserved the required file modes; the earlier generic mode-loss assumption does not
-  apply to this v7 artifact. See [`candidate artifact provenance workthrough`](docs/workthrough/2026-09-03-candidate-artifact-provenance.md).
+  apply to this v7 artifact. See [`candidate artifact provenance workthrough`](workthrough/2026-09-03-candidate-artifact-provenance.md).
   The follow-up documentation PR #140 is now merged at main SHA
   `cc73531ca33d5e781f027a2c55d341d29034990f`. Its exact-main
   [run `33691782482`](https://github.com/jihoon22-lee/ici/actions/runs/33691782482) was green, and the
@@ -563,7 +563,7 @@
   `dist-info/METADATA`, the exact local candidate SHA and cross-repo details remain in package-
   external documentation; the local BuildScope deep `auto`/`required`, DiskMap `auto`, and LogLens
   `auto` probes produced JSON/HTML and 4/4 title·Zero-CDN checker passes, with exact/partial counts
-  and the required error recorded in the [scope-policy workthrough](docs/workthrough/2026-09-02-cpp-function-scope-policy.md).
+  and the required error recorded in the [scope-policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md).
 
   [PR #131](https://github.com/jihoon22-lee/ici/pull/131), titled `feat(complexity): classify C++
   function scopes and metric provenance`, merged squash as
@@ -936,7 +936,7 @@
   `8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`.
 - Independent main Pages checks returned HTTP 200 and `text/html` with the exact ici/viewer report
   titles and zero external resource URLs. The complete asset table and command-level evidence are
-  recorded in [`v0.10.2 public evidence workthrough`](docs/workthrough/2026-09-02-public-v0.10.2-evidence.md).
+  recorded in [`v0.10.2 public evidence workthrough`](workthrough/2026-09-02-public-v0.10.2-evidence.md).
 
 ## [0.10.1] - 2026-09-01
 

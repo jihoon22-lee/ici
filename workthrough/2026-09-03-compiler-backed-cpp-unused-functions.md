@@ -319,8 +319,8 @@ The feature commits touch these repository-relative files:
 | `docs/user-guide.md` | User-facing configuration and result guidance. |
 | `docs/superpowers/2026-08-30-handover.md` | Cross-session status, decisions, and pending remote acceptance. |
 | `docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md` | Roadmap task state and acceptance gate. |
-| `docs/workthrough/2026-09-02-cpp-function-scope-policy.md` | Historical policy boundary and current follow-up pointer. |
-| `docs/workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md` | This implementation and evidence record. |
+| `workthrough/2026-09-02-cpp-function-scope-policy.md` | Historical policy boundary and current follow-up pointer. |
+| `workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md` | This implementation and evidence record. |
 
 ## Code Examples
 
