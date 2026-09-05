@@ -81,7 +81,13 @@ enabled = true
 mode = "pass_warn"
 warn_pct = 5.0            # 중복률 5.0% 초과 시 경고
 fail_pct = 15.0           # 중복률 15.0% 초과 시 실패
-min_window = 6            # 6라인 이상 연속 복제 감지
+# 배포 기본값은 6이지만 이 저장소에서는 10을 쓴다. 6~8라인 구간이 지표를 지배하는데,
+# 그 대부분이 core/support.py 의 SupportDeclaration 선언 테이블이나 C++ 도구 어댑터가
+# 공유하는 bounded intake/replay 상용구처럼 구조가 같아야 옳은 코드다. 실측하면
+# min_window 6 은 674 그룹 11.6%, 8 은 311 그룹 6.5%, 10 은 129 그룹 3.4%,
+# 15 는 29 그룹 1.1% 이고 6~8라인 그룹만 471 개다. 10 은 실제로 추출할 가치가 있는
+# 중복만 남긴다. 소비자 프로젝트에는 6 이 여전히 유효한 신호이므로 기본값은 바꾸지 않는다.
+min_window = 10           # 10라인 이상 연속 복제 감지 (배포 기본값 6)
 python_semantic = "auto"  # auto | required | off (bounded Python AST-shape clones)
 
 [engines.exception]
