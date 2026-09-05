@@ -534,3 +534,125 @@ binutils가 설치됐다는 사실만으로 모든 project target을 검증했�
 
 > **다음 단계**: [🏛️ 시스템 아키텍처 가이드](architecture.md)에서 엔진 파이프라인과
 > `ici.result/v3` 데이터 모델을 확인하세요.
+
+## 5. Candidate 채널 (stable release가 아님)
+
+candidate는 공개 stable artifact가 아니라, 아직 release로 승인되지 않은 `main` commit을
+다른 저장소에서 검증하기 위한 수동 경로다. 두 workflow 모두 `workflow_dispatch` 전용이고
+`refs/heads/main`에서만 실행되며, Pages·PR comment·tag·release를 만들지 않는다.
+### Candidate artifact (not a release)
+
+The candidate producer is a separate, manual `workflow_dispatch` path. It must be dispatched
+from `refs/heads/main` with a required full lowercase 40-character `target_sha`; the target must
+equal the protected-main commit that supplies this workflow and remain an ancestor of the fetched
+`main`. It selects the newest exact successful `Merge Gate`
+check for that SHA from at most ten explicit 100-check pages, refuses fallback to an older success,
+and verifies the check→job→run/attempt chain before checking out the exact target. The canonical
+`CI Quality Gate (Dogfooding)` main-push run is fetched independently from the Actions Runs API;
+the selected `Merge Gate` job is fetched independently from the Jobs API. The run response must
+match the repository/head repository, `name`, `path`, `event`, `head_branch`, target `head_sha`,
+`status`, `conclusion`, positive `run_attempt`, and canonical run `html_url`. The job response
+must match its `id`, `run_id`, `run_attempt`, target `head_sha`, `name`, `workflow_name`,
+`head_branch`, `status`, and `conclusion`, plus canonical job `html_url`, API `url`, `run_url`,
+and `check_run_url`.
+
+The build runs `scripts/verify-reproducibility.sh` (two byte-identical builds with unchanged
+source status) and `scripts/smoke.sh` (version/help, doctor, shell environment, report generation,
+and Zero-CDN checks). The immutable Actions artifact contract has exactly these three files:
+`ici.pyz`, `ici.pyz.sha256`, and `candidate-provenance.json`. The manifest schema is
+`ici.candidate/v1` and records the repository, `target_sha`,
+`candidate_workflow_definition_sha`, package version, `candidate_run_id`,
+`candidate_run_attempt`, `merge_gate_check_run_id`, `merge_gate_job_id`, `merge_gate_run_id`,
+`merge_gate_run_attempt`, `merge_gate_job_url`, `merge_gate_url`, artifact SHA/size, and
+`retention_days: 14`; the upload uses
+`overwrite: false`, 14-day retention, and no compression. The producer records artifact ID,
+digest, and authenticated download coordinates in the Actions summary.
+
+This path does not tag, release, publish Pages, or write a PR comment, and it does not bump the
+version: `v0.10.2` remains the stable release. `package_version` describes the selected target and
+does not authorize or create a tag/release even if it differs from the stable version in the future.
+The validation job has read-only Actions/Checks/
+Contents access; candidate-controlled build commands run after publication credentials are
+scrubbed and have no publication authority. The bounded helper implements and tests the workflow's
+`create` and `verify` subcommands. The focused local suite has 111 passing tests, and the live API
+verifier, full Python 3.10 repository suite, static/type/workflow checks, reproducible build, smoke,
+and real built-pyz bundle round trip pass. The remote producer evidence is now complete. Exact source
+SHA `7872a7b80899cbd3d40d92d18e7920cd7e2283e7` passed [main run `33688279264`](https://github.com/jihoon22-lee/ici/actions/runs/33688279264)
+with every job green; [Merge Gate check/job `100442919168`](https://api.github.com/repos/jihoon22-lee/ici/check-runs/100442919168)
+was attempt 1. Independent [ici main Pages](https://jihoon22-lee.github.io/ici/ici/main/) and [viewer main Pages](https://jihoon22-lee.github.io/ici/viewer/main/)
+matched the extracted main artifact bytes, carried the exact source SHA, used the expected titles
+`ici Verification Report — ici` and `ici Verification Report — viewer`, and passed Zero-CDN checks.
+
+Candidate [run `33689056008`](https://github.com/jihoon22-lee/ici/actions/runs/33689056008) succeeded.
+Its [artifact ID `9869395069`](https://github.com/jihoon22-lee/ici/actions/artifacts/9869395069) is named
+`ici-candidate-7872a7b80899cbd3d40d92d18e7920cd7e2283e7`; the [artifact API](https://api.github.com/repos/jihoon22-lee/ici/actions/artifacts/9869395069)
+and raw downloaded ZIP both have digest
+`sha256:640e50ecf5b099174c16f1ef5d2b5b87945329711e96f926d94c3cc04109081e`, size `2,277,109` bytes,
+and expiry `2026-09-16T22:14:38Z`. The ZIP contains exactly these entries:
+
+| Entry | Mode | Bytes |
+|---|---:|---:|
+| `candidate-provenance.json` | `0644` | 859 |
+| `ici.pyz.sha256` | `0644` | 74 |
+| `ici.pyz` | `0755` | 2,275,786 |
+
+The bundled `ici.pyz` SHA-256 is
+`53fc75f0a073a74689babfe9ef8a4b2378995002d7d563bdc52da548fdbb9ee8`, and it reports `ici 0.10.2`.
+The candidate manifest byte-matched the independent verifier. The check/job/run canonical API
+identities all matched, including `workflow_name`, `head_branch`, attempts, and canonical [check](https://api.github.com/repos/jihoon22-lee/ici/check-runs/100442919168),
+[job](https://api.github.com/repos/jihoon22-lee/ici/actions/jobs/100442919168), and [run](https://api.github.com/repos/jihoon22-lee/ici/actions/runs/33688279264)
+URLs. The observed v7 upload ZIP preserved these modes; an earlier generic assumption that upload
+ZIPs lose modes does not apply to this artifact.
+
+This closes the remote producer. The separate ici-hosted `candidate-quality-zoo.yml` workflow
+defines the manual consumer path: it injects the verified candidate by local path into a read-only
+Quality Zoo run while every toy PR's normal gate remains pinned to released ici `v0.10.2`. The first
+exact-revision candidate acceptance completed at run `33710695336` for the existing sanitizer
+contract. The follow-up run `33718024450` then accepted the category-taxonomy candidate against the
+six-scenario toy main revision, including the Qt parent-ownership expectation; acceptance artifact
+`9879217928` records all six contracts as passing. The released-artifact Q0 result may be linked or
+added as a section of the existing `<!-- ici-report -->` body, but must preserve exactly one sticky
+comment rather than creating a second marker/comment.
+
+The consumer job provisions `clang`, `clang-tidy`, `clazy`, `cmake`, `g++`, `pkg-config`, and
+`qt6-base-dev` on its runner so a future Qt lifetime/C++ static-analysis scenario can execute.
+Provisioning and candidate preflight/execution do not use GitHub credentials; local purity coverage
+is `32 passed` and actionlint passes. Before the candidate run, the consumer prefers
+`quality-zoo/candidate-manifest.json` from the exact toy-projects commit when present; otherwise it
+uses `quality-zoo/manifest.json`. A selected manifest must be a regular non-symlink file, and its
+SHA-256 is checked before and after execution. The acceptance artifact records the selected path,
+source (`candidate` or `stable-fallback`), and digest as `quality-zoo.manifest-selection/v1`, so a
+candidate-only expectation set is auditable without changing the released-artifact toy gate. The
+ThreadSanitizer는 별도 candidate artifact와 candidate manifest로 run `33737405098`의 8/8
+contract를 수용했으며, 그 exact evidence는 다른 feature head에 재사용하지 않는다.
+
+### Candidate-to-Quality-Zoo acceptance (manual, not a release)
+
+`.github/workflows/candidate-quality-zoo.yml` is an ici-hosted, `workflow_dispatch`-only path for
+cross-repository candidate validation. Dispatch it from `refs/heads/main` only after the toy
+`quality-zoo` commit contains the candidate expectations and the candidate artifact has been
+independently recorded:
+
+```bash
+gh workflow run candidate-quality-zoo.yml --ref main \
+  -f ici_target_sha=<40-lowercase-hex-ici-main-sha> \
+  -f candidate_artifact_id=<positive-actions-artifact-id> \
+  -f candidate_archive_sha256=<64-lowercase-hex-archive-sha256> \
+  -f toy_target_sha=<40-lowercase-hex-toy-main-sha>
+```
+
+The workflow verifies the exact ici and toy `main` revisions, downloads the named candidate ZIP,
+checks its raw archive digest, and rechecks the manifest's provenance against independently fetched
+Actions run/check/job evidence. It runs candidate intake once as a no-credential preflight, fetches
+the authenticated evidence separately, then runs the Quality Zoo runner with the verified local
+`ici.pyz` path and requires `quality-zoo.suite/v1` with `contract_verdict: PASS` and no runner errors.
+Candidate-controlled preflight and execution have GitHub publication/OIDC credentials unset; the
+read-only Actions/Checks/Contents token is used only for artifact and evidence API reads. The result
+is uploaded as a separate, uncompressed 14-day acceptance artifact containing preflight, intake,
+GitHub evidence, and Quality Zoo results.
+
+This path does not run `publish`, publish Pages, write or update a PR comment, or alter the stable
+version/release. The existing released-artifact Q0 acceptance and its single sticky
+`<!-- ici-report -->` comment remain the normal toy CI boundary. Each new candidate scope is
+accepted only after a dispatch against its exact ici/toy commits and an independent evidence audit;
+an older accepted candidate is not evidence for a newer feature head.
