@@ -1593,7 +1593,9 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
   `direct_url.json`/`build-details.json` provenance file의 존재를 관측한다.
 - [x] pure-Python 정책과 일반 프로젝트의 native wheel 허용 정책을 분리한다.
 - [x] import name/distribution name 불일치와 누락 package data를 finding으로 만든다.
-- [ ] envlens와 ici pyz build를 서로 다른 packaging 사례로 사용한다.
+- [x] envlens와 ici pyz build를 서로 다른 packaging 사례로 사용한다.
+  - 2026-09-06 실사: envlens는 Python 3.10/최신 두 런타임에서 CI 검증되고, ici는
+    `scripts/verify-reproducibility.sh`로 byte-identical zipapp을 만든다.
 
 2026-09-04 local implementation은 import/build/extract 없이 bounded pyproject/wheel을 읽고,
 WHEEL/METADATA/RECORD identity·tag·package file·entry-point 일치와 RECORD hash/size를 검증한다.
@@ -1668,7 +1670,10 @@ remote PR/main 및 candidate acceptance는 아래 delivery 기록에서 별도�
 - [x] shadow 또는 out-of-tree 지원 여부를 사전 진단한다.
 - [x] parallel jobs, coverage/sanitize flag 주입 방식을 명시한다.
 - [x] build target 0개, test target 0개, ignored failure를 구분한다.
-- [ ] abilens의 실제 Makefile로 build/test/sanitize/coverage를 검증한다.
+- [x] abilens의 실제 Makefile로 build/test/sanitize/coverage를 검증한다.
+  - 2026-09-06 실사: `abilens/ici-candidate.toml`의 `[build.make]`가 release·coverage·
+    sanitize·thread-sanitize를 각각 분리된 `OUT` 트리로 구동한다. CI
+    `Native product checks (abilens)` green. 이 해결은 candidate ici 한정이다.
 
 ### I7-2. artifact manifest
 
@@ -1691,7 +1696,8 @@ report artifact의 typed producer, configurable artifact glob 계약은 아직 �
 - [x] ELF class, machine, NEEDED, RPATH/RUNPATH를 `readelf` evidence로 읽는다.
 - [x] GLIBC, GLIBCXX, CXXABI maximum required version을 계산한다.
 - [ ] static requirement, forbidden dependency/path와 configured floor를 정책화한다.
-- [ ] stripped/malformed/non-ELF를 구분한다.
+- [x] stripped/malformed/non-ELF를 구분한다.
+  - 2026-09-06 실사: `binary_compat.py`의 `ici.binary.non-elf` rule과 `stripped` fact.
 - [ ] abilens의 executable/shared library와 viewer static CLI를 실측한다.
 
 ### I7-4. hybrid integration contract
@@ -1713,7 +1719,9 @@ report artifact의 typed producer, configurable artifact glob 계약은 아직 �
 **브랜치:** `feat/reporter-parity`
 
 - [ ] 모든 reporter가 v3 finding, related location, confidence, suppression, delta를 보존하는지 contract test를 만든다.
-- [ ] SARIF 2.1.0 export를 추가하고 rule/result/location/fix mapping을 검증한다.
+- [x] SARIF 2.1.0 export를 추가하고 rule/result/location/fix mapping을 검증한다.
+  - 2026-09-06 실사: `reporters/sarif.py`와 `tests/test_sarif_reporter.py` 9건이 field
+    mapping, percent-encoded URI, 순서 독립성, baseline delta, rule/result bound을 고정한다.
 - [ ] GitHub annotation은 new/high-priority finding만 제한적으로 발행한다.
 - [x] HTML은 full inventory를 검색/필터할 수 있지만 초기 DOM 크기를 제한한다.
 
@@ -1900,11 +1908,15 @@ pending이다.
 ### I9-3. 1.0 support contract
 
 - [ ] Python, C++, Qt별 engine support matrix를 문서와 report가 동일하게 표시한다.
-- [ ] CMake, qmake, configured Makefile의 green real project가 모두 PASS한다.
-- [ ] pure Python, pure C++/Qt, hybrid project가 각각 최소 하나 있다.
+- [x] CMake, qmake, configured Makefile의 green real project가 모두 PASS한다.
+  - 2026-09-06 실사: loglens(CMake)·diskmap(qmake)·abilens(Makefile) 모두 main CI green.
+- [x] pure Python, pure C++/Qt, hybrid project가 각각 최소 하나 있다.
+  - 2026-09-06 실사: envlens · diskmap/loglens · buildscope.
 - [ ] Qt5/Qt6, Python 3.10과 최신 지원 runtime을 실측한다.
 - [ ] buildscope/envlens/abilens과 기존 앱의 release artifact가 재현 가능하다.
-- [ ] quality-zoo의 모든 stable scenario가 expected finding/location을 만족한다.
+- [x] quality-zoo의 모든 stable scenario가 expected finding/location을 만족한다.
+  - 2026-09-06 실사: released 6 scenario에 더해 candidate 16/16 원격 인수
+    ([run `33950030497`](https://github.com/jihoon22-lee/ici/actions/runs/33950030497)).
 - [ ] 네트워크와 root 권한 없이 standard profile이 완료된다.
 - [ ] v2 report migration과 v3 schema 안정성 정책을 발표한다.
 - [ ] 사용자 문서에 설치 도구, fallback, limitation과 remediation workflow가 있다.
