@@ -87,7 +87,7 @@ referent가 아니라 link 자체를 교체한다. compilation database, `ici.to
 넘을 수 없다.
 
 기계 계약은 draft 2020-12 JSON Schema
-[`ici-compilation-export-v1.schema.json`](../../src/ici/schemas/ici-compilation-export-v1.schema.json)으로
+[`ici-compilation-export-v1.schema.json`](../src/ici/schemas/ici-compilation-export-v1.schema.json)으로
 관리한다. schema는 package data로 wheel/ZipApp에 포함되며 `scripts/build-pyz.sh`가 ZipApp
 구성 전에 기존 v3 schema와 함께 존재하는지 확인한다. standalone v1은 기존
 `ici.result/v3` report contract와 별개의 payload이다.

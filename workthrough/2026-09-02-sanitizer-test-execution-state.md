@@ -135,7 +135,7 @@ This documentation update covers:
 - `docs/architecture.md`
 - `docs/superpowers/2026-08-30-handover.md`
 - `docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md`
-- `docs/workthrough/2026-09-02-sanitizer-test-execution-state.md`
+- `workthrough/2026-09-02-sanitizer-test-execution-state.md`
 
 ## Key decisions
 

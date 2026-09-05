@@ -19,7 +19,7 @@ publish job도 성공했고, 공개 release는 non-draft/non-prerelease와 정�
 `8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`다. ici/viewer main
 Pages는 독립 확인에서 HTTP 200·`text/html`·각각 `ici Verification Report — ici`와
 `ici Verification Report — viewer` title·외부 resource URL 0건을 만족했다. asset 목록과
-검증 명령/결과는 [`v0.10.2 public evidence workthrough`](workthrough/2026-09-02-public-v0.10.2-evidence.md)에
+검증 명령/결과는 [`v0.10.2 public evidence workthrough`](../workthrough/2026-09-02-public-v0.10.2-evidence.md)에
 고정한다.
 
 ---
@@ -773,7 +773,7 @@ target-local evidence와 구분됩니다. 최종 viewer standalone `dead` eviden
 기록했습니다. 이 slice는 PR #137 required CI, 단일 sticky comment의 ici/viewer
 링크, PR·main artifact/Pages byte match, exact-main CI와 Pages 배포까지 수락됐습니다.
 상세 provenance와 해시는
-[`compiler-backed C/C++ unused-function workthrough`](workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
+[`compiler-backed C/C++ unused-function workthrough`](../workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
 기록합니다. target-local GNU ELF section-GC 증거는 아래 정책으로 지원하지만, whole-program/
 dynamic dead reachability와 full C++ semantic/behavioral duplicate equivalence는 여전히
 지원 범위가 아닙니다. 버전은 `0.10.2`로 유지하고 이 feature PR로 새 release를 만들지 않습니다.
@@ -983,7 +983,7 @@ PR #130의 historical compiler-boundary baseline은 두 번 byte-identical인 ca
 mypy와 packaged smoke가 통과했습니다. Parser/source mapping(628 pure code lines)과 process
 runner facade(487 pure code lines)는 분리되어 self line gate도 통과합니다. Fresh clean toy
 `main`의 BuildScope `auto`/`required`, DiskMap `auto`, LogLens `auto` 교차 probe와 4/4
-title·Zero-CDN 검사도 완료됐으며 상세는 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
+title·Zero-CDN 검사도 완료됐으며 상세는 [C++ function-scope policy workthrough](../workthrough/2026-09-02-cpp-function-scope-policy.md)에
 기록합니다.
 
 [PR #131](https://github.com/jihoon22-lee/ici/pull/131) `feat(complexity): classify C++ function
@@ -1135,7 +1135,7 @@ merge commit `b1b3cc149c72eef6f71370364ab7eaf24d48ca40`의 [exact-main run
 publication과 Merge Gate까지 성공했고, main ici/viewer Pages는 HTTP 200, 정확한 report title,
 외부 resource 0개였습니다. 이 공개 전 release-prep sequence는 historical evidence로 보존한다.
 현재 `v0.10.2` tag와 공개 artifact는 상단 release evidence와
-[`v0.10.2 public evidence workthrough`](workthrough/2026-09-02-public-v0.10.2-evidence.md)를 따른다.
+[`v0.10.2 public evidence workthrough`](../workthrough/2026-09-02-public-v0.10.2-evidence.md)를 따른다.
 
 cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
 path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration

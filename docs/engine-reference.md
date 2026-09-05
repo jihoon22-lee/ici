@@ -909,7 +909,7 @@ mode/mutation selector 입력은 안전한 report/auto capability 경로로 닫�
   mypy와 packaged smoke가 통과했습니다. Parser/source mapping(628 pure code lines)과 process
   runner facade(487 pure code lines)는 분리되어 self line gate도 통과합니다. Fresh clean toy
   `main`의 BuildScope `auto`/`required`, DiskMap `auto`, LogLens `auto` 교차 probe와 4/4
-  title·Zero-CDN 검사도 완료됐으며 상세는 [C++ function-scope policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에
+  title·Zero-CDN 검사도 완료됐으며 상세는 [C++ function-scope policy workthrough](../workthrough/2026-09-02-cpp-function-scope-policy.md)에
   기록합니다.
 
   [PR #131](https://github.com/jihoon22-lee/ici/pull/131) `feat(complexity): classify C++ function
@@ -1696,7 +1696,7 @@ configuration, 8개 target, 8개 `tool_evidence` 행을 확인했습니다. unus
 이 slice는 [PR #137 CI](https://github.com/jihoon22-lee/ici/actions/runs/33675765436),
 단일 sticky comment의 ici/viewer 링크, PR·main artifact/Pages byte match, exact-main CI와
 Pages 배포까지 수락됐습니다. 상세 해시와 run ID는
-[`compiler-backed C/C++ unused-function workthrough`](workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
+[`compiler-backed C/C++ unused-function workthrough`](../workthrough/2026-09-03-compiler-backed-cpp-unused-functions.md)에
 기록합니다. target-local GNU ELF section-GC 증거는 지원하지만, whole-program/dynamic
 dead-symbol reachability와 full C++ semantic/behavioral duplicate equivalence는 아직
 지원 범위가 아닙니다. 버전은 `0.10.2`로 유지하고 새 release는 만들지 않습니다.
@@ -1773,7 +1773,7 @@ Ruff check/format, mypy와 packaged smoke를 통과했습니다. 최초 PR run�
 1,031 pure-code-line self gate는 parser/source mapping helper 628줄과 process runner
 compatibility facade 487줄로 분리해 해소했습니다. 이 local candidate의 재현 가능한
 `dist/ici.pyz` SHA와 fresh clean `toy-projects` `main` 교차 검증 상세는 [C++ function-scope
-policy workthrough](workthrough/2026-09-02-cpp-function-scope-policy.md)에 고정합니다.
+policy workthrough](../workthrough/2026-09-02-cpp-function-scope-policy.md)에 고정합니다.
 
 [PR #131](https://github.com/jihoon22-lee/ici/pull/131) `feat(complexity): classify C++ function
 scopes and metric provenance`는

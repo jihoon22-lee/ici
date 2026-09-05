@@ -44,8 +44,8 @@ Ici 자체 `[engines.test]`에는 aggregate line `80%`, file line `10%`와 state
 
 ### C++ cognitive: 경계와 metric을 분리
 
-[`_cpp_cognitive.py`](../../src/ici/engines/_cpp_cognitive.py)와
-[`cognitive.py`](../../src/ici/engines/cognitive.py)는 `cpp_boundaries = "auto" | "required" |
+[`_cpp_cognitive.py`](../src/ici/engines/_cpp_cognitive.py)와
+[`cognitive.py`](../src/ici/engines/cognitive.py)는 `cpp_boundaries = "auto" | "required" |
 "off"` 정책을 사용한다.
 
 - exact compilation context/database와 승인된 clang-tidy가 있으면 `clang-tidy-ast`가
@@ -64,8 +64,8 @@ Ici 자체 `[engines.test]`에는 aggregate line `80%`, file line `10%`와 state
 
 ### gcov JSON evidence
 
-[`core/cmake.py`](../../src/ici/core/cmake.py)는 coverage 수집 전에 `gcov --help`를 확인한다.
-성공한 help가 `--json-format`을 광고하면 [`gcov_json.py`](../../src/ici/engines/gcov_json.py)의
+[`core/cmake.py`](../src/ici/core/cmake.py)는 coverage 수집 전에 `gcov --help`를 확인한다.
+성공한 help가 `--json-format`을 광고하면 [`gcov_json.py`](../src/ici/engines/gcov_json.py)의
 `.gcov.json.gz` 경로를 선택한다.
 
 - gzip member, UTF-8, duplicate JSON key, non-finite/floating number, object depth/cardinality와
@@ -96,8 +96,8 @@ column/end-line과 JSON의 nested evidence가 없으므로 JSON과 같은 정확
 
 ### Coverage policy와 baseline
 
-[`coverage_policy.py`](../../src/ici/engines/coverage_policy.py)와
-[`test.py`](../../src/ici/engines/test.py)는 다음 `[engines.test]` 설정을 source-located
+[`coverage_policy.py`](../src/ici/engines/coverage_policy.py)와
+[`test.py`](../src/ici/engines/test.py)는 다음 `[engines.test]` 설정을 source-located
 target으로 투영한다.
 
 ```toml
@@ -128,7 +128,7 @@ max_coverage_regression = 2.0
   `aggregate-test-binaries` context를 남긴다. JSON parser provenance에는 source mapping,
   expected/covered source와 ignored record, throw branch exclusion이 별도로 남는다.
 
-[`core/baseline.py`](../../src/ici/core/baseline.py)의 coverage regression은
+[`core/baseline.py`](../src/ici/core/baseline.py)의 coverage regression은
 `max_coverage_regression`이 현재 실행 설정에 있을 때만 활성화된다. `ici.result/v3` baseline의
 test coverage snapshot과 aggregate line/branch/function/changed-line 및 file line 값을
 비교하고, 허용 폭을 넘는 하락은 `ici.test.coverage-regression.*` source-located delta로
@@ -148,20 +148,20 @@ probe한다. mutant를 만들거나 실행하지 않고 kill ratio/score를 계�
 
 다음 focused tests가 구현 계약을 고정한다.
 
-- [`tests/test_cpp_cognitive.py`](../../tests/test_cpp_cognitive.py): masking, control-flow
+- [`tests/test_cpp_cognitive.py`](../tests/test_cpp_cognitive.py): masking, control-flow
   nesting, malformed input, exact boundary provenance, required/off 정책과 bounded source
   intake
-- [`tests/test_gcov_json.py`](../../tests/test_gcov_json.py): gzip/UTF-8/JSON strictness,
+- [`tests/test_gcov_json.py`](../tests/test_gcov_json.py): gzip/UTF-8/JSON strictness,
   duplicate key·non-finite number·count/type bounds, versions 1/2, geometry와 immutable
   dataclass 결과
-- [`tests/test_coverage_policy.py`](../../tests/test_coverage_policy.py) 및
-  [`tests/test_coverage_policy_config.py`](../../tests/test_coverage_policy_config.py): changed
+- [`tests/test_coverage_policy.py`](../tests/test_coverage_policy.py) 및
+  [`tests/test_coverage_policy_config.py`](../tests/test_coverage_policy_config.py): changed
   range validation, deterministic status merge, all-scope PASS target, uncovered function
   location, no-executable-line error, config defaults와 public-row redaction
-- [`tests/test_baseline.py`](../../tests/test_baseline.py): source-located aggregate/file
+- [`tests/test_baseline.py`](../tests/test_baseline.py): source-located aggregate/file
   regression, opt-in behavior와 malformed snapshot rejection
-- [`tests/test_build_adapter_e2e.py`](../../tests/test_build_adapter_e2e.py) 및
-  [`tests/test_test_engine.py`](../../tests/test_test_engine.py): adapter selection, JSON
+- [`tests/test_build_adapter_e2e.py`](../tests/test_build_adapter_e2e.py) 및
+  [`tests/test_test_engine.py`](../tests/test_test_engine.py): adapter selection, JSON
   consumption, expected-source completeness와 throw branch policy
 
 ### 실제 CMake/Qt fixture evidence

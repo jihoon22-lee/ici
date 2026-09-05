@@ -74,7 +74,7 @@ Verify, Qt 5/Qt 6, `Publish Main Verification Report`, `Merge Gate`를 성공시
 `8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`다. 독립 main Pages
 audit도 ici `ici Verification Report — ici`, viewer `ici Verification Report — viewer`의
 정확한 title과 HTTP 200·`text/html`·외부 resource URL 0건을 확인했다. 전체 asset 표와
-검증 로그는 [`v0.10.2 public evidence workthrough`](../../workthrough/2026-09-02-public-v0.10.2-evidence.md)에
+검증 로그는 [`v0.10.2 public evidence workthrough`](../../../workthrough/2026-09-02-public-v0.10.2-evidence.md)에
 고정한다.
 
 ### 1.4 최신 main 기준과 candidate acceptance 경계 (2026-09-04)
@@ -1447,7 +1447,7 @@ parser/source mapping helper 628줄과 process runner compatibility facade 487�
 닫았고, 집중 회귀 89개와 전체 suite가 같은 결과를 유지했다. 이 SHA를 fresh clean
 `toy-projects` `main`에 주입한 BuildScope deep `auto`/`required`, DiskMap `auto`, LogLens
 `auto`의 local cross-repo candidate evidence와 JSON/HTML report, 4/4 title·Zero-CDN checker
-pass는 [scope-policy workthrough](../../workthrough/2026-09-02-cpp-function-scope-policy.md)에
+pass는 [scope-policy workthrough](../../../workthrough/2026-09-02-cpp-function-scope-policy.md)에
 기록한다.
 
 PR #131 `feat(complexity): classify C++ function scopes and metric provenance`는
