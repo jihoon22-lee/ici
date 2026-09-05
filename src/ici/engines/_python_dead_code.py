@@ -237,7 +237,61 @@ class _PythonDeadAnalyzer:
         return path.stem
 
     @staticmethod
+    def _resolve_named_binding(
+        *,
+        alias: str,
+        imported_module: str,
+        imported_name: str,
+        module: dict,
+        module_paths: dict[str, str],
+        resolved: set[tuple[str, str]],
+    ) -> None:
+        """Resolve ``from <module> import <name>`` against the module index.
+
+        When the imported name is itself a known module, attribute references
+        through the alias name the symbol; otherwise the binding refers to the
+        imported name in the owning module.
+        """
+
+        candidate = f"{imported_module}.{imported_name}"
+        if candidate not in module_paths:
+            resolved.add((module_paths.get(imported_module, imported_module), imported_name))
+            return
+        target_id = module_paths[candidate]
+        qualified_refs = module["qualified_refs"]
+        for reference in qualified_refs:
+            parts = reference.split(".")
+            if parts[0] == alias and len(parts) > 1:
+                resolved.add((target_id, parts[1]))
+        if not any(reference.split(".", 1)[0] == alias for reference in qualified_refs):
+            resolved.add((target_id, imported_name))
+
+    @staticmethod
+    def _resolve_module_binding(
+        *,
+        alias: str,
+        imported_module: str,
+        module: dict,
+        module_paths: dict[str, str],
+        resolved: set[tuple[str, str]],
+    ) -> None:
+        """Resolve ``import <module>`` by attribute access and by subpackage."""
+
+        imported_parts = imported_module.split(".")
+        prefix = [alias, *imported_parts[1:]] if imported_parts[0] == alias else [alias]
+        for reference in module["qualified_refs"]:
+            parts = reference.split(".")
+            if parts[: len(prefix)] == prefix and len(parts) > len(prefix):
+                resolved.add(
+                    (module_paths.get(imported_module, imported_module), parts[len(prefix)])
+                )
+        for module_name in module_paths:
+            if module_name == imported_module or module_name.startswith(imported_module + "."):
+                resolved.add((module_paths[module_name], ""))
+
+    @classmethod
     def _resolve_imported_refs(
+        cls,
         module: dict,
         module_paths: dict[str, str],
     ) -> set[tuple[str, str]]:
@@ -247,34 +301,22 @@ class _PythonDeadAnalyzer:
                 continue
             for imported_module, imported_name in bindings:
                 if imported_name:
-                    candidate = f"{imported_module}.{imported_name}"
-                    if candidate in module_paths:
-                        target_id = module_paths[candidate]
-                        qualified_refs = module["qualified_refs"]
-                        for reference in qualified_refs:
-                            parts = reference.split(".")
-                            if parts[0] == alias and len(parts) > 1:
-                                resolved.add((target_id, parts[1]))
-                        if not any(
-                            reference.split(".", 1)[0] == alias for reference in qualified_refs
-                        ):
-                            resolved.add((target_id, imported_name))
-                    else:
-                        target_id = module_paths.get(imported_module, imported_module)
-                        resolved.add((target_id, imported_name))
-                    continue
-                imported_parts = imported_module.split(".")
-                prefix = [alias, *imported_parts[1:]] if imported_parts[0] == alias else [alias]
-                for reference in module["qualified_refs"]:
-                    parts = reference.split(".")
-                    if parts[: len(prefix)] == prefix and len(parts) > len(prefix):
-                        target_id = module_paths.get(imported_module, imported_module)
-                        resolved.add((target_id, parts[len(prefix)]))
-                for module_name in module_paths:
-                    if module_name == imported_module or module_name.startswith(
-                        imported_module + "."
-                    ):
-                        resolved.add((module_paths[module_name], ""))
+                    cls._resolve_named_binding(
+                        alias=alias,
+                        imported_module=imported_module,
+                        imported_name=imported_name,
+                        module=module,
+                        module_paths=module_paths,
+                        resolved=resolved,
+                    )
+                else:
+                    cls._resolve_module_binding(
+                        alias=alias,
+                        imported_module=imported_module,
+                        module=module,
+                        module_paths=module_paths,
+                        resolved=resolved,
+                    )
         return resolved
 
     @staticmethod
