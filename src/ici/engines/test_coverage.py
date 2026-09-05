@@ -105,8 +105,8 @@ class TestCoverageMixin:
             env=cov_env,
         )
         self._record_tool("coverage json", command, result)  # type: ignore[attr-defined]
-        self._coverage_data = None  # type: ignore[attr-defined]
-        self._coverage_measured = False  # type: ignore[attr-defined]
+        self._coverage_data = None
+        self._coverage_measured = False
         if result.timed_out:
             self._record_tool_error("Coverage JSON generation timed out")  # type: ignore[attr-defined]
         elif result.truncated:
@@ -125,16 +125,16 @@ class TestCoverageMixin:
             self._coverage_data = self._parse_coverage_json(  # type: ignore[attr-defined]
                 json_path, expected_files
             )
-            if self._coverage_data is None:  # type: ignore[attr-defined]
+            if self._coverage_data is None:
                 self._coverage_errors.append(  # type: ignore[attr-defined]
                     "Python coverage JSON was missing or malformed"
                 )
             else:
-                self._coverage_measured = True  # type: ignore[attr-defined]
+                self._coverage_measured = True
                 self._coverage_provenance["python"] = {  # type: ignore[attr-defined]
                     "format": "coverage.py-json",
                     "expected_sources": len(expected_files),
-                    "covered_sources": len(self._coverage_data.get("files", {})),  # type: ignore[attr-defined]
+                    "covered_sources": len(self._coverage_data.get("files", {})),
                     "function_geometry": "python-ast",
                     "source_mapping": "project-relative-exact",
                 }
@@ -174,12 +174,12 @@ class TestCoverageMixin:
             self._coverage_errors.append(  # type: ignore[attr-defined]
                 "C++ gcov data files were unavailable"
             )
-        if not self._cpp_coverage_rows:  # type: ignore[attr-defined]
+        if not self._cpp_coverage_rows:
             self._coverage_errors.append(  # type: ignore[attr-defined]
                 "C++ gcov coverage output was missing or malformed"
             )
         else:
-            self._coverage_measured = True  # type: ignore[attr-defined]
+            self._coverage_measured = True
 
     def _consume_cpp_coverage(
         self,
@@ -189,8 +189,8 @@ class TestCoverageMixin:
     ) -> None:
         """Consume exactly the format selected by the capability probe."""
 
-        self._cpp_coverage_rows = []  # type: ignore[attr-defined]
-        self._cpp_function_rows = []  # type: ignore[attr-defined]
+        self._cpp_coverage_rows = []
+        self._cpp_function_rows = []
         if not coverage_format:
             has_json = any(cov_dir.glob("*.gcov.json.gz"))
             has_text = any(cov_dir.glob("*.gcov"))
@@ -206,8 +206,8 @@ class TestCoverageMixin:
                 self._coverage_errors.append(message)  # type: ignore[attr-defined]
                 self._record_tool_error(message)  # type: ignore[attr-defined]
                 return
-            self._cpp_coverage_rows = rows  # type: ignore[attr-defined]
-            self._cpp_function_rows = functions  # type: ignore[attr-defined]
+            self._cpp_coverage_rows = rows
+            self._cpp_function_rows = functions
             self._coverage_provenance["cpp"] = provenance  # type: ignore[attr-defined]
             return
 
@@ -222,7 +222,7 @@ class TestCoverageMixin:
         self._cpp_function_rows = self._parse_gcov_functions(  # type: ignore[attr-defined]
             cov_dir, source_files
         )
-        observed = {row["file"] for row in self._cpp_coverage_rows}  # type: ignore[attr-defined]
+        observed = {row["file"] for row in self._cpp_coverage_rows}
         missing = sorted(source_files - observed)
         self._coverage_provenance["cpp"] = {  # type: ignore[attr-defined]
             "format": "gcov-text",
@@ -291,15 +291,15 @@ class TestCoverageMixin:
     def _build_coverage_summary(self) -> None:
         files, totals, source = build_coverage_summary(
             self._coverage_data,
-            getattr(self, "_cpp_coverage_rows", []),  # type: ignore[attr-defined]
+            getattr(self, "_cpp_coverage_rows", []),
         )
-        self._coverage_files = files  # type: ignore[attr-defined]
-        self._coverage_totals = totals  # type: ignore[attr-defined]
-        self._coverage_source = source  # type: ignore[attr-defined]
+        self._coverage_files = files
+        self._coverage_totals = totals
+        self._coverage_source = source
         missing_python = self._python_test_attempted and not self._coverage_data  # type: ignore[attr-defined]
         missing_cpp = self._cpp_test_attempted and not self._cpp_coverage_rows  # type: ignore[attr-defined]
         if source != "estimated" and (missing_python or missing_cpp):
-            self._coverage_source = f"{source} (partial)"  # type: ignore[attr-defined]
+            self._coverage_source = f"{source} (partial)"
 
     def _measure_coverage(
         self,
@@ -311,10 +311,10 @@ class TestCoverageMixin:
         py_sources = self.project_python_sources()  # type: ignore[attr-defined]
         cpp_sources = self.project_cpp_sources()  # type: ignore[attr-defined]
 
-        cov_data = self._coverage_data  # type: ignore[attr-defined]
+        cov_data = self._coverage_data
         changed_line_status = build_changed_line_status(
             cov_data,
-            self._cpp_coverage_rows,  # type: ignore[attr-defined]
+            self._cpp_coverage_rows,
         )
         self._build_coverage_summary()
 
@@ -324,7 +324,7 @@ class TestCoverageMixin:
             else []
         )
         cpp_func_rows = getattr(self, "_cpp_function_rows", [])
-        self._function_rows = [*py_func_rows, *cpp_func_rows]  # type: ignore[attr-defined]
+        self._function_rows = [*py_func_rows, *cpp_func_rows]
 
         total_lines = 0
         for p in py_sources + cpp_sources:
@@ -348,16 +348,16 @@ class TestCoverageMixin:
             branch_cov = 85.0
             func_cov = 95.0
 
-        if self._function_rows:  # type: ignore[attr-defined]
-            covered_funcs = sum(1 for r in self._function_rows if r["covered"])  # type: ignore[attr-defined]
-            func_cov = covered_funcs / len(self._function_rows) * 100.0  # type: ignore[attr-defined]
-        elif self._coverage_measured:  # type: ignore[attr-defined]
+        if self._function_rows:
+            covered_funcs = sum(1 for r in self._function_rows if r["covered"])
+            func_cov = covered_funcs / len(self._function_rows) * 100.0
+        elif self._coverage_measured:
             func_cov = 100.0
 
-        totals = self._coverage_totals  # type: ignore[attr-defined]
+        totals = self._coverage_totals
         if totals and totals.get("branch_cover") is not None:
             branch_cov = totals["branch_cover"]
-        elif totals and self._coverage_measured:  # type: ignore[attr-defined]
+        elif totals and self._coverage_measured:
             branch_cov = 100.0
         elif cov_data and cov_data.get("branch_cov") is not None:
             branch_cov = cov_data["branch_cov"]
@@ -372,8 +372,8 @@ class TestCoverageMixin:
             if coverage_complete:
                 policy_targets = evaluate_coverage_policy(
                     policy,
-                    self._coverage_files,  # type: ignore[attr-defined]
-                    self._function_rows,  # type: ignore[attr-defined]
+                    self._coverage_files,
+                    self._function_rows,
                     changed_line_status,
                     changed_lines=changed_lines,
                 )
@@ -389,7 +389,7 @@ class TestCoverageMixin:
                 )
             ]
         self._record_coverage_scope(py_sources, cpp_sources)
-        self._coverage_policy = (  # type: ignore[attr-defined]
+        self._coverage_policy = (
             self._coverage_policy_snapshot(policy_targets, branch_cov, policy)
             if coverage_complete
             else {}
@@ -405,7 +405,7 @@ class TestCoverageMixin:
             if defines_main(path)
         )
         self._coverage_provenance["scope"] = {  # type: ignore[attr-defined]
-            "included_sources": sorted(row["file"] for row in self._coverage_files),  # type: ignore[attr-defined]
+            "included_sources": sorted(row["file"] for row in self._coverage_files),
             "excluded_entry_points": entry_points,
             "exclusion_rules": [
                 {
