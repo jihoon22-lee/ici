@@ -17,10 +17,29 @@ def _cognitive_for_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tup
     - +1 for if/elif/else, for, while, except, with, assert, comprehension
     - +1 per boolean operator chain (and/or), plus nesting
     - +nesting_level for each nesting increment (if/for/while/except/with)
+    - an ``elif`` continues the decision chain: +1 without a nesting increment
     - break/continue inside a loop count as +1
     """
     cognitive = 0
     max_nesting = 0
+
+    def _is_elif(parent: ast.AST, child: ast.AST) -> bool:
+        """Report whether ``child`` is the ``elif`` continuing ``parent``.
+
+        Python has no ``elif`` node: the parser nests it as the only statement
+        of the preceding ``If``'s ``orelse``. Reading that shape literally would
+        score a flat chain of mutually exclusive branches as if each one were
+        indented inside the previous, which is neither what the source looks
+        like nor what S3776 specifies. The C++ path already treats an else-if as
+        a continuation of the same decision chain; this keeps both languages on
+        one rule.
+        """
+        return (
+            isinstance(parent, ast.If)
+            and isinstance(child, ast.If)
+            and len(parent.orelse) == 1
+            and parent.orelse[0] is child
+        )
 
     def walk(n, nesting: int, in_loop: bool = False):
         nonlocal cognitive, max_nesting
@@ -39,8 +58,12 @@ def _cognitive_for_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tup
                 ),
             ):
                 # Each branch/loop/handler/with is +1, weighted by its nesting
-                # depth. elif is modeled as a nested If in orelse, so it is
-                # counted (and weighted) the same way as any other If.
+                # depth. An elif continues the chain instead of deepening it, so
+                # it takes a flat +1 and keeps the current nesting level.
+                if _is_elif(n, child):
+                    cognitive += 1
+                    walk(child, nesting, in_loop)
+                    continue
                 cognitive += 1 + nesting
                 walk(
                     child,

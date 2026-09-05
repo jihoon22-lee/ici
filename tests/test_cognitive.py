@@ -162,3 +162,74 @@ def test_default_thresholds_match_shipped_policy(tmp_path: Path):
     (src / "a.py").write_text(code, encoding="utf-8")
     result = CognitiveEngine(tmp_path, {"engines": {"cognitive": {"mode": "pass_warn_fail"}}}).run()
     assert result.status == EngineStatus.PASS
+
+
+def _score(source: str, name: str = "f") -> tuple[int, int]:
+    node = next(
+        n for n in ast.walk(ast.parse(source)) if isinstance(n, ast.FunctionDef) and n.name == name
+    )
+    return _cognitive_for_function(node)
+
+
+def test_elif_chain_stays_flat():
+    # Python parses `elif` as the only statement of the previous If's orelse.
+    # Reading that shape literally scored a flat chain as if each branch were
+    # indented inside the one before it: five branches reported cognitive 15
+    # and nesting 5 for source that never indents past one level.
+    chain = "def f(a):\n    if a == 1:\n        return 1\n"
+    for value in range(2, 6):
+        chain += f"    elif a == {value}:\n        return {value}\n"
+    chain += "    return 0\n"
+
+    assert _score(chain) == (5, 1)
+
+
+def test_nested_ifs_still_accumulate_nesting():
+    # The counterpart the fix must not weaken: genuinely nested branches keep
+    # their nesting weight, so 1 + 2 + 3 = 6 at a maximum depth of 3.
+    nested = (
+        "def f(a):\n"
+        "    if a == 1:\n"
+        "        if a == 2:\n"
+        "            if a == 3:\n"
+        "                return 3\n"
+        "    return 0\n"
+    )
+
+    assert _score(nested) == (6, 3)
+
+
+def test_else_branch_is_not_an_elif():
+    # A plain `else` holding an `if` is real nesting, not a chain: the inner If
+    # is not the sole orelse statement of a chain, so it keeps its weight.
+    source = (
+        "def f(a):\n"
+        "    if a == 1:\n"
+        "        return 1\n"
+        "    else:\n"
+        "        x = 0\n"
+        "        if a == 2:\n"
+        "            return 2\n"
+        "    return 0\n"
+    )
+
+    assert _score(source) == (3, 2)
+
+
+def test_elif_chain_matches_the_cpp_path():
+    # The C++ analyzer already treats an else-if as a continuation of the same
+    # decision chain. The same logic must not score differently by language.
+    from ici.engines._cpp_cognitive import cpp_cognitive_metric
+
+    cpp = "{\n    if (a == 1) { return 1; }\n"
+    for value in range(2, 6):
+        cpp += f"    else if (a == {value}) {{ return {value}; }}\n"
+    cpp += "    return 0;\n}"
+
+    chain = "def f(a):\n    if a == 1:\n        return 1\n"
+    for value in range(2, 6):
+        chain += f"    elif a == {value}:\n        return {value}\n"
+    chain += "    return 0\n"
+
+    native = cpp_cognitive_metric(cpp)
+    assert (native.cognitive, native.max_nesting) == _score(chain)
