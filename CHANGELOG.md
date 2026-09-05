@@ -40,6 +40,29 @@
   line/complexity rules it applies to consumers. This consolidated feature work retains stable
   version `0.10.2` and does not authorize a release. See [native analysis and coverage depth
   workthrough](docs/workthrough/2026-09-04-native-analysis-and-coverage-depth.md).
+  This work merged as
+  [`b7122676cfc8c9e939bf4cabedb0b6f4f3359797`](https://github.com/jihoon22-lee/ici/commit/b7122676cfc8c9e939bf4cabedb0b6f4f3359797);
+  its PR head [run `33868240776`](https://github.com/jihoon22-lee/ici/actions/runs/33868240776) and
+  exact-main [run `33873322908`](https://github.com/jihoon22-lee/ici/actions/runs/33873322908) are
+  both `success`, with `Verify & Dogfood ici`, both viewer GUI legs, the main publisher, and
+  `Merge Gate` successful and only the push-inapplicable PR publisher skipped. The two main Pages
+  are byte-identical to their gh-pages blobs and served HTTP 200 `text/html; charset=utf-8` with
+  exact titles and zero external `src`/`href`: `ici/main/index.html` is 6,067,548 bytes with
+  SHA-256 `57b6118f78f07616850663a9cb2fc674c35001e868178e905cbf447eed3509f7` and
+  `viewer/main/index.html` is 401,292 bytes with SHA-256
+  `c01898ba266779f1adfc10cb037fb94e22ce41bcc777667e12f9bad98c3394c9`. Re-verifying the merged
+  `main` locally gives `2708 passed, 9 skipped`, mypy clean across 138 source files, and clean
+  Ruff check/format. No tag or release was produced.
+  The candidate Quality Zoo rerun against current `main` is now closed: candidate producer
+  [run `33949687988`](https://github.com/jihoon22-lee/ici/actions/runs/33949687988) packaged
+  artifact `9964414571` from `b712267` (`ici.pyz` 2,572,444 bytes, SHA-256
+  `e90140186f84ff17c4cda039d34c241b99f9ba74b07ea3b089a542c4bb620d9b`, byte-identical to a local
+  reproducible build of the same commit), and acceptance
+  [run `33950030497`](https://github.com/jihoon22-lee/ici/actions/runs/33950030497) is `success`
+  with a `quality-zoo.suite/v1` result of 16/16 `PASS` and zero errors. That dispatch bound
+  toy-projects PR #60 head `9ae6e2547f6c5af385c2dec2feb75a4562424cf2` in `pull_request` mode, so
+  the acceptance belongs to that exact PR head; the `main`-bound equivalent follows once that PR
+  merges. The run published no Pages, PR comment, tag, or release.
 
 - **LLVM 18 multi-pair clang-tidy diagnostics:** The strict C++ diagnostic parser now retains one
   `bugprone-easily-swappable-parameters` primary while LLVM emits multiple bounded empty-note and
