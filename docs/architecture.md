@@ -705,7 +705,7 @@ duplicate 결과는 모두 구조적 신호라 `ESTIMATED`이며 behavioral equi
 기존 lexical slice의 local/toy/remote acceptance는
 [`bounded language-aware duplicate workthrough`](../workthrough/2026-09-02-bounded-language-aware-duplicate.md)에,
 현재 Python AST-shape slice의 local evidence와 pending remote 경계는
-[`combined maintainability workthrough`](../workthrough/2026-09-03-maintainability-linker-and-python-ast-shapes.md)에
+[`combined maintainability workthrough`](workthrough/2026-09-03-maintainability-linker-and-python-ast-shapes.md)에
 고정한다. 이 slice는 버전을 올리지 않으며 stable release를 만들지 않는다.
 
 #### Compiler-backed C/C++ unused internal functions

@@ -42,7 +42,7 @@ Windows 드라이브의 DrvFS 워킹트리에서 WSL 내부 ext4 clone으로 개
 문서 링크는 저장소 위치와 무관하게 동작한다.
 
 ```markdown
-[`CHANGELOG.md`](CHANGELOG.md)
+[`CHANGELOG.md`](../CHANGELOG.md)
 ```
 
 품질 게이트의 직접 실행 형태도 ext4 clone에서 그대로 사용할 수 있다.
