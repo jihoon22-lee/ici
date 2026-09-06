@@ -43,9 +43,13 @@ verify_report.json
 verify_report.md
 viewer/verify_report.html
 viewer/verify_report.json
+viewer/static_cli_report.json
 viewer/build/
 viewer/src/gui/build/
 viewer/build-cli/
+# `ici build` installs into <project>/<git-describe version>/x86_64
+/v[0-9]*/
+viewer/v[0-9]*/
 
 # C++ coverage artifacts (viewer/)
 *.gcda
