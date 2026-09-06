@@ -8,12 +8,17 @@ import pytest
 
 from ici.core.models import (
     AnalysisMode,
+    BaselineComparison,
+    DeltaState,
     EngineResult,
     EngineStatus,
     EngineSupport,
     EvidenceState,
     FindingConfidence,
+    FindingDelta,
+    FindingSeverity,
     InspectionTarget,
+    SourceLocation,
     SupportLanguage,
     SupportMatrix,
     ToolEvidence,
@@ -471,3 +476,98 @@ def test_terminal_link_quotes_path_and_rich_markup(tmp_path: Path):
     link = make_terminal_link("src/a[b] c.py", 3, tmp_path)
     assert "a%5Bb%5D%20c.py" in link
     assert "a\\[b] c.py:3" in link
+
+
+def _annotation_target(path: str, line: int, status: EngineStatus) -> InspectionTarget:
+    return InspectionTarget(
+        file_path=path,
+        start_line=line,
+        status=status,
+        message=f"finding at {path}",
+    )
+
+
+def test_github_annotations_spend_the_bound_on_new_findings_first(monkeypatch, capsys):
+    # A PR reviewer wants what this change introduced. When the bound cannot fit
+    # every candidate, a new WARN must outrank a pre-existing WARN.
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setattr("ici.reporters.markdown.MAX_GITHUB_ANNOTATIONS", 1)
+    result = EngineResult("line", EngineStatus.WARN, "summary")
+    result.targets = [
+        _annotation_target("src/old.py", 3, EngineStatus.WARN),
+        _annotation_target("src/new.py", 9, EngineStatus.WARN),
+    ]
+    suite = VerificationSuiteResult(suite_status=EngineStatus.WARN, results=[result])
+    suite.baseline_comparison = BaselineComparison(
+        source_path=".ici/baseline.json",
+        entries=[
+            FindingDelta(
+                state=DeltaState.NEW,
+                engine_name="line",
+                fingerprint="sha256:" + "b" * 64,
+                rule_id="ici.line.new",
+                message="new finding",
+                current_location=SourceLocation(path="src/new.py", start_line=9, end_line=9),
+                current_severity=FindingSeverity.MEDIUM,
+            )
+        ],
+    )
+
+    emit_github_actions_annotations(suite)
+
+    output = capsys.readouterr().out
+    assert "src/new.py" in output
+    assert "src/old.py" not in output
+    assert "1 additional ici annotation(s) omitted" in output
+
+
+def test_github_annotations_treat_a_regressed_finding_as_changed(monkeypatch, capsys):
+    # regressed is a separate axis from the delta state: an unchanged finding
+    # whose severity rose still belongs in the bounded budget.
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setattr("ici.reporters.markdown.MAX_GITHUB_ANNOTATIONS", 1)
+    result = EngineResult("line", EngineStatus.WARN, "summary")
+    result.targets = [
+        _annotation_target("src/quiet.py", 2, EngineStatus.WARN),
+        _annotation_target("src/worse.py", 5, EngineStatus.WARN),
+    ]
+    suite = VerificationSuiteResult(suite_status=EngineStatus.WARN, results=[result])
+    suite.baseline_comparison = BaselineComparison(
+        source_path=".ici/baseline.json",
+        entries=[
+            FindingDelta(
+                state=DeltaState.UNCHANGED,
+                engine_name="line",
+                fingerprint="sha256:" + "c" * 64,
+                rule_id="ici.line.worse",
+                message="regressed finding",
+                current_location=SourceLocation(path="src/worse.py", start_line=5, end_line=5),
+                current_severity=FindingSeverity.HIGH,
+                baseline_severity=FindingSeverity.LOW,
+                regressed=True,
+            )
+        ],
+    )
+
+    emit_github_actions_annotations(suite)
+
+    assert "src/worse.py" in capsys.readouterr().out
+
+
+def test_github_annotations_keep_severity_order_without_a_baseline(monkeypatch, capsys):
+    # No baseline means no delta axis, so the previous status ordering stands.
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setattr("ici.reporters.markdown.MAX_GITHUB_ANNOTATIONS", 1)
+    result = EngineResult("line", EngineStatus.ERROR, "summary")
+    result.targets = [
+        _annotation_target("src/warn.py", 1, EngineStatus.WARN),
+        _annotation_target("src/error.py", 2, EngineStatus.ERROR),
+    ]
+
+    emit_github_actions_annotations(
+        VerificationSuiteResult(suite_status=EngineStatus.ERROR, results=[result])
+    )
+
+    output = capsys.readouterr().out
+    assert "src/error.py" in output
+    assert "src/warn.py" not in output
