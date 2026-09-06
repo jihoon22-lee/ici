@@ -4,14 +4,22 @@ import os
 import re
 import shutil
 import time
-from pathlib import Path
+from dataclasses import replace
+from pathlib import Path, PurePosixPath
+from typing import Any
 
 import tomli
 
+from ici._analysis_config import DECLARED_ARTIFACT_KINDS
 from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
-from ici.core.context import MAX_ARTIFACT_MANIFEST_RECORDS, ArtifactManifest, BuildVariant
+from ici.core.context import (
+    MAX_ARTIFACT_MANIFEST_RECORDS,
+    ArtifactManifest,
+    ArtifactScope,
+    BuildVariant,
+)
 from ici.core.env import get_nas_cpp_lib_dir
 from ici.core.models import (
     EngineResult,
@@ -98,6 +106,8 @@ class BuildEngine(BaseEngine):
             except Exception as exc:
                 self._record_error(targets, f"Could not generate environment scripts: {exc}")
 
+        self._publish_declared_artifacts(targets)
+
         duration = time.time() - t0
         if self._tool_errors:
             status = EngineStatus.ERROR
@@ -137,6 +147,96 @@ class BuildEngine(BaseEngine):
             tool_evidence=self._tool_evidence,
             artifact_manifests=self._artifact_manifests,
         )
+
+    def _declared_artifact_paths(
+        self, declared: dict[str, Any]
+    ) -> tuple[list[tuple[Path, ArtifactScope, str]], list[str]]:
+        """Resolve declared globs to contained project files, in a stable order.
+
+        A glob that matches nothing is reported rather than skipped: a build that
+        was supposed to publish a wheel and did not is a fact the manifest must
+        carry, not an absence a consumer has to infer.
+        """
+
+        root = self.project_root.resolve(strict=False)
+        paths: list[tuple[Path, ArtifactScope, str]] = []
+        unmatched: list[str] = []
+        seen: set[str] = set()
+        for key in sorted(declared):
+            kind = DECLARED_ARTIFACT_KINDS[key]
+            for pattern in declared[key]:
+                matched = False
+                for candidate in sorted(root.glob(pattern)):
+                    try:
+                        resolved = candidate.resolve(strict=True)
+                        relative = resolved.relative_to(root).as_posix()
+                    except (OSError, RuntimeError, ValueError):
+                        continue
+                    if not resolved.is_file() or relative in seen:
+                        continue
+                    seen.add(relative)
+                    paths.append((Path(relative), ArtifactScope.PROJECT, kind))
+                    matched = True
+                if not matched:
+                    unmatched.append(f"{key}: {pattern}")
+        return paths, unmatched
+
+    def _publish_declared_artifacts(self, targets: list[InspectionTarget]) -> None:
+        """Record `[build.artifacts]` outputs no link step produces.
+
+        The adapters discover linked binaries by reading the shadow tree. A
+        Python wheel or an analysis report the project emits is not linked and
+        not in that tree, so without a declaration nothing would ever see it —
+        which is why `_artifact_kind` classified everything unknown as an
+        executable and a `.whl` came out mislabelled.
+        """
+
+        # `[build.artifacts]` is project-level, next to `[build.make]`, not an
+        # engine setting: it describes what the project produces, which does not
+        # change with the engine's own enable/mode policy.
+        declared = (self.config.get("build") or {}).get("artifacts") or {}
+        if not declared:
+            return
+        context = self.analysis_context
+        if context is None:
+            self._record_error(targets, "declared artifacts require a shared analysis context")
+            return
+        try:
+            paths, unmatched = self._declared_artifact_paths(declared)
+            if unmatched:
+                raise ValueError(f"declared artifact glob matched nothing: {'; '.join(unmatched)}")
+            manifest = ArtifactManifest.create(
+                project_root=self.project_root,
+                shadow_root=None,
+                variant=BuildVariant.RELEASE,
+                identity=context.identity,
+                paths=paths,
+                producer="config.artifacts",
+            )
+            enriched = tuple(
+                replace(
+                    record,
+                    # Same `variant:scope:path` shape the adapters emit. An
+                    # integration case should not have to know which producer
+                    # recorded an artifact to address it.
+                    artifact_id=f"{manifest.variant.value}:{record.scope.value}:{record.path}",
+                    target=PurePosixPath(record.path).name,
+                )
+                for record in manifest.artifacts
+            )
+            self._artifact_manifests.append(replace(manifest, artifacts=enriched).validate())
+            self._artifact_count += len(enriched)
+            targets.append(
+                InspectionTarget(
+                    file_path=".",
+                    start_line=1,
+                    target_name="DeclaredArtifacts",
+                    status=EngineStatus.PASS,
+                    message=f"Recorded {len(enriched)} declared artifact(s)",
+                )
+            )
+        except (OSError, ValueError) as err:
+            self._record_error(targets, f"Declared artifacts could not be recorded: {err}")
 
     @staticmethod
     def _exclude_target_sources(sources: list[Path], target: Path) -> list[Path]:

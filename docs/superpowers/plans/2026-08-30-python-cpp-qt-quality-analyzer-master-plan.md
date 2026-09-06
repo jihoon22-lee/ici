@@ -1518,12 +1518,31 @@ category/Qt candidate evidence도 각각 수용됐지만 broader I4-4와 version
   diagnostic은 fail-closed한다.
 - [x] TSan은 별도 deep profile과 build variant로 제공하며 PR #146, exact-main CI, toy PR #56,
   exact candidate Quality Zoo acceptance까지 완료했다. 이 체크는 TSan sub-scope만 닫는다.
-- [ ] resource/lifetime/security는 clang analyzer·clang-tidy·clazy 결과를 category별로 매핑한다.
+- [x] resource/lifetime/security는 clang analyzer·clang-tidy·clazy 결과를 category별로 매핑한다.
+  - 2026-09-06 실사: `_cpp_diagnostic_categories.py` 의 `tool-rule-v1` 이 이미 세 도구
+    전부에서 SECURITY 와 RESOURCE 를 매핑하고 있었다. 실제로 열려 있던 것은 하나뿐이다 —
+    **lifetime 을 별도 축으로 둘 것인가.**
+  - **결정: 두지 않는다.** lifetime 은 `RESOURCE` 다. `FindingCategory` 에 값을 추가하는
+    것은 v3 스키마 변경이라 engine-reference 1.3 절에 발표한 안정성 정책과 충돌하고,
+    독자가 필요로 하는 세밀한 정체는 이미 `tool_rule_id` 에 있다 —
+    `bugprone-use-after-move` 는 `LIFETIME` 라벨보다 많은 것을 말한다. dangling pointer,
+    use-after-move, iterator 무효화, stack address escape, Qt ownership 은 모두 "소유한
+    자원을 그 수명 밖에서 건드렸다"는 한 문제이고 `RESOURCE` 가 그것을 담기에 정확하다.
+  - 결정을 코드에 고정했다. lifetime rule 하나가 조용히 다른 category 로 옮겨가도,
+    `FindingCategory` 에 `LIFETIME` 이 추가돼도 테스트가 실패한다 — 어느 쪽이든 스키마
+    정책과 함께 다시 판단해야 하는 변경이기 때문이다. mutation 으로 확인했다.
 - [x] sanitizer가 build됐지만 테스트가 실행되지 않은 경우 ERROR로 구분한다.
 - [x] Quality Zoo의 ASan UAF, LSan leak, UBSan signed-overflow 및 sanitizer-clean fixture가
   exact candidate acceptance에서 expected rule/status/evidence/confidence/path/line 계약을
   검증한다.
-- [ ] Qt lifetime/ownership scenario와 broader resource/lifetime/security taxonomy를 검증한다.
+- [x] Qt lifetime/ownership scenario와 broader resource/lifetime/security taxonomy를 검증한다.
+  - Qt scenario: quality-zoo `cpp/qt-missing-parent-constructor` 가 candidate 인수
+    ([run `33718024450`](https://github.com/jihoon22-lee/ici/actions/runs/33718024450))에서
+    `src/bad.cpp:3` 의 `category: resource` · `confidence: exact` finding 을 요구하고,
+    동시에 `src/clean.cpp` 의 어떤 lint finding 도 **금지**해 false positive 까지 고정한다.
+    parent-forwarding 을 올바르게 한 counterpart 가 같은 rule 로 걸리면 실패한다.
+  - broader taxonomy: 위 결정으로 닫힌다. lifetime 은 `RESOURCE` 로 수렴하며, 그것이
+    이 scenario 의 expectation 이 실제로 검증하는 category 다.
 
 **TSan exact candidate acceptance (별도 완료 evidence):** ici SHA
 `6ee08b14fa598a19074af7afed4368fd79b19b2b`에서 생성한 candidate artifact `9884927798`의 raw
@@ -1716,7 +1735,22 @@ remote PR/main 및 candidate acceptance는 아래 delivery 기록에서 별도�
 
 **브랜치:** `feat/artifact-manifest`
 
-- [ ] executable, shared/static library, Python wheel, report artifact를 typed record로 남긴다.
+- [x] executable, shared/static library, Python wheel, report artifact를 typed record로 남긴다.
+  - executable/shared/static 은 어댑터가 shadow 트리의 **링크된** 산출물을 읽어 이미
+    기록하고 있었다. wheel 과 report 는 링크 산출물이 아니고 shadow 트리에도 없어서
+    아무도 발견하지 못했다 — 그리고 `_artifact_kind` 의 fallback 이 `executable` 이라,
+    `.whl` 이 그 경로에 닿았다면 executable 로 잘못 붙었을 것이다.
+  - 2026-09-06: `[build.artifacts]` 로 선언한다. `python_wheel` → `python-wheel`,
+    `report` → `report` 이며 scope 는 PROJECT, id 는 어댑터와 같은 `variant:scope:path`
+    형태다. 여기서 `report` 는 **프로젝트 자신의 분석기가 내보낸 리포트**이지 ici 의
+    리포트가 아니다 — 그건 이 실행의 출력이라 자기 자신을 기록할 수 없다.
+  - **매칭되지 않는 glob 은 건너뛰지 않고 오류다.** wheel 을 내보내기로 한 빌드가
+    내보내지 않았다는 것은 manifest 가 담아야 할 사실이지 소비자가 침묵에서 추론할
+    일이 아니다. 절대 경로·`..`·중복·루트를 벗어나는 심링크·unknown kind 는 설정
+    오류이고, `binary_compat` 은 kind 로 대상을 골라 wheel 에 readelf 를 실행하지
+    않는다 — 확장자 allow-list 가 아니라 typed record 가 그것을 막는다.
+  - mutation 2 건으로 확인했다: 선언 산출물을 전부 `executable` 로 붙이면 kind 테스트가,
+    unmatched glob 을 건너뛰면 그 계약과 심링크 escape 테스트가 각각 실패한다.
 - [x] hash, size, mode, producing target/command와 build variant를 기록한다.
 - [x] artifact glob이 빈 결과거나 project 밖으로 나가면 ERROR로 처리한다.
   - 2026-09-06 실사: `ArtifactManifest.create` 가 절대 경로, 정규화 후에도 남는 부모 세그먼트,
@@ -1726,9 +1760,9 @@ remote PR/main 및 candidate acceptance는 아래 delivery 기록에서 별도�
 - [x] downstream binary/integration engine은 manifest만 소비한다.
 
 현재 v2 manifest는 executable/shared/static library에 stable id, filename-derived target label,
-redacted producer argv와 build identity를 기록하고 v1 reader 호환성을 유지한다. Python wheel과
-report artifact의 typed producer, configurable artifact glob 계약은 아직 남아 있으므로 첫째와
-셋째 항목은 닫지 않는다.
+redacted producer argv와 build identity를 기록하고 v1 reader 호환성을 유지한다. 2026-09-06에
+`[build.artifacts]`가 Python wheel과 report artifact의 typed producer 및 configurable glob 계약을
+추가해 I7-2의 네 항목이 모두 닫혔다.
 
 ### I7-3. binary compatibility
 
@@ -1772,6 +1806,23 @@ report artifact의 typed producer, configurable artifact glob 계약은 아직 �
     mutation 2 건(기대 contract 를 v3 로, 거부 case 의 expected_exit 을 0 으로)이 모두
     게이트를 막았다. I7-1 과 같은 이유로 candidate ici 한정이다 — 공개 `v0.10.2` 는
     configurable `[engines.build]` 이전 버전이라 그 키가 configuration error 가 된다.
+
+### I7 체크포인트 실사 (2026-09-06)
+
+I7 의 네 절에 미체크 항목이 하나도 남지 않았으므로, 18 절 rollup 을 닫기 전에 이 절만
+따로 실사했다 — 하위 항목이 다 닫혔다는 것과 절 전체가 닫혔다는 것은 다른 주장이고,
+본문에 남은 단서를 확인하지 않고 체크하면 이 실사가 고치려던 문제를 되풀이하는 것이다.
+
+본문에 남아 있는 단서는 둘이고, 둘 다 같은 종류다 — abilens 의 Make 계약(I7-1)과
+buildscope 의 hybrid integration 계약(I7-4)이 **candidate ici 한정**이라는 것. 이는 구현의
+공백이 아니라 릴리스 cadence 의 사실이다. 두 계약 모두 구현·테스트·실측이 끝났고, 공개
+`v0.10.2` 가 configurable `[engines.build]` 이전 버전이라 거기서 쓸 수 없을 뿐이다. 다음
+stable release 가 나오면 그 문장 자체가 사라진다. toy-projects 의 `ICI-GAPS.md` 도 A-2 를
+같은 근거로 "released 에서만 남은" 항목으로 분류한다.
+
+그 외에 "아직", "여전히", "별도로 확정" 류의 미해결 단서는 이 절에 없다. 따라서 I7
+체크포인트를 닫는다. **이 실사는 I7 에만 해당한다** — I4·I5·I6·I8·I9 의 rollup 은 각자의
+본문 단서를 같은 방식으로 확인해야 하며 아직 열려 있다.
 
 ---
 
@@ -2044,7 +2095,26 @@ pending이다.
     scope 두 가지뿐이다. `unsupported` 는 결과를 만들지 않으므로 결과의 한계가 아니라
     제외했다. 38 선언 중 18 행. 문서 블록은 exact-match 테스트로 선언에 고정했고
     mutation 으로 확인했다.
-- [ ] TEM/branch/function/file별 threshold를 baseline에 근접하게 단계 상승한다.
+- [x] TEM/branch/function/file별 threshold를 baseline에 근접하게 단계 상승한다.
+  - 2026-09-06: 네 번의 연속 측정이 모든 차원에서 0.2 포인트 안으로 일치했다 —
+    line 89.0/89.1/89.1/89.2, branch 80.9/81.0/81.0/81.1, function 95.89/95.90/96.2,
+    TEM 4.78/4.78/4.79. 기존 floor 는 더 작은 suite 기준이라 실측보다 9~11 포인트
+    아래로 벌어져 있었고, 그 폭이면 실제 회귀가 게이트에 걸리지 않고 들어올 수 있다.
+
+    | 항목 | 이전 | 이후 | 실측 | 여유 |
+    |---|---|---|---|---|
+    | `min_line_cov` | 80.0 | **86.0** | 89.2% | 3.2 |
+    | `min_branch_cov` | 70.0 | **78.0** | 81.1% | 3.1 |
+    | `min_func_cov` | 90.0 | **94.0** | 95.9% | 1.9 |
+    | `min_tem_score` | 4.5 | **4.7** | 4.78 | 0.08 |
+    | `min_file_cov` | 10.0 | **12.0** | 최소 12.9% | 0.9 |
+
+  - 여유는 실측 바로 아래에 붙이지 않고 평범한 작업을 견디도록 잡았다. 리팩터링 PR
+    하나가 function coverage 를 0.3 움직였으므로 1 포인트 여유는 일상적인 변경에
+    걸린다. `min_file_cov` 는 실전에서 가장 좁다 — 구속 파일이
+    `reporters/html/sections/complexity.py` 62 statement 의 12.9% 라 한 statement 가
+    1.6 포인트다. 저장소에서 가장 덜 덮인 파일에 테스트 없는 코드를 더하는 것을 막는
+    것이 이 floor 의 목적이므로 그대로 둔다.
 - [x] giant module, complexity, duplication을 실제 리팩터링하거나 승인된 debt로 명시한다.
   - 2026-09-06: 둘 다 했다. 실사해 보니 세 엔진이 정확히 FAIL 임계값 위에 앉아 있었고
     하나는 이미 넘어 있었다 — `sanitize.py` 1000 줄(= `fail_limit`), CC 25 함수 넷
@@ -2205,7 +2275,10 @@ pending이다.
   deferred)
 - [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
 - [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
-- [ ] I7: Makefile, artifacts, ABI, hybrid integration 완료
+- [x] I7: Makefile, artifacts, ABI, hybrid integration 완료
+  - 2026-09-06: 네 절 모두 미체크 항목 0. 절 실사는 13 절 끝의 "I7 체크포인트 실사"에
+    있다. 본문에 남은 단서 둘은 abilens/buildscope 계약이 candidate ici 한정이라는
+    릴리스 cadence 사실이며 구현 공백이 아니다.
 - [ ] I8: reporter parity, viewer diff/triage, 대형 report 처리 완료
 - [ ] I9: quality-zoo, self ratchet, 1.0 support contract 완료
 

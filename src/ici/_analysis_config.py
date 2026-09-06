@@ -392,3 +392,48 @@ def _validate_wheel_globs(table: dict[str, Any], path: str) -> None:
                 f"{item_path}[{index}]",
                 "must be a contained POSIX glob of at most 256 characters",
             )
+
+
+# Artifact kinds a project can declare directly, mapped from their config key.
+# The build adapters discover linked binaries on their own; these are outputs no
+# link step produces, so nothing would find them without a declaration.
+DECLARED_ARTIFACT_KINDS = {
+    "python_wheel": "python-wheel",
+    "report": "report",
+}
+MAX_DECLARED_ARTIFACT_GLOBS = 32
+
+
+def _validate_declared_artifacts(table: Any, path: str) -> None:
+    """Validate `[build.artifacts]`: typed globs for outputs no linker produces."""
+
+    if not isinstance(table, dict):
+        raise _error(path, "must be a table")
+    _reject_unknown(table, frozenset(DECLARED_ARTIFACT_KINDS), path)
+    for key in sorted(table):
+        _validate_contained_globs(table[key], f"{path}.{key}")
+
+
+def _validate_contained_globs(value: Any, item_path: str) -> None:
+    """Reject any glob that is absolute, escaping, or not bounded POSIX text."""
+
+    _require_string_list(value, item_path)
+    if len(value) > MAX_DECLARED_ARTIFACT_GLOBS:
+        raise _error(item_path, f"must contain at most {MAX_DECLARED_ARTIFACT_GLOBS} values")
+    if len(value) != len(set(value)):
+        raise _error(item_path, "must not contain duplicate values")
+    for index, entry in enumerate(value):
+        pure = PureWindowsPath(entry)
+        if (
+            len(entry) > 256
+            or not entry
+            or "\\" in entry
+            or entry.startswith("/")
+            or pure.drive
+            or ".." in Path(entry).parts
+            or any(ord(character) < 32 for character in entry)
+        ):
+            raise _error(
+                f"{item_path}[{index}]",
+                "must be a contained POSIX glob of at most 256 characters",
+            )

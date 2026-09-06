@@ -186,15 +186,28 @@ def test_get_global_config_path(tmp_path: Path, monkeypatch):
 
 
 def test_repository_test_policy_keeps_strict_calibrated_floors():
-    """The repository policy stays strict while allowing measured baseline jitter."""
+    """The repository policy stays strict while allowing measured baseline jitter.
+
+    Exact values rather than a lower bound: a floor should only move as a
+    deliberate, reviewed edit with the measurement that justifies it. A
+    "never decreases" assertion would let a loosening slip through as long as
+    something else tightened.
+
+    Ratcheted 2026-09-06 from four consecutive measured runs; see the rationale
+    in ici.toml next to each value. All five dimensions are pinned, because
+    leaving two unpinned is how a gate loses a dimension without anyone noticing.
+    """
     policy_path = Path(__file__).resolve().parent.parent / "ici.toml"
     with policy_path.open("rb") as policy_file:
         test_policy = tomli.load(policy_file)["engines"]["test"]
 
     assert test_policy["mode"] == "pass_fail"
-    assert test_policy["min_tem_score"] == 4.5
-    assert test_policy["min_branch_cov"] == 70.0
-    assert test_policy["min_func_cov"] == 90.0
+    assert test_policy["min_tem_score"] == 4.7
+    assert test_policy["min_line_cov"] == 86.0
+    assert test_policy["min_branch_cov"] == 78.0
+    assert test_policy["min_func_cov"] == 94.0
+    assert test_policy["min_file_cov"] == 12.0
+    assert test_policy["min_file_statements"] == 5
 
 
 def test_repository_ici_version_matches_package_version():
