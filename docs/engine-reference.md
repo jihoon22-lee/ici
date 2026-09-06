@@ -178,6 +178,7 @@ forbidden_needed = []
 allowed_needed = []
 forbid_build_paths = true
 allow_non_elf = false
+require_static = false       # true이면 동적 링크 artifact를 FAIL로 닫습니다
 max_artifacts = 64
 
 [engines.integration]
@@ -1391,9 +1392,15 @@ argument characters, discarded section 16,384개, tool-output cap 4 MiB, 전체 
 - **정적 검사**: `readelf`를 실행해 ELF class/machine, DT_NEEDED, RPATH/RUNPATH, GLIBC·
   GLIBCXX·CXXABI 최대 버전과 build-path leak를 확인합니다. `expected_class`/
   `expected_machine`, `max_glibc`/`max_glibcxx`/`max_cxxabi`, `forbidden_needed`/
-  `allowed_needed`, `forbid_absolute_rpath`, `forbid_build_paths`, `allow_non_elf` 정책으로
-  허용 범위를 명시할 수 있습니다. 바이너리를 실행·load하지 않으므로 ABI 정책과 실제 loader
-  환경의 모든 동작을 증명하는 검사는 아닙니다.
+  `allowed_needed`, `forbid_absolute_rpath`, `forbid_build_paths`, `allow_non_elf`,
+  `require_static` 정책으로 허용 범위를 명시할 수 있습니다. 바이너리를 실행·load하지 않으므로
+  ABI 정책과 실제 loader 환경의 모든 동작을 증명하는 검사는 아닙니다.
+- **정적 링크 요구**: `require_static = true`이면 동적으로 링크된 artifact가 위치 있는 `FAIL`
+  finding이 됩니다. 판정 근거는 `readelf --dynamic`이 PT_DYNAMIC 없는 객체에 출력하는
+  "There is no dynamic section in this file." 한 줄입니다. `DT_NEEDED`가 비어 있다는 사실만으로
+  정적 링크로 보지 않습니다 — 아무것도 필요로 하지 않는 동적 바이너리와 구분되지 않기
+  때문입니다. 기본값은 `false`이며, 폐쇄망 배포처럼 정적 링크가 요구사항인 프로젝트만
+  켭니다.
 - **상한과 상태**: 최대 64 artifact, artifact당 bounded `readelf` output만 허용합니다.
   manifest/파일이 없으면 optional은 명시적 `SKIP`, required는 `ERROR`/`NOT_RUN`이며,
   `readelf` capability·출력이 불완전하면 분석 오류로 `ERROR`/`NOT_RUN`을 남깁니다

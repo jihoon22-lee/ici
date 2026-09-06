@@ -237,3 +237,53 @@ def test_engine_honours_the_configured_artifact_maximum(tmp_path: Path) -> None:
     ).run()
 
     assert result.status is EngineStatus.ERROR
+
+
+_STATIC_READELF = """
+  Class:                             ELF64
+  Machine:                           Advanced Micro Devices X86-64
+  Type:                              EXEC (Executable file)
+  [ 1] .symtab           SYMTAB          0000000000000000 001000 000100 18
+
+There is no dynamic section in this file.
+"""
+
+
+def test_parser_reports_static_linkage_from_the_absent_dynamic_section() -> None:
+    # An empty NEEDED list is not evidence of static linkage; the sentence
+    # readelf prints for an object with no PT_DYNAMIC is.
+    static = parse_readelf(_STATIC_READELF)
+    dynamic = parse_readelf(_READELF)
+
+    assert static.dynamic is False
+    assert dynamic.dynamic is True
+
+
+def test_policy_requires_static_linkage_when_configured() -> None:
+    facts = parse_readelf(_READELF)
+
+    findings = BinaryCompatibilityEngine._abi_violations(
+        "dist/app", facts, {"require_static": True}
+    )
+
+    assert any(finding.rule_id == "ici.binary.dynamic-linkage" for finding in findings)
+
+
+def test_static_artifact_satisfies_the_static_requirement() -> None:
+    facts = parse_readelf(_STATIC_READELF)
+
+    findings = BinaryCompatibilityEngine._abi_violations(
+        "dist/app", facts, {"require_static": True}
+    )
+
+    assert not any(finding.rule_id == "ici.binary.dynamic-linkage" for finding in findings)
+
+
+def test_static_requirement_is_off_by_default() -> None:
+    # Most artifacts are dynamically linked on purpose, so this policy only
+    # applies where a project opts in.
+    facts = parse_readelf(_READELF)
+
+    findings = BinaryCompatibilityEngine._abi_violations("dist/app", facts, {})
+
+    assert not any(finding.rule_id == "ici.binary.dynamic-linkage" for finding in findings)

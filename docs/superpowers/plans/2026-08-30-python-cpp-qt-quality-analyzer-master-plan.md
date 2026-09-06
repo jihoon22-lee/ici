@@ -1699,7 +1699,12 @@ report artifact의 typed producer, configurable artifact glob 계약은 아직 �
 
 - [x] ELF class, machine, NEEDED, RPATH/RUNPATH를 `readelf` evidence로 읽는다.
 - [x] GLIBC, GLIBCXX, CXXABI maximum required version을 계산한다.
-- [ ] static requirement, forbidden dependency/path와 configured floor를 정책화한다.
+- [x] static requirement, forbidden dependency/path와 configured floor를 정책화한다.
+  - forbidden dependency/path 와 floor 는 `forbidden_needed`/`allowed_needed`/
+    `forbid_absolute_rpath`/`forbid_build_paths`/`max_glibc`/`max_glibcxx`/`max_cxxabi` 로
+    이미 있었다. 2026-09-06 에 빠져 있던 `require_static` 을 추가했다. 판정은 readelf 가
+    PT_DYNAMIC 없는 객체에 출력하는 문장으로 하고, `DT_NEEDED` 가 비었다는 사실만으로는
+    정적으로 보지 않는다.
 - [x] stripped/malformed/non-ELF를 구분한다.
   - 2026-09-06 실사: `binary_compat.py`의 `ici.binary.non-elf` rule과 `stripped` fact.
 - [ ] abilens의 executable/shared library와 viewer static CLI를 실측한다.
@@ -1774,9 +1779,13 @@ HTML은 2,000 actionable finding 초과 시 초기 50행과 bounded inline inven
   - HTML baseline 탭과 Markdown 이 New/Unchanged/Moved/Resolved 와 Regressed 를 모두 표시한다.
     `regressed` 는 `DeltaState` 의 다섯째 값이 아니라 `FindingDelta.regressed` 불리언이다.
     severity 가 올라간 finding 은 상태가 `UNCHANGED` 여도 regressed 로 세므로 두 축은 직교한다.
-- [ ] engine/rule/category/severity/confidence/file별 filtering과 정렬을 제공한다.
-  - **남은 실제 작업.** HTML 의 현재 검색은 파일 트리 검색이고 finding 다축 필터가 아니다.
-    `icirv` CLI 는 `--engine`/`--status` 두 축만 있다.
+- [x] engine/rule/category/severity/confidence/file별 filtering과 정렬을 제공한다.
+  - 2026-09-06: HTML issue 행마다 `data-engine`/`data-rule`/`data-category`/`data-severity`/
+    `data-file` 을 싣고 축별 select 와 정렬을 추가했다. 옵션은 리포트에 실제로 있는 값에서만
+    만들어 매칭되지 않는 필터를 제공하지 않는다. 필터링은 이미 렌더된 행에 대한 표시 전용이라
+    JSON 과 baseline 인벤토리는 바뀌지 않는다.
+  - `confidence` 는 축에서 빠졌다. `IssueGroup` 이 표시 투영으로 confidence 를 옮기지 않아서
+    데이터가 없다. 넣으려면 clone 경로를 포함한 두 생성 지점을 함께 바꿔야 하므로 별도 작업이다.
 
 **만들지 않기로 한 것** — 아래는 SARIF 생태계에 위임한다. 필요해지면 이 결정을 다시 연다.
 
