@@ -102,6 +102,43 @@ historical candidate evidence이며, 현재 `main@2113b5ddc21905660afa4002ee8b25
 대한 Quality Zoo 재실행을 의미하지 않는다. 그러므로 broader Qt lifetime/ownership, resource·
 lifetime·security taxonomy, Q1–Q5, I4 aggregate와 release는 계속 pending이다.
 
+### 1.5 측정으로 닫은 항목들 (2026-09-06)
+
+이 날의 작업은 하나의 성격으로 묶인다 — **적혀 있었지만 재지 않은 주장을 실행이 내는 숫자로
+바꾼 것**. 열여섯 항목이 닫혔고, 새로 만든 기능보다 기존 주장의 검증이 대부분이다.
+
+| 절 | 닫은 것 | 근거 |
+|---|---|---|
+| I7-3 | viewer static CLI 실측 | `viewer/ici-static-cli.toml` + `require_static`. 동적 링크 바이너리로 mutation 시 FAIL |
+| I7-4 | buildscope Python→C++ E2E | `buildscope/ici-candidate.toml` integration case 3건, `3 run, 0 violation(s)` |
+| I8-3 | baseline vs suppression 문서 | 사용자 가이드 2.2.1 비교표 |
+| I8-4 (3) | 10만 finding benchmark·예산·추세 artifact | `scripts/benchmark_report.py`, CI `report_benchmark.json` |
+| I9-1 | quality-zoo 엔진별 회귀 요약 | toy PR #65, contract 위반의 엔진 귀속 |
+| I9-2 (4) | unexplained non-PASS 0, 한계 인벤토리, 부채 명시, 사람 검토 가능성 | `docs/design/self-verification-debt.md`, engine-reference 1.5 |
+| I9-3 (5) | support matrix 일치, runtime 실측, 폐쇄망·비root, release 재현성, 사용자 문서 | PR #172·#175/#176, toy PR #67 |
+
+닫은 근거로 쓴 실측값은 각 항목의 하위 note에 그대로 남겼다. 특히 **자체 게이트가 세 엔진에서
+정확히 FAIL 임계값 위에 앉아 있었고 하나는 이미 넘어 있었다**는 발견은 별도 문서로 남겼다 —
+`line` 1000/1000, `complexity` CC 25/25, `cognitive` 66 > 60. 리팩터링 후 max cognitive 48,
+max CC 24, 1000줄 초과 파일 0이다.
+
+남은 열여섯 항목의 성격은 세 가지다.
+
+1. **사용자 판단이 필요한 것 하나** — I9-2의 threshold 단계 상승. 어느 수준까지 조일지는
+   측정이 아니라 정책 결정이다.
+2. **범위 결정이 필요한 것 둘** — I7-2의 wheel/report typed record, 그리고 I4-4의
+   resource/lifetime/security taxonomy. 후자는 실사 결과 `_cpp_diagnostic_categories.py`가
+   이미 SECURITY/RESOURCE를 세 도구에서 매핑하고 있고, 열려 있는 것은 **lifetime을 별도 축으로
+   둘 것인가**다. v3 `FindingCategory`에는 그 값이 없으므로 스키마 안정성 정책과 함께 결정해야
+   한다.
+3. **독립 세션이 필요한 큰 작업 넷** — whole-program/linker-backed dead-symbol reachability,
+   C++ AST/semantic duplicate analysis, broader false-positive corpus, 그리고 18절의 rollup들.
+
+18절 rollup은 하위 항목이 모두 닫힌 절에서도 열어 두었다. I5·I6·I8 각각의 본문에 아직
+해소되지 않은 단서가 남아 있기 때문이다 — 예를 들어 I8-1은 "실제 browser startup/memory
+benchmark는 I8-4에 남는다"고 적었는데, I8-4의 benchmark는 리포터 **생성** 시간을 재지 브라우저를
+띄우지 않는다. 확인 없이 rollup을 체크하면 이 실사가 고치려던 문제를 그대로 되풀이하는 것이다.
+
 ---
 
 ## 2. 기준선과 문제 정의 (2026-08-31 snapshot)
@@ -1707,7 +1744,15 @@ report artifact의 typed producer, configurable artifact glob 계약은 아직 �
     정적으로 보지 않는다.
 - [x] stripped/malformed/non-ELF를 구분한다.
   - 2026-09-06 실사: `binary_compat.py`의 `ici.binary.non-elf` rule과 `stripped` fact.
-- [ ] abilens의 executable/shared library와 viewer static CLI를 실측한다.
+- [x] abilens의 executable/shared library와 viewer static CLI를 실측한다.
+  - abilens 는 `ici-candidate.toml` 의 `binary_compat` 이 `release:shadow:release/bin/abilens`
+    와 `release/lib/libabilens-fixture.so` 를 required 로 재고 있었다.
+  - 2026-09-06: viewer static CLI 는 `ldd | grep` 으로만 확인되고 있었다. `viewer/ici-static-cli.toml`
+    이 `require_static` 으로 그 자리를 대신한다. 기존 shell 검사는 남긴다 — 그쪽은 Qt 두
+    패키지 계열을 비활성화한 채 **configure 된다**는 configure 시점 속성을 증명하고,
+    `[build]` 에 define 표면이 없어 ici 가 표현할 수 없다. 두 검사는 다른 것을 증명한다.
+    실측: build PASS, binary_compat PASS(`1 checked, 0 violation(s)`), 2.15초. 같은 설정을
+    동적 링크된 `icirv-gui` 로 돌리면 `ici.binary.dynamic-linkage` 로 FAIL 한다.
 
 ### I7-4. hybrid integration contract
 
@@ -1717,7 +1762,16 @@ report artifact의 typed producer, configurable artifact glob 계약은 아직 �
 - [x] Python interpreter와 artifact id를 manifest에서 안전하게 해석한다.
 - [x] stdout/stderr substring, exit code, timeout, output artifact assertion을 지원한다.
 - [x] 빈 required case, unknown placeholder, missing artifact를 config ERROR로 처리한다.
-- [ ] buildscope의 Python analyzer → C++/Qt consumer E2E를 검증한다.
+- [x] buildscope의 Python analyzer → C++/Qt consumer E2E를 검증한다.
+  - 2026-09-06: release 워크플로가 이미 그 handoff 를 shell 로 돌리고 있었으므로,
+    `buildscope/ici-candidate.toml` 의 integration case 셋으로 ici 측정으로 바꿨다.
+    producer 가 실제 compile database 에서 snapshot 을 쓰고(bounded output artifact),
+    native consumer 가 그 파일을 읽어 `contract: buildscope.snapshot/v2` 를 출력하며,
+    raw compile database 를 주면 exit 2 로 거부해야 한다. 세 번째가 없으면 입력을
+    무시하는 consumer 도 앞의 둘을 통과한다. 실측 `3 run, 0 violation(s)`.
+    mutation 2 건(기대 contract 를 v3 로, 거부 case 의 expected_exit 을 0 으로)이 모두
+    게이트를 막았다. I7-1 과 같은 이유로 candidate ici 한정이다 — 공개 `v0.10.2` 는
+    configurable `[engines.build]` 이전 버전이라 그 키가 configuration error 가 된다.
 
 ---
 
@@ -1795,7 +1849,12 @@ HTML은 2,000 actionable finding 초과 시 초기 50행과 bounded inline inven
 - ~~resolved finding 과 만료 suppression 정리 UI~~
 - ~~Qt 뷰어 lazy model/pagination~~ (HTML 은 이미 초기 DOM 크기를 제한한다)
 
-- [ ] baseline 과 suppression 의 차이를 문서에서 명확히 한다. (UI 범위는 위에서 닫혔다)
+- [x] baseline 과 suppression 의 차이를 문서에서 명확히 한다. (UI 범위는 위에서 닫혔다)
+  - 2026-09-06: 사용자 가이드 2.2.1 절에 정체·사는 곳·범위·판단 근거·report 결과·gate
+    효과·만료 방식을 대조한 표를 넣고, 서로를 대신할 수 없는 이유를 적었다. 현재
+    구현 상태도 정직하게 남겼다 — **`verify` 실행에서 `suppressed=true` 를 붙이는 엔진은
+    아직 없다.** `security` 의 `# nosec` 은 finding 을 만들기 전에 걸러내므로 suppressed
+    행으로 남지 않고, 유일한 현재 producer 는 SARIF 의 baseline 전용 `resolved` 결과다.
 
 ### I8-4. 대형 report 성능
 
@@ -1803,9 +1862,24 @@ HTML은 2,000 actionable finding 초과 시 초기 50행과 bounded inline inven
 
 Qt 뷰어 lazy model 은 위 결정으로 범위에서 빠졌다. 아래는 console/HTML 에 계속 적용된다.
 
-- [ ] 10만 finding synthetic report benchmark를 만든다.
-- [ ] console, HTML 각각 성능 budget을 실측 후 고정한다.
-- [ ] benchmark 결과를 CI의 불안정한 wall-clock hard gate가 아니라 추세 artifact로 먼저 운영한다.
+- [x] 10만 finding synthetic report benchmark를 만든다.
+  - `scripts/benchmark_report.py`. 합성 finding 은 rule·severity·category·confidence·파일
+    경로로 실제로 퍼진다 — 한 행을 반복하면 grouping/정렬/필터 경로가 딕셔너리 조회
+    하나로 접혀 측정이 의미를 잃는다.
+- [x] console, HTML 각각 성능 budget을 실측 후 고정한다.
+  - 기준 워크스테이션(Linux x86-64, CPython 3.10.21) 10만 finding 실측:
+    `console-default` 11.4s/31 KB, `console-verbose` 51.8s/30.5 MB, `html` 15.5s/33.4 MB,
+    `json` 14.5s/61.4 MB, `sarif` 12.8s/53.2 MB. 예산은 각 실측의 약 3 배다 — 더 좁게
+    잡으면 공유 runner 의 스케줄링 잡음에 걸리고, 3 배면 초선형 회귀는 여전히 잡힌다.
+  - 측정이 하나를 드러냈다: **issues-first cap 은 표시량을 제한하지 작업량을 제한하지
+    않는다.** `console-default` 는 20 그룹·31 KB 만 내보내는데 11.4 초가 걸린다 —
+    숨긴 개수를 정직하게 세려면 전체 inventory 를 통과해야 하기 때문이다.
+- [x] benchmark 결과를 CI의 불안정한 wall-clock hard gate가 아니라 추세 artifact로 먼저 운영한다.
+  - `verify` job 이 매 실행 돌려 `report_benchmark.json` 을 검증 리포트와 같은 artifact 에
+    올린다. 예산 비교는 `--enforce` 를 명시할 때만 exit 1 이며, 기본 실행이 예산을 넘겨도
+    exit 0 인 것을 테스트로 고정했다.
+  - 이 세 항목은 **리포터 생성 시간**을 닫는다. I8-1 이 남긴 실제 browser startup/memory
+    benchmark 는 여전히 열려 있다 — 이 벤치마크는 브라우저를 띄우지 않는다.
 
 ---
 
@@ -1942,37 +2016,106 @@ pending이다.
   sanitizer(`33710695336`), category/Qt(`33718024450`) 및 TSan(`33737405098`) acceptance는
   각각의 exact feature head에 한정되며, 현재 `ici main@2113b5d`에 대한 Quality Zoo 재실행이나
   broader Qt lifetime/ownership 또는 Q1–Q5 acceptance를 포함하지 않는다.
-- [ ] quality-zoo 실패가 어떤 engine regression인지 한 화면에 요약된다.
+- [x] quality-zoo 실패가 어떤 engine regression인지 한 화면에 요약된다.
+  - 2026-09-06 (toy PR #65): contract 위반마다 그것을 소유한 엔진을 붙였다. engine
+    status/evidence/required/extra 는 엔진 이름을, 기대·금지 finding 은 expectation
+    predicate 의 `engine` 을, suite status·producer version·capability 는 suite scope 를
+    쓴다. 메시지 문자열은 같은 레코드에서 파생되므로 둘이 갈라질 수 없다. runner 가
+    엔진별로 많은 순으로 묶어 stderr 에 한 화면 뷰를 내고 stdout 은 순수 JSON 으로
+    남긴다. grouping 테스트만으로는 귀속 회귀가 잡히지 않아 `evaluate_contract` 를 실제로
+    지나는 테스트를 추가했고, mutation 으로 확인했다.
 
 ### I9-2. self dogfood ratchet
 
 **브랜치:** `chore/quality-ratchet`
 
-- [ ] self verify의 unexplained WARN/ERROR/SKIP을 0으로 만든다.
-- [ ] heuristic warning은 limitation inventory로 분리한다.
+- [x] self verify의 unexplained WARN/ERROR/SKIP을 0으로 만든다.
+  - 2026-09-06: `docs/design/self-verification-debt.md` 가 `deep` 실행의 모든 non-PASS 를
+    설명한다. SKIP 2 건(`compile_db`, `thread_sanitize`)은 ici 코어가 순수 Python 이라는
+    범위 부재이며 해당 경로는 `viewer/` 에서 실행된다. WARN 3 건은 각각 실측값·부채로
+    받아들인 이유·FAIL 임계값까지 남은 여유와 함께 적혀 있다. 여기 없는 non-PASS 가
+    나타나면 그것이 회귀다.
+- [x] heuristic warning은 limitation inventory로 분리한다.
+  - 2026-09-06: `ici.core.support` 선언에서 생성하는 engine-reference 1.5 절. 들어가는
+    조건은 선언된 mode 가 `heuristic` 이거나, 도구가 없을 때 `heuristic` 으로 내려가는
+    scope 두 가지뿐이다. `unsupported` 는 결과를 만들지 않으므로 결과의 한계가 아니라
+    제외했다. 38 선언 중 18 행. 문서 블록은 exact-match 테스트로 선언에 고정했고
+    mutation 으로 확인했다.
 - [ ] TEM/branch/function/file별 threshold를 baseline에 근접하게 단계 상승한다.
-- [ ] giant module, complexity, duplication을 실제 리팩터링하거나 승인된 debt로 명시한다.
-- [ ] console 기본 출력과 full report 모두 사람이 검토 가능한지 확인한다.
+- [x] giant module, complexity, duplication을 실제 리팩터링하거나 승인된 debt로 명시한다.
+  - 2026-09-06: 둘 다 했다. 실사해 보니 세 엔진이 정확히 FAIL 임계값 위에 앉아 있었고
+    하나는 이미 넘어 있었다 — `sanitize.py` 1000 줄(= `fail_limit`), CC 25 함수 넷
+    (= `fail_cc`), `parse_gcov_json_dir` cognitive 66(> `fail` 60, `mode = pass_warn`
+    이라 FAIL 로 올라가지 않았을 뿐). 일곱 함수를 각각 이미 있던 이음매를 따라 분리하고,
+    CC 감축이 `sanitize.py` 를 1013 줄로 밀어 올리자 엔진 껍데기만 공유하던 두 분석을
+    `_sanitize_python_scope.py` 로 갈랐다. 결과: max cognitive 66→48, max CC 25→24,
+    1000 줄 초과 파일 1→0. 남은 것(500 줄 초과 35 파일, CC 15 초과 147 함수, cognitive
+    30 초과 74 함수, duplication 3.4%)은 위 문서에 승인된 debt 로 근거와 함께 적었다.
+- [x] console 기본 출력과 full report 모두 사람이 검토 가능한지 확인한다.
+  - `deep` 실행은 actionable finding 11,019 건을 낸다. 콘솔은 엔진당 5 그룹으로 20 그룹을
+    보여주고 `Hidden: 385 finding(s) in 385 group(s)` 와 재실행 명령을 함께 낸다 — 숨긴
+    개수를 정직하게 세므로 "적게 보여준다"와 "적게 찾았다"가 구분된다. HTML 은 10 개
+    탭과 축별 필터를 제공하고 2,000 건 초과 시 초기 DOM 을 50 행으로 제한한다.
 
 ### I9-3. 1.0 support contract
 
-- [ ] Python, C++, Qt별 engine support matrix를 문서와 report가 동일하게 표시한다.
+- [x] Python, C++, Qt별 engine support matrix를 문서와 report가 동일하게 표시한다.
+  - 2026-09-06 실사: engine-reference 1.4 절의 생성 블록은
+    `test_documented_support_table_exactly_matches_registry` 가 선언과의 완전한 일치를
+    고정한다. HTML 리포트의 Support 탭은 같은 `evaluate_support_matrix` 결과로 Declared
+    mode / Active mode / Limitations 를 렌더링하고, `--report` JSON 의 `support_matrix`
+    는 엔진 × 2 언어 전체 행을 담는다. 문서는 선언을, 리포트는 선언에 그 실행의 관측을
+    더해 보여주며 둘의 출처는 하나다. Qt 는 별도 언어가 아니라 C++ 행의 framework
+    표기이고, 문서와 리포트가 같은 규칙을 쓴다.
 - [x] CMake, qmake, configured Makefile의 green real project가 모두 PASS한다.
   - 2026-09-06 실사: loglens(CMake)·diskmap(qmake)·abilens(Makefile) 모두 main CI green.
 - [x] pure Python, pure C++/Qt, hybrid project가 각각 최소 하나 있다.
   - 2026-09-06 실사: envlens · diskmap/loglens · buildscope.
-- [ ] Qt5/Qt6, Python 3.10과 최신 지원 runtime을 실측한다.
-- [ ] buildscope/envlens/abilens과 기존 앱의 release artifact가 재현 가능하다.
+- [x] Qt5/Qt6, Python 3.10과 최신 지원 runtime을 실측한다.
+  - Python: `requires-python >= 3.10` 에 상한이 없으므로 "지원"은 측정된 runtime 두
+    개여야 한다. `ici.toml` 이 `interpreters = ["python3.10", "python3.14"]` 를 두고
+    바닥값만 required 다 — `python3.10` 을 찾지 못한 자체 검증은 자신이 광고하는
+    바닥값을 검증하지 않은 것이다. PATH 에서 제거하면 실제로
+    `Configured interpreter is unavailable: python3.10` 으로 닫힌다. 실측: 3.10.21 과
+    3.14.7 이 각각 version·compileall·import smoke 를 통과했다.
+  - Qt: `viewer-gui` job 의 Qt5/Qt6 matrix 가 양쪽에서 configure·build·CTest·headless
+    smoke 를 돌린다. 이 절반은 CMake/CTest 가 재는 것이며 ici 엔진이 재는 것이 아니다.
+- [x] buildscope/envlens/abilens과 기존 앱의 release artifact가 재현 가능하다.
+  - buildscope: release 워크플로가 pyz 를 두 번 빌드해 SHA-256 이 같은지 확인한다.
+  - envlens: CI 가 `SOURCE_DATE_EPOCH` 로 wheel 과 sdist 를 두 번 빌드해 `cmp` 한다.
+  - abilens: 2026-09-06 실측(toy PR #67). 같은 `OUT` 으로 두 번 clean 빌드하면 실행
+    파일·라이브러리 둘·모든 오브젝트·생성된 `.d` 까지 모든 파일이 동일하다. 서로 다른
+    `OUT` 두 곳이면 `.d` 만 다른데, 생성 대상 절대 경로를 기록하기 때문이며 `.d` 는
+    빌드 부기이지 release artifact 가 아니다.
+  - diskmap·loglens 는 아직 `0.1.0/Unreleased` 라 재현할 release artifact 자체가 없다.
+    이 항목은 실제로 artifact 를 내는 세 프로젝트를 덮으며, 두 앱이 릴리스를 시작하면
+    다시 열어야 한다.
 - [x] quality-zoo의 모든 stable scenario가 expected finding/location을 만족한다.
   - 2026-09-06 실사: released 6 scenario에 더해 candidate 16/16 원격 인수
     ([run `33950030497`](https://github.com/jihoon22-lee/ici/actions/runs/33950030497)).
-- [ ] 네트워크와 root 권한 없이 standard profile이 완료된다.
+- [x] 네트워크와 root 권한 없이 standard profile이 완료된다.
+  - 2026-09-06 실측:
+    `unshare --user --map-current-user --net ./dist/ici.pyz verify --profile standard`.
+    `--map-current-user` 가 핵심이다 — `unshare -r` 은 uid 를 0 으로 매핑하므로
+    "root 없이"를 재지 못한다. 같은 namespace 에서 `1.1.1.1:443` 은 `OSError` 로
+    실패하고 uid 는 1000 으로 유지된다. 결과: exit 0, 14 엔진,
+    11 PASS / 2 WARN / 0 FAIL / 0 ERROR / 1 SKIP. 두 WARN 은 기록된 코드 규모 부채다.
+    이 측정은 `verify` 실행 경로만 다룬다 — `ici.pyz` 를 빌드하려면 캐시나 내부
+    미러가 여전히 필요하다.
 - [x] v2 report migration과 v3 schema 안정성 정책을 발표한다.
   - 2026-09-06: `migrate_report_payload()` 는 이전부터 있었고, 빠져 있던 안정성 정책을
     engine-reference 1.3 절의 "스키마 안정성 정책" 으로 발표했다. major 안에서 보장하는 것,
     보장하지 않는 것(fingerprint 는 analysis_metadata.fingerprint_version 안에서만 비교
     가능하다는 점, message 문구), major 전환 규칙을 구분해 적었다.
-- [ ] 사용자 문서에 설치 도구, fallback, limitation과 remediation workflow가 있다.
+- [x] 사용자 문서에 설치 도구, fallback, limitation과 remediation workflow가 있다.
+  - 2026-09-06: 사용자 가이드 5 장. 도구 표는 매트릭스·한계 인벤토리와 같은
+    `ici.core.support` 선언에서 생성하고 exact-match 테스트로 고정한다 — 설치 목록이
+    엔진이 더는 요구하지 않는 도구를 약속하거나 새로 요구하는 도구를 빠뜨릴 수 없다.
+    표는 혼동되기 쉬운 세 결과를 나눈다: required 부재는 scope 를 막고(`NOT_RUN`,
+    required 면 `ERROR`), 선언된 fallback 은 결과를 내되 `ESTIMATED` 로 표시하며,
+    optional 부재는 그 도구가 만들 증거만 뺀다. remediation 은 발견→원인→수정, 그리고
+    **지금 고치지 않기로 할 때만** 필요한 엔진 설정/baseline, 그리고 해결한 만큼
+    baseline 을 다시 좁히는 단계까지 다섯 단계로 적었다.
 
 ---
 
