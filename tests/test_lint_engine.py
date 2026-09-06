@@ -1159,14 +1159,20 @@ def test_lifetime_rules_fold_into_resource_by_decision_not_by_accident() -> None
 
     The roadmap asked for resource/lifetime/security to be mapped per category.
     Security and resource have their own `FindingCategory` values; lifetime does
-    not, and adding one would be a v3 schema change against the published
-    stability policy. The finer identity a reader needs is already in
-    `tool_rule_id` — `bugprone-use-after-move` says more than a LIFETIME label
-    would.
+    not, by choice rather than by constraint — the published stability policy
+    explicitly permits adding enum values within a major and requires consumers
+    to tolerate unknown ones.
+
+    The reasons are that the finer identity a reader needs is already in
+    `tool_rule_id` (`bugprone-use-after-move` says more than a LIFETIME label
+    would), that these rules are one problem — an owned resource touched outside
+    its lifetime — which RESOURCE describes accurately, and that a new category
+    *splits* an existing one: findings would move out of RESOURCE, so a consumer
+    filtering on RESOURCE would silently see fewer with no error to notice.
 
     This test exists so the decision cannot drift silently in either direction:
     a lifetime rule quietly reclassified as CORRECTNESS, or a LIFETIME category
-    added without revisiting the schema policy.
+    added without revisiting the consumer impact above.
     """
 
     lifetime_rules = (
@@ -1203,6 +1209,7 @@ def test_lifetime_rules_fold_into_resource_by_decision_not_by_accident() -> None
         )
 
     assert not hasattr(FindingCategory, "LIFETIME"), (
-        "A LIFETIME category would change the v3 contract; revisit the schema "
-        "stability policy and this decision together before adding one."
+        "Adding LIFETIME moves findings out of RESOURCE, so every consumer "
+        "filtering on RESOURCE silently sees fewer. The schema policy permits "
+        "the addition; this decision is what does not. Revisit both together."
     )

@@ -896,14 +896,19 @@ resource/security가 되지 않습니다.
 로드맵은 resource/lifetime/security를 category별로 매핑하도록 요구했습니다. security와
 resource는 각자의 `FindingCategory` 값을 갖지만 **lifetime은 갖지 않고, 갖지 않기로 결정했습니다.**
 
-- `FindingCategory`에 값을 추가하는 것은 v3 스키마 변경이며,
-  [발표된 안정성 정책](engine-reference.md#13-결과-리포트-계약과-종료-코드)이 major 안에서
-  보장하는 범위와 충돌합니다.
 - 독자가 실제로 필요로 하는 더 세밀한 정체는 이미 `tool_rule_id`에 있습니다.
   `bugprone-use-after-move`는 `LIFETIME` 라벨보다 많은 것을 말합니다.
 - dangling pointer, use-after-move, iterator 무효화, stack address escape, Qt ownership은
   모두 "소유한 자원을 그 수명 밖에서 건드렸다"는 한 가지 문제이며, `RESOURCE`가 그것을
   담기에 정확한 category입니다.
+- 새 category는 **기존 category를 쪼갭니다.** `LIFETIME`을 만들면 이 finding들이 `RESOURCE`
+  **밖으로** 나가므로, `RESOURCE`로 필터링하던 소비자는 아무 경고 없이 더 적게 보게 됩니다.
+  이것이 실제 위험이며, 스키마 계약의 문제가 아니라 소비자 동작의 문제입니다.
+
+스키마 정책 자체는 걸림돌이 아닙니다. [안정성 정책](engine-reference.md#13-결과-리포트-계약과-종료-코드)은
+같은 major 안에서 **열거값 추가를 명시적으로 허용**하며, 소비자에게 모르는 값을 거부하지 말라고
+요구합니다. 따라서 `LIFETIME`을 추가하는 것은 정책 위반이 아니라, 위의 이유로 하지 않기로 한
+선택입니다.
 
 세 도구의 lifetime 계열 rule은 모두 `RESOURCE`로 갑니다 — analyzer의
 `alpha.core.danglingptrderef`·`alpha.core.useafterlifetimeend`·`core.stackaddressescape`·
