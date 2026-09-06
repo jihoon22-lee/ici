@@ -22,6 +22,7 @@ from ici.core.support import (
     ENGINE_NAMES,
     evaluate_support_matrix,
     render_support_markdown,
+    render_tool_requirements_markdown,
     support_declarations,
 )
 from ici.reporters.json_rep import serialize_suite_result, serialize_support_matrix
@@ -375,3 +376,50 @@ def test_support_writer_rejects_schema_invalid_or_contradictory_entries(tmp_path
     matrix.entries.append(matrix.entries[0])
     with pytest.raises(ValueError, match="unique engine/language"):
         serialize_support_matrix(matrix)
+
+
+def test_tool_requirements_list_only_scopes_that_call_something_external():
+    table = render_tool_requirements_markdown()
+    rows = table.splitlines()[2:]
+
+    assert table.startswith("| Engine | Scope | Required | Optional | Absent |")
+    listed = {(row.split("`")[1], row.split(" | ")[1]) for row in rows}
+    for item in support_declarations():
+        scope = "Python" if item.language is SupportLanguage.PYTHON else "C++ / Qt"
+        external = bool(item.required_tools or item.optional_tools)
+        assert ((item.engine_name, scope) in listed) is external
+
+    # A scope with no tools has no install step, so it must not appear at all.
+    assert "| `line` |" not in table
+    assert "| `dup` |" not in table
+
+
+def test_absence_column_distinguishes_the_three_outcomes():
+    declarations = {(item.engine_name, item.language): item for item in support_declarations()}
+    rows = {
+        (row.split("`")[1], row.split(" | ")[1]): row
+        for row in render_tool_requirements_markdown().splitlines()[2:]
+    }
+
+    # A required tool with no fallback blocks; it must never read as optional.
+    binary_compat = rows[("binary_compat", "C++ / Qt")]
+    assert "`NOT_RUN`/`ERROR`" in binary_compat
+    assert declarations[("binary_compat", SupportLanguage.CPP)].fallback_mode is None
+
+    # A declared fallback must say so rather than claim the run was blocked.
+    lint_python = rows[("lint", "Python")]
+    assert "falls back to heuristic" in lint_python
+    assert "`NOT_RUN`" not in lint_python
+
+    # Optional-only with no fallback loses that evidence and nothing else.
+    dead_cpp = rows[("dead", "C++ / Qt")]
+    assert "that evidence is simply not produced" in dead_cpp
+
+
+def test_documented_tool_requirements_exactly_match_registry():
+    guide = (Path(__file__).parents[1] / "docs" / "user-guide.md").read_text(encoding="utf-8")
+    start = guide.index("<!-- ici:tool-requirements:start -->")
+    end = guide.index("<!-- ici:tool-requirements:end -->")
+    documented = guide[start:end].split("-->", 1)[1].strip()
+
+    assert documented == render_tool_requirements_markdown()

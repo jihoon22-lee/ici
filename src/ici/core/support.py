@@ -736,3 +736,42 @@ def render_support_markdown() -> str:
             values.append(mode)
         lines.append(f"| `{engine_name}` | {values[0]} | {values[1]} |")
     return "\n".join(lines)
+
+
+def _missing_tool_behaviour(item: SupportDeclaration) -> str:
+    """Describe what this scope does when a declared tool is absent."""
+
+    if item.required_tools and item.fallback_mode is None:
+        return "required tool absent → `NOT_RUN`/`ERROR`"
+    if item.fallback_mode is not None:
+        return f"falls back to {item.fallback_mode.value} (`ESTIMATED`)"
+    return "optional tool absent → that evidence is simply not produced"
+
+
+def render_tool_requirements_markdown() -> str:
+    """Render which external tools each scope needs, and what absence costs.
+
+    Generated from the same registry as the support matrix so an install list
+    cannot promise a tool the engine no longer asks for, or omit one it now
+    does. Scopes that call nothing external are left out: they have no install
+    step to describe.
+    """
+
+    lines = [
+        "| Engine | Scope | Required | Optional | Absent |",
+        "|---|---|---|---|---|",
+    ]
+    declarations = {(item.engine_name, item.language): item for item in support_declarations()}
+    for engine_name in ENGINE_NAMES:
+        for language in (SupportLanguage.PYTHON, SupportLanguage.CPP):
+            item = declarations[(engine_name, language)]
+            if not item.required_tools and not item.optional_tools:
+                continue
+            scope = "Python" if language is SupportLanguage.PYTHON else "C++ / Qt"
+            required = ", ".join(f"`{name}`" for name in item.required_tools) or "—"
+            optional = ", ".join(f"`{name}`" for name in item.optional_tools) or "—"
+            lines.append(
+                f"| `{engine_name}` | {scope} | {required} | {optional} "
+                f"| {_missing_tool_behaviour(item)} |"
+            )
+    return "\n".join(lines)

@@ -1647,4 +1647,123 @@ release-contract dependency graph에서 실행됩니다. `ici build`는 release 
 
 ---
 
+## 5. 도구 설치, fallback, 한계, 그리고 finding을 처리하는 순서
+
+`ici.pyz` 자체는 외부 도구 없이 실행됩니다. 하지만 엔진이 **무엇을 근거로 판정하는지**는 어떤
+도구가 있느냐에 따라 달라집니다. 도구가 없어도 대부분의 엔진은 계속 돌지만, 그 결과는 실행된
+도구의 증거가 아니라 추정입니다. 두 경우를 구분하지 않으면 초록불이 무엇을 뜻하는지 알 수
+없습니다.
+
+### 5.1 어떤 도구가 필요하고, 없으면 어떻게 되는가
+
+아래 표는 손으로 관리하지 않습니다. 지원 매트릭스와 같은 `ici.core.support` 선언에서
+생성하며 테스트가 블록과 선언의 완전한 일치를 확인합니다. 외부 도구를 전혀 호출하지 않는
+scope는 설치할 것이 없으므로 표에 없습니다.
+
+<!-- ici:tool-requirements:start -->
+| Engine | Scope | Required | Optional | Absent |
+|---|---|---|---|---|
+| `lint` | Python | — | `ruff` | falls back to heuristic (`ESTIMATED`) |
+| `lint` | C++ / Qt | — | `gcc`, `g++`, `clang`, `clang++`, `clang-tidy`, `clazy`, `pkg-config` | falls back to heuristic (`ESTIMATED`) |
+| `test` | Python | `python3` | `coverage`, `pytest` | falls back to heuristic (`ESTIMATED`) |
+| `test` | C++ / Qt | `g++` | `cmake`, `qmake`, `make`, `gcov`, `pkg-config` | falls back to heuristic (`ESTIMATED`) |
+| `type` | Python | — | `mypy` | falls back to heuristic (`ESTIMATED`) |
+| `python_compat` | Python | `python3` | — | required tool absent → `NOT_RUN`/`ERROR` |
+| `cycle` | C++ / Qt | — | `gcc`, `g++`, `clang`, `clang++`, `cmake`, `readelf`, `addr2line` | falls back to heuristic (`ESTIMATED`) |
+| `complexity` | C++ / Qt | — | `clang-tidy` | falls back to heuristic (`ESTIMATED`) |
+| `sanitize` | Python | `python3`, `pytest` | — | required tool absent → `NOT_RUN`/`ERROR` |
+| `sanitize` | C++ / Qt | `g++` | `cmake`, `qmake`, `make`, `pkg-config` | required tool absent → `NOT_RUN`/`ERROR` |
+| `thread_sanitize` | C++ / Qt | `g++` | `cmake`, `qmake`, `make`, `pkg-config` | required tool absent → `NOT_RUN`/`ERROR` |
+| `dead` | C++ / Qt | — | `gcc`, `g++`, `clang`, `clang++` | optional tool absent → that evidence is simply not produced |
+| `build` | Python | `python3` | — | required tool absent → `NOT_RUN`/`ERROR` |
+| `build` | C++ / Qt | `g++` | `cmake`, `qmake`, `make`, `pkg-config` | required tool absent → `NOT_RUN`/`ERROR` |
+| `binary_compat` | C++ / Qt | `readelf` | — | required tool absent → `NOT_RUN`/`ERROR` |
+| `integration` | Python | `python3` | — | required tool absent → `NOT_RUN`/`ERROR` |
+<!-- ici:tool-requirements:end -->
+
+세 가지 결과를 구분해서 읽어야 합니다.
+
+- **required 도구 부재** → 그 scope는 `NOT_RUN`이 되고, `required = true`면 `ERROR`로 게이트를
+  막습니다. 조용히 통과하지 않습니다.
+- **fallback** → 결과는 나오지만 `ESTIMATED`이고 confidence가 내려갑니다. 무엇을 주장하지
+  않는지는 [엔진 레퍼런스 §1.5 한계 인벤토리](engine-reference.md#15-heuristic-scope-limitation-inventory)에
+  적혀 있습니다.
+- **optional 도구 부재** → 그 도구가 만드는 증거만 빠집니다. 예를 들어 `gcov` 없이도 C++
+  테스트는 실행되지만 커버리지는 측정되지 않습니다.
+
+설치 순서는 프로젝트 종류를 따라가면 충분합니다.
+
+```bash
+# Python 전용 프로젝트: 이것만으로 모든 Python scope가 도구 기반이 됩니다
+pip install ruff mypy pytest coverage
+
+# C++/Qt가 있으면 빌드·측정 도구를 추가합니다
+sudo apt-get install -y g++ make cmake binutils pkg-config       # 최소
+sudo apt-get install -y clang clang-tidy clazy qt6-base-dev qmake6  # 정밀 분석과 Qt
+```
+
+실제로 무엇이 잡혔는지는 실행 전에 확인할 수 있습니다.
+
+```bash
+ici doctor          # 도구별 경로와 버전, 프로젝트별 엔진 matrix
+ici doctor --json   # verify 리포트와 같은 support matrix 구조
+```
+
+`doctor`는 분석 엔진을 실행하지 않으므로 적용 가능한 행도 이 시점에는 `NOT_RUN`으로
+표시됩니다. 실제 실행 증거는 `verify` 리포트의 각 엔진 `ToolEvidence`에 남습니다 —
+호출한 경로, argv, 버전, 종료 상태, timeout/truncation까지.
+
+### 5.2 한계
+
+한계는 두 층으로 나뉩니다.
+
+1. **scope의 한계** — 그 엔진이 그 언어에서 무엇을 주장하지 않는가.
+   [엔진 레퍼런스 §1.5](engine-reference.md#15-heuristic-scope-limitation-inventory)의 생성된
+   인벤토리가 canonical reference입니다. 리포트에서는 Support 탭과 `--report` JSON의
+   `support_matrix[].limitations`가 같은 문장을 보여줍니다.
+2. **이 실행의 한계** — 선언이 아니라 그 실행에서 실제로 무슨 일이 있었는가. `active_mode`와
+   `evidence`가 말합니다. `MEASURED`는 도구가 실제로 돌았다는 뜻이고, `ESTIMATED`는 fallback으로
+   내려갔다는 뜻입니다.
+
+ici 자신의 검증에 남아 있는 WARN과 SKIP은
+[자체 검증 부채 문서](design/self-verification-debt.md)에 하나씩 설명돼 있습니다. 같은 방식으로
+자기 프로젝트의 남은 노란불을 기록해 두면, 다음 사람이 그것을 새 회귀와 구분할 수 있습니다.
+
+### 5.3 finding 하나를 처리하는 순서
+
+발견부터 종결까지 정해진 경로가 있습니다. 각 단계는 **다음 단계로 넘어가도 되는지**를
+판단하는 자리입니다.
+
+1. **어디인지 본다.** 콘솔은 issues-first로 엔진당 5그룹만 펼치고 숨긴 개수를 함께 셉니다.
+   전부 보려면 `--verbose`, 다르게 묶어 보려면 `--group-by severity|category|file|rule`.
+   ```bash
+   ici verify --group-by severity
+   ```
+2. **왜인지 읽는다.** HTML 리포트의 `Issues` 탭은 engine/rule/category/severity/file 축으로
+   필터·정렬할 수 있고, 각 행에서 원클릭으로 소스 위치로 점프합니다.
+   ```bash
+   ici verify --report --html verify_report.html
+   ```
+3. **고친다.** finding의 `remediation`이 무엇을 바꿔야 하는지 말합니다. 고쳤으면 여기서
+   끝입니다 — 아래 두 단계는 지금 고치지 **않기로** 할 때만 필요합니다.
+4. **지금 고치지 않기로 한다면, 근거를 남긴다.** 두 장치가 있고 서로를 대신하지 못합니다.
+   - **엔진 설정**: 그 검사 자체가 이 프로젝트에 맞지 않으면 해당 엔진의 임계값이나 scope 키를
+     조정합니다. 근거를 주석으로 남기는 것이 이 저장소의 관례입니다.
+   - **baseline**: 기존 문제 전체를 "이미 알고 있던 상태"로 고정하고 **새로 생긴 것과 나빠진
+     것만** 막습니다.
+     ```bash
+     ici verify --write-baseline .ici/baseline.json          # 검토 후 커밋
+     ici verify --baseline .ici/baseline.json --fail-on-new  # PR 게이트
+     ```
+     두 장치의 차이는 [§2.2.1의 비교표](#baseline과-suppression은-다른-장치입니다)에 있습니다.
+     baseline은 "그때 있었다"만 말하므로 검토했는지 여부를 담지 못합니다.
+5. **줄어드는지 확인한다.** baseline은 한 번 만들고 잊는 파일이 아닙니다. 문제를 실제로
+   해결했다면 delta에 `resolved`로 나타나고, 그때 baseline을 갱신해 그만큼 게이트를 좁힙니다.
+   갱신하지 않으면 해결한 만큼의 여유가 남아 다음 회귀를 가려 줍니다.
+
+한 finding이 도구 없이 추정으로 나온 것이라면 3번 이전에 §5.1을 먼저 봅니다. 도구를 설치하고
+다시 재면 사라지는 finding과, 도구를 설치해도 남는 finding은 다른 문제입니다.
+
+---
+
 > **다음 단계**: [📏 검증 엔진 레퍼런스 (Engine Reference)](engine-reference.md)에서 각 엔진별 상세 수식과 `ici.toml` 설정법을 확인하세요.
