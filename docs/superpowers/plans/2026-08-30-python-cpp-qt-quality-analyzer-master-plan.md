@@ -115,7 +115,7 @@ lifetime·security taxonomy, Q1–Q5, I4 aggregate와 release는 계속 pending�
 | I8-4 (3) | 10만 finding benchmark·예산·추세 artifact | `scripts/benchmark_report.py`, CI `report_benchmark.json` |
 | I9-1 | quality-zoo 엔진별 회귀 요약 | toy PR #65, contract 위반의 엔진 귀속 |
 | I9-2 (4) | unexplained non-PASS 0, 한계 인벤토리, 부채 명시, 사람 검토 가능성 | `docs/design/self-verification-debt.md`, engine-reference 1.5 |
-| I9-3 (5) | support matrix 일치, runtime 실측, 폐쇄망·비root, release 재현성, 사용자 문서 | PR #172·#175/#176, toy PR #67 |
+| I9-3 (5) | support matrix 일치, runtime 실측, 폐쇄망·비root, release 재현성, 사용자 문서 | PR #172·#176, toy PR #67 |
 
 닫은 근거로 쓴 실측값은 각 항목의 하위 note에 그대로 남겼다. 특히 **자체 게이트가 세 엔진에서
 정확히 FAIL 임계값 위에 앉아 있었고 하나는 이미 넘어 있었다**는 발견은 별도 문서로 남겼다 —
