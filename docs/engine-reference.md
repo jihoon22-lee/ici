@@ -529,6 +529,52 @@ descriptor가 없으면 generic g++ 경로를 사용합니다. 표의 `tool-back
 evidence를 뜻하며 TSan이 도달하지 못한 interleaving이나 테스트되지 않은 경로의 부재를 증명하지
 않습니다.
 
+### 1.5 Heuristic scope limitation inventory
+
+지원 매트릭스는 각 scope가 **어떤 mode로 도는지**를 말하고, 아래 인벤토리는 그 scope의 WARN이
+**주장하지 않는 것**을 말합니다. heuristic 결과를 exact 결과와 같은 무게로 읽으면 게이트가
+실제보다 강해 보이므로, 추정이 섞일 수 있는 scope만 따로 모읍니다.
+
+인벤토리에 들어가는 조건은 두 가지뿐입니다.
+
+- 선언된 mode 자체가 `heuristic`인 scope
+- `tool-backed`/`exact`로 선언했지만 도구가 없을 때 `heuristic`으로 내려가는 scope
+
+`unsupported` scope는 결과를 만들지 않으므로 결과의 한계가 아니며 여기에 넣지 않습니다.
+`exact`/`tool-backed`로만 도는 scope의 선언된 한계는 리포트의 Support 탭과 `--report` JSON의
+`support_matrix[].limitations`에서 같은 문장으로 확인할 수 있습니다.
+
+이 표도 손으로 관리하지 않습니다. 매트릭스와 같은 `ici.core.support` 선언에서 생성하며
+테스트가 블록과 선언의 완전한 일치를 확인합니다.
+
+<!-- ici:limitation-inventory:start -->
+| Engine | Scope | Heuristic reason | Declared limitations |
+|---|---|---|---|
+| `lint` | Python | tool-backed → heuristic fallback | Without Ruff, fallback validates AST syntax only, not style or lint rules. |
+| `lint` | C++ / Qt | tool-backed → heuristic fallback | Replays sanitized GCC/Clang translation-unit commands and optional clang-tidy/Clazy checks when compilation context exists; without it, a fixed c++17 syntax fallback is estimated. |
+| `compile_db` | C++ / Qt | exact → heuristic fallback | Exact flag and coverage evidence requires a valid compile_commands.json; absence is reported explicitly. |
+| `test` | Python | tool-backed → heuristic fallback | Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent. |
+| `test` | C++ / Qt | tool-backed → heuristic fallback | Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence. |
+| `type` | Python | tool-backed → heuristic fallback | Without mypy, fallback checks annotations structurally and cannot prove type safety. |
+| `cognitive` | Python | always heuristic | AST-based cognitive score is an ici policy metric, not a compiler proof. |
+| `resource` | Python | always heuristic | AST patterns cover known resource and mutable-default risks, not runtime ownership. |
+| `security` | Python | always heuristic | Offline source patterns cover selected secret and unsafe-API rules, not dependency CVEs. |
+| `cycle` | Python | always heuristic | Import-to-module resolution is best effort for dynamic and ambiguous imports. |
+| `cycle` | C++ / Qt | tool-backed → heuristic fallback | Compiler traces measure active include edges for covered translation units; without compilation context, project-path suffix resolution is estimated. |
+| `complexity` | Python | always heuristic | Cyclomatic and nesting metrics approximate maintainability rather than correctness. |
+| `complexity` | C++ / Qt | tool-backed → heuristic fallback | Clang AST-backed function boundaries require an exact compilation database; empty, unreported, or macro-generated definitions may use the lower-confidence source scanner. Suppressed or malformed diagnostics and attempted-tool failures fail closed. Cyclomatic and nesting counts within a confirmed boundary remain token-based. |
+| `dead` | Python | always heuristic | AST reachability and reference rules cannot resolve all dynamic Python uses. |
+| `dup` | Python | always heuristic | Token-window similarity can miss semantic clones and report intentional repetition. |
+| `dup` | C++ / Qt | always heuristic | Token-window similarity does not expand macros or identify semantic clones. |
+| `exception` | Python | always heuristic | AST patterns detect selected exception hazards but do not model runtime call graphs. |
+| `exception` | C++ / Qt | always heuristic | Lightweight parsing checks selected exception-safety patterns without full semantic analysis. |
+<!-- ici:limitation-inventory:end -->
+
+한 실행에서 어떤 scope가 실제로 heuristic으로 떨어졌는지는 선언이 아니라 그 실행의
+`active_mode`와 `evidence`가 말합니다. 도구가 있어 `tool-backed`로 돈 실행은 `MEASURED`로,
+fallback으로 내려간 실행은 `ESTIMATED`로 남으므로, 위 표는 "여기서 추정이 발생할 수 있다"는
+목록이고 실제 발생 여부는 리포트에서 확인합니다.
+
 ## 2. 검증 엔진 상세
 
 ### 2.1 📏 `line` (코드 라인 및 파일 크기 분석기)
