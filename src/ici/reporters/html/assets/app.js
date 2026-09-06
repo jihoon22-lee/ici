@@ -174,3 +174,79 @@ document.addEventListener('DOMContentLoaded', () => {
   const select = document.getElementById('editorSelect');
   if (select) select.value = pref;
 });
+
+// Per-axis issue filtering and sorting.
+//
+// This works over the rows already rendered into the page rather than over the
+// JSON inventory, so filtering never changes what the report contains -- it
+// only changes what is shown. The bounded large-report view keeps its own
+// paginated path and is left alone.
+function iciIssueRows() {
+  return Array.from(document.querySelectorAll('.issue-item[data-engine]'));
+}
+
+function iciIssueSeverityRank(value) {
+  const order = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
+  const index = order.indexOf((value || '').toUpperCase());
+  return index === -1 ? order.length : index;
+}
+
+function iciApplyIssueFilters() {
+  const bar = document.querySelector('[data-issue-filters]');
+  if (!bar) return;
+  const value = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.value.trim().toLowerCase() : '';
+  };
+  const engine = value('ici-issue-engine');
+  const severity = value('ici-issue-severity');
+  const category = value('ici-issue-category');
+  const rule = value('ici-issue-rule');
+  const file = value('ici-issue-file');
+  const sort = value('ici-issue-sort');
+
+  const rows = iciIssueRows();
+  let shown = 0;
+  rows.forEach((row) => {
+    const data = row.dataset;
+    const matches =
+      (!engine || (data.engine || '').toLowerCase() === engine) &&
+      (!severity || (data.severity || '').toLowerCase() === severity) &&
+      (!category || (data.category || '').toLowerCase() === category) &&
+      (!rule || (data.rule || '').toLowerCase() === rule) &&
+      (!file || (data.file || '').toLowerCase().includes(file));
+    row.style.display = matches ? '' : 'none';
+    if (matches) shown += 1;
+  });
+
+  if (sort && sort !== 'default') {
+    const parent = rows.length ? rows[0].parentNode : null;
+    if (parent) {
+      const sorted = rows.slice().sort((left, right) => {
+        if (sort === 'severity') {
+          return iciIssueSeverityRank(left.dataset.severity) - iciIssueSeverityRank(right.dataset.severity);
+        }
+        const key = sort === 'engine' ? 'engine' : 'file';
+        return (left.dataset[key] || '').localeCompare(right.dataset[key] || '');
+      });
+      sorted.forEach((row) => parent.appendChild(row));
+    }
+  }
+
+  const count = document.getElementById('ici-issue-filter-count');
+  if (count) {
+    count.textContent = shown === rows.length
+      ? rows.length + ' issue rows'
+      : 'Showing ' + shown + ' of ' + rows.length + ' issue rows';
+  }
+}
+
+document.addEventListener('change', (event) => {
+  if (event.target.closest('[data-issue-filters]')) iciApplyIssueFilters();
+});
+
+document.addEventListener('input', (event) => {
+  if (event.target.id === 'ici-issue-file') iciApplyIssueFilters();
+});
+
+document.addEventListener('DOMContentLoaded', iciApplyIssueFilters);

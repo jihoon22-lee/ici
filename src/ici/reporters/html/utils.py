@@ -24,6 +24,7 @@ class HtmlIssue:
     related_locations: tuple[SourceLocation, ...] = ()
     original_finding_count: int = 1
     provenance: tuple[str, ...] = ()
+    category: str = ""
 
 
 def _get_status_theme(status: EngineStatus) -> tuple[str, str, str]:
@@ -94,6 +95,7 @@ def _extract_suite_data(
                 related_locations=group.related_locations,
                 original_finding_count=group.original_finding_count,
                 provenance=group.provenance,
+                category=group.category,
             )
         )
 

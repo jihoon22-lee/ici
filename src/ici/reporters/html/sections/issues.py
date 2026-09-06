@@ -102,7 +102,12 @@ def _render_issues_section(
             )
 
         items.append(
-            f"<div class='issue-item'>"
+            f"<div class='issue-item'"
+            f" data-engine='{html.escape(issue.engine_name)}'"
+            f" data-rule='{html.escape(issue.rule_id)}'"
+            f" data-category='{html.escape(issue.category)}'"
+            f" data-severity='{html.escape(issue.badge)}'"
+            f" data-file='{html.escape(issue.file_path)}'>"
             f"  <div class='issue-header'>"
             f"    <span class='badge' style='color:{badge_color}; border:1px solid {badge_color}44'>{html.escape(issue.badge)}</span>"
             f"    <span class='issue-engine'>[{html.escape(issue.engine_name)}]</span>"
@@ -119,6 +124,7 @@ def _render_issues_section(
 
     finding_count = sum(issue.original_finding_count for issue in all_issues)
     issue_items = "".join(items)
+    axis_controls = _render_axis_controls(all_issues)
     if initial_limit is not None:
         issue_items = f"""
     <div class='large-issues-controls' style='display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; margin-bottom:1rem;'>
@@ -149,5 +155,58 @@ def _render_issues_section(
         <button class="jump-tab-btn" data-toggle-details=".issue-snippet-details">📂 Toggle All Code</button>
       </div>
     </div>
+    {axis_controls}
     {issue_items}
     """
+
+
+def _axis_options(label: str, select_id: str, values: list[str]) -> str:
+    """One axis filter. Options come from the report, so no axis is ever empty."""
+
+    options = "".join(
+        f"<option value='{html.escape(value)}'>{html.escape(value)}</option>" for value in values
+    )
+    return (
+        f"<label class='issue-filter-label'>{html.escape(label)}"
+        f"<select id='{select_id}' class='issue-filter-select'>"
+        f"<option value=''>All</option>{options}</select></label>"
+    )
+
+
+def _render_axis_controls(all_issues: list[HtmlIssue]) -> str:
+    """Per-axis filters and sorting over the rendered issue inventory.
+
+    The options are derived from the issues actually present rather than from
+    every enum value, so a report never offers a filter that would match
+    nothing. Filtering is client-side over the already-rendered rows: the JSON
+    and baseline inventories are untouched, which is the same rule the bounded
+    large-report view follows.
+    """
+
+    if not all_issues:
+        return ""
+
+    def _values(attribute: str) -> list[str]:
+        return sorted(
+            {getattr(issue, attribute) for issue in all_issues if getattr(issue, attribute)}
+        )
+
+    return (
+        "<div class='issue-filter-bar' data-issue-filters>"
+        + _axis_options("Engine", "ici-issue-engine", _values("engine_name"))
+        + _axis_options("Severity", "ici-issue-severity", _values("badge"))
+        + _axis_options("Category", "ici-issue-category", _values("category"))
+        + _axis_options("Rule", "ici-issue-rule", _values("rule_id"))
+        + "<label class='issue-filter-label'>File"
+        "<input id='ici-issue-file' class='issue-filter-input' type='search'"
+        " placeholder='path contains...' autocomplete='off' /></label>"
+        "<label class='issue-filter-label'>Sort"
+        "<select id='ici-issue-sort' class='issue-filter-select'>"
+        "<option value='default'>Report order</option>"
+        "<option value='severity'>Severity</option>"
+        "<option value='engine'>Engine</option>"
+        "<option value='file'>File</option>"
+        "</select></label>"
+        "<span id='ici-issue-filter-count' class='text-muted'></span>"
+        "</div>"
+    )
