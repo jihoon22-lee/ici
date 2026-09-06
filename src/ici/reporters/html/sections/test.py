@@ -194,6 +194,96 @@ def _render_function_table(function_rows: list[dict], source: str, base: Path) -
     """
 
 
+def _test_case_row(case: dict) -> tuple[str, str]:
+    """Render one test case row and return it with its status."""
+
+    t_name = html.escape(case.get("name", "test"))
+    t_status = case.get("status", "PASS")
+    t_status_html = html.escape(str(t_status))
+    t_msg = html.escape(case.get("message", ""))
+    t_color = "#10b981" if t_status == "PASS" else ("#f59e0b" if t_status == "SKIP" else "#ef4444")
+    row = (
+        f"<div class='test-case-row'>"
+        f"  <span class='badge' style='color:{t_color}; border:1px solid {t_color}33'>{t_status_html}</span>"
+        f"  <span class='test-case-name'><code>{t_name}</code></span>"
+        f"  <span class='test-case-msg'>{t_msg}</span>"
+        f"</div>"
+    )
+    return str(t_status), row
+
+
+def _passed_cases_details(passed_rows: list[str], summary: str) -> str:
+    """Fold passing cases behind a disclosure, or omit it when there are none."""
+
+    if not passed_rows:
+        return ""
+    return (
+        f"<details class='test-case-details'>"
+        f"  <summary>{summary}</summary>"
+        f"  {''.join(passed_rows)}"
+        f"</details>"
+    )
+
+
+def _suite_cases_body(cases: list[dict], total: int, failed: int, skipped: int) -> str:
+    """Render one suite's case list, keeping failures and skips always visible."""
+
+    failed_rows: list[str] = []
+    skipped_rows: list[str] = []
+    passed_rows: list[str] = []
+    for case in cases:
+        status, row = _test_case_row(case)
+        if status == "PASS":
+            passed_rows.append(row)
+        elif status == "SKIP":
+            skipped_rows.append(row)
+        else:
+            failed_rows.append(row)
+
+    if failed == 0 and skipped == 0:
+        return (
+            f"<div class='test-case-row' style='color:#10b981;'>"
+            f"  <span class='badge' style='color:#10b981; border:1px solid #10b98133'>PASS</span>"
+            f"  <span>✅ All {total} cases passed</span>"
+            f"</div>"
+        ) + _passed_cases_details(passed_rows, f"Show all {len(passed_rows)} cases ▾")
+    return (
+        "".join(failed_rows)
+        + "".join(skipped_rows)
+        + _passed_cases_details(passed_rows, f"Show {len(passed_rows)} passed cases ▾")
+    )
+
+
+def _render_suite_card(suite: dict, base: Path) -> str:
+    """Render one collapsed test-suite card with its own location controls."""
+
+    s_file = suite.get("file", "tests")
+    s_passed = suite.get("passed", 0)
+    s_failed = suite.get("failed", 0)
+    s_skipped = suite.get("skipped", 0)
+    s_total = suite.get("total", 0)
+
+    st_badge_color = "#ef4444" if s_failed else ("#f59e0b" if s_skipped else "#10b981")
+    st_badge_text = f"{s_passed}/{s_total} Passed"
+    if s_skipped:
+        st_badge_text += f" · {s_skipped} Skipped"
+    location = _location_controls(str(s_file), 1, base, label=str(s_file))
+    cases_body = _suite_cases_body(suite.get("tests", []), s_total, s_failed, s_skipped)
+
+    return (
+        f"<div class='test-suite-card'>"
+        f"  <div class='test-suite-header'>"
+        f"    <div class='loc-link-group'>"
+        f"      <span style='font-size:1.1rem;'>🧪</span>"
+        f"      {location}"
+        f"    </div>"
+        f"    <span class='badge' style='color:{st_badge_color}; border:1px solid {st_badge_color}44'>{st_badge_text}</span>"
+        f"  </div>"
+        f"  <div class='test-cases-list'>{cases_body}</div>"
+        f"</div>"
+    )
+
+
 def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
     """Renders dedicated Test & Coverage analysis tab with suite cards and metric progress bars."""
     if not test_res:
@@ -219,92 +309,7 @@ def _render_test_section(test_res: EngineResult | None, base: Path) -> str:
     func_pct = min(100.0, func)
     tem_pct = min(100.0, (tem / 5.0) * 100.0)
 
-    # Build Test Suite Cards — collapsed by default, failures stay visible.
-    suite_cards = []
-    for s in suites:
-        s_file = s.get("file", "tests")
-        s_passed = s.get("passed", 0)
-        s_failed = s.get("failed", 0)
-        s_skipped = s.get("skipped", 0)
-        s_total = s.get("total", 0)
-        tests_list = s.get("tests", [])
-
-        st_badge_color = "#ef4444" if s_failed else ("#f59e0b" if s_skipped else "#10b981")
-        st_badge_text = f"{s_passed}/{s_total} Passed"
-        if s_skipped:
-            st_badge_text += f" · {s_skipped} Skipped"
-        location = _location_controls(str(s_file), 1, base, label=str(s_file))
-
-        failed_rows: list[str] = []
-        skipped_rows: list[str] = []
-        passed_rows: list[str] = []
-        for t in tests_list:
-            t_name = html.escape(t.get("name", "test"))
-            t_status = t.get("status", "PASS")
-            t_status_html = html.escape(str(t_status))
-            t_msg = html.escape(t.get("message", ""))
-            t_color = (
-                "#10b981"
-                if t_status == "PASS"
-                else ("#f59e0b" if t_status == "SKIP" else "#ef4444")
-            )
-            row = (
-                f"<div class='test-case-row'>"
-                f"  <span class='badge' style='color:{t_color}; border:1px solid {t_color}33'>{t_status_html}</span>"
-                f"  <span class='test-case-name'><code>{t_name}</code></span>"
-                f"  <span class='test-case-msg'>{t_msg}</span>"
-                f"</div>"
-            )
-            if t_status == "PASS":
-                passed_rows.append(row)
-            elif t_status == "SKIP":
-                skipped_rows.append(row)
-            else:
-                failed_rows.append(row)
-
-        failed_html = "".join(failed_rows)
-        skipped_html = "".join(skipped_rows)
-        if s_failed == 0 and s_skipped == 0:
-            cases_body = (
-                f"<div class='test-case-row' style='color:#10b981;'>"
-                f"  <span class='badge' style='color:#10b981; border:1px solid #10b98133'>PASS</span>"
-                f"  <span>✅ All {s_total} cases passed</span>"
-                f"</div>"
-                + (
-                    f"<details class='test-case-details'>"
-                    f"  <summary>Show all {len(passed_rows)} cases ▾</summary>"
-                    f"  {''.join(passed_rows)}"
-                    f"</details>"
-                    if passed_rows
-                    else ""
-                )
-            )
-        else:
-            cases_body = (
-                failed_html
-                + skipped_html
-                + (
-                    f"<details class='test-case-details'>"
-                    f"  <summary>Show {len(passed_rows)} passed cases ▾</summary>"
-                    f"  {''.join(passed_rows)}"
-                    f"</details>"
-                    if passed_rows
-                    else ""
-                )
-            )
-
-        suite_cards.append(
-            f"<div class='test-suite-card'>"
-            f"  <div class='test-suite-header'>"
-            f"    <div class='loc-link-group'>"
-            f"      <span style='font-size:1.1rem;'>🧪</span>"
-            f"      {location}"
-            f"    </div>"
-            f"    <span class='badge' style='color:{st_badge_color}; border:1px solid {st_badge_color}44'>{st_badge_text}</span>"
-            f"  </div>"
-            f"  <div class='test-cases-list'>{cases_body}</div>"
-            f"</div>"
-        )
+    suite_cards = [_render_suite_card(suite, base) for suite in suites]
 
     return f"""
     <!-- Top Row: 4 Metric KPI Cards -->

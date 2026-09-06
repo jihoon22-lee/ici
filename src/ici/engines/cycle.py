@@ -47,6 +47,54 @@ def _python_module_name(py_file: Path, source_dirs: list[Path]) -> str | None:
     return None
 
 
+def _module_index(
+    all_sources: list[Path],
+    source_dirs: list[Path],
+) -> tuple[dict[Path, str], dict[str, Path]]:
+    """Map each in-project source to its module name, and back."""
+
+    file_to_module: dict[Path, str] = {}
+    module_to_file: dict[str, Path] = {}
+    for py_file in all_sources:
+        mod_name = _python_module_name(py_file, source_dirs)
+        if mod_name:
+            file_to_module[py_file] = mod_name
+            module_to_file[mod_name] = py_file
+    return file_to_module, module_to_file
+
+
+def _imported_module_names(tree: ast.AST) -> list[str]:
+    """Return every module name this tree imports, in source order."""
+
+    targets: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            targets.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            targets.append(node.module)
+    return targets
+
+
+def _resolved_import_targets(target_mod: str, module_to_file: dict[str, Path]) -> list[str]:
+    """Resolve one imported name to in-project modules.
+
+    Try an exact match, then a suffix match so flat or relative-style imports
+    still connect ("b" matches "pkg.b"). The suffix fallback must never claim a
+    stdlib name — "html" or "json" — as an in-project module that merely shares
+    its last segment.
+    """
+
+    if target_mod in module_to_file:
+        return [target_mod]
+    if target_mod.split(".")[0] in sys.stdlib_module_names:
+        return []
+    return [
+        known_mod
+        for known_mod in module_to_file
+        if known_mod.endswith("." + target_mod) or known_mod == target_mod
+    ]
+
+
 def _build_python_graph(
     project_root: Path,
     source_dirs: list[Path] | None = None,
@@ -58,13 +106,7 @@ def _build_python_graph(
     if all_sources is None:
         all_sources = get_all_python_sources(project_root)
 
-    file_to_module: dict[Path, str] = {}
-    module_to_file: dict[str, Path] = {}
-    for py_file in all_sources:
-        mod_name = _python_module_name(py_file, source_dirs)
-        if mod_name:
-            file_to_module[py_file] = mod_name
-            module_to_file[mod_name] = py_file
+    file_to_module, module_to_file = _module_index(all_sources, source_dirs)
 
     graph: dict[str, set[str]] = {mod: set() for mod in module_to_file}
     for py_file in all_sources:
@@ -75,23 +117,8 @@ def _build_python_graph(
             tree = ast.parse(py_file.read_text(encoding="utf-8", errors="ignore"))
         except (OSError, SyntaxError):
             continue
-        for node in ast.walk(tree):
-            targets = []
-            if isinstance(node, ast.Import):
-                targets = [alias.name for alias in node.names]
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                targets = [node.module]
-            for target_mod in targets:
-                # Try exact match, then suffix match (e.g., "b" matches "pkg.b").
-                # The suffix fallback exists for flat/relative-style imports, but
-                # must never claim a stdlib name (e.g. "html", "json") as a match
-                # for an in-project module that merely shares its last segment.
-                if target_mod in module_to_file:
-                    graph[importer].add(target_mod)
-                elif target_mod.split(".")[0] not in sys.stdlib_module_names:
-                    for known_mod in module_to_file:
-                        if known_mod.endswith("." + target_mod) or known_mod == target_mod:
-                            graph[importer].add(known_mod)
+        for target_mod in _imported_module_names(tree):
+            graph[importer].update(_resolved_import_targets(target_mod, module_to_file))
     return graph, module_to_file
 
 

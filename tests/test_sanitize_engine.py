@@ -115,7 +115,7 @@ def test_python_resource_warning_check_uses_resolved_python_module(tmp_path, mon
         seen["kwargs"] = kwargs
         return ProcessResult(0, "1 passed in 0.01s\n", "", 0.01)
 
-    monkeypatch.setattr("ici.engines.sanitize.run_process", fake_run)
+    monkeypatch.setattr("ici.engines._sanitize_python_scope.run_process", fake_run)
     engine = SanitizeEngine(tmp_path)
     monkeypatch.setattr(engine, "_resolve_python", lambda: ["/project/python"])
 
@@ -145,7 +145,7 @@ def test_python_resource_warning_check_selects_pytest_suffix_test_files(tmp_path
     tests.mkdir()
     (tests / "resource_test.py").write_text("def test_resource():\n    pass\n", encoding="utf-8")
     monkeypatch.setattr(
-        "ici.engines.sanitize.run_process",
+        "ici.engines._sanitize_python_scope.run_process",
         lambda *args, **kwargs: ProcessResult(0, "1 passed in 0.01s\n", "", 0.01),
     )
 
@@ -164,7 +164,7 @@ def test_python_resource_warning_check_does_not_treat_only_skips_as_measured_pas
     tests.mkdir()
     (tests / "test_resource.py").write_text("def test_resource():\n    pass\n", encoding="utf-8")
     monkeypatch.setattr(
-        "ici.engines.sanitize.run_process",
+        "ici.engines._sanitize_python_scope.run_process",
         lambda *args, **kwargs: ProcessResult(0, "3 skipped, 2 deselected in 0.01s\n", "", 0.01),
     )
 
@@ -190,7 +190,7 @@ def test_python_resource_warning_check_does_not_add_empty_pythonpath(tmp_path, m
         seen["env"] = kwargs["env"]
         return ProcessResult(0, "1 passed in 0.01s\n", "", 0.01)
 
-    monkeypatch.setattr("ici.engines.sanitize.run_process", fake_run)
+    monkeypatch.setattr("ici.engines._sanitize_python_scope.run_process", fake_run)
 
     result = SanitizeEngine(tmp_path).run()
 
@@ -216,7 +216,7 @@ def test_python_resource_warning_check_reuses_wsl_temp_environment_policy(tmp_pa
         seen["env"] = kwargs["env"]
         return ProcessResult(0, "1 passed in 0.01s\n", "", 0.01)
 
-    monkeypatch.setattr("ici.engines.sanitize.run_process", fake_run)
+    monkeypatch.setattr("ici.engines._sanitize_python_scope.run_process", fake_run)
 
     result = SanitizeEngine(tmp_path).run()
 
@@ -242,7 +242,9 @@ def test_python_resource_warning_tool_failures_are_errors(tmp_path, monkeypatch,
     (tests / "test_resource.py").write_text("def test_resource():\n    pass\n", encoding="utf-8")
     engine = SanitizeEngine(tmp_path)
     monkeypatch.setattr(engine, "_resolve_python", lambda: ["/project/python"])
-    monkeypatch.setattr("ici.engines.sanitize.run_process", lambda *args, **kwargs: result)
+    monkeypatch.setattr(
+        "ici.engines._sanitize_python_scope.run_process", lambda *args, **kwargs: result
+    )
 
     actual = engine.run()
 
@@ -850,15 +852,19 @@ def test_hybrid_partial_scope_preserves_measured_resource_failure(tmp_path, monk
     tests = tmp_path / "tests"
     tests.mkdir()
     (tests / "test_app.py").write_text("def test_app():\n    pass\n", encoding="utf-8")
-    monkeypatch.setattr(
-        "ici.engines.sanitize.run_process",
-        lambda *args, **kwargs: ProcessResult(
+
+    def resource_failure(*args, **kwargs):
+        return ProcessResult(
             1,
             "1 failed in 0.01s\n",
             "ResourceWarning: unclosed file\n",
             0.01,
-        ),
-    )
+        )
+
+    # This case drives both scopes, so both runners must be intercepted —
+    # leaving either real would shell out during a unit run.
+    monkeypatch.setattr("ici.engines.sanitize.run_process", resource_failure)
+    monkeypatch.setattr("ici.engines._sanitize_python_scope.run_process", resource_failure)
 
     result = SanitizeEngine(
         tmp_path,

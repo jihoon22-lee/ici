@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import stat
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -359,13 +359,8 @@ def _compiler_working_directory_identity(
     )
 
 
-def parse_compiler_include_search(output: str, cwd: Path) -> tuple[Path, ...]:
-    """Parse one strict GCC angle-bracket include-search block.
-
-    The verbose compiler stream is host evidence, not trusted structured data.
-    Accept exactly one bounded block and only existing, non-root absolute
-    directories.  Error messages deliberately omit the raw host path.
-    """
+def _require_bounded_include_output(output: str, cwd: Path) -> None:
+    """Reject a compiler stream or working directory that cannot be trusted."""
 
     if not isinstance(output, str):
         raise ValueError("compiler include search output must be text")
@@ -379,6 +374,50 @@ def parse_compiler_include_search(output: str, cwd: Path) -> tuple[Path, ...]:
         raise ValueError("compiler include search working directory is unavailable") from err
     if not resolved_cwd.is_dir():
         raise ValueError("compiler include search working directory is not a directory")
+
+
+def _include_search_directory(raw_line: str, index: int) -> Path:
+    """Resolve one listed search path, failing closed on anything unusable.
+
+    Every rejection here is deliberate rather than a skip: the block is host
+    evidence for exactly which directories the compiler searched, so a line
+    that cannot be read as a bounded existing absolute directory means the
+    evidence is not what it claims to be.
+    """
+
+    value = raw_line.strip()
+    framework_suffix = " (framework directory)"
+    if value.endswith(framework_suffix):
+        value = value[: -len(framework_suffix)].rstrip()
+    if (
+        not value
+        or len(value) > _MAX_IMPLICIT_INCLUDE_PATH_CHARS
+        or "\x00" in value
+        or "\r" in value
+        or "\n" in value
+    ):
+        raise ValueError(f"compiler include search path {index} is malformed")
+    lexical = Path(value)
+    if not lexical.is_absolute():
+        raise ValueError(f"compiler include search path {index} is not absolute")
+    try:
+        root = lexical.resolve(strict=True)
+    except (OSError, RuntimeError) as err:
+        raise ValueError(f"compiler include search path {index} is unavailable") from err
+    if not root.is_dir() or root == Path(root.anchor):
+        raise ValueError(f"compiler include search path {index} is not a bounded directory")
+    return root
+
+
+def parse_compiler_include_search(output: str, cwd: Path) -> tuple[Path, ...]:
+    """Parse one strict GCC angle-bracket include-search block.
+
+    The verbose compiler stream is host evidence, not trusted structured data.
+    Accept exactly one bounded block and only existing, non-root absolute
+    directories.  Error messages deliberately omit the raw host path.
+    """
+
+    _require_bounded_include_output(output, cwd)
     lines = output.splitlines()
     starts = [index for index, line in enumerate(lines) if line.strip() == _INCLUDE_SEARCH_START]
     ends = [index for index, line in enumerate(lines) if line.strip() == _INCLUDE_SEARCH_END]
@@ -388,27 +427,7 @@ def parse_compiler_include_search(output: str, cwd: Path) -> tuple[Path, ...]:
     roots: list[Path] = []
     seen: set[Path] = set()
     for index, raw_line in enumerate(lines[starts[0] + 1 : ends[0]]):
-        value = raw_line.strip()
-        framework_suffix = " (framework directory)"
-        if value.endswith(framework_suffix):
-            value = value[: -len(framework_suffix)].rstrip()
-        if (
-            not value
-            or len(value) > _MAX_IMPLICIT_INCLUDE_PATH_CHARS
-            or "\x00" in value
-            or "\r" in value
-            or "\n" in value
-        ):
-            raise ValueError(f"compiler include search path {index} is malformed")
-        lexical = Path(value)
-        if not lexical.is_absolute():
-            raise ValueError(f"compiler include search path {index} is not absolute")
-        try:
-            root = lexical.resolve(strict=True)
-        except (OSError, RuntimeError) as err:
-            raise ValueError(f"compiler include search path {index} is unavailable") from err
-        if not root.is_dir() or root == Path(root.anchor):
-            raise ValueError(f"compiler include search path {index} is not a bounded directory")
+        root = _include_search_directory(raw_line, index)
         if root in seen:
             raise ValueError("compiler include search contains a duplicate directory")
         roots.append(root)
@@ -651,6 +670,67 @@ def tooling_arguments(argv: tuple[str, ...], source: Path) -> list[str]:
     return arguments
 
 
+def _joined_include_value(argument: str) -> str:
+    """Return the path operand joined to an include option, or "" when none is."""
+
+    for option in _JOINED_INCLUDE_OPTIONS:
+        if argument.startswith(option) and len(argument) > len(option):
+            candidate = argument[len(option) :]
+            if option in _PATH_SEPARATED_JOINED_OPTIONS and candidate[0] not in ".\\/":
+                continue
+            return candidate
+    return ""
+
+
+def _iter_include_operands(arguments: list[str]) -> Iterator[str]:
+    """Yield the raw path operand of every explicit include option in order.
+
+    Two options carry state across arguments: a separate-form option takes the
+    next argument as its operand, and an ambiguous prefix consumes the next
+    argument without contributing a root. Keeping that small machine here lets
+    the caller deal only in operands.
+    """
+
+    pending = False
+    ignored_pending = False
+    for argument in arguments:
+        if ignored_pending:
+            ignored_pending = False
+            continue
+        if pending:
+            pending = False
+            yield argument
+            continue
+        if argument in _SEPARATE_INCLUDE_OPTIONS:
+            pending = True
+            continue
+        if argument in _AMBIGUOUS_INCLUDE_PREFIXES:
+            ignored_pending = True
+            continue
+        if argument.startswith(_AMBIGUOUS_INCLUDE_PREFIXES):
+            # These are distinct compiler options with different sysroot
+            # semantics, not joined spellings of -iframework/-isystem.
+            continue
+        joined = _joined_include_value(argument)
+        if joined:
+            yield joined
+
+
+def _resolved_include_root(value: str, cwd: Path) -> Path | None:
+    """Resolve one operand to an existing directory, or ``None`` when unusable."""
+
+    if not value or value.startswith("=") or "\x00" in value:
+        return None
+    try:
+        lexical = Path(value)
+        root = (lexical if lexical.is_absolute() else cwd / lexical).resolve(strict=False)
+        if not root.is_dir() or root == Path(root.anchor):
+            return None
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return root
+
+
 def tooling_include_roots(arguments: list[str], cwd: Path) -> tuple[Path, ...]:
     """Resolve explicit compiler include roots used to validate diagnostic previews.
 
@@ -662,44 +742,9 @@ def tooling_include_roots(arguments: list[str], cwd: Path) -> tuple[Path, ...]:
 
     roots: list[Path] = []
     seen: set[Path] = set()
-    pending = False
-    ignored_pending = False
-    for argument in arguments:
-        value = ""
-        if ignored_pending:
-            ignored_pending = False
-            continue
-        if pending:
-            value = argument
-            pending = False
-        elif argument in _SEPARATE_INCLUDE_OPTIONS:
-            pending = True
-            continue
-        elif argument in _AMBIGUOUS_INCLUDE_PREFIXES:
-            ignored_pending = True
-            continue
-        elif argument.startswith(_AMBIGUOUS_INCLUDE_PREFIXES):
-            # These are distinct compiler options with different sysroot
-            # semantics, not joined spellings of -iframework/-isystem.
-            continue
-        else:
-            for option in _JOINED_INCLUDE_OPTIONS:
-                if argument.startswith(option) and len(argument) > len(option):
-                    candidate = argument[len(option) :]
-                    if option in _PATH_SEPARATED_JOINED_OPTIONS and candidate[0] not in ".\\/":
-                        continue
-                    value = candidate
-                    break
-        if not value or value.startswith("=") or "\x00" in value:
-            continue
-        try:
-            lexical = Path(value)
-            root = (lexical if lexical.is_absolute() else cwd / lexical).resolve(strict=False)
-            if not root.is_dir() or root == Path(root.anchor):
-                continue
-        except (OSError, RuntimeError, ValueError):
-            continue
-        if root in seen:
+    for value in _iter_include_operands(arguments):
+        root = _resolved_include_root(value, cwd)
+        if root is None or root in seen:
             continue
         roots.append(root)
         seen.add(root)
