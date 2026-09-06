@@ -1730,32 +1730,61 @@ location mapping은 구현됐지만 source fix model은 아직 없으므로 SARI
 HTML은 2,000 actionable finding 초과 시 초기 50행과 bounded inline inventory를 사용하며
 100,000 finding 회귀 fixture를 통과한다. 실제 browser startup/memory benchmark는 I8-4에 남는다.
 
-### I8-2. viewer report diff
+### I8-2~I8-4 범위 결정 (2026-09-06)
 
-**브랜치:** `feat/viewer-report-diff`
+이 세 절은 원래 Qt 뷰어를 triage 워크벤치로 키우는 계획이었다. 착수 전에 실사한 결과
+전제가 바뀌어 있었으므로 범위를 다시 정한다.
 
-- [ ] v2/v3 단일 보고서와 두 v3 보고서 비교를 지원한다.
-- [ ] new, regressed, unchanged, moved, resolved를 표시한다.
+**결정: delta 표시는 HTML 리포트가 소유하고, triage 워크벤치는 만들지 않는다.**
+
+근거는 이미 있는 것들이다.
+
+- delta 는 계산이 끝나 있다. `core/baseline.py` 가 `DeltaState.{NEW, UNCHANGED, MOVED,
+  RESOLVED}` 를 산출하고, HTML 은 `reporters/html/sections/baseline.py` 로 baseline 탭을
+  이미 렌더링하며, SARIF 는 `baselineState` 로 내보낸다. `--baseline`/`--fail-on-new`
+  게이트도 있다.
+- triage UI 는 SARIF 생태계가 이미 갖고 있다. `reporters/sarif.py` 가 SARIF 2.1.0 을
+  내보내므로 VS Code SARIF 확장이나 GitHub code scanning 이 필터·정렬·triage 를 담당한다.
+  자체 Qt 워크벤치는 그것을 다시 만드는 일이다.
+- 폐쇄망 자리는 이미 채워져 있다. `icirv` 는 Qt 없이 정적 링크되어 릴리스 자산으로 나가고
+  `--engine`/`--status` 필터를 제공한다.
+
+따라서 `icirv`/`icirv-gui` 는 **리포트 리더로 완료**이며, 아래 남은 항목만 HTML 쪽 작업으로
+이관한다.
+
+- [x] v2/v3 단일 보고서와 두 v3 보고서 비교를 지원한다.
+  - `--baseline` 이 project-contained `ici.result/v3` 를 현재 실행과 비교하고, v2 archive 는
+    `migrate_report_payload()` 로 v3 사본을 만들 수 있다.
+- [x] related location과 정확한 line/column으로 이동한다.
+  - HTML 이 finding 마다 `data-rel-path`/`data-line` 을 실어 원클릭 점프를 제공한다.
+- [x] malformed/partial/oversized report를 명확한 오류로 처리한다.
+  - `core/baseline.py` 가 `BASELINE_MAX_BYTES` 64 MiB 한도와 구조 검증으로 fail-closed 한다.
+- [x] new, regressed, unchanged, moved, resolved를 표시한다.
+  - HTML baseline 탭과 Markdown 이 New/Unchanged/Moved/Resolved 와 Regressed 를 모두 표시한다.
+    `regressed` 는 `DeltaState` 의 다섯째 값이 아니라 `FindingDelta.regressed` 불리언이다.
+    severity 가 올라간 finding 은 상태가 `UNCHANGED` 여도 regressed 로 세므로 두 축은 직교한다.
 - [ ] engine/rule/category/severity/confidence/file별 filtering과 정렬을 제공한다.
-- [ ] related location과 정확한 line/column으로 이동한다.
-- [ ] malformed/partial/oversized report를 명확한 오류로 처리한다.
+  - **남은 실제 작업.** HTML 의 현재 검색은 파일 트리 검색이고 finding 다축 필터가 아니다.
+    `icirv` CLI 는 `--engine`/`--status` 두 축만 있다.
 
-### I8-3. triage와 suppression
+**만들지 않기로 한 것** — 아래는 SARIF 생태계에 위임한다. 필요해지면 이 결정을 다시 연다.
 
-**브랜치:** `feat/viewer-triage`
+- ~~finding 에서 config suppression 초안 생성~~ (SARIF `suppressions` 로 표현 가능)
+- ~~suppression reason/owner/expiry 지원~~
+- ~~baseline 과 suppression 차이를 UI 로 구분~~ (문서 쪽은 아래 별도 항목으로 남긴다)
+- ~~resolved finding 과 만료 suppression 정리 UI~~
+- ~~Qt 뷰어 lazy model/pagination~~ (HTML 은 이미 초기 DOM 크기를 제한한다)
 
-- [ ] finding에서 config suppression 초안을 만들되 자동으로 source를 수정하지 않는다.
-- [ ] suppression reason, owner, expiry를 지원한다.
-- [ ] baseline과 suppression의 차이를 UI와 문서에서 명확히 한다.
-- [ ] resolved finding과 만료 suppression을 정리할 수 있다.
+- [ ] baseline 과 suppression 의 차이를 문서에서 명확히 한다. (UI 범위는 위에서 닫혔다)
 
 ### I8-4. 대형 report 성능
 
 **브랜치:** `perf/report-viewer`
 
+Qt 뷰어 lazy model 은 위 결정으로 범위에서 빠졌다. 아래는 console/HTML 에 계속 적용된다.
+
 - [ ] 10만 finding synthetic report benchmark를 만든다.
-- [ ] lazy model/pagination 또는 equivalent 구조로 startup과 memory를 측정한다.
-- [ ] console, HTML, viewer 각각 성능 budget을 실측 후 고정한다.
+- [ ] console, HTML 각각 성능 budget을 실측 후 고정한다.
 - [ ] benchmark 결과를 CI의 불안정한 wall-clock hard gate가 아니라 추세 artifact로 먼저 운영한다.
 
 ---
