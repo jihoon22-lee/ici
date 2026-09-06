@@ -79,3 +79,40 @@ analyzer·clang-tidy·clazy category로 매핑. `ICI-GAPS.md` B-3이 가리키�
 체크박스를 옮긴 것 외에 코드·설정·버전은 건드리지 않았다. "부분 완료"로 분류한
 항목은 체크하지 않았다 — 남은 조각을 표에 적어 다음 사람이 크기를 알 수 있게 했다.
 "의도적으로 열어둔" 상위 aggregate도 그대로 둔다.
+
+## 후속 — 뷰어 범위 결정 (같은 날)
+
+위에서 "미착수 15개 중 13개가 뷰어 UI"라고 적었고, 착수 전에 범위를 정하자고 남겼다.
+결정이 났으므로 이어서 기록한다.
+
+**결정: HTML 리포트가 delta 표시를 소유하고, Qt triage 워크벤치는 만들지 않는다.**
+
+실사를 한 단계 더 파고들자 앞선 "미착수 13개"라는 표현이 부정확했다는 것이 드러났다.
+`delta`/`filter` 같은 키워드로 소스를 세었을 뿐이라 이미 다른 이름으로 존재하는 기능을
+놓쳤다. 실제 상태는 이랬다.
+
+| 표면 | 이미 있는 것 |
+|---|---|
+| HTML 리포트 | baseline delta 탭(`sections/baseline.py`), finding마다 `data-rel-path`/`data-line` 원클릭 점프, 초기 DOM 크기 제한 |
+| `icirv` CLI | Qt 없는 정적 링크 릴리스 자산, `--engine`/`--status` 필터, `--targets` |
+| 엔진 | `DeltaState.{NEW, UNCHANGED, MOVED, RESOLVED}`, `--baseline`/`--fail-on-new`, SARIF `baselineState` |
+
+즉 13개 중 상당수는 "만들 것"이 아니라 "이미 다른 표면에 있는 것"이었다. 뷰어를 triage
+워크벤치로 키우는 계획은 SARIF 생태계와 HTML 리포트를 중복 구현하는 일이 된다.
+
+결정 후 남은 실제 작업은 두 가지다.
+
+- HTML finding 인벤토리의 다축 필터(engine/rule/category/severity/confidence/file)와 정렬.
+  현재 HTML 검색은 파일 트리 검색이고, CLI는 두 축만 지원한다.
+`REGRESSED` 는 처음에 누락으로 봤으나 아니었다. `DeltaState` 의 다섯째 값이 아니라
+`FindingDelta.regressed` 불리언이고, markdown 과 HTML 이 이미 `Regressed` 를 표시한다.
+severity 가 올라간 finding 은 상태가 `UNCHANGED` 여도 regressed 이므로 두 축은 직교한다.
+같은 세션에서 grep 만으로 부재를 판정해 틀린 세 번째 사례다.
+
+미체크 항목은 46개에서 39개가 됐다.
+
+## 이 실사에서 배운 것
+
+키워드 grep으로 기능 부재를 판정하면 틀린다. 이번에 두 번 그랬다 — `test` 엔진 findings를
+경로만 보고 스코프 잡음으로 오판했고, 뷰어 기능을 이름으로만 찾다가 `--engine`/`--status`
+필터와 baseline 탭을 놓쳤다. 판정 전에 진입점과 사용법을 읽는 편이 빠르다.
