@@ -1727,11 +1727,18 @@ report artifact의 typed producer, configurable artifact glob 계약은 아직 �
 
 **브랜치:** `feat/reporter-parity`
 
-- [ ] 모든 reporter가 v3 finding, related location, confidence, suppression, delta를 보존하는지 contract test를 만든다.
+- [x] 모든 reporter가 v3 finding, related location, confidence, suppression, delta를 보존하는지 contract test를 만든다.
+  - `tests/test_reporter_parity.py` 10 건. 리포터가 설계상 동일하지 않으므로 경계를 그대로
+    고정했다 — JSON/SARIF/HTML 은 다섯 요소 전부, markdown 은 informational·suppressed 를
+    related row 에서 빼는 규칙까지, console 은 identity 까지다. SARIF 의 relatedLocations 를
+    막아 회귀 검출을 확인했다.
 - [x] SARIF 2.1.0 export를 추가하고 rule/result/location/fix mapping을 검증한다.
   - 2026-09-06 실사: `reporters/sarif.py`와 `tests/test_sarif_reporter.py` 9건이 field
     mapping, percent-encoded URI, 순서 독립성, baseline delta, rule/result bound을 고정한다.
-- [ ] GitHub annotation은 new/high-priority finding만 제한적으로 발행한다.
+- [x] GitHub annotation은 new/high-priority finding만 제한적으로 발행한다.
+  - baseline 이 있으면 new 이거나 regressed 인 finding 이 bounded budget 을 먼저 쓴다.
+    baseline 이 없으면 축이 상수라 기존 status 정렬이 유지된다. delta 와 target 은 delta 의
+    current_location 으로 잇고 fingerprint 정규화를 다시 구현하지 않는다.
 - [x] HTML은 full inventory를 검색/필터할 수 있지만 초기 DOM 크기를 제한한다.
 
 SARIF 2.1.0의 deterministic rule/result/location, suppression, duplicate occurrence와 baseline
