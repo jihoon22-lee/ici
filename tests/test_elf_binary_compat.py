@@ -187,3 +187,53 @@ def test_engine_locates_non_elf_and_required_empty_manifest_states(tmp_path: Pat
     assert required.status is EngineStatus.ERROR
     assert required.evidence is EvidenceState.NOT_RUN
     assert "no published" in required.summary
+
+
+def test_engine_rejects_a_configured_artifact_that_was_never_published(tmp_path: Path) -> None:
+    # An artifacts selector naming something the build did not publish is a
+    # configuration defect, not an empty result. Passing silently would report a
+    # clean ABI for a binary nobody inspected.
+    artifact = tmp_path / "dist" / "app"
+    artifact.parent.mkdir()
+    artifact.write_bytes(b"text fixture")
+    context = _binary_context(tmp_path, "dist/app", "executable")
+
+    result = BinaryCompatibilityEngine(
+        tmp_path,
+        {
+            "engines": {
+                "binary_compat": {
+                    "enabled": True,
+                    "allow_non_elf": True,
+                    "artifacts": ["dist/app", "dist/never-built"],
+                }
+            }
+        },
+        context,
+    ).run()
+
+    assert result.status is EngineStatus.ERROR
+    assert "dist/never-built" in (result.summary or "") or any(
+        "dist/never-built" in (target.message or "") for target in result.targets
+    )
+
+
+def test_engine_honours_the_configured_artifact_maximum(tmp_path: Path) -> None:
+    # The bound exists so a runaway manifest cannot turn one engine into an
+    # unbounded readelf loop.
+    artifact = tmp_path / "dist" / "app"
+    artifact.parent.mkdir()
+    artifact.write_bytes(b"text fixture")
+    context = _binary_context(tmp_path, "dist/app", "executable")
+
+    result = BinaryCompatibilityEngine(
+        tmp_path,
+        {
+            "engines": {
+                "binary_compat": {"enabled": True, "allow_non_elf": True, "max_artifacts": 0}
+            }
+        },
+        context,
+    ).run()
+
+    assert result.status is EngineStatus.ERROR
