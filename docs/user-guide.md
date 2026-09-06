@@ -1207,10 +1207,46 @@ exit 2로 거부됩니다. 또한 `--fail-on-new`가 실제로 실패한 실행�
 `regressed`는 severity가 더 심각해졌거나, 기준선에서는 suppressed였는데 현재 실행에서
 suppression이 해제된 경우입니다. 같은 위치의 severity 변경은 `unchanged` 상태에서도
 regression이 될 수 있습니다. 현재 finding이 `info`이거나 suppressed이면 새 항목이어도
-gate에서 제외됩니다. 반대로 suppression은 현재 finding 하나를 의도적으로 조치 대상에서
-제외하는 표시이고, baseline은 과거 inventory의 snapshot입니다. baseline 비교는 suppressed
-항목도 delta에 남기며, baseline을 suppression 설정 대신 사용할 수 없습니다. suppressed
-finding을 다시 활성화하면 suppression regression으로 표시될 수 있습니다.
+gate에서 제외됩니다.
+
+#### Baseline과 suppression은 다른 장치입니다
+
+두 개념은 "이 문제로는 실패시키지 않는다"는 결과가 겹쳐 보이지만, 무엇을 근거로 그렇게
+하는지가 다릅니다. 하나를 다른 하나의 대용으로 쓰면 gate가 조용히 약해집니다.
+
+| | baseline | suppression |
+|---|---|---|
+| 정체 | 과거 실행 전체의 finding inventory snapshot (`ici.result/v3` 파일) | finding 한 건에 붙는 v3 계약 필드 (`suppression.suppressed`/`kind`/`reason`) |
+| 사는 곳 | 저장소에 커밋한 별도 JSON 파일 | report 안의 그 finding 레코드 |
+| 범위 | 실행 전체를 이전 실행과 대조 | 개별 finding 하나 |
+| 판단 근거 | "이건 이미 알고 있던 상태다" (시간) | "이건 검토했고 조치하지 않기로 했다" (의도) |
+| report에서의 결과 | finding은 그대로 남고 `new`/`unchanged`/`moved`/`resolved` 상태가 붙는다 | finding은 그대로 남고 suppressed로 표시된다 |
+| gate 효과 | `--fail-on-new`가 있을 때만 delta 상태로 gate 대상을 좁힌다 | 어느 실행에서든 그 finding을 gate에서 제외한다 |
+| 만료 방식 | 다음 `--write-baseline`으로 통째로 교체 | 표시를 걷어내면 즉시 다시 gate 대상 |
+
+따라서 둘의 관계는 다음과 같습니다.
+
+- **어느 쪽도 finding을 지우지 않습니다.** baseline 비교는 suppressed 항목까지 delta에
+  남기고, suppression은 finding을 inventory에 남긴 채 표시만 바꿉니다. JSON·HTML·SARIF는
+  두 경우 모두 전체 목록을 그대로 보존합니다.
+- **baseline은 suppression 설정을 대신할 수 없습니다.** baseline은 "그때 있었다"만 말하므로
+  검토했는지 여부를 담지 못합니다. 특정 finding을 영구히 제외하려면 그 finding 자체에
+  표시를 남겨야 합니다.
+- **suppression은 baseline을 대신할 수 없습니다.** 기존 문제 전체를 한 번에 조용히 만들려고
+  suppression을 쓰면 이후 그 문제가 실제로 나빠져도 아무 신호가 없습니다. baseline은 같은
+  상황에서 severity 상승을 `regressed`로 계속 잡아냅니다.
+- **두 축은 직교합니다.** 기준선에서 suppressed였다가 현재 실행에서 해제되면 상태가
+  `unchanged`여도 `regressed`로 셉니다. severity 상승도 마찬가지입니다.
+
+현재 구현 상태를 정확히 적어 둡니다. **`verify` 실행에서 `suppressed=true`를 붙이는 엔진은
+아직 없습니다.** v3 계약의 필드와 `inline`/`config`/`baseline` kind, 그리고 이를 존중하는
+reporter 경로(SARIF `suppressions`, 콘솔·Markdown의 informational/suppressed 제외)는 이미
+있지만, 지금 제공되는 실제 억제 수단은 엔진 내부 필터라 finding을 만들기 전에 걸러냅니다.
+예를 들어 `security`의 `# nosec` 주석은 해당 줄의 finding을 애초에 생성하지 않으므로 report에
+suppressed 행으로 남지 않습니다. `suppressed=true`가 붙는 유일한 현재 경로는 SARIF가 baseline
+전용 `resolved` 결과를 만들 때뿐입니다. 그러므로 지금 "이 문제는 알고 있고 실패시키지 않는다"를
+표현하는 지원되는 방법은 baseline과 `--fail-on-new`이며, 엔진별 억제는 각 엔진의 설정 키를
+사용합니다.
 
 baseline metadata의 producer/fingerprint/policy/tool policy가 현재 실행과 다르면
 호환성 warning으로 표시됩니다. warning 자체만으로 `gate_failed`가 되거나 exit 1이 되지는

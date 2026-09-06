@@ -104,6 +104,15 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: ../dist/ici.pyz verify --report --html verify_report.html --github-summary
 
+      # A trend artifact, not a gate. Wall clock on a shared runner moves for
+      # reasons that have nothing to do with the reporters, so --enforce stays
+      # off here and the recorded budgets are read from the artifact instead.
+      - name: Large-report reporter benchmark (trend artifact)
+        if: always()
+        run: |
+          uv run --python 3.10 python scripts/benchmark_report.py \
+            --json report_benchmark.json
+
       - name: Upload Verification Reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
@@ -114,6 +123,7 @@ jobs:
             verify_report.json
             viewer/verify_report.html
             viewer/verify_report.json
+            report_benchmark.json
           retention-days: 14
 
   # The Qt shell sits outside every ici engine's scope by design — the core is

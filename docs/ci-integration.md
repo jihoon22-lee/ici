@@ -449,9 +449,13 @@ PR 검증을 분리하면 기준선 변경을 코드 리뷰로 확인하기도 �
 기준선 suppressed → 현재 unsuppressed 전환은 `regressed`로 표시합니다. `--fail-on-new`는
 현재 finding이 actionable일 때만 새 항목과 regression을 gate합니다. `info` severity와
 suppressed finding은 gate에서 제외되고, `resolved`는 실패시키지 않습니다. 따라서 같은
-위치의 severity 변경은 `unchanged + regressed`가 될 수 있고, suppression은 현재 finding을
-조치 대상에서 제외하는 표시인 반면 baseline은 과거 finding inventory snapshot이라는
-차이가 있습니다.
+위치의 severity 변경은 `unchanged + regressed`가 될 수 있습니다.
+
+baseline과 suppression은 gate를 통과시키는 결과가 비슷해 보이지만 서로를 대신할 수 없습니다.
+baseline은 실행 전체의 과거 inventory snapshot이고 suppression은 finding 한 건에 붙는 의도
+표시이며, 현재 `verify`에서 `suppressed=true`를 붙이는 엔진은 없습니다. 두 장치의 범위·만료·
+gate 효과 비교는 [사용자 가이드의 "Baseline과 suppression은 다른 장치입니다"](user-guide.md#baseline과-suppression은-다른-장치입니다)를
+canonical reference로 삼습니다.
 
 baseline metadata의 버전·fingerprint·analysis policy·tool policy 불일치는 호환성
 warning으로 보고됩니다. 이 warning만으로 baseline gate가 실패하지는 않지만, 같은 실행의
@@ -470,6 +474,49 @@ warning으로 보고됩니다. 이 warning만으로 baseline gate가 실패하�
 - `report-pr`/신뢰된 `publish`: JSON의 baseline 요약을 sticky PR 댓글에 새 finding·regression·
   gated count 및 compatibility warning으로 추가합니다. 댓글은 요약 링크이고, 전체 inventory와
   위치는 HTML/JSON을 확인하도록 유지합니다.
+
+### 2.5 대형 report 성능 추세 (`report_benchmark.json`)
+
+리포터가 얼마나 큰 inventory까지 감당하는지는 실제 프로젝트 실행으로는 알 수 없습니다. ici
+자신의 self verify는 400여 건이라 100배 규모에서 어떤 경로가 먼저 무너지는지 보이지 않습니다.
+그래서 `scripts/benchmark_report.py`가 합성 suite를 만들어 각 리포터를 따로 측정합니다.
+
+```bash
+# 기본 10만 finding · 10 엔진 · 2,000 파일
+uv run python scripts/benchmark_report.py --json report_benchmark.json
+
+# 규모를 줄여 빠르게 확인
+uv run python scripts/benchmark_report.py --findings 2000 --engines 4 --files 200
+```
+
+합성 finding은 rule, severity, category, confidence, 파일 경로로 실제로 부채살처럼 퍼지므로
+grouping·정렬·필터 경로가 하나의 값으로 접히지 않습니다.
+
+`verify` job은 이 스크립트를 매 실행 돌려 `report_benchmark.json`을 검증 리포트와 같은
+artifact에 올립니다. **게이트가 아니라 추세 artifact입니다.** 공유 runner의 wall-clock은
+리포터와 무관한 이유로 흔들리므로 hard gate로 쓰면 실패의 대부분이 잡음이 됩니다. 예산 비교는
+`--enforce`를 명시할 때만 exit 1이 됩니다.
+
+기준 워크스테이션(Linux x86-64, CPython 3.10.21)에서 10만 finding 실측값과 고정한 예산은
+다음과 같습니다.
+
+| 단계 | 실측 | 출력 크기 | 예산 |
+|---|---|---|---|
+| `console-default` (issues-first cap) | 11.4s | 31 KB | 35s |
+| `console-verbose` | 51.8s | 30.5 MB | 155s |
+| `html` | 15.5s | 33.4 MB | 50s |
+| `json` | 14.5s | 61.4 MB | 45s |
+| `sarif` | 12.8s | 53.2 MB | 40s |
+
+예산은 실측의 약 3배입니다. 공유 runner는 기준 워크스테이션보다 몇 배 느리므로 더 좁게 잡으면
+스케줄링 잡음에 걸리고, 3배면 여기서 실제로 중요한 회귀 — 리포터가 finding 수에 대해 초선형이
+되는 경우 — 는 여전히 잡힙니다.
+
+측정에서 드러난 사실 하나를 함께 적어 둡니다. **issues-first cap은 표시량을 제한하지 작업량을
+제한하지 않습니다.** `console-default`는 화면에 20개 그룹만 내보내는데도 11.4초가 걸리는데,
+"Hidden: N finding(s) in M group(s)"를 정직하게 세려면 전체 inventory를 통과해야 하기
+때문입니다. 31 KB를 출력하는 데 33 MB HTML의 73% 시간이 드는 이유가 그것이며, 이는 정확한
+집계를 위해 의도한 비용이지 회귀가 아닙니다.
 
 ## 3. 신뢰된 HTML publish (`--publish`)
 

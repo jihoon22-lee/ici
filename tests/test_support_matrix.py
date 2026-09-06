@@ -21,6 +21,7 @@ from ici.core.models import (
 from ici.core.support import (
     ENGINE_NAMES,
     evaluate_support_matrix,
+    render_limitation_inventory_markdown,
     render_support_markdown,
     support_declarations,
 )
@@ -375,3 +376,35 @@ def test_support_writer_rejects_schema_invalid_or_contradictory_entries(tmp_path
     matrix.entries.append(matrix.entries[0])
     with pytest.raises(ValueError, match="unique engine/language"):
         serialize_support_matrix(matrix)
+
+
+def test_limitation_inventory_lists_only_scopes_that_can_estimate():
+    table = render_limitation_inventory_markdown()
+    rows = table.splitlines()[2:]
+
+    assert table.startswith("| Engine | Scope | Heuristic reason | Declared limitations |")
+    declarations = {(item.engine_name, item.language): item for item in support_declarations()}
+    listed = {(row.split("`")[1], row.split(" | ")[1]) for row in rows}
+    for (engine_name, language), item in declarations.items():
+        scope = "Python" if language is SupportLanguage.PYTHON else "C++ / Qt"
+        estimable = (
+            item.mode is AnalysisMode.HEURISTIC or item.fallback_mode is AnalysisMode.HEURISTIC
+        )
+        assert ((engine_name, scope) in listed) is estimable
+
+    # An unsupported scope delivers no result, so it is not a result limitation.
+    assert "| `python_compat` | C++ / Qt |" not in table
+    # Every listed row states what the estimate cannot claim.
+    for row in rows:
+        assert row.rstrip().endswith("|") and "—" not in row
+
+
+def test_documented_limitation_inventory_exactly_matches_registry():
+    reference = (Path(__file__).parents[1] / "docs" / "engine-reference.md").read_text(
+        encoding="utf-8"
+    )
+    start = reference.index("<!-- ici:limitation-inventory:start -->")
+    end = reference.index("<!-- ici:limitation-inventory:end -->")
+    documented = reference[start:end].split("-->", 1)[1].strip()
+
+    assert documented == render_limitation_inventory_markdown()
