@@ -10,6 +10,11 @@ _NEEDED_RE = re.compile(r"\(NEEDED\).*?\[(.*?)\]")
 _RPATH_RE = re.compile(r"\((RPATH|RUNPATH)\).*?\[(.*?)\]")
 _VERSION_RE = re.compile(r"\b(GLIBCXX|GLIBC|CXXABI)_(\d+(?:\.\d+)+)\b")
 _SECTION_RE = re.compile(r"\]\s+(\.\S+)\s+")
+# readelf prints exactly this sentence for an object with no PT_DYNAMIC. It is
+# the only positive evidence of static linkage in the captured transcript; an
+# empty NEEDED list alone does not distinguish a static binary from a dynamic
+# one that happens to need nothing.
+_NO_DYNAMIC_RE = re.compile(r"^\s*There is no dynamic section in this file\.\s*$", re.MULTILINE)
 
 
 class ElfParseError(ValueError):
@@ -28,6 +33,7 @@ class ElfFacts:
     glibcxx: tuple[str, ...]
     cxxabi: tuple[str, ...]
     stripped: bool
+    dynamic: bool = True
 
 
 def version_key(value: str) -> tuple[int, ...]:
@@ -68,4 +74,5 @@ def parse_readelf(text: str) -> ElfFacts:
         glibcxx=tuple(sorted(versions["GLIBCXX"], key=version_key)),
         cxxabi=tuple(sorted(versions["CXXABI"], key=version_key)),
         stripped=".symtab" not in sections,
+        dynamic=not bool(_NO_DYNAMIC_RE.search(text)),
     )
