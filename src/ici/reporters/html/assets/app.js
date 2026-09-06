@@ -201,6 +201,7 @@ function iciApplyIssueFilters() {
   const engine = value('ici-issue-engine');
   const severity = value('ici-issue-severity');
   const category = value('ici-issue-category');
+  const confidence = value('ici-issue-confidence');
   const rule = value('ici-issue-rule');
   const file = value('ici-issue-file');
   const sort = value('ici-issue-sort');
@@ -213,6 +214,7 @@ function iciApplyIssueFilters() {
       (!engine || (data.engine || '').toLowerCase() === engine) &&
       (!severity || (data.severity || '').toLowerCase() === severity) &&
       (!category || (data.category || '').toLowerCase() === category) &&
+      (!confidence || (data.confidence || '').toLowerCase() === confidence) &&
       (!rule || (data.rule || '').toLowerCase() === rule) &&
       (!file || (data.file || '').toLowerCase().includes(file));
     row.style.display = matches ? '' : 'none';

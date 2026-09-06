@@ -1775,11 +1775,14 @@ ici 자신의 검증에 남아 있는 WARN과 SKIP은
    ```bash
    ici verify --group-by severity
    ```
-2. **왜인지 읽는다.** HTML 리포트의 `Issues` 탭은 engine/rule/category/severity/file 축으로
+2. **왜인지 읽는다.** HTML 리포트의 `Issues` 탭은 engine/rule/category/confidence/severity/file 축으로
    필터·정렬할 수 있고, 각 행에서 원클릭으로 소스 위치로 점프합니다.
    ```bash
    ici verify --report --html verify_report.html
    ```
+   `severity`와 `confidence`는 직교합니다. severity는 "맞다면 얼마나 나쁜가"를, confidence는
+   "얼마나 확실한가"를 말합니다. high severity인 finding이 low confidence 추정일 수 있으므로,
+   confidence로 걸러서 critical exact finding을 놓치지 않도록 두 축을 따로 봅니다.
 3. **고친다.** finding의 `remediation`이 무엇을 바꿔야 하는지 말합니다. 고쳤으면 여기서
    끝입니다 — 아래 두 단계는 지금 고치지 **않기로** 할 때만 필요합니다.
 4. **지금 고치지 않기로 한다면, 근거를 남긴다.** 두 장치가 있고 서로를 대신하지 못합니다.

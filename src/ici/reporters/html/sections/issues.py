@@ -106,6 +106,7 @@ def _render_issues_section(
             f" data-engine='{html.escape(issue.engine_name)}'"
             f" data-rule='{html.escape(issue.rule_id)}'"
             f" data-category='{html.escape(issue.category)}'"
+            f" data-confidence='{html.escape(issue.confidence)}'"
             f" data-severity='{html.escape(issue.badge)}'"
             f" data-file='{html.escape(issue.file_path)}'>"
             f"  <div class='issue-header'>"
@@ -196,6 +197,7 @@ def _render_axis_controls(all_issues: list[HtmlIssue]) -> str:
         + _axis_options("Engine", "ici-issue-engine", _values("engine_name"))
         + _axis_options("Severity", "ici-issue-severity", _values("badge"))
         + _axis_options("Category", "ici-issue-category", _values("category"))
+        + _axis_options("Confidence", "ici-issue-confidence", _values("confidence"))
         + _axis_options("Rule", "ici-issue-rule", _values("rule_id"))
         + "<label class='issue-filter-label'>File"
         "<input id='ici-issue-file' class='issue-filter-input' type='search'"

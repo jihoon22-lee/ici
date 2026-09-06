@@ -115,7 +115,7 @@ lifetime·security taxonomy, Q1–Q5, I4 aggregate와 release는 계속 pending�
 | I8-4 (3) | 10만 finding benchmark·예산·추세 artifact | `scripts/benchmark_report.py`, CI `report_benchmark.json` |
 | I9-1 | quality-zoo 엔진별 회귀 요약 | toy PR #65, contract 위반의 엔진 귀속 |
 | I9-2 (4) | unexplained non-PASS 0, 한계 인벤토리, 부채 명시, 사람 검토 가능성 | `docs/design/self-verification-debt.md`, engine-reference 1.5 |
-| I9-3 (5) | support matrix 일치, runtime 실측, 폐쇄망·비root, release 재현성, 사용자 문서 | PR #172·#175/#176, toy PR #67 |
+| I9-3 (5) | support matrix 일치, runtime 실측, 폐쇄망·비root, release 재현성, 사용자 문서 | PR #172·#176, toy PR #67 |
 
 닫은 근거로 쓴 실측값은 각 항목의 하위 note에 그대로 남겼다. 특히 **자체 게이트가 세 엔진에서
 정확히 FAIL 임계값 위에 앉아 있었고 하나는 이미 넘어 있었다**는 발견은 별도 문서로 남겼다 —
@@ -1838,8 +1838,11 @@ HTML은 2,000 actionable finding 초과 시 초기 50행과 bounded inline inven
     `data-file` 을 싣고 축별 select 와 정렬을 추가했다. 옵션은 리포트에 실제로 있는 값에서만
     만들어 매칭되지 않는 필터를 제공하지 않는다. 필터링은 이미 렌더된 행에 대한 표시 전용이라
     JSON 과 baseline 인벤토리는 바뀌지 않는다.
-  - `confidence` 는 축에서 빠졌다. `IssueGroup` 이 표시 투영으로 confidence 를 옮기지 않아서
-    데이터가 없다. 넣으려면 clone 경로를 포함한 두 생성 지점을 함께 바꿔야 하므로 별도 작업이다.
+  - 2026-09-06: `confidence` 축을 추가해 이 항목의 여섯 축을 모두 채웠다. `IssueGroup` 이
+    representative 의 confidence 를 severity·category 와 같은 표시 투영으로 옮기고, 세 생성
+    지점(엔진 그룹·clone 그룹·Python 병합)이 모두 채운다. 실측 리포트에서 severity 와
+    confidence 가 각 행에 짝지어 실리는 것을 확인했다 — 둘이 직교하지 않으면 critical exact
+    finding 을 confidence 로 걸러 버리거나 low-confidence 를 severity 때문에 믿게 된다.
 
 **만들지 않기로 한 것** — 아래는 SARIF 생태계에 위임한다. 필요해지면 이 결정을 다시 연다.
 
