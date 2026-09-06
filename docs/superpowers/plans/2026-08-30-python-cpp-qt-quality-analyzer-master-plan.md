@@ -1838,8 +1838,11 @@ HTML은 2,000 actionable finding 초과 시 초기 50행과 bounded inline inven
     `data-file` 을 싣고 축별 select 와 정렬을 추가했다. 옵션은 리포트에 실제로 있는 값에서만
     만들어 매칭되지 않는 필터를 제공하지 않는다. 필터링은 이미 렌더된 행에 대한 표시 전용이라
     JSON 과 baseline 인벤토리는 바뀌지 않는다.
-  - `confidence` 는 축에서 빠졌다. `IssueGroup` 이 표시 투영으로 confidence 를 옮기지 않아서
-    데이터가 없다. 넣으려면 clone 경로를 포함한 두 생성 지점을 함께 바꿔야 하므로 별도 작업이다.
+  - 2026-09-06: `confidence` 축을 추가해 이 항목의 여섯 축을 모두 채웠다. `IssueGroup` 이
+    representative 의 confidence 를 severity·category 와 같은 표시 투영으로 옮기고, 세 생성
+    지점(엔진 그룹·clone 그룹·Python 병합)이 모두 채운다. 실측 리포트에서 severity 와
+    confidence 가 각 행에 짝지어 실리는 것을 확인했다 — 둘이 직교하지 않으면 critical exact
+    finding 을 confidence 로 걸러 버리거나 low-confidence 를 severity 때문에 믿게 된다.
 
 **만들지 않기로 한 것** — 아래는 SARIF 생태계에 위임한다. 필요해지면 이 결정을 다시 연다.
 

@@ -315,6 +315,7 @@ def _project_merged(cluster: list[IssueComponent]) -> IssueGroup:
         rule_id=identity.canonical_rule_id,
         category=representative.category.value,
         severity=representative.severity,
+        confidence=representative.confidence.value,
         fingerprints=tuple(sorted({finding.fingerprint for _, finding in records})),
         message=representative.message,
         snippet=representative.snippet,

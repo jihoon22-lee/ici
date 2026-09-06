@@ -25,6 +25,10 @@ class IssueGroup:
     rule_id: str
     category: str
     severity: FindingSeverity
+    # The representative's confidence, carried for display only — the same
+    # projection severity and category already use. A merged group can hold
+    # findings of differing confidence; the inventory keeps each one.
+    confidence: str
     fingerprints: tuple[str, ...]
     message: str
     snippet: str
