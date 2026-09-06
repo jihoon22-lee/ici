@@ -54,13 +54,18 @@ DEFAULT_FINDINGS = 100_000
 DEFAULT_ENGINES = 10
 DEFAULT_FILES = 2_000
 
-# Seconds, at the DEFAULT_FINDINGS inventory size. Each ceiling is roughly
-# three times the measurement recorded in docs/ci-integration.md, which is
-# deliberate: a shared runner is a small multiple slower than the reference
-# workstation, so a tighter number would fire on scheduling noise rather than
-# on the reporters. At 3x these still catch the regression that matters here —
-# a reporter that turns superlinear in the finding count — and nothing smaller.
-# They are also why --enforce is opt-in; see the module docstring.
+# Seconds, at the DEFAULT_FINDINGS inventory size, roughly three times the
+# reference-workstation measurement recorded in docs/ci-integration.md.
+#
+# The 3x was first chosen on an assumption — that a shared runner is several
+# times slower — and the first CI run disproved it: GitHub's ubuntu-latest came
+# in at 1.05x to 1.36x, using 35-44% of these ceilings. So the multiple is not
+# absorbing a slow machine. It is there because the regression worth catching
+# is a reporter turning superlinear in the finding count, which overshoots by a
+# factor, while ordinary run-to-run variation does not. A tighter ceiling would
+# report that variation without adding signal.
+#
+# This is also why --enforce is opt-in; see the module docstring.
 BUDGET_SECONDS: dict[str, float] = {
     "console-default": 35.0,
     "console-verbose": 155.0,
