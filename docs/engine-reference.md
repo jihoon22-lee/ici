@@ -318,6 +318,47 @@ writer가 사용하는 JSON Schema는
 있습니다. v2 archive는 `migrate_report_payload()`로 v3 copy를 만들 수 있고 viewer는 두 버전을
 모두 읽습니다. reporter에 전달되는 모든 자유 형식 문자열은 공통 credential redaction을 거칩니다.
 
+#### 스키마 안정성 정책
+
+리포트를 파싱하는 소비자가 무엇을 믿고 무엇을 믿으면 안 되는지 명시합니다. 이 정책은
+`schema_version` 문자열이 가리키는 계약이며, 아래를 벗어나는 변경은 새 major 버전을 만듭니다.
+
+**같은 major 안에서 보장하는 것**
+
+- 기존 필드는 사라지지 않고 의미도 바뀌지 않습니다. `schema_version`이 `ici.result/v3`인 한
+  v3 초기 문서의 필드를 읽는 소비자는 계속 동작합니다.
+- 열거값은 추가될 수 있습니다. `EngineStatus`, `FindingCategory`, `FindingSeverity`,
+  `FindingConfidence`, `DeltaState`에 새 값이 생길 수 있으므로 **소비자는 모르는 값을 만나면
+  거부하지 말고 무시하거나 통과시켜야 합니다.**
+- 최상위와 엔진 수준의 미지 필드는 보존됩니다. `migrate_report_payload()`도 producer 확장을
+  버리지 않으므로 CI archive를 그대로 통과시켜도 안전합니다.
+- `fingerprint`는 checkout 위치와 무관합니다. 같은 finding은 다른 머신·다른 절대 경로에서도
+  같은 값을 가집니다.
+
+**보장하지 않는 것**
+
+- `fingerprint` 값 자체는 `analysis_metadata.fingerprint_version` 안에서만 비교 가능합니다.
+  계산 방식이 개선되면 이 버전이 올라가고 값이 바뀝니다. 두 리포트의 finding 을 맞대는
+  소비자는 **`fingerprint_version` 이 같은지 먼저 확인해야 합니다.** 다르면 fingerprint 로
+  맞대지 말고 rule id 와 위치로 맞대십시오. baseline 비교가 이 필드를 그렇게 사용합니다.
+- 필드의 출현 순서, 부동소수 표현의 자릿수, 사람이 읽는 `message`·`summary` 문자열의 문구는
+  계약이 아닙니다. 문구를 정규식으로 파싱하는 소비자는 `rule_id`와 `tool_rule_id`를 대신
+  쓰십시오.
+- `targets`는 v2 호환을 위한 이행 기간 표면입니다. 모든 legacy target은 finding adapter로도
+  제공되므로 새 소비자는 `findings`를 읽어야 합니다.
+
+**major가 올라갈 때**
+
+- 이전 major는 최소한 하나의 minor 주기 동안 `migrate_report_payload()`로 읽을 수 있어야
+  합니다. v2 → v3 전환이 그 선례입니다.
+- 마이그레이션은 값을 지어내지 않습니다. 새 major에서 생긴 필드는 이전 문서에서 올 수 없으므로
+  기본값이 되거나 비어 있습니다.
+- 지원하지 않는 `schema_version`은 조용히 추측하지 않고 `ValueError`로 닫습니다.
+
+기계가 읽을 대상으로는 SARIF 2.1.0 export(`--sarif`)도 있습니다. SARIF는 자체 버전 정책을
+따르며 rule/result/location/fix mapping과 `baselineState`를 포함합니다. 외부 도구 연동은
+`ici.result/v3`보다 SARIF 쪽이 안정적인 선택입니다.
+
 모든 CLI 결과의 종료 코드는 동일합니다.
 
 - PASS/WARN: 0

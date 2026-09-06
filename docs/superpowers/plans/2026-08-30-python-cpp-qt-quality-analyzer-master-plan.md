@@ -1951,7 +1951,11 @@ pending이다.
   - 2026-09-06 실사: released 6 scenario에 더해 candidate 16/16 원격 인수
     ([run `33950030497`](https://github.com/jihoon22-lee/ici/actions/runs/33950030497)).
 - [ ] 네트워크와 root 권한 없이 standard profile이 완료된다.
-- [ ] v2 report migration과 v3 schema 안정성 정책을 발표한다.
+- [x] v2 report migration과 v3 schema 안정성 정책을 발표한다.
+  - 2026-09-06: `migrate_report_payload()` 는 이전부터 있었고, 빠져 있던 안정성 정책을
+    engine-reference 1.3 절의 "스키마 안정성 정책" 으로 발표했다. major 안에서 보장하는 것,
+    보장하지 않는 것(fingerprint 는 analysis_metadata.fingerprint_version 안에서만 비교
+    가능하다는 점, message 문구), major 전환 규칙을 구분해 적었다.
 - [ ] 사용자 문서에 설치 도구, fallback, limitation과 remediation workflow가 있다.
 
 ---
