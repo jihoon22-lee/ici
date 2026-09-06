@@ -134,10 +134,21 @@ max CC 24, 1000줄 초과 파일 0이다.
 3. **독립 세션이 필요한 큰 작업 넷** — whole-program/linker-backed dead-symbol reachability,
    C++ AST/semantic duplicate analysis, broader false-positive corpus, 그리고 18절의 rollup들.
 
-18절 rollup은 하위 항목이 모두 닫힌 절에서도 열어 두었다. I5·I6·I8 각각의 본문에 아직
-해소되지 않은 단서가 남아 있기 때문이다 — 예를 들어 I8-1은 "실제 browser startup/memory
-benchmark는 I8-4에 남는다"고 적었는데, I8-4의 benchmark는 리포터 **생성** 시간을 재지 브라우저를
-띄우지 않는다. 확인 없이 rollup을 체크하면 이 실사가 고치려던 문제를 그대로 되풀이하는 것이다.
+18절 rollup은 처음에 하위 항목이 모두 닫힌 절에서도 열어 두었다. 본문에 아직 해소되지 않은
+단서가 남아 있었기 때문이고, 확인 없이 체크하면 이 실사가 고치려던 문제를 그대로 되풀이하는
+것이기 때문이다. **그 확인을 뒤이어 수행했고 결과는 절마다 달랐다.**
+
+| 절 | 하위 미체크 | 본문 단서 | 결과 |
+|---|---|---|---|
+| I5 | 0 | envlens/ici 실물 교차 검증 미수행 | 검증을 실제로 수행하고 **닫음** (toy PR #68) |
+| I6 | 0 | remote/candidate acceptance 기록이 없음 | 인수는 있었고 기록만 빠져 있어 네 run 을 확인해 적고 **닫음** |
+| I7 | 0 | candidate ici 한정 (릴리스 cadence) | 구현 공백이 아니므로 **닫음** |
+| I8 | 0 | SARIF fix model · browser benchmark | 둘 다 실제 미완 → 추적 항목으로 승격, **열어 둠** |
+| I4·I9 | 있음 | — | 하위 항목이 남아 있어 실사 대상 아님 |
+
+I8 이 이 실사의 요점을 보여준다. 하위 체크박스가 전부 닫혀 있어도 절은 닫히지 않을 수 있고,
+산문에만 적힌 미완은 rollup 을 체크할 때 보이지 않는다. 그래서 미체크 수는 11 에서 13 으로
+**늘었다** — 두 항목이 새로 생긴 것이 아니라, 원래 있던 두 항목이 이제 보이는 것이다.
 
 ---
 
@@ -1656,8 +1667,21 @@ interpreter가 설정으로 교체될 수 있으므로 이 engine의 cache는 �
 2026-09-04 local implementation은 import/build/extract 없이 bounded pyproject/wheel을 읽고,
 WHEEL/METADATA/RECORD identity·tag·package file·entry-point 일치와 RECORD hash/size를 검증한다.
 모든 pyproject/wheel 입력은 PASS/FAIL target을 남기며 손상된 wheel은 해당 경로의
-`ici.package.wheel-invalid`로 닫힌다. 마지막 envlens/ici 실물 교차 검증은 toy candidate
-acceptance와 함께 수행한다.
+`ici.package.wheel-invalid`로 닫힌다.
+
+**마지막 envlens/ici 실물 교차 검증 완료 (2026-09-06, toy PR #68).** 이 절이 미뤄 두었던
+항목이다. 저장소 CI는 wheel과 sdist를 `SOURCE_DATE_EPOCH`로 두 번 빌드해 바이트를 비교하므로
+재현성은 이미 측정돼 있었지만, 순수성은 아니었다 — 기존 audit은 `WHEEL` 메타데이터를 읽는데
+그건 아카이브에 무엇이 들었는지가 아니라 빌드가 **주장하는** 것이고, `Root-Is-Purelib: true`와
+native member는 동시에 존재할 수 있다. `envlens/ici.toml`에 `wheel_globs`가 없어 ici의 package
+엔진이 이 wheel을 본 적이 없었다.
+
+`envlens/ici-candidate.toml`이 그 엔진을 산출된 wheel로 향하게 한다. 실측: `PASS`/`MEASURED`,
+wheel 1개·member 24·`pure: true`·`native_members: []`·entry point 1·source module 18,
+`python3.10`과 `python3.14` 모두 version·compileall·import smoke 통과. 가짜
+`_accel.cpython-310-x86_64-linux-gnu.so` member를 주입하면 `wheel_policy = "pure"` 아래에서
+`2 failure(s)`로 바뀌고 되돌리면 `PASS`로 복귀한다 — 이 게이트는 실제로 무언가를 막는다.
+I7-1·I7-4와 같은 이유로 candidate ici 한정이다.
 
 ---
 
@@ -1710,9 +1734,25 @@ source relocation·완전성·function geometry·branch/call record를 bounded p
 caller-declared changed-line gate를 분리하고, 실제 regular source와 canonical project-relative
 path만 받는다. v3 baseline은 aggregate 및 per-file regression delta를 별도 finding으로 만들며
 `--fail-on-new`일 때만 baseline delta가 gate가 된다. real GCC 15.2 Qt fixture는 5개 JSON report,
-3개 exact function과 line/function/branch 100%를 확인했다. 이 완료 표시는 구현·local gate 범위며,
-remote PR/main 및 candidate acceptance는 아래 delivery 기록에서 별도로 확정한다. 버전은
+3개 exact function과 line/function/branch 100%를 확인했다. 버전은
 `0.10.2`로 유지하고 이 범위를 위한 release는 만들지 않는다.
+
+### I6 delivery 기록 (2026-09-06 실사로 보강)
+
+이 절은 "remote PR/main 및 candidate acceptance는 아래 delivery 기록에서 별도로 확정한다"고
+적어 두었지만 **그 기록이 쓰인 적이 없었다.** 인수 자체는 있었고 기록만 빠져 있었으므로
+여기에 남긴다. I6 구현은 [PR #155](https://github.com/jihoon22-lee/ici/pull/155)
+(`feat(analysis): deepen C++ metrics and exact coverage policy`)로
+`b7122676cfc8c9e939bf4cabedb0b6f4f3359797`에 병합됐다.
+
+| 단계 | run | 결과 |
+|---|---|---|
+| PR CI | [`33868240776`](https://github.com/jihoon22-lee/ici/actions/runs/33868240776) | Verify & Dogfood 12m29s pass, Qt5·Qt6 pass, Merge Gate pass |
+| exact-main | [`33873322908`](https://github.com/jihoon22-lee/ici/actions/runs/33873322908) | `CI Quality Gate (Dogfooding)` push on `b7122676`, success |
+| candidate artifact | [`33949687988`](https://github.com/jihoon22-lee/ici/actions/runs/33949687988) | `Build ici Candidate Artifact`, success |
+| candidate Quality Zoo | [`33950030497`](https://github.com/jihoon22-lee/ici/actions/runs/33950030497) | `Verify ici Candidate with Quality Zoo`, 16/16 scenario contracts PASS |
+
+따라서 I6의 remote/candidate acceptance는 확정됐다.
 
 ---
 
@@ -1847,9 +1887,15 @@ stable release 가 나오면 그 문장 자체가 사라진다. toy-projects 의
 - [x] HTML은 full inventory를 검색/필터할 수 있지만 초기 DOM 크기를 제한한다.
 
 SARIF 2.1.0의 deterministic rule/result/location, suppression, duplicate occurrence와 baseline
-location mapping은 구현됐지만 source fix model은 아직 없으므로 SARIF 전체 항목은 닫지 않는다.
-HTML은 2,000 actionable finding 초과 시 초기 50행과 bounded inline inventory를 사용하며
-100,000 finding 회귀 fixture를 통과한다. 실제 browser startup/memory benchmark는 I8-4에 남는다.
+location mapping은 구현됐다. HTML은 2,000 actionable finding 초과 시 초기 50행과 bounded inline
+inventory를 사용하며 100,000 finding 회귀 fixture를 통과한다.
+
+2026-09-06 rollup 실사: 이 문단이 산문으로만 남겨 두었던 미완 둘을 추적 항목으로 승격한다.
+체크박스가 없는 미완은 rollup을 닫을 때 보이지 않고, 그것이 이 실사가 고치려는 문제다.
+
+- [ ] SARIF source fix model을 추가한다. rule/result/location/suppression/baseline mapping은
+  있지만 `fixes`가 없어 SARIF 소비자가 자동 수정 제안을 받을 수 없다. compiler/clang-tidy
+  fix-it은 이미 bounded suggestion으로 기록되므로 입력은 있다.
 
 ### I8-2~I8-4 범위 결정 (2026-09-06)
 
@@ -1932,8 +1978,12 @@ Qt 뷰어 lazy model 은 위 결정으로 범위에서 빠졌다. 아래는 cons
   - `verify` job 이 매 실행 돌려 `report_benchmark.json` 을 검증 리포트와 같은 artifact 에
     올린다. 예산 비교는 `--enforce` 를 명시할 때만 exit 1 이며, 기본 실행이 예산을 넘겨도
     exit 0 인 것을 테스트로 고정했다.
-  - 이 세 항목은 **리포터 생성 시간**을 닫는다. I8-1 이 남긴 실제 browser startup/memory
-    benchmark 는 여전히 열려 있다 — 이 벤치마크는 브라우저를 띄우지 않는다.
+  - 이 세 항목은 **리포터 생성 시간**을 닫는다.
+- [ ] 실제 browser startup/memory benchmark를 만든다. 위 세 항목은 리포트를 **생성하는** 비용을
+  재고 브라우저를 띄우지 않는다. I8-1이 이 항목을 I8-4에 남겨 두었으나 체크박스가 없어
+  추적되지 않았으므로, 2026-09-06 rollup 실사에서 승격했다. 10만 finding HTML은 33.4 MB이고
+  초기 DOM은 50행으로 제한되지만, 브라우저가 그것을 여는 데 드는 시간과 메모리는 아직
+  측정된 적이 없다.
 
 ---
 
@@ -2273,13 +2323,25 @@ pending이다.
   code/local contract와 ici PR/main acceptance, v0.10.2 public release evidence 완료;
   다음 minor는 BuildScope B5와 real toy-projects/quality-zoo 검증 및 I4-3/I4-4 완료 뒤로
   deferred)
-- [ ] I5: Python tool config, AST rules, runtime/package 호환성 완료
-- [ ] I6: gcov JSON, coverage policy, test-quality deep profile 완료
+- [x] I5: Python tool config, AST rules, runtime/package 호환성 완료
+  - 2026-09-06 rollup 실사: 네 절 모두 미체크 0. 본문의 유일한 단서였던 "마지막
+    envlens/ici 실물 교차 검증"을 toy PR #68 로 실제 수행했다 — ici 의 package 엔진이
+    envlens wheel 을 member 단위로 읽고 `pure` 정책을 적용하며, native member 주입
+    mutation 이 게이트를 막는 것까지 확인했다. 11 절 I5-4 끝에 근거가 있다.
+- [x] I6: gcov JSON, coverage policy, test-quality deep profile 완료
+  - 2026-09-06 rollup 실사: 세 절 모두 미체크 0. 본문이 remote/candidate acceptance 를
+    "아래 delivery 기록"으로 미뤘는데 **그 기록이 쓰인 적이 없었다.** 인수 자체는
+    있었고 기록만 빠져 있었으므로 12 절 끝에 PR CI·exact-main·candidate artifact·
+    candidate Quality Zoo 네 run 을 확인해 적었다.
 - [x] I7: Makefile, artifacts, ABI, hybrid integration 완료
   - 2026-09-06: 네 절 모두 미체크 항목 0. 절 실사는 13 절 끝의 "I7 체크포인트 실사"에
     있다. 본문에 남은 단서 둘은 abilens/buildscope 계약이 candidate ici 한정이라는
     릴리스 cadence 사실이며 구현 공백이 아니다.
 - [ ] I8: reporter parity, viewer diff/triage, 대형 report 처리 완료
+  - 2026-09-06 rollup 실사 결과 **닫지 않는다.** 본문에 체크박스 없이 산문으로만 남아
+    있던 미완 둘을 추적 항목으로 승격했다 — SARIF source fix model(I8-1)과 실제
+    browser startup/memory benchmark(I8-4). 둘 다 실제 작업이고, 추적되지 않는 미완이
+    rollup 을 닫을 때 보이지 않는 것이 이 실사가 고치려던 문제다.
 - [ ] I9: quality-zoo, self ratchet, 1.0 support contract 완료
 
 I1 기능과 로컬 실물 검증 및 PR/CI Merge Gate는 완료됐다. [PR #89](https://github.com/jihoon22-lee/ici/pull/89)의
