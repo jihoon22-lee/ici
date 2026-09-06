@@ -134,6 +134,15 @@ class BinaryCompatibilityEngine(BaseEngine):
                         f"elf.version.{namespace}",
                     )
                 )
+        if cfg.get("require_static", False) and facts.dynamic:
+            findings.append(
+                _finding(
+                    "ici.binary.dynamic-linkage",
+                    path,
+                    "Artifact is dynamically linked but the policy requires static linkage",
+                    "elf.linkage.dynamic",
+                )
+            )
         paths = (*facts.rpath, *facts.runpath)
         if cfg.get("forbid_absolute_rpath", True):
             absolute = [value for value in paths if value.startswith("/")]

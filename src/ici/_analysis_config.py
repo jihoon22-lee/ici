@@ -112,7 +112,7 @@ def _validate_binary_compat(table: dict[str, Any], path: str) -> None:
             len(value) > _MAX_BINARY_VERSION_LENGTH or _ABI_VERSION.fullmatch(value) is None
         ):
             raise _error(f"{path}.{key}", "must be empty or an ABI version such as 2.17")
-    for key in ("forbid_absolute_rpath", "forbid_build_paths", "allow_non_elf"):
+    for key in ("forbid_absolute_rpath", "forbid_build_paths", "allow_non_elf", "require_static"):
         if key in table:
             _require_bool(table[key], f"{path}.{key}")
     for key in ("forbidden_needed", "allowed_needed"):

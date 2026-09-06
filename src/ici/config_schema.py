@@ -190,6 +190,7 @@ _ENGINE_KEYS = {
             "max_glibcxx",
             "max_cxxabi",
             "forbid_absolute_rpath",
+            "require_static",
             "forbidden_needed",
             "allowed_needed",
             "forbid_build_paths",
