@@ -1681,7 +1681,11 @@ remote PR/main 및 candidate acceptance는 아래 delivery 기록에서 별도�
 
 - [ ] executable, shared/static library, Python wheel, report artifact를 typed record로 남긴다.
 - [x] hash, size, mode, producing target/command와 build variant를 기록한다.
-- [ ] artifact glob이 빈 결과거나 project 밖으로 나가면 ERROR로 처리한다.
+- [x] artifact glob이 빈 결과거나 project 밖으로 나가면 ERROR로 처리한다.
+  - 2026-09-06 실사: `ArtifactManifest.create` 가 절대 경로, 정규화 후에도 남는 부모 세그먼트,
+    선언된 루트를 벗어나는 심링크, 비정규 파일, per-file/aggregate 바이트 한도를 각각 거부하고
+    `tests/test_artifact_manifest.py` 18건이 그 경계를 고정한다. 설정한 artifact 가 발행되지
+    않았을 때 `binary_compat` 이 ERROR 로 닫는 쪽만 테스트가 없어 이번에 추가했다.
 - [x] downstream binary/integration engine은 manifest만 소비한다.
 
 현재 v2 manifest는 executable/shared/static library에 stable id, filename-derived target label,
