@@ -67,7 +67,11 @@ def test_ci_permissions_are_read_only_except_trusted_publish_job():
 
     verify = _job_block(workflow, "verify")
     assert re.search(r"(?m)^    permissions:\n      contents: read\n", verify)
-    assert "write" not in verify
+    # A granted write scope is a permission *value*, not any occurrence of the
+    # word. The bare substring check failed on a comment reading "--report
+    # writes a fixed filename", which says nothing about permissions. Match the
+    # mapping value at any nesting instead, `permissions: write-all` included.
+    assert not re.search(r"(?m)^\s+[a-z-]+:\s*write(?:-all)?\s*$", verify)
     assert "--publish" not in verify
     assert "GITHUB_TOKEN" not in verify
     assert "github.token" not in verify

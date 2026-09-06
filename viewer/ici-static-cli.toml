@@ -1,0 +1,76 @@
+# The Qt-free `icirv` CLI is the closed-network deliverable: it ships as a
+# release asset and has to run on a host with no Qt and an older glibc than the
+# builder's. CMake already asks for that (`ICIRV_STATIC` adds `-static`), so the
+# claim exists in the build. This overlay makes it a measurement.
+#
+# It does not replace the workflow's Qt-free configure check. That one proves
+# the CLI configures with both Qt packages disabled — a configure-time property
+# ici's CMake adapter cannot express, because `[build]` has no define surface.
+# This overlay proves the linkage policy of the produced binary from readelf
+# evidence. Two different claims, both needed.
+#
+# Usage: ICI_CONFIG=ici-static-cli.toml ../dist/ici.pyz verify --profile deep
+
+[project]
+name = "icirv-static-cli"
+version = "0.1.0"
+source_dirs = ["src"]
+
+[ici]
+profile = "deep"
+
+# Everything except the artifact contract is already covered by the main
+# `ici.toml` dogfood run in the same job. Repeating it here would double the
+# C++ analysis cost to re-measure what is already measured.
+[engines.line]
+enabled = false
+[engines.lint]
+enabled = false
+[engines.compile_db]
+enabled = false
+[engines.test]
+enabled = false
+[engines.type]
+enabled = false
+[engines.python_compat]
+enabled = false
+[engines.cognitive]
+enabled = false
+[engines.resource]
+enabled = false
+[engines.security]
+enabled = false
+[engines.cycle]
+enabled = false
+[engines.complexity]
+enabled = false
+[engines.sanitize]
+enabled = false
+[engines.thread_sanitize]
+enabled = false
+[engines.dead]
+enabled = false
+[engines.dup]
+enabled = false
+[engines.exception]
+enabled = false
+
+[engines.build]
+enabled = true
+required = true
+mode = "pass_fail"
+
+# `require_static` reads the sentence readelf prints for an object with no
+# PT_DYNAMIC. An empty DT_NEEDED is not evidence of static linkage — a dynamic
+# binary that happens to need nothing looks identical.
+[engines.binary_compat]
+enabled = true
+required = true
+mode = "pass_fail"
+artifacts = ["release:shadow:icirv"]
+expected_class = "ELF64"
+expected_machine = "Advanced Micro Devices X86-64"
+require_static = true
+forbid_absolute_rpath = true
+forbid_build_paths = true
+allow_non_elf = false
