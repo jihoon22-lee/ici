@@ -511,6 +511,60 @@ publish 대상의 Pages 설정, 브랜치 정책, 토큰 범위는 조직 정책
   shell-free bounded case만 실행한다. 이 문서의 feature 설명은 구현 범위이며, 최종 cross-repo
   toy acceptance·전체 CI gate·stable release 근거로 해석하지 않는다.
 
+#### 네트워크와 root 없이 `standard`가 완료되는지 (실측)
+
+"CDN을 조회하지 않는다"는 코드를 읽어서 하는 주장입니다. 실제로 네트워크가 없고 권한도 없는
+곳에서 완주하는지는 재 봐야 압니다. 사용자 namespace로 네트워크를 끊고 uid를 그대로 둔 채
+실행하면 두 조건을 한 번에 확인할 수 있습니다.
+
+```bash
+unshare --user --map-current-user --net \
+  ./dist/ici.pyz verify --profile standard
+```
+
+`--map-current-user`가 중요합니다. `unshare -r`은 namespace 안에서 uid를 0으로 매핑하므로
+"root 없이"를 측정하지 못합니다.
+
+2026-09-06 실측 결과입니다. 같은 namespace 안에서 `1.1.1.1:443` 연결은 `OSError`로 실패하고,
+uid는 `1000`으로 유지됐습니다.
+
+```
+Total Engines: 14  (Pass: 11, Warn: 2, Fail: 0, Error: 0, Skip: 1)
+TEM Score: 4.78 / 5.0    exit 0
+Suite: WARN — 2 engine(s) warned: line, complexity
+```
+
+두 WARN은 폐쇄망과 무관한 코드 규모 부채이며
+[자체 검증 부채 문서](design/self-verification-debt.md)에 설명돼 있습니다. 이 측정은
+`verify` 실행 경로만 다룹니다. `ici.pyz`를 **빌드**하는 데에는 위에 적은 대로 캐시나 내부
+미러가 여전히 필요합니다.
+
+#### 정적 링크 계약도 grep이 아니라 측정입니다
+
+폐쇄망으로 나가는 `icirv` CLI는 Qt가 없고 glibc가 더 오래된 호스트에서 돌아야 합니다.
+그래서 CMake가 `-static`을 요구하고(`ICIRV_STATIC`), CI가 그것을 확인합니다. 확인은 두
+갈래이고, 둘은 **다른 것**을 증명합니다.
+
+| 검사 | 증명하는 것 | 방법 |
+|---|---|---|
+| `Verify the Qt-free static CLI contract` | Qt 두 패키지 계열을 모두 비활성화한 채 **configure된다** | `cmake -DICIRV_BUILD_GUI=OFF -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON -DCMAKE_DISABLE_FIND_PACKAGE_Qt5=ON` |
+| `Dogfooding — static CLI artifact contract via ici` | **산출된 바이너리**가 ELF64 x86-64이고 정적 링크이며 절대 RPATH나 빌드 경로를 담지 않는다 | `viewer/ici-static-cli.toml` + ici의 `binary_compat` |
+
+앞의 것은 configure 시점 속성이라 ici가 표현할 수 없습니다 — `[build]`에는 define 표면이
+없습니다. 뒤의 것은 산출물의 정책이라 ici가 readelf 증거로 판정합니다. 한쪽만 두면 계약의
+절반이 검사되지 않습니다.
+
+`require_static`의 판정 근거는 readelf가 PT_DYNAMIC 없는 객체에만 출력하는 문장입니다.
+`DT_NEEDED`가 비었다는 사실은 근거가 되지 않습니다 — 아무것도 필요로 하지 않는 동적
+바이너리와 구분되지 않기 때문입니다.
+
+overlay는 `binary_compat`과 그 선행 `build`만 켜고 나머지 엔진은 끕니다. 같은 job의 주
+C++ 게이트가 이미 그것들을 측정하므로 반복하면 C++ 분석 비용만 두 배가 됩니다.
+
+2026-09-06 로컬 실측: `build` PASS, `binary_compat` PASS (`1 checked, 0 violation(s)`), 2.15초.
+같은 설정을 동적 링크된 `icirv-gui`로 돌리면 `ici.binary.dynamic-linkage`로 FAIL하므로, 이
+게이트는 실제로 무언가를 막습니다.
+
 ### 4.2 Python 런타임
 
 시스템 기본 `python3`가 구버전이어도 `scripts/launcher.sh`가 `ICI_PYTHON` 또는 설치된
@@ -519,6 +573,39 @@ Python 3.10 이상 후보를 탐색합니다. 폐쇄망 배포 전에는 대상 
 검사하려면 `python_compat.wheel_globs`를 명시하고, `wheel_policy = "pure"`를 선택하면 native
 extension member가 실패합니다. wheel의 RECORD hash/size와 package/entry-point identity도
 bounded하게 확인되며 wheel을 ici가 만들거나 추출하지는 않습니다.
+
+#### 지원 runtime은 선언이 아니라 측정입니다
+
+ici는 `requires-python >= 3.10`을 선언하고 상한을 두지 않습니다. 그러면 "지원한다"는 말은
+**두 개의 측정된 runtime**을 뜻해야 합니다 — 바닥값 하나, 그리고 실제로 돌아간다고 주장하는
+최신 릴리스 하나. 하나만 재면 나머지 하나는 README 문장일 뿐입니다.
+
+`ici.toml`이 두 runtime을 모두 나열하고, 바닥값만 required입니다.
+
+```toml
+[engines.python_compat]
+target_version = "3.10"
+interpreters = ["python3.10", "python3.14"]
+required_interpreters = ["python3.10"]
+```
+
+바닥값을 required로 두는 이유는 단순합니다. `python3.10`을 찾지 못한 자체 검증은 자신이
+광고하는 바닥값을 검증하지 않은 것이므로, 그 실행은 통과해서는 안 됩니다. 실제로 PATH에서
+`python3.10`을 제거하고 실행하면 `Configured interpreter is unavailable: python3.10`으로
+닫힙니다. 최신 runtime은 optional이라 바닥값만 설치된 기계에서도 이 설정이 그대로 동작하며,
+CI가 두 버전을 모두 설치하므로 거기서는 실제로 둘 다 측정됩니다.
+
+`verify` job은 3.14를 **먼저** 설치합니다. `setup-python`은 마지막에 설치한 버전을 PATH 앞에
+두는데, 다른 모든 스텝은 3.10을 기본으로 해석해야 하기 때문입니다. 3.14 설치의 역할은
+`python3.14`를 찾을 수 있게 남겨 두는 것뿐입니다.
+
+증거는 리포트의 per-runtime target입니다. 2026-09-06 실측:
+
+```
+PASS python3.10 (3.10.21) passed version, compileall, and import smoke checks   required: 1
+PASS python3.14 (3.14.7) passed version, compileall, and import smoke checks    required: 0
+extra.runtime_count: 2
+```
 
 ### 4.3 도구 실행 증거
 

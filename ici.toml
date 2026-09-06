@@ -53,10 +53,17 @@ mypy_profile = "ici"
 enabled = true
 mode = "pass_warn_fail"
 required = false
-# Self dogfood validates both the Python 3.10 floor and the currently selected interpreter.
+# ici declares requires-python >= 3.10 and no upper bound, so "supported" has to
+# mean two measured runtimes, not one: the floor, and the newest release the
+# project actually claims to run on. Listing them here makes both a measurement
+# instead of a README sentence. The floor is required — a self-verification that
+# cannot find python3.10 has not verified the floor it advertises. The newest
+# runtime stays optional so this config still works on a machine that has only
+# the floor installed; CI installs both, and the report's per-runtime
+# PythonRuntime targets are the evidence that both were exercised.
 target_version = "3.10"
-interpreters = []
-required_interpreters = []
+interpreters = ["python3.10", "python3.14"]
+required_interpreters = ["python3.10"]
 imports = ["ici"]
 
 [engines.complexity]

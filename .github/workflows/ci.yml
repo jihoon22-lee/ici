@@ -23,6 +23,15 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Installed before 3.10 on purpose. setup-python puts the last version it
+      # installs first on PATH, and every other step in this job must resolve
+      # 3.10 as the default. This one only has to leave `python3.14` findable so
+      # python_compat measures the newest supported runtime next to the floor.
+      - name: Set up the newest supported Python (3.14)
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
       - name: Set up Python 3.10
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -96,6 +105,26 @@ jobs:
       # CI 에서 실제로 실행된다 — 그 전까지 C++ 엔진은 단위 테스트로만 덮여 있었다.
       # --github-summary 는 $GITHUB_STEP_SUMMARY 에 append 하므로, Actions 실행 요약에
       # Python 결과와 C++ 결과가 나란히 남는다. 두 리포트를 모두 볼 수 있어야 한다 —
+      # The viewer-gui job proves a configure-time property ici cannot express:
+      # the CLI configures with both Qt package families disabled. This proves
+      # the other half — the linkage policy of the produced binary, from ici's
+      # own readelf evidence — so the release asset's static contract is a
+      # measurement in a report rather than a grep in a shell script.
+      #
+      # It runs here rather than in viewer-gui because dist/ici.pyz and the Qt6
+      # toolchain already exist in this job; rebuilding the pyz there to run one
+      # engine pair would double the build for no extra coverage. It runs before
+      # the C++ gate because --report writes a fixed filename, and the C++ gate's
+      # report is the one that keeps the canonical name.
+      - name: 🐶 Dogfooding — static CLI artifact contract via ici (viewer/)
+        working-directory: viewer
+        env:
+          ICI_CONFIG: ici-static-cli.toml
+        run: |
+          set -euo pipefail
+          ../dist/ici.pyz verify --profile deep --report
+          mv verify_report.json static_cli_report.json
+
       - name: 🐶 Dogfooding — C++ Gate via ici (viewer/)
         working-directory: viewer
         env:
@@ -114,6 +143,7 @@ jobs:
             verify_report.json
             viewer/verify_report.html
             viewer/verify_report.json
+            viewer/static_cli_report.json
           retention-days: 14
 
   # The Qt shell sits outside every ici engine's scope by design — the core is
