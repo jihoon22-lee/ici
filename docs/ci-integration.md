@@ -449,9 +449,13 @@ PR 검증을 분리하면 기준선 변경을 코드 리뷰로 확인하기도 �
 기준선 suppressed → 현재 unsuppressed 전환은 `regressed`로 표시합니다. `--fail-on-new`는
 현재 finding이 actionable일 때만 새 항목과 regression을 gate합니다. `info` severity와
 suppressed finding은 gate에서 제외되고, `resolved`는 실패시키지 않습니다. 따라서 같은
-위치의 severity 변경은 `unchanged + regressed`가 될 수 있고, suppression은 현재 finding을
-조치 대상에서 제외하는 표시인 반면 baseline은 과거 finding inventory snapshot이라는
-차이가 있습니다.
+위치의 severity 변경은 `unchanged + regressed`가 될 수 있습니다.
+
+baseline과 suppression은 gate를 통과시키는 결과가 비슷해 보이지만 서로를 대신할 수 없습니다.
+baseline은 실행 전체의 과거 inventory snapshot이고 suppression은 finding 한 건에 붙는 의도
+표시이며, 현재 `verify`에서 `suppressed=true`를 붙이는 엔진은 없습니다. 두 장치의 범위·만료·
+gate 효과 비교는 [사용자 가이드의 "Baseline과 suppression은 다른 장치입니다"](user-guide.md#baseline과-suppression은-다른-장치입니다)를
+canonical reference로 삼습니다.
 
 baseline metadata의 버전·fingerprint·analysis policy·tool policy 불일치는 호환성
 warning으로 보고됩니다. 이 warning만으로 baseline gate가 실패하지는 않지만, 같은 실행의

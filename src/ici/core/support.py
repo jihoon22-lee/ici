@@ -736,3 +736,45 @@ def render_support_markdown() -> str:
             values.append(mode)
         lines.append(f"| `{engine_name}` | {values[0]} | {values[1]} |")
     return "\n".join(lines)
+
+
+def _limitation_scope(item: SupportDeclaration) -> str | None:
+    """Return why this scope can produce a non-exact result, or ``None``.
+
+    Only declarations whose result can be an estimate belong in the inventory:
+    a declared heuristic mode, or a tool-backed/exact mode that degrades to a
+    heuristic when the tool is unavailable. Unsupported scopes produce nothing
+    and are not limitations of a delivered result.
+    """
+
+    if item.mode is AnalysisMode.HEURISTIC:
+        return "always heuristic"
+    if item.fallback_mode is AnalysisMode.HEURISTIC:
+        return f"{item.mode.value} → heuristic fallback"
+    return None
+
+
+def render_limitation_inventory_markdown() -> str:
+    """Render the heuristic-scope limitation inventory from the same registry.
+
+    The support matrix says which mode a scope runs in; this says what a WARN
+    from that scope is not allowed to claim. Keeping both generated from
+    ``_DECLARATIONS`` is what stops a documented limitation from outliving the
+    analysis it describes.
+    """
+
+    lines = [
+        "| Engine | Scope | Heuristic reason | Declared limitations |",
+        "|---|---|---|---|",
+    ]
+    declarations = {(item.engine_name, item.language): item for item in support_declarations()}
+    for engine_name in ENGINE_NAMES:
+        for language in (SupportLanguage.PYTHON, SupportLanguage.CPP):
+            item = declarations[(engine_name, language)]
+            reason = _limitation_scope(item)
+            if reason is None:
+                continue
+            scope = "Python" if language is SupportLanguage.PYTHON else "C++ / Qt"
+            limitations = " ".join(item.limitations) if item.limitations else "—"
+            lines.append(f"| `{engine_name}` | {scope} | {reason} | {limitations} |")
+    return "\n".join(lines)
