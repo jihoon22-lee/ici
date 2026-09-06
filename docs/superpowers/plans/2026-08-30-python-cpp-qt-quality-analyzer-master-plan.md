@@ -1699,7 +1699,12 @@ report artifact의 typed producer, configurable artifact glob 계약은 아직 �
 
 - [x] ELF class, machine, NEEDED, RPATH/RUNPATH를 `readelf` evidence로 읽는다.
 - [x] GLIBC, GLIBCXX, CXXABI maximum required version을 계산한다.
-- [ ] static requirement, forbidden dependency/path와 configured floor를 정책화한다.
+- [x] static requirement, forbidden dependency/path와 configured floor를 정책화한다.
+  - forbidden dependency/path 와 floor 는 `forbidden_needed`/`allowed_needed`/
+    `forbid_absolute_rpath`/`forbid_build_paths`/`max_glibc`/`max_glibcxx`/`max_cxxabi` 로
+    이미 있었다. 2026-09-06 에 빠져 있던 `require_static` 을 추가했다. 판정은 readelf 가
+    PT_DYNAMIC 없는 객체에 출력하는 문장으로 하고, `DT_NEEDED` 가 비었다는 사실만으로는
+    정적으로 보지 않는다.
 - [x] stripped/malformed/non-ELF를 구분한다.
   - 2026-09-06 실사: `binary_compat.py`의 `ici.binary.non-elf` rule과 `stripped` fact.
 - [ ] abilens의 executable/shared library와 viewer static CLI를 실측한다.
