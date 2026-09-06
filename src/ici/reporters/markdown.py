@@ -427,20 +427,49 @@ def generate_markdown_report(
     return "\n".join(md)
 
 
+def _changed_annotation_locations(
+    comparison: BaselineComparison | None,
+) -> frozenset[tuple[str, int]]:
+    """Locations a baseline comparison marks as new or regressed.
+
+    Matching on the delta's own ``current_location`` keeps this out of the
+    fingerprint canonicalisation, which lives in one place and should not be
+    reimplemented for a presentation concern.
+    """
+
+    if comparison is None:
+        return frozenset()
+    changed: set[tuple[str, int]] = set()
+    for entry in comparison.entries:
+        if entry.state is not DeltaState.NEW and not entry.regressed:
+            continue
+        location = entry.current_location
+        if location is None:
+            continue
+        changed.add((location.path, location.start_line))
+    return frozenset(changed)
+
+
 def emit_github_actions_annotations(suite: VerificationSuiteResult) -> None:
     """Emits GitHub Actions workflow commands (::error and ::warning) for PR inline annotations."""
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return
 
+    redacted = redact_suite(suite)
+    changed = _changed_annotation_locations(redacted.baseline_comparison)
     candidates = [
         (result_index, target_index, result.engine_name, target)
-        for result_index, result in enumerate(redact_suite(suite).results)
+        for result_index, result in enumerate(redacted.results)
         for target_index, target in enumerate(result.targets)
         if target.status
         in (EngineStatus.FAIL, EngineStatus.ERROR, EngineStatus.WARN, EngineStatus.SKIP)
     ]
+    # A PR reviewer is looking for what this change introduced, so new and
+    # regressed findings take the bounded budget first. Without a baseline every
+    # finding ranks the same and the ordering is unchanged.
     candidates.sort(
         key=lambda item: (
+            0 if (item[3].file_path, item[3].start_line) in changed else 1,
             _annotation_status_rank(item[3].status),
             item[0],
             item[1],
