@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
@@ -244,16 +244,73 @@ def _function_label(line: str, location_start: int, frame_index: int) -> str:
     return f"frame #{frame_index}: {function}".rstrip(": ")
 
 
-def _locations(
+@dataclass
+class _ScannedLocations:
+    """Every located line one sanitizer report produced, kept by its origin.
+
+    The three lists stay separate because their precedence differs: a runtime
+    error line outranks a stack frame, which outranks a bare error/summary
+    marker, and markers are only carried at all when nothing better was found.
+    """
+
+    runtime: list[SourceLocation] = field(default_factory=list)
+    frames: list[SourceLocation] = field(default_factory=list)
+    markers: list[SourceLocation] = field(default_factory=list)
+    observed: int = 0
+    project_frames: int = 0
+
+
+def _marker_location(
+    line: str,
+    project_root: Path,
+    source_cache: dict[Path, tuple[str, ...] | None],
+) -> SourceLocation | None:
+    """Locate an error, TSan warning or summary line, when it carries a location."""
+
+    if (
+        _ERROR_RE.match(line) is None
+        and _TSAN_WARNING_RE.match(line) is None
+        and _SUMMARY_RE.match(line) is None
+    ):
+        return None
+    return _location_from_line(
+        line,
+        project_root,
+        source_cache,
+        label="sanitizer diagnostic",
+    )
+
+
+def _frame_location(
+    line: str,
+    frame_index: str,
+    project_root: Path,
+    source_cache: dict[Path, tuple[str, ...] | None],
+) -> SourceLocation | None:
+    """Locate the last path/line/column a stack frame names, if any."""
+
+    matches = list(_LOCATION_RE.finditer(line))
+    if not matches:
+        return None
+    match = matches[-1]
+    return _normalized_location(
+        match.group("path"),
+        int(match.group("line")),
+        int(match.group("column")) if match.group("column") else None,
+        project_root,
+        source_cache,
+        label=_function_label(line, match.start(), int(frame_index)),
+    )
+
+
+def _scan_locations(
     lines: list[str],
     project_root: Path,
     source_cache: dict[Path, tuple[str, ...] | None],
-) -> tuple[SourceLocation | None, tuple[SourceLocation, ...], int, int]:
-    observed = 0
-    runtime_locations: list[SourceLocation] = []
-    frame_locations: list[SourceLocation] = []
-    marker_locations: list[SourceLocation] = []
-    project_frames = 0
+) -> _ScannedLocations:
+    """Classify every located line in one bounded sanitizer report."""
+
+    scanned = _ScannedLocations()
     for line in lines:
         runtime = _RUNTIME_RE.match(line)
         if runtime is not None:
@@ -264,51 +321,28 @@ def _locations(
                 label="runtime error",
             )
             if location is not None:
-                runtime_locations.append(location)
+                scanned.runtime.append(location)
             continue
         frame = _STACK_RE.match(line)
         if frame is None:
-            if (
-                _ERROR_RE.match(line) is not None
-                or _TSAN_WARNING_RE.match(line) is not None
-                or _SUMMARY_RE.match(line) is not None
-            ):
-                location = _location_from_line(
-                    line,
-                    project_root,
-                    source_cache,
-                    label="sanitizer diagnostic",
-                )
-                if location is not None:
-                    marker_locations.append(location)
+            location = _marker_location(line, project_root, source_cache)
+            if location is not None:
+                scanned.markers.append(location)
             continue
-        observed += 1
-        if observed > MAX_SANITIZER_FRAMES:
+        scanned.observed += 1
+        if scanned.observed > MAX_SANITIZER_FRAMES:
             raise SanitizerDiagnosticError("sanitizer stack exceeds the bounded frame limit")
-        matches = list(_LOCATION_RE.finditer(line))
-        if not matches:
-            continue
-        match = matches[-1]
-        location = _normalized_location(
-            match.group("path"),
-            int(match.group("line")),
-            int(match.group("column")) if match.group("column") else None,
-            project_root,
-            source_cache,
-            label=_function_label(line, match.start(), int(frame.group("index"))),
-        )
+        location = _frame_location(line, frame.group("index"), project_root, source_cache)
         if location is not None:
-            frame_locations.append(location)
+            scanned.frames.append(location)
             if location.path != "[external]":
-                project_frames += 1
+                scanned.project_frames += 1
+    return scanned
 
-    owned_runtime = [item for item in runtime_locations if item.path != "[external]"]
-    owned_frames = [item for item in frame_locations if item.path != "[external]"]
-    owned_markers = [item for item in marker_locations if item.path != "[external]"]
-    primary = next(iter((*owned_runtime, *owned_frames, *owned_markers)), None)
-    locations = [*runtime_locations, *frame_locations]
-    if not owned_runtime and not owned_frames:
-        locations.extend(marker_locations)
+
+def _unique_locations(locations: list[SourceLocation]) -> list[SourceLocation]:
+    """Drop repeated path/line/column entries while preserving order."""
+
     unique: list[SourceLocation] = []
     seen: set[tuple[str, int, int | None]] = set()
     for location in locations:
@@ -316,14 +350,34 @@ def _locations(
         if key not in seen:
             unique.append(location)
             seen.add(key)
+    return unique
+
+
+def _locations(
+    lines: list[str],
+    project_root: Path,
+    source_cache: dict[Path, tuple[str, ...] | None],
+) -> tuple[SourceLocation | None, tuple[SourceLocation, ...], int, int]:
+    scanned = _scan_locations(lines, project_root, source_cache)
+
+    owned_runtime = [item for item in scanned.runtime if item.path != "[external]"]
+    owned_frames = [item for item in scanned.frames if item.path != "[external]"]
+    owned_markers = [item for item in scanned.markers if item.path != "[external]"]
+    primary = next(iter((*owned_runtime, *owned_frames, *owned_markers)), None)
+    locations = [*scanned.runtime, *scanned.frames]
+    if not owned_runtime and not owned_frames:
+        locations.extend(scanned.markers)
+
     related: list[SourceLocation] = []
     removed_primary = False
-    for location in unique:
+    for location in _unique_locations(locations):
+        # Only the first occurrence equal to the primary is removed; a second
+        # identical entry is a real repeat in the stack and stays related.
         if not removed_primary and primary is not None and location == primary:
             removed_primary = True
             continue
         related.append(location)
-    return primary, tuple(related), observed, project_frames
+    return primary, tuple(related), scanned.observed, scanned.project_frames
 
 
 def _diagnostic(

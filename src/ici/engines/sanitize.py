@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import re
 import shutil
-import sys
 import tempfile
 import time
 from collections import Counter
@@ -33,6 +32,7 @@ from ici.core.models import (
 )
 from ici.core.project import _iter_project_files
 from ici.core.runner import ProcessResult, run_process
+from ici.engines._sanitize_python_scope import PythonResourceWarningMixin
 from ici.engines._sanitizer_diagnostics import (
     MAX_SANITIZER_OUTPUT_BYTES,
     SanitizerDiagnostic,
@@ -45,10 +45,6 @@ from ici.engines.cpp_text import defines_main
 if TYPE_CHECKING:
     from ici.core.context import AnalysisContext
 
-_PYTEST_EXECUTED_RE = re.compile(
-    r"\b(?P<count>\d+)\s+(?:passed|failed|xfailed|xpassed)\b", re.IGNORECASE
-)
-_RESOURCE_WARNING_RE = re.compile(r"(?P<file>.*?\.py):(?P<line>[1-9]\d*):[^\n]*ResourceWarning")
 _SANITIZER_ERROR_RE = re.compile(
     r"(?mi)^(?:==\d+==)?\s*ERROR:\s*(?:AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer)\b"
 )
@@ -66,7 +62,7 @@ class _SanitizerFinding:
     test_name: str
 
 
-class SanitizeEngine(BaseEngine):
+class SanitizeEngine(PythonResourceWarningMixin, BaseEngine):
     """Run C++ sanitizers and Python ResourceWarning checks with evidence."""
 
     ENGINE_NAME = "sanitize"
@@ -114,21 +110,18 @@ class SanitizeEngine(BaseEngine):
         self._required_scope_missing = False
         self._sanitizer_findings: list[_SanitizerFinding] = []
 
-    def run(self) -> EngineResult:
-        t0 = time.time()
-        self._tool_errors = []
-        self._tool_evidence = []
-        self._artifact_manifests = []
-        self._measured_scopes = 0
-        self._skipped_scopes = 0
-        self._required_scope_missing = False
-        self._sanitizer_findings = []
-        targets: list[InspectionTarget] = []
+    def _analysis_scopes(self, cpp_tests: list[Path], tests_root: Path) -> tuple[bool, bool]:
+        """Decide which language scopes this project puts in play.
+
+        Discovered sources decide the scope on their own, and the declared
+        project type widens it: a project that calls itself Python or hybrid
+        keeps its Python scope even when only a tests directory exists, so a
+        missing measurement is reported rather than quietly skipped.
+        """
+
         proj_type = self.project_type()
         cpp_sources = self.project_cpp_sources()
-        cpp_tests = self._cpp_test_sources()
         py_sources = self.project_python_sources()
-        tests_root = self.project_root / "tests"
         has_python_scope = self.CHECK_PYTHON_RESOURCES and (
             bool(py_sources) or self._has_python_tests(tests_root)
         )
@@ -141,6 +134,59 @@ class SanitizeEngine(BaseEngine):
             has_python_scope = True
         if proj_type in ("cpp", "hybrid") and (cpp_sources or tests_root.exists()):
             has_cpp_scope = has_cpp_scope or bool(cpp_tests)
+        return has_python_scope, has_cpp_scope
+
+    def _overall_verdict(
+        self,
+        has_failure: bool,
+        has_warning: bool,
+        mode: str,
+        targets: list[InspectionTarget],
+    ) -> tuple[EngineStatus, EvidenceState, str]:
+        """Derive the engine status, evidence state and summary from one run."""
+
+        if self._tool_errors:
+            return EngineStatus.ERROR, EvidenceState.NOT_RUN, "; ".join(self._tool_errors[:3])
+        if self._measured_scopes and self._skipped_scopes:
+            status = (
+                self.evaluate_status(has_failure, has_warning, mode)
+                if has_failure
+                else EngineStatus.WARN
+            )
+            return status, EvidenceState.ESTIMATED, self.PARTIAL_SUMMARY
+        if self._measured_scopes:
+            status = self.evaluate_status(has_failure, has_warning, mode)
+            summary = (
+                self.CLEAN_SUMMARY
+                if status == EngineStatus.PASS
+                else f"{self._issue_count(targets)} {self.ISSUE_NOUN} Defect(s) Detected"
+            )
+            return status, EvidenceState.MEASURED, summary
+        # Two different situations reach here, and only one of them is
+        # "not applicable".
+        #
+        # A scope was in play but produced no measurement — tests that all
+        # skipped, say — is a hole in verification and must keep blocking.
+        # Nothing in scope at all, as in a C++ project with no tests, is not:
+        # the test engine already reports the missing tests, and escalating
+        # here too named sanitize as the gate's reason when the real one was
+        # "this project has no tests".
+        evidence = EvidenceState.ESTIMATED if self._skipped_scopes else EvidenceState.NOT_APPLICABLE
+        return EngineStatus.SKIP, evidence, self.SKIP_SUMMARY
+
+    def run(self) -> EngineResult:
+        t0 = time.time()
+        self._tool_errors = []
+        self._tool_evidence = []
+        self._artifact_manifests = []
+        self._measured_scopes = 0
+        self._skipped_scopes = 0
+        self._required_scope_missing = False
+        self._sanitizer_findings = []
+        targets: list[InspectionTarget] = []
+        cpp_tests = self._cpp_test_sources()
+        tests_root = self.project_root / "tests"
+        has_python_scope, has_cpp_scope = self._analysis_scopes(cpp_tests, tests_root)
 
         has_failure = False
         has_warning = False
@@ -169,41 +215,9 @@ class SanitizeEngine(BaseEngine):
         mode = cfg.get("mode", "pass_fail")
         required = bool(cfg.get("required", True))
         duration = time.time() - t0
-        if self._tool_errors:
-            overall_status = EngineStatus.ERROR
-            evidence = EvidenceState.NOT_RUN
-            summary = "; ".join(self._tool_errors[:3])
-        elif self._measured_scopes and self._skipped_scopes:
-            overall_status = (
-                self.evaluate_status(has_failure, has_warning, mode)
-                if has_failure
-                else EngineStatus.WARN
-            )
-            evidence = EvidenceState.ESTIMATED
-            summary = self.PARTIAL_SUMMARY
-        elif self._measured_scopes:
-            overall_status = self.evaluate_status(has_failure, has_warning, mode)
-            evidence = EvidenceState.MEASURED
-            summary = (
-                self.CLEAN_SUMMARY
-                if overall_status == EngineStatus.PASS
-                else f"{self._issue_count(targets)} {self.ISSUE_NOUN} Defect(s) Detected"
-            )
-        else:
-            overall_status = EngineStatus.SKIP
-            # Two different situations reach here, and only one of them is
-            # "not applicable".
-            #
-            # A scope was in play but produced no measurement — tests that all
-            # skipped, say — is a hole in verification and must keep blocking.
-            # Nothing in scope at all, as in a C++ project with no tests, is not:
-            # the test engine already reports the missing tests, and escalating
-            # here too named sanitize as the gate's reason when the real one was
-            # "this project has no tests".
-            evidence = (
-                EvidenceState.ESTIMATED if self._skipped_scopes else EvidenceState.NOT_APPLICABLE
-            )
-            summary = self.SKIP_SUMMARY
+        overall_status, evidence, summary = self._overall_verdict(
+            has_failure, has_warning, mode, targets
+        )
 
         result = self.create_result(
             name=self.ENGINE_NAME,
@@ -228,10 +242,6 @@ class SanitizeEngine(BaseEngine):
         if not tests_root.is_dir():
             return []
         return sorted(_iter_project_files(tests_root, self.project_root, (".cpp",)))
-
-    @staticmethod
-    def _has_python_tests(tests_root: Path) -> bool:
-        return tests_root.is_dir() and any(tests_root.rglob("*.py"))
 
     def _run_cpp_sanitizer(
         self,
@@ -774,194 +784,6 @@ class SanitizeEngine(BaseEngine):
         if nas_cpp.exists() and (nas_cpp / "lib").exists():
             return [f"-L{nas_cpp / 'lib'}", "-lips_core", f"-Wl,-rpath,{nas_cpp / 'lib'}"]
         return []
-
-    def _check_python_resource_warnings(
-        self, tests_root: Path, targets: list[InspectionTarget]
-    ) -> tuple[bool, bool]:
-        python_cmd = self._resolve_python()
-        command = [
-            *python_cmd,
-            "-W",
-            "error::ResourceWarning",
-            "-m",
-            "pytest",
-            "-o",
-            "addopts=",
-            "tests",
-        ]
-        if not tests_root.is_dir():
-            message = "Python ResourceWarning check skipped: tests directory is missing"
-            return self._missing_python_scope(targets, message, command, "tests")
-        if not any(
-            path.suffix == ".py"
-            and (path.name.startswith("test_") or path.name.endswith("_test.py"))
-            for path in tests_root.rglob("*")
-        ):
-            message = "Python ResourceWarning check skipped: no Python test files were selected"
-            return self._missing_python_scope(targets, message, command, "tests")
-
-        env = os.environ.copy()
-        env["PYTHONDONTWRITEBYTECODE"] = "1"
-        env["PYTEST_ADDOPTS"] = " ".join(
-            part for part in (env.get("PYTEST_ADDOPTS", ""), "-p no:cacheprovider") if part
-        )
-        source_paths = [str(path) for path in self._source_dirs()]
-        if source_paths:
-            python_paths = [*source_paths, env.get("PYTHONPATH", "")]
-            env["PYTHONPATH"] = os.pathsep.join(path for path in python_paths if path)
-        if env.get("WSL_DISTRO_NAME") and Path("/tmp").is_dir():
-            for key in ("TMPDIR", "TMP", "TEMP"):
-                env[key] = "/tmp"
-        try:
-            result = run_process(command, cwd=self.project_root, env=env)
-        except Exception as exc:
-            self._record_tool_exception("pytest resource warnings", command, exc)
-            self._append_scope_error(
-                targets, "tests", "PythonResourceWarnings", f"Pytest could not execute: {exc}"
-            )
-            return False, False
-        evidence = self._record_process("pytest resource warnings", command, result)
-        if self._process_incomplete(result):
-            message = self._incomplete_message("Pytest ResourceWarning check", result)
-            evidence.error = message
-            self._tool_errors.append(message)
-            self._append_scope_error(targets, "tests", "PythonResourceWarnings", message)
-            return False, False
-        output = f"{result.stdout}\n{result.stderr}"
-        if self._pytest_module_missing(output, result.returncode):
-            message = f"Pytest is unavailable: {self._snippet(output)}"
-            evidence.error = message
-            return self._missing_python_scope(targets, message, command, "tests")
-        if result.returncode == 5 or not self._pytest_has_executed_result(output):
-            message = "Pytest returned success without parseable test results"
-            if result.returncode == 5:
-                message = "Pytest collected 0 tests"
-            evidence.error = f"{message}: {self._snippet(output)}"
-            return self._missing_python_scope(targets, message, command, "tests")
-        if result.returncode == 0:
-            self._measured_scopes += 1
-            targets.append(
-                InspectionTarget(
-                    file_path="tests",
-                    start_line=1,
-                    target_name="PythonResourceWarnings",
-                    status=EngineStatus.PASS,
-                    message="pytest completed with ResourceWarning promoted to errors",
-                )
-            )
-            return False, False
-        if "ResourceWarning" in output:
-            if not self._resource_warning_targets(output, targets):
-                targets.append(
-                    InspectionTarget(
-                        file_path="tests",
-                        start_line=1,
-                        target_name="ResourceWarning",
-                        status=EngineStatus.FAIL,
-                        message=self._snippet(output),
-                    )
-                )
-            self._measured_scopes += 1
-            return True, False
-
-        message = self._tool_failure_message("Pytest ResourceWarning check", result)
-        evidence.error = message
-        self._tool_errors.append(message)
-        self._append_scope_error(targets, "tests", "PythonResourceWarnings", message)
-        return False, False
-
-    def _resolve_python(self) -> list[str]:
-        """Use the same configured/project-venv/system interpreter order as Task 5."""
-
-        configured = self.get_config("test").get("python")
-        if configured:
-            return [str(configured)]
-        candidates = (
-            self.project_root / ".venv" / "bin" / "python",
-            self.project_root / ".venv" / "Scripts" / "python.exe",
-        )
-        for candidate in candidates:
-            try:
-                if candidate.is_file():
-                    return [str(candidate)]
-            except OSError:
-                continue
-        return [sys.executable]
-
-    def _source_dirs(self) -> list[Path]:
-        return self.project_source_dirs()
-
-    def _missing_python_scope(
-        self,
-        targets: list[InspectionTarget],
-        message: str,
-        command: list[str],
-        file_path: str,
-    ) -> tuple[bool, bool]:
-        if not self._tool_evidence or self._tool_evidence[-1].name != "pytest resource warnings":
-            self._tool_evidence.append(
-                ToolEvidence(
-                    name="pytest resource warnings",
-                    path=command[0],
-                    argv=command,
-                    error=message,
-                )
-            )
-        else:
-            self._tool_evidence[-1].error = message
-        required = bool(self.get_config(self.CONFIG_SECTION).get("required", True))
-        if required:
-            self._tool_errors.append(message)
-            status = EngineStatus.ERROR
-        else:
-            self._skipped_scopes += 1
-            status = EngineStatus.SKIP
-        targets.append(
-            InspectionTarget(
-                file_path=file_path,
-                start_line=1,
-                target_name="PythonResourceWarnings",
-                status=status,
-                message=message,
-            )
-        )
-        return False, False
-
-    def _resource_warning_targets(self, output: str, targets: list[InspectionTarget]) -> bool:
-        found = False
-        for line in output.splitlines():
-            match = _RESOURCE_WARNING_RE.search(line)
-            if match is None:
-                continue
-            found = True
-            path = self._normalize_output_path(match.group("file").strip())
-            targets.append(
-                InspectionTarget(
-                    file_path=path,
-                    start_line=int(match.group("line")),
-                    target_name="ResourceWarning",
-                    status=EngineStatus.FAIL,
-                    message="ResourceWarning was promoted to an exception by the sanitizer",
-                )
-            )
-        return found
-
-    def _normalize_output_path(self, value: str) -> str:
-        path = Path(value)
-        try:
-            return str(path.relative_to(self.project_root))
-        except ValueError:
-            return value
-
-    @staticmethod
-    def _pytest_has_executed_result(output: str) -> bool:
-        return any(int(match.group("count")) > 0 for match in _PYTEST_EXECUTED_RE.finditer(output))
-
-    @staticmethod
-    def _pytest_module_missing(output: str, returncode: int) -> bool:
-        return returncode != 0 and bool(
-            re.search(r"No module named ['\"]pytest['\"]|No module named pytest", output)
-        )
 
     @staticmethod
     def _contains_sanitizer_diagnostic(output: str) -> bool:
