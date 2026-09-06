@@ -889,7 +889,34 @@ exact IDs는 `bugprone-dangling-handle`, `bugprone-dangling-reference`,
 `bugprone-suspicious-realloc-usage`, `bugprone-unique-ptr-array-mismatch`,
 `bugprone-unused-raii`, `bugprone-use-after-move`, `cppcoreguidelines-owning-memory`,
 `misc-new-delete-overloads`입니다. 따라서 새로운 임의 rule이나 message의 단어만으로
-resource/security가 되지 않습니다. 결과
+resource/security가 되지 않습니다.
+
+##### lifetime은 `RESOURCE`이며, 별도 category가 아닙니다
+
+로드맵은 resource/lifetime/security를 category별로 매핑하도록 요구했습니다. security와
+resource는 각자의 `FindingCategory` 값을 갖지만 **lifetime은 갖지 않고, 갖지 않기로 결정했습니다.**
+
+- `FindingCategory`에 값을 추가하는 것은 v3 스키마 변경이며,
+  [발표된 안정성 정책](engine-reference.md#13-결과-리포트-계약과-종료-코드)이 major 안에서
+  보장하는 범위와 충돌합니다.
+- 독자가 실제로 필요로 하는 더 세밀한 정체는 이미 `tool_rule_id`에 있습니다.
+  `bugprone-use-after-move`는 `LIFETIME` 라벨보다 많은 것을 말합니다.
+- dangling pointer, use-after-move, iterator 무효화, stack address escape, Qt ownership은
+  모두 "소유한 자원을 그 수명 밖에서 건드렸다"는 한 가지 문제이며, `RESOURCE`가 그것을
+  담기에 정확한 category입니다.
+
+세 도구의 lifetime 계열 rule은 모두 `RESOURCE`로 갑니다 — analyzer의
+`alpha.core.danglingptrderef`·`alpha.core.useafterlifetimeend`·`core.stackaddressescape`·
+`cplusplus.innerpointer`·`cplusplus.move`, tidy의 `bugprone-dangling-handle`·
+`bugprone-dangling-reference`·`bugprone-use-after-move`·`cppcoreguidelines-owning-memory`,
+clazy의 `clazy-lifetime*`·`clazy-ownership*`·`clazy-returning-data-from-temporary`·
+`clazy-temporary-iterator`.
+
+이 결정은 테스트로 고정돼 있습니다. lifetime rule 하나가 조용히 다른 category로 옮겨가도,
+`FindingCategory`에 `LIFETIME`이 추가돼도 실패합니다 — 어느 쪽이든 스키마 정책과 함께
+다시 판단해야 하는 변경이기 때문입니다.
+
+결과
 `extra.cpp_diagnostic_category_policy`에는 정책 ID가, `extra.cpp_diagnostic_categories`에는
 `FindingCategory`의 모든 category별 primary diagnostic count가 기록됩니다.
 compiler/clang-tidy가 출력한 fix-it replacement는 최대 bounded suggestion으로 기록되지만 자동
@@ -1369,6 +1396,35 @@ Python library는 `project.source_dirs`에 설정된 모든 source directory의 
 않습니다. C++는 루트 빌드 디스크립터에 따라 경로가 갈립니다(§2.5). generic `g++`
 경로에서는 `int main(...)` 정의가 정확히 하나인 단순 executable만 허용하며, g++
 timeout·절단·signal·spawn 오류와 rc 0인데 regular binary가 없는 경우는 `ERROR`입니다.
+
+#### 링커가 만들지 않는 산출물은 선언해야 합니다 (`[build.artifacts]`)
+
+빌드 어댑터는 shadow 트리에서 **링크된** 산출물을 찾아 manifest에 넣습니다. 그래서
+executable, shared library, static library는 자동으로 잡힙니다. 하지만 Python wheel이나
+프로젝트가 내보내는 분석 리포트는 링크 산출물이 아니고 shadow 트리에도 없으므로, 아무도
+발견하지 못합니다. 선언하면 각자의 kind로 기록됩니다.
+
+```toml
+[build.artifacts]
+python_wheel = ["dist/*.whl"]
+report = ["build/analysis-report.json"]
+```
+
+| kind | 뜻 |
+|---|---|
+| `python-wheel` | 프로젝트가 빌드한 `.whl`. ici가 만들거나 추출하지 않습니다 |
+| `report` | 프로젝트 자신의 분석기가 내보낸 리포트 파일. **ici의 리포트가 아닙니다** — 그건 이 실행의 출력이라 자기 자신을 기록할 수 없습니다 |
+
+각 glob은 프로젝트 루트 기준 POSIX 패턴이어야 하고, 절대 경로·`..`·백슬래시·드라이브
+문자·256자 초과·중복은 설정 오류입니다. 심링크가 루트 밖으로 해석되면 거부합니다.
+
+**매칭되지 않는 glob은 건너뛰지 않고 오류입니다.** wheel을 내보내기로 한 빌드가 내보내지
+않았다는 것은 manifest가 담아야 할 사실이지, 소비자가 침묵으로부터 추론할 일이 아닙니다.
+
+`binary_compat`은 kind로 대상을 고르므로 wheel이나 JSON 리포트에 readelf를 실행하지
+않습니다. 파일 확장자 allow-list가 아니라 typed record가 그것을 막습니다. `integration`
+case는 어댑터 산출물과 같은 `variant:scope:path` 형태 — `{artifact:release:project:dist/example.whl}` —
+로 선언된 산출물을 참조합니다. 어떤 producer가 기록했는지 알아야 주소를 만들 수 있으면 안 됩니다.
 
 ### 2.5 C++ 빌드 경로는 여러 가지다
 

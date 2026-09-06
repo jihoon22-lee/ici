@@ -1152,3 +1152,57 @@ def test_ast_fallback_still_reports_syntax_errors(tmp_path, monkeypatch):
 
     assert any(t.target_name == "SyntaxError" for t in result.targets)
     assert result.extra["python_files_parsed"] == 1
+
+
+def test_lifetime_rules_fold_into_resource_by_decision_not_by_accident() -> None:
+    """Lifetime is a RESOURCE finding, deliberately, and not a category of its own.
+
+    The roadmap asked for resource/lifetime/security to be mapped per category.
+    Security and resource have their own `FindingCategory` values; lifetime does
+    not, and adding one would be a v3 schema change against the published
+    stability policy. The finer identity a reader needs is already in
+    `tool_rule_id` — `bugprone-use-after-move` says more than a LIFETIME label
+    would.
+
+    This test exists so the decision cannot drift silently in either direction:
+    a lifetime rule quietly reclassified as CORRECTNESS, or a LIFETIME category
+    added without revisiting the schema policy.
+    """
+
+    lifetime_rules = (
+        ("clang-analyzer", "clang-analyzer-alpha.core.danglingptrderef"),
+        ("clang-analyzer", "clang-analyzer-alpha.core.useafterlifetimeend"),
+        ("clang-analyzer", "clang-analyzer-alpha.cplusplus.invalidatediterator"),
+        ("clang-analyzer", "clang-analyzer-core.stackaddressescape"),
+        ("clang-analyzer", "clang-analyzer-cplusplus.innerpointer"),
+        ("clang-analyzer", "clang-analyzer-cplusplus.move"),
+        ("clang-tidy", "bugprone-dangling-handle"),
+        ("clang-tidy", "bugprone-dangling-reference"),
+        ("clang-tidy", "bugprone-return-const-ref-from-parameter"),
+        ("clang-tidy", "bugprone-use-after-move"),
+        ("clang-tidy", "cppcoreguidelines-owning-memory"),
+        ("clazy", "clazy-lifetime-issue"),
+        ("clazy", "clazy-ownership-transfer"),
+        ("clazy", "clazy-returning-data-from-temporary"),
+        ("clazy", "clazy-temporary-iterator"),
+    )
+
+    for family, rule in lifetime_rules:
+        diagnostic = CppDiagnostic(
+            target=InspectionTarget(
+                file_path="src/main.cpp",
+                start_line=1,
+                status=EngineStatus.WARN,
+                message="message text is not an input to the projection",
+            ),
+            tool_rule_id=rule,
+            family=family,
+        )
+        assert LintEngine._cpp_finding_category(diagnostic) is FindingCategory.RESOURCE, (
+            f"{family}/{rule} must stay a RESOURCE finding"
+        )
+
+    assert not hasattr(FindingCategory, "LIFETIME"), (
+        "A LIFETIME category would change the v3 contract; revisit the schema "
+        "stability policy and this decision together before adding one."
+    )

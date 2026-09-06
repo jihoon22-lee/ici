@@ -10,6 +10,7 @@ from typing import Any
 from ici._analysis_config import (
     _validate_binary_compat,
     _validate_build_make,
+    _validate_declared_artifacts,
     _validate_integration,
     _validate_python_compat,
 )
@@ -76,7 +77,7 @@ _PROJECT_KEYS = frozenset(
         "compile_database",
     }
 )
-_BUILD_KEYS = frozenset({"python", "make"})
+_BUILD_KEYS = frozenset({"python", "make", "artifacts"})
 _BUILD_PYTHON_KEYS = frozenset({"entrypoint"})
 _DOCTOR_KEYS = frozenset({"required_tools"})
 _TEST_QUALITY_KEYS = frozenset(
@@ -474,6 +475,8 @@ def _validate_build(table: Any) -> None:
             _require_string(python["entrypoint"], "build.python.entrypoint", non_empty=True)
     if "make" in table:
         _validate_build_make(table["make"], "build.make")
+    if "artifacts" in table:
+        _validate_declared_artifacts(table["artifacts"], "build.artifacts")
 
 
 def _validate_doctor(table: Any) -> None:
