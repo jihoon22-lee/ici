@@ -2126,13 +2126,36 @@ version/release는 완료 처리하지 않는다.
   Pages는 trusted artifact와 byte-identical이었다. 이 check는 released-artifact Q0 경계이며,
   candidate sanitizer consumer evidence는 위의 별도 exact dispatch 기록으로 관리한다.
 
-### I9-1. quality-zoo contract runner — Q0, sanitizer, category/Qt, and TSan candidate acceptance complete; Q1–Q5 pending
+### I9-1. quality-zoo contract runner — Q0 및 candidate acceptance 완료; Q1–Q5 정의 확인 필요
 
 **브랜치:** `test/quality-zoo-contract`
 **상태:** released-artifact Q0 known-answer acceptance, exact candidate sanitizer 및
 category/Qt acceptance와 별도 exact TSan candidate acceptance가 완료됐다. broader Qt
-lifetime/ownership, resource/lifetime/security taxonomy와 Q1–Q5 scenario/support matrix는
-pending이다.
+lifetime/ownership과 resource/lifetime/security taxonomy는 2026-09-06/07 에 I4-4 에서 닫혔다
+(10 절 참조) — 이 문단이 오래 그것들을 pending 으로 적어 두고 있었다.
+
+#### Q1–Q5 현황 (2026-09-07 실사)
+
+"Q1–Q5 pending" 이 세 곳에 적혀 있지만 **이 계획서 어디에도 정의돼 있지 않다.** toy-projects
+workthrough 에서 찾았다 — "the remaining Python, C++, Qt, build/binary, and hybrid scenario
+families (Q1–Q5)" 이고, "until their known answers and clean counterparts are implemented and
+verified" 까지가 조건이다.
+
+그 기준으로 현재 candidate corpus 16 scenario 를 매핑하면 이렇다.
+
+| family | scenario | 상태 |
+|---|---|---|
+| Q1 Python | dead-private-function, compatibility-package-metadata, import-cycle-exception, maintainability-thresholds, security-resource-correctness | 5 개, 모두 clean counterpart 보유 |
+| Q2 C++ runtime | asan-use-after-free, lsan-memory-leak, ubsan-signed-overflow, sanitizer-clean, tsan-data-race, tsan-synchronized | 6 개 |
+| Q3 Qt | qt-missing-parent-constructor | 1 개 |
+| Q4 build/binary | static-build-context, malformed-compile-db, quality-coverage | 3 개 |
+| Q5 hybrid | make-elf-integration | 1 개 |
+
+**다섯 family 모두 구현·검증된 scenario 를 갖고 있고, 16 엔진 전부가 presence 와 absence
+양방향으로 고정돼 있다.** 그럼에도 이 절을 닫지 않는 이유는 하나다 — Q1–Q5 가 "각 family 에
+대표 scenario 가 있으면 되는 것"인지 "각 family 의 규칙을 망라해야 하는 것"인지 원문이 말하지
+않는다. 전자라면 이미 충족됐고 후자라면 한참 남았다. **정의를 정하는 것은 이 계획의 소유자
+판단이므로 여기서 임의로 닫지 않는다.** 다음에 이 절을 손대는 사람은 먼저 그것부터 정하면 된다.
 
 - [x] Q0 released-artifact path의 toy manifest schema와 ici v3 report matcher가 PR #49의
   `quality-zoo-contract` artifact에 기록되고 exact-main run에서도 재검증됐다.
@@ -2140,8 +2163,21 @@ pending이다.
   검증한다. UAF/LSan/UBSan defect는 각각 `FAIL`/`MEASURED`/`exact`와
   `src/fault.cpp:5`, `src/fault.cpp:3`, `src/fault.cpp:3`를 만족했고, clean은
   `PASS`/`MEASURED`/`high` 및 `tests/test_clean.cpp:1` completion target을 만족했다.
-- [ ] expected absence를 지원해 false positive도 고정한다. Narrow sanitizer-clean absence는
-  위 candidate runtime evidence에 포함되지만, broader false-positive corpus는 pending이다.
+- [x] expected absence를 지원해 false positive도 고정한다.
+  - 2026-09-07 실사 (toy PR #69): corpus 를 세어 보니 **16 엔진 중 15 는 이미 absence 가
+    고정돼 있었다.** 항목이 "broader corpus 는 pending" 이라고만 적혀 있어 규모를 알 수 없었는데
+    실제로 빠진 것은 `compile_db` 하나였다. `malformed-compile-db` 는 entry 1(malformed)이
+    보고되는 것만 단언하고 entry 0(유효)에 대해서는 아무 말도 하지 않아, 파서가 나쁜 항목과
+    함께 좋은 항목까지 거부하거나 데이터베이스 결함을 소스 파일 탓으로 돌려도 잡히지 않았다.
+  - 착수 전에 확인해 헛일을 피했다. 처음엔 "다른 엔진이 조용한지"를 고정하려 했으나 두
+    scenario 모두 시험 대상 외 모든 엔진을 끄므로 그런 predicate 은 vacuous 였을 것이다.
+    단일 엔진 scenario 에서 의미 있는 guard 는 **위치**다.
+  - predicate 하나보다 값어치 있는 절반: **coverage 를 계약으로 만들었다.**
+    `tests/test_corpus_coverage.py` 가 손으로 관리하는 목록이 아니라 scenario 를 직접 읽어,
+    presence 가 고정된 엔진에 absence 가 없으면 실패한다. 아무것도 제약하지 않는 빈 `{}`
+    predicate 과, `forbidden_findings` 키 자체가 없는 expectation 도 거부한다 — 키가 없으면
+    "absence 를 고려하지 않았다"로 읽히지 "고려했고 고정할 게 없다"로 읽히지 않는다.
+    mutation 2 건으로 확인했다.
 - [x] ici-hosted candidate workflow가 verified candidate pyz를 local path로 주입하는 계약을
   갖춘다. workflow 자체는 read-only/manual이며, 실제 원격 candidate acceptance는 위 exact
   sanitizer dispatch evidence와 별개로 broader scenario coverage를 계속 요구한다.
@@ -2378,6 +2414,13 @@ pending이다.
     **만들지 않기로 결정한** 범위의 현재 상태 기록이지 열린 작업이 아니다. 따라서 닫는다.
   - **이 실사는 I8 에만 해당한다.** I4·I9 는 하위 미체크가 남아 있어 대상이 아니다.
 - [ ] I9: quality-zoo, self ratchet, 1.0 support contract 완료
+  - 2026-09-07 rollup 실사 결과 **닫지 않는다.** 하위 체크박스는 이제 0 이지만, I9-1 본문의
+    "Q1–Q5" 가 **이 계획서 어디에도 정의돼 있지 않다.** toy workthrough 에서 정의를 찾아
+    다섯 family 모두 구현·검증된 scenario 를 갖고 있음을 확인했으나(15 절 I9-1 의 매핑 표),
+    Q1–Q5 가 대표 scenario 로 충족되는지 규칙 망라를 요구하는지는 원문이 말하지 않는다.
+    **정의를 정하는 것이 이 계획 소유자의 판단**이므로 여기서 임의로 닫지 않는다.
+  - 정의만 정해지면 이 rollup 은 그 판단 한 번으로 닫히거나, 남은 scenario 목록이 명확해진다.
+    어느 쪽이든 지금처럼 "pending" 한 단어로 남아 있는 것보다 낫다.
 
 I1 기능과 로컬 실물 검증 및 PR/CI Merge Gate는 완료됐다. [PR #89](https://github.com/jihoon22-lee/ici/pull/89)의
 병합 commit과 [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의 required checks
