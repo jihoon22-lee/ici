@@ -22,14 +22,7 @@
     "location": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "path",
-        "start_line",
-        "end_line",
-        "start_column",
-        "end_column",
-        "label"
-      ],
+      "required": ["path", "start_line", "end_line", "start_column", "end_column", "label"],
       "properties": {
         "path": {
           "type": "string",
@@ -69,22 +62,9 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "rule_id",
-        "category",
-        "severity",
-        "confidence",
-        "fingerprint",
-        "primary_location",
-        "related_locations",
-        "message",
-        "explanation",
-        "remediation",
-        "tool_rule_id",
-        "tool_name",
-        "tool_version",
-        "suppression",
-        "metrics",
-        "snippet"
+        "rule_id", "category", "severity", "confidence", "fingerprint", "primary_location",
+        "related_locations", "message", "explanation", "remediation", "tool_rule_id", "tool_name",
+        "tool_version", "suppression", "metrics", "snippet"
       ],
       "properties": {
         "rule_id": {
@@ -143,14 +123,7 @@
     "findingFixReplacement": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "path",
-        "start_line",
-        "start_column",
-        "end_line",
-        "end_column",
-        "replacement"
-      ],
+      "required": ["path", "start_line", "start_column", "end_line", "end_column", "replacement"],
       "properties": {
         "path": {
           "type": "string",
@@ -180,10 +153,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "producer_version",
-        "fingerprint_version",
-        "policy_digest",
-        "tool_policy_digest"
+        "producer_version", "fingerprint_version", "policy_digest", "tool_policy_digest"
       ],
       "properties": {
         "producer_version": { "type": "string", "minLength": 1 },
@@ -208,17 +178,8 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "state",
-        "engine_name",
-        "fingerprint",
-        "rule_id",
-        "message",
-        "current_location",
-        "baseline_location",
-        "current_severity",
-        "baseline_severity",
-        "regressed",
-        "suppressed",
+        "state", "engine_name", "fingerprint", "rule_id", "message", "current_location",
+        "baseline_location", "current_severity", "baseline_severity", "regressed", "suppressed",
         "gated"
       ],
       "properties": {
@@ -262,17 +223,8 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "source_path",
-        "warnings",
-        "baseline_metadata",
-        "fail_on_new",
-        "gate_failed",
-        "new_count",
-        "unchanged_count",
-        "moved_count",
-        "resolved_count",
-        "regressed_count",
-        "gated_count",
+        "source_path", "warnings", "baseline_metadata", "fail_on_new", "gate_failed", "new_count",
+        "unchanged_count", "moved_count", "resolved_count", "regressed_count", "gated_count",
         "entries"
       ],
       "properties": {
@@ -310,16 +262,8 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "file_path",
-        "start_line",
-        "end_line",
-        "start_column",
-        "end_column",
-        "target_name",
-        "status",
-        "message",
-        "snippet",
-        "metrics"
+        "file_path", "start_line", "end_line", "start_column", "end_column", "target_name",
+        "status", "message", "snippet", "metrics"
       ],
       "properties": {
         "file_path": { "type": "string" },
@@ -338,14 +282,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "name",
-        "path",
-        "version",
-        "argv",
-        "returncode",
-        "timed_out",
-        "truncated",
-        "error"
+        "name", "path", "version", "argv", "returncode", "timed_out", "truncated", "error"
       ],
       "properties": {
         "name": { "type": "string" },
@@ -384,24 +321,9 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "name",
-        "state",
-        "available",
-        "complete",
-        "required",
-        "optional",
-        "required_by",
-        "optional_by",
-        "path",
-        "version",
-        "version_tuple",
-        "error",
-        "details",
-        "probe_argv",
-        "returncode",
-        "timed_out",
-        "truncated",
-        "evidence"
+        "name", "state", "available", "complete", "required", "optional", "required_by",
+        "optional_by", "path", "version", "version_tuple", "error", "details", "probe_argv",
+        "returncode", "timed_out", "truncated", "evidence"
       ],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
@@ -439,12 +361,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "schema_version",
-        "status",
-        "healthy",
-        "counts",
-        "missing_required",
-        "incomplete_required",
+        "schema_version", "status", "healthy", "counts", "missing_required", "incomplete_required",
         "tools"
       ],
       "properties": {
@@ -490,20 +407,9 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "engine_name",
-        "language",
-        "mode",
-        "active_mode",
-        "applicable",
-        "enabled",
-        "evidence",
-        "confidence",
-        "frameworks",
-        "required_tools",
-        "optional_tools",
-        "fallback_mode",
-        "limitations",
-        "reason"
+        "engine_name", "language", "mode", "active_mode", "applicable", "enabled", "evidence",
+        "confidence", "frameworks", "required_tools", "optional_tools", "fallback_mode",
+        "limitations", "reason"
       ],
       "properties": {
         "engine_name": { "type": "string", "minLength": 1 },
@@ -598,8 +504,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "path", "scope", "kind", "sha256", "size", "mode", "producer",
-        "id", "target", "command"
+        "path", "scope", "kind", "sha256", "size", "mode", "producer", "id", "target", "command"
       ],
       "properties": {
         "path": { "$ref": "#/$defs/relativePath" },
@@ -938,20 +843,8 @@
       "type": "object",
       "additionalProperties": true,
       "required": [
-        "schema_version",
-        "engine_name",
-        "status",
-        "summary",
-        "score",
-        "max_score",
-        "duration",
-        "raw_output",
-        "extra",
-        "required",
-        "evidence",
-        "tool_evidence",
-        "targets",
-        "findings"
+        "schema_version", "engine_name", "status", "summary", "score", "max_score", "duration",
+        "raw_output", "extra", "required", "evidence", "tool_evidence", "targets", "findings"
       ],
       "properties": {
         "schema_version": { "const": "ici.result/v3" },
@@ -998,18 +891,9 @@
       "type": "object",
       "additionalProperties": true,
       "required": [
-        "schema_version",
-        "suite_status",
-        "duration",
-        "passed_count",
-        "warned_count",
-        "failed_count",
-        "error_count",
-        "skipped_count",
-        "total_count",
-        "tem_score",
-        "max_tem_score",
-        "results"
+        "schema_version", "suite_status", "duration", "passed_count", "warned_count",
+        "failed_count", "error_count", "skipped_count", "total_count", "tem_score",
+        "max_tem_score", "results"
       ],
       "properties": {
         "schema_version": { "const": "ici.result/v3" },

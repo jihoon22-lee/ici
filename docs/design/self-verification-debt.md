@@ -33,13 +33,13 @@ TEM Score: 4.78 / 5.0   Suite: WARN — 3 engine(s) warned: line, cognitive, com
 
 ## WARN 3건 — 모두 코드 규모/복잡도이며, 승인된 부채입니다
 
-### `line` — 500라인을 넘는 파일 35개 (최대 998, FAIL 한계 1000)
+### `line` — 500라인을 넘는 파일 35개 (최대 974, FAIL 한계 1000)
 
 | | 값 |
 |---|---|
 | 정책 | `warn_limit = 500`, `fail_limit = 1000` |
-| 실측 | 141 파일 중 35개가 WARN, 최대 998라인 |
-| 최대 파일 | `src/ici/schemas/ici-result-v3.schema.json` 998, `_cpp_linker_dead_symbols.py` 974, `_cpp_diagnostics.py` 958 |
+| 실측 | 141 파일 중 35개가 WARN, 최대 974라인 |
+| 최대 파일 | `_cpp_linker_dead_symbols.py` 974, `_cpp_diagnostics.py` 958, `complexity.py` 925, `ici-result-v3.schema.json` 922 |
 
 **승인된 부채입니다.** 상위 파일들은 하나의 외부 도구 계약을 통째로 다루는 어댑터이거나
 (`_cpp_linker_dead_symbols`, `_cpp_diagnostics`), 스키마 그 자체입니다. 이들을 파일 크기만을
@@ -51,6 +51,26 @@ TEM Score: 4.78 / 5.0   Suite: WARN — 3 engine(s) warned: line, cognitive, com
 있었습니다. 그날 C++ sanitizer replay와 Python ResourceWarning scope를 분리해
 (`_sanitize_python_scope.py`) 그 자리를 벗어났습니다. 같은 일이 다시 일어나면 같은 방식으로
 해결합니다 — **분리할 이음매가 실제로 있을 때만** 분리합니다.
+
+#### 이 게이트가 실제로 막았습니다 (2026-09-07)
+
+위 표에 `ici-result-v3.schema.json` 998라인, 여유 2라인이라고 적어 둔 그 다음 작업에서
+SARIF `fixes` 계약을 추가하며 그 파일에 42라인을 더했습니다. 1038라인, CI에서
+`Suite: FAIL — required engine 'line' failed`. **문서에 적어 둔 위험에 그대로 걸어 들어갔고,
+게이트가 잡았습니다.**
+
+고친 방식이 중요합니다. 세 가지 유혹이 있었습니다.
+
+- **`.json`을 line 게이트에서 제외한다** — `EXT_MAP`에 `.json`이 `.toml`·`.md`와 함께 의도적으로
+  들어 있습니다. 자기 PR을 통과시키려고 의도된 설계를 바꾸는 것이라 하지 않았습니다.
+- **스키마를 여러 파일로 쪼갠다** — `$ref` resolver가 필요해지고, 계약 하나를 읽으려면 여러
+  파일을 열어야 합니다. 게이트 자신의 기준으로도 더 나빠집니다.
+- **포맷을 압축한다** — 택했습니다. 6~16개짜리 `required` 배열 17개가 각각 8~18줄을 쓰고
+  있었습니다. 100자 안에 들면 한 줄로, 넘으면 100자에서 줄바꿈해 1038 → 922라인이 됐습니다.
+  파싱 결과가 HEAD와 완전히 동일한지 확인했으므로 계약은 한 글자도 바뀌지 않았습니다.
+
+세 번째만이 게이트를 약화시키지도, 구조를 복잡하게 만들지도 않으면서 실제로 읽기 쉬워집니다.
+여유는 2라인에서 78라인이 됐습니다.
 
 ### `cognitive` — 인지 복잡도 30 초과 함수 74개 (최대 48, FAIL 한계 60)
 
@@ -88,7 +108,7 @@ TEM Score: 4.78 / 5.0   Suite: WARN — 3 engine(s) warned: line, cognitive, com
 
 | 엔진 | FAIL 한계 | 2026-09-06 이전 | 현재 | 여유 |
 |---|---|---|---|---|
-| `line` | 1000 | 1000 (경계) | 998 | 2 |
+| `line` | 1000 | 1000 (경계) | 974 | 26 |
 | `cognitive` | 60 | 66 (**초과**) | 48 | 12 |
 | `complexity` | 25 | 25 (경계) | 24 | 1 |
 
