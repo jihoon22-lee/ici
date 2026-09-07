@@ -54,6 +54,10 @@ class DeadCodeEngine(BaseEngine):
         "ici.core._cpp_replay_policy",
         "ici.core.cpp_replay",
         "ici.engines._cpp_diagnostics",
+        # The cross-target rule decides which discarded sections become findings,
+        # so a change to it must invalidate cached results the way a change to
+        # the adapter itself does.
+        "ici.engines._cpp_linker_dead_aggregation",
         "ici.engines._cpp_linker_dead_symbols",
         "ici.engines._cpp_tooling",
         "ici.engines._cpp_unused_functions",

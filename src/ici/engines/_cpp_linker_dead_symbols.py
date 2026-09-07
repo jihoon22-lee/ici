@@ -27,6 +27,11 @@ from ici.core.context import AnalysisContext, BuildVariant, CompilationUnit, can
 from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability, compiler_family_from_version
+from ici.engines._cpp_linker_dead_aggregation import (
+    _DiscardedSection,
+    _LinkCommand,
+    discarded_by_every_linking_target,
+)
 from ici.engines._cpp_tooling import compiler_capability, regular_executable
 
 _SHADOW_SUFFIX = "-link-reachability"
@@ -129,29 +134,6 @@ class _Toolset:
     addr2line: Path
     addr2line_version: str
     compiler_paths: frozenset[Path]
-
-
-@dataclass(frozen=True)
-class _LinkCommand:
-    target: str
-    path: Path
-    argv: tuple[str, ...]
-    driver: Path
-    driver_name: str
-    driver_version: str
-    objects: tuple[Path, ...]
-    output: Path
-    digest: str
-
-
-@dataclass(frozen=True)
-class _DiscardedSection:
-    target: str
-    object_path: Path
-    section: str
-    command_digest: str
-    driver_name: str
-    driver_version: str
 
 
 def _append_error(outcome: CppLinkerDeadOutcome, file_path: str, message: str) -> None:
@@ -901,52 +883,8 @@ def _collect_removals(
         linked.append(command)
         removals.extend(observed)
     outcome.discarded_sections_observed = len(removals)
-    return _discarded_by_every_linking_target(removals, linked, outcome)
-
-
-def _discarded_by_every_linking_target(
-    removals: list[_DiscardedSection],
-    linked: list[_LinkCommand],
-    outcome: CppLinkerDeadOutcome,
-) -> list[_DiscardedSection]:
-    """Keep only sections every target that linked their object discarded.
-
-    Each relink answers "is this function reachable from *this* target's entry
-    point". Collecting those answers as a union answers a different question:
-    one executable discarding a helper that another executable calls would be
-    reported as removable, and removing it would break the second build.
-
-    A section is retained only when every accepted target that linked its object
-    file discarded it. That is still not whole-program reachability — dynamic
-    lookup and exported symbols stay excluded, as the module docstring says —
-    but it is sound across the set of targets actually linked, which the union
-    was not.
-    """
-
-    if len(linked) < 2:
-        return removals
-    linking_targets: dict[Path, set[str]] = {}
-    for command in linked:
-        for object_path in command.objects:
-            linking_targets.setdefault(object_path, set()).add(command.target)
-    discarding_targets: dict[tuple[Path, str], set[str]] = {}
-    for removal in removals:
-        discarding_targets.setdefault((removal.object_path, removal.section), set()).add(
-            removal.target
-        )
-
-    retained: list[_DiscardedSection] = []
-    seen: set[tuple[Path, str]] = set()
-    for removal in removals:
-        key = (removal.object_path, removal.section)
-        required = linking_targets.get(removal.object_path, {removal.target})
-        if not required <= discarding_targets.get(key, set()):
-            outcome.sections_kept_by_another_target += 1
-            continue
-        if key in seen:
-            continue
-        seen.add(key)
-        retained.append(removal)
+    retained, kept = discarded_by_every_linking_target(removals, linked)
+    outcome.sections_kept_by_another_target = kept
     return retained
 
 

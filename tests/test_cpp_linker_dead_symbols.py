@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import ici.engines._cpp_linker_dead_aggregation as aggregation
 import ici.engines._cpp_linker_dead_symbols as linker
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
@@ -628,7 +629,7 @@ def test_relink_failure_discards_all_observations_atomically(
 
 
 def _command(target: str, objects: tuple[Path, ...]) -> linker._LinkCommand:
-    return linker._LinkCommand(
+    return aggregation._LinkCommand(
         target=target,
         path=Path(f"CMakeFiles/{target}.dir/link.txt"),
         argv=("g++", "-o", target),
@@ -642,7 +643,7 @@ def _command(target: str, objects: tuple[Path, ...]) -> linker._LinkCommand:
 
 
 def _removal(target: str, object_path: Path, section: str) -> linker._DiscardedSection:
-    return linker._DiscardedSection(
+    return aggregation._DiscardedSection(
         target=target,
         object_path=object_path,
         section=section,
@@ -669,12 +670,10 @@ def test_a_function_another_executable_still_calls_is_not_reported() -> None:
         _removal("app", shared, ".text.truly_dead"),
         _removal("tool", shared, ".text.truly_dead"),
     ]
-    outcome = linker.CppLinkerDeadOutcome(mode="required")
-
-    retained = linker._discarded_by_every_linking_target(removals, linked, outcome)
+    retained, kept = aggregation.discarded_by_every_linking_target(removals, linked)
 
     assert [item.section for item in retained] == [".text.truly_dead"]
-    assert outcome.sections_kept_by_another_target == 1
+    assert kept == 1
 
 
 def test_a_section_dead_in_every_target_is_reported_once() -> None:
@@ -684,13 +683,11 @@ def test_a_section_dead_in_every_target_is_reported_once() -> None:
         _removal("app", shared, ".text.gone"),
         _removal("tool", shared, ".text.gone"),
     ]
-    outcome = linker.CppLinkerDeadOutcome(mode="required")
-
-    retained = linker._discarded_by_every_linking_target(removals, linked, outcome)
+    retained, kept = aggregation.discarded_by_every_linking_target(removals, linked)
 
     # Two observations of one dead function are one finding, not two.
     assert len(retained) == 1
-    assert outcome.sections_kept_by_another_target == 0
+    assert kept == 0
 
 
 def test_an_object_linked_by_one_target_keeps_the_single_target_answer() -> None:
@@ -705,12 +702,10 @@ def test_an_object_linked_by_one_target_keeps_the_single_target_answer() -> None
     shared = Path("CMakeFiles/core.dir/util.o")
     linked = [_command("app", (only_app, shared)), _command("tool", (shared,))]
     removals = [_removal("app", only_app, ".text.private")]
-    outcome = linker.CppLinkerDeadOutcome(mode="required")
-
-    retained = linker._discarded_by_every_linking_target(removals, linked, outcome)
+    retained, kept = aggregation.discarded_by_every_linking_target(removals, linked)
 
     assert [item.section for item in retained] == [".text.private"]
-    assert outcome.sections_kept_by_another_target == 0
+    assert kept == 0
 
 
 def test_a_single_link_target_project_is_unchanged() -> None:
@@ -718,14 +713,12 @@ def test_a_single_link_target_project_is_unchanged() -> None:
     # intersect, which is the shape the adapter was built and accepted against.
     shared = Path("CMakeFiles/app.dir/main.o")
     removals = [_removal("app", shared, ".text.dead")]
-    outcome = linker.CppLinkerDeadOutcome(mode="required")
-
-    retained = linker._discarded_by_every_linking_target(
-        removals, [_command("app", (shared,))], outcome
+    retained, kept = aggregation.discarded_by_every_linking_target(
+        removals, [_command("app", (shared,))]
     )
 
     assert retained == removals
-    assert outcome.sections_kept_by_another_target == 0
+    assert kept == 0
 
 
 def test_collect_removals_applies_the_intersection_not_just_offers_it(
@@ -757,3 +750,17 @@ def test_collect_removals_applies_the_intersection_not_just_offers_it(
     assert outcome.discarded_sections_observed == 3
     assert outcome.sections_kept_by_another_target == 1
     assert outcome.link_targets_checked == 2
+
+
+def test_the_cross_target_rule_participates_in_cache_identity() -> None:
+    """A rule that changes findings must change the cache key.
+
+    The aggregation moved into its own module when the adapter outgrew the file
+    size gate. Splitting a module that decides results out of the identity list
+    would let a changed rule serve stale findings from cache.
+    """
+
+    from ici.engines.dead import DeadCodeEngine
+
+    assert "ici.engines._cpp_linker_dead_aggregation" in DeadCodeEngine.CACHE_IMPLEMENTATION_MODULES
+    assert "ici.engines._cpp_linker_dead_symbols" in DeadCodeEngine.CACHE_IMPLEMENTATION_MODULES
