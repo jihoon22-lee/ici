@@ -33,6 +33,8 @@ from ici.core.models import (
     Finding,
     FindingCategory,
     FindingConfidence,
+    FindingFix,
+    FindingFixReplacement,
     FindingMetric,
     FindingSeverity,
     FindingSuppression,
@@ -128,6 +130,18 @@ def _number(value: Any, context: str, *, nullable: bool = False) -> int | float 
     return value
 
 
+def _required_positive_int(value: Any, context: str) -> int:
+    """A fix region is fully specified, so a missing bound is a decode error.
+
+    Unlike a location column, which is legitimately optional, a replacement
+    without a complete region cannot be applied to anything.
+    """
+
+    if type(value) is not int or value < 1:
+        raise CacheEntryError(f"{context} must be a positive integer")
+    return value
+
+
 def _optional_int(value: Any, context: str) -> int | None:
     if value is None:
         return None
@@ -196,6 +210,33 @@ def _tool(payload: Any) -> ToolEvidence:
     )
 
 
+def _fix(payload: Any) -> FindingFix:
+    """Decode one cached suggested edit, rejecting a partial region."""
+
+    value = _mapping(payload, "cache finding.fix")
+    replacements = _sequence(value.get("replacements"), "cache fix replacements")
+    return FindingFix(
+        description=_string(value.get("description"), "cache fix.description"),
+        replacements=tuple(
+            FindingFixReplacement(
+                path=_string(
+                    _mapping(item, "cache fix replacement").get("path"),
+                    "cache fix.path",
+                    nonempty=True,
+                ),
+                start_line=_required_positive_int(item.get("start_line"), "cache fix.start_line"),
+                start_column=_required_positive_int(
+                    item.get("start_column"), "cache fix.start_column"
+                ),
+                end_line=_required_positive_int(item.get("end_line"), "cache fix.end_line"),
+                end_column=_required_positive_int(item.get("end_column"), "cache fix.end_column"),
+                replacement=_string(item.get("replacement"), "cache fix.replacement"),
+            )
+            for item in replacements
+        ),
+    )
+
+
 def _finding(payload: Any) -> Finding:
     value = _mapping(payload, "cache finding")
     suppression_value = _mapping(value.get("suppression"), "cache finding.suppression")
@@ -234,6 +275,9 @@ def _finding(payload: Any) -> Finding:
         ),
         metrics=metrics,
         snippet=_string(value.get("snippet"), "cache finding.snippet"),
+        # Absent in entries written before fixes existed; an old cache entry
+        # stays readable rather than being discarded.
+        fixes=[_fix(item) for item in _sequence(value.get("fixes") or [], "cache finding.fixes")],
     )
 
 

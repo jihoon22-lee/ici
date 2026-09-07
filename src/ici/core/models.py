@@ -180,6 +180,45 @@ class FindingSuppression:
     reason: str = ""
 
 
+@dataclass(frozen=True)
+class FindingFixReplacement:
+    """One replacement a tool suggested for a specific source region.
+
+    The region is reported exactly as the tool gave it and is never applied:
+    ici does not edit source. Keeping it structured rather than folded into
+    remediation prose is what lets a SARIF consumer offer the edit — a reader
+    can act on `remediation`, but a tool cannot.
+
+    On the end bound, ici does not renormalize between conventions. The
+    parseable-text form (`fix-it:"f":{L:C-L:C}:"t"`) and GCC's JSON `next` key
+    both name the position *after* the range, which is what SARIF's `endColumn`
+    means, so those pass through correctly. The parser also accepts an `end`
+    key, and whether a producer means that inclusively is the producer's
+    business — verify against the specific tool before relying on the last
+    column of a fix from one that uses it.
+    """
+
+    path: str
+    start_line: int
+    start_column: int
+    end_line: int
+    end_column: int
+    replacement: str
+
+
+@dataclass(frozen=True)
+class FindingFix:
+    """A complete suggested edit: one description over one or more replacements.
+
+    A single diagnostic can suggest edits in more than one place, and they only
+    make sense applied together, so they belong to one fix rather than to
+    several.
+    """
+
+    description: str = ""
+    replacements: tuple[FindingFixReplacement, ...] = ()
+
+
 @dataclass
 class Finding:
     """Stable v3 issue/inventory record shared by every engine and reporter."""
@@ -200,6 +239,9 @@ class Finding:
     suppression: FindingSuppression = field(default_factory=FindingSuppression)
     metrics: dict[str, FindingMetric] = field(default_factory=dict)
     snippet: str = ""
+    # Additive within the major: the stability policy keeps existing fields and
+    # their meaning, and a consumer that does not read this one is unaffected.
+    fixes: list[FindingFix] = field(default_factory=list)
 
 
 @dataclass

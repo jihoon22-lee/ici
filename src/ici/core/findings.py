@@ -18,6 +18,7 @@ from ici.core.models import (
     Finding,
     FindingCategory,
     FindingConfidence,
+    FindingFix,
     FindingMetric,
     FindingSeverity,
     InspectionTarget,
@@ -289,6 +290,32 @@ def _canonical_location(
     return replace(location, path=canonical_project_path(location.path, project_root))
 
 
+def _canonical_fix(fix: FindingFix, project_root: str | Path | None) -> FindingFix:
+    """Canonicalize one fix's paths and regions, dropping nothing silently.
+
+    A replacement whose region is malformed raises rather than being skipped:
+    a fix a consumer could apply to the wrong bytes is worse than no fix, and a
+    partial fix is not a smaller version of the same edit.
+    """
+
+    replacements = tuple(
+        replace(
+            item,
+            path=canonical_project_path(item.path, project_root),
+        )
+        for item in fix.replacements
+    )
+    for item in replacements:
+        validate_source_region(
+            start_line=item.start_line,
+            end_line=item.end_line,
+            start_column=item.start_column,
+            end_column=item.end_column,
+            context=f"finding fix replacement {item.path!r}",
+        )
+    return replace(fix, replacements=replacements)
+
+
 def canonicalize_finding(finding: Finding, project_root: str | Path | None = None) -> Finding:
     """Normalize a native finding and derive its identity from canonical fields."""
 
@@ -310,6 +337,11 @@ def canonicalize_finding(finding: Finding, project_root: str | Path | None = Non
         finding,
         primary_location=primary,
         related_locations=related,
+        # Fixes are canonicalized but deliberately excluded from the
+        # fingerprint. Identity is where the problem is, not what a tool
+        # currently suggests doing about it — a tool upgrade that changes its
+        # suggestion must not read as a different finding in a baseline.
+        fixes=[_canonical_fix(fix, project_root) for fix in finding.fixes],
         fingerprint=finding_fingerprint(
             finding.rule_id,
             primary,

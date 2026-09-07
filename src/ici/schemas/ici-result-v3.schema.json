@@ -133,7 +133,47 @@
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/metric" }
         },
-        "snippet": { "type": "string" }
+        "snippet": { "type": "string" },
+        "fixes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/findingFix" }
+        }
+      }
+    },
+    "findingFixReplacement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "start_line",
+        "start_column",
+        "end_line",
+        "end_column",
+        "replacement"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+        },
+        "start_line": { "type": "integer", "minimum": 1 },
+        "start_column": { "type": "integer", "minimum": 1 },
+        "end_line": { "type": "integer", "minimum": 1 },
+        "end_column": { "type": "integer", "minimum": 1 },
+        "replacement": { "type": "string" }
+      }
+    },
+    "findingFix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "replacements"],
+      "properties": {
+        "description": { "type": "string" },
+        "replacements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/findingFixReplacement" }
+        }
       }
     },
     "analysisMetadata": {

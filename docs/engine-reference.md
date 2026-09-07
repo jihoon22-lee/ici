@@ -467,6 +467,39 @@ projection은 모두 원본 inventory의 개수와 baseline 비교 결과를 바
 ici verify --report --sarif build/ici-results.sarif
 ```
 
+#### 수정 제안 (`fixes`)
+
+도구가 fix-it을 내면 SARIF `fixes`로 함께 나갑니다. `remediation`은 같은 제안을 **사람이 읽는**
+문장으로 렌더링하지만, SARIF 소비자는 그 문장으로 아무것도 하지 못합니다 — 범위와 대체 텍스트가
+필요합니다. 그래서 같은 fix-it이 finding에 구조화된 채로도 실립니다.
+
+```json
+"fixes": [{
+  "description": {"text": "modernize-use-nullptr suggested fix"},
+  "artifactChanges": [{
+    "artifactLocation": {"uri": "src/main.cpp"},
+    "replacements": [{
+      "deletedRegion": {"startLine": 9, "startColumn": 3, "endLine": 9, "endColumn": 7},
+      "insertedContent": {"text": "nullptr"}
+    }]
+  }]
+}]
+```
+
+읽을 때 주의할 점 셋입니다.
+
+- **한 진단의 fix-it 전부가 하나의 fix입니다.** 두 파일에 걸친 제안은 fix 두 개가 아니라
+  `artifactChanges` 두 개를 가진 fix 하나입니다. 절반만 적용하는 것은 더 작은 fix를 적용하는
+  것이 아닙니다.
+- **빈 `insertedContent`는 삭제입니다.** SARIF에 별도 삭제 표현이 없어서 이렇게 씁니다. 빈
+  대체 텍스트를 "제안 없음"으로 버리지 마십시오.
+- **제안이 없으면 `fixes` 키 자체가 없습니다.** 빈 배열은 "fix가 있는데 비어 있다"로 읽힙니다.
+
+ici는 이 제안을 **기록만 하고 적용하지 않습니다.** finding identity에도 넣지 않습니다 — 도구를
+올려 제안이 좋아졌다고 해서 baseline 비교에서 다른 finding으로 보이면 안 되기 때문입니다.
+v3 JSON의 `findings[].fixes`가 같은 내용을 담으며, 이 필드는 major 안에서의 가산적 추가라
+`fixes`를 읽지 않는 기존 소비자는 영향을 받지 않고 이전 v3 문서도 계속 유효합니다.
+
 SARIF는 결과를 reporter 전용으로 재분석하지 않으며, `--report`를 함께 요청한 경우 JSON
 `ici.result/v3`가 원본 inventory의 완전한 보관본입니다. `--sarif`만 사용하면 별도 JSON 파일은
 생성되지 않지만 SARIF는 canonical projection을 그대로 담습니다. 결과는 최대 100,000개,
