@@ -18,6 +18,7 @@ import io
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 import tempfile
@@ -162,6 +163,34 @@ def _measure(stage: str, work: Callable[[], int]) -> dict[str, Any]:
     }
 
 
+_ISSUE_ROW_RE = re.compile(r"class='issue-item'")
+_INLINE_JSON_RE = re.compile(
+    r'<script type="application/json" id="ici-report-data">(.*?)</script>', re.DOTALL
+)
+
+
+def measure_browser_payload(html_path: Path) -> dict[str, Any]:
+    """Describe what a browser is handed, without opening one.
+
+    Startup time and memory need a real browser and are measured separately by
+    `scripts/benchmark_browser.py`. What CI can hold to a contract on every run
+    is the payload: how many rows the server rendered, how much inline JSON the
+    page has to parse before it can show anything else, and how big the file is.
+    Those are the inputs that decide the browser cost, so a regression in them
+    is a regression in the thing the browser benchmark measures.
+    """
+
+    content = html_path.read_text(encoding="utf-8")
+    match = _INLINE_JSON_RE.search(content)
+    inline = match.group(1) if match is not None else ""
+    return {
+        "html_bytes": html_path.stat().st_size,
+        "initial_issue_rows": len(_ISSUE_ROW_RE.findall(content)),
+        "inline_json_bytes": len(inline.encode("utf-8")),
+        "hydrated": bool(inline),
+    }
+
+
 def _console_bytes(suite: VerificationSuiteResult, base: Path, *, verbose: bool) -> int:
     buffer = io.StringIO()
     console = Console(
@@ -196,6 +225,7 @@ def run_benchmark(findings: int, engines: int, files: int) -> dict[str, Any]:
     """Measure every reporter against one synthetic suite and return the record."""
 
     suite = build_suite(findings, engines, files)
+    browser_payload: dict[str, Any] = {}
     with tempfile.TemporaryDirectory(prefix="ici-benchmark-") as raw_dir:
         base = Path(raw_dir)
         html_path = base / "benchmark.html"
@@ -224,6 +254,7 @@ def run_benchmark(findings: int, engines: int, files: int) -> dict[str, Any]:
                 ),
             ),
         ]
+        browser_payload = measure_browser_payload(html_path)
     return {
         "schema": BENCHMARK_SCHEMA,
         "ici_version": ICI_VERSION,
@@ -234,6 +265,7 @@ def run_benchmark(findings: int, engines: int, files: int) -> dict[str, Any]:
         "engine_count": engines,
         "file_count": files,
         "measurements": measurements,
+        "browser_payload": browser_payload,
         "within_budget": all(item["within_budget"] for item in measurements),
     }
 

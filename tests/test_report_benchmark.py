@@ -86,3 +86,55 @@ def test_default_run_is_a_trend_artifact_and_never_gates(tmp_path: Path, monkeyp
         benchmark_report.main(["--findings", "200", "--engines", "2", "--files", "10", "--enforce"])
         == 1
     )
+
+
+def test_browser_payload_describes_what_a_browser_is_handed(tmp_path: Path):
+    """CI cannot open a browser, but it can hold the inputs that decide the cost.
+
+    Startup time and memory need a real browser and are measured by
+    `scripts/benchmark_browser.py` locally. What travels in the trend artifact
+    is the payload: rows rendered, inline JSON to parse, total bytes. A
+    regression in those is a regression in what the browser has to do.
+    """
+
+    from ici.reporters.html import generate_html_report
+
+    output = tmp_path / "large.html"
+    generate_html_report(benchmark_report.build_suite(3_000, 2, 100), output, "b", tmp_path)
+
+    payload = benchmark_report.measure_browser_payload(output)
+
+    assert payload["html_bytes"] == output.stat().st_size
+    assert payload["hydrated"] is True
+    # Above the threshold the server renders a bounded view and the rest is
+    # hydrated from inline JSON.
+    assert payload["initial_issue_rows"] == 50  # keep
+    assert payload["inline_json_bytes"] > 0
+
+
+def test_a_small_report_is_not_hydrated_and_reports_no_inline_json(tmp_path: Path):
+    from ici.reporters.html import generate_html_report
+
+    output = tmp_path / "small.html"
+    generate_html_report(benchmark_report.build_suite(10, 1, 5), output, "b", tmp_path)
+
+    payload = benchmark_report.measure_browser_payload(output)
+
+    assert payload["hydrated"] is False
+    assert payload["inline_json_bytes"] == 0
+    # A row is a display group, not a finding: the issues projection merges
+    # findings that share a cause, so 10 findings render as at most 10 rows.
+    # Below the threshold none are withheld, which is what "not hydrated" means.
+    assert 0 < payload["initial_issue_rows"] <= 10
+
+
+def test_the_trend_record_carries_the_browser_payload():
+    record = benchmark_report.run_benchmark(200, 2, 10)
+
+    assert set(record["browser_payload"]) == {
+        "html_bytes",
+        "initial_issue_rows",
+        "inline_json_bytes",
+        "hydrated",
+    }
+    assert record["browser_payload"]["html_bytes"] > 0
