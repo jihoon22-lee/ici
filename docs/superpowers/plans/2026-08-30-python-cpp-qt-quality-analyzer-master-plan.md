@@ -1533,12 +1533,17 @@ category/Qt candidate evidence도 각각 수용됐지만 broader I4-4와 version
   - 2026-09-06 실사: `_cpp_diagnostic_categories.py` 의 `tool-rule-v1` 이 이미 세 도구
     전부에서 SECURITY 와 RESOURCE 를 매핑하고 있었다. 실제로 열려 있던 것은 하나뿐이다 —
     **lifetime 을 별도 축으로 둘 것인가.**
-  - **결정: 두지 않는다.** lifetime 은 `RESOURCE` 다. `FindingCategory` 에 값을 추가하는
-    것은 v3 스키마 변경이라 engine-reference 1.3 절에 발표한 안정성 정책과 충돌하고,
+  - **결정: 두지 않는다.** lifetime 은 `RESOURCE` 다. (2026-09-07 정정: 처음 이 항목을 닫을
+    때 "스키마 정책과 충돌한다"고 적었는데 **틀렸다.** engine-reference 1.3 절의 안정성 정책은
+    같은 major 안에서 열거값 추가를 명시적으로 허용한다. 결정은 유지되지만 근거는 아래 둘이고,
+    셋째를 덧붙인다.)
     독자가 필요로 하는 세밀한 정체는 이미 `tool_rule_id` 에 있다 —
     `bugprone-use-after-move` 는 `LIFETIME` 라벨보다 많은 것을 말한다. dangling pointer,
     use-after-move, iterator 무효화, stack address escape, Qt ownership 은 모두 "소유한
     자원을 그 수명 밖에서 건드렸다"는 한 문제이고 `RESOURCE` 가 그것을 담기에 정확하다.
+    그리고 새 category 는 기존 category 를 **쪼갠다** — `LIFETIME` 을 만들면 이 finding 들이
+    `RESOURCE` 밖으로 나가므로 `RESOURCE` 로 필터링하던 소비자가 경고 없이 더 적게 본다.
+    이것이 실제 위험이며 스키마 계약이 아니라 소비자 동작의 문제다.
   - 결정을 코드에 고정했다. lifetime rule 하나가 조용히 다른 category 로 옮겨가도,
     `FindingCategory` 에 `LIFETIME` 이 추가돼도 테스트가 실패한다 — 어느 쪽이든 스키마
     정책과 함께 다시 판단해야 하는 변경이기 때문이다. mutation 으로 확인했다.
