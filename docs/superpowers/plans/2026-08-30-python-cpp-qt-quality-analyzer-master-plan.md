@@ -143,12 +143,15 @@ max CC 24, 1000줄 초과 파일 0이다.
 | I5 | 0 | envlens/ici 실물 교차 검증 미수행 | 검증을 실제로 수행하고 **닫음** (toy PR #68) |
 | I6 | 0 | remote/candidate acceptance 기록이 없음 | 인수는 있었고 기록만 빠져 있어 네 run 을 확인해 적고 **닫음** |
 | I7 | 0 | candidate ici 한정 (릴리스 cadence) | 구현 공백이 아니므로 **닫음** |
-| I8 | 0 | SARIF fix model · browser benchmark | 둘 다 실제 미완 → 추적 항목으로 승격, **열어 둠** |
+| I8 | 0 | SARIF fix model · browser benchmark | 둘 다 실제 미완 → 승격 후 2026-09-07 에 실제로 닫고 **닫음** |
 | I4·I9 | 있음 | — | 하위 항목이 남아 있어 실사 대상 아님 |
 
 I8 이 이 실사의 요점을 보여준다. 하위 체크박스가 전부 닫혀 있어도 절은 닫히지 않을 수 있고,
 산문에만 적힌 미완은 rollup 을 체크할 때 보이지 않는다. 그래서 미체크 수는 11 에서 13 으로
 **늘었다** — 두 항목이 새로 생긴 것이 아니라, 원래 있던 두 항목이 이제 보이는 것이다.
+
+보이게 만든 뒤에는 닫을 수 있었다. 2026-09-07 에 둘 다 실제 작업으로 닫혔고 I8 rollup 도
+함께 닫혔다. 산문에 묻혀 있었다면 rollup 만 체크되고 두 작업은 영영 하지 않았을 것이다.
 
 ---
 
@@ -1996,11 +1999,21 @@ Qt 뷰어 lazy model 은 위 결정으로 범위에서 빠졌다. 아래는 cons
     올린다. 예산 비교는 `--enforce` 를 명시할 때만 exit 1 이며, 기본 실행이 예산을 넘겨도
     exit 0 인 것을 테스트로 고정했다.
   - 이 세 항목은 **리포터 생성 시간**을 닫는다.
-- [ ] 실제 browser startup/memory benchmark를 만든다. 위 세 항목은 리포트를 **생성하는** 비용을
-  재고 브라우저를 띄우지 않는다. I8-1이 이 항목을 I8-4에 남겨 두었으나 체크박스가 없어
-  추적되지 않았으므로, 2026-09-06 rollup 실사에서 승격했다. 10만 finding HTML은 33.4 MB이고
-  초기 DOM은 50행으로 제한되지만, 브라우저가 그것을 여는 데 드는 시간과 메모리는 아직
-  측정된 적이 없다.
+- [x] 실제 browser startup/memory benchmark를 만든다.
+  - 2026-09-07: `scripts/benchmark_browser.py`가 헤드리스 Chrome으로 실측한다. 10만 finding
+    기준 **9.4초, renderer RSS 653 MiB**(3회 중 최선). 메모리는 가장 큰 단일 프로세스를 쓴다 —
+    Chrome은 browser·zygote·renderer로 갈라지고 각 RSS가 공유 매핑을 중복해서 세므로 트리
+    합계(1,780 MiB)는 공유분만큼 과대계상이다. DOM은 renderer에 있다.
+  - **CI에는 넣지 않는다.** 브라우저는 큰 의존성이고 매 PR에 몇 분을 더하는데 이 숫자는 천천히
+    움직인다. 대신 브라우저 비용을 **결정하는 입력**을 매 실행 고정한다 — 초기 렌더 행 수,
+    inline JSON 바이트, HTML 총 바이트가 `report_benchmark.json`의 `browser_payload`에 들어가고,
+    그 셋의 회귀가 곧 브라우저 비용의 회귀다.
+  - **측정이 드러낸 것:** 초기 DOM 50행 제한은 **렌더링을 보호하지 로딩을 보호하지 않는다.**
+    34.0 MB 파일의 **99.7%가 inline JSON**이고 브라우저는 첫 행을 그리기 전에 그것을 전부
+    내려받아 파싱해야 한다. 이 리포트를 더 빠르게 열려면 줄일 것은 초기 행 수가 아니라 JSON이다.
+  - 스크립트는 생성물을 임시 디렉터리에만 쓰고, 브라우저를 `finally`로 종료하며, 실행 중 관측한
+    pid 집합이 실제로 사라졌는지 확인해 보고한다. 격리된 `--user-data-dir`을 써서 기계에 이미
+    떠 있는 Chrome의 프로필·확장·캐시에 결과가 좌우되지 않는다.
 
 ---
 
@@ -2354,11 +2367,16 @@ pending이다.
   - 2026-09-06: 네 절 모두 미체크 항목 0. 절 실사는 13 절 끝의 "I7 체크포인트 실사"에
     있다. 본문에 남은 단서 둘은 abilens/buildscope 계약이 candidate ici 한정이라는
     릴리스 cadence 사실이며 구현 공백이 아니다.
-- [ ] I8: reporter parity, viewer diff/triage, 대형 report 처리 완료
-  - 2026-09-06 rollup 실사 결과 **닫지 않는다.** 본문에 체크박스 없이 산문으로만 남아
-    있던 미완 둘을 추적 항목으로 승격했다 — SARIF source fix model(I8-1)과 실제
-    browser startup/memory benchmark(I8-4). 둘 다 실제 작업이고, 추적되지 않는 미완이
-    rollup 을 닫을 때 보이지 않는 것이 이 실사가 고치려던 문제다.
+- [x] I8: reporter parity, viewer diff/triage, 대형 report 처리 완료
+  - 2026-09-06 rollup 실사에서는 **닫지 않았다.** 본문에 체크박스 없이 산문으로만 남아 있던
+    미완 둘 — SARIF source fix model(I8-1)과 실제 browser startup/memory benchmark(I8-4) —
+    을 추적 항목으로 승격했고, 추적되지 않는 미완이 rollup 을 닫을 때 보이지 않는 것이 그
+    실사가 고치려던 문제였다.
+  - 2026-09-07: 승격한 둘을 실제로 닫았다. SARIF `fixes` 는 PR #183, browser benchmark 는
+    아래 I8-4 항목에 실측과 함께 있다. 다시 실사한 결과 I8 절의 미체크는 0 이고, 남은
+    서술 중 미해결 단서는 없다 — `suppressed=true` 를 붙이는 엔진이 없다는 문장은 I8-2 에서
+    **만들지 않기로 결정한** 범위의 현재 상태 기록이지 열린 작업이 아니다. 따라서 닫는다.
+  - **이 실사는 I8 에만 해당한다.** I4·I9 는 하위 미체크가 남아 있어 대상이 아니다.
 - [ ] I9: quality-zoo, self ratchet, 1.0 support contract 완료
 
 I1 기능과 로컬 실물 검증 및 PR/CI Merge Gate는 완료됐다. [PR #89](https://github.com/jihoon22-lee/ici/pull/89)의
