@@ -1189,6 +1189,18 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     digraph를 구분하며 delimiter·statement 구조가 모호하면 위치 있는 오류로 fail-closed한다.
     이 결과의 함수 경계는 compiler-backed이지만 metric 자체는 AST 의미 분석이 아닌
     `bounded-cpp-statement-v1` lexical estimate이므로 상위 aggregate는 계속 열린 상태다.
+  - **2026-09-07 실사 — 이 상위 항목이 열려 있는 유일한 이유이며, 범위 결정이 필요하다.**
+    C++ metric 을 AST 의미 분석으로 올리려면 C++ AST/semantic duplicate 와 **정확히 같은
+    없는 인프라**가 필요하다: ici 에는 AST 접근이 없고, 함수 경계도 clang AST 가 아니라
+    clang-tidy check 출력에서 온다. 그쪽은 만들지 않기로 결정했다(I4-3 duplicate 항목 참조).
+    - 다만 두 경우가 같지는 않다. duplicate 는 **없는 기능을 새로 만드는 일**이었고, 이쪽은
+      **동작하는 lexical metric 의 provenance 를 올리는 일**이다. 그리고 이 항목의 문구는
+      "AST/**tool output** 우선으로 바꾼다" 이며, C++ 함수 경계는 이미 tool output 이다.
+    - 따라서 선택지는 둘이다. (a) 문구대로 tool output 으로 충족됐다고 보고 닫되 metric 이
+      lexical 이라는 사실을 한계로 유지한다 — 그 한계는 engine-reference 1.5 절의 생성된
+      인벤토리에 이미 실려 있다. (b) AST metric 을 요구사항으로 유지하고 열어 둔다.
+    - **소유자 판단이므로 여기서 닫지 않는다.** duplicate 결정을 그대로 확장하는 것은 승인
+      범위를 넓히는 일이다.
 - [x] template, lambda, operator, macro-generated code 처리 정책을 정한다.
   - source-spelled named function만 target으로 유지하며 function template, conversion/call/subscript
     operator, literal operator의 `function_kind`/template/provenance를 보존한다.
@@ -1367,7 +1379,10 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     linker/whole-program dead-symbol analysis와 C++ AST/semantic duplicate analysis, behavioral
     equivalence, I4-3 aggregate/I4 checkpoint는 계속 pending이다. 버전은 `0.10.2`로 유지하며 이
     slice를 위한 release는 만들지 않는다.
-- [ ] duplicate는 generated/moc/vendor code를 기본 제외하고 token/region fingerprint를 통합한다.
+- [x] duplicate는 generated/moc/vendor code를 기본 제외하고 token/region fingerprint를 통합한다.
+  - 2026-09-07: 하위 세 항목이 모두 해결됐다 — intake 제외 정책과 language-aware
+    tokenization 은 구현·인수됐고, C++ AST/semantic duplicate 는 위와 같이 만들지
+    않기로 결정했다.
   - [x] 공통 intake의 generated/moc/vendor 기본 제외와 두 independent literal-boolean opt-in을
     적용하고, overlapping classification은 두 opt-in이 모두 켜져야 포함한다. owned C/C++
     headers를 포함하고 standalone `.moc`는 discoverable하지만 기본 제외하며, Python과 C/C++
@@ -1399,9 +1414,23 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     256개, named region 20,000개, AST node 500,000개, serialized shape 16 MiB 한도를 넘으면
     partial region을 내지 않고 fail-closed한다. 이 slice는 C++ AST/semantic duplicate analysis,
     near-clone edit equivalence 또는 behavioral equivalence를 주장하지 않는다.
-  - [ ] C++ AST/semantic duplicate analysis, behavioral equivalence와 broader
-    whole-program/linker-backed dead-symbol evidence는 아직 pending이다. bounded Python AST
-    shape와 target-local GNU ELF 증거만으로 I4-3 전체를 완료로 표시하지 않는다.
+  - [x] C++ AST/semantic duplicate analysis와 behavioral equivalence는 **만들지 않기로
+    결정했다** (2026-09-07). 이 체크박스는 원래 세 가지 무관한 작업을 한 줄에 묶고 있어
+    어떤 경우에도 깨끗하게 닫힐 수 없었다. dead-symbol 쪽은 위 I4-3 dead 항목에 이미 별도
+    추적 항목이 있으므로 거기로 일원화한다.
+    - **비용:** ici 에는 AST 접근이 없다. C++ 함수 경계는 clang **AST 가 아니라 clang-tidy
+      check 출력**에서 온다(`_cpp_function_boundaries.py`). semantic clone 을 하려면
+      `clang -Xclang -ast-dump=json` replay 를 새로 만들어야 하고, TU 당 수 MB 의 JSON 에
+      대한 bounded intake·정규화·template/macro/overload 처리가 전부 새 작업이다.
+      libclang 바인딩은 pure-Python pyz 제약상 불가다.
+    - **Python 이 싼 이유가 C++ 에는 없다.** `_python_dup_semantics.py` 가 가능했던 것은
+      `ast` 가 표준 라이브러리이기 때문이고, C++ 에는 대응물이 없다.
+    - **현재 상태가 독자를 오도하지 않는다.** token-window 경로는 C++ 에서 동작하고, 그
+      한계("does not expand macros or identify semantic clones")는 engine-reference 1.5 절의
+      **생성된** 한계 인벤토리에 실려 있어 선언과 함께 검증된다.
+    - 필요해지면 이 결정을 다시 연다. I8-2 의 viewer 결정, I4-4 의 lifetime 축 결정과 같은
+      성격이며, 하지 않기로 한 것을 근거와 함께 적어 두는 편이 pending 으로 남겨 두는 것보다
+      정직하다 — pending 은 언젠가 한다는 뜻으로 읽힌다.
 - [x] heuristic parser는 tool 없는 fallback으로 남기고 confidence를 낮춘다.
 
 이 source-evidence slice는 PR #133으로 `main` (`fdc797a0c71c46d9301db2569928468ff42e24af`)에
@@ -2152,10 +2181,23 @@ verified" 까지가 조건이다.
 | Q5 hybrid | make-elf-integration | 1 개 |
 
 **다섯 family 모두 구현·검증된 scenario 를 갖고 있고, 16 엔진 전부가 presence 와 absence
-양방향으로 고정돼 있다.** 그럼에도 이 절을 닫지 않는 이유는 하나다 — Q1–Q5 가 "각 family 에
-대표 scenario 가 있으면 되는 것"인지 "각 family 의 규칙을 망라해야 하는 것"인지 원문이 말하지
-않는다. 전자라면 이미 충족됐고 후자라면 한참 남았다. **정의를 정하는 것은 이 계획의 소유자
-판단이므로 여기서 임의로 닫지 않는다.** 다음에 이 절을 손대는 사람은 먼저 그것부터 정하면 된다.
+양방향으로 고정돼 있다.**
+
+#### 결정: Q1–Q5 는 family 별 대표 scenario 로 충족된다 (2026-09-07)
+
+원문이 "각 family 에 대표 scenario 가 있으면 되는 것"인지 "규칙을 망라해야 하는 것"인지 말하지
+않아 판단이 필요했고, 전자로 정한다. 근거는 셋이다.
+
+- 원문이 적은 조건 자체가 **"until their known answers and clean counterparts are implemented
+  and verified"** 다. scenario 의 존재와 검증을 말하지 규칙 망라를 말하지 않는다.
+- 망라에는 **끝점이 없다.** 16 엔진의 규칙을 모두 corpus 에 담는다는 목표는 닫히는 날이 오지
+  않으므로 체크박스로 둘 수 없다.
+- 망라보다 **검증 가능한 기준이 이미 생겼다.** toy PR #69 이후 "presence 가 고정된 모든 엔진은
+  absence 도 고정된다"가 `tests/test_corpus_coverage.py` 로 강제된다. 이것은 "Q1–Q5 완료"보다
+  구체적이고, 새 엔진이 생기면 자동으로 요구된다.
+
+따라서 Q1–Q5 는 충족됐다. corpus 를 넓히는 일은 앞으로도 계속하되, 그것은 이 체크포인트의
+전제가 아니라 **평시 유지보수**이며 위 coverage 계약이 그 하한을 지킨다.
 
 - [x] Q0 released-artifact path의 toy manifest schema와 ici v3 report matcher가 PR #49의
   `quality-zoo-contract` artifact에 기록되고 exact-main run에서도 재검증됐다.
@@ -2413,14 +2455,14 @@ verified" 까지가 조건이다.
     서술 중 미해결 단서는 없다 — `suppressed=true` 를 붙이는 엔진이 없다는 문장은 I8-2 에서
     **만들지 않기로 결정한** 범위의 현재 상태 기록이지 열린 작업이 아니다. 따라서 닫는다.
   - **이 실사는 I8 에만 해당한다.** I4·I9 는 하위 미체크가 남아 있어 대상이 아니다.
-- [ ] I9: quality-zoo, self ratchet, 1.0 support contract 완료
-  - 2026-09-07 rollup 실사 결과 **닫지 않는다.** 하위 체크박스는 이제 0 이지만, I9-1 본문의
-    "Q1–Q5" 가 **이 계획서 어디에도 정의돼 있지 않다.** toy workthrough 에서 정의를 찾아
-    다섯 family 모두 구현·검증된 scenario 를 갖고 있음을 확인했으나(15 절 I9-1 의 매핑 표),
-    Q1–Q5 가 대표 scenario 로 충족되는지 규칙 망라를 요구하는지는 원문이 말하지 않는다.
-    **정의를 정하는 것이 이 계획 소유자의 판단**이므로 여기서 임의로 닫지 않는다.
-  - 정의만 정해지면 이 rollup 은 그 판단 한 번으로 닫히거나, 남은 scenario 목록이 명확해진다.
-    어느 쪽이든 지금처럼 "pending" 한 단어로 남아 있는 것보다 낫다.
+- [x] I9: quality-zoo, self ratchet, 1.0 support contract 완료
+  - 2026-09-07 rollup 실사: 하위 체크박스 0. 유일한 걸림돌이던 "Q1–Q5" 는 이 계획서에 정의가
+    없어 toy workthrough 에서 찾아냈고, **family 별 대표 scenario 로 충족**하는 것으로 정의를
+    정했다 (15 절 I9-1 의 결정과 매핑 표). 망라 해석은 끝점이 없어 체크박스가 될 수 없고,
+    그보다 검증 가능한 기준인 engine coverage 계약이 이미 테스트로 강제된다.
+  - status 문단이 pending 으로 적고 있던 broader Qt lifetime/ownership 과
+    resource/lifetime/security taxonomy 는 I4-4 에서 닫혔다. 문단이 따라오지 못했을 뿐이다.
+  - release 판단은 이 체크포인트에 속하지 않는다. §16.4 의 version cadence 가 소유한다.
 
 I1 기능과 로컬 실물 검증 및 PR/CI Merge Gate는 완료됐다. [PR #89](https://github.com/jihoon22-lee/ici/pull/89)의
 병합 commit과 [CI run 33330722781](https://github.com/jihoon22-lee/ici/actions/runs/33330722781)의 required checks
