@@ -1199,8 +1199,14 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     - 따라서 선택지는 둘이다. (a) 문구대로 tool output 으로 충족됐다고 보고 닫되 metric 이
       lexical 이라는 사실을 한계로 유지한다 — 그 한계는 engine-reference 1.5 절의 생성된
       인벤토리에 이미 실려 있다. (b) AST metric 을 요구사항으로 유지하고 열어 둔다.
-    - **소유자 판단이므로 여기서 닫지 않는다.** duplicate 결정을 그대로 확장하는 것은 승인
-      범위를 넓히는 일이다.
+    - **결정 (2026-09-07): (b) AST metric 을 요구사항으로 유지하고 이 항목을 연다.**
+      duplicate 를 만들지 않기로 한 것과 다른 판단이며, 이유가 있다. duplicate 는 없는 기능을
+      새로 만드는 일이라 안 만들면 그만이지만, 이쪽은 **이미 내보내고 있는 값의 정확도**다.
+      `complexity`/`cognitive` 는 C++ 함수마다 CC 와 nesting 을 숫자로 보고하고 게이트가 그
+      숫자로 FAIL 을 낸다. 그 숫자가 lexical estimate 라는 사실은 한계 인벤토리에 적혀 있지만,
+      임계값을 넘겨 빌드를 막는 순간 독자는 그것을 측정값으로 다룬다. 요구사항으로 남긴다.
+    - 따라서 I4 체크포인트도 열린 채로 둔다. 남은 것은 이 항목과 whole-program dead-symbol
+      둘이며, 둘 다 같은 없는 인프라(C++ AST 접근)를 필요로 한다는 점이 공통이다.
 - [x] template, lambda, operator, macro-generated code 처리 정책을 정한다.
   - source-spelled named function만 target으로 유지하며 function template, conversion/call/subscript
     operator, literal operator의 `function_kind`/template/provenance를 보존한다.

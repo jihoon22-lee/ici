@@ -1833,7 +1833,14 @@ dead-symbol reachability와 full C++ semantic/behavioral duplicate equivalence�
 `[engines.dead].cpp_linker = "auto" | "required" | "off"`(기본값 `off`)는 Linux root CMake/
 `Unix Makefiles`/Release의 direct-object ELF executable을 GNU `ld` section-GC로 재링크하고,
 `cmake`·`readelf`·`addr2line`이 확인한 uniquely mapped local/hidden discarded function
-section만 target-local `MEASURED`/`EXACT` finding으로 기록합니다. archives/shared/LTO/PIE/
+section만 `MEASURED`/`EXACT` finding으로 기록합니다.
+
+여러 실행 파일이 같은 함수를 링크할 수 있으므로, 판정은 **링크하는 모든 대상의 교집합**입니다.
+각 relink 는 "이 함수가 **이 대상의** 진입점에서 도달 가능한가"에만 답하므로, 그 답을 합집합
+하면 다른 질문에 답하게 됩니다 — 실행 파일 A 가 버린 헬퍼를 B 가 호출해도 제거 가능으로
+보고되고, 지우면 B 의 빌드가 깨집니다. 한 대상에서만 버려진 section 은 finding 이 되지 않고
+개수만 `extra.cpp_linker_sections_kept_by_another_target` 에 남습니다. 실행 파일이 하나뿐인
+프로젝트에서는 교집합과 합집합이 같으므로 이 값은 `0`입니다. archives/shared/LTO/PIE/
 COMDAT/dynamic/whole-program 범위와 malformed·timeout·truncation은 제외하거나 fail-closed합니다.
 `[engines.dup].python_semantic = "auto" | "required" | "off"`(기본값 `auto`)는 Python 3.10
 leaf function/method AST shape를 canonicalize해 local alpha-renaming·layout insensitivity를
