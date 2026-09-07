@@ -27,6 +27,11 @@ from ici.core.context import AnalysisContext, BuildVariant, CompilationUnit, can
 from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability, compiler_family_from_version
+from ici.engines._cpp_linker_dead_aggregation import (
+    _DiscardedSection,
+    _LinkCommand,
+    discarded_by_every_linking_target,
+)
 from ici.engines._cpp_tooling import compiler_capability, regular_executable
 
 _SHADOW_SUFFIX = "-link-reachability"
@@ -115,6 +120,9 @@ class CppLinkerDeadOutcome:
     sources_checked: int = 0
     discarded_sections_observed: int = 0
     ambiguous_sections_excluded: int = 0
+    # Discarded by at least one target but kept by another that linked the
+    # same object, so not removable from the linked program set.
+    sections_kept_by_another_target: int = 0
 
 
 @dataclass(frozen=True)
@@ -126,29 +134,6 @@ class _Toolset:
     addr2line: Path
     addr2line_version: str
     compiler_paths: frozenset[Path]
-
-
-@dataclass(frozen=True)
-class _LinkCommand:
-    target: str
-    path: Path
-    argv: tuple[str, ...]
-    driver: Path
-    driver_name: str
-    driver_version: str
-    objects: tuple[Path, ...]
-    output: Path
-    digest: str
-
-
-@dataclass(frozen=True)
-class _DiscardedSection:
-    target: str
-    object_path: Path
-    section: str
-    command_digest: str
-    driver_name: str
-    driver_version: str
 
 
 def _append_error(outcome: CppLinkerDeadOutcome, file_path: str, message: str) -> None:
@@ -880,6 +865,7 @@ def _collect_removals(
     deadline: float,
 ) -> list[_DiscardedSection]:
     removals: list[_DiscardedSection] = []
+    linked: list[_LinkCommand] = []
     for command in commands:
         if time.monotonic() >= deadline:
             _append_error(
@@ -894,9 +880,12 @@ def _collect_removals(
         if not _validate_elf_executable(command, tools, outcome, runner, shadow, deadline):
             break
         outcome.link_targets_checked += 1
+        linked.append(command)
         removals.extend(observed)
     outcome.discarded_sections_observed = len(removals)
-    return removals
+    retained, kept = discarded_by_every_linking_target(removals, linked)
+    outcome.sections_kept_by_another_target = kept
+    return retained
 
 
 def _inspect_removals(
