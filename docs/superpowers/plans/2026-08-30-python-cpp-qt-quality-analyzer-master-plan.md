@@ -1348,6 +1348,17 @@ I4-2 full local run은 `1513 passed, 4 skipped`였고, skip은 당시 환경의
     object/library를 연결한 결과, external/dynamic lookup, plugin 또는 Qt meta-object 경로를
     포함하는 전역 unused-symbol 판정은 별도 범위로 남긴다. 위 target-local GNU ELF 증거를
     broader whole-program deadness의 완료로 해석하지 않는다.
+  - **2026-09-07: 이 항목을 실사하다 실제 결함을 찾아 고쳤다.** 어댑터는 각 링크 대상을
+    relink 해 `--gc-sections` 가 버린 섹션을 모으는데, 그 결과를 **합집합**으로 모으고
+    있었다(`removals.extend(observed)`). 각 relink 는 "이 함수가 **이 대상의** 진입점에서
+    도달 가능한가"에 답하므로, 합집합은 다른 질문에 답한다 — 실행 파일 A 가 버린 헬퍼를
+    실행 파일 B 가 호출해도 제거 가능으로 보고되고, 지우면 B 의 빌드가 깨진다. ici 자신의
+    `viewer/` 도 `icirv` 와 테스트 실행 파일 넷이 같은 오브젝트를 공유하므로 조건에 걸린다.
+  - 이제 **그 오브젝트를 링크한 모든 대상이 버린 섹션만** 보고한다. 걸러진 개수는
+    `cpp_linker_sections_kept_by_another_target` 으로 남긴다. 이것으로 whole-program
+    reachability 가 되지는 않는다 — dynamic lookup 과 export 심볼은 그대로 제외된다 — 그러나
+    **실제로 링크한 대상 집합에 대해서는 건전**해졌고 합집합은 그렇지 않았다. 이 항목이
+    요구하는 전역 exact 판정에는 여전히 미달이므로 체크하지 않는다.
 
   - [x] **이 C++ TU-local slice의 remote acceptance:** descriptive PR #137,
     `feat(dead): add compiler-backed C/C++ unused-function evidence`의 required checks가

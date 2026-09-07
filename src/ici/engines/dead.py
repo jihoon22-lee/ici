@@ -542,6 +542,9 @@ class DeadCodeEngine(BaseEngine):
                 "cpp_linker_ambiguous_sections_excluded": (
                     linker_outcome.ambiguous_sections_excluded
                 ),
+                "cpp_linker_sections_kept_by_another_target": (
+                    linker_outcome.sections_kept_by_another_target
+                ),
                 "cpp_linker_warnings": linker_outcome.warnings,
                 "cpp_linker_details": self._linker_details(linker_outcome),
                 "cpp_scope_evidence": {

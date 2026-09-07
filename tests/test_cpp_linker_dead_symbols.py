@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import pytest
@@ -624,3 +625,135 @@ def test_relink_failure_discards_all_observations_atomically(
     assert outcome.link_targets_checked == 0
     assert any("relink failed" in error for error in outcome.errors)
     assert any(target.status == EngineStatus.ERROR for target in outcome.targets)
+
+
+def _command(target: str, objects: tuple[Path, ...]) -> linker._LinkCommand:
+    return linker._LinkCommand(
+        target=target,
+        path=Path(f"CMakeFiles/{target}.dir/link.txt"),
+        argv=("g++", "-o", target),
+        driver=Path("/usr/bin/g++"),
+        driver_name="g++",
+        driver_version="g++ (GCC) 15.2.0",
+        objects=objects,
+        output=Path(target),
+        digest=canonical_digest({"target": target}),
+    )
+
+
+def _removal(target: str, object_path: Path, section: str) -> linker._DiscardedSection:
+    return linker._DiscardedSection(
+        target=target,
+        object_path=object_path,
+        section=section,
+        command_digest=canonical_digest({"target": target}),
+        driver_name="g++",
+        driver_version="g++ (GCC) 15.2.0",
+    )
+
+
+def test_a_function_another_executable_still_calls_is_not_reported() -> None:
+    """Each relink answers reachability from *one* entry point.
+
+    Collecting those answers as a union answers a different question: an
+    executable discarding a helper that a second executable calls would be
+    reported as removable, and deleting it would break the second build. A
+    section survives only when every target that linked its object discarded it.
+    """
+
+    shared = Path("CMakeFiles/core.dir/util.o")
+    linked = [_command("app", (shared,)), _command("tool", (shared,))]
+    # `helper` is discarded when linking app, but tool still calls it.
+    removals = [
+        _removal("app", shared, ".text.helper"),
+        _removal("app", shared, ".text.truly_dead"),
+        _removal("tool", shared, ".text.truly_dead"),
+    ]
+    outcome = linker.CppLinkerDeadOutcome(mode="required")
+
+    retained = linker._discarded_by_every_linking_target(removals, linked, outcome)
+
+    assert [item.section for item in retained] == [".text.truly_dead"]
+    assert outcome.sections_kept_by_another_target == 1
+
+
+def test_a_section_dead_in_every_target_is_reported_once() -> None:
+    shared = Path("CMakeFiles/core.dir/util.o")
+    linked = [_command("app", (shared,)), _command("tool", (shared,))]
+    removals = [
+        _removal("app", shared, ".text.gone"),
+        _removal("tool", shared, ".text.gone"),
+    ]
+    outcome = linker.CppLinkerDeadOutcome(mode="required")
+
+    retained = linker._discarded_by_every_linking_target(removals, linked, outcome)
+
+    # Two observations of one dead function are one finding, not two.
+    assert len(retained) == 1
+    assert outcome.sections_kept_by_another_target == 0
+
+
+def test_an_object_linked_by_one_target_keeps_the_single_target_answer() -> None:
+    """Not every object reaches every executable.
+
+    An object only `app` links has no second opinion to reconcile, so requiring
+    agreement from targets that never saw it would discard every finding in a
+    project whose executables do not share objects.
+    """
+
+    only_app = Path("CMakeFiles/app.dir/main.o")
+    shared = Path("CMakeFiles/core.dir/util.o")
+    linked = [_command("app", (only_app, shared)), _command("tool", (shared,))]
+    removals = [_removal("app", only_app, ".text.private")]
+    outcome = linker.CppLinkerDeadOutcome(mode="required")
+
+    retained = linker._discarded_by_every_linking_target(removals, linked, outcome)
+
+    assert [item.section for item in retained] == [".text.private"]
+    assert outcome.sections_kept_by_another_target == 0
+
+
+def test_a_single_link_target_project_is_unchanged() -> None:
+    # The intersection must not change behaviour where there is nothing to
+    # intersect, which is the shape the adapter was built and accepted against.
+    shared = Path("CMakeFiles/app.dir/main.o")
+    removals = [_removal("app", shared, ".text.dead")]
+    outcome = linker.CppLinkerDeadOutcome(mode="required")
+
+    retained = linker._discarded_by_every_linking_target(
+        removals, [_command("app", (shared,))], outcome
+    )
+
+    assert retained == removals
+    assert outcome.sections_kept_by_another_target == 0
+
+
+def test_collect_removals_applies_the_intersection_not_just_offers_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Producing the filtered list is not the same as returning it.
+
+    Testing `_discarded_by_every_linking_target` on its own proves the rule and
+    nothing about whether the collector uses it: reverting the call site to the
+    old union left every direct test green. This goes through the collector.
+    """
+
+    shared = Path("CMakeFiles/core.dir/util.o")
+    commands = (_command("app", (shared,)), _command("tool", (shared,)))
+    observed = {
+        "app": [_removal("app", shared, ".text.helper"), _removal("app", shared, ".text.gone")],
+        "tool": [_removal("tool", shared, ".text.gone")],
+    }
+    monkeypatch.setattr(linker, "_relink", lambda command, *_a, **_k: observed[command.target])
+    monkeypatch.setattr(linker, "_validate_elf_executable", lambda *_a, **_k: True)
+    outcome = linker.CppLinkerDeadOutcome(mode="required")
+
+    removals = linker._collect_removals(
+        commands, object(), outcome, lambda *_a, **_k: None, Path("shadow"), time.monotonic() + 60
+    )
+
+    assert [item.section for item in removals] == [".text.gone"]
+    # The raw observation count is still reported honestly; only the verdict is filtered.
+    assert outcome.discarded_sections_observed == 3
+    assert outcome.sections_kept_by_another_target == 1
+    assert outcome.link_targets_checked == 2
