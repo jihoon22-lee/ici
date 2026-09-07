@@ -16,6 +16,8 @@ from ici.core.models import (
     Finding,
     FindingCategory,
     FindingConfidence,
+    FindingFix,
+    FindingFixReplacement,
     FindingSeverity,
     InspectionTarget,
     SourceLocation,
@@ -366,6 +368,7 @@ class LintEngine(BaseEngine):
                         else "Compiler diagnostic from a sanitized translation-unit replay."
                     ),
                     remediation=remediation,
+                    fixes=self._cpp_fixes(diagnostic),
                     tool_rule_id=diagnostic.tool_rule_id,
                     tool_name=tool.name if tool is not None else "",
                     tool_version=tool.version if tool is not None else "",
@@ -376,6 +379,40 @@ class LintEngine(BaseEngine):
     @staticmethod
     def _cpp_finding_category(diagnostic: CppDiagnostic) -> FindingCategory:
         return cpp_diagnostic_category(diagnostic)
+
+    @staticmethod
+    def _cpp_fixes(diagnostic: CppDiagnostic) -> list[FindingFix]:
+        """Carry the tool's fix-its through structured rather than as prose.
+
+        `_cpp_remediation` renders the same suggestions for a person to read.
+        This keeps the regions machine-usable so a SARIF consumer can offer the
+        edit; reparsing the prose to recover them would be guessing at bytes.
+
+        All of one diagnostic's fix-its become a single fix: the tool proposes
+        them together, and applying a subset is not a smaller version of the
+        same suggestion.
+        """
+
+        replacements = tuple(
+            FindingFixReplacement(
+                path=fixit.file_path,
+                start_line=fixit.start_line,
+                start_column=fixit.start_column,
+                end_line=fixit.end_line,
+                end_column=fixit.end_column,
+                replacement=fixit.replacement,
+            )
+            for item in (diagnostic, *diagnostic.related_diagnostics)
+            for fixit in item.fixits
+        )
+        if not replacements:
+            return []
+        return [
+            FindingFix(
+                description=f"{diagnostic.tool_rule_id or diagnostic.family} suggested fix",
+                replacements=replacements,
+            )
+        ]
 
     @staticmethod
     def _cpp_remediation(diagnostic: CppDiagnostic) -> str:

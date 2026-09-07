@@ -207,6 +207,52 @@ def _rule_for_finding(finding: Finding) -> dict[str, Any]:
     return rule
 
 
+def _fixes(finding: Finding) -> list[dict[str, Any]]:
+    """Map suggested edits onto SARIF `fixes`, grouped per artifact.
+
+    SARIF nests replacements under the artifact they touch, so a fix spanning
+    two files becomes one fix with two `artifactChanges` — not two fixes. That
+    distinction matters to a consumer offering the edit: applying half of a fix
+    is not applying a smaller fix.
+
+    `deletedRegion` is the range the tool wants replaced and `insertedContent`
+    is what goes there, which is how SARIF spells a replacement even when the
+    inserted text is empty (a deletion).
+    """
+
+    fixes: list[dict[str, Any]] = []
+    for fix in finding.fixes:
+        changes: dict[str, list[dict[str, Any]]] = {}
+        for item in fix.replacements:
+            uri = quote(item.path, safe="/")
+            changes.setdefault(uri, []).append(
+                {
+                    "deletedRegion": {
+                        "startLine": item.start_line,
+                        "startColumn": item.start_column,
+                        "endLine": item.end_line,
+                        "endColumn": item.end_column,
+                    },
+                    "insertedContent": {"text": item.replacement},
+                }
+            )
+        if not changes:
+            continue
+        payload: dict[str, Any] = {
+            "artifactChanges": [
+                {
+                    "artifactLocation": {"uri": uri},
+                    "replacements": replacements,
+                }
+                for uri, replacements in sorted(changes.items())
+            ]
+        }
+        if fix.description:
+            payload["description"] = {"text": fix.description}
+        fixes.append(payload)
+    return fixes
+
+
 def _result_for_finding(
     finding: Finding,
     engine_name: str,
@@ -226,6 +272,9 @@ def _result_for_finding(
     suppressions = _suppression(finding)
     if suppressions:
         result["suppressions"] = suppressions
+    fixes = _fixes(finding)
+    if fixes:
+        result["fixes"] = fixes
     if delta is not None:
         state = _delta_state(delta.state)
         if state is not None:
@@ -287,6 +336,25 @@ def _finding_sort_key(engine_name: str, finding: Finding) -> tuple[Any, ...]:
         tuple(_location_sort_key(location) for location in finding.related_locations),
         metrics,
         finding.snippet,
+        # `fixes` reaches the result, so it belongs here too: two findings that
+        # differ only in what they suggest must still have a stable order.
+        tuple(
+            (
+                fix.description,
+                tuple(
+                    (
+                        item.path,
+                        item.start_line,
+                        item.start_column,
+                        item.end_line,
+                        item.end_column,
+                        item.replacement,
+                    )
+                    for item in fix.replacements
+                ),
+            )
+            for fix in finding.fixes
+        ),
     )
 
 

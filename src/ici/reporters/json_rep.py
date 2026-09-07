@@ -25,6 +25,7 @@ from ici.core.models import (
     EvidenceState,
     Finding,
     FindingDelta,
+    FindingFix,
     FindingMetric,
     FindingSeverity,
     FindingSuppression,
@@ -348,6 +349,25 @@ def _serialize_suppression(suppression: FindingSuppression) -> dict[str, Any]:
     }
 
 
+def _serialize_fix(fix: FindingFix) -> dict[str, Any]:
+    """Serialize one suggested edit with every region kept structured."""
+
+    return {
+        "description": _require_string(fix.description, "finding.fix.description"),
+        "replacements": [
+            {
+                "path": _require_string(item.path, "finding.fix.path", nonempty=True),
+                "start_line": item.start_line,
+                "start_column": item.start_column,
+                "end_line": item.end_line,
+                "end_column": item.end_column,
+                "replacement": _require_string(item.replacement, "finding.fix.replacement"),
+            }
+            for item in fix.replacements
+        ],
+    }
+
+
 def _serialize_finding(finding: Finding) -> dict[str, Any]:
     return {
         "rule_id": finding.rule_id,
@@ -370,6 +390,7 @@ def _serialize_finding(finding: Finding) -> dict[str, Any]:
             name: _serialize_metric(metric) for name, metric in sorted(finding.metrics.items())
         },
         "snippet": _require_string(finding.snippet, "finding.snippet"),
+        "fixes": [_serialize_fix(fix) for fix in finding.fixes],
     }
 
 

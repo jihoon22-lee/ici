@@ -1898,9 +1898,21 @@ inventory를 사용하며 100,000 finding 회귀 fixture를 통과한다.
 2026-09-06 rollup 실사: 이 문단이 산문으로만 남겨 두었던 미완 둘을 추적 항목으로 승격한다.
 체크박스가 없는 미완은 rollup을 닫을 때 보이지 않고, 그것이 이 실사가 고치려는 문제다.
 
-- [ ] SARIF source fix model을 추가한다. rule/result/location/suppression/baseline mapping은
-  있지만 `fixes`가 없어 SARIF 소비자가 자동 수정 제안을 받을 수 없다. compiler/clang-tidy
-  fix-it은 이미 bounded suggestion으로 기록되므로 입력은 있다.
+- [x] SARIF source fix model을 추가한다.
+  - 2026-09-07: 입력은 이미 `CppFixIt`에 구조화돼 있었지만 `Finding`까지는 `remediation`
+    자유 문자열로 평탄화돼 도착했다. 그 문장을 되파싱해 SARIF 범위를 복원하는 것은 바이트를
+    추측하는 일이므로, 같은 fix-it이 `Finding.fixes`로 구조화된 채 실리게 했다. major 안에서의
+    가산적 필드이며 스키마에서 `required`가 아니다 — 이전 v3 문서가 계속 유효해야 한다.
+  - 한 진단의 fix-it 전부가 **하나의** fix다. 두 파일에 걸친 제안은 `artifactChanges` 둘을
+    가진 fix 하나이며, 절반 적용은 더 작은 fix를 적용하는 것이 아니다. 빈 `insertedContent`는
+    삭제이지 "제안 없음"이 아니고, 제안이 없으면 `fixes` 키 자체를 내지 않는다.
+  - **fingerprint에는 넣지 않는다.** identity는 문제가 어디 있느냐이지 도구가 지금 무엇을
+    제안하느냐가 아니다 — 도구를 올려 제안이 좋아진 것이 baseline에서 새 finding으로 보이면
+    안 된다. deterministic sort key에는 넣는다. result에 도달하는 값이기 때문이다.
+  - mutation 5건으로 확인했다: 파일별로 fix를 쪼개기, 빈 대체 텍스트를 버리기, fixes를
+    fingerprint에 넣기, 스키마에서 `required`로 만들기, 그리고 lint가 finding에 붙이지 않기.
+    **다섯째는 처음에 잡히지 않았다** — `_cpp_fixes`를 직접 부르는 테스트는 매핑만 증명하고
+    배선은 증명하지 않는다. builder를 실제로 지나는 테스트를 추가해 닫았다.
 
 ### I8-2~I8-4 범위 결정 (2026-09-06)
 

@@ -12,6 +12,7 @@ from ici.core.models import (
     EngineResult,
     Finding,
     FindingDelta,
+    FindingFix,
     FindingMetric,
     FindingSuppression,
     SourceLocation,
@@ -329,6 +330,27 @@ def _redact_finding_metrics(metrics: dict[str, FindingMetric]) -> dict[str, Find
     return redacted
 
 
+def _redact_fix(fix: FindingFix) -> FindingFix:
+    """Redact a suggested edit the same way the message text is redacted.
+
+    A replacement is source text a tool proposes writing into the project, so
+    it can carry the same secrets any other quoted source can.
+    """
+
+    return replace(
+        fix,
+        description=redact_text(fix.description),
+        replacements=tuple(
+            replace(
+                item,
+                path=redact_text(item.path),
+                replacement=redact_text(item.replacement),
+            )
+            for item in fix.replacements
+        ),
+    )
+
+
 def _redact_finding(finding: Finding) -> Finding:
     suppression = FindingSuppression(
         suppressed=finding.suppression.suppressed,
@@ -342,6 +364,7 @@ def _redact_finding(finding: Finding) -> Finding:
         message=redact_text(finding.message),
         explanation=redact_text(finding.explanation),
         remediation=redact_text(finding.remediation),
+        fixes=[_redact_fix(fix) for fix in finding.fixes],
         tool_rule_id=redact_text(finding.tool_rule_id),
         tool_name=redact_text(finding.tool_name),
         tool_version=redact_text(finding.tool_version),
