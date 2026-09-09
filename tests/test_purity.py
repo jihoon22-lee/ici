@@ -131,6 +131,32 @@ def test_ci_self_verification_persists_project_python_and_bin_path():
     assert "dist/ici.pyz verify" in self_verify
 
 
+def test_release_dogfood_resolves_the_same_project_tools_as_ci():
+    """The release gate has to be at least as strong as the one it releases past.
+
+    ci.yml puts the project venv on PATH before dogfooding so the engines find
+    the ruff the project actually pins. release.yml did not, so the release
+    dogfood ran with ruff missing and ici's own suite failed inside it — a
+    latent gap that only became fatal once a test needing a real ruff landed.
+    """
+    build = _job_block(_workflow("release.yml"), "build-release")
+    dogfood_index = build.index("- name: Dogfood the Release Candidate")
+    setup_prefix = build[:dogfood_index]
+
+    project_python = 'project_python="$GITHUB_WORKSPACE/.venv/bin/python"'
+    assert project_python in setup_prefix
+    assert 'test -x "$project_python"' in setup_prefix
+    assert 'printf \'ICI_PYTHON=%s\\n\' "$project_python" >> "$GITHUB_ENV"' in setup_prefix
+    assert 'printf \'%s\\n\' "$(dirname "$project_python")" >> "$GITHUB_PATH"' in setup_prefix
+
+    # python_compat measures the newest supported runtime against the floor.
+    # Without this the released self-report silently downgrades that engine.
+    assert 'python-version: "3.14"' in setup_prefix
+
+    dogfood = build[dogfood_index:]
+    assert "dist/ici.pyz verify" in dogfood
+
+
 def test_ci_builds_pyz_twice_and_rejects_project_mutation():
     verify = _job_block(_workflow("ci.yml"), "verify")
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "verify-reproducibility.sh"

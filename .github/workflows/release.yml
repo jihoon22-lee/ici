@@ -154,6 +154,15 @@ jobs:
           TARGET_SHA: ${{ needs.validate-release.outputs.target_sha }}
         run: test "$(git rev-parse HEAD)" = "$TARGET_SHA"
 
+      # 3.10 is the floor the release is built against and stays the default.
+      # This one only has to leave `python3.14` findable so python_compat
+      # measures the newest supported runtime next to the floor — without it the
+      # published self-report downgrades that engine to "interpreter unavailable".
+      - name: Set up the newest supported Python (3.14)
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
       - name: Set up Python 3.10
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -174,10 +183,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config clang-tidy clazy
 
+      # `uv run` installs into the project .venv, but nothing downstream sees it
+      # unless the venv's bin lands on PATH. The dogfood step below runs the
+      # standalone pyz, so without this its lint engine falls back to AST and its
+      # test engine runs a suite whose ruff-dependent cases cannot pass. ci.yml
+      # has done this since the dogfood step existed; the release job had not.
       - name: Enforce Ruff Quality Gate
         run: |
           uv run --python 3.10 ruff check .
           uv run --python 3.10 ruff format --check .
+          project_python="$GITHUB_WORKSPACE/.venv/bin/python"
+          test -x "$project_python"
+          printf 'ICI_PYTHON=%s\n' "$project_python" >> "$GITHUB_ENV"
+          printf '%s\n' "$(dirname "$project_python")" >> "$GITHUB_PATH"
 
       - name: Run Test Suite
         env:
