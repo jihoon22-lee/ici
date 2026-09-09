@@ -882,6 +882,29 @@
   and exact-main run `33602697235` passed. This closes the corrective PR, not I4-4 or a new
   release. The version remains `0.10.2`; no release is created.
 
+### Public release evidence
+
+- **v0.11.0 is public**: the [release](https://github.com/jihoon22-lee/ici/releases/tag/v0.11.0)
+  is non-draft/non-prerelease, and its annotated tag resolves to exact `main` commit
+  `41cdff6d9deaab4ce2b46d2c7a9966ddd8d12efe`. The [exact-main CI run
+  34307165809](https://github.com/jihoon22-lee/ici/actions/runs/34307165809) passed verification,
+  Qt 5/Qt 6, trusted main publication, and `Merge Gate`; the PR publisher was skipped as expected
+  for a `main` push.
+- [Release run 34310970522](https://github.com/jihoon22-lee/ici/actions/runs/34310970522) passed
+  both `Validate Release Provenance` and `Build & Publish Release`. The release contains exactly
+  nine assets: `ici.pyz`, `ici.pyz.sha256`, `ici-self-report.html`, `ici-self-report.json`,
+  `viewer-report.html`, `viewer-report.json`, `icirv`, `icirv-gui`, and `icirv-gui.README.txt`.
+  The published `ici.pyz` SHA-256 is
+  `334bcda1bf127ff18ca1931cb55a8ac6e62af2d687ac90ab13c6af2e5499bc1f`; a downloaded copy and the
+  published sidecar both reproduce it, and the artifact reports `ici 0.11.0`.
+- The release did not pass on the first attempt, and the reason is recorded rather than elided:
+  the initial tag push raced its own `Merge Gate`, and the rerun then failed dogfooding because
+  `release.yml` never put the project venv on PATH, leaving `ruff=unavailable` inside a gate that
+  re-runs ici's own suite. #189 fixed the workflow and pinned the contract that only `ci.yml` had.
+- Independent main Pages checks returned HTTP 200 and `text/html` with the exact ici/viewer report
+  titles and zero external resource URLs. The complete asset table and command-level evidence are
+  recorded in [`v0.11.0 public evidence workthrough`](workthrough/2026-09-09-public-v0.11.0-evidence.md).
+
 ## [0.10.2] - 2026-09-02
 
 ### Release discipline

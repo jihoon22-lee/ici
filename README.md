@@ -10,8 +10,8 @@ $ ici doctor
 
 ### 현재 릴리스
 
-공개 stable 릴리스는 [v0.10.2](https://github.com/jihoon22-lee/ici/releases/tag/v0.10.2)이며
-`ici.pyz`의 SHA-256은 `8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4`다.
+공개 stable 릴리스는 [v0.11.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.11.0)이며
+`ici.pyz`의 SHA-256은 `334bcda1bf127ff18ca1931cb55a8ac6e62af2d687ac90ab13c6af2e5499bc1f`다.
 
 `main`에는 아직 stable로 승인되지 않은 후속 범위가 있다. package/wheel contract, deep
 test-quality 관측, SARIF 출력, ELF binary compatibility, typed integration case,
