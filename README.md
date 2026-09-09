@@ -31,7 +31,8 @@ compiler-backed C++ 분석과 gcov JSON coverage 정책이 여기에 해당한�
 - `feature`·`test`·`refactor`·`docs` PR은 버전 변경이나 stable release를 자동으로 만들지 않습니다.
 - `patch`는 이미 공개된 stable artifact의 defect·security·compatibility 수정에만 사용합니다.
 - `minor`는 사용자에게 보이는 응집된 roadmap checkpoint이며, ici 전체 gate·실제 도구 E2E·candidate cross-repo/toy 검증·PR/main CI·Pages·문서/CHANGELOG가 모두 끝난 뒤에만 정합니다.
-- pre-release/candidate artifact는 stable이 아니며, 하나의 PR이 하나의 릴리스를 뜻하지 않습니다. `v0.10.1`과 공개된 `v0.10.2`는 공개 결함에 한정한 corrective stabilization이고, 다음 minor는 I4-3/I4-4와 real toy-projects/quality-zoo 검증 이후로 미룹니다.
+- pre-release/candidate artifact는 stable이 아니며, 하나의 PR이 하나의 릴리스를 뜻하지 않습니다. `v0.10.1`과 공개된 `v0.10.2`는 공개 결함에 한정한 corrective stabilization입니다.
+- `v0.11.0`은 I4-4, real toy-projects/quality-zoo 검증(I5·I6·I7·I8·I9)을 닫은 뒤 냅니다. **I4-3은 두 항목이 열린 채로 남습니다** — C++ complexity/cognitive를 AST 기반으로 바꾸는 것과 whole-program dead-symbol reachability입니다. 둘 다 없는 같은 인프라(C++ AST 접근)를 필요로 하고, 둘 다 **없는 기능이 아니라 이미 내보내는 값의 정밀도** 문제라, 한계를 명시적으로 표시한 채 배포합니다: 해당 metric은 `bounded-cpp-tokens` estimate로 표기되고 `metric_confidence`로 등급이 함께 나가며, 전체 목록은 [한계 인벤토리](docs/engine-reference.md)에 있습니다. 이 두 항목이 닫히기 전까지 그 숫자를 exact 측정값으로 인용하면 안 됩니다.
 
 ---
 
