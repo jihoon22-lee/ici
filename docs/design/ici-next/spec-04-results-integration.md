@@ -35,7 +35,8 @@
 ```
 
 이는 모양을 설명한 축약 예시다. `sha256:...`는 실제 schema에 유효한 digest가 아니며 테스트에서는
-완전한 값으로 대체한다. 실행 시각·duration·request/profile·expected/selected/omitted scope·
+완전한 값으로 대체한다. **WP02 PR A가 이것을 강제한다** — `require_digest`가 축약 digest를 거부하고
+테스트가 그 사실을 고정한다. 실행 시각·duration·request/profile·expected/selected/omitted scope·
 source path map·tool evidence·normalization/parser version·policy exceptions·result digest도 정식
 스키마에 포함한다.
 
@@ -59,6 +60,13 @@ policy에 없는 기능으로 전체 검증을 무조건 막지 않는다.
 INCOMPLETE이며 사유 있는 root 정책으로 허용한 empty suite만 별도로 표시한다. 미선택과 적용 불가를
 혼동하지 않는다.
 
+> **구현 시작됨 (WP02 PR A)**: 이 6개 축이 [`ici/domain/enums.py`](../../../src/ici/domain/enums.py)에
+> 독립 enum으로, 판정 불변식이 [`ici/domain/result.py`](../../../src/ici/domain/result.py)에
+> 있다. 강제되는 것: 통과한 scope는 violation을 동시에 보고할 수 없고, FAIL·INCOMPLETE는 이유를
+> 반드시 갖고, 미완료 run은 PASS를 낼 수 없고, **INCOMPLETE가 FAIL보다 exit code에서 우선한다**
+> (미완료를 완료된 판정으로 보고하지 않기 위해). 게시 상태는 판정에 영향을 주지 않는다.
+> **외부 JSON Schema는 아직 없다** — #200 PR B.
+>
 > **보존할 현행 자산 (확인됨)**: `EvidenceState`의 4개 값(MEASURED/ESTIMATED/NOT_RUN/
 > NOT_APPLICABLE)이 이미 존재하고(`src/ici/core/models.py:22`), `aggregate_suite_status`(`:321`)가
 > `NOT_APPLICABLE`을 `NOT_RUN`과 구분해 판정에 반영한다. 코드 주석이 그 이유를 남겨 두었다 —
