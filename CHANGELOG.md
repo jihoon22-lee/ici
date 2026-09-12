@@ -7,6 +7,50 @@
 
 ## [Unreleased]
 
+### 문서/시험 — ici-next 위험 가정 검증 (WP01, [#199](https://github.com/jihoon22-lee/ici/issues/199))
+
+**코드 동작 변경 없음. 릴리스 없음.** `dist/ici.pyz`, `scripts/build-pyz.sh`, 프로젝트 `.venv`,
+공용 Python, 기존 테스트·CI를 건드리지 않았습니다. 추가된 것은 격리된 spike 스크립트와 측정 기록입니다.
+
+- **전용 런타임을 실제로 만들어 실행했습니다.** python-build-standalone CPython 3.13.7을 uv
+  저장소 밖으로 복사한 프로토타입 bundle에서 `ici 0.11.0`이 돌아갑니다. ADR-0002가 가정으로
+  세웠던 항목이 측정으로 바뀌었습니다.
+- **glibc 최대 심볼 요구가 2.17입니다.** RHEL 8.10은 2.28, RHEL 7.9는 2.17이므로 심볼 요구
+  측면에서는 두 환경 모두 만족합니다. 동적 의존은 표준 6개뿐이고, 외부 `.so`를 요구하는 유일한
+  모듈이 tkinter여서 bundle에서 제외했습니다. **다만 심볼 요구 충족은 동작 확인이 아니므로
+  RHEL 실행은 여전히 `untested`입니다.**
+- **환경 분리가 양방향으로 성립합니다.** 프로젝트가 `PYTHONPATH`/`VIRTUAL_ENV`/`LD_LIBRARY_PATH`/
+  Qt 변수를 설정한 상태에서 core는 프로젝트 전용 모듈을 import하지 못하고(격리), 프로젝트 child는
+  그 변수들을 그대로 받으며 프로젝트의 3.10.20으로 실행됩니다(보존). bundle 경로가 child PATH
+  앞에 삽입되지도 않습니다. 이동·공백 경로·clean HOME·**실제 읽기 전용 바인드 마운트**·proxy
+  전면 제거 조건에서 18개 항목이 통과했습니다.
+- **정적 OpenSSL 때문에 새 제약이 드러났습니다.** PBS는 `_ssl`을 인터프리터에 정적 링크하고,
+  `SSL_CERT_FILE`을 지우면 cafile이 `None`이 됩니다. 즉 core 격리를 위해 환경을 비우면 사내 TLS
+  검증이 조용히 깨집니다. 런처가 이 변수를 보존하도록 하고 시험으로 고정했습니다.
+- **ici-managed pytest overlay를 보류했습니다** ([ADR-0007](docs/design/ici-next/adr/0007-project-test-provider.md)).
+  근거는 두 가지 측정입니다. core의 3.13으로 해석한 overlay를 프로젝트의 3.10에 주입하면
+  `exceptiongroup`이 없어 깨집니다(pytest의 의존 집합이 인터프리터 버전별로 다릅니다).
+  그리고 프로젝트가 이미 pytest를 가진 경우 `PYTHONPATH`가 앞서므로 **프로젝트의 도구를 조용히
+  교체합니다.** 기본 경로는 프로젝트의 pytest/coverage로 유지합니다.
+- **서브프로세스 커버리지 과소 집계를 확인했습니다.** 자식에서만 import되는 모듈의 문장
+  커버리지가 `COVERAGE_PROCESS_START` 없이 0/2, 설정 시 2/2였습니다. TEM 커버리지 항에 직접
+  들어가는 차이입니다. 그리고 coverage가 설치 시 자기 `.pth`를 넣으므로 **프로젝트
+  site-packages에 쓰지 않고 환경변수만으로 켤 수 있습니다.**
+- **현행 구현이 이미 compile DB의 컴파일러를 지킨다는 것을 확인했습니다.** `compile_commands.json`이
+  `clang++`를 지정하고 `g++`가 PATH 앞에 있는 상태에서, 모든 실제 컴파일·분석 호출이 DB의
+  `clang++`와 DB의 플래그를 썼습니다. `g++`/`gcc`는 `--version`·`-dumpmachine` 능력 probe만
+  받았습니다. SPEC-02 §3의 요구가 고쳐야 할 위반이 아니라 **보존해야 할 자산**입니다.
+- **qmake·Qt는 이 환경에 없어 측정하지 못했고, 동작한다고 적지 않았습니다.** 현장 확인 항목을
+  담당 WP와 함께 남겼습니다. 다만 그중 환경 보존 항목(`QTDIR`/`LD_LIBRARY_PATH` child 전달)은
+  qmake 없이 이미 측정됐습니다.
+- 부수 확인: 현행 설정 검증기가 SPEC-01의 `schema_version` 키를 거부합니다 — 버전 있는 TOML은
+  drop-in이 아니라 migration이 필요합니다. 그리고 `doctor`를 clean HOME에서 돌리면 XDG 전역 기본
+  설정 파일을 **씁니다** — 읽기 전용 HOME에서 걸릴 수 있는 제약입니다.
+
+측정 기록: [`docs/design/ici-next/spikes/wp01-runtime-environment.md`](docs/design/ici-next/spikes/wp01-runtime-environment.md).
+재실행 스크립트: [`scripts/spikes/wp01/`](scripts/spikes/wp01).
+
+
 ### 문서 — ici-next 설계 채택 (WP00, [#198](https://github.com/jihoon22-lee/ici/issues/198))
 
 **코드 동작 변경 없음. 릴리스 없음.** 분석 알고리즘·임계값·기존 테스트·CI 워크플로·스크립트를
