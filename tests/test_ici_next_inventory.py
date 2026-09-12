@@ -52,6 +52,9 @@ EXPECTED_DOCUMENTS = (
     "adr/0003-agents-invariant-scoping.md",
     "adr/0004-check-provider-separation.md",
     "adr/0005-tem-formula-freeze.md",
+    "adr/0006-runtime-selection.md",
+    "adr/0007-project-test-provider.md",
+    "spikes/wp01-runtime-environment.md",
 )
 
 # Inline links only: [text](target). Reference-style links are not used in

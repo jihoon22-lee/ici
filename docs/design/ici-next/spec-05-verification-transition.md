@@ -31,20 +31,32 @@ command, fixture, result, limitation, evidence 위치를 기록한다. tested �
 광고하지 않는다. 사내 실제 버전 확인 때문에 공개 fixture 기반 구현 전체를 멈출 필요는 없지만 최종
 supported 선언에는 근거가 필요하다.
 
-> **WP00 시점의 실측 상태** — 이 표의 `상태` 열을 채운 첫 데이터다. 자세한 근거는
-> [inventory/baseline-measurements.md §4](inventory/baseline-measurements.md).
+> **실측 상태** — WP00이 첫 데이터를, WP01이 런타임·환경·테스트 도구 축을 채웠다. 근거는
+> [inventory/baseline-measurements.md §4](inventory/baseline-measurements.md)와
+> [spikes/wp01-runtime-environment.md §5](spikes/wp01-runtime-environment.md).
 >
-> |축|WP00 상태|
-> |---|---|
-> |Python 정적 검사 (ruff/pytest)|`tested` (개발 컨테이너 한정)|
-> |C++ CMake 경로|`limited` — cmake/ctest/gcov는 있으나 Qt6 부재로 fixture E2E 미완주|
-> |C++ qmake 경로|`untested` — qmake 부재|
-> |Qt 지원|`untested` — Qt6 부재|
-> |clazy provider|`untested` — clazy 부재|
-> |pyz 패키징·재현성|`untested` — uv 버전 고정(0.12.5) 불일치로 미실행|
-> |RHEL 8.10|`untested`|
-> |GHES|`untested`|
-> |오프라인 실행|`untested`|
+> |축|WP00 상태|WP01 이후|
+> |---|---|---|
+> |Python 정적 검사 (ruff/pytest)|`tested` (개발 컨테이너 한정)|`tested`|
+> |**독립 런타임이 core를 실행**|`planned`|**`tested`** — PBS CPython 3.13.7|
+> |**런타임 이동·공백 경로·clean HOME**|`planned`|**`tested`**|
+> |**read-only 설치 디렉터리**|`planned`|**`tested`** (실제 ro 바인드 마운트)|
+> |**core / project 양방향 분리**|`planned`|**`tested`**|
+> |**glibc 하한**|추정 금지|**2.17 실측**|
+> |**프로젝트 pytest/coverage 경로**|`planned`|**`tested`**|
+> |**ici-managed overlay**|`planned`|**`unsupported` (보류)** — 구조적 실패|
+> |**compile DB 컴파일러 준수**|미인식|**`tested`** (이미 충족)|
+> |C++ CMake 경로|`limited` — cmake/ctest/gcov는 있으나 Qt6 부재로 fixture E2E 미완주|`limited`|
+> |C++ qmake 경로|`untested` — qmake 부재|`untested`|
+> |Qt 지원|`untested` — Qt6 부재|`untested`|
+> |clazy provider|`untested` — clazy 부재|`untested`|
+> |pyz 패키징·재현성|`untested` — uv 버전 고정(0.12.5) 불일치로 미실행|`untested`|
+> |CPU/ISA 하한|`untested`|`untested` — 정적 판정 실패|
+> |RHEL 8.10|`untested`|`untested`|
+> |GHES|`untested`|`untested`|
+> |오프라인 실행|`untested`|`untested` — proxy 제거는 계약 확인일 뿐|
+>
+> WP01의 전체 측정 기록: [spikes/wp01-runtime-environment.md](spikes/wp01-runtime-environment.md)
 
 ## 2. 검증 계층
 
@@ -140,7 +152,7 @@ native/canonical finding, 위치/심각도/신뢰도, metrics 원자료, evidenc
 > next 경로 규약이 추가됐다. **CI 워크플로·테스트·스크립트는 하나도 삭제하거나 완화하지 않았다.**
 > 개정 전후 대조 → [ADR-0003](adr/0003-agents-invariant-scoping.md)
 
-### migration 표에 반드시 들어가야 하는 항목 (WP00에서 식별됨)
+### migration 표에 반드시 들어가야 하는 항목 (WP00·WP01에서 식별됨)
 
 | 항목 | 현행 | 목표 | 담당 |
 |---|---|---|---|
@@ -151,6 +163,8 @@ native/canonical finding, 위치/심각도/신뢰도, metrics 원자료, evidenc
 |결과 파일 위치|cwd의 `verify_report.{json,html}`|`.ici/runs/<run_id>/`|[#224](https://github.com/jihoon22-lee/ici/issues/224)|
 |결과 schema|finding v3|`ici.next.run` v1 (별도 식별자)|[#200](https://github.com/jihoon22-lee/ici/issues/200)|
 |TEM 수식|`coverage_support.calculate_tem`|동일 수식 + `formula_version` 고정|[#219](https://github.com/jihoon22-lee/ici/issues/219)|
+|`schema_version` 키|**현행 검증기가 거부한다** (`unknown configuration key`)|SPEC-01의 버전 있는 TOML. drop-in이 아니라 migration 필요|[#203](https://github.com/jihoon22-lee/ici/issues/203), [#225](https://github.com/jihoon22-lee/ici/issues/225)|
+|서브프로세스 커버리지|`COVERAGE_PROCESS_START` 미설정 → 자식 코드가 미커버로 집계|명시 설정. **커버리지가 올라가므로 TEM 점수가 변한다**|[#216](https://github.com/jihoon22-lee/ici/issues/216), [#219](https://github.com/jihoon22-lee/ici/issues/219)|
 
 ## 6. 성능과 자원
 

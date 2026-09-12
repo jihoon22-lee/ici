@@ -28,6 +28,7 @@
 |어떤 결정이 왜 내려졌고 무엇이 보류인가|[adr/](adr/README.md)|
 |요구사항 R01~R15이 어디로 연결되는가|[requirements-traceability.md](requirements-traceability.md)|
 |**현행 코드가 실제로 어떻게 동작하는가**|[inventory/](#현행-구현-측정-기록-wp00)|
+|**위험 가정을 실제로 시험한 결과**|[spikes/](#spike-측정-기록)|
 
 ## 읽는 순서
 
@@ -57,12 +58,24 @@ WP를 시작하는 경우:
 |[inventory/execution-flow.md](inventory/execution-flow.md)|CLI 진입 → config → context → tool → runner → result → publisher 매핑, **환경 보정 지점 10개**, 종료 코드 대조|
 |[inventory/baseline-measurements.md](inventory/baseline-measurements.md)|AGENTS 게이트 5개 실행 결과, 사용 가능 도구, **측정하지 못한 것 목록**|
 
+## spike 측정 기록
+
+WP가 "가정을 시험한다"고 정의한 작업의 실행 기록이다. 재실행 가능한 스크립트가 함께 있다.
+
+|문서|WP|내용|
+|---|---|---|
+|[spikes/wp01-runtime-environment.md](spikes/wp01-runtime-environment.md)|[#199](https://github.com/jihoon22-lee/ici/issues/199)|PBS 런타임 manifest와 glibc 하한, bundle 이동·read-only·clean HOME·offline 실행, core/project 양방향 분리, symlink launch path, 테스트 도구 경로와 overlay 판정, compile DB 컴파일러 준수|
+
+스크립트: [`scripts/spikes/wp01/`](../../../scripts/spikes/wp01) — `build-bundle.sh`,
+`smoke-environment.sh`, `probe-test-tools.sh`, `probe-compiler.sh`.
+**배포 기본값·프로젝트 `.venv`·공용 Python을 건드리지 않는다.**
+
 ## WP별 참조 문서
 
 |WP|단계|주 참조|
 |---|---|---|
 |[#198](https://github.com/jihoon22-lee/ici/issues/198) WP00|P0|전체 (이 문서 세트를 채택한 WP)|
-|[#199](https://github.com/jihoon22-lee/ici/issues/199) WP01|P0|[spec-02 §2·§3](spec-02-distribution-execution.md), [execution-flow §4](inventory/execution-flow.md)|
+|[#199](https://github.com/jihoon22-lee/ici/issues/199) WP01|P0|[spec-02 §2·§3](spec-02-distribution-execution.md), [execution-flow §4](inventory/execution-flow.md) → 결과 [spikes/wp01](spikes/wp01-runtime-environment.md)|
 |[#200](https://github.com/jihoon22-lee/ici/issues/200) WP02|P1|[spec-04 §1·§2](spec-04-results-integration.md), [architecture §4](architecture.md)|
 |[#201](https://github.com/jihoon22-lee/ici/issues/201) WP03|P0|[spec-05 §2·§3](spec-05-verification-transition.md), [baseline §5](inventory/baseline-measurements.md)|
 |[#202](https://github.com/jihoon22-lee/ici/issues/202) WP04|P1|[spec-02 §1](spec-02-distribution-execution.md), [ADR-0002](adr/0002-standalone-runtime-bundle.md)|
