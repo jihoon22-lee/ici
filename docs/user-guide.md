@@ -1,6 +1,19 @@
 # ici (Integrated CI) 사용자 가이드
 
-> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; **🚀 사용자 가이드** &bull; [📏 검증 엔진 레퍼런스](engine-reference.md) &bull; [⚙️ CI/CD 연동 가이드](ci-integration.md) &bull; [🏛️ 시스템 아키텍처](architecture.md) &bull; [📋 CHANGELOG](../CHANGELOG.md)
+> **범위: 현행(stable) CLI와 설정.** 이 문서의 명령·옵션·`ici.toml` 구조는 현재 릴리스되는
+> ici(v0.11.x)에서 동작하는 것들이다.
+>
+> [**ici-next**](design/ici-next/README.md)의 목표 CLI는 다르다 — `ici init`/`ici plan`/
+> `ici report`가 추가되고, `--python`/`--cpp`/`--component`/`--require-full`/`--config` 옵션이
+> 생기며, workspace/component 설정 모델과 종료 코드 계약이 바뀐다.
+> 목표 계약은 [`design/ici-next/spec-01-workspace-config-cli.md`](design/ici-next/spec-01-workspace-config-cli.md),
+> 현행과의 차이 대조는
+> [`design/ici-next/inventory/execution-flow.md`](design/ici-next/inventory/execution-flow.md)에 있다.
+>
+> **next의 TOML·CLI 예시를 현재 지원되는 문법으로 읽지 않는다.** 전환 시 migration 경로는
+> [SPEC-05 §5](design/ici-next/spec-05-verification-transition.md)가 정의한다.
+
+> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; **🚀 사용자 가이드** &bull; [📏 검증 엔진 레퍼런스](engine-reference.md) &bull; [⚙️ CI/CD 연동 가이드](ci-integration.md) &bull; [🏛️ 시스템 아키텍처](architecture.md) &bull; [📋 CHANGELOG](../CHANGELOG.md) &bull; [🧭 ici-next 설계](design/ici-next/README.md)
 
 ---
 

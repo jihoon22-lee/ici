@@ -1,6 +1,23 @@
 # Python·C++·Qt 코드 품질 분석기 마스터 실행 계획
 
-**상태:** 승인된 장기 마스터 계획. 2026-08-30 이후 ici 기능 계획의 우선순위와 완료 조건은 이 문서를 기준으로 판단한다.
+> **⚠️ Superseded by [ici-next](../../design/ici-next/README.md) (2026-09-10).**
+> 이 문서는 v0.11.0까지의 계획과 그 근거를 보존하는 **기록**이다.
+> **2026-09-10 이후 ici 기능 계획의 우선순위·완료 조건·범위의 canonical source는
+> [`docs/design/ici-next/`](../../design/ici-next/README.md)**이고, 진행 상태는
+> [마일스톤 #1](https://github.com/jihoon22-lee/ici/milestone/1)의 이슈
+> ([#191](https://github.com/jihoon22-lee/ici/issues/191)~[#227](https://github.com/jihoon22-lee/ici/issues/227))가
+> 갖는다. 아래 체크리스트의 미완료 항목을 현재 작업 대기열로 해석하지 않는다.
+>
+> 특히 바뀐 것: 엔진별 계획이 check/provider 구조 이관으로 재편되고
+> ([SPEC-03](../../design/ici-next/spec-03-analysis-engines.md)), 배포가 전용 런타임 bundle로
+> 바뀌며 ([ADR-0002](../../design/ici-next/adr/0002-standalone-runtime-bundle.md)),
+> **아래 "대응 toy 계획" 항의 toy 종속 검증은 ici 소유 corpus로 전환된다**
+> (R13, [SPEC-05 §3](../../design/ici-next/spec-05-verification-transition.md)).
+> 전환 조건은 [AGENTS.md §7](../../../AGENTS.md)에 명시되어 있다.
+
+**상태:** superseded. 아래는 2026-09-04 시점의 원문이다.
+
+**원래 상태 표기:** 승인된 장기 마스터 계획. 2026-08-30 이후 ici 기능 계획의 우선순위와 완료 조건은 이 문서를 기준으로 판단한다.
 **문서 기준일:** 2026-09-04. 이 계획은 ici [PR #78](https://github.com/jihoon22-lee/ici/pull/78)로 `main`에 병합됐고, 현재 상태는 이 체크리스트와 병합된 PR의 실측을 함께 기준으로 삼는다.
 
 **목표:** ici를 Python, C++, Qt 프로젝트의 실제 빌드·테스트·배포 맥락을 이해하고, 위치와 근거가 있는 상세 진단을 낮은 노이즈로 제공하는 고신뢰 코드 품질 분석기로 발전시킨다.

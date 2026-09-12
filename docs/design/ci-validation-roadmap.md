@@ -1,9 +1,14 @@
 # ici 검증 신뢰성 및 신규 CI 기능 로드맵
 
 > **Historical / superseded.** 이 문서는 v0.4.0~v0.6.0 시기의 결정과 검증 근거를 보존하기
-> 위한 기록이다. 현재 작업 범위와 체크 상태의 canonical source는
-> [`Python/C++/Qt 품질 분석기 마스터 계획`](../superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md)이다.
-> 아래의 "제외" 또는 "보류" 문구를 현재 상태로 해석하지 않는다.
+> 위한 기록이다. 아래의 "제외" 또는 "보류" 문구를 현재 상태로 해석하지 않는다.
+>
+> **현재 작업 범위와 체크 상태의 canonical source는
+> [`ici-next`](ici-next/README.md)다** — 계획은 [roadmap.md](ici-next/roadmap.md),
+> 진행 상태는 [마일스톤 #1](https://github.com/jihoon22-lee/ici/milestone/1)의 이슈가 갖는다.
+> 직전 canonical source였던
+> [`Python/C++/Qt 품질 분석기 마스터 계획`](../superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md)은
+> ici-next가 대체했다.
 
 ## 1. 목적
 
