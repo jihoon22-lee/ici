@@ -1,6 +1,17 @@
 # ici CI/CD 연동 가이드 (GitHub Actions & Self-Hosted Runner)
 
-> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; [🚀 사용자 가이드](user-guide.md) &bull; [📏 검증 엔진 레퍼런스](engine-reference.md) &bull; **⚙️ CI/CD 연동 가이드** &bull; [🏛️ 시스템 아키텍처](architecture.md) &bull; [📋 CHANGELOG](../CHANGELOG.md)
+> **범위: 현행(stable) CI 연동.** 이 문서의 워크플로와 게시 설정은 현재 릴리스되는 ici를
+> 기준으로 한다.
+>
+> [**ici-next**](design/ici-next/README.md)는 analyze job과 credential을 가진 publish job을
+> 분리하고, GHES Pages·사내 웹 저장소·artifact 링크 중 명시적으로 선택하도록 바꾼다.
+> 목표 계약은
+> [`design/ici-next/spec-04-results-integration.md`](design/ici-next/spec-04-results-integration.md) §7이다.
+>
+> **GHES/runner/action 호환은 실제 사내 버전으로 검증해야 하며, 아직 확인되지 않았다**
+> ([SPEC-05 §1](design/ici-next/spec-05-verification-transition.md)).
+
+> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; [🚀 사용자 가이드](user-guide.md) &bull; [📏 검증 엔진 레퍼런스](engine-reference.md) &bull; **⚙️ CI/CD 연동 가이드** &bull; [🏛️ 시스템 아키텍처](architecture.md) &bull; [📋 CHANGELOG](../CHANGELOG.md) &bull; [🧭 ici-next 설계](design/ici-next/README.md)
 
 ---
 

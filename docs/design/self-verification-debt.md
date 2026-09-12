@@ -1,6 +1,12 @@
 # ici 자체 검증의 남은 WARN과 SKIP
 
-> **네비게이션**: [🏠 홈 (README)](../../README.md) &bull; [🚀 사용자 가이드](../user-guide.md) &bull; [📏 검증 엔진 레퍼런스](../engine-reference.md) &bull; [⚙️ CI/CD 연동 가이드](../ci-integration.md)
+> **범위: 현행(stable) dogfood 실행.** [**ici-next**](ici-next/README.md)에서 상태 축이
+> 재편되면(실행 완료·증거 수준·선택 범위·코드 위반·게시 상태의 분리 —
+> [SPEC-04 §2](ici-next/spec-04-results-integration.md)) 이 문서의 WARN/SKIP 분류도 함께
+> 갱신해야 한다. 이 문서와 같은 성격의 next 쪽 기록은
+> [inventory/baseline-measurements.md](ici-next/inventory/baseline-measurements.md)다.
+
+> **네비게이션**: [🏠 홈 (README)](../../README.md) &bull; [🚀 사용자 가이드](../user-guide.md) &bull; [📏 검증 엔진 레퍼런스](../engine-reference.md) &bull; [⚙️ CI/CD 연동 가이드](../ci-integration.md) &bull; [🧭 ici-next 설계](ici-next/README.md)
 
 ici는 자기 자신을 게이트로 검증합니다(dogfood). 그 실행이 초록불이 아니라면, 남은 노란불
 하나하나가 **무엇이고 왜 받아들여져 있는지**가 여기 적혀 있어야 합니다. 설명 없는 WARN은

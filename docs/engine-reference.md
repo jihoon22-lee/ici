@@ -1,6 +1,18 @@
 # ici 검증 엔진 레퍼런스 (Engine Reference)
 
-> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; [🚀 사용자 가이드](user-guide.md) &bull; **📏 검증 엔진 레퍼런스** &bull; [⚙️ CI/CD 연동 가이드](ci-integration.md) &bull; [🏛️ 시스템 아키텍처](architecture.md) &bull; [📋 CHANGELOG](../CHANGELOG.md)
+> **범위: 현행(stable) 19개 엔진.** 이 문서는 현재 릴리스되는 ici의 엔진 사용법과 설정 키를
+> 설명한다.
+>
+> [**ici-next**](design/ici-next/README.md)는 이 19개를 check/provider 구조로 재편한다.
+> 각 엔진의 목표 처리 방향(유지·통합·선택 제공·계층 이동)은
+> [`design/ici-next/spec-03-analysis-engines.md`](design/ici-next/spec-03-analysis-engines.md) §3,
+> 코드에서 추출한 실측 상태(언어별 active mode·설정 키·CLI·잠정 disposition)는
+> [`design/ici-next/inventory/current-engines.md`](design/ici-next/inventory/current-engines.md)에 있다.
+>
+> **엔진 개수를 줄이는 것이 목표가 아니다.** 모든 기존 항목은 근거와 이전 경로를 남긴 뒤에만
+> 처리된다.
+
+> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; [🚀 사용자 가이드](user-guide.md) &bull; **📏 검증 엔진 레퍼런스** &bull; [⚙️ CI/CD 연동 가이드](ci-integration.md) &bull; [🏛️ 시스템 아키텍처](architecture.md) &bull; [📋 CHANGELOG](../CHANGELOG.md) &bull; [🧭 ici-next 설계](design/ici-next/README.md)
 
 ---
 

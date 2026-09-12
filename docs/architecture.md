@@ -1,6 +1,17 @@
 # ici 시스템 아키텍처 및 상세 설계 (System Architecture Guide)
 
-> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; [🚀 사용자 가이드](user-guide.md) &bull; [📏 검증 엔진 레퍼런스](engine-reference.md) &bull; [⚙️ CI/CD 연동 가이드](ci-integration.md) &bull; **🏛️ 시스템 아키텍처** &bull; [📋 CHANGELOG](../CHANGELOG.md)
+> **범위: 현행(stable) 구현.** 이 문서는 현재 릴리스되는 ici(v0.11.x, `dist/ici.pyz`)의
+> 아키텍처를 설명한다.
+>
+> ici는 [**ici-next**](design/ici-next/README.md)로 전환 중이다. 새 구조의 목표 설계
+> (모듈 경계·workspace/component 모델·전용 런타임 bundle·결과 스키마)는
+> [`docs/design/ici-next/architecture.md`](design/ici-next/architecture.md)에 있고,
+> **그쪽이 next 경로의 규범 문서**다. 이 문서를 next 설계로 읽지 않는다.
+>
+> 현행 구현의 실측 기록(19개 엔진 전수 표, 실행 흐름 매핑, 환경 보정 지점)은
+> [`design/ici-next/inventory/`](design/ici-next/inventory/current-engines.md)에 있다.
+
+> **네비게이션**: [🏠 홈 (README)](../README.md) &bull; [🚀 사용자 가이드](user-guide.md) &bull; [📏 검증 엔진 레퍼런스](engine-reference.md) &bull; [⚙️ CI/CD 연동 가이드](ci-integration.md) &bull; **🏛️ 시스템 아키텍처** &bull; [📋 CHANGELOG](../CHANGELOG.md) &bull; [🧭 ici-next 설계](design/ici-next/README.md)
 
 ---
 

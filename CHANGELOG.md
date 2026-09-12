@@ -5,6 +5,43 @@
 
 ---
 
+## [Unreleased]
+
+### 문서 — ici-next 설계 채택 (WP00, [#198](https://github.com/jihoon22-lee/ici/issues/198))
+
+**코드 동작 변경 없음. 릴리스 없음.** 분석 알고리즘·임계값·기존 테스트·CI 워크플로·스크립트를
+바꾸지 않았습니다. 새로 추가된 것은 문서와 문서 계약 테스트뿐입니다.
+
+- **현행 구현을 전수 조사해 기록했습니다.** 19개 엔진 registry의 스케줄링·언어별 active mode·
+  설정 키·CLI 진입점·side effect를 코드에서 기계적으로 추출했고, 손으로 옮긴 값은 없습니다.
+  실행 흐름을 CLI 진입부터 publisher까지 파일:행으로 매핑하고, **프로젝트별 설치·경로 보정이
+  필요한 지점 10개**를 따로 표로 만들었습니다 (`docs/design/ici-next/inventory/`).
+- **TEM 수식을 코드에서 추출해 동결했습니다.** `coverage_support.calculate_tem`의 곱셈 3항
+  구조, 커버리지 항만 80%에서 포화하는 비대칭, branch→line `× 1.25` 환산을 그대로 기록했습니다.
+  **`× 1.25`의 근거는 코드·주석·문서 어디에도 없어 보류 항목으로 등록했습니다.** 수식은 바꾸지
+  않았습니다 — 바꾸면 구·신 비교에서 이관 버그와 의도한 변경을 구분할 수 없습니다.
+- **기준선을 측정하고 미실행을 미실행으로 적었습니다.** ruff check/format은 통과,
+  pytest는 2 failed / 2779 passed / 5 skipped, `build-pyz.sh`와 `smoke.sh`는 uv 버전 고정
+  (0.12.5) 불일치로 **미실행**입니다. pytest 실패 2건은 회귀가 아니라 테스트 가드 결함입니다 —
+  `cmake_project` fixture가 Qt6을 요구하는데 `_require`가 cmake/ctest/gcov만 확인하므로,
+  Qt6만 없는 환경에서 skip 대신 fail이 됩니다. 수정은 corpus를 소유하는
+  [#201](https://github.com/jihoon22-lee/ici/issues/201)의 범위이므로 이 PR에서 고치지 않았습니다.
+- **설계 원문을 저장소로 옮겼습니다.** 아키텍처 1 + SPEC 5 + 로드맵 + 추적표 + ADR 5개를
+  `docs/design/ici-next/`에 두고, 이제부터 이곳이 규범 원문입니다(진행 상태는 이슈).
+  목표 설계가 현행과 다른 지점은 인용 블록으로 표시하고 실측 기록을 링크했습니다.
+- **AGENTS 불변식의 적용 범위를 명시했습니다.** Python 3.10 하한·순수 wheel·pyz 단일 파일·
+  launcher 순서 동기화를 **stable 경로 전용**으로 범위 지정하고, next 경로 규약을 §8로
+  신설했습니다. **기존 게이트를 하나도 삭제하거나 완화하지 않았습니다** — `requires-python`,
+  ruff `target-version`, `tests/test_launcher.py`, 워크플로 4개, 스크립트 전부 그대로입니다.
+  시스템 CA·root 배제·Zero-CDN HTML·재현성은 전 경로 적용으로 유지했습니다.
+  toy release gate는 삭제하지 않고 전환 조건(ici 소유 corpus 완성 + 전환 승인)을 명시했습니다.
+- **문서 계약 테스트를 추가했습니다** (`tests/test_ici_next_inventory.py`, 31건).
+  registry 19개 이름과 inventory 표의 정확한 일치, 문서 간 상대 링크 해석, SPEC-01의 TOML
+  예시 파싱, AGENTS가 stable 불변식을 여전히 언급하는지, 범위 지정한 게이트 파일이 실제로
+  남아 있는지를 기계적으로 확인합니다. descriptor를 추가·제거하면 이 테스트가 깨집니다.
+
+---
+
 ## [0.11.0] - 2026-09-07
 
 이 릴리스는 v0.10.2 이후 59개 커밋을 담습니다. 큰 줄기는 넷입니다.

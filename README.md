@@ -22,7 +22,8 @@ compiler-backed C++ 분석과 gcov JSON coverage 정책이 여기에 해당한�
 않는다.
 
 - [CHANGELOG](CHANGELOG.md) — 버전별 변경과 릴리스 증거
-- [인수인계 문서](docs/superpowers/2026-08-30-handover.md) — 현재 진행 상태와 결정의 이유
+- [ici-next 설계](docs/design/ici-next/README.md) — **현재 진행 중인 전환의 계획·설계·결정 기록**
+- [인수인계 문서](docs/superpowers/2026-08-30-handover.md) — 2026-09-04 시점의 맥락과 결정 이유 *(시점 기록)*
 - [workthrough](workthrough/) — 개별 작업의 실측 기록
 - [CI/CD 연동 가이드의 candidate 채널](docs/ci-integration.md#5-candidate-채널-stable-release가-아님) — candidate artifact와 Quality Zoo 인수 절차
 
@@ -40,12 +41,13 @@ compiler-backed C++ 분석과 gcov JSON coverage 정책이 여기에 해당한�
 
 | 문서 | 설명 | 바로가기 |
 |---|---|---|
-| **🚀 사용자 가이드** | 빠른 시작, 설치, 전체 CLI 사용법 및 IDE 원클릭 점프 | [docs/user-guide.md](docs/user-guide.md) |
-| **📏 검증 엔진 레퍼런스** | 19개 엔진 descriptor (기본 fast 12 / standard 14 / deep 16, release contract opt-in 시 deep 19), TEM 스코어링 공식, `ici.toml` 정책 설정 | [docs/engine-reference.md](docs/engine-reference.md) |
-| **⚙️ CI/CD 연동 가이드** | GitHub Actions, Step Summary, PR 어노테이션, 사내 폐쇄망 러너 | [docs/ci-integration.md](docs/ci-integration.md) |
-| **🏛️ 시스템 아키텍처** | ZipApp 패키징, Polyglot 런처, 오케스트레이터 및 리포터 계층 설계 | [docs/architecture.md](docs/architecture.md) |
+| **🧭 ici-next 설계 (진행 중)** | **현재 작업 계획의 canonical source.** 목표 아키텍처·SPEC 5종·ADR·현행 구현 실측 기록 | [docs/design/ici-next/](docs/design/ici-next/README.md) |
+| **🚀 사용자 가이드** | 빠른 시작, 설치, 전체 CLI 사용법 및 IDE 원클릭 점프 *(현행 stable)* | [docs/user-guide.md](docs/user-guide.md) |
+| **📏 검증 엔진 레퍼런스** | 19개 엔진 descriptor (기본 fast 12 / standard 14 / deep 16, release contract opt-in 시 deep 19), TEM 스코어링 공식, `ici.toml` 정책 설정 *(현행 stable)* | [docs/engine-reference.md](docs/engine-reference.md) |
+| **⚙️ CI/CD 연동 가이드** | GitHub Actions, Step Summary, PR 어노테이션, 사내 폐쇄망 러너 *(현행 stable)* | [docs/ci-integration.md](docs/ci-integration.md) |
+| **🏛️ 시스템 아키텍처** | ZipApp 패키징, Polyglot 런처, 오케스트레이터 및 리포터 계층 설계 *(현행 stable)* | [docs/architecture.md](docs/architecture.md) |
 | **🐶 자체 검증 부채** | ici 자신의 `deep` 실행에 남은 WARN·SKIP과 각각을 받아들인 이유 | [docs/design/self-verification-debt.md](docs/design/self-verification-debt.md) |
-| **🧭 품질 분석기 실행 계획** | Python·C++·Qt 분석기 로드맵과 toy-projects 교차 검증 순서 | [ici 마스터 계획](docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md) · [toy-projects 마스터 계획](https://github.com/jihoon22-lee/toy-projects/blob/main/docs/superpowers/plans/2026-08-30-product-portfolio-master-plan.md) |
+| **🗂️ 품질 분석기 실행 계획** | *(superseded — ici-next가 대체)* v0.11.0까지의 로드맵 기록 | [ici 마스터 계획](docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md) · [toy-projects 마스터 계획](https://github.com/jihoon22-lee/toy-projects/blob/main/docs/superpowers/plans/2026-08-30-product-portfolio-master-plan.md) |
 | **📋 변경 이력 (CHANGELOG)** | 버전별 상세 릴리스 노트 및 마일스톤 | [CHANGELOG.md](CHANGELOG.md) |
 | **📜 개발 및 기여 규약** | 브랜칭 전략, 커밋 룰, 런타임 제약 및 불변식 | [AGENTS.md](AGENTS.md) |
 
