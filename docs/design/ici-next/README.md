@@ -27,6 +27,7 @@
 |지원 환경표·corpus·구신 비교·릴리스 인수|[spec-05-verification-transition.md](spec-05-verification-transition.md)|
 |어떤 결정이 왜 내려졌고 무엇이 보류인가|[adr/](adr/README.md)|
 |요구사항 R01~R15이 어디로 연결되는가|[requirements-traceability.md](requirements-traceability.md)|
+|v3 리포트와 `ici.next.run`이 서로를 어떻게 읽는가|[compatibility-v3-next.md](compatibility-v3-next.md)|
 |**현행 코드가 실제로 어떻게 동작하는가**|[inventory/](#현행-구현-측정-기록-wp00)|
 |**위험 가정을 실제로 시험한 결과**|[spikes/](#spike-측정-기록)|
 

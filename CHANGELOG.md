@@ -7,6 +7,51 @@
 
 ## [Unreleased]
 
+### 수정 — 읽을 수 없는 리포트를 WARN으로 강등하던 publish 요약 (WP02 PR C, [#200](https://github.com/jihoon22-lee/ici/issues/200))
+
+**동작이 바뀝니다.** `ici publish`가 PR 코멘트에 붙이는 요약을 만드는
+`load_suite_from_json`이 이해하지 못한 리포트를 **의견처럼 렌더링하고 있었습니다.**
+
+- `schema_version`을 **전혀 검사하지 않았습니다.** docstring은 "v2/v3 report file"이라고
+  적혀 있었지만 강제하는 코드가 없었습니다.
+- 파싱되지 않는 엔진 항목을 `continue`로 하나씩 삼켰습니다.
+- 읽을 수 없는 `suite_status`를 조용히 `WARN`으로 떨어뜨렸습니다.
+
+이 빌드보다 새로운 producer가 낸 **진짜 FAIL 리포트**로 실측한 결과입니다.
+
+```
+입력:  schema_version "ici.result/v4", suite_status "BLOCKED",
+       엔진 2개가 "12 violations" / "3 failed" 보고
+출력:  suite_status=WARN  engines=0
+```
+
+FAIL이 WARN이 되고 엔진이 전부 사라집니다. `ici.next`와 무관하게 **v4 producer 하나면
+재현되던, 지금 살아 있던 경로**였습니다.
+
+셋 다 거부로 바꿨습니다. `None`은 호출자가 이미 다루는 상태이고(리포트 파일이 없을 때가
+그것입니다) 코멘트에 "판정 없음"으로 렌더됩니다 — 틀린 판정보다 낫습니다. 읽을 수 있는
+형식은 `ici.result/v2`·`ici.result/v3`로 명시했습니다.
+
+### 추가 — v3 → ici.next 리더와 호환성 매트릭스 (WP02 PR C, [#200](https://github.com/jihoon22-lee/ici/issues/200))
+
+- **`src/ici/execution/legacy_reader.py`.** 기존 v3 리포트를 새 도메인으로 읽습니다.
+  **`RunResult`를 바로 만들지 않습니다** — `RunIdentity`가 요구하는 `SourceSnapshot.digest`는
+  "분석이 실제로 읽은 내용"을 덮는데 **v3에는 그런 다이제스트가 없습니다.** 가진 digest 중
+  아무거나 넣으면 무관한 두 실행이 비교 가능해 보이고 baseline 비교가 "변화 없음"을
+  보고합니다. 그래서 `LegacyReport`를 돌려주고, 트리를 가진 호출자가 snapshot을 공급해
+  `promote()`로 완성합니다.
+- **거부와 손실을 구분합니다.** `producer_version`이나 digest가 아예 없으면 이유를 말하고
+  거부하고, v3가 단지 빈약한 항목은 변환하되 `limitations`에 이름을 적습니다.
+- 의미 손실 3건을 문서화했습니다. `suite_status` **WARN → PASS**(모델이 "통과한 scope는
+  violation을 보고할 수 없다"를 강제), **ERROR → INCOMPLETE**(FAIL이 아닙니다 — 돌지 못한
+  엔진은 코드에 대한 판정이 아니고 exit code도 3), 그리고 엔진별 `score`는 unit도
+  denominator도 없어 `Measurement`로 올리지 않습니다.
+- 가져온 실행은 `ScopeKind.STANDALONE`입니다. `FULL`은 모델이 `full_required_satisfied=True`를
+  강제하는데 v3에는 component가 없어 "required를 다 덮었다"고 주장할 근거가 없습니다 (R05).
+- [`docs/design/ici-next/compatibility-v3-next.md`](docs/design/ici-next/compatibility-v3-next.md)에
+  양방향 표를 두고, 기존 v3 리더 4개에 신규 결과를 실제로 먹인 결과를 기록했습니다.
+
+
 ### 추가 — ici-next 결과·이벤트 스키마와 IO (WP02 PR B, [#200](https://github.com/jihoon22-lee/ici/issues/200))
 
 **기존 동작 변경 없음.** 새 코드는 `src/ici/domain/`(순수)과 `src/ici/execution/`(IO)에만 있고,
