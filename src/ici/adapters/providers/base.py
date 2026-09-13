@@ -62,13 +62,17 @@ class ParsedOutput:
 
 
 class Provider(Protocol):
-    """A tool ici can run, reduced to what the application needs from it."""
+    """A tool ici can run, reduced to what the *application* needs from it.
+
+    Deliberately does not include ``plan``. Planning is provider-specific by
+    nature -- Ruff needs paths and a cache location, a compiler needs a build
+    directory -- and a shared signature could only take ``object``, which every
+    real provider then narrows and so fails to implement. By the time a plan is
+    executed the planning is already done; what is left is reading the result.
+    """
 
     #: Stable identifier, used in task ids, findings and the registry.
     name: str
-
-    def plan(self, request: object) -> ProviderPlan:
-        """What to run for this request."""
 
     def parse(self, outcome: TaskOutcome) -> ParsedOutput:
         """Read a finished run's output. Only called for a run that finished."""

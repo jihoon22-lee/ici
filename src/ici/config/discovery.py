@@ -136,9 +136,19 @@ def _declares_workspace(path: Path) -> bool:
     """
 
     try:
-        return "workspace" in tomli.loads(path.read_text(encoding="utf-8"))
-    except (OSError, tomli.TOMLDecodeError):
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        # Cannot even open it. Nothing useful to say about its contents, so the
+        # search goes on rather than stopping on a file nobody can read.
         return False
+    try:
+        return "workspace" in tomli.loads(text)
+    except tomli.TOMLDecodeError:
+        # A file that is here and unparseable is a candidate, not an absence.
+        # Returning False sends the search past it and the user is eventually
+        # told "none declares a [workspace]" about a file whose [workspace] is
+        # right there and whose real problem is a syntax error three lines up.
+        return True
 
 
 def load(
