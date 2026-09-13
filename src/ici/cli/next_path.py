@@ -123,17 +123,38 @@ def _build_plan(component: EffectiveComponent, root: Path) -> Plan:
         raise typer.Exit(EXIT_CONFIG) from error
 
 
+#: Where a bundle keeps the analyzers it shipped, relative to its root.
+BUNDLED_TOOLS = Path("tools") / "python-static"
+
+
 def _locate(tool: str) -> str | None:
     """Where a tool is, asked once, here.
 
-    The bundle's own copy first: a lint result that depends on what else is
-    installed on the machine is not reproducible (#204 item 7).
+    **Running from a bundle, it is the bundle's copy or nothing.** #204 item 7:
+    an analyzer taken from PATH makes the result depend on what else is
+    installed on the machine, which is the property an offline release exists
+    to remove. Falling back to PATH here would mean a bundle missing its ruff
+    quietly linted with whatever the host had, and the report would not say so.
+
+    Running from a source checkout there is no bundle to prefer, so PATH is the
+    honest answer and the developer gets the tool they installed.
+
+    The bundle is found through ``ICI_BUNDLE_ROOT``, which its launcher exports.
+    The first version walked ``__file__`` upwards to guess, and guessed wrong:
+    it looked in ``bin/`` while the build puts analyzers in
+    ``tools/python-static/``, so inside a real bundle it would have found
+    nothing and fallen through to the host.
     """
 
-    beside = Path(__file__).resolve().parent.parent.parent.parent / "bin" / tool
-    if beside.is_file() and os.access(beside, os.X_OK):
-        return str(beside)
+    root = os.environ.get("ICI_BUNDLE_ROOT")
+    if root:
+        shipped = Path(root) / BUNDLED_TOOLS / tool
+        return str(shipped) if _runnable(shipped) else None
     return shutil.which(tool)
+
+
+def _runnable(path: Path) -> bool:
+    return path.is_file() and os.access(path, os.X_OK)
 
 
 @next_app.command("plan")
