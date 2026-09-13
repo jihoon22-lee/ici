@@ -38,6 +38,7 @@ from ici.domain.workspace import SourceSnapshot
 __all__ = [
     "ExecutionSummary",
     "GateOutcome",
+    "Producer",
     "PublicationOutcome",
     "RunIdentity",
     "RunResult",
@@ -46,6 +47,27 @@ __all__ = [
 
 SCHEMA_ID = "ici.next.run"
 SCHEMA_VERSION = 1
+
+
+@dataclass(frozen=True)
+class Producer:
+    """Which build of ici wrote this result.
+
+    ``bundle_digest`` is optional because the stable pyz path has no bundle. It
+    is not defaulted to a placeholder: an absent digest says "this did not come
+    from a bundle", which is a different fact from "the bundle is unknown", and
+    SPEC-05 forbids reporting one as the other.
+    """
+
+    ici_version: str
+    bundle_digest: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "ici_version", require_text(self.ici_version, "ici version"))
+        if self.bundle_digest is not None:
+            object.__setattr__(
+                self, "bundle_digest", require_digest(self.bundle_digest, "bundle digest")
+            )
 
 
 @dataclass(frozen=True)
@@ -211,6 +233,7 @@ class RunResult:
     """One complete run, ready to serialize as ``ici.next.run`` v1."""
 
     run_id: str
+    producer: Producer
     identity: RunIdentity
     scope: ScopeSelection
     execution: ExecutionSummary
@@ -225,6 +248,7 @@ class RunResult:
     def __post_init__(self) -> None:
         object.__setattr__(self, "run_id", require_text(self.run_id, "run id"))
         for name, expected in (
+            ("producer", Producer),
             ("identity", RunIdentity),
             ("scope", ScopeSelection),
             ("execution", ExecutionSummary),

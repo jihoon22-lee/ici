@@ -1,0 +1,59 @@
+{
+  "$id": "https://github.com/jihoon22-lee/ici/schemas/ici-next-event-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "One line of the JSONL progress stream. Carries no verdict and no findings: SPEC-04 section 6 makes the final result authoritative, so a consumer that wanted to decide pass or fail from this stream has to go read the result instead. seq is monotonic per run; a reader reports a gap or a repeat rather than repairing it.",
+  "properties": {
+    "component_id": {
+      "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+      "type": "string"
+    },
+    "event_type": {
+      "enum": [
+        "run.started",
+        "plan.ready",
+        "task.started",
+        "task.progress",
+        "task.completed",
+        "diagnostic",
+        "run.completed"
+      ]
+    },
+    "message": {
+      "maxLength": 4096,
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 8192,
+      "type": "string"
+    },
+    "schema_id": {
+      "const": "ici.next.event"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "seq": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "task_id": {
+      "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+      "type": "string"
+    },
+    "timestamp": {
+      "maxLength": 8192,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_id",
+    "schema_version",
+    "run_id",
+    "seq",
+    "event_type",
+    "timestamp"
+  ],
+  "title": "ici.next.event v1",
+  "type": "object"
+}

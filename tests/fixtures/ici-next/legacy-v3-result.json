@@ -1,0 +1,18 @@
+{
+  "findings": [],
+  "max_tem_score": 5.0,
+  "project_name": "product",
+  "results": [
+    {
+      "engine_name": "lint",
+      "evidence": "MEASURED",
+      "required": true,
+      "status": "PASS",
+      "summary": "0 Violations Found",
+      "targets": []
+    }
+  ],
+  "suite_status": "PASS",
+  "tem_score": 4.79,
+  "version": 3
+}
