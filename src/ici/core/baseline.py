@@ -7,6 +7,7 @@ import json
 import math
 import re
 from collections import defaultdict, deque
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,7 @@ from ici.core.models import (
     AnalysisMetadata,
     BaselineComparison,
     DeltaState,
+    EngineStatus,
     Finding,
     FindingDelta,
     FindingSeverity,
@@ -600,6 +602,42 @@ def _compatibility_warnings(
     return warnings
 
 
+# An engine in one of these states did not look at the code, so the absence of a
+# baseline finding it used to report says nothing about that finding.
+_DID_NOT_LOOK = frozenset({EngineStatus.ERROR, EngineStatus.SKIP})
+
+
+def _engines_that_did_not_look(
+    suite: VerificationSuiteResult, baseline_records: Sequence[_FindingRecord]
+) -> dict[str, str]:
+    """Engines whose current run cannot support a "resolved" claim, and why.
+
+    A baseline finding disappears for two very different reasons: someone fixed
+    it, or nothing went looking for it this time. Reporting both as RESOLVED
+    tells a reader the code improved when an engine merely failed to start —
+    ruff missing from PATH used to produce exactly the same comparison as ruff
+    running clean.
+
+    Three cases count as not looking. ERROR and SKIP are self-describing. An
+    engine that is in the baseline but absent from the current results is the
+    quietest of the three: it produced no record to contradict anything, and
+    before this it resolved its whole baseline without even a warning.
+    """
+
+    current_status = {result.engine_name: result.status for result in suite.results}
+    verdicts: dict[str, str] = {}
+    for record in baseline_records:
+        name = record.engine_name
+        if name in verdicts:
+            continue
+        status = current_status.get(name)
+        if status is None:
+            verdicts[name] = "was not part of this run"
+        elif status in _DID_NOT_LOOK:
+            verdicts[name] = f"reported {status.value}"
+    return verdicts
+
+
 def compare_suite_to_baseline(
     suite: VerificationSuiteResult,
     *,
@@ -630,8 +668,19 @@ def compare_suite_to_baseline(
     for record in document.findings:
         baseline_groups[(record.engine_name, record.fingerprint)].append(record)
 
+    # Baseline findings from an engine that did not look are left out of the
+    # comparison entirely rather than reported as resolved. They are not
+    # unchanged either — nothing measured them — so the warning below carries
+    # the fact instead of an entry that would have to claim one or the other.
+    unlooked = _engines_that_did_not_look(suite, document.findings)
+    skipped_counts: dict[str, int] = defaultdict(int)
+
     entries: list[FindingDelta] = []
     for key in sorted(set(current_groups) | set(baseline_groups)):
+        engine_name = key[0]
+        if engine_name in unlooked and not current_groups[key]:
+            skipped_counts[engine_name] += len(baseline_groups[key])
+            continue
         entries.extend(_compare_group(current_groups[key], baseline_groups[key]))
     entries.sort(
         key=lambda entry: (
@@ -653,6 +702,11 @@ def compare_suite_to_baseline(
         warnings=[
             *_compatibility_warnings(document.metadata, current_metadata),
             *coverage_warnings,
+            *(
+                f"{engine} {unlooked[engine]}; {count} baseline finding(s) were not "
+                f"compared and are not resolved"
+                for engine, count in sorted(skipped_counts.items())
+            ),
         ],
         baseline_metadata=document.metadata,
         fail_on_new=fail_on_new,
