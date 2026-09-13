@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-|상태|**구현 중 (WP06 PR A·B).** 순수 선택 규칙과 환경 스냅샷(PR A), 실제 프로세스 확인(PR B). 첫 engine 연결은 PR C.|
+|상태|**구현 중 (WP06 PR A·B·C).** 선택 규칙·환경 스냅샷(A), 실제 프로세스 확인(B), 새 경로 candidate와 migration 경고(C). **live engine cutover는 남아 있다 — 아래 §마지막.**|
 |근거 이슈|[WP06 #204](https://github.com/jihoon22-lee/ici/issues/204) 작업 1~4·6, [SPEC-02](spec-02-distribution-execution.md)|
-|구현|[`src/ici/toolchain/`](../../../src/ici/toolchain) — `resolution.py`, `resolver.py`, `environment.py`, `launch.py`|
-|검증|[`tests/test_toolchain_resolution.py`](../../../tests/test_toolchain_resolution.py), [`tests/test_toolchain_processes.py`](../../../tests/test_toolchain_processes.py)|
+|구현|[`src/ici/toolchain/`](../../../src/ici/toolchain) — `resolution.py`, `resolver.py`, `environment.py`, `launch.py`, `candidates.py`, `assumptions.py`|
+|검증|[`tests/test_toolchain_resolution.py`](../../../tests/test_toolchain_resolution.py), [`tests/test_toolchain_processes.py`](../../../tests/test_toolchain_processes.py), [`tests/test_toolchain_candidates.py`](../../../tests/test_toolchain_candidates.py)|
 
 ## 출발점: 프로젝트가 자기 인터프리터 없이 테스트된다
 
@@ -131,10 +131,51 @@ venv의 site-packages에 모듈을 **직접 써넣어** 만들므로 네트워�
 하는지의 기록**이고, PR C가 engine을 옮길 때 diff가 "바뀌었다는 주장"이 아니라 **바뀐 동작**을
 보여주게 한다.
 
+## 후보는 설정에서만 나온다 (PR C, 작업 7)
+
+두 가지 하드코딩이 새 경로에서 빠졌고, **같은 실수의 다른 옷**이다 —
+**아무도 넣지 않았는데 답에 들어온 위치.**
+
+|하드코딩|무엇|대신 쓰는 것|
+|---|---|---|
+|`core/env.py` `get_nas_cpp_lib_dir`|**한 부서의** C++ 라이브러리를, **한 버전에 고정해서**, ici 안에 컴파일해 넣었다|`ici.toml`의 선언된 build/tool 경로|
+|`find_project_executable`|프로젝트가 말했든 안 했든 `.venv`를 본다 — **ici 자신의 인터프리터로 끝나는 추측 사슬의 첫 고리**|`[components.<id>.python] executable`|
+
+**아무것도 선언하지 않은 component는 후보가 0개다.** resolver에 **되돌아갈 것이 없다.**
+#204의 첫 인수 기준은 *"대체하지 않기를 기억해서"*가 아니라 **대체할 것이 없어서** 달성된다.
+
+analyzer는 **bundle이거나 명시된 external**이고 **PATH는 후보가 아니다.** PATH에서 주운 linter는
+결과를 *그 기계에 또 무엇이 깔려 있는지*에 달리게 만든다.
+
+### migration 경고는 썩지 않는다
+
+경고가 지고 있는 값은 *"당신 빌드가 이것에 의존하고, 대신 이렇게 쓰라"*인데, **설명하는 코드가
+옮겨지는 순간 그 값이 거짓이 된다.** 그래서 각 항목이 파일과 본문 표식을 들고 있고,
+`stale()`이 그것을 **다시 읽는다** — 없어진 코드를 설명하는 경고는 1년 뒤 누군가를 오도하는
+대신 **테스트를 실패시킨다.**
+
+> 새 경로에 하드코딩이 없다는 검사는 **구문 트리**로 한다. 처음 쓴 검사는 소스를 grep 했다가
+> *"새 경로가 무엇을 피하는지 설명하는 docstring"*에 걸려 실패했다 — 산문을 읽는 검사는
+> **산문만 맞고 코드는 틀린 모듈도 통과시킨다.**
+
 ## 아직 하지 않은 것
 
 |항목|어디서|
 |---|---|
-|첫 engine의 기존 resolver 연결 제거|PR C|
-|NAS/부서 라이브러리 하드코딩 제거와 migration 경고|PR C (작업 7)|
+|**live engine cutover**|아래 참조. **이 PR에서 제외했다**|
 |`doctor` 연결|[#210](https://github.com/jihoon22-lee/ici/issues/210). 선택 이유와 config key는 **이미 구조화돼 있다**|
+
+### live cutover를 이 PR에서 하지 않은 이유 (측정)
+
+`_resolve_python`을 새 resolver로 갈아끼우면서 자동 `.venv` 우선선택도 함께 빼면 —
+작업 7이 요구하는 그대로 — **ici 자신의 `test` 게이트가 깨진다.**
+
+ici의 `ici.toml`은 인터프리터를 **선언하지 않는다.** `[engines.test]`에 `python` 키가 없고,
+지금은 전적으로 자동 `.venv` 탐색에 의존한다. 새 규칙 아래에서 그 프로젝트는 후보 0개,
+즉 `Unresolved`가 된다 — **규칙이 옳게 동작한 결과**이지만, 설정이 먼저 따라오지 않으면
+ici가 자기 자신을 검증하지 못한다.
+
+순서가 있다: **설정이 인터프리터를 선언할 수 있게 된 뒤에** engine을 옮긴다. 그 연결이
+[#210](https://github.com/jihoon22-lee/ici/issues/210)이다. 현행 fallback은
+[`tests/test_toolchain_processes.py`](../../../tests/test_toolchain_processes.py)에
+**고정돼 있어서**, 옮기는 PR의 diff가 "바뀌었다는 주장"이 아니라 **바뀐 동작**을 보여준다.
