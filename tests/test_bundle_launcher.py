@@ -53,6 +53,7 @@ def app():
                         )
                     },
                     "vendor_marker": _vendor_marker(),
+                    "argv": list(sys.argv),
                 }
             )
         )
@@ -109,9 +110,29 @@ def _run(bundle: Path, *args: str, env: dict[str, str] | None = None, cwd: Path 
 
 
 def _reported_env(bundle: Path, **env: str) -> dict[str, str | None]:
+    return _report(bundle, **env)["env"]
+
+
+def _report(bundle: Path, **env: str) -> dict:
     completed = _run(bundle, "--report-env", env=env)
     assert completed.returncode == 0, completed.stderr
-    return json.loads(completed.stdout)["env"]
+    return json.loads(completed.stdout)
+
+
+class TestCoreSeesItsOwnName:
+    """python -c leaves argv[0] as "-c", and Click builds usage text from it.
+
+    Until the launcher set it, every bundle told its users to run "-c verify".
+    Core is handed the name instead of the launcher passing prog_name, so this
+    stays true whichever CLI framework core uses.
+    """
+
+    def test_the_program_name_reaches_core(self, bundle):
+        assert _report(bundle)["argv"][0] == "ici"
+
+    def test_the_users_arguments_follow_it_unchanged(self, bundle):
+        argv = _report(bundle)["argv"]
+        assert argv[1:] == ["--report-env"]
 
 
 class TestCoreIsIsolated:

@@ -237,16 +237,35 @@ def test_reproducibility_verifier_rejects_duplicate_and_noncanonical_member_orde
     assert "if names != expected_order" in script
 
 
+def _all_workflows() -> list[Path]:
+    # Every workflow, not a list written down here: a list is only correct until
+    # the next workflow is added, and the one that is forgotten is the one that
+    # would have carried the unpinned version.
+    paths = sorted(WORKFLOW_DIR.glob("*.yml"))
+    assert paths, "no workflows found"
+    return paths
+
+
+def _step_blocks(workflow: str) -> list[str]:
+    """Split a job's steps apart so a step can be asserted about as a whole."""
+
+    return re.findall(
+        r"(?ms)^      - (?:name|uses):.*?(?=^      - (?:name|uses):|^  \S|\Z)", workflow
+    )
+
+
 def test_every_setup_uv_step_pins_the_build_tool_version():
-    for workflow_name in ("ci.yml", "release.yml", "candidate-artifact.yml"):
-        workflow = _workflow(workflow_name)
-        setup_steps = re.findall(
-            r"(?ms)^      - name: Install uv\n(?P<body>.*?)(?=^      - name:|\Z)", workflow
-        )
-        assert setup_steps, f"no setup-uv step found in {workflow_name}"
-        for step in setup_steps:
-            assert "astral-sh/setup-uv@" in step
-            assert 'version: "0.12.5"' in step
+    # Every step that uses setup-uv, found by what it uses rather than by what it
+    # is called: a step named something else would otherwise pin nothing and be
+    # counted as absent rather than as unpinned.
+    found = 0
+    for path in _all_workflows():
+        for block in _step_blocks(path.read_text(encoding="utf-8")):
+            if "astral-sh/setup-uv@" not in block:
+                continue
+            found += 1
+            assert 'version: "0.12.5"' in block, f"{path.name}: setup-uv step pins no version"
+    assert found, "no setup-uv step found in any workflow"
 
 
 def test_pyz_build_requires_every_public_json_schema():
@@ -260,12 +279,8 @@ def test_pyz_build_requires_every_public_json_schema():
 
 
 def test_all_ci_release_and_candidate_checkouts_disable_credential_persistence():
-    for workflow_name in (
-        "ci.yml",
-        "release.yml",
-        "candidate-artifact.yml",
-        "candidate-quality-zoo.yml",
-    ):
+    for path in _all_workflows():
+        workflow_name = path.name
         workflow = _workflow(workflow_name)
         checkouts = re.findall(
             r"(?ms)^      - name: [^\n]*Checkout[^\n]*\n(?P<body>.*?)(?=^      - name:|\Z)",

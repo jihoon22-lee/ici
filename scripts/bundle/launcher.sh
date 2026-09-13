@@ -50,6 +50,12 @@ import sys
 root = os.environ["ICI_BUNDLE_ROOT"]
 sys.path.insert(0, os.path.join(root, "app"))
 sys.path.insert(1, os.path.join(root, "app", "vendor"))
+
+# python -c leaves argv[0] as "-c", and Click reads the program name from it,
+# so the bundle told every user to run "-c verify". Setting it here rather than
+# passing prog_name keeps the launcher independent of core CLI framework.
+sys.argv[0] = "ici"
+
 from ici.__main__ import app
 
 app()

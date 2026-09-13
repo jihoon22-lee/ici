@@ -1,0 +1,109 @@
+name: Bundle Smoke
+
+# Builds a standalone bundle and runs the release-path smoke against the
+# artifact rather than the source tree (#202 PR C).
+#
+# Kept out of ci.yml deliberately. The build downloads a ~160 MB
+# python-build-standalone runtime, which every pull request does not need to
+# pay for, and per #202 a bundle is a candidate only — this must never become a
+# gate that decides whether a change can merge.
+
+on:
+  # No strictness input: whether every case can be measured is decided by the
+  # runner's namespace privileges, not by whoever pressed the button, and a knob
+  # that cannot change the answer is only somewhere for a wrong one to be set.
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/bundle/**"
+      - "scripts/assemble_bundle.py"
+      - "scripts/spikes/wp01/build-bundle.sh"
+      - ".github/workflows/bundle-smoke.yml"
+  schedule:
+    # Weekly, so a break caused by something outside these paths — a core import,
+    # a new dependency — is found before a release rather than during one.
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bundle-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Build and smoke a bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+          enable-cache: true
+
+      # The exact runtime WP01 measured. Pinned, not "3.13": the manifest records
+      # a digest, and a patch bump would change it without anyone deciding to.
+      - name: Install the pinned CPython runtime
+        run: uv python install 3.13.7
+
+      # Bundled so `verify` never needs ruff inside a project .venv (R02). The
+      # build script copies whatever ruff is on PATH, so it has to be there —
+      # and it has to be the version pyproject declares, not a pin invented here
+      # that would drift from what the project actually lints with.
+      - name: Put the project's ruff on PATH
+        run: |
+          uv run --python 3.10 ruff --version
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+
+      # Ubuntu 24.04 blocks unprivileged user namespaces through AppArmor, and
+      # the offline, read-only and no-install cases need them. Lift it if we can;
+      # if we cannot, the cases report BLOCKED and the summary says so rather
+      # than the run quietly claiming eight of ten is a pass.
+      - name: Allow unprivileged user namespaces
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          if unshare -n --map-root-user true 2>/dev/null; then
+            echo "namespaces=yes" >> "$GITHUB_ENV"
+          else
+            echo "namespaces=no" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build the bundle
+        run: bash scripts/spikes/wp01/build-bundle.sh "$RUNNER_TEMP/bundle"
+
+      # Strict where the host can measure everything, so an unmeasured case is a
+      # failure rather than a silent pass. Lenient where it cannot, because a
+      # missing kernel privilege is not a defect in the artifact — the summary
+      # below is what keeps that visible.
+      - name: Smoke the bundle
+        env:
+          ICI_SMOKE_STRICT: ${{ env.namespaces == 'yes' && '1' || '0' }}
+        run: |
+          bash scripts/bundle/smoke.sh \
+            "$RUNNER_TEMP/bundle" "$RUNNER_TEMP/smoke-work" \
+            --json "$RUNNER_TEMP/bundle-smoke.json"
+
+      - name: Report what was measured
+        if: always()
+        run: |
+          report="$RUNNER_TEMP/bundle-smoke.json"
+          python3 scripts/bundle/summarize_smoke.py "$report" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$report" ] && grep -q '"status":"BLOCKED"' "$report"; then
+            echo "::warning::Some bundle smoke cases could not be measured on this runner."
+          fi
+
+      - name: Upload the smoke report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bundle-smoke-report
+          path: ${{ runner.temp }}/bundle-smoke.json
+          if-no-files-found: warn
