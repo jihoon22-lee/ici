@@ -1,6 +1,7 @@
 """4. Static Type Checking Engine (Mypy with explicit C++ scope)."""
 
 import ast
+import os
 import re
 import shutil
 import sys
@@ -15,8 +16,31 @@ from ici.core.models import (
     InspectionTarget,
     ToolEvidence,
 )
-from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
+from ici.execution.process import (
+    ExitContract,
+    Interpretation,
+    Outcome,
+    TaskOutcome,
+    TaskSpec,
+    run_task,
+)
+
+# Mypy exits 1 when it finds type errors, which is the tool working, and 2
+# when the tool itself could not do its job. Stating that once is what #205
+# item 6 asks for; every branch below reads this rather than a convention.
+_MYPY_CONTRACT = ExitContract(success=(0,), findings=(1,))
+
+# What to say for each way of not finishing. Keyed by the whole enum, so a
+# reason added to Outcome later fails here instead of falling through to a
+# message about something else.
+_DID_NOT_RUN: dict[Outcome, str] = {
+    Outcome.TIMED_OUT: "Mypy timed out",
+    Outcome.OUTPUT_TRUNCATED: "Mypy output was truncated",
+    Outcome.SIGNALLED: "Mypy terminated before producing a result",
+    Outcome.START_FAILED: "Mypy could not be started",
+    Outcome.CANCELLED: "Mypy was stopped before producing a result",
+}
 
 _MYPY_SUCCESS_LINE_RE = re.compile(r"^Success: no issues found in (?P<count>\d+) source files?$")
 _MYPY_DIAGNOSTIC_RE = re.compile(
@@ -165,56 +189,85 @@ class TypeCheckEngine(BaseEngine):
         evidence: list[ToolEvidence],
         python_sources: list[Path],
     ) -> bool:
+        """Run mypy through the common executor and read the result as a reason.
+
+        #205 item 5. What was here before was Outcome and ExitContract written
+        out by hand: a chain of six branches deciding that a timeout is not a
+        pass, that a negative return code is not a pass, that exit 1 means
+        findings and exit 2 means a broken tool. Every engine that runs a tool
+        needs those decisions, and every one of them that writes its own can
+        get a branch wrong -- so the classification lives in one place and this
+        reads it.
+
+        The environment is passed explicitly rather than inherited. It is the
+        whole of this process's environment, which is exactly what run_process
+        gave it before, so nothing about what mypy sees changes here; what
+        changes is that the dependency is now written at the call site, where
+        the decision to narrow it can be made instead of hunted for.
+        """
+
         mypy_targets = self._mypy_targets(python_sources)
         mypy_argv = [*mypy_cmd, *self._mypy_profile_args(), *mypy_targets]
         try:
-            result = run_process(mypy_argv, cwd=self.project_root)
-        except Exception as exc:
+            outcome = run_task(
+                TaskSpec(
+                    argv=tuple(mypy_argv),
+                    name="mypy",
+                    cwd=self.project_root,
+                    environment=dict(os.environ),
+                )
+            )
+        except (OSError, ValueError) as exc:
             self._record_tool_exception(evidence, mypy_argv, exc)
             errors.append(f"Mypy could not execute: {type(exc).__name__}: {exc}")
             return False
-        tool_record = self._record_process(evidence, mypy_argv, result)
-        if result.timed_out:
-            message = "Mypy timed out"
-            tool_record.error = message
-            errors.append(message)
+
+        tool_record = self._record_outcome(evidence, mypy_argv, outcome)
+        interpretation = _MYPY_CONTRACT.read(outcome)
+
+        if interpretation is Interpretation.DID_NOT_RUN:
+            return self._fail(
+                errors,
+                tool_record,
+                _DID_NOT_RUN.get(outcome.outcome, "Mypy did not produce a result"),
+            )
+        if interpretation is Interpretation.FAILED:
+            # Parsed anyway: a tool that failed may still have said something
+            # useful on its way out, and the run is reported as an error either
+            # way.
+            self._parse_mypy_diagnostics(outcome.stdout, outcome.stderr, targets)
+            return self._fail(
+                errors, tool_record, f"Mypy tool failed with exit code {outcome.exit_code}"
+            )
+        if interpretation is Interpretation.FOUND_FINDINGS:
+            if not self._parse_mypy_diagnostics(outcome.stdout, outcome.stderr, targets):
+                self._fail(errors, tool_record, "Mypy diagnostics were not parseable")
             return False
-        if result.truncated:
-            message = "Mypy output was truncated"
-            tool_record.error = message
-            errors.append(message)
-            return False
-        if not isinstance(result.returncode, int) or result.returncode < 0:
-            message = "Mypy terminated before producing a result"
-            tool_record.error = message
-            errors.append(message)
-            return False
-        if result.returncode >= 2:
-            self._parse_mypy_diagnostics(result.stdout, result.stderr, targets)
-            message = f"Mypy tool failed with exit code {result.returncode}"
-            tool_record.error = message
-            errors.append(message)
-            return False
-        if result.returncode == 1:
-            if not self._parse_mypy_diagnostics(result.stdout, result.stderr, targets):
-                message = "Mypy diagnostics were not parseable"
-                tool_record.error = message
-                errors.append(message)
-            return False
-        if result.stderr.strip():
-            message = "Mypy emitted unexpected stderr on success"
-            tool_record.error = message
-            errors.append(message)
-            return False
-        valid_success, diagnostics = self._validated_mypy_success(result.stdout)
+        return self._read_mypy_success(outcome, targets, errors, tool_record)
+
+    def _read_mypy_success(
+        self,
+        outcome: TaskOutcome,
+        targets: list[InspectionTarget],
+        errors: list[str],
+        tool_record: ToolEvidence,
+    ) -> bool:
+        """A clean exit still has to look like mypy having finished."""
+
+        if outcome.stderr.strip():
+            return self._fail(errors, tool_record, "Mypy emitted unexpected stderr on success")
+        valid_success, diagnostics = self._validated_mypy_success(outcome.parseable)
         for line in diagnostics:
             self._append_mypy_target(line, targets)
         if not valid_success:
-            message = "Mypy success output was not parseable"
-            tool_record.error = message
-            errors.append(message)
-            return False
+            return self._fail(errors, tool_record, "Mypy success output was not parseable")
         return True
+
+    @staticmethod
+    def _fail(errors: list[str], tool_record: ToolEvidence, message: str) -> bool:
+        tool_record.error = message
+        errors.append(message)
+        return False
 
     def _mypy_targets(self, python_sources: list[Path]) -> list[str]:
         targets: list[str] = []
@@ -327,24 +380,19 @@ class TypeCheckEngine(BaseEngine):
         return valid
 
     @staticmethod
-    def _record_process(
-        evidence: list[ToolEvidence], command: list[str], result: ProcessResult
+    def _record_outcome(
+        evidence: list[ToolEvidence], command: list[str], outcome: TaskOutcome
     ) -> ToolEvidence:
-        error = ""
-        if result.timed_out:
-            error = "timed out"
-        elif result.truncated:
-            error = "output truncated"
-        elif not isinstance(result.returncode, int) or result.returncode < 0:
-            error = "process failed to start or terminated by signal"
+        """The same ToolEvidence as before, read off an outcome instead of a code."""
+
         item = ToolEvidence(
             name="mypy",
             path=command[0],
             argv=command,
-            returncode=result.returncode,
-            timed_out=result.timed_out,
-            truncated=result.truncated,
-            error=error,
+            returncode=outcome.exit_code,
+            timed_out=outcome.outcome is Outcome.TIMED_OUT,
+            truncated=outcome.truncated,
+            error="" if outcome.outcome.ran_to_completion else outcome.outcome.value,
         )
         evidence.append(item)
         return item
