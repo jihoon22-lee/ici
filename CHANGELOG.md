@@ -7,6 +7,35 @@
 
 ## [Unreleased]
 
+### 추가 — 회귀 corpus 등록부와 도구 계약 harness (WP03 PR A, [#201](https://github.com/jihoon22-lee/ici/issues/201))
+
+**기존 동작 변경 없음.** 새 파일은 `tests/`에만 있고 `src/`는 건드리지 않습니다.
+
+- **`tests/fixtures/manifest.toml`** — 이 저장소가 소유한 fixture 17개를 등록했습니다.
+  각 항목이 **실제로 필요한 도구**, 내야 할 결과, 출처와 라이선스, 비용, 안전 조건을 담습니다.
+- **실제로 있던 결함을 고쳤습니다.** `examples/cpp-fixtures/cmake_project/CMakeLists.txt:8`이
+  `find_package(Qt6 REQUIRED)`를 부르는데, 이 fixture를 쓰는 테스트는
+  `_require("cmake","ctest","gcov")`로 가드하고 있었습니다. **cmake가 설치돼 있다는 사실은
+  Qt6에 대해 아무것도 말해 주지 않습니다.** 가드는 모르는 것을 skip할 수 없어, Qt6가 없는
+  기계에서 테스트를 실행했고 cmake가 configure에서 실패했습니다 — 정직한 답이 "여기서는
+  실행되지 않음"인 자리에 **실패가 보고됐습니다.** 이제 두 테스트는 이유를 말하며 skip합니다.
+- **요구사항은 이름이 아니라 probe입니다.** "Qt6를 cmake에서 쓸 수 있는가"는 Qt6라는 이름의
+  파일을 찾아서 답할 수 없어서, `cmake_package` probe가 임시 디렉터리에 두 줄짜리 프로젝트를
+  만들어 cmake에게 직접 묻습니다(빌드하지 않고, 세션당 1회).
+- 대조군이 이 결함의 성격을 분명히 합니다. `qmake_project`는 같은 문제가 없습니다 —
+  **qmake는 Qt와 함께 배포되므로 프로그램을 찾은 것이 곧 라이브러리가 있다는 뜻입니다.**
+  한쪽은 이름으로 탐지되고 다른 쪽은 안 되므로 요구사항이 관례가 아니라 데이터여야 합니다.
+- **skip은 조용하지 않습니다.** `ICI_REQUIRE_BUILD_ADAPTERS=1`이면 미충족 요구가 실패가 되고
+  ici 자신의 CI가 이 변수를 켭니다. 등록부에 없는 id를 요구하면 skip이 아니라 오류입니다 —
+  오타 하나로 테스트가 조용히 꺼지지 않습니다. (lint가 CI에서 한 번도 돌지 않은 채 녹색
+  게이트를 냈던 C-6의 재발 방지입니다.)
+- **`tests/toolcontract.py`** — 호출을 기록하는 가짜 실행파일. 출력에 대한 단언은 파서를
+  검사하지만 **호출**에 대한 단언은 계약을 검사합니다: 의도한 argv를 의도한 디렉터리에서
+  넘겼는지, 환경이 보존됐는지, 도구를 **한 번** 실행했는지. shebang이 현재 인터프리터이고
+  **셸 초기화 파일을 읽지 않습니다** — 프로파일이 필요한 harness는 R01(셸 초기화 파일 source
+  금지)의 회귀를 탐지할 수 없습니다.
+
+
 ### 수정 — 읽을 수 없는 리포트를 WARN으로 강등하던 publish 요약 (WP02 PR C, [#200](https://github.com/jihoon22-lee/ici/issues/200))
 
 **동작이 바뀝니다.** `ici publish`가 PR 코멘트에 붙이는 요약을 만드는
