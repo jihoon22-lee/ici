@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-|상태|**구현 시작됨 (WP06 PR A).** 순수 선택 규칙과 환경 스냅샷. 실제 프로세스 시험은 PR B, 첫 engine 연결은 PR C.|
+|상태|**구현 중 (WP06 PR A·B).** 순수 선택 규칙과 환경 스냅샷(PR A), 실제 프로세스 확인(PR B). 첫 engine 연결은 PR C.|
 |근거 이슈|[WP06 #204](https://github.com/jihoon22-lee/ici/issues/204) 작업 1~4·6, [SPEC-02](spec-02-distribution-execution.md)|
-|구현|[`src/ici/toolchain/`](../../../src/ici/toolchain) — `resolution.py`, `resolver.py`, `environment.py`|
-|검증|[`tests/test_toolchain_resolution.py`](../../../tests/test_toolchain_resolution.py)|
+|구현|[`src/ici/toolchain/`](../../../src/ici/toolchain) — `resolution.py`, `resolver.py`, `environment.py`, `launch.py`|
+|검증|[`tests/test_toolchain_resolution.py`](../../../tests/test_toolchain_resolution.py), [`tests/test_toolchain_processes.py`](../../../tests/test_toolchain_processes.py)|
 
 ## 출발점: 프로젝트가 자기 인터프리터 없이 테스트된다
 
@@ -99,12 +99,42 @@ capability는 **있다고 가정하지 않고** 거절한다.
 `VIRTUAL_ENV`, PATH에 도구 둘, 명시 경로 누락, 낮은 버전, 읽을 수 없이 긴 출력, 공백이 든 경로가
 전부 **디스크 fixture가 아니라 단위 테스트**다.
 
+## 실제 프로세스로 확인한 것 (PR B)
+
+PR A의 규칙은 가짜 실행 파일로 시험했다. 그래서 **증명할 수 없는 것이 하나 남았다** —
+`.venv/bin/python`으로 실행하는 것과 그것이 가리키는 파일로 실행하는 것이 **사실로** 다른가.
+
+진짜 venv를 만들어 쟀다:
+
+|실행|`sys.prefix`|프로젝트가 선언한 모듈|
+|---|---|---|
+|`.venv/bin/python`|`<project>/.venv`|import 됨|
+|그 realpath|`/usr`|**import 안 됨**|
+
+다섯 번째 인수 기준이 요구하는 것이고, **단위 테스트를 아무리 늘려도 할 수 없는 주장**이다.
+venv의 site-packages에 모듈을 **직접 써넣어** 만들므로 네트워크가 필요 없다.
+
+`launch.py`가 세 가지를 거절한다:
+
+|거절|왜|
+|---|---|
+|**상속**|`subprocess`에 스냅샷 매핑만 준다. 스냅샷에 없는 변수는 자식에 닿을 수 없다 — 상속된 `PYTHONPATH`는 보고하는 것과 **다른 트리를 분석**하게 만드는 바로 그 경로다|
+|**조용히 포기**|timeout과 출력 폭주를 결과의 **사실로** 돌려준다. 예외로 던지면 첫 `except`에서 "없음"과 합쳐진다|
+|**셸**|argv는 리스트다. 공백이 든 경로는 공백이 든 경로다|
+
+> 자식의 `os.environ`이 스냅샷과 **같지는 않다.** Python 자식은 PEP 538 locale coercion으로
+> `LC_CTYPE`을 자기 환경에 추가한다 — `env={}`로 아무것도 주지 않아도 나타나는 것을 측정했다.
+> 그래서 테스트가 주장하는 것은 "같다"가 아니라 **"이 프로세스에서 아무것도 건너가지 않았다"**이다.
+> 부모에만 있는 sentinel이 자식에 보이지 않는 것으로 확인한다.
+
+현행 fallback은 **테스트로 고정해 뒀다.** 새 코드의 테스트가 아니라 **오늘 stable 경로가 무엇을
+하는지의 기록**이고, PR C가 engine을 옮길 때 diff가 "바뀌었다는 주장"이 아니라 **바뀐 동작**을
+보여주게 한다.
+
 ## 아직 하지 않은 것
 
 |항목|어디서|
 |---|---|
-|실제 프로세스로 core/project 환경 분리·symlink launch 확인|PR B|
-|bundle/project 실제 process tests|PR B|
 |첫 engine의 기존 resolver 연결 제거|PR C|
 |NAS/부서 라이브러리 하드코딩 제거와 migration 경고|PR C (작업 7)|
 |`doctor` 연결|[#210](https://github.com/jihoon22-lee/ici/issues/210). 선택 이유와 config key는 **이미 구조화돼 있다**|
