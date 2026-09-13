@@ -7,6 +7,51 @@
 
 ## [Unreleased]
 
+### 추가 — ici-next 도메인 모델 (WP02 PR A, [#200](https://github.com/jihoon22-lee/ici/issues/200))
+
+**기존 동작 변경 없음.** `src/ici/domain/`은 새 opt-in namespace이고, `core/models.py`·
+`core/context.py`·기존 report writer·엔진·CI는 손대지 않았습니다. 현행 배포 경로는 그대로입니다.
+
+- **오늘 `ProjectModel` 하나가 겸하는 네 역할을 분리했습니다** — Workspace(정책 소유),
+  Component(디렉터리와 1:1이 아닌 분석 범위), BuildUnit(여러 component가 참조), AnalysisUnit
+  (component×language×variant×scope). 각 분리가 합쳐진 모델로는 답할 수 없는 질문에 답합니다:
+  component가 root 게이트를 약화시킬 수 없고, 한 폴더의 C++/Python 혼합이 특수 사례가 아니며,
+  qmake SUBDIRS 하나가 여러 분석 단위를 공급할 수 있고, 같은 헤더를 두 방식으로 컴파일한 것이
+  두 개의 사실로 남습니다.
+- **상태 축 6개를 독립 enum으로 분리하고 불변식을 모델이 강제합니다.** 통과한 scope는 violation을
+  동시에 보고할 수 없고, FAIL·INCOMPLETE는 이유를 반드시 갖고, 미완료 run은 PASS를 낼 수 없고,
+  게시 실패는 판정을 바꾸지 않습니다. **INCOMPLETE가 exit code에서 FAIL보다 우선합니다** —
+  미완료 run을 완료된 판정으로 보고하지 않기 위해서입니다. `#200`이 명시한
+  "incomplete와 violation 동시 존재"가 테스트로 고정돼 있습니다.
+- **WP01의 측정이 모델에 들어갔습니다.** `ResolvedTool`이 `launch_path`와 `real_path`를 별도
+  필드로 갖습니다 — venv의 `bin/python`과 그 realpath가 서로 다른 `sys.prefix`를 보고한다는
+  것을 WP01이 측정했기 때문입니다. `relocated` 속성이 그 차이를 드러냅니다.
+- **`TaskSpec`에 `share_key`를 뒀습니다.** 출력을 바꿀 수 있는 것(도구 digest·argv·cwd·환경
+  overlay·입력)만 포함하고 정체성(id·의존·분석 단위)은 제외합니다. 두 분석 단위가 동일한 명령을
+  필요로 하는 경우가 바로 공유할 가치가 있는 경우이고, 더 느슨한 키로 공유하면 coverage 빌드와
+  sanitizer 빌드가 서로의 산출물을 재사용하게 됩니다. `PREPARE` 종류만 mutating이며 cacheable일
+  수 없습니다.
+- **canonical `Finding`은 v3 레코드의 개명이 아니라 상위집합입니다.** provider·native rule id·
+  rule version·component·analysis unit·variant·task를 추가합니다. 이것이 없으면 같은 헤더를 두
+  방식으로 컴파일했을 때 finding을 귀속시킬 수 없고, baseline이 "고쳐졌다"와 "이번에는 이
+  component를 분석하지 않았다"를 구분할 수 없습니다.
+- **`ici.domain.legacy`가 유일한 연결 지점입니다.** 다른 domain 모듈은 `ici.core`를 import하지
+  않고, `tests/test_domain_boundaries.py`가 그 비대칭을 강제합니다. 변환은 양방향에서 무엇이
+  손실되는지 말합니다 — `legacy_limitations()`는 값이 실제로 있는 필드만 반환하므로, 변환된
+  리포트에 붙였을 때 구체적인 의미를 갖습니다. v3에 자리가 있는 필드(`tool_rule_id`·
+  `tool_version`)는 손실로 보고하지 않습니다.
+- **domain의 순수성을 두 방식으로 검증합니다.** AST 스캔으로 I/O 모듈 import와 잘못된 방향의
+  `ici.core` 참조를 잡고, 파일 열기와 프로세스 시작을 **실제로 깨뜨린 뒤** import해서 AST가
+  놓칠 간접 호출까지 잡습니다. `pathlib.PurePosixPath`만 validator에서 예외로 허용합니다 —
+  순수 문자열 연산이고, lint를 만족시키려 POSIX 경로 파싱을 손으로 다시 쓰는 것이 더 나쁩니다.
+- **검증 프리미티브가 값을 반환합니다**(`None`이 아니라). 모델의 `__post_init__`가 대입 목록처럼
+  읽히고 얕게 유지되며, 그래서 ici 자신의 complexity 게이트에 걸리지 않습니다. 실측: 신규
+  소스 약 1,250행을 추가했는데 **최대 CC 24·issues 148로 변화 없고, 중복률도 3.4% 그대로**입니다.
+
+83개 테스트(모델 검증·불변식·legacy roundtrip 60건 + 경계 23건)를 추가했습니다.
+**직렬화·JSON Schema·이벤트 IO·legacy reader adapter는 아직 없습니다** — #200의 PR B·PR C 경계입니다.
+
+
 ### 문서/시험 — ici-next 위험 가정 검증 (WP01, [#199](https://github.com/jihoon22-lee/ici/issues/199))
 
 **코드 동작 변경 없음. 릴리스 없음.** `dist/ici.pyz`, `scripts/build-pyz.sh`, 프로젝트 `.venv`,
