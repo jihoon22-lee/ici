@@ -53,6 +53,7 @@ EXPECTED_DOCUMENTS = (
     "config-usage.md",
     "toolchain-selection.md",
     "task-execution.md",
+    "task-outputs.md",
     "inventory/current-engines.md",
     "inventory/execution-flow.md",
     "inventory/baseline-measurements.md",

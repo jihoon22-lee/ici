@@ -141,9 +141,32 @@ task 자신의 timeout 너머에 **한 겹 더 마감**을 둔다. timeout 처�
 그냥 끊긴 로그는 **그냥 멈춘 도구처럼 읽힌다.** 바닥까지 스크롤한 사람이 나머지가 어디
 갔는지 알 방법이 없다.
 
+## probe 경로를 공통 executor로 (작업 5, 일부)
+
+경계는 그대로다 — **tool 선택은 resolver, 실행은 executor.** `toolchain/launch.py`가
+`subprocess.run`을 직접 부르던 것을 `run_task` 위로 옮겼고, 이건 정리가 아니라
+**결함 수정**이다. 두 가지 모두 **결과에는 보이지 않았다.**
+
+|측정|옮기기 전|옮긴 뒤|
+|---|---|---|
+|200 MiB flood (`output_limit=1024`)|보고는 1024자 + `truncated` — **최대 RSS 10 → 611 MiB**|같은 보고, **12 → 13 MiB**|
+|timeout된 probe의 자식|**살아남음, 그것도 ici 자신의 process group 안에서**|남지 않음|
+
+- `subprocess.run(capture_output=True)`는 자르기 **전에 전부** 읽는다. 경계가
+  **읽기가 아니라 보고에** 걸려 있었다. 200 MB를 찍는 도구가 단정한 1 KB를 돌려주면서
+  600 MB를 먹고 갔다.
+- `subprocess.run(timeout=...)`은 **자기가 시작한 것만** 죽인다. 게다가 새 세션이 없으니
+  남은 자식이 **ici 자신의 group** 안에 있었다 — group 단위 정리가 ici를 같이 죽이지
+  않고는 손댈 수 없는 자리다.
+
+**"답했다"고 말하면서 뒤에 무엇을 남겼는지는 말하지 않은 것**이고, 이 시리즈가 계속
+다루는 것과 같은 종류다.
+
 ## 아직 하지 않은 것
 
 |항목|어디서|
 |---|---|
-|output manifest·exclusive lock·원자적 publish, 실패/취소 결과의 cache 승격 거부|PR C (작업 4)|
-|첫 provider/probe 경로를 공통 executor로 이관|PR C (작업 5)|
+|첫 provider 경로를 공통 executor로 이관|작업 5의 나머지|
+
+작업 4(output manifest·exclusive lock·원자적 publish, 실패/취소 결과의 cache 승격 거부)는
+[task-outputs.md](task-outputs.md)에 있다.
