@@ -162,9 +162,70 @@ finding 메시지는 **도구가 남의 소스를 읽고 만든 텍스트**이�
 **자기 디렉터리를 지정**한다. cache 옵션은 금지 목록에 없다 — cache 위치는 lint 규칙이
 아니고, **여기서 의도적으로 정한다.**
 
+## `ici next` — 타이핑해야만 닿는다
+
+작업 6의 마지막 인수 항목이 *"완성 경로가 기존 stable 기능을 자동 교체하지 않는다"*이다.
+그래서 `verify`의 플래그가 아니라 **별도 namespace**다 — **플래그는 실수로 기본값이 될 수
+있고, 서브커맨드는 치지 않으면 닿을 수 없다.** 이 모듈을 지워도 stable 명령은 그대로다.
+
+|명령|하는 일|
+|---|---|
+|`next plan`|무엇을 할지 말한다. **아무것도 실행·빌드·설치하지 않는다.**|
+|`next verify`|실행하고 결과를 저장한다|
+|`next report`|저장된 결과를 렌더한다. **아무것도 분석하지 않는다.**|
+
+### exit code
+
+|경우|exit|
+|---|---|
+|깨끗|0|
+|위반|1|
+|**설정을 읽을 수 없음**|**2**|
+|필수 미완료|3|
+
+2가 틀리기 쉽다. **설정을 읽을 수 없는 것은 실패한 검증이 아니다** — 아무것도 실행되지
+않았고, 1을 내면 **아무도 도달하지 않은 판정을 주장**하는 것이다.
+
+### stable config loader가 먼저 막고 있었다
+
+루트 callback이 모든 서브커맨드 전에 `load_config()`를 부른다. stable과 next가 **같은
+`ici.toml` 이름**을 쓰므로, next 형식으로 설정한 프로젝트는 **next 경로를 영영 쓸 수
+없었다** — 그걸 이해하는 명령에 닿기 전에 stable reader가 파일을 거부한다. `next`일 때는
+건너뛴다(`export-compilation-context`가 이미 쓰던 방식).
+
+### 코드는 맞는데 메시지가 틀렸다
+
+잘못된 TOML의 exit code는 처음부터 2였다. 그런데 메시지가 이렇게 말했다:
+
+```
+none declares a [workspace]
+```
+
+**`[workspace]`는 바로 거기 있었다.** 진짜 문제는 두 줄 위의 문법 오류였고, 사용자는
+**틀리지 않은 것을 고치러** 갔을 것이다.
+
+원인은 `_declares_workspace`가 **자기 docstring과 반대로** 동작한 것이다 — docstring은
+*"malformed한 파일은 여기서 건너뛰고 세 디렉터리 뒤에 '워크스페이스 없음'으로 바뀌는 대신
+reader가 보고해야 한다"*고 적혀 있는데, 코드는 정확히 건너뛰고 있었다.
+
+```
+config: /p/ici.toml: not valid TOML: Expected ']' at the end of a table declaration (at line 2, column 11)
+```
+
+### 실제 CLI로 확인한 것
+
+|경우|exit|
+|---|---|
+|결함 seed|1 (FAIL, finding 1)|
+|깨끗한 코드|0 (PASS)|
+|잘못된 TOML|2|
+|ruff 없음|3 (INCOMPLETE)|
+|`plan`|0, **파일 하나도 만들지 않음**|
+|`verify`|`.ici/` **아래에만** 씀|
+
 ## 아직 하지 않은 것
 
 |항목|어디서|
 |---|---|
+|실제 압축물로 푸는 bundle E2E|WP04의 `scripts/bundle/smoke.sh`에 붙인다|
 |type/test/C++|이 WP는 주장하지 않는다|
-|CLI 연결과 bundle E2E|작업 6의 나머지|

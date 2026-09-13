@@ -25,10 +25,18 @@ from collections.abc import Callable, Sequence
 
 from ici.adapters.providers.base import ProviderPlan
 from ici.application.plan import NothingSelected, Plan, PlannedCheck
+from ici.config.composition import EffectiveComponent
 from ici.config.documents import ComponentBody
 from ici.languages.python.checks import PYTHON_CHECKS, CheckDefinition
 
-__all__ = ["Planner", "ToolLocator", "select", "selected_checks"]
+__all__ = [
+    "Planner",
+    "ToolLocator",
+    "select",
+    "select_effective",
+    "selected_checks",
+    "selected_effective_checks",
+]
 
 #: Where a named tool is, or None when it is not available. Asked once, by the
 #: caller, and handed in.
@@ -71,11 +79,14 @@ def select(
 ) -> Plan:
     """Build the plan for one component, keeping what it cannot do in it."""
 
-    checks = selected_checks(component, available)
+    return _plan_for(selected_checks(component, available), locate, plan_work, "this component")
+
+
+def _plan_for(
+    checks: Sequence[CheckDefinition], locate: ToolLocator, plan_work: Planner, who: str
+) -> Plan:
     if not checks:
-        raise NothingSelected(
-            "this component selected no check; a run that checks nothing cannot pass"
-        )
+        raise NothingSelected(f"{who} selected no check; a run that checks nothing cannot pass")
 
     planned = []
     for check in checks:
@@ -98,4 +109,39 @@ def _with_required(check: CheckDefinition, required: bool) -> CheckDefinition:
         language=check.language,
         tool=check.tool,
         required=required,
+    )
+
+
+def selected_effective_checks(
+    component: EffectiveComponent, available: Sequence[CheckDefinition] = PYTHON_CHECKS
+) -> tuple[CheckDefinition, ...]:
+    """The same decision, read off a composed component.
+
+    The composed form is what a real run uses: every layer that had an opinion
+    has already spoken, and the check carries where the winning value came
+    from. Reading the raw document here instead would apply the component's own
+    settings and silently drop the root's.
+    """
+
+    settings = {check.id: check for check in component.checks}
+    chosen = []
+    for check in available:
+        decided = settings.get(check.id)
+        if decided is not None and not decided.enabled.value:
+            continue
+        required = check.required if decided is None else decided.required.value
+        chosen.append(check if required == check.required else _with_required(check, required))
+    return tuple(chosen)
+
+
+def select_effective(
+    component: EffectiveComponent,
+    locate: ToolLocator,
+    plan_work: Planner,
+    available: Sequence[CheckDefinition] = PYTHON_CHECKS,
+) -> Plan:
+    """Build the plan for one composed component."""
+
+    return _plan_for(
+        selected_effective_checks(component, available), locate, plan_work, component.id
     )

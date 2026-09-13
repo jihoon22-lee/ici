@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.markup import escape
 
 from ici import __version__
+from ici.cli.next_path import next_app
 from ici.compilation_export_cli import export_compilation_context
 from ici.config import ConfigError, load_config
 from ici.core.baseline import BaselineError
@@ -121,15 +122,22 @@ def main_callback(
         help="Show version and exit",
     ),
 ):
-    if not version:
-        ctx.ensure_object(dict)
-        try:
-            ctx.obj["config"] = load_config(
-                create_global_default=ctx.invoked_subcommand != "export-compilation-context"
-            )
-        except ConfigError as err:
-            typer.echo(f"Configuration error: {err}", err=True)
-            raise typer.Exit(code=2) from err
+    if version:
+        return
+    ctx.ensure_object(dict)
+    if ctx.invoked_subcommand == "next":
+        # The next path reads its own ici.toml with its own schema. Loading the
+        # stable configuration first would mean a project that adopted the new
+        # format could never run the new path: the stable reader rejects the
+        # file before the command that understands it is reached.
+        return
+    try:
+        ctx.obj["config"] = load_config(
+            create_global_default=ctx.invoked_subcommand != "export-compilation-context"
+        )
+    except ConfigError as err:
+        typer.echo(f"Configuration error: {err}", err=True)
+        raise typer.Exit(code=2) from err
 
 
 def _resolve_baseline_cli_paths(
@@ -161,6 +169,11 @@ def _resolve_baseline_cli_paths(
         raise typer.Exit(code=2)
     return baseline_path, baseline_output
 
+
+# The ici-next path, reachable only by typing `ici next`. A sub-command
+# rather than a flag on verify, because #206 requires that the new path not
+# replace a stable one by accident and a flag can be defaulted on.
+app.add_typer(next_app)
 
 app.command("export-compilation-context")(export_compilation_context)
 
