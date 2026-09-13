@@ -7,6 +7,38 @@
 
 ## [Unreleased]
 
+### 추가 — 실패가 빈 PASS가 되지 않는 실행 결과 (WP07 PR A, [#205](https://github.com/jihoon22-lee/ici/issues/205))
+
+**기존 배포 경로 동작 변경 없음.** 새 executor는 아직 아무도 호출하지 않습니다.
+
+#205의 첫 인수 기준은 목록입니다 — **timeout·signal·긴 출력·잘못된 출력·취소**가 PASS가 되면
+안 됩니다. 공통점은 **도구가 발견한 것을 다 말하지 못하고 끝났다**는 것이고, 잘못 다뤄지는
+방식도 하나입니다: `returncode == 0`을 보는 호출자는 다섯 개를 전부 *"잘 돌았고 아무것도 못
+찾았다"*로 읽어서 **깨끗한 실행과 구별되지 않습니다.**
+
+- **결과는 숫자가 아니라 이유**이고 숫자는 그 안의 데이터입니다. `FINISHED`가 아닌 것은
+  **무엇도 답이 될 수 없고**, 테스트가 목록을 따로 적지 않고 **enum 전체를 훑어** 확인하므로
+  나중에 추가되는 이유도 빠뜨릴 수 없습니다.
+- **요점이 한 줄입니다**: `output-truncated  exit=0  ->  did-not-run`. exit code는 0인데 답이
+  잘렸습니다. 순진하게 보면 깨끗한 통과인데, **잘려나간 부분이 findings가 있던 부분일 수
+  있습니다.** parser에게는 끝까지 간 실행의 출력만 줍니다 — 잘린 스트림을 받은 parser는
+  **진짜와 똑같이 생긴 findings**를 만들고 잘린 만큼이 빠집니다. 사람이 볼 로그는 남깁니다.
+- **반대 방향: findings는 실패가 아닙니다**(작업 6). violation을 찾아 exit 1을 내는 linter는
+  완벽하게 동작한 것이고 exit code가 그 도구의 **답**입니다. process failure로 읽으면 멀쩡한
+  도구를 고장 났다고, 성공으로 읽으면 violation이 없다고 보고합니다. provider가 `ExitContract`로
+  어느 코드가 답인지 말하고, 해석은 **관례가 아니라 그 계약에 대해** 이뤄집니다 — 같은 exit 1이
+  계약에 따라 `found-findings`이거나 `failed`입니다. 한 코드가 두 뜻을 가질 수 없습니다.
+- **기존 runner를 다시 쓰지 않았습니다.** bounded capture, 파이프가 가득 차도 교착하지 않게 하는
+  drain 스레드, POSIX process group 정리는 이미 동작하고, 다시 쓰면 그 동작을 **다시 벌어야**
+  합니다. 이 계층은 감싸고 **분류**합니다.
+- **환경은 명시이고 상속이 아닙니다.** 기본값이 빈 매핑이지 `None`이 아닙니다 — `None`은
+  "상속"이고, 상속은 task가 **보고하는 것과 다른 것을 분석**하게 되는 경로입니다. 두 번째 인수
+  기준은 두 task를 **실제로 동시에** 돌려 확인합니다.
+- 문서: [`task-execution.md`](docs/design/ici-next/task-execution.md).
+
+취소·process tree는 PR B, output manifest·lock은 PR C입니다. `CANCELLED`의 **의미는 이미
+고정**돼 있어서 PR B의 구현이 다른 뜻을 들고 올 수 없습니다.
+
 ### 추가 — 후보는 설정에서만 나온다 (WP06 PR C, [#204](https://github.com/jihoon22-lee/ici/issues/204) 작업 7)
 
 **기존 배포 경로 동작 변경 없음.** 하드코딩은 **새 경로에서** 빠졌고 stable 경로는 그대로입니다.

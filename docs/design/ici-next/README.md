@@ -36,6 +36,7 @@
 |설정 값이 어디서 왔는지를 어떻게 보존하는가|[config-origin.md](config-origin.md)|
 |설정 파일을 만들고·찾고·옮기는 절차|[config-usage.md](config-usage.md)|
 |어떤 도구를 고르고 왜 그것인지|[toolchain-selection.md](toolchain-selection.md)|
+|실행 실패가 통과로 바뀌지 않게 하는 법|[task-execution.md](task-execution.md)|
 |**현행 코드가 실제로 어떻게 동작하는가**|[inventory/](#현행-구현-측정-기록-wp00)|
 |**위험 가정을 실제로 시험한 결과**|[spikes/](#spike-측정-기록)|
 
