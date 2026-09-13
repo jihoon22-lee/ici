@@ -50,6 +50,7 @@ EXPECTED_DOCUMENTS = (
     "launcher-contract.md",
     "bundle-installation.md",
     "config-origin.md",
+    "config-usage.md",
     "inventory/current-engines.md",
     "inventory/execution-flow.md",
     "inventory/baseline-measurements.md",

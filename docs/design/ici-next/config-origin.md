@@ -172,11 +172,13 @@ component를 root에 인라인으로 쓰든 child 파일로 쪼개든 digest는 
 
 |항목|어디서|
 |---|---|
-|`--config`·ancestor workspace 탐색, VCS 경계, nested workspace, unregistered child|**PR C 또는 [#207](https://github.com/jihoon22-lee/ici/issues/207)**. 합성은 파일을 열지 않는다 — child 문서를 **인자로 받는다**|
 |CLI 계층(`--python`/`--component`/`--profile`)|[#210](https://github.com/jihoon22-lee/ici/issues/210). `Layer.CLI` 자리는 비워 두었다|
-|`ici init`·preview·템플릿|PR C|
-|XDG/`dev.toml`/`ICI_CONFIG` migration 보고서|PR C. **위 §1의 재현이 그 보고서의 첫 항목이다**|
-|기존 `ici.config` 로더 교체|WP27. 이 PR들은 **옆에 두었을 뿐 건드리지 않았다**|
+|이 설정으로 실제 분석 실행|후속 WP. 지금은 **읽고 합성하는 데까지**다|
+|기존 `ici.config` 로더 교체|[WP27 #225](https://github.com/jihoon22-lee/ici/issues/225). 이 PR들은 **옆에 두었을 뿐 건드리지 않았다**|
+
+탐색(`--config`·ancestor 탐색·VCS 경계·nested workspace·unregistered child), `ici init`/preview,
+그리고 XDG/`dev.toml`/`ICI_CONFIG` migration 보고서는 **PR C에서 끝났다** —
+[config-usage.md](config-usage.md). 위 §1의 재현이 그 보고서가 내놓는 첫 항목이다.
 
 `src/ici/config.py`는 `src/ici/config/__init__.py`가 됐다. 내용은 한 줄도 바뀌지 않았고
 18개 `from ici.config import ...`도 그대로다. 아키텍처 문서가 next 경로에 지정한 `config/`
