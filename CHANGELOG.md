@@ -7,6 +7,49 @@
 
 ## [Unreleased]
 
+### 추가 — 도구 선택 규칙과 환경 스냅샷 (WP06 PR A, [#204](https://github.com/jihoon22-lee/ici/issues/204))
+
+**기존 배포 경로 동작 변경 없음.** 새 resolver는 아직 아무 engine도 쓰지 않습니다.
+
+아키텍처 문서가 `engines/test_interpreter.py`를 위반 지점으로 적어 뒀고, 재현했습니다:
+
+```
+running ici under : /usr/bin/python3
+project has no .venv
+tests would run on: /usr/bin/python3
+```
+
+`_resolve_python`은 프로젝트 `.venv`를 못 찾으면 **`sys.executable`** — **ici 자신이 돌고 있는
+인터프리터** — 를 돌려줍니다. 프로젝트가 **자기 것이 아닌 Python으로** 테스트되고, 결과는
+**그 사실을 말하지 않습니다.** 다른 통과와 똑같이 생겼습니다.
+
+- **"못 찾았다"는 실행되지 않는 값입니다.** `Unresolved`는 `usable`이 항상 False이고,
+  `AVAILABLE`로 만들려 하면 생성 자체가 거절됩니다. 호출자가 **결정해야 하고** 돌아가는 무언가를
+  받지 못합니다. 명시한 선택이 실패해도 대체 후보는 **probe조차 하지 않습니다** — 한 번 재본 것은
+  "이미 되는 걸 아니까"라는 이유로 나중에 대체될 자리를 만듭니다.
+- **launch path는 identity가 아닙니다.** `.venv/bin/python`과 그 realpath는 같은 파일이지만
+  **같은 도구가 아닙니다** — realpath로 실행하면 가상환경을 건너뛰어 프로젝트가 선언한 패키지가
+  사라집니다. probe도 launch path로 합니다(realpath를 재면 **실행될 일 없는 인터프리터**를
+  보고하게 됩니다).
+- **없음·너무 낡음·고장을 셋으로 나눴습니다.** 현행은 falsy 하나로 뭉개서 *"mypy가 없다"*와
+  *"mypy가 시작되지 않는다"*가 같은 문장으로 도착하는데 고치는 방법은 다릅니다. 후보가 여럿일 때
+  **구체적인 이유를 잃지 않습니다** — 첫 구현은 이걸 뭉갰고, **자기 문서에 적어 둔 규칙을 자기
+  코드가 지키지 않는다는 것을 테스트가 잡았습니다.**
+- **기능은 버전으로 추측하지 않고 물어봅니다**(작업 6). 버전은 릴리스를 설명하지 빌드를 설명하지
+  않습니다 — 버전이 높아도 그 빌드에 옵션이 빠져 있을 수 있습니다. 확인할 방법을 주지 않은
+  capability는 **있다고 가정하지 않습니다.**
+- **필요한 것만 잽니다.** `Resolver.probed`가 실제로 물어본 경로를 들고 있어 *"Python-only가
+  qmake를 재지 않는다"*가 **확인 가능한 주장**이 됩니다 — 부재는 기록이 있어야 검사됩니다.
+- **환경은 전역이 아니라 값입니다.** `for_core()`는 **Python 변수 3개만** 지웁니다(WP01이
+  `SSL_CERT_FILE`을 지우면 내부 서버 CA를 잃는다고 측정했습니다). overlay는 **복사본에**
+  적용돼 한 작업이 다음 작업에 흔적을 남기지 않습니다. `PATH`와 맞지 않는 `VIRTUAL_ENV`는
+  버립니다 — 리빌드를 가로질러 열려 있던 터미널은 **돌고 있지 않은 인터프리터**를 보고합니다.
+- probe를 주입한 덕에 stale `VIRTUAL_ENV`·PATH 중복·명시 경로 누락·낮은 버전·읽을 수 없이 긴
+  출력·공백 경로가 전부 **디스크 fixture가 아니라 단위 테스트**입니다.
+- 문서: [`toolchain-selection.md`](docs/design/ici-next/toolchain-selection.md).
+
+실제 프로세스 시험은 PR B, 첫 engine 연결은 PR C입니다.
+
 ### 추가 — 설정을 찾고, 제안하고, 옮겨 오기 (WP05 PR C, [#203](https://github.com/jihoon22-lee/ici/issues/203))
 
 **기존 배포 경로 동작 변경 없음.** `ici verify`는 아직 이 파일을 읽지 않습니다.

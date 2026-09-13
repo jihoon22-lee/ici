@@ -51,6 +51,7 @@ EXPECTED_DOCUMENTS = (
     "bundle-installation.md",
     "config-origin.md",
     "config-usage.md",
+    "toolchain-selection.md",
     "inventory/current-engines.md",
     "inventory/execution-flow.md",
     "inventory/baseline-measurements.md",
