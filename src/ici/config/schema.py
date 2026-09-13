@@ -31,6 +31,7 @@ from ici.config.documents import (
     ComponentEntry,
     ComponentReference,
     CppSettings,
+    Exemption,
     PythonSettings,
     RootDocument,
     ToolSetting,
@@ -57,7 +58,7 @@ def read_root(text: str, *, path: str) -> RootDocument:
 
     version = _schema_version(root, problems)
     workspace = _workspace(root, problems)
-    checks = tuple(_check(table) for table in root.tables("checks"))
+    checks = tuple(_check(table, problems) for table in root.tables("checks"))
     tools = tuple(_tool(table) for table in root.tables("tools"))
     builds = tuple(_build(table) for table in root.tables("builds"))
     entries = tuple(_entry(table, problems) for table in root.array_of_tables("components"))
@@ -103,7 +104,7 @@ def read_component(text: str, *, path: str) -> ComponentDocument:
     if body_table is None:
         problems.append(ConfigProblem("no [component] table", Origin(file=path, key="component")))
         fail(problems)
-    body = _component_body(body_table, language_sections=root)
+    body = _component_body(body_table, language_sections=root, problems=problems)
     root.done()
     collect(problems)
 
@@ -160,15 +161,33 @@ def _workspace(root: Table, problems: list[ConfigProblem]) -> WorkspaceSettings:
     return settings
 
 
-def _check(table: Table) -> CheckSetting:
+def _check(table: Table, problems: list[ConfigProblem]) -> CheckSetting:
     setting = CheckSetting(
         id=table.name(),
         enabled=table.flag("enabled"),
         required=table.flag("required"),
         origin=table.origin,
+        exemptions=tuple(_exemption(entry, problems) for entry in table.tables("exemptions")),
     )
     table.done()
     return setting
+
+
+def _exemption(table: Table, problems: list[ConfigProblem]) -> Exemption:
+    """``[checks.<id>.exemptions.<component>]`` — a named, reasoned relaxation."""
+
+    reason = table.text("reason")
+    if reason is None:
+        problems.append(
+            ConfigProblem(
+                "an exemption must say why",
+                table.origin.child("reason"),
+                hint="the reason is what makes this different from a silent relaxation",
+            )
+        )
+        reason = Sourced(value="", origin=table.origin.child("reason"))
+    table.done()
+    return Exemption(component_id=table.name(), reason=reason, origin=table.origin)
 
 
 def _tool(table: Table) -> ToolSetting:
@@ -214,7 +233,7 @@ def _entry(table: Table, problems: list[ConfigProblem]) -> ComponentEntry:
         # one by one as unknown. Three messages about one mistake is how a
         # reader learns to skim them.
         return _reference(table, problems, already_reported=defines)
-    return _component_body(table, language_sections=table)
+    return _component_body(table, language_sections=table, problems=problems)
 
 
 def _defining_keys(table: Table) -> Iterable[str]:
@@ -244,7 +263,9 @@ def _reference(
     return ComponentReference(id=identifier, config=config, origin=table.origin)
 
 
-def _component_body(table: Table, *, language_sections: Table) -> ComponentBody:
+def _component_body(
+    table: Table, *, language_sections: Table, problems: list[ConfigProblem]
+) -> ComponentBody:
     """A component definition.
 
     ``language_sections`` differs from ``table`` for a child file, where the
@@ -255,6 +276,7 @@ def _component_body(table: Table, *, language_sections: Table) -> ComponentBody:
     """
 
     body = ComponentBody(
+        checks=tuple(_check(entry, problems) for entry in language_sections.tables("checks")),
         id=table.text("id"),
         root=table.declared_path("root"),
         languages=table.text_list("languages"),
