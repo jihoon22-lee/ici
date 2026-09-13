@@ -1,0 +1,269 @@
+# The corpus register (WP03 #201, step 1).
+#
+# Every fixture this repository owns is declared here with what it actually
+# needs to run, what it is supposed to produce, and where it came from. Two
+# things follow from having it, and neither is available from the fixtures
+# themselves:
+#
+# - a test guards on the fixture's declared requirements instead of a list
+#   copied into the test by hand. `examples/cpp-fixtures/cmake_project` is why:
+#   its CMakeLists calls find_package(Qt6 REQUIRED), the tests that use it
+#   guarded on cmake/ctest/gcov, and cmake being present says nothing at all
+#   about Qt6. The guard could not skip what it did not know about, so the
+#   tests failed instead.
+# - "not run" stays distinguishable from "passed". A fixture whose tools are
+#   absent is explicitly unexecuted and does not count toward release evidence
+#   (#201 step 4).
+#
+# `requires` entries are probes, not names, because "is Qt6 available to cmake"
+# is not answerable by looking for a file called Qt6:
+#
+#   executable = "cmake"              one program on PATH
+#   any_executable = ["qmake6", ...]  any one of several spellings
+#   cmake_package = "Qt6"             ask cmake whether find_package succeeds
+#
+# `kind` separates the two populations #201 step 4 asks to keep apart:
+#
+#   real-tool   runs a native toolchain; skipped honestly when it is missing
+#   data        a file the tests read; no external requirement, always runs
+#
+# `provenance` records where the content came from. Everything here is written
+# for this repository — no vendored third-party source, no internal code.
+
+schema_version = "ici.fixture-manifest/v1"
+
+# --------------------------------------------------------------------------
+# C++ text-analysis fixtures. These are read, not built, so they need nothing
+# beyond a checkout.
+# --------------------------------------------------------------------------
+
+[[fixture]]
+id = "cpp/cycle_pair"
+path = "examples/cpp-fixtures/cycle_pair"
+kind = "data"
+languages = ["cpp"]
+requires = []
+cost = "fast"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "CycleEngine reports WARN naming both a.hpp and b.hpp"
+exercised_by = ["tests/test_cpp_e2e.py::test_cycle_engine_detects_a_header_cycle"]
+
+[[fixture]]
+id = "cpp/complexity_hot"
+path = "examples/cpp-fixtures/complexity_hot"
+kind = "data"
+languages = ["cpp"]
+requires = []
+cost = "fast"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "ComplexityEngine reports WARN on a function named classify* with complexity > 15"
+exercised_by = ["tests/test_cpp_e2e.py::test_complexity_engine_detects_a_hot_function"]
+
+[[fixture]]
+id = "cpp/clone_pair"
+path = "examples/cpp-fixtures/clone_pair"
+kind = "data"
+languages = ["cpp"]
+requires = []
+cost = "fast"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "DuplicateEngine reports WARN: the two functions differ only in identifiers and literals"
+exercised_by = ["tests/test_cpp_e2e.py::test_duplicate_engine_detects_a_type_2_clone"]
+
+[[fixture]]
+id = "cpp/dtor_throw"
+path = "examples/cpp-fixtures/dtor_throw"
+kind = "data"
+languages = ["cpp"]
+requires = []
+cost = "fast"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "ExceptionSafetyEngine reports FAIL mentioning the destructor"
+exercised_by = ["tests/test_cpp_e2e.py::test_exception_engine_detects_a_throwing_destructor"]
+
+[[fixture]]
+id = "cpp/oversized_file"
+path = "examples/cpp-fixtures/oversized_file"
+kind = "data"
+languages = ["cpp"]
+requires = []
+cost = "fast"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "LineCountEngine reports WARN naming the 500 line threshold"
+exercised_by = ["tests/test_cpp_e2e.py::test_line_engine_detects_an_oversized_file"]
+
+# The control. A detector that fires here has gained a false positive, which is
+# why #201's acceptance criteria ask for a clean counterpart and not only
+# defect seeds.
+[[fixture]]
+id = "cpp/clean_baseline"
+path = "examples/cpp-fixtures/clean_baseline"
+kind = "data"
+languages = ["cpp"]
+requires = []
+cost = "fast"
+role = "control"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "every text engine reports PASS with no findings"
+exercised_by = ["tests/test_cpp_e2e.py::test_clean_baseline_produces_no_findings"]
+
+# --------------------------------------------------------------------------
+# C++ fixtures that need a real toolchain.
+# --------------------------------------------------------------------------
+
+[[fixture]]
+id = "cpp/asan_overflow"
+path = "examples/cpp-fixtures/asan_overflow"
+kind = "real-tool"
+languages = ["cpp"]
+requires = [{ executable = "g++" }]
+cost = "slow"
+safety = "compiles and runs the fixture under ASan/UBSan; the binary reads past the end of a buffer on purpose"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "SanitizeEngine reports FAIL with at least one finding"
+exercised_by = ["tests/test_cpp_e2e.py::test_sanitize_detects_a_heap_overflow"]
+
+[[fixture]]
+id = "cpp/cmake_elf_dead"
+path = "examples/cpp-fixtures/cmake_elf_dead"
+kind = "real-tool"
+languages = ["cpp"]
+requires = [{ executable = "cmake" }, { executable = "g++" }, { executable = "nm" }]
+cost = "slow"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "the linker dead-symbol pass reports the unreferenced symbol"
+exercised_by = ["tests/test_cpp_linker_dead_e2e.py"]
+
+# The fixture that motivated this manifest. Qt6 is a requirement of the
+# CMakeLists, not of cmake, and only cmake can answer whether it is reachable.
+[[fixture]]
+id = "cpp/cmake_project"
+path = "examples/cpp-fixtures/cmake_project"
+kind = "real-tool"
+languages = ["cpp"]
+requires = [
+  { executable = "cmake" },
+  { executable = "ctest" },
+  { executable = "gcov" },
+  { cmake_package = "Qt6", components = ["Core", "Test"] },
+]
+cost = "slow"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "configure, build and ctest succeed; coverage is 100% line, function and branch for src/counter.cpp"
+exercised_by = [
+  "tests/test_build_adapter_e2e.py::test_cmake_fixture_builds_and_tests_a_q_object",
+  "tests/test_build_adapter_e2e.py::test_cmake_fixture_reports_exact_gcov_values_and_geometry",
+]
+
+# qmake does not have the same problem: qmake ships with Qt, so finding the
+# program is enough to know the libraries are there. Recorded because the
+# asymmetry with cmake_project above is the whole point of the register.
+[[fixture]]
+id = "cpp/qmake_project"
+path = "examples/cpp-fixtures/qmake_project"
+kind = "real-tool"
+languages = ["cpp"]
+requires = [
+  { any_executable = ["qmake6", "qmake"] },
+  { executable = "make" },
+  { executable = "gcov" },
+]
+cost = "slow"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "a SUBDIRS build produces exactly one reported test, test_counter, and a compile_commands.json under build/ici-qmake-build"
+exercised_by = [
+  "tests/test_build_adapter_e2e.py::test_qmake_fixture_builds_and_tests_a_q_object",
+  "tests/test_build_adapter_e2e.py::test_qmake_fixture_captures_compilation_context",
+]
+
+# --------------------------------------------------------------------------
+# ici.next result and event documents (WP02 #200). Data only.
+# --------------------------------------------------------------------------
+
+[[fixture]]
+id = "next/run-success"
+path = "tests/fixtures/ici-next/run-success.json"
+kind = "data"
+languages = []
+requires = []
+cost = "fast"
+provenance = "generated from the domain models by WP02 PR B"
+license = "same as repository"
+expectation = "a complete ici.next.run v1 document that reads back equal"
+
+[[fixture]]
+id = "next/run-code-fail"
+path = "tests/fixtures/ici-next/run-code-fail.json"
+kind = "data"
+languages = []
+requires = []
+cost = "fast"
+provenance = "generated from the domain models by WP02 PR B"
+license = "same as repository"
+expectation = "gate FAIL with violations, exit code 1"
+
+[[fixture]]
+id = "next/run-required-incomplete"
+path = "tests/fixtures/ici-next/run-required-incomplete.json"
+kind = "data"
+languages = []
+requires = []
+cost = "fast"
+provenance = "generated from the domain models by WP02 PR B"
+license = "same as repository"
+expectation = "gate INCOMPLETE while findings survive, exit code 3"
+
+[[fixture]]
+id = "next/run-partial-selection"
+path = "tests/fixtures/ici-next/run-partial-selection.json"
+kind = "data"
+languages = []
+requires = []
+cost = "fast"
+provenance = "generated from the domain models by WP02 PR B"
+license = "same as repository"
+expectation = "a partial scope that passes without claiming a workspace pass (R05)"
+
+[[fixture]]
+id = "next/run-cancelled"
+path = "tests/fixtures/ici-next/run-cancelled.json"
+kind = "data"
+languages = []
+requires = []
+cost = "fast"
+provenance = "generated from the domain models by WP02 PR B"
+license = "same as repository"
+expectation = "a cancelled run is incomplete, never a pass"
+
+[[fixture]]
+id = "next/legacy-v3-result"
+path = "tests/fixtures/ici-next/legacy-v3-result.json"
+kind = "data"
+languages = []
+requires = []
+cost = "fast"
+role = "rejection"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "an ici.next v1 reader refuses it rather than reading an empty PASS"
+
+[[fixture]]
+id = "next/legacy-v3-suite"
+path = "tests/fixtures/ici-next/legacy-v3-suite.json"
+kind = "data"
+languages = []
+requires = []
+cost = "fast"
+provenance = "authored for ici against the ici.result/v3 schema"
+license = "same as repository"
+expectation = "the legacy reader converts it and names four structural limitations"

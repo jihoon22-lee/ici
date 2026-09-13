@@ -8,49 +8,42 @@ may not be.
 The skip must not be silent. ici shipped a green gate for several releases while
 lint had never actually run in CI (C-6). ICI_REQUIRE_BUILD_ADAPTERS=1 turns a
 missing tool into a failure, and ici's own CI sets it.
+
+What each fixture needs is read from the register in tests/fixtures/manifest.toml
+rather than listed here (#201). The old lists were written by hand and the cmake
+one was wrong: it named cmake, ctest and gcov, while cmake_project's CMakeLists
+calls find_package(Qt6 REQUIRED). cmake being installed says nothing about Qt6,
+so on a machine without Qt6 the guard found nothing missing, the test ran, and
+cmake failed during configure — a failure reported where "not run here" was the
+truth. The register probes Qt6 by asking cmake, which is the only way to know.
 """
 
-import os
 import shutil
 from pathlib import Path
 
-import pytest
-
+from fixture_manifest import require
 from ici.core.cmake import ConfigureOptions, build, collect_coverage, configure, run_tests
 from ici.core.context import BuildVariant, discover_project_model
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.qmake_context import prepare_qmake_compilation_context
 from ici.engines.test import TestEngine
 
-FIXTURES = Path(__file__).resolve().parents[1] / "examples" / "cpp-fixtures"
 
+def _prepare(fixture_id: str, tmp_path: Path) -> Path:
+    """Skip unless the register says this machine can run the fixture, then copy it.
 
-def _require(*tools: str) -> None:
-    missing = [t for t in tools if shutil.which(t) is None]
-    if not missing:
-        return
-    message = f"build adapter tools unavailable: {', '.join(missing)}"
-    if os.environ.get("ICI_REQUIRE_BUILD_ADAPTERS") == "1":
-        pytest.fail(message)
-    pytest.skip(message)
+    Copying is unconditional in the sense that it always happens after the
+    guard; doing it before would leave a tree behind for a test that never ran.
+    """
 
-
-def _require_qmake() -> None:
-    """Accept either the Qt 6 qmake name or the Qt 5 fallback name."""
-
-    if shutil.which("qmake6") is None and shutil.which("qmake") is None:
-        _require("qmake6", "qmake")
-
-
-def _copy(fixture: str, tmp_path: Path) -> Path:
-    target = tmp_path / fixture
-    shutil.copytree(FIXTURES / fixture, target)
+    entry = require(fixture_id)
+    target = tmp_path / entry.path.name
+    shutil.copytree(entry.path, target)
     return target
 
 
 def test_cmake_fixture_builds_and_tests_a_q_object(tmp_path):
-    _require("cmake", "ctest", "gcov")
-    root = _copy("cmake_project", tmp_path)
+    root = _prepare("cpp/cmake_project", tmp_path)
 
     session = configure(root, ConfigureOptions(BuildVariant.COVERAGE))
     assert session.configured, session.errors
@@ -71,8 +64,7 @@ def test_cmake_fixture_builds_and_tests_a_q_object(tmp_path):
 
 
 def test_cmake_fixture_reports_exact_gcov_values_and_geometry(tmp_path):
-    _require("cmake", "ctest", "gcov")
-    root = _copy("cmake_project", tmp_path)
+    root = _prepare("cpp/cmake_project", tmp_path)
 
     result = TestEngine(root).run()
 
@@ -104,8 +96,7 @@ def test_cmake_fixture_reports_exact_gcov_values_and_geometry(tmp_path):
 
 
 def test_qmake_fixture_builds_and_tests_a_q_object(tmp_path):
-    _require("qmake6", "make", "gcov")
-    root = _copy("qmake_project", tmp_path)
+    root = _prepare("cpp/qmake_project", tmp_path)
 
     session = configure(root, ConfigureOptions(BuildVariant.COVERAGE))
     assert session.configured, session.errors
@@ -122,9 +113,7 @@ def test_qmake_fixture_builds_and_tests_a_q_object(tmp_path):
 
 
 def test_qmake_fixture_captures_compilation_context(tmp_path):
-    _require_qmake()
-    _require("make")
-    root = _copy("qmake_project", tmp_path)
+    root = _prepare("cpp/qmake_project", tmp_path)
     project = discover_project_model(root, {})
 
     context = prepare_qmake_compilation_context(root, {}, project)
