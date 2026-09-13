@@ -166,5 +166,7 @@ task 자신의 timeout 너머에 **한 겹 더 마감**을 둔다. timeout 처�
 
 |항목|어디서|
 |---|---|
-|output manifest·exclusive lock·원자적 publish, 실패/취소 결과의 cache 승격 거부|작업 4|
-|첫 provider 경로를 공통 executor로 이관|작업 5의 나머지. output manifest가 생긴 뒤가 순서상 맞다|
+|첫 provider 경로를 공통 executor로 이관|작업 5의 나머지|
+
+작업 4(output manifest·exclusive lock·원자적 publish, 실패/취소 결과의 cache 승격 거부)는
+[task-outputs.md](task-outputs.md)에 있다.
