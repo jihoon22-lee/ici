@@ -38,6 +38,7 @@
 |어떤 도구를 고르고 왜 그것인지|[toolchain-selection.md](toolchain-selection.md)|
 |실행 실패가 통과로 바뀌지 않게 하는 법|[task-execution.md](task-execution.md)|
 |산출물이 "있다"와 "다 있다"를 어떻게 구별하는가|[task-outputs.md](task-outputs.md)|
+|선언에서 판정까지 한 경로가 실제로 이어지는가|[first-complete-path.md](first-complete-path.md)|
 |**현행 코드가 실제로 어떻게 동작하는가**|[inventory/](#현행-구현-측정-기록-wp00)|
 |**위험 가정을 실제로 시험한 결과**|[spikes/](#spike-측정-기록)|
 

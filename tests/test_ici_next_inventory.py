@@ -54,6 +54,7 @@ EXPECTED_DOCUMENTS = (
     "toolchain-selection.md",
     "task-execution.md",
     "task-outputs.md",
+    "first-complete-path.md",
     "inventory/current-engines.md",
     "inventory/execution-flow.md",
     "inventory/baseline-measurements.md",
