@@ -1,0 +1,139 @@
+{
+  "analysis_context": {
+    "artifact_manifests": [],
+    "identity": {
+      "config_digest": "sha256:c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+      "source_commit": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+      "toolchain_digest": "sha256:d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4"
+    },
+    "profile": "standard",
+    "requested_variants": [],
+    "schema_version": "ici.analysis-context/v1"
+  },
+  "analysis_metadata": {
+    "fingerprint_version": "2",
+    "policy_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+    "producer_version": "0.10.3",
+    "tool_policy_digest": "sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+  },
+  "duration": 41.5,
+  "error_count": 0,
+  "failed_count": 1,
+  "max_tem_score": 5.0,
+  "passed_count": 9,
+  "results": [
+    {
+      "duration": 3.2,
+      "engine_name": "lint",
+      "evidence": "MEASURED",
+      "extra": {},
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "",
+          "fingerprint": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "message": "'os' imported but unused",
+          "metrics": {},
+          "primary_location": {
+            "end_column": 20,
+            "end_line": 12,
+            "label": "",
+            "path": "src/app/main.py",
+            "start_column": 1,
+            "start_line": 12
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.python.lint.unused-import",
+          "severity": "medium",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "ruff",
+          "tool_rule_id": "F401",
+          "tool_version": "0.6.9"
+        },
+        {
+          "category": "maintainability",
+          "confidence": "high",
+          "explanation": "",
+          "fingerprint": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "message": "line too long (139 > 100)",
+          "metrics": {},
+          "primary_location": {
+            "end_column": 140,
+            "end_line": 88,
+            "label": "",
+            "path": "src/app/util.py",
+            "start_column": 101,
+            "start_line": 88
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.python.lint.line-too-long",
+          "severity": "low",
+          "snippet": "",
+          "suppression": {
+            "kind": "inline",
+            "reason": "noqa: E501",
+            "suppressed": true
+          },
+          "tool_name": "ruff",
+          "tool_rule_id": "E501",
+          "tool_version": "0.6.9"
+        }
+      ],
+      "max_score": 100.0,
+      "raw_output": "",
+      "required": true,
+      "schema_version": "ici.result/v3",
+      "score": 0.0,
+      "status": "FAIL",
+      "summary": "2 Violations Found",
+      "targets": [],
+      "tool_evidence": []
+    },
+    {
+      "duration": 31.0,
+      "engine_name": "test",
+      "evidence": "MEASURED",
+      "extra": {},
+      "findings": [],
+      "max_score": 5.0,
+      "raw_output": "",
+      "required": true,
+      "schema_version": "ici.result/v3",
+      "score": 4.12,
+      "status": "PASS",
+      "summary": "120/120 Tests Passed",
+      "targets": [],
+      "tool_evidence": []
+    },
+    {
+      "duration": 0.0,
+      "engine_name": "compile_db",
+      "evidence": "NOT_APPLICABLE",
+      "extra": {},
+      "findings": [],
+      "max_score": null,
+      "raw_output": "",
+      "required": false,
+      "schema_version": "ici.result/v3",
+      "score": null,
+      "status": "SKIP",
+      "summary": "No production C/C++ translation units are in scope.",
+      "targets": [],
+      "tool_evidence": []
+    }
+  ],
+  "schema_version": "ici.result/v3",
+  "skipped_count": 1,
+  "suite_status": "FAIL",
+  "tem_score": 4.12,
+  "total_count": 13,
+  "warned_count": 2
+}

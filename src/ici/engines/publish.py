@@ -201,19 +201,48 @@ def _footer_line(mode: str, remote_path: str, run_url: str | None) -> str:
     return "<br/>".join(parts)
 
 
+# The result schemas this build can read. A document announcing anything else
+# — an older v1, a newer v4, or an ``ici.next.run`` whose schema_version is an
+# integer — is refused rather than parsed on a best-effort basis.
+_READABLE_RESULT_SCHEMAS = frozenset({"ici.result/v2", "ici.result/v3"})
+
+
 def load_suite_from_json(json_path: Path) -> VerificationSuiteResult | None:
-    """Reconstruct a lightweight suite from a v2/v3 report file."""
+    """Reconstruct a lightweight suite from a v2/v3 report file.
+
+    Returns None when the document is not one this build can read. That
+    distinction used to be missing, and the consequences were not cosmetic: the
+    summary this feeds is the sticky PR comment, so a report that could not be
+    understood was rendered as an opinion about the code.
+
+    Three things are refused rather than absorbed, each of which previously
+    produced a quieter and more favourable answer than the report contained:
+
+    - a ``schema_version`` this build does not know. A genuine FAIL from a newer
+      producer used to arrive with statuses that no longer parsed, and came out
+      the other side as WARN with zero engines.
+    - a ``suite_status`` that does not parse. It used to default to WARN, which
+      states a verdict on a document whose verdict could not be read.
+    - an engine entry that does not parse. Those used to be skipped one by one,
+      so a report could lose every engine and still be summarised.
+
+    None is already a state the caller handles — it is what a missing report
+    file produces — and it renders as "no detail" rather than as a passing run.
+    """
+
     try:
         payload = json.loads(Path(json_path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
         return None
+    if payload.get("schema_version") not in _READABLE_RESULT_SCHEMAS:
+        return None
 
     results = []
     for item in payload["results"]:
         if not isinstance(item, dict):
-            continue
+            return None
         try:
             results.append(
                 EngineResult(
@@ -226,13 +255,13 @@ def load_suite_from_json(json_path: Path) -> VerificationSuiteResult | None:
                 )
             )
         except (ValueError, TypeError):
-            continue
+            return None
 
     suite_status_raw = str(payload.get("suite_status", "WARN"))
     try:
         suite_status = EngineStatus(suite_status_raw)
     except ValueError:
-        suite_status = EngineStatus.WARN
+        return None
 
     tem = payload.get("tem_score")
     max_tem = payload.get("max_tem_score", 5.0)

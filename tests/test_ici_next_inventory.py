@@ -43,6 +43,7 @@ EXPECTED_DOCUMENTS = (
     "spec-04-results-integration.md",
     "spec-05-verification-transition.md",
     "requirements-traceability.md",
+    "compatibility-v3-next.md",
     "inventory/current-engines.md",
     "inventory/execution-flow.md",
     "inventory/baseline-measurements.md",
