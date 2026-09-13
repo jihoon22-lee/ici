@@ -46,6 +46,7 @@ EXPECTED_DOCUMENTS = (
     "compatibility-v3-next.md",
     "corpus-register.md",
     "quality-zoo-ownership.md",
+    "bundle-reproducibility.md",
     "inventory/current-engines.md",
     "inventory/execution-flow.md",
     "inventory/baseline-measurements.md",
