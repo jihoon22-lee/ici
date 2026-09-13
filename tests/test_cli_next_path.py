@@ -172,3 +172,46 @@ def test_the_stable_commands_are_untouched() -> None:
 
 def test_next_is_its_own_namespace_and_not_a_verify_flag() -> None:
     assert runner.invoke(app, ["verify", "--next"]).exit_code != 0
+
+
+# --- which ruff, and from where -------------------------------------------
+
+
+def test_from_a_bundle_the_tool_is_the_bundles_or_nothing(tmp_path, monkeypatch) -> None:
+    # #204 item 7. Falling back to PATH here would mean a bundle missing its
+    # ruff quietly linted with whatever the host had, and the report would not
+    # say so.
+    from ici.cli.next_path import _locate
+
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    monkeypatch.setenv("ICI_BUNDLE_ROOT", str(bundle))
+    monkeypatch.setattr("ici.cli.next_path.shutil.which", lambda _: "/usr/bin/ruff")
+
+    assert _locate("ruff") is None, "a bundle without the tool fell through to the host"
+
+
+def test_from_a_bundle_the_bundled_tool_is_found_where_the_build_puts_it(
+    tmp_path, monkeypatch
+) -> None:
+    # The first version looked in bin/ while the build writes to
+    # tools/python-static/, so inside a real bundle it found nothing.
+    from ici.cli.next_path import BUNDLED_TOOLS, _locate
+
+    bundle = tmp_path / "bundle"
+    shipped = bundle / BUNDLED_TOOLS / "ruff"
+    shipped.parent.mkdir(parents=True)
+    shipped.write_text("#!/bin/sh\n", encoding="utf-8")
+    shipped.chmod(0o755)
+    monkeypatch.setenv("ICI_BUNDLE_ROOT", str(bundle))
+
+    assert _locate("ruff") == str(shipped)
+
+
+def test_from_a_source_checkout_path_is_the_honest_answer(monkeypatch) -> None:
+    from ici.cli.next_path import _locate
+
+    monkeypatch.delenv("ICI_BUNDLE_ROOT", raising=False)
+    monkeypatch.setattr("ici.cli.next_path.shutil.which", lambda _: "/usr/bin/ruff")
+
+    assert _locate("ruff") == "/usr/bin/ruff"

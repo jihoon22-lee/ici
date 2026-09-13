@@ -27,16 +27,64 @@ SMOKE = ROOT / "scripts" / "bundle" / "smoke.sh"
 sys.path.insert(0, str(ROOT / "scripts" / "bundle"))
 from summarize_smoke import render  # noqa: E402
 
-# Answers the four commands runs_here asks for, and nothing else.
+# Answers the four commands runs_here asks for, plus the three the next-path
+# case walks through, and nothing else.
+#
+# Faking `next` is not a claim that the next path works: a stub proving itself
+# would be worthless. It stands in for ici so the case's own shell logic — does
+# it notice a page that reaches outside, does it refuse to call an unshipped
+# analyzer a pass — can be exercised on any host. Whether the real next path
+# runs from a real bundle is the bundle-smoke workflow's answer, not this file's.
 GOOD_STUB = """#!/usr/bin/env bash
 case "${1-}" in
   --version|-v) echo "ici 0.0.0-stub" ;;
   --help)       echo "Usage: ici [OPTIONS] COMMAND [ARGS]..." ;;
   doctor)       echo "Infra Root   Resolved   $PWD" ;;
   line)         echo "Total Volume: 1 Lines" ;;
+  next)
+    case "${2-}" in
+      plan)   echo "1 check planned" ;;
+      verify) mkdir -p .ici/next
+              echo '{"schema": "stub"}' > .ici/next/result.json
+              echo "PASS: 0 finding(s)" ;;
+      report) mkdir -p .ici/next
+              echo '<!doctype html><style>p{color:#111}</style><p>ok</p>' \
+                > .ici/next/result.html
+              echo "wrote .ici/next/result.html" ;;
+      *)      echo "unknown: ${2-}" >&2; exit 2 ;;
+    esac ;;
   *)            echo "unknown command: ${1-}" >&2; exit 2 ;;
 esac
 """
+
+
+def _arm(subcommand: str) -> str:
+    """The `next <subcommand>) ... ;;` arm of GOOD_STUB, verbatim.
+
+    Sliced out rather than repeated, because a copy that drifts from the stub by
+    one space silently substitutes nothing and hands a negative test the good
+    stub — which then passes while measuring the wrong bundle.
+    """
+
+    start = GOOD_STUB.index(f"      {subcommand})")
+    return GOOD_STUB[start : GOOD_STUB.index(";;", start) + 2]
+
+
+#: The three `next` arms of GOOD_STUB, each replaceable to break one of them.
+NEXT_PLAN = _arm("plan")
+NEXT_VERIFY = _arm("verify")
+NEXT_REPORT = _arm("report")
+
+
+def _replace(old: str, new: str, stub: str = GOOD_STUB) -> str:
+    """Swap one arm of a stub, refusing a pattern that no longer matches.
+
+    A substitution that quietly matches nothing leaves the good stub behind, and
+    a negative test handed the good stub passes for the wrong reason.
+    """
+
+    assert old in stub, f"stub no longer contains:\n{old}"
+    return stub.replace(old, new)
 
 
 def _coloured(stub: str, program: str = "ici") -> str:
@@ -82,6 +130,11 @@ def _cases(report: Path) -> dict[str, str]:
     return {case["case"]: case["status"] for case in payload["cases"]}
 
 
+def _detail(report: Path, case: str) -> str:
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    return next(entry["detail"] for entry in payload["cases"] if entry["case"] == case)
+
+
 @pytest.fixture
 def report(tmp_path: Path) -> Path:
     return tmp_path / "smoke.json"
@@ -114,6 +167,7 @@ class TestItPassesAWorkingBundle:
             "no-writes",
             "no-installs",
             "side-by-side",
+            "next-path",
         }
 
     def test_the_report_is_a_schema_tagged_document(
@@ -213,6 +267,73 @@ class TestItNoticesABrokenBundle:
             tmp_path / "bundle", stub=GOOD_STUB.replace("ici 0.0.0-stub", "0.0.0")
         )
         result = _run(bundle, tmp_path / "work", report)
+        assert result.returncode == 1
+
+
+class TestTheNextPathCaseNoticesItsOwnDefects:
+    """#206 item 6: what the end-to-end case would let through.
+
+    Every assertion here is that some plausible bundle defect comes back as
+    something other than PASS. The stub's own `next` is a fake, so a passing
+    run proves nothing about the next path — these prove the case is not a
+    formality that reports PASS whatever it is handed.
+    """
+
+    def test_a_bundle_that_shipped_no_analyzer_is_blocked_not_passed(
+        self, tmp_path: Path, report: Path
+    ) -> None:
+        # The whole reason this is a three-way case. `next verify` exits 3 when
+        # a required check could not run, and a bundle missing its analyzer must
+        # not read the same as a bundle that linted cleanly.
+        stub = _replace(
+            NEXT_VERIFY,
+            # Saving the result before exiting, the way the real command does:
+            # a stub that skipped that would make the case fail for the wrong
+            # reason and this test pass without proving anything.
+            """      verify) mkdir -p .ici/next
+              echo '{"schema": "stub"}' > .ici/next/result.json
+              echo "INCOMPLETE: 0 finding(s)"
+              exit 3 ;;""",
+        )
+        bundle = _make_bundle(tmp_path / "bundle", stub=stub)
+        result = _run(bundle, tmp_path / "work", report)
+        assert _cases(report)["next-path"] == "BLOCKED", result.stdout
+        assert result.returncode == 0, result.stdout
+
+    def test_a_report_that_reaches_outside_fails(self, tmp_path: Path, report: Path) -> None:
+        # An offline report that fetches a stylesheet renders differently on the
+        # machine it was made for — and looks perfect on the machine that built it.
+        stub = _replace(
+            NEXT_REPORT,
+            """      report) mkdir -p .ici/next
+              printf '<!doctype html><link href=\"https://cdn.example.com/x.css\">\\n' \\
+                > .ici/next/result.html ;;""",
+        )
+        bundle = _make_bundle(tmp_path / "bundle", stub=stub)
+        result = _run(bundle, tmp_path / "work", report)
+        assert _cases(report)["next-path"] == "FAIL", result.stdout
+        assert result.returncode == 1
+        assert "cdn.example.com" in _detail(report, "next-path")
+
+    def test_a_plan_that_writes_into_the_project_fails(self, tmp_path: Path, report: Path) -> None:
+        # #206 item 3: planning reads the project, it does not build in it.
+        stub = _replace(
+            NEXT_PLAN,
+            '      plan)   mkdir -p .venv; : > .venv/pyvenv.cfg; echo "1 check planned" ;;',
+        )
+        bundle = _make_bundle(tmp_path / "bundle", stub=stub)
+        result = _run(bundle, tmp_path / "work", report)
+        assert _cases(report)["next-path"] == "FAIL", result.stdout
+        assert result.returncode == 1
+
+    def test_a_report_command_that_writes_no_page_fails(self, tmp_path: Path, report: Path) -> None:
+        # Exit 0 is not the artifact. `ici next report` succeeding while the page
+        # it promised is absent is exactly the reading this milestone keeps
+        # finding: a command that did not do its job and said nothing about it.
+        stub = _replace(NEXT_REPORT, '      report) echo "wrote nothing" ;;')
+        bundle = _make_bundle(tmp_path / "bundle", stub=stub)
+        result = _run(bundle, tmp_path / "work", report)
+        assert _cases(report)["next-path"] == "FAIL", result.stdout
         assert result.returncode == 1
 
 

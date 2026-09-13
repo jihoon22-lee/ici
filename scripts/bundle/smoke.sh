@@ -248,6 +248,81 @@ else
   bad side-by-side "${detail:-second install failed} (first: $FIRST_ROOT, second: $SECOND_ROOT)"
 fi
 
+
+say "11. the next path, end to end from the installed bundle"
+# #206 item 6. init -> config -> verify -> report, run from the bundle, against
+# a project whose .venv never learns about ici or ruff.
+#
+# Its own case rather than a line in runs_here, because the interesting outcome
+# is three-way. A bundle that shipped no ruff reports INCOMPLETE with exit 3,
+# which is the new path working correctly and is *not* a pass: folding it into
+# a boolean would let a bundle missing its analyzer look like a bundle that
+# linted cleanly, which is the failure this whole series is about.
+NEXT="$WORK/next-project"
+rm -rf "$NEXT"; mkdir -p "$NEXT/src"
+printf 'value = 1\n' > "$NEXT/src/module.py"
+printf '[lint]\nselect = ["F"]\n' > "$NEXT/ruff.toml"
+cat > "$NEXT/ici.toml" <<'NEXTCFG'
+schema_version = 1
+
+[workspace]
+name = "smoke"
+profile = "standard"
+
+[[components]]
+id = "smoke"
+root = "."
+languages = ["python"]
+NEXTCFG
+
+next_detail=""
+next_status=""
+before="$(find "$NEXT" -type f | LC_ALL=C sort)"
+plan_out="$(cd "$NEXT" && "$MOVED/bin/ici" next plan 2>&1 | plain)"; plan_rc=$?
+after="$(find "$NEXT" -type f | LC_ALL=C sort)"
+
+if [ "$plan_rc" -ne 0 ]; then
+  next_status=FAIL; next_detail="next plan exited $plan_rc: $(first_line "$plan_out")"
+elif [ "$before" != "$after" ]; then
+  # #206: init/plan은 build/source/install을 호출하지 않는다.
+  next_status=FAIL; next_detail="next plan wrote into the project"
+else
+  verify_out="$(cd "$NEXT" && "$MOVED/bin/ici" next verify 2>&1 | plain)"; verify_rc=$?
+  case "$verify_rc" in
+    0|1)
+      report_out="$(cd "$NEXT" && "$MOVED/bin/ici" next report 2>&1 | plain)"; report_rc=$?
+      page="$NEXT/.ici/next/result.html"
+      if [ "$report_rc" -ne 0 ]; then
+        next_status=FAIL; next_detail="next report exited $report_rc: $(first_line "$report_out")"
+      elif [ ! -s "$NEXT/.ici/next/result.json" ]; then
+        next_status=FAIL; next_detail="next verify saved no result"
+      elif [ ! -s "$page" ]; then
+        next_status=FAIL; next_detail="next report wrote no page"
+      elif grep -qE '(^|[^a-z])[a-z][a-z0-9+.-]*://|"//' "$page"; then
+        # #206: 외부 URL이 없다. An offline report that fetches anything is a
+        # report that renders differently on the machine it was made for.
+        next_status=FAIL; next_detail="the report reaches outside: $(grep -oE '[a-z]+://[^\"'"'"' ]+' "$page" | head -1)"
+      else
+        next_status=PASS
+        next_detail="plan/verify/report ran from the bundle (verify exit $verify_rc), page is self-contained"
+      fi
+      ;;
+    3)
+      next_status=BLOCKED
+      next_detail="next verify reported INCOMPLETE (exit 3): $(first_line "$verify_out")"
+      ;;
+    *)
+      next_status=FAIL; next_detail="next verify exited $verify_rc: $(first_line "$verify_out")"
+      ;;
+  esac
+fi
+
+case "$next_status" in
+  PASS)    ok next-path "$next_detail" ;;
+  BLOCKED) skip next-path "$next_detail" ;;
+  *)       bad next-path "$next_detail" ;;
+esac
+
 printf '\n\033[1m== summary ==\033[0m\n'
 printf '  PASS %d  FAIL %d  BLOCKED %d\n' "$PASS" "$FAIL" "$BLOCK"
 if [ -n "$JSON" ]; then
