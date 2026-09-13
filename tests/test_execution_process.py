@@ -244,3 +244,53 @@ class TestAnOutcomeReadsAsWhatHappened:
     def test_an_unfinished_run_reports_the_reason(self) -> None:
         rendered = str(run_task(_spec("import time; time.sleep(30)", timeout=0.5)))
         assert "timed-out" in rendered and "0.5" in rendered
+
+
+class TestALogSaysWhereItWasCut:
+    """#205 item 2's other half: the bound on the log is part of the log."""
+
+    def test_an_untruncated_log_is_exactly_what_the_process_said(self) -> None:
+        outcome = run_task(_spec("import sys; print('out'); print('err', file=sys.stderr)"))
+
+        assert not outcome.truncated
+        assert outcome.log == outcome.stdout + outcome.stderr
+
+    def test_a_truncated_log_says_so_where_a_person_will_see_it(self) -> None:
+        # A truncated log that simply stops reads like a tool that simply
+        # stopped, and the person scrolling to the bottom has no way to tell
+        # the difference.
+        outcome = run_task(_spec("print('x' * 5000)", output_limit=50))
+
+        assert outcome.truncated
+        assert outcome.log.rstrip().endswith("never read]")
+        assert "50 characters" in outcome.log
+
+    def test_the_truncation_survives_being_reported_as_something_else(self) -> None:
+        # A run can only be given one reason, and a run that both flooded its
+        # pipe and ran out of time is reported as a timeout. Without a fact of
+        # its own the truncation would disappear from the log entirely.
+        outcome = run_task(
+            _spec(
+                "import sys, time\n"
+                "sys.stdout.write('x' * 100000)\n"
+                "sys.stdout.flush()\n"
+                "time.sleep(30)\n",
+                timeout=1.0,
+                output_limit=100,
+            )
+        )
+
+        assert outcome.outcome is Outcome.TIMED_OUT
+        assert outcome.truncated, "the overflow was forgotten once a reason was chosen"
+        assert "never read]" in outcome.log
+
+    def test_each_stream_is_bounded_separately(self) -> None:
+        outcome = run_task(
+            _spec(
+                "import sys\nsys.stdout.write('o' * 5000)\nsys.stderr.write('e' * 5000)\n",
+                output_limit=100,
+            )
+        )
+
+        assert len(outcome.stdout) <= 100
+        assert len(outcome.stderr) <= 100
