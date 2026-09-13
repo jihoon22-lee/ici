@@ -7,6 +7,48 @@
 
 ## [Unreleased]
 
+### 추가 — bundle 정규화: 동일 입력이 동일 바이트를 낸다 (WP04 PR A, [#202](https://github.com/jihoon22-lee/ici/issues/202))
+
+**기존 배포 경로 변경 없음.** `dist/ici.pyz`와 `scripts/build-pyz.sh`는 그대로입니다.
+
+WP01 spike는 standalone bundle이 **돈다**는 것을 증명했지 같은 bundle을 **두 번** 만들 수
+있다는 것은 증명하지 않았습니다. 동일 입력 두 빌드를 재니 **1040개 파일**이 달랐습니다.
+
+```
+정규화 전 차이: 1040건
+정규화 후 차이:    0건
+```
+
+원인은 이슈가 이름 댄 두 가지(timestamp, build path)와 정확히 일치했고, digest에서 가리는
+대신 원인에서 제거했습니다. 네 단계 모두 측정이 유도했습니다.
+
+1. **`.pyc` mtime 기반 무효화 (1033건)** — `unchecked-hash`로 재컴파일. `checked-hash`가
+   아닌 이유는 bundle이 불변이라 import마다 소스를 다시 해싱할 이유가 없기 때문입니다.
+   미리 컴파일하는 건 재현성 너머의 이유도 있습니다 — **WP01이 read-only 마운트에서 도는 것을
+   확인했는데 거기서는 없는 `.pyc`를 쓸 수 없습니다.**
+2. **`co_filename` (같은 1033건)** — 무효화만으로는 부족했습니다. 헤더가 일치한 뒤에도 본문이
+   달랐는데, **모든 code object가 컴파일된 절대 경로를 담기 때문**입니다. 두 빌드 경로 길이가
+   같아 **파일 크기까지 같았고** 바이트 비교로만 보였습니다. 빌드 경로는 평문으로 보이는
+   스크립트 3개가 아니라 **1000여 개 `.pyc` 전부**에 박혀 있었습니다.
+3. **강제 재컴파일 (stdlib 41건)** — `__pycache__`를 지우고 번들 인터프리터로 compileall을
+   돌리면 그 인터프리터가 기동하며 `argparse`·`enum` 등을 import해 mtime 기반 `.pyc`를 새로
+   쓰고, compileall은 그걸 최신으로 보고 건너뜁니다. **정규화가 스스로를 무효화했습니다.**
+4. **RECORD 정리 (3건)** — `app/vendor/bin/*`를 지우자 RECORD가 **존재하지 않는 파일의 해시**를
+   가리키게 됐습니다. 재현성만의 문제가 아니라, 인수 기준이 요구하는 "배포 체크섬이 배포 파일과
+   일치"에 걸립니다 — 아무도 검증할 수 없는 체크섬이기 때문입니다.
+
+- **`app/vendor/bin/` 제거 근거를 확인했습니다**(추측하지 않고): 런처가 그 디렉터리를 읽지
+  않고, 지운 뒤 `--version`·`doctor`가 정상 동작하며, `verify`가 쓰는 ruff는
+  `tools/python-static/`에 있습니다.
+- **라이선스 간극을 메웠습니다.** spike는 CPython LICENSE 하나만 넣었고(실패도 무시),
+  **모든 bundled 의존성이 라이선스 없이 배포되고 있었습니다.** 이제 각 `.dist-info`에서
+  `LICENSE`/`LICENCE`/`COPYING`/`NOTICE`를 전부 수집합니다 — 실측 13개. `packaging`처럼
+  여러 라이선스를 싣는 패키지도 전부 가져옵니다.
+
+정규화된 bundle은 정상 동작합니다: `ici --version` → `ici 0.11.0`, `doctor --brief` caps PASS,
+번들의 `ruff 0.15.8` 사용.
+
+
 ### 추가 — corpus 위생 검사와 Quality Zoo 소유 경계 (WP03, [#201](https://github.com/jihoon22-lee/ici/issues/201))
 
 **동작 변경 없음.** `tests/`와 문서만 추가됩니다.
