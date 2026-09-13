@@ -162,11 +162,54 @@ task 자신의 timeout 너머에 **한 겹 더 마감**을 둔다. timeout 처�
 **"답했다"고 말하면서 뒤에 무엇을 남겼는지는 말하지 않은 것**이고, 이 시리즈가 계속
 다루는 것과 같은 종류다.
 
+## 첫 provider: type 엔진 (작업 5, 나머지)
+
+경계는 probe 때와 같다 — **tool 선택은 resolver, 실행은 executor.** 옮긴 이유는 `_run_mypy`
+안에 있던 것이 **`Outcome`과 `ExitContract`를 손으로 풀어 쓴 것**이었기 때문이다.
+
+```
+timed_out          -> 통과 아님
+truncated          -> 통과 아님
+returncode < 0     -> 통과 아님
+returncode >= 2    -> 도구가 고장
+returncode == 1    -> findings
+returncode == 0    -> 성공
+```
+
+도구를 돌리는 **모든 엔진이 이 판단을 필요로 하고**, 각자 쓰는 엔진은 **각자 한 가지를
+틀릴 수 있다.** 그래서 분류는 한 곳에 있고 엔진은 그걸 읽는다.
+
+`mypy`의 exit 1은 **타입 오류를 찾았다는 뜻이고 도구는 정상 동작한 것**이다. 그 계약을
+`_MYPY_CONTRACT = ExitContract(success=(0,), findings=(1,))`로 **한 번 적는다.**
+
+`_DID_NOT_RUN`은 `Outcome` **전체를 키로** 갖는다. 나중에 `Outcome`에 이유가 추가되면 여기서
+걸리지, **다른 것에 대한 메시지로 흘러가지 않는다.**
+
+### 환경은 명시로 바뀌었지만 내용은 그대로다
+
+`environment=dict(os.environ)` — `run_process`가 기본으로 주던 것과 **정확히 같다.** mypy가
+보는 것은 아무것도 바뀌지 않았다. 바뀐 것은 그 의존이 **호출 지점에 적혀 있다는 것**이고,
+좁히자는 결정을 할 때 **찾아다니지 않아도 된다.**
+
+### 바뀐 것 하나: 증상이 아니라 원인
+
+옛 코드는 truncation을 signal보다 **먼저** 봤다. 둘 다인 실행에서 옛 코드는
+*"output was truncated"*, 새 코드는 *"terminated before producing a result"*라고 말한다.
+둘 다 ERROR·NOT_RUN이고, 새 쪽이 **원인을 말한다.** 이것이 유일한 관측 가능한 차이다.
+
+### 이관 전에 먼저 고정했다
+
+여섯 갈래가 **무엇을 결정하는지 테스트로 먼저 적고**, 그것이 옛 구현에서 통과하는 것을 확인한
+뒤에 배선을 바꿨다. 같은 단언이 새 구현에서도 통과한다. 실제 `ici type`은 이관 전후 모두
+**30 findings, 2 warnings**로 같다.
+
+테스트는 **두 이름을 모두 patch한다.** seam이 옮겨갔기 때문이다 — 옛 이름만 patch하면 새
+경로는 **진짜 mypy를 돌리면서 조용히 통과**한다.
+
 ## 아직 하지 않은 것
 
-|항목|어디서|
-|---|---|
-|첫 provider 경로를 공통 executor로 이관|작업 5의 나머지|
+나머지 엔진의 `run_process` 호출. 작업 5는 **첫 provider**를 요구하고, #205 위험 항목대로
+**caller별로** 옮긴다 — 회귀하면 이 adapter 연결만 되돌리면 된다.
 
 작업 4(output manifest·exclusive lock·원자적 publish, 실패/취소 결과의 cache 승격 거부)는
 [task-outputs.md](task-outputs.md)에 있다.
