@@ -72,6 +72,7 @@ def write_run_result(result: RunResult, path: Path) -> Path:
     handle, temporary = tempfile.mkstemp(
         dir=str(path.parent), prefix=f".{path.name}.", suffix=".partial"
     )
+    replaced = False
     try:
         with os.fdopen(handle, "w", encoding="utf-8") as stream:
             stream.write(text)
@@ -79,11 +80,15 @@ def write_run_result(result: RunResult, path: Path) -> Path:
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, path)
-    except BaseException:
-        # Includes KeyboardInterrupt: a cancelled write must not leave a
-        # ".partial" file behind that a later glob could mistake for a result.
-        Path(temporary).unlink(missing_ok=True)
-        raise
+        replaced = True
+    finally:
+        if not replaced:
+            # ``finally`` rather than ``except BaseException``: this has to run
+            # on a KeyboardInterrupt too, or a cancelled write leaves a
+            # ".partial" file behind that a later glob could mistake for a
+            # result. Catching BaseException would do the same but would also
+            # intercept the signal, which ici's own exception gate rejects.
+            Path(temporary).unlink(missing_ok=True)
     return path
 
 

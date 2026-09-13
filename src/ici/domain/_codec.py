@@ -66,7 +66,7 @@ def read_enum(value: object, enum_type: type, description: str) -> Any:
     """Convert to an enum member, naming the allowed values on failure."""
 
     try:
-        return enum_type(value)  # type: ignore[call-arg]
+        return enum_type(value)
     except ValueError as err:
         allowed = sorted(item.value for item in enum_type)  # type: ignore[attr-defined]
         raise SchemaError(f"{description} must be one of {allowed}, found {value!r}") from err

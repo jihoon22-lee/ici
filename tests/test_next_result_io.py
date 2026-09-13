@@ -113,6 +113,29 @@ class TestAtomicWrite:
         leftovers = [item.name for item in tmp_path.iterdir() if item.name != RESULT_FILENAME]
         assert leftovers == []
 
+    def test_an_interrupted_write_also_cleans_up(self, tmp_path, monkeypatch):
+        """Cancellation is the case that made the cleanup a ``finally``.
+
+        A KeyboardInterrupt is not an ``Exception``, so an ``except Exception``
+        handler would let the ".partial" file survive. Catching BaseException
+        would clean up but would also swallow the signal, which ici's own
+        exception gate rejects, so the cleanup runs from ``finally`` instead.
+        """
+
+        path = tmp_path / RESULT_FILENAME
+        write_run_result(make_result("run-original"), path)
+
+        def interrupt(*args: object, **kwargs: object) -> None:
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(os, "replace", interrupt)
+        with pytest.raises(KeyboardInterrupt):
+            write_run_result(make_result("run-replacement"), path)
+
+        assert read_run_result(path).run_id == "run-original"
+        leftovers = [item.name for item in tmp_path.iterdir() if item.name != RESULT_FILENAME]
+        assert leftovers == []
+
     def test_the_temporary_file_shares_the_destination_filesystem(self, tmp_path, monkeypatch):
         """os.replace is only atomic within one filesystem.
 
