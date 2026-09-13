@@ -26,6 +26,7 @@ from fixture_manifest import (
 from toolcontract import ToolBox
 
 CPP_FIXTURE_DIR = REPO_ROOT / "examples" / "cpp-fixtures"
+PYTHON_FIXTURE_DIR = REPO_ROOT / "examples" / "python-fixtures"
 NEXT_FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "ici-next"
 
 
@@ -38,6 +39,16 @@ class TestTheRegisterIsComplete:
             entry.path.name
             for entry in load_manifest().values()
             if entry.path.parent == CPP_FIXTURE_DIR
+        }
+
+        assert on_disk == registered
+
+    def test_every_python_fixture_directory_is_registered(self):
+        on_disk = {path.name for path in PYTHON_FIXTURE_DIR.iterdir() if path.is_dir()}
+        registered = {
+            entry.path.name
+            for entry in load_manifest().values()
+            if entry.path.parent == PYTHON_FIXTURE_DIR
         }
 
         assert on_disk == registered
@@ -69,12 +80,23 @@ class TestTheRegisterIsComplete:
         for entry in load_manifest().values():
             assert entry.expectation, entry.id
 
-    def test_the_control_fixture_is_marked_as_one(self):
-        """A clean counterpart is required alongside the defect seeds."""
+    def test_every_language_with_defect_seeds_has_a_control(self):
+        """#201 asks for a clean counterpart, not just defect seeds.
 
-        controls = [entry.id for entry in load_manifest().values() if entry.role == "control"]
+        Stated as the invariant rather than a list of ids: a language gaining
+        its first defect seed without a control should fail here, and adding a
+        control should not require editing this test.
+        """
 
-        assert controls == ["cpp/clean_baseline"]
+        entries = load_manifest().values()
+        languages = {
+            language for entry in entries if entry.role != "control" for language in entry.languages
+        }
+        controlled = {
+            language for entry in entries if entry.role == "control" for language in entry.languages
+        }
+
+        assert languages <= controlled, f"no control fixture for: {sorted(languages - controlled)}"
 
     def test_data_fixtures_declare_no_tool_requirements(self):
         """The real/mock split is only meaningful if 'data' really means no tools."""
