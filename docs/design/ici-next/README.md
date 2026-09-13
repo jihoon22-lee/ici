@@ -33,6 +33,7 @@
 |bundle이 동일 입력에 동일 바이트를 내는가|[bundle-reproducibility.md](bundle-reproducibility.md)|
 |런처가 환경을 어떻게 격리하고 보존하는가|[launcher-contract.md](launcher-contract.md)|
 |pyz와 bundle 중 무엇을 어떻게 설치·제거·복구하는가|[bundle-installation.md](bundle-installation.md)|
+|설정 값이 어디서 왔는지를 어떻게 보존하는가|[config-origin.md](config-origin.md)|
 |**현행 코드가 실제로 어떻게 동작하는가**|[inventory/](#현행-구현-측정-기록-wp00)|
 |**위험 가정을 실제로 시험한 결과**|[spikes/](#spike-측정-기록)|
 

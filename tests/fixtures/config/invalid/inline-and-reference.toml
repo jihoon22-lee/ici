@@ -1,0 +1,11 @@
+# kind: root
+# expect: components[0]: defined here and referenced by config at once
+schema_version = 1
+
+[workspace]
+
+[[components]]
+id = "tool-b"
+config = "python/tool-b/ici.toml"
+root = "python/tool-b"
+languages = ["python"]

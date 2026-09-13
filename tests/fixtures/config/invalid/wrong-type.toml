@@ -1,0 +1,10 @@
+# kind: root
+# expect: languages must be a list of strings, not str
+schema_version = 1
+
+[workspace]
+
+[[components]]
+id = "a"
+root = "."
+languages = "python"

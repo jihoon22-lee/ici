@@ -1,0 +1,12 @@
+# kind: root
+# expect: workspace.porfile: unknown key
+schema_version = 1
+
+[workspace]
+name = "product"
+porfile = "standard"
+
+[[components]]
+id = "a"
+root = "."
+languages = ["python"]

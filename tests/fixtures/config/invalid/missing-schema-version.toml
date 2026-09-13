@@ -1,0 +1,9 @@
+# kind: root
+# expect: schema_version: no schema_version
+[workspace]
+name = "product"
+
+[[components]]
+id = "a"
+root = "."
+languages = ["python"]

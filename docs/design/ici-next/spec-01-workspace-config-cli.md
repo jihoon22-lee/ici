@@ -147,9 +147,10 @@ test_paths = ["tests"]
 compile DB가 있으면 이를 읽는 경로를 우선 사용한다. 이 예시는 전체 test/build 명령을 생략한
 구조 예시다.
 
-이 두 예시는 [`tests/test_ici_next_inventory.py`](../../../tests/test_ici_next_inventory.py)가
-TOML로 파싱 가능한지 기계적으로 검증한다. **파싱 가능성만 검증하며, 필드 의미의 구현은
-[WP05 #203](https://github.com/jihoon22-lee/ici/issues/203)이 JSON Schema와 함께 확정한다.**
+이 두 예시는 [`tests/test_config_schema.py`](../../../tests/test_config_schema.py)가
+**실제 schema reader로** 검증한다 (WP05 PR A). 사용자 파일과 같은 경로를 통과하므로, 문서의
+예시와 구현이 어긋나면 테스트가 실패한다. 계층 합성·local overlay·`init`은 같은 WP의
+PR B/C에서 이어진다. → [config-origin.md](config-origin.md)
 
 ## 5. CLI 계약
 
@@ -213,8 +214,10 @@ Ruff/pytest/mypy/ty 설정의 자체 탐색·상속·cwd 의미를 provider별�
 
 ## 완료 조건
 
-- [ ] 모든 예시가 실제 parser/schema 테스트로 검증된다.
-      (현재: TOML 파싱 가능성만 검증됨. schema 검증은 WP05)
+- [x] 모든 예시가 실제 parser/schema 테스트로 검증된다.
+      (WP05 PR A. §4의 root/child 예시가 사용자 파일과 같은 reader를 통과한다 —
+      [`tests/test_config_schema.py`](../../../tests/test_config_schema.py)
+      `TestTheSpecExamplesPassTheRealSchema`)
 - [ ] precedence/origin/path/glob 규칙이 문서·구현·테스트에서 동일하다.
 - [ ] init/plan/doctor가 빌드·설치·source하지 않는 회귀 테스트가 있다.
 - [ ] legacy config migration과 user-facing 오류 코드/메시지 예시가 있다.

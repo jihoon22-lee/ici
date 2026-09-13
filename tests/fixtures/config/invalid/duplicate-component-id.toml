@@ -1,0 +1,15 @@
+# kind: root
+# expect: components[1].id: duplicate id shared
+schema_version = 1
+
+[workspace]
+
+[[components]]
+id = "shared"
+root = "a"
+languages = ["python"]
+
+[[components]]
+id = "shared"
+root = "b"
+languages = ["python"]

@@ -1,0 +1,10 @@
+# kind: root
+# expect: schema_version: schema_version 2 is not supported
+schema_version = 2
+
+[workspace]
+
+[[components]]
+id = "a"
+root = "."
+languages = ["python"]

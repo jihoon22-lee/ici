@@ -1,0 +1,13 @@
+# kind: component
+# The child file from SPEC-01 section 4. It does not name itself: the root that
+# registered it supplies the id.
+schema_version = 1
+
+[component]
+root = "."
+languages = ["python"]
+
+[python]
+executable = ".venv/bin/python"
+test_tools = "project"
+test_paths = ["tests"]
