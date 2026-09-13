@@ -66,41 +66,11 @@ fi
 cp "$PBS/lib/python3.13/LICENSE.txt" "$OUT/licenses/cpython-LICENSE.txt" 2>/dev/null || true
 
 # --- launcher -----------------------------------------------------------
-# The contract under test (SPEC-02 section 2): preserve the entry environment
-# FIRST, then isolate core. ICI_ENTRY_* carries the untouched values through to
-# child processes, so a project child can be handed what the user actually had
-# rather than what core needed.
-#
-# SSL_CERT_FILE / SSL_CERT_DIR are deliberately NOT cleared. This PBS build
-# links OpenSSL statically, and with those variables unset its cafile resolves
-# to None — so clearing them for "isolation" would silently remove the CA file
-# and break TLS against an internal server. Measured in probe-runtime.sh.
-cat > "$OUT/bin/ici" <<'LAUNCHER'
-#!/usr/bin/env bash
-set -euo pipefail
-BUNDLE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
-
-export ICI_ENTRY_PATH="${PATH-}"
-export ICI_ENTRY_PYTHONPATH="${PYTHONPATH-}"
-export ICI_ENTRY_PYTHONHOME="${PYTHONHOME-}"
-export ICI_ENTRY_VIRTUAL_ENV="${VIRTUAL_ENV-}"
-export ICI_ENTRY_LD_LIBRARY_PATH="${LD_LIBRARY_PATH-}"
-export ICI_BUNDLE_ROOT="$BUNDLE"
-
-# Core import isolation: -I ignores PYTHONPATH and the user site directory, so
-# an inherited project PYTHONPATH cannot shadow core's modules. The bundle path
-# is put on sys.path via -c rather than exported, so it is never inherited by
-# a project child process.
-unset PYTHONPATH PYTHONHOME VIRTUAL_ENV
-exec "$BUNDLE/runtime/python/bin/python3.13" -I -c '
-import sys, os
-root = os.environ["ICI_BUNDLE_ROOT"]
-sys.path.insert(0, os.path.join(root, "app"))
-sys.path.insert(1, os.path.join(root, "app", "vendor"))
-from ici.__main__ import app
-app()
-' "$@"
-LAUNCHER
+# Copied from scripts/bundle/launcher.sh rather than written here. The launcher
+# became a reviewable, testable file in WP04 (#202), and keeping a second copy in
+# this spike would let the two drift — which is exactly how the spike ended up
+# running bin/python3.13 while the assembler read bin/python3.
+cp "$REPO/scripts/bundle/launcher.sh" "$OUT/bin/ici"
 chmod +x "$OUT/bin/ici"
 
 # --- env probe ----------------------------------------------------------

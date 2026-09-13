@@ -47,6 +47,7 @@ EXPECTED_DOCUMENTS = (
     "corpus-register.md",
     "quality-zoo-ownership.md",
     "bundle-reproducibility.md",
+    "launcher-contract.md",
     "inventory/current-engines.md",
     "inventory/execution-flow.md",
     "inventory/baseline-measurements.md",

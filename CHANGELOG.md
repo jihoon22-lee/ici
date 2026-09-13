@@ -7,6 +7,32 @@
 
 ## [Unreleased]
 
+### 추가 — 런처를 테스트 가능한 파일로 분리하고 계약을 고정 (WP04 PR B, [#202](https://github.com/jihoon22-lee/ici/issues/202))
+
+**기존 배포 경로 변경 없음.**
+
+런처는 spike 빌드 스크립트 안 heredoc으로 묻혀 있어 **읽을 수도 테스트할 수도 없었습니다.**
+`scripts/bundle/launcher.sh` 한 파일로 분리하고 spike가 그것을 복사하게 했습니다.
+
+- **하드코딩된 런타임 버전을 고쳤습니다.** spike 런처는 `bin/python3.13`을, `assemble_bundle.py`는
+  `bin/python3`을 읽고 있었습니다. **둘이 갈라져 있어서** 런타임 버전이 오르면 런처만 깨집니다.
+  둘 다 `bin/python3`(심볼릭링크)을 쓰고, 테스트가 런처 본문에서 버전 한정 이름을 금지합니다.
+  런처를 두 벌 두면 갈라지는데, 이 불일치가 정확히 그렇게 생겼습니다.
+- **격리와 보존이 동시에 성립함을 고정했습니다.** import하면 raise하는 모듈을 담은
+  `PYTHONPATH`로 실행하면 core는 깨끗하게 뜨고(`PYTHONPATH` unset) `ICI_ENTRY_PYTHONPATH`는
+  원래 값을 담습니다. **Python 관련 3개만** 지우고 Qt·툴체인·`SSL_CERT_FILE`은 core까지
+  그대로 갑니다 — `SSL_CERT_FILE`은 WP01이 정적 OpenSSL 때문에 지우면 CA를 잃는다고 측정한
+  변수라, "격리"를 이유로 지웠다면 내부 서버 TLS가 조용히 깨졌을 것입니다.
+- **재배치**: 이동, 공백 포함 경로, 심볼릭링크 실행, 두 버전 병행을 전부 고정했습니다.
+  심볼릭링크는 `readlink -f` 덕분이고, 없으면 번들 root가 링크가 있는 디렉터리로 풀립니다.
+- **install directory에 쓰지 않음**(작업 5)을 고정했습니다. 이것을 사는 것은 **PR A의 사전
+  컴파일**입니다 — bytecode가 미리 없으면 첫 실행이 `__pycache__`를 install directory에 쓰고,
+  여기서는 무해하지만 **WP01이 측정한 read-only 마운트에서는 불가능합니다.** 테스트가 그 인과를
+  명시합니다.
+- 테스트는 **합성 번들**을 씁니다(런타임은 테스트를 돌리는 인터프리터). PBS 다운로드가 필요 없어
+  어디서도 skip되지 않습니다. 실제 런타임은 WP01 측정과 PR C의 bundle smoke가 맡습니다.
+
+
 ### 추가 — bundle 정규화: 동일 입력이 동일 바이트를 낸다 (WP04 PR A, [#202](https://github.com/jihoon22-lee/ici/issues/202))
 
 **기존 배포 경로 변경 없음.** `dist/ici.pyz`와 `scripts/build-pyz.sh`는 그대로입니다.
