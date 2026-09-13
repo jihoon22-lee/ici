@@ -7,6 +7,41 @@
 
 ## [Unreleased]
 
+### 추가 — Python 회귀 seed와, 그것이 드러낸 소스 탐색 간극 (WP03, [#201](https://github.com/jihoon22-lee/ici/issues/201))
+
+**동작 변경 없음.** `examples/python-fixtures/`와 `tests/`만 추가됩니다.
+
+- **`single_project`** — 정상 대조군. 여기서 발화하는 탐지기는 오탐을 얻은 것입니다.
+  `src/`가 실제로 탐색되는지도 함께 단언합니다 — 그렇지 않으면 "아무것도 보고되지 않음"이
+  아무것도 증명하지 못합니다.
+- **`multi_component`** — root + Python component 2개. 결함은 `beta`에만 있고 `alpha`는
+  fixture 내부 대조군입니다. 거기 붙는 finding은 두 번째 탐지가 아니라 **오귀속**입니다.
+
+**이 seed가 측정으로 드러낸 것**: `DEFAULT_SOURCE_DIRS`는
+`["src", "lib", "app", "packages", "python"]`이고 탐색이 **재귀적이지 않습니다**.
+`multi_component`는 소스를 `components/*/src/`에 두는데 `components`는 목록에 없습니다.
+같은 코드로 잰 대조입니다.
+
+```
+components/ 이름일 때 : 소스 디렉터리 0개 → 함수 0개 → complexity PASS
+packages/  로 바꾸면  : 소스 디렉터리 1개 → 함수 2개 → complexity WARN (beta의 classify() 18)
+설정으로 지정하면      : components 를 찾는다
+```
+
+**분석된 것이 0개일 때 결과가 PASS입니다.** 깨끗한 코드와 구분되지 않습니다.
+이 마일스톤이 반복해서 부딪치는 "미실행 ≠ 통과"가 이번에는 소스 탐색 수준에서 나타났습니다.
+
+**기록했을 뿐 승인한 것이 아닙니다.** "범위에 아무것도 없음"과 "잘못된 것이 없음"을 가르는
+scope 모델은 [#207](https://github.com/jihoon22-lee/ici/issues/207)의 몫이며(R05), 그것을
+corpus 변경 안에서 바꾸는 것은 scope 의미론을 재설계하는 일입니다. 그래서 seed는 **오늘 실제로
+일어나는 일**을 기대치에 적고 테스트가 그것을 고정합니다 — #207이 고치면 이 테스트가 변화를
+알립니다. 간극은 **기본값에 있지 메커니즘에 있지 않습니다**: 설정으로 지정하면 찾습니다.
+
+등록부 테스트도 함께 조였습니다. 대조군 검사를 하드코딩된 id 목록에서 **불변식**으로 바꿨고
+(결함 seed가 있는 언어에는 대조군이 있어야 한다), `examples/python-fixtures/`에도 디스크↔등록부
+양방향 대조를 겁니다.
+
+
 ### 추가 — ici가 도구를 실제로 어떻게 부르는지에 대한 계약 테스트 (WP03, [#201](https://github.com/jihoon22-lee/ici/issues/201))
 
 **동작 변경 없음.** `tests/`만 추가됩니다.

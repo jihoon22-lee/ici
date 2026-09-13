@@ -267,3 +267,36 @@ cost = "fast"
 provenance = "authored for ici against the ici.result/v3 schema"
 license = "same as repository"
 expectation = "the legacy reader converts it and names four structural limitations"
+
+# --------------------------------------------------------------------------
+# Python fixtures. Analysed by reading, so they need no toolchain.
+# --------------------------------------------------------------------------
+
+[[fixture]]
+id = "python/single_project"
+path = "examples/python-fixtures/single_project"
+kind = "data"
+languages = ["python"]
+requires = []
+cost = "fast"
+role = "control"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "src/ is discovered; every text engine reports PASS with no findings"
+exercised_by = ["tests/test_python_corpus.py"]
+
+# The pair that makes directory naming visible. The defect is in beta only, so
+# a finding attributed to alpha is a misattribution rather than a second
+# detection. Registered with the behaviour ici has today, not the one it should
+# have: see the expectation.
+[[fixture]]
+id = "python/multi_component"
+path = "examples/python-fixtures/multi_component"
+kind = "data"
+languages = ["python"]
+requires = []
+cost = "fast"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "components/ is not in DEFAULT_SOURCE_DIRS, so ici discovers zero source directories and every engine reports PASS over zero files; renaming the directory to packages/ finds beta's classify() at complexity 18"
+exercised_by = ["tests/test_python_corpus.py"]
