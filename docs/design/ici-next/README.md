@@ -29,6 +29,7 @@
 |요구사항 R01~R15이 어디로 연결되는가|[requirements-traceability.md](requirements-traceability.md)|
 |v3 리포트와 `ici.next.run`이 서로를 어떻게 읽는가|[compatibility-v3-next.md](compatibility-v3-next.md)|
 |회귀 corpus 등록부와 계약 harness|[corpus-register.md](corpus-register.md)|
+|Quality Zoo 의존을 무엇으로 대체하는가|[quality-zoo-ownership.md](quality-zoo-ownership.md)|
 |**현행 코드가 실제로 어떻게 동작하는가**|[inventory/](#현행-구현-측정-기록-wp00)|
 |**위험 가정을 실제로 시험한 결과**|[spikes/](#spike-측정-기록)|
 

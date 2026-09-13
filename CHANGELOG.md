@@ -7,6 +7,30 @@
 
 ## [Unreleased]
 
+### 추가 — corpus 위생 검사와 Quality Zoo 소유 경계 (WP03, [#201](https://github.com/jihoon22-lee/ici/issues/201))
+
+**동작 변경 없음.** `tests/`와 문서만 추가됩니다.
+
+- **`tests/test_corpus_hygiene.py`** — #201 인수 기준 "원문 사내 소스/환경/로그가 포함되지
+  않는다"를 **아무도 검사하지 않고 있었습니다.** 등록된 fixture 전체에서 절대 경로·사내 이름
+  (`nas_shared`·`ips-core-lib`·`*_INFRA_ROOT`)·호스트/IP·자격증명 모양을 찾습니다.
+  등록부는 fixture를 추가하라는 상시 초대장이고, fixture는 대개 **버그를 재현한 무언가를
+  복사해서** 만들어집니다 — 절대 홈 경로나 사내 호스트명이 커밋되는 경로가 정확히 그것입니다.
+- **패턴이 좁습니다.** 평범한 내용에 발화하는 검사는 일주일이면 꺼지므로, 네 패턴 모두 현행
+  corpus 19개 전체에 대해 **0건**임을 측정한 뒤 고정했습니다. 상대 경로, URL 안의 `/home/`,
+  버전 번호(`ruff 0.6.9`), 산문 속 "password"는 잡지 않습니다.
+- **검사가 실제로 잡는지 확인했습니다.** fixture에 네 종류 오염을 심자 네 패턴이 각각
+  실패했고, 복구 후 다시 통과했습니다. 패턴 자체를 검증하는 테스트도 함께 두어, 리팩터가
+  패턴을 무력화하면 조용해지는 대신 실패합니다.
+- **[`docs/design/ici-next/quality-zoo-ownership.md`](docs/design/ici-next/quality-zoo-ownership.md)** —
+  **전제를 정정했습니다.** 이슈는 "latest toy main을 필수 입력으로 쓰지 말 것"을 요구하는데,
+  워크플로는 이미 `toy_target_sha`를 필수 입력으로 받고 `main` 모드에서도 SHA를 확정해
+  검사합니다. **미충족인 것은 고정이 아니라 소유입니다.** provenance 쪽
+  (`candidate_merge_gate.py`)은 이미 ici 소유이고, 이전 대상은 `quality-zoo/manifest.json`
+  (무엇을 돌리고 무엇을 기대하는가)입니다. toy-projects는 이 세션 접근 범위 밖이라 그 내부는
+  **"미확인"**으로 남겼습니다 — 추정으로 채우지 않았습니다.
+
+
 ### 추가 — snapshot 비교 도구: 네 축이 서로를 대신하지 않는다 (WP03, [#201](https://github.com/jihoon22-lee/ici/issues/201))
 
 **기존 동작 변경 없음.** 새 모듈은 `src/ici/execution/snapshot.py`이고 기존 경로는 그대로입니다.
