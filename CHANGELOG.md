@@ -7,6 +7,52 @@
 
 ## [Unreleased]
 
+### 추가 — 제작된 bundle 자체를 재는 smoke와 설치 안내 (WP04 PR C, [#202](https://github.com/jihoon22-lee/ici/issues/202))
+
+**기존 배포 경로 변경 없음.** bundle은 여전히 candidate이고 stable tag/version을 바꾸지 않습니다.
+
+PR A와 B는 **합성 번들**에 대해 계약을 고정했습니다. `scripts/bundle/smoke.sh`는 같은 주장을
+**실제로 빌드된 artifact**에 대해 재고, 그 즉시 두 가지가 사실이 아니었음이 드러났습니다.
+
+- **빌드된 번들은 사전 컴파일돼 있지 않았습니다.** PR A가 `scripts/assemble_bundle.py`를
+  추가했지만 **아무도 그것을 호출하지 않았습니다.** 그래서 `app/ici`에는 bytecode가 하나도
+  없었고, 갓 빌드한 번들의 첫 실행이 install directory에 **149개 `.pyc`를 썼습니다.**
+  read-only 마운트에서 돌던 것은 CPython이 쓰기 실패를 조용히 넘겨줬기 때문이지, 쓸 것이
+  없어서가 아니었습니다. 빌드 스크립트가 이제 `normalize()`를 호출합니다 — PR B의 CHANGELOG가
+  이미 "PR A의 사전 컴파일이 이것을 산다"고 적었는데, 그 문장은 합성 번들에서만 참이었습니다.
+  같은 입력 두 빌드가 여전히 바이트 단위로 같다는 것도 확인했습니다(PR A의 재현성 주장이
+  이제 **실제 빌드 경로**에 대해 성립합니다).
+- **`--help`가 프로그램 이름을 `-c`라고 말했습니다.** `python -c`는 `argv[0]`을 `-c`로 두고
+  Click은 거기서 usage를 만듭니다. 그래서 번들은 모든 사용자에게 `-c verify`를 실행하라고
+  안내하고 있었습니다. 런처가 core를 import하기 **전에** `sys.argv[0]`을 설정합니다.
+- **smoke 자신의 첫 판이 두 군데 틀렸습니다.** `no-writes`는 앞선 케이스들이 이미 더럽힌
+  복사본을 재고 있어서, bytecode를 일부러 지운 번들에 대해서도 PASS를 냈습니다 — 이제 아무도
+  건드리지 않은 사본을 상대로 경로·mtime·크기 전수를 비교합니다. `no-installs`는 `env`의
+  인자 순서를 틀려(`env HOME=... -u VAR`은 `-u`를 프로그램으로 봅니다) **ici가 한 번도 실행되지
+  않은 채** "아무것도 설치되지 않았다"를 PASS로 냈습니다. 없음을 주장하는 두 케이스 모두
+  이제 실행이 성공했는지를 먼저 확인합니다. 각 가드는 고의로 깨뜨려 **실제로 실패하는 것을
+  확인**한 뒤에 넣었습니다.
+
+10개 케이스: 제자리·재배치·심볼릭링크·빈 HOME·read-only·오프라인·셋 동시·install directory
+무기록·패키지 미설치·두 버전 병행. 케이스마다 `--version`만이 아니라
+**version/help/doctor/분석 4개**를 돌립니다. 잴 수 없는 케이스는 PASS가 아니라 **BLOCKED**로
+보고하고, `ICI_SMOKE_STRICT=1`이면 실패입니다 — 조용히 건너뛰는 smoke는 lint가 한 번도 돌지
+않은 채 초록이던 C-6과 같은 고장입니다.
+
+- **오프라인 주장을 실측으로 바꿨습니다.** WP01 spike는 proxy 변수를 지우는 것까지만 할 수
+  있었고 스스로 "syscall을 안 했다는 증명은 아니다"라고 적어 뒀습니다. smoke는 **인터페이스가
+  하나도 없는 network namespace** 안에서 돌립니다.
+  `tests/test_offline_execution.py`가 두 방향에서 이를 고정합니다 — 트리 전체 정적 audit
+  (허용 목록은 사용자가 이름을 대서 부르는 `engines/publish.py` 하나)과, 실제 분석 실행 중
+  CPython audit hook이 `socket.connect`/`urllib.Request`를 한 번도 보지 못한다는 런타임 확인.
+- **CI**: `.github/workflows/bundle-smoke.yml`. `ci.yml`에 넣지 않은 것은 의도입니다 —
+  빌드가 160 MB 런타임을 내려받고, **candidate가 머지를 막는 게이트가 되면 안 되기** 때문입니다.
+- **문서**: [`bundle-installation.md`](docs/design/ici-next/bundle-installation.md) —
+  pyz와 bundle의 역할 구분, 설치·버전 선택·제거·복구, 그리고 **RHEL 실기 미확인**을 포함한
+  측정하지 못한 것 목록.
+- workflow purity 테스트가 하드코딩된 워크플로 목록 대신 `.github/workflows/*.yml` 전수를
+  봅니다. 목록은 다음 워크플로가 추가될 때까지만 맞습니다.
+
 ### 추가 — 런처를 테스트 가능한 파일로 분리하고 계약을 고정 (WP04 PR B, [#202](https://github.com/jihoon22-lee/ici/issues/202))
 
 **기존 배포 경로 변경 없음.**

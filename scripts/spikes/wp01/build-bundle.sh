@@ -169,6 +169,28 @@ print(json.dumps(report, indent=2, sort_keys=True))
 PROBE
 chmod +x "$OUT/bin/ici-env-probe"
 
+# --- normalisation ------------------------------------------------------
+# scripts/assemble_bundle.py exists since PR A but nothing called it, so every
+# bundle this script produced shipped app/ici with no bytecode at all. The first
+# run then wrote 149 .pyc files into the install directory — which the PR C smoke
+# caught, and which is why a read-only install worked only by CPython tolerating
+# a failed write. Precompiling here is what makes "the install directory is not
+# written to" true rather than merely untested.
+#
+# Run before the manifest so its tree digests describe the artifact as shipped.
+"$OUT/runtime/python/bin/python3" - "$REPO" "$OUT" <<'PYNORM'
+import sys
+from pathlib import Path
+
+repo, out = Path(sys.argv[1]), Path(sys.argv[2])
+sys.path.insert(0, str(repo / "scripts"))
+from assemble_bundle import normalize
+
+report = normalize(out, out / "runtime" / "python" / "bin" / "python3")
+print("normalised:", ", ".join(report.recompiled_roots),
+      "-", len(report.removed_scripts), "vendor script(s) removed")
+PYNORM
+
 # --- manifest -----------------------------------------------------------
 "$OUT/runtime/python/bin/python3.13" - "$OUT" "$PBS" "$REPO" <<'PYMANIFEST'
 import hashlib, json, os, platform, subprocess, sys
