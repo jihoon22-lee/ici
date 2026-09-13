@@ -24,6 +24,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import venv
 from pathlib import Path
 
@@ -302,3 +303,93 @@ class TestTheMeasurementThisPrExistsFor:
         )
         assert completed.returncode == 0, completed.stderr
         assert completed.stdout.strip() == sys.executable
+
+
+class TestTheProbeIsBoundedInFactAndNotOnlyInItsReport:
+    """#205 item 5. Two things the old probe path got wrong while looking right.
+
+    Both were invisible in the result. ``truncated`` was set and a tidy 1 KB
+    came back — after the whole flood had been read into memory. ``timed_out``
+    was set and the probe's own child was still running. A tool that "answers"
+    while leaving that behind has not told you what it did.
+    """
+
+    @pytest.mark.skipif(
+        not Path("/proc/self/status").exists(), reason="no /proc to read VmHWM from"
+    )
+    def test_a_flood_is_not_read_into_memory_before_it_is_trimmed(self) -> None:
+        # Measured in a child, and *not* with getrusage. ru_maxrss carries the
+        # forking parent's high-water mark across exec, so the first version of
+        # this test read pytest's size: it passed on its own and failed in the
+        # full suite, having measured the wrong process either way. VmHWM in
+        # /proc is the figure for this process alone.
+        flood = 200 * 1024 * 1024
+        chunk = 64 * 1024
+        source = str(Path(__file__).resolve().parents[1] / "src")
+        writer = f"import sys\nfor _ in range({flood // chunk}): sys.stdout.write('x' * {chunk})"
+        probe = (
+            "import sys\n"
+            f"sys.path.insert(0, {source!r})\n"
+            "def hwm():\n"
+            "    for line in open('/proc/self/status'):\n"
+            "        if line.startswith('VmHWM:'):\n"
+            "            return int(line.split()[1])\n"
+            "    raise SystemExit('no VmHWM')\n"
+            "from ici.toolchain.environment import EnvironmentSnapshot\n"
+            "from ici.toolchain.launch import run\n"
+            f"r = run([sys.executable, '-c', {writer!r}],\n"
+            "        environment=EnvironmentSnapshot({}), output_limit=1024)\n"
+            "print(len(r.output), int(r.truncated), hwm())\n"
+        )
+
+        done = subprocess.run(
+            [sys.executable, "-c", probe], capture_output=True, text=True, timeout=300
+        )
+        assert done.returncode == 0, done.stderr
+        length, truncated, peak_kib = (int(v) for v in done.stdout.split())
+
+        assert (length, truncated) == (1024, 1), "the probe stopped reporting the flood"
+        # A quarter of the flood is a wide margin around the ~13 MiB this takes:
+        # the old path peaked past the whole 200 MiB, having read all of it.
+        assert peak_kib * 1024 < flood // 4, (
+            f"peak resident memory was {peak_kib // 1024} MiB for a "
+            f"{flood // 1024 // 1024} MiB flood, so the output was read before it was trimmed"
+        )
+
+    @pytest.mark.skipif(os.name != "posix", reason="POSIX process groups")
+    def test_a_probe_that_times_out_does_not_leave_its_child_running(self) -> None:
+        result = run(
+            [
+                sys.executable,
+                "-c",
+                "import subprocess, sys, time\n"
+                "k = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(120)'])\n"
+                "print(k.pid, flush=True)\n"
+                "time.sleep(120)\n",
+            ],
+            environment=EnvironmentSnapshot({"PATH": "/usr/bin:/bin"}),
+            timeout=1.0,
+        )
+
+        assert result.timed_out
+        child = int(result.output.split()[0])
+        deadline = time.monotonic() + 30.0
+        while time.monotonic() < deadline:
+            try:
+                os.kill(child, 0)
+            except ProcessLookupError:
+                return
+            time.sleep(0.05)
+        pytest.fail(f"the probe's child {child} outlived the probe that timed out")
+
+    @pytest.mark.skipif(os.name != "posix", reason="POSIX process groups")
+    def test_a_probe_does_not_run_in_icis_own_process_group(self) -> None:
+        # The child being in our group is what made the leak reach us: a group
+        # cleanup could not touch it without taking ici down too.
+        result = run(
+            [sys.executable, "-c", "import os; print(os.getpgrp())"],
+            environment=EnvironmentSnapshot({"PATH": "/usr/bin:/bin"}),
+        )
+
+        assert result.usable
+        assert int(result.output.strip()) != os.getpgrp()
