@@ -7,6 +7,42 @@
 
 ## [Unreleased]
 
+### 추가 — 계층 합성과 두 가지 거절 (WP05 PR B, [#203](https://github.com/jihoon22-lee/ici/issues/203))
+
+**기존 배포 경로 동작 변경 없음.**
+
+PR A가 한 파일을 읽었다면, PR B는 여러 파일을 **출처를 잃지 않고** 합칩니다. 순서는 SPEC-01 §3
+그대로이고, `layers.py`의 **선언 순서가 곧 우선순위**입니다 — 따로 적어 둔 표와 코드가 어긋날
+자리를 만들지 않습니다. 합성된 값은 값·출처·**이긴 계층**을 같이 듭니다:
+`True from root.toml: checks.lint.required (root)`.
+
+- **파일을 어디에 썼는지는 의미를 바꾸지 않습니다.** *root-only와 child 분리 설정이 같은
+  effective config를 만든다*는 인수 기준을, **두 경로를 맞춰서가 아니라 경로를 하나로 두어**
+  만족시킵니다. component body는 어디에 쓰였든 PR A의 같은 reader가 읽고, 합성은 그것이 어느
+  파일에서 왔는지를 기록할 때 말고는 묻지 않습니다. child 쪽 glob 하나를 일부러 바꿔
+  **테스트가 실제로 실패하는 것을 확인**했습니다.
+- **component는 root의 `required`를 낮추지 못합니다.** 낮출 수 있으면 *"이 workspace는 lint를
+  필수로 한다"*가 **아무도 의지할 수 없는 문장**이 됩니다 — 확인하려면 모든 component 파일을
+  읽어야 합니다. **올리는 것은 허용합니다**(자기를 더 엄격하게 다루는 것은 정책 구멍이 아닙니다).
+  완화가 필요하면 **root가 이름과 사유를 대서 허가**합니다:
+  `[checks.lint.exemptions.gui] reason = "..."`. **사유는 필수**입니다 — 사유 없는 예외는
+  조용한 완화에 단계를 하나 더한 것일 뿐입니다.
+- **local overlay는 경로만 옮깁니다.** 검사·규칙·기준·제외를 바꾸려는 키는 **무시하지 않고
+  이름을 대서 거절**합니다(무시하면 쓴 사람은 적용됐다고 믿습니다). 이 금지가 이 파일이
+  존재하는 이유입니다 — 없으면 한 기계의 결과가 CI와 다르면서 **양쪽 다 초록**일 수 있고,
+  그 차이는 CI가 읽지 않는 파일에 있습니다. 와일드카드는 **키 한 칸**이지 임의 깊이가 아닙니다.
+- **policy digest는 표시 설정을 담지 않습니다.** checks와 component scope만 덮고, workspace
+  이름·profile 레이블·local overlay가 옮길 수 있는 경로는 **의도적으로 뺐습니다.** 빌드
+  디렉터리가 다른 두 기계는 같은 정책을 돌리고 있습니다 — digest가 다르다고 말하면 모든 로컬
+  차이가 정책 차이처럼 보입니다.
+- 단독 component 실행은 `ScopeKind.STANDALONE`으로 표시합니다. SPEC-01 §2가 단일 component
+  통과를 상위 workspace 통과로 쓰는 것을 금지하고, scope kind가 그걸 **호출자가 기억하는 대신**
+  결과 자체로 말합니다.
+
+합성은 **파일을 열지 않습니다** — child 문서를 인자로 받습니다. `--config`와 ancestor
+workspace 탐색은 PR C 또는 [#207](https://github.com/jihoon22-lee/ici/issues/207)이고,
+`Layer.CLI` 자리는 [#210](https://github.com/jihoon22-lee/ici/issues/210)을 위해 비워 두었습니다.
+
 ### 추가 — 설정 값이 어디서 왔는지 잃지 않는 schema (WP05 PR A, [#203](https://github.com/jihoon22-lee/ici/issues/203))
 
 **기존 배포 경로 동작 변경 없음.** 기존 로더는 한 줄도 바뀌지 않았고 새 schema는 아직

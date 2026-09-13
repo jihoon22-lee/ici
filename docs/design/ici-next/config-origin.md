@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-|상태|**구현 시작됨 (WP05 PR A).** schema v1 읽기와 출처 보존. 계층 합성은 PR B.|
-|근거 이슈|[WP05 #203](https://github.com/jihoon22-lee/ici/issues/203) 작업 1·4, [SPEC-01 #193](https://github.com/jihoon22-lee/ici/issues/193) §2~§3|
-|구현|[`src/ici/config/`](../../../src/ici/config) — `origin.py`, `paths.py`, `reader.py`, `documents.py`, `schema.py`|
-|검증|[`tests/test_config_schema.py`](../../../tests/test_config_schema.py), [`tests/fixtures/config/`](../../../tests/fixtures/config)|
+|상태|**구현 중 (WP05 PR A·B).** schema v1 읽기·출처 보존(PR A), 계층 합성·정책 보호(PR B). 탐색과 `init`은 PR C 이후.|
+|근거 이슈|[WP05 #203](https://github.com/jihoon22-lee/ici/issues/203) 작업 1·3·4, [SPEC-01 #193](https://github.com/jihoon22-lee/ici/issues/193) §2~§3|
+|구현|[`src/ici/config/`](../../../src/ici/config) — `origin.py`, `paths.py`, `reader.py`, `documents.py`, `schema.py`, `layers.py`, `composition.py`, `overlay.py`|
+|검증|[`tests/test_config_schema.py`](../../../tests/test_config_schema.py), [`tests/test_config_composition.py`](../../../tests/test_config_composition.py), [`tests/fixtures/config/`](../../../tests/fixtures/config)|
 
 ## 출발점: 품질 게이트가 조용히 뒤집힌다
 
@@ -99,16 +99,84 @@ SPEC-01 §4의 root/child 예시는 그동안 **TOML로 파싱되는지만** 검
 **다른 이유로** 실패하기 시작해도 계속 통과한다 — 검사가 사라진 줄 모르는 상태가 된다.
 이 WP가 존재하는 이유와 같은 고장이다.
 
+## 계층 합성 (PR B)
+
+순서는 SPEC-01 §3 그대로 defaults → root → component → local → CLI이고,
+[`layers.py`](../../../src/ici/config/layers.py)의 **선언 순서가 곧 우선순위**다.
+따로 적어 둔 우선순위 표와 코드가 어긋날 자리를 만들지 않는다.
+
+합성된 값은 `Decided[T]` — 값, 출처, **어느 계층이 이겼는지**를 같이 든다.
+
+```
+True from root.toml: checks.lint.required (root)
+```
+
+### 파일을 어디에 썼는지는 의미를 바꾸지 않는다
+
+인수 기준이 요구하는 것: *root-only와 child 분리 설정이 같은 effective config를 만든다.*
+
+**두 경로를 비교해서 맞추는 것이 아니라, 경로가 하나다.** component body는 어디에 쓰였든
+PR A의 같은 reader가 읽고, 합성은 그것이 어느 파일에서 왔는지를 **기록할 때 말고는 묻지 않는다.**
+테스트는 두 배치의 결과를 출처만 빼고 비교하고, child 파일 쪽 glob 하나를 일부러 바꿔
+**실제로 실패하는 것을 확인**했다.
+
+child 파일은 자기 이름을 모른다. id는 root의 reference 항목이 준다 — 그래서 component 파일이
+혼자 발견돼도 workspace로 승격되지 않는다(SPEC-01 §2).
+
+### 두 가지 거절
+
+|거절|왜|
+|---|---|
+|component가 root의 `required`를 **낮추는 것**|component가 낮출 수 있으면 *"이 workspace는 lint를 필수로 한다"*가 **아무도 의지할 수 없는 문장**이 된다. 확인하려면 모든 component 파일을 읽어야 한다|
+|local overlay가 **검사 내용을 바꾸는 것**|한 기계의 결과가 CI와 다르면서 **양쪽 다 초록**일 수 있고, 그 차이가 CI가 읽지 않는 파일에 있다|
+
+**올리는 것은 허용한다.** 자기를 root보다 엄격하게 다루겠다는 component는 정책 구멍이 아니다.
+
+완화가 정말 필요하면 **root가 이름과 사유를 대서 허가한다** (SPEC-01 §3):
+
+```toml
+[checks.lint]
+required = true
+
+[checks.lint.exemptions.gui]
+reason = "Qt moc output is not lintable; tracked in #123"
+```
+
+**사유는 필수다.** 사유 없는 예외는 조용한 완화에 단계를 하나 더한 것일 뿐이다.
+예외는 이름 댄 component에만 적용되고, 완화된 검사는 그 사유를 계속 들고 다닌다.
+
+### local overlay는 경로만 옮긴다
+
+허용 목록은 전부 경로이거나 실행 파일이다. 필드별 정책 판단이 아니라 **규칙 하나** —
+local overlay는 *무엇이 어디 있는지*를 조정하지 *무엇을 검사하는지*는 건드리지 않는다.
+
+목록 밖의 키는 **무시하지 않고 이름을 대서 거절한다.** 무시하면 쓴 사람은 적용됐다고 믿는다.
+와일드카드는 **키 한 칸**이지 임의 깊이가 아니다 — `builds.*.directory`는
+`builds.native.directory`를 허용하고 `builds.a.b.directory`를 허용하지 않는다.
+
+공식 CI는 overlay 없이 도는 것이 기본이다. 그건 호출자의 선택이라 이 모듈이 강제하지 않고
+문서로 남긴다.
+
+### policy digest는 표시 설정을 담지 않는다
+
+인수 기준: *개인 표시 설정은 품질 policy digest를 바꾸지 않는다.*
+
+digest는 **무엇이 검사되는지**만 덮는다 — checks와 component scope. workspace 이름, profile
+레이블, local overlay가 옮길 수 있는 모든 경로는 **의도적으로 뺐다.** 빌드 디렉터리가 다른 두
+기계는 **같은 정책을 돌리고 있다.** digest가 다르다고 말하면 모든 로컬 차이가 정책 차이처럼
+보인다.
+
+component를 root에 인라인으로 쓰든 child 파일로 쪼개든 digest는 같다.
+
 ## 아직 하지 않은 것
 
 |항목|어디서|
 |---|---|
-|root/child/local overlay 합성과 우선순위|PR B|
-|local overlay의 path allowlist·정책 완화 거부|PR B|
-|`--config`·ancestor workspace 탐색|PR B (파일시스템 경계는 [#207](https://github.com/jihoon22-lee/ici/issues/207))|
+|`--config`·ancestor workspace 탐색, VCS 경계, nested workspace, unregistered child|**PR C 또는 [#207](https://github.com/jihoon22-lee/ici/issues/207)**. 합성은 파일을 열지 않는다 — child 문서를 **인자로 받는다**|
+|CLI 계층(`--python`/`--component`/`--profile`)|[#210](https://github.com/jihoon22-lee/ici/issues/210). `Layer.CLI` 자리는 비워 두었다|
 |`ici init`·preview·템플릿|PR C|
 |XDG/`dev.toml`/`ICI_CONFIG` migration 보고서|PR C. **위 §1의 재현이 그 보고서의 첫 항목이다**|
-|기존 `ici.config` 로더 교체|WP27. 이 PR은 **옆에 두었을 뿐 건드리지 않았다**|
+|기존 `ici.config` 로더 교체|WP27. 이 PR들은 **옆에 두었을 뿐 건드리지 않았다**|
 
 `src/ici/config.py`는 `src/ici/config/__init__.py`가 됐다. 내용은 한 줄도 바뀌지 않았고
 18개 `from ici.config import ...`도 그대로다. 아키텍처 문서가 next 경로에 지정한 `config/`

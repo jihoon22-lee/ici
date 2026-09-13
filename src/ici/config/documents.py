@@ -26,6 +26,7 @@ __all__ = [
     "ComponentEntry",
     "ComponentReference",
     "CppSettings",
+    "Exemption",
     "PythonSettings",
     "RootDocument",
     "ToolSetting",
@@ -43,18 +44,41 @@ class WorkspaceSettings:
 
 
 @dataclass(frozen=True)
+class Exemption:
+    """A root's permission for one component to stop meeting a requirement.
+
+    The reason is mandatory. SPEC-01 section 3 lets a root relax a requirement
+    for a named component, and the whole value of that over letting components
+    relax it themselves is that the decision is written down somewhere its owner
+    reads — an exemption with no reason would be the silent relaxation with an
+    extra step.
+    """
+
+    component_id: str
+    reason: Sourced[str]
+    origin: Origin
+
+
+@dataclass(frozen=True)
 class CheckSetting:
     """``[checks.<id>]`` — whether a check runs, and whether it may fail.
 
-    ``required`` lives here rather than on the component because SPEC-01
-    section 3 gives the root sole ownership of it: a component may adjust a
-    default, never lower a root requirement.
+    A root owns ``required``. A component may carry the same table to adjust a
+    default for itself, but composition refuses to let it lower what the root
+    required (SPEC-01 section 3) unless the root granted it an exemption.
     """
 
     id: str
     enabled: Sourced[bool] | None
     required: Sourced[bool] | None
     origin: Origin
+    exemptions: tuple[Exemption, ...] = ()
+
+    def exemption_for(self, component_id: str) -> Exemption | None:
+        for exemption in self.exemptions:
+            if exemption.component_id == component_id:
+                return exemption
+        return None
 
 
 @dataclass(frozen=True)
@@ -125,6 +149,7 @@ class ComponentBody:
     python: PythonSettings | None
     cpp: CppSettings | None
     origin: Origin
+    checks: tuple[CheckSetting, ...] = ()
 
 
 @dataclass(frozen=True)
