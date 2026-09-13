@@ -142,6 +142,42 @@ harness만 있고 그것을 쓰는 테스트가 없으면 아무것도 검증되
 R01의 "셸 초기화 파일 source 금지"는 그동안 아키텍처 주장이었을 뿐 **실행 가능한 증명이
 없었다**. 이제 있다.
 
+## snapshot 비교: 네 축이 서로를 대신하지 않는다
+
+[`src/ici/execution/snapshot.py`](../../../src/ici/execution/snapshot.py).
+이슈가 요구하는 축 분리(finding / source scope / metric / evidence)를 구현한다.
+
+**왜 source scope가 별도 축이어야 하는가.** [#234](https://github.com/jihoon22-lee/ici/pull/234)가
+엔진 단위 미실행(ERROR·SKIP·부재)을 해결로 부르지 않게 고쳤다. 남은 절반은 **파일 단위**다 —
+엔진이 전부 정상 실행됐는데도 finding이 사라질 수 있다. **그 파일이 이번 범위에서 빠졌을 때다.**
+기존 비교기로 실측하면 그것은 진짜 수정과 구분되지 않는다.
+
+```
+엔진 실행됨, finding 사라짐, 파일이 범위 밖  →  resolved, 경고 없음
+```
+
+그래서 사라진 finding은 **그 파일이 여전히 범위에 있을 때만** `resolved`가 된다.
+범위를 벗어났으면 `source_scope.withheld`로 간다 — 해결도 아니고 그대로도 아니다.
+**아무도 측정하지 않았다.**
+
+|축|무엇을 답하나|
+|---|---|
+|`findings`|**양쪽이 실제로 본 코드**에서 문제가 어떻게 달라졌나|
+|`source_scope`|무엇을 보기 시작했고 무엇을 보지 않게 됐나, 그리고 그것이 finding 비교에서 무엇을 앗아가나|
+|`metrics`|숫자가 움직였나|
+|`evidence`|그 숫자를 **어떻게 얻었나**|
+
+**evidence가 왜 독립 축인가**: `ESTIMATED 80%`는 `MEASURED 80%`가 아니다. 값만 보는 비교기는
+증거가 약해진 것을 **아무 변화 없음**으로 보고한다. 값이 그대로인 채 evidence만 떨어지는
+경우를 테스트로 고정했다.
+
+`diff.comparable`이 false면 "새 문제 없음"이 **코드 일부에 대한 진술**이라는 뜻이다.
+
+정규화는 의도적으로 얕다(이슈: 정렬·타임스탬프만). 순서만 결정적으로 만들고 나머지는 건드리지
+않는다 — severity나 message를 정규화하는 비교기는 자기가 찾으려는 차이를 숨긴다.
+
+경고는 결과가 걸려 있을 때만 낸다. 영향 없는 한계를 경고하면 읽는 사람이 경고를 건너뛰게 된다.
+
 ## 다음 (PR B)
 
 이슈 작업 3·5·6이 남았다 — real Python/qmake seed(root+2 component, 공유 qmake SUBDIRS,
