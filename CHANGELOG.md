@@ -7,6 +7,40 @@
 
 ## [Unreleased]
 
+### 추가 — snapshot 비교 도구: 네 축이 서로를 대신하지 않는다 (WP03, [#201](https://github.com/jihoon22-lee/ici/issues/201))
+
+**기존 동작 변경 없음.** 새 모듈은 `src/ici/execution/snapshot.py`이고 기존 경로는 그대로입니다.
+
+[#234](https://github.com/jihoon22-lee/ici/pull/234)가 **엔진 단위** 미실행(ERROR·SKIP·부재)을
+해결로 부르지 않게 고쳤습니다. 남은 절반은 **파일 단위**입니다 — 엔진이 전부 정상 실행됐는데도
+finding이 사라질 수 있습니다. **그 파일이 이번 분석 범위에서 빠졌을 때입니다.**
+
+```
+엔진 실행됨, finding 사라짐, 파일이 범위 밖  →  resolved, 경고 없음
+```
+
+기존 비교기로는 진짜 수정과 구분되지 않습니다. 그래서 새 도구에서 사라진 finding은
+**그 파일이 여전히 범위에 있을 때만** `resolved`가 됩니다. 범위를 벗어났으면
+`source_scope.withheld`로 갑니다 — 해결도 아니고 그대로도 아닌, **아무도 측정하지 않은** 것입니다.
+
+- `findings` — 양쪽이 실제로 본 코드에서의 변화
+- `source_scope` — 무엇을 보기 시작했고 무엇을 보지 않게 됐는지, 그리고 그것이 finding 비교에서
+  무엇을 앗아가는지
+- `metrics` — 값의 이동
+- `evidence` — 그 값을 **어떻게 얻었는지**
+
+**evidence가 독립 축인 이유**: `ESTIMATED 80%`는 `MEASURED 80%`가 아닙니다. 값만 보는 비교기는
+증거가 약해진 것을 "변화 없음"으로 보고합니다. 값이 그대로인 채 evidence만 떨어지는 경우를
+테스트로 고정했습니다.
+
+`diff.comparable`이 false면 "새 문제 없음"이 **코드 일부에 대한 진술**이라는 뜻입니다.
+범위를 기록하지 않은 결과는 아무것도 재검토했다고 보일 수 없으므로 역시 아무것도 해결하지 않습니다.
+
+정규화는 의도적으로 얕습니다(정렬·타임스탬프만). severity나 message를 정규화하는 비교기는
+자기가 찾으려는 차이를 숨깁니다. 경고도 결과가 걸려 있을 때만 냅니다 — 영향 없는 한계를
+경고하면 읽는 사람이 경고를 건너뛰게 됩니다.
+
+
 ### 추가 — Python 회귀 seed와, 그것이 드러낸 소스 탐색 간극 (WP03, [#201](https://github.com/jihoon22-lee/ici/issues/201))
 
 **동작 변경 없음.** `examples/python-fixtures/`와 `tests/`만 추가됩니다.
