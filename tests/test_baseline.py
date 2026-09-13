@@ -203,6 +203,16 @@ def test_duplicate_fingerprints_are_compared_as_a_deterministic_multiset(tmp_pat
 
 
 def test_engine_name_is_part_of_the_comparison_identity(tmp_path):
+    """The same fingerprint from a different engine is a different finding.
+
+    This used to also assert that the baseline's lint finding came back
+    RESOLVED. It does not any more, and the change is deliberate: lint is not in
+    this run at all, so nothing looked at that finding and calling it resolved
+    claimed an improvement that never happened (#201). The identity property
+    this test is named for is unaffected — security's finding is still NEW
+    rather than matched against lint's.
+    """
+
     baseline = _write_baseline(
         tmp_path, [_finding("shared", 10)], engine_name="lint", metadata=_metadata()
     )
@@ -211,7 +221,8 @@ def test_engine_name_is_part_of_the_comparison_identity(tmp_path):
     comparison = _compare(tmp_path, current, baseline)
 
     assert comparison.count(DeltaState.NEW) == 1
-    assert comparison.count(DeltaState.RESOLVED) == 1
+    assert comparison.count(DeltaState.RESOLVED) == 0
+    assert any("lint was not part of this run" in warning for warning in comparison.warnings)
 
 
 def test_info_and_suppressed_new_findings_stay_in_inventory_but_do_not_gate(tmp_path):
@@ -566,3 +577,151 @@ def test_json_writer_rejects_contradictory_delta_and_metadata_states(tmp_path):
     suite.analysis_metadata = _metadata(policy="not-a-digest")
     with pytest.raises(ValueError, match="sha256 digest"):
         serialize_suite_result(suite, project_root=tmp_path)
+
+
+class TestAnEngineThatDidNotLookResolvesNothing:
+    """#201: a comparison must not mistake "not run" for "resolved".
+
+    A baseline finding disappears for two very different reasons: someone fixed
+    it, or nothing went looking for it. Before this, ruff missing from PATH
+    produced the identical comparison to ruff running clean — two findings
+    reported as resolved by an engine that never started.
+    """
+
+    def _baseline(self, tmp_path):
+        return _write_baseline(
+            tmp_path, [_finding("a", 10), _finding("b", 20)], metadata=_metadata()
+        )
+
+    def _only(self, engine_name: str, status: EngineStatus) -> VerificationSuiteResult:
+        return VerificationSuiteResult(
+            suite_status=EngineStatus.PASS,
+            results=[EngineResult(engine_name=engine_name, status=status, summary="", findings=[])],
+            analysis_metadata=_metadata(),
+        )
+
+    def test_a_real_fix_is_still_reported_as_resolved(self, tmp_path):
+        """The control. Without this the rest could pass by never resolving anything."""
+
+        comparison = _compare(tmp_path, _suite([], metadata=_metadata()), self._baseline(tmp_path))
+
+        assert comparison.count(DeltaState.RESOLVED) == 2
+        assert comparison.warnings == []
+
+    def test_an_errored_engine_resolves_nothing(self, tmp_path):
+        comparison = _compare(
+            tmp_path, self._only("lint", EngineStatus.ERROR), self._baseline(tmp_path)
+        )
+
+        assert comparison.count(DeltaState.RESOLVED) == 0
+        assert any("lint reported ERROR" in warning for warning in comparison.warnings)
+
+    def test_a_skipped_engine_resolves_nothing(self, tmp_path):
+        comparison = _compare(
+            tmp_path, self._only("lint", EngineStatus.SKIP), self._baseline(tmp_path)
+        )
+
+        assert comparison.count(DeltaState.RESOLVED) == 0
+        assert any("lint reported SKIP" in warning for warning in comparison.warnings)
+
+    def test_an_engine_missing_from_the_run_resolves_nothing(self, tmp_path):
+        """The quietest case: it produced no record to contradict anything, and
+        used to resolve its whole baseline without even a warning."""
+
+        comparison = _compare(
+            tmp_path, self._only("type", EngineStatus.PASS), self._baseline(tmp_path)
+        )
+
+        assert comparison.count(DeltaState.RESOLVED) == 0
+        assert any("lint was not part of this run" in w for w in comparison.warnings)
+
+    def test_the_warning_says_how_many_were_not_compared(self, tmp_path):
+        """A reader has to be able to tell a two-finding gap from a two-hundred one."""
+
+        comparison = _compare(
+            tmp_path, self._only("lint", EngineStatus.ERROR), self._baseline(tmp_path)
+        )
+
+        assert any("2 baseline finding(s) were not compared" in w for w in comparison.warnings)
+
+    def test_a_failing_engine_still_resolves_normally(self, tmp_path):
+        """FAIL means it looked and did not like what it saw. That is a real
+        comparison, unlike ERROR."""
+
+        comparison = _compare(
+            tmp_path, self._only("lint", EngineStatus.FAIL), self._baseline(tmp_path)
+        )
+
+        assert comparison.count(DeltaState.RESOLVED) == 2
+        assert comparison.warnings == []
+
+    def test_one_dead_engine_does_not_silence_a_live_one(self, tmp_path):
+        """The exclusion is per engine, not per run."""
+
+        baseline_path = tmp_path / "baseline.json"
+        suite = VerificationSuiteResult(
+            suite_status=EngineStatus.WARN,
+            results=[
+                EngineResult(
+                    engine_name="lint",
+                    status=EngineStatus.WARN,
+                    summary="",
+                    findings=[_finding("a", 10)],
+                ),
+                EngineResult(
+                    engine_name="security",
+                    status=EngineStatus.WARN,
+                    summary="",
+                    findings=[_finding("s", 30, rule_id="ici.test.sec")],
+                ),
+            ],
+            analysis_metadata=_metadata(),
+        )
+        save_json_report(suite, baseline_path, project_root=tmp_path)
+
+        current = VerificationSuiteResult(
+            suite_status=EngineStatus.PASS,
+            results=[
+                EngineResult(engine_name="lint", status=EngineStatus.PASS, summary="", findings=[]),
+                EngineResult(
+                    engine_name="security", status=EngineStatus.ERROR, summary="", findings=[]
+                ),
+            ],
+            analysis_metadata=_metadata(),
+        )
+        comparison = _compare(tmp_path, current, baseline_path)
+
+        # lint ran and is clean, so its finding really is resolved. security
+        # errored, so its finding is not.
+        resolved = [e for e in comparison.entries if e.state is DeltaState.RESOLVED]
+        assert [e.engine_name for e in resolved] == ["lint"]
+        assert any("security reported ERROR" in w for w in comparison.warnings)
+
+    def test_the_gate_is_not_weakened_by_the_exclusion(self, tmp_path):
+        """Dropping false resolutions removes a claim of improvement; it must not
+        remove a reason to fail."""
+
+        baseline = _write_baseline(tmp_path, [], metadata=_metadata())
+        current = VerificationSuiteResult(
+            suite_status=EngineStatus.WARN,
+            results=[
+                EngineResult(
+                    engine_name="lint",
+                    status=EngineStatus.WARN,
+                    summary="",
+                    findings=[_finding("new", 42)],
+                ),
+            ],
+            analysis_metadata=_metadata(),
+        )
+
+        comparison = compare_suite_to_baseline(
+            current,
+            baseline_path=baseline,
+            project_root=tmp_path,
+            current_metadata=_metadata(),
+            fail_on_new=True,
+        )
+
+        assert comparison.count(DeltaState.NEW) == 1
+        assert comparison.gate_failed is True

@@ -7,6 +7,45 @@
 
 ## [Unreleased]
 
+### 수정 — 돌지 않은 엔진이 baseline finding을 "해결됨"으로 만들던 문제 (WP03, [#201](https://github.com/jihoon22-lee/ici/issues/201))
+
+**동작이 바뀝니다.** `--baseline` 비교에 영향을 줍니다.
+
+baseline에 있던 finding이 지금 없는 데에는 전혀 다른 두 이유가 있습니다. 누가 고쳤거나,
+**아무도 찾아보지 않았거나.** 비교기는 둘을 구분하지 않고 모두 `RESOLVED`로 보고했습니다.
+
+실측하면 네 경우가 전부 같은 출력이었습니다.
+
+```
+A. lint 정상 실행, finding 사라짐  → resolved ×2   (진짜 해결)
+B. lint ERROR (ruff를 못 찾음)      → resolved ×2   ← 아무것도 해결되지 않았다
+C. lint SKIP                        → resolved ×2   ← 엔진이 보지 않았다
+D. lint가 결과에 아예 없음          → resolved ×2, 경고조차 없음
+```
+
+ruff가 PATH에 없어 시작조차 못 한 실행이 **ruff가 깨끗하게 통과한 실행과 똑같은 비교 결과**를
+냈습니다. 리포트는 코드가 나아졌다고 말하고 있었습니다.
+
+이제 엔진이 `ERROR`·`SKIP`이거나 이번 실행 결과에 아예 없으면, 그 엔진의 baseline finding은
+**비교에서 빠지고** 경고가 이유와 개수를 말합니다.
+
+```
+lint reported ERROR; 2 baseline finding(s) were not compared and are not resolved
+lint was not part of this run; 2 baseline finding(s) were not compared and are not resolved
+```
+
+- `FAIL`은 그대로 정상 비교합니다 — 보고 나서 마음에 안 들었다는 뜻이지 안 봤다는 뜻이 아닙니다.
+- 제외는 **엔진 단위**입니다. 한 엔진이 죽어도 살아 있는 엔진의 해결 판정은 그대로입니다.
+- **게이트는 약해지지 않습니다.** 없앤 것은 "나아졌다"는 거짓 주장이지 실패할 이유가 아닙니다.
+  `NEW` 판정과 `fail_on_new` 동작은 그대로이고 테스트로 고정했습니다.
+- v3 스키마는 바뀌지 않았습니다. `state` enum은 4값 그대로이고, 사실은 이미 필수 필드인
+  `warnings`가 전달합니다.
+
+기존 테스트 하나가 이 결함 동작을 고정하고 있어 함께 정정했습니다
+(`test_engine_name_is_part_of_the_comparison_identity`). 그 테스트가 이름으로 주장하는
+identity 속성(다른 엔진의 같은 fingerprint는 다른 finding이다)은 그대로 유지됩니다.
+
+
 ### 추가 — 회귀 corpus 등록부와 도구 계약 harness (WP03 PR A, [#201](https://github.com/jihoon22-lee/ici/issues/201))
 
 **기존 동작 변경 없음.** 새 파일은 `tests/`에만 있고 `src/`는 건드리지 않습니다.
