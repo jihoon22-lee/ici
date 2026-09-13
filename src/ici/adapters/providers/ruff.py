@@ -62,6 +62,10 @@ FIXED_HEAD = ("check", "--output-format", "json", "--quiet")
 #: Options that would let a lint run edit the tree, or replace the project's
 #: rules with ours. Only options: a *path* is never dangerous, and listing
 #: bare words here would mean refusing to lint a directory for its name.
+#:
+#: Cache options are not here. Where the cache goes changes nothing about what
+#: is reported, and this module sets it deliberately so that the default writes
+#: nothing into the tree being checked.
 FORBIDDEN_OPTIONS = (
     "--fix",
     "--fix-only",
@@ -80,7 +84,15 @@ _CATEGORY = "lint"
 
 @dataclass(frozen=True)
 class RuffRequest:
-    """What to lint, and the only things a caller gets to choose."""
+    """What to lint, and the only things a caller gets to choose.
+
+    ``cache_dir`` defaults to None, which means ``--no-cache``. Left to itself
+    Ruff writes ``.ruff_cache/`` into the tree it is checking, and a
+    verification tool that writes into what it is verifying cannot run against
+    a read-only checkout -- which #206 asks it to do. Nothing is reported
+    differently either way; a caller that wants the speed back names a
+    directory of its own.
+    """
 
     executable: str
     project_root: Path
@@ -89,6 +101,7 @@ class RuffRequest:
     analysis_unit_id: str | None = None
     task_id: str = "python.lint.ruff"
     timeout_seconds: float = 300.0
+    cache_dir: Path | None = None
 
     def __post_init__(self) -> None:
         if not self.targets:
@@ -108,7 +121,12 @@ class RuffProvider:
     def plan(self, request: RuffRequest) -> ProviderPlan:
         """Build the one command this provider is allowed to run."""
 
-        argv = (request.executable, *FIXED_HEAD, *request.targets)
+        cache = (
+            ("--cache-dir", str(request.cache_dir))
+            if request.cache_dir is not None
+            else ("--no-cache",)
+        )
+        argv = (request.executable, *FIXED_HEAD, *cache, *request.targets)
         task = TaskSpec(
             id=request.task_id,
             kind=TaskKind.ANALYZE,

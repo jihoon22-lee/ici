@@ -314,3 +314,25 @@ def test_a_tool_failure_is_not_a_clean_run(tmp_path: Path) -> None:
     assert observation.state is TaskState.FAILED
     assert observation.findings == ()
     assert "exit code 2" in observation.limitations[0]
+
+
+# --- where the cache goes -------------------------------------------------
+
+
+def test_by_default_ruff_is_told_not_to_cache(tmp_path: Path) -> None:
+    # Left to itself Ruff writes .ruff_cache/ into the tree it is checking, and
+    # a verification tool that writes into what it verifies cannot run against
+    # a read-only checkout.
+    argv = RuffProvider().plan(_request(tmp_path)).task.argv
+
+    assert "--no-cache" in argv
+    assert "--cache-dir" not in argv
+
+
+def test_a_caller_that_names_a_cache_directory_gets_it(tmp_path: Path) -> None:
+    elsewhere = tmp_path / "run" / "cache"
+
+    argv = RuffProvider().plan(_request(tmp_path, cache_dir=elsewhere)).task.argv
+
+    assert "--no-cache" not in argv
+    assert argv[argv.index("--cache-dir") + 1] == str(elsewhere)
