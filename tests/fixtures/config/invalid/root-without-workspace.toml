@@ -1,0 +1,8 @@
+# kind: root
+# expect: workspace: no [workspace] table
+schema_version = 1
+
+[[components]]
+id = "a"
+root = "."
+languages = ["python"]

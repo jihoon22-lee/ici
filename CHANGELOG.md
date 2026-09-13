@@ -7,6 +7,53 @@
 
 ## [Unreleased]
 
+### 추가 — 설정 값이 어디서 왔는지 잃지 않는 schema (WP05 PR A, [#203](https://github.com/jihoon22-lee/ici/issues/203))
+
+**기존 배포 경로 동작 변경 없음.** 기존 로더는 한 줄도 바뀌지 않았고 새 schema는 아직
+아무도 호출하지 않습니다.
+
+SPEC-01 §3이 현행 로더의 문제를 측정된 충돌로 적어 뒀고, 재현되는지 확인했습니다.
+
+```python
+ici.toml → [engines.lint] required = true
+dev.toml → [engines.lint] required = false
+load_config(base)["engines"]["lint"]["required"]   # → False
+```
+
+`dev.toml` 하나가 **프로젝트가 필수로 선언한 검사를 필수가 아니게** 만듭니다. 그 자체는 의도된
+우선순위일 수 있지만, **반환된 dict에는 누가 그렇게 만들었는지가 없습니다** — `_deep_merge`가
+출처를 남기지 않기 때문입니다. 게이트가 왜 통과했는지 묻는 사람에게 줄 답이 파일 네 개를 직접
+열어 보라는 것뿐입니다.
+
+- **출처는 나중에 붙이는 메타데이터가 아닙니다.** `Sourced[T]`가 값과 출처를 같이 들고,
+  출처를 말할 수 없는 값은 **표현 자체가 불가능**합니다. 오류는 키와 파일을 말합니다 —
+  `root.toml: components[0].build: no build named release (declared builds: native)`.
+- **네 가지를 거절합니다** (#203이 이름 댄 것들): unknown key, duplicate id, dangling
+  reference, inline과 `config` 동시 정의. **unknown key 목록을 따로 두지 않습니다** — 섹션이
+  아는 키는 "물어본 키"이고 남은 것이 전부 unknown입니다. 목록을 두면 섹션이 늘 때 갱신을
+  잊고, 그때부터 오타가 조용히 무시됩니다. 한 파일의 문제는 **한 번에 전부** 보고합니다.
+- **경로처럼 생긴 세 가지를 다른 타입으로 나눴습니다.** declared path는 **선언한 파일** 기준,
+  source glob은 **component root** 기준입니다 — 한 타입이면 component를 자기 파일로 옮기는
+  것만으로 `**/*.py`가 다른 집합을 뜻하게 됩니다. executable은 구분자 유무로만 PATH 탐색과
+  경로를 가릅니다(파일 존재 여부로 판단하면 설정의 의미가 **읽는 기계마다** 달라집니다).
+  이 계층은 파일시스템을 읽지 않고 `os.getcwd()`를 부르지 않습니다 — SPEC-01이 요구하는
+  cwd 독립성이 의도가 아니라 **타입으로** 보장됩니다.
+- **`${env:NAME}` 하나만 치환합니다.** `$HOME`·`$(pwd)`는 문자 그대로 둡니다. 없는 변수는
+  빈 문자열이 아니라 **문제로** 보고합니다 — `${env:X}/bin`을 `/bin`으로 바꾸는 것은 대부분의
+  기계에서 실재하는 경로가 되므로 가능한 실패 중 가장 나쁩니다.
+- **SPEC-01 §4의 예시가 이제 실제 파서를 통과합니다.** 그동안 TOML 파싱 가능성만 검증됐고
+  문서의 완료 조건에도 그렇게 적혀 있었습니다. 이제 사용자 파일과 **같은 reader**를 지나므로
+  문서와 구현이 어긋나면 테스트가 실패합니다.
+- **fixture가 자기가 무엇을 시험하는지 말합니다.** `# expect: ...` 헤더를 두고 테스트가 그
+  문제가 보고됐는지 확인합니다. "오류가 났는지"만 보면 fixture가 **다른 이유로** 실패해도 계속
+  통과합니다 — 이 WP가 존재하는 이유와 같은 고장입니다.
+- `src/ici/config.py`가 `src/ici/config/__init__.py`가 됐습니다. **내용은 한 줄도 바뀌지 않았고**
+  18개 `from ici.config import ...`도 그대로입니다. 아키텍처 문서가 next 경로에 지정한 `config/`
+  이름을 쓰기 위한 이동입니다.
+- 문서: [`config-origin.md`](docs/design/ici-next/config-origin.md).
+
+계층 합성·local overlay는 PR B, `init`과 migration 보고서는 PR C입니다.
+
 ### 추가 — 제작된 bundle 자체를 재는 smoke와 설치 안내 (WP04 PR C, [#202](https://github.com/jihoon22-lee/ici/issues/202))
 
 **기존 배포 경로 변경 없음.** bundle은 여전히 candidate이고 stable tag/version을 바꾸지 않습니다.

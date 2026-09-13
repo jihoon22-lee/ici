@@ -1,0 +1,11 @@
+# kind: root
+# The least a root can say. SPEC-01 section 2: one root is the default and a
+# per-directory file is not required.
+schema_version = 1
+
+[workspace]
+
+[[components]]
+id = "only"
+root = "."
+languages = ["python"]

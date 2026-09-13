@@ -1,0 +1,10 @@
+# kind: component
+# expect: workspace: a component file must not declare a workspace
+schema_version = 1
+
+[workspace]
+name = "promoted"
+
+[component]
+root = "."
+languages = ["python"]

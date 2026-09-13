@@ -1,0 +1,13 @@
+# kind: root
+# expect: not valid TOML
+# TOML itself rejects a table defined twice, so the schema never sees it. The
+# fixture exists to record that the refusal happens, not to claim it is ours.
+schema_version = 1
+
+[workspace]
+
+[builds.native]
+system = "qmake"
+
+[builds.native]
+system = "cmake"

@@ -49,6 +49,7 @@ EXPECTED_DOCUMENTS = (
     "bundle-reproducibility.md",
     "launcher-contract.md",
     "bundle-installation.md",
+    "config-origin.md",
     "inventory/current-engines.md",
     "inventory/execution-flow.md",
     "inventory/baseline-measurements.md",

@@ -1,0 +1,10 @@
+# kind: component
+# ${env:NAME} is allowed in a path value (SPEC-01 section 3).
+schema_version = 1
+
+[component]
+root = "."
+languages = ["python"]
+
+[python]
+executable = "${env:ICI_TEST_PYTHON}/bin/python"

@@ -1,0 +1,14 @@
+# kind: root
+# expect: components[0].build: no build named release
+schema_version = 1
+
+[workspace]
+
+[builds.native]
+system = "qmake"
+
+[[components]]
+id = "gui"
+root = "apps/gui"
+languages = ["cpp"]
+build = "release"

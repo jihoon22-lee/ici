@@ -1,4 +1,17 @@
-"""Configuration management & Global Verification Policy for ici."""
+"""Configuration management & Global Verification Policy for ici.
+
+This is the **stable** loader, unchanged except for where it lives. It was
+``src/ici/config.py`` and became this package's ``__init__`` so that the next
+path could take the ``config/`` name the architecture document gives it, without
+changing a single one of the eighteen ``from ici.config import ...`` sites.
+
+The next-path modules are siblings — ``ici.config.schema``, ``ici.config.origin``
+and so on — and nothing here imports them. The two live side by side on purpose:
+SPEC-01 section 3 records that this loader lets an XDG file and ``dev.toml``
+overwrite the whole quality policy with no record of where a value came from,
+which is exactly what the next schema exists to stop. Replacing it is WP27's
+migration, not a side effect of adding the new one.
+"""
 
 import os
 import sys
