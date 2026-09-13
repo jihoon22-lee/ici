@@ -7,6 +7,46 @@
 
 ## [Unreleased]
 
+### 추가 — ici-next 결과·이벤트 스키마와 IO (WP02 PR B, [#200](https://github.com/jihoon22-lee/ici/issues/200))
+
+**기존 동작 변경 없음.** 새 코드는 `src/ici/domain/`(순수)과 `src/ici/execution/`(IO)에만 있고,
+기존 `core/`·report writer·엔진·CI·배포 경로는 그대로입니다.
+
+- **`ici.next.run` v1과 `ici.next.event` v1 스키마를 발행했습니다.** 저장소 관례대로
+  `src/ici/schemas/`에 데이터로 두고 런타임 코드가 읽지 않습니다. v3 스키마도 그대로 남습니다 —
+  `schema_id`가 다르므로 v3 reader가 이 문서를 자기 것으로 착각할 수 없습니다.
+- **스키마 검증을 `jsonschema`에 의존하지 않게 했습니다.** 기존 v3·compilation-export 스키마는
+  `import jsonschema` 테스트로만 검증되는데 `jsonschema`는 의존성이 아니어서 **이 환경에도
+  CI에도 없고, 그 검증은 항상 skip되고 있었습니다.** 그래서 이번 스키마는 enum·required·
+  additionalProperties를 코드와 직접 대조하는 테스트로 기계 검증합니다. `jsonschema`가 있으면
+  전체 검증이 추가로 돌지만 그건 바닥이 아니라 보너스 계층입니다.
+- **완전한 fixture 5종**(성공·코드 FAIL·필수 미완료·부분 선택·취소)을 `tests/fixtures/ici-next/`에
+  두었습니다. **스키마의 축약 예시를 golden 파일로 쓰지 않았습니다** — 각 fixture는 모델로
+  만들어 직렬화한 것이고, 바이트 단위 비교로 형식 변경이 의도적이어야 하게 했습니다.
+  legacy v3 fixture도 함께 두어 새 reader가 그것을 **무음 빈 PASS가 아니라 찾은 값을 이름으로
+  말하는 오류**로 거부하는지 고정합니다.
+- **결정적 직렬화.** 키 정렬·고정 구분자·`allow_nan=False`입니다. 마지막 항목이 생각보다
+  중요합니다 — Python은 그냥 두면 맨 `NaN`을 내보내는데 그건 JSON이 아니어서, ici가 유효하다고
+  부른 파일에서 다른 언어 소비자가 실패합니다.
+- **Atomic write.** 임시 파일을 **대상 디렉터리 안에** 만듭니다. `os.replace`는 같은 파일시스템
+  안에서만 원자적이라 `/tmp`를 쓰면 조용히 복사로 격하됩니다 — 테스트가 `mkstemp`에 넘긴
+  디렉터리를 직접 확인합니다. 쓰기가 중간에 죽어도 이전 결과가 그대로 읽히고 `.partial` 파일이
+  남지 않습니다.
+- **이벤트는 판정을 나르지 않습니다.** `RunEvent`에 gate도 finding도 없습니다. 최종 result가
+  authoritative이므로, 스트림에서 통과/실패를 판단하려는 소비자는 result를 읽으러 가야 합니다.
+  잘린 마지막 줄은 그 앞 이벤트를 살린 채 skip으로 보고하고(쓰기가 중간에 죽으면 정상적으로
+  생깁니다), unknown `event_type`은 skip하되 **지원하지 않는 major schema는 거부**하며,
+  seq 간격·중복은 **보고하되 고치지 않습니다.**
+- `_codec`/`serialization`/`eventstream` 세 모듈로 나눈 것은 ici 자신의 `line` 게이트
+  때문입니다. 한 파일로 두면 523행으로 500행 WARN 문턱을 넘었습니다.
+
+82개 테스트를 추가했습니다. 작업 중 제 변경이 PR A의 테스트를 깨뜨린 것(필수 `producer` 필드
+추가)과 `events_from_jsonl`의 중첩이 4로 한계에 닿은 것을 푸시 전에 잡아 고쳤습니다 —
+complexity는 148건·최대 CC 24, 중복률 3.4%로 **둘 다 기준선 그대로**입니다.
+
+**legacy reader adapter와 호환표는 아직 없습니다** — #200의 PR C 경계입니다.
+
+
 ### 추가 — ici-next 도메인 모델 (WP02 PR A, [#200](https://github.com/jihoon22-lee/ici/issues/200))
 
 **기존 동작 변경 없음.** `src/ici/domain/`은 새 opt-in namespace이고, `core/models.py`·

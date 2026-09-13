@@ -1,0 +1,513 @@
+{
+  "$id": "https://github.com/jihoon22-lee/ici/schemas/ici-next-run-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A single ici-next run. Deliberately a different schema_id from the stable ici-result-v3 contract: SPEC-04 section 1 forbids reusing the old version number in a way that would let a v3 reader believe it understands this document. The authoritative implementation is ici.domain.serialization; tests/test_next_schema_contract.py keeps the two from drifting.",
+  "properties": {
+    "execution": {
+      "additionalProperties": false,
+      "properties": {
+        "blocked_task_ids": {
+          "items": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "type": "array"
+        },
+        "cancelled": {
+          "type": "boolean"
+        },
+        "failed_task_ids": {
+          "items": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "type": "array"
+        },
+        "required_complete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required_complete"
+      ],
+      "type": "object"
+    },
+    "findings": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_unit_id": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "category": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "component_id": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "confidence": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "evidence": {
+            "enum": [
+              "MEASURED",
+              "ESTIMATED",
+              "NOT_RUN",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "fingerprint": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "maxLength": 8192,
+              "type": "string"
+            },
+            "maxItems": 1024,
+            "type": "array"
+          },
+          "message": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "native_rule_id": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "primary_location": {
+            "additionalProperties": false,
+            "properties": {
+              "end_column": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "end_line": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "label": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "path": {
+                "maxLength": 4096,
+                "minLength": 1,
+                "not": {
+                  "pattern": "(^/)|(\\\\)|(^\\.\\./)|(/\\.\\./)"
+                },
+                "type": "string"
+              },
+              "start_column": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "start_line": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path",
+              "start_line"
+            ],
+            "type": "object"
+          },
+          "provider": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "related_locations": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "end_column": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "end_line": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "label": {
+                  "maxLength": 8192,
+                  "type": "string"
+                },
+                "path": {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "not": {
+                    "pattern": "(^/)|(\\\\)|(^\\.\\./)|(/\\.\\./)"
+                  },
+                  "type": "string"
+                },
+                "start_column": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "start_line": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "path",
+                "start_line"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1024,
+            "type": "array"
+          },
+          "rule_id": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "rule_version": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "severity": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "suppression": {
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "origin": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "reason": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "suppressed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "suppressed",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "tags": {
+            "items": {
+              "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+              "type": "string"
+            },
+            "maxItems": 4096,
+            "type": "array"
+          },
+          "task_id": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "variant": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fingerprint",
+          "rule_id",
+          "message",
+          "severity",
+          "confidence",
+          "provider",
+          "evidence",
+          "primary_location"
+        ],
+        "type": "object"
+      },
+      "maxItems": 100000,
+      "type": "array"
+    },
+    "gate": {
+      "additionalProperties": false,
+      "description": "has_violations is independent of both verdicts: findings made during an INCOMPLETE run are still real findings.",
+      "properties": {
+        "has_violations": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "items": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "maxItems": 1024,
+          "type": "array"
+        },
+        "selected": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCOMPLETE",
+            "NOT_EVALUATED"
+          ]
+        },
+        "workspace": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCOMPLETE",
+            "NOT_EVALUATED"
+          ]
+        }
+      },
+      "required": [
+        "selected",
+        "workspace",
+        "has_violations"
+      ],
+      "type": "object"
+    },
+    "identity": {
+      "additionalProperties": false,
+      "description": "Excludes clock time and duration on purpose: the same inputs must produce the same identity on a later run.",
+      "properties": {
+        "policy_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "source": {
+          "additionalProperties": false,
+          "properties": {
+            "commit": {
+              "maxLength": 8192,
+              "type": "string"
+            },
+            "digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "dirty": {
+              "type": "boolean"
+            },
+            "external_inputs": {
+              "items": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "maxItems": 1024,
+              "type": "array"
+            },
+            "files": {
+              "items": {
+                "maxLength": 4096,
+                "minLength": 1,
+                "not": {
+                  "pattern": "(^/)|(\\\\)|(^\\.\\./)|(/\\.\\./)"
+                },
+                "type": "string"
+              },
+              "maxItems": 100000,
+              "type": "array"
+            },
+            "generated": {
+              "items": {
+                "maxLength": 4096,
+                "minLength": 1,
+                "not": {
+                  "pattern": "(^/)|(\\\\)|(^\\.\\./)|(/\\.\\./)"
+                },
+                "type": "string"
+              },
+              "maxItems": 100000,
+              "type": "array"
+            }
+          },
+          "required": [
+            "digest"
+          ],
+          "type": "object"
+        },
+        "toolchain_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "policy_digest",
+        "toolchain_digest"
+      ],
+      "type": "object"
+    },
+    "limitations": {
+      "items": {
+        "maxLength": 8192,
+        "type": "string"
+      },
+      "maxItems": 1024,
+      "type": "array"
+    },
+    "metrics": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "denominator": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "evidence": {
+            "enum": [
+              "MEASURED",
+              "ESTIMATED",
+              "NOT_RUN",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "name": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "numerator": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unit": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "value",
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "maxItems": 10000,
+      "type": "array"
+    },
+    "producer": {
+      "additionalProperties": false,
+      "properties": {
+        "bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "ici_version": {
+          "maxLength": 8192,
+          "type": "string"
+        }
+      },
+      "required": [
+        "ici_version"
+      ],
+      "type": "object"
+    },
+    "publication": {
+      "additionalProperties": false,
+      "description": "Never alters the analysis verdict (SPEC-04 section 2).",
+      "properties": {
+        "detail": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "SUCCESS",
+            "FAILED",
+            "NOT_CONFIGURED"
+          ]
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "run_id": {
+      "maxLength": 8192,
+      "type": "string"
+    },
+    "schema_id": {
+      "const": "ici.next.run"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "scope": {
+      "additionalProperties": false,
+      "properties": {
+        "full_required_satisfied": {
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "full",
+            "partial",
+            "standalone"
+          ]
+        },
+        "omitted_components": {
+          "items": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "type": "array"
+        },
+        "required_components": {
+          "items": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "type": "array"
+        },
+        "selected_components": {
+          "items": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "type": "array"
+        },
+        "selected_languages": {
+          "items": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "full_required_satisfied"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_id",
+    "schema_version",
+    "run_id",
+    "producer",
+    "identity",
+    "scope",
+    "execution",
+    "gate"
+  ],
+  "title": "ici.next.run v1",
+  "type": "object"
+}

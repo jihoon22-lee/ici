@@ -38,6 +38,7 @@ from ici.domain import (
     GateVerdict,
     Measurement,
     Observation,
+    Producer,
     PublicationOutcome,
     PublicationState,
     ResolvedTool,
@@ -364,6 +365,7 @@ class TestRunResultAxes:
     def make_result(self, **overrides: object) -> RunResult:
         base: dict[str, object] = {
             "run_id": "run-1",
+            "producer": Producer(ici_version="0.11.0"),
             "identity": RunIdentity(
                 source=make_snapshot(), policy_digest=DIGEST, toolchain_digest=OTHER_DIGEST
             ),

@@ -36,7 +36,17 @@
 
 이는 모양을 설명한 축약 예시다. `sha256:...`는 실제 schema에 유효한 digest가 아니며 테스트에서는
 완전한 값으로 대체한다. **WP02 PR A가 이것을 강제한다** — `require_digest`가 축약 digest를 거부하고
-테스트가 그 사실을 고정한다. 실행 시각·duration·request/profile·expected/selected/omitted scope·
+테스트가 그 사실을 고정한다.
+
+> **발행됨 (WP02 PR B)**: 정식 스키마는
+> [`src/ici/schemas/ici-next-run-v1.schema.json`](../../../src/ici/schemas/ici-next-run-v1.schema.json)이고
+> 코덱은 [`ici/domain/serialization.py`](../../../src/ici/domain/serialization.py)다.
+> 완전한 fixture 5종(성공·코드 FAIL·필수 미완료·부분 선택·취소)이
+> [`tests/fixtures/ici-next/`](../../../tests/fixtures/ici-next)에 있으며 **축약 예시를 golden
+> 파일로 쓰지 않았다**. 스키마와 코드의 enum·required·additionalProperties 일치는
+> [`tests/test_next_schema_contract.py`](../../../tests/test_next_schema_contract.py)가
+> `jsonschema` 없이도 기계 검증한다 — 이 저장소에도 CI에도 `jsonschema`가 없어서
+> 기존 v3 스키마는 사실상 검증되지 않고 있었다. 실행 시각·duration·request/profile·expected/selected/omitted scope·
 source path map·tool evidence·normalization/parser version·policy exceptions·result digest도 정식
 스키마에 포함한다.
 
@@ -136,6 +146,13 @@ source/HTML/XML/Markdown 내용은 데이터로 취급하고 escape한다. file 
 `report`는 saved result만 읽고 도구/프로젝트 코드를 실행하지 않는다. legacy JSON viewer는 reader
 adapter 또는 명시 unsupported schema 진단으로 처리한다. 잘못 읽어 빈 PASS를 표시해서는 안 된다.
 
+> **구현됨 (WP02 PR B)**: [`ici/execution/results.py`](../../../src/ici/execution/results.py)가
+> `.ici/runs/<run_id>/`, atomic write, 진단 있는 read를 구현한다. 임시 파일을 **대상
+> 디렉터리 안에** 만든다 — `os.replace`는 같은 파일시스템 안에서만 원자적이라
+> `/tmp`를 쓰면 조용히 복사로 격하된다. 쓰기가 중간에 죽어도 이전 결과가 그대로 읽히고
+> `.partial` 파일이 남지 않는 것을 테스트가 고정한다.
+> legacy 결과를 읽으면 무음 빈 PASS가 아니라 **찾은 값을 이름으로 말하는 오류**가 난다.
+>
 > 현행 자산: `reporters/json_rep.py:833`에 legacy payload 변환 경로(`migrated`)가 이미 있어
 > reader adapter의 출발점이 된다. `core/redaction.py`와 `redact_engine_result`가 민감 값을
 > 제거한다. Zero-CDN HTML은 AGENTS §5 불변식으로 이미 강제된다. 현행 출력 경로는
@@ -158,7 +175,15 @@ idk는 준비된 환경에서 ici를 실행하고 로그/이벤트/종료/result
 mapping을 이용한다. 실제 idk 코드 수정은 idk 저장소의 별도 이슈/승인으로 연결한다. 여기서는 ici
 producer와 fixture consumer 계약을 완료한다.
 
-> **현행 상태**: 이벤트 스트림이 없다. `--events PATH` 옵션과 JSONL 출력 전체가 신규다.
+> **구현 시작됨 (WP02 PR B)**: 스키마는
+> [`ici-next-event-v1.schema.json`](../../../src/ici/schemas/ici-next-event-v1.schema.json),
+> 모델은 [`ici/domain/events.py`](../../../src/ici/domain/events.py), 코덱은
+> [`eventstream.py`](../../../src/ici/domain/eventstream.py)다.
+> `RunEvent`는 **gate도 finding도 갖지 않는다** — 최종 result가 authoritative이므로,
+> 스트림에서 통과/실패를 판단하려는 소비자는 result를 읽으러 가야 한다.
+> 검증되는 것: 잘린 마지막 줄은 그 앞 이벤트를 살린 채 skip으로 보고, unknown event_type은
+> skip하되 **지원하지 않는 major schema는 거부**, seq 간격·중복은 보고하되 **고치지 않는다**.
+> `--events PATH` CLI 옵션과 실제 방출은 여전히 신규다.
 > → [WP26 #224](https://github.com/jihoon22-lee/ici/issues/224)
 
 ## 7. GHES publisher

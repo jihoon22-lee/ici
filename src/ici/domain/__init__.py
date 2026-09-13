@@ -26,6 +26,12 @@ from ici.domain.enums import (
     TaskKind,
     TaskState,
 )
+from ici.domain.events import (
+    EVENT_SCHEMA_ID,
+    EVENT_SCHEMA_VERSION,
+    EventType,
+    RunEvent,
+)
 from ici.domain.finding import Finding, FindingSuppression, SourceSpan
 from ici.domain.observation import Measurement, Observation
 from ici.domain.result import (
@@ -33,6 +39,7 @@ from ici.domain.result import (
     SCHEMA_VERSION,
     ExecutionSummary,
     GateOutcome,
+    Producer,
     PublicationOutcome,
     RunIdentity,
     RunResult,
@@ -49,12 +56,15 @@ from ici.domain.workspace import (
 )
 
 __all__ = [
+    "EVENT_SCHEMA_ID",
+    "EVENT_SCHEMA_VERSION",
     "SCHEMA_ID",
     "SCHEMA_VERSION",
     "AnalysisUnit",
     "BuildUnit",
     "CheckExecution",
     "Component",
+    "EventType",
     "EvidenceLevel",
     "ExecutionSummary",
     "Finding",
@@ -63,9 +73,11 @@ __all__ = [
     "GateVerdict",
     "Measurement",
     "Observation",
+    "Producer",
     "PublicationOutcome",
     "PublicationState",
     "ResolvedTool",
+    "RunEvent",
     "RunIdentity",
     "RunResult",
     "ScopeKind",
