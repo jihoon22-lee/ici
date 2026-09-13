@@ -58,6 +58,17 @@ cp -a "$BUNDLE" "$PRISTINE"
 # new one, which a count of new paths does not.
 inventory() { find "$1" -type f -printf '%P %T@ %s\n' 2>/dev/null | LC_ALL=C sort; }
 
+# Colour is not content. CI runners force rich into colour mode, which renders
+# the usage line as "\e[1;33mUsage: \e[0m\e[1mici ..." — the literal "Usage: ici"
+# is gone even though the help is exactly right. The first version of this
+# script matched the raw bytes and failed seven of ten cases on CI for that
+# reason alone. Strip the escapes and match the text.
+plain() { sed $'s/\033\[[0-9;]*[a-zA-Z]//g'; }
+
+# The first line with words on it, for a failure message. Guessing at what a
+# check saw costs more than printing it.
+first_line() { plain <<<"$1" | grep -m1 '[^[:space:]]'; }
+
 # #202 acceptance criterion 2 asks for "init/help/version/소형 analyzer". The
 # current CLI has no init subcommand; doctor is what stands in for it, and it is
 # the better check anyway, being the command that probes the environment for
@@ -66,18 +77,23 @@ inventory() { find "$1" -type f -printf '%P %T@ %s\n' 2>/dev/null | LC_ALL=C sor
 runs_here() {
   local root=$1 label=$2
   local version help doctor analysis
-  version="$("$root/bin/ici" --version 2>&1)" || { printf '%s' "$label: --version failed: $version"; return 1; }
+
+  version="$("$root/bin/ici" --version 2>&1 | plain)" || { printf '%s' "$label: --version failed: $version"; return 1; }
   case "$version" in ici\ *) ;; *) printf '%s' "$label: unexpected version output: $version"; return 1 ;; esac
 
-  help="$("$root/bin/ici" --help 2>&1)" || { printf '%s' "$label: --help failed: $help"; return 1; }
-  # Named, not "-c": python -c leaves argv[0] as "-c" unless the launcher sets it.
-  case "$help" in *"Usage: ici"*) ;; *) printf '%s' "$label: --help did not name the program"; return 1 ;; esac
+  help="$("$root/bin/ici" --help 2>&1 | plain)" || { printf '%s' "$label: --help failed: $(first_line "$help")"; return 1; }
+  # Named, not "-c": python -c leaves argv[0] as "-c" unless the launcher sets it,
+  # and the usage line is the only place a user would see which it is.
+  case "$help" in
+    *"Usage: ici"*) ;;
+    *) printf '%s' "$label: --help did not name the program, it said: $(first_line "$help")"; return 1 ;;
+  esac
 
-  doctor="$(cd "$PROJECT" && "$root/bin/ici" doctor 2>&1)" || { printf '%s' "$label: doctor failed: $doctor"; return 1; }
-  case "$doctor" in *Resolved*) ;; *) printf '%s' "$label: doctor resolved nothing"; return 1 ;; esac
+  doctor="$(cd "$PROJECT" && "$root/bin/ici" doctor 2>&1 | plain)" || { printf '%s' "$label: doctor failed: $(first_line "$doctor")"; return 1; }
+  case "$doctor" in *Resolved*) ;; *) printf '%s' "$label: doctor resolved nothing: $(first_line "$doctor")"; return 1 ;; esac
 
-  analysis="$(cd "$PROJECT" && "$root/bin/ici" line 2>&1)" || { printf '%s' "$label: analysis failed: $analysis"; return 1; }
-  case "$analysis" in *Lines*) ;; *) printf '%s' "$label: analysis produced no line count"; return 1 ;; esac
+  analysis="$(cd "$PROJECT" && "$root/bin/ici" line 2>&1 | plain)" || { printf '%s' "$label: analysis failed: $(first_line "$analysis")"; return 1; }
+  case "$analysis" in *Lines*) ;; *) printf '%s' "$label: analysis produced no line count: $(first_line "$analysis")"; return 1 ;; esac
 
   printf '%s' "$label: $version, help/doctor/analysis ran"
   return 0
@@ -103,12 +119,15 @@ fi
 
 say "4. runs with a clean HOME"
 if detail="$(HOME="$WORK/clean-home" XDG_CONFIG_HOME= XDG_CACHE_HOME= \
-             bash -c "mkdir -p '$WORK/clean-home'; $(declare -f runs_here); PROJECT='$PROJECT'; runs_here '$MOVED' clean-home")"; then
+             bash -c "mkdir -p '$WORK/clean-home'; $(declare -f plain first_line runs_here); PROJECT='$PROJECT'; runs_here '$MOVED' clean-home")"; then
   ok clean-home "$detail"
 else
   bad clean-home "$detail"
 fi
 
+# runs_here goes into the namespace sub-shells by value, so every helper it
+# calls has to travel with it. Sending runs_here alone made --version look like
+# it had failed in four cases, because plain was simply not defined there.
 say "5. runs from a read-only install"
 RO="$WORK/readonly"
 cp -a "$BUNDLE" "$RO"
@@ -116,7 +135,7 @@ if unshare --mount --map-root-user true 2>/dev/null; then
   detail="$(unshare --mount --map-root-user bash -c "
     mount --bind '$RO' '$RO' && mount -o remount,bind,ro '$RO' || exit 97
     touch '$RO/.write-probe' 2>/dev/null && exit 98
-    PROJECT='$PROJECT'; $(declare -f runs_here); runs_here '$RO' read-only
+    PROJECT='$PROJECT'; $(declare -f plain first_line runs_here); runs_here '$RO' read-only
   " 2>&1)"
   case $? in
     0)  ok read-only "$detail" ;;
@@ -132,7 +151,7 @@ say "6. runs with no network at all"
 # The spike could only remove proxy variables. This removes the interfaces.
 if unshare -n --map-root-user true 2>/dev/null; then
   detail="$(unshare -n --map-root-user bash -c "
-    PROJECT='$PROJECT'; $(declare -f runs_here); runs_here '$MOVED' offline
+    PROJECT='$PROJECT'; $(declare -f plain first_line runs_here); runs_here '$MOVED' offline
   " 2>&1)"
   if [ $? -eq 0 ]; then
     ok offline "$detail (no network interfaces)"
@@ -151,7 +170,7 @@ if unshare -n --mount --map-root-user true 2>/dev/null; then
     mount --bind '$RO' '$RO' && mount -o remount,bind,ro '$RO' || exit 97
     export HOME='$WORK/combined-home'; mkdir -p \"\$HOME\"
     unset XDG_CONFIG_HOME XDG_CACHE_HOME
-    PROJECT='$PROJECT'; $(declare -f runs_here); runs_here '$RO' combined
+    PROJECT='$PROJECT'; $(declare -f plain first_line runs_here); runs_here '$RO' combined
   " 2>&1)"
   case $? in
     0)  ok combined "$detail" ;;

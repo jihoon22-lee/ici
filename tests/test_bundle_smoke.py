@@ -39,6 +39,23 @@ esac
 """
 
 
+def _coloured(stub: str, program: str = "ici") -> str:
+    """A stub whose help is coloured the way rich colours it on a CI runner.
+
+    The escapes fall between "Usage:" and the program name, so a check matching
+    the raw bytes for "Usage: ici" sees nothing — which is how seven of ten
+    cases failed on CI while the bundle was perfectly fine.
+    """
+
+    coloured = (
+        "\\033[1;33mUsage: \\033[0m\\033[1m" + program + " [OPTIONS] COMMAND [ARGS]...\\033[0m"
+    )
+    return stub.replace(
+        '  --help)       echo "Usage: ici [OPTIONS] COMMAND [ARGS]..." ;;',
+        f"  --help)       printf '{coloured}\\n' ;;",
+    )
+
+
 def _make_bundle(root: Path, stub: str = GOOD_STUB) -> Path:
     (root / "bin").mkdir(parents=True)
     (root / "app").mkdir()
@@ -157,6 +174,16 @@ class TestItNoticesABrokenBundle:
         assert _cases(report)["in-place"] == "PASS"
         assert _cases(report)["relocated"] == "FAIL"
 
+    def test_help_that_does_not_name_the_program_fails_under_colour_too(
+        self, tmp_path: Path, report: Path
+    ) -> None:
+        # Stripping the escapes must not turn the check into one that passes on
+        # anything: a coloured "-c" is still the defect.
+        bundle = _make_bundle(tmp_path / "bundle", stub=_coloured(GOOD_STUB, program="-c"))
+        result = _run(bundle, tmp_path / "work", report)
+        assert result.returncode == 1
+        assert _cases(report)["in-place"] == "FAIL"
+
     def test_help_that_does_not_name_the_program_fails(self, tmp_path: Path, report: Path) -> None:
         # python -c leaves argv[0] as "-c"; this is the output that produced.
         bundle = _make_bundle(
@@ -274,3 +301,30 @@ class TestTheSummaryNamesWhatWasNotMeasured:
 
     def test_a_report_with_no_cases_says_so(self) -> None:
         assert "nothing was measured" in render({"schema": "x", "cases": []})
+
+
+class TestColourIsNotContent:
+    """A runner that forces colour must not change what the smoke concludes."""
+
+    def test_a_coloured_help_still_names_the_program(self, tmp_path: Path, report: Path) -> None:
+        bundle = _make_bundle(tmp_path / "bundle", stub=_coloured(GOOD_STUB))
+        result = _run(bundle, tmp_path / "work", report)
+        assert result.returncode == 0, result.stdout
+        assert _cases(report)["in-place"] == "PASS"
+
+    def test_the_namespace_cases_see_the_same_help(self, tmp_path: Path, report: Path) -> None:
+        # runs_here travels into the namespace sub-shells by value; a helper it
+        # calls that does not travel with it made --version look like it failed
+        # in exactly these four cases.
+        bundle = _make_bundle(tmp_path / "bundle", stub=_coloured(GOOD_STUB))
+        _run(bundle, tmp_path / "work", report)
+        for case in ("read-only", "offline", "combined"):
+            assert _cases(report)[case] in {"PASS", "BLOCKED"}, _cases(report)
+
+    def test_a_failure_message_quotes_what_it_saw(self, tmp_path: Path, report: Path) -> None:
+        # Having to guess what a check saw is what made this take an extra CI
+        # cycle to diagnose.
+        bundle = _make_bundle(tmp_path / "bundle", stub=_coloured(GOOD_STUB, program="-c"))
+        _run(bundle, tmp_path / "work", report)
+        detail = json.loads(report.read_text(encoding="utf-8"))["cases"][0]["detail"]
+        assert "Usage: -c" in detail, detail
