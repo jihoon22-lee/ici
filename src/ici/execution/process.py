@@ -32,8 +32,12 @@ from enum import Enum
 from pathlib import Path
 
 from ici.core.runner import ProcessResult, run_process
+from ici.execution.cancellation import Cancellation
+from ici.execution.tree import DEFAULT_GRACE, Cleanup
+from ici.execution.watchdog import WATCHDOG_MARGIN, Trigger, Watchdog
 
 __all__ = [
+    "DEFAULT_GRACE",
     "DEFAULT_OUTPUT_LIMIT",
     "DEFAULT_TIMEOUT",
     "ExitContract",
@@ -126,12 +130,18 @@ class TaskSpec:
     environment: Mapping[str, str] = field(default_factory=dict)
     timeout: float = DEFAULT_TIMEOUT
     output_limit: int = DEFAULT_OUTPUT_LIMIT
+    #: How long a cancelled tool is given to exit on its own before it is
+    #: killed. A tool that is allowed to exit removes its own temporary
+    #: files; one that is killed outright leaves them for someone else.
+    grace: float = DEFAULT_GRACE
 
     def __post_init__(self) -> None:
         if not self.argv:
             raise ValueError("a task must have a command")
         if self.timeout <= 0:
             raise ValueError("a task timeout must be positive")
+        if self.grace < 0:
+            raise ValueError("a task grace period cannot be negative")
         object.__setattr__(self, "argv", tuple(self.argv))
         object.__setattr__(self, "name", self.name or Path(self.argv[0]).name)
 
@@ -152,6 +162,13 @@ class TaskOutcome:
     stderr: str = ""
     duration: float = 0.0
     detail: str = ""
+    #: Whether the capture hit its limit, recorded as a fact of its own.
+    #: The chosen ``outcome`` can only name one reason, and a run that both
+    #: timed out and overflowed is reported as a timeout -- which would
+    #: otherwise make the overflow disappear from a log somebody reads.
+    truncated: bool = False
+    #: What stopping the process tree found, when it had to be stopped.
+    cleanup: Cleanup | None = None
 
     @property
     def signal(self) -> int | None:
@@ -161,9 +178,30 @@ class TaskOutcome:
 
     @property
     def log(self) -> str:
-        """Everything the process said, for a person."""
+        """Everything the process said, for a person, and where it was cut.
 
-        return self.stdout + self.stderr
+        A truncated log that simply stops reads like a tool that simply
+        stopped. The marker is part of the log because the person who needs it
+        is the one scrolling to the bottom wondering where the rest went.
+        """
+
+        body = self.stdout + self.stderr
+        if not self.truncated:
+            return body
+        return (
+            f"{body}\n[ici: capture stopped at {self.spec.output_limit} characters "
+            f"per stream; the rest of this log was never read]\n"
+        )
+
+    @property
+    def cleaned_up(self) -> bool:
+        """Whether a stopped run was *verified* to have left nothing running.
+
+        False when nothing was stopped and false when nobody could look, since
+        "we did not check" is not a clean tree.
+        """
+
+        return self.cleanup is not None and self.cleanup.is_clean
 
     @property
     def parseable(self) -> str:
@@ -184,10 +222,32 @@ class TaskOutcome:
         )
 
 
-def run_task(spec: TaskSpec) -> TaskOutcome:
-    """Run a task through the existing bounded runner, and classify the result."""
+def run_task(spec: TaskSpec, cancellation: Cancellation | None = None) -> TaskOutcome:
+    """Run a task through the existing bounded runner, and classify the result.
+
+    ``cancellation`` is checked before anything is spawned, because the cheapest
+    way to clean up after a process is not to have started it. After that the
+    watchdog carries the request into the running tree, since the thread sitting
+    here is inside the runner and cannot notice anything.
+    """
 
     started = time.monotonic()
+    if cancellation is not None and cancellation.requested:
+        return TaskOutcome(
+            spec=spec,
+            outcome=Outcome.CANCELLED,
+            exit_code=-1,
+            detail=cancellation.reason or "cancelled before it started",
+            cleanup=Cleanup(reason="nothing was started", survivors=frozenset()),
+        )
+
+    watchdog = Watchdog(
+        cancellation,
+        grace=spec.grace,
+        # Past this the runner itself is the thing that is stuck, so waiting
+        # longer for it to notice the timeout only makes the stall longer.
+        limit=spec.timeout + spec.grace + WATCHDOG_MARGIN,
+    )
     try:
         result = run_process(
             list(spec.argv),
@@ -198,6 +258,7 @@ def run_task(spec: TaskSpec) -> TaskOutcome:
             # The environment is the spec's, entire. Merging with the ambient
             # one would make a task's inputs depend on who started ici.
             replace_env=True,
+            started=watchdog.attach,
         )
     except (OSError, ValueError) as error:
         return TaskOutcome(
@@ -207,28 +268,53 @@ def run_task(spec: TaskSpec) -> TaskOutcome:
             duration=time.monotonic() - started,
             detail=str(error),
         )
-    return _classify(spec, result)
+    finally:
+        watchdog.finish()
+    return _classify(spec, result, watchdog)
 
 
-def _classify(spec: TaskSpec, result: ProcessResult) -> TaskOutcome:
-    """Turn a process result into a reason.
+def _interruption(watchdog: Watchdog) -> tuple[Outcome, str] | None:
+    """What the watchdog did to this run, if it actually interrupted it.
 
-    Order matters. A run that both timed out and produced too much output is
-    reported as a timeout, because that is the thing that stopped it; reporting
-    the truncation would describe a symptom.
+    A cancellation that arrives while the tool is already exiting does not take
+    its answer away. ``interrupted`` is read from whether the leader was still
+    running at the moment we signalled, so a race is decided by what was true
+    rather than by who called first.
     """
 
-    outcome = Outcome.FINISHED
-    detail = ""
+    cleanup = watchdog.cleanup
+    if cleanup is None or not cleanup.interrupted:
+        return None
+    if watchdog.trigger == Trigger.CANCELLED:
+        return Outcome.CANCELLED, cleanup.reason or "cancelled"
+    return Outcome.TIMED_OUT, cleanup.reason or "stopped by the watchdog"
+
+
+def _reason(spec: TaskSpec, result: ProcessResult, watchdog: Watchdog) -> tuple[Outcome, str]:
+    """Pick the one reason a run gets, in the order of causes.
+
+    A cancelled run is also a run that died by signal, and a run that both ran
+    out of time and flooded its pipe is both of those. Naming the symptom
+    instead of the cause is how a cancelled build gets investigated as a crash.
+    """
+
+    interruption = _interruption(watchdog)
+    if interruption is not None:
+        return interruption
     if result.timed_out:
-        outcome, detail = Outcome.TIMED_OUT, f"no answer within {spec.timeout:g}s"
-    elif result.returncode < 0:
-        outcome, detail = Outcome.SIGNALLED, f"killed by signal {-result.returncode}"
-    elif result.truncated:
-        outcome, detail = (
-            Outcome.OUTPUT_TRUNCATED,
-            f"more than {spec.output_limit} characters of output",
-        )
+        return Outcome.TIMED_OUT, f"no answer within {spec.timeout:g}s"
+    if result.returncode < 0:
+        return Outcome.SIGNALLED, f"killed by signal {-result.returncode}"
+    if result.truncated:
+        limit = spec.output_limit
+        return Outcome.OUTPUT_TRUNCATED, f"more than {limit} characters of output"
+    return Outcome.FINISHED, ""
+
+
+def _classify(spec: TaskSpec, result: ProcessResult, watchdog: Watchdog) -> TaskOutcome:
+    """Turn a process result into a reason, keeping the facts it did not name."""
+
+    outcome, detail = _reason(spec, result, watchdog)
     return TaskOutcome(
         spec=spec,
         outcome=outcome,
@@ -237,4 +323,6 @@ def _classify(spec: TaskSpec, result: ProcessResult) -> TaskOutcome:
         stderr=result.stderr,
         duration=result.duration,
         detail=detail,
+        truncated=result.truncated,
+        cleanup=watchdog.cleanup,
     )

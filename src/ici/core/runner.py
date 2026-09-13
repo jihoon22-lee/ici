@@ -7,6 +7,7 @@ import signal
 import subprocess
 import threading
 import time
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
@@ -434,6 +435,28 @@ def _make_process_result(
     )
 
 
+def _announce_process(
+    proc: subprocess.Popen[bytes],
+    started: Callable[[subprocess.Popen[bytes]], None],
+) -> None:
+    """Hand the live process to the observer, killing it if the observer fails.
+
+    The process is already running by this point, so an exception here would
+    otherwise leave a child nobody is waiting on.
+    """
+
+    announced = False
+    try:
+        started(proc)
+        announced = True
+    finally:
+        # A finally covers every way out -- an exception, an interrupt, or a
+        # non-local exit -- without catching any of them, which is what this
+        # needs: the guarantee is about the child, not about the error.
+        if not announced:
+            _terminate_process(proc)
+
+
 def _cleanup_failed_process(proc: subprocess.Popen[bytes] | None) -> None:
     if proc is None:
         return
@@ -450,6 +473,7 @@ def run_process(
     input_text: str | None = None,
     max_output_chars: int = 1_000_000,
     replace_env: bool = False,
+    started: Callable[[subprocess.Popen[bytes]], None] | None = None,
 ) -> ProcessResult:
     """Run an argv command with bounded output and safe timeout handling.
 
@@ -457,6 +481,12 @@ def run_process(
     On POSIX, the child starts a new process group so timeout cleanup also
     terminates descendants.  On Windows, a suspended child is assigned to a
     kill-on-close Job Object before its primary thread is resumed.
+
+    ``started`` is called once with the live process, after it is contained and
+    before anything is read from it.  It exists so a caller that wants to stop
+    the run from another thread has something to stop; without it the only way
+    to reach a running child would be to reimplement the spawn.  A ``started``
+    that raises leaves no process behind.
     """
 
     if max_output_chars < 0:
@@ -473,6 +503,8 @@ def run_process(
         proc = _spawn_process(cmd, cwd, exec_env, input_text)
         if os.name == "nt":
             _start_windows_job(proc)
+        if started is not None:
+            _announce_process(proc, started)
         stdout_capture, stderr_capture, stdout_thread, stderr_thread = _start_output_readers(
             proc, max_output_chars
         )
