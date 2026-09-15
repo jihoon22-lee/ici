@@ -48,10 +48,10 @@ def _setting(check_id: str, *, enabled: bool | None = None, required: bool | Non
     )
 
 
-def _work(check: CheckDefinition, executable: str) -> ProviderPlan:
+def _work(check: CheckDefinition, executable: str, task_id: str) -> ProviderPlan:
     return ProviderPlan(
         task=TaskSpec(
-            id=check.id,
+            id=task_id,
             kind=TaskKind.ANALYZE,
             provider=check.tool or "ici",
             argv=(executable, "check"),

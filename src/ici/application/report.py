@@ -43,8 +43,18 @@ def assemble(
     languages: tuple[str, ...] = (),
     scope: ScopeKind = ScopeKind.PARTIAL,
     bundle_digest: str | None = None,
+    required_components: tuple[str, ...] | None = None,
+    omitted_components: tuple[str, ...] = (),
+    limitations: tuple[str, ...] = (),
 ) -> RunResult:
-    """Build the storable result for one verification."""
+    """Build the storable result for one verification.
+
+    ``required_components`` defaults to the selected ones because a single
+    component run *is* its whole scope; a workspace run passes the workspace's
+    required set instead, so a ``--component`` subset cannot read as having
+    covered it. ``limitations`` carries what the run observed outside any one
+    task — a scope nothing had a check for, inputs that moved mid-run.
+    """
 
     blocked = tuple(
         observation.task_id
@@ -68,7 +78,10 @@ def assemble(
             kind=scope,
             selected_components=component_ids,
             selected_languages=languages,
-            required_components=component_ids,
+            required_components=(
+                component_ids if required_components is None else required_components
+            ),
+            omitted_components=omitted_components,
             # A partial run never claims the workspace was satisfied. R05: a
             # partial pass must not read as a workspace pass, and this is
             # stored rather than derived so a consumer cannot recompute it
@@ -91,7 +104,8 @@ def assemble(
             limitation
             for observation in verification.observations
             for limitation in observation.limitations
-        ),
+        )
+        + tuple(limitations),
     )
 
 

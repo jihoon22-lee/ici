@@ -7,6 +7,39 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next`가 이제 workspace 위에서 돌고, 결과는 읽은 것을 증명한다 (WP09, [#207](https://github.com/jihoon22-lee/ici/issues/207))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 전부 `ici next` 네임스페이스 안이고, stable 명령은
+이 모델을 모릅니다.
+
+WP09의 세 PR이 함께 완성하는 것은 **"무엇을 검사할 것인가"를 선언이 답하고, "무엇을 검사했는가"를
+인벤토리가 답하는** 구조입니다. 이전의 `ici next`는 component 하나를 읽고 `rglob`으로 파일을
+찾었습니다 — 지금은 workspace model이 component·build unit·analysis unit을 만들고, inventory가
+그 범위 안의 실제 파일을 내용 digest와 함께 한 번씩만 읽습니다.
+
+- **같은 파일을 두 unit이 공유해도 하나의 사실입니다.** component는 여러 language unit을 가질
+  수 있고 여러 component가 하나의 build unit을 가리킬 수 있습니다. 인벤토리는 파일당 한 번만
+  해시하고 `units`에 청구한 unit을 전부 기록하므로, 공유 소스는 *복사된 두 입력이 아니라*
+  공유된 한 입력입니다. 실행 task id도 `app.python.lint`처럼 component를 품어 두 component의
+  같은 check가 한 결과에 섞이지 않습니다.
+- **`sources`를 쓰지 않으면 관례 범위를 선언한 것입니다.** `ici init`은 `sources` 키를 쓰지
+  않습니다 — 빈 선언이 빈 범위를 뜻하면 초기화 직후의 첫 실행이 아무것도 보지 않고 PASS를
+  출력했을 것입니다. 언어별 기본 glob(`**/*.py`, `**/*.cpp` …)이 component root에 앵커되어
+  workspace 상대로 정규화됩니다.
+- **부분 실행은 부분이라고 말합니다.** `--component`는 `Workspace.scoped()`로 모델을 좁히고
+  결과에 `PARTIAL` + `omitted_components`를 기록합니다. 전체를 도려고 했지만 미완료가 생긴
+  실행도 `PARTIAL`입니다 — 도메인이 `FULL`을 *"required scope를 다 커버하고 완료된"* 것으로만
+  허용하기 때문입니다. 부분 PASS가 workspace PASS로 읽히는 것(R05)은 이제 저장된 사실로
+  막힙니다.
+- **실행 중 입력이 움직이면 결과가 말합니다.** verify는 전후 인벤토리를 비교해 추가·삭제·변경된
+  입력을 limitation으로 기록하고, snapshot은 VCS의 commit·dirty를 따로 담습니다 — "해시한
+  경로 목록"이 아니라 읽은 내용의 정체입니다.
+- **기존 `python`/`cpp`/`hybrid` 판별은 projection으로 살아남았습니다.** `workspace.project_context()`가
+  새 모델에서 legacy `ProjectModel`을 만듭니다 — 모델이 모르는 것(컴파일 플래그, 헤더 분리)은
+  추측하지 않고 비워 두고, build unit이 여럿이면 backend를 하나로 뭉개지 않습니다.
+- 문서: [`docs/design/ici-next/spec-01-workspace-config-cli.md`](docs/design/ici-next/spec-01-workspace-config-cli.md),
+  [`first-complete-path.md`](docs/design/ici-next/first-complete-path.md).
+
 ### 추가 — 실패가 빈 PASS가 되지 않는 실행 결과 (WP07 PR A, [#205](https://github.com/jihoon22-lee/ici/issues/205))
 
 **기존 배포 경로 동작 변경 없음.** 새 executor는 아직 아무도 호출하지 않습니다.

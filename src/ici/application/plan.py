@@ -39,10 +39,20 @@ class PlannedCheck:
     task: ProviderPlan | None = None
     #: Why nothing will run. Empty when the check is going to happen.
     blocked: str = ""
+    #: The identity observations carry. Defaults to the check id; a workspace
+    #: run qualifies it per component so two components running one check stay
+    #: two facts (#207 item 2: tasks keep their unit's identity).
+    task_id: str = ""
 
     def __post_init__(self) -> None:
         if self.task is not None and self.blocked:
             raise ValueError(f"{self.check.id} cannot be both planned and blocked")
+        if not self.task_id:
+            object.__setattr__(self, "task_id", self.task.task.id if self.task else self.check.id)
+        elif self.task is not None and self.task.task.id != self.task_id:
+            raise ValueError(
+                f"{self.check.id} task id {self.task_id!r} disagrees with its task {self.task.task.id!r}"
+            )
 
     @property
     def will_run(self) -> bool:

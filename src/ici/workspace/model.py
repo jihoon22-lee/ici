@@ -24,13 +24,25 @@ verification failure.
 from __future__ import annotations
 
 import re
+from pathlib import PurePosixPath
 
 from ici.config.composition import EffectiveBuild, EffectiveComponent, EffectiveConfig
 from ici.config.errors import ConfigProblem, NextConfigError
 from ici.config.origin import Origin
+from ici.config.paths import _normalise
 from ici.domain.workspace import AnalysisUnit, BuildUnit, Component, Workspace
 
 __all__ = ["build", "project_type"]
+
+#: A component that declares no ``sources`` claims its languages' conventional
+#: files under its own root. ``ici init`` writes no ``sources`` key and SPEC-01
+#: section 4's ``tool-a`` has none either — an empty declaration must mean the
+#: conventional scope, not an empty one. The same suffixes ``scaffold`` uses to
+#: *detect* a language are the ones used to *scope* it.
+_DEFAULT_SOURCE_GLOBS = {
+    "python": ("**/*.py",),
+    "cpp": ("**/*.cpp", "**/*.cc", "**/*.cxx", "**/*.hpp", "**/*.h"),
+}
 
 
 #: ``prepare = "explicit"`` — the build is configured by the user before ici
@@ -135,7 +147,7 @@ def _component(item: EffectiveComponent) -> Component:
         id=item.id,
         root=item.root.value,
         languages=item.languages.value,
-        sources=item.sources,
+        sources=_sources(item),
         include=item.include,
         exclude=item.exclude,
         vendor=item.vendor,
@@ -144,6 +156,27 @@ def _component(item: EffectiveComponent) -> Component:
         needs=item.needs.value if item.needs is not None else (),
         external=item.external.value if item.external is not None else (),
     )
+
+
+def _sources(item: EffectiveComponent) -> tuple[str, ...]:
+    """The component's claimed scope, defaulting by language when undeclared.
+
+    Declared globs arrive workspace-relative already; the default is spelled
+    the same way — anchored to the component root, expressed from the
+    workspace — so ``root = "."`` and a split-out file produce identical scope.
+    """
+
+    if item.sources:
+        return item.sources
+    root = item.root.value
+    patterns = [
+        pattern
+        for language in item.languages.value
+        for pattern in _DEFAULT_SOURCE_GLOBS.get(language, ())
+    ]
+    if root == ".":
+        return tuple(patterns)
+    return tuple(str(_normalise(PurePosixPath(root) / pattern)) for pattern in patterns)
 
 
 def _units(components: tuple[Component, ...], config: EffectiveConfig) -> tuple[AnalysisUnit, ...]:
