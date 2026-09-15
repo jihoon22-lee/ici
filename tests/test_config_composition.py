@@ -42,7 +42,7 @@ root = "python/tool-b"
 languages = ["python"]
 sources = ["**/*.py"]
 [components.python]
-executable = ".venv/bin/python"
+executable = "python/tool-b/.venv/bin/python"
 """
 
 ROOT_REFERENCE = """
@@ -60,7 +60,7 @@ config = "python/tool-b/ici.toml"
 CHILD = """
 schema_version = 1
 [component]
-root = "python/tool-b"
+root = "."
 languages = ["python"]
 sources = ["**/*.py"]
 [python]
@@ -362,7 +362,10 @@ class TestAStandaloneComponentIsNotAWorkspacePass:
         )
         component = config.component("tool-b")
         assert component is not None
-        assert component.sources == ("python/tool-b/**/*.py",)
+        # A standalone component is its own workspace: root "." is its own
+        # directory, and globs resolve against that root.
+        assert component.root.value == "."
+        assert component.sources == ("**/*.py",)
 
 
 class TestLayerPrecedence:

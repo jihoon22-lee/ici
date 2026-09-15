@@ -54,6 +54,52 @@ def workspace(tmp_path: Path) -> Path:
     return repo
 
 
+class TestChildReferencesResolveLikeDeclaredPaths:
+    """A registered child's ``config`` follows the path contract, env included."""
+
+    def test_an_env_reference_finds_the_child(
+        self, workspace: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (workspace / "ici.toml").write_text(
+            ROOT.replace('config = "python/tool-b/ici.toml"', 'config = "${env:ICI_CHILD}"'),
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("ICI_CHILD", "python/tool-b/ici.toml")
+
+        config = load(workspace)
+
+        assert {item.id for item in config.components} == {"gui", "tool-b"}
+
+    def test_an_unset_env_reference_is_a_config_problem(
+        self, workspace: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (workspace / "ici.toml").write_text(
+            ROOT.replace('config = "python/tool-b/ici.toml"', 'config = "${env:ICI_CHILD}"'),
+            encoding="utf-8",
+        )
+        monkeypatch.delenv("ICI_CHILD", raising=False)
+
+        with pytest.raises(NextConfigError) as raised:
+            load(workspace)
+
+        assert "ICI_CHILD" in str(raised.value)
+
+    def test_a_reference_outside_the_workspace_is_reported(self, tmp_path: Path) -> None:
+        repo = tmp_path / "repo"
+        (repo / ".git").mkdir(parents=True)
+        (tmp_path / "stray").mkdir()
+        (tmp_path / "stray" / "ici.toml").write_text(CHILD, encoding="utf-8")
+        (repo / "ici.toml").write_text(
+            ROOT.replace('config = "python/tool-b/ici.toml"', 'config = "../stray/ici.toml"'),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(NextConfigError) as raised:
+            load(repo)
+
+        assert "escapes" in str(raised.value)
+
+
 class TestTheSearchFindsTheRootFromAnywhereInside:
     def test_from_the_root_itself(self, workspace: Path) -> None:
         assert discover(workspace).path == workspace / "ici.toml"

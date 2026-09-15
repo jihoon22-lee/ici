@@ -23,8 +23,10 @@ schema and composition testable from strings.
 
 from __future__ import annotations
 
+import os
+from collections.abc import Mapping
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import tomli
 
@@ -164,19 +166,43 @@ def load(
 
     if not found.is_workspace:
         document = read_component(found.path.read_text(encoding="utf-8"), path=str(found.path))
-        return compose_standalone(document, component_id=found.directory.name)
+        return compose_standalone(
+            document, component_id=found.directory.name, environment=os.environ
+        )
 
     root = read_root(found.path.read_text(encoding="utf-8"), path=str(found.path))
-    return compose(root, _children(root, found), local=overlay)
+    return compose(root, _children(root, found, os.environ), local=overlay, environment=os.environ)
 
 
-def _children(root: RootDocument, found: Discovery) -> dict[str, ComponentDocument]:
-    """Read exactly the files the root registered, and no others."""
+def _children(
+    root: RootDocument, found: Discovery, environment: Mapping[str, str]
+) -> dict[str, ComponentDocument]:
+    """Read exactly the files the root registered, and no others.
+
+    A reference is a declared path, so it goes through the same contract as
+    every other path value — ``${env:NAME}`` substitutes, ``..`` is refused by
+    the resolver, and the file must still land inside the workspace.
+    """
 
     problems: list[ConfigProblem] = []
     children: dict[str, ComponentDocument] = {}
+    base = PurePosixPath(str(found.directory.resolve()))
     for reference in root.references:
-        path = (found.directory / reference.config.raw).resolve()
+        resolved = reference.config.resolve(
+            declaring_directory=base, environment=environment, problems=problems
+        )
+        try:
+            resolved.relative_to(base)
+        except ValueError:
+            problems.append(
+                ConfigProblem(
+                    f"component config escapes the workspace: {reference.config.raw!r}",
+                    reference.config.origin,
+                    hint="a registered child lives inside the workspace",
+                )
+            )
+            continue
+        path = Path(str(resolved))
         if not path.is_file():
             problems.append(
                 ConfigProblem(

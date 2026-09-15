@@ -157,6 +157,19 @@ class Component:
     sources: tuple[str, ...] = ()
     build_ids: tuple[str, ...] = ()
     test_paths: tuple[str, ...] = ()
+    #: Components or build units this component consumes artifacts from.
+    #: A ``needs`` edge is an artifact/ordering edge — SPEC-01 section 1 is
+    #: explicit that needing a native build's output is not depending on every
+    #: check the producing component runs.
+    needs: tuple[str, ...] = ()
+    #: Source membership refinements — include/exclude are glob patterns like
+    #: ``sources``; vendor marks checked-in third-party inputs.
+    include: tuple[str, ...] = ()
+    exclude: tuple[str, ...] = ()
+    vendor: tuple[str, ...] = ()
+    #: Declared reads outside the component root — the only paths allowed to
+    #: be absolute, because their purpose is naming what lies outside.
+    external: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", require_identifier(self.id, "component id"))
@@ -171,6 +184,24 @@ class Component:
         object.__setattr__(self, "build_ids", _identifiers(self.build_ids, "component build id"))
         object.__setattr__(
             self, "test_paths", _relative_paths(self.test_paths, "component test path")
+        )
+        object.__setattr__(self, "needs", _identifiers(self.needs, "component needs"))
+        if self.id in self.needs:
+            raise ValueError(f"component {self.id} cannot need itself")
+        object.__setattr__(
+            self, "include", _relative_paths(self.include, "component include pattern")
+        )
+        object.__setattr__(
+            self, "exclude", _relative_paths(self.exclude, "component exclude pattern")
+        )
+        object.__setattr__(self, "vendor", _relative_paths(self.vendor, "component vendor pattern"))
+        object.__setattr__(
+            self,
+            "external",
+            tuple(
+                require_text(item, "external input")
+                for item in require_tuple(self.external, str, "external inputs")
+            ),
         )
 
 
@@ -233,6 +264,9 @@ class Workspace:
     name: str
     components: tuple[Component, ...] = ()
     builds: tuple[BuildUnit, ...] = ()
+    #: Generated, never declared: one unit per component x language, qualified
+    #: by the variant or runtime it runs under (WP09).
+    analysis_units: tuple[AnalysisUnit, ...] = ()
     required_component_ids: tuple[str, ...] = ()
     policy_digest: str | None = None
     limitations: tuple[str, ...] = field(default_factory=tuple)
@@ -247,16 +281,54 @@ class Workspace:
         object.__setattr__(self, "components", components)
         object.__setattr__(self, "builds", builds)
 
+        units = require_tuple(self.analysis_units, AnalysisUnit, "analysis units")
+        require_unique_identifiers([item.id for item in units], "analysis units")
+        component_ids = {item.id for item in components}
+        build_ids_check = {item.id for item in builds}
+        for unit in units:
+            if unit.component_id not in component_ids:
+                raise ValueError(
+                    f"analysis unit {unit.id} belongs to unregistered component {unit.component_id}"
+                )
+            if unit.build_id is not None and unit.build_id not in build_ids_check:
+                raise ValueError(
+                    f"analysis unit {unit.id} references unknown build {unit.build_id}"
+                )
+        object.__setattr__(self, "analysis_units", units)
+
         build_ids = {item.id for item in builds}
+        directories: dict[str, str] = {}
+        for build in builds:
+            owner = directories.setdefault(build.directory, build.id)
+            if owner != build.id:
+                raise ValueError(
+                    f"build units {owner} and {build.id} share directory {build.directory}"
+                )
         for component in components:
             missing = [ref for ref in component.build_ids if ref not in build_ids]
             if missing:
                 raise ValueError(
                     f"component {component.id} references undefined build units: {sorted(missing)}"
                 )
+            for need in component.needs:
+                in_components = need in component_ids
+                in_builds = need in build_ids
+                if in_components and in_builds:
+                    raise ValueError(
+                        f"component {component.id} needs {need!r}, which names both a "
+                        f"component and a build unit — the edge is ambiguous"
+                    )
+                if not in_components and not in_builds:
+                    raise ValueError(
+                        f"component {component.id} needs {need!r}, which is neither a "
+                        f"registered component nor a declared build"
+                    )
+
+        cycle = _component_cycle(components)
+        if cycle:
+            raise ValueError("component dependency cycle: " + " -> ".join((*cycle, cycle[0])))
 
         required = _identifiers(self.required_component_ids, "required component id")
-        component_ids = {item.id for item in components}
         unknown = [ref for ref in required if ref not in component_ids]
         if unknown:
             raise ValueError(f"required components are not registered: {sorted(unknown)}")
@@ -290,3 +362,54 @@ class Workspace:
             if item.id == build_id:
                 return item
         raise KeyError(build_id)
+
+    def component_needs(self, component_id: str) -> tuple[str, ...]:
+        """The component-level edges a component declares, resolved.
+
+        Only edges to other components are returned; a ``needs`` entry naming
+        a build unit is an artifact edge, not a component ordering edge, and
+        is reported by :meth:`build_needs`.
+        """
+
+        ids = {item.id for item in self.components}
+        return tuple(n for n in self.component(component_id).needs if n in ids)
+
+    def build_needs(self, component_id: str) -> tuple[str, ...]:
+        """The build units a component depends on beyond its own."""
+
+        ids = {item.id for item in self.components}
+        return tuple(n for n in self.component(component_id).needs if n not in ids)
+
+
+def _component_cycle(components: tuple[Component, ...]) -> tuple[str, ...]:
+    """The first component-level dependency cycle found, or empty.
+
+    Edges run consumer to producer — ``a`` needs ``b`` means ``b``'s artifacts
+    must exist before ``a``'s consumers run, so a cycle means no ordering can
+    satisfy both ends of it.
+    """
+
+    ids = {item.id for item in components}
+    edges = {item.id: tuple(n for n in item.needs if n in ids) for item in components}
+    visiting: list[str] = []
+    settled: set[str] = set()
+
+    def visit(node: str) -> tuple[str, ...]:
+        if node in settled:
+            return ()
+        if node in visiting:
+            return tuple(visiting[visiting.index(node) :])
+        visiting.append(node)
+        for follow in edges[node]:
+            found = visit(follow)
+            if found:
+                return found
+        visiting.pop()
+        settled.add(node)
+        return ()
+
+    for item in components:
+        found = visit(item.id)
+        if found:
+            return found
+    return ()

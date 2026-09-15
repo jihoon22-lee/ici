@@ -150,6 +150,14 @@ class ComponentBody:
     cpp: CppSettings | None
     origin: Origin
     checks: tuple[CheckSetting, ...] = ()
+    #: Components or builds this component consumes artifacts from (SPEC-01
+    #: section 1: component dependencies are not task dependencies).
+    needs: Sourced[tuple[str, ...]] | None = None
+    #: Globs marking checked-in sources as vendor/third-party inputs.
+    vendor: tuple[SourceGlob, ...] = ()
+    #: Declared reads outside the component root, kept separate from write
+    #: scope as SPEC-01 section 3 requires of external inputs.
+    external: Sourced[tuple[str, ...]] | None = None
 
 
 @dataclass(frozen=True)
