@@ -24,7 +24,7 @@ disagree with the executor about whether there was a result to judge.
 from __future__ import annotations
 
 import os
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -60,18 +60,26 @@ class Verification:
 
 
 def verify(
-    plan: Plan,
+    plan: Plan | Iterable[Plan],
     providers: Mapping[str, Provider],
     analyses: Mapping[str, Analysis],
     runner: Runner = run_task,
     environment: Mapping[str, str] | None = None,
 ) -> Verification:
-    """Run everything the plan intends to run, then judge it."""
+    """Run everything the plans intend to run, then judge it once.
+
+    A workspace run is several component plans judged as one gate: an
+    INCOMPLETE anywhere holds the verdict, and findings pool across
+    components. Plans stay per-component because check ids are unique only
+    within one component's selection.
+    """
+
+    plans = (plan,) if isinstance(plan, Plan) else tuple(plan)
 
     observations: list[Observation] = []
     incomplete: list[str] = []
 
-    for planned in plan.checks:
+    for planned in (item for p in plans for item in p.checks):
         observation = _perform(planned, providers, analyses, runner, environment)
         observations.append(observation)
         reason = _incompleteness(planned, observation)
@@ -94,12 +102,12 @@ def _perform(
     environment: Mapping[str, str] | None,
 ) -> Observation:
     if planned.blocked:
-        return unavailable(planned.check.tool or "ici", planned.check.id, planned.blocked)
+        return unavailable(planned.check.tool or "ici", planned.task_id, planned.blocked)
     if planned.is_internal:
-        analysis = analyses.get(planned.check.id)
+        analysis = analyses.get(planned.task_id)
         if analysis is None:
             return unavailable(
-                "ici", planned.check.id, f"{planned.check.id} has no analysis registered"
+                "ici", planned.task_id, f"{planned.check.id} has no analysis registered"
             )
         return analysis()
 
@@ -150,7 +158,7 @@ def _incompleteness(planned: PlannedCheck, observation: Observation) -> str:
     if observation.state is TaskState.SUCCEEDED and observation.evidence_is_complete:
         return ""
     detail = observation.limitations[0] if observation.limitations else observation.state.value
-    return f"{planned.check.id}: {detail}"
+    return f"{planned.task_id}: {detail}"
 
 
 def _judge(incomplete: tuple[str, ...], findings: tuple[Finding, ...]) -> GateOutcome:

@@ -13,6 +13,7 @@ which files the globs actually mean — is a separate adapter
 workspace *is* before it touches the tree.
 """
 
+from ici.workspace.legacy import project_context
 from ici.workspace.model import build, project_type
 
-__all__ = ["build", "project_type"]
+__all__ = ["build", "project_context", "project_type"]

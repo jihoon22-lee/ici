@@ -42,8 +42,10 @@ __all__ = [
 #: caller, and handed in.
 ToolLocator = Callable[[str], str | None]
 
-#: How to build the work for a check whose tool was found.
-Planner = Callable[[CheckDefinition, str], ProviderPlan]
+#: How to build the work for a check whose tool was found. The task id is
+#: decided by the planner so a run task and a blocked placeholder carry the
+#: same identity — the provider is told it, it does not choose it.
+Planner = Callable[[CheckDefinition, str, str], ProviderPlan]
 
 
 def selected_checks(
@@ -76,29 +78,41 @@ def select(
     locate: ToolLocator,
     plan_work: Planner,
     available: Sequence[CheckDefinition] = PYTHON_CHECKS,
+    task_prefix: str = "",
 ) -> Plan:
     """Build the plan for one component, keeping what it cannot do in it."""
 
-    return _plan_for(selected_checks(component, available), locate, plan_work, "this component")
+    return _plan_for(
+        selected_checks(component, available), locate, plan_work, "this component", task_prefix
+    )
 
 
 def _plan_for(
-    checks: Sequence[CheckDefinition], locate: ToolLocator, plan_work: Planner, who: str
+    checks: Sequence[CheckDefinition],
+    locate: ToolLocator,
+    plan_work: Planner,
+    who: str,
+    task_prefix: str = "",
 ) -> Plan:
     if not checks:
         raise NothingSelected(f"{who} selected no check; a run that checks nothing cannot pass")
 
     planned = []
     for check in checks:
+        task_id = f"{task_prefix}.{check.id}" if task_prefix else check.id
         if not check.needs_a_tool:
-            planned.append(PlannedCheck(check=check))
+            planned.append(PlannedCheck(check=check, task_id=task_id))
             continue
         assert check.tool is not None
         executable = locate(check.tool)
         if executable is None:
-            planned.append(PlannedCheck(check=check, blocked=f"{check.tool} is not available"))
+            planned.append(
+                PlannedCheck(check=check, blocked=f"{check.tool} is not available", task_id=task_id)
+            )
             continue
-        planned.append(PlannedCheck(check=check, task=plan_work(check, executable)))
+        planned.append(
+            PlannedCheck(check=check, task=plan_work(check, executable, task_id), task_id=task_id)
+        )
     return Plan(checks=tuple(planned))
 
 
@@ -139,9 +153,14 @@ def select_effective(
     locate: ToolLocator,
     plan_work: Planner,
     available: Sequence[CheckDefinition] = PYTHON_CHECKS,
+    task_prefix: str = "",
 ) -> Plan:
     """Build the plan for one composed component."""
 
     return _plan_for(
-        selected_effective_checks(component, available), locate, plan_work, component.id
+        selected_effective_checks(component, available),
+        locate,
+        plan_work,
+        component.id,
+        task_prefix,
     )

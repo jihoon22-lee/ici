@@ -19,6 +19,7 @@ with no project on disk.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from ici.domain._validation import (
@@ -362,6 +363,38 @@ class Workspace:
             if item.id == build_id:
                 return item
         raise KeyError(build_id)
+
+    def scoped(self, component_ids: Iterable[str]) -> Workspace:
+        """The workspace as a run that selected a subset of components sees it.
+
+        A ``--component`` run must not describe components it omitted: the view
+        keeps only the selected components and their units, and required ids
+        the selection does not cover drop out — the run's *scope* record still
+        names them separately, which is what ``omitted_components`` is for.
+        All build units stay registered, because a selected component may hold
+        files under a build directory it does not itself reference.
+        """
+
+        selected = tuple(dict.fromkeys(component_ids))
+        known = {item.id for item in self.components}
+        unknown = [item for item in selected if item not in known]
+        if unknown:
+            raise ValueError(f"cannot scope to unregistered components: {sorted(unknown)}")
+        picked = set(selected)
+        return Workspace(
+            id=self.id,
+            name=self.name,
+            components=tuple(item for item in self.components if item.id in picked),
+            builds=self.builds,
+            analysis_units=tuple(
+                unit for unit in self.analysis_units if unit.component_id in picked
+            ),
+            required_component_ids=tuple(
+                item for item in self.required_component_ids if item in picked
+            ),
+            policy_digest=self.policy_digest,
+            limitations=self.limitations,
+        )
 
     def component_needs(self, component_id: str) -> tuple[str, ...]:
         """The component-level edges a component declares, resolved.
