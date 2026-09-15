@@ -2,7 +2,12 @@
 
 import pytest
 
+import ici.engines._exception_rules as exception_rules
 from ici.core.models import EngineStatus, EvidenceState
+from ici.engines._exception_rules import (
+    _empty_catch_all_lines,
+    _mask_cpp_literals,
+)
 from ici.engines.exception import ExceptionSafetyEngine
 
 
@@ -201,7 +206,7 @@ def test_exception_engine_mask_cpp_literals_preserves_lines_and_following_code()
         "void f() { catch (...) {} }\n"
     )
 
-    masked = ExceptionSafetyEngine._mask_cpp_literals(content)
+    masked = _mask_cpp_literals(content)
 
     assert masked.count("\n") == content.count("\n")
     assert "catch" not in "\n".join(masked.splitlines()[:-1])
@@ -1107,13 +1112,13 @@ def test_exception_engine_calculates_empty_catch_once_for_pass_target(tmp_path, 
         "void run() { try { work(); } catch (...) { log(); } }\n", encoding="utf-8"
     )
     calls = []
-    original = ExceptionSafetyEngine._empty_catch_all_lines
+    original = _empty_catch_all_lines
 
     def counted(masked):
         calls.append(masked)
         return original(masked)
 
-    monkeypatch.setattr(ExceptionSafetyEngine, "_empty_catch_all_lines", staticmethod(counted))
+    monkeypatch.setattr(exception_rules, "_empty_catch_all_lines", counted)
 
     result = ExceptionSafetyEngine(tmp_path).run()
 

@@ -19,6 +19,10 @@ from pathlib import Path
 from ici.domain.enums import EvidenceLevel, TaskState
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement, Observation
+from ici.engines._exception_rules import (
+    analyze_cpp_exceptions,
+    analyze_python_exceptions,
+)
 from ici.engines._python_resources import (
     ResourceAnalysisLimit,
     analyze_python_resources,
@@ -64,14 +68,9 @@ def measure_hygiene(request: HygieneRequest) -> Observation:
                 analysis = analyze_python_security(source.file_path, source.text)
                 for target in analysis.findings:
                     findings.append(
-                        _finding(
-                            request,
-                            source.file_path,
-                            target,
-                            severity="high",
-                        )
+                        _finding(request, source.file_path, target, severity="high")
                     )
-            else:
+            elif request.kind == "resource":
                 analysis = analyze_python_resources(source.file_path, source.text)
                 for issue in analysis.issues:
                     findings.append(
@@ -83,6 +82,39 @@ def measure_hygiene(request: HygieneRequest) -> Observation:
                             confidence=issue.confidence.value,
                         )
                     )
+            elif source.file_path.endswith(".py"):
+                analysis = analyze_python_exceptions(source.file_path, source.text)
+                if analysis.error_message:
+                    limitations.append(
+                        f"{source.file_path}:{analysis.error_line}: "
+                        f"{analysis.error_message} — exception analysis was not run"
+                    )
+                    continue
+                findings.extend(
+                    _finding(
+                        request,
+                        source.file_path,
+                        target,
+                        severity="high" if target.status.value == "FAIL" else "medium",
+                        category="correctness",
+                    )
+                    for target in analysis.targets
+                    if target.status.value in {"FAIL", "WARN"}
+                )
+            else:
+                analysis = analyze_cpp_exceptions(source.file_path, source.text)
+                findings.extend(
+                    _finding(
+                        request,
+                        source.file_path,
+                        target,
+                        severity="high",
+                        category="correctness",
+                        confidence="medium",
+                    )
+                    for target in analysis.targets
+                    if target.status.value == "FAIL"
+                )
         except SyntaxError as error:
             limitations.append(
                 f"{source.file_path}:{error.lineno or 1}: syntax invalid — "

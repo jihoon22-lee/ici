@@ -47,6 +47,13 @@
   보존하고 경로·라인·컬럼을 유지하며, generated/vendor 소유 정책 제외와
   파싱 실패는 limitation으로 보고됩니다 — 파싱되지 않은 파일을 검사된
   것으로 세지 않습니다 (#218).
+- **`python.exception`·`cpp.exception` check이 추가됐습니다.** 예외 안전
+  규칙(베어 `except`, `BaseException` 포착, 핸들러 삼킴, traceback 소실
+  재발생, 소멸자 throw, 빈 `catch(...)`)이 `engines/_exception_rules.py`로
+  추출됐고, stable `exception` 엔진과 `ici next` check이 같은 파일 단위
+  분석(`analyze_python_exceptions`·`analyze_cpp_exceptions`)을 공유합니다.
+  PASS 요약 target은 finding으로 올리지 않고, C++ 마스킹 스캔은 heuristic
+  이므로 medium confidence로 표시됩니다 (#218).
 
 - **수식은 stable 엔진과 동일합니다.** cyclomatic/cognitive/nesting 계산이
   `engines/_python_metrics.py`로 추출됐고, stable `complexity`·`cognitive`

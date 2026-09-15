@@ -117,6 +117,16 @@ CPP_DUP_CHECK = CheckDefinition(
 
 #: gcov over the notes and data the instrumented build and the shared test
 #: run left — this check never builds or reruns the suite itself.
+#: Throwing destructors and silent catch-all blocks — the masked-literal scan
+#: shared with the stable ``exception`` engine. Heuristic over stripped text,
+#: so findings carry medium confidence (#218).
+CPP_EXCEPTION_CHECK = CheckDefinition(
+    id="cpp.exception",
+    title="Exception safety",
+    language="cpp",
+    tool=None,
+)
+
 CPP_COVERAGE_CHECK = CheckDefinition(
     id="cpp.coverage",
     title="gcov coverage",
@@ -137,4 +147,5 @@ CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_COGNITIVE_CHECK,
     CPP_CYCLE_CHECK,
     CPP_DUP_CHECK,
+    CPP_EXCEPTION_CHECK,
 )

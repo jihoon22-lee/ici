@@ -130,3 +130,40 @@ def test_verify_reports_resource_finding(tmp_path: Path, monkeypatch) -> None:
 
     findings = _findings(payload, "python.resource")
     assert any(f["native_rule_id"] == "Resource:OpenWithoutWith" for f in findings)
+
+
+def test_exception_flags_bare_except(tmp_path: Path) -> None:
+    observation = _measure(
+        tmp_path,
+        "exception",
+        "lib.py",
+        "def f():\n    try:\n        work()\n    except:\n        pass\n",
+    )
+
+    rules = {f.native_rule_id for f in observation.findings}
+    assert "BareExcept" in rules
+    assert "ErrorSwallowing" in rules
+
+
+def test_exception_flags_throwing_destructor_in_cpp(tmp_path: Path) -> None:
+    observation = _measure(
+        tmp_path,
+        "exception",
+        "lib.cpp",
+        "struct S {\n    ~S() { throw 1; }\n};\n",
+    )
+
+    rules = {f.native_rule_id for f in observation.findings}
+    assert "DestructorThrow" in rules
+
+
+def test_verify_reports_python_exception_finding(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    _python_workspace(
+        tmp_path, "def f():\n    try:\n        work()\n    except:\n        pass\n"
+    )
+
+    payload = _verify(tmp_path)
+
+    findings = _findings(payload, "python.exception")
+    assert any(f["native_rule_id"] == "BareExcept" for f in findings)

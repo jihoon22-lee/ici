@@ -31,6 +31,7 @@ def test_a_python_scope_never_sees_cpp_tools() -> None:
         "python.dup",
         "python.security",
         "python.resource",
+        "python.exception",
     }
     assert registry.providers_for(("python",)) == ("ici.line", "ruff")
 
@@ -51,6 +52,7 @@ def test_a_cpp_scope_never_sees_python_tools() -> None:
         "cpp.cognitive",
         "cpp.cycle",
         "cpp.dup",
+        "cpp.exception",
     }
     assert "ruff" not in registry.providers_for(("cpp",))
 
@@ -73,6 +75,7 @@ def test_a_hybrid_scope_gets_both_packs_but_no_strays() -> None:
         "python.dup",
         "python.security",
         "python.resource",
+        "python.exception",
         "cpp.line",
         "cpp.compile",
         "cpp.diagnostics",
@@ -83,6 +86,7 @@ def test_a_hybrid_scope_gets_both_packs_but_no_strays() -> None:
         "cpp.cognitive",
         "cpp.cycle",
         "cpp.dup",
+        "cpp.exception",
     }
 
 

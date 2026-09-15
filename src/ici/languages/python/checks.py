@@ -134,6 +134,16 @@ RESOURCE_CHECK = CheckDefinition(
     tool=None,
 )
 
+#: Handler anti-patterns — bare except, BaseException, swallowed handlers and
+#: traceback-losing re-raise; the same rules the stable ``exception`` engine
+#: runs, shared through ``engines._exception_rules`` (#218).
+EXCEPTION_CHECK = CheckDefinition(
+    id="python.exception",
+    title="Exception safety",
+    language="python",
+    tool=None,
+)
+
 #: Declaration only. Importing this must not look at the machine.
 PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     LINE_CHECK,
@@ -148,4 +158,5 @@ PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     DUP_CHECK,
     SECURITY_CHECK,
     RESOURCE_CHECK,
+    EXCEPTION_CHECK,
 )

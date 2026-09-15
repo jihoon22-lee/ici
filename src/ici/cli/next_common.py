@@ -527,7 +527,7 @@ def _internal_analysis(
         return _cycle_counter(planned, component, files, component_root, root)
     if kind == "dup":
         return _dup_counter(planned, component, files, component_root, root)
-    if kind in {"security", "resource"}:
+    if kind in {"security", "resource", "exception"}:
         return _hygiene_counter(planned, component, files, component_root, root, kind)
     return _line_counter(component_root, root, files, planned.task_id)
 
