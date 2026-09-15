@@ -117,14 +117,6 @@ def _build_unit(item: EffectiveBuild, problems: list[ConfigProblem]) -> BuildUni
     else:
         directory = item.directory.value
     variant = item.variant.value
-    if item.prepare is None:
-        problems.append(
-            ConfigProblem(
-                f"build {item.id} has no prepare declaration",
-                Origin(file=item.declared_in),
-                hint='write prepare = "explicit" to say the user configures it',
-            )
-        )
     return BuildUnit(
         id=item.id,
         system=system,

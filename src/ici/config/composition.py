@@ -39,7 +39,12 @@ from ici.config.documents import (
 from ici.config.errors import ConfigProblem, collect
 from ici.config.layers import Layer
 from ici.config.origin import Origin, Sourced
-from ici.config.paths import DeclaredPath, _normalise, substitute_environment
+from ici.config.paths import (
+    DeclaredPath,
+    Executable,
+    _normalise,
+    substitute_environment,
+)
 from ici.domain.enums import ScopeKind
 
 __all__ = [
@@ -429,7 +434,14 @@ def _component(
         needs=_optional(body.needs, Layer.COMPONENT),
         external=_external(body, declared_in, workspace_dir, environment, problems),
         declared_in=declared_in,
-        python_executable=_python_executable(component_id, body, local),
+        python_executable=_python_executable(
+            component_id,
+            body,
+            local,
+            workspace_dir=workspace_dir,
+            environment=environment,
+            problems=problems,
+        ),
     )
 
 
@@ -518,12 +530,26 @@ def _external(
         )
         candidate = PurePosixPath(substituted)
         # Absolute spellings are the point of an external input — unlike every
-        # other declared path they are allowed to leave the checkout.
-        anchored = candidate if candidate.is_absolute() else _normalise(base / candidate)
+        # other declared path they are allowed to leave the checkout. Both
+        # arms normalise first: ``/repo/../outside`` must compare as
+        # ``/outside``, not as a ``..`` that happens to share a prefix.
+        anchored = (
+            _normalise(candidate) if candidate.is_absolute() else _normalise(base / candidate)
+        )
         try:
-            resolved.append(anchored.relative_to(root).as_posix())
+            relative = anchored.relative_to(root)
         except ValueError:
+            relative = None
+        # A ``/`` root means the workspace directory itself was written
+        # relatively, which cannot prove an absolute path is inside.
+        if (
+            relative is None
+            or ".." in relative.parts
+            or (candidate.is_absolute() and root == PurePosixPath("/"))
+        ):
             resolved.append(anchored.as_posix())
+        else:
+            resolved.append(relative.as_posix())
     return Decided(value=tuple(resolved), origin=body.external.origin, layer=Layer.COMPONENT)
 
 
@@ -647,19 +673,72 @@ def _prepare(declaration: BuildDeclaration, problems: list[ConfigProblem]) -> De
     )
 
 
+def _executable(
+    executable: Executable,
+    workspace_dir: PurePosixPath,
+    environment: Mapping[str, str],
+    problems: list[ConfigProblem],
+) -> str:
+    """An interpreter identity that means the same thing from any cwd.
+
+    A bare name stays a PATH lookup — resolving it here would bake in this
+    machine's PATH, which is exactly the non-determinism the model exists to
+    remove. Anything containing ``/`` is a declared path: anchored to its own
+    file, then expressed workspace-relative when it lands inside and absolute
+    when it does not.
+    """
+
+    if executable.searches_path:
+        return executable.raw
+    substituted = substitute_environment(
+        executable.raw, origin=executable.origin, environment=environment, problems=problems
+    )
+    candidate = PurePosixPath(substituted)
+    declaring_dir = _virtual(PurePosixPath(executable.origin.file).parent)
+    anchored = (
+        _normalise(candidate) if candidate.is_absolute() else _normalise(declaring_dir / candidate)
+    )
+    base = _virtual(workspace_dir)
+    try:
+        relative = anchored.relative_to(base)
+    except ValueError:
+        relative = None
+    if (
+        relative is None
+        or ".." in relative.parts
+        or (candidate.is_absolute() and base == PurePosixPath("/"))
+    ):
+        return anchored.as_posix()
+    return relative.as_posix()
+
+
 def _python_executable(
-    component_id: str, body: ComponentBody, local: Mapping[str, Sourced[str]]
+    component_id: str,
+    body: ComponentBody,
+    local: Mapping[str, Sourced[str]],
+    *,
+    workspace_dir: PurePosixPath,
+    environment: Mapping[str, str],
+    problems: list[ConfigProblem],
 ) -> Decided[str] | None:
     declared = body.python.executable if body.python else None
-    current = (
-        None
-        if declared is None
-        else Decided(value=declared.raw, origin=declared.origin, layer=Layer.COMPONENT)
-    )
     override = local.get(f"components.{component_id}.python.executable")
-    if override is None:
-        return current
-    return Decided(value=override.value, origin=override.origin, layer=Layer.LOCAL)
+    if override is not None and not override.value:
+        problems.append(ConfigProblem("a python executable must not be empty", override.origin))
+        override = None
+    if declared is None and override is None:
+        return None
+    if override is not None:
+        executable = Executable(raw=override.value, origin=override.origin)
+        layer = Layer.LOCAL
+    else:
+        executable = declared
+        layer = Layer.COMPONENT
+    return Decided(
+        value=_executable(executable, workspace_dir, environment, problems),
+        origin=executable.origin,
+        layer=layer,
+    )
 
 
 def _component_checks(

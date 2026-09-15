@@ -235,7 +235,7 @@ class TestChildFilesAnchorToTheirOwnDirectory:
     INLINE = (
         HEADER + '[[components]]\nid = "tool-b"\nroot = "python/tool-b"\n'
         'languages = ["python"]\nsources = ["src/**/*.py"]\n'
-        '[components.python]\nexecutable = ".venv/bin/python"\ntest_paths = ["tests"]\n'
+        '[components.python]\nexecutable = "python/tool-b/.venv/bin/python"\ntest_paths = ["tests"]\n'
     )
     REFERENCE = HEADER + '[[components]]\nid = "tool-b"\nconfig = "python/tool-b/ici.toml"\n'
     CHILD = """
@@ -267,7 +267,7 @@ test_paths = ["tests"]
     def test_the_python_unit_carries_the_declared_runtime(self) -> None:
         workspace = _workspace(self.INLINE)
         (unit,) = workspace.analysis_units
-        assert unit.runtime == ".venv/bin/python"
+        assert unit.runtime == "python/tool-b/.venv/bin/python"
         assert unit.id == "tool-b.python"
 
 
@@ -318,3 +318,37 @@ def test_standalone_component_builds_a_one_component_workspace() -> None:
     assert workspace.component("tool").root == "."
     assert [unit.language for unit in workspace.analysis_units] == ["python"]
     assert project_type(workspace) == "python"
+
+
+class TestInterpreterAndPrepare:
+    """Review-driven: executables anchor like paths; absent prepare is legal."""
+
+    def test_a_path_executable_anchors_to_its_own_file(self) -> None:
+        workspace = _workspace(
+            HEADER + '[[components]]\nid = "t"\nconfig = "python/t/ici.toml"\n',
+            {
+                "t": (
+                    "python/t/ici.toml",
+                    'schema_version = 1\n[component]\nroot = "."\n'
+                    'languages = ["python"]\n[python]\nexecutable = ".venv/bin/python"\n',
+                )
+            },
+        )
+        assert workspace.analysis_units[0].runtime == "python/t/.venv/bin/python"
+
+    def test_a_bare_executable_stays_a_path_lookup(self) -> None:
+        workspace = _workspace(
+            HEADER + '[[components]]\nid = "t"\nroot = "t"\nlanguages = ["python"]\n'
+            '[components.python]\nexecutable = "python3"\n'
+        )
+        assert workspace.analysis_units[0].runtime == "python3"
+
+    def test_a_build_without_prepare_is_usable(self) -> None:
+        """No prepare means ici has no approved preparation — not an error."""
+        workspace = _workspace(
+            HEADER + '[builds.native]\nsystem = "qmake"\nproject = "p.pro"\n'
+            'directory = "build/ici"\n'
+            '[[components]]\nid = "gui"\nroot = "apps/gui"\nlanguages = ["cpp"]\n'
+            'build = "native"\n'
+        )
+        assert workspace.builds[0].prepare_argv == ()

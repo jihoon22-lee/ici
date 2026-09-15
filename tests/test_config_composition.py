@@ -42,7 +42,7 @@ root = "python/tool-b"
 languages = ["python"]
 sources = ["**/*.py"]
 [components.python]
-executable = ".venv/bin/python"
+executable = "python/tool-b/.venv/bin/python"
 """
 
 ROOT_REFERENCE = """
