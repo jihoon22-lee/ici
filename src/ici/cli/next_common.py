@@ -217,7 +217,12 @@ def _compile_limitations(
         for diagnostic in inputs.diagnostics:
             if diagnostic.level == "error":
                 limitations.append(f"{component.id}: {diagnostic.message}")
-            if diagnostic.code in ("generated-input-missing", "qmake-target-missing"):
+            if diagnostic.code in (
+                "generated-input-missing",
+                "qmake-target-missing",
+                "cmake-target-missing",
+                "build-definition-missing",
+            ):
                 gaps.append(f"{component.id}: {diagnostic.message}")
     return limitations, gaps
 

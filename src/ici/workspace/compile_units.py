@@ -34,7 +34,16 @@ from pathlib import Path, PurePosixPath
 from ici.core.compile_db import load_compilation_context
 from ici.core.context import CompilationDiagnostic, CompilationUnit
 from ici.domain.workspace import BuildUnit, Component
-from ici.workspace.qmake_project import QmakeTarget, resolve_qmake_project
+from ici.workspace.cmake_project import (
+    CmakeProject,
+    CmakeTarget,
+    resolve_cmake_project,
+)
+from ici.workspace.qmake_project import (
+    QmakeProject,
+    QmakeTarget,
+    resolve_qmake_project,
+)
 
 __all__ = ["CompileInputs", "HeaderUse", "TranslationUnit", "load_compile_inputs"]
 
@@ -103,8 +112,9 @@ class CompileInputs:
     #: Database entries whose source lives under a linked build's directory —
     #: moc/uic/rcc output the build generated rather than the user wrote.
     generated: tuple[str, ...] = ()
-    #: qmake ``SUBDIRS`` targets the linked build's root project resolves to.
-    targets: tuple[QmakeTarget, ...] = ()
+    #: Targets the linked builds' declared project files resolve to — qmake
+    #: ``SUBDIRS`` entries or cmake ``add_subdirectory`` reach, per system.
+    targets: tuple[QmakeTarget | CmakeTarget, ...] = ()
     headers: tuple[str, ...] = ()
     header_uses: tuple[HeaderUse, ...] = ()
     diagnostics: tuple[CompilationDiagnostic, ...] = ()
@@ -139,9 +149,9 @@ def load_compile_inputs(
     headers = tuple(path for path in scope_files if path.endswith(_HEADER_SUFFIXES))
     linked = [build for build in builds if build.id in component.build_ids]
     build_dirs = tuple(build.directory.rstrip("/") for build in linked)
-    targets, target_diagnostics = _qmake_targets(root, component, linked)
-    database = _database_path(root, component, builds)
-    if database is None:
+    targets, target_diagnostics = _build_targets(root, component, linked)
+    found = _database_path(root, component, builds)
+    if found is None:
         return CompileInputs(
             component_id=component.id,
             expected=expected,
@@ -162,6 +172,7 @@ def load_compile_inputs(
             ),
         )
 
+    database, origin = found
     context = load_compilation_context(root, {"project": {"compile_database": database}})
     scope_set = set(expected) | set(headers)
     units: list[TranslationUnit] = []
@@ -192,7 +203,7 @@ def load_compile_inputs(
         component_id=component.id,
         database_path=context.database_path or database,
         database_digest=context.database_digest,
-        origin=context.origin,
+        origin=origin,
         units=tuple(units),
         expected=expected,
         covered=covered,
@@ -231,23 +242,36 @@ def _to_unit(unit: CompilationUnit) -> TranslationUnit:
     )
 
 
-def _database_path(root: Path, component: Component, builds: tuple[BuildUnit, ...]) -> str | None:
-    """The database this component would be compiled by, as a workspace path."""
+def _database_path(
+    root: Path, component: Component, builds: tuple[BuildUnit, ...]
+) -> tuple[str, str] | None:
+    """The database this component would be compiled by, and who produced it.
 
-    candidates: list[str] = []
+    The origin label names the declared build whose directory held the file —
+    "cmake build 'release' (debug) at build/release" — so a shared build's
+    contribution is attributed, not just found. Conventional locations say
+    where the file sat; neither says more than the filesystem proved.
+    """
+
     for build in builds:
-        if build.id in component.build_ids:
-            candidates.append(f"{build.directory}/compile_commands.json")
-    candidates += [
-        f"{component.root}/compile_commands.json",
-        f"{component.root}/build/compile_commands.json",
-        "compile_commands.json",
-        "build/compile_commands.json",
-    ]
-    for candidate in candidates:
+        if build.id not in component.build_ids:
+            continue
+        candidate = f"{build.directory}/compile_commands.json"
         try:
             if (root / candidate).is_file():
-                return candidate
+                variant = f" {build.variant}" if build.variant else ""
+                return candidate, f"{build.system} build '{build.id}'{variant}"
+        except OSError:
+            continue
+    for candidate, origin in (
+        (f"{component.root}/compile_commands.json", "component root"),
+        (f"{component.root}/build/compile_commands.json", "component build dir"),
+        ("compile_commands.json", "workspace root"),
+        ("build/compile_commands.json", "workspace build dir"),
+    ):
+        try:
+            if (root / candidate).is_file():
+                return candidate, f"conventional location ({origin})"
         except OSError:
             continue
     return None
@@ -345,42 +369,67 @@ def _under(source: str, directories: tuple[str, ...]) -> bool:
     )
 
 
-def _qmake_targets(
+def _build_targets(
     root: Path,
     component: Component,
     linked: list[BuildUnit],
-) -> tuple[tuple[QmakeTarget, ...], list[CompilationDiagnostic]]:
-    """What the component's qmake builds would compile — and coverage gaps.
+) -> tuple[tuple[QmakeTarget | CmakeTarget, ...], list[CompilationDiagnostic]]:
+    """What the component's linked builds would compile — and coverage gaps.
 
-    A component linking a qmake build whose ``SUBDIRS`` tree never reaches the
+    A component linking a build whose project tree never reaches the
     component's root is a mislink the coverage numbers alone would hide: the
     database would show zero units for it, indistinguishable from "nothing to
-    compile". The diagnostic names the difference.
+    compile". qmake and cmake answer that reach textually (#212, #213); a
+    system without a declared project semantic — ``make``, ``explicit`` —
+    cannot claim reach, so it is checked only for the definition file it
+    names, and the compile database remains the whole of the evidence.
     """
 
-    targets: list[QmakeTarget] = []
+    targets: list[QmakeTarget | CmakeTarget] = []
     diagnostics: list[CompilationDiagnostic] = []
-    covered_dirs: list[str] = []
+    covered: dict[str, tuple[list[str], list[str]]] = {}
     for build in linked:
-        if build.system != "qmake" or not build.definition:
-            continue
-        project = resolve_qmake_project(root, build.definition)
-        targets.extend(project.targets)
-        diagnostics.extend(project.diagnostics)
-        covered_dirs.extend(project.directories)
-    component_root = component.root.rstrip("/") or "."
-    if covered_dirs and not any(
-        component_root == directory or component_root.startswith(f"{directory}/")
-        for directory in covered_dirs
-    ):
-        diagnostics.append(
-            CompilationDiagnostic(
-                code="qmake-target-missing",
-                message=(
-                    f"{component.id}: its root is not reached by the declared "
-                    "root project's SUBDIRS — qmake would not compile its sources"
-                ),
-                level="warning",
+        resolved: QmakeProject | CmakeProject | None = None
+        if build.system == "qmake" and build.definition:
+            resolved = resolve_qmake_project(root, build.definition)
+        elif build.system == "cmake" and build.definition:
+            resolved = resolve_cmake_project(root, build.definition)
+        elif build.definition and not (root / build.definition).is_file():
+            diagnostics.append(
+                CompilationDiagnostic(
+                    code="build-definition-missing",
+                    message=(
+                        f"build '{build.id}' ({build.system}) declares "
+                        f"{build.definition}, which is not on disk"
+                    ),
+                    level="warning",
+                )
             )
-        )
+        if resolved is not None:
+            targets.extend(resolved.targets)
+            diagnostics.extend(resolved.diagnostics)
+            dirs, build_ids = covered.setdefault(build.system, ([], []))
+            dirs.extend(resolved.directories)
+            build_ids.append(build.id)
+    component_root = component.root.rstrip("/") or "."
+    for system, (dirs, build_ids) in covered.items():
+        # An unreadable or empty tree resolved to nothing — that is reported
+        # by the resolver's own diagnostics, not by a misleading "uncovered".
+        if not dirs:
+            continue
+        if not any(
+            component_root == directory or component_root.startswith(f"{directory}/")
+            for directory in dirs
+        ):
+            diagnostics.append(
+                CompilationDiagnostic(
+                    code=f"{system}-target-missing",
+                    message=(
+                        f"{component.id}: its root is not reached by the declared "
+                        f"root project's tree ({', '.join(build_ids)}) — "
+                        f"{system} would not compile its sources"
+                    ),
+                    level="warning",
+                )
+            )
     return tuple(targets), diagnostics

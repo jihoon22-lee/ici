@@ -381,3 +381,85 @@ def test_init_restricts_candidates_to_asked_languages(tmp_path, monkeypatch) -> 
     result = runner.invoke(app, ["next", "init", "--preview", "--cpp"])
     assert result.exit_code == 0
     assert 'id = "native"' in result.output and 'id = "app"' not in result.output
+
+
+def _cmake_workspace(root: Path, component_root: str = "app") -> None:
+    """A cmake build tree: root lists, one subdir, a database the build wrote."""
+    (root / "CMakeLists.txt").write_text(
+        "cmake_minimum_required(VERSION 3.16)\nproject(product)\nadd_subdirectory(app)\n",
+        encoding="utf-8",
+    )
+    (root / "app").mkdir(parents=True)
+    (root / "app" / "CMakeLists.txt").write_text("add_executable(app main.cpp)\n", encoding="utf-8")
+    (root / "app" / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+    build = root / "build"
+    build.mkdir()
+    build.joinpath("compile_commands.json").write_text(
+        json.dumps(
+            [
+                {
+                    "directory": str(build),
+                    "file": str(root / "app" / "main.cpp"),
+                    "arguments": ["g++", "-c", "../app/main.cpp"],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (root / "ici.toml").write_text(
+        HEADER + '[builds.release]\nsystem = "cmake"\nproject = "CMakeLists.txt"\n'
+        'directory = "build"\nvariant = "release"\n'
+        f'[[components]]\nid = "app"\nroot = "{component_root}"\nlanguages = ["cpp"]\n'
+        'build = "release"\n',
+        encoding="utf-8",
+    )
+
+
+def test_a_cmake_builds_reach_is_reported_like_qmakes(tmp_path, monkeypatch) -> None:
+    # #213: a cmake input lands in the same unit/provenance shape as a qmake
+    # one — the doctor report shows the resolved target and the origin names
+    # the build whose directory produced the database.
+    _cmake_workspace(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    doctor = runner.invoke(app, ["next", "doctor", "--cpp"])
+    assert doctor.exit_code == 0, doctor.output
+    assert "target: app → app/CMakeLists.txt" in doctor.output
+    assert "cmake build 'release'" in doctor.output
+
+    verify = runner.invoke(app, ["next", "verify"])
+    assert verify.exit_code == 0, verify.output
+
+
+def test_a_component_outside_the_cmake_tree_fails_require_full(tmp_path, monkeypatch) -> None:
+    _cmake_workspace(tmp_path, component_root="elsewhere")
+    (tmp_path / "elsewhere").mkdir()
+    (tmp_path / "elsewhere" / "x.cpp").write_text("int x;\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["next", "verify", "--require-full"])
+    assert result.exit_code == 3, result.output
+    assert "cmake" in result.output and "would not compile" in result.output
+
+
+def test_plan_lists_linked_builds_and_their_impact_directories(tmp_path, monkeypatch) -> None:
+    _cmake_workspace(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["next", "plan", "--json"])
+
+    assert result.exit_code == 0, result.output
+    plan = json.loads(result.stdout)
+    assert plan["builds"] == [
+        {
+            "id": "release",
+            "system": "cmake",
+            "variant": "release",
+            "directory": "build",
+            "definition": "CMakeLists.txt",
+            "linked_by": ["app"],
+        }
+    ]
+    text = runner.invoke(app, ["next", "plan"])
+    assert "builds:" in text.output
+    assert "release: cmake release → build (for app)" in text.output

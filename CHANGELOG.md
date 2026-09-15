@@ -7,6 +7,31 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` CMake·Make 빌드 입력의 공통 계약 이관 (WP15, [#213](https://github.com/jihoon22-lee/ici/issues/213))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다. ici는
+여전히 configure/build를 실행하지 않습니다 — cmake preset·toolchain·generator는
+사용자의 선택으로 남고, ici가 임의 구성으로 대체하는 일은 없습니다.
+
+`ici/workspace/cmake_project.py`가 선언된 root `CMakeLists.txt`의
+`add_subdirectory` 트리를 텍스트로만 읽습니다 — `if()`/블록 안의 항목은
+`conditional`로, `${var}` 참조와 `include()`된 모듈은 미해석 진단으로 남습니다.
+cmake 언어를 재구현하지 않으므로 실제 빌드와 의견이 갈라지지 않습니다.
+
+- **cmake 입력이 qmake와 같은 provenance 구조에 올라탑니다.** `CompileInputs`의
+  coverage·generated·target 모델이 그대로이고, `cmake-target-missing`이
+  component root가 `add_subdirectory` 트리에 도달하지 않는 mislink를 qmake의
+  것과 같은 방식으로 이름 붙입니다.
+- **DB의 출처가 공급한 build를 이름 붙입니다.** `origin`이 "configured" 같은
+  generic 라벨 대신 `cmake build 'release' release`처럼 링크된 build
+  unit(system·variant)을 가리켜, 공유 빌드의 기여가 숨겨지지 않습니다.
+- **make/explicit build는 정직하게 제한됩니다.** 프로젝트 파일 의미를 추측하지
+  않고, 선언된 `project` 파일이 디스크에 없으면 `build-definition-missing`을
+  냅니다 — compile DB가 유일한 증거로 남습니다.
+- **`plan`이 연결된 build를 보입니다.** 각 build의 system·variant·impact
+  directory(출력 디렉터리)와 이를 소비하는 component가 텍스트와 JSON 양쪽에
+  표시되어, 증거가 어디서 오는지 plan 수준에서 검사할 수 있습니다.
+
 ### 추가 — `ici next` qmake `SUBDIRS` 해석·공유 빌드·컴파일 커버리지 check (WP14, [#212](https://github.com/jihoon22-lee/ici/issues/212))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다. ici는 여전히

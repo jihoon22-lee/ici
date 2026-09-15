@@ -394,12 +394,57 @@ def cmd_plan(
     limitations = [*limitations, *compile_notes]
     gaps = uncovered_scope(model, request, scope) + tuple(compile_gaps)
 
+    builds = _linked_builds(scope)
     if json_mode:
         _plan_json(
-            root, scope, request, resolved, by_component, edges, shared, mutating, gaps, limitations
+            root,
+            scope,
+            request,
+            resolved,
+            by_component,
+            edges,
+            shared,
+            mutating,
+            builds,
+            gaps,
+            limitations,
         )
         return
-    _plan_text(scope, plans, by_component, edges, shared, mutating, gaps, limitations)
+    _plan_text(scope, plans, by_component, edges, shared, mutating, builds, gaps, limitations)
+
+
+def _linked_builds(scope: Workspace) -> list[dict[str, object]]:
+    """The build units in scope, with the directory a prepare would write.
+
+    ``prepare = "explicit"`` means nothing here runs — but a plan that cannot
+    name where evidence comes from cannot be checked. Each entry answers the
+    same provenance question the compile database answers (#213 item 6).
+    """
+
+    linked: dict[str, set[str]] = {}
+    for item in scope.components:
+        for build_id in item.build_ids:
+            linked.setdefault(build_id, set()).add(item.id)
+    return [
+        {
+            "id": build.id,
+            "system": build.system,
+            "variant": build.variant,
+            "directory": build.directory,
+            "definition": build.definition,
+            "linked_by": sorted(linked.get(build.id, ())),
+        }
+        for build in scope.builds
+    ]
+
+
+def _build_line(build: dict[str, object]) -> str:
+    linked = build["linked_by"]
+    names = ", ".join(str(item) for item in linked) if isinstance(linked, list) else ""
+    return (
+        f"  {build['id']}: {build['system']} {build['variant']} "
+        f"→ {build['directory']} (for {names or 'unlinked'})"
+    )
 
 
 def _plan_json(
@@ -411,6 +456,7 @@ def _plan_json(
     edges: dict[str, list[str]],
     shared: dict[str, list[str]],
     mutating: dict[str, list[str]],
+    builds: list[dict[str, object]],
     gaps: tuple[str, ...],
     limitations: list[str],
 ) -> None:
@@ -436,6 +482,7 @@ def _plan_json(
                     for component_id, plan in by_component.items()
                 ],
                 "graph": {"edges": edges, "shared": shared, "mutating": mutating},
+                "builds": builds,
                 "coverage_gaps": list(gaps),
                 "limitations": list(limitations),
             }
@@ -465,6 +512,7 @@ def _plan_text(
     edges: dict[str, list[str]],
     shared: dict[str, list[str]],
     mutating: dict[str, list[str]],
+    builds: list[dict[str, object]],
     gaps: tuple[str, ...],
     limitations: list[str],
 ) -> None:
@@ -488,6 +536,10 @@ def _plan_text(
         typer.echo("mutating:")
         for unit_id, keys in mutating.items():
             typer.echo(f"  {unit_id} writes {', '.join(keys) or '(undeclared)'}")
+    if builds:
+        typer.echo("builds:")
+        for build in builds:
+            typer.echo(_build_line(build))
     for gap in gaps:
         typer.echo(f"  coverage gap: {gap}")
     for limitation in limitations:
