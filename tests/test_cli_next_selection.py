@@ -230,6 +230,49 @@ def test_init_writes_a_workspace_without_touching_the_tree(tmp_path, monkeypatch
     assert "--force" in again.output
 
 
+def test_doctor_and_verify_report_partial_compile_coverage(tmp_path, monkeypatch) -> None:
+    # #211: a database naming half a component's TUs is a partial input — the
+    # run and the diagnostic both say so rather than reading as full coverage.
+    _hybrid_workspace(tmp_path)
+    (tmp_path / "native" / "second.cpp").write_text("int s();\n", encoding="utf-8")
+    build = tmp_path / "native" / "build"
+    build.mkdir()
+    (build / "compile_commands.json").write_text(
+        json.dumps(
+            [
+                {
+                    "directory": str(build),
+                    "file": str(tmp_path / "native" / "core.cpp"),
+                    "arguments": ["g++", "-c", "../core.cpp"],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    doctor = runner.invoke(app, ["next", "doctor"])
+    assert doctor.exit_code == 0
+    assert "compile db: native/build/compile_commands.json" in doctor.output
+    assert "1/2 TU(s)" in doctor.output
+    assert "missing: native/second.cpp" in doctor.output
+
+    verify = runner.invoke(app, ["next", "verify", "--cpp"])
+    assert verify.exit_code in (0, 1), verify.output
+    stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
+    assert any("1/2 translation units" in item for item in stored["limitations"])
+
+
+def test_verify_reports_a_cpp_component_without_a_database(tmp_path, monkeypatch) -> None:
+    _hybrid_workspace(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["next", "verify", "--cpp"])
+    assert result.exit_code in (0, 1), result.output
+    stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
+    assert any("no compilation database" in item for item in stored["limitations"])
+
+
 def test_init_restricts_candidates_to_asked_languages(tmp_path, monkeypatch) -> None:
     (tmp_path / "app").mkdir()
     (tmp_path / "app" / "one.py").write_text("x = 1\n", encoding="utf-8")

@@ -83,7 +83,7 @@ from ici.languages.python.lines import count as count_lines
 from ici.languages.registry import builtin as builtin_registry
 from ici.reporting.offline_html import render
 from ici.workspace import build as build_workspace
-from ici.workspace import inventory
+from ici.workspace import compile_units, inventory
 from ici.workspace.inventory import SourceInventory, SourceRole
 from ici.workspace.vcs import status as vcs_status
 
@@ -211,6 +211,44 @@ def _announce(
         f"scope: components={components} languages={languages} "
         f"profile={profile.value}" + (" require-full" if request.require_full else "")
     )
+
+
+def _compile_limitations(
+    model: Workspace, scope: Workspace, stock: SourceInventory, root: Path
+) -> list[str]:
+    """What the compile database can and cannot vouch for, per C++ component.
+
+    #211: a database covering half a component's translation units is a
+    partial input, and the run says which sources have no invocation rather
+    than letting the gap pass as full C++ coverage. No database at all names
+    the declared build unit that would produce one — or the config key that
+    would declare it — instead of silently linting nothing.
+    """
+
+    limitations: list[str] = []
+    for component in scope.components:
+        if "cpp" not in component.languages:
+            continue
+        units = {unit.language: unit for unit in _units_of(scope, component)}
+        cpp_unit = units.get("cpp")
+        files = (
+            _unit_files(stock, cpp_unit, _SOURCE_SUFFIXES["cpp"]) if cpp_unit is not None else ()
+        )
+        inputs = compile_units.load_compile_inputs(root, component, files, model.builds)
+        if not inputs.database_path:
+            hint = f" ({inputs.prepare[0]})" if inputs.prepare else ""
+            limitations.append(f"{component.id}: no compilation database for its C++ scope{hint}")
+            continue
+        if inputs.missing:
+            limitations.append(
+                f"{component.id}: compile database covers "
+                f"{len(inputs.covered)}/{len(inputs.expected)} translation units; "
+                f"missing: {', '.join(inputs.missing)}"
+            )
+        for diagnostic in inputs.diagnostics:
+            if diagnostic.level == "error":
+                limitations.append(f"{component.id}: {diagnostic.message}")
+    return limitations
 
 
 def _unit_files(
@@ -725,9 +763,39 @@ def cmd_doctor(
                 line.update(status="selected", tool="ici")
                 echo(f"  {check.id}: selected — runs in-process (ici)")
             checks_out.append(line)
-        components_out.append(
-            {"id": item.id, "languages": list(item.languages), "checks": checks_out}
-        )
+        entry: dict[str, object] = {
+            "id": item.id,
+            "languages": list(item.languages),
+            "checks": checks_out,
+        }
+        if "cpp" in item.languages:
+            cpp_unit = units.get("cpp")
+            files = (
+                _unit_files(stock, cpp_unit, _SOURCE_SUFFIXES["cpp"])
+                if cpp_unit is not None
+                else ()
+            )
+            inputs = compile_units.load_compile_inputs(root, item, files, model.builds)
+            entry["compile_inputs"] = {
+                "database": inputs.database_path or None,
+                "origin": inputs.origin or None,
+                "expected": len(inputs.expected),
+                "covered": list(inputs.covered),
+                "missing": list(inputs.missing),
+                "prepare": list(inputs.prepare),
+            }
+            if inputs.database_path:
+                echo(
+                    f"  compile db: {inputs.database_path} "
+                    f"({inputs.origin}) — {len(inputs.covered)}/{len(inputs.expected)} TU(s)"
+                )
+                for source in inputs.missing:
+                    echo(f"    missing: {source}")
+            else:
+                echo("  compile db: none")
+            for prepare in inputs.prepare:
+                echo(f"    prepare: {prepare}")
+        components_out.append(entry)
     if json_mode:
         typer.echo(
             dumps(
@@ -898,6 +966,7 @@ def cmd_verify(
     except NothingSelected as error:
         typer.echo(f"config: {error}", err=True)
         raise typer.Exit(EXIT_CONFIG) from error
+    limitations += _compile_limitations(model, scope, before, root)
 
     run_id = uuid.uuid4().hex
     sink = (
