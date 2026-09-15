@@ -66,11 +66,26 @@ class CmakeTarget:
 
 
 @dataclass(frozen=True)
+class CmakeTest:
+    """One ``add_test`` a build declares — the suite ctest would run."""
+
+    name: str
+    #: The CMakeLists.txt the test was declared in, workspace-relative.
+    project: str
+    #: The directory whose build tree holds the test's ``CTestTestfile``.
+    directory: str
+    #: Declared inside a conditional block — the build may or may not add it.
+    conditional: bool
+
+
+@dataclass(frozen=True)
 class CmakeProject:
     """The directories a root ``CMakeLists.txt`` reaches, and the unresolved."""
 
     definition: str
     targets: tuple[CmakeTarget, ...] = ()
+    #: ``add_test`` declarations — what ctest would run from a built tree.
+    tests: tuple[CmakeTest, ...] = ()
     #: Directories a cmake build of ``definition`` would compile — the root
     #: file's own directory included.
     directories: tuple[str, ...] = ()
@@ -82,6 +97,7 @@ def resolve_cmake_project(root: Path, definition: str) -> CmakeProject:
 
     diagnostics: list[CompilationDiagnostic] = []
     targets: list[CmakeTarget] = []
+    tests: list[CmakeTest] = []
     directories: list[str] = []
     dependencies: dict[str, list[str]] = {}
     seen: set[str] = set()
@@ -160,6 +176,31 @@ def resolve_cmake_project(root: Path, definition: str) -> CmakeProject:
                         depends=(),
                     )
                 )
+            elif name == "add_test" and args:
+                # ``add_test(NAME n COMMAND …)`` and the legacy
+                # ``add_test(n command …)`` forms both name the test first —
+                # except in NAME form, where the name follows the keyword.
+                test_name = (
+                    args[args.index("NAME") + 1]
+                    if "NAME" in args and args.index("NAME") + 1 < len(args)
+                    else args[0]
+                )
+                if not _literal(test_name):
+                    diagnostics.append(
+                        _diagnostic(
+                            "cmake-test-unresolved",
+                            f"{lists}: test name {test_name} is not literal",
+                        )
+                    )
+                    continue
+                tests.append(
+                    CmakeTest(
+                        name=test_name,
+                        project=lists,
+                        directory=base_str,
+                        conditional=conditional,
+                    )
+                )
             elif name == "add_dependencies" and len(args) > 1 and _literal(args[0]):
                 dependencies.setdefault(args[0], []).extend(
                     dep for dep in args[1:] if _literal(dep)
@@ -187,6 +228,7 @@ def resolve_cmake_project(root: Path, definition: str) -> CmakeProject:
     return CmakeProject(
         definition=definition,
         targets=resolved,
+        tests=tuple(tests),
         directories=tuple(dict.fromkeys(directories)),
         diagnostics=tuple(diagnostics),
     )

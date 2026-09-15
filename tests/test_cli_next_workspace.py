@@ -151,7 +151,9 @@ def test_a_cpp_component_is_counted_not_dropped(tmp_path, monkeypatch) -> None:
     (tmp_path / "native" / "core.cpp").write_text("int core() { return 1; }\n", encoding="utf-8")
     _write_project(
         tmp_path,
-        HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n',
+        HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n'
+        '[checks."cpp.test"]\nenabled = false\n'
+        '[checks."cpp.coverage"]\nenabled = false\n',
     )
     monkeypatch.chdir(tmp_path)
 

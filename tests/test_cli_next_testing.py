@@ -23,7 +23,7 @@ import pytest
 from typer.testing import CliRunner
 
 from ici.__main__ import app
-from ici.cli.next_common import _python_interpreter
+from ici.cli.next_testing import python_interpreter
 
 runner = CliRunner()
 
@@ -71,7 +71,7 @@ def _python_workspace(root: Path, *, tests: str | None = "pass") -> None:
 
 def test_the_component_venv_wins_over_ambient_interpreters(tmp_path) -> None:
     _python_workspace(tmp_path)
-    chosen = _python_interpreter(None, tmp_path / "app")
+    chosen = python_interpreter(None, tmp_path / "app")
     assert chosen == str(tmp_path / "app" / ".venv" / "bin" / "python")
 
 
@@ -87,7 +87,7 @@ def test_a_declared_executable_wins_over_the_venv(tmp_path) -> None:
 
     effective = load(tmp_path).component("app")
     assert effective is not None
-    assert _python_interpreter(effective, tmp_path / "app") == "/custom/python3"
+    assert python_interpreter(effective, tmp_path / "app") == "/custom/python3"
 
 
 def test_no_project_interpreter_blocks_the_test_checks(tmp_path, monkeypatch) -> None:

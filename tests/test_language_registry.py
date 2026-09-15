@@ -39,6 +39,8 @@ def test_a_cpp_scope_never_sees_python_tools() -> None:
         "cpp.compile",
         "cpp.diagnostics",
         "cpp.tidy",
+        "cpp.test",
+        "cpp.coverage",
     }
     assert "ruff" not in registry.providers_for(("cpp",))
 
@@ -59,6 +61,8 @@ def test_a_hybrid_scope_gets_both_packs_but_no_strays() -> None:
         "cpp.compile",
         "cpp.diagnostics",
         "cpp.tidy",
+        "cpp.test",
+        "cpp.coverage",
     }
 
 

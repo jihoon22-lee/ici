@@ -67,10 +67,34 @@ CPP_TIDY_CHECK = CheckDefinition(
     needs=("compile-inputs",),
 )
 
+#: ``tool=None`` because the runner is the build's own: ctest reads the
+#: generated ``CTestTestfile``, a QTest binary is run as the artifact the
+#: build produced. The check provides the test evidence coverage reads —
+#: an instrumented suite's ``.gcda`` only exists after this run (#219).
+CPP_TEST_CHECK = CheckDefinition(
+    id="cpp.test",
+    title="C++ test suites",
+    language="cpp",
+    tool=None,
+    provides=("test-evidence",),
+)
+
+#: gcov over the notes and data the instrumented build and the shared test
+#: run left — this check never builds or reruns the suite itself.
+CPP_COVERAGE_CHECK = CheckDefinition(
+    id="cpp.coverage",
+    title="gcov coverage",
+    language="cpp",
+    tool=None,
+    needs=("test-evidence",),
+)
+
 #: Declaration only. Importing this must not look at the machine.
 CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_LINE_CHECK,
     CPP_COMPILE_CHECK,
     CPP_DIAGNOSTICS_CHECK,
     CPP_TIDY_CHECK,
+    CPP_TEST_CHECK,
+    CPP_COVERAGE_CHECK,
 )

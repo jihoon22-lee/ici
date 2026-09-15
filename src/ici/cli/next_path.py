@@ -28,6 +28,8 @@ from ici import __version__
 from ici.adapters.providers.base import Provider
 from ici.adapters.providers.compiler import CompilerDiagnosticsProvider
 from ici.adapters.providers.coverage import CoverageProvider
+from ici.adapters.providers.cpptest import CtestProvider, QtestProvider
+from ici.adapters.providers.gcov import GcovProvider
 from ici.adapters.providers.mypy import MypyProvider
 from ici.adapters.providers.pytest import PytestProvider
 from ici.adapters.providers.ruff import RuffProvider
@@ -61,7 +63,6 @@ from ici.cli.next_common import (
     _REQUIRE_FULL_OPTION,
     _RESULT_OPTION,
     _SOURCE_SUFFIXES,
-    BUNDLED_TOOLS,
     EXIT_CONFIG,
     _announce,
     _compile_limitations,
@@ -69,7 +70,6 @@ from ici.cli.next_common import (
     _drift_summary,
     _EventSink,
     _graph_of,
-    _locate,
     _plans,
     _profile,
     _request,
@@ -80,6 +80,7 @@ from ici.cli.next_common import (
     _workspace,
     next_app,
 )
+from ici.cli.next_testing import BUNDLED_TOOLS, locate_tool
 from ici.config.composition import EffectiveCheck
 from ici.domain.enums import GateVerdict, Profile, ScopeKind
 from ici.domain.events import EventType
@@ -281,7 +282,7 @@ def _doctor_check(
         )
         _blocked(echo, check.id, line)
     elif check.tool:
-        located = _locate(check.tool)
+        located = locate_tool(check.tool)
         if located is None:
             line.update(
                 status="blocked",
@@ -611,6 +612,9 @@ def cmd_verify(
         "ty": TyProvider(),
         "pytest": PytestProvider(),
         "coverage": CoverageProvider(),
+        "ctest": CtestProvider(),
+        "qtest": QtestProvider(),
+        "gcov": GcovProvider(),
     }
     verification = run_verification(
         plans,

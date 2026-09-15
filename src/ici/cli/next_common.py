@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
 import subprocess
 import threading
 from datetime import datetime, timezone
@@ -24,9 +23,7 @@ from ici.adapters.providers.compiler import (
     compiler_family,
     transform_argv,
 )
-from ici.adapters.providers.coverage import CoverageProvider
 from ici.adapters.providers.mypy import MypyProvider
-from ici.adapters.providers.pytest import PytestProvider
 from ici.adapters.providers.ruff import RuffProvider, RuffRequest
 from ici.adapters.providers.tidy import ClangTidyProvider
 from ici.adapters.providers.ty import TyProvider
@@ -41,6 +38,17 @@ from ici.application.request import (
 )
 from ici.application.selection import Planner, select_effective
 from ici.application.verify import Analysis
+from ici.cli.next_testing import (
+    component_targets,
+    cpp_gcno,
+    cpp_suites,
+    expand_cpp_tests,
+    locate_tool,
+    plan_coverage,
+    plan_cpp_coverage,
+    plan_test,
+    python_interpreter,
+)
 from ici.config.composition import EffectiveComponent, EffectiveConfig
 from ici.config.discovery import discover, load
 from ici.config.errors import NextConfigError
@@ -342,7 +350,7 @@ def _plans(
         try:
             plan = select_effective(
                 effective,
-                _locate,
+                locate_tool,
                 work,
                 available=available,
                 task_prefix=component.id,
@@ -408,7 +416,7 @@ def _planner(
                 RuffRequest(
                     executable=executable,
                     project_root=component_root,
-                    targets=_targets(component_root, root, files),
+                    targets=component_targets(component_root, root, files),
                     task_id=task_id,
                     component_id=component_id,
                     analysis_unit_id=unit.id,
@@ -449,7 +457,7 @@ def _planner(
             RuffRequest(
                 executable=executable,
                 project_root=component_root,
-                targets=_targets(component_root, root, files),
+                targets=component_targets(component_root, root, files),
                 task_id=task_id,
                 component_id=component_id,
                 analysis_unit_id=unit.id,
@@ -484,25 +492,6 @@ def _tool_configs(component_root: Path, root: Path) -> tuple[str, ...]:
             break
         base = base.parent
     return tuple(found)
-
-
-def _targets(component_root: Path, root: Path, files: tuple[str, ...]) -> tuple[str, ...]:
-    """The unit's real files as ruff targets, spelled relative to its root.
-
-    The declared globs resolve through the inventory into actual files — a
-    glob pattern is not a valid argv entry, and the old path's ``.`` linted
-    more than the component claimed.
-    """
-
-    base = str(component_root)
-    targets: list[str] = []
-    for item in files:
-        absolute = str((root / item).resolve())
-        if absolute.startswith(base + os.sep):
-            targets.append(absolute[len(base) + 1 :])
-        else:
-            targets.append(absolute)
-    return tuple(targets)
 
 
 def _internal_analysis(
@@ -547,17 +536,24 @@ def _gate_cpp(
       unit, each carrying that TU's own recorded invocation transformed to
       ``-fsyntax-only`` (#214). A TU whose driver is not a gcc/clang-family
       compiler becomes a blocked marker, not a silent skip.
+    - ``cpp.test`` expands into one task per suite the linked builds
+      declare — ctest through the generated ``CTestTestfile``, QTest as the
+      built binary; declared-but-unbuilt suites are blocked markers (#217).
+    - ``cpp.coverage`` reads the ``.gcno``/``.gcda`` the instrumented build
+      and that shared test run left — never rebuilding or re-running (#217).
     """
 
-    if not any(
-        planned.check.id in {"cpp.compile", "cpp.tidy", "cpp.diagnostics"}
-        for planned in plan.checks
-    ):
+    gated = {"cpp.compile", "cpp.tidy", "cpp.diagnostics", "cpp.test", "cpp.coverage"}
+    if not any(planned.check.id in gated for planned in plan.checks):
         return plan
     if inputs is None:
         inputs = compile_units.load_compile_inputs(root, component, files, builds)
     remedy = f" — {inputs.prepare[0]}" if inputs.prepare else ""
     missing = f"no compilation database for the component's C++ scope{remedy}"
+    component_root = root / component.root
+    test_selected = any(planned.check.id == "cpp.test" for planned in plan.checks)
+    suites = cpp_suites(root, component, builds)
+    gcno_files = cpp_gcno(root, component, builds)
 
     checks: list[PlannedCheck] = []
     for planned in plan.checks:
@@ -588,6 +584,21 @@ def _gate_cpp(
                 )
         elif planned.check.id == "cpp.diagnostics":
             checks.extend(_expand_diagnostics(planned, inputs, root, missing, cpp_unit))
+        elif planned.check.id == "cpp.test":
+            checks.extend(
+                expand_cpp_tests(planned, suites, component, component_root, root, cpp_unit)
+            )
+        elif planned.check.id == "cpp.coverage":
+            checks.append(
+                plan_cpp_coverage(
+                    planned,
+                    test_selected,
+                    gcno_files,
+                    component,
+                    root,
+                    cpp_unit,
+                )
+            )
         else:
             checks.append(planned)
     return Plan(checks=tuple(checks))
@@ -623,7 +634,7 @@ def _expand_diagnostics(
         transformed = transform_argv(stripped, token)
         assert transformed is not None  # the blocker check already refused it
         if not Path(executable).is_absolute():
-            executable = _locate(executable) or executable
+            executable = locate_tool(executable) or executable
         cwd = Path(root) / unit.directory
         expanded.append(
             PlannedCheck(
@@ -668,7 +679,7 @@ def _diagnostics_blocker(
         )
     executable = Path(driver) if Path(driver).is_absolute() else None
     if executable is None:
-        executable = Path(_locate(driver) or "")
+        executable = Path(locate_tool(driver) or "")
     if not executable.is_file():
         return f"compiler '{driver}' is not available on PATH"
     cwd = root / unit.directory
@@ -714,23 +725,6 @@ _TYPE_CHECKERS: dict[str, MypyProvider | TyProvider] = {
 }
 
 
-def _python_interpreter(effective: EffectiveComponent | None, component_root: Path) -> str | None:
-    """The interpreter a component's tests run under, or None.
-
-    The declared ``[python] executable`` wins; a ``.venv`` inside the
-    component root is the discoverable project environment. ici's own
-    interpreter is never a candidate — a test run under the verifier's
-    runtime measures the wrong packages (#216).
-    """
-
-    if effective is not None and effective.python_executable is not None:
-        return effective.python_executable.value
-    venv_python = component_root / ".venv" / "bin" / "python"
-    if venv_python.is_file():
-        return str(venv_python)
-    return None
-
-
 def _gate_python(
     plan: Plan,
     component_id: str,
@@ -755,7 +749,7 @@ def _gate_python(
     decided = effective.python_type_provider if effective is not None else None
     provider_name = decided.value if decided is not None else "mypy"
     provider = _TYPE_CHECKERS.get(provider_name)
-    interpreter = _python_interpreter(effective, component_root)
+    interpreter = python_interpreter(effective, component_root)
     no_interpreter = (
         "no project interpreter — declare [python] executable "
         "or provide a .venv inside the component"
@@ -791,7 +785,7 @@ def _gate_python(
             )
         elif planned.check.id == "python.test":
             checks.append(
-                _plan_test(
+                plan_test(
                     planned,
                     interpreter,
                     no_interpreter,
@@ -804,7 +798,7 @@ def _gate_python(
             )
         else:  # python.coverage
             checks.append(
-                _plan_coverage(
+                plan_coverage(
                     planned,
                     interpreter,
                     no_interpreter,
@@ -835,14 +829,14 @@ def _plan_type_check(
             task_id=planned.task_id,
             blocked=f"unknown type_provider {provider_name!r}",
         )
-    executable = _locate(provider_name)
+    executable = locate_tool(provider_name)
     if executable is None:
         return PlannedCheck(
             check=planned.check,
             task_id=planned.task_id,
             blocked=f"{provider_name} is not available",
         )
-    targets = _targets(component_root, root, files)
+    targets = component_targets(component_root, root, files)
     # input_refs are read against the task's cwd — the component root — so
     # they spell paths the way the argv does, not the workspace-relative way
     # the inventory does.
@@ -868,94 +862,6 @@ def _plan_type_check(
             analysis_unit_id=unit.id if unit is not None else "",
             input_refs=targets,
         )
-    )
-    return PlannedCheck(check=planned.check, task_id=planned.task_id, task=task)
-
-
-def _plan_test(
-    planned: PlannedCheck,
-    interpreter: str | None,
-    no_interpreter: str,
-    effective: EffectiveComponent | None,
-    component_root: Path,
-    root: Path,
-    unit: AnalysisUnit | None,
-    coverage_data: str | None,
-) -> PlannedCheck:
-    """Plan the pytest run — coverage-wrapped when the coverage check rides it."""
-
-    if interpreter is None:
-        return PlannedCheck(check=planned.check, task_id=planned.task_id, blocked=no_interpreter)
-    targets = _test_targets(effective, component_root, root)
-    if effective is not None and effective.test_paths and not targets:
-        # A declared test scope that matches nothing is not a suite that
-        # passed quietly — it is a scope the run cannot find.
-        return PlannedCheck(
-            check=planned.check,
-            task_id=planned.task_id,
-            blocked="declared test_paths matched no files",
-        )
-    task = PytestProvider().plan(
-        interpreter,
-        targets=targets,
-        cwd=str(component_root),
-        task_id=planned.task_id,
-        coverage_data=coverage_data,
-        analysis_unit_id=unit.id if unit is not None else "",
-        input_refs=targets,
-    )
-    return PlannedCheck(check=planned.check, task_id=planned.task_id, task=task)
-
-
-def _test_targets(
-    effective: EffectiveComponent | None, component_root: Path, root: Path
-) -> tuple[str, ...]:
-    """Expand declared ``test_paths`` globs into component-relative argv.
-
-    pytest cannot expand a workspace glob itself — handed ``tests/**/*.py``
-    literally it errors rather than collecting. The declared patterns are
-    expanded here so the argv names real paths the suite owns; nothing
-    declared means the component's whole root is pytest's scope.
-    """
-
-    if effective is None or not effective.test_paths:
-        return ()
-    expanded: list[str] = []
-    for pattern in effective.test_paths:
-        relative = _targets(component_root, root, (pattern,))
-        for item in relative:
-            for match in sorted(component_root.glob(item)):
-                expanded.append(match.relative_to(component_root).as_posix())
-    return tuple(dict.fromkeys(expanded))
-
-
-def _plan_coverage(
-    planned: PlannedCheck,
-    interpreter: str | None,
-    no_interpreter: str,
-    test_selected: bool,
-    data_file: str,
-    report_path: str,
-    component_root: Path,
-    unit: AnalysisUnit | None,
-) -> PlannedCheck:
-    """Plan the coverage read — it shares the test run, never repeats it."""
-
-    if not test_selected:
-        return PlannedCheck(
-            check=planned.check,
-            task_id=planned.task_id,
-            blocked="python.coverage reads the test run's data — enable python.test",
-        )
-    if interpreter is None:
-        return PlannedCheck(check=planned.check, task_id=planned.task_id, blocked=no_interpreter)
-    task = CoverageProvider().plan(
-        interpreter,
-        data_file=data_file,
-        report_path=report_path,
-        cwd=str(component_root),
-        task_id=planned.task_id,
-        analysis_unit_id=unit.id if unit is not None else "",
     )
     return PlannedCheck(check=planned.check, task_id=planned.task_id, task=task)
 
@@ -1045,40 +951,6 @@ def _drift_summary(drift: inventory.InventoryDiff) -> str:
         if items
     ]
     return ", ".join(parts) or "inputs changed"
-
-
-#: Where a bundle keeps the analyzers it shipped, relative to its root.
-BUNDLED_TOOLS = Path("tools") / "python-static"
-
-
-def _locate(tool: str) -> str | None:
-    """Where a tool is, asked once, here.
-
-    **Running from a bundle, it is the bundle's copy or nothing.** #204 item 7:
-    an analyzer taken from PATH makes the result depend on what else is
-    installed on the machine, which is the property an offline release exists
-    to remove. Falling back to PATH here would mean a bundle missing its ruff
-    quietly linted with whatever the host had, and the report would not say so.
-
-    Running from a source checkout there is no bundle to prefer, so PATH is the
-    honest answer and the developer gets the tool they installed.
-
-    The bundle is found through ``ICI_BUNDLE_ROOT``, which its launcher exports.
-    The first version walked ``__file__`` upwards to guess, and guessed wrong:
-    it looked in ``bin/`` while the build puts analyzers in
-    ``tools/python-static/``, so inside a real bundle it would have found
-    nothing and fallen through to the host.
-    """
-
-    root = os.environ.get("ICI_BUNDLE_ROOT")
-    if root:
-        shipped = Path(root) / BUNDLED_TOOLS / tool
-        return str(shipped) if _runnable(shipped) else None
-    return shutil.which(tool)
-
-
-def _runnable(path: Path) -> bool:
-    return path.is_file() and os.access(path, os.X_OK)
 
 
 def _version_of(executable: str) -> str:

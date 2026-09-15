@@ -7,6 +7,32 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` C++/Qt 테스트 실행과 gcov 커버리지 (WP19, [#217](https://github.com/jihoon22-lee/ici/issues/217))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.
+ici는 여전히 빌드를 실행하지 않습니다 — 테스트 바이너리는 프로젝트 빌드가
+남긴 산출물이고, 계측은 사용자의 instrumented 빌드가 남긴 `.gcno`입니다.
+
+- **`cpp.test`가 빌드가 선언한 suite를 실행합니다.** cmake 빌드의
+  `add_test`는 `ctest --test-dir` 한 번으로, `QT += testlib`/`testcase`
+  `.pro`는 QTest 바이너리 하나씩 — suite 하나당 task 하나로 확장됩니다.
+  선언된 suite의 `CTestTestfile.cmake`나 바이너리가 없으면 blocked입니다:
+  "test suite not built" / "test binary not built"는 missing이고 빈 결과가
+  아닙니다. 빌드 없음·suite 없음·ctest/gcov 부재도 전부 blocked입니다.
+- **노드별 verdict가 finding이 됩니다.** ctest의 `Passed`/`***Failed`와
+  QTest의 `PASS`/`FAIL!`이 정규화되고, QTest의 `Loc:` 라인이 실제 소스
+  위치를 붙입니다. "No tests were found"와 verdict 없는 출력은 파싱
+  실패이며, crash/타임아웃은 executor가 보고합니다 — 어떤 경우도 PASS가
+  아닙니다.
+- **`cpp.coverage`는 같은 실행의 `.gcda`만 읽습니다.** check가 선택되면
+  링크된 빌드 디렉터리의 `.gcno`가 instrumentation을 증명하고, gcov는
+  `.ici/cache/gcov/`에서만 결과를 씁니다 — 프로젝트 빌드 트리는 읽기
+  전용입니다. `gcov --json-format` 보고서는 구조 검증을 통과해야 하며,
+  보고서 부재·stamp mismatch·빈 라인 데이터는 전부 거부됩니다.
+- **cmake `add_test`와 qmake testcase 선언이 해석됩니다.** 두 형태
+  (`add_test(NAME …)`/구형 `add_test(n …)`), `TARGET =` 재명명, 조건부
+  블록의 maybe 표시까지 provenance로 남습니다.
+
 ### 추가 — `ici next` pytest·coverage 실행과 증거 수집 (WP18, [#216](https://github.com/jihoon22-lee/ici/issues/216))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.

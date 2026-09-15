@@ -53,7 +53,9 @@ def _hybrid_workspace(root: Path, with_db: bool = True) -> None:
         HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
         '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n'
         '[checks."python.test"]\nenabled = false\n'
-        '[checks."python.coverage"]\nenabled = false\n',
+        '[checks."python.coverage"]\nenabled = false\n'
+        '[checks."cpp.test"]\nenabled = false\n'
+        '[checks."cpp.coverage"]\nenabled = false\n',
         encoding="utf-8",
     )
 
@@ -139,7 +141,9 @@ def test_require_full_passes_when_coverage_is_complete(tmp_path, monkeypatch) ->
     (tmp_path / "ici.toml").write_text(
         HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
         '[checks."python.test"]\nenabled = false\n'
-        '[checks."python.coverage"]\nenabled = false\n',
+        '[checks."python.coverage"]\nenabled = false\n'
+        '[checks."cpp.test"]\nenabled = false\n'
+        '[checks."cpp.coverage"]\nenabled = false\n',
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
@@ -221,7 +225,9 @@ def test_doctor_explains_a_disabled_check_by_its_origin(tmp_path, monkeypatch) -
         HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
         '[components.checks."python.lint"]\nenabled = false\n'
         '[checks."python.test"]\nenabled = false\n'
-        '[checks."python.coverage"]\nenabled = false\n',
+        '[checks."python.coverage"]\nenabled = false\n'
+        '[checks."cpp.test"]\nenabled = false\n'
+        '[checks."cpp.coverage"]\nenabled = false\n',
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
@@ -332,7 +338,9 @@ def test_two_cpp_components_share_one_declared_build(tmp_path, monkeypatch) -> N
         HEADER + '[builds.native]\nsystem = "qmake"\nproject = "product.pro"\n'
         'directory = "build"\nvariant = "release"\n'
         '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["cpp"]\nbuild = "native"\n'
-        '[[components]]\nid = "lib"\nroot = "lib"\nlanguages = ["cpp"]\nbuild = "native"\n',
+        '[[components]]\nid = "lib"\nroot = "lib"\nlanguages = ["cpp"]\nbuild = "native"\n'
+        '[checks."cpp.test"]\nenabled = false\n'
+        '[checks."cpp.coverage"]\nenabled = false\n',
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
@@ -416,7 +424,9 @@ def _cmake_workspace(root: Path, component_root: str = "app") -> None:
         HEADER + '[builds.release]\nsystem = "cmake"\nproject = "CMakeLists.txt"\n'
         'directory = "build"\nvariant = "release"\n'
         f'[[components]]\nid = "app"\nroot = "{component_root}"\nlanguages = ["cpp"]\n'
-        'build = "release"\n',
+        'build = "release"\n'
+        '[checks."cpp.test"]\nenabled = false\n'
+        '[checks."cpp.coverage"]\nenabled = false\n',
         encoding="utf-8",
     )
 
@@ -522,7 +532,11 @@ def test_python_type_runs_the_component_chosen_checker(tmp_path, monkeypatch) ->
     (tmp_path / "ici.toml").write_text(
         HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
         '[components.python]\ntype_provider = "ty"\n'
-        '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n',
+        '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n'
+        '[checks."cpp.test"]\nenabled = false\n'
+        '[checks."cpp.coverage"]\nenabled = false\n',
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
@@ -540,7 +554,11 @@ def test_an_unknown_type_provider_is_a_config_error(tmp_path, monkeypatch) -> No
     (tmp_path / "ici.toml").write_text(
         HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
         '[components.python]\ntype_provider = "pyright"\n'
-        '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n',
+        '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n'
+        '[checks."cpp.test"]\nenabled = false\n'
+        '[checks."cpp.coverage"]\nenabled = false\n',
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
