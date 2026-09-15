@@ -26,7 +26,9 @@ import typer
 
 from ici import __version__
 from ici.adapters.providers.base import Provider
+from ici.adapters.providers.compiler import CompilerDiagnosticsProvider
 from ici.adapters.providers.ruff import RuffProvider
+from ici.adapters.providers.tidy import ClangTidyProvider
 from ici.application.graph import WorkUnit
 from ici.application.identity import task_identity
 from ici.application.plan import NothingSelected, Plan, PlannedCheck
@@ -597,7 +599,11 @@ def cmd_verify(
         )
 
     cache = None if no_cache else ObservationCache(root / ".ici" / "cache" / "observations")
-    providers: dict[str, Provider] = {"ruff": RuffProvider()}
+    providers: dict[str, Provider] = {
+        "ruff": RuffProvider(),
+        "compiler": CompilerDiagnosticsProvider(),
+        "clang-tidy": ClangTidyProvider(),
+    }
     verification = run_verification(
         plans,
         providers=providers,

@@ -9,6 +9,7 @@ sink and the option spellings every command shares.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import threading
@@ -18,7 +19,13 @@ from pathlib import Path, PurePosixPath
 import typer
 
 from ici.adapters.providers.base import ProviderPlan
+from ici.adapters.providers.compiler import (
+    CompilerDiagnosticsProvider,
+    compiler_family,
+    transform_argv,
+)
 from ici.adapters.providers.ruff import RuffProvider, RuffRequest
+from ici.adapters.providers.tidy import ClangTidyProvider
 from ici.application.graph import TaskGraph, build_graph
 from ici.application.plan import NothingSelected, Plan, PlannedCheck
 from ici.application.request import (
@@ -304,6 +311,13 @@ def _plans(
             for language in component.languages
             if language in units and language in _SOURCE_SUFFIXES
         }
+        compile_inputs = (
+            compile_units.load_compile_inputs(
+                root, component, files_by_language.get("cpp", ()), scope.builds
+            )
+            if "cpp" in component.languages
+            else None
+        )
         work = _planner(
             component_root,
             root,
@@ -311,6 +325,8 @@ def _plans(
             units.get("python"),
             files_by_language.get("python", ()),
             _tool_configs(component_root, root),
+            units.get("cpp"),
+            compile_inputs,
         )
 
         def in_scope(
@@ -332,8 +348,14 @@ def _plans(
         except NothingSelected as error:
             limitations.append(str(error))
             continue
-        plan = _gate_cpp_compile(
-            plan, component, files_by_language.get("cpp", ()), scope.builds, root
+        plan = _gate_cpp(
+            plan,
+            component,
+            files_by_language.get("cpp", ()),
+            scope.builds,
+            root,
+            compile_inputs,
+            units.get("cpp"),
         )
         plans.append(plan)
         by_component[component.id] = plan
@@ -361,10 +383,40 @@ def _planner(
     unit: AnalysisUnit | None,
     files: tuple[str, ...],
     config_files: tuple[str, ...],
+    cpp_unit: AnalysisUnit | None = None,
+    compile_inputs: compile_units.CompileInputs | None = None,
 ) -> Planner:
     """Bind one component's context into the check-to-task callback."""
 
     def work(check: CheckDefinition, executable: str, task_id: str) -> ProviderPlan:
+        if check.id == "cpp.tidy":
+            assert cpp_unit is not None
+            database_dir = (
+                str(root / str(PurePosixPath(compile_inputs.database_path).parent))
+                if compile_inputs is not None and compile_inputs.database_path
+                else str(root)
+            )
+            sources = (
+                tuple(str(root / u.source) for u in compile_inputs.units)
+                if compile_inputs is not None
+                else ()
+            )
+            return ClangTidyProvider().plan(
+                executable,
+                database_dir=database_dir,
+                sources=sources,
+                task_id=task_id,
+                cwd=str(root),
+                analysis_unit_id=cpp_unit.id,
+                input_refs=(
+                    (
+                        compile_inputs.database_path,
+                        *(u.source for u in compile_inputs.units),
+                    )
+                    if compile_inputs is not None and compile_inputs.database_path
+                    else ()
+                ),
+            )
         assert unit is not None
         return RuffProvider().plan(
             RuffRequest(
@@ -446,41 +498,187 @@ def _internal_analysis(
     return _line_counter(component_root, root, files, planned.task_id)
 
 
-def _gate_cpp_compile(
+def _gate_cpp(
     plan: Plan,
     component: Component,
     files: tuple[str, ...],
     builds: tuple[BuildUnit, ...],
     root: Path,
+    inputs: compile_units.CompileInputs | None,
+    cpp_unit: AnalysisUnit | None,
 ) -> Plan:
-    """Block ``cpp.compile`` when nothing declares where its input lives.
+    """Gate the compile-input checks, and expand per-TU work where it exists.
 
-    A C++ component with no compilation database has no compilable evidence —
-    the check is marked blocked with the remedy (the declared build that would
-    produce one, or the config key that would declare it) rather than run and
-    report an empty coverage as a pass (#212).
+    Three checks read the same evidence, loaded once:
+
+    - ``cpp.compile`` is blocked when no database declares where the C++
+      scope's compile invocations live — the remedy names the declared build
+      or the config key that would declare one (#212).
+    - ``cpp.tidy`` is blocked on the same condition — ``-p`` replays the
+      database, so without one there is nothing to point it at (#213/#214).
+    - ``cpp.diagnostics`` expands into one task per covered translation
+      unit, each carrying that TU's own recorded invocation transformed to
+      ``-fsyntax-only`` (#214). A TU whose driver is not a gcc/clang-family
+      compiler becomes a blocked marker, not a silent skip.
     """
 
-    checks: list[PlannedCheck] = []
-    changed = False
-    for planned in plan.checks:
-        if planned.check.id != "cpp.compile" or planned.blocked:
-            checks.append(planned)
-            continue
+    if not any(
+        planned.check.id in {"cpp.compile", "cpp.tidy", "cpp.diagnostics"}
+        for planned in plan.checks
+    ):
+        return plan
+    if inputs is None:
         inputs = compile_units.load_compile_inputs(root, component, files, builds)
-        if inputs.database_path:
+    remedy = f" — {inputs.prepare[0]}" if inputs.prepare else ""
+    missing = f"no compilation database for the component's C++ scope{remedy}"
+
+    checks: list[PlannedCheck] = []
+    for planned in plan.checks:
+        if planned.blocked:
             checks.append(planned)
             continue
-        remedy = f" — {inputs.prepare[0]}" if inputs.prepare else ""
-        checks.append(
+        if planned.check.id == "cpp.compile":
+            if inputs.database_path:
+                checks.append(planned)
+            else:
+                checks.append(
+                    PlannedCheck(
+                        check=planned.check,
+                        task_id=planned.task_id,
+                        blocked=missing,
+                    )
+                )
+        elif planned.check.id == "cpp.tidy":
+            if inputs.database_path:
+                checks.append(planned)
+            else:
+                checks.append(
+                    PlannedCheck(
+                        check=planned.check,
+                        task_id=planned.task_id,
+                        blocked=f"{missing} — clang-tidy replays it via -p",
+                    )
+                )
+        elif planned.check.id == "cpp.diagnostics":
+            checks.extend(_expand_diagnostics(planned, inputs, root, missing, cpp_unit))
+        else:
+            checks.append(planned)
+    return Plan(checks=tuple(checks))
+
+
+def _expand_diagnostics(
+    planned: PlannedCheck,
+    inputs: compile_units.CompileInputs,
+    root: Path,
+    missing: str,
+    cpp_unit: AnalysisUnit | None,
+) -> list[PlannedCheck]:
+    """One planned task per covered TU — each argv is the build's own."""
+
+    if not inputs.database_path:
+        return [
             PlannedCheck(
                 check=planned.check,
                 task_id=planned.task_id,
-                blocked=f"no compilation database for the component's C++ scope{remedy}",
+                blocked=missing,
+            )
+        ]
+    provider = CompilerDiagnosticsProvider()
+    expanded: list[PlannedCheck] = []
+    for index, unit in enumerate(inputs.units):
+        task_id = f"{planned.task_id}.{_task_slug(unit.source)}-{index}"
+        stripped = unit.argv[len(unit.launchers) :] or unit.argv
+        blocked = _diagnostics_blocker(stripped, unit, root)
+        if blocked is not None:
+            expanded.append(PlannedCheck(check=planned.check, task_id=task_id, blocked=blocked))
+            continue
+        executable, token = stripped[0], _source_token(stripped, unit, root)
+        transformed = transform_argv(stripped, token)
+        assert transformed is not None  # the blocker check already refused it
+        if not Path(executable).is_absolute():
+            executable = _locate(executable) or executable
+        cwd = Path(root) / unit.directory
+        expanded.append(
+            PlannedCheck(
+                check=planned.check,
+                task_id=task_id,
+                task=provider.plan(
+                    executable,
+                    transformed.argv,
+                    cwd=str(cwd),
+                    task_id=task_id,
+                    analysis_unit_id=cpp_unit.id if cpp_unit is not None else "",
+                    input_refs=(
+                        os.path.relpath(root / unit.source, cwd),
+                        os.path.relpath(root / inputs.database_path, cwd),
+                    ),
+                ),
             )
         )
-        changed = True
-    return Plan(checks=tuple(checks)) if changed else plan
+    if not expanded:
+        return [
+            PlannedCheck(
+                check=planned.check,
+                task_id=planned.task_id,
+                blocked="the database covers no translation units in this scope",
+            )
+        ]
+    return expanded
+
+
+def _diagnostics_blocker(
+    argv: tuple[str, ...], unit: compile_units.TranslationUnit, root: Path
+) -> str | None:
+    """Why this TU's replay cannot be planned, or None when it can."""
+
+    if not argv:
+        return "the database recorded an empty invocation"
+    driver = argv[0]
+    if not compiler_family(driver):
+        return (
+            f"unsupported compiler '{PurePosixPath(driver).name}' — "
+            "only gcc/clang-family invocations are replayed"
+        )
+    executable = Path(driver) if Path(driver).is_absolute() else None
+    if executable is None:
+        executable = Path(_locate(driver) or "")
+    if not executable.is_file():
+        return f"compiler '{driver}' is not available on PATH"
+    cwd = root / unit.directory
+    if not cwd.is_dir():
+        return f"the recorded working directory {unit.directory} is gone — the capture is stale"
+    return None
+
+
+def _source_token(argv: tuple[str, ...], unit: compile_units.TranslationUnit, root: Path) -> str:
+    """The argv entry that names this TU, spelled as the database spelled it.
+
+    Positional non-flag arguments are resolved against the recorded working
+    directory; the first that lands on the unit's source wins. With no match
+    the workspace-relative path is used — a wrong guess here would compile a
+    different file than the build did, so the fallback stays literal.
+    """
+
+    target = (root / unit.source).resolve()
+    for arg in reversed(argv[1:]):
+        if arg.startswith("-"):
+            continue
+        try:
+            if (root / unit.directory / arg).resolve() == target:
+                return arg
+        except OSError:
+            continue
+    try:
+        return str((root / unit.source).relative_to(root / unit.directory))
+    except ValueError:
+        return str(root / unit.source)
+
+
+def _task_slug(source: str) -> str:
+    """A source path made identifier-safe for a task id."""
+
+    slug = re.sub(r"[^a-z0-9]+", "-", source.lower()).strip("-.")
+    return slug or "tu"
 
 
 def _compile_coverage(

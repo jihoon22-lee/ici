@@ -27,7 +27,12 @@ def test_a_cpp_scope_never_sees_python_tools() -> None:
 
     checks = registry.checks_for(("cpp",))
 
-    assert {check.id for check in checks} == {"cpp.line", "cpp.compile"}
+    assert {check.id for check in checks} == {
+        "cpp.line",
+        "cpp.compile",
+        "cpp.diagnostics",
+        "cpp.tidy",
+    }
     assert "ruff" not in registry.providers_for(("cpp",))
 
 
@@ -36,7 +41,14 @@ def test_a_hybrid_scope_gets_both_packs_but_no_strays() -> None:
 
     ids = {check.id for check in registry.checks_for(("python", "cpp"))}
 
-    assert ids == {"python.line", "python.lint", "cpp.line", "cpp.compile"}
+    assert ids == {
+        "python.line",
+        "python.lint",
+        "cpp.line",
+        "cpp.compile",
+        "cpp.diagnostics",
+        "cpp.tidy",
+    }
 
 
 def test_an_unknown_language_gets_nothing() -> None:

@@ -245,10 +245,10 @@ def _perform(
         return analysis()
 
     assert unit.plan is not None
-    provider = providers.get(unit.source.check.tool or "")
+    provider = providers.get(unit.plan.task.provider or unit.source.check.tool or "")
     if provider is None:
         return unavailable(
-            unit.source.check.tool or "?",
+            unit.plan.task.provider or unit.source.check.tool or "?",
             unit.id,
             f"{unit.source.check.tool} has no provider registered",
         )
@@ -270,6 +270,8 @@ def _failed_prerequisite(unit: WorkUnit, finished: Mapping[str, Observation]) ->
 def _provider_name(unit: WorkUnit) -> str:
     if unit.is_internal:
         return "ici"
+    if unit.plan is not None and unit.plan.task.provider:
+        return unit.plan.task.provider
     return unit.source.check.tool or "?"
 
 

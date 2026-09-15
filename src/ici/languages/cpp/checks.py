@@ -1,12 +1,14 @@
 """The C++ pack's checks.
 
-Only ``cpp.line`` can be planned today — the line counter is ici's own and the
-algorithm already reads ``//`` and block comments, so it is as honest on a
-``.cpp`` file as on a ``.py`` one. The C++ providers the disposition table maps
-(lint, type, compile_db, test, coverage) are #214's work: they are not declared
-here yet because a declared check is a promise the run can be asked for, and a
-check with no provider would make every C++ workspace permanently INCOMPLETE on
-a tool requirement nobody can satisfy yet.
+``cpp.line`` is ici's own counter — it already reads ``//`` and block
+comments, so it is as honest on a ``.cpp`` file as on a ``.py`` one.
+``cpp.compile`` is the coverage check #212 asked for: it states which of the
+component's translation units the compilation database has an invocation
+for, and ``provides`` the evidence token the other compile-input checks
+``needs``. ``cpp.diagnostics`` (#214) replays each captured compile command
+as ``-fsyntax-only`` through the project's own compiler, and ``cpp.tidy``
+replays the database through ``clang-tidy -p`` — both consume the coverage
+the compile check publishes rather than inventing flags of their own.
 """
 
 from __future__ import annotations
@@ -26,13 +28,49 @@ CPP_LINE_CHECK = CheckDefinition(
 #: database has an invocation for. ici performs the read itself — the check's
 #: job is to state coverage, and a component with no database is *blocked*,
 #: not passed: a partial or absent capture cannot stand in for a C++ verdict
-#: (#212's acceptance criterion).
+#: (#212's acceptance criterion). It ``provides`` the evidence every other
+#: compile-input check declares it ``needs``.
 CPP_COMPILE_CHECK = CheckDefinition(
     id="cpp.compile",
     title="Compilation coverage",
     language="cpp",
     tool=None,
+    provides=("compile-inputs",),
+)
+
+#: Compiler diagnostics: the captured compile invocation re-run as
+#: ``-fsyntax-only`` per covered translation unit. The check declares no tool
+#: because the tool is the project's own compiler, found per TU in the
+#: database — ``ici.cli.next_common`` expands one declared check into one task
+#: per TU so each run's argv is the invocation the build actually used (#214).
+CPP_DIAGNOSTICS_CHECK = CheckDefinition(
+    id="cpp.diagnostics",
+    title="Compiler diagnostics",
+    language="cpp",
+    tool=None,
+    needs=("compile-inputs",),
+)
+
+#: clang-tidy replayed through ``-p <build>``: the database applies each
+#: file's own recorded invocation, so no flag transform is invented. The
+#: check needs the coverage evidence first — a partial database is a partial
+#: analysis, and cpp.compile is what reports it.
+CPP_TIDY_CHECK = CheckDefinition(
+    id="cpp.tidy",
+    title="clang-tidy analysis",
+    language="cpp",
+    tool="clang-tidy",
+    # Advisory, not required: a host without clang-tidy still deserves a C++
+    # verdict from the compile evidence. ``[checks."cpp.tidy"] required =
+    # true`` opts the component into treating its absence as incomplete.
+    required=False,
+    needs=("compile-inputs",),
 )
 
 #: Declaration only. Importing this must not look at the machine.
-CPP_CHECKS: tuple[CheckDefinition, ...] = (CPP_LINE_CHECK, CPP_COMPILE_CHECK)
+CPP_CHECKS: tuple[CheckDefinition, ...] = (
+    CPP_LINE_CHECK,
+    CPP_COMPILE_CHECK,
+    CPP_DIAGNOSTICS_CHECK,
+    CPP_TIDY_CHECK,
+)

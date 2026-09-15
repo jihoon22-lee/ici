@@ -7,6 +7,33 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` C++/Qt 분석 제공자: 컴파일러 재현과 clang-tidy (WP16, [#214](https://github.com/jihoon22-lee/ici/issues/214))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다. ici는
+여전히 빌드를 실행하지 않고, 셸 초기화 파일을 source하지 않으며, 컴파일 DB가
+기록한 호출만을 읽기 전용으로 재현합니다.
+
+- **`cpp.diagnostics`가 TU 하나당 작업 하나로 확장됩니다.** 컴파일 DB의 각
+  번역 단위가 기록된 그대로의 argv를 `-fsyntax-only` 호출로 변환해 실행합니다.
+  `-o`/`-c`/`-MF`/`-flto`/`-Wl,*` 같은 산출물·링크 플래그만 이유와 함께
+  제거되고, 이름 모르는 플래그는 버리지 않습니다 — 버리면 다른 컴파일이
+  되므로. 지원하지 않는 드라이버(`cl.exe` 등)는 추측 실행 대신 blocked
+  마커가 되고, 기록된 작업 디렉터리가 사라진 캡처는 stale로 막힙니다.
+- **`cpp.tidy`가 `clang-tidy -p <build>`로 DB를 재생합니다.** 플래그 변환을
+  새로 만들지 않고 DB가 각 파일의 기록된 호출을 적용하게 둡니다. clang-tidy가
+  없는 호스트는 advisory check로 취급되어(`required = false`) C++ 판정을
+  INCOMPLETE로 오염시키지 않습니다 — `[checks."cpp.tidy"] required = true`로
+  강제할 수 있습니다.
+- **파싱 실패는 빈 PASS가 아니라 파싱 실패입니다.** 두 제공자 모두
+  `failed_to_parse`로 보고하고, 진단은 정규화된 `Finding`(파일·라인·
+  심각도·native rule id·task id·지문)으로 변환됩니다.
+- **능력 이름이 컴포넌트로 한정됩니다.** `compile-inputs` 같은 needs/provides가
+  `app.compile-inputs`처럼 component prefix를 따라가, 같은 이름의 능력을 두
+  컴포넌트가 생산해도 그래프가 중복 생산자로 오인하지 않습니다.
+- **컴파일러 재현은 캐시되지 않습니다.** dep 파일 증거를 잡지 않으므로 헤더
+  편집이 캐시 키에 보이지 않습니다 — 스케줄러는 거짓 캐시 키 대신
+  "not cacheable"을 기록합니다.
+
 ### 추가 — `ici next` CMake·Make 빌드 입력의 공통 계약 이관 (WP15, [#213](https://github.com/jihoon22-lee/ici/issues/213))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다. ici는

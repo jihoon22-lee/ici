@@ -463,3 +463,46 @@ def test_plan_lists_linked_builds_and_their_impact_directories(tmp_path, monkeyp
     text = runner.invoke(app, ["next", "plan"])
     assert "builds:" in text.output
     assert "release: cmake release → build (for app)" in text.output
+
+
+def test_diagnostics_expands_to_one_task_per_covered_tu(tmp_path, monkeypatch) -> None:
+    # #214: one declared check becomes one task per TU, each argv the
+    # invocation the build recorded — not a merged guess.
+    _hybrid_workspace(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    plan = runner.invoke(app, ["next", "plan", "--cpp"])
+    assert plan.exit_code == 0, plan.output
+    assert "native.cpp.diagnostics.native-core-cpp-0" in plan.output
+
+    events = tmp_path / "run.jsonl"
+    verify = runner.invoke(app, ["next", "verify", "--cpp", "--events", str(events)])
+    assert verify.exit_code in (0, 1), verify.output
+    completed = {
+        json.loads(line)["task_id"]
+        for line in events.read_text("utf-8").splitlines()
+        if json.loads(line)["event_type"] == "task.completed"
+    }
+    assert "native.cpp.compile" in completed
+    assert any(t.startswith("native.cpp.diagnostics.") for t in completed)
+
+
+def test_an_unsupported_driver_is_a_blocked_tu_not_a_silent_skip(tmp_path, monkeypatch) -> None:
+    _hybrid_workspace(tmp_path)
+    db = tmp_path / "native" / "build" / "compile_commands.json"
+    entries = json.loads(db.read_text("utf-8"))
+    entries.append(
+        {
+            "directory": str(tmp_path / "native" / "build"),
+            "file": str(tmp_path / "native" / "other.cpp"),
+            "arguments": ["cl.exe", "/c", "../other.cpp"],
+        }
+    )
+    (tmp_path / "native" / "other.cpp").write_text("int other;\n", encoding="utf-8")
+    db.write_text(json.dumps(entries), encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    plan = runner.invoke(app, ["next", "plan", "--cpp"])
+    assert plan.exit_code == 0, plan.output
+    assert "unsupported compiler 'cl.exe'" in plan.output
+    assert "blocked" in plan.output
