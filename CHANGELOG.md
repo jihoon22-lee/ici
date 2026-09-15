@@ -33,6 +33,13 @@
   결과는 ESTIMATED 증거이며 미해결·모호 include는 limitation으로
   보고됩니다 (#218).
 
+- **`python.dup`·`cpp.dup` check이 추가됐습니다.** 컴포넌트 소유 파일을
+  언어별로 토큰화해 Type-2 클론을 찾고, stable `dup` 엔진과 같은
+  매처·클러스터링·지분율 계산을 공유합니다. generated/vendor 파일은
+  정책대로 제외되고 제외 사실이 limitation으로 남습니다. Python의 AST-shape
+  semantic clustering은 아직 이관되지 않았다는 limitation을 명시합니다 —
+  조용히 빠진 기능이 아닙니다 (#218).
+
 - **수식은 stable 엔진과 동일합니다.** cyclomatic/cognitive/nesting 계산이
   `engines/_python_metrics.py`로 추출됐고, stable `complexity`·`cognitive`
   엔진이 이를 위임 호출합니다 — 같은 의미의 구현이 두 벌이던 상태를 하나로

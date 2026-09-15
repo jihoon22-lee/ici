@@ -108,6 +108,15 @@ CYCLE_CHECK = CheckDefinition(
     tool=None,
 )
 
+#: Type-2 clone detection over the component's own files — tokenized,
+#: window-matched and clustered in-process (#218).
+DUP_CHECK = CheckDefinition(
+    id="python.dup",
+    title="Duplicate code",
+    language="python",
+    tool=None,
+)
+
 #: Declaration only. Importing this must not look at the machine.
 PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     LINE_CHECK,
@@ -119,4 +128,5 @@ PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     COMPLEXITY_CHECK,
     COGNITIVE_CHECK,
     CYCLE_CHECK,
+    DUP_CHECK,
 )

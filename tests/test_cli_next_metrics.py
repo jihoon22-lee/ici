@@ -268,3 +268,47 @@ def test_acyclic_python_reports_no_cycles(tmp_path: Path, monkeypatch) -> None:
     payload = _verify(tmp_path)
 
     assert _findings(payload, "python.cycle") == []
+
+
+def _duplicated_python_workspace(root: Path) -> None:
+    block = """    for item in items:
+        if item.ready:
+            total += item.weight
+        else:
+            skipped.append(item)
+    if total > limit:
+        raise ValueError("over limit")
+    return total"""
+    (root / "app").mkdir(parents=True)
+    (root / "app" / "one.py").write_text(f"def first(items, limit):\n{block}\n", encoding="utf-8")
+    (root / "app" / "two.py").write_text(f"def second(items, limit):\n{block}\n", encoding="utf-8")
+    (root / "ici.toml").write_text(
+        HEADER
+        + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
+        + '[checks."python.test"]\nenabled = false\n'
+        + '[checks."python.coverage"]\nenabled = false\n',
+        encoding="utf-8",
+    )
+
+
+def test_python_dup_reports_a_shared_block(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    _duplicated_python_workspace(tmp_path)
+
+    payload = _verify(tmp_path)
+
+    findings = _findings(payload, "python.dup")
+    assert findings, "an identical 8-line block in two files produced no finding"
+    files = {f["primary_location"]["path"] for f in findings}
+    assert files == {"one.py", "two.py"}
+    dup = [m for m in payload["metrics"] if m["name"] == "duplicated_lines"]
+    assert dup and dup[0]["value"] > 0
+
+
+def test_unique_files_report_no_dup_finding(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    _python_workspace(tmp_path, "def calm() -> int:\n    return 1\n")
+
+    payload = _verify(tmp_path)
+
+    assert _findings(payload, "python.dup") == []

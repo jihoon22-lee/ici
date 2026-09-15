@@ -106,6 +106,15 @@ CPP_CYCLE_CHECK = CheckDefinition(
     tool=None,
 )
 
+#: Type-2 clone detection over the component's C++ sources and headers —
+#: tokenized, window-matched and clustered in-process (#218).
+CPP_DUP_CHECK = CheckDefinition(
+    id="cpp.dup",
+    title="Duplicate code",
+    language="cpp",
+    tool=None,
+)
+
 #: gcov over the notes and data the instrumented build and the shared test
 #: run left — this check never builds or reruns the suite itself.
 CPP_COVERAGE_CHECK = CheckDefinition(
@@ -127,4 +136,5 @@ CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_COMPLEXITY_CHECK,
     CPP_COGNITIVE_CHECK,
     CPP_CYCLE_CHECK,
+    CPP_DUP_CHECK,
 )
