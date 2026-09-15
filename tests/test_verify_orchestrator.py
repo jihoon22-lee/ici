@@ -60,7 +60,7 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
             "resource",
         )
     }
-    suite = VerifyOrchestrator(tmp_path, {"engines": enabled}).run_all()
+    suite = VerifyOrchestrator(tmp_path, {"engines": enabled}).run_all(use_cache=False)
 
     assert [result.status for result in suite.results] == [EngineStatus.ERROR, EngineStatus.PASS]
     assert suite.results[0].engine_name == "line"

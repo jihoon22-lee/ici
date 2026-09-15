@@ -425,7 +425,7 @@ def test_verify_derives_manifest_context_without_mutating_original_context(
     monkeypatch.setattr(verify_module, "LineCountEngine", ManifestEngine)
     config = {"engines": {name: {"enabled": name == "line"} for name in verify_module.ENGINE_NAMES}}
 
-    suite = VerifyOrchestrator(root, config).run_all()
+    suite = VerifyOrchestrator(root, config).run_all(use_cache=False)
 
     assert suite.analysis_context is not context
     assert suite.analysis_context is not None
