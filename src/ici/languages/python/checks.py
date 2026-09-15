@@ -99,6 +99,15 @@ COGNITIVE_CHECK = CheckDefinition(
     tool=None,
 )
 
+#: Module import cycles — read from the component's own module index, no
+#: tool involved (#218).
+CYCLE_CHECK = CheckDefinition(
+    id="python.cycle",
+    title="Import cycles",
+    language="python",
+    tool=None,
+)
+
 #: Declaration only. Importing this must not look at the machine.
 PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     LINE_CHECK,
@@ -109,4 +118,5 @@ PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     COVERAGE_CHECK,
     COMPLEXITY_CHECK,
     COGNITIVE_CHECK,
+    CYCLE_CHECK,
 )

@@ -58,6 +58,7 @@ from ici.domain.eventstream import events_to_jsonl
 from ici.domain.observation import Measurement, Observation
 from ici.domain.workspace import AnalysisUnit, BuildUnit, Component, Workspace
 from ici.languages.checks import CheckDefinition
+from ici.languages.cycles import CycleRequest, measure_cycles
 from ici.languages.metrics import MetricRequest, measure
 from ici.languages.python.lines import LineRequest
 from ici.languages.python.lines import count as count_lines
@@ -520,6 +521,8 @@ def _internal_analysis(
     kind = planned.check.id.rpartition(".")[2]
     if kind in {"complexity", "cognitive"}:
         return _metric_counter(planned, component, files, component_root, root, kind, metric_cache)
+    if kind == "cycle":
+        return _cycle_counter(planned, component, files, component_root, root)
     return _line_counter(component_root, root, files, planned.task_id)
 
 
@@ -543,6 +546,24 @@ def _metric_counter(
         cache=metric_cache,
     )
     return lambda: measure(request)
+
+
+def _cycle_counter(
+    planned: PlannedCheck,
+    component: Component,
+    files: tuple[str, ...],
+    component_root: Path,
+    root: Path,
+) -> Analysis:
+    resolved = tuple(root / item for item in files)
+    request = CycleRequest(
+        language=planned.check.language,
+        project_root=component_root,
+        files=resolved,
+        task_id=planned.task_id,
+        component_id=component.id,
+    )
+    return lambda: measure_cycles(request)
 
 
 def _gate_cpp(

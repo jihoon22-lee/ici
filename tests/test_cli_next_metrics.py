@@ -19,6 +19,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from ici.__main__ import app
+from ici.languages.cycles import CycleRequest, measure_cycles
 from ici.languages.metrics import MetricRequest, measure, scan_functions
 
 runner = CliRunner()
@@ -215,3 +216,55 @@ def test_calm_python_code_reports_no_findings(tmp_path: Path, monkeypatch) -> No
 
     assert _metric(payload, "functions_measured")["value"] == 1
     assert _findings(payload, "python.complexity") == []
+
+
+def _cyclic_python_workspace(root: Path) -> None:
+    pkg = root / "app" / "pkg"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "a.py").write_text("import pkg.b\n", encoding="utf-8")
+    (pkg / "b.py").write_text("import pkg.a\n", encoding="utf-8")
+    (root / "ici.toml").write_text(
+        HEADER
+        + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
+        + '[checks."python.test"]\nenabled = false\n'
+        + '[checks."python.coverage"]\nenabled = false\n',
+        encoding="utf-8",
+    )
+
+
+def test_python_cycle_reports_the_loop(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    _cyclic_python_workspace(tmp_path)
+
+    payload = _verify(tmp_path)
+
+    findings = _findings(payload, "python.cycle")
+    assert findings, "a two-module import cycle produced no finding"
+    assert any("pkg.a" in f["message"] and "pkg.b" in f["message"] for f in findings)
+
+
+def test_cpp_cycle_is_estimated(tmp_path: Path) -> None:
+    (tmp_path / "a.h").write_text('#include "b.h"\n', encoding="utf-8")
+    (tmp_path / "b.h").write_text('#include "a.h"\n', encoding="utf-8")
+    request = CycleRequest(
+        language="cpp",
+        project_root=tmp_path,
+        files=(tmp_path / "a.h", tmp_path / "b.h"),
+        task_id="app.cpp.cycle",
+    )
+
+    observation = measure_cycles(request)
+
+    assert observation.findings, "a two-header include cycle produced no finding"
+    assert all(f.evidence.value == "ESTIMATED" for f in observation.findings)
+    assert any("heuristic" in note for note in observation.limitations)
+
+
+def test_acyclic_python_reports_no_cycles(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    _python_workspace(tmp_path, "def calm() -> int:\n    return 1\n")
+
+    payload = _verify(tmp_path)
+
+    assert _findings(payload, "python.cycle") == []

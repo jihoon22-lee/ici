@@ -27,6 +27,7 @@ def test_a_python_scope_never_sees_cpp_tools() -> None:
         "python.coverage",
         "python.complexity",
         "python.cognitive",
+        "python.cycle",
     }
     assert registry.providers_for(("python",)) == ("ici.line", "ruff")
 
@@ -45,6 +46,7 @@ def test_a_cpp_scope_never_sees_python_tools() -> None:
         "cpp.coverage",
         "cpp.complexity",
         "cpp.cognitive",
+        "cpp.cycle",
     }
     assert "ruff" not in registry.providers_for(("cpp",))
 
@@ -63,6 +65,7 @@ def test_a_hybrid_scope_gets_both_packs_but_no_strays() -> None:
         "python.coverage",
         "python.complexity",
         "python.cognitive",
+        "python.cycle",
         "cpp.line",
         "cpp.compile",
         "cpp.diagnostics",
@@ -71,6 +74,7 @@ def test_a_hybrid_scope_gets_both_packs_but_no_strays() -> None:
         "cpp.coverage",
         "cpp.complexity",
         "cpp.cognitive",
+        "cpp.cycle",
     }
 
 

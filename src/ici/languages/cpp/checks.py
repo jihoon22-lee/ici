@@ -97,6 +97,15 @@ CPP_COGNITIVE_CHECK = CheckDefinition(
     tool=None,
 )
 
+#: Include cycles — resolved by path suffix, a heuristic, so its findings
+#: are ESTIMATED evidence (#218 item 5).
+CPP_CYCLE_CHECK = CheckDefinition(
+    id="cpp.cycle",
+    title="Include cycles",
+    language="cpp",
+    tool=None,
+)
+
 #: gcov over the notes and data the instrumented build and the shared test
 #: run left — this check never builds or reruns the suite itself.
 CPP_COVERAGE_CHECK = CheckDefinition(
@@ -117,4 +126,5 @@ CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_COVERAGE_CHECK,
     CPP_COMPLEXITY_CHECK,
     CPP_COGNITIVE_CHECK,
+    CPP_CYCLE_CHECK,
 )

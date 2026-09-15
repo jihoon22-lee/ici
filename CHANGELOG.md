@@ -27,6 +27,12 @@
   가집니다 — heuristic이 조용히 exact로 승격되지 않습니다 (#218 항목 5).
 - **파싱 실패는 limitation입니다.** 읽을 수 없거나 파싱되지 않는 파일은
   측정된 것으로 취급되지 않고 limitation으로 보고됩니다.
+- **`python.cycle`·`cpp.cycle` check이 추가됐습니다.** Python import는
+  컴포넌트 자체 모듈 인덱스로, C++ `#include "..."`는 경로 접미사 매칭으로
+  해석해 Tarjan SCC로 순환을 찾습니다. include 해석은 휴리스틱이므로 C++
+  결과는 ESTIMATED 증거이며 미해결·모호 include는 limitation으로
+  보고됩니다 (#218).
+
 - **수식은 stable 엔진과 동일합니다.** cyclomatic/cognitive/nesting 계산이
   `engines/_python_metrics.py`로 추출됐고, stable `complexity`·`cognitive`
   엔진이 이를 위임 호출합니다 — 같은 의미의 구현이 두 벌이던 상태를 하나로
