@@ -117,6 +117,23 @@ DUP_CHECK = CheckDefinition(
     tool=None,
 )
 
+#: ici's own AST rules — secrets, crypto and deserialization risks; and
+#: unclosed acquisitions plus mutable defaults. Both run in-process over the
+#: component's owned files (#218).
+SECURITY_CHECK = CheckDefinition(
+    id="python.security",
+    title="Security hygiene",
+    language="python",
+    tool=None,
+)
+
+RESOURCE_CHECK = CheckDefinition(
+    id="python.resource",
+    title="Resource hygiene",
+    language="python",
+    tool=None,
+)
+
 #: Declaration only. Importing this must not look at the machine.
 PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     LINE_CHECK,
@@ -129,4 +146,6 @@ PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     COGNITIVE_CHECK,
     CYCLE_CHECK,
     DUP_CHECK,
+    SECURITY_CHECK,
+    RESOURCE_CHECK,
 )

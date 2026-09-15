@@ -39,6 +39,14 @@
   정책대로 제외되고 제외 사실이 limitation으로 남습니다. Python의 AST-shape
   semantic clustering은 아직 이관되지 않았다는 limitation을 명시합니다 —
   조용히 빠진 기능이 아닙니다 (#218).
+- **`python.security`·`python.resource` check이 추가됐습니다 (WP20-C
+  첫 배치).** stable `security`/`resource` 엔진이 파일 단위로 호출하는
+  `analyze_python_security`·`analyze_python_resources`를 그대로 재사용해
+  규칙 구현을 중복하지 않습니다. finding은 원래 규칙 이름
+  (`Security:PickleLoad`, `Resource:OpenWithoutWith` 등)을 `native_rule_id`로
+  보존하고 경로·라인·컬럼을 유지하며, generated/vendor 소유 정책 제외와
+  파싱 실패는 limitation으로 보고됩니다 — 파싱되지 않은 파일을 검사된
+  것으로 세지 않습니다 (#218).
 
 - **수식은 stable 엔진과 동일합니다.** cyclomatic/cognitive/nesting 계산이
   `engines/_python_metrics.py`로 추출됐고, stable `complexity`·`cognitive`

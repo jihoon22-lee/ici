@@ -60,6 +60,7 @@ from ici.domain.workspace import AnalysisUnit, BuildUnit, Component, Workspace
 from ici.languages.checks import CheckDefinition
 from ici.languages.cycles import CycleRequest, measure_cycles
 from ici.languages.duplicates import DuplicateRequest, measure_duplicates
+from ici.languages.hygiene import HygieneRequest, measure_hygiene
 from ici.languages.metrics import MetricRequest, measure
 from ici.languages.python.lines import LineRequest
 from ici.languages.python.lines import count as count_lines
@@ -526,6 +527,8 @@ def _internal_analysis(
         return _cycle_counter(planned, component, files, component_root, root)
     if kind == "dup":
         return _dup_counter(planned, component, files, component_root, root)
+    if kind in {"security", "resource"}:
+        return _hygiene_counter(planned, component, files, component_root, root, kind)
     return _line_counter(component_root, root, files, planned.task_id)
 
 
@@ -585,6 +588,25 @@ def _dup_counter(
         component_id=component.id,
     )
     return lambda: measure_duplicates(request)
+
+
+def _hygiene_counter(
+    planned: PlannedCheck,
+    component: Component,
+    files: tuple[str, ...],
+    component_root: Path,
+    root: Path,
+    kind: str,
+) -> Analysis:
+    resolved = tuple(root / item for item in files)
+    request = HygieneRequest(
+        kind=kind,
+        project_root=component_root,
+        files=resolved,
+        task_id=planned.task_id,
+        component_id=component.id,
+    )
+    return lambda: measure_hygiene(request)
 
 
 def _gate_cpp(

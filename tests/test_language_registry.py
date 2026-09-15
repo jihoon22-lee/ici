@@ -29,6 +29,8 @@ def test_a_python_scope_never_sees_cpp_tools() -> None:
         "python.cognitive",
         "python.cycle",
         "python.dup",
+        "python.security",
+        "python.resource",
     }
     assert registry.providers_for(("python",)) == ("ici.line", "ruff")
 
@@ -69,6 +71,8 @@ def test_a_hybrid_scope_gets_both_packs_but_no_strays() -> None:
         "python.cognitive",
         "python.cycle",
         "python.dup",
+        "python.security",
+        "python.resource",
         "cpp.line",
         "cpp.compile",
         "cpp.diagnostics",
