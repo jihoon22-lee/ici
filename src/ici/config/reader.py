@@ -27,11 +27,18 @@ __all__ = ["Table"]
 class Table:
     """One TOML table, read key by key against what a section declares."""
 
-    def __init__(self, data: Mapping[str, Any], origin: Origin, problems: list[ConfigProblem]):
+    def __init__(
+        self,
+        data: Mapping[str, Any],
+        origin: Origin,
+        problems: list[ConfigProblem],
+        name: str | None = None,
+    ):
         self._data = dict(data)
         self._origin = origin
         self._problems = problems
         self._seen: set[str] = set()
+        self._name = name
 
     @property
     def origin(self) -> Origin:
@@ -148,7 +155,7 @@ class Table:
             if not isinstance(value, dict):
                 self._wrong_type(name, origin, "a table", value)
                 continue
-            result.append(Table(value, origin, self._problems))
+            result.append(Table(value, origin, self._problems, name=name))
         return tuple(result)
 
     def array_of_tables(self, key: str) -> tuple[Table, ...]:
@@ -171,8 +178,15 @@ class Table:
         return tuple(result)
 
     def name(self) -> str:
-        """The last segment of this table's key, which is its id in the schema."""
+        """The key this table was filed under, which is its id in the schema.
 
+        The stored name is the parsed dict key, not a segment of the rendered
+        origin — a quoted TOML key like ``[checks."python.lint"]`` is one key
+        whose id contains a dot, and rendering it would cut it to ``lint``.
+        """
+
+        if self._name is not None:
+            return self._name
         return self._origin.key.rsplit(".", 1)[-1]
 
     def has(self, key: str) -> bool:

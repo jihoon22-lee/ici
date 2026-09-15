@@ -26,7 +26,7 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, overload
 
 from ici.config.documents import (
     BuildDeclaration,
@@ -81,6 +81,16 @@ class Decided(Generic[T]):
         return f"{self.value!r} from {self.origin} ({self.layer.value})"
 
 
+@overload
+def _decide(current: Decided[T], candidate: Sourced[T] | None, layer: Layer) -> Decided[T]: ...
+
+
+@overload
+def _decide(
+    current: Decided[T] | None, candidate: Sourced[T] | None, layer: Layer
+) -> Decided[T] | None: ...
+
+
 def _decide(
     current: Decided[T] | None, candidate: Sourced[T] | None, layer: Layer
 ) -> Decided[T] | None:
@@ -132,6 +142,7 @@ class EffectiveComponent:
     external: Decided[tuple[str, ...]] | None = None
     declared_in: str = ""
     python_executable: Decided[str] | None = None
+    python_type_provider: Decided[str] | None = None
 
     def check(self, check_id: str) -> EffectiveCheck | None:
         for check in self.checks:
@@ -442,6 +453,7 @@ def _component(
             environment=environment,
             problems=problems,
         ),
+        python_type_provider=_python_type_provider(component_id, body, local, problems),
     )
 
 
@@ -726,19 +738,54 @@ def _python_executable(
     if override is not None and not override.value:
         problems.append(ConfigProblem("a python executable must not be empty", override.origin))
         override = None
-    if declared is None and override is None:
-        return None
     if override is not None:
         executable = Executable(raw=override.value, origin=override.origin)
         layer = Layer.LOCAL
-    else:
+    elif declared is not None:
         executable = declared
         layer = Layer.COMPONENT
+    else:
+        return None
     return Decided(
         value=_executable(executable, workspace_dir, environment, problems),
         origin=executable.origin,
         layer=layer,
     )
+
+
+_TYPE_PROVIDERS = ("mypy", "ty")
+
+
+def _python_type_provider(
+    component_id: str,
+    body: ComponentBody,
+    local: Mapping[str, Sourced[str]],
+    problems: list[ConfigProblem],
+) -> Decided[str] | None:
+    """The component's chosen type checker, or None for the default.
+
+    ``mypy`` is the default candidate; ``ty`` must be named. Any other value
+    is a config problem — silently substituting one checker for another would
+    hide a checker change the user never asked for (#215).
+    """
+
+    declared = body.python.type_provider if body.python else None
+    override = local.get(f"components.{component_id}.python.type_provider")
+    if override is not None:
+        value, origin, layer = override.value, override.origin, Layer.LOCAL
+    elif declared is not None:
+        value, origin, layer = declared.value, declared.origin, Layer.COMPONENT
+    else:
+        return None
+    if value not in _TYPE_PROVIDERS:
+        problems.append(
+            ConfigProblem(
+                f"type_provider must be one of {', '.join(_TYPE_PROVIDERS)}",
+                origin,
+            )
+        )
+        return None
+    return Decided(value=value, origin=origin, layer=layer)
 
 
 def _component_checks(

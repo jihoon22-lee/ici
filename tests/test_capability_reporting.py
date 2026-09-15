@@ -197,7 +197,7 @@ def test_verify_collects_one_snapshot_before_engines_and_attaches_it(
     monkeypatch.setattr("ici.engines.verify.LineCountEngine", PassingLine)
     monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda *args, **kwargs: None)
 
-    suite = VerifyOrchestrator(tmp_path, _line_only_config()).run_all()
+    suite = VerifyOrchestrator(tmp_path, _line_only_config()).run_all(use_cache=False)
 
     assert [kind for kind, _payload in events] == ["policy", "collect", "engine"]
     assert sum(kind == "collect" for kind, _payload in events) == 1

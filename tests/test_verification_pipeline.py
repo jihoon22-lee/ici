@@ -81,9 +81,9 @@ def test_profiles_select_engines_without_changing_shared_rule_configuration(
     all_names = tuple(descriptor.name for descriptor in ENGINE_DESCRIPTORS)
     orchestrator = VerifyOrchestrator(tmp_path, _config(*all_names))
 
-    fast = orchestrator.run_all(profile=AnalysisProfile.FAST)
-    standard = orchestrator.run_all(profile=AnalysisProfile.STANDARD)
-    deep = orchestrator.run_all(profile=AnalysisProfile.DEEP)
+    fast = orchestrator.run_all(profile=AnalysisProfile.FAST, use_cache=False)
+    standard = orchestrator.run_all(profile=AnalysisProfile.STANDARD, use_cache=False)
+    deep = orchestrator.run_all(profile=AnalysisProfile.DEEP, use_cache=False)
 
     assert [result.engine_name for result in fast.results] == [
         descriptor.name
@@ -177,7 +177,7 @@ def test_release_manifest_flows_only_to_declared_build_consumers(
     suite = VerifyOrchestrator(
         tmp_path,
         _config("build", "binary_compat", "integration"),
-    ).run_all(profile=AnalysisProfile.DEEP)
+    ).run_all(profile=AnalysisProfile.DEEP, use_cache=False)
 
     assert [result.engine_name for result in suite.results] == [
         "build",
@@ -234,7 +234,7 @@ def test_orchestrator_parallelizes_only_read_only_engines_and_preserves_result_o
                 engine_type(name=descriptor.name, build=descriptor.build_variant is not None),
             )
 
-    suite = VerifyOrchestrator(tmp_path, _config(*selected)).run_all()
+    suite = VerifyOrchestrator(tmp_path, _config(*selected)).run_all(use_cache=False)
 
     assert read_overlap == {"line", "lint"}
     assert [result.engine_name for result in suite.results] == list(selected)

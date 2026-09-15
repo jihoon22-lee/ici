@@ -31,7 +31,14 @@ from dataclasses import dataclass
 from ici.adapters.providers.base import Provider
 from ici.application.graph import build_graph
 from ici.application.plan import Plan, PlannedCheck
-from ici.application.schedule import Analysis, Execution, Identify, Runner, run_graph
+from ici.application.schedule import (
+    Analysis,
+    Execution,
+    Identify,
+    OnExecution,
+    Runner,
+    run_graph,
+)
 from ici.domain.enums import GateVerdict, TaskState
 from ici.domain.finding import Finding
 from ici.domain.observation import Observation
@@ -71,6 +78,7 @@ def verify(
     cache: ObservationCache | None = None,
     identify: Identify | None = None,
     run_id: str = "",
+    on_execution: OnExecution | None = None,
 ) -> Verification:
     """Run everything the plans intend to run, then judge it once.
 
@@ -95,6 +103,7 @@ def verify(
         cache=cache,
         identify=identify,
         run_id=run_id,
+        on_execution=on_execution,
     )
     by_id = {item.task_id: item for item in scheduled.observations}
     observations = tuple(by_id[planned.task_id] for planned in checks)

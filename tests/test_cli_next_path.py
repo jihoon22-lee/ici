@@ -34,6 +34,12 @@ def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (root / "ruff.toml").write_text('[lint]\nselect = ["F"]\n', encoding="utf-8")
     (root / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
     write(propose(root), root / "ici.toml")
+    # The fixture has no project interpreter or suite — test evidence is
+    # opted out of rather than faked. WP18's own tests exercise the real run.
+    with (root / "ici.toml").open("a", encoding="utf-8") as handle:
+        handle.write(
+            '[checks."python.test"]\nenabled = false\n[checks."python.coverage"]\nenabled = false\n'
+        )
     monkeypatch.chdir(root)
     return root
 
@@ -88,8 +94,9 @@ def test_a_missing_required_tool_exits_three(project: Path, monkeypatch) -> None
     _seed(project)
     # Patched at the one function that answers "where is this tool". The first
     # version patched Path.is_file, which also stopped config discovery finding
-    # ici.toml, and the run failed for a reason the test was not about.
-    monkeypatch.setattr("ici.cli.next_path._locate", lambda _: None)
+    # ici.toml, and the run failed for a reason the test was not about. The
+    # function lives in next_common — the verify path plans through it.
+    monkeypatch.setattr("ici.cli.next_common.locate_tool", lambda _: None)
 
     result = runner.invoke(app, ["next", "verify"])
 
@@ -181,7 +188,7 @@ def test_from_a_bundle_the_tool_is_the_bundles_or_nothing(tmp_path, monkeypatch)
     # #204 item 7. Falling back to PATH here would mean a bundle missing its
     # ruff quietly linted with whatever the host had, and the report would not
     # say so.
-    from ici.cli.next_path import _locate
+    from ici.cli.next_testing import locate_tool as _locate
 
     bundle = tmp_path / "bundle"
     bundle.mkdir()
@@ -196,7 +203,8 @@ def test_from_a_bundle_the_bundled_tool_is_found_where_the_build_puts_it(
 ) -> None:
     # The first version looked in bin/ while the build writes to
     # tools/python-static/, so inside a real bundle it found nothing.
-    from ici.cli.next_path import BUNDLED_TOOLS, _locate
+    from ici.cli.next_testing import BUNDLED_TOOLS
+    from ici.cli.next_testing import locate_tool as _locate
 
     bundle = tmp_path / "bundle"
     shipped = bundle / BUNDLED_TOOLS / "ruff"
@@ -209,7 +217,7 @@ def test_from_a_bundle_the_bundled_tool_is_found_where_the_build_puts_it(
 
 
 def test_from_a_source_checkout_path_is_the_honest_answer(monkeypatch) -> None:
-    from ici.cli.next_path import _locate
+    from ici.cli.next_testing import locate_tool as _locate
 
     monkeypatch.delenv("ICI_BUNDLE_ROOT", raising=False)
     monkeypatch.setattr("ici.cli.next_path.shutil.which", lambda _: "/usr/bin/ruff")

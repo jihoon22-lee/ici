@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from ici.application.tem import TemInputs
+from ici.application.tem import calculate as tem_calculate
 from ici.core.project import get_all_python_sources
 from ici.engines.gcov_json import (
     MAX_COMPRESSED_BYTES,
@@ -949,24 +951,32 @@ def calculate_tem(
     total_tests: int,
     coverage_totals: dict | None,
 ) -> dict[str, Any]:
-    """Calculate the TEM score from measured or estimated coverage inputs."""
+    """Calculate the TEM score from measured or estimated coverage inputs.
 
-    pass_rate = (passed_tests / total_tests) if total_tests > 0 else 0.0
+    The formula itself lives in ``ici.application.tem`` — versioned and
+    shared with ``ici next`` (#219). This wrapper keeps the engine's
+    percent-based call shape and result keys.
+    """
+
     line_cov = coverage_totals.get("cover") if coverage_totals else None
     real_branch = coverage_totals.get("branch_cover") if coverage_totals else None
-    if line_cov is not None:
-        cov_factor, cov_label, cov_shown = min(80.0, line_cov) / 80.0, "Line", line_cov
-    elif real_branch is not None:
-        cov_factor = min(80.0, real_branch * 1.25) / 80.0
-        cov_label, cov_shown = "Branch", real_branch
-    else:
-        cov_factor, cov_label, cov_shown = min(80.0, branch_cov) / 80.0, "Line", branch_cov
-    tem_score = round(cov_factor * (func_cov / 100.0) * pass_rate * 5.0, 2)
+    result = tem_calculate(
+        TemInputs(
+            passed=passed_tests,
+            total=total_tests,
+            line_coverage=line_cov,
+            branch_coverage=real_branch,
+            function_coverage=func_cov,
+            estimated_coverage=None
+            if (line_cov is not None or real_branch is not None)
+            else branch_cov,
+        )
+    )
     return {
-        "tem_score": max(0.0, min(5.0, tem_score)),
-        "cov_label": cov_label,
-        "cov_shown": cov_shown,
+        "tem_score": result.score if result.score is not None else 0.0,
+        "cov_label": result.coverage_label,
+        "cov_shown": result.coverage_shown if result.coverage_shown is not None else 0.0,
         "line_coverage": line_cov,
-        "pass_rate": round(pass_rate, 4),
-        "cov_suffix": " (est)" if line_cov is None and real_branch is None else "",
+        "pass_rate": result.pass_rate,
+        "cov_suffix": " (est)" if result.estimated else "",
     }

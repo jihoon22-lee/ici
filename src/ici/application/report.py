@@ -18,6 +18,20 @@ from __future__ import annotations
 
 import hashlib
 
+from ici.application.tem import (
+    FORMULA_VERSION,
+    counts_from,
+    inputs_from,
+)
+from ici.application.tem import (
+    aggregate as tem_aggregate,
+)
+from ici.application.tem import (
+    calculate as tem_calculate,
+)
+from ici.application.tem import (
+    component_of as tem_component_of,
+)
 from ici.application.verify import Verification
 from ici.domain.enums import GateVerdict, ScopeKind, TaskState
 from ici.domain.result import (
@@ -56,6 +70,7 @@ def assemble(
     task — a scope nothing had a check for, inputs that moved mid-run.
     """
 
+    tem = tem_metrics(verification.observations)
     blocked = tuple(
         observation.task_id
         for observation in verification.observations
@@ -105,14 +120,70 @@ def assemble(
             measurement
             for observation in verification.observations
             for measurement in observation.measurements
-        ),
+        )
+        + tem[0],
         limitations=tuple(
             limitation
             for observation in verification.observations
             for limitation in observation.limitations
         )
-        + tuple(limitations),
+        + tuple(limitations)
+        + tem[1],
     )
+
+
+def tem_metrics(observations) -> tuple[tuple, tuple[str, ...]]:
+    """The run's TEM, computed from evidence the checks already produced.
+
+    One score per component that measured tests and coverage, plus a
+    workspace score merged from raw counts — never an average of component
+    percentages (#219 items 2-3). A component whose evidence cannot produce
+    a score is a limitation, not a 0 or a 100.
+    """
+
+    from ici.domain.observation import Measurement
+
+    grouped: dict[str, list] = {}
+    for observation in observations:
+        grouped.setdefault(tem_component_of(observation.task_id), []).extend(
+            observation.measurements
+        )
+
+    metrics: list = []
+    limitations: list[str] = []
+    components: list = []
+    for name, measurements in sorted(grouped.items()):
+        inputs = inputs_from(measurements)
+        result = tem_calculate(inputs)
+        label = name or "workspace"
+        if result.score is None:
+            limitations.append(f"{label}: TEM N/A — {result.reason}")
+            continue
+        metrics.append(
+            Measurement(
+                name=f"tem.{label}",
+                value=result.score,
+                unit=f"{FORMULA_VERSION} {result.coverage_label}{' est' if result.estimated else ''}",
+            )
+        )
+        components.append(counts_from(label, measurements))
+
+    if len(components) > 1:
+        merged, excluded = tem_aggregate(tuple(components))
+        workspace = tem_calculate(merged)
+        if workspace.score is not None:
+            metrics.append(
+                Measurement(
+                    name="tem.workspace",
+                    value=workspace.score,
+                    unit=FORMULA_VERSION,
+                )
+            )
+        for name in excluded:
+            limitations.append(f"{name}: excluded from workspace TEM — no raw coverage counts")
+        if workspace.score is None:
+            limitations.append(f"workspace: TEM N/A — {workspace.reason}")
+    return tuple(metrics), tuple(limitations)
 
 
 def digest_of(text: str) -> str:
