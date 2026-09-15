@@ -176,6 +176,7 @@ def plan_coverage(
     report_path: str,
     component_root: Path,
     unit: AnalysisUnit | None,
+    sources: tuple[str, ...] = (),
 ) -> PlannedCheck:
     """Plan the coverage read — it shares the test run, never repeats it."""
 
@@ -194,6 +195,7 @@ def plan_coverage(
         cwd=str(component_root),
         task_id=planned.task_id,
         analysis_unit_id=unit.id if unit is not None else "",
+        sources=sources,
     )
     return PlannedCheck(check=planned.check, task_id=planned.task_id, task=task)
 

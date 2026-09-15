@@ -70,6 +70,33 @@
   cognitive warn 30/fail 60, nesting 4)이며 check별 옵션 채널은 품질
   정책 작업(#219)에서 이어집니다.
 
+### 추가 — `ici next` TEM 수식 이관과 증거 기반 점수 (WP21, [#219](https://github.com/jihoon22-lee/ici/issues/219))
+
+**기존 배포 경로 동작 변경 없음.** `coverage_support.calculate_tem`은 같은
+수식을 `application/tem.py`에 위임할 뿐이며, stable TEM 출력과 버전
+표기(`tem/1`)는 그대로입니다.
+
+- **TEM 수식이 `application/tem.py`로 추출됐습니다.** stable 경로가 쓰던
+  `cov_factor * (func_cov / 100) * pass_rate * 5.0`과 상수(최대 5.0,
+  커버리지 cap 80.0, branch→line 환산 1.25)를 보존하고 `FORMULA_VERSION =
+  "tem/1"`로 버전을 고정합니다. 함수 커버리지가 없으면 100%를 지어내지
+  않고 `score=None` + 사유를 반환합니다.
+- **`ici next` 실행 결과에 `tem.<component>` 측정값이 실립니다.** 테스트·
+  커버리지 check이 이미 만든 측정값(케이스 수·line/branch/function 커버)만
+  읽어 계산합니다 — 같은 실행의 증거를 재사용할 뿐 새 실행을 추가하지
+  않습니다. 점수를 만들 수 없는 컴포넌트는 limitation으로 남고 0이나
+  100으로 가장하지 않습니다.
+- **워크스페이스 TEM은 raw count로만 병합됩니다.** 컴포넌트별 백분율을
+  평균내지 않고 호환되는 covered/total 원자료를 합산합니다. 함수 카운트가
+  하나라도 빠진 컴포넌트가 섞이면 병합 함수 커버리지는 `None`이 되고,
+  line/branch 원자료가 없는 컴포넌트는 병합에서 빠져 이름이 limitation으로
+  남습니다 (#219 항목 2-3).
+- **coverage provider가 함수 커버리지를 함께 냅니다.** `python.coverage`가
+  읽은 coverage JSON에서 `compute_python_function_coverage`로 함수 커버를
+  추가 측정하고, 소스 목록은 실행 레이어가 아니라 선언된 task 입력
+  (`ICI_COVERAGE_SOURCES`)에서 가져옵니다 — execution `TaskSpec`에 없는
+  필드를 읽던 결함도 함께 고쳤습니다.
+
 
 ### 추가 — `ici next` C++/Qt 테스트 실행과 gcov 커버리지 (WP19, [#217](https://github.com/jihoon22-lee/ici/issues/217))
 

@@ -73,6 +73,7 @@ class GcovProvider:
             )
         covered_lines = total_lines = 0
         covered_branches = total_branches = 0
+        covered_functions = total_functions = 0
         limitations: list[str] = []
         for report_path in reports:
             try:
@@ -82,6 +83,9 @@ class GcovProvider:
             except OSError as exc:
                 return ParsedOutput(failed_to_parse=f"gcov report unreadable: {exc}")
             for gcov_file in report.files:
+                for function in gcov_file.functions:
+                    total_functions += 1
+                    covered_functions += 1 if function.execution_count > 0 else 0
                 for line in gcov_file.lines:
                     total_lines += 1
                     covered_lines += 1 if line.count > 0 else 0
@@ -92,8 +96,23 @@ class GcovProvider:
             return ParsedOutput(failed_to_parse="gcov reports held no line data")
         if "stamp mismatch" in outcome.stderr or "version mismatch" in outcome.stderr:
             limitations.append("gcov reported stale instrumentation (.gcda/.gcno mismatch)")
+        function_measurements = (
+            (
+                Measurement(
+                    name="coverage.cpp.functions",
+                    value=round(covered_functions / total_functions * 100.0, 1),
+                    unit="%",
+                    numerator=covered_functions,
+                    denominator=total_functions,
+                    evidence=EvidenceLevel.MEASURED,
+                ),
+            )
+            if total_functions
+            else ()
+        )
         return ParsedOutput(
             measurements=(
+                *function_measurements,
                 Measurement(
                     name="coverage.cpp.lines",
                     value=round(covered_lines / total_lines * 100.0, 1),

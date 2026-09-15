@@ -187,3 +187,19 @@ def test_inconsistent_coverage_json_is_a_parse_failure(tmp_path) -> None:
     outcome = TaskOutcome(spec=spec, outcome=Outcome.FINISHED, exit_code=0)
     parsed = CoverageProvider().parse(outcome)
     assert parsed.failed_to_parse is not None
+
+
+def test_tem_is_computed_from_the_shared_run(tmp_path, monkeypatch) -> None:
+    """The TEM score reads the same evidence the checks produced (#219)."""
+    _python_workspace(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["next", "verify"])
+    assert result.exit_code == 0, result.output
+    document = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text())
+    metrics = {measurement["name"]: measurement for measurement in document["metrics"]}
+    assert "coverage.functions" in metrics
+    tem = metrics.get("tem.app")
+    assert tem is not None, "no TEM measurement despite complete evidence"
+    assert tem["value"] > 0
+    assert tem["unit"].startswith("tem/")

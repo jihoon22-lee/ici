@@ -923,6 +923,7 @@ def _gate_python(
                     report_path,
                     component_root,
                     unit,
+                    sources=component_targets(component_root, root, files),
                 )
             )
     return Plan(checks=tuple(checks))
