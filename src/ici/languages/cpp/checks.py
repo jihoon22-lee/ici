@@ -79,6 +79,24 @@ CPP_TEST_CHECK = CheckDefinition(
     provides=("test-evidence",),
 )
 
+#: ``tool=None`` because ici measures these itself. C++ function boundaries
+#: come from the heuristic brace scanner — honest about its limits: findings
+#: it produces are ESTIMATED evidence, not MEASURED, because a macro-built or
+#: preprocessed function can mislead it (#218 item 5).
+CPP_COMPLEXITY_CHECK = CheckDefinition(
+    id="cpp.complexity",
+    title="Cyclomatic complexity",
+    language="cpp",
+    tool=None,
+)
+
+CPP_COGNITIVE_CHECK = CheckDefinition(
+    id="cpp.cognitive",
+    title="Cognitive complexity",
+    language="cpp",
+    tool=None,
+)
+
 #: gcov over the notes and data the instrumented build and the shared test
 #: run left — this check never builds or reruns the suite itself.
 CPP_COVERAGE_CHECK = CheckDefinition(
@@ -97,4 +115,6 @@ CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_TIDY_CHECK,
     CPP_TEST_CHECK,
     CPP_COVERAGE_CHECK,
+    CPP_COMPLEXITY_CHECK,
+    CPP_COGNITIVE_CHECK,
 )

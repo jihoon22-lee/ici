@@ -7,6 +7,34 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` 함수 수준 지표 이관과 공유 파싱 primitive (WP20-A, [#218](https://github.com/jihoon22-lee/ici/issues/218))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스와 공유
+수식의 위치 정리입니다 — stable `complexity`/`cognitive` 엔진은 이제 같은
+공식을 `_python_metrics`에서 가져와 호출합니다.
+
+- **`python.complexity`·`python.cognitive`·`cpp.complexity`·`cpp.cognitive`
+  check이 추가됐습니다.** `tool=None`의 내부 check로, 프로세스 실행 없이
+  소스에서 함수 경계와 지표를 직접 계산합니다. Python 함수는 `ast`로
+  정확하게, C++ 함수는 brace-depth 스캐너로 측정합니다.
+- **한 번의 스캔이 두 check을 공급합니다.** complexity와 cognitive가 같은
+  컴포넌트에서 함께 선택되면 `MetricRequest.cache`가 컴포넌트 단위로
+  공유되어 파일을 두 번 읽지 않습니다 — #218의 "parse 공유, 수식 구분"
+  요구사항입니다.
+- **C++ heuristic 결과는 ESTIMATED로 표시됩니다.** 스캐너 경계는
+  매크로·전처리된 함수를 놓치거나 잘못 자를 수 있으므로, 그 기반의 finding
+  과 측정값은 `MEASURED`가 아니라 `ESTIMATED` 증거 수준과 낮은 confidence를
+  가집니다 — heuristic이 조용히 exact로 승격되지 않습니다 (#218 항목 5).
+- **파싱 실패는 limitation입니다.** 읽을 수 없거나 파싱되지 않는 파일은
+  측정된 것으로 취급되지 않고 limitation으로 보고됩니다.
+- **수식은 stable 엔진과 동일합니다.** cyclomatic/cognitive/nesting 계산이
+  `engines/_python_metrics.py`로 추출됐고, stable `complexity`·`cognitive`
+  엔진이 이를 위임 호출합니다 — 같은 의미의 구현이 두 벌이던 상태를 하나로
+  통합했습니다. 임계값은 shipped policy와 동일(complexity warn 15/fail 25,
+  cognitive warn 30/fail 60, nesting 4)이며 check별 옵션 채널은 품질
+  정책 작업(#219)에서 이어집니다.
+
+
 ### 추가 — `ici next` C++/Qt 테스트 실행과 gcov 커버리지 (WP19, [#217](https://github.com/jihoon22-lee/ici/issues/217))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.

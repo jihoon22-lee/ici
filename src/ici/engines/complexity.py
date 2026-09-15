@@ -19,7 +19,7 @@ from ici.engines._cpp_function_boundaries import (
     read_cpp_source_text,
     run_cpp_function_boundaries,
 )
-from ici.engines._python_metrics import iter_metric_children, walk_metric_scope
+from ici.engines._python_metrics import cyclomatic_complexity, max_nesting
 from ici.engines.base import BaseEngine
 from ici.engines.cpp_text import (
     cpp_definition_name,
@@ -626,47 +626,12 @@ class ComplexityEngine(BaseEngine):
         return max_cc, targets
 
     def _calc_ast_cc(self, node: ast.AST) -> int:
-        """Calculates Cyclomatic Complexity: 1 + number of branching points."""
-        complexity = 1
-        for child in walk_metric_scope(node):
-            if isinstance(
-                child,
-                (
-                    ast.If,
-                    ast.While,
-                    ast.For,
-                    ast.AsyncFor,
-                    ast.ExceptHandler,
-                    ast.With,
-                    ast.AsyncWith,
-                ),
-            ):
-                complexity += 1
-            elif isinstance(child, ast.BoolOp):
-                complexity += len(child.values) - 1
-            elif isinstance(child, ast.IfExp):
-                complexity += 1
-            elif isinstance(child, ast.comprehension):
-                complexity += len(child.ifs)
-            elif isinstance(child, ast.Match):
-                complexity += 1 + sum(1 for case in child.cases if case.guard is not None)
-        return complexity
+        """Delegate to the shared formula — see _python_metrics."""
+        return cyclomatic_complexity(node)
 
     def _calc_ast_nesting(self, node: ast.AST) -> int:
-        """Calculates maximum block nesting depth inside function."""
-
-        def _get_depth(curr: ast.AST, depth: int) -> int:
-            max_d = depth
-            is_block = isinstance(
-                curr, (ast.If, ast.While, ast.For, ast.AsyncFor, ast.Try, ast.With)
-            )
-            new_depth = depth + (1 if is_block else 0)
-            max_d = max(max_d, new_depth)
-            for child in iter_metric_children(curr, root=node):
-                max_d = max(max_d, _get_depth(child, new_depth))
-            return max_d
-
-        return _get_depth(node, 0)
+        """Delegate to the shared formula — see _python_metrics."""
+        return max_nesting(node)
 
     def _analyze_cpp_complexity(
         self,

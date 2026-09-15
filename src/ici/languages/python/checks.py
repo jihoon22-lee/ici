@@ -82,6 +82,23 @@ COVERAGE_CHECK = CheckDefinition(
     needs=("test-evidence",),
 )
 
+#: ``tool=None`` because ici measures these itself: the AST is exact, and the
+#: two checks share one parse through the metrics primitive — selecting both
+#: does not scan the file twice (#218).
+COMPLEXITY_CHECK = CheckDefinition(
+    id="python.complexity",
+    title="Cyclomatic complexity",
+    language="python",
+    tool=None,
+)
+
+COGNITIVE_CHECK = CheckDefinition(
+    id="python.cognitive",
+    title="Cognitive complexity",
+    language="python",
+    tool=None,
+)
+
 #: Declaration only. Importing this must not look at the machine.
 PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     LINE_CHECK,
@@ -90,4 +107,6 @@ PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     TYPE_CHECK,
     TEST_CHECK,
     COVERAGE_CHECK,
+    COMPLEXITY_CHECK,
+    COGNITIVE_CHECK,
 )

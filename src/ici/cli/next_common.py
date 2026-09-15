@@ -58,6 +58,7 @@ from ici.domain.eventstream import events_to_jsonl
 from ici.domain.observation import Measurement, Observation
 from ici.domain.workspace import AnalysisUnit, BuildUnit, Component, Workspace
 from ici.languages.checks import CheckDefinition
+from ici.languages.metrics import MetricRequest, measure
 from ici.languages.python.lines import LineRequest
 from ici.languages.python.lines import count as count_lines
 from ici.languages.registry import builtin as builtin_registry
@@ -380,6 +381,7 @@ def _plans(
         )
         plans.append(plan)
         by_component[component.id] = plan
+        metric_cache: dict = {}
         for planned in plan.checks:
             if planned.is_internal:
                 analyses[planned.task_id] = _internal_analysis(
@@ -389,6 +391,7 @@ def _plans(
                     component_root,
                     root,
                     scope.builds,
+                    metric_cache,
                 )
     if not plans:
         raise NothingSelected(
@@ -501,17 +504,45 @@ def _internal_analysis(
     component_root: Path,
     root: Path,
     builds: tuple[BuildUnit, ...],
+    metric_cache: dict,
 ) -> Analysis:
     """The in-process work behind a planned internal check.
 
     ``cpp.compile`` reads the compile-database service — the check's answer is
-    the coverage the database proves, not a pass it grants. Everything else is
-    the line counter, which every language's ``*.line`` check shares.
+    the coverage the database proves, not a pass it grants. The ``*.complexity``
+    and ``*.cognitive`` checks measure functions through the shared metrics
+    primitive — one scan feeds both when both are selected (#218). Everything
+    else is the line counter, which every language's ``*.line`` check shares.
     """
 
     if planned.check.id == "cpp.compile":
         return _compile_coverage(root, component, files, builds, planned.task_id)
+    kind = planned.check.id.rpartition(".")[2]
+    if kind in {"complexity", "cognitive"}:
+        return _metric_counter(planned, component, files, component_root, root, kind, metric_cache)
     return _line_counter(component_root, root, files, planned.task_id)
+
+
+def _metric_counter(
+    planned: PlannedCheck,
+    component: Component,
+    files: tuple[str, ...],
+    component_root: Path,
+    root: Path,
+    kind: str,
+    metric_cache: dict,
+) -> Analysis:
+    resolved = tuple(root / item for item in files)
+    request = MetricRequest(
+        kind=kind,
+        language=planned.check.language,
+        project_root=component_root,
+        files=resolved,
+        task_id=planned.task_id,
+        component_id=component.id,
+        cache=metric_cache,
+    )
+    return lambda: measure(request)
 
 
 def _gate_cpp(

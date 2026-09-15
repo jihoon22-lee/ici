@@ -6,88 +6,13 @@ import time
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
 from ici.core.runner import run_process
 from ici.engines._cpp_cognitive import analyze_cpp_cognitive
-from ici.engines._python_metrics import iter_metric_children
+from ici.engines._python_metrics import cognitive_complexity
 from ici.engines.base import BaseEngine
 
 
 def _cognitive_for_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[int, int]:
-    """Return (cognitive_complexity, max_nesting) for one function.
-
-    Rules (Sonar-inspired, pure-Python):
-    - +1 for if/elif/else, for, while, except, with, assert, comprehension
-    - +1 per boolean operator chain (and/or), plus nesting
-    - +nesting_level for each nesting increment (if/for/while/except/with)
-    - an ``elif`` continues the decision chain: +1 without a nesting increment
-    - break/continue inside a loop count as +1
-    """
-    cognitive = 0
-    max_nesting = 0
-
-    def _is_elif(parent: ast.AST, child: ast.AST) -> bool:
-        """Report whether ``child`` is the ``elif`` continuing ``parent``.
-
-        Python has no ``elif`` node: the parser nests it as the only statement
-        of the preceding ``If``'s ``orelse``. Reading that shape literally would
-        score a flat chain of mutually exclusive branches as if each one were
-        indented inside the previous, which is neither what the source looks
-        like nor what S3776 specifies. The C++ path already treats an else-if as
-        a continuation of the same decision chain; this keeps both languages on
-        one rule.
-        """
-        return (
-            isinstance(parent, ast.If)
-            and isinstance(child, ast.If)
-            and len(parent.orelse) == 1
-            and parent.orelse[0] is child
-        )
-
-    def walk(n, nesting: int, in_loop: bool = False):
-        nonlocal cognitive, max_nesting
-        max_nesting = max(max_nesting, nesting)
-        for child in iter_metric_children(n, root=node):
-            if isinstance(
-                child,
-                (
-                    ast.If,
-                    ast.For,
-                    ast.AsyncFor,
-                    ast.While,
-                    ast.ExceptHandler,
-                    ast.With,
-                    ast.AsyncWith,
-                ),
-            ):
-                # Each branch/loop/handler/with is +1, weighted by its nesting
-                # depth. An elif continues the chain instead of deepening it, so
-                # it takes a flat +1 and keeps the current nesting level.
-                if _is_elif(n, child):
-                    cognitive += 1
-                    walk(child, nesting, in_loop)
-                    continue
-                cognitive += 1 + nesting
-                walk(
-                    child,
-                    nesting + 1,
-                    in_loop or isinstance(child, (ast.For, ast.AsyncFor, ast.While)),
-                )
-            elif isinstance(child, ast.BoolOp):
-                if isinstance(child.op, (ast.And, ast.Or)):
-                    cognitive += 1 + nesting
-                walk(child, nesting, in_loop)
-            elif isinstance(child, ast.comprehension):
-                cognitive += 1 + nesting
-                walk(child, nesting, in_loop)
-            elif isinstance(child, (ast.Break, ast.Continue)):
-                if in_loop:
-                    cognitive += 1
-            elif isinstance(child, ast.Assert):
-                cognitive += 1 + nesting
-                walk(child, nesting, in_loop)
-            else:
-                walk(child, nesting, in_loop)
-
-    walk(node, 0)
-    return cognitive, max_nesting
+    """Return (cognitive_complexity, max_nesting) — the shared formula."""
+    return cognitive_complexity(node)
 
 
 class CognitiveEngine(BaseEngine):
