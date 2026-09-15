@@ -51,7 +51,9 @@ def _hybrid_workspace(root: Path, with_db: bool = True) -> None:
         )
     (root / "ici.toml").write_text(
         HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
-        '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n',
+        '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n',
         encoding="utf-8",
     )
 
@@ -135,7 +137,9 @@ def test_require_full_passes_when_coverage_is_complete(tmp_path, monkeypatch) ->
     (tmp_path / "app").mkdir()
     (tmp_path / "app" / "one.py").write_text("x = 1\n", encoding="utf-8")
     (tmp_path / "ici.toml").write_text(
-        HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n',
+        HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n',
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
@@ -215,7 +219,9 @@ def test_doctor_explains_a_disabled_check_by_its_origin(tmp_path, monkeypatch) -
     _hybrid_workspace(tmp_path)
     (tmp_path / "ici.toml").write_text(
         HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
-        '[components.checks."python.lint"]\nenabled = false\n',
+        '[components.checks."python.lint"]\nenabled = false\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n',
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)

@@ -7,6 +7,32 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` pytest·coverage 실행과 증거 수집 (WP18, [#216](https://github.com/jihoon22-lee/ici/issues/216))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.
+
+- **`python.test`가 프로젝트 인터프리터로 pytest를 실행합니다.** 사용
+  인터프리터는 선언된 `[python] executable` 또는 컴포넌트 안의 `.venv`
+  뿐이며, 둘 다 없으면 ici 자체 런타임으로 돌아가지 않고 "no project
+  interpreter" blocked 마커가 나옵니다. argv는 `-v`·`--tb=short`·
+  `-p no:cacheprovider`만 고정합니다 — 플러그인·`pytest.ini`·
+  `pyproject.toml`·`addopts`는 전부 프로젝트의 것입니다.
+- **노드별 verdict가 finding이 됩니다.** 실패·에러 케이스는 발생한
+  nodeid의 위치를 가진 `pytest.failed`/`pytest.error`로, 수집 오류는
+  `pytest.collection-error`로 정규화됩니다. interrupted(exit 2)는 수집
+  오류 라인이 보일 때만 finding이고, 그렇지 않으면 실행 실패입니다.
+- **0개 수집·전부 skip·중단은 PASS가 아닙니다.** 수집 0건(exit 5)과
+  사용법 오류(exit 4)는 실패로 보고되고, green 없이 끝난 실행은
+  limitation으로 남습니다. 선언된 `test_paths`가 아무 파일도 잡지 못하면
+  blocked입니다 — 조용한 통과는 없습니다.
+- **`python.coverage`는 같은 실행의 데이터를 읽습니다.** coverage check가
+  선택되면 pytest 태스크가 `coverage run --branch`로 감싸져 한 번의
+  실행이 테스트·커버리지 두 check에 증거를 공급하고, coverage 태스크는
+  `coverage json`만 읽습니다 — 스위트를 두 번 돌리지 않습니다.
+- **커버리지 증거는 검증됩니다.** totals와 파일별 합이 어긋나거나 JSON이
+  없거나 손상되면 파싱 실패이며, 0% 커버리지 판정도 조용한 PASS도
+  아닙니다. `.ici/cache/coverage/` 아래에만 데이터가 쓰입니다.
+
 ### 추가 — `ici next` Python 제공자: ruff format·mypy·선택적 ty (WP17, [#215](https://github.com/jihoon22-lee/ici/issues/215))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.

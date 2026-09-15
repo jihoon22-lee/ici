@@ -34,6 +34,12 @@ def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (root / "ruff.toml").write_text('[lint]\nselect = ["F"]\n', encoding="utf-8")
     (root / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
     write(propose(root), root / "ici.toml")
+    # The fixture has no project interpreter or suite — test evidence is
+    # opted out of rather than faked. WP18's own tests exercise the real run.
+    with (root / "ici.toml").open("a", encoding="utf-8") as handle:
+        handle.write(
+            '[checks."python.test"]\nenabled = false\n[checks."python.coverage"]\nenabled = false\n'
+        )
     monkeypatch.chdir(root)
     return root
 

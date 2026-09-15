@@ -39,7 +39,9 @@ def _two_python_components(root: Path) -> None:
     _write_project(
         root,
         HEADER + '[[components]]\nid = "alpha"\nroot = "alpha"\nlanguages = ["python"]\n'
-        '[[components]]\nid = "beta"\nroot = "beta"\nlanguages = ["python"]\n',
+        '[[components]]\nid = "beta"\nroot = "beta"\nlanguages = ["python"]\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n',
     )
 
 
@@ -91,7 +93,9 @@ def test_a_component_cycle_is_a_config_error(tmp_path, monkeypatch) -> None:
         HEADER + '[[components]]\nid = "a"\nroot = "a"\nlanguages = ["python"]\n'
         'needs = ["b"]\n'
         '[[components]]\nid = "b"\nroot = "b"\nlanguages = ["python"]\n'
-        'needs = ["a"]\n',
+        'needs = ["a"]\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n',
     )
     monkeypatch.chdir(tmp_path)
 
@@ -173,7 +177,9 @@ def test_a_component_with_no_applicable_checks_is_a_limitation_not_a_crash(
     _write_project(
         tmp_path,
         HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["rust"]\n'
-        '[[components]]\nid = "tool"\nroot = "tool"\nlanguages = ["python"]\n',
+        '[[components]]\nid = "tool"\nroot = "tool"\nlanguages = ["python"]\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n',
     )
     monkeypatch.chdir(tmp_path)
 

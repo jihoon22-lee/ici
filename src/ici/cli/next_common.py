@@ -24,7 +24,9 @@ from ici.adapters.providers.compiler import (
     compiler_family,
     transform_argv,
 )
+from ici.adapters.providers.coverage import CoverageProvider
 from ici.adapters.providers.mypy import MypyProvider
+from ici.adapters.providers.pytest import PytestProvider
 from ici.adapters.providers.ruff import RuffProvider, RuffRequest
 from ici.adapters.providers.tidy import ClangTidyProvider
 from ici.adapters.providers.ty import TyProvider
@@ -361,6 +363,7 @@ def _plans(
         )
         plan = _gate_python(
             plan,
+            component.id,
             effective,
             component_root,
             root,
@@ -711,85 +714,250 @@ _TYPE_CHECKERS: dict[str, MypyProvider | TyProvider] = {
 }
 
 
+def _python_interpreter(effective: EffectiveComponent | None, component_root: Path) -> str | None:
+    """The interpreter a component's tests run under, or None.
+
+    The declared ``[python] executable`` wins; a ``.venv`` inside the
+    component root is the discoverable project environment. ici's own
+    interpreter is never a candidate — a test run under the verifier's
+    runtime measures the wrong packages (#216).
+    """
+
+    if effective is not None and effective.python_executable is not None:
+        return effective.python_executable.value
+    venv_python = component_root / ".venv" / "bin" / "python"
+    if venv_python.is_file():
+        return str(venv_python)
+    return None
+
+
 def _gate_python(
     plan: Plan,
+    component_id: str,
     effective: EffectiveComponent | None,
     component_root: Path,
     root: Path,
     files: tuple[str, ...],
     unit: AnalysisUnit | None,
 ) -> Plan:
-    """Resolve ``python.type``'s checker and attach the real task to it.
+    """Resolve interpreter/tools and attach real tasks to the gated checks.
 
-    The check declares no tool because which checker runs is the component's
-    own setting, not the registry's: ``mypy`` is the default and ``ty`` only
-    runs when ``type_provider`` names it (#215). A missing executable is a
-    blocked marker naming the chosen tool, never a quiet substitute — a
-    component that asked for ty and got mypy instead would be a checker change
-    nobody declared.
+    ``python.type``'s checker is the component's own ``type_provider`` —
+    mypy by default, ty only when named (#215). ``python.test`` and
+    ``python.coverage`` run under the project's own interpreter; when both
+    are selected the pytest task is wrapped in ``coverage run`` so one
+    execution feeds both checks (#216 item 4).
     """
 
-    if not any(planned.check.id == "python.type" for planned in plan.checks):
+    gated = {"python.type", "python.test", "python.coverage"}
+    if not any(planned.check.id in gated for planned in plan.checks):
         return plan
     decided = effective.python_type_provider if effective is not None else None
     provider_name = decided.value if decided is not None else "mypy"
     provider = _TYPE_CHECKERS.get(provider_name)
+    interpreter = _python_interpreter(effective, component_root)
+    no_interpreter = (
+        "no project interpreter — declare [python] executable "
+        "or provide a .venv inside the component"
+    )
+    coverage_selected = any(
+        planned.check.id == "python.coverage" and not planned.blocked for planned in plan.checks
+    )
+    test_selected = any(planned.check.id == "python.test" for planned in plan.checks)
+    coverage_dir = root / ".ici" / "cache" / "coverage"
+    data_file = str(coverage_dir / f"{component_id}.data")
+    report_path = str(coverage_dir / f"{component_id}.json")
+    if coverage_selected and interpreter is not None:
+        # ``coverage run`` refuses to create the data file's directory — the
+        # path under .ici is ici's own state, so making it is part of the plan.
+        coverage_dir.mkdir(parents=True, exist_ok=True)
 
     checks: list[PlannedCheck] = []
     for planned in plan.checks:
-        if planned.check.id != "python.type" or planned.blocked:
+        if planned.check.id not in gated or planned.blocked:
             checks.append(planned)
             continue
-        if provider is None:
+        if planned.check.id == "python.type":
             checks.append(
-                PlannedCheck(
-                    check=planned.check,
-                    task_id=planned.task_id,
-                    blocked=f"unknown type_provider {provider_name!r}",
+                _plan_type_check(
+                    planned,
+                    provider,
+                    provider_name,
+                    component_root,
+                    root,
+                    files,
+                    unit,
                 )
             )
-            continue
-        executable = _locate(provider_name)
-        if executable is None:
+        elif planned.check.id == "python.test":
             checks.append(
-                PlannedCheck(
-                    check=planned.check,
-                    task_id=planned.task_id,
-                    blocked=f"{provider_name} is not available",
+                _plan_test(
+                    planned,
+                    interpreter,
+                    no_interpreter,
+                    effective,
+                    component_root,
+                    root,
+                    unit,
+                    coverage_data=data_file if coverage_selected else None,
                 )
             )
-            continue
-        targets = _targets(component_root, root, files)
-        task = (
-            # mypy writes ``.mypy_cache`` where it runs unless pointed
-            # elsewhere — under .ici, where a verification tool's state
-            # belongs. ty has no cache flag to forward.
-            provider.plan(
-                executable,
-                targets=targets,
-                cwd=str(component_root),
-                cache_dir=str(root / ".ici" / "cache" / "mypy"),
-                task_id=planned.task_id,
-                analysis_unit_id=unit.id if unit is not None else "",
-                # input_refs are read against the task's cwd — the component
-                # root — so they spell paths the way the argv does, not the
-                # workspace-relative way the inventory does.
-                input_refs=targets,
+        else:  # python.coverage
+            checks.append(
+                _plan_coverage(
+                    planned,
+                    interpreter,
+                    no_interpreter,
+                    test_selected,
+                    data_file,
+                    report_path,
+                    component_root,
+                    unit,
+                )
             )
-            if isinstance(provider, MypyProvider)
-            else provider.plan(
-                executable,
-                targets=targets,
-                cwd=str(component_root),
-                task_id=planned.task_id,
-                analysis_unit_id=unit.id if unit is not None else "",
-                input_refs=targets,
-            )
-        )
-        checks.append(
-            PlannedCheck(check=planned.check, task_id=planned.task_id, task=task)
-        )
     return Plan(checks=tuple(checks))
+
+
+def _plan_type_check(
+    planned: PlannedCheck,
+    provider: MypyProvider | TyProvider | None,
+    provider_name: str,
+    component_root: Path,
+    root: Path,
+    files: tuple[str, ...],
+    unit: AnalysisUnit | None,
+) -> PlannedCheck:
+    """Attach the chosen checker's task — never a substitute for it."""
+
+    if provider is None:
+        return PlannedCheck(
+            check=planned.check,
+            task_id=planned.task_id,
+            blocked=f"unknown type_provider {provider_name!r}",
+        )
+    executable = _locate(provider_name)
+    if executable is None:
+        return PlannedCheck(
+            check=planned.check,
+            task_id=planned.task_id,
+            blocked=f"{provider_name} is not available",
+        )
+    targets = _targets(component_root, root, files)
+    # input_refs are read against the task's cwd — the component root — so
+    # they spell paths the way the argv does, not the workspace-relative way
+    # the inventory does.
+    task = (
+        # mypy writes ``.mypy_cache`` where it runs unless pointed elsewhere —
+        # under .ici, where a verification tool's state belongs. ty has no
+        # cache flag to forward.
+        provider.plan(
+            executable,
+            targets=targets,
+            cwd=str(component_root),
+            cache_dir=str(root / ".ici" / "cache" / "mypy"),
+            task_id=planned.task_id,
+            analysis_unit_id=unit.id if unit is not None else "",
+            input_refs=targets,
+        )
+        if isinstance(provider, MypyProvider)
+        else provider.plan(
+            executable,
+            targets=targets,
+            cwd=str(component_root),
+            task_id=planned.task_id,
+            analysis_unit_id=unit.id if unit is not None else "",
+            input_refs=targets,
+        )
+    )
+    return PlannedCheck(check=planned.check, task_id=planned.task_id, task=task)
+
+
+def _plan_test(
+    planned: PlannedCheck,
+    interpreter: str | None,
+    no_interpreter: str,
+    effective: EffectiveComponent | None,
+    component_root: Path,
+    root: Path,
+    unit: AnalysisUnit | None,
+    coverage_data: str | None,
+) -> PlannedCheck:
+    """Plan the pytest run — coverage-wrapped when the coverage check rides it."""
+
+    if interpreter is None:
+        return PlannedCheck(check=planned.check, task_id=planned.task_id, blocked=no_interpreter)
+    targets = _test_targets(effective, component_root, root)
+    if effective is not None and effective.test_paths and not targets:
+        # A declared test scope that matches nothing is not a suite that
+        # passed quietly — it is a scope the run cannot find.
+        return PlannedCheck(
+            check=planned.check,
+            task_id=planned.task_id,
+            blocked="declared test_paths matched no files",
+        )
+    task = PytestProvider().plan(
+        interpreter,
+        targets=targets,
+        cwd=str(component_root),
+        task_id=planned.task_id,
+        coverage_data=coverage_data,
+        analysis_unit_id=unit.id if unit is not None else "",
+        input_refs=targets,
+    )
+    return PlannedCheck(check=planned.check, task_id=planned.task_id, task=task)
+
+
+def _test_targets(
+    effective: EffectiveComponent | None, component_root: Path, root: Path
+) -> tuple[str, ...]:
+    """Expand declared ``test_paths`` globs into component-relative argv.
+
+    pytest cannot expand a workspace glob itself — handed ``tests/**/*.py``
+    literally it errors rather than collecting. The declared patterns are
+    expanded here so the argv names real paths the suite owns; nothing
+    declared means the component's whole root is pytest's scope.
+    """
+
+    if effective is None or not effective.test_paths:
+        return ()
+    expanded: list[str] = []
+    for pattern in effective.test_paths:
+        relative = _targets(component_root, root, (pattern,))
+        for item in relative:
+            for match in sorted(component_root.glob(item)):
+                expanded.append(match.relative_to(component_root).as_posix())
+    return tuple(dict.fromkeys(expanded))
+
+
+def _plan_coverage(
+    planned: PlannedCheck,
+    interpreter: str | None,
+    no_interpreter: str,
+    test_selected: bool,
+    data_file: str,
+    report_path: str,
+    component_root: Path,
+    unit: AnalysisUnit | None,
+) -> PlannedCheck:
+    """Plan the coverage read — it shares the test run, never repeats it."""
+
+    if not test_selected:
+        return PlannedCheck(
+            check=planned.check,
+            task_id=planned.task_id,
+            blocked="python.coverage reads the test run's data — enable python.test",
+        )
+    if interpreter is None:
+        return PlannedCheck(check=planned.check, task_id=planned.task_id, blocked=no_interpreter)
+    task = CoverageProvider().plan(
+        interpreter,
+        data_file=data_file,
+        report_path=report_path,
+        cwd=str(component_root),
+        task_id=planned.task_id,
+        analysis_unit_id=unit.id if unit is not None else "",
+    )
+    return PlannedCheck(check=planned.check, task_id=planned.task_id, task=task)
 
 
 def _compile_coverage(

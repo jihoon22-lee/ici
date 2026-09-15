@@ -27,7 +27,9 @@ import typer
 from ici import __version__
 from ici.adapters.providers.base import Provider
 from ici.adapters.providers.compiler import CompilerDiagnosticsProvider
+from ici.adapters.providers.coverage import CoverageProvider
 from ici.adapters.providers.mypy import MypyProvider
+from ici.adapters.providers.pytest import PytestProvider
 from ici.adapters.providers.ruff import RuffProvider
 from ici.adapters.providers.tidy import ClangTidyProvider
 from ici.adapters.providers.ty import TyProvider
@@ -607,6 +609,8 @@ def cmd_verify(
         "clang-tidy": ClangTidyProvider(),
         "mypy": MypyProvider(),
         "ty": TyProvider(),
+        "pytest": PytestProvider(),
+        "coverage": CoverageProvider(),
     }
     verification = run_verification(
         plans,

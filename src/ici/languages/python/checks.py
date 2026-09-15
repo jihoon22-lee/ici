@@ -18,10 +18,12 @@ from __future__ import annotations
 from ici.languages.checks import CheckDefinition
 
 __all__ = [
+    "COVERAGE_CHECK",
     "FORMAT_CHECK",
     "LINE_CHECK",
     "LINT_CHECK",
     "PYTHON_CHECKS",
+    "TEST_CHECK",
     "TYPE_CHECK",
     "CheckDefinition",
 ]
@@ -58,10 +60,34 @@ TYPE_CHECK = CheckDefinition(
     tool=None,
 )
 
+#: ``tool=None`` because the runner is the project's own interpreter — the
+#: declared ``[python] executable`` or its ``.venv``, never ici's runtime
+#: (#216). The check ``provides`` the test evidence coverage reads.
+TEST_CHECK = CheckDefinition(
+    id="python.test",
+    title="pytest suite",
+    language="python",
+    tool=None,
+    provides=("test-evidence",),
+)
+
+#: Coverage shares the pytest execution: when this check is selected the test
+#: task is wrapped in ``coverage run`` and this task only reads the data —
+#: one run, two readers, ordered through ``test-evidence``.
+COVERAGE_CHECK = CheckDefinition(
+    id="python.coverage",
+    title="coverage.py collection",
+    language="python",
+    tool=None,
+    needs=("test-evidence",),
+)
+
 #: Declaration only. Importing this must not look at the machine.
 PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     LINE_CHECK,
     LINT_CHECK,
     FORMAT_CHECK,
     TYPE_CHECK,
+    TEST_CHECK,
+    COVERAGE_CHECK,
 )
