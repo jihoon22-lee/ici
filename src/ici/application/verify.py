@@ -31,11 +31,12 @@ from dataclasses import dataclass
 from ici.adapters.providers.base import Provider
 from ici.application.graph import build_graph
 from ici.application.plan import Plan, PlannedCheck
-from ici.application.schedule import Analysis, Runner, run_graph
+from ici.application.schedule import Analysis, Execution, Identify, Runner, run_graph
 from ici.domain.enums import GateVerdict, TaskState
 from ici.domain.finding import Finding
 from ici.domain.observation import Observation
 from ici.domain.result import GateOutcome
+from ici.execution.cache import ObservationCache
 from ici.execution.cancellation import Cancellation
 from ici.execution.process import run_task
 
@@ -49,6 +50,9 @@ class Verification:
     gate: GateOutcome
     observations: tuple[Observation, ...]
     findings: tuple[Finding, ...]
+    #: One record per executed unit — run counts, durations, cache reuse and
+    #: skip reasons (#209 item 7: hit/miss/disabled must be reportable).
+    executions: tuple[Execution, ...] = ()
 
     @property
     def exit_code(self) -> int:
@@ -64,6 +68,9 @@ def verify(
     *,
     max_parallel: int = 4,
     cancellation: Cancellation | None = None,
+    cache: ObservationCache | None = None,
+    identify: Identify | None = None,
+    run_id: str = "",
 ) -> Verification:
     """Run everything the plans intend to run, then judge it once.
 
@@ -85,6 +92,9 @@ def verify(
         environment=environment,
         max_parallel=max_parallel,
         cancellation=cancellation,
+        cache=cache,
+        identify=identify,
+        run_id=run_id,
     )
     by_id = {item.task_id: item for item in scheduled.observations}
     observations = tuple(by_id[planned.task_id] for planned in checks)
@@ -97,6 +107,7 @@ def verify(
         gate=_judge(incomplete, findings),
         observations=observations,
         findings=findings,
+        executions=scheduled.executions,
     )
 
 

@@ -102,6 +102,11 @@ class RuffRequest:
     task_id: str = "python.lint.ruff"
     timeout_seconds: float = 300.0
     cache_dir: Path | None = None
+    #: Ruff also reads its configuration — pyproject/ruff.toml between the
+    #: project root and the workspace root. Declared so the task's identity
+    #: (#209) covers every file that could change the answer; a check whose
+    #: inputs are not enumerable is one whose results cannot be reused.
+    config_files: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.targets:
@@ -133,6 +138,7 @@ class RuffProvider:
             provider=self.name,
             argv=argv,
             cwd=str(request.project_root),
+            input_refs=(*request.targets, *request.config_files),
             analysis_unit_ids=((request.analysis_unit_id,) if request.analysis_unit_id else ()),
             timeout_seconds=request.timeout_seconds,
         )

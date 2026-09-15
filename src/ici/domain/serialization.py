@@ -37,9 +37,9 @@ from ici.domain._codec import (
     read_enum,
     require_mapping,
 )
-from ici.domain.enums import EvidenceLevel, GateVerdict, PublicationState, ScopeKind
+from ici.domain.enums import EvidenceLevel, GateVerdict, PublicationState, ScopeKind, TaskState
 from ici.domain.finding import Finding, FindingSuppression, SourceSpan
-from ici.domain.observation import Measurement
+from ici.domain.observation import Measurement, Observation
 from ici.domain.result import (
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -58,6 +58,8 @@ __all__ = [
     "UnsupportedSchemaError",
     "dumps",
     "loads",
+    "observation_from_dict",
+    "observation_to_dict",
     "run_result_from_dict",
     "run_result_to_dict",
 ]
@@ -141,6 +143,38 @@ def _snapshot_to_dict(snapshot: SourceSnapshot) -> dict[str, Any]:
     return payload
 
 
+def observation_to_dict(observation: Observation) -> dict[str, Any]:
+    """Render one observation — the unit of evidence the cache stores.
+
+    #209 keeps raw observations, never verdicts: what is written here is what
+    the task produced, and the gate re-judges it on every read under the
+    *current* policy. Serializing a verdict would let a threshold change
+    inherit the old run's answer.
+    """
+
+    payload: dict[str, Any] = {
+        "task_id": observation.task_id,
+        "provider": observation.provider,
+        "state": observation.state.value,
+    }
+    if observation.findings:
+        payload["findings"] = [_finding_to_dict(item) for item in observation.findings]
+    if observation.measurements:
+        payload["measurements"] = [_measurement_to_dict(item) for item in observation.measurements]
+    for name in ("exit_code", "signal", "duration_seconds"):
+        value = getattr(observation, name)
+        if value is not None:
+            payload[name] = value
+    for name in ("timed_out", "truncated"):
+        if getattr(observation, name):
+            payload[name] = True
+    if observation.tool_versions:
+        payload["tool_versions"] = [list(item) for item in observation.tool_versions]
+    if observation.limitations:
+        payload["limitations"] = list(observation.limitations)
+    return payload
+
+
 def run_result_to_dict(result: RunResult) -> dict[str, Any]:
     """Render a run as the ``ici.next.run`` v1 envelope."""
 
@@ -171,6 +205,7 @@ def run_result_to_dict(result: RunResult) -> dict[str, Any]:
             "cancelled": result.execution.cancelled,
             "blocked_task_ids": list(result.execution.blocked_task_ids),
             "failed_task_ids": list(result.execution.failed_task_ids),
+            "reused_task_ids": list(result.execution.reused_task_ids),
         },
         "gate": {
             "selected": result.gate.selected.value,
@@ -254,6 +289,34 @@ def _measurement_from_dict(payload: object) -> Measurement:
     )
 
 
+def observation_from_dict(payload: object) -> Observation:
+    """Read back a stored observation.
+
+    A cache entry is a file, and a file can be truncated or tampered with —
+    every field goes through the same validation the run-time object applies,
+    so a damaged entry surfaces as a read error rather than as evidence.
+    """
+
+    data = require_mapping(payload, "observation")
+    return Observation(
+        task_id=data.get("task_id"),  # type: ignore[arg-type]
+        provider=data.get("provider"),  # type: ignore[arg-type]
+        state=read_enum(data.get("state"), TaskState, "observation state"),
+        findings=tuple(_finding_from_dict(item) for item in data.get("findings", ())),
+        measurements=tuple(_measurement_from_dict(item) for item in data.get("measurements", ())),
+        exit_code=data.get("exit_code"),
+        signal=data.get("signal"),
+        timed_out=bool(data.get("timed_out", False)),
+        truncated=bool(data.get("truncated", False)),
+        duration_seconds=data.get("duration_seconds"),
+        tool_versions=tuple(
+            tuple(item)
+            for item in data.get("tool_versions", ())  # type: ignore[misc]
+        ),
+        limitations=tuple(data.get("limitations", ())),
+    )
+
+
 def _identity_from_dict(payload: object) -> RunIdentity:
     data = require_mapping(payload, "run identity")
     snapshot = require_mapping(data.get("source"), "source snapshot")
@@ -330,6 +393,7 @@ def run_result_from_dict(payload: object) -> RunResult:
                 cancelled=bool(execution.get("cancelled", False)),
                 blocked_task_ids=tuple(execution.get("blocked_task_ids", ())),
                 failed_task_ids=tuple(execution.get("failed_task_ids", ())),
+                reused_task_ids=tuple(execution.get("reused_task_ids", ())),
             ),
             gate=_gate_from_dict(data.get("gate")),
             findings=tuple(_finding_from_dict(item) for item in data.get("findings", ())),

@@ -178,3 +178,49 @@ def test_a_component_with_no_applicable_checks_is_a_limitation_not_a_crash(
     assert result.exit_code == 0, result.output
     stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
     assert any("native" in item for item in stored["limitations"])
+
+
+@needs_ruff
+def test_a_warm_run_reuses_the_cold_runs_evidence(tmp_path, monkeypatch) -> None:
+    # #209: identical inputs reuse the stored observation, and the result says
+    # which tasks were reused rather than run.
+    _two_python_components(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    result_file = tmp_path / ".ici" / "next" / "result.json"
+    cold = runner.invoke(app, ["next", "verify"])
+    assert cold.exit_code in (0, 1), cold.output
+    cold_result = json.loads(result_file.read_text("utf-8"))
+    warm = runner.invoke(app, ["next", "verify"])
+    assert warm.exit_code in (0, 1), warm.output
+
+    stored = json.loads(result_file.read_text("utf-8"))
+    reused = stored["execution"]["reused_task_ids"]
+    assert "alpha.python.lint" in reused and "beta.python.lint" in reused
+    # Reuse changes nothing about the answer: the findings are the same set.
+    assert cold_result["findings"] == stored["findings"]
+
+
+@needs_ruff
+def test_a_changed_source_is_a_fresh_run_not_a_reused_one(tmp_path, monkeypatch) -> None:
+    _two_python_components(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    assert runner.invoke(app, ["next", "verify"]).exit_code in (0, 1)
+    (tmp_path / "alpha" / "one.py").write_text("import os\nx = 2\n", encoding="utf-8")
+    assert runner.invoke(app, ["next", "verify"]).exit_code in (0, 1)
+
+    stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
+    assert "alpha.python.lint" not in stored["execution"]["reused_task_ids"]
+
+
+@needs_ruff
+def test_no_cache_runs_everything(tmp_path, monkeypatch) -> None:
+    _two_python_components(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    assert runner.invoke(app, ["next", "verify"]).exit_code in (0, 1)
+    assert runner.invoke(app, ["next", "verify", "--no-cache"]).exit_code in (0, 1)
+
+    stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
+    assert stored["execution"]["reused_task_ids"] == []
