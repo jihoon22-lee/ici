@@ -15,9 +15,10 @@ from ici.application.plan import NothingSelected
 from ici.application.selection import select, selected_checks
 from ici.config.documents import CheckSetting, ComponentBody
 from ici.config.origin import Origin, Sourced
-from ici.domain.enums import TaskKind
+from ici.domain.enums import Profile, TaskKind
 from ici.domain.tasks import TaskSpec
-from ici.languages.python.checks import LINE_CHECK, LINT_CHECK, CheckDefinition
+from ici.languages.checks import CheckDefinition
+from ici.languages.python.checks import LINE_CHECK, LINT_CHECK
 
 CHECKS = (LINE_CHECK, LINT_CHECK)
 ORIGIN = Origin(file="ici.toml")
@@ -72,19 +73,39 @@ def _nothing(name: str) -> str | None:
 
 
 def test_a_component_that_says_nothing_runs_every_check() -> None:
-    assert [c.id for c in selected_checks(_component(), CHECKS)] == ["python.line", "python.lint"]
+    chosen = selected_checks(_component(), CHECKS)
+
+    assert [c.id for c in chosen.selected] == ["python.line", "python.lint"]
+    assert chosen.omitted == ()
 
 
 def test_a_check_the_component_turned_off_is_not_selected() -> None:
     chosen = selected_checks(_component(_setting("python.lint", enabled=False)), CHECKS)
 
-    assert [c.id for c in chosen] == ["python.line"]
+    assert [c.id for c in chosen.selected] == ["python.line"]
+    assert [item.check.id for item in chosen.omitted] == ["python.lint"]
+    assert chosen.omitted[0].reason == "disabled"
+
+
+def test_a_check_outside_the_profile_is_omitted_not_blocked() -> None:
+    deep_only = CheckDefinition(
+        id="python.slow",
+        title="Slow",
+        language="python",
+        tool=None,
+        profiles=frozenset({Profile.DEEP}),
+    )
+    chosen = selected_checks(_component(), (*CHECKS, deep_only), profile=Profile.FAST)
+
+    assert [c.id for c in chosen.selected] == ["python.line", "python.lint"]
+    assert [item.check.id for item in chosen.omitted] == ["python.slow"]
+    assert "fast" in chosen.omitted[0].reason
 
 
 def test_a_component_can_make_a_check_advisory() -> None:
     chosen = selected_checks(_component(_setting("python.lint", required=False)), CHECKS)
 
-    lint = next(c for c in chosen if c.id == "python.lint")
+    lint = next(c for c in chosen.selected if c.id == "python.lint")
     assert lint.required is False
     assert LINT_CHECK.required is True, "the shared definition was mutated"
 
@@ -153,3 +174,47 @@ def test_an_internal_check_is_planned_without_a_tool() -> None:
     line = next(item for item in plan.checks if item.check.id == "python.line")
     assert line.is_internal
     assert line.task is None
+
+
+# --- fast never mutates ----------------------------------------------------
+
+
+def _preparing_work(check: CheckDefinition, executable: str, task_id: str) -> ProviderPlan:
+    return ProviderPlan(
+        task=TaskSpec(
+            id=task_id,
+            kind=TaskKind.PREPARE,
+            provider=check.tool or "ici",
+            argv=(executable, "prepare"),
+            cwd="/project",
+            cacheable=False,
+        )
+    )
+
+
+def test_fast_blocks_a_mutating_task_instead_of_running_it() -> None:
+    needs_build = CheckDefinition(
+        id="python.build",
+        title="Build",
+        language="python",
+        tool="make",
+    )
+
+    plan = select(_component(), _everything, _preparing_work, (needs_build,), profile=Profile.FAST)
+
+    assert plan.blocked[0].check.id == "python.build"
+    assert "fast" in plan.blocked[0].blocked
+
+
+def test_standard_runs_the_same_mutating_task() -> None:
+    needs_build = CheckDefinition(
+        id="python.build",
+        title="Build",
+        language="python",
+        tool="make",
+    )
+
+    plan = select(_component(), _everything, _preparing_work, (needs_build,))
+
+    assert plan.blocked == ()
+    assert plan.checks[0].task is not None

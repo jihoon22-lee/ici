@@ -36,22 +36,23 @@ from pathlib import Path, PurePosixPath
 import typer
 
 from ici import __version__
-from ici.adapters.providers.base import Provider, ProviderPlan, unavailable
+from ici.adapters.providers.base import Provider, ProviderPlan
 from ici.adapters.providers.ruff import RuffProvider, RuffRequest
-from ici.application.plan import NothingSelected, Plan, PlannedCheck
+from ici.application.plan import NothingSelected, Plan
 from ici.application.report import assemble, digest_of
-from ici.application.selection import Planner, select_effective, selected_effective_checks
+from ici.application.selection import Planner, select_effective
 from ici.application.verify import Analysis
 from ici.application.verify import verify as run_verification
-from ici.config.composition import EffectiveComponent, EffectiveConfig
+from ici.config.composition import EffectiveConfig
 from ici.config.discovery import load
 from ici.config.errors import NextConfigError
 from ici.domain.enums import GateVerdict, ScopeKind
 from ici.domain.serialization import dumps, loads, run_result_to_dict
 from ici.domain.workspace import AnalysisUnit, Component, Workspace
-from ici.languages.python.checks import PYTHON_CHECKS, CheckDefinition
+from ici.languages.checks import CheckDefinition
 from ici.languages.python.lines import LineRequest
 from ici.languages.python.lines import count as count_lines
+from ici.languages.registry import builtin as builtin_registry
 from ici.reporting.offline_html import render
 from ici.workspace import build as build_workspace
 from ici.workspace import inventory
@@ -135,6 +136,15 @@ def _component_root(root: Path, component: Component) -> Path:
     return (root / PurePosixPath(component.root)).resolve()
 
 
+#: Which file suffixes count as a language's sources when a unit's declared
+#: globs resolve through the inventory. A language with no entry has no
+#: checks that could read it, so nothing asks for its files.
+_SOURCE_SUFFIXES = {
+    "python": (".py",),
+    "cpp": (".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"),
+}
+
+
 def _plans(
     scope: Workspace,
     config: EffectiveConfig,
@@ -143,18 +153,22 @@ def _plans(
 ) -> tuple[list[Plan], dict[str, Analysis], list[str]]:
     """One plan per component, plus the internal analyses they register.
 
+    The registry decides which checks a component's languages own (#208) —
+    a Python component never sees a C++ tool requirement, and a C++ unit
+    gets the pack's own checks rather than a Python-shaped empty answer.
     Task ids carry the component — ``app.python.lint`` — so two components
     running one check stay two facts all the way into the stored result.
     A component nothing applies to is a limitation, not a vanished check:
     its languages having no checks is something the run should say.
     """
 
+    registry = builtin_registry()
     plans: list[Plan] = []
     analyses: dict[str, Analysis] = {}
     limitations: list[str] = []
     for component in scope.components:
         units = {unit.language: unit for unit in _units_of(scope, component)}
-        available = tuple(check for check in PYTHON_CHECKS if check.language in units)
+        available = registry.checks_for(component.languages)
         if not available:
             limitations.append(
                 f"{component.id}: no checks apply to its languages "
@@ -164,25 +178,40 @@ def _plans(
         effective = config.component(component.id)
         assert effective is not None
         component_root = _component_root(root, component)
-        unit = units.get("python")
-        files = _unit_files(stock, unit, (".py",)) if unit is not None else ()
-        work = _planner(component_root, root, component.id, unit, files)
+        files_by_language = {
+            language: _unit_files(stock, units[language], _SOURCE_SUFFIXES[language])
+            for language in component.languages
+            if language in units and language in _SOURCE_SUFFIXES
+        }
+        work = _planner(
+            component_root,
+            root,
+            component.id,
+            units.get("python"),
+            files_by_language.get("python", ()),
+        )
 
         try:
-            plan = _plan_component(effective, available, files, work)
+            plan = select_effective(
+                effective,
+                _locate,
+                work,
+                available=available,
+                task_prefix=component.id,
+                in_scope=lambda check, found=files_by_language: bool(found.get(check.language)),
+            )
         except NothingSelected as error:
             limitations.append(str(error))
             continue
         plans.append(plan)
         for planned in plan.checks:
-            if not planned.is_internal or planned.check.id != "python.line":
-                continue
-            if files:
+            if planned.is_internal:
                 analyses[planned.task_id] = _line_counter(
-                    component_root, root, files, planned.task_id
+                    component_root,
+                    root,
+                    files_by_language[planned.check.language],
+                    planned.task_id,
                 )
-            else:
-                analyses[planned.task_id] = _no_sources(planned.task_id)
     if not plans:
         raise NothingSelected(
             "no component selected a check; a run that checks nothing cannot pass"
@@ -215,34 +244,6 @@ def _planner(
     return work
 
 
-def _plan_component(
-    effective: EffectiveComponent,
-    available: tuple[CheckDefinition, ...],
-    files: tuple[str, ...],
-    work: Planner,
-) -> Plan:
-    """The component's plan; checks with no inventoried input stay, blocked.
-
-    A lint check on a scope that inventories no files was still asked for —
-    the plan says so rather than dropping it, which is the difference between
-    *not selected* and *could not run* (SPEC-04).
-    """
-
-    checks = selected_effective_checks(effective, available)
-    if not files:
-        return Plan(
-            checks=tuple(
-                PlannedCheck(
-                    check=check,
-                    blocked=f"no sources in scope for {check.language}",
-                    task_id=f"{effective.id}.{check.id}",
-                )
-                for check in checks
-            )
-        )
-    return select_effective(effective, _locate, work, available=available, task_prefix=effective.id)
-
-
 def _targets(component_root: Path, root: Path, files: tuple[str, ...]) -> tuple[str, ...]:
     """The unit's real files as ruff targets, spelled relative to its root.
 
@@ -269,10 +270,6 @@ def _line_counter(
     return lambda: count_lines(
         LineRequest(project_root=component_root, files=resolved, task_id=task_id)
     )
-
-
-def _no_sources(task_id: str) -> Analysis:
-    return lambda: unavailable("ici", task_id, "no python sources in scope")
 
 
 def _units_of(scope: Workspace, component: Component) -> tuple[AnalysisUnit, ...]:
