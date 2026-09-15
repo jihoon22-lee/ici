@@ -55,7 +55,8 @@ def test_every_component_runs_and_keeps_its_own_task_ids(tmp_path, monkeypatch) 
     assert stored["scope"]["kind"] == "full"
     assert stored["scope"]["full_required_satisfied"] is True
     task_ids = {finding["task_id"] for finding in stored["findings"]}
-    assert task_ids == {"alpha.python.lint"}
+    # alpha's file is both unformatted and carries an unused import.
+    assert task_ids == {"alpha.python.lint", "alpha.python.format"}
     assert stored["scope"]["selected_components"] == ["alpha", "beta"]
 
 

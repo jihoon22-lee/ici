@@ -24,8 +24,10 @@ from ici.adapters.providers.compiler import (
     compiler_family,
     transform_argv,
 )
+from ici.adapters.providers.mypy import MypyProvider
 from ici.adapters.providers.ruff import RuffProvider, RuffRequest
 from ici.adapters.providers.tidy import ClangTidyProvider
+from ici.adapters.providers.ty import TyProvider
 from ici.application.graph import TaskGraph, build_graph
 from ici.application.plan import NothingSelected, Plan, PlannedCheck
 from ici.application.request import (
@@ -37,7 +39,7 @@ from ici.application.request import (
 )
 from ici.application.selection import Planner, select_effective
 from ici.application.verify import Analysis
-from ici.config.composition import EffectiveConfig
+from ici.config.composition import EffectiveComponent, EffectiveConfig
 from ici.config.discovery import discover, load
 from ici.config.errors import NextConfigError
 from ici.domain.enums import Profile, TaskState
@@ -357,6 +359,14 @@ def _plans(
             compile_inputs,
             units.get("cpp"),
         )
+        plan = _gate_python(
+            plan,
+            effective,
+            component_root,
+            root,
+            files_by_language.get("python", ()),
+            units.get("python"),
+        )
         plans.append(plan)
         by_component[component.id] = plan
         for planned in plan.checks:
@@ -389,6 +399,20 @@ def _planner(
     """Bind one component's context into the check-to-task callback."""
 
     def work(check: CheckDefinition, executable: str, task_id: str) -> ProviderPlan:
+        if check.id == "python.format":
+            assert unit is not None
+            return RuffProvider().plan(
+                RuffRequest(
+                    executable=executable,
+                    project_root=component_root,
+                    targets=_targets(component_root, root, files),
+                    task_id=task_id,
+                    component_id=component_id,
+                    analysis_unit_id=unit.id,
+                    config_files=config_files,
+                    mode="format",
+                )
+            )
         if check.id == "cpp.tidy":
             assert cpp_unit is not None
             database_dir = (
@@ -679,6 +703,93 @@ def _task_slug(source: str) -> str:
 
     slug = re.sub(r"[^a-z0-9]+", "-", source.lower()).strip("-.")
     return slug or "tu"
+
+
+_TYPE_CHECKERS: dict[str, MypyProvider | TyProvider] = {
+    "mypy": MypyProvider(),
+    "ty": TyProvider(),
+}
+
+
+def _gate_python(
+    plan: Plan,
+    effective: EffectiveComponent | None,
+    component_root: Path,
+    root: Path,
+    files: tuple[str, ...],
+    unit: AnalysisUnit | None,
+) -> Plan:
+    """Resolve ``python.type``'s checker and attach the real task to it.
+
+    The check declares no tool because which checker runs is the component's
+    own setting, not the registry's: ``mypy`` is the default and ``ty`` only
+    runs when ``type_provider`` names it (#215). A missing executable is a
+    blocked marker naming the chosen tool, never a quiet substitute — a
+    component that asked for ty and got mypy instead would be a checker change
+    nobody declared.
+    """
+
+    if not any(planned.check.id == "python.type" for planned in plan.checks):
+        return plan
+    decided = effective.python_type_provider if effective is not None else None
+    provider_name = decided.value if decided is not None else "mypy"
+    provider = _TYPE_CHECKERS.get(provider_name)
+
+    checks: list[PlannedCheck] = []
+    for planned in plan.checks:
+        if planned.check.id != "python.type" or planned.blocked:
+            checks.append(planned)
+            continue
+        if provider is None:
+            checks.append(
+                PlannedCheck(
+                    check=planned.check,
+                    task_id=planned.task_id,
+                    blocked=f"unknown type_provider {provider_name!r}",
+                )
+            )
+            continue
+        executable = _locate(provider_name)
+        if executable is None:
+            checks.append(
+                PlannedCheck(
+                    check=planned.check,
+                    task_id=planned.task_id,
+                    blocked=f"{provider_name} is not available",
+                )
+            )
+            continue
+        targets = _targets(component_root, root, files)
+        task = (
+            # mypy writes ``.mypy_cache`` where it runs unless pointed
+            # elsewhere — under .ici, where a verification tool's state
+            # belongs. ty has no cache flag to forward.
+            provider.plan(
+                executable,
+                targets=targets,
+                cwd=str(component_root),
+                cache_dir=str(root / ".ici" / "cache" / "mypy"),
+                task_id=planned.task_id,
+                analysis_unit_id=unit.id if unit is not None else "",
+                # input_refs are read against the task's cwd — the component
+                # root — so they spell paths the way the argv does, not the
+                # workspace-relative way the inventory does.
+                input_refs=targets,
+            )
+            if isinstance(provider, MypyProvider)
+            else provider.plan(
+                executable,
+                targets=targets,
+                cwd=str(component_root),
+                task_id=planned.task_id,
+                analysis_unit_id=unit.id if unit is not None else "",
+                input_refs=targets,
+            )
+        )
+        checks.append(
+            PlannedCheck(check=planned.check, task_id=planned.task_id, task=task)
+        )
+    return Plan(checks=tuple(checks))
 
 
 def _compile_coverage(

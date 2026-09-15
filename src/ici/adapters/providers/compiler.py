@@ -247,10 +247,17 @@ class CompilerDiagnosticsProvider:
 
 
 def _relative(path: str, root: Path) -> str:
-    """A finding path made workspace-relative when it points inside it."""
+    """A finding path made workspace-relative when it points inside it.
+
+    Relative spellings are anchored at the task's working directory — not at
+    wherever this process happens to be running from.
+    """
 
     try:
-        return str(Path(path).resolve().relative_to(root))
+        candidate = Path(path)
+        if not candidate.is_absolute():
+            candidate = root / candidate
+        return str(candidate.resolve().relative_to(root))
     except (OSError, ValueError):
         return path
 

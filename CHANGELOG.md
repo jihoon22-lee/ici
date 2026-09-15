@@ -7,6 +7,28 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` Python 제공자: ruff format·mypy·선택적 ty (WP17, [#215](https://github.com/jihoon22-lee/ici/issues/215))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.
+
+- **`python.format`이 `ruff format --check`로 분리됩니다.** lint와 format은
+  서로 다른 finding과 remedy를 가지므로 별개 check이며, `--check`는 읽기
+  전용이라 verify가 트리를 고치는 일은 없습니다. 신형(`unformatted:`/
+  `-->` span)과 구형(`Would reformat:`) 출력 둘 다 파싱하고, 모르는 라인은
+  빈 PASS가 아니라 파싱 실패입니다.
+- **`python.type`이 mypy를 기본으로 실행합니다.** `--show-error-codes
+  --no-color-output --no-pretty`로 고정된 출력 형태만 요구하고, `--config`나
+  규칙 override는 넘기지 않습니다 — 프로젝트 자체 설정이 답합니다.
+  `path:line[:col]: severity: message [code]` 스트림을 파싱해
+  error/warning/note를 high/medium/low로 매핑합니다.
+- **`type_provider = "ty"`는 명시 선택입니다.** 선언되지 않은 체커를
+  조용히 대체하지 않습니다 — ty를 선택했는데 호스트에 없으면 mypy가 아니라
+  "ty is not available" blocked 마커가 나옵니다. 알 수 없는 provider 값은
+  config 오류입니다.
+- **상대 경로 진단이 올바른 root에 anchor됩니다.** 도구가 task cwd 기준
+  상대경로를 내놓을 때 ici 프로세스의 cwd로 resolve하던 실수를 고쳐,
+  component 하위 경로의 finding이 버려지지 않습니다.
+
 ### 추가 — `ici next` C++/Qt 분석 제공자: 컴파일러 재현과 clang-tidy (WP16, [#214](https://github.com/jihoon22-lee/ici/issues/214))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다. ici는

@@ -506,3 +506,50 @@ def test_an_unsupported_driver_is_a_blocked_tu_not_a_silent_skip(tmp_path, monke
     assert plan.exit_code == 0, plan.output
     assert "unsupported compiler 'cl.exe'" in plan.output
     assert "blocked" in plan.output
+
+
+def test_python_type_runs_the_component_chosen_checker(tmp_path, monkeypatch) -> None:
+    # #215: type_provider is the component's own choice — "ty" asks for ty,
+    # and a host without it reports that tool missing rather than quietly
+    # substituting mypy.
+    _hybrid_workspace(tmp_path)
+    (tmp_path / "ici.toml").write_text(
+        HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
+        '[components.python]\ntype_provider = "ty"\n'
+        '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n',
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    plan = runner.invoke(app, ["next", "plan", "--component", "app"])
+    assert plan.exit_code == 0, plan.output
+    if shutil.which("ty"):
+        assert "ty check --output-format concise" in plan.output
+    else:
+        assert "app.python.type: blocked — ty is not available" in plan.output
+
+
+def test_an_unknown_type_provider_is_a_config_error(tmp_path, monkeypatch) -> None:
+    _hybrid_workspace(tmp_path)
+    (tmp_path / "ici.toml").write_text(
+        HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
+        '[components.python]\ntype_provider = "pyright"\n'
+        '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n',
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["next", "plan", "--component", "app"])
+    assert result.exit_code == 2, result.output
+    assert "type_provider" in result.output
+
+
+def test_python_format_reports_unformatted_files(tmp_path, monkeypatch) -> None:
+    _hybrid_workspace(tmp_path)
+    (tmp_path / "app" / "one.py").write_text("x=1\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    verify = runner.invoke(app, ["next", "verify", "--component", "app"])
+    assert verify.exit_code == 1, verify.output
+    stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
+    assert any(f["rule_id"] == "ruff.format" for f in stored["findings"])

@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -81,6 +82,11 @@ FORBIDDEN_OPTIONS = (
 _SEVERITY = "warning"
 _CATEGORY = "lint"
 
+#: The format-check head: ``ruff format --check`` is read-only — it reports
+#: what *would* change and writes nothing, which is the only kind of format
+#: check a verifier is allowed to run (#206 item 2, #215 item 1).
+FORMAT_HEAD = ("format", "--check")
+
 
 @dataclass(frozen=True)
 class RuffRequest:
@@ -102,6 +108,10 @@ class RuffRequest:
     task_id: str = "python.lint.ruff"
     timeout_seconds: float = 300.0
     cache_dir: Path | None = None
+    #: ``"lint"`` runs ``ruff check``; ``"format"`` runs the read-only
+    #: ``ruff format --check``. The argv is the record of which ran — the
+    #: parser reads it back rather than trusting a side channel.
+    mode: str = "lint"
     #: Ruff also reads its configuration — pyproject/ruff.toml between the
     #: project root and the workspace root. Declared so the task's identity
     #: (#209) covers every file that could change the answer; a check whose
@@ -109,6 +119,8 @@ class RuffRequest:
     config_files: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        if self.mode not in ("lint", "format"):
+            raise ValueError(f"unknown ruff mode {self.mode!r}")
         if not self.targets:
             raise ValueError("a lint request must name something to lint")
         for target in self.targets:
@@ -131,7 +143,8 @@ class RuffProvider:
             if request.cache_dir is not None
             else ("--no-cache",)
         )
-        argv = (request.executable, *FIXED_HEAD, *cache, *request.targets)
+        head = FORMAT_HEAD if request.mode == "format" else FIXED_HEAD
+        argv = (request.executable, *head, *cache, *request.targets)
         task = TaskSpec(
             id=request.task_id,
             kind=TaskKind.ANALYZE,
@@ -145,9 +158,12 @@ class RuffProvider:
         return ProviderPlan(task=task, contract=RUFF_CONTRACT)
 
     def parse(self, outcome: TaskOutcome) -> ParsedOutput:
-        """Read Ruff's JSON, or say that it could not be read."""
+        """Read Ruff's output, or say that it could not be read."""
 
         root = outcome.spec.cwd or Path.cwd()
+        argv = outcome.spec.argv
+        if len(argv) > 1 and argv[1] == "format":
+            return parse_ruff_format(outcome.parseable, root=root, task_id=outcome.spec.name)
         return parse_ruff_json(outcome.parseable, root=root, task_id=outcome.spec.name)
 
 
@@ -270,3 +286,90 @@ def _fingerprint(code: str, filename: str, line: int, column: int, message: str)
         "\x00".join((PROVIDER_NAME, code, filename, str(line), str(column), message)).encode()
     ).hexdigest()
     return f"sha256:{digest}"
+
+
+_FORMAT_HEADER_RE = re.compile(r"^unformatted:")
+#: Older Ruff prints ``Would reformat: <path>`` — a finding on one line.
+_FORMAT_LEGACY_RE = re.compile(r"^Would reformat:\s*(?P<path>.+)$")
+_FORMAT_SPAN_RE = re.compile(r"^\s*-->\s*(?P<path>.+?):(?P<line>\d+):(?P<column>\d+)\s*$")
+#: Diff bodies, gutters and the ``N files would be reformatted`` summary are
+#: context, not findings — but nothing else may appear, because a line this
+#: parser does not know is a line whose meaning was guessed at.
+_FORMAT_CONTEXT_RE = re.compile(r"^\s*(\||[-+]|\d+\s*[-+|])")
+_FORMAT_SUMMARY_RE = re.compile(r"^\d+ files?\b")
+
+
+def parse_ruff_format(text: str, root: Path, task_id: str = "") -> ParsedOutput:
+    """Turn ``ruff format --check`` output into one finding per file.
+
+    ``--check`` answers which files would change; the per-file
+    ``unformatted:``/``-->`` pairs and the legacy ``Would reformat:`` lines
+    are the only finding carriers. Anything unrecognized is a parse failure —
+    the same rule as the JSON path, because a half-read stream reporting zero
+    files is indistinguishable from a formatted tree.
+    """
+
+    findings: list[Finding] = []
+    seen: set[str] = set()
+    pending_header = False
+
+    def _add(path: str, line: int, column: int | None) -> None:
+        try:
+            # Relative spans are relative to the task's cwd — resolve them
+            # there, not against wherever this process happens to sit.
+            candidate = Path(path)
+            if not candidate.is_absolute():
+                candidate = root / candidate
+            filename = _relative(str(candidate), root)
+        except (_OutsideTheRoot, ValueError):
+            # A file outside this component is context, not a finding here.
+            return
+        if filename in seen:
+            return
+        seen.add(filename)
+        message = "file would be reformatted"
+        findings.append(
+            Finding(
+                fingerprint=_fingerprint("format", filename, line, column or 0, message),
+                rule_id="ruff.format",
+                message=message,
+                severity="low",
+                confidence="high",
+                category="format",
+                provider=PROVIDER_NAME,
+                primary_location=SourceSpan(
+                    path=filename,
+                    start_line=line or 1,
+                    start_column=column,
+                ),
+                task_id=task_id or None,
+                evidence=EvidenceLevel.MEASURED,
+            )
+        )
+
+    for raw in text.splitlines():
+        line = raw.rstrip("\r\n")
+        if not line.strip():
+            pending_header = False
+            continue
+        legacy = _FORMAT_LEGACY_RE.match(line)
+        if legacy is not None:
+            _add(legacy.group("path").strip(), 1, None)
+            continue
+        if _FORMAT_HEADER_RE.match(line):
+            pending_header = True
+            continue
+        span = _FORMAT_SPAN_RE.match(line)
+        if span is not None:
+            if pending_header:
+                _add(
+                    span.group("path"),
+                    int(span.group("line")),
+                    int(span.group("column")),
+                )
+            pending_header = False
+            continue
+        if _FORMAT_CONTEXT_RE.match(line) or _FORMAT_SUMMARY_RE.match(line):
+            continue
+        return ParsedOutput(failed_to_parse=f"unrecognized ruff format line: {line.strip()!r}")
+    return ParsedOutput(findings=tuple(findings))

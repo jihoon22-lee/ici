@@ -27,8 +27,10 @@ import typer
 from ici import __version__
 from ici.adapters.providers.base import Provider
 from ici.adapters.providers.compiler import CompilerDiagnosticsProvider
+from ici.adapters.providers.mypy import MypyProvider
 from ici.adapters.providers.ruff import RuffProvider
 from ici.adapters.providers.tidy import ClangTidyProvider
+from ici.adapters.providers.ty import TyProvider
 from ici.application.graph import WorkUnit
 from ici.application.identity import task_identity
 from ici.application.plan import NothingSelected, Plan, PlannedCheck
@@ -603,6 +605,8 @@ def cmd_verify(
         "ruff": RuffProvider(),
         "compiler": CompilerDiagnosticsProvider(),
         "clang-tidy": ClangTidyProvider(),
+        "mypy": MypyProvider(),
+        "ty": TyProvider(),
     }
     verification = run_verification(
         plans,
