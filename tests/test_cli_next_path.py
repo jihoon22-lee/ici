@@ -104,6 +104,30 @@ def test_a_missing_required_tool_exits_three(project: Path, monkeypatch) -> None
     assert "INCOMPLETE" in result.output
 
 
+def test_a_cancelled_run_exits_130_and_keeps_a_partial_result(
+    project: Path, monkeypatch, tmp_path
+) -> None:
+    """SPEC-04 §3: a user cancel is 130, and the partial result is written."""
+    _seed(project)
+
+    import contextlib
+
+    @contextlib.contextmanager
+    def cancelled(cancellation):
+        cancellation.cancel("received SIGINT")
+        yield cancellation
+
+    monkeypatch.setattr("ici.cli.next_path.signal_cancels", cancelled)
+    result_path = tmp_path / "partial.json"
+
+    result = runner.invoke(app, ["next", "verify", "--result", str(result_path)])
+
+    assert result.exit_code == 130, result.output
+    document = json.loads(result_path.read_text())
+    assert document["execution"]["cancelled"] is True
+    assert document["gate"]["selected"] == "INCOMPLETE"
+
+
 # --- plan runs nothing ----------------------------------------------------
 
 

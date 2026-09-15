@@ -87,7 +87,9 @@ from ici.domain.events import EventType
 from ici.domain.serialization import dumps, loads, run_result_to_dict
 from ici.domain.workspace import AnalysisUnit, Component, Workspace
 from ici.execution.cache import ObservationCache
+from ici.execution.cancellation import Cancellation, signal_cancels
 from ici.execution.manifest import digest_of as file_digest
+from ici.execution.process import run_task
 from ici.languages.checks import CheckDefinition
 from ici.languages.registry import builtin as builtin_registry
 from ici.reporting.offline_html import render
@@ -616,15 +618,22 @@ def cmd_verify(
         "qtest": QtestProvider(),
         "gcov": GcovProvider(),
     }
-    verification = run_verification(
-        plans,
-        providers=providers,
-        analyses=analyses,
-        cache=cache,
-        identify=_identifier(resolved, config.policy_digest),
-        run_id=run_id,
-        on_execution=sink.on_execution if sink is not None else None,
-    )
+    # SIGINT/SIGTERM land as a fact on the run, not an exception: unstarted
+    # units read it and report CANCELLED, the running one is told through its
+    # watchdog, and the partial result is still written — SPEC-04 exit 130.
+    cancellation = Cancellation()
+    with signal_cancels(cancellation):
+        verification = run_verification(
+            plans,
+            providers=providers,
+            analyses=analyses,
+            runner=lambda spec: run_task(spec, cancellation),
+            cache=cache,
+            identify=_identifier(resolved, config.policy_digest),
+            run_id=run_id,
+            cancellation=cancellation,
+            on_execution=sink.on_execution if sink is not None else None,
+        )
 
     gaps = (
         uncovered_scope(model, request, scope) + tuple(compile_gaps) if request.require_full else ()
@@ -648,6 +657,8 @@ def cmd_verify(
     else:
         scope_kind = ScopeKind.FULL
 
+    if cancellation.requested:
+        limitations = [*limitations, f"cancelled: {cancellation.reason or 'user request'}"]
     stored = assemble(
         verification,
         run_id=run_id,
@@ -663,6 +674,7 @@ def cmd_verify(
             item.id for item in model.components if item.id not in {c.id for c in scope.components}
         ),
         limitations=tuple(limitations),
+        cancelled=cancellation.requested,
     )
     target = root / result if not result.is_absolute() else result
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -675,13 +687,16 @@ def cmd_verify(
         )
         sink.write()
 
+    exit_code = 130 if cancellation.requested else stored.gate.exit_code
     if json_mode:
         typer.echo(dumps(run_result_to_dict(stored)))
-        raise typer.Exit(stored.gate.exit_code)
-    _verify_text(stored, verification, limitations, target)
+        raise typer.Exit(exit_code)
+    _verify_text(stored, verification, limitations, target, exit_code)
 
 
-def _verify_text(stored, verification, limitations: list[str], target: Path) -> None:
+def _verify_text(
+    stored, verification, limitations: list[str], target: Path, exit_code: int
+) -> None:
     """The human half of ``verify``'s output — the verdict and its reasons."""
 
     typer.echo(f"{stored.gate.selected.value}: {len(stored.findings)} finding(s)")
@@ -696,7 +711,7 @@ def _verify_text(stored, verification, limitations: list[str], target: Path) -> 
     for limitation in limitations:
         typer.echo(f"  note: {limitation}")
     typer.echo(f"saved {target}")
-    raise typer.Exit(stored.gate.exit_code)
+    raise typer.Exit(exit_code)
 
 
 @next_app.command("report")

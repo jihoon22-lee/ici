@@ -96,6 +96,17 @@
   추가 측정하고, 소스 목록은 실행 레이어가 아니라 선언된 task 입력
   (`ICI_COVERAGE_SOURCES`)에서 가져옵니다 — execution `TaskSpec`에 없는
   필드를 읽던 결함도 함께 고쳤습니다.
+- **게이트 판정이 참고 finding과 필수 finding을 구분합니다.** MEASURED·
+  비suppressed이면서 required check에서 나온 finding만 FAIL을 만듭니다 —
+  ESTIMATED(휴리스틱)·suppressed·optional check의 finding은 결과에 남되
+  참고로만 취급됩니다. 이전에는 ESTIMATED-only 실행이 `has_violations`와
+  `blocking_findings` 불변식 충돌로 결과 파일 없이 크래시했습니다.
+- **SIGINT/SIGTERM이 실행을 취소합니다 (exit 130).** `signal_cancels`가
+  `next verify`에 연결돼, 취소는 traceback이 아니라 `Cancellation` 사실로
+  전달됩니다 — 미시작 task는 CANCELLED로 기록되고, 진행 중인 task는
+  watchdog이 끝내고, 부분 결과는 그대로 파일에 쓰입니다. 결과의
+  `execution.cancelled`와 `cancelled: <사유>` limitation이 남습니다
+  (SPEC-04 §3).
 
 
 ### 추가 — `ici next` C++/Qt 테스트 실행과 gcov 커버리지 (WP19, [#217](https://github.com/jihoon22-lee/ici/issues/217))

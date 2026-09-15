@@ -60,6 +60,7 @@ def assemble(
     required_components: tuple[str, ...] | None = None,
     omitted_components: tuple[str, ...] = (),
     limitations: tuple[str, ...] = (),
+    cancelled: bool = False,
 ) -> RunResult:
     """Build the storable result for one verification.
 
@@ -105,6 +106,7 @@ def assemble(
         ),
         execution=ExecutionSummary(
             required_complete=complete,
+            cancelled=cancelled,
             blocked_task_ids=blocked if not complete else (),
             failed_task_ids=failed,
             reused_task_ids=tuple(

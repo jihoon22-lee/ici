@@ -8,6 +8,7 @@ visible in the easy cases and starts reporting a run as something it was not.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -17,7 +18,7 @@ from ici.adapters.providers.ruff import RUFF_CONTRACT
 from ici.application.plan import NothingSelected, Plan, PlannedCheck
 from ici.application.verify import verify
 from ici.domain.enums import EvidenceLevel, GateVerdict, TaskKind, TaskState
-from ici.domain.finding import Finding, SourceSpan
+from ici.domain.finding import Finding, FindingSuppression, SourceSpan
 from ici.domain.observation import Observation
 from ici.domain.tasks import TaskSpec
 from ici.execution.process import Outcome, TaskOutcome
@@ -170,6 +171,68 @@ def test_an_advisory_check_that_could_not_run_does_not_block_the_gate() -> None:
     assert result.exit_code == 0
     blocked = [o for o in result.observations if o.task_id == "python.advice"]
     assert blocked and blocked[0].limitations, "the advisory failure was hidden entirely"
+
+
+def test_an_estimated_finding_is_reported_but_cannot_fail_the_gate() -> None:
+    # SPEC-03: a heuristic result is advisory. Reporting it as a violation
+    # would both fail a run it may not fail and trip the RunResult invariant
+    # that violations require a blocking finding.
+    plan = Plan(checks=(PlannedCheck(check=LINT, task=_task()),))
+    estimated = replace(_finding(), evidence=EvidenceLevel.ESTIMATED)
+    provider = _Provider(ParsedOutput(findings=(estimated,)))
+
+    result = verify(plan, providers={"ruff": provider}, analyses={}, runner=lambda _: _outcome(0))
+
+    assert result.gate.selected is GateVerdict.PASS
+    assert result.exit_code == 0
+    assert not result.gate.has_violations
+    assert result.findings == (estimated,), "the advisory finding was dropped"
+
+
+def test_a_suppressed_finding_is_reported_but_cannot_fail_the_gate() -> None:
+    plan = Plan(checks=(PlannedCheck(check=LINT, task=_task()),))
+    suppressed = replace(
+        _finding(), suppression=FindingSuppression(suppressed=True, reason="accepted")
+    )
+    provider = _Provider(ParsedOutput(findings=(suppressed,)))
+
+    result = verify(plan, providers={"ruff": provider}, analyses={}, runner=lambda _: _outcome(0))
+
+    assert result.gate.selected is GateVerdict.PASS
+    assert result.findings == (suppressed,), "the suppressed finding was dropped"
+
+
+def test_a_finding_from_an_optional_check_does_not_fail_the_gate() -> None:
+    # A check the policy marks required=False may still report what it found;
+    # the finding is kept, but it cannot turn the gate red — #219 item 4's
+    # 참고 metric vs 필수 gate split.
+    plan = Plan(checks=(PlannedCheck(check=ADVISORY, task=_task("python.advice")),))
+    provider = _Provider(ParsedOutput(findings=(_finding(),)))
+
+    result = verify(plan, providers={"ruff": provider}, analyses={}, runner=lambda _: _outcome(0))
+
+    assert result.gate.selected is GateVerdict.PASS
+    assert not result.gate.has_violations
+    assert len(result.findings) == 1, "the optional check's finding was dropped"
+
+
+def test_incomplete_run_with_only_advisory_findings_reports_no_violations() -> None:
+    # INCOMPLETE + advisory findings: the run did not finish, and nothing
+    # measured a violation — both facts, neither overstated.
+    plan = Plan(
+        checks=(
+            PlannedCheck(check=LINE, blocked="not installed"),
+            PlannedCheck(check=ADVISORY, task=_task("python.advice")),
+        )
+    )
+    estimated = replace(_finding(), evidence=EvidenceLevel.ESTIMATED)
+    provider = _Provider(ParsedOutput(findings=(estimated,)))
+
+    result = verify(plan, providers={"ruff": provider}, analyses={}, runner=lambda _: _outcome(0))
+
+    assert result.gate.selected is GateVerdict.INCOMPLETE
+    assert result.exit_code == 3
+    assert not result.gate.has_violations
 
 
 # --- evidence that is present but partial ---------------------------------

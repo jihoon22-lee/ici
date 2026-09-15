@@ -112,8 +112,14 @@ def verify(
         reason for planned in checks if (reason := _incompleteness(planned, by_id[planned.task_id]))
     )
     findings = _unique(item for observation in observations for item in observation.findings)
+    required_fingerprints = {
+        item.fingerprint
+        for planned in checks
+        if planned.check.required
+        for item in by_id[planned.task_id].findings
+    }
     return Verification(
-        gate=_judge(incomplete, findings),
+        gate=_judge(incomplete, findings, required_fingerprints),
         observations=observations,
         findings=findings,
         executions=scheduled.executions,
@@ -154,8 +160,27 @@ def _incompleteness(planned: PlannedCheck, observation: Observation) -> str:
     return f"{planned.task_id}: {detail}"
 
 
-def _judge(incomplete: tuple[str, ...], findings: tuple[Finding, ...]) -> GateOutcome:
-    has_violations = bool(findings)
+def _judge(
+    incomplete: tuple[str, ...],
+    findings: tuple[Finding, ...],
+    required_fingerprints: set[str],
+) -> GateOutcome:
+    """The verdict, asked in the order the spec allows it to be asked.
+
+    Only a *blocking* finding fails the gate: one that was measured, not
+    suppressed, and came from a check the policy requires. Estimated or
+    suppressed findings — and findings reported only by checks the root
+    marked optional — are kept in the result but stay advisory; counting
+    them would let a heuristic or an opt-out fail a run it was never
+    allowed to fail (#219 item 4).
+    """
+
+    blocking = tuple(
+        item
+        for item in findings
+        if item.counts_against_gate and item.fingerprint in required_fingerprints
+    )
+    has_violations = bool(blocking)
     if incomplete:
         # Kept together deliberately. The findings are real whether or not the
         # run finished, and INCOMPLETE is what stops a partial run being
@@ -169,6 +194,6 @@ def _judge(incomplete: tuple[str, ...], findings: tuple[Finding, ...]) -> GateOu
         return GateOutcome(
             selected=GateVerdict.FAIL,
             has_violations=True,
-            reasons=(f"{len(findings)} violation(s) found",),
+            reasons=(f"{len(blocking)} violation(s) found",),
         )
     return GateOutcome(selected=GateVerdict.PASS)
