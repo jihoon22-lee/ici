@@ -159,11 +159,27 @@ def test_exception_flags_throwing_destructor_in_cpp(tmp_path: Path) -> None:
 
 def test_verify_reports_python_exception_finding(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
-    _python_workspace(
-        tmp_path, "def f():\n    try:\n        work()\n    except:\n        pass\n"
-    )
+    _python_workspace(tmp_path, "def f():\n    try:\n        work()\n    except:\n        pass\n")
 
     payload = _verify(tmp_path)
 
     findings = _findings(payload, "python.exception")
     assert any(f["native_rule_id"] == "BareExcept" for f in findings)
+
+
+def test_dead_flags_uncalled_function(tmp_path: Path) -> None:
+    from ici.languages.deadcode import DeadRequest, measure_dead
+
+    (tmp_path / "lib.py").write_text("def _orphaned():\n    return 2\n", encoding="utf-8")
+    observation = measure_dead(
+        DeadRequest(
+            project_root=tmp_path,
+            source_dirs=(tmp_path,),
+            files=(tmp_path / "lib.py",),
+            task_id="python.dead",
+        )
+    )
+
+    names = {f.native_rule_id for f in observation.findings}
+    assert "_orphaned()" in names
+    assert all(f.evidence.value == "ESTIMATED" for f in observation.findings)

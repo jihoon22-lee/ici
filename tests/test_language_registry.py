@@ -32,6 +32,7 @@ def test_a_python_scope_never_sees_cpp_tools() -> None:
         "python.security",
         "python.resource",
         "python.exception",
+        "python.dead",
     }
     assert registry.providers_for(("python",)) == ("ici.line", "ruff")
 
@@ -76,6 +77,7 @@ def test_a_hybrid_scope_gets_both_packs_but_no_strays() -> None:
         "python.security",
         "python.resource",
         "python.exception",
+        "python.dead",
         "cpp.line",
         "cpp.compile",
         "cpp.diagnostics",

@@ -67,9 +67,7 @@ def measure_hygiene(request: HygieneRequest) -> Observation:
             if request.kind == "security":
                 analysis = analyze_python_security(source.file_path, source.text)
                 for target in analysis.findings:
-                    findings.append(
-                        _finding(request, source.file_path, target, severity="high")
-                    )
+                    findings.append(_finding(request, source.file_path, target, severity="high"))
             elif request.kind == "resource":
                 analysis = analyze_python_resources(source.file_path, source.text)
                 for issue in analysis.issues:

@@ -144,6 +144,16 @@ EXCEPTION_CHECK = CheckDefinition(
     tool=None,
 )
 
+#: Cross-file dead-code heuristic — correlates definitions and uses across
+#: the component snapshot, the same analysis the stable ``dead`` engine
+#: runs. Results stay ESTIMATED: it is a heuristic, not a proof (#218).
+DEAD_CHECK = CheckDefinition(
+    id="python.dead",
+    title="Dead code",
+    language="python",
+    tool=None,
+)
+
 #: Declaration only. Importing this must not look at the machine.
 PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     LINE_CHECK,
@@ -159,4 +169,5 @@ PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     SECURITY_CHECK,
     RESOURCE_CHECK,
     EXCEPTION_CHECK,
+    DEAD_CHECK,
 )

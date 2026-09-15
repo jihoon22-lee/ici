@@ -54,6 +54,14 @@
   분석(`analyze_python_exceptions`·`analyze_cpp_exceptions`)을 공유합니다.
   PASS 요약 target은 finding으로 올리지 않고, C++ 마스킹 스캔은 heuristic
   이므로 medium confidence로 표시됩니다 (#218).
+- **`python.dead` check이 추가됐습니다.** 정의·참조를 컴포넌트 스냅샷 전체에서
+  상관하는 cross-file 휴리스틱으로, stable `dead` 엔진과 같은
+  `analyze_python_dead_code`를 공유합니다. 휴리스틱 결과는 `ESTIMATED`
+  증거로 표시되며 정확한 도구 결과로 조용히 승격되지 않습니다.
+  **C++ 미사용 함수 재실행(replay)과 링커 GC 섹션 탐지는 이관하지
+  않습니다** — 사용자 컴파일러·링커를 실행하는 경로이므로 in-process
+  check이 아니라 도구 제공자 작업(#220)에 남기며, stable `dead` 엔진이
+  그대로 그 역할을 수행합니다 (#218).
 
 - **수식은 stable 엔진과 동일합니다.** cyclomatic/cognitive/nesting 계산이
   `engines/_python_metrics.py`로 추출됐고, stable `complexity`·`cognitive`

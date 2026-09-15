@@ -59,6 +59,7 @@ from ici.domain.observation import Measurement, Observation
 from ici.domain.workspace import AnalysisUnit, BuildUnit, Component, Workspace
 from ici.languages.checks import CheckDefinition
 from ici.languages.cycles import CycleRequest, measure_cycles
+from ici.languages.deadcode import DeadRequest, measure_dead
 from ici.languages.duplicates import DuplicateRequest, measure_duplicates
 from ici.languages.hygiene import HygieneRequest, measure_hygiene
 from ici.languages.metrics import MetricRequest, measure
@@ -529,6 +530,8 @@ def _internal_analysis(
         return _dup_counter(planned, component, files, component_root, root)
     if kind in {"security", "resource", "exception"}:
         return _hygiene_counter(planned, component, files, component_root, root, kind)
+    if kind == "dead":
+        return _dead_counter(planned, component, files, component_root, root)
     return _line_counter(component_root, root, files, planned.task_id)
 
 
@@ -607,6 +610,24 @@ def _hygiene_counter(
         component_id=component.id,
     )
     return lambda: measure_hygiene(request)
+
+
+def _dead_counter(
+    planned: PlannedCheck,
+    component: Component,
+    files: tuple[str, ...],
+    component_root: Path,
+    root: Path,
+) -> Analysis:
+    resolved = tuple(root / item for item in files)
+    request = DeadRequest(
+        project_root=component_root,
+        source_dirs=(component_root,),
+        files=resolved,
+        task_id=planned.task_id,
+        component_id=component.id,
+    )
+    return lambda: measure_dead(request)
 
 
 def _gate_cpp(
