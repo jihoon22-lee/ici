@@ -23,6 +23,7 @@ schema and composition testable from strings.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -164,10 +165,12 @@ def load(
 
     if not found.is_workspace:
         document = read_component(found.path.read_text(encoding="utf-8"), path=str(found.path))
-        return compose_standalone(document, component_id=found.directory.name)
+        return compose_standalone(
+            document, component_id=found.directory.name, environment=os.environ
+        )
 
     root = read_root(found.path.read_text(encoding="utf-8"), path=str(found.path))
-    return compose(root, _children(root, found), local=overlay)
+    return compose(root, _children(root, found), local=overlay, environment=os.environ)
 
 
 def _children(root: RootDocument, found: Discovery) -> dict[str, ComponentDocument]:

@@ -29,6 +29,7 @@ from pathlib import PurePosixPath
 from typing import Generic, TypeVar
 
 from ici.config.documents import (
+    BuildDeclaration,
     CheckSetting,
     ComponentBody,
     ComponentDocument,
@@ -38,10 +39,12 @@ from ici.config.documents import (
 from ici.config.errors import ConfigProblem, collect
 from ici.config.layers import Layer
 from ici.config.origin import Origin, Sourced
+from ici.config.paths import DeclaredPath, _normalise, substitute_environment
 from ici.domain.enums import ScopeKind
 
 __all__ = [
     "Decided",
+    "EffectiveBuild",
     "EffectiveCheck",
     "EffectiveComponent",
     "EffectiveConfig",
@@ -73,10 +76,14 @@ class Decided(Generic[T]):
         return f"{self.value!r} from {self.origin} ({self.layer.value})"
 
 
-def _decide(current: Decided[T], candidate: Sourced[T] | None, layer: Layer) -> Decided[T]:
+def _decide(
+    current: Decided[T] | None, candidate: Sourced[T] | None, layer: Layer
+) -> Decided[T] | None:
     """Let a later layer replace an earlier one, keeping the origin with it."""
 
-    if candidate is None or not layer.beats(current.layer):
+    if candidate is None:
+        return current
+    if current is not None and not layer.beats(current.layer):
         return current
     return Decided(value=candidate.value, origin=candidate.origin, layer=layer)
 
@@ -97,7 +104,14 @@ class EffectiveCheck:
 
 @dataclass(frozen=True)
 class EffectiveComponent:
-    """One component, wherever it was written."""
+    """One component, wherever it was written.
+
+    ``root``, ``sources``, ``test_paths`` and the other path values are
+    normalised to be relative to the *workspace root*, not to the file that
+    declared them. That is what makes an inline component and one declared in
+    its own ``ici.toml`` produce the same effective value (SPEC-01 sections 2
+    and 3): the declaration's anchor travels with the value it declared.
+    """
 
     id: str
     root: Decided[str]
@@ -105,6 +119,12 @@ class EffectiveComponent:
     checks: tuple[EffectiveCheck, ...]
     build: Decided[str] | None = None
     sources: tuple[str, ...] = ()
+    include: tuple[str, ...] = ()
+    exclude: tuple[str, ...] = ()
+    vendor: tuple[str, ...] = ()
+    test_paths: tuple[str, ...] = ()
+    needs: Decided[tuple[str, ...]] | None = None
+    external: Decided[tuple[str, ...]] | None = None
     declared_in: str = ""
     python_executable: Decided[str] | None = None
 
@@ -116,6 +136,25 @@ class EffectiveComponent:
 
 
 @dataclass(frozen=True)
+class EffectiveBuild:
+    """One build configuration, shareable by several components.
+
+    ``directory`` and ``definition`` are relative to the workspace root like
+    every other composed path. ``prepare`` stays a permission word: the model
+    builder decides what that permits, composition only checks the value is
+    one the schema defines.
+    """
+
+    id: str
+    system: Decided[str] | None
+    directory: Decided[str] | None
+    definition: Decided[str] | None
+    variant: Decided[str]
+    prepare: Decided[str] | None
+    declared_in: str = ""
+
+
+@dataclass(frozen=True)
 class EffectiveConfig:
     """The whole workspace, composed, with a digest of its quality policy."""
 
@@ -123,6 +162,7 @@ class EffectiveConfig:
     profile: Decided[str] | None
     checks: tuple[EffectiveCheck, ...]
     components: tuple[EffectiveComponent, ...]
+    builds: tuple[EffectiveBuild, ...] = ()
     scope_kind: ScopeKind = ScopeKind.FULL
     sources: tuple[str, ...] = field(default_factory=tuple)
 
@@ -174,22 +214,38 @@ def compose(
     children: Mapping[str, ComponentDocument] | None = None,
     *,
     local: Mapping[str, Sourced[str]] | None = None,
+    environment: Mapping[str, str] | None = None,
 ) -> EffectiveConfig:
     """Compose a root with the child files its references named.
 
     ``children`` is keyed by component id — the id comes from the root's
     reference entry, because SPEC-01 section 2 says a component file does not
     name itself. ``local`` is a flat map of already-allowlisted overlay values;
-    :func:`ici.config.overlay.read_local` is what produces one.
+    :func:`ici.config.overlay.read_local` is what produces one. ``environment``
+    supplies the ``${env:NAME}`` substitutions the path grammar permits.
     """
 
     problems: list[ConfigProblem] = []
-    resolved_children = dict(children or {})
+    overlay = dict(local or {})
+    env = dict(environment or {})
+    workspace_dir = PurePosixPath(root.path).parent
     workspace_checks = tuple(_workspace_check(setting) for setting in root.checks)
 
-    bodies = _bodies(root, resolved_children, problems)
+    builds = tuple(
+        _build(declaration, workspace_dir, overlay, env, problems) for declaration in root.builds
+    )
+    bodies = _bodies(root, dict(children or {}), problems)
     components = tuple(
-        _component(body, declared_in, root.checks, workspace_checks, local or {}, problems)
+        _component(
+            body,
+            declared_in,
+            root.checks,
+            workspace_checks,
+            overlay,
+            problems,
+            workspace_dir=workspace_dir,
+            environment=env,
+        )
         for body, declared_in in bodies
     )
     collect(problems)
@@ -199,11 +255,17 @@ def compose(
         profile=_optional(root.workspace.profile, Layer.ROOT),
         checks=workspace_checks,
         components=components,
+        builds=builds,
         scope_kind=ScopeKind.FULL,
     )
 
 
-def compose_standalone(document: ComponentDocument, *, component_id: str) -> EffectiveConfig:
+def compose_standalone(
+    document: ComponentDocument,
+    *,
+    component_id: str,
+    environment: Mapping[str, str] | None = None,
+) -> EffectiveConfig:
     """One component file run on its own, with no root above it.
 
     Marked ``STANDALONE`` rather than ``FULL``. SPEC-01 section 2 forbids a
@@ -212,8 +274,17 @@ def compose_standalone(document: ComponentDocument, *, component_id: str) -> Eff
     """
 
     problems: list[ConfigProblem] = []
+    workspace_dir = PurePosixPath(document.path).parent
     component = _component(
-        document.component, document.path, (), (), {}, problems, identifier=component_id
+        document.component,
+        document.path,
+        (),
+        (),
+        {},
+        problems,
+        identifier=component_id,
+        workspace_dir=workspace_dir,
+        environment=dict(environment or {}),
     )
     collect(problems)
     return EffectiveConfig(
@@ -287,6 +358,9 @@ def _follow(
             cpp=document.component.cpp,
             origin=document.component.origin,
             checks=document.component.checks,
+            needs=document.component.needs,
+            vendor=document.component.vendor,
+            external=document.component.external,
         ),
         document.path,
     )
@@ -301,6 +375,8 @@ def _component(
     problems: list[ConfigProblem],
     *,
     identifier: str | None = None,
+    workspace_dir: PurePosixPath,
+    environment: Mapping[str, str],
 ) -> EffectiveComponent:
     component_id = identifier or (body.id.value if body.id else "")
     if not component_id:
@@ -312,8 +388,21 @@ def _component(
             ConfigProblem("a component must declare a language", body.origin.child("languages"))
         )
 
+    # Paths are anchored to the file that declared them (SPEC-01 section 3),
+    # then normalised against the workspace root so a component means the same
+    # thing written inline or in its own file. A child file's ``root = "."``
+    # is the child's directory; an inline ``root = "apps/gui"`` is the root
+    # file's directory plus the relative spelling.
+    root_rel = _anchor(
+        body.root,
+        declaring_file=declared_in,
+        workspace_dir=workspace_dir,
+        environment=environment,
+        problems=problems,
+        what="component root",
+    )
     root_value = Decided(
-        value=body.root.raw if body.root else ".",
+        value=root_rel,
         origin=body.root.origin if body.root else body.origin,
         layer=Layer.COMPONENT,
     )
@@ -322,17 +411,239 @@ def _component(
         origin=body.languages.origin if body.languages else body.origin,
         layer=Layer.COMPONENT,
     )
+    scope = PurePosixPath(root_rel)
     return EffectiveComponent(
         id=component_id,
         root=root_value,
         languages=languages,
         checks=_component_checks(component_id, body, root_settings, workspace_checks, problems),
         build=_optional(body.build, Layer.COMPONENT),
-        sources=tuple(
-            glob.resolve(component_root=PurePosixPath(root_value.value)) for glob in body.sources
+        sources=tuple(glob.resolve(component_root=scope) for glob in body.sources),
+        include=tuple(glob.resolve(component_root=scope) for glob in body.include),
+        exclude=tuple(glob.resolve(component_root=scope) for glob in body.exclude),
+        vendor=tuple(glob.resolve(component_root=scope) for glob in body.vendor),
+        test_paths=tuple(
+            glob.resolve(component_root=scope)
+            for glob in (body.python.test_paths if body.python else ())
         ),
+        needs=_optional(body.needs, Layer.COMPONENT),
+        external=_external(body, declared_in, workspace_dir, environment, problems),
         declared_in=declared_in,
         python_executable=_python_executable(component_id, body, local),
+    )
+
+
+def _virtual(path: PurePosixPath) -> PurePosixPath:
+    """An absolute spelling of a possibly-relative path, for anchoring.
+
+    The declared-file anchor only needs path arithmetic, and the arithmetic
+    is the same at any base — so a relative declared file (a test fixture's
+    ``root.toml``) works by reasoning under a virtual ``/`` rather than by
+    asking the filesystem for a real absolute path. Nothing here resolves
+    symlinks; the same textual rule applies wherever the files live.
+    """
+
+    return path if path.is_absolute() else PurePosixPath("/") / path
+
+
+def _anchor(
+    declared: DeclaredPath | None,
+    *,
+    declaring_file: str,
+    workspace_dir: PurePosixPath,
+    environment: Mapping[str, str],
+    problems: list[ConfigProblem],
+    what: str,
+) -> str:
+    """A declared path relative to the workspace root, diagnosing escapes.
+
+    ``root = "."`` in a child file anchors to the child's directory, then
+    reads back as the child path relative to the workspace root — which is the
+    same value the equivalent inline component produces. That is the
+    mechanism behind *"root-only와 child 분리 설정이 같은 effective config를
+    생성한다"* reaching the model builder, not just the composition tests.
+    """
+
+    if declared is None:
+        return "."
+    anchored = declared.resolve(
+        declaring_directory=_virtual(PurePosixPath(declaring_file).parent),
+        environment=environment,
+        problems=problems,
+    )
+    base = _virtual(workspace_dir)
+    if anchored == base:
+        return "."
+    try:
+        relative = anchored.relative_to(base)
+    except ValueError:
+        relative = None
+    if relative is None or ".." in relative.parts:
+        problems.append(
+            ConfigProblem(
+                f"{what} escapes the workspace root: {declared.raw!r}",
+                declared.origin,
+                hint="keep it inside the workspace, or name an external input",
+            )
+        )
+        return declared.raw
+    return relative.as_posix()
+
+
+def _external(
+    body: ComponentBody,
+    declared_in: str,
+    workspace_dir: PurePosixPath,
+    environment: Mapping[str, str],
+    problems: list[ConfigProblem],
+) -> Decided[tuple[str, ...]] | None:
+    """Declared external inputs, anchored like other paths but allowed out.
+
+    An external input may legitimately point outside the workspace — that is
+    its purpose — so instead of diagnosing the escape the value is anchored to
+    the declaring file and kept absolute, while anything that lands inside the
+    root is normalised to the workspace-relative spelling like every other
+    path.
+    """
+
+    if body.external is None:
+        return None
+    resolved: list[str] = []
+    base = _virtual(PurePosixPath(declared_in).parent)
+    root = _virtual(workspace_dir)
+    for index, raw in enumerate(body.external.value):
+        origin = body.external.origin.item(index)
+        substituted = substitute_environment(
+            raw, origin=origin, environment=environment, problems=problems
+        )
+        candidate = PurePosixPath(substituted)
+        # Absolute spellings are the point of an external input — unlike every
+        # other declared path they are allowed to leave the checkout.
+        anchored = candidate if candidate.is_absolute() else _normalise(base / candidate)
+        try:
+            resolved.append(anchored.relative_to(root).as_posix())
+        except ValueError:
+            resolved.append(anchored.as_posix())
+    return Decided(value=tuple(resolved), origin=body.external.origin, layer=Layer.COMPONENT)
+
+
+def _build(
+    declaration: BuildDeclaration,
+    workspace_dir: PurePosixPath,
+    local: Mapping[str, Sourced[str]],
+    environment: Mapping[str, str],
+    problems: list[ConfigProblem],
+) -> EffectiveBuild:
+    """Compose one ``[builds.<id>]`` — paths anchored at the root file.
+
+    A local overlay may move ``directory`` or ``project`` (they are in the
+    allowlist); it cannot change the system, variant or prepare permission.
+    """
+
+    declared = (
+        None
+        if declaration.directory is None
+        else Decided(
+            value=declaration.directory.raw,
+            origin=declaration.directory.origin,
+            layer=Layer.ROOT,
+        )
+    )
+    directory = _decide(declared, local.get(f"builds.{declaration.id}.directory"), Layer.LOCAL)
+    declared_project = (
+        None
+        if declaration.project is None
+        else Decided(
+            value=declaration.project.raw,
+            origin=declaration.project.origin,
+            layer=Layer.ROOT,
+        )
+    )
+    project = _decide(declared_project, local.get(f"builds.{declaration.id}.project"), Layer.LOCAL)
+    return EffectiveBuild(
+        id=declaration.id,
+        system=_optional(declaration.system, Layer.ROOT),
+        directory=(
+            None
+            if directory is None
+            else Decided(
+                value=_anchor_declared(
+                    directory.value,
+                    directory.origin,
+                    declaring_file=declaration.origin.file,
+                    workspace_dir=workspace_dir,
+                    environment=environment,
+                    problems=problems,
+                    what="build directory",
+                ),
+                origin=directory.origin,
+                layer=directory.layer,
+            )
+        ),
+        definition=(
+            None
+            if project is None
+            else Decided(
+                value=_anchor_declared(
+                    project.value,
+                    project.origin,
+                    declaring_file=declaration.origin.file,
+                    workspace_dir=workspace_dir,
+                    environment=environment,
+                    problems=problems,
+                    what="build project",
+                ),
+                origin=project.origin,
+                layer=project.layer,
+            )
+        ),
+        variant=_optional(declaration.variant, Layer.ROOT)
+        or Decided(value="default", origin=DEFAULTS, layer=Layer.DEFAULTS),
+        prepare=_prepare(declaration, problems),
+        declared_in=declaration.origin.file,
+    )
+
+
+def _anchor_declared(
+    raw: str,
+    origin: Origin,
+    *,
+    declaring_file: str,
+    workspace_dir: PurePosixPath,
+    environment: Mapping[str, str],
+    problems: list[ConfigProblem],
+    what: str,
+) -> str:
+    """Anchor a raw path value — used for overlay values and declared ones."""
+
+    return _anchor(
+        DeclaredPath(raw=raw, origin=origin),
+        declaring_file=declaring_file,
+        workspace_dir=workspace_dir,
+        environment=environment,
+        problems=problems,
+        what=what,
+    )
+
+
+def _prepare(declaration: BuildDeclaration, problems: list[ConfigProblem]) -> Decided[str] | None:
+    """The prepare word is a permission, and only ``explicit`` is defined."""
+
+    if declaration.prepare is None:
+        return None
+    if declaration.prepare.value != "explicit":
+        problems.append(
+            ConfigProblem(
+                f"prepare must be 'explicit', not {declaration.prepare.value!r}",
+                declaration.prepare.origin,
+                hint="ici does not invent configure commands; 'explicit' means the "
+                "user runs the named step themselves",
+            )
+        )
+    return Decided(
+        value=declaration.prepare.value,
+        origin=declaration.prepare.origin,
+        layer=Layer.ROOT,
     )
 
 

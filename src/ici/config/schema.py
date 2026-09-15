@@ -237,7 +237,19 @@ def _entry(table: Table, problems: list[ConfigProblem]) -> ComponentEntry:
 
 
 def _defining_keys(table: Table) -> Iterable[str]:
-    for key in ("root", "languages", "build", "sources", "include", "exclude", "python", "cpp"):
+    for key in (
+        "root",
+        "languages",
+        "build",
+        "sources",
+        "include",
+        "exclude",
+        "python",
+        "cpp",
+        "needs",
+        "vendor",
+        "external",
+    ):
         if table.has(key):
             yield key
 
@@ -287,6 +299,9 @@ def _component_body(
         python=_python(language_sections.table("python")),
         cpp=_cpp(language_sections.table("cpp")),
         origin=table.origin,
+        needs=table.text_list("needs"),
+        vendor=table.globs("vendor"),
+        external=table.text_list("external"),
     )
     table.done()
     return body
