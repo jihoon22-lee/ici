@@ -7,6 +7,39 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` 선택 CLI·doctor·plan·부분 실행 계약 (WP12, [#210](https://github.com/jihoon22-lee/ici/issues/210))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.
+
+WP12가 세우는 것은 **요청이 모델을 재해석하지 않는다**는 계약입니다. 언어 플래그는
+component가 무엇인지를 바꾸지 않고 그 component의 어떤 check를 물을지를 좁힐
+뿐이고, 선택이 비면 PASS가 아니라 설정 오류입니다.
+
+- **`--python`/`--cpp`는 union이고 `--component`와 intersect합니다.** 두 플래그를
+  함께 주면 두 언어 전부, `--component`와 함께면 이름 붙인 component 안에서만
+  언어를 고릅니다. `--component`는 반복 지정됩니다.
+- **어디서 실행해도 root는 같습니다.** run의 root는 입력된 디렉터리가 아니라
+  발견된 root 파일이 있는 디렉터리입니다 — 하위 폴더에서의 `ici next verify`가
+  조용히 그 폴더만 검사하지 않으며, 선택된 root와 scope는 실행 전에 출력됩니다.
+- **`--require-full`은 coverage 게이트입니다.** 요청이 필수 component나 언어를
+  비워 두면 최종 gate는 INCOMPLETE(exit 3)이고 이유가 빠진 범위를 이름으로
+  가리킵니다 — 부분 실행이 pass해도 workspace pass로 읽히지 않습니다. coverage가
+  완전하면 FAIL은 그대로 FAIL입니다.
+- **`doctor`는 probe만 합니다.** 선택된 check마다 도구 위치·출처(bundle/PATH)·
+  bounded `--version`을 보이고, blocked면 원인 → 영향 → 해결할 설정 → 재확인
+  명령 순으로 안내합니다. build/install/source는 어떤 경로로도 일어나지 않습니다.
+- **`plan`은 실행 없이 계획을 보입니다.** argv·blocked 이유·dependency edge·
+  공유 실행·mutating 단계와 그 resource key·프로필까지 표시합니다.
+- **`--json`과 `--events`는 로그와 섞이지 않습니다.** `--json`은 stdout에 결과
+  문서만 내고 진단은 stderr로, `--events PATH`는 `ici.next.event` JSONL 스트림을
+  별도 파일에 씁니다 — 스케줄러가 unit 완료마다 sink를 호출하므로 순번이 진짜
+  진행 순서를 반영합니다.
+- **`ici next init`은 root `ici.toml` 스캐폴드를 씁니다.** 소스를 가진 디렉터리를
+  component 후보로 읽되, 기존 파일을 덮어쓰지 않고 `--preview`로 먼저 볼 수
+  있습니다. `[checks."python.lint"]`처럼 점을 포함한 check id가 TOML에서
+  올바른 id로 읽히도록 reader가 수정되었습니다 — 이전에는 마지막 절만 남아
+  `enabled = false`가 실제 check에 닿지 않았습니다.
+
 ### 추가 — 입력 identity 기반 observation 캐시·재사용 provenance (WP11, [#209](https://github.com/jihoon22-lee/ici/issues/209))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next`가 소비하는 application 계층 안입니다.

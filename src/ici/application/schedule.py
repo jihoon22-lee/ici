@@ -53,6 +53,11 @@ Analysis = Callable[[], Observation]
 #: Injected so the scheduler never resolves paths or measures files itself.
 Identify = Callable[[WorkUnit], "tuple[str | None, str]"]
 
+#: Called with each unit's record the moment it is produced — possibly from a
+#: pool thread, so a sink that keeps state must guard it. This is how
+#: ``--events`` learns a task finished without polling the finished run.
+OnExecution = Callable[["Execution"], None]
+
 
 @dataclass(frozen=True)
 class Execution:
@@ -104,6 +109,7 @@ def run_graph(
     cache: ObservationCache | None = None,
     identify: Identify | None = None,
     run_id: str = "",
+    on_execution: OnExecution | None = None,
 ) -> Scheduled:
     """Execute a task graph, honouring its order and its sharing.
 
@@ -184,13 +190,19 @@ def run_graph(
             detail=reason,
         )
 
+    def record(unit: WorkUnit) -> tuple[Observation | None, Execution]:
+        produced = attempt(unit)
+        if on_execution is not None:
+            on_execution(produced[1])
+        return produced
+
     for layer in graph.layers():
         if len(layer) == 1:
-            results = [attempt(layer[0])]
+            results = [record(layer[0])]
         else:
             workers = max(1, min(max_parallel, len(layer)))
             with ThreadPoolExecutor(max_workers=workers) as pool:
-                results = list(pool.map(attempt, layer))
+                results = list(pool.map(record, layer))
         for unit, (observation, execution) in zip(layer, results, strict=True):
             executions.append(execution)
             if observation is None:
