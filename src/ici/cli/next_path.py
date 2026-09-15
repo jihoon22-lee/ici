@@ -38,6 +38,8 @@ import typer
 from ici import __version__
 from ici.adapters.providers.base import Provider, ProviderPlan
 from ici.adapters.providers.ruff import RuffProvider, RuffRequest
+from ici.application.graph import WorkUnit
+from ici.application.identity import task_identity
 from ici.application.plan import NothingSelected, Plan
 from ici.application.report import assemble, digest_of
 from ici.application.selection import Planner, select_effective
@@ -49,6 +51,8 @@ from ici.config.errors import NextConfigError
 from ici.domain.enums import GateVerdict, ScopeKind
 from ici.domain.serialization import dumps, loads, run_result_to_dict
 from ici.domain.workspace import AnalysisUnit, Component, Workspace
+from ici.execution.cache import ObservationCache
+from ici.execution.manifest import digest_of as file_digest
 from ici.languages.checks import CheckDefinition
 from ici.languages.python.lines import LineRequest
 from ici.languages.python.lines import count as count_lines
@@ -71,6 +75,7 @@ DEFAULT_PAGE = Path(".ici") / "next" / "result.html"
 _COMPONENT_OPTION = typer.Option(None, "--component", help="Which component to act on")
 _RESULT_OPTION = typer.Option(DEFAULT_RESULT, "--result", help="The saved result")
 _PAGE_OPTION = typer.Option(DEFAULT_PAGE, "--out", help="Where to write the page")
+_NO_CACHE_OPTION = typer.Option(False, "--no-cache", help="Run without reusing stored observations")
 
 next_app = typer.Typer(
     name="next",
@@ -189,6 +194,7 @@ def _plans(
             component.id,
             units.get("python"),
             files_by_language.get("python", ()),
+            _tool_configs(component_root, root),
         )
 
         try:
@@ -225,6 +231,7 @@ def _planner(
     component_id: str,
     unit: AnalysisUnit | None,
     files: tuple[str, ...],
+    config_files: tuple[str, ...],
 ) -> Planner:
     """Bind one component's context into the check-to-task callback."""
 
@@ -238,10 +245,37 @@ def _planner(
                 task_id=task_id,
                 component_id=component_id,
                 analysis_unit_id=unit.id,
+                config_files=config_files,
             )
         )
 
     return work
+
+
+def _tool_configs(component_root: Path, root: Path) -> tuple[str, ...]:
+    """The tool configuration files a check under this root would read.
+
+    Ruff reads ``ruff.toml``/``.ruff.toml``/``pyproject.toml`` from the
+    project root upward — so the search walks the component root to the
+    workspace root and stops there. What a check reads is part of what it
+    measured, which is why these are declared inputs (#209) rather than
+    discovered quietly at run time.
+    """
+
+    found: list[str] = []
+    base = component_root
+    while True:
+        for name in ("ruff.toml", ".ruff.toml", "pyproject.toml"):
+            candidate = base / name
+            if candidate.is_file():
+                try:
+                    found.append(str(candidate.relative_to(component_root)))
+                except ValueError:
+                    found.append(str(candidate))
+        if base == root or root not in base.parents:
+            break
+        base = base.parent
+    return tuple(found)
 
 
 def _targets(component_root: Path, root: Path, files: tuple[str, ...]) -> tuple[str, ...]:
@@ -349,6 +383,7 @@ def cmd_plan(
 def cmd_verify(
     component: str = _COMPONENT_OPTION,
     result: Path = _RESULT_OPTION,
+    no_cache: bool = _NO_CACHE_OPTION,
 ) -> None:
     """Run the selected checks and save the result."""
 
@@ -367,8 +402,17 @@ def cmd_verify(
         typer.echo(f"config: {error}", err=True)
         raise typer.Exit(EXIT_CONFIG) from error
 
+    run_id = uuid.uuid4().hex
+    cache = None if no_cache else ObservationCache(root / ".ici" / "cache" / "observations")
     providers: dict[str, Provider] = {"ruff": RuffProvider()}
-    verification = run_verification(plans, providers=providers, analyses=analyses)
+    verification = run_verification(
+        plans,
+        providers=providers,
+        analyses=analyses,
+        cache=cache,
+        identify=_identifier(config.policy_digest),
+        run_id=run_id,
+    )
 
     drift = inventory.diff(before, inventory.take(scope, root=root))
     if not drift.stable:
@@ -386,7 +430,7 @@ def cmd_verify(
 
     stored = assemble(
         verification,
-        run_id=uuid.uuid4().hex,
+        run_id=run_id,
         ici_version=__version__,
         source=snapshot,
         policy_digest=config.policy_digest,
@@ -409,6 +453,12 @@ def cmd_verify(
     typer.echo(f"{stored.gate.selected.value}: {len(stored.findings)} finding(s)")
     for reason in stored.gate.reasons:
         typer.echo(f"  {reason}")
+    reused = [item for item in verification.executions if item.detail.startswith("cache hit")]
+    if reused:
+        typer.echo(f"  cache: reused {len(reused)} stored result(s)")
+    for item in verification.executions:
+        if item.detail and not item.detail.startswith(("cache hit", "no stored")):
+            typer.echo(f"  note: {item.unit}: {item.detail}")
     for limitation in limitations:
         typer.echo(f"  note: {limitation}")
     typer.echo(f"saved {target}")
@@ -437,6 +487,48 @@ def cmd_report(
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(render(stored), encoding="utf-8")
     typer.echo(f"wrote {target}")
+
+
+def _identifier(policy_digest: str):
+    """Bind the run's policy digest into the per-unit identity callback.
+
+    What a task's answer depends on: its declared inputs' content, the tool's
+    own bytes, and the policy it ran under. A unit whose inputs cannot all be
+    measured gets no key — it still runs, and the reason is recorded rather
+    than a partial key standing in for a complete one.
+    """
+
+    def identify(unit: WorkUnit) -> tuple[str | None, str]:
+        if unit.is_internal:
+            return task_identity(
+                unit, input_digests=None, tool_digest=None, policy_digest=policy_digest
+            )
+        task = unit.task
+        cwd = Path(task.cwd)
+        digests: list[tuple[str, str]] = []
+        try:
+            for ref in task.input_refs:
+                target = (cwd / ref).resolve()
+                if not target.is_file():
+                    raise OSError(f"{ref} is not a file")
+                digests.append((ref, file_digest(target)))
+        except OSError:
+            return task_identity(
+                unit, input_digests=None, tool_digest=None, policy_digest=policy_digest
+            )
+        executable = Path(task.argv[0])
+        if not executable.is_file():
+            found = shutil.which(task.argv[0])
+            executable = Path(found) if found else Path("")
+        tool = file_digest(executable) if executable.is_file() else None
+        return task_identity(
+            unit,
+            input_digests=tuple(digests),
+            tool_digest=tool,
+            policy_digest=policy_digest,
+        )
+
+    return identify
 
 
 def _tools(plans: list[Plan]) -> set[str]:

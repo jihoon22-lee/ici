@@ -92,6 +92,12 @@ def assemble(
             required_complete=complete,
             blocked_task_ids=blocked if not complete else (),
             failed_task_ids=failed,
+            reused_task_ids=tuple(
+                consumer
+                for item in verification.executions
+                if item.detail.startswith("cache hit")
+                for consumer in item.consumers
+            ),
         ),
         gate=verification.gate,
         findings=verification.findings,

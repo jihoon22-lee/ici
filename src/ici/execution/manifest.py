@@ -102,17 +102,25 @@ class Artifact:
 
 @dataclass(frozen=True)
 class Manifest:
-    """The record a later reader trusts instead of trusting the directory."""
+    """The record a later reader trusts instead of trusting the directory.
+
+    ``run`` and ``identity`` are #209's provenance: which run produced this,
+    and which input identity it answered. An artifact without them still
+    verifies as *intact* — provenance is what lets a reader tell "intact" from
+    "the right answer to this run's question".
+    """
 
     task: str
     outcome: str
     exit_code: int
     interpretation: str
     artifacts: tuple[Artifact, ...] = ()
+    run: str = ""
+    identity: str = ""
     schema: str = MANIFEST_SCHEMA
 
     def as_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "schema": self.schema,
             "task": self.task,
             "outcome": self.outcome,
@@ -120,6 +128,11 @@ class Manifest:
             "interpretation": self.interpretation,
             "artifacts": [artifact.as_dict() for artifact in self.artifacts],
         }
+        if self.run:
+            payload["run"] = self.run
+        if self.identity:
+            payload["identity"] = self.identity
+        return payload
 
     def to_json(self) -> str:
         return json.dumps(self.as_dict(), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
@@ -152,6 +165,8 @@ class Manifest:
             exit_code=_whole_number(data, "exit_code"),
             interpretation=_text(data, "interpretation"),
             artifacts=tuple(artifacts),
+            run=str(data.get("run", "")),
+            identity=str(data.get("identity", "")),
             schema=MANIFEST_SCHEMA,
         )
 
@@ -193,6 +208,9 @@ def describe(
     outcome: TaskOutcome,
     produced: tuple[str, ...] = (),
     contract: ExitContract | None = None,
+    *,
+    run_id: str = "",
+    identity: str = "",
 ) -> Manifest:
     """Record what a task produced, refusing a run that is not an answer.
 
@@ -219,6 +237,8 @@ def describe(
         exit_code=outcome.exit_code,
         interpretation=interpretation.value,
         artifacts=tuple(artifacts),
+        run=run_id,
+        identity=identity,
     )
 
 

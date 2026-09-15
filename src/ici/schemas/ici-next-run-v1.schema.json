@@ -28,6 +28,14 @@
         },
         "required_complete": {
           "type": "boolean"
+        },
+        "reused_task_ids": {
+          "items": {
+            "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "type": "array"
         }
       },
       "required": [

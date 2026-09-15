@@ -148,12 +148,16 @@ class ExecutionSummary:
     cancelled: bool = False
     blocked_task_ids: tuple[str, ...] = ()
     failed_task_ids: tuple[str, ...] = ()
+    #: Tasks whose evidence came from a verified stored result rather than a
+    #: fresh execution (#209). A reused answer is still the answer — this list
+    #: is the receipt, not a verdict about it.
+    reused_task_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         for name in ("required_complete", "cancelled"):
             if not isinstance(getattr(self, name), bool):
                 raise ValueError(f"execution {name} must be a boolean")
-        for name in ("blocked_task_ids", "failed_task_ids"):
+        for name in ("blocked_task_ids", "failed_task_ids", "reused_task_ids"):
             values = require_tuple(getattr(self, name), str, f"execution {name}")
             object.__setattr__(
                 self,

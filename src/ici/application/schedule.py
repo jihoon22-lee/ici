@@ -34,6 +34,7 @@ from ici.adapters.providers.base import Provider, observe, unavailable
 from ici.application.graph import TaskGraph, WorkUnit
 from ici.domain.enums import TaskState
 from ici.domain.observation import Observation
+from ici.execution.cache import ObservationCache
 from ici.execution.cancellation import Cancellation
 from ici.execution.process import TaskOutcome, TaskSpec, run_task
 
@@ -47,6 +48,10 @@ Runner = Callable[[TaskSpec], TaskOutcome]
 
 #: What ici does itself for a check with no tool.
 Analysis = Callable[[], Observation]
+
+#: The cache identity of one unit — a key, or the reason reuse stays off.
+#: Injected so the scheduler never resolves paths or measures files itself.
+Identify = Callable[[WorkUnit], "tuple[str | None, str]"]
 
 
 @dataclass(frozen=True)
@@ -96,6 +101,9 @@ def run_graph(
     environment: Mapping[str, str] | None = None,
     max_parallel: int = 4,
     cancellation: Cancellation | None = None,
+    cache: ObservationCache | None = None,
+    identify: Identify | None = None,
+    run_id: str = "",
 ) -> Scheduled:
     """Execute a task graph, honouring its order and its sharing.
 
@@ -137,13 +145,43 @@ def run_graph(
                 state=TaskState.BLOCKED,
                 detail=reason,
             )
+        # #209: reuse is a lookup, never a verdict. A hit returns the stored
+        # observation — the same evidence the run would have produced — and a
+        # miss runs the task and keeps its answer for next time. A unit with
+        # no key runs as usual with the reason on the record.
+        key = reason = ""
+        if cache is not None and identify is not None and not unit.is_internal:
+            key, reason = identify(unit)
+            if key is not None:
+                read = cache.read(key)
+                if read.hit and read.observation is not None:
+                    detail = "cache hit"
+                    if read.source_run:
+                        detail += f" from run {read.source_run}"
+                    return read.observation, Execution(
+                        unit=unit.id,
+                        consumers=unit.consumers,
+                        provider=provider,
+                        state=read.observation.state,
+                        detail=detail,
+                    )
+                reason = read.reason
+
         observation = _perform(unit, providers, analyses, runner, environment, locks)
+        if (
+            cache is not None
+            and key
+            and observation.state is TaskState.SUCCEEDED
+            and observation.evidence_is_complete
+        ):
+            cache.write(key, observation, run_id=run_id)
         return observation, Execution(
             unit=unit.id,
             consumers=unit.consumers,
             provider=provider,
             state=observation.state,
             duration_seconds=observation.duration_seconds,
+            detail=reason,
         )
 
     for layer in graph.layers():
