@@ -7,6 +7,28 @@
 
 ## [Unreleased]
 
+### 추가 — 입력 identity 기반 observation 캐시·재사용 provenance (WP11, [#209](https://github.com/jihoon22-lee/ici/issues/209))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next`가 소비하는 application 계층 안입니다.
+
+WP11이 세우는 것은 **"같은 질문에 같은 답을 다시 계산하지 않는다"**는 약속입니다. task의
+identity가 작업 서명·입력 내용 digest·도구 digest·정책 digest를 함께 묶으므로, 무엇이
+바뀌었는지를 추론할 필요 없이 identity가 다르면 새로 실행하고 같으면 저장된 답을 씁니다.
+
+- **재사용은 새로운 실행이 아니라 기억입니다.** `ici.execution.cache`는 검증된 observation을
+  `.ici/cache/observations`에 identity로 색인해 보관하고, warm run은 재실행 대신 저장된
+  관찰을 재생합니다 — 캐시 히트는 execution 기록의 detail과 저장 결과의
+  `execution.reused_task_ids`에 남아, 어느 task가 다시 계산되지 않았는지 사후에도 보입니다.
+- **바뀐 입력은 새 질문입니다.** 소스 파일 하나라도 내용이 달라지면 입력 digest가 바뀌고
+  identity가 갈려 새로 실행됩니다 — mtime이나 경로명 같은 간접 단서가 아니라 내용 자체가
+  열쇠입니다. mutating(PREPARE) 작업은 캐시 불가로 선언되며 어기면 계획 단계에서 거부됩니다.
+- **`--no-cache`는 우회로이지 삭제가 아닙니다.** 플래그는 저장된 관찰을 무시하고 전부 새로
+  실행하지만 캐시를 비우지는 않으므로, 진단이 필요할 때 원인을 흐리지 않습니다.
+- **manifest가 어느 run의 산출물인지 답합니다.** `Manifest`가 `run`/`identity` provenance를
+  품어, "온전한 산출물"과 "요청된 run을 위해 만들어진 산출물"을 구별할 수 있습니다.
+- **스키마가 따라갑니다.** `ici-next-run-v1` 스키마가 `execution.reused_task_ids`를 선언하고
+  fixture·직렬화·계약 테스트가 함께 갱신되어, wire에 나가는 필드가 계약 밖에 있지 않습니다.
+
 ### 추가 — 언어 pack registry·프로필 선택·선행 작업 DAG·공유 실행 (WP10, [#208](https://github.com/jihoon22-lee/ici/issues/208))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next`가 소비하는 application 계층 안입니다.
