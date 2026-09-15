@@ -135,72 +135,13 @@ def resolve_cmake_project(root: Path, definition: str) -> CmakeProject:
         for name, args, conditional in _commands(text):
             conditional = conditional or inherited
             if name == "add_subdirectory" and args:
-                subdir = args[0]
-                if not _literal(subdir):
-                    diagnostics.append(
-                        _diagnostic(
-                            "cmake-subdir-unresolved",
-                            f"{lists}: add_subdirectory({subdir}) is not a literal "
-                            "path — the expansion is not guessed",
-                        )
-                    )
-                    continue
-                child = str(base / subdir)
-                normalized = PurePosixPath(child)
-                child_lists = f"{normalized}/CMakeLists.txt"
-                if not (root / child_lists).is_file():
-                    diagnostics.append(
-                        _diagnostic(
-                            "cmake-subdir-unresolved",
-                            f"{lists}: add_subdirectory({subdir}) has no CMakeLists.txt to follow",
-                        )
-                    )
-                    continue
-                visit(child_lists, depth + 1, conditional)
+                _follow_subdirectory(
+                    root, lists, base, args[0], conditional, diagnostics, visit, depth
+                )
             elif name in ("add_executable", "add_library") and args:
-                target_name = args[0]
-                if not _literal(target_name):
-                    diagnostics.append(
-                        _diagnostic(
-                            "cmake-target-unresolved",
-                            f"{lists}: target name {target_name} is not literal",
-                        )
-                    )
-                    continue
-                targets.append(
-                    CmakeTarget(
-                        name=target_name,
-                        project=lists,
-                        directory=base_str,
-                        conditional=conditional,
-                        depends=(),
-                    )
-                )
+                _record_target(lists, base_str, args[0], conditional, targets, diagnostics)
             elif name == "add_test" and args:
-                # ``add_test(NAME n COMMAND …)`` and the legacy
-                # ``add_test(n command …)`` forms both name the test first —
-                # except in NAME form, where the name follows the keyword.
-                test_name = (
-                    args[args.index("NAME") + 1]
-                    if "NAME" in args and args.index("NAME") + 1 < len(args)
-                    else args[0]
-                )
-                if not _literal(test_name):
-                    diagnostics.append(
-                        _diagnostic(
-                            "cmake-test-unresolved",
-                            f"{lists}: test name {test_name} is not literal",
-                        )
-                    )
-                    continue
-                tests.append(
-                    CmakeTest(
-                        name=test_name,
-                        project=lists,
-                        directory=base_str,
-                        conditional=conditional,
-                    )
-                )
+                _record_test(lists, base_str, args, conditional, tests, diagnostics)
             elif name == "add_dependencies" and len(args) > 1 and _literal(args[0]):
                 dependencies.setdefault(args[0], []).extend(
                     dep for dep in args[1:] if _literal(dep)
@@ -231,6 +172,104 @@ def resolve_cmake_project(root: Path, definition: str) -> CmakeProject:
         tests=tuple(tests),
         directories=tuple(dict.fromkeys(directories)),
         diagnostics=tuple(diagnostics),
+    )
+
+
+def _follow_subdirectory(
+    root: Path,
+    lists: str,
+    base: PurePosixPath,
+    subdir: str,
+    conditional: bool,
+    diagnostics: list[CompilationDiagnostic],
+    visit,
+    depth: int,
+) -> None:
+    """Follow one literal ``add_subdirectory`` into its own CMakeLists.txt."""
+
+    if not _literal(subdir):
+        diagnostics.append(
+            _diagnostic(
+                "cmake-subdir-unresolved",
+                f"{lists}: add_subdirectory({subdir}) is not a literal "
+                "path — the expansion is not guessed",
+            )
+        )
+        return
+    child_lists = f"{PurePosixPath(str(base / subdir))}/CMakeLists.txt"
+    if not (root / child_lists).is_file():
+        diagnostics.append(
+            _diagnostic(
+                "cmake-subdir-unresolved",
+                f"{lists}: add_subdirectory({subdir}) has no CMakeLists.txt to follow",
+            )
+        )
+        return
+    visit(child_lists, depth + 1, conditional)
+
+
+def _record_target(
+    lists: str,
+    base_str: str,
+    target_name: str,
+    conditional: bool,
+    targets: list[CmakeTarget],
+    diagnostics: list[CompilationDiagnostic],
+) -> None:
+    """Record one ``add_executable``/``add_library`` name."""
+
+    if not _literal(target_name):
+        diagnostics.append(
+            _diagnostic(
+                "cmake-target-unresolved",
+                f"{lists}: target name {target_name} is not literal",
+            )
+        )
+        return
+    targets.append(
+        CmakeTarget(
+            name=target_name,
+            project=lists,
+            directory=base_str,
+            conditional=conditional,
+            depends=(),
+        )
+    )
+
+
+def _record_test(
+    lists: str,
+    base_str: str,
+    args: list[str],
+    conditional: bool,
+    tests: list[CmakeTest],
+    diagnostics: list[CompilationDiagnostic],
+) -> None:
+    """Record one ``add_test`` — both NAME and legacy forms name it first."""
+
+    # ``add_test(NAME n COMMAND …)`` and the legacy ``add_test(n command …)``
+    # forms both name the test first — except in NAME form, where the name
+    # follows the keyword.
+    test_name = (
+        args[args.index("NAME") + 1]
+        if "NAME" in args and args.index("NAME") + 1 < len(args)
+        else args[0]
+    )
+    if not _literal(test_name):
+        diagnostics.append(
+            _diagnostic(
+                "cmake-test-unresolved",
+                f"{lists}: test name {test_name} is not literal",
+            )
+        )
+        return
+    tests.append(
+        CmakeTest(
+            name=test_name,
+            project=lists,
+            directory=base_str,
+            conditional=conditional,
+        )
     )
 
 

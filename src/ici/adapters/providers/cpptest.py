@@ -229,12 +229,11 @@ def _test_source(name: str, cwd: Path | None) -> str:
     stem = name.split("::")[0].split("/")[-1]
     root = cwd or Path.cwd()
     try:
-        for candidate in sorted(root.rglob(f"{stem}*.cpp")):
-            return candidate.relative_to(root).as_posix()
-        for candidate in sorted(root.rglob(f"*{stem}*.cpp")):
-            return candidate.relative_to(root).as_posix()
+        candidates = sorted(root.rglob(f"{stem}*.cpp")) or sorted(root.rglob(f"*{stem}*.cpp"))
     except (OSError, ValueError):
-        pass
+        candidates = []
+    if candidates:
+        return candidates[0].relative_to(root).as_posix()
     # No source file matches the suite name — the name itself is still the
     # truest location, and a bare stem is a valid contained path.
     return stem or "test-suite"
