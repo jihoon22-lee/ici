@@ -139,16 +139,36 @@ def test_a_repository_supplies_commit_and_cleanliness(tmp_path, monkeypatch) -> 
 
 
 @needs_ruff
+def test_a_cpp_component_is_counted_not_dropped(tmp_path, monkeypatch) -> None:
+    # Since #208 the C++ pack exists: a cpp component runs cpp.line through the
+    # same line counter rather than reporting "no checks apply".
+    (tmp_path / "native").mkdir()
+    (tmp_path / "native" / "core.cpp").write_text("int core() { return 1; }\n", encoding="utf-8")
+    _write_project(
+        tmp_path,
+        HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n',
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["next", "verify"])
+
+    assert result.exit_code == 0, result.output
+    stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
+    counted = [m for m in stored["metrics"] if m["name"] == "files_counted"]
+    assert counted and counted[0]["value"] == 1
+
+
+@needs_ruff
 def test_a_component_with_no_applicable_checks_is_a_limitation_not_a_crash(
     tmp_path, monkeypatch
 ) -> None:
     (tmp_path / "native").mkdir()
-    (tmp_path / "native" / "core.cpp").write_text("int core() { return 1; }\n", encoding="utf-8")
+    (tmp_path / "native" / "core.rs").write_text("fn core() -> i32 { 1 }\n", encoding="utf-8")
     (tmp_path / "tool").mkdir()
     (tmp_path / "tool" / "app.py").write_text("x = 1\n", encoding="utf-8")
     _write_project(
         tmp_path,
-        HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n'
+        HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["rust"]\n'
         '[[components]]\nid = "tool"\nroot = "tool"\nlanguages = ["python"]\n',
     )
     monkeypatch.chdir(tmp_path)

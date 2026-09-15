@@ -24,6 +24,7 @@ __all__ = [
     "CheckExecution",
     "EvidenceLevel",
     "GateVerdict",
+    "Profile",
     "PublicationState",
     "ScopeKind",
     "TaskKind",
@@ -83,6 +84,22 @@ class EvidenceLevel(str, Enum):
     ESTIMATED = "ESTIMATED"
     NOT_RUN = "NOT_RUN"
     NOT_APPLICABLE = "NOT_APPLICABLE"
+
+
+class Profile(str, Enum):
+    """The cost profile a run was asked for, from SPEC-03 section 4.
+
+    The membership rule is the spec's, and it is not "each bigger profile is a
+    superset": ``FAST`` is the source-only subset, ``STANDARD`` is the daily
+    set a project configured, and ``DEEP`` adds the expensive and dynamic
+    checks a project opted into. A check that is not in the run's profile is
+    *omitted*, not blocked — it was never asked for, and a report must not
+    manufacture a reason it could not run.
+    """
+
+    FAST = "fast"
+    STANDARD = "standard"
+    DEEP = "deep"
 
 
 class TaskKind(str, Enum):

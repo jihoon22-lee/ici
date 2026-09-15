@@ -7,6 +7,46 @@
 
 ## [Unreleased]
 
+### 추가 — 언어 pack registry·프로필 선택·선행 작업 DAG·공유 실행 (WP10, [#208](https://github.com/jihoon22-lee/ici/issues/208))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next`가 소비하는 application 계층 안입니다.
+
+WP10이 세우는 것은 **"무엇을 실행할 것인가"와 "언제 실행할 수 있는가"의 분리**입니다. 이전에는
+선택된 check 목록이 곧 실행 순서였습니다 — 지금은 registry가 언어 pack의 check를 선언하고,
+선택이 프로필·scope·도구 가용성을 적용하며, task graph가 check가 소비하는 *논리 입력*(`needs`/
+`provides`)으로 consumer→producer를 배선하고, scheduler가 그 순서 위에서 bounded 병렬로
+실행합니다.
+
+- **언어 pack은 선언이고 프로브가 아닙니다.** `ici.languages.registry`는 Python pack
+  (`python.line`, `python.lint`)과 C++ pack(`cpp.line`)을 check·provider *이름*으로만 선언합니다 —
+  pack을 import해도 도구를 찾거나 설치하지 않으므로 `plan`은 도구가 없는 머신에서도 같은
+  계획을 세웁니다. Qt는 언어가 아니라 C++ pack 위의 확장(moc/uic/rcc 생성 입력 인지)으로
+  모델링됩니다.
+- **C++ component는 이제 세어집니다.** cpp component는 더 이상 "no checks apply" limitation이
+  아니라 `cpp.line`을 실행합니다 — 같은 line counter가 suffix별 주석 규칙(`//`, `/* */`)을
+  이미 알고 있습니다. 알 수 없는 언어의 component만 limitation이 됩니다.
+- **프로필 밖의 check는 omitted이고 blocked가 아닙니다.** `fast`/`standard`/`deep` 프로필이
+  도입되었고(`standard`가 기본), 프로필이 제외하는 check는 `CheckSelection.omitted`에 이유와
+  함께 기록됩니다 — "물어보지 않은 것"과 "못 한 것"은 다른 사실입니다. 반대로 `fast`에서
+  mutating(PREPARE) 작업은 조용히 빠지지 않고 **blocked**로 계획에 남습니다 — fast의 약속은
+  숨은 configure/build가 없다는 것입니다.
+- **엣지는 check 이름이 아니라 입력에서 옵니다.** `build_graph`는 check가 선언한 `needs`를
+  다른 check의 `provides`와 매칭해 consumer→producer 유선을 만듭니다 — check가 선행 check를
+  직접 지목했다면, 다른 provider가 그 입력을 공급하게 되는 날 조용히 잘못 배선됐을 것입니다.
+  선행이 선택되지 않았거나 blocked면 소비자도 blocked이며, 그 이유는 이름을 댑니다
+  ("`app.build` was not selected" / "prerequisite app.build did not run"). 같은 입력을 두
+  check가 생산하거나 두 task가 같은 output을 청구하면 plan-time 오류이고, 순환도 실행이 아니라
+  계획 단계에서 거부됩니다.
+- **같은 명령은 한 번만 실행됩니다.** `share_key`가 같은 task — 두 component의 동일한 ruff
+  호출, 공유된 qmake prepare — 는 하나의 `WorkUnit`으로 접히고 모든 consumer identity를
+  보존합니다. `Execution` 레코드가 "한 번 실행, 세 check 소비"를 사실로 남기고, finding은
+  `fingerprint`로 한 번만 셉니다.
+- **독립만이 병렬입니다.** `run_graph`는 layer(의존이 전부 끝난 집합) 단위로
+  `max_parallel`까지 동시 실행하고, resource key를 선언한 작업은 그 lock을 잡고 돕니다 — 같은
+  build directory를 쓰는 mutating 작업은 튜닝과 무관하게 겹칠 수 없습니다. 실행 시점에 선행이
+  실패하면 소비자는 실행되지 않고 어느 선행이 실패했는지가 observation에 남습니다.
+- 문서: [`docs/design/ici-next/spec-02-task-graph-execution.md`](docs/design/ici-next/spec-02-task-graph-execution.md).
+
 ### 추가 — `ici next`가 이제 workspace 위에서 돌고, 결과는 읽은 것을 증명한다 (WP09, [#207](https://github.com/jihoon22-lee/ici/issues/207))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 전부 `ici next` 네임스페이스 안이고, stable 명령은

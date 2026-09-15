@@ -1,4 +1,4 @@
-"""Running a plan and saying what the result means.
+"""Judging what a run did, once the graph has run it.
 
 This is where #196's gate rules are applied, and the order of the questions is
 the whole of it:
@@ -16,34 +16,30 @@ report FAIL, which is a complete verdict the run never reached; so INCOMPLETE
 outranks FAIL, and the findings are kept regardless. *"미완료가 있다는 이유로
 확인한 문제를 버리지 않는다."*
 
-Nothing here decides whether a tool's exit code was an answer. That was settled
-in ``execution`` and read through the provider's contract, so a check cannot
-disagree with the executor about whether there was a result to judge.
+The running itself is the task graph's job (#208): ``verify`` wires the
+selected checks into it and lets :func:`~ici.application.schedule.run_graph`
+decide what executes, what shares, and what blocks. Nothing here decides
+whether a tool's exit code was an answer — that was settled in ``execution``
+and read through the provider's contract.
 """
 
 from __future__ import annotations
 
-import os
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from pathlib import Path
 
-from ici.adapters.providers.base import Provider, observe, unavailable
+from ici.adapters.providers.base import Provider
+from ici.application.graph import build_graph
 from ici.application.plan import Plan, PlannedCheck
+from ici.application.schedule import Analysis, Runner, run_graph
 from ici.domain.enums import GateVerdict, TaskState
 from ici.domain.finding import Finding
 from ici.domain.observation import Observation
 from ici.domain.result import GateOutcome
-from ici.execution.process import TaskOutcome, TaskSpec, run_task
+from ici.execution.cancellation import Cancellation
+from ici.execution.process import run_task
 
-__all__ = ["Verification", "verify"]
-
-#: How a planned task is actually started. Injected so the flow can be tested
-#: without a process, and so the one place that starts one stays visible.
-Runner = Callable[[TaskSpec], TaskOutcome]
-
-#: What ici does itself for a check with no tool.
-Analysis = Callable[[], Observation]
+__all__ = ["Analysis", "Runner", "Verification", "verify"]
 
 
 @dataclass(frozen=True)
@@ -65,84 +61,61 @@ def verify(
     analyses: Mapping[str, Analysis],
     runner: Runner = run_task,
     environment: Mapping[str, str] | None = None,
+    *,
+    max_parallel: int = 4,
+    cancellation: Cancellation | None = None,
 ) -> Verification:
     """Run everything the plans intend to run, then judge it once.
 
     A workspace run is several component plans judged as one gate: an
     INCOMPLETE anywhere holds the verdict, and findings pool across
     components. Plans stay per-component because check ids are unique only
-    within one component's selection.
+    within one component's selection; inside the graph they collapse to shared
+    units where the work is identical.
     """
 
     plans = (plan,) if isinstance(plan, Plan) else tuple(plan)
+    checks = tuple(item for p in plans for item in p.checks)
 
-    observations: list[Observation] = []
-    incomplete: list[str] = []
+    scheduled = run_graph(
+        build_graph(checks),
+        providers,
+        analyses,
+        runner=runner,
+        environment=environment,
+        max_parallel=max_parallel,
+        cancellation=cancellation,
+    )
+    by_id = {item.task_id: item for item in scheduled.observations}
+    observations = tuple(by_id[planned.task_id] for planned in checks)
 
-    for planned in (item for p in plans for item in p.checks):
-        observation = _perform(planned, providers, analyses, runner, environment)
-        observations.append(observation)
-        reason = _incompleteness(planned, observation)
-        if reason:
-            incomplete.append(reason)
-
-    findings = tuple(item for observation in observations for item in observation.findings)
+    incomplete = tuple(
+        reason for planned in checks if (reason := _incompleteness(planned, by_id[planned.task_id]))
+    )
+    findings = _unique(item for observation in observations for item in observation.findings)
     return Verification(
-        gate=_judge(tuple(incomplete), findings),
-        observations=tuple(observations),
+        gate=_judge(incomplete, findings),
+        observations=observations,
         findings=findings,
     )
 
 
-def _perform(
-    planned: PlannedCheck,
-    providers: Mapping[str, Provider],
-    analyses: Mapping[str, Analysis],
-    runner: Runner,
-    environment: Mapping[str, str] | None,
-) -> Observation:
-    if planned.blocked:
-        return unavailable(planned.check.tool or "ici", planned.task_id, planned.blocked)
-    if planned.is_internal:
-        analysis = analyses.get(planned.task_id)
-        if analysis is None:
-            return unavailable(
-                "ici", planned.task_id, f"{planned.check.id} has no analysis registered"
-            )
-        return analysis()
+def _unique(findings: Iterable[Finding]) -> tuple[Finding, ...]:
+    """Drop findings a shared execution reported to several consumers.
 
-    assert planned.task is not None
-    provider = providers.get(planned.check.tool or "")
-    if provider is None:
-        return unavailable(
-            planned.check.tool or "?",
-            planned.check.id,
-            f"{planned.check.tool} has no provider registered",
-        )
-    outcome = runner(_executable_spec(planned, environment))
-    return observe(provider, planned.task, outcome)
-
-
-def _executable_spec(planned: PlannedCheck, environment: Mapping[str, str] | None) -> TaskSpec:
-    """Turn the planned task into the one the executor takes.
-
-    Two models, on purpose and not by accident: the planned one is what a run
-    *declares*, and is what plan, cache keys and the DAG are written against;
-    this one is what a process *needs*. Collapsing them would make the declared
-    plan depend on the shape of the runner.
+    ``fingerprint`` is exactly the identity a finding carries for this — the
+    first report is kept, later duplicates of the same physical finding are
+    the same fact told again.
     """
 
-    assert planned.task is not None
-    task = planned.task.task
-    overlay = dict(environment if environment is not None else os.environ)
-    overlay.update(dict(task.env_overlay))
-    return TaskSpec(
-        argv=task.argv,
-        name=task.id,
-        cwd=Path(task.cwd),
-        environment=overlay,
-        timeout=task.timeout_seconds or 300.0,
-    )
+    seen: set[str] = set()
+    kept: list[Finding] = []
+    for finding in findings:
+        if finding.fingerprint in seen:
+            continue
+        seen.add(finding.fingerprint)
+        kept.append(finding)
+    return tuple(kept)
 
 
 def _incompleteness(planned: PlannedCheck, observation: Observation) -> str:
