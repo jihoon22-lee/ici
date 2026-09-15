@@ -309,10 +309,7 @@ def observation_from_dict(payload: object) -> Observation:
         timed_out=bool(data.get("timed_out", False)),
         truncated=bool(data.get("truncated", False)),
         duration_seconds=data.get("duration_seconds"),
-        tool_versions=tuple(
-            tuple(item)
-            for item in data.get("tool_versions", ())  # type: ignore[misc]
-        ),
+        tool_versions=tuple(tuple(item) for item in data.get("tool_versions", ())),
         limitations=tuple(data.get("limitations", ())),
     )
 

@@ -34,6 +34,7 @@ from pathlib import Path, PurePosixPath
 from ici.core.compile_db import load_compilation_context
 from ici.core.context import CompilationDiagnostic, CompilationUnit
 from ici.domain.workspace import BuildUnit, Component
+from ici.workspace.qmake_project import QmakeTarget, resolve_qmake_project
 
 __all__ = ["CompileInputs", "HeaderUse", "TranslationUnit", "load_compile_inputs"]
 
@@ -99,6 +100,11 @@ class CompileInputs:
     #: Database entries whose source is inside the workspace but outside this
     #: component's scope — visible so a shared build's coverage reads honestly.
     extra: tuple[str, ...] = ()
+    #: Database entries whose source lives under a linked build's directory —
+    #: moc/uic/rcc output the build generated rather than the user wrote.
+    generated: tuple[str, ...] = ()
+    #: qmake ``SUBDIRS`` targets the linked build's root project resolves to.
+    targets: tuple[QmakeTarget, ...] = ()
     headers: tuple[str, ...] = ()
     header_uses: tuple[HeaderUse, ...] = ()
     diagnostics: tuple[CompilationDiagnostic, ...] = ()
@@ -131,12 +137,16 @@ def load_compile_inputs(
 
     expected = tuple(path for path in scope_files if path.endswith(_SOURCE_SUFFIXES))
     headers = tuple(path for path in scope_files if path.endswith(_HEADER_SUFFIXES))
+    linked = [build for build in builds if build.id in component.build_ids]
+    build_dirs = tuple(build.directory.rstrip("/") for build in linked)
+    targets, target_diagnostics = _qmake_targets(root, component, linked)
     database = _database_path(root, component, builds)
     if database is None:
         return CompileInputs(
             component_id=component.id,
             expected=expected,
             missing=expected,
+            targets=targets,
             headers=headers,
             prepare=_prepare(root, component, builds),
             diagnostics=(
@@ -148,6 +158,7 @@ def load_compile_inputs(
                     ),
                     level="warning",
                 ),
+                *target_diagnostics,
             ),
         )
 
@@ -155,9 +166,24 @@ def load_compile_inputs(
     scope_set = set(expected) | set(headers)
     units: list[TranslationUnit] = []
     extra: list[str] = []
+    generated: list[str] = []
+    generated_diagnostics: list[CompilationDiagnostic] = []
     for unit in context.units:
         if unit.source in scope_set:
             units.append(_to_unit(unit))
+        elif build_dirs and _under(unit.source, build_dirs):
+            generated.append(unit.source)
+            if not (root / unit.source).exists():
+                generated_diagnostics.append(
+                    CompilationDiagnostic(
+                        code="generated-input-missing",
+                        message=(
+                            f"{unit.source}: the database names a build-generated "
+                            "input that is not on disk — the capture is partial or stale"
+                        ),
+                        level="warning",
+                    )
+                )
         else:
             extra.append(unit.source)
     covered = tuple(sorted({unit.source for unit in units} & set(expected)))
@@ -172,9 +198,11 @@ def load_compile_inputs(
         covered=covered,
         missing=missing,
         extra=tuple(sorted(extra)),
+        generated=tuple(sorted(generated)),
+        targets=targets,
         headers=headers,
         header_uses=_header_uses(root, units, headers),
-        diagnostics=context.diagnostics,
+        diagnostics=tuple(context.diagnostics) + tuple(target_diagnostics + generated_diagnostics),
         prepare=_prepare(root, component, builds) if missing else (),
     )
 
@@ -302,3 +330,57 @@ def _resolve_include(name: str, source_dir: PurePosixPath, header_set: set[str])
         parts.append(part)
     resolved = "/".join(parts)
     return resolved if resolved in header_set else None
+
+
+def _under(source: str, directories: tuple[str, ...]) -> bool:
+    """Whether a workspace-relative path lives inside one of the directories."""
+
+    return (
+        any(
+            source == directory or source.startswith(f"{directory}/")
+            for directory in directories
+            if directory not in ("", ".")
+        )
+        or "." in directories
+    )
+
+
+def _qmake_targets(
+    root: Path,
+    component: Component,
+    linked: list[BuildUnit],
+) -> tuple[tuple[QmakeTarget, ...], list[CompilationDiagnostic]]:
+    """What the component's qmake builds would compile — and coverage gaps.
+
+    A component linking a qmake build whose ``SUBDIRS`` tree never reaches the
+    component's root is a mislink the coverage numbers alone would hide: the
+    database would show zero units for it, indistinguishable from "nothing to
+    compile". The diagnostic names the difference.
+    """
+
+    targets: list[QmakeTarget] = []
+    diagnostics: list[CompilationDiagnostic] = []
+    covered_dirs: list[str] = []
+    for build in linked:
+        if build.system != "qmake" or not build.definition:
+            continue
+        project = resolve_qmake_project(root, build.definition)
+        targets.extend(project.targets)
+        diagnostics.extend(project.diagnostics)
+        covered_dirs.extend(project.directories)
+    component_root = component.root.rstrip("/") or "."
+    if covered_dirs and not any(
+        component_root == directory or component_root.startswith(f"{directory}/")
+        for directory in covered_dirs
+    ):
+        diagnostics.append(
+            CompilationDiagnostic(
+                code="qmake-target-missing",
+                message=(
+                    f"{component.id}: its root is not reached by the declared "
+                    "root project's SUBDIRS — qmake would not compile its sources"
+                ),
+                level="warning",
+            )
+        )
+    return tuple(targets), diagnostics

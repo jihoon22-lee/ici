@@ -152,10 +152,13 @@ def test_a_cpp_component_is_counted_not_dropped(tmp_path, monkeypatch) -> None:
 
     result = runner.invoke(app, ["next", "verify"])
 
-    assert result.exit_code == 0, result.output
+    # #212: cpp.line still counts the file, but a component with no
+    # compilation database is INCOMPLETE — not a C++ pass.
+    assert result.exit_code == 3, result.output
     stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
     counted = [m for m in stored["metrics"] if m["name"] == "files_counted"]
     assert counted and counted[0]["value"] == 1
+    assert "native.cpp.compile" in stored["execution"]["blocked_task_ids"]
 
 
 @needs_ruff

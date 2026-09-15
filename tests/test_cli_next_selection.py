@@ -26,11 +26,29 @@ needs_ruff = pytest.mark.skipif(not Path(RUFF).exists(), reason="ruff is not ava
 HEADER = 'schema_version = 1\n[workspace]\nname = "product"\n'
 
 
-def _hybrid_workspace(root: Path) -> None:
+def _hybrid_workspace(root: Path, with_db: bool = True) -> None:
     (root / "app").mkdir(parents=True)
     (root / "native").mkdir(parents=True)
     (root / "app" / "one.py").write_text("x = 1\n", encoding="utf-8")
     (root / "native" / "core.cpp").write_text("int core() { return 1; }\n", encoding="utf-8")
+    if with_db:
+        # A C++ component's verification needs compile invocations (#212):
+        # the fixture's database covers the component's single TU so a plain
+        # run is a full pass, and missing-database cases opt out below.
+        build = root / "native" / "build"
+        build.mkdir()
+        (build / "compile_commands.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "directory": str(build),
+                        "file": str(root / "native" / "core.cpp"),
+                        "arguments": ["g++", "-c", "../core.cpp"],
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
     (root / "ici.toml").write_text(
         HEADER + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
         '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n',
@@ -233,7 +251,7 @@ def test_init_writes_a_workspace_without_touching_the_tree(tmp_path, monkeypatch
 def test_doctor_and_verify_report_partial_compile_coverage(tmp_path, monkeypatch) -> None:
     # #211: a database naming half a component's TUs is a partial input — the
     # run and the diagnostic both say so rather than reading as full coverage.
-    _hybrid_workspace(tmp_path)
+    _hybrid_workspace(tmp_path, with_db=False)
     (tmp_path / "native" / "second.cpp").write_text("int s();\n", encoding="utf-8")
     build = tmp_path / "native" / "build"
     build.mkdir()
@@ -258,19 +276,99 @@ def test_doctor_and_verify_report_partial_compile_coverage(tmp_path, monkeypatch
     assert "missing: native/second.cpp" in doctor.output
 
     verify = runner.invoke(app, ["next", "verify", "--cpp"])
-    assert verify.exit_code in (0, 1), verify.output
+    # #212: a partial capture is incomplete evidence — the gate says
+    # INCOMPLETE (exit 3) rather than letting 1/2 coverage read as a pass.
+    assert verify.exit_code == 3, verify.output
     stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
     assert any("1/2 translation units" in item for item in stored["limitations"])
 
 
 def test_verify_reports_a_cpp_component_without_a_database(tmp_path, monkeypatch) -> None:
-    _hybrid_workspace(tmp_path)
+    _hybrid_workspace(tmp_path, with_db=False)
     monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(app, ["next", "verify", "--cpp"])
-    assert result.exit_code in (0, 1), result.output
+    # No database at all is INCOMPLETE, not a pass and not a code failure.
+    assert result.exit_code == 3, result.output
     stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
     assert any("no compilation database" in item for item in stored["limitations"])
+    assert "native.cpp.compile" in stored["execution"]["blocked_task_ids"]
+
+
+def test_two_cpp_components_share_one_declared_build(tmp_path, monkeypatch) -> None:
+    # #212 acceptance: one SUBDIRS build, two components — the single database
+    # the build produced answers both components' coverage.
+    for name in ("app", "lib"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "main.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+        (tmp_path / name / f"{name}.pro").write_text(
+            "TEMPLATE = app\nSOURCES += main.cpp\n", encoding="utf-8"
+        )
+    (tmp_path / "product.pro").write_text(
+        "TEMPLATE = subdirs\nSUBDIRS += app lib\n", encoding="utf-8"
+    )
+    build = tmp_path / "build"
+    build.mkdir()
+    build.joinpath("compile_commands.json").write_text(
+        json.dumps(
+            [
+                {
+                    "directory": str(build),
+                    "file": str(tmp_path / name / "main.cpp"),
+                    "arguments": ["g++", "-c", f"../{name}/main.cpp"],
+                }
+                for name in ("app", "lib")
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "ici.toml").write_text(
+        HEADER + '[builds.native]\nsystem = "qmake"\nproject = "product.pro"\n'
+        'directory = "build"\nvariant = "release"\n'
+        '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["cpp"]\nbuild = "native"\n'
+        '[[components]]\nid = "lib"\nroot = "lib"\nlanguages = ["cpp"]\nbuild = "native"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    plan = runner.invoke(app, ["next", "plan"])
+    assert plan.exit_code == 0, plan.output
+    assert "app.cpp.compile" in plan.output and "lib.cpp.compile" in plan.output
+
+    verify = runner.invoke(app, ["next", "verify"])
+    assert verify.exit_code == 0, verify.output
+    stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
+    covered = [m for m in stored["metrics"] if m["name"] == "units.covered"]
+    assert len(covered) == 2 and all(m["value"] == 1 for m in covered)
+
+    doctor = runner.invoke(app, ["next", "doctor", "--cpp"])
+    assert "target: app → app/app.pro" in doctor.output
+    assert "target: lib → lib/lib.pro" in doctor.output
+
+
+def test_plan_blocks_cpp_compile_and_names_the_remedy(tmp_path, monkeypatch) -> None:
+    _hybrid_workspace(tmp_path, with_db=False)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["next", "plan", "--cpp"])
+
+    assert result.exit_code == 0, result.output
+    assert "native.cpp.compile" in result.output
+    assert "no compilation database" in result.output
+    assert "declare [builds.<id>]" in result.output
+
+
+def test_require_full_denies_a_partial_compile_capture(tmp_path, monkeypatch) -> None:
+    _hybrid_workspace(tmp_path)
+    (tmp_path / "native" / "second.cpp").write_text("int s();\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["next", "verify", "--require-full"])
+
+    assert result.exit_code == 3, result.output
+    stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
+    assert stored["gate"]["selected"] == "INCOMPLETE"
+    assert any("no compile invocation" in r for r in stored["gate"]["reasons"])
 
 
 def test_init_restricts_candidates_to_asked_languages(tmp_path, monkeypatch) -> None:

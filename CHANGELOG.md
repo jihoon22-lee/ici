@@ -7,6 +7,36 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` qmake `SUBDIRS` 해석·공유 빌드·컴파일 커버리지 check (WP14, [#212](https://github.com/jihoon22-lee/ici/issues/212))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다. ici는 여전히
+빌드를 실행하지 않습니다 — `prepare = "explicit"`은 사용자가 직접 준비한 빌드를
+ici가 *읽는* 권한이지, ici가 configure/build 명령을 만들어내는 허가가 아닙니다.
+
+WP14가 세우는 것은 **선언된 root `.pro`와 qmake가 실제로 빌드할 target의 연결**입니다.
+`ici/workspace/qmake_project.py`가 `SUBDIRS` 목록(`.file`/`.subdir`/`.depends` 수식,
+`\` 연속행, 조건부 scope, 중첩 트리)을 텍스트로만 읽어 build가 도달하는 디렉터리 집합을
+만듭니다 — qmake 언어를 재구현하지 않으므로 `$$변수` 참조는 추측하지 않고 미해석
+진단으로 남습니다.
+
+- **`cpp.compile` check가 커버리지를 게이트에 올립니다.** C++ component는 compile DB가
+  없으면 이 check가 blocked(어떤 build가 산출할지, 없으면 어떤 설정 키가 선언할지를
+  이유로 표시)이고, DB가 scope의 TU 일부만 덮거나 생성 입력이 사라졌으면 check가
+  불완전 증거로 보고합니다 — 두 경우 모두 run은 INCOMPLETE이며 부분 캡처가 전체
+  C++ PASS로 읽히지 않습니다.
+- **하나의 빌드가 여러 component를 덮습니다.** 두 cpp component가 같은 `[builds.<id>]`를
+  링크하면 하나의 compile DB가 양쪽 coverage를 답하고, 상대 component의 TU는
+  `extra`로 보여 공유 사실이 숨겨지지 않습니다.
+- **생성 입력은 이름이 붙습니다.** DB entry 중 build 디렉터리 아래의 소스(moc/uic/rcc
+  출력)는 `generated`로 분류되고, DB가 이름 붙인 생성 파일이 디스크에 없으면
+  `generated-input-missing` 진단이 부분/상훼 캡처를 가리킵니다.
+- **component–build mislink가 드러납니다.** qmake build를 링크했는데 component root가
+  `SUBDIRS` 트리에 도달하지 않으면 `qmake-target-missing`이 "DB가 비었다"와 "qmake가
+  이 component를 빌드하지 않는다"를 구별합니다.
+- **`doctor`가 target 해석을 보입니다.** component마다 `target: name → project` 행과
+  생성 입력 수가 표시되고, `--require-full`은 compile coverage gap을 INCOMPLETE 이유로
+  포함합니다.
+
 ### 추가 — `ici next` 선택 CLI·doctor·plan·부분 실행 계약 (WP12, [#210](https://github.com/jihoon22-lee/ici/issues/210))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.

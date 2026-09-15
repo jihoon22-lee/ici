@@ -155,7 +155,8 @@ def run_graph(
         # observation — the same evidence the run would have produced — and a
         # miss runs the task and keeps its answer for next time. A unit with
         # no key runs as usual with the reason on the record.
-        key = reason = ""
+        key: str | None = None
+        reason = ""
         if cache is not None and identify is not None and not unit.is_internal:
             key, reason = identify(unit)
             if key is not None:
@@ -186,7 +187,7 @@ def run_graph(
             consumers=unit.consumers,
             provider=provider,
             state=observation.state,
-            duration_seconds=observation.duration_seconds,
+            duration_seconds=observation.duration_seconds or 0.0,
             detail=reason,
         )
 

@@ -22,5 +22,17 @@ CPP_LINE_CHECK = CheckDefinition(
     tool=None,
 )
 
+#: Compilation coverage: which of the component's translation units the
+#: database has an invocation for. ici performs the read itself — the check's
+#: job is to state coverage, and a component with no database is *blocked*,
+#: not passed: a partial or absent capture cannot stand in for a C++ verdict
+#: (#212's acceptance criterion).
+CPP_COMPILE_CHECK = CheckDefinition(
+    id="cpp.compile",
+    title="Compilation coverage",
+    language="cpp",
+    tool=None,
+)
+
 #: Declaration only. Importing this must not look at the machine.
-CPP_CHECKS: tuple[CheckDefinition, ...] = (CPP_LINE_CHECK,)
+CPP_CHECKS: tuple[CheckDefinition, ...] = (CPP_LINE_CHECK, CPP_COMPILE_CHECK)

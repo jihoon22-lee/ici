@@ -26,7 +26,7 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, overload
 
 from ici.config.documents import (
     BuildDeclaration,
@@ -79,6 +79,16 @@ class Decided(Generic[T]):
 
     def __str__(self) -> str:
         return f"{self.value!r} from {self.origin} ({self.layer.value})"
+
+
+@overload
+def _decide(current: Decided[T], candidate: Sourced[T] | None, layer: Layer) -> Decided[T]: ...
+
+
+@overload
+def _decide(
+    current: Decided[T] | None, candidate: Sourced[T] | None, layer: Layer
+) -> Decided[T] | None: ...
 
 
 def _decide(
@@ -726,14 +736,14 @@ def _python_executable(
     if override is not None and not override.value:
         problems.append(ConfigProblem("a python executable must not be empty", override.origin))
         override = None
-    if declared is None and override is None:
-        return None
     if override is not None:
         executable = Executable(raw=override.value, origin=override.origin)
         layer = Layer.LOCAL
-    else:
+    elif declared is not None:
         executable = declared
         layer = Layer.COMPONENT
+    else:
+        return None
     return Decided(
         value=_executable(executable, workspace_dir, environment, problems),
         origin=executable.origin,
