@@ -43,6 +43,8 @@ from ici.application.baseline import BaselineError, compare, load_baseline
 from ici.application.graph import WorkUnit
 from ici.application.identity import task_identity
 from ici.application.plan import NothingSelected, Plan, PlannedCheck
+from ici.application.publish import PublishError
+from ici.application.publish import publish as publish_result
 from ici.application.report import assemble, digest_of
 from ici.application.request import (
     RunRequest,
@@ -90,7 +92,13 @@ from ici.cli.next_common import (
 )
 from ici.cli.next_testing import BUNDLED_TOOLS, locate_tool
 from ici.config.composition import EffectiveCheck
-from ici.domain.enums import BaselineState, GateVerdict, Profile, ScopeKind
+from ici.domain.enums import (
+    BaselineState,
+    GateVerdict,
+    Profile,
+    PublicationState,
+    ScopeKind,
+)
 from ici.domain.events import EventType
 from ici.domain.serialization import dumps, loads, run_result_to_dict
 from ici.domain.workspace import AnalysisUnit, Component, Workspace
@@ -805,6 +813,52 @@ def cmd_report(
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(render(stored), encoding="utf-8")
     typer.echo(f"wrote {target}")
+
+
+@next_app.command("publish")
+def cmd_publish(
+    config_path: Path | None = _CONFIG_OPTION,
+    local_path: Path | None = _LOCAL_CONFIG_OPTION,
+    result: Path = _RESULT_OPTION,
+    page: Path = _PAGE_OPTION,
+) -> None:
+    """Push the saved result's page to the configured backend (#223).
+
+    Reads stored artifacts only — nothing is re-analysed, and the result
+    file is not modified; the outcome lands in ``publish.json`` beside it,
+    on its own axis, so a failed upload can be retried without re-running.
+    Exit codes are publish's own: 0 published, 1 the upload/comment failed,
+    2 the request could not be formed (bad inputs, no destination).
+    """
+
+    root, config, _ = _workspace(Path.cwd(), config_path, local_path)
+    try:
+        outcome = publish_result(
+            root,
+            config=config,
+            result_path=root / result if not result.is_absolute() else result,
+            page_path=root / page if not page.is_absolute() else page,
+            env=os.environ,
+        )
+    except PublishError as error:
+        typer.echo(f"publish: {error}", err=True)
+        raise typer.Exit(EXIT_CONFIG) from error
+
+    record = root / ".ici" / "next" / "publish.json"
+    record.parent.mkdir(parents=True, exist_ok=True)
+    record.write_text(json.dumps(outcome.to_record(), indent=2) + "\n", encoding="utf-8")
+
+    typer.echo(f"publish: {outcome.state.value.lower()} — {outcome.detail}")
+    if outcome.comment_url:
+        typer.echo(f"comment: {outcome.comment_url}")
+    if outcome.viewer_url:
+        typer.echo(f"page: {outcome.viewer_url}")
+    if outcome.state is PublicationState.FAILED:
+        raise typer.Exit(1)
+    if outcome.state is PublicationState.NOT_CONFIGURED:
+        # An explicit `next publish` with nowhere to go is an input error —
+        # succeeding here would teach a CI job that silence is publishing.
+        raise typer.Exit(EXIT_CONFIG)
 
 
 @next_app.command("diff")

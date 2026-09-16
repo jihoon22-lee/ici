@@ -7,6 +7,30 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next publish` — 저장 결과의 GHES 게시 (WP25, [#223](https://github.com/jihoon22-lee/ici/issues/223))
+
+**기존 배포 경로 동작 변경 없음.** stable `engines/publish.py`와 `ici
+publish`는 그대로입니다 — 이 명령은 `ici.next.run` 결과만 다룹니다.
+
+- **`next publish`가 저장된 결과의 HTML 페이지를 GHES에 게시합니다.**
+  저장 결과 스키마(`ici.next.run` 외 문서는 거부)·페이지 크기 상한·
+  workspace 내 경로·sha256 digest를 네트워크 호출 전에 검증하고, 결과는
+  `publish.json` 레코드로 기록됩니다 — verify 결과 파일은 수정하지
+  않습니다(SPEC-04 §3). 종료 코드는 publish 전용 0/1/2입니다.
+- **`[publish]` 설정이 목적지를 명시합니다.** `repo`·`api_url`·
+  `server_url`은 https만 허용하고 github.com 기본값이 없습니다 —
+  자격증명은 `token_env`가 가리키는 환경 변수에서만 읽으며, 파일에
+  `token` 값을 쓰면 설정 오류로 거부됩니다.
+- **늦은 재실행이 최신 상태를 덮지 않습니다.** 원격 경로가 head SHA를
+  포함해 stale run의 업로드가 최신 보고서를 지울 수 없고, sticky 댓글은
+  현재 PR head와 일치할 때만, 그리고 더 새로운 run이 이미 쓰지 않았을
+  때만 갱신됩니다 — 재실행은 중복 댓글 대신 기존 댓글을 갱신합니다.
+- **게시 실패는 분석 결과와 분리된 축입니다.** 업로드·댓글 실패는
+  `PublicationState.FAILED`로 기록되고 재시도가 분석을 반복하지
+  않습니다. FAIL/INCOMPLETE verdict의 결과도 게시됩니다.
+- 백엔드는 `adapters/ghes.py`의 GHES REST 클라이언트로, 시스템 CA를
+  사용하는 stdlib `urllib`만 씁니다.
+
 ### 추가 — `ici next` 결과 중심 offline HTML 완성 (WP24, [#222](https://github.com/jihoon22-lee/ici/issues/222))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의
