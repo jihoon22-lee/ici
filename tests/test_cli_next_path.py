@@ -219,6 +219,86 @@ def test_verifying_writes_only_under_dot_ici(project: Path) -> None:
     assert added and all(str(p).startswith(".ici") for p in added), sorted(str(p) for p in added)
 
 
+# --- the event stream, #224 ------------------------------------------------
+
+
+def _events(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
+@needs_ruff
+def test_the_event_stream_tells_the_runs_life_in_order(project: Path, tmp_path) -> None:
+    """#224: a consumer sees the run unfold — started, planned, each task's
+    start and finish, then the run's completion — in a stream nothing else
+    writes to."""
+    _seed(project)
+    stream = tmp_path / "events.jsonl"
+
+    result = runner.invoke(app, ["next", "verify", "--events", str(stream)])
+
+    assert result.exit_code == 1, result.output
+    events = _events(stream)
+    types = [item["event_type"] for item in events]
+    assert types[0] == "run.started"
+    assert types[1] == "plan.ready"
+    assert types[-1] == "run.completed"
+    assert [item["seq"] for item in events] == list(range(len(events)))
+
+    # Every task that started also completed, and each start precedes its
+    # finish. A task that resolved without running — cached, blocked —
+    # never claims a start it did not have.
+    started = [item["task_id"] for item in events if item["event_type"] == "task.started"]
+    finished = [item["task_id"] for item in events if item["event_type"] == "task.completed"]
+    assert started and set(started) <= set(finished)
+    for task in started:
+        first = next(i for i, e in enumerate(events) if e.get("task_id") == task)
+        assert events[first]["event_type"] == "task.started"
+        last = max(i for i, e in enumerate(events) if e.get("task_id") == task)
+        assert events[last]["event_type"] == "task.completed"
+
+
+@needs_ruff
+def test_a_cached_second_run_starts_no_task_it_reuses(project: Path, tmp_path) -> None:
+    runner.invoke(app, ["next", "verify"])
+    second = tmp_path / "second.jsonl"
+    runner.invoke(app, ["next", "verify", "--events", str(second)])
+
+    events = _events(second)
+    reused = [
+        item["task_id"]
+        for item in events
+        if item["event_type"] == "task.completed" and "cache hit" in item["message"]
+    ]
+    assert reused
+    started = {item["task_id"] for item in events if item["event_type"] == "task.started"}
+    assert not started.intersection(reused)
+
+
+def test_a_cancelled_run_marks_the_stream_instead_of_leaving_it_silent(
+    project: Path, monkeypatch, tmp_path
+) -> None:
+    """#224: cancellation is an event, not an absence — a consumer following
+    the file learns the run was stopped rather than watching it go quiet."""
+    import contextlib
+
+    @contextlib.contextmanager
+    def cancelled(cancellation):
+        cancellation.cancel("received SIGINT")
+        yield cancellation
+
+    monkeypatch.setattr("ici.cli.next_path.signal_cancels", cancelled)
+    stream = tmp_path / "events.jsonl"
+
+    result = runner.invoke(app, ["next", "verify", "--events", str(stream)])
+
+    assert result.exit_code == 130, result.output
+    events = _events(stream)
+    assert events[-1]["event_type"] == "run.completed"
+    assert any(
+        item["event_type"] == "diagnostic" and "cancelled" in item["message"] for item in events
+    )
+
+
 # --- it replaces nothing --------------------------------------------------
 
 

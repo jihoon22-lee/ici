@@ -57,6 +57,9 @@ Identify = Callable[[WorkUnit], "tuple[str | None, str]"]
 #: pool thread, so a sink that keeps state must guard it. This is how
 #: ``--events`` learns a task finished without polling the finished run.
 OnExecution = Callable[["Execution"], None]
+#: Fired when a unit actually starts work — after blocked/cancelled/cache
+#: short-circuits, so "started" means a process or an analysis is running.
+OnStarted = Callable[["WorkUnit"], None]
 
 
 @dataclass(frozen=True)
@@ -110,6 +113,7 @@ def run_graph(
     identify: Identify | None = None,
     run_id: str = "",
     on_execution: OnExecution | None = None,
+    on_started: OnStarted | None = None,
 ) -> Scheduled:
     """Execute a task graph, honouring its order and its sharing.
 
@@ -174,6 +178,8 @@ def run_graph(
                     )
                 reason = read.reason
 
+        if on_started is not None:
+            on_started(unit)
         observation = _perform(unit, providers, analyses, runner, environment, locks)
         if (
             cache is not None

@@ -607,7 +607,9 @@ def cmd_verify(
         dirty=state is None or not state.clean,
     )
     try:
-        plans, analyses, limitations, _ = _plans(scope, config, before, root, request, resolved)
+        plans, analyses, limitations, by_component = _plans(
+            scope, config, before, root, request, resolved
+        )
     except NothingSelected as error:
         typer.echo(f"config: {error}", err=True)
         raise typer.Exit(EXIT_CONFIG) from error
@@ -675,7 +677,13 @@ def cmd_verify(
             run_id=run_id,
             cancellation=cancellation,
             on_execution=sink.on_execution if sink is not None else None,
+            on_started=sink.on_started if sink is not None else None,
             suppressions=config.suppressions,
+            task_components={
+                planned.task_id: component_id
+                for component_id, plan in by_component.items()
+                for planned in plan.checks
+            },
         )
 
     gaps = (
@@ -737,11 +745,19 @@ def cmd_verify(
     target.write_text(dumps(run_result_to_dict(stored)), encoding="utf-8")
 
     if sink is not None:
+        if cancellation.requested:
+            sink.emit(
+                EventType.DIAGNOSTIC,
+                message=f"cancelled: {cancellation.reason or 'user request'}",
+            )
         sink.emit(
             EventType.RUN_COMPLETED,
             message=f"{stored.gate.selected.value}: {len(stored.findings)} finding(s)",
         )
-        sink.write()
+        # If we never reach this close — a crash between emit and here — the
+        # flushed prefix is still on disk, which is what a consumer should
+        # see of a run that died: events, then nothing.
+        sink.close()
 
     exit_code = 130 if cancellation.requested else stored.gate.exit_code
     if json_mode:

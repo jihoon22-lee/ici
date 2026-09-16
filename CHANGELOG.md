@@ -7,6 +7,31 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` 이벤트 생명주기와 idk 소비자 계약 (WP26, [#224](https://github.com/jihoon22-lee/ici/issues/224))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의
+이벤트 스트림과 결과 스키마 해석입니다 — stable 경로는 그대로입니다.
+
+- **`task.started`가 작업이 실제로 시작될 때만 나옵니다.** 스케줄러의
+  `on_started` 훅은 취소·선행 실패로 인한 blocked·캐시 재사용 이후에만
+  호출되므로, started 없이 completed만 있는 task는 "실행 없이 확정됨"을
+  뜻합니다 — 진행 상황을 보는 소비자가 일어나지 않은 시작을 보지 않습니다.
+- **이벤트가 발생 즉시 스트림에 기록됩니다.** `_EventSink`가 줄 단위로
+  flush하므로 진행 중인 실행을 tail할 수 있고, 취소된 실행은
+  `diagnostic` 이벤트(`cancelled: <reason>`) 뒤 `run.completed`로
+  끝나는 스트림을 남깁니다 — 조용해지는 것이 아니라 끝이 선언됩니다.
+- **finding에 component 귀속이 스탬핑됩니다.** `verify`가 planned task와
+  component의 매핑을 받아, 제공자가 `component_id`를 직접 스탬핑하지
+  않은 finding에 계획 시점의 component를 부여합니다 — 소비자가 task id
+  문자열을 파싱해 귀속을 추측할 필요가 없습니다.
+- **idk 비의존 fixture consumer가 추가됐습니다.** `tests/idkconsumer.py`는
+  stdlib만으로 result 문서와 이벤트 스트림을 읽어 논리 file/line의
+  workspace 매핑(밖으로 나가는 경로는 거부), component/variant, 필수
+  작업 미완료를 해석합니다 — standalone verify와 동일한 scope/result
+  의미를 갖는지 `tests/test_next_consumer.py`가 검증합니다.
+- 호출·스키마·취소·민감 값 계약과 ici/idk 소유권 경계는
+  `docs/design/ici-next/idk-integration.md`에 정리됐습니다.
+
 ### 추가 — `ici next publish` — 저장 결과의 GHES 게시 (WP25, [#223](https://github.com/jihoon22-lee/ici/issues/223))
 
 **기존 배포 경로 동작 변경 없음.** stable `engines/publish.py`와 `ici

@@ -26,7 +26,7 @@ and read through the provider's contract.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ici.adapters.providers.base import Provider
 from ici.application.graph import build_graph
@@ -36,6 +36,7 @@ from ici.application.schedule import (
     Execution,
     Identify,
     OnExecution,
+    OnStarted,
     Runner,
     run_graph,
 )
@@ -81,7 +82,9 @@ def verify(
     identify: Identify | None = None,
     run_id: str = "",
     on_execution: OnExecution | None = None,
+    on_started: OnStarted | None = None,
     suppressions: Iterable[EffectiveSuppression] = (),
+    task_components: Mapping[str, str] = {},
 ) -> Verification:
     """Run everything the plans intend to run, then judge it once.
 
@@ -90,6 +93,11 @@ def verify(
     components. Plans stay per-component because check ids are unique only
     within one component's selection; inside the graph they collapse to shared
     units where the work is identical.
+
+    ``task_components`` maps a planned task id to the component it was planned
+    under. Providers may stamp ``component_id`` on findings themselves; where
+    they do not, this map is what keeps a pooled finding attributable to the
+    component it was measured in (#224).
     """
 
     plans = (plan,) if isinstance(plan, Plan) else tuple(plan)
@@ -107,6 +115,7 @@ def verify(
         identify=identify,
         run_id=run_id,
         on_execution=on_execution,
+        on_started=on_started,
     )
     by_id = {item.task_id: item for item in scheduled.observations}
     observations = tuple(by_id[planned.task_id] for planned in checks)
@@ -115,7 +124,11 @@ def verify(
         reason for planned in checks if (reason := _incompleteness(planned, by_id[planned.task_id]))
     )
     findings = apply_suppressions(
-        _unique(item for observation in observations for item in observation.findings),
+        _unique(
+            attributed
+            for observation in observations
+            for attributed in _attribute(observation, task_components)
+        ),
         suppressions,
     )
     required_fingerprints = {
@@ -129,6 +142,23 @@ def verify(
         observations=observations,
         findings=findings,
         executions=scheduled.executions,
+    )
+
+
+def _attribute(observation: Observation, components: Mapping[str, str]) -> tuple[Finding, ...]:
+    """Give a finding the component its task was planned under.
+
+    A provider that knows its component stamps it; one that does not — a
+    parser reading shared tool output — still gets attribution from the plan,
+    so a consumer never has to reverse-engineer it out of a task id.
+    """
+
+    component = components.get(observation.task_id)
+    if component is None:
+        return observation.findings
+    return tuple(
+        item if item.component_id is not None else replace(item, component_id=component)
+        for item in observation.findings
     )
 
 
