@@ -10,7 +10,7 @@
 ### 추가 — WP29 PR A: 빌드 아티팩트의 next 경로를 CI 게이트로 ([#227](https://github.com/jihoon22-lee/ici/issues/227))
 
 - `ci.yml`에 "Dogfooding — next path via dist/ici.pyz" 스텝을 추가합니다.
-  새 fixture `tests/fixtures/ici-next/self-verify/`(next 스키마 설정 +
+  새 fixture `tests/fixtures/next-self-verify/`(next 스키마 설정 +
   깨끗한 Python 모듈)에서 빌드된 pyz가 `next plan`→`next verify`→
   `next report`를 완주하고(exit 0), 생성된 HTML이 외부 참조 0건인지
   확인합니다. 단위 테스트는 소스에서 next 경로를 검증하지만 이 스텝은

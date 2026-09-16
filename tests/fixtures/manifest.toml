@@ -308,7 +308,7 @@ exercised_by = ["tests/test_python_corpus.py"]
 # its ici.toml because a fixture with no .venv must not read as INCOMPLETE.
 [[fixture]]
 id = "ici-next/self-verify"
-path = "tests/fixtures/ici-next/self-verify"
+path = "tests/fixtures/next-self-verify"
 kind = "real-tool"
 languages = ["python"]
 requires = [{ executable = "ruff" }]

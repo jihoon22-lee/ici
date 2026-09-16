@@ -140,7 +140,7 @@ jobs:
       # path that cannot reach exit 0 from dist/ici.pyz fails here, not in a
       # bug report.
       - name: 🐶 Dogfooding — next path via dist/ici.pyz
-        working-directory: tests/fixtures/ici-next/self-verify
+        working-directory: tests/fixtures/next-self-verify
         run: |
           set -euo pipefail
           out="$(mktemp -d)"
@@ -173,8 +173,8 @@ jobs:
             viewer/verify_report.html
             viewer/verify_report.json
             viewer/static_cli_report.json
-            tests/fixtures/ici-next/self-verify/next_self_result.json
-            tests/fixtures/ici-next/self-verify/next_self_result.html
+            tests/fixtures/next-self-verify/next_self_result.json
+            tests/fixtures/next-self-verify/next_self_result.html
             report_benchmark.json
           retention-days: 14
 
