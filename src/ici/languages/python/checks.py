@@ -154,6 +154,34 @@ DEAD_CHECK = CheckDefinition(
     tool=None,
 )
 
+#: Static syntax/stdlib floor — the same ``analyze_static_compatibility``
+#: the stable ``python_compat`` engine runs per file, against the floor the
+#: component's ``requires-python`` declares (#220 item 5). This is the
+#: *estimate* half; the measured half is the runtime check below.
+COMPAT_CHECK = CheckDefinition(
+    id="python.compat",
+    title="Compatibility floor",
+    language="python",
+    tool=None,
+)
+
+#: The declared interpreter itself answering: ``-VV`` against
+#: requires-python, then ``compileall`` over the component's sources. What
+#: the runtime accepts is evidence no AST feature table can prove. The
+#: import-smoke side of the stable engine is not migrated — importing
+#: project code has arbitrary side effects (#220).
+#: Advisory by default: a declared interpreter is this check's applicability
+#: condition — a component without one is blocked, and
+#: ``[checks."python.compat-runtime"] required = true`` is how a workspace
+#: makes that absence gate-failing.
+COMPAT_RUNTIME_CHECK = CheckDefinition(
+    id="python.compat-runtime",
+    title="Declared-runtime compatibility",
+    language="python",
+    tool=None,
+    required=False,
+)
+
 #: Declaration only. Importing this must not look at the machine.
 PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     LINE_CHECK,
@@ -170,4 +198,6 @@ PYTHON_CHECKS: tuple[CheckDefinition, ...] = (
     RESOURCE_CHECK,
     EXCEPTION_CHECK,
     DEAD_CHECK,
+    COMPAT_CHECK,
+    COMPAT_RUNTIME_CHECK,
 )

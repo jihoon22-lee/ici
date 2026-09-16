@@ -16,6 +16,7 @@ from ici.domain.enums import TaskState
 from ici.domain.observation import Measurement, Observation
 from ici.domain.workspace import BuildUnit, Component
 from ici.languages.artifacts import ArtifactRequest, verify_artifacts
+from ici.languages.compat import CompatRequest, measure_python_compat
 from ici.languages.cycles import CycleRequest, measure_cycles
 from ici.languages.deadcode import DeadRequest, measure_dead
 from ici.languages.duplicates import DuplicateRequest, measure_duplicates
@@ -61,6 +62,8 @@ def internal_analysis(
         return _dead_counter(planned, component, files, component_root, root)
     if kind == "artifact":
         return _artifact_checker(planned, component, root, builds)
+    if planned.check.id == "python.compat":
+        return _compat_counter(planned, component, files, component_root, root)
     return _line_counter(component_root, root, files, planned.task_id)
 
 
@@ -180,6 +183,24 @@ def _artifact_checker(
         component_id=component.id,
     )
     return lambda: verify_artifacts(request)
+
+
+def _compat_counter(
+    planned: PlannedCheck,
+    component: Component,
+    files: tuple[str, ...],
+    component_root: Path,
+    root: Path,
+) -> Analysis:
+    resolved = tuple(root / item for item in files)
+    request = CompatRequest(
+        project_root=component_root,
+        files=resolved,
+        task_id=planned.task_id,
+        component_id=component.id,
+        workspace_root=root,
+    )
+    return lambda: measure_python_compat(request)
 
 
 def _line_counter(

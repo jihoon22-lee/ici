@@ -18,23 +18,29 @@ import os
 import shutil
 from pathlib import Path
 
+from ici.adapters.providers.binarycompat import BinaryCompatProvider
 from ici.adapters.providers.coverage import CoverageProvider
 from ici.adapters.providers.cpptest import CtestProvider, QtestProvider
 from ici.adapters.providers.gcov import GcovProvider
+from ici.adapters.providers.pycompat import CompileallProvider, PythonVersionProvider
 from ici.adapters.providers.pytest import PytestProvider
 from ici.adapters.providers.sanitize import SanitizeProvider
 from ici.application.plan import PlannedCheck
 from ici.config.composition import EffectiveComponent
 from ici.domain.workspace import AnalysisUnit, BuildUnit, Component
-from ici.workspace.instrumentation import ctest_binaries, sanitizer_marked
+from ici.engines._python_compatibility import PythonMetadataError
+from ici.languages.compat import declared_python_floor
+from ici.workspace.instrumentation import ctest_binaries, is_elf, sanitizer_marked
 from ici.workspace.test_suites import TestSuite, suites_for_build
 
 __all__ = [
     "component_targets",
     "cpp_gcno",
     "cpp_suites",
+    "expand_cpp_binary_compat",
     "expand_cpp_sanitizer",
     "expand_cpp_tests",
+    "expand_python_compat_runtime",
     "locate_tool",
     "plan_coverage",
     "plan_cpp_coverage",
@@ -313,6 +319,139 @@ def expand_cpp_tests(
                 analysis_unit_id=cpp_unit.id if cpp_unit is not None else "",
             )
             expanded.append(PlannedCheck(check=planned.check, task_id=task_id, task=plan))
+    return expanded
+
+
+def expand_python_compat_runtime(
+    planned: PlannedCheck,
+    interpreter: str | None,
+    no_interpreter: str,
+    files: tuple[str, ...],
+    component_root: Path,
+    root: Path,
+    unit: AnalysisUnit | None,
+) -> list[PlannedCheck]:
+    """Two measured answers from the declared interpreter (#220 item 5).
+
+    ``-VV`` proves which runtime the project declared; ``compileall`` proves
+    that runtime accepts the component's sources. Neither is the static
+    scan's job, and a component with no interpreter gets blocked, not
+    silently judged by the AST tables alone.
+    """
+
+    if interpreter is None:
+        return [PlannedCheck(check=planned.check, task_id=planned.task_id, blocked=no_interpreter)]
+    targets = tuple(
+        item for item in component_targets(component_root, root, files) if item.endswith(".py")
+    )
+    if not targets:
+        return [
+            PlannedCheck(
+                check=planned.check,
+                task_id=planned.task_id,
+                blocked="no Python sources in the component's scope",
+            )
+        ]
+    try:
+        floor = declared_python_floor(component_root, root)
+    except PythonMetadataError as error:
+        return [
+            PlannedCheck(
+                check=planned.check,
+                task_id=planned.task_id,
+                blocked=f"python metadata unreadable: {error}",
+            )
+        ]
+    pycache = root / ".ici" / "cache" / "pycache" / "compat"
+    pycache.mkdir(parents=True, exist_ok=True)
+    version = PythonVersionProvider().plan(
+        interpreter,
+        cwd=str(component_root),
+        task_id=f"{planned.task_id}.version",
+        requires_python=floor,
+        analysis_unit_id=unit.id if unit is not None else "",
+    )
+    compileall = CompileallProvider().plan(
+        interpreter,
+        files=targets,
+        cwd=str(component_root),
+        task_id=f"{planned.task_id}.compileall",
+        analysis_unit_id=unit.id if unit is not None else "",
+        pycache_prefix=str(pycache),
+    )
+    return [
+        PlannedCheck(check=planned.check, task_id=version.task.id, task=version),
+        PlannedCheck(check=planned.check, task_id=compileall.task.id, task=compileall),
+    ]
+
+
+def expand_cpp_binary_compat(
+    planned: PlannedCheck,
+    component: Component,
+    root: Path,
+    builds: tuple[BuildUnit, ...],
+    cpp_unit: AnalysisUnit | None,
+) -> list[PlannedCheck]:
+    """One readelf task per ELF artifact the linked builds declare (#220).
+
+    The targets come from the artifact contract — the same globs
+    ``cpp.artifact`` verifies — so a component without a contract has
+    nothing to inspect and is blocked, not vacuously passed.
+    """
+
+    if not component.build_ids:
+        return [
+            PlannedCheck(
+                check=planned.check,
+                task_id=planned.task_id,
+                blocked="no build unit linked — artifact declarations live on [builds.<id>]",
+            )
+        ]
+    linked = [build for build in builds if build.id in component.build_ids]
+    if not any(build.artifacts for build in linked):
+        return [
+            PlannedCheck(
+                check=planned.check,
+                task_id=planned.task_id,
+                blocked="no artifact contract — declare [builds.<id>] artifacts = [...] "
+                "so the binaries to inspect are named",
+            )
+        ]
+    executable = locate_tool("readelf")
+    if executable is None:
+        return [
+            PlannedCheck(
+                check=planned.check,
+                task_id=planned.task_id,
+                blocked="readelf is not available",
+            )
+        ]
+    provider = BinaryCompatProvider(project_root=root)
+    expanded: list[PlannedCheck] = []
+    inspected = 0
+    for build in linked:
+        build_dir = root / build.directory
+        for pattern in build.artifacts:
+            for match in sorted(build_dir.glob(pattern)):
+                if not match.is_file() or is_elf(match) is not True:
+                    continue
+                inspected += 1
+                plan = provider.plan(
+                    executable,
+                    binary=match,
+                    task_id=f"{planned.task_id}.{build.id}-{inspected}",
+                    analysis_unit_id=cpp_unit.id if cpp_unit is not None else "",
+                )
+                expanded.append(PlannedCheck(check=planned.check, task_id=plan.task.id, task=plan))
+    if not expanded:
+        return [
+            PlannedCheck(
+                check=planned.check,
+                task_id=planned.task_id,
+                blocked="the artifact contract matched no ELF binaries — "
+                "nothing for binary compatibility to inspect",
+            )
+        ]
     return expanded
 
 

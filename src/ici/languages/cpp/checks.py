@@ -176,6 +176,23 @@ CPP_TSAN_CHECK = CheckDefinition(
     profiles=frozenset({Profile.DEEP}),
 )
 
+#: ELF/ABI evidence over the artifact contract (#220): one ``readelf`` read
+#: per ELF binary the linked builds' ``artifacts`` globs name, judged by the
+#: stable engine's default policy. ``tool=None`` because the binaries come
+#: from the declared contract, not from a discovered tool argv — the plan
+#: gate expands one declared check into one readelf task per ELF artifact
+#: and blocks when readelf or a contract is absent. Advisory like the
+#: contract check — a component with no declared artifacts has nothing for
+#: it to inspect, and is blocked rather than silently passed.
+CPP_BINARY_COMPAT_CHECK = CheckDefinition(
+    id="cpp.binary-compat",
+    title="Binary ABI compatibility",
+    language="cpp",
+    tool=None,
+    required=False,
+    needs=("artifact-contract",),
+)
+
 #: Declaration only. Importing this must not look at the machine.
 CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_LINE_CHECK,
@@ -192,4 +209,5 @@ CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_ARTIFACT_CHECK,
     CPP_SANITIZE_CHECK,
     CPP_TSAN_CHECK,
+    CPP_BINARY_COMPAT_CHECK,
 )

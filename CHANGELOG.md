@@ -7,6 +7,41 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` 호환성 검증 이관 (WP22-C, [#220](https://github.com/jihoon22-lee/ici/issues/220))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 새
+check 셋입니다 — stable `python_compat`/`binary_compat` 엔진은 그대로
+유지됩니다.
+
+- **`python.compat`가 추가됐습니다.** stable 엔진과 같은
+  `analyze_static_compatibility`로 컴포넌트 소스를 선언된
+  `requires-python` floor에 대해 검사합니다 — 문법 floor와 문서화된
+  표준 라이브러리 API floor. 컴포넌트 `pyproject.toml`이 우선이고 없으면
+  workspace root의 선언을 계승합니다. floor를 추론할 수 없으면 finding
+  없음+limitation으로 기록되며 pass로 위장하지 않습니다.
+- **`python.compat-runtime`이 추가됐습니다.** 선언된 프로젝트
+  인터프리터(`[python] executable` 또는 컴포넌트 `.venv`)로만 실행되는
+  두 task입니다 — `-VV`로 측정한 런타임을 plan 시점에 확정된 floor와
+  비교하고, `compileall`로 해당 런타임이 소스를 받아들이는지 검증합니다.
+  ici의 인터프리터로 대체하지 않고, 인터프리터 미선언은 blocked입니다.
+  stable의 import smoke는 임의 부수효과가 있어 이관하지 않았습니다.
+  이 check은 advisory 기본입니다 — 인터프리터 선언이 적용 조건이며,
+  `[checks."python.compat-runtime"] required = true`로 게이트화할 수
+  있습니다.
+- **`cpp.binary-compat`이 추가됐습니다.** `[builds.<id>] artifacts`
+  계약이 지명한 ELF에 대해 readelf task를 하나씩 계획합니다 — 계약 밖
+  바이너리를 발견하거나 실행하지 않습니다. stable과 동일한 readelf
+  argv·`_elf` 파서·`_abi_violations` 정책을 씁니다. 절대 loader 경로와
+  build 경로 누출은 `ici.binary.*` finding이 되고, 배포 floor(기대
+  class/machine·max glibc/glibcxx/cxxabi·NEEDED 목록)는 아직 선언할
+  스키마가 없어 artifact별 측정 사실을 limitation으로 기록합니다 —
+  판정하지 않은 것을 판정한 것으로 보고하지 않습니다.
+- 런타임·바이너리 check의 기본값은 advisory입니다. `cpp.artifact`와
+  같은 원칙입니다 — 선언(인터프리터·산출물 계약)이 없으면 적용될
+  대상이 없어 blocked이며, 게이트 실패 여부는 워크스페이스의 `required`
+  선언이 결정합니다. 정적 `python.compat`은 선언된 floor 위반을
+  프로젝트 자신의 약속 위반으로 보는 required check입니다.
+
 ### 추가 — `ici next` sanitizer suite 실행 이관 (WP22-B, [#220](https://github.com/jihoon22-lee/ici/issues/220))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 새

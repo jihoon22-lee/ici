@@ -19,7 +19,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-__all__ = ["MAX_BINARY_BYTES", "ctest_binaries", "sanitizer_marked"]
+__all__ = ["MAX_BINARY_BYTES", "ctest_binaries", "is_elf", "sanitizer_marked"]
 
 #: A binary larger than this is not scanned — the instrumentation claim is
 #: unproven rather than searched forever.
@@ -38,6 +38,16 @@ _ADD_TEST_RE = re.compile(r"add_test\s*\(\s*(?:\[=*\[)?[^\s\)\]\"]+\]?=*\s*\"?([
 
 _ELF_MAGIC = b"\x7fELF"
 _MAX_TESTFILE_BYTES = 1024 * 1024
+
+
+def is_elf(path: Path) -> bool | None:
+    """Whether the file is an ELF object — ``None`` when it cannot be read."""
+
+    try:
+        with path.open("rb") as stream:
+            return stream.read(4) == _ELF_MAGIC
+    except OSError:
+        return None
 
 
 def sanitizer_marked(binary: Path, variant: str) -> bool | None:

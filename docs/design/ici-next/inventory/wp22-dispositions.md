@@ -1,7 +1,7 @@
 # WP22 동적·호환성 검증 이관 disposition
 
-- 상태: **PR A(build/artifact contract)·PR B(sanitizer 이관) 구현 완료.
-  나머지 슬라이스는 이 문서의 disposition이 잠정이며 각 PR에서 확정한다.**
+- 상태: **PR A(build/artifact contract)·PR B(sanitizer 이관)·
+  PR C(compatibility 이관) 구현 완료. PR D(integration)가 남아 있다.**
   잠정 표는 [current-engines.md §7](current-engines.md#7-잠정-disposition)에 있다.
 - 근거 이슈: [WP22 #220](https://github.com/jihoon22-lee/ici/issues/220)
 - 대상: `build`, `binary_compat`, `integration`, `python_compat`,
@@ -48,6 +48,18 @@
 |격리|`cacheable=False` — 바이너리 내용은 선언 input에 없어 캐시 verdict가 stale 계측을 가리킬 수 있음. variant가 다른 build는 suite·task_id·env 모두 분리|
 |대조군|`tests/test_cli_next_sanitize.py` — plan 게이팅 7종·마커 스캔 3종·파싱 7종 + 실제 `g++ -fsanitize=address` E2E(g++ 있을 때)|
 
+## PR C — compatibility 이관 (완료)
+
+|항목|결정|
+|---|---|
+|check|`python.compat`(정적 floor)·`python.compat-runtime`(선언 런타임 `-VV`+`compileall`)·`cpp.binary-compat`(ELF/ABI)|
+|정적 floor|`languages/compat.py`가 stable `analyze_static_compatibility`를 그대로 호출 — 컴포넌트 `pyproject.toml`이 우선, 없으면 workspace root의 `requires-python`을 계승. floor 부재는 finding 없음+limitation이며 pass로 위장하지 않는다|
+|런타임 증거|선언 인터프리터(`[python] executable` 또는 `.venv`)만 실행 — ici 인터프리터 fallback 없음. floor는 plan 시점에 확정해 `ICI_REQUIRES_PYTHON` env로 task에 실음 — 판정은 plan이 본 선언 기준|
+|판정|미설정 인터프리터·무소스·메타데이터 판독 실패는 blocked. `-VV` 비정상 종료·버전 파싱 실패·compileall이 실패 파일을 특정 못함은 `failed_to_parse`. floor 밖 런타임은 `python.compat.runtime-version` finding, compile 실패는 파일+라인을 가진 `python.compat.compile-failure`|
+|바이너리 계약|`cpp.binary-compat`은 `needs=("artifact-contract",)` — glob이 지명한 ELF에만 readelf task 1개씩. 발견·실행·스캔한 바이너리는 없다. stable argv(`--file-header --sections --dynamic --version-info --wide`)와 `_elf.parse_readelf`, `_abi_violations` 정책을 그대로 사용|
+|정책 범위|선언 없이 안전한 기본만 적용: 절대 RPATH/RUNPATH(`ici.binary.forbidden-rpath`)와 build 경로 누출(`ici.binary.build-path-leak`). class/machine·max glibc/glibcxx/cxxabi·정적 링크·NEEDED 허용목록 등 배포 floor는 `[checks.*]` 스키마에 선언 통로가 없어 **미판정** — 측정된 ABI 사실은 artifact별 limitation으로 기록|
+|대조군|`tests/test_cli_next_compat.py` — 정적 floor 4종·런타임 파싱 7종·readelf 파싱 4종·plan 게이팅 5종 + 실제 g++/readelf E2E|
+
 ## 잠정 disposition — 이후 PR 슬라이스
 
 |엔진|잠정 disposition|방향|
@@ -55,8 +67,8 @@
 |`build`|준비는 `prepare` 권한 모델로, 산출물 계약은 `cpp.artifact`로 **분리 완료**. 링크 산출물 탐지·매니페스트 생성은 실행 경로가 없으므로 stable 유지|PR A 완료. release-variant 매니페스트는 #224(idk) 소비자와 함께|
 |`sanitize`|PR B 완료 — deep 프로파일 check + 계측 마커 게이팅으로 이관|완료|
 |`thread_sanitize`|PR B 완료 — `cpp.tsan`(thread-sanitize variant)|완료|
-|`binary_compat`|실제 ELF 읽기(magic/CLASS/needed libs)를 in-process check으로 — `readelf` 의존 대신 직접 파싱 가능 여부를 PR C에서 확정|PR C: checked-target vs unknown 구분 필수|
-|`python_compat`|문법 검사(`ast.parse` in-process)와 지정 런타임 실행을 분리 — 전자는 즉시 이관 가능, 후자는 `executable` 선언 하에만|PR C|
+|`binary_compat`|PR C 완료 — readelf per-artifact task + stable 정책 재사용. 배포 floor 선언 스키마는 별도 확장 필요|완료(정책 선언은 deferred)|
+|`python_compat`|PR C 완료 — 정적/런타임 분리 이관|완료|
 |`integration`|명시 산출물·서비스 요구·명령·timeout을 선언으로 — offline 기본 실행에서 자동 호출 금지, `deep`+opt-in|PR D: `needs`의 artifact 소비 + 외부 서비스 표기|
 
 ## 명시적 미이관 (조용한 삭제 없음)
@@ -67,3 +79,6 @@
 |stable sanitize의 프로브 컴파일 경로(테스트 소스를 `-fsanitize`로 임시 컴파일)|ici는 컴파일하지 않는다 — 계측은 프로젝트의 variant 빌드가 만든다|`variant = "sanitize"`/`"thread-sanitize"` 빌드 + 바이너리 마커 게이팅|
 |stable `build` 엔진의 shadow-tree 링크 산출물 탐지|ici next는 빌드하지 않으므로 link 산출물이 없음|선언 기반 `artifacts` 계약이 그 역할|
 |per-artifact digest 매니페스트|Observation 채널에 맞는 필드 없음|#224 소비자 계약과 함께 도입 예정|
+|stable python_compat의 import smoke(`imports` opt-in)|프로젝트 모듈 top-level 실행은 임의 부수효과 — 선언 런타임 검증과 분리|미이관. 필요하면 명시 opt-in 명령으로만|
+|python_compat의 wheel/packaging 검사(`_python_packaging`)|next에 wheel 산출물 선언 통로가 없음|산출물 계약이 Python 패키지를 선언하게 되는 슬라이스와 함께|
+|binary_compat 배포 floor 정책(expected class/machine·max glibc 등)|`[checks.<id>]` 스키마가 enabled/required/exemptions만 지원 — 정책 필드 통로 없음|정책 스키마 확장 시 `ici.binary.*-floor` 등 활성화|

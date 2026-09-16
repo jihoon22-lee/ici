@@ -26,11 +26,13 @@ import typer
 
 from ici import __version__
 from ici.adapters.providers.base import Provider
+from ici.adapters.providers.binarycompat import BinaryCompatProvider
 from ici.adapters.providers.compiler import CompilerDiagnosticsProvider
 from ici.adapters.providers.coverage import CoverageProvider
 from ici.adapters.providers.cpptest import CtestProvider, QtestProvider
 from ici.adapters.providers.gcov import GcovProvider
 from ici.adapters.providers.mypy import MypyProvider
+from ici.adapters.providers.pycompat import CompileallProvider, PythonVersionProvider
 from ici.adapters.providers.pytest import PytestProvider
 from ici.adapters.providers.ruff import RuffProvider
 from ici.adapters.providers.sanitize import SanitizeProvider
@@ -621,6 +623,12 @@ def cmd_verify(
         "gcov": GcovProvider(),
         "sanitize": SanitizeProvider("sanitize", project_root=root),
         "thread-sanitize": SanitizeProvider("thread-sanitize", project_root=root),
+        "python-compat-version": PythonVersionProvider(),
+        "python-compat-compileall": CompileallProvider(),
+        "binary-compat": BinaryCompatProvider(
+            project_root=root,
+            build_roots=tuple((root / build.directory).resolve() for build in model.builds),
+        ),
     }
     # SIGINT/SIGTERM land as a fact on the run, not an exception: unstarted
     # units read it and report CANCELLED, the running one is told through its

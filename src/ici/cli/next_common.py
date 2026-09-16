@@ -43,8 +43,10 @@ from ici.cli.next_testing import (
     component_targets,
     cpp_gcno,
     cpp_suites,
+    expand_cpp_binary_compat,
     expand_cpp_sanitizer,
     expand_cpp_tests,
+    expand_python_compat_runtime,
     locate_tool,
     plan_coverage,
     plan_cpp_coverage,
@@ -526,6 +528,9 @@ def _gate_cpp(
       ``variant`` build produced, gated on the instrumentation markers the
       runtime leaves in each binary — unbuilt or uninstrumented is blocked,
       never a vacuous pass (#220).
+    - ``cpp.binary-compat`` expands into one readelf task per ELF artifact
+      the linked builds' contract names — no contract means nothing to
+      inspect, which is blocked rather than a pass (#220).
     """
 
     gated = {
@@ -537,6 +542,7 @@ def _gate_cpp(
         "cpp.artifact",
         "cpp.sanitize",
         "cpp.tsan",
+        "cpp.binary-compat",
     }
     if not any(planned.check.id in gated for planned in plan.checks):
         return plan
@@ -595,6 +601,8 @@ def _gate_cpp(
             )
         elif planned.check.id == "cpp.artifact":
             checks.append(_gate_artifact(planned, component, builds))
+        elif planned.check.id == "cpp.binary-compat":
+            checks.extend(expand_cpp_binary_compat(planned, component, root, builds, cpp_unit))
         elif planned.check.id in ("cpp.sanitize", "cpp.tsan"):
             checks.extend(
                 expand_cpp_sanitizer(
@@ -779,7 +787,7 @@ def _gate_python(
     execution feeds both checks (#216 item 4).
     """
 
-    gated = {"python.type", "python.test", "python.coverage"}
+    gated = {"python.type", "python.test", "python.coverage", "python.compat-runtime"}
     if not any(planned.check.id in gated for planned in plan.checks):
         return plan
     decided = effective.python_type_provider if effective is not None else None
@@ -830,6 +838,18 @@ def _gate_python(
                     root,
                     unit,
                     coverage_data=data_file if coverage_selected else None,
+                )
+            )
+        elif planned.check.id == "python.compat-runtime":
+            checks.extend(
+                expand_python_compat_runtime(
+                    planned,
+                    interpreter,
+                    no_interpreter,
+                    files,
+                    component_root,
+                    root,
+                    unit,
                 )
             )
         else:  # python.coverage
