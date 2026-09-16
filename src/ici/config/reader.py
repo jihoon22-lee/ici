@@ -127,6 +127,47 @@ class Table:
             patterns.append(SourceGlob(raw=pattern, origin=found.origin.item(index)))
         return tuple(patterns)
 
+    def number(self, key: str) -> Sourced[float] | None:
+        """A numeric value — TOML has no int/float distinction worth keeping
+        for knobs like timeouts, so both are accepted and bool is not."""
+
+        taken = self._take(key)
+        if taken is None:
+            return None
+        value, origin = taken
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            self._wrong_type(key, origin, "a number", value)
+            return None
+        return Sourced(value=float(value), origin=origin)
+
+    def text_map(self, key: str) -> tuple[tuple[str, Sourced[str]], ...] | None:
+        """A string→string table as ordered pairs, for ``env``-style maps.
+
+        Returns ``None`` when the key is absent and reports each non-string
+        value individually so one bad entry does not hide the rest.
+        """
+
+        taken = self._take(key)
+        if taken is None:
+            return None
+        value, origin = taken
+        if not isinstance(value, dict):
+            self._wrong_type(key, origin, "a table of strings", value)
+            return None
+        result: list[tuple[str, Sourced[str]]] = []
+        for name, item in value.items():
+            item_origin = origin.child(name)
+            if not isinstance(item, str):
+                self._problems.append(
+                    ConfigProblem(
+                        f"{key}.{name} must be a string, not {type(item).__name__}",
+                        item_origin,
+                    )
+                )
+                continue
+            result.append((name, Sourced(value=item, origin=item_origin)))
+        return tuple(result)
+
     def table(self, key: str) -> Table | None:
         taken = self._take(key)
         if taken is None:

@@ -18,7 +18,9 @@ a question about the schema.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
+from pathlib import PurePosixPath
 from typing import Protocol
 
 import tomli
@@ -32,6 +34,8 @@ from ici.config.documents import (
     ComponentReference,
     CppSettings,
     Exemption,
+    IntegrationCaseBody,
+    IntegrationOutputBody,
     PythonSettings,
     RootDocument,
     ToolSetting,
@@ -39,7 +43,9 @@ from ici.config.documents import (
 )
 from ici.config.errors import ConfigProblem, NextConfigError, collect, fail
 from ici.config.origin import Origin, Sourced
+from ici.config.paths import Executable
 from ici.config.reader import Table
+from ici.engines import _integration as stable_integration
 
 __all__ = ["SCHEMA_VERSION", "read_component", "read_root"]
 
@@ -250,6 +256,7 @@ def _defining_keys(table: Table) -> Iterable[str]:
         "needs",
         "vendor",
         "external",
+        "integrations",
     ):
         if table.has(key):
             yield key
@@ -303,9 +310,293 @@ def _component_body(
         needs=table.text_list("needs"),
         vendor=table.globs("vendor"),
         external=table.text_list("external"),
+        integrations=_integration_cases(table, problems),
     )
     table.done()
     return body
+
+
+def _integration_cases(
+    table: Table, problems: list[ConfigProblem]
+) -> tuple[IntegrationCaseBody, ...]:
+    """``[[components.integrations]]`` — declared process contracts (#220).
+
+    The bounds are the stable engine's — same maximum counts, same control-
+    character and placeholder rules — because the contract a case states is
+    unchanged; what differs is where the declaration lives and who resolves
+    its placeholders.
+    """
+
+    entries = table.array_of_tables("integrations")
+    if len(entries) > stable_integration.MAX_CASES:
+        problems.append(
+            ConfigProblem(
+                f"a component may declare at most {stable_integration.MAX_CASES} integration cases",
+                table.origin.child("integrations"),
+            )
+        )
+    seen: set[str] = set()
+    cases: list[IntegrationCaseBody] = []
+    for index, entry in enumerate(entries):
+        cases.append(_integration_case(entry, index, seen, problems))
+    return tuple(cases)
+
+
+def _integration_case(
+    table: Table, index: int, seen: set[str], problems: list[ConfigProblem]
+) -> IntegrationCaseBody:
+    """One case's shape — resolution of its placeholders is the plan's job."""
+
+    setting = f"integrations[{index}]"
+    name = table.text("name")
+    if name is None:
+        problems.append(
+            ConfigProblem("an integration case must have a name", table.origin.child("name"))
+        )
+    elif len(name.value) > 128 or name.value in seen:
+        problems.append(
+            ConfigProblem(f"{setting}.name must be a unique bounded string", name.origin)
+        )
+        name = None
+    if name is not None:
+        seen.add(name.value)
+
+    argv = table.text_list("argv")
+    if argv is None:
+        problems.append(
+            ConfigProblem("an integration case must declare argv", table.origin.child("argv"))
+        )
+    else:
+        _integration_argv(argv, setting, problems)
+
+    expected_exit = table.integer("expected_exit")
+    if expected_exit is not None and not -(2**31) <= expected_exit.value < 2**31:
+        problems.append(
+            ConfigProblem(f"{setting}.expected_exit must be a 32-bit integer", expected_exit.origin)
+        )
+        expected_exit = None
+    timeout = table.number("timeout_seconds")
+    if timeout is not None and not 0.1 <= timeout.value <= 300:
+        problems.append(
+            ConfigProblem(f"{setting}.timeout_seconds must be between 0.1 and 300", timeout.origin)
+        )
+        timeout = None
+
+    body = IntegrationCaseBody(
+        name=name,
+        argv=argv,
+        expected_exit=expected_exit,
+        stdout_contains=_bounded_strings(table, "stdout_contains", setting, problems),
+        stderr_contains=_bounded_strings(table, "stderr_contains", setting, problems),
+        stdout_not_contains=_bounded_strings(table, "stdout_not_contains", setting, problems),
+        stderr_not_contains=_bounded_strings(table, "stderr_not_contains", setting, problems),
+        timeout_seconds=timeout,
+        env=_case_env(table, setting, problems),
+        requires=_bounded_strings(table, "requires", setting, problems, limit=128),
+        python_targets=_python_targets(table, setting, problems),
+        output_artifacts=_integration_outputs(table, setting, problems),
+        required=table.flag("required"),
+        origin=table.origin,
+    )
+    table.done()
+    return body
+
+
+def _integration_argv(
+    argv: Sourced[tuple[str, ...]], setting: str, problems: list[ConfigProblem]
+) -> None:
+    """argv[0] is a typed placeholder; braces elsewhere must be whole tokens."""
+
+    if not argv.value:
+        problems.append(ConfigProblem(f"{setting}.argv must not be empty", argv.origin))
+        return
+    if len(argv.value) > stable_integration.MAX_ARGV:
+        problems.append(
+            ConfigProblem(
+                f"{setting}.argv must hold at most {stable_integration.MAX_ARGV} entries",
+                argv.origin,
+            )
+        )
+    if stable_integration._EXECUTABLE_PLACEHOLDER_RE.fullmatch(argv.value[0]) is None:
+        problems.append(
+            ConfigProblem(
+                f"{setting}.argv[0] must be a typed placeholder — "
+                "{python:NAME} or {artifact:BUILD/PATH}",
+                argv.origin.item(0),
+            )
+        )
+    if sum(len(token) for token in argv.value) > 32 * 1024:
+        problems.append(ConfigProblem(f"{setting}.argv exceeds the aggregate bound", argv.origin))
+    for index, token in enumerate(argv.value):
+        if len(token) > 1024 or any(ord(char) < 32 for char in token):
+            problems.append(
+                ConfigProblem(
+                    f"{setting}.argv[{index}] must be a bounded printable string",
+                    argv.origin.item(index),
+                )
+            )
+        if ("{" in token or "}" in token) and _PLACEHOLDER.fullmatch(token) is None:
+            problems.append(
+                ConfigProblem(
+                    f"{setting}.argv[{index}] is a partial or unknown placeholder: {token!r}",
+                    argv.origin.item(index),
+                )
+            )
+
+
+def _bounded_strings(
+    table: Table, key: str, setting: str, problems: list[ConfigProblem], *, limit: int = 1024
+) -> tuple[str, ...]:
+    found = table.text_list(key)
+    if found is None:
+        return ()
+    if len(found.value) > stable_integration.MAX_ASSERTIONS:
+        problems.append(
+            ConfigProblem(
+                f"{setting}.{key} holds at most {stable_integration.MAX_ASSERTIONS} entries",
+                found.origin,
+            )
+        )
+    values: list[str] = []
+    for index, item in enumerate(found.value):
+        if len(item) > limit or any(ord(char) < 32 for char in item):
+            problems.append(
+                ConfigProblem(
+                    f"{setting}.{key}[{index}] must be a bounded printable string",
+                    found.origin.item(index),
+                )
+            )
+            continue
+        values.append(item)
+    return tuple(values)
+
+
+def _case_env(
+    table: Table, setting: str, problems: list[ConfigProblem]
+) -> tuple[tuple[str, Sourced[str]], ...]:
+    found = table.text_map("env")
+    if found is None:
+        return ()
+    if len(found) > stable_integration.MAX_ENV:
+        problems.append(
+            ConfigProblem(
+                f"{setting}.env holds at most {stable_integration.MAX_ENV} entries",
+                table.origin.child("env"),
+            )
+        )
+    result: list[tuple[str, Sourced[str]]] = []
+    for name, value in found:
+        if stable_integration._ENV_NAME_RE.fullmatch(name) is None:
+            problems.append(
+                ConfigProblem(f"{setting}.env has an invalid name {name!r}", value.origin)
+            )
+            continue
+        if name.startswith("ICI_"):
+            problems.append(
+                ConfigProblem(
+                    f"{setting}.env must not set {name!r} — ICI_* carries the "
+                    "run's own contract to the checker",
+                    value.origin,
+                )
+            )
+            continue
+        if len(value.value) > 4096 or any(ord(char) < 32 for char in value.value):
+            problems.append(
+                ConfigProblem(
+                    f"{setting}.env.{name} must be a bounded printable string", value.origin
+                )
+            )
+            continue
+        result.append((name, value))
+    return tuple(result)
+
+
+def _python_targets(
+    table: Table, setting: str, problems: list[ConfigProblem]
+) -> tuple[tuple[str, Executable], ...]:
+    found = table.text_map("python_targets")
+    if found is None:
+        return ()
+    if len(found) > 32:
+        problems.append(
+            ConfigProblem(
+                f"{setting}.python_targets holds at most 32 entries",
+                table.origin.child("python_targets"),
+            )
+        )
+    result: list[tuple[str, Executable]] = []
+    for name, value in found:
+        if _PY_TARGET_RE.fullmatch(name) is None:
+            problems.append(
+                ConfigProblem(
+                    f"{setting}.python_targets has an invalid name {name!r}", value.origin
+                )
+            )
+            continue
+        if len(value.value) > 1024 or any(ord(char) < 32 for char in value.value):
+            problems.append(
+                ConfigProblem(
+                    f"{setting}.python_targets.{name} must be a bounded path", value.origin
+                )
+            )
+            continue
+        result.append((name, Executable(raw=value.value, origin=value.origin)))
+    return tuple(result)
+
+
+def _integration_outputs(
+    table: Table, setting: str, problems: list[ConfigProblem]
+) -> tuple[IntegrationOutputBody, ...]:
+    entries = table.array_of_tables("output_artifacts")
+    if len(entries) > stable_integration.MAX_ASSERTIONS:
+        problems.append(
+            ConfigProblem(
+                f"{setting}.output_artifacts holds at most "
+                f"{stable_integration.MAX_ASSERTIONS} entries",
+                table.origin.child("output_artifacts"),
+            )
+        )
+    return tuple(
+        _integration_output(entry, f"{setting}.output_artifacts[{index}]", problems)
+        for index, entry in enumerate(entries)
+    )
+
+
+def _integration_output(
+    table: Table, setting: str, problems: list[ConfigProblem]
+) -> IntegrationOutputBody:
+    path = table.declared_path("path")
+    if path is None:
+        problems.append(ConfigProblem(f"{setting} must declare path", table.origin.child("path")))
+    else:
+        posix = PurePosixPath(path.raw)
+        if (
+            "\\" in path.raw
+            or posix.is_absolute()
+            or ".." in posix.parts
+            or posix.as_posix() != path.raw
+        ):
+            problems.append(
+                ConfigProblem(
+                    f"{setting}.path must be a contained, canonical POSIX path",
+                    path.origin,
+                )
+            )
+            path = None
+    min_size = table.integer("min_size")
+    if min_size is not None and not 0 <= min_size.value <= 64 * 1024 * 1024:
+        problems.append(
+            ConfigProblem(f"{setting}.min_size must be between 0 and 67108864", min_size.origin)
+        )
+        min_size = None
+    kind = table.text("kind")
+    body = IntegrationOutputBody(path=path, kind=kind, min_size=min_size, origin=table.origin)
+    table.done()
+    return body
+
+
+_PY_TARGET_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\Z")
+_PLACEHOLDER = re.compile(r"^\{(?:python|artifact):[^{}]+\}$")
 
 
 def _python(table: Table | None) -> PythonSettings | None:

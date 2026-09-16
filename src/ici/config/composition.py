@@ -53,6 +53,8 @@ __all__ = [
     "EffectiveCheck",
     "EffectiveComponent",
     "EffectiveConfig",
+    "EffectiveIntegrationCase",
+    "EffectiveIntegrationOutput",
     "compose",
     "compose_standalone",
 ]
@@ -118,6 +120,46 @@ class EffectiveCheck:
 
 
 @dataclass(frozen=True)
+class EffectiveIntegrationOutput:
+    """An output file an integration case claims to produce (#220).
+
+    ``path`` is workspace-relative like every other composed path.
+    """
+
+    path: str
+    kind: str
+    min_size: int
+
+
+@dataclass(frozen=True)
+class EffectiveIntegrationCase:
+    """One declared process contract, with paths resolved to the workspace.
+
+    ``argv`` still carries its placeholders — resolving them needs the
+    build tree, which is the plan's job. ``python_targets`` values are
+    interpreter identities like ``[python] executable``: a bare name stays a
+    PATH lookup, a path is anchored workspace-relative or kept absolute.
+    """
+
+    name: str
+    argv: tuple[str, ...]
+    expected_exit: int
+    stdout_contains: tuple[str, ...]
+    stderr_contains: tuple[str, ...]
+    stdout_not_contains: tuple[str, ...]
+    stderr_not_contains: tuple[str, ...]
+    timeout_seconds: float
+    env: tuple[tuple[str, str], ...]
+    requires: tuple[str, ...]
+    python_targets: tuple[tuple[str, str], ...]
+    output_artifacts: tuple[EffectiveIntegrationOutput, ...]
+    required: bool
+    #: The file that declared the case, workspace-relative — the location
+    #: findings about the case point at.
+    declared_in: str
+
+
+@dataclass(frozen=True)
 class EffectiveComponent:
     """One component, wherever it was written.
 
@@ -143,6 +185,8 @@ class EffectiveComponent:
     declared_in: str = ""
     python_executable: Decided[str] | None = None
     python_type_provider: Decided[str] | None = None
+    #: Declared integration cases — deep-profile, opt-in process contracts.
+    integrations: tuple[EffectiveIntegrationCase, ...] = ()
 
     def check(self, check_id: str) -> EffectiveCheck | None:
         for check in self.checks:
@@ -381,6 +425,7 @@ def _follow(
             needs=document.component.needs,
             vendor=document.component.vendor,
             external=document.component.external,
+            integrations=document.component.integrations,
         ),
         document.path,
     )
@@ -458,7 +503,72 @@ def _component(
             problems=problems,
         ),
         python_type_provider=_python_type_provider(component_id, body, local, problems),
+        integrations=_integrations(
+            body,
+            declared_in=declared_in,
+            workspace_dir=workspace_dir,
+            environment=environment,
+            problems=problems,
+        ),
     )
+
+
+def _integrations(
+    body: ComponentBody,
+    *,
+    declared_in: str,
+    workspace_dir: PurePosixPath,
+    environment: Mapping[str, str],
+    problems: list[ConfigProblem],
+) -> tuple[EffectiveIntegrationCase, ...]:
+    """Compose declared integration cases, anchoring their paths (#220)."""
+
+    cases: list[EffectiveIntegrationCase] = []
+    for case in body.integrations:
+        if case.name is None or case.argv is None:
+            continue  # already diagnosed at read time
+        cases.append(
+            EffectiveIntegrationCase(
+                name=case.name.value,
+                argv=case.argv.value,
+                expected_exit=case.expected_exit.value if case.expected_exit else 0,
+                stdout_contains=case.stdout_contains,
+                stderr_contains=case.stderr_contains,
+                stdout_not_contains=case.stdout_not_contains,
+                stderr_not_contains=case.stderr_not_contains,
+                timeout_seconds=(
+                    case.timeout_seconds.value if case.timeout_seconds is not None else 30.0
+                ),
+                env=tuple((name, value.value) for name, value in case.env),
+                requires=case.requires,
+                python_targets=tuple(
+                    (
+                        name,
+                        _executable(executable, workspace_dir, environment, problems),
+                    )
+                    for name, executable in case.python_targets
+                ),
+                output_artifacts=tuple(
+                    EffectiveIntegrationOutput(
+                        path=_anchor(
+                            output.path,
+                            declaring_file=declared_in,
+                            workspace_dir=workspace_dir,
+                            environment=environment,
+                            problems=problems,
+                            what=f"integration case {case.name.value!r} output",
+                        ),
+                        kind=output.kind.value if output.kind else "other",
+                        min_size=output.min_size.value if output.min_size else 1,
+                    )
+                    for output in case.output_artifacts
+                    if output.path is not None
+                ),
+                required=case.required.value if case.required is not None else True,
+                declared_in=declared_in,
+            )
+        )
+    return tuple(cases)
 
 
 def _virtual(path: PurePosixPath) -> PurePosixPath:
