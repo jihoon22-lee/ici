@@ -22,15 +22,18 @@ from ici.adapters.providers.coverage import CoverageProvider
 from ici.adapters.providers.cpptest import CtestProvider, QtestProvider
 from ici.adapters.providers.gcov import GcovProvider
 from ici.adapters.providers.pytest import PytestProvider
+from ici.adapters.providers.sanitize import SanitizeProvider
 from ici.application.plan import PlannedCheck
 from ici.config.composition import EffectiveComponent
 from ici.domain.workspace import AnalysisUnit, BuildUnit, Component
+from ici.workspace.instrumentation import ctest_binaries, sanitizer_marked
 from ici.workspace.test_suites import TestSuite, suites_for_build
 
 __all__ = [
     "component_targets",
     "cpp_gcno",
     "cpp_suites",
+    "expand_cpp_sanitizer",
     "expand_cpp_tests",
     "locate_tool",
     "plan_coverage",
@@ -308,6 +311,152 @@ def expand_cpp_tests(
                 cwd=str(component_root),
                 task_id=task_id,
                 analysis_unit_id=cpp_unit.id if cpp_unit is not None else "",
+            )
+            expanded.append(PlannedCheck(check=planned.check, task_id=task_id, task=plan))
+    return expanded
+
+
+def expand_cpp_sanitizer(
+    planned: PlannedCheck,
+    variant: str,
+    suites: tuple[TestSuite, ...],
+    component: Component,
+    component_root: Path,
+    root: Path,
+    builds: tuple[BuildUnit, ...],
+    cpp_unit: AnalysisUnit | None,
+) -> list[PlannedCheck]:
+    """One task per suite the variant build produced — unbuilt is blocked.
+
+    The variant declaration is the project's claim that a build was compiled
+    with the instrumentation; the claim is checked against the markers the
+    runtime leaves in each binary. A suite whose binaries carry no marker is
+    not silently run anyway — it is blocked with the reason, because running
+    an uninstrumented binary under sanitizer env vars proves nothing (#220).
+    """
+
+    if not component.build_ids:
+        return [
+            PlannedCheck(
+                check=planned.check,
+                task_id=planned.task_id,
+                blocked="no build unit linked — declare [builds.<id>] and "
+                "attach it to the component",
+            )
+        ]
+    variant_ids = {
+        build.id for build in builds if build.id in component.build_ids and build.variant == variant
+    }
+    if not variant_ids:
+        return [
+            PlannedCheck(
+                check=planned.check,
+                task_id=planned.task_id,
+                blocked=f'no {variant} build — declare [builds.<id>] variant = "{variant}" '
+                "and link it to the component",
+            )
+        ]
+    variant_suites = tuple(suite for suite in suites if suite.build_id in variant_ids)
+    if not variant_suites:
+        return [
+            PlannedCheck(
+                check=planned.check,
+                task_id=planned.task_id,
+                blocked=f"no declared test suite under the {variant} build — a "
+                "sanitizer check needs a suite to run",
+            )
+        ]
+    provider = SanitizeProvider(variant, project_root=root)
+    expanded: list[PlannedCheck] = []
+    for suite in variant_suites:
+        task_id = f"{planned.task_id}.{suite.id}"
+        build_dir = root / suite.build_dir
+        if suite.kind == "ctest":
+            executable = locate_tool("ctest")
+            if executable is None:
+                expanded.append(
+                    PlannedCheck(
+                        check=planned.check,
+                        task_id=task_id,
+                        blocked="ctest is not available",
+                    )
+                )
+                continue
+            if not (build_dir / "CTestTestfile.cmake").is_file():
+                expanded.append(
+                    PlannedCheck(
+                        check=planned.check,
+                        task_id=task_id,
+                        blocked="test suite not built — no CTestTestfile.cmake under "
+                        f"{suite.build_dir}",
+                    )
+                )
+                continue
+            binaries = ctest_binaries(root, suite.build_dir)
+            marked = [item for item in binaries if sanitizer_marked(item, variant)]
+            if not binaries:
+                expanded.append(
+                    PlannedCheck(
+                        check=planned.check,
+                        task_id=task_id,
+                        blocked=f"the suite names no test executables under {suite.build_dir}",
+                    )
+                )
+                continue
+            if not marked:
+                expanded.append(
+                    PlannedCheck(
+                        check=planned.check,
+                        task_id=task_id,
+                        blocked=f"no {variant} instrumentation in the suite's "
+                        f"binaries — the {suite.build_dir} build was not "
+                        "compiled for it",
+                    )
+                )
+                continue
+            plan = provider.plan(
+                argv=(executable, "--test-dir", str(build_dir), "--output-on-failure"),
+                cwd=str(component_root),
+                task_id=task_id,
+                analysis_unit_id=cpp_unit.id if cpp_unit is not None else "",
+                input_refs=tuple(str(item) for item in binaries),
+            )
+            expanded.append(PlannedCheck(check=planned.check, task_id=task_id, task=plan))
+        else:  # qtest
+            binary = build_dir / suite.binary
+            if not binary.is_file():
+                expanded.append(
+                    PlannedCheck(
+                        check=planned.check,
+                        task_id=task_id,
+                        blocked=f"test binary not built — {suite.binary} is absent "
+                        f"under {suite.build_dir}",
+                    )
+                )
+                continue
+            marked = sanitizer_marked(binary, variant)
+            if marked is not True:
+                expanded.append(
+                    PlannedCheck(
+                        check=planned.check,
+                        task_id=task_id,
+                        blocked=(
+                            f"no {variant} instrumentation in {suite.binary} — the "
+                            "build was not compiled for it"
+                            if marked is False
+                            else f"{variant} instrumentation of {suite.binary} "
+                            "could not be verified — the binary is unreadable "
+                            "or too large to scan"
+                        ),
+                    )
+                )
+                continue
+            plan = provider.plan(
+                argv=(str(binary),),
+                cwd=str(component_root),
+                task_id=task_id,
+                analysis_unit_id=cpp_unit.id if cpp_unit is not None else "",
+                input_refs=(str(binary),),
             )
             expanded.append(PlannedCheck(check=planned.check, task_id=task_id, task=plan))
     return expanded

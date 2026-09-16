@@ -7,6 +7,32 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` sanitizer suite 실행 이관 (WP22-B, [#220](https://github.com/jihoon22-lee/ici/issues/220))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 새
+check과 계획 게이팅입니다 — stable `sanitize`/`thread_sanitize` 엔진은
+그대로 유지됩니다.
+
+- **`cpp.sanitize`·`cpp.tsan` check이 추가됐습니다.** `deep` 프로파일
+  전용으로, `[builds.<id>] variant = "sanitize"` 또는
+  `"thread-sanitize"`로 선언된 빌드가 생산한 suite 바이너리를 sanitizer
+  런타임 옵션 아래 실행합니다. ici는 계측 빌드를 직접 컴파일하지
+  않습니다 — variant 선언은 프로젝트의 약속이고, check은 그 산출물만
+  실행합니다.
+- **계측 주장은 바이너리 마커로 검증됩니다.** 각 suite 바이너리에서
+  `libasan`/`__asan_init`/`__tsan_init` 등 런타임 마커를 스캔해,
+  미빌드·미계측·suite 부재·판독 불가를 모두 blocked로 표시합니다 —
+  계측되지 않은 바이너리를 sanitizer 환경으로 실행해 아무것도 증명하지
+  않는 실행을 성공으로 보고하지 않습니다.
+- **stable 엔진의 환경·파싱 계약을 그대로 계승합니다.**
+  `ASAN_OPTIONS`/`UBSAN_OPTIONS`/`TSAN_OPTIONS`는 상속된 값에 append되고,
+  bounded 파서(`_sanitizer_diagnostics`)와 마커 regex를 재사용합니다.
+  마커는 있는데 완결된 진단이 없거나 파싱이 실패한 transcript는 clean
+  pass가 아니라 parse failure이고, 마커 없이 종료 코드만 실패한 suite는
+  `ici.sanitize.suite-failure` finding으로 구분됩니다.
+- sanitizer task는 `cacheable=False`입니다 — 바이너리 내용이 선언된
+  input에 없으므로 캐시된 verdict가 오래된 계측을 가리킬 수 있습니다.
+
 ### 추가 — `ici next` 빌드 산출물 계약 검증 (WP22-A, [#220](https://github.com/jihoon22-lee/ici/issues/220))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스와

@@ -13,6 +13,7 @@ the compile check publishes rather than inventing flags of their own.
 
 from __future__ import annotations
 
+from ici.domain.enums import Profile
 from ici.languages.checks import CheckDefinition
 
 __all__ = ["CPP_CHECKS", "CPP_LINE_CHECK"]
@@ -151,6 +152,30 @@ CPP_ARTIFACT_CHECK = CheckDefinition(
     provides=("artifact-contract",),
 )
 
+#: Dynamic sanitizer runs (#220): the suite binaries a ``variant =
+#: "sanitize"`` / ``variant = "thread-sanitize"`` build produced, executed
+#: under the runtime options the sanitizer reads. ici never compiles the
+#: instrumentation — the variant declaration is the project's claim, and the
+#: plan gate verifies it by the markers the runtime leaves in the binary.
+#: Deep profile only: they are the expensive dynamic checks a project opted
+#: into, and a workspace with no such variant build reads blocked, never a
+#: vacuous pass.
+CPP_SANITIZE_CHECK = CheckDefinition(
+    id="cpp.sanitize",
+    title="ASan/UBSan/LSan suite run",
+    language="cpp",
+    tool=None,
+    profiles=frozenset({Profile.DEEP}),
+)
+
+CPP_TSAN_CHECK = CheckDefinition(
+    id="cpp.tsan",
+    title="ThreadSanitizer suite run",
+    language="cpp",
+    tool=None,
+    profiles=frozenset({Profile.DEEP}),
+)
+
 #: Declaration only. Importing this must not look at the machine.
 CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_LINE_CHECK,
@@ -165,4 +190,6 @@ CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_DUP_CHECK,
     CPP_EXCEPTION_CHECK,
     CPP_ARTIFACT_CHECK,
+    CPP_SANITIZE_CHECK,
+    CPP_TSAN_CHECK,
 )

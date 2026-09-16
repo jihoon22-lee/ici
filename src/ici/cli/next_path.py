@@ -33,6 +33,7 @@ from ici.adapters.providers.gcov import GcovProvider
 from ici.adapters.providers.mypy import MypyProvider
 from ici.adapters.providers.pytest import PytestProvider
 from ici.adapters.providers.ruff import RuffProvider
+from ici.adapters.providers.sanitize import SanitizeProvider
 from ici.adapters.providers.tidy import ClangTidyProvider
 from ici.adapters.providers.ty import TyProvider
 from ici.application.graph import WorkUnit
@@ -618,6 +619,8 @@ def cmd_verify(
         "ctest": CtestProvider(),
         "qtest": QtestProvider(),
         "gcov": GcovProvider(),
+        "sanitize": SanitizeProvider("sanitize", project_root=root),
+        "thread-sanitize": SanitizeProvider("thread-sanitize", project_root=root),
     }
     # SIGINT/SIGTERM land as a fact on the run, not an exception: unstarted
     # units read it and report CANCELLED, the running one is told through its

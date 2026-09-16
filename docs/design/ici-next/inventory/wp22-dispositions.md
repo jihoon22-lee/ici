@@ -1,8 +1,8 @@
 # WP22 동적·호환성 검증 이관 disposition
 
-- 상태: **PR A(build/artifact contract 분리) 구현 완료. 나머지 슬라이스는
-  이 문서의 disposition이 잠정이며 각 PR에서 확정한다.** 잠정 표는
-  [current-engines.md §7](current-engines.md#7-잠정-disposition)에 있다.
+- 상태: **PR A(build/artifact contract)·PR B(sanitizer 이관) 구현 완료.
+  나머지 슬라이스는 이 문서의 disposition이 잠정이며 각 PR에서 확정한다.**
+  잠정 표는 [current-engines.md §7](current-engines.md#7-잠정-disposition)에 있다.
 - 근거 이슈: [WP22 #220](https://github.com/jihoon22-lee/ici/issues/220)
 - 대상: `build`, `binary_compat`, `integration`, `python_compat`,
   `sanitize`, `thread_sanitize` — 전부 variant·도구·실행 의존인 동적
@@ -35,13 +35,26 @@
 |경계|per-file digest 매니페스트(identity record)는 Observation 채널에 맞지 않아 소비자 슬라이스(통합·게시)로 미룸 — 조용히 버린 것이 아니라 이 문서가 경계다|
 |대조군|`tests/test_cli_next_artifacts.py` — 충족/미충족/미빌드/디렉터리-only/escape/필수 게이트|
 
+## PR B — sanitizer 이관 (완료)
+
+|항목|결정|
+|---|---|
+|check|`cpp.sanitize` / `cpp.tsan` — `Profile.DEEP` 전용, required 기본. standard/fast는 생략(asked-for가 아니므로 blocked도 아님)|
+|실행 단위|variant(`"sanitize"`/`"thread-sanitize"`)로 필터된 linked build의 suite별 task — ctest는 `--test-dir`, qtest는 바이너리 직접 실행|
+|계측 증명|`src/ici/workspace/instrumentation.py` — 바이너리의 ELF magic + 런타임 마커(`libasan`/`__asan_init`/`__tsan_init` 등) 스캔. 마커 없음·미빌드·suite 부재·검증 불가(대형/판독불가)는 전부 blocked|
+|환경|stable `_append_option` 계약 그대로 — `ASAN_OPTIONS`+=`detect_leaks=1`, `UBSAN_OPTIONS`+=`halt_on_error=1`, TSan은 `halt_on_error=0`. plan 시점의 상속 env에 append해 env_overlay로 고정|
+|파싱|`engines/_sanitizer_diagnostics.py`의 bounded 파서를 그대로 호출 — 마커 regex(`_ERROR_RE`/`_SUMMARY_RE`/`_TSAN_WARNING_RE`/`_RUNTIME_RE`)도 동일 모듈에서 재사용. transcript는 stderr→stdout 순(stable과 동일)|
+|판정|마커+진단 → MEASURED finding(stable rule id·primary/related 위치 보존, `[external]`은 redact+limitation). 마커 있는데 진단 0개/파싱 실패 → `failed_to_parse`. 마커 없이 exit≠0 → `ici.sanitize.suite-failure` finding. 미완주(타임아웃·시그널·취소) → parse 안 함|
+|격리|`cacheable=False` — 바이너리 내용은 선언 input에 없어 캐시 verdict가 stale 계측을 가리킬 수 있음. variant가 다른 build는 suite·task_id·env 모두 분리|
+|대조군|`tests/test_cli_next_sanitize.py` — plan 게이팅 7종·마커 스캔 3종·파싱 7종 + 실제 `g++ -fsanitize=address` E2E(g++ 있을 때)|
+
 ## 잠정 disposition — 이후 PR 슬라이스
 
 |엔진|잠정 disposition|방향|
 |---|---|---|
 |`build`|준비는 `prepare` 권한 모델로, 산출물 계약은 `cpp.artifact`로 **분리 완료**. 링크 산출물 탐지·매니페스트 생성은 실행 경로가 없으므로 stable 유지|PR A 완료. release-variant 매니페스트는 #224(idk) 소비자와 함께|
-|`sanitize`|ASan/UBSan을 별도 variant로 — 사용자가 계측 빌드·실행한 산출물(로그·진단)을 읽는 check으로 분해. ici가 -fsanitize 빌드를 실행하지 않음|PR B: sanitizer 출력 파서 + fixture. 진단/crash/테스트 실패 분리|
-|`thread_sanitize`|sanitize와 동일 — TSan variant|PR B 동일 슬라이스|
+|`sanitize`|PR B 완료 — deep 프로파일 check + 계측 마커 게이팅으로 이관|완료|
+|`thread_sanitize`|PR B 완료 — `cpp.tsan`(thread-sanitize variant)|완료|
 |`binary_compat`|실제 ELF 읽기(magic/CLASS/needed libs)를 in-process check으로 — `readelf` 의존 대신 직접 파싱 가능 여부를 PR C에서 확정|PR C: checked-target vs unknown 구분 필수|
 |`python_compat`|문법 검사(`ast.parse` in-process)와 지정 런타임 실행을 분리 — 전자는 즉시 이관 가능, 후자는 `executable` 선언 하에만|PR C|
 |`integration`|명시 산출물·서비스 요구·명령·timeout을 선언으로 — offline 기본 실행에서 자동 호출 금지, `deep`+opt-in|PR D: `needs`의 artifact 소비 + 외부 서비스 표기|
@@ -51,5 +64,6 @@
 |기능|이유|대체 수단|
 |---|---|---|
 |ici가 sanitizer/계측 빌드를 직접 실행|실행 계약 밖 — 프로젝트 툴체인 변형 금지|사용자 빌드의 variant 산출물을 check이 읽음|
+|stable sanitize의 프로브 컴파일 경로(테스트 소스를 `-fsanitize`로 임시 컴파일)|ici는 컴파일하지 않는다 — 계측은 프로젝트의 variant 빌드가 만든다|`variant = "sanitize"`/`"thread-sanitize"` 빌드 + 바이너리 마커 게이팅|
 |stable `build` 엔진의 shadow-tree 링크 산출물 탐지|ici next는 빌드하지 않으므로 link 산출물이 없음|선언 기반 `artifacts` 계약이 그 역할|
 |per-artifact digest 매니페스트|Observation 채널에 맞는 필드 없음|#224 소비자 계약과 함께 도입 예정|
