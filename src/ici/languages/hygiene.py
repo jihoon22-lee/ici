@@ -65,12 +65,12 @@ def measure_hygiene(request: HygieneRequest) -> Observation:
     for source in inventory.sources:
         try:
             if request.kind == "security":
-                analysis = analyze_python_security(source.file_path, source.text)
-                for target in analysis.findings:
+                security = analyze_python_security(source.file_path, source.text)
+                for target in security.findings:
                     findings.append(_finding(request, source.file_path, target, severity="high"))
             elif request.kind == "resource":
-                analysis = analyze_python_resources(source.file_path, source.text)
-                for issue in analysis.issues:
+                resources = analyze_python_resources(source.file_path, source.text)
+                for issue in resources.issues:
                     findings.append(
                         _finding(
                             request,
@@ -81,11 +81,11 @@ def measure_hygiene(request: HygieneRequest) -> Observation:
                         )
                     )
             elif source.file_path.endswith(".py"):
-                analysis = analyze_python_exceptions(source.file_path, source.text)
-                if analysis.error_message:
+                exceptions = analyze_python_exceptions(source.file_path, source.text)
+                if exceptions.error_message:
                     limitations.append(
-                        f"{source.file_path}:{analysis.error_line}: "
-                        f"{analysis.error_message} — exception analysis was not run"
+                        f"{source.file_path}:{exceptions.error_line}: "
+                        f"{exceptions.error_message} — exception analysis was not run"
                     )
                     continue
                 findings.extend(
@@ -96,11 +96,11 @@ def measure_hygiene(request: HygieneRequest) -> Observation:
                         severity="high" if target.status.value == "FAIL" else "medium",
                         category="correctness",
                     )
-                    for target in analysis.targets
+                    for target in exceptions.targets
                     if target.status.value in {"FAIL", "WARN"}
                 )
             else:
-                analysis = analyze_cpp_exceptions(source.file_path, source.text)
+                cpp_exceptions = analyze_cpp_exceptions(source.file_path, source.text)
                 findings.extend(
                     _finding(
                         request,
@@ -110,7 +110,7 @@ def measure_hygiene(request: HygieneRequest) -> Observation:
                         category="correctness",
                         confidence="medium",
                     )
-                    for target in analysis.targets
+                    for target in cpp_exceptions.targets
                     if target.status.value == "FAIL"
                 )
         except SyntaxError as error:

@@ -573,8 +573,8 @@ def expand_cpp_sanitizer(
                     )
                 )
                 continue
-            marked = sanitizer_marked(binary, variant)
-            if marked is not True:
+            marked_binary = sanitizer_marked(binary, variant)
+            if marked_binary is not True:
                 expanded.append(
                     PlannedCheck(
                         check=planned.check,

@@ -115,7 +115,10 @@ class GhesClient:
                 return None
             for comment in comments:
                 if isinstance(comment, dict) and marker in (comment.get("body") or ""):
-                    return comment.get("id"), comment.get("body") or ""
+                    comment_id = comment.get("id")
+                    if isinstance(comment_id, int):
+                        return comment_id, comment.get("body") or ""
+                    return None
             if len(comments) < 100:
                 return None
         return None

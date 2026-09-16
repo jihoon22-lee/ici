@@ -9,6 +9,7 @@ from __future__ import annotations
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TextIO
 
 from ici.domain._codec import dumps
 from ici.domain.events import EventType, RunEvent
@@ -31,7 +32,7 @@ class EventSink:
         self._run_id = run_id
         self._lock = threading.Lock()
         self._seq = 0
-        self._file = None
+        self._file: TextIO | None = None
 
     def emit(
         self,

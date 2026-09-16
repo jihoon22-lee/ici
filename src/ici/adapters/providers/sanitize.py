@@ -174,6 +174,8 @@ class SanitizeProvider:
         """
 
         for candidate in (spec.cwd, *(Path(arg) for arg in spec.argv)):
+            if candidate is None:
+                continue
             try:
                 relative = candidate.relative_to(self._root).as_posix()
             except (OSError, ValueError):

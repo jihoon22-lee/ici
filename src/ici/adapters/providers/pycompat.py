@@ -193,7 +193,7 @@ def _compile_findings(transcript: str, spec: ExecTaskSpec, provider: str) -> tup
             continue
         path = error.group("path")
         try:
-            path = Path(path).relative_to(spec.cwd).as_posix()
+            path = Path(path).relative_to(spec.cwd or Path.cwd()).as_posix()
         except (OSError, ValueError):
             path = Path(path).name
         start_line = 1

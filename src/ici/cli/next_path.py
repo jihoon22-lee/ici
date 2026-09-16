@@ -53,6 +53,7 @@ from ici.application.request import (
     uncovered_scope,
     wanted,
 )
+from ici.application.verify import Verification
 from ici.application.verify import verify as run_verification
 from ici.cli.next_common import (
     _BASELINE_ARG,
@@ -91,7 +92,7 @@ from ici.cli.next_common import (
 )
 from ici.cli.next_events import EventSink
 from ici.cli.next_testing import BUNDLED_TOOLS, locate_tool
-from ici.config.composition import EffectiveCheck
+from ici.config.composition import EffectiveCheck, EffectiveConfig
 from ici.domain.enums import (
     BaselineState,
     GateVerdict,
@@ -100,6 +101,7 @@ from ici.domain.enums import (
     ScopeKind,
 )
 from ici.domain.events import EventType
+from ici.domain.result import RunResult
 from ici.domain.serialization import dumps, loads, run_result_to_dict
 from ici.domain.workspace import AnalysisUnit, Component, Workspace
 from ici.execution.cache import ObservationCache
@@ -616,27 +618,10 @@ def cmd_verify(
     compile_notes, compile_gaps = _compile_limitations(model, scope, before, root)
     limitations += compile_notes
 
-    # Read the baseline before the run, not after: a baseline that cannot be
-    # read is a rejected request, and the user should hear that before paying
-    # for the verification rather than after a result was already written.
-    baseline_doc = None
-    if baseline is not None:
-        try:
-            baseline_doc = load_baseline(baseline if baseline.is_absolute() else root / baseline)
-        except BaselineError as error:
-            typer.echo(f"config: {error}", err=True)
-            raise typer.Exit(EXIT_CONFIG) from error
+    baseline_doc = _load_baseline(baseline, root)
 
     run_id = uuid.uuid4().hex
-    sink = (
-        EventSink(root / events if not events.is_absolute() else events, run_id) if events else None
-    )
-    if sink is not None:
-        sink.emit(EventType.RUN_STARTED)
-        sink.emit(
-            EventType.PLAN_READY,
-            message=f"{sum(len(plan.checks) for plan in plans)} check(s) across {len(plans)} plan(s)",
-        )
+    sink = _start_sink(events, root, run_id, plans)
 
     cache = None if no_cache else ObservationCache(root / ".ici" / "cache" / "observations")
     providers: dict[str, Provider] = {
@@ -697,14 +682,7 @@ def cmd_verify(
     # covered *and* finished — a component subset, a language filter that
     # left declared languages out, or an incomplete run are all PARTIAL,
     # because the model refuses a FULL it cannot stand behind.
-    covered = set(requested_languages(request, scope))
-    declared = {language for item in model.components for language in item.languages}
-    if config.scope_kind is ScopeKind.STANDALONE:
-        scope_kind = ScopeKind.STANDALONE
-    elif component or covered != declared or verification.gate.selected is GateVerdict.INCOMPLETE:
-        scope_kind = ScopeKind.PARTIAL
-    else:
-        scope_kind = ScopeKind.FULL
+    scope_kind = _scope_kind(config, request, model, scope, component, verification)
 
     if cancellation.requested:
         limitations = [*limitations, f"cancelled: {cancellation.reason or 'user request'}"]
@@ -742,26 +720,85 @@ def cmd_verify(
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(dumps(run_result_to_dict(stored)), encoding="utf-8")
 
-    if sink is not None:
-        if cancellation.requested:
-            sink.emit(
-                EventType.DIAGNOSTIC,
-                message=f"cancelled: {cancellation.reason or 'user request'}",
-            )
-        sink.emit(
-            EventType.RUN_COMPLETED,
-            message=f"{stored.gate.selected.value}: {len(stored.findings)} finding(s)",
-        )
-        # If we never reach this close — a crash between emit and here — the
-        # flushed prefix is still on disk, which is what a consumer should
-        # see of a run that died: events, then nothing.
-        sink.close()
+    _close_sink(sink, cancellation, stored)
 
     exit_code = 130 if cancellation.requested else stored.gate.exit_code
     if json_mode:
         typer.echo(dumps(run_result_to_dict(stored)))
         raise typer.Exit(exit_code)
     _verify_text(stored, verification, limitations, target, exit_code)
+
+
+def _load_baseline(baseline: Path | None, root: Path):
+    """Read the baseline before the run, not after.
+
+    A baseline that cannot be read is a rejected request, and the user
+    should hear that before paying for the verification rather than after
+    a result was already written.
+    """
+
+    if baseline is None:
+        return None
+    try:
+        return load_baseline(baseline if baseline.is_absolute() else root / baseline)
+    except BaselineError as error:
+        typer.echo(f"config: {error}", err=True)
+        raise typer.Exit(EXIT_CONFIG) from error
+
+
+def _start_sink(
+    events: Path | None, root: Path, run_id: str, plans: list[Plan]
+) -> EventSink | None:
+    """Open the event stream and record that a run exists and what it plans."""
+
+    if events is None:
+        return None
+    sink = EventSink(root / events if not events.is_absolute() else events, run_id)
+    sink.emit(EventType.RUN_STARTED)
+    sink.emit(
+        EventType.PLAN_READY,
+        message=f"{sum(len(plan.checks) for plan in plans)} check(s) across {len(plans)} plan(s)",
+    )
+    return sink
+
+
+def _scope_kind(
+    config: EffectiveConfig,
+    request: RunRequest,
+    model: Workspace,
+    scope: Workspace,
+    component: list[str],
+    verification: Verification,
+) -> ScopeKind:
+    covered = set(requested_languages(request, scope))
+    declared = {language for item in model.components for language in item.languages}
+    if config.scope_kind is ScopeKind.STANDALONE:
+        return ScopeKind.STANDALONE
+    if component or covered != declared or verification.gate.selected is GateVerdict.INCOMPLETE:
+        return ScopeKind.PARTIAL
+    return ScopeKind.FULL
+
+
+def _close_sink(sink: EventSink | None, cancellation: Cancellation, stored: RunResult) -> None:
+    """Record how the run ended and close the stream.
+
+    If we never reach this close — a crash between emit and here — the
+    flushed prefix is still on disk, which is what a consumer should
+    see of a run that died: events, then nothing.
+    """
+
+    if sink is None:
+        return
+    if cancellation.requested:
+        sink.emit(
+            EventType.DIAGNOSTIC,
+            message=f"cancelled: {cancellation.reason or 'user request'}",
+        )
+    sink.emit(
+        EventType.RUN_COMPLETED,
+        message=f"{stored.gate.selected.value}: {len(stored.findings)} finding(s)",
+    )
+    sink.close()
 
 
 def _verify_text(
@@ -930,7 +967,7 @@ def cmd_diff(
         old_result = loads(old_path.read_text(encoding="utf-8"))
         old_gate = old_result.gate.selected.value
     except (OSError, ValueError):
-        pass
+        old_gate = None
     if old_gate and old_gate != new.gate.selected.value:
         typer.echo(f"  gate: {old_gate} → {new.gate.selected.value}")
 
