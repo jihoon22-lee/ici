@@ -63,6 +63,15 @@ G-2, blocked, ghes-3.12, "사내 인터셉션 CA 미등록 — runner OS 신뢰 
 - [ ] **R-8 실제 도구**: 현장의 GCC/qmake/CMake/pytest 버전으로
       real-tool check를 실행하고, 버전 불일치가 traceback이 아니라
       INCOMPLETE/unsupported로 보고되는지 확인한다.
+- [ ] **R-8a C++/SUBDIRS/mixed**: qmake `SUBDIRS` 다중 계층, CMake
+      compile DB, Python/C++ 혼합 저장소 각각에서 verify를 실행하고
+      결과가 component 단위로 나뉘는지 확인한다.
+- [ ] **R-8b coverage/TEM**: 준비된 fixture의 coverage 수집과 TEM
+      판정(경고 임계 초과의 일시적 실패 → 게이트 축 반영)이 결과에
+      기록되는지 확인한다.
+- [ ] **R-8c 설정 변경 round-trip**: normal `ici.toml`을 현장 값으로
+      수정(언어·component·check on/off)하고 plan→verify가 그 수정을
+      반영하는지 확인한다 — 코드 수정 없는 설정 변경이어야 한다.
 - [ ] **R-9 취소**: 실행 중 SIGINT → exit 130, 이벤트 스트림이
       `run.completed`까지 닫히는지 확인한다.
 - [ ] **R-10 두 버전 병행**: 이전 bundle과 새 bundle을 나란히 설치하고
@@ -71,6 +80,9 @@ G-2, blocked, ghes-3.12, "사내 인터셉션 CA 미등록 — runner OS 신뢰 
       §3 기준선과 비교 기록한다(합격선이 아니라 자원 근거).
 - [ ] **R-12 지원표 확정**: 위 결과로 language/tool/OS 지원표의 각 행을
       `tested`/`limited`/`unsupported`로 확정한다.
+- [ ] **R-13 반복 workaround**: 설치·정상 설정 외에 매 실행마다 필요한
+      임시 조치가 있으면 원인과 후속 조치를 기록한다 — 없으면 "없음"으로
+      기록한다(인수 기준의 잔여 workaround 조항).
 
 ## 3. GHES 인수 checklist (G-1 ~ G-6)
 
