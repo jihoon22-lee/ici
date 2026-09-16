@@ -29,6 +29,7 @@ __all__ = [
     "Exemption",
     "IntegrationCaseBody",
     "IntegrationOutputBody",
+    "PublishBody",
     "PythonSettings",
     "RootDocument",
     "SuppressionBody",
@@ -238,6 +239,25 @@ class ComponentBody:
 
 
 @dataclass(frozen=True)
+class PublishBody:
+    """``[publish]`` — where a saved result may be pushed (#223).
+
+    The table names *where* and *how to authenticate*, never the credential
+    itself: ``token_env`` is the name of the environment variable holding the
+    token, so a config file that travelled can never leak one. ``api_url`` and
+    ``server_url`` are explicit because the target is usually a GHES host —
+    assuming github.com would be wrong exactly where this feature is for.
+    """
+
+    repo: Sourced[str] | None
+    api_url: Sourced[str] | None
+    server_url: Sourced[str] | None
+    branch: Sourced[str] | None
+    token_env: Sourced[str] | None
+    origin: Origin
+
+
+@dataclass(frozen=True)
 class ComponentReference:
     """A root entry that points at a child file instead of defining anything.
 
@@ -267,6 +287,7 @@ class RootDocument:
     builds: tuple[BuildDeclaration, ...]
     components: tuple[ComponentEntry, ...]
     suppressions: tuple[SuppressionBody, ...] = ()
+    publish: PublishBody | None = None
 
     @property
     def references(self) -> tuple[ComponentReference, ...]:

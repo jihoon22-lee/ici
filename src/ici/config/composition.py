@@ -34,6 +34,7 @@ from ici.config.documents import (
     ComponentBody,
     ComponentDocument,
     ComponentReference,
+    PublishBody,
     RootDocument,
 )
 from ici.config.errors import ConfigProblem, collect
@@ -55,6 +56,7 @@ __all__ = [
     "EffectiveConfig",
     "EffectiveIntegrationCase",
     "EffectiveIntegrationOutput",
+    "EffectivePublish",
     "EffectiveSuppression",
     "compose",
     "compose_standalone",
@@ -237,6 +239,25 @@ class EffectiveSuppression:
 
 
 @dataclass(frozen=True)
+class EffectivePublish:
+    """The declared publish target, with CI defaults applied (#223).
+
+    ``token_env`` names the variable holding the credential — the value is
+    read from the process environment at publish time, never from this file.
+    Left empty, ``repo``/``api_url``/``server_url`` are filled from the
+    Actions environment (``GITHUB_REPOSITORY`` and friends) at publish time;
+    declaring them makes a non-Actions target explicit.
+    """
+
+    repo: str
+    api_url: str
+    server_url: str
+    branch: str
+    token_env: str
+    declared: bool
+
+
+@dataclass(frozen=True)
 class EffectiveConfig:
     """The whole workspace, composed, with a digest of its quality policy."""
 
@@ -246,6 +267,7 @@ class EffectiveConfig:
     components: tuple[EffectiveComponent, ...]
     builds: tuple[EffectiveBuild, ...] = ()
     suppressions: tuple[EffectiveSuppression, ...] = ()
+    publish: EffectivePublish | None = None
     scope_kind: ScopeKind = ScopeKind.FULL
     sources: tuple[str, ...] = field(default_factory=tuple)
 
@@ -351,6 +373,7 @@ def compose(
         components=components,
         builds=builds,
         suppressions=tuple(_suppressions(root)),
+        publish=_publish(root.publish),
         scope_kind=ScopeKind.FULL,
     )
 
@@ -630,6 +653,21 @@ def _suppressions(root: RootDocument) -> tuple[EffectiveSuppression, ...]:
             )
         )
     return tuple(composed)
+
+
+def _publish(body: PublishBody | None) -> EffectivePublish | None:
+    """Carry the declared publish target through, defaults applied (#223)."""
+
+    if body is None:
+        return None
+    return EffectivePublish(
+        repo=body.repo.value if body.repo else "",
+        api_url=(body.api_url.value if body.api_url else "").rstrip("/"),
+        server_url=(body.server_url.value if body.server_url else "").rstrip("/"),
+        branch=body.branch.value if body.branch and body.branch.value.strip() else "gh-pages",
+        token_env=body.token_env.value if body.token_env else "GITHUB_TOKEN",
+        declared=True,
+    )
 
 
 def _virtual(path: PurePosixPath) -> PurePosixPath:

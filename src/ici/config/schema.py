@@ -36,6 +36,7 @@ from ici.config.documents import (
     Exemption,
     IntegrationCaseBody,
     IntegrationOutputBody,
+    PublishBody,
     PythonSettings,
     RootDocument,
     SuppressionBody,
@@ -73,6 +74,7 @@ def read_root(text: str, *, path: str) -> RootDocument:
         _suppression(table, index, problems)
         for index, table in enumerate(root.array_of_tables("suppressions"))
     )
+    publish = _publish(root, problems)
     root.done()
 
     _reject_duplicate_ids(entries, problems)
@@ -91,6 +93,7 @@ def read_root(text: str, *, path: str) -> RootDocument:
         builds=builds,
         components=entries,
         suppressions=suppressions,
+        publish=publish,
     )
 
 
@@ -233,6 +236,57 @@ def _suppression(table: Table, index: int, problems: list[ConfigProblem]) -> Sup
                     body.path.origin,
                 )
             )
+    return body
+
+
+def _publish(root: Table, problems: list[ConfigProblem]) -> PublishBody | None:
+    """``[publish]`` — where a saved result may be pushed (#223).
+
+    The table carries destinations, not credentials: ``token_env`` names the
+    environment variable, and a literal ``token`` key is refused outright so a
+    config file can never be the place a secret lives.
+    """
+
+    table = root.table("publish")
+    if table is None:
+        return None
+    body = PublishBody(
+        repo=table.text("repo"),
+        api_url=table.text("api_url"),
+        server_url=table.text("server_url"),
+        branch=table.text("branch"),
+        token_env=table.text("token_env"),
+        origin=table.origin,
+    )
+    if table.has("token"):
+        problems.append(
+            ConfigProblem(
+                "publish.token is not a setting — name the variable in token_env",
+                table.origin.child("token"),
+            )
+        )
+    table.done()
+    if body.repo is not None and not re.fullmatch(
+        r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", body.repo.value
+    ):
+        problems.append(ConfigProblem("publish.repo must be `owner/name`", body.repo.origin))
+    for field in ("api_url", "server_url"):
+        value = getattr(body, field)
+        if value is not None and not value.value.startswith("https://"):
+            problems.append(
+                ConfigProblem(
+                    f"publish.{field} must be an https:// URL",
+                    value.origin,
+                    hint="http or bare hosts would send the token without TLS",
+                )
+            )
+    if body.token_env is not None and not re.fullmatch(r"[A-Z_][A-Z0-9_]*", body.token_env.value):
+        problems.append(
+            ConfigProblem(
+                "publish.token_env must name an environment variable",
+                body.token_env.origin,
+            )
+        )
     return body
 
 
