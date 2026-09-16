@@ -22,6 +22,7 @@ from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement, Observation
 from ici.engines._cpp_dup_tokenization import tokenize_cpp_lines
 from ici.engines._dup_matching import (
+    DuplicateComparisonLimit,
     DuplicateFileData,
     DuplicateMatchLimits,
     filter_subsumed_matches,
@@ -105,7 +106,18 @@ def measure_duplicates(request: DuplicateRequest) -> Observation:
             limitations=(str(error),),
         )
 
-    matches = filter_subsumed_matches(find_raw_matches(files_data, WINDOW_SIZE, _LIMITS))
+    try:
+        matches = filter_subsumed_matches(find_raw_matches(files_data, WINDOW_SIZE, _LIMITS))
+    except DuplicateComparisonLimit as error:
+        # The stable engine answers ERROR with the same bound; here the task
+        # fails and its limitation says why, so the run reports INCOMPLETE
+        # rather than crashing mid-pipeline.
+        return Observation(
+            task_id=request.task_id,
+            provider=PROVIDER_NAME,
+            state=TaskState.FAILED,
+            limitations=(f"duplicate comparison limit exceeded: {error}",),
+        )
     groups, _ = _cluster(matches, files_data)
     duplicated = _duplicated_lines(matches, files_data)
     findings = [_finding(request, group, occ) for group in groups for occ in group["occurrences"]]
