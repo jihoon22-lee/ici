@@ -64,6 +64,7 @@ EXPECTED_DOCUMENTS = (
     "publish-workflow.md",
     "idk-integration.md",
     "migration-matrix.md",
+    "wp28-verification.md",
     "adr/README.md",
     "adr/0001-keep-python-core.md",
     "adr/0002-standalone-runtime-bundle.md",

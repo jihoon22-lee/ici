@@ -7,6 +7,33 @@
 
 ## [Unreleased]
 
+### 추가·수정 — WP28 PR A: 구·신 디퍼렌셜·성능 측정·보안 경계 ([#226](https://github.com/jihoon22-lee/ici/issues/226))
+
+**stable 경로 동작 변경 없음** — 캐시는 next 경로(`ici next verify`) 전용이며,
+line 규칙 복원도 next check에만 적용됩니다.
+
+- **디퍼렌셜 자동화**(`tests/test_next_differential.py`): 시드 결함 corpus의
+  C++ fixture 6종 + Python fixture 2종을 stable 엔진과 `ici next verify`
+  양쪽으로 실행해 파일 단위로 비교합니다. 이 검증이 실제 회귀 2건을 잡았습니다:
+  - `*.line` check의 파일 크기 규칙(500 코드 라인 medium / 1000 high)이
+    이관되지 않았습니다 — stable 기본 임계를 고정 상수로 복원했습니다
+    (next에 임계값 설정 키는 없으며, 판정은 게이트의 몫입니다).
+  - `python.dup`/`cpp.dup`이 `DuplicateComparisonLimit`을 traceback으로
+    올려 실행을 죽였습니다 — 이제 FAILED observation + limitation으로
+    변환해 게이트가 INCOMPLETE로 판정합니다(stable 엔진의 ERROR 변환과 동일).
+- **캐시 무결성**: 관측 캐시 엔트리에 `integrity`(observation의 canonical
+  직렬화에 대한 sha256)를 저장하고, 저장 당시와 다른 내용·다이제스트 없는
+  구 엔트리는 채택하지 않고 제거합니다. 편집된 finding이 캐시 히트로
+  위장해 결함을 지우는 경로를 닫습니다.
+- **보안 경계 테스트**(`tests/test_next_security.py`): component `root`의
+  workspace 이탈 거부, 손상 캐시 재검출, publish 토큰이 출력·레코드·에코된
+  서버 본문에 새지 않음, 저장 결과의 finding 경로가 workspace 상대.
+- **성능 기준선**(`scripts/benchmark_next.py`): 고정 fixture(200개 모듈)의
+  cold/warm 벽시계·peak RSS·산출물 크기·SIGINT→종료 지연을 측정합니다.
+  추세 기록물이며 게이트가 아닙니다. 결과와 미수행 항목(RHEL/GHES·번들
+  E2E·syscall 오프라인 증명)은 `docs/design/ici-next/wp28-verification.md`에
+  있습니다.
+
 ### 추가 — `ici next migrate` — stable 설정의 next 스키마 변환 (WP27, [#225](https://github.com/jihoon22-lee/ici/issues/225))
 
 **기존 배포 경로 동작 변경 없음.** `ici migrate`는 새 `next` 네임스페이스
