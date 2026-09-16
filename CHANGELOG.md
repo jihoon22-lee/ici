@@ -7,6 +7,23 @@
 
 ## [Unreleased]
 
+### 추가 — WP28 PR B/C: bundle E2E 수행 + 현장 인수 checklist ([#226](https://github.com/jihoon22-lee/ici/issues/226))
+
+- **bundle E2E 수행**: 로컬 PBS CPython 3.13.15로 조립한 bundle에
+  `scripts/bundle/smoke.sh`를 실행 — 11케이스 중 10 PASS. 네트워크
+  인터페이스 0개(`unshare -n`), read-only 설치, clean HOME, 경로 이동,
+  두 버전 병행, 설치 디렉터리 무기록(6,123파일), 빈 HOME 패키지 설치
+  0건을 확인했습니다. bundle의 glibc 상한은 2.17로 측정됐습니다.
+- **missing tool·부분 범위·실패 결과 HTML**: bundle이 싣지 않은 도구
+  (mypy·프로젝트 인터프리터)는 traceback이 아니라 INCOMPLETE 관측으로
+  기록되고, lint만 선택한 부분 실행은 exit 1로 완료되며, 실패 결과의
+  HTML이 외부 참조 0건으로 렌더됩니다.
+- **현장 인수 양식**(`docs/design/ici-next/field-acceptance.md`): RHEL
+  8.10 체크리스트(R-0~R-12), GHES 체크리스트(G-1~G-6, 버전 고정·CA·
+  권한 분리·artifact 왕복·sticky·stale head), 비민감 증거 기록 형식을
+  제공합니다. 실행은 현장 권한 범위이며 완료 전까지 "현장 검증됨"으로
+  표기하지 않습니다.
+
 ### 추가·수정 — WP28 PR A: 구·신 디퍼렌셜·성능 측정·보안 경계 ([#226](https://github.com/jihoon22-lee/ici/issues/226))
 
 **stable 경로 동작 변경 없음** — 캐시는 next 경로(`ici next verify`) 전용이며,

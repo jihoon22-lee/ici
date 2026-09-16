@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-|상태|**PR A 부분 완료** — 구·신 디퍼렌셜·성능 측정·보안 경계가 자동화로 걸렸다. bundle E2E(항목 5)와 RHEL/GHES 현장 인수(항목 6·7)는 **미수행** — 아래 표에 각각의 상태를 명시한다.|
+|상태|**PR A+B 부분 완료** — 구·신 디퍼렌셜·성능 측정·보안 경계·bundle E2E가 자동화로 걸렸다(§4a). RHEL/GHES 현장 인수(항목 6·7)는 **미수행** — §5 표에 각각의 상태를 명시한다.|
 |근거 이슈|[WP28 #226](https://github.com/jihoon22-lee/ici/issues/226)|
 |규범|[spec-05](spec-05-verification-transition.md) §2(측정 계층), §7(현장 인수)|
 
@@ -84,15 +84,49 @@ integrity를 재계산해 캐시를 오염시킬 수 있다 — 다이제스트�
 권한을 요구하므로 별도 방어를 두지 않는다(`.git` 인덱스와 같은 경계).
 원격 입력(서버 응답 본문)이 출력에 실리는 경로는 위 표에서 닫혔다.
 
+## 4a. bundle E2E (항목 5) — PR B
+
+방법: `scripts/spikes/wp01/build-bundle.sh`로 로컬 PBS CPython **3.13.15**
+(uv store에 이미 있던 것 — 다운로드 없음)를 runtime으로 쓴 bundle을 조립하고,
+릴리스 경로의 [`scripts/bundle/smoke.sh`](../../../scripts/bundle/smoke.sh)를
+실행했다. 빌드 시점의 `pip --target`만 네트워크를 쓴다 — 실행 시점은 아래
+netns 케이스가 증명한다.
+
+| 케이스 | 결과 |
+|---|---|
+| in-place 실행(version/help/doctor/line 분석) | **PASS** |
+| 다른 설치 경로로 이동 후 실행 | **PASS** |
+| PATH symlink 경유 실행 | **PASS** |
+| clean HOME(`XDG_*` unset) | **PASS** |
+| read-only 설치(bind mount ro) | **PASS** — 사전 컴파일된 bundle이라 설치 디렉터리에 쓰지 않는다 |
+| **네트워크 인터페이스 0개**(`unshare -n`) | **PASS** — proxy 제거가 아니라 인터페이스 자체를 없앤 실행. strace가 없어도 syscall 증명과 동등하다 — 호출할 인터페이스가 존재하지 않는다 |
+| offline + clean HOME + read-only 동시 | **PASS** |
+| 설치 디렉터리 무기록 | **PASS** — 분석 후 6,123개 파일 전부 무결 |
+| 빈 HOME에서 패키지 설치 없음 | **PASS** — site-packages/dist-info/whl/pip·uv 캐시 0건 |
+| 두 버전 병행 | **PASS** — 각 설치가 자기 root를 해석한다(공유 캐시·절대경로 고정 없음) |
+| missing tool | **확인됨** — bundle은 ruff만 싣는다. mypy/프로젝트 인터프리터 부재는 traceback이 아니라 해당 check의 INCOMPLETE observation(증거 수준 축)으로 기록된다 |
+| 부분 범위 | **확인됨** — `[checks.*] enabled=false`로 lint만 선택한 실행은 verify exit 1(위반 존재)로 완료된다 — 부분 실행을 전체 통과로 보고하지 않는다 |
+| failed-result HTML | **확인됨** — exit 1 결과로 `next report`가 외부 참조 0건의 페이지를 렌더한다(FAIL·INCOMPLETE·finding 전부 표시) |
+
+런타임 메모: bundle의 glibc 상한은 **2.17**로 측정됐다 — RHEL 8의
+glibc 2.28 이내이므로 ABI 수준에서는 호환된다. RHEL 8.10에서의 실제 실행
+인수는 별개로 남는다(§5).
+
+smoke case 11(next path E2E)은 **BLOCKED**로 보고됐다 — bundle이 mypy를
+싣지 않고 fixture가 `[python] executable`을 선언하지 않아 verify가 exit 3
+(INCOMPLETE)을 반환하기 때문이다. 스크립트가 이를 PASS로 접지 않는 것이
+의도된 동작이다 — analyzer 없는 bundle을 lint가 깨끗한 bundle처럼 보이게
+하는 실패를 이 케이스가 존재해서 막는다.
+
 ## 5. 미수행·미확인 — 추정으로 채우지 않는다
 
 | 항목 | 상태 |
 |---|---|
-| 항목 5 — bundle 전체 E2E(offline/clean HOME/read-only/다른 경로/두 버전 병행/missing tool) | **미수행 — PR B**. WP01 스파이크가 glibc 2.17·clean HOME·read-only를 1회 증명했으나 정규 E2E는 없다 |
+| 항목 5 — bundle 전체 E2E | **수행 — §4a**(로컬 PBS 3.13.15). RHEL에서의 재실행은 항목 6에 남는다 |
 | 항목 6 — RHEL 8.10 현장 인수 | **미수행 — PR C**. 이 환경은 RHEL이 아니다. checklist와 비민감 결과 양식을 PR C에서 제공한다 |
 | 항목 7 — 실제 GHES/runner/action 버전·권한·sticky 재시도 | **미수행**. mock transport와 Ubuntu CI만 확인됐다 — 실제 GHES 확인을 성공으로 표기하지 않는다 |
 | 성능 예산 승인 | **미승인**. §3 수치는 이 개발 환경의 기준선이며 runner 자원 근거가 없다 |
-| syscall 수준 오프라인 증명 | **미수행** — proxy 제거 실행은 WP01이 증명했고, 네트워크 호출이 없다는 strace 수준 증명은 없다 |
+| syscall 수준 오프라인 증명 | **§4a로 대체** — `unshare -n`이 인터페이스 자체를 제거하므로 strace 없이도 "네트워크 호출이 있었으면 실패했어야 한다"가 증명됐다. 실제로 모두 통과했다 |
 
 ## 복구
 
