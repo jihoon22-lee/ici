@@ -2,7 +2,8 @@
 
 - 상태: **PR A(build/artifact contract)·PR B(sanitizer 이관)·
   PR C(compatibility 이관)·PR D(integration 이관) 구현 완료.**
-  `cpp.dead`의 링커 재실행 경로는 별도 도구-제공자 슬라이스로 남아 있다.
+  WP20이 위임한 `cpp.dead` 링커 재실행 경로는 아래 명시적 미이관 표에
+  기록했다 — 프로젝트 툴체인을 실행하는 경로는 next check 계약 밖이다.
   잠정 표는 [current-engines.md §7](current-engines.md#7-잠정-disposition)에 있다.
 - 근거 이슈: [WP22 #220](https://github.com/jihoon22-lee/ici/issues/220)
 - 대상: `build`, `binary_compat`, `integration`, `python_compat`,
@@ -94,5 +95,6 @@
 |stable `build` 엔진의 shadow-tree 링크 산출물 탐지|ici next는 빌드하지 않으므로 link 산출물이 없음|선언 기반 `artifacts` 계약이 그 역할|
 |per-artifact digest 매니페스트|Observation 채널에 맞는 필드 없음|#224 소비자 계약과 함께 도입 예정|
 |stable python_compat의 import smoke(`imports` opt-in)|프로젝트 모듈 top-level 실행은 임의 부수효과 — 선언 런타임 검증과 분리|미이관. 필요하면 명시 opt-in 명령으로만|
+|C++ dead의 unused-function replay·linker GC(WP20 위임)|사용자 컴파일러·링커를 직접 실행 — "ici는 빌드하지 않는다" 원칙의 밖. 선언 산출물에 대한 섹션 수준 분석은 다른 check·다른 증거이다|stable `dead` 엔진이 그 역할을 유지. 재실행 계약이 필요하면 #224(idk) 실행 계약과 함께 검토|
 |python_compat의 wheel/packaging 검사(`_python_packaging`)|next에 wheel 산출물 선언 통로가 없음|산출물 계약이 Python 패키지를 선언하게 되는 슬라이스와 함께|
 |binary_compat 배포 floor 정책(expected class/machine·max glibc 등)|`[checks.<id>]` 스키마가 enabled/required/exemptions만 지원 — 정책 필드 통로 없음|정책 스키마 확장 시 `ici.binary.*-floor` 등 활성화|
