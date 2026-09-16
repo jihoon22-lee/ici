@@ -167,6 +167,10 @@ class EffectiveBuild:
     definition: Decided[str] | None
     variant: Decided[str]
     prepare: Decided[str] | None
+    #: Output globs the build claims, relative to ``directory`` — root-only
+    #: like ``system`` and ``variant``: what a build produces is not something
+    #: a local overlay may redescribe.
+    artifacts: tuple[str, ...] = ()
     declared_in: str = ""
 
 
@@ -638,6 +642,7 @@ def _build(
         variant=_optional(declaration.variant, Layer.ROOT)
         or Decided(value="default", origin=DEFAULTS, layer=Layer.DEFAULTS),
         prepare=_prepare(declaration, problems),
+        artifacts=_artifacts(declaration, problems),
         declared_in=declaration.origin.file,
     )
 
@@ -683,6 +688,37 @@ def _prepare(declaration: BuildDeclaration, problems: list[ConfigProblem]) -> De
         origin=declaration.prepare.origin,
         layer=Layer.ROOT,
     )
+
+
+def _artifacts(declaration: BuildDeclaration, problems: list[ConfigProblem]) -> tuple[str, ...]:
+    """The build's declared output globs, checked for containment now.
+
+    An artifact glob is a claim about what lives under ``directory`` — an
+    absolute pattern or one that climbs out of it is not a glob that happens
+    to match elsewhere, it is a declaration ici will not resolve, so it is
+    diagnosed here rather than failing mysteriously at check time.
+    """
+
+    kept: list[str] = []
+    for glob in declaration.artifacts:
+        parsed = PurePosixPath(glob.raw)
+        if (
+            parsed.is_absolute()
+            or ".." in parsed.parts
+            or "\\" in glob.raw
+            or parsed.as_posix() != glob.raw
+        ):
+            problems.append(
+                ConfigProblem(
+                    f"artifact glob {glob.raw!r} must be a canonical relative pattern "
+                    "inside the build directory",
+                    glob.origin,
+                    hint="artifacts anchor at the build's own directory",
+                )
+            )
+            continue
+        kept.append(glob.raw)
+    return tuple(kept)
 
 
 def _executable(

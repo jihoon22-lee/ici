@@ -59,6 +59,7 @@ EXPECTED_DOCUMENTS = (
     "inventory/execution-flow.md",
     "inventory/baseline-measurements.md",
     "inventory/wp20-dispositions.md",
+    "inventory/wp22-dispositions.md",
     "adr/README.md",
     "adr/0001-keep-python-core.md",
     "adr/0002-standalone-runtime-bundle.md",

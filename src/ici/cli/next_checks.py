@@ -15,6 +15,7 @@ from ici.application.schedule import Analysis
 from ici.domain.enums import TaskState
 from ici.domain.observation import Measurement, Observation
 from ici.domain.workspace import BuildUnit, Component
+from ici.languages.artifacts import ArtifactRequest, verify_artifacts
 from ici.languages.cycles import CycleRequest, measure_cycles
 from ici.languages.deadcode import DeadRequest, measure_dead
 from ici.languages.duplicates import DuplicateRequest, measure_duplicates
@@ -58,6 +59,8 @@ def internal_analysis(
         return _hygiene_counter(planned, component, files, component_root, root, kind)
     if kind == "dead":
         return _dead_counter(planned, component, files, component_root, root)
+    if kind == "artifact":
+        return _artifact_checker(planned, component, root, builds)
     return _line_counter(component_root, root, files, planned.task_id)
 
 
@@ -154,6 +157,29 @@ def _dead_counter(
         component_id=component.id,
     )
     return lambda: measure_dead(request)
+
+
+def _artifact_checker(
+    planned: PlannedCheck,
+    component: Component,
+    root: Path,
+    builds: tuple[BuildUnit, ...],
+) -> Analysis:
+    """The ``cpp.artifact`` check: verify the linked builds' declared outputs.
+
+    Only artifact-declaring builds reach the request — the gate already
+    blocked the no-contract case, so a run that got this far has globs to
+    answer for.
+    """
+
+    linked = tuple(build for build in builds if build.id in component.build_ids and build.artifacts)
+    request = ArtifactRequest(
+        project_root=root,
+        builds=linked,
+        task_id=planned.task_id,
+        component_id=component.id,
+    )
+    return lambda: verify_artifacts(request)
 
 
 def _line_counter(

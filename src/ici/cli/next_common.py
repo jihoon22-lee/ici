@@ -523,7 +523,14 @@ def _gate_cpp(
       and that shared test run left — never rebuilding or re-running (#217).
     """
 
-    gated = {"cpp.compile", "cpp.tidy", "cpp.diagnostics", "cpp.test", "cpp.coverage"}
+    gated = {
+        "cpp.compile",
+        "cpp.tidy",
+        "cpp.diagnostics",
+        "cpp.test",
+        "cpp.coverage",
+        "cpp.artifact",
+    }
     if not any(planned.check.id in gated for planned in plan.checks):
         return plan
     if inputs is None:
@@ -579,9 +586,38 @@ def _gate_cpp(
                     cpp_unit,
                 )
             )
+        elif planned.check.id == "cpp.artifact":
+            checks.append(_gate_artifact(planned, component, builds))
         else:
             checks.append(planned)
     return Plan(checks=tuple(checks))
+
+
+def _gate_artifact(
+    planned: PlannedCheck, component: Component, builds: tuple[BuildUnit, ...]
+) -> PlannedCheck:
+    """The artifact check applies only where a contract was declared.
+
+    A component with no linked build — or builds that declare no
+    ``artifacts`` — has no contract to verify, so the check is blocked and
+    says why rather than reporting a vacuous pass (#220: 선언 없는 산출물
+    검증을 성공으로 표시하지 않는다).
+    """
+
+    if not component.build_ids:
+        return PlannedCheck(
+            check=planned.check,
+            task_id=planned.task_id,
+            blocked="no build unit linked — artifact declarations live on [builds.<id>]",
+        )
+    linked = [build for build in builds if build.id in component.build_ids]
+    if not any(build.artifacts for build in linked):
+        return PlannedCheck(
+            check=planned.check,
+            task_id=planned.task_id,
+            blocked="no artifact contract — declare [builds.<id>] artifacts = [...]",
+        )
+    return planned
 
 
 def _expand_diagnostics(

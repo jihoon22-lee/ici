@@ -54,6 +54,7 @@ def test_a_cpp_scope_never_sees_python_tools() -> None:
         "cpp.cycle",
         "cpp.dup",
         "cpp.exception",
+        "cpp.artifact",
     }
     assert "ruff" not in registry.providers_for(("cpp",))
 
@@ -89,6 +90,7 @@ def test_a_hybrid_scope_gets_both_packs_but_no_strays() -> None:
         "cpp.cycle",
         "cpp.dup",
         "cpp.exception",
+        "cpp.artifact",
     }
 
 

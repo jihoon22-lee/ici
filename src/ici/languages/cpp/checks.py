@@ -135,6 +135,22 @@ CPP_COVERAGE_CHECK = CheckDefinition(
     needs=("test-evidence",),
 )
 
+#: The build's declared output contract (#220): every glob the linked
+#: ``[builds.<id>] artifacts`` lists must exist under the build directory.
+#: Separated from build preparation — ici never builds; it verifies what the
+#: project's own build left. Advisory by default because a component whose
+#: builds declare no artifacts has no contract to break — the check is
+#: blocked there, and ``required = true`` is how a workspace makes a broken
+#: contract fail the gate.
+CPP_ARTIFACT_CHECK = CheckDefinition(
+    id="cpp.artifact",
+    title="Declared build artifacts",
+    language="cpp",
+    tool=None,
+    required=False,
+    provides=("artifact-contract",),
+)
+
 #: Declaration only. Importing this must not look at the machine.
 CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_LINE_CHECK,
@@ -148,4 +164,5 @@ CPP_CHECKS: tuple[CheckDefinition, ...] = (
     CPP_CYCLE_CHECK,
     CPP_DUP_CHECK,
     CPP_EXCEPTION_CHECK,
+    CPP_ARTIFACT_CHECK,
 )

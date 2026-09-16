@@ -473,6 +473,7 @@ def test_plan_lists_linked_builds_and_their_impact_directories(tmp_path, monkeyp
             "variant": "release",
             "directory": "build",
             "definition": "CMakeLists.txt",
+            "artifacts": [],
             "linked_by": ["app"],
         }
     ]

@@ -210,6 +210,7 @@ def _build(table: Table) -> BuildDeclaration:
         directory=table.declared_path("directory"),
         variant=table.text("variant"),
         prepare=table.text("prepare"),
+        artifacts=table.globs("artifacts"),
         origin=table.origin,
     )
     table.done()

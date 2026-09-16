@@ -107,6 +107,10 @@ class BuildDeclaration:
     directory: DeclaredPath | None
     variant: Sourced[str] | None
     prepare: Sourced[str] | None
+    #: Output globs the build claims to produce, anchored at ``directory``
+    #: (#220): the declaration is the contract the artifact check verifies —
+    #: a glob that matches nothing is a broken claim, not an absence.
+    artifacts: tuple[SourceGlob, ...]
     origin: Origin
 
 

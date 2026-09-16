@@ -7,6 +7,27 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` 빌드 산출물 계약 검증 (WP22-A, [#220](https://github.com/jihoon22-lee/ici/issues/220))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스와
+`ici.toml` 스키마 확장입니다.
+
+- **`[builds.<id>] artifacts` 선언이 추가됐습니다.** 빌드가 자신의
+  `directory` 아래에 남기는 산출물을 glob으로 선언합니다 — 빌드 준비
+  (`prepare`) 권한과 산출물 계약이 분리됐습니다. 절대 경로·`..`·비정규
+  철자는 설정 읽기 단계에서 오류로 거부됩니다.
+- **`cpp.artifact` check이 추가됐습니다.** 선언된 각 glob이 build
+  directory 아래 workspace-contained 정규 파일과 매치되는지 검증합니다.
+  매치가 없거나 디렉터리만 매치되면 `artifact.missing`(MEASURED) finding,
+  workspace 밖으로 resolve되는 매치는 `artifact.invalid`로 보고됩니다 —
+  잘못된 파일을 성공 산출물로 채택하지 않습니다.
+- **계약이 없으면 check은 적용되지 않습니다.** linked build가 artifacts를
+  선언하지 않으면 check은 blocked로 표시됩니다(조용한 vacuous pass가
+  아님). 계약 위반을 게이트 실패로 만들려면 `[checks."cpp.artifact"]
+  required = true`를 둡니다.
+- `ici next plan`의 builds 섹션이 선언된 `artifacts` 목록을 보여줍니다.
+- disposition 기록: `docs/design/ici-next/inventory/wp22-dispositions.md`.
+
 ### 추가 — `ici next` 함수 수준 지표 이관과 공유 파싱 primitive (WP20-A, [#218](https://github.com/jihoon22-lee/ici/issues/218))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스와 공유

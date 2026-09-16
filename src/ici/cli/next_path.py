@@ -441,6 +441,7 @@ def _linked_builds(scope: Workspace) -> list[dict[str, object]]:
             "variant": build.variant,
             "directory": build.directory,
             "definition": build.definition,
+            "artifacts": list(build.artifacts),
             "linked_by": sorted(linked.get(build.id, ())),
         }
         for build in scope.builds
