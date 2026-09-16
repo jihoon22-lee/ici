@@ -179,6 +179,36 @@ def test_report_without_a_result_says_so_rather_than_rendering_nothing(project: 
 
 
 @needs_ruff
+def test_report_starts_no_process(project: Path, monkeypatch) -> None:
+    # #222 item 1: report RESULT는 saved JSON만 읽는다. Rendering that could
+    # launch a tool would make reading a result able to change it.
+    _seed(project)
+    runner.invoke(app, ["next", "verify"])
+
+    def refuse(*args: object, **kwargs: object):
+        raise AssertionError("report started a process")
+
+    monkeypatch.setattr("ici.execution.process.run_process", refuse)
+
+    assert runner.invoke(app, ["next", "report"]).exit_code == 0
+
+
+def test_report_refuses_a_result_it_does_not_know(project: Path) -> None:
+    # #222: an unknown envelope is an error, never an empty PASS page.
+    result_dir = project / ".ici" / "next"
+    result_dir.mkdir(parents=True)
+    (result_dir / "result.json").write_text(
+        json.dumps({"schema_id": "ici.result/v3", "results": []}), encoding="utf-8"
+    )
+
+    result = runner.invoke(app, ["next", "report"])
+
+    assert result.exit_code == 2
+    assert "not a result this version can read" in result.output
+    assert not (result_dir / "result.html").exists()
+
+
+@needs_ruff
 def test_verifying_writes_only_under_dot_ici(project: Path) -> None:
     _seed(project)
     before = {p.relative_to(project) for p in project.rglob("*")}

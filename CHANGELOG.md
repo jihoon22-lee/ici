@@ -7,6 +7,35 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` 결과 중심 offline HTML 완성 (WP24, [#222](https://github.com/jihoon22-lee/ici/issues/222))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의
+reporting 계층입니다 — stable `reporters/` 트리는 유지됩니다.
+
+- **result view model이 template 렌더링에서 분리됐습니다.**
+  `ici.reporting.view_model`이 저장된 `RunResult`를 표시용 불변 데이터로
+  한 번 투영하고, `reporting/offline_html.py`는 그 데이터만 소비합니다.
+  `next report`는 저장된 JSON만 읽습니다 — source build, provider, test를
+  재실행하지 않으며 프로세스를 시작하지 않는 것이 테스트로 고정됐습니다.
+- **첫 화면이 실행 상태를 숨기지 않습니다.** selected verdict·verdict
+  사유·범위(component/language/미선택)·required 미완료·위반 유무·exit
+  code가 상단에 표시되고, 취소된 실행·blocked·failed·재사용 task는
+  Execution 섹션에 이름 그대로 나열됩니다. baseline 비교는 충족/불가
+  사유와 new/unchanged/resolved/carried 수를 보여줍니다.
+- **finding 행이 검색·필터 가능합니다.** provider·rule·confidence·
+  location·severity·evidence·suppression 사유와 출처·baseline delta가
+  한 행에 표시되고, 인라인 필터가 텍스트로 행을 좁힙니다 — 화면에서
+  숨겨도 저장된 결과에서는 사라지지 않습니다. 테이블 열은 `scope="col"`,
+  표시 개수는 `aria-live`로 알립니다. 스크립트는 페이지에 하나뿐인
+  인라인 필터이며 `src=` 없는 단일 `<script>`임이 테스트됩니다.
+- **대용량 결과도 lossless입니다.** 2000 findings 기준 렌더링 ~43ms·
+  554KiB, 10000 findings ~206ms·2.7MiB로 선형 — 지연 렌더링이
+  필요하지 않아 finding을 버리지 않습니다.
+- **모르는 스키마는 빈 PASS가 되지 않습니다.** `next report`는
+  `ici.next.run`이 아닌 문서(구 `ici.result/v3` 포함)를 사유와 함께
+  거부하고, 기존 v3 리더(`execution/legacy_reader.py`)도 next 문서를
+  거부합니다 — 양방향 모두 테스트됐습니다.
+
 ### 추가 — `ici next` SARIF보내기와 저장 결과 비교 (WP23-C, [#221](https://github.com/jihoon22-lee/ici/issues/221))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의
