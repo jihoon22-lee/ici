@@ -39,6 +39,7 @@ from ici.application.request import (
 from ici.application.selection import Planner, select_effective
 from ici.application.verify import Analysis
 from ici.cli.next_checks import internal_analysis
+from ici.cli.next_integration import gate_integration
 from ici.cli.next_testing import (
     component_targets,
     cpp_gcno,
@@ -61,6 +62,7 @@ from ici.domain.events import EventType, RunEvent
 from ici.domain.eventstream import events_to_jsonl
 from ici.domain.workspace import AnalysisUnit, BuildUnit, Component, Workspace
 from ici.languages.checks import CheckDefinition
+from ici.languages.integration import INTEGRATION_CASES_CHECK
 from ici.languages.registry import builtin as builtin_registry
 from ici.workspace import build as build_workspace
 from ici.workspace import compile_units, inventory
@@ -319,6 +321,10 @@ def _plans(
         effective = config.component(component.id)
         assert effective is not None
         component_root = _component_root(root, component)
+        # Declared cases opt a component into the contract check; the check
+        # is a domain check, not a language, so nothing else surfaces it.
+        if effective.integrations and wanted(request, INTEGRATION_CASES_CHECK):
+            available = (*available, INTEGRATION_CASES_CHECK)
         files_by_language = {
             language: _unit_files(stock, units[language], _SOURCE_SUFFIXES[language])
             for language in component.languages
@@ -346,6 +352,8 @@ def _plans(
             check: CheckDefinition,
             found: dict[str, tuple[str, ...]] = files_by_language,
         ) -> bool:
+            if check.language == "integration":
+                return True  # its scope is the declared cases, not source files
             return bool(found.get(check.language))
 
         try:
@@ -379,6 +387,7 @@ def _plans(
             files_by_language.get("python", ()),
             units.get("python"),
         )
+        plan = gate_integration(plan, component, effective, component_root, root, scope.builds)
         plans.append(plan)
         by_component[component.id] = plan
         metric_cache: dict = {}
@@ -1026,4 +1035,7 @@ def _describe(planned: PlannedCheck) -> str:
         return f"  {planned.task_id}: {planned.check.title} (ici)"
     assert planned.task is not None
     marker = " [mutating]" if planned.task.task.mutating else ""
-    return f"  {planned.task_id}: {' '.join(planned.task.task.argv)}{marker}"
+    needs = (
+        f" [requires {', '.join(planned.task.task.requires)}]" if planned.task.task.requires else ""
+    )
+    return f"  {planned.task_id}: {' '.join(planned.task.task.argv)}{marker}{needs}"

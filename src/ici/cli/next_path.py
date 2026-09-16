@@ -31,6 +31,7 @@ from ici.adapters.providers.compiler import CompilerDiagnosticsProvider
 from ici.adapters.providers.coverage import CoverageProvider
 from ici.adapters.providers.cpptest import CtestProvider, QtestProvider
 from ici.adapters.providers.gcov import GcovProvider
+from ici.adapters.providers.integration import IntegrationCaseProvider
 from ici.adapters.providers.mypy import MypyProvider
 from ici.adapters.providers.pycompat import CompileallProvider, PythonVersionProvider
 from ici.adapters.providers.pytest import PytestProvider
@@ -513,6 +514,8 @@ def _planned_dict(planned: PlannedCheck) -> dict[str, object]:
     }
     if planned.task is not None:
         entry["argv"] = list(planned.task.task.argv)
+        if planned.task.task.requires:
+            entry["requires"] = list(planned.task.task.requires)
     if planned.blocked:
         entry["blocked"] = planned.blocked
     return entry
@@ -625,6 +628,7 @@ def cmd_verify(
         "thread-sanitize": SanitizeProvider("thread-sanitize", project_root=root),
         "python-compat-version": PythonVersionProvider(),
         "python-compat-compileall": CompileallProvider(),
+        "integration": IntegrationCaseProvider(),
         "binary-compat": BinaryCompatProvider(
             project_root=root,
             build_roots=tuple((root / build.directory).resolve() for build in model.builds),

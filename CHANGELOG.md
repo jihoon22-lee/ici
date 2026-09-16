@@ -7,6 +7,40 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` 선언형 통합 case 실행 (WP22-D, [#220](https://github.com/jihoon22-lee/ici/issues/220))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 새
+check입니다 — stable `integration` 엔진은 그대로 유지됩니다.
+
+- **`[[components.integrations]]` 선언이 추가됐습니다.** 컴포넌트가
+  프로세스 계약을 선언하면 `deep` 프로파일에서 case당 task 하나로
+  계획됩니다 — 이름·`argv`·`expected_exit`·stdout/stderr 정/부
+  단언·`timeout_seconds`·`env`·`requires`·`python_targets`·
+  `output_artifacts`·`required`. 쉘 문자열이 아니라 argv 배열이며
+  `argv[0]`은 반드시 타입 placeholder입니다.
+- **`{python:NAME}`·`{artifact:BUILD/PATH}` placeholder가 추가됐습니다.**
+  `declared`는 컴포넌트의 선언 인터프리터로, 나머지 이름은
+  `python_targets`로 해석되고 ici 인터프리터로 대체되지 않습니다.
+  artifact는 링크된 build의 `artifacts` 계약이 지명하고 실제 존재하는
+  파일만 받습니다 — 계약 밖·미링크·미빌드·미선언 인터프리터는 전부
+  blocked이며 추측으로 대체하지 않습니다.
+- **case의 판정이 task 환경에 실립니다.** runner가 공유돼도 case별 계약이
+  보존되도록 `ICI_*` 변수로 계약을 전달하고, `env`에서 `ICI_` 접두사는
+  거부됩니다. 선언된 `requires`(network·service 등)는 plan의 텍스트와
+  JSON에 `[requires …]`로 표시되고 실행 결과의 limitation으로도 기록됩니다 —
+  ici는 선언된 외부 서비스를 조용히 호출하지도, 그 부재를 PASS로 치지도
+  않습니다.
+- **판정이 실행 결과와 환경 오류를 구분합니다.** 완주한 run의 exit·스트림·
+  산출물 단언 위반만 MEASURED finding(`integration.exit`·
+  `integration.stdout`·`integration.stderr`·`integration.output`)이 되고,
+  타임아웃·시그널·취소·시작 실패는 파싱하지 않아 INCOMPLETE로 남습니다.
+  `cacheable=False` — 외부 상태에 의존하는 동적 검사를 cross-run 캐시로
+  재사용하지 않습니다.
+- **check·case 두 층의 required가 있습니다.** `[checks.integration]
+  required`가 상위이고 case의 `required = false`는 advisory를 뜻합니다 —
+  finding은 남되 게이트를 실패시키지 않습니다. 선언된 required case가
+  해석되지 못하면 blocked → INCOMPLETE입니다.
+
 ### 추가 — `ici next` 호환성 검증 이관 (WP22-C, [#220](https://github.com/jihoon22-lee/ici/issues/220))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 새

@@ -271,7 +271,7 @@ spec-03 §3의 목표 처리표에 이번 조사 결과를 붙인 것이다. **�
 |exception|[#218](https://github.com/jihoon22-lee/ici/issues/218)|**확정: 유지 (이관)** — [wp20-dispositions.md](wp20-dispositions.md)|양 언어 `heuristic`|
 |build|[#220](https://github.com/jihoon22-lee/ici/issues/220), prepare는 [#212](https://github.com/jihoon22-lee/ici/issues/212)/[#213](https://github.com/jihoon22-lee/ici/issues/213)|**PR A 확정: prepare / 산출물 검증 분리** — [wp22-dispositions.md](wp22-dispositions.md)|기본 비활성. NAS 경로 의존. `integration`과 `release` variant 공유|
 |binary_compat|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공 — 잠정 방향 [wp22-dispositions.md](wp22-dispositions.md)|기본 비활성. `build` 선행 필수. C++ `exact`|
-|integration|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공 — 잠정 방향 [wp22-dispositions.md](wp22-dispositions.md)|기본 비활성. `build` 선행 필수. 임의 명령 실행 계약|
+|integration|[#220](https://github.com/jihoon22-lee/ici/issues/220)|**PR D 확정: 선언 기반 case 이관** — [wp22-dispositions.md](wp22-dispositions.md)|deep+opt-in. argv typed placeholder 계약|
 
 ## 8. 후속 WP로 넘기는 미확인 항목
 

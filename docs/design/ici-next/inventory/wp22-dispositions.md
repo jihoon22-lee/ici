@@ -1,7 +1,8 @@
 # WP22 동적·호환성 검증 이관 disposition
 
 - 상태: **PR A(build/artifact contract)·PR B(sanitizer 이관)·
-  PR C(compatibility 이관) 구현 완료. PR D(integration)가 남아 있다.**
+  PR C(compatibility 이관)·PR D(integration 이관) 구현 완료.**
+  `cpp.dead`의 링커 재실행 경로는 별도 도구-제공자 슬라이스로 남아 있다.
   잠정 표는 [current-engines.md §7](current-engines.md#7-잠정-disposition)에 있다.
 - 근거 이슈: [WP22 #220](https://github.com/jihoon22-lee/ici/issues/220)
 - 대상: `build`, `binary_compat`, `integration`, `python_compat`,
@@ -60,6 +61,19 @@
 |정책 범위|선언 없이 안전한 기본만 적용: 절대 RPATH/RUNPATH(`ici.binary.forbidden-rpath`)와 build 경로 누출(`ici.binary.build-path-leak`). class/machine·max glibc/glibcxx/cxxabi·정적 링크·NEEDED 허용목록 등 배포 floor는 `[checks.*]` 스키마에 선언 통로가 없어 **미판정** — 측정된 ABI 사실은 artifact별 limitation으로 기록|
 |대조군|`tests/test_cli_next_compat.py` — 정적 floor 4종·런타임 파싱 7종·readelf 파싱 4종·plan 게이팅 5종 + 실제 g++/readelf E2E|
 
+## PR D — integration 이관 (완료)
+
+|항목|결정|
+|---|---|
+|선언|`[[components.integrations]]` — 이름·argv·`expected_exit`·stdout/stderr 정/부 단언·`timeout_seconds`·`env`·`requires`·`python_targets`·`output_artifacts`·`required`. 상한은 stable `engines/_integration.py` 상수를 그대로 재사용(MAX_CASES/MAX_ARGV/MAX_ASSERTIONS/MAX_ENV). 알 수 없는 키·중복 이름·비정규 경로는 ConfigProblem|
+|argv 계약|쉘 문자열이 아니라 argv 배열. argv[0]은 반드시 타입 placeholder(`{python:NAME}`/`{artifact:BUILD/PATH}`) — stable과 동일. 다른 토큰은 리터럴 또는 전체 placeholder만 허용(부분 brace는 거부)|
+|check|registry의 `integration` pack(도메인 check, 언어 아님). `tool=None`·`Profile.DEEP` 전용 — standard/fast는 생략, `--python`/`--cpp` 언어 필터도 제외. 컴포넌트가 case를 선언할 때만 `_plans`가 명시적으로 제안(opt-in)|
+|확장|`cli/next_integration.py` — case당 task 1개. `{python:declared}`는 `[python] executable`/`.venv`로, `{python:NAME}`은 `python_targets`로 해석(ici 인터프리터 fallback 없음). `{artifact:BUILD/PATH}`는 링크된 build의 `artifacts` glob이 지명하고 실제 존재하는 파일만 — 계약 밖·미링크·미빌드·워크스페이스 이탈은 전부 blocked|
+|실행|`adapters/providers/integration.py` — task env에 판정 계약(`ICI_*`)을 실어 runner가 공유돼도 case별 판정이 갈라지지 않게 함. `env`의 `ICI_` 접두사는 스키마가 거부. `cacheable=False`(외부 상태 의존), `requires`는 TaskSpec에 실려 plan 텍스트/JSON에 `[requires …]`로 표시되고 limitation으로도 기록|
+|판정|완주한 run의 exit·스트림·산출물 단언 위반은 MEASURED finding(`integration.exit`/`integration.stdout`/`integration.stderr`/`integration.output`). 타임아웃·시그널·취소·시작 실패는 parse하지 않음 — 실행 환경 오류는 단언 실패와 구분되어 INCOMPLETE. 산출물 단언은 존재·정규 파일·min_size·`not_before` 신선도( stale 파일은 증거 아님)|
+|required|check·case 두 층. `[checks.integration] required`가 상위 — required check 아래의 advisory case(`required = false`)는 finding을 남기되 게이트를 실패시키지 않는다. 선언된 required case가 해석 불가면 blocked→INCOMPLETE — 미결 런타임/서비스/산출물을 PASS로 치지 않는다|
+|대조군|`tests/test_cli_next_integration.py` — 스키마 8종·앵커링 2종·plan 게이팅 11종·판정 8종·E2E 2종|
+
 ## 잠정 disposition — 이후 PR 슬라이스
 
 |엔진|잠정 disposition|방향|
@@ -69,7 +83,7 @@
 |`thread_sanitize`|PR B 완료 — `cpp.tsan`(thread-sanitize variant)|완료|
 |`binary_compat`|PR C 완료 — readelf per-artifact task + stable 정책 재사용. 배포 floor 선언 스키마는 별도 확장 필요|완료(정책 선언은 deferred)|
 |`python_compat`|PR C 완료 — 정적/런타임 분리 이관|완료|
-|`integration`|명시 산출물·서비스 요구·명령·timeout을 선언으로 — offline 기본 실행에서 자동 호출 금지, `deep`+opt-in|PR D: `needs`의 artifact 소비 + 외부 서비스 표기|
+|`integration`|PR D 완료 — 선언 case를 task로 확장, placeholder 해석·외부 요구 표기·판정 계약 이관|완료|
 
 ## 명시적 미이관 (조용한 삭제 없음)
 
