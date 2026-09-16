@@ -133,6 +133,26 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: ../dist/ici.pyz verify --report --html verify_report.html --github-summary
 
+      # The unit suite exercises the next path from source; this exercises it
+      # from the shipped artifact. The fixture is a committed next-schema
+      # project with no interpreter of its own, so the interpreter-dependent
+      # checks stay out of scope and the run must come back clean — a next
+      # path that cannot reach exit 0 from dist/ici.pyz fails here, not in a
+      # bug report.
+      - name: 🐶 Dogfooding — next path via dist/ici.pyz
+        working-directory: tests/fixtures/ici-next/self-verify
+        run: |
+          set -euo pipefail
+          out="$(mktemp -d)"
+          "$GITHUB_WORKSPACE/dist/ici.pyz" next plan
+          "$GITHUB_WORKSPACE/dist/ici.pyz" next verify --result "$out/result.json"
+          "$GITHUB_WORKSPACE/dist/ici.pyz" next report --result "$out/result.json" --out "$out/result.html"
+          test -s "$out/result.json" && test -s "$out/result.html"
+          # Zero-CDN on the produced page, not on a promise (SPEC-04).
+          ! grep -qE 'https?://' "$out/result.html"
+          cp "$out/result.json" next_self_result.json
+          cp "$out/result.html" next_self_result.html
+
       # A trend artifact, not a gate. Wall clock on a shared runner moves for
       # reasons that have nothing to do with the reporters, so --enforce stays
       # off here and the recorded budgets are read from the artifact instead.
@@ -153,6 +173,8 @@ jobs:
             viewer/verify_report.html
             viewer/verify_report.json
             viewer/static_cli_report.json
+            tests/fixtures/ici-next/self-verify/next_self_result.json
+            tests/fixtures/ici-next/self-verify/next_self_result.html
             report_benchmark.json
           retention-days: 14
 

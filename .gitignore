@@ -32,6 +32,8 @@ venv.bak/
 
 # Testing & Linting
 .pytest_cache/
+.ici/
+next_self_result.*
 .coverage
 .coverage.*
 htmlcov/

@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+### 추가 — WP29 PR A: 빌드 아티팩트의 next 경로를 CI 게이트로 ([#227](https://github.com/jihoon22-lee/ici/issues/227))
+
+- `ci.yml`에 "Dogfooding — next path via dist/ici.pyz" 스텝을 추가합니다.
+  새 fixture `tests/fixtures/ici-next/self-verify/`(next 스키마 설정 +
+  깨끗한 Python 모듈)에서 빌드된 pyz가 `next plan`→`next verify`→
+  `next report`를 완주하고(exit 0), 생성된 HTML이 외부 참조 0건인지
+  확인합니다. 단위 테스트는 소스에서 next 경로를 검증하지만 이 스텝은
+  **배포물 자체**에서 검증합니다 — pyz에서 exit 0에 도달하지 못하는
+  next 경로는 여기서 실패합니다.
+- fixture를 `tests/fixtures/manifest.toml`에 등록하고, next가 만드는
+  `.ici/` 작업 디렉터리와 CI 산출물(`next_self_result.*`)을
+  `.gitignore`에 추가합니다.
+
 ### 추가 — WP28 PR B/C: bundle E2E 수행 + 현장 인수 checklist ([#226](https://github.com/jihoon22-lee/ici/issues/226))
 
 - **bundle E2E 수행**: 로컬 PBS CPython 3.13.15로 조립한 bundle에
