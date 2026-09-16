@@ -199,6 +199,7 @@ def run_result_to_dict(result: RunResult) -> dict[str, Any]:
             "source": _snapshot_to_dict(result.identity.source),
             "policy_digest": result.identity.policy_digest,
             "toolchain_digest": result.identity.toolchain_digest,
+            "fingerprint_version": result.identity.fingerprint_version,
         },
         "scope": {
             "kind": result.scope.kind.value,
@@ -366,6 +367,7 @@ def _identity_from_dict(payload: object) -> RunIdentity:
         ),
         policy_digest=data.get("policy_digest"),  # type: ignore[arg-type]
         toolchain_digest=data.get("toolchain_digest"),  # type: ignore[arg-type]
+        fingerprint_version=data.get("fingerprint_version") or "",
     )
 
 

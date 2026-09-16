@@ -298,7 +298,12 @@ class TestDeterminism:
         """
 
         payload = run_result_to_dict(minimal_result())
-        assert set(payload["identity"]) == {"source", "policy_digest", "toolchain_digest"}
+        assert set(payload["identity"]) == {
+            "source",
+            "policy_digest",
+            "toolchain_digest",
+            "fingerprint_version",
+        }
         assert dumps(payload) == dumps(run_result_to_dict(minimal_result()))
 
 

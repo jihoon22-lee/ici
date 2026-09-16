@@ -35,6 +35,7 @@ from ici.application.tem import (
 from ici.application.verify import Verification
 from ici.domain.enums import GateVerdict, ScopeKind, TaskState
 from ici.domain.result import (
+    FINGERPRINT_VERSION,
     BaselineComparison,
     ExecutionSummary,
     Producer,
@@ -90,7 +91,10 @@ def assemble(
         run_id=run_id,
         producer=Producer(ici_version=ici_version, bundle_digest=bundle_digest),
         identity=RunIdentity(
-            source=source, policy_digest=policy_digest, toolchain_digest=toolchain_digest
+            source=source,
+            policy_digest=policy_digest,
+            toolchain_digest=toolchain_digest,
+            fingerprint_version=FINGERPRINT_VERSION,
         ),
         scope=ScopeSelection(
             kind=scope,

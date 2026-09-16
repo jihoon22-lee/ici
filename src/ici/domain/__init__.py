@@ -36,6 +36,7 @@ from ici.domain.events import (
 from ici.domain.finding import Finding, FindingSuppression, SourceSpan
 from ici.domain.observation import Measurement, Observation
 from ici.domain.result import (
+    FINGERPRINT_VERSION,
     SCHEMA_ID,
     SCHEMA_VERSION,
     BaselineComparison,
@@ -60,6 +61,7 @@ from ici.domain.workspace import (
 __all__ = [
     "EVENT_SCHEMA_ID",
     "EVENT_SCHEMA_VERSION",
+    "FINGERPRINT_VERSION",
     "SCHEMA_ID",
     "SCHEMA_VERSION",
     "AnalysisUnit",

@@ -41,6 +41,7 @@ from ici.domain.observation import Measurement
 from ici.domain.workspace import SourceSnapshot
 
 __all__ = [
+    "FINGERPRINT_VERSION",
     "BaselineComparison",
     "ExecutionSummary",
     "GateOutcome",
@@ -76,6 +77,13 @@ class Producer:
             )
 
 
+#: The fingerprint algorithm's normalization version (#221 item 3). Two
+#: results may only delta against each other when this matches — a change in
+#: what feeds the hash renames every finding, and comparing across it would
+#: mark the old ones resolved and the new ones new without a line changing.
+FINGERPRINT_VERSION = "ici.next.fingerprint.v1"
+
+
 @dataclass(frozen=True)
 class RunIdentity:
     """The inputs that make a result comparable to another result.
@@ -83,18 +91,23 @@ class RunIdentity:
     Clock time and duration are excluded on purpose (#200 step 5): the same
     sources, policy and toolchain must produce the same identity on Tuesday as
     on Monday, or a baseline comparison cannot distinguish a real change from a
-    second run.
+    second run. ``fingerprint_version`` is empty only in results written
+    before the version was recorded — which is exactly when a baseline must
+    refuse to compare.
     """
 
     source: SourceSnapshot
     policy_digest: str
     toolchain_digest: str
+    fingerprint_version: str = ""
 
     def __post_init__(self) -> None:
         if not isinstance(self.source, SourceSnapshot):
             raise ValueError("run identity source must be a SourceSnapshot")
         for name in ("policy_digest", "toolchain_digest"):
             object.__setattr__(self, name, require_digest(getattr(self, name), f"run {name}"))
+        if not isinstance(self.fingerprint_version, str):
+            raise ValueError("run fingerprint_version must be a string")
 
 
 @dataclass(frozen=True)

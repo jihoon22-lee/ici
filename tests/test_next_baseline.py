@@ -20,7 +20,7 @@ from ici.application.baseline import BaselineError, compare, load_baseline
 from ici.config.scaffold import propose, write
 from ici.domain.enums import BaselineState, EvidenceLevel
 from ici.domain.finding import Finding, SourceSpan
-from ici.domain.result import SCHEMA_ID
+from ici.domain.result import FINGERPRINT_VERSION, SCHEMA_ID
 
 runner = CliRunner()
 
@@ -48,11 +48,16 @@ def _document(
     findings: list[dict[str, str | None]],
     policy: str = _DIGEST,
     toolchain: str = _DIGEST,
+    fingerprint_version: str = FINGERPRINT_VERSION,
     selected: list[str] | None = None,
 ) -> Path:
     payload = {
         "schema_id": SCHEMA_ID,
-        "identity": {"policy_digest": policy, "toolchain_digest": toolchain},
+        "identity": {
+            "policy_digest": policy,
+            "toolchain_digest": toolchain,
+            "fingerprint_version": fingerprint_version,
+        },
         "scope": {"selected_components": selected if selected is not None else ["app"]},
         "findings": findings,
     }
@@ -198,6 +203,23 @@ def test_a_toolchain_change_makes_the_baseline_incompatible(tmp_path: Path) -> N
     assert "toolchain" in delta.reason
 
 
+def test_an_unversioned_baseline_cannot_be_compared(tmp_path: Path) -> None:
+    # Written before the fingerprint algorithm was versioned — comparable
+    # policy and toolchain are not enough to know the identities match.
+    baseline = load_baseline(_document(tmp_path, findings=[], fingerprint_version=""))
+
+    delta = compare(
+        (),
+        baseline,
+        policy_digest=_DIGEST,
+        toolchain_digest=_DIGEST,
+        selected_components=("app",),
+    )
+
+    assert delta.state is BaselineState.INCOMPATIBLE
+    assert "fingerprint" in delta.reason
+
+
 # --- the CLI ---------------------------------------------------------------
 
 
@@ -243,3 +265,45 @@ def test_an_unreadable_baseline_stops_the_run_before_it_starts(project: Path) ->
 
     assert result.exit_code == 2
     assert "cannot be read" in result.output
+
+
+# --- next diff --------------------------------------------------------------
+
+
+def test_diff_reports_the_delta_between_two_saved_results(project: Path) -> None:
+    import shutil
+
+    ruff = shutil.which("ruff") or Path(".venv/bin/ruff").resolve()
+    if not Path(str(ruff)).exists():
+        pytest.skip("ruff is not available")
+
+    first = runner.invoke(app, ["next", "verify", "--result", "old.json"])
+    assert first.exit_code == 0, first.output
+    (project / "src" / "app.py").write_text("import os\nvalue = 1\n", encoding="utf-8")
+    second = runner.invoke(app, ["next", "verify", "--no-cache"])
+    assert second.exit_code == 1, second.output
+
+    diff = runner.invoke(app, ["next", "diff", "old.json"])
+
+    assert diff.exit_code == 0, diff.output
+    assert "new" in diff.output and "resolved" in diff.output
+    assert "PASS → FAIL" in diff.output
+
+
+def test_diff_refuses_an_incompatible_baseline(project: Path) -> None:
+    import shutil
+
+    ruff = shutil.which("ruff") or Path(".venv/bin/ruff").resolve()
+    if not Path(str(ruff)).exists():
+        pytest.skip("ruff is not available")
+
+    assert runner.invoke(app, ["next", "verify", "--result", "old.json"]).exit_code == 0
+    # A policy change rewrites the digest — the comparison refuses by name.
+    with (project / "ici.toml").open("a", encoding="utf-8") as handle:
+        handle.write('[checks."python.hygiene"]\nenabled = false\n')
+    assert runner.invoke(app, ["next", "verify", "--no-cache"]).exit_code == 0
+
+    diff = runner.invoke(app, ["next", "diff", "old.json"])
+
+    assert diff.exit_code == 2
+    assert "incompatible" in diff.output

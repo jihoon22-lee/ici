@@ -24,7 +24,7 @@ from pathlib import Path
 from ici.domain._codec import require_mapping
 from ici.domain.enums import BaselineState
 from ici.domain.finding import Finding
-from ici.domain.result import SCHEMA_ID, BaselineComparison
+from ici.domain.result import FINGERPRINT_VERSION, SCHEMA_ID, BaselineComparison
 
 __all__ = ["BaselineDocument", "BaselineError", "compare", "load_baseline"]
 
@@ -40,6 +40,10 @@ class BaselineDocument:
     path: str
     policy_digest: str
     toolchain_digest: str
+    #: The fingerprint normalization version the baseline was written under —
+    #: empty for results that predate its recording, which cannot be a
+    #: baseline because their fingerprints are not known to be comparable.
+    fingerprint_version: str
     #: fingerprint -> component the finding belonged to.
     findings: tuple[tuple[str, str], ...]
 
@@ -79,6 +83,7 @@ def load_baseline(path: Path) -> BaselineDocument:
         path=str(path),
         policy_digest=str(identity.get("policy_digest") or ""),
         toolchain_digest=str(identity.get("toolchain_digest") or ""),
+        fingerprint_version=str(identity.get("fingerprint_version") or ""),
         findings=tuple(findings),
     )
 
@@ -93,6 +98,16 @@ def compare(
 ) -> BaselineComparison:
     """The fingerprint delta, or a refusal that says why it cannot be a delta."""
 
+    if baseline.fingerprint_version != FINGERPRINT_VERSION:
+        return BaselineComparison(
+            state=BaselineState.INCOMPATIBLE,
+            origin=baseline.path,
+            reason=(
+                "the baseline was written under a different fingerprint "
+                "normalization — accept the current run as the new baseline "
+                "instead of comparing across the change"
+            ),
+        )
     if baseline.policy_digest != policy_digest:
         return BaselineComparison(
             state=BaselineState.INCOMPATIBLE,

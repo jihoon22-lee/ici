@@ -398,6 +398,11 @@
         "toolchain_digest": {
           "pattern": "^sha256:[0-9a-f]{64}$",
           "type": "string"
+        },
+        "fingerprint_version": {
+          "description": "Fingerprint normalization version (#221). Baseline comparison requires an exact match; results written before it was recorded carry an empty value and cannot serve as a baseline.",
+          "maxLength": 256,
+          "type": "string"
         }
       },
       "required": [
