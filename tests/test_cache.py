@@ -113,6 +113,44 @@ def test_an_entry_whose_identity_disagrees_is_refused(tmp_path) -> None:
     assert "identity" in read.reason
 
 
+def test_a_rewritten_observation_is_evicted_not_adopted(tmp_path) -> None:
+    """The finding that was stored is the finding that is read back (#226).
+
+    Identity alone only proves *which run's inputs* an entry answers — it
+    says nothing about the payload. An entry whose findings were edited out
+    while the identity survived would otherwise launder a defect into a
+    clean cache hit.
+    """
+    cache = ObservationCache(tmp_path / "cache")
+    cache.write("2" * 64, _observation(), run_id="r")
+    entry = tmp_path / "cache" / ("2" * 64 + ".json")
+    payload = json.loads(entry.read_text(encoding="utf-8"))
+    payload["observation"]["state"] = "FAILED"  # the stored answer, edited
+    entry.write_text(json.dumps(payload), encoding="utf-8")
+
+    read = cache.read("2" * 64)
+
+    assert not read.hit
+    assert "modified" in read.reason
+    assert not entry.exists()
+
+
+def test_an_entry_without_integrity_is_a_miss(tmp_path) -> None:
+    """Entries written before integrity existed are doubted, not guessed."""
+    cache = ObservationCache(tmp_path / "cache")
+    cache.write("3" * 64, _observation(), run_id="r")
+    entry = tmp_path / "cache" / ("3" * 64 + ".json")
+    payload = json.loads(entry.read_text(encoding="utf-8"))
+    del payload["integrity"]
+    entry.write_text(json.dumps(payload), encoding="utf-8")
+
+    read = cache.read("3" * 64)
+
+    assert not read.hit
+    assert "integrity" in read.reason
+    assert not entry.exists()
+
+
 def test_eviction_bounds_the_cache_and_skips_symlinks(tmp_path) -> None:
     cache = ObservationCache(tmp_path / "cache", max_entries=2)
     outside = tmp_path / "outside.txt"
