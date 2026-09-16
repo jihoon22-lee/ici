@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.markup import escape
 
 from ici import __version__
+from ici.cli import next_migrate  # noqa: F401 - registers `ici next migrate`
 from ici.cli.next_path import next_app
 from ici.compilation_export_cli import export_compilation_context
 from ici.config import ConfigError, load_config

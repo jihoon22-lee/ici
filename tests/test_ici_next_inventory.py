@@ -63,6 +63,7 @@ EXPECTED_DOCUMENTS = (
     "inventory/wp24-dispositions.md",
     "publish-workflow.md",
     "idk-integration.md",
+    "migration-matrix.md",
     "adr/README.md",
     "adr/0001-keep-python-core.md",
     "adr/0002-standalone-runtime-bundle.md",

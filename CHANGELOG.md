@@ -7,6 +7,27 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next migrate` — stable 설정의 next 스키마 변환 (WP27, [#225](https://github.com/jihoon22-lee/ici/issues/225))
+
+**기존 배포 경로 동작 변경 없음.** `ici migrate`는 새 `next` 네임스페이스
+명령이며, stable 설정 파일·loader·엔진은 그대로입니다.
+
+- **기본은 dry-run입니다.** 변환된 TOML과 키별 노트를 출력만 하고 파일을
+  바꾸지 않습니다. `--output PATH`는 새 파일에만 쓰고 기존 파일은 거부하며,
+  `--write`는 원본을 `ici.toml.stable`로 백업한 뒤 `ici.toml`을 교체합니다.
+- **모든 키가 세 군데 중 한 곳으로 갑니다.** converted(의미 보존) ·
+  confirm(의미가 달라 검토 필요) · unsupported(next에 대응 없음 — 사유를
+  명시하고 조용히 유지하지 않음). 엔진 enabled/required는 언어별 check로
+  풀리고(`lint` → `python.lint`+`cpp.tidy`+`cpp.diagnostics`), 임계값
+  계열 키는 next 정책에 대응이 없어 confirm으로 표시됩니다.
+- **component의 언어는 트리가 결정합니다.** stable 스키마가 선언하지 않던
+  languages를 rglob 스캔으로 검출하고, 스캔할 트리가 없으면 추측 대신
+  confirm 노트를 남깁니다.
+- `dev.toml`/XDG/`ICI_CONFIG` 같은 다른 레이어가 같은 키를 두고 다투면
+  변환 전에 누가 이기는지를 먼저 보고합니다(WP03의 `migration.report` 재사용).
+- 변환 규칙과 CLI·종료 코드·결과/viewer·cutover 후보의 전체 대응표는
+  `docs/design/ici-next/migration-matrix.md`에 있습니다.
+
 ### 추가 — `ici next` 이벤트 생명주기와 idk 소비자 계약 (WP26, [#224](https://github.com/jihoon22-lee/ici/issues/224))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의
