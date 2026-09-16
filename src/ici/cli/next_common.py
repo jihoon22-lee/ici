@@ -98,6 +98,8 @@ _EVENTS_OPTION = typer.Option(None, "--events", help="Write the event stream her
 _BASELINE_OPTION = typer.Option(
     None, "--baseline", help="Compare this run against a stored ici.next.run result"
 )
+_SARIF_OPTION = typer.Option(None, "--sarif", help="Also write the result as SARIF here")
+_BASELINE_ARG = typer.Argument(help="The earlier stored result")
 _CONFIG_OPTION = typer.Option(None, "--config", help="Read this config file")
 _LOCAL_CONFIG_OPTION = typer.Option(
     None, "--local-config", help="Personal overlay, path-allowlisted"

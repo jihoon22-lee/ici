@@ -53,6 +53,7 @@ from ici.application.request import (
 )
 from ici.application.verify import verify as run_verification
 from ici.cli.next_common import (
+    _BASELINE_ARG,
     _BASELINE_OPTION,
     _COMPONENT_OPTION,
     _CONFIG_OPTION,
@@ -68,6 +69,7 @@ from ici.cli.next_common import (
     _PYTHON_OPTION,
     _REQUIRE_FULL_OPTION,
     _RESULT_OPTION,
+    _SARIF_OPTION,
     _SOURCE_SUFFIXES,
     EXIT_CONFIG,
     _announce,
@@ -99,6 +101,8 @@ from ici.execution.process import run_task
 from ici.languages.checks import CheckDefinition
 from ici.languages.registry import builtin as builtin_registry
 from ici.reporting.offline_html import render
+from ici.reporting.sarif import SarifBoundsError
+from ici.reporting.sarif import document as sarif_document
 from ici.workspace import compile_units, inventory
 from ici.workspace.inventory import SourceInventory
 from ici.workspace.vcs import status as vcs_status
@@ -771,6 +775,7 @@ def _verify_text(
 def cmd_report(
     result: Path = _RESULT_OPTION,
     page: Path = _PAGE_OPTION,
+    sarif: Path | None = _SARIF_OPTION,
 ) -> None:
     """Render a saved result. Analyses nothing and runs no tool."""
 
@@ -785,10 +790,81 @@ def cmd_report(
         typer.echo(f"report: {source} is not a result this version can read: {error}", err=True)
         raise typer.Exit(EXIT_CONFIG) from error
 
+    if sarif is not None:
+        target = root / sarif if not sarif.is_absolute() else sarif
+        target.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            target.write_text(dumps(sarif_document(stored)) + "\n", encoding="utf-8")
+        except SarifBoundsError as error:
+            typer.echo(f"report: {error}", err=True)
+            raise typer.Exit(EXIT_CONFIG) from error
+        typer.echo(f"wrote {target}")
+        return
+
     target = root / page if not page.is_absolute() else page
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(render(stored), encoding="utf-8")
     typer.echo(f"wrote {target}")
+
+
+@next_app.command("diff")
+def cmd_diff(
+    baseline: Path = _BASELINE_ARG,
+    current: Path = _RESULT_OPTION,
+) -> None:
+    """Compare two stored results — the same machinery ``--baseline`` uses.
+
+    ``baseline`` is the older saved result, ``current`` defaults to the last
+    run's. The report separates what the newer run actually resolved from
+    what it simply never looked at, so a narrower scope cannot read as fixed
+    code (#221 item 7).
+    """
+
+    root = Path.cwd().resolve()
+    old_path = baseline if baseline.is_absolute() else root / baseline
+    new_path = current if current.is_absolute() else root / current
+    try:
+        old = load_baseline(old_path)
+    except BaselineError as error:
+        typer.echo(f"diff: {error}", err=True)
+        raise typer.Exit(EXIT_CONFIG) from error
+    try:
+        new = loads(new_path.read_text(encoding="utf-8"))
+    except OSError as error:
+        typer.echo(f"diff: {new_path} cannot be read: {error}", err=True)
+        raise typer.Exit(EXIT_CONFIG) from error
+    except (ValueError, json.JSONDecodeError) as error:
+        typer.echo(f"diff: {new_path} is not a result this version can read: {error}", err=True)
+        raise typer.Exit(EXIT_CONFIG) from error
+
+    delta = compare(
+        new.findings,
+        old,
+        policy_digest=new.identity.policy_digest,
+        toolchain_digest=new.identity.toolchain_digest,
+        selected_components=new.scope.selected_components,
+    )
+    if delta.state is BaselineState.INCOMPATIBLE:
+        typer.echo(f"incompatible: {delta.reason}")
+        raise typer.Exit(EXIT_CONFIG)
+    typer.echo(
+        f"{len(delta.new)} new, {len(delta.unchanged)} unchanged, "
+        f"{len(delta.resolved)} resolved, {len(delta.carried)} carried "
+        f"(baseline {old_path.name} → {new_path.name})"
+    )
+    if delta.carried:
+        typer.echo(
+            "  carried findings were in components the newer run did not "
+            "select — reduced scope, not fixed code"
+        )
+    old_gate = None
+    try:
+        old_result = loads(old_path.read_text(encoding="utf-8"))
+        old_gate = old_result.gate.selected.value
+    except (OSError, ValueError):
+        pass
+    if old_gate and old_gate != new.gate.selected.value:
+        typer.echo(f"  gate: {old_gate} → {new.gate.selected.value}")
 
 
 def _identifier(profile: Profile, policy_digest: str):

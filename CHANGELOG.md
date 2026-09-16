@@ -7,6 +7,31 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` SARIF보내기와 저장 결과 비교 (WP23-C, [#221](https://github.com/jihoon22-lee/ici/issues/221))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의
+reporting 계층입니다 — stable `reporters/sarif.py`는 v3 결과를 그대로
+처리하며 유지됩니다.
+
+- **`next report --sarif <path>`가 저장된 결과를 SARIF 2.1.0으로 씁니다.**
+  finding의 fingerprint가 `partialFingerprints`로, 위치·규칙·severity가
+  그대로 보존되고 suppression은 `kind: "external"`로 표시됩니다 — 지우지
+  않습니다. run 메타데이터에 gate·scope·policy/toolchain digest가
+  기록되고, baseline 비교가 있으면 `baselineState`가 new/unchanged에만
+  붙습니다 — resolved는 이 실행에 결과가 없는 것이 정의이고, carried는 이
+  실행이 본 적 없는 finding이기 때문입니다.
+- **`next diff <old> [<new>]`가 저장된 두 결과의 delta를 출력합니다.**
+  `--baseline`과 같은 비교기를 쓰며 new/unchanged/resolved/carried와 gate
+  변화를 보여줍니다. 미선택 컴포넌트의 finding은 resolved가 아니라
+  carried로 보고됩니다 — 분석 범위 감소를 실제 해결로 읽지 않습니다.
+  v3 결과나 정책·toolchain이 다른 문서는 비교를 거부하고 사유를 출력합니다.
+- **fingerprint 정규화 버전이 결과 envelope에 기록됩니다.**
+  `identity.fingerprint_version`은 이 실행이 어떤 fingerprint 알고리즘으로
+  finding을 명명했는지를 고정합니다. 버전이 없거나 다른 baseline은
+  comparable 정책·toolchain을 갖췄어도 `incompatible`입니다 — 알고리즘이
+  바뀌면 모든 finding이 다른 이름을 갖고, 그 사이의 delta는 아무것도
+  측정하지 않은 해결·신규를 만들어 냅니다.
+
 ### 추가 — `ici next` baseline 비교와 선언형 suppression (WP23-B, [#221](https://github.com/jihoon22-lee/ici/issues/221))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 결과
