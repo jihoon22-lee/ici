@@ -78,7 +78,6 @@ from ici.cli.next_common import (
     _compile_limitations,
     _describe,
     _drift_summary,
-    _EventSink,
     _graph_of,
     _plans,
     _profile,
@@ -90,6 +89,7 @@ from ici.cli.next_common import (
     _workspace,
     next_app,
 )
+from ici.cli.next_events import EventSink
 from ici.cli.next_testing import BUNDLED_TOOLS, locate_tool
 from ici.config.composition import EffectiveCheck
 from ici.domain.enums import (
@@ -629,9 +629,7 @@ def cmd_verify(
 
     run_id = uuid.uuid4().hex
     sink = (
-        _EventSink(root / events if not events.is_absolute() else events, run_id)
-        if events
-        else None
+        EventSink(root / events if not events.is_absolute() else events, run_id) if events else None
     )
     if sink is not None:
         sink.emit(EventType.RUN_STARTED)
