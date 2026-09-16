@@ -95,6 +95,9 @@ _JSON_OPTION = typer.Option(
     False, "--json", help="Machine output on stdout; diagnostics stay on stderr"
 )
 _EVENTS_OPTION = typer.Option(None, "--events", help="Write the event stream here")
+_BASELINE_OPTION = typer.Option(
+    None, "--baseline", help="Compare this run against a stored ici.next.run result"
+)
 _CONFIG_OPTION = typer.Option(None, "--config", help="Read this config file")
 _LOCAL_CONFIG_OPTION = typer.Option(
     None, "--local-config", help="Personal overlay, path-allowlisted"

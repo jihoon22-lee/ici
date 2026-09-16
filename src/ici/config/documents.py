@@ -31,6 +31,7 @@ __all__ = [
     "IntegrationOutputBody",
     "PythonSettings",
     "RootDocument",
+    "SuppressionBody",
     "ToolSetting",
     "WorkspaceSettings",
 ]
@@ -58,6 +59,24 @@ class Exemption:
 
     component_id: str
     reason: Sourced[str]
+    origin: Origin
+
+
+@dataclass(frozen=True)
+class SuppressionBody:
+    """``[[suppressions]]`` — a declared reason a finding does not gate (#221).
+
+    A suppression always carries ``reason``; the selectors are conjunctive —
+    every field present must match. ``fingerprint`` pins one exact finding;
+    ``rule``/``path``/``component`` describe a family. A suppression with no
+    selector would suppress everything, so the schema refuses it.
+    """
+
+    fingerprint: Sourced[str] | None
+    rule: Sourced[str] | None
+    path: Sourced[str] | None
+    component: Sourced[str] | None
+    reason: Sourced[str] | None
     origin: Origin
 
 
@@ -247,6 +266,7 @@ class RootDocument:
     tools: tuple[ToolSetting, ...]
     builds: tuple[BuildDeclaration, ...]
     components: tuple[ComponentEntry, ...]
+    suppressions: tuple[SuppressionBody, ...] = ()
 
     @property
     def references(self) -> tuple[ComponentReference, ...]:

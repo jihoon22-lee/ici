@@ -7,6 +7,29 @@
 
 ## [Unreleased]
 
+### 추가 — `ici next` baseline 비교와 선언형 suppression (WP23-B, [#221](https://github.com/jihoon22-lee/ici/issues/221))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 결과
+모델과 `verify` 경로입니다 — stable의 baseline·suppression 처리는 그대로
+유지됩니다.
+
+- **`[[suppressions]]` 루트 선언이 추가됐습니다.** `fingerprint`·`rule`·
+  `path`·`component` 셀렉터는 모두 AND로 결합되고 `reason`이 필수입니다 —
+  셀렉터 없는 항목은 전체 억제와 같아 거부됩니다. `path`는 구분자가 있으면
+  워크스페이스 루트 기준 glob, 없으면 basename 매칭입니다.
+- **suppression이 finding을 지우지 않고 표시합니다.** 매칭된 finding은
+  `suppression.reason`·`origin`(선언 파일)과 함께 결과에 남고
+  `counts_against_gate`에서만 빠집니다. 필수 check의 미완료는 finding이
+  아니므로 suppression으로 숨길 수 없습니다 — INCOMPLETE가 유지됩니다.
+- **`verify --baseline <path>`가 저장된 `ici.next.run` 결과와 비교합니다.**
+  policy·toolchain digest가 다르면 `incompatible`과 사유를 기록하고 delta를
+  만들지 않습니다 — 정책·도구가 바뀐 뒤의 비교는 재측정 없이 "해결"을
+  선언할 수 없기 때문입니다.
+- **부분 실행은 미선택 컴포넌트의 finding을 resolved로 표시하지 않습니다.**
+  선택된 컴포넌트에서 사라진 것만 `resolved`이고, 이번 실행이 보지 않은
+  컴포넌트의 finding은 `carried`로 남습니다. `new`·`unchanged`·
+  `resolved`·`carried`가 결과 envelope의 `baseline`에 기록됩니다.
+
 ### 추가 — `ici next` 선언형 통합 case 실행 (WP22-D, [#220](https://github.com/jihoon22-lee/ici/issues/220))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 새

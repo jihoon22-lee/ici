@@ -29,6 +29,7 @@ from pathlib import Path
 import pytest
 
 from ici.domain.enums import (
+    BaselineState,
     EvidenceLevel,
     GateVerdict,
     PublicationState,
@@ -115,6 +116,7 @@ class TestEnumsMatchTheCode:
             (RUN_SCHEMA, "gate.workspace", GateVerdict),
             (RUN_SCHEMA, "scope.kind", ScopeKind),
             (RUN_SCHEMA, "publication.state", PublicationState),
+            (RUN_SCHEMA, "baseline.state", BaselineState),
             (RUN_SCHEMA, "findings[].evidence", EvidenceLevel),
             (RUN_SCHEMA, "metrics[].evidence", EvidenceLevel),
             (EVENT_SCHEMA, "event_type", EventType),
@@ -137,6 +139,7 @@ class TestEnumsMatchTheCode:
             "gate.workspace",
             "scope.kind",
             "publication.state",
+            "baseline.state",
             "findings[].evidence",
             "metrics[].evidence",
             "event_type",

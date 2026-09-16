@@ -37,12 +37,20 @@ from ici.domain._codec import (
     read_enum,
     require_mapping,
 )
-from ici.domain.enums import EvidenceLevel, GateVerdict, PublicationState, ScopeKind, TaskState
+from ici.domain.enums import (
+    BaselineState,
+    EvidenceLevel,
+    GateVerdict,
+    PublicationState,
+    ScopeKind,
+    TaskState,
+)
 from ici.domain.finding import Finding, FindingSuppression, SourceSpan
 from ici.domain.observation import Measurement, Observation
 from ici.domain.result import (
     SCHEMA_ID,
     SCHEMA_VERSION,
+    BaselineComparison,
     ExecutionSummary,
     GateOutcome,
     Producer,
@@ -182,7 +190,7 @@ def run_result_to_dict(result: RunResult) -> dict[str, Any]:
     if result.producer.bundle_digest is not None:
         producer["bundle_digest"] = result.producer.bundle_digest
 
-    return {
+    document = {
         "schema_id": result.schema_id,
         "schema_version": result.schema_version,
         "run_id": result.run_id,
@@ -221,6 +229,36 @@ def run_result_to_dict(result: RunResult) -> dict[str, Any]:
         "metrics": [_measurement_to_dict(item) for item in result.metrics],
         "limitations": list(result.limitations),
     }
+    if result.baseline is not None:
+        document["baseline"] = _baseline_to_dict(result.baseline)
+    return document
+
+
+def _baseline_to_dict(baseline: BaselineComparison) -> dict:
+    return {
+        "state": baseline.state.value,
+        "origin": baseline.origin,
+        "reason": baseline.reason,
+        "new": list(baseline.new),
+        "unchanged": list(baseline.unchanged),
+        "resolved": list(baseline.resolved),
+        "carried": list(baseline.carried),
+    }
+
+
+def _baseline_from_dict(payload: object) -> BaselineComparison | None:
+    if payload is None:
+        return None
+    data = require_mapping(payload, "baseline")
+    return BaselineComparison(
+        state=read_enum(data.get("state"), BaselineState, "baseline state"),
+        origin=data.get("origin", ""),
+        reason=data.get("reason", ""),
+        new=tuple(data.get("new", ())),
+        unchanged=tuple(data.get("unchanged", ())),
+        resolved=tuple(data.get("resolved", ())),
+        carried=tuple(data.get("carried", ())),
+    )
 
 
 # --- reading ------------------------------------------------------------
@@ -397,6 +435,7 @@ def run_result_from_dict(payload: object) -> RunResult:
             metrics=tuple(_measurement_from_dict(item) for item in data.get("metrics", ())),
             publication=_publication_from_dict(data.get("publication")),
             limitations=tuple(data.get("limitations", ())),
+            baseline=_baseline_from_dict(data.get("baseline")),
         )
     except SchemaError:
         raise

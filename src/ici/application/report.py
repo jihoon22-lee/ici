@@ -35,6 +35,7 @@ from ici.application.tem import (
 from ici.application.verify import Verification
 from ici.domain.enums import GateVerdict, ScopeKind, TaskState
 from ici.domain.result import (
+    BaselineComparison,
     ExecutionSummary,
     Producer,
     RunIdentity,
@@ -61,6 +62,7 @@ def assemble(
     omitted_components: tuple[str, ...] = (),
     limitations: tuple[str, ...] = (),
     cancelled: bool = False,
+    baseline: BaselineComparison | None = None,
 ) -> RunResult:
     """Build the storable result for one verification.
 
@@ -131,6 +133,7 @@ def assemble(
         )
         + tuple(limitations)
         + tem[1],
+        baseline=baseline,
     )
 
 

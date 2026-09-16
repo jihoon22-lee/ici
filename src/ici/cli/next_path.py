@@ -39,6 +39,7 @@ from ici.adapters.providers.ruff import RuffProvider
 from ici.adapters.providers.sanitize import SanitizeProvider
 from ici.adapters.providers.tidy import ClangTidyProvider
 from ici.adapters.providers.ty import TyProvider
+from ici.application.baseline import BaselineError, compare, load_baseline
 from ici.application.graph import WorkUnit
 from ici.application.identity import task_identity
 from ici.application.plan import NothingSelected, Plan, PlannedCheck
@@ -52,6 +53,7 @@ from ici.application.request import (
 )
 from ici.application.verify import verify as run_verification
 from ici.cli.next_common import (
+    _BASELINE_OPTION,
     _COMPONENT_OPTION,
     _CONFIG_OPTION,
     _CPP_OPTION,
@@ -86,7 +88,7 @@ from ici.cli.next_common import (
 )
 from ici.cli.next_testing import BUNDLED_TOOLS, locate_tool
 from ici.config.composition import EffectiveCheck
-from ici.domain.enums import GateVerdict, Profile, ScopeKind
+from ici.domain.enums import BaselineState, GateVerdict, Profile, ScopeKind
 from ici.domain.events import EventType
 from ici.domain.serialization import dumps, loads, run_result_to_dict
 from ici.domain.workspace import AnalysisUnit, Component, Workspace
@@ -573,6 +575,7 @@ def cmd_verify(
     no_cache: bool = _NO_CACHE_OPTION,
     json_mode: bool = _JSON_OPTION,
     events: Path | None = _EVENTS_OPTION,
+    baseline: Path | None = _BASELINE_OPTION,
     config_path: Path | None = _CONFIG_OPTION,
     local_config: Path | None = _LOCAL_CONFIG_OPTION,
 ) -> None:
@@ -598,6 +601,17 @@ def cmd_verify(
         raise typer.Exit(EXIT_CONFIG) from error
     compile_notes, compile_gaps = _compile_limitations(model, scope, before, root)
     limitations += compile_notes
+
+    # Read the baseline before the run, not after: a baseline that cannot be
+    # read is a rejected request, and the user should hear that before paying
+    # for the verification rather than after a result was already written.
+    baseline_doc = None
+    if baseline is not None:
+        try:
+            baseline_doc = load_baseline(baseline if baseline.is_absolute() else root / baseline)
+        except BaselineError as error:
+            typer.echo(f"config: {error}", err=True)
+            raise typer.Exit(EXIT_CONFIG) from error
 
     run_id = uuid.uuid4().hex
     sink = (
@@ -649,6 +663,7 @@ def cmd_verify(
             run_id=run_id,
             cancellation=cancellation,
             on_execution=sink.on_execution if sink is not None else None,
+            suppressions=config.suppressions,
         )
 
     gaps = (
@@ -675,13 +690,25 @@ def cmd_verify(
 
     if cancellation.requested:
         limitations = [*limitations, f"cancelled: {cancellation.reason or 'user request'}"]
+    toolchain_digest = digest_of("|".join(sorted(_tools(plans))))
+    comparison = (
+        compare(
+            verification.findings,
+            baseline_doc,
+            policy_digest=config.policy_digest,
+            toolchain_digest=toolchain_digest,
+            selected_components=tuple(item.id for item in scope.components),
+        )
+        if baseline_doc is not None
+        else None
+    )
     stored = assemble(
         verification,
         run_id=run_id,
         ici_version=__version__,
         source=snapshot,
         policy_digest=config.policy_digest,
-        toolchain_digest=digest_of("|".join(sorted(_tools(plans)))),
+        toolchain_digest=toolchain_digest,
         component_ids=tuple(item.id for item in scope.components),
         languages=requested_languages(request, scope),
         scope=scope_kind,
@@ -691,6 +718,7 @@ def cmd_verify(
         ),
         limitations=tuple(limitations),
         cancelled=cancellation.requested,
+        baseline=comparison,
     )
     target = root / result if not result.is_absolute() else result
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -718,6 +746,15 @@ def _verify_text(
     typer.echo(f"{stored.gate.selected.value}: {len(stored.findings)} finding(s)")
     for reason in stored.gate.reasons:
         typer.echo(f"  {reason}")
+    if stored.baseline is not None:
+        delta = stored.baseline
+        if delta.state is BaselineState.COMPARABLE:
+            typer.echo(
+                f"  baseline: {len(delta.new)} new, {len(delta.unchanged)} unchanged, "
+                f"{len(delta.resolved)} resolved, {len(delta.carried)} carried"
+            )
+        else:
+            typer.echo(f"  baseline: incompatible — {delta.reason}")
     reused = [item for item in verification.executions if item.detail.startswith("cache hit")]
     if reused:
         typer.echo(f"  cache: reused {len(reused)} stored result(s)")

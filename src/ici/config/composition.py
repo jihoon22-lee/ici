@@ -55,6 +55,7 @@ __all__ = [
     "EffectiveConfig",
     "EffectiveIntegrationCase",
     "EffectiveIntegrationOutput",
+    "EffectiveSuppression",
     "compose",
     "compose_standalone",
 ]
@@ -219,6 +220,23 @@ class EffectiveBuild:
 
 
 @dataclass(frozen=True)
+class EffectiveSuppression:
+    """One declared suppression with its path anchored to the workspace (#221).
+
+    ``path`` is a glob matched against a finding's workspace-relative
+    location. ``rule`` matches a rule id or one of its dotted descendants —
+    ``python.dead`` covers ``python.dead.unused-function``.
+    """
+
+    fingerprint: str
+    rule: str
+    path: str
+    component: str
+    reason: str
+    declared_in: str
+
+
+@dataclass(frozen=True)
 class EffectiveConfig:
     """The whole workspace, composed, with a digest of its quality policy."""
 
@@ -227,6 +245,7 @@ class EffectiveConfig:
     checks: tuple[EffectiveCheck, ...]
     components: tuple[EffectiveComponent, ...]
     builds: tuple[EffectiveBuild, ...] = ()
+    suppressions: tuple[EffectiveSuppression, ...] = ()
     scope_kind: ScopeKind = ScopeKind.FULL
     sources: tuple[str, ...] = field(default_factory=tuple)
 
@@ -267,6 +286,17 @@ class EffectiveConfig:
                     ],
                 }
                 for component in self.components
+            ],
+            # Suppressions decide what may gate, so they are policy — the
+            # reason text is justification, not behaviour, and stays out.
+            "suppressions": [
+                {
+                    "fingerprint": item.fingerprint,
+                    "rule": item.rule,
+                    "path": item.path,
+                    "component": item.component,
+                }
+                for item in self.suppressions
             ],
         }
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
@@ -320,6 +350,7 @@ def compose(
         checks=workspace_checks,
         components=components,
         builds=builds,
+        suppressions=tuple(_suppressions(root)),
         scope_kind=ScopeKind.FULL,
     )
 
@@ -569,6 +600,36 @@ def _integrations(
             )
         )
     return tuple(cases)
+
+
+def _suppressions(root: RootDocument) -> tuple[EffectiveSuppression, ...]:
+    """Anchor the root's ``[[suppressions]]`` selector paths (#221).
+
+    ``path`` is a glob, not a declared path — ``*`` and ``**`` must pass
+    through unchanged — so it is normalised textually rather than through
+    ``DeclaredPath``, which would reject the glob characters. The schema has
+    already rejected ``..`` and absolute spellings; normalising here keeps a
+    ``./`` prefix from becoming a different selector than the author wrote.
+    """
+
+    composed: list[EffectiveSuppression] = []
+    for body in root.suppressions:
+        path = ""
+        if body.path is not None and body.path.value.strip():
+            # The root file defines the workspace root, so the glob is
+            # already workspace-relative — only normalise the spelling.
+            path = _normalise(PurePosixPath(body.path.value)).as_posix()
+        composed.append(
+            EffectiveSuppression(
+                fingerprint=body.fingerprint.value if body.fingerprint else "",
+                rule=body.rule.value if body.rule else "",
+                path=path,
+                component=body.component.value if body.component else "",
+                reason=body.reason.value if body.reason else "",
+                declared_in=body.origin.file,
+            )
+        )
+    return tuple(composed)
 
 
 def _virtual(path: PurePosixPath) -> PurePosixPath:

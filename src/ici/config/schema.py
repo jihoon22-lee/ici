@@ -38,6 +38,7 @@ from ici.config.documents import (
     IntegrationOutputBody,
     PythonSettings,
     RootDocument,
+    SuppressionBody,
     ToolSetting,
     WorkspaceSettings,
 )
@@ -68,6 +69,10 @@ def read_root(text: str, *, path: str) -> RootDocument:
     tools = tuple(_tool(table) for table in root.tables("tools"))
     builds = tuple(_build(table) for table in root.tables("builds"))
     entries = tuple(_entry(table, problems) for table in root.array_of_tables("components"))
+    suppressions = tuple(
+        _suppression(table, index, problems)
+        for index, table in enumerate(root.array_of_tables("suppressions"))
+    )
     root.done()
 
     _reject_duplicate_ids(entries, problems)
@@ -85,6 +90,7 @@ def read_root(text: str, *, path: str) -> RootDocument:
         tools=tools,
         builds=builds,
         components=entries,
+        suppressions=suppressions,
     )
 
 
@@ -177,6 +183,57 @@ def _check(table: Table, problems: list[ConfigProblem]) -> CheckSetting:
     )
     table.done()
     return setting
+
+
+def _suppression(table: Table, index: int, problems: list[ConfigProblem]) -> SuppressionBody:
+    """``[[suppressions]]`` — a selector set plus the mandatory reason (#221)."""
+
+    setting = f"suppressions[{index}]"
+    body = SuppressionBody(
+        fingerprint=table.text("fingerprint"),
+        rule=table.text("rule"),
+        path=table.text("path"),
+        component=table.text("component"),
+        reason=table.text("reason"),
+        origin=table.origin,
+    )
+    table.done()
+    if body.reason is None or not body.reason.value.strip():
+        problems.append(
+            ConfigProblem(
+                f"{setting} must carry a reason — suppression without one is a silent relaxation",
+                table.origin.child("reason"),
+            )
+        )
+    selectors = (
+        ("fingerprint", body.fingerprint),
+        ("rule", body.rule),
+        ("path", body.path),
+        ("component", body.component),
+    )
+    for name, value in selectors:
+        if value is not None and (not value.value.strip() or len(value.value) > 1024):
+            problems.append(
+                ConfigProblem(f"{setting}.{name} must be a bounded string", value.origin)
+            )
+    if not any(value is not None for _, value in selectors):
+        problems.append(
+            ConfigProblem(
+                f"{setting} selects nothing — every declared suppression must "
+                "name at least one of fingerprint, rule, path, component",
+                table.origin,
+            )
+        )
+    if body.path is not None and body.path.value.strip():
+        path = PurePosixPath(body.path.value)
+        if path.is_absolute() or ".." in path.parts:
+            problems.append(
+                ConfigProblem(
+                    f"{setting}.path must stay inside the workspace",
+                    body.path.origin,
+                )
+            )
+    return body
 
 
 def _exemption(table: Table, problems: list[ConfigProblem]) -> Exemption:

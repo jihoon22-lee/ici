@@ -39,6 +39,8 @@ from ici.application.schedule import (
     Runner,
     run_graph,
 )
+from ici.application.suppressions import apply_suppressions
+from ici.config.composition import EffectiveSuppression
 from ici.domain.enums import GateVerdict, TaskState
 from ici.domain.finding import Finding
 from ici.domain.observation import Observation
@@ -79,6 +81,7 @@ def verify(
     identify: Identify | None = None,
     run_id: str = "",
     on_execution: OnExecution | None = None,
+    suppressions: Iterable[EffectiveSuppression] = (),
 ) -> Verification:
     """Run everything the plans intend to run, then judge it once.
 
@@ -111,7 +114,10 @@ def verify(
     incomplete = tuple(
         reason for planned in checks if (reason := _incompleteness(planned, by_id[planned.task_id]))
     )
-    findings = _unique(item for observation in observations for item in observation.findings)
+    findings = apply_suppressions(
+        _unique(item for observation in observations for item in observation.findings),
+        suppressions,
+    )
     required_fingerprints = {
         item.fingerprint
         for planned in checks

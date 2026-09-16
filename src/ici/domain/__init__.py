@@ -18,6 +18,7 @@ absence of serialization here is deliberate, not an omission.
 from __future__ import annotations
 
 from ici.domain.enums import (
+    BaselineState,
     CheckExecution,
     EvidenceLevel,
     GateVerdict,
@@ -37,6 +38,7 @@ from ici.domain.observation import Measurement, Observation
 from ici.domain.result import (
     SCHEMA_ID,
     SCHEMA_VERSION,
+    BaselineComparison,
     ExecutionSummary,
     GateOutcome,
     Producer,
@@ -61,6 +63,8 @@ __all__ = [
     "SCHEMA_ID",
     "SCHEMA_VERSION",
     "AnalysisUnit",
+    "BaselineComparison",
+    "BaselineState",
     "BuildUnit",
     "CheckExecution",
     "Component",

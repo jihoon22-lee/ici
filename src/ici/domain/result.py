@@ -30,12 +30,18 @@ from ici.domain._validation import (
     require_tuple,
     require_unique_identifiers,
 )
-from ici.domain.enums import GateVerdict, PublicationState, ScopeKind
+from ici.domain.enums import (
+    BaselineState,
+    GateVerdict,
+    PublicationState,
+    ScopeKind,
+)
 from ici.domain.finding import Finding
 from ici.domain.observation import Measurement
 from ici.domain.workspace import SourceSnapshot
 
 __all__ = [
+    "BaselineComparison",
     "ExecutionSummary",
     "GateOutcome",
     "Producer",
@@ -233,6 +239,50 @@ class PublicationOutcome:
 
 
 @dataclass(frozen=True)
+class BaselineComparison:
+    """The delta between this run and a stored baseline (#221).
+
+    Fingerprints are the identity a finding already carries, so the delta is
+    expressed in them rather than in copies of the findings. ``resolved``
+    names only fingerprints whose component was actually selected this run —
+    a finding in a component the run never asked about is ``carried``, which
+    is the honest "not evaluated", never a silent resolution.
+
+    ``INCOMPATIBLE`` carries no delta at all: policy, toolchain or schema
+    changed under the baseline, and pretending to compare would manufacture
+    resolutions nobody measured.
+    """
+
+    state: BaselineState
+    origin: str = ""
+    reason: str = ""
+    new: tuple[str, ...] = ()
+    unchanged: tuple[str, ...] = ()
+    resolved: tuple[str, ...] = ()
+    carried: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.state, BaselineState):
+            raise ValueError("baseline state must be a BaselineState")
+        for name in ("origin", "reason"):
+            if not isinstance(getattr(self, name), str):
+                raise ValueError(f"baseline {name} must be a string")
+        for name in ("new", "unchanged", "resolved", "carried"):
+            object.__setattr__(
+                self,
+                name,
+                tuple(
+                    require_text(item, f"baseline {name} fingerprint")
+                    for item in require_tuple(getattr(self, name), str, f"baseline {name}")
+                ),
+            )
+        if self.state is BaselineState.INCOMPATIBLE and (
+            self.new or self.unchanged or self.resolved or self.carried
+        ):
+            raise ValueError("an incompatible baseline comparison carries no delta")
+
+
+@dataclass(frozen=True)
 class RunResult:
     """One complete run, ready to serialize as ``ici.next.run`` v1."""
 
@@ -246,6 +296,7 @@ class RunResult:
     metrics: tuple[Measurement, ...] = ()
     publication: PublicationOutcome = PublicationOutcome()
     limitations: tuple[str, ...] = ()
+    baseline: BaselineComparison | None = None
     schema_id: str = SCHEMA_ID
     schema_version: int = SCHEMA_VERSION
 
@@ -261,6 +312,8 @@ class RunResult:
         ):
             if not isinstance(getattr(self, name), expected):
                 raise ValueError(f"run {name} must be a {expected.__name__}")
+        if self.baseline is not None and not isinstance(self.baseline, BaselineComparison):
+            raise ValueError("run baseline must be a BaselineComparison")
         object.__setattr__(self, "findings", require_tuple(self.findings, Finding, "run findings"))
         object.__setattr__(self, "metrics", require_tuple(self.metrics, Measurement, "run metrics"))
         object.__setattr__(
