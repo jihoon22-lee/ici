@@ -143,8 +143,16 @@
 - 안정 배포물(`dist/ici.pyz`)과 v3 reader·migration fixture는 전환 후에도
   보존한다 — 두 경로를 영구 유지하지 않되, 돌아갈 다리는 끊지 않는다
   (#225 항목 6).
-- 기본 경로 전환(cutover)은 #227이 최종 인수 근거를 확인한 뒤 별도 PR로
-  진행한다 — 이 WP는 후보 목록과 문서만 만든다(§7).
+- 기본 경로 전환(cutover)은 설정 기반 dispatch로 구현됐다: 프로젝트의
+  `ici.toml`이 `[workspace]`를 선언하면 bare `ici verify`가 next 엔진 경로를
+  실행하고, 레거시 설정만 있는 프로젝트는 stable 경로를 유지한다
+  (`src/ici/cli/cutover.py`, `tests/test_cutover.py`). `ici next …` 명시
+  명령은 같은 경로를 그대로 호출한다.
+- stable 전용 옵션(`--verbose`, `--max-findings`, `--group-by`,
+  `--fail-on-new`, `--write-baseline`, `--github-summary`)은 next 경로에
+  대응이 없다 — dispatch는 조용히 무시하지 않고 대체 수단과 함께 거절한다.
+- §7의 *물리적* 제거(`engines/`·v3 reporter 삭제 등)는 #226 현장 인수 근거
+  이후 별도 PR로 진행한다 — 되돌림 다리가 필요한 동안 두 경로를 유지한다.
 - project `.venv`나 공용 Python을 바꾸는 설치 흐름은 없다 — next는 번들
   런타임을 쓰고 프로젝트 인터프리터는 선언된 것을 그대로 쓴다(인수 기준 5).
 

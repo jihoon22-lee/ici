@@ -66,6 +66,7 @@ EXPECTED_DOCUMENTS = (
     "migration-matrix.md",
     "wp28-verification.md",
     "field-acceptance.md",
+    "release-runbook.md",
     "adr/README.md",
     "adr/0001-keep-python-core.md",
     "adr/0002-standalone-runtime-bundle.md",
