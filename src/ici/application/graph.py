@@ -271,19 +271,19 @@ def _units(runnable: list[PlannedCheck], edges: dict[str, list[str]]) -> tuple[W
 
     groups: dict[object, list[PlannedCheck]] = {}
     for planned in runnable:
-        key = ("internal", planned.task_id) if planned.is_internal else planned.task.task.share_key
+        key = ("internal", planned.task_id) if planned.task is None else planned.task.task.share_key
         groups.setdefault(key, []).append(planned)
 
     group_of = {member.task_id: key for key, members in groups.items() for member in members}
 
     units: list[WorkUnit] = []
-    for key, members in groups.items():
+    for share_key, members in groups.items():
         first = members[0]
         deps = {
             groups[dep_group][0].task_id
             for member in members
             for producer in edges.get(member.task_id, ())
-            if (dep_group := group_of[producer]) != key
+            if (dep_group := group_of[producer]) != share_key
         }
         units.append(
             WorkUnit(

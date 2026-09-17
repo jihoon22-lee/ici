@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
+from typing import TypedDict
 
 from ici.core.backend import BACKEND_CMAKE, BACKEND_MAKE, BACKEND_QMAKE
 from ici.core.context import ProjectModel
@@ -129,7 +130,15 @@ def _claimed(
     )
 
 
-def _backend(workspace: Workspace, selected: tuple[str, ...]) -> dict[str, str | None]:
+class _BackendFields(TypedDict):
+    """The three ``ProjectModel`` fields a backend answer fills."""
+
+    backend: str | None
+    backend_descriptor: str
+    backend_reason: str
+
+
+def _backend(workspace: Workspace, selected: tuple[str, ...]) -> _BackendFields:
     """The one build-system answer a legacy reader can hold, or an honest none."""
 
     referenced = {

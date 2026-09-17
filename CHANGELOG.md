@@ -7,6 +7,617 @@
 
 ## [Unreleased]
 
+### 추가 — WP29 PR A: 빌드 아티팩트의 next 경로를 CI 게이트로 ([#227](https://github.com/jihoon22-lee/ici/issues/227))
+
+- `ci.yml`에 "Dogfooding — next path via dist/ici.pyz" 스텝을 추가합니다.
+  새 fixture `tests/fixtures/next-self-verify/`(next 스키마 설정 +
+  깨끗한 Python 모듈)에서 빌드된 pyz가 `next plan`→`next verify`→
+  `next report`를 완주하고(exit 0), 생성된 HTML이 외부 참조 0건인지
+  확인합니다. 단위 테스트는 소스에서 next 경로를 검증하지만 이 스텝은
+  **배포물 자체**에서 검증합니다 — pyz에서 exit 0에 도달하지 못하는
+  next 경로는 여기서 실패합니다.
+- fixture를 `tests/fixtures/manifest.toml`에 등록하고, next가 만드는
+  `.ici/` 작업 디렉터리와 CI 산출물(`next_self_result.*`)을
+  `.gitignore`에 추가합니다.
+
+### 추가 — WP28 PR B/C: bundle E2E 수행 + 현장 인수 checklist ([#226](https://github.com/jihoon22-lee/ici/issues/226))
+
+- **bundle E2E 수행**: 로컬 PBS CPython 3.13.15로 조립한 bundle에
+  `scripts/bundle/smoke.sh`를 실행 — 11케이스 중 10 PASS. 네트워크
+  인터페이스 0개(`unshare -n`), read-only 설치, clean HOME, 경로 이동,
+  두 버전 병행, 설치 디렉터리 무기록(6,123파일), 빈 HOME 패키지 설치
+  0건을 확인했습니다. bundle의 glibc 상한은 2.17로 측정됐습니다.
+- **missing tool·부분 범위·실패 결과 HTML**: bundle이 싣지 않은 도구
+  (mypy·프로젝트 인터프리터)는 traceback이 아니라 INCOMPLETE 관측으로
+  기록되고, lint만 선택한 부분 실행은 exit 1로 완료되며, 실패 결과의
+  HTML이 외부 참조 0건으로 렌더됩니다.
+- **현장 인수 양식**(`docs/design/ici-next/field-acceptance.md`): RHEL
+  8.10 체크리스트(R-0~R-12), GHES 체크리스트(G-1~G-6, 버전 고정·CA·
+  권한 분리·artifact 왕복·sticky·stale head), 비민감 증거 기록 형식을
+  제공합니다. 실행은 현장 권한 범위이며 완료 전까지 "현장 검증됨"으로
+  표기하지 않습니다.
+
+### 추가·수정 — WP28 PR A: 구·신 디퍼렌셜·성능 측정·보안 경계 ([#226](https://github.com/jihoon22-lee/ici/issues/226))
+
+**stable 경로 동작 변경 없음** — 캐시는 next 경로(`ici next verify`) 전용이며,
+line 규칙 복원도 next check에만 적용됩니다.
+
+- **디퍼렌셜 자동화**(`tests/test_next_differential.py`): 시드 결함 corpus의
+  C++ fixture 6종 + Python fixture 2종을 stable 엔진과 `ici next verify`
+  양쪽으로 실행해 파일 단위로 비교합니다. 이 검증이 실제 회귀 2건을 잡았습니다:
+  - `*.line` check의 파일 크기 규칙(500 코드 라인 medium / 1000 high)이
+    이관되지 않았습니다 — stable 기본 임계를 고정 상수로 복원했습니다
+    (next에 임계값 설정 키는 없으며, 판정은 게이트의 몫입니다).
+  - `python.dup`/`cpp.dup`이 `DuplicateComparisonLimit`을 traceback으로
+    올려 실행을 죽였습니다 — 이제 FAILED observation + limitation으로
+    변환해 게이트가 INCOMPLETE로 판정합니다(stable 엔진의 ERROR 변환과 동일).
+- **캐시 무결성**: 관측 캐시 엔트리에 `integrity`(observation의 canonical
+  직렬화에 대한 sha256)를 저장하고, 저장 당시와 다른 내용·다이제스트 없는
+  구 엔트리는 채택하지 않고 제거합니다. 편집된 finding이 캐시 히트로
+  위장해 결함을 지우는 경로를 닫습니다.
+- **보안 경계 테스트**(`tests/test_next_security.py`): component `root`의
+  workspace 이탈 거부, 손상 캐시 재검출, publish 토큰이 출력·레코드·에코된
+  서버 본문에 새지 않음, 저장 결과의 finding 경로가 workspace 상대.
+- **성능 기준선**(`scripts/benchmark_next.py`): 고정 fixture(200개 모듈)의
+  cold/warm 벽시계·peak RSS·산출물 크기·SIGINT→종료 지연을 측정합니다.
+  추세 기록물이며 게이트가 아닙니다. 결과와 미수행 항목(RHEL/GHES·번들
+  E2E·syscall 오프라인 증명)은 `docs/design/ici-next/wp28-verification.md`에
+  있습니다.
+
+### 추가 — `ici next migrate` — stable 설정의 next 스키마 변환 (WP27, [#225](https://github.com/jihoon22-lee/ici/issues/225))
+
+**기존 배포 경로 동작 변경 없음.** `ici migrate`는 새 `next` 네임스페이스
+명령이며, stable 설정 파일·loader·엔진은 그대로입니다.
+
+- **기본은 dry-run입니다.** 변환된 TOML과 키별 노트를 출력만 하고 파일을
+  바꾸지 않습니다. `--output PATH`는 새 파일에만 쓰고 기존 파일은 거부하며,
+  `--write`는 원본을 `ici.toml.stable`로 백업한 뒤 `ici.toml`을 교체합니다.
+- **모든 키가 세 군데 중 한 곳으로 갑니다.** converted(의미 보존) ·
+  confirm(의미가 달라 검토 필요) · unsupported(next에 대응 없음 — 사유를
+  명시하고 조용히 유지하지 않음). 엔진 enabled/required는 언어별 check로
+  풀리고(`lint` → `python.lint`+`cpp.tidy`+`cpp.diagnostics`), 임계값
+  계열 키는 next 정책에 대응이 없어 confirm으로 표시됩니다.
+- **component의 언어는 트리가 결정합니다.** stable 스키마가 선언하지 않던
+  languages를 rglob 스캔으로 검출하고, 스캔할 트리가 없으면 추측 대신
+  confirm 노트를 남깁니다.
+- `dev.toml`/XDG/`ICI_CONFIG` 같은 다른 레이어가 같은 키를 두고 다투면
+  변환 전에 누가 이기는지를 먼저 보고합니다(WP03의 `migration.report` 재사용).
+- 변환 규칙과 CLI·종료 코드·결과/viewer·cutover 후보의 전체 대응표는
+  `docs/design/ici-next/migration-matrix.md`에 있습니다.
+
+### 추가 — `ici next` 이벤트 생명주기와 idk 소비자 계약 (WP26, [#224](https://github.com/jihoon22-lee/ici/issues/224))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의
+이벤트 스트림과 결과 스키마 해석입니다 — stable 경로는 그대로입니다.
+
+- **`task.started`가 작업이 실제로 시작될 때만 나옵니다.** 스케줄러의
+  `on_started` 훅은 취소·선행 실패로 인한 blocked·캐시 재사용 이후에만
+  호출되므로, started 없이 completed만 있는 task는 "실행 없이 확정됨"을
+  뜻합니다 — 진행 상황을 보는 소비자가 일어나지 않은 시작을 보지 않습니다.
+- **이벤트가 발생 즉시 스트림에 기록됩니다.** `_EventSink`가 줄 단위로
+  flush하므로 진행 중인 실행을 tail할 수 있고, 취소된 실행은
+  `diagnostic` 이벤트(`cancelled: <reason>`) 뒤 `run.completed`로
+  끝나는 스트림을 남깁니다 — 조용해지는 것이 아니라 끝이 선언됩니다.
+- **finding에 component 귀속이 스탬핑됩니다.** `verify`가 planned task와
+  component의 매핑을 받아, 제공자가 `component_id`를 직접 스탬핑하지
+  않은 finding에 계획 시점의 component를 부여합니다 — 소비자가 task id
+  문자열을 파싱해 귀속을 추측할 필요가 없습니다.
+- **idk 비의존 fixture consumer가 추가됐습니다.** `tests/idkconsumer.py`는
+  stdlib만으로 result 문서와 이벤트 스트림을 읽어 논리 file/line의
+  workspace 매핑(밖으로 나가는 경로는 거부), component/variant, 필수
+  작업 미완료를 해석합니다 — standalone verify와 동일한 scope/result
+  의미를 갖는지 `tests/test_next_consumer.py`가 검증합니다.
+- 호출·스키마·취소·민감 값 계약과 ici/idk 소유권 경계는
+  `docs/design/ici-next/idk-integration.md`에 정리됐습니다.
+
+### 추가 — `ici next publish` — 저장 결과의 GHES 게시 (WP25, [#223](https://github.com/jihoon22-lee/ici/issues/223))
+
+**기존 배포 경로 동작 변경 없음.** stable `engines/publish.py`와 `ici
+publish`는 그대로입니다 — 이 명령은 `ici.next.run` 결과만 다룹니다.
+
+- **`next publish`가 저장된 결과의 HTML 페이지를 GHES에 게시합니다.**
+  저장 결과 스키마(`ici.next.run` 외 문서는 거부)·페이지 크기 상한·
+  workspace 내 경로·sha256 digest를 네트워크 호출 전에 검증하고, 결과는
+  `publish.json` 레코드로 기록됩니다 — verify 결과 파일은 수정하지
+  않습니다(SPEC-04 §3). 종료 코드는 publish 전용 0/1/2입니다.
+- **`[publish]` 설정이 목적지를 명시합니다.** `repo`·`api_url`·
+  `server_url`은 https만 허용하고 github.com 기본값이 없습니다 —
+  자격증명은 `token_env`가 가리키는 환경 변수에서만 읽으며, 파일에
+  `token` 값을 쓰면 설정 오류로 거부됩니다.
+- **늦은 재실행이 최신 상태를 덮지 않습니다.** 원격 경로가 head SHA를
+  포함해 stale run의 업로드가 최신 보고서를 지울 수 없고, sticky 댓글은
+  현재 PR head와 일치할 때만, 그리고 더 새로운 run이 이미 쓰지 않았을
+  때만 갱신됩니다 — 재실행은 중복 댓글 대신 기존 댓글을 갱신합니다.
+- **게시 실패는 분석 결과와 분리된 축입니다.** 업로드·댓글 실패는
+  `PublicationState.FAILED`로 기록되고 재시도가 분석을 반복하지
+  않습니다. FAIL/INCOMPLETE verdict의 결과도 게시됩니다.
+- 백엔드는 `adapters/ghes.py`의 GHES REST 클라이언트로, 시스템 CA를
+  사용하는 stdlib `urllib`만 씁니다.
+
+### 추가 — `ici next` 결과 중심 offline HTML 완성 (WP24, [#222](https://github.com/jihoon22-lee/ici/issues/222))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의
+reporting 계층입니다 — stable `reporters/` 트리는 유지됩니다.
+
+- **result view model이 template 렌더링에서 분리됐습니다.**
+  `ici.reporting.view_model`이 저장된 `RunResult`를 표시용 불변 데이터로
+  한 번 투영하고, `reporting/offline_html.py`는 그 데이터만 소비합니다.
+  `next report`는 저장된 JSON만 읽습니다 — source build, provider, test를
+  재실행하지 않으며 프로세스를 시작하지 않는 것이 테스트로 고정됐습니다.
+- **첫 화면이 실행 상태를 숨기지 않습니다.** selected verdict·verdict
+  사유·범위(component/language/미선택)·required 미완료·위반 유무·exit
+  code가 상단에 표시되고, 취소된 실행·blocked·failed·재사용 task는
+  Execution 섹션에 이름 그대로 나열됩니다. baseline 비교는 충족/불가
+  사유와 new/unchanged/resolved/carried 수를 보여줍니다.
+- **finding 행이 검색·필터 가능합니다.** provider·rule·confidence·
+  location·severity·evidence·suppression 사유와 출처·baseline delta가
+  한 행에 표시되고, 인라인 필터가 텍스트로 행을 좁힙니다 — 화면에서
+  숨겨도 저장된 결과에서는 사라지지 않습니다. 테이블 열은 `scope="col"`,
+  표시 개수는 `aria-live`로 알립니다. 스크립트는 페이지에 하나뿐인
+  인라인 필터이며 `src=` 없는 단일 `<script>`임이 테스트됩니다.
+- **대용량 결과도 lossless입니다.** 2000 findings 기준 렌더링 ~43ms·
+  554KiB, 10000 findings ~206ms·2.7MiB로 선형 — 지연 렌더링이
+  필요하지 않아 finding을 버리지 않습니다.
+- **모르는 스키마는 빈 PASS가 되지 않습니다.** `next report`는
+  `ici.next.run`이 아닌 문서(구 `ici.result/v3` 포함)를 사유와 함께
+  거부하고, 기존 v3 리더(`execution/legacy_reader.py`)도 next 문서를
+  거부합니다 — 양방향 모두 테스트됐습니다.
+
+### 추가 — `ici next` SARIF보내기와 저장 결과 비교 (WP23-C, [#221](https://github.com/jihoon22-lee/ici/issues/221))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의
+reporting 계층입니다 — stable `reporters/sarif.py`는 v3 결과를 그대로
+처리하며 유지됩니다.
+
+- **`next report --sarif <path>`가 저장된 결과를 SARIF 2.1.0으로 씁니다.**
+  finding의 fingerprint가 `partialFingerprints`로, 위치·규칙·severity가
+  그대로 보존되고 suppression은 `kind: "external"`로 표시됩니다 — 지우지
+  않습니다. run 메타데이터에 gate·scope·policy/toolchain digest가
+  기록되고, baseline 비교가 있으면 `baselineState`가 new/unchanged에만
+  붙습니다 — resolved는 이 실행에 결과가 없는 것이 정의이고, carried는 이
+  실행이 본 적 없는 finding이기 때문입니다.
+- **`next diff <old> [<new>]`가 저장된 두 결과의 delta를 출력합니다.**
+  `--baseline`과 같은 비교기를 쓰며 new/unchanged/resolved/carried와 gate
+  변화를 보여줍니다. 미선택 컴포넌트의 finding은 resolved가 아니라
+  carried로 보고됩니다 — 분석 범위 감소를 실제 해결로 읽지 않습니다.
+  v3 결과나 정책·toolchain이 다른 문서는 비교를 거부하고 사유를 출력합니다.
+- **fingerprint 정규화 버전이 결과 envelope에 기록됩니다.**
+  `identity.fingerprint_version`은 이 실행이 어떤 fingerprint 알고리즘으로
+  finding을 명명했는지를 고정합니다. 버전이 없거나 다른 baseline은
+  comparable 정책·toolchain을 갖췄어도 `incompatible`입니다 — 알고리즘이
+  바뀌면 모든 finding이 다른 이름을 갖고, 그 사이의 delta는 아무것도
+  측정하지 않은 해결·신규를 만들어 냅니다.
+
+### 추가 — `ici next` baseline 비교와 선언형 suppression (WP23-B, [#221](https://github.com/jihoon22-lee/ici/issues/221))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 결과
+모델과 `verify` 경로입니다 — stable의 baseline·suppression 처리는 그대로
+유지됩니다.
+
+- **`[[suppressions]]` 루트 선언이 추가됐습니다.** `fingerprint`·`rule`·
+  `path`·`component` 셀렉터는 모두 AND로 결합되고 `reason`이 필수입니다 —
+  셀렉터 없는 항목은 전체 억제와 같아 거부됩니다. `path`는 구분자가 있으면
+  워크스페이스 루트 기준 glob, 없으면 basename 매칭입니다.
+- **suppression이 finding을 지우지 않고 표시합니다.** 매칭된 finding은
+  `suppression.reason`·`origin`(선언 파일)과 함께 결과에 남고
+  `counts_against_gate`에서만 빠집니다. 필수 check의 미완료는 finding이
+  아니므로 suppression으로 숨길 수 없습니다 — INCOMPLETE가 유지됩니다.
+- **`verify --baseline <path>`가 저장된 `ici.next.run` 결과와 비교합니다.**
+  policy·toolchain digest가 다르면 `incompatible`과 사유를 기록하고 delta를
+  만들지 않습니다 — 정책·도구가 바뀐 뒤의 비교는 재측정 없이 "해결"을
+  선언할 수 없기 때문입니다.
+- **부분 실행은 미선택 컴포넌트의 finding을 resolved로 표시하지 않습니다.**
+  선택된 컴포넌트에서 사라진 것만 `resolved`이고, 이번 실행이 보지 않은
+  컴포넌트의 finding은 `carried`로 남습니다. `new`·`unchanged`·
+  `resolved`·`carried`가 결과 envelope의 `baseline`에 기록됩니다.
+
+### 추가 — `ici next` 선언형 통합 case 실행 (WP22-D, [#220](https://github.com/jihoon22-lee/ici/issues/220))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 새
+check입니다 — stable `integration` 엔진은 그대로 유지됩니다.
+
+- **`[[components.integrations]]` 선언이 추가됐습니다.** 컴포넌트가
+  프로세스 계약을 선언하면 `deep` 프로파일에서 case당 task 하나로
+  계획됩니다 — 이름·`argv`·`expected_exit`·stdout/stderr 정/부
+  단언·`timeout_seconds`·`env`·`requires`·`python_targets`·
+  `output_artifacts`·`required`. 쉘 문자열이 아니라 argv 배열이며
+  `argv[0]`은 반드시 타입 placeholder입니다.
+- **`{python:NAME}`·`{artifact:BUILD/PATH}` placeholder가 추가됐습니다.**
+  `declared`는 컴포넌트의 선언 인터프리터로, 나머지 이름은
+  `python_targets`로 해석되고 ici 인터프리터로 대체되지 않습니다.
+  artifact는 링크된 build의 `artifacts` 계약이 지명하고 실제 존재하는
+  파일만 받습니다 — 계약 밖·미링크·미빌드·미선언 인터프리터는 전부
+  blocked이며 추측으로 대체하지 않습니다.
+- **case의 판정이 task 환경에 실립니다.** runner가 공유돼도 case별 계약이
+  보존되도록 `ICI_*` 변수로 계약을 전달하고, `env`에서 `ICI_` 접두사는
+  거부됩니다. 선언된 `requires`(network·service 등)는 plan의 텍스트와
+  JSON에 `[requires …]`로 표시되고 실행 결과의 limitation으로도 기록됩니다 —
+  ici는 선언된 외부 서비스를 조용히 호출하지도, 그 부재를 PASS로 치지도
+  않습니다.
+- **판정이 실행 결과와 환경 오류를 구분합니다.** 완주한 run의 exit·스트림·
+  산출물 단언 위반만 MEASURED finding(`integration.exit`·
+  `integration.stdout`·`integration.stderr`·`integration.output`)이 되고,
+  타임아웃·시그널·취소·시작 실패는 파싱하지 않아 INCOMPLETE로 남습니다.
+  `cacheable=False` — 외부 상태에 의존하는 동적 검사를 cross-run 캐시로
+  재사용하지 않습니다.
+- **check·case 두 층의 required가 있습니다.** `[checks.integration]
+  required`가 상위이고 case의 `required = false`는 advisory를 뜻합니다 —
+  finding은 남되 게이트를 실패시키지 않습니다. 선언된 required case가
+  해석되지 못하면 blocked → INCOMPLETE입니다.
+
+### 추가 — `ici next` 호환성 검증 이관 (WP22-C, [#220](https://github.com/jihoon22-lee/ici/issues/220))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 새
+check 셋입니다 — stable `python_compat`/`binary_compat` 엔진은 그대로
+유지됩니다.
+
+- **`python.compat`가 추가됐습니다.** stable 엔진과 같은
+  `analyze_static_compatibility`로 컴포넌트 소스를 선언된
+  `requires-python` floor에 대해 검사합니다 — 문법 floor와 문서화된
+  표준 라이브러리 API floor. 컴포넌트 `pyproject.toml`이 우선이고 없으면
+  workspace root의 선언을 계승합니다. floor를 추론할 수 없으면 finding
+  없음+limitation으로 기록되며 pass로 위장하지 않습니다.
+- **`python.compat-runtime`이 추가됐습니다.** 선언된 프로젝트
+  인터프리터(`[python] executable` 또는 컴포넌트 `.venv`)로만 실행되는
+  두 task입니다 — `-VV`로 측정한 런타임을 plan 시점에 확정된 floor와
+  비교하고, `compileall`로 해당 런타임이 소스를 받아들이는지 검증합니다.
+  ici의 인터프리터로 대체하지 않고, 인터프리터 미선언은 blocked입니다.
+  stable의 import smoke는 임의 부수효과가 있어 이관하지 않았습니다.
+  이 check은 advisory 기본입니다 — 인터프리터 선언이 적용 조건이며,
+  `[checks."python.compat-runtime"] required = true`로 게이트화할 수
+  있습니다.
+- **`cpp.binary-compat`이 추가됐습니다.** `[builds.<id>] artifacts`
+  계약이 지명한 ELF에 대해 readelf task를 하나씩 계획합니다 — 계약 밖
+  바이너리를 발견하거나 실행하지 않습니다. stable과 동일한 readelf
+  argv·`_elf` 파서·`_abi_violations` 정책을 씁니다. 절대 loader 경로와
+  build 경로 누출은 `ici.binary.*` finding이 되고, 배포 floor(기대
+  class/machine·max glibc/glibcxx/cxxabi·NEEDED 목록)는 아직 선언할
+  스키마가 없어 artifact별 측정 사실을 limitation으로 기록합니다 —
+  판정하지 않은 것을 판정한 것으로 보고하지 않습니다.
+- 런타임·바이너리 check의 기본값은 advisory입니다. `cpp.artifact`와
+  같은 원칙입니다 — 선언(인터프리터·산출물 계약)이 없으면 적용될
+  대상이 없어 blocked이며, 게이트 실패 여부는 워크스페이스의 `required`
+  선언이 결정합니다. 정적 `python.compat`은 선언된 floor 위반을
+  프로젝트 자신의 약속 위반으로 보는 required check입니다.
+
+### 추가 — `ici next` sanitizer suite 실행 이관 (WP22-B, [#220](https://github.com/jihoon22-lee/ici/issues/220))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스의 새
+check과 계획 게이팅입니다 — stable `sanitize`/`thread_sanitize` 엔진은
+그대로 유지됩니다.
+
+- **`cpp.sanitize`·`cpp.tsan` check이 추가됐습니다.** `deep` 프로파일
+  전용으로, `[builds.<id>] variant = "sanitize"` 또는
+  `"thread-sanitize"`로 선언된 빌드가 생산한 suite 바이너리를 sanitizer
+  런타임 옵션 아래 실행합니다. ici는 계측 빌드를 직접 컴파일하지
+  않습니다 — variant 선언은 프로젝트의 약속이고, check은 그 산출물만
+  실행합니다.
+- **계측 주장은 바이너리 마커로 검증됩니다.** 각 suite 바이너리에서
+  `libasan`/`__asan_init`/`__tsan_init` 등 런타임 마커를 스캔해,
+  미빌드·미계측·suite 부재·판독 불가를 모두 blocked로 표시합니다 —
+  계측되지 않은 바이너리를 sanitizer 환경으로 실행해 아무것도 증명하지
+  않는 실행을 성공으로 보고하지 않습니다.
+- **stable 엔진의 환경·파싱 계약을 그대로 계승합니다.**
+  `ASAN_OPTIONS`/`UBSAN_OPTIONS`/`TSAN_OPTIONS`는 상속된 값에 append되고,
+  bounded 파서(`_sanitizer_diagnostics`)와 마커 regex를 재사용합니다.
+  마커는 있는데 완결된 진단이 없거나 파싱이 실패한 transcript는 clean
+  pass가 아니라 parse failure이고, 마커 없이 종료 코드만 실패한 suite는
+  `ici.sanitize.suite-failure` finding으로 구분됩니다.
+- sanitizer task는 `cacheable=False`입니다 — 바이너리 내용이 선언된
+  input에 없으므로 캐시된 verdict가 오래된 계측을 가리킬 수 있습니다.
+
+### 추가 — `ici next` 빌드 산출물 계약 검증 (WP22-A, [#220](https://github.com/jihoon22-lee/ici/issues/220))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스와
+`ici.toml` 스키마 확장입니다.
+
+- **`[builds.<id>] artifacts` 선언이 추가됐습니다.** 빌드가 자신의
+  `directory` 아래에 남기는 산출물을 glob으로 선언합니다 — 빌드 준비
+  (`prepare`) 권한과 산출물 계약이 분리됐습니다. 절대 경로·`..`·비정규
+  철자는 설정 읽기 단계에서 오류로 거부됩니다.
+- **`cpp.artifact` check이 추가됐습니다.** 선언된 각 glob이 build
+  directory 아래 workspace-contained 정규 파일과 매치되는지 검증합니다.
+  매치가 없거나 디렉터리만 매치되면 `artifact.missing`(MEASURED) finding,
+  workspace 밖으로 resolve되는 매치는 `artifact.invalid`로 보고됩니다 —
+  잘못된 파일을 성공 산출물로 채택하지 않습니다.
+- **계약이 없으면 check은 적용되지 않습니다.** linked build가 artifacts를
+  선언하지 않으면 check은 blocked로 표시됩니다(조용한 vacuous pass가
+  아님). 계약 위반을 게이트 실패로 만들려면 `[checks."cpp.artifact"]
+  required = true`를 둡니다.
+- `ici next plan`의 builds 섹션이 선언된 `artifacts` 목록을 보여줍니다.
+- disposition 기록: `docs/design/ici-next/inventory/wp22-dispositions.md`.
+
+### 추가 — `ici next` 함수 수준 지표 이관과 공유 파싱 primitive (WP20-A, [#218](https://github.com/jihoon22-lee/ici/issues/218))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스와 공유
+수식의 위치 정리입니다 — stable `complexity`/`cognitive` 엔진은 이제 같은
+공식을 `_python_metrics`에서 가져와 호출합니다.
+
+- **`python.complexity`·`python.cognitive`·`cpp.complexity`·`cpp.cognitive`
+  check이 추가됐습니다.** `tool=None`의 내부 check로, 프로세스 실행 없이
+  소스에서 함수 경계와 지표를 직접 계산합니다. Python 함수는 `ast`로
+  정확하게, C++ 함수는 brace-depth 스캐너로 측정합니다.
+- **한 번의 스캔이 두 check을 공급합니다.** complexity와 cognitive가 같은
+  컴포넌트에서 함께 선택되면 `MetricRequest.cache`가 컴포넌트 단위로
+  공유되어 파일을 두 번 읽지 않습니다 — #218의 "parse 공유, 수식 구분"
+  요구사항입니다.
+- **C++ heuristic 결과는 ESTIMATED로 표시됩니다.** 스캐너 경계는
+  매크로·전처리된 함수를 놓치거나 잘못 자를 수 있으므로, 그 기반의 finding
+  과 측정값은 `MEASURED`가 아니라 `ESTIMATED` 증거 수준과 낮은 confidence를
+  가집니다 — heuristic이 조용히 exact로 승격되지 않습니다 (#218 항목 5).
+- **파싱 실패는 limitation입니다.** 읽을 수 없거나 파싱되지 않는 파일은
+  측정된 것으로 취급되지 않고 limitation으로 보고됩니다.
+- **`python.cycle`·`cpp.cycle` check이 추가됐습니다.** Python import는
+  컴포넌트 자체 모듈 인덱스로, C++ `#include "..."`는 경로 접미사 매칭으로
+  해석해 Tarjan SCC로 순환을 찾습니다. include 해석은 휴리스틱이므로 C++
+  결과는 ESTIMATED 증거이며 미해결·모호 include는 limitation으로
+  보고됩니다 (#218).
+
+- **`python.dup`·`cpp.dup` check이 추가됐습니다.** 컴포넌트 소유 파일을
+  언어별로 토큰화해 Type-2 클론을 찾고, stable `dup` 엔진과 같은
+  매처·클러스터링·지분율 계산을 공유합니다. generated/vendor 파일은
+  정책대로 제외되고 제외 사실이 limitation으로 남습니다. Python의 AST-shape
+  semantic clustering은 아직 이관되지 않았다는 limitation을 명시합니다 —
+  조용히 빠진 기능이 아닙니다 (#218).
+- **`python.security`·`python.resource` check이 추가됐습니다 (WP20-C
+  첫 배치).** stable `security`/`resource` 엔진이 파일 단위로 호출하는
+  `analyze_python_security`·`analyze_python_resources`를 그대로 재사용해
+  규칙 구현을 중복하지 않습니다. finding은 원래 규칙 이름
+  (`Security:PickleLoad`, `Resource:OpenWithoutWith` 등)을 `native_rule_id`로
+  보존하고 경로·라인·컬럼을 유지하며, generated/vendor 소유 정책 제외와
+  파싱 실패는 limitation으로 보고됩니다 — 파싱되지 않은 파일을 검사된
+  것으로 세지 않습니다 (#218).
+- **`python.exception`·`cpp.exception` check이 추가됐습니다.** 예외 안전
+  규칙(베어 `except`, `BaseException` 포착, 핸들러 삼킴, traceback 소실
+  재발생, 소멸자 throw, 빈 `catch(...)`)이 `engines/_exception_rules.py`로
+  추출됐고, stable `exception` 엔진과 `ici next` check이 같은 파일 단위
+  분석(`analyze_python_exceptions`·`analyze_cpp_exceptions`)을 공유합니다.
+  PASS 요약 target은 finding으로 올리지 않고, C++ 마스킹 스캔은 heuristic
+  이므로 medium confidence로 표시됩니다 (#218).
+- **`python.dead` check이 추가됐습니다.** 정의·참조를 컴포넌트 스냅샷 전체에서
+  상관하는 cross-file 휴리스틱으로, stable `dead` 엔진과 같은
+  `analyze_python_dead_code`를 공유합니다. 휴리스틱 결과는 `ESTIMATED`
+  증거로 표시되며 정확한 도구 결과로 조용히 승격되지 않습니다.
+  **C++ 미사용 함수 재실행(replay)과 링커 GC 섹션 탐지는 이관하지
+  않습니다** — 사용자 컴파일러·링커를 실행하는 경로이므로 in-process
+  check이 아니라 도구 제공자 작업(#220)에 남기며, stable `dead` 엔진이
+  그대로 그 역할을 수행합니다 (#218).
+
+- **수식은 stable 엔진과 동일합니다.** cyclomatic/cognitive/nesting 계산이
+  `engines/_python_metrics.py`로 추출됐고, stable `complexity`·`cognitive`
+  엔진이 이를 위임 호출합니다 — 같은 의미의 구현이 두 벌이던 상태를 하나로
+  통합했습니다. 임계값은 shipped policy와 동일(complexity warn 15/fail 25,
+  cognitive warn 30/fail 60, nesting 4)이며 check별 옵션 채널은 품질
+  정책 작업(#219)에서 이어집니다.
+
+### 추가 — `ici next` TEM 수식 이관과 증거 기반 점수 (WP21, [#219](https://github.com/jihoon22-lee/ici/issues/219))
+
+**기존 배포 경로 동작 변경 없음.** `coverage_support.calculate_tem`은 같은
+수식을 `application/tem.py`에 위임할 뿐이며, stable TEM 출력과 버전
+표기(`tem/1`)는 그대로입니다.
+
+- **TEM 수식이 `application/tem.py`로 추출됐습니다.** stable 경로가 쓰던
+  `cov_factor * (func_cov / 100) * pass_rate * 5.0`과 상수(최대 5.0,
+  커버리지 cap 80.0, branch→line 환산 1.25)를 보존하고 `FORMULA_VERSION =
+  "tem/1"`로 버전을 고정합니다. 함수 커버리지가 없으면 100%를 지어내지
+  않고 `score=None` + 사유를 반환합니다.
+- **`ici next` 실행 결과에 `tem.<component>` 측정값이 실립니다.** 테스트·
+  커버리지 check이 이미 만든 측정값(케이스 수·line/branch/function 커버)만
+  읽어 계산합니다 — 같은 실행의 증거를 재사용할 뿐 새 실행을 추가하지
+  않습니다. 점수를 만들 수 없는 컴포넌트는 limitation으로 남고 0이나
+  100으로 가장하지 않습니다.
+- **워크스페이스 TEM은 raw count로만 병합됩니다.** 컴포넌트별 백분율을
+  평균내지 않고 호환되는 covered/total 원자료를 합산합니다. 함수 카운트가
+  하나라도 빠진 컴포넌트가 섞이면 병합 함수 커버리지는 `None`이 되고,
+  line/branch 원자료가 없는 컴포넌트는 병합에서 빠져 이름이 limitation으로
+  남습니다 (#219 항목 2-3).
+- **coverage provider가 함수 커버리지를 함께 냅니다.** `python.coverage`가
+  읽은 coverage JSON에서 `compute_python_function_coverage`로 함수 커버를
+  추가 측정하고, 소스 목록은 실행 레이어가 아니라 선언된 task 입력
+  (`ICI_COVERAGE_SOURCES`)에서 가져옵니다 — execution `TaskSpec`에 없는
+  필드를 읽던 결함도 함께 고쳤습니다.
+- **게이트 판정이 참고 finding과 필수 finding을 구분합니다.** MEASURED·
+  비suppressed이면서 required check에서 나온 finding만 FAIL을 만듭니다 —
+  ESTIMATED(휴리스틱)·suppressed·optional check의 finding은 결과에 남되
+  참고로만 취급됩니다. 이전에는 ESTIMATED-only 실행이 `has_violations`와
+  `blocking_findings` 불변식 충돌로 결과 파일 없이 크래시했습니다.
+- **SIGINT/SIGTERM이 실행을 취소합니다 (exit 130).** `signal_cancels`가
+  `next verify`에 연결돼, 취소는 traceback이 아니라 `Cancellation` 사실로
+  전달됩니다 — 미시작 task는 CANCELLED로 기록되고, 진행 중인 task는
+  watchdog이 끝내고, 부분 결과는 그대로 파일에 쓰입니다. 결과의
+  `execution.cancelled`와 `cancelled: <사유>` limitation이 남습니다
+  (SPEC-04 §3).
+
+
+### 추가 — `ici next` C++/Qt 테스트 실행과 gcov 커버리지 (WP19, [#217](https://github.com/jihoon22-lee/ici/issues/217))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.
+ici는 여전히 빌드를 실행하지 않습니다 — 테스트 바이너리는 프로젝트 빌드가
+남긴 산출물이고, 계측은 사용자의 instrumented 빌드가 남긴 `.gcno`입니다.
+
+- **`cpp.test`가 빌드가 선언한 suite를 실행합니다.** cmake 빌드의
+  `add_test`는 `ctest --test-dir` 한 번으로, `QT += testlib`/`testcase`
+  `.pro`는 QTest 바이너리 하나씩 — suite 하나당 task 하나로 확장됩니다.
+  선언된 suite의 `CTestTestfile.cmake`나 바이너리가 없으면 blocked입니다:
+  "test suite not built" / "test binary not built"는 missing이고 빈 결과가
+  아닙니다. 빌드 없음·suite 없음·ctest/gcov 부재도 전부 blocked입니다.
+- **노드별 verdict가 finding이 됩니다.** ctest의 `Passed`/`***Failed`와
+  QTest의 `PASS`/`FAIL!`이 정규화되고, QTest의 `Loc:` 라인이 실제 소스
+  위치를 붙입니다. "No tests were found"와 verdict 없는 출력은 파싱
+  실패이며, crash/타임아웃은 executor가 보고합니다 — 어떤 경우도 PASS가
+  아닙니다.
+- **`cpp.coverage`는 같은 실행의 `.gcda`만 읽습니다.** check가 선택되면
+  링크된 빌드 디렉터리의 `.gcno`가 instrumentation을 증명하고, gcov는
+  `.ici/cache/gcov/`에서만 결과를 씁니다 — 프로젝트 빌드 트리는 읽기
+  전용입니다. `gcov --json-format` 보고서는 구조 검증을 통과해야 하며,
+  보고서 부재·stamp mismatch·빈 라인 데이터는 전부 거부됩니다.
+- **cmake `add_test`와 qmake testcase 선언이 해석됩니다.** 두 형태
+  (`add_test(NAME …)`/구형 `add_test(n …)`), `TARGET =` 재명명, 조건부
+  블록의 maybe 표시까지 provenance로 남습니다.
+
+### 추가 — `ici next` pytest·coverage 실행과 증거 수집 (WP18, [#216](https://github.com/jihoon22-lee/ici/issues/216))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.
+
+- **`python.test`가 프로젝트 인터프리터로 pytest를 실행합니다.** 사용
+  인터프리터는 선언된 `[python] executable` 또는 컴포넌트 안의 `.venv`
+  뿐이며, 둘 다 없으면 ici 자체 런타임으로 돌아가지 않고 "no project
+  interpreter" blocked 마커가 나옵니다. argv는 `-v`·`--tb=short`·
+  `-p no:cacheprovider`만 고정합니다 — 플러그인·`pytest.ini`·
+  `pyproject.toml`·`addopts`는 전부 프로젝트의 것입니다.
+- **노드별 verdict가 finding이 됩니다.** 실패·에러 케이스는 발생한
+  nodeid의 위치를 가진 `pytest.failed`/`pytest.error`로, 수집 오류는
+  `pytest.collection-error`로 정규화됩니다. interrupted(exit 2)는 수집
+  오류 라인이 보일 때만 finding이고, 그렇지 않으면 실행 실패입니다.
+- **0개 수집·전부 skip·중단은 PASS가 아닙니다.** 수집 0건(exit 5)과
+  사용법 오류(exit 4)는 실패로 보고되고, green 없이 끝난 실행은
+  limitation으로 남습니다. 선언된 `test_paths`가 아무 파일도 잡지 못하면
+  blocked입니다 — 조용한 통과는 없습니다.
+- **`python.coverage`는 같은 실행의 데이터를 읽습니다.** coverage check가
+  선택되면 pytest 태스크가 `coverage run --branch`로 감싸져 한 번의
+  실행이 테스트·커버리지 두 check에 증거를 공급하고, coverage 태스크는
+  `coverage json`만 읽습니다 — 스위트를 두 번 돌리지 않습니다.
+- **커버리지 증거는 검증됩니다.** totals와 파일별 합이 어긋나거나 JSON이
+  없거나 손상되면 파싱 실패이며, 0% 커버리지 판정도 조용한 PASS도
+  아닙니다. `.ici/cache/coverage/` 아래에만 데이터가 쓰입니다.
+
+### 추가 — `ici next` Python 제공자: ruff format·mypy·선택적 ty (WP17, [#215](https://github.com/jihoon22-lee/ici/issues/215))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.
+
+- **`python.format`이 `ruff format --check`로 분리됩니다.** lint와 format은
+  서로 다른 finding과 remedy를 가지므로 별개 check이며, `--check`는 읽기
+  전용이라 verify가 트리를 고치는 일은 없습니다. 신형(`unformatted:`/
+  `-->` span)과 구형(`Would reformat:`) 출력 둘 다 파싱하고, 모르는 라인은
+  빈 PASS가 아니라 파싱 실패입니다.
+- **`python.type`이 mypy를 기본으로 실행합니다.** `--show-error-codes
+  --no-color-output --no-pretty`로 고정된 출력 형태만 요구하고, `--config`나
+  규칙 override는 넘기지 않습니다 — 프로젝트 자체 설정이 답합니다.
+  `path:line[:col]: severity: message [code]` 스트림을 파싱해
+  error/warning/note를 high/medium/low로 매핑합니다.
+- **`type_provider = "ty"`는 명시 선택입니다.** 선언되지 않은 체커를
+  조용히 대체하지 않습니다 — ty를 선택했는데 호스트에 없으면 mypy가 아니라
+  "ty is not available" blocked 마커가 나옵니다. 알 수 없는 provider 값은
+  config 오류입니다.
+- **상대 경로 진단이 올바른 root에 anchor됩니다.** 도구가 task cwd 기준
+  상대경로를 내놓을 때 ici 프로세스의 cwd로 resolve하던 실수를 고쳐,
+  component 하위 경로의 finding이 버려지지 않습니다.
+
+### 추가 — `ici next` C++/Qt 분석 제공자: 컴파일러 재현과 clang-tidy (WP16, [#214](https://github.com/jihoon22-lee/ici/issues/214))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다. ici는
+여전히 빌드를 실행하지 않고, 셸 초기화 파일을 source하지 않으며, 컴파일 DB가
+기록한 호출만을 읽기 전용으로 재현합니다.
+
+- **`cpp.diagnostics`가 TU 하나당 작업 하나로 확장됩니다.** 컴파일 DB의 각
+  번역 단위가 기록된 그대로의 argv를 `-fsyntax-only` 호출로 변환해 실행합니다.
+  `-o`/`-c`/`-MF`/`-flto`/`-Wl,*` 같은 산출물·링크 플래그만 이유와 함께
+  제거되고, 이름 모르는 플래그는 버리지 않습니다 — 버리면 다른 컴파일이
+  되므로. 지원하지 않는 드라이버(`cl.exe` 등)는 추측 실행 대신 blocked
+  마커가 되고, 기록된 작업 디렉터리가 사라진 캡처는 stale로 막힙니다.
+- **`cpp.tidy`가 `clang-tidy -p <build>`로 DB를 재생합니다.** 플래그 변환을
+  새로 만들지 않고 DB가 각 파일의 기록된 호출을 적용하게 둡니다. clang-tidy가
+  없는 호스트는 advisory check로 취급되어(`required = false`) C++ 판정을
+  INCOMPLETE로 오염시키지 않습니다 — `[checks."cpp.tidy"] required = true`로
+  강제할 수 있습니다.
+- **파싱 실패는 빈 PASS가 아니라 파싱 실패입니다.** 두 제공자 모두
+  `failed_to_parse`로 보고하고, 진단은 정규화된 `Finding`(파일·라인·
+  심각도·native rule id·task id·지문)으로 변환됩니다.
+- **능력 이름이 컴포넌트로 한정됩니다.** `compile-inputs` 같은 needs/provides가
+  `app.compile-inputs`처럼 component prefix를 따라가, 같은 이름의 능력을 두
+  컴포넌트가 생산해도 그래프가 중복 생산자로 오인하지 않습니다.
+- **컴파일러 재현은 캐시되지 않습니다.** dep 파일 증거를 잡지 않으므로 헤더
+  편집이 캐시 키에 보이지 않습니다 — 스케줄러는 거짓 캐시 키 대신
+  "not cacheable"을 기록합니다.
+
+### 추가 — `ici next` CMake·Make 빌드 입력의 공통 계약 이관 (WP15, [#213](https://github.com/jihoon22-lee/ici/issues/213))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다. ici는
+여전히 configure/build를 실행하지 않습니다 — cmake preset·toolchain·generator는
+사용자의 선택으로 남고, ici가 임의 구성으로 대체하는 일은 없습니다.
+
+`ici/workspace/cmake_project.py`가 선언된 root `CMakeLists.txt`의
+`add_subdirectory` 트리를 텍스트로만 읽습니다 — `if()`/블록 안의 항목은
+`conditional`로, `${var}` 참조와 `include()`된 모듈은 미해석 진단으로 남습니다.
+cmake 언어를 재구현하지 않으므로 실제 빌드와 의견이 갈라지지 않습니다.
+
+- **cmake 입력이 qmake와 같은 provenance 구조에 올라탑니다.** `CompileInputs`의
+  coverage·generated·target 모델이 그대로이고, `cmake-target-missing`이
+  component root가 `add_subdirectory` 트리에 도달하지 않는 mislink를 qmake의
+  것과 같은 방식으로 이름 붙입니다.
+- **DB의 출처가 공급한 build를 이름 붙입니다.** `origin`이 "configured" 같은
+  generic 라벨 대신 `cmake build 'release' release`처럼 링크된 build
+  unit(system·variant)을 가리켜, 공유 빌드의 기여가 숨겨지지 않습니다.
+- **make/explicit build는 정직하게 제한됩니다.** 프로젝트 파일 의미를 추측하지
+  않고, 선언된 `project` 파일이 디스크에 없으면 `build-definition-missing`을
+  냅니다 — compile DB가 유일한 증거로 남습니다.
+- **`plan`이 연결된 build를 보입니다.** 각 build의 system·variant·impact
+  directory(출력 디렉터리)와 이를 소비하는 component가 텍스트와 JSON 양쪽에
+  표시되어, 증거가 어디서 오는지 plan 수준에서 검사할 수 있습니다.
+
+### 추가 — `ici next` qmake `SUBDIRS` 해석·공유 빌드·컴파일 커버리지 check (WP14, [#212](https://github.com/jihoon22-lee/ici/issues/212))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다. ici는 여전히
+빌드를 실행하지 않습니다 — `prepare = "explicit"`은 사용자가 직접 준비한 빌드를
+ici가 *읽는* 권한이지, ici가 configure/build 명령을 만들어내는 허가가 아닙니다.
+
+WP14가 세우는 것은 **선언된 root `.pro`와 qmake가 실제로 빌드할 target의 연결**입니다.
+`ici/workspace/qmake_project.py`가 `SUBDIRS` 목록(`.file`/`.subdir`/`.depends` 수식,
+`\` 연속행, 조건부 scope, 중첩 트리)을 텍스트로만 읽어 build가 도달하는 디렉터리 집합을
+만듭니다 — qmake 언어를 재구현하지 않으므로 `$$변수` 참조는 추측하지 않고 미해석
+진단으로 남습니다.
+
+- **`cpp.compile` check가 커버리지를 게이트에 올립니다.** C++ component는 compile DB가
+  없으면 이 check가 blocked(어떤 build가 산출할지, 없으면 어떤 설정 키가 선언할지를
+  이유로 표시)이고, DB가 scope의 TU 일부만 덮거나 생성 입력이 사라졌으면 check가
+  불완전 증거로 보고합니다 — 두 경우 모두 run은 INCOMPLETE이며 부분 캡처가 전체
+  C++ PASS로 읽히지 않습니다.
+- **하나의 빌드가 여러 component를 덮습니다.** 두 cpp component가 같은 `[builds.<id>]`를
+  링크하면 하나의 compile DB가 양쪽 coverage를 답하고, 상대 component의 TU는
+  `extra`로 보여 공유 사실이 숨겨지지 않습니다.
+- **생성 입력은 이름이 붙습니다.** DB entry 중 build 디렉터리 아래의 소스(moc/uic/rcc
+  출력)는 `generated`로 분류되고, DB가 이름 붙인 생성 파일이 디스크에 없으면
+  `generated-input-missing` 진단이 부분/상훼 캡처를 가리킵니다.
+- **component–build mislink가 드러납니다.** qmake build를 링크했는데 component root가
+  `SUBDIRS` 트리에 도달하지 않으면 `qmake-target-missing`이 "DB가 비었다"와 "qmake가
+  이 component를 빌드하지 않는다"를 구별합니다.
+- **`doctor`가 target 해석을 보입니다.** component마다 `target: name → project` 행과
+  생성 입력 수가 표시되고, `--require-full`은 compile coverage gap을 INCOMPLETE 이유로
+  포함합니다.
+
+### 추가 — `ici next` 선택 CLI·doctor·plan·부분 실행 계약 (WP12, [#210](https://github.com/jihoon22-lee/ici/issues/210))
+
+**기존 배포 경로 동작 변경 없음.** 변경은 `ici next` 네임스페이스 안입니다.
+
+WP12가 세우는 것은 **요청이 모델을 재해석하지 않는다**는 계약입니다. 언어 플래그는
+component가 무엇인지를 바꾸지 않고 그 component의 어떤 check를 물을지를 좁힐
+뿐이고, 선택이 비면 PASS가 아니라 설정 오류입니다.
+
+- **`--python`/`--cpp`는 union이고 `--component`와 intersect합니다.** 두 플래그를
+  함께 주면 두 언어 전부, `--component`와 함께면 이름 붙인 component 안에서만
+  언어를 고릅니다. `--component`는 반복 지정됩니다.
+- **어디서 실행해도 root는 같습니다.** run의 root는 입력된 디렉터리가 아니라
+  발견된 root 파일이 있는 디렉터리입니다 — 하위 폴더에서의 `ici next verify`가
+  조용히 그 폴더만 검사하지 않으며, 선택된 root와 scope는 실행 전에 출력됩니다.
+- **`--require-full`은 coverage 게이트입니다.** 요청이 필수 component나 언어를
+  비워 두면 최종 gate는 INCOMPLETE(exit 3)이고 이유가 빠진 범위를 이름으로
+  가리킵니다 — 부분 실행이 pass해도 workspace pass로 읽히지 않습니다. coverage가
+  완전하면 FAIL은 그대로 FAIL입니다.
+- **`doctor`는 probe만 합니다.** 선택된 check마다 도구 위치·출처(bundle/PATH)·
+  bounded `--version`을 보이고, blocked면 원인 → 영향 → 해결할 설정 → 재확인
+  명령 순으로 안내합니다. build/install/source는 어떤 경로로도 일어나지 않습니다.
+- **`plan`은 실행 없이 계획을 보입니다.** argv·blocked 이유·dependency edge·
+  공유 실행·mutating 단계와 그 resource key·프로필까지 표시합니다.
+- **`--json`과 `--events`는 로그와 섞이지 않습니다.** `--json`은 stdout에 결과
+  문서만 내고 진단은 stderr로, `--events PATH`는 `ici.next.event` JSONL 스트림을
+  별도 파일에 씁니다 — 스케줄러가 unit 완료마다 sink를 호출하므로 순번이 진짜
+  진행 순서를 반영합니다.
+- **`ici next init`은 root `ici.toml` 스캐폴드를 씁니다.** 소스를 가진 디렉터리를
+  component 후보로 읽되, 기존 파일을 덮어쓰지 않고 `--preview`로 먼저 볼 수
+  있습니다. `[checks."python.lint"]`처럼 점을 포함한 check id가 TOML에서
+  올바른 id로 읽히도록 reader가 수정되었습니다 — 이전에는 마지막 절만 남아
+  `enabled = false`가 실제 check에 닿지 않았습니다.
+
 ### 추가 — 입력 identity 기반 observation 캐시·재사용 provenance (WP11, [#209](https://github.com/jihoon22-lee/ici/issues/209))
 
 **기존 배포 경로 동작 변경 없음.** 변경은 `ici next`가 소비하는 application 계층 안입니다.

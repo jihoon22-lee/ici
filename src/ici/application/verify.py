@@ -26,12 +26,22 @@ and read through the provider's contract.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ici.adapters.providers.base import Provider
 from ici.application.graph import build_graph
 from ici.application.plan import Plan, PlannedCheck
-from ici.application.schedule import Analysis, Execution, Identify, Runner, run_graph
+from ici.application.schedule import (
+    Analysis,
+    Execution,
+    Identify,
+    OnExecution,
+    OnStarted,
+    Runner,
+    run_graph,
+)
+from ici.application.suppressions import apply_suppressions
+from ici.config.composition import EffectiveSuppression
 from ici.domain.enums import GateVerdict, TaskState
 from ici.domain.finding import Finding
 from ici.domain.observation import Observation
@@ -71,6 +81,10 @@ def verify(
     cache: ObservationCache | None = None,
     identify: Identify | None = None,
     run_id: str = "",
+    on_execution: OnExecution | None = None,
+    on_started: OnStarted | None = None,
+    suppressions: Iterable[EffectiveSuppression] = (),
+    task_components: Mapping[str, str] = {},
 ) -> Verification:
     """Run everything the plans intend to run, then judge it once.
 
@@ -79,6 +93,11 @@ def verify(
     components. Plans stay per-component because check ids are unique only
     within one component's selection; inside the graph they collapse to shared
     units where the work is identical.
+
+    ``task_components`` maps a planned task id to the component it was planned
+    under. Providers may stamp ``component_id`` on findings themselves; where
+    they do not, this map is what keeps a pooled finding attributable to the
+    component it was measured in (#224).
     """
 
     plans = (plan,) if isinstance(plan, Plan) else tuple(plan)
@@ -95,6 +114,8 @@ def verify(
         cache=cache,
         identify=identify,
         run_id=run_id,
+        on_execution=on_execution,
+        on_started=on_started,
     )
     by_id = {item.task_id: item for item in scheduled.observations}
     observations = tuple(by_id[planned.task_id] for planned in checks)
@@ -102,12 +123,42 @@ def verify(
     incomplete = tuple(
         reason for planned in checks if (reason := _incompleteness(planned, by_id[planned.task_id]))
     )
-    findings = _unique(item for observation in observations for item in observation.findings)
+    findings = apply_suppressions(
+        _unique(
+            attributed
+            for observation in observations
+            for attributed in _attribute(observation, task_components)
+        ),
+        suppressions,
+    )
+    required_fingerprints = {
+        item.fingerprint
+        for planned in checks
+        if planned.check.required
+        for item in by_id[planned.task_id].findings
+    }
     return Verification(
-        gate=_judge(incomplete, findings),
+        gate=_judge(incomplete, findings, required_fingerprints),
         observations=observations,
         findings=findings,
         executions=scheduled.executions,
+    )
+
+
+def _attribute(observation: Observation, components: Mapping[str, str]) -> tuple[Finding, ...]:
+    """Give a finding the component its task was planned under.
+
+    A provider that knows its component stamps it; one that does not — a
+    parser reading shared tool output — still gets attribution from the plan,
+    so a consumer never has to reverse-engineer it out of a task id.
+    """
+
+    component = components.get(observation.task_id)
+    if component is None:
+        return observation.findings
+    return tuple(
+        item if item.component_id is not None else replace(item, component_id=component)
+        for item in observation.findings
     )
 
 
@@ -145,8 +196,27 @@ def _incompleteness(planned: PlannedCheck, observation: Observation) -> str:
     return f"{planned.task_id}: {detail}"
 
 
-def _judge(incomplete: tuple[str, ...], findings: tuple[Finding, ...]) -> GateOutcome:
-    has_violations = bool(findings)
+def _judge(
+    incomplete: tuple[str, ...],
+    findings: tuple[Finding, ...],
+    required_fingerprints: set[str],
+) -> GateOutcome:
+    """The verdict, asked in the order the spec allows it to be asked.
+
+    Only a *blocking* finding fails the gate: one that was measured, not
+    suppressed, and came from a check the policy requires. Estimated or
+    suppressed findings — and findings reported only by checks the root
+    marked optional — are kept in the result but stay advisory; counting
+    them would let a heuristic or an opt-out fail a run it was never
+    allowed to fail (#219 item 4).
+    """
+
+    blocking = tuple(
+        item
+        for item in findings
+        if item.counts_against_gate and item.fingerprint in required_fingerprints
+    )
+    has_violations = bool(blocking)
     if incomplete:
         # Kept together deliberately. The findings are real whether or not the
         # run finished, and INCOMPLETE is what stops a partial run being
@@ -160,6 +230,6 @@ def _judge(incomplete: tuple[str, ...], findings: tuple[Finding, ...]) -> GateOu
         return GateOutcome(
             selected=GateVerdict.FAIL,
             has_violations=True,
-            reasons=(f"{len(findings)} violation(s) found",),
+            reasons=(f"{len(blocking)} violation(s) found",),
         )
     return GateOutcome(selected=GateVerdict.PASS)

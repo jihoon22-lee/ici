@@ -247,7 +247,7 @@ def test_required_zero_statement_coverage_is_not_measured(tmp_path: Path, monkey
     )
     monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _python: ["coverage"])
 
-    def fake_run(cmd, cwd=None, env=None):
+    def fake_run(cmd, cwd=None, env=None, timeout=None):
         if "run" in cmd:
             return ProcessResult(0, "tests/test_zero.py::test_zero PASSED\n", "", 0.01)
         output_path = Path(cmd[cmd.index("-o") + 1])
@@ -310,7 +310,7 @@ def test_required_python_coverage_rejects_unrelated_source_report(tmp_path: Path
     )
     monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _python: ["coverage"])
 
-    def fake_run(cmd, cwd=None, env=None):
+    def fake_run(cmd, cwd=None, env=None, timeout=None):
         if "run" in cmd:
             return ProcessResult(0, "tests/test_app.py::test_app PASSED\n", "", 0.01)
         output_path = Path(cmd[cmd.index("-o") + 1])
@@ -758,7 +758,9 @@ def test_find_coverage_cmd_uses_venv_module_probe(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("ici.engines.test.shutil.which", lambda name: None)
     monkeypatch.setattr(
         "ici.engines.test.run_process",
-        lambda cmd, cwd=None, env=None: ProcessResult(0, "Coverage.py, version 7.x", "", 0.0),
+        lambda cmd, cwd=None, env=None, timeout=None: ProcessResult(
+            0, "Coverage.py, version 7.x", "", 0.0
+        ),
     )
     monkeypatch.setattr("ici.engines.test.find_uv", lambda: None)
     cmd = engine._find_coverage_cmd(None)
@@ -771,7 +773,7 @@ def test_find_coverage_cmd_uses_pytest_interpreter(tmp_path: Path, monkeypatch):
     engine = TestEngine(tmp_path)
     monkeypatch.setattr("ici.engines.test.shutil.which", lambda name: None)
 
-    def fake_run(cmd, cwd=None, env=None):
+    def fake_run(cmd, cwd=None, env=None, timeout=None):
         if "--version" in cmd and cmd[0] == "/proj/.venvx/bin/python":
             return ProcessResult(0, "Coverage.py, version 7.1.2", "", 0.0)
         return ProcessResult(1, "", "No module named coverage", 0.0)
@@ -807,7 +809,9 @@ def test_coverage_run_uses_source_dirs_flag(tmp_path: Path, monkeypatch):
     captured: list[list[str]] = []
     monkeypatch.setattr(
         "ici.engines.test.run_process",
-        lambda cmd, cwd=None, env=None: captured.append(cmd) or ProcessResult(0, "", "", 0.0),
+        lambda cmd, cwd=None, env=None, timeout=None: (
+            captured.append(cmd) or ProcessResult(0, "", "", 0.0)
+        ),
     )
     engine._run_python_tests([])
     cov_run = next(c for c in captured if "run" in c and "--branch" in c)
@@ -824,7 +828,7 @@ def test_coverage_missing_json_is_error_after_attempt(tmp_path: Path, monkeypatc
     )
     monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: ["coverage"])
 
-    def fake_run(cmd, cwd=None, env=None):
+    def fake_run(cmd, cwd=None, env=None, timeout=None):
         if "run" in cmd:
             return ProcessResult(
                 0,
@@ -851,7 +855,7 @@ def test_coverage_malformed_json_is_error_after_attempt(tmp_path: Path, monkeypa
     )
     monkeypatch.setattr(engine, "_find_coverage_cmd", lambda _pytest_cmd: ["coverage"])
 
-    def fake_run(cmd, cwd=None, env=None):
+    def fake_run(cmd, cwd=None, env=None, timeout=None):
         if "run" in cmd:
             return ProcessResult(
                 0,

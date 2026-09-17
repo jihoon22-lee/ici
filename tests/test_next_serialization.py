@@ -20,6 +20,8 @@ from pathlib import Path
 import pytest
 
 from ici.domain import (
+    BaselineComparison,
+    BaselineState,
     EventType,
     EvidenceLevel,
     ExecutionSummary,
@@ -164,6 +166,45 @@ class TestMeaningSurvivesTheRoundTrip:
         assert len(result.gate.reasons) == 2
         assert result.gate.exit_code == 3
 
+    def test_a_baseline_comparison_survives_the_round_trip(self):
+        """#221: the delta is stored data, not a recompute hint."""
+
+        original = minimal_result(
+            baseline=BaselineComparison(
+                state=BaselineState.COMPARABLE,
+                origin="baseline.json",
+                new=("fp-a",),
+                unchanged=("fp-b",),
+                resolved=("fp-c",),
+                carried=("fp-d",),
+            )
+        )
+
+        restored = run_result_from_dict(run_result_to_dict(original))
+
+        assert restored.baseline == original.baseline
+
+    def test_an_incompatible_baseline_keeps_its_reason_and_no_delta(self):
+        original = minimal_result(
+            baseline=BaselineComparison(
+                state=BaselineState.INCOMPATIBLE,
+                origin="old.json",
+                reason="policy changed",
+            )
+        )
+
+        restored = run_result_from_dict(run_result_to_dict(original))
+
+        assert restored.baseline is not None
+        assert restored.baseline.state is BaselineState.INCOMPATIBLE
+        assert restored.baseline.reason == "policy changed"
+        assert restored.baseline.new == ()
+
+    def test_no_baseline_writes_no_key(self):
+        """Results without a comparison keep the pre-#221 fixture shape."""
+
+        assert "baseline" not in run_result_to_dict(minimal_result())
+
 
 class TestBadPayloadsAreRefusedWithAReason:
     def test_a_legacy_v3_report_is_refused_by_name(self):
@@ -257,7 +298,12 @@ class TestDeterminism:
         """
 
         payload = run_result_to_dict(minimal_result())
-        assert set(payload["identity"]) == {"source", "policy_digest", "toolchain_digest"}
+        assert set(payload["identity"]) == {
+            "source",
+            "policy_digest",
+            "toolchain_digest",
+            "fingerprint_version",
+        }
         assert dumps(payload) == dumps(run_result_to_dict(minimal_result()))
 
 

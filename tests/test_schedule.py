@@ -196,3 +196,77 @@ def test_mutating_units_do_not_overlap_on_a_shared_resource(tmp_path) -> None:
     ends = [item for item in seen if item.startswith("end")]
     assert len(starts) == len(ends) == 2
     assert seen.index(starts[0]) < seen.index(ends[0]) < seen.index(starts[1])
+
+
+# --- the started/completed boundary, #224 --------------------------------
+#
+# An event consumer pairs task-started with task-completed to know what is
+# in flight. "Started" therefore means the work began — a unit that was
+# cancelled, blocked, or answered from cache never started, and reporting it
+# as started would show progress that never happened.
+
+
+def _lifecycle(graph, **kwargs):
+    started: list[str] = []
+    completed: list[str] = []
+    scheduled = run_graph(
+        graph,
+        providers={"stub": _StubProvider()},
+        analyses={},
+        runner=kwargs.pop("runner", _finished),
+        on_started=lambda unit: started.append(unit.id),
+        on_execution=lambda execution: completed.append(execution.unit),
+        **kwargs,
+    )
+    return scheduled, started, completed
+
+
+def test_a_unit_that_runs_reports_started_then_completed() -> None:
+    _, started, completed = _lifecycle(build_graph((_planned("a.lint"),)))
+
+    assert started == ["a.lint"]
+    assert completed == ["a.lint"]
+
+
+def test_a_blocked_unit_never_reports_started() -> None:
+    build = _planned("app.build", provides=("build:x",))
+    test = _planned("app.test", needs=("build:x",))
+
+    def fail(spec):
+        return TaskOutcome(spec=spec, outcome=Outcome.FINISHED, exit_code=3, duration=0.01)
+
+    _, started, completed = _lifecycle(build_graph((build, test)), runner=fail)
+
+    # The build started and failed; the test's refusal is a completion —
+    # "its disposition is final" — without a start that never happened.
+    assert started == ["app.build"]
+    assert "app.test" in completed
+
+
+def test_a_cancelled_unit_never_reports_started() -> None:
+    cancellation = Cancellation()
+    cancellation.cancel("stop requested")
+
+    _, started, completed = _lifecycle(
+        build_graph((_planned("a.lint"),)), cancellation=cancellation
+    )
+
+    assert started == []
+    assert completed == ["a.lint"]
+
+
+def test_a_cache_hit_never_reports_started(tmp_path) -> None:
+    from ici.execution.cache import ObservationCache
+
+    cache = ObservationCache(tmp_path / "cache")
+    stored = Observation(task_id="a.lint", provider="stub", state=TaskState.SUCCEEDED)
+    cache.write("k" * 64, stored, run_id="run-1")
+
+    _, started, completed = _lifecycle(
+        build_graph((_planned("a.lint"),)),
+        cache=cache,
+        identify=lambda unit: ("k" * 64, ""),
+    )
+
+    assert started == []
+    assert completed == ["a.lint"]

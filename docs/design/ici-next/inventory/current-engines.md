@@ -253,25 +253,25 @@ spec-03 §3의 목표 처리표에 이번 조사 결과를 붙인 것이다. **�
 
 |엔진|담당 WP|잠정 disposition|이번 조사에서 확인한 근거|
 |---|---|---|---|
-|line|[#206](https://github.com/jihoon22-lee/ici/issues/206), [#218](https://github.com/jihoon22-lee/ici/issues/218)|유지 (source metrics)|양 언어 `exact`. 도구 의존 없음. 이관 위험 낮음|
+|line|[#206](https://github.com/jihoon22-lee/ici/issues/206), [#218](https://github.com/jihoon22-lee/ici/issues/218)|**확정: 유지** — [wp20-dispositions.md](wp20-dispositions.md)|양 언어 `exact`. 도구 의존 없음. 이관 위험 낮음|
 |lint|[#214](https://github.com/jihoon22-lee/ici/issues/214), [#215](https://github.com/jihoon22-lee/ici/issues/215)|유지 (provider 위임)|`.venv` ruff 탐색 의존 존재(§4·execution-flow §4). heuristic fallback 선언됨|
 |compile_db|[#211](https://github.com/jihoon22-lee/ici/issues/211)|계층 이동 (입력 검증)|Python `unsupported`. C++ `exact`. 품질 finding과 입력 미완료가 한 엔진에 섞임|
 |test|[#216](https://github.com/jihoon22-lee/ici/issues/216), [#217](https://github.com/jihoon22-lee/ici/issues/217)|분해 (Python/C++ 분리)|`sys.executable` fallback 존재. TEM 집계까지 겸함. 가장 많은 책임을 가진 엔진|
 |type|[#215](https://github.com/jihoon22-lee/ici/issues/215)|유지 (provider 선택)|C++ `unsupported` 명시. `.venv` mypy 탐색 의존|
-|python_compat|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공|설정 키 13개로 19개 중 최다. wheel 검사까지 포함|
-|cognitive|[#218](https://github.com/jihoon22-lee/ici/issues/218)|통합 후보 (complexity와)|Python `heuristic`, C++ `unsupported`. deep 전용. `cpp_boundaries` 키를 complexity와 공유|
-|resource|[#218](https://github.com/jihoon22-lee/ici/issues/218)|비교 후 판단|Python `heuristic` 단독. C++ `unsupported`. 고유 설정 키 없음|
-|security|[#218](https://github.com/jihoon22-lee/ici/issues/218)|비교 후 판단 (Ruff 중복 검토)|Python `heuristic` 단독. C++ `unsupported`|
-|cycle|[#218](https://github.com/jihoon22-lee/ici/issues/218)|유지 (graph check)|Python `heuristic`/C++ `tool-backed`로 언어별 구현이 갈림|
-|complexity|[#218](https://github.com/jihoon22-lee/ici/issues/218)|유지 + cognitive 통합 검토|1027행으로 엔진 중 최대. C++는 clang-tidy optional|
-|sanitize|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공 (동적)|Python required가 `python3`+`pytest`. NAS 경로 의존 존재|
-|thread_sanitize|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공 (별도 variant)|본체 57행. `sanitize`에 위임하는 얇은 래퍼. Python `unsupported`|
-|dead|[#218](https://github.com/jihoon22-lee/ici/issues/218)|유지 (확정/휴리스틱 분리)|C++만 `exact`. Python은 `heuristic`. 두 신뢰도를 한 이름으로 보고함|
-|dup|[#218](https://github.com/jihoon22-lee/ici/issues/218)|유지 (token 공유)|양 언어 `heuristic`. 테스트 파일 13개로 최다|
-|exception|[#218](https://github.com/jihoon22-lee/ici/issues/218)|비교 후 판단|양 언어 `heuristic`|
-|build|[#220](https://github.com/jihoon22-lee/ici/issues/220), prepare는 [#212](https://github.com/jihoon22-lee/ici/issues/212)/[#213](https://github.com/jihoon22-lee/ici/issues/213)|분리 (prepare / 산출물 검증)|기본 비활성. NAS 경로 의존. `integration`과 `release` variant 공유|
-|binary_compat|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공|기본 비활성. `build` 선행 필수. C++ `exact`|
-|integration|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공|기본 비활성. `build` 선행 필수. 임의 명령 실행 계약|
+|python_compat|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공 — 잠정 방향 [wp22-dispositions.md](wp22-dispositions.md)|설정 키 13개로 19개 중 최다. wheel 검사까지 포함|
+|cognitive|[#218](https://github.com/jihoon22-lee/ici/issues/218)|**확정: 유지, parse 공유** — [wp20-dispositions.md](wp20-dispositions.md)|Python `heuristic`, C++ `unsupported`. deep 전용. `cpp_boundaries` 키를 complexity와 공유|
+|resource|[#218](https://github.com/jihoon22-lee/ici/issues/218)|**확정: 유지 (이관)** — [wp20-dispositions.md](wp20-dispositions.md)|Python `heuristic` 단독. C++ `unsupported`. 고유 설정 키 없음|
+|security|[#218](https://github.com/jihoon22-lee/ici/issues/218)|**확정: 유지 (이관)** — [wp20-dispositions.md](wp20-dispositions.md)|Python `heuristic` 단독. C++ `unsupported`|
+|cycle|[#218](https://github.com/jihoon22-lee/ici/issues/218)|**확정: 유지 (이관)** — [wp20-dispositions.md](wp20-dispositions.md)|Python `heuristic`/C++ `tool-backed`로 언어별 구현이 갈림|
+|complexity|[#218](https://github.com/jihoon22-lee/ici/issues/218)|**확정: 유지 (이관)** — [wp20-dispositions.md](wp20-dispositions.md)|1027행으로 엔진 중 최대. C++는 clang-tidy optional|
+|sanitize|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공 (동적) — 잠정 방향 [wp22-dispositions.md](wp22-dispositions.md)|Python required가 `python3`+`pytest`. NAS 경로 의존 존재|
+|thread_sanitize|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공 (별도 variant) — 잠정 방향 [wp22-dispositions.md](wp22-dispositions.md)|본체 57행. `sanitize`에 위임하는 얇은 래퍼. Python `unsupported`|
+|dead|[#218](https://github.com/jihoon22-lee/ici/issues/218)|**확정: 분할 이관** — [wp20-dispositions.md](wp20-dispositions.md)|C++만 `exact`. Python은 `heuristic`. 두 신뢰도를 한 이름으로 보고함|
+|dup|[#218](https://github.com/jihoon22-lee/ici/issues/218)|**확정: 유지 (이관)** — [wp20-dispositions.md](wp20-dispositions.md)|양 언어 `heuristic`. 테스트 파일 13개로 최다|
+|exception|[#218](https://github.com/jihoon22-lee/ici/issues/218)|**확정: 유지 (이관)** — [wp20-dispositions.md](wp20-dispositions.md)|양 언어 `heuristic`|
+|build|[#220](https://github.com/jihoon22-lee/ici/issues/220), prepare는 [#212](https://github.com/jihoon22-lee/ici/issues/212)/[#213](https://github.com/jihoon22-lee/ici/issues/213)|**PR A 확정: prepare / 산출물 검증 분리** — [wp22-dispositions.md](wp22-dispositions.md)|기본 비활성. NAS 경로 의존. `integration`과 `release` variant 공유|
+|binary_compat|[#220](https://github.com/jihoon22-lee/ici/issues/220)|선택 제공 — 잠정 방향 [wp22-dispositions.md](wp22-dispositions.md)|기본 비활성. `build` 선행 필수. C++ `exact`|
+|integration|[#220](https://github.com/jihoon22-lee/ici/issues/220)|**PR D 확정: 선언 기반 case 이관** — [wp22-dispositions.md](wp22-dispositions.md)|deep+opt-in. argv typed placeholder 계약|
 
 ## 8. 후속 WP로 넘기는 미확인 항목
 
@@ -279,9 +279,9 @@ spec-03 §3의 목표 처리표에 이번 조사 결과를 붙인 것이다. **�
 |---|---|---|---|
 |1|`fallback_mode=heuristic` 6개 엔진의 실제 활성 조건과 결과 표기|미확인|[#219](https://github.com/jihoon22-lee/ici/issues/219)|
 |2|`branch * 1.25` 환산 계수의 근거|근거 없음 (코드·주석·문서 모두)|[#219](https://github.com/jihoon22-lee/ici/issues/219)|
-|3|heuristic 자체 규칙 8종의 precision/recall|미측정|[#218](https://github.com/jihoon22-lee/ici/issues/218)|
-|4|`cognitive`/`complexity` 지표 정의의 실제 중복 범위|미확인|[#218](https://github.com/jihoon22-lee/ici/issues/218)|
-|5|`security`와 Ruff 규칙의 중복 범위|미확인|[#218](https://github.com/jihoon22-lee/ici/issues/218)|
+|3|heuristic 자체 규칙 8종의 precision/recall|부분 해소 — 대조군 fixture는 [wp20-dispositions.md](wp20-dispositions.md), precision/recall 정량 측정은 [#226](https://github.com/jihoon22-lee/ici/issues/226)로|[#218](https://github.com/jihoon22-lee/ici/issues/218)|
+|4|`cognitive`/`complexity` 지표 정의의 실제 중복 범위|해소 — parse/경계 공유, 수식 분리 ([wp20-dispositions.md](wp20-dispositions.md))|[#218](https://github.com/jihoon22-lee/ici/issues/218)|
+|5|`security`와 Ruff 규칙의 중복 범위|부분 해소 — 부분 겹침 확인, 유지 판정 ([wp20-dispositions.md](wp20-dispositions.md))|[#218](https://github.com/jihoon22-lee/ici/issues/218)|
 |6|`compile_db` 부분 DB에서의 TU 누락 보고 정확도|미확인|[#211](https://github.com/jihoon22-lee/ici/issues/211)|
 |7|`integration`의 임의 명령 실행 신뢰 경계|미확인|[#220](https://github.com/jihoon22-lee/ici/issues/220)|
 |8|각 엔진의 실제 언어별 지원 하한(GCC/Qt/Python 버전)|미측정|[#226](https://github.com/jihoon22-lee/ici/issues/226)|

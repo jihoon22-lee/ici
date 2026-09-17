@@ -42,6 +42,7 @@ from ici.engines.test_interpreter import TestInterpreterMixin
 from ici.engines.test_output import TestOutputMixin
 from ici.engines.test_quality import TestQualityMixin
 from ici.engines.test_quality import empty_quality_info as _empty_quality_info
+from ici.execution.process import SUITE_TIMEOUT
 
 if TYPE_CHECKING:
     from ici.core.context import AnalysisContext
@@ -414,12 +415,13 @@ class TestEngine(
         *,
         cwd: Path,
         env: dict[str, str] | None = None,
+        timeout: float | None = None,
     ) -> ProcessResult:
         """Keep extracted coverage calls on the legacy patchable runner binding."""
 
-        if env is None:
+        if env is None and timeout is None:
             return run_process(argv, cwd=cwd)
-        return run_process(argv, cwd=cwd, env=env)
+        return run_process(argv, cwd=cwd, env=env, timeout=timeout)
 
     def _record_tool_error(self, message: str) -> None:
         if message not in self._tool_errors:
@@ -456,7 +458,7 @@ class TestEngine(
             *self._pytest_duration_args(),
             "tests",
         ]
-        result = run_process(command, cwd=self.project_root, env=env)
+        result = run_process(command, cwd=self.project_root, env=env, timeout=SUITE_TIMEOUT)
         self._record_tool("pytest", command, result)
         self._remember_pytest_output(result)
         if result.timed_out:
@@ -488,7 +490,7 @@ class TestEngine(
     ) -> tuple[int, int, bool]:
         interpreter = python_cmd or self._resolve_python()
         command = [*interpreter, "-m", "unittest", "discover", "-s", "tests", "-v"]
-        result = run_process(command, cwd=self.project_root, env=env)
+        result = run_process(command, cwd=self.project_root, env=env, timeout=SUITE_TIMEOUT)
         self._record_tool("unittest", command, result)
         if result.timed_out:
             self._record_tool_error("Unittest timed out")

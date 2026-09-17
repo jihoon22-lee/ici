@@ -300,3 +300,20 @@ provenance = "authored for ici"
 license = "same as repository"
 expectation = "components/ is not in DEFAULT_SOURCE_DIRS, so ici discovers zero source directories and every engine reports PASS over zero files; renaming the directory to packages/ finds beta's classify() at complexity 18"
 exercised_by = ["tests/test_python_corpus.py"]
+
+# The CI dogfood fixture: ci.yml runs the built dist/ici.pyz `next
+# plan/verify/report` in this directory, so the next path is exercised from
+# the shipped artifact, not only from source in pytest. ruff is the only
+# external tool it needs; the interpreter-dependent checks are disabled in
+# its ici.toml because a fixture with no .venv must not read as INCOMPLETE.
+[[fixture]]
+id = "ici-next/self-verify"
+path = "tests/fixtures/next-self-verify"
+kind = "real-tool"
+languages = ["python"]
+requires = [{ executable = "ruff" }]
+cost = "fast"
+provenance = "authored for ici"
+license = "same as repository"
+expectation = "next plan lists the python checks, verify exits 0 with 0 findings, report writes a self-contained page"
+exercised_by = [".github/workflows/ci.yml"]

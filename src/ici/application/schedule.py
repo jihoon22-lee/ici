@@ -53,6 +53,14 @@ Analysis = Callable[[], Observation]
 #: Injected so the scheduler never resolves paths or measures files itself.
 Identify = Callable[[WorkUnit], "tuple[str | None, str]"]
 
+#: Called with each unit's record the moment it is produced — possibly from a
+#: pool thread, so a sink that keeps state must guard it. This is how
+#: ``--events`` learns a task finished without polling the finished run.
+OnExecution = Callable[["Execution"], None]
+#: Fired when a unit actually starts work — after blocked/cancelled/cache
+#: short-circuits, so "started" means a process or an analysis is running.
+OnStarted = Callable[["WorkUnit"], None]
+
 
 @dataclass(frozen=True)
 class Execution:
@@ -104,6 +112,8 @@ def run_graph(
     cache: ObservationCache | None = None,
     identify: Identify | None = None,
     run_id: str = "",
+    on_execution: OnExecution | None = None,
+    on_started: OnStarted | None = None,
 ) -> Scheduled:
     """Execute a task graph, honouring its order and its sharing.
 
@@ -149,7 +159,8 @@ def run_graph(
         # observation — the same evidence the run would have produced — and a
         # miss runs the task and keeps its answer for next time. A unit with
         # no key runs as usual with the reason on the record.
-        key = reason = ""
+        key: str | None = None
+        reason = ""
         if cache is not None and identify is not None and not unit.is_internal:
             key, reason = identify(unit)
             if key is not None:
@@ -167,6 +178,8 @@ def run_graph(
                     )
                 reason = read.reason
 
+        if on_started is not None:
+            on_started(unit)
         observation = _perform(unit, providers, analyses, runner, environment, locks)
         if (
             cache is not None
@@ -180,17 +193,23 @@ def run_graph(
             consumers=unit.consumers,
             provider=provider,
             state=observation.state,
-            duration_seconds=observation.duration_seconds,
+            duration_seconds=observation.duration_seconds or 0.0,
             detail=reason,
         )
 
+    def record(unit: WorkUnit) -> tuple[Observation | None, Execution]:
+        produced = attempt(unit)
+        if on_execution is not None:
+            on_execution(produced[1])
+        return produced
+
     for layer in graph.layers():
         if len(layer) == 1:
-            results = [attempt(layer[0])]
+            results = [record(layer[0])]
         else:
             workers = max(1, min(max_parallel, len(layer)))
             with ThreadPoolExecutor(max_workers=workers) as pool:
-                results = list(pool.map(attempt, layer))
+                results = list(pool.map(record, layer))
         for unit, (observation, execution) in zip(layer, results, strict=True):
             executions.append(execution)
             if observation is None:
@@ -232,10 +251,10 @@ def _perform(
         return analysis()
 
     assert unit.plan is not None
-    provider = providers.get(unit.source.check.tool or "")
+    provider = providers.get(unit.plan.task.provider or unit.source.check.tool or "")
     if provider is None:
         return unavailable(
-            unit.source.check.tool or "?",
+            unit.plan.task.provider or unit.source.check.tool or "?",
             unit.id,
             f"{unit.source.check.tool} has no provider registered",
         )
@@ -257,6 +276,8 @@ def _failed_prerequisite(unit: WorkUnit, finished: Mapping[str, Observation]) ->
 def _provider_name(unit: WorkUnit) -> str:
     if unit.is_internal:
         return "ici"
+    if unit.plan is not None and unit.plan.task.provider:
+        return unit.plan.task.provider
     return unit.source.check.tool or "?"
 
 

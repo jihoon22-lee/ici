@@ -34,6 +34,12 @@ def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (root / "ruff.toml").write_text('[lint]\nselect = ["F"]\n', encoding="utf-8")
     (root / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
     write(propose(root), root / "ici.toml")
+    # The fixture has no project interpreter or suite — test evidence is
+    # opted out of rather than faked. WP18's own tests exercise the real run.
+    with (root / "ici.toml").open("a", encoding="utf-8") as handle:
+        handle.write(
+            '[checks."python.test"]\nenabled = false\n[checks."python.coverage"]\nenabled = false\n'
+        )
     monkeypatch.chdir(root)
     return root
 
@@ -88,13 +94,38 @@ def test_a_missing_required_tool_exits_three(project: Path, monkeypatch) -> None
     _seed(project)
     # Patched at the one function that answers "where is this tool". The first
     # version patched Path.is_file, which also stopped config discovery finding
-    # ici.toml, and the run failed for a reason the test was not about.
-    monkeypatch.setattr("ici.cli.next_path._locate", lambda _: None)
+    # ici.toml, and the run failed for a reason the test was not about. The
+    # function lives in next_common — the verify path plans through it.
+    monkeypatch.setattr("ici.cli.next_common.locate_tool", lambda _: None)
 
     result = runner.invoke(app, ["next", "verify"])
 
     assert result.exit_code == 3, result.output
     assert "INCOMPLETE" in result.output
+
+
+def test_a_cancelled_run_exits_130_and_keeps_a_partial_result(
+    project: Path, monkeypatch, tmp_path
+) -> None:
+    """SPEC-04 §3: a user cancel is 130, and the partial result is written."""
+    _seed(project)
+
+    import contextlib
+
+    @contextlib.contextmanager
+    def cancelled(cancellation):
+        cancellation.cancel("received SIGINT")
+        yield cancellation
+
+    monkeypatch.setattr("ici.cli.next_path.signal_cancels", cancelled)
+    result_path = tmp_path / "partial.json"
+
+    result = runner.invoke(app, ["next", "verify", "--result", str(result_path)])
+
+    assert result.exit_code == 130, result.output
+    document = json.loads(result_path.read_text())
+    assert document["execution"]["cancelled"] is True
+    assert document["gate"]["selected"] == "INCOMPLETE"
 
 
 # --- plan runs nothing ----------------------------------------------------
@@ -148,6 +179,36 @@ def test_report_without_a_result_says_so_rather_than_rendering_nothing(project: 
 
 
 @needs_ruff
+def test_report_starts_no_process(project: Path, monkeypatch) -> None:
+    # #222 item 1: report RESULT는 saved JSON만 읽는다. Rendering that could
+    # launch a tool would make reading a result able to change it.
+    _seed(project)
+    runner.invoke(app, ["next", "verify"])
+
+    def refuse(*args: object, **kwargs: object):
+        raise AssertionError("report started a process")
+
+    monkeypatch.setattr("ici.execution.process.run_process", refuse)
+
+    assert runner.invoke(app, ["next", "report"]).exit_code == 0
+
+
+def test_report_refuses_a_result_it_does_not_know(project: Path) -> None:
+    # #222: an unknown envelope is an error, never an empty PASS page.
+    result_dir = project / ".ici" / "next"
+    result_dir.mkdir(parents=True)
+    (result_dir / "result.json").write_text(
+        json.dumps({"schema_id": "ici.result/v3", "results": []}), encoding="utf-8"
+    )
+
+    result = runner.invoke(app, ["next", "report"])
+
+    assert result.exit_code == 2
+    assert "not a result this version can read" in result.output
+    assert not (result_dir / "result.html").exists()
+
+
+@needs_ruff
 def test_verifying_writes_only_under_dot_ici(project: Path) -> None:
     _seed(project)
     before = {p.relative_to(project) for p in project.rglob("*")}
@@ -156,6 +217,86 @@ def test_verifying_writes_only_under_dot_ici(project: Path) -> None:
 
     added = {p.relative_to(project) for p in project.rglob("*")} - before
     assert added and all(str(p).startswith(".ici") for p in added), sorted(str(p) for p in added)
+
+
+# --- the event stream, #224 ------------------------------------------------
+
+
+def _events(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
+@needs_ruff
+def test_the_event_stream_tells_the_runs_life_in_order(project: Path, tmp_path) -> None:
+    """#224: a consumer sees the run unfold — started, planned, each task's
+    start and finish, then the run's completion — in a stream nothing else
+    writes to."""
+    _seed(project)
+    stream = tmp_path / "events.jsonl"
+
+    result = runner.invoke(app, ["next", "verify", "--events", str(stream)])
+
+    assert result.exit_code == 1, result.output
+    events = _events(stream)
+    types = [item["event_type"] for item in events]
+    assert types[0] == "run.started"
+    assert types[1] == "plan.ready"
+    assert types[-1] == "run.completed"
+    assert [item["seq"] for item in events] == list(range(len(events)))
+
+    # Every task that started also completed, and each start precedes its
+    # finish. A task that resolved without running — cached, blocked —
+    # never claims a start it did not have.
+    started = [item["task_id"] for item in events if item["event_type"] == "task.started"]
+    finished = [item["task_id"] for item in events if item["event_type"] == "task.completed"]
+    assert started and set(started) <= set(finished)
+    for task in started:
+        first = next(i for i, e in enumerate(events) if e.get("task_id") == task)
+        assert events[first]["event_type"] == "task.started"
+        last = max(i for i, e in enumerate(events) if e.get("task_id") == task)
+        assert events[last]["event_type"] == "task.completed"
+
+
+@needs_ruff
+def test_a_cached_second_run_starts_no_task_it_reuses(project: Path, tmp_path) -> None:
+    runner.invoke(app, ["next", "verify"])
+    second = tmp_path / "second.jsonl"
+    runner.invoke(app, ["next", "verify", "--events", str(second)])
+
+    events = _events(second)
+    reused = [
+        item["task_id"]
+        for item in events
+        if item["event_type"] == "task.completed" and "cache hit" in item["message"]
+    ]
+    assert reused
+    started = {item["task_id"] for item in events if item["event_type"] == "task.started"}
+    assert not started.intersection(reused)
+
+
+def test_a_cancelled_run_marks_the_stream_instead_of_leaving_it_silent(
+    project: Path, monkeypatch, tmp_path
+) -> None:
+    """#224: cancellation is an event, not an absence — a consumer following
+    the file learns the run was stopped rather than watching it go quiet."""
+    import contextlib
+
+    @contextlib.contextmanager
+    def cancelled(cancellation):
+        cancellation.cancel("received SIGINT")
+        yield cancellation
+
+    monkeypatch.setattr("ici.cli.next_path.signal_cancels", cancelled)
+    stream = tmp_path / "events.jsonl"
+
+    result = runner.invoke(app, ["next", "verify", "--events", str(stream)])
+
+    assert result.exit_code == 130, result.output
+    events = _events(stream)
+    assert events[-1]["event_type"] == "run.completed"
+    assert any(
+        item["event_type"] == "diagnostic" and "cancelled" in item["message"] for item in events
+    )
 
 
 # --- it replaces nothing --------------------------------------------------
@@ -181,7 +322,7 @@ def test_from_a_bundle_the_tool_is_the_bundles_or_nothing(tmp_path, monkeypatch)
     # #204 item 7. Falling back to PATH here would mean a bundle missing its
     # ruff quietly linted with whatever the host had, and the report would not
     # say so.
-    from ici.cli.next_path import _locate
+    from ici.cli.next_testing import locate_tool as _locate
 
     bundle = tmp_path / "bundle"
     bundle.mkdir()
@@ -196,7 +337,8 @@ def test_from_a_bundle_the_bundled_tool_is_found_where_the_build_puts_it(
 ) -> None:
     # The first version looked in bin/ while the build writes to
     # tools/python-static/, so inside a real bundle it found nothing.
-    from ici.cli.next_path import BUNDLED_TOOLS, _locate
+    from ici.cli.next_testing import BUNDLED_TOOLS
+    from ici.cli.next_testing import locate_tool as _locate
 
     bundle = tmp_path / "bundle"
     shipped = bundle / BUNDLED_TOOLS / "ruff"
@@ -209,7 +351,7 @@ def test_from_a_bundle_the_bundled_tool_is_found_where_the_build_puts_it(
 
 
 def test_from_a_source_checkout_path_is_the_honest_answer(monkeypatch) -> None:
-    from ici.cli.next_path import _locate
+    from ici.cli.next_testing import locate_tool as _locate
 
     monkeypatch.delenv("ICI_BUNDLE_ROOT", raising=False)
     monkeypatch.setattr("ici.cli.next_path.shutil.which", lambda _: "/usr/bin/ruff")

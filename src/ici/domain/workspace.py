@@ -114,6 +114,10 @@ class BuildUnit:
     directory: str
     definition: str | None = None
     prepare_argv: tuple[str, ...] = ()
+    #: Output globs the build claims to produce, anchored at ``directory``
+    #: (#220). Declared-but-absent outputs are a broken contract a check
+    #: reports; they are never silently absent.
+    artifacts: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", require_identifier(self.id, "build unit id"))
@@ -132,6 +136,14 @@ class BuildUnit:
             tuple(
                 require_text(item, "prepare argv entry")
                 for item in require_tuple(self.prepare_argv, str, "prepare argv")
+            ),
+        )
+        object.__setattr__(
+            self,
+            "artifacts",
+            tuple(
+                require_relative_path(item, "artifact glob")
+                for item in require_tuple(self.artifacts, str, "artifact globs")
             ),
         )
 

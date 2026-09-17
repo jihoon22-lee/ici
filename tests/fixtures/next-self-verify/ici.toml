@@ -1,0 +1,24 @@
+# CI dogfood fixture for the next path (WP29 #227).
+#
+# The built artifact runs `next plan`/`next verify`/`next report` here. The
+# component carries no .venv and declares no interpreter on purpose: the
+# checks that need one stay INCOMPLETE and out of the selected set, which is
+# exactly the axis behaviour this fixture exists to exercise from the shipped
+# pyz — a partial toolset must not read as a crash or a pass.
+schema_version = 1
+
+[workspace]
+name = "self-verify"
+profile = "fast"
+
+[[components]]
+id = "sample"
+root = "."
+languages = ["python"]
+
+[checks."python.type"]
+enabled = false
+[checks."python.test"]
+enabled = false
+[checks."python.coverage"]
+enabled = false

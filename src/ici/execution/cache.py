@@ -21,6 +21,7 @@ stale entry can only be *found*, never trusted.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import secrets
@@ -28,6 +29,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from ici.domain._codec import dumps
 from ici.domain.observation import Observation
 from ici.domain.serialization import observation_from_dict, observation_to_dict
 from ici.execution.locks import exclusive
@@ -87,7 +89,21 @@ class ObservationCache:
                 # cannot stand for this run's inputs.
                 self._evict_one(entry)
                 return CacheRead(hit=False, reason="stored identity does not match")
-            observation = observation_from_dict(payload.get("observation"))
+            observation_data = payload.get("observation")
+            if not isinstance(observation_data, dict):
+                raise ValueError("stored result has no observation")
+            integrity = payload.get("integrity")
+            if not isinstance(integrity, str):
+                # Entries from before integrity existed are a miss, not a
+                # guess — the cache is disposable, doubt is not.
+                self._evict_one(entry)
+                return CacheRead(hit=False, reason="stored result carries no integrity digest")
+            if _digest(observation_data) != integrity:
+                # The observation was modified after it was stored — a poisoned
+                # cache must not launder a written-over finding into a pass.
+                self._evict_one(entry)
+                return CacheRead(hit=False, reason="stored result was modified")
+            observation = observation_from_dict(observation_data)
         except (OSError, ValueError, json.JSONDecodeError) as error:
             self._evict_one(entry)
             return CacheRead(hit=False, reason=f"stored result is not readable: {error}")
@@ -108,12 +124,14 @@ class ObservationCache:
 
         if not observation.evidence_is_complete:
             return
+        observation_data = observation_to_dict(observation)
         body = {
             "schema": CACHE_SCHEMA,
             "identity": key,
             "run": run_id,
             "stored": int(time.time()),
-            "observation": observation_to_dict(observation),
+            "integrity": _digest(observation_data),
+            "observation": observation_data,
         }
         with exclusive(self._dir / ".write-lock"):
             _atomic_write(self._entry(key), body)
@@ -159,6 +177,17 @@ class ObservationCache:
         candidates.sort(key=lambda item: item.stat().st_mtime)
         for item in candidates[:excess]:
             self._evict_one(item)
+
+
+def _digest(payload: dict) -> str:
+    """SHA-256 over the observation's canonical serialisation.
+
+    The digest covers what was stored, not who stored it — the cache has no
+    secrets to key a MAC with, and the property it needs is only "the bytes a
+    later run reads are the bytes an earlier run wrote".
+    """
+
+    return hashlib.sha256(dumps(payload).encode("utf-8")).hexdigest()
 
 
 def _atomic_write(destination: Path, payload: dict) -> Path:

@@ -149,6 +149,8 @@ def _plan_for(
     planned = []
     for check in checks:
         task_id = f"{task_prefix}.{check.id}" if task_prefix else check.id
+        if task_prefix:
+            check = _with_scope(check, task_prefix)
         if in_scope is not None and not in_scope(check):
             planned.append(
                 PlannedCheck(
@@ -183,6 +185,29 @@ def _plan_for(
             continue
         planned.append(PlannedCheck(check=check, task=work, task_id=task_id))
     return Plan(checks=tuple(planned))
+
+
+def _with_scope(check: CheckDefinition, prefix: str) -> CheckDefinition:
+    """Qualify a check's input names with the component it runs under.
+
+    ``compile-inputs`` means *this component's* compile inputs — two
+    components each producing it must be two capabilities, or the graph sees
+    one input with two producers (#208's duplicate-producer error). Task ids
+    already carry the prefix; the capability names follow them.
+    """
+
+    if not check.needs and not check.provides:
+        return check
+    return CheckDefinition(
+        id=check.id,
+        title=check.title,
+        language=check.language,
+        tool=check.tool,
+        required=check.required,
+        profiles=check.profiles,
+        needs=tuple(f"{prefix}.{name}" for name in check.needs),
+        provides=tuple(f"{prefix}.{name}" for name in check.provides),
+    )
 
 
 def _with_required(check: CheckDefinition, required: bool) -> CheckDefinition:

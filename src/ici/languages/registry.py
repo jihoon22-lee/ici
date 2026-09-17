@@ -25,10 +25,12 @@ from dataclasses import dataclass
 
 from ici.languages.checks import CheckDefinition
 from ici.languages.cpp.checks import CPP_CHECKS
+from ici.languages.integration import INTEGRATION_CASES_CHECK
 from ici.languages.python.checks import PYTHON_CHECKS
 
 __all__ = [
     "CPP_PACK",
+    "INTEGRATION_PACK",
     "PYTHON_PACK",
     "QT_EXTENSION",
     "LanguagePack",
@@ -159,10 +161,22 @@ CPP_PACK = LanguagePack(
     providers=("ici.line",),
 )
 
+#: ``integration`` is a domain, not a language — ``checks_for`` never returns
+#: this pack's checks because no component declares ``"integration"`` as a
+#: language. The check is offered to a component by ``next_common`` only when
+#: the component declares cases, which is the declaration-driven opt-in #220
+#: item 6 requires; the pack exists so the check is still registry-declared
+#: data rather than a check the planner invents (#208 item 1's rule).
+INTEGRATION_PACK = LanguagePack(
+    id="integration",
+    languages=("integration",),
+    checks=(INTEGRATION_CASES_CHECK,),
+)
+
 QT_EXTENSION = QtExtension()
 
 
 def builtin() -> PackRegistry:
     """The registry this release ships — one instance, same release as ici."""
 
-    return PackRegistry(packs=(PYTHON_PACK, CPP_PACK), qt=QT_EXTENSION)
+    return PackRegistry(packs=(PYTHON_PACK, CPP_PACK, INTEGRATION_PACK), qt=QT_EXTENSION)

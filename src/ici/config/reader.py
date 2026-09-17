@@ -27,11 +27,18 @@ __all__ = ["Table"]
 class Table:
     """One TOML table, read key by key against what a section declares."""
 
-    def __init__(self, data: Mapping[str, Any], origin: Origin, problems: list[ConfigProblem]):
+    def __init__(
+        self,
+        data: Mapping[str, Any],
+        origin: Origin,
+        problems: list[ConfigProblem],
+        name: str | None = None,
+    ):
         self._data = dict(data)
         self._origin = origin
         self._problems = problems
         self._seen: set[str] = set()
+        self._name = name
 
     @property
     def origin(self) -> Origin:
@@ -120,6 +127,47 @@ class Table:
             patterns.append(SourceGlob(raw=pattern, origin=found.origin.item(index)))
         return tuple(patterns)
 
+    def number(self, key: str) -> Sourced[float] | None:
+        """A numeric value — TOML has no int/float distinction worth keeping
+        for knobs like timeouts, so both are accepted and bool is not."""
+
+        taken = self._take(key)
+        if taken is None:
+            return None
+        value, origin = taken
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            self._wrong_type(key, origin, "a number", value)
+            return None
+        return Sourced(value=float(value), origin=origin)
+
+    def text_map(self, key: str) -> tuple[tuple[str, Sourced[str]], ...] | None:
+        """A string→string table as ordered pairs, for ``env``-style maps.
+
+        Returns ``None`` when the key is absent and reports each non-string
+        value individually so one bad entry does not hide the rest.
+        """
+
+        taken = self._take(key)
+        if taken is None:
+            return None
+        value, origin = taken
+        if not isinstance(value, dict):
+            self._wrong_type(key, origin, "a table of strings", value)
+            return None
+        result: list[tuple[str, Sourced[str]]] = []
+        for name, item in value.items():
+            item_origin = origin.child(name)
+            if not isinstance(item, str):
+                self._problems.append(
+                    ConfigProblem(
+                        f"{key}.{name} must be a string, not {type(item).__name__}",
+                        item_origin,
+                    )
+                )
+                continue
+            result.append((name, Sourced(value=item, origin=item_origin)))
+        return tuple(result)
+
     def table(self, key: str) -> Table | None:
         taken = self._take(key)
         if taken is None:
@@ -148,7 +196,7 @@ class Table:
             if not isinstance(value, dict):
                 self._wrong_type(name, origin, "a table", value)
                 continue
-            result.append(Table(value, origin, self._problems))
+            result.append(Table(value, origin, self._problems, name=name))
         return tuple(result)
 
     def array_of_tables(self, key: str) -> tuple[Table, ...]:
@@ -171,8 +219,15 @@ class Table:
         return tuple(result)
 
     def name(self) -> str:
-        """The last segment of this table's key, which is its id in the schema."""
+        """The key this table was filed under, which is its id in the schema.
 
+        The stored name is the parsed dict key, not a segment of the rendered
+        origin — a quoted TOML key like ``[checks."python.lint"]`` is one key
+        whose id contains a dot, and rendering it would cut it to ``lint``.
+        """
+
+        if self._name is not None:
+            return self._name
         return self._origin.key.rsplit(".", 1)[-1]
 
     def has(self, key: str) -> bool:

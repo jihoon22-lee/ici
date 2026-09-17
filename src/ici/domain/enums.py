@@ -146,3 +146,17 @@ class PublicationState(str, Enum):
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
     NOT_CONFIGURED = "NOT_CONFIGURED"
+
+
+class BaselineState(str, Enum):
+    """Whether a baseline comparison is a comparison at all (SPEC-04 §4).
+
+    ``COMPARABLE`` means the policy, toolchain and scope identities matched,
+    so the delta is a real delta. ``INCOMPATIBLE`` means they did not — the
+    baseline is then refused rather than silently re-anchored, because a
+    baseline compared across a policy or provider change would mark findings
+    resolved that nobody re-checked.
+    """
+
+    COMPARABLE = "comparable"
+    INCOMPATIBLE = "incompatible"

@@ -49,6 +49,14 @@ __all__ = [
 ]
 
 DEFAULT_TIMEOUT = 300.0
+# A whole-suite run — pytest or coverage over pytest across every test — is
+# the largest legitimate subprocess a verify can spawn, and it scales with
+# the project. The generic bound is sized for tools that answer quickly; on
+# this repository's own dogfood the coverage run crossed 300s and the gate
+# reported the suite as never run. The bound exists to stop a *stuck* suite,
+# so it is generous rather than tight: a suite needing longer is already
+# broken.
+SUITE_TIMEOUT = 1200.0
 DEFAULT_OUTPUT_LIMIT = 1_000_000
 
 

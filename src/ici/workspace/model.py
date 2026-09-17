@@ -139,6 +139,7 @@ def _build_unit(item: EffectiveBuild, problems: list[ConfigProblem]) -> BuildUni
         # deliberately no argv — a build unit that cannot prepare itself is a
         # blocking condition for its dependents, not an invitation to guess.
         prepare_argv=(),
+        artifacts=item.artifacts,
     )
 
 

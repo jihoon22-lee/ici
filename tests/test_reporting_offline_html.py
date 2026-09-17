@@ -87,9 +87,18 @@ def test_the_page_contains_no_url_at_all() -> None:
     assert not _URL.findall(page), f"the page reaches outside: {_URL.findall(page)[:3]}"
 
 
-@pytest.mark.parametrize("tag", ["<script", "<link", "<img", "<iframe", "@import"])
+@pytest.mark.parametrize("tag", ["<link", "<img", "<iframe", "@import", "src=", "url("])
 def test_the_page_loads_nothing(tag: str) -> None:
     assert tag not in render(_result()).lower()
+
+
+def test_the_one_script_is_inline_and_reaches_nothing() -> None:
+    # The findings filter is the one script the page carries — inline because
+    # the page must work with no network, and carrying no attribute that could
+    # name an external resource.
+    page = render(_result())
+    tags = re.findall(r"<script[^>]*>", page)
+    assert tags == ["<script>"], tags
 
 
 def test_the_page_is_one_file(tmp_path) -> None:
@@ -132,6 +141,51 @@ def test_the_renderer_cannot_reach_the_executor() -> None:
 
     assert not any(name.startswith("ici.execution") for name in imported)
     assert not any(name.startswith("ici.adapters") for name in imported)
+
+
+# --- hostile input stays text -----------------------------------------------
+
+
+def test_a_finding_path_cannot_break_out_of_its_cell() -> None:
+    nasty = _finding()
+    nasty_path = Finding(
+        fingerprint=nasty.fingerprint,
+        rule_id=nasty.rule_id,
+        message=nasty.message,
+        severity=nasty.severity,
+        confidence=nasty.confidence,
+        provider=nasty.provider,
+        primary_location=SourceSpan(path='x.py"><script>alert(1)</script>', start_line=1),
+        evidence=nasty.evidence,
+    )
+    page = render(_result(findings=(nasty_path,)))
+
+    assert "<script>alert(1)</script>" not in page.split("</style>")[1]
+
+
+# --- large results keep everything (#222 item 6) ---------------------------
+
+
+def test_a_large_result_renders_every_finding_within_budget() -> None:
+    # The page may be big; it may not be lossy. #222 forbids dropping findings
+    # for screen performance, so the assertion is that all of them arrive —
+    # the timing bound is a tripwire against an accidental quadratic, not a
+    # latency contract. Measured on this tree: 43 ms and 554 KiB for 2000,
+    # 206 ms and 2.7 MiB for 10000 — linear, so no lazy rendering is needed.
+    import dataclasses
+    import time
+
+    findings = tuple(
+        dataclasses.replace(_finding(f"unused import number {i}"), fingerprint=f"fp-{i}")
+        for i in range(2000)
+    )
+    started = time.monotonic()
+    page = render(_result(findings=findings))
+    elapsed = time.monotonic() - started
+
+    assert page.count("data-x=") == 2000
+    assert "unused import number 1999" in page
+    assert elapsed < 10, f"2000 findings took {elapsed:.1f}s to render"
 
 
 # --- nothing is dropped ---------------------------------------------------
@@ -203,5 +257,6 @@ def test_a_finding_message_cannot_inject_markup() -> None:
         )
     )
 
-    assert "<script>" not in page
+    assert page.count("<script>") == 1, "the only script is the inline filter"
+    assert "<script>alert(1)</script>" not in page
     assert "&lt;script&gt;" in page

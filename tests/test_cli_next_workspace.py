@@ -39,7 +39,9 @@ def _two_python_components(root: Path) -> None:
     _write_project(
         root,
         HEADER + '[[components]]\nid = "alpha"\nroot = "alpha"\nlanguages = ["python"]\n'
-        '[[components]]\nid = "beta"\nroot = "beta"\nlanguages = ["python"]\n',
+        '[[components]]\nid = "beta"\nroot = "beta"\nlanguages = ["python"]\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n',
     )
 
 
@@ -55,7 +57,8 @@ def test_every_component_runs_and_keeps_its_own_task_ids(tmp_path, monkeypatch) 
     assert stored["scope"]["kind"] == "full"
     assert stored["scope"]["full_required_satisfied"] is True
     task_ids = {finding["task_id"] for finding in stored["findings"]}
-    assert task_ids == {"alpha.python.lint"}
+    # alpha's file is both unformatted and carries an unused import.
+    assert task_ids == {"alpha.python.lint", "alpha.python.format"}
     assert stored["scope"]["selected_components"] == ["alpha", "beta"]
 
 
@@ -90,7 +93,9 @@ def test_a_component_cycle_is_a_config_error(tmp_path, monkeypatch) -> None:
         HEADER + '[[components]]\nid = "a"\nroot = "a"\nlanguages = ["python"]\n'
         'needs = ["b"]\n'
         '[[components]]\nid = "b"\nroot = "b"\nlanguages = ["python"]\n'
-        'needs = ["a"]\n',
+        'needs = ["a"]\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n',
     )
     monkeypatch.chdir(tmp_path)
 
@@ -146,16 +151,21 @@ def test_a_cpp_component_is_counted_not_dropped(tmp_path, monkeypatch) -> None:
     (tmp_path / "native" / "core.cpp").write_text("int core() { return 1; }\n", encoding="utf-8")
     _write_project(
         tmp_path,
-        HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n',
+        HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["cpp"]\n'
+        '[checks."cpp.test"]\nenabled = false\n'
+        '[checks."cpp.coverage"]\nenabled = false\n',
     )
     monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(app, ["next", "verify"])
 
-    assert result.exit_code == 0, result.output
+    # #212: cpp.line still counts the file, but a component with no
+    # compilation database is INCOMPLETE — not a C++ pass.
+    assert result.exit_code == 3, result.output
     stored = json.loads((tmp_path / ".ici" / "next" / "result.json").read_text("utf-8"))
     counted = [m for m in stored["metrics"] if m["name"] == "files_counted"]
     assert counted and counted[0]["value"] == 1
+    assert "native.cpp.compile" in stored["execution"]["blocked_task_ids"]
 
 
 @needs_ruff
@@ -169,7 +179,9 @@ def test_a_component_with_no_applicable_checks_is_a_limitation_not_a_crash(
     _write_project(
         tmp_path,
         HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["rust"]\n'
-        '[[components]]\nid = "tool"\nroot = "tool"\nlanguages = ["python"]\n',
+        '[[components]]\nid = "tool"\nroot = "tool"\nlanguages = ["python"]\n'
+        '[checks."python.test"]\nenabled = false\n'
+        '[checks."python.coverage"]\nenabled = false\n',
     )
     monkeypatch.chdir(tmp_path)
 

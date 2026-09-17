@@ -57,6 +57,11 @@ ALLOWED = {
         "publish uploads a report to gh-pages. It is a transport the user asks "
         "for by name, not something an analysis does on its way past."
     ),
+    "adapters/ghes.py": (
+        "the next-path publish backend — `ici next publish` is an explicit, "
+        "credential-bearing transport the user asks for by name; verify/plan/"
+        "report never touch it."
+    ),
 }
 
 # Anything that would install software during a user run.

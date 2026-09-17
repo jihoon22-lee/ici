@@ -51,6 +51,11 @@ class TaskSpec:
     output_specs: tuple[str, ...] = ()
     depends_on: tuple[str, ...] = ()
     resource_keys: tuple[str, ...] = ()
+    #: External requirements the task needs but ici does not provide —
+    #: services, networks, hardware. Declared so ``plan`` can show them and a
+    #: run's evidence states what it depended on (#220); they are labels, not
+    #: locks — serialising shared resources is ``resource_keys``' job.
+    requires: tuple[str, ...] = ()
     timeout_seconds: float | None = None
     output_limit_bytes: int | None = None
     tool_digest: str | None = None
@@ -85,7 +90,7 @@ class TaskSpec:
         object.__setattr__(
             self, "env_overlay", require_env_overlay(self.env_overlay, "task env overlay")
         )
-        for field_name in ("input_refs", "output_specs", "resource_keys"):
+        for field_name in ("input_refs", "output_specs", "resource_keys", "requires"):
             values = require_tuple(getattr(self, field_name), str, f"task {field_name}")
             object.__setattr__(
                 self,
@@ -152,4 +157,5 @@ class TaskSpec:
             self.env_overlay,
             self.input_refs,
             self.tool_digest,
+            self.requires,
         )

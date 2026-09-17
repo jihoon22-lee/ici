@@ -15,6 +15,7 @@ from ici.engines.coverage_policy import (
 from ici.engines.coverage_support import build_coverage_summary
 from ici.engines.cpp_text import defines_main
 from ici.engines.gcov_json import GcovJsonError
+from ici.execution.process import SUITE_TIMEOUT
 
 
 class TestCoverageMixin:
@@ -43,6 +44,7 @@ class TestCoverageMixin:
             cov_run_cmd,
             cwd=self.project_root,  # type: ignore[attr-defined]
             env=cov_env,
+            timeout=SUITE_TIMEOUT,
         )
         self._record_tool("coverage pytest", cov_run_cmd, result)  # type: ignore[attr-defined]
         self._remember_pytest_output(result)  # type: ignore[attr-defined]

@@ -4,6 +4,58 @@
   "additionalProperties": false,
   "description": "A single ici-next run. Deliberately a different schema_id from the stable ici-result-v3 contract: SPEC-04 section 1 forbids reusing the old version number in a way that would let a v3 reader believe it understands this document. The authoritative implementation is ici.domain.serialization; tests/test_next_schema_contract.py keeps the two from drifting.",
   "properties": {
+    "baseline": {
+      "additionalProperties": false,
+      "description": "Delta against a stored baseline (#221), present only when --baseline was given. 'resolved' names only fingerprints from components the run actually selected; findings in unselected scope are 'carried', never resolved.",
+      "properties": {
+        "carried": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 65536,
+          "type": "array"
+        },
+        "new": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 65536,
+          "type": "array"
+        },
+        "origin": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "resolved": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 65536,
+          "type": "array"
+        },
+        "state": {
+          "enum": [
+            "comparable",
+            "incompatible"
+          ]
+        },
+        "unchanged": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 65536,
+          "type": "array"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
     "execution": {
       "additionalProperties": false,
       "properties": {
@@ -345,6 +397,11 @@
         },
         "toolchain_digest": {
           "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "fingerprint_version": {
+          "description": "Fingerprint normalization version (#221). Baseline comparison requires an exact match; results written before it was recorded carry an empty value and cannot serve as a baseline.",
+          "maxLength": 256,
           "type": "string"
         }
       },

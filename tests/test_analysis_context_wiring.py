@@ -191,7 +191,7 @@ def test_orchestrator_discovers_once_and_shares_one_context_snapshot(
     _fake_engine(monkeypatch, "line", seen)
     _fake_engine(monkeypatch, "lint", seen)
 
-    suite = VerifyOrchestrator(tmp_path, _enabled_config("line", "lint")).run_all()
+    suite = VerifyOrchestrator(tmp_path, _enabled_config("line", "lint")).run_all(use_cache=False)
 
     assert events.count("discover") == 1
     assert events.count("capabilities") == 1
@@ -231,7 +231,7 @@ def test_reporting_cannot_mutate_the_frozen_shared_context(
             suite.analysis_context.project.name = "reporter-tampered"
 
     monkeypatch.setattr(verify_module, "print_suite_dashboard", mutating_reporter)
-    suite = VerifyOrchestrator(tmp_path, _enabled_config("line")).run_all()
+    suite = VerifyOrchestrator(tmp_path, _enabled_config("line")).run_all(use_cache=False)
 
     assert observed == [context]
     assert suite.analysis_context is context
@@ -249,7 +249,7 @@ def test_engine_crash_leaves_the_shared_context_intact(
     seen: list[tuple[str, AnalysisContext | None]] = []
     _fake_engine(monkeypatch, "line", seen, crash=True)
 
-    suite = VerifyOrchestrator(tmp_path, _enabled_config("line")).run_all()
+    suite = VerifyOrchestrator(tmp_path, _enabled_config("line")).run_all(use_cache=False)
 
     assert seen == [("line", context)]
     assert suite.analysis_context is context
@@ -299,6 +299,7 @@ def test_html_and_publish_receive_the_context_project_name(
     suite = VerifyOrchestrator(tmp_path, _enabled_config("line")).run_all(
         report_html="report.html",
         publish=True,
+        use_cache=False,
     )
 
     assert html_calls and html_calls[0][2] == project.name

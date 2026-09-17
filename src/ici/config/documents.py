@@ -27,8 +27,12 @@ __all__ = [
     "ComponentReference",
     "CppSettings",
     "Exemption",
+    "IntegrationCaseBody",
+    "IntegrationOutputBody",
+    "PublishBody",
     "PythonSettings",
     "RootDocument",
+    "SuppressionBody",
     "ToolSetting",
     "WorkspaceSettings",
 ]
@@ -56,6 +60,24 @@ class Exemption:
 
     component_id: str
     reason: Sourced[str]
+    origin: Origin
+
+
+@dataclass(frozen=True)
+class SuppressionBody:
+    """``[[suppressions]]`` — a declared reason a finding does not gate (#221).
+
+    A suppression always carries ``reason``; the selectors are conjunctive —
+    every field present must match. ``fingerprint`` pins one exact finding;
+    ``rule``/``path``/``component`` describe a family. A suppression with no
+    selector would suppress everything, so the schema refuses it.
+    """
+
+    fingerprint: Sourced[str] | None
+    rule: Sourced[str] | None
+    path: Sourced[str] | None
+    component: Sourced[str] | None
+    reason: Sourced[str] | None
     origin: Origin
 
 
@@ -107,6 +129,10 @@ class BuildDeclaration:
     directory: DeclaredPath | None
     variant: Sourced[str] | None
     prepare: Sourced[str] | None
+    #: Output globs the build claims to produce, anchored at ``directory``
+    #: (#220): the declaration is the contract the artifact check verifies —
+    #: a glob that matches nothing is a broken claim, not an absence.
+    artifacts: tuple[SourceGlob, ...]
     origin: Origin
 
 
@@ -126,6 +152,56 @@ class CppSettings:
     """``[cpp]`` or ``[components.cpp]``."""
 
     qt: Sourced[bool] | None
+    origin: Origin
+
+
+@dataclass(frozen=True)
+class IntegrationOutputBody:
+    """One ``[[components.integrations.output_artifacts]]`` entry (#220).
+
+    A file the case claims to produce. The run asserts it exists, is a
+    regular file, meets ``min_size`` and was written during the run — a
+    stale file left over from earlier work is not proof the case produced
+    anything.
+    """
+
+    path: DeclaredPath | None
+    kind: Sourced[str] | None
+    min_size: Sourced[int] | None
+    origin: Origin
+
+
+@dataclass(frozen=True)
+class IntegrationCaseBody:
+    """One ``[[components.integrations]]`` entry — a declared process contract.
+
+    The next-path form of the stable ``engines.integration.cases`` table:
+    ``argv[0]`` is a typed placeholder — ``{python:NAME}`` for a declared
+    interpreter, ``{artifact:BUILD/PATH}`` for an output a linked build's
+    artifact contract names — so a case can only invoke what the workspace
+    already declared. ``requires`` names external services or networks the
+    case needs; it is shown in the plan so the requirement is visible before
+    anything runs, and an unprepared one can only fail, never pass.
+
+    There is no ``inherit_env`` here on purpose: every next-path task runs
+    under the ambient environment plus its declared overlay, because WP01
+    measured that wholesale environment replacement silently removes
+    settings like ``SSL_CERT_FILE``.
+    """
+
+    name: Sourced[str] | None
+    argv: Sourced[tuple[str, ...]] | None
+    expected_exit: Sourced[int] | None
+    stdout_contains: tuple[str, ...]
+    stderr_contains: tuple[str, ...]
+    stdout_not_contains: tuple[str, ...]
+    stderr_not_contains: tuple[str, ...]
+    timeout_seconds: Sourced[float] | None
+    env: tuple[tuple[str, Sourced[str]], ...]
+    requires: tuple[str, ...]
+    python_targets: tuple[tuple[str, Executable], ...]
+    output_artifacts: tuple[IntegrationOutputBody, ...]
+    required: Sourced[bool] | None
     origin: Origin
 
 
@@ -158,6 +234,27 @@ class ComponentBody:
     #: Declared reads outside the component root, kept separate from write
     #: scope as SPEC-01 section 3 requires of external inputs.
     external: Sourced[tuple[str, ...]] | None = None
+    #: Declared integration cases — component-owned process contracts (#220).
+    integrations: tuple[IntegrationCaseBody, ...] = ()
+
+
+@dataclass(frozen=True)
+class PublishBody:
+    """``[publish]`` — where a saved result may be pushed (#223).
+
+    The table names *where* and *how to authenticate*, never the credential
+    itself: ``token_env`` is the name of the environment variable holding the
+    token, so a config file that travelled can never leak one. ``api_url`` and
+    ``server_url`` are explicit because the target is usually a GHES host —
+    assuming github.com would be wrong exactly where this feature is for.
+    """
+
+    repo: Sourced[str] | None
+    api_url: Sourced[str] | None
+    server_url: Sourced[str] | None
+    branch: Sourced[str] | None
+    token_env: Sourced[str] | None
+    origin: Origin
 
 
 @dataclass(frozen=True)
@@ -189,6 +286,8 @@ class RootDocument:
     tools: tuple[ToolSetting, ...]
     builds: tuple[BuildDeclaration, ...]
     components: tuple[ComponentEntry, ...]
+    suppressions: tuple[SuppressionBody, ...] = ()
+    publish: PublishBody | None = None
 
     @property
     def references(self) -> tuple[ComponentReference, ...]:

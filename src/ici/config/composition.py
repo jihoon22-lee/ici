@@ -26,7 +26,7 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, overload
 
 from ici.config.documents import (
     BuildDeclaration,
@@ -34,6 +34,7 @@ from ici.config.documents import (
     ComponentBody,
     ComponentDocument,
     ComponentReference,
+    PublishBody,
     RootDocument,
 )
 from ici.config.errors import ConfigProblem, collect
@@ -53,6 +54,10 @@ __all__ = [
     "EffectiveCheck",
     "EffectiveComponent",
     "EffectiveConfig",
+    "EffectiveIntegrationCase",
+    "EffectiveIntegrationOutput",
+    "EffectivePublish",
+    "EffectiveSuppression",
     "compose",
     "compose_standalone",
 ]
@@ -79,6 +84,16 @@ class Decided(Generic[T]):
 
     def __str__(self) -> str:
         return f"{self.value!r} from {self.origin} ({self.layer.value})"
+
+
+@overload
+def _decide(current: Decided[T], candidate: Sourced[T] | None, layer: Layer) -> Decided[T]: ...
+
+
+@overload
+def _decide(
+    current: Decided[T] | None, candidate: Sourced[T] | None, layer: Layer
+) -> Decided[T] | None: ...
 
 
 def _decide(
@@ -108,6 +123,46 @@ class EffectiveCheck:
 
 
 @dataclass(frozen=True)
+class EffectiveIntegrationOutput:
+    """An output file an integration case claims to produce (#220).
+
+    ``path`` is workspace-relative like every other composed path.
+    """
+
+    path: str
+    kind: str
+    min_size: int
+
+
+@dataclass(frozen=True)
+class EffectiveIntegrationCase:
+    """One declared process contract, with paths resolved to the workspace.
+
+    ``argv`` still carries its placeholders — resolving them needs the
+    build tree, which is the plan's job. ``python_targets`` values are
+    interpreter identities like ``[python] executable``: a bare name stays a
+    PATH lookup, a path is anchored workspace-relative or kept absolute.
+    """
+
+    name: str
+    argv: tuple[str, ...]
+    expected_exit: int
+    stdout_contains: tuple[str, ...]
+    stderr_contains: tuple[str, ...]
+    stdout_not_contains: tuple[str, ...]
+    stderr_not_contains: tuple[str, ...]
+    timeout_seconds: float
+    env: tuple[tuple[str, str], ...]
+    requires: tuple[str, ...]
+    python_targets: tuple[tuple[str, str], ...]
+    output_artifacts: tuple[EffectiveIntegrationOutput, ...]
+    required: bool
+    #: The file that declared the case, workspace-relative — the location
+    #: findings about the case point at.
+    declared_in: str
+
+
+@dataclass(frozen=True)
 class EffectiveComponent:
     """One component, wherever it was written.
 
@@ -132,6 +187,9 @@ class EffectiveComponent:
     external: Decided[tuple[str, ...]] | None = None
     declared_in: str = ""
     python_executable: Decided[str] | None = None
+    python_type_provider: Decided[str] | None = None
+    #: Declared integration cases — deep-profile, opt-in process contracts.
+    integrations: tuple[EffectiveIntegrationCase, ...] = ()
 
     def check(self, check_id: str) -> EffectiveCheck | None:
         for check in self.checks:
@@ -156,7 +214,47 @@ class EffectiveBuild:
     definition: Decided[str] | None
     variant: Decided[str]
     prepare: Decided[str] | None
+    #: Output globs the build claims, relative to ``directory`` — root-only
+    #: like ``system`` and ``variant``: what a build produces is not something
+    #: a local overlay may redescribe.
+    artifacts: tuple[str, ...] = ()
     declared_in: str = ""
+
+
+@dataclass(frozen=True)
+class EffectiveSuppression:
+    """One declared suppression with its path anchored to the workspace (#221).
+
+    ``path`` is a glob matched against a finding's workspace-relative
+    location. ``rule`` matches a rule id or one of its dotted descendants —
+    ``python.dead`` covers ``python.dead.unused-function``.
+    """
+
+    fingerprint: str
+    rule: str
+    path: str
+    component: str
+    reason: str
+    declared_in: str
+
+
+@dataclass(frozen=True)
+class EffectivePublish:
+    """The declared publish target, with CI defaults applied (#223).
+
+    ``token_env`` names the variable holding the credential — the value is
+    read from the process environment at publish time, never from this file.
+    Left empty, ``repo``/``api_url``/``server_url`` are filled from the
+    Actions environment (``GITHUB_REPOSITORY`` and friends) at publish time;
+    declaring them makes a non-Actions target explicit.
+    """
+
+    repo: str
+    api_url: str
+    server_url: str
+    branch: str
+    token_env: str
+    declared: bool
 
 
 @dataclass(frozen=True)
@@ -168,6 +266,8 @@ class EffectiveConfig:
     checks: tuple[EffectiveCheck, ...]
     components: tuple[EffectiveComponent, ...]
     builds: tuple[EffectiveBuild, ...] = ()
+    suppressions: tuple[EffectiveSuppression, ...] = ()
+    publish: EffectivePublish | None = None
     scope_kind: ScopeKind = ScopeKind.FULL
     sources: tuple[str, ...] = field(default_factory=tuple)
 
@@ -208,6 +308,17 @@ class EffectiveConfig:
                     ],
                 }
                 for component in self.components
+            ],
+            # Suppressions decide what may gate, so they are policy — the
+            # reason text is justification, not behaviour, and stays out.
+            "suppressions": [
+                {
+                    "fingerprint": item.fingerprint,
+                    "rule": item.rule,
+                    "path": item.path,
+                    "component": item.component,
+                }
+                for item in self.suppressions
             ],
         }
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
@@ -261,6 +372,8 @@ def compose(
         checks=workspace_checks,
         components=components,
         builds=builds,
+        suppressions=tuple(_suppressions(root)),
+        publish=_publish(root.publish),
         scope_kind=ScopeKind.FULL,
     )
 
@@ -366,6 +479,7 @@ def _follow(
             needs=document.component.needs,
             vendor=document.component.vendor,
             external=document.component.external,
+            integrations=document.component.integrations,
         ),
         document.path,
     )
@@ -442,6 +556,117 @@ def _component(
             environment=environment,
             problems=problems,
         ),
+        python_type_provider=_python_type_provider(component_id, body, local, problems),
+        integrations=_integrations(
+            body,
+            declared_in=declared_in,
+            workspace_dir=workspace_dir,
+            environment=environment,
+            problems=problems,
+        ),
+    )
+
+
+def _integrations(
+    body: ComponentBody,
+    *,
+    declared_in: str,
+    workspace_dir: PurePosixPath,
+    environment: Mapping[str, str],
+    problems: list[ConfigProblem],
+) -> tuple[EffectiveIntegrationCase, ...]:
+    """Compose declared integration cases, anchoring their paths (#220)."""
+
+    cases: list[EffectiveIntegrationCase] = []
+    for case in body.integrations:
+        if case.name is None or case.argv is None:
+            continue  # already diagnosed at read time
+        cases.append(
+            EffectiveIntegrationCase(
+                name=case.name.value,
+                argv=case.argv.value,
+                expected_exit=case.expected_exit.value if case.expected_exit else 0,
+                stdout_contains=case.stdout_contains,
+                stderr_contains=case.stderr_contains,
+                stdout_not_contains=case.stdout_not_contains,
+                stderr_not_contains=case.stderr_not_contains,
+                timeout_seconds=(
+                    case.timeout_seconds.value if case.timeout_seconds is not None else 30.0
+                ),
+                env=tuple((name, value.value) for name, value in case.env),
+                requires=case.requires,
+                python_targets=tuple(
+                    (
+                        name,
+                        _executable(executable, workspace_dir, environment, problems),
+                    )
+                    for name, executable in case.python_targets
+                ),
+                output_artifacts=tuple(
+                    EffectiveIntegrationOutput(
+                        path=_anchor(
+                            output.path,
+                            declaring_file=declared_in,
+                            workspace_dir=workspace_dir,
+                            environment=environment,
+                            problems=problems,
+                            what=f"integration case {case.name.value!r} output",
+                        ),
+                        kind=output.kind.value if output.kind else "other",
+                        min_size=output.min_size.value if output.min_size else 1,
+                    )
+                    for output in case.output_artifacts
+                    if output.path is not None
+                ),
+                required=case.required.value if case.required is not None else True,
+                declared_in=declared_in,
+            )
+        )
+    return tuple(cases)
+
+
+def _suppressions(root: RootDocument) -> tuple[EffectiveSuppression, ...]:
+    """Anchor the root's ``[[suppressions]]`` selector paths (#221).
+
+    ``path`` is a glob, not a declared path — ``*`` and ``**`` must pass
+    through unchanged — so it is normalised textually rather than through
+    ``DeclaredPath``, which would reject the glob characters. The schema has
+    already rejected ``..`` and absolute spellings; normalising here keeps a
+    ``./`` prefix from becoming a different selector than the author wrote.
+    """
+
+    composed: list[EffectiveSuppression] = []
+    for body in root.suppressions:
+        path = ""
+        if body.path is not None and body.path.value.strip():
+            # The root file defines the workspace root, so the glob is
+            # already workspace-relative — only normalise the spelling.
+            path = _normalise(PurePosixPath(body.path.value)).as_posix()
+        composed.append(
+            EffectiveSuppression(
+                fingerprint=body.fingerprint.value if body.fingerprint else "",
+                rule=body.rule.value if body.rule else "",
+                path=path,
+                component=body.component.value if body.component else "",
+                reason=body.reason.value if body.reason else "",
+                declared_in=body.origin.file,
+            )
+        )
+    return tuple(composed)
+
+
+def _publish(body: PublishBody | None) -> EffectivePublish | None:
+    """Carry the declared publish target through, defaults applied (#223)."""
+
+    if body is None:
+        return None
+    return EffectivePublish(
+        repo=body.repo.value if body.repo else "",
+        api_url=(body.api_url.value if body.api_url else "").rstrip("/"),
+        server_url=(body.server_url.value if body.server_url else "").rstrip("/"),
+        branch=body.branch.value if body.branch and body.branch.value.strip() else "gh-pages",
+        token_env=body.token_env.value if body.token_env else "GITHUB_TOKEN",
+        declared=True,
     )
 
 
@@ -626,6 +851,7 @@ def _build(
         variant=_optional(declaration.variant, Layer.ROOT)
         or Decided(value="default", origin=DEFAULTS, layer=Layer.DEFAULTS),
         prepare=_prepare(declaration, problems),
+        artifacts=_artifacts(declaration, problems),
         declared_in=declaration.origin.file,
     )
 
@@ -671,6 +897,37 @@ def _prepare(declaration: BuildDeclaration, problems: list[ConfigProblem]) -> De
         origin=declaration.prepare.origin,
         layer=Layer.ROOT,
     )
+
+
+def _artifacts(declaration: BuildDeclaration, problems: list[ConfigProblem]) -> tuple[str, ...]:
+    """The build's declared output globs, checked for containment now.
+
+    An artifact glob is a claim about what lives under ``directory`` — an
+    absolute pattern or one that climbs out of it is not a glob that happens
+    to match elsewhere, it is a declaration ici will not resolve, so it is
+    diagnosed here rather than failing mysteriously at check time.
+    """
+
+    kept: list[str] = []
+    for glob in declaration.artifacts:
+        parsed = PurePosixPath(glob.raw)
+        if (
+            parsed.is_absolute()
+            or ".." in parsed.parts
+            or "\\" in glob.raw
+            or parsed.as_posix() != glob.raw
+        ):
+            problems.append(
+                ConfigProblem(
+                    f"artifact glob {glob.raw!r} must be a canonical relative pattern "
+                    "inside the build directory",
+                    glob.origin,
+                    hint="artifacts anchor at the build's own directory",
+                )
+            )
+            continue
+        kept.append(glob.raw)
+    return tuple(kept)
 
 
 def _executable(
@@ -726,19 +983,54 @@ def _python_executable(
     if override is not None and not override.value:
         problems.append(ConfigProblem("a python executable must not be empty", override.origin))
         override = None
-    if declared is None and override is None:
-        return None
     if override is not None:
         executable = Executable(raw=override.value, origin=override.origin)
         layer = Layer.LOCAL
-    else:
+    elif declared is not None:
         executable = declared
         layer = Layer.COMPONENT
+    else:
+        return None
     return Decided(
         value=_executable(executable, workspace_dir, environment, problems),
         origin=executable.origin,
         layer=layer,
     )
+
+
+_TYPE_PROVIDERS = ("mypy", "ty")
+
+
+def _python_type_provider(
+    component_id: str,
+    body: ComponentBody,
+    local: Mapping[str, Sourced[str]],
+    problems: list[ConfigProblem],
+) -> Decided[str] | None:
+    """The component's chosen type checker, or None for the default.
+
+    ``mypy`` is the default candidate; ``ty`` must be named. Any other value
+    is a config problem — silently substituting one checker for another would
+    hide a checker change the user never asked for (#215).
+    """
+
+    declared = body.python.type_provider if body.python else None
+    override = local.get(f"components.{component_id}.python.type_provider")
+    if override is not None:
+        value, origin, layer = override.value, override.origin, Layer.LOCAL
+    elif declared is not None:
+        value, origin, layer = declared.value, declared.origin, Layer.COMPONENT
+    else:
+        return None
+    if value not in _TYPE_PROVIDERS:
+        problems.append(
+            ConfigProblem(
+                f"type_provider must be one of {', '.join(_TYPE_PROVIDERS)}",
+                origin,
+            )
+        )
+        return None
+    return Decided(value=value, origin=origin, layer=layer)
 
 
 def _component_checks(

@@ -1883,3 +1883,28 @@ ici 자신의 검증에 남아 있는 WARN과 SKIP은
 ---
 
 > **다음 단계**: [📏 검증 엔진 레퍼런스 (Engine Reference)](engine-reference.md)에서 각 엔진별 상세 수식과 `ici.toml` 설정법을 확인하세요.
+
+---
+
+## ici-next로 이전하기 (preview)
+
+ici-next가 opt-in으로 존재하는 동안, 기존 `ici.toml`을 새 스키마로 옮기는 방법은
+`ici next migrate` 하나다.
+
+```bash
+ici next migrate                          # dry-run: 변환 결과와 키별 판정을 출력만 한다
+ici next migrate --output ici.next.toml   # 새 파일로 쓴다 — 기존 파일은 거부된다
+ici next migrate --write                  # ici.toml을 교체한다 — 원본은 ici.toml.stable로 남는다
+```
+
+dry-run 출력의 각 행은 세 판정 중 하나다: `converted`(그대로 옮김),
+`confirm`(대응은 있지만 의미가 달라 검토가 필요), `unsupported`(next에 대응이 없다).
+엔진별 임계값(`warn_limit`, `min_tem_score` …)은 next 정책에 대응이 없어 confirm으로
+표시된다 — 새 게이트는 required check의 측정된 finding 유무로 판정한다.
+
+`dev.toml`·XDG 전역 설정·`ICI_CONFIG`가 같은 키를 두고 다투면, 변환 전에 누가 이기는지를
+먼저 보고한다. 전체 대응표는
+[마이그레이션 매트릭스](design/ici-next/migration-matrix.md)에 있다.
+
+**되돌리기**: `--write`로 교체했어도 원본이 `ici.toml.stable`에 남아 있다. 돌아가는 것은
+파일 복사이며, stable `ici.pyz`는 변환과 무관하게 동일하게 동작한다.

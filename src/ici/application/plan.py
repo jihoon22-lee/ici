@@ -76,9 +76,12 @@ class Plan:
             raise NothingSelected("no check was selected")
         seen = set()
         for planned in self.checks:
-            if planned.check.id in seen:
-                raise ValueError(f"{planned.check.id} was selected twice")
-            seen.add(planned.check.id)
+            # The task id is the identity — one declared check may expand into
+            # many tasks (cpp.diagnostics is one task per translation unit),
+            # so two planned checks sharing a check id is legitimate (#214).
+            if planned.task_id in seen:
+                raise ValueError(f"{planned.task_id} was selected twice")
+            seen.add(planned.task_id)
             if planned.task is not None and planned.task.task.depends_on:
                 # The field exists for the DAG that comes later; a plan that
                 # quietly carried dependencies nothing orders would run them in
