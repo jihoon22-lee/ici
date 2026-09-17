@@ -80,6 +80,16 @@ tools   gcc=<version-or->  g++=<version-or->  clang=<version-or->  make=<version
 
 ## 2. 검증 실행 (`ici verify`)
 
+> **ici-next 전환 (#227)**: 프로젝트의 `ici.toml`이 `[workspace]` 테이블을
+> 선언하면(ici-next 스키마), bare `ici verify`는 자동으로 **next 엔진 경로**를
+> 실행합니다 — `ici next verify`와 같은 실행입니다. `--report`/`--html`/
+> `--sarif`/`--open`/`--publish`는 그대로 동작하고, `--profile`/`--no-cache`/
+> `--baseline`도 대응 옵션으로 전달됩니다. stable 전용 옵션(`--verbose`,
+> `--max-findings`, `--group-by`, `--fail-on-new`, `--write-baseline`,
+> `--github-summary`)은 next 경로에 대응이 없으므로 거절되며, 어떤 옵션으로
+> 대체하는지가 메시지에 표시됩니다. 레거시 `ici.toml`을 쓰는 프로젝트는 이
+> 문서가 설명하는 stable 경로 그대로 동작합니다.
+
 ### 2.0 설정 파일과 적용 순서
 
 `ici`는 실행할 때 다음 순서로 설정을 읽고 뒤에 읽은 값이 앞의 값을 덮어씁니다.
@@ -863,7 +873,7 @@ config가 없는 경우의 `--config={}`가 clang-tidy의 암묵적인 parent co
 clang-tidy 명령은 이미 loader가 만든 immutable `CompilationContext`의 normalized unit command를
 `build_replay_command`로 안전하게 재생한 뒤, 그 compiler의 허용된 tooling argument만 `--` 뒤에
 전달합니다. compilation database를 직접 다시 읽거나 `-p`를 사용하지 않고, `-c`·output/dependency
-생성·plugin/wrapper 주입·allowlist 밖 option은 제거하거나 fail-closed로 거부합니다. 명령에
+생성·plugin/wrapper 주입·allowlist 밖 option은 제거하��나 fail-closed로 거부합니다. 명령에
 `--fix`를 넣지 않으며 source와 context를 읽기만 하므로 fix-it은 report의 remediation 제안으로만
 남습니다. 각 unit은 최대 120초, 전체 실행은 최대 600초의 global budget을 공유합니다.
 
