@@ -20,6 +20,25 @@
 - `ici next` 명령 help 문구와 사용자 가이드가 cutover 이후의 실제 동작을
   반영합니다.
 
+### 수정 — deep 프로필 자체검증에서 발견된 결함 (배포 전 검토)
+
+- **버그 수정**: `test`/`sanitize` 엔진이 프로젝트 스위트를 실행할 때
+  해석된 인터프리터의 bin 디렉터리를 PATH에 올리지 않아, bare 환경에서
+  `.venv` 안의 mypy·ruff를 찾지 못하고 스위트가 실패·INCOMPLETE로
+  보고되던 문제를 수정합니다. 프로젝트 인터프리터로 실행되는 스위트는
+  이제 그 인터프리터 옆의 도구들을 볼 수 있습니다. bare 실행 파일명
+  (예: `python3`)에는 bin 디렉터리가 없으므로 PATH를 바꾸지 않습니다.
+- **버그 수정**: `core/runner`의 타임아웃 경로가 deadline 소진 후 자식을
+  `wait()`하지 않고 반환해, kill된 프로세스가 GC 시
+  `ResourceWarning: subprocess is still running`으로 표면화되던 문제를
+  수정합니다. deadline 경로에서도 bounded reap을 시도합니다.
+- `application/verify`의 `task_components` 기본값을 공유 mutable `{}`에서
+  `None`으로 변경 — 호출 간 상태 공유 가능성을 제거합니다.
+- `security` 엔진의 weak-hash 룰이 `hashlib.sha1/md5`의
+  `usedforsecurity=False` 키워드를 인식합니다. finding fingerprint 같은
+  비보안 identity digest는 더 이상 weak crypto로 신고되지 않으며,
+  ici 자체 fingerprint 7곳에 해당 키워드를 명시했습니다.
+
 ### 문서 — 전환 상태 최신화
 
 - `roadmap.md`·`spec-05`의 최종 인수 체크리스트를 실측 상태로 갱신 —

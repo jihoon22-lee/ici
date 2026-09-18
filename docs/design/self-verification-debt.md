@@ -17,12 +17,21 @@ ici는 자기 자신을 게이트로 검증합니다(dogfood). 그 실행이 초
 
 ## 측정 기준
 
-2026-09-06, `./dist/ici.pyz verify --profile deep --report`, 로컬 기준 워크스테이션.
+2026-09-18, `./dist/ici.pyz verify --profile deep --report`, 로컬 기준 워크스테이션.
 
 ```
 Total Engines: 16  (Pass: 11, Warn: 3, Fail: 0, Error: 0, Skip: 2)
-TEM Score: 4.78 / 5.0   Suite: WARN — 3 engine(s) warned: line, cognitive, complexity
+TEM Score: 4.81 / 5.0   Suite: WARN — 3 engine(s) warned: line, cognitive, complexity
 ```
+
+> **2026-09-18 재측정 기록**: 같은 날짜의 첫 재측정은 `test` FAIL·`sanitize` ERROR였습니다.
+> 원인은 스냅샷 이후 생긴 두 회귀였고 둘 다 같은 날 수정됐습니다 — 프로젝트 스위트를
+> 실행하는 subprocess env가 인터프리터의 bin 디렉터리를 PATH에 올리지 않아 `.venv`의
+> mypy·ruff를 못 찾던 문제(`test`), deadline 소진 후 자식을 reap하지 않아
+> ResourceWarning으로 표면화되던 문제(`sanitize`). 같은 측정이 `resource` WARN 1건
+> (공유 mutable 기본값)과 `security` WARN 7건(비보안 SHA-1 digest)도 잡았고 둘 다
+> 수정돼 현재 WARN 3건입니다. 이 문서의 계약대로 스냅샷에 없던 non-PASS는 회귀로
+> 처리했습니다.
 
 `ici.toml`이 이 저장소의 정책을 고정합니다. 아래 수치는 모두 그 정책 기준입니다.
 
@@ -39,13 +48,13 @@ TEM Score: 4.78 / 5.0   Suite: WARN — 3 engine(s) warned: line, cognitive, com
 
 ## WARN 3건 — 모두 코드 규모/복잡도이며, 승인된 부채입니다
 
-### `line` — 500라인을 넘는 파일 35개 (최대 965, FAIL 한계 1000)
+### `line` — 500라인을 넘는 파일 41개 (최대 965, FAIL 한계 1000)
 
 | | 값 |
 |---|---|
 | 정책 | `warn_limit = 500`, `fail_limit = 1000` |
-| 실측 | 141 파일 중 35개가 WARN, 최대 965라인 |
-| 최대 파일 | `_cpp_linker_dead_symbols.py` 965, `_cpp_diagnostics.py` 958, `complexity.py` 925, `ici-result-v3.schema.json` 922 |
+| 실측 | 261 파일 중 41개가 WARN, 최대 965라인 |
+| 최대 파일 | `_cpp_linker_dead_symbols.py` 965, `_cpp_diagnostics.py` 958, `composition.py` 934, `ici-result-v3.schema.json` 922 |
 
 **승인된 부채입니다.** 상위 파일들은 하나의 외부 도구 계약을 통째로 다루는 어댑터이거나
 (`_cpp_linker_dead_symbols`, `_cpp_diagnostics`), 스키마 그 자체입니다. 이들을 파일 크기만을
@@ -94,12 +103,12 @@ SARIF `fixes` 계약을 추가하며 그 파일에 42라인을 더했습니다. 
 같은 게이트에 하루에 두 번 걸린 것은 우연이 아닙니다. 이 표의 숫자는 읽고 넘길 목록이 아니라
 **다음 변경이 어디에 부딪힐지 알려주는 예보**입니다.
 
-### `cognitive` — 인지 복잡도 30 초과 함수 74개 (최대 48, FAIL 한계 60)
+### `cognitive` — 인지 복잡도 30 초과 함수 91개 (최대 48, FAIL 한계 60)
 
 | | 값 |
 |---|---|
 | 정책 | `warn = 30`, `fail = 60`, `warn_nesting = 4`, `mode = "pass_warn"` |
-| 실측 | 1,970 함수 중 74개가 WARN, 최대 48 |
+| 실측 | 91개가 WARN, 최대 48 |
 
 **승인된 부채입니다.** 다만 2026-09-06에 실제 리팩터링을 한 번 거쳤습니다. 그 전 최대값은
 `parse_gcov_json_dir`의 **66**이었고, 요약문은 `fail threshold 60 exceeded`를 달고 있었습니다.
@@ -108,15 +117,15 @@ SARIF `fixes` 계약을 추가하며 그 파일에 42라인을 더했습니다. 
 분리해 66 → 13 아래로 내렸고, 그 다음으로 높던 `tooling_include_roots`(57)와
 `_build_python_graph`(53)도 함께 정리해 현재 최대값은 48입니다.
 
-남은 74개는 대부분 외부 도구 출력을 파싱하는 경계 검사입니다. 분기 하나하나가 "이 입력은
+남은 91개는 대부분 외부 도구 출력을 파싱하는 경계 검사입니다. 분기 하나하나가 "이 입력은
 신뢰할 수 없다"는 개별 판단이라 합치면 검사가 사라집니다.
 
-### `complexity` — 순환 복잡도 15 초과 함수 147개 (최대 24, FAIL 한계 25)
+### `complexity` — 순환 복잡도 15 초과 함수 176개 (최대 24, FAIL 한계 25)
 
 | | 값 |
 |---|---|
 | 정책 | `warn_cc = 15`, `fail_cc = 25`, `warn_nesting = 4` |
-| 실측 | 1,970 함수 중 147개가 WARN, 최대 24 |
+| 실측 | 176개가 WARN, 최대 24 |
 
 **승인된 부채입니다.** 여기서도 2026-09-06에 경계에서 물러나는 작업을 했습니다. 그 전에는
 네 함수가 정확히 CC 25, 즉 `fail_cc`와 같은 값에 있었습니다 — 분기 하나만 늘어도 자기 게이트가
@@ -138,11 +147,11 @@ SARIF `fixes` 계약을 추가하며 그 파일에 42라인을 더했습니다. 
 
 ## 사람이 검토 가능한가 (I9-2)
 
-`deep` 실행은 actionable finding 11,019건을 냅니다. 그 전부를 콘솔에 붓는 것은 검토가 아니라
+`deep` 실행은 actionable finding 477건을 냅니다. 그 전부를 콘솔에 붓는 것은 검토가 아니라
 포기입니다. 두 표시 경로를 각각 확인했습니다.
 
 - **콘솔 기본 출력**: issues-first projection이 엔진당 5 그룹으로 제한해 20 그룹을 보여주고,
-  `Hidden: 385 finding(s) in 385 group(s)`와 재실행 명령을 함께 출력합니다. 숨긴 개수를
+  `Hidden: 457 finding(s) in 457 group(s)`와 재실행 명령을 함께 출력합니다. 숨긴 개수를
   정직하게 세므로 "적게 보여준다"와 "적게 찾았다"가 구분됩니다.
 - **전체 리포트**: HTML은 10개 탭과 축별 필터(engine/rule/category/severity/file)를 제공하고,
   2,000건을 넘으면 초기 DOM을 50행으로 제한한 뒤 브라우저에서 채웁니다. JSON은 전체
