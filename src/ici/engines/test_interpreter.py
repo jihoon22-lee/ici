@@ -34,6 +34,13 @@ class TestInterpreterMixin:
 
     def _build_python_test_env(self) -> dict[str, str]:
         env = os.environ.copy()
+        python_cmd = self._resolve_python()
+        if python_cmd and Path(python_cmd[0]).parent != Path("."):
+            # The suite runs as the project's interpreter; tools the project
+            # installed next to that interpreter (pytest, mypy, ruff) belong
+            # on PATH, which a bare subprocess env does not carry. A bare
+            # executable name contributes no bin dir.
+            env["PATH"] = os.pathsep.join([str(Path(python_cmd[0]).parent), env.get("PATH", "")])
         source_paths = [str(path) for path in self.project_source_dirs()]  # type: ignore[attr-defined]
         if source_paths:
             env["PYTHONPATH"] = ":".join([*source_paths, env.get("PYTHONPATH", "")])

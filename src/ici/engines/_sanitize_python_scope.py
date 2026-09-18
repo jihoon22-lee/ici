@@ -96,6 +96,10 @@ class PythonResourceWarningMixin:
             return self._missing_python_scope(targets, message, command, "tests")
 
         env = os.environ.copy()
+        if python_cmd and Path(python_cmd[0]).parent != Path("."):
+            # Same PATH contract as the test engine: tools installed next to
+            # the project's interpreter must be visible to the suite.
+            env["PATH"] = os.pathsep.join([str(Path(python_cmd[0]).parent), env.get("PATH", "")])
         env["PYTHONDONTWRITEBYTECODE"] = "1"
         env["PYTEST_ADDOPTS"] = " ".join(
             part for part in (env.get("PYTEST_ADDOPTS", ""), "-p no:cacheprovider") if part
