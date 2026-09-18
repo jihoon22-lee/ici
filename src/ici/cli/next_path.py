@@ -76,6 +76,7 @@ from ici.cli.next_common import (
     _SOURCE_SUFFIXES,
     EXIT_CONFIG,
     _announce,
+    _artifact_root,
     _compile_limitations,
     _describe,
     _drift_summary,
@@ -838,7 +839,7 @@ def cmd_report(
 ) -> None:
     """Render a saved result. Analyses nothing and runs no tool."""
 
-    root = Path.cwd().resolve()
+    root = _artifact_root(Path.cwd())
     source = root / result if not result.is_absolute() else result
     if not source.is_file():
         typer.echo(f"report: no result at {source}; run `ici next verify` first", err=True)
@@ -925,7 +926,7 @@ def cmd_diff(
     code (#221 item 7).
     """
 
-    root = Path.cwd().resolve()
+    root = _artifact_root(Path.cwd())
     old_path = baseline if baseline.is_absolute() else root / baseline
     new_path = current if current.is_absolute() else root / current
     try:

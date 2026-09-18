@@ -282,7 +282,9 @@ def _finding(
 
 
 def _fingerprint(row: FunctionMetric, kind: str) -> str:
-    digest = hashlib.sha1(f"{row.path}:{row.name}:{kind}".encode()).hexdigest()[:16]
+    digest = hashlib.sha1(
+        f"{row.path}:{row.name}:{kind}".encode(), usedforsecurity=False
+    ).hexdigest()[:16]
     return f"metrics-{digest}"
 
 

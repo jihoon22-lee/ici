@@ -150,7 +150,8 @@ def _finding(
 
     rule = target.target_name.split(":", 1)[-1] or target.target_name
     digest = hashlib.sha1(
-        f"{path}:{target.start_line}:{rule}:{target.message}".encode()
+        f"{path}:{target.start_line}:{rule}:{target.message}".encode(),
+        usedforsecurity=False,
     ).hexdigest()[:16]
     return Finding(
         fingerprint=f"hygiene-{digest}",

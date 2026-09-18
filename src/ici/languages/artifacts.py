@@ -157,5 +157,7 @@ def _invalid(request: ArtifactRequest, build: BuildUnit, candidate: Path, root: 
 
 
 def _fingerprint(kind: str, build_id: str, pattern: str) -> str:
-    digest = hashlib.sha1(f"{kind}:{build_id}:{pattern}".encode()).hexdigest()[:16]
+    digest = hashlib.sha1(
+        f"{kind}:{build_id}:{pattern}".encode(), usedforsecurity=False
+    ).hexdigest()[:16]
     return f"artifact-{digest}"

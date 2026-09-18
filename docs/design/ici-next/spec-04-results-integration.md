@@ -75,7 +75,9 @@ INCOMPLETE이며 사유 있는 root 정책으로 허용한 empty suite만 별도
 > 있다. 강제되는 것: 통과한 scope는 violation을 동시에 보고할 수 없고, FAIL·INCOMPLETE는 이유를
 > 반드시 갖고, 미완료 run은 PASS를 낼 수 없고, **INCOMPLETE가 FAIL보다 exit code에서 우선한다**
 > (미완료를 완료된 판정으로 보고하지 않기 위해). 게시 상태는 판정에 영향을 주지 않는다.
-> **외부 JSON Schema는 아직 없다** — #200 PR B.
+> **외부 JSON Schema는 구현됐다** —
+> [`ici-next-run-v1.schema.json`](../../../src/ici/schemas/ici-next-run-v1.schema.json)과
+> [`ici-next-event-v1.schema.json`](../../../src/ici/schemas/ici-next-event-v1.schema.json).
 >
 > **보존할 현행 자산 (확인됨)**: `EvidenceState`의 4개 값(MEASURED/ESTIMATED/NOT_RUN/
 > NOT_APPLICABLE)이 이미 존재하고(`src/ici/core/models.py:22`), `aggregate_suite_status`(`:321`)가

@@ -53,7 +53,7 @@ from ici.cli.next_testing import (
     python_interpreter,
 )
 from ici.config.composition import EffectiveComponent, EffectiveConfig
-from ici.config.discovery import discover, load
+from ici.config.discovery import discover, find_workspace_root, load
 from ici.config.errors import NextConfigError
 from ici.domain.enums import Profile
 from ici.domain.workspace import AnalysisUnit, BuildUnit, Component, Workspace
@@ -105,9 +105,23 @@ _FORCE_OPTION = typer.Option(False, "--force", help="Overwrite an existing ici.t
 
 next_app = typer.Typer(
     name="next",
-    help="The ici-next path (in development). Does not replace any stable command.",
+    help="The ici-next path. `ici verify` dispatches here when the root config declares [workspace].",
     add_completion=False,
 )
+
+
+def _artifact_root(cwd: Path) -> Path:
+    """Where relative run artifacts live: the workspace root when one is
+    discoverable above ``cwd``, else ``cwd``.
+
+    ``verify`` resolves ``--result`` against the directory holding the root
+    config — ``.ici/next/result.json`` is a workspace artifact, not a
+    per-directory one. ``report`` and ``diff`` must resolve the same way, or
+    a run issued from a subdirectory writes to one place and reads from
+    another.
+    """
+
+    return find_workspace_root(cwd) or cwd.resolve()
 
 
 def _workspace(

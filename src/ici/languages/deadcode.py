@@ -81,7 +81,8 @@ def _finding(request: DeadRequest, target) -> Finding:
 
     rule = target.target_name or "dead-code"
     digest = hashlib.sha1(
-        f"{target.file_path}:{target.start_line}:{rule}:{target.message}".encode()
+        f"{target.file_path}:{target.start_line}:{rule}:{target.message}".encode(),
+        usedforsecurity=False,
     ).hexdigest()[:16]
     return Finding(
         fingerprint=f"dead-{digest}",

@@ -22,7 +22,7 @@ from pathlib import Path
 
 import typer
 
-from ici.cli.next_common import DEFAULT_RESULT
+from ici.cli.next_common import DEFAULT_PAGE, DEFAULT_RESULT, _artifact_root
 from ici.cli.next_path import cmd_publish, cmd_report, cmd_verify
 from ici.core.pipeline import AnalysisProfile
 from ici.domain.enums import Profile
@@ -114,13 +114,19 @@ def verify(
 
     # Output options are composition on the stored result, not re-analysis —
     # the same thing `ici next report` and `ici next publish` do when typed.
-    if sarif is not None:
-        cmd_report(result=result, page=Path(".ici/next/index.html"), sarif=Path(sarif))
-    if html is not None or open_browser or publish:
-        page = Path(html) if html is not None else Path(".ici/next/index.html")
-        cmd_report(result=result, page=page, sarif=None)
-        if open_browser:
-            webbrowser.open(page.resolve().as_uri())
-        if publish:
-            cmd_publish(config_path=None, local_config=None, result=result, page=page)
+    # Exit 2 means the configuration stopped the run before anything ran, so
+    # there is no result to compose — re-raise it untouched.
+    if exit_code != EXIT_CONFIG:
+        if sarif is not None:
+            cmd_report(result=result, page=DEFAULT_PAGE, sarif=Path(sarif))
+        if html is not None or open_browser or publish:
+            page = Path(html) if html is not None else DEFAULT_PAGE
+            cmd_report(result=result, page=page, sarif=None)
+            if open_browser:
+                # The page was written workspace-anchored — resolve the same
+                # way or a subdirectory cwd points the browser at nothing.
+                page_path = page if page.is_absolute() else _artifact_root(Path.cwd()) / page
+                webbrowser.open(page_path.resolve().as_uri())
+            if publish:
+                cmd_publish(config_path=None, local_path=None, result=result, page=page)
     raise typer.Exit(exit_code)

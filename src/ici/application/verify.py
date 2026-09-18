@@ -84,7 +84,7 @@ def verify(
     on_execution: OnExecution | None = None,
     on_started: OnStarted | None = None,
     suppressions: Iterable[EffectiveSuppression] = (),
-    task_components: Mapping[str, str] = {},
+    task_components: Mapping[str, str] | None = None,
 ) -> Verification:
     """Run everything the plans intend to run, then judge it once.
 
@@ -102,6 +102,7 @@ def verify(
 
     plans = (plan,) if isinstance(plan, Plan) else tuple(plan)
     checks = tuple(item for p in plans for item in p.checks)
+    task_components = task_components or {}
 
     scheduled = run_graph(
         build_graph(checks),

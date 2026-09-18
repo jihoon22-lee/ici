@@ -123,8 +123,8 @@ smoke case 11(next path E2E)은 **BLOCKED**로 보고됐다 — bundle이 mypy�
 | 항목 | 상태 |
 |---|---|
 | 항목 5 — bundle 전체 E2E | **수행 — §4a**(로컬 PBS 3.13.15). RHEL에서의 재실행은 항목 6에 남는다 |
-| 항목 6 — RHEL 8.10 현장 인수 | **미수행 — PR C**. 이 환경은 RHEL이 아니다. checklist와 비민감 결과 양식을 PR C에서 제공한다 |
-| 항목 7 — 실제 GHES/runner/action 버전·권한·sticky 재시도 | **미수행**. mock transport와 Ubuntu CI만 확인됐다 — 실제 GHES 확인을 성공으로 표기하지 않는다 |
+| 항목 6 — RHEL 8.10 현장 인수 | **미수행 — → [#265](https://github.com/jihoon22-lee/ici/issues/265)**. 이 환경은 RHEL이 아니다. checklist와 비민감 결과 양식은 [field-acceptance.md](field-acceptance.md) |
+| 항목 7 — 실제 GHES/runner/action 버전·권한·sticky 재시도 | **미수행 — → [#265](https://github.com/jihoon22-lee/ici/issues/265)**. mock transport와 Ubuntu CI만 확인됐다 — 실제 GHES 확인을 성공으로 표기하지 않는다 |
 | 성능 예산 승인 | **미승인**. §3 수치는 이 개발 환경의 기준선이며 runner 자원 근거가 없다 |
 | syscall 수준 오프라인 증명 | **§4a로 대체** — `unshare -n`이 인터페이스 자체를 제거하므로 strace 없이도 "네트워크 호출이 있었으면 실패했어야 한다"가 증명됐다. 실제로 모두 통과했다 |
 

@@ -111,13 +111,15 @@ ici-owned fixture로 옮기거나 고정 commit snapshot으로 사용한다. toy
 ici가 통과하는 gate는 전환한다. 실제 toy 제품 검증은 released/candidate ici의 명시 소비자로 유지할
 수 있다.
 
-> **현행 corpus 상태 (측정됨)**: ici 소유 corpus는 아직 없다. 현행 fixture는
-> `examples/cpp-fixtures/` 아래 **10개**(`asan_overflow`, `clean_baseline`, `clone_pair`,
-> `cmake_elf_dead`, `cmake_project`, `complexity_hot`, `cycle_pair`, `dtor_throw`,
-> `oversized_file`, `qmake_project`)이고 **fixture manifest가 없다.** 목적·요구 도구·예상 finding·
-> 실행 비용 선언이 없어서, 위 §3의 "missing tool" 군이 제대로 표현되지 않는다.
-> 그 결과가 §2에서 언급한 Qt6 가드 결함이다.
-> → [WP03 #201](https://github.com/jihoon22-lee/ici/issues/201)
+> **현행 corpus 상태 (2026-09-18 갱신)**: ici 소유 corpus가 있다. `tests/fixtures/`의
+> [`manifest.toml`](../../../tests/fixtures/manifest.toml)이 목적·요구 도구·예상 finding을
+> 선언하고, `tests/fixtures/ici-next/`(next 결과 계약 케이스)와
+> `tests/fixtures/next-self-verify/`(CI dogfood 자체검증 워크스페이스)가 등록돼 있다.
+> `examples/cpp-fixtures/` 아래 C++ fixture **10개**(`asan_overflow`, `clean_baseline`,
+> `clone_pair`, `cmake_elf_dead`, `cmake_project`, `complexity_hot`, `cycle_pair`,
+> `dtor_throw`, `oversized_file`, `qmake_project`)도 같은 manifest에 있다.
+> 필수 게이트는 전부 ici 소유이며, toy 소비자 검증은 SHA 고정 수동 게이트로만 남는다
+> ([릴리스 runbook](release-runbook.md)).
 
 ## 4. 구·신 비교 규칙
 
@@ -203,14 +205,21 @@ path/archive/XML/JSON/HTML 검증·provider output bounds·credential 없는 PR 
 
 ## 완료 기준
 
-- [ ] R01~R15 → SPEC → WP/PR → 자동/현장 test → evidence의 추적표가 완성된다.
-      (골격 완성 → [requirements-traceability.md](requirements-traceability.md).
-      evidence 열은 각 WP가 채운다)
-- [ ] 19개 엔진 disposition과 사용자 기능의 이전/선택 제공 결정에 빈칸이 없다.
-      (잠정 disposition 완성 →
-      [inventory/current-engines.md §7](inventory/current-engines.md). 최종은 WP별)
-- [ ] 정확도·false positive·coverage 누락·필수 미완료·부분 gate 검증 근거가 있다.
-- [ ] ici-only 회귀/패키징 gate로 전환하고 toy 제품은 특수 개조 없이 독립한다.
-- [ ] 지원/제한/미확인 환경과 release blocker를 공개 문서와 내부 현장 checklist에서 구분한다.
-      (§1의 WP00 실측 표가 첫 데이터)
+> 상태(2026-09-18): `[x]`는 자동화된 근거가 있는 항목, `[ ]`는 실환경 확인이
+> 필요해 [#265](https://github.com/jihoon22-lee/ici/issues/265)로 넘어간 항목.
+
+- [x] R01~R15 → SPEC → WP/PR → 자동/현장 test → evidence의 추적표가 완성된다.
+      → [requirements-traceability.md](requirements-traceability.md)
+- [x] 19개 엔진 disposition과 사용자 기능의 이전/선택 제공 결정에 빈칸이 없다.
+      → [inventory/current-engines.md §7](inventory/current-engines.md) ·
+      [migration-matrix.md](migration-matrix.md)
+- [x] 정확도·false positive·coverage 누락·필수 미완료·부분 gate 검증 근거가 있다.
+      → [wp28-verification.md](wp28-verification.md) — 디퍼렌셜 corpus가 회귀
+      2건을 실제로 잡아 수정했다; INCOMPLETE 게이트는 #219 계약 테스트
+- [x] ici-only 회귀/패키징 gate로 전환하고 toy 제품은 특수 개조 없이 독립한다.
+      → [release-runbook.md §1](release-runbook.md) — 필수 게이트 전부 ici 소유
+- [x] 지원/제한/미확인 환경과 release blocker를 공개 문서와 내부 현장 checklist에서 구분한다.
+      → [field-acceptance.md](field-acceptance.md)(현장) ·
+      [release-runbook.md §2](release-runbook.md)(지원표)
 - [ ] 문서·CHANGELOG·지원표·candidate evidence·rollback을 검토한 뒤 별도 stable 결정을 한다.
+      *(근거 문서는 모두 기록됨 — 릴리스 결정 자체는 소유자의 별도 승인, #265 D 항목)*

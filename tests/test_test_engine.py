@@ -2,6 +2,7 @@
 
 import gzip
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -1544,6 +1545,24 @@ def test_wsl_python_test_env_uses_system_temp_for_pytest_capture(tmp_path: Path,
     assert env["TMP"] == "/tmp"
     assert env["TEMP"] == "/tmp"
     assert str(tmp_path) not in env["TMPDIR"]
+
+
+def test_python_test_env_puts_the_project_venv_tools_on_path(tmp_path: Path, monkeypatch):
+    """A suite run as .venv/bin/python must see .venv/bin on PATH.
+
+    The dogfood run invokes the suite through a bare subprocess env; without
+    this the project's own mypy/ruff resolve as "not available" and every
+    INCOMPLETE verdict is an artifact of the harness, not the project.
+    """
+
+    venv_bin = tmp_path / ".venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    (venv_bin / "python").write_text("", encoding="utf-8")
+    monkeypatch.setenv("PATH", "/usr/bin")
+
+    env = TestEngine(tmp_path)._build_python_test_env()
+
+    assert env["PATH"].split(os.pathsep)[0] == str(venv_bin)
 
 
 def test_hybrid_sources_without_tests_are_zero_test_failures(tmp_path: Path):

@@ -230,6 +230,29 @@ def test_similar_text_without_risky_call_shape_is_clean(tmp_path: Path):
     assert any(target.target_name == "Security:ASTScan" for target in result.targets)
 
 
+def test_usedforsecurity_false_marks_a_digest_as_identity_not_crypto(tmp_path: Path):
+    """``usedforsecurity=False`` is the declared opt-out for identity digests.
+
+    Finding fingerprints are dedup keys, not security tokens; flagging them
+    as weak crypto would be a false positive the keyword exists to prevent.
+    """
+
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text(
+        "import hashlib\n"
+        "digest = hashlib.sha1(b'data', usedforsecurity=False).hexdigest()\n"
+        "other = hashlib.sha1(b'data').hexdigest()\n",
+        encoding="utf-8",
+    )
+
+    result = SecurityEngine(tmp_path, _CFG).run()
+
+    sha1_targets = [t for t in result.targets if "SHA-1" in (t.message or "")]
+    # Only the unannotated call warns.
+    assert len(sha1_targets) == 1
+
+
 def test_secret_dictionary_value_is_redacted_without_source_echo(tmp_path: Path):
     src = tmp_path / "src"
     src.mkdir()
