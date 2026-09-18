@@ -128,5 +128,5 @@ def verify(
                 page_path = page if page.is_absolute() else _artifact_root(Path.cwd()) / page
                 webbrowser.open(page_path.resolve().as_uri())
             if publish:
-                cmd_publish(config_path=None, local_config=None, result=result, page=page)
+                cmd_publish(config_path=None, local_path=None, result=result, page=page)
     raise typer.Exit(exit_code)
