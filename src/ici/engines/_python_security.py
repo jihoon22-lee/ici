@@ -244,18 +244,38 @@ def _shell_true(call: ast.Call) -> bool:
     )
 
 
+def _declared_non_security(call: ast.Call) -> bool:
+    """``hashlib.X(..., usedforsecurity=False)`` opts out of FIPS intent.
+
+    The keyword exists for exactly this: digests that are identity keys, not
+    security tokens. Honouring it keeps fingerprint-style uses from reading
+    as weak crypto.
+    """
+
+    return any(
+        keyword.arg == "usedforsecurity"
+        and isinstance(keyword.value, ast.Constant)
+        and keyword.value.value is False
+        for keyword in call.keywords
+    )
+
+
 def _risky_call_rule(
     qualified: str,
     call: ast.Call,
     shadowed: frozenset[str],
 ) -> tuple[str, str, str] | None:
     if qualified in {"hashlib.md5", "Crypto.Hash.MD5.new", "Cryptodome.Hash.MD5.new"}:
+        if qualified == "hashlib.md5" and _declared_non_security(call):
+            return None
         return ("WeakCryptoMD5", "MD5 is not collision resistant", "md5(...)")
     if qualified in {
         "hashlib.sha1",
         "Crypto.Hash.SHA1.new",
         "Cryptodome.Hash.SHA1.new",
     }:
+        if qualified == "hashlib.sha1" and _declared_non_security(call):
+            return None
         return ("WeakCryptoSHA1", "SHA-1 is not collision resistant", "sha1(...)")
     if qualified in {
         "random.choice",

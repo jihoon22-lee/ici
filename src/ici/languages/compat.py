@@ -163,7 +163,8 @@ def _finding(request: CompatRequest, path: str, target) -> Finding:
     rule = target.target_name.split(":", 1)[-1] or target.target_name
     slug = _CAMEL_RE.sub("-", rule).lower().replace("_", "-")
     digest = hashlib.sha1(
-        f"{path}:{target.start_line}:{rule}:{target.message}".encode()
+        f"{path}:{target.start_line}:{rule}:{target.message}".encode(),
+        usedforsecurity=False,
     ).hexdigest()[:16]
     return Finding(
         fingerprint=f"compat-{digest}",

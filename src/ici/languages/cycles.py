@@ -136,7 +136,9 @@ def _measure_cpp(request: CycleRequest) -> Observation:
 
 
 def _fingerprint(language: str, members: list[str]) -> str:
-    digest = hashlib.sha1(f"{language}:{':'.join(members)}".encode()).hexdigest()[:16]
+    digest = hashlib.sha1(
+        f"{language}:{':'.join(members)}".encode(), usedforsecurity=False
+    ).hexdigest()[:16]
     return f"cycle-{digest}"
 
 

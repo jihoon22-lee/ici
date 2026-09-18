@@ -117,7 +117,8 @@ def _oversized(path: Path, code: int, request: LineRequest) -> Finding | None:
         return None
     relative = _relative(path, request.project_root)
     return Finding(
-        fingerprint="line-" + hashlib.sha1(relative.encode()).hexdigest()[:16],
+        fingerprint="line-"
+        + hashlib.sha1(relative.encode(), usedforsecurity=False).hexdigest()[:16],
         rule_id="line.file-size",
         message=message,
         severity=severity,
