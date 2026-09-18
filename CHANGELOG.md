@@ -7,6 +7,28 @@
 
 ## [Unreleased]
 
+### 추가 — WP29 PR B/C: 기본 실행 경로 전환(cutover dispatch) + 릴리스 runbook ([#227](https://github.com/jihoon22-lee/ici/issues/227))
+
+- **기본 경로 전환**: 프로젝트의 `ici.toml`이 `[workspace]` 테이블을
+  선언하면 bare `ici verify`가 next 엔진 경로를 실행합니다 — 명시
+  `ici next verify`와 같은 실행입니다. 전환은 설정이 결정합니다:
+  레거시 `ici.toml`만 있는 프로젝트는 stable 경로를 그대로 쓰고,
+  되돌림은 `ici.toml.stable` 복사 한 번입니다.
+- 옵션 매핑: `--report`/`--html`/`--sarif`/`--open`/`--publish`는
+  저장된 결과 위의 composition으로 동작하고, `--profile`/`--no-cache`/
+  `--baseline`은 대응 옵션으로 전달됩니다. stable 전용 옵션
+  (`--verbose`/`--max-findings`/`--group-by`/`--fail-on-new`/
+  `--write-baseline`/`--github-summary`)은 조용히 무시하지 않고 대체
+  수단과 함께 거절합니다.
+- `src/ici/cli/cutover.py`(dispatch), `find_workspace_root`
+  (config/discovery.py), `tests/test_cutover.py` 9건.
+- **release-runbook.md** 추가: 필수 게이트 계층(전부 ici 소유 — toy는
+  명시적 소비자 검증), R01~R15 최종 체크리스트, risk register, 3층
+  rollback 절차, release 결정 절차.
+- `engines/`·v3 reporter의 *물리적* 제거는 #226 현장 인수 이후 별도
+  PR로 유보합니다 — 되돌림 다리가 필요한 동안 두 경로를 유지합니다
+  (migration-matrix §6).
+
 ### 추가 — WP29 PR A: 빌드 아티팩트의 next 경로를 CI 게이트로 ([#227](https://github.com/jihoon22-lee/ici/issues/227))
 
 - `ci.yml`에 "Dogfooding — next path via dist/ici.pyz" 스텝을 추가합니다.
@@ -802,7 +824,7 @@ venv의 site-packages에 모듈을 **직접 써넣어** 만들므로 네트워�
   환경에서 재는지가 질문의 일부**가 됐습니다(프로세스가 우연히 상속한 것이 아니라).
 - **자식의 `os.environ`이 스냅샷과 같지는 않습니다.** Python 자식은 PEP 538 locale coercion으로
   `LC_CTYPE`을 스스로 추가합니다 — `env={}`로 아무것도 주지 않아도 나타나는 것을 측정했습니다.
-  처음 쓴 테스트는 "같다"를 주장했다가 실패했고, **코드가 아니라 주장이 틀렸습니다.** 이제
+  처음 쓴 테스트는 "��다"를 주장했다가 실패했고, **코드가 아니라 주장이 틀렸습니다.** 이제
   부모에만 있는 sentinel이 자식에 보이지 않는 것으로 **"아무것도 건너가지 않았다"**를 확인합니다.
 - **현행 fallback을 테스트로 고정**했습니다. 새 코드의 테스트가 아니라 **오늘 stable 경로가 무엇을
   하는지의 기록**이고, PR C가 engine을 옮길 때 diff가 "바뀌었다는 주장"이 아니라 **바뀐 동작**을
@@ -3109,7 +3131,7 @@ complexity는 148건·최대 CC 24, 중복률 3.4%로 **둘 다 기준선 그대
   `Suite PASS`를 확인했습니다. 원격 CI·PR·Pages 검증과 main 반영은 아직 남아
   있으므로 이 로컬 증거만으로 병합 완료를 간주하지 않습니다.
 - **self verify의 mypy `annotation-unchecked` note 제거**: `sanitize`, `exception`, `dead`, `test` 엔진의 생성자 네 곳이 `*args/**kwargs` untyped body였고, 변수 annotation마다 동일 note를 냈습니다. BaseEngine과 동일한 Python 3.10 호환 `project_root`/`config` 시그니처와 반환형을 적용해 동작은 유지하면서 mypy note를 0건으로 만들었습니다.
-- **HTML은 올라갔지만 PR 댓글이 실패해도 `ici publish`가 성공하던 문제**: PR publish의 성공 조건에 sticky comment URL을 포함했습니다. 단일·다중 리포트 모두 `pull-requests: write` 실패를 0이 아닌 종료 코드로 전달하며, 업로드 실패 시 아직 존재하지 않는 Pages URL을 만들지 않습니다. 다중 리포트 댓글 footer의 경로도 `/`로 이어 붙인 가짜 경로 대신 쉼표로 구분합니다.
+- **HTML은 올라갔지만 PR 댓글이 실패해도 `ici publish`가 성공하던 문제**: PR publish의 성공 조건에 sticky comment URL을 포함했습니다. 단일·다중 리포트 모두 `pull-requests: write` 실패를 0이 아닌 종료 코드로 전달하며, 업로드 실패 시 아직 존재하지 않는 Pages URL을 만들지 않습니다. 다중 리포트 댓글 footer의 경로도 `/`로 이어 붙인 가짜 경로 ���신 쉼표로 구분합니다.
 - **`cycle`이 directory-qualified C++ include의 정보를 버리던 문제**: `core/format.hpp`와 `gui/format.hpp`가 함께 있을 때 `#include "core/format.hpp"`도 basename `format.hpp`만 비교해 모호하다고 버렸고, 실제 include cycle을 놓쳤습니다. 이제 include가 지정한 전체 path suffix가 프로젝트 파일 하나와 유일하게 일치할 때만 간선을 연결합니다.
   - bare `#include "format.hpp"`처럼 실제로 여러 후보가 있는 경우는 계속 추측하지 않습니다.
   - 유일한 후보가 없는 quoted include와 여러 후보가 있는 include는 파일·행·후보와 함께 `CppIncludeUnresolved`/`CppIncludeAmbiguous` 타깃으로 남고, `extra`에 전체 개수와 잘린 진단 개수를 기록합니다. generated header나 실제 compiler `-I` 순서는 아직 알지 못하므로 결과에는 `unique_project_path_suffix` 휴리스틱임을 명시합니다.

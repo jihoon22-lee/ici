@@ -37,7 +37,13 @@ from ici.config.origin import Origin
 from ici.config.overlay import read_local
 from ici.config.schema import read_component, read_root
 
-__all__ = ["CONFIG_FILENAME", "Discovery", "discover", "load"]
+__all__ = [
+    "CONFIG_FILENAME",
+    "Discovery",
+    "discover",
+    "find_workspace_root",
+    "load",
+]
 
 CONFIG_FILENAME = "ici.toml"
 
@@ -82,6 +88,51 @@ def discover(start: Path, *, explicit: Path | None = None) -> Discovery:
         if _is_vcs_root(directory):
             return _not_found(start, tuple(searched), stopped_at=directory)
     return _not_found(start, tuple(searched), stopped_at=None)
+
+
+def find_workspace_root(start: Path) -> Path | None:
+    """The directory whose root file declares a workspace, or ``None``.
+
+    Same search and stop rules as :func:`discover` — a directory's file that
+    does not declare ``[workspace]`` is passed over, and the walk stops at the
+    checkout root — but nothing is demanded: no file, or no workspace above
+    ``start``, is a ``None`` rather than an error. The caller is choosing a
+    path, not requiring one.
+    """
+
+    start = start.resolve()
+    for directory in (start, *start.parents):
+        candidate = directory / CONFIG_FILENAME
+        if candidate.is_file() and _declares_workspace_strict(candidate):
+            return directory
+        if _is_vcs_root(directory):
+            return None
+    return None
+
+
+def _declares_workspace_strict(path: Path) -> bool:
+    """Whether a file is parseable *and* declares ``[workspace]``.
+
+    Unlike :func:`_declares_workspace` — which treats a malformed file as a
+    candidate so the reader can name its real problem — this answers "is this
+    certainly a next-schema root". An undecodable or unparseable file is not:
+    the caller is choosing a dispatch path, and a broken file gets a better
+    error from the stable reader than from being claimed by the next path.
+    """
+
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    try:
+        return "workspace" in tomli.loads(text)
+    except Exception:
+        # Any failure to interpret the file — malformed TOML, the integer
+        # digit limit, pathological nesting — means it cannot be claimed as a
+        # next-schema root. "Not certainly a workspace" is the safe answer:
+        # the caller falls through to the stable reader, which reports the
+        # file's actual problem.
+        return False
 
 
 def _is_vcs_root(directory: Path) -> bool:
@@ -143,13 +194,20 @@ def _declares_workspace(path: Path) -> bool:
         # Cannot even open it. Nothing useful to say about its contents, so the
         # search goes on rather than stopping on a file nobody can read.
         return False
+    except UnicodeDecodeError:
+        # The file exists but is not UTF-8 — malformed, not absent. The reader
+        # below reports the decode problem on the file that has it, which is
+        # what returning True here is for (see the TOMLDecodeError branch).
+        return True
     try:
         return "workspace" in tomli.loads(text)
-    except tomli.TOMLDecodeError:
+    except Exception:
         # A file that is here and unparseable is a candidate, not an absence.
         # Returning False sends the search past it and the user is eventually
         # told "none declares a [workspace]" about a file whose [workspace] is
         # right there and whose real problem is a syntax error three lines up.
+        # (TOMLDecodeError, its ValueError siblings like the integer digit
+        # limit, and pathological nesting all land here.)
         return True
 
 

@@ -12,10 +12,14 @@ from rich.console import Console
 from rich.markup import escape
 
 from ici import __version__
-from ici.cli import next_migrate  # noqa: F401 - registers `ici next migrate`
+from ici.cli import (
+    cutover,
+    next_migrate,  # noqa: F401 - registers `ici next migrate`
+)
 from ici.cli.next_path import next_app
 from ici.compilation_export_cli import export_compilation_context
 from ici.config import ConfigError, load_config
+from ici.config.discovery import find_workspace_root
 from ici.core.baseline import BaselineError
 from ici.core.cache import CACHE_KEY_VERSION, AnalysisCache
 from ici.core.models import EngineResult, EngineStatus, exit_code_for_status
@@ -132,12 +136,27 @@ def main_callback(
         # format could never run the new path: the stable reader rejects the
         # file before the command that understands it is reached.
         return
+    next_root = find_workspace_root(Path.cwd())
+    if next_root is not None and ctx.invoked_subcommand == "verify":
+        # Same reason as the `next` exemption above: `verify` dispatches to
+        # the next engine path for this workspace (#227), and loading the
+        # stable configuration first would reject the file outright.
+        ctx.obj["config"] = None
+        return
     try:
         ctx.obj["config"] = load_config(
             create_global_default=ctx.invoked_subcommand != "export-compilation-context"
         )
     except ConfigError as err:
-        typer.echo(f"Configuration error: {err}", err=True)
+        if next_root is not None:
+            typer.echo(
+                "Configuration error: this workspace declares a [workspace] "
+                "(ici-next) config, which stable subcommands cannot read — "
+                "use `ici next --help` for the commands that can",
+                err=True,
+            )
+        else:
+            typer.echo(f"Configuration error: {err}", err=True)
         raise typer.Exit(code=2) from err
 
 
@@ -223,6 +242,26 @@ def cmd_verify(
 ):
     """Runs the full verification engine suite and outputs a unified quality gate dashboard."""
     root = Path.cwd().resolve()
+    # Cutover (#227): a workspace whose root config declares [workspace] runs
+    # on the next engine path; a legacy config keeps this stable path.
+    if find_workspace_root(root) is not None:
+        cutover.verify(
+            report=report,
+            html=html,
+            sarif=sarif,
+            open_browser=open_browser,
+            github_summary=github_summary,
+            publish=publish,
+            baseline=baseline,
+            fail_on_new=fail_on_new,
+            write_baseline=write_baseline,
+            verbose=verbose,
+            max_findings=max_findings,
+            group_by=group_by,
+            profile=profile,
+            no_cache=no_cache,
+        )
+        return
     console_options = ConsoleOptions(
         verbose=verbose,
         max_findings=max_findings,

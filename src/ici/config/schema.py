@@ -131,7 +131,12 @@ def _parse(text: str, *, path: str, problems: list[ConfigProblem]) -> dict[str, 
     # arrived in 3.11. The rest of the tree imports it the same way.
     try:
         return tomli.loads(text)
-    except tomli.TOMLDecodeError as error:
+    except (ValueError, RecursionError) as error:
+        # tomli reports malformed documents as TOMLDecodeError (a ValueError),
+        # but a legal-looking value can still blow up — an integer with more
+        # digits than sys.set_int_max_str_digits allows, or nesting deep
+        # enough to exhaust the stack. All are "not valid TOML" to the person
+        # editing the file.
         problems.append(ConfigProblem(f"not valid TOML: {error}", Origin(file=path)))
         raise NextConfigError(tuple(problems)) from error
 
