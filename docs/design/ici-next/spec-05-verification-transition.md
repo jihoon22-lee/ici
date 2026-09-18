@@ -111,13 +111,15 @@ ici-owned fixture로 옮기거나 고정 commit snapshot으로 사용한다. toy
 ici가 통과하는 gate는 전환한다. 실제 toy 제품 검증은 released/candidate ici의 명시 소비자로 유지할
 수 있다.
 
-> **현행 corpus 상태 (측정됨)**: ici 소유 corpus는 아직 없다. 현행 fixture는
-> `examples/cpp-fixtures/` 아래 **10개**(`asan_overflow`, `clean_baseline`, `clone_pair`,
-> `cmake_elf_dead`, `cmake_project`, `complexity_hot`, `cycle_pair`, `dtor_throw`,
-> `oversized_file`, `qmake_project`)이고 **fixture manifest가 없다.** 목적·요구 도구·예상 finding·
-> 실행 비용 선언이 없어서, 위 §3의 "missing tool" 군이 제대로 표현되지 않는다.
-> 그 결과가 §2에서 언급한 Qt6 가드 결함이다.
-> → [WP03 #201](https://github.com/jihoon22-lee/ici/issues/201)
+> **현행 corpus 상태 (2026-09-18 갱신)**: ici 소유 corpus가 있다. `tests/fixtures/`의
+> [`manifest.toml`](../../../tests/fixtures/manifest.toml)이 목적·요구 도구·예상 finding을
+> 선언하고, `tests/fixtures/ici-next/`(next 결과 계약 케이스)와
+> `tests/fixtures/next-self-verify/`(CI dogfood 자체검증 워크스페이스)가 등록돼 있다.
+> `examples/cpp-fixtures/` 아래 C++ fixture **10개**(`asan_overflow`, `clean_baseline`,
+> `clone_pair`, `cmake_elf_dead`, `cmake_project`, `complexity_hot`, `cycle_pair`,
+> `dtor_throw`, `oversized_file`, `qmake_project`)도 같은 manifest에 있다.
+> 필수 게이트는 전부 ici 소유이며, toy 소비자 검증은 SHA 고정 수동 게이트로만 남는다
+> ([릴리스 runbook](release-runbook.md)).
 
 ## 4. 구·신 비교 규칙
 

@@ -118,7 +118,10 @@ probe하지 않는다. 이 규칙을 import/side-effect 테스트로 검증한�
 > **구현 시작됨 (WP02 PR A)**: 이 표의 모델이 [`src/ici/domain/`](../../../src/ici/domain)에
 > frozen dataclass로 존재한다. 기존 `core/`는 손대지 않았고 새 namespace는 opt-in이다.
 > `ici.domain.legacy`가 유일한 연결 지점이며, 각 방향에서 무엇이 손실되는지 이름으로 남긴다.
-> **직렬화·JSON Schema·이벤트 IO는 아직 없다** — #200의 PR B 경계다.
+> 직렬화·JSON Schema·이벤트 IO도 구현됐다 —
+> [`schemas/ici-next-run-v1.schema.json`](../../../src/ici/schemas/ici-next-run-v1.schema.json)과
+> [`schemas/ici-next-event-v1.schema.json`](../../../src/ici/schemas/ici-next-event-v1.schema.json)이
+> 외부 계약이다.
 
 ## 5. 실행 계약
 
