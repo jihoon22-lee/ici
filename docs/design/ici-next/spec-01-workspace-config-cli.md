@@ -172,11 +172,13 @@ PR B/C에서 이어진다. → [config-origin.md](config-origin.md)
 선택 결과가 0 component/language/check면 오류로 알린다. 실수로 아무것도 검사하지 않고 exit 0을
 반환하지 않는다. 언어별 단축 옵션은 검사 범위 필터이며 프로젝트 종류를 강제 재판별하지 않는다.
 
-> **현행 차이 (측정됨)**: `init`·`plan`·`report` 명령이 없고, `--python`/`--cpp`/`--component`/
-> `--require-full`/`--events`/`--config`/`--local-config` 옵션이 없다. `--profile`은 있다.
-> 엔진 단독 서브커맨드 15개가 있는데 목표 CLI에는 대응 항목이 없으므로, 이들의 alias·
-> deprecation을 [WP27 #225](https://github.com/jihoon22-lee/ici/issues/225) migration 표에서
-> 결정한다. → [inventory/current-engines.md §3](inventory/current-engines.md)
+> **구현 상태 (2026-09-18)**: 이 표의 명령은 `ici next` 아래에 전부 존재한다 —
+> `init`·`doctor`·`plan`·`verify`·`report`·`publish`·`diff`·`migrate`.
+> `#227` cutover 이후 `[workspace]`를 선언한 프로젝트에서는 bare `ici verify`도
+> 같은 경로로 dispatch된다 — 즉 이 표가 곧 기본 동작이다. 레거시 설정 프로젝트의
+> 엔진 단독 서브커맨드 15개는 목표 CLI에 대응이 없어 stable 표면에 남아 있고,
+> disposition은 [migration-matrix.md](migration-matrix.md)가 기록한다
+> (물리적 제거는 [#265](https://github.com/jihoon22-lee/ici/issues/265)의 인수 후 별도 PR).
 
 ## 6. 부분 실행과 실행 위치
 

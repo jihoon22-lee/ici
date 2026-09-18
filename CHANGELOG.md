@@ -7,6 +7,28 @@
 
 ## [Unreleased]
 
+### 수정 — next 경로의 상대 경로 앵커 통일 (배포 전 검토)
+
+- **버그 수정**: `ici next report`와 `ici next diff`가 상대 경로를 *cwd*
+  기준으로 resolve하던 것을 `verify`/`publish`와 같은 *워크스페이스 루트*
+  기준으로 통일합니다. 이전에는 하위 디렉터리에서 `next verify` 후
+  `next report`를 실행하면 결과를 찾지 못했고, cutover dispatch의
+  `--html`/`--publish` 합성도 같은 어긋남을 맞았습니다.
+  워크스페이스가 발견되지 않는 곳에서는 종전처럼 cwd 기준입니다.
+- cutover dispatch는 설정 오류(exit 2 — 아무것도 실행되지 않음)에서
+  `--html`/`--publish` 등 결과 합성을 시도하지 않습니다.
+- `ici next` 명령 help 문구와 사용자 가이드가 cutover 이후의 실제 동작을
+  반영합니다.
+
+### 문서 — 전환 상태 최신화
+
+- `roadmap.md`·`spec-05`의 최종 인수 체크리스트를 실측 상태로 갱신 —
+  자동화 근거가 있는 항목은 `[x]`, 실환경 확인이 필요한 항목은
+  [#265](https://github.com/jihoon22-lee/ici/issues/265)로 표기됐습니다.
+- `README.md`·`docs/design/ici-next/README.md`·`user-guide.md`·
+  `ci-integration.md`가 마일스톤 완료·cutover dispatch·next 명령군을
+  반영합니다.
+
 ### 추가 — WP29 PR B/C: 기본 실행 경로 전환(cutover dispatch) + 릴리스 runbook ([#227](https://github.com/jihoon22-lee/ici/issues/227))
 
 - **기본 경로 전환**: 프로젝트의 `ici.toml`이 `[workspace]` 테이블을

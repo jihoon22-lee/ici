@@ -50,13 +50,22 @@ Pages는 HTTP 200·`text/html`·정확한 title·외부 resource URL 0건으로 
 checkout은 `persist-credentials: false`로 설정되어 작업 디렉터리에 쓰기용 인증 정보를
 남기지 않습니다. 이 job은 `GITHUB_TOKEN`, `--publish`, PR 댓글 API를 사용하지 않습니다.
 
+> 아래 `verify` 흐름은 이 저장소의 **stable 설정**을 대상으로 합니다. `[workspace]`를
+> 선언한 ici-next 설정의 프로젝트에서는 bare `ici verify`가 next 엔진 경로로
+> dispatch되며, `--github-summary` 등 stable 전용 플래그는 거절됩니다 — 게시는
+> `ici next publish`가 담당합니다(§5의 publish-workflow와
+> [publish-workflow.md](design/ici-next/publish-workflow.md)). 같은 job이
+> `dist/ici.pyz next plan/verify/report`를 `tests/fixtures/next-self-verify/`
+> fixture로 dogfood합니다.
+
 검증 순서는 다음과 같습니다.
 
 1. Ruff 포맷·린트
 2. Python 3.10 pytest
 3. `dist/ici.pyz` 빌드 및 독립 스모크 테스트
 4. `dist/ici.pyz verify --report --html verify_report.html --github-summary`
-5. 저장소 루트와 `viewer/`의 JSON/HTML 결과 아티팩트 업로드
+5. `dist/ici.pyz next plan` → `next verify` → `next report` (next 경로 dogfood)
+6. 저장소 루트와 `viewer/`의 JSON/HTML 결과 아티팩트 업로드
 
 별도 `viewer-gui` job은 Qt6 GUI를 빌드하고 실제 report를 headless로 엽니다. 마지막
 `Merge Gate` job은 verify, viewer GUI, PR report 게시 결과를 모두 집계합니다. branch

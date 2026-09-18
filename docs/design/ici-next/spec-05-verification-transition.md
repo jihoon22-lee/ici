@@ -203,14 +203,21 @@ path/archive/XML/JSON/HTML 검증·provider output bounds·credential 없는 PR 
 
 ## 완료 기준
 
-- [ ] R01~R15 → SPEC → WP/PR → 자동/현장 test → evidence의 추적표가 완성된다.
-      (골격 완성 → [requirements-traceability.md](requirements-traceability.md).
-      evidence 열은 각 WP가 채운다)
-- [ ] 19개 엔진 disposition과 사용자 기능의 이전/선택 제공 결정에 빈칸이 없다.
-      (잠정 disposition 완성 →
-      [inventory/current-engines.md §7](inventory/current-engines.md). 최종은 WP별)
-- [ ] 정확도·false positive·coverage 누락·필수 미완료·부분 gate 검증 근거가 있다.
-- [ ] ici-only 회귀/패키징 gate로 전환하고 toy 제품은 특수 개조 없이 독립한다.
-- [ ] 지원/제한/미확인 환경과 release blocker를 공개 문서와 내부 현장 checklist에서 구분한다.
-      (§1의 WP00 실측 표가 첫 데이터)
+> 상태(2026-09-18): `[x]`는 자동화된 근거가 있는 항목, `[ ]`는 실환경 확인이
+> 필요해 [#265](https://github.com/jihoon22-lee/ici/issues/265)로 넘어간 항목.
+
+- [x] R01~R15 → SPEC → WP/PR → 자동/현장 test → evidence의 추적표가 완성된다.
+      → [requirements-traceability.md](requirements-traceability.md)
+- [x] 19개 엔진 disposition과 사용자 기능의 이전/선택 제공 결정에 빈칸이 없다.
+      → [inventory/current-engines.md §7](inventory/current-engines.md) ·
+      [migration-matrix.md](migration-matrix.md)
+- [x] 정확도·false positive·coverage 누락·필수 미완료·부분 gate 검증 근거가 있다.
+      → [wp28-verification.md](wp28-verification.md) — 디퍼렌셜 corpus가 회귀
+      2건을 실제로 잡아 수정했다; INCOMPLETE 게이트는 #219 계약 테스트
+- [x] ici-only 회귀/패키징 gate로 전환하고 toy 제품은 특수 개조 없이 독립한다.
+      → [release-runbook.md §1](release-runbook.md) — 필수 게이트 전부 ici 소유
+- [x] 지원/제한/미확인 환경과 release blocker를 공개 문서와 내부 현장 checklist에서 구분한다.
+      → [field-acceptance.md](field-acceptance.md)(현장) ·
+      [release-runbook.md §2](release-runbook.md)(지원표)
 - [ ] 문서·CHANGELOG·지원표·candidate evidence·rollback을 검토한 뒤 별도 stable 결정을 한다.
+      *(근거 문서는 모두 기록됨 — 릴리스 결정 자체는 소유자의 별도 승인, #265 D 항목)*

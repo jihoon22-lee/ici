@@ -162,15 +162,29 @@ provider 근거 → #218 native 규칙 → #219 policy/TEM
 
 ## 최종 인수 체크리스트
 
-- [ ] R01~R15 각각 구현/테스트/문서 근거가 연결되었다.
+> 상태(2026-09-18): 개발 마일스톤은 closed(open 0 / closed 38). `[x]`는 자동화된
+> 근거가 연결된 항목, `[ ]`는 실환경 확인이 필요해
+> [#265](https://github.com/jihoon22-lee/ici/issues/265)로 넘어간 항목이다.
+> 자동화 통과를 현장 근거로 쓰지 않는다.
+
+- [x] R01~R15 각각 구현/테스트/문서 근거가 연결되었다.
+      → [requirements-traceability.md](requirements-traceability.md)
 - [ ] 지원 환경에서 오프라인 압축 설치와 경로 이동·병행 버전·읽기 전용 배포 디렉터리 실행을
-      검증했다.
-- [ ] Python-only는 무관한 C++ 도구를, C++-only는 무관한 Python 검사 도구를 요구하지 않는다.
-- [ ] qmake SUBDIRS/혼합 저장소에서 공유 빌드와 component별 결과가 실제 도구 테스트를 통과했다.
-- [ ] 필수 미완료·0개 테스트·잘못된/오래된 coverage·부분 선택·게시 실패가 전체 PASS로 오인되지
-      않는다.
-- [ ] 19개 기존 descriptor와 사용자 명령/설정/리포트의 처리·이전 표가 완성되었다.
-- [ ] ici 내부 corpus로 검증 가능하며 toy 최신 main에 릴리스가 종속되지 않는다.
+      검증했다. *(개발 환경 bundle smoke 10/11 근거 있음 → RHEL 8.10 실측은 #265)*
+- [x] Python-only는 무관한 C++ 도구를, C++-only는 무관한 Python 검사 도구를 요구하지 않는다.
+      → 언어 선택·scope 테스트([#210](https://github.com/jihoon22-lee/ici/issues/210))
+- [x] qmake SUBDIRS/혼합 저장소에서 공유 빌드와 component별 결과가 실제 도구 테스트를 통과했다.
+      → `examples/cpp-fixtures`·integration cases([#211](https://github.com/jihoon22-lee/ici/issues/211)~[#214](https://github.com/jihoon22-lee/ici/issues/214))
+- [x] 필수 미완료·0개 테스트·잘못된/오래된 coverage·부분 선택·게시 실패가 전체 PASS로 오인되지
+      않는다. → 6축 상태 모델·INCOMPLETE 게이트([#219](https://github.com/jihoon22-lee/ici/issues/219))
+- [x] 19개 기존 descriptor와 사용자 명령/설정/리포트의 처리·이전 표가 완성되었다.
+      → [inventory/current-engines.md](inventory/current-engines.md) ·
+      [migration-matrix.md](migration-matrix.md)
+- [x] ici 내부 corpus로 검증 가능하며 toy 최신 main에 릴리스가 종속되지 않는다.
+      → [corpus-register.md](corpus-register.md) · 필수 게이트 전부 ici 소유([release-runbook.md §1](release-runbook.md))
 - [ ] GHES/idk 계약과 외부 저장소 변경 경계를 확인했다.
+      *(계약·fixture consumer 완료 → 실제 GHES/idk 소비자 검증은 #265)*
 - [ ] 기존 결과 비교, 보안·성능 측정, 실제 RHEL/GHES 현장 확인 상태, rollback/runbook을 기록했다.
-- [ ] stable 버전과 공개는 별도 결정했다. 실제 수행하지 않은 릴리스·현장 검증을 완료로 적지 않았다.
+      *(비교·보안·성능·runbook 기록 완료 → 실제 RHEL/GHES 확인만 #265)*
+- [x] stable 버전과 공개는 별도 결정했다. 실제 수행하지 않은 릴리스·현장 검증을 완료로 적지 않았다.
+      → 릴리스 미생성, [release-runbook.md §5](release-runbook.md)

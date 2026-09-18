@@ -4,6 +4,12 @@
 [GitHub 마일스톤](https://github.com/jihoon22-lee/ici/milestone/1)의 이슈가 갖는다.
 문서와 이슈가 충돌하면 이 디렉터리의 문서가 규범 원문이고, 이슈는 진행 상태다.
 
+> **상태(2026-09-18)**: 개발 마일스톤은 closed(open 0 / closed 38) — WP00~WP29의
+> 구현·검증·문서 작업이 전부 머지됐고, bare `ici verify`는 `[workspace]` 선언
+> 워크스페이스에서 next 경로를 탄다(cutover dispatch). 남은 것은 실환경
+> 확인뿐이다: RHEL 8.10·GHES·idk 현장 인수와 stable 경로 물리적 제거 승인이
+> [#265](https://github.com/jihoon22-lee/ici/issues/265)에 모여 있다.
+
 | | |
 |---|---|
 |기준 소스|`20c417cc8ec84aa490d0138782bf9fe38374fb5d`|

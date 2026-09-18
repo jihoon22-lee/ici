@@ -8,6 +8,11 @@ $ ici verify --report --html verify_report.html --open
 $ ici doctor
 ```
 
+같은 `ici.pyz`에 **ici-next 경로**(`ici next …`)가 들어 있습니다. 프로젝트의 `ici.toml`이
+`[workspace]` 테이블을 선언하면 bare `ici verify`도 자동으로 next 엔진을 탑니다 —
+레거시 설정은 기존 stable 경로 그대로 동작합니다. 전환 방법은
+[사용자 가이드](docs/user-guide.md#ici-next로-이전하기)에 있습니다.
+
 ### 현재 릴리스
 
 공개 stable 릴리스는 [v0.11.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.11.0)이며
@@ -22,7 +27,7 @@ compiler-backed C++ 분석과 gcov JSON coverage 정책이 여기에 해당한�
 않는다.
 
 - [CHANGELOG](CHANGELOG.md) — 버전별 변경과 릴리스 증거
-- [ici-next 설계](docs/design/ici-next/README.md) — **현재 진행 중인 전환의 계획·설계·결정 기록**
+- [ici-next 설계](docs/design/ici-next/README.md) — **전환의 계획·설계·결정 기록.** 개발 마일스톤은 완료됐고 RHEL/GHES 현장 인수는 [#265](https://github.com/jihoon22-lee/ici/issues/265)가 추적한다
 - [인수인계 문서](docs/superpowers/2026-08-30-handover.md) — 2026-09-04 시점의 맥락과 결정 이유 *(시점 기록)*
 - [workthrough](workthrough/) — 개별 작업의 실측 기록
 - [CI/CD 연동 가이드의 candidate 채널](docs/ci-integration.md#5-candidate-채널-stable-release가-아님) — candidate artifact와 Quality Zoo 인수 절차
@@ -41,7 +46,7 @@ compiler-backed C++ 분석과 gcov JSON coverage 정책이 여기에 해당한�
 
 | 문서 | 설명 | 바로가기 |
 |---|---|---|
-| **🧭 ici-next 설계 (진행 중)** | **현재 작업 계획의 canonical source.** 목표 아키텍처·SPEC 5종·ADR·현행 구현 실측 기록 | [docs/design/ici-next/](docs/design/ici-next/README.md) |
+| **🧭 ici-next 설계** | **전환의 canonical source.** 목표 아키텍처·SPEC 5종·ADR·실측 기록. 개발 완료, 현장 인수는 [#265](https://github.com/jihoon22-lee/ici/issues/265) | [docs/design/ici-next/](docs/design/ici-next/README.md) |
 | **🚀 사용자 가이드** | 빠른 시작, 설치, 전체 CLI 사용법 및 IDE 원클릭 점프 *(현행 stable)* | [docs/user-guide.md](docs/user-guide.md) |
 | **📏 검증 엔진 레퍼런스** | 19개 엔진 descriptor (기본 fast 12 / standard 14 / deep 16, release contract opt-in 시 deep 19), TEM 스코어링 공식, `ici.toml` 정책 설정 *(현행 stable)* | [docs/engine-reference.md](docs/engine-reference.md) |
 | **⚙️ CI/CD 연동 가이드** | GitHub Actions, Step Summary, PR 어노테이션, 사내 폐쇄망 러너 *(현행 stable)* | [docs/ci-integration.md](docs/ci-integration.md) |

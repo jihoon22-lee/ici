@@ -3,7 +3,8 @@
 - 근거 이슈: [WP25 #223](https://github.com/jihoon22-lee/ici/issues/223),
   [spec-04 §7](spec-04-results-integration.md)
 - 상태: **구현·mock 테스트 완료. GHES 실제 환경 검증은 미수행** — 아래
-  호환표의 "미확인" 항목이 정직한 현재 상태다.
+  호환표의 "미확인" 항목이 정직한 현재 상태다. 수행 추적은
+  [#265](https://github.com/jihoon22-lee/ici/issues/265).
 
 ## 1. 권한 경계 — analyze와 publish는 다른 job이다
 

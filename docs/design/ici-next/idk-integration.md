@@ -117,7 +117,8 @@ fixture consumer의 `Location.resolve`가 이 거부를 구현한다.
 
 fixture consumer가 old/new/partial/cancelled 이벤트와 result를 처리하는 것으로
 계약 측은 검증됐다. 실제 idk 통합(어댑터 구현, UI 연결)은 idk 저장소 작업이며
-별도 추적한다 — 이 문서의 fixture 통과를 idk 통합 완료로 기록하지 않는다(#224 항목 7).
+[#265](https://github.com/jihoon22-lee/ici/issues/265)에서 별도 추적한다 — 이 문서의
+fixture 통과를 idk 통합 완료로 기록하지 않는다(#224 항목 7).
 
 ## 검증 근거
 

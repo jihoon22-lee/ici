@@ -873,7 +873,7 @@ config가 없는 경우의 `--config={}`가 clang-tidy의 암묵적인 parent co
 clang-tidy 명령은 이미 loader가 만든 immutable `CompilationContext`의 normalized unit command를
 `build_replay_command`로 안전하게 재생한 뒤, 그 compiler의 허용된 tooling argument만 `--` 뒤에
 전달합니다. compilation database를 직접 다시 읽거나 `-p`를 사용하지 않고, `-c`·output/dependency
-생성·plugin/wrapper 주입·allowlist 밖 option은 제거하��나 fail-closed로 거부합니다. 명령에
+생성·plugin/wrapper 주입·allowlist 밖 option은 제거하���나 fail-closed로 거부합니다. 명령에
 `--fix`를 넣지 않으며 source와 context를 읽기만 하므로 fix-it은 report의 remediation 제안으로만
 남습니다. 각 unit은 최대 120초, 전체 실행은 최대 600초의 global budget을 공유합니다.
 
@@ -1896,16 +1896,28 @@ ici 자신의 검증에 남아 있는 WARN과 SKIP은
 
 ---
 
-## ici-next로 이전하기 (preview)
+## ici-next로 이전하기
 
-ici-next가 opt-in으로 존재하는 동안, 기존 `ici.toml`을 새 스키마로 옮기는 방법은
-`ici next migrate` 하나다.
+기존 `ici.toml`을 새 스키마로 옮기는 방법은 `ici next migrate` 하나다.
 
 ```bash
 ici next migrate                          # dry-run: 변환 결과와 키별 판정을 출력만 한다
 ici next migrate --output ici.next.toml   # 새 파일로 쓴다 — 기존 파일은 거부된다
 ici next migrate --write                  # ici.toml을 교체한다 — 원본은 ici.toml.stable로 남는다
 ```
+
+`ici.toml`이 `[workspace]` 테이블을 선언하게 되면 **기본 경로도 바뀐다** — `--write`
+이후에는 bare `ici verify`가 next 엔진을 실행하며(`ici next verify`와 같은 실행),
+`--report`/`--html`/`--sarif`/`--open`/`--publish`와 `--profile`/`--no-cache`/
+`--baseline`은 그대로 또는 대응 옵션으로 동작한다. 상대 경로로 받는 실행
+산출물(결과 JSON·HTML)은 입력한 디렉터리가 아니라 **워크스페이스 루트** 기준으로
+놓인다 — `ici verify`를 하위 디렉터리에서 실행해도 `.ici/next/`는 루트에 생긴다.
+stable 전용 옵션(`--verbose`·`--max-findings`·`--group-by`·`--fail-on-new`·
+`--write-baseline`·`--github-summary`)은 거절되며 대체 수단이 메시지에 표시된다.
+
+`ici next` 명령군: `init`(설정 생성), `plan`(실행 계획), `verify`(검증+결과 저장),
+`report`(저장된 결과 렌더링 — 분석을 다시 돌리지 않는다), `publish`(GHES 게시),
+`diff`(두 결과 비교), `doctor`(진단), `migrate`(변환).
 
 dry-run 출력의 각 행은 세 판정 중 하나다: `converted`(그대로 옮김),
 `confirm`(대응은 있지만 의미가 달라 검토가 필요), `unsupported`(next에 대응이 없다).
@@ -1916,5 +1928,7 @@ dry-run 출력의 각 행은 세 판정 중 하나다: `converted`(그대로 옮
 먼저 보고한다. 전체 대응표는
 [마이그레이션 매트릭스](design/ici-next/migration-matrix.md)에 있다.
 
-**되돌리기**: `--write`로 교체했어도 원본이 `ici.toml.stable`에 남아 있다. 돌아가는 것은
-파일 복사이며, stable `ici.pyz`는 변환과 무관하게 동일하게 동작한다.
+**되돌리기**: `--write`로 교체했어도 원본이 `ici.toml.stable`에 남아 있다. 원본을
+`ici.toml`로 복사하면 bare `ici verify`도 즉시 stable 경로로 돌아간다 — dispatch는
+`[workspace]` 선언을 보고 판단하므로 설정 파일이 곧 스위치다. 릴리스 판정·rollback
+절차 전체는 [release-runbook](design/ici-next/release-runbook.md)에 있다.
