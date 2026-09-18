@@ -28,6 +28,30 @@ def test_run_process_marks_timeout(tmp_path):
     assert result.returncode == 124
 
 
+@pytest.mark.skipif(os.name != "posix", reason="killpg is POSIX-only")
+def test_a_timed_out_child_is_reaped_not_left_a_zombie():
+    """A killed child that is never wait()ed warns as unclosed at GC.
+
+    The deadline-exhausted path used to return before reaping, which is what
+    surfaced as ``ResourceWarning: subprocess N is still running`` in the
+    deep-profile dogfood run.
+    """
+
+    import subprocess
+
+    proc = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        start_new_session=True,
+    )
+    try:
+        runner._terminate_process(proc, time.monotonic() - 1)
+        assert proc.returncode is not None
+    finally:
+        if proc.returncode is None:
+            proc.kill()
+            proc.wait()
+
+
 @pytest.mark.parametrize(
     ("platform", "expected_key"),
     [("posix", "start_new_session"), ("nt", "creationflags")],

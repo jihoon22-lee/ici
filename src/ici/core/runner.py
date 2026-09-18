@@ -262,6 +262,12 @@ def _remaining(deadline: float | None) -> float | None:
 def _wait_process(proc, deadline: float | None = None) -> None:
     remaining = _remaining(deadline)
     if remaining is not None and remaining <= 0:
+        # The deadline already paid for the kill above; a dead child that is
+        # never wait()ed still surfaces as an unclosed handle at GC. The
+        # bound is small and fixed -- the kill decides the outcome, this only
+        # reaps it.
+        with suppress(OSError, subprocess.TimeoutExpired, TypeError):
+            proc.wait(timeout=0.5)
         return
     try:
         proc.wait(timeout=remaining) if remaining is not None else proc.wait()
