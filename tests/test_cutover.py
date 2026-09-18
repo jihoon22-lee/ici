@@ -108,6 +108,37 @@ def test_stable_only_flags_list_every_offender(next_project: Path) -> None:
         assert flag in result.output
 
 
+@needs_ruff
+def test_bare_verify_from_a_subdirectory_anchors_at_the_workspace(
+    next_project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(next_project / "src")
+    result = runner.invoke(app, ["verify", "--html", "report.html"])
+    assert result.exit_code == 0, result.output
+    # Run artifacts live under the workspace root, not the directory typed in.
+    assert (next_project / ".ici/next/result.json").is_file()
+    assert (next_project / "report.html").is_file()
+
+
+@needs_ruff
+def test_next_report_from_a_subdirectory_reads_the_workspace_result(
+    next_project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert runner.invoke(app, ["next", "verify"]).exit_code == 0
+    monkeypatch.chdir(next_project / "src")
+    result = runner.invoke(app, ["next", "report"])
+    assert result.exit_code == 0, result.output
+    assert (next_project / ".ici/next/result.html").is_file()
+
+
+def test_config_error_composes_nothing(next_project: Path) -> None:
+    # Declares [workspace] (so the dispatch fires) but is semantically broken.
+    (next_project / "ici.toml").write_text("schema_version = 1\n[workspace]\n", encoding="utf-8")
+    result = runner.invoke(app, ["verify", "--html", "report.html"])
+    assert result.exit_code == 2
+    assert not (next_project / "report.html").exists()
+
+
 def test_legacy_config_keeps_the_stable_path(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
