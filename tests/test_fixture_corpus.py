@@ -144,9 +144,7 @@ class TestTheRegisterIsComplete:
             config = tomli.loads((entry.path / "ici.toml").read_text(encoding="utf-8"))
             declared = set(config.get("doctor", {}).get("required_tools", ()))
             probed = {req["executable"] for req in entry.requires if "executable" in req}
-            probed |= {
-                name for req in entry.requires for name in req.get("any_executable", ())
-            }
+            probed |= {name for req in entry.requires for name in req.get("any_executable", ())}
             # A cmake_package probe necessarily runs cmake, so it covers a
             # declared cmake requirement too.
             covered = declared - probed
