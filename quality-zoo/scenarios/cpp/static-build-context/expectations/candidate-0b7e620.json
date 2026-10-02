@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.static-build-context",
+  "class": "red",
+  "project_root": ".",
+  "profile": "deep",
+  "command": ["verify", "--profile", "deep", "--no-cache"],
+  "required_capabilities": ["g++", "cmake"],
+  "skip_policy": "forbid",
+  "suite_status": "FAIL",
+  "producer_version": "0.10.2",
+  "engines": [
+    {"name": "lint", "status": "FAIL", "evidence": "MEASURED", "required": true},
+    {
+      "name": "compile_db",
+      "status": "PASS",
+      "evidence": "MEASURED",
+      "required": true,
+      "extra": {
+        "production_units": 5,
+        "covered_units": 5,
+        "configurations": 5,
+        "issues_count": 0,
+        "coverage_percent": 100.0,
+        "database_path": "build/ici-cmake-build/compile_commands.json"
+      }
+    },
+    {"name": "cycle", "status": "WARN", "evidence": "MEASURED", "required": false}
+  ],
+  "findings": [
+    {
+      "engine": "lint",
+      "engine_status": "FAIL",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "-Wunused-variable",
+      "tool_name": "c++",
+      "category": "correctness",
+      "severity": "medium",
+      "confidence": "exact",
+      "suppressed": false,
+      "location": {"path": "src/warning.cpp", "line": 2},
+      "message_contains": ["warning: unused variable 'unused_local'"]
+    },
+    {
+      "engine": "lint",
+      "engine_status": "FAIL",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_name": "c++",
+      "category": "correctness",
+      "severity": "high",
+      "confidence": "exact",
+      "suppressed": false,
+      "location": {"path": "src/unresolved.cpp", "line": 1},
+      "message_contains": ["fatal error: generated/config.hpp: No such file or directory"]
+    },
+    {
+      "engine": "lint",
+      "engine_status": "FAIL",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_name": "c++",
+      "category": "correctness",
+      "severity": "high",
+      "confidence": "exact",
+      "suppressed": false,
+      "location": {"path": "include/bad_compile.hpp", "line": 4},
+      "message_contains": ["error: 'missing_symbol_for_quality_zoo' was not declared in this scope"]
+    },
+    {
+      "engine": "cycle",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.cycle.target",
+      "tool_rule_id": "CppCycle:2",
+      "tool_name": "compiler include trace",
+      "category": "architecture",
+      "severity": "medium",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": "include/first/config.hpp", "line": 1, "label": "CppCycle:2"},
+      "message_contains": ["C++ include cycle (2 files): config.hpp -> cycle.hpp -> config.hpp"]
+    },
+    {
+      "engine": "cycle",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.cycle.target",
+      "tool_name": "compiler include trace",
+      "category": "architecture",
+      "severity": "medium",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": "src/unresolved.cpp", "line": 1, "label": "CppIncludeUnresolved"},
+      "message_contains": ["Compiler could not resolve active include \"generated/config.hpp\""]
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "lint", "location": {"path": "src/target17.cpp"}},
+    {"engine": "lint", "location": {"path": "src/target20.cpp"}},
+    {"engine": "cycle", "location": {"path": "src/target20.cpp"}}
+  ]
+}

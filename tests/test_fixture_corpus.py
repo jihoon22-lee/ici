@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import tomli
 
 from fixture_manifest import (
     REPO_ROOT,
@@ -28,6 +29,7 @@ from toolcontract import ToolBox
 CPP_FIXTURE_DIR = REPO_ROOT / "examples" / "cpp-fixtures"
 PYTHON_FIXTURE_DIR = REPO_ROOT / "examples" / "python-fixtures"
 NEXT_FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "ici-next"
+QUALITY_ZOO_SCENARIOS = REPO_ROOT / "quality-zoo" / "scenarios"
 
 
 class TestTheRegisterIsComplete:
@@ -106,9 +108,69 @@ class TestTheRegisterIsComplete:
                 assert entry.requires == (), entry.id
 
     def test_real_tool_fixtures_declare_at_least_one(self):
+        """Except quality-zoo rows: a corpus scenario's honest requirement set
+        is whatever its own ``[doctor] required_tools`` declares, and a pure
+        source-analysis scenario legitimately declares nothing. The mirroring
+        tests below hold those rows to that declaration instead."""
         for entry in load_manifest().values():
-            if entry.kind == "real-tool":
+            if entry.kind == "real-tool" and QUALITY_ZOO_SCENARIOS not in entry.path.parents:
                 assert entry.requires, entry.id
+
+    def test_every_corpus_scenario_directory_is_registered(self):
+        """The corpus register is only authoritative if it misses nothing the
+        corpus runner could select."""
+        on_disk = {
+            f"{language.name}/{scenario.name}"
+            for language in QUALITY_ZOO_SCENARIOS.iterdir()
+            if language.is_dir()
+            for scenario in language.iterdir()
+            if scenario.is_dir()
+        }
+        registered = {
+            f"{entry.path.parent.name}/{entry.path.name}"
+            for entry in load_manifest().values()
+            if QUALITY_ZOO_SCENARIOS in entry.path.parents
+        }
+
+        assert on_disk == registered
+
+    def test_corpus_requires_cover_their_scenarios_declared_tools(self):
+        """A corpus row's ``requires`` must cover exactly the ``[doctor]
+        required_tools`` the scenario's own ici.toml declares — no phantom
+        requirements hiding a gap, and none missing."""
+        for entry in load_manifest().values():
+            if QUALITY_ZOO_SCENARIOS not in entry.path.parents:
+                continue
+            config = tomli.loads((entry.path / "ici.toml").read_text(encoding="utf-8"))
+            declared = set(config.get("doctor", {}).get("required_tools", ()))
+            probed = {req["executable"] for req in entry.requires if "executable" in req}
+            probed |= {
+                name for req in entry.requires for name in req.get("any_executable", ())
+            }
+            # A cmake_package probe necessarily runs cmake, so it covers a
+            # declared cmake requirement too.
+            covered = declared - probed
+            if any("cmake_package" in req for req in entry.requires):
+                covered -= {"cmake"}
+
+            assert not covered, f"{entry.id}: required_tools {sorted(covered)} not probed"
+            assert probed <= declared, f"{entry.id}: phantom probes {sorted(probed - declared)}"
+            if not declared:
+                assert entry.requires == (), entry.id
+
+    def test_corpus_package_probes_match_their_cmakelists(self):
+        """Same honesty rule as the cpp examples: a cmake_package probe must be
+        what the fixture's own CMakeLists asks for."""
+        for entry in load_manifest().values():
+            if QUALITY_ZOO_SCENARIOS not in entry.path.parents:
+                continue
+            for requirement in entry.requires:
+                if "cmake_package" not in requirement:
+                    continue
+                text = (entry.path / "CMakeLists.txt").read_text(encoding="utf-8")
+                assert f"find_package({requirement['cmake_package']}" in text, entry.id
+                for component in requirement.get("components") or ():
+                    assert component in text, entry.id
 
     def test_an_unknown_id_is_an_error_not_a_skip(self):
         """A typo in a guard must not quietly turn a test off."""

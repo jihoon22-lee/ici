@@ -20,22 +20,22 @@ from candidate_merge_gate import (  # noqa: E402
     MAX_JSON_BYTES,
     CandidateMergeGateError,
     MergeGateSelection,
-    ToyPullRequestVerification,
+    PullRequestVerification,
     WorkflowJobVerification,
     WorkflowRunVerification,
     main,
     required_check_pages,
     select_merge_gate,
     select_merge_gate_pages,
-    verify_toy_pull_request,
+    verify_pull_request,
     verify_workflow_job,
     verify_workflow_run,
 )
 
 REPOSITORY = "jihoon22-lee/ici"
 TARGET_SHA = "a" * 40
-TOY_REPOSITORY = "jihoon22-lee/toy-projects"
-TOY_TARGET_SHA = "b" * 40
+CORPUS_REPOSITORY = "jihoon22-lee/ici"
+CORPUS_TARGET_SHA = "b" * 40
 
 
 def _write(path: Path, value: object) -> None:
@@ -115,15 +115,15 @@ def _job(
     }
 
 
-def _toy_pull_request(
+def _corpus_pull_request(
     *,
     number: int = 42,
-    sha: str = TOY_TARGET_SHA,
+    sha: str = CORPUS_TARGET_SHA,
     state: str = "open",
     merged_at: object = None,
     base_ref: str = "main",
-    base_repository: str = TOY_REPOSITORY,
-    head_repository: str = TOY_REPOSITORY,
+    base_repository: str = CORPUS_REPOSITORY,
+    head_repository: str = CORPUS_REPOSITORY,
     base_id: int = 7001,
     head_id: int = 7001,
 ) -> dict[str, object]:
@@ -327,15 +327,15 @@ def test_verifies_job_binding_for_exact_workflow_attempt(tmp_path: Path) -> None
     )
 
 
-def test_verifies_exact_open_same_repository_toy_pull_request(tmp_path: Path) -> None:
-    path = tmp_path / "toy-pr.json"
-    _write(path, _toy_pull_request())
+def test_verifies_exact_open_same_repository_corpus_pull_request(tmp_path: Path) -> None:
+    path = tmp_path / "pr.json"
+    _write(path, _corpus_pull_request())
 
-    assert verify_toy_pull_request(path, 42, TOY_TARGET_SHA, TOY_REPOSITORY) == (
-        ToyPullRequestVerification(
+    assert verify_pull_request(path, 42, CORPUS_TARGET_SHA, CORPUS_REPOSITORY) == (
+        PullRequestVerification(
             number=42,
-            target_sha=TOY_TARGET_SHA,
-            repository=TOY_REPOSITORY,
+            target_sha=CORPUS_TARGET_SHA,
+            repository=CORPUS_REPOSITORY,
             repository_id=7001,
             base_branch="main",
         )
@@ -350,17 +350,17 @@ def test_verifies_exact_open_same_repository_toy_pull_request(tmp_path: Path) ->
         ("merged_at", "2026-09-04T00:00:00Z", "merged"),
         ("base_ref", "develop", "base branch"),
         ("head_sha", "c" * 40, "head SHA"),
-        ("base_repository", "other/toy-projects", "base repository"),
-        ("head_repository", "fork/toy-projects", "head repository"),
+        ("base_repository", "other/ici", "base repository"),
+        ("head_repository", "fork/ici", "head repository"),
         ("base_id", 7002, "repository ID"),
         ("head_id", 7002, "repository ID"),
     ],
 )
-def test_rejects_wrong_toy_pull_request_identity(
+def test_rejects_wrong_corpus_pull_request_identity(
     tmp_path: Path, field: str, replacement: object, message: str
 ) -> None:
-    path = tmp_path / "toy-pr.json"
-    payload = _toy_pull_request()
+    path = tmp_path / "pr.json"
+    payload = _corpus_pull_request()
     if field in {"number", "state", "merged_at"}:
         payload[field] = replacement
     elif field == "base_ref":
@@ -378,41 +378,41 @@ def test_rejects_wrong_toy_pull_request_identity(
     _write(path, payload)
 
     with pytest.raises(CandidateMergeGateError, match=message):
-        verify_toy_pull_request(path, 42, TOY_TARGET_SHA, TOY_REPOSITORY)
+        verify_pull_request(path, 42, CORPUS_TARGET_SHA, CORPUS_REPOSITORY)
 
 
-def test_toy_pull_request_requires_explicit_unmerged_marker_and_bounded_json(
+def test_corpus_pull_request_requires_explicit_unmerged_marker_and_bounded_json(
     tmp_path: Path,
 ) -> None:
-    path = tmp_path / "toy-pr.json"
-    payload = _toy_pull_request()
+    path = tmp_path / "pr.json"
+    payload = _corpus_pull_request()
     del payload["merged_at"]
     _write(path, payload)
     with pytest.raises(CandidateMergeGateError, match="merged_at"):
-        verify_toy_pull_request(path, 42, TOY_TARGET_SHA, TOY_REPOSITORY)
+        verify_pull_request(path, 42, CORPUS_TARGET_SHA, CORPUS_REPOSITORY)
 
     path.write_text('{"number":42,"number":42}', encoding="utf-8")
     with pytest.raises(CandidateMergeGateError, match="bounded JSON"):
-        verify_toy_pull_request(path, 42, TOY_TARGET_SHA, TOY_REPOSITORY)
+        verify_pull_request(path, 42, CORPUS_TARGET_SHA, CORPUS_REPOSITORY)
 
 
 @pytest.mark.parametrize("side", ["base", "head"])
-def test_toy_pull_request_requires_repository_objects(tmp_path: Path, side: str) -> None:
-    path = tmp_path / "toy-pr.json"
-    payload = _toy_pull_request()
+def test_corpus_pull_request_requires_repository_objects(tmp_path: Path, side: str) -> None:
+    path = tmp_path / "pr.json"
+    payload = _corpus_pull_request()
     payload[side]["repo"] = None  # type: ignore[index]
     _write(path, payload)
 
     with pytest.raises(CandidateMergeGateError, match="repositories are required"):
-        verify_toy_pull_request(path, 42, TOY_TARGET_SHA, TOY_REPOSITORY)
+        verify_pull_request(path, 42, CORPUS_TARGET_SHA, CORPUS_REPOSITORY)
 
 
-def test_toy_pull_request_rejects_noncanonical_target_sha(tmp_path: Path) -> None:
-    path = tmp_path / "toy-pr.json"
-    _write(path, _toy_pull_request())
+def test_corpus_pull_request_rejects_noncanonical_target_sha(tmp_path: Path) -> None:
+    path = tmp_path / "pr.json"
+    _write(path, _corpus_pull_request())
 
     with pytest.raises(CandidateMergeGateError, match="lowercase 40-character"):
-        verify_toy_pull_request(path, 42, "B" * 40, TOY_REPOSITORY)
+        verify_pull_request(path, 42, "B" * 40, CORPUS_REPOSITORY)
 
 
 @pytest.mark.parametrize(
@@ -537,18 +537,18 @@ def test_cli_emits_bounded_json_and_fails_without_success_output(tmp_path: Path)
         "workflow_run_id": 2001,
     }
 
-    toy_pr = tmp_path / "toy-pr.json"
-    _write(toy_pr, _toy_pull_request())
+    corpus_pr = tmp_path / "pr.json"
+    _write(corpus_pr, _corpus_pull_request())
     output = StringIO()
     with redirect_stdout(output):
         assert (
             main(
                 [
-                    "verify-toy-pr",
-                    str(toy_pr),
+                    "verify-pr",
+                    str(corpus_pr),
                     "42",
-                    TOY_TARGET_SHA,
-                    TOY_REPOSITORY,
+                    CORPUS_TARGET_SHA,
+                    CORPUS_REPOSITORY,
                 ]
             )
             == 0
@@ -556,11 +556,11 @@ def test_cli_emits_bounded_json_and_fails_without_success_output(tmp_path: Path)
     assert json.loads(output.getvalue()) == {
         "base_branch": "main",
         "number": 42,
-        "repository": TOY_REPOSITORY,
+        "repository": CORPUS_REPOSITORY,
         "repository_id": 7001,
         "revision_mode": "pull_request",
-        "schema_version": "ici.quality-zoo-toy-revision/v1",
-        "target_sha": TOY_TARGET_SHA,
+        "schema_version": "ici.quality-zoo-corpus-revision/v1",
+        "target_sha": CORPUS_TARGET_SHA,
     }
 
     output = StringIO()

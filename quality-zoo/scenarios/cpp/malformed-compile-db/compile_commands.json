@@ -1,0 +1,8 @@
+[
+  {
+    "directory": ".",
+    "command": "g++ -std=c++17 -c src/main.cpp -o build/main.o",
+    "file": "src/main.cpp"
+  },
+  "this row is deliberately malformed"
+]

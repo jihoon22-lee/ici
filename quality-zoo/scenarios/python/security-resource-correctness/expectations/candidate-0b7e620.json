@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "scenario_id": "python.security-resource-correctness",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": ["verify", "--profile", "deep", "--no-cache"],
+  "required_capabilities": [],
+  "skip_policy": "forbid",
+  "suite_status": "WARN",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "security",
+      "status": "WARN",
+      "evidence": "MEASURED",
+      "required": true
+    },
+    {
+      "name": "resource",
+      "status": "WARN",
+      "evidence": "MEASURED",
+      "required": true
+    }
+  ],
+  "findings": [
+    {
+      "engine": "security",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:HardcodedSecret",
+      "category": "security",
+      "severity": "medium",
+      "confidence": "high",
+      "location": {"path": "src/bad.py", "line": 3, "column_min": 1, "column_max": 1},
+      "message_contains": ["REDACTED"]
+    },
+    {
+      "engine": "security",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:EvalExec",
+      "category": "security",
+      "severity": "medium",
+      "confidence": "high",
+      "location": {"path": "src/bad.py", "line": 7, "column_min": 12, "column_max": 12}
+    },
+    {
+      "engine": "resource",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:OpenWithoutWith",
+      "category": "resource",
+      "severity": "medium",
+      "confidence": "medium",
+      "location": {"path": "src/bad.py", "line": 11, "column_min": 14, "column_max": 14}
+    },
+    {
+      "engine": "resource",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Correctness:MutableDefault",
+      "category": "correctness",
+      "severity": "medium",
+      "confidence": "exact",
+      "location": {"path": "src/bad.py", "line": 15, "column_min": 30, "column_max": 30}
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "security", "location": {"path": "src/clean.py"}},
+    {"engine": "resource", "location": {"path": "src/clean.py"}}
+  ]
+}

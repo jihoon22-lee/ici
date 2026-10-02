@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.ubsan-signed-overflow",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "standard",
+  "command": ["verify", "--profile", "standard", "--no-cache"],
+  "required_capabilities": ["g++"],
+  "skip_policy": "forbid",
+  "suite_status": "FAIL",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "sanitize",
+      "status": "FAIL",
+      "evidence": "MEASURED",
+      "required": true,
+      "extra": {"sanitize_issues": 1}
+    }
+  ],
+  "findings": [
+    {
+      "engine": "sanitize",
+      "engine_status": "FAIL",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.sanitize.target",
+      "tool_rule_id": "ubsan.signed-integer-overflow",
+      "tool_name": "UndefinedBehaviorSanitizer",
+      "category": "correctness",
+      "severity": "high",
+      "confidence": "exact",
+      "suppressed": false,
+      "location": {"path": "src/fault.cpp", "line": 3},
+      "message_contains": ["signed integer overflow"]
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "sanitize", "location": {"path": "src/clean.cpp"}}
+  ]
+}

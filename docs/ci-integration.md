@@ -277,10 +277,12 @@ Release에는 `ici.pyz`, 체크섬, CLI/GUI viewer와 함께 self/viewer HTML·J
 
 ### 1.6 Candidate → Quality Zoo 수용 (수동·읽기 전용 경로)
 
-`.github/workflows/candidate-quality-zoo.yml`은 stable release나 일반 toy PR gate와 분리된
-ici-hosted `workflow_dispatch` workflow다. 후보 pyz를 Quality Zoo에 주입해 교차 저장소
-수용을 수행할 때만 사용한다. 이 경로의 원격 수용은 별도 read-only acceptance artifact로
-감사하며, 일반 toy PR gate와 stable release 경계에는 영향을 주지 않는다.
+`.github/workflows/candidate-quality-zoo.yml`은 stable release와 분리된
+ici-hosted `workflow_dispatch` workflow다. 후보 pyz를 이 저장소가 소유한 Quality Zoo
+corpus(`quality-zoo/`)에 주입해 후보 수용을 수행할 때만 사용한다. corpus는 과거
+toy-projects 저장소에 있었으나 이제 이 저장소가 소유하므로 교차 저장소 checkout은
+없어졌다. 이 경로의 수용은 별도 read-only acceptance artifact로 감사하며,
+stable release 경계에는 영향을 주지 않는다.
 
 candidate consumer job은 Qt lifetime 및 C++ static-analysis scenario가 도구 부재로 조용히
 skip되지 않도록 hosted runner provisioning 단계에서 `clang`, `clang-tidy`, `clazy`, `cmake`,
@@ -293,10 +295,10 @@ taxonomy와 Qt lifetime expectation을 포함한 6개 scenario를 모두 수용�
 run `33737405098`에서 8/8 contract를 수용했다. 앞선 category/Qt evidence나 이 TSan evidence는
 다른 feature head에 재사용하지 않는다.
 
-실행 전 toy-projects의 `quality-zoo` 기대값이 포함된 정확한 revision과 ici candidate producer
-artifact의 좌표를 별도로 확인한다. 기본 `toy_revision_mode=main`은 기존처럼 보호된
-toy-projects `main` tip만 허용한다. 아직 병합되지 않은 Quality Zoo 기대값으로 후보를
-검증하려면 `toy_revision_mode=pull_request`와 같은 저장소의 열린 PR 번호를 함께 지정한다.
+실행 전 이 저장소 `quality-zoo/`의 기대값이 포함된 정확한 revision과 ici candidate producer
+artifact의 좌표를 별도로 확인한다. 기본 `corpus_revision_mode=main`은 보호된 이 저장소의
+`main` tip만 허용한다. 아직 병합되지 않은 Quality Zoo 기대값으로 후보를
+검증하려면 `corpus_revision_mode=pull_request`와 같은 저장소의 열린 PR 번호를 함께 지정한다.
 workflow는 네 개의 필수 입력과 두 개의 선택 입력을 받는다.
 
 | 입력 | 의미와 검증 |
@@ -304,9 +306,9 @@ workflow는 네 개의 필수 입력과 두 개의 선택 입력을 받는다.
 | `ici_target_sha` | candidate가 빌드된 ici `main`의 전체 소문자 40자리 SHA |
 | `candidate_artifact_id` | ici Actions candidate ZIP의 양의 정수 artifact ID |
 | `candidate_archive_sha256` | API에서 내려받은 원본 ZIP의 전체 소문자 64자리 SHA-256 |
-| `toy_target_sha` | 기대값을 포함한 toy-projects `main` 또는 PR head의 전체 소문자 40자리 SHA |
-| `toy_revision_mode` | `main`(기본값) 또는 `pull_request`; revision의 출처를 선택 |
-| `toy_pr_number` | `pull_request` 모드에서만 필요한 toy-projects 열린 PR 번호 |
+| `corpus_sha` | `quality-zoo/` 기대값을 포함한 이 저장소 `main` 또는 PR head의 전체 소문자 40자리 SHA |
+| `corpus_revision_mode` | `main`(기본값) 또는 `pull_request`; corpus revision의 출처를 선택 |
+| `corpus_pr_number` | `pull_request` 모드에서만 필요한 이 저장소의 열린 PR 번호 |
 
 ici `main`에서 다음처럼 수동 dispatch한다.
 
@@ -315,41 +317,41 @@ gh workflow run candidate-quality-zoo.yml --ref main \
   -f ici_target_sha=<ici-main-sha> \
   -f candidate_artifact_id=<artifact-id> \
   -f candidate_archive_sha256=<archive-sha256> \
-  -f toy_target_sha=<toy-main-sha>
+  -f corpus_sha=<ici-main-sha>
 ```
 
-병합 전 toy PR head를 검증할 때는 PR API 응답에서 번호와 head SHA를 읽어 정확히 넣는다.
+병합 전 corpus PR head를 검증할 때는 PR API 응답에서 번호와 head SHA를 읽어 정확히 넣는다.
 
 ```bash
 gh workflow run candidate-quality-zoo.yml --ref main \
   -f ici_target_sha=<ici-main-sha> \
   -f candidate_artifact_id=<artifact-id> \
   -f candidate_archive_sha256=<archive-sha256> \
-  -f toy_revision_mode=pull_request \
-  -f toy_pr_number=<open-toy-pr-number> \
-  -f toy_target_sha=<exact-open-toy-pr-head-sha>
+  -f corpus_revision_mode=pull_request \
+  -f corpus_pr_number=<open-ici-pr-number> \
+  -f corpus_sha=<exact-open-pr-head-sha>
 ```
 
-workflow는 실행 ref가 ici `main`인지, `main` 모드에서는 toy SHA가 현재 `main`과 일치하는지,
+workflow는 실행 ref가 ici `main`인지, `main` 모드에서는 corpus SHA가 현재 `main`과 일치하는지,
 `pull_request` 모드에서는 지정한 PR이 아직 열려 있고 병합되지 않았는지 확인한다. 후자의
 경우 base branch가 `main`이고 base/head repository의 전체 이름과 numeric ID가 모두
-`jihoon22-lee/toy-projects`와 일치해야 하며, head SHA도 입력과 정확히 같아야 한다. 따라서
+`jihoon22-lee/ici`와 일치해야 하며, head SHA도 입력과 정확히 같아야 한다. 따라서
 fork PR은 거부되고, 다른 번호·branch·repository·stale head를 재사용할 수 없다. 두 모드 모두
-canonical toy repository를 검증된 exact SHA로 checkout한다. 이어 candidate manifest의 target,
-candidate run, Merge Gate check/job/run ID와 attempt·URL을 독립 Actions API 응답으로 다시
+검증된 exact SHA에서 이 저장소의 `quality-zoo/`만 sparse checkout한다. 이어 candidate manifest의
+target, candidate run, Merge Gate check/job/run ID와 attempt·URL을 독립 Actions API 응답으로 다시
 검증한다. `candidate_intake`는 먼저 토큰 없이 preflight를 수행하고, 그 결과를 바탕으로
 별도 읽기 전용 API 조회를 한 뒤 provenance를 완전히 검증한다. Quality Zoo 실행은 검증된
 로컬 `ici.pyz` 경로만 사용하며, 선택한 mode/repository/exact SHA와 PR mode의 번호·repository
-ID는 acceptance artifact의 `toy-revision.json`에 함께 남긴다. Candidate preflight와 실행 단계에서는
+ID는 acceptance artifact의 `corpus-revision.json`에 함께 남긴다. Candidate preflight와 실행 단계에서는
 `GH_TOKEN`/`GITHUB_TOKEN`/OIDC·runtime token을 명시적으로 제거한다.
 
-검증된 exact toy revision에 `quality-zoo/candidate-manifest.json`이 있으면 이를 우선
+검증된 exact corpus revision에 `quality-zoo/candidate-manifest.json`이 있으면 이를 우선
 선택하고, 파일이 없을 때만 기존 `quality-zoo/manifest.json`으로 fallback한다. 두 파일 모두
 regular non-symlink 파일이어야 하며 candidate가 malformed candidate manifest를 제공한 경우
 stable manifest로 조용히 우회하지 않고 실패한다. 선택 직후와 Quality Zoo 실행 직후 SHA-256을
 재확인하고, 결과 artifact의 `results/manifest-selection.json`에
 `quality-zoo.manifest-selection/v1`, 선택 source/path/digest를 기록한다. 따라서 candidate-only
-시나리오를 stable toy PR gate에 섞지 않으면서 어떤 기대값 집합을 실행했는지 독립적으로
+시나리오를 stable 경로에 섞지 않으면서 어떤 기대값 집합을 실행했는지 독립적으로
 감사할 수 있다.
 
 성공 조건은 `quality-zoo.suite/v1`, non-empty scenario 결과, `scenario_count` 일치,
@@ -810,42 +812,44 @@ ZIPs lose modes does not apply to this artifact.
 
 This closes the remote producer. The separate ici-hosted `candidate-quality-zoo.yml` workflow
 defines the manual consumer path: it injects the verified candidate by local path into a read-only
-Quality Zoo run while every toy PR's normal gate remains pinned to released ici `v0.10.2`. The first
+Quality Zoo run against the corpus this repository now owns. The first
 exact-revision candidate acceptance completed at run `33710695336` for the existing sanitizer
 contract. The follow-up run `33718024450` then accepted the category-taxonomy candidate against the
-six-scenario toy main revision, including the Qt parent-ownership expectation; acceptance artifact
+six-scenario corpus revision, including the Qt parent-ownership expectation; acceptance artifact
 `9879217928` records all six contracts as passing. The released-artifact Q0 result may be linked or
 added as a section of the existing `<!-- ici-report -->` body, but must preserve exactly one sticky
 comment rather than creating a second marker/comment.
 
 The consumer job provisions `clang`, `clang-tidy`, `clazy`, `cmake`, `g++`, `pkg-config`, and
-`qt6-base-dev` on its runner so a future Qt lifetime/C++ static-analysis scenario can execute.
+`qt6-base-dev` on its runner so the Qt lifetime/C++ static-analysis scenarios can execute.
 Provisioning and candidate preflight/execution do not use GitHub credentials; local purity coverage
 is `32 passed` and actionlint passes. Before the candidate run, the consumer prefers
-`quality-zoo/candidate-manifest.json` from the exact toy-projects commit when present; otherwise it
+`quality-zoo/candidate-manifest.json` from the exact corpus revision when present; otherwise it
 uses `quality-zoo/manifest.json`. A selected manifest must be a regular non-symlink file, and its
 SHA-256 is checked before and after execution. The acceptance artifact records the selected path,
 source (`candidate` or `stable-fallback`), and digest as `quality-zoo.manifest-selection/v1`, so a
-candidate-only expectation set is auditable without changing the released-artifact toy gate. The
+candidate-only expectation set is auditable without changing the released-artifact gate. The
 ThreadSanitizer는 별도 candidate artifact와 candidate manifest로 run `33737405098`의 8/8
 contract를 수용했으며, 그 exact evidence는 다른 feature head에 재사용하지 않는다.
 
 ### Candidate-to-Quality-Zoo acceptance (manual, not a release)
 
 `.github/workflows/candidate-quality-zoo.yml` is an ici-hosted, `workflow_dispatch`-only path for
-cross-repository candidate validation. Dispatch it from `refs/heads/main` only after the toy
-`quality-zoo` commit contains the candidate expectations and the candidate artifact has been
-independently recorded:
+candidate validation against the in-repository Quality Zoo corpus. Dispatch it from
+`refs/heads/main` only after the corpus revision contains the candidate expectations and the
+candidate artifact has been independently recorded:
 
 ```bash
 gh workflow run candidate-quality-zoo.yml --ref main \
   -f ici_target_sha=<40-lowercase-hex-ici-main-sha> \
   -f candidate_artifact_id=<positive-actions-artifact-id> \
   -f candidate_archive_sha256=<64-lowercase-hex-archive-sha256> \
-  -f toy_target_sha=<40-lowercase-hex-toy-main-sha>
+  -f corpus_sha=<40-lowercase-hex-ici-main-sha>
 ```
 
-The workflow verifies the exact ici and toy `main` revisions, downloads the named candidate ZIP,
+The workflow verifies the exact ici `main` revision and the exact corpus revision — the protected
+`main` tip in `main` mode or a still-open same-repository PR head in `pull_request` mode — then
+sparse-checks out `quality-zoo/` at that revision. It downloads the named candidate ZIP,
 checks its raw archive digest, and rechecks the manifest's provenance against independently fetched
 Actions run/check/job evidence. It runs candidate intake once as a no-credential preflight, fetches
 the authenticated evidence separately, then runs the Quality Zoo runner with the verified local
@@ -853,7 +857,7 @@ the authenticated evidence separately, then runs the Quality Zoo runner with the
 Candidate-controlled preflight and execution have GitHub publication/OIDC credentials unset; the
 read-only Actions/Checks/Contents token is used only for artifact and evidence API reads. The result
 is uploaded as a separate, uncompressed 14-day acceptance artifact containing preflight, intake,
-GitHub evidence, and Quality Zoo results.
+GitHub evidence, the `corpus-revision.json` record, and Quality Zoo results.
 
 This path does not run `publish`, publish Pages, write or update a PR comment, or alter the stable
 version/release. The existing released-artifact Q0 acceptance and its single sticky

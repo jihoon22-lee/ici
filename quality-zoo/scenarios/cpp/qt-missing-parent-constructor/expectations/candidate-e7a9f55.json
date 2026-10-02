@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.qt-missing-parent-constructor",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "standard",
+  "command": ["verify", "--profile", "standard", "--no-cache"],
+  "required_capabilities": ["g++", "cmake", "clazy"],
+  "skip_policy": "forbid",
+  "suite_status": "WARN",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "lint",
+      "status": "WARN",
+      "evidence": "MEASURED",
+      "required": true,
+      "extra": {
+        "clazy_mode": "exact",
+        "clazy_profile": "ctor-missing-parent-argument",
+        "cpp_diagnostic_families": {
+          "compiler": 0,
+          "clang-tidy": 0,
+          "clang-analyzer": 0,
+          "clazy": 1
+        },
+        "cpp_diagnostic_category_policy": "tool-rule-v1",
+        "cpp_diagnostic_categories": {
+          "correctness": 0,
+          "type": 0,
+          "security": 0,
+          "resource": 1,
+          "build": 0,
+          "test": 0,
+          "maintainability": 0,
+          "architecture": 0,
+          "compatibility": 0
+        }
+      }
+    }
+  ],
+  "findings": [
+    {
+      "engine": "lint",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "clazy-ctor-missing-parent-argument",
+      "tool_name": "clazy",
+      "category": "resource",
+      "severity": "medium",
+      "confidence": "exact",
+      "suppressed": false,
+      "location": {"path": "src/bad.cpp", "line": 3}
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "lint", "location": {"path": "src/clean.cpp"}}
+  ]
+}

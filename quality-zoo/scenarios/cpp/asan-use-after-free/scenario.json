@@ -1,0 +1,13 @@
+{
+  "schema": 2,
+  "scenario_id": "cpp.asan-use-after-free",
+  "expectations": {
+    "8e6237302ff3b6198cad86c97dd6bcd666ecab9204e9e19209e2e310c7fd18f4": "expectations/released-v0.10.2.json",
+    "e7f1a2ce7147057538873a802715c7bf2b12e530a85070af862e02e378caceb8": "expectations/candidate-9d470ed.json",
+    "985c81a63363356619207870cddb0d8cd9854a46925a3e0a745e54bd543d5b51": "expectations/candidate-9d470ed.json",
+    "424108397858470b1209bc2749b580a858fb06c8b09aaa2e4772c94e43690bb5": "expectations/candidate-9d470ed.json",
+    "50d41d36775394f66f6620091f42a7a0333ee90758e19449a848d7ee0875a93c": "expectations/candidate-9d470ed.json",
+    "23d9922b94b2ba34ab8884cd2d39c8eda358ccb32d0925af5c0a3d52a7ddc893": "expectations/candidate-9d470ed.json",
+    "e90140186f84ff17c4cda039d34c241b99f9ba74b07ea3b089a542c4bb620d9b": "expectations/candidate-9d470ed.json"
+  }
+}

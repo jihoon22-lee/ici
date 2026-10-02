@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.tsan-synchronized",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": ["verify", "--profile", "deep", "--no-cache"],
+  "required_capabilities": ["g++", "cmake"],
+  "skip_policy": "forbid",
+  "suite_status": "PASS",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "thread_sanitize",
+      "status": "PASS",
+      "evidence": "MEASURED",
+      "required": true,
+      "extra": {"thread_sanitize_issues": 0}
+    }
+  ],
+  "findings": [
+    {
+      "engine": "thread_sanitize",
+      "engine_status": "PASS",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "category": "correctness",
+      "severity": "info",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": "CMakeLists.txt", "line": 1}
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "thread_sanitize"}
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "scenario_id": "python.dead-private-function",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "fast",
+  "command": [
+    "verify",
+    "--profile",
+    "fast",
+    "--no-cache"
+  ],
+  "required_capabilities": [],
+  "skip_policy": "forbid",
+  "suite_status": "WARN",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "dead",
+      "status": "WARN",
+      "evidence": "MEASURED",
+      "required": true
+    }
+  ],
+  "findings": [
+    {
+      "engine": "dead",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.dead.target",
+      "tool_rule_id": "",
+      "category": "maintainability",
+      "severity": "medium",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {
+        "path": "src/bad.py",
+        "line": 1
+      }
+    }
+  ],
+  "forbidden_findings": [
+    {
+      "engine": "dead",
+      "location": {
+        "path": "src/clean.py"
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+[ici]
+profile = "standard"
+
+[project]
+name = "quality-zoo-cpp-qt-missing-parent-constructor"
+version = "1.0.0"
+source_dirs = ["src"]
+
+[doctor]
+required_tools = ["g++", "cmake", "clazy"]
+
+[engines.line]
+enabled = false
+[engines.lint]
+enabled = true
+required = true
+clang_tidy = "off"
+clazy = "required"
+clazy_profile = "level0"
+clazy_checks = ["ctor-missing-parent-argument"]
+[engines.compile_db]
+enabled = false
+[engines.test]
+enabled = false
+[engines.type]
+enabled = false
+[engines.complexity]
+enabled = false
+[engines.sanitize]
+enabled = false
+[engines.dead]
+enabled = false
+[engines.dup]
+enabled = false
+[engines.exception]
+enabled = false
+[engines.cycle]
+enabled = false
+[engines.cognitive]
+enabled = false
+[engines.security]
+enabled = false
+[engines.resource]
+enabled = false

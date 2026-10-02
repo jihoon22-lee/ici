@@ -1,0 +1,70 @@
+[ici]
+profile = "deep"
+
+[project]
+name = "quality-zoo-python-maintainability-thresholds"
+version = "1.0.0"
+type = "python"
+source_dirs = ["src"]
+
+[engines.line]
+enabled = false
+[engines.lint]
+enabled = false
+[engines.compile_db]
+enabled = false
+[engines.test]
+enabled = false
+[engines.type]
+enabled = false
+[engines.python_compat]
+enabled = false
+
+[engines.complexity]
+enabled = true
+required = true
+mode = "pass_warn_fail"
+warn_cc = 5
+fail_cc = 50
+warn_nesting = 4
+cpp_boundaries = "off"
+
+[engines.sanitize]
+enabled = false
+[engines.thread_sanitize]
+enabled = false
+[engines.dead]
+enabled = false
+
+[engines.dup]
+enabled = true
+required = true
+mode = "pass_warn"
+warn_pct = 5.0
+fail_pct = 60.0
+min_window = 6
+python_semantic = "auto"
+
+[engines.exception]
+enabled = false
+[engines.cycle]
+enabled = false
+
+[engines.cognitive]
+enabled = true
+required = true
+mode = "pass_warn"
+warn = 8
+fail = 50
+warn_nesting = 4
+
+[engines.security]
+enabled = false
+[engines.resource]
+enabled = false
+[engines.build]
+enabled = false
+[engines.binary_compat]
+enabled = false
+[engines.integration]
+enabled = false

@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.malformed-compile-db",
+  "class": "red",
+  "project_root": ".",
+  "profile": "deep",
+  "command": ["verify", "--profile", "deep", "--no-cache"],
+  "required_capabilities": ["g++"],
+  "skip_policy": "forbid",
+  "suite_status": "FAIL",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "compile_db",
+      "status": "FAIL",
+      "evidence": "MEASURED",
+      "required": true,
+      "extra": {
+        "production_units": 1,
+        "covered_units": 1,
+        "configurations": 1,
+        "issues_count": 1,
+        "coverage_percent": 100.0,
+        "database_path": "compile_commands.json"
+      }
+    }
+  ],
+  "findings": [
+    {
+      "engine": "compile_db",
+      "engine_status": "FAIL",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.compile-db.target",
+      "category": "build",
+      "severity": "high",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": "compile_commands.json", "line": 1, "label": "ici.compile-db.invalid-entry"},
+      "message_contains": ["A compilation database entry is not an object."],
+      "metrics": {"entry_index": {"value": 1}}
+    }
+  ],
+  "forbidden_findings": [
+    {
+      "engine": "compile_db",
+      "location": {"path": "src/main.cpp"}
+    }
+  ]
+}

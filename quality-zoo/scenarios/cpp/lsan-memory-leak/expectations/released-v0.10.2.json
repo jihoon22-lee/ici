@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.lsan-memory-leak",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "standard",
+  "command": ["verify", "--profile", "standard", "--no-cache"],
+  "required_capabilities": ["g++"],
+  "skip_policy": "forbid",
+  "suite_status": "FAIL",
+  "producer_version": "0.10.2",
+  "engines": [
+    {"name": "sanitize", "status": "FAIL", "evidence": "MEASURED", "required": true}
+  ],
+  "findings": [
+    {
+      "engine": "sanitize",
+      "engine_status": "FAIL",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.sanitize.target",
+      "tool_rule_id": "",
+      "tool_name": "sanitizer compile",
+      "category": "correctness",
+      "severity": "high",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": "tests/test_fault.cpp", "line": 1},
+      "message_contains": ["LeakSanitizer", "memory leaks"]
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "sanitize", "location": {"path": "src/clean.cpp"}}
+  ]
+}

@@ -1,0 +1,5 @@
+[project]
+name = "quality-zoo-compatibility"
+version = "1.0.0"
+requires-python = ">=3.10"
+scripts = { qz-check = "actual-missing" }

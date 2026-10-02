@@ -1,0 +1,36 @@
+[ici]
+profile = "standard"
+
+[project]
+name = "quality-zoo-cpp-sanitizer-clean"
+version = "1.0.0"
+source_dirs = ["src"]
+
+[engines.line]
+enabled = false
+[engines.lint]
+enabled = false
+[engines.compile_db]
+enabled = false
+[engines.test]
+enabled = false
+[engines.type]
+enabled = false
+[engines.complexity]
+enabled = false
+[engines.sanitize]
+enabled = true
+[engines.dead]
+enabled = false
+[engines.dup]
+enabled = false
+[engines.exception]
+enabled = false
+[engines.cycle]
+enabled = false
+[engines.cognitive]
+enabled = false
+[engines.security]
+enabled = false
+[engines.resource]
+enabled = false

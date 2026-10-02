@@ -15,27 +15,27 @@ on:
         description: "Out-of-band SHA-256 of the raw candidate artifact ZIP"
         required: true
         type: string
-      toy_target_sha:
-        description: "Exact toy-projects commit containing candidate expectations (main or PR head)"
+      corpus_sha:
+        description: "Exact ici commit whose quality-zoo/ tree supplies the expectations"
         required: true
         type: string
-      toy_revision_mode:
-        description: "Toy revision source: protected main tip or an open same-repository PR head"
+      corpus_revision_mode:
+        description: "Corpus revision source: protected main tip or an open same-repository PR head"
         required: false
         default: main
         type: choice
         options:
           - main
           - pull_request
-      toy_pr_number:
-        description: "Open same-repository toy-projects PR number (required in pull_request mode)"
+      corpus_pr_number:
+        description: "Open same-repository ici PR number (required in pull_request mode)"
         required: false
         type: string
 
 permissions: {}
 
 concurrency:
-  group: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.toy_revision_mode }}-${{ inputs.toy_pr_number }}-${{ inputs.toy_target_sha }}
+  group: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.corpus_revision_mode }}-${{ inputs.corpus_pr_number }}-${{ inputs.corpus_sha }}
   cancel-in-progress: false
 
 jobs:
@@ -60,12 +60,12 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Checkout Exact Quality Zoo Commit
+      - name: Checkout Exact Quality Zoo Corpus
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: jihoon22-lee/toy-projects
-          ref: ${{ inputs.toy_target_sha }}
-          path: toy-projects
+          ref: ${{ inputs.corpus_sha }}
+          path: corpus
+          sparse-checkout: quality-zoo
           fetch-depth: 1
           persist-credentials: false
 
@@ -86,9 +86,9 @@ jobs:
           ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
           CANDIDATE_ARTIFACT_ID: ${{ inputs.candidate_artifact_id }}
           CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
-          TOY_TARGET_SHA: ${{ inputs.toy_target_sha }}
-          TOY_REVISION_MODE: ${{ inputs.toy_revision_mode }}
-          TOY_PR_NUMBER: ${{ inputs.toy_pr_number }}
+          CORPUS_SHA: ${{ inputs.corpus_sha }}
+          CORPUS_REVISION_MODE: ${{ inputs.corpus_revision_mode }}
+          CORPUS_PR_NUMBER: ${{ inputs.corpus_pr_number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
@@ -97,29 +97,28 @@ jobs:
           printf '%s' "$ICI_TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'
           printf '%s' "$CANDIDATE_ARTIFACT_ID" | grep -Eq '^[1-9][0-9]*$'
           printf '%s' "$CANDIDATE_ARCHIVE_SHA256" | grep -Eq '^[0-9a-f]{64}$'
-          printf '%s' "$TOY_TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'
-          printf '%s' "$TOY_REVISION_MODE" | grep -Eq '^(main|pull_request)$'
-          test "$(git -C toy-projects rev-parse HEAD)" = "$TOY_TARGET_SHA"
+          printf '%s' "$CORPUS_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$CORPUS_REVISION_MODE" | grep -Eq '^(main|pull_request)$'
+          test "$(git -C corpus rev-parse HEAD)" = "$CORPUS_SHA"
           ici_main="$(git ls-remote --exit-code https://github.com/jihoon22-lee/ici.git refs/heads/main | cut -f1)"
           test "$GITHUB_SHA" = "$ici_main"
-          case "$TOY_REVISION_MODE" in
+          case "$CORPUS_REVISION_MODE" in
             main)
-              test -z "$TOY_PR_NUMBER"
-              toy_main="$(git ls-remote --exit-code https://github.com/jihoon22-lee/toy-projects.git refs/heads/main | cut -f1)"
-              test "$TOY_TARGET_SHA" = "$toy_main"
-              printf '{"repository":"jihoon22-lee/toy-projects","revision_mode":"main","schema_version":"ici.quality-zoo-toy-revision/v1","target_sha":"%s"}\n' \
-                "$TOY_TARGET_SHA" > "$RUNNER_TEMP/toy-revision.json"
+              test -z "$CORPUS_PR_NUMBER"
+              test "$CORPUS_SHA" = "$ici_main"
+              printf '{"repository":"jihoon22-lee/ici","revision_mode":"main","schema_version":"ici.quality-zoo-corpus-revision/v1","target_sha":"%s"}\n' \
+                "$CORPUS_SHA" > "$RUNNER_TEMP/corpus-revision.json"
               ;;
             pull_request)
-              printf '%s' "$TOY_PR_NUMBER" | grep -Eq '^[1-9][0-9]{0,18}$'
-              toy_repository="jihoon22-lee/toy-projects"
+              printf '%s' "$CORPUS_PR_NUMBER" | grep -Eq '^[1-9][0-9]{0,18}$'
+              corpus_repository="jihoon22-lee/ici"
               gh api -H 'Accept: application/vnd.github+json' \
-                "repos/${toy_repository}/pulls/${TOY_PR_NUMBER}" \
-                > "$RUNNER_TEMP/toy-pull-request.json"
-              python3.10 ici-workflow/scripts/candidate_merge_gate.py verify-toy-pr \
-                "$RUNNER_TEMP/toy-pull-request.json" \
-                "$TOY_PR_NUMBER" "$TOY_TARGET_SHA" "$toy_repository" \
-                > "$RUNNER_TEMP/toy-revision.json"
+                "repos/${corpus_repository}/pulls/${CORPUS_PR_NUMBER}" \
+                > "$RUNNER_TEMP/corpus-pull-request.json"
+              python3.10 ici-workflow/scripts/candidate_merge_gate.py verify-pr \
+                "$RUNNER_TEMP/corpus-pull-request.json" \
+                "$CORPUS_PR_NUMBER" "$CORPUS_SHA" "$corpus_repository" \
+                > "$RUNNER_TEMP/corpus-revision.json"
               ;;
           esac
 
@@ -145,7 +144,7 @@ jobs:
         env:
           ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
           CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
-        working-directory: toy-projects/quality-zoo
+        working-directory: corpus/quality-zoo
         run: |
           set -euo pipefail
           unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
@@ -204,7 +203,7 @@ jobs:
 
       - name: Select Candidate Quality Zoo Manifest
         id: select-manifest
-        working-directory: toy-projects/quality-zoo
+        working-directory: corpus/quality-zoo
         run: |
           set -euo pipefail
           candidate_manifest="candidate-manifest.json"
@@ -241,7 +240,7 @@ jobs:
           MANIFEST_PATH: ${{ steps.select-manifest.outputs.path }}
           MANIFEST_SOURCE: ${{ steps.select-manifest.outputs.source }}
           MANIFEST_SHA256: ${{ steps.select-manifest.outputs.sha256 }}
-        working-directory: toy-projects/quality-zoo
+        working-directory: corpus/quality-zoo
         run: |
           set -euo pipefail
           unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
@@ -312,14 +311,14 @@ jobs:
           mkdir -- "$destination"
           cp -- "$RUNNER_TEMP/candidate-preflight.json" "$destination/preflight.json"
           cp -- "$RUNNER_TEMP/candidate-intake.json" "$destination/intake.json"
-          cp -- "$RUNNER_TEMP/toy-revision.json" "$destination/toy-revision.json"
+          cp -- "$RUNNER_TEMP/corpus-revision.json" "$destination/corpus-revision.json"
           cp -R -- "$RUNNER_TEMP/candidate-evidence" "$destination/github-evidence"
           cp -R -- "$RUNNER_TEMP/quality-zoo-results" "$destination/results"
 
       - name: Upload Candidate Acceptance Evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.toy_target_sha }}
+          name: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.corpus_sha }}
           path: ${{ runner.temp }}/candidate-acceptance
           if-no-files-found: error
           retention-days: 14

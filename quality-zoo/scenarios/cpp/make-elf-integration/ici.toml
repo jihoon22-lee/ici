@@ -1,0 +1,77 @@
+[ici]
+profile = "deep"
+
+[project]
+name = "quality-zoo-cpp-make-elf-integration"
+version = "1.0.0"
+type = "cpp"
+source_dirs = ["src"]
+
+[doctor]
+required_tools = ["make", "g++", "readelf"]
+
+[build.make]
+enabled = true
+shadow_dir = "build/ici-make"
+build_argv = ["make", "CXX=g++", "OUT=build/ici-make", "build"]
+clean_argv = ["make", "OUT=build/ici-make", "clean"]
+jobs = 1
+
+[engines.line]
+enabled = false
+[engines.lint]
+enabled = false
+[engines.compile_db]
+enabled = false
+[engines.test]
+enabled = false
+[engines.type]
+enabled = false
+[engines.python_compat]
+enabled = false
+[engines.complexity]
+enabled = false
+[engines.sanitize]
+enabled = false
+[engines.thread_sanitize]
+enabled = false
+[engines.dead]
+enabled = false
+[engines.dup]
+enabled = false
+[engines.exception]
+enabled = false
+[engines.cycle]
+enabled = false
+[engines.cognitive]
+enabled = false
+[engines.security]
+enabled = false
+[engines.resource]
+enabled = false
+
+[engines.build]
+enabled = true
+required = true
+
+[engines.binary_compat]
+enabled = true
+required = true
+expected_class = "ELF64"
+expected_machine = "Advanced Micro Devices X86-64"
+forbid_absolute_rpath = true
+forbid_build_paths = true
+allow_non_elf = false
+max_artifacts = 8
+
+[engines.integration]
+enabled = true
+required = true
+max_cases = 1
+cases = [
+  { name = "native-self-test", argv = ["{artifact:app}", "--self-test"],
+    stdout_contains = ["make-elf-integration-ok"],
+    stderr_not_contains = ["error"],
+    env = { LD_LIBRARY_PATH = "build/ici-make/lib" },
+    timeout_seconds = 10.0 }
+]

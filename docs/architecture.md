@@ -1183,8 +1183,10 @@ v3 copy로 변환할 수 있지만, baseline loader가 직접 비교하는 입�
 candidate 검증은 일반 PR 검증·stable release·HTML publish와 분리된 두 단계 control plane이다.
 `candidate-artifact.yml`은 exact ici `main` commit의 Merge Gate와 재현 빌드에 결합된
 `ici.pyz`/checksum/provenance 세 파일을 만들고, `candidate-quality-zoo.yml`은 ici 저장소에서
-수동으로 실행된다. consumer workflow는 exact ici target SHA와 toy-projects `main` SHA,
-artifact ID, 원본 ZIP SHA-256을 먼저 검증한 뒤 후보 ZIP을 내려받는다.
+수동으로 실행된다. consumer workflow는 exact ici target SHA와 corpus SHA(이 저장소의
+`main` tip 또는 열린 same-repo PR head), artifact ID, 원본 ZIP SHA-256을 먼저 검증한 뒤
+후보 ZIP을 내려받는다. Quality Zoo corpus는 과거 toy-projects에 있었으나 이제 이 저장소의
+`quality-zoo/`가 canonical 위치다.
 
 consumer는 candidate manifest가 가리키는 Actions run/check/job/attempt와 canonical URL을
 독립 API 응답으로 재검증한다. 인증된 Actions/Checks/Contents 읽기는 artifact와 provenance
@@ -1193,22 +1195,21 @@ evidence를 가져오는 단계에만 사용하며, candidate preflight·intake�
 Quality Zoo runner에 전달하고, preflight/intake/API evidence/runner 결과는 별도 bounded
 14일 artifact로 보존한다.
 
-Quality Zoo 입력은 exact toy revision에 결합된 두 단계 선택 규칙을 사용한다. 먼저
+Quality Zoo 입력은 exact corpus revision에 결합된 두 단계 선택 규칙을 사용한다. 먼저
 `quality-zoo/candidate-manifest.json`이 regular non-symlink 파일로 존재하면 candidate-only
 기대값을 선택하고, 파일이 없을 때만 `quality-zoo/manifest.json`을 stable fallback으로
 선택한다. candidate 파일이 디렉터리·symlink·기타 비정규 파일이면 fallback하지 않고
 실패한다. 선택 파일의 SHA-256은 실행 전후에 고정되고, acceptance artifact의
 `results/manifest-selection.json`(`quality-zoo.manifest-selection/v1`)이 source/path/digest를
-기록하므로, exact toy SHA와 함께 실제로 어떤 기대값이 실행됐는지 재현할 수 있다.
+기록하므로, exact corpus SHA와 함께 실제로 어떤 기대값이 실행됐는지 재현할 수 있다.
 
 이 경계에서는 `publish`, Pages 배포, PR comment 또는 `<!-- ici-report -->` marker를 생성하지
-않는다. 따라서 toy PR의 normal gate는 계속 released ici `v0.10.2`를 사용하고, released
-artifact Q0 acceptance와 candidate consumer acceptance는 서로 다른 증거다. 첫 sanitizer
-범위는 exact-revision remote acceptance를 완료했다. 이 feature head의 taxonomy/tool
-provisioning과 Qt lifetime expectation도 run `33718024450`의 6개 scenario acceptance로
-완료했다. ThreadSanitizer도 별도 candidate-only manifest와 exact artifact를 사용한 run
-`33737405098`에서 8/8 contract를 수용했다. 각 candidate evidence는 해당 exact feature head와
-toy SHA에만 유효하며 이후 변경에 재사용하지 않는다.
+않는다. 따라서 released artifact Q0 acceptance와 candidate consumer acceptance는 서로 다른
+증거다. 첫 sanitizer 범위는 exact-revision remote acceptance를 완료했다. 이 feature head의
+taxonomy/tool provisioning과 Qt lifetime expectation도 run `33718024450`의 6개 scenario
+acceptance로 완료했다. ThreadSanitizer도 별도 candidate-only manifest와 exact artifact를
+사용한 run `33737405098`에서 8/8 contract를 수용했다. 각 candidate evidence는 해당 exact
+feature head와 corpus SHA에만 유효하며 이후 변경에 재사용하지 않는다.
 
 ## 5. 다중 리포터 계층 설계
 

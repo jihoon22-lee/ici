@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.make-elf-integration",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": ["verify", "--profile", "deep", "--no-cache"],
+  "required_capabilities": ["make", "g++", "readelf"],
+  "skip_policy": "forbid",
+  "suite_status": "PASS",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "build",
+      "status": "PASS",
+      "evidence": "MEASURED",
+      "required": true
+    },
+    {
+      "name": "binary_compat",
+      "status": "PASS",
+      "evidence": "MEASURED",
+      "required": true
+    },
+    {
+      "name": "integration",
+      "status": "PASS",
+      "evidence": "MEASURED",
+      "required": true
+    }
+  ],
+  "findings": [],
+  "forbidden_findings": [
+    {"engine": "binary_compat", "location": {"path": "app"}},
+    {"engine": "binary_compat", "location": {"path": "lib/libgreeter.so"}},
+    {"engine": "integration", "location": {"path": "ici.toml"}}
+  ]
+}
