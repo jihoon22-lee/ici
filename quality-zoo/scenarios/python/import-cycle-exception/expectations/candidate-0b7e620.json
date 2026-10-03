@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "scenario_id": "python.import-cycle-exception",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "standard",
+  "command": ["verify", "--profile", "standard", "--no-cache"],
+  "required_capabilities": [],
+  "skip_policy": "forbid",
+  "suite_status": "FAIL",
+  "producer_version": "0.10.2",
+  "engines": [
+    {"name": "cycle", "status": "WARN", "evidence": "MEASURED", "required": true},
+    {"name": "exception", "status": "FAIL", "evidence": "MEASURED", "required": true}
+  ],
+  "findings": [
+    {
+      "engine": "cycle",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.cycle.target",
+      "tool_rule_id": "Cycle:2",
+      "category": "architecture",
+      "severity": "medium",
+      "confidence": "high",
+      "location": {"path": "src/pkg/a.py", "line": 1},
+      "message_contains": ["Python import cycle (2 modules): pkg.a -> pkg.b -> pkg.a"]
+    },
+    {
+      "engine": "exception",
+      "engine_status": "FAIL",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.exception.target",
+      "category": "correctness",
+      "severity": "high",
+      "confidence": "high",
+      "location": {"path": "src/bad.py", "line": 4, "column_min": 5, "column_max": 5},
+      "message_contains": ["Silent exception swallowing: handler only contains pass"]
+    },
+    {
+      "engine": "exception",
+      "engine_status": "FAIL",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.exception.target",
+      "category": "correctness",
+      "severity": "medium",
+      "confidence": "high",
+      "location": {"path": "src/bad.py", "line": 12, "column_min": 9, "column_max": 9},
+      "message_contains": ["raise error resets the traceback"]
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "cycle", "location": {"path": "src/clean.py"}},
+    {"engine": "exception", "location": {"path": "src/clean.py"}}
+  ]
+}

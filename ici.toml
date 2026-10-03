@@ -13,6 +13,9 @@ enabled = true
 mode = "pass_warn_fail"   # pass_warn_fail | pass_fail | pass_warn
 warn_limit = 500          # 순수 코드 500라인 초과 시 경고
 fail_limit = 1000         # 순수 코드 1000라인 초과 시 실패
+# quality-zoo/ 는 ici 소유 known-answer corpus다. 시나리오는 검증 대상이 되기 위해
+# 의도적으로 결함을 포함하므로 이 저장소의 dogfood 분석 대상이 아니다.
+exclude_dirs = ["quality-zoo"]
 
 [engines.lint]
 enabled = true

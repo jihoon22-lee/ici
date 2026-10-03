@@ -7,6 +7,26 @@
 
 ## [Unreleased]
 
+### 변경 — Quality Zoo corpus를 이 저장소로 이관 (#201)
+
+- `quality-zoo/`는 이제 이 저장소가 소유한다. toy-projects @ `195de9b`에서
+  이관했으며, 16개 시나리오(cpp 11, python 5)를
+  `tests/fixtures/manifest.toml`의 등록부 행으로 올렸다.
+- `candidate-quality-zoo.yml`은 더 이상 toy-projects를 checkout하지 않는다.
+  corpus revision 입력이 `toy_target_sha`/`toy_revision_mode`/`toy_pr_number`에서
+  `corpus_sha`/`corpus_revision_mode`/`corpus_pr_number`로 바뀌었고,
+  `main` 모드는 보호된 이 저장소의 `main` tip을, `pull_request` 모드는 이
+  저장소의 열린 PR head를 `verify-pr`로 검증한다.
+- `candidate_merge_gate.py`의 `verify-toy-pr`는 저장소 비특정 `verify-pr`로
+  이름을 바꿨고, revision 기록 스키마는 `ici.quality-zoo-toy-revision/v1`에서
+  `ici.quality-zoo-corpus-revision/v1`로 올라갔다.
+- corpus는 dogfood 분석 대상이 아니다: `ici.toml`의 line 엔진
+  `exclude_dirs`와 ruff `extend-exclude`로 격리하고, corpus 자체 단위
+  테스트는 `ci.yml`의 새 스텝이 `quality-zoo/`에서 실행한다.
+- corpus 위생 검사(`tests/test_corpus_hygiene.py`)는 등록된 corpus 전체로
+  확장된다. security 시나리오의 credential-shaped bait는 등록 행의
+  `hygiene_allow`로 그 패턴만 exempt한다.
+
 ### 수정 — next 경로의 상대 경로 앵커 통일 (배포 전 검토)
 
 - **버그 수정**: `ici next report`와 `ici next diff`가 상대 경로를 *cwd*

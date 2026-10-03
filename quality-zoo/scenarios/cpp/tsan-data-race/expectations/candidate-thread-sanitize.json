@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.tsan-data-race",
+  "class": "red",
+  "project_root": ".",
+  "profile": "deep",
+  "command": ["verify", "--profile", "deep", "--no-cache"],
+  "required_capabilities": ["g++", "cmake"],
+  "skip_policy": "forbid",
+  "suite_status": "FAIL",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "thread_sanitize",
+      "status": "FAIL",
+      "evidence": "MEASURED",
+      "required": true,
+      "extra": {"thread_sanitize_issues": 1}
+    }
+  ],
+  "findings": [
+    {
+      "engine": "thread_sanitize",
+      "engine_status": "FAIL",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "tool_rule_id": "tsan.data-race",
+      "tool_name": "ThreadSanitizer",
+      "category": "correctness",
+      "severity": "high",
+      "confidence": "exact",
+      "suppressed": false,
+      "location": {"path": "src/race.cpp", "line": 15},
+      "message_contains": ["ThreadSanitizer detected data race"]
+    }
+  ],
+  "forbidden_findings": []
+}

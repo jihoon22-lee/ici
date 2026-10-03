@@ -11,13 +11,14 @@
 |PR 게이트|[ci.yml](../../../.github/workflows/ci.yml)|pull_request|ici 저장소|**예** — 단위·디퍼렌셜·보안·fixture corpus·pyz 빌드·stable+next dogfood|
 |번들 smoke|[bundle-smoke.yml](../../../.github/workflows/bundle-smoke.yml)|정기 + bundle 경로 변경|ici 저장소|**예** — 오프라인·read-only·이동·symlink·두 버전 병행|
 |candidate artifact|[candidate-artifact.yml](../../../.github/workflows/candidate-artifact.yml)|수동 dispatch|ici 저장소|release 판정 시 — 고정 소스에서 재조립·재검증|
-|toy 소비자 검증|[candidate-quality-zoo.yml](../../../.github/workflows/candidate-quality-zoo.yml)|수동 dispatch|toy-projects(정확한 SHA 고정)|**명시적 소비자 검증** — 필수 게이트가 아니다|
+|corpus 회귀 검증|[candidate-quality-zoo.yml](../../../.github/workflows/candidate-quality-zoo.yml)|수동 dispatch|ici 저장소(정확한 SHA 고정)|release 판정 시 — candidate를 ici 소유 known-answer corpus로 판정|
 
 필수 게이트는 전부 ici가 소유한다 — 어떤 필수 검증도 toy-projects의 동시
 변경이나 최신 `main`을 요구하지 않는다(#227 항목 2). ici 소유 회귀 corpus는
-`tests/fixtures/manifest.toml` 등록부에 고정돼 있고 디스크↔등록부 양방향
-대조가 CI에서 걸린다(R13). toy quality-zoo는 released/candidate ici의
-소비자 관점 검증으로 남는다 — ici용 특수 구조를 요구하지 않는다.
+`quality-zoo/`에 있고 `tests/fixtures/manifest.toml` 등록부에 고정돼 있으며
+디스크↔등록부 양방향 대조가 CI에서 걸린다(R13). toy-projects를 포함한
+외부 저장소의 소비자 검증은 released/candidate ici에 대한 명시적 선택
+검증으로 가능하다 — ici용 특수 구조를 요구하지 않는다.
 
 ## 2. R01~R15 최종 체크리스트
 

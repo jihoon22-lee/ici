@@ -1,0 +1,53 @@
+[ici]
+profile = "deep"
+
+[project]
+name = "qz-malformed-compile-db"
+version = "1.0.0"
+type = "cpp"
+source_dirs = ["src"]
+compile_database = "compile_commands.json"
+
+[doctor]
+required_tools = ["g++"]
+
+[engines.line]
+enabled = false
+[engines.lint]
+enabled = false
+[engines.compile_db]
+enabled = true
+required = true
+database_required = true
+[engines.test]
+enabled = false
+[engines.type]
+enabled = false
+[engines.python_compat]
+enabled = false
+[engines.complexity]
+enabled = false
+[engines.sanitize]
+enabled = false
+[engines.thread_sanitize]
+enabled = false
+[engines.dead]
+enabled = false
+[engines.dup]
+enabled = false
+[engines.exception]
+enabled = false
+[engines.cycle]
+enabled = false
+[engines.cognitive]
+enabled = false
+[engines.security]
+enabled = false
+[engines.resource]
+enabled = false
+[engines.build]
+enabled = false
+[engines.binary_compat]
+enabled = false
+[engines.integration]
+enabled = false

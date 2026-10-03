@@ -403,7 +403,7 @@ def test_candidate_quality_zoo_workflow_is_manual_and_requires_exact_coordinates
         "ici_target_sha",
         "candidate_artifact_id",
         "candidate_archive_sha256",
-        "toy_target_sha",
+        "corpus_sha",
     ):
         value = re.split(
             r"\n      [A-Za-z0-9_-]+:\n",
@@ -414,14 +414,14 @@ def test_candidate_quality_zoo_workflow_is_manual_and_requires_exact_coordinates
         assert re.search(r"(?m)^        type: string$", value)
         assert not re.search(r"(?m)^        default:", value)
 
-    mode = dispatch.split("      toy_revision_mode:\n", 1)[1]
+    mode = dispatch.split("      corpus_revision_mode:\n", 1)[1]
     assert re.search(r"(?m)^        required: false$", mode)
     assert re.search(r"(?m)^        default: main$", mode)
     assert re.search(r"(?m)^        type: choice$", mode)
     assert "          - main" in mode
     assert "          - pull_request" in mode
 
-    pr_number = dispatch.split("      toy_pr_number:\n", 1)[1]
+    pr_number = dispatch.split("      corpus_pr_number:\n", 1)[1]
     assert re.search(r"(?m)^        required: false$", pr_number)
     assert re.search(r"(?m)^        type: string$", pr_number)
 
@@ -441,9 +441,10 @@ def test_candidate_quality_zoo_job_is_read_only_and_exact_main_bound():
     assert "pull-requests: write" not in workflow
     assert "pages:" not in workflow
 
-    checkout = _step_block(accept, "Checkout Exact Quality Zoo Commit")
-    assert "repository: jihoon22-lee/toy-projects" in checkout
-    assert "ref: ${{ inputs.toy_target_sha }}" in checkout
+    checkout = _step_block(accept, "Checkout Exact Quality Zoo Corpus")
+    assert "repository:" not in checkout
+    assert "ref: ${{ inputs.corpus_sha }}" in checkout
+    assert "sparse-checkout: quality-zoo" in checkout
     assert "persist-credentials: false" in checkout
 
     validate = _step_block(accept, "Validate Workflow Inputs and Exact Revisions")
@@ -452,17 +453,17 @@ def test_candidate_quality_zoo_job_is_read_only_and_exact_main_bound():
     assert 'test "$GITHUB_REPOSITORY" = "jihoon22-lee/ici"' in run_script
     assert 'test "$GITHUB_REF" = "refs/heads/main"' in run_script
     assert 'test "$GITHUB_SHA" = "$ici_main"' in run_script
-    assert 'test "$TOY_TARGET_SHA" = "$toy_main"' in run_script
+    assert 'test "$CORPUS_SHA" = "$ici_main"' in run_script
     assert "grep -Eq '^(main|pull_request)$'" in run_script
-    assert "candidate_merge_gate.py verify-toy-pr" in run_script
-    assert '"repos/${toy_repository}/pulls/${TOY_PR_NUMBER}"' in run_script
-    assert '"$RUNNER_TEMP/toy-revision.json"' in run_script
+    assert "candidate_merge_gate.py verify-pr" in run_script
+    assert '"repos/${corpus_repository}/pulls/${CORPUS_PR_NUMBER}"' in run_script
+    assert '"$RUNNER_TEMP/corpus-revision.json"' in run_script
     assert run_script.count("^[0-9a-f]{40}$") == 2
     assert "^[0-9a-f]{64}$" in run_script
     assert "^[1-9][0-9]*$" in run_script
 
     stage = _step_block(accept, "Stage Candidate Acceptance Evidence")
-    assert '"$destination/toy-revision.json"' in stage
+    assert '"$destination/corpus-revision.json"' in stage
 
 
 def test_candidate_quality_zoo_separates_tokens_from_candidate_execution():
@@ -541,7 +542,7 @@ def test_candidate_quality_zoo_verifies_provenance_and_uploads_separate_evidence
     assert 'payload.get("contract_verdict") != "PASS"' in execute
     assert "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" in upload
     assert (
-        "name: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.toy_target_sha }}"
+        "name: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.corpus_sha }}"
         in upload
     )
     assert "ici-report-" not in upload

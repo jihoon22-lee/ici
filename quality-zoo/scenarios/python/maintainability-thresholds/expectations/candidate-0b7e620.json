@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "scenario_id": "python.maintainability-thresholds",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": ["verify", "--profile", "deep", "--no-cache"],
+  "required_capabilities": [],
+  "skip_policy": "forbid",
+  "suite_status": "WARN",
+  "producer_version": "0.10.2",
+  "engines": [
+    {"name": "complexity", "status": "WARN", "evidence": "MEASURED", "required": true},
+    {"name": "cognitive", "status": "WARN", "evidence": "MEASURED", "required": true},
+    {"name": "dup", "status": "WARN", "evidence": "ESTIMATED", "required": true}
+  ],
+  "findings": [
+    {
+      "engine": "complexity",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.complexity.target",
+      "category": "maintainability",
+      "severity": "medium",
+      "confidence": "high",
+      "location": {"path": "src/complex.py", "line": 1},
+      "message_contains": ["High complexity: 7 (limit 5), Max Nesting: 3 (limit 4)"],
+      "metrics": {
+        "complexity": {"value": 7},
+        "nesting": {"value": 3, "unit": "levels"}
+      }
+    },
+    {
+      "engine": "cognitive",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.cognitive.target",
+      "category": "maintainability",
+      "severity": "medium",
+      "confidence": "high",
+      "location": {"path": "src/complex.py", "line": 1},
+      "message_contains": ["Cognitive 13 (nesting 3)"],
+      "metrics": {
+        "cognitive": {"value": 13},
+        "nesting": {"value": 3, "unit": "levels"}
+      }
+    },
+    {
+      "engine": "dup",
+      "engine_status": "WARN",
+      "evidence": "ESTIMATED",
+      "rule_id": "ici.legacy.dup.target",
+      "category": "maintainability",
+      "severity": "medium",
+      "confidence": "medium",
+      "location": {"path": "src/duplicates.py", "line": 1},
+      "message_contains": ["Equivalent bounded Python AST shape shared across 2 callable regions"],
+      "metrics": {
+        "clone_group": {"value": 1},
+        "duplicate_lines": {"value": 6, "unit": "lines"}
+      }
+    },
+    {
+      "engine": "dup",
+      "engine_status": "WARN",
+      "evidence": "ESTIMATED",
+      "rule_id": "ici.legacy.dup.target",
+      "category": "maintainability",
+      "severity": "medium",
+      "confidence": "medium",
+      "location": {"path": "src/duplicates.py", "line": 9},
+      "message_contains": ["Equivalent bounded Python AST shape shared across 2 callable regions"],
+      "metrics": {
+        "clone_group": {"value": 1},
+        "duplicate_lines": {"value": 6, "unit": "lines"}
+      }
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "complexity", "location": {"path": "src/clean.py"}},
+    {"engine": "cognitive", "location": {"path": "src/clean.py"}},
+    {"engine": "dup", "location": {"path": "src/clean.py"}},
+    {"engine": "dup", "location": {"path": "src/complex.py"}}
+  ]
+}

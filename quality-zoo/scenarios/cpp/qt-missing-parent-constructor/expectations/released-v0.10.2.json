@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.qt-missing-parent-constructor",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "standard",
+  "command": ["verify", "--profile", "standard", "--no-cache"],
+  "required_capabilities": ["g++", "cmake", "clazy"],
+  "skip_policy": "forbid",
+  "suite_status": "WARN",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "lint",
+      "status": "WARN",
+      "evidence": "MEASURED",
+      "required": true,
+      "extra": {
+        "clazy_mode": "exact",
+        "clazy_profile": "ctor-missing-parent-argument",
+        "cpp_diagnostic_families": {
+          "compiler": 0,
+          "clang-tidy": 0,
+          "clang-analyzer": 0,
+          "clazy": 1
+        }
+      }
+    }
+  ],
+  "findings": [
+    {
+      "engine": "lint",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "clazy-ctor-missing-parent-argument",
+      "tool_name": "clazy",
+      "category": "maintainability",
+      "severity": "medium",
+      "confidence": "exact",
+      "suppressed": false,
+      "location": {"path": "src/bad.cpp", "line": 3}
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "lint", "location": {"path": "src/clean.cpp"}}
+  ]
+}

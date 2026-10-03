@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "scenarios": [
+    {
+      "id": "cpp.asan-use-after-free",
+      "path": "scenarios/cpp/asan-use-after-free"
+    },
+    {
+      "id": "cpp.lsan-memory-leak",
+      "path": "scenarios/cpp/lsan-memory-leak"
+    },
+    {
+      "id": "cpp.make-elf-integration",
+      "path": "scenarios/cpp/make-elf-integration"
+    },
+    {
+      "id": "cpp.malformed-compile-db",
+      "path": "scenarios/cpp/malformed-compile-db"
+    },
+    {
+      "id": "cpp.quality-coverage",
+      "path": "scenarios/cpp/quality-coverage"
+    },
+    {
+      "id": "cpp.qt-missing-parent-constructor",
+      "path": "scenarios/cpp/qt-missing-parent-constructor"
+    },
+    {
+      "id": "cpp.sanitizer-clean",
+      "path": "scenarios/cpp/sanitizer-clean"
+    },
+    {
+      "id": "cpp.static-build-context",
+      "path": "scenarios/cpp/static-build-context"
+    },
+    {
+      "id": "cpp.tsan-data-race",
+      "path": "scenarios/cpp/tsan-data-race"
+    },
+    {
+      "id": "cpp.tsan-synchronized",
+      "path": "scenarios/cpp/tsan-synchronized"
+    },
+    {
+      "id": "cpp.ubsan-signed-overflow",
+      "path": "scenarios/cpp/ubsan-signed-overflow"
+    },
+    {
+      "id": "python.compatibility-package-metadata",
+      "path": "scenarios/python/compatibility-package-metadata"
+    },
+    {
+      "id": "python.dead-private-function",
+      "path": "scenarios/python/dead-private-function"
+    },
+    {
+      "id": "python.import-cycle-exception",
+      "path": "scenarios/python/import-cycle-exception"
+    },
+    {
+      "id": "python.maintainability-thresholds",
+      "path": "scenarios/python/maintainability-thresholds"
+    },
+    {
+      "id": "python.security-resource-correctness",
+      "path": "scenarios/python/security-resource-correctness"
+    }
+  ]
+}

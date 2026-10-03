@@ -86,6 +86,14 @@ jobs:
         run: |
           uv run --python 3.10 pytest tests/test_cpp_e2e.py -v
 
+      # The corpus's own contract tests: runner/manifest/expectation integrity.
+      # They live outside pytest's testpaths on purpose — they are the corpus's
+      # unit suite, not ici's — and run on the pinned 3.10 the workflow uses.
+      - name: Quality Zoo corpus unit tests
+        working-directory: quality-zoo
+        run: |
+          python3.10 -m unittest discover -s tests -v
+
       - name: Build Reproducible Standalone ZipApp (dist/ici.pyz)
         run: |
           chmod +x ./scripts/build-pyz.sh ./scripts/verify-reproducibility.sh ./scripts/smoke.sh ./scripts/launcher.sh

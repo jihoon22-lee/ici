@@ -40,12 +40,12 @@ SECRET_ASSIGNMENT = re.compile(
     r"(?i)(?:password|passwd|secret|api[_-]?key|access[_-]?key|auth[_-]?token)\s*[=:]"
 )
 
-PATTERNS = (
-    ("an absolute path from someone's machine", ABSOLUTE_PATH),
-    ("an internal name", INTERNAL_MARKER),
-    ("a host name or address", HOST_OR_ADDRESS),
-    ("something shaped like a credential", SECRET_ASSIGNMENT),
-)
+PATTERNS = {
+    "absolute-path": ("an absolute path from someone's machine", ABSOLUTE_PATH),
+    "internal-name": ("an internal name", INTERNAL_MARKER),
+    "host-or-address": ("a host name or address", HOST_OR_ADDRESS),
+    "credential-shape": ("something shaped like a credential", SECRET_ASSIGNMENT),
+}
 
 
 def _files(entry: Fixture) -> list[Path]:
@@ -67,15 +67,31 @@ def _corpus_text() -> list[tuple[str, Path, str]]:
     return collected
 
 
-@pytest.mark.parametrize("description,pattern", PATTERNS, ids=lambda value: str(value)[:40])
-def test_no_registered_fixture_carries(description, pattern):
+@pytest.mark.parametrize("key", sorted(PATTERNS), ids=lambda value: PATTERNS[value][0])
+def test_no_registered_fixture_carries(key):
+    description, pattern = PATTERNS[key]
+    fixtures = load_manifest()
     offences = [
         f"{fixture_id} {path.name}:{text[: match.start()].count(chr(10)) + 1} -> {match.group(0)!r}"
         for fixture_id, path, text in _corpus_text()
+        if key not in fixtures[fixture_id].hygiene_allow
         for match in pattern.finditer(text)
     ]
 
     assert offences == [], f"{description}:\n" + "\n".join(offences)
+
+
+def test_hygiene_allow_names_only_known_patterns():
+    """An allow entry names a pattern above; a typo must fail, not silence."""
+
+    unknown = {
+        f"{fixture_id} -> {name!r}"
+        for fixture_id, entry in load_manifest().items()
+        for name in entry.hygiene_allow
+        if name not in PATTERNS
+    }
+
+    assert not unknown, f"unknown hygiene_allow entries: {sorted(unknown)}"
 
 
 class TestThePatternsActuallyMatch:

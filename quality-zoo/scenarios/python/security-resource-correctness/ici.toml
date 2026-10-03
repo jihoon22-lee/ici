@@ -1,0 +1,53 @@
+[ici]
+profile = "deep"
+
+[project]
+name = "quality-zoo-python-security-resource-correctness"
+version = "1.0.0"
+type = "python"
+source_dirs = ["src"]
+
+[engines.line]
+enabled = false
+[engines.lint]
+enabled = false
+[engines.compile_db]
+enabled = false
+[engines.test]
+enabled = false
+[engines.type]
+enabled = false
+[engines.python_compat]
+enabled = false
+[engines.complexity]
+enabled = false
+[engines.sanitize]
+enabled = false
+[engines.thread_sanitize]
+enabled = false
+[engines.dead]
+enabled = false
+[engines.dup]
+enabled = false
+[engines.exception]
+enabled = false
+[engines.cycle]
+enabled = false
+[engines.cognitive]
+enabled = false
+[engines.build]
+enabled = false
+[engines.binary_compat]
+enabled = false
+[engines.integration]
+enabled = false
+
+[engines.security]
+enabled = true
+required = true
+mode = "pass_warn"
+
+[engines.resource]
+enabled = true
+required = true
+mode = "pass_warn"

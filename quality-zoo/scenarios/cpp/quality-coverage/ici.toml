@@ -1,0 +1,70 @@
+[ici]
+profile = "deep"
+
+[project]
+name = "qz-quality-coverage"
+version = "1.0.0"
+type = "cpp"
+source_dirs = ["src"]
+
+[doctor]
+required_tools = ["g++", "cmake", "gcov"]
+
+[engines.line]
+enabled = false
+[engines.lint]
+enabled = false
+[engines.compile_db]
+enabled = false
+[engines.test]
+enabled = true
+required = true
+mode = "pass_warn_fail"
+min_tem_score = 0.0
+min_branch_cov = 100.0
+min_func_cov = 100.0
+coverage_required = false
+[engines.type]
+enabled = false
+[engines.python_compat]
+enabled = false
+[engines.complexity]
+enabled = true
+required = true
+mode = "pass_warn_fail"
+warn_cc = 5
+fail_cc = 20
+warn_nesting = 3
+cpp_boundaries = "off"
+[engines.sanitize]
+enabled = false
+[engines.thread_sanitize]
+enabled = false
+[engines.dead]
+enabled = true
+required = true
+cpp_unused = "required"
+cpp_linker = "off"
+[engines.dup]
+enabled = true
+required = true
+mode = "pass_warn"
+warn_pct = 5.0
+fail_pct = 90.0
+min_window = 6
+[engines.exception]
+enabled = false
+[engines.cycle]
+enabled = false
+[engines.cognitive]
+enabled = false
+[engines.security]
+enabled = false
+[engines.resource]
+enabled = false
+[engines.build]
+enabled = false
+[engines.binary_compat]
+enabled = false
+[engines.integration]
+enabled = false

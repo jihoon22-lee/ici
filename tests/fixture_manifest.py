@@ -67,6 +67,10 @@ class Fixture:
     role: str = ""
     safety: str = ""
     exercised_by: tuple[str, ...] = field(default_factory=tuple)
+    # Names of corpus-hygiene patterns this fixture intentionally trips, e.g. a
+    # known-answer scenario whose bait is a credential-shaped assignment. An
+    # entry here never silences the other patterns for the fixture.
+    hygiene_allow: tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def needs_native_tools(self) -> bool:
@@ -102,6 +106,7 @@ def _fixture_from_entry(entry: dict[str, Any]) -> Fixture:
         role=entry.get("role", ""),
         safety=entry.get("safety", ""),
         exercised_by=tuple(entry.get("exercised_by", ())),
+        hygiene_allow=tuple(entry.get("hygiene_allow", ())),
     )
 
 

@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.quality-coverage",
+  "class": "experimental",
+  "project_root": ".",
+  "profile": "deep",
+  "command": ["verify", "--profile", "deep", "--no-cache"],
+  "required_capabilities": ["g++", "cmake", "gcov"],
+  "skip_policy": "forbid",
+  "suite_status": "WARN",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "test",
+      "status": "WARN",
+      "evidence": "MEASURED",
+      "required": true,
+      "extra": {
+        "coverage_source": "gcov",
+        "branch_coverage": 3.7,
+        "function_coverage": 12.5
+      }
+    },
+    {
+      "name": "complexity",
+      "status": "WARN",
+      "evidence": "ESTIMATED",
+      "required": true,
+      "extra": {"max_complexity": 11, "issues_count": 1, "total_functions": 8}
+    },
+    {
+      "name": "dead",
+      "status": "WARN",
+      "evidence": "MEASURED",
+      "required": true,
+      "extra": {"cpp_unused_functions_count": 1, "cpp_unused_mode": "exact"}
+    },
+    {
+      "name": "dup",
+      "status": "WARN",
+      "evidence": "ESTIMATED",
+      "required": true,
+      "extra": {"clone_groups_count": 1}
+    }
+  ],
+  "findings": [
+    {
+      "engine": "test",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.test.target",
+      "tool_rule_id": "Coverage:Module",
+      "category": "test",
+      "severity": "medium",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": "src/coverage.cpp", "line": 1, "label": "Coverage:Module"},
+      "message_contains": ["Module coverage 37.5%", "5 missed statements"],
+      "metrics": {"coverage": {"value": 37.5, "unit": "percent"}}
+    },
+    {
+      "engine": "test",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.test.target",
+      "tool_rule_id": "Coverage:Module",
+      "category": "test",
+      "severity": "medium",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": "src/complexity.cpp", "line": 1, "label": "Coverage:Module"},
+      "message_contains": ["Module coverage 0.0%", "24 missed statements"],
+      "metrics": {"coverage": {"value": 0.0, "unit": "percent"}}
+    },
+    {
+      "engine": "test",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.test.target",
+      "tool_rule_id": "Coverage:Module",
+      "category": "test",
+      "severity": "medium",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": "src/dup_left.cpp", "line": 1, "label": "Coverage:Module"},
+      "message_contains": ["Module coverage 0.0%", "9 missed statements"],
+      "metrics": {"coverage": {"value": 0.0, "unit": "percent"}}
+    },
+    {
+      "engine": "test",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.test.target",
+      "tool_rule_id": "Coverage:Module",
+      "category": "test",
+      "severity": "medium",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": "src/dup_right.cpp", "line": 1, "label": "Coverage:Module"},
+      "message_contains": ["Module coverage 0.0%", "9 missed statements"],
+      "metrics": {"coverage": {"value": 0.0, "unit": "percent"}}
+    },
+    {
+      "engine": "test",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.test.target",
+      "tool_rule_id": "Threshold: Branch coverage",
+      "category": "test",
+      "severity": "medium",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": ".", "line": 1, "label": "Threshold: Branch coverage"},
+      "message_contains": ["Branch coverage 3.7% is below the configured minimum 100.0%"],
+      "metrics": {"actual": {"value": 3.7}, "threshold": {"value": 100.0}}
+    },
+    {
+      "engine": "test",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.test.target",
+      "tool_rule_id": "Threshold: Function coverage",
+      "category": "test",
+      "severity": "medium",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": ".", "line": 1, "label": "Threshold: Function coverage"},
+      "message_contains": ["Function coverage 12.5% is below the configured minimum 100.0%"],
+      "metrics": {"actual": {"value": 12.5}, "threshold": {"value": 100.0}}
+    },
+    {
+      "engine": "complexity",
+      "engine_status": "WARN",
+      "evidence": "ESTIMATED",
+      "rule_id": "ici.legacy.complexity.target",
+      "category": "maintainability",
+      "severity": "medium",
+      "confidence": "medium",
+      "suppressed": false,
+      "location": {"path": "src/complexity.cpp", "line": 1},
+      "message_contains": ["High complexity: 11 (limit 5), Max Nesting: 3 (limit 3)"],
+      "metrics": {"complexity": {"value": 11}, "nesting": {"value": 3, "unit": "levels"}}
+    },
+    {
+      "engine": "dead",
+      "engine_status": "WARN",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.dead.target",
+      "tool_rule_id": "-Wunused-function",
+      "tool_name": "g++",
+      "category": "maintainability",
+      "severity": "medium",
+      "confidence": "exact",
+      "suppressed": false,
+      "location": {"path": "src/unused.cpp", "line": 1},
+      "message_contains": ["unused_quality_helper", "defined but not used"],
+      "metrics": {"configurations_checked": {"value": 1, "unit": "configurations"}}
+    },
+    {
+      "engine": "dup",
+      "engine_status": "WARN",
+      "evidence": "ESTIMATED",
+      "rule_id": "ici.legacy.dup.target",
+      "category": "maintainability",
+      "severity": "medium",
+      "confidence": "medium",
+      "suppressed": false,
+      "location": {"path": "src/dup_left.cpp", "line": 1},
+      "message_contains": ["Duplicate code block (11 lines) shared across 2 locations"],
+      "metrics": {"clone_group": {"value": 1}, "duplicate_lines": {"value": 11, "unit": "lines"}}
+    },
+    {
+      "engine": "dup",
+      "engine_status": "WARN",
+      "evidence": "ESTIMATED",
+      "rule_id": "ici.legacy.dup.target",
+      "category": "maintainability",
+      "severity": "medium",
+      "confidence": "medium",
+      "suppressed": false,
+      "location": {"path": "src/dup_right.cpp", "line": 1},
+      "message_contains": ["Duplicate code block (11 lines) shared across 2 locations"],
+      "metrics": {"clone_group": {"value": 1}, "duplicate_lines": {"value": 11, "unit": "lines"}}
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "complexity", "location": {"path": "src/clean.cpp"}},
+    {"engine": "dup", "location": {"path": "src/clean.cpp"}},
+    {"engine": "dead", "location": {"path": "src/clean.cpp"}},
+    {"engine": "test", "location": {"path": "src/clean.cpp"}}
+  ]
+}

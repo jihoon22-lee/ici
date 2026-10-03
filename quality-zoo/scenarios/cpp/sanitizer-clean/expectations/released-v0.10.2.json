@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "scenario_id": "cpp.sanitizer-clean",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "standard",
+  "command": ["verify", "--profile", "standard", "--no-cache"],
+  "required_capabilities": ["g++"],
+  "skip_policy": "forbid",
+  "suite_status": "PASS",
+  "producer_version": "0.10.2",
+  "engines": [
+    {
+      "name": "sanitize",
+      "status": "PASS",
+      "evidence": "MEASURED",
+      "required": true,
+      "extra": {"sanitize_issues": 0}
+    }
+  ],
+  "findings": [
+    {
+      "engine": "sanitize",
+      "engine_status": "PASS",
+      "evidence": "MEASURED",
+      "rule_id": "ici.legacy.sanitize.target",
+      "tool_rule_id": "",
+      "tool_name": "sanitizer compile",
+      "category": "correctness",
+      "severity": "info",
+      "confidence": "high",
+      "suppressed": false,
+      "location": {"path": "tests/test_clean.cpp", "line": 1},
+      "message_contains": ["AddressSanitizer", "completed"]
+    }
+  ],
+  "forbidden_findings": [
+    {"engine": "sanitize"}
+  ]
+}
