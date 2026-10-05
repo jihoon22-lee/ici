@@ -215,25 +215,32 @@ jobs:
         run: |
           ./scripts/smoke.sh
 
+      # ici never builds: the C++ gate needs a configured tree, so the
+      # release candidate's dogfood builds it first, like ci.yml does.
+      - name: Build the viewer dogfood tree
+        working-directory: viewer
+        run: |
+          cmake -S . -B build/ici-main \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS=--coverage \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake --build build/ici-main --parallel
+
       - name: Dogfood the Release Candidate
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
           set -euo pipefail
-          dist/ici.pyz verify \
-            --report \
-            --html dist/ici-self-report.html \
-            --github-summary
-          mv verify_report.json dist/ici-self-report.json
+          dist/ici.pyz verify --result dist/ici-self-report.json
+          dist/ici.pyz report --result dist/ici-self-report.json --out dist/ici-self-report.html
+          python scripts/check_next_floors.py dist/ici-self-report.json
 
           (
             cd viewer
-            ../dist/ici.pyz verify \
-              --report \
-              --html ../dist/viewer-report.html \
-              --github-summary
+            ../dist/ici.pyz verify --result ../dist/viewer-report.json
+            ../dist/ici.pyz report --result ../dist/viewer-report.json --out ../dist/viewer-report.html
           )
-          mv viewer/verify_report.json dist/viewer-report.json
+          python scripts/check_next_floors.py --set=viewer dist/viewer-report.json
 
       # Two viewer artifacts, and the difference between them matters.
       #

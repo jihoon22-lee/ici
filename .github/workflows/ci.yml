@@ -106,13 +106,15 @@ jobs:
       - name: 🐶 Dogfooding — Self-Verification Gate via ici
         run: |
           chmod +x dist/ici.pyz
-          dist/ici.pyz verify --report --html verify_report.html --github-summary
+          dist/ici.pyz verify --result verify_report.json
+          dist/ici.pyz report --result verify_report.json --out verify_report.html --sarif verify_report.sarif
+          # The stable warn/fail bands became ratchet floors on the result's
+          # measurements — see the script header for where the numbers came from.
+          python scripts/check_next_floors.py verify_report.json
 
       # viewer/ 는 순수 C++17 코어라 Qt 없이 빌드된다. 이 스텝이 있어야 ici 의 C++ 경로
-      # (lint 의 g++ 진단, test 의 gcov 커버리지, sanitize 의 ASan/UBSan, cycle 의 include 순환)가
-      # CI 에서 실제로 실행된다 — 그 전까지 C++ 엔진은 단위 테스트로만 덮여 있었다.
-      # --github-summary 는 $GITHUB_STEP_SUMMARY 에 append 하므로, Actions 실행 요약에
-      # Python 결과와 C++ 결과가 나란히 남는다. 두 리포트를 모두 볼 수 있어야 한다 —
+      # (diagnostics, ctest, gcov 커버리지, include 순환, ELF 계약)가
+      # CI 에서 실제로 실행된다 — 그 전까지 C++ 분석은 단위 테스트로만 덮여 있었다.
       # The viewer-gui job proves a configure-time property ici cannot express:
       # the CLI configures with both Qt package families disabled. This proves
       # the other half — the linkage policy of the produced binary, from ici's
@@ -121,17 +123,37 @@ jobs:
       #
       # It runs here rather than in viewer-gui because dist/ici.pyz and the Qt6
       # toolchain already exist in this job; rebuilding the pyz there to run one
-      # engine pair would double the build for no extra coverage. It runs before
-      # the C++ gate because --report writes a fixed filename, and the C++ gate's
-      # report is the one that keeps the canonical name.
-      - name: 🐶 Dogfooding — static CLI artifact contract via ici (viewer/)
+      # check would double the build for no extra coverage.
+      # ici-next does not build (ici never builds): the workspace declares
+      # build trees and this job owns them. build/ici-main carries coverage
+      # instrumentation for the C++ gate; build/ici-static is the Qt-free
+      # release artifact the static-cli workspace reads.
+      - name: Build the viewer dogfood trees
         working-directory: viewer
-        env:
-          ICI_CONFIG: ici-static-cli.toml
         run: |
           set -euo pipefail
-          ../dist/ici.pyz verify --profile deep --report
-          mv verify_report.json static_cli_report.json
+          cmake -S . -B build/ici-main \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS=--coverage \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake --build build/ici-main --parallel
+          cmake -S . -B build/ici-static \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DICIRV_BUILD_GUI=OFF -DICIRV_STATIC=ON \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake --build build/ici-static --target icirv --parallel
+
+      - name: 🐶 Dogfooding — static CLI artifact contract via ici (viewer/)
+        working-directory: viewer
+        run: |
+          set -euo pipefail
+          ../dist/ici.pyz verify --config ici-static-cli.toml --profile deep \
+            --result static_cli_result.json
+          ../dist/ici.pyz report --result static_cli_result.json \
+            --out static_cli_report.html
+          # The check reports ABI facts; the static-linkage floor itself is
+          # not declarable yet, so it is asserted here instead of assumed.
+          ! readelf -d build/ici-static/icirv | grep -q 'NEEDED.*Qt'
 
       - name: 🐶 Dogfooding — C++ Gate via ici (viewer/)
         working-directory: viewer
@@ -139,7 +161,12 @@ jobs:
           # The adapter executes every CTest, including the QWidget-based
           # MainWindow test. GitHub-hosted runners do not provide a display.
           QT_QPA_PLATFORM: offscreen
-        run: ../dist/ici.pyz verify --report --html verify_report.html --github-summary
+        run: |
+          set -euo pipefail
+          ../dist/ici.pyz verify --result verify_report.json
+          ../dist/ici.pyz report --result verify_report.json --out verify_report.html
+          python "$GITHUB_WORKSPACE/scripts/check_next_floors.py" \
+            --set=viewer verify_report.json
 
       # The unit suite exercises the next path from source; this exercises it
       # from the shipped artifact. The fixture is a committed next-schema
@@ -152,9 +179,9 @@ jobs:
         run: |
           set -euo pipefail
           out="$(mktemp -d)"
-          "$GITHUB_WORKSPACE/dist/ici.pyz" next plan
-          "$GITHUB_WORKSPACE/dist/ici.pyz" next verify --result "$out/result.json"
-          "$GITHUB_WORKSPACE/dist/ici.pyz" next report --result "$out/result.json" --out "$out/result.html"
+          "$GITHUB_WORKSPACE/dist/ici.pyz" plan
+          "$GITHUB_WORKSPACE/dist/ici.pyz" verify --result "$out/result.json"
+          "$GITHUB_WORKSPACE/dist/ici.pyz" report --result "$out/result.json" --out "$out/result.html"
           test -s "$out/result.json" && test -s "$out/result.html"
           # Zero-CDN on the produced page, not on a promise (SPEC-04).
           ! grep -qE 'https?://' "$out/result.html"
@@ -178,9 +205,11 @@ jobs:
           path: |
             verify_report.html
             verify_report.json
+            verify_report.sarif
             viewer/verify_report.html
             viewer/verify_report.json
-            viewer/static_cli_report.json
+            viewer/static_cli_report.html
+            viewer/static_cli_result.json
             tests/fixtures/next-self-verify/next_self_result.json
             tests/fixtures/next-self-verify/next_self_result.html
             report_benchmark.json
@@ -313,14 +342,16 @@ jobs:
           name: ici-verification-report
           path: .
 
-      # Both reports in one comment. This repository verifies two things — the
+      # Both reports get published. This repository verifies two things — the
       # Python package at the root and the C++ viewer under viewer/ — and a
-      # comment carrying only the first hides half the gate. The root needs an
-      # explicit label because its directory name is ".".
+      # comment carrying only the first hides half the gate. Each workspace
+      # publishes under its own label (``ici`` and ``icirv``), so each keeps
+      # its own sticky comment on the PR.
       - name: Publish HTML Reports & Sticky PR Comment
         run: |
           chmod +x dist/ici.pyz
-          dist/ici.pyz publish --report-dir ici=. --report-dir viewer
+          dist/ici.pyz publish --result verify_report.json --out verify_report.html
+          (cd viewer && ../dist/ici.pyz publish --result verify_report.json --out verify_report.html)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -361,23 +392,26 @@ jobs:
               with urllib.request.urlopen(request, timeout=20) as response:
                   return response.read()
 
-          body = ""
+          bodies: list[str] = []
           for page in range(1, 21):
               comments = json.loads(read(f"{comments_url}?per_page=100&page={page}", api_request=True))
-              body = next(
-                  (str(item.get("body", "")) for item in comments if "<!-- ici-report -->" in str(item.get("body", ""))),
-                  "",
+              bodies.extend(
+                  str(item.get("body", "")) for item in comments
+                  if "<!-- ici-next:" in str(item.get("body", ""))
               )
-              if body or len(comments) < 100:
+              if len(comments) < 100:
                   break
-          if not body:
+          if not bodies:
               raise SystemExit("ici sticky comment was not found")
           run_path = f"/actions/runs/{os.environ['GITHUB_RUN_ID']}"
-          if run_path not in body:
-              raise SystemExit("ici sticky comment is stale: current workflow run link is missing")
-          urls = list(dict.fromkeys(re.findall(r"\[📊 열기\]\((https://[^)]+)\)", body)))
+          if not all(run_path in body for body in bodies):
+              raise SystemExit("an ici sticky comment is stale: current workflow run link is missing")
+          urls = list(dict.fromkeys(
+              url for body in bodies
+              for url in re.findall(r"^report: (https://\S+)", body, flags=re.M)
+          ))
           if len(urls) != expected:
-              raise SystemExit(f"expected {expected} report links in the sticky comment, found {len(urls)}")
+              raise SystemExit(f"expected {expected} report links in the sticky comments, found {len(urls)}")
 
           pending = list(urls)
           last_errors = {}
@@ -445,9 +479,8 @@ jobs:
       # re-running would mean building the C++ gate a second time — Qt, gcov and
       # the sanitizers — for a result this run already has.
       #
-      # It also has to be --report-dir: on main the published path is
-      # main/index.html with no project prefix, so publishing the root and the
-      # viewer separately would have them overwrite each other.
+      # Each workspace publishes under its own label, so the destinations —
+      # ici/<label>/<ref>/<sha>/index.html — never collide on main either.
       - name: Download Verification Reports (artifact)
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -457,7 +490,8 @@ jobs:
       - name: Publish Trusted Main Verification Reports
         run: |
           chmod +x dist/ici.pyz
-          dist/ici.pyz publish --report-dir ici=. --report-dir viewer
+          dist/ici.pyz publish --result verify_report.json --out verify_report.html
+          (cd viewer && ../dist/ici.pyz publish --result verify_report.json --out verify_report.html)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BIN="$ROOT/dist/ici.pyz"
 SMOKE_REPORT="/tmp/ici_smoke_report.html"
-SMOKE_JSON="/tmp/ici_smoke_report.json"
+SMOKE_JSON="/tmp/ici_smoke_result.json"
 
 cleanup() {
     rm -f "$SMOKE_REPORT" "$SMOKE_JSON"
@@ -19,12 +19,11 @@ echo "[1/4] 직접 실행 (--version, --help)"
 "$BIN" --version
 "$BIN" --help >/dev/null
 
-echo "[2/4] 환경 진단 (doctor --brief)"
-"$BIN" doctor --brief
+echo "[2/4] 환경 진단 (doctor)"
+"$BIN" doctor >/dev/null
 
-echo "[3/4] 셸 환경 생성 (env --sh, env --csh)"
-"$BIN" env --sh | grep -q 'export PATH='
-"$BIN" env --csh | grep -q 'setenv PATH'
+echo "[3/4] 계획 출력 (plan)"
+"$BIN" plan >/dev/null
 
 echo "[4/4] Python 3.10 직접 실행 테스트"
 if command -v python3.10 >/dev/null 2>&1; then
@@ -48,11 +47,13 @@ fi
 # 태그 속성에 쓰인 일반 문서 링크는 허용하지만 실행/표시 asset의 외부 의존성은 거부한다.
 rm -f "$SMOKE_REPORT" "$SMOKE_JSON"
 set +e
-"$BIN" verify --html "$SMOKE_REPORT" >/dev/null 2>&1
+"$BIN" verify --result "$SMOKE_JSON" >/dev/null 2>&1
 verify_status=$?
+"$BIN" report --result "$SMOKE_JSON" --out "$SMOKE_REPORT" >/dev/null 2>&1
+report_status=$?
 set -e
 if [ ! -s "$SMOKE_REPORT" ]; then
-    echo "      HTML 리포트가 생성되지 않음 (verify exit $verify_status)" >&2
+    echo "      HTML 리포트가 생성되지 않음 (verify exit $verify_status, report exit $report_status)" >&2
     exit 1
 fi
 python3 - "$SMOKE_REPORT" <<'PY'

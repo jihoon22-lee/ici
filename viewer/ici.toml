@@ -1,34 +1,43 @@
-[project]
+schema_version = 1
+
+# icirv — the HTML report viewer's C++ core.
+#
+# ici does not build this component itself (ici never builds): the CI job
+# configures and builds `build/ici-main` with coverage instrumentation and a
+# compile_commands.json export, and this workspace reads that tree. The gate
+# this file replaces measured tests (ctest + the Qt widget test), gcov
+# coverage (branch 80 / function 90 floors — enforced by
+# scripts/check_run_floors.py on the saved result), and cpp_unused as a
+# required check; next has no `cpp.dead` check, so the unused-function gate
+# does not carry over.
+
+[workspace]
 name = "icirv"
-version = "0.1.0"
-source_dirs = ["src"]
+profile = "standard"
 
-# The Qt shell is project source like everything else, so it lives under src/
-# and every text- and AST-based engine reads it. Two settings make that work:
-#
-#   cpp_pkg_config          gives lint the Qt include paths it needs to parse
-#                           the widget sources at all. Listing both majors lets
-#                           the same config work on Qt 6 and Qt 5 hosts.
-#   cpp_external_build_dirs is retained for the generic g++ fallback. The
-#                           CMake adapter ignores it because CMake runs moc and
-#                           builds the GUI target itself.
-#
-# The GUI is linted, measured for complexity and duplication, and scanned for
-# exception and security problems. The root CMake adapter also builds and tests
-# it when Qt is available.
-cpp_pkg_config = ["Qt6Widgets", "Qt5Widgets"]
-cpp_external_build_dirs = ["src/gui"]
+[builds.main]
+system = "cmake"
+project = "CMakeLists.txt"
+directory = "build/ici-main"
+variant = "default"
+prepare = "explicit"
+artifacts = ["icirv"]
 
-# 임계값을 명시적으로 고정한다. 생략하면 개발자 홈의 ~/.config/ici/ici.toml 을 따르게 되어
-# 로컬과 CI 결과가 갈린다. 값은 ici 기본 정책과 동일하다.
-[engines.test]
-enabled = true
-mode = "pass_fail"
-min_tem_score = 4.0
-min_branch_cov = 80.0
-min_func_cov = 90.0
+# Source scope matches the stable dogfood's source_dirs = ["src"]: the tests
+# directory belongs to the ctest suite the build produces, not to the static
+# analysis scope — stable counted it the same way.
+[[components]]
+id = "viewer"
+root = "."
+languages = ["cpp"]
+build = "main"
+sources = ["src/**/*.cpp", "src/**/*.hpp", "src/**/*.h"]
 
-# The viewer is ici's in-repository exact C++ acceptance target. Its CMake
-# compilation database must cover every production TU for this probe.
-[engines.dead]
-cpp_unused = "required"
+[components.cpp]
+qt = true
+
+# Same contract as the repo root: heuristic clone findings are measured and
+# reported but advisory; the numeric dogfood floor lives in
+# scripts/check_next_floors.py --set viewer.
+[checks."cpp.dup"]
+required = false
