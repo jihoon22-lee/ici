@@ -45,28 +45,8 @@ from ici.core.pipeline import (
 from ici.core.qmake_context import prepare_qmake_compilation_context
 from ici.core.support import ENGINE_NAMES, evaluate_support_matrix  # noqa: F401
 from ici.core.toolchain import DEFAULT_TOOL_PROBES
-from ici.engines.binary_compat import BinaryCompatibilityEngine  # noqa: F401
-from ici.engines.build import BuildEngine  # noqa: F401
-from ici.engines.cognitive import CognitiveEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.compile_db import CompileDatabaseEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.complexity import ComplexityEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.cycle import CycleEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.dead import DeadCodeEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.dup import DuplicateEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.exception import ExceptionSafetyEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.integration import IntegrationEngine  # noqa: F401
-from ici.engines.line import LineCountEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.lint import LintEngine  # noqa: F401 - dynamic descriptor factory
 from ici.engines.publish import ReportPublisher
-from ici.engines.python_compat import PythonCompatibilityEngine  # noqa: F401
-from ici.engines.resource import ResourceEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.security import SecurityEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.test import TestEngine  # noqa: F401 - dynamic descriptor factory
-from ici.engines.thread_sanitize import (  # noqa: F401 - dynamic descriptor factory
-    ThreadSanitizeEngine,
-)
-from ici.engines.type_check import TypeCheckEngine  # noqa: F401 - dynamic descriptor factory
+from ici.engines.registry import resolve_engine_class
 from ici.reporters.console import print_suite_dashboard
 from ici.reporters.html import generate_html_report
 from ici.reporters.issue_view import ConsoleOptions
@@ -278,7 +258,7 @@ class VerifyOrchestrator:
         def execute(descriptor: EngineDescriptor) -> EngineResult:
             eng_cfg = get_engine_config(effective_config, descriptor.name)
             try:
-                engine_cls = globals()[descriptor.factory_name]
+                engine_cls = resolve_engine_class(descriptor.factory_name)
                 candidate = engine_cls(
                     self.project_root,
                     effective_config,

@@ -19,6 +19,19 @@
 - 같은 이유로 cache `identify` 콜백의 예외도 run을 죽이지 않고 해당 unit을
   uncached로 실행하며, 사유를 execution record에 남깁니다.
 - `tests/test_schedule.py`에 크래시 격리 회귀 테스트 4건 추가.
+### 변경 — 엔진 팩토리를 명시 레지스트리로 해석
+
+- stable 엔진 디스패치가 `globals()[descriptor.factory_name]`와
+  `getattr(sys.modules[__name__], ...)` 대신 신규
+  `ici/engines/registry.py`의 `ENGINE_FACTORIES`를 거칩니다. 레지스트리는
+  import 시점에 모든 `ENGINE_DESCRIPTORS`의 `factory_name`이 해석됨을
+  스스로 검증하므로, 오타가 워커 스레드 안의 `KeyError`로 표면화되던 경로가
+  사라집니다. 미등록 이름은 `PipelineDefinitionError`로 거절됩니다.
+- `ici build`와 `_ENGINE_COMMANDS`의 15개 엔진 명령이 같은 레지스트리를
+  공유하며, 검증용 클래스 주입 seam이 모듈 속성에서 레지스트리 엔트리로
+  옮겨졌습니다.
+- 계약 테스트(`test_verification_pipeline`)가 descriptor·CLI 명령
+  테이블·레지스트리의 양방향 일치를 강제합니다.
 
 ### 변경 — Quality Zoo corpus를 이 저장소로 이관 (#201)
 

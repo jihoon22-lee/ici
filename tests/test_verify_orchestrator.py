@@ -6,6 +6,7 @@ from ici.core.baseline import BaselineError
 from ici.core.models import BaselineComparison, EngineResult, EngineStatus, EvidenceState
 from ici.core.pipeline import ENGINE_DESCRIPTORS
 from ici.engines.dead import DeadCodeEngine
+from ici.engines.registry import ENGINE_FACTORIES
 from ici.engines.verify import VerifyOrchestrator
 from ici.reporters.issue_view import ConsoleGroupBy, ConsoleOptions
 
@@ -29,8 +30,8 @@ def test_run_all_records_engine_error_and_continues(monkeypatch, tmp_path):
                 summary="ok",
             )
 
-    monkeypatch.setattr("ici.engines.verify.LineCountEngine", CrashingEngine)
-    monkeypatch.setattr("ici.engines.verify.LintEngine", PassingEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LineCountEngine", CrashingEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LintEngine", PassingEngine)
     monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
 
     enabled = {
@@ -118,7 +119,7 @@ def test_orchestrator_cache_miss_hit_and_no_cache_bypass(monkeypatch, tmp_path):
     # become analysis inputs while the next run computes its source digest.
     cache_root = tmp_path.parent / f"{tmp_path.name}-analysis-cache"
     monkeypatch.setenv("ICI_CACHE_DIR", str(cache_root))
-    monkeypatch.setattr("ici.engines.verify.LintEngine", CountingEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LintEngine", CountingEngine)
     monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
 
     config = _only_lint_enabled()
@@ -173,7 +174,7 @@ def test_engine_can_disable_cache_reuse_for_unmodeled_external_inputs(
 
     cache_root = tmp_path.parent / f"{tmp_path.name}-non-cacheable"
     monkeypatch.setenv("ICI_CACHE_DIR", str(cache_root))
-    monkeypatch.setattr("ici.engines.verify.DeadCodeEngine", NonCacheableDeadEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "DeadCodeEngine", NonCacheableDeadEngine)
     monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
     config = _only_lint_enabled()
     config["engines"]["lint"]["enabled"] = False
@@ -249,7 +250,7 @@ def test_baseline_gate_changes_suite_verdict_without_inventing_an_engine(monkeyp
         fail_on_new=True,
         gate_failed=True,
     )
-    monkeypatch.setattr("ici.engines.verify.LintEngine", PassingEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LintEngine", PassingEngine)
     monkeypatch.setattr(
         "ici.engines.verify.compare_suite_to_baseline", lambda *args, **kwargs: comparison
     )
@@ -274,7 +275,7 @@ def test_write_baseline_is_root_contained_and_excludes_transient_delta(monkeypat
             return EngineResult("lint", EngineStatus.PASS, "clean")
 
     saved = {}
-    monkeypatch.setattr("ici.engines.verify.LintEngine", PassingEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LintEngine", PassingEngine)
     monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
     monkeypatch.setattr(
         "ici.engines.verify.save_json_report",
@@ -302,7 +303,7 @@ def test_write_baseline_normalizes_filesystem_errors(monkeypatch, tmp_path):
         def run(self):
             return EngineResult("lint", EngineStatus.PASS, "clean")
 
-    monkeypatch.setattr("ici.engines.verify.LintEngine", PassingEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LintEngine", PassingEngine)
     monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
     monkeypatch.setattr(
         "ici.engines.verify.save_json_report",
@@ -328,7 +329,7 @@ def test_failed_delta_gate_cannot_overwrite_its_input_baseline(monkeypatch, tmp_
         fail_on_new=True,
         gate_failed=True,
     )
-    monkeypatch.setattr("ici.engines.verify.LintEngine", PassingEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LintEngine", PassingEngine)
     monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda suite, root: None)
     monkeypatch.setattr(
         "ici.engines.verify.compare_suite_to_baseline", lambda *args, **kwargs: comparison
@@ -355,7 +356,7 @@ def test_console_options_are_forwarded_only_to_console_reporter(monkeypatch, tmp
             return EngineResult("lint", EngineStatus.PASS, "clean")
 
     captured = {}
-    monkeypatch.setattr("ici.engines.verify.LintEngine", PassingEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LintEngine", PassingEngine)
     monkeypatch.setattr(
         "ici.engines.verify.print_suite_dashboard",
         lambda suite, root, *, options=None: captured.update(

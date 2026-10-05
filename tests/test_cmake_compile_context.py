@@ -37,6 +37,7 @@ from ici.core.models import EngineResult, EngineStatus, SupportMatrix
 from ici.core.runner import ProcessResult
 from ici.core.support import ENGINE_NAMES
 from ici.engines import verify as verify_module
+from ici.engines.registry import ENGINE_FACTORIES
 from ici.engines.verify import VerifyOrchestrator
 
 _CMK = "/usr/bin/cmake"
@@ -646,7 +647,7 @@ def test_verify_preflight_finishes_before_context_and_cache_key(
         verify_module, "project_source_digest", lambda _project: "sha256:" + "a" * 64
     )
     monkeypatch.setattr(verify_module, "AnalysisCache", FakeCache)
-    monkeypatch.setattr(verify_module, "LintEngine", FakeLint)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LintEngine", FakeLint)
     monkeypatch.setattr(
         verify_module,
         "build_analysis_cache_key",

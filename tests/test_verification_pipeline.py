@@ -14,6 +14,7 @@ from ici.core.context import ArtifactManifest, ArtifactScope, BuildVariant
 from ici.core.models import EngineResult, EngineStatus
 from ici.core.pipeline import ENGINE_DESCRIPTORS, AnalysisProfile
 from ici.engines import verify as verify_module
+from ici.engines.registry import ENGINE_FACTORIES
 from ici.engines.verify import VerifyOrchestrator
 
 
@@ -68,7 +69,7 @@ def _install_passing_engines(
         return PassingEngine
 
     for descriptor in ENGINE_DESCRIPTORS:
-        monkeypatch.setattr(verify_module, descriptor.factory_name, engine_type(descriptor.name))
+        monkeypatch.setitem(ENGINE_FACTORIES, descriptor.factory_name, engine_type(descriptor.name))
 
 
 def test_profiles_select_engines_without_changing_shared_rule_configuration(
@@ -162,14 +163,14 @@ def test_release_manifest_flows_only_to_declared_build_consumers(
 
         return ConsumingEngine
 
-    monkeypatch.setattr(verify_module, "BuildEngine", ProducingBuild)
-    monkeypatch.setattr(
-        verify_module,
+    monkeypatch.setitem(ENGINE_FACTORIES, "BuildEngine", ProducingBuild)
+    monkeypatch.setitem(
+        ENGINE_FACTORIES,
         "BinaryCompatibilityEngine",
         consumer_type("binary_compat"),
     )
-    monkeypatch.setattr(
-        verify_module,
+    monkeypatch.setitem(
+        ENGINE_FACTORIES,
         "IntegrationEngine",
         consumer_type("integration"),
     )
@@ -228,8 +229,8 @@ def test_orchestrator_parallelizes_only_read_only_engines_and_preserves_result_o
     selected = ("line", "lint", "test", "sanitize")
     for descriptor in ENGINE_DESCRIPTORS:
         if descriptor.name in selected:
-            monkeypatch.setattr(
-                verify_module,
+            monkeypatch.setitem(
+                ENGINE_FACTORIES,
                 descriptor.factory_name,
                 engine_type(name=descriptor.name, build=descriptor.build_variant is not None),
             )
@@ -241,3 +242,25 @@ def test_orchestrator_parallelizes_only_read_only_engines_and_preserves_result_o
     starts = [name for event, name in timeline if event == "start"]
     assert set(starts[:2]) == {"line", "lint"}
     assert starts[2:] == ["test", "sanitize"]
+
+
+def test_every_descriptor_and_cli_command_factory_resolves_through_the_registry() -> None:
+    """A factory name is a registry key now, not a module attribute.
+
+    A typo in ENGINE_DESCRIPTORS or _ENGINE_COMMANDS used to pass descriptor
+    validation and die as a KeyError/AttributeError inside a worker or a
+    command. The registry checks descriptors at import; this test is the
+    same check for the CLI table plus the reverse direction — a registered
+    class nobody names is dead weight.
+    """
+
+    from ici.__main__ import _ENGINE_COMMANDS
+    from ici.engines.base import BaseEngine
+    from ici.engines.registry import resolve_engine_class
+
+    named = {descriptor.factory_name for descriptor in ENGINE_DESCRIPTORS}
+    named.update(entry[1] for entry in _ENGINE_COMMANDS)
+    assert named <= set(ENGINE_FACTORIES)
+    for name in named:
+        assert issubclass(resolve_engine_class(name), BaseEngine)
+    assert set(ENGINE_FACTORIES) == {descriptor.factory_name for descriptor in ENGINE_DESCRIPTORS}

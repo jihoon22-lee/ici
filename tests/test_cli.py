@@ -11,6 +11,7 @@ from ici.__main__ import app
 from ici.core.baseline import BaselineError
 from ici.core.models import EngineResult, EngineStatus, SupportMatrix, VerificationSuiteResult
 from ici.core.pipeline import AnalysisProfile
+from ici.engines.registry import ENGINE_FACTORIES
 from ici.reporters.issue_view import DEFAULT_MAX_FINDINGS, ConsoleGroupBy, ConsoleOptions
 
 runner = CliRunner()
@@ -499,7 +500,7 @@ def test_cli_safety_commands_map_error_and_skip_to_exit_codes(
         "dead": "DeadCodeEngine",
         "exception": "ExceptionSafetyEngine",
     }[command]
-    monkeypatch.setattr(f"ici.__main__.{engine_attr}", FakeEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, engine_attr, FakeEngine)
     monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
 
     result = runner.invoke(app, [command])
@@ -530,7 +531,7 @@ def test_cli_dead_prepares_and_injects_shared_analysis_context(tmp_path, monkeyp
         return project, marker
 
     config = {"ici": {"profile": "deep"}}
-    monkeypatch.setattr("ici.__main__.DeadCodeEngine", ContextDead)
+    monkeypatch.setitem(ENGINE_FACTORIES, "DeadCodeEngine", ContextDead)
     monkeypatch.setattr("ici.__main__.prepare_analysis_context", prepare)
     monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: config)
     monkeypatch.setattr(
@@ -602,7 +603,7 @@ def test_cli_all_engine_commands_map_skip_to_exit_code(
                 required=False,
             )
 
-    monkeypatch.setattr(f"ici.__main__.{engine_attr}", FakeEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, engine_attr, FakeEngine)
     monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
 
     result = runner.invoke(app, [command])
@@ -623,7 +624,7 @@ def test_build_error_is_not_reported_as_green_success(monkeypatch):
                 required=True,
             )
 
-    monkeypatch.setattr("ici.__main__.BuildEngine", ErrorBuild)
+    monkeypatch.setitem(ENGINE_FACTORIES, "BuildEngine", ErrorBuild)
     monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
 
     result = runner.invoke(app, ["build"])
@@ -646,7 +647,7 @@ def test_standalone_report_uses_v2_serializer(tmp_path, monkeypatch):
                 required=False,
             )
 
-    monkeypatch.setattr("ici.__main__.LineCountEngine", FakeLine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LineCountEngine", FakeLine)
     monkeypatch.setattr("ici.__main__.load_config", lambda *args, **kwargs: {})
     monkeypatch.chdir(tmp_path)
 
