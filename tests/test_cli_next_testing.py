@@ -24,7 +24,7 @@ import pytest
 from typer.testing import CliRunner
 
 from ici.__main__ import app
-from ici.cli.next_testing import python_interpreter, resolve_python, resolve_tool
+from ici.application.tooling import python_interpreter, resolve_python, resolve_tool
 from ici.toolchain.resolution import Availability, Unresolved
 
 runner = CliRunner()

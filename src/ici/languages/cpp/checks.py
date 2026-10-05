@@ -42,7 +42,7 @@ CPP_COMPILE_CHECK = CheckDefinition(
 #: Compiler diagnostics: the captured compile invocation re-run as
 #: ``-fsyntax-only`` per covered translation unit. The check declares no tool
 #: because the tool is the project's own compiler, found per TU in the
-#: database — ``ici.cli.next_common`` expands one declared check into one task
+#: database — ``ici.application.planning`` expands one declared check into one task
 #: per TU so each run's argv is the invocation the build actually used (#214).
 CPP_DIAGNOSTICS_CHECK = CheckDefinition(
     id="cpp.diagnostics",

@@ -49,7 +49,7 @@
   제거하고 테스트는 클로저 포함 관계를 검증합니다.
 ### 변경 — next 경로의 도구 선택이 `ici.toolchain` Resolver를 통과
 
-- `cli/next_testing`의 `locate_tool`/`python_interpreter`가 `Resolver`를
+- `application/tooling`의 `locate_tool`/`python_interpreter`가 `Resolver`를
   거치도록 배선됐습니다. `ici.toolchain` 패키지가 더 이상 미연결 코드가
   아니며, doctor는 `UNAVAILABLE`/`UNSUPPORTED`/`BROKEN`을 구분해 보고합니다
   — "도구가 없다"와 "도구가 `--version`에 답하지 못한다"가 다른 문장이
@@ -92,6 +92,22 @@
   `ici.config_schema`↔`ici.config` 패키지/모듈 그림자 고정, 그리고
   next↔stable 교차 import를 허용 목록으로 제한합니다(신규 커플링 포인트는
   같은 커밋에서 목록을 편집해야 하는 tripwire).
+
+### 변경 — next 계획 로직이 `application/`으로 이관
+
+- check→task 브리지와 게이트 로직이 `cli/`에서 `application/`으로
+  내려갔습니다: `application/planning`(plans·planner·inventory 헬퍼),
+  `application/gates`(compile-input·인터프리터 게이트),
+  `application/testing`(테스트/커버리지 확장), `application/tooling`
+  (resolver seam), `application/integration`(케이스 확장),
+  `application/internal_checks`(내장 분석). `cli/`에는 옵션·명령·출력만
+  남아 3,520행에서 1,520행으로 줄었습니다 — `application`이 `cli`를 import
+  하지 않는 방향은 유지됩니다.
+- **버그 수정 (이관 중 발견)**: `expand_cpp_sanitizer`의 qtest 분기가
+  이전 ctest 반복의 `marked` 변수를 참조하던 것을 `marked_binary`로
+  수정했습니다 — 첫 suite가 qtest이면 `NameError`로, ctest가 먼저 오면
+  stale 값으로 틀린 blocked 메시지를 낼 수 있었습니다.
+
 ### 변경 — Quality Zoo corpus를 이 저장소로 이관 (#201)
 
 - `quality-zoo/`는 이제 이 저장소가 소유한다. toy-projects @ `195de9b`에서

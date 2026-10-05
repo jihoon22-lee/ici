@@ -205,6 +205,19 @@ def test_a_qtest_sanitizer_binary_plans_a_direct_run(tmp_path, monkeypatch) -> N
     assert "test_unit" in plan.output
 
 
+def test_an_uninstrumented_qtest_binary_is_blocked_not_crashed(tmp_path, monkeypatch) -> None:
+    # Regression: the qtest branch read ``marked`` — the ctest loop's
+    # variable — so a qtest-only suite hit NameError or a stale value
+    # instead of the blocked marker.
+    _qmake_sanitize_workspace(tmp_path, instrumented=False)
+    monkeypatch.chdir(tmp_path)
+
+    plan = runner.invoke(app, ["next", "plan", "--profile", "deep"])
+
+    assert plan.exit_code == 0, plan.output
+    assert "instrumentation" in plan.output
+
+
 def test_standard_profile_omits_sanitizer_checks(tmp_path, monkeypatch) -> None:
     _cmake_sanitize_workspace(tmp_path, built=True)
     monkeypatch.chdir(tmp_path)

@@ -163,7 +163,7 @@ CPP_PACK = LanguagePack(
 
 #: ``integration`` is a domain, not a language — ``checks_for`` never returns
 #: this pack's checks because no component declares ``"integration"`` as a
-#: language. The check is offered to a component by ``next_common`` only when
+#: language. The check is offered to a component by ``application.planning`` only when
 #: the component declares cases, which is the declaration-driven opt-in #220
 #: item 6 requires; the pack exists so the check is still registry-declared
 #: data rather than a check the planner invents (#208 item 1's rule).
