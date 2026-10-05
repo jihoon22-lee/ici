@@ -61,6 +61,7 @@ EXPECTED_DOCUMENTS = (
     "inventory/wp20-dispositions.md",
     "inventory/wp22-dispositions.md",
     "inventory/wp24-dispositions.md",
+    "inventory/stable-removal.md",
     "publish-workflow.md",
     "idk-integration.md",
     "migration-matrix.md",
