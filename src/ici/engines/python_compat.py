@@ -89,15 +89,6 @@ class PythonCompatibilityEngine(BaseEngine):
     # source and the current-process capability inventory.
     CACHE_REUSE_SAFE = False
 
-    CACHE_IMPLEMENTATION_MODULES = (
-        "ici.engines._python_compatibility",
-        "ici.engines._python_packaging",
-        "ici.engines._python_wheel",
-        "ici.engines._python_resource_scopes",
-        "ici.engines._source_inputs",
-        "ici.engines.python_compat",
-    )
-
     def run(self) -> EngineResult:
         started = time.time()
         cfg = self.get_config("python_compat")

@@ -15,13 +15,6 @@ from ici.engines.base import BaseEngine
 class SecurityEngine(BaseEngine):
     """Detect Python secret, crypto, deserialization, and command risks."""
 
-    CACHE_IMPLEMENTATION_MODULES = (
-        "ici.engines._python_resource_scopes",
-        "ici.engines._python_security",
-        "ici.engines._source_inputs",
-        "ici.engines.security",
-    )
-
     def run(self) -> EngineResult:
         started = time.time()
         cfg = self.get_config("security")

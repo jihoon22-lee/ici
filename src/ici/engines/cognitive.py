@@ -18,17 +18,6 @@ def _cognitive_for_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tup
 class CognitiveEngine(BaseEngine):
     """Calculates cognitive complexity per function (nesting-weighted)."""
 
-    CACHE_IMPLEMENTATION_MODULES = (
-        "ici.core._compile_db_paths",
-        "ici.core._cpp_replay_policy",
-        "ici.core.cpp_replay",
-        "ici.engines._cpp_cognitive",
-        "ici.engines._cpp_function_boundaries",
-        "ici.engines._cpp_tooling",
-        "ici.engines.complexity",
-        "ici.engines.cpp_text",
-    )
-
     def run(self) -> EngineResult:
         t0 = time.time()
         cfg = self.get_config("cognitive")

@@ -59,13 +59,6 @@ def _native_findings(issues: list[ResourceIssue]) -> list[Finding]:
 class ResourceEngine(BaseEngine):
     """Distinguish managed, closed, transferred, and possibly leaked resources."""
 
-    CACHE_IMPLEMENTATION_MODULES = (
-        "ici.engines._python_resource_scopes",
-        "ici.engines._python_resources",
-        "ici.engines._source_inputs",
-        "ici.engines.resource",
-    )
-
     def run(self) -> EngineResult:
         started = time.time()
         cfg = self.get_config("resource")

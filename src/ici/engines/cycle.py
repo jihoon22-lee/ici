@@ -576,14 +576,6 @@ def _append_include_diagnostic_targets(
 class CycleEngine(BaseEngine):
     """Detects cyclic dependencies in Python imports and C++ includes."""
 
-    CACHE_IMPLEMENTATION_MODULES = (
-        "ici.core._cpp_replay_policy",
-        "ici.core.cpp_replay",
-        "ici.engines._cpp_include_graph",
-        "ici.engines._cpp_include_trace",
-        "ici.engines.cycle",
-    )
-
     def run(self) -> EngineResult:
         t0 = time.time()
         cfg = self.get_config("cycle")

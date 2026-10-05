@@ -108,19 +108,6 @@ def _ruff_source_range(
 class LintEngine(BaseEngine):
     """Verifies linting, syntax, and formatting rules across C++ and Python."""
 
-    CACHE_IMPLEMENTATION_MODULES = (
-        "ici.core._cpp_replay_policy",
-        "ici.core.cpp_replay",
-        "ici.engines._clang_tidy",
-        "ici.engines._clazy",
-        "ici.engines._cpp_diagnostic_categories",
-        "ici.engines._cpp_diagnostics",
-        "ici.engines._cpp_lint",
-        "ici.engines._cpp_tooling",
-        "ici.engines._qt_codegen",
-        "ici.engines.lint",
-    )
-
     def run(self) -> EngineResult:
         t0 = time.time()
         targets: list[InspectionTarget] = []

@@ -175,7 +175,11 @@ def test_cpp_diagnostic_category_does_not_depend_on_message() -> None:
 
 
 def test_cpp_diagnostic_category_policy_participates_in_cache_identity() -> None:
-    assert "ici.engines._cpp_diagnostic_categories" in LintEngine.CACHE_IMPLEMENTATION_MODULES
+    from ici.core.cache_identity import _implementation_closure
+
+    assert "ici.engines._cpp_diagnostic_categories" in dict(
+        _implementation_closure("ici.engines.lint")
+    )
 
 
 def test_cpp_source_scope_does_not_activate_python_lint(tmp_cpp_project, monkeypatch):

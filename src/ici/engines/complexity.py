@@ -454,15 +454,6 @@ def _cpp_constructor_initializer_candidate(text: str) -> bool:
 class ComplexityEngine(BaseEngine):
     """Calculates Cyclomatic Complexity and Max Nesting Depth for functions."""
 
-    CACHE_IMPLEMENTATION_MODULES = (
-        "ici.core._compile_db_paths",
-        "ici.core._cpp_replay_policy",
-        "ici.core.cpp_replay",
-        "ici.engines._cpp_function_boundaries",
-        "ici.engines._cpp_tooling",
-        "ici.engines.cpp_text",
-    )
-
     def run(self) -> EngineResult:
         t0 = time.time()
         cfg = self.get_config("complexity")

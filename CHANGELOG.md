@@ -33,6 +33,20 @@
 - 계약 테스트(`test_verification_pipeline`)가 descriptor·CLI 명령
   테이블·레지스트리의 양방향 일치를 강제합니다.
 
+### 변경 — 캐시 무효화가 엔진의 실제 import 클로저를 해시
+
+- 분석 캐시 키의 구현 식별자가 수동 `CACHE_IMPLEMENTATION_MODULES` 목록 대신
+  엔진 모듈의 정적 `ici.*` import 클로저(전이 포함)를 해시합니다. 헬퍼
+  모듈 추가를 목록에 빼먹으면 바뀐 코드로 stale 결과를 서빙하던 정확성
+  구멍이 제거됩니다 — 실제로 `sanitize`의 목록은 자기 모듈 자체를 포함하지
+  않았습니다.
+- 소스는 `__loader__.get_source`로 읽어 pyz(zipimport) 안에서도 동작하며,
+  `if TYPE_CHECKING:` 안의 import는 런타임에 실행되지 않으므로 제외합니다.
+  함수 내부의 지연 import는 실제 실행 간선으로 포함합니다.
+- 키 계약이 `ici.analysis-cache-key/v4`로 올라갑니다. v3 엔트리는 버전
+  게이트가 거절해 stale hit 없이 재계산됩니다. 13개 엔진의 수동 선언을
+  제거하고 테스트는 클로저 포함 관계를 검증합니다.
+
 ### 변경 — Quality Zoo corpus를 이 저장소로 이관 (#201)
 
 - `quality-zoo/`는 이제 이 저장소가 소유한다. toy-projects @ `195de9b`에서
