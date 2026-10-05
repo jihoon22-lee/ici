@@ -57,13 +57,6 @@ class TestEngine(
     # Test outcomes, timings, flaky reruns, and mutation availability are
     # runtime observations rather than source-derived facts.
     CACHE_REUSE_SAFE = False
-    CACHE_IMPLEMENTATION_MODULES = (
-        "ici.engines.test",
-        "ici.engines.test_coverage",
-        "ici.engines.test_interpreter",
-        "ici.engines.test_output",
-        "ici.engines.test_quality",
-    )
 
     def __init__(
         self,

@@ -270,32 +270,76 @@ def test_implementation_source_and_descriptor_identity_invalidate_keys(tmp_path:
     assert two.digest != one_as_type.digest
 
 
-def test_declared_implementation_module_source_invalidates_key(
+class _SourceLoader:
+    """get_source over an in-memory map, so tests need no files on disk."""
+
+    def __init__(self, sources: dict[str, str]) -> None:
+        self._sources = sources
+
+    def get_source(self, name: str) -> str:
+        return self._sources[name]
+
+
+def _inject_module(monkeypatch: pytest.MonkeyPatch, name: str, loader: _SourceLoader) -> None:
+    module = ModuleType(name)
+    module.__loader__ = loader
+    monkeypatch.setitem(sys.modules, name, module)
+
+
+def test_helper_module_source_invalidates_key(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    module_name = "test.cache_helper"
-    helper_module = ModuleType(module_name)
-    helper_source = {"value": "HELPER_VERSION = 1\n"}
-    original_getsource = cache_identity.inspect.getsource
+    sources = {
+        "ici.fake_engine": "from ici.fake_helper import VALUE\n",
+        "ici.fake_helper": "VALUE = 1\n",
+    }
+    loader = _SourceLoader(sources)
+    for name in sources:
+        _inject_module(monkeypatch, name, loader)
 
     class ImplementationWithHelper:
-        CACHE_IMPLEMENTATION_MODULES = (module_name, module_name)
+        pass
 
-    def getsource(target: object) -> str:
-        if target is helper_module:
-            return helper_source["value"]
-        return original_getsource(target)
-
-    monkeypatch.setitem(sys.modules, module_name, helper_module)
-    monkeypatch.setattr(cache_identity.inspect, "getsource", getsource)
+    ImplementationWithHelper.__module__ = "ici.fake_engine"
     context = _context(tmp_path / "project")
 
     first = _key(context, implementation=ImplementationWithHelper)
-    helper_source["value"] = "HELPER_VERSION = 2\n"
+    sources["ici.fake_helper"] = "VALUE = 2\n"
+    cache_identity._implementation_closure.cache_clear()
     second = _key(context, implementation=ImplementationWithHelper)
 
     assert first.descriptor_digest != second.descriptor_digest
     assert first.digest != second.digest
+
+
+def test_implementation_closure_follows_undeclared_imports() -> None:
+    # No declaration list exists anymore: the closure IS the declaration.
+    # lint.py imports _cpp_diagnostics directly; runner arrives transitively.
+    modules = dict(cache_identity._implementation_closure("ici.engines.lint"))
+
+    assert modules["ici.engines.lint"]
+    assert "ici.engines._cpp_diagnostics" in modules
+    assert "ici.core.runner" in modules
+
+
+def test_static_imports_skip_type_checking_but_keep_runtime_edges() -> None:
+    source = (
+        "from typing import TYPE_CHECKING\n"
+        "if TYPE_CHECKING:\n"
+        "    from ici.fake_types import X\n"
+        "def f():\n"
+        "    import ici.lazy_helper\n"
+        "try:\n"
+        "    from ici.maybe import y\n"
+        "except ImportError:\n"
+        "    pass\n"
+    )
+
+    found = cache_identity._static_ici_imports("ici.fake_engine", source)
+
+    assert "ici.fake_types" not in found
+    assert "ici.fake_types.X" not in found
+    assert {"ici.lazy_helper", "ici.maybe", "ici.maybe.y"} <= found
 
 
 def test_cache_key_rejects_non_sha256_digests() -> None:

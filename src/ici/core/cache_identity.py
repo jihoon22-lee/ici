@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import ast
+import functools
 import hashlib
-import inspect
+import importlib.util
 import os
 import stat
 import sys
@@ -19,7 +21,7 @@ if TYPE_CHECKING:
     from ici.core.pipeline import EngineDescriptor
 
 CACHE_SCHEMA_VERSION = "ici.analysis-cache/v1"
-CACHE_KEY_VERSION = "ici.analysis-cache-key/v3"
+CACHE_KEY_VERSION = "ici.analysis-cache-key/v4"
 COMPILATION_IDENTITY_VERSION = "ici.compilation-identity/v2"
 
 _DIGEST_PREFIX = "sha256:"
@@ -325,27 +327,6 @@ def build_analysis_cache_key(
         if implementation is not None
         else None
     )
-    implementation_source = ""
-    if implementation_type is not None:
-        try:
-            implementation_source = inspect.getsource(implementation_type)
-        except (OSError, TypeError):
-            implementation_source = ""
-    implementation_modules: list[dict[str, str]] = []
-    if implementation_type is not None:
-        raw_modules = getattr(implementation_type, "CACHE_IMPLEMENTATION_MODULES", ())
-        if isinstance(raw_modules, tuple) and all(
-            isinstance(name, str) and name for name in raw_modules
-        ):
-            for name in sorted(set(raw_modules)):
-                module = sys.modules.get(name)
-                try:
-                    source = inspect.getsource(module) if module is not None else ""
-                except (OSError, TypeError):
-                    source = ""
-                implementation_modules.append(
-                    {"module": name, "source_digest": canonical_digest(source)}
-                )
     descriptor_payload = {
         "name": descriptor.name,
         "factory_name": descriptor.factory_name,
@@ -358,8 +339,10 @@ def build_analysis_cache_key(
             {
                 "module": implementation_type.__module__,
                 "qualname": implementation_type.__qualname__,
-                "source_digest": canonical_digest(implementation_source),
-                "dependency_modules": implementation_modules,
+                "module_sources": [
+                    {"module": name, "source_digest": digest}
+                    for name, digest in _implementation_closure(implementation_type.__module__)
+                ],
             }
             if implementation_type is not None
             else None
@@ -459,3 +442,112 @@ def is_cacheable_result(result: EngineResult, key: AnalysisCacheKey) -> bool:
     except (OSError, ValueError):
         return False
     return True
+
+
+# --- implementation identity -----------------------------------------------
+#
+# What an engine *is* is the transitive closure of the modules its source
+# imports — a hand-kept dependency list can only drift out of date, and a
+# missed helper means changed code serving stale results. The closure is
+# computed once per process per engine; tests that inject modules into
+# ``sys.modules`` must call ``_implementation_closure.cache_clear()``.
+
+
+@functools.cache
+def _implementation_closure(root_module: str) -> tuple[tuple[str, str], ...]:
+    """(module, source digest) pairs for the runtime ``ici.*`` import closure.
+
+    Imports under ``if TYPE_CHECKING:`` never execute and are excluded;
+    imports inside functions or conditionals are real runtime edges and count.
+    Modules whose source cannot be read (namespace packages, builtins) carry
+    no implementation and drop out.
+    """
+
+    visited: set[str] = set()
+    digests: dict[str, str] = {}
+    stack = [root_module]
+    while stack:
+        name = stack.pop()
+        if name in visited:
+            continue
+        visited.add(name)
+        source = _module_source(name)
+        if source is None:
+            continue
+        digests[name] = canonical_digest(source)
+        stack.extend(_static_ici_imports(name, source) - visited)
+    return tuple(sorted(digests.items()))
+
+
+def _module_source(module_name: str) -> str | None:
+    """A module's source text, read through its loader so zipimport works."""
+
+    module = sys.modules.get(module_name)
+    loader = getattr(module, "__loader__", None) if module is not None else None
+    if loader is None:
+        try:
+            spec = importlib.util.find_spec(module_name)
+        except (AttributeError, ImportError, ValueError):
+            return None
+        if spec is None:
+            return None
+        loader = spec.loader
+    get_source = getattr(loader, "get_source", None)
+    if get_source is None:
+        return None
+    try:
+        return get_source(module_name)
+    except (ImportError, OSError):
+        return None
+
+
+def _static_ici_imports(module_name: str, source: str) -> frozenset[str]:
+    """The ``ici.*`` modules a source imports at runtime."""
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return frozenset()
+    found: set[str] = set()
+    _collect_ici_imports(tree, module_name, found)
+    return frozenset(found)
+
+
+def _collect_ici_imports(node: ast.AST, module_name: str, found: set[str]) -> None:
+    for child in ast.iter_child_nodes(node):
+        if isinstance(child, ast.Import):
+            for alias in child.names:
+                if alias.name == "ici" or alias.name.startswith("ici."):
+                    found.add(alias.name)
+        elif isinstance(child, ast.ImportFrom):
+            target = _import_from_module(module_name, child)
+            if target is not None and (target == "ici" or target.startswith("ici.")):
+                found.add(target)
+                # ``from pkg import name`` may reach a submodule — include the
+                # candidate; resolution drops names that are attributes.
+                for alias in child.names:
+                    if alias.name != "*":
+                        found.add(f"{target}.{alias.name}")
+        elif isinstance(child, ast.If) and _is_type_checking(child.test):
+            # The body never executes; the else-branch can still hold real
+            # imports and is walked normally.
+            for statement in child.orelse:
+                _collect_ici_imports(statement, module_name, found)
+        else:
+            _collect_ici_imports(child, module_name, found)
+
+
+def _import_from_module(module_name: str, node: ast.ImportFrom) -> str | None:
+    if not node.level:
+        return node.module
+    parts = module_name.split(".")
+    base = parts[: len(parts) - node.level] if len(parts) > node.level else []
+    if node.module:
+        base = [*base, node.module]
+    return ".".join(base) if base else None
+
+
+def _is_type_checking(test: ast.expr) -> bool:
+    if isinstance(test, ast.Name):
+        return test.id == "TYPE_CHECKING"
+    return isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"

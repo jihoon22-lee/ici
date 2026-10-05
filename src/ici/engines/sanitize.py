@@ -89,11 +89,6 @@ class SanitizeEngine(PythonResourceWarningMixin, BaseEngine):
     # Runtime diagnostics and test execution are observations, not reusable
     # source-only analysis results.
     CACHE_REUSE_SAFE = False
-    CACHE_IMPLEMENTATION_MODULES = (
-        "ici.core._cmake_test_results",
-        "ici.core.cmake",
-        "ici.engines._sanitizer_diagnostics",
-    )
 
     def __init__(
         self,

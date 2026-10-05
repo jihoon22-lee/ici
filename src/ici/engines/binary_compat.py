@@ -53,7 +53,6 @@ class BinaryCompatibilityEngine(BaseEngine):
     """Inspect only validated manifest artifacts; never discover or execute binaries."""
 
     CACHE_REUSE_SAFE = False
-    CACHE_IMPLEMENTATION_MODULES = ("ici.engines._elf", "ici.engines.binary_compat")
 
     def _records(self, cfg: dict[str, Any]) -> list[tuple[ArtifactRecord, Path]]:
         if self.analysis_context is None:

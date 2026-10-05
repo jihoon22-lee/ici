@@ -68,22 +68,6 @@ FileData = DuplicateFileData
 class DuplicateEngine(BaseEngine):
     """Detects maximal copy-pasted code blocks across files and groups them into unified clusters."""
 
-    CACHE_IMPLEMENTATION_MODULES = (
-        "ici.core._compile_db_paths",
-        "ici.core.project",
-        "ici.engines._cpp_dup_tokenization",
-        "ici.engines._dup_matching",
-        "ici.engines._dup_regions",
-        "ici.engines._dup_signal",
-        "ici.engines._python_dup_tokenization",
-        "ici.engines._python_dup_semantics",
-        "ici.engines._source_inputs",
-        "ici.engines.base",
-        "ici.engines.complexity",
-        "ici.engines.cpp_text",
-        "ici.engines.dup",
-    )
-
     def run(self) -> EngineResult:
         t0 = time.time()
         cfg = self.get_config("dup")

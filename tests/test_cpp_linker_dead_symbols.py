@@ -760,7 +760,8 @@ def test_the_cross_target_rule_participates_in_cache_identity() -> None:
     would let a changed rule serve stale findings from cache.
     """
 
-    from ici.engines.dead import DeadCodeEngine
+    from ici.core.cache_identity import _implementation_closure
 
-    assert "ici.engines._cpp_linker_dead_aggregation" in DeadCodeEngine.CACHE_IMPLEMENTATION_MODULES
-    assert "ici.engines._cpp_linker_dead_symbols" in DeadCodeEngine.CACHE_IMPLEMENTATION_MODULES
+    closure = dict(_implementation_closure("ici.engines.dead"))
+    assert "ici.engines._cpp_linker_dead_aggregation" in closure
+    assert "ici.engines._cpp_linker_dead_symbols" in closure

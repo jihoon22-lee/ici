@@ -59,7 +59,6 @@ class IntegrationEngine(BaseEngine):
     """Resolve typed placeholders from immutable inputs and run bounded cases."""
 
     CACHE_REUSE_SAFE = False
-    CACHE_IMPLEMENTATION_MODULES = ("ici.engines._integration", "ici.engines.integration")
 
     def _artifacts(self) -> dict[str, Path]:
         if self.analysis_context is None:
