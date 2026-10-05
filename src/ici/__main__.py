@@ -3,7 +3,6 @@
 import json
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 from typing import TypedDict
 
@@ -28,31 +27,8 @@ from ici.core.pipeline import AnalysisProfile
 from ici.core.redaction import redact_engine_result
 from ici.core.support import evaluate_support_matrix
 from ici.doctor import collect_diagnostics, render_doctor_brief, render_doctor_table
-from ici.engines.build import BuildEngine
-from ici.engines.cognitive import CognitiveEngine  # noqa: F401
-from ici.engines.complexity import (
-    ComplexityEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
-from ici.engines.cycle import CycleEngine  # noqa: F401 - resolved dynamically by CLI registry
-from ici.engines.dead import DeadCodeEngine  # noqa: F401 - resolved dynamically by CLI registry
-from ici.engines.dup import DuplicateEngine  # noqa: F401 - resolved dynamically by CLI registry
-from ici.engines.exception import (
-    ExceptionSafetyEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
-from ici.engines.line import LineCountEngine  # noqa: F401 - resolved dynamically by CLI registry
-from ici.engines.lint import LintEngine  # noqa: F401 - resolved dynamically by CLI registry
 from ici.engines.publish import ReportInput, ReportPublisher, load_suite_from_json
-from ici.engines.python_compat import PythonCompatibilityEngine  # noqa: F401
-from ici.engines.resource import ResourceEngine  # noqa: F401
-from ici.engines.sanitize import SanitizeEngine  # noqa: F401 - resolved dynamically by CLI registry
-from ici.engines.security import SecurityEngine  # noqa: F401
-from ici.engines.test import TestEngine  # noqa: F401 - resolved dynamically by CLI registry
-from ici.engines.thread_sanitize import (  # noqa: F401 - resolved dynamically by CLI registry
-    ThreadSanitizeEngine,
-)
-from ici.engines.type_check import (
-    TypeCheckEngine,  # noqa: F401 - resolved dynamically by CLI registry
-)
+from ici.engines.registry import resolve_engine_class
 from ici.engines.verify import VerifyOrchestrator, prepare_analysis_context
 from ici.reporters.console import print_line_distribution_chart
 from ici.reporters.issue_view import DEFAULT_MAX_FINDINGS, ConsoleGroupBy, ConsoleOptions
@@ -313,7 +289,7 @@ def cmd_verify(
 @app.command("build")
 def cmd_build(ctx: typer.Context):
     """Compiles and packages release artifacts and env loaders into vX.Y.Z/x86_64/."""
-    engine = _create_engine(BuildEngine, _effective_config(ctx))
+    engine = _create_engine(resolve_engine_class("BuildEngine"), _effective_config(ctx))
     res = redact_engine_result(engine.run())
     _print_engine_result(res)
     _exit_for_safety_status(res.status)
@@ -419,8 +395,7 @@ _ENGINE_COMMANDS = [
 def _run_engine_command(
     engine_cls_name: str, report_filename: str, ctx: typer.Context, report: bool
 ):
-    # Resolve via module attribute so tests can monkeypatch engine classes.
-    engine_cls = getattr(sys.modules[__name__], engine_cls_name)
+    engine_cls = resolve_engine_class(engine_cls_name)
     config = _effective_config(ctx)
     analysis_context = None
     project = None

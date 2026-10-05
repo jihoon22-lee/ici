@@ -29,6 +29,7 @@ from ici.core.models import (
 )
 from ici.core.redaction import redact_suite
 from ici.core.toolchain import ProbeEvidence, ToolCapability
+from ici.engines.registry import ENGINE_FACTORIES
 from ici.engines.verify import VerifyOrchestrator
 from ici.reporters.console import print_suite_dashboard
 from ici.reporters.html import generate_html_report
@@ -194,7 +195,7 @@ def test_verify_collects_one_snapshot_before_engines_and_attaches_it(
 
     monkeypatch.setattr("ici.engines.verify.derive_tool_policy", fake_policy)
     monkeypatch.setattr("ici.engines.verify.collect_capability_inventory", fake_collect)
-    monkeypatch.setattr("ici.engines.verify.LineCountEngine", PassingLine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LineCountEngine", PassingLine)
     monkeypatch.setattr("ici.engines.verify.print_suite_dashboard", lambda *args, **kwargs: None)
 
     suite = VerifyOrchestrator(tmp_path, _line_only_config()).run_all(use_cache=False)

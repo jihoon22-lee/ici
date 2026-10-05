@@ -22,6 +22,7 @@ from ici.engines import verify as verify_module
 from ici.engines.base import BaseEngine
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.exception import ExceptionSafetyEngine
+from ici.engines.registry import ENGINE_FACTORIES
 from ici.engines.verify import VerifyOrchestrator
 
 _IDENTITY = AnalysisIdentity(
@@ -153,7 +154,7 @@ def _fake_engine(
         "line": "LineCountEngine",
         "lint": "LintEngine",
     }
-    monkeypatch.setattr(verify_module, class_names[name], FakeEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, class_names[name], FakeEngine)
 
 
 class _ProbeEngine(BaseEngine):

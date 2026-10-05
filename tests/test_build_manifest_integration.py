@@ -26,6 +26,7 @@ from ici.engines import sanitize as sanitize_module
 from ici.engines import test as test_module
 from ici.engines import verify as verify_module
 from ici.engines.build import BuildEngine
+from ici.engines.registry import ENGINE_FACTORIES
 from ici.engines.sanitize import SanitizeEngine
 from ici.engines.test import TestEngine
 from ici.engines.thread_sanitize import ThreadSanitizeEngine
@@ -422,7 +423,7 @@ def test_verify_derives_manifest_context_without_mutating_original_context(
                 artifact_manifests=(manifest,),
             )
 
-    monkeypatch.setattr(verify_module, "LineCountEngine", ManifestEngine)
+    monkeypatch.setitem(ENGINE_FACTORIES, "LineCountEngine", ManifestEngine)
     config = {"engines": {name: {"enabled": name == "line"} for name in verify_module.ENGINE_NAMES}}
 
     suite = VerifyOrchestrator(root, config).run_all(use_cache=False)
