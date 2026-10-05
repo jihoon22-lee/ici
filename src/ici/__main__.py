@@ -112,6 +112,12 @@ def main_callback(
         # format could never run the new path: the stable reader rejects the
         # file before the command that understands it is reached.
         return
+    if ctx.invoked_subcommand in {"env", "cache"}:
+        # Read-only inventory: `env` prints shell lines and `cache` lists the
+        # analysis cache. Neither consults the policy — so neither may create
+        # ~/.config/ici/ici.toml as a side effect of being asked a question.
+        ctx.obj["config"] = None
+        return
     next_root = find_workspace_root(Path.cwd())
     if next_root is not None and ctx.invoked_subcommand == "verify":
         # Same reason as the `next` exemption above: `verify` dispatches to

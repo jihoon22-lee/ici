@@ -54,6 +54,22 @@ def test_cli_any_command_creates_global_config(tmp_path, monkeypatch):
     assert "engines" in global_conf.read_text(encoding="utf-8")
 
 
+@pytest.mark.parametrize("command", [["env"], ["env", "--sh"], ["cache"]])
+def test_read_only_commands_create_no_global_config(tmp_path, monkeypatch, command):
+    """Asking for a PATH line or a cache listing must not write policy files."""
+
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    xdg = tmp_path / "xdg"
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(xdg))
+    monkeypatch.delenv("ICI_CONFIG", raising=False)
+    monkeypatch.chdir(proj)
+
+    res = runner.invoke(app, command)
+    assert res.exit_code == 0, res.output
+    assert not (xdg / "ici" / "ici.toml").exists()
+
+
 def test_cli_verify_error_suite_exits_nonzero(monkeypatch):
     class ErrorOrchestrator:
         def run_all(self, **kwargs):
