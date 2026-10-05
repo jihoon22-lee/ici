@@ -818,8 +818,8 @@ v0.8.0 public projection에서 16 unit·6 target·14 field group mismatch 0으�
 현재 cache key는 `ici.analysis-cache-key/v3`이며, I3-4 engine class가
 `CACHE_IMPLEMENTATION_MODULES`로 명시한 helper/dependency module source digest의 sorted
 unique 목록을 implementation identity에 포함한다. C++ lint 선언에는 isolated
-`ici.engines._cpp_diagnostic_categories` taxonomy helper가 포함되고, cycle 선언에는
-`ici.core._cpp_replay_policy`와 `ici.engines._cpp_include_trace`가 포함된다. I3-1~I3-3 절의 당시 v2 compilation
+`ici.analysis._cpp_diagnostic_categories` taxonomy helper가 포함되고, cycle 선언에는
+`ici.core._cpp_replay_policy`와 `ici.analysis._cpp_include_trace`가 포함된다. I3-1~I3-3 절의 당시 v2 compilation
 context/cache 문구는 과거 evidence이므로 변경하지 않는다.
 
 **Same-basename active-header local revalidation (2026-09-01):** 기존
@@ -1008,8 +1008,8 @@ bounded argv/output/unit/global budget이다. missing 또는 malformed context/o
 mismatch, timeout/truncation, spawn/검증 불가능한 종료와 budget 초과는 조용한 heuristic fallback
 없이 `ERROR`/`NOT_RUN`으로 fail-closed한다. optional `auto`의 tool 부재는 분석을 무효화하지
 않는 경고로, `required`의 tool 부재는 오류로 남긴다. lint cache implementation identity에는
-`ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostic_categories`와
-`ici.engines._cpp_diagnostics`를 포함한 declared helper source digest가 들어가고, project
+`ici.analysis._clang_tidy`, `ici.analysis._clazy`, `ici.analysis._cpp_diagnostic_categories`와
+`ici.analysis._cpp_diagnostics`를 포함한 declared helper source digest가 들어가고, project
 `.clang-tidy`도 input identity에 포함된다.
 
 compiler와 clang-tidy는 각각 최대 2,048 units, unit당 120초, 전체 600초로 제한한다. context

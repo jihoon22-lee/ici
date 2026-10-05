@@ -25,6 +25,7 @@ from typing import Protocol
 
 import tomli
 
+from ici.analysis import _integration as stable_integration
 from ici.config.documents import (
     BuildDeclaration,
     CheckSetting,
@@ -47,7 +48,6 @@ from ici.config.errors import ConfigProblem, NextConfigError, collect, fail
 from ici.config.origin import Origin, Sourced
 from ici.config.paths import Executable
 from ici.config.reader import Table
-from ici.engines import _integration as stable_integration
 
 __all__ = ["SCHEMA_VERSION", "read_component", "read_root"]
 

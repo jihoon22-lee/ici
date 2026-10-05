@@ -219,7 +219,7 @@ def test_else_branch_is_not_an_elif():
 def test_elif_chain_matches_the_cpp_path():
     # The C++ analyzer already treats an else-if as a continuation of the same
     # decision chain. The same logic must not score differently by language.
-    from ici.engines._cpp_cognitive import cpp_cognitive_metric
+    from ici.analysis._cpp_cognitive import cpp_cognitive_metric
 
     cpp = "{\n    if (a == 1) { return 1; }\n"
     for value in range(2, 6):

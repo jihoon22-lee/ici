@@ -10,7 +10,8 @@ from pathlib import Path
 
 import pytest
 
-import ici.engines._cpp_unused_functions as cpp_unused
+import ici.analysis._cpp_unused_functions as cpp_unused
+from ici.analysis._cpp_unused_functions import run_cpp_unused_functions
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
     AnalysisContext,
@@ -24,7 +25,6 @@ from ici.core.context import (
 from ici.core.models import EngineStatus
 from ici.core.runner import ProcessResult, run_process
 from ici.core.toolchain import ToolCapability
-from ici.engines._cpp_unused_functions import run_cpp_unused_functions
 
 
 def _executable(path: Path) -> Path:

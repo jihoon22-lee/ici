@@ -227,8 +227,8 @@ def test_lint_carries_compiler_fixits_through_to_the_finding():
     mentions an edit it cannot offer.
     """
 
+    from ici.analysis._cpp_diagnostics import CppDiagnostic, CppFixIt
     from ici.core.models import InspectionTarget
-    from ici.engines._cpp_diagnostics import CppDiagnostic, CppFixIt
     from ici.engines.lint import LintEngine
 
     diagnostic = CppDiagnostic(
@@ -280,8 +280,8 @@ def test_the_engine_attaches_the_fixes_to_the_finding_it_builds(tmp_path: Path):
     while every report lost its suggestions. This goes through the builder.
     """
 
+    from ici.analysis._cpp_diagnostics import CppDiagnostic, CppFixIt
     from ici.core.models import InspectionTarget
-    from ici.engines._cpp_diagnostics import CppDiagnostic, CppFixIt
     from ici.engines.lint import LintEngine
 
     target = InspectionTarget(

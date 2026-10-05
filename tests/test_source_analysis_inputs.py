@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._source_inputs import AnalysisSourceError, read_analysis_sources
 from ici.config import DEFAULT_CONFIG
 from ici.config_schema import ConfigError, validate_config
 from ici.core.models import EngineStatus, EvidenceState
-from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
 from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
 

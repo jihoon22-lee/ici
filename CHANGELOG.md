@@ -7,6 +7,17 @@
 
 ## [Unreleased]
 
+### 구조 — 분석 코어가 `ici.analysis`로 재배치
+
+- `ici.engines._*` 36개 모듈과 순수 헬퍼 `ici.engines.cpp_text`가
+  `ici.analysis` 패키지로 이동했습니다. 엔진 클래스·CLI 지식이 없는
+  파서·토크나이저·측정 프리미티브로, stable/next 양쪽이 공유하는
+  자산입니다 — stable 껍데기 삭제(inventory 문서 §5 단계 2)의 첫 PR로,
+  이동만 하고 삭제는 없습니다.
+- 분석 캐시의 구현 식별자가 모듈 이름을 포함하므로 캐시 키가 바뀝니다
+  — 기존 엔트리는 stale hit가 아니라 miss로 재계산됩니다(fail-closed).
+
+
 ### 구조 — next 경로 테스트가 `tests/next/`로 계층화
 
 - next 경로를 검증하는 67개 테스트 파일이 `tests/next/` 아래로 이동했습니다

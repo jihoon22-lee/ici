@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-import ici.engines._cpp_linker_dead_aggregation as aggregation
-import ici.engines._cpp_linker_dead_symbols as linker
+import ici.analysis._cpp_linker_dead_aggregation as aggregation
+import ici.analysis._cpp_linker_dead_symbols as linker
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
     AnalysisContext,
@@ -763,5 +763,5 @@ def test_the_cross_target_rule_participates_in_cache_identity() -> None:
     from ici.core.cache_identity import _implementation_closure
 
     closure = dict(_implementation_closure("ici.engines.dead"))
-    assert "ici.engines._cpp_linker_dead_aggregation" in closure
-    assert "ici.engines._cpp_linker_dead_symbols" in closure
+    assert "ici.analysis._cpp_linker_dead_aggregation" in closure
+    assert "ici.analysis._cpp_linker_dead_symbols" in closure

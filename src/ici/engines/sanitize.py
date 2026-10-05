@@ -12,6 +12,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from ici.analysis._sanitize_python_scope import PythonResourceWarningMixin
+from ici.analysis._sanitizer_diagnostics import (
+    MAX_SANITIZER_OUTPUT_BYTES,
+    SanitizerDiagnostic,
+    SanitizerDiagnosticError,
+    parse_sanitizer_diagnostics,
+)
+from ici.analysis.cpp_text import defines_main
 from ici.core.cmake import BuildSession, ConfigureOptions, TestCaseResult, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
@@ -32,15 +40,7 @@ from ici.core.models import (
 )
 from ici.core.project import _iter_project_files
 from ici.core.runner import ProcessResult, run_process
-from ici.engines._sanitize_python_scope import PythonResourceWarningMixin
-from ici.engines._sanitizer_diagnostics import (
-    MAX_SANITIZER_OUTPUT_BYTES,
-    SanitizerDiagnostic,
-    SanitizerDiagnosticError,
-    parse_sanitizer_diagnostics,
-)
 from ici.engines.base import BaseEngine
-from ici.engines.cpp_text import defines_main
 
 if TYPE_CHECKING:
     from ici.core.context import AnalysisContext

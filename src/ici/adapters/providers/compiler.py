@@ -33,11 +33,11 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
+from ici.analysis._cpp_diagnostics import parse_compiler_diagnostics
 from ici.core.models import EngineStatus
 from ici.domain.enums import TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.tasks import TaskSpec
-from ici.engines._cpp_diagnostics import parse_compiler_diagnostics
 from ici.execution.process import ExitContract, TaskOutcome
 
 __all__ = [

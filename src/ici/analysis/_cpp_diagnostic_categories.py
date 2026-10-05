@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from ici.analysis._cpp_diagnostics import CppDiagnostic
 from ici.core.models import FindingCategory
-from ici.engines._cpp_diagnostics import CppDiagnostic
 
 CPP_DIAGNOSTIC_CATEGORY_POLICY = "tool-rule-v1"
 

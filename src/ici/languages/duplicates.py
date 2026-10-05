@@ -17,20 +17,20 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-from ici.domain.enums import EvidenceLevel, TaskState
-from ici.domain.finding import Finding, SourceSpan
-from ici.domain.observation import Measurement, Observation
-from ici.engines._cpp_dup_tokenization import tokenize_cpp_lines
-from ici.engines._dup_matching import (
+from ici.analysis._cpp_dup_tokenization import tokenize_cpp_lines
+from ici.analysis._dup_matching import (
     DuplicateComparisonLimit,
     DuplicateFileData,
     DuplicateMatchLimits,
     filter_subsumed_matches,
     find_raw_matches,
 )
-from ici.engines._dup_regions import cpp_duplicate_regions, python_duplicate_regions
-from ici.engines._python_dup_tokenization import tokenize_python_lines
-from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
+from ici.analysis._dup_regions import cpp_duplicate_regions, python_duplicate_regions
+from ici.analysis._python_dup_tokenization import tokenize_python_lines
+from ici.analysis._source_inputs import AnalysisSourceError, read_analysis_sources
+from ici.domain.enums import EvidenceLevel, TaskState
+from ici.domain.finding import Finding, SourceSpan
+from ici.domain.observation import Measurement, Observation
 
 __all__ = ["PROVIDER_NAME", "DuplicateRequest", "measure_duplicates"]
 

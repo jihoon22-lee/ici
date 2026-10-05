@@ -515,7 +515,7 @@ stdin은 빈 입력으로 명시적으로 닫습니다. 따라서 엔진이 임�
   standalone에서는 canonical direct driver만 허용한 뒤 exact 경로와 같은 positive allowlist,
   source/compiler 경계, argument bound, minimal replacement environment, closed stdin을 적용합니다.
   unsafe package/include flag나 project-contained driver는 compiler 실행 전에 거부합니다.
-- `ici.engines._cpp_include_trace` parser는 `-H` entry/depth, missing-include trace,
+- `ici.analysis._cpp_include_trace` parser는 `-H` entry/depth, missing-include trace,
   include-guard trailer와 pseudo frame을 bounded하게 검증합니다. stale/unrecognized shape는 edge를
   추측하지 않고 `ERROR`/`NOT_RUN`으로 닫힙니다.
 
@@ -1058,13 +1058,13 @@ SHA-256 digest입니다.
 - engine descriptor와 engine class source digest, 그리고 engine class가
   `CACHE_IMPLEMENTATION_MODULES`로 명시적으로 선언한 helper/dependency module source digest
   목록 (C++ lint에는 `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`,
-  `ici.engines._clang_tidy`, `ici.engines._clazy`, `ici.engines._cpp_diagnostic_categories`,
-  `ici.engines._cpp_diagnostics`, `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`,
-  `ici.engines._qt_codegen` 포함;
-  cycle에는 `ici.core._cpp_replay_policy`, `ici.engines._cpp_include_trace` 포함;
+  `ici.analysis._clang_tidy`, `ici.analysis._clazy`, `ici.analysis._cpp_diagnostic_categories`,
+  `ici.analysis._cpp_diagnostics`, `ici.analysis._cpp_lint`, `ici.analysis._cpp_tooling`,
+  `ici.analysis._qt_codegen` 포함;
+  cycle에는 `ici.core._cpp_replay_policy`, `ici.analysis._cpp_include_trace` 포함;
   complexity에는 `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`,
-  `ici.core.cpp_replay`, `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`,
-  `ici.engines.cpp_text` 포함)
+  `ici.core.cpp_replay`, `ici.analysis._cpp_function_boundaries`, `ici.analysis._cpp_tooling`,
+  `ici.analysis.cpp_text` 포함)
 - `none`, `release`, `coverage`, `sanitize` 중 engine build variant
 - compilation context identity: 선택된 database의 project-relative path와 바이트 digest,
   loader schema version, 정규화된 unit configuration/metadata와 diagnostics를 포함한 parse state

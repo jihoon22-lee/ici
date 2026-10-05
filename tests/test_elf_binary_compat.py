@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._elf import ElfParseError, maximum_version, parse_readelf
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
     AnalysisContext,
@@ -20,7 +21,6 @@ from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
 from ici.engines import binary_compat
-from ici.engines._elf import ElfParseError, maximum_version, parse_readelf
 from ici.engines.binary_compat import BinaryCompatibilityEngine
 
 _READELF = """

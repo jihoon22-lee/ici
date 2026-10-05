@@ -16,19 +16,19 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from ici.domain.enums import EvidenceLevel, TaskState
-from ici.domain.finding import Finding, SourceSpan
-from ici.domain.observation import Measurement, Observation
-from ici.engines._exception_rules import (
+from ici.analysis._exception_rules import (
     analyze_cpp_exceptions,
     analyze_python_exceptions,
 )
-from ici.engines._python_resources import (
+from ici.analysis._python_resources import (
     ResourceAnalysisLimit,
     analyze_python_resources,
 )
-from ici.engines._python_security import analyze_python_security
-from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
+from ici.analysis._python_security import analyze_python_security
+from ici.analysis._source_inputs import AnalysisSourceError, read_analysis_sources
+from ici.domain.enums import EvidenceLevel, TaskState
+from ici.domain.finding import Finding, SourceSpan
+from ici.domain.observation import Measurement, Observation
 
 __all__ = ["PROVIDER_NAME", "HygieneRequest", "measure_hygiene"]
 

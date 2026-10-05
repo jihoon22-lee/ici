@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 import ici.engines.cycle as cycle_module
+from ici.analysis._cpp_include_graph import build_compiler_cpp_graph
 from ici.core.capabilities import CapabilityInventory, collect_capability_inventory
 from ici.core.context import (
     AnalysisContext,
@@ -23,7 +24,6 @@ from ici.core.context import (
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult, run_process
 from ici.core.toolchain import ToolProbe
-from ici.engines._cpp_include_graph import build_compiler_cpp_graph
 from ici.engines.cycle import CycleEngine
 
 _CFG = {"engines": {"cycle": {"mode": "pass_warn_fail", "max_reported": 20}}}

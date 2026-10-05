@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._python_dup_tokenization import tokenize_python_lines
 from ici.core.models import EngineStatus
-from ici.engines._python_dup_tokenization import tokenize_python_lines
 from ici.engines.dup import DuplicateEngine
 
 _TOKEN_SEPARATOR = "\x1f"

@@ -16,11 +16,11 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
+from ici.analysis._python_dead_code import analyze_python_dead_code
+from ici.analysis._source_inputs import AnalysisSourceError, read_analysis_sources
 from ici.domain.enums import EvidenceLevel, TaskState
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement, Observation
-from ici.engines._python_dead_code import analyze_python_dead_code
-from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
 
 __all__ = ["PROVIDER_NAME", "DeadRequest", "measure_dead"]
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ici.analysis._qt_codegen import verify_qt_codegen
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
     AnalysisContext,
@@ -16,7 +17,6 @@ from ici.core.context import (
     canonical_digest,
 )
 from ici.core.models import EngineStatus, FindingCategory
-from ici.engines._qt_codegen import verify_qt_codegen
 
 
 def _unit(

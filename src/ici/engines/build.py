@@ -11,6 +11,8 @@ from typing import Any
 import tomli
 
 from ici._analysis_config import DECLARED_ARTIFACT_KINDS
+from ici.analysis.cpp_text import MAIN_DEFINITION_RE as _MAIN_DEFINITION_RE
+from ici.analysis.cpp_text import mask_cpp_literals as _mask_cpp_literals
 from ici.core.cmake import ConfigureOptions, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import configure as adapter_configure
@@ -30,8 +32,6 @@ from ici.core.models import (
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
-from ici.engines.cpp_text import MAIN_DEFINITION_RE as _MAIN_DEFINITION_RE
-from ici.engines.cpp_text import mask_cpp_literals as _mask_cpp_literals
 
 _ENTRYPOINT_RE = re.compile(
     r"^(?P<module>[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*):"

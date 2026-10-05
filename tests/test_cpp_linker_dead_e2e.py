@@ -8,11 +8,11 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._cpp_linker_dead_symbols import run_cpp_linker_dead_symbols
 from ici.core.capabilities import collect_capability_inventory
 from ici.core.context import CompilationContext, create_analysis_context, discover_project_model
 from ici.core.runner import run_process
 from ici.core.toolchain import DEFAULT_TOOL_PROBES
-from ici.engines._cpp_linker_dead_symbols import run_cpp_linker_dead_symbols
 
 FIXTURE = Path(__file__).resolve().parents[1] / "examples" / "cpp-fixtures" / "cmake_elf_dead"
 _REQUIRED_TOOLS = ("g++", "cmake", "readelf", "addr2line")

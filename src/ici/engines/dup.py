@@ -5,9 +5,8 @@ import time
 from collections import Counter, defaultdict
 from dataclasses import replace
 
-from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
-from ici.engines._cpp_dup_tokenization import tokenize_cpp_lines
-from ici.engines._dup_matching import (
+from ici.analysis._cpp_dup_tokenization import tokenize_cpp_lines
+from ici.analysis._dup_matching import (
     DuplicateComparisonLimit,
     DuplicateFileData,
     DuplicateMatchLimits,
@@ -15,8 +14,8 @@ from ici.engines._dup_matching import (
     filter_subsumed_matches,
     find_raw_matches,
 )
-from ici.engines._dup_regions import cpp_duplicate_regions, python_duplicate_regions
-from ici.engines._python_dup_semantics import (
+from ici.analysis._dup_regions import cpp_duplicate_regions, python_duplicate_regions
+from ici.analysis._python_dup_semantics import (
     SEMANTIC_SHAPE_ALGORITHM,
     SEMANTIC_SHAPE_VERSION,
     SemanticAnalysisOutcome,
@@ -24,13 +23,14 @@ from ici.engines._python_dup_semantics import (
     SemanticRegion,
     analyze_python_sources,
 )
-from ici.engines._python_dup_tokenization import tokenize_python_lines
-from ici.engines._source_inputs import (
+from ici.analysis._python_dup_tokenization import tokenize_python_lines
+from ici.analysis._source_inputs import (
     AnalysisSource,
     AnalysisSourceError,
     AnalysisSourceInventory,
     read_analysis_sources,
 )
+from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
 from ici.engines.base import BaseEngine
 
 LocTuple = tuple[int, int, int]  # (file_idx, start_line, end_line)

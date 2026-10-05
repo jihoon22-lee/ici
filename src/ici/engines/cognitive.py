@@ -3,10 +3,10 @@
 import ast
 import time
 
+from ici.analysis._cpp_cognitive import analyze_cpp_cognitive
+from ici.analysis._python_metrics import cognitive_complexity
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
 from ici.core.runner import run_process
-from ici.engines._cpp_cognitive import analyze_cpp_cognitive
-from ici.engines._python_metrics import cognitive_complexity
 from ici.engines.base import BaseEngine
 
 

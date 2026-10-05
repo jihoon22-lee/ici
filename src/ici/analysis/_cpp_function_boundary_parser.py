@@ -16,9 +16,8 @@ from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
-from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
-from ici.engines._cpp_diagnostics import CppDiagnostic, parse_clang_tidy_diagnostics
-from ici.engines.cpp_text import (
+from ici.analysis._cpp_diagnostics import CppDiagnostic, parse_clang_tidy_diagnostics
+from ici.analysis.cpp_text import (
     cpp_definition_name,
     cpp_function_like_macro_names,
     cpp_has_conditional_directive,
@@ -27,6 +26,7 @@ from ici.engines.cpp_text import (
     mask_cpp_lambda_bodies,
     mask_cpp_literals,
 )
+from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
 
 _CHECK = "readability-function-size"
 _MAX_BOUNDARIES = 100_000

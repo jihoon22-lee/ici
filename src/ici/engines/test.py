@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from ici.analysis.cpp_text import defines_main
 from ici.core.cmake import ConfigureOptions, gcov_json_capability, select_backend
 from ici.core.cmake import build as adapter_build
 from ici.core.cmake import collect_coverage as adapter_collect_coverage
@@ -36,7 +37,6 @@ from ici.engines.coverage_support import (
     parse_gcov_functions,
     parse_gcov_json_dir,
 )
-from ici.engines.cpp_text import defines_main
 from ici.engines.test_coverage import TestCoverageMixin
 from ici.engines.test_interpreter import TestInterpreterMixin
 from ici.engines.test_output import TestOutputMixin

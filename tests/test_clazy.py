@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._clazy import run_clazy
+from ici.analysis._cpp_tooling import gcc_standard_library_for_replay
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
     AnalysisContext,
@@ -19,8 +21,6 @@ from ici.core.context import (
 from ici.core.models import EngineStatus, EvidenceState, FindingCategory
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
-from ici.engines._clazy import run_clazy
-from ici.engines._cpp_tooling import gcc_standard_library_for_replay
 from ici.engines.lint import LintEngine
 
 

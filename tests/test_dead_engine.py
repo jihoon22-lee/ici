@@ -2,6 +2,14 @@
 
 import pytest
 
+from ici.analysis._cpp_linker_dead_symbols import (
+    CppLinkerDeadOutcome,
+    CppLinkerDeadSymbol,
+)
+from ici.analysis._cpp_unused_functions import (
+    CppUnusedFunction,
+    CppUnusedFunctionOutcome,
+)
 from ici.core.findings import findings_for_result
 from ici.core.models import (
     EngineStatus,
@@ -10,14 +18,6 @@ from ici.core.models import (
     InspectionTarget,
     ToolEvidence,
     aggregate_suite_status,
-)
-from ici.engines._cpp_linker_dead_symbols import (
-    CppLinkerDeadOutcome,
-    CppLinkerDeadSymbol,
-)
-from ici.engines._cpp_unused_functions import (
-    CppUnusedFunction,
-    CppUnusedFunctionOutcome,
 )
 from ici.engines.dead import DeadCodeEngine
 

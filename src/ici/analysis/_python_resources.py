@@ -5,8 +5,8 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass, field
 
+from ici.analysis._python_resource_scopes import collect_scope_bindings, collect_scope_imports
 from ici.core.models import EngineStatus, FindingCategory, FindingConfidence, InspectionTarget
-from ici.engines._python_resource_scopes import collect_scope_bindings, collect_scope_imports
 
 MAX_RESOURCE_AST_NODES = 100_000
 _OPEN = "open"

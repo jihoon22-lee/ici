@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, TypeVar
 
+from ici.analysis._cpp_include_graph import build_compiler_cpp_graph
 from ici.core.context import AnalysisContext
 from ici.core.cpp_replay import compilation_context_present
 from ici.core.models import (
@@ -24,7 +25,6 @@ from ici.core.project import (
     get_source_dirs,
 )
 from ici.core.runner import run_process
-from ici.engines._cpp_include_graph import build_compiler_cpp_graph
 from ici.engines.base import BaseEngine
 
 _INCLUDE_RE = re.compile(r'#include\s*["]([^"]+)["]')

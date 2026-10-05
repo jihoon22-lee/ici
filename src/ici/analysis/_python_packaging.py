@@ -17,6 +17,13 @@ import tomli
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 
+from ici.analysis._python_wheel import (
+    MAX_WHEEL_MEMBERS,
+    MAX_WHEEL_UNCOMPRESSED_BYTES,
+    PythonPackagingError,
+    _WheelEvidence,
+    inspect_wheel,
+)
 from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
 from ici.core.findings import finding_fingerprint
 from ici.core.models import (
@@ -27,13 +34,6 @@ from ici.core.models import (
     FindingSeverity,
     InspectionTarget,
     SourceLocation,
-)
-from ici.engines._python_wheel import (
-    MAX_WHEEL_MEMBERS,
-    MAX_WHEEL_UNCOMPRESSED_BYTES,
-    PythonPackagingError,
-    _WheelEvidence,
-    inspect_wheel,
 )
 
 MAX_PYPROJECT_BYTES = 2 * 1024 * 1024
