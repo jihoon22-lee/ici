@@ -37,35 +37,41 @@ _HERE = PurePosixPath(".")
 
 
 def python_request(
-    component: EffectiveComponent,
+    component: EffectiveComponent | None,
     *,
     workspace_root: PurePosixPath = _HERE,
+    convention: tuple[Candidate, ...] = (),
 ) -> Request:
     """The interpreter this component's tests run on, if it declared one.
 
     Returns a request with no candidates when the component is silent. That is
     deliberate and is the whole point: the resolver then reports that nothing
     was found, instead of a search widening until something answers.
+
+    ``convention`` holds caller-supplied fallback candidates — e.g. a
+    ``.venv`` the caller chose to look at. They are never invented here, and
+    an explicit declaration always beats them: a declared interpreter that
+    cannot run is an error to report, not a reason to use the convention.
     """
 
-    declared = component.python_executable
-    if declared is None:
-        return Request(role=Role.PROJECT_PYTHON, name="python")
-
-    key = declared.origin.key or f"components.{component.id}.python.executable"
+    candidates: list[Candidate] = []
+    declared = component.python_executable if component is not None else None
+    if declared is not None:
+        assert component is not None
+        key = declared.origin.key or f"components.{component.id}.python.executable"
+        candidates.append(
+            Candidate(
+                path=_anchor(declared.value, workspace_root),
+                source=declared.origin.file,
+                config_key=key,
+                explicit=True,
+            )
+        )
+    candidates.extend(convention)
     return Request(
         role=Role.PROJECT_PYTHON,
         name="python",
-        candidates=(
-            Candidate(
-                path=_anchor(declared.value, component, workspace_root),
-                source=declared.origin.file,
-                config_key=key,
-                # Declared means chosen. A declared interpreter that cannot run
-                # is an error to report, not a reason to look elsewhere.
-                explicit=True,
-            ),
-        ),
+        candidates=tuple(candidates),
         version_argv=("--version",),
     )
 
@@ -76,6 +82,7 @@ def analyzer_request(
     bundle_path: str | None = None,
     declared_path: str | None = None,
     declared_key: str | None = None,
+    search_path: str | None = None,
     minimum_version: tuple[int, ...] | None = None,
 ) -> Request:
     """An analyzer: the bundle's copy, or one the workspace named.
@@ -84,6 +91,10 @@ def analyzer_request(
     reproducibility: a linter picked up from PATH makes the result depend on
     what else is installed on the machine, which is the property SPEC-01
     section 7 asks official runs to remove rather than document.
+
+    ``search_path`` is the escape hatch: running from a source checkout there
+    is no bundle to prefer, so the caller names the PATH hit itself. A bundle
+    run never passes it — the bundle's copy or nothing stays the rule.
     """
 
     candidates: list[Candidate] = []
@@ -98,6 +109,8 @@ def analyzer_request(
         )
     elif bundle_path is not None:
         candidates.append(Candidate(path=bundle_path, source="bundle", config_key=f"tools.{name}"))
+    if search_path is not None:
+        candidates.append(Candidate(path=search_path, source="PATH"))
     return Request(
         role=Role.ANALYZER,
         name=name,
@@ -106,16 +119,17 @@ def analyzer_request(
     )
 
 
-def _anchor(raw: str, component: EffectiveComponent, workspace_root: PurePosixPath) -> str:
+def _anchor(raw: str, workspace_root: PurePosixPath) -> str:
     """Anchor a declared executable the way SPEC-01 section 3 requires.
 
     A bare name is a PATH lookup and is left alone. Anything with a separator is
-    a path, anchored to the component root — not to the working directory, so
-    running from a subdirectory cannot change which interpreter is chosen.
+    a path — and the composition layer has already expressed it workspace-
+    relative — so it resolves against the workspace root, not the component
+    root and not the working directory.
     """
 
     if "/" not in raw:
         return raw
     if raw.startswith("/"):
         return raw
-    return str(workspace_root / component.root.value / raw)
+    return str(workspace_root / raw)

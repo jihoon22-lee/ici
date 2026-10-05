@@ -15,6 +15,7 @@ The promises under test (#216):
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -23,7 +24,8 @@ import pytest
 from typer.testing import CliRunner
 
 from ici.__main__ import app
-from ici.cli.next_testing import python_interpreter
+from ici.cli.next_testing import python_interpreter, resolve_python, resolve_tool
+from ici.toolchain.resolution import Availability, Unresolved
 
 runner = CliRunner()
 
@@ -71,23 +73,82 @@ def _python_workspace(root: Path, *, tests: str | None = "pass") -> None:
 
 def test_the_component_venv_wins_over_ambient_interpreters(tmp_path) -> None:
     _python_workspace(tmp_path)
-    chosen = python_interpreter(None, tmp_path / "app")
+    chosen = python_interpreter(None, tmp_path / "app", tmp_path)
     assert chosen == str(tmp_path / "app" / ".venv" / "bin" / "python")
 
 
 def test_a_declared_executable_wins_over_the_venv(tmp_path) -> None:
     _python_workspace(tmp_path)
+    declared = tmp_path / "custom" / "python3"
+    declared.parent.mkdir()
+    declared.symlink_to(sys.executable)
     (tmp_path / "ici.toml").write_text(
         HEADER
         + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
-        + '[components.python]\nexecutable = "/custom/python3"\n',
+        + f'[components.python]\nexecutable = "{declared}"\n',
         encoding="utf-8",
     )
     from ici.config.discovery import load
 
     effective = load(tmp_path).component("app")
     assert effective is not None
-    assert python_interpreter(effective, tmp_path / "app") == "/custom/python3"
+    assert python_interpreter(effective, tmp_path / "app", tmp_path) == str(declared)
+
+
+def test_a_declared_executable_that_is_missing_is_an_error_not_a_substitution(tmp_path) -> None:
+    """A declared interpreter that cannot run is reported — the .venv is never
+    silently used in its place (#204 item 3)."""
+
+    _python_workspace(tmp_path)
+    missing = tmp_path / "custom" / "python3"  # never created
+    (tmp_path / "ici.toml").write_text(
+        HEADER
+        + '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
+        + f'[components.python]\nexecutable = "{missing}"\n',
+        encoding="utf-8",
+    )
+    from ici.config.discovery import load
+
+    effective = load(tmp_path).component("app")
+    resolved = resolve_python(effective, tmp_path / "app", tmp_path)
+    assert isinstance(resolved, Unresolved)
+    assert resolved.availability is Availability.UNAVAILABLE
+    assert str(missing) in resolved.detail
+    # The .venv is present and runnable — and never consulted.
+    assert python_interpreter(effective, tmp_path / "app", tmp_path) is None
+
+
+def test_a_broken_venv_python_is_broken_not_missing(tmp_path) -> None:
+    """A candidate that exists but cannot answer ``--version`` is BROKEN,
+    so the gate can say so instead of reporting 'not found'."""
+
+    _python_workspace(tmp_path)
+    venv_python = tmp_path / "app" / ".venv" / "bin" / "python"
+    venv_python.unlink()
+    venv_python.write_text("#!/bin/sh\nexit 3\n", encoding="utf-8")
+    venv_python.chmod(0o755)
+
+    resolved = resolve_python(None, tmp_path / "app", tmp_path)
+    assert isinstance(resolved, Unresolved)
+    assert resolved.availability is Availability.BROKEN
+    # The probe-free planning answer is existence-only: it still selects the
+    # path and lets the run fail closed — probing is doctor's budget.
+    assert python_interpreter(None, tmp_path / "app", tmp_path) == str(venv_python)
+
+
+def test_resolve_tool_reports_unavailable_and_broken_apart(tmp_path, monkeypatch) -> None:
+    missing = resolve_tool("ici-tool-that-does-not-exist")
+    assert isinstance(missing, Unresolved)
+    assert missing.availability is Availability.UNAVAILABLE
+
+    stub = tmp_path / "definitely-stubbed-tool"
+    stub.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+    stub.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}")
+
+    broken = resolve_tool("definitely-stubbed-tool")
+    assert isinstance(broken, Unresolved)
+    assert broken.availability is Availability.BROKEN
 
 
 def test_no_project_interpreter_blocks_the_test_checks(tmp_path, monkeypatch) -> None:

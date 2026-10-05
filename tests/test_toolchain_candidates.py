@@ -26,7 +26,7 @@ from ici.config.schema import read_root
 from ici.toolchain.assumptions import ASSUMPTIONS, stale, warnings_for
 from ici.toolchain.candidates import analyzer_request, python_request
 from ici.toolchain.resolution import ProbeResult, ResolvedTool, Role, Unresolved
-from ici.toolchain.resolver import Resolver
+from ici.toolchain.resolver import Candidate, Resolver
 
 WORKSPACE = """
 schema_version = 1
@@ -87,9 +87,11 @@ class TestAComponentThatDeclaresNothingGetsNothing:
 
 
 class TestADeclaredInterpreterIsTakenAsChosen:
-    def test_it_is_anchored_to_the_component_root(self) -> None:
-        request = python_request(_component("declares"))
-        assert [c.path for c in request.candidates] == ["b/.venv/bin/python"]
+    def test_it_is_anchored_to_the_workspace_root(self) -> None:
+        # Composition expresses the declared value workspace-relative, so the
+        # component's root is not part of the anchoring.
+        request = python_request(_component("declares"), workspace_root=PurePosixPath("w"))
+        assert [c.path for c in request.candidates] == ["w/.venv/bin/python"]
 
     def test_it_is_explicit_so_a_failure_does_not_look_elsewhere(self) -> None:
         assert python_request(_component("declares")).candidates[0].explicit
@@ -104,14 +106,52 @@ class TestADeclaredInterpreterIsTakenAsChosen:
         assert "python.executable" in candidate.config_key
 
     def test_a_bare_name_stays_a_path_lookup(self) -> None:
-        # SPEC-01 section 3 splits on the separator; anchoring "python3.11" to a
-        # component root would turn a PATH lookup into a path that does not exist.
+        # SPEC-01 section 3 splits on the separator; anchoring "python3.11" to
+        # the workspace root would turn a PATH lookup into a path that does not
+        # exist.
         assert [c.path for c in python_request(_component("bare")).candidates] == ["python3.11"]
 
-    def test_the_component_root_does_not_depend_on_the_working_directory(self) -> None:
+    def test_the_anchor_does_not_depend_on_the_working_directory(self) -> None:
         first = python_request(_component("declares"), workspace_root=PurePosixPath("/w"))
         second = python_request(_component("declares"), workspace_root=PurePosixPath("/w"))
-        assert first.candidates[0].path == second.candidates[0].path == "/w/b/.venv/bin/python"
+        assert first.candidates[0].path == second.candidates[0].path == "/w/.venv/bin/python"
+
+
+class TestAConventionIsOfferedByTheCaller:
+    """``.venv`` discovery stays available to the live path until workspace
+    config declares interpreters (#210) — but it is the *caller's* candidate,
+    never one this package invents."""
+
+    def test_a_convention_candidate_is_used_when_nothing_is_declared(self) -> None:
+        request = python_request(
+            _component("silent"),
+            convention=(Candidate(path="/p/.venv/bin/python", source="convention"),),
+        )
+        assert [c.path for c in request.candidates] == ["/p/.venv/bin/python"]
+        assert not request.candidates[0].explicit
+
+    def test_a_convention_never_outranks_a_declaration(self) -> None:
+        request = python_request(
+            _component("declares"),
+            workspace_root=PurePosixPath("w"),
+            convention=(Candidate(path="/p/.venv/bin/python", source="convention"),),
+        )
+        assert request.candidates[0].path == "w/.venv/bin/python"
+        assert request.candidates[0].explicit
+        # The explicit candidate short-circuits resolution: even with a
+        # convention standing by, a failed declaration is Unresolved.
+        resolved = _resolver(exists=False).resolve(request)
+        assert isinstance(resolved, Unresolved)
+
+    def test_no_component_at_all_still_resolves_the_convention(self) -> None:
+        resolved = _resolver().resolve(
+            python_request(
+                None,
+                convention=(Candidate(path="/p/.venv/bin/python", source="convention"),),
+            )
+        )
+        assert isinstance(resolved, ResolvedTool)
+        assert resolved.role is Role.PROJECT_PYTHON
 
 
 class TestAnAnalyzerComesFromTheBundleOrIsNamed:
@@ -140,6 +180,22 @@ class TestAnAnalyzerComesFromTheBundleOrIsNamed:
         resolved = _resolver().resolve(analyzer_request("ruff", bundle_path="/bundle/tools/ruff"))
         assert isinstance(resolved, ResolvedTool)
         assert resolved.role is Role.ANALYZER
+
+    def test_a_path_hit_is_a_candidate_only_when_the_caller_names_it(self) -> None:
+        # Running from a source checkout there is no bundle, so the caller —
+        # ``cli.next_testing`` — names the PATH hit itself. A bundle run never
+        # passes ``search_path``, so "bundle or nothing" is preserved.
+        request = analyzer_request("ruff", search_path="/usr/bin/ruff")
+        assert [c.source for c in request.candidates] == ["PATH"]
+
+    def test_the_bundle_still_beats_a_path_hit(self) -> None:
+        request = analyzer_request(
+            "ruff", bundle_path="/bundle/tools/ruff", search_path="/usr/bin/ruff"
+        )
+        assert [c.source for c in request.candidates] == ["bundle", "PATH"]
+        resolved = _resolver().resolve(request)
+        assert isinstance(resolved, ResolvedTool)
+        assert resolved.launch_path == "/bundle/tools/ruff"
 
 
 class TestTheMigrationWarningsStayTrue:

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import os
 import re
-import subprocess
 from pathlib import Path, PurePosixPath
 
 import typer
@@ -46,11 +45,13 @@ from ici.cli.next_testing import (
     expand_cpp_sanitizer,
     expand_cpp_tests,
     expand_python_compat_runtime,
+    live_resolver,
     locate_tool,
     plan_coverage,
     plan_cpp_coverage,
     plan_test,
-    python_interpreter,
+    resolve_python,
+    resolve_tool,
 )
 from ici.config.composition import EffectiveComponent, EffectiveConfig
 from ici.config.discovery import discover, find_workspace_root, load
@@ -60,6 +61,7 @@ from ici.domain.workspace import AnalysisUnit, BuildUnit, Component, Workspace
 from ici.languages.checks import CheckDefinition
 from ici.languages.integration import INTEGRATION_CASES_CHECK
 from ici.languages.registry import builtin as builtin_registry
+from ici.toolchain.resolution import ResolvedTool, Role, Unresolved
 from ici.workspace import build as build_workspace
 from ici.workspace import compile_units, inventory
 from ici.workspace.inventory import SourceInventory, SourceRole
@@ -690,11 +692,12 @@ def _expand_diagnostics(
             )
         ]
     provider = CompilerDiagnosticsProvider()
+    resolver = live_resolver(probe=False)  # planning starts no processes (#206)
     expanded: list[PlannedCheck] = []
     for index, unit in enumerate(inputs.units):
         task_id = f"{planned.task_id}.{_task_slug(unit.source)}-{index}"
         stripped = unit.argv[len(unit.launchers) :] or unit.argv
-        blocked = _diagnostics_blocker(stripped, unit, root)
+        blocked = _diagnostics_blocker(stripped, unit, root, resolver=resolver)
         if blocked is not None:
             expanded.append(PlannedCheck(check=planned.check, task_id=task_id, blocked=blocked))
             continue
@@ -702,7 +705,9 @@ def _expand_diagnostics(
         transformed = transform_argv(stripped, token)
         assert transformed is not None  # the blocker check already refused it
         if not Path(executable).is_absolute():
-            executable = locate_tool(executable) or executable
+            resolved_driver = resolve_tool(executable, role=Role.COMPILER, resolver=resolver)
+            if isinstance(resolved_driver, ResolvedTool):
+                executable = resolved_driver.launch_path
         cwd = Path(root) / unit.directory
         expanded.append(
             PlannedCheck(
@@ -733,7 +738,11 @@ def _expand_diagnostics(
 
 
 def _diagnostics_blocker(
-    argv: tuple[str, ...], unit: compile_units.TranslationUnit, root: Path
+    argv: tuple[str, ...],
+    unit: compile_units.TranslationUnit,
+    root: Path,
+    *,
+    resolver,
 ) -> str | None:
     """Why this TU's replay cannot be planned, or None when it can."""
 
@@ -745,15 +754,37 @@ def _diagnostics_blocker(
             f"unsupported compiler '{PurePosixPath(driver).name}' — "
             "only gcc/clang-family invocations are replayed"
         )
-    executable = Path(driver) if Path(driver).is_absolute() else None
-    if executable is None:
-        executable = Path(locate_tool(driver) or "")
-    if not executable.is_file():
-        return f"compiler '{driver}' is not available on PATH"
+    if Path(driver).is_absolute():
+        if not Path(driver).is_file():
+            return f"compiler '{driver}' does not exist"
+    else:
+        resolved = resolve_tool(driver, role=Role.COMPILER, resolver=resolver)
+        if isinstance(resolved, Unresolved):
+            return f"compiler '{driver}' is not usable: {resolved.detail}"
     cwd = root / unit.directory
     if not cwd.is_dir():
         return f"the recorded working directory {unit.directory} is gone — the capture is stale"
     return None
+
+
+def _interpreter_blocker(resolved: ResolvedTool | Unresolved) -> str:
+    """Why no interpreter can run the suite, spelled for the gate line.
+
+    The resolution carries the cause — missing file, timed-out probe, too-old
+    version — where the old path had one fixed sentence for all of them.
+    """
+
+    if isinstance(resolved, ResolvedTool):
+        return "no project interpreter"  # never shown — the interpreter exists
+    parts = [resolved.detail]
+    if resolved.considered:
+        parts.append(f"looked at {', '.join(resolved.considered)}")
+    key = resolved.origin.config_key
+    if key:
+        parts.append(f"set {key} to change it")
+    else:
+        parts.append("declare [python] executable or provide a .venv inside the component")
+    return "no project interpreter — " + "; ".join(parts)
 
 
 def _source_token(argv: tuple[str, ...], unit: compile_units.TranslationUnit, root: Path) -> str:
@@ -817,11 +848,9 @@ def _gate_python(
     decided = effective.python_type_provider if effective is not None else None
     provider_name = decided.value if decided is not None else "mypy"
     provider = _TYPE_CHECKERS.get(provider_name)
-    interpreter = python_interpreter(effective, component_root)
-    no_interpreter = (
-        "no project interpreter — declare [python] executable "
-        "or provide a .venv inside the component"
-    )
+    resolved_python = resolve_python(effective, component_root, root, probe=False)
+    interpreter = resolved_python.launch_path if resolved_python.usable else None
+    no_interpreter = _interpreter_blocker(resolved_python)
     coverage_selected = any(
         planned.check.id == "python.coverage" and not planned.blocked for planned in plan.checks
     )
@@ -962,28 +991,6 @@ def _drift_summary(drift: inventory.InventoryDiff) -> str:
         if items
     ]
     return ", ".join(parts) or "inputs changed"
-
-
-def _version_of(executable: str) -> str:
-    """One bounded ``--version`` probe — doctor's only process it may spawn.
-
-    #210 item 4 allows a limited version probe and forbids everything else:
-    no build, no install, no sourcing. Five seconds and the first line are
-    the budget.
-    """
-
-    try:
-        probe = subprocess.run(
-            [executable, "--version"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return "version unknown"
-    output = (probe.stdout or probe.stderr).strip()
-    return output.splitlines()[0] if output else "version unknown"
 
 
 def _graph_of(plans: list[Plan]) -> TaskGraph:

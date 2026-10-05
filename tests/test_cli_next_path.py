@@ -350,10 +350,30 @@ def test_from_a_bundle_the_bundled_tool_is_found_where_the_build_puts_it(
     assert _locate("ruff") == str(shipped)
 
 
-def test_from_a_source_checkout_path_is_the_honest_answer(monkeypatch) -> None:
+def test_from_a_source_checkout_path_is_the_honest_answer(tmp_path, monkeypatch) -> None:
     from ici.cli.next_testing import locate_tool as _locate
 
+    # The hit must be real: locate_tool now checks the file exists and is
+    # executable rather than trusting PATH's answer.
+    on_path = tmp_path / "ruff"
+    on_path.write_text("#!/bin/sh\n", encoding="utf-8")
+    on_path.chmod(0o755)
     monkeypatch.delenv("ICI_BUNDLE_ROOT", raising=False)
-    monkeypatch.setattr("ici.cli.next_path.shutil.which", lambda _: "/usr/bin/ruff")
+    monkeypatch.setattr("ici.cli.next_testing.shutil.which", lambda _: str(on_path))
 
-    assert _locate("ruff") == "/usr/bin/ruff"
+    assert _locate("ruff") == str(on_path)
+
+
+def test_a_bundle_tool_that_cannot_run_is_not_chosen(tmp_path, monkeypatch) -> None:
+    from ici.cli.next_testing import locate_tool as _locate
+
+    bundle = tmp_path / "bundle"
+    shipped = bundle / "tools" / "python-static" / "ruff"
+    shipped.parent.mkdir(parents=True)
+    shipped.write_text("#!/bin/sh\n", encoding="utf-8")
+    # No executable bit — a shipped file that cannot run is not an answer.
+    monkeypatch.setenv("ICI_BUNDLE_ROOT", str(bundle))
+    monkeypatch.setattr("ici.cli.next_testing.shutil.which", lambda _: "/usr/bin/ruff")
+
+    # Bundle mode stays bundle-or-nothing: the PATH hit is never consulted.
+    assert _locate("ruff") is None

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-|상태|**구현 중 (WP06 PR A·B·C).** 선택 규칙·환경 스냅샷(A), 실제 프로세스 확인(B), 새 경로 candidate와 migration 경고(C). **live engine cutover는 남아 있다 — 아래 §마지막.**|
+|상태|**live 배선 완료.** 선택 규칙·환경 스냅샷(A), 실제 프로세스 확인(B), 새 경로 candidate와 migration 경고(C), live 선택 경로가 Resolver를 거침(D). **단, `.venv` 자동 탐색은 #210의 설정 선언이 올 때까지 call-site convention 후보로 남긴다 — 아래 §마지막.**|
 |근거 이슈|[WP06 #204](https://github.com/jihoon22-lee/ici/issues/204) 작업 1~4·6, [SPEC-02](spec-02-distribution-execution.md)|
 |구현|[`src/ici/toolchain/`](../../../src/ici/toolchain) — `resolution.py`, `resolver.py`, `environment.py`, `launch.py`, `candidates.py`, `assumptions.py`|
 |검증|[`tests/test_toolchain_resolution.py`](../../../tests/test_toolchain_resolution.py), [`tests/test_toolchain_processes.py`](../../../tests/test_toolchain_processes.py), [`tests/test_toolchain_candidates.py`](../../../tests/test_toolchain_candidates.py)|
@@ -162,10 +162,34 @@ analyzer는 **bundle이거나 명시된 external**이고 **PATH는 후보가 아
 
 |항목|어디서|
 |---|---|
-|**live engine cutover**|아래 참조. **이 PR에서 제외했다**|
-|`doctor` 연결|[#210](https://github.com/jihoon22-lee/ici/issues/210). 선택 이유와 config key는 **이미 구조화돼 있다**|
+|`.venv` 자동 탐색의 제거|아래 참조. call-site convention으로만 남아 있다|
+|`doctor`의 per-component interpreter 리포트|[#210](https://github.com/jihoon22-lee/ici/issues/210). 선택 이유와 config key는 **이미 구조화돼 있다**|
 
-### live cutover를 이 PR에서 하지 않은 이유 (측정)
+### live cutover — 무엇이 옮겨졌고 무엇이 남았는가 (PR D)
+
+`cli/next_testing`의 `locate_tool`/`python_interpreter`는 이제
+`Resolver`를 거친다. probe는 `launch.probe_with`의 bounded executor 호출 —
+`next_common._version_of`의 `subprocess.run(timeout=5)` 같은 **직접 spawn은
+없어졌다.** 세 가지 불변식이 라이브 경로에 적용된다:
+
+- **선언된 interpreter는 검사된다.** 존재하지 않는 선언 값이 그대로 argv로
+  흘러가는 대신 `Unresolved`(UNAVAILABLE)가 되고, convention으로의 대체는
+  일어나지 않는다(#204 item 3).
+- **UNAVAILABLE·UNSUPPORTED·BROKEN이 구분된다.** doctor는 더 이상 "not
+  available" 한 문장으로 timeout과 부재를 섞지 않는다.
+- **`plan`/`init`/`verify`의 공용 계획 경로는 프로세스를 시작하지 않는다**
+  (#206). `Resolver(probe=None)`는 존재+실행 비트만 보고, 답에
+  `limits=("not probed",)`를 단다. `doctor`만 `--version` probe를 허용한다
+  (#210 item 4).
+
+남은 것은 **`.venv` convention 하나**다. `python_request`는 convention 후보를
+받을 뿐 스스로 만들지 않고(AST 위생 테스트가 `.venv` 리터럴을 금지한다),
+`resolve_python`의 call site가 component 옆의 `.venv`를 후보로 공급한다.
+이유는 아래 측정 그대로다: ici 자신의 `ici.toml`이 인터프리터를 선언하지
+않으므로, 지금 빼면 ici의 `test` 게이트가 후보 0개로 `Unresolved`가 된다.
+#210의 설정 선언이 오면 convention 후보 한 줄을 지우면 된다.
+
+### 원래 cutover를 미뤘던 이유 (측정)
 
 `_resolve_python`을 새 resolver로 갈아끼우면서 자동 `.venv` 우선선택도 함께 빼면 —
 작업 7이 요구하는 그대로 — **ici 자신의 `test` 게이트가 깨진다.**
@@ -175,7 +199,9 @@ ici의 `ici.toml`은 인터프리터를 **선언하지 않는다.** `[engines.te
 즉 `Unresolved`가 된다 — **규칙이 옳게 동작한 결과**이지만, 설정이 먼저 따라오지 않으면
 ici가 자기 자신을 검증하지 못한다.
 
-순서가 있다: **설정이 인터프리터를 선언할 수 있게 된 뒤에** engine을 옮긴다. 그 연결이
-[#210](https://github.com/jihoon22-lee/ici/issues/210)이다. 현행 fallback은
+순서가 있다: **설정이 인터프리터를 선언할 수 있게 된 뒤에** convention을 뺀다.
+그 연결이 [#210](https://github.com/jihoon22-lee/ici/issues/210)이다. 현행
+fallback은
 [`tests/test_toolchain_processes.py`](../../../tests/test_toolchain_processes.py)에
-**고정돼 있어서**, 옮기는 PR의 diff가 "바뀌었다는 주장"이 아니라 **바뀐 동작**을 보여준다.
+**고정돼 있어서**, 옮기는 PR의 diff가 "바뀌었다는 주장"이 아니라 **바뀐 동작**을
+보여준다.
