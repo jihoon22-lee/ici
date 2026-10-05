@@ -77,7 +77,9 @@ class PytestProvider:
             "pytest",
             "-p",
             "no:cacheprovider",
-            "-v",
+            # -vv, not -v: pytest 9's -v reports one progress line per *file*
+            # and the per-node verdicts the parser needs only appear at -vv.
+            "-vv",
             "--tb=short",
             *targets,
         )
@@ -186,6 +188,12 @@ def _parse(text: str, root: Path, task_id: str) -> ParsedOutput:
             return ParsedOutput(failed_to_parse="pytest was interrupted before reporting")
         if "no tests ran" in text:
             limitations.append("pytest collected no tests")
+        elif text.strip():
+            # A completed run whose output carries no per-node verdicts is a
+            # parser/contract mismatch — pytest 9 demoted per-test lines to
+            # -vv, so a provider pinned to -v lands exactly here. Reporting
+            # nothing would hand TEM a pass_rate of zero with no reason.
+            return ParsedOutput(failed_to_parse="pytest output carried no per-node verdicts")
     return ParsedOutput(
         findings=tuple(findings),
         measurements=measurements,
