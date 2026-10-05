@@ -19,12 +19,19 @@ directory can never overlap no matter how the scheduler is tuned.
 the graph's job; this is the runtime half. A unit whose dependency did not
 succeed is not executed, and its consumers get an observation that says which
 prerequisite failed — the same honest-blocked shape, now for the run itself.
+
+**A crashed unit is a failed task, not a failed run.** An exception raised by
+a provider, an analysis, or the runner belongs to the unit that raised it: it
+becomes a FAILED observation carrying the error as its limitation, units that
+already finished keep their evidence, and whatever depended on the crashed
+unit is blocked by the usual prerequisite rule.
 """
 
 from __future__ import annotations
 
 import os
 import threading
+import time
 from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
@@ -162,7 +169,13 @@ def run_graph(
         key: str | None = None
         reason = ""
         if cache is not None and identify is not None and not unit.is_internal:
-            key, reason = identify(unit)
+            try:
+                key, reason = identify(unit)
+            except Exception as exc:
+                # An identity that cannot be computed is not a cache key —
+                # the unit runs uncached rather than trusting a half-made one.
+                key = None
+                reason = f"cache identification failed: {type(exc).__name__}: {exc}"
             if key is not None:
                 read = cache.read(key)
                 if read.hit and read.observation is not None:
@@ -180,7 +193,20 @@ def run_graph(
 
         if on_started is not None:
             on_started(unit)
-        observation = _perform(unit, providers, analyses, runner, environment, locks)
+        started_at = time.monotonic()
+        try:
+            observation = _perform(unit, providers, analyses, runner, environment, locks)
+        except Exception as exc:
+            # A bug inside a provider, an analysis, or the runner is this
+            # unit's failure — never the run's. It becomes a FAILED
+            # observation, so the gate reads it as missing evidence and the
+            # units that already finished keep theirs.
+            observation = unavailable(
+                provider,
+                unit.id,
+                f"internal error: {type(exc).__name__}: {exc}",
+                state=TaskState.FAILED,
+            )
         if (
             cache is not None
             and key
@@ -193,7 +219,7 @@ def run_graph(
             consumers=unit.consumers,
             provider=provider,
             state=observation.state,
-            duration_seconds=observation.duration_seconds or 0.0,
+            duration_seconds=observation.duration_seconds or (time.monotonic() - started_at),
             detail=reason,
         )
 

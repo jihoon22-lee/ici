@@ -270,3 +270,106 @@ def test_a_cache_hit_never_reports_started(tmp_path) -> None:
 
     assert started == []
     assert completed == ["a.lint"]
+
+
+# --- crash containment -----------------------------------------------------
+#
+# A bug inside a provider's parser, an internal analysis, or the runner is
+# that unit's failure — never the run's. The scheduler converts the exception
+# into a FAILED observation: the gate reads it as missing evidence, siblings
+# keep what they produced, and dependents block on the usual rule.
+
+
+def test_a_crashing_analysis_fails_its_unit_not_the_run() -> None:
+    line = PlannedCheck(check=_check("app.line", tool=None), task_id="app.line")
+    other = _planned("other.lint", argv=("tool", "b"))
+
+    def boom() -> Observation:
+        raise RuntimeError("parser ate itself")
+
+    scheduled = run_graph(
+        build_graph((line, other)),
+        providers={"stub": _StubProvider()},
+        analyses={"app.line": boom},
+        runner=_finished,
+    )
+
+    states = {obs.task_id: obs.state for obs in scheduled.observations}
+    assert states["app.line"] is TaskState.FAILED
+    assert states["other.lint"] is TaskState.SUCCEEDED
+    crash = next(obs for obs in scheduled.observations if obs.task_id == "app.line")
+    assert "internal error" in crash.limitations[0]
+    assert "RuntimeError" in crash.limitations[0]
+    execution = next(e for e in scheduled.executions if e.unit == "app.line")
+    assert execution.state is TaskState.FAILED
+
+
+def test_a_crashing_parser_fails_its_unit_not_the_run() -> None:
+    class ExplodingProvider:
+        name = "exploding"
+
+        def parse(self, outcome: TaskOutcome) -> ParsedOutput:
+            raise ValueError("cannot read output")
+
+    a = PlannedCheck(
+        check=_check("a.lint", tool="exploding"),
+        task=ProviderPlan(
+            task=TaskSpec(
+                id="a.lint",
+                kind=TaskKind.ANALYZE,
+                provider="exploding",
+                argv=("tool", "a"),
+                cwd="/project",
+            )
+        ),
+        task_id="a.lint",
+    )
+    b = _planned("b.lint", argv=("tool", "b"))
+
+    scheduled = run_graph(
+        build_graph((a, b)),
+        providers={"exploding": ExplodingProvider(), "stub": _StubProvider()},
+        analyses={},
+        runner=_finished,
+    )
+
+    states = {obs.task_id: obs.state for obs in scheduled.observations}
+    assert states["a.lint"] is TaskState.FAILED
+    assert states["b.lint"] is TaskState.SUCCEEDED
+
+
+def test_a_crashed_prerequisite_blocks_its_consumer() -> None:
+    build = PlannedCheck(
+        check=_check("app.build", provides=("build:x",), tool=None), task_id="app.build"
+    )
+    test = _planned("app.test", needs=("build:x",))
+
+    def boom() -> Observation:
+        raise RuntimeError("nope")
+
+    scheduled = run_graph(
+        build_graph((build, test)),
+        providers={"stub": _StubProvider()},
+        analyses={"app.build": boom},
+        runner=_finished,
+    )
+
+    states = {obs.task_id: obs.state for obs in scheduled.observations}
+    assert states["app.build"] is TaskState.FAILED
+    assert states["app.test"] is TaskState.BLOCKED
+
+
+def test_a_crashing_runner_fails_its_unit_not_the_run() -> None:
+    def boom(spec) -> TaskOutcome:
+        raise OSError("spawn machinery broke")
+
+    scheduled = run_graph(
+        build_graph((_planned("a.lint", argv=("tool", "a")),)),
+        providers={"stub": _StubProvider()},
+        analyses={},
+        runner=boom,
+    )
+
+    assert scheduled.observations[0].state is TaskState.FAILED
+    assert "OSError" in scheduled.observations[0].limitations[0]
+    assert scheduled.executions[0].state is TaskState.FAILED
