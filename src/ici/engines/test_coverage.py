@@ -6,15 +6,15 @@ import contextlib
 from pathlib import Path
 from typing import Any
 
+from ici.analysis.coverage_support import build_coverage_summary
 from ici.analysis.cpp_text import defines_main
+from ici.analysis.gcov_json import GcovJsonError
 from ici.core.models import EngineStatus, InspectionTarget
 from ici.engines.coverage_policy import (
     build_changed_line_status,
     evaluate_coverage_policy,
     parse_changed_lines,
 )
-from ici.engines.coverage_support import build_coverage_summary
-from ici.engines.gcov_json import GcovJsonError
 from ici.execution.process import SUITE_TIMEOUT
 
 

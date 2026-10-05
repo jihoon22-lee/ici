@@ -30,10 +30,10 @@ from ici.analysis._python_metrics import (
     cyclomatic_complexity,
     max_nesting,
 )
+from ici.analysis.cpp_complexity import _cpp_function_inventory
 from ici.domain.enums import EvidenceLevel, TaskState
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement, Observation
-from ici.engines.complexity import _cpp_function_inventory
 
 __all__ = [
     "PROVIDER_NAME",

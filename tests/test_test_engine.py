@@ -710,7 +710,7 @@ def test_gcov_json_directory_rejects_aggregate_report_count(tmp_path: Path, monk
     cov_dir.mkdir()
     _write_gcov_json(cov_dir / "one.gcov.json.gz", project_root=tmp_path)
     _write_gcov_json(cov_dir / "two.gcov.json.gz", project_root=tmp_path)
-    monkeypatch.setattr("ici.engines.coverage_support._MAX_GCOV_JSON_REPORTS", 1)
+    monkeypatch.setattr("ici.analysis.coverage_support._MAX_GCOV_JSON_REPORTS", 1)
     engine = TestEngine(tmp_path)
 
     engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
@@ -726,7 +726,7 @@ def test_gcov_json_directory_rejects_cumulative_record_count(tmp_path: Path, mon
     cov_dir = tmp_path / "coverage"
     cov_dir.mkdir()
     _write_gcov_json(cov_dir / "calc.gcov.json.gz", project_root=tmp_path)
-    monkeypatch.setattr("ici.engines.coverage_support._MAX_GCOV_JSON_LINE_RECORDS", 1)
+    monkeypatch.setattr("ici.analysis.coverage_support._MAX_GCOV_JSON_LINE_RECORDS", 1)
     engine = TestEngine(tmp_path)
 
     engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")
@@ -742,7 +742,7 @@ def test_gcov_json_directory_rejects_cumulative_byte_budget(tmp_path: Path, monk
     cov_dir = tmp_path / "coverage"
     cov_dir.mkdir()
     _write_gcov_json(cov_dir / "calc.gcov.json.gz", project_root=tmp_path)
-    monkeypatch.setattr("ici.engines.coverage_support._MAX_GCOV_JSON_DECOMPRESSED_BYTES", 32)
+    monkeypatch.setattr("ici.analysis.coverage_support._MAX_GCOV_JSON_DECOMPRESSED_BYTES", 32)
     engine = TestEngine(tmp_path)
 
     engine._consume_cpp_coverage(cov_dir, {"src/calc.cpp"}, "gcov-json")

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from ici.engines.gcov_json import (
+from ici.analysis.gcov_json import (
     GcovJsonError,
     parse_gcov_json,
     parse_gcov_json_document,

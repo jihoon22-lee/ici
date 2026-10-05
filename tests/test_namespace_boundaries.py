@@ -181,13 +181,13 @@ NEXT_TO_STABLE_ALLOWED: frozenset[str] = frozenset(
         "ici.core.pipeline",
         "ici.core.runner",
         "ici.engines",  # config/schema.py reads the registry
-        "ici.engines.binary_compat",
-        "ici.engines.complexity",
-        "ici.engines.coverage_support",
-        "ici.engines.cycle",
-        "ici.engines.gcov_json",
-        "ici.engines.line",
-        "ici.engines.test_output",
+        "ici.analysis.binary_abi",
+        "ici.analysis.cpp_complexity",
+        "ici.analysis.coverage_support",
+        "ici.analysis.cycles",
+        "ici.analysis.gcov_json",
+        "ici.analysis.line_count",
+        "ici.analysis.pytest_output",
         "ici.reporters.issue_view",
         # The shared analysis core — underscore modules are the documented
         # helpers both paths call until #265 relocates them.

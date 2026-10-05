@@ -7,12 +7,12 @@ from types import SimpleNamespace
 
 import pytest
 
+from ici.analysis.pytest_output import parse_pytest_durations, parse_pytest_outcomes
 from ici.config_schema import ConfigError, validate_config
 from ici.core.findings import findings_for_result
 from ici.core.models import EngineStatus
 from ici.core.runner import ProcessResult
 from ici.engines.test import TestEngine
-from ici.engines.test_output import parse_pytest_durations, parse_pytest_outcomes
 
 
 def _deep_engine(tmp_path: Path, quality: dict | None = None) -> TestEngine:

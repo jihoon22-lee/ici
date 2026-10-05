@@ -29,11 +29,11 @@ import re
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
+from ici.analysis.pytest_output import parse_pytest_outcomes, pytest_node_location
 from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement
 from ici.domain.tasks import TaskSpec
-from ici.engines.test_output import parse_pytest_outcomes, pytest_node_location
 from ici.execution.process import ExitContract, TaskOutcome
 
 __all__ = ["PYTEST_CONTRACT", "PytestProvider"]

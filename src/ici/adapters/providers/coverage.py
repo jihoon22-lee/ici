@@ -18,13 +18,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
-from ici.domain.enums import EvidenceLevel, TaskKind
-from ici.domain.observation import Measurement
-from ici.domain.tasks import TaskSpec
-from ici.engines.coverage_support import (
+from ici.analysis.coverage_support import (
     compute_python_function_coverage,
     parse_coverage_json,
 )
+from ici.domain.enums import EvidenceLevel, TaskKind
+from ici.domain.observation import Measurement
+from ici.domain.tasks import TaskSpec
 from ici.execution.process import ExitContract, TaskOutcome
 
 __all__ = ["COVERAGE_CONTRACT", "CoverageProvider"]

@@ -18,6 +18,7 @@ from ici.analysis._cpp_function_boundaries import (
     read_cpp_source_text,
     run_cpp_function_boundaries,
 )
+from ici.analysis.cpp_complexity import _cpp_function_inventory, _CppFunctionSpan
 from ici.analysis.cpp_text import (
     cpp_has_conditional_directive,
     mask_cpp_lambda_bodies,
@@ -27,7 +28,6 @@ from ici.analysis.cpp_text import (
 from ici.core.context import AnalysisContext
 from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
-from ici.engines.complexity import _cpp_function_inventory, _CppFunctionSpan
 
 _MAX_SOURCES = 2_048
 _MAX_SOURCE_BYTES = 64 * 1024 * 1024
