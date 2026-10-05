@@ -229,7 +229,7 @@ def plan_gcov(
 
     Callers must run every argv with ``cwd`` set to the returned directory.
     gcov writes .gcov files into its own working directory, so fixing the cwd
-    makes the output flat and lets engines.coverage_support.parse_gcov_dir stay
+    makes the output flat and lets analysis.coverage_support.parse_gcov_dir stay
     as it is — it globs a single directory level.
     """
 

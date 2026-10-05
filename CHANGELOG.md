@@ -82,6 +82,21 @@
   회귀 테스트, `tests/next/test_cli_next_testing.py`에 plan 무쓰기 회귀
   테스트를 추가했습니다.
 
+
+### 구조 — stable 엔진의 공유 분석 심볼이 `ici.analysis`로 추출
+
+- next 경로가 stable Engine "클래스"를 import하던 7개 모듈의 공유 심볼을
+  `ici.analysis`로 내렸습니다: `line_count.count_lines`,
+  `pytest_output`(pytest verdict/노드/시간 파서), `gcov_json`(gcov JSON
+  데이터 모델+파서 전체), `cycles`(Tarjan·include 그래프),
+  `coverage_support`(coverage 집계 헬퍼 전체), `cpp_complexity`(C++ 함수
+  span/복잡도 스캐너), `binary_abi`(ELF ABI 판정 규칙).
+- `adapters.providers.binarycompat`은 더 이상 `BinaryCompatibilityEngine`
+  클래스를 경유하지 않고 `abi_violations` 모듈 함수를 직접 호출합니다.
+- stable 엔진 껍데기는 같은 심볼을 `ici.analysis`에서 다시 import합니다
+  — 동작 변경 없는 재배치이며 삭제는 후속 PR의 몫입니다.
+
+
 ### 구조 — 분석 코어가 `ici.analysis`로 재배치
 
 - `ici.engines._*` 36개 모듈과 순수 헬퍼 `ici.engines.cpp_text`가

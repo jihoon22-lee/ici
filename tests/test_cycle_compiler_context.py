@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-import ici.engines.cycle as cycle_module
+import ici.analysis.cycles as cycle_module
 from ici.analysis._cpp_include_graph import build_compiler_cpp_graph
 from ici.core.capabilities import CapabilityInventory, collect_capability_inventory
 from ici.core.context import (

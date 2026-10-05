@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis.line_count import count_lines
 from ici.domain.enums import TaskState
-from ici.engines.line import count_lines
 from ici.languages.python.lines import LineRequest, count
 
 

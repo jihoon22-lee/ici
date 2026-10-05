@@ -21,11 +21,11 @@ from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
 from ici.analysis._elf import ElfParseError, maximum_version, parse_readelf
+from ici.analysis.binary_abi import abi_violations
 from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement
 from ici.domain.tasks import TaskSpec
-from ici.engines.binary_compat import BinaryCompatibilityEngine
 from ici.execution.process import ExitContract, TaskOutcome
 
 __all__ = ["BinaryCompatProvider"]
@@ -107,9 +107,7 @@ class BinaryCompatProvider:
             )
         findings = tuple(
             _finding(item, relative, outcome.spec.name)
-            for item in BinaryCompatibilityEngine._abi_violations(
-                relative, facts, _POLICY, self._build_roots
-            )
+            for item in abi_violations(relative, facts, _POLICY, self._build_roots)
         )
         floors = ", ".join(
             f"{namespace}<={maximum_version(versions)}"

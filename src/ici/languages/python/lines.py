@@ -24,10 +24,10 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
+from ici.analysis.line_count import count_lines
 from ici.domain.enums import EvidenceLevel, TaskState
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement, Observation
-from ici.engines.line import count_lines
 
 __all__ = ["PROVIDER_NAME", "LineRequest", "count"]
 
