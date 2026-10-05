@@ -155,6 +155,27 @@ def analysis_exclusion_reason(file_path: str) -> str | None:
     return reasons[0] if reasons else None
 
 
+def python_source_roots(paths: Iterable[Path], fallback: Path) -> tuple[Path, ...]:
+    """Import roots for Python files: each file's topmost package parent.
+
+    Module names must match the import statements in the code — a file at
+    ``src/ici/cli/x.py`` is imported as ``ici.cli.x`` only when ``src`` is
+    the import root, which holds exactly when ``src`` carries no
+    ``__init__.py`` of its own. Files with no package anchor root at their
+    own directory; with no files at all the caller's fallback applies.
+    """
+
+    roots: set[Path] = set()
+    for path in paths:
+        if path.suffix != ".py":
+            continue
+        anchor = path.parent
+        while (anchor / "__init__.py").is_file() and anchor.parent != anchor:
+            anchor = anchor.parent
+        roots.add(anchor)
+    return tuple(sorted(roots)) or (fallback,)
+
+
 def _positive_limit(name: str, value: object) -> int:
     if type(value) is not int or value <= 0:
         raise AnalysisSourceError(

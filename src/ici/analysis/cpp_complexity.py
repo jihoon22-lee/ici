@@ -139,23 +139,6 @@ def _cpp_function_inventory(
     return scanner.spans, metric_lines
 
 
-def _cpp_metric_details(
-    text: str,
-    body_start_line: int,
-    body_start_column: int,
-    end_line: int,
-    end_column: int,
-) -> tuple[int, int, int, bool]:
-    lines = mask_cpp_literals(text).replace("<%", "{ ").replace("%>", "} ").splitlines()
-    return _cpp_metric_details_from_lines(
-        lines,
-        body_start_line,
-        body_start_column,
-        end_line,
-        end_column,
-    )
-
-
 def _cpp_metric_details_from_lines(
     lines: list[str],
     body_start_line: int,

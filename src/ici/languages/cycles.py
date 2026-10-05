@@ -14,6 +14,7 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
+from ici.analysis._source_inputs import python_source_roots
 from ici.analysis.cycles import (
     _build_cpp_graph,
     _build_python_graph,
@@ -50,7 +51,9 @@ def measure_cycles(request: CycleRequest) -> Observation:
 def _measure_python(request: CycleRequest) -> Observation:
     root = request.project_root
     graph, module_to_file = _build_python_graph(
-        root, source_dirs=[root], all_sources=list(request.files)
+        root,
+        source_dirs=list(python_source_roots(request.files, root)),
+        all_sources=list(request.files),
     )
     findings: list[Finding] = []
     for members in _find_cycles_tarjan(graph):

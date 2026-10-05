@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Any
 
 from ici.analysis._elf import ElfFacts, maximum_version, version_key
-from ici.core.context import ArtifactRecord
 from ici.core.findings import finding_fingerprint
 from ici.core.models import (
     Finding,
@@ -22,10 +21,6 @@ from ici.core.models import (
 )
 
 _BINARY_KINDS = frozenset({"executable", "shared-library"})
-
-
-def _artifact_id(record: ArtifactRecord) -> str:
-    return getattr(record, "artifact_id", "") or record.path
 
 
 def binary_finding(rule_id: str, path: str, message: str, tool_rule_id: str) -> Finding:

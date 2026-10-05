@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ici.analysis._source_inputs import python_source_roots
 from ici.application.plan import PlannedCheck
 from ici.application.schedule import Analysis
 from ici.domain.enums import TaskState
@@ -154,7 +155,7 @@ def _dead_counter(
     resolved = tuple(root / item for item in files)
     request = DeadRequest(
         project_root=component_root,
-        source_dirs=(component_root,),
+        source_dirs=python_source_roots(resolved, component_root),
         files=resolved,
         task_id=planned.task_id,
         component_id=component.id,
