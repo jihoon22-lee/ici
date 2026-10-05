@@ -368,7 +368,7 @@ def gate_python(
     provider_name = decided.value if decided is not None else "mypy"
     provider = TYPE_CHECKERS.get(provider_name)
     resolved_python = resolve_python(effective, component_root, root, probe=False)
-    interpreter = resolved_python.launch_path if resolved_python.usable else None
+    interpreter = resolved_python.launch_path if isinstance(resolved_python, ResolvedTool) else None
     no_interpreter = interpreter_blocker(resolved_python)
     coverage_selected = any(
         planned.check.id == "python.coverage" and not planned.blocked for planned in plan.checks

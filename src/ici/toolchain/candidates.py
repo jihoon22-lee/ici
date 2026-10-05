@@ -24,7 +24,7 @@ back to rather than by remembering not to.
 
 from __future__ import annotations
 
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 from ici.config.composition import EffectiveComponent
 from ici.toolchain.resolution import Role
@@ -39,7 +39,7 @@ _HERE = PurePosixPath(".")
 def python_request(
     component: EffectiveComponent | None,
     *,
-    workspace_root: PurePosixPath = _HERE,
+    workspace_root: PurePosixPath | Path = _HERE,
     convention: tuple[Candidate, ...] = (),
 ) -> Request:
     """The interpreter this component's tests run on, if it declared one.
@@ -119,7 +119,7 @@ def analyzer_request(
     )
 
 
-def _anchor(raw: str, workspace_root: PurePosixPath) -> str:
+def _anchor(raw: str, workspace_root: PurePosixPath | Path) -> str:
     """Anchor a declared executable the way SPEC-01 section 3 requires.
 
     A bare name is a PATH lookup and is left alone. Anything with a separator is

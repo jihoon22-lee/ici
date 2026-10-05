@@ -58,19 +58,9 @@ ASSUMPTIONS = (
         ),
         replacement='[components.<id>.python] executable = ".venv/bin/python"',
     ),
-    Assumption(
-        name="interpreter-fallback",
-        file="engines/test_interpreter.py",
-        marker="return [sys.executable]",
-        what=(
-            "a project with no interpreter of its own is tested with whichever "
-            "interpreter ici is running under, and the result does not say so"
-        ),
-        replacement=(
-            "a declared executable; an undeclared one is reported as unresolved "
-            "rather than substituted"
-        ),
-    ),
+    # interpreter-fallback (engines/test_interpreter.py `return [sys.executable]`)
+    # retired with the file: `application/tooling.resolve_python` substitutes
+    # nothing — an undeclared interpreter reports unresolved instead.
 )
 
 

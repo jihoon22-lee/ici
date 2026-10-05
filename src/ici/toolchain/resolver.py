@@ -250,6 +250,7 @@ class Resolver:
         cached = self._probed.get(path)
         if cached is not None:
             return cached
+        assert self._probe is not None
         result = self._probe([path, *argv])
         self._probed[path] = result
         return result
@@ -264,12 +265,14 @@ class Resolver:
 
         supported: list[str] = []
         missing: list[str] = []
+        probe = self._probe
+        assert probe is not None
         for capability in request.required_capabilities:
             argv = request.capability_probes.get(capability)
             if argv is None:
                 missing.append(f"{capability} (no way to check it was given)")
                 continue
-            if self._probe([path, *argv]).usable:
+            if probe([path, *argv]).usable:
                 supported.append(capability)
                 continue
             missing.append(capability)
