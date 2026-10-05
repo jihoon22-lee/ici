@@ -38,7 +38,7 @@ HEADER = 'schema_version = 1\n[workspace]\nname = "product"\n'
 COMPONENT = (
     '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
     'sources = ["src/**/*.py"]\n'
-    '[components.python]\nexecutable = ".venv/bin/python3"\n'
+    '[components.python]\nexecutable = "app/.venv/bin/python3"\n'
 )
 
 CASE = (
@@ -274,7 +274,7 @@ class TestPlaceholdersResolveOrBlock:
         component = (
             '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
             'sources = ["src/**/*.py"]\nbuild = "native"\n'
-            '[components.python]\nexecutable = ".venv/bin/python3"\n'
+            '[components.python]\nexecutable = "app/.venv/bin/python3"\n'
         )
         build = (
             '[builds.native]\nsystem = "cmake"\ndirectory = "build/native"\n'

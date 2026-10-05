@@ -143,7 +143,7 @@ def _python_target(
     """``{python:NAME}`` — a declared interpreter, never ici's own."""
 
     if name == "declared":
-        interpreter = python_interpreter(effective, component_root)
+        interpreter = python_interpreter(effective, component_root, root)
         if interpreter is None:
             return "", (
                 "no declared Python interpreter — set [python] executable or "

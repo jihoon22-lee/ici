@@ -76,11 +76,17 @@ class Request:
 
 
 class Resolver:
-    """Resolves requests, probing only what it is asked for."""
+    """Resolves requests, probing only what it is asked for.
+
+    ``probe=None`` is the no-process mode: the caller has no probe budget —
+    ``plan`` and ``init`` start nothing (#206) — so existence is the whole
+    question and the answer carries ``not probed`` as a limit rather than a
+    guessed version.
+    """
 
     def __init__(
         self,
-        probe: Probe,
+        probe: Probe | None,
         *,
         exists: Callable[[str], bool] | None = None,
         realpath: Callable[[str], str] | None = None,
@@ -144,6 +150,30 @@ class Resolver:
                 origin=origin,
                 detail=f"no such file: {candidate.path}",
                 considered=passed_over,
+            )
+
+        if self._probe is None:
+            # No probe budget. A constraint that only a probe can check is
+            # reported unsatisfied rather than assumed.
+            if request.minimum_version or request.required_capabilities:
+                return Unresolved(
+                    role=request.role,
+                    name=request.name,
+                    availability=Availability.UNSUPPORTED,
+                    origin=origin,
+                    detail="its version or capabilities need a probe the caller did not allow",
+                    considered=passed_over,
+                )
+            return ResolvedTool(
+                role=request.role,
+                name=request.name,
+                launch_path=candidate.path,
+                identity_path=self._realpath(candidate.path),
+                origin=origin,
+                version=None,
+                capabilities=(),
+                passed_over=passed_over,
+                limits=("not probed",),
             )
 
         result = self._version(candidate.path, request.version_argv)

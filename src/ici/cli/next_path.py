@@ -87,12 +87,11 @@ from ici.cli.next_common import (
     _scope,
     _unit_files,
     _units_of,
-    _version_of,
     _workspace,
     next_app,
 )
 from ici.cli.next_events import EventSink
-from ici.cli.next_testing import BUNDLED_TOOLS, locate_tool
+from ici.cli.next_testing import BUNDLED_TOOLS, resolve_tool
 from ici.config.composition import EffectiveCheck, EffectiveConfig
 from ici.domain.enums import (
     BaselineState,
@@ -114,6 +113,7 @@ from ici.languages.registry import builtin as builtin_registry
 from ici.reporting.offline_html import render
 from ici.reporting.sarif import SarifBoundsError
 from ici.reporting.sarif import document as sarif_document
+from ici.toolchain.resolution import Unresolved
 from ici.workspace import compile_units, inventory
 from ici.workspace.inventory import SourceInventory
 from ici.workspace.vcs import status as vcs_status
@@ -305,11 +305,13 @@ def _doctor_check(
         )
         _blocked(echo, check.id, line)
     elif check.tool:
-        located = locate_tool(check.tool)
-        if located is None:
+        # #210 item 4: the resolver's probe is the one bounded process doctor
+        # may spawn per tool — no build, no install, no sourcing.
+        tool = resolve_tool(check.tool)
+        if isinstance(tool, Unresolved):
             line.update(
                 status="blocked",
-                reason=f"{check.tool} is not available",
+                reason=f"{check.tool} is {tool.availability.value}: {tool.detail}",
                 resolve=(
                     f"install {check.tool}, or ship it under the bundle's {BUNDLED_TOOLS} directory"
                 ),
@@ -317,10 +319,17 @@ def _doctor_check(
             )
             _blocked(echo, check.id, line)
         else:
-            origin = "bundle" if os.environ.get("ICI_BUNDLE_ROOT") else "PATH"
-            version = _version_of(located)
-            line.update(status="selected", tool=located, version=version, origin=origin)
-            echo(f"  {check.id}: selected — {check.tool} at {located} ({origin}, {version})")
+            version = tool.version or "version unknown"
+            line.update(
+                status="selected",
+                tool=tool.launch_path,
+                version=version,
+                origin=tool.origin.source,
+            )
+            echo(
+                f"  {check.id}: selected — {check.tool} at {tool.launch_path} "
+                f"({tool.origin.source}, {version})"
+            )
     else:
         line.update(status="selected", tool="ici")
         echo(f"  {check.id}: selected — runs in-process (ici)")

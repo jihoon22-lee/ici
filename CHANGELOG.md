@@ -47,6 +47,26 @@
 - 키 계약이 `ici.analysis-cache-key/v4`로 올라갑니다. v3 엔트리는 버전
   게이트가 거절해 stale hit 없이 재계산됩니다. 13개 엔진의 수동 선언을
   제거하고 테스트는 클로저 포함 관계를 검증합니다.
+### 변경 — next 경로의 도구 선택이 `ici.toolchain` Resolver를 통과
+
+- `cli/next_testing`의 `locate_tool`/`python_interpreter`가 `Resolver`를
+  거치도록 배선됐습니다. `ici.toolchain` 패키지가 더 이상 미연결 코드가
+  아니며, doctor는 `UNAVAILABLE`/`UNSUPPORTED`/`BROKEN`을 구분해 보고합니다
+  — "도구가 없다"와 "도구가 `--version`에 답하지 못한다"가 다른 문장이
+  됩니다.
+- 선언된 `[python] executable`은 이제 존재를 검사받고 workspace-root
+  상대로 앵커됩니다 — 이전에는 선언 값이 검사 없이 그대로 argv에 들어가
+  하위 디렉터리 실행에서 틀린 경로를 가리킬 수 있었습니다. 선언이 실패해도
+  `.venv`로 대체되지 않습니다(#204 item 3).
+- `#206` 불변식 유지: `plan`/`init`/`verify`의 공용 계획 경로는 probe-free
+  resolver(`probe=False`, 존재+실행 비트만 검사)를 쓰며 어떤 프로세스도
+  시작하지 않습니다. `doctor`만 `toolchain.launch`의 bounded executor로
+  `--version` probe를 수행하며, `next_common._version_of`의 직접
+  `subprocess.run` 호출은 제거됐습니다.
+- `.venv` 자동 탐색은 workspace 설정이 인터프리터를 선언할 수 있게 되는
+  #210까지 call-site convention 후보로 유지됩니다 — `toolchain` 패키지
+  자체는 여전히 convention을 발명하지 않습니다.
+ 32541ef (feat(toolchain): wire the resolver into live tool and interpreter selection)
 
 ### 변경 — `EngineResult.extra` 키 계약이 명시 레지스트리로
 
