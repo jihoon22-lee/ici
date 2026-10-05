@@ -145,4 +145,4 @@ WP가 "가정을 시험한다"고 정의한 작업의 실행 기록이다. 재�
 5. **측정하지 않은 것을 지원한다고 쓰지 않는다.** `planned`/`tested`/`supported`/`limited`/
    `unsupported`를 구분한다([spec-05 §1](spec-05-verification-transition.md)).
 6. 문서 링크와 registry 일치는
-   [`tests/test_ici_next_inventory.py`](../../../tests/test_ici_next_inventory.py)가 기계 검증한다.
+   [`tests/next/test_ici_next_inventory.py`](../../../tests/next/test_ici_next_inventory.py)가 기계 검증한다.

@@ -5,7 +5,7 @@
 |상태|**bundle은 candidate.** stable 배포는 `dist/ici.pyz`이며 이 문서가 그것을 바꾸지 않는다.|
 |근거 이슈|[WP04 #202](https://github.com/jihoon22-lee/ici/issues/202) 작업 7|
 |구현|[`scripts/bundle/launcher.sh`](../../../scripts/bundle/launcher.sh), [`scripts/bundle/smoke.sh`](../../../scripts/bundle/smoke.sh)|
-|검증|[`tests/test_bundle_smoke.py`](../../../tests/test_bundle_smoke.py), [`tests/test_offline_execution.py`](../../../tests/test_offline_execution.py), [`.github/workflows/bundle-smoke.yml`](../../../.github/workflows/bundle-smoke.yml)|
+|검증|[`tests/test_bundle_smoke.py`](../../../tests/next/test_bundle_smoke.py), [`tests/test_offline_execution.py`](../../../tests/next/test_offline_execution.py), [`.github/workflows/bundle-smoke.yml`](../../../.github/workflows/bundle-smoke.yml)|
 
 ## 1. 두 배포물은 서로를 대체하지 않는다
 
@@ -80,7 +80,7 @@ bundle은 버전마다 **독립된 디렉터리**다. 공유 상태가 없으므
 |무엇이 돌고 있는지 확인한다|`ici --version`, 그리고 `<bundle>/manifest.json`의 `source_commit`|
 
 **자동 업데이트는 없다.** 실행 경로에 네트워크 호출이 없다는 것이
-[`tests/test_offline_execution.py`](../../../tests/test_offline_execution.py)에서
+[`tests/test_offline_execution.py`](../../../tests/next/test_offline_execution.py)에서
 두 방향으로 고정돼 있다 — 트리 전체의 정적 audit(허용 목록은 `engines/publish.py` 하나,
 사용자가 이름을 대서 부르는 업로드다)과, 실제 분석 실행 중 CPython audit hook이
 `socket.connect`·`urllib.Request`를 한 번도 보지 못한다는 런타임 확인.
@@ -119,7 +119,7 @@ bundle 자체는 이걸로 끝이다. 설치 디렉터리 밖에 bundle이 남�
 
 돌아갈 곳이 항상 있는 이유는 bundle이 stable 경로를 **치우지 않기** 때문이다.
 `dist/ici.pyz`, `scripts/build-pyz.sh`, `scripts/smoke.sh`, `scripts/launcher.sh`는
-그대로 있고 [`tests/test_ici_next_inventory.py`](../../../tests/test_ici_next_inventory.py)가
+그대로 있고 [`tests/next/test_ici_next_inventory.py`](../../../tests/next/test_ici_next_inventory.py)가
 그것을 고정한다.
 
 ## 6. 측정된 것과 측정되지 않은 것

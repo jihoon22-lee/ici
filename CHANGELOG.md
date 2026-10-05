@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+### 구조 — next 경로 테스트가 `tests/next/`로 계층화
+
+- next 경로를 검증하는 67개 테스트 파일이 `tests/next/` 아래로 이동했습니다
+  — 어떤 테스트가 stable 것인지 next 것인지 파일명 추측에 의존하던 상태를
+  끝냅니다. 분류는 `ici.application`/`domain`/`execution`/`languages`/
+  `adapters`/`workspace`/`toolchain`/`reporting`/`cli.next_*` import로
+  기계적으로 수행했습니다.
+- `conftest.py`·`cache_fixtures.py`·`fixture_manifest.py`·`toolcontract.py`
+  와 `tests/fixtures/`는 양쪽이 공유하므로 루트에 남습니다.
+- 이동한 파일의 `Path(__file__).parents[N]` 저장소 루트 계산과
+  `tests/fixtures` 참조, 그리고 `docs/` 안의 테스트 파일 링크를 함께
+  갱신했습니다.
+
 ### 수정 — next 스케줄러의 per-task 크래시 격리
 
 - **버그 수정**: `application/schedule`의 unit 실행이 provider `parse()`,

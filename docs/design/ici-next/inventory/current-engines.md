@@ -16,7 +16,7 @@
 | `_DECLARATIONS`가 덮는 엔진 | 19 / 19 (각 엔진이 `python`·`cpp` 두 행을 모두 선언) |
 | inventory 행 개수 | 19 |
 
-이 일치는 [`tests/test_ici_next_inventory.py`](../../../../tests/test_ici_next_inventory.py)가
+이 일치는 [`tests/next/test_ici_next_inventory.py`](../../../../tests/next/test_ici_next_inventory.py)가
 기계적으로 검증한다. registry에 엔진을 추가하거나 제거하면 그 테스트가 깨진다.
 
 ## 1. 스케줄링·데이터 흐름 (pipeline.py 원본)

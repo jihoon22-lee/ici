@@ -67,7 +67,7 @@
 
 ## 4. 보안 경계 (항목 4)
 
-자동화: [`tests/test_next_security.py`](../../../tests/test_next_security.py) +
+자동화: [`tests/test_next_security.py`](../../../tests/next/test_next_security.py) +
 `tests/test_cache.py`의 integrity 케이스.
 
 | 경계 | 시험 | 결과 |

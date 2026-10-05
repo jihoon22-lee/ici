@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SMOKE = ROOT / "scripts" / "bundle" / "smoke.sh"
 
 sys.path.insert(0, str(ROOT / "scripts" / "bundle"))

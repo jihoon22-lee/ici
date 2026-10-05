@@ -38,9 +38,9 @@ from ici.domain.enums import (
 from ici.domain.events import EVENT_SCHEMA_ID, EVENT_SCHEMA_VERSION, EventType
 from ici.domain.result import SCHEMA_ID, SCHEMA_VERSION
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_DIR = REPO_ROOT / "src" / "ici" / "schemas"
-FIXTURES = Path(__file__).resolve().parent / "fixtures" / "ici-next"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "ici-next"
 
 RUN_SCHEMA = SCHEMA_DIR / "ici-next-run-v1.schema.json"
 EVENT_SCHEMA = SCHEMA_DIR / "ici-next-event-v1.schema.json"

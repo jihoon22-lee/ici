@@ -30,7 +30,7 @@ from pathlib import Path
 
 import pytest
 
-DOMAIN_DIR = Path(__file__).resolve().parents[1] / "src" / "ici" / "domain"
+DOMAIN_DIR = Path(__file__).resolve().parents[2] / "src" / "ici" / "domain"
 
 # Modules that imply I/O. ``re``, ``enum``, ``dataclasses``, ``typing`` and
 # ``collections.abc`` are fine: they compute, they do not reach out.
@@ -108,7 +108,7 @@ def test_bridge_imports_only_pure_core_data():
     behind ``TYPE_CHECKING``, the bridge stops being safe and this fails.
     """
 
-    models = Path(__file__).resolve().parents[1] / "src" / "ici" / "core" / "models.py"
+    models = Path(__file__).resolve().parents[2] / "src" / "ici" / "core" / "models.py"
     imported = _imported_modules(ast.parse(models.read_text(encoding="utf-8")))
     assert not (imported & FORBIDDEN_MODULES), (
         f"ici.core.models is no longer pure: {sorted(imported & FORBIDDEN_MODULES)}"

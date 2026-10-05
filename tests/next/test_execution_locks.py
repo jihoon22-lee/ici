@@ -38,7 +38,7 @@ with exclusive(Path({lock!r})) as held:
 
 
 def _holder(lock: Path) -> subprocess.Popen[str]:
-    source = str(Path(__file__).resolve().parents[1] / "src")
+    source = str(Path(__file__).resolve().parents[2] / "src")
     proc = subprocess.Popen(
         [sys.executable, "-c", HOLDER.format(source=source, lock=str(lock))],
         stdout=subprocess.PIPE,

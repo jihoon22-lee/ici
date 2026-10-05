@@ -16,7 +16,7 @@ from ici.domain.serialization import run_result_from_dict
 from ici.reporting.offline_html import render
 from ici.reporting.view_model import view_model
 
-FIXTURES = Path(__file__).resolve().parent / "fixtures" / "ici-next"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "ici-next"
 
 
 def _stored(name: str):
@@ -90,9 +90,10 @@ def test_a_finding_keeps_provider_evidence_and_location_on_the_page() -> None:
 
 
 def test_a_suppressed_finding_shows_its_reason_and_origin() -> None:
+    from test_next_serialization import minimal_result
+
     from ici.domain import Finding, FindingSuppression, SourceSpan
     from ici.domain.enums import EvidenceLevel
-    from test_next_serialization import minimal_result
 
     finding = Finding(
         fingerprint="fp-sup",
@@ -132,8 +133,9 @@ def test_an_estimated_finding_is_not_flattened_to_measured() -> None:
 
 
 def test_a_comparable_baseline_shows_its_delta() -> None:
-    from ici.domain import BaselineComparison, BaselineState
     from test_next_serialization import minimal_result
+
+    from ici.domain import BaselineComparison, BaselineState
 
     result = minimal_result(
         baseline=BaselineComparison(
@@ -152,8 +154,9 @@ def test_a_comparable_baseline_shows_its_delta() -> None:
 
 
 def test_an_incompatible_baseline_shows_the_reason_not_a_delta() -> None:
-    from ici.domain import BaselineComparison, BaselineState
     from test_next_serialization import minimal_result
+
+    from ici.domain import BaselineComparison, BaselineState
 
     result = minimal_result(
         baseline=BaselineComparison(

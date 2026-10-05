@@ -5,7 +5,7 @@
 |상태|**next 경로 전용.** 현재 `ici verify`는 아직 이 파일을 읽지 않는다 — 연결은 [WP27](https://github.com/jihoon22-lee/ici/issues/225).|
 |근거 이슈|[WP05 #203](https://github.com/jihoon22-lee/ici/issues/203) 작업 2·5·6·7|
 |구현|[`discovery.py`](../../../src/ici/config/discovery.py), [`scaffold.py`](../../../src/ici/config/scaffold.py), [`migration.py`](../../../src/ici/config/migration.py)|
-|검증|[`tests/test_config_discovery.py`](../../../tests/test_config_discovery.py), [`tests/test_config_migration.py`](../../../tests/test_config_migration.py)|
+|검증|[`tests/test_config_discovery.py`](../../../tests/next/test_config_discovery.py), [`tests/test_config_migration.py`](../../../tests/next/test_config_migration.py)|
 |설계 배경|[config-origin.md](config-origin.md)|
 
 ## 1. 만들기 — `init`은 제안하고, 바꾸지 않는다

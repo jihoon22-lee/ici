@@ -299,7 +299,7 @@ class TestTheMeasurementThisPrExistsFor:
             capture_output=True,
             text=True,
             check=False,
-            cwd=Path(__file__).resolve().parents[1],
+            cwd=Path(__file__).resolve().parents[2],
         )
         assert completed.returncode == 0, completed.stderr
         assert completed.stdout.strip() == sys.executable
@@ -325,7 +325,7 @@ class TestTheProbeIsBoundedInFactAndNotOnlyInItsReport:
         # /proc is the figure for this process alone.
         flood = 200 * 1024 * 1024
         chunk = 64 * 1024
-        source = str(Path(__file__).resolve().parents[1] / "src")
+        source = str(Path(__file__).resolve().parents[2] / "src")
         writer = f"import sys\nfor _ in range({flood // chunk}): sys.stdout.write('x' * {chunk})"
         probe = (
             "import sys\n"

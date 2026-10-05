@@ -217,9 +217,10 @@ def test_an_unmatched_finding_is_untouched() -> None:
 
 
 def test_a_suppressed_finding_cannot_fail_the_gate() -> None:
+    from test_application_verify import LINT, _outcome, _Provider, _task
+
     from ici.adapters.providers.base import ParsedOutput
     from ici.application.plan import Plan, PlannedCheck
-    from test_application_verify import LINT, _outcome, _Provider, _task
 
     plan = Plan(checks=(PlannedCheck(check=LINT, task=_task()),))
     provider = _Provider(ParsedOutput(findings=(_finding(component=None),)))
@@ -239,8 +240,9 @@ def test_a_suppressed_finding_cannot_fail_the_gate() -> None:
 def test_a_suppression_cannot_hide_an_unfinished_check() -> None:
     # SPEC-04 §4: a required check that did not finish is not a finding, so no
     # selector can reach it.
-    from ici.application.plan import Plan, PlannedCheck
     from test_application_verify import LINT
+
+    from ici.application.plan import Plan, PlannedCheck
 
     plan = Plan(checks=(PlannedCheck(check=LINT, blocked="ruff was not found"),))
 

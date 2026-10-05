@@ -21,7 +21,7 @@ from ici.domain.serialization import loads, run_result_from_dict
 from ici.reporting.sarif import SARIF_VERSION, document
 
 runner = CliRunner()
-FIXTURES = Path(__file__).resolve().parent / "fixtures" / "ici-next"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "ici-next"
 
 
 def _stored(name: str = "run-code-fail"):
@@ -71,9 +71,10 @@ def test_the_run_records_gate_scope_and_limitations() -> None:
 
 
 def test_a_suppressed_finding_is_marked_not_hidden() -> None:
+    from test_next_serialization import minimal_result
+
     from ici.domain import Finding, FindingSuppression, SourceSpan
     from ici.domain.enums import EvidenceLevel
-    from test_next_serialization import minimal_result
 
     finding = Finding(
         fingerprint="fp-sup",
@@ -98,9 +99,10 @@ def test_a_suppressed_finding_is_marked_not_hidden() -> None:
 
 
 def test_baseline_state_marks_new_and_unchanged_only() -> None:
+    from test_next_serialization import minimal_result
+
     from ici.domain import Finding, SourceSpan
     from ici.domain.enums import EvidenceLevel
-    from test_next_serialization import minimal_result
 
     def finding(fp: str) -> Finding:
         return Finding(
