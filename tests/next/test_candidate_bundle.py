@@ -14,7 +14,7 @@ from types import ModuleType
 
 import pytest
 
-SCRIPT = Path(__file__).parents[1] / "scripts" / "candidate_bundle.py"
+SCRIPT = Path(__file__).parents[2] / "scripts" / "candidate_bundle.py"
 
 
 def _load_module() -> ModuleType:

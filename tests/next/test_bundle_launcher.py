@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-LAUNCHER = Path(__file__).resolve().parents[1] / "scripts" / "bundle" / "launcher.sh"
+LAUNCHER = Path(__file__).resolve().parents[2] / "scripts" / "bundle" / "launcher.sh"
 
 # A stand-in for ici core. It reports what core actually sees, which is the only
 # way to check isolation from outside the process.

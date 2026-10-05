@@ -17,6 +17,7 @@ import json
 from pathlib import Path
 
 import pytest
+from test_next_serialization import minimal_result
 from typer.testing import CliRunner
 
 from ici.__main__ import app
@@ -26,7 +27,6 @@ from ici.config.errors import NextConfigError
 from ici.config.schema import read_root
 from ici.domain.enums import PublicationState
 from ici.domain.serialization import dumps, run_result_to_dict
-from test_next_serialization import minimal_result
 
 runner = CliRunner()
 

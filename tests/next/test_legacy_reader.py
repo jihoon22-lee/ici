@@ -29,7 +29,7 @@ from ici.execution.legacy_reader import (
     read_legacy_report,
 )
 
-FIXTURES = Path(__file__).parent / "fixtures" / "ici-next"
+FIXTURES = Path(__file__).parents[1] / "fixtures" / "ici-next"
 V3_SUITE = FIXTURES / "legacy-v3-suite.json"
 SNAPSHOT = SourceSnapshot(digest="sha256:" + "09" * 32)
 

@@ -5,7 +5,7 @@
 |상태|**측정 완료.** 합성 번들 테스트 18건 + 실제 번들 실측.|
 |근거 이슈|[WP04 #202](https://github.com/jihoon22-lee/ici/issues/202) 작업 3·5, 인수 기준 2·3|
 |구현|[`scripts/bundle/launcher.sh`](../../../scripts/bundle/launcher.sh)|
-|검증|[`tests/test_bundle_launcher.py`](../../../tests/test_bundle_launcher.py)|
+|검증|[`tests/test_bundle_launcher.py`](../../../tests/next/test_bundle_launcher.py)|
 
 ## 서로 당기는 두 요구
 

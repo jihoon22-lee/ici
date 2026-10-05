@@ -208,7 +208,7 @@ superpowers 문서에는 현행/next 상태와 링크를 명시한다. ADR에는
 - [x] AGENTS의 Python 3.10/순수 wheel/zipapp/toy gate 규약을 새 요구에 맞게 명시적으로 개정했다.
       → [AGENTS.md](../../../AGENTS.md) §3·§4·§8
 - [x] 모델·모듈 경계와 금지 side effect에 계약 테스트가 있다.
-      → [`tests/test_ici_next_inventory.py`](../../../tests/test_ici_next_inventory.py)
+      → [`tests/next/test_ici_next_inventory.py`](../../../tests/next/test_ici_next_inventory.py)
       (registry coverage·문서 링크·설정 예시). 모듈 경계 import 테스트는 신규 패키지가
       만들어지는 [WP02 #200](https://github.com/jihoon22-lee/ici/issues/200) 이후에 붙는다.
 - [x] SPEC/WP에 이 설계가 연결되고 미확인 선택은 release blocker 또는 증거 있는 결정으로

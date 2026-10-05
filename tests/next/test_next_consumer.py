@@ -16,11 +16,11 @@ import shutil
 from pathlib import Path
 
 import pytest
+from idkconsumer import ContractError, consume_events, consume_result
 from typer.testing import CliRunner
 
 from ici.__main__ import app
 from ici.config.scaffold import propose, write
-from idkconsumer import ContractError, consume_events, consume_result
 
 runner = CliRunner()
 RUFF = shutil.which("ruff") or str(Path(".venv/bin/ruff").resolve())

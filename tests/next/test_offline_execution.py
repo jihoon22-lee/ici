@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-SRC = Path(__file__).resolve().parents[1] / "src" / "ici"
+SRC = Path(__file__).resolve().parents[2] / "src" / "ici"
 
 # Modules that can open a connection. urllib.parse is deliberately absent: it
 # only manipulates strings, and four reporters use it to build file:// links.

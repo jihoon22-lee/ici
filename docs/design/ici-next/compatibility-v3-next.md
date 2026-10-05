@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-|상태|**측정 완료**. 아래 표는 [`src/ici/execution/legacy_reader.py`](../../../src/ici/execution/legacy_reader.py)가 실제로 하는 일이며, [`tests/test_legacy_reader.py`](../../../tests/test_legacy_reader.py)가 둘을 맞물려 둔다.|
+|상태|**측정 완료**. 아래 표는 [`src/ici/execution/legacy_reader.py`](../../../src/ici/execution/legacy_reader.py)가 실제로 하는 일이며, [`tests/test_legacy_reader.py`](../../../tests/next/test_legacy_reader.py)가 둘을 맞물려 둔다.|
 |근거 이슈|[WP02 #200](https://github.com/jihoon22-lee/ici/issues/200) PR C|
 |관련 규범|[spec-04 §5](spec-04-results-integration.md), [spec-05 §5](spec-05-verification-transition.md)|
 

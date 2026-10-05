@@ -44,7 +44,7 @@ from ici.domain.eventstream import (
 )
 from ici.domain.serialization import loads, run_result_from_dict, run_result_to_dict
 
-FIXTURES = Path(__file__).resolve().parent / "fixtures" / "ici-next"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "ici-next"
 
 # Every result fixture #200 step 4 asks for. Named rather than globbed so that
 # deleting one fails a test instead of shrinking the checked set.

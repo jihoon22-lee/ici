@@ -233,7 +233,7 @@ class TestNothingHereIsHardcoded:
 
     @staticmethod
     def _modules() -> list[Path]:
-        package = Path(__file__).resolve().parents[1] / "src" / "ici" / "toolchain"
+        package = Path(__file__).resolve().parents[2] / "src" / "ici" / "toolchain"
         # assumptions.py names the old path on purpose; that is its whole job.
         return [m for m in sorted(package.glob("*.py")) if m.name != "assumptions.py"]
 

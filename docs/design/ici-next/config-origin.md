@@ -5,7 +5,7 @@
 |상태|**구현 중 (WP05 PR A·B).** schema v1 읽기·출처 보존(PR A), 계층 합성·정책 보호(PR B). 탐색과 `init`은 PR C 이후.|
 |근거 이슈|[WP05 #203](https://github.com/jihoon22-lee/ici/issues/203) 작업 1·3·4, [SPEC-01 #193](https://github.com/jihoon22-lee/ici/issues/193) §2~§3|
 |구현|[`src/ici/config/`](../../../src/ici/config) — `origin.py`, `paths.py`, `reader.py`, `documents.py`, `schema.py`, `layers.py`, `composition.py`, `overlay.py`|
-|검증|[`tests/test_config_schema.py`](../../../tests/test_config_schema.py), [`tests/test_config_composition.py`](../../../tests/test_config_composition.py), [`tests/fixtures/config/`](../../../tests/fixtures/config)|
+|검증|[`tests/test_config_schema.py`](../../../tests/next/test_config_schema.py), [`tests/test_config_composition.py`](../../../tests/next/test_config_composition.py), [`tests/fixtures/config/`](../../../tests/fixtures/config)|
 
 ## 출발점: 품질 게이트가 조용히 뒤집힌다
 

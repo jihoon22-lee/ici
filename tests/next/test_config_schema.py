@@ -27,8 +27,8 @@ from ici.config.origin import Origin, Sourced
 from ici.config.paths import DeclaredPath, Executable, SourceGlob, substitute_environment
 from ici.config.schema import SCHEMA_VERSION, read_component, read_root
 
-FIXTURES = Path(__file__).resolve().parent / "fixtures" / "config"
-DESIGN = Path(__file__).resolve().parents[1] / "docs" / "design" / "ici-next"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "config"
+DESIGN = Path(__file__).resolve().parents[2] / "docs" / "design" / "ici-next"
 
 _KIND = re.compile(r"^# kind: (root|component)$", re.MULTILINE)
 _EXPECT = re.compile(r"^# expect: (.+)$", re.MULTILINE)

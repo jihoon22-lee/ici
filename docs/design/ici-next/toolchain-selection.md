@@ -5,7 +5,7 @@
 |상태|**live 배선 완료.** 선택 규칙·환경 스냅샷(A), 실제 프로세스 확인(B), 새 경로 candidate와 migration 경고(C), live 선택 경로가 Resolver를 거침(D). **단, `.venv` 자동 탐색은 #210의 설정 선언이 올 때까지 call-site convention 후보로 남긴다 — 아래 §마지막.**|
 |근거 이슈|[WP06 #204](https://github.com/jihoon22-lee/ici/issues/204) 작업 1~4·6, [SPEC-02](spec-02-distribution-execution.md)|
 |구현|[`src/ici/toolchain/`](../../../src/ici/toolchain) — `resolution.py`, `resolver.py`, `environment.py`, `launch.py`, `candidates.py`, `assumptions.py`|
-|검증|[`tests/test_toolchain_resolution.py`](../../../tests/test_toolchain_resolution.py), [`tests/test_toolchain_processes.py`](../../../tests/test_toolchain_processes.py), [`tests/test_toolchain_candidates.py`](../../../tests/test_toolchain_candidates.py)|
+|검증|[`tests/test_toolchain_resolution.py`](../../../tests/next/test_toolchain_resolution.py), [`tests/test_toolchain_processes.py`](../../../tests/next/test_toolchain_processes.py), [`tests/test_toolchain_candidates.py`](../../../tests/next/test_toolchain_candidates.py)|
 
 ## 출발점: 프로젝트가 자기 인터프리터 없이 테스트된다
 
@@ -202,6 +202,6 @@ ici가 자기 자신을 검증하지 못한다.
 순서가 있다: **설정이 인터프리터를 선언할 수 있게 된 뒤에** convention을 뺀다.
 그 연결이 [#210](https://github.com/jihoon22-lee/ici/issues/210)이다. 현행
 fallback은
-[`tests/test_toolchain_processes.py`](../../../tests/test_toolchain_processes.py)에
+[`tests/test_toolchain_processes.py`](../../../tests/next/test_toolchain_processes.py)에
 **고정돼 있어서**, 옮기는 PR의 diff가 "바뀌었다는 주장"이 아니라 **바뀐 동작**을
 보여준다.

@@ -27,7 +27,7 @@ import tomli
 from ici.core.pipeline import ENGINE_DESCRIPTORS
 from ici.core.support import ENGINE_NAMES
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 DESIGN_DIR = REPO_ROOT / "docs" / "design" / "ici-next"
 INVENTORY_DIR = DESIGN_DIR / "inventory"
 

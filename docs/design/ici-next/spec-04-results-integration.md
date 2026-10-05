@@ -44,7 +44,7 @@
 > 완전한 fixture 5종(성공·코드 FAIL·필수 미완료·부분 선택·취소)이
 > [`tests/fixtures/ici-next/`](../../../tests/fixtures/ici-next)에 있으며 **축약 예시를 golden
 > 파일로 쓰지 않았다**. 스키마와 코드의 enum·required·additionalProperties 일치는
-> [`tests/test_next_schema_contract.py`](../../../tests/test_next_schema_contract.py)가
+> [`tests/test_next_schema_contract.py`](../../../tests/next/test_next_schema_contract.py)가
 > `jsonschema` 없이도 기계 검증한다 — 이 저장소에도 CI에도 `jsonschema`가 없어서
 > 기존 v3 스키마는 사실상 검증되지 않고 있었다. 실행 시각·duration·request/profile·expected/selected/omitted scope·
 source path map·tool evidence·normalization/parser version·policy exceptions·result digest도 정식

@@ -21,11 +21,11 @@ import shutil
 from pathlib import Path
 
 import pytest
+from test_next_serialization import minimal_result
 from typer.testing import CliRunner
 
 from ici.__main__ import app
 from ici.domain.serialization import dumps, run_result_to_dict
-from test_next_serialization import minimal_result
 
 runner = CliRunner()
 
