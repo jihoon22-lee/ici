@@ -21,7 +21,7 @@ from pathlib import Path, PurePosixPath
 
 from ici.adapters.providers.integration import IntegrationCaseProvider
 from ici.application.plan import Plan, PlannedCheck
-from ici.cli.next_testing import python_interpreter
+from ici.application.tooling import python_interpreter
 from ici.config.composition import EffectiveComponent, EffectiveIntegrationCase
 from ici.domain.workspace import BuildUnit, Component
 

@@ -167,7 +167,7 @@ analyzer는 **bundle이거나 명시된 external**이고 **PATH는 후보가 아
 
 ### live cutover — 무엇이 옮겨졌고 무엇이 남았는가 (PR D)
 
-`cli/next_testing`의 `locate_tool`/`python_interpreter`는 이제
+`application/tooling`의 `locate_tool`/`python_interpreter`는 이제
 `Resolver`를 거친다. probe는 `launch.probe_with`의 bounded executor 호출 —
 `next_common._version_of`의 `subprocess.run(timeout=5)` 같은 **직접 spawn은
 없어졌다.** 세 가지 불변식이 라이브 경로에 적용된다:

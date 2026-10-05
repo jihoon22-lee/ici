@@ -43,6 +43,16 @@ from ici.application.baseline import BaselineError, compare, load_baseline
 from ici.application.graph import WorkUnit
 from ici.application.identity import task_identity
 from ici.application.plan import NothingSelected, Plan, PlannedCheck
+from ici.application.planning import (
+    SOURCE_SUFFIXES,
+    compile_limitations,
+    describe,
+    drift_summary,
+    graph_of,
+    plans,
+    unit_files,
+    units_of,
+)
 from ici.application.publish import PublishError
 from ici.application.publish import publish as publish_result
 from ici.application.report import assemble, digest_of
@@ -53,6 +63,7 @@ from ici.application.request import (
     uncovered_scope,
     wanted,
 )
+from ici.application.tooling import BUNDLED_TOOLS, resolve_tool
 from ici.application.verify import Verification
 from ici.application.verify import verify as run_verification
 from ici.cli.next_common import (
@@ -73,25 +84,16 @@ from ici.cli.next_common import (
     _REQUIRE_FULL_OPTION,
     _RESULT_OPTION,
     _SARIF_OPTION,
-    _SOURCE_SUFFIXES,
     EXIT_CONFIG,
     _announce,
     _artifact_root,
-    _compile_limitations,
-    _describe,
-    _drift_summary,
-    _graph_of,
-    _plans,
     _profile,
     _request,
     _scope,
-    _unit_files,
-    _units_of,
     _workspace,
     next_app,
 )
 from ici.cli.next_events import EventSink
-from ici.cli.next_testing import BUNDLED_TOOLS, resolve_tool
 from ici.config.composition import EffectiveCheck, EffectiveConfig
 from ici.domain.enums import (
     BaselineState,
@@ -140,7 +142,7 @@ def cmd_init(
     target = root / "ici.toml"
     languages = tuple(
         language for language, asked in (("python", python), ("cpp", cpp)) if asked
-    ) or tuple(_SOURCE_SUFFIXES)
+    ) or tuple(SOURCE_SUFFIXES)
     components = _candidate_components(root, languages)
     lines = ["schema_version = 1", "[workspace]", f'name = "{root.name}"', ""]
     for component_id, rel_root, found in components:
@@ -184,7 +186,7 @@ def _candidate_components(
         held = {
             language
             for language in languages
-            for suffix in _SOURCE_SUFFIXES.get(language, ())
+            for suffix in SOURCE_SUFFIXES.get(language, ())
             if any(
                 path.suffix == suffix and not hidden & set(path.relative_to(root).parts)
                 for path in directory.rglob("*")
@@ -198,7 +200,7 @@ def _candidate_components(
         held = {
             language
             for language in languages
-            for suffix in _SOURCE_SUFFIXES.get(language, ())
+            for suffix in SOURCE_SUFFIXES.get(language, ())
             if any(path.suffix == suffix for path in root.iterdir() if path.is_file())
         }
         if held:
@@ -238,7 +240,7 @@ def cmd_doctor(
     echo = (lambda line: typer.echo(line, err=True)) if json_mode else typer.echo
     components_out: list[dict[str, object]] = []
     for item in scope.components:
-        units = {unit.language: unit for unit in _units_of(scope, item)}
+        units = {unit.language: unit for unit in units_of(scope, item)}
         available = tuple(
             check for check in registry.checks_for(item.languages) if wanted(request, check)
         )
@@ -282,8 +284,8 @@ def _doctor_check(
     """One check's doctor verdict: omitted, blocked with guidance, or selected."""
 
     files = (
-        _unit_files(stock, units[check.language], _SOURCE_SUFFIXES[check.language])
-        if check.language in units and check.language in _SOURCE_SUFFIXES
+        unit_files(stock, units[check.language], SOURCE_SUFFIXES[check.language])
+        if check.language in units and check.language in SOURCE_SUFFIXES
         else ()
     )
     decided = settings.get(check.id)
@@ -347,7 +349,7 @@ def _doctor_compile(
     """A cpp component's compilation-input picture for the doctor report."""
 
     cpp_unit = units.get("cpp")
-    files = _unit_files(stock, cpp_unit, _SOURCE_SUFFIXES["cpp"]) if cpp_unit is not None else ()
+    files = unit_files(stock, cpp_unit, SOURCE_SUFFIXES["cpp"]) if cpp_unit is not None else ()
     inputs = compile_units.load_compile_inputs(root, item, files, model.builds)
     if inputs.database_path:
         echo(
@@ -415,13 +417,15 @@ def cmd_plan(
     resolved = _profile(config, request)
     stock = inventory.take(scope, root=root)
     try:
-        plans, _, limitations, by_component = _plans(scope, config, stock, root, request, resolved)
+        all_plans, _, limitations, by_component = plans(
+            scope, config, stock, root, request, resolved
+        )
     except NothingSelected as error:
         typer.echo(f"config: {error}", err=True)
         raise typer.Exit(EXIT_CONFIG) from error
     _announce(root, scope, request, resolved, json_mode)
 
-    graph = _graph_of(plans)
+    graph = graph_of(all_plans)
     edges = {unit.id: list(unit.depends_on) for unit in graph.units if unit.depends_on}
     shared = {unit.id: list(unit.consumers) for unit in graph.units if len(unit.consumers) > 1}
     mutating = {
@@ -429,7 +433,7 @@ def cmd_plan(
         for unit in graph.units
         if unit.mutating and unit.task is not None
     }
-    compile_notes, compile_gaps = _compile_limitations(model, scope, stock, root)
+    compile_notes, compile_gaps = compile_limitations(model, scope, stock, root)
     limitations = [*limitations, *compile_notes]
     gaps = uncovered_scope(model, request, scope) + tuple(compile_gaps)
 
@@ -449,7 +453,7 @@ def cmd_plan(
             limitations,
         )
         return
-    _plan_text(scope, plans, by_component, edges, shared, mutating, builds, gaps, limitations)
+    _plan_text(scope, all_plans, by_component, edges, shared, mutating, builds, gaps, limitations)
 
 
 def _linked_builds(scope: Workspace) -> list[dict[str, object]]:
@@ -565,7 +569,7 @@ def _plan_text(
     for component_id, plan in by_component.items():
         typer.echo(f"{component_id}:")
         for planned in plan.checks:
-            typer.echo(_describe(planned))
+            typer.echo(describe(planned))
     if edges:
         typer.echo("dependencies:")
         for unit_id, deps in edges.items():
@@ -619,19 +623,19 @@ def cmd_verify(
         dirty=state is None or not state.clean,
     )
     try:
-        plans, analyses, limitations, by_component = _plans(
+        all_plans, analyses, limitations, by_component = plans(
             scope, config, before, root, request, resolved
         )
     except NothingSelected as error:
         typer.echo(f"config: {error}", err=True)
         raise typer.Exit(EXIT_CONFIG) from error
-    compile_notes, compile_gaps = _compile_limitations(model, scope, before, root)
+    compile_notes, compile_gaps = compile_limitations(model, scope, before, root)
     limitations += compile_notes
 
     baseline_doc = _load_baseline(baseline, root)
 
     run_id = uuid.uuid4().hex
-    sink = _start_sink(events, root, run_id, plans)
+    sink = _start_sink(events, root, run_id, all_plans)
 
     cache = None if no_cache else ObservationCache(root / ".ici" / "cache" / "observations")
     providers: dict[str, Provider] = {
@@ -661,7 +665,7 @@ def cmd_verify(
     cancellation = Cancellation()
     with signal_cancels(cancellation):
         verification = run_verification(
-            plans,
+            all_plans,
             providers=providers,
             analyses=analyses,
             runner=lambda spec: run_task(spec, cancellation),
@@ -686,7 +690,7 @@ def cmd_verify(
 
     drift = inventory.diff(before, inventory.take(scope, root=root))
     if not drift.stable:
-        limitations = [*limitations, f"inputs changed while running: {_drift_summary(drift)}"]
+        limitations = [*limitations, f"inputs changed while running: {drift_summary(drift)}"]
 
     # FULL is the domain's claim that the workspace's required scope was
     # covered *and* finished — a component subset, a language filter that
@@ -696,7 +700,7 @@ def cmd_verify(
 
     if cancellation.requested:
         limitations = [*limitations, f"cancelled: {cancellation.reason or 'user request'}"]
-    toolchain_digest = digest_of("|".join(sorted(_tools(plans))))
+    toolchain_digest = digest_of("|".join(sorted(_tools(all_plans))))
     comparison = (
         compare(
             verification.findings,

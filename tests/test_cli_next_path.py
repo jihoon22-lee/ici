@@ -95,8 +95,8 @@ def test_a_missing_required_tool_exits_three(project: Path, monkeypatch) -> None
     # Patched at the one function that answers "where is this tool". The first
     # version patched Path.is_file, which also stopped config discovery finding
     # ici.toml, and the run failed for a reason the test was not about. The
-    # function lives in next_common — the verify path plans through it.
-    monkeypatch.setattr("ici.cli.next_common.locate_tool", lambda _: None)
+    # function lives in application.planning — the verify path plans through it.
+    monkeypatch.setattr("ici.application.planning.locate_tool", lambda _: None)
 
     result = runner.invoke(app, ["next", "verify"])
 
@@ -322,7 +322,7 @@ def test_from_a_bundle_the_tool_is_the_bundles_or_nothing(tmp_path, monkeypatch)
     # #204 item 7. Falling back to PATH here would mean a bundle missing its
     # ruff quietly linted with whatever the host had, and the report would not
     # say so.
-    from ici.cli.next_testing import locate_tool as _locate
+    from ici.application.tooling import locate_tool as _locate
 
     bundle = tmp_path / "bundle"
     bundle.mkdir()
@@ -337,8 +337,8 @@ def test_from_a_bundle_the_bundled_tool_is_found_where_the_build_puts_it(
 ) -> None:
     # The first version looked in bin/ while the build writes to
     # tools/python-static/, so inside a real bundle it found nothing.
-    from ici.cli.next_testing import BUNDLED_TOOLS
-    from ici.cli.next_testing import locate_tool as _locate
+    from ici.application.tooling import BUNDLED_TOOLS
+    from ici.application.tooling import locate_tool as _locate
 
     bundle = tmp_path / "bundle"
     shipped = bundle / BUNDLED_TOOLS / "ruff"
@@ -351,7 +351,7 @@ def test_from_a_bundle_the_bundled_tool_is_found_where_the_build_puts_it(
 
 
 def test_from_a_source_checkout_path_is_the_honest_answer(tmp_path, monkeypatch) -> None:
-    from ici.cli.next_testing import locate_tool as _locate
+    from ici.application.tooling import locate_tool as _locate
 
     # The hit must be real: locate_tool now checks the file exists and is
     # executable rather than trusting PATH's answer.
@@ -359,13 +359,13 @@ def test_from_a_source_checkout_path_is_the_honest_answer(tmp_path, monkeypatch)
     on_path.write_text("#!/bin/sh\n", encoding="utf-8")
     on_path.chmod(0o755)
     monkeypatch.delenv("ICI_BUNDLE_ROOT", raising=False)
-    monkeypatch.setattr("ici.cli.next_testing.shutil.which", lambda _: str(on_path))
+    monkeypatch.setattr("ici.application.tooling.shutil.which", lambda _: str(on_path))
 
     assert _locate("ruff") == str(on_path)
 
 
 def test_a_bundle_tool_that_cannot_run_is_not_chosen(tmp_path, monkeypatch) -> None:
-    from ici.cli.next_testing import locate_tool as _locate
+    from ici.application.tooling import locate_tool as _locate
 
     bundle = tmp_path / "bundle"
     shipped = bundle / "tools" / "python-static" / "ruff"
@@ -373,7 +373,7 @@ def test_a_bundle_tool_that_cannot_run_is_not_chosen(tmp_path, monkeypatch) -> N
     shipped.write_text("#!/bin/sh\n", encoding="utf-8")
     # No executable bit — a shipped file that cannot run is not an answer.
     monkeypatch.setenv("ICI_BUNDLE_ROOT", str(bundle))
-    monkeypatch.setattr("ici.cli.next_testing.shutil.which", lambda _: "/usr/bin/ruff")
+    monkeypatch.setattr("ici.application.tooling.shutil.which", lambda _: "/usr/bin/ruff")
 
     # Bundle mode stays bundle-or-nothing: the PATH hit is never consulted.
     assert _locate("ruff") is None

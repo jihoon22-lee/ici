@@ -183,7 +183,7 @@ class TestAnAnalyzerComesFromTheBundleOrIsNamed:
 
     def test_a_path_hit_is_a_candidate_only_when_the_caller_names_it(self) -> None:
         # Running from a source checkout there is no bundle, so the caller —
-        # ``cli.next_testing`` — names the PATH hit itself. A bundle run never
+        # ``application.tooling`` — names the PATH hit itself. A bundle run never
         # passes ``search_path``, so "bundle or nothing" is preserved.
         request = analyzer_request("ruff", search_path="/usr/bin/ruff")
         assert [c.source for c in request.candidates] == ["PATH"]
