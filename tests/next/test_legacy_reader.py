@@ -21,7 +21,6 @@ import pytest
 from ici.domain.enums import GateVerdict, ScopeKind
 from ici.domain.serialization import run_result_to_dict
 from ici.domain.workspace import SourceSnapshot
-from ici.engines.publish import load_suite_from_json
 from ici.execution.legacy_reader import (
     LegacyReadError,
     promote,
@@ -36,12 +35,6 @@ SNAPSHOT = SourceSnapshot(digest="sha256:" + "09" * 32)
 
 def _document() -> dict:
     return json.loads(V3_SUITE.read_text(encoding="utf-8"))
-
-
-def _write(tmp_path: Path, document: object) -> Path:
-    path = tmp_path / "verify_report.json"
-    path.write_text(json.dumps(document), encoding="utf-8")
-    return path
 
 
 class TestReadingV3:
@@ -224,98 +217,3 @@ class TestPromotion:
         assert payload["schema_id"] == "ici.next.run"
         assert payload["scope"]["kind"] == "standalone"
         assert len(payload["findings"]) == 2
-
-
-class TestPublishReaderRefusesRatherThanDegrading:
-    """#200: a legacy reader must not turn a result it cannot read into a pass.
-
-    ``load_suite_from_json`` feeds the sticky PR comment. Every case below used
-    to produce a summary — WARN with no engines — from a document that either
-    said something worse or said nothing this build could read.
-    """
-
-    def test_a_newer_producers_fail_report_is_refused_not_downgraded_to_warn(self, tmp_path):
-        path = _write(
-            tmp_path,
-            {
-                "schema_version": "ici.result/v4",
-                "suite_status": "BLOCKED",
-                "results": [
-                    {"engine_name": "lint", "status": "BLOCKED", "summary": "12 violations"}
-                ],
-                "tem_score": 1.2,
-            },
-        )
-
-        assert load_suite_from_json(path) is None
-
-    def test_a_document_with_no_schema_version_is_refused(self, tmp_path):
-        path = _write(
-            tmp_path,
-            {
-                "suite_status": "FAIL",
-                "results": [{"engine_name": "lint", "status": "FAIL", "summary": "x"}],
-            },
-        )
-
-        assert load_suite_from_json(path) is None
-
-    def test_an_unreadable_suite_status_is_refused_not_called_warn(self, tmp_path):
-        path = _write(
-            tmp_path,
-            {
-                "schema_version": "ici.result/v3",
-                "suite_status": "ZZZ",
-                "results": [],
-            },
-        )
-
-        assert load_suite_from_json(path) is None
-
-    def test_one_unparseable_engine_refuses_the_whole_document(self, tmp_path):
-        """Dropping it silently is how a report loses every engine and still
-        gets summarised."""
-
-        path = _write(
-            tmp_path,
-            {
-                "schema_version": "ici.result/v3",
-                "suite_status": "FAIL",
-                "results": [
-                    {"engine_name": "lint", "status": "FAIL", "summary": "real"},
-                    {"engine_name": "test", "status": "not-a-status", "summary": "lost"},
-                ],
-            },
-        )
-
-        assert load_suite_from_json(path) is None
-
-    def test_a_next_result_is_refused(self, tmp_path):
-        assert load_suite_from_json(FIXTURES / "run-code-fail.json") is None
-
-    @pytest.mark.parametrize("version", ["ici.result/v2", "ici.result/v3"])
-    def test_the_formats_this_build_does_read_still_read(self, tmp_path, version):
-        path = _write(
-            tmp_path,
-            {
-                "schema_version": version,
-                "suite_status": "FAIL",
-                "duration": 1.0,
-                "tem_score": 4.5,
-                "max_tem_score": 5.0,
-                "results": [
-                    {
-                        "engine_name": "lint",
-                        "status": "FAIL",
-                        "summary": "12 violations",
-                        "duration": 0.5,
-                    }
-                ],
-            },
-        )
-
-        suite = load_suite_from_json(path)
-
-        assert suite is not None
-        assert suite.suite_status.value == "FAIL"
-        assert len(suite.results) == 1

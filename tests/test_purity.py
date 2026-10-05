@@ -93,7 +93,8 @@ def test_ci_permissions_are_read_only_except_trusted_publish_job():
 def test_ci_verify_keeps_reports_summary_and_artifacts_without_publish():
     workflow = _workflow("ci.yml")
     verify = _job_block(workflow, "verify")
-    assert "verify --report --html verify_report.html --github-summary" in verify
+    assert "verify --result verify_report.json" in verify
+    assert "check_next_floors.py" in verify
     assert "GITHUB_STEP_SUMMARY:" not in verify
 
     upload = re.search(
@@ -330,7 +331,7 @@ def test_report_pr_job_consumes_artifact_not_pr_code():
     assert "needs: [verify, viewer-gui]" in report_job
     assert "always() && github.event_name == 'pull_request'" in report_job
     assert "Verify Sticky Comment & Published HTML" in report_job
-    assert "<!-- ici-report -->" in report_job
+    assert "<!-- ici-next:" in report_job
     assert 'EXPECTED_REPORTS: "2"' in report_job
     assert "run_path = f\"/actions/runs/{os.environ['GITHUB_RUN_ID']}\"" in report_job
     assert "for page in range(1, 21)" in report_job

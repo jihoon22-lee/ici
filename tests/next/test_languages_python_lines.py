@@ -1,9 +1,10 @@
 """ici's own line count on the next path, counting the same thing as before.
 
 #206 item 2 asks for the existing algorithm to be *connected*, not reproduced.
-So the first test here is that both paths call one function — a second
-implementation that means almost the same thing is the thing being avoided, and
-"almost" is not visible in any single example.
+The stable engine that used to share it is gone; ``ici.analysis.line_count``
+is now the one implementation both tests and the check delegate to — the
+first test asserts that delegation, since a second implementation that means
+almost the same thing is the thing being avoided.
 """
 
 from __future__ import annotations
@@ -22,15 +23,18 @@ def _measurement(observation, name: str) -> float:
     return found.value
 
 
-def test_the_next_path_and_the_stable_engine_share_one_algorithm(tmp_path: Path) -> None:
-    # Not "they agree on this file": they are the same function.
-    from ici.engines.line import LineCountEngine
+def test_the_next_path_uses_the_shared_count_implementation(tmp_path: Path) -> None:
+    # Not "they agree on this file": they are the same function — the check
+    # delegates every file to ici.analysis.line_count.
+    import inspect
 
-    assert LineCountEngine._count_file.__code__.co_consts  # it exists and is a wrapper
+    from ici.languages.python import lines
+
+    assert "count_lines" in inspect.getsource(lines)
     sample = tmp_path / "a.py"
     sample.write_text("import os\n\n# note\ncode = 1\n")
 
-    assert LineCountEngine._count_file(None, sample) == count_lines(sample)  # type: ignore[arg-type]
+    assert count_lines(sample) == (2, 1, 1)
 
 
 def test_counts_code_comment_and_blank(tmp_path: Path) -> None:

@@ -213,10 +213,6 @@ class TestTheMigrationWarningsStayTrue:
         lines = " ".join(warnings_for(("nas-cpp-library",)))
         assert "department" in lines and "ici.toml" in lines
 
-    def test_the_interpreter_fallback_is_named(self) -> None:
-        lines = " ".join(warnings_for(("interpreter-fallback",)))
-        assert "does not say so" in lines
-
     def test_asking_for_one_returns_one(self) -> None:
         assert len(warnings_for(("automatic-venv",))) == 1
         assert len(warnings_for()) == len(ASSUMPTIONS)

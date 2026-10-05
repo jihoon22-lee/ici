@@ -24,9 +24,6 @@ from pathlib import Path
 import pytest
 import tomli
 
-from ici.core.pipeline import ENGINE_DESCRIPTORS
-from ici.core.support import ENGINE_NAMES
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DESIGN_DIR = REPO_ROOT / "docs" / "design" / "ici-next"
 INVENTORY_DIR = DESIGN_DIR / "inventory"
@@ -91,31 +88,6 @@ def _design_documents() -> list[Path]:
     return [DESIGN_DIR / name for name in EXPECTED_DOCUMENTS]
 
 
-def _inventory_engine_names(heading: str) -> list[str]:
-    """Collect the first column of the *first* table under the given heading.
-
-    The inventory keeps one row per descriptor, so the first column of each
-    table row is an engine name. Only the first contiguous table is read: some
-    sections carry a second table keyed by engine as well (for example the
-    per-language tool requirements under the active-mode table), and merging
-    the two would double-count engines.
-    """
-
-    text = (INVENTORY_DIR / "current-engines.md").read_text(encoding="utf-8")
-    for section in text.split("\n## "):
-        if not section.startswith(heading):
-            continue
-        names: list[str] = []
-        for line in section.splitlines():
-            match = _TABLE_ROW_PATTERN.match(line)
-            if match:
-                names.append(match.group(1))
-            elif names and not line.startswith("|"):
-                break
-        return names
-    raise AssertionError(f"heading not found in current-engines.md: {heading}")
-
-
 class TestDocumentsExist:
     def test_every_adopted_document_is_present(self):
         missing = [path for path in _design_documents() if not path.is_file()]
@@ -133,39 +105,6 @@ class TestDocumentsExist:
             for path in DESIGN_DIR.rglob("*.md")
         }
         assert found == set(EXPECTED_DOCUMENTS)
-
-
-class TestRegistryCoverage:
-    """#198 acceptance: the registry's 19 names and the inventory match exactly."""
-
-    def test_registry_and_support_matrix_agree(self):
-        assert len(ENGINE_DESCRIPTORS) == len(ENGINE_NAMES)
-        assert tuple(descriptor.name for descriptor in ENGINE_DESCRIPTORS) == ENGINE_NAMES
-
-    def test_scheduling_table_lists_every_descriptor_in_registry_order(self):
-        documented = _inventory_engine_names("1. 스케줄링")
-        assert documented == [descriptor.name for descriptor in ENGINE_DESCRIPTORS]
-
-    def test_language_mode_table_lists_every_descriptor(self):
-        documented = _inventory_engine_names("2. 언어별 active mode")
-        assert documented == [descriptor.name for descriptor in ENGINE_DESCRIPTORS]
-
-    def test_config_table_lists_every_descriptor(self):
-        documented = _inventory_engine_names("3. 사용자 설정 키")
-        assert documented == [descriptor.name for descriptor in ENGINE_DESCRIPTORS]
-
-    def test_disposition_table_lists_every_descriptor(self):
-        """R09: no descriptor may be left without a disposition row."""
-
-        documented = _inventory_engine_names("7. 잠정 disposition")
-        assert documented == [descriptor.name for descriptor in ENGINE_DESCRIPTORS]
-
-    def test_factory_names_in_inventory_match_the_registry(self):
-        text = (INVENTORY_DIR / "current-engines.md").read_text(encoding="utf-8")
-        for descriptor in ENGINE_DESCRIPTORS:
-            assert f"`{descriptor.factory_name}`" in text, (
-                f"inventory does not name the factory for {descriptor.name}"
-            )
 
 
 class TestRelativeLinks:

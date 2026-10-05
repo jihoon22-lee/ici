@@ -273,38 +273,6 @@ class TestTheRefusalsHoldAgainstRealProcesses:
         assert "timed out" in resolved.detail
 
 
-class TestTheMeasurementThisPrExistsFor:
-    def test_the_current_path_still_falls_back_to_icis_own_interpreter(
-        self, tmp_path: Path
-    ) -> None:
-        """The defect, pinned so its removal in PR C is visible as a change.
-
-        Not a test of new code: a record of what the stable path does today, so
-        that when PR C cuts an engine over, the diff shows the behaviour
-        changing rather than a claim that it did.
-        """
-
-        completed = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                "import sys; sys.path.insert(0, 'src');"
-                "from ici.engines.test_interpreter import TestInterpreterMixin;"
-                "m = TestInterpreterMixin();"
-                "m.project_root = __import__('pathlib').Path(sys.argv[1]);"
-                "m.get_config = lambda name: {};"
-                "print(m._resolve_python()[0])",
-                str(tmp_path),
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-            cwd=Path(__file__).resolve().parents[2],
-        )
-        assert completed.returncode == 0, completed.stderr
-        assert completed.stdout.strip() == sys.executable
-
-
 class TestTheProbeIsBoundedInFactAndNotOnlyInItsReport:
     """#205 item 5. Two things the old probe path got wrong while looking right.
 

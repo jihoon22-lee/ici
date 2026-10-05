@@ -53,14 +53,9 @@ NETWORK_MODULES = frozenset(
 # list short and keep the reason with it: an entry added without one is how a
 # guard stops meaning anything.
 ALLOWED = {
-    "engines/publish.py": (
-        "publish uploads a report to gh-pages. It is a transport the user asks "
-        "for by name, not something an analysis does on its way past."
-    ),
     "adapters/ghes.py": (
-        "the next-path publish backend — `ici next publish` is an explicit, "
-        "credential-bearing transport the user asks for by name; verify/plan/"
-        "report never touch it."
+        "the publish backend — `ici publish` is an explicit, credential-bearing "
+        "transport the user asks for by name; verify/plan/report never touch it."
     ),
 }
 
@@ -194,6 +189,7 @@ def _introspection_only(arguments: list[str]) -> bool:
 # terminal). Only this child needs to be under the hook.
 _AUDITED_RUN = r"""
 import json
+import os
 import sys
 
 WATCHED = ("socket.connect", "socket.getaddrinfo", "urllib.Request", "http.client.connect")
@@ -204,6 +200,7 @@ def hook(event, args):
         attempts.append({"event": event, "args": [repr(a)[:120] for a in args]})
 
 sys.addaudithook(hook)
+os.chdir(sys.argv[1])
 
 from typer.testing import CliRunner
 from ici.__main__ import app
@@ -211,7 +208,7 @@ from ici.__main__ import app
 runner = CliRunner()
 codes = {}
 for command in sys.argv[2:]:
-    result = runner.invoke(app, [command, "--path", sys.argv[1]])
+    result = runner.invoke(app, [command])
     codes[command] = result.exit_code
 
 sys.stdout.write(json.dumps({"attempts": attempts, "exit_codes": codes}))
@@ -230,10 +227,17 @@ class TestAnAnalysisOpensNoConnections:
             "    return left + right\n",
             encoding="utf-8",
         )
+        (tmp_path / "ici.toml").write_text(
+            'schema_version = 1\n\n[workspace]\nname = "audit-fixture"\n\n'
+            '[[components]]\nid = "app"\nroot = "src"\nlanguages = ["python"]\n',
+            encoding="utf-8",
+        )
         return tmp_path
 
     def test_the_analysis_engines_attempt_no_connection(self, project: Path) -> None:
-        commands = ["line", "complexity", "cognitive", "dup"]
+        # The real user-facing commands, not engine names: doctor probes tools,
+        # plan is probe-free, verify runs whatever the fixture selects.
+        commands = ["doctor", "plan", "verify"]
         completed = subprocess.run(
             [sys.executable, "-c", _AUDITED_RUN, str(project), *commands],
             capture_output=True,
