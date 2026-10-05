@@ -12,11 +12,15 @@ ici는 [ici-next 전환](docs/design/ici-next/roadmap.md) 중이다. 이 문서�
 |**stable 경로**|현재 릴리스되는 `dist/ici.pyz`와 그 CI·릴리스 체계. v0.11.x 계열|§1, §2, **§3, §4**, §5, §6, §7|
 |**next 경로**|`docs/design/ici-next/`가 정의하는 새 배포·실행 구조. 전용 런타임 bundle|§1, §2, §5, §6, §7, **§8**|
 
+> **2026-10 cutover 이후**: stable 엔진/리포터/CLI 셸은 `src/ici/`에서 삭제됐고
+> `ici.pyz`는 이제 next 구현을 담는다. "stable 경로"는 남은 것 — **pyz 산출물과
+> 그 패키징·CI·릴리스 계약** — 을 가리킨다. §3의 Python 3.10 하한·순수 wheel
+> 제약과 §4의 재현성·런처 불변식은 pyz가 배포물인 한 계속 적용된다.
+
 경로를 판별하는 기준:
 
-- 기존 `src/ici/` 트리와 `dist/ici.pyz` 산출물을 바꾸는 작업은 **stable 경로**다.
-- ici-next WP 이슈([#198](https://github.com/jihoon22-lee/ici/issues/198)~[#227](https://github.com/jihoon22-lee/ici/issues/227))가
-  정의한 새 구조·bundle·계약을 만드는 작업은 **next 경로**다.
+- `dist/ici.pyz` 산출물·런처·빌드 스크립트·릴리스 체계를 바꾸는 작업은 **stable 경로**다.
+- `src/ici/`의 분석·실행 구현은 next 코드다 — 작업은 **next 경로** 규약을 따른다.
 - 애매하면 stable 경로로 취급한다. 즉 더 엄격한 §3·§4를 적용한다.
 
 **전환 중에도 stable 경로의 테스트·CI·스크립트를 먼저 삭제하거나 완화하지 않는다.**

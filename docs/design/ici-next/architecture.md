@@ -150,10 +150,12 @@ ici core는 프로젝트 site-packages에 오염되지 않고, 테스트는 실�
 전역 `os.environ`을 병렬 작업마다 수정하지 않는다. alias/function을 파싱하거나 셸 초기화
 파일을 호출하지 않는다. 필요한 실행 파일은 정상적인 프로젝트 설정으로 명시할 수 있다.
 
-> **현행 위반 지점 (측정됨)**: `src/ici/engines/test_interpreter.py:13` `_resolve_python`이
-> `.venv` 후보 실패 시 `sys.executable`로 fallback한다. 같은 파일 `:35`가 `os.environ`을
-> 복사해 `PYTHONPATH`를 앞쪽에 주입하고, `:39`가 WSL에서 `TMPDIR`을 강제한다.
-> `src/ici/core/env.py:83`은 NAS 라이브러리 경로를 하드코딩한다.
+> **현행 위반 지점 (측정됨)**: 삭제된 stable `engines/test_interpreter.py`의 `_resolve_python`이
+> `.venv` 후보 실패 시 `sys.executable`로 fallback했다. next 경로의
+> [`application/tooling.py`](../../../src/ici/application/tooling.py) `resolve_python`은
+> 선언 interpreter와 `.venv` convention만 후보로 두고 ici 자신의 interpreter는 후보에서
+> 배제한다. `src/ici/core/env.py`의 NAS 라이브러리 경로는 launcher/reproducibility 빌드
+> 스크립트 경로에만 남아 있고 inventory가 그 범위를 기록한다.
 > 전체 목록 → [inventory/execution-flow.md §4](inventory/execution-flow.md)
 
 ## 7. 언어·검사·빌드의 분리
@@ -192,8 +194,8 @@ TU 범위와 함께 보고한다.
 |---|---|
 |[`core/models.py`](../../../src/ici/core/models.py)|finding/evidence/support 자산 보존|
 |[`core/context.py`](../../../src/ici/core/context.py)|단일 `ProjectModel`을 workspace/component/analysis unit으로 분해|
-|[`core/pipeline.py`](../../../src/ici/core/pipeline.py)|descriptor/DAG를 check/provider/task 구조로 발전|
-|[`engines/test_interpreter.py`](../../../src/ici/engines/test_interpreter.py)|interpreter fallback 제거·공통 선택 계층 사용|
+|`core/pipeline.py` (삭제됨)|descriptor/DAG는 [`application/planning.py`](../../../src/ici/application/planning.py)의 check→task 브리지와 [`domain/tasks.py`](../../../src/ici/domain/tasks.py)로 발전했다|
+|`engines/test_interpreter.py` (삭제됨)|interpreter fallback 제거 — [`toolchain/candidates.py`](../../../src/ici/toolchain/candidates.py) + [`application/tooling.py`](../../../src/ici/application/tooling.py)의 공통 선택 계층 사용|
 |runner/cache/config/qmake/reporting|현행 inventory에서 파일·테스트를 매핑하여 이관. 규칙 변경과 구조 변경은 별도 검토|
 
 각 파일의 실제 규모·책임·테스트는 [inventory/current-engines.md](inventory/current-engines.md)와

@@ -76,18 +76,21 @@ v3의 구조적 공백이라 특정 리포트의 성질이 아니다. 넷 다 �
 
 > 신규 결과를 legacy reader가 무음 빈 PASS로 해석하지 않는다. — #200
 
-`ici.next.run` 문서를 기존 리더 셋에 실제로 먹여 확인했다.
+`ici.next.run` 문서를 기존 리더 셋에 실제로 먹여 확인했다. 네 리더 모두 stable
+껍데기와 함께 삭제됐다 — 아래 결과는 삭제 전 실측값이다. 살아남은 유일한 legacy
+읽기 경로는 [`execution/legacy_reader.py`](../../../src/ici/execution/legacy_reader.py)로,
+`ici.result/v2`·`v3`만 읽고 알 수 없는 스키마는 거부한다.
 
-|리더|결과|
+|리더(삭제됨)|결과|
 |---|---|
-|[`core/baseline.py:356`](../../../src/ici/core/baseline.py)|`BaselineError: unsupported baseline schema_version 1; expected 'ici.result/v3'` — 이유를 말하고 거부|
-|[`reporters/json_rep.py:804`](../../../src/ici/reporters/json_rep.py) `migrate_report_payload`|`ValueError: unsupported schema_version: 1` — 거부|
-|[`core/cache_codec.py:399`](../../../src/ici/core/cache_codec.py)|`CacheEntryError` — 거부|
-|[`engines/publish.py`](../../../src/ici/engines/publish.py) `load_suite_from_json`|**결함이 있었다. PR C에서 고쳤다** ↓|
+|`core/baseline.py:356`|`BaselineError: unsupported baseline schema_version 1; expected 'ici.result/v3'` — 이유를 말하고 거부|
+|`reporters/json_rep.py:804` `migrate_report_payload`|`ValueError: unsupported schema_version: 1` — 거부|
+|`core/cache_codec.py:399`|`CacheEntryError` — 거부|
+|`engines/publish.py` `load_suite_from_json`|**결함이 있었다. PR C에서 고쳤다** ↓|
 
 ### `load_suite_from_json`에 있던 조용한 강등
 
-이 함수는 PR 스티키 코멘트를 만드는 요약을 공급한다. `schema_version`을 **전혀 검사하지
+이 함수는 PR 스티키 코멘트를 만드는 요약을 공급했다. `schema_version`을 **전혀 검사하지
 않았고**(docstring은 "v2/v3 report file"이라고 주장했다), 파싱 안 되는 엔진을 `continue`로
 하나씩 삼켰으며, 읽을 수 없는 `suite_status`를 조용히 `WARN`으로 떨어뜨렸다.
 
@@ -99,14 +102,12 @@ v3의 구조적 공백이라 특정 리포트의 성질이 아니다. 넷 다 �
 출력:  suite_status=WARN  engines=0
 ```
 
-FAIL이 WARN이 되고 엔진이 전부 사라진다. `ici.next`와 무관하게 **v4 producer 하나면
-재현되는, 지금 살아 있던 경로**였다.
+FAIL이 WARN이 되고 엔진이 전부 사라졌다 — `ici.next`와 무관하게 **v4 producer 하나면
+재현되는, 살아 있던 경로**였다.
 
 PR C는 셋 다 거부로 바꿨다 — 읽을 수 없는 `schema_version`, 파싱 안 되는 `suite_status`,
-파싱 안 되는 엔진 항목. `None`은 호출자가 이미 다루는 상태이고(리포트 파일이 없을 때가
-그것이다) 코멘트에 "판정 없음"으로 렌더된다. 틀린 판정보다 낫다.
-
-읽을 수 있는 형식은 `ici.result/v2`, `ici.result/v3` 둘로 명시됐다.
+파싱 안 되는 엔진 항목. 그 거부 의미는 `execution/legacy_reader.py`에 이관됐고,
+`load_suite_from_json` 자체는 파일과 함께 삭제됐다.
 
 ## 6. 이 표를 갱신하는 규칙
 

@@ -57,8 +57,7 @@ ln -sfn ~/opt/ici-bundle-<version>/bin/ici ~/.local/bin/ici
 NFS 홈이든 같다 — read-only 마운트에서도 돈다 (smoke `read-only`).
 
 출력·캐시는 설치 디렉터리 밖으로 간다. 캐시 기본값은 `$XDG_CACHE_HOME/ici/analysis`,
-없으면 `~/.cache/ici/analysis`이고 `ICI_CACHE_DIR`로 바꾼다
-([`core/cache_identity.py:default_cache_dir`](../../../src/ici/core/cache_identity.py)).
+없으면 `~/.cache/ici/analysis`이고 `ICI_CACHE_DIR`로 바꾼다.
 
 ## 3. 버전 선택
 
@@ -81,8 +80,8 @@ bundle은 버전마다 **독립된 디렉터리**다. 공유 상태가 없으므
 
 **자동 업데이트는 없다.** 실행 경로에 네트워크 호출이 없다는 것이
 [`tests/test_offline_execution.py`](../../../tests/next/test_offline_execution.py)에서
-두 방향으로 고정돼 있다 — 트리 전체의 정적 audit(허용 목록은 `engines/publish.py` 하나,
-사용자가 이름을 대서 부르는 업로드다)과, 실제 분석 실행 중 CPython audit hook이
+두 방향으로 고정돼 있다 — 트리 전체의 정적 audit(허용 목록은 `application/publish.py`의
+업로드 경로 — 사용자가 이름을 대서 부르는 업로드다)과, 실제 분석 실행 중 CPython audit hook이
 `socket.connect`·`urllib.Request`를 한 번도 보지 못한다는 런타임 확인.
 **새 버전이 나왔는지 ici가 스스로 확인하는 일은 없다.**
 

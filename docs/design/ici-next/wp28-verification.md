@@ -15,9 +15,9 @@
 
 ## 2. 구·신 디퍼렌셜 (항목 2)
 
-자동화: [`tests/test_next_differential.py`](../../../tests/test_next_differential.py)
+자동화: `tests/test_next_differential.py`(stable 껍데기와 함께 폐기됨 — 비교 대상 소멸)
 — 등록된 시드 결함 fixture를 stable 엔진과 `ici next verify` 양쪽으로 실행해
-파일 단위로 비교한다.
+파일 단위로 비교했다.
 
 | fixture | stable | next | 판정 |
 |---|---|---|---|

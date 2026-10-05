@@ -93,3 +93,53 @@
 6. pyz/launcher/CI 워크플로 정리는 stable 산출물의 공식 종료와 함께.
 
 각 단계는 독립 PR로 — 삭제 PR에 이동을 섞지 않는다(diff 추적 가능성).
+
+---
+
+## 6. 실행 기록 (2026-10, `refactor/stable-shell-removal`)
+
+전제로 적혀 있던 #265 인수·#227 승인은 사용자 지시로 실행이 승인됐다. 실제
+삭제는 이 문서의 keep-set보다 **import 클로저 기준**으로 이뤄졌다 — §3의
+"stable 전용" 목록 중 next 소비자가 도달하는 모듈(`context.py`,
+`capabilities.py`, `compile_db*.py`, `cpp_replay*.py`, `env.py`,
+`findings.py`, `models.py`, `path_utils.py`, `project.py`, `runner*.py`,
+`toolchain.py` 등)은 살아남았고, `ici.core`는 stable 네임스페이스가 아니라
+공유 기반으로 남았다.
+
+삭제됨: `cli/cutover.py`·`cli/doctor.py`·`cli/compilation_export_cli.py` 등
+stable 명령, `engines/` 전체, `reporters/` 전체, `config_schema.py`,
+`config/__init__.py`의 stable 로더 표면, 그리고 stable 전용 테스트 90개.
+`__main__.py`는 평면 명령(`ici verify|plan|doctor|report|publish|diff|
+migrate|init`)으로 재작성됐고 `ici next …`는 별칭이다. 루트·viewer의
+`ici.toml`은 next 스키마다.
+
+실행 중 발견해 함께 고친 next 버그:
+
+- `pytest` provider가 `-v`로 불러 pytest 9에서 per-node verdict를 못 받아
+  테스트 증거가 사라졌다 — `-vv`로 고쳐 `pytest.cases`가 돌아왔고,
+  판정 불가 출력은 조용한 성공이 아니라 `failed_to_parse`로 보고한다.
+- `_dead_counter`/`_measure_python`이 `component_root`를 import root로
+  썼다 — `root="."` + `src/` 레이아웃에서 모듈명이 `src.ici.x`로 매겨져
+  cross-module private 함수가 전부 dead로 잡혔다(cycle은 반대로 edge를
+  놓쳐 과소탐지). `python_source_roots`가 `__init__.py` 체인으로 import
+  root를 유도해 고쳤다.
+- stable 셸 삭제로 orphan된 분석 헬퍼 6개(`_analyze_cpp_includes`,
+  `_append_*_targets` 3개, `_cpp_metric_details`, `_artifact_id`) 제거.
+
+게이트 의미 변화(명시적 결정): stable의 warn/fail 밴드는 check의 finding이
+아니라 **측정값 floor**다. next 게이트는 required check의 measured
+finding을 violation으로 세므로, `python.dup`/`complexity`/`cognitive`/`line`
+과 `cpp.dup`은 `required=false`(advisory)로 두고 수치 계약은
+`scripts/check_next_floors.py`가 결과 문서에 대해 강제한다 — floor는 최초
+실측 아래의 ratchet이며 메트릭 부재는 실패다.
+
+남은 것(이 PR 밖):
+
+- **Quality Zoo 포팅**: corpus 16 scenario가 stable `verify --report`와
+  `ici.result/v3`를 기대한다. runner·scenario·expectation의
+  `ici.next.run` 이관은 다음 candidate 수용 전 전제다.
+- `cpp.binary-compat`의 배포 floor(ELF class/machine, max glibc/cxxabi)
+  선언 — 현재는 측정만 하고 미판정 limitation을 보고한다; CI가 readelf로
+  직접 검사한다.
+- coverage 측정치가 stable 계측보다 낮게 나온다(행 87.9 vs 89.2, branch
+  68.8 vs 81.0) — 측정 방법 차이로 추정되며 floor는 next 실측을 ratchet했다.

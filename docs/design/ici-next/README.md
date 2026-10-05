@@ -127,12 +127,10 @@ WP가 "가정을 시험한다"고 정의한 작업의 실행 기록이다. 재�
 
 | 문서 | 상태 |
 |---|---|
-|[docs/architecture.md](../../architecture.md)|**현행(stable) 구현** 설명. next 설계는 이 디렉터리|
-|[docs/engine-reference.md](../../engine-reference.md)|**현행** 19개 엔진 사용자 참조|
-|[docs/user-guide.md](../../user-guide.md)|**현행** CLI 사용법|
-|[docs/ci-integration.md](../../ci-integration.md)|**현행** CI 연동|
-|[docs/design/ci-validation-roadmap.md](../ci-validation-roadmap.md)|**현행** CI 검증 로드맵|
-|[docs/design/self-verification-debt.md](../self-verification-debt.md)|**현행** 자기검증 부채|
+|[docs/architecture.md](../../architecture.md)|현재 코드의 레이어 지도 — stable 셸 삭제 이후로 갱신됨|
+|[docs/engine-reference.md](../../engine-reference.md)|현행 check 레퍼런스(언어별 check id와 gate 규칙)|
+|[docs/user-guide.md](../../user-guide.md)|현행 flat CLI 사용법|
+|[docs/ci-integration.md](../../ci-integration.md)|현행 CI 연동|
 |[docs/superpowers/](../../superpowers/)|인수인계 기록. 시점 문서이며 갱신 대상이 아니다|
 |[AGENTS.md](../../../AGENTS.md)|**두 경로 모두.** 적용 범위 절이 stable/next를 구분한다|
 

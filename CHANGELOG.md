@@ -7,6 +7,40 @@
 
 ## [Unreleased]
 
+### 변경 — stable 셸 삭제와 flat CLI cutover
+
+- **`src/ici`의 stable 구현을 삭제했습니다.** `engines/`(엔진 클래스),
+  `reporters/`(v3 리포터 계층), stable CLI(`cutover`/`doctor`/
+  `compilation_export` 등), `config_schema.py`, `ici.config`의 stable 로더,
+  그리고 그것들만이 소비하던 전용 테스트 90개가 제거됐습니다. 삭제 경계는
+  `docs/design/ici-next/inventory/stable-removal.md`의 import 클로저 —
+  next가 실제로 도달하는 `core/`·`analysis/` 공유 자산은 남았습니다.
+- **CLI가 평면화됐습니다.** `ici verify|plan|doctor|report|publish|diff|
+  migrate|init`이 일급 명령이고 `ici next …`는 같은 콜백의 별칭입니다.
+  stable 철자(`--report`, `--html`, `--github-summary`, `--report-dir`,
+  per-engine 명령)는 삭제됐습니다.
+- **루트·viewer `ici.toml`이 next 스키마로 전환됐습니다.** CI dogfood는
+  `verify --result` + `report` + `scripts/check_next_floors.py`(stable의
+  warn/fail 밴드를 계승하는 측정값 ratchet floor)로 재배선됐고, viewer는
+  CI가 소유한 `build/ici-main`/`build/ici-static`을 읽습니다 — ici는
+  빌드하지 않습니다.
+- **문서가 통폐합·최신화됐습니다.** `docs/{architecture,engine-reference,
+  user-guide,ci-integration}.md`는 현행 flat CLI/next 구조로 재작성했고,
+  stable 기록이던 `docs/design/ci-validation-roadmap.md`,
+  `self-verification-debt.md`, `docs/baselines/` v3 baseline은 제거했습니다.
+- **다중 검토 중에 발견해 고친 next 버그**: pytest provider가 `-v`를 불러
+  pytest 9에서 per-node verdict를 얻지 못해 `pytest.cases` 증거가 비었던
+  문제(`-vv` + 판정 불가 출력의 fail-closed 보고), dead-code/cycle 분석이
+  `component_root`를 import root로 잘못 써 `src/` 레이아웃의 모듈명이
+  깨지던 문제(`python_source_roots`로 `__init__.py` 체인 유도). mypy가
+  잡은 타입 오류 5건(`resolver`의 None-probe 가드 2, `python_request`의
+  `workspace_root` 타입, `gates.py`의 `ResolvedTool` narrowing,
+  `__main__`의 Optional callback)도 정정했습니다.
+- **알려진 후속 작업**: Quality Zoo corpus(16 scenario)는 stable 계약을
+  기대하므로 `ici.next.run` 이관이 다음 candidate 수용 전에 필요하고,
+  `cpp.binary-compat`의 배포 floor(ELF class/machine, glibc 상한)는 아직
+  선언 불가합니다 — CI가 readelf로 직접 검사합니다.
+
 ### 구조 — stable 엔진의 공유 분석 심볼이 `ici.analysis`로 추출
 
 - next 경로가 stable Engine "클래스"를 import하던 7개 모듈의 공유 심볼을
