@@ -61,7 +61,7 @@ _FORCE_OPTION = typer.Option(False, "--force", help="Overwrite an existing ici.t
 
 next_app = typer.Typer(
     name="next",
-    help="The ici-next path. `ici verify` dispatches here when the root config declares [workspace].",
+    help="The ici-next path — the same commands the top level runs.",
     add_completion=False,
 )
 
