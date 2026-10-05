@@ -19,6 +19,7 @@
 - 같은 이유로 cache `identify` 콜백의 예외도 run을 죽이지 않고 해당 unit을
   uncached로 실행하며, 사유를 execution record에 남깁니다.
 - `tests/test_schedule.py`에 크래시 격리 회귀 테스트 4건 추가.
+
 ### 변경 — 엔진 팩토리를 명시 레지스트리로 해석
 
 - stable 엔진 디스패치가 `globals()[descriptor.factory_name]`와
@@ -60,6 +61,17 @@
 - 등록됐으나 어떤 코드도 생산·소비하지 않는 키는 역방향 검사가 거절해
   레지스트리가 drift하지 않습니다.
 
+
+### 수정 — 읽기 전용 명령이 전역 설정 파일을 만들지 않음
+
+- `ici env`·`ici cache`는 더 이상 정책 로드를 거치지 않습니다 — PATH 줄을
+  출력하거나 캐시 목록을 보는 것만으로 `~/.config/ici/ici.toml`이 생성되던
+  부수효과를 제거했습니다.
+- 신규 `tests/test_namespace_boundaries.py`가 stable/next 네임스페이스
+  경계를 고정합니다: 교차 충돌 12개의 현재 목록, 신규 교차 충돌 금지,
+  `ici.config_schema`↔`ici.config` 패키지/모듈 그림자 고정, 그리고
+  next↔stable 교차 import를 허용 목록으로 제한합니다(신규 커플링 포인트는
+  같은 커밋에서 목록을 편집해야 하는 tripwire).
 ### 변경 — Quality Zoo corpus를 이 저장소로 이관 (#201)
 
 - `quality-zoo/`는 이제 이 저장소가 소유한다. toy-projects @ `195de9b`에서
