@@ -12,14 +12,14 @@ from pathlib import Path
 
 import pytest
 
-from ici.config import DEFAULT_CONFIG
-from ici.config_schema import ConfigError, validate_config
-from ici.core.models import EngineStatus
-from ici.engines._python_packaging import (
+from ici.analysis._python_packaging import (
     PackagingPolicy,
     PythonPackagingError,
     analyze_python_packaging,
 )
+from ici.config import DEFAULT_CONFIG
+from ici.config_schema import ConfigError, validate_config
+from ici.core.models import EngineStatus
 from ici.engines.python_compat import PythonCompatibilityEngine
 
 

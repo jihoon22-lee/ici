@@ -1,6 +1,6 @@
 """Public façade for bounded semantic-shape duplicate primitives."""
 
-from ici.engines._python_dup_semantics import (
+from ici.analysis._python_dup_semantics import (
     MAX_PYTHON_SEMANTIC_FILES,
     MAX_PYTHON_SEMANTIC_NODES,
     MAX_PYTHON_SEMANTIC_REGIONS,

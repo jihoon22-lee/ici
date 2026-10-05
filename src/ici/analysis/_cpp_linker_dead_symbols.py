@@ -19,6 +19,12 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import TypeGuard
 
+from ici.analysis._cpp_linker_dead_aggregation import (
+    _DiscardedSection,
+    _LinkCommand,
+    discarded_by_every_linking_target,
+)
+from ici.analysis._cpp_tooling import compiler_capability, regular_executable
 from ici.core._build_paths import prepare_owned_shadow, shadow_dir
 from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
 from ici.core.cmake import BACKEND_CMAKE, ConfigureOptions, cmake_configure_argv
@@ -27,12 +33,6 @@ from ici.core.context import AnalysisContext, BuildVariant, CompilationUnit, can
 from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability, compiler_family_from_version
-from ici.engines._cpp_linker_dead_aggregation import (
-    _DiscardedSection,
-    _LinkCommand,
-    discarded_by_every_linking_target,
-)
-from ici.engines._cpp_tooling import compiler_capability, regular_executable
 
 _SHADOW_SUFFIX = "-link-reachability"
 _MAX_LINK_FILES = 256

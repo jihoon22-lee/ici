@@ -2,12 +2,12 @@
 
 import pytest
 
-import ici.engines._exception_rules as exception_rules
-from ici.core.models import EngineStatus, EvidenceState
-from ici.engines._exception_rules import (
+import ici.analysis._exception_rules as exception_rules
+from ici.analysis._exception_rules import (
     _empty_catch_all_lines,
     _mask_cpp_literals,
 )
+from ici.core.models import EngineStatus, EvidenceState
 from ici.engines.exception import ExceptionSafetyEngine
 
 

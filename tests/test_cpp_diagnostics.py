@@ -7,8 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from ici.core.models import EngineStatus
-from ici.engines._cpp_diagnostics import (
+from ici.analysis._cpp_diagnostics import (
     MAX_DIAGNOSTIC_OUTPUT_CHARS,
     MAX_DIAGNOSTICS,
     MAX_MESSAGE_CHARS,
@@ -16,6 +15,7 @@ from ici.engines._cpp_diagnostics import (
     parse_clazy_diagnostics,
     parse_compiler_diagnostics,
 )
+from ici.core.models import EngineStatus
 
 
 def test_gcc_json_diagnostics_include_children_and_fixits(tmp_path: Path) -> None:

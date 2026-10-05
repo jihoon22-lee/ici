@@ -5,6 +5,13 @@ from __future__ import annotations
 import time
 from collections import Counter
 
+from ici.analysis._python_resources import (
+    PythonResourceAnalysis,
+    ResourceAnalysisLimit,
+    ResourceIssue,
+    analyze_python_resources,
+)
+from ici.analysis._source_inputs import AnalysisSourceError, read_analysis_sources
 from ici.core.models import (
     EngineResult,
     EngineStatus,
@@ -14,13 +21,6 @@ from ici.core.models import (
     InspectionTarget,
     SourceLocation,
 )
-from ici.engines._python_resources import (
-    PythonResourceAnalysis,
-    ResourceAnalysisLimit,
-    ResourceIssue,
-    analyze_python_resources,
-)
-from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
 from ici.engines.base import BaseEngine
 
 

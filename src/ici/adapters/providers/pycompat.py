@@ -24,15 +24,15 @@ import re
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
-from ici.domain.enums import EvidenceLevel, TaskKind
-from ici.domain.finding import Finding, SourceSpan
-from ici.domain.observation import Measurement
-from ici.domain.tasks import TaskSpec
-from ici.engines._python_compatibility import (
+from ici.analysis._python_compatibility import (
     PythonMetadataError,
     parse_runtime_version,
     requires_python_allows,
 )
+from ici.domain.enums import EvidenceLevel, TaskKind
+from ici.domain.finding import Finding, SourceSpan
+from ici.domain.observation import Measurement
+from ici.domain.tasks import TaskSpec
 from ici.execution.process import ExitContract, TaskOutcome
 from ici.execution.process import TaskSpec as ExecTaskSpec
 

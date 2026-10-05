@@ -8,6 +8,15 @@ import time
 from collections import Counter
 from pathlib import Path
 
+from ici.analysis._clang_tidy import run_clang_tidy
+from ici.analysis._clazy import run_clazy
+from ici.analysis._cpp_diagnostic_categories import (
+    CPP_DIAGNOSTIC_CATEGORY_POLICY,
+    cpp_diagnostic_category,
+)
+from ici.analysis._cpp_diagnostics import CppDiagnostic
+from ici.analysis._cpp_lint import run_cpp_lint
+from ici.analysis._qt_codegen import verify_qt_codegen
 from ici.core.env import find_project_executable
 from ici.core.models import (
     EngineResult,
@@ -24,15 +33,6 @@ from ici.core.models import (
     ToolEvidence,
 )
 from ici.core.runner import ProcessResult, run_process
-from ici.engines._clang_tidy import run_clang_tidy
-from ici.engines._clazy import run_clazy
-from ici.engines._cpp_diagnostic_categories import (
-    CPP_DIAGNOSTIC_CATEGORY_POLICY,
-    cpp_diagnostic_category,
-)
-from ici.engines._cpp_diagnostics import CppDiagnostic
-from ici.engines._cpp_lint import run_cpp_lint
-from ici.engines._qt_codegen import verify_qt_codegen
 from ici.engines.base import BaseEngine
 
 _RUFF_FORMAT_SUCCESS_RE = re.compile(r"\d+ files? already formatted(?:\r?\n)?\Z")

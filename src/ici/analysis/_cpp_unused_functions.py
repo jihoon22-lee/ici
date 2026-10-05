@@ -17,6 +17,14 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from ici.analysis._cpp_diagnostics import CppDiagnostic, parse_compiler_diagnostics
+from ici.analysis._cpp_tooling import (
+    compiler_capability,
+    compiler_diagnostic_command,
+    regular_executable,
+    selected_units,
+)
+from ici.analysis._source_inputs import AnalysisSourceError, read_analysis_sources
 from ici.core.context import AnalysisContext, CompilationUnit, canonical_digest
 from ici.core.cpp_replay import (
     ReplayCommand,
@@ -27,14 +35,6 @@ from ici.core.cpp_replay import (
 from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
-from ici.engines._cpp_diagnostics import CppDiagnostic, parse_compiler_diagnostics
-from ici.engines._cpp_tooling import (
-    compiler_capability,
-    compiler_diagnostic_command,
-    regular_executable,
-    selected_units,
-)
-from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
 
 _MAX_SELECTED_UNITS = 2_048
 _MAX_OUTPUT_CHARS = 1_000_000

@@ -17,12 +17,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ici.core.context import AnalysisContext, CompilationUnit
-from ici.core.cpp_replay import ReplayCommandError, build_replay_command, replay_environment
-from ici.core.models import ToolEvidence
-from ici.core.runner import ProcessResult
-from ici.core.toolchain import ToolCapability
-from ici.engines._cpp_function_boundary_parser import (
+from ici.analysis._cpp_function_boundary_parser import (
     _MAX_BOUNDARIES,
     _MAX_FUNCTION_NAME_CHARS,
     _MAX_SOURCE_BYTES,
@@ -36,16 +31,21 @@ from ici.engines._cpp_function_boundary_parser import (
     _PendingBoundary,
     read_cpp_source_text,
 )
-from ici.engines._cpp_function_boundary_parser import (
+from ici.analysis._cpp_function_boundary_parser import (
     parse_function_boundaries as _parse_function_boundaries,
 )
-from ici.engines._cpp_tooling import (
+from ici.analysis._cpp_tooling import (
     GccStdlibProjectionCache,
     gcc_standard_library_for_replay,
     regular_executable,
     selected_units,
     tooling_arguments,
 )
+from ici.core.context import AnalysisContext, CompilationUnit
+from ici.core.cpp_replay import ReplayCommandError, build_replay_command, replay_environment
+from ici.core.models import ToolEvidence
+from ici.core.runner import ProcessResult
+from ici.core.toolchain import ToolCapability
 
 __all__ = [
     "_MAX_BOUNDARIES",

@@ -11,16 +11,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from ici.core.models import (
-    EngineResult,
-    EngineStatus,
-    EvidenceState,
-    Finding,
-    InspectionTarget,
-    ToolEvidence,
-)
-from ici.core.runner import ProcessResult, run_process
-from ici.engines._python_compatibility import (
+from ici.analysis._python_compatibility import (
     MAX_COMPAT_TOTAL_AST_NODES,
     PythonMetadataError,
     analyze_static_compatibility,
@@ -30,12 +21,21 @@ from ici.engines._python_compatibility import (
     parse_target_version,
     requires_python_allows,
 )
-from ici.engines._python_packaging import (
+from ici.analysis._python_packaging import (
     PackagingPolicy,
     PythonPackagingError,
     analyze_python_packaging,
 )
-from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
+from ici.analysis._source_inputs import AnalysisSourceError, read_analysis_sources
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    EvidenceState,
+    Finding,
+    InspectionTarget,
+    ToolEvidence,
+)
+from ici.core.runner import ProcessResult, run_process
 from ici.engines.base import BaseEngine
 
 _IMPORT_SCRIPT = (

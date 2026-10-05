@@ -1,7 +1,7 @@
 """Contracts for bounded shared-seed duplicate matching.
 
 The current internal matching API under test is
-``ici.engines._dup_matching.find_raw_matches(files_data, window_size, limits)``
+``ici.analysis._dup_matching.find_raw_matches(files_data, window_size, limits)``
 with ``DuplicateFileData`` and ``DuplicateMatchLimits`` records.  The engine
 integration is ``DuplicateEngine.run``; when an internal comparison bound is
 exceeded it must return ``EngineStatus.ERROR`` with
@@ -31,14 +31,14 @@ from pathlib import Path
 
 import pytest
 
-from ici.core.models import EngineStatus, EvidenceState
-from ici.engines import _dup_matching as matching_module
-from ici.engines import dup as dup_module
-from ici.engines._dup_matching import (
+from ici.analysis import _dup_matching as matching_module
+from ici.analysis._dup_matching import (
     DuplicateFileData,
     DuplicateMatchLimits,
     find_raw_matches,
 )
+from ici.core.models import EngineStatus, EvidenceState
+from ici.engines import dup as dup_module
 from ici.engines.dup import DuplicateEngine
 
 _SAFE_LIMIT = 1_000_000

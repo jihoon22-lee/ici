@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._integration import IntegrationConfigError, parse_integration_cases
 from ici.core.models import EngineStatus, EvidenceState
-from ici.engines._integration import IntegrationConfigError, parse_integration_cases
 from ici.engines.integration import IntegrationEngine
 
 

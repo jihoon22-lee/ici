@@ -7,7 +7,7 @@ import bisect
 import heapq
 from collections.abc import Iterable
 
-from ici.engines._cpp_dup_tokenization import cpp_directive_lines
+from ici.analysis._cpp_dup_tokenization import cpp_directive_lines
 from ici.engines.complexity import _cpp_function_spans
 
 RegionKey = tuple[int, int]

@@ -19,10 +19,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from ici.domain.enums import EvidenceLevel, TaskState
-from ici.domain.finding import Finding, SourceSpan
-from ici.domain.observation import Measurement, Observation
-from ici.engines._python_compatibility import (
+from ici.analysis._python_compatibility import (
     MAX_COMPAT_TOTAL_AST_NODES,
     PythonMetadataError,
     PythonProjectMetadata,
@@ -30,7 +27,10 @@ from ici.engines._python_compatibility import (
     inferred_target_version,
     load_python_metadata,
 )
-from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
+from ici.analysis._source_inputs import AnalysisSourceError, read_analysis_sources
+from ici.domain.enums import EvidenceLevel, TaskState
+from ici.domain.finding import Finding, SourceSpan
+from ici.domain.observation import Measurement, Observation
 
 __all__ = ["PROVIDER_NAME", "CompatRequest", "declared_python_floor", "measure_python_compat"]
 

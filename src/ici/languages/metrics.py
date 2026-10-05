@@ -24,15 +24,15 @@ import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ici.domain.enums import EvidenceLevel, TaskState
-from ici.domain.finding import Finding, SourceSpan
-from ici.domain.observation import Measurement, Observation
-from ici.engines._cpp_cognitive import cpp_cognitive_metric
-from ici.engines._python_metrics import (
+from ici.analysis._cpp_cognitive import cpp_cognitive_metric
+from ici.analysis._python_metrics import (
     cognitive_complexity,
     cyclomatic_complexity,
     max_nesting,
 )
+from ici.domain.enums import EvidenceLevel, TaskState
+from ici.domain.finding import Finding, SourceSpan
+from ici.domain.observation import Measurement, Observation
 from ici.engines.complexity import _cpp_function_inventory
 
 __all__ = [

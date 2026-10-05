@@ -318,7 +318,7 @@ def test_implementation_closure_follows_undeclared_imports() -> None:
     modules = dict(cache_identity._implementation_closure("ici.engines.lint"))
 
     assert modules["ici.engines.lint"]
-    assert "ici.engines._cpp_diagnostics" in modules
+    assert "ici.analysis._cpp_diagnostics" in modules
     assert "ici.core.runner" in modules
 
 

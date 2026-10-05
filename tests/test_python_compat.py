@@ -9,17 +9,17 @@ from pathlib import Path
 import pytest
 from packaging.version import Version
 
-from ici.config import DEFAULT_CONFIG
-from ici.config_schema import ConfigError, validate_config
-from ici.core.models import EngineStatus, EvidenceState
-from ici.core.runner import ProcessResult
-from ici.engines._python_compatibility import (
+from ici.analysis._python_compatibility import (
     PythonMetadataError,
     analyze_static_compatibility,
     inferred_target_version,
     parse_runtime_version,
     requires_python_allows,
 )
+from ici.config import DEFAULT_CONFIG
+from ici.config_schema import ConfigError, validate_config
+from ici.core.models import EngineStatus, EvidenceState
+from ici.core.runner import ProcessResult
 from ici.engines.python_compat import PythonCompatibilityEngine
 
 

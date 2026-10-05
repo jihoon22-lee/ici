@@ -13,21 +13,21 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ici.core.context import AnalysisContext
-from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
-from ici.core.runner import ProcessResult
-from ici.engines._cpp_function_boundaries import (
+from ici.analysis._cpp_function_boundaries import (
     CppFunctionBoundary,
     read_cpp_source_text,
     run_cpp_function_boundaries,
 )
-from ici.engines.complexity import _cpp_function_inventory, _CppFunctionSpan
-from ici.engines.cpp_text import (
+from ici.analysis.cpp_text import (
     cpp_has_conditional_directive,
     mask_cpp_lambda_bodies,
     mask_cpp_literals,
     mask_cpp_preprocessor_directives,
 )
+from ici.core.context import AnalysisContext
+from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
+from ici.core.runner import ProcessResult
+from ici.engines.complexity import _cpp_function_inventory, _CppFunctionSpan
 
 _MAX_SOURCES = 2_048
 _MAX_SOURCE_BYTES = 64 * 1024 * 1024

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ici.engines._sanitizer_diagnostics import (
+from ici.analysis._sanitizer_diagnostics import (
     MAX_SANITIZER_DIAGNOSTICS,
     MAX_SANITIZER_FRAMES,
     MAX_SANITIZER_OUTPUT_CHARS,

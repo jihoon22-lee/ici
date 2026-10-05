@@ -3,7 +3,7 @@
 ``cpp.binary-compat`` (#220) inspects the binaries the linked builds'
 ``artifacts`` globs name — never a discovered or executed binary. Each ELF
 artifact gets one bounded ``readelf`` task; the output is parsed by the
-same ``ici.engines._elf`` reader the stable ``binary_compat`` engine uses,
+same ``ici.analysis._elf`` reader the stable ``binary_compat`` engine uses,
 and judged by the same ``_abi_violations`` policy function.
 
 The policy applied here is the stable default set — absolute and
@@ -20,11 +20,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
+from ici.analysis._elf import ElfParseError, maximum_version, parse_readelf
 from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement
 from ici.domain.tasks import TaskSpec
-from ici.engines._elf import ElfParseError, maximum_version, parse_readelf
 from ici.engines.binary_compat import BinaryCompatibilityEngine
 from ici.execution.process import ExitContract, TaskOutcome
 

@@ -5,8 +5,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from ici.analysis._source_inputs import AnalysisSource
 from ici.core.models import EngineStatus, InspectionTarget
-from ici.engines._source_inputs import AnalysisSource
 
 
 def ordered_python_sources(source_dirs: list[Path], sources: list[Path]) -> list[Path]:

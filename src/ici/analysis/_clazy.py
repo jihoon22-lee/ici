@@ -11,13 +11,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from ici.core.context import AnalysisContext, CompilationUnit
-from ici.core.cpp_replay import ReplayCommandError, build_replay_command, replay_environment
-from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
-from ici.core.runner import ProcessResult
-from ici.core.toolchain import ToolCapability
-from ici.engines._cpp_diagnostics import CppDiagnostic, parse_clazy_diagnostics
-from ici.engines._cpp_tooling import (
+from ici.analysis._cpp_diagnostics import CppDiagnostic, parse_clazy_diagnostics
+from ici.analysis._cpp_tooling import (
     GccStdlibProjection,
     GccStdlibProjectionCache,
     gcc_standard_library_for_replay,
@@ -26,6 +21,11 @@ from ici.engines._cpp_tooling import (
     tooling_arguments,
     tooling_include_roots,
 )
+from ici.core.context import AnalysisContext, CompilationUnit
+from ici.core.cpp_replay import ReplayCommandError, build_replay_command, replay_environment
+from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
+from ici.core.runner import ProcessResult
+from ici.core.toolchain import ToolCapability
 
 _MAX_SELECTED_UNITS = 2_048
 _TIMEOUT_SECONDS = 120.0

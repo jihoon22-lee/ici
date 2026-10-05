@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._cpp_lint import run_cpp_lint
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
     AnalysisContext,
@@ -21,7 +22,6 @@ from ici.core.context import (
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
-from ici.engines._cpp_lint import run_cpp_lint
 from ici.engines.lint import LintEngine
 
 
@@ -795,7 +795,7 @@ def test_compiler_global_budget_fails_closed_without_invocation(
     paths = _toolchain(tmp_path)
     context = _context(root, _inventory(paths), (_unit(root, paths["g++"]),))
     clock = iter((100.0, 701.0))
-    monkeypatch.setattr("ici.engines._cpp_lint.time.monotonic", lambda: next(clock))
+    monkeypatch.setattr("ici.analysis._cpp_lint.time.monotonic", lambda: next(clock))
 
     result, calls, which_calls = _run_lint(root, context, monkeypatch)
 

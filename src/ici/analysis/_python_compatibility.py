@@ -13,12 +13,12 @@ import tomli
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
 
-from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
-from ici.core.models import EngineStatus, InspectionTarget
-from ici.engines._python_resource_scopes import (
+from ici.analysis._python_resource_scopes import (
     collect_import_aliases,
     collect_scope_bindings,
 )
+from ici.core._compile_db_paths import _read_bounded_regular, _ReadError
+from ici.core.models import EngineStatus, InspectionTarget
 
 MAX_PYPROJECT_BYTES = 2 * 1024 * 1024
 MAX_COMPAT_AST_NODES = 100_000

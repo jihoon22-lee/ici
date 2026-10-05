@@ -8,7 +8,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
-from ici.engines._dup_signal import duplicate_signal_prefix, has_duplicate_signal
+from ici.analysis._dup_signal import duplicate_signal_prefix, has_duplicate_signal
 
 LocTuple = tuple[int, int, int]
 MatchPair = tuple[int, int, int, int, int, int, int]

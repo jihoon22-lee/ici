@@ -4,12 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ici.core.capabilities import CapabilityInventory
-from ici.core.context import AnalysisContext, AnalysisIdentity, ProjectModel, canonical_digest
-from ici.core.cpp_replay import ReplayCommandError, replay_environment
-from ici.core.runner import ProcessResult
-from ici.core.toolchain import ToolCapability
-from ici.engines._cpp_tooling import (
+from ici.analysis._cpp_tooling import (
     compiler_capability,
     compiler_diagnostic_command,
     gcc_standard_library_for_replay,
@@ -18,6 +13,11 @@ from ici.engines._cpp_tooling import (
     tooling_arguments,
     tooling_include_roots,
 )
+from ici.core.capabilities import CapabilityInventory
+from ici.core.context import AnalysisContext, AnalysisIdentity, ProjectModel, canonical_digest
+from ici.core.cpp_replay import ReplayCommandError, replay_environment
+from ici.core.runner import ProcessResult
+from ici.core.toolchain import ToolCapability
 
 
 def _compiler_capability(
@@ -513,7 +513,7 @@ def test_gcc_projection_two_probe_sequence_shares_one_total_time_budget(
     paths = _stdlib_directories(tmp_path, "stdlib")
     calls: list[list[str]] = []
     clock = iter((100.0, 100.0, 111.0))
-    monkeypatch.setattr("ici.engines._cpp_tooling.time.monotonic", lambda: next(clock))
+    monkeypatch.setattr("ici.analysis._cpp_tooling.time.monotonic", lambda: next(clock))
 
     def runner(command: list[str], **_kwargs: object) -> ProcessResult:
         calls.append(command)

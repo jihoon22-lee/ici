@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ici.engines._cpp_dup_tokenization import tokenize_cpp_lines
+from ici.analysis._cpp_dup_tokenization import tokenize_cpp_lines
 
 _TOKEN_SEPARATOR = "\x1f"
 _LINE_ENDINGS = ("\n", "\r\n", "\r")

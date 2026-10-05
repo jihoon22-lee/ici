@@ -6,7 +6,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from ici.engines._dup_semantic import (
+from ici.analysis._dup_semantic import (
     SEMANTIC_SHAPE_ALGORITHM,
     SemanticLimits,
     analyze_python_source,

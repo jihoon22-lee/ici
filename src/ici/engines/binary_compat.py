@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from ici.analysis._elf import ElfFacts, ElfParseError, maximum_version, parse_readelf, version_key
 from ici.core.context import ArtifactRecord, ArtifactScope
 from ici.core.findings import finding_fingerprint
 from ici.core.models import (
@@ -22,7 +23,6 @@ from ici.core.models import (
     ToolEvidence,
 )
 from ici.core.runner import run_process
-from ici.engines._elf import ElfFacts, ElfParseError, maximum_version, parse_readelf, version_key
 from ici.engines.base import BaseEngine
 
 _BINARY_KINDS = frozenset({"executable", "shared-library"})

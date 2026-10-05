@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._cpp_diagnostics import CppDiagnostic
 from ici.core.findings import findings_for_result
 from ici.core.models import (
     EngineStatus,
@@ -13,7 +14,6 @@ from ici.core.models import (
     InspectionTarget,
 )
 from ici.core.runner import ProcessResult
-from ici.engines._cpp_diagnostics import CppDiagnostic
 from ici.engines.lint import LintEngine
 
 
@@ -177,7 +177,7 @@ def test_cpp_diagnostic_category_does_not_depend_on_message() -> None:
 def test_cpp_diagnostic_category_policy_participates_in_cache_identity() -> None:
     from ici.core.cache_identity import _implementation_closure
 
-    assert "ici.engines._cpp_diagnostic_categories" in dict(
+    assert "ici.analysis._cpp_diagnostic_categories" in dict(
         _implementation_closure("ici.engines.lint")
     )
 

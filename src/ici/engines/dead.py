@@ -8,6 +8,21 @@ from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from ici.analysis._cpp_linker_dead_symbols import (
+    CppLinkerDeadOutcome,
+    run_cpp_linker_dead_symbols,
+)
+from ici.analysis._cpp_unused_functions import (
+    CppUnusedFunctionOutcome,
+    run_cpp_unused_functions,
+)
+from ici.analysis._python_dead_code import analyze_python_dead_code, ordered_python_sources
+from ici.analysis._source_inputs import (
+    AnalysisSource,
+    AnalysisSourceError,
+    AnalysisSourceInventory,
+    read_analysis_sources,
+)
 from ici.core.models import (
     EngineResult,
     EngineStatus,
@@ -21,21 +36,6 @@ from ici.core.models import (
     SourceLocation,
 )
 from ici.core.runner import run_process
-from ici.engines._cpp_linker_dead_symbols import (
-    CppLinkerDeadOutcome,
-    run_cpp_linker_dead_symbols,
-)
-from ici.engines._cpp_unused_functions import (
-    CppUnusedFunctionOutcome,
-    run_cpp_unused_functions,
-)
-from ici.engines._python_dead_code import analyze_python_dead_code, ordered_python_sources
-from ici.engines._source_inputs import (
-    AnalysisSource,
-    AnalysisSourceError,
-    AnalysisSourceInventory,
-    read_analysis_sources,
-)
 from ici.engines.base import BaseEngine
 
 if TYPE_CHECKING:

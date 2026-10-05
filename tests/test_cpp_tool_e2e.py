@@ -11,16 +11,16 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._clang_tidy import run_clang_tidy
+from ici.analysis._clazy import run_clazy
+from ici.analysis._cpp_function_boundaries import run_cpp_function_boundaries
+from ici.analysis._cpp_lint import run_cpp_lint
 from ici.core.capabilities import CapabilityInventory, collect_capability_inventory
 from ici.core.compile_db import load_compilation_context
 from ici.core.context import AnalysisContext, create_analysis_context, discover_project_model
 from ici.core.models import EngineStatus, EvidenceState, ToolEvidence
 from ici.core.runner import ProcessResult, run_process
 from ici.core.toolchain import ToolProbe
-from ici.engines._clang_tidy import run_clang_tidy
-from ici.engines._clazy import run_clazy
-from ici.engines._cpp_function_boundaries import run_cpp_function_boundaries
-from ici.engines._cpp_lint import run_cpp_lint
 from ici.engines.complexity import ComplexityEngine
 
 _PROBES = {

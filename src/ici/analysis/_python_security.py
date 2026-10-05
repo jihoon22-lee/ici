@@ -10,8 +10,8 @@ import tokenize
 from collections import Counter
 from dataclasses import dataclass
 
+from ici.analysis._python_resource_scopes import collect_import_aliases, collect_scope_bindings
 from ici.core.models import EngineStatus, InspectionTarget
-from ici.engines._python_resource_scopes import collect_import_aliases, collect_scope_bindings
 
 _SECRET_NAME_RE = re.compile(
     r"(?:^|_)(?:api_?key|access_?key|auth_?token|client_?secret|passw(?:or)?d|passwd|"

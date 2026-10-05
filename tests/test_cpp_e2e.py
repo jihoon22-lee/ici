@@ -21,10 +21,10 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis.cpp_text import defines_main
 from ici.core.cmake import select_backend
 from ici.core.models import EngineStatus
 from ici.engines.complexity import ComplexityEngine
-from ici.engines.cpp_text import defines_main
 from ici.engines.cycle import CycleEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine

@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from ici.core.models import EngineStatus, EvidenceState
-from ici.engines._cpp_cognitive import _source_slice, analyze_cpp_cognitive, cpp_cognitive_metric
-from ici.engines._cpp_function_boundaries import (
+from ici.analysis._cpp_cognitive import _source_slice, analyze_cpp_cognitive, cpp_cognitive_metric
+from ici.analysis._cpp_function_boundaries import (
     CppFunctionBoundary,
     CppFunctionBoundaryOutcome,
 )
+from ici.core.models import EngineStatus, EvidenceState
 from ici.engines.cognitive import CognitiveEngine
 
 
@@ -236,7 +236,7 @@ def test_malformed_cpp_control_flow_fails_closed(body: str, message: str) -> Non
 
 
 def test_cpp_control_nesting_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("ici.engines._cpp_cognitive._MAX_CONTROL_NESTING", 4)
+    monkeypatch.setattr("ici.analysis._cpp_cognitive._MAX_CONTROL_NESTING", 4)
 
     with pytest.raises(ValueError, match="control nesting exceeds"):
         cpp_cognitive_metric("{ " + "if (ready) " * 6 + "work(); }")
@@ -301,7 +301,7 @@ def test_exact_cpp_boundary_path_uses_compiler_geometry(
         )
 
     monkeypatch.setattr(
-        "ici.engines._cpp_cognitive.run_cpp_function_boundaries",
+        "ici.analysis._cpp_cognitive.run_cpp_function_boundaries",
         fake_boundaries,
     )
     outcome = analyze_cpp_cognitive(
@@ -372,7 +372,7 @@ def test_cpp_geometry_error_is_located_at_the_source(
         return CppFunctionBoundaryOutcome(boundaries=[boundary], mode="exact")
 
     monkeypatch.setattr(
-        "ici.engines._cpp_cognitive.run_cpp_function_boundaries",
+        "ici.analysis._cpp_cognitive.run_cpp_function_boundaries",
         fake_boundaries,
     )
     result = CognitiveEngine(
@@ -411,7 +411,7 @@ def test_missing_exact_end_column_is_error_without_fallback_duplicate(
     )
 
     monkeypatch.setattr(
-        "ici.engines._cpp_cognitive.run_cpp_function_boundaries",
+        "ici.analysis._cpp_cognitive.run_cpp_function_boundaries",
         lambda *args, **kwargs: CppFunctionBoundaryOutcome(boundaries=[boundary], mode="exact"),
     )
     result = CognitiveEngine(
@@ -521,7 +521,7 @@ def test_cpp_source_inventory_is_bounded(tmp_path: Path, monkeypatch: pytest.Mon
     source = tmp_path / "src"
     source.mkdir()
     (source / "metrics.cpp").write_text("int measured() { return 1; }\n", encoding="utf-8")
-    monkeypatch.setattr("ici.engines._cpp_cognitive._MAX_SOURCE_BYTES", 1)
+    monkeypatch.setattr("ici.analysis._cpp_cognitive._MAX_SOURCE_BYTES", 1)
 
     result = CognitiveEngine(
         tmp_path,

@@ -7,6 +7,14 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._cpp_function_boundaries import (
+    CppFunctionBoundary,
+    CppFunctionConfigurationMetric,
+    parse_function_boundaries,
+    read_cpp_source_text,
+    run_cpp_function_boundaries,
+)
+from ici.analysis.cpp_text import cpp_definition_name
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
     AnalysisContext,
@@ -19,15 +27,7 @@ from ici.core.context import (
 from ici.core.models import EngineStatus, EvidenceState
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
-from ici.engines._cpp_function_boundaries import (
-    CppFunctionBoundary,
-    CppFunctionConfigurationMetric,
-    parse_function_boundaries,
-    read_cpp_source_text,
-    run_cpp_function_boundaries,
-)
 from ici.engines.complexity import ComplexityEngine
-from ici.engines.cpp_text import cpp_definition_name
 
 
 def _executable(path: Path) -> Path:
@@ -1002,7 +1002,7 @@ def test_parser_reads_and_masks_each_source_once(
         return read_cpp_source_text(project_root, file_path)
 
     monkeypatch.setattr(
-        "ici.engines._cpp_function_boundaries.read_cpp_source_text",
+        "ici.analysis._cpp_function_boundaries.read_cpp_source_text",
         counted_reader,
     )
     boundaries = parse_function_boundaries(
@@ -1073,7 +1073,7 @@ def test_configuration_dependent_geometry_stays_partial_and_estimated(
         )
 
     monkeypatch.setattr(
-        "ici.engines._cpp_function_boundaries.parse_function_boundaries",
+        "ici.analysis._cpp_function_boundaries.parse_function_boundaries",
         fake_parser,
     )
 
@@ -1658,7 +1658,7 @@ def test_adapter_stops_before_snapshotting_units_over_the_run_limit(
 ) -> None:
     root, source, context = _context(tmp_path, "int measured() { return 1; }\n")
     unit = context.compilation.units[0]
-    monkeypatch.setattr("ici.engines._cpp_function_boundaries._MAX_SELECTED_UNITS", 1)
+    monkeypatch.setattr("ici.analysis._cpp_function_boundaries._MAX_SELECTED_UNITS", 1)
     context = replace(
         context,
         compilation=replace(
@@ -1704,7 +1704,7 @@ def test_adapter_fails_closed_when_prepared_mapped_source_cache_exceeds_limit(
         compilation=replace(context.compilation, units=(first_unit, second_unit)),
     )
     monkeypatch.setattr(
-        "ici.engines._cpp_function_boundaries._MAX_SOURCE_CACHE_BYTES",
+        "ici.analysis._cpp_function_boundaries._MAX_SOURCE_CACHE_BYTES",
         len(source.read_bytes()),
     )
 

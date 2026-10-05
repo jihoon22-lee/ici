@@ -18,11 +18,11 @@ from ici.adapters.providers.gcov import GcovProvider
 from ici.adapters.providers.pycompat import CompileallProvider, PythonVersionProvider
 from ici.adapters.providers.pytest import PytestProvider
 from ici.adapters.providers.sanitize import SanitizeProvider
+from ici.analysis._python_compatibility import PythonMetadataError
 from ici.application.plan import PlannedCheck
 from ici.application.tooling import locate_tool
 from ici.config.composition import EffectiveComponent
 from ici.domain.workspace import AnalysisUnit, BuildUnit, Component
-from ici.engines._python_compatibility import PythonMetadataError
 from ici.languages.compat import declared_python_floor
 from ici.workspace.instrumentation import ctest_binaries, is_elf, sanitizer_marked
 from ici.workspace.test_suites import TestSuite, suites_for_build

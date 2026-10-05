@@ -9,6 +9,12 @@ import time
 from pathlib import Path
 from typing import Any
 
+from ici.analysis._integration import (
+    IntegrationCase,
+    IntegrationConfigError,
+    OutputArtifactAssertion,
+    parse_integration_cases,
+)
 from ici.core.context import ArtifactScope
 from ici.core.findings import finding_fingerprint
 from ici.core.models import (
@@ -24,12 +30,6 @@ from ici.core.models import (
     ToolEvidence,
 )
 from ici.core.runner import ProcessResult, run_process
-from ici.engines._integration import (
-    IntegrationCase,
-    IntegrationConfigError,
-    OutputArtifactAssertion,
-    parse_integration_cases,
-)
 from ici.engines.base import BaseEngine
 
 _PLACEHOLDER_RE = re.compile(r"^\{(python|artifact):([^{}]+)\}$")

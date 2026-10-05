@@ -5,10 +5,10 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
+from ici.analysis._python_security import analyze_python_security
+from ici.analysis._source_inputs import AnalysisSourceError, read_analysis_sources
 from ici.core.models import EngineResult, EngineStatus, EvidenceState, InspectionTarget
 from ici.core.project import _iter_project_files
-from ici.engines._python_security import analyze_python_security
-from ici.engines._source_inputs import AnalysisSourceError, read_analysis_sources
 from ici.engines.base import BaseEngine
 
 

@@ -29,12 +29,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
-from ici.core.models import SourceLocation
-from ici.domain.enums import EvidenceLevel, TaskKind
-from ici.domain.finding import Finding, SourceSpan
-from ici.domain.observation import Measurement
-from ici.domain.tasks import TaskSpec
-from ici.engines._sanitizer_diagnostics import (
+from ici.analysis._sanitizer_diagnostics import (
     _ERROR_RE,
     _RUNTIME_RE,
     _SUMMARY_RE,
@@ -43,6 +38,11 @@ from ici.engines._sanitizer_diagnostics import (
     SanitizerDiagnosticError,
     parse_sanitizer_diagnostics,
 )
+from ici.core.models import SourceLocation
+from ici.domain.enums import EvidenceLevel, TaskKind
+from ici.domain.finding import Finding, SourceSpan
+from ici.domain.observation import Measurement
+from ici.domain.tasks import TaskSpec
 from ici.execution.process import ExitContract, TaskOutcome
 from ici.execution.process import TaskSpec as ExecTaskSpec
 

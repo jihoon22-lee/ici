@@ -13,7 +13,7 @@ from collections import defaultdict
 
 import pytest
 
-from ici.engines._cpp_dup_tokenization import tokenize_cpp_lines
+from ici.analysis._cpp_dup_tokenization import tokenize_cpp_lines
 
 
 def _records(source: str) -> tuple[tuple[int, str], ...]:

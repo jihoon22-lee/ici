@@ -5,23 +5,14 @@ import re
 import time
 from dataclasses import dataclass, field
 
-from ici.core.models import (
-    EngineResult,
-    EngineStatus,
-    EvidenceState,
-    InspectionTarget,
-    ToolEvidence,
-)
-from ici.core.runner import run_process
-from ici.engines._cpp_function_boundaries import (
+from ici.analysis._cpp_function_boundaries import (
     CppFunctionBoundary,
     CppFunctionBoundaryOutcome,
     read_cpp_source_text,
     run_cpp_function_boundaries,
 )
-from ici.engines._python_metrics import cyclomatic_complexity, max_nesting
-from ici.engines.base import BaseEngine
-from ici.engines.cpp_text import (
+from ici.analysis._python_metrics import cyclomatic_complexity, max_nesting
+from ici.analysis.cpp_text import (
     cpp_definition_name,
     cpp_function_like_macro_names,
     cpp_has_conditional_directive,
@@ -31,6 +22,15 @@ from ici.engines.cpp_text import (
     mask_cpp_literals,
     mask_cpp_preprocessor_directives,
 )
+from ici.core.models import (
+    EngineResult,
+    EngineStatus,
+    EvidenceState,
+    InspectionTarget,
+    ToolEvidence,
+)
+from ici.core.runner import run_process
+from ici.engines.base import BaseEngine
 
 # --- C++ function scanning -------------------------------------------------
 #

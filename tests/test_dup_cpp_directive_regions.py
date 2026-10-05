@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ici.engines._dup_regions import cpp_duplicate_regions
+from ici.analysis._dup_regions import cpp_duplicate_regions
 
 
 def _regions(source: str):

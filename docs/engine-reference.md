@@ -665,14 +665,14 @@ fallback으로 내려간 실행은 `ESTIMATED`로 남으므로, 위 표는 "여�
   `ERROR`/`NOT_RUN`으로 닫습니다. warning-level diagnostic은 위치 있는 `WARN`/`MEASURED`로
   남기고 replay를 계속하며, compilation context가 존재하는 동안 고정 `g++ -std=c++17`
   폴백은 사용하지 않습니다. C++ lint cache helper는 `ici.core._cpp_replay_policy`,
-  `ici.core.cpp_replay`, `ici.engines._clang_tidy`, `ici.engines._clazy`,
-  `ici.engines._cpp_diagnostic_categories`, `ici.engines._cpp_diagnostics`,
-  `ici.engines._cpp_lint`, `ici.engines._cpp_tooling`, `ici.engines._qt_codegen`,
+  `ici.core.cpp_replay`, `ici.analysis._clang_tidy`, `ici.analysis._clazy`,
+  `ici.analysis._cpp_diagnostic_categories`, `ici.analysis._cpp_diagnostics`,
+  `ici.analysis._cpp_lint`, `ici.analysis._cpp_tooling`, `ici.analysis._qt_codegen`,
   `ici.engines.lint`를 명시하고, cycle cache helper는
-  `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.engines._cpp_include_graph`,
-  `ici.engines._cpp_include_trace`, `ici.engines.cycle`을, complexity cache helper는
+  `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`, `ici.analysis._cpp_include_graph`,
+  `ici.analysis._cpp_include_trace`, `ici.engines.cycle`을, complexity cache helper는
   `ici.core._compile_db_paths`, `ici.core._cpp_replay_policy`, `ici.core.cpp_replay`,
-  `ici.engines._cpp_function_boundaries`, `ici.engines._cpp_tooling`, `ici.engines.cpp_text`를
+  `ici.analysis._cpp_function_boundaries`, `ici.analysis._cpp_tooling`, `ici.analysis.cpp_text`를
   명시합니다. `.ui`와 `.qrc`도 project source digest에 포함됩니다.
 - **C++ clang-tidy**: `clang_tidy`는 `auto`(도구가 없으면 `WARN`), `required`(도구가
   없으면 `ERROR`), `off`(명령과 evidence 없음) 중 하나로 정책을 정합니다. 이 adapter는

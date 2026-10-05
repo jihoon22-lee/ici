@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from ici.analysis._clang_tidy import run_clang_tidy
 from ici.core.capabilities import CapabilityInventory
 from ici.core.context import (
     AnalysisContext,
@@ -20,7 +21,6 @@ from ici.core.findings import findings_for_result
 from ici.core.models import EngineStatus, EvidenceState, FindingCategory
 from ici.core.runner import ProcessResult
 from ici.core.toolchain import ToolCapability
-from ici.engines._clang_tidy import run_clang_tidy
 from ici.engines.lint import LintEngine
 
 
@@ -725,7 +725,7 @@ def test_exhausted_global_budget_reports_error_without_invocation(
 ) -> None:
     root, source, context, _tidy = _project_context(tmp_path)
     clock = iter((100.0, 701.0))
-    monkeypatch.setattr("ici.engines._clang_tidy.time.monotonic", lambda: next(clock))
+    monkeypatch.setattr("ici.analysis._clang_tidy.time.monotonic", lambda: next(clock))
 
     outcome, calls = _run(root, source, context, {"clang_tidy": "auto"})
 

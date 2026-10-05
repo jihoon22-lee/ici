@@ -7,6 +7,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
+from ici.analysis._cpp_include_trace import (
+    parse_include_trace,
+    parse_missing_include_targets,
+)
 from ici.core.context import AnalysisContext, CompilationDiagnostic, CompilationUnit
 from ici.core.cpp_replay import (
     ReplayCommandError,
@@ -15,10 +19,6 @@ from ici.core.cpp_replay import (
 )
 from ici.core.models import EngineStatus, InspectionTarget, ToolEvidence
 from ici.core.runner import ProcessResult
-from ici.engines._cpp_include_trace import (
-    parse_include_trace,
-    parse_missing_include_targets,
-)
 
 _THIRD_PARTY_PARTS = frozenset(
     {"third_party", "third-party", "vendor", "external", "extern", "deps", "_deps"}
