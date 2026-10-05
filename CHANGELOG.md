@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+### 수정 — next 스케줄러의 per-task 크래시 격리
+
+- **버그 수정**: `application/schedule`의 unit 실행이 provider `parse()`,
+  내부 analysis, runner 중 어느 것이든 예외를 던지면 스레드 풀을 타고
+  `ici next verify` 전체가 미처리 traceback과 exit 1로 종료하던 문제를
+  수정합니다. 예외는 이제 그 unit의 FAILED observation(`internal error:
+  {type}: {message}` limitation)으로 변환되고, 이미 완료된 다른 unit의
+  증거는 보존되며, 의존 unit은 일반 prerequisite 규칙으로 BLOCKED됩니다.
+  required check의 크래시는 게이트를 FAIL이 아닌 INCOMPLETE로 만듭니다.
+- 같은 이유로 cache `identify` 콜백의 예외도 run을 죽이지 않고 해당 unit을
+  uncached로 실행하며, 사유를 execution record에 남깁니다.
+- `tests/test_schedule.py`에 크래시 격리 회귀 테스트 4건 추가.
+
 ### 변경 — Quality Zoo corpus를 이 저장소로 이관 (#201)
 
 - `quality-zoo/`는 이제 이 저장소가 소유한다. toy-projects @ `195de9b`에서
