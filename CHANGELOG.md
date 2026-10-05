@@ -47,6 +47,19 @@
   게이트가 거절해 stale hit 없이 재계산됩니다. 13개 엔진의 수동 선언을
   제거하고 테스트는 클로저 포함 관계를 검증합니다.
 
+### 변경 — `EngineResult.extra` 키 계약이 명시 레지스트리로
+
+- 엔진→리포터 증거 채널인 `extra`의 문자열 키가 신규
+  `ici/core/result_keys.py`의 `EXTRA_KEYS` 레지스트리에 등록됩니다. 엔진이
+  쓰는 키와 리포터가 읽는 키가 어긋나면(오타 시 조용한 빈 섹션) 계약 테스트
+  `tests/test_result_key_contract.py`가 AST 스캔으로 실패합니다.
+- 적용 범위: `extra.get("k")`/`extra["k"]` 읽기, `extra={"k": ...}` 리터럴
+  쓰기, `extra={**helper()}`/`extra=helper()` 형태의 같은 모듈 헬퍼 반환
+  키(1단계). 중첩 payload의 내부 키는 각 엔진의 하위 스키마로 계약 범위
+  밖입니다.
+- 등록됐으나 어떤 코드도 생산·소비하지 않는 키는 역방향 검사가 거절해
+  레지스트리가 drift하지 않습니다.
+
 ### 변경 — Quality Zoo corpus를 이 저장소로 이관 (#201)
 
 - `quality-zoo/`는 이제 이 저장소가 소유한다. toy-projects @ `195de9b`에서
