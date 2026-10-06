@@ -40,6 +40,15 @@ FLOOR_SETS: dict[str, dict[str, float]] = {
 DUPLICATED_LINES_CEILING = 12.0  # percent of measured lines
 TEST_CASE_METRICS = {"repo": "pytest.cases", "viewer": "ctest.cases"}
 
+# Ceilings — a measured value may not exceed these. They carry stable's fail
+# bands (cyclomatic 25 / cognitive 60) into the next result contract; the
+# advisory findings the metrics checks emit repeat the same numbers.
+CEILING_SETS: dict[str, dict[str, float]] = {
+    # measured 2026-10: complexity 24, cognitive 48
+    "repo": {"max_complexity": 25.0, "max_cognitive": 60.0},
+    "viewer": {},
+}
+
 
 def _metrics(result: dict) -> dict[str, dict]:
     metrics = result.get("metrics")
@@ -54,9 +63,7 @@ def _metrics(result: dict) -> dict[str, dict]:
 
 def main(argv: list[str]) -> int:
     args = [a for a in argv[1:] if not a.startswith("--set=")]
-    selected = next(
-        (a.partition("=")[2] for a in argv[1:] if a.startswith("--set=")), "repo"
-    )
+    selected = next((a.partition("=")[2] for a in argv[1:] if a.startswith("--set=")), "repo")
     floors = FLOOR_SETS.get(selected)
     if floors is None or len(args) != 1:
         raise SystemExit(
@@ -78,17 +85,26 @@ def main(argv: list[str]) -> int:
         if value < floor:
             failures.append(f"{name}: {value} < floor {floor}")
 
+    for name, ceiling in CEILING_SETS[selected].items():
+        entry = metrics.get(name)
+        value = entry.get("value") if entry else None
+        if not isinstance(value, (int, float)):
+            failures.append(f"{name}: metric absent or non-numeric (ceiling {ceiling})")
+            continue
+        if value > ceiling:
+            failures.append(f"{name}: {value} > ceiling {ceiling}")
+
     dup = metrics.get("duplicated_lines")
-    if not dup or not isinstance(dup.get("numerator"), int) or not isinstance(
-        dup.get("denominator"), int
+    if (
+        not dup
+        or not isinstance(dup.get("numerator"), int)
+        or not isinstance(dup.get("denominator"), int)
     ):
         failures.append("duplicated_lines: ratio not measurable")
     elif dup["denominator"]:
         ratio = 100.0 * dup["numerator"] / dup["denominator"]
         if ratio > DUPLICATED_LINES_CEILING:
-            failures.append(
-                f"duplicated_lines: {ratio:.1f}% > ceiling {DUPLICATED_LINES_CEILING}%"
-            )
+            failures.append(f"duplicated_lines: {ratio:.1f}% > ceiling {DUPLICATED_LINES_CEILING}%")
 
     cases_metric = TEST_CASE_METRICS[selected]
     cases = metrics.get(cases_metric)

@@ -73,8 +73,11 @@ enabled = false
 [checks."cpp.tsan"]
 enabled = false
 
+# `cpp.artifact` is advisory but must stay enabled: it produces the
+# `artifact-contract` evidence `cpp.binary-compat` needs — disabling it would
+# leave a required check permanently blocked.
 [checks."cpp.artifact"]
-enabled = false
+required = false
 
 [checks."cpp.binary-compat"]
 required = true
