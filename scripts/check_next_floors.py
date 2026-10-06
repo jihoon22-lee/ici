@@ -40,6 +40,16 @@ FLOOR_SETS: dict[str, dict[str, float]] = {
 DUPLICATED_LINES_CEILING = 12.0  # percent of measured lines
 TEST_CASE_METRICS = {"repo": "pytest.cases", "viewer": "ctest.cases"}
 
+# Per-file coverage floor — stable's engines.test had min_file_cov=12.0 over
+# files with ≥5 statements, an explicit debt floor against new code landing
+# untested in the least-covered file. The next result carries aggregates
+# only, so the per-file side reads the coverage.py JSON verify leaves under
+# .ici/cache/coverage/.
+FILE_FLOORS: dict[str, dict] = {
+    "repo": {"prefix": "src/", "min_statements": 5, "percent": 12.0},
+    "viewer": {},
+}
+
 # Ceilings — a measured value may not exceed these. They carry stable's fail
 # bands (cyclomatic 25 / cognitive 60) into the next result contract; the
 # advisory findings the metrics checks emit repeat the same numbers.
@@ -61,13 +71,58 @@ def _metrics(result: dict) -> dict[str, dict]:
     return by_name
 
 
+def _check_file_floors(coverage_json: Path, spec: dict) -> list[str]:
+    try:
+        data = json.loads(coverage_json.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        return [f"per-file coverage: cannot read {coverage_json}: {error}"]
+    files = data.get("files")
+    if not isinstance(files, dict):
+        return ["per-file coverage: no 'files' map in coverage json"]
+    prefix = spec["prefix"]
+    measured = 0
+    failures: list[str] = []
+    for name, record in files.items():
+        summary = record.get("summary", {}) if isinstance(record, dict) else {}
+        statements = summary.get("num_statements")
+        percent = summary.get("percent_covered")
+        if not (
+            name.startswith(prefix)
+            and isinstance(statements, int)
+            and statements >= spec["min_statements"]
+            and isinstance(percent, (int, float))
+        ):
+            continue
+        measured += 1
+        if percent < spec["percent"]:
+            failures.append(
+                f"{name}: {percent:.1f}% < per-file floor {spec['percent']}% "
+                f"({statements} statements)"
+            )
+    if measured == 0:
+        return [f"per-file coverage: no files under '{prefix}' were measured"]
+    if failures:
+        return failures
+    return []
+
+
 def main(argv: list[str]) -> int:
-    args = [a for a in argv[1:] if not a.startswith("--set=")]
+    args = [a for a in argv[1:] if not a.startswith("--")]
     selected = next((a.partition("=")[2] for a in argv[1:] if a.startswith("--set=")), "repo")
+    coverage_json = next(
+        (a.partition("=")[2] for a in argv[1:] if a.startswith("--coverage-json=")), ""
+    )
     floors = FLOOR_SETS.get(selected)
     if floors is None or len(args) != 1:
         raise SystemExit(
-            f"usage: {argv[0]} [--set={'|'.join(FLOOR_SETS)}] <ici.next.run result.json>"
+            f"usage: {argv[0]} [--set={'|'.join(FLOOR_SETS)}] "
+            "[--coverage-json=<coverage.py json>] <ici.next.run result.json>"
+        )
+    file_spec = FILE_FLOORS[selected]
+    if file_spec and not coverage_json:
+        raise SystemExit(
+            f"set '{selected}' requires --coverage-json=<verify's coverage.py json> "
+            f"for the per-file floor"
         )
     try:
         result = json.loads(Path(args[0]).read_text(encoding="utf-8"))
@@ -112,6 +167,9 @@ def main(argv: list[str]) -> int:
         failures.append(f"{cases_metric}: test evidence absent")
     elif cases["denominator"] == 0:
         failures.append(f"{cases_metric}: zero tests collected")
+
+    if file_spec:
+        failures.extend(_check_file_floors(Path(coverage_json), file_spec))
 
     for failure in failures:
         print(f"floor-fail: {failure}", file=sys.stderr)

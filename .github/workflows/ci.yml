@@ -107,7 +107,8 @@ jobs:
           dist/ici.pyz report --result verify_report.json --out verify_report.html --sarif verify_report.sarif
           # The stable warn/fail bands became ratchet floors on the result's
           # measurements — see the script header for where the numbers came from.
-          python scripts/check_next_floors.py verify_report.json
+          python scripts/check_next_floors.py \
+            --coverage-json=.ici/cache/coverage/ici.json verify_report.json
 
       # viewer/ 는 순수 C++17 코어라 Qt 없이 빌드된다. 이 스텝이 있어야 ici 의 C++ 경로
       # (diagnostics, ctest, gcov 커버리지, include 순환, ELF 계약)가
