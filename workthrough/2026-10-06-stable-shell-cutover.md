@@ -83,3 +83,90 @@ viewer(cpp lines≥60/branches≥38/functions≥62/TEM≥2.4, ctest 존재).
   달라 생긴 차이로 추정, floor는 next 실측값을 ratchet했다.
 - `ici report`에 `--github-summary` 상당물이 없다 — Actions 요약은 현재
   미구현(필요하면 SARIF 또는 이벤트 스트림 기반으로 별도 설계).
+
+## 다중 코드리뷰 (5개 독립 에이전트)
+
+컷오버 완료 후 5개 서브에이전트가 서로 다른 렌즈로 리뷰했다:
+fail-closed/provider 경로, CI/publication/config, 문서/corpus,
+toolchain/offline, 주석·주장 대비 실측. 아래는 확인된 이슈와 처리다.
+
+### 수정된 것 (commit f36c444, 3e953c3, 8853d8f)
+
+**Critical — fail-open / 진짜 손실:**
+
+1. `report --sarif`가 HTML `--out` 작성 전에 early return → 둘 다 쓰게 수정.
+   pyz로 `report --result X --out h.html --sarif s.sarif` 재검증, 두 산출물
+   모두 생성 확인.
+2. `viewer/ici-static-cli.toml`: `cpp.binary-compat` required인데 유일한
+   producer `cpp.artifact`가 disabled → required check가 영구 blocked.
+   `cpp.artifact`를 advisory-but-enabled로 정정.
+3. CI가 삭제된 `tests/test_cpp_e2e.py`를 호출 → 스텝 제거, known-answer
+   fixture는 `tests/next/test_corpus_fixtures.py`(7개, 신설)가 next 경로
+   분석 함수를 직접 검증. manifest의 `exercised_by` 갱신 — 이관 안 된
+   real-tool fixture(sanitizer/linker/cmake/qmake)는 빈 목록으로 정직 표기.
+4. pytest 파서: findings-class exit인데 stdout이 비면 빈 `ParsedOutput`으로
+   PASS할 수 있었음(pytest 부재가 stderr만 쓰는 경우 포함). 빈 출력·
+   초록 0개+위반 0개를 `failed_to_parse`로. 같은 fail-open 패턴을
+   mypy/ty/ruff-format에도 빈출력 가드로 추가(세 도구는 항상 요약줄을
+   출력한다).
+5. `publish`: `pull_request` 이벤트에서 `GITHUB_SHA`는 merge ref라
+   stale-head 비교가 속을 수 있음 → event head SHA 우선.
+6. 그래프: 컴포넌트당 동명 capability(`compile-inputs` 등)가
+   duplicate-producer GraphError를 냈음 → `_with_scope`로
+   컴포넌트 한정.
+7. `ExecutionSummary`: `cancelled + required_complete` 조합을
+   불변식 위반으로 거부했음 — 취소 요청과 완료 증거는 공존 가능하므로
+   완화하고 report 조립이 blocked task id를 일관되게 유지.
+8. `python_source_roots`가 `__init__.py` 체인을 따라 workspace 경계 밖까지
+   올라갈 수 있었음 → 경계 인자 추가.
+
+**결정론/toolchain:**
+
+9. `[tools.*]`는 파싱되지만 아무것도 소비하지 않았음 — 선언하면 조용히
+   무시되는 함정. compose에서 ConfigProblem으로 거부하고 overlay
+   allowlist의 `tools.*.path`도 제거. spec-01 예제에 예약 표면임을 명시.
+10. bare-name `[python] executable`/target이 cwd 기준 `is_file()`로
+    검사되던 버그 → `_runnable`이 PATH로 해석. bundle 모드의
+    `{python:NAME}` bare-name은 `ICI_BUNDLE_ROOT` 하에서 거부
+    (analyzer 규칙과 동일하게).
+11. `ici plan`이 `.ici/cache/coverage`를 mkdir로 생성했음 — `mutate` 플래그로
+    plan은 read-only, verify만 생성.
+12. verify 태스크 환경이 `os.environ`을 통째 상속 — `EnvironmentSnapshot`
+    의 `without_stale_virtualenv`를 배선.
+
+**문서/수치:**
+
+13. README: pyz "약 2MB"→2.4MB 실측, "C++ 16종"→15종, 죽은 앵커 수정.
+    CHANGELOG의 없는 spec-02 링크 → `task-execution.md`. engine-reference에
+    integration 도메인 check와 qtest 추가.
+14. floor 스크립트에 stable 실패 밴드 상당의 ceiling 추가
+    (`max_complexity≤25`, `max_cognitive≤60`, repo 실측 24/48).
+
+### 확인됐으나 이번 범위 밖 / 후속으로 남김
+
+- **verify 태스크 환경**: stale VIRTUAL_ENV만 제거했다. 완전한
+  `for_project` 격리(ici 변수 차단)는 project child가 PATH·Qt·CA 변수를
+  필요로 해서 별도 설계가 필요 — env snapshot 차이는 result에 기록되는
+  게 다음 단계.
+- **`_identifier`의 which fallback**: argv[0]이 bare name일 때 실제 실행될
+  바이너리를 해시하는 것으로 정책 우회가 아니라 정확한 동작 — 유지.
+- **compiler provider**: 성공한 컴파일은 출력이 없는 게 정상이라 빈출력
+  가드를 두지 않음(구조적으로 다른 계약).
+- **real-tool fixture 이관**: sanitizer/linker/cmake/qmake 시나리오의
+  `exercised_by`가 비어 있음 — manifest에 명시했고 후속 포팅이 필요.
+- **per-file coverage floor**: next result는 per-file coverage 메트릭을
+  싣지 않아 집계값+findings로만 보강됨 — per-file 밴드를 되살리려면
+  결과 스키마 확장이 필요.
+- **quality-zoo**: stable v3 계약 그대로 — 별도 포팅 작업으로 유지.
+- **주석 정리 잔여**: superpowers 시점 문서 안의 깨진 경로는 "시점 기록"
+  정책상 그대로 둔다(docs README가 갱신 비대상으로 명시).
+
+### 최종 검증 (f36c444 시점)
+
+- pytest 전체: 통과 (1676 collect, skip 6, 실패 0)
+- ruff check/format, mypy(158 files): 클린
+- `build-pyz.sh` + `smoke.sh`: 통과, pyz 2.4MB
+- 리빌드 pyz dogfood: `ici verify` PASS (844 findings, 모두 advisory),
+  floor+ceiling 통과 — `pytest.cases=1670/1676`, `tem.ici=4.4`,
+  `coverage.lines=89.7`, dup=10.1%
+- `ici report --sarif + --out`: 두 산출물 동시 생성 확인
