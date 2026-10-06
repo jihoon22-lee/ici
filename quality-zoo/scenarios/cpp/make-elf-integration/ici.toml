@@ -1,77 +1,63 @@
-[ici]
+schema_version = 1
+
+[workspace]
+name = "qz-make-elf-integration"
 profile = "deep"
 
-[project]
-name = "quality-zoo-cpp-make-elf-integration"
-version = "1.0.0"
-type = "cpp"
-source_dirs = ["src"]
+[builds.make]
+system = "make"
+directory = "build/ici-make"
+variant = "default"
+artifacts = ["app", "lib/libgreeter.so"]
 
-[doctor]
-required_tools = ["make", "g++", "readelf"]
+[[components]]
+id = "zoo"
+root = "."
+languages = ["cpp"]
+build = "make"
+sources = ["src/**/*.cpp"]
 
-[build.make]
+[checks."cpp.line"]
+enabled = false
+
+[checks."cpp.compile"]
+enabled = false
+
+[checks."cpp.diagnostics"]
+enabled = false
+
+[checks."cpp.tidy"]
+enabled = false
+
+[checks."cpp.test"]
+enabled = false
+
+[checks."cpp.complexity"]
+enabled = false
+
+[checks."cpp.cognitive"]
+enabled = false
+
+[checks."cpp.cycle"]
+enabled = false
+
+[checks."cpp.dup"]
+enabled = false
+
+[checks."cpp.exception"]
+enabled = false
+
+[checks."cpp.coverage"]
+enabled = false
+
+[checks."cpp.artifact"]
 enabled = true
-shadow_dir = "build/ici-make"
-build_argv = ["make", "CXX=g++", "OUT=build/ici-make", "build"]
-clean_argv = ["make", "OUT=build/ici-make", "clean"]
-jobs = 1
 
-[engines.line]
-enabled = false
-[engines.lint]
-enabled = false
-[engines.compile_db]
-enabled = false
-[engines.test]
-enabled = false
-[engines.type]
-enabled = false
-[engines.python_compat]
-enabled = false
-[engines.complexity]
-enabled = false
-[engines.sanitize]
-enabled = false
-[engines.thread_sanitize]
-enabled = false
-[engines.dead]
-enabled = false
-[engines.dup]
-enabled = false
-[engines.exception]
-enabled = false
-[engines.cycle]
-enabled = false
-[engines.cognitive]
-enabled = false
-[engines.security]
-enabled = false
-[engines.resource]
+[checks."cpp.sanitize"]
 enabled = false
 
-[engines.build]
+[checks."cpp.tsan"]
+enabled = false
+
+[checks."cpp.binary-compat"]
 enabled = true
-required = true
-
-[engines.binary_compat]
-enabled = true
-required = true
-expected_class = "ELF64"
-expected_machine = "Advanced Micro Devices X86-64"
-forbid_absolute_rpath = true
-forbid_build_paths = true
-allow_non_elf = false
-max_artifacts = 8
-
-[engines.integration]
-enabled = true
-required = true
-max_cases = 1
-cases = [
-  { name = "native-self-test", argv = ["{artifact:app}", "--self-test"],
-    stdout_contains = ["make-elf-integration-ok"],
-    stderr_not_contains = ["error"],
-    env = { LD_LIBRARY_PATH = "build/ici-make/lib" },
-    timeout_seconds = 10.0 }
-]

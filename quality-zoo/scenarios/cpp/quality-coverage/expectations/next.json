@@ -1,0 +1,64 @@
+{
+  "schema": 3,
+  "scenario_id": "cpp.quality-coverage",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+  ],
+  "prepare": [
+    [
+      "cmake",
+      "-S",
+      ".",
+      "-B",
+      "build",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_CXX_FLAGS=--coverage",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    [
+      "cmake",
+      "--build",
+      "build",
+      "--parallel"
+    ]
+  ],
+  "expected": {
+    "gate": "PASS",
+    "findings": [
+      {
+        "provider": "ici.dup",
+        "rule_id": "dup.type2-clone",
+        "path": "src/dup_left.cpp"
+      },
+      {
+        "provider": "ici.dup",
+        "rule_id": "dup.type2-clone",
+        "path": "src/dup_right.cpp"
+      }
+    ],
+    "metrics": {
+      "coverage.cpp.lines": {
+        "max": 50
+      },
+      "ctest.cases": {
+        "numerator_min": 1
+      }
+    },
+    "forbidden_findings": [
+      {
+        "provider": "ici.dup",
+        "path": "src/clean.cpp"
+      },
+      {
+        "provider": "ici.metrics",
+        "path": "src/clean.cpp"
+      }
+    ]
+  }
+}

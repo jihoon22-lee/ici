@@ -1,36 +1,64 @@
-[ici]
-profile = "standard"
+schema_version = 1
 
-[project]
+[workspace]
 name = "quality-zoo-cpp-ubsan-signed-overflow"
-version = "1.0.0"
-source_dirs = ["src"]
+profile = "deep"
 
-[engines.line]
+[builds.san]
+system = "cmake"
+project = "CMakeLists.txt"
+directory = "build"
+variant = "sanitize"
+artifacts = ["test_*"]
+
+[[components]]
+id = "zoo"
+root = "."
+languages = ["cpp"]
+build = "san"
+sources = ["src/**/*.cpp", "src/**/*.hpp", "src/**/*.h"]
+
+[checks."cpp.line"]
 enabled = false
-[engines.lint]
+
+[checks."cpp.compile"]
 enabled = false
-[engines.compile_db]
+
+[checks."cpp.diagnostics"]
 enabled = false
-[engines.test]
+
+[checks."cpp.tidy"]
 enabled = false
-[engines.type]
+
+[checks."cpp.test"]
 enabled = false
-[engines.complexity]
+
+[checks."cpp.complexity"]
 enabled = false
-[engines.sanitize]
+
+[checks."cpp.cognitive"]
+enabled = false
+
+[checks."cpp.cycle"]
+enabled = false
+
+[checks."cpp.dup"]
+enabled = false
+
+[checks."cpp.exception"]
+enabled = false
+
+[checks."cpp.coverage"]
+enabled = false
+
+[checks."cpp.artifact"]
+enabled = false
+
+[checks."cpp.sanitize"]
 enabled = true
-[engines.dead]
+
+[checks."cpp.tsan"]
 enabled = false
-[engines.dup]
-enabled = false
-[engines.exception]
-enabled = false
-[engines.cycle]
-enabled = false
-[engines.cognitive]
-enabled = false
-[engines.security]
-enabled = false
-[engines.resource]
+
+[checks."cpp.binary-compat"]
 enabled = false

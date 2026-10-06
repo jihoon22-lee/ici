@@ -1,0 +1,52 @@
+{
+  "schema": 3,
+  "scenario_id": "python.maintainability-thresholds",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "standard",
+  "command": [
+    "verify",
+    "--profile",
+    "standard",
+    "--no-cache"
+  ],
+  "expected": {
+    "gate": "PASS",
+    "findings": [
+      {
+        "provider": "ici.metrics",
+        "rule_id": "metrics.complexity",
+        "path": "src/complex.py",
+        "line": 1,
+        "message_regex": "complexity \\d+ exceeds"
+      },
+      {
+        "provider": "ici.metrics",
+        "rule_id": "metrics.cognitive",
+        "path": "src/complex.py",
+        "line": 1,
+        "message_regex": "cognitive \\d+ exceeds"
+      },
+      {
+        "provider": "ici.dup",
+        "rule_id": "dup.type2-clone",
+        "path": "src/duplicates.py",
+        "message_regex": "duplicate block"
+      }
+    ],
+    "forbidden_findings": [
+      {
+        "provider": "ici.metrics",
+        "path": "src/clean.py"
+      },
+      {
+        "provider": "ici.dup",
+        "path": "src/clean.py"
+      },
+      {
+        "provider": "ici.dup",
+        "path": "src/complex.py"
+      }
+    ]
+  }
+}

@@ -206,24 +206,18 @@ jobs:
         working-directory: corpus/quality-zoo
         run: |
           set -euo pipefail
-          candidate_manifest="candidate-manifest.json"
-          stable_manifest="manifest.json"
-          if [[ -e "$candidate_manifest" || -L "$candidate_manifest" ]]; then
-            if [[ ! -f "$candidate_manifest" || -L "$candidate_manifest" ]]; then
-              echo "candidate-manifest.json must be a regular non-symlink file" >&2
+          # The corpus now speaks the ici.next.run contract only — a candidate
+          # that predates it has no expectations to answer to here.
+          next_manifest="manifest.next.json"
+          if [[ -e "$next_manifest" || -L "$next_manifest" ]]; then
+            if [[ ! -f "$next_manifest" || -L "$next_manifest" ]]; then
+              echo "manifest.next.json must be a regular non-symlink file" >&2
               exit 1
             fi
-            selected_manifest="$candidate_manifest"
-            selected_source="candidate"
-          elif [[ -e "$stable_manifest" || -L "$stable_manifest" ]]; then
-            if [[ ! -f "$stable_manifest" || -L "$stable_manifest" ]]; then
-              echo "manifest.json must be a regular non-symlink file" >&2
-              exit 1
-            fi
-            selected_manifest="$stable_manifest"
-            selected_source="stable-fallback"
+            selected_manifest="$next_manifest"
+            selected_source="next"
           else
-            echo "Quality Zoo has no supported manifest" >&2
+            echo "Quality Zoo has no manifest.next.json" >&2
             exit 1
           fi
           selected_sha256="$(sha256sum -- "$selected_manifest" | cut -d ' ' -f1)"
@@ -254,11 +248,11 @@ jobs:
             --github-evidence "$RUNNER_TEMP/candidate-evidence" \
             --json > "$RUNNER_TEMP/candidate-intake.json"
           case "$MANIFEST_SOURCE:$MANIFEST_PATH" in
-            candidate:candidate-manifest.json|stable-fallback:manifest.json) ;;
+            next:manifest.next.json) ;;
             *) echo "unexpected Quality Zoo manifest selection" >&2; exit 1 ;;
           esac
           test "$(sha256sum -- "$MANIFEST_PATH" | cut -d ' ' -f1)" = "$MANIFEST_SHA256"
-          ICI_PYTHON=python3.10 python3.10 -m runner.run \
+          ICI_PYTHON=python3.10 python3.10 -m runner.next_run \
             --manifest "$MANIFEST_PATH" \
             --ici-bin "$RUNNER_TEMP/candidate-verified/ici.pyz" \
             --output-dir "$RUNNER_TEMP/quality-zoo-results" \
@@ -291,7 +285,7 @@ jobs:
           from pathlib import Path
 
           payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-          if payload.get("schema") != "quality-zoo.suite/v1":
+          if payload.get("schema") != "quality-zoo.suite/v2":
               raise SystemExit("unexpected Quality Zoo suite schema")
           results = payload.get("results")
           if not isinstance(results, list) or not results:

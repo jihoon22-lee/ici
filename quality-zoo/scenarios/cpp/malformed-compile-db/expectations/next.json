@@ -1,0 +1,33 @@
+{
+  "schema": 3,
+  "scenario_id": "cpp.malformed-compile-db",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+  ],
+  "prepare": [],
+  "expected": {
+    "gate": "INCOMPLETE",
+    "exit_code": 3,
+    "limitations_regex": [
+      "compilation database entry is not an object"
+    ],
+    "metrics": {
+      "units.covered": {
+        "max": 0
+      }
+    },
+    "forbidden_findings": [
+      {
+        "provider": "compiler",
+        "path": "src/main.cpp"
+      }
+    ],
+    "findings": []
+  }
+}

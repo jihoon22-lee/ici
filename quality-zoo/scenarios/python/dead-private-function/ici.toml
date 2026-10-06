@@ -1,36 +1,47 @@
-[ici]
+schema_version = 1
+
+[workspace]
+name = "quality-zoo-python-dead-private-function"
 profile = "fast"
 
-[project]
-name = "quality-zoo-python-dead-private-function"
-version = "1.0.0"
-source_dirs = ["src"]
+[[components]]
+id = "zoo"
+root = "."
+languages = ["python"]
+sources = ["src/**/*.py"]
 
-[engines.line]
-enabled = false
-[engines.lint]
-enabled = false
-[engines.compile_db]
-enabled = false
-[engines.test]
-enabled = false
-[engines.type]
-enabled = false
-[engines.complexity]
-enabled = false
-[engines.sanitize]
-enabled = false
-[engines.dead]
+# The dead-code pin is advisory: the scenario asserts detection, not a gate.
+[checks."python.dead"]
 enabled = true
-[engines.dup]
+required = false
+
+[checks."python.line"]
 enabled = false
-[engines.exception]
+[checks."python.lint"]
 enabled = false
-[engines.cycle]
+[checks."python.format"]
 enabled = false
-[engines.cognitive]
+[checks."python.type"]
 enabled = false
-[engines.security]
+[checks."python.test"]
 enabled = false
-[engines.resource]
+[checks."python.coverage"]
+enabled = false
+[checks."python.complexity"]
+enabled = false
+[checks."python.cognitive"]
+enabled = false
+[checks."python.cycle"]
+enabled = false
+[checks."python.dup"]
+enabled = false
+[checks."python.security"]
+enabled = false
+[checks."python.resource"]
+enabled = false
+[checks."python.exception"]
+enabled = false
+[checks."python.compat"]
+enabled = false
+[checks."python.compat-runtime"]
 enabled = false

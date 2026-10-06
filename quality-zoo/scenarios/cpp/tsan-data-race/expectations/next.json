@@ -1,0 +1,50 @@
+{
+  "schema": 3,
+  "scenario_id": "cpp.tsan-data-race",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+  ],
+  "prepare": [
+    [
+      "cmake",
+      "-S",
+      ".",
+      "-B",
+      "build",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_CXX_FLAGS=-fsanitize=thread -g",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    [
+      "cmake",
+      "--build",
+      "build",
+      "--parallel"
+    ]
+  ],
+  "expected": {
+    "gate": "FAIL",
+    "exit_code": 1,
+    "findings": [
+      {
+        "provider": "thread-sanitize",
+        "rule_id": "ici.sanitize.tsan.data-race",
+        "path": "src/race.cpp",
+        "line": 15,
+        "message_regex": "data race"
+      }
+    ],
+    "forbidden_findings": [
+      {
+        "provider": "thread-sanitize",
+        "path_regex": "clean"
+      }
+    ]
+  }
+}

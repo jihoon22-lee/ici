@@ -1,0 +1,39 @@
+{
+  "schema": 3,
+  "scenario_id": "cpp.make-elf-integration",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+  ],
+  "prepare": [
+    [
+      "make",
+      "-j2"
+    ]
+  ],
+  "expected": {
+    "gate": "PASS",
+    "metrics": {
+      "artifacts.satisfied": {
+        "min": 2
+      },
+      "binary.checked": {
+        "min": 1
+      }
+    },
+    "forbidden_findings": [
+      {
+        "provider": "ici.artifact"
+      },
+      {
+        "provider": "readelf"
+      }
+    ],
+    "findings": []
+  }
+}

@@ -5,9 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Threads REQUIRED)
 enable_testing()
+find_package(Threads REQUIRED)
 
-add_executable(tsan_data_race src/race.cpp tests/test_race.cpp)
-target_link_libraries(tsan_data_race PRIVATE Threads::Threads)
-add_test(NAME tsan_data_race COMMAND tsan_data_race)
+add_executable(test_tsan_data_race src/race.cpp tests/test_race.cpp)
+target_link_libraries(test_tsan_data_race PRIVATE Threads::Threads)
+add_test(NAME test_tsan_data_race COMMAND test_tsan_data_race)

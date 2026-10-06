@@ -1,0 +1,48 @@
+{
+  "schema": 3,
+  "scenario_id": "python.security-resource-correctness",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "standard",
+  "command": [
+    "verify",
+    "--profile",
+    "standard",
+    "--no-cache"
+  ],
+  "expected": {
+    "gate": "PASS",
+    "findings": [
+      {
+        "provider": "ici.hygiene",
+        "rule_id": "security.hardcodedsecret",
+        "path": "src/bad.py",
+        "line": 3
+      },
+      {
+        "provider": "ici.hygiene",
+        "rule_id": "security.evalexec",
+        "path": "src/bad.py",
+        "line": 7
+      },
+      {
+        "provider": "ici.hygiene",
+        "rule_id": "resource.openwithoutwith",
+        "path": "src/bad.py",
+        "line": 11
+      },
+      {
+        "provider": "ici.hygiene",
+        "rule_id": "resource.mutabledefault",
+        "path": "src/bad.py",
+        "line": 15
+      }
+    ],
+    "forbidden_findings": [
+      {
+        "provider": "ici.hygiene",
+        "path": "src/clean.py"
+      }
+    ]
+  }
+}

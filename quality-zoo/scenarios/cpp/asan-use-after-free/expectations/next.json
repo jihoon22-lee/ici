@@ -1,0 +1,50 @@
+{
+  "schema": 3,
+  "scenario_id": "cpp.asan-use-after-free",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+  ],
+  "prepare": [
+    [
+      "cmake",
+      "-S",
+      ".",
+      "-B",
+      "build",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -g",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    [
+      "cmake",
+      "--build",
+      "build",
+      "--parallel"
+    ]
+  ],
+  "expected": {
+    "gate": "FAIL",
+    "exit_code": 1,
+    "findings": [
+      {
+        "provider": "sanitize",
+        "rule_id": "ici.sanitize.asan.heap-use-after-free",
+        "path": "src/fault.cpp",
+        "line": 5,
+        "message_regex": "heap use after free"
+      }
+    ],
+    "forbidden_findings": [
+      {
+        "provider": "sanitize",
+        "path": "src/clean.cpp"
+      }
+    ]
+  }
+}

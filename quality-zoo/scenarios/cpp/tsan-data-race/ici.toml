@@ -1,44 +1,64 @@
-[ici]
+schema_version = 1
+
+[workspace]
+name = "quality-zoo-cpp-tsan-data-race"
 profile = "deep"
 
-[project]
-name = "quality-zoo-cpp-tsan-data-race"
-version = "1.0.0"
-type = "cpp"
-source_dirs = ["src"]
+[builds.san]
+system = "cmake"
+project = "CMakeLists.txt"
+directory = "build"
+variant = "thread-sanitize"
+artifacts = ["test_*"]
 
-[doctor]
-required_tools = ["g++", "cmake"]
+[[components]]
+id = "zoo"
+root = "."
+languages = ["cpp"]
+build = "san"
+sources = ["src/**/*.cpp", "src/**/*.hpp", "src/**/*.h"]
 
-[engines.line]
+[checks."cpp.line"]
 enabled = false
-[engines.lint]
+
+[checks."cpp.compile"]
 enabled = false
-[engines.compile_db]
+
+[checks."cpp.diagnostics"]
 enabled = false
-[engines.test]
+
+[checks."cpp.tidy"]
 enabled = false
-[engines.type]
+
+[checks."cpp.test"]
 enabled = false
-[engines.complexity]
+
+[checks."cpp.complexity"]
 enabled = false
-[engines.sanitize]
+
+[checks."cpp.cognitive"]
 enabled = false
-[engines.dead]
+
+[checks."cpp.cycle"]
 enabled = false
-[engines.dup]
+
+[checks."cpp.dup"]
 enabled = false
-[engines.exception]
+
+[checks."cpp.exception"]
 enabled = false
-[engines.cycle]
+
+[checks."cpp.coverage"]
 enabled = false
-[engines.cognitive]
+
+[checks."cpp.artifact"]
 enabled = false
-[engines.security]
+
+[checks."cpp.sanitize"]
 enabled = false
-[engines.resource]
-enabled = false
-[engines.thread_sanitize]
+
+[checks."cpp.tsan"]
 enabled = true
-required = true
-mode = "pass_fail"
+
+[checks."cpp.binary-compat"]
+enabled = false

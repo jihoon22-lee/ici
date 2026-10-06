@@ -1,0 +1,48 @@
+{
+  "schema": 3,
+  "scenario_id": "python.import-cycle-exception",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "standard",
+  "command": [
+    "verify",
+    "--profile",
+    "standard",
+    "--no-cache"
+  ],
+  "expected": {
+    "gate": "FAIL",
+    "exit_code": 1,
+    "findings": [
+      {
+        "provider": "ici.cycles",
+        "rule_id": "cycle.import",
+        "path": "src/pkg/b.py",
+        "line": 1,
+        "message_regex": "import cycle"
+      },
+      {
+        "provider": "ici.hygiene",
+        "rule_id": "exception.errorswallowing",
+        "path": "src/bad.py",
+        "line": 4
+      },
+      {
+        "provider": "ici.hygiene",
+        "rule_id": "exception.losttraceback",
+        "path": "src/bad.py",
+        "line": 12
+      }
+    ],
+    "forbidden_findings": [
+      {
+        "provider": "ici.cycles",
+        "path": "src/clean.py"
+      },
+      {
+        "provider": "ici.hygiene",
+        "path": "src/clean.py"
+      }
+    ]
+  }
+}

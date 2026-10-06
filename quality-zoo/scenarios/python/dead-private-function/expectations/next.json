@@ -1,0 +1,30 @@
+{
+  "schema": 3,
+  "scenario_id": "python.dead-private-function",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "fast",
+  "command": [
+    "verify",
+    "--profile",
+    "fast",
+    "--no-cache"
+  ],
+  "expected": {
+    "gate": "PASS",
+    "findings": [
+      {
+        "provider": "ici.deadcode",
+        "path": "src/bad.py",
+        "line": 1,
+        "message_regex": "_unused_private_function"
+      }
+    ],
+    "forbidden_findings": [
+      {
+        "provider": "ici.deadcode",
+        "path": "src/clean.py"
+      }
+    ]
+  }
+}

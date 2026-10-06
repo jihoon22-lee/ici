@@ -1,54 +1,59 @@
-[ici]
-profile = "deep"
+schema_version = 1
 
-[project]
+[workspace]
 name = "quality-zoo-python-compatibility-package-metadata"
-version = "1.0.0"
-type = "python"
-source_dirs = ["src"]
+profile = "standard"
 
-[engines.line]
-enabled = false
-[engines.lint]
-enabled = false
-[engines.compile_db]
-enabled = false
-[engines.test]
-enabled = false
-[engines.type]
+[[components]]
+id = "zoo"
+root = "."
+languages = ["python"]
+sources = ["src/**/*.py"]
+
+[checks."python.line"]
 enabled = false
 
-[engines.python_compat]
+[checks."python.lint"]
+enabled = false
+
+[checks."python.format"]
+enabled = false
+
+[checks."python.type"]
+enabled = false
+
+[checks."python.test"]
+enabled = false
+
+[checks."python.coverage"]
+enabled = false
+
+[checks."python.complexity"]
+enabled = false
+
+[checks."python.cognitive"]
+enabled = false
+
+[checks."python.cycle"]
+enabled = false
+
+[checks."python.dup"]
+enabled = false
+
+[checks."python.security"]
+enabled = false
+
+[checks."python.resource"]
+enabled = false
+
+[checks."python.exception"]
+enabled = false
+
+[checks."python.dead"]
+enabled = false
+
+[checks."python.compat"]
 enabled = true
-required = true
-mode = "pass_warn_fail"
-target_version = "3.10"
-check_entrypoints = true
-check_package_files = true
 
-[engines.complexity]
-enabled = false
-[engines.sanitize]
-enabled = false
-[engines.thread_sanitize]
-enabled = false
-[engines.dead]
-enabled = false
-[engines.dup]
-enabled = false
-[engines.exception]
-enabled = false
-[engines.cycle]
-enabled = false
-[engines.cognitive]
-enabled = false
-[engines.security]
-enabled = false
-[engines.resource]
-enabled = false
-[engines.build]
-enabled = false
-[engines.binary_compat]
-enabled = false
-[engines.integration]
+[checks."python.compat-runtime"]
 enabled = false

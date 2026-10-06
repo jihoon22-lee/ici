@@ -1,0 +1,48 @@
+{
+  "schema": 3,
+  "scenario_id": "cpp.static-build-context",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+  ],
+  "prepare": [
+    [
+      "cmake",
+      "-S",
+      ".",
+      "-B",
+      "build",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ]
+  ],
+  "expected": {
+    "gate": "FAIL",
+    "exit_code": 1,
+    "findings": [
+      {
+        "provider": "compiler",
+        "rule_id": "compiler.compiler",
+        "message_regex": "missing_symbol_for_quality_zoo"
+      },
+      {
+        "provider": "compiler",
+        "rule_id": "compiler.compiler",
+        "message_regex": "generated/config\\.hpp"
+      }
+    ],
+    "limitations_regex": [
+      "unresolved include 'generated/config\\.hpp'"
+    ],
+    "forbidden_findings": [
+      {
+        "provider": "compiler",
+        "path_regex": "target(17|20)"
+      }
+    ]
+  }
+}

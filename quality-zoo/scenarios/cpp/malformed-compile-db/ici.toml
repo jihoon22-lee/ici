@@ -1,53 +1,62 @@
-[ici]
+schema_version = 1
+
+[workspace]
+name = "qz-malformed-compile-db"
 profile = "deep"
 
-[project]
-name = "qz-malformed-compile-db"
-version = "1.0.0"
-type = "cpp"
-source_dirs = ["src"]
-compile_database = "compile_commands.json"
+[builds.db]
+system = "cmake"
+directory = "build_db"
+variant = "default"
 
-[doctor]
-required_tools = ["g++"]
+[[components]]
+id = "zoo"
+root = "."
+languages = ["cpp"]
+build = "db"
+sources = ["src/**/*.cpp"]
 
-[engines.line]
+[checks."cpp.line"]
 enabled = false
-[engines.lint]
-enabled = false
-[engines.compile_db]
+
+[checks."cpp.compile"]
 enabled = true
-required = true
-database_required = true
-[engines.test]
+
+[checks."cpp.diagnostics"]
 enabled = false
-[engines.type]
+
+[checks."cpp.tidy"]
 enabled = false
-[engines.python_compat]
+
+[checks."cpp.test"]
 enabled = false
-[engines.complexity]
+
+[checks."cpp.complexity"]
 enabled = false
-[engines.sanitize]
+
+[checks."cpp.cognitive"]
 enabled = false
-[engines.thread_sanitize]
+
+[checks."cpp.cycle"]
 enabled = false
-[engines.dead]
+
+[checks."cpp.dup"]
 enabled = false
-[engines.dup]
+
+[checks."cpp.exception"]
 enabled = false
-[engines.exception]
+
+[checks."cpp.coverage"]
 enabled = false
-[engines.cycle]
+
+[checks."cpp.artifact"]
 enabled = false
-[engines.cognitive]
+
+[checks."cpp.sanitize"]
 enabled = false
-[engines.security]
+
+[checks."cpp.tsan"]
 enabled = false
-[engines.resource]
-enabled = false
-[engines.build]
-enabled = false
-[engines.binary_compat]
-enabled = false
-[engines.integration]
+
+[checks."cpp.binary-compat"]
 enabled = false

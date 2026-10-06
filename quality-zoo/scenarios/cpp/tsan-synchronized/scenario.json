@@ -1,10 +1,5 @@
 {
-  "schema": 2,
+  "schema": 3,
   "scenario_id": "cpp.tsan-synchronized",
-  "expectations": {
-    "424108397858470b1209bc2749b580a858fb06c8b09aaa2e4772c94e43690bb5": "expectations/candidate-thread-sanitize.json",
-    "50d41d36775394f66f6620091f42a7a0333ee90758e19449a848d7ee0875a93c": "expectations/candidate-thread-sanitize.json",
-    "23d9922b94b2ba34ab8884cd2d39c8eda358ccb32d0925af5c0a3d52a7ddc893": "expectations/candidate-thread-sanitize.json",
-    "e90140186f84ff17c4cda039d34c241b99f9ba74b07ea3b089a542c4bb620d9b": "expectations/candidate-thread-sanitize.json"
-  }
+  "expectation": "expectations/next.json"
 }

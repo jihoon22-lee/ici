@@ -1,0 +1,32 @@
+{
+  "schema": 3,
+  "scenario_id": "python.compatibility-package-metadata",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "standard",
+  "command": [
+    "verify",
+    "--profile",
+    "standard",
+    "--no-cache"
+  ],
+  "expected": {
+    "gate": "FAIL",
+    "exit_code": 1,
+    "findings": [
+      {
+        "provider": "ici.compat",
+        "rule_id": "python.compat.standard-library-floor",
+        "path": "src/actual/__init__.py",
+        "line": 1,
+        "message_regex": "tomllib"
+      }
+    ],
+    "forbidden_findings": [
+      {
+        "provider": "ici.compat",
+        "path": "src/actual/clean.py"
+      }
+    ]
+  }
+}

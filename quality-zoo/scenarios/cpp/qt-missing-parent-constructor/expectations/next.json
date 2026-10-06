@@ -1,0 +1,35 @@
+{
+  "schema": 3,
+  "scenario_id": "cpp.qt-missing-parent-constructor",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+  ],
+  "prepare": [
+    [
+      "cmake",
+      "-S",
+      ".",
+      "-B",
+      "build",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    [
+      "cmake",
+      "--build",
+      "build",
+      "--parallel"
+    ]
+  ],
+  "expected": {
+    "gate": "PASS",
+    "findings": [],
+    "forbidden_findings": []
+  }
+}

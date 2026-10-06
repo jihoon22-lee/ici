@@ -493,26 +493,25 @@ def test_candidate_quality_zoo_separates_tokens_from_candidate_execution():
     )
 
 
-def test_candidate_quality_zoo_prefers_candidate_manifest_with_stable_fallback():
+def test_candidate_quality_zoo_uses_the_next_manifest_only():
     accept = _job_block(_workflow("candidate-quality-zoo.yml"), "accept")
     select = _step_block(accept, "Select Candidate Quality Zoo Manifest")
     execute = _step_block(accept, "Verify Candidate Provenance and Run Quality Zoo")
 
+    # The corpus speaks ici.next.run only — a candidate that predates it has
+    # no expectations to answer to here, so there is no stable fallback.
     assert "id: select-manifest" in select
-    assert 'candidate_manifest="candidate-manifest.json"' in select
-    assert 'stable_manifest="manifest.json"' in select
-    assert select.index('selected_manifest="$candidate_manifest"') < select.index(
-        'selected_manifest="$stable_manifest"'
-    )
-    assert 'selected_source="candidate"' in select
-    assert 'selected_source="stable-fallback"' in select
+    assert 'next_manifest="manifest.next.json"' in select
+    assert 'selected_source="next"' in select
+    assert 'echo "Quality Zoo has no manifest.next.json" >&2' in select
     assert "must be a regular non-symlink file" in select
     assert 'sha256sum -- "$selected_manifest"' in select
 
     assert "MANIFEST_PATH: ${{ steps.select-manifest.outputs.path }}" in execute
     assert "MANIFEST_SOURCE: ${{ steps.select-manifest.outputs.source }}" in execute
     assert "MANIFEST_SHA256: ${{ steps.select-manifest.outputs.sha256 }}" in execute
-    assert "candidate:candidate-manifest.json|stable-fallback:manifest.json" in execute
+    assert "next:manifest.next.json" in execute
+    assert "runner.next_run \\" in execute
     assert '--manifest "$MANIFEST_PATH"' in execute
     assert 'sha256sum -- "$MANIFEST_PATH"' in execute
     assert "quality-zoo.manifest-selection/v1" in execute
@@ -544,7 +543,7 @@ def test_candidate_quality_zoo_verifies_provenance_and_uploads_separate_evidence
     ):
         assert suffix in evidence
     assert '--github-evidence "$RUNNER_TEMP/candidate-evidence"' in execute
-    assert "python3.10 -m runner.run" in execute
+    assert "python3.10 -m runner.next_run" in execute
     assert 'payload.get("contract_verdict") != "PASS"' in execute
     assert "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" in upload
     assert (

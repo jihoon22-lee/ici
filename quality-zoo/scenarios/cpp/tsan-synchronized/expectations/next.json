@@ -1,0 +1,40 @@
+{
+  "schema": 3,
+  "scenario_id": "cpp.tsan-synchronized",
+  "class": "stable",
+  "project_root": ".",
+  "profile": "deep",
+  "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+  ],
+  "prepare": [
+    [
+      "cmake",
+      "-S",
+      ".",
+      "-B",
+      "build",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_CXX_FLAGS=-fsanitize=thread -g",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    [
+      "cmake",
+      "--build",
+      "build",
+      "--parallel"
+    ]
+  ],
+  "expected": {
+    "gate": "PASS",
+    "forbidden_findings": [
+      {
+        "provider": "thread-sanitize"
+      }
+    ],
+    "findings": []
+  }
+}

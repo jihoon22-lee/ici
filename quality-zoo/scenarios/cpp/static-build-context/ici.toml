@@ -1,56 +1,63 @@
-[ici]
+schema_version = 1
+
+[workspace]
+name = "qz-static-build-context"
 profile = "deep"
 
-[project]
-name = "qz-static-build-context"
-version = "1.0.0"
-type = "cpp"
-source_dirs = ["src"]
+[builds.ctx]
+system = "cmake"
+project = "CMakeLists.txt"
+directory = "build"
+variant = "default"
 
-[doctor]
-required_tools = ["g++", "cmake"]
+[[components]]
+id = "zoo"
+root = "."
+languages = ["cpp"]
+build = "ctx"
+sources = ["src/**/*.cpp", "include/**/*.hpp"]
 
-[engines.line]
+[checks."cpp.line"]
 enabled = false
-[engines.lint]
+
+[checks."cpp.compile"]
 enabled = true
-required = true
-clang_tidy = "off"
-clazy = "off"
-[engines.compile_db]
+
+[checks."cpp.diagnostics"]
 enabled = true
-required = true
-database_required = true
-[engines.test]
+
+[checks."cpp.tidy"]
 enabled = false
-[engines.type]
+
+[checks."cpp.test"]
 enabled = false
-[engines.python_compat]
+
+[checks."cpp.complexity"]
 enabled = false
-[engines.complexity]
+
+[checks."cpp.cognitive"]
 enabled = false
-[engines.sanitize]
-enabled = false
-[engines.thread_sanitize]
-enabled = false
-[engines.dead]
-enabled = false
-[engines.dup]
-enabled = false
-[engines.exception]
-enabled = false
-[engines.cycle]
+
+[checks."cpp.cycle"]
 enabled = true
-required = false
-[engines.cognitive]
+
+[checks."cpp.dup"]
 enabled = false
-[engines.security]
+
+[checks."cpp.exception"]
 enabled = false
-[engines.resource]
+
+[checks."cpp.coverage"]
 enabled = false
-[engines.build]
+
+[checks."cpp.artifact"]
 enabled = false
-[engines.binary_compat]
+
+[checks."cpp.sanitize"]
 enabled = false
-[engines.integration]
+
+[checks."cpp.tsan"]
+enabled = false
+
+[checks."cpp.binary-compat"]
 enabled = false

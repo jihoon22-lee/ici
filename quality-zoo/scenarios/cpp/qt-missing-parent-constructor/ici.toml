@@ -1,44 +1,66 @@
-[ici]
-profile = "standard"
+schema_version = 1
 
-[project]
-name = "quality-zoo-cpp-qt-missing-parent-constructor"
-version = "1.0.0"
-source_dirs = ["src"]
+[workspace]
+name = "qz-qt-missing-parent"
+profile = "deep"
 
-[doctor]
-required_tools = ["g++", "cmake", "clazy"]
+[builds.qt]
+system = "cmake"
+project = "CMakeLists.txt"
+directory = "build"
+variant = "default"
 
-[engines.line]
+[[components]]
+id = "zoo"
+root = "."
+languages = ["cpp"]
+build = "qt"
+sources = ["src/**/*.cpp"]
+
+[components.cpp]
+qt = true
+
+[checks."cpp.line"]
 enabled = false
-[engines.lint]
+
+[checks."cpp.compile"]
 enabled = true
-required = true
-clang_tidy = "off"
-clazy = "required"
-clazy_profile = "level0"
-clazy_checks = ["ctor-missing-parent-argument"]
-[engines.compile_db]
+
+[checks."cpp.diagnostics"]
+enabled = true
+
+[checks."cpp.tidy"]
 enabled = false
-[engines.test]
+
+[checks."cpp.test"]
 enabled = false
-[engines.type]
+
+[checks."cpp.complexity"]
 enabled = false
-[engines.complexity]
+
+[checks."cpp.cognitive"]
 enabled = false
-[engines.sanitize]
+
+[checks."cpp.cycle"]
 enabled = false
-[engines.dead]
+
+[checks."cpp.dup"]
 enabled = false
-[engines.dup]
+
+[checks."cpp.exception"]
 enabled = false
-[engines.exception]
+
+[checks."cpp.coverage"]
 enabled = false
-[engines.cycle]
+
+[checks."cpp.artifact"]
 enabled = false
-[engines.cognitive]
+
+[checks."cpp.sanitize"]
 enabled = false
-[engines.security]
+
+[checks."cpp.tsan"]
 enabled = false
-[engines.resource]
+
+[checks."cpp.binary-compat"]
 enabled = false

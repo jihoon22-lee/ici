@@ -27,7 +27,7 @@
 |`.github/workflows/candidate-quality-zoo.yml`|**ici**|완료|
 |`scripts/candidate_merge_gate.py` — candidate/Merge Gate 신원 사슬 검증|**ici**|완료. `verify-pr`는 이 저장소 PR을 검증한다|
 |`scripts/candidate_bundle.py` — candidate 빌드|**ici**|완료|
-|`quality-zoo/manifest.json` (`candidate-manifest.json`) — 무엇을 돌리고 무엇을 기대하는가|**ici**|**이관 완료.** corpus의 정의다|
+|`quality-zoo/manifest.next.json` — 무엇을 돌리고 무엇을 기대하는가 (next 계약; v3 매니페스트는 삭제됨)|**ici**|**이관 완료.** corpus의 정의다|
 |`quality-zoo/runner/` (`runner.candidate_intake`) — 실행 기계|**ici**|**이관 완료.** corpus와 함께 옮겨 실행기와 기대값이 같은 revision을 공유한다|
 |`quality-zoo/` 아래의 대상 프로젝트들|**ici**|**이관 완료.** 전부 이 저장소용으로 작성된 시나리오이며 재배포 가능하다|
 
@@ -35,11 +35,12 @@
 
 이전 세션에서 "미확인"으로 비워 뒀던 행을 실측으로 채웠다.
 
-1. `quality-zoo/manifest.json` 스키마 — `schema: 1`의 시나리오 id+path 목록이고,
-   각 `scenario.json`(schema 2)이 ici artifact의 정확한 SHA-256을 기대값 파일에 매핑한다.
-   버전 문자열이 아니라 실행 파일 digest가 선택자다.
-2. 대상 프로젝트의 출처와 라이선스 — 17개 시나리오 전부 이 corpus용으로 작성된
-   miniature 프로젝트다(cpp 12, python 5). 제삼자 vendored 소스가 없으므로
+1. `quality-zoo/manifest.next.json` 스키마 — 시나리오 id+path 목록이고, 각
+   `scenario.json`(schema 3)은 단일 `expectation: expectations/next.json`을
+   가리킨다. schema 2의 digest-keyed 기대값은 ici.next.run 계약으로 대체됐다
+   (버전 문자열/digest가 아니라 result envelope의 producer가 선택 근거다).
+2. 대상 프로젝트의 출처와 라이선스 — 16개 시나리오 전부 이 corpus용으로 작성된
+   miniature 프로젝트다(cpp 11, python 5). 제삼자 vendored 소스가 없으므로
    "same as repository"로 등록했다.
 3. `runner.candidate_intake` 계약 — archive SHA-256, repository, target sha,
    GitHub evidence 디렉터리를 요구한다. workflow만 바꾸면 되고 runner 계약은
@@ -47,10 +48,13 @@
 
 ## 등록부 연동
 
-17개 시나리오를 [`tests/fixtures/manifest.toml`](../../../tests/fixtures/manifest.toml)에
-`quality-zoo/<scenario-id>` 행으로 등록했다. `requires`는 각 expectation의
-`required_capabilities`를 반영하고, capability 이름이 라이브러리를 표현하지 못하는
-Qt 시나리오에는 `cmake_package = "Qt6"` probe를 썼다.
+16개 시나리오를 [`tests/fixtures/manifest.toml`](../../../tests/fixtures/manifest.toml)에
+`quality-zoo/<scenario-id>` 행으로 등록했다(그중 15개가 `manifest.next.json`에
+선언돼 돌고, `qt-missing-parent`는 next Qt 규약 check 부재로 주차됐다).
+`requires`는 시나리오가 실제로 부르는 도구 — `prepare` argv, 빌드 시스템이
+암묵적으로 호출하는 컴파일러, 활성 check가 띄우는 분석 도구 — 를 반영하고,
+실행 파일 이름이 라이브러리를 표현하지 못하는 Qt 시나리오에는
+`cmake_package = "Qt6"` probe를 썼다.
 
 위생 검사([`tests/test_corpus_hygiene.py`](../../../tests/test_corpus_hygiene.py))는
 등록된 corpus 전체를 스캔한다. `python.security-resource-correctness`의 bait는

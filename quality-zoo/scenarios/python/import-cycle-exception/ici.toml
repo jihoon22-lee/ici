@@ -1,56 +1,59 @@
-[ici]
+schema_version = 1
+
+[workspace]
+name = "quality-zoo-python-import-cycle-exception"
 profile = "standard"
 
-[project]
-name = "quality-zoo-python-import-cycle-exception"
-version = "1.0.0"
-type = "python"
-source_dirs = ["src"]
+[[components]]
+id = "zoo"
+root = "."
+languages = ["python"]
+sources = ["src/**/*.py"]
 
-[engines.line]
-enabled = false
-[engines.lint]
-enabled = false
-[engines.compile_db]
-enabled = false
-[engines.test]
-enabled = false
-[engines.type]
-enabled = false
-[engines.python_compat]
-enabled = false
-[engines.complexity]
-enabled = false
-[engines.sanitize]
-enabled = false
-[engines.thread_sanitize]
-enabled = false
-[engines.dead]
-enabled = false
-[engines.dup]
+[checks."python.line"]
 enabled = false
 
-[engines.cycle]
+[checks."python.lint"]
+enabled = false
+
+[checks."python.format"]
+enabled = false
+
+[checks."python.type"]
+enabled = false
+
+[checks."python.test"]
+enabled = false
+
+[checks."python.coverage"]
+enabled = false
+
+[checks."python.complexity"]
+enabled = false
+
+[checks."python.cognitive"]
+enabled = false
+
+[checks."python.cycle"]
 enabled = true
-required = true
-mode = "pass_warn_fail"
-max_reported = 20
 
-[engines.cognitive]
-enabled = false
-[engines.build]
-enabled = false
-[engines.binary_compat]
-enabled = false
-[engines.integration]
+[checks."python.dup"]
 enabled = false
 
-[engines.exception]
+[checks."python.security"]
+enabled = false
+
+[checks."python.resource"]
+enabled = false
+
+[checks."python.exception"]
 enabled = true
-required = true
-mode = "pass_fail"
 
-[engines.security]
+[checks."python.dead"]
 enabled = false
-[engines.resource]
+
+[checks."python.compat"]
+enabled = false
+
+[checks."python.compat-runtime"]
 enabled = false
