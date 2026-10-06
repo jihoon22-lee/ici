@@ -53,6 +53,7 @@ def plans(
     root: Path,
     request: RunRequest,
     profile: Profile,
+    mutate: bool = False,
 ) -> tuple[list[Plan], dict[str, Analysis], list[str], dict[str, Plan]]:
     """One plan per component, plus the internal analyses they register.
 
@@ -152,6 +153,7 @@ def plans(
             root,
             files_by_language.get("python", ()),
             units.get("python"),
+            mutate=mutate,
         )
         plan = gate_integration(plan, component, effective, comp_root, root, scope.builds)
         result.append(plan)

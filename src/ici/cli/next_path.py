@@ -110,11 +110,13 @@ from ici.execution.cache import ObservationCache
 from ici.execution.cancellation import Cancellation, signal_cancels
 from ici.execution.manifest import digest_of as file_digest
 from ici.execution.process import run_task
+from ici.execution.results import write_run_result
 from ici.languages.checks import CheckDefinition
 from ici.languages.registry import builtin as builtin_registry
 from ici.reporting.offline_html import render
 from ici.reporting.sarif import SarifBoundsError
 from ici.reporting.sarif import document as sarif_document
+from ici.toolchain.environment import EnvironmentSnapshot
 from ici.toolchain.resolution import Unresolved
 from ici.workspace import compile_units, inventory
 from ici.workspace.inventory import SourceInventory
@@ -624,7 +626,7 @@ def cmd_verify(
     )
     try:
         all_plans, analyses, limitations, by_component = plans(
-            scope, config, before, root, request, resolved
+            scope, config, before, root, request, resolved, mutate=True
         )
     except NothingSelected as error:
         typer.echo(f"config: {error}", err=True)
@@ -668,6 +670,10 @@ def cmd_verify(
             all_plans,
             providers=providers,
             analyses=analyses,
+            # A VIRTUAL_ENV that no longer owns PATH points tools at an
+            # interpreter that is not the one running — drop it rather than
+            # inherit a wrong answer that looks right.
+            environment=EnvironmentSnapshot(dict(os.environ)).without_stale_virtualenv().variables,
             runner=lambda spec: run_task(spec, cancellation),
             cache=cache,
             identify=_identifier(resolved, config.policy_digest),
@@ -731,8 +737,9 @@ def cmd_verify(
         baseline=comparison,
     )
     target = root / result if not result.is_absolute() else result
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(dumps(run_result_to_dict(stored)), encoding="utf-8")
+    # SPEC-04's atomic write — a crash mid-write must not leave a truncated
+    # result a reader could half-trust.
+    write_run_result(stored, target)
 
     _close_sink(sink, cancellation, stored)
 
@@ -872,7 +879,6 @@ def cmd_report(
             typer.echo(f"report: {error}", err=True)
             raise typer.Exit(EXIT_CONFIG) from error
         typer.echo(f"wrote {target}")
-        return
 
     target = root / page if not page.is_absolute() else page
     target.parent.mkdir(parents=True, exist_ok=True)

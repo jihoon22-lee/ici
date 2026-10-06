@@ -347,6 +347,21 @@ def compose(
     workspace_dir = PurePosixPath(root.path).parent
     workspace_checks = tuple(_workspace_check(setting) for setting in root.checks)
 
+    # [tools.*] is parsed but nothing consumes it yet — accepting it silently
+    # would leave the author believing a path or source took effect while PATH
+    # or the bundle chose the tool anyway.
+    for setting in root.tools:
+        problems.append(
+            ConfigProblem(
+                message=(
+                    f"tools.{setting.id} is declared but not consumed by this version — "
+                    "remove it or the run ignores it"
+                ),
+                origin=setting.origin,
+                hint="tool resolution follows the check's declared source order",
+            )
+        )
+
     builds = tuple(
         _build(declaration, workspace_dir, overlay, env, problems) for declaration in root.builds
     )

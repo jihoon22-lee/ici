@@ -110,6 +110,10 @@ class MypyProvider:
 def parse_mypy_output(text: str, root: Path, task_id: str = "") -> ParsedOutput:
     """Turn mypy's text stream into findings, refusing anything else."""
 
+    if not text.strip():
+        # mypy always ends with a summary line; a completed run that printed
+        # nothing lost its output somewhere — that is not a clean answer.
+        return ParsedOutput(failed_to_parse="mypy produced no output")
     findings: list[Finding] = []
     for raw in text.splitlines():
         line = raw.rstrip("\r\n")

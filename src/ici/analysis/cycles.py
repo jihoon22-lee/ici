@@ -91,8 +91,12 @@ def _build_python_graph(
     project_root: Path,
     source_dirs: list[Path] | None = None,
     all_sources: list[Path] | None = None,
-) -> tuple[dict[str, set[str]], dict[str, Path]]:
-    """Build module -> imported-module graph for in-project Python sources."""
+) -> tuple[dict[str, set[str]], dict[str, Path], tuple[Path, ...]]:
+    """Build module -> imported-module graph for in-project Python sources.
+
+    The third element names the files that could not be parsed — their imports
+    never reach the graph, so an unseen edge could hide a cycle.
+    """
     if source_dirs is None:
         source_dirs = get_source_dirs(project_root)
     if all_sources is None:
@@ -101,6 +105,7 @@ def _build_python_graph(
     file_to_module, module_to_file = _module_index(all_sources, source_dirs)
 
     graph: dict[str, set[str]] = {mod: set() for mod in module_to_file}
+    skipped: list[Path] = []
     for py_file in all_sources:
         importer = file_to_module.get(py_file)
         if not importer:
@@ -108,10 +113,13 @@ def _build_python_graph(
         try:
             tree = ast.parse(py_file.read_text(encoding="utf-8", errors="ignore"))
         except (OSError, SyntaxError):
+            # A file whose imports cannot be read contributes no edges — an
+            # unseen edge can hide a cycle, so this is reported, not dropped.
+            skipped.append(py_file)
             continue
         for target_mod in _imported_module_names(tree):
             graph[importer].update(_resolved_import_targets(target_mod, module_to_file))
-    return graph, module_to_file
+    return graph, module_to_file, tuple(skipped)
 
 
 _CPP_AND_HEADER_SUFFIXES = (".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hh")

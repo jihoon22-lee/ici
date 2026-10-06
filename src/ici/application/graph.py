@@ -193,23 +193,25 @@ def build_graph(
     return TaskGraph(units=units, blocked=tuple(blocked))
 
 
-def _producers(checks: tuple[PlannedCheck, ...] | None) -> dict[str, PlannedCheck]:
-    """Which selected check produces each logical input.
+def _producers(checks: tuple[PlannedCheck, ...] | None) -> dict[str, list[PlannedCheck]]:
+    """Which selected checks produce each logical input.
 
-    Two selected checks claiming the same input is a definition error, not a
-    choice: whichever the graph picked, the other half of the run would be
-    reading output nobody produced.
+    Two *different* checks claiming the same input is a definition error, not
+    a choice. The same check expanded into several tasks — one per declared
+    test suite, say — all produce parts of the input, and every consumer must
+    wait on all of them.
     """
 
-    found: dict[str, PlannedCheck] = {}
+    found: dict[str, list[PlannedCheck]] = {}
     for planned in checks or ():
         for name in planned.check.provides:
-            previous = found.get(name)
-            if previous is not None:
+            producers = found.setdefault(name, [])
+            if producers and producers[0].check.id != planned.check.id:
                 raise GraphError(
-                    f"input {name!r} is produced by both {previous.check.id} and {planned.check.id}"
+                    f"input {name!r} is produced by both "
+                    f"{producers[0].check.id} and {planned.check.id}"
                 )
-            found[name] = planned
+            producers.append(planned)
     return found
 
 
@@ -233,7 +235,7 @@ def _catalog_producers(
 
 def _wire(
     planned: PlannedCheck,
-    producers: dict[str, PlannedCheck],
+    producers: dict[str, list[PlannedCheck]],
     available: dict[str, CheckDefinition],
     edges: dict[str, list[str]],
     blocked: list[Blocked],
@@ -242,17 +244,18 @@ def _wire(
 
     reasons: list[str] = []
     for need in planned.check.needs:
-        producer = producers.get(need)
-        if producer is None:
+        producers_for = producers.get(need)
+        if producers_for is None:
             supplier = available.get(need)
             if supplier is not None:
                 reasons.append(f"needs {need}, which {supplier.id} was not selected to produce")
             else:
                 reasons.append(f"needs {need}, which no selected check produces")
             continue
-        if producer.task_id == planned.task_id:
-            raise GraphError(f"check {planned.check.id} cannot consume its own {need}")
-        edges.setdefault(planned.task_id, []).append(producer.task_id)
+        for producer in producers_for:
+            if producer.task_id == planned.task_id:
+                raise GraphError(f"check {planned.check.id} cannot consume its own {need}")
+            edges.setdefault(planned.task_id, []).append(producer.task_id)
     if reasons:
         blocked.append(Blocked(check=planned, reason="; ".join(reasons)))
     return bool(reasons)

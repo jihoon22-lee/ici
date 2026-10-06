@@ -50,7 +50,7 @@ def measure_cycles(request: CycleRequest) -> Observation:
 
 def _measure_python(request: CycleRequest) -> Observation:
     root = request.project_root
-    graph, module_to_file = _build_python_graph(
+    graph, module_to_file, skipped = _build_python_graph(
         root,
         source_dirs=list(python_source_roots(request.files, root)),
         all_sources=list(request.files),
@@ -81,12 +81,17 @@ def _measure_python(request: CycleRequest) -> Observation:
                 evidence=EvidenceLevel.MEASURED,
             )
         )
+    limitations = tuple(
+        f"{_relative(path, root)}: could not be parsed — its imports are not in the graph"
+        for path in skipped
+    )
     return Observation(
         task_id=request.task_id,
         provider=PROVIDER_NAME,
         state=TaskState.SUCCEEDED,
         findings=tuple(findings),
         measurements=(Measurement(name="cycles_found", value=len(findings), unit="cycles"),),
+        limitations=limitations,
     )
 
 

@@ -58,6 +58,5 @@ LOCAL_OVERLAY_ALLOWLIST = frozenset(
         "components.*.python.executable",
         "output",
         "cache",
-        "tools.*.path",
     }
 )

@@ -38,6 +38,11 @@ _PROBE_TIMEOUT = 10.0
 
 
 def _runnable(path: str) -> bool:
+    # A bare name is a PATH lookup — `Path(name).is_file()` would check the
+    # working directory, which is neither what execvp runs nor a meaningful
+    # test of availability.
+    if os.sep not in path:
+        return shutil.which(path) is not None
     return Path(path).is_file() and os.access(path, os.X_OK)
 
 

@@ -309,6 +309,10 @@ def parse_ruff_format(text: str, root: Path, task_id: str = "") -> ParsedOutput:
     files is indistinguishable from a formatted tree.
     """
 
+    if not text.strip():
+        # ``--check`` always ends with a tally line; silence means the stream
+        # was lost, not that every file was already formatted.
+        return ParsedOutput(failed_to_parse="ruff format produced no output")
     findings: list[Finding] = []
     seen: set[str] = set()
     pending_header = False

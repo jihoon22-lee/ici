@@ -14,6 +14,7 @@ shown as blocked before anything runs rather than failing mid-run.
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 from dataclasses import replace
@@ -155,6 +156,14 @@ def _python_target(
         declared = ", ".join(sorted((*targets, "declared")))
         return "", f"unknown python target {name!r}; declared: {declared}"
     if "/" not in target:
+        # A bare name resolves through PATH — inside a bundle run that is a
+        # host channel the offline contract does not permit, the same rule
+        # ``resolve_tool`` applies to analyzers.
+        if os.environ.get("ICI_BUNDLE_ROOT"):
+            return "", (
+                f"python target {name!r} ({target}) is a PATH name; a bundle run "
+                "needs a declared path"
+            )
         found = shutil.which(target)
         return (found, "") if found else ("", f"python target {name!r} ({target}) is not on PATH")
     candidate = Path(target)

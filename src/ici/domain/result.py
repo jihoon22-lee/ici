@@ -183,8 +183,11 @@ class ExecutionSummary:
                 name,
                 tuple(require_identifier(item, f"execution {name} entry") for item in values),
             )
-        if self.required_complete and (self.blocked_task_ids or self.cancelled):
-            raise ValueError("a run with blocked or cancelled work is not complete")
+        # required_complete claims no work was left blocked, but cancellation
+        # is not work left undone: a run interrupted after its last unit still
+        # completed its required work. The two axes stay independent.
+        if self.required_complete and self.blocked_task_ids:
+            raise ValueError("a run with blocked work is not complete")
 
 
 @dataclass(frozen=True)

@@ -46,8 +46,8 @@ requires = []
 cost = "fast"
 provenance = "authored for ici"
 license = "same as repository"
-expectation = "CycleEngine reports WARN naming both a.hpp and b.hpp"
-exercised_by = ["tests/test_cpp_e2e.py::test_cycle_engine_detects_a_header_cycle"]
+expectation = "the cpp.cycle measure reports an include cycle naming a.hpp and b.hpp"
+exercised_by = ["tests/next/test_corpus_fixtures.py::test_cycle_fixture_reports_the_include_cycle"]
 
 [[fixture]]
 id = "cpp/complexity_hot"
@@ -58,8 +58,8 @@ requires = []
 cost = "fast"
 provenance = "authored for ici"
 license = "same as repository"
-expectation = "ComplexityEngine reports WARN on a function named classify* with complexity > 15"
-exercised_by = ["tests/test_cpp_e2e.py::test_complexity_engine_detects_a_hot_function"]
+expectation = "the cpp.complexity measure reports a function named classify* with complexity > 15"
+exercised_by = ["tests/next/test_corpus_fixtures.py::test_complexity_fixture_reports_the_hot_function"]
 
 [[fixture]]
 id = "cpp/clone_pair"
@@ -70,8 +70,8 @@ requires = []
 cost = "fast"
 provenance = "authored for ici"
 license = "same as repository"
-expectation = "DuplicateEngine reports WARN: the two functions differ only in identifiers and literals"
-exercised_by = ["tests/test_cpp_e2e.py::test_duplicate_engine_detects_a_type_2_clone"]
+expectation = "the cpp.dup measure reports a Type-2 clone pair differing only in identifiers and literals"
+exercised_by = ["tests/next/test_corpus_fixtures.py::test_clone_fixture_reports_the_type_2_clone"]
 
 [[fixture]]
 id = "cpp/dtor_throw"
@@ -82,8 +82,8 @@ requires = []
 cost = "fast"
 provenance = "authored for ici"
 license = "same as repository"
-expectation = "ExceptionSafetyEngine reports FAIL mentioning the destructor"
-exercised_by = ["tests/test_cpp_e2e.py::test_exception_engine_detects_a_throwing_destructor"]
+expectation = "the cpp.exception measure reports a finding mentioning the destructor"
+exercised_by = ["tests/next/test_corpus_fixtures.py::test_dtor_fixture_reports_the_throwing_destructor"]
 
 [[fixture]]
 id = "cpp/oversized_file"
@@ -94,8 +94,8 @@ requires = []
 cost = "fast"
 provenance = "authored for ici"
 license = "same as repository"
-expectation = "LineCountEngine reports WARN naming the 500 line threshold"
-exercised_by = ["tests/test_cpp_e2e.py::test_line_engine_detects_an_oversized_file"]
+expectation = "the line counter reports a finding naming the 500 line threshold"
+exercised_by = ["tests/next/test_corpus_fixtures.py::test_oversized_fixture_reports_the_file_size_finding"]
 
 # The control. A detector that fires here has gained a false positive, which is
 # why #201's acceptance criteria ask for a clean counterpart and not only
@@ -110,8 +110,8 @@ cost = "fast"
 role = "control"
 provenance = "authored for ici"
 license = "same as repository"
-expectation = "every text engine reports PASS with no findings"
-exercised_by = ["tests/test_cpp_e2e.py::test_clean_baseline_produces_no_findings"]
+expectation = "every internal measure reports no findings"
+exercised_by = ["tests/next/test_corpus_fixtures.py::test_clean_baseline_reports_no_findings"]
 
 # --------------------------------------------------------------------------
 # C++ fixtures that need a real toolchain.
@@ -127,8 +127,10 @@ cost = "slow"
 safety = "compiles and runs the fixture under ASan/UBSan; the binary reads past the end of a buffer on purpose"
 provenance = "authored for ici"
 license = "same as repository"
-expectation = "SanitizeEngine reports FAIL with at least one finding"
-exercised_by = ["tests/test_cpp_e2e.py::test_sanitize_detects_a_heap_overflow"]
+expectation = "the cpp.sanitize check reports at least one finding"
+# Not exercised today: the stable e2e that ran it was deleted with the
+# engines. The next-path port is part of the ici-owned corpus work (#201).
+exercised_by = []
 
 [[fixture]]
 id = "cpp/cmake_elf_dead"
@@ -139,8 +141,10 @@ requires = [{ executable = "cmake" }, { executable = "g++" }, { executable = "nm
 cost = "slow"
 provenance = "authored for ici"
 license = "same as repository"
-expectation = "the linker dead-symbol pass reports the unreferenced symbol"
-exercised_by = ["tests/test_cpp_linker_dead_e2e.py"]
+expectation = "the binary inspection reports the unreferenced symbol"
+# Not exercised today: the stable linker dead-symbol pass is gone; whether
+# the check is carried is a corpus decision (#201), not a silent loss here.
+exercised_by = []
 
 # The fixture that motivated this manifest. Qt6 is a requirement of the
 # CMakeLists, not of cmake, and only cmake can answer whether it is reachable.
@@ -159,10 +163,7 @@ cost = "slow"
 provenance = "authored for ici"
 license = "same as repository"
 expectation = "configure, build and ctest succeed; coverage is 100% line, function and branch for src/counter.cpp"
-exercised_by = [
-  "tests/test_build_adapter_e2e.py::test_cmake_fixture_builds_and_tests_a_q_object",
-  "tests/test_build_adapter_e2e.py::test_cmake_fixture_reports_exact_gcov_values_and_geometry",
-]
+exercised_by = []
 
 # qmake does not have the same problem: qmake ships with Qt, so finding the
 # program is enough to know the libraries are there. Recorded because the
@@ -181,10 +182,7 @@ cost = "slow"
 provenance = "authored for ici"
 license = "same as repository"
 expectation = "a SUBDIRS build produces exactly one reported test, test_counter, and a compile_commands.json under build/ici-qmake-build"
-exercised_by = [
-  "tests/test_build_adapter_e2e.py::test_qmake_fixture_builds_and_tests_a_q_object",
-  "tests/test_build_adapter_e2e.py::test_qmake_fixture_captures_compilation_context",
-]
+exercised_by = []
 
 # --------------------------------------------------------------------------
 # ici.next result and event documents (WP02 #200). Data only.
@@ -283,7 +281,7 @@ role = "control"
 provenance = "authored for ici"
 license = "same as repository"
 expectation = "src/ is discovered; every text engine reports PASS with no findings"
-exercised_by = ["tests/test_python_corpus.py"]
+exercised_by = ["tests/next/test_corpus_fixtures.py"]
 
 # The pair that makes directory naming visible. The defect is in beta only, so
 # a finding attributed to alpha is a misattribution rather than a second
@@ -299,7 +297,7 @@ cost = "fast"
 provenance = "authored for ici"
 license = "same as repository"
 expectation = "components/ is not in DEFAULT_SOURCE_DIRS, so ici discovers zero source directories and every engine reports PASS over zero files; renaming the directory to packages/ finds beta's classify() at complexity 18"
-exercised_by = ["tests/test_python_corpus.py"]
+exercised_by = ["tests/next/test_corpus_fixtures.py"]
 
 # The CI dogfood fixture: ci.yml runs the built dist/ici.pyz `next
 # plan/verify/report` in this directory, so the next path is exercised from

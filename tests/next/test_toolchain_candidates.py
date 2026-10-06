@@ -4,11 +4,10 @@ Two hardcoded assumptions leave the new path here, and they are the same mistake
 in different clothes: a location that got into the answer without anyone putting
 it there.
 
-- ``core/env.py`` compiles one department's C++ library, pinned to one version,
-  into ici.
-- ``find_project_executable`` prefers a ``.venv`` whether or not the project
-  mentioned one — the first link in the chain that ends with ``_resolve_python``
-  returning ``sys.executable``.
+The two assumptions that motivated this guard — a department library path
+compiled into ``core/env.py`` and a ``.venv`` preference that ended at
+``sys.executable`` — are retired with the stable path; the assertions below keep
+the toolchain package from growing either back.
 
 The test that matters most here asserts an absence: a component that declares no
 interpreter produces **no candidates**, so the resolver has nothing to fall back
@@ -23,7 +22,6 @@ from pathlib import Path, PurePosixPath
 
 from ici.config.composition import compose
 from ici.config.schema import read_root
-from ici.toolchain.assumptions import ASSUMPTIONS, stale, warnings_for
 from ici.toolchain.candidates import analyzer_request, python_request
 from ici.toolchain.resolution import ProbeResult, ResolvedTool, Role, Unresolved
 from ici.toolchain.resolver import Candidate, Resolver
@@ -198,26 +196,6 @@ class TestAnAnalyzerComesFromTheBundleOrIsNamed:
         assert resolved.launch_path == "/bundle/tools/ruff"
 
 
-class TestTheMigrationWarningsStayTrue:
-    """A note that rots is worse than none: it misleads with authority."""
-
-    def test_every_assumption_still_describes_real_code(self) -> None:
-        assert stale() == (), stale()
-
-    def test_each_one_names_its_replacement(self) -> None:
-        for assumption in ASSUMPTIONS:
-            assert assumption.replacement
-            assert assumption.file in str(assumption)
-
-    def test_the_hardcoded_library_is_named(self) -> None:
-        lines = " ".join(warnings_for(("nas-cpp-library",)))
-        assert "department" in lines and "ici.toml" in lines
-
-    def test_asking_for_one_returns_one(self) -> None:
-        assert len(warnings_for(("automatic-venv",))) == 1
-        assert len(warnings_for()) == len(ASSUMPTIONS)
-
-
 class TestNothingHereIsHardcoded:
     """Asserted on the syntax tree, not on the text.
 
@@ -230,8 +208,7 @@ class TestNothingHereIsHardcoded:
     @staticmethod
     def _modules() -> list[Path]:
         package = Path(__file__).resolve().parents[2] / "src" / "ici" / "toolchain"
-        # assumptions.py names the old path on purpose; that is its whole job.
-        return [m for m in sorted(package.glob("*.py")) if m.name != "assumptions.py"]
+        return sorted(package.glob("*.py"))
 
     @staticmethod
     def _literals(module: Path) -> list[str]:

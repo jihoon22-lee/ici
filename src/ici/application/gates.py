@@ -351,6 +351,7 @@ def gate_python(
     root: Path,
     files: tuple[str, ...],
     unit: AnalysisUnit | None,
+    mutate: bool = False,
 ) -> Plan:
     """Resolve interpreter/tools and attach real tasks to the gated checks.
 
@@ -359,6 +360,10 @@ def gate_python(
     ``python.coverage`` run under the project's own interpreter; when both
     are selected the pytest task is wrapped in ``coverage run`` so one
     execution feeds both checks (#216 item 4).
+
+    ``mutate`` separates ``ici verify`` from ``ici plan``: writing the run's
+    state directories is execution's job — a read-only plan must leave the
+    filesystem the way it found it.
     """
 
     gated = {"python.type", "python.test", "python.coverage", "python.compat-runtime"}
@@ -377,9 +382,9 @@ def gate_python(
     coverage_dir = root / ".ici" / "cache" / "coverage"
     data_file = str(coverage_dir / f"{component_id}.data")
     report_path = str(coverage_dir / f"{component_id}.json")
-    if coverage_selected and interpreter is not None:
+    if mutate and coverage_selected and interpreter is not None:
         # ``coverage run`` refuses to create the data file's directory — the
-        # path under .ici is ici's own state, so making it is part of the plan.
+        # path under .ici is ici's own state, so making it is part of the run.
         coverage_dir.mkdir(parents=True, exist_ok=True)
 
     checks: list[PlannedCheck] = []

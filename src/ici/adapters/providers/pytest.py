@@ -50,7 +50,9 @@ PYTEST_CONTRACT = ExitContract(success=(0,), findings=(1, 2))
 #: the per-node stream; the banner line is decorated, so the match is made
 #: after the rule/underline prefix, not at column zero.
 _COLLECTION_RE = re.compile(
-    r"^[=\s_]*(?:ERROR|FAILED)\s+(?:collecting\s+)?(?P<path>\S+\.py)",
+    # A node id (path::test) belongs to the per-node verdict stream — only a
+    # bare file path is a collection-level failure.
+    r"^[=\s_]*(?:ERROR|FAILED)\s+(?:collecting\s+)?(?P<path>\S+\.py)(?!::)",
     re.MULTILINE,
 )
 
@@ -182,13 +184,21 @@ def _parse(text: str, root: Path, task_id: str) -> ParsedOutput:
     if total and passed == 0:
         # Every collected case skipped, xfailed or errored — nothing verified.
         limitations.append(f"no test ran green ({skipped} skipped of {total} collected)")
+    if total and passed == 0 and not findings:
+        # Verdicts exist but nothing ran green and nothing failed — all
+        # skipped, xfailed, or xpassed. A required test check cannot pass
+        # having verified zero tests, so the parse is declared a failure
+        # rather than a quiet success.
+        return ParsedOutput(
+            failed_to_parse=f"no test ran green ({skipped} skipped of {total} collected)"
+        )
     if not outcomes and not findings:
         # A findings-class exit with no evidence in it is not a quiet pass.
         if "Interrupted" in text or "errors during collection" in text:
             return ParsedOutput(failed_to_parse="pytest was interrupted before reporting")
         if "no tests ran" in text:
             limitations.append("pytest collected no tests")
-        elif text.strip():
+        else:
             # A completed run whose output carries no per-node verdicts is a
             # parser/contract mismatch — pytest 9 demoted per-test lines to
             # -vv, so a provider pinned to -v lands exactly here. Reporting

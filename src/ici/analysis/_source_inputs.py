@@ -170,7 +170,10 @@ def python_source_roots(paths: Iterable[Path], fallback: Path) -> tuple[Path, ..
         if path.suffix != ".py":
             continue
         anchor = path.parent
-        while (anchor / "__init__.py").is_file() and anchor.parent != anchor:
+        # The climb stops at the project root even if it (or an ancestor)
+        # carries an __init__.py — walking past it would name modules after
+        # directories outside the workspace, which no import can resolve.
+        while anchor != fallback and (anchor / "__init__.py").is_file() and anchor.parent != anchor:
             anchor = anchor.parent
         roots.add(anchor)
     return tuple(sorted(roots)) or (fallback,)

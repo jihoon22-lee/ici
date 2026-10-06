@@ -84,6 +84,8 @@ class TyProvider:
 def parse_ty_output(text: str, root: Path, task_id: str = "") -> ParsedOutput:
     """Turn ty's concise stream into findings, refusing anything else."""
 
+    if not text.strip():
+        return ParsedOutput(failed_to_parse="ty produced no output")
     findings: list[Finding] = []
     for raw in text.splitlines():
         line = raw.rstrip("\r\n")

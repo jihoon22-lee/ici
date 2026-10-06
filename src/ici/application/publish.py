@@ -110,7 +110,10 @@ def publish(
     client = GhesClient(api_url=api_url, repo=repo, token=token, transport=transport)
     label = _label(config, root)
     pr_number, event_head = _event_context(env)
-    run_sha = env.get("GITHUB_SHA", "") or event_head
+    # On pull_request events GITHUB_SHA is the ephemeral merge commit, never
+    # the head — comparing the PR head to it would suppress the comment on
+    # every run. The event's head sha is the commit this run reported on.
+    run_sha = event_head or env.get("GITHUB_SHA", "")
     run_id = env.get("GITHUB_RUN_ID", "")
     run_attempt = env.get("GITHUB_RUN_ATTEMPT", "1")
 
