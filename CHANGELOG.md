@@ -934,7 +934,7 @@ WP10이 세우는 것은 **"무엇을 실행할 것인가"와 "언제 실행할 
   `max_parallel`까지 동시 실행하고, resource key를 선언한 작업은 그 lock을 잡고 돕니다 — 같은
   build directory를 쓰는 mutating 작업은 튜닝과 무관하게 겹칠 수 없습니다. 실행 시점에 선행이
   실패하면 소비자는 실행되지 않고 어느 선행이 실패했는지가 observation에 남습니다.
-- 문서: [`docs/design/ici-next/spec-02-task-graph-execution.md`](docs/design/ici-next/spec-02-task-graph-execution.md).
+- 문서: [`docs/design/ici-next/task-execution.md`](docs/design/ici-next/task-execution.md).
 
 ### 추가 — `ici next`가 이제 workspace 위에서 돌고, 결과는 읽은 것을 증명한다 (WP09, [#207](https://github.com/jihoon22-lee/ici/issues/207))
 

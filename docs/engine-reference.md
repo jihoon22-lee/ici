@@ -37,7 +37,7 @@ Profiles: `fast` < `standard` < `deep` select which checks a run picks up.
 | `cpp.compile` | Translation-unit coverage of the compile DB |
 | `cpp.diagnostics` | Compiler diagnostics replay |
 | `cpp.tidy` | `clang-tidy` (blocked when the tool is absent) |
-| `cpp.test` | `ctest` suites from declared builds → `ctest.cases` |
+| `cpp.test` | `ctest` suites and QTest binaries from declared builds → `ctest.cases` / `qtest.cases` |
 | `cpp.complexity` / `cpp.cognitive` | Function metrics (bounded-token estimate where heuristic) |
 | `cpp.cycle` | `#include` cycles |
 | `cpp.dup` | Type-2 clones |
@@ -46,6 +46,12 @@ Profiles: `fast` < `standard` < `deep` select which checks a run picks up.
 | `cpp.artifact` | Declared `[builds.*] artifacts` exist and satisfy the manifest |
 | `cpp.sanitize` / `cpp.tsan` | ASan/UBSan/LSan and TSan instrumented runs |
 | `cpp.binary-compat` | ELF/readelf ABI facts. Deployment floors (ELF class/machine, max glibc) are **not declarable yet** — the check reports that limitation instead of judging silently |
+
+## Integration checks
+
+| Check | Measures |
+|---|---|
+| `integration` | Declared `[[components.integrations]]` cases — `{python:NAME}` resolves declared interpreters or named `python_targets`, `{artifact:BUILD/PATH}` resolves against linked builds' declared artifacts. Offered only when a component declares cases (DEEP profile) |
 
 ## Finding → gate rule
 

@@ -1,7 +1,7 @@
 # ici — Integrated CI Engine
 
 개발 환경(WSL/Linux)과 **사내 폐쇄망**(RHEL 8.10/CentOS, tcsh/bash), **GitHub Actions**에서 같은 정책·결과 계약으로 동작하는 C++/Python CI/CD 품질 게이트입니다. OS·컴파일러·Python·검증 도구의 가용성과 버전은 실행 증거로 기록되며, 환경이 다르면 실제 결과도 달라질 수 있습니다.
-단일 ZipApp 실행 파일(`ici.pyz`, 약 2MB) 또는 self-contained 번들로 배포됩니다.
+단일 ZipApp 실행 파일(`ici.pyz`, 약 2.4MB) 또는 self-contained 번들로 배포됩니다.
 
 ```bash
 $ ici verify --result result.json   # exit 0 pass / 1 fail / 3 incomplete
@@ -31,7 +31,7 @@ compiler-backed C++ 분석과 gcov JSON coverage 정책이 여기에 해당한�
 - [ici-next 설계](docs/design/ici-next/README.md) — **전환의 계획·설계·결정 기록.** 개발 마일스톤은 완료됐고 RHEL/GHES 현장 인수는 [#265](https://github.com/jihoon22-lee/ici/issues/265)가 추적한다
 - [인수인계 문서](docs/superpowers/2026-08-30-handover.md) — 2026-09-04 시점의 맥락과 결정 이유 *(시점 기록)*
 - [workthrough](workthrough/) — 개별 작업의 실측 기록
-- [CI/CD 연동 가이드의 candidate 채널](docs/ci-integration.md#5-candidate-채널-stable-release가-아님) — candidate artifact와 Quality Zoo 인수 절차
+- [CI/CD 연동 가이드의 candidate 채널](docs/ci-integration.md#15-candidate--quality-zoo-수용-수동읽기-전용) — candidate artifact와 Quality Zoo 인수 절차
 
 ### 릴리스 정책
 
@@ -49,7 +49,7 @@ compiler-backed C++ 분석과 gcov JSON coverage 정책이 여기에 해당한�
 |---|---|---|
 | **🧭 ici-next 설계** | **전환의 canonical source.** 목표 아키텍처·SPEC 5종·ADR·실측 기록. 개발 완료, 현장 인수는 [#265](https://github.com/jihoon22-lee/ici/issues/265) | [docs/design/ici-next/](docs/design/ici-next/README.md) |
 | **🚀 사용자 가이드** | 설치, `ici.toml` 설정, CLI 사용법, 결과 문서 읽는 법 | [docs/user-guide.md](docs/user-guide.md) |
-| **📏 체크 레퍼런스** | Python 16종 / C++ 16종 check와 finding→gate 규칙 | [docs/engine-reference.md](docs/engine-reference.md) |
+| **📏 체크 레퍼런스** | Python 16종 / C++ 15종 check와 finding→gate 규칙 | [docs/engine-reference.md](docs/engine-reference.md) |
 | **⚙️ CI/CD 연동 가이드** | GitHub Actions job 구조, dogfood·publish 분리, candidate 채널 | [docs/ci-integration.md](docs/ci-integration.md) |
 | **🏛️ 시스템 아키텍처** | 현재 레이어 구조와 계약 지점 | [docs/architecture.md](docs/architecture.md) |
 | **🗂️ 품질 분석기 실행 계획** | *(superseded — ici-next가 대체)* v0.11.0까지의 로드맵 기록 | [ici 마스터 계획](docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md) · [toy-projects 마스터 계획](https://github.com/jihoon22-lee/toy-projects/blob/main/docs/superpowers/plans/2026-08-30-product-portfolio-master-plan.md) |

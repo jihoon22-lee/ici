@@ -84,6 +84,9 @@ required = false
 enabled = true
 required = true
 
+# 아래 [tools.*] 표는 설계상 예약된 표면이다 — 현재 구현은 이 선언을 소비하지
+# 않으며, 쓰면 compose 단계에서 config 문제로 보고된다. 도구 해석은 check가
+# 선언하는 source 순서(bundle → PATH)를 따른다.
 [tools.ruff]
 source = "bundle"
 
