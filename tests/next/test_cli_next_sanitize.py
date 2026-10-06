@@ -107,8 +107,10 @@ def _qmake_sanitize_workspace(root: Path, *, instrumented: bool = True) -> None:
     (root / "tests" / "test_unit.cpp").write_text("// test\n", encoding="utf-8")
     (root / "project.pro").write_text("TEMPLATE = subdirs\nSUBDIRS = app tests\n", encoding="utf-8")
     build = root / "build-san"
-    build.mkdir()
-    binary = build / "test_unit"
+    # A real qmake SUBDIRS build writes each target under the subdir that
+    # mirrors its .pro — tests/test_unit.pro lands in build-san/tests/.
+    (build / "tests").mkdir(parents=True)
+    binary = build / "tests" / "test_unit"
     if instrumented:
         _fake_instrumented(binary)
     else:

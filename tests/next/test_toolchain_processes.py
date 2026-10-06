@@ -189,6 +189,29 @@ class TestCoreAndProjectEnvironmentsStayApart:
         )
         assert result.output.strip() == "/usr/bin"
 
+    def test_for_tasks_drops_ici_python_variables(self) -> None:
+        # PYTHONPATH/PYTHONHOME name ici's runtime; a project interpreter
+        # inheriting them would import the verifier's modules.
+        child = EnvironmentSnapshot(
+            {
+                "PATH": "/usr/bin",
+                "PYTHONPATH": "/ici/site-packages",
+                "PYTHONHOME": "/ici",
+                "QTDIR": "/opt/qt",
+            }
+        ).for_tasks()
+        assert "PYTHONPATH" not in child.variables
+        assert "PYTHONHOME" not in child.variables
+        assert child.variables["QTDIR"] == "/opt/qt"
+
+    def test_for_tasks_drops_a_stale_virtualenv_but_keeps_a_live_one(self) -> None:
+        stale = EnvironmentSnapshot({"PATH": "/usr/bin", "VIRTUAL_ENV": "/gone/.venv"}).for_tasks()
+        assert "VIRTUAL_ENV" not in stale.variables
+        live = EnvironmentSnapshot(
+            {"PATH": "/proj/.venv/bin:/usr/bin", "VIRTUAL_ENV": "/proj/.venv"}
+        ).for_tasks()
+        assert live.variables["VIRTUAL_ENV"] == "/proj/.venv"
+
 
 class TestTheFailuresComeBackAsFacts:
     def test_a_timeout_is_reported_not_raised(self) -> None:

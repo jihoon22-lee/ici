@@ -309,6 +309,11 @@ def _reason(spec: TaskSpec, result: ProcessResult, watchdog: Watchdog) -> tuple[
     interruption = _interruption(watchdog)
     if interruption is not None:
         return interruption
+    if not result.started:
+        # The executor's placeholder for "the process never ran" is -1, which
+        # would otherwise be read as SIGHUP — a spawn failure is a diagnosis,
+        # not a signal.
+        return Outcome.START_FAILED, result.stderr.strip() or "the process did not start"
     if result.timed_out:
         return Outcome.TIMED_OUT, f"no answer within {spec.timeout:g}s"
     if result.returncode < 0:

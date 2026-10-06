@@ -72,6 +72,26 @@ class EnvironmentSnapshot:
 
         return EnvironmentSnapshot({**self.variables, **(overlay or {})})
 
+    def for_tasks(self) -> EnvironmentSnapshot:
+        """What a project task inherits: the entry env minus ici's own Python.
+
+        ``PYTHONPATH``/``PYTHONHOME`` set for ici's runtime name *ici's*
+        modules; a pytest run under the project's declared interpreter would
+        import them and measure the wrong packages — the substitution #216
+        exists to forbid. ``VIRTUAL_ENV`` is kept only while it still owns
+        ``PATH``: a stale one points tools at an interpreter that is not the
+        one running.
+        """
+
+        dropped = self.without_stale_virtualenv()
+        return EnvironmentSnapshot(
+            {
+                name: value
+                for name, value in dropped.variables.items()
+                if name not in ("PYTHONPATH", "PYTHONHOME")
+            }
+        )
+
     def without_stale_virtualenv(self) -> EnvironmentSnapshot:
         """Drop a ``VIRTUAL_ENV`` that no longer matches ``PATH``.
 

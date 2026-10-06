@@ -72,6 +72,14 @@ class TestNothingThatDidNotFinishBecomesAnAnswer:
         assert not outcome.outcome.ran_to_completion
         assert RUFF_LIKE.read(outcome) is Interpretation.DID_NOT_RUN
 
+    def test_a_spawn_failure_reports_the_error_not_a_phantom_signal(self) -> None:
+        # The executor's placeholder returncode for "never started" is -1;
+        # reading it as a signal is how a missing executable once claimed it
+        # was killed by SIGHUP.
+        outcome = run_task(TaskSpec(argv=("/definitely/not/here",), environment=ENV))
+        assert outcome.outcome is Outcome.START_FAILED
+        assert "not/here" in outcome.detail or "Failed to execute" in outcome.detail
+
     def test_a_cancellation_is_not_a_pass(self) -> None:
         # PR B implements cancelling; the reading of it is fixed here so the
         # implementation cannot arrive with a different meaning.

@@ -110,11 +110,16 @@ def _decide(
 
 @dataclass(frozen=True)
 class EffectiveCheck:
-    """One check, after every layer that had an opinion about it."""
+    """One check, after every layer that had an opinion about it.
+
+    ``required=None`` means no layer spoke: the check definition's own
+    default then applies at selection. Filling it with a defaults-layer
+    ``False`` would silently demote every named check to advisory.
+    """
 
     id: str
     enabled: Decided[bool]
-    required: Decided[bool]
+    required: Decided[bool] | None = None
     exempted_reason: Sourced[str] | None = None
 
     @property
@@ -291,7 +296,11 @@ class EffectiveConfig:
 
         payload = {
             "checks": [
-                {"id": check.id, "enabled": check.enabled.value, "required": check.required.value}
+                {
+                    "id": check.id,
+                    "enabled": check.enabled.value,
+                    "required": check.required.value if check.required is not None else None,
+                }
                 for check in self.checks
             ],
             "components": [
@@ -302,7 +311,9 @@ class EffectiveConfig:
                         {
                             "id": check.id,
                             "enabled": check.enabled.value,
-                            "required": check.required.value,
+                            "required": (
+                                check.required.value if check.required is not None else None
+                            ),
                         }
                         for check in component.checks
                     ],
@@ -435,11 +446,10 @@ def _optional(value: Sourced[T] | None, layer: Layer) -> Decided[T] | None:
 
 def _workspace_check(setting: CheckSetting) -> EffectiveCheck:
     enabled = Decided(value=DEFAULT_ENABLED, origin=DEFAULTS, layer=Layer.DEFAULTS)
-    required = Decided(value=DEFAULT_REQUIRED, origin=DEFAULTS, layer=Layer.DEFAULTS)
     return EffectiveCheck(
         id=setting.id,
         enabled=_decide(enabled, setting.enabled, Layer.ROOT),
-        required=_decide(required, setting.required, Layer.ROOT),
+        required=_optional(setting.required, Layer.ROOT),
     )
 
 
@@ -1070,7 +1080,6 @@ def _component_checks(
         base = composed.get(adjustment.id) or EffectiveCheck(
             id=adjustment.id,
             enabled=Decided(value=DEFAULT_ENABLED, origin=DEFAULTS, layer=Layer.DEFAULTS),
-            required=Decided(value=DEFAULT_REQUIRED, origin=DEFAULTS, layer=Layer.DEFAULTS),
         )
         composed[adjustment.id] = _adjust(
             component_id, base, adjustment, settings.get(adjustment.id), problems
@@ -1086,16 +1095,21 @@ def _adjust(
     problems: list[ConfigProblem],
 ) -> EffectiveCheck:
     enabled = _decide(base.enabled, adjustment.enabled, Layer.COMPONENT)
-    lowering = (
-        adjustment.required is not None and base.required.value and not adjustment.required.value
-    )
+    # No layer having spoken is not permission to lower: the definition's
+    # default applies downstream, and most checks default to required.
+    base_required = True if base.required is None else base.required.value
+    lowering = adjustment.required is not None and base_required and not adjustment.required.value
     exemption = root_setting.exemption_for(component_id) if root_setting else None
 
     if lowering and exemption is None:
         problems.append(
             ConfigProblem(
                 f"{component_id} cannot make {adjustment.id} optional; "
-                f"the root requires it at {base.required.origin}",
+                + (
+                    f"the root requires it at {base.required.origin}"
+                    if base.required is not None
+                    else "the check is required by its own definition"
+                ),
                 adjustment.required.origin if adjustment.required else adjustment.origin,
                 hint=(
                     f"if this is intended, the root grants it: "

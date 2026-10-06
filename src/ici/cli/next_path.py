@@ -670,10 +670,11 @@ def cmd_verify(
             all_plans,
             providers=providers,
             analyses=analyses,
-            # A VIRTUAL_ENV that no longer owns PATH points tools at an
-            # interpreter that is not the one running — drop it rather than
-            # inherit a wrong answer that looks right.
-            environment=EnvironmentSnapshot(dict(os.environ)).without_stale_virtualenv().variables,
+            # for_tasks strips the Python variables that name ici's runtime —
+            # a pytest under the project's declared interpreter must not
+            # import ici's modules — and drops a VIRTUAL_ENV that no longer
+            # owns PATH.
+            environment=EnvironmentSnapshot(dict(os.environ)).for_tasks().variables,
             runner=lambda spec: run_task(spec, cancellation),
             cache=cache,
             identify=_identifier(resolved, config.policy_digest),

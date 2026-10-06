@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from ici.domain.workspace import BuildUnit
 from ici.workspace.cmake_project import resolve_cmake_project
@@ -45,9 +45,12 @@ class TestSuite:
     conditional: bool
 
 
-_TARGET_RE = re.compile(r"^\s*TARGET\s*=(?P<name>[A-Za-z0-9_.-]+)\s*$", re.MULTILINE)
-_TESTLIB_RE = re.compile(r"^\s*QT\s*\+=?.*\btestlib\b", re.MULTILINE)
-_TESTCASE_RE = re.compile(r"^\s*CONFIG\s*\+=?.*\b(?:testcase|test)\b", re.MULTILINE)
+# qmake assignments come in every spelling — ``TARGET = x``, ``TARGET= x``,
+# ``QT += testlib``, ``QT *= testlib`` — and ``-=`` removes rather than adds,
+# so the operators that *add* are the only ones accepted.
+_TARGET_RE = re.compile(r"^\s*TARGET\s*(?:\+|\*)?=\s*(?P<name>[A-Za-z0-9_.-]+)\s*$", re.MULTILINE)
+_TESTLIB_RE = re.compile(r"^\s*QT\s*(?:\+|\*)?=.*\btestlib\b", re.MULTILINE)
+_TESTCASE_RE = re.compile(r"^\s*CONFIG\s*(?:\+|\*)?=.*\b(?:testcase|test)\b", re.MULTILINE)
 _MAX_PRO_BYTES = 256 * 1024
 
 
@@ -100,13 +103,16 @@ def _qmake_suites(root: Path, build: BuildUnit) -> tuple[TestSuite, ...]:
         binary = _qtest_binary(root / target.project, Path(target.project).stem)
         if binary is None:
             continue
+        # A SUBDIRS build drops each target's binary into the subdir that
+        # mirrors its .pro — ``tests/tests.pro`` builds ``build/tests/x``.
+        subdir = str(PurePosixPath(target.project).parent)
         suites.append(
             TestSuite(
                 id=f"{build.id}-{target.name}",
                 kind="qtest",
                 build_id=build.id,
                 build_dir=build.directory,
-                binary=binary,
+                binary=binary if subdir == "." else f"{subdir}/{binary}",
                 conditional=target.conditional,
             )
         )

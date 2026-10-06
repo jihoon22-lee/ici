@@ -37,6 +37,9 @@ class ProcessResult:
     duration: float
     timed_out: bool = False
     truncated: bool = False
+    #: False when no process ever ran — the returncode is then a placeholder,
+    #: not a signal number, and readers must not decode it as one.
+    started: bool = True
 
 
 def _limit(text: str, maximum: int) -> tuple[str, bool]:
@@ -543,6 +546,7 @@ def run_process(
             returncode=-1,
             stdout="",
             stderr=stderr_text,
+            started=False,
             duration=time.monotonic() - t0,
             truncated=truncated,
         )

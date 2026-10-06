@@ -121,7 +121,10 @@ def _shape(component) -> tuple:
         component.languages.value,
         component.sources,
         component.python_executable.value if component.python_executable else None,
-        tuple((c.id, c.enabled.value, c.required.value) for c in component.checks),
+        tuple(
+            (c.id, c.enabled.value, c.required.value if c.required is not None else None)
+            for c in component.checks
+        ),
     )
 
 
@@ -321,7 +324,9 @@ class TestThePolicyDigest:
 
 
 class TestEveryValueStillKnowsWhichLayerWon:
-    def test_an_unconfigured_check_reports_the_default_layer(self) -> None:
+    def test_an_unconfigured_check_leaves_required_unspoke(self) -> None:
+        # Naming a check without saying `required` must not demote it to
+        # advisory — the check definition's own default applies downstream.
         config = compose(
             read_root(
                 "schema_version = 1\n[workspace]\n[checks.line]\n"
@@ -329,8 +334,7 @@ class TestEveryValueStillKnowsWhichLayerWon:
                 path="root.toml",
             )
         )
-        assert config.checks[0].required.layer is Layer.DEFAULTS
-        assert config.checks[0].required.origin.file == "<built-in defaults>"
+        assert config.checks[0].required is None
 
     def test_a_root_value_reports_the_root_layer_and_its_key(self) -> None:
         config = compose(read_root(ROOT_INLINE, path="root.toml"))

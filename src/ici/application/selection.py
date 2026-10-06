@@ -247,7 +247,11 @@ def selected_effective_checks(
         if decided is not None and not decided.enabled.value:
             omitted.append(Omitted(check=check, reason="disabled"))
             continue
-        required = check.required if decided is None else decided.required.value
+        required = (
+            check.required
+            if decided is None or decided.required is None
+            else decided.required.value
+        )
         chosen.append(check if required == check.required else _with_required(check, required))
     return CheckSelection(selected=tuple(chosen), omitted=tuple(omitted))
 

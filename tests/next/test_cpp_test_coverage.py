@@ -81,8 +81,10 @@ def _qmake_cpp_workspace(root: Path, *, built: bool = False) -> None:
     (root / "project.pro").write_text("TEMPLATE = subdirs\nSUBDIRS = app tests\n", encoding="utf-8")
     if built:
         build = root / "build"
-        build.mkdir()
-        binary = build / "test_unit"
+        # A qmake SUBDIRS build places the test binary under its source
+        # subdirectory — build/tests/test_unit, not build/test_unit.
+        (build / "tests").mkdir(parents=True)
+        binary = build / "tests" / "test_unit"
         binary.write_text(
             "#!/bin/sh\n"
             'echo "PASS   : TestUnit::ok()"\n'
@@ -130,7 +132,7 @@ def test_qmake_testlib_pro_declares_a_qtest_suite(tmp_path) -> None:
     )
     suites = suites_for_build(tmp_path, build)
     assert [s.kind for s in suites] == ["qtest"]
-    assert suites[0].binary == "test_unit"
+    assert suites[0].binary == "tests/test_unit"
 
 
 def test_a_make_build_declares_no_discoverable_suite(tmp_path) -> None:
