@@ -128,9 +128,7 @@ safety = "compiles and runs the fixture under ASan/UBSan; the binary reads past 
 provenance = "authored for ici"
 license = "same as repository"
 expectation = "the cpp.sanitize check reports at least one finding"
-# Not exercised today: the stable e2e that ran it was deleted with the
-# engines. The next-path port is part of the ici-owned corpus work (#201).
-exercised_by = []
+exercised_by = ["tests/next/test_corpus_realtools.py::test_asan_fixture_reports_a_sanitizer_finding"]
 
 [[fixture]]
 id = "cpp/cmake_elf_dead"
@@ -142,8 +140,10 @@ cost = "slow"
 provenance = "authored for ici"
 license = "same as repository"
 expectation = "the binary inspection reports the unreferenced symbol"
-# Not exercised today: the stable linker dead-symbol pass is gone; whether
-# the check is carried is a corpus decision (#201), not a silent loss here.
+# Not exercised: no next-path check consumes this fixture — the linker
+# dead-symbol pass was not carried over and the register keeps the entry so
+# the dropped capability stays visible. The embedded ici.toml is the v3
+# shape the removed stable path read; it is provenance, not live config.
 exercised_by = []
 
 # The fixture that motivated this manifest. Qt6 is a requirement of the
@@ -162,8 +162,8 @@ requires = [
 cost = "slow"
 provenance = "authored for ici"
 license = "same as repository"
-expectation = "configure, build and ctest succeed; coverage is 100% line, function and branch for src/counter.cpp"
-exercised_by = []
+expectation = "configure, build and ctest succeed; ctest.cases and coverage.cpp.* metrics are measured"
+exercised_by = ["tests/next/test_corpus_realtools.py::test_cmake_fixture_builds_tests_and_measures_coverage"]
 
 # qmake does not have the same problem: qmake ships with Qt, so finding the
 # program is enough to know the libraries are there. Recorded because the
@@ -181,8 +181,8 @@ requires = [
 cost = "slow"
 provenance = "authored for ici"
 license = "same as repository"
-expectation = "a SUBDIRS build produces exactly one reported test, test_counter, and a compile_commands.json under build/ici-qmake-build"
-exercised_by = []
+expectation = "a SUBDIRS build produces the test_counter QTest binary under build/ici-qmake-build/tests, whose cases are all measured as passing"
+exercised_by = ["tests/next/test_corpus_realtools.py::test_qmake_fixture_builds_and_reports_the_qtest_suite"]
 
 # --------------------------------------------------------------------------
 # ici.next result and event documents (WP02 #200). Data only.
@@ -323,15 +323,18 @@ exercised_by = [".github/workflows/ci.yml"]
 # expectations the same commit carries.
 #
 # These are executable scenarios, not pytest fixtures: each directory holds a
-# deliberately defective or clean miniature project plus per-artifact
-# expectations under expectations/. candidate-quality-zoo.yml runs
-# `python3.10 -m runner.run` over them, and `kind = "real-tool"` records that
-# the run needs the listed toolchain present.
+# deliberately defective or clean miniature project plus a next-contract
+# expectation under expectations/next.json. candidate-quality-zoo.yml runs
+# `python3.10 -m runner.next_run --manifest manifest.next.json` over them,
+# and `kind = "real-tool"` records that the run needs the listed toolchain
+# present.
 #
-# `requires` mirrors each scenario's `[doctor] required_tools`, extended
-# where an executable name cannot express a library: the Qt scenario's
-# CMakeLists calls find_package(Qt6 REQUIRED), so its requirement is a
-# cmake_package probe, not an executable lookup.
+# `requires` mirrors what a scenario actually invokes: the executables in its
+# expectations' `prepare` argv, the compiler its build system necessarily
+# calls, and the tools its enabled checks launch (readelf, gcov, ...),
+# extended where an executable name cannot express a library: the Qt
+# scenario's CMakeLists calls find_package(Qt6 REQUIRED), so its requirement
+# is a cmake_package probe, not an executable lookup.
 # --------------------------------------------------------------------------
 
 [[fixture]]
@@ -339,11 +342,11 @@ id = "quality-zoo/cpp.asan-use-after-free"
 path = "quality-zoo/scenarios/cpp/asan-use-after-free"
 kind = "real-tool"
 languages = ["cpp"]
-requires = []
+requires = [{ executable = "cmake" }, { executable = "g++" }]
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"
-expectation = "ASan build runs the use-after-free test and the sanitizer engine reports the finding"
+expectation = "the instrumented test binary aborts and cpp.sanitize reports heap-use-after-free"
 exercised_by = ["quality-zoo/tests", ".github/workflows/candidate-quality-zoo.yml"]
 
 [[fixture]]
@@ -351,11 +354,11 @@ id = "quality-zoo/cpp.lsan-memory-leak"
 path = "quality-zoo/scenarios/cpp/lsan-memory-leak"
 kind = "real-tool"
 languages = ["cpp"]
-requires = []
+requires = [{ executable = "cmake" }, { executable = "g++" }]
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"
-expectation = "LSan build runs the leaking test and the sanitizer engine reports the leak"
+expectation = "the instrumented binary leaks and cpp.sanitize reports memory-leak"
 exercised_by = ["quality-zoo/tests", ".github/workflows/candidate-quality-zoo.yml"]
 
 [[fixture]]
@@ -367,7 +370,7 @@ requires = [{ executable = "make" }, { executable = "g++" }, { executable = "rea
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"
-expectation = "make builds the fixture ELF and build/binary_compat/integration engines report against it"
+expectation = "make builds the fixture ELF and cpp.artifact/cpp.binary-compat measure it"
 exercised_by = ["quality-zoo/tests", ".github/workflows/candidate-quality-zoo.yml"]
 
 [[fixture]]
@@ -379,7 +382,7 @@ requires = [{ executable = "g++" }]
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"
-expectation = "compile_db engine rejects the malformed compile_commands.json honestly"
+expectation = "cpp.compile reports the malformed compile_commands.json as a limitation and stays INCOMPLETE"
 exercised_by = ["quality-zoo/tests", ".github/workflows/candidate-quality-zoo.yml"]
 
 [[fixture]]
@@ -390,13 +393,12 @@ languages = ["cpp"]
 requires = [
     { executable = "g++" },
     { executable = "cmake" },
-    { executable = "clazy" },
     { cmake_package = "Qt6", components = ["Core"] },
 ]
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"
-expectation = "clazy flags the QObject constructor missing its parent argument"
+expectation = "parked: compile+diagnostics run, but the Qt parent-convention check is not ported to next"
 exercised_by = ["quality-zoo/tests", ".github/workflows/candidate-quality-zoo.yml"]
 
 [[fixture]]
@@ -408,7 +410,7 @@ requires = [{ executable = "g++" }, { executable = "cmake" }, { executable = "gc
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"
-expectation = "test, complexity, dead and dup engines all measure the coverage scenario"
+expectation = "cpp.test, cpp.coverage, cpp.complexity and cpp.dup measure the coverage scenario"
 exercised_by = ["quality-zoo/tests", ".github/workflows/candidate-quality-zoo.yml"]
 
 [[fixture]]
@@ -416,11 +418,11 @@ id = "quality-zoo/cpp.sanitizer-clean"
 path = "quality-zoo/scenarios/cpp/sanitizer-clean"
 kind = "real-tool"
 languages = ["cpp"]
-requires = []
+requires = [{ executable = "cmake" }, { executable = "g++" }]
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"
-expectation = "sanitizer runs pass clean — the control case for the sanitizer scenarios"
+expectation = "cpp.sanitize reports clean — the control case for the sanitizer scenarios"
 exercised_by = ["quality-zoo/tests", ".github/workflows/candidate-quality-zoo.yml"]
 
 [[fixture]]
@@ -432,7 +434,7 @@ requires = [{ executable = "g++" }, { executable = "cmake" }]
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"
-expectation = "lint, compile_db and cycle engines report against the static build context"
+expectation = "cpp.compile and cpp.diagnostics report the build-context errors"
 exercised_by = ["quality-zoo/tests", ".github/workflows/candidate-quality-zoo.yml"]
 
 [[fixture]]
@@ -444,7 +446,7 @@ requires = [{ executable = "g++" }, { executable = "cmake" }]
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"
-expectation = "TSan build runs the racing test and thread_sanitize reports the data race"
+expectation = "the instrumented binary races and cpp.tsan reports data-race"
 exercised_by = ["quality-zoo/tests", ".github/workflows/candidate-quality-zoo.yml"]
 
 [[fixture]]
@@ -456,7 +458,7 @@ requires = [{ executable = "g++" }, { executable = "cmake" }]
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"
-expectation = "TSan build runs the synchronized test and thread_sanitize reports clean"
+expectation = "the synchronized binary runs clean under cpp.tsan"
 exercised_by = ["quality-zoo/tests", ".github/workflows/candidate-quality-zoo.yml"]
 
 [[fixture]]
@@ -464,7 +466,7 @@ id = "quality-zoo/cpp.ubsan-signed-overflow"
 path = "quality-zoo/scenarios/cpp/ubsan-signed-overflow"
 kind = "real-tool"
 languages = ["cpp"]
-requires = []
+requires = [{ executable = "cmake" }, { executable = "g++" }]
 cost = "slow"
 provenance = "migrated from jihoon22-lee/toy-projects @ 195de9b"
 license = "same as repository"

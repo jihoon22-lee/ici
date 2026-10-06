@@ -135,14 +135,50 @@ class TestTheRegisterIsComplete:
         assert on_disk == registered
 
     def test_corpus_requires_cover_their_scenarios_declared_tools(self):
-        """A corpus row's ``requires`` must cover exactly the ``[doctor]
-        required_tools`` the scenario's own ici.toml declares — no phantom
-        requirements hiding a gap, and none missing."""
+        """A corpus row's ``requires`` must cover exactly the tools the
+        scenario's own contract invokes. Under the next schema ici never
+        builds, so the honest requirement set is the executables the
+        scenario's ``prepare`` argv steps call, the compiler a build system
+        necessarily invokes, and the tools the enabled checks launch — no
+        phantom requirements hiding a gap, and none missing."""
+        import json
+
+        # The tools a check launches beyond the binaries prepare built: the
+        # compiler named in a compile database, or the analyser a check wraps.
+        check_tools = {
+            "cpp.compile": {"g++"},
+            "cpp.diagnostics": {"g++"},
+            "cpp.binary-compat": {"readelf"},
+            "cpp.coverage": {"gcov"},
+        }
+        # What a declared build system invokes when its own steps run —
+        # provisioning must include it even though the argv says only ``make``.
+        build_tools = {"make": {"g++"}, "cmake": {"g++"}, "qmake": {"qmake6", "g++"}}
+        # Binaries that ship inside another provisioned package.
+        covered_by = {"ctest": "cmake"}
+
         for entry in load_manifest().values():
             if QUALITY_ZOO_SCENARIOS not in entry.path.parents:
                 continue
+            declared: set[str] = set()
+            header = json.loads((entry.path / "scenario.json").read_text(encoding="utf-8"))
+            expectations = [
+                entry.path / header["expectation"],
+                *(entry.path / f for f in header.get("expectations", {}).values()),
+            ]
+            for expectations_file in expectations:
+                if not expectations_file.exists():
+                    continue
+                document = json.loads(expectations_file.read_text(encoding="utf-8"))
+                for step in document.get("prepare", ()):
+                    declared.add(Path(step[0]).name)
             config = tomli.loads((entry.path / "ici.toml").read_text(encoding="utf-8"))
-            declared = set(config.get("doctor", {}).get("required_tools", ()))
+            for build in config.get("builds", {}).values():
+                declared |= build_tools.get(build.get("system", ""), set())
+            for check, settings in config.get("checks", {}).items():
+                if settings.get("enabled"):
+                    declared |= check_tools.get(check, set())
+
             probed = {req["executable"] for req in entry.requires if "executable" in req}
             probed |= {name for req in entry.requires for name in req.get("any_executable", ())}
             # A cmake_package probe necessarily runs cmake, so it covers a
@@ -150,6 +186,9 @@ class TestTheRegisterIsComplete:
             covered = declared - probed
             if any("cmake_package" in req for req in entry.requires):
                 covered -= {"cmake"}
+            for alias, provider in covered_by.items():
+                if provider in probed:
+                    covered -= {alias}
 
             assert not covered, f"{entry.id}: required_tools {sorted(covered)} not probed"
             assert probed <= declared, f"{entry.id}: phantom probes {sorted(probed - declared)}"
