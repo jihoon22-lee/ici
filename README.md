@@ -18,10 +18,10 @@ $ ici doctor
 공개 stable 릴리스는 [v0.11.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.11.0)이며
 `ici.pyz`의 SHA-256은 `334bcda1bf127ff18ca1931cb55a8ac6e62af2d687ac90ab13c6af2e5499bc1f`다.
 
-`main`에는 아직 stable로 승인되지 않은 후속 범위가 있다. package/wheel contract, deep
-test-quality 관측, SARIF 출력, ELF binary compatibility, typed integration case,
-compiler-backed C++ 분석과 gcov JSON coverage 정책이 여기에 해당한다. 대부분 설정에서
-명시적으로 켜야 하며, 켜지 않으면 기존 동작은 바뀌지 않는다.
+`ici next`와 bundle artifact는 stable 승인이 아니라 **candidate**다. RHEL 8.10·GHES·
+idk 실소비자 인수는 [field-acceptance checklist](docs/design/ici-next/field-acceptance.md)가
+추적하며, 그 항목들이 닫히고 stable→next 전환 승인이 나기 전까지 stable CLI와
+`dist/ici.pyz`는 공개 경로로 유지된다.
 
 버전별 변경과 각 항목의 CI·Pages 실측 증거는 아래에 있다. README는 그 증거를 복사하지
 않는다.
