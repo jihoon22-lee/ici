@@ -7,6 +7,25 @@
 
 ## [Unreleased]
 
+### 구조 — 실행 모델 명명과 CLI 출력 경계 정리
+
+- `execution.process.TaskSpec`이 `domain.tasks.TaskSpec`과 이름이 충돌하던
+  문제를 `ProcessSpec`으로 개명해 해소했습니다. 도메인 모델은 계획이
+  *무엇*을 뜻하는지이고, `ProcessSpec`은 실행이 *어떻게* 요구하는지이므로
+  `_executable_spec` 경계의 언어와 일치합니다.
+- `cli/next_path.py`에 섞여 있던 plan/verify 출력 형성 코드 ~170줄을
+  `cli/next_render.py`로 분리했습니다. 명령 모듈은 request→scope→plan→run
+  흐름만 갖고, 문서/텍스트 형태의 생성은 render 모듈이 담당합니다.
+- `analysis/` 패키지의 `_` 모듈 접두사 관례를 `__init__.py`에 명문화했습니다 —
+  `ici` 내부 전용이라는 신호이며, 공용 API로 승격할 때만 개명합니다.
+
+### 문서 — 결과 상태 조합 규칙 표
+
+- spec-04 §2에 6축 상태의 허용/금지 조합 표를 추가했습니다.
+  `PASS`+violation 금지, `FAIL`/`INCOMPLETE`의 reasons 필수,
+  `INCOMPLETE`가 exit code에서 `FAIL`에 우선 등 `domain/result.py`가
+  실제로 강제하는 규칙을 그대로 반영합니다.
+
 ### 구조 — builtin provider 레지스트리 통합
 
 - `ici next verify`의 provider dispatch dict가 `cli/next_path.py`에

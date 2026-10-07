@@ -264,3 +264,79 @@ fingerprint = f"sha256:{digest}"
 - Phase 3: `load_config` 무쓰기화, assert 감사, 플레이크 조사, 상태 대수 문서, 골든 등가성.
 - `tide`/`mypy` 외 추가 파서 중복 조사: coverage/gcov/pytest는 next가 `engines/` 함수를
   직접 위임 중 — `analysis/`로의 재배치는 stable-removal inventory의 연장.
+
+# 세 번째 리뷰 후속 — 모델 경계 정리·감사·문서화 (Phase 2/3)
+
+## Overview
+
+`refactor/next-model-boundaries` 브랜치(#281 스택). 실행 모델 명명 충돌 해소, CLI 출력
+경계 분리, analysis 관례 명문화, 상태 대수 문서화, 그리고 Phase 3 감사 항목 2건의
+조사 결과(load_config, assert)를 기록한다.
+
+## Changes Made
+
+### 1. `TaskSpec` → `ProcessSpec` 개명 — `refactor(execution)`
+
+- `execution/process.py`의 `TaskSpec`(실행 프로세스 스펙)이 `domain.tasks.TaskSpec`
+  (선언적 계획 모델)과 이름이 충돌했다. 설계 문서(first-complete-path, spec-02)는
+  `TaskSpec`을 도메인 쪽에 배정하므로 실행 쪽을 `ProcessSpec`으로 개명 — `_executable_spec`
+  경계의 언어와 일치. 21개 파일 일괄 변경(소비자 import·별칭·테스트).
+
+### 2. `cli/next_render.py` 분리 — `refactor(cli)`
+
+- `next_path.py`에서 출력 형성만 담당하던 6개 헬퍼(`_linked_builds`, `_build_line`,
+  `_plan_json`, `_planned_dict`, `_plan_text`, `_verify_text` ~170줄)를
+  `cli/next_render.py`로 이동. 명령 모듈은 request→scope→plan→run 흐름만 남고,
+  문서/텍스트 형태는 render 모듈이 소유. 공개명(`plan_json` 등)으로 개명 —
+  모듈 이름이 경계를 설명하므로 `_` 접두사 불필요.
+
+### 3. `analysis/` `_` 접두사 관례 명문화
+
+- 대량 개명 대신 `analysis/__init__.py` docstring에 관례를 기록: `_`는 "ici 패키지
+  내부 전용" 신호이며 서브패키지 경계를 넘는 import에도 유지, 공용 API 승격 시에만
+  개명한다.
+
+### 4. 상태 대수 조합 표 — `docs(spec-04)`
+
+- spec-04 §2에 "2.1 조합 규칙" 표 추가: `domain/result.py`가 `__post_init__`에서
+  강제하는 허용/금지 조합을 표로 정리(PASS+violations 금지, FAIL/INCOMPLETE는
+  reasons 필수, FULL scope는 required 충족·omission 불가, INCOMPATIBLE baseline은
+  delta 불가 등 9개 규칙).
+
+## Audit Results (코드 변경 없이 종결)
+
+### `load_config` 전역 시드 — **계약이므로 유지**
+
+`load_config(create_global_default=True)`가 `~/.config/ici/ici.toml`을 자동 생성하는
+것은 숨은 쓰기가 아니라 문서화된 계약: `bundle-installation.md` §no-installs smoke가
+빈 HOME에서의 유일한 생성물로 이 파일을 실측 검증한다. 다만 *읽기 전용* 명령
+(`env`/`cache`)은 이미 `load_config` 자체를 우회하며, next 경로는 stable config를
+읽지 않는다. `doctor`/`verify` 등 stable 명령에선 시드를 유지 — defaults 내용을
+그대로 쓰는 파일이라 의미론적 no-op이며 설계된 first-run 편의다.
+
+### assert 감사 — clean
+
+`src/ici`의 모든 `assert`가 `x is not None` 타입좁힘 형태. `python -O`로 제거돼도
+직후 역참조/비교가 AttributeError/TypeError를 내므로 무음 PASS 전환은 불가능.
+검증 자체를 assert에 의존하는 위치는 없음(대조: `grep "assert " src/ici`).
+
+### 스캔 최적화 — 구조상 중복 없음
+
+`plans()`는 `inventory.take` 결과(`stock`)만으로 파일을 해석하며 재glob하지 않는다.
+`verify`의 2차 `take`는 의도된 drift 감지. 컴포넌트 파일 해싱은 무결성 근거라 비용
+자체가 계약. `_expand`의 per-match `is_file()`/`resolve()` 이중 syscall 정도만 미세
+최적화 여지 — 측정 후 결정할 일로 보류.
+
+## Verification Results
+
+- `uv run --python 3.10 pytest tests/next` — 1303 passed
+- `uv run --python 3.10 pytest tests --ignore=tests/next` — 2854 passed
+- `uvx ruff check .` + `ruff format --check .` — 통과
+- `./scripts/build-pyz.sh` — dist/ici.pyz 2.8M 생성 성공(재현성 정규화 포함)
+- `./scripts/smoke.sh` — verify --html 실검증 포함 실행
+
+## Deferred / Known Gaps
+
+- ctest 텍스트 verdict 의미론(미실행 케이스 표현) — 위 §Deferred에 기록된 의미 결정 필요.
+- 플레이크 조사, 골든 등가성(golden equivalence) — 후속.
+- `load_config` 시드를 *읽기 명령*(doctor)에서도 분리할지는 stable UX 결정 — 현행 유지.

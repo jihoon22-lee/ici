@@ -85,6 +85,23 @@ INCOMPLETE이며 사유 있는 root 정책으로 허용한 empty suite만 별도
 > 적용 대상 언어가 없는 프로젝트를 영구 red로 만들지 않기 위함. Evidence 축은 그대로 이관하고,
 > Gate 축(PASS/FAIL/**INCOMPLETE**/NOT_EVALUATED)과 selected/workspace 이원화가 신규다.
 
+### 2.1. 조합 규칙 (구현됨)
+
+축의 조합은 [`ici/domain/result.py`](../../../src/ici/domain/result.py)가 생성 시 거부한다.
+아래 표는 그 규칙의 전부다 — 이 표에 없는 조합만 유효한 결과로 저장·게시될 수 있다.
+
+|조합|판정|이유|
+|---|---|---|
+|`selected=PASS` + `has_violations=true`|금지|통과 scope가 violation을 동시에 보고할 수 없다|
+|`selected=FAIL`/`INCOMPLETE` + `reasons` 없음|금지|실패·미완료는 반드시 이유를 말한다|
+|`has_violations=true` + findings 없음|금지|판정 근거가 되는 finding이 존재해야 한다|
+|`complete` 요건 + blocked/cancelled execution|금지|미완료 run은 완료로 저장되지 않는다|
+|`scope=FULL` + required components 미충족|금지|FULL은 요구 scope의 완결이다|
+|`scope=FULL` + omitted components 있음|금지|component를 뺀 run은 부분 실행이다|
+|미완료 + violation 동시 존재|허용|exit 3 + `has_violations=true`; 확인된 문제를 버리지 않는다|
+|publication 실패 + gate 그대로|허용|게시 축은 판정에 영향을 주지 않는다|
+|baseline 비교 불가 + delta 존재|금지|INCOMPATIBLE은 delta를 갖지 않는다|
+
 ## 3. CLI 종료 코드
 
 |코드|verify 의미|
