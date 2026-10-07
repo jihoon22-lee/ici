@@ -18,7 +18,7 @@
 - 회귀 테스트: 미실행 케이스는 `ctest.cases` 분모에만 남고 limitation으로
   열거되며, 실패와 미실행이 섞인 출력에서도 구분됩니다.
 
-### 검증 — Python defect parity가 cross-path corpus에 추가
+### 추가 — Python defect parity가 cross-path corpus에 추가
 
 - `examples/python-fixtures/defect_bed` — 내부 Python check 8개 각각에
   결함 하나씩을 심은 시드(eval/pickle/shell, 삼킨 except, 과잉 복잡도,
