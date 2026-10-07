@@ -88,8 +88,9 @@
 
 ## 5. 실행 전제와 순서
 
-1. **현장 인수 승인**([field-acceptance.md](../field-acceptance.md); 추적 이슈
-   #265는 park — 현장 접근 시 재개) — 그 전에는 이 문서까지만.
+1. **현장 인수 승인 + 전환 승인**([field-acceptance.md](../field-acceptance.md)
+   R/G/C 계열 전부 `pass` + §6 D-1; 추적 이슈 #265는 park — 현장 접근 시
+   재개) — 그 전에는 이 문서까지만.
 2. ~~`engines/_*.py` → `ici/analysis/` 재배치 PR~~ — 완료 (#278).
 3. ~~§2 부분 추출 7개 모듈의 분할 PR~~ — 완료 (#279). 남은 공유 코어 추출은
    #281·#282로 이어졌다.
