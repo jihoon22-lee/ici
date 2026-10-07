@@ -70,6 +70,9 @@ class CoverageProvider:
             ),
             cwd=cwd,
             output_specs=(report_path,),
+            # ``coverage json -o`` will not create the report's directory; the
+            # task declares it and the runner makes it at run time.
+            work_dirs=(str(Path(report_path).parent),),
             # The declared sources ride the task's explicit environment —
             # the parser needs them to count functions, and the channel is
             # part of the task's declared shape, not ambient state.

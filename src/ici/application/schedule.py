@@ -43,7 +43,12 @@ from ici.domain.enums import TaskState
 from ici.domain.observation import Observation
 from ici.execution.cache import ObservationCache
 from ici.execution.cancellation import Cancellation
-from ici.execution.process import TaskOutcome, TaskSpec, run_task
+from ici.execution.process import (
+    DEFAULT_OUTPUT_LIMIT,
+    TaskOutcome,
+    TaskSpec,
+    run_task,
+)
 
 __all__ = ["Execution", "Runner", "Scheduled", "run_graph"]
 
@@ -325,6 +330,10 @@ def _executable_spec(plan, environment: Mapping[str, str] | None) -> TaskSpec:
         cwd=Path(task.cwd),
         environment=overlay,
         timeout=task.timeout_seconds or 300.0,
+        output_limit=(
+            task.output_limit_bytes if task.output_limit_bytes is not None else DEFAULT_OUTPUT_LIMIT
+        ),
+        work_dirs=tuple(Path(entry) for entry in task.work_dirs),
     )
 
 

@@ -546,6 +546,8 @@ def _planned_dict(planned: PlannedCheck) -> dict[str, object]:
         entry["argv"] = list(planned.task.task.argv)
         if planned.task.task.requires:
             entry["requires"] = list(planned.task.task.requires)
+        if planned.task.task.work_dirs:
+            entry["work_dirs"] = list(planned.task.task.work_dirs)
     if planned.blocked:
         entry["blocked"] = planned.blocked
     return entry

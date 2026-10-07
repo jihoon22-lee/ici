@@ -7,6 +7,23 @@
 
 ## [Unreleased]
 
+### 수정 — `ici next plan`이 `.ici` 디렉터리를 생성하지 않음
+
+- **버그 수정**: `ici next plan`의 계획 경로가 `.ici/cache/coverage`,
+  `.ici/cache/pycache/compat`, `.ici/cache/gcov/<component>` 디렉터리를 계획
+  시점에 생성해, "아무것도 실행하지 않는" 명령이 파일시스템을 쓰고 읽기 전용
+  프로젝트 트리에서는 `OSError`로 종료되던 문제를 수정합니다. 작업이 필요로
+  하는 디렉터리는 이제 `TaskSpec.work_dirs`로 *선언*되고, runner가 프로세스를
+  시작하기 직전에 생성합니다. 생성에 실패하면 그 작업은 START_FAILED —
+  실행되지 않은 것으로 기록되며 PASS로 보고되지 않습니다.
+- `plan --json`의 각 check 항목이 선언된 `work_dirs`를 보여주므로, 계획이
+  어떤 `.ici` 경로를 만들 것인지 미리 볼 수 있습니다.
+- `domain.tasks.TaskSpec.output_limit_bytes`가 실행 spec으로 전달되지 않던
+  누락을 배선합니다 — 선언된 출력 상한이 실제로 적용됩니다.
+- `tests/next/test_execution_process.py`에 work_dirs 생성·취소 시 무쓰기
+  회귀 테스트, `tests/next/test_cli_next_testing.py`에 plan 무쓰기 회귀
+  테스트를 추가했습니다.
+
 ### 구조 — 분석 코어가 `ici.analysis`로 재배치
 
 - `ici.engines._*` 36개 모듈과 순수 헬퍼 `ici.engines.cpp_text`가

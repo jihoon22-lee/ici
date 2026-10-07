@@ -303,7 +303,6 @@ def expand_python_compat_runtime(
             )
         ]
     pycache = root / ".ici" / "cache" / "pycache" / "compat"
-    pycache.mkdir(parents=True, exist_ok=True)
     version = PythonVersionProvider().plan(
         interpreter,
         cwd=str(component_root),
@@ -572,7 +571,6 @@ def plan_cpp_coverage(
         )
     work_dir = root / ".ici" / "cache" / "gcov" / component.id
     # gcov writes reports where it runs — under .ici, not in the build tree.
-    work_dir.mkdir(parents=True, exist_ok=True)
     plan = GcovProvider().plan(
         executable,
         gcno_files=gcno_files,

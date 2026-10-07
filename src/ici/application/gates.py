@@ -377,10 +377,6 @@ def gate_python(
     coverage_dir = root / ".ici" / "cache" / "coverage"
     data_file = str(coverage_dir / f"{component_id}.data")
     report_path = str(coverage_dir / f"{component_id}.json")
-    if coverage_selected and interpreter is not None:
-        # ``coverage run`` refuses to create the data file's directory — the
-        # path under .ici is ici's own state, so making it is part of the plan.
-        coverage_dir.mkdir(parents=True, exist_ok=True)
 
     checks: list[PlannedCheck] = []
     for planned in plan.checks:

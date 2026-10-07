@@ -51,6 +51,11 @@ class TaskSpec:
     output_specs: tuple[str, ...] = ()
     depends_on: tuple[str, ...] = ()
     resource_keys: tuple[str, ...] = ()
+    #: Directories the task needs to exist before it starts — the places under
+    #: .ici a provider's argv writes into. They are declared rather than
+    #: created at plan time so ``ici next plan`` stays write-free; the runner
+    #: makes them when the task actually runs.
+    work_dirs: tuple[str, ...] = ()
     #: External requirements the task needs but ici does not provide —
     #: services, networks, hardware. Declared so ``plan`` can show them and a
     #: run's evidence states what it depended on (#220); they are labels, not
@@ -90,7 +95,13 @@ class TaskSpec:
         object.__setattr__(
             self, "env_overlay", require_env_overlay(self.env_overlay, "task env overlay")
         )
-        for field_name in ("input_refs", "output_specs", "resource_keys", "requires"):
+        for field_name in (
+            "input_refs",
+            "output_specs",
+            "resource_keys",
+            "requires",
+            "work_dirs",
+        ):
             values = require_tuple(getattr(self, field_name), str, f"task {field_name}")
             object.__setattr__(
                 self,
@@ -144,9 +155,11 @@ class TaskSpec:
 
         Deliberately excludes ``id``, ``depends_on`` and ``analysis_unit_ids``:
         two analysis units can legitimately need the identical command, and that
-        is exactly the case worth sharing. Everything that could change the
-        output is included, so a differing variant or rule configuration lands
-        in a different key rather than silently reusing a result.
+        is exactly the case worth sharing. ``work_dirs`` is excluded too — the
+        directories only matter while a task runs, and a task whose answer is
+        shared or cached never runs. Everything that could change the output is
+        included, so a differing variant or rule configuration lands in a
+        different key rather than silently reusing a result.
         """
 
         return (
