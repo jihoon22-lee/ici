@@ -7,6 +7,22 @@
 
 ## [Unreleased]
 
+### 수정 — Ruff 출력 파서가 stable/next 단일 구현으로 통합
+
+- Ruff의 세 가지 출력 방언 — `check`의 JSON 배열, `format --check`의 텍스트
+  (`unformatted:`/`-->` 신형 + `Would reformat:` 구형), stderr의 `warning:`
+  블록 — 을 `ici.analysis._ruff_output`이 한 번 파싱하고, stable
+  (`engines/lint.py`)과 next(`adapters/providers/ruff.py`)는 각자의 결과
+  타입(`InspectionTarget`/`Finding`)으로 변환만 합니다.
+- **drift 수정**: next 경로가 Ruff의 exclusive `end_location.column`을
+  inclusive로 변환하지 않아 finding의 `end_column`이 stable보다 1 크게
+  보고되던 문제를 수정합니다.
+- **fail-closed 강화**: next 경로에서 `code`/`message` 필드가 누락된 JSON
+  항목이 `RUFF`/`(no message)` 기본값으로 finding을 만들던 것을, 이제
+  읽을 수 없는 출력으로 parse 실패 처리합니다.
+- `tests/test_next_differential.py`에 같은 ruff JSON이 양 경로에서 동일한
+  위치를 산출하는지 확인하는 등가성 테스트를 추가했습니다.
+
 ### 수정 — `ici next` 중복 분석이 같은 파일의 클론 occurrence를 모두 보고
 
 - **버그 수정**: `ici next`의 중복 검출 finding fingerprint가
