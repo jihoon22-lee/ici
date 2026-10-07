@@ -29,7 +29,7 @@ from ici.adapters.providers.integration import IntegrationCaseProvider
 from ici.config.composition import compose
 from ici.config.errors import NextConfigError
 from ici.config.schema import read_component, read_root
-from ici.execution.process import Outcome, TaskOutcome, TaskSpec
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome
 
 runner = CliRunner()
 
@@ -75,7 +75,7 @@ def _outcome(
     stderr: str = "",
     outcome: Outcome = Outcome.FINISHED,
 ) -> TaskOutcome:
-    spec = TaskSpec(
+    spec = ProcessSpec(
         name="app.integration.case",
         argv=("/bin/true",),
         cwd=Path.cwd(),

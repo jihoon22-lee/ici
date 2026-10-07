@@ -36,7 +36,7 @@ from ici.execution.cancellation import Cancellation
 from ici.execution.locks import DEFAULT_LOCK_TIMEOUT, Unlocked, exclusive
 from ici.execution.manifest import Manifest, describe, publish
 from ici.execution.outputs import STAGING_DIRECTORY, OutputRoot
-from ici.execution.process import ExitContract, TaskOutcome, TaskSpec, run_task
+from ici.execution.process import ExitContract, ProcessSpec, TaskOutcome, run_task
 
 __all__ = ["DEFAULT_MANIFEST_NAME", "LOCK_NAME", "Production", "produce"]
 
@@ -70,7 +70,7 @@ class Production:
 
 
 def produce(
-    spec: TaskSpec,
+    spec: ProcessSpec,
     root: OutputRoot,
     produces: tuple[str, ...] = (),
     contract: ExitContract | None = None,
@@ -97,7 +97,7 @@ def produce(
 
 
 def _produce_holding_the_lock(
-    spec: TaskSpec,
+    spec: ProcessSpec,
     root: OutputRoot,
     produces: tuple[str, ...],
     contract: ExitContract | None,

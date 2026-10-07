@@ -45,8 +45,8 @@ from ici.execution.cache import ObservationCache
 from ici.execution.cancellation import Cancellation
 from ici.execution.process import (
     DEFAULT_OUTPUT_LIMIT,
+    ProcessSpec,
     TaskOutcome,
-    TaskSpec,
     run_task,
 )
 
@@ -56,7 +56,7 @@ __all__ = ["Execution", "Runner", "Scheduled", "run_graph"]
 #: without a process, and so the one place that starts one stays visible.
 #: Cancellation is checked between units here; interrupting a process already
 #: running is the idk cancel contract's business (#224), not this runner's.
-Runner = Callable[[TaskSpec], TaskOutcome]
+Runner = Callable[[ProcessSpec], TaskOutcome]
 
 #: What ici does itself for a check with no tool.
 Analysis = Callable[[], Observation]
@@ -312,7 +312,7 @@ def _provider_name(unit: WorkUnit) -> str:
     return unit.source.check.tool or "?"
 
 
-def _executable_spec(plan, environment: Mapping[str, str] | None) -> TaskSpec:
+def _executable_spec(plan, environment: Mapping[str, str] | None) -> ProcessSpec:
     """Turn the planned task into the one the executor takes.
 
     Two models, on purpose and not by accident: the planned one is what a run
@@ -324,7 +324,7 @@ def _executable_spec(plan, environment: Mapping[str, str] | None) -> TaskSpec:
     task = plan.task
     overlay = dict(environment if environment is not None else os.environ)
     overlay.update(dict(task.env_overlay))
-    return TaskSpec(
+    return ProcessSpec(
         argv=task.argv,
         name=task.id,
         cwd=Path(task.cwd),

@@ -43,8 +43,7 @@ from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement
 from ici.domain.tasks import TaskSpec
-from ici.execution.process import ExitContract, TaskOutcome
-from ici.execution.process import TaskSpec as ExecTaskSpec
+from ici.execution.process import ExitContract, ProcessSpec, TaskOutcome
 
 __all__ = ["SanitizeProvider"]
 
@@ -165,7 +164,7 @@ class SanitizeProvider:
             limitations=limitations,
         )
 
-    def _anchor(self, spec: ExecTaskSpec) -> str:
+    def _anchor(self, spec: ProcessSpec) -> str:
         """A project-relative path a location-less finding can point at.
 
         The run's own directory is the honest anchor; a workspace-root
@@ -198,9 +197,9 @@ def _span(location: SourceLocation) -> SourceSpan:
 
 def _diagnostic_finding(
     item: SanitizerDiagnostic,
-    spec: ExecTaskSpec,
+    spec: ProcessSpec,
     provider: str,
-    anchor: Callable[[ExecTaskSpec], str],
+    anchor: Callable[[ProcessSpec], str],
 ) -> Finding:
     primary = item.primary_location
     limitations: list[str] = []
@@ -228,7 +227,7 @@ def _diagnostic_finding(
 
 
 def _suite_failure_finding(
-    outcome: TaskOutcome, provider: str, anchor: Callable[[ExecTaskSpec], str]
+    outcome: TaskOutcome, provider: str, anchor: Callable[[ProcessSpec], str]
 ) -> Finding:
     return Finding(
         fingerprint=_fingerprint(outcome.spec.name, "suite", f"exit-{outcome.exit_code}"),

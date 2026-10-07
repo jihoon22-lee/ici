@@ -33,8 +33,7 @@ from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement
 from ici.domain.tasks import TaskSpec
-from ici.execution.process import ExitContract, TaskOutcome
-from ici.execution.process import TaskSpec as ExecTaskSpec
+from ici.execution.process import ExitContract, ProcessSpec, TaskOutcome
 
 __all__ = ["CompileallProvider", "PythonVersionProvider"]
 
@@ -187,7 +186,7 @@ class CompileallProvider:
         return ParsedOutput(findings=findings)
 
 
-def _compile_findings(transcript: str, spec: ExecTaskSpec, provider: str) -> tuple[Finding, ...]:
+def _compile_findings(transcript: str, spec: ProcessSpec, provider: str) -> tuple[Finding, ...]:
     findings: list[Finding] = []
     lines = transcript.splitlines()
     for index, line in enumerate(lines):

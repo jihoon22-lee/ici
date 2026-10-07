@@ -25,8 +25,8 @@ from ici.execution.process import (
     ExitContract,
     Interpretation,
     Outcome,
+    ProcessSpec,
     TaskOutcome,
-    TaskSpec,
     run_task,
 )
 
@@ -212,7 +212,7 @@ class TypeCheckEngine(BaseEngine):
         mypy_argv = [*mypy_cmd, *self._mypy_profile_args(), *mypy_targets]
         try:
             outcome = run_task(
-                TaskSpec(
+                ProcessSpec(
                     argv=tuple(mypy_argv),
                     name="mypy",
                     cwd=self.project_root,

@@ -18,7 +18,7 @@ from ici.adapters.providers.ruff import (
     parse_ruff_format,
 )
 from ici.adapters.providers.ty import TyProvider, parse_ty_output
-from ici.execution.process import Outcome, TaskOutcome, TaskSpec
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome
 
 
 def _outcome(
@@ -30,7 +30,7 @@ def _outcome(
     stderr: str = "",
     outcome: Outcome = Outcome.FINISHED,
 ) -> TaskOutcome:
-    spec = TaskSpec(argv=argv, name="app.python.type", cwd=cwd)
+    spec = ProcessSpec(argv=argv, name="app.python.type", cwd=cwd)
     return TaskOutcome(
         spec=spec,
         outcome=outcome,

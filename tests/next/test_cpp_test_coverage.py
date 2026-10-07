@@ -27,7 +27,7 @@ from typer.testing import CliRunner
 from ici.__main__ import app
 from ici.adapters.providers.cpptest import CtestProvider, QtestProvider
 from ici.domain.workspace import BuildUnit
-from ici.execution.process import Outcome, TaskOutcome, TaskSpec
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome
 from ici.workspace.test_suites import suites_for_build
 
 runner = CliRunner()
@@ -170,7 +170,7 @@ def test_an_unbuilt_qtest_binary_is_blocked(tmp_path, monkeypatch) -> None:
 
 
 def _outcome(name: str, stdout: str, exit_code: int = 0) -> TaskOutcome:
-    spec = TaskSpec(name=name, argv=(name,), cwd=Path.cwd())
+    spec = ProcessSpec(name=name, argv=(name,), cwd=Path.cwd())
     return TaskOutcome(spec=spec, outcome=Outcome.FINISHED, exit_code=exit_code, stdout=stdout)
 
 

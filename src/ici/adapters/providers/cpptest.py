@@ -25,8 +25,7 @@ from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement
 from ici.domain.tasks import TaskSpec
-from ici.execution.process import ExitContract, TaskOutcome
-from ici.execution.process import TaskSpec as ExecTaskSpec
+from ici.execution.process import ExitContract, ProcessSpec, TaskOutcome
 
 __all__ = ["CtestProvider", "QtestProvider"]
 
@@ -111,7 +110,7 @@ class QtestProvider:
         return _parse_qtest(outcome.parseable, outcome.spec)
 
 
-def _parse_ctest(text: str, spec: ExecTaskSpec) -> ParsedOutput:
+def _parse_ctest(text: str, spec: ProcessSpec) -> ParsedOutput:
     findings: list[Finding] = []
     total = 0
     passed = 0
@@ -152,7 +151,7 @@ def _parse_ctest(text: str, spec: ExecTaskSpec) -> ParsedOutput:
     )
 
 
-def _parse_qtest(text: str, spec: ExecTaskSpec) -> ParsedOutput:
+def _parse_qtest(text: str, spec: ProcessSpec) -> ParsedOutput:
     findings: list[Finding] = []
     total = passed = skipped = 0
     pending_loc: tuple[str, int] | None = None
