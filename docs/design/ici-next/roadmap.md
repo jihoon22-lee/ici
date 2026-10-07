@@ -166,7 +166,7 @@ provider 근거 → #218 native 규칙 → #219 policy/TEM
 > 근거가 연결된 항목, `[ ]`는 실환경 확인이 필요해
 > [field-acceptance.md](field-acceptance.md) checklist로 넘어간 항목이다(추적 이슈
 > [#265](https://github.com/jihoon22-lee/ici/issues/265)는 현장 접근 확보까지
-> closed/park — 접근이 확보되면 재개한다).
+> park — 접근이 확보되면 재개한다).
 > 자동화 통과를 현장 근거로 쓰지 않는다.
 
 - [x] R01~R15 각각 구현/테스트/문서 근거가 연결되었다.

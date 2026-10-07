@@ -4,7 +4,7 @@
   [field-acceptance.md](../field-acceptance.md) checklist)가 끝난 뒤 실행할 stable
   껍데기 삭제의 대상을 미리 분류한다. **지금은 아무것도 삭제하지 않는다.**
   추적 이슈 [#265](https://github.com/jihoon22-lee/ici/issues/265)는 현장 접근
-  확보까지 closed/park이며, 준비된 제거 작업은 closed PR
+  확보까지 park 상태이며, 준비된 제거 작업은 PR
   [#280](https://github.com/jihoon22-lee/ici/pull/280)의 보존 브랜치
   `refactor/stable-shell-removal`에 있다 — 재개 시 그 브랜치에서 계속한다.
 - 근거 원칙: stable 게이트·테스트는 전환 완료까지 유지(SPEC-05 §5). 분석 코어
@@ -89,7 +89,7 @@
 ## 5. 실행 전제와 순서
 
 1. **현장 인수 승인**([field-acceptance.md](../field-acceptance.md); 추적 이슈
-   #265는 closed/park — 현장 접근 시 재개) — 그 전에는 이 문서까지만.
+   #265는 park — 현장 접근 시 재개) — 그 전에는 이 문서까지만.
 2. `engines/_*.py` → `ici/analysis/` 재배치 PR (삭제 없이 이동만).
 3. §2 부분 추출 7개 모듈의 분할 PR (next 소비자가 새 위치를 보게).
 4. Engine 클래스 + reporters + stable 전용 core 삭제 PR.

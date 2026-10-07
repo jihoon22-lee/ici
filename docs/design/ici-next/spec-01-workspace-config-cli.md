@@ -179,7 +179,7 @@ PR B/C에서 이어진다. → [config-origin.md](config-origin.md)
 > 엔진 단독 서브커맨드 15개는 목표 CLI에 대응이 없어 stable 표면에 남아 있고,
 > disposition은 [migration-matrix.md](migration-matrix.md)가 기록한다
 > (물리적 제거는 [field-acceptance.md](field-acceptance.md) 현장 인수 후 별도 PR —
-> 추적 이슈 [#265](https://github.com/jihoon22-lee/ici/issues/265)는 closed/park).
+> 추적 이슈 [#265](https://github.com/jihoon22-lee/ici/issues/265)는 park).
 
 ## 6. 부분 실행과 실행 위치
 

@@ -208,7 +208,7 @@ path/archive/XML/JSON/HTML 검증·provider output bounds·credential 없는 PR 
 > 상태(2026-09-18): `[x]`는 자동화된 근거가 있는 항목, `[ ]`는 실환경 확인이
 > 필요해 [field-acceptance.md](field-acceptance.md) checklist로 넘어간 항목
 > (추적 이슈 [#265](https://github.com/jihoon22-lee/ici/issues/265)는 현장 접근
-> 확보까지 closed/park).
+> 확보까지 park).
 
 - [x] R01~R15 → SPEC → WP/PR → 자동/현장 test → evidence의 추적표가 완성된다.
       → [requirements-traceability.md](requirements-traceability.md)
@@ -226,4 +226,4 @@ path/archive/XML/JSON/HTML 검증·provider output bounds·credential 없는 PR 
 - [ ] 문서·CHANGELOG·지원표·candidate evidence·rollback을 검토한 뒤 별도 stable 결정을 한다.
       *(근거 문서는 모두 기록됨 — 릴리스 결정 자체는 소유자의 별도 승인;
       실행 전제는 [inventory/stable-removal.md §5](inventory/stable-removal.md), 추적
-      이슈 [#265](https://github.com/jihoon22-lee/ici/issues/265)는 closed/park)*
+      이슈 [#265](https://github.com/jihoon22-lee/ici/issues/265)는 park)*

@@ -10,7 +10,7 @@
 > 확인뿐이다: RHEL 8.10·GHES·idk 현장 인수와 stable 경로 물리적 제거 승인이
 > [field-acceptance.md](field-acceptance.md) checklist에 모여 있다(추적 이슈
 > [#265](https://github.com/jihoon22-lee/ici/issues/265)는 현장 접근 확보까지
-> closed/park).
+> park).
 
 | | |
 |---|---|

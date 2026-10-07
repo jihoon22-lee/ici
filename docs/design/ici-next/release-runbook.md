@@ -81,7 +81,7 @@ cutover 후 회귀가 발견되면: 설정을 `ici.toml.stable`로 되돌려 sta
 2. 현장 인수 checklist([field-acceptance.md](field-acceptance.md))의 R/G/C
    계열이 전부 `pass`로 기록됐는지 확인한다 — 기록이 없으면 release는
    `limited` 지원 표기로만 진행하거나 보류한다. 근거는 이슈 상태가 아니라
-   checklist의 기록이다(추적 이슈 #265는 closed/park).
+   checklist의 기록이다(추적 이슈 #265는 park).
 3. `manifest.json`의 build input lock digest를 두 번 재조립해 재현성을
    확인한다([bundle-reproducibility.md](bundle-reproducibility.md)).
 4. 지원/제한표·CHANGELOG·사용 가이드·migration 문서가 동기화됐는지 확인한다.
