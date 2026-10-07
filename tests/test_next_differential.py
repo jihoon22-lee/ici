@@ -29,12 +29,15 @@ import pytest
 from typer.testing import CliRunner
 
 from ici.__main__ import app
+from ici.adapters.providers.ruff import parse_ruff_json
+from ici.analysis._ruff_output import parse_check_json
 from ici.core.models import EngineStatus
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.cycle import CycleEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.line import LineCountEngine
+from ici.engines.lint import LintEngine
 
 runner = CliRunner()
 
@@ -212,6 +215,43 @@ def test_cpp_clone_occurrences_are_identical_across_paths(tmp_path: Path, monkey
     )
 
     assert stable_occurrences == next_occurrences
+
+
+def test_ruff_diagnostics_report_identical_locations_across_paths(tmp_path: Path) -> None:
+    """One ruff JSON stream maps to the same span on both paths.
+
+    The parsers shared a format before they shared a parser — next emitted
+    Ruff's exclusive end column as-is while stable converted it to inclusive.
+    This pins the coordinates both consumers report for one diagnostic.
+    """
+    payload = json.dumps(
+        [
+            {
+                "filename": str(tmp_path / "src" / "app.py"),
+                "code": "F401",
+                "message": "`os` imported but unused",
+                "location": {"row": 3, "column": 8},
+                "end_location": {"row": 3, "column": 10},
+            }
+        ]
+    )
+    diagnostics, error = parse_check_json(payload)
+    assert error is None
+
+    (target,) = LintEngine(tmp_path)._ruff_diagnostic_targets(diagnostics)
+    parsed = parse_ruff_json(payload, root=tmp_path)
+    assert parsed.is_readable
+    (span,) = (f.primary_location for f in parsed.findings)
+
+    assert (target.file_path, target.start_line, target.end_line) == (
+        span.path,
+        span.start_line,
+        span.end_line,
+    )
+    assert (target.start_column, target.end_column) == (
+        span.start_column,
+        span.end_column,
+    )
 
 
 def test_a_clean_cpp_fixture_stays_clean(tmp_path: Path, monkeypatch) -> None:
