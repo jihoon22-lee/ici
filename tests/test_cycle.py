@@ -2,13 +2,13 @@
 
 from pathlib import Path
 
-from ici.core.models import EngineStatus
-from ici.engines.cycle import (
-    CycleEngine,
+from ici.analysis.cycles import (
     _find_actual_cycle_path,
     _find_cycles_tarjan,
     _resolve_include,
 )
+from ici.core.models import EngineStatus
+from ici.engines.cycle import CycleEngine
 
 _CFG = {"engines": {"cycle": {"mode": "pass_warn_fail", "max_reported": 20}}}
 

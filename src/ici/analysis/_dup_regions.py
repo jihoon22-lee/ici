@@ -8,7 +8,7 @@ import heapq
 from collections.abc import Iterable
 
 from ici.analysis._cpp_dup_tokenization import cpp_directive_lines
-from ici.engines.complexity import _cpp_function_spans
+from ici.analysis.cpp_complexity import _cpp_function_spans
 
 RegionKey = tuple[int, int]
 

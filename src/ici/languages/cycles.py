@@ -14,14 +14,14 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from ici.domain.enums import EvidenceLevel, TaskState
-from ici.domain.finding import Finding, SourceSpan
-from ici.domain.observation import Measurement, Observation
-from ici.engines.cycle import (
+from ici.analysis.cycles import (
     _build_cpp_graph,
     _build_python_graph,
     _find_cycles_tarjan,
 )
+from ici.domain.enums import EvidenceLevel, TaskState
+from ici.domain.finding import Finding, SourceSpan
+from ici.domain.observation import Measurement, Observation
 
 __all__ = ["PROVIDER_NAME", "CycleRequest", "measure_cycles"]
 

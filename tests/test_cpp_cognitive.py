@@ -450,11 +450,12 @@ def test_unterminated_cpp_function_does_not_silently_pass(tmp_path: Path) -> Non
 
 
 def test_cpp_cognitive_cache_tracks_fallback_scanner_dependency() -> None:
-    # The fallback scanner lives in complexity.py, reached transitively
-    # through _cpp_cognitive — the closure must carry it into the key.
+    # The fallback scanner lives in analysis.cpp_complexity, reached
+    # transitively through analysis._cpp_cognitive — the closure must carry
+    # it into the key.
     from ici.core.cache_identity import _implementation_closure
 
-    assert "ici.engines.complexity" in dict(_implementation_closure("ici.engines.cognitive"))
+    assert "ici.analysis.cpp_complexity" in dict(_implementation_closure("ici.engines.cognitive"))
 
 
 def test_cpp_engine_reports_every_function_with_estimated_evidence(tmp_path: Path) -> None:

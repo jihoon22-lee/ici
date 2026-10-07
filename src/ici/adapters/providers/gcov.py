@@ -17,10 +17,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
+from ici.analysis.gcov_json import GcovJsonError, parse_gcov_json_file
 from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.observation import Measurement
 from ici.domain.tasks import TaskSpec
-from ici.engines.gcov_json import GcovJsonError, parse_gcov_json_file
 from ici.execution.process import ExitContract, TaskOutcome
 
 __all__ = ["GCOV_CONTRACT", "GcovProvider"]

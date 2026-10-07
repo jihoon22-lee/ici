@@ -6,6 +6,7 @@ import math
 import shutil
 from typing import Any
 
+from ici.analysis.pytest_output import pytest_node_location
 from ici.core.models import (
     EngineStatus,
     Finding,
@@ -17,7 +18,6 @@ from ici.core.models import (
     SourceLocation,
 )
 from ici.core.runner import ProcessResult
-from ici.engines.test_output import pytest_node_location
 
 _MAX_QUALITY_RUNS = 3
 _MAX_SLOW_TESTS = 1000

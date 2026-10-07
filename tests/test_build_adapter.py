@@ -3,6 +3,7 @@
 import pytest
 
 import ici.core.cmake as cmake_mod
+from ici.analysis.coverage_support import parse_gcov_dir
 from ici.core.cmake import (
     BACKEND_CMAKE,
     BACKEND_QMAKE,
@@ -29,7 +30,6 @@ from ici.core.cmake import (
 )
 from ici.core.context import BuildVariant
 from ici.core.runner import ProcessResult
-from ici.engines.coverage_support import parse_gcov_dir
 
 _COVERAGE_OPTIONS = ConfigureOptions(BuildVariant.COVERAGE)
 

@@ -7,46 +7,21 @@ import time
 from pathlib import Path
 from typing import Any
 
-from ici.analysis._elf import ElfFacts, ElfParseError, maximum_version, parse_readelf, version_key
+from ici.analysis._elf import ElfFacts, ElfParseError, parse_readelf
+from ici.analysis.binary_abi import _artifact_id, abi_violations, binary_finding
 from ici.core.context import ArtifactRecord, ArtifactScope
-from ici.core.findings import finding_fingerprint
 from ici.core.models import (
     EngineResult,
     EngineStatus,
     EvidenceState,
     Finding,
-    FindingCategory,
-    FindingConfidence,
-    FindingSeverity,
     InspectionTarget,
-    SourceLocation,
     ToolEvidence,
 )
 from ici.core.runner import run_process
 from ici.engines.base import BaseEngine
 
 _BINARY_KINDS = frozenset({"executable", "shared-library"})
-
-
-def _artifact_id(record: ArtifactRecord) -> str:
-    return getattr(record, "artifact_id", "") or record.path
-
-
-def _finding(rule_id: str, path: str, message: str, tool_rule_id: str) -> Finding:
-    location = SourceLocation(path=path, start_line=1)
-    return Finding(
-        rule_id=rule_id,
-        category=FindingCategory.COMPATIBILITY,
-        severity=FindingSeverity.HIGH,
-        confidence=FindingConfidence.EXACT,
-        fingerprint=finding_fingerprint(rule_id, location),
-        primary_location=location,
-        message=message,
-        explanation="The linked binary contract is incompatible with the configured deployment policy.",
-        remediation="Relink with compatible dependencies, ABI floors, and loader paths.",
-        tool_rule_id=tool_rule_id,
-        tool_name="readelf",
-    )
 
 
 class BinaryCompatibilityEngine(BaseEngine):
@@ -105,91 +80,7 @@ class BinaryCompatibilityEngine(BaseEngine):
         cfg: dict[str, Any],
         build_roots: tuple[Path, ...] = (),
     ) -> list[Finding]:
-        findings: list[Finding] = []
-        for label, actual in (("class", facts.elf_class), ("machine", facts.machine)):
-            expected = str(cfg.get(f"expected_{label}", ""))
-            if expected and actual != expected:
-                findings.append(
-                    _finding(
-                        f"ici.binary.{label}-mismatch",
-                        path,
-                        f"ELF {label} {actual!r} does not match expected {expected!r}",
-                        f"elf.header.{label}",
-                    )
-                )
-        for namespace, values in (
-            ("glibc", facts.glibc),
-            ("glibcxx", facts.glibcxx),
-            ("cxxabi", facts.cxxabi),
-        ):
-            floor = str(cfg.get(f"max_{namespace}", ""))
-            actual = maximum_version(values)
-            if floor and actual and version_key(actual) > version_key(floor):
-                findings.append(
-                    _finding(
-                        f"ici.binary.{namespace}-floor",
-                        path,
-                        f"Maximum required {namespace.upper()} {actual} exceeds configured {floor}",
-                        f"elf.version.{namespace}",
-                    )
-                )
-        if cfg.get("require_static", False) and facts.dynamic:
-            findings.append(
-                _finding(
-                    "ici.binary.dynamic-linkage",
-                    path,
-                    "Artifact is dynamically linked but the policy requires static linkage",
-                    "elf.linkage.dynamic",
-                )
-            )
-        paths = (*facts.rpath, *facts.runpath)
-        if cfg.get("forbid_absolute_rpath", True):
-            absolute = [value for value in paths if value.startswith("/")]
-            if absolute:
-                findings.append(
-                    _finding(
-                        "ici.binary.forbidden-rpath",
-                        path,
-                        f"ELF loader path contains absolute entries: {', '.join(absolute)}",
-                        "elf.rpath.forbidden",
-                    )
-                )
-        if cfg.get("forbid_build_paths", True):
-            leaked = []
-            for value in paths:
-                candidate = Path(value)
-                if not candidate.is_absolute():
-                    continue
-                try:
-                    resolved = candidate.resolve(strict=False)
-                except (OSError, RuntimeError):
-                    resolved = candidate
-                if any(resolved == root or root in resolved.parents for root in build_roots):
-                    leaked.append(value)
-            if leaked:
-                findings.append(
-                    _finding(
-                        "ici.binary.build-path-leak",
-                        path,
-                        f"ELF loader path exposes build roots: {', '.join(leaked)}",
-                        "elf.rpath.build-path",
-                    )
-                )
-        forbidden = set(cfg.get("forbidden_needed", []))
-        blocked = sorted(forbidden.intersection(facts.needed))
-        allowed = set(cfg.get("allowed_needed", []))
-        outside = sorted(set(facts.needed) - allowed) if allowed else []
-        if blocked or outside:
-            names = blocked or outside
-            findings.append(
-                _finding(
-                    "ici.binary.forbidden-dependency",
-                    path,
-                    f"ELF requires disallowed dependencies: {', '.join(names)}",
-                    "elf.dynamic.needed",
-                )
-            )
-        return findings
+        return abi_violations(path, facts, cfg, build_roots)
 
     def run(self) -> EngineResult:
         started = time.time()
@@ -256,7 +147,7 @@ class BinaryCompatibilityEngine(BaseEngine):
                         )
                         continue
                     findings.append(
-                        _finding(
+                        binary_finding(
                             "ici.binary.non-elf",
                             relative,
                             "Selected binary manifest artifact is not an ELF object",

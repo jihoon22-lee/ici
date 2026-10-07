@@ -8,16 +8,16 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from ici.application.tem import TemInputs
-from ici.application.tem import calculate as tem_calculate
-from ici.core.project import get_all_python_sources
-from ici.engines.gcov_json import (
+from ici.analysis.gcov_json import (
     MAX_COMPRESSED_BYTES,
     MAX_DECOMPRESSED_BYTES,
     GcovJsonError,
     GcovReport,
     parse_gcov_json_gz,
 )
+from ici.application.tem import TemInputs
+from ici.application.tem import calculate as tem_calculate
+from ici.core.project import get_all_python_sources
 
 _COVERAGE_KEYS = (
     "covered_lines",

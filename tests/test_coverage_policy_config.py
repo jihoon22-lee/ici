@@ -6,10 +6,10 @@ from copy import deepcopy
 
 import pytest
 
+from ici.analysis.coverage_support import build_coverage_summary
 from ici.config import DEFAULT_CONFIG
 from ici.config_schema import ConfigError, validate_config
 from ici.engines.coverage_policy import build_changed_line_status
-from ici.engines.coverage_support import build_coverage_summary
 
 
 def _config() -> dict:
