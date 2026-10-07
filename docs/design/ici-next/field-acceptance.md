@@ -12,9 +12,11 @@
 (SPEC-05 §2-6). 각 항목의 결과는 아래 형식 한 줄로만 기록한다:
 
 ```
-{case, status, env, evidence}
+{case, status, rev, env, evidence}
 case     : 이 문서의 항목 번호 (예: R-3)
 status   : pass | fail | blocked | unsupported
+rev      : 시험한 ici bundle/commit digest. C 계열은 idk 소비자
+           리비전도 함께 기록한다 — 다른 리비전의 결과는 증거가 아니다
 env      : 비민감 환경값만 — OS 릴리스 번호, 커널 major, glibc 번호,
            도구 이름+버전. 호스트명·사용자·경로·사내 도메인 제외
 evidence : 명령과 요약 수치(종료 코드·건수·초). 원본 로그·소스 경로·
@@ -24,8 +26,8 @@ evidence : 명령과 요약 수치(종료 코드·건수·초). 원본 로그·�
 예시:
 
 ```
-R-3, pass, rhel-8.10/glibc-2.28, "verify exit=1 findings=4 wall=2.1s"
-G-2, blocked, ghes-3.12, "사내 인터셉션 CA 미등록 — runner OS 신뢰 저장소 확인 필요"
+R-3, pass, ici@9f1c2ab, rhel-8.10/glibc-2.28, "verify exit=1 findings=4 wall=2.1s"
+G-2, blocked, ici@9f1c2ab, ghes-3.12, "사내 인터셉션 CA 미등록 — runner OS 신뢰 저장소 확인 필요"
 ```
 
 로그 첨부가 필요하면 첨부 전에 호스트명·사내 도메인·사용자 홈 경로를
@@ -37,7 +39,8 @@ G-2, blocked, ghes-3.12, "사내 인터셉션 CA 미등록 — runner OS 신뢰 
 
 - [ ] **R-0 환경 기록**: `cat /etc/redhat-release`, `ldd --version | head -1`,
       `uname -m`. bundle의 glibc 상한(빌드 manifest 측정값, 예: 2.17)이
-      현장 glibc 이하인지 비교한다.
+      현장 glibc 이하인지 비교한다. 모든 R 항목은 **일반 사용자 권한**으로
+      수행한다 — root/sudo로 얻은 결과는 이 checklist의 증거가 아니다.
 
 실행(각 항목은 위 양식으로 결과를 기록한다):
 
@@ -104,6 +107,10 @@ G-2, blocked, ghes-3.12, "사내 인터셉션 CA 미등록 — runner OS 신뢰 
       새로 달리지 않고 갱신되는지 확인한다.
 - [ ] **G-6 stale head**: 결과 생성 후 PR head가 밀려난 상황에서 publish가
       기록 없이 덮어쓰지 않고 새 head 기준으로 재평가/거부되는지 확인한다.
+- [ ] **G-7 실패 경로**: FAIL/INCOMPLETE 결과가 게시되고, 권한 없는 publish
+      job이 조용한 성공이 아니라 명시적으로 실패하는지 확인한다. 게시
+      실패가 로컬 결과 PASS로 번역되지 않아야 한다(#265 B 계열). 실행 후
+      토큰·인증값이 출력·로그·업로드 본문에 새지 않았는지 확인한다.
 
 ## 4. 판정 규칙
 
@@ -134,12 +141,14 @@ G-2, blocked, ghes-3.12, "사내 인터셉션 CA 미등록 — runner OS 신뢰 
 뒤에만** 결정한다 — `fail`/`blocked`/`unsupported`가 하나라도 있으면 증거가
 모인 것이 아니다.
 
-- [ ] **D-1 물리적 제거**: `migration-matrix.md` §7 후보(`src/ici/engines/`,
+- [ ] **D-1 릴리스 전환 승인**: stable→next 릴리스 전환. 버전·태그·공개
+      시점은 소유자 결정이다([release-runbook.md](release-runbook.md) §5).
+      **D-2는 D-1 승인 없이 실행하지 않는다** — 전환이 승인되지 않은
+      상태에서 되돌림 다리를 제거할 수 없다.
+- [ ] **D-2 물리적 제거**: `migration-matrix.md` §7 후보(`src/ici/engines/`,
       v3 reporter, stable CLI, `build-pyz.sh` 등)의 제거 여부를 결정한다.
       되돌림 다리가 더 이상 필요 없다는 합의가 선행 조건이며, 대상 분류는
       [inventory/stable-removal.md](inventory/stable-removal.md)가 담당한다.
       준비된 제거 작업은 PR
       [#280](https://github.com/jihoon22-lee/ici/pull/280)의 보존 브랜치
       `refactor/stable-shell-removal`에서 재개한다.
-- [ ] **D-2 릴리스 전환 승인**: stable→next 릴리스 전환. 버전·태그·공개
-      시점은 소유자 결정이다([release-runbook.md](release-runbook.md) §5).

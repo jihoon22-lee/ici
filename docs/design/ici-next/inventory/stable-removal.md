@@ -90,9 +90,11 @@
 
 1. **현장 인수 승인**([field-acceptance.md](../field-acceptance.md); 추적 이슈
    #265는 park — 현장 접근 시 재개) — 그 전에는 이 문서까지만.
-2. `engines/_*.py` → `ici/analysis/` 재배치 PR (삭제 없이 이동만).
-3. §2 부분 추출 7개 모듈의 분할 PR (next 소비자가 새 위치를 보게).
-4. Engine 클래스 + reporters + stable 전용 core 삭제 PR.
+2. ~~`engines/_*.py` → `ici/analysis/` 재배치 PR~~ — 완료 (#278).
+3. ~~§2 부분 추출 7개 모듈의 분할 PR~~ — 완료 (#279). 남은 공유 코어 추출은
+   #281·#282로 이어졌다.
+4. Engine 클래스 + reporters + stable 전용 core 삭제 PR — 준비물은 PR #280의
+   보존 브랜치 `refactor/stable-shell-removal`.
 5. `__main__.py`/cutover/config_schema 정리 PR + `AGENTS.md` §3·§4 개정
    (ADR-0003 프로세스대로 불변식 자체를 개정).
 6. pyz/launcher/CI 워크플로 정리는 stable 산출물의 공식 종료와 함께.
