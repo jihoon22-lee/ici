@@ -25,10 +25,10 @@ paths it is given).
 from __future__ import annotations
 
 import hashlib
-import re
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
+from ici.analysis._mypy_output import parse_mypy_stream
 from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.tasks import TaskSpec
@@ -41,18 +41,6 @@ PROVIDER_NAME = "mypy"
 #: 0 clean, 1 errors found — both answers. 2 is "could not run", which the
 #: executor reports rather than parses.
 MYPY_CONTRACT = ExitContract(success=(0,), findings=(1,))
-
-#: ``path:line[:col]: severity: message [code]`` — mypy's stable text shape
-#: since long before error codes existed. ``--no-pretty`` keeps the context
-#: block out of this stream so no line here is ambiguous.
-_DIAGNOSTIC_RE = re.compile(
-    r"^(?P<path>.+?):(?P<line>\d+)(?::(?P<column>\d+))?:\s*"
-    r"(?P<severity>error|warning|note):\s*(?P<message>.*?)"
-    r"(?:\s+\[(?P<code>[A-Za-z0-9_-]+)\])?$"
-)
-#: Lines mypy adds that are part of the answer but carry no finding:
-#: the totals and the clean summary.
-_SUMMARY_RE = re.compile(r"^(Found \d+ errors?|Success: no issues found|Checked \d+|\s*$)")
 
 _SEVERITY = {"error": "high", "warning": "medium", "note": "low"}
 
@@ -110,48 +98,42 @@ class MypyProvider:
 def parse_mypy_output(text: str, root: Path, task_id: str = "") -> ParsedOutput:
     """Turn mypy's text stream into findings, refusing anything else."""
 
+    diagnostics, parse_error = parse_mypy_stream(text)
+    if parse_error is not None:
+        return ParsedOutput(failed_to_parse=parse_error)
+
     findings: list[Finding] = []
-    for raw in text.splitlines():
-        line = raw.rstrip("\r\n")
-        diagnostic = _DIAGNOSTIC_RE.match(line)
-        if diagnostic is not None:
-            filename = _relative(diagnostic.group("path"), root)
-            if Path(filename).is_absolute():
-                # A diagnostic outside the workspace — a site-packages stub —
-                # is mypy context, not a project finding.
-                continue
-            message = diagnostic.group("message") or "(no message)"
-            code = diagnostic.group("code") or ""
-            findings.append(
-                Finding(
-                    fingerprint=_fingerprint(
-                        code,
-                        filename,
-                        int(diagnostic.group("line")),
-                        diagnostic.group("column"),
-                        message,
-                    ),
-                    rule_id=f"mypy.{code}" if code else "mypy.error",
-                    message=message,
-                    severity=_SEVERITY.get(diagnostic.group("severity"), "medium"),
-                    confidence="high",
-                    primary_location=SourceSpan(
-                        path=filename,
-                        start_line=int(diagnostic.group("line")),
-                        start_column=(
-                            int(diagnostic.group("column")) if diagnostic.group("column") else None
-                        ),
-                    ),
-                    provider=PROVIDER_NAME,
-                    native_rule_id=code,
-                    task_id=task_id or None,
-                    evidence=EvidenceLevel.MEASURED,
-                )
+    for diagnostic in diagnostics:
+        filename = _relative(diagnostic.path, root)
+        if Path(filename).is_absolute():
+            # A diagnostic outside the workspace — a site-packages stub —
+            # is mypy context, not a project finding.
+            continue
+        code = diagnostic.code or ""
+        findings.append(
+            Finding(
+                fingerprint=_fingerprint(
+                    code,
+                    filename,
+                    diagnostic.line,
+                    diagnostic.column,
+                    diagnostic.message,
+                ),
+                rule_id=f"mypy.{code}" if code else "mypy.error",
+                message=diagnostic.message,
+                severity=_SEVERITY.get(diagnostic.severity, "medium"),
+                confidence="high",
+                primary_location=SourceSpan(
+                    path=filename,
+                    start_line=diagnostic.line,
+                    start_column=diagnostic.column,
+                ),
+                provider=PROVIDER_NAME,
+                native_rule_id=code,
+                task_id=task_id or None,
+                evidence=EvidenceLevel.MEASURED,
             )
-            continue
-        if _SUMMARY_RE.match(line):
-            continue
-        return ParsedOutput(failed_to_parse=f"unrecognized mypy output line: {line.strip()!r}")
+        )
     return ParsedOutput(findings=tuple(findings))
 
 

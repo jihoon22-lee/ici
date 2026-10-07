@@ -7,6 +7,18 @@
 
 ## [Unreleased]
 
+### 수정 — mypy 출력 파서가 stable/next 단일 구현으로 통합
+
+- `path:line[:col]: severity: message [code]` 진단 라인의 어휘를
+  `ici.analysis._mypy_output`이 소유합니다. severity 집합은 소비자 정책으로
+  남습니다 — stable은 기존과 같이 `error`/`note`만 수용해 `warning:` 라인을
+  읽을 수 없는 출력으로 처리하고, next는 `warning`을 finding으로 수용합니다.
+- **fail-closed 강화**: next 경로에서 라인/컬럼 `0`이나 빈 message를 가진
+  진단 라인이 인식되지 않는 출력으로 parse 실패 처리됩니다. 이전에는 `0`
+  좌표가 `SourceSpan` 검증에서 깨지는 경로였습니다.
+- `Found N errors` 요약 라인의 인식은 문법별로 유지됩니다 — stable은
+  full-sentence strict 매칭, next는 prefix 화이트리스트.
+
 ### 수정 — Ruff 출력 파서가 stable/next 단일 구현으로 통합
 
 - Ruff의 세 가지 출력 방언 — `check`의 JSON 배열, `format --check`의 텍스트
