@@ -2,12 +2,16 @@
 
 import ast
 import os
-import re
 import shutil
 import sys
 import time
 from pathlib import Path
 
+from ici.analysis._mypy_output import (
+    MYPY_FOUND_SUMMARY_RE,
+    MYPY_SUCCESS_LINE_RE,
+    parse_mypy_line,
+)
 from ici.core.env import find_project_executable
 from ici.core.models import (
     EngineResult,
@@ -42,12 +46,10 @@ _DID_NOT_RUN: dict[Outcome, str] = {
     Outcome.CANCELLED: "Mypy was stopped before producing a result",
 }
 
-_MYPY_SUCCESS_LINE_RE = re.compile(r"^Success: no issues found in (?P<count>\d+) source files?$")
-_MYPY_DIAGNOSTIC_RE = re.compile(
-    r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*"
-    r"(?P<kind>error|note):\s*(?P<message>\S.*)$"
-)
-_MYPY_SUMMARY_RE = re.compile(r"Found \d+ errors? in \d+ files? \(checked \d+ source files?\)")
+#: Severities this engine accepts as findings. A ``warning:`` line is one the
+#: grammar knows but this consumer does not — it reads as unreadable output,
+#: the same rule the shared parser applies to lines it does not know at all.
+_MYPY_SEVERITIES = ("error", "note")
 _ICI_MYPY_PROFILE_ARGS = (
     "--check-untyped-defs",
     "--warn-redundant-casts",
@@ -292,52 +294,50 @@ class TypeCheckEngine(BaseEngine):
             line = raw_line.strip()
             if not line:
                 continue
-            match = _MYPY_DIAGNOSTIC_RE.fullmatch(line)
-            if match:
-                is_error = match.group("kind") == "error"
+            diagnostic = parse_mypy_line(line, severities=_MYPY_SEVERITIES)
+            if diagnostic is not None:
+                is_error = diagnostic.severity == "error"
                 has_error = has_error or is_error
-                rel_file = self._diagnostic_path(match.group("file"))
-                message = match.group("message")
+                rel_file = self._diagnostic_path(diagnostic.path)
+                message = diagnostic.full_message
                 if not is_error and _merge_note_target(targets, rel_file, message):
                     continue
                 targets.append(
                     InspectionTarget(
                         file_path=rel_file,
-                        start_line=int(match.group("line")),
+                        start_line=diagnostic.line,
                         target_name="MypyError" if is_error else "MypyNote",
                         status=EngineStatus.FAIL if is_error else EngineStatus.WARN,
                         message=message,
-                        start_column=(
-                            int(match.group("column")) if match.group("column") else None
-                        ),
+                        start_column=diagnostic.column,
                     )
                 )
                 continue
-            if _MYPY_SUMMARY_RE.fullmatch(line):
+            if MYPY_FOUND_SUMMARY_RE.fullmatch(line):
                 continue
             malformed = True
         return has_error and not malformed
 
     def _append_mypy_target(self, line: str, targets: list[InspectionTarget]) -> None:
-        match = _MYPY_DIAGNOSTIC_RE.fullmatch(line.strip())
-        if not match:
+        diagnostic = parse_mypy_line(line.strip(), severities=_MYPY_SEVERITIES)
+        if diagnostic is None:
             return
-        kind = match.group("kind")
+        kind = diagnostic.severity
         try:
-            rel_path = self._diagnostic_path(match.group("file"))
+            rel_path = self._diagnostic_path(diagnostic.path)
         except (TypeError, ValueError):
-            rel_path = match.group("file")
-        message = match.group("message")
+            rel_path = diagnostic.path
+        message = diagnostic.full_message
         if kind != "error" and _merge_note_target(targets, rel_path, message):
             return
         targets.append(
             InspectionTarget(
                 file_path=rel_path,
-                start_line=int(match.group("line")),
+                start_line=diagnostic.line,
                 target_name="MypyError" if kind == "error" else "MypyNote",
                 status=EngineStatus.FAIL if kind == "error" else EngineStatus.WARN,
                 message=message,
-                start_column=(int(match.group("column")) if match.group("column") else None),
+                start_column=diagnostic.column,
             )
         )
 
@@ -349,12 +349,12 @@ class TypeCheckEngine(BaseEngine):
     def _validated_mypy_success(output: str) -> tuple[bool, list[str]]:
         lines = output.splitlines()
         summary_indexes = [
-            index for index, line in enumerate(lines) if _MYPY_SUCCESS_LINE_RE.fullmatch(line)
+            index for index, line in enumerate(lines) if MYPY_SUCCESS_LINE_RE.fullmatch(line)
         ]
         if len(summary_indexes) != 1 or summary_indexes[0] != len(lines) - 1:
             return False, []
 
-        summary = _MYPY_SUCCESS_LINE_RE.fullmatch(lines[-1])
+        summary = MYPY_SUCCESS_LINE_RE.fullmatch(lines[-1])
         if summary is None:
             return False, []
         count = int(summary.group("count"))
@@ -366,11 +366,11 @@ class TypeCheckEngine(BaseEngine):
 
         diagnostics: list[str] = []
         for line in lines[:-1]:
-            match = _MYPY_DIAGNOSTIC_RE.fullmatch(line)
-            if match is None:
+            diagnostic = parse_mypy_line(line, severities=_MYPY_SEVERITIES)
+            if diagnostic is None:
                 return False, []
             diagnostics.append(line)
-            if match.group("kind") != "note":
+            if diagnostic.severity != "note":
                 return False, diagnostics
         return True, diagnostics
 

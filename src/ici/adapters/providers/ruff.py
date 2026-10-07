@@ -24,12 +24,15 @@ other than the project's own answers a question nobody asked.
 from __future__ import annotations
 
 import hashlib
-import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
+from ici.analysis._ruff_output import (
+    RuffDiagnostic,
+    parse_check_json,
+    parse_format_text,
+)
 from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.tasks import TaskSpec
@@ -182,34 +185,22 @@ def parse_ruff_json(text: str, root: Path, task_id: str = "") -> ParsedOutput:
     first run against the real tool failed on all of them.
     """
 
-    stripped = text.strip()
-    if not stripped:
-        return ParsedOutput()
-    try:
-        payload = json.loads(stripped)
-    except json.JSONDecodeError as error:
-        return ParsedOutput(failed_to_parse=f"ruff output was not JSON: {error}")
-    if not isinstance(payload, list):
-        return ParsedOutput(
-            failed_to_parse=f"ruff output was {type(payload).__name__}, expected a list"
-        )
+    diagnostics, parse_error = parse_check_json(text)
+    if parse_error is not None:
+        return ParsedOutput(failed_to_parse=parse_error)
 
     findings = []
     outside: list[str] = []
-    for index, item in enumerate(payload):
-        if not isinstance(item, dict):
-            return ParsedOutput(
-                failed_to_parse=f"ruff entry {index} was {type(item).__name__}, expected an object"
-            )
+    for diagnostic in diagnostics:
         try:
-            findings.append(_finding(item, root, task_id))
+            findings.append(_finding(diagnostic, root, task_id))
         except _OutsideTheRoot as error:
             # A real violation in a file this component does not own. Not a
             # parse failure -- the output was perfectly readable -- but not
             # something to drop silently either, so it is named.
             outside.append(str(error))
-        except (KeyError, TypeError, ValueError) as error:
-            return ParsedOutput(failed_to_parse=f"ruff entry {index} was not readable: {error}")
+        except ValueError as error:
+            return ParsedOutput(failed_to_parse=f"ruff entry was not readable: {error}")
     return ParsedOutput(
         findings=tuple(findings),
         limitations=tuple(f"outside the component: {item}" for item in outside),
@@ -220,29 +211,26 @@ class _OutsideTheRoot(Exception):
     """A finding whose file is not under the root being analysed."""
 
 
-def _finding(item: dict[str, object], root: Path, task_id: str) -> Finding:
-    code = _text(item, "code") or "RUFF"
-    message = _text(item, "message") or "(no message)"
-    filename = _relative(_text(item, "filename"), root)
-    location = item.get("location")
-    line, column = _position(location)
-    end_line, end_column = _position(item.get("end_location"))
+def _finding(diagnostic: RuffDiagnostic, root: Path, task_id: str) -> Finding:
+    filename = _relative(diagnostic.filename, root)
 
     return Finding(
-        fingerprint=_fingerprint(code, filename, line, column, message),
-        rule_id=f"ruff.{code}",
-        native_rule_id=code,
-        message=message,
+        fingerprint=_fingerprint(
+            diagnostic.code, filename, diagnostic.row, diagnostic.column, diagnostic.message
+        ),
+        rule_id=f"ruff.{diagnostic.code}",
+        native_rule_id=diagnostic.code,
+        message=diagnostic.message,
         severity=_SEVERITY,
         confidence="high",
         category=_CATEGORY,
         provider=PROVIDER_NAME,
         primary_location=SourceSpan(
             path=filename,
-            start_line=line,
-            start_column=column,
-            end_line=end_line or None,
-            end_column=end_column or None,
+            start_line=diagnostic.row,
+            start_column=diagnostic.column,
+            end_line=diagnostic.end_row,
+            end_column=diagnostic.end_column,
         ),
         task_id=task_id or None,
         evidence=EvidenceLevel.MEASURED,
@@ -252,8 +240,6 @@ def _finding(item: dict[str, object], root: Path, task_id: str) -> Finding:
 def _relative(filename: str, root: Path) -> str:
     """Ruff's absolute path as a path inside the component."""
 
-    if not filename:
-        raise ValueError("entry has no filename")
     try:
         return Path(filename).resolve().relative_to(root.resolve()).as_posix()
     except ValueError as error:
@@ -262,23 +248,7 @@ def _relative(filename: str, root: Path) -> str:
         raise ValueError(f"{filename} could not be resolved: {error}") from error
 
 
-def _text(item: dict[str, object], key: str) -> str:
-    value = item.get(key)
-    return value if isinstance(value, str) else ""
-
-
-def _position(value: object) -> tuple[int, int]:
-    if not isinstance(value, dict):
-        return 0, 0
-    row = value.get("row")
-    column = value.get("column")
-    return (
-        row if isinstance(row, int) and not isinstance(row, bool) else 0,
-        column if isinstance(column, int) and not isinstance(column, bool) else 0,
-    )
-
-
-def _fingerprint(code: str, filename: str, line: int, column: int, message: str) -> str:
+def _fingerprint(code: str, filename: str, line: int, column: int | None, message: str) -> str:
     # The path and the position are in it so two violations of the same rule in
     # one file stay distinct; the message is in it so a rule whose text carries
     # the specifics does not collapse them either.
@@ -286,17 +256,6 @@ def _fingerprint(code: str, filename: str, line: int, column: int, message: str)
         "\x00".join((PROVIDER_NAME, code, filename, str(line), str(column), message)).encode()
     ).hexdigest()
     return f"sha256:{digest}"
-
-
-_FORMAT_HEADER_RE = re.compile(r"^unformatted:")
-#: Older Ruff prints ``Would reformat: <path>`` — a finding on one line.
-_FORMAT_LEGACY_RE = re.compile(r"^Would reformat:\s*(?P<path>.+)$")
-_FORMAT_SPAN_RE = re.compile(r"^\s*-->\s*(?P<path>.+?):(?P<line>\d+):(?P<column>\d+)\s*$")
-#: Diff bodies, gutters and the ``N files would be reformatted`` summary are
-#: context, not findings — but nothing else may appear, because a line this
-#: parser does not know is a line whose meaning was guessed at.
-_FORMAT_CONTEXT_RE = re.compile(r"^\s*(\||[-+]|\d+\s*[-+|])")
-_FORMAT_SUMMARY_RE = re.compile(r"^\d+ files?\b")
 
 
 def parse_ruff_format(text: str, root: Path, task_id: str = "") -> ParsedOutput:
@@ -309,28 +268,30 @@ def parse_ruff_format(text: str, root: Path, task_id: str = "") -> ParsedOutput:
     files is indistinguishable from a formatted tree.
     """
 
+    parsed = parse_format_text(text)
+    if parsed.error is not None:
+        return ParsedOutput(failed_to_parse=parsed.error)
+
     findings: list[Finding] = []
     seen: set[str] = set()
-    pending_header = False
-
-    def _add(path: str, line: int, column: int | None) -> None:
+    for item in parsed.items:
         try:
             # Relative spans are relative to the task's cwd — resolve them
             # there, not against wherever this process happens to sit.
-            candidate = Path(path)
+            candidate = Path(item.path)
             if not candidate.is_absolute():
                 candidate = root / candidate
             filename = _relative(str(candidate), root)
         except (_OutsideTheRoot, ValueError):
             # A file outside this component is context, not a finding here.
-            return
+            continue
         if filename in seen:
-            return
+            continue
         seen.add(filename)
         message = "file would be reformatted"
         findings.append(
             Finding(
-                fingerprint=_fingerprint("format", filename, line, column or 0, message),
+                fingerprint=_fingerprint("format", filename, item.line, item.column, message),
                 rule_id="ruff.format",
                 message=message,
                 severity="low",
@@ -339,37 +300,11 @@ def parse_ruff_format(text: str, root: Path, task_id: str = "") -> ParsedOutput:
                 provider=PROVIDER_NAME,
                 primary_location=SourceSpan(
                     path=filename,
-                    start_line=line or 1,
-                    start_column=column,
+                    start_line=item.line or 1,
+                    start_column=item.column,
                 ),
                 task_id=task_id or None,
                 evidence=EvidenceLevel.MEASURED,
             )
         )
-
-    for raw in text.splitlines():
-        line = raw.rstrip("\r\n")
-        if not line.strip():
-            pending_header = False
-            continue
-        legacy = _FORMAT_LEGACY_RE.match(line)
-        if legacy is not None:
-            _add(legacy.group("path").strip(), 1, None)
-            continue
-        if _FORMAT_HEADER_RE.match(line):
-            pending_header = True
-            continue
-        span = _FORMAT_SPAN_RE.match(line)
-        if span is not None:
-            if pending_header:
-                _add(
-                    span.group("path"),
-                    int(span.group("line")),
-                    int(span.group("column")),
-                )
-            pending_header = False
-            continue
-        if _FORMAT_CONTEXT_RE.match(line) or _FORMAT_SUMMARY_RE.match(line):
-            continue
-        return ParsedOutput(failed_to_parse=f"unrecognized ruff format line: {line.strip()!r}")
     return ParsedOutput(findings=tuple(findings))

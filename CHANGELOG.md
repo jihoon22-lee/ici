@@ -7,6 +7,81 @@
 
 ## [Unreleased]
 
+### 구조 — builtin provider 레지스트리 통합
+
+- `ici next verify`의 provider dispatch dict가 `cli/next_path.py`에
+  손으로 유지되던 16개 이름→클래스 매핑을, 각 인스턴스의 `name`으로
+  스스로 키를 만드는 `adapters.providers.builtin_providers()` 팩토리로
+  옮겼습니다. 새 provider가 registry에 누락되는 drift를 테스트가
+  고정합니다.
+
+### 수정 — mypy 출력 파서가 stable/next 단일 구현으로 통합
+
+- `path:line[:col]: severity: message [code]` 진단 라인의 어휘를
+  `ici.analysis._mypy_output`이 소유합니다. severity 집합은 소비자 정책으로
+  남습니다 — stable은 기존과 같이 `error`/`note`만 수용해 `warning:` 라인을
+  읽을 수 없는 출력으로 처리하고, next는 `warning`을 finding으로 수용합니다.
+- **fail-closed 강화**: next 경로에서 라인/컬럼 `0`이나 빈 message를 가진
+  진단 라인이 인식되지 않는 출력으로 parse 실패 처리됩니다. 이전에는 `0`
+  좌표가 `SourceSpan` 검증에서 깨지는 경로였습니다.
+- `Found N errors` 요약 라인의 인식은 문법별로 유지됩니다 — stable은
+  full-sentence strict 매칭, next는 prefix 화이트리스트.
+
+### 수정 — Ruff 출력 파서가 stable/next 단일 구현으로 통합
+
+- Ruff의 세 가지 출력 방언 — `check`의 JSON 배열, `format --check`의 텍스트
+  (`unformatted:`/`-->` 신형 + `Would reformat:` 구형), stderr의 `warning:`
+  블록 — 을 `ici.analysis._ruff_output`이 한 번 파싱하고, stable
+  (`engines/lint.py`)과 next(`adapters/providers/ruff.py`)는 각자의 결과
+  타입(`InspectionTarget`/`Finding`)으로 변환만 합니다.
+- **drift 수정**: next 경로가 Ruff의 exclusive `end_location.column`을
+  inclusive로 변환하지 않아 finding의 `end_column`이 stable보다 1 크게
+  보고되던 문제를 수정합니다.
+- **fail-closed 강화**: next 경로에서 `code`/`message` 필드가 누락된 JSON
+  항목이 `RUFF`/`(no message)` 기본값으로 finding을 만들던 것을, 이제
+  읽을 수 없는 출력으로 parse 실패 처리합니다.
+- `tests/test_next_differential.py`에 같은 ruff JSON이 양 경로에서 동일한
+  위치를 산출하는지 확인하는 등가성 테스트를 추가했습니다.
+
+### 수정 — `ici next` 중복 분석이 같은 파일의 클론 occurrence를 모두 보고
+
+- **버그 수정**: `ici next`의 중복 검출 finding fingerprint가
+  `dup-{group}-{file}` 형태라, 하나의 클론 그룹이 같은 파일에 두 번 나타날
+  때 두 occurrence가 동일한 fingerprint를 얻어 하나가 결과 수집에서
+  버려지던 문제를 수정합니다. fingerprint가 이제 provider·그룹
+  fingerprint·파일·시작/끝 라인을 해시해 다른 프로바이더와 같은
+  `sha256:<digest>` 형태를 따릅니다.
+- fingerprint 입력이 바뀌었으므로 `FINGERPRINT_VERSION`이
+  `ici.next.fingerprint.v2`로 올라갑니다. v1으로 기록된 baseline은 비교가
+  거부됩니다 — 같은 finding을 사라졌다/새로 생겼다고 잘못 delta하지 않기
+  위한 fail-closed 동작입니다.
+- 클러스터링 알고리즘(adjacency, connected component, deterministic
+  ordering, representative 선정, duplicated-line 집계)이
+  `ici.analysis._dup_clustering`으로 추출되어 stable(`engines/dup.py`)과
+  next(`languages/duplicates.py`)가 같은 코어를 공유합니다. next의 stale
+  `sha256/type2-region-v1` 라벨도 `v2`로 정정됩니다 — 해시 입력은 이미
+  동일했고 라벨만 drift했습니다.
+- `tests/test_next_differential.py`에 양 경로가 `clone_pair` fixture에서
+  동일한 occurrence 좌표를 보고하는지 확인하는 등가성 테스트를
+  추가했습니다.
+
+### 수정 — `ici next plan`이 `.ici` 디렉터리를 생성하지 않음
+
+- **버그 수정**: `ici next plan`의 계획 경로가 `.ici/cache/coverage`,
+  `.ici/cache/pycache/compat`, `.ici/cache/gcov/<component>` 디렉터리를 계획
+  시점에 생성해, "아무것도 실행하지 않는" 명령이 파일시스템을 쓰고 읽기 전용
+  프로젝트 트리에서는 `OSError`로 종료되던 문제를 수정합니다. 작업이 필요로
+  하는 디렉터리는 이제 `TaskSpec.work_dirs`로 *선언*되고, runner가 프로세스를
+  시작하기 직전에 생성합니다. 생성에 실패하면 그 작업은 START_FAILED —
+  실행되지 않은 것으로 기록되며 PASS로 보고되지 않습니다.
+- `plan --json`의 각 check 항목이 선언된 `work_dirs`를 보여주므로, 계획이
+  어떤 `.ici` 경로를 만들 것인지 미리 볼 수 있습니다.
+- `domain.tasks.TaskSpec.output_limit_bytes`가 실행 spec으로 전달되지 않던
+  누락을 배선합니다 — 선언된 출력 상한이 실제로 적용됩니다.
+- `tests/next/test_execution_process.py`에 work_dirs 생성·취소 시 무쓰기
+  회귀 테스트, `tests/next/test_cli_next_testing.py`에 plan 무쓰기 회귀
+  테스트를 추가했습니다.
+
 ### 구조 — 분석 코어가 `ici.analysis`로 재배치
 
 - `ici.engines._*` 36개 모듈과 순수 헬퍼 `ici.engines.cpp_text`가

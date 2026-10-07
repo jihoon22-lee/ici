@@ -13,11 +13,11 @@ is not carried yet — its absence is a stated limitation, not silence.
 from __future__ import annotations
 
 import hashlib
-from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
 from ici.analysis._cpp_dup_tokenization import tokenize_cpp_lines
+from ici.analysis._dup_clustering import CloneGroup, cluster_matches
 from ici.analysis._dup_matching import (
     DuplicateComparisonLimit,
     DuplicateFileData,
@@ -51,7 +51,6 @@ _LIMITS = DuplicateMatchLimits(
 )
 _MAX_NORMALIZED_CHARS = 128 * 1024 * 1024
 _MAX_INDEXED_RECORDS = 500_000
-_FINGERPRINT_ALGORITHM = "sha256/type2-region-v1"
 
 
 @dataclass(frozen=True)
@@ -118,16 +117,20 @@ def measure_duplicates(request: DuplicateRequest) -> Observation:
             state=TaskState.FAILED,
             limitations=(f"duplicate comparison limit exceeded: {error}",),
         )
-    groups, _ = _cluster(matches, files_data)
-    duplicated = _duplicated_lines(matches, files_data)
-    findings = [_finding(request, group, occ) for group in groups for occ in group["occurrences"]]
+    clustering = cluster_matches(matches, files_data)
+    duplicated = len(clustering.duplicated_positions)
+    findings = [
+        _finding(request, group, files_data[f_idx].file_path, s_l, e_l)
+        for group in clustering.groups
+        for f_idx, s_l, e_l in group.locations
+    ]
     return Observation(
         task_id=request.task_id,
         provider=PROVIDER_NAME,
         state=TaskState.SUCCEEDED,
         findings=tuple(findings),
         measurements=(
-            Measurement(name="clone_groups", value=len(groups), unit="groups"),
+            Measurement(name="clone_groups", value=len(clustering.groups), unit="groups"),
             Measurement(
                 name="duplicated_lines",
                 value=duplicated,
@@ -174,146 +177,31 @@ def _index_sources(
     return files_data, total_code_lines
 
 
-_Loc = tuple[int, int, int]
-
-
-def _cluster(matches: list, files_data: list[DuplicateFileData]) -> tuple[list[dict], None]:
-    """Union pairwise matches into multi-occurrence clone groups.
-
-    The grouping is the stable engine's: adjacency over match endpoints,
-    connected components, then deterministic ordering. Only the non-first
-    occurrences count as duplicated lines — the first is the original.
-    """
-
-    adjacency: dict[_Loc, set[_Loc]] = defaultdict(set)
-    match_len: dict[_Loc, int] = {}
-    for f1, s1, e1, f2, s2, e2, k in matches:
-        loc1, loc2 = (f1, s1, e1), (f2, s2, e2)
-        adjacency[loc1].add(loc2)
-        adjacency[loc2].add(loc1)
-        match_len[loc1] = max(match_len.get(loc1, 0), k)
-        match_len[loc2] = max(match_len.get(loc2, 0), k)
-
-    visited: set[_Loc] = set()
-    clusters: list[list[_Loc]] = []
-    for node in sorted(adjacency):
-        if node in visited:
-            continue
-        component: list[_Loc] = []
-        queue = [node]
-        visited.add(node)
-        while queue:
-            current = queue.pop()
-            component.append(current)
-            for neighbor in adjacency[current]:
-                if neighbor not in visited:
-                    visited.add(neighbor)
-                    queue.append(neighbor)
-        clusters.append(component)
-
-    for component in clusters:
-        component.sort(key=lambda loc: (files_data[loc[0]].file_path, loc[1], loc[2]))
-    clusters.sort(
-        key=lambda component: (
-            -max(match_len.get(loc, 0) for loc in component),
-            -len(component),
-            tuple((files_data[loc[0]].file_path, loc[1], loc[2]) for loc in component),
-        )
-    )
-
-    groups: list[dict] = []
-    for index, component in enumerate(clusters, 1):
-        rep_f, rep_s, rep_e = min(
-            component,
-            key=lambda loc: (
-                -match_len.get(loc, 0),
-                files_data[loc[0]].file_path,
-                loc[1],
-                loc[2],
-            ),
-        )
-        representative = files_data[rep_f]
-        lines_k = max(match_len.get(loc, 0) for loc in component)
-        normalized_region = "\n".join(
-            normalized
-            for line_no, normalized in representative.indexed
-            if rep_s <= line_no <= rep_e
-        )
-        fingerprint = hashlib.sha256(
-            f"{_FINGERPRINT_ALGORITHM}\0{representative.language}\0{normalized_region}".encode()
-        ).hexdigest()
-        snippet = "".join(representative.raw_lines[rep_s - 1 : rep_e]).rstrip()
-        groups.append(
-            {
-                "id": index,
-                "fingerprint": fingerprint,
-                "language": representative.language,
-                "lines": lines_k,
-                "occurrences": [
-                    {
-                        "file": files_data[f_idx].file_path,
-                        "start": s_l,
-                        "end": e_l,
-                    }
-                    for f_idx, s_l, e_l in component
-                ],
-                "snippet": snippet,
-            }
-        )
-    return groups, None
-
-
-def _duplicated_lines(matches: list, files_data: list[DuplicateFileData]) -> int:
-    """Code lines appearing in a clone but as its non-first occurrence.
-
-    The denominator counted only normalized code lines, so the numerator must
-    too — a raw span's blanks and comments would let the rate read above 100%.
-    """
-
-    adjacency: dict[_Loc, set[_Loc]] = defaultdict(set)
-    for f1, s1, e1, f2, s2, e2, _k in matches:
-        adjacency[(f1, s1, e1)].add((f2, s2, e2))
-        adjacency[(f2, s2, e2)].add((f1, s1, e1))
-    visited: set[_Loc] = set()
-    code_lines = [{line_no for line_no, _t in file.indexed} for file in files_data]
-    duplicated: set[tuple[int, int]] = set()
-    for node in sorted(adjacency):
-        if node in visited:
-            continue
-        component = []
-        queue = [node]
-        visited.add(node)
-        while queue:
-            current = queue.pop()
-            component.append(current)
-            for neighbor in adjacency[current]:
-                if neighbor not in visited:
-                    visited.add(neighbor)
-                    queue.append(neighbor)
-        component.sort(key=lambda loc: (files_data[loc[0]].file_path, loc[1], loc[2]))
-        for position, (f_idx, s_l, e_l) in enumerate(component):
-            if position == 0:
-                continue
-            for line_no in range(s_l, e_l + 1):
-                if line_no in code_lines[f_idx]:
-                    duplicated.add((f_idx, line_no))
-    return len(duplicated)
-
-
-def _finding(request: DuplicateRequest, group: dict, occurrence: dict) -> Finding:
+def _finding(
+    request: DuplicateRequest,
+    group: CloneGroup,
+    file_path: str,
+    start: int,
+    end: int,
+) -> Finding:
+    # The location is in the hash because two occurrences of one clone can sit
+    # in the same file — a fingerprint without it collapsed them into one.
+    digest = hashlib.sha256(
+        "\x00".join((PROVIDER_NAME, group.fingerprint, file_path, str(start), str(end))).encode()
+    ).hexdigest()
     return Finding(
-        fingerprint=f"dup-{group['fingerprint'][:16]}-{occurrence['file']}",
+        fingerprint=f"sha256:{digest}",
         rule_id="dup.type2-clone",
         message=(
-            f"duplicate block ({group['lines']} lines, group "
-            f"#{group['id']}) shared across {len(group['occurrences'])} locations"
+            f"duplicate block ({group.line_count} lines, group "
+            f"#{group.index}) shared across {len(group.locations)} locations"
         ),
         severity="medium",
         confidence="high",
         primary_location=SourceSpan(
-            path=occurrence["file"],
-            start_line=occurrence["start"],
-            end_line=occurrence["end"],
+            path=file_path,
+            start_line=start,
+            end_line=end,
         ),
         provider=PROVIDER_NAME,
         component_id=request.component_id or None,

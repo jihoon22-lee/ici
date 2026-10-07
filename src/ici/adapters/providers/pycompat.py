@@ -152,6 +152,9 @@ class CompileallProvider:
                 ("PYTHONPYCACHEPREFIX", pycache_prefix),
                 ("PYTHONHASHSEED", "0"),
             ),
+            # The bytecode prefix lives under .ici and the interpreter may not
+            # create it — declared so the runner makes it, keeping plan pure.
+            work_dirs=(pycache_prefix,),
             analysis_unit_ids=(analysis_unit_id,) if analysis_unit_id else (),
             input_refs=files,
             timeout_seconds=120,

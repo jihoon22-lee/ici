@@ -104,6 +104,9 @@ class PytestProvider:
             argv=argv,
             cwd=cwd,
             input_refs=input_refs,
+            # ``coverage run`` refuses to create the data file's parent, so the
+            # task declares it and the runner makes it at run time.
+            work_dirs=((str(Path(coverage_data).parent),) if coverage_data is not None else ()),
             analysis_unit_ids=(analysis_unit_id,) if analysis_unit_id else (),
             timeout_seconds=1800,
             tool_digest=tool_digest,

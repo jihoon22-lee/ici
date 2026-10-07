@@ -29,12 +29,15 @@ import pytest
 from typer.testing import CliRunner
 
 from ici.__main__ import app
+from ici.adapters.providers.ruff import parse_ruff_json
+from ici.analysis._ruff_output import parse_check_json
 from ici.core.models import EngineStatus
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.cycle import CycleEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.line import LineCountEngine
+from ici.engines.lint import LintEngine
 
 runner = CliRunner()
 
@@ -178,6 +181,77 @@ def test_a_cpp_defect_the_stable_engine_found_still_surfaces(
     # finding — a regression, not a structural difference.
     missing = stable_files - next_files
     assert not missing, f"{check_id} lost findings the stable engine had: {missing}"
+
+
+def test_cpp_clone_occurrences_are_identical_across_paths(tmp_path: Path, monkeypatch) -> None:
+    """The shared clustering core must give both paths the same occurrences.
+
+    Stronger than file parity: identical inputs must produce identical clone
+    groups down to every occurrence's coordinates. Two occurrences of one
+    clone inside a single file must both survive — a fingerprint without the
+    location in it once collapsed them.
+    """
+    source = FIXTURES / "cpp-fixtures" / "clone_pair"
+
+    stable = DuplicateEngine(source).run()
+    assert stable.status != EngineStatus.ERROR, stable.summary
+    stable_occurrences = sorted(
+        (Path(occ["file_path"]).name, occ["start_line"], occ["end_line"])
+        for group in stable.extra["clone_groups"]
+        for occ in group["occurrences"]
+    )
+    assert stable_occurrences, "stable engine produced no clone groups on clone_pair"
+
+    root = _workspace(tmp_path, source, ("cpp",), _CPP_TOOL_CHECKS)
+    findings = _next_findings(root, monkeypatch, tmp_path)
+    next_occurrences = sorted(
+        (
+            Path(finding["primary_location"]["path"]).name,
+            finding["primary_location"]["start_line"],
+            finding["primary_location"]["end_line"],
+        )
+        for finding in findings
+        if finding["rule_id"] == "dup.type2-clone"
+    )
+
+    assert stable_occurrences == next_occurrences
+
+
+def test_ruff_diagnostics_report_identical_locations_across_paths(tmp_path: Path) -> None:
+    """One ruff JSON stream maps to the same span on both paths.
+
+    The parsers shared a format before they shared a parser — next emitted
+    Ruff's exclusive end column as-is while stable converted it to inclusive.
+    This pins the coordinates both consumers report for one diagnostic.
+    """
+    payload = json.dumps(
+        [
+            {
+                "filename": str(tmp_path / "src" / "app.py"),
+                "code": "F401",
+                "message": "`os` imported but unused",
+                "location": {"row": 3, "column": 8},
+                "end_location": {"row": 3, "column": 10},
+            }
+        ]
+    )
+    diagnostics, error = parse_check_json(payload)
+    assert error is None
+
+    (target,) = LintEngine(tmp_path)._ruff_diagnostic_targets(diagnostics)
+    parsed = parse_ruff_json(payload, root=tmp_path)
+    assert parsed.is_readable
+    (span,) = (f.primary_location for f in parsed.findings)
+
+    assert (target.file_path, target.start_line, target.end_line) == (
+        span.path,
+        span.start_line,
+        span.end_line,
+    )
+    assert (target.start_column, target.end_column) == (
+        span.start_column,
+        span.end_column,
+    )
 
 
 def test_a_clean_cpp_fixture_stays_clean(tmp_path: Path, monkeypatch) -> None:

@@ -52,6 +52,9 @@ class GcovProvider:
             provider=self.name,
             argv=(executable, "--json-format", "-b", "-p", *gcno_files),
             cwd=work_dir,
+            # gcov writes its reports where it runs — under .ici, so the
+            # directory is the task's to declare and the runner's to create.
+            work_dirs=(work_dir,),
             output_specs=("*.gcov.json.gz",),
             analysis_unit_ids=(analysis_unit_id,) if analysis_unit_id else (),
             timeout_seconds=900,

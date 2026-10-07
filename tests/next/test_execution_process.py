@@ -24,6 +24,7 @@ from pathlib import Path
 
 import pytest
 
+from ici.execution.cancellation import Cancellation
 from ici.execution.process import (
     ExitContract,
     Interpretation,
@@ -244,6 +245,41 @@ class TestAnOutcomeReadsAsWhatHappened:
     def test_an_unfinished_run_reports_the_reason(self) -> None:
         rendered = str(run_task(_spec("import time; time.sleep(30)", timeout=0.5)))
         assert "timed-out" in rendered and "0.5" in rendered
+
+
+class TestADeclaredWorkDir:
+    """Directories a task writes into are the run's to make, not the plan's."""
+
+    def test_the_runner_creates_what_the_spec_declares(self, tmp_path: Path) -> None:
+        target = tmp_path / ".ici" / "cache" / "coverage"
+
+        outcome = run_task(_spec("pass", work_dirs=(target,)))
+
+        assert outcome.outcome is Outcome.FINISHED
+        assert target.is_dir()
+
+    def test_relative_entries_resolve_against_the_task_cwd(self, tmp_path: Path) -> None:
+        run_task(_spec("pass", cwd=tmp_path, work_dirs=(Path("state"),)))
+
+        assert (tmp_path / "state").is_dir()
+
+    def test_a_dir_that_cannot_be_made_means_the_task_did_not_run(self, tmp_path: Path) -> None:
+        a_file = tmp_path / "a-file"
+        a_file.write_text("occupied", encoding="utf-8")
+
+        outcome = run_task(_spec("pass", work_dirs=(a_file / "sub",)))
+
+        assert outcome.outcome is Outcome.START_FAILED
+        assert RUFF_LIKE.read(outcome) is Interpretation.DID_NOT_RUN
+
+    def test_a_cancelled_task_creates_nothing(self, tmp_path: Path) -> None:
+        cancellation = Cancellation()
+        cancellation.cancel("test")
+        target = tmp_path / "never"
+
+        run_task(_spec("pass", work_dirs=(target,)), cancellation)
+
+        assert not target.exists()
 
 
 class TestALogSaysWhereItWasCut:

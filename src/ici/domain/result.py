@@ -81,7 +81,7 @@ class Producer:
 #: results may only delta against each other when this matches — a change in
 #: what feeds the hash renames every finding, and comparing across it would
 #: mark the old ones resolved and the new ones new without a line changing.
-FINGERPRINT_VERSION = "ici.next.fingerprint.v1"
+FINGERPRINT_VERSION = "ici.next.fingerprint.v2"
 
 
 @dataclass(frozen=True)

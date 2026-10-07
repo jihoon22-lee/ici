@@ -168,6 +168,33 @@ def test_no_project_interpreter_blocks_the_test_checks(tmp_path, monkeypatch) ->
     assert "app.python.coverage: blocked" in result.output
 
 
+def test_plan_names_the_run_state_without_creating_it(tmp_path, monkeypatch) -> None:
+    """The .ici directories a run writes into are the run's to make.
+
+    ``coverage run`` refuses to create the data file's directory, so the tasks
+    that write under .ici declare them as ``work_dirs`` and the runner creates
+    them at execution time. Making them at plan time would give a read-only
+    command a filesystem write — and would crash ``plan`` on a read-only tree.
+    """
+
+    _python_workspace(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["next", "plan"])
+
+    assert result.exit_code == 0, result.output
+    assert not (tmp_path / ".ici").exists()
+
+    document = json.loads(runner.invoke(app, ["next", "plan", "--json"]).stdout)
+    declared = {
+        entry
+        for component in document["plans"]
+        for check in component["checks"]
+        for entry in check.get("work_dirs", ())
+    }
+    assert str(tmp_path / ".ici" / "cache" / "coverage") in declared
+
+
 def test_verify_runs_the_suite_and_reports_a_failure(tmp_path, monkeypatch) -> None:
     _python_workspace(tmp_path, tests="fail")
     monkeypatch.chdir(tmp_path)

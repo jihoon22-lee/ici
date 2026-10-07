@@ -138,6 +138,9 @@ class TaskSpec:
     environment: Mapping[str, str] = field(default_factory=dict)
     timeout: float = DEFAULT_TIMEOUT
     output_limit: int = DEFAULT_OUTPUT_LIMIT
+    #: Directories the runner creates before spawning — the places under
+    #: .ici the argv writes into. Relative entries resolve against ``cwd``.
+    work_dirs: tuple[Path, ...] = ()
     #: How long a cancelled tool is given to exit on its own before it is
     #: killed. A tool that is allowed to exit removes its own temporary
     #: files; one that is killed outright leaves them for someone else.
@@ -152,6 +155,7 @@ class TaskSpec:
             raise ValueError("a task grace period cannot be negative")
         object.__setattr__(self, "argv", tuple(self.argv))
         object.__setattr__(self, "name", self.name or Path(self.argv[0]).name)
+        object.__setattr__(self, "work_dirs", tuple(Path(item) for item in self.work_dirs))
 
 
 @dataclass(frozen=True)
@@ -257,6 +261,11 @@ def run_task(spec: TaskSpec, cancellation: Cancellation | None = None) -> TaskOu
         limit=spec.timeout + spec.grace + WATCHDOG_MARGIN,
     )
     try:
+        # Declared working directories are made here, at run time — making
+        # them at plan time would give ``ici next plan`` a filesystem write.
+        for declared in spec.work_dirs:
+            directory = declared if declared.is_absolute() else (spec.cwd or Path.cwd()) / declared
+            directory.mkdir(parents=True, exist_ok=True)
         result = run_process(
             list(spec.argv),
             cwd=spec.cwd,
