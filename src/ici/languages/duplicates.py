@@ -12,6 +12,7 @@ is not carried yet — its absence is a stated limitation, not silence.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -183,8 +184,13 @@ def _finding(
     start: int,
     end: int,
 ) -> Finding:
+    # The location is in the hash because two occurrences of one clone can sit
+    # in the same file — a fingerprint without it collapsed them into one.
+    digest = hashlib.sha256(
+        "\x00".join((PROVIDER_NAME, group.fingerprint, file_path, str(start), str(end))).encode()
+    ).hexdigest()
     return Finding(
-        fingerprint=f"dup-{group.fingerprint[:16]}-{file_path}",
+        fingerprint=f"sha256:{digest}",
         rule_id="dup.type2-clone",
         message=(
             f"duplicate block ({group.line_count} lines, group "

@@ -180,6 +180,40 @@ def test_a_cpp_defect_the_stable_engine_found_still_surfaces(
     assert not missing, f"{check_id} lost findings the stable engine had: {missing}"
 
 
+def test_cpp_clone_occurrences_are_identical_across_paths(tmp_path: Path, monkeypatch) -> None:
+    """The shared clustering core must give both paths the same occurrences.
+
+    Stronger than file parity: identical inputs must produce identical clone
+    groups down to every occurrence's coordinates. Two occurrences of one
+    clone inside a single file must both survive — a fingerprint without the
+    location in it once collapsed them.
+    """
+    source = FIXTURES / "cpp-fixtures" / "clone_pair"
+
+    stable = DuplicateEngine(source).run()
+    assert stable.status != EngineStatus.ERROR, stable.summary
+    stable_occurrences = sorted(
+        (Path(occ["file_path"]).name, occ["start_line"], occ["end_line"])
+        for group in stable.extra["clone_groups"]
+        for occ in group["occurrences"]
+    )
+    assert stable_occurrences, "stable engine produced no clone groups on clone_pair"
+
+    root = _workspace(tmp_path, source, ("cpp",), _CPP_TOOL_CHECKS)
+    findings = _next_findings(root, monkeypatch, tmp_path)
+    next_occurrences = sorted(
+        (
+            Path(finding["primary_location"]["path"]).name,
+            finding["primary_location"]["start_line"],
+            finding["primary_location"]["end_line"],
+        )
+        for finding in findings
+        if finding["rule_id"] == "dup.type2-clone"
+    )
+
+    assert stable_occurrences == next_occurrences
+
+
 def test_a_clean_cpp_fixture_stays_clean(tmp_path: Path, monkeypatch) -> None:
     source = FIXTURES / "cpp-fixtures" / "clean_baseline"
     for engine_cls in (CycleEngine, ComplexityEngine, DuplicateEngine, ExceptionSafetyEngine):
