@@ -5,8 +5,9 @@ separated from the analysis they wrap. They carry no engine classes and no
 CLI knowledge: next-path ``adapters``/``languages`` import them directly, and
 the remaining stable shells do too until the cutover completes.
 
-The ``_`` module prefix is the package-internal convention kept from
-``ici.engines``: a module whose consumers all live inside ``ici`` keeps the
-underscore even though it is imported across subpackage boundaries. Rename a
-module only when it graduates to a public package API.
+The naming convention inside the package: a module relocated whole from
+``ici.engines`` keeps a plain name (``coverage_support``, ``pytest_output``),
+while a primitive extracted for sharing during the transition keeps the
+``_`` prefix (``_ruff_output``, ``_dup_clustering``) as an implementation
+detail whose shape may still move.
 """
