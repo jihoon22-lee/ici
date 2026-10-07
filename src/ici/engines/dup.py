@@ -1,11 +1,11 @@
 """8. Code Clone & Duplication Detection Engine with Type-2 Token Matching."""
 
-import hashlib
 import time
 from collections import Counter, defaultdict
 from dataclasses import replace
 
 from ici.analysis._cpp_dup_tokenization import tokenize_cpp_lines
+from ici.analysis._dup_clustering import FINGERPRINT_ALGORITHM, cluster_matches
 from ici.analysis._dup_matching import (
     DuplicateComparisonLimit,
     DuplicateFileData,
@@ -43,7 +43,7 @@ MAX_DUPLICATE_CROSS_FILE_PAIRS = 20_000
 MAX_DUPLICATE_CROSS_FILE_SEED_PAIRS = 250_000
 MAX_DUPLICATE_EXTENSION_COMPARISONS = 5_000_000
 MAX_DUPLICATE_RAW_MATCHES = 10_000
-_FINGERPRINT_ALGORITHM = "sha256/type2-region-v2"
+_FINGERPRINT_ALGORITHM = FINGERPRINT_ALGORITHM
 _SEMANTIC_POLICY = "python-bounded-ast-shape-v1"
 _REGION_POLICY = "language-function-scope-v1"
 _SIGNAL_POLICY = "minimum-semantic-lines-v1"
@@ -698,92 +698,16 @@ class DuplicateEngine(BaseEngine):
         self, matches: list[MatchPair], files_data: list[FileData]
     ) -> tuple[list[dict], list[InspectionTarget], set[tuple[int, int]]]:
         """Clusters pairwise matches into unified multi-occurrence connected components."""
-        # 1. Build adjacency graph between location nodes (f_idx, start_line, end_line)
-        adj: dict[LocTuple, set[LocTuple]] = defaultdict(set)
-        match_len_map: dict[LocTuple, int] = {}
-
-        for f1, s1, e1, f2, s2, e2, k in matches:
-            loc1 = (f1, s1, e1)
-            loc2 = (f2, s2, e2)
-            adj[loc1].add(loc2)
-            adj[loc2].add(loc1)
-            match_len_map[loc1] = max(match_len_map.get(loc1, 0), k)
-            match_len_map[loc2] = max(match_len_map.get(loc2, 0), k)
-
-        # 2. Find Connected Components
-        visited: set[LocTuple] = set()
-        clusters: list[list[LocTuple]] = []
-
-        for node in sorted(adj.keys()):
-            if node not in visited:
-                component: list[LocTuple] = []
-                queue = [node]
-                visited.add(node)
-                while queue:
-                    curr = queue.pop()
-                    component.append(curr)
-                    for neighbor in adj[curr]:
-                        if neighbor not in visited:
-                            visited.add(neighbor)
-                            queue.append(neighbor)
-                clusters.append(component)
-
-        # 3. Sort clusters by match size descending
-        for component in clusters:
-            component.sort(key=lambda loc: (files_data[loc[0]].file_path, loc[1], loc[2]))
-        clusters.sort(
-            key=lambda component: (
-                -max(match_len_map.get(loc, 0) for loc in component),
-                -len(component),
-                tuple((files_data[loc[0]].file_path, loc[1], loc[2]) for loc in component),
-            )
-        )
+        # The grouping, ordering, fingerprint and duplicated-line count are the
+        # shared analysis core's — this method only renders them into the
+        # engine's result shape.
+        clustering = cluster_matches(matches, files_data)
 
         clone_groups: list[dict] = []
         targets: list[InspectionTarget] = []
-        duplicated_positions: set[tuple[int, int]] = set()
-        # Only lines the denominator also counted may go into the numerator.
-        # total_code_lines excludes blanks, comments and import lines, while a
-        # clone span covers every physical line between its endpoints — counting
-        # those against each other is how the "rate" could read above 100%.
-        code_lines_by_file = [
-            {line_no for line_no, _ in file_data.indexed} for file_data in files_data
-        ]
-
-        for group_idx, component in enumerate(clusters, 1):
-            # Sort occurrences inside component by (file_path, start_line)
-            rep_f, rep_s, rep_e = min(
-                component,
-                key=lambda loc: (
-                    -match_len_map.get(loc, 0),
-                    files_data[loc[0]].file_path,
-                    loc[1],
-                    loc[2],
-                ),
-            )
-            representative = files_data[rep_f]
-            rep_raw = representative.raw_lines
-            lines_k = max(match_len_map.get(loc, 0) for loc in component)
-            normalized_region = "\n".join(
-                normalized
-                for line_no, normalized in representative.indexed
-                if rep_s <= line_no <= rep_e
-            )
-            fingerprint = hashlib.sha256(
-                f"{_FINGERPRINT_ALGORITHM}\0{representative.language}\0{normalized_region}".encode()
-            ).hexdigest()
-
-            # Preserve exact raw indentation (do not strip leading whitespace of line 1!)
-            raw_snippet = "".join(rep_raw[rep_s - 1 : rep_e]).rstrip()
-            for occ_idx, (f_idx, s_l, e_l) in enumerate(component):
-                if occ_idx > 0:
-                    counted = code_lines_by_file[f_idx]
-                    for line_no in range(s_l, e_l + 1):
-                        if line_no in counted:
-                            duplicated_positions.add((f_idx, line_no))
-
+        for group in clustering.groups:
             occ_list = []
-            for f_idx, s_l, e_l in component:
+            for f_idx, s_l, e_l in group.locations:
                 f_path = files_data[f_idx].file_path
                 occ_list.append(
                     {
@@ -798,31 +722,32 @@ class DuplicateEngine(BaseEngine):
                         file_path=f_path,
                         start_line=s_l,
                         end_line=e_l,
-                        target_name=f"CloneGroup#{group_idx}",
+                        target_name=f"CloneGroup#{group.index}",
                         status=EngineStatus.WARN,
-                        message=f"Duplicate code block ({lines_k} lines) shared across {len(component)} locations",
-                        snippet=raw_snippet[:300],
+                        message=(
+                            f"Duplicate code block ({group.line_count} lines) "
+                            f"shared across {len(group.locations)} locations"
+                        ),
+                        snippet=group.snippet[:300],
                         metrics={
-                            "clone_group": group_idx,
-                            "duplicate_lines": lines_k,
-                            "fingerprint": fingerprint,
-                            "fingerprint_algorithm": _FINGERPRINT_ALGORITHM,
+                            "clone_group": group.index,
+                            "duplicate_lines": group.line_count,
+                            "fingerprint": group.fingerprint,
+                            "fingerprint_algorithm": FINGERPRINT_ALGORITHM,
                         },
                     )
                 )
-
             clone_groups.append(
                 {
-                    "id": group_idx,
-                    "fingerprint": fingerprint,
-                    "fingerprint_algorithm": _FINGERPRINT_ALGORITHM,
+                    "id": group.index,
+                    "fingerprint": group.fingerprint,
+                    "fingerprint_algorithm": FINGERPRINT_ALGORITHM,
                     "detection": "type2-lexical-region",
-                    "language": representative.language,
-                    "lines_count": lines_k,
+                    "language": group.language,
+                    "lines_count": group.line_count,
                     "occurrences_count": len(occ_list),
                     "occurrences": occ_list,
-                    "snippet": raw_snippet,
+                    "snippet": group.snippet,
                 }
             )
-
-        return clone_groups, targets, duplicated_positions
+        return clone_groups, targets, set(clustering.duplicated_positions)
