@@ -25,8 +25,7 @@ from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement
 from ici.domain.tasks import TaskSpec
-from ici.execution.process import ExitContract, TaskOutcome
-from ici.execution.process import TaskSpec as ExecTaskSpec
+from ici.execution.process import ExitContract, ProcessSpec, TaskOutcome
 
 __all__ = ["CtestProvider", "QtestProvider"]
 
@@ -35,7 +34,15 @@ __all__ = ["CtestProvider", "QtestProvider"]
 TEST_CONTRACT = ExitContract(success=(0,), findings=tuple(range(1, 256)))
 
 #: ``    Test #3: suite_name ..............***Failed    0.02 sec``
-_CTEST_RE = re.compile(r"Test\s+#\d+:\s+(?P<name>\S+)\s*\.{3,}\s*(?P<verdict>\*+\S+|Passed)")
+#: The verdict is a phrase, not a word — ``***Not Run (Disabled)`` carries
+#: spaces, and matching ``\S+`` alone would misread it as a failure named
+#: "Not". Capture up to the trailing ``N.NN sec`` instead.
+_CTEST_RE = re.compile(r"Test\s+#\d+:\s+(?P<name>\S+)\s*\.{3,}\s*(?P<verdict>.+?)\s+[\d.]+\s*sec\b")
+
+#: ctest verdicts for a case that never executed — the suite's way of saying
+#: "listed but not run". They are evidence of an incomplete suite, not of a
+#: defect, so they count in the totals but are not findings.
+_CTEST_NOT_RUN = ("not run", "disabled", "skipped", "skip")
 _CTEST_ZERO = re.compile(r"No tests were found", re.IGNORECASE)
 
 #: QTest text: ``PASS   : Class::case()`` / ``FAIL!  : Class::case() msg``
@@ -111,22 +118,27 @@ class QtestProvider:
         return _parse_qtest(outcome.parseable, outcome.spec)
 
 
-def _parse_ctest(text: str, spec: ExecTaskSpec) -> ParsedOutput:
+def _parse_ctest(text: str, spec: ProcessSpec) -> ParsedOutput:
     findings: list[Finding] = []
     total = 0
     passed = 0
+    not_run: list[str] = []
     for match in _CTEST_RE.finditer(text):
         total += 1
         verdict = match.group("verdict")
+        name = match.group("name")
         if verdict == "Passed":
             passed += 1
             continue
-        name = match.group("name")
+        normalized = verdict.lstrip("*").strip()
+        if normalized.lower().startswith(_CTEST_NOT_RUN):
+            not_run.append(name)
+            continue
         findings.append(
             Finding(
                 fingerprint=_fingerprint(spec.name, name, verdict),
                 rule_id="ctest.failed",
-                message=f"test {name}: {verdict.lstrip('*')}",
+                message=f"test {name}: {normalized}",
                 severity="high",
                 confidence="high",
                 primary_location=SourceSpan(path=_test_source(name, spec.cwd), start_line=1),
@@ -139,6 +151,7 @@ def _parse_ctest(text: str, spec: ExecTaskSpec) -> ParsedOutput:
         if _CTEST_ZERO.search(text):
             return ParsedOutput(failed_to_parse="ctest found no tests")
         return ParsedOutput(failed_to_parse="ctest output held no test verdicts")
+    limitations = (f"{len(not_run)} case(s) did not run: {', '.join(not_run)}",) if not_run else ()
     return ParsedOutput(
         findings=tuple(findings),
         measurements=(
@@ -149,10 +162,11 @@ def _parse_ctest(text: str, spec: ExecTaskSpec) -> ParsedOutput:
                 denominator=total,
             ),
         ),
+        limitations=limitations,
     )
 
 
-def _parse_qtest(text: str, spec: ExecTaskSpec) -> ParsedOutput:
+def _parse_qtest(text: str, spec: ProcessSpec) -> ParsedOutput:
     findings: list[Finding] = []
     total = passed = skipped = 0
     pending_loc: tuple[str, int] | None = None

@@ -34,10 +34,13 @@ from ici.analysis._ruff_output import parse_check_json
 from ici.core.models import EngineStatus
 from ici.engines.complexity import ComplexityEngine
 from ici.engines.cycle import CycleEngine
+from ici.engines.dead import DeadCodeEngine
 from ici.engines.dup import DuplicateEngine
 from ici.engines.exception import ExceptionSafetyEngine
 from ici.engines.line import LineCountEngine
 from ici.engines.lint import LintEngine
+from ici.engines.resource import ResourceEngine
+from ici.engines.security import SecurityEngine
 
 runner = CliRunner()
 
@@ -91,6 +94,20 @@ _CPP_DEFECT_CASES = (
     ("clone_pair", DuplicateEngine, "cpp.dup"),
     ("dtor_throw", ExceptionSafetyEngine, "cpp.exception"),
     ("oversized_file", LineCountEngine, "cpp.line"),
+)
+
+# The Python half of the same matrix — ``defect_bed`` plants one defect per
+# internal check, extreme enough to clear either path's thresholds. The
+# planted files are asserted to be *among* the stable hits, so an engine
+# finding nothing at all still fails loudly here.
+_PY_DEFECT_CASES = (
+    (SecurityEngine, "python.security", ("insecure.py",)),
+    (ExceptionSafetyEngine, "python.exception", ("swallow.py",)),
+    (ComplexityEngine, "python.complexity", ("hot.py",)),
+    (DeadCodeEngine, "python.dead", ("dead.py",)),
+    (CycleEngine, "python.cycle", ("alpha.py", "beta.py")),
+    (LineCountEngine, "python.line", ("oversized.py",)),
+    (ResourceEngine, "python.resource", ("leaky.py",)),
 )
 
 
@@ -181,6 +198,68 @@ def test_a_cpp_defect_the_stable_engine_found_still_surfaces(
     # finding — a regression, not a structural difference.
     missing = stable_files - next_files
     assert not missing, f"{check_id} lost findings the stable engine had: {missing}"
+
+
+def test_python_defects_the_stable_engines_found_all_surface(tmp_path: Path, monkeypatch) -> None:
+    """The Python mirror of the C++ defect matrix — one next run, all checks.
+
+    Every internal Python check shares its analysis body with the stable
+    engine it replaces, so a defect the old path named must still surface
+    under the new check. The planted file is asserted inside the stable hits
+    first: an engine that quietly stopped seeing its own defect fails here
+    before the cross-path comparison even runs.
+    """
+
+    source = FIXTURES / "python-fixtures" / "defect_bed"
+    root = _workspace(tmp_path, source, ("python",), _PY_TOOL_CHECKS)
+    findings = _next_findings(root, monkeypatch, tmp_path)
+
+    lost: dict[str, set[str]] = {}
+    for engine_cls, check_id, planted in _PY_DEFECT_CASES:
+        stable_files = _stable_files(engine_cls, source)
+        assert stable_files, f"stable {engine_cls.__name__} found nothing on defect_bed"
+        assert set(planted) & stable_files, (
+            f"{engine_cls.__name__} did not flag its planted defect(s): "
+            f"{set(planted)} not in {stable_files}"
+        )
+        missing = stable_files - _check_files(findings, check_id)
+        if missing:
+            lost[check_id] = missing
+    assert not lost, f"next checks lost findings the stable engines had: {lost}"
+
+
+def test_python_clone_occurrences_are_identical_across_paths(tmp_path: Path, monkeypatch) -> None:
+    """Python duplexity parity at occurrence precision — same as the C++ case.
+
+    The stable engine reports clone groups as informational targets, so the
+    file-status matrix cannot see them; the occurrence coordinates are the
+    comparison both paths actually share.
+    """
+
+    source = FIXTURES / "python-fixtures" / "defect_bed"
+
+    stable = DuplicateEngine(source).run()
+    assert stable.status != EngineStatus.ERROR, stable.summary
+    stable_occurrences = sorted(
+        (occ["file_path"], occ["start_line"], occ["end_line"])
+        for group in stable.extra["clone_groups"]
+        for occ in group["occurrences"]
+    )
+    assert stable_occurrences, "stable engine produced no clone groups on defect_bed"
+
+    root = _workspace(tmp_path, source, ("python",), _PY_TOOL_CHECKS)
+    findings = _next_findings(root, monkeypatch, tmp_path)
+    next_occurrences = sorted(
+        (
+            finding["primary_location"]["path"],
+            finding["primary_location"]["start_line"],
+            finding["primary_location"]["end_line"],
+        )
+        for finding in findings
+        if finding["rule_id"] == "dup.type2-clone"
+    )
+
+    assert stable_occurrences == next_occurrences
 
 
 def test_cpp_clone_occurrences_are_identical_across_paths(tmp_path: Path, monkeypatch) -> None:

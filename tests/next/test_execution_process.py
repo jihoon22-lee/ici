@@ -29,8 +29,8 @@ from ici.execution.process import (
     ExitContract,
     Interpretation,
     Outcome,
+    ProcessSpec,
     TaskOutcome,
-    TaskSpec,
     run_task,
 )
 
@@ -38,8 +38,8 @@ ENV = {"PATH": "/usr/bin:/bin"}
 RUFF_LIKE = ExitContract(success=(0,), findings=(1,))
 
 
-def _spec(code: str, **kwargs) -> TaskSpec:
-    return TaskSpec(
+def _spec(code: str, **kwargs) -> ProcessSpec:
+    return ProcessSpec(
         argv=(sys.executable, "-c", code),
         environment=kwargs.pop("environment", ENV),
         timeout=kwargs.pop("timeout", 10.0),
@@ -69,7 +69,7 @@ class TestNothingThatDidNotFinishBecomesAnAnswer:
         assert RUFF_LIKE.read(outcome) is Interpretation.DID_NOT_RUN
 
     def test_a_command_that_cannot_start_is_not_a_pass(self) -> None:
-        outcome = run_task(TaskSpec(argv=("/definitely/not/here",), environment=ENV))
+        outcome = run_task(ProcessSpec(argv=("/definitely/not/here",), environment=ENV))
         assert not outcome.outcome.ran_to_completion
         assert RUFF_LIKE.read(outcome) is Interpretation.DID_NOT_RUN
 
@@ -147,7 +147,7 @@ class TestTasksDoNotContaminateEachOther:
 
         def record(name: str, value: str) -> None:
             outcome = run_task(
-                TaskSpec(
+                ProcessSpec(
                     argv=(sys.executable, "-c", "import os; print(os.environ['MARKER'])"),
                     environment={**ENV, "MARKER": value},
                     name=name,
@@ -173,7 +173,7 @@ class TestTasksDoNotContaminateEachOther:
 
         def record(name: str, where: Path) -> None:
             outcome = run_task(
-                TaskSpec(
+                ProcessSpec(
                     argv=(sys.executable, "-c", "import os; print(os.getcwd())"),
                     environment=ENV,
                     cwd=where,
@@ -197,7 +197,7 @@ class TestTasksDoNotContaminateEachOther:
 
     def test_running_a_task_does_not_move_this_process(self, tmp_path: Path) -> None:
         before = os.getcwd()
-        run_task(TaskSpec(argv=(sys.executable, "-c", "pass"), environment=ENV, cwd=tmp_path))
+        run_task(ProcessSpec(argv=(sys.executable, "-c", "pass"), environment=ENV, cwd=tmp_path))
         assert os.getcwd() == before
 
     def test_running_a_task_does_not_change_this_environment(
@@ -205,7 +205,7 @@ class TestTasksDoNotContaminateEachOther:
     ) -> None:
         monkeypatch.setenv("ICI_PROCESS_SENTINEL", "unchanged")
         run_task(
-            TaskSpec(
+            ProcessSpec(
                 argv=(sys.executable, "-c", "pass"),
                 environment={**ENV, "ICI_PROCESS_SENTINEL": "something-else"},
             )
@@ -223,19 +223,19 @@ class TestTasksDoNotContaminateEachOther:
 class TestASpecStatesItsBounds:
     def test_a_command_is_required(self) -> None:
         with pytest.raises(ValueError, match="command"):
-            TaskSpec(argv=())
+            ProcessSpec(argv=())
 
     def test_a_timeout_must_be_positive(self) -> None:
         with pytest.raises(ValueError, match="positive"):
-            TaskSpec(argv=("true",), timeout=0)
+            ProcessSpec(argv=("true",), timeout=0)
 
     def test_a_name_defaults_to_the_program(self) -> None:
-        assert TaskSpec(argv=("/usr/bin/ruff", "check")).name == "ruff"
+        assert ProcessSpec(argv=("/usr/bin/ruff", "check")).name == "ruff"
 
     def test_the_environment_defaults_to_empty_not_inherited(self) -> None:
         # None would mean "inherit", and inheriting is how a task ends up
         # analysing something other than what it reports on.
-        assert TaskSpec(argv=("true",)).environment == {}
+        assert ProcessSpec(argv=("true",)).environment == {}
 
 
 class TestAnOutcomeReadsAsWhatHappened:

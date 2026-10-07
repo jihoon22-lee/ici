@@ -263,11 +263,11 @@ def test_inconsistent_coverage_json_is_a_parse_failure(tmp_path) -> None:
     """A report that does not add up is refused, never read as coverage."""
 
     from ici.adapters.providers.coverage import CoverageProvider
-    from ici.execution.process import Outcome, TaskOutcome, TaskSpec
+    from ici.execution.process import Outcome, ProcessSpec, TaskOutcome
 
     bad = tmp_path / "coverage.json"
     bad.write_text('{"totals": {"num_statements": 10}, "files": {}}')
-    spec = TaskSpec(
+    spec = ProcessSpec(
         name="app.python.coverage",
         argv=("python", "-m", "coverage", "json", "-o", str(bad)),
         cwd=tmp_path,

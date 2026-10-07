@@ -28,7 +28,7 @@ from ici.execution.manifest import (
     verify,
 )
 from ici.execution.outputs import OutputRoot
-from ici.execution.process import ExitContract, Outcome, TaskOutcome, TaskSpec
+from ici.execution.process import ExitContract, Outcome, ProcessSpec, TaskOutcome
 
 RUFF_LIKE = ExitContract(success=(0,), findings=(1,))
 
@@ -41,7 +41,7 @@ def root(tmp_path: Path) -> OutputRoot:
 
 def _outcome(outcome: Outcome = Outcome.FINISHED, exit_code: int = 0) -> TaskOutcome:
     return TaskOutcome(
-        spec=TaskSpec(argv=("ruff", "check"), name="lint"),
+        spec=ProcessSpec(argv=("ruff", "check"), name="lint"),
         outcome=outcome,
         exit_code=exit_code,
     )

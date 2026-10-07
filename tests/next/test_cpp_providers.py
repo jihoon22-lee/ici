@@ -18,7 +18,7 @@ from ici.adapters.providers.compiler import (
     transform_argv,
 )
 from ici.adapters.providers.tidy import ClangTidyProvider
-from ici.execution.process import Outcome, TaskOutcome, TaskSpec
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome
 
 
 def _outcome(
@@ -30,7 +30,7 @@ def _outcome(
     stderr: str = "",
     outcome: Outcome = Outcome.FINISHED,
 ) -> TaskOutcome:
-    spec = TaskSpec(argv=argv, name="app.cpp.diagnostics.tu-0", cwd=cwd)
+    spec = ProcessSpec(argv=argv, name="app.cpp.diagnostics.tu-0", cwd=cwd)
     return TaskOutcome(
         spec=spec,
         outcome=outcome,

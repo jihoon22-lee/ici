@@ -20,7 +20,7 @@ from ici.execution.cancellation import Cancellation
 from ici.execution.locks import exclusive
 from ici.execution.manifest import read, verify
 from ici.execution.outputs import STAGING_DIRECTORY, OutputRoot
-from ici.execution.process import ExitContract, Outcome, TaskSpec
+from ici.execution.process import ExitContract, Outcome, ProcessSpec
 from ici.execution.production import LOCK_NAME, produce
 
 RUFF_LIKE = ExitContract(success=(0,), findings=(1,))
@@ -32,8 +32,8 @@ def root(tmp_path: Path) -> OutputRoot:
     return OutputRoot(tmp_path / "run")
 
 
-def _task(body: str, name: str = "lint", **kwargs: object) -> TaskSpec:
-    return TaskSpec(argv=(sys.executable, "-c", body), name=name, **kwargs)  # type: ignore[arg-type]
+def _task(body: str, name: str = "lint", **kwargs: object) -> ProcessSpec:
+    return ProcessSpec(argv=(sys.executable, "-c", body), name=name, **kwargs)  # type: ignore[arg-type]
 
 
 WRITES = "open('lint.json', 'w').write('{\"violations\": []}')"

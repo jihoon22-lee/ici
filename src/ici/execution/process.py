@@ -43,8 +43,8 @@ __all__ = [
     "ExitContract",
     "Interpretation",
     "Outcome",
+    "ProcessSpec",
     "TaskOutcome",
-    "TaskSpec",
     "run_task",
 ]
 
@@ -126,7 +126,7 @@ class ExitContract:
 
 
 @dataclass(frozen=True)
-class TaskSpec:
+class ProcessSpec:
     """One process to run, with its bounds stated rather than assumed."""
 
     argv: tuple[str, ...]
@@ -167,7 +167,7 @@ class TaskOutcome:
     wanted has lost what a person needs to see when the parse fails.
     """
 
-    spec: TaskSpec
+    spec: ProcessSpec
     outcome: Outcome
     exit_code: int
     stdout: str = ""
@@ -234,7 +234,7 @@ class TaskOutcome:
         )
 
 
-def run_task(spec: TaskSpec, cancellation: Cancellation | None = None) -> TaskOutcome:
+def run_task(spec: ProcessSpec, cancellation: Cancellation | None = None) -> TaskOutcome:
     """Run a task through the existing bounded runner, and classify the result.
 
     ``cancellation`` is checked before anything is spawned, because the cheapest
@@ -307,7 +307,7 @@ def _interruption(watchdog: Watchdog) -> tuple[Outcome, str] | None:
     return Outcome.TIMED_OUT, cleanup.reason or "stopped by the watchdog"
 
 
-def _reason(spec: TaskSpec, result: ProcessResult, watchdog: Watchdog) -> tuple[Outcome, str]:
+def _reason(spec: ProcessSpec, result: ProcessResult, watchdog: Watchdog) -> tuple[Outcome, str]:
     """Pick the one reason a run gets, in the order of causes.
 
     A cancelled run is also a run that died by signal, and a run that both ran
@@ -328,7 +328,7 @@ def _reason(spec: TaskSpec, result: ProcessResult, watchdog: Watchdog) -> tuple[
     return Outcome.FINISHED, ""
 
 
-def _classify(spec: TaskSpec, result: ProcessResult, watchdog: Watchdog) -> TaskOutcome:
+def _classify(spec: ProcessSpec, result: ProcessResult, watchdog: Watchdog) -> TaskOutcome:
     """Turn a process result into a reason, keeping the facts it did not name."""
 
     outcome, detail = _reason(spec, result, watchdog)

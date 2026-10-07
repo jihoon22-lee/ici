@@ -28,7 +28,7 @@ from typer.testing import CliRunner
 
 from ici.__main__ import app
 from ici.adapters.providers.sanitize import SanitizeProvider
-from ici.execution.process import Outcome, TaskOutcome, TaskSpec
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome
 from ici.workspace.instrumentation import sanitizer_marked
 
 runner = CliRunner()
@@ -131,7 +131,7 @@ def _outcome(
     exit_code: int = 0,
     outcome: Outcome = Outcome.FINISHED,
 ) -> TaskOutcome:
-    spec = TaskSpec(name=name, argv=("./unit_test",), cwd=Path.cwd())
+    spec = ProcessSpec(name=name, argv=("./unit_test",), cwd=Path.cwd())
     return TaskOutcome(
         spec=spec, outcome=outcome, exit_code=exit_code, stdout=stdout, stderr=stderr
     )

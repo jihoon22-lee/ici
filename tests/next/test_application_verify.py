@@ -21,8 +21,7 @@ from ici.domain.enums import EvidenceLevel, GateVerdict, TaskKind, TaskState
 from ici.domain.finding import Finding, FindingSuppression, SourceSpan
 from ici.domain.observation import Observation
 from ici.domain.tasks import TaskSpec
-from ici.execution.process import Outcome, TaskOutcome
-from ici.execution.process import TaskSpec as ExecutionTaskSpec
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome
 from ici.languages.python.checks import CheckDefinition
 
 LINE = CheckDefinition(id="python.line", title="Lines", language="python", tool=None)
@@ -73,7 +72,7 @@ class _Provider:
 
 def _outcome(exit_code: int = 0, **kwargs: object) -> TaskOutcome:
     return TaskOutcome(
-        spec=ExecutionTaskSpec(argv=("ruff",), name="python.lint"),
+        spec=ProcessSpec(argv=("ruff",), name="python.lint"),
         outcome=kwargs.pop("outcome", Outcome.FINISHED),  # type: ignore[arg-type]
         exit_code=exit_code,
         **kwargs,  # type: ignore[arg-type]
@@ -353,7 +352,7 @@ def test_a_one_layer_plan_refuses_dependencies_it_cannot_order() -> None:
 def test_a_task_runs_with_the_environment_it_was_given(tmp_path: Path) -> None:
     seen: dict[str, str] = {}
 
-    def runner(spec: ExecutionTaskSpec) -> TaskOutcome:
+    def runner(spec: ProcessSpec) -> TaskOutcome:
         seen.update(spec.environment)
         return _outcome(0)
 

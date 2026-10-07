@@ -27,7 +27,7 @@ from typer.testing import CliRunner
 from ici.__main__ import app
 from ici.adapters.providers.cpptest import CtestProvider, QtestProvider
 from ici.domain.workspace import BuildUnit
-from ici.execution.process import Outcome, TaskOutcome, TaskSpec
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome
 from ici.workspace.test_suites import suites_for_build
 
 runner = CliRunner()
@@ -170,7 +170,7 @@ def test_an_unbuilt_qtest_binary_is_blocked(tmp_path, monkeypatch) -> None:
 
 
 def _outcome(name: str, stdout: str, exit_code: int = 0) -> TaskOutcome:
-    spec = TaskSpec(name=name, argv=(name,), cwd=Path.cwd())
+    spec = ProcessSpec(name=name, argv=(name,), cwd=Path.cwd())
     return TaskOutcome(spec=spec, outcome=Outcome.FINISHED, exit_code=exit_code, stdout=stdout)
 
 
@@ -189,6 +189,45 @@ def test_ctest_verdicts_become_findings() -> None:
 def test_ctest_zero_tests_is_never_a_pass() -> None:
     parsed = CtestProvider().parse(_outcome("t", "No tests were found!!!\n", 0))
     assert parsed.failed_to_parse is not None
+
+
+def test_ctest_not_run_is_not_a_failure_finding() -> None:
+    """A case ctest listed but never ran is not a defect to report.
+
+    ``***Not Run (Disabled)`` once matched the verdict capture as ``***Not``
+    and surfaced as a high-severity "test x: Not" finding — a disabled test
+    read as a failure. Non-executed cases count in the totals (the suite is
+    incomplete, not clean) and are named as a limitation instead.
+    """
+
+    output = (
+        "    Test #1: alpha .........................   Passed    0.01 sec\n"
+        "    Test #2: beta ..........................***Not Run (Disabled)   0.00 sec\n"
+        "    Test #3: gamma .........................***Skipped   0.00 sec\n"
+        "33% tests passed, 0 tests failed out of 3\n"
+    )
+    parsed = CtestProvider().parse(_outcome("app.cpp.test.release-ctest", output, 0))
+    assert not parsed.failed_to_parse
+    assert not parsed.findings
+    assert parsed.measurements[0].numerator == 1
+    assert parsed.measurements[0].denominator == 3
+    assert parsed.limitations and "2 case(s) did not run" in parsed.limitations[0]
+    assert "beta" in parsed.limitations[0] and "gamma" in parsed.limitations[0]
+
+
+def test_ctest_mixed_failure_and_not_run() -> None:
+    output = (
+        "    Test #1: alpha .........................   Passed    0.01 sec\n"
+        "    Test #2: beta ..........................***Failed    0.02 sec\n"
+        "    Test #3: gamma .........................***Not Run   0.00 sec\n"
+        "33% tests passed, 1 tests failed out of 3\n"
+    )
+    parsed = CtestProvider().parse(_outcome("t", output, 8))
+    assert [finding.rule_id for finding in parsed.findings] == ["ctest.failed"]
+    assert parsed.findings[0].message == "test beta: Failed"
+    assert parsed.measurements[0].numerator == 1
+    assert parsed.measurements[0].denominator == 3
+    assert "1 case(s) did not run: gamma" in parsed.limitations[0]
 
 
 def test_qtest_verdicts_keep_the_loc_location() -> None:

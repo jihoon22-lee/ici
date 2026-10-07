@@ -30,7 +30,7 @@ from typer.testing import CliRunner
 from ici.__main__ import app
 from ici.adapters.providers.binarycompat import BinaryCompatProvider
 from ici.adapters.providers.pycompat import CompileallProvider, PythonVersionProvider
-from ici.execution.process import Outcome, TaskOutcome, TaskSpec
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome
 from ici.languages.compat import CompatRequest, measure_python_compat
 
 runner = CliRunner()
@@ -73,7 +73,7 @@ def _outcome(
     exit_code: int = 0,
     outcome: Outcome = Outcome.FINISHED,
 ) -> TaskOutcome:
-    spec = TaskSpec(
+    spec = ProcessSpec(
         name=name,
         argv=argv,
         cwd=cwd or Path.cwd(),
@@ -330,7 +330,7 @@ def _readelf_outcome(
     binary: str = "/ws/build/libapp.so",
     outcome: Outcome = Outcome.FINISHED,
 ) -> TaskOutcome:
-    spec = TaskSpec(
+    spec = ProcessSpec(
         name="app.cpp.binary-compat.main-1",
         argv=(
             "readelf",

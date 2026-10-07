@@ -40,7 +40,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-from ici.execution.process import Outcome, TaskOutcome, TaskSpec, run_task
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome, run_task
 from ici.toolchain.environment import EnvironmentSnapshot
 from ici.toolchain.resolution import ProbeResult
 
@@ -72,7 +72,7 @@ def run(
     """
 
     try:
-        spec = TaskSpec(
+        spec = ProcessSpec(
             argv=tuple(argv),
             cwd=cwd,
             # The snapshot, and only the snapshot. Anything not in it cannot

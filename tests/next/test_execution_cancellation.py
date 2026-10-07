@@ -20,7 +20,7 @@ from pathlib import Path
 import pytest
 
 from ici.execution.cancellation import Cancellation, signal_cancels
-from ici.execution.process import Outcome, TaskOutcome, TaskSpec, run_task
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome, run_task
 from ici.execution.tree import Cleanup, can_inspect_groups, members_of
 from ici.execution.watchdog import Trigger, Watchdog
 
@@ -30,8 +30,8 @@ needs_proc = pytest.mark.skipif(
 )
 
 
-def python_task(source: str, **kwargs: object) -> TaskSpec:
-    return TaskSpec(argv=(sys.executable, "-c", source), **kwargs)  # type: ignore[arg-type]
+def python_task(source: str, **kwargs: object) -> ProcessSpec:
+    return ProcessSpec(argv=(sys.executable, "-c", source), **kwargs)  # type: ignore[arg-type]
 
 
 SLEEPER = "import time; time.sleep(60)"

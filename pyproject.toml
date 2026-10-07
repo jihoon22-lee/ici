@@ -51,14 +51,16 @@ src = ["src", "tests"]
 # quality-zoo 는 ici 소유의 known-answer corpus다. 시나리오 소스는 의도적으로
 # 린트 위반·결함을 포함하므로 lint/format 대상에서 제외한다. corpus 자체의
 # runner/tests 코드 품질은 quality-zoo/tests 계약 테스트가 담당한다.
-extend-exclude = ["quality-zoo"]
+# defect_bed 도 같은 이유로 제외한다 — cross-path differential 테스트가
+# 기대하는 결함(eval, 삼킨 except, 미폐쇄 핸들, 과잉 라인)을 심어둔 시드다.
+extend-exclude = ["quality-zoo", "examples/python-fixtures/defect_bed"]
 
 [tool.ruff.format]
 # Markdown prose is not source. ruff formats fenced Python blocks inside .md,
 # and design docs quote class methods in context — reformatting strips their
 # indentation and turns a method into a module-level function, so the document
 # ends up describing something that would not compile.
-exclude = ["*.md", "quality-zoo"]
+exclude = ["*.md", "quality-zoo", "examples/python-fixtures/defect_bed"]
 
 [tool.ruff.lint]
 select = [

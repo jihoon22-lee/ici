@@ -26,8 +26,7 @@ from ici.adapters.providers.ruff import (
     parse_ruff_json,
 )
 from ici.domain.enums import TaskState
-from ici.execution.process import Outcome, TaskOutcome
-from ici.execution.process import TaskSpec as ExecutionTaskSpec
+from ici.execution.process import Outcome, ProcessSpec, TaskOutcome
 
 
 def _request(tmp_path: Path, **kwargs: object) -> RuffRequest:
@@ -44,7 +43,7 @@ def _outcome(
     stdout: str, exit_code: int = 0, cwd: Path | None = None, **kwargs: object
 ) -> TaskOutcome:
     return TaskOutcome(
-        spec=ExecutionTaskSpec(argv=("ruff", "check"), name="python.lint.ruff", cwd=cwd),
+        spec=ProcessSpec(argv=("ruff", "check"), name="python.lint.ruff", cwd=cwd),
         outcome=kwargs.pop("outcome", Outcome.FINISHED),  # type: ignore[arg-type]
         exit_code=exit_code,
         stdout=stdout,
