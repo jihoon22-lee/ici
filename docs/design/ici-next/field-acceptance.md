@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-|상태|**양식 제공 — 실행은 현장 권한 범위**. 이 문서는 폐쇄망 내부에서 수행하는 절차와, 밖으로내도 되는 증거의 형식을 정한다. 실행 결과가 오기 전까지는 어떤 항목도 "현장 검증됨"으로 표기하지 않는다. **수행 추적은 [#265](https://github.com/jihoon22-lee/ici/issues/265)가 담당한다** — 이 문서는 그 절차다.|
+|상태|**양식 제공 — 실행은 현장 권한 범위**. 이 문서는 폐쇄망 내부에서 수행하는 절차와, 밖으로내도 되는 증거의 형식을 정한다. 실행 결과가 오기 전까지는 어떤 항목도 "현장 검증됨"으로 표기하지 않는다. **수행 추적의 정본은 이 문서의 checklist다** — 추적 이슈 [#265](https://github.com/jihoon22-lee/ici/issues/265)는 현장 환경 접근이 확보될 때까지 closed/park 상태이며, 접근이 확보되면 재개한다.|
 |규범|[spec-05](spec-05-verification-transition.md) §2 계층 6(현장 인수), §7·§8|
 |전제|ici-next bundle 1부, 검증 대상 저장소 1개, 폐쇄망 내부 RHEL 8.10 호스트 1대, GHES 테스트 저장소·self-hosted runner(선택)|
 
@@ -112,3 +112,29 @@ G-2, blocked, ghes-3.12, "사내 인터셉션 CA 미등록 — runner OS 신뢰 
   확정의 근거로 쓰지 않는다.
 - 이 checklist가 전부 `pass`여야 "RHEL 8.10/GHES 현장 인수 완료"로
   기록할 수 있다. 로컬 mock·Ubuntu CI 결과는 대체 증거가 아니다.
+## 5. idk 실제 소비자 인수 (C-1 ~ C-2)
+
+이슈 #265의 C 항목이 이 절에 해당한다. fixture consumer(`tests/next/idkconsumer.py`)는
+계약의 내부 증거이며 실제 소비자 확인의 대체가 아니다.
+
+- [ ] **C-1 실제 소비자 실행**: 실제 idk 저장소에서 `ici.next.event` JSONL
+      스트림·결과 파일·취소 계약이 소비됨을 확인한다. 증거는 이벤트 종류와
+      건수의 요약만 기록한다(partial/cancelled 포함 여부).
+- [ ] **C-2 불일치 기록**: fixture consumer와 실제 소비자의 동작 차이가 있으면
+      항목별로 기록한다 — 스키마 필드·이벤트 순서·타이밍 가정 중 무엇이
+      어긋났는지.
+
+## 6. 인수 근거가 모인 뒤의 최종 결정 (D-1 ~ D-2)
+
+이슈 #265의 D 항목이 이 절에 해당한다. R/G/C 계열 증거가 모이기 전에는
+어느 것도 결정하지 않는다.
+
+- [ ] **D-1 물리적 제거**: `migration-matrix.md` §7 후보(`src/ici/engines/`,
+      v3 reporter, stable CLI, `build-pyz.sh` 등)의 제거 여부를 결정한다.
+      되돌림 다리가 더 이상 필요 없다는 합의가 선행 조건이며, 대상 분류는
+      [inventory/stable-removal.md](inventory/stable-removal.md)가 담당한다.
+      준비된 제거 작업은 closed PR
+      [#280](https://github.com/jihoon22-lee/ici/pull/280)의 보존 브랜치
+      `refactor/stable-shell-removal`에서 재개한다.
+- [ ] **D-2 릴리스 전환 승인**: stable→next 릴리스 전환. 버전·태그·공개
+      시점은 소유자 결정이다([release-runbook.md](release-runbook.md) §5).

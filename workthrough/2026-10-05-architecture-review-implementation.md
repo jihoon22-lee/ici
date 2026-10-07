@@ -389,3 +389,61 @@ golden 등가성의 Python 절반 보강, ctest 미실행 verdict 오보고 수�
 - ctest 의미 결정이었던 "미실행을 어떻게 표현하는가"는 limitations+측정 분모로
   해소됨 — suite completeness 축을 명시할지(예: `ctest.executed` measurement)는
   선택적 후속.
+
+# 다섯 번째 후속 — PR 통합·현장 인수 종결·저장소 정리
+
+## Overview
+
+사용자 요청 "모든 작업이 마무리된 상태로"에 따라 열린 PR 4개와 이슈 1개의
+종결, 작업 브랜치·worktree 정리, 문서 최신화를 수행한다. 코드로 완료할 수
+없는 항목(사내 실환경 인수)은 완료로 표기하지 않고 정직하게 park한다.
+
+## Changes Made
+
+### 1. PR 통합 순서
+
+- **#281**(plan 무쓰기·공유 파서·provider 레지스트리): CI green 확인 후 머지.
+- **#279**(공유 분석 심볼 추출): 스택드 베이스(`analysis-relocation`)가 이미
+  머지돼 base를 main으로 retarget + 리베이스(CHANGELOG 충돌 해결 — 양쪽 항목
+  모두 유지) → CI green → 머지.
+- **#282**(ProcessSpec·render 분리·ctest fix·Python parity): main 리베이스
+  후 CI green → 머지.
+
+### 2. #280(stable shell 삭제) — 머지하지 않고 종결
+
+- 실행 전제는 현장 인수(field-acceptance.md R/G/C 계열, 이슈 #265) — 사내
+  RHEL 8.10/GHES/idk 실환경 접근이 필요해 이 환경에서 수행 불가. 로컬 CI를
+  현장 근거로 쓰지 않는다는 이슈 자체 규칙에 따라 unmerged로 닫되, 원격
+  브랜치 `refactor/stable-shell-removal`은 보존해 재개 가능 상태로 둔다.
+- 준비된 작업의 위치는 stable-removal.md와 field-acceptance.md §6 D-1에
+  기록했다.
+
+### 3. #265(현장 인수) — closed/park 처리
+
+- 체크리스트 수행 항목은 모두 사내 실환경 전용 — 미수행 항목을 완료로
+  표기하지 않는 규칙에 따라 "완료"가 아닌 park(closed-not-planned)로 닫는다.
+- 추적 정본을 이슈에서 `field-acceptance.md`로 이관: C(idk)·D(최종 결정)
+  계열이 문서에 없어 §5·§6로 추가하고, docs 9곳의 "#265로 추적" 표현을
+  checklist 지시로 교정. 이슈는 현장 접근 확보 시 재개.
+
+### 4. 문서 관례 교정
+
+- spec-04 조합 표를 `### 2.1` 번호 소제목에서 §2의 `>` 구현 노트 관례로 이동.
+- defect_bed README를 한국어 표에서 기존 fixture README 관례(영문 산문)로 재작성.
+- CHANGELOG 카테고리를 기존 목록(추가/수정/변경/구조/문서)에 맞춤 — 신조
+  `검증`을 `추가`로 교정.
+- `analysis/__init__.py`의 명명 관례 문단을 실제 규칙(이관 코어=공개 이름,
+  전환기 추출 프리미티브=`_` 접두사)으로 정정.
+
+## Verification Results
+
+- #279 리베이스 후 로컬 전체 pytest 통과 + CI Quality Gate success(33m48s).
+- #282 리베이스 후 로컬 전체 pytest 통과(100% 진행, 실패 없음) + CI
+  success(19m31s).
+- 충돌 마커·CHANGELOG 정합·ruff clean 확인.
+
+## Deferred / Known Gaps
+
+- RHEL 8.10·GHES·idk 현장 인수(field-acceptance.md R/G/C 계열) — 사내 환경
+  전용, 이 저장소 작업이 아님. 이슈 #265 park.
+- stable 경로 물리적 제거(#280 보존 브랜치) — D-1 승인 후 재개.

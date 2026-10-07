@@ -8,7 +8,9 @@
 > 구현·검증·문서 작업이 전부 머지됐고, bare `ici verify`는 `[workspace]` 선언
 > 워크스페이스에서 next 경로를 탄다(cutover dispatch). 남은 것은 실환경
 > 확인뿐이다: RHEL 8.10·GHES·idk 현장 인수와 stable 경로 물리적 제거 승인이
-> [#265](https://github.com/jihoon22-lee/ici/issues/265)에 모여 있다.
+> [field-acceptance.md](field-acceptance.md) checklist에 모여 있다(추적 이슈
+> [#265](https://github.com/jihoon22-lee/ici/issues/265)는 현장 접근 확보까지
+> closed/park).
 
 | | |
 |---|---|
