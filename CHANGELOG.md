@@ -7,6 +7,28 @@
 
 ## [Unreleased]
 
+### 수정 — `ici next` 중복 분석이 같은 파일의 클론 occurrence를 모두 보고
+
+- **버그 수정**: `ici next`의 중복 검출 finding fingerprint가
+  `dup-{group}-{file}` 형태라, 하나의 클론 그룹이 같은 파일에 두 번 나타날
+  때 두 occurrence가 동일한 fingerprint를 얻어 하나가 결과 수집에서
+  버려지던 문제를 수정합니다. fingerprint가 이제 provider·그룹
+  fingerprint·파일·시작/끝 라인을 해시해 다른 프로바이더와 같은
+  `sha256:<digest>` 형태를 따릅니다.
+- fingerprint 입력이 바뀌었으므로 `FINGERPRINT_VERSION`이
+  `ici.next.fingerprint.v2`로 올라갑니다. v1으로 기록된 baseline은 비교가
+  거부됩니다 — 같은 finding을 사라졌다/새로 생겼다고 잘못 delta하지 않기
+  위한 fail-closed 동작입니다.
+- 클러스터링 알고리즘(adjacency, connected component, deterministic
+  ordering, representative 선정, duplicated-line 집계)이
+  `ici.analysis._dup_clustering`으로 추출되어 stable(`engines/dup.py`)과
+  next(`languages/duplicates.py`)가 같은 코어를 공유합니다. next의 stale
+  `sha256/type2-region-v1` 라벨도 `v2`로 정정됩니다 — 해시 입력은 이미
+  동일했고 라벨만 drift했습니다.
+- `tests/test_next_differential.py`에 양 경로가 `clone_pair` fixture에서
+  동일한 occurrence 좌표를 보고하는지 확인하는 등가성 테스트를
+  추가했습니다.
+
 ### 수정 — `ici next plan`이 `.ici` 디렉터리를 생성하지 않음
 
 - **버그 수정**: `ici next plan`의 계획 경로가 `.ici/cache/coverage`,
