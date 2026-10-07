@@ -447,3 +447,39 @@ golden 등가성의 Python 절반 보강, ctest 미실행 verdict 오보고 수�
 - RHEL 8.10·GHES·idk 현장 인수(field-acceptance.md R/G/C 계열) — 사내 환경
   전용, 이 저장소 작업이 아님. 이슈 #265 park.
 - stable 경로 물리적 제거(#280 보존 브랜치) — D-1 승인 후 재개.
+
+---
+
+# v0.12.0 릴리스 컷
+
+## Overview
+
+v0.11.0 이후 55개 커밋을 `0.12.0`으로 묶는다. patch는 공개 artifact의
+defect/security/compat 수정 전용이고 이 범위는 사용자에게 보이는 ici-next
+checkpoint이므로 minor가 유일하게 맞는 번호다. RHEL·GHES·idk 현장 인수는
+미수행으로 두고 지원표에 `limited`/`미확인` 표기를 유지한다 — 실기 테스트를
+릴리스 병목으로 두지 않는다는 소유자 결정에 따른다.
+
+## Changes Made
+
+- `src/ici/__init__.py` `__version__` 0.11.0 → 0.12.0, `ici.toml` `version` 동일 갱신.
+- CHANGELOG `[Unreleased]`를 `## [0.12.0] - 2026-10-08`로 전환하고 v0.11.0 관례의
+  한국어 요약 단락(큰 줄기 셋: next candidate, 공유 분석 코어, 지원 표기) 추가.
+- README "후속 범위" 단락이 0.11.0 시점의 미승인 항목(package/wheel, SARIF,
+  gcov JSON, ELF compat 등)을 열거하고 있었다 — 전부 이번 릴리스에 포함되므로
+  0.12.0 이후의 실제 미승인 상태(next candidate, 현장 인수, stable 유지)로
+  재작성. 증거 블록(SHA-256·run ID)은 측정 전 값이라 관례대로 v0.11.0을 가리킨
+  채 두고 릴리스 run 성공 후 별도 evidence 커밋에서 채운다.
+
+## Verification Results
+
+- `ruff check` clean, `ruff format --check` 474 files 통과.
+- `scripts/build-pyz.sh` → `dist/ici.pyz` 2.8M, `--version` = `ici 0.12.0`.
+- `scripts/smoke.sh` — 결과는 아래 기록.
+- 전체 pytest·CI 결과는 PR에서 기록.
+
+## Deferred / Known Gaps
+
+- 공개 릴리스 증거(artifact SHA-256, release run ID, asset 목록)는 tag push 후
+  `release.yml` 성공 시점에 측정해 별도 evidence workthrough로 채운다 —
+  v0.11.0과 동일한 순서.

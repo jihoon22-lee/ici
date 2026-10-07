@@ -5,7 +5,22 @@
 
 ---
 
-## [Unreleased]
+## [0.12.0] - 2026-10-08
+
+이 릴리스는 v0.11.0 이후 55개 커밋을 담습니다. 큰 줄기는 셋입니다.
+
+- **`ici next`가 candidate로 들어갑니다.** `[workspace]` 선언 워크스페이스에서
+  bare `ici verify`는 next 경로를 타고, bundle·`ici.next.run`/`ici.next.event`
+  스키마·GHES 게시·idk 이벤트 계약·ici 소유 회귀 corpus(quality-zoo)가 함께
+  들어갑니다. stable CLI·v3 리포트·`dist/ici.pyz` 배포물은 그대로 유지됩니다 —
+  next는 대체가 아니라 후보입니다.
+- **stable과 next가 분석 코어를 공유합니다.** 엔진이 감싸던 파서·측정
+  프리미티브가 `ici.analysis`로 재배치·추출돼 두 경로가 같은 구현을 씁니다.
+  `ici next plan`이 파일시스템을 쓰지 않고, ctest 미실행 verdict가 실패로
+  오보고되던 문제와 같은-파일 클론 occurrence 유실이 함께 고쳐졌습니다.
+- **지원 선언은 검증된 범위만 말합니다.** RHEL 8.10·GHES·idk 실소비자 인수는
+  `field-acceptance` checklist에서 미수행으로 남아 있으며, 지원표는 그 항목을
+  `limited`/`미확인`으로 표기합니다 — 로컬 CI 통과를 현장 근거로 쓰지 않습니다.
 
 ### 수정 — ctest 미실행 verdict가 실패 finding으로 오보고되던 문제
 
