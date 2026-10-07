@@ -7,6 +7,28 @@
 
 ## [Unreleased]
 
+### 수정 — ctest 미실행 verdict가 실패 finding으로 오보고되던 문제
+
+- `ici next`의 ctest 파서가 `***Not Run (Disabled)` 같은 verdict를 `\S+`로
+  잘라 `***Not`만 취했고, disabled/미실행 테스트가 고심각도 "test x: Not"
+  실패 finding으로 보고됐습니다. 이제 verdict 구문 전체를 취하고
+  not-run/disabled/skipped는 stable 경로의 `executed=False`와 같은 의미로
+  처리합니다 — 총 케이스 수에는 포함하고, limitation으로 이름을 명시하되
+  finding으로는 만들지 않습니다.
+- 회귀 테스트: 미실행 케이스는 `ctest.cases` 분모에만 남고 limitation으로
+  열거되며, 실패와 미실행이 섞인 출력에서도 구분됩니다.
+
+### 검증 — Python defect parity가 cross-path corpus에 추가
+
+- `examples/python-fixtures/defect_bed` — 내부 Python check 8개 각각에
+  결함 하나씩을 심은 시드(eval/pickle/shell, 삼킨 except, 과잉 복잡도,
+  미참조 private 함수, 미폐쇄 핸들, 1000+ 코드 라인, import 사이클,
+  cross-file clone 쌍). stable 엔진이 이름을 댄 모든 파일이 next check
+  아래에도 surface하는지, 그리고 clone occurrence 좌표가 양쪽에서
+  동일한지를 고정합니다.
+- quality-zoo와 같은 이유로 defect_bed는 repo lint/format 대상에서
+  제외됩니다 — 결함이 목적으로 심어져 있습니다.
+
 ### 구조 — 실행 모델 명명과 CLI 출력 경계 정리
 
 - `execution.process.TaskSpec`이 `domain.tasks.TaskSpec`과 이름이 충돌하던

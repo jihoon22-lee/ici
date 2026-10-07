@@ -340,3 +340,52 @@ fingerprint = f"sha256:{digest}"
 - ctest 텍스트 verdict 의미론(미실행 케이스 표현) — 위 §Deferred에 기록된 의미 결정 필요.
 - 플레이크 조사, 골든 등가성(golden equivalence) — 후속.
 - `load_config` 시드를 *읽기 명령*(doctor)에서도 분리할지는 stable UX 결정 — 현행 유지.
+
+# 네 번째 후속 — Python defect parity·ctest verdict·플레이크 감사
+
+## Overview
+
+같은 브랜치(`refactor/next-model-boundaries`, PR #282)에 이어서 진행한 Phase 3 잔여:
+golden 등가성의 Python 절반 보강, ctest 미실행 verdict 오보고 수정, 플레이크 조사.
+
+## Changes Made
+
+### 1. Python defect parity — `test(differential)`
+
+- `examples/python-fixtures/defect_bed/` 신설: 내부 Python check 8개 각각에 극단적
+  결함을 심은 시드(`src/` 레이아웃 — stable 엔진의 DEFAULT_SOURCE_DIRS가 요구).
+- `test_python_defects_the_stable_engines_found_all_surface`: next verify를 한 번
+  돌려 stable 엔진 8개의 per-file parity를 한 테스트로 검사. planted 파일이 stable
+  히트에 먼저 포함되는지 어설션 — 엔진이 결함을 조용히 못 보는 상태도 여기서 걸린다.
+- `test_python_clone_occurrences_are_identical_across_paths`: stable은 clone을
+  informational PASS target으로 보고하므로 파일-상태 parity 대신 occurrence 좌표
+  비교로(C++ 케이스와 같은 강도).
+- fixture는 quality-zoo와 같은 이유로 ruff lint/format 제외 대상(pyproject 주석).
+
+### 2. ctest 미실행 verdict — `fix(next)`
+
+- **발견한 실제 버그**: `_CTEST_RE`의 `\*+\S+` 캡처가 `***Not Run (Disabled)`를
+  `***Not`로 절단 → disabled 테스트가 severity=high "test x: Not" 실패 finding.
+- 수정: verdict 구문 전체(`sec` 컬럼까지)를 캡처하고 `not run`/`disabled`/`skipped`
+  계열을 비실행으로 분류 — 총 케이스에는 포함, `ParsedOutput.limitations`에 이름 명시,
+  finding 아님. stable의 `executed=False` 축과 같은 의미.
+- 회귀 테스트 2건: 미실행 전량, 실패+미실행 혼합.
+
+### 3. 플레이크 감사 — clean
+
+- `test_execution_{cancellation,locks,process,tree}` 85개 × 3회 연속 실행 전부 통과,
+  시간 분산 없음(~13.5s). 타이트 마진(`grace=0.1`)은 존재하나 대기 쪽 deadline이
+  20s로 충분. CI에 retry/xfail 마킹 없음.
+
+## Verification Results
+
+- `pytest tests/test_next_differential.py` — 12 passed (Python parity 8 cases + clone
+  occurrence 좌표 + 기존 C++ 케이스)
+- `pytest tests/next` — 통과 (ctest 회귀 2건 포함)
+- `ruff check .` + `ruff format --check .` — 통과
+
+## Deferred / Known Gaps
+
+- ctest 의미 결정이었던 "미실행을 어떻게 표현하는가"는 limitations+측정 분모로
+  해소됨 — suite completeness 축을 명시할지(예: `ctest.executed` measurement)는
+  선택적 후속.
