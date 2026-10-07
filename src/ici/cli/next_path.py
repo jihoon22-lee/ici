@@ -25,20 +25,7 @@ from pathlib import Path
 import typer
 
 from ici import __version__
-from ici.adapters.providers.base import Provider
-from ici.adapters.providers.binarycompat import BinaryCompatProvider
-from ici.adapters.providers.compiler import CompilerDiagnosticsProvider
-from ici.adapters.providers.coverage import CoverageProvider
-from ici.adapters.providers.cpptest import CtestProvider, QtestProvider
-from ici.adapters.providers.gcov import GcovProvider
-from ici.adapters.providers.integration import IntegrationCaseProvider
-from ici.adapters.providers.mypy import MypyProvider
-from ici.adapters.providers.pycompat import CompileallProvider, PythonVersionProvider
-from ici.adapters.providers.pytest import PytestProvider
-from ici.adapters.providers.ruff import RuffProvider
-from ici.adapters.providers.sanitize import SanitizeProvider
-from ici.adapters.providers.tidy import ClangTidyProvider
-from ici.adapters.providers.ty import TyProvider
+from ici.adapters.providers import builtin_providers
 from ici.application.baseline import BaselineError, compare, load_baseline
 from ici.application.graph import WorkUnit
 from ici.application.identity import task_identity
@@ -640,27 +627,10 @@ def cmd_verify(
     sink = _start_sink(events, root, run_id, all_plans)
 
     cache = None if no_cache else ObservationCache(root / ".ici" / "cache" / "observations")
-    providers: dict[str, Provider] = {
-        "ruff": RuffProvider(),
-        "compiler": CompilerDiagnosticsProvider(),
-        "clang-tidy": ClangTidyProvider(),
-        "mypy": MypyProvider(),
-        "ty": TyProvider(),
-        "pytest": PytestProvider(),
-        "coverage": CoverageProvider(),
-        "ctest": CtestProvider(),
-        "qtest": QtestProvider(),
-        "gcov": GcovProvider(),
-        "sanitize": SanitizeProvider("sanitize", project_root=root),
-        "thread-sanitize": SanitizeProvider("thread-sanitize", project_root=root),
-        "python-compat-version": PythonVersionProvider(),
-        "python-compat-compileall": CompileallProvider(),
-        "integration": IntegrationCaseProvider(),
-        "binary-compat": BinaryCompatProvider(
-            project_root=root,
-            build_roots=tuple((root / build.directory).resolve() for build in model.builds),
-        ),
-    }
+    providers = builtin_providers(
+        root,
+        build_roots=tuple((root / build.directory).resolve() for build in model.builds),
+    )
     # SIGINT/SIGTERM land as a fact on the run, not an exception: unstarted
     # units read it and report CANCELLED, the running one is told through its
     # watchdog, and the partial result is still written — SPEC-04 exit 130.

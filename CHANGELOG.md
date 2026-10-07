@@ -7,6 +7,14 @@
 
 ## [Unreleased]
 
+### 구조 — builtin provider 레지스트리 통합
+
+- `ici next verify`의 provider dispatch dict가 `cli/next_path.py`에
+  손으로 유지되던 16개 이름→클래스 매핑을, 각 인스턴스의 `name`으로
+  스스로 키를 만드는 `adapters.providers.builtin_providers()` 팩토리로
+  옮겼습니다. 새 provider가 registry에 누락되는 drift를 테스트가
+  고정합니다.
+
 ### 수정 — mypy 출력 파서가 stable/next 단일 구현으로 통합
 
 - `path:line[:col]: severity: message [code]` 진단 라인의 어휘를
