@@ -21,20 +21,20 @@
 
 ## 현재 공개 릴리스와 검증된 artifact
 
-현재 공개 stable 릴리스는 [v0.11.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.11.0)다.
-`v0.11.0` tag는 exact `main` commit
-[`41cdff6d9deaab4ce2b46d2c7a9966ddd8d12efe`](https://github.com/jihoon22-lee/ici/commit/41cdff6d9deaab4ce2b46d2c7a9966ddd8d12efe)을
-가리키며, [exact-main CI run `34307165809`](https://github.com/jihoon22-lee/ici/actions/runs/34307165809)의
+현재 공개 stable 릴리스는 [v0.12.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.12.0)다.
+`v0.12.0` tag는 exact `main` commit
+[`65752bc86b49c9845e6282ddaf3c00584e415b60`](https://github.com/jihoon22-lee/ici/commit/65752bc86b49c9845e6282ddaf3c00584e415b60)을
+가리키며, [exact-main CI run `37713707168`](https://github.com/jihoon22-lee/ici/actions/runs/37713707168)의
 Verify, Qt 5/Qt 6, `Publish Main Verification Report`, `Merge Gate`가 성공했다. [release run
-`34310970522`](https://github.com/jihoon22-lee/ici/actions/runs/34310970522)의 provenance와
+`37716481630`](https://github.com/jihoon22-lee/ici/actions/runs/37716481630)의 provenance와
 publish job도 성공했고, 공개 release는 non-draft/non-prerelease와 정확히 9개 asset을
 포함한다. `ici.pyz` SHA-256은
-`334bcda1bf127ff18ca1931cb55a8ac6e62af2d687ac90ab13c6af2e5499bc1f`이며, 내려받아 계산한 digest와 공개된 `ici.pyz.sha256`
-sidecar가 이 값과 일치한다. ici/viewer main
-Pages는 독립 확인에서 HTTP 200·`text/html`·각각 `ici Verification Report — ici`와
-`ici Verification Report — viewer` title·외부 resource URL 0건을 만족했다. asset 목록과
-검증 명령/결과는 [`v0.11.0 public evidence workthrough`](../workthrough/2026-09-09-public-v0.11.0-evidence.md)에
-고정한다. v0.10.2 근거는 [historical evidence](../workthrough/2026-09-02-public-v0.10.2-evidence.md)로
+`4495361b388cc1a9f4ff4591ce8c40df507e6eb9c79ca724568c5630f958ffed`이며, 내려받아 계산한 digest와 공개된 `ici.pyz.sha256`
+sidecar가 이 값과 일치한다. 로컬 재현 빌드와 candidate acceptance(zoo 게이트 run
+[`37713740753`](https://github.com/jihoon22-lee/ici/actions/runs/37713740753))이 같은 digest를
+가리키므로, 게이트가 검증한 파일이 공개된 파일과 동일 바이트다. asset 목록과
+검증 명령/결과는 [`v0.12.0 public evidence workthrough`](../workthrough/2026-10-08-public-v0.12.0-evidence.md)에
+고정한다. v0.11.0 근거는 [historical evidence](../workthrough/2026-09-09-public-v0.11.0-evidence.md)로
 남는다.
 
 ---
@@ -1191,9 +1191,9 @@ merge commit `b1b3cc149c72eef6f71370364ab7eaf24d48ca40`의 [exact-main run
 `33538985765`](https://github.com/jihoon22-lee/ici/actions/runs/33538985765)은 trusted main
 publication과 Merge Gate까지 성공했고, main ici/viewer Pages는 HTTP 200, 정확한 report title,
 외부 resource 0개였습니다. 이 공개 전 release-prep sequence는 historical evidence로 보존한다.
-현재 `v0.11.0` tag와 공개 artifact는 상단 release evidence와
-[`v0.11.0 public evidence workthrough`](../workthrough/2026-09-09-public-v0.11.0-evidence.md)를 따른다.
-`v0.10.2` 근거는 [historical evidence](../workthrough/2026-09-02-public-v0.10.2-evidence.md)로 남는다.
+현재 `v0.12.0` tag와 공개 artifact는 상단 release evidence와
+[`v0.12.0 public evidence workthrough`](../workthrough/2026-10-08-public-v0.12.0-evidence.md)를 따른다.
+`v0.11.0` 근거는 [historical evidence](../workthrough/2026-09-09-public-v0.11.0-evidence.md)로 남는다.
 
 cycle은 configuration별로 compiler `-E -H` trace를 실행해 실제 active include edge와 resolved
 path를 수집하고 `project`/`generated`/`system`/`third_party` scope를 집계합니다. 각 configuration
