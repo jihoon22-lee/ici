@@ -15,8 +15,8 @@ $ ici doctor
 
 ### 현재 릴리스
 
-공개 stable 릴리스는 [v0.11.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.11.0)이며
-`ici.pyz`의 SHA-256은 `334bcda1bf127ff18ca1931cb55a8ac6e62af2d687ac90ab13c6af2e5499bc1f`다.
+공개 stable 릴리스는 [v0.12.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.12.0)이며
+`ici.pyz`의 SHA-256은 `4495361b388cc1a9f4ff4591ce8c40df507e6eb9c79ca724568c5630f958ffed`다.
 
 `ici next`와 bundle artifact는 stable 승인이 아니라 **candidate**다. RHEL 8.10·GHES·
 idk 실소비자 인수는 [field-acceptance checklist](docs/design/ici-next/field-acceptance.md)가

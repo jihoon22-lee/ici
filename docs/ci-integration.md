@@ -25,18 +25,20 @@ support matrix를 공통 맥락으로 사용하고, feature별 외부 도구는 
 
 ## 현재 공개 release evidence
 
-현재 공개 stable release는 [v0.11.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.11.0)다.
-`v0.11.0` tag는 exact `main` commit
-[`41cdff6d9deaab4ce2b46d2c7a9966ddd8d12efe`](https://github.com/jihoon22-lee/ici/commit/41cdff6d9deaab4ce2b46d2c7a9966ddd8d12efe)을
-가리킨다. [exact-main run `34307165809`](https://github.com/jihoon22-lee/ici/actions/runs/34307165809)은
+현재 공개 stable release는 [v0.12.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.12.0)다.
+`v0.12.0` tag는 exact `main` commit
+[`65752bc86b49c9845e6282ddaf3c00584e415b60`](https://github.com/jihoon22-lee/ici/commit/65752bc86b49c9845e6282ddaf3c00584e415b60)을
+가리킨다. [exact-main run `37713707168`](https://github.com/jihoon22-lee/ici/actions/runs/37713707168)은
 검증, Qt 5/Qt 6, `Publish Main Verification Report`, `Merge Gate`를 성공시켰고,
-[release run `34310970522`](https://github.com/jihoon22-lee/ici/actions/runs/34310970522)도
-provenance와 publish를 성공시켰다. [공개 release](https://github.com/jihoon22-lee/ici/releases/tag/v0.11.0)는
+[release run `37716481630`](https://github.com/jihoon22-lee/ici/actions/runs/37716481630)도
+provenance와 publish를 성공시켰다. [공개 release](https://github.com/jihoon22-lee/ici/releases/tag/v0.12.0)는
 non-draft/non-prerelease이며 `ici.pyz`, checksum, self/viewer HTML·JSON, `icirv`,
 `icirv-gui`, GUI README까지 정확히 9개 asset을 포함한다. `ici.pyz` SHA-256은
-`334bcda1bf127ff18ca1931cb55a8ac6e62af2d687ac90ab13c6af2e5499bc1f`다. main ici/viewer
-Pages는 HTTP 200·`text/html`·정확한 title·외부 resource URL 0건으로 독립 감사됐다.
-상세 asset 표와 검증 기록은 [`v0.11.0 public evidence workthrough`](../workthrough/2026-09-09-public-v0.11.0-evidence.md)를
+`4495361b388cc1a9f4ff4591ce8c40df507e6eb9c79ca724568c5630f958ffed`다. 로컬 재현 빌드와
+candidate acceptance(zoo 게이트 run
+[`37713740753`](https://github.com/jihoon22-lee/ici/actions/runs/37713740753))이 같은 digest를
+가리킨다. 상세 asset 표와 검증 기록은
+[`v0.12.0 public evidence workthrough`](../workthrough/2026-10-08-public-v0.12.0-evidence.md)를
 참조한다.
 
 ## 1. GitHub Actions 워크플로우
