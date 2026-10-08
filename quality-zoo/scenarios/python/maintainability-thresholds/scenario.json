@@ -4,6 +4,7 @@
   "expectations": {
     "50d41d36775394f66f6620091f42a7a0333ee90758e19449a848d7ee0875a93c": "expectations/candidate-0b7e620.json",
     "23d9922b94b2ba34ab8884cd2d39c8eda358ccb32d0925af5c0a3d52a7ddc893": "expectations/candidate-0b7e620.json",
-    "e90140186f84ff17c4cda039d34c241b99f9ba74b07ea3b089a542c4bb620d9b": "expectations/candidate-0b7e620.json"
+    "e90140186f84ff17c4cda039d34c241b99f9ba74b07ea3b089a542c4bb620d9b": "expectations/candidate-0b7e620.json",
+    "4495361b388cc1a9f4ff4591ce8c40df507e6eb9c79ca724568c5630f958ffed": "expectations/released-v0.12.0.json"
   }
 }

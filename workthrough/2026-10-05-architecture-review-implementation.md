@@ -483,3 +483,39 @@ checkpoint이므로 minor가 유일하게 맞는 번호다. RHEL·GHES·idk 현�
 - 공개 릴리스 증거(artifact SHA-256, release run ID, asset 목록)는 tag push 후
   `release.yml` 성공 시점에 측정해 별도 evidence workthrough로 채운다 —
   v0.11.0과 동일한 순서.
+
+---
+
+# quality-zoo 0.12.0 expectation 바인딩
+
+## Overview
+
+`release: cut v0.12.0` 머지 후 candidate 게이트를 돌렸더니
+`unsupported-ici` — corpus의 scenario.json이 artifact SHA-256으로
+expectation을 고르는데 0.12.0 digest `4495361b…`가 등록돼 있지 않았다.
+릴리스 절차의 실질 단계로, 16개 시나리오 전부에 측정된 expectation을
+`released-v0.12.0.json`으로 기록했다.
+
+## Changes Made
+
+- 로컬 재현성 빌드(`verify-reproducibility.sh`)와 CI candidate artifact가
+  동일 SHA `4495361b…` — 결정적 빌드 입증.
+- 16개 시나리오에 `expectations/released-v0.12.0.json` 신설 —
+  `producer_version` 0.12.0, 나머지 필드는 실측 대조.
+- `python.maintainability-thresholds`만 실측 차이: cognitive가
+  `Cognitive 13 (nesting 3)` → `Cognitive 11 (nesting 2)`. #160 elif-chain
+  수정의 기대 효과 — expectation을 새 측정치로 기록.
+- scenario.json 16곳에 digest→파일 매핑 추가, `test_run.py`의 pinned
+  digest 집합에 `RELEASED_V0_12_0_DIGEST` 추가.
+
+## Verification Results
+
+- 로컬 zoo(candidate-manifest, dist/ici.pyz = 후보와 동일 SHA): 15/16 PASS.
+  유일 실패 `cpp.qt-missing-parent-constructor`는 로컬에 clazy 부재 —
+  capability 게이트가 환경적 ERROR를 내는 정상 동작, CI에서 실측 검증.
+- quality-zoo unittest 68개 통과.
+
+## Deferred / Known Gaps
+
+- qt 시나리오의 clazy 경로는 CI candidate 게이트 재실행이 최종 증거다.
+  실패 시 실제 리그레션이므로 태그 전에 해결한다.
