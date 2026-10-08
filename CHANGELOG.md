@@ -21,6 +21,11 @@
 - **지원 선언은 검증된 범위만 말합니다.** RHEL 8.10·GHES·idk 실소비자 인수는
   `field-acceptance` checklist에서 미수행으로 남아 있으며, 지원표는 그 항목을
   `limited`/`미확인`으로 표기합니다 — 로컬 CI 통과를 현장 근거로 쓰지 않습니다.
+- **quality-zoo가 0.12.0 artifact를 압니다.** 16개 시나리오 전부에
+  `expectations/released-v0.12.0.json`이 artifact SHA-256
+  `4495361b…`에 바인딩됩니다 — #160의 elif 체인 수정으로
+  `maintainability-thresholds`의 cognitive 측정치가 13→11로 바뀐 것을
+  포함해 전부 실측 기록입니다.
 
 ### 수정 — ctest 미실행 verdict가 실패 finding으로 오보고되던 문제
 
