@@ -324,3 +324,33 @@ class TestVcs:
 
         assert state is not None and state.clean
         assert state.commit is not None
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_an_exclusion_only_removes_the_declaring_components_claim(tmp_path, reverse):
+    _write(tmp_path, "shared/bad.py", "eval(input())\n")
+    _write(tmp_path, "shared/good.py", "x = 1\n")
+    a = Component(id="a", root="shared", languages=("python",), sources=("shared/*.py",))
+    b = Component(
+        id="b",
+        root="shared",
+        languages=("python",),
+        sources=("shared/*.py",),
+        exclude=("shared/bad.py",),
+    )
+    workspace = _workspace(components=(b, a) if reverse else (a, b))
+    found = {item.path: item.units for item in take(workspace, root=tmp_path).files}
+    assert found == {
+        "shared/bad.py": ("a.python",),
+        "shared/good.py": ("a.python", "b.python"),
+    }
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_an_inside_external_merges_ownership_without_replacing_other_claims(tmp_path, reverse):
+    _write(tmp_path, "shared/common.py")
+    a = Component(id="a", root="shared", languages=("python",), sources=("shared/*.py",))
+    b = Component(id="b", root=".", languages=("python",), external=("shared/common.py",))
+    workspace = _workspace(components=(b, a) if reverse else (a, b))
+    (entry,) = take(workspace, root=tmp_path).files
+    assert entry.units == ("a.python", "b.python")

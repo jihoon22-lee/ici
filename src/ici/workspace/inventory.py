@@ -214,15 +214,16 @@ def take(workspace: Workspace, *, root: Path) -> SourceInventory:
         unit_ids = tuple(
             unit.id for unit in workspace.analysis_units if unit.component_id == component.id
         )
+        owned: set[str] = set()
         for pattern in (*component.sources, *component.include):
-            for path in _expand(root, pattern):
-                claimed.setdefault(path, set()).update(unit_ids)
+            owned.update(_expand(root, pattern))
         for pattern in component.exclude:
-            for path in _expand(root, pattern):
-                claimed.pop(path, None)
+            owned.difference_update(_expand(root, pattern))
         for pattern in component.vendor:
             vendor_paths.update(_expand(root, pattern))
-        claimed.update(_externals_inside(component, root, unit_ids))
+        owned.update(_externals_inside(component, root, unit_ids))
+        for path in owned:
+            claimed.setdefault(path, set()).update(unit_ids)
 
     unreadable: list[str] = []
     digests: dict[str, tuple[str, int]] = {}
