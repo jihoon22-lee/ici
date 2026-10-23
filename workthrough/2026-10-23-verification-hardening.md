@@ -49,15 +49,21 @@ variant는 workspace 기준 명령·작업 디렉터리·출력으로 식별한�
 정체성에서 제외하되 출력 경로·최소 크기 등 실제 assertion 조건은 유지한다. 이 수정 전
 실패한 아홉 baseline 경계 사례와 외부 경로·assertion 변경 대조군을 함께 보존했다.
 
+추가 리뷰에서는 외부 입력을 소유 component의 범위에만 넣고 공유 선언을 중복 제거했다.
+파일의 생성·삭제·내용 변경과 디렉터리의 멤버·내용 변경을 실행 전후에 비교해, 달라진
+입력으로 수행한 검사를 완료 증거로 쓰지 않는다. 잘못된 baseline JSON의 findings/metrics
+형식도 파일을 지목하는 설정 오류로 안내한다. 이 경계의 회귀 14건과 정상 입력 대조군을
+추가했고, [실제 CLI 회귀](../tests/next/test_baseline_external_inputs.py)로 부분 선택과
+실행 중 변경이 baseline 해결 여부에 미치는 결과를 확인했다.
+
 개발 회귀 환경은 Python 3.10.21, uv 0.12.5, Ruff 0.16.4이다. `uvx ruff` 게이트는
 0.17.2로도 수행했다. 아래 표는 리뷰 보강을 반영한 최종 후보의 실제 측정값이다.
 
 |검증|결과|
 |---|---|
-|`uvx ruff check .`, `uvx ruff format --check .`|통과, 487개 파일|
+|`uvx ruff check .`, `uvx ruff format --check .`|통과, 488개 파일|
 |`./scripts/verify-reproducibility.sh`|타임스탬프·locale·umask·hash seed를 달리한 두 pyz 빌드의 SHA-256 일치, 소스 상태 불변|
-|pyz에서 추출한 모듈의 수정·계약 회귀|137 passed, optional jsonschema 6 skipped. 로드된 모든 ici 모듈이 최종 산출물에서 왔음을 검사|
-|jsonschema 4.26.0을 제공한 산출물 스키마 검사|27 passed, skip 없음. 위 optional 검사도 실행|
+|pyz에서 추출한 모듈의 수정·계약 회귀|158 passed, skip 없음. jsonschema 4.26.0을 제공해 스키마 27개도 실행하고, 로드된 모든 ici 모듈이 최종 산출물에서 왔음을 검사|
 |원래 최소 재현 조건을 실제 pyz 명령으로 대조|8건 모두 수정 동작 확인. 별도로 결과 envelope 17개의 producer 0.12.1·schema v2·checks 목록 검증|
 |Quality Zoo 계약/등록부|68개 unit test와 50개 fixture inventory·hygiene 검사 통과|
 |최종 후보의 Python Quality Zoo|5/5 계약 PASS, runner error 0. 결함을 심은 시나리오의 의도된 FAIL/WARN도 기대값과 일치|
@@ -67,7 +73,7 @@ variant는 workspace 기준 명령·작업 디렉터리·출력으로 식별한�
 최종 0.12.1 후보 `ici.pyz`의 SHA-256:
 
 ```text
-4c292dfed51e3b4e64483fd73f8fe09602a0bfcba6de61ff052f694d3dc59130
+f78b04aabb28fd6197e7aae1bd6b974b58f2e7e4b2e30a246d195e848eb450e4
 ```
 
 Quality Zoo의 16개 시나리오에 이 digest를 명시적으로 연결했다. 기존 known-answer의
