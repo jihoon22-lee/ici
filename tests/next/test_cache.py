@@ -282,6 +282,51 @@ def test_a_unit_with_no_key_still_runs_and_says_why(tmp_path) -> None:
     assert "did not declare" in scheduled.executions[0].detail
 
 
+def test_corrupted_cache_reexecutes_and_preserves_findings(tmp_path) -> None:
+    """The generic reusable-provider path still evicts and measures again."""
+    from ici.domain.finding import Finding, SourceSpan
+
+    finding = Finding(
+        fingerprint="defect",
+        rule_id="stub.defect",
+        message="defect",
+        severity="high",
+        confidence="high",
+        provider="stub",
+        primary_location=SourceSpan(path="src/a.py", start_line=1),
+    )
+
+    class Provider(_StubProvider):
+        def parse(self, outcome):
+            return ParsedOutput(findings=(finding,))
+
+    cache = ObservationCache(tmp_path / "cache")
+    cache.write("f" * 64, _observation(), run_id="old")
+    (tmp_path / "cache" / ("f" * 64 + ".json")).write_text("{ corrupted")
+    planned = PlannedCheck(
+        check=CheckDefinition(id="a.lint", title="t", language="python", tool="stub"),
+        task=ProviderPlan(task=_spec("a.lint")),
+    )
+    calls = []
+
+    def run(spec):
+        calls.append(spec.name)
+        return _finished(spec)
+
+    scheduled = run_graph(
+        build_graph((planned,)),
+        {"stub": Provider()},
+        {},
+        runner=run,
+        cache=cache,
+        identify=lambda unit: ("f" * 64, ""),
+        run_id="fresh",
+    )
+    assert calls == ["a.lint"]
+    assert scheduled.observations[0].findings == (finding,)
+    assert cache.read("f" * 64).source_run == "fresh"
+
+
 def test_normalization_version_changes_do_not_reuse_old_observations(monkeypatch):
     from ici.application import identity
     from ici.application.graph import WorkUnit

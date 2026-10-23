@@ -4,8 +4,8 @@ Exercised here, at the CLI boundary rather than by inspection:
 
 - a component ``root`` that walks out of the workspace is refused at config
   load — the run does not start, and nothing outside is explored;
-- an observation-cache entry that was corrupted or rewritten after storing
-  is evicted and re-run — never adopted into the result;
+- stale observation-cache bytes for a provider with unclosed inputs are
+  never adopted into the result; generic cache eviction is covered in test_cache;
 - the publish token travels in the Authorization header only — not in
   stdout, not in ``publish.json``, and not even when the server echoes it
   back in an error body;
@@ -89,24 +89,24 @@ def test_a_component_root_escaping_the_workspace_is_refused(tmp_path: Path, monk
 
 @needs_ruff
 def test_a_corrupted_cache_still_reports_the_defect(tmp_path: Path, monkeypatch) -> None:
-    """Corrupt stored bytes are a miss, and the defect is re-detected (#226)."""
+    """Stale Ruff cache bytes cannot replace a fresh measurement (#226)."""
     root = _project(tmp_path / "ws")
     monkeypatch.chdir(root)
     result_path = tmp_path / "r1.json"
 
     first = runner.invoke(app, ["next", "verify", "--result", str(result_path)])
     assert first.exit_code == 1, first.output
-    entries = list(_cache_dir(root).glob("*.json"))
-    assert entries, "the tool tasks must have cached their observations"
-
-    for entry in entries:
-        entry.write_text("{ corrupted", encoding="utf-8")
+    cache_dir = _cache_dir(root)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    entry = cache_dir / ("f" * 64 + ".json")
+    entry.write_text("{ corrupted", encoding="utf-8")
 
     second = runner.invoke(app, ["next", "verify", "--result", str(result_path)])
 
     assert second.exit_code == 1, second.output
     document = json.loads(result_path.read_text(encoding="utf-8"))
     assert document["findings"], "the defect must be re-detected, not forgotten"
+    assert not document["execution"]["reused_task_ids"]
 
 
 # --- the publish token is a header, not content ------------------------------

@@ -81,7 +81,9 @@ def test_the_consumer_reads_the_same_run_the_cli_ran(project: Path, tmp_path) ->
 
 
 @needs_ruff
-def test_a_second_runs_consumer_sees_reuse_not_rework(project: Path, tmp_path) -> None:
+def test_a_second_runs_consumer_sees_automatic_config_tools_execute(
+    project: Path, tmp_path
+) -> None:
     _verify(project, tmp_path)
     result_path = tmp_path / "second.json"
     events_path = tmp_path / "second-events.jsonl"
@@ -94,11 +96,9 @@ def test_a_second_runs_consumer_sees_reuse_not_rework(project: Path, tmp_path) -
 
     document = json.loads(result_path.read_text(encoding="utf-8"))
     reused = set(document["execution"]["reused_task_ids"])
-    assert reused
-    # Reused tasks were reported complete without claiming a fresh start,
-    # and the reused evidence still carries the finding — reuse is a lookup,
-    # never a verdict (#209).
-    assert not progress.started_tasks.intersection(reused)
+    assert not reused
+    assert any(task.endswith("python.lint") for task in progress.started_tasks)
+    assert progress.started_tasks <= set(progress.finished_tasks)
     assert run.selected_verdict == "FAIL"
     assert any(item.rule_id == "ruff.F401" for item in run.findings)
 
