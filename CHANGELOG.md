@@ -46,6 +46,8 @@
   이름의 접두사만 같은 외부 경로는 별개 입력으로 보존합니다.
 - integration의 실행별 freshness 시각은 비교 정체성에서 제외하고, 출력 경로·최소 크기
   같은 실제 assertion 조건은 보존합니다. 같은 범위에서 문제를 고친 재실행은 해결로 판정합니다.
+- component가 직접 사용하거나 `needs`로 연결한 build의 variant·설정도 완료 범위에
+  포함해, 다른 build 조건의 artifact만 실행하고 이전 문제를 해결 처리하지 않습니다.
 - `ici.next.run` v2가 check·component·language·입력 범위·variant·실행 상태와
   증거 완결성을 저장합니다. 언어/프로파일 축소, 실패·차단·취소, 입력 범위 변경으로
   사라진 finding은 `carried`에 남고, 같은 범위를 완료한 검사만 `resolved`를 만들 수 있습니다.

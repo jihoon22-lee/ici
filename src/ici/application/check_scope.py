@@ -8,6 +8,7 @@ import os
 from collections.abc import Mapping
 from pathlib import Path
 
+from ici.adapters.providers.identity import invocation_identity
 from ici.application.plan import Plan
 from ici.application.planning import SOURCE_SUFFIXES, unit_files
 from ici.application.verify import Verification
@@ -50,6 +51,11 @@ def records(
                 }
             )
             task = planned.task.task if planned.task is not None else None
+            cwd, argv = (
+                invocation_identity(task.argv, Path(task.cwd), root)
+                if task is not None
+                else (None, ())
+            )
             context = {
                 "files": files,
                 "units": [
@@ -62,11 +68,12 @@ def records(
                     for unit in sorted(units, key=lambda item: item.id)
                 ],
                 "externals": [(item.path, item.files, item.present) for item in stock.externals],
+                "builds": _linked_builds(scope, component_id, root),
                 "invocation": None
                 if task is None
                 else {
-                    "argv": [arg.replace(str(root), "${workspace}") for arg in task.argv],
-                    "cwd": task.cwd.replace(str(root), "${workspace}"),
+                    "argv": argv,
+                    "cwd": cwd,
                     "provider": task.provider,
                     "inputs": [_workspace_reference(item, root) for item in task.input_refs],
                     "environment": _environment(task, root),
@@ -92,6 +99,26 @@ def records(
                 )
             )
     return tuple(result)
+
+
+def _linked_builds(
+    scope: Workspace, component_id: str, root: Path
+) -> tuple[tuple[object, ...], ...]:
+    component = scope.component(component_id)
+    selected = set(component.build_ids) | set(scope.build_needs(component_id))
+    return tuple(
+        (
+            build.id,
+            build.system,
+            build.variant,
+            build.directory,
+            build.definition,
+            invocation_identity(build.prepare_argv, root / build.directory, root),
+            build.artifacts,
+        )
+        for build in sorted(scope.builds, key=lambda item: item.id)
+        if build.id in selected
+    )
 
 
 def _workspace_reference(value: str, root: Path) -> str:

@@ -124,6 +124,8 @@ v1 결과 또는 완료 범위를 모르는 v2 결과는 보고서로 열 수 �
 옮긴 경우의 내부 절대 입력 경로는 정규화하며, 외부 입력의 경로는 별개 정체성으로 유지한다.
 integration의 freshness 시각은 실행별 기록값이다. 비교 범위는 이 시각을 제외하지만
 출력 artifact의 경로와 최소 크기 등 실제 assertion 조건은 계속 식별한다.
+component 자신의 build와 `needs`로 연결한 build의 설정도 비교 범위에 포함한다.
+같은 경로의 artifact라도 다른 build variant로 검사했다면 이전 문제는 `carried`에 남는다.
 
 ## 6. 이 표를 갱신하는 규칙
 

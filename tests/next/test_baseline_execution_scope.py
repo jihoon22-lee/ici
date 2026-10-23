@@ -128,6 +128,49 @@ def test_integration_scope_excludes_freshness_time_but_keeps_assertions(
         assert current["baseline"]["resolved"] == []
 
 
+def test_integration_retains_the_variant_of_a_linked_artifact_build(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "main.py").write_text("value=1\n")
+    binary = tmp_path / "build/bin/probe"
+    binary.parent.mkdir(parents=True)
+    binary.write_text("#!/bin/sh\nexit 1\n")
+    binary.chmod(0o755)
+    text = (
+        'schema_version=1\n[workspace]\nname="example"\n'
+        '[builds.tool]\nsystem="cmake"\ndirectory="build"\nvariant="debug"\n'
+        'artifacts=["bin/probe"]\n'
+        '[[components]]\nid="app"\nroot="."\nlanguages=["python"]\nneeds=["tool"]\n'
+        '[[components.integrations]]\nname="artifact"\n'
+        'argv=["{artifact:tool/bin/probe}"]\nrequired=true\n'
+        "[checks.integration]\nenabled=true\nrequired=true\n"
+        + "".join(f'\n[checks."{c.id}"]\nenabled=false\n' for c in PYTHON_CHECKS)
+    )
+    config = tmp_path / "ici.toml"
+    config.write_text(text)
+    runner = CliRunner()
+    first = runner.invoke(
+        app, ["next", "verify", "--profile", "deep", "--result", "before.json", "--json"]
+    )
+    assert first.exit_code == 1, first.output
+    original = json.loads(first.stdout)
+    binary.write_text("#!/bin/sh\nexit 0\n")
+    config.write_text(text.replace('variant="debug"', 'variant="release"'))
+    changed = runner.invoke(
+        app, ["next", "verify", "--profile", "deep", "--baseline", "before.json", "--json"]
+    )
+    assert changed.exit_code == 0, changed.output
+    current = json.loads(changed.stdout)
+    assert original["identity"]["policy_digest"] == current["identity"]["policy_digest"]
+    assert current["baseline"]["resolved"] == []
+    assert len(current["baseline"]["carried"]) == 1
+    config.write_text(text)
+    same = runner.invoke(
+        app, ["next", "verify", "--profile", "deep", "--baseline", "before.json", "--json"]
+    )
+    assert same.exit_code == 0, same.output
+    assert len(json.loads(same.stdout)["baseline"]["resolved"]) == 1
+
+
 @pytest.mark.parametrize(
     "reduction", ["omitted", "failed", "blocked", "cancelled", "partial", "inputs", "variant"]
 )
