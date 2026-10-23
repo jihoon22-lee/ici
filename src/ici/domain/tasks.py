@@ -65,6 +65,8 @@ class TaskSpec:
     output_limit_bytes: int | None = None
     tool_digest: str | None = None
     cacheable: bool = True
+    #: Consumer analysis context; sharing an execution does not merge this identity.
+    variant: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", require_identifier(self.id, "task id"))
@@ -132,6 +134,8 @@ class TaskSpec:
             object.__setattr__(
                 self, "tool_digest", require_digest(self.tool_digest, "task tool digest")
             )
+        if self.variant is not None:
+            object.__setattr__(self, "variant", require_identifier(self.variant, "task variant"))
         if not isinstance(self.cacheable, bool):
             raise ValueError("task cacheable must be a boolean")
         if self.mutating and self.cacheable:

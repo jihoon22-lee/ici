@@ -23,12 +23,12 @@ stdout — the parse reads stderr first, matching the stable engine.
 
 from __future__ import annotations
 
-import hashlib
 import os
 from collections.abc import Callable
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
+from ici.adapters.providers.identity import process_fingerprint
 from ici.analysis._sanitizer_diagnostics import (
     _ERROR_RE,
     _RUNTIME_RE,
@@ -136,7 +136,7 @@ class SanitizeProvider:
                 )
             return ParsedOutput(
                 findings=tuple(
-                    _diagnostic_finding(item, outcome.spec, self.name, self._anchor)
+                    _diagnostic_finding(item, outcome.spec, self.name, self._anchor, self._root)
                     for item in diagnostics
                 ),
                 measurements=(
@@ -150,7 +150,7 @@ class SanitizeProvider:
             )
         if outcome.exit_code != 0:
             return ParsedOutput(
-                findings=(_suite_failure_finding(outcome, self.name, self._anchor),),
+                findings=(_suite_failure_finding(outcome, self.name, self._anchor, self._root),),
                 limitations=limitations,
             )
         return ParsedOutput(
@@ -200,6 +200,7 @@ def _diagnostic_finding(
     spec: ProcessSpec,
     provider: str,
     anchor: Callable[[ProcessSpec], str],
+    root: Path,
 ) -> Finding:
     primary = item.primary_location
     limitations: list[str] = []
@@ -209,7 +210,7 @@ def _diagnostic_finding(
     if primary is None and item.primary_location is None:
         limitations.append("the diagnostic named no project location")
     return Finding(
-        fingerprint=_fingerprint(spec.name, item.rule_id, item.message),
+        fingerprint=process_fingerprint(provider, spec, root, item.rule_id, item.message),
         rule_id=item.rule_id,
         message=item.message,
         severity="high",
@@ -227,10 +228,12 @@ def _diagnostic_finding(
 
 
 def _suite_failure_finding(
-    outcome: TaskOutcome, provider: str, anchor: Callable[[ProcessSpec], str]
+    outcome: TaskOutcome, provider: str, anchor: Callable[[ProcessSpec], str], root: Path
 ) -> Finding:
     return Finding(
-        fingerprint=_fingerprint(outcome.spec.name, "suite", f"exit-{outcome.exit_code}"),
+        fingerprint=process_fingerprint(
+            provider, outcome.spec, root, "suite", f"exit-{outcome.exit_code}"
+        ),
         rule_id="ici.sanitize.suite-failure",
         message=(
             f"suite exited {outcome.exit_code} with no sanitizer diagnostic "
@@ -244,8 +247,3 @@ def _suite_failure_finding(
         task_id=outcome.spec.name,
         evidence=EvidenceLevel.MEASURED,
     )
-
-
-def _fingerprint(task_id: str, rule: str, detail: str) -> str:
-    digest = hashlib.sha256("\x00".join((task_id, rule, detail)).encode()).hexdigest()
-    return f"sha256:{digest}"

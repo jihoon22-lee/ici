@@ -16,11 +16,11 @@ tests were found" is too: a suite that ran nothing has not verified anything
 
 from __future__ import annotations
 
-import hashlib
 import re
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
+from ici.adapters.providers.identity import process_fingerprint
 from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement
@@ -58,6 +58,9 @@ class CtestProvider:
 
     name = "ctest"
 
+    def __init__(self, *, project_root: Path | None = None) -> None:
+        self._root = project_root
+
     def plan(
         self,
         executable: str,
@@ -84,13 +87,16 @@ class CtestProvider:
     def parse(self, outcome: TaskOutcome) -> ParsedOutput:
         if not outcome.outcome.ran_to_completion:
             return ParsedOutput(failed_to_parse=f"{outcome.spec.name} did not finish")
-        return _parse_ctest(outcome.parseable, outcome.spec)
+        return _parse_ctest(outcome.parseable, outcome.spec, project_root=self._root)
 
 
 class QtestProvider:
     """One QTest binary per suite — the binary the build produced."""
 
     name = "qtest"
+
+    def __init__(self, *, project_root: Path | None = None) -> None:
+        self._root = project_root
 
     def plan(
         self,
@@ -115,10 +121,10 @@ class QtestProvider:
     def parse(self, outcome: TaskOutcome) -> ParsedOutput:
         if not outcome.outcome.ran_to_completion:
             return ParsedOutput(failed_to_parse=f"{outcome.spec.name} did not finish")
-        return _parse_qtest(outcome.parseable, outcome.spec)
+        return _parse_qtest(outcome.parseable, outcome.spec, project_root=self._root)
 
 
-def _parse_ctest(text: str, spec: ProcessSpec) -> ParsedOutput:
+def _parse_ctest(text: str, spec: ProcessSpec, *, project_root: Path | None = None) -> ParsedOutput:
     findings: list[Finding] = []
     total = 0
     passed = 0
@@ -136,7 +142,7 @@ def _parse_ctest(text: str, spec: ProcessSpec) -> ParsedOutput:
             continue
         findings.append(
             Finding(
-                fingerprint=_fingerprint(spec.name, name, verdict),
+                fingerprint=process_fingerprint("ctest", spec, project_root, name, verdict),
                 rule_id="ctest.failed",
                 message=f"test {name}: {normalized}",
                 severity="high",
@@ -166,7 +172,7 @@ def _parse_ctest(text: str, spec: ProcessSpec) -> ParsedOutput:
     )
 
 
-def _parse_qtest(text: str, spec: ProcessSpec) -> ParsedOutput:
+def _parse_qtest(text: str, spec: ProcessSpec, *, project_root: Path | None = None) -> ParsedOutput:
     findings: list[Finding] = []
     total = passed = skipped = 0
     pending_loc: tuple[str, int] | None = None
@@ -183,7 +189,7 @@ def _parse_qtest(text: str, spec: ProcessSpec) -> ParsedOutput:
             else:
                 findings.append(
                     Finding(
-                        fingerprint=_fingerprint(spec.name, node, verdict),
+                        fingerprint=process_fingerprint("qtest", spec, project_root, node, verdict),
                         rule_id=f"qtest.{verdict.rstrip('!').lower()}",
                         message=f"{node} {verdict.rstrip('!').lower()}",
                         severity="high",
@@ -251,8 +257,3 @@ def _test_source(name: str, cwd: Path | None) -> str:
     # No source file matches the suite name — the name itself is still the
     # truest location, and a bare stem is a valid contained path.
     return stem or "test-suite"
-
-
-def _fingerprint(task_id: str, node: str, verdict: str) -> str:
-    digest = hashlib.sha256("\x00".join((task_id, node, verdict)).encode()).hexdigest()
-    return f"sha256:{digest}"

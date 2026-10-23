@@ -19,6 +19,7 @@ from ici.adapters.providers.compiler import (
     compiler_family,
     transform_argv,
 )
+from ici.adapters.providers.identity import invocation_identity
 from ici.adapters.providers.mypy import MypyProvider
 from ici.adapters.providers.ty import TyProvider
 from ici.application.plan import Plan, PlannedCheck
@@ -36,6 +37,7 @@ from ici.application.testing import (
 )
 from ici.application.tooling import live_resolver, locate_tool, resolve_python, resolve_tool
 from ici.config.composition import EffectiveComponent
+from ici.core.context import canonical_digest
 from ici.domain.workspace import AnalysisUnit, BuildUnit, Component
 from ici.toolchain.resolution import ResolvedTool, Role, Unresolved
 from ici.workspace import compile_units
@@ -224,7 +226,11 @@ def expand_diagnostics(
     provider = CompilerDiagnosticsProvider()
     resolver = live_resolver(probe=False)  # planning starts no processes (#206)
     expanded: list[PlannedCheck] = []
-    for index, unit in enumerate(inputs.units):
+    units = sorted(
+        ((unit, _compile_variant(unit, root)) for unit in inputs.units),
+        key=lambda item: (item[0].source, item[0].directory, item[1]),
+    )
+    for index, (unit, variant) in enumerate(units):
         task_id = f"{planned.task_id}.{task_slug(unit.source)}-{index}"
         stripped = unit.argv[len(unit.launchers) :] or unit.argv
         blocked = diagnostics_blocker(stripped, unit, root, resolver=resolver)
@@ -246,6 +252,7 @@ def expand_diagnostics(
                 task=provider.plan(
                     executable,
                     transformed.argv,
+                    variant=variant,
                     cwd=str(cwd),
                     task_id=task_id,
                     analysis_unit_id=cpp_unit.id if cpp_unit is not None else "",
@@ -265,6 +272,12 @@ def expand_diagnostics(
             )
         ]
     return expanded
+
+
+def _compile_variant(unit: compile_units.TranslationUnit, root: Path) -> str:
+    directory, argv = invocation_identity(unit.argv, root / unit.directory, root)
+    digest = canonical_digest({"directory": directory, "argv": argv, "output": unit.output})
+    return "compile-" + digest.removeprefix("sha256:")
 
 
 def diagnostics_blocker(

@@ -47,6 +47,27 @@
 - 실제 Ruff로 세 가지 설정 조합을 두 경로에서 실행해 소스 바이트 보존과 F401 보고를
   검증합니다.
 
+### 수정 — 컴포넌트·분석 단위별 finding 정체성 보존
+
+- component 정보를 생략한 API 호출도 analysis unit 또는 variant가 있으면 소비자별
+  정체성을 유지합니다. 공유 실행과 영속 캐시에서 A의 증거를 B가 소비할 때 귀속을
+  다시 적용하고, 한 fingerprint의 suppression이 다른 소비자로 전파되지 않게 합니다.
+- 여러 analysis unit을 가진 소비자는 전체 unit 집합을 정체성에 포함하며, 선언 순서만
+  바뀐 경우에는 같은 fingerprint를 유지합니다.
+- CTest·QTest·sanitizer·integration·Python 호환성 provider의 native fingerprint에서
+  첫 실행 소비자의 task ID를 제외합니다. workspace 기준 실행 대상과 진단을 식별하여
+  전체/단독 선택과 체크아웃 이동에서 같은 진단을 유지하고, 서로 다른 실행 대상은 구분합니다.
+- compiler variant는 원본 compile DB의 절대 경로 hash 대신 workspace 기준으로
+  정규화한 명령·작업 디렉터리·출력에서 계산합니다. 실제 옵션과 외부 경로는 보존하고,
+  정규화한 순서로 task ID도 안정화합니다.
+- next는 공유 실행의 observation을 각 소비자에게 귀속한 뒤 fingerprint, required 판정,
+  suppression, 중복 제거에 동일한 정체성을 사용합니다. 다른 컴포넌트의 같은 상대 경로가
+  충돌하거나 한쪽 suppression이 다른 쪽 위반을 숨기지 않습니다.
+- 컴파일 replay의 기록된 configuration을 variant로 전달하며 공유 실행에서도 소비자의
+  variant와 task 귀속을 보존합니다. 실행 자체는 동일하면 한 번만 수행합니다.
+- fingerprint 정규화는 `ici.next.fingerprint.v3`입니다. 이전 baseline은 비교 불가로
+  진단하므로 새 기준선을 생성해야 하며 fingerprint 기반 suppression도 다시 확인해야 합니다.
+
 ## [0.12.0] - 2026-10-08
 
 이 릴리스는 v0.11.0 이후 55개 커밋을 담습니다. 큰 줄기는 셋입니다.
