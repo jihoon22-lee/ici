@@ -280,3 +280,26 @@ def test_a_unit_with_no_key_still_runs_and_says_why(tmp_path) -> None:
 
     assert scheduled.observations[0].state is TaskState.SUCCEEDED
     assert "did not declare" in scheduled.executions[0].detail
+
+
+def test_normalization_version_changes_do_not_reuse_old_observations(monkeypatch):
+    from ici.application import identity
+    from ici.application.graph import WorkUnit
+
+    check = CheckDefinition(id="a.lint", title="t", language="python", tool="stub")
+    unit = WorkUnit(
+        id="a.lint",
+        consumers=("a.lint",),
+        source=PlannedCheck(check=check, task=ProviderPlan(task=_spec("a.lint"))),
+    )
+    inputs = dict(
+        input_digests=(("src/a.py", "sha256:source"),),
+        tool_digest="sha256:tool",
+        policy_digest="policy",
+    )
+    original, _ = task_identity(unit, **inputs)
+    monkeypatch.setattr(identity, "OBSERVATION_VERSION", "future-parser")
+    parser_key, _ = task_identity(unit, **inputs)
+    monkeypatch.setattr(identity, "FINGERPRINT_VERSION", "future-fingerprint")
+    fingerprint_key, _ = task_identity(unit, **inputs)
+    assert len({original, parser_key, fingerprint_key}) == 3

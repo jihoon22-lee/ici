@@ -25,10 +25,13 @@ import hashlib
 
 from ici.application.graph import WorkUnit
 from ici.domain.enums import TaskKind
+from ici.domain.result import FINGERPRINT_VERSION
 
 __all__ = ["task_identity"]
 
 _DIGEST = "sha256"
+# Bump when provider/parser observation normalization changes independently of findings.
+OBSERVATION_VERSION = "ici.next.observation.v2"
 
 
 def task_identity(
@@ -54,6 +57,11 @@ def task_identity(
         # an answer about code that may have changed since it ran.
         return None, "test evidence is per-run and is never persisted"
     if not task.cacheable:
+        if task.provider in {"ruff", "mypy", "ty"}:
+            return (
+                None,
+                f"{task.provider} is not cacheable: automatic configuration/import inputs are not fully captured",
+            )
         return None, f"{task.kind.value} tasks are not cacheable"
     if not task.input_refs:
         return None, "the provider did not declare its inputs; reuse stays off"
@@ -63,6 +71,7 @@ def task_identity(
         return None, "the tool is not content-addressable; reuse stays off"
 
     hasher = hashlib.new(_DIGEST)
+    hasher.update(f"{OBSERVATION_VERSION}\0{FINGERPRINT_VERSION}\0".encode())
     hasher.update(repr(task.share_key).encode("utf-8"))
     for path, digest in input_digests:
         hasher.update(path.encode("utf-8"))

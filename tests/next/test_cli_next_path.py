@@ -258,7 +258,7 @@ def test_the_event_stream_tells_the_runs_life_in_order(project: Path, tmp_path) 
 
 
 @needs_ruff
-def test_a_cached_second_run_starts_no_task_it_reuses(project: Path, tmp_path) -> None:
+def test_automatic_config_providers_run_again_and_explain_why(project: Path, tmp_path) -> None:
     runner.invoke(app, ["next", "verify"])
     second = tmp_path / "second.jsonl"
     runner.invoke(app, ["next", "verify", "--events", str(second)])
@@ -269,9 +269,12 @@ def test_a_cached_second_run_starts_no_task_it_reuses(project: Path, tmp_path) -
         for item in events
         if item["event_type"] == "task.completed" and "cache hit" in item["message"]
     ]
-    assert reused
+    assert not reused
     started = {item["task_id"] for item in events if item["event_type"] == "task.started"}
-    assert not started.intersection(reused)
+    assert any(task.endswith("python.lint") for task in started)
+    assert any(
+        "automatic configuration/import inputs" in item.get("message", "") for item in events
+    )
 
 
 def test_a_cancelled_run_marks_the_stream_instead_of_leaving_it_silent(

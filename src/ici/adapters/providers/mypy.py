@@ -83,6 +83,8 @@ class MypyProvider:
             analysis_unit_ids=(analysis_unit_id,) if analysis_unit_id else (),
             timeout_seconds=600,
             tool_digest=tool_digest,
+            # Config, plugins, imported modules and stubs are not fully captured.
+            cacheable=False,
         )
         return ProviderPlan(task=task, contract=MYPY_CONTRACT)
 
