@@ -36,51 +36,67 @@
 - 범용 observation 캐시는 유지한다. 재사용 키에 observation/fingerprint 정규화 버전을 넣고,
   손상된 캐시의 폐기·재실행·finding 보존을 계속 검증한다.
 
-## 실제 검증 결과
+## 최종 후보 검증
+
+리뷰에서 확인한 정체성 경계도 회귀로 보강했다. component를 생략한 unit/variant 소비자,
+여러 unit의 선언 순서, 공유 실행·영속 캐시의 소비자 재귀속을 확인했다. CTest·QTest·sanitizer·
+integration·Python 호환성의 native hash에서 첫 소비자의 task ID를 제외하고, compiler
+variant는 workspace 기준 명령·작업 디렉터리·출력으로 식별한다.
+
+완료 범위에는 analysis unit과 연결된 build의 variant·runtime·설정을 보존한다. workspace
+내부의 절대 입력·환경 경로와 external 디렉터리 멤버는 이동 가능한 형태로 정규화하고,
+이름의 접두사만 같은 실제 외부 경로는 구분한다. integration의 실행별 freshness 시각은
+정체성에서 제외하되 출력 경로·최소 크기 등 실제 assertion 조건은 유지한다. 이 수정 전
+실패한 아홉 baseline 경계 사례와 외부 경로·assertion 변경 대조군을 함께 보존했다.
 
 개발 회귀 환경은 Python 3.10.21, uv 0.12.5, Ruff 0.16.4이다. `uvx ruff` 게이트는
-0.17.2로도 수행했다. 아래 skip을 실행 성공에 합산하지 않았다.
+0.17.2로도 수행했다. 아래 표는 리뷰 보강을 반영한 최종 후보의 실제 측정값이다.
 
 |검증|결과|
 |---|---|
-|통합 `uv run --python 3.10 pytest -ra`|4,211 passed, 15 skipped, 537.58초|
-|[0.12.1 통합 후보 CI](https://github.com/jihoon22-lee/ici/actions/runs/39944989888) (`f939aaf`)|4,220 passed, 8 skipped, 241.64초. 실제 C++ fixture 16개, corpus unit 68개, Qt 5·6, pyz 재현 빌드·smoke·자체 검증·보고서 게시·Merge Gate 통과|
-|`uvx ruff check .`, `uvx ruff format --check .`|통과, 483개 파일|
+|`uvx ruff check .`, `uvx ruff format --check .`|통과, 487개 파일|
 |`./scripts/verify-reproducibility.sh`|타임스탬프·locale·umask·hash seed를 달리한 두 pyz 빌드의 SHA-256 일치, 소스 상태 불변|
-|`./scripts/smoke.sh`|Python 3.10 직접 실행, `dist/ici` 동일성, HTML Zero-CDN 통과. 내부 verify exit 0|
-|0.12.1 pyz에서 추출한 모듈의 수정 회귀|56 passed|
-|원래 최소 재현 조건을 실제 0.12.1 pyz 명령으로 대조|8건 모두 수정 동작 확인. 결과 envelope 17개가 producer 0.12.1·schema v2임을 확인|
-|v2 JSON Schema 검증|jsonschema 4.26.0으로 정상 결과 수용·거짓 완료 거부 확인|
-|Quality Zoo 계약/등록부|68개 unit test와 56개 fixture inventory 검사 통과|
-|0.12.1 후보의 Python Quality Zoo|5/5 계약 PASS, runner error 0. 결함을 심은 시나리오의 의도된 FAIL/WARN도 기대값과 일치|
-|bundle 재조립|7,388개 파일·링크 항목의 바이트/대상 일치, 차이 0|
+|pyz에서 추출한 모듈의 수정·계약 회귀|137 passed, optional jsonschema 6 skipped. 로드된 모든 ici 모듈이 최종 산출물에서 왔음을 검사|
+|jsonschema 4.26.0을 제공한 산출물 스키마 검사|27 passed, skip 없음. 위 optional 검사도 실행|
+|원래 최소 재현 조건을 실제 pyz 명령으로 대조|8건 모두 수정 동작 확인. 별도로 결과 envelope 17개의 producer 0.12.1·schema v2·checks 목록 검증|
+|Quality Zoo 계약/등록부|68개 unit test와 50개 fixture inventory·hygiene 검사 통과|
+|최종 후보의 Python Quality Zoo|5/5 계약 PASS, runner error 0. 결함을 심은 시나리오의 의도된 FAIL/WARN도 기대값과 일치|
+|bundle 재조립|7,390개 파일·링크 항목의 바이트/대상 일치, 차이 0|
 |실제 bundle strict smoke|12 PASS, 0 FAIL, 0 BLOCKED|
-|bundle smoke harness 회귀|28 passed. 잘못된 PASS와 거짓 완료 증거를 거부하는 두 경우 추가|
 
-로컬 전체 테스트의 skip 15건은 optional jsonschema 7건, 로컬 clang/clang-tidy/clazy 부재 7건,
-Python 3.10 AST의 except-star 미지원 1건이다. CI는 필요한 C++ 도구를 설치하고 엄격 모드로
-실행했다. CI의 skip 8건은 jsonschema 7건과 except-star 1건이다. 로컬 통합 실행은 bundle
-harness 보강 직전이며, 이후 변경은 28개 대상 테스트와 위 통합 후보 CI로 확인했다.
-최종 main과 공개 자산의 근거는 릴리스에 별도로 기록한다.
-
-로컬 0.12.1 후보 `ici.pyz`의 SHA-256:
+최종 0.12.1 후보 `ici.pyz`의 SHA-256:
 
 ```text
-9fdf6cb1c526d7b25d44c366bc8bf46f1433806d6f6e012bb756e9ffb12f27b1
+4c292dfed51e3b4e64483fd73f8fe09602a0bfcba6de61ff052f694d3dc59130
 ```
 
 Quality Zoo의 16개 시나리오에 이 digest를 명시적으로 연결했다. 기존 known-answer의
 검출·상태·증거·위치 기대값을 유지하고 producer version만 갱신했다. 원격 candidate 검증에서
 전체 16개가 이 계약을 만족하는지 판정하며, 로컬 Python 5개 통과를 전체 corpus 통과로 쓰지 않는다.
+최종 PR/main CI, Pages, 전체 candidate corpus와 공개 자산의 근거는 릴리스에 별도로 기록한다.
+
+## 초기 통합 검증 기록
+
+리뷰 보강 전 통합 소스의 `uv run --python 3.10 pytest -ra`는 4,211 passed,
+15 skipped, 537.58초였다. [초기 0.12.1 후보 CI](https://github.com/jihoon22-lee/ici/actions/runs/39944989888)
+(`f939aaf`)는 4,220 passed, 8 skipped, 241.64초였다. 실제 C++ fixture 16개,
+corpus unit 68개, Qt 5·6, pyz 재현 빌드·smoke·자체 검증·보고서 게시·Merge Gate도 통과했다.
+이 수치는 초기 후보 `9fdf6cb1…`의 근거이며 최종 후보의 전체 CI 수치로 재사용하지 않는다.
+
+초기 로컬 전체 테스트의 skip 15건은 optional jsonschema 7건, 로컬 clang/clang-tidy/clazy
+부재 7건, Python 3.10 AST의 except-star 미지원 1건이다. CI는 필요한 C++ 도구를 설치하고
+엄격 모드로 실행했다. 초기 CI의 skip 8건은 jsonschema 7건과 except-star 1건이다.
+bundle smoke harness는 별도로 28개 회귀를 통과했으며, 잘못된 PASS와 거짓 완료 증거를
+거부하는 두 경우를 포함한다. skip은 실행 성공에 합산하지 않았다.
 
 ## 캐시 재실행 시간 측정
 
-변경 전 검토 산출물(0.12.0)과 0.12.1 후보를 같은 Python 3.10.21·Ruff 0.16.4·mypy 2.3.1
+변경 전 검토 산출물(0.12.0)과 리뷰 보강 전 초기 0.12.1 후보(`9fdf6cb1…`)를 같은 Python 3.10.21·Ruff 0.16.4·mypy 2.3.1
 환경에서 실행했다. 컴포넌트 하나, Python 파일 하나, lint 또는 type 검사만 선택한 입력이다.
 각 모드의 준비 실행 1회를 제외하고 순서를 순환해 11회씩 측정했다. 아래는 CLI 시작과 JSON
 출력을 포함한 wall-clock 중앙값이며 단위는 ms다.
 
-|도구|변경 전 캐시 재사용|변경 전 `--no-cache`|0.12.1 기본 실행|
+|도구|변경 전 캐시 재사용|변경 전 `--no-cache`|초기 0.12.1 후보 기본 실행|
 |---|---:|---:|---:|
 |Ruff|394.826|393.294|408.725|
 |mypy|437.090|534.620|574.360|
