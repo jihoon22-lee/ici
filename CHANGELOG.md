@@ -52,6 +52,8 @@
 - component 정보를 생략한 API 호출도 analysis unit 또는 variant가 있으면 소비자별
   정체성을 유지합니다. 공유 실행과 영속 캐시에서 A의 증거를 B가 소비할 때 귀속을
   다시 적용하고, 한 fingerprint의 suppression이 다른 소비자로 전파되지 않게 합니다.
+- 여러 analysis unit을 가진 소비자는 전체 unit 집합을 정체성에 포함하며, 선언 순서만
+  바뀐 경우에는 같은 fingerprint를 유지합니다.
 - next는 공유 실행의 observation을 각 소비자에게 귀속한 뒤 fingerprint, required 판정,
   suppression, 중복 제거에 동일한 정체성을 사용합니다. 다른 컴포넌트의 같은 상대 경로가
   충돌하거나 한쪽 suppression이 다른 쪽 위반을 숨기지 않습니다.

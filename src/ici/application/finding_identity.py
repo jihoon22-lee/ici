@@ -22,16 +22,17 @@ def attribute(
     observation: Observation, planned: PlannedCheck, component: str | None
 ) -> Observation:
     task = planned.task.task if planned.task is not None else None
-    unit = (
-        task.analysis_unit_ids[0] if task is not None and len(task.analysis_unit_ids) == 1 else None
-    )
+    units = tuple(sorted(task.analysis_unit_ids)) if task is not None else ()
+    unit = units[0] if len(units) == 1 else None
     variant = task.variant if task is not None else None
     findings = []
     for item in observation.findings:
         owner = component or item.component_id
         analysis_unit = unit or item.analysis_unit_id
+        if len(units) > 1 and analysis_unit not in units:
+            analysis_unit = None
         analysis_variant = variant or item.variant
-        if owner is None and analysis_unit is None and analysis_variant is None:
+        if owner is None and analysis_unit is None and analysis_variant is None and not units:
             findings.append(item)
             continue
         attributed = replace(
@@ -41,14 +42,14 @@ def attribute(
             variant=analysis_variant,
             task_id=observation.task_id,
         )
-        attributed = replace(attributed, fingerprint=_fingerprint(attributed))
+        attributed = replace(attributed, fingerprint=_fingerprint(attributed, units))
         findings.append(attributed)
     return replace(observation, findings=tuple(findings))
 
 
-def _fingerprint(finding: Finding) -> str:
+def _fingerprint(finding: Finding, units: tuple[str, ...]) -> str:
     span = finding.primary_location
-    payload = (
+    payload: tuple[object, ...] = (
         FINGERPRINT_VERSION,
         finding.component_id,
         finding.analysis_unit_id,
@@ -63,6 +64,8 @@ def _fingerprint(finding: Finding) -> str:
         span.start_column,
         span.end_column,
     )
+    if len(units) > 1:
+        payload += (units,)
     return (
         "sha256:" + hashlib.sha256(json.dumps(payload, separators=(",", ":")).encode()).hexdigest()
     )

@@ -56,7 +56,13 @@ def test_suppression_never_crosses_component_ownership(tmp_path, monkeypatch, sh
 
 @pytest.mark.parametrize(
     ("owners", "identity"),
-    [(("a", "b"), "variant"), (("a", "a"), "variant"), (None, "variant"), (None, "unit")],
+    [
+        (("a", "b"), "variant"),
+        (("a", "a"), "variant"),
+        (None, "variant"),
+        (None, "unit"),
+        (None, "units"),
+    ],
 )
 def test_shared_and_cached_execution_preserves_each_consumer(tmp_path, owners, identity):
     finding = Finding(
@@ -68,6 +74,7 @@ def test_shared_and_cached_execution_preserves_each_consumer(tmp_path, owners, i
         provider="stub",
         primary_location=SourceSpan(path="main.py", start_line=1),
         component_id="a" if owners else None,
+        analysis_unit_id="a.python" if identity == "units" else None,
         task_id="a.lint",
     )
     calls = []
@@ -96,7 +103,11 @@ def test_shared_and_cached_execution_preserves_each_consumer(tmp_path, owners, i
                             task,
                             id=f"{c}.lint",
                             variant=c if identity == "variant" else None,
-                            analysis_unit_ids=(f"{c}.python",) if identity == "unit" else (),
+                            analysis_unit_ids=(f"{c}.python",)
+                            if identity == "unit"
+                            else (f"{c}.python", f"{c}.extra")
+                            if identity == "units"
+                            else (),
                         )
                     ),
                 ),
@@ -119,7 +130,7 @@ def test_shared_and_cached_execution_preserves_each_consumer(tmp_path, owners, i
     assert {f.task_id for f in result.findings} == {"a.lint", "b.lint"}
     if identity == "variant":
         assert {f.variant for f in result.findings} == {"a", "b"}
-    else:
+    elif identity == "unit":
         assert {f.analysis_unit_id for f in result.findings} == {"a.python", "b.python"}
     assert len({f.fingerprint for f in result.findings}) == 2
     by_task = {f.task_id: f for f in result.findings}
@@ -129,6 +140,15 @@ def test_shared_and_cached_execution_preserves_each_consumer(tmp_path, owners, i
     assert len(calls) == 1
     assert warm.executions[0].detail.startswith("cache hit")
     assert warm.findings == (by_task["b.lint"],)
+    if identity == "units":
+        assert warm.findings[0].analysis_unit_id is None
+        planned = plans[1].checks[0]
+        reordered = replace(
+            planned.task.task,
+            analysis_unit_ids=tuple(reversed(planned.task.task.analysis_unit_ids)),
+        )
+        reordered_plan = Plan(checks=(replace(planned, task=ProviderPlan(task=reordered)),))
+        assert verify(reordered_plan, **kwargs).findings == warm.findings
     suppression = EffectiveSuppression(
         fingerprint=by_task["a.lint"].fingerprint,
         rule="",
