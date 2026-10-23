@@ -28,7 +28,8 @@ from typing import Any
 
 RESULT_SCHEMA_ID = "ici.next.run"
 EVENT_SCHEMA_ID = "ici.next.event"
-SCHEMA_VERSION = 1
+RESULT_SCHEMA_VERSIONS = (1, 2)
+EVENT_SCHEMA_VERSION = 1
 
 
 def _check_schema(document: dict[str, Any], schema_id: str, where: str) -> None:
@@ -40,10 +41,14 @@ def _check_schema(document: dict[str, Any], schema_id: str, where: str) -> None:
     """
     if document.get("schema_id") != schema_id:
         raise ContractError(f"{where}: not an {schema_id} document")
-    if document.get("schema_version") != SCHEMA_VERSION:
+    supported = RESULT_SCHEMA_VERSIONS if schema_id == RESULT_SCHEMA_ID else (EVENT_SCHEMA_VERSION,)
+    if (
+        type(document.get("schema_version")) is not int
+        or document["schema_version"] not in supported
+    ):
         raise ContractError(
             f"{where}: schema_version {document.get('schema_version')!r} "
-            f"is not the {SCHEMA_VERSION} this consumer reads"
+            f"is not among {supported} this consumer reads"
         )
 
 
@@ -170,10 +175,10 @@ def consume_events(path: Path) -> ObservedProgress:
         if event.get("schema_id") != EVENT_SCHEMA_ID:
             progress.problems.append(f"foreign document on line {number + 1}")
             continue
-        if event.get("schema_version") != SCHEMA_VERSION:
+        if event.get("schema_version") != EVENT_SCHEMA_VERSION:
             progress.problems.append(
                 f"event schema_version {event.get('schema_version')!r} "
-                f"is not the {SCHEMA_VERSION} this consumer reads"
+                f"is not the {EVENT_SCHEMA_VERSION} this consumer reads"
             )
             continue
 

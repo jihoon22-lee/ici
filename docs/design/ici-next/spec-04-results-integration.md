@@ -13,7 +13,8 @@
 
 ## 1. RunResult envelope
 
-새 형식 식별자는 `schema_id="ici.next.run"`, `schema_version=1`을 초기 계약으로 한다.
+새 형식 식별자는 `schema_id="ici.next.run"`이다. 초기 계약은 `schema_version=1`이며,
+현재 writer는 완료한 검사 범위를 담는 **v2**를 쓴다. v1은 읽기 호환성을 유지한다.
 기존 JSON의 version 숫자를 재사용하여 호환된 것처럼 보이게 하지 않는다.
 
 ```json
@@ -49,6 +50,15 @@
 > 기존 v3 스키마는 사실상 검증되지 않고 있었다. 실행 시각·duration·request/profile·expected/selected/omitted scope·
 source path map·tool evidence·normalization/parser version·policy exceptions·result digest도 정식
 스키마에 포함한다.
+
+**v2 완료 범위 계약**: [ici-next-run-v2.schema.json](../../../src/ici/schemas/ici-next-run-v2.schema.json)의
+`checks`는 필수 필드다. 배열의 각 항목은 `task_id`, `check_id`, `component_id`, `language`,
+`scope_digest`, `state`, `evidence_complete`, nullable `analysis_unit_id`·`variant`를 갖는다.
+`evidence_complete=true`는 `state=SUCCEEDED`에서만 가능하다. `checks=null`은 과거 결과를
+변환하는 등 완료 범위를 모르는 경우이며, 빈 배열(선택된 검사 없음)과 구분한다.
+`scope_digest`는 입력 파일 목록과 실행 조건을 덮으며 소스 내용은 제외한다. 따라서 코드를
+고쳐 문제를 해결할 수 있지만, 검사를 생략하거나 입력을 줄여 해결한 것으로 표시할 수 없다.
+v1 스키마·fixture와 event v1은 그대로 보존한다.
 
 ## 2. 서로 독립적인 상태
 

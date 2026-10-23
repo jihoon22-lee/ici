@@ -29,11 +29,15 @@ ici next verify [--result PATH] [--events PATH] [--json] \
 ## 2. 결과 문서 — authoritative
 
 `--result`가 가리키는 파일(기본 `.ici/next/result.json`)은
-`schema_id="ici.next.run"`, `schema_version=1` 문서다. 스키마:
-`src/ici/schemas/ici-next-run-v1.schema.json`.
+`schema_id="ici.next.run"`, `schema_version=2` 문서다. 스키마:
+`src/ici/schemas/ici-next-run-v2.schema.json`. reader와 fixture consumer는 v1도 읽지만,
+실제 idk 소비자는 v2 지원을 별도로 확인해야 한다.
 
 consumer가 해석해야 하는 축:
 
+- `checks` — 검사별 실행 상태·증거 완결성·입력 범위. `null`이면 과거 결과의 완료 범위를
+  알 수 없으며 baseline 비교를 하지 않는다. `resolved`는 같은 범위의 검사가 완료됐을 때만
+  가능하고 미선택·실패·부분 증거는 `carried`다.
 - `gate.selected` / `gate.workspace` — 선택 범위와 워크스페이스 전체의 판정이
   분리돼 있다. 부분 scope의 PASS를 전체 PASS로 표시하지 않는다.
 - `scope.selected_components` / `omitted_components` / `full_required_satisfied` —

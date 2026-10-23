@@ -39,6 +39,32 @@
 - workspace 내부 external 입력도 기존 소유권과 합칩니다. 선언 순서를 뒤집어도
   공유 파일의 analysis unit 목록이 보존되는 회귀 테스트를 추가합니다.
 
+### 수정 — 완료한 검사 범위 안에서만 baseline 문제를 해결 처리
+
+- 내장 분석도 analysis unit의 build variant·runtime·build ID를 완료 범위에 포함합니다.
+  체크아웃 안의 절대 입력·환경 경로를 정규화해 이동 후의 정상 재검사를 인식하고,
+  이름의 접두사만 같은 외부 경로는 별개 입력으로 보존합니다.
+- workspace 안에 선언한 external 디렉터리의 파일 목록도 상대 경로로 정규화합니다.
+  같은 파일 집합을 가진 체크아웃을 이동해도 완료 범위를 유지합니다.
+- external 입력은 소유 component의 완료 범위에만 포함하고 공유 선언은 중복 제거합니다.
+  다른 component를 선택에서 제외해도 정상 재검사한 문제는 해결로 판정합니다.
+- 실행 중 external 파일의 존재·내용 또는 디렉터리의 멤버·내용이 바뀌면 입력 변경을
+  보고하고 완료 증거를 부여하지 않습니다. 그 실행으로 이전 문제를 해결 처리하지 않습니다.
+- integration의 실행별 freshness 시각은 비교 정체성에서 제외하고, 출력 경로·최소 크기
+  같은 실제 assertion 조건은 보존합니다. 같은 범위에서 문제를 고친 재실행은 해결로 판정합니다.
+- component가 직접 사용하거나 `needs`로 연결한 build의 variant·설정도 완료 범위에
+  포함해, 다른 build 조건의 artifact만 실행하고 이전 문제를 해결 처리하지 않습니다.
+- `ici.next.run` v2가 check·component·language·입력 범위·variant·실행 상태와
+  증거 완결성을 저장합니다. 언어/프로파일 축소, 실패·차단·취소, 입력 범위 변경으로
+  사라진 finding은 `carried`에 남고, 같은 범위를 완료한 검사만 `resolved`를 만들 수 있습니다.
+- `next verify --baseline`과 저장된 결과의 `next diff`가 같은 판정을 사용합니다.
+  기존 v1 결과는 읽을 수 있지만 완료 범위를 증명할 수 없어 baseline 비교는
+  `INCOMPATIBLE`로 표시합니다. 새 실행 결과를 baseline으로 채택해야 합니다.
+- `findings=null` 등 형식이 잘못된 baseline은 처리되지 않은 예외 대신 파일을 지목한
+  설정 오류로 안내합니다. 잘못된 findings 값을 빈 정상 결과로 받아들이지 않습니다.
+- v1 스키마와 golden fixture를 보존하고 v2 스키마를 별도 발행했습니다.
+  event v1과 stable `ici.result/v3` 계약은 유지합니다.
+
 ### 수정 — 검증 중 Ruff 자동 수정 차단
 
 - stable 및 next의 Ruff 호출이 `--no-fix`, `--no-fix-only`, `--no-unsafe-fixes`를

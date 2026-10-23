@@ -18,9 +18,11 @@ from typer.testing import CliRunner
 from ici.__main__ import app
 from ici.application.baseline import BaselineError, compare, load_baseline
 from ici.config.scaffold import propose, write
-from ici.domain.enums import BaselineState, EvidenceLevel
+from ici.domain.check_record import CheckRecord
+from ici.domain.enums import BaselineState, EvidenceLevel, TaskState
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.result import FINGERPRINT_VERSION, SCHEMA_ID
+from ici.domain.serialization import run_result_from_dict, run_result_to_dict
 
 runner = CliRunner()
 
@@ -38,7 +40,20 @@ def _finding(fingerprint: str, component: str | None = "app") -> Finding:
         provider="ruff",
         primary_location=SourceSpan(path="src/app.py", start_line=1, start_column=1),
         component_id=component,
+        task_id=f"{component or 'app'}.python.lint",
         evidence=EvidenceLevel.MEASURED,
+    )
+
+
+def _check(component: str = "app") -> CheckRecord:
+    return CheckRecord(
+        task_id=f"{component}.python.lint",
+        check_id="python.lint",
+        component_id=component,
+        language="python",
+        scope_digest=_DIGEST,
+        state=TaskState.SUCCEEDED,
+        evidence_complete=True,
     )
 
 
@@ -51,16 +66,28 @@ def _document(
     fingerprint_version: str = FINGERPRINT_VERSION,
     selected: list[str] | None = None,
 ) -> Path:
-    payload = {
-        "schema_id": SCHEMA_ID,
-        "identity": {
-            "policy_digest": policy,
-            "toolchain_digest": toolchain,
-            "fingerprint_version": fingerprint_version,
-        },
-        "scope": {"selected_components": selected if selected is not None else ["app"]},
-        "findings": findings,
-    }
+    from dataclasses import replace
+
+    base = json.loads(
+        (Path(__file__).parents[1] / "fixtures/ici-next/run-success.json").read_text()
+    )
+    result = run_result_from_dict(base)
+    components = sorted({str(item.get("component_id") or "app") for item in findings} | {"app"})
+    result = replace(
+        result,
+        schema_version=2,
+        identity=replace(
+            result.identity,
+            policy_digest=policy,
+            toolchain_digest=toolchain,
+            fingerprint_version=fingerprint_version,
+        ),
+        findings=tuple(
+            _finding(str(item["fingerprint"]), item.get("component_id")) for item in findings
+        ),
+        checks=tuple(_check(component) for component in components),
+    )
+    payload = run_result_to_dict(result)
     path = tmp_path / "baseline.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
@@ -75,7 +102,7 @@ def test_a_baseline_document_loads(tmp_path: Path) -> None:
     document = load_baseline(path)
 
     assert document.policy_digest == _DIGEST
-    assert document.findings == (("fp1", "app"),)
+    assert document.findings == (_finding("fp1"),)
 
 
 def test_a_missing_file_is_refused_by_name(tmp_path: Path) -> None:
@@ -117,6 +144,36 @@ def test_a_finding_without_a_fingerprint_is_refused(tmp_path: Path) -> None:
         load_baseline(path)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("findings", None),
+        ("findings", True),
+        ("findings", 7),
+        ("findings", {}),
+        ("metrics", None),
+    ],
+)
+def test_malformed_result_shapes_are_baseline_errors(tmp_path, field, value):
+    path = _document(tmp_path, findings=[])
+    payload = json.loads(path.read_text())
+    payload[field] = value
+    path.write_text(json.dumps(payload))
+    with pytest.raises(BaselineError):
+        load_baseline(path)
+
+
+def test_malformed_baseline_is_a_cli_configuration_diagnostic(project):
+    path = _document(project, findings=[])
+    payload = json.loads(path.read_text())
+    payload["findings"] = None
+    path.write_text(json.dumps(payload))
+    result = runner.invoke(app, ["next", "verify", "--baseline", str(path)])
+    assert result.exit_code == 2, result.output
+    assert "baseline" in result.output
+    assert not isinstance(result.exception, TypeError)
+
+
 # --- the delta -------------------------------------------------------------
 
 
@@ -137,7 +194,7 @@ def test_new_unchanged_and_resolved_are_separate(tmp_path: Path) -> None:
         baseline,
         policy_digest=_DIGEST,
         toolchain_digest=_DIGEST,
-        selected_components=("app",),
+        checks=(_check(),),
     )
 
     assert delta.state is BaselineState.COMPARABLE
@@ -165,7 +222,7 @@ def test_a_finding_in_an_unselected_component_is_carried_not_resolved(
         baseline,
         policy_digest=_DIGEST,
         toolchain_digest=_DIGEST,
-        selected_components=("app",),
+        checks=(_check(),),
     )
 
     assert delta.resolved == (), "a partial run 'fixed' a component it never ran"
@@ -180,7 +237,7 @@ def test_a_policy_change_makes_the_baseline_incompatible(tmp_path: Path) -> None
         baseline,
         policy_digest=_DIGEST,
         toolchain_digest=_DIGEST,
-        selected_components=("app",),
+        checks=(_check(),),
     )
 
     assert delta.state is BaselineState.INCOMPATIBLE
@@ -196,7 +253,7 @@ def test_a_toolchain_change_makes_the_baseline_incompatible(tmp_path: Path) -> N
         baseline,
         policy_digest=_DIGEST,
         toolchain_digest=_DIGEST,
-        selected_components=("app",),
+        checks=(_check(),),
     )
 
     assert delta.state is BaselineState.INCOMPATIBLE
@@ -213,7 +270,7 @@ def test_an_unversioned_baseline_cannot_be_compared(tmp_path: Path) -> None:
         baseline,
         policy_digest=_DIGEST,
         toolchain_digest=_DIGEST,
-        selected_components=("app",),
+        checks=(_check(),),
     )
 
     assert delta.state is BaselineState.INCOMPATIBLE
