@@ -1,0 +1,175 @@
+{
+  "method": "One unchanged Python file; one warm-up per mode; 11 interleaved CLI wall-clock samples per mode. Includes CLI startup/output, excludes warm-up. No general performance claim.",
+  "python": "3.10.21",
+  "ruff": "ruff 0.16.4",
+  "mypy": "mypy 2.3.1 (compiled: yes)",
+  "artifacts": {
+    "before": {
+      "version": "ici 0.12.0",
+      "sha256": "0e9ed720ac4798681cd3bf4fd916356f6dd4ce8dc6c30b45427aea312d48e6db"
+    },
+    "candidate": {
+      "version": "ici 0.12.1",
+      "sha256": "f78b04aabb28fd6197e7aae1bd6b974b58f2e7e4b2e30a246d195e848eb450e4"
+    }
+  },
+  "results": [
+    {
+      "tool": "ruff",
+      "mode": "before_cached",
+      "samples_ms": [
+        386.175,
+        444.919,
+        411.81,
+        509.626,
+        514.195,
+        488.504,
+        409.791,
+        435.936,
+        405.676,
+        451.845,
+        472.145
+      ],
+      "median_ms": 444.919,
+      "min_ms": 386.175,
+      "max_ms": 514.195,
+      "cache_hits": 11
+    },
+    {
+      "tool": "ruff",
+      "mode": "before_no_cache",
+      "samples_ms": [
+        417.539,
+        521.715,
+        478.758,
+        477.402,
+        433.738,
+        413.154,
+        440.607,
+        511.974,
+        422.67,
+        469.075,
+        480.203
+      ],
+      "median_ms": 469.075,
+      "min_ms": 413.154,
+      "max_ms": 521.715,
+      "cache_hits": 0
+    },
+    {
+      "tool": "ruff",
+      "mode": "candidate_default",
+      "samples_ms": [
+        448.327,
+        494.771,
+        419.224,
+        468.861,
+        461.123,
+        547.35,
+        468.292,
+        466.976,
+        443.371,
+        454.004,
+        497.816
+      ],
+      "median_ms": 466.976,
+      "min_ms": 419.224,
+      "max_ms": 547.35,
+      "cache_hits": 0
+    },
+    {
+      "tool": "mypy",
+      "mode": "before_cached",
+      "samples_ms": [
+        419.716,
+        382.236,
+        391.484,
+        384.526,
+        379.092,
+        369.081,
+        392.451,
+        379.742,
+        364.93,
+        379.537,
+        471.95
+      ],
+      "median_ms": 382.236,
+      "min_ms": 364.93,
+      "max_ms": 471.95,
+      "cache_hits": 11
+    },
+    {
+      "tool": "mypy",
+      "mode": "before_no_cache",
+      "samples_ms": [
+        516.145,
+        496.154,
+        587.855,
+        494.497,
+        497.425,
+        485.035,
+        497.063,
+        497.482,
+        495.989,
+        593.808,
+        542.758
+      ],
+      "median_ms": 497.425,
+      "min_ms": 485.035,
+      "max_ms": 593.808,
+      "cache_hits": 0
+    },
+    {
+      "tool": "mypy",
+      "mode": "candidate_default",
+      "samples_ms": [
+        503.06,
+        532.223,
+        514.189,
+        504.833,
+        507.015,
+        501.447,
+        500.908,
+        486.457,
+        492.754,
+        512.185,
+        555.428
+      ],
+      "median_ms": 504.833,
+      "min_ms": 486.457,
+      "max_ms": 555.428,
+      "cache_hits": 0
+    }
+  ],
+  "fixture": {
+    "components": 1,
+    "python_files": 1,
+    "enabled_checks": {
+      "ruff": [
+        "python.lint"
+      ],
+      "mypy": [
+        "python.type"
+      ]
+    },
+    "ruff_source": "import os\n",
+    "ruff_config": "[lint]\nignore=[\"F401\"]\n",
+    "mypy_source": "value: int = \"wrong\"\n",
+    "mypy_config": "[mypy]\nignore_errors=True\n",
+    "other_checks": "disabled",
+    "source_selection": [
+      "main.py"
+    ]
+  },
+  "commands": {
+    "before_cached": "ici-0.12.0.pyz next verify --json",
+    "before_no_cache": "ici-0.12.0.pyz next verify --json --no-cache",
+    "candidate_default": "ici-0.12.1.pyz next verify --json"
+  },
+  "environment": {
+    "ICI_PYTHON": "CPython 3.10.21",
+    "PATH": "same tool environment for all modes",
+    "PYTHONPATH": "unset"
+  },
+  "measurement_completed_at_utc": "2026-10-23T15:12:36.619819+00:00"
+}

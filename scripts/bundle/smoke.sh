@@ -253,6 +253,9 @@ say "11. the next path, end to end from the installed bundle"
 # #206 item 6. init -> config -> verify -> report, run from the bundle, against
 # a project whose .venv never learns about ici or ruff.
 #
+# This fixture selects the analyses shipped by the prototype bundle. It has
+# no project interpreter, test suite or type checker; their mandatory default
+# behaviour is tested separately below, not mistaken for analyzer failure.
 # Its own case rather than a line in runs_here, because the interesting outcome
 # is three-way. A bundle that shipped no ruff reports INCOMPLETE with exit 3,
 # which is the new path working correctly and is *not* a pass: folding it into
@@ -273,6 +276,15 @@ profile = "standard"
 id = "smoke"
 root = "."
 languages = ["python"]
+
+[checks."python.type"]
+enabled = false
+[checks."python.test"]
+enabled = false
+[checks."python.coverage"]
+enabled = false
+[checks."python.compat-runtime"]
+enabled = false
 NEXTCFG
 
 next_detail=""
@@ -322,6 +334,38 @@ case "$next_status" in
   BLOCKED) skip next-path "$next_detail" ;;
   *)       bad next-path "$next_detail" ;;
 esac
+
+say "12. missing project runtime remains incomplete"
+# Keep the standard profile's required test/coverage checks enabled. The core
+# interpreter must never stand in for the project's missing Python (R02/R05).
+MISSING_RUNTIME="$WORK/missing-project-runtime"
+mkdir -p "$MISSING_RUNTIME/src"
+printf 'value = 1\n' > "$MISSING_RUNTIME/src/module.py"
+cat > "$MISSING_RUNTIME/ici.toml" <<'MISSINGCFG'
+schema_version = 1
+[workspace]
+name = "missing-runtime"
+profile = "standard"
+[[components]]
+id = "sample"
+root = "."
+languages = ["python"]
+MISSINGCFG
+missing_out="$(cd "$MISSING_RUNTIME" && "$MOVED/bin/ici" next verify 2>&1 | plain)"; missing_rc=$?
+missing_result="$MISSING_RUNTIME/.ici/next/result.json"
+if [ "$missing_rc" -ne 3 ]; then
+  bad next-missing-runtime "missing project Python must be INCOMPLETE (exit $missing_rc): $(first_line "$missing_out")"
+elif [ ! -s "$missing_result" ] || \
+     ! grep -Eq '"selected"[[:space:]]*:[[:space:]]*"INCOMPLETE"' "$missing_result" || \
+     ! grep -Eq '"required_complete"[[:space:]]*:[[:space:]]*false' "$missing_result" || \
+     ! grep -Eq '"blocked_task_ids"[[:space:]]*:[[:space:]]*\[[^]]*"sample[.]python[.]test"' "$missing_result" || \
+     ! grep -Eq '"blocked_task_ids"[[:space:]]*:[[:space:]]*\[[^]]*"sample[.]python[.]coverage"' "$missing_result"; then
+  bad next-missing-runtime "exit 3 did not preserve the missing test/coverage evidence"
+elif [ -d "$MISSING_RUNTIME/.venv" ]; then
+  bad next-missing-runtime "verification created a project interpreter"
+else
+  ok next-missing-runtime "required test/coverage stayed blocked; no core-Python fallback or install"
+fi
 
 printf '\n\033[1m== summary ==\033[0m\n'
 printf '  PASS %d  FAIL %d  BLOCKED %d\n' "$PASS" "$FAIL" "$BLOCK"

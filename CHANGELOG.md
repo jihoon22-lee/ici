@@ -5,7 +5,21 @@
 
 ---
 
-## [Unreleased]
+## [0.12.1] - 2026-10-24
+
+공개된 0.12.0 검증 경로에서 재현한 결함 8건을 수정합니다. 검증은 원본 소스를 보존하고,
+완료한 검사·입력 범위에 근거해 PASS와 baseline 해결 여부를 판정합니다.
+next 결과 v2와 fingerprint 정규화 v3의 이전 방법은
+[호환성 안내](docs/design/ici-next/compatibility-v3-next.md)에 있습니다.
+stable Python 3.10·순수 wheel·단일 pyz 계약과 next의 candidate/현장 지원 제한은 유지합니다.
+
+### 검증 — bundle의 분석 범위와 필수 런타임 부재를 각각 확인
+
+- bundle smoke의 분석 샘플이 실제로 제공하지 않는 프로젝트 Python·테스트·커버리지·type
+  검사를 요청해 항상 미완료로 끝나던 구성을 바로잡았습니다. 분석 샘플은 제공된 도구의 범위를
+  명시하고, 별도 샘플은 기본 필수 검사를 그대로 켜서 Python 부재가 exit 3·미완료 증거로
+  남는지 확인합니다. analyzer 누락의 BLOCKED 판정과 strict 모드의 실패 기준은 유지합니다.
+
 
 ### 수정 — 자동 설정을 사용하는 분석기의 이전 PASS 재사용 방지
 

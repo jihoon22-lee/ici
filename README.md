@@ -15,8 +15,14 @@ $ ici doctor
 
 ### 현재 릴리스
 
-공개 stable 릴리스는 [v0.12.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.12.0)이며
-`ici.pyz`의 SHA-256은 `4495361b388cc1a9f4ff4591ce8c40df507e6eb9c79ca724568c5630f958ffed`다.
+공개 stable 산출물은 [최신 GitHub Release](https://github.com/jihoon22-lee/ici/releases/latest)에서
+받습니다. 내려받은 `ici.pyz`의 SHA-256을 같은 릴리스의 `ici.pyz.sha256`과 대조합니다.
+
+0.12.1은 검증 중 소스 수정, 미완료 검사 PASS, 오래된 분석 캐시, 컴포넌트 소유권·진단 혼합,
+hybrid/다중 테스트 스위트 충돌과 baseline 오판을 수정합니다. next 결과 writer는
+`ici.next.run` v2와 fingerprint 정규화 v3를 사용합니다. 과거 결과는 읽을 수 있지만
+새 baseline을 생성하고 fingerprint를 직접 지정한 suppression을 확인해야 합니다.
+[결과·baseline 이전 안내](docs/design/ici-next/compatibility-v3-next.md)를 참고하세요.
 
 `ici next`와 bundle artifact는 stable 승인이 아니라 **candidate**다. RHEL 8.10·GHES·
 idk 실소비자 인수는 [field-acceptance checklist](docs/design/ici-next/field-acceptance.md)가
