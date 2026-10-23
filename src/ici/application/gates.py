@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import re
+from dataclasses import replace
 from pathlib import Path, PurePosixPath
 
 from ici.adapters.providers.compiler import (
@@ -134,6 +135,16 @@ def gate_cpp(
                 expand_cpp_tests(planned, suites, component, component_root, root, cpp_unit)
             )
         elif planned.check.id == "cpp.coverage":
+            if suites:
+                planned = replace(
+                    planned,
+                    check=replace(
+                        planned.check,
+                        needs=tuple(
+                            f"{name}.{suite.id}" for name in planned.check.needs for suite in suites
+                        ),
+                    ),
+                )
             checks.append(
                 plan_cpp_coverage(
                     planned,

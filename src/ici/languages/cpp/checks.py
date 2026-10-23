@@ -77,7 +77,7 @@ CPP_TEST_CHECK = CheckDefinition(
     title="C++ test suites",
     language="cpp",
     tool=None,
-    provides=("test-evidence",),
+    provides=("cpp-test-evidence",),
 )
 
 #: ``tool=None`` because ici measures these itself. C++ function boundaries
@@ -133,7 +133,7 @@ CPP_COVERAGE_CHECK = CheckDefinition(
     title="gcov coverage",
     language="cpp",
     tool=None,
-    needs=("test-evidence",),
+    needs=("cpp-test-evidence",),
 )
 
 #: The build's declared output contract (#220): every glob the linked

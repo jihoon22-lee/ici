@@ -9,6 +9,7 @@ what would fix it, never a quiet substitute or an empty pass (#216, #219).
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from pathlib import Path
 
 from ici.adapters.providers.binarycompat import BinaryCompatProvider
@@ -209,6 +210,9 @@ def expand_cpp_tests(
         ]
     expanded: list[PlannedCheck] = []
     for suite in suites:
+        suite_check = replace(
+            planned.check, provides=tuple(f"{name}.{suite.id}" for name in planned.check.provides)
+        )
         task_id = f"{planned.task_id}.{suite.id}"
         build_dir = root / suite.build_dir
         if suite.kind == "ctest":
@@ -216,7 +220,7 @@ def expand_cpp_tests(
             if executable is None:
                 expanded.append(
                     PlannedCheck(
-                        check=planned.check,
+                        check=suite_check,
                         task_id=task_id,
                         blocked="ctest is not available",
                     )
@@ -225,7 +229,7 @@ def expand_cpp_tests(
             if not (build_dir / "CTestTestfile.cmake").is_file():
                 expanded.append(
                     PlannedCheck(
-                        check=planned.check,
+                        check=suite_check,
                         task_id=task_id,
                         blocked="test suite not built — no CTestTestfile.cmake under "
                         f"{suite.build_dir}",
@@ -239,13 +243,13 @@ def expand_cpp_tests(
                 task_id=task_id,
                 analysis_unit_id=cpp_unit.id if cpp_unit is not None else "",
             )
-            expanded.append(PlannedCheck(check=planned.check, task_id=task_id, task=plan))
+            expanded.append(PlannedCheck(check=suite_check, task_id=task_id, task=plan))
         else:  # qtest
             binary = build_dir / suite.binary
             if not binary.is_file():
                 expanded.append(
                     PlannedCheck(
-                        check=planned.check,
+                        check=suite_check,
                         task_id=task_id,
                         blocked=f"test binary not built — {suite.binary} is absent "
                         f"under {suite.build_dir}",
@@ -258,7 +262,7 @@ def expand_cpp_tests(
                 task_id=task_id,
                 analysis_unit_id=cpp_unit.id if cpp_unit is not None else "",
             )
-            expanded.append(PlannedCheck(check=planned.check, task_id=task_id, task=plan))
+            expanded.append(PlannedCheck(check=suite_check, task_id=task_id, task=plan))
     return expanded
 
 

@@ -15,6 +15,14 @@
 - 선택 검사의 오류는 진단으로 유지하고, 정상적으로 분석한 함수 0개 파일은 완료로
   인정합니다. 필수/선택 검사, 부분 위반, 분석 한도 및 읽기 실패 회귀를 검증합니다.
 
+### 수정 — hybrid 및 다중 테스트 스위트의 evidence 의존성
+
+- Python/C++ 테스트 evidence 이름을 언어별로 구분해 hybrid 컴포넌트가 두 검사를
+  동시에 선택할 수 있게 합니다. 미실행 입력은 GraphError 대신 BLOCKED로 남습니다.
+- C++ 스위트별 evidence를 생성하고 coverage가 모든 스위트를 prerequisite로 읽습니다.
+  별도 집계 실행이나 중복 측정값 없이 각 스위트를 한 번 실행하며, 일부 미빌드 스위트는
+  coverage를 차단합니다. 그래프의 단일 producer 불변식은 계속 강제합니다.
+
 ### 수정 — 컴포넌트별 소스 소유권 보존
 
 - next source inventory가 각 컴포넌트의 source/include/exclude를 계산한 후 소유권을
