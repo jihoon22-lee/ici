@@ -246,6 +246,7 @@ def expand_diagnostics(
                 task=provider.plan(
                     executable,
                     transformed.argv,
+                    variant="compile-" + unit.variant.removeprefix("sha256:"),
                     cwd=str(cwd),
                     task_id=task_id,
                     analysis_unit_id=cpp_unit.id if cpp_unit is not None else "",

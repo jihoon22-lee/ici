@@ -185,6 +185,7 @@ class CompilerDiagnosticsProvider:
         analysis_unit_id: str = "",
         input_refs: tuple[str, ...] = (),
         tool_digest: str | None = None,
+        variant: str | None = None,
     ) -> ProviderPlan:
         task = TaskSpec(
             id=task_id,
@@ -196,6 +197,7 @@ class CompilerDiagnosticsProvider:
             analysis_unit_ids=(analysis_unit_id,) if analysis_unit_id else (),
             timeout_seconds=300,
             tool_digest=tool_digest,
+            variant=variant,
             # No dep-file evidence is captured, so no honest cache key exists —
             # header edits would be invisible to one. The scheduler records
             # "not cacheable" rather than pretending.

@@ -26,9 +26,10 @@ and read through the provider's contract.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 from ici.adapters.providers.base import Provider
+from ici.application.finding_identity import attribute
 from ici.application.graph import build_graph
 from ici.application.plan import Plan, PlannedCheck
 from ici.application.schedule import (
@@ -119,17 +120,17 @@ def verify(
         on_started=on_started,
     )
     by_id = {item.task_id: item for item in scheduled.observations}
-    observations = tuple(by_id[planned.task_id] for planned in checks)
+    observations = tuple(
+        attribute(by_id[planned.task_id], planned, task_components.get(planned.task_id))
+        for planned in checks
+    )
+    by_id = {observation.task_id: observation for observation in observations}
 
     incomplete = tuple(
         reason for planned in checks if (reason := _incompleteness(planned, by_id[planned.task_id]))
     )
     findings = apply_suppressions(
-        _unique(
-            attributed
-            for observation in observations
-            for attributed in _attribute(observation, task_components)
-        ),
+        _unique(item for observation in observations for item in observation.findings),
         suppressions,
     )
     required_fingerprints = {
@@ -143,23 +144,6 @@ def verify(
         observations=observations,
         findings=findings,
         executions=scheduled.executions,
-    )
-
-
-def _attribute(observation: Observation, components: Mapping[str, str]) -> tuple[Finding, ...]:
-    """Give a finding the component its task was planned under.
-
-    A provider that knows its component stamps it; one that does not — a
-    parser reading shared tool output — still gets attribution from the plan,
-    so a consumer never has to reverse-engineer it out of a task id.
-    """
-
-    component = components.get(observation.task_id)
-    if component is None:
-        return observation.findings
-    return tuple(
-        item if item.component_id is not None else replace(item, component_id=component)
-        for item in observation.findings
     )
 
 

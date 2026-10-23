@@ -47,6 +47,16 @@
 - 실제 Ruff로 세 가지 설정 조합을 두 경로에서 실행해 소스 바이트 보존과 F401 보고를
   검증합니다.
 
+### 수정 — 컴포넌트·분석 단위별 finding 정체성 보존
+
+- next는 공유 실행의 observation을 각 소비자에게 귀속한 뒤 fingerprint, required 판정,
+  suppression, 중복 제거에 동일한 정체성을 사용합니다. 다른 컴포넌트의 같은 상대 경로가
+  충돌하거나 한쪽 suppression이 다른 쪽 위반을 숨기지 않습니다.
+- 컴파일 replay의 기록된 configuration을 variant로 전달하며 공유 실행에서도 소비자의
+  variant와 task 귀속을 보존합니다. 실행 자체는 동일하면 한 번만 수행합니다.
+- fingerprint 정규화는 `ici.next.fingerprint.v3`입니다. 이전 baseline은 비교 불가로
+  진단하므로 새 기준선을 생성해야 하며 fingerprint 기반 suppression도 다시 확인해야 합니다.
+
 ## [0.12.0] - 2026-10-08
 
 이 릴리스는 v0.11.0 이후 55개 커밋을 담습니다. 큰 줄기는 셋입니다.

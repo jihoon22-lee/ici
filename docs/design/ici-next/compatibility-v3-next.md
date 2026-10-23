@@ -113,3 +113,15 @@ PR C는 셋 다 거부로 바꿨다 — 읽을 수 없는 `schema_version`, 파�
 1. `legacy_reader.py`의 동작이 바뀌면 이 표를 같이 고친다. 테스트가 둘을 맞물려 둔다.
 2. 새 거부 지점이 생기면 §2·§3의 "거부" 칸에 적는다. 거부는 기능이지 결함이 아니다.
 3. next 쪽에 필드가 늘어도 v3 출처 칸은 "없음"으로 남긴다. 비워 두지 않는다.
+
+## Finding 정규화 v3
+
+`ici.next.fingerprint.v3`은 provider의 native finding 정체성에 소비자의 component,
+analysis unit, variant를 결합한다. 서로 다른 컴포넌트가 같은 상대 파일명을 사용하거나,
+동일한 실행 결과를 공유해도 required/suppression 정책은 소비자별로 적용된다. task id와
+실행 경로를 임의로 해시에 더하지 않아 단독 선택과 전체 선택의 fingerprint가 같다.
+컴파일 replay는 compilation database의 configuration digest를 variant로 기록한다.
+
+이전 fingerprint 버전의 baseline은 `INCOMPATIBLE`로 거절되므로 현재 실행으로 새 기준선을
+생성해야 한다. fingerprint를 직접 지정한 suppression도 새 정체성에 맞게 확인해야 한다.
+저장된 이전 결과의 열람과 stable finding v3 형식은 이 정규화 버전과 별도 계약이다.
