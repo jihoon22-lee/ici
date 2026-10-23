@@ -15,6 +15,13 @@
 - 선택 검사의 오류는 진단으로 유지하고, 정상적으로 분석한 함수 0개 파일은 완료로
   인정합니다. 필수/선택 검사, 부분 위반, 분석 한도 및 읽기 실패 회귀를 검증합니다.
 
+### 수정 — 컴포넌트별 소스 소유권 보존
+
+- next source inventory가 각 컴포넌트의 source/include/exclude를 계산한 후 소유권을
+  병합합니다. 한 컴포넌트의 exclude가 다른 컴포넌트의 입력을 제거하지 않습니다.
+- workspace 내부 external 입력도 기존 소유권과 합칩니다. 선언 순서를 뒤집어도
+  공유 파일의 analysis unit 목록이 보존되는 회귀 테스트를 추가합니다.
+
 ### 수정 — 검증 중 Ruff 자동 수정 차단
 
 - stable 및 next의 Ruff 호출이 `--no-fix`, `--no-fix-only`, `--no-unsafe-fixes`를
