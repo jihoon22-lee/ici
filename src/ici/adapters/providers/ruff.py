@@ -61,7 +61,15 @@ RUFF_CONTRACT = ExitContract(success=(0,), findings=(1,))
 #:
 #: ``--output-format json`` is what makes the result parseable at all, and
 #: ``--quiet`` keeps the human summary out of the stream the parser reads.
-FIXED_HEAD = ("check", "--output-format", "json", "--quiet")
+FIXED_HEAD = (
+    "check",
+    "--no-fix",
+    "--no-fix-only",
+    "--no-unsafe-fixes",
+    "--output-format",
+    "json",
+    "--quiet",
+)
 
 #: Options that would let a lint run edit the tree, or replace the project's
 #: rules with ours. Only options: a *path* is never dangerous, and listing
