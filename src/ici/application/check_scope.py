@@ -33,6 +33,7 @@ def records(
     observations = {item.task_id: item for item in verification.observations}
     result = []
     for component_id, plan in plans.items():
+        external_paths = set(scope.component(component_id).external)
         for planned in plan.checks:
             units = tuple(
                 unit
@@ -68,12 +69,15 @@ def records(
                     for unit in sorted(units, key=lambda item: item.id)
                 ],
                 "externals": sorted(
-                    (
-                        _workspace_reference(item.path, root),
-                        tuple(sorted(_workspace_reference(path, root) for path in item.files)),
-                        item.present,
-                    )
-                    for item in stock.externals
+                    {
+                        (
+                            _workspace_reference(item.path, root),
+                            tuple(sorted(_workspace_reference(path, root) for path in item.files)),
+                            item.present,
+                        )
+                        for item in stock.externals
+                        if item.path in external_paths
+                    }
                 ),
                 "builds": _linked_builds(scope, component_id, root),
                 "invocation": None

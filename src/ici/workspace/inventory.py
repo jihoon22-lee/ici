@@ -141,6 +141,7 @@ class InventoryDiff:
     role_changed: tuple[str, ...] = ()
     externals_added: tuple[str, ...] = ()
     externals_removed: tuple[str, ...] = ()
+    externals_changed: tuple[str, ...] = ()
 
     @property
     def stable(self) -> bool:
@@ -151,6 +152,7 @@ class InventoryDiff:
             or self.role_changed
             or self.externals_added
             or self.externals_removed
+            or self.externals_changed
         )
 
 
@@ -159,6 +161,8 @@ def diff(before: SourceInventory, after: SourceInventory) -> InventoryDiff:
 
     earlier = {item.path: item for item in before.files}
     later = {item.path: item for item in after.files}
+    earlier_external = {item.path: item for item in before.externals}
+    later_external = {item.path: item for item in after.externals}
     return InventoryDiff(
         added=tuple(sorted(path for path in later if path not in earlier)),
         removed=tuple(sorted(path for path in earlier if path not in later)),
@@ -176,18 +180,13 @@ def diff(before: SourceInventory, after: SourceInventory) -> InventoryDiff:
                 if earlier[path].role is not later[path].role
             )
         ),
-        externals_added=tuple(
+        externals_added=tuple(sorted(later_external.keys() - earlier_external.keys())),
+        externals_removed=tuple(sorted(earlier_external.keys() - later_external.keys())),
+        externals_changed=tuple(
             sorted(
-                item.path
-                for item in after.externals
-                if item.path not in {e.path for e in before.externals}
-            )
-        ),
-        externals_removed=tuple(
-            sorted(
-                item.path
-                for item in before.externals
-                if item.path not in {e.path for e in after.externals}
+                path
+                for path in earlier_external.keys() & later_external.keys()
+                if earlier_external[path] != later_external[path]
             )
         ),
     )
@@ -331,8 +330,13 @@ def _external(root: Path, entry: str) -> ExternalInput:
         return ExternalInput(path=entry, present=False)
     if candidate.is_dir():
         members = tuple(sorted(path.as_posix() for path in candidate.rglob("*") if path.is_file()))
-        digest = hashlib.sha256("\n".join(members).encode("utf-8")).hexdigest()
-        return ExternalInput(path=entry, present=True, digest=f"sha256:{digest}", files=members)
+        digest = hashlib.sha256()
+        for member in members:
+            content_digest, _size = _hash(Path(member))
+            digest.update(member.encode("utf-8") + b"\0" + content_digest.encode("ascii"))
+        return ExternalInput(
+            path=entry, present=True, digest=f"sha256:{digest.hexdigest()}", files=members
+        )
     digest, _size = _hash(candidate)
     return ExternalInput(path=entry, present=True, digest=digest, files=(entry,))
 

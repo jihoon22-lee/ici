@@ -367,6 +367,9 @@ def drift_summary(drift: inventory.InventoryDiff) -> str:
             ("added", drift.added),
             ("removed", drift.removed),
             ("changed", drift.changed),
+            ("external added", drift.externals_added),
+            ("external removed", drift.externals_removed),
+            ("external changed", drift.externals_changed),
         )
         if items
     ]
