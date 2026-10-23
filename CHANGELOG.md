@@ -5,7 +5,13 @@
 
 ---
 
-## [Unreleased]
+## [0.12.1] - 2026-10-23
+
+공개된 0.12.0 검증 경로에서 재현한 결함 8건을 수정합니다. 검증은 원본 소스를 보존하고,
+완료한 검사·입력 범위에 근거해 PASS와 baseline 해결 여부를 판정합니다.
+next 결과 v2와 fingerprint 정규화 v3의 이전 방법은
+[호환성 안내](docs/design/ici-next/compatibility-v3-next.md)에 있습니다.
+stable Python 3.10·순수 wheel·단일 pyz 계약과 next의 candidate/현장 지원 제한은 유지합니다.
 
 ### 수정 — 자동 설정을 사용하는 분석기의 이전 PASS 재사용 방지
 
