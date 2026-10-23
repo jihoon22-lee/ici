@@ -120,7 +120,8 @@ PR C는 셋 다 거부로 바꿨다 — 읽을 수 없는 `schema_version`, 파�
 analysis unit, variant를 결합한다. 서로 다른 컴포넌트가 같은 상대 파일명을 사용하거나,
 동일한 실행 결과를 공유해도 required/suppression 정책은 소비자별로 적용된다. task id와
 체크아웃 절대 경로를 소비자 정체성으로 쓰지 않아 단독 선택과 전체 선택의 fingerprint가 같다.
-컴파일 replay는 compilation database의 configuration digest를 variant로 기록한다.
+컴파일 replay는 workspace 기준으로 정규화한 명령·작업 디렉터리·출력의 digest를
+variant로 기록한다. raw compile DB의 절대 경로 hash를 finding 정체성에 사용하지 않는다.
 
 테스트·sanitizer·integration·Python 호환성 provider의 native 정체성도 실행 task ID에
 의존하지 않는다. workspace 기준 실행 대상과 진단 내용으로 구분하므로 같은 실행을 공유한

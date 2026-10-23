@@ -57,6 +57,9 @@
 - CTest·QTest·sanitizer·integration·Python 호환성 provider의 native fingerprint에서
   첫 실행 소비자의 task ID를 제외합니다. workspace 기준 실행 대상과 진단을 식별하여
   전체/단독 선택과 체크아웃 이동에서 같은 진단을 유지하고, 서로 다른 실행 대상은 구분합니다.
+- compiler variant는 원본 compile DB의 절대 경로 hash 대신 workspace 기준으로
+  정규화한 명령·작업 디렉터리·출력에서 계산합니다. 실제 옵션과 외부 경로는 보존하고,
+  정규화한 순서로 task ID도 안정화합니다.
 - next는 공유 실행의 observation을 각 소비자에게 귀속한 뒤 fingerprint, required 판정,
   suppression, 중복 제거에 동일한 정체성을 사용합니다. 다른 컴포넌트의 같은 상대 경로가
   충돌하거나 한쪽 suppression이 다른 쪽 위반을 숨기지 않습니다.
