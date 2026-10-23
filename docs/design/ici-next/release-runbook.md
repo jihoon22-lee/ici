@@ -20,6 +20,12 @@
 외부 저장소의 소비자 검증은 released/candidate ici에 대한 명시적 선택
 검증으로 가능하다 — ici용 특수 구조를 요구하지 않는다.
 
+bundle smoke의 next 분석 샘플은 번들이 제공하는 분석 도구 범위를 설정에 명시한다.
+별도 샘플은 기본 필수 test/coverage를 켠 채 프로젝트 Python을 제공하지 않아,
+exit 3·`required_complete=false`·차단된 검사 목록이 보존되는지 확인한다.
+분석 샘플 통과를 프로젝트 테스트까지 완료한 것으로 읽지 않는다. strict 모드는
+측정하지 못한 `BLOCKED`를 여전히 실패로 처리한다.
+
 ## 2. R01~R15 최종 체크리스트
 
 요구사항별 근거는 [requirements-traceability.md](requirements-traceability.md)의

@@ -57,6 +57,14 @@ case "${1-}" in
 esac
 """
 
+MISSING_RUNTIME = """    if [[ "${2-}" == verify && "$PWD" == */missing-project-runtime ]]; then
+      mkdir -p .ici/next
+      echo '{"gate":{"selected":"INCOMPLETE"},"execution":{"required_complete":false,"blocked_task_ids":["sample.python.test","sample.python.coverage"]}}' > .ici/next/result.json
+      exit 3
+    fi
+"""
+GOOD_STUB = GOOD_STUB.replace("  next)\n", "  next)\n" + MISSING_RUNTIME)
+
 
 def _arm(subcommand: str) -> str:
     """The `next <subcommand>) ... ;;` arm of GOOD_STUB, verbatim.
@@ -168,6 +176,7 @@ class TestItPassesAWorkingBundle:
             "no-installs",
             "side-by-side",
             "next-path",
+            "next-missing-runtime",
         }
 
     def test_the_report_is_a_schema_tagged_document(
@@ -345,6 +354,18 @@ class TestStrictModeRefusesAnUnmeasuredCase:
     that decides whether CI accepts an unmeasured case — never exercised. A
     stub unshare that refuses puts any host on the blocked path.
     """
+
+    @pytest.mark.parametrize("exit_code", [0, 3])
+    def test_missing_runtime_cannot_claim_complete_evidence(self, tmp_path, report, exit_code):
+        broken = (
+            MISSING_RUNTIME.replace('"INCOMPLETE"', '"PASS"')
+            .replace('"required_complete":false', '"required_complete":true')
+            .replace("exit 3", f"exit {exit_code}")
+        )
+        bundle = _make_bundle(tmp_path / "bundle", stub=_replace(MISSING_RUNTIME, broken))
+        result = _run(bundle, tmp_path / "work", report)
+        assert _cases(report)["next-missing-runtime"] == "FAIL", result.stdout
+        assert result.returncode == 1
 
     @pytest.fixture
     def without_namespaces(self, tmp_path: Path) -> dict[str, str]:
