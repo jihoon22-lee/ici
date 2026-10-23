@@ -201,10 +201,11 @@ class TestPlanningIsOptInAndDeclared:
         _workspace(tmp_path, cases="")
         monkeypatch.chdir(tmp_path)
 
-        plan = runner.invoke(app, ["next", "plan", "--profile", "deep"])
+        plan = runner.invoke(app, ["next", "plan", "--profile", "deep", "--json"])
 
         assert plan.exit_code == 0, plan.output
-        assert "integration" not in plan.output
+        checks = json.loads(plan.stdout)["plans"][0]["checks"]
+        assert all(check["check"] != "integration" for check in checks)
 
     def test_cases_expand_into_one_task_each(self, tmp_path, monkeypatch) -> None:
         cases = CASE + (
@@ -225,9 +226,10 @@ class TestPlanningIsOptInAndDeclared:
         monkeypatch.chdir(tmp_path)
 
         for profile in ("standard", "fast"):
-            plan = runner.invoke(app, ["next", "plan", "--profile", profile])
+            plan = runner.invoke(app, ["next", "plan", "--profile", profile, "--json"])
             assert plan.exit_code == 0, plan.output
-            assert "integration" not in plan.output
+            checks = json.loads(plan.stdout)["plans"][0]["checks"]
+            assert all(check["check"] != "integration" for check in checks)
 
     def test_a_language_filter_excludes_the_domain_check(self, tmp_path, monkeypatch) -> None:
         _workspace(tmp_path)

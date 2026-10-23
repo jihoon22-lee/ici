@@ -68,7 +68,7 @@ TEST_CHECK = CheckDefinition(
     title="pytest suite",
     language="python",
     tool=None,
-    provides=("test-evidence",),
+    provides=("python-test-evidence",),
 )
 
 #: Coverage shares the pytest execution: when this check is selected the test
@@ -79,7 +79,7 @@ COVERAGE_CHECK = CheckDefinition(
     title="coverage.py collection",
     language="python",
     tool=None,
-    needs=("test-evidence",),
+    needs=("python-test-evidence",),
 )
 
 #: ``tool=None`` because ici measures these itself: the AST is exact, and the
