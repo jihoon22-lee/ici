@@ -184,6 +184,7 @@ def measure(request: MetricRequest) -> Observation:
     findings: list[Finding] = []
     limitations: list[str] = []
     functions = 0
+    files_measured = 0
     peak = 0
     evidence = EvidenceLevel.MEASURED
 
@@ -198,6 +199,7 @@ def measure(request: MetricRequest) -> Observation:
                 )
                 continue
             request.cache[path] = rows
+        files_measured += 1
         for row in rows:
             functions += 1
             if row.heuristic:
@@ -226,7 +228,7 @@ def measure(request: MetricRequest) -> Observation:
     return Observation(
         task_id=request.task_id,
         provider=PROVIDER_NAME,
-        state=TaskState.SUCCEEDED,
+        state=TaskState.SUCCEEDED if files_measured == len(request.files) else TaskState.FAILED,
         findings=tuple(findings),
         measurements=measurements,
         limitations=tuple(limitations),

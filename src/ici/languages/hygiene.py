@@ -127,7 +127,9 @@ def measure_hygiene(request: HygieneRequest) -> Observation:
     return Observation(
         task_id=request.task_id,
         provider=PROVIDER_NAME,
-        state=TaskState.SUCCEEDED,
+        state=(
+            TaskState.SUCCEEDED if files_checked == len(inventory.sources) else TaskState.FAILED
+        ),
         findings=tuple(findings),
         measurements=(
             Measurement(name="files_checked", value=files_checked, unit="files"),

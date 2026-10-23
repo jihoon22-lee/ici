@@ -7,6 +7,14 @@
 
 ## [Unreleased]
 
+### 수정 — 필수 AST 분석 미완료의 PASS 방지
+
+- next의 security/resource/exception 및 complexity/cognitive 검사가 파싱 실패,
+  입력 읽기 실패 또는 분석 한도 초과를 실패 observation으로 보존합니다. 필수 검사는
+  `INCOMPLETE`/exit 3으로 이어지며 이미 얻은 finding과 측정값도 함께 보고합니다.
+- 선택 검사의 오류는 진단으로 유지하고, 정상적으로 분석한 함수 0개 파일은 완료로
+  인정합니다. 필수/선택 검사, 부분 위반, 분석 한도 및 읽기 실패 회귀를 검증합니다.
+
 ### 수정 — 검증 중 Ruff 자동 수정 차단
 
 - stable 및 next의 Ruff 호출이 `--no-fix`, `--no-fix-only`, `--no-unsafe-fixes`를
