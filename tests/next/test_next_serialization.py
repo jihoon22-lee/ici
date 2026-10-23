@@ -224,11 +224,11 @@ class TestBadPayloadsAreRefusedWithAReason:
         """A newer producer is not the same problem as a broken file."""
 
         payload = load_fixture("run-success")
-        payload["schema_version"] = 2
+        payload["schema_version"] = 3
         with pytest.raises(UnsupportedSchemaError) as excinfo:
             run_result_from_dict(payload)
-        assert "version 2" in str(excinfo.value)
-        assert "implements version 1" in str(excinfo.value)
+        assert "version 3" in str(excinfo.value)
+        assert "implements version 2" in str(excinfo.value)
 
     def test_unsupported_version_is_still_a_schema_error(self):
         """Callers that only catch SchemaError must not miss it."""

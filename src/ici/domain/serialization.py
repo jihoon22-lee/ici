@@ -37,6 +37,7 @@ from ici.domain._codec import (
     read_enum,
     require_mapping,
 )
+from ici.domain.check_record import CheckRecord
 from ici.domain.enums import (
     BaselineState,
     EvidenceLevel,
@@ -184,7 +185,7 @@ def observation_to_dict(observation: Observation) -> dict[str, Any]:
 
 
 def run_result_to_dict(result: RunResult) -> dict[str, Any]:
-    """Render a run as the ``ici.next.run`` v1 envelope."""
+    """Render a run as the ``ici.next.run`` versioned envelope."""
 
     producer: dict[str, Any] = {"ici_version": result.producer.ici_version}
     if result.producer.bundle_digest is not None:
@@ -230,6 +231,12 @@ def run_result_to_dict(result: RunResult) -> dict[str, Any]:
         "metrics": [_measurement_to_dict(item) for item in result.metrics],
         "limitations": list(result.limitations),
     }
+    if result.schema_version >= 2:
+        document["checks"] = (
+            None
+            if result.checks is None
+            else [{**vars(item), "state": item.state.value} for item in result.checks]
+        )
     if result.baseline is not None:
         document["baseline"] = _baseline_to_dict(result.baseline)
     return document
@@ -403,8 +410,28 @@ def _publication_from_dict(payload: object) -> PublicationOutcome:
     )
 
 
+def _checks_from_dict(payload: object) -> tuple[CheckRecord, ...] | None:
+    if payload is None:
+        return None
+    if not isinstance(payload, list):
+        raise SchemaError("checks must be an array or null")
+    records = []
+    for item in payload:
+        data = require_mapping(item, "check record")
+        try:
+            records.append(
+                CheckRecord(
+                    **{key: value for key, value in data.items() if key != "state"},
+                    state=read_enum(data.get("state"), TaskState, "check state"),
+                )
+            )
+        except (TypeError, ValueError) as error:
+            raise SchemaError(f"check record is not valid: {error}") from error
+    return tuple(records)
+
+
 def run_result_from_dict(payload: object) -> RunResult:
-    """Read an ``ici.next.run`` v1 envelope back into a ``RunResult``.
+    """Read an ``ici.next.run`` versioned envelope back into a ``RunResult``.
 
     Model validation runs as a side effect of construction, so a payload that
     parses but is internally inconsistent — a passing gate that also claims
@@ -412,7 +439,12 @@ def run_result_from_dict(payload: object) -> RunResult:
     """
 
     data = require_mapping(payload, "run result")
-    check_envelope(data, SCHEMA_ID, SCHEMA_VERSION)
+    version = data.get("schema_version")
+    check_envelope(data, SCHEMA_ID, 1 if version == 1 else SCHEMA_VERSION)
+    if version == 1 and "checks" in data:
+        raise SchemaError("v1 results cannot carry check scope records")
+    if version == 2 and "checks" not in data:
+        raise SchemaError("v2 results require checks (null means unknown evidence scope)")
     execution = require_mapping(data.get("execution"), "execution")
     producer = require_mapping(data.get("producer"), "producer")
 
@@ -438,6 +470,8 @@ def run_result_from_dict(payload: object) -> RunResult:
             publication=_publication_from_dict(data.get("publication")),
             limitations=tuple(data.get("limitations", ())),
             baseline=_baseline_from_dict(data.get("baseline")),
+            schema_version=version,
+            checks=_checks_from_dict(data.get("checks")),
         )
     except SchemaError:
         raise

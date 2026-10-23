@@ -10,7 +10,7 @@ provider change would mark findings resolved that nobody re-checked.
 When the identities match, the delta is computed on fingerprints — the
 identity a finding already carries. The one rule that matters most is
 scope honesty: a finding whose component this run never selected is
-``carried``, not ``resolved``. Only a finding from a component that ran
+``carried``, not ``resolved``. Only a finding whose check completed again over the same input scope
 and no longer reports it is resolved — a partial run must not be able to
 "fix" code it never looked at.
 """
@@ -22,9 +22,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ici.domain._codec import require_mapping
+from ici.domain.check_record import CheckRecord
 from ici.domain.enums import BaselineState
 from ici.domain.finding import Finding
 from ici.domain.result import FINGERPRINT_VERSION, SCHEMA_ID, BaselineComparison
+from ici.domain.serialization import run_result_from_dict
 
 __all__ = ["BaselineDocument", "BaselineError", "compare", "load_baseline"]
 
@@ -44,8 +46,8 @@ class BaselineDocument:
     #: empty for results that predate its recording, which cannot be a
     #: baseline because their fingerprints are not known to be comparable.
     fingerprint_version: str
-    #: fingerprint -> component the finding belonged to.
-    findings: tuple[tuple[str, str], ...]
+    findings: tuple[Finding, ...]
+    checks: tuple[CheckRecord, ...] | None
 
 
 def load_baseline(path: Path) -> BaselineDocument:
@@ -63,7 +65,10 @@ def load_baseline(path: Path) -> BaselineDocument:
         payload = json.loads(raw)
     except ValueError as error:
         raise BaselineError(f"baseline {path} is not JSON: {error}") from error
-    data = require_mapping(payload, "baseline document")
+    try:
+        data = require_mapping(payload, "baseline document")
+    except ValueError as error:
+        raise BaselineError(f"baseline {path} is not a result: {error}") from error
     schema_id = data.get("schema_id")
     if schema_id != SCHEMA_ID:
         raise BaselineError(
@@ -73,18 +78,20 @@ def load_baseline(path: Path) -> BaselineDocument:
     identity = data.get("identity")
     if not isinstance(identity, dict):
         raise BaselineError(f"baseline {path} carries no identity — cannot verify what it measured")
-    findings: list[tuple[str, str]] = []
     for index, item in enumerate(data.get("findings") or ()):
         if not isinstance(item, dict) or not item.get("fingerprint"):
             raise BaselineError(f"baseline {path} finding #{index} has no fingerprint")
-        component = str(item.get("component_id") or "")
-        findings.append((str(item["fingerprint"]), component))
+    try:
+        result = run_result_from_dict(data)
+    except ValueError as error:
+        raise BaselineError(f"baseline {path} is not a valid result: {error}") from error
     return BaselineDocument(
         path=str(path),
-        policy_digest=str(identity.get("policy_digest") or ""),
-        toolchain_digest=str(identity.get("toolchain_digest") or ""),
-        fingerprint_version=str(identity.get("fingerprint_version") or ""),
-        findings=tuple(findings),
+        policy_digest=result.identity.policy_digest,
+        toolchain_digest=result.identity.toolchain_digest,
+        fingerprint_version=result.identity.fingerprint_version,
+        findings=result.findings,
+        checks=result.checks,
     )
 
 
@@ -94,7 +101,7 @@ def compare(
     *,
     policy_digest: str,
     toolchain_digest: str,
-    selected_components: tuple[str, ...],
+    checks: tuple[CheckRecord, ...] | None = None,
 ) -> BaselineComparison:
     """The fingerprint delta, or a refusal that says why it cannot be a delta."""
 
@@ -127,23 +134,35 @@ def compare(
             ),
         )
 
-    selected = set(selected_components)
+    if baseline.checks is None or checks is None:
+        return BaselineComparison(
+            state=BaselineState.INCOMPATIBLE,
+            origin=baseline.path,
+            reason=(
+                "completed check scope is unknown — accept a new v2 result as the baseline; "
+                "older results remain readable but cannot prove resolutions"
+            ),
+        )
+    old_checks = {item.task_id: item for item in baseline.checks}
+    completed = {item.comparison_key for item in checks if item.evidence_complete}
     current = {finding.fingerprint for finding in findings}
-    baseline_in_scope = {
-        fingerprint
-        for fingerprint, component in baseline.findings
-        if not component or component in selected
-    }
-    carried = {
-        fingerprint
-        for fingerprint, component in baseline.findings
-        if component and component not in selected
-    }
+    previous = {finding.fingerprint for finding in baseline.findings}
+    resolved = set()
+    for finding in baseline.findings:
+        if finding.fingerprint in current:
+            continue
+        record = old_checks.get(finding.task_id)
+        if (
+            record is not None
+            and record.component_id == finding.component_id
+            and record.comparison_key in completed
+        ):
+            resolved.add(finding.fingerprint)
     return BaselineComparison(
         state=BaselineState.COMPARABLE,
         origin=baseline.path,
-        new=tuple(sorted(current - {fp for fp, _ in baseline.findings})),
-        unchanged=tuple(sorted(current & baseline_in_scope)),
-        resolved=tuple(sorted(baseline_in_scope - current)),
-        carried=tuple(sorted(carried)),
+        new=tuple(sorted(current - previous)),
+        unchanged=tuple(sorted(current & previous)),
+        resolved=tuple(sorted(resolved)),
+        carried=tuple(sorted(previous - current - resolved)),
     )

@@ -30,6 +30,7 @@ from ici.domain._validation import (
     require_tuple,
     require_unique_identifiers,
 )
+from ici.domain.check_record import CheckRecord
 from ici.domain.enums import (
     BaselineState,
     GateVerdict,
@@ -53,7 +54,7 @@ __all__ = [
 ]
 
 SCHEMA_ID = "ici.next.run"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -257,8 +258,8 @@ class BaselineComparison:
 
     Fingerprints are the identity a finding already carries, so the delta is
     expressed in them rather than in copies of the findings. ``resolved``
-    names only fingerprints whose component was actually selected this run —
-    a finding in a component the run never asked about is ``carried``, which
+    names only fingerprints whose check completed over the same input scope —
+    a finding without matching complete evidence is ``carried``, which
     is the honest "not evaluated", never a silent resolution.
 
     ``INCOMPATIBLE`` carries no delta at all: policy, toolchain or schema
@@ -297,7 +298,7 @@ class BaselineComparison:
 
 @dataclass(frozen=True)
 class RunResult:
-    """One complete run, ready to serialize as ``ici.next.run`` v1."""
+    """One complete run, ready to serialize as ``ici.next.run`` with explicit evidence scope."""
 
     run_id: str
     producer: Producer
@@ -310,6 +311,7 @@ class RunResult:
     publication: PublicationOutcome = PublicationOutcome()
     limitations: tuple[str, ...] = ()
     baseline: BaselineComparison | None = None
+    checks: tuple[CheckRecord, ...] | None = None
     schema_id: str = SCHEMA_ID
     schema_version: int = SCHEMA_VERSION
 
@@ -339,8 +341,13 @@ class RunResult:
         )
         if self.schema_id != SCHEMA_ID:
             raise ValueError(f"run schema_id must be {SCHEMA_ID!r}, not {self.schema_id!r}")
-        if self.schema_version != SCHEMA_VERSION:
-            raise ValueError(f"run schema_version must be {SCHEMA_VERSION}")
+        if self.schema_version not in (1, SCHEMA_VERSION):
+            raise ValueError(f"run schema_version must be 1 or {SCHEMA_VERSION}")
+        if self.checks is not None:
+            if self.schema_version == 1:
+                raise ValueError("v1 results cannot carry check scope records")
+            require_tuple(self.checks, CheckRecord, "run checks")
+            require_unique_identifiers((item.task_id for item in self.checks), "run check tasks")
         if self.gate.has_violations and not self.blocking_findings:
             raise ValueError("gate reports violations but no finding counts against it")
         if not self.execution.required_complete and self.gate.selected is GateVerdict.PASS:

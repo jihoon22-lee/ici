@@ -39,6 +39,17 @@
 - workspace 내부 external 입력도 기존 소유권과 합칩니다. 선언 순서를 뒤집어도
   공유 파일의 analysis unit 목록이 보존되는 회귀 테스트를 추가합니다.
 
+### 수정 — 완료한 검사 범위 안에서만 baseline 문제를 해결 처리
+
+- `ici.next.run` v2가 check·component·language·입력 범위·variant·실행 상태와
+  증거 완결성을 저장합니다. 언어/프로파일 축소, 실패·차단·취소, 입력 범위 변경으로
+  사라진 finding은 `carried`에 남고, 같은 범위를 완료한 검사만 `resolved`를 만들 수 있습니다.
+- `next verify --baseline`과 저장된 결과의 `next diff`가 같은 판정을 사용합니다.
+  기존 v1 결과는 읽을 수 있지만 완료 범위를 증명할 수 없어 baseline 비교는
+  `INCOMPATIBLE`로 표시합니다. 새 실행 결과를 baseline으로 채택해야 합니다.
+- v1 스키마와 golden fixture를 보존하고 v2 스키마를 별도 발행했습니다.
+  event v1과 stable `ici.result/v3` 계약은 유지합니다.
+
 ### 수정 — 검증 중 Ruff 자동 수정 차단
 
 - stable 및 next의 Ruff 호출이 `--no-fix`, `--no-fix-only`, `--no-unsafe-fixes`를

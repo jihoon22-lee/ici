@@ -134,7 +134,7 @@ def test_a_newer_schema_version_is_refused_not_misread(tmp_path) -> None:
     breaking — reading on would misread the run rather than report it."""
     document = tmp_path / "result.json"
     document.write_text(
-        json.dumps({"schema_id": "ici.next.run", "schema_version": 2}),
+        json.dumps({"schema_id": "ici.next.run", "schema_version": 3}),
         encoding="utf-8",
     )
 

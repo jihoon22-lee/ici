@@ -17,6 +17,7 @@ absence of serialization here is deliberate, not an omission.
 
 from __future__ import annotations
 
+from ici.domain.check_record import CheckRecord
 from ici.domain.enums import (
     BaselineState,
     CheckExecution,
@@ -69,6 +70,7 @@ __all__ = [
     "BaselineState",
     "BuildUnit",
     "CheckExecution",
+    "CheckRecord",
     "Component",
     "EventType",
     "EvidenceLevel",

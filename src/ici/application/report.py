@@ -33,6 +33,7 @@ from ici.application.tem import (
     component_of as tem_component_of,
 )
 from ici.application.verify import Verification
+from ici.domain.check_record import CheckRecord
 from ici.domain.enums import GateVerdict, ScopeKind, TaskState
 from ici.domain.result import (
     FINGERPRINT_VERSION,
@@ -64,6 +65,7 @@ def assemble(
     limitations: tuple[str, ...] = (),
     cancelled: bool = False,
     baseline: BaselineComparison | None = None,
+    checks: tuple[CheckRecord, ...] | None = None,
 ) -> RunResult:
     """Build the storable result for one verification.
 
@@ -138,6 +140,7 @@ def assemble(
         + tuple(limitations)
         + tem[1],
         baseline=baseline,
+        checks=checks,
     )
 
 

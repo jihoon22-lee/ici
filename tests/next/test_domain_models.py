@@ -457,7 +457,7 @@ class TestRunResultAxes:
 
     def test_schema_identity_is_pinned(self):
         result = self.make_result()
-        assert (result.schema_id, result.schema_version) == ("ici.next.run", 1)
+        assert (result.schema_id, result.schema_version) == ("ici.next.run", 2)
         with pytest.raises(ValueError, match="schema_id must be"):
             self.make_result(schema_id="ici-result-v3")
 

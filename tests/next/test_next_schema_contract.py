@@ -34,6 +34,7 @@ from ici.domain.enums import (
     GateVerdict,
     PublicationState,
     ScopeKind,
+    TaskState,
 )
 from ici.domain.events import EVENT_SCHEMA_ID, EVENT_SCHEMA_VERSION, EventType
 from ici.domain.result import SCHEMA_ID, SCHEMA_VERSION
@@ -42,7 +43,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_DIR = REPO_ROOT / "src" / "ici" / "schemas"
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "ici-next"
 
-RUN_SCHEMA = SCHEMA_DIR / "ici-next-run-v1.schema.json"
+LEGACY_RUN_SCHEMA = SCHEMA_DIR / "ici-next-run-v1.schema.json"
+RUN_SCHEMA = SCHEMA_DIR / "ici-next-run-v2.schema.json"
 EVENT_SCHEMA = SCHEMA_DIR / "ici-next-event-v1.schema.json"
 
 RESULT_FIXTURES = (
@@ -75,7 +77,9 @@ def walk(schema: dict, path: str = "") -> list[tuple[str, dict]]:
 
 
 class TestSchemasArePublished:
-    @pytest.mark.parametrize("path", [RUN_SCHEMA, EVENT_SCHEMA], ids=lambda p: p.name)
+    @pytest.mark.parametrize(
+        "path", [LEGACY_RUN_SCHEMA, RUN_SCHEMA, EVENT_SCHEMA], ids=lambda p: p.name
+    )
     def test_schema_file_exists_and_parses(self, path: Path):
         schema = load(path)
         assert schema["$schema"].startswith("https://json-schema.org/")
@@ -91,7 +95,7 @@ class TestSchemasArePublished:
 
         run = load(RUN_SCHEMA)
         assert run["properties"]["schema_id"]["const"] == SCHEMA_ID == "ici.next.run"
-        assert run["properties"]["schema_version"]["const"] == SCHEMA_VERSION == 1
+        assert run["properties"]["schema_version"]["const"] == SCHEMA_VERSION == 2
         assert (SCHEMA_DIR / "ici-result-v3.schema.json").is_file(), (
             "the stable v3 schema must stay published alongside the new one"
         )
@@ -119,6 +123,7 @@ class TestEnumsMatchTheCode:
             (RUN_SCHEMA, "baseline.state", BaselineState),
             (RUN_SCHEMA, "findings[].evidence", EvidenceLevel),
             (RUN_SCHEMA, "metrics[].evidence", EvidenceLevel),
+            (RUN_SCHEMA, "checks[].state", TaskState),
             (EVENT_SCHEMA, "event_type", EventType),
         ],
         ids=lambda value: value if isinstance(value, str) else "",
@@ -143,6 +148,7 @@ class TestEnumsMatchTheCode:
             "findings[].evidence",
             "metrics[].evidence",
             "event_type",
+            "checks[].state",
         }
         published = set()
         for path in (RUN_SCHEMA, EVENT_SCHEMA):
@@ -178,7 +184,7 @@ class TestFixturesSatisfyThePublishedSchema:
 
     @pytest.mark.parametrize("name", RESULT_FIXTURES)
     def test_result_fixture_matches_the_schema(self, name: str):
-        self.check(load(RUN_SCHEMA), load(FIXTURES / f"{name}.json"), name)
+        self.check(load(LEGACY_RUN_SCHEMA), load(FIXTURES / f"{name}.json"), name)
 
     def test_the_checker_actually_rejects_something(self):
         """A validator that passes everything proves nothing."""
@@ -186,12 +192,12 @@ class TestFixturesSatisfyThePublishedSchema:
         payload = load(FIXTURES / "run-success.json")
         payload["unexpected_key"] = 1
         with pytest.raises(AssertionError, match="does not declare"):
-            self.check(load(RUN_SCHEMA), payload, "tampered")
+            self.check(load(LEGACY_RUN_SCHEMA), payload, "tampered")
 
         payload = load(FIXTURES / "run-success.json")
         del payload["run_id"]
         with pytest.raises(AssertionError, match="missing required"):
-            self.check(load(RUN_SCHEMA), payload, "tampered")
+            self.check(load(LEGACY_RUN_SCHEMA), payload, "tampered")
 
 
 class TestFullJsonSchemaValidation:
@@ -202,11 +208,11 @@ class TestFullJsonSchemaValidation:
         jsonschema = pytest.importorskip(
             "jsonschema", reason="jsonschema is optional; the structural check above always runs"
         )
-        jsonschema.validate(load(FIXTURES / f"{name}.json"), load(RUN_SCHEMA))
+        jsonschema.validate(load(FIXTURES / f"{name}.json"), load(LEGACY_RUN_SCHEMA))
 
     def test_a_tampered_fixture_is_rejected(self):
         jsonschema = pytest.importorskip("jsonschema")
         payload = load(FIXTURES / "run-success.json")
         payload["identity"]["policy_digest"] = "not-a-digest"
         with pytest.raises(jsonschema.ValidationError):
-            jsonschema.validate(payload, load(RUN_SCHEMA))
+            jsonschema.validate(payload, load(LEGACY_RUN_SCHEMA))

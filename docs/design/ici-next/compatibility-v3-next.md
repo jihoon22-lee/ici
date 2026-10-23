@@ -47,6 +47,7 @@ provider를 호출자에게 요구하는 것과 같은 형태다 — 아는 쪽�
 |`finding.component_id` / `analysis_unit_id` / `variant` / `task_id` / `tags`|없음|비움 + limitation|
 |`metrics[]`|`tem_score`만|엔진별 `score`는 **버린다**. v3가 unit도 denominator도 주지 않아 `Measurement`로 올리면 없던 정밀도가 붙는다|
 |`publication`|없음|`NOT_CONFIGURED`|
+|`checks` (next v2)|없음|`None`. 과거 결과의 check 완료 범위를 만들어 내지 않으며 baseline 비교는 거부|
 
 ## 3. `suite_status` → `GateVerdict`
 
@@ -107,6 +108,18 @@ PR C는 셋 다 거부로 바꿨다 — 읽을 수 없는 `schema_version`, 파�
 그것이다) 코멘트에 "판정 없음"으로 렌더된다. 틀린 판정보다 낫다.
 
 읽을 수 있는 형식은 `ici.result/v2`, `ici.result/v3` 둘로 명시됐다.
+
+## next v1 → v2와 baseline 이전
+
+writer는 `ici.next.run` v2를 생산한다. reader는 v1과 v2를 명시적으로 구분해 읽으며,
+v1을 다시 저장할 때 version을 유지한다. v1의 없는 `checks`를 완료된 검사로 채우지 않는다.
+v2의 `checks=null` 역시 완료 범위 미확인이다.
+
+baseline은 fingerprint·policy·toolchain의 일치에 더해 검사 완료 범위를 확인한다.
+v1 결과 또는 완료 범위를 모르는 v2 결과는 보고서로 열 수 있지만 비교 시 `INCOMPATIBLE`이다.
+업그레이드 후 원하는 전체 범위로 `ici next verify --result baseline.json`을 실행하고 결과를
+검토해 새 baseline으로 채택한다. JSON version 숫자만 고쳐서는 이전이 되지 않는다.
+입력 목록·실행 조건이 달라졌거나 검사가 실패/차단/취소되면 기존 finding은 `carried`에 남는다.
 
 ## 6. 이 표를 갱신하는 규칙
 

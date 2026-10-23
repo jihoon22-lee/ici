@@ -27,6 +27,7 @@ import typer
 from ici import __version__
 from ici.adapters.providers import builtin_providers
 from ici.application.baseline import BaselineError, compare, load_baseline
+from ici.application.check_scope import records as check_records
 from ici.application.graph import WorkUnit
 from ici.application.identity import task_identity
 from ici.application.plan import NothingSelected, Plan
@@ -535,13 +536,16 @@ def cmd_verify(
     if cancellation.requested:
         limitations = [*limitations, f"cancelled: {cancellation.reason or 'user request'}"]
     toolchain_digest = digest_of("|".join(sorted(_tools(all_plans))))
+    checks = check_records(
+        by_component, verification, scope, before, root, inputs_stable=drift.stable
+    )
     comparison = (
         compare(
             verification.findings,
             baseline_doc,
             policy_digest=config.policy_digest,
             toolchain_digest=toolchain_digest,
-            selected_components=tuple(item.id for item in scope.components),
+            checks=checks,
         )
         if baseline_doc is not None
         else None
@@ -563,6 +567,7 @@ def cmd_verify(
         limitations=tuple(limitations),
         cancelled=cancellation.requested,
         baseline=comparison,
+        checks=checks,
     )
     target = root / result if not result.is_absolute() else result
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -766,7 +771,7 @@ def cmd_diff(
         old,
         policy_digest=new.identity.policy_digest,
         toolchain_digest=new.identity.toolchain_digest,
-        selected_components=new.scope.selected_components,
+        checks=new.checks,
     )
     if delta.state is BaselineState.INCOMPATIBLE:
         typer.echo(f"incompatible: {delta.reason}")
@@ -778,8 +783,8 @@ def cmd_diff(
     )
     if delta.carried:
         typer.echo(
-            "  carried findings were in components the newer run did not "
-            "select — reduced scope, not fixed code"
+            "  carried findings have no complete matching check in the newer run "
+            "— omitted or incomplete evidence, not fixed code"
         )
     old_gate = None
     try:
