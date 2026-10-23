@@ -78,12 +78,15 @@ def load_baseline(path: Path) -> BaselineDocument:
     identity = data.get("identity")
     if not isinstance(identity, dict):
         raise BaselineError(f"baseline {path} carries no identity — cannot verify what it measured")
-    for index, item in enumerate(data.get("findings") or ()):
+    findings = data.get("findings", [])
+    if not isinstance(findings, list):
+        raise BaselineError(f"baseline {path} findings must be a JSON array")
+    for index, item in enumerate(findings):
         if not isinstance(item, dict) or not item.get("fingerprint"):
             raise BaselineError(f"baseline {path} finding #{index} has no fingerprint")
     try:
         result = run_result_from_dict(data)
-    except ValueError as error:
+    except (ValueError, TypeError) as error:
         raise BaselineError(f"baseline {path} is not a valid result: {error}") from error
     return BaselineDocument(
         path=str(path),

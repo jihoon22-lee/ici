@@ -60,6 +60,8 @@
 - `next verify --baseline`과 저장된 결과의 `next diff`가 같은 판정을 사용합니다.
   기존 v1 결과는 읽을 수 있지만 완료 범위를 증명할 수 없어 baseline 비교는
   `INCOMPATIBLE`로 표시합니다. 새 실행 결과를 baseline으로 채택해야 합니다.
+- `findings=null` 등 형식이 잘못된 baseline은 처리되지 않은 예외 대신 파일을 지목한
+  설정 오류로 안내합니다. 잘못된 findings 값을 빈 정상 결과로 받아들이지 않습니다.
 - v1 스키마와 golden fixture를 보존하고 v2 스키마를 별도 발행했습니다.
   event v1과 stable `ici.result/v3` 계약은 유지합니다.
 

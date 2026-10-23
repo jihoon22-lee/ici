@@ -144,6 +144,36 @@ def test_a_finding_without_a_fingerprint_is_refused(tmp_path: Path) -> None:
         load_baseline(path)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("findings", None),
+        ("findings", True),
+        ("findings", 7),
+        ("findings", {}),
+        ("metrics", None),
+    ],
+)
+def test_malformed_result_shapes_are_baseline_errors(tmp_path, field, value):
+    path = _document(tmp_path, findings=[])
+    payload = json.loads(path.read_text())
+    payload[field] = value
+    path.write_text(json.dumps(payload))
+    with pytest.raises(BaselineError):
+        load_baseline(path)
+
+
+def test_malformed_baseline_is_a_cli_configuration_diagnostic(project):
+    path = _document(project, findings=[])
+    payload = json.loads(path.read_text())
+    payload["findings"] = None
+    path.write_text(json.dumps(payload))
+    result = runner.invoke(app, ["next", "verify", "--baseline", str(path)])
+    assert result.exit_code == 2, result.output
+    assert "baseline" in result.output
+    assert not isinstance(result.exception, TypeError)
+
+
 # --- the delta -------------------------------------------------------------
 
 
