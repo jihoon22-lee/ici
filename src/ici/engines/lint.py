@@ -464,7 +464,16 @@ class LintEngine(BaseEngine):
         tool_warnings: list[str] | None = None,
     ) -> list[str]:
         paths = [str(path.relative_to(self.project_root)) for path in python_files]
-        command = [*ruff_cmd, "check", *paths, "--output-format=json"]
+        # Project configuration can enable fixes without a command-line --fix.
+        command = [
+            *ruff_cmd,
+            "check",
+            "--no-fix",
+            "--no-fix-only",
+            "--no-unsafe-fixes",
+            *paths,
+            "--output-format=json",
+        ]
         try:
             result = run_process(command, cwd=self.project_root)
         except Exception as exc:
