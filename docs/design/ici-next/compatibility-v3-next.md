@@ -120,6 +120,8 @@ v1 결과 또는 완료 범위를 모르는 v2 결과는 보고서로 열 수 �
 업그레이드 후 원하는 전체 범위로 `ici next verify --result baseline.json`을 실행하고 결과를
 검토해 새 baseline으로 채택한다. JSON version 숫자만 고쳐서는 이전이 되지 않는다.
 입력 목록·실행 조건이 달라졌거나 검사가 실패/차단/취소되면 기존 finding은 `carried`에 남는다.
+내장 분석도 build variant·runtime·build ID를 완료 범위에 반영한다. 동일 체크아웃을
+옮긴 경우의 내부 절대 입력 경로는 정규화하며, 외부 입력의 경로는 별개 정체성으로 유지한다.
 
 ## 6. 이 표를 갱신하는 규칙
 

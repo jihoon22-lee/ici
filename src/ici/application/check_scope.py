@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -50,7 +51,15 @@ def records(
             task = planned.task.task if planned.task is not None else None
             context = {
                 "files": files,
-                "units": [unit.id for unit in units],
+                "units": [
+                    (
+                        unit.id,
+                        unit.variant,
+                        _workspace_reference(unit.runtime, root) if unit.runtime else None,
+                        unit.build_id,
+                    )
+                    for unit in sorted(units, key=lambda item: item.id)
+                ],
                 "externals": [(item.path, item.files, item.present) for item in stock.externals],
                 "invocation": None
                 if task is None
@@ -58,8 +67,10 @@ def records(
                     "argv": [arg.replace(str(root), "${workspace}") for arg in task.argv],
                     "cwd": task.cwd.replace(str(root), "${workspace}"),
                     "provider": task.provider,
-                    "inputs": task.input_refs,
-                    "environment": task.env_overlay,
+                    "inputs": [_workspace_reference(item, root) for item in task.input_refs],
+                    "environment": [
+                        (key, _workspace_reference(value, root)) for key, value in task.env_overlay
+                    ],
                     "units": task.analysis_unit_ids,
                 },
             }
@@ -77,7 +88,21 @@ def records(
                         inputs_stable and observed is not None and observed.evidence_is_complete
                     ),
                     analysis_unit_id=units[0].id if len(units) == 1 else None,
-                    variant=getattr(task, "variant", None),
+                    variant=(task.variant if task is not None else None)
+                    or (units[0].variant if len(units) == 1 else None),
                 )
             )
     return tuple(result)
+
+
+def _workspace_reference(value: str, root: Path) -> str:
+    """Relocate contained paths without aliasing similarly prefixed externals."""
+
+    path = Path(os.path.normpath(value))
+    if not path.is_absolute():
+        return value
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return value
+    return "${workspace}" if relative == Path(".") else "${workspace}/" + relative.as_posix()

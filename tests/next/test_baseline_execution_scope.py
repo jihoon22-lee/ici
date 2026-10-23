@@ -48,6 +48,40 @@ def test_language_filter_carries_unexecuted_findings_and_diff_agrees(tmp_path, m
     assert len(json.loads(complete.stdout)["baseline"]["resolved"]) == 1
 
 
+def test_internal_analysis_retains_its_configured_build_variant(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    source = tmp_path / "main.py"
+    source.write_text("eval(input())\n")
+    config = tmp_path / "ici.toml"
+    text = (
+        'schema_version=1\n[workspace]\nname="example"\n'
+        '[[components]]\nid="app"\nroot="."\nlanguages=["python"]\nbuild="out"\n'
+        '[builds.out]\nsystem="cmake"\ndirectory="build"\nvariant="debug"\n'
+        + "".join(
+            f'\n[checks."{c.id}"]\nenabled={str(c.id == "python.security").lower()}\nrequired=true\n'
+            for c in PYTHON_CHECKS
+        )
+    )
+    config.write_text(text)
+    runner = CliRunner()
+    before = runner.invoke(app, ["next", "verify", "--result", "before.json", "--json"])
+    assert before.exit_code == 1, before.output
+    original = json.loads(before.stdout)
+    source.write_text("value=1\n")
+    config.write_text(text.replace('variant="debug"', 'variant="release"'))
+    changed = runner.invoke(app, ["next", "verify", "--baseline", "before.json", "--json"])
+    assert changed.exit_code == 0, changed.output
+    current = json.loads(changed.stdout)
+    assert original["identity"]["policy_digest"] == current["identity"]["policy_digest"]
+    assert current["baseline"]["resolved"] == []
+    assert len(current["baseline"]["carried"]) == 1
+    assert current["checks"][0]["variant"] == "release"
+    config.write_text(text)
+    same = runner.invoke(app, ["next", "verify", "--baseline", "before.json", "--json"])
+    assert same.exit_code == 0, same.output
+    assert len(json.loads(same.stdout)["baseline"]["resolved"]) == 1
+
+
 @pytest.mark.parametrize(
     "reduction", ["omitted", "failed", "blocked", "cancelled", "partial", "inputs", "variant"]
 )
