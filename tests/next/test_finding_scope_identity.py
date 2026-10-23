@@ -13,9 +13,11 @@ from ici.__main__ import app
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
 from ici.application.plan import Plan, PlannedCheck
 from ici.application.verify import verify
+from ici.config.composition import EffectiveSuppression
 from ici.domain.enums import GateVerdict, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.tasks import TaskSpec
+from ici.execution.cache import ObservationCache
 from ici.execution.process import Outcome, TaskOutcome
 from ici.languages.checks import CheckDefinition
 from ici.languages.python.checks import PYTHON_CHECKS
@@ -52,8 +54,11 @@ def test_suppression_never_crosses_component_ownership(tmp_path, monkeypatch, sh
     )
 
 
-@pytest.mark.parametrize("owners", [("a", "b"), ("a", "a")])
-def test_shared_execution_preserves_consumer_component_and_variant(owners):
+@pytest.mark.parametrize(
+    ("owners", "identity"),
+    [(("a", "b"), "variant"), (("a", "a"), "variant"), (None, "variant"), (None, "unit")],
+)
+def test_shared_and_cached_execution_preserves_each_consumer(tmp_path, owners, identity):
     finding = Finding(
         fingerprint="native",
         rule_id="stub.rule",
@@ -62,7 +67,8 @@ def test_shared_execution_preserves_consumer_component_and_variant(owners):
         confidence="high",
         provider="stub",
         primary_location=SourceSpan(path="main.py", start_line=1),
-        component_id="a",
+        component_id="a" if owners else None,
+        task_id="a.lint",
     )
     calls = []
 
@@ -84,21 +90,53 @@ def test_shared_execution_preserves_consumer_component_and_variant(owners):
         Plan(
             checks=(
                 PlannedCheck(
-                    check=check, task=ProviderPlan(task=replace(task, id=f"{c}.lint", variant=c))
+                    check=check,
+                    task=ProviderPlan(
+                        task=replace(
+                            task,
+                            id=f"{c}.lint",
+                            variant=c if identity == "variant" else None,
+                            analysis_unit_ids=(f"{c}.python",) if identity == "unit" else (),
+                        )
+                    ),
                 ),
             )
         )
         for c in ("a", "b")
     )
-    result = verify(
-        plans,
+    kwargs = dict(
         providers={"stub": Provider()},
         analyses={},
         runner=runner,
-        task_components=dict(zip(("a.lint", "b.lint"), owners, strict=True)),
+        cache=ObservationCache(tmp_path / "cache"),
+        identify=lambda unit: ("a" * 64, ""),
+        task_components=dict(zip(("a.lint", "b.lint"), owners, strict=True)) if owners else None,
     )
+    result = verify(plans, **kwargs)
     assert len(calls) == 1
     assert result.gate.selected is GateVerdict.FAIL
-    assert {f.component_id for f in result.findings} == set(owners)
-    assert {f.variant for f in result.findings} == {"a", "b"}
+    assert {f.component_id for f in result.findings} == (set(owners) if owners else {None})
+    assert {f.task_id for f in result.findings} == {"a.lint", "b.lint"}
+    if identity == "variant":
+        assert {f.variant for f in result.findings} == {"a", "b"}
+    else:
+        assert {f.analysis_unit_id for f in result.findings} == {"a.python", "b.python"}
     assert len({f.fingerprint for f in result.findings}) == 2
+    by_task = {f.task_id: f for f in result.findings}
+
+    # The persisted native observation belongs to A; a partial B run must rebind it.
+    warm = verify(plans[1], **kwargs)
+    assert len(calls) == 1
+    assert warm.executions[0].detail.startswith("cache hit")
+    assert warm.findings == (by_task["b.lint"],)
+    suppression = EffectiveSuppression(
+        fingerprint=by_task["a.lint"].fingerprint,
+        rule="",
+        path="",
+        component="",
+        reason="accepted for A only",
+        declared_in="ici.toml",
+    )
+    suppressed = verify(plans, suppressions=(suppression,), **kwargs)
+    assert suppressed.gate.selected is GateVerdict.FAIL
+    assert sum(f.suppression.suppressed for f in suppressed.findings) == 1

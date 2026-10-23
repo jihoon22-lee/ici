@@ -29,14 +29,16 @@ def attribute(
     findings = []
     for item in observation.findings:
         owner = component or item.component_id
-        if owner is None:
+        analysis_unit = unit or item.analysis_unit_id
+        analysis_variant = variant or item.variant
+        if owner is None and analysis_unit is None and analysis_variant is None:
             findings.append(item)
             continue
         attributed = replace(
             item,
             component_id=owner,
-            analysis_unit_id=unit or item.analysis_unit_id,
-            variant=variant or item.variant,
+            analysis_unit_id=analysis_unit,
+            variant=analysis_variant,
             task_id=observation.task_id,
         )
         attributed = replace(attributed, fingerprint=_fingerprint(attributed))
