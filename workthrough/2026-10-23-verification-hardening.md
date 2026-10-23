@@ -44,6 +44,7 @@
 |검증|결과|
 |---|---|
 |통합 `uv run --python 3.10 pytest -ra`|4,211 passed, 15 skipped, 537.58초|
+|[0.12.1 통합 후보 CI](https://github.com/jihoon22-lee/ici/actions/runs/39944989888) (`f939aaf`)|4,220 passed, 8 skipped, 241.64초. 실제 C++ fixture 16개, corpus unit 68개, Qt 5·6, pyz 재현 빌드·smoke·자체 검증·보고서 게시·Merge Gate 통과|
 |`uvx ruff check .`, `uvx ruff format --check .`|통과, 483개 파일|
 |`./scripts/verify-reproducibility.sh`|타임스탬프·locale·umask·hash seed를 달리한 두 pyz 빌드의 SHA-256 일치, 소스 상태 불변|
 |`./scripts/smoke.sh`|Python 3.10 직접 실행, `dist/ici` 동일성, HTML Zero-CDN 통과. 내부 verify exit 0|
@@ -56,10 +57,11 @@
 |실제 bundle strict smoke|12 PASS, 0 FAIL, 0 BLOCKED|
 |bundle smoke harness 회귀|28 passed. 잘못된 PASS와 거짓 완료 증거를 거부하는 두 경우 추가|
 
-전체 테스트의 skip 15건은 optional jsonschema 7건, 로컬 clang/clang-tidy/clazy 부재 7건,
+로컬 전체 테스트의 skip 15건은 optional jsonschema 7건, 로컬 clang/clang-tidy/clazy 부재 7건,
 Python 3.10 AST의 except-star 미지원 1건이다. CI는 필요한 C++ 도구를 설치하고 엄격 모드로
-실행한다. 표의 전체 테스트는 bundle harness 보강 직전의 통합 실행이며, 이후 harness 변경은
-28개 대상 테스트로 확인했다. release PR CI가 최종 트리의 전체 게이트를 다시 수행한다.
+실행했다. CI의 skip 8건은 jsonschema 7건과 except-star 1건이다. 로컬 통합 실행은 bundle
+harness 보강 직전이며, 이후 변경은 28개 대상 테스트와 위 통합 후보 CI로 확인했다.
+최종 main과 공개 자산의 근거는 릴리스에 별도로 기록한다.
 
 로컬 0.12.1 후보 `ici.pyz`의 SHA-256:
 
@@ -70,6 +72,27 @@ Python 3.10 AST의 except-star 미지원 1건이다. CI는 필요한 C++ 도구�
 Quality Zoo의 16개 시나리오에 이 digest를 명시적으로 연결했다. 기존 known-answer의
 검출·상태·증거·위치 기대값을 유지하고 producer version만 갱신했다. 원격 candidate 검증에서
 전체 16개가 이 계약을 만족하는지 판정하며, 로컬 Python 5개 통과를 전체 corpus 통과로 쓰지 않는다.
+
+## 캐시 재실행 시간 측정
+
+변경 전 검토 산출물(0.12.0)과 0.12.1 후보를 같은 Python 3.10.21·Ruff 0.16.4·mypy 2.3.1
+환경에서 실행했다. 컴포넌트 하나, Python 파일 하나, lint 또는 type 검사만 선택한 입력이다.
+각 모드의 준비 실행 1회를 제외하고 순서를 순환해 11회씩 측정했다. 아래는 CLI 시작과 JSON
+출력을 포함한 wall-clock 중앙값이며 단위는 ms다.
+
+|도구|변경 전 캐시 재사용|변경 전 `--no-cache`|0.12.1 기본 실행|
+|---|---:|---:|---:|
+|Ruff|394.826|393.294|408.725|
+|mypy|437.090|534.620|574.360|
+
+이전 기본 실행은 각 도구에서 11/11회 observation을 재사용했고, 대조 실행과 후보는
+0/11회였다. 모든 실행이 exit 0·필수 증거 완료·소스 보존을 만족했다. 후보는 다른 수정과
+결과 스키마 변경도 포함하므로 버전 사이 시간 차이 전체를 캐시 비활성화 비용으로 단정하지
+않는다. 특히 Ruff의 작은 입력에서는 실행 편차가 중앙값 차이보다 크다. 대규모 프로젝트의
+성능이나 일반적인 지연 상한을 주장하는 측정은 아니다.
+
+[원자료](2026-10-23-cache-runtime.json)에 66개 표본, 최소·최대값, 도구 버전, 입력·명령과
+두 산출물의 SHA-256을 보존했다.
 
 ## bundle smoke 구성 보정
 
