@@ -30,6 +30,9 @@ EARLIER_CANDIDATE_DIGESTS = (
 RELEASED_V0_12_0_DIGEST = (
     "4495361b388cc1a9f4ff4591ce8c40df507e6eb9c79ca724568c5630f958ffed"
 )
+RELEASED_V0_12_1_DIGEST = (
+    "9fdf6cb1c526d7b25d44c366bc8bf46f1433806d6f6e012bb756e9ffb12f27b1"
+)
 
 
 class RunContractTests(unittest.TestCase):
@@ -356,6 +359,7 @@ class RunContractTests(unittest.TestCase):
                     PREVIOUS_CANDIDATE_DIGEST,
                     CANDIDATE_DIGEST,
                     RELEASED_V0_12_0_DIGEST,
+                    RELEASED_V0_12_1_DIGEST,
                 },
             )
 
@@ -374,6 +378,7 @@ class RunContractTests(unittest.TestCase):
                 PREVIOUS_CANDIDATE_DIGEST,
                 CANDIDATE_DIGEST,
                 RELEASED_V0_12_0_DIGEST,
+                RELEASED_V0_12_1_DIGEST,
             },
         )
 
@@ -434,6 +439,7 @@ class RunContractTests(unittest.TestCase):
                         PREVIOUS_CANDIDATE_DIGEST,
                         CANDIDATE_DIGEST,
                         RELEASED_V0_12_0_DIGEST,
+                        RELEASED_V0_12_1_DIGEST,
                     },
                 )
                 expectation = run._load_scenario(
