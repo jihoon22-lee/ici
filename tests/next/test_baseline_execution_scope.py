@@ -1,6 +1,7 @@
 """A baseline can resolve only findings whose checks actually ran again."""
 
 import json
+import sys
 from dataclasses import replace
 from pathlib import Path
 
@@ -80,6 +81,51 @@ def test_internal_analysis_retains_its_configured_build_variant(tmp_path, monkey
     same = runner.invoke(app, ["next", "verify", "--baseline", "before.json", "--json"])
     assert same.exit_code == 0, same.output
     assert len(json.loads(same.stdout)["baseline"]["resolved"]) == 1
+
+
+@pytest.mark.parametrize(("relocated", "minimum"), [(False, 1), (True, 1), (False, 2)])
+def test_integration_scope_excludes_freshness_time_but_keeps_assertions(
+    tmp_path, monkeypatch, relocated, minimum
+):
+    def project(root, source, size):
+        root.mkdir(exist_ok=True)
+        (root / "probe.py").write_text(source)
+        (root / "ici.toml").write_text(
+            'schema_version=1\n[workspace]\nname="example"\n'
+            '[[components]]\nid="app"\nroot="."\nlanguages=["python"]\n'
+            f"[components.python]\nexecutable={json.dumps(sys.executable)}\n"
+            '[[components.integrations]]\nname="write"\n'
+            'argv=["{python:declared}","probe.py"]\nrequired=true\n'
+            '[[components.integrations.output_artifacts]]\npath="out.txt"\n'
+            f"min_size={size}\n"
+            "[checks.integration]\nenabled=true\nrequired=true\n"
+            + "".join(f'\n[checks."{c.id}"]\nenabled=false\n' for c in PYTHON_CHECKS)
+        )
+
+    left = tmp_path / "left"
+    project(left, "pass\n", 1)
+    baseline = tmp_path / "before.json"
+    runner = CliRunner()
+    monkeypatch.chdir(left)
+    first = runner.invoke(
+        app, ["next", "verify", "--profile", "deep", "--result", str(baseline), "--json"]
+    )
+    assert first.exit_code == 1, first.output
+    original = json.loads(first.stdout)
+    right = tmp_path / "right" if relocated else left
+    project(right, "from pathlib import Path\nPath('out.txt').write_text('done')\n", minimum)
+    monkeypatch.chdir(right)
+    second = runner.invoke(
+        app, ["next", "verify", "--profile", "deep", "--baseline", str(baseline), "--json"]
+    )
+    assert second.exit_code == 0, second.output
+    current = json.loads(second.stdout)
+    if minimum == 1:
+        assert original["checks"][0]["scope_digest"] == current["checks"][0]["scope_digest"]
+        assert len(current["baseline"]["resolved"]) == 1
+    else:
+        assert original["checks"][0]["scope_digest"] != current["checks"][0]["scope_digest"]
+        assert current["baseline"]["resolved"] == []
 
 
 @pytest.mark.parametrize(

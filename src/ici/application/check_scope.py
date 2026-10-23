@@ -13,6 +13,7 @@ from ici.application.planning import SOURCE_SUFFIXES, unit_files
 from ici.application.verify import Verification
 from ici.domain.check_record import CheckRecord
 from ici.domain.enums import TaskState
+from ici.domain.tasks import TaskSpec
 from ici.domain.workspace import Workspace
 from ici.workspace.inventory import SourceInventory
 
@@ -68,9 +69,7 @@ def records(
                     "cwd": task.cwd.replace(str(root), "${workspace}"),
                     "provider": task.provider,
                     "inputs": [_workspace_reference(item, root) for item in task.input_refs],
-                    "environment": [
-                        (key, _workspace_reference(value, root)) for key, value in task.env_overlay
-                    ],
+                    "environment": _environment(task, root),
                     "units": task.analysis_unit_ids,
                 },
             }
@@ -106,3 +105,29 @@ def _workspace_reference(value: str, root: Path) -> str:
     except ValueError:
         return value
     return "${workspace}" if relative == Path(".") else "${workspace}/" + relative.as_posix()
+
+
+def _environment(task: TaskSpec, root: Path) -> tuple[tuple[str, str], ...]:
+    return tuple(
+        (key, _environment_value(task.provider, key, value, root))
+        for key, value in task.env_overlay
+        if task.provider != "integration" or key != "ICI_OUT_NOT_BEFORE"
+    )
+
+
+def _environment_value(provider: str, key: str, value: str, root: Path) -> str:
+    if provider != "integration" or key != "ICI_OUTPUT_ASSERTS":
+        return _workspace_reference(value, root)
+    try:
+        outputs = json.loads(value)
+    except ValueError:
+        return value
+    if not isinstance(outputs, list):
+        return value
+    normalized = [
+        {**item, "path": _workspace_reference(item["path"], root)}
+        if isinstance(item, dict) and isinstance(item.get("path"), str)
+        else item
+        for item in outputs
+    ]
+    return json.dumps(normalized, sort_keys=True, separators=(",", ":"))
