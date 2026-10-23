@@ -61,6 +61,7 @@ variant는 workspace 기준 명령·작업 디렉터리·출력으로 식별한�
 
 |검증|결과|
 |---|---|
+|[최종 수정 PR의 전체 CI](https://github.com/jihoon22-lee/ici/actions/runs/39975276077)|4,271 passed, 8 skipped, 154.16초. C++ fixture·Qt 5/6·재현 빌드·smoke·자체 검증·보고서 게시·Merge Gate 통과. 버전 변경 전 수정 커밋의 근거이며 릴리스 버전의 최종 CI는 릴리스에 별도 기록|
 |`uvx ruff check .`, `uvx ruff format --check .`|통과, 488개 파일|
 |`./scripts/verify-reproducibility.sh`|타임스탬프·locale·umask·hash seed를 달리한 두 pyz 빌드의 SHA-256 일치, 소스 상태 불변|
 |pyz에서 추출한 모듈의 수정·계약 회귀|158 passed, skip 없음. jsonschema 4.26.0을 제공해 스키마 27개도 실행하고, 로드된 모든 ici 모듈이 최종 산출물에서 왔음을 검사|
