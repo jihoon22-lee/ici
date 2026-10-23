@@ -341,7 +341,7 @@ class RunResult:
         )
         if self.schema_id != SCHEMA_ID:
             raise ValueError(f"run schema_id must be {SCHEMA_ID!r}, not {self.schema_id!r}")
-        if self.schema_version not in (1, SCHEMA_VERSION):
+        if type(self.schema_version) is not int or self.schema_version not in (1, SCHEMA_VERSION):
             raise ValueError(f"run schema_version must be 1 or {SCHEMA_VERSION}")
         if self.checks is not None:
             if self.schema_version == 1:

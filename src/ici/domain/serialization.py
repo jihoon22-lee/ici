@@ -418,6 +418,8 @@ def _checks_from_dict(payload: object) -> tuple[CheckRecord, ...] | None:
     records = []
     for item in payload:
         data = require_mapping(item, "check record")
+        if not {"analysis_unit_id", "variant"} <= data.keys():
+            raise SchemaError("check record requires explicit analysis_unit_id and variant")
         try:
             records.append(
                 CheckRecord(

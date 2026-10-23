@@ -109,6 +109,10 @@ def test_v2_requires_explicit_scope_and_rejects_false_completion():
     payload["checks"][0]["state"] = "FAILED"
     with pytest.raises(SchemaError, match="only a succeeded check"):
         loads(dumps(payload))
+    payload = run_result_to_dict(result)
+    del payload["checks"][0]["variant"]
+    with pytest.raises(SchemaError, match="requires explicit"):
+        loads(dumps(payload))
 
 
 def test_v2_serialization_matches_published_contract():
