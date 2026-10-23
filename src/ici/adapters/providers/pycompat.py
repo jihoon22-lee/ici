@@ -19,11 +19,11 @@ explicit opt-in — the disposition records that boundary.
 
 from __future__ import annotations
 
-import hashlib
 import re
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
+from ici.adapters.providers.identity import process_fingerprint
 from ici.analysis._python_compatibility import (
     PythonMetadataError,
     parse_runtime_version,
@@ -54,6 +54,9 @@ class PythonVersionProvider:
     """``python -VV`` — the declared runtime's measured version."""
 
     name = "python-compat-version"
+
+    def __init__(self, *, project_root: Path | None = None) -> None:
+        self._root = project_root
 
     def plan(
         self,
@@ -104,7 +107,9 @@ class PythonVersionProvider:
             if not allowed:
                 findings = (
                     Finding(
-                        fingerprint=_fingerprint(outcome.spec.name, "version", str(version)),
+                        fingerprint=process_fingerprint(
+                            self.name, outcome.spec, self._root, "version", str(version)
+                        ),
                         rule_id="python.compat.runtime-version",
                         message=(
                             f"declared interpreter reports Python {version}, outside "
@@ -128,6 +133,9 @@ class CompileallProvider:
     """``python -m compileall`` — the declared runtime compiling the scope."""
 
     name = "python-compat-compileall"
+
+    def __init__(self, *, project_root: Path | None = None) -> None:
+        self._root = project_root
 
     def plan(
         self,
@@ -175,7 +183,7 @@ class CompileallProvider:
                 ),
             )
         transcript = f"{outcome.stderr}\n{outcome.stdout}"
-        findings = _compile_findings(transcript, outcome.spec, self.name)
+        findings = _compile_findings(transcript, outcome.spec, self.name, self._root)
         if not findings:
             return ParsedOutput(
                 failed_to_parse=(
@@ -186,7 +194,9 @@ class CompileallProvider:
         return ParsedOutput(findings=findings)
 
 
-def _compile_findings(transcript: str, spec: ProcessSpec, provider: str) -> tuple[Finding, ...]:
+def _compile_findings(
+    transcript: str, spec: ProcessSpec, provider: str, root: Path | None
+) -> tuple[Finding, ...]:
     findings: list[Finding] = []
     lines = transcript.splitlines()
     for index, line in enumerate(lines):
@@ -210,7 +220,7 @@ def _compile_findings(transcript: str, spec: ProcessSpec, provider: str) -> tupl
                 break
         findings.append(
             Finding(
-                fingerprint=_fingerprint(spec.name, path, message),
+                fingerprint=process_fingerprint(provider, spec, root, path, message),
                 rule_id="python.compat.compile-failure",
                 message=message,
                 severity="high",
@@ -223,8 +233,3 @@ def _compile_findings(transcript: str, spec: ProcessSpec, provider: str) -> tupl
             )
         )
     return tuple(findings)
-
-
-def _fingerprint(task_id: str, rule: str, detail: str) -> str:
-    digest = hashlib.sha256("\x00".join((task_id, rule, detail)).encode()).hexdigest()
-    return f"sha256:{digest}"

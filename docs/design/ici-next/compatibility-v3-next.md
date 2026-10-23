@@ -119,8 +119,12 @@ PR C는 셋 다 거부로 바꿨다 — 읽을 수 없는 `schema_version`, 파�
 `ici.next.fingerprint.v3`은 provider의 native finding 정체성에 소비자의 component,
 analysis unit, variant를 결합한다. 서로 다른 컴포넌트가 같은 상대 파일명을 사용하거나,
 동일한 실행 결과를 공유해도 required/suppression 정책은 소비자별로 적용된다. task id와
-실행 경로를 임의로 해시에 더하지 않아 단독 선택과 전체 선택의 fingerprint가 같다.
+체크아웃 절대 경로를 소비자 정체성으로 쓰지 않아 단독 선택과 전체 선택의 fingerprint가 같다.
 컴파일 replay는 compilation database의 configuration digest를 variant로 기록한다.
+
+테스트·sanitizer·integration·Python 호환성 provider의 native 정체성도 실행 task ID에
+의존하지 않는다. workspace 기준 실행 대상과 진단 내용으로 구분하므로 같은 실행을 공유한
+소비자가 단독으로 재검사되어도 같은 정체성을 유지한다.
 
 이전 fingerprint 버전의 baseline은 `INCOMPATIBLE`로 거절되므로 현재 실행으로 새 기준선을
 생성해야 한다. fingerprint를 직접 지정한 suppression도 새 정체성에 맞게 확인해야 한다.

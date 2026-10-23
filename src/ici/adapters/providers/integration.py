@@ -24,13 +24,13 @@ timestamp the plan stamped makes a stale leftover fail rather than pass.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import time
 from collections.abc import Mapping
 from pathlib import Path
 
 from ici.adapters.providers.base import ParsedOutput, ProviderPlan
+from ici.adapters.providers.identity import process_fingerprint
 from ici.domain.enums import EvidenceLevel, TaskKind
 from ici.domain.finding import Finding, SourceSpan
 from ici.domain.observation import Measurement
@@ -46,6 +46,9 @@ class IntegrationCaseProvider:
     """Run one declared case and judge it against its declared contract."""
 
     name = _PROVIDER
+
+    def __init__(self, *, project_root: Path | None = None) -> None:
+        self._root = project_root
 
     def plan(
         self,
@@ -138,7 +141,9 @@ class IntegrationCaseProvider:
         severity = "high" if required else "medium"
         findings = tuple(
             Finding(
-                fingerprint=_fingerprint(outcome.spec.name, case, aspect, detail),
+                fingerprint=process_fingerprint(
+                    self.name, outcome.spec, self._root, case, aspect, detail
+                ),
                 rule_id=f"integration.{aspect.replace('_', '-')}",
                 message=f"integration case {case!r}: {detail}",
                 severity=severity,
@@ -244,8 +249,3 @@ def _source_path(source: str) -> str:
     if path.is_absolute() or ".." in path.parts:
         return "ici.toml"
     return source
-
-
-def _fingerprint(task_id: str, case: str, aspect: str, detail: str) -> str:
-    digest = hashlib.sha256("\x00".join((task_id, case, aspect, detail)).encode()).hexdigest()
-    return f"sha256:{digest}"
