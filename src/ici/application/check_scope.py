@@ -67,7 +67,14 @@ def records(
                     )
                     for unit in sorted(units, key=lambda item: item.id)
                 ],
-                "externals": [(item.path, item.files, item.present) for item in stock.externals],
+                "externals": sorted(
+                    (
+                        _workspace_reference(item.path, root),
+                        tuple(sorted(_workspace_reference(path, root) for path in item.files)),
+                        item.present,
+                    )
+                    for item in stock.externals
+                ),
                 "builds": _linked_builds(scope, component_id, root),
                 "invocation": None
                 if task is None

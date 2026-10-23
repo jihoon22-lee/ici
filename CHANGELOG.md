@@ -44,6 +44,8 @@
 - 내장 분석도 analysis unit의 build variant·runtime·build ID를 완료 범위에 포함합니다.
   체크아웃 안의 절대 입력·환경 경로를 정규화해 이동 후의 정상 재검사를 인식하고,
   이름의 접두사만 같은 외부 경로는 별개 입력으로 보존합니다.
+- workspace 안에 선언한 external 디렉터리의 파일 목록도 상대 경로로 정규화합니다.
+  같은 파일 집합을 가진 체크아웃을 이동해도 완료 범위를 유지합니다.
 - integration의 실행별 freshness 시각은 비교 정체성에서 제외하고, 출력 경로·최소 크기
   같은 실제 assertion 조건은 보존합니다. 같은 범위에서 문제를 고친 재실행은 해결로 판정합니다.
 - component가 직접 사용하거나 `needs`로 연결한 build의 variant·설정도 완료 범위에

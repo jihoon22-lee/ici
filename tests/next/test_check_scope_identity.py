@@ -21,9 +21,21 @@ from ici.languages.checks import CheckDefinition
 from ici.workspace.inventory import take
 
 
-def _record(root, *, variant="debug", runtime=None, build_id="build", reference=None):
+def _record(
+    root,
+    *,
+    variant="debug",
+    runtime=None,
+    build_id="build",
+    reference=None,
+    executable="stub",
+    external_directory=False,
+):
     root.mkdir(exist_ok=True)
     (root / "main.cpp").write_text("int main() { return 0; }\n")
+    if external_directory:
+        (root / "assets").mkdir(exist_ok=True)
+        (root / "assets/data.txt").write_text("data\n")
     workspace = Workspace(
         id="example",
         name="example",
@@ -34,6 +46,7 @@ def _record(root, *, variant="debug", runtime=None, build_id="build", reference=
                 languages=("cpp",),
                 sources=("main.cpp",),
                 build_ids=(build_id,),
+                external=("assets",) if external_directory else (),
             ),
         ),
         builds=(BuildUnit(id=build_id, system="cmake", variant=variant, directory="build"),),
@@ -52,7 +65,7 @@ def _record(root, *, variant="debug", runtime=None, build_id="build", reference=
         id="app.cpp.binary_compat",
         kind=TaskKind.ANALYZE,
         provider="stub",
-        argv=("stub", str(root / "build/app")),
+        argv=(executable, str(root / "build/app")),
         cwd=str(root),
         input_refs=(reference or str(root / "build/app"),),
         env_overlay=(("WORK_DIR", str(root / "work")),),
@@ -140,6 +153,22 @@ def test_relocated_checkout_retains_completed_scope_for_absolute_inputs(tmp_path
 def test_external_paths_with_a_workspace_name_prefix_remain_distinct(tmp_path):
     old = _record(tmp_path / "left", reference=str(tmp_path / "left-other/app"))
     new = _record(tmp_path / "right", reference=str(tmp_path / "right-other/app"))
+    delta = _delta(tmp_path, old, new)
+    assert delta.resolved == ()
+    assert delta.carried == ("old-problem",)
+
+
+def test_workspace_external_directory_members_relocate_with_the_checkout(tmp_path):
+    old = _record(tmp_path / "left", external_directory=True)
+    new = _record(tmp_path / "right", external_directory=True)
+    delta = _delta(tmp_path, old, new)
+    assert delta.resolved == ("old-problem",)
+    assert delta.carried == ()
+
+
+def test_external_argv_prefixes_cannot_resolve_a_different_invocation(tmp_path):
+    old = _record(tmp_path / "left", executable=str(tmp_path / "left-other/tool"))
+    new = _record(tmp_path / "right", executable=str(tmp_path / "right-other/tool"))
     delta = _delta(tmp_path, old, new)
     assert delta.resolved == ()
     assert delta.carried == ("old-problem",)
