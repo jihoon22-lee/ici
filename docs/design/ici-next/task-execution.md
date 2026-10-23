@@ -213,3 +213,11 @@ returncode == 0    -> 성공
 
 작업 4(output manifest·exclusive lock·원자적 publish, 실패/취소 결과의 cache 승격 거부)는
 [task-outputs.md](task-outputs.md)에 있다.
+
+## 자동 설정과 observation 재사용
+
+Ruff/mypy/ty는 자동 탐색 설정, 설정 상속 및 import/stub 입력 전체가 아직 task input에
+포함되지 않아 실행 간 observation을 재사용하지 않는다. `--events`의 완료 기록은 이 사유를
+명시한다. mypy 자체 incremental cache와 한 run 안의 동일 작업 공유는 별도이며, 현재 설정을
+읽는 도구 실행은 매번 수행된다. 재사용 가능한 provider의 key에는 observation/parser 정규화
+버전과 fingerprint 버전이 들어가므로 정규화 변경 전 결과를 새 판정에 적용하지 않는다.

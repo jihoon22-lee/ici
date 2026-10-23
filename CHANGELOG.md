@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+### 수정 — 자동 설정을 사용하는 분석기의 이전 PASS 재사용 방지
+
+- next Ruff/mypy/ty의 전체 설정·import 입력을 식별할 때까지 실행 간 observation
+  재사용을 비활성화하고 사유를 execution/event 기록에 남깁니다. 하위 Ruff 설정 또는
+  mypy.ini만 변경해도 매번 도구가 현재 설정을 읽습니다. 도구 자체의 incremental cache와
+  한 실행 안의 동일 작업 공유는 provider의 기존 계약을 따릅니다.
+- 재사용 가능한 observation의 key는 parser/observation 정규화 및 fingerprint 버전을
+  포함합니다. 이전 정규화 결과를 새 판정에 재사용하지 않습니다.
+
 ### 수정 — 필수 AST 분석 미완료의 PASS 방지
 
 - next의 security/resource/exception 및 complexity/cognitive 검사가 파싱 실패,

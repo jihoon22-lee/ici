@@ -69,6 +69,8 @@ class TyProvider:
             analysis_unit_ids=(analysis_unit_id,) if analysis_unit_id else (),
             timeout_seconds=600,
             tool_digest=tool_digest,
+            # Automatic configuration and imported stubs are not fully captured.
+            cacheable=False,
         )
         return ProviderPlan(task=task, contract=TY_CONTRACT)
 

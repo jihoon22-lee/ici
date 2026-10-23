@@ -165,6 +165,8 @@ class RuffProvider:
             input_refs=(*request.targets, *request.config_files),
             analysis_unit_ids=((request.analysis_unit_id,) if request.analysis_unit_id else ()),
             timeout_seconds=request.timeout_seconds,
+            # Automatic nested/extended/user configuration is not a closed input set.
+            cacheable=False,
         )
         return ProviderPlan(task=task, contract=RUFF_CONTRACT)
 

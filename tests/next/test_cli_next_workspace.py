@@ -193,9 +193,8 @@ def test_a_component_with_no_applicable_checks_is_a_limitation_not_a_crash(
 
 
 @needs_ruff
-def test_a_warm_run_reuses_the_cold_runs_evidence(tmp_path, monkeypatch) -> None:
-    # #209: identical inputs reuse the stored observation, and the result says
-    # which tasks were reused rather than run.
+def test_a_warm_run_reexecutes_providers_with_unclosed_inputs(tmp_path, monkeypatch) -> None:
+    # Automatic config/import inputs are not closed, even when declared sources match.
     _two_python_components(tmp_path)
     monkeypatch.chdir(tmp_path)
 
@@ -203,13 +202,17 @@ def test_a_warm_run_reuses_the_cold_runs_evidence(tmp_path, monkeypatch) -> None
     cold = runner.invoke(app, ["next", "verify"])
     assert cold.exit_code in (0, 1), cold.output
     cold_result = json.loads(result_file.read_text("utf-8"))
-    warm = runner.invoke(app, ["next", "verify"])
+    events_path = tmp_path / "warm.jsonl"
+    warm = runner.invoke(app, ["next", "verify", "--events", str(events_path)])
     assert warm.exit_code in (0, 1), warm.output
 
     stored = json.loads(result_file.read_text("utf-8"))
     reused = stored["execution"]["reused_task_ids"]
-    assert "alpha.python.lint" in reused and "beta.python.lint" in reused
-    # Reuse changes nothing about the answer: the findings are the same set.
+    assert "alpha.python.lint" not in reused and "beta.python.lint" not in reused
+    events = [json.loads(line) for line in events_path.read_text().splitlines()]
+    started = {item.get("task_id") for item in events if item["event_type"] == "task.started"}
+    assert {"alpha.python.lint", "beta.python.lint"} <= started
+    # A fresh measurement still produces the same answer.
     assert cold_result["findings"] == stored["findings"]
 
 
