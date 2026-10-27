@@ -40,3 +40,20 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
 - 다음: 기존 선택 회귀 확인 후 커밋, Rust/TS provider와 실제 fixture, report/importer,
   package 배포 경로를 이어서 구현. 공개 버전·PR·릴리스·정리는 아직 미완료.
 - 작업 소유 임시 스크립트: `/tmp/ici-general-edit.py` (배포 확인 후 삭제).
+
+## 2026-10-28 구현 묶음 2
+
+- Rust Clippy, JavaScript ESLint, TypeScript ESLint/tsc pack/provider 구현. native rule,
+  경로·라인 및 component/task attribution은 공통 결과 경로로 전달한다.
+- `analyze --plan`, `--language` 추가. Cargo는 PREPARE로 표시하고 fast에서는 blocked.
+  `--offline --locked`, jobs=2 및 rustup 자동 설치 차단. ESLint config/plugin 실행 가능성 명시.
+- 실제 Cargo Clippy 0.1.99 (58cf8f9c35 2026-10-13), TypeScript 7.0.2,
+  ESLint 10.13.0 fixture 검증. build.rs 실제 실행·진단 검증 포함 19개 통과(1.95초).
+- plan/기존 CLI 선택 회귀 포함 32개 통과(8.46초). 전체 gate 아직 미실행.
+- 공식 규격 근거: [Cargo JSON](https://doc.rust-lang.org/cargo/reference/external-tools.html),
+  [ESLint CLI](https://eslint.org/docs/latest/use/command-line-interface),
+  [tsc CLI](https://www.typescriptlang.org/docs/handbook/compiler-options.html),
+  [rustup 환경](https://rust-lang.github.io/rustup/environment-variables.html).
+- 소유 임시 자원 추가: `/tmp/ici-ecosystem-edit.py`, `/tmp/ici-generalization-20261028/`
+  (Rust fixture, npm fixture 및 설치 의존성, 실행 JSON). 릴리스 후 정리.
+- 다음: 보조자료 importer, report UX, package/release workflow, 전체 검증.

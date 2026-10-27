@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import tomli_w
+
 from ici.config.composition import EffectiveConfig, compose
 from ici.config.scaffold import propose
 from ici.config.schema import read_root
@@ -24,5 +26,36 @@ def automatic(start: Path) -> tuple[Path, EffectiveConfig] | None:
     proposal = propose(root)
     if not proposal.candidates:
         raise ValueError(f"no supported sources discovered in {root}")
-    document = read_root(proposal.text, path=str(root / "<automatic>"))
+    document = read_root(
+        tomli_w.dumps(
+            {
+                "schema_version": 1,
+                "workspace": {"name": root.name, "profile": "standard"},
+                "components": [
+                    {
+                        "id": "project",
+                        "root": ".",
+                        "languages": list(proposal.candidates[0].languages),
+                        "exclude": [
+                            f"**/{name}/**"
+                            for name in (
+                                ".git",
+                                ".hg",
+                                ".svn",
+                                ".venv",
+                                "venv",
+                                "node_modules",
+                                "__pycache__",
+                                "build",
+                                "dist",
+                                "target",
+                                ".ici",
+                            )
+                        ],
+                    }
+                ],
+            }
+        ),
+        path=str(root / "<automatic>"),
+    )
     return root, compose(document)

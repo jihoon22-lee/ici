@@ -20,6 +20,7 @@ from ici.adapters.providers.binarycompat import BinaryCompatProvider
 from ici.adapters.providers.compiler import CompilerDiagnosticsProvider
 from ici.adapters.providers.coverage import CoverageProvider
 from ici.adapters.providers.cpptest import CtestProvider, QtestProvider
+from ici.adapters.providers.ecosystem import EcosystemProvider
 from ici.adapters.providers.gcov import GcovProvider
 from ici.adapters.providers.integration import IntegrationCaseProvider
 from ici.adapters.providers.mypy import MypyProvider
@@ -45,6 +46,7 @@ def builtin_providers(root: Path, *, build_roots: tuple[Path, ...] = ()) -> dict
 
     built: tuple[Provider, ...] = (
         RuffProvider(),
+        *(EcosystemProvider(name, root) for name in ("clippy", "eslint", "tsc")),
         CompilerDiagnosticsProvider(),
         ClangTidyProvider(),
         MypyProvider(),

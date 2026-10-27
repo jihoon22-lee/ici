@@ -41,6 +41,9 @@ __all__ = ["build", "project_type"]
 #: *detect* a language are the ones used to *scope* it.
 _DEFAULT_SOURCE_GLOBS = {
     "python": ("**/*.py",),
+    "rust": ("**/*.rs",),
+    "javascript": ("**/*.js", "**/*.jsx", "**/*.mjs", "**/*.cjs"),
+    "typescript": ("**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"),
     "cpp": ("**/*.cpp", "**/*.cc", "**/*.cxx", "**/*.hpp", "**/*.h"),
 }
 

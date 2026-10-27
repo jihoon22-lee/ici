@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 from ici.adapters.providers.base import ProviderPlan
 from ici.adapters.providers.ruff import RuffProvider, RuffRequest
 from ici.adapters.providers.tidy import ClangTidyProvider
+from ici.application import ecosystem
 from ici.application.gates import gate_cpp, gate_python
 from ici.application.graph import TaskGraph, build_graph
 from ici.application.integration import gate_integration
@@ -22,7 +23,6 @@ from ici.application.plan import NothingSelected, Plan, PlannedCheck
 from ici.application.request import RunRequest, wanted
 from ici.application.selection import Planner, select_effective
 from ici.application.testing import component_targets
-from ici.application.tooling import locate_tool
 from ici.application.verify import Analysis
 from ici.config.composition import EffectiveConfig
 from ici.domain.enums import Profile
@@ -114,6 +114,9 @@ def plans(
             compile_inputs,
         )
 
+        work = ecosystem.planner(work, root, comp_root, units, files_by_language)
+        locate = ecosystem.locator(comp_root)
+
         def in_scope(
             check: CheckDefinition,
             found: dict[str, tuple[str, ...]] = files_by_language,
@@ -125,7 +128,7 @@ def plans(
         try:
             plan = select_effective(
                 effective,
-                locate_tool,
+                locate,
                 work,
                 available=available,
                 task_prefix=component.id,
@@ -352,6 +355,9 @@ def component_root(root: Path, component: Component) -> Path:
 #: checks that could read it, so nothing asks for its files.
 SOURCE_SUFFIXES = {
     "python": (".py",),
+    "rust": (".rs",),
+    "javascript": (".js", ".jsx", ".mjs", ".cjs"),
+    "typescript": (".ts", ".tsx", ".mts", ".cts"),
     "cpp": (".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"),
 }
 

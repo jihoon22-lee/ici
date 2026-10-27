@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import typer
+
 from ici.cli.next_common import (
     _BASELINE_OPTION,
     _COMPONENT_OPTION,
@@ -19,9 +21,17 @@ from ici.cli.next_common import (
 from ici.cli.next_path import run_checks
 from ici.domain.enums import Profile
 
+_LANGUAGE_OPTION = typer.Option(
+    None, "--language", help="Select python, cpp, rust, javascript or typescript; repeatable"
+)
+
 
 def analyze(
     component: list[str] = _COMPONENT_OPTION,
+    language: list[str] = _LANGUAGE_OPTION,
+    plan: bool = typer.Option(
+        False, "--plan", help="Show selected tasks and execution effects without running"
+    ),
     python: bool = _PYTHON_OPTION,
     cpp: bool = _CPP_OPTION,
     profile: Profile | None = _PROFILE_OPTION,
@@ -49,4 +59,6 @@ def analyze(
         config_path=config_path,
         local_config=local_config,
         static_only=True,
+        languages=tuple(language or ()),
+        plan_only=plan,
     )

@@ -51,3 +51,25 @@ def test_analyze_writes_contract_without_running_project_tests(tmp_path, monkeyp
     assert Path(".ici/next/result.json").is_file()
     assert Path("events.jsonl").is_file()
     assert "static selection" in result.stdout
+
+
+def test_static_plan_fast_blocks_cargo_without_running_it(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/lib.rs").write_text("pub fn answer() {}\n")
+    result = CliRunner().invoke(app, ["analyze", "--plan", "--profile", "fast", "--json"])
+    assert result.exit_code == 0, result.output
+    assert "rust.clippy" in result.stdout
+    assert "blocked" in result.stdout
+    assert not (tmp_path / ".ici").exists()
+
+
+def test_configless_excludes_dependencies_and_build_outputs(tmp_path):
+    from ici.workspace import build, inventory
+
+    (tmp_path / "main.js").write_text("let answer = 1;")
+    (tmp_path / "node_modules").mkdir()
+    (tmp_path / "node_modules/dependency.js").write_text("let ignore = 2;")
+    root, config = automatic(tmp_path)
+    stock = inventory.take(build(config), root=root)
+    assert all("node_modules" not in path for path in stock.snapshot(dirty=True).files)

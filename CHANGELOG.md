@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+- Rust Cargo Clippy, JavaScript ESLint, TypeScript ESLint/tsc 검사를 추가합니다.
+  프로젝트 로컬 Node 도구·원래 설정을 사용하고 진단의 native rule·파일·라인을 보존합니다.
+  Cargo는 offline/locked로 실행하며 build.rs·proc-macro 실행을 PREPARE로 명시합니다.
+- `analyze --plan`은 실행 없이 명령·변경 작업을 표시하고 `--language`는 언어를 선택합니다.
+  fast 프로필은 Cargo preparation을 차단합니다. node_modules/target 등은 자동 분석에서 제외합니다.
+
 - `ici analyze`는 공통 next application에서 정적 검사를 실행하며 테스트·coverage·
   sanitizer·runtime·build artifact·통합 실행을 선택하지 않습니다. 기존 `verify` 선택은 유지합니다.
 - ici.toml이 없는 Python/C++ checkout은 메모리에서 구성하여 분석합니다. 설정 파일을

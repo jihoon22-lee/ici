@@ -48,7 +48,19 @@ _FOREIGN_CONFIGS = (
 )
 
 _IGNORED_DIRECTORIES = frozenset(
-    {".git", ".hg", ".svn", ".venv", "venv", "node_modules", "__pycache__", "build", "dist"}
+    {
+        ".git",
+        ".hg",
+        ".svn",
+        ".venv",
+        "venv",
+        "node_modules",
+        "__pycache__",
+        "build",
+        "dist",
+        "target",
+        ".ici",
+    }
 )
 
 
@@ -128,6 +140,13 @@ def _languages(root: Path) -> tuple[str, ...]:
         found.append("python")
     if _has_suffix(root, _CPP_SUFFIXES):
         found.append("cpp")
+    for language, suffixes in (
+        ("rust", (".rs",)),
+        ("javascript", (".js", ".jsx", ".mjs", ".cjs")),
+        ("typescript", (".ts", ".tsx", ".mts", ".cts")),
+    ):
+        if _has_suffix(root, suffixes):
+            found.append(language)
     return tuple(found)
 
 

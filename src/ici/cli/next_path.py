@@ -413,6 +413,35 @@ def cmd_plan(
         raise typer.Exit(EXIT_CONFIG) from error
     _announce(root, scope, request, resolved, json_mode)
 
+    render_plan(
+        root,
+        config,
+        model,
+        scope,
+        stock,
+        request,
+        resolved,
+        all_plans,
+        by_component,
+        limitations,
+        json_mode,
+    )
+
+
+def render_plan(
+    root,
+    config,
+    model,
+    scope,
+    stock,
+    request,
+    resolved,
+    all_plans,
+    by_component,
+    limitations,
+    json_mode,
+):
+    """Render the common plan without executing any task."""
     graph = graph_of(all_plans)
     edges = {unit.id: list(unit.depends_on) for unit in graph.units if unit.depends_on}
     shared = {unit.id: list(unit.consumers) for unit in graph.units if len(unit.consumers) > 1}
@@ -491,6 +520,8 @@ def run_checks(
     config_path=None,
     local_config=None,
     static_only=False,
+    languages=(),
+    plan_only=False,
 ) -> None:
     """Shared application execution for analyze and compatibility verify."""
     from dataclasses import replace
@@ -500,6 +531,7 @@ def run_checks(
     request = replace(
         _request(component, python, cpp, profile, require_full), static_only=static_only
     )
+    request = replace(request, languages=tuple(dict.fromkeys((*request.languages, *languages))))
     scope = _scope(model, request)
     resolved = _profile(config, request)
     _announce(root, scope, request, resolved, json_mode)
@@ -523,6 +555,22 @@ def run_checks(
             "static selection: tests, runtime checks and build artifact checks omitted"
         )
     limitations += compile_notes
+
+    if plan_only:
+        render_plan(
+            root,
+            config,
+            model,
+            scope,
+            before,
+            request,
+            resolved,
+            all_plans,
+            by_component,
+            limitations,
+            json_mode,
+        )
+        return
 
     baseline_doc = _load_baseline(baseline, root)
 
