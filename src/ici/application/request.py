@@ -51,6 +51,7 @@ class RunRequest:
     languages: tuple[str, ...] = ()
     profile: Profile | None = None
     require_full: bool = False
+    static_only: bool = False
 
 
 def scope_of(model: Workspace, request: RunRequest) -> Workspace:
@@ -71,9 +72,29 @@ def scope_of(model: Workspace, request: RunRequest) -> Workspace:
     return model.scoped(request.components)
 
 
+# These checks execute project code or consume build/test artifacts. Cost
+# profiles are orthogonal: a deep static run still does not run tests.
+EXECUTION_CHECKS = frozenset(
+    {
+        "python.test",
+        "python.coverage",
+        "python.compat-runtime",
+        "cpp.test",
+        "cpp.coverage",
+        "cpp.sanitize",
+        "cpp.tsan",
+        "cpp.artifact",
+        "cpp.binary-compat",
+        "integration",
+    }
+)
+
+
 def wanted(request: RunRequest, check: CheckDefinition) -> bool:
     """Whether the request's language filter keeps this check."""
 
+    if request.static_only and check.id in EXECUTION_CHECKS:
+        return False
     return not request.languages or check.language in request.languages
 
 

@@ -460,10 +460,46 @@ def cmd_verify(
     local_config: Path | None = _LOCAL_CONFIG_OPTION,
 ) -> None:
     """Run the selected checks and save the result."""
+    run_checks(
+        component=component,
+        python=python,
+        cpp=cpp,
+        profile=profile,
+        require_full=require_full,
+        result=result,
+        no_cache=no_cache,
+        json_mode=json_mode,
+        events=events,
+        baseline=baseline,
+        config_path=config_path,
+        local_config=local_config,
+    )
+
+
+def run_checks(
+    *,
+    component=None,
+    python=False,
+    cpp=False,
+    profile=None,
+    require_full=False,
+    result=Path(".ici/next/result.json"),
+    no_cache=False,
+    json_mode=False,
+    events=None,
+    baseline=None,
+    config_path=None,
+    local_config=None,
+    static_only=False,
+) -> None:
+    """Shared application execution for analyze and compatibility verify."""
+    from dataclasses import replace
 
     cwd = Path.cwd().resolve()
-    root, config, model = _workspace(cwd, config_path, local_config)
-    request = _request(component, python, cpp, profile, require_full)
+    root, config, model = _workspace(cwd, config_path, local_config, configless=static_only)
+    request = replace(
+        _request(component, python, cpp, profile, require_full), static_only=static_only
+    )
     scope = _scope(model, request)
     resolved = _profile(config, request)
     _announce(root, scope, request, resolved, json_mode)
@@ -482,6 +518,10 @@ def cmd_verify(
         typer.echo(f"config: {error}", err=True)
         raise typer.Exit(EXIT_CONFIG) from error
     compile_notes, compile_gaps = compile_limitations(model, scope, before, root)
+    if static_only:
+        limitations.append(
+            "static selection: tests, runtime checks and build artifact checks omitted"
+        )
     limitations += compile_notes
 
     baseline_doc = _load_baseline(baseline, root)
@@ -627,7 +667,12 @@ def _scope_kind(
     declared = {language for item in model.components for language in item.languages}
     if config.scope_kind is ScopeKind.STANDALONE:
         return ScopeKind.STANDALONE
-    if component or covered != declared or verification.gate.selected is GateVerdict.INCOMPLETE:
+    if (
+        request.static_only
+        or component
+        or covered != declared
+        or verification.gate.selected is GateVerdict.INCOMPLETE
+    ):
         return ScopeKind.PARTIAL
     return ScopeKind.FULL
 

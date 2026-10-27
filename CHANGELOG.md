@@ -5,6 +5,15 @@
 
 ---
 
+## [Unreleased]
+
+- `ici analyze`는 공통 next application에서 정적 검사를 실행하며 테스트·coverage·
+  sanitizer·runtime·build artifact·통합 실행을 선택하지 않습니다. 기존 `verify` 선택은 유지합니다.
+- ici.toml이 없는 Python/C++ checkout은 메모리에서 구성하여 분석합니다. 설정 파일을
+  만들지 않으며 기존 도구 설정은 각 도구가 읽습니다. 기존 ici.toml 오류는 무시하지 않습니다.
+- 일반 Linux/WSL/CI 및 표준 package 설치를 제품 기본 방향으로 전환합니다. 폐쇄망 및
+  RHEL/GHES 현장 인수는 환경별 지원 근거로 관리합니다.
+
 ## [0.12.1] - 2026-10-24
 
 공개된 0.12.0 검증 경로에서 재현한 결함 8건을 수정합니다. 검증은 원본 소스를 보존하고,

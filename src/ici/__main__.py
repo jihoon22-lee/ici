@@ -15,6 +15,7 @@ from ici.cli import (
     cutover,
     next_migrate,  # noqa: F401 - registers `ici next migrate`
 )
+from ici.cli.analyze import analyze
 from ici.cli.next_path import next_app
 from ici.compilation_export_cli import export_compilation_context
 from ici.config import ConfigError, load_config
@@ -106,7 +107,7 @@ def main_callback(
     if version:
         return
     ctx.ensure_object(dict)
-    if ctx.invoked_subcommand == "next":
+    if ctx.invoked_subcommand in {"next", "analyze"}:
         # The next path reads its own ici.toml with its own schema. Loading the
         # stable configuration first would mean a project that adopted the new
         # format could never run the new path: the stable reader rejects the
@@ -176,6 +177,7 @@ def _resolve_baseline_cli_paths(
 # rather than a flag on verify, because #206 requires that the new path not
 # replace a stable one by accident and a flag can be defaulted on.
 app.add_typer(next_app)
+app.command("analyze")(analyze)
 
 app.command("export-compilation-context")(export_compilation_context)
 
