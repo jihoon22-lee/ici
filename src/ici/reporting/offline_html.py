@@ -96,6 +96,7 @@ def render(result: RunResult, title: str = "ici verification") -> str:
     sections = [
         _scope(view),
         _execution(view),
+        _checks(view),
         _baseline(view),
         _reasons(view),
         _findings(view),
@@ -195,6 +196,21 @@ def _reasons(view: RunView) -> str:
     return f"<h2>Why</h2>\n<ul>{items}</ul>\n"
 
 
+def _checks(view: RunView) -> str:
+    if not view.checks:
+        return ""
+    rows = "".join(
+        f"<tr><td>{_t(task)}</td><td>{_t(state)}</td><td>{_t(evidence)}</td></tr>"
+        for task, state, evidence in view.checks
+    )
+    return (
+        "<details><summary>Selected checks and evidence scope</summary>"
+        "<table><tr><th>check</th><th>execution</th><th>evidence</th></tr>"
+        + rows
+        + "</table></details>"
+    )
+
+
 def _findings(view: RunView) -> str:
     findings = view.findings
     if not findings:
@@ -234,6 +250,19 @@ def _finding_row(row) -> str:
         marks.append(_t(row.baseline_state))
     if row.component:
         marks.append(_t(row.component))
+    if row.task:
+        marks.append(_t(row.task))
+    if row.variant:
+        marks.append(_t(row.variant))
+    related = (
+        (
+            "<details><summary>Related locations</summary><ul>"
+            + "".join(f"<li><code>{_t(item)}</code></li>" for item in row.related_locations)
+            + "</ul></details>"
+        )
+        if row.related_locations
+        else ""
+    )
     evidence = (
         _t(row.evidence) if row.evidence != "MEASURED" else ""
     )  # measured is the baseline; mark the exception
@@ -261,7 +290,7 @@ def _finding_row(row) -> str:
         f"<td>{_t(row.severity)}</td>"
         f'<td class="muted">{_t(row.confidence)}</td>'
         f'<td class="muted">{evidence}</td>'
-        f"<td>{_t(row.message)}</td>"
+        f"<td>{_t(row.message)}{related}</td>"
         f'<td class="muted">{"<br>".join(marks)}</td>'
         "</tr>"
     )

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ici.auxiliary.v1",
+  "title": "Imported supporting evidence, independent of ici run gates",
+  "type": "object",
+  "required": ["schema_id", "schema_version", "format", "source", "imported_at", "observed_at", "scope", "evidence", "gate", "limitations", "records"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {"const": "ici.auxiliary"},
+    "schema_version": {"const": 1},
+    "format": {"enum": ["sarif", "junit", "lcov"]},
+    "source": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "additionalProperties": false,
+      "properties": {"path": {"type": "string"}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+    },
+    "imported_at": {"type": "string", "format": "date-time"},
+    "observed_at": {"type": ["string", "null"], "format": "date-time"},
+    "scope": {"type": "string", "minLength": 1},
+    "evidence": {"const": "imported"},
+    "gate": {"const": "NOT_EVALUATED"},
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "records": {"type": "array", "items": {"type": "object"}}
+  }
+}

@@ -57,3 +57,15 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
 - 소유 임시 자원 추가: `/tmp/ici-ecosystem-edit.py`, `/tmp/ici-generalization-20261028/`
   (Rust fixture, npm fixture 및 설치 의존성, 실행 JSON). 릴리스 후 정리.
 - 다음: 보조자료 importer, report UX, package/release workflow, 전체 검증.
+
+## 2026-10-28 구현 묶음 3
+
+- report/diff/init 주 명령은 기존 next 함수를 재사용. 기존 verify 호환 유지.
+- HTML의 검사별 실행/증거 범위와 관련 진단 위치·task·variant 표시 추가.
+- SARIF 2.1.0/JUnit/LCOV importer 및 HTML 보조자료 첨부 구현. 독립 ici.auxiliary v1,
+  source SHA-256/imported_at/observed_at/scope 보존, NOT_EVALUATED 고정.
+- importer/기존 v1 report 호환/HTML escaping/analyze 45개 통과(1.41초).
+- JUnit line은 producer별 0/1 기반 차이가 있어 native_line과 producer-defined로 보존.
+  LCOV는 line hit subset 지원, function/branch 합산은 하지 않음. 외부/절대 경로는 현재
+  명시 오류로 거부하며 소스 파일을 읽거나 URI를 fetch하지 않음.
+- 다음: 표준 wheel/sdist + 격리 설치, 문서/지원표/CI/배포, 전체 gate 및 공개 검증.

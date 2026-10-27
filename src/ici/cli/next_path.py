@@ -747,14 +747,24 @@ def _close_sink(sink: EventSink | None, cancellation: Cancellation, stored: RunR
     sink.close()
 
 
+_AUXILIARY_OPTION = typer.Option(
+    None, "--auxiliary", help="Attach imported supporting evidence; repeatable"
+)
+
+
 @next_app.command("report")
 def cmd_report(
     result: Path = _RESULT_OPTION,
     page: Path = _PAGE_OPTION,
     sarif: Path | None = _SARIF_OPTION,
+    auxiliary: list[Path] = _AUXILIARY_OPTION,
 ) -> None:
     """Render a saved result. Analyses nothing and runs no tool."""
 
+    auxiliary = auxiliary if isinstance(auxiliary, (list, tuple)) else ()
+    if auxiliary and sarif is not None:
+        typer.echo("report: --auxiliary attaches to HTML; it cannot be merged into SARIF", err=True)
+        raise typer.Exit(EXIT_CONFIG)
     root = _artifact_root(Path.cwd())
     source = root / result if not result.is_absolute() else result
     if not source.is_file():
@@ -779,7 +789,19 @@ def cmd_report(
 
     target = root / page if not page.is_absolute() else page
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render(stored), encoding="utf-8")
+    from ici.application.import_report import load_auxiliary
+    from ici.reporting.auxiliary import render_auxiliary
+
+    try:
+        documents = [
+            load_auxiliary(path if path.is_absolute() else root / path)
+            for path in (auxiliary or ())
+        ]
+    except (OSError, ValueError) as error:
+        typer.echo(f"report: {error}", err=True)
+        raise typer.Exit(EXIT_CONFIG) from error
+    page_text = render(stored).replace("</main>", render_auxiliary(documents) + "</main>")
+    target.write_text(page_text, encoding="utf-8")
     typer.echo(f"wrote {target}")
 
 

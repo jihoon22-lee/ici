@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+- `ici report`, `ici diff`, `ici init`는 기존 next application의 주 명령으로 제공됩니다.
+  legacy verify/pyz는 계속 유지합니다. HTML에 검사별 증거 완료 상태·관련 위치를 표시합니다.
+- `ici import-report`는 SARIF 2.1.0/JUnit/LCOV를 `ici.auxiliary` v1 보조자료로 가져옵니다.
+  출처 SHA-256, 관측 시점(미지정 시 unknown), import 시점, 범위를 보존하고 gate는
+  NOT_EVALUATED로 고정합니다. `report --auxiliary`로 첨부해도 원본 run/result는 변경하지 않습니다.
+
 - Rust Cargo Clippy, JavaScript ESLint, TypeScript ESLint/tsc 검사를 추가합니다.
   프로젝트 로컬 Node 도구·원래 설정을 사용하고 진단의 native rule·파일·라인을 보존합니다.
   Cargo는 offline/locked로 실행하며 build.rs·proc-macro 실행을 PREPARE로 명시합니다.

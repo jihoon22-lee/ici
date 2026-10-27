@@ -47,6 +47,9 @@ class FindingRow:
     suppression_reason: str
     suppression_origin: str
     baseline_state: str  # "new" | "unchanged" | ""
+    related_locations: tuple[str, ...] = ()
+    task: str = ""
+    variant: str = ""
 
 
 @dataclass(frozen=True)
@@ -98,6 +101,7 @@ class RunView:
     metrics: tuple[MetricRow, ...]
     limitations: tuple[str, ...]
     baseline: BaselineView
+    checks: tuple[tuple[str, str, str], ...] = ()
 
 
 def view_model(result: RunResult) -> RunView:
@@ -160,6 +164,10 @@ def view_model(result: RunResult) -> RunView:
         ),
         limitations=tuple(item for item in result.limitations if item),
         baseline=baseline_view,
+        checks=tuple(
+            (item.task_id, item.state.value, "complete" if item.evidence_complete else "incomplete")
+            for item in (result.checks or ())
+        ),
     )
 
 
@@ -179,6 +187,12 @@ def _row(finding: Finding, baseline_state: str) -> FindingRow:
         suppression_reason=finding.suppression.reason,
         suppression_origin=finding.suppression.origin,
         baseline_state=baseline_state,
+        related_locations=tuple(
+            f"{span.path}:{span.start_line} {span.label}".strip()
+            for span in finding.related_locations
+        ),
+        task=finding.task_id or "",
+        variant=finding.variant or "",
     )
 
 
