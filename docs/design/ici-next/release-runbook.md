@@ -1,5 +1,11 @@
 # ici-next 릴리스 runbook (WP29 PR C)
 
+> 2026-10-28 정책 갱신: 일반 Linux/WSL/CI 분석·표준 package 배포는
+> [범용 분석 가이드](../../general-analysis.md)를 따른다. RHEL/GHES 현장 인수와 bundle
+> 지원은 별도 환경별 근거이며 일반 릴리스의 일괄 선행 조건이 아니다. 아래 WP 기록은
+> 전환 설계와 기존 환경별 계약의 역사로 보존한다.
+
+
 > 상태: **runbook 초안** — 자동화된 근거는 연결됐고, RHEL/GHES 현장 인수는
 > 별도 이슈에서 수행된다. 이 문서는 candidate가 stable이 아니라는 구분 위에
 > 쓰인다 — feature PR merge는 release를 만들지 않는다(AGENTS §7).

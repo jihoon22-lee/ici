@@ -11,6 +11,12 @@ from ici.adapters.providers.ecosystem import EcosystemProvider
 from ici.execution.process import Outcome, ProcessSpec, TaskOutcome, run_task
 
 
+def _missing(message):
+    if os.environ.get("ICI_REQUIRE_ECOSYSTEM_TOOLS") == "1":
+        pytest.fail(message)
+    pytest.skip(message)
+
+
 def outcome(root, text, code=0):
     return TaskOutcome(
         spec=ProcessSpec(argv=("tool",), name="project.check", cwd=root),
@@ -74,10 +80,10 @@ def test_cargo_prepare_and_config_inputs(tmp_path):
 def test_real_clippy_fixture(tmp_path):
     cargo = shutil.which("cargo")
     if not cargo:
-        pytest.skip("Cargo unavailable; real Clippy fixture not executed")
+        _missing("Cargo unavailable; real Clippy fixture not executed")
     probe = subprocess.run([cargo, "clippy", "--version"], capture_output=True)
     if probe.returncode:
-        pytest.skip("Clippy unavailable; real Clippy fixture not executed")
+        _missing("Clippy unavailable; real Clippy fixture not executed")
     (tmp_path / "src").mkdir()
     (tmp_path / "Cargo.toml").write_text(
         '[package]\nname="ici-provider-fixture"\nversion="0.1.0"\nedition="2021"\n'
@@ -114,7 +120,7 @@ def test_real_clippy_fixture(tmp_path):
 def test_real_typescript_fixture(tmp_path):
     tsc = shutil.which("tsc")
     if not tsc:
-        pytest.skip("TypeScript unavailable; real tsc fixture not executed")
+        _missing("TypeScript unavailable; real tsc fixture not executed")
     (tmp_path / "tsconfig.json").write_text(
         '{"compilerOptions":{"strict":true},"include":["example.ts"]}'
     )
@@ -144,7 +150,7 @@ def test_real_typescript_fixture(tmp_path):
 def test_real_eslint_fixture(tmp_path):
     eslint = shutil.which("eslint")
     if not eslint:
-        pytest.skip("ESLint unavailable; real ESLint fixture not executed")
+        _missing("ESLint unavailable; real ESLint fixture not executed")
     (tmp_path / "eslint.config.mjs").write_text(
         'export default [{rules:{"no-unused-vars":"error"}}];'
     )
@@ -172,3 +178,25 @@ def test_real_eslint_fixture(tmp_path):
     assert parsed.is_readable, parsed.failed_to_parse
     assert parsed.findings[0].native_rule_id == "no-unused-vars"
     assert (tmp_path / "example.js").read_text() == "const unused = 1;\n"
+
+
+def test_tsc_native_scope_does_not_resolve_baseline_by_inference(tmp_path, monkeypatch):
+    if not shutil.which("tsc"):
+        _missing("TypeScript unavailable; native scope regression not executed")
+    from typer.testing import CliRunner
+
+    from ici.__main__ import app
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "example.ts").write_text('const value: number = "bad";\n')
+    (tmp_path / "tsconfig.json").write_text('{"include":["example.ts"]}')
+    (tmp_path / "ici.toml").write_text(
+        'schema_version=1\n[workspace]\nname="fixture"\n'
+        '[checks."typescript.lint"]\nenabled=false\n'
+        '[[components]]\nid="project"\nroot="."\nlanguages=["typescript"]\n'
+    )
+    result = CliRunner().invoke(app, ["analyze", "--json"])
+    assert result.exit_code == 1, result.output
+    record = json.loads(result.stdout)["checks"][0]
+    assert record["state"] == "SUCCEEDED"
+    assert record["evidence_complete"] is False

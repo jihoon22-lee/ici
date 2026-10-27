@@ -88,9 +88,9 @@ class EcosystemProvider:
             if outcome.exit_code and not findings:
                 raise ValueError("nonzero exit without attributable diagnostics")
             limitations = {
-                "clippy": "Cargo can execute build scripts and proc macros; offline dependencies must already exist",
+                "clippy": "Cargo can execute build scripts and proc macros; offline dependencies must already exist; native target closure is not a baseline resolution proof",
                 "eslint": "ESLint loads project configuration and plugins, which may execute JavaScript",
-                "tsc": "TypeScript project references are checked without building missing referenced outputs",
+                "tsc": "TypeScript project references are checked without building missing referenced outputs; native project closure is not a baseline resolution proof",
             }
             return ParsedOutput(findings=tuple(findings), limitations=(limitations[self.name],))
         except (ValueError, TypeError, KeyError, AttributeError) as error:

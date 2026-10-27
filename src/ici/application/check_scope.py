@@ -102,7 +102,13 @@ def records(
                     scope_digest=f"sha256:{digest}",
                     state=observed.state if observed is not None else TaskState.BLOCKED,
                     evidence_complete=bool(
-                        inputs_stable and observed is not None and observed.evidence_is_complete
+                        inputs_stable
+                        and observed is not None
+                        and observed.evidence_is_complete
+                        # Cargo target and tsconfig selection are tool-owned. Until
+                        # their complete native file closure is recorded, a missing
+                        # finding cannot prove that an older one was resolved.
+                        and (task is None or task.provider not in {"clippy", "tsc"})
                     ),
                     analysis_unit_id=units[0].id if len(units) == 1 else None,
                     variant=(task.variant if task is not None else None)

@@ -69,3 +69,15 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
   LCOV는 line hit subset 지원, function/branch 합산은 하지 않음. 외부/절대 경로는 현재
   명시 오류로 거부하며 소스 파일을 읽거나 URI를 fetch하지 않음.
 - 다음: 표준 wheel/sdist + 격리 설치, 문서/지원표/CI/배포, 전체 gate 및 공개 검증.
+
+## 2026-10-28 구현 묶음 4
+
+- 표준 wheel/sdist build 및 fresh venv 설치 smoke 구현. 설치한 entrypoint에서
+  analyze/plan/report, result v2/event v1 동일 run_id 확인 통과(Python 3.10.21).
+- CI/release에 package 설치 gate 및 wheel/sdist/checksum 공개 asset 추가. 기존 pyz gate 유지.
+- Rust 1.99.1/TS 7.0.2/ESLint 10.13.0 fixture tools를 CI에서 고정 설치하며 누락은 실패.
+- Cargo/tsc native target/project source closure 미확정은 baseline resolved 근거로 쓰지 않음.
+- README/일반 설치·사용법·지원표·이행 문서 갱신. RHEL/GHES/bundle 조건은 별도 환경 지원으로
+  명시하고 기존 증거를 역사로 보존. Lens 현재 URL 반영, quality-zoo provenance 변경 없음.
+- 다음 명령: 공통 flock 아래 Python 3.10 전체 pytest → ruff check/format → build-pyz/smoke.
+  전체 검증 후 버전 확정/PR/CI/병합/tag/release/download 검증/소유 자원 정리를 진행한다.

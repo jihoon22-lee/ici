@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+- GitHub Release에 표준 wheel/sdist와 `ici-package.sha256`을 추가하고 격리 설치 smoke를
+  CI와 release에서 실행합니다. 기존 pyz와 기존 회귀 gate는 유지합니다.
+- Cargo/tsc의 native project 입력 범위가 확정되지 않으면 baseline finding을 resolved로
+  추정하지 않습니다. 자동 발견은 dependency/build 디렉터리를 재귀 탐색에서 제외합니다.
+
 - `ici report`, `ici diff`, `ici init`는 기존 next application의 주 명령으로 제공됩니다.
   legacy verify/pyz는 계속 유지합니다. HTML에 검사별 증거 완료 상태·관련 위치를 표시합니다.
 - `ici import-report`는 SARIF 2.1.0/JUnit/LCOV를 `ici.auxiliary` v1 보조자료로 가져옵니다.
