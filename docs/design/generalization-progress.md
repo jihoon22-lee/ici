@@ -1,0 +1,33 @@
+# 범용 정적 분석 전환 진행 원장
+
+2026-10-28 사용자가 전체 구현, 문서, PR 병합, 버전·태그·공개 릴리스와 작업 소유 자원 정리를 승인했다. 폐쇄망 전제는 환경별 지원 조건으로 전환하며 기존 데이터 보호·회귀 계약은 유지한다.
+
+## 시작 상태와 보존 대상
+
+- 시작 main: `627844909d8c93459d2779a4dfa60a4fe08149a9`, clean, 버전 0.12.1.
+- 기존 worktree: `/home/jihoon/projects/ici` 하나. 기존 로컬 branch: main.
+- 기존 원격 branch: main, gh-pages, refactor/stable-shell-removal. 마지막 branch는 이번 작업 소유가 아니므로 보존한다.
+- 최신 공개 release: v0.12.1. 기존 태그/asset은 변경하지 않는다.
+- 작업 branch: feat/general-static-analysis. 공통 heavy lock은 `/tmp/paseo-generalization-20261028-heavy.lock`이며 삭제하지 않는다.
+- 기존 임시파일·공유 cache·사용자 자료는 삭제하지 않는다.
+
+## 마일스톤
+
+|항목|상태|근거|
+|---|---|---|
+|1 제품·지원 정책|진행 중|최신 사용자 결정 적용|
+|2 static selection|미완료|테스트/빌드/배포 기본 실행 제외|
+|3 configless discovery|미완료|기존 ecosystem 설정 존중|
+|4 analyze 진입점|미완료|next application 공유, verify 호환|
+|5 일반 package 설치|미완료|wheel 및 격리 설치 E2E|
+|6 report UX|미완료|범위·baseline·suppression·관련 진단|
+|7 Rust provider|미완료|실제 fixture, 컴파일 부수작용 명시|
+|8 TS/JS provider|미완료|실제 fixture 및 설정 attribution|
+|9 보조자료 importer|미완료|출처·시점·범위 보존|
+|10 stable/next 수렴|미완료|호환 adapter와 회귀 우선|
+|검증·문서·릴리스|미완료|고정 revision/asset 다운로드 검증|
+|병합·정리|미완료|소유 자원만 정리|
+
+## 지원 원칙
+
+Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이며 일반 릴리스의 일괄 선행 조건이 아니다. macOS/native Windows의 동등 지원은 이번 구현 약속에 포함하지 않는다. quality-zoo는 ici 소유이며 외부 저장소 최신 main을 필수 gate로 요구하지 않는다. 결과 ici.next.run v2, 이벤트 ici.next.event v1 및 종료 코드 계약을 유지한다.
