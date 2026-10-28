@@ -72,6 +72,57 @@ fn native_analysis_saves_valid_result_and_actual_targets_without_python_on_path(
 }
 
 #[test]
+fn rerun_replaces_its_previous_event_stream_but_never_an_unrelated_file() {
+    let directory = fixture(&["python.line"]);
+    let call = invocation(&["ici", "analyze", "--events", "events.jsonl"]);
+    let mut run_ids = vec![];
+    for _ in 0..2 {
+        let run = execute::execute(
+            &call,
+            directory.path(),
+            &BTreeMap::new(),
+            true,
+            &Cancellation::default(),
+        )
+        .unwrap();
+        let (events, notes) =
+            storage::read_event_stream(&directory.path().join("events.jsonl")).unwrap();
+        assert!(notes.is_empty());
+        assert!(events.iter().all(|event| event.run_id == run.result.run_id));
+        assert_eq!(events.first().unwrap().seq, 1);
+        run_ids.push(run.result.run_id);
+    }
+    assert_ne!(run_ids[0], run_ids[1]);
+    // A writer killed mid-line leaves a truncated final line; that stream is still ours.
+    let stream = directory.path().join("events.jsonl");
+    let mut truncated = fs::read_to_string(&stream).unwrap();
+    truncated.push_str("{\"schema_id\":\"ici.next.e");
+    fs::write(&stream, truncated).unwrap();
+    execute::execute(
+        &call,
+        directory.path(),
+        &BTreeMap::new(),
+        true,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    for user in ["notes\nmore notes\n", "{\"schema_id\":\"other\"}\n"] {
+        fs::write(&stream, user).unwrap();
+        assert!(
+            execute::execute(
+                &call,
+                directory.path(),
+                &BTreeMap::new(),
+                true,
+                &Cancellation::default(),
+            )
+            .is_err()
+        );
+        assert_eq!(fs::read_to_string(&stream).unwrap(), user);
+    }
+}
+
+#[test]
 fn cancelled_run_preserves_partial_artifact_without_claiming_unstarted_tasks() {
     let directory = fixture(&["python.line"]);
     let call = invocation(&["ici", "analyze", "--events", "events.jsonl"]);

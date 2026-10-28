@@ -138,6 +138,10 @@ pub fn execute(
         storage::read_result(&result_path).map_err(|failure| CliError(format!("existing result is not a native run artifact; choose a new --result path: {failure}")))?;
     }
     if let Some(path) = &events_path {
+        if previous_event_stream(path)? {
+            validate_destination(path, false)?;
+            std::fs::remove_file(path).map_err(error)?;
+        }
         validate_destination(path, true)?;
     }
     let runner = Runner::with_environment(environment.clone());
@@ -1060,6 +1064,36 @@ fn protect_outputs(
         }
     }
     Ok(())
+}
+/// A rerun may replace an earlier `ici.next.event` stream at the same path. Any other
+/// existing file is user data and stays untouched.
+fn previous_event_stream(path: &Path) -> Result<bool> {
+    const MAX_STREAM: u64 = 64 * 1024 * 1024;
+    let metadata = match std::fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(failure) if failure.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(failure) => return Err(error(failure)),
+    };
+    if !metadata.file_type().is_file() || metadata.len() > MAX_STREAM {
+        return Ok(false);
+    }
+    let Ok(text) = String::from_utf8(std::fs::read(path).map_err(error)?) else {
+        return Ok(false);
+    };
+    if text.is_empty() {
+        return Ok(true);
+    }
+    let last = text.lines().count();
+    Ok(match ici_domain::read_events(&text) {
+        // Only a truncated final line (a killed writer) may be unparseable.
+        Ok((events, notes)) => {
+            !events.is_empty()
+                && notes
+                    .iter()
+                    .all(|note| note.starts_with(&format!("line {last}: not valid JSON")))
+        }
+        Err(_) => false,
+    })
 }
 pub(crate) fn validate_destination(path: &Path, create_new: bool) -> Result<()> {
     match std::fs::symlink_metadata(path) {
