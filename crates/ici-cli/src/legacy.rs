@@ -34,10 +34,16 @@ pub fn apply_gate_policy(
     prepared: &crate::planning::PreparedPlan,
     outputs: &mut BTreeMap<String, ici_domain::AnalysisOutput>,
 ) {
-    if !prepared.legacy_projection {
-        return;
-    }
     for check in &prepared.plan.checks {
+        let Some(engine_name) = ici_application::plan::engine_name(&check.check.id) else {
+            continue;
+        };
+        if !prepared.legacy_projection
+            && prepared.project.schema_family != ici_config::SchemaFamily::Legacy
+            && !explicit_mode_for(prepared, &check.component_id, engine_name)
+        {
+            continue;
+        }
         let Some(output) = outputs.get_mut(&check.task_id) else {
             continue;
         };
@@ -45,16 +51,19 @@ pub fn apply_gate_policy(
             continue;
         }
         let component = crate::inputs::component(prepared, check);
-        let mode = ici_application::plan::engine_name(&check.check.id)
-            .and_then(|engine| {
-                component
-                    .settings
-                    .get("engines")
-                    .and_then(|v| v.get(engine))
-            })
+        let mode = component
+            .settings
+            .get("engines")
+            .and_then(|v| v.get(engine_name))
             .and_then(|settings| settings.get("mode"))
             .and_then(serde_json::Value::as_str)
             .unwrap_or("pass_warn_fail");
+        if matches!(
+            check.check.id.as_str(),
+            "python.test" | "python.coverage" | "cpp.test" | "cpp.coverage"
+        ) {
+            apply_test_warning_policy(output, mode);
+        }
         if matches!(output.status.as_str(), "FAIL" | "WARN") {
             if mode == "pass_warn" {
                 output.status = "WARN".into();
@@ -71,6 +80,59 @@ pub fn apply_gate_policy(
                 }
             }
         }
+    }
+}
+
+fn explicit_mode_for(
+    prepared: &crate::planning::PreparedPlan,
+    component_id: &str,
+    engine: &str,
+) -> bool {
+    let suffix = format!("engines.{engine}.mode");
+    let component_index = prepared
+        .project
+        .components
+        .iter()
+        .position(|component| component.id == component_id);
+    prepared.project.origins.iter().any(|(key, origin)| {
+        origin.layer != "defaults"
+            && (key == &suffix
+                || component_index.is_some_and(|index| {
+                    key == &format!("components.{index}.{suffix}")
+                        || key == &format!("components.{component_id}.{suffix}")
+                        || key == &format!("_local_components.{component_id}.{suffix}")
+                }))
+    })
+}
+
+fn apply_test_warning_policy(output: &mut ici_domain::AnalysisOutput, mode: &str) {
+    let findings = &output.observation.findings;
+    if findings.is_empty() {
+        return;
+    }
+    let quality_rule = |rule: &str| matches!(rule, "ici.test.flaky-test" | "ici.test.slow-test");
+    let quality_mode = output
+        .extra
+        .get(&output.observation.task_id)
+        .unwrap_or(&output.extra)["test_quality"]["mode"]
+        .as_str();
+    let quality_report_only = quality_mode == Some("report")
+        && findings
+            .iter()
+            .all(|finding| quality_rule(&finding.rule_id));
+    if quality_report_only {
+        // Frozen TestEngine records report-mode quality targets without entering has_warn.
+        output.status = "PASS".into();
+        return;
+    }
+    if mode == "pass_warn_fail"
+        && output.status == "FAIL"
+        && findings.iter().all(|finding| {
+            finding.rule_id.starts_with("ici.test.coverage.")
+                || (quality_rule(&finding.rule_id) && quality_mode == Some("warn"))
+        })
+    {
+        output.status = "WARN".into();
     }
 }
 pub fn select(
@@ -167,4 +229,46 @@ pub fn annotation_check(
         }
     }
     Some(definition)
+}
+
+#[cfg(test)]
+mod test_policy_tests {
+    use super::apply_test_warning_policy;
+    use ici_domain::{AnalysisOutput, Finding, SourceSpan};
+    use serde_json::json;
+
+    fn output(rule: &str, quality_mode: &str) -> AnalysisOutput {
+        let mut result = AnalysisOutput::new("suite", "pytest");
+        result.status = "FAIL".into();
+        result.extra["test_quality"] = json!({"mode":quality_mode});
+        result.observation.findings.push(Finding::new(
+            rule,
+            "test",
+            SourceSpan::line("tests/test_example.py", 1),
+            "pytest",
+        ));
+        result
+    }
+
+    #[test]
+    fn report_only_quality_never_enters_test_warning_gate() {
+        let mut result = output("ici.test.flaky-test", "report");
+        apply_test_warning_policy(&mut result, "pass_fail");
+        assert_eq!(result.status, "PASS");
+        assert_eq!(result.observation.findings.len(), 1);
+    }
+
+    #[test]
+    fn warning_policy_keeps_thresholds_distinct_from_base_failures() {
+        let mut warning = output("ici.test.coverage.changed-lines", "warn");
+        apply_test_warning_policy(&mut warning, "pass_warn_fail");
+        assert_eq!(warning.status, "WARN");
+        let mut failure = output("pytest.failed", "warn");
+        failure
+            .observation
+            .findings
+            .push(warning.observation.findings[0].clone());
+        apply_test_warning_policy(&mut failure, "pass_warn_fail");
+        assert_eq!(failure.status, "FAIL");
+    }
 }

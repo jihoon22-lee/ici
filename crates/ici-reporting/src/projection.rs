@@ -321,7 +321,7 @@ fn project_extra(engine: &mut Value) -> Result<()> {
         .cloned()
         .unwrap_or_default();
     if checks.len() == 1 {
-        if let Some(extra) = checks[0]["extra"].as_object() {
+        if let Some(extra) = check_extra(&checks[0]).as_object() {
             for (key, value) in extra {
                 if key != "native_checks" && key != "target_scopes" {
                     engine["extra"][key] = value.clone();
@@ -343,7 +343,7 @@ fn project_extra(engine: &mut Value) -> Result<()> {
     }
     let mut files = BTreeMap::<String, Value>::new();
     for check in &checks {
-        let Some(rows) = check["extra"]["files_data"].as_array() else {
+        let Some(rows) = check_extra(check)["files_data"].as_array() else {
             return Ok(());
         };
         for row in rows {
@@ -392,6 +392,15 @@ fn project_extra(engine: &mut Value) -> Result<()> {
     Ok(())
 }
 
+fn check_extra(check: &Value) -> &Value {
+    let extra = &check["extra"];
+    check["task_id"]
+        .as_str()
+        .and_then(|task_id| extra.get(task_id))
+        .filter(|nested| nested.is_object())
+        .unwrap_or(extra)
+}
+
 fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
     // A coverage check can report the very same physical suite as a test check.
     // Keep its coverage, but count the suite once and prefer the test producer.
@@ -403,7 +412,7 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
                 json!("At least one test or coverage check is incomplete");
             return Ok(());
         }
-        let extra = &check["extra"];
+        let extra = check_extra(check);
         let Some(identity) = extra["test_execution"]["canonical_suite_id"].as_str() else {
             engine["extra"]["test_aggregation_limitation"] =
                 json!("A check lacks a physical suite identity");
