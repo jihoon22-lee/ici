@@ -123,7 +123,8 @@ class Endpoint(http.server.BaseHTTPRequestHandler):
             value = json.loads(body)
             assert MARKER in value["body"]
             assert "head:" + state["head"] + " run:42.2" in value["body"]
-            assert "Open report" in value["body"] and "unused import" in value["body"]
+            assert "Open report" in value["body"] and "FAIL" in value["body"]
+            assert len(value["body"].encode()) <= 65536
             event["comment_body_sha256"] = digest(value["body"].encode())
             self.reply(
                 403 if state["mode"] == "comment-forbidden" else 201,
@@ -249,10 +250,11 @@ def main():
         threading.Thread(target=proxy.serve_forever, daemon=True).start()
         origin = f"https://127.0.0.1:{server.server_port}"
 
-        def run(name, mode, prefix, trusted, expected):
+        def run(name, mode, prefix, trusted, expected, result_bytes=None):
+            result_fixture = fixture if result_bytes is None else result_bytes
             project = root / name
             project.mkdir()
-            (project / "saved.json").write_bytes(fixture)
+            (project / "saved.json").write_bytes(result_fixture)
             (project / "saved.html").write_bytes(PAGE)
             event_path = project / "event.json"
             event_path.write_text(
@@ -336,10 +338,10 @@ def main():
             record = json.loads(record_bytes)
             assert record["schema_id"] == "ici.next.publish" and record["schema_version"] == 1
             assert record["state"] == ("SUCCESS" if expected == 0 else "FAILED"), record
-            assert (project / "saved.json").read_bytes() == fixture
+            assert (project / "saved.json").read_bytes() == result_fixture
             assert (project / "saved.html").read_bytes() == PAGE
             assert not (project / "source-was-deleted").exists()
-            assert json.loads(fixture)["gate"]["selected"] == "FAIL"
+            assert json.loads(result_fixture)["gate"]["selected"] == "FAIL"
             assert all(
                 secret.encode() not in result.stdout + result.stderr + record_bytes
                 for secret in (TOKEN, FALLBACK_TOKEN)
@@ -355,7 +357,7 @@ def main():
             if not trusted:
                 assert not events, "An untrusted CA must prevent HTTP requests"
             if expected == 0:
-                assert record["result_sha256"] == "sha256:" + digest(fixture)
+                assert record["result_sha256"] == "sha256:" + digest(result_fixture)
                 assert record["reports"][0]["artifact"]["sha256"] == "sha256:" + digest(PAGE)
                 assert any(event.get("uploaded_sha256") == digest(PAGE) for event in events)
                 assert any("comment_body_sha256" in event for event in events)
@@ -372,7 +374,7 @@ def main():
                     "exit": result.returncode,
                     "publication": record["state"],
                     "api_prefix": prefix,
-                    "result_sha256_before": digest(fixture),
+                    "result_sha256_before": digest(result_fixture),
                     "result_sha256_after": digest((project / "saved.json").read_bytes()),
                     "programs": programs,
                     "http_requests": events,
@@ -389,6 +391,16 @@ def main():
             run("http-403-preserves-analysis", "forbidden", "/api/v3", True, 1)
             run("malformed-api-json-preserves-analysis", "malformed", "/api/v3", True, 1)
             run("uploaded-page-comment-403-is-failed", "comment-forbidden", "/api/v3", True, 1)
+            large = json.loads(fixture)
+            large["findings"][0]["message"] += " details " + "x" * 100000
+            run(
+                "large-finding-has-bounded-comment",
+                "success",
+                "/api/v3",
+                True,
+                0,
+                result_bytes=json.dumps(large).encode(),
+            )
             assert proxy.unexpected_requests == 0, "No request may target an external server"
         finally:
             server.shutdown()

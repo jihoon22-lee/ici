@@ -1,0 +1,27 @@
+{
+  "oracle_source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "oracle_files": {
+    "src/ici/application/publish.py": "7e13e982436bd7b34aad85e04b64a89f85099cac545e149a786e1fe1010a46cc",
+    "src/ici/adapters/ghes.py": "b61817dec2ebfba65374d8b16ff6315ac141c7f10f9d54bddcc90dbff10723ef"
+  },
+  "development_python": "3.10.21",
+  "base_result": "tests/fixtures/ici-next/run-code-fail.json",
+  "base_result_sha256": "98a0620c517f35dbf71d988fff2125ae5f2c63d48f116a3d7f57a9ddd0e393eb",
+  "transformation": "json.loads(base); findings[0].message += ' details ' + 'x' * 100000; json.dumps(...).encode()",
+  "result_sha256": "4e367f9e16580fcb6b0fede1ebadd645021fd107c118a3414fe2ea403ee4cc7a",
+  "original": {
+    "publication": "SUCCESS",
+    "comment_bytes": 238
+  },
+  "native_regression_observed": {
+    "binary_sha256": "8466942511522a1724aa11aee6ff610c2dca914685293b6ed1a9bc887a193769",
+    "publication": "FAILED",
+    "detail": "reports uploaded; comment exceeds 64 KiB bound"
+  },
+  "native_expected": {
+    "publication": "SUCCESS",
+    "comment_max_utf8_bytes": 65536,
+    "result_page_bytes_preserved": true
+  },
+  "comparison": "Comment presentation may use a bounded summary; saved finding messages, gate and page must remain complete and unchanged."
+}

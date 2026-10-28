@@ -353,6 +353,61 @@ def main():
     assert all((prefix / name).read_bytes() == body for name, body in preserved.items())
     assert foreign_path.read_bytes() == foreign_body
     assert not list((prefix / "versions").glob(".install-*"))
+
+    def inspect_xdg(name, selected_root, xdg_environment):
+        result, record = invoke(
+            name,
+            [selected_root / "bin/ici", "setup", "--inspect", "--json"],
+            env=xdg_environment,
+        )
+        assert record["network_connects"] == 0
+        value = json.loads(result.stdout)
+        assert value["root"] == str(selected_root)
+        return value
+
+    for case, with_home in (("xdg-only", False), ("xdg-before-home", True)):
+        data_home = root / case
+        selected_root = data_home / "ici/native"
+        xdg_environment = {**bootstrap_environment, "XDG_DATA_HOME": str(data_home)}
+        if with_home:
+            xdg_environment["HOME"] = str(home)
+        _, bootstrap_record = invoke(
+            case + "-bootstrap",
+            ["/bin/sh", installer, "--archive", archive, "--sha256", args.sha256],
+            env=xdg_environment,
+        )
+        assert bootstrap_record["network_connects"] == 0
+        assert not list(temporary.iterdir())
+
+        xdg_first = inspect_xdg(case + "-inspect-initial", selected_root, xdg_environment)
+        _, update_record = invoke(
+            case + "-update",
+            [
+                selected_root / "bin/ici",
+                "setup",
+                "--archive",
+                variant,
+                "--sha256",
+                variant_sha,
+            ],
+            env=xdg_environment,
+        )
+        assert update_record["network_connects"] == 0
+        xdg_second = inspect_xdg(case + "-inspect-updated", selected_root, xdg_environment)
+        assert xdg_second["selected"] != xdg_first["selected"]
+        assert xdg_second["previous"] == xdg_first["selected"]
+        _, rollback_record = invoke(
+            case + "-rollback",
+            [selected_root / "bin/ici", "setup", "--rollback"],
+            env=xdg_environment,
+        )
+        assert rollback_record["network_connects"] == 0
+        assert (
+            inspect_xdg(case + "-inspect-rolled-back", selected_root, xdg_environment)["selected"]
+            == xdg_first["selected"]
+        )
+        assert not (home / ".local/share/ici/native").exists()
+        assert foreign_path.read_bytes() == foreign_body
     # A malformed archive still contains the same verified native core; the core
     # must reject the traversal before activation rather than trust its own header.
     malformed = root / "malformed.tar.gz"

@@ -179,3 +179,22 @@ Credentials and private response bodies were absent from command output and
 publication records. The temporary CA private keys were removed after the run.
 This is actual development-binary publication evidence, separate from final
 frozen-source artifact acceptance and the complete feature ledger.
+
+A seventh actual publication case exposed a regression: a valid saved finding
+with a 100 KB message made the native comment exceed 64 KiB after the page had
+already uploaded. The untouched frozen publisher succeeded on the identical
+result with a 238-byte count summary. `publish-large-oracle.json` retains those
+observations, source digests and the exact input transformation;
+`publish_oracle.py FROZEN_CHECKOUT` verifies them without any network request.
+The native caller now bounds its comment summary and keeps the full saved result
+and page untouched. All seven HTTPS cases passed with native executable
+SHA-256 `f8c9df9a628199145ab02a5ecc0c346c019c64f6f45910d3def7cdcebfcb0d15`.
+
+The default installation path is also covered for XDG-only environments without
+HOME and for XDG_DATA_HOME set alongside a conflicting HOME. Twelve actual
+current-CLI install/inspect/update/rollback operations selected the XDG root,
+preserved user data and never created the HOME fallback. That CLI measurement
+used SHA-256 `8466942511522a1724aa11aee6ff610c2dca914685293b6ed1a9bc887a193769`;
+the older installed candidate was only version-probed. The full artifact corpus
+contains corresponding bootstrap and installed-CLI assertions for the next
+frozen candidate. Those assertions still require final-artifact execution.
