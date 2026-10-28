@@ -115,10 +115,10 @@ pub fn analyze(
             ("blank".into(), json!(file_blank)),
             ("total".into(), json!(total)),
         ]);
-        let oversized = gated && fail.is_some_and(|fail| file_code > u64::from(fail));
-        let warned = gated && warn.is_some_and(|warn| file_code > u64::from(warn));
-        let fail = fail.unwrap_or(u32::MAX);
-        let warn = warn.unwrap_or(u32::MAX);
+        let oversized = gated && fail.is_some_and(|fail| file_code > fail);
+        let warned = gated && warn.is_some_and(|warn| file_code > warn);
+        let fail = fail.unwrap_or(u64::MAX);
+        let warn = warn.unwrap_or(u64::MAX);
         target.status = if oversized {
             "FAIL"
         } else if warned {

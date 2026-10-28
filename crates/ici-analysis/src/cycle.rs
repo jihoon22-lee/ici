@@ -334,7 +334,8 @@ pub fn analyze(
         return;
     }
     let cycles = components(&graph);
-    let max_reported = number_option(request, "max_reported", 20) as usize;
+    let max_reported =
+        usize::try_from(number_option(request, "max_reported", 20)).unwrap_or(usize::MAX);
     for (number, members) in cycles.iter().enumerate() {
         if cancelled(output, cancellation) {
             break;

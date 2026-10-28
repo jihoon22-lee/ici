@@ -268,15 +268,15 @@ pub fn analyze(
                 .metrics
                 .insert("nesting".into(), json!(legacy_nesting));
             let legacy_fail = if cognitive {
-                value >= fail
+                u64::from(value) >= fail
             } else {
-                value > fail
+                u64::from(value) > fail
             };
             let legacy_warn = if cognitive {
-                value >= warn
+                u64::from(value) >= warn
             } else {
-                value > warn
-            } || legacy_nesting >= warn_nesting;
+                u64::from(value) > warn
+            } || u64::from(legacy_nesting) >= warn_nesting;
             target.status = if legacy_fail {
                 "FAIL"
             } else if legacy_warn {
@@ -304,16 +304,16 @@ pub fn analyze(
             } else {
                 format!("Complexity: {value}, Nesting: {legacy_nesting}")
             };
-            let over_fail = value > fail;
-            if over_fail || value > warn || shared_nesting > warn_nesting {
+            let over_fail = u64::from(value) > fail;
+            if over_fail || u64::from(value) > warn || u64::from(shared_nesting) > warn_nesting {
                 let message = if over_fail {
                     format!("{}: {kind} {value} exceeds fail limit {fail}", row.name)
                 } else {
                     let mut parts = Vec::new();
-                    if value > warn {
+                    if u64::from(value) > warn {
                         parts.push(format!("{kind} {value} exceeds warn limit {warn}"));
                     }
-                    if shared_nesting > warn_nesting {
+                    if u64::from(shared_nesting) > warn_nesting {
                         parts.push(format!(
                             "nesting depth {shared_nesting} exceeds {warn_nesting}"
                         ));

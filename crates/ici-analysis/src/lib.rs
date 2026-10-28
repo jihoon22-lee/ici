@@ -390,12 +390,11 @@ fn failure(output: &mut AnalysisOutput, path: &str, error: &SourceError) {
     output.status = "ERROR".into();
     output.summary = "Python analysis did not complete for every selected input".into();
 }
-fn number_option(request: &AnalysisRequest, name: &str, default: u32) -> u32 {
+fn number_option(request: &AnalysisRequest, name: &str, default: u64) -> u64 {
     request
         .options
         .get(name)
         .and_then(|value| value.as_u64())
-        .and_then(|value| u32::try_from(value).ok())
         .unwrap_or(default)
 }
 fn finish_status(output: &mut AnalysisOutput, request: &AnalysisRequest) {

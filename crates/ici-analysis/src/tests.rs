@@ -1251,6 +1251,62 @@ fn legacy_line_rankings_keep_source_scope_and_actual_extra_languages() {
 }
 
 #[test]
+fn accepted_large_integer_policies_keep_their_configured_meaning() {
+    let function = format!(
+        "def branches(value):\n{}    return value\n",
+        "    if value:\n        value += 1\n".repeat(40)
+    );
+    for limit in [u64::from(u32::MAX) + 1, i64::MAX as u64] {
+        let mut input = request("line", &"value = 1\n".repeat(1001));
+        input.options = json!({"warn_limit":limit,"fail_limit":limit});
+        let output = analyze(&input);
+        assert_eq!(output.status, "PASS");
+        assert!(output.observation.findings.is_empty());
+        for check in ["complexity", "cognitive"] {
+            let mut input = request(check, &function);
+            input.options = json!({"warn":limit,"fail":limit,"warn_cc":limit,"fail_cc":limit,"warn_nesting":limit});
+            let output = analyze(&input);
+            assert_eq!(output.status, "PASS", "{check} {limit}");
+            assert!(output.targets.iter().all(|target| target.status == "PASS"));
+            assert!(output.observation.findings.is_empty());
+            if check == "complexity" {
+                assert!(output.summary.contains(&format!("limit {limit}")));
+            }
+            // Oversized nesting thresholds also stay effective independently
+            // of complexity thresholds on a deeply nested, low-CC function.
+            input.inputs[0].bytes = b"def nested(value):\n    if value:\n        if value:\n            if value:\n                if value:\n                    if value:\n                        if value:\n                            return value\n".to_vec();
+            input.options =
+                json!({"warn":1000,"fail":1000,"warn_cc":1000,"fail_cc":1000,"warn_nesting":limit});
+            assert!(
+                analyze(&input)
+                    .targets
+                    .iter()
+                    .all(|target| target.status == "PASS")
+            );
+        }
+        let mut input = request("cycle", "");
+        input.inputs.clear();
+        for index in 0..25 {
+            for (from, to) in [('a', 'b'), ('b', 'a')] {
+                input.inputs.push(SourceInput {
+                    path: format!("{from}{index}.py"),
+                    bytes: format!("import {to}{index}\n").into_bytes(),
+                });
+            }
+        }
+        input.options = json!({"max_reported":limit});
+        let output = analyze(&input);
+        assert_eq!(output.extra["total_cycles"], 25);
+        assert_eq!(output.extra["reported_cycles"], 25);
+        assert_eq!(output.observation.findings.len(), 25);
+        input.options = json!({"max_reported":0});
+        let output = analyze(&input);
+        assert_eq!(output.extra["reported_cycles"], 0);
+        assert_eq!(output.observation.findings.len(), 25);
+    }
+}
+
+#[test]
 fn inclusive_endpoints_cover_unicode_multiline_and_zero_width() {
     use ruff_text_size::{TextRange, TextSize};
     let source = SourceDocument::decode(&SourceInput {
