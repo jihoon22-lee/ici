@@ -1926,8 +1926,18 @@ fn compilation_policy_flags_and_missing_database_policy_reach_the_common_cli_gat
     fs::write(root.path().join("main.cpp"), "int value;\n").unwrap();
     let config=runtime_config(&["cpp.compile"],"[engines.compile_db]\ndatabase_required=false\nrequired_flags=['-fPIC']\nforbidden_flags=['-fpermissive']\n").replace("build='native'\n","");
     fs::write(root.path().join("ici.toml"), &config).unwrap();
-    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let invocation = registry::parse(["ici", "verify"]).unwrap();
     let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    let modern = execute::execute(
+        &registry::parse(["ici", "next", "verify"]).unwrap(),
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(modern.result.gate.selected, GateVerdict::Incomplete);
+    assert!(!modern.result.execution.required_complete);
     let optional = execute::execute(
         &invocation,
         root.path(),
@@ -1986,4 +1996,31 @@ fn compilation_policy_flags_and_missing_database_policy_reach_the_common_cli_gat
             .iter()
             .any(|target| target.target_name == "ici.compile-db.forbidden-flag")
     );
+}
+
+#[test]
+fn legacy_python_only_descriptors_return_cpp_applicability_through_actual_cli_dispatch() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int value;\n").unwrap();
+    fs::write(root.path().join("ici.toml"),"schema_version=2\n[project]\ncompile_database='missing.json'\n[[components]]\nid='native'\nroot='.'\nlanguages=['cpp']\n").unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    for (command, check) in [
+        ("resource", "cpp.resource"),
+        ("security", "cpp.security"),
+        ("python-compat", "cpp.python-compat"),
+    ] {
+        let invocation = registry::parse(["ici", command]).unwrap();
+        let plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+        assert_eq!(plan.plan.checks.len(), 1, "{}", plan.text());
+        assert_eq!(plan.plan.checks[0].check.id, check);
+        assert!(plan.tools.is_empty());
+        assert!(plan.cpp.contexts.is_empty());
+        assert!(plan.context_preparations.is_empty());
+        let output = ici_cli::commands::dispatch(&invocation, root.path(), &environment).unwrap();
+        assert_eq!(output.exit_code, 0, "{}", output.stderr);
+        let stored = ici_cli::report::load(&root.path().join(ici_cli::DEFAULT_RESULT)).unwrap();
+        let bytes = stored.to_json().unwrap();
+        assert!(bytes.contains("NOT_APPLICABLE"));
+        assert!(!root.path().join(".ici/rust-v1/build").exists());
+    }
 }

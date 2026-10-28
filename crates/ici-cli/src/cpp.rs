@@ -113,13 +113,22 @@ impl CppPlans {
         if check.language != "cpp" {
             return None;
         }
-        if matches!(check.id.as_str(), "cpp.type" | "cpp.binary-compat") {
+        if matches!(
+            check.id.as_str(),
+            "cpp.type"
+                | "cpp.resource"
+                | "cpp.security"
+                | "cpp.python-compat"
+                | "cpp.binary-compat"
+        ) {
             return match check.id.as_str() {
-                "cpp.type" => {
-                    self.inactive.insert(
-                        id.into(),
-                        "The type engine is not applicable to C/C++".into(),
-                    );
+                "cpp.type" | "cpp.resource" | "cpp.security" | "cpp.python-compat" => {
+                    let reason = if check.id == "cpp.type" {
+                        "The type engine is not applicable to C/C++"
+                    } else {
+                        "No Python source files are selected; this engine is not applicable to C/C++"
+                    };
+                    self.inactive.insert(id.into(), reason.into());
                     Some(Work::Internal)
                 }
                 "cpp.binary-compat" => match crate::cpp_validation::abi_scope(project, component) {
@@ -134,7 +143,7 @@ impl CppPlans {
                         );
                         if scope.implicit && scope.targets.is_empty() && !scope.artifacts.is_empty()
                         {
-                            if scope.required {
+                            if scope.required || check.required {
                                 return Some(blocked(
                                     "binary compatibility requires published executable or shared-library artifacts",
                                 ));
@@ -1323,6 +1332,12 @@ impl CppPlans {
                     "BinaryCompatibility:NotApplicable"
                 } else if request.check_id == "cpp.type" {
                     "CppType:NotApplicable"
+                } else if request.check_id == "cpp.resource" {
+                    "Resource:NotApplicable"
+                } else if request.check_id == "cpp.security" {
+                    "Security:NotApplicable"
+                } else if request.check_id == "cpp.python-compat" {
+                    "PythonCompatibility:NotApplicable"
                 } else {
                     "CppAnalysisDisabled"
                 }
@@ -1872,4 +1887,24 @@ pub fn type_not_applicable_check() -> CheckDefinition {
         provides: vec![],
         is_static: true,
     }
+}
+
+/// These legacy descriptors inspect Python scope and still owe C++ callers an applicability result.
+pub fn legacy_not_applicable_checks() -> Vec<CheckDefinition> {
+    [
+        ("cpp.type", "C/C++ type engine applicability"),
+        ("cpp.resource", "C/C++ resource engine applicability"),
+        ("cpp.security", "C/C++ security engine applicability"),
+        (
+            "cpp.python-compat",
+            "C/C++ Python compatibility applicability",
+        ),
+    ]
+    .into_iter()
+    .map(|(id, title)| CheckDefinition {
+        id: id.into(),
+        title: title.into(),
+        ..type_not_applicable_check()
+    })
+    .collect()
 }

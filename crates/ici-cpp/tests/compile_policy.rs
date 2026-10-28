@@ -27,7 +27,7 @@ fn optional_missing_database_preserves_estimated_warning_and_required_absence_is
             ..Default::default()
         },
     );
-    let optional = analyze_compile_context(&request(json!({})), &context);
+    let optional = analyze_compile_context(&request(json!({"legacy_projection":true})), &context);
     assert_eq!(optional.status, "WARN");
     assert_eq!(optional.observation.state, TaskState::Succeeded);
     assert_eq!(optional.targets[0].file_path, "main.cpp");
@@ -43,7 +43,10 @@ fn optional_missing_database_preserves_estimated_warning_and_required_absence_is
         optional.observation.findings[0].evidence,
         EvidenceLevel::Estimated
     );
-    let required = analyze_compile_context(&request(json!({"database_required":true})), &context);
+    let required = analyze_compile_context(
+        &request(json!({"database_required":true,"legacy_projection":true})),
+        &context,
+    );
     assert_eq!(required.status, "FAIL");
     assert_eq!(required.observation.state, TaskState::Succeeded);
     assert_eq!(required.observation.findings[0].severity, "high");

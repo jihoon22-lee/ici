@@ -27,7 +27,13 @@ pub fn analyze_compile_context(
         .filter(|source| crate::is_translation_unit(source))
         .cloned()
         .collect::<BTreeSet<_>>();
-    if production.is_empty() && context.units.is_empty() && context.diagnostics.is_empty() {
+    if production.is_empty()
+        && context.units.is_empty()
+        && context.diagnostics.is_empty()
+        && request.options["legacy_projection"]
+            .as_bool()
+            .unwrap_or(false)
+    {
         for input in &request.inputs {
             let mut target = InspectionTarget::at(&input.path, 1);
             target.target_name = "CompilationDatabase:NotApplicable".into();
@@ -42,7 +48,12 @@ pub fn analyze_compile_context(
         output.summary = "No production C/C++ translation units are in scope".into();
         return output;
     }
-    if context.database_path.is_none() && context.diagnostics.is_empty() {
+    if context.database_path.is_none()
+        && context.diagnostics.is_empty()
+        && request.options["legacy_projection"]
+            .as_bool()
+            .unwrap_or(false)
+    {
         let required = request.options["database_required"]
             .as_bool()
             .unwrap_or(false);
