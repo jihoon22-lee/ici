@@ -537,11 +537,6 @@ def run_checks(
     _announce(root, scope, request, resolved, json_mode)
 
     before = inventory.take(scope, root=root)
-    state = vcs_status(root)
-    snapshot = before.snapshot(
-        commit=state.commit if state is not None else None,
-        dirty=state is None or not state.clean,
-    )
     try:
         all_plans, analyses, limitations, by_component = plans(
             scope, config, before, root, request, resolved
@@ -572,6 +567,11 @@ def run_checks(
         )
         return
 
+    state = vcs_status(root)
+    snapshot = before.snapshot(
+        commit=state.commit if state is not None else None,
+        dirty=state is None or not state.clean,
+    )
     baseline_doc = _load_baseline(baseline, root)
 
     run_id = uuid.uuid4().hex

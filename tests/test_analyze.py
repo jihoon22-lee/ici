@@ -73,3 +73,24 @@ def test_configless_excludes_dependencies_and_build_outputs(tmp_path):
     root, config = automatic(tmp_path)
     stock = inventory.take(build(config), root=root)
     assert all("node_modules" not in path for path in stock.snapshot(dirty=True).files)
+
+
+def test_static_selection_is_declarative_for_new_runtime_checks():
+    from ici.languages.checks import CheckDefinition
+
+    check = CheckDefinition("custom.runtime", "Custom runtime", "python", None, static=False)
+    assert not wanted(RunRequest(static_only=True), check)
+    assert wanted(RunRequest(), check)
+
+
+def test_plan_does_not_probe_vcs_or_execute_tasks(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "hello.py").write_text("answer = 42\n")
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("plan must not execute processes")
+
+    monkeypatch.setattr("ici.cli.next_path.vcs_status", forbidden)
+    monkeypatch.setattr("ici.cli.next_path.run_task", forbidden)
+    result = CliRunner().invoke(app, ["analyze", "--plan", "--json"])
+    assert result.exit_code == 0, result.output

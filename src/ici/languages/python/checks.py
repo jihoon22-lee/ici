@@ -65,6 +65,7 @@ TYPE_CHECK = CheckDefinition(
 #: (#216). The check ``provides`` the test evidence coverage reads.
 TEST_CHECK = CheckDefinition(
     id="python.test",
+    static=False,
     title="pytest suite",
     language="python",
     tool=None,
@@ -76,6 +77,7 @@ TEST_CHECK = CheckDefinition(
 #: one run, two readers, ordered through ``test-evidence``.
 COVERAGE_CHECK = CheckDefinition(
     id="python.coverage",
+    static=False,
     title="coverage.py collection",
     language="python",
     tool=None,
@@ -176,6 +178,7 @@ COMPAT_CHECK = CheckDefinition(
 #: makes that absence gate-failing.
 COMPAT_RUNTIME_CHECK = CheckDefinition(
     id="python.compat-runtime",
+    static=False,
     title="Declared-runtime compatibility",
     language="python",
     tool=None,

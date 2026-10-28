@@ -39,7 +39,10 @@ ici diff baseline.json --result current.json
 ```
 
 프로필은 비용, 언어/component는 범위다. deep도 analyze에서 테스트를 켜지 않는다.
-`verify`의 기존 선택은 유지되어 명시된 테스트/coverage/통합 실행을 사용할 수 있다.
+`verify`의 기존 Python/C++ 선택은 유지되어 명시된 테스트/coverage/통합 실행을 사용할 수 있다.
+기존 설정의 Rust 선언은 이전에는 미지원이었지만 이제 Clippy를 선택한다.
+필요한 도구/manifest/lock/dependency가 없으면 incomplete이며, 기존의 미지원 limitation과 다르다.
+
 `analyze` 결과는 static subset이므로 workspace 전체 PASS로 표시하지 않는다.
 `--require-full`은 선언된 component/언어 범위 누락을 검사하며 runtime suite를 추가하지 않는다.
 

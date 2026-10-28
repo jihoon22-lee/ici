@@ -39,7 +39,7 @@ from ici.reporters.json_rep import save_engine_json_report
 
 app = typer.Typer(
     name="ici",
-    help=f"Integrated CI Engine v{__version__} — Multi-Language CI/CD Verification & Build Tool",
+    help=f"ici v{__version__} — Multi-language static analysis and verification",
     add_completion=False,
 )
 console = Console()

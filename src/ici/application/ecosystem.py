@@ -63,11 +63,11 @@ def planner(fallback, root, component_root, units, files):
     return work
 
 
-def locator(root: Path):
+def locator(root: Path, fallback=locate_tool):
     def locate(name):
         local = root / "node_modules" / ".bin" / name
         if name in {"eslint", "tsc"} and local.is_file() and os.access(local, os.X_OK):
             return str(local)
-        return locate_tool(name)
+        return fallback(name)
 
     return locate

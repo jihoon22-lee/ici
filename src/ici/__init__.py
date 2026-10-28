@@ -1,7 +1,6 @@
-"""ici — Integrated CI Engine.
+"""ici — multi-language static analysis with attributable, offline reports.
 
-폐쇄망(RHEL 8/tcsh)과 개발환경(WSL/bash) 양쪽에서 단일 파일로 동작하는
-C++/Python 프로젝트 통합 검증 및 빌드 엔진.
+The Python package and legacy ZipApp share the analysis application.
 """
 
 __version__ = "0.12.1"

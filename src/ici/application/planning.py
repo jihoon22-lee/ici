@@ -23,6 +23,7 @@ from ici.application.plan import NothingSelected, Plan, PlannedCheck
 from ici.application.request import RunRequest, wanted
 from ici.application.selection import Planner, select_effective
 from ici.application.testing import component_targets
+from ici.application.tooling import locate_tool
 from ici.application.verify import Analysis
 from ici.config.composition import EffectiveConfig
 from ici.domain.enums import Profile
@@ -115,7 +116,7 @@ def plans(
         )
 
         work = ecosystem.planner(work, root, comp_root, units, files_by_language)
-        locate = ecosystem.locator(comp_root)
+        locate = ecosystem.locator(comp_root, fallback=locate_tool)
 
         def in_scope(
             check: CheckDefinition,

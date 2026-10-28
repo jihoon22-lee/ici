@@ -173,12 +173,14 @@ def test_a_component_with_no_applicable_checks_is_a_limitation_not_a_crash(
     tmp_path, monkeypatch
 ) -> None:
     (tmp_path / "native").mkdir()
-    (tmp_path / "native" / "core.rs").write_text("fn core() -> i32 { 1 }\n", encoding="utf-8")
+    (tmp_path / "native" / "core.f90").write_text(
+        "program core\nend program core\n", encoding="utf-8"
+    )
     (tmp_path / "tool").mkdir()
     (tmp_path / "tool" / "app.py").write_text("x = 1\n", encoding="utf-8")
     _write_project(
         tmp_path,
-        HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["rust"]\n'
+        HEADER + '[[components]]\nid = "native"\nroot = "native"\nlanguages = ["fortran"]\n'
         '[[components]]\nid = "tool"\nroot = "tool"\nlanguages = ["python"]\n'
         '[checks."python.test"]\nenabled = false\n'
         '[checks."python.coverage"]\nenabled = false\n',

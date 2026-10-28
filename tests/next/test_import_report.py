@@ -122,3 +122,12 @@ def test_report_preserves_related_locations(tmp_path):
     )
     page = render(replace(stored, findings=(finding,)))
     assert "Related locations" in page and "other.py:12 origin" in page
+
+
+def test_junit_zero_based_native_line_is_not_rewritten(tmp_path):
+    source = tmp_path / "report.xml"
+    source.write_text('<testsuite><testcase name="test" file="test.py" line="0"/></testsuite>')
+    record = import_report(source, "junit", scope="pytest legacy")["records"][0]
+    assert record["native_line"] == 0
+    assert record["line_base"] == "producer-defined"
+    assert record["locations"][0]["line"] is None

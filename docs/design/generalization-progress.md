@@ -16,15 +16,15 @@
 |항목|상태|근거|
 |---|---|---|
 |1 제품·지원 정책|구현|AGENTS §9에 최신 사용자 결정 적용|
-|2 static selection|첫 구현|RunRequest.static_only, 실행 검사 제외 및 PARTIAL 범위|
-|3 configless discovery|첫 구현|Python/C++ 메모리 구성, 기존 설정 우회 금지|
-|4 analyze 진입점|첫 구현|run_checks 공유, verify 호환 테스트 진행|
-|5 일반 package 설치|미완료|wheel 및 격리 설치 E2E|
-|6 report UX|미완료|범위·baseline·suppression·관련 진단|
-|7 Rust provider|미완료|실제 fixture, 컴파일 부수작용 명시|
-|8 TS/JS provider|미완료|실제 fixture 및 설정 attribution|
-|9 보조자료 importer|미완료|출처·시점·범위 보존|
-|10 stable/next 수렴|미완료|호환 adapter와 회귀 우선|
+|2 static selection|구현·회귀 검증|CheckDefinition.static 선언, 실행 검사 제외 및 PARTIAL 범위|
+|3 configless discovery|구현·회귀 검증|5개 언어 메모리 구성, 기존 설정 우회 금지|
+|4 analyze 진입점|구현·회귀 검증|run_checks/plan 공유, verify 호환 테스트|
+|5 일반 package 설치|구현·로컬 설치 통과|wheel/sdist 및 격리 설치 E2E; 공개 asset 확인 대기|
+|6 report UX|구현·회귀 검증|범위·baseline·suppression·관련 진단, v1 읽기 유지|
+|7 Rust provider|구현·실제 fixture 통과|Clippy/build.rs, PREPARE/fast 차단, 입력 attribution|
+|8 TS/JS provider|구현·실제 fixture 통과|ESLint/tsc native config·진단 attribution|
+|9 보조자료 importer|구현·회귀 검증|SARIF/JUnit/LCOV subset, 출처·시점·범위 보존|
+|10 stable/next 수렴|구현·회귀 검증|공통 application·주 명령, legacy verify/pyz/migrate 호환 유지|
 |검증·문서·릴리스|미완료|고정 revision/asset 다운로드 검증|
 |병합·정리|미완료|소유 자원만 정리|
 
@@ -81,3 +81,14 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
   명시하고 기존 증거를 역사로 보존. Lens 현재 URL 반영, quality-zoo provenance 변경 없음.
 - 다음 명령: 공통 flock 아래 Python 3.10 전체 pytest → ruff check/format → build-pyz/smoke.
   전체 검증 후 버전 확정/PR/CI/병합/tag/release/download 검증/소유 자원 정리를 진행한다.
+
+## 전체 검증 1차와 수정
+
+- Python 3.10 전체 pytest: 4287 passed, 2 failed, 15 skipped (232.48초).
+- 실패 원인: locator 주입 seam 이동과 Rust 지원 추가로 기존 미지원 fixture가 유효하지 않음.
+  locator fallback 주입을 복구하고 미지원 fixture는 Fortran으로 변경해 기존 계약을 유지.
+- 관련 CLI/선택 회귀 51개 통과(16.69초). 추가 static 선언/plan 무실행/JUnit native line
+  보존 포함 29개 통과(1.79초). 정적 여부는 이름 목록이 아닌 CheckDefinition 선언으로 결정.
+- jsonschema를 격리 추가한 schema/context 검사 41개 통과(1.06초). 최초 15 skip 중 7개는
+  jsonschema 부재, 나머지는 clang/clang-tidy/clazy 부재 및 host syntax 조건이다.
+- pyz 빌드 통과, smoke의 verify/Zero-CDN 단계 실행 중. 수정 반영 전체 pytest 재실행 예정.

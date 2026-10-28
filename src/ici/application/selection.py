@@ -207,6 +207,7 @@ def _with_scope(check: CheckDefinition, prefix: str) -> CheckDefinition:
         profiles=check.profiles,
         needs=tuple(f"{prefix}.{name}" for name in check.needs),
         provides=tuple(f"{prefix}.{name}" for name in check.provides),
+        static=check.static,
     )
 
 
@@ -220,6 +221,7 @@ def _with_required(check: CheckDefinition, required: bool) -> CheckDefinition:
         profiles=check.profiles,
         needs=check.needs,
         provides=check.provides,
+        static=check.static,
     )
 
 

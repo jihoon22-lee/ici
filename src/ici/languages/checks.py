@@ -53,8 +53,13 @@ class CheckDefinition:
     #: Logical inputs this check's tasks produce for others — a compilation
     #: database, a prepared build. The graph wires consumers to these.
     provides: tuple[str, ...] = ()
+    #: Static describes the analysis purpose, not absence of side effects.
+    #: Project tests/runtime executions opt out independently of cost profile.
+    static: bool = True
 
     def __post_init__(self) -> None:
+        if not isinstance(self.static, bool):
+            raise ValueError("check static must be a boolean")
         if not self.id:
             raise ValueError("a check must have an id")
         object.__setattr__(self, "profiles", frozenset(self.profiles))

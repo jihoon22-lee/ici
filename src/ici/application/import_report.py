@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlparse
@@ -192,4 +193,26 @@ def load_auxiliary(path: Path):
         document.get("source"), dict
     ):
         raise ValueError("invalid auxiliary records/provenance")
+    if (
+        document.get("format") not in {"sarif", "junit", "lcov"}
+        or not isinstance(document.get("scope"), str)
+        or not document["scope"].strip()
+    ):
+        raise ValueError("invalid auxiliary format/scope")
+    source = document["source"]
+    if not isinstance(source.get("path"), str) or not re.fullmatch(
+        r"[0-9a-f]{64}", str(source.get("sha256", ""))
+    ):
+        raise ValueError("invalid auxiliary source checksum")
+    for key in ("imported_at", "observed_at"):
+        value = document.get(key)
+        if key == "observed_at" and key in document and value is None:
+            continue
+        if (
+            not isinstance(value, str)
+            or datetime.fromisoformat(value.replace("Z", "+00:00")).tzinfo is None
+        ):
+            raise ValueError(f"invalid auxiliary {key}")
+    if any(not isinstance(record, dict) for record in document["records"]):
+        raise ValueError("invalid auxiliary record")
     return document
