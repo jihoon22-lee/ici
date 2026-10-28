@@ -722,11 +722,61 @@ impl PreparedPlan {
             .iter()
             .filter(|(id, _)| !self.graph.blocked.contains_key(*id))
             .collect();
+        let owners: BTreeMap<_, _> = self
+            .plan
+            .checks
+            .iter()
+            .flat_map(|check| {
+                check
+                    .tasks()
+                    .iter()
+                    .map(move |task| (task.id.as_str(), check.task_id.as_str()))
+            })
+            .collect();
+        let mut consumers = BTreeMap::<&str, BTreeSet<&str>>::new();
+        for check in &self.plan.checks {
+            if self.graph.blocked.contains_key(&check.task_id) {
+                continue;
+            }
+            for task in check.tasks() {
+                consumers
+                    .entry(task.id.as_str())
+                    .or_default()
+                    .insert(&check.task_id);
+                for dependency in &task.depends_on {
+                    if let Some(owner) = owners.get(dependency.as_str())
+                        && *owner != check.task_id
+                    {
+                        consumers
+                            .entry(dependency.as_str())
+                            .or_default()
+                            .insert(&check.task_id);
+                    }
+                }
+            }
+        }
+        for (consumer, dependencies) in &self.graph.edges {
+            if self.graph.blocked.contains_key(consumer) {
+                continue;
+            }
+            for dependency in dependencies {
+                if !self.graph.blocked.contains_key(dependency) {
+                    consumers
+                        .entry(dependency)
+                        .or_default()
+                        .extend([dependency.as_str(), consumer.as_str()]);
+                }
+            }
+        }
+        let shared: BTreeMap<_, _> = consumers
+            .into_iter()
+            .filter(|(_, checks)| checks.len() > 1)
+            .collect();
         let builds:Vec<_>=self.project.builds.iter().map(|build| {
             let linked:BTreeSet<_>=self.project.components.iter().filter(|c|self.plan.components.contains(&c.id) && c.build.as_deref()==Some(build.id.as_str())).map(|c|&c.id).collect();
             json!({"id":build.id,"system":build.system,"variant":build.variant,"directory":build.directory,"definition":build.project,"artifacts":build.artifacts,"linked_by":linked})
         }).collect();
-        let mut document = json!({"schema_id":"ici.next.plan","schema_version":1,"root":self.project.root,"scope":{"components":self.plan.components,"languages":self.plan.languages,"profile":self.plan.profile,"require_full":self.request.require_full},"plans":plans,"graph":{"edges":edges,"shared":{},"mutating":mutating},"builds":builds,"coverage_gaps":self.plan.coverage_gaps,"limitations":self.plan.limitations});
+        let mut document = json!({"schema_id":"ici.next.plan","schema_version":1,"root":self.project.root,"scope":{"components":self.plan.components,"languages":self.plan.languages,"profile":self.plan.profile,"require_full":self.request.require_full},"plans":plans,"graph":{"edges":edges,"shared":shared,"mutating":mutating},"builds":builds,"coverage_gaps":self.plan.coverage_gaps,"limitations":self.plan.limitations});
         if !self.source_identity.tasks.is_empty() || self.source_identity.limitation.is_some() {
             document["source_identity"] = json!(self.source_identity);
         }

@@ -1,4 +1,4 @@
-use ici_cli::{commands, registry};
+use ici_cli::{commands, planning, registry};
 use serde_json::Value;
 use std::{collections::BTreeMap, fs};
 
@@ -26,6 +26,29 @@ fn legacy_test_report_counts_shared_pytest_coverage_suite_once() {
         ("PATH".into(), "/usr/bin:/bin".into()),
         ("PYTEST_DISABLE_PLUGIN_AUTOLOAD".into(), "1".into()),
     ]);
+    let plan = planning::prepare(
+        &registry::parse(["ici", "test"]).unwrap(),
+        root.path(),
+        &env,
+        false,
+    )
+    .unwrap();
+    assert_eq!(
+        plan.document()["graph"]["shared"]["project.python.test"],
+        serde_json::json!(["project.python.coverage", "project.python.test"])
+    );
+    let preview = commands::dispatch(
+        &registry::parse(["ici", "next", "plan", "--json"]).unwrap(),
+        root.path(),
+        &env,
+    )
+    .unwrap();
+    let preview: Value = serde_json::from_str(&preview.stdout).unwrap();
+    assert_eq!(
+        preview["graph"]["shared"]["project.python.test"],
+        plan.document()["graph"]["shared"]["project.python.test"]
+    );
+    assert!(!root.path().join(".ici").exists());
     let result = commands::dispatch(
         &registry::parse(["ici", "test", "--report"]).unwrap(),
         root.path(),

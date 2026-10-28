@@ -23,6 +23,8 @@
   집계를 합칩니다. 적용 불가 증거가 같은 descriptor의 실제 측정·추정 증거를 가리지 않습니다.
 - 여러 test·coverage 검사가 한 descriptor로 합쳐질 때 동일한 물리 test suite를 한 번만 세고,
   coverage 비율은 실제 분자·분모로 합산합니다. 불완전하거나 상충하는 근거는 집계하지 않고 사유를 남깁니다.
+- `next plan --json`은 test 결과를 coverage가 소비하는 것처럼 검사 간 공유 의존 관계를
+  표시합니다. 계획 조회는 결과 디렉터리를 만들지 않습니다.
 - 실행 결과가 task ID 아래 보관한 지표도 legacy 리포트의 평면 필드로 복원합니다. 명시적으로
   설정한 이전 engine mode는 `next verify`에서도 적용하고, test 품질의 report 관측은 finding을
   유지하면서 통과 상태로 표시합니다. coverage 임계값 경고와 실제 test 실패는 구별합니다.
