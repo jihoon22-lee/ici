@@ -152,7 +152,7 @@ pub fn bind(
         .then(|| format!("{}.python.test.suite", component.id)),
         repeat_runs: if quality_enabled {
             quality
-                .and_then(|value| value.get("repeat_runs"))
+                .and_then(|value| value.get("repeat").or_else(|| value.get("repeat_runs")))
                 .and_then(Value::as_u64)
                 .unwrap_or(1) as usize
         } else {
@@ -160,7 +160,11 @@ pub fn bind(
         },
         slow_threshold_seconds: quality_enabled.then(|| {
             quality
-                .and_then(|value| value.get("slow_test_threshold"))
+                .and_then(|value| {
+                    value
+                        .get("slow_threshold")
+                        .or_else(|| value.get("slow_test_threshold"))
+                })
                 .and_then(Value::as_f64)
                 .unwrap_or(1.0)
         }),
@@ -207,6 +211,80 @@ pub fn bind(
     options.min_file_cov = threshold("min_file_cov", 80.0);
     options.min_branch_cov = threshold("min_branch_cov", 80.0);
     options.min_func_cov = threshold("min_func_cov", 90.0);
+    options.min_tem_score = threshold("min_tem_score", 4.0);
+    options.changed_lines = strings(test.and_then(|value| value.get("changed_lines")));
+    options.min_changed_line_cov = threshold("min_changed_line_cov", 100.0)
+        .or_else(|| (!options.changed_lines.is_empty()).then_some(100.0));
+    if quality_enabled {
+        let mutation = quality.and_then(|value| value.get("mutation"));
+        options.mutation_enabled = mutation
+            .and_then(Value::as_bool)
+            .or_else(|| {
+                mutation
+                    .and_then(|value| value.get("enabled"))
+                    .and_then(Value::as_bool)
+            })
+            .unwrap_or(false);
+        if options.mutation_enabled {
+            let command = strings(mutation.and_then(|value| value.get("command")));
+            let selected = mutation
+                .and_then(|value| value.get("tool"))
+                .and_then(Value::as_str)
+                .unwrap_or("auto");
+            let (mutation_tool, mutation_argv) =
+                mutation_probe(project, &cwd, environment, selected, &command);
+            options.mutation_tool = mutation_tool;
+            options.mutation_argv = mutation_argv;
+        }
+    }
+    if matches!(
+        kind,
+        ValidationKind::PythonTest
+            | ValidationKind::PythonCoverage
+            | ValidationKind::PythonSanitize
+    ) {
+        // These are project-runtime search paths. They do not expose an ici tool pack to the suite.
+        if let Some(directory) = tool.path.parent() {
+            match std::env::join_paths(
+                std::iter::once(directory.to_path_buf()).chain(
+                    environment
+                        .get("PATH")
+                        .filter(|value| !value.is_empty())
+                        .into_iter()
+                        .flat_map(std::env::split_paths),
+                ),
+            ) {
+                Ok(paths) => {
+                    options
+                        .environment
+                        .insert("PATH".into(), paths.to_string_lossy().into_owned());
+                }
+                Err(error) => {
+                    return Some(blocked(format!(
+                        "project Python executable search path: {error}"
+                    )));
+                }
+            }
+        }
+        let source_paths = crate::inputs::source_roots(component, &project.root)
+            .into_iter()
+            .map(|path| project.root.join(path))
+            .chain(
+                environment
+                    .get("PYTHONPATH")
+                    .into_iter()
+                    .flat_map(std::env::split_paths),
+            )
+            .collect::<Vec<_>>();
+        match std::env::join_paths(source_paths) {
+            Ok(paths) => {
+                options
+                    .environment
+                    .insert("PYTHONPATH".into(), paths.to_string_lossy().into_owned());
+            }
+            Err(error) => return Some(blocked(format!("project Python search path: {error}"))),
+        }
+    }
     options.min_file_statements = test
         .and_then(|value| value.get("min_file_statements"))
         .and_then(Value::as_u64)
@@ -375,6 +453,66 @@ fn test_targets(
         .cloned()
         .collect();
     Ok(targets)
+}
+
+fn mutation_probe(
+    project: &ResolvedProject,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    selected: &str,
+    command: &[String],
+) -> (Option<ResolvedTool>, Vec<String>) {
+    let candidates = if let Some(executable) = command.first() {
+        vec![executable.as_str()]
+    } else if selected == "auto" {
+        vec!["mutmut", "cosmic-ray", "mutpy"]
+    } else {
+        vec![selected]
+    };
+    for candidate in candidates {
+        let explicit = if candidate.contains('/') {
+            Some(if Path::new(candidate).is_absolute() {
+                PathBuf::from(candidate)
+            } else {
+                project.root.join(candidate)
+            })
+        } else {
+            project
+                .tools
+                .get(candidate)
+                .and_then(|tool| tool.path.as_deref())
+                .map(|path| {
+                    if Path::new(path).is_absolute() {
+                        PathBuf::from(path)
+                    } else {
+                        project.root.join(path)
+                    }
+                })
+        };
+        let tool = ToolRequest {
+            id: if candidate.contains('/') {
+                "mutation".into()
+            } else {
+                candidate.into()
+            },
+            explicit,
+            project_root: cwd.into(),
+            pack_root: None,
+            path_env: Some(environment.get("PATH").cloned().unwrap_or_default()),
+        }
+        .resolve();
+        if let Ok(tool) = tool {
+            let argv = if command.is_empty() {
+                vec![]
+            } else {
+                std::iter::once(tool.path.to_string_lossy().into_owned())
+                    .chain(command[1..].iter().cloned())
+                    .collect()
+            };
+            return (Some(tool), argv);
+        }
+    }
+    (None, vec![])
 }
 
 fn strings(value: Option<&Value>) -> Vec<String> {

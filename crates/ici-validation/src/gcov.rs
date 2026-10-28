@@ -605,6 +605,9 @@ pub(crate) fn observe(
         .get(producer)
         .ok_or_else(|| error("gcov shared suite outcome absent"))?;
     let test_evidence = crate::cpp::test_evidence(plan, producer, suite)?;
+    if let Some(nodes) = test_evidence.extra.get("test_outcomes") {
+        output.extra["test_outcomes"] = nodes.clone();
+    }
     let tests = test_evidence
         .observation
         .measurements

@@ -1194,3 +1194,234 @@ fn git_declared_outputs_resolve_from_frozen_plans_without_filesystem_reads() {
             .contains("matched nothing")
     );
 }
+
+#[test]
+fn deep_quality_plan_honors_aliases_explicit_thresholds_and_missing_optional_probe() {
+    let root = tempfile::tempdir().unwrap();
+    clean_source(root.path());
+    fs::create_dir(root.path().join("tests")).unwrap();
+    fs::write(
+        root.path().join("tests/test_app.py"),
+        "def test_green():\n    assert True\n",
+    )
+    .unwrap();
+    let text = config(
+        &["python.test", "python.coverage"],
+        "[engines.test]\nmin_line_cov=55.0\nmin_tem_score=2.5\nchanged_lines=['app.py:1']\n[engines.test.quality]\nrepeat=3\nslow_threshold=0.25\nmutation=true\n",
+        "[components.python]\nexecutable='/usr/bin/true'\ntest_paths=['tests']\n",
+    );
+    write(root.path(), &text);
+    let env = BTreeMap::from([("PATH".into(), String::new())]);
+    let planned = prepare(root.path(), &env);
+    let suite = &planned.validations["project.python.test"][0];
+    let options = &suite.context.options;
+    assert_eq!(options.repeat_runs, 3);
+    assert_eq!(options.slow_threshold_seconds, Some(0.25));
+    assert_eq!(options.min_line_cov, Some(55.0));
+    assert_eq!(options.min_tem_score, Some(2.5));
+    assert_eq!(options.min_func_cov, None);
+    assert_eq!(options.changed_lines, vec!["app.py:1"]);
+    assert_eq!(options.min_changed_line_cov, Some(100.0));
+    assert!(options.mutation_enabled);
+    assert!(options.mutation_tool.is_none());
+    assert!(
+        !suite
+            .tasks
+            .iter()
+            .any(|task| task.id.ends_with(".mutation"))
+    );
+    assert_eq!(options.environment["PATH"], "/usr/bin");
+    assert_eq!(Path::new(&options.environment["PYTHONPATH"]), root.path());
+    assert!(!root.path().join(".ici").exists());
+}
+
+#[test]
+#[ignore = "explicit source-layout project pytest and optional mutation CLI acceptance"]
+fn project_source_paths_and_explicit_mutation_probe_preserve_base_test_gate() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("src")).unwrap();
+    fs::create_dir(root.path().join("tests")).unwrap();
+    fs::write(root.path().join("src/app.py"), "ANSWER = 42\n").unwrap();
+    fs::write(root.path().join("tests/test_app.py"), "import app, os, pathlib, sys\ndef test_source_layout():\n    assert app.ANSWER == 42\n    assert os.environ['PATH'].split(os.pathsep)[0] == str(pathlib.Path(sys.executable).parent)\n").unwrap();
+    fs::write(
+        root.path().join("probe.sh"),
+        "#!/bin/sh\nprintf '%s' \"$1\" > probe-ran\nexit 7\n",
+    )
+    .unwrap();
+    fs::set_permissions(
+        root.path().join("probe.sh"),
+        fs::Permissions::from_mode(0o755),
+    )
+    .unwrap();
+    let text = config(&["python.test"], "[engines.test.quality]\nrepeat_runs=2\n[engines.test.quality.mutation]\nenabled=true\ncommand=['./probe.sh','configured-probe']\n", &format!("[components.python]\nexecutable={}\ntest_paths=['tests']\n", quoted(&python()))).replace("sources=['app.py']", "source_dirs=['src']\nsources=['src/**/*.py']");
+    write(root.path(), &text);
+    let env = BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]);
+    let planned = prepare(root.path(), &env);
+    let suite = &planned.validations["project.python.test"][0];
+    let probe = suite
+        .tasks
+        .iter()
+        .find(|task| task.id.ends_with(".mutation"))
+        .unwrap();
+    assert_eq!(Path::new(&probe.argv[0]), root.path().join("probe.sh"));
+    assert_eq!(probe.argv[1], "configured-probe");
+    assert!(suite.optional_task_ids.contains(&probe.id));
+    assert!(!root.path().join("probe-ran").exists());
+    let result = run(root.path(), &env);
+    assert_eq!(
+        result.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        result.outputs
+    );
+    assert_eq!(
+        fs::read_to_string(root.path().join("probe-ran")).unwrap(),
+        "configured-probe"
+    );
+    let output = &result.outputs["project.python.test"];
+    assert!(
+        output.extra.as_object().unwrap().values().any(|value| value
+            .pointer("/mutation/mutation_status")
+            .and_then(Value::as_str)
+            == Some("unavailable")),
+        "{:?}",
+        output.extra
+    );
+    assert!(output.observation.findings.is_empty());
+}
+
+#[test]
+#[ignore = "explicit project coverage changed-lines policy CLI acceptance"]
+fn changed_line_coverage_policy_is_bound_and_keeps_the_uncovered_location() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("src")).unwrap();
+    fs::create_dir(root.path().join("tests")).unwrap();
+    fs::write(
+        root.path().join("src/app.py"),
+        "def chosen():\n    return 42\ndef missed():\n    return 0\n",
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("tests/test_app.py"),
+        "import app\ndef test_chosen():\n    assert app.chosen() == 42\n",
+    )
+    .unwrap();
+    let text = config(&["python.test", "python.coverage"], "[engines.test]\nchanged_lines=['src/app.py:4']\nmin_changed_line_cov=100.0\nmin_tem_score=5.0\n", &format!("[components.python]\nexecutable={}\ntest_paths=['tests']\n", quoted(&python()))).replace("sources=['app.py']", "source_dirs=['src']\nsources=['src/**/*.py']");
+    write(root.path(), &text);
+    let env = BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]);
+    let result = run(root.path(), &env);
+    assert_eq!(
+        result.result.gate.selected,
+        GateVerdict::Fail,
+        "{:?}",
+        result.outputs
+    );
+    let finding = result
+        .result
+        .findings
+        .iter()
+        .find(|finding| finding.rule_id == "ici.test.coverage.changed-lines")
+        .unwrap();
+    assert_eq!(finding.primary_location.path, "src/app.py");
+    assert_eq!(finding.primary_location.start_line, 4);
+    assert!(
+        result
+            .result
+            .findings
+            .iter()
+            .any(|finding| finding.rule_id == "ici.test.coverage.tem")
+    );
+    assert_eq!(
+        result.outputs["project.python.coverage"].observation.state,
+        TaskState::Succeeded
+    );
+}
+
+#[test]
+#[ignore = "explicit executed test scope baseline fail/skip/pass CLI acceptance"]
+fn skipped_pytest_case_carries_its_baseline_failure_until_it_completes() {
+    use ici_execution::storage;
+    let root = tempfile::tempdir().unwrap();
+    clean_source(root.path());
+    fs::create_dir(root.path().join("tests")).unwrap();
+    let test_file = root.path().join("tests/test_app.py");
+    fs::write(
+        &test_file,
+        "import pytest\ndef test_old():\n    assert False\ndef test_green():\n    assert True\n",
+    )
+    .unwrap();
+    write(
+        root.path(),
+        &config(
+            &["python.test"],
+            "",
+            &format!(
+                "[components.python]\nexecutable={}\ntest_paths=['tests']\n",
+                quoted(&python())
+            ),
+        ),
+    );
+    let env = environment();
+    let first = run(root.path(), &env);
+    assert_eq!(
+        first.result.gate.selected,
+        GateVerdict::Fail,
+        "{:?}",
+        first.outputs
+    );
+    let old = first
+        .result
+        .findings
+        .iter()
+        .find(|finding| finding.rule_id == "pytest.failed")
+        .unwrap();
+    storage::write_result(
+        &root.path().join("baseline.json"),
+        &first.result,
+        storage::WriteMode::CreateNew,
+    )
+    .unwrap();
+    let compared =
+        registry::parse(["ici", "next", "verify", "--baseline", "baseline.json"]).unwrap();
+    fs::write(&test_file, "import pytest\ndef test_old():\n    pytest.skip('temporarily unavailable')\ndef test_green():\n    assert True\n").unwrap();
+    let second = execute::execute(
+        &compared,
+        root.path(),
+        &env,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        second.outputs["project.python.test"].observation.state,
+        TaskState::Succeeded
+    );
+    let comparison = second.result.baseline.as_ref().unwrap();
+    assert!(
+        comparison.carried.contains(&old.fingerprint),
+        "{comparison:?}"
+    );
+    assert!(
+        !comparison.resolved.contains(&old.fingerprint),
+        "{comparison:?}"
+    );
+    fs::write(
+        &test_file,
+        "import pytest\ndef test_old():\n    assert True\ndef test_green():\n    assert True\n",
+    )
+    .unwrap();
+    let third = execute::execute(
+        &compared,
+        root.path(),
+        &env,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let comparison = third.result.baseline.as_ref().unwrap();
+    assert!(
+        comparison.resolved.contains(&old.fingerprint),
+        "{comparison:?}"
+    );
+}

@@ -350,7 +350,7 @@ pub(crate) fn observe_framework(
         ValidationKind::Qtest => crate::cpp::observe_qtest(&suite, &outcomes, &mut measured),
         _ => Err(ValidationError("unsupported sanitizer framework".into())),
     };
-    output.extra["sanitizer_test_evidence"] = json!({"kind":kind,"complete":result.is_ok(),"targets":measured.targets,"findings":measured.observation.findings,"summary":measured.summary});
+    output.extra["sanitizer_test_evidence"] = json!({"kind":kind,"complete":result.is_ok(),"targets":measured.targets,"findings":measured.observation.findings,"summary":measured.summary,"test_outcomes":measured.extra.get("test_outcomes")});
     output.targets.extend(measured.targets);
     output
         .observation

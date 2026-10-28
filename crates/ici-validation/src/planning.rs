@@ -565,7 +565,23 @@ pub(crate) fn relative(path: &str, root: &Path, cwd: &Path) -> Result<String, Va
     } else {
         cwd.join(path)
     };
-    let relative = candidate
+    // Tool locations are often relative to an out-of-source build directory (../main.cpp).
+    // Normalize those lexical coordinates without opening source paths or following symlinks.
+    let mut normalized = std::path::PathBuf::new();
+    for part in candidate.components() {
+        match part {
+            std::path::Component::RootDir => normalized.push(part.as_os_str()),
+            std::path::Component::Normal(value) => normalized.push(value),
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir if normalized.pop() => {}
+            _ => {
+                return Err(ValidationError(format!(
+                    "external validation location {path}"
+                )));
+            }
+        }
+    }
+    let relative = normalized
         .strip_prefix(root)
         .map_err(|_| ValidationError(format!("external validation location {path}")))?
         .to_string_lossy()

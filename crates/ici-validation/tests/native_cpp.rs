@@ -144,7 +144,7 @@ fn qtest_qt5_and_qt6_native_cases_keep_failure_source_location() {
     for qmake in ["ICI_TEST_QMAKE", "ICI_TEST_QMAKE6"] {
         let root = tempfile::tempdir().unwrap();
         fs::write(root.path().join("suite.pro"),"QT += core testlib\nQT -= gui\nCONFIG += console c++17 testcase\nSOURCES += main.cpp\nTARGET = suite\n").unwrap();
-        fs::write(root.path().join("main.cpp"),"#include <QtTest>\nclass Suite: public QObject {\n Q_OBJECT\nprivate slots:\n void green(){QVERIFY(true);}\n void red(){QVERIFY(false);}\n};\nQTEST_GUILESS_MAIN(Suite)\n#include \"main.moc\"\n").unwrap();
+        fs::write(root.path().join("main.cpp"),"#include <QtTest>\nclass Suite: public QObject {\n Q_OBJECT\nprivate slots:\n void green(){QVERIFY(true);}\n void red(){QVERIFY(false);}\n void expected(){QEXPECT_FAIL(\"\", \"known defect\", Continue); QVERIFY(false);}\n void skip(){QSKIP(\"not executed\");}\n};\nQTEST_GUILESS_MAIN(Suite)\n#include \"main.moc\"\n").unwrap();
         let configured = Command::new(required(qmake))
             .arg("suite.pro")
             .current_dir(root.path())
@@ -192,7 +192,23 @@ fn qtest_qt5_and_qt6_native_cases_keep_failure_source_location() {
             output.observation.findings[0].primary_location.start_line,
             6
         );
-        assert_eq!(output.observation.measurements[0].denominator, Some(4));
+        assert_eq!(output.observation.measurements[0].denominator, Some(6));
+        assert_eq!(
+            output.extra["test_outcomes"]["qtest:Suite::red()"],
+            "FAILED"
+        );
+        assert_eq!(
+            output.extra["test_outcomes"]["qtest:Suite::expected()"],
+            "XFAIL"
+        );
+        assert_eq!(
+            output.extra["test_outcomes"]["qtest:Suite::skip()"],
+            "SKIPPED"
+        );
+        assert_eq!(
+            output.extra["test_outcomes"]["qtest:Suite::green()"],
+            "PASSED"
+        );
     }
 }
 #[test]

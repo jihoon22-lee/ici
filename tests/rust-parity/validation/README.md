@@ -281,3 +281,30 @@ missing/escaping artifact refusal). `artifact-compiled-native.log` passed actual
 executable/shared-library packaging and regular SONAME alias consumption, including execution,
 producer-digest mismatch and output collision refusal. Git 2.53.0 was the earlier explicit version
 probe tool. This does not substitute for root C++ build-context orchestration or full R8 closure.
+
+The native CLI now binds explicit TEM/changed-line coverage policy and the deep test-quality
+mutation capability probe, including custom argv and missing-tool behavior. Project test,
+coverage and ResourceWarning suites receive the selected project interpreter directory on PATH
+and configured source roots on PYTHONPATH; runtime/import-only probes retain their own isolation.
+Mutation probes remain optional and never turn missing capability into a code defect. The
+`repeat` and `slow_threshold` aliases use their configured values; inherited defaults are
+normalized in the shared configuration reader before mutually exclusive alias validation.
+
+`cli-quality-policy-native-final.log` passed real source-layout import and selected-runtime PATH
+checks, custom mutation exit 7 with a passing base suite, changed-line coverage, and baseline
+failure -> same-node skip -> completed pass. The skip retains the prior failure as carried; the
+later pass resolves it. `cli-changed-tem-native.log` additionally passed the actual configured
+TEM minimum and changed-line minimum together, preserving the uncovered source line. The
+ordinary read-only alias/missing-probe case and all 31 validation contract tests passed in
+`quality-scope-gates-final.log`, followed by strict CLI/validation Clippy.
+
+CTest and QTest publish explicit per-node outcomes, including disabled/skipped cases. Their
+shared GCOV and sanitizer evidence retains those node maps. `qtest-scope.json` freezes actual
+Qt 5.15.18/6.10.2 output and its test-source SHA: XFAIL is an assertion annotation followed by
+one terminal PASS, so the raw totals count that case once as passed while its baseline node
+remains XFAIL. Contained `../main.cpp` locations from build directories normalize lexically;
+external traversal and missing terminal evidence remain incomplete. `qtest-scope-final.log`
+passed the seven C++ contracts and actual Qt 5/6 suites with failure, expected failure and skip
+(4.92 seconds). The later complete validation gate includes the external-traversal regression.
+These are scoped library/CLI acceptance results; historical baseline coverage regression policy
+and full R8 inventory closure remain separate root-owned work.

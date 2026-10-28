@@ -313,6 +313,7 @@ pub(crate) fn observe_ctest(
     let mut passed = 0;
     let mut total = 0;
     let mut skipped = 0;
+    let mut observed = BTreeMap::new();
     for case in cases.captures_iter(&text) {
         total += 1;
         let verdict = case[2].trim_start_matches('*').trim();
@@ -339,8 +340,20 @@ pub(crate) fn observe_ctest(
                 1,
             ));
         }
+        let node = format!("ctest:{}", &case[1]);
+        let status = match target.status.as_str() {
+            "PASS" => "PASSED",
+            "SKIP" => "SKIPPED",
+            _ => "FAILED",
+        };
+        if observed.insert(node, status).is_some() || observed.len() > 2048 {
+            return Err(ValidationError(
+                "CTest repeats test identities or exceeds 2048 cases".into(),
+            ));
+        }
         output.targets.push(target);
     }
+    output.extra["test_outcomes"] = json!(observed);
     if total > 0 {
         output
             .observation
@@ -392,17 +405,27 @@ pub(crate) fn observe_qtest(
         .expect("constant regex");
     let (mut passed, mut failed, mut skipped) = (0u64, 0u64, 0u64);
     let mut last_failure = None;
+    let mut observed = BTreeMap::new();
+    let mut expected_failures = std::collections::BTreeSet::new();
     for line in text.lines() {
         if let Some(case) = cases.captures(line) {
             let path = source(plan, &case[2]);
             let mut target = InspectionTarget::at(&path, 1);
             target.target_name = case[2].into();
             target.message = case[1].into();
+            if &case[1] == "XFAIL" {
+                // Qt emits XFAIL as an assertion annotation, followed by one terminal case row.
+                expected_failures.insert(format!("qtest:{}", &case[2]));
+                target.status = "SKIP".into();
+                output.targets.push(target);
+                last_failure = None;
+                continue;
+            }
             if &case[1] == "PASS" {
                 passed += 1;
                 target.status = "PASS".into();
                 last_failure = None;
-            } else if matches!(&case[1], "XFAIL" | "SKIP") {
+            } else if &case[1] == "SKIP" {
                 skipped += 1;
                 target.status = "SKIP".into();
                 last_failure = None;
@@ -422,6 +445,23 @@ pub(crate) fn observe_qtest(
                 ));
                 last_failure = Some((index, output.targets.len()));
             }
+            let status = match &case[1] {
+                "PASS" if expected_failures.contains(&format!("qtest:{}", &case[2])) => "XFAIL",
+                "PASS" => "PASSED",
+                "FAIL!" => "FAILED",
+                "SKIP" => "SKIPPED",
+                "XFAIL" => "XFAIL",
+                _ => "XPASS",
+            };
+            if observed
+                .insert(format!("qtest:{}", &case[2]), status)
+                .is_some()
+                || observed.len() > 2048
+            {
+                return Err(ValidationError(
+                    "QTest repeats test identities or exceeds 2048 cases".into(),
+                ));
+            }
             output.targets.push(target);
         } else if let (Some(capture), Some((finding_index, target_index))) =
             (location.captures(line), last_failure)
@@ -435,6 +475,15 @@ pub(crate) fn observe_qtest(
             output.targets[target_index].file_path = path;
             output.targets[target_index].start_line = line;
         }
+    }
+    output.extra["test_outcomes"] = json!(observed);
+    if expected_failures
+        .iter()
+        .any(|node| !observed.contains_key(node))
+    {
+        return Err(ValidationError(
+            "QTest expected-failure annotation has no terminal case evidence".into(),
+        ));
     }
     let total = passed + failed + skipped;
     if total > 0 {

@@ -75,6 +75,18 @@ fn ctest_partial_skipped_and_missing_terminal_counts_are_distinct_from_failures(
         );
         assert_eq!(output.observation.state, state, "{output:?}");
         assert_eq!(output.observation.findings.len(), findings);
+        if text.starts_with("1/1") {
+            assert_eq!(
+                output.extra["test_outcomes"]["ctest:suite"],
+                if text.contains("Passed") {
+                    "PASSED"
+                } else if text.contains("Disabled") {
+                    "SKIPPED"
+                } else {
+                    "FAILED"
+                }
+            );
+        }
     }
 }
 #[test]
@@ -98,6 +110,14 @@ fn qtest_retains_following_failure_location_and_validates_totals() {
         "src/suite.cpp"
     );
     assert_eq!(output.observation.measurements[0].denominator, Some(3));
+    assert_eq!(
+        output.extra["test_outcomes"]["qtest:Suite::red()"],
+        "FAILED"
+    );
+    assert_eq!(
+        output.extra["test_outcomes"]["qtest:Suite::initTestCase()"],
+        "PASSED"
+    );
     let bad = text.replace("2 passed", "9 passed");
     assert_eq!(
         observe(
@@ -357,6 +377,75 @@ fn ctest_sanitizers_bind_inventory_executables_and_all_instrumentation_before_su
                 .observation
                 .state,
             TaskState::Failed
+        );
+    }
+}
+
+#[test]
+fn measured_qt5_qt6_expected_failure_annotations_keep_terminal_counts_and_partial_nodes() {
+    let document: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/validation/qtest-scope.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        sha256(document["source"].as_str().unwrap()),
+        document["source_sha256"]
+    );
+    for observation in document["observations"].as_array().unwrap() {
+        let root = tempfile::tempdir().unwrap();
+        let mut request = request(root.path(), ValidationKind::Qtest);
+        request.cwd = root.path().join("qt");
+        request.source_files = vec!["main.cpp".into()];
+        let planned = plan(&request).unwrap();
+        let id = &planned.tasks[0].id;
+        let output = observe(
+            &planned,
+            &BTreeMap::from([(
+                id.clone(),
+                outcome(id, observation["stdout"].as_str().unwrap(), "", 2),
+            )]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{observation:?}: {output:?}"
+        );
+        assert_eq!(output.observation.measurements[0].numerator, Some(4));
+        assert_eq!(output.observation.measurements[0].denominator, Some(7));
+        assert_eq!(output.observation.findings.len(), 2);
+        for finding in &output.observation.findings {
+            assert_eq!(finding.primary_location.path, "main.cpp");
+        }
+        for (node, expected) in observation["expected"]["outcomes"].as_object().unwrap() {
+            assert_eq!(&output.extra["test_outcomes"][node], expected);
+        }
+        let missing_terminal = observation["stdout"]
+            .as_str()
+            .unwrap()
+            .replace("PASS   : Suite::expected()\n", "");
+        let missing = observe(
+            &planned,
+            &BTreeMap::from([(id.clone(), outcome(id, &missing_terminal, "", 2))]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(missing.observation.state, TaskState::Failed);
+        let external = observation["stdout"]
+            .as_str()
+            .unwrap()
+            .replace("../main.cpp", "../../../outside.cpp");
+        let external = observe(
+            &planned,
+            &BTreeMap::from([(id.clone(), outcome(id, &external, "", 2))]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(external.observation.state, TaskState::Failed);
+        assert!(
+            external
+                .observation
+                .limitations
+                .iter()
+                .any(|limit| limit.contains("external validation location"))
         );
     }
 }
