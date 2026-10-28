@@ -829,7 +829,7 @@ fn integration_plans(
                 let tool = match kind {
                     "python" => match targets.get(identity) {
                         Some(tool) => tool.clone(),
-                        None if identity == "current" => {
+                        None if matches!(identity, "current" | "declared") => {
                             project_python(project, component, &cwd, environment)?
                         }
                         None => return Err(format!("unknown Python target {identity:?}")),
@@ -979,23 +979,37 @@ fn integration_python_targets(
                 .as_str()
                 .filter(|value| !value.is_empty())
                 .ok_or_else(|| format!("integration Python target {name:?} must be a path"))?;
-            let path = if Path::new(configured).is_absolute() {
-                PathBuf::from(configured)
-            } else {
-                project.root.join(configured)
-            };
-            let tool = ToolRequest {
-                id: "python".into(),
-                explicit: Some(path),
-                project_root: project.root.clone(),
-                pack_root: None,
-                path_env: environment.get("PATH").cloned(),
-            }
-            .resolve()
-            .map_err(|failure| format!("integration Python target {name:?}: {failure}"))?;
+            let tool = integration_executable(&project.root, configured, environment)
+                .map_err(|failure| format!("integration Python target {name:?}: {failure}"))?;
             Ok((name.clone(), tool))
         })
         .collect()
+}
+fn integration_executable(
+    cwd: &Path,
+    configured: &str,
+    environment: &BTreeMap<String, String>,
+) -> Result<ResolvedTool, String> {
+    let explicit = configured.contains('/').then(|| {
+        if Path::new(configured).is_absolute() {
+            PathBuf::from(configured)
+        } else {
+            cwd.join(configured)
+        }
+    });
+    ToolRequest {
+        id: if explicit.is_some() {
+            "integration-executable".into()
+        } else {
+            configured.into()
+        },
+        explicit,
+        project_root: cwd.into(),
+        pack_root: None,
+        path_env: Some(environment.get("PATH").cloned().unwrap_or_default()),
+    }
+    .resolve()
+    .map_err(|failure| failure.to_string())
 }
 fn integration_artifact(
     project: &ResolvedProject,
@@ -1025,6 +1039,14 @@ fn integration_artifact(
             .iter()
             .find(|build| build.id == build_id)
             .ok_or_else(|| format!("artifact references undeclared build {build_id:?}"))?;
+        if component.build.as_deref() != Some(build_id)
+            && !component.needs.iter().any(|need| need == build_id)
+        {
+            return Err(format!(
+                "integration artifact build {build_id:?} is not linked to component {:?}",
+                component.id
+            ));
+        }
         ici_domain::validation::relative_path(path, false)
             .map_err(|failure| failure.to_string())?;
         let directory = build.directory.as_deref().unwrap_or(".");

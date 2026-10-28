@@ -221,7 +221,7 @@ fn integration_case_uses_declared_environment_nonzero_exit_streams_and_fresh_out
     fs::write(root.path().join("contract.py"), script).unwrap();
     let extra = "[builds.payload]\ndirectory='dist'\nartifacts=['payload.txt']\n";
     let component = format!(
-        "[[components.integrations]]\nname='declared process'\nargv=['{{python:current}}','contract.py','{{artifact:payload/payload.txt}}']\nexpected_exit=3\nstdout_contains=['hello configured']\nstderr_contains=['notice']\nstdout_not_contains=['forbidden']\nstderr_not_contains=['failure']\ninherit_env=['ICI_VISIBLE_MARKER']\noutput_artifacts=[{{path='result.txt',min_size=5}}]\n[components.integrations.env]\nVALUE='configured'\n[components.python]\nexecutable={}\n",
+        "build='payload'\n[[components.integrations]]\nname='declared process'\nargv=['{{python:current}}','contract.py','{{artifact:payload/payload.txt}}']\nexpected_exit=3\nstdout_contains=['hello configured']\nstderr_contains=['notice']\nstdout_not_contains=['forbidden']\nstderr_not_contains=['failure']\ninherit_env=['ICI_VISIBLE_MARKER']\noutput_artifacts=[{{path='result.txt',min_size=5}}]\n[components.integrations.env]\nVALUE='configured'\n[components.python]\nexecutable={}\n",
         quoted(&python())
     );
     write(root.path(), &config(&["integration"], extra, &component));
@@ -309,7 +309,7 @@ fn declared_native_artifact_runs_without_any_project_python_fallback() {
     clean_source(root.path());
     fs::create_dir(root.path().join("dist")).unwrap();
     fs::copy("/usr/bin/true", root.path().join("dist/app")).unwrap();
-    let component = "[[components.integrations]]\nname='native artifact'\nargv=['{artifact:release/app}']\n[components.python]\nexecutable='missing-unused-python'\n";
+    let component = "build='release'\n[[components.integrations]]\nname='native artifact'\nargv=['{artifact:release/app}']\n[components.python]\nexecutable='missing-unused-python'\n";
     write(
         root.path(),
         &config(
