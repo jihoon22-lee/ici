@@ -76,6 +76,7 @@ EXPECTED_DOCUMENTS = (
     "adr/0005-tem-formula-freeze.md",
     "adr/0006-runtime-selection.md",
     "adr/0007-project-test-provider.md",
+    "adr/0008-rust-native-replacement.md",
     "spikes/wp01-runtime-environment.md",
 )
 

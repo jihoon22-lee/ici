@@ -1,0 +1,10 @@
+[package]
+name = "ici-parser-spike"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+ruff_python_parser = { path = "../ruff/crates/ruff_python_parser" }
+ruff_python_ast = { path = "../ruff/crates/ruff_python_ast", features = ["serde"] }
+ruff_text_size = { path = "../ruff/crates/ruff_text_size" }
+serde_json = "1.0"

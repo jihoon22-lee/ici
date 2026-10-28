@@ -197,3 +197,30 @@ uvx ruff format --check .
 `analyze`는 공통 next application을 사용하고 테스트·배포를 기본 실행하지 않는다.
 설치 단계는 네트워크를 사용할 수 있으나 분석 중 암묵적 도구 설치는 하지 않는다.
 기존 pyz 소비자와 `verify` 호환은 검증 근거 없이 제거하지 않는다.
+
+
+## 10. 2026-10-28 승인된 Rust 단일 제품 전환
+
+[실행 계획](docs/design/rust-replacement-execution-plan.md) R0–R9와
+[ADR-0008](docs/design/ici-next/adr/0008-rust-native-replacement.md)이 이 전환의 규범이다.
+사용자가 구현·검증·문서·PR/병합·공개·정리를 승인했다. §9의 Python package 주 경로,
+ADR-0001의 Python core 유지, ADR-0002의 embedded CPython bundle은 새 Rust 제품에 대해
+대체한다. 기존 Python 제품과 과거 공개 artifact의 역사적 계약은 유지한다.
+
+- 전환 중 `src/ici` 및 Python 배포 경로에는 기존 §3/4/6을 계속 적용한다. R8 인수 전
+  기존 gate를 삭제/완화하지 않는다. Rust 소스에는 Python 버전/순수 wheel/pyz 제약을 적용하지 않는다.
+- R9 단일 cutover 후 제품 코드·진입점·자체 분석·report·publish·설치는 Rust다.
+  ici 소유 Python worker/backend, embedded CPython, Python fallback은 배포하지 않는다.
+  Rust launcher만으로 Python 제품을 감싼 구현은 완료가 아니다.
+- Rust gate는 고정 toolchain의 `cargo fmt --all -- --check`,
+  `cargo clippy --workspace --all-targets --locked -- -D warnings`,
+  `cargo test --workspace --locked`와 실제 도구/기능 원장별 corpus 및 배포 검증이다.
+  Python gate 제거는 대응 Rust 기능/실제 검증이 모두 닫힌 R9에서만 한다.
+- 시스템/사설 CA·proxy 지원을 유지한다. Rust transport 사용은 허용하되 루트 저장소를
+  임의 대체하거나 TLS 검증을 끄지 않는다. no-root·Zero-CDN·위치/범위/증거 분리·원본 보존 유지.
+- 프로젝트 Python/pytest/coverage/mypy는 외부 검사 도구다. 허용된 제한 probe는
+  ADR-0008의 목록만 사용하고 자체 AST/규칙 계산을 Python에 위임하지 않는다.
+- 19 descriptor + 36 check + 명령/옵션/config/report/비검사 기능 전체 원장의 미판정·회귀·누락이
+  없어야 R8 완료다. 테스트 개수나 부분 parser/provider 구현은 parity 근거가 아니다.
+- 무거운 작업은 공유 `flock /tmp/paseo-products-20261028-heavy.lock`과 jobs/thread 상한 2를
+  사용한다. 다른 제품 코드·사용자 자료·공유 cache는 수정/삭제하지 않는다. lock은 부모가 정리한다.

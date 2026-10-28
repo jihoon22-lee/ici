@@ -1,0 +1,97 @@
+{
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "python": "Python 3.10.21",
+  "runs": [
+    {
+      "name": "plan",
+      "argv": [
+        "analyze",
+        "--plan",
+        "--json"
+      ],
+      "exit": 0,
+      "wall_seconds": 0.33,
+      "peak_rss_kib": 39724,
+      "stdout_bytes": 1878,
+      "stderr": "root: <PROJECT>\nscope: components=project languages=python profile=fast\n"
+    },
+    {
+      "name": "doctor",
+      "argv": [
+        "next",
+        "doctor",
+        "--json"
+      ],
+      "exit": 0,
+      "wall_seconds": 0.34,
+      "peak_rss_kib": 39592,
+      "stdout_bytes": 1442,
+      "stderr": "root: <PROJECT>\nscope: components=project languages=python profile=fast\nproject (python):\n  python.line: selected \u2014 runs in-process (ici)\n  python.lint: selected \u2014 ruff at /home/jihoon/projects/ici/.venv/bin/ruff (PATH, 0.16.4)\n  python.format: selected \u2014 ruff at /home/jihoon/projects/ici/.venv/bin/ruff (PATH, 0.16.4)\n  python.type: selected \u2014 runs in-process (ici)\n  python.test: selected \u2014 runs in-process (ici)\n  python.coverage: selected \u2014 runs in-process (ici)\n  python.complexity: selected \u2014 runs in-process (ici)\n  python.cognitive: selected \u2014 runs in-process (ici)\n  python.cycle: selected \u2014 runs in-process (ici)\n  python.dup: selected \u2014 runs in-process (ici)\n  python.security: selected \u2014 runs in-process (ici)\n  python.resource: selected \u2014 runs in-process (ici)\n  python.exception: selected \u2014 runs in-process (ici)\n  python.dead: selected \u2014 runs in-process (ici)\n  python.compat: selected \u2014 runs in-process (ici)\n  python.compat-runtime: selected \u2014 runs in-process (ici)\n"
+    },
+    {
+      "name": "analyze-cold",
+      "argv": [
+        "analyze",
+        "--json",
+        "--events",
+        "events.jsonl",
+        "--result",
+        "result.json"
+      ],
+      "exit": 0,
+      "wall_seconds": 1.06,
+      "peak_rss_kib": 88260,
+      "stdout_bytes": 7025,
+      "stderr": "root: <PROJECT>\nscope: components=project languages=python profile=fast\n"
+    },
+    {
+      "name": "analyze-warm",
+      "argv": [
+        "analyze",
+        "--json",
+        "--events",
+        "events.jsonl",
+        "--result",
+        "result.json"
+      ],
+      "exit": 0,
+      "wall_seconds": 0.46,
+      "peak_rss_kib": 49476,
+      "stdout_bytes": 7025,
+      "stderr": "root: <PROJECT>\nscope: components=project languages=python profile=fast\n"
+    },
+    {
+      "name": "report",
+      "argv": [
+        "report",
+        "--result",
+        "result.json",
+        "--out",
+        "report.html"
+      ],
+      "exit": 0,
+      "wall_seconds": 0.31,
+      "peak_rss_kib": 39664,
+      "stdout_bytes": 43,
+      "stderr": ""
+    },
+    {
+      "name": "publish-unconfigured",
+      "argv": [
+        "next",
+        "publish",
+        "--result",
+        "result.json",
+        "--out",
+        "report.html"
+      ],
+      "exit": 2,
+      "wall_seconds": 0.31,
+      "peak_rss_kib": 39476,
+      "stdout_bytes": 90,
+      "stderr": ""
+    }
+  ],
+  "html_bytes": 6900,
+  "result_bytes": 7024
+}
