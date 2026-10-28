@@ -166,3 +166,54 @@ fn one_real_failing_suite_still_feeds_owned_coverage_and_preserves_source_facts(
         fixed.result.checks
     );
 }
+
+#[test]
+#[ignore = "explicit project Python runtime+pytest acceptance independent of core decoder"]
+fn unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests() {
+    let (directory, environment) = fixture(false);
+    let source = directory.path().join("src/app.py");
+    let old = fs::read_to_string(&source).unwrap();
+    fs::write(source, format!("# coding: utf-7\n{old}")).unwrap();
+    let config = directory.path().join("ici.toml");
+    let text = fs::read_to_string(&config).unwrap().replace(
+        "[checks.\"python.coverage\"]\nenabled=true",
+        "[checks.\"python.coverage\"]\nenabled=false",
+    );
+    fs::write(config, text).unwrap();
+    let run = execute::execute(
+        &registry::parse(["ici", "next", "verify"]).unwrap(),
+        directory.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        run.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        run.outputs
+    );
+    assert_eq!(
+        run.outputs["project.python.test"].observation.state,
+        TaskState::Succeeded
+    );
+    assert_eq!(
+        run.outputs["project.python.compat-runtime"]
+            .observation
+            .state,
+        TaskState::Succeeded
+    );
+    assert!(
+        run.result
+            .limitations
+            .iter()
+            .any(|limitation| limitation.contains("source geometry unavailable"))
+    );
+    assert!(
+        run.outputs["project.python.compat-runtime"]
+            .targets
+            .iter()
+            .any(|target| target.file_path == "src/app.py" && target.status == "PASS")
+    );
+}

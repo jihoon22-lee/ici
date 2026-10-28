@@ -408,3 +408,9 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 - `domain-reader-strict.log` passed domain tests, strict Clippy and fmt after rejecting unknown
   nested saved-run fields. Full C++ validation/tidy/compiler facets and full R8 acceptance remain
   separate work; this checkpoint does not close the inventory.
+
+- `cli-independent-runtime-final.log`: both explicit CLI Python acceptance cases passed in
+  24.62 seconds using project CPython 3.10.21/pytest 9.1.1/coverage 7.15.4. A source encoding
+  unsupported by the core decoder limits source geometry but does not suppress independently
+  completed runtime/import/test evidence. The test also retains failing-suite/shared-coverage
+  then fixed-baseline behavior; Python remains an external project tool.
