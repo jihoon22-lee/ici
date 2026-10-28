@@ -155,3 +155,27 @@ It uses Python only as a development test driver. The shipped archive and all
 observed product subprocesses remain native executables. Static compilation and
 these host measurements do not establish untested kernels, older CPUs or other
 architectures.
+
+The local publication corpus runs the native CLI against an ephemeral HTTPS
+GitHub/GHES fixture. Its six actual cases passed: rejection of the private CA
+without trust, trusted GHES API-prefix upload/comment creation, GitHub-style
+API-root upload/comment update, HTTP 403, malformed API JSON and a comment failure
+after a successful page upload. It verifies the named token and API headers,
+base64 page bytes and sticky-comment metadata. Every case preserves the exact
+saved analysis and page bytes; failures write a separate `FAILED` publication
+record. The saved failing gate remains failing when publication succeeds.
+
+```sh
+cargo build -p ici-cli --bin ici --locked
+.venv/bin/python tests/rust-parity/distribution/verify_publish.py \
+  target/debug/ici --evidence EVIDENCE_DIRECTORY
+```
+
+The measured development executable SHA-256 was
+`4abb81d9f95b602e87f98f1258801dca28c8bebd4bff4a37a639d0a9116e04cb`.
+Every trace contained only that native executable and loopback connections. A
+local deny proxy prevented external destinations and received no requests.
+Credentials and private response bodies were absent from command output and
+publication records. The temporary CA private keys were removed after the run.
+This is actual development-binary publication evidence, separate from final
+frozen-source artifact acceptance and the complete feature ledger.
