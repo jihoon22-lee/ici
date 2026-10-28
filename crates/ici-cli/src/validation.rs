@@ -696,6 +696,9 @@ pub fn internal(
     check_id: &str,
     task_id: &str,
 ) -> Option<ici_domain::AnalysisOutput> {
+    if matches!(check_id, "cpp.binary-compat" | "python.binary-compat") {
+        return crate::cpp_validation::internal_binary(project, component, check_id, task_id);
+    }
     if check_id != "integration" || !empty_optional_integration(project, component) {
         return None;
     }

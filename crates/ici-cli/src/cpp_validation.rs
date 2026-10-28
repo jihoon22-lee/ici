@@ -36,9 +36,17 @@ pub fn bind(
         "cpp.coverage" => ValidationKind::Gcov,
         "cpp.sanitize" => ValidationKind::Sanitizer,
         "cpp.tsan" => ValidationKind::ThreadSanitizer,
-        "cpp.binary-compat" => ValidationKind::BinaryCompatibility,
+        "cpp.binary-compat" | "python.binary-compat" => ValidationKind::BinaryCompatibility,
         _ => return None,
     };
+    if kind == ValidationKind::BinaryCompatibility {
+        return Some(
+            match bind_binary(project, component, check, id, environment, run_label) {
+                Ok(bound) => bound,
+                Err(reason) => blocked(reason),
+            },
+        );
+    }
     Some(
         match bind_inner(
             project,
@@ -53,6 +61,149 @@ pub fn bind(
             Err(reason) => blocked(reason),
         },
     )
+}
+fn bind_binary(
+    project: &ResolvedProject,
+    component: &Component,
+    check: &CheckDefinition,
+    id: &str,
+    environment: &BTreeMap<String, String>,
+    run_label: &str,
+) -> Result<BoundCppValidation, String> {
+    if internal_binary(project, component, &check.id, id).is_some() {
+        return Ok(BoundCppValidation {
+            work: Work::Internal,
+            plans: vec![],
+            tools: BTreeMap::new(),
+        });
+    }
+    let scope=abi_scope(project,component)?.ok_or("binary compatibility requires existing verified published or declared artifacts; prepare the declared producer first")?;
+    if scope.targets.is_empty() {
+        return Err("no existing executable/shared-library artifact targets; prepare the declared producer first".into());
+    }
+    let build = crate::cpp::linked_build(project, component);
+    let directory = build
+        .map(|build| crate::files::under(&project.root, build.directory.as_deref().unwrap_or(".")))
+        .filter(|directory| directory.is_dir())
+        .unwrap_or_else(|| project.root.clone());
+    regular_directory(&project.root, &directory)?;
+    let tool = resolve(project, environment, "readelf", None, &directory)?;
+    let cfg = component
+        .settings
+        .pointer("/engines/binary_compat")
+        .cloned()
+        .unwrap_or_default();
+    let request = ValidationRequest {
+        kind: ValidationKind::BinaryCompatibility,
+        task_id: id.into(),
+        component_id: component.id.clone(),
+        root: project.root.clone(),
+        cwd: directory.clone(),
+        owned_run_dir: project
+            .root
+            .join(".ici/rust-v1/runs")
+            .join(run_label)
+            .join(&component.id)
+            .join("binary"),
+        tool: tool.clone(),
+        targets: scope.targets,
+        source_files: vec![],
+        functions: vec![],
+        options: ValidationOptions {
+            build_dir: build.map(|_| directory.clone()),
+            build_roots: vec![project.root.clone(), directory],
+            elf_policy: policy(&cfg)?,
+            allow_non_elf: cfg
+                .get("allow_non_elf")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+            max_artifacts: cfg
+                .get("max_artifacts")
+                .and_then(Value::as_u64)
+                .unwrap_or(64) as usize,
+            ..Default::default()
+        },
+    };
+    let mut plan = ici_validation::plan(&request).map_err(|error| error.to_string())?;
+    for task in &mut plan.tasks {
+        task.analysis_unit_ids = vec![format!("{}.{}", component.id, check.language)];
+        task.work_dirs
+            .push(request.owned_run_dir.to_string_lossy().into_owned());
+    }
+    Ok(BoundCppValidation {
+        work: Work::steps(plan.tasks.clone(), false),
+        plans: vec![plan],
+        tools: BTreeMap::from([(format!("{}:readelf", component.id), tool)]),
+    })
+}
+/// No applicable artifact kinds is independent of missing required artifacts or tool failure.
+pub fn internal_binary(
+    project: &ResolvedProject,
+    component: &Component,
+    check_id: &str,
+    task_id: &str,
+) -> Option<ici_domain::AnalysisOutput> {
+    if !matches!(check_id, "cpp.binary-compat" | "python.binary-compat") {
+        return None;
+    }
+    let definition = ici_domain::builtin_catalog()
+        .checks
+        .into_iter()
+        .find(|check| check.id == check_id)
+        .unwrap_or_else(|| CheckDefinition {
+            id: check_id.into(),
+            title: "Published binary ABI compatibility".into(),
+            language: "python".into(),
+            tool: None,
+            required: false,
+            profiles: vec![ici_domain::Profile::Deep],
+            needs: vec![],
+            provides: vec![],
+            is_static: false,
+        });
+    if ici_application::plan::configured_check(project, component, &definition).1 {
+        return None;
+    }
+    let scope = abi_scope(project, component).ok()?;
+    let paths = match scope {
+        Some(scope)
+            if scope.implicit && scope.targets.is_empty() && !scope.artifacts.is_empty() =>
+        {
+            scope.artifacts
+        }
+        None if check_id == "python.binary-compat"
+            && crate::cpp::linked_build(project, component).is_none() =>
+        {
+            vec!["ici.toml".into()]
+        }
+        _ => return None,
+    };
+    let mut output = ici_domain::AnalysisOutput::new(task_id, "binarycompat");
+    output.status = "SKIP".into();
+    output.summary =
+        "Binary compatibility not applicable: no selected executable or shared-library artifacts"
+            .into();
+    for path in paths {
+        let mut target = ici_domain::InspectionTarget::at(path, 1);
+        target.target_name = "BinaryCompatibility:NotApplicable".into();
+        target.status = "SKIP".into();
+        target.message = "No executable or shared-library manifest artifacts were selected".into();
+        output.targets.push(target);
+    }
+    output
+        .observation
+        .measurements
+        .push(ici_domain::Measurement {
+            name: "applicability".into(),
+            value: 0.0,
+            evidence: ici_domain::EvidenceLevel::NotApplicable,
+            unit: "checks".into(),
+            numerator: None,
+            denominator: None,
+        });
+    output.extra["elf"] =
+        serde_json::json!({"state":"NOT_APPLICABLE","artifacts_checked":0,"facts":[]});
+    Some(output)
 }
 fn bind_inner(
     project: &ResolvedProject,
@@ -86,16 +237,7 @@ fn bind_inner(
         .ok_or_else(|| "C++ runtime checks require a declared component build".to_string())?;
     let directory = crate::files::under(&project.root, build.directory.as_deref().unwrap_or("."));
     regular_directory(&project.root, &directory)?;
-    let artifacts = if kind == ValidationKind::BinaryCompatibility {
-        abi_inventory(project, component, build)?
-            .into_iter()
-            .map(|(_, path)| path)
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect()
-    } else {
-        declared_artifacts(project, component, build)?
-    };
+    let artifacts = declared_artifacts(project, component, build)?;
     let sources: Vec<_> = component
         .files
         .iter()
@@ -150,29 +292,6 @@ fn bind_inner(
     };
     let mut plans = vec![];
     match kind {
-        ValidationKind::BinaryCompatibility => {
-            let cfg = component
-                .settings
-                .pointer("/engines/binary_compat")
-                .cloned()
-                .unwrap_or_default();
-            request.targets = abi_scope(project, component)?
-                .ok_or("binary compatibility requires an existing declared build")?
-                .targets;
-            if request.targets.is_empty() {
-                return Err("no existing executable/shared-library artifact targets; prepare the declared build first".into());
-            }
-            request.options.elf_policy = policy(&cfg)?;
-            request.options.allow_non_elf = cfg
-                .get("allow_non_elf")
-                .and_then(Value::as_bool)
-                .unwrap_or(false);
-            request.options.max_artifacts = cfg
-                .get("max_artifacts")
-                .and_then(Value::as_u64)
-                .unwrap_or(64) as usize;
-            tools.insert(format!("{}:readelf", component.id), request.tool.clone());
-        }
         ValidationKind::Gcov => {
             let mut suite = request.clone();
             suite.task_id = format!("{id}.tests");
@@ -454,47 +573,83 @@ pub(crate) fn abi_scope(
     project: &ResolvedProject,
     component: &Component,
 ) -> Result<Option<AbiScope>, String> {
-    let Some(build) = crate::cpp::linked_build(project, component) else {
-        return Ok(None);
-    };
-    let directory = crate::files::under(&project.root, build.directory.as_deref().unwrap_or("."));
-    if !directory.exists() {
-        return Ok(None);
+    let build = crate::cpp::linked_build(project, component);
+    let mut records = Vec::new();
+    let mut build_present = false;
+    if let Some(build) = build {
+        let directory =
+            crate::files::under(&project.root, build.directory.as_deref().unwrap_or("."));
+        if directory.exists() {
+            regular_directory(&project.root, &directory)?;
+            build_present = true;
+            for (alias, path) in abi_inventory(project, component, build)? {
+                let eligible = linked_elf_header(&project.root.join(&path))?;
+                records.push((alias, path, eligible));
+            }
+        }
     }
-    regular_directory(&project.root, &directory)?;
-    let inventory = abi_inventory(project, component, build)?;
-    if inventory.len() > 4096 {
-        return Err("declared ABI inventory exceeds 4096 records".into());
+    for (path, kind) in crate::artifact_build::published_artifacts(&project.root)? {
+        let eligible = matches!(kind.as_str(), "executable" | "shared-library");
+        records.push((path.clone(), path, eligible));
     }
-    let artifacts = inventory
+    for (path, _) in crate::artifact_build::declared_artifacts(project, component)? {
+        regular_file(&project.root, &project.root.join(&path))?;
+        records.push((path.clone(), path, false));
+    }
+    let cfg = component.settings.pointer("/engines/binary_compat");
+    let selected = strings(cfg.and_then(|cfg| cfg.get("artifacts")));
+    let mut aliases = BTreeMap::new();
+    for (alias, path, _) in &records {
+        if let Some(prior) = aliases.insert(alias, path)
+            && prior != path
+        {
+            return Err(format!(
+                "ABI artifact alias {alias:?} resolves to conflicting published paths"
+            ));
+        }
+    }
+    let artifacts = records
         .iter()
-        .map(|(_, path)| path.clone())
+        .map(|(_, path, _)| path.clone())
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
-    let cfg = component.settings.pointer("/engines/binary_compat");
-    let selected = strings(cfg.and_then(|cfg| cfg.get("artifacts")));
+    if artifacts.len() > 4096 {
+        return Err("declared ABI inventory exceeds 4096 records".into());
+    }
+    if artifacts.is_empty() && !build_present && selected.is_empty() {
+        return Ok(None);
+    }
     let mut targets = BTreeSet::new();
     if selected.is_empty() {
-        for path in &artifacts {
-            if linked_elf_header(&project.root.join(path))? {
-                targets.insert(path.clone());
-            }
-        }
+        targets.extend(
+            records
+                .iter()
+                .filter(|(_, _, eligible)| *eligible)
+                .map(|(_, path, _)| path.clone()),
+        );
     } else {
         for value in &selected {
-            let matched = inventory
+            let canonical = value.strip_prefix("release:project:");
+            let matched = records
                 .iter()
-                .filter(|(declared, path)| {
-                    artifact_matches(build, declared, value) || artifact_matches(build, path, value)
+                .filter(|(alias, path, _)| {
+                    value == alias
+                        || value == path
+                        || canonical
+                            .is_some_and(|canonical| canonical == alias || canonical == path)
+                        || build.is_some_and(|build| {
+                            artifact_matches(build, alias, value)
+                                || artifact_matches(build, path, value)
+                        })
                 })
                 .collect::<Vec<_>>();
             if matched.is_empty() {
                 return Err(format!(
-                    "configured ABI artifact {value:?} is not an existing declared artifact"
+                    "configured ABI artifact {value:?} is not an existing verified published or declared artifact"
                 ));
             }
-            targets.extend(matched.into_iter().map(|(_, path)| path.clone()));
+            targets.extend(matched.into_iter().map(|(_, path, _)| path.clone()));
         }
     }
     Ok(Some(AbiScope {

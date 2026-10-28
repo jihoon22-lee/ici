@@ -920,31 +920,48 @@ echo "[ici Env] Loaded release environment from ${FULL_DIR}"
 /// Exclude only complete, unchanged native package records from future broad source discovery.
 /// This neither deletes stale artifacts nor trusts a version-shaped directory by its name.
 pub fn owned_outputs(root: &Path) -> Result<BTreeSet<String>, String> {
-    verified_outputs(root, true)
+    Ok(verified_publication(root)?.owned)
 }
 
 /// Active published members, including unchanged user files, after complete manifest verification.
 /// Retired files and ownership records are not currently published artifacts.
 pub fn published_outputs(root: &Path) -> Result<BTreeSet<String>, String> {
-    verified_outputs(root, false)
+    Ok(verified_publication(root)?.published.into_keys().collect())
 }
 
+/// Active artifact kinds accompany the same complete manifest verification as source exclusion.
+pub fn published_artifacts(root: &Path) -> Result<BTreeMap<String, String>, String> {
+    Ok(verified_publication(root)?.published)
+}
+/// Typed declarations retain their producer kind; membership never comes from filename guesses.
+pub fn declared_artifacts(
+    project: &ResolvedProject,
+    component: &Component,
+) -> Result<BTreeMap<String, String>, String> {
+    declarations::Declarations::collect(project, component)?.select(&[], true)
+}
 /// Existing files selected by typed configuration declarations, using their canonical identities.
 pub fn declared_outputs(
     project: &ResolvedProject,
     component: &Component,
 ) -> Result<BTreeSet<String>, String> {
-    Ok(declarations::Declarations::collect(project, component)?
-        .select(&[], true)?
+    Ok(declared_artifacts(project, component)?
         .into_keys()
         .collect())
 }
 
-fn verified_outputs(root: &Path, only_owned: bool) -> Result<BTreeSet<String>, String> {
+#[derive(Default)]
+struct VerifiedPublication {
+    owned: BTreeSet<String>,
+    published: BTreeMap<String, String>,
+}
+fn verified_publication(root: &Path) -> Result<VerifiedPublication, String> {
     let directory = root.join(".ici/rust-v1/python-artifacts");
     let metadata = match std::fs::symlink_metadata(&directory) {
         Ok(metadata) => metadata,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeSet::new()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(VerifiedPublication::default());
+        }
         Err(error) => return Err(error.to_string()),
     };
     if !metadata.is_dir()
@@ -964,8 +981,9 @@ fn verified_outputs(root: &Path, only_owned: bool) -> Result<BTreeSet<String>, S
         return Err("Python artifact ownership inventory exceeds 128 manifests".into());
     }
     entries.sort_by_key(|entry| entry.file_name());
-    let mut outputs = BTreeSet::new();
+    let mut outputs = VerifiedPublication::default();
     let mut total_bytes = 0usize;
+    let mut total_records = 0usize;
     for entry in entries {
         if entry
             .path()
@@ -1025,7 +1043,10 @@ fn verified_outputs(root: &Path, only_owned: bool) -> Result<BTreeSet<String>, S
         total_bytes = total_bytes
             .checked_add(snapshot.total_bytes)
             .ok_or_else(|| "Python artifact ownership inventory overflow".to_string())?;
-        if total_bytes > 512 * 1024 * 1024 || outputs.len().saturating_add(paths.len()) > 8192 {
+        total_records = total_records
+            .checked_add(paths.len())
+            .ok_or("artifact inventory count overflow")?;
+        if total_bytes > 512 * 1024 * 1024 || total_records > 8192 {
             return Err("Python artifact ownership inventory exceeds 512 MiB or 8192 files".into());
         }
         for (path, record) in manifest.files.iter().chain(&manifest.retired_files) {
@@ -1040,18 +1061,21 @@ fn verified_outputs(root: &Path, only_owned: bool) -> Result<BTreeSet<String>, S
                 ));
             }
         }
-        if only_owned {
-            outputs.extend(
-                manifest
-                    .files
-                    .into_iter()
-                    .chain(manifest.retired_files)
-                    .filter_map(|(path, record)| record.owned.then_some(path)),
-            );
-            outputs.insert(manifest_path);
-        } else {
-            outputs.extend(manifest.files.into_keys());
+        for (path, record) in &manifest.files {
+            if let Some(prior) = outputs.published.insert(path.clone(), record.kind.clone())
+                && prior != record.kind
+            {
+                return Err("published artifact kinds disagree across ownership manifests".into());
+            }
         }
+        outputs.owned.extend(
+            manifest
+                .files
+                .into_iter()
+                .chain(manifest.retired_files)
+                .filter_map(|(path, record)| record.owned.then_some(path)),
+        );
+        outputs.owned.insert(manifest_path);
     }
     Ok(outputs)
 }

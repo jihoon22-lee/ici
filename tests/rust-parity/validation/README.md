@@ -418,3 +418,22 @@ CLI/validation Clippy (10.45s). `validation-flatmetrics-gcov-ready.log` passed a
 CTest/gcov counts, source axes and TEM (1.00s), followed by strict Clippy. The native gcov fixture
 now plans before executing its producer, preserving the preexisting-counter refusal contract.
 Legacy multi-check JSON/HTML projection has separate root-owned acceptance evidence.
+
+Binary compatibility now binds the union of linked-build outputs, fully verified active release
+members and existing typed declarations. Default selection retains only executable/shared-library
+kinds. Explicit selectors retain every declared kind, including reports and Python launchers, so
+the observed non-ELF header is judged by `allow_non_elf` rather than hidden by a C++ build
+requirement. `release:project:PATH` and raw recorded paths select the same contained canonical
+file. Unpublished, missing, escaping and ambiguous identities remain blocked; stale publication
+digests never authorize changed user files. The scanner retains artifact kinds without relaxing
+its complete schema, path, digest, mode, record-count or aggregate-byte checks.
+
+`validation-abi-union-ready.log` passed four focused ABI cases (20.99s), including actual GCC
+15.2.0/readelf 2.46 inspection in a Python-only artifact component with no C++ build or selected
+project Python. The actual ELF machine-policy violation and both non-ELF policy outcomes retain
+measured evidence. An ordinary Rust publication fixture verifies explicit Python launcher
+membership and refuses a subsequent user edit without touching it. The same log passed all ten
+ordinary extra CLI validation/artifact cases (66.60s). Its initial strict phase hit a concurrent
+direct-compiler lint; `validation-abi-union-clippy-ready.log` passed strict CLI/validation
+Clippy after that source correction (6.32s).
+Historical shadow-manifest aliases and full descriptor/source audits remain separate work.
