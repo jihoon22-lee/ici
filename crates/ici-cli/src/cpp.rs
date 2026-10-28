@@ -44,6 +44,10 @@ pub struct CppPlans {
     held_contexts: Vec<crate::export_context::PreparedContext>,
     source_session: ici_cpp::CppAnalysisSession,
     inactive: BTreeMap<String, String>,
+    inactive_paths: BTreeMap<String, Vec<String>>,
+    abi_inputs: BTreeMap<String, BTreeMap<String, usize>>,
+    compiler_configurations: BTreeMap<String, BTreeMap<String, usize>>,
+    compiler_components: BTreeMap<String, String>,
     resolved: BTreeMap<String, std::result::Result<ResolvedTool, String>>,
 }
 impl CppPlans {
@@ -109,11 +113,103 @@ impl CppPlans {
         if check.language != "cpp" {
             return None;
         }
+        if matches!(check.id.as_str(), "cpp.type" | "cpp.binary-compat") {
+            return match check.id.as_str() {
+                "cpp.type" => {
+                    self.inactive.insert(
+                        id.into(),
+                        "The type engine is not applicable to C/C++".into(),
+                    );
+                    Some(Work::Internal)
+                }
+                "cpp.binary-compat" => match crate::cpp_validation::abi_scope(project, component) {
+                    Ok(Some(scope)) => {
+                        self.abi_inputs.insert(
+                            id.into(),
+                            scope
+                                .artifacts
+                                .iter()
+                                .map(|path| (path.clone(), 256 * 1024 * 1024))
+                                .collect(),
+                        );
+                        if scope.implicit && scope.targets.is_empty() && !scope.artifacts.is_empty()
+                        {
+                            if scope.required {
+                                return Some(blocked(
+                                    "binary compatibility requires published executable or shared-library artifacts",
+                                ));
+                            }
+                            self.inactive_paths.insert(id.into(), scope.artifacts);
+                            self.inactive.insert(id.into(),"Binary compatibility is not applicable: declared artifacts contain no executable or shared library".into());
+                            Some(Work::Internal)
+                        } else {
+                            None
+                        }
+                    }
+                    Ok(None) => None,
+                    Err(reason) => Some(blocked(reason)),
+                },
+
+                _ => unreachable!("handled applicability check"),
+            };
+        }
+        let disabled = match check.id.as_str() {
+            "cpp.tidy"
+                if component
+                    .settings
+                    .pointer("/engines/lint/clang_tidy")
+                    .and_then(Value::as_str)
+                    == Some("off")
+                    && component
+                        .settings
+                        .pointer("/engines/lint/clazy")
+                        .and_then(Value::as_str)
+                        == Some("off") =>
+            {
+                Some("clang-tidy and Clazy are explicitly disabled")
+            }
+            "cpp.dead"
+                if component
+                    .settings
+                    .pointer("/engines/dead/cpp_unused")
+                    .and_then(Value::as_str)
+                    == Some("off")
+                    && component
+                        .settings
+                        .pointer("/engines/dead/cpp_linker")
+                        .and_then(Value::as_str)
+                        .unwrap_or("off")
+                        == "off" =>
+            {
+                Some("C++ unused-function and linker analysis are explicitly disabled")
+            }
+            _ => None,
+        };
+        if let Some(reason) = disabled {
+            self.inactive.insert(id.into(), reason.into());
+            return Some(Work::Internal);
+        }
         if !self.contexts.contains_key(&component.id) {
             self.contexts
                 .insert(component.id.clone(), context(project, component));
         }
         let context = self.contexts[&component.id].clone();
+        let configurations = context
+            .database_path
+            .iter()
+            .map(|path| (path.clone(), 32 * 1024 * 1024))
+            .chain(
+                context
+                    .response_files
+                    .iter()
+                    .map(|input| (input.path.clone(), 4 * 1024 * 1024)),
+            )
+            .collect();
+        self.compiler_configurations
+            .insert(id.into(), configurations);
+        self.compiler_components
+            .insert(id.into(), component.id.clone());
+
         match check.id.as_str() {
             "cpp.complexity" | "cpp.cognitive" => {
                 self.bind_boundaries(project, component, &context, check, id, environment)
@@ -668,6 +764,15 @@ impl CppPlans {
                     provider.task.argv.push("--use-color=false".into());
                     let selected_config = tooling_config(project, component, &unit.source)?;
                     if let Some(path) = selected_config {
+                        let relative = path
+                            .strip_prefix(&project.root)
+                            .map_err(|_| "clang-tidy configuration leaves workspace")?
+                            .to_string_lossy()
+                            .into_owned();
+                        self.compiler_configurations
+                            .entry(id.into())
+                            .or_default()
+                            .insert(relative, 1024 * 1024);
                         provider
                             .task
                             .argv
@@ -1196,12 +1301,39 @@ impl CppPlans {
                 numerator: None,
                 denominator: None,
             });
-            for source in &request.inputs {
-                let mut target = InspectionTarget::at(&source.path, 1);
-                target.target_name = "CppAnalysisDisabled".into();
+            let paths = self
+                .inactive_paths
+                .get(&request.task_id)
+                .cloned()
+                .unwrap_or_else(|| {
+                    request
+                        .inputs
+                        .iter()
+                        .map(|source| source.path.clone())
+                        .collect()
+                });
+            let paths = if paths.is_empty() {
+                vec![".".into()]
+            } else {
+                paths
+            };
+            for path in paths {
+                let mut target = InspectionTarget::at(&path, 1);
+                target.target_name = if request.check_id == "cpp.binary-compat" {
+                    "BinaryCompatibility:NotApplicable"
+                } else if request.check_id == "cpp.type" {
+                    "CppType:NotApplicable"
+                } else {
+                    "CppAnalysisDisabled"
+                }
+                .into();
                 target.status = "SKIP".into();
                 target.message = reason.clone();
                 output.targets.push(target);
+            }
+            if request.check_id == "cpp.binary-compat" {
+                output.extra["elf"] =
+                    json!({"state":"NOT_APPLICABLE","artifacts_checked":0,"facts":[]});
             }
             return output;
         }
@@ -1721,4 +1853,23 @@ pub fn supplemental_checks(project: &ResolvedProject) -> Vec<CheckDefinition> {
         provides: vec![],
         is_static: true,
     }]
+}
+
+/// Legacy type descriptor preserves an explicit located C/C++ applicability result.
+pub fn type_not_applicable_check() -> CheckDefinition {
+    CheckDefinition {
+        id: "cpp.type".into(),
+        title: "C/C++ type engine applicability".into(),
+        language: "cpp".into(),
+        tool: None,
+        required: false,
+        profiles: vec![
+            ici_domain::Profile::Fast,
+            ici_domain::Profile::Standard,
+            ici_domain::Profile::Deep,
+        ],
+        needs: vec![],
+        provides: vec![],
+        is_static: true,
+    }
 }

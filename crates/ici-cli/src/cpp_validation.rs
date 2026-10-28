@@ -86,7 +86,16 @@ fn bind_inner(
         .ok_or_else(|| "C++ runtime checks require a declared component build".to_string())?;
     let directory = crate::files::under(&project.root, build.directory.as_deref().unwrap_or("."));
     regular_directory(&project.root, &directory)?;
-    let artifacts = declared_artifacts(project, component, build)?;
+    let artifacts = if kind == ValidationKind::BinaryCompatibility {
+        abi_inventory(project, component, build)?
+            .into_iter()
+            .map(|(_, path)| path)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect()
+    } else {
+        declared_artifacts(project, component, build)?
+    };
     let sources: Vec<_> = component
         .files
         .iter()
@@ -147,30 +156,11 @@ fn bind_inner(
                 .pointer("/engines/binary_compat")
                 .cloned()
                 .unwrap_or_default();
-            let selected = strings(cfg.get("artifacts"));
-            request.targets = artifacts
-                .iter()
-                .filter(|path| {
-                    selected.is_empty()
-                        || selected
-                            .iter()
-                            .any(|value| artifact_matches(build, path, value))
-                })
-                .cloned()
-                .collect();
-            for value in &selected {
-                if !request
-                    .targets
-                    .iter()
-                    .any(|path| artifact_matches(build, path, value))
-                {
-                    return Err(format!(
-                        "configured ABI artifact {value:?} is not an existing declared artifact"
-                    ));
-                }
-            }
+            request.targets = abi_scope(project, component)?
+                .ok_or("binary compatibility requires an existing declared build")?
+                .targets;
             if request.targets.is_empty() {
-                return Err("no existing declared artifacts for binary compatibility; prepare the declared build first".into());
+                return Err("no existing executable/shared-library artifact targets; prepare the declared build first".into());
             }
             request.options.elf_policy = policy(&cfg)?;
             request.options.allow_non_elf = cfg
@@ -232,6 +222,7 @@ fn bind_inner(
             request.options.min_file_cov = number(cfg, "min_file_cov");
             request.options.min_branch_cov = number(cfg, "min_branch_cov");
             request.options.min_func_cov = number(cfg, "min_func_cov");
+            request.options.max_coverage_regression = number(cfg, "max_coverage_regression");
             request.options.min_file_statements = cfg
                 .and_then(|cfg| cfg.get("min_file_statements"))
                 .and_then(Value::as_u64)
@@ -446,6 +437,155 @@ fn artifact_matches(build: &Build, path: &str, selected: &str) -> bool {
                     || format!("{}/{tail}", build.id) == selected
                     || format!("{}:project:{tail}", build.id) == selected
             })
+}
+
+pub(crate) struct AbiScope {
+    pub artifacts: Vec<String>,
+    pub targets: Vec<String>,
+    pub implicit: bool,
+    pub required: bool,
+}
+/// Classify observed declared bytes before resolving readelf. Explicit selections keep all kinds.
+pub(crate) fn abi_scope(
+    project: &ResolvedProject,
+    component: &Component,
+) -> Result<Option<AbiScope>, String> {
+    let Some(build) = crate::cpp::linked_build(project, component) else {
+        return Ok(None);
+    };
+    let directory = crate::files::under(&project.root, build.directory.as_deref().unwrap_or("."));
+    if !directory.exists() {
+        return Ok(None);
+    }
+    regular_directory(&project.root, &directory)?;
+    let inventory = abi_inventory(project, component, build)?;
+    if inventory.len() > 4096 {
+        return Err("declared ABI inventory exceeds 4096 records".into());
+    }
+    let artifacts = inventory
+        .iter()
+        .map(|(_, path)| path.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let cfg = component.settings.pointer("/engines/binary_compat");
+    let selected = strings(cfg.and_then(|cfg| cfg.get("artifacts")));
+    let mut targets = BTreeSet::new();
+    if selected.is_empty() {
+        for path in &artifacts {
+            if linked_elf_header(&project.root.join(path))? {
+                targets.insert(path.clone());
+            }
+        }
+    } else {
+        for value in &selected {
+            let matched = inventory
+                .iter()
+                .filter(|(declared, path)| {
+                    artifact_matches(build, declared, value) || artifact_matches(build, path, value)
+                })
+                .collect::<Vec<_>>();
+            if matched.is_empty() {
+                return Err(format!(
+                    "configured ABI artifact {value:?} is not an existing declared artifact"
+                ));
+            }
+            targets.extend(matched.into_iter().map(|(_, path)| path.clone()));
+        }
+    }
+    Ok(Some(AbiScope {
+        artifacts,
+        targets: targets.into_iter().collect(),
+        implicit: selected.is_empty(),
+        required: cfg
+            .and_then(|cfg| cfg.get("required"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+    }))
+}
+fn abi_inventory(
+    project: &ResolvedProject,
+    component: &Component,
+    build: &Build,
+) -> Result<Vec<(String, String)>, String> {
+    let directory = build.directory.as_deref().unwrap_or(".");
+    let base = crate::files::under(&project.root, directory);
+    regular_directory(&project.root, &base)?;
+    let entries = crate::files::tree(&project.root, &base).map_err(|error| error.to_string())?;
+    let candidates = entries
+        .into_iter()
+        .filter(|entry| entry.file && entry.contained)
+        .map(|entry| entry.relative)
+        .collect::<Vec<_>>();
+    let view = Component {
+        root: directory.into(),
+        ..component.clone()
+    };
+    let paths = ici_config::matching_source_paths(&view, &candidates, &build.artifacts)
+        .map_err(|error| error.to_string())?;
+    paths
+        .into_iter()
+        .map(|declared| {
+            let canonical = project
+                .root
+                .join(&declared)
+                .canonicalize()
+                .map_err(|error| error.to_string())?;
+            if !canonical.starts_with(&base) {
+                return Err("ABI artifact alias leaves the declared build directory".into());
+            }
+            regular_file(&project.root, &canonical)?;
+            Ok((declared, relative(&project.root, &canonical)?))
+        })
+        .collect()
+}
+fn linked_elf_header(path: &Path) -> Result<bool, String> {
+    use std::{io::Read, os::unix::fs::MetadataExt};
+    let mut file = std::fs::File::open(path).map_err(|error| error.to_string())?;
+    let before = file.metadata().map_err(|error| error.to_string())?;
+    let mut header = [0u8; 20];
+    let mut read = 0usize;
+    while read < header.len() {
+        let count = file
+            .read(&mut header[read..])
+            .map_err(|error| error.to_string())?;
+        if count == 0 {
+            break;
+        }
+        read += count;
+    }
+    let after = std::fs::symlink_metadata(path).map_err(|error| error.to_string())?;
+    let signature = |metadata: &std::fs::Metadata| {
+        (
+            metadata.dev(),
+            metadata.ino(),
+            metadata.len(),
+            metadata.mode(),
+            metadata.mtime(),
+            metadata.mtime_nsec(),
+            metadata.ctime(),
+            metadata.ctime_nsec(),
+        )
+    };
+    if signature(&before) != signature(&after)
+        || signature(&before) != signature(&file.metadata().map_err(|error| error.to_string())?)
+        || path.canonicalize().map_err(|error| error.to_string())? != path
+    {
+        return Err("ABI artifact changed during classification".into());
+    }
+    if !header[..read].starts_with(b"\x7fELF") {
+        return Ok(false);
+    }
+    // Malformed ELF candidates remain selected so readelf can report incomplete/invalid evidence.
+    if read < 20 || !matches!(header[4], 1 | 2) {
+        return Ok(true);
+    }
+    let kind = match header[5] {
+        1 => u16::from_le_bytes([header[16], header[17]]),
+        2 => u16::from_be_bytes([header[16], header[17]]),
+        _ => return Ok(true),
+    };
+    Ok(!matches!(kind, 1 | 4))
 }
 pub fn declared_artifacts(
     project: &ResolvedProject,

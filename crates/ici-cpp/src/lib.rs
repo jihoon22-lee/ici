@@ -11,7 +11,9 @@ mod replay_policy;
 pub use model::*;
 
 pub use arguments::{split_posix, split_windows};
-pub use context::{is_translation_unit, load_compilation_context};
+pub use context::{
+    is_translation_unit, load_compilation_context, normalized_configuration_arguments,
+};
 
 pub use replay::{diagnostic_warning_argument, replay_command, replay_environment};
 

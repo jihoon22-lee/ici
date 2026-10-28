@@ -251,12 +251,19 @@ fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
         )
     })
     .collect::<String>();
-    fs::write(root.path().join("ici.toml"),runtime_config(&["cpp.test","cpp.coverage","cpp.artifact","cpp.binary-compat"],&format!("{tools}[engines.test]\nmin_line_cov=100.0\nmin_file_statements=1\n[builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['suite']\n"))).unwrap();
+    fs::write(root.path().join("ici.toml"),runtime_config(&["cpp.test","cpp.coverage","cpp.artifact","cpp.binary-compat"],&format!("{tools}[engines.test]\nmin_line_cov=100.0\nmin_file_statements=1\nmax_coverage_regression=2.0\n[builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['suite']\n"))).unwrap();
     let invocation =
         registry::parse(["ici", "next", "verify", "--events", "events.jsonl"]).unwrap();
     let environment = BTreeMap::from([("PATH".into(), String::new())]);
     let preview = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
     assert!(!root.path().join(".ici").exists());
+    assert_eq!(
+        preview.validations["project.cpp.coverage"][0]
+            .context
+            .options
+            .max_coverage_regression,
+        Some(2.0)
+    );
     assert_eq!(
         preview.validations["project.cpp.coverage"].len(),
         1,
@@ -389,6 +396,11 @@ fn actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_stand
         serde_json::to_vec(&rows).unwrap(),
     )
     .unwrap();
+    fs::write(
+        root.path().join(".clang-tidy"),
+        "Checks: '-*,clang-analyzer-core.NullDereference'\n",
+    )
+    .unwrap();
     let tidy = std::env::var("ICI_TEST_CLANG_TIDY").expect("explicit clang-tidy21");
     let mut config = runtime_config(
         &["cpp.compile", "cpp.tidy"],
@@ -414,6 +426,18 @@ fn actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_stand
         preview.text()
     );
     assert_eq!(preview.cpp.tooling_searches.len(), 2);
+    assert!(
+        preview
+            .cpp
+            .evidence_configurations_for("project.cpp.tidy")
+            .contains(".clang-tidy")
+    );
+    assert!(
+        ici_cli::inputs::capture(&preview)
+            .unwrap()
+            .files
+            .contains_key(".clang-tidy")
+    );
     assert!(
         preview.cpp.diagnostics["project.cpp.tidy"]
             .iter()
@@ -1421,6 +1445,34 @@ fn actual_linker_dead_cli_intersects_targets_and_preserves_final_input_snapshot(
             .any(|step| step["provider"] == "addr2line")
     );
     assert!(!steps.to_string().contains("{observed-discarded-section}"));
+    let relocated_root = tempfile::tempdir().unwrap();
+    for file in [
+        "common.cpp",
+        "one.cpp",
+        "two.cpp",
+        "CMakeLists.txt",
+        "ici.toml",
+    ] {
+        fs::copy(root.path().join(file), relocated_root.path().join(file)).unwrap();
+    }
+    let relocated = execute::execute(
+        &invocation,
+        relocated_root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert!(
+        relocated.result.execution.required_complete,
+        "{:?}",
+        relocated.result.gate
+    );
+    assert_eq!(
+        run.result.checks.as_ref().unwrap()[0].scope_digest,
+        relocated.result.checks.as_ref().unwrap()[0].scope_digest,
+        "normalized parsed DB/link metadata must preserve selected scope across checkouts"
+    );
     fs::write(
         root.path().join("ici.toml"),
         config.replace("cpp_unused='off'", "cpp_unused='auto'"),
@@ -1464,5 +1516,406 @@ fn actual_linker_dead_cli_intersects_targets_and_preserves_final_input_snapshot(
             .findings
             .len(),
         1
+    );
+}
+
+#[test]
+fn static_only_abi_is_located_not_applicable_without_readelf_or_implicit_build() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int value;\n").unwrap();
+    fs::create_dir(root.path().join("build")).unwrap();
+    fs::write(root.path().join("build/libonly.a"), b"!<arch>\n").unwrap();
+    fs::write(root.path().join("build/report.json"), "{}\n").unwrap();
+    let mut reloc = vec![0u8; 20];
+    reloc[..4].copy_from_slice(b"\x7fELF");
+    reloc[4] = 2;
+    reloc[5] = 1;
+    reloc[16] = 1;
+    fs::write(root.path().join("build/unit.o"), reloc).unwrap();
+    let config = runtime_config(
+        &["cpp.binary-compat"],
+        "[builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['*']\n",
+    );
+    let config = config.replace(
+        "[builds.native]",
+        "[project]\ncompile_database='missing-compilation.json'\n[builds.native]",
+    );
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert!(plan.tools.is_empty());
+    assert!(plan.context_preparations.is_empty());
+    assert!(!root.path().join(".ici").exists());
+    assert_eq!(plan.cpp.evidence_input_limits().len(), 3);
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["project.cpp.binary-compat"];
+    assert_eq!(output.status, "SKIP");
+    assert_eq!(
+        output.observation.measurements[0].evidence,
+        ici_domain::EvidenceLevel::NotApplicable
+    );
+    assert_eq!(output.extra["elf"]["state"], "NOT_APPLICABLE");
+    assert_eq!(output.targets.len(), 3);
+    assert!(
+        output
+            .targets
+            .iter()
+            .all(|target| target.file_path.starts_with("build/") && target.start_line == 1)
+    );
+    assert!(run.result.execution.required_complete);
+    assert_ne!(run.result.gate.selected, GateVerdict::Incomplete);
+    fs::write(
+        root.path().join("ici.toml"),
+        config.replace(
+            "[builds.native]",
+            "[engines.binary_compat]\nrequired=true\n[builds.native]",
+        ),
+    )
+    .unwrap();
+    let plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert!(matches!(
+        plan.plan.checks[0].work,
+        ici_application::plan::Work::Blocked { .. }
+    ));
+    assert!(plan.tools.is_empty());
+    fs::write(
+        root.path().join("ici.toml"),
+        config.replace(
+            "[builds.native]",
+            "[engines.binary_compat]\nartifacts=['libonly.a']\n[builds.native]",
+        ),
+    )
+    .unwrap();
+    let plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert!(matches!(
+        plan.plan.checks[0].work,
+        ici_application::plan::Work::Blocked { .. }
+    ));
+    assert!(plan.text().contains("readelf"));
+}
+
+#[test]
+#[ignore = "explicit actual GCC ar readelf default ELF ABI selection"]
+fn actual_abi_default_scope_ignores_archives_objects_reports_and_deduplicates_soname_aliases() {
+    use std::os::unix::fs::symlink;
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(root.path().join("lib.cpp"), "int exported(){return 1;}\n").unwrap();
+    fs::create_dir(root.path().join("build")).unwrap();
+    let cxx = std::env::var("ICI_TEST_CXX").expect("actual GCC");
+    let ar = std::env::var("ICI_TEST_AR").expect("actual ar");
+    let readelf = std::env::var("ICI_TEST_READELF").expect("actual readelf");
+    for args in [
+        vec!["main.cpp", "-o", "build/application"],
+        vec!["-shared", "-fPIC", "lib.cpp", "-o", "build/libgood.so.2.3"],
+        vec!["-c", "lib.cpp", "-o", "build/unit.o"],
+    ] {
+        let status = std::process::Command::new(&cxx)
+            .args(args)
+            .current_dir(root.path())
+            .status()
+            .unwrap();
+        assert!(status.success());
+    }
+    let status = std::process::Command::new(ar)
+        .args(["rcs", "build/libonly.a", "build/unit.o"])
+        .current_dir(root.path())
+        .status()
+        .unwrap();
+    assert!(status.success());
+    symlink("libgood.so.2.3", root.path().join("build/libgood.so")).unwrap();
+    fs::write(root.path().join("build/report.json"), "{}\n").unwrap();
+    let config = runtime_config(
+        &["cpp.artifact", "cpp.binary-compat"],
+        &format!(
+            "[builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['*']\n[tools.readelf]\npath={}\n",
+            serde_json::to_string(&readelf).unwrap()
+        ),
+    );
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert_eq!(
+        plan.validations["project.cpp.binary-compat"][0]
+            .context
+            .targets,
+        vec!["build/application", "build/libgood.so.2.3"]
+    );
+    assert_eq!(plan.cpp.evidence_input_limits().len(), 5);
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["project.cpp.binary-compat"];
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(run.result.execution.required_complete);
+    assert_ne!(
+        run.result.gate.selected,
+        GateVerdict::Incomplete,
+        "{:?}",
+        run.result.gate
+    );
+    fs::write(
+        root.path().join("ici.toml"),
+        config.replace(
+            "[builds.native]",
+            "[engines.binary_compat]\nartifacts=['libgood.so']\n[builds.native]",
+        ),
+    )
+    .unwrap();
+    let alias = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert_eq!(
+        alias.validations["project.cpp.binary-compat"][0]
+            .context
+            .targets,
+        vec!["build/libgood.so.2.3"]
+    );
+    fs::write(
+        root.path().join("ici.toml"),
+        config.replace(
+            "[builds.native]",
+            "[engines.binary_compat]\nartifacts=['libonly.a']\n[builds.native]",
+        ),
+    )
+    .unwrap();
+    let archive = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &archive.outputs["project.cpp.binary-compat"];
+    assert!(
+        output
+            .observation
+            .findings
+            .iter()
+            .any(|finding| finding.rule_id.contains("non-elf")),
+        "{output:?}"
+    );
+    assert!(
+        archive.result.execution.required_complete,
+        "{:?}",
+        archive.result.execution
+    );
+}
+
+#[test]
+fn legacy_cpp_type_keeps_located_not_applicable_without_reading_compilation_context() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int value;\n").unwrap();
+    fs::write(root.path().join("ici.toml"),"schema_version=2\n[project]\ncompile_database='missing.json'\n[[components]]\nid='native'\nroot='.'\nlanguages=['cpp']\n").unwrap();
+    let invocation = registry::parse(["ici", "type"]).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    let plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert_eq!(plan.plan.checks.len(), 1, "{}", plan.text());
+    assert_eq!(plan.plan.checks[0].check.id, "cpp.type");
+    assert!(plan.tools.is_empty());
+    assert!(plan.cpp.contexts.is_empty());
+    assert!(plan.context_preparations.is_empty());
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["native.cpp.type"];
+    assert_eq!(output.status, "SKIP");
+    assert_eq!(output.targets[0].file_path, "main.cpp");
+    assert_eq!(output.targets[0].target_name, "CppType:NotApplicable");
+    assert_eq!(
+        output.observation.measurements[0].evidence,
+        ici_domain::EvidenceLevel::NotApplicable
+    );
+    assert!(run.result.execution.required_complete);
+}
+
+#[test]
+#[ignore = "explicit actual legacy ABI preparation preserving pre-existing user artifacts"]
+fn actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(root.path().join("CMakeLists.txt"),"cmake_minimum_required(VERSION 3.16)\nproject(abi_scope LANGUAGES CXX)\nadd_executable(application main.cpp)\n").unwrap();
+    fs::create_dir(root.path().join("build")).unwrap();
+    let cxx = std::env::var("ICI_TEST_CXX").expect("actual GCC");
+    let cmake = std::env::var("ICI_TEST_CMAKE").expect("actual CMake");
+    let readelf = std::env::var("ICI_TEST_READELF").expect("actual readelf");
+    assert!(
+        std::process::Command::new(&cxx)
+            .args(["main.cpp", "-o", "build/application"])
+            .current_dir(root.path())
+            .status()
+            .unwrap()
+            .success()
+    );
+    let original = fs::read(root.path().join("build/application")).unwrap();
+    let config = runtime_config(
+        &["cpp.artifact", "cpp.binary-compat"],
+        &format!(
+            "[builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['application']\n[tools.cmake]\npath={}\n[tools.'c++']\npath={}\n[tools.readelf]\npath={}\n",
+            serde_json::to_string(&cmake).unwrap(),
+            serde_json::to_string(&cxx).unwrap(),
+            serde_json::to_string(&readelf).unwrap()
+        ),
+    );
+    fs::write(root.path().join("ici.toml"), config).unwrap();
+    let invocation = registry::parse(["ici", "verify", "--profile", "deep"]).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]);
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        fs::read(root.path().join("build/application")).unwrap(),
+        original
+    );
+    assert_eq!(
+        run.outputs["project.cpp.binary-compat"].observation.state,
+        TaskState::Succeeded,
+        "{:?}\n{:?}",
+        run.outputs,
+        run.result.limitations
+    );
+    assert!(
+        run.result.execution.required_complete,
+        "{:?}",
+        run.result.gate
+    );
+    assert_ne!(
+        run.result.gate.selected,
+        GateVerdict::Incomplete,
+        "{:?}",
+        run.result.gate
+    );
+}
+
+#[test]
+fn recorded_compilation_scope_hashes_response_configuration_but_not_source_code_bytes() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int value;\n").unwrap();
+    fs::create_dir(root.path().join("include")).unwrap();
+    fs::write(
+        root.path().join("flags.rsp"),
+        format!(
+            "-std=c++17 -DMODE=1 -I{}",
+            root.path().join("include").display()
+        ),
+    )
+    .unwrap();
+    fs::write(root.path().join("compile_commands.json"),serde_json::to_vec(&serde_json::json!([{"directory":root.path(),"file":"main.cpp","arguments":["g++","@flags.rsp","-c","main.cpp","-o","main.o"]}])).unwrap()).unwrap();
+    let config = runtime_config(&["cpp.compile"], "").replace("build='native'\n", "");
+    fs::write(root.path().join("ici.toml"), config).unwrap();
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    let plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert_eq!(
+        plan.cpp.evidence_configurations_for("project.cpp.compile"),
+        ["compile_commands.json".into(), "flags.rsp".into()]
+            .into_iter()
+            .collect()
+    );
+    assert!(plan.tools.is_empty());
+    let first = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert!(first.result.execution.required_complete);
+    let scope = first.result.checks.as_ref().unwrap()[0]
+        .scope_digest
+        .clone();
+    let other = tempfile::tempdir().unwrap();
+    fs::create_dir(other.path().join("include")).unwrap();
+    fs::copy(root.path().join("main.cpp"), other.path().join("main.cpp")).unwrap();
+    fs::copy(root.path().join("ici.toml"), other.path().join("ici.toml")).unwrap();
+    fs::write(
+        other.path().join("flags.rsp"),
+        fs::read_to_string(root.path().join("flags.rsp"))
+            .unwrap()
+            .replace(
+                root.path().to_str().unwrap(),
+                other.path().to_str().unwrap(),
+            ),
+    )
+    .unwrap();
+    fs::write(
+        other.path().join("compile_commands.json"),
+        fs::read_to_string(root.path().join("compile_commands.json"))
+            .unwrap()
+            .replace(
+                root.path().to_str().unwrap(),
+                other.path().to_str().unwrap(),
+            ),
+    )
+    .unwrap();
+    let relocated = execute::execute(
+        &invocation,
+        other.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert!(relocated.result.execution.required_complete);
+    assert_eq!(
+        relocated.result.checks.as_ref().unwrap()[0].scope_digest,
+        scope,
+        "absolute DB and RSP project paths are semantic metadata"
+    );
+    fs::write(root.path().join("main.cpp"), "int corrected_value;\n").unwrap();
+    let fixed = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert!(fixed.result.execution.required_complete);
+    assert_eq!(fixed.result.checks.as_ref().unwrap()[0].scope_digest, scope);
+    fs::write(
+        root.path().join("flags.rsp"),
+        format!(
+            "-std=c++17 -DMODE=2 -I{}",
+            root.path().join("include").display()
+        ),
+    )
+    .unwrap();
+    let reconfigured = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert!(reconfigured.result.execution.required_complete);
+    assert_ne!(
+        reconfigured.result.checks.as_ref().unwrap()[0].scope_digest,
+        scope
     );
 }

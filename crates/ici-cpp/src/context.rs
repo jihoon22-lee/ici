@@ -295,7 +295,7 @@ fn parse_row(
     }
     unit.configuration = ici_domain::sha256(
         ici_domain::canonical_json(
-            &json!({"source":unit.source,"directory":unit.directory,"argv":configuration_arguments(root,&cwd,&unit.argv),"output":unit.output,"variant":unit.variant}),
+            &json!({"source":unit.source,"directory":unit.directory,"argv":normalized_configuration_arguments(root,&cwd,&unit.argv),"output":unit.output,"variant":unit.variant}),
         )
         .map_err(|e| CppError::new("identity", e.to_string()))?,
     );
@@ -304,7 +304,7 @@ fn parse_row(
 
 /// Normalize only path operands and workspace absolute values. External roots, option ordering,
 /// compiler choices, literal macro values and the configured variant remain distinct identities.
-fn configuration_arguments(root: &Path, cwd: &Path, argv: &[String]) -> Vec<String> {
+pub fn normalized_configuration_arguments(root: &Path, cwd: &Path, argv: &[String]) -> Vec<String> {
     let mut result = vec![];
     let mut index = 0;
     const PATH_VALUES: &[&str] = &[

@@ -112,3 +112,22 @@ tools. The live CLI acceptance checks the two-target intersection, original
 source preservation and final input stability. Immutable object/link-command
 inputs enter the common snapshot; relink-produced executable files are declared
 outputs observed only after their producing step completes.
+
+ABI defaults classify observed declared bytes and select executable/shared ELF
+artifacts, deduplicating contained SONAME aliases to their regular backing file.
+Archives, relocatable objects and reports do not become implicit ABI targets.
+Static-only scopes emit located `NOT_APPLICABLE` without resolving readelf;
+explicit artifact selection and required-policy failures remain enforced. The
+native legacy `type` descriptor likewise preserves a located C/C++ applicability
+result without reading an unrelated compilation database or spawning tools.
+
+Compilation scopes hash parsed configuration identities for databases and
+response files, and validated ordered command semantics for GNU link metadata.
+Absolute project paths normalize through the same compiler argument rules used
+by TU identities; external roots, options, ordering and variants remain distinct.
+Raw bytes remain frozen for input drift. Source/object/ELF/archive contents are
+code evidence and do not become policy hashes. Actual `.clang-tidy` configuration
+bytes enter the snapshot and policy scope. CLI regressions prove unchanged scope
+across relocated DB/response/GNU-link checkouts, changed scope for changed response
+flags, unchanged scope for code fixes, and preserved original artifacts when
+explicit preparation switches inspection to an owned shadow.

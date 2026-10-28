@@ -12,17 +12,102 @@ pub(super) struct LinkerPlan {
     locations: BTreeMap<String, TaskSpec>,
     objects: BTreeMap<String, String>,
     input_limits: BTreeMap<String, usize>,
+    configurations: BTreeSet<String>,
+    configuration_digests: BTreeMap<String, String>,
 }
 impl CppPlans {
     /// The caller retains the same guards through final input verification.
     pub fn attach_prepared(&mut self, contexts: &[crate::export_context::PreparedContext]) {
         self.held_contexts = contexts.to_vec();
     }
+    fn recorded_configuration_consumer(&self, id: &str) -> bool {
+        !self.inactive.contains_key(id)
+            && (id.ends_with(".cpp.compile")
+                || self.diagnostics.contains_key(id)
+                || self.includes.contains_key(id)
+                || self.boundaries.contains_key(id))
+    }
     pub fn evidence_input_limits(&self) -> BTreeMap<String, usize> {
         self.linkers
             .values()
             .flat_map(|plan| plan.input_limits.clone())
+            .chain(self.abi_inputs.values().flat_map(|inputs| inputs.clone()))
+            .chain(
+                self.compiler_configurations
+                    .iter()
+                    .filter(|(id, _)| self.recorded_configuration_consumer(id))
+                    .flat_map(|(_, inputs)| inputs.clone()),
+            )
             .collect()
+    }
+    pub fn evidence_configurations_for(&self, id: &str) -> BTreeSet<String> {
+        let mut paths = self
+            .linkers
+            .get(id)
+            .map(|plan| plan.configurations.clone())
+            .unwrap_or_default();
+        if self.recorded_configuration_consumer(id)
+            && let Some(configurations) = self.compiler_configurations.get(id)
+        {
+            paths.extend(configurations.keys().cloned());
+        }
+        paths
+    }
+    /// Semantic metadata hashes use parsed configuration identities; raw bytes remain in snapshot.
+    pub fn evidence_configuration_digests_for(&self, id: &str) -> BTreeMap<String, String> {
+        let mut digests = self
+            .linkers
+            .get(id)
+            .map(|plan| {
+                let mut values = normalized_context_digests(&plan.context);
+                values.extend(plan.configuration_digests.clone());
+                values
+            })
+            .unwrap_or_default();
+        if self.recorded_configuration_consumer(id)
+            && let Some(context) = self
+                .compiler_components
+                .get(id)
+                .and_then(|component| self.contexts.get(component))
+        {
+            digests.extend(normalized_context_digests(context));
+        }
+        digests
+    }
+    pub fn evidence_code_inputs_for(&self, id: &str) -> BTreeSet<String> {
+        self.linkers
+            .get(id)
+            .into_iter()
+            .flat_map(|plan| {
+                plan.objects
+                    .keys()
+                    .cloned()
+                    .chain(plan.context.units.iter().map(|unit| unit.source.clone()))
+            })
+            .chain(
+                self.abi_inputs
+                    .get(id)
+                    .into_iter()
+                    .flat_map(|inputs| inputs.keys().cloned()),
+            )
+            .collect()
+    }
+    pub fn evidence_input_limits_for(&self, id: &str) -> BTreeMap<String, usize> {
+        let mut inputs = self
+            .linkers
+            .get(id)
+            .map(|plan| plan.input_limits.clone())
+            .unwrap_or_default();
+        inputs.extend(self.abi_inputs.get(id).cloned().unwrap_or_default());
+        if self.recorded_configuration_consumer(id) {
+            inputs.extend(
+                self.compiler_configurations
+                    .get(id)
+                    .cloned()
+                    .unwrap_or_default(),
+            );
+        }
+        inputs
     }
     pub(super) fn bind_linker(
         &mut self,
@@ -85,6 +170,8 @@ impl CppPlans {
             .insert(format!("{id}:addr2line"), addr2line.clone());
         let mut tasks = vec![];
         let mut input_limits = BTreeMap::new();
+        let mut configurations = BTreeSet::new();
+        let mut configuration_digests = BTreeMap::new();
         let mut objects = BTreeMap::new();
         let mut locations = BTreeMap::new();
         for unit in &context.units {
@@ -92,9 +179,11 @@ impl CppPlans {
         }
         if let Some(path) = &context.database_path {
             input_limits.insert(path.clone(), 32 * 1024 * 1024);
+            configurations.insert(path.clone());
         }
         for input in &context.response_files {
             input_limits.insert(input.path.clone(), 4 * 1024 * 1024);
+            configurations.insert(input.path.clone());
         }
         for entry in
             crate::files::tree(&project.root, &directory).map_err(|error| error.to_string())?
@@ -105,6 +194,22 @@ impl CppPlans {
                     .file_name()
                     .is_some_and(|name| name == "link.txt")
             {
+                let target = Path::new(&entry.relative)
+                    .parent()
+                    .and_then(Path::file_name)
+                    .and_then(|name| name.to_str())
+                    .and_then(|name| name.strip_suffix(".dir"));
+                let command = commands
+                    .iter()
+                    .find(|command| Some(command.target.as_str()) == target)
+                    .ok_or("parsed CMake link metadata has no selected command")?;
+                let argv = ici_cpp::normalized_configuration_arguments(
+                    &project.root,
+                    &directory,
+                    &command.argv,
+                );
+                configuration_digests.insert(entry.relative.clone(),scope_digest(&json!({"schema":"ici.cpp.link-scope/v1","target":command.target,"argv":argv,"objects":command.objects,"output":command.output,"shadow":command.shadow,"driver_digest":command.driver_digest})));
+                configurations.insert(entry.relative.clone());
                 input_limits.insert(entry.relative, 4 * 1024 * 1024);
             }
         }
@@ -210,6 +315,8 @@ impl CppPlans {
                 locations,
                 objects,
                 input_limits,
+                configurations,
+                configuration_digests,
             },
         );
         Ok(visible)
@@ -487,4 +594,25 @@ fn transcript(outcome: &TaskOutcome) -> Result<String, String> {
         utf8(&outcome.stdout)?,
         utf8(&outcome.stderr)?
     ))
+}
+
+fn scope_digest(value: &Value) -> String {
+    sha256(ici_domain::canonical_json(value).expect("bounded configuration metadata serializes"))
+}
+fn normalized_context_digests(context: &CompilationContext) -> BTreeMap<String, String> {
+    let units=context.units.iter().map(|unit|json!({"source":unit.source,"directory":unit.directory,"output":unit.output,"target":unit.target,"variant":unit.variant,"language":unit.language,"standard":unit.standard,"configuration":unit.configuration})).collect::<Vec<_>>();
+    let mut result = BTreeMap::new();
+    if let Some(path) = &context.database_path {
+        result.insert(path.clone(),scope_digest(&json!({"schema":"ici.cpp.database-scope/v1","units":units,"variant":context.variant,"unity_build":context.unity_build,"selected_sources":context.selected_sources,"uncovered_sources":context.uncovered_sources,"source_coverage":context.source_coverage})));
+    }
+    for response in &context.response_files {
+        let users=context.units.iter().filter(|unit|unit.response_files.iter().any(|input|input.path==response.path)).map(|unit|json!({"source":unit.source,"configuration":unit.configuration,"variant":unit.variant,"directory":unit.directory,"output":unit.output})).collect::<Vec<_>>();
+        result.insert(
+            response.path.clone(),
+            scope_digest(
+                &json!({"schema":"ici.cpp.response-scope/v1","path":response.path,"units":users}),
+            ),
+        );
+    }
+    result
 }
