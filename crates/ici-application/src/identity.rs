@@ -102,6 +102,50 @@ impl InvocationIdentity {
             variant: task.variant.clone(),
         }
     }
+    /// Fresh validation output locations vary each run but do not change the inspected scope.
+    pub fn with_owned_directory(mut self, directory: &Path, root: &Path) -> Self {
+        let prefix = workspace_reference(&directory.to_string_lossy(), root);
+        self.cwd = owned_path(&self.cwd, &prefix);
+        self.argv = self
+            .argv
+            .iter()
+            .map(|value| {
+                if let Some((key, value)) = value.split_once('=') {
+                    format!("{key}={}", owned_path(value, &prefix))
+                } else {
+                    owned_path(value, &prefix)
+                }
+            })
+            .collect();
+        self.environment = self
+            .environment
+            .iter()
+            .map(|(key, value)| {
+                let value = if [
+                    "PATH",
+                    "PYTHONPATH",
+                    "LD_LIBRARY_PATH",
+                    "LIBRARY_PATH",
+                    "CPATH",
+                    "CPLUS_INCLUDE_PATH",
+                    "PKG_CONFIG_PATH",
+                    "NODE_PATH",
+                ]
+                .contains(&key.as_str())
+                {
+                    value
+                        .split(':')
+                        .map(|item| owned_path(item, &prefix))
+                        .collect::<Vec<_>>()
+                        .join(":")
+                } else {
+                    owned_path(value, &prefix)
+                };
+                (key.clone(), value)
+            })
+            .collect();
+        self
+    }
 }
 pub fn workspace_reference(value: &str, root: &Path) -> String {
     let path = Path::new(value);
@@ -161,4 +205,17 @@ fn argument(value: &str, root: &Path) -> String {
         }
     }
     workspace_reference(value, root)
+}
+
+fn owned_path(value: &str, prefix: &str) -> String {
+    if value == prefix {
+        "${run}".into()
+    } else if let Some(tail) = value
+        .strip_prefix(prefix)
+        .filter(|tail| tail.starts_with('/'))
+    {
+        format!("${{run}}{tail}")
+    } else {
+        value.into()
+    }
 }

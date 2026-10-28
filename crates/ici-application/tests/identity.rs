@@ -89,3 +89,36 @@ fn invocation_relocation_keeps_options_quoted_paths_and_external_prefix_boundari
         serde_json::to_value(second).unwrap()
     );
 }
+
+#[test]
+fn fresh_owned_runtime_directories_do_not_change_scope_but_external_prefixes_do() {
+    use ici_application::identity::InvocationIdentity;
+    use ici_domain::TaskSpec;
+    let root = std::path::Path::new("/work");
+    let make = |run: &str| {
+        let directory = root.join(".ici/rust-v1/runs").join(run).join("component");
+        let mut task = TaskSpec::command(
+            "component.python.coverage.report",
+            "coverage",
+            vec![
+                "/python".into(),
+                "--data-file".into(),
+                directory
+                    .join("coverage.data")
+                    .to_string_lossy()
+                    .into_owned(),
+            ],
+            "/work",
+        );
+        task.env_overlay.insert(
+            "PYTHONPYCACHEPREFIX".into(),
+            directory.join("pycache").to_string_lossy().into_owned(),
+        );
+        InvocationIdentity::new(&task, &task.env_overlay, root)
+            .with_owned_directory(&directory, root)
+    };
+    assert_eq!(
+        serde_json::to_value(make("one")).unwrap(),
+        serde_json::to_value(make("two")).unwrap()
+    );
+}

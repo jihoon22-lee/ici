@@ -32,6 +32,14 @@ fn native_plan_names_real_argv_without_spawning_installing_or_writing_state() {
     assert_eq!(checks.len(), 13);
     let lint = checks.iter().find(|c| c["check"] == "python.lint").unwrap();
     assert_eq!(lint["kind"], "process");
+    assert_eq!(lint["steps"].as_array().unwrap().len(), 2);
+    assert!(
+        lint["steps"][0]["argv"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|argument| argument == "--show-files")
+    );
     assert_eq!(lint["argv"][0], tool.to_string_lossy().as_ref());
     assert!(
         lint["argv"]

@@ -27,13 +27,25 @@ pub struct PreparedPlan {
     pub plan: Plan,
     pub graph: TaskGraph,
     pub providers: BTreeMap<String, ProviderPlan>,
+    pub probes: BTreeMap<String, ici_domain::TaskSpec>,
+    pub validations: BTreeMap<String, Vec<ici_validation::ValidationPlan>>,
     pub tools: BTreeMap<String, ResolvedTool>,
+    pub native_configuration: BTreeMap<String, ici_providers::native_config::ConfigEvidence>,
 }
 pub fn prepare(
     invocation: &Invocation,
     cwd: &Path,
     environment: &BTreeMap<String, String>,
     static_only: bool,
+) -> Result<PreparedPlan> {
+    prepare_for_run(invocation, cwd, environment, static_only, "${run}")
+}
+pub fn prepare_for_run(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+    run_label: &str,
 ) -> Result<PreparedPlan> {
     let explicit = invocation.value("config_path").map(|path| under(cwd, path));
     let local = invocation
@@ -70,8 +82,10 @@ pub fn prepare(
         require_full: invocation.flag("require_full"),
         static_only,
     };
+    let mut validations = BTreeMap::new();
     let mut providers = BTreeMap::new();
     let mut tools = BTreeMap::new();
+    let mut native_configuration = BTreeMap::new();
     let pack = tool_pack(environment);
     let plan = ici_application::plan::plan(&project, &request, |component, check, task_id| {
         let component_root = if component.root == "." {
@@ -79,6 +93,23 @@ pub fn prepare(
         } else {
             project.root.join(&component.root)
         };
+        if let Some(bound) = crate::validation::bind(
+            &project,
+            component,
+            check,
+            task_id,
+            &request,
+            environment,
+            run_label,
+        ) {
+            if let Some(tool) = bound.tool {
+                tools.insert(format!("{}:python", component.id), tool);
+            }
+            if !bound.plans.is_empty() {
+                validations.insert(task_id.into(), bound.plans);
+            }
+            return Ok(bound.work);
+        }
         let tool_id = match check.id.as_str() {
             "python.lint" | "python.format" => "ruff",
             "python.type" => match component.python_type_provider.as_deref() {
@@ -128,7 +159,7 @@ pub fn prepare(
             .tools
             .get(tool_id)
             .and_then(|setting| setting.path.as_deref())
-            .map(PathBuf::from);
+            .map(|path| under(&project.root, path));
         let tool = match (ToolRequest {
             id: tool_id.into(),
             explicit,
@@ -197,7 +228,7 @@ pub fn prepare(
         let mut provider =
             ici_providers::plan(&provider_request).map_err(|e| ApplicationError(e.to_string()))?;
         provider.scope_complete = evidence.complete;
-        provider.limitations.extend(evidence.limitations);
+        provider.limitations.extend(evidence.limitations.clone());
         provider.task.cacheable = provider.scope_complete && !provider.task.mutating();
         let work = if provider.advisory {
             Work::process_advisory(provider.task.clone())
@@ -206,9 +237,23 @@ pub fn prepare(
         };
         tools.insert(format!("{}:{tool_id}", component.id), tool);
         providers.insert(task_id.to_owned(), provider);
+        native_configuration.insert(task_id.to_owned(), evidence);
         Ok(work)
     })
     .map_err(|e| CliError(e.to_string()))?;
+    let probes = providers
+        .iter()
+        .filter(|(_, provider)| {
+            matches!(
+                provider.kind,
+                ProviderKind::RuffLint | ProviderKind::RuffFormat
+            )
+        })
+        .map(|(id, provider)| {
+            ici_providers::plan::ruff_inventory_task(provider).map(|task| (id.clone(), task))
+        })
+        .collect::<std::result::Result<_, _>>()
+        .map_err(|e| CliError(e.to_string()))?;
     let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
     Ok(PreparedPlan {
         project,
@@ -216,7 +261,10 @@ pub fn prepare(
         plan,
         graph,
         providers,
+        probes,
+        validations,
         tools,
+        native_configuration,
     })
 }
 fn tool_pack(environment: &BTreeMap<String, String>) -> Option<PathBuf> {
@@ -240,6 +288,8 @@ impl PreparedPlan {
                 if let Some(reason)=blocked {entry["blocked"]=json!(reason);}
                 else if let Some(task)=p.task() {
                     entry["argv"]=json!(task.argv);
+                    let steps:Vec<_>=self.probes.get(&p.task_id).into_iter().chain(p.tasks().iter()).collect();
+                    entry["steps"]=json!(steps);
                     if !task.requires.is_empty(){entry["requires"]=json!(task.requires);}
                     if !task.work_dirs.is_empty(){entry["work_dirs"]=json!(task.work_dirs);}
                     if p.advisory(){entry["advisory"]=json!(true);}
@@ -254,9 +304,13 @@ impl PreparedPlan {
             .iter()
             .filter(|p| !self.graph.blocked.contains_key(&p.task_id))
             .filter_map(|p| {
-                p.task()
+                let directories: BTreeSet<_> = p
+                    .tasks()
+                    .iter()
                     .filter(|t| t.mutating())
-                    .map(|t| (&p.task_id, &t.work_dirs))
+                    .flat_map(|t| t.work_dirs.iter())
+                    .collect();
+                (!directories.is_empty()).then_some((&p.task_id, directories))
             })
             .collect();
         let edges: BTreeMap<_, _> = self
@@ -287,14 +341,21 @@ impl PreparedPlan {
             {
                 let detail = if let Some(reason) = self.graph.blocked.get(&check.task_id) {
                     format!("blocked — {reason}")
-                } else if let Some(task) = check.task() {
+                } else if !check.tasks().is_empty() {
                     format!(
                         "{}{}",
-                        task.argv
-                            .iter()
-                            .map(|v| display_argument(v))
+                        self.probes
+                            .get(&check.task_id)
+                            .into_iter()
+                            .chain(check.tasks().iter())
+                            .map(|task| task
+                                .argv
+                                .iter()
+                                .map(|v| display_argument(v))
+                                .collect::<Vec<_>>()
+                                .join(" "))
                             .collect::<Vec<_>>()
-                            .join(" "),
+                            .join(" → "),
                         if check.advisory() {
                             " [advisory findings; completion required]"
                         } else {

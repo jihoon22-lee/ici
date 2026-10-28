@@ -1,6 +1,8 @@
 //! Versioned native observation cache. Cached data never supplies its own execution identity.
 use crate::{ApplicationError, Result};
-use ici_domain::{Observation, TaskSpec, Validate, canonical_json, sha256, validation};
+use ici_domain::{
+    AnalysisOutput, Observation, TaskSpec, Validate, canonical_json, sha256, validation,
+};
 use ici_execution::storage::{WriteMode, atomic_write};
 use nix::{
     fcntl::{AtFlags, OFlag, openat},
@@ -92,6 +94,8 @@ struct Entry {
     key: String,
     core_digest: String,
     observation: Observation,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    analysis: Option<AnalysisOutput>,
 }
 impl ObservationCache {
     fn name(key: &str) -> Result<String> {
@@ -101,7 +105,7 @@ impl ObservationCache {
             key.strip_prefix("sha256:").expect("validated")
         ))
     }
-    pub fn get(&self, key: &str, task_id: &str) -> Result<Option<Observation>> {
+    fn read_entry(&self, key: &str) -> Result<Option<Entry>> {
         validation::digest(&self.core_digest, "cache core identity")
             .map_err(|e| ApplicationError(e.to_string()))?;
         let name = Self::name(key)?;
@@ -157,11 +161,46 @@ impl ObservationCache {
                 "cache entry has incomplete evidence".into(),
             ));
         }
-        let mut observation = entry.observation;
-        observation.task_id = task_id.into();
-        Ok(Some(observation))
+        if let Some(analysis) = &entry.analysis {
+            validate_output(analysis)?;
+            if analysis.observation != entry.observation {
+                return Err(ApplicationError(
+                    "cached rich output disagrees with its observation".into(),
+                ));
+            }
+        }
+        Ok(Some(entry))
+    }
+    pub fn get(&self, key: &str, task_id: &str) -> Result<Option<Observation>> {
+        Ok(self.read_entry(key)?.map(|entry| {
+            let mut observation = entry.observation;
+            observation.task_id = task_id.into();
+            observation
+        }))
+    }
+    /// Old observation-only entries cannot invent the richer inspected targets.
+    pub fn get_output(&self, key: &str, task_id: &str) -> Result<Option<AnalysisOutput>> {
+        Ok(self
+            .read_entry(key)?
+            .and_then(|entry| entry.analysis)
+            .map(|mut output| {
+                output.observation.task_id = task_id.into();
+                output
+            }))
+    }
+    pub fn put_output(&self, key: &str, output: &AnalysisOutput) -> Result<bool> {
+        validate_output(output)?;
+        self.put_entry(key, &output.observation, Some(output))
     }
     pub fn put(&self, key: &str, observation: &Observation) -> Result<bool> {
+        self.put_entry(key, observation, None)
+    }
+    fn put_entry(
+        &self,
+        key: &str,
+        observation: &Observation,
+        analysis: Option<&AnalysisOutput>,
+    ) -> Result<bool> {
         validation::digest(&self.core_digest, "cache core identity")
             .map_err(|e| ApplicationError(e.to_string()))?;
         let name = Self::name(key)?;
@@ -177,6 +216,7 @@ impl ObservationCache {
             key: key.into(),
             core_digest: self.core_digest.clone(),
             observation: observation.clone(),
+            analysis: analysis.cloned(),
         };
         let bytes = canonical_json(&entry)
             .map_err(|e| ApplicationError(e.to_string()))?
@@ -238,4 +278,39 @@ impl ObservationCache {
         }
         Ok(stats)
     }
+}
+
+fn validate_output(output: &AnalysisOutput) -> Result<()> {
+    output
+        .observation
+        .validate()
+        .map_err(|error| ApplicationError(error.to_string()))?;
+    for target in &output.targets {
+        validation::relative_path(&target.file_path, false)
+            .map_err(|error| ApplicationError(error.to_string()))?;
+        if target.start_line == 0
+            || target.end_line.is_some_and(|line| line < target.start_line)
+            || target.start_column == Some(0)
+            || target.end_column == Some(0)
+            || (target.end_line.is_none_or(|line| line == target.start_line)
+                && target
+                    .start_column
+                    .zip(target.end_column)
+                    .is_some_and(|(start, end)| end < start))
+            || !["PASS", "WARN", "FAIL", "ERROR", "SKIP"].contains(&target.status.as_str())
+        {
+            return Err(ApplicationError(
+                "cached inspected target has an invalid position/status".into(),
+            ));
+        }
+    }
+    if !["PASS", "WARN", "FAIL", "ERROR", "SKIP"].contains(&output.status.as_str())
+        || output.score.is_some_and(|value| !value.is_finite())
+        || output.max_score.is_some_and(|value| !value.is_finite())
+    {
+        return Err(ApplicationError(
+            "cached rich output has invalid status/score".into(),
+        ));
+    }
+    Ok(())
 }

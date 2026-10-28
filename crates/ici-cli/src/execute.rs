@@ -1,0 +1,857 @@
+//! Execution lifecycle. Immutable analysis, process evidence, policy and saved artifacts stay distinct.
+use crate::{
+    commands::{CliError, CommandOutput, Result, under},
+    events::{EventLog, SignalGuard},
+    inputs,
+    planning::{self, PreparedPlan},
+    registry::Invocation,
+};
+use ici_application::{
+    assemble::{self, RunContext},
+    identity,
+    plan::Work,
+    suppressions::SuppressionPolicy,
+    verification,
+};
+use ici_domain::{AnalysisOutput, GateVerdict, Observation, RunResult, TaskState};
+use ici_execution::{
+    Cancellation, Runner, Scheduler,
+    storage::{self, WriteMode},
+};
+use serde_json::json;
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    time::Instant,
+};
+
+#[derive(Debug)]
+pub struct ExecutedRun {
+    pub result: RunResult,
+    /// Retain actual inspected PASS/FAIL locations and descriptor extras for report projection.
+    pub outputs: BTreeMap<String, AnalysisOutput>,
+    pub result_path: PathBuf,
+}
+fn error(error: impl std::fmt::Display) -> CliError {
+    CliError(error.to_string())
+}
+
+pub fn command(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+) -> Result<CommandOutput> {
+    let cancellation = Cancellation::default();
+    let _signals = SignalGuard::install(&cancellation).map_err(error)?;
+    let run = execute(invocation, cwd, environment, static_only, &cancellation)?;
+    let stdout = if invocation.flag("json_mode") {
+        run.result.to_json().map_err(error)? + "\n"
+    } else {
+        console(&run.result, &run.result_path, 5)
+    };
+    Ok(CommandOutput {
+        stdout,
+        stderr: String::new(),
+        exit_code: run.result.exit_code(),
+    })
+}
+
+pub fn execute(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+    cancellation: &Cancellation,
+) -> Result<ExecutedRun> {
+    let run_id = format!(
+        "{}-{}",
+        chrono::Utc::now().format("%Y%m%dT%H%M%S%.9fZ"),
+        std::process::id()
+    );
+    let mut prepared =
+        planning::prepare_for_run(invocation, cwd, environment, static_only, &run_id)?;
+    let result_path = under(
+        &prepared.project.root,
+        invocation.value("result").unwrap_or(crate::DEFAULT_RESULT),
+    );
+    let events_path = invocation
+        .value("events")
+        .map(|path| under(&prepared.project.root, path));
+    let baseline_path = invocation
+        .value("baseline")
+        .map(|path| under(&prepared.project.root, path));
+    protect_outputs(
+        &prepared,
+        &result_path,
+        events_path.as_deref(),
+        baseline_path.as_deref(),
+    )?;
+    // Invalid baselines and artifact destinations fail before launching project tools.
+    let baseline = baseline_path
+        .as_ref()
+        .map(|path| storage::read_result(path).map_err(error))
+        .transpose()?;
+    validate_destination(&result_path, false)?;
+    if result_path.exists() {
+        storage::read_result(&result_path).map_err(|failure| CliError(format!("existing result is not a native run artifact; choose a new --result path: {failure}")))?;
+    }
+    if let Some(path) = &events_path {
+        validate_destination(path, true)?;
+    }
+    let events = EventLog::open(events_path.as_deref(), &run_id).map_err(error)?;
+    events.emit("run.started", None, None, "capturing selected inputs");
+    let runner = Runner::with_environment(environment.clone());
+    let mut scheduler = Scheduler::new(runner.clone(), 2);
+    scheduler.lock_directory = Some(prepared.project.root.join(".ici/rust-v1/locks/tasks"));
+    let mut limitations = vec![];
+    let (snapshot, intake_ok) = match inputs::capture(&prepared) {
+        Ok(snapshot) => (snapshot, true),
+        Err(failure) => {
+            limitations.push(failure.to_string());
+            (inputs::empty_snapshot(), false)
+        }
+    };
+    let core_digest =
+        ici_execution::process::executable_digest(Path::new("/proc/self/exe")).map_err(error);
+    let core_known = core_digest.is_ok();
+    if let Err(failure) = &core_digest {
+        limitations.push(format!("core identity unavailable: {failure}"));
+    }
+    let policy_digest = identity::policy_digest(&prepared.project).map_err(error)?;
+    let cache = crate::reuse::RunCache::new(
+        &prepared.project.root,
+        core_digest.as_ref().ok().map(String::as_str),
+        &policy_digest,
+        invocation.flag("no_cache"),
+    );
+    let mut cache_keys = BTreeMap::new();
+    let mut reused = vec![];
+    let toolchain_digest=identity::digest(&json!({"namespace":"ici.rust.toolchain.v1","core":core_digest.ok(),"tools":prepared.tools.iter().map(|(id,tool)|(id,&tool.digest)).collect::<BTreeMap<_,_>>()})).map_err(error)?;
+    let coordinates =
+        ici_providers::source_coordinates(snapshot.files.values().map(|file| &file.input));
+    for provider in prepared.providers.values_mut() {
+        ici_providers::attach_sources(provider, coordinates.clone());
+    }
+    events.emit(
+        "plan.ready",
+        None,
+        None,
+        &format!("{} selected checks", prepared.plan.checks.len()),
+    );
+    let mut python = ici_analysis::AnalysisSession::new();
+    let mut cpp = ici_cpp::CppAnalysisSession::new();
+    let mut outputs = BTreeMap::new();
+    let mut step_outcomes = BTreeMap::new();
+    let mut owned_runs = BTreeMap::new();
+    if intake_ok {
+        for planned in &prepared.plan.checks {
+            if !prepared.validations.contains_key(&planned.task_id) {
+                continue;
+            }
+            let mut request = inputs::analysis_request(&prepared, planned, &snapshot, false);
+            let component = inputs::component(&prepared, planned);
+            for (path, file) in &snapshot.files {
+                if path.ends_with(".py")
+                    && (component.root == "." || path.starts_with(&format!("{}/", component.root)))
+                    && !request.inputs.iter().any(|input| input.path == *path)
+                {
+                    request.inputs.push(file.input.clone());
+                }
+            }
+            let facts = match python.source_facts(&request) {
+                Ok(facts) => facts
+                    .functions
+                    .into_iter()
+                    .map(|fact| ici_validation::FunctionFact {
+                        path: fact.path,
+                        name: fact.name,
+                        qualified_name: fact.qualified_name,
+                        start_line: fact.start_line,
+                        entry_line: Some(fact.entry_line),
+                        body_start_line: fact.body_start_line,
+                        end_line: fact.end_line,
+                    })
+                    .collect::<Vec<_>>(),
+                Err(output) => {
+                    outputs.insert(planned.task_id.clone(), *output);
+                    continue;
+                }
+            };
+            let requirement = match ici_analysis::requires_python(&request) {
+                Ok(requirement) => requirement.filter(|requirement| !requirement.is_empty()),
+                Err(output) => {
+                    outputs.insert(planned.task_id.clone(), *output);
+                    continue;
+                }
+            };
+            for plan in prepared
+                .validations
+                .get_mut(&planned.task_id)
+                .expect("selected validation")
+            {
+                ici_validation::attach_sources(plan, coordinates.clone());
+                plan.context.functions = facts
+                    .iter()
+                    .filter(|fact| {
+                        plan.kind != ici_validation::ValidationKind::PythonCoverage
+                            || plan.context.source_files.contains(&fact.path)
+                    })
+                    .cloned()
+                    .collect();
+                plan.context.options.function_facts_complete = true;
+                if plan.context.options.requires_python.is_none() {
+                    plan.context.options.requires_python = requirement.clone();
+                }
+            }
+        }
+    }
+    for planned in &prepared.plan.checks {
+        if let Some(reason) = prepared.graph.blocked.get(&planned.task_id) {
+            outputs.insert(
+                planned.task_id.clone(),
+                unavailable(&planned.task_id, TaskState::Blocked, reason),
+            );
+        }
+    }
+    for layer in prepared.graph.layers.clone() {
+        let mut tasks = vec![];
+        for id in &layer {
+            let planned = prepared
+                .plan
+                .checks
+                .iter()
+                .find(|planned| &planned.task_id == id)
+                .expect("graph owns selected checks");
+            if outputs.contains_key(id) {
+                continue;
+            }
+            let reason = if cancellation.is_cancelled() {
+                Some((TaskState::Cancelled, "run cancelled".into()))
+            } else if !intake_ok {
+                Some((TaskState::Blocked, "input snapshot failed".into()))
+            } else {
+                prepared
+                    .graph
+                    .edges
+                    .get(id)
+                    .and_then(|dependencies| {
+                        dependencies.iter().find(|dependency| {
+                            outputs
+                                .get(*dependency)
+                                .is_none_or(|output| !output.observation.evidence_is_complete())
+                        })
+                    })
+                    .map(|dependency| {
+                        (
+                            TaskState::Blocked,
+                            format!("prerequisite {dependency} has no complete evidence"),
+                        )
+                    })
+            };
+            if let Some((state, reason)) = reason {
+                outputs.insert(id.clone(), unavailable(id, state, &reason));
+                continue;
+            }
+            match &planned.work {
+                Work::Internal => {
+                    let start = Instant::now();
+                    let request = inputs::analysis_request(&prepared, planned, &snapshot, false);
+                    if let Some(cache) = &cache {
+                        match cache.internal_key(&request, &prepared.project.root, &snapshot) {
+                            Ok(Some(key)) => {
+                                cache_keys.insert(id.clone(), key.clone());
+                                match cache.store.get_output(&key, id) {
+                                    Ok(Some(mut output)) => {
+                                        redact(&mut output)?;
+                                        events.emit(
+                                            "task.progress",
+                                            Some(id),
+                                            Some(&planned.component_id),
+                                            "reused unchanged native analysis",
+                                        );
+                                        reused.push(id.clone());
+                                        outputs.insert(id.clone(), output);
+                                        continue;
+                                    }
+                                    Ok(None) => {}
+                                    Err(error) => {
+                                        limitations.push(format!("cache ignored for {id}: {error}"))
+                                    }
+                                }
+                            }
+                            Ok(None) => {}
+                            Err(error) => {
+                                limitations.push(format!("cache identity for {id}: {error}"))
+                            }
+                        }
+                    }
+
+                    events.emit(
+                        "task.started",
+                        Some(id),
+                        Some(&planned.component_id),
+                        "native analysis",
+                    );
+                    let mut output = if planned.check.language == "python" {
+                        python.analyze_cancellable(&request, &cancellation.flag())
+                    } else {
+                        cpp.analyze_cancellable(&request, &cancellation.flag())
+                    };
+                    output.observation.duration_seconds = Some(start.elapsed().as_secs_f64());
+                    redact(&mut output)?;
+                    events.emit(
+                        "task.completed",
+                        Some(id),
+                        Some(&planned.component_id),
+                        &format!("{:?}", output.observation.state),
+                    );
+                    outputs.insert(id.clone(), output);
+                }
+                Work::Process { task, .. } => tasks.push(task.as_ref().clone()),
+                Work::Steps { .. } => {
+                    let mut output = if let Some(plans) = prepared.validations.get(id) {
+                        execute_validation(
+                            id,
+                            plans,
+                            &scheduler,
+                            cancellation,
+                            &events,
+                            &mut step_outcomes,
+                            &mut owned_runs,
+                        )
+                    } else {
+                        unavailable(
+                            id,
+                            TaskState::Blocked,
+                            "ordered validation adapter has not supplied an observer",
+                        )
+                    };
+                    redact(&mut output)?;
+                    outputs.insert(id.clone(), output);
+                }
+                Work::Blocked { reason } => {
+                    outputs.insert(id.clone(), unavailable(id, TaskState::Blocked, reason));
+                }
+            }
+        }
+        // Ruff's actual inspected scope is proven by a separate visible probe, never inferred from requested targets.
+        let probes: Vec<_> = tasks
+            .iter()
+            .filter_map(|task| prepared.probes.get(&task.id).cloned())
+            .collect();
+        let proof = scheduler
+            .run_with_start(&probes, cancellation, |task| {
+                events.emit(
+                    "task.started",
+                    Some(&task.id),
+                    None,
+                    "native scope inventory",
+                )
+            })
+            .map_err(error)?;
+        for outcome in proof.outcomes {
+            events.emit(
+                "task.completed",
+                Some(&outcome.task_id),
+                None,
+                &format!("{:?}", outcome.state),
+            );
+            if let Some(id) = outcome.task_id.strip_suffix(".files") {
+                let provider = prepared
+                    .providers
+                    .get_mut(id)
+                    .expect("probe belongs to provider");
+                let evidence = &prepared.native_configuration[id];
+                if let Err(failure) =
+                    ici_providers::plan::apply_ruff_inventory(provider, &outcome, evidence)
+                {
+                    provider.scope_complete = false;
+                    provider.limitations.push(failure.to_string());
+                }
+            }
+        }
+        let mut runnable = vec![];
+        for task in tasks {
+            let mut hit = false;
+            if let (Some(cache), Some(provider)) = (&cache, prepared.providers.get(&task.id)) {
+                match cache.provider_key(provider, &prepared.project.root, &snapshot, &runner) {
+                    Ok(Some(key)) => {
+                        cache_keys.insert(task.id.clone(), key.clone());
+                        match cache.store.get_output(&key, &task.id) {
+                            Ok(Some(mut output)) => {
+                                redact(&mut output)?;
+                                events.emit(
+                                    "task.progress",
+                                    Some(&task.id),
+                                    None,
+                                    "reused verified native tool evidence",
+                                );
+                                reused.push(task.id.clone());
+                                outputs.insert(task.id.clone(), output);
+                                hit = true;
+                            }
+                            Ok(None) => {}
+                            Err(error) => {
+                                limitations.push(format!("cache ignored for {}: {error}", task.id))
+                            }
+                        }
+                    }
+                    Ok(None) => {}
+                    Err(error) => {
+                        limitations.push(format!("cache identity for {}: {error}", task.id))
+                    }
+                }
+            }
+            if !hit {
+                runnable.push(task);
+            }
+        }
+        let schedule = scheduler
+            .run_with_start(&runnable, cancellation, |task| {
+                events.emit(
+                    "task.started",
+                    Some(&task.id),
+                    None,
+                    "native tool execution",
+                )
+            })
+            .map_err(error)?;
+        for outcome in schedule.outcomes {
+            let id = outcome.task_id.clone();
+            let mut output = if let Some(provider) = prepared.providers.get(&id) {
+                ici_providers::observe_full(provider, &outcome)
+            } else {
+                unavailable(&id, TaskState::Failed, "process observer unavailable")
+            };
+            redact(&mut output)?;
+            events.emit(
+                "task.completed",
+                Some(&id),
+                None,
+                &format!("{:?}", output.observation.state),
+            );
+            outputs.insert(id, output);
+        }
+    }
+    for planned in &prepared.plan.checks {
+        outputs.entry(planned.task_id.clone()).or_insert_with(|| {
+            unavailable(
+                &planned.task_id,
+                if cancellation.is_cancelled() {
+                    TaskState::Cancelled
+                } else {
+                    TaskState::Blocked
+                },
+                "selected check did not execute",
+            )
+        });
+    }
+    let inputs_stable =
+        match planning::prepare_for_run(invocation, cwd, environment, static_only, &run_id)
+            .and_then(|after| {
+                inputs::capture(&after)
+                    .map(|new| !inputs::changed(&prepared, &after, &snapshot, &new))
+            }) {
+            Ok(stable) => intake_ok && stable,
+            Err(failure) => {
+                limitations.push(format!("final input verification: {failure}"));
+                false
+            }
+        };
+    if inputs_stable
+        && !cancellation.is_cancelled()
+        && let Some(cache) = &cache
+    {
+        for (id, key) in cache_keys {
+            if !reused.contains(&id)
+                && let Some(output) = outputs.get(&id)
+                && let Err(error) = cache.store.put_output(&key, output)
+            {
+                limitations.push(format!("cache write for {id}: {error}"));
+            }
+        }
+    }
+    let suppressions = SuppressionPolicy::new(&prepared.project.suppressions).map_err(error)?;
+    let observations: Vec<Observation> = prepared
+        .plan
+        .checks
+        .iter()
+        .map(|planned| outputs[&planned.task_id].observation.clone())
+        .collect();
+    let verification = verification::evaluate(
+        &prepared.plan,
+        observations,
+        cancellation.is_cancelled(),
+        |finding| suppressions.apply(finding),
+    )
+    .map_err(error)?;
+    let checks = inputs::check_records(
+        &prepared,
+        &verification.observations,
+        &snapshot,
+        &outputs,
+        &runner,
+        inputs_stable,
+        core_known,
+    )?;
+    if let Some(failure) = events.failure() {
+        limitations.push(failure);
+    }
+    let mut result = assemble::assemble(
+        &prepared.project,
+        &prepared.request,
+        &prepared.plan,
+        verification,
+        RunContext {
+            run_id,
+            ici_version: crate::VERSION.into(),
+            source: snapshot.source(None, true),
+            policy_digest,
+            toolchain_digest,
+            bundle_digest: None,
+            cancelled: cancellation.is_cancelled(),
+            inputs_stable,
+            checks,
+            reused_task_ids: reused,
+            limitations,
+            baseline: None,
+        },
+    )
+    .map_err(error)?;
+    if let Some(baseline) = baseline {
+        let comparison = ici_application::baseline::compare(
+            &result.findings,
+            &result.identity,
+            result.checks.as_deref(),
+            &baseline,
+            baseline_path.expect("baseline path").to_string_lossy(),
+        );
+        if comparison.state == ici_domain::BaselineState::Incompatible {
+            result.gate.reasons.push(format!(
+                "baseline comparison unavailable: {}",
+                comparison.reason
+            ));
+        }
+        result.baseline = Some(comparison);
+    }
+    if !core_known && result.gate.selected == GateVerdict::Pass {
+        result.gate.selected = GateVerdict::Incomplete;
+        result.gate.workspace = GateVerdict::NotEvaluated;
+        result.execution.required_complete = false;
+        result.gate.reasons.push("core identity unavailable".into());
+    }
+    storage::write_result(&result_path, &result, WriteMode::ReplaceRegular).map_err(error)?;
+    events.emit(
+        "run.completed",
+        None,
+        None,
+        &format!("{:?}", result.gate.selected),
+    );
+    if let Some(failure) = events.failure()
+        && !result.limitations.contains(&failure)
+    {
+        result.limitations.push(failure);
+        storage::write_result(&result_path, &result, WriteMode::ReplaceRegular).map_err(error)?;
+    }
+    Ok(ExecutedRun {
+        result,
+        outputs,
+        result_path,
+    })
+}
+fn unavailable(id: &str, state: TaskState, reason: &str) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "ici");
+    output.observation.state = state;
+    output.observation.limitations.push(reason.into());
+    output.status = "SKIP".into();
+    output.summary = reason.into();
+    output
+}
+fn redact(output: &mut AnalysisOutput) -> Result<()> {
+    let value = serde_json::to_value(&*output).map_err(error)?;
+    *output =
+        serde_json::from_value(ici_execution::redaction::redact_value(&value)).map_err(error)?;
+    Ok(())
+}
+fn lexical(path: &Path) -> PathBuf {
+    let mut output = PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                output.pop();
+            }
+            other => output.push(other.as_os_str()),
+        }
+    }
+    output
+}
+fn protect_outputs(
+    prepared: &PreparedPlan,
+    result: &Path,
+    events: Option<&Path>,
+    baseline: Option<&Path>,
+) -> Result<()> {
+    let outputs: Vec<_> = std::iter::once(result).chain(events).collect();
+    if events.is_some_and(|events| lexical(events) == lexical(result)) {
+        return Err(CliError("result and event output paths must differ".into()));
+    }
+    for output in outputs {
+        let output = lexical(output);
+        if baseline.is_some_and(|baseline| {
+            lexical(baseline) == output
+                || baseline
+                    .canonicalize()
+                    .ok()
+                    .zip(output.canonicalize().ok())
+                    .is_some_and(|(baseline, output)| baseline == output)
+        }) {
+            return Err(CliError(
+                "an output cannot replace the comparison baseline".into(),
+            ));
+        }
+        let selected = prepared
+            .project
+            .components
+            .iter()
+            .flat_map(|component| component.files.iter())
+            .map(|path| prepared.project.root.join(path));
+        if selected
+            .chain(prepared.project.configuration_files.iter().cloned())
+            .any(|path| lexical(&path) == output)
+        {
+            return Err(CliError(
+                "an output cannot replace source or configuration inputs".into(),
+            ));
+        }
+    }
+    Ok(())
+}
+fn validate_destination(path: &Path, create_new: bool) -> Result<()> {
+    match std::fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            if create_new || !metadata.file_type().is_file() {
+                return Err(CliError(format!(
+                    "{} is not an available regular output",
+                    path.display()
+                )));
+            }
+        }
+        Err(failure) if failure.kind() == std::io::ErrorKind::NotFound => {}
+        Err(failure) => return Err(error(failure)),
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| CliError("output has no parent directory".into()))?;
+    storage::prepare_directory(parent).map_err(error)?;
+    Ok(())
+}
+
+fn execute_validation(
+    id: &str,
+    plans: &[ici_validation::ValidationPlan],
+    scheduler: &Scheduler,
+    cancellation: &Cancellation,
+    events: &EventLog,
+    outcomes: &mut BTreeMap<String, ici_execution::TaskOutcome>,
+    owners: &mut BTreeMap<PathBuf, ici_validation::OwnedRun>,
+) -> AnalysisOutput {
+    let mut combined = AnalysisOutput::new(id, "ici-validation");
+    for plan in plans {
+        let directory = &plan.context.owned_run_dir;
+        if !owners.contains_key(directory) {
+            let prepare = directory
+                .parent()
+                .ok_or_else(|| "validation run has no parent".into())
+                .and_then(|parent| {
+                    storage::prepare_directory(parent).map_err(|error| error.to_string())
+                })
+                .and_then(|()| {
+                    ici_validation::OwnedRun::create(directory).map_err(|error| error.to_string())
+                });
+            match prepare {
+                Ok(owner) => {
+                    owners.insert(directory.clone(), owner);
+                }
+                Err(reason) => {
+                    return unavailable(
+                        id,
+                        TaskState::Failed,
+                        &format!("fresh validation directory: {reason}"),
+                    );
+                }
+            }
+        }
+        let mut failure = None;
+        loop {
+            let ready = match ici_validation::ready_steps(plan, outcomes) {
+                Ok(ready) => ready,
+                Err(error) => {
+                    failure = Some(error.to_string());
+                    break;
+                }
+            };
+            if ready.is_empty() {
+                break;
+            }
+            let tasks: Vec<_> = plan
+                .tasks
+                .iter()
+                .filter(|task| ready.contains(&task.id))
+                .cloned()
+                .collect();
+            match scheduler.run_with_start(&tasks, cancellation, |task| {
+                owners[directory].mark_started(&task.id);
+                events.emit(
+                    "task.started",
+                    Some(&task.id),
+                    Some(&plan.context.component_id),
+                    "project validation",
+                )
+            }) {
+                Ok(schedule) => {
+                    for outcome in schedule.outcomes {
+                        events.emit(
+                            "task.completed",
+                            Some(&outcome.task_id),
+                            Some(&plan.context.component_id),
+                            &format!("{:?}", outcome.state),
+                        );
+                        outcomes.insert(outcome.task_id.clone(), outcome);
+                    }
+                }
+                Err(error) => {
+                    failure = Some(error.to_string());
+                    break;
+                }
+            }
+        }
+        let artifacts = match ici_validation::capture_artifacts(plan, &owners[directory], outcomes)
+        {
+            Ok(artifacts) => artifacts,
+            Err(error) => {
+                return unavailable(
+                    id,
+                    TaskState::Failed,
+                    &format!("validation artifact ownership: {error}"),
+                );
+            }
+        };
+        let mut output = ici_validation::observe(plan, outcomes, &artifacts);
+        if !output.observation.evidence_is_complete() {
+            output.extra["step_diagnostics"]=json!(plan.tasks.iter().filter_map(|task|outcomes.get(&task.id)).map(|outcome|json!({"task_id":outcome.task_id,"exit_code":outcome.exit_code,"stdout":String::from_utf8_lossy(&outcome.stdout).chars().take(4096).collect::<String>(),"stderr":String::from_utf8_lossy(&outcome.stderr).chars().take(4096).collect::<String>(),"error":outcome.error})).collect::<Vec<_>>());
+        }
+        if let Some(reason) = failure {
+            output.observation.state = if cancellation.is_cancelled() {
+                TaskState::Cancelled
+            } else {
+                TaskState::Blocked
+            };
+            output.observation.limitations.push(reason);
+        }
+        let complete = output.observation.evidence_is_complete();
+        combined.observation.timed_out |= output.observation.timed_out;
+        combined.observation.truncated |= output.observation.truncated;
+        combined.observation.duration_seconds = Some(
+            combined.observation.duration_seconds.unwrap_or(0.0)
+                + output.observation.duration_seconds.unwrap_or(0.0),
+        );
+        combined
+            .observation
+            .tool_versions
+            .extend(output.observation.tool_versions);
+        if combined.status == "PASS" && output.status != "PASS" {
+            combined.status = output.status.clone();
+        }
+        if !complete {
+            combined.observation.state = output.observation.state;
+            combined.status = "SKIP".into();
+        }
+        combined
+            .observation
+            .findings
+            .extend(output.observation.findings);
+        combined
+            .observation
+            .measurements
+            .extend(output.observation.measurements);
+        combined
+            .observation
+            .limitations
+            .extend(output.observation.limitations);
+        combined.targets.extend(output.targets);
+        if !combined.summary.is_empty() {
+            combined.summary.push_str("; ");
+        }
+        combined.summary.push_str(&output.summary);
+        if combined.extra.is_null() {
+            combined.extra = json!({});
+        }
+        combined.extra[&plan.context.task_id] = output.extra;
+    }
+    combined
+}
+
+fn console(result: &RunResult, path: &Path, maximum: usize) -> String {
+    let verdict = serde_json::to_value(result.gate.selected).expect("enum");
+    let mut text = format!(
+        "{} — {} finding(s)\n",
+        verdict.as_str().expect("string enum"),
+        result
+            .findings
+            .iter()
+            .filter(|finding| !finding.suppression.suppressed)
+            .count()
+    );
+    for reason in &result.gate.reasons {
+        text.push_str(&format!("  {}\n", reason));
+    }
+    for finding in result
+        .findings
+        .iter()
+        .filter(|finding| !finding.suppression.suppressed)
+        .take(maximum)
+    {
+        let location = &finding.primary_location;
+        let column = location
+            .start_column
+            .map(|column| format!(":{column}"))
+            .unwrap_or_default();
+        text.push_str(&format!(
+            "  {}:{}{}  {}  {}\n",
+            location.path, location.start_line, column, finding.rule_id, finding.message
+        ));
+    }
+    let remaining = result
+        .findings
+        .iter()
+        .filter(|finding| !finding.suppression.suppressed)
+        .count()
+        .saturating_sub(maximum);
+    if remaining > 0 {
+        text.push_str(&format!("  {remaining} more in the saved result\n"));
+    }
+    if result.scope.kind != ici_domain::ScopeKind::Full {
+        text.push_str(
+            "  This run covers the selected scope; it does not certify the full workspace.\n",
+        );
+    }
+    if let Some(comparison) = &result.baseline {
+        if comparison.state == ici_domain::BaselineState::Comparable {
+            text.push_str(&format!(
+                "  baseline: {} new, {} resolved, {} carried\n",
+                comparison.new.len(),
+                comparison.resolved.len(),
+                comparison.carried.len()
+            ));
+        } else {
+            text.push_str(&format!(
+                "  baseline comparison unavailable: {}\n",
+                comparison.reason
+            ));
+        }
+    }
+    text.push_str(&format!("Result: {}\n", path.display()));
+    text
+}

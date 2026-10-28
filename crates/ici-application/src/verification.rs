@@ -124,7 +124,7 @@ pub fn evaluate(
                 planned.task_id,
                 observation
                     .limitations
-                    .first()
+                    .last()
                     .cloned()
                     .unwrap_or_else(|| format!("{:?}", observation.state))
             ));

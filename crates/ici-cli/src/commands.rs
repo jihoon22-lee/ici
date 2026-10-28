@@ -54,6 +54,8 @@ pub fn dispatch(
                 Ok(CommandOutput::text(prepared.text()))
             }
         }
+        "analyze" => crate::execute::command(invocation, cwd, environment, true),
+        "next verify" => crate::execute::command(invocation, cwd, environment, false),
         "init" | "next init" => init(invocation, cwd, environment),
         "next migrate" => migrate(invocation, cwd),
         "diff" | "next diff" => diff(invocation, cwd),
@@ -235,7 +237,7 @@ fn diff(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
 }
 
 fn cache(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
-    let directory = artifact_root(cwd).join(".ici/native/v1/observations");
+    let directory = artifact_root(cwd).join(".ici/rust-v1/observations");
     let cache = ici_application::cache::ObservationCache {
         directory: directory.clone(),
         core_digest: String::new(),

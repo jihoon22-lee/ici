@@ -7,6 +7,16 @@
 
 ## [Unreleased]
 
+- native `analyze`/`next verify` 실행을 immutable 입력·실제 도구·필수 검사 판정·원자 결과
+  저장에 연결합니다. 실행 중 취소는 부분 증거와 130을 남기고, 입력 변경은 완료 판정을
+  취소하며 소스·설정·baseline/이전 형식 결과의 덮어쓰기를 거부합니다.
+- 명시 프로젝트 Python의 실제 pytest 한 번을 test/coverage가 공유하고, 같은 검사 범위에서
+  수정된 실패를 baseline resolved로 판정합니다. 실제 수집한 test node도 비교 범위에 포함하고
+  pytest의 디렉터리·native 파일 이름 설정을 보존합니다.
+- native cache에 실제 PASS 대상과 descriptor 확장 데이터를 함께 저장합니다. 오래된
+  observation-only cache에서 PASS 위치를 만들지 않고 재계산하며 손상·미확인 closure·
+  바뀐 입력/core/tool bytes는 재사용하지 않습니다. 분석 시작 이벤트는 cache hit에 발생하지 않습니다.
+
 - 프로젝트 interpreter/tool의 symlink 경로를 실제 실행 전 보존합니다. 가상환경 Python을
   canonical system Python으로 바꾸어 pytest·coverage를 찾지 못하던 native 설정 결함을 고칩니다.
   실행 bytes의 digest 검증과 설정 파일 기준 상대경로 의미는 계속 유지합니다.

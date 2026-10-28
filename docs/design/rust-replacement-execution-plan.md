@@ -353,3 +353,36 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   coverage를 잃는 결함을 발견했다. config executable은 선언 파일 기준 lexical invocation
   경로를 보존하고, tool resolver가 실제 bytes identity를 따로 검증하도록 교정했다.
   config 29개 시험과 nested symlink 회귀 fixture로 확인한다.
+
+
+### 실제 native CLI lifecycle checkpoint
+
+- `analyze`/`next verify`는 실제 내부 source session과 R3 tool provider, R6 프로젝트 Python
+  test/shared coverage/runtime/import-only를 연결한다. `.ici/rust-v1` 결과와 선택 event stream을
+  원자 저장한다. 계획은 모든 probe/단계/argv/work directory를 실행 없이 표시한다.
+- 입력 capture 실패·선택 범위 누락·지원하지 않는 adapter는 incomplete로 남고, 취소는
+  부분 결과와 130을 보존한다. 실행 중 원본 파일/설정/tool bytes가 바뀌면 전체 완료·resolved
+  증거를 철회한다. 결과/event/baseline alias와 기존 v3 결과·source/config를 보호한다.
+- 논리 test와 coverage는 명시 프로젝트 Python 한 suite를 공유한다. 실제 pytest 실패 exit 1도
+  완료된 비어 있지 않은 증거이면 coverage report를 만들고, collection/timeout/cancel은 막는다.
+  source와 test 지원 입력을 같은 bounded scanner로 캡처하고 함수 위치는 공통 parser에서 얻는다.
+  실제 test node 집합과 run 디렉터리를 정규화한 모든 단계 identity를 scope에 기록한다.
+- native cache는 rich AnalysisOutput을 보존한다. observation-only entry는 rich 결과 hit가
+  아니며 오류가 있으면 원인을 기록하고 재계산한다. 순수 Python source 분석과 실제 closure가
+  확인된 tool만 재사용하며 dynamic test/build/미확정 native closure는 재사용하지 않는다.
+  실행된 core의 `/proc/self/exe` bytes를 identity로 사용한다.
+- `cache-lifecycle-gates.log`: application 36 / CLI 17개 통과, scoped Clippy `--no-deps
+  -D warnings` 통과. 전체 fmt는 당시 작성 중이던 Unicode 파일을 감지했으므로 통과로 적지 않는다.
+  `lifecycle-milestone-gates.log`: 앞선 CLI 실제 Python acceptance는 CPython 3.10.21,
+  pytest 9.1.1, coverage 7.15.4에서 실패→coverage→수정 후 baseline resolved까지 통과했다
+  (한 fixture 안 두 실행, 22.84초). 최종 exact-source 재검증과 전체 native/stable gate는 별도다.
+- R4 semantic `6827477`과 Unicode `8c44b7e`는 frozen CPython projection과 Unicode 16 전체
+  scalar oracle을 고정한다. R5 library/corpus는 `9f3cb78`까지 44개 실제/frozen 시험을 통과했다.
+  R6 `f821b19`의 C++/gcov/integration 실제 도구 근거도 library 범위이며 CLI C++ orchestration은
+  후속이다. R7 저장 reader/render/import, TLS/publish, R8 원장 closure·배포와 R9 cutover는 열린다.
+
+- Root 변경을 base `9f3cb78`에서 분리한 검증 tree `c0878bdf5bf33ca4a80e720184aae0a25951b4f0`
+  에 그대로 적용했다. 이 tree에서 `--locked` application 36 / CLI 17, 명시 native Python
+  acceptance(실패·coverage·수정 후 baseline, 22.69초), transitive strict Clippy와 scoped fmt가
+  모두 통과했다. `root-proof/gates.log`의 library 경로도 해당 source를 가리킨다.
+  이 근거는 후속 변경이나 전체 R8 exact-main 인수를 대신하지 않는다.

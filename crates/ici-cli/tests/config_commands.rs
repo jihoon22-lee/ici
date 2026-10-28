@@ -144,3 +144,19 @@ fn native_binary_can_init_with_python_and_tools_absent_from_path() {
     );
     assert!(!root.path().join("ici.toml").exists());
 }
+#[test]
+fn native_default_artifacts_do_not_replace_previous_python_results() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join(".ici/next")).unwrap();
+    let old = root.path().join(".ici/next/result.json");
+    fs::write(&old, "old user result, preserved").unwrap();
+    let request = parse(["ici", "analyze"]).unwrap();
+    assert_eq!(request.value("result"), Some(".ici/rust-v1/result.json"));
+    let request = parse(["ici", "next", "report"]).unwrap();
+    assert_eq!(request.value("result"), Some(".ici/rust-v1/result.json"));
+    assert_eq!(request.value("page"), Some(".ici/rust-v1/result.html"));
+    assert_eq!(
+        fs::read_to_string(old).unwrap(),
+        "old user result, preserved"
+    );
+}

@@ -153,3 +153,43 @@ fn cache_symlink_ancestor_and_fifo_are_refused_without_following_or_blocking() {
     );
     assert_eq!(cache.inventory(true).unwrap().unrecognized, 1);
 }
+
+#[test]
+fn rich_cache_retains_inspected_targets_and_never_invents_them_from_old_observations() {
+    use ici_domain::{AnalysisOutput, InspectionTarget};
+    let directory = tempfile::tempdir().unwrap();
+    let cache = ObservationCache {
+        directory: directory.path().join("cache"),
+        core_digest: identity().core_digest,
+    };
+    let key = identity().key(&task()).unwrap().unwrap();
+    let mut output = AnalysisOutput::new("original", "ici");
+    let mut target = InspectionTarget::at("a.py", 2);
+    target.target_name = "café".into();
+    target.metrics.insert("lines".into(), serde_json::json!(3));
+    output.targets.push(target);
+    output.extra = serde_json::json!({"denominator":5,"covered":3});
+    assert!(cache.put(&key, &output.observation).unwrap());
+    assert!(cache.get_output(&key, "logical").unwrap().is_none());
+    assert!(cache.put_output(&key, &output).unwrap());
+    let stored = cache.get_output(&key, "logical").unwrap().unwrap();
+    assert_eq!(stored.observation.task_id, "logical");
+    assert_eq!(stored.targets[0].target_name, "café");
+    assert_eq!(stored.extra, output.extra);
+    let entry = cache
+        .directory
+        .join(format!("{}.json", key.trim_start_matches("sha256:")));
+    let mut corrupted: serde_json::Value =
+        serde_json::from_slice(&fs::read(&entry).unwrap()).unwrap();
+    corrupted["analysis"]["observation"]["provider"] = serde_json::json!("unrelated");
+    fs::write(&entry, serde_json::to_vec(&corrupted).unwrap()).unwrap();
+    assert!(
+        cache
+            .get_output(&key, "logical")
+            .unwrap_err()
+            .to_string()
+            .contains("disagrees")
+    );
+    output.targets[0].start_line = 0;
+    assert!(cache.put_output(&key, &output).is_err());
+}
