@@ -48,6 +48,10 @@ fn plan_is_read_only_and_shared_coverage_names_one_external_suite() {
     assert!(suite.tasks[0].argv.contains(&"--branch".into()));
     assert!(!suite.tasks[1].argv.contains(&"coverage".into()));
     assert!(suite.tasks.iter().all(|task| !task.cacheable));
+    assert_eq!(
+        ready_steps(&suite, &BTreeMap::new()).unwrap(),
+        vec![suite.tasks[0].id.clone()]
+    );
     let mut coverage = request(root.path(), ValidationKind::PythonCoverage);
     coverage.options.shared_test_task_id = Some(suite.tasks[0].id.clone());
     let reader = plan(&coverage).unwrap();
@@ -250,6 +254,59 @@ fn tem_requires_functions_and_merges_raw_counts_without_averaging() {
     assert_eq!(merged.line_coverage, Some(1.0));
     assert_eq!(merged.function_coverage, None);
     assert_eq!(merged.total, 10);
+}
+#[test]
+fn coverage_policy_honors_thresholds_statement_floor_and_changed_line_denominators() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::PythonCoverage);
+    request.functions.push(FunctionFact {
+        path: "main.py".into(),
+        name: "f".into(),
+        qualified_name: "f".into(),
+        start_line: 1,
+        entry_line: None,
+        body_start_line: 2,
+        end_line: 3,
+    });
+    request.options.min_line_cov = Some(80.0);
+    request.options.min_file_cov = Some(80.0);
+    request.options.min_branch_cov = Some(40.0);
+    request.options.min_func_cov = Some(90.0);
+    request.options.min_tem_score = Some(3.0);
+    request.options.changed_lines = vec!["main.py:3".into()];
+    let report = coverage::parse_python(&serde_json::to_vec(&report()).unwrap(), &request).unwrap();
+    let planned = plan(&request).unwrap();
+    let mut output = ici_domain::AnalysisOutput::new("coverage", "coverage");
+    ici_validation::policy::evaluate(&planned, &report, Some(4.0), &mut output).unwrap();
+    assert_eq!(
+        output
+            .observation
+            .findings
+            .iter()
+            .map(|finding| finding.rule_id.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "ici.test.coverage.overall-line",
+            "ici.test.coverage.changed-lines"
+        ]
+    );
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.target_name == "Function coverage" && target.status == "PASS")
+    );
+    request.options.min_file_statements = 1;
+    let planned = plan(&request).unwrap();
+    let mut output = ici_domain::AnalysisOutput::new("coverage", "coverage");
+    ici_validation::policy::evaluate(&planned, &report, Some(4.0), &mut output).unwrap();
+    assert_eq!(output.observation.findings.len(), 3);
+    request.options.changed_lines = vec!["main.py:1-2".into(), "main.py:2".into()];
+    assert!(plan(&request).is_err());
+    request.options.changed_lines = vec!["main.py:99".into()];
+    let planned = plan(&request).unwrap();
+    let mut output = ici_domain::AnalysisOutput::new("coverage", "coverage");
+    assert!(ici_validation::policy::evaluate(&planned, &report, Some(4.0), &mut output).is_err());
 }
 #[test]
 fn owned_artifacts_reject_reuse_symlinks_fifo_stale_and_replaced_owners() {

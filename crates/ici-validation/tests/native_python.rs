@@ -74,6 +74,7 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
     assert!(test_output.observation.findings.is_empty());
     let mut coverage = request(root.path(), ValidationKind::PythonCoverage, "run-one");
     coverage.options.shared_test_task_id = Some(test_plan.tasks[0].id.clone());
+    coverage.options.min_func_cov = Some(100.0);
     coverage.functions = vec![
         FunctionFact {
             path: "main.py".into(),
@@ -129,6 +130,21 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
         "{output:?}"
     );
     assert_eq!(outcomes.len(), 2);
+    assert!(
+        output
+            .observation
+            .findings
+            .iter()
+            .any(|finding| finding.rule_id == "ici.test.coverage.functions")
+    );
+    let mut permissive = coverage_plan.clone();
+    permissive.context.options.min_func_cov = Some(50.0);
+    assert!(
+        observe(&permissive, &outcomes, &artifacts)
+            .observation
+            .findings
+            .is_empty()
+    );
     assert_eq!(
         output.extra["coverage"]["function_rows"][0]["covered"],
         false
@@ -258,5 +274,49 @@ fn timed_out_suite_cannot_unlock_coverage_or_become_clean_evidence() {
             .observation
             .state,
         TaskState::Failed
+    );
+}
+#[test]
+#[ignore = "explicit native Python quality repeat gate"]
+fn quality_repeats_run_sequentially_and_keep_report_mode_findings_advisory() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("tests")).unwrap();
+    fs::write(root.path().join("tests/test_flaky.py"),"from pathlib import Path\nimport time\ndef test_flaky():\n    counter=Path('runs')\n    value=int(counter.read_text())+1 if counter.exists() else 1\n    time.sleep(0.04)\n    counter.write_text(str(value))\n    assert value > 1\n").unwrap();
+    let mut request = request(root.path(), ValidationKind::PythonTest, "run-quality");
+    request.options.repeat_runs = 2;
+    request.options.slow_threshold_seconds = Some(0.01);
+    let planned = plan(&request).unwrap();
+    assert_eq!(
+        ready_steps(&planned, &BTreeMap::new()).unwrap(),
+        vec![planned.tasks[0].id.clone()]
+    );
+    let mut outcomes = BTreeMap::new();
+    execute(&planned, &mut outcomes);
+    assert_eq!(fs::read_to_string(root.path().join("runs")).unwrap(), "2");
+    let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    let flaky = output
+        .observation
+        .findings
+        .iter()
+        .find(|finding| finding.rule_id == "ici.test.flaky-test")
+        .unwrap();
+    assert!(flaky.tags.iter().any(|tag| tag == "advisory"));
+    assert!(
+        output
+            .observation
+            .findings
+            .iter()
+            .any(|finding| finding.rule_id == "ici.test.slow-test")
+    );
+    assert!(
+        output
+            .observation
+            .findings
+            .iter()
+            .find(|finding| finding.rule_id == "pytest.failed")
+            .unwrap()
+            .tags
+            .is_empty()
     );
 }

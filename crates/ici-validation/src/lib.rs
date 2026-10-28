@@ -3,6 +3,7 @@ pub mod artifacts;
 pub mod coverage;
 pub mod model;
 pub mod planning;
+pub mod policy;
 pub mod python;
 pub mod tem;
 

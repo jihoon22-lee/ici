@@ -379,7 +379,7 @@ fn quality(
         let mut rows = seen.into_iter().collect::<Vec<_>>();
         rows.sort_by(|a, b| b.1.0.total_cmp(&a.1.0).then_with(|| a.0.cmp(&b.0)));
         let observed = rows.len();
-        rows.truncate(1000);
+        rows.truncate(plan.context.options.max_slow_tests);
         for ((node, phase), (seconds, path, line)) in &rows {
             let mut item = finding(
                 plan,
@@ -502,7 +502,10 @@ fn observe_coverage(
     output.max_score = Some(5.0);
     output.extra["tem"] = json!(score);
     output.extra["coverage"] = json!(report);
-    output.observation.limitations.extend(report.limitations);
+    output
+        .observation
+        .limitations
+        .extend(report.limitations.iter().cloned());
     output.summary = format!(
         "coverage: {}/{} lines, {}/{} branches",
         report.counts.covered_lines,
@@ -510,7 +513,7 @@ fn observe_coverage(
         report.counts.covered_branches,
         report.counts.total_branches
     );
-    Ok(())
+    crate::policy::evaluate(plan, &report, score.score, output)
 }
 fn observe_runtime(
     plan: &ValidationPlan,

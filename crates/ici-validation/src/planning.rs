@@ -47,8 +47,38 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
             "validation timeout must be positive and finite".into(),
         ));
     }
+    for threshold in [
+        request.options.min_line_cov,
+        request.options.min_file_cov,
+        request.options.min_branch_cov,
+        request.options.min_func_cov,
+        request.options.min_changed_line_cov,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if !threshold.is_finite() || !(0.0..=100.0).contains(&threshold) {
+            return Err(ValidationError(
+                "coverage minimum must lie between 0 and 100".into(),
+            ));
+        }
+    }
+    if request.options.min_file_statements == 0
+        || request
+            .options
+            .min_tem_score
+            .is_some_and(|value| !value.is_finite() || !(0.0..=5.0).contains(&value))
+    {
+        return Err(ValidationError(
+            "invalid coverage statement floor or TEM minimum".into(),
+        ));
+    }
+    crate::policy::changed_lines(&request.options.changed_lines, &request.source_files)?;
     if request.options.repeat_runs > 3
         || !matches!(request.options.quality_mode.as_str(), "report" | "warn")
+        || !request.options.quality_timeout_seconds.is_finite()
+        || request.options.quality_timeout_seconds <= 0.0
+        || !(1..=1000).contains(&request.options.max_slow_tests)
         || request
             .options
             .slow_threshold_seconds
@@ -217,6 +247,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             suite.output_specs.push(data.to_string_lossy().into_owned());
         }
         plan.tasks.push(suite);
+        let mut previous = suite_id.clone();
         for index in 0..request.options.repeat_runs.saturating_sub(1) {
             // Quality repeats must not overwrite the primary coverage database.
             let mut repeat_args = args.clone();
@@ -225,6 +256,16 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             }
             let mut repeat = task(request, &format!("repeat{}", index + 1), repeat_args);
             repeat.kind = TaskKind::Test;
+            repeat.timeout_seconds = Some(request.options.quality_timeout_seconds);
+            plan.prerequisites.insert(
+                repeat.id.clone(),
+                vec![StepPrerequisite {
+                    task_id: previous,
+                    accepted_exits: vec![0, 1],
+                    require_test_evidence: true,
+                }],
+            );
+            previous = repeat.id.clone();
             plan.tasks.push(repeat);
         }
     } else if request.kind != ValidationKind::PythonCoverage {

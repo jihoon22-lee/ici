@@ -19,8 +19,8 @@ flock /tmp/paseo-products-20261028-heavy.lock env CARGO_BUILD_JOBS=2 \
 cargo fmt --all -- --check
 ```
 
-All seven contract tests and five explicitly invoked native tests passed. The
-native run took 8.44 seconds using project CPython 3.10.21, pytest 9.1.1, and
+All eight contract tests and six explicitly invoked native tests passed. The
+native run took 11.07 seconds using project CPython 3.10.21, pytest 9.1.1, and
 coverage.py 7.15.4. Missing `ICI_TEST_PYTHON` or its pytest/coverage dependencies
 fails the explicit gate. The ordinary command lists native tests as ignored;
 that alone is not native execution evidence.
@@ -48,7 +48,13 @@ that alone is not native execution evidence.
   run directory. No Python program computes ici AST/rules/TEM.
 - Opt-in bounded repeat/duration observations preserve source locations and
   distinguish advisory report mode from warn mode. Total repeat runs include
-  the primary suite and never exceed three.
+  the primary suite and never exceed three. Each repeat depends on the previous
+  completed suite, so repeated tests cannot overlap.
+- Coverage policy accepts explicit line/file/branch/function/TEM minima, per-file
+  statement floors and bounded changed-line ranges. Every evaluated policy emits
+  a source target, and breached minima emit measured findings. An unavailable
+  configured denominator remains incomplete. Modern evidence-only callers leave
+  minima absent; legacy callers pass their resolved defaults explicitly.
 
 ## Confirmed function-coverage correction
 
