@@ -51,6 +51,7 @@ class RunRequest:
     languages: tuple[str, ...] = ()
     profile: Profile | None = None
     require_full: bool = False
+    static_only: bool = False
 
 
 def scope_of(model: Workspace, request: RunRequest) -> Workspace:
@@ -74,6 +75,8 @@ def scope_of(model: Workspace, request: RunRequest) -> Workspace:
 def wanted(request: RunRequest, check: CheckDefinition) -> bool:
     """Whether the request's language filter keeps this check."""
 
+    if request.static_only and not check.static:
+        return False
     return not request.languages or check.language in request.languages
 
 

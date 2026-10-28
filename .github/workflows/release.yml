@@ -197,11 +197,19 @@ jobs:
           printf 'ICI_PYTHON=%s\n' "$project_python" >> "$GITHUB_ENV"
           printf '%s\n' "$(dirname "$project_python")" >> "$GITHUB_PATH"
 
+      - name: Install ecosystem fixture tools
+        run: |
+          rustup toolchain install 1.99.1 --profile minimal --component clippy
+          rustup default 1.99.1
+          npm install --prefix "$RUNNER_TEMP/ici-ecosystem-tools" --ignore-scripts --no-audit --no-fund typescript@7.0.2 eslint@10.13.0
+          echo "$RUNNER_TEMP/ici-ecosystem-tools/node_modules/.bin" >> "$GITHUB_PATH"
+
       - name: Run Test Suite
         env:
           # A skip means something broke, not that the tests are optional (C-6).
           ICI_REQUIRE_BUILD_ADAPTERS: "1"
           ICI_REQUIRE_STATIC_ANALYSIS_TOOLS: "1"
+          ICI_REQUIRE_ECOSYSTEM_TOOLS: "1"
         run: |
           uv run --python 3.10 pytest -v
 
@@ -210,6 +218,11 @@ jobs:
           chmod +x ./scripts/build-pyz.sh ./scripts/smoke.sh ./scripts/launcher.sh
           ./scripts/build-pyz.sh
           (cd dist && sha256sum ici.pyz > ici.pyz.sha256)
+
+      - name: Build and install standard Python package
+        run: |
+          ./scripts/build-package.sh
+          ./scripts/smoke-package.sh
 
       - name: Run Isolated Smoke Test
         run: |
@@ -337,6 +350,9 @@ jobs:
           files: |
             dist/ici.pyz
             dist/ici.pyz.sha256
+            dist/ici-*.whl
+            dist/ici-*.tar.gz
+            dist/ici-package.sha256
             dist/ici-self-report.html
             dist/ici-self-report.json
             dist/viewer-report.html

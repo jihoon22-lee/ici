@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 from ici.adapters.providers.base import ProviderPlan
 from ici.adapters.providers.ruff import RuffProvider, RuffRequest
 from ici.adapters.providers.tidy import ClangTidyProvider
+from ici.application import ecosystem
 from ici.application.gates import gate_cpp, gate_python
 from ici.application.graph import TaskGraph, build_graph
 from ici.application.integration import gate_integration
@@ -109,10 +110,13 @@ def plans(
             component.id,
             units.get("python"),
             files_by_language.get("python", ()),
-            tool_configs(comp_root, root),
+            tool_configs(comp_root, root, files_by_language.get("python", ())),
             units.get("cpp"),
             compile_inputs,
         )
+
+        work = ecosystem.planner(work, root, comp_root, units, files_by_language)
+        locate = ecosystem.locator(comp_root, fallback=locate_tool)
 
         def in_scope(
             check: CheckDefinition,
@@ -125,7 +129,7 @@ def plans(
         try:
             plan = select_effective(
                 effective,
-                locate_tool,
+                locate,
                 work,
                 available=available,
                 task_prefix=component.id,
@@ -246,7 +250,7 @@ def planner(
     return work
 
 
-def tool_configs(component_root_: Path, root: Path) -> tuple[str, ...]:
+def tool_configs(component_root_: Path, root: Path, files: tuple[str, ...] = ()) -> tuple[str, ...]:
     """The tool configuration files a check under this root would read.
 
     Ruff reads ``ruff.toml``/``.ruff.toml``/``pyproject.toml`` from the
@@ -269,7 +273,22 @@ def tool_configs(component_root_: Path, root: Path) -> tuple[str, ...]:
         if base == root or root not in base.parents:
             break
         base = base.parent
-    return tuple(found)
+    visited = set()
+    for source in files:
+        directory = (root / source).parent
+        while directory != root and root in directory.parents:
+            if directory in visited:
+                break
+            visited.add(directory)
+            for name in ("ruff.toml", ".ruff.toml", "pyproject.toml"):
+                path = directory / name
+                if path.is_file():
+                    try:
+                        found.append(str(path.relative_to(component_root_)))
+                    except ValueError:
+                        found.append(str(path))
+            directory = directory.parent
+    return tuple(dict.fromkeys(found))
 
 
 def compile_limitations(
@@ -352,6 +371,9 @@ def component_root(root: Path, component: Component) -> Path:
 #: checks that could read it, so nothing asks for its files.
 SOURCE_SUFFIXES = {
     "python": (".py",),
+    "rust": (".rs",),
+    "javascript": (".js", ".jsx", ".mjs", ".cjs"),
+    "typescript": (".ts", ".tsx", ".mts", ".cts"),
     "cpp": (".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"),
 }
 

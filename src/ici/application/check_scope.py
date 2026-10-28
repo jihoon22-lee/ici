@@ -87,6 +87,7 @@ def records(
                     "cwd": cwd,
                     "provider": task.provider,
                     "inputs": [_workspace_reference(item, root) for item in task.input_refs],
+                    "configuration": _configuration_digests(task),
                     "environment": _environment(task, root),
                     "units": task.analysis_unit_ids,
                 },
@@ -102,7 +103,13 @@ def records(
                     scope_digest=f"sha256:{digest}",
                     state=observed.state if observed is not None else TaskState.BLOCKED,
                     evidence_complete=bool(
-                        inputs_stable and observed is not None and observed.evidence_is_complete
+                        inputs_stable
+                        and observed is not None
+                        and observed.evidence_is_complete
+                        # Cargo target and tsconfig selection are tool-owned. Until
+                        # their complete native file closure is recorded, a missing
+                        # finding cannot prove that an older one was resolved.
+                        and (task is None or task.provider not in {"clippy", "tsc"})
                     ),
                     analysis_unit_id=units[0].id if len(units) == 1 else None,
                     variant=(task.variant if task is not None else None)
@@ -110,6 +117,20 @@ def records(
                 )
             )
     return tuple(result)
+
+
+def _configuration_digests(task: TaskSpec) -> tuple[tuple[str, str], ...]:
+    """Changed native configuration cannot masquerade as a resolved finding."""
+    found = []
+    for ref in task.input_refs:
+        path = Path(task.cwd) / ref
+        if path.name not in {"ruff.toml", ".ruff.toml", "pyproject.toml", "mypy.ini", "setup.cfg"}:
+            continue
+        try:
+            found.append((ref, hashlib.sha256(path.read_bytes()).hexdigest()))
+        except OSError:
+            found.append((ref, "unreadable"))
+    return tuple(sorted(found))
 
 
 def _linked_builds(

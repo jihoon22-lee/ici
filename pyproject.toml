@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ici"
-description = "Integrated CI — 폐쇄망(RHEL 8/tcsh)과 개발환경(WSL)에서 단일 파일로 동작하는 CI/CD 검증·빌드 엔진"
+description = "Multi-language static analysis with attributable diagnostics and offline reports"
 readme = "README.md"
 requires-python = ">=3.10"
 dynamic = ["version"]

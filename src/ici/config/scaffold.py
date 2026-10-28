@@ -24,6 +24,7 @@ Two things it deliberately will not guess:
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -48,7 +49,19 @@ _FOREIGN_CONFIGS = (
 )
 
 _IGNORED_DIRECTORIES = frozenset(
-    {".git", ".hg", ".svn", ".venv", "venv", "node_modules", "__pycache__", "build", "dist"}
+    {
+        ".git",
+        ".hg",
+        ".svn",
+        ".venv",
+        "venv",
+        "node_modules",
+        "__pycache__",
+        "build",
+        "dist",
+        "target",
+        ".ici",
+    }
 )
 
 
@@ -128,6 +141,13 @@ def _languages(root: Path) -> tuple[str, ...]:
         found.append("python")
     if _has_suffix(root, _CPP_SUFFIXES):
         found.append("cpp")
+    for language, suffixes in (
+        ("rust", (".rs",)),
+        ("javascript", (".js", ".jsx", ".mjs", ".cjs")),
+        ("typescript", (".ts", ".tsx", ".mts", ".cts")),
+    ):
+        if _has_suffix(root, suffixes):
+            found.append(language)
     return tuple(found)
 
 
@@ -135,13 +155,15 @@ def _has_suffix(root: Path, suffixes: tuple[str, ...]) -> bool:
     return any(True for _ in _sources(root, suffixes))
 
 
+def _walk_files(root: Path):
+    for directory, children, names in os.walk(root):
+        children[:] = sorted(set(children) - _IGNORED_DIRECTORIES)
+        for name in sorted(names):
+            yield Path(directory) / name
+
+
 def _sources(root: Path, suffixes: tuple[str, ...]):
-    for path in root.rglob("*"):
-        if not path.is_file() or path.suffix not in suffixes:
-            continue
-        if _IGNORED_DIRECTORIES.intersection(path.relative_to(root).parts):
-            continue
-        yield path
+    return (path for path in _walk_files(root) if path.suffix in suffixes and path.is_file())
 
 
 def _evidence(root: Path, languages: tuple[str, ...]) -> tuple[str, ...]:
@@ -159,13 +181,11 @@ def _evidence(root: Path, languages: tuple[str, ...]) -> tuple[str, ...]:
 
 
 def _build_files(root: Path) -> tuple[str, ...]:
-    found: list[str] = []
-    for pattern in _BUILD_FILES:
-        for path in sorted(root.rglob(pattern)):
-            if _IGNORED_DIRECTORIES.intersection(path.relative_to(root).parts):
-                continue
-            found.append(str(path.relative_to(root)))
-    return tuple(found)
+    return tuple(
+        str(path.relative_to(root))
+        for path in _walk_files(root)
+        if path.name == "CMakeLists.txt" or path.suffix == ".pro"
+    )
 
 
 def _undecided(builds: tuple[str, ...]) -> tuple[str, ...]:

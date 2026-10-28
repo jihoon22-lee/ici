@@ -1,5 +1,11 @@
 # ici (Integrated CI) 사용자 가이드
 
+> 2026-10-28 제품 전환: 일반 설치·정적 분석의 주 경로는
+> [범용 분석 가이드](general-analysis.md)의 `ici analyze`와 Python wheel입니다.
+> 아래 기존 verify/pyz 및 폐쇄망 설명·과거 릴리스 증거는 호환/환경별 문맥으로 읽습니다.
+> `ici.next.run` v2/event v1과 기존 verify 동작은 유지합니다.
+
+
 > **범위: 현행(stable) CLI와 설정.** 이 문서의 명령·옵션·`ici.toml` 구조는 현재 릴리스되는
 > ici(v0.11.x)에서 동작하는 것들이다.
 >
@@ -19,7 +25,7 @@
 
 `ici`는 로컬 개발 환경(WSL/Linux), 사내 폐쇄망(RHEL 8.10/CentOS, tcsh/bash), 그리고 GitHub Actions CI/CD 파이프라인에서 같은 정책·결과 계약을 적용하는 단일 실행형 CI 통합 엔진입니다. OS·컴파일러·Python·검증 도구의 가용성과 버전은 실행 증거로 기록되며, 환경이 다르면 실제 결과도 달라질 수 있습니다.
 
-## 현재 공개 릴리스와 검증된 artifact
+## v0.12.0 공개 릴리스의 과거 검증 근거
 
 현재 공개 stable 릴리스는 [v0.12.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.12.0)다.
 `v0.12.0` tag는 exact `main` commit

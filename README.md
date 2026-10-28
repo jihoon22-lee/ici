@@ -1,33 +1,36 @@
-# ici — Integrated CI Engine
+# ici — Multi-language Static Analysis
 
-개발 환경(WSL/Linux)과 **사내 폐쇄망**(RHEL 8.10/CentOS, tcsh/bash), **GitHub Actions**에서 같은 정책·결과 계약으로 동작하는 C++/Python CI/CD 통합 검증·빌드 엔진입니다. OS·컴파일러·Python·검증 도구의 가용성과 버전은 실행 증거로 기록되며, 환경이 다르면 실제 결과도 달라질 수 있습니다.
-단일 ZipApp 실행 파일(`ici.pyz`, 약 2MB) 하나로 배포됩니다.
+Python, C/C++, Rust, JavaScript/TypeScript 프로젝트의 정적 진단을 공통 결과와 오프라인
+HTML로 확인하는 분석 도구입니다. Linux/WSL/CI가 우선 지원 경로입니다. 실행 완료,
+검사 범위, 코드 위반, baseline, 게시 상태를 별도로 기록합니다.
 
 ```bash
-$ ici verify --report --html verify_report.html --open
-$ ici doctor
+ici analyze --plan                  # 실행할 검사와 준비 작업 확인
+ici analyze --json --events events.jsonl --result result.json
+ici report --result result.json --out report.html
 ```
 
-같은 `ici.pyz`에 **ici-next 경로**(`ici next …`)가 들어 있습니다. 프로젝트의 `ici.toml`이
-`[workspace]` 테이블을 선언하면 bare `ici verify`도 자동으로 next 엔진을 탑니다 —
-레거시 설정은 기존 stable 경로 그대로 동작합니다. 전환 방법은
-[사용자 가이드](docs/user-guide.md#ici-next로-이전하기)에 있습니다.
+`ici.toml`이 없으면 checkout 또는 현재 디렉터리의 소스를 읽어 메모리에서 구성합니다.
+프로젝트 설정 파일을 생성하지 않고 원래 Ruff/mypy/Cargo/ESLint/TypeScript 설정을
+사용합니다. 테스트·coverage·sanitizer·배포는 `analyze`의 기본 선택에 포함되지 않습니다.
+Cargo Clippy는 build.rs/proc-macro를 실행할 수 있는 **prepare 작업**이며 fast에서 차단됩니다.
 
-### 현재 릴리스
+일반 설치는 [GitHub Release](https://github.com/jihoon22-lee/ici/releases/latest)의
+`ici-<version>-py3-none-any.whl`을 내려받고 `ici-package.sha256`으로 확인한 뒤,
+`uv tool install ./ici-<version>-py3-none-any.whl` 또는 격리된 venv에 pip로 설치합니다.
+시스템 Python 3.10 이상이 필요합니다. PyPI의 같은 이름 패키지를 가정하지 않습니다.
+설치·언어별 도구·지원 범위는 [범용 분석 가이드](docs/general-analysis.md)에 있습니다.
 
-공개 stable 산출물은 [최신 GitHub Release](https://github.com/jihoon22-lee/ici/releases/latest)에서
-받습니다. 내려받은 `ici.pyz`의 SHA-256을 같은 릴리스의 `ici.pyz.sha256`과 대조합니다.
+기존 `ici verify`와 `ici.pyz`는 호환 경로로 유지됩니다. `[workspace]` 설정의 verify와
+`analyze`는 공통 next application을 사용합니다. `ici next …` 명령도 계속 제공됩니다.
+결과는 `ici.next.run` v2, 이벤트는 `ici.next.event` v1, 종료 코드는 0/1/2/3/130을 유지합니다.
+보조자료 importer는 별도 `ici.auxiliary` v1을 쓰며 run gate를 변경하지 않습니다.
 
-0.12.1은 검증 중 소스 수정, 미완료 검사 PASS, 오래된 분석 캐시, 컴포넌트 소유권·진단 혼합,
-hybrid/다중 테스트 스위트 충돌과 baseline 오판을 수정합니다. next 결과 writer는
-`ici.next.run` v2와 fingerprint 정규화 v3를 사용합니다. 과거 결과는 읽을 수 있지만
-새 baseline을 생성하고 fingerprint를 직접 지정한 suppression을 확인해야 합니다.
-[결과·baseline 이전 안내](docs/design/ici-next/compatibility-v3-next.md)를 참고하세요.
-
-`ici next`와 bundle artifact는 stable 승인이 아니라 **candidate**다. RHEL 8.10·GHES·
-idk 실소비자 인수는 [field-acceptance checklist](docs/design/ici-next/field-acceptance.md)가
-추적하며, 그 항목들이 닫히고 stable→next 전환 승인이 나기 전까지 stable CLI와
-`dist/ici.pyz`는 공개 경로로 유지된다.
+RHEL/GHES 현장 인수와 전용 bundle은 환경별 지원 경로입니다. 현장 미검증을 일반
+Linux package 릴리스의 일괄 blocker로 사용하지 않습니다. macOS/native Windows,
+PE/Mach-O와 새 플랫폼의 동등 지원은 아직 약속하지 않습니다.
+quality-zoo는 ici가 소유합니다. 소비자 [Lens](https://github.com/jihoon22-lee/lens-diagnostics)는
+기존 toy-projects 저장소의 새 이름이며, 과거 검증 SHA와 출처 표기는 역사로 보존합니다.
 
 버전별 변경과 각 항목의 CI·Pages 실측 증거는 아래에 있다. README는 그 증거를 복사하지
 않는다.
@@ -64,7 +67,7 @@ idk 실소비자 인수는 [field-acceptance checklist](docs/design/ici-next/fie
 
 ---
 
-## 🚀 핵심 특징
+## 기존 verify/pyz 호환 경로의 특징
 
 1. **단일 ZipApp 배포 (`ici.pyz`)**:
    - 가상환경 설치나 `pip` 없이 실행 파일 하나만 복사(`~/.local/bin/ici` 또는 `nas_shared/bin/ici`)하면 끝.

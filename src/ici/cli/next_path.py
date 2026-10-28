@@ -413,6 +413,35 @@ def cmd_plan(
         raise typer.Exit(EXIT_CONFIG) from error
     _announce(root, scope, request, resolved, json_mode)
 
+    render_plan(
+        root,
+        config,
+        model,
+        scope,
+        stock,
+        request,
+        resolved,
+        all_plans,
+        by_component,
+        limitations,
+        json_mode,
+    )
+
+
+def render_plan(
+    root,
+    config,
+    model,
+    scope,
+    stock,
+    request,
+    resolved,
+    all_plans,
+    by_component,
+    limitations,
+    json_mode,
+):
+    """Render the common plan without executing any task."""
     graph = graph_of(all_plans)
     edges = {unit.id: list(unit.depends_on) for unit in graph.units if unit.depends_on}
     shared = {unit.id: list(unit.consumers) for unit in graph.units if len(unit.consumers) > 1}
@@ -460,20 +489,54 @@ def cmd_verify(
     local_config: Path | None = _LOCAL_CONFIG_OPTION,
 ) -> None:
     """Run the selected checks and save the result."""
+    run_checks(
+        component=component,
+        python=python,
+        cpp=cpp,
+        profile=profile,
+        require_full=require_full,
+        result=result,
+        no_cache=no_cache,
+        json_mode=json_mode,
+        events=events,
+        baseline=baseline,
+        config_path=config_path,
+        local_config=local_config,
+    )
+
+
+def run_checks(
+    *,
+    component=None,
+    python=False,
+    cpp=False,
+    profile=None,
+    require_full=False,
+    result=Path(".ici/next/result.json"),
+    no_cache=False,
+    json_mode=False,
+    events=None,
+    baseline=None,
+    config_path=None,
+    local_config=None,
+    static_only=False,
+    languages=(),
+    plan_only=False,
+) -> None:
+    """Shared application execution for analyze and compatibility verify."""
+    from dataclasses import replace
 
     cwd = Path.cwd().resolve()
-    root, config, model = _workspace(cwd, config_path, local_config)
-    request = _request(component, python, cpp, profile, require_full)
+    root, config, model = _workspace(cwd, config_path, local_config, configless=static_only)
+    request = replace(
+        _request(component, python, cpp, profile, require_full), static_only=static_only
+    )
+    request = replace(request, languages=tuple(dict.fromkeys((*request.languages, *languages))))
     scope = _scope(model, request)
     resolved = _profile(config, request)
     _announce(root, scope, request, resolved, json_mode)
 
     before = inventory.take(scope, root=root)
-    state = vcs_status(root)
-    snapshot = before.snapshot(
-        commit=state.commit if state is not None else None,
-        dirty=state is None or not state.clean,
-    )
     try:
         all_plans, analyses, limitations, by_component = plans(
             scope, config, before, root, request, resolved
@@ -482,8 +545,33 @@ def cmd_verify(
         typer.echo(f"config: {error}", err=True)
         raise typer.Exit(EXIT_CONFIG) from error
     compile_notes, compile_gaps = compile_limitations(model, scope, before, root)
+    if static_only:
+        limitations.append(
+            "static selection: tests, runtime checks and build artifact checks omitted"
+        )
     limitations += compile_notes
 
+    if plan_only:
+        render_plan(
+            root,
+            config,
+            model,
+            scope,
+            before,
+            request,
+            resolved,
+            all_plans,
+            by_component,
+            limitations,
+            json_mode,
+        )
+        return
+
+    state = vcs_status(root)
+    snapshot = before.snapshot(
+        commit=state.commit if state is not None else None,
+        dirty=state is None or not state.clean,
+    )
     baseline_doc = _load_baseline(baseline, root)
 
     run_id = uuid.uuid4().hex
@@ -627,7 +715,12 @@ def _scope_kind(
     declared = {language for item in model.components for language in item.languages}
     if config.scope_kind is ScopeKind.STANDALONE:
         return ScopeKind.STANDALONE
-    if component or covered != declared or verification.gate.selected is GateVerdict.INCOMPLETE:
+    if (
+        request.static_only
+        or component
+        or covered != declared
+        or verification.gate.selected is GateVerdict.INCOMPLETE
+    ):
         return ScopeKind.PARTIAL
     return ScopeKind.FULL
 
@@ -654,14 +747,24 @@ def _close_sink(sink: EventSink | None, cancellation: Cancellation, stored: RunR
     sink.close()
 
 
+_AUXILIARY_OPTION = typer.Option(
+    None, "--auxiliary", help="Attach imported supporting evidence; repeatable"
+)
+
+
 @next_app.command("report")
 def cmd_report(
     result: Path = _RESULT_OPTION,
     page: Path = _PAGE_OPTION,
     sarif: Path | None = _SARIF_OPTION,
+    auxiliary: list[Path] = _AUXILIARY_OPTION,
 ) -> None:
     """Render a saved result. Analyses nothing and runs no tool."""
 
+    auxiliary = auxiliary if isinstance(auxiliary, (list, tuple)) else ()
+    if auxiliary and sarif is not None:
+        typer.echo("report: --auxiliary attaches to HTML; it cannot be merged into SARIF", err=True)
+        raise typer.Exit(EXIT_CONFIG)
     root = _artifact_root(Path.cwd())
     source = root / result if not result.is_absolute() else result
     if not source.is_file():
@@ -686,7 +789,19 @@ def cmd_report(
 
     target = root / page if not page.is_absolute() else page
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render(stored), encoding="utf-8")
+    from ici.application.import_report import load_auxiliary
+    from ici.reporting.auxiliary import render_auxiliary
+
+    try:
+        documents = [
+            load_auxiliary(path if path.is_absolute() else root / path)
+            for path in (auxiliary or ())
+        ]
+    except (OSError, ValueError) as error:
+        typer.echo(f"report: {error}", err=True)
+        raise typer.Exit(EXIT_CONFIG) from error
+    page_text = render(stored).replace("</main>", render_auxiliary(documents) + "</main>")
+    target.write_text(page_text, encoding="utf-8")
     typer.echo(f"wrote {target}")
 
 

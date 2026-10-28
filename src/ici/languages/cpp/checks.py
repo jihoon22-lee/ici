@@ -74,6 +74,7 @@ CPP_TIDY_CHECK = CheckDefinition(
 #: an instrumented suite's ``.gcda`` only exists after this run (#219).
 CPP_TEST_CHECK = CheckDefinition(
     id="cpp.test",
+    static=False,
     title="C++ test suites",
     language="cpp",
     tool=None,
@@ -130,6 +131,7 @@ CPP_EXCEPTION_CHECK = CheckDefinition(
 
 CPP_COVERAGE_CHECK = CheckDefinition(
     id="cpp.coverage",
+    static=False,
     title="gcov coverage",
     language="cpp",
     tool=None,
@@ -145,6 +147,7 @@ CPP_COVERAGE_CHECK = CheckDefinition(
 #: contract fail the gate.
 CPP_ARTIFACT_CHECK = CheckDefinition(
     id="cpp.artifact",
+    static=False,
     title="Declared build artifacts",
     language="cpp",
     tool=None,
@@ -162,6 +165,7 @@ CPP_ARTIFACT_CHECK = CheckDefinition(
 #: vacuous pass.
 CPP_SANITIZE_CHECK = CheckDefinition(
     id="cpp.sanitize",
+    static=False,
     title="ASan/UBSan/LSan suite run",
     language="cpp",
     tool=None,
@@ -170,6 +174,7 @@ CPP_SANITIZE_CHECK = CheckDefinition(
 
 CPP_TSAN_CHECK = CheckDefinition(
     id="cpp.tsan",
+    static=False,
     title="ThreadSanitizer suite run",
     language="cpp",
     tool=None,
@@ -186,6 +191,7 @@ CPP_TSAN_CHECK = CheckDefinition(
 #: it to inspect, and is blocked rather than silently passed.
 CPP_BINARY_COMPAT_CHECK = CheckDefinition(
     id="cpp.binary-compat",
+    static=False,
     title="Binary ABI compatibility",
     language="cpp",
     tool=None,

@@ -13,6 +13,9 @@ from ici.adapters.providers import builtin_providers
 EXPECTED_PROVIDERS = frozenset(
     {
         "binary-compat",
+        "clippy",
+        "eslint",
+        "tsc",
         "clang-tidy",
         "compiler",
         "coverage",

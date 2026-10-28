@@ -173,10 +173,35 @@ INTEGRATION_PACK = LanguagePack(
     checks=(INTEGRATION_CASES_CHECK,),
 )
 
+RUST_PACK = LanguagePack(
+    id="rust",
+    languages=("rust",),
+    checks=(CheckDefinition("rust.clippy", "Cargo Clippy", "rust", "cargo"),),
+    providers=("clippy",),
+)
+JS_PACK = LanguagePack(
+    id="javascript",
+    languages=("javascript",),
+    checks=(CheckDefinition("javascript.lint", "ESLint", "javascript", "eslint"),),
+    providers=("eslint",),
+)
+TS_PACK = LanguagePack(
+    id="typescript",
+    languages=("typescript",),
+    checks=(
+        CheckDefinition("typescript.lint", "ESLint", "typescript", "eslint"),
+        CheckDefinition("typescript.type", "TypeScript", "typescript", "tsc"),
+    ),
+    providers=("eslint", "tsc"),
+)
+
 QT_EXTENSION = QtExtension()
 
 
 def builtin() -> PackRegistry:
     """The registry this release ships — one instance, same release as ici."""
 
-    return PackRegistry(packs=(PYTHON_PACK, CPP_PACK, INTEGRATION_PACK), qt=QT_EXTENSION)
+    return PackRegistry(
+        packs=(PYTHON_PACK, CPP_PACK, RUST_PACK, JS_PACK, TS_PACK, INTEGRATION_PACK),
+        qt=QT_EXTENSION,
+    )

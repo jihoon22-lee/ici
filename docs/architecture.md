@@ -1,5 +1,11 @@
 # ici 시스템 아키텍처 및 상세 설계 (System Architecture Guide)
 
+> 2026-10-28 제품 전환: 일반 설치·정적 분석의 주 경로는
+> [범용 분석 가이드](general-analysis.md)의 `ici analyze`와 Python wheel입니다.
+> 아래 기존 verify/pyz 및 폐쇄망 설명·과거 릴리스 증거는 호환/환경별 문맥으로 읽습니다.
+> `ici.next.run` v2/event v1과 기존 verify 동작은 유지합니다.
+
+
 > **범위: 현행(stable) 구현.** 이 문서는 현재 릴리스되는 ici(v0.11.x, `dist/ici.pyz`)의
 > 아키텍처를 설명한다.
 >

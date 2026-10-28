@@ -81,7 +81,7 @@ def _artifact_root(cwd: Path) -> Path:
 
 
 def _workspace(
-    cwd: Path, config_path: Path | None, local_path: Path | None
+    cwd: Path, config_path: Path | None, local_path: Path | None, *, configless: bool = False
 ) -> tuple[Path, EffectiveConfig, Workspace]:
     """Read the configuration and the workspace model, or stop with exit 2.
 
@@ -95,6 +95,15 @@ def _workspace(
     """
 
     try:
+        if configless and config_path is None:
+            from ici.config.automatic import automatic
+
+            inferred = automatic(cwd)
+            if inferred is not None:
+                if local_path is not None:
+                    raise ValueError("--local-config requires an explicit ici workspace")
+                root, config = inferred
+                return root, config, build_workspace(config)
         found = discover(cwd, explicit=config_path)
         config = load(cwd, explicit=found.path, local=local_path)
         model = build_workspace(config)

@@ -1,5 +1,11 @@
 # ici-next — 설계 문서 시작점
 
+> 2026-10-28 정책 갱신: 일반 Linux/WSL/CI 분석·표준 package 배포는
+> [범용 분석 가이드](../../general-analysis.md)를 따른다. RHEL/GHES 현장 인수와 bundle
+> 지원은 별도 환경별 근거이며 일반 릴리스의 일괄 선행 조건이 아니다. 아래 WP 기록은
+> 전환 설계와 기존 환경별 계약의 역사로 보존한다.
+
+
 **ici-next의 규범 문서는 이 디렉터리에 있다.** 진행 상태는
 [GitHub 마일스톤](https://github.com/jihoon22-lee/ici/milestone/1)의 이슈가 갖는다.
 문서와 이슈가 충돌하면 이 디렉터리의 문서가 규범 원문이고, 이슈는 진행 상태다.

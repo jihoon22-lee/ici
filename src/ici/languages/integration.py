@@ -23,6 +23,7 @@ __all__ = ["INTEGRATION_CASES_CHECK"]
 
 INTEGRATION_CASES_CHECK = CheckDefinition(
     id="integration",
+    static=False,
     title="Integration cases",
     language="integration",
     tool=None,

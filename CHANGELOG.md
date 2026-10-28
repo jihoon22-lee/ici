@@ -5,6 +5,38 @@
 
 ---
 
+## [Unreleased]
+
+- 명시적 Python 파일 목록에서도 Ruff의 native exclude를 적용합니다. 중첩 Ruff 설정을
+  입력에 포함하고 설정 내용 변경을 check scope digest에 반영해 baseline 해결로 오판하지 않습니다.
+
+- TypeScript composite 프로젝트의 incremental metadata는 `.ici/typescript`에 격리하고
+  PREPARE로 표시합니다. fast에서는 차단하며 JavaScript/declaration output은 생성하지 않습니다.
+
+- GitHub Release에 표준 wheel/sdist와 `ici-package.sha256`을 추가하고 격리 설치 smoke를
+  CI와 release에서 실행합니다. 기존 pyz와 기존 회귀 gate는 유지합니다.
+- Cargo/tsc의 native project 입력 범위가 확정되지 않으면 baseline finding을 resolved로
+  추정하지 않습니다. 자동 발견은 dependency/build 디렉터리를 재귀 탐색에서 제외합니다.
+
+- `ici report`, `ici diff`, `ici init`는 기존 next application의 주 명령으로 제공됩니다.
+  legacy verify/pyz는 계속 유지합니다. HTML에 검사별 증거 완료 상태·관련 위치를 표시합니다.
+- `ici import-report`는 SARIF 2.1.0/JUnit/LCOV를 `ici.auxiliary` v1 보조자료로 가져옵니다.
+  출처 SHA-256, 관측 시점(미지정 시 unknown), import 시점, 범위를 보존하고 gate는
+  NOT_EVALUATED로 고정합니다. `report --auxiliary`로 첨부해도 원본 run/result는 변경하지 않습니다.
+
+- Rust Cargo Clippy, JavaScript ESLint, TypeScript ESLint/tsc 검사를 추가합니다.
+  프로젝트 로컬 Node 도구·원래 설정을 사용하고 진단의 native rule·파일·라인을 보존합니다.
+  Cargo는 offline/locked로 실행하며 build.rs·proc-macro 실행을 PREPARE로 명시합니다.
+- `analyze --plan`은 실행 없이 명령·변경 작업을 표시하고 `--language`는 언어를 선택합니다.
+  fast 프로필은 Cargo preparation을 차단합니다. node_modules/target 등은 자동 분석에서 제외합니다.
+
+- `ici analyze`는 공통 next application에서 정적 검사를 실행하며 테스트·coverage·
+  sanitizer·runtime·build artifact·통합 실행을 선택하지 않습니다. 기존 `verify` 선택은 유지합니다.
+- ici.toml이 없는 Python/C++ checkout은 메모리에서 구성하여 분석합니다. 설정 파일을
+  만들지 않으며 기존 도구 설정은 각 도구가 읽습니다. 기존 ici.toml 오류는 무시하지 않습니다.
+- 일반 Linux/WSL/CI 및 표준 package 설치를 제품 기본 방향으로 전환합니다. 폐쇄망 및
+  RHEL/GHES 현장 인수는 환경별 지원 근거로 관리합니다.
+
 ## [0.12.1] - 2026-10-24
 
 공개된 0.12.0 검증 경로에서 재현한 결함 8건을 수정합니다. 검증은 원본 소스를 보존하고,
