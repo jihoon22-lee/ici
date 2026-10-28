@@ -272,6 +272,7 @@ pub const NEXT_KEYS: &[&str] = &[
     "components[].integrations",
     "components[].integrations[].argv",
     "components[].integrations[].env",
+    "components[].integrations[].inherit_env",
     "components[].integrations[].expected_exit",
     "components[].integrations[].name",
     "components[].integrations[].output_artifacts",

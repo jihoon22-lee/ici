@@ -11,6 +11,8 @@ pub struct RunRequest {
     pub profile: Option<Profile>,
     pub require_full: bool,
     pub static_only: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub checks: Vec<String>,
 }
 impl RunRequest {
     pub fn scope<'a>(&self, project: &'a ResolvedProject) -> Result<Vec<&'a Component>> {
@@ -43,6 +45,7 @@ impl RunRequest {
     }
     pub fn wants(&self, check: &CheckDefinition) -> bool {
         (!self.static_only || check.is_static)
+            && (self.checks.is_empty() || self.checks.contains(&check.id))
             && (self.languages.is_empty() || self.languages.contains(&check.language))
     }
     pub fn requested_languages(&self, scope: &[&Component]) -> Vec<String> {

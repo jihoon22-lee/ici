@@ -426,3 +426,15 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   The actual `/usr/bin/env` child verifies an allowed custom key, overlay, omitted private key,
   and empty inheritance. The first regression exposed constructor filtering of custom keys;
   retaining a private environment snapshot for explicit allowlists corrected that failure.
+
+### Shared selection boundary
+
+- Explicit check subsets and additional historical behaviors use the same application planner;
+  duplicate/unknown check identities are rejected and subset results retain partial scope. The
+  frozen 36-check catalog remains an inventory input, not a limit that deletes other behaviors.
+- Legacy global integration cases have one owner (root component, otherwise the first declared
+  component). A required empty case list remains selected for an incomplete explanation.
+  `components[].integrations[].inherit_env` is an accepted sparse configuration key.
+- `cli-report-final.log` passed all 11 application planning cases, including supplemental and
+  owner/empty-case regressions, followed by strict transitive CLI/application Clippy. This
+  selection boundary is not evidence that every supplemental execution adapter is complete.

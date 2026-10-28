@@ -82,6 +82,7 @@ pub fn prepare_for_run(
         profile,
         require_full: invocation.flag("require_full"),
         static_only,
+        checks: vec![],
     };
     let mut cpp = crate::cpp::CppPlans::default();
     let mut validations = BTreeMap::new();

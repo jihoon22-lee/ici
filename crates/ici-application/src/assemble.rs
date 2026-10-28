@@ -83,6 +83,7 @@ pub fn assemble(
     let kind = if project.scope_kind == ScopeKind::Standalone {
         ScopeKind::Standalone
     } else if request.static_only
+        || !request.checks.is_empty()
         || !request.components.is_empty()
         || declared != selected_languages
         || !complete

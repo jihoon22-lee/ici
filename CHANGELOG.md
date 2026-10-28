@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+- 개별 분석 선택과 기존 36개 검사 밖의 추가 동작도 같은 application 계획·검증 경로를
+  사용합니다. 검사 일부만 선택한 결과는 workspace 전체 완료로 표시하지 않습니다.
+- legacy 전역 integration case는 한 component가 소유하며 필수 case가 비어 있으면
+  조용히 생략하지 않습니다. component integration에도 명시 환경 상속 목록을 허용합니다.
+
 - 명시 integration 환경 allowlist를 실제 자식 프로세스에 적용합니다. 빈 목록은 주변 환경을
   상속하지 않고 명시 overlay만 전달하며, 일반 도구 실행의 기존 기본 환경 정책은 유지합니다.
 

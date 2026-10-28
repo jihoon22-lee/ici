@@ -340,3 +340,74 @@ fn ordered_native_steps_keep_cross_check_dependencies_and_reject_forward_or_self
             .contains("itself")
     );
 }
+
+#[test]
+fn explicit_check_selection_and_supplemental_behaviors_share_the_same_plan() {
+    let (_directory, project) = project(None);
+    let mut supplemental = ici_domain::builtin_catalog().checks[0].clone();
+    supplemental.id = "python.fixture-extra".into();
+    supplemental.title = "Additional historical behavior".into();
+    let selected = RunRequest {
+        checks: vec![supplemental.id.clone()],
+        ..Default::default()
+    };
+    let plan = ici_application::plan::plan_with_checks(
+        &project,
+        &selected,
+        &[supplemental.clone()],
+        |_, _, _| Ok(Work::Internal),
+    )
+    .unwrap();
+    assert_eq!(plan.checks.len(), 1);
+    assert_eq!(plan.checks[0].check.id, supplemental.id);
+    assert!(
+        ici_application::plan::plan(&project, &selected, |_, _, _| Ok(Work::Internal))
+            .unwrap_err()
+            .to_string()
+            .contains("unknown selected check")
+    );
+    supplemental.id = "python.line".into();
+    assert!(
+        ici_application::plan::plan_with_checks(
+            &project,
+            &RunRequest::default(),
+            &[supplemental],
+            |_, _, _| Ok(Work::Internal)
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("duplicate supplemental")
+    );
+}
+
+#[test]
+fn legacy_integration_cases_have_one_owner_and_required_empty_cases_stay_selected() {
+    let (_directory, mut project) = project(None);
+    let mut nested = project.components[0].clone();
+    nested.id = "nested".into();
+    nested.root = "nested".into();
+    project.components.push(nested);
+    for component in &mut project.components {
+        component.settings["engines"]["integration"] =
+            serde_json::json!({"enabled":true,"required":true,"cases":[]});
+    }
+    let selected = RunRequest {
+        checks: vec!["integration".into()],
+        profile: Some(Profile::Deep),
+        ..Default::default()
+    };
+    let plan = plan(&project, &selected, |_, _, _| {
+        Ok(Work::Blocked {
+            reason: "required integration declares no cases".into(),
+        })
+    })
+    .unwrap();
+    assert_eq!(plan.checks.len(), 1);
+    assert_eq!(plan.checks[0].component_id, project.components[0].id);
+    assert!(
+        plan.checks[0]
+            .blocked()
+            .unwrap()
+            .contains("declares no cases")
+    );
+}

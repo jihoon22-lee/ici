@@ -117,11 +117,38 @@ pub struct Plan {
 pub fn plan(
     project: &ResolvedProject,
     request: &RunRequest,
+    bind: impl FnMut(&Component, &CheckDefinition, &str) -> Result<Work>,
+) -> Result<Plan> {
+    plan_with_checks(project, request, &[], bind)
+}
+/// Historical behaviors outside the frozen 36-check registry use the same execution boundary.
+pub fn plan_with_checks(
+    project: &ResolvedProject,
+    request: &RunRequest,
+    supplemental: &[CheckDefinition],
     mut bind: impl FnMut(&Component, &CheckDefinition, &str) -> Result<Work>,
 ) -> Result<Plan> {
     let scope = request.scope(project)?;
     let profile = request.profile.unwrap_or(project.profile);
-    let catalog = builtin_catalog();
+    let mut catalog = builtin_catalog();
+    for check in supplemental {
+        if catalog
+            .checks
+            .iter()
+            .any(|existing| existing.id == check.id)
+        {
+            return Err(ApplicationError(format!(
+                "duplicate supplemental check {}",
+                check.id
+            )));
+        }
+        catalog.checks.push(check.clone());
+    }
+    for id in &request.checks {
+        if !catalog.checks.iter().any(|check| &check.id == id) {
+            return Err(ApplicationError(format!("unknown selected check {id}")));
+        }
+    }
     let mut result = Plan {
         profile,
         components: scope.iter().map(|c| c.id.clone()).collect(),
@@ -143,8 +170,26 @@ pub fn plan(
     for component in scope {
         let mut selected = 0;
         for definition in &catalog.checks {
+            let integration_owner = project
+                .components
+                .iter()
+                .find(|candidate| candidate.root == ".")
+                .or_else(|| project.components.first())
+                .is_some_and(|owner| owner.id == component.id);
+            let legacy_integration = integration_owner
+                && (component
+                    .settings
+                    .pointer("/engines/integration/cases")
+                    .and_then(serde_json::Value::as_array)
+                    .is_some_and(|cases| !cases.is_empty())
+                    || component
+                        .settings
+                        .pointer("/engines/integration/required")
+                        .and_then(serde_json::Value::as_bool)
+                        == Some(true));
             let applies = component.languages.contains(&definition.language)
-                || (definition.id == "integration" && !component.integrations.is_empty());
+                || (definition.id == "integration"
+                    && (!component.integrations.is_empty() || legacy_integration));
             if !applies || !request.wants(definition) {
                 continue;
             }
