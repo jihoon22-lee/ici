@@ -55,6 +55,7 @@ pub struct ValidationOptions {
     pub collect_coverage: bool,
     /// Same owned run directory and source scope must be used by both logical checks.
     pub shared_test_task_id: Option<String>,
+    pub shared_test_kind: Option<ValidationKind>,
     /// Total runs including the primary suite, capped at 3. Zero disables repeats.
     pub repeat_runs: usize,
     pub slow_threshold_seconds: Option<f64>,
@@ -70,6 +71,10 @@ pub struct ValidationOptions {
     pub changed_lines: Vec<String>,
     pub min_changed_line_cov: Option<f64>,
     pub coverage_required: bool,
+    pub function_facts_complete: bool,
+    pub auxiliary_tools: BTreeMap<String, ResolvedTool>,
+    pub elf_policy: ici_cpp::ElfPolicy,
+    pub build_roots: Vec<PathBuf>,
     pub modules: Vec<String>,
     pub requires_python: Option<String>,
     pub compile_sources: bool,
@@ -90,6 +95,7 @@ impl Default for ValidationOptions {
         Self {
             collect_coverage: false,
             shared_test_task_id: None,
+            shared_test_kind: None,
             repeat_runs: 0,
             slow_threshold_seconds: None,
             quality_mode: "report".into(),
@@ -104,6 +110,10 @@ impl Default for ValidationOptions {
             changed_lines: vec![],
             min_changed_line_cov: None,
             coverage_required: false,
+            function_facts_complete: false,
+            auxiliary_tools: BTreeMap::new(),
+            elf_policy: ici_cpp::ElfPolicy::default(),
+            build_roots: vec![],
             modules: vec![],
             requires_python: None,
             compile_sources: false,
@@ -149,6 +159,15 @@ pub struct OwnedArtifactSpec {
     pub required: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ArtifactPattern {
+    pub id_prefix: String,
+    pub suffix: String,
+    pub producer_task_id: String,
+    pub max_files: usize,
+    pub max_bytes_each: u64,
+    pub max_bytes_total: u64,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct StepPrerequisite {
     pub task_id: String,
     pub accepted_exits: Vec<i32>,
@@ -159,8 +178,12 @@ pub struct ValidationPlan {
     pub kind: ValidationKind,
     pub tasks: Vec<TaskSpec>,
     pub artifacts: Vec<OwnedArtifactSpec>,
+    #[serde(default)]
+    pub artifact_patterns: Vec<ArtifactPattern>,
     /// Dependencies use provider exit contracts; the generic scheduler's exit=0 rule is insufficient.
     pub prerequisites: BTreeMap<String, Vec<StepPrerequisite>>,
     pub context: ValidationRequest,
     pub limitations: Vec<String>,
+    #[serde(skip)]
+    pub source_coordinates: std::sync::Arc<ici_providers::SourceCoordinates>,
 }

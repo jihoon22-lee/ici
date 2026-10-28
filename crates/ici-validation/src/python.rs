@@ -118,10 +118,16 @@ pub fn observe_for(
         ValidationKind::PythonCoverage => observe_coverage(plan, outcomes, artifacts, &mut output),
         ValidationKind::PythonRuntime => observe_runtime(plan, outcomes, &mut output),
         ValidationKind::PythonImports => observe_imports(plan, outcomes, &mut output),
-        _ => Err(ValidationError(format!(
-            "{} observation is still being implemented",
-            kind.provider()
-        ))),
+        ValidationKind::Ctest => crate::cpp::observe_ctest(plan, outcomes, &mut output),
+        ValidationKind::Qtest => crate::cpp::observe_qtest(plan, outcomes, &mut output),
+        ValidationKind::BinaryCompatibility => crate::cpp::observe_elf(plan, outcomes, &mut output),
+        ValidationKind::Sanitizer | ValidationKind::ThreadSanitizer => {
+            crate::sanitizer::observe(plan, outcomes, &mut output)
+        }
+        ValidationKind::Integration => {
+            crate::integration::observe(plan, outcomes, artifacts, &mut output)
+        }
+        ValidationKind::Gcov => crate::gcov::observe(plan, outcomes, artifacts, &mut output),
     };
     let mut ids = plan
         .tasks

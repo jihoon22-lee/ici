@@ -127,6 +127,25 @@ fn universal_lines(text: &str) -> impl Iterator<Item = &str> {
 }
 
 impl SourceCoordinates {
+    /// Returns None when UTF-8 source or the bounded index is unavailable.
+    pub fn contains_line(&self, path: &str, line: u32) -> Option<bool> {
+        self.files
+            .get(path)
+            .and_then(Option::as_ref)
+            .map(|file| line > 0 && line as usize <= file.lines.len())
+    }
+    pub fn byte_column(
+        &self,
+        path: &str,
+        line: u32,
+        column: u32,
+    ) -> Result<Option<u32>, ProviderError> {
+        if column == 0 {
+            return Err(ProviderError("native columns are 1-based".into()));
+        }
+        self.boundary(path, line, column - 1, ColumnKind::Utf8, false)
+            .map(|offset| offset.map(|offset| offset + 1))
+    }
     fn boundary(
         &self,
         path: &str,

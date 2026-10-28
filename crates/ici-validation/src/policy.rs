@@ -100,12 +100,24 @@ pub fn evaluate(
                     plan, output, anchor, 1, None, label, rule, actual, threshold,
                 );
             } else {
-                unavailable.push(label);
+                let empty = match rule {
+                    "overall-line" => report.counts.total_lines == 0,
+                    "branch" => report.counts.total_branches == 0,
+                    "functions" | "tem" => report.counts.total_functions == Some(0),
+                    _ => false,
+                };
+                if !empty {
+                    unavailable.push(label);
+                }
                 let mut target = InspectionTarget::at(anchor, 1);
                 target.target_name = label.into();
                 target.status = "SKIP".into();
-                target.message =
-                    "required measurement is unavailable; no percentage was fabricated".into();
+                target.message = if empty {
+                    "measured scope has no applicable denominator; no percentage was fabricated"
+                } else {
+                    "required measurement is unavailable; no percentage was fabricated"
+                }
+                .into();
                 output.targets.push(target);
             }
         }
@@ -143,6 +155,12 @@ pub fn evaluate(
         target.end_line = row["end_line"]
             .as_u64()
             .and_then(|line| u32::try_from(line).ok());
+        target.start_column = row["start_column"]
+            .as_u64()
+            .and_then(|column| u32::try_from(column).ok());
+        target.end_column = row["end_column"]
+            .as_u64()
+            .and_then(|column| u32::try_from(column).ok());
         target.target_name = format!(
             "Coverage:Function:{}",
             row["name"].as_str().unwrap_or("<unnamed>")

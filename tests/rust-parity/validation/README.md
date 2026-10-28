@@ -2,9 +2,10 @@
 
 The Rust `ici-validation` crate runs declared project tools through the common
 executor. The fixed reference product remains v0.13.0 source
-`6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`. This checkpoint covers Python
-test/coverage/runtime/import contracts; C++ suite/coverage, sanitizer, integration
-and binary ABI validation remain subsequent work.
+`6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`. Current checkpoints cover Python
+test/coverage/runtime/import and C++ suite/gcov/sanitizer/ELF/process contracts.
+Complete CLI integration, runtime matrices, mutation capability probes and full
+inventory closure remain separate work.
 
 ## Python checkpoint (2026-10-29)
 
@@ -55,6 +56,60 @@ that alone is not native execution evidence.
   a source target, and breached minima emit measured findings. An unavailable
   configured denominator remains incomplete. Modern evidence-only callers leave
   minima absent; legacy callers pass their resolved defaults explicitly.
+
+## C++ and process-contract checkpoint (2026-10-29)
+
+Nine general contract, four C++ replay and six gcov parser/frozen producer tests
+passed. All eight explicitly invoked native C++ tests passed in 13.80 seconds;
+the subsequent gcov TEM/Unicode/freshness follow-up passed separately in 0.84
+seconds. Strict all-target validation Clippy and scoped provider/validation
+formatting passed. A workspace formatting check during concurrent work observed
+an unrelated unfinished `ici-analysis/src/unicode.rs` edit; that workspace check
+is not recorded as passed here. An earlier full-test link hit the full `/tmp`
+tmpfs and failed with an LLVM linker bus error; the agent-owned target cache was
+moved to workspace disk and the failed test gate was rerun successfully.
+
+```sh
+flock /tmp/paseo-products-20261028-heavy.lock env CARGO_BUILD_JOBS=2 \
+  ICI_TEST_GXX=/absolute/g++ ICI_TEST_GCOV=/absolute/gcov \
+  ICI_TEST_CTEST=/absolute/ctest ICI_TEST_QMAKE=/absolute/qmake \
+  ICI_TEST_QMAKE6=/absolute/qmake6 ICI_TEST_MAKE=/absolute/make \
+  ICI_TEST_READELF=/absolute/readelf \
+  cargo test --locked -p ici-validation --test native_cpp -- --ignored --test-threads=1
+```
+
+Tested tools: GCC/gcov 15.2.0, CTest 4.2.3, GNU readelf 2.46, Qt 5.15.18 and
+Qt 6.10.2. The native tests actually compile and run ASan heap-use-after-free,
+UBSan signed overflow and TSan data-race programs. They also run CTest
+pass/fail/disabled/empty fixtures, Qt5/Qt6 QTest failures with source locations,
+ELF RPATH policy, a declared process contract with output artifacts, and a
+non-instrumented binary which must never execute under a claimed sanitizer check.
+
+- A readelf symbol-table proof precedes sanitizer execution and the executor
+  revalidates the executable's digest. A linked runtime does not prove every
+  translation unit was instrumented. Runtime failure/incomplete reports remain
+  incomplete; parsed defects preserve bounded frames, source positions and
+  external-frame redaction. The source index supplies Unicode display columns.
+- GCC JSON/gzip parsing rejects unknown/duplicate fields, wrong scalar types,
+  invalid geometry/counts, partial prime-path metadata, missing v2 block IDs,
+  malformed/concatenated/trailing gzip and excessive bytes/records. It retains
+  branches, calls, conditions and prime-path structures. Each report is limited
+  to 8 MiB compressed / 64 MiB decompressed; all reports together to 64/256 MiB.
+- A shared CTest/QTest suite feeds gcov only after complete nonempty evidence;
+  assertion failures may still feed coverage. Its `.gcda` must have been written
+  after the actual suite start. Missing/stale/mismatched data cannot become a
+  measured zero. Report files are captured from the fresh owned directory.
+- Cross-unit merging uses raw line, function geometry and branch block identity
+  with OR coverage, preserving template instances while excluding compiler
+  exception-unwind edges from both counts. Declared sources cannot disappear.
+  `gcov-native.json` preserves actual GCC output with only its temporary root
+  normalized, including measured byte-column 13 → Unicode-column 10 conversion.
+- ELF interpretation and ABI policy reuse `ici-cpp` facts. No binary is loaded
+  to inspect it. Process contracts separately evaluate declared exits, stream
+  assertions and fresh regular output-file metadata without reading or deleting
+  user output contents. Every validation step declares component resource locks.
+- A measured empty coverage axis is N/A, with no invented 0%/100%. Missing
+  function evidence is distinct and cannot satisfy a configured policy or TEM.
 
 ## Confirmed function-coverage correction
 

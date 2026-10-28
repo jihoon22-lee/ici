@@ -69,6 +69,15 @@ fn plan_is_read_only_and_shared_coverage_names_one_external_suite() {
     outcomes.get_mut(&suite.tasks[0].id).unwrap().truncated = true;
     assert!(ready_steps(&reader, &outcomes).is_err());
     assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+    let mut native_discovery = test;
+    native_discovery.targets = vec![".".into()];
+    assert!(
+        plan(&native_discovery).unwrap().tasks[0]
+            .argv
+            .contains(&root.path().join(".").to_string_lossy().into_owned())
+    );
+    native_discovery.source_files = vec![".".into()];
+    assert!(plan(&native_discovery).is_err());
 }
 #[test]
 fn pytest_preserves_parameter_spaces_last_verdicts_and_source_facts() {
@@ -307,6 +316,33 @@ fn coverage_policy_honors_thresholds_statement_floor_and_changed_line_denominato
     let planned = plan(&request).unwrap();
     let mut output = ici_domain::AnalysisOutput::new("coverage", "coverage");
     assert!(ici_validation::policy::evaluate(&planned, &report, Some(4.0), &mut output).is_err());
+}
+#[test]
+fn measured_empty_axes_are_not_applicable_while_unknown_function_evidence_is_incomplete() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::PythonCoverage);
+    request.options.function_facts_complete = true;
+    request.options.min_branch_cov = Some(80.0);
+    request.options.min_func_cov = Some(90.0);
+    request.options.min_tem_score = Some(4.0);
+    let mut value = report();
+    value["totals"]["covered_branches"] = json!(0);
+    value["totals"]["num_branches"] = json!(0);
+    value["files"]["main.py"]["summary"]["covered_branches"] = json!(0);
+    value["files"]["main.py"]["summary"]["num_branches"] = json!(0);
+    value["files"]["main.py"]["executed_branches"] = json!([]);
+    value["files"]["main.py"]["missing_branches"] = json!([]);
+    let known = coverage::parse_python(&serde_json::to_vec(&value).unwrap(), &request).unwrap();
+    let planned = plan(&request).unwrap();
+    let mut output = ici_domain::AnalysisOutput::new("coverage", "coverage");
+    ici_validation::policy::evaluate(&planned, &known, None, &mut output).unwrap();
+    assert_eq!(known.counts.total_functions, Some(0));
+    assert!(output.observation.findings.is_empty());
+    assert!(output.targets.iter().all(|target| target.status == "SKIP"));
+    request.options.function_facts_complete = false;
+    let unknown = coverage::parse_python(&serde_json::to_vec(&value).unwrap(), &request).unwrap();
+    let planned = plan(&request).unwrap();
+    assert!(ici_validation::policy::evaluate(&planned, &unknown, None, &mut output).is_err());
 }
 #[test]
 fn owned_artifacts_reject_reuse_symlinks_fifo_stale_and_replaced_owners() {

@@ -88,7 +88,11 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
             "quality runs exceed 3 or slow threshold is invalid".into(),
         ));
     }
-    for path in request.targets.iter().chain(&request.source_files) {
+    for path in &request.targets {
+        ici_domain::validation::relative_path(path, true)
+            .map_err(|e| ValidationError(e.to_string()))?;
+    }
+    for path in &request.source_files {
         ici_domain::validation::relative_path(path, false)
             .map_err(|e| ValidationError(e.to_string()))?;
     }
@@ -96,9 +100,11 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
         kind: request.kind,
         tasks: vec![],
         artifacts: vec![],
+        artifact_patterns: vec![],
         prerequisites: BTreeMap::new(),
         context: request.clone(),
         limitations: vec!["dynamic evidence is never reused from a previous run".into()],
+        source_coordinates: std::sync::Arc::default(),
     };
     match request.kind {
         ValidationKind::PythonTest | ValidationKind::PythonCoverage => python_suite(&mut plan)?,
@@ -182,12 +188,13 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
             plan.tasks.push(imports);
             plan.limitations.push("explicit imports execute module initialization; module main entry points are not invoked".into());
         }
-        _ => {
-            return Err(ValidationError(format!(
-                "{} validation planning is still being implemented",
-                request.kind.provider()
-            )));
-        }
+        ValidationKind::Ctest
+        | ValidationKind::Qtest
+        | ValidationKind::Sanitizer
+        | ValidationKind::ThreadSanitizer
+        | ValidationKind::Gcov
+        | ValidationKind::BinaryCompatibility => crate::cpp::plan(&mut plan)?,
+        ValidationKind::Integration => crate::integration::plan(&mut plan)?,
     }
     for task in &plan.tasks {
         task.validate()
@@ -314,7 +321,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     }
     Ok(())
 }
-fn task(request: &ValidationRequest, suffix: &str, args: Vec<String>) -> TaskSpec {
+pub(crate) fn task(request: &ValidationRequest, suffix: &str, args: Vec<String>) -> TaskSpec {
     let mut argv = vec![request.tool.path.to_string_lossy().into_owned()];
     argv.extend(args);
     let mut task = TaskSpec::command(
@@ -325,6 +332,12 @@ fn task(request: &ValidationRequest, suffix: &str, args: Vec<String>) -> TaskSpe
     );
     task.kind = TaskKind::Analyze;
     task.cacheable = false;
+    task.resource_keys
+        .push(format!("project-execution:{}", request.cwd.display()));
+    if let Some(build) = &request.options.build_dir {
+        task.resource_keys
+            .push(format!("build:{}", build.display()));
+    }
     task.tool_digest = Some(request.tool.digest.clone());
     task.timeout_seconds = Some(request.options.timeout_seconds);
     task.output_limit_bytes = Some(8 * 1024 * 1024);
@@ -384,6 +397,12 @@ pub fn ready_steps(
                         "coverage requires a completed nonempty pytest suite".into(),
                     ));
                 }
+            }
+            if requirement.task_id.ends_with(".instrumentation") {
+                crate::cpp::instrumentation(plan, outcome)?;
+            }
+            if plan.kind == ValidationKind::Gcov {
+                crate::cpp::completed_test(plan, &requirement.task_id, outcome)?;
             }
         }
         if !pending {

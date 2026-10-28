@@ -293,6 +293,9 @@ pub fn parse_python(
         } else {
             result.limitations.push("function invocation coverage is not fully measured; definition/header hits alone are insufficient".into());
         }
+    } else if request.options.function_facts_complete {
+        result.counts.covered_functions = Some(0);
+        result.counts.total_functions = Some(0);
     }
     Ok(result)
 }
