@@ -2,7 +2,7 @@
 
 2026-10-28 사용자는 ici를 Rust로 전면 교체하고, 세 제품을 간편한 사용성 → 독립 제품 완성도 → 상호 연계 순으로 개선하기로 결정했다. 일반 프로젝트는 좋은 기본값으로 동작하고 설정 파일 하나에서 필요한 예외만 선언한다. 기존의 다양한 분석 기능과 증거 수준을 유지한다.
 
-이 문서는 작업 배정 준비물이다. 제품 구현·PR·공개는 아직 시작하지 않았다. 기준 소스는 main 77554433209ceaecd0782fc4d3cb6c2ed9b0b1c2, 공개판은 v0.13.0이다. 구현자는 착수 시 실제 HEAD·사용자 변경·승인 범위를 확인한다.
+2026-10-28 사용자가 이 계획 R0–R9의 실제 구현·검증·문서·PR 병합·버전/태그·공개·공개 bytes 검증·소유 자원 정리를 승인했다. 기준 소스는 main 77554433209ceaecd0782fc4d3cb6c2ed9b0b1c2, 공개판은 v0.13.0이다. clean 준비 branch c39f37e에서 계획 commit을 포함한 feat/rust-native-core를 생성해 실행을 시작했다. 부분 완료를 전체 전환 완료로 표시하지 않는다.
 
 ## 1. 전면 교체의 경계
 
@@ -165,17 +165,17 @@ R9 한 cutover 변경에 제품 진입점, installer, release workflow, 문서, 
 
 과거 공개판은 그대로 보존한다. rollback은 검증된 이전 artifact를 명시적으로 사용하는 절차이며 새 사용자 데이터를 옛 snapshot으로 덮는 동작이 아니다. 기존 config/result/baseline/suppression은 보존하고 새 형식은 별도 출력과 versioned state를 사용한다. ICI_PYTHON을 새 의미로 조용히 재사용하지 않는다.
 
-버전 후보는 0.14.0을 검토할 수 있으나 실제 compatibility·완료 checkpoint에 따라 결정한다. 1.0을 사용하려면 별도의 안정 API·지원 계약 근거가 필요하다. 현재 계획 요청은 태그·공개 권한이 아니다. 나중에 공개까지 승인받으면 exact-main 검증 후보와 같은 bytes를 게시하고 새 다운로드·설치·실행을 확인한다. 소유 branch/worktree/tmp만 정리한다.
+버전 후보는 0.14.0을 검토할 수 있으나 실제 compatibility·완료 checkpoint에 따라 결정한다. 1.0을 사용하려면 별도의 안정 API·지원 계약 근거가 필요하다. 2026-10-28 후속 실행 지시로 태그·공개까지 승인됐다. R8 전체 인수 후 exact-main 검증 후보와 같은 bytes를 게시하고 새 다운로드·설치·실행을 확인한다. 소유 branch/worktree/tmp만 정리한다.
 
 ## 9. 작업 배정과 착수 지시문
 
 ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현을 위임할 때 parser/source map, execution/domain/wire 계약을 먼저 고정하고 서로 다른 모듈·worktree를 지정한다. idk/Lens 저장소를 직접 편집하지 않는다. 통합 책임자는 고정 fixture·버전 조합·공개 bytes 증거를 조정한다. 세 제품의 릴리스를 동시로 묶지 않는다.
 
-현재 준비 branch는 docs/rust-replacement-plan이며 로컬 전용이다. 실제 착수 때 이 문서 commit을 포함한 feature branch/worktree를 만들고 첫 R0 PR로 계획·새 ADR·규약 적용 범위를 main에 반영한다. 이후 Rust 작업도 main 대상 일반 PR을 사용한다. 무거운 Rust/tool-pack build와 전체 corpus는 다른 두 저장소와 host 자원을 조정하고 독립 계약 이후에만 병렬화한다.
+준비 branch docs/rust-replacement-plan의 commit c39f37e를 포함한 feat/rust-native-core에서 실행한다. 첫 R0 PR로 계획·새 ADR·규약 적용 범위를 main에 반영한다. 이후 Rust 작업도 main 대상 일반 PR을 사용한다. 무거운 Rust/tool-pack build와 전체 corpus는 다른 두 저장소와 host 자원을 조정하고 독립 계약 이후에만 병렬화한다.
 
 각 작업 보고에는 요구 행, source SHA, 구현 파일, 실제 명령·도구 버전·결과, 의도한 차이, 미실행 항목, 다음 의존성을 남긴다. 시작·중단·재개 시 같은 원장을 갱신하고 일부 parser/provider 완료를 제품 전환 완료로 보고하지 않는다.
 
-다음 블록은 구현 착수를 지시할 때 전달한다. 계획 문서 자체는 구현 시작 명령이 아니다.
+다음 착수 지시문은 2026-10-28 사용자의 후속 지시로 실행 승인됐다.
 
 > ici를 이 문서 R0–R9에 따라 Rust 단일 제품으로 전면 교체하라. 사용자 우선순위는 좋은 기본값과 간단한 설정, 자체 완성도, 마지막으로 연계다. AGENTS.md와 과거 ADR을 읽고 R0에서 Rust 전환 규약을 명시적으로 대체하라. 현재 19 legacy descriptor와 36 check를 포함한 기능·명령·설정·출력 합집합의 대응표를 만들고, Python backend/worker 없는 native 분석·실행·report·publish·배포를 구현하라. 기존 규칙의 양성·음성·실패 사례와 고정 oracle을 이용하되 알려진 결함은 교정 기대값으로 검증하라. 개발 PR은 나눌 수 있지만 모든 행이 닫히기 전 stable replacement나 혼합 제품을 내지 말라. 이전 자료와 공개판을 보존하고 새 사용자 데이터의 되돌림을 강제하지 말라. 저장소별 책임과 전달받은 승인 범위 안에서 PR·후보·공개·정리를 완료하라.
 
@@ -186,9 +186,23 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 | Rust 전면 교체 방향 | 사용자 결정 반영 |
 | 현행 registry 19/36과 알려진 결함 | 확인 |
 | 독립 계획 검토 | Claude·Codex 교차 검토 및 조정 완료 |
-| R0–R9 구현·parity 검증 | 미착수 |
+| R0 | 실행 중 — 규약/계약 원장 및 parser/tool/TLS 실측 |
+| R1–R9 구현·parity 검증 | 미착수 — R0 계약 고정 후 순차 실행 |
 | 후보·PR·릴리스 | 미착수 |
 
 근거: [현재 Python 유지 ADR](ici-next/adr/0001-keep-python-core.md), [CPython 배포 ADR](ici-next/adr/0002-standalone-runtime-bundle.md), [이전 engine inventory](ici-next/inventory/current-engines.md), [현재 registry](../../src/ici/languages/registry.py), [기본 설정](../../src/ici/config/automatic.py), [CLI](../../src/ici/cli/next_path.py), [identity](../../src/ici/application/check_scope.py), [qmake recorder](../../src/ici/core/qmake_context.py), [runtime compatibility](../../src/ici/engines/python_compat.py).
 
 외부 기술 후보의 현재 근거: [Ruff](https://github.com/astral-sh/ruff), [ty](https://github.com/astral-sh/ty), [RustPython Parser의 대체 안내](https://github.com/RustPython/Parser). 이름이나 언어만으로 배포·문법·성능 지원을 확정하지 않고 R0 실측으로 고정한다.
+
+
+### 실행 체크포인트 — 2026-10-28 착수
+
+- 원본 checkout clean, 준비 HEAD `c39f37e8c2ad07d4637a06246b94316a50b8e517` 확인.
+  구현 branch `feat/rust-native-core`; 제품 baseline은 main `7755443`, oracle은 공개 source `6fe3e405`.
+- R0 규약/공통 계약은 주 담당자, 기계적 전체 surface inventory, parser spike,
+  tool-pack/TLS spike는 서로 다른 파일 범위로 위임했다. 공유 계약 전 rule 구현은 분산하지 않는다.
+- 무거운 빌드·전체 suite·corpus는 `flock /tmp/paseo-products-20261028-heavy.lock` 아래에서
+  jobs 2로 실행한다. 이 lock과 다른 제품/공유 cache는 개별 작업자의 삭제 대상이 아니다.
+- 작업 소유 임시 디렉터리: `/tmp/ici-rust-replacement-20261028`.
+  제품 cutover·공개 검증까지 완료한 뒤 지우며, 최종 근거는 이 문서와 PR에 보존한다.
+- 현재 R0 진행은 제품 완료가 아니다. R1–R9 및 전체 parity 원장은 여전히 열린 상태다.

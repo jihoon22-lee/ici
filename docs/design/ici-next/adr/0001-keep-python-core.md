@@ -1,5 +1,10 @@
 # ADR-0001 — Python 코어와 Typer/Rich를 유지한다
 
+> **Superseded for the Rust replacement (2026-10-28):**
+> [ADR-0008](0008-rust-native-replacement.md) replaces this decision for the new product.
+> This document remains the historical contract of the published Python line; its gates
+> remain active until the verified single cutover. It is not a Python fallback authorization.
+
 - 상태: **accepted**
 - 결정 시점: WP00 ([#198](https://github.com/jihoon22-lee/ici/issues/198))
 - 근거 이슈: [ARCH #192 §1](https://github.com/jihoon22-lee/ici/issues/192),

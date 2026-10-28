@@ -5,6 +5,12 @@
 
 ---
 
+## [Unreleased]
+
+- Rust 단일 제품 전환을 승인된 R0–R9 계획으로 시작합니다. Python 유지/CPython bundle
+  결정은 새 제품에 대해 ADR-0008로 대체하며 기존 공개 Python 제품의 gate는 단일
+  cutover 인수 전까지 유지합니다. 현재 내부 개발은 새 stable 배포 완료를 의미하지 않습니다.
+
 ## [0.13.0] - 2026-10-28
 
 일반 프로젝트의 정적 분석을 하나의 제품 checkpoint로 공개합니다. `analyze`·설정 없는 발견·

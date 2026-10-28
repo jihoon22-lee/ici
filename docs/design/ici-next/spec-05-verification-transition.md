@@ -1,5 +1,10 @@
 # SPEC-05 — 검증 가능한 전환
 
+> 2026-10-28 Rust replacement amendment: [ADR-0008](adr/0008-rust-native-replacement.md)
+> and the [R0–R9 execution plan](../rust-replacement-execution-plan.md) govern the new
+> native product. Existing Python gates remain until complete parity closure (R8);
+> their coordinated replacement belongs only to R9. Historic evidence is preserved.
+
 | | |
 |---|---|
 |상태|**채택된 목표 계약 (adopted target contract)**|
