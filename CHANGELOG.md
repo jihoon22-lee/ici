@@ -19,6 +19,13 @@
 - Rust 도구 선택 계층에서 프로젝트 도구 우선순위·명시 경로 실패·native pack checksum과
   실행 파일 identity를 검증합니다. mypy/ty의 설정 충돌은 명시 선택으로 해결합니다.
 
+- Rust 실행 계층에 bounded stdout/stderr, timeout·취소·process-group cleanup, 도구 bytes
+  재검증, DAG·resource lock과 원자 저장을 추가합니다. 실행 완료와 provider 판정은 분리합니다.
+- Rust application에 언어·component 선택, 필수 범위 누락, 검사 의존 관계, immutable source
+  snapshot과 입력 drift, finding 소유권·advisory/완결성 구분, 보수적 baseline 비교를 추가합니다.
+  자체 Python 분석의 파서·scope·줄 수·복잡도 기반도 구현 중이며, 전체 CLI/규칙 parity와
+  native 단일 제품 인수·공개는 아직 완료되지 않았습니다.
+
 ## [0.13.0] - 2026-10-28
 
 일반 프로젝트의 정적 분석을 하나의 제품 checkpoint로 공개합니다. `analyze`·설정 없는 발견·

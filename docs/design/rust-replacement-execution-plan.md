@@ -252,3 +252,34 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   `cargo test -p ici-providers --locked`의 선택·도구 교체·pack 변조·부재·타입 설정 5개와
   해당 crate Clippy `-D warnings`, fmt가 통과했다. 진단 parser/실제 도구 실행을 포함한
   R3 전체와 CLI 통합은 계속 미완료다.
+
+### 실행·분석·application 라이브러리 checkpoint
+
+- `7c2c336`: Rust 실행·scheduler·storage library의 process 11 / scheduler 8 / storage 9개
+  실제 검증, crate Clippy `-D warnings`, fmt 및 Python 동작 fixture Ruff가 통과했다.
+  digest가 알려진 실행만 공유하며 계획 후 executable 교체도 spawn 전에 거부한다.
+  [실제 명령·범위](../../tests/rust-parity/execution/README.md)는 process-group 증거와
+  의도적으로 새 session으로 이탈하는 프로그램의 sandbox 보장을 구분한다.
+- `26c3b17`: native Python decoder·Unicode/raw-byte 위치·lexical scope와 line 및
+  cyclomatic/cognitive 공통 계산 기반을 추가했다. 고정 공개 source의 CPython 3.14.7
+  oracle metrics 15개와 비교했다. 보안/resource/exception/dead/cycle/dup/compat 규칙의
+  전체 이식은 후속 작업이며, 아직 구현되지 않은 check를 PASS로 반환하지 않는다.
+- `ici-application`은 pure request/selection/graph/verification/baseline과 bounded immutable
+  입력 snapshot을 담당한다. 비활성화·미선택·blocked, optional·advisory·required completion,
+  부분 scope·위반·취소를 구분한다. provider/CLI·signal/event lifecycle 및 실제 report와
+  묶인 제품 E2E는 별도 통합 단계다.
+  shared heavy lock 아래 `RUST_TEST_THREADS=2 cargo test -p ici-application --locked`의
+  planning 7 / baseline 4 / snapshot 3 / verification 5개가 통과했고,
+  `cargo clippy -p ici-application --all-targets --locked -- -D warnings`와
+  `cargo fmt -p ici-application --check`도 통과했다. configuration/native tool bytes가 실제
+  어떤 dependency closure로 수집되는지에 대한 시험과 이 순수 비교 함수 시험은 구분한다.
+- baseline 비교는 구 result의 읽기와 해결 증명을 구분한다. 일치하는 완료 check scope만
+  resolved를 만들고, 변경된 scope는 carried, 알 수 없는 v1 scope나 바뀐 fingerprint/
+  policy/toolchain은 incompatible로 남긴다. scope digest 생성 시 실제 plugin/설정 의존성의
+  완전한 closure를 측정하는 provider 통합은 아직 남아 있다.
+- 새 snapshot은 기본 파일당 16 MiB / 총 512 MiB를 제한하고 project source/config를
+  읽을 때 symlink ancestor·leaf 및 FIFO를 거부한다. 자체 분석은 captured bytes를 쓰고
+  외부 도구는 프로젝트를 읽으므로 실행 전후 새 inventory 비교가 필요하다. 순간적인 변경
+  후 원상 복구까지 검출하는 filesystem transaction 보장을 주장하지 않는다.
+- 각 library 시험은 전체 R1/R2/R4/R7 또는 원장 1135행의 완료 근거를 대신하지 않는다.
+  R0 PR 수정 CI `40693618746`은 기존 unit/build/smoke 이후 dogfood gate를 진행 중이다.

@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/ici-domain", "crates/ici-execution", "crates/ici-config", "crates/ici-analysis", "crates/ici-providers"]
+members = ["crates/ici-domain", "crates/ici-execution", "crates/ici-config", "crates/ici-analysis", "crates/ici-providers", "crates/ici-application"]
 resolver = "3"
 
 [workspace.package]

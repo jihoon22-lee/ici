@@ -332,6 +332,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ici-application"
+version = "0.14.0-dev.0"
+dependencies = [
+ "ici-config",
+ "ici-domain",
+ "nix",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+]
+
+[[package]]
 name = "ici-config"
 version = "0.14.0-dev.0"
 dependencies = [
@@ -363,6 +376,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
  "thiserror",
 ]
