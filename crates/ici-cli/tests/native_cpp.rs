@@ -122,3 +122,156 @@ fn actual_recorded_variants_keep_diagnostic_unit_ownership_without_python() {
         2
     );
 }
+
+fn runtime_config(selected: &[&str], extra: &str) -> String {
+    let mut config = String::from("schema_version=2\n");
+    for check in ici_domain::builtin_catalog()
+        .checks
+        .iter()
+        .filter(|check| check.language == "cpp")
+    {
+        config.push_str(&format!(
+            "[checks.\"{}\"]\nenabled={}\n",
+            check.id,
+            selected.contains(&check.id.as_str())
+        ));
+    }
+    config.push_str(extra);
+    config.push_str("\n[[components]]\nid='project'\nroot='.'\nlanguages=['cpp']\nsources=['main.cpp']\nbuild='native'\n");
+    config
+}
+
+#[test]
+fn missing_declared_runtime_outputs_are_blocked_without_build_or_directory_creation() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(
+        root.path().join("ici.toml"),
+        runtime_config(
+            &["cpp.test", "cpp.coverage", "cpp.binary-compat"],
+            "[builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['suite']\n",
+        ),
+    )
+    .unwrap();
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let plan = planning::prepare(&invocation, root.path(), &BTreeMap::new(), false).unwrap();
+    assert!(!root.path().join("build").exists());
+    assert!(!root.path().join(".ici").exists());
+    for check in &plan.plan.checks {
+        assert!(
+            matches!(check.work, ici_application::plan::Work::Blocked { .. }),
+            "{}",
+            plan.text()
+        );
+    }
+}
+
+#[test]
+#[ignore = "explicit native CTest/gcov/ELF CLI acceptance"]
+fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+        root.path().join("main.cpp"),
+        "int main(int argc,char**){if(argc>4)return 1; return 0;}\n",
+    )
+    .unwrap();
+    fs::write(root.path().join("CMakeLists.txt"),"cmake_minimum_required(VERSION 3.16)\nproject(native LANGUAGES CXX)\nenable_testing()\nadd_executable(suite main.cpp)\ntarget_compile_options(suite PRIVATE --coverage -O0)\ntarget_link_options(suite PRIVATE --coverage)\nadd_test(NAME green COMMAND suite)\n").unwrap();
+    let cmake = std::env::var("ICI_TEST_CMAKE").expect("explicit CMake");
+    for args in [
+        vec!["-S", ".", "-B", "build"],
+        vec!["--build", "build", "--parallel", "2"],
+    ] {
+        let output = std::process::Command::new(&cmake)
+            .args(args)
+            .current_dir(root.path())
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let tools = [
+        ("ctest", "ICI_TEST_CTEST"),
+        ("gcov", "ICI_TEST_GCOV"),
+        ("readelf", "ICI_TEST_READELF"),
+    ]
+    .into_iter()
+    .map(|(name, var)| {
+        format!(
+            "[tools.{name}]\npath={}\n",
+            serde_json::to_string(&std::env::var(var).expect(var)).unwrap()
+        )
+    })
+    .collect::<String>();
+    fs::write(root.path().join("ici.toml"),runtime_config(&["cpp.test","cpp.coverage","cpp.artifact","cpp.binary-compat"],&format!("{tools}[engines.test]\nmin_line_cov=100.0\nmin_file_statements=1\n[builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['suite']\n"))).unwrap();
+    let invocation =
+        registry::parse(["ici", "next", "verify", "--events", "events.jsonl"]).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    let preview = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert!(!root.path().join(".ici").exists());
+    assert_eq!(
+        preview.validations["project.cpp.coverage"].len(),
+        1,
+        "{}",
+        preview.text()
+    );
+    assert_eq!(
+        preview.validations["project.cpp.coverage"][0]
+            .context
+            .options
+            .shared_test_task_id
+            .as_deref(),
+        Some("project.cpp.test.suite")
+    );
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    for id in [
+        "project.cpp.test",
+        "project.cpp.coverage",
+        "project.cpp.binary-compat",
+        "project.cpp.artifact",
+    ] {
+        assert_eq!(
+            run.outputs[id].observation.state,
+            TaskState::Succeeded,
+            "{id}: {:?}",
+            run.outputs
+        );
+    }
+    assert!(
+        run.outputs["project.cpp.coverage"]
+            .targets
+            .iter()
+            .any(|target| target.file_path == "main.cpp")
+    );
+    assert!(
+        run.outputs["project.cpp.binary-compat"]
+            .targets
+            .iter()
+            .any(|target| target.file_path == "build/suite")
+    );
+    let events = storage::read_event_stream(&root.path().join("events.jsonl"))
+        .unwrap()
+        .0;
+    assert_eq!(
+        events
+            .iter()
+            .filter(|event| event.event_type == "task.started"
+                && event.task_id.as_deref() == Some("project.cpp.test.suite"))
+            .count(),
+        1
+    );
+    assert!(
+        !events
+            .iter()
+            .any(|event| event.task_id.as_deref() == Some("project.cpp.coverage.tests.suite"))
+    );
+}
