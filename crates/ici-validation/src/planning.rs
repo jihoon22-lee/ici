@@ -363,6 +363,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 }],
             );
             previous = repeat.id.clone();
+            plan.optional_task_ids.push(repeat.id.clone());
             plan.tasks.push(repeat);
         }
         if request.kind == ValidationKind::PythonTest && request.options.mutation_enabled {
@@ -524,6 +525,14 @@ pub fn ready_steps(
                 pending = true;
                 break;
             };
+            // Each optional quality attempt remains sequential, but a failed earlier attempt
+            // must not suppress later independent observations or the mutation capability probe.
+            if plan.optional_task_ids.contains(&task.id)
+                && requirement.task_id.contains(".repeat")
+                && plan.optional_task_ids.contains(&requirement.task_id)
+            {
+                continue;
+            }
             if !completed(outcome)
                 || !requirement
                     .accepted_exits

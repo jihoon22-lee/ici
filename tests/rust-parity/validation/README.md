@@ -356,3 +356,24 @@ editing the published copy then invalidates its manifest without overwriting the
 `validation-integration-policy-final.log` passed both integration contracts, including signed exit
 policy, and strict CLI/validation Clippy. This does not prove future build/copy orchestration or
 full validation inventory closure.
+
+Optional quality repeats retain each actual outcome while preserving the independently completed
+base suite. A timed-out, malformed or unavailable repeat does not erase a passing base run;
+later bounded attempts still execute sequentially. Comparable observations retain changed node
+collection as `NOT_COLLECTED`, while unavailable attempts never become invented verdicts.
+Original slow/flaky messages, source targets, metrics and producer guidance are preserved, and
+raw finding identity does not change merely because an observed duration changes.
+
+`finding-details-oracle.json` captures original frozen v0.13.0 quality, sanitizer and binary
+finding metadata. Its development-only capture script imports verified Git-archived reference
+sources and records their SHA-256 values; it also works after the historical source is removed.
+Four replay cases compare original categories, confidence, tools, labels, explanations,
+remediation and quality metrics. Sanitizer duplicate labels and TSan/resource distinctions remain
+explicit. A diagnostic without a confirmed project location retains its raw evidence and marks
+the check incomplete; it cannot invent a code violation at the suite anchor.
+
+`validation-quality-details-final.log` passed all 43 ordinary validation contracts and the actual
+CLI repeat-timeout fixture: passing base run, second attempt timeout, third attempt success,
+selected gate PASS with the timeout retained in optional evidence (11.33s).
+`validation-quality-details-clippy-ready.log` passed strict CLI/validation Clippy after the
+concurrent configuration error-size fix. Scoped Rust formatting and capture-script Ruff passed.

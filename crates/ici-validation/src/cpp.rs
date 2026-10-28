@@ -575,6 +575,8 @@ pub(crate) fn observe_elf(
                 );
                 item.native_rule_id = "elf.magic".into();
                 item.category = "compatibility".into();
+                item.confidence = "exact".into();
+                crate::finding_details::binary(&item, output);
                 output.observation.findings.push(item);
             }
             continue;
@@ -610,6 +612,8 @@ pub(crate) fn observe_elf(
             let mut item = finding(plan, &violation.rule_id, &violation.message, path, 1);
             item.native_rule_id = violation.native_rule_id;
             item.category = "compatibility".into();
+            item.confidence = "exact".into();
+            crate::finding_details::binary(&item, output);
             output.observation.findings.push(item);
         }
         facts.insert(path.clone(), parsed);

@@ -1741,3 +1741,64 @@ fn canonical_declared_integration_artifacts_require_exact_typed_membership_and_c
         "user data\n"
     );
 }
+
+#[test]
+#[ignore = "explicit project pytest repeat timeout and later independent repeat acceptance"]
+fn optional_quality_repeat_timeout_preserves_measured_base_and_runs_the_later_attempt() {
+    let root = tempfile::tempdir().unwrap();
+    clean_source(root.path());
+    fs::create_dir(root.path().join("tests")).unwrap();
+    fs::write(root.path().join("tests/test_repeat.py"), "from pathlib import Path\nimport time\ndef test_repeat():\n    counter = Path(__file__).with_name('attempts.txt')\n    attempt = int(counter.read_text()) + 1 if counter.exists() else 1\n    counter.write_text(str(attempt))\n    if attempt == 2:\n        time.sleep(5)\n    assert True\n").unwrap();
+    write(
+        root.path(),
+        &config(
+            &["python.test"],
+            "[engines.test.quality]\nenabled=true\nrepeat_runs=3\nslow_test_threshold=0\ntimeout=1.0\nmode='report'\n",
+            &format!(
+                "[components.python]\nexecutable={}\ntest_paths=['tests']\n",
+                quoted(&python())
+            ),
+        ),
+    );
+    let env = BTreeMap::from([
+        ("PATH".into(), "/usr/bin:/bin".into()),
+        ("PYTEST_DISABLE_PLUGIN_AUTOLOAD".into(), "1".into()),
+    ]);
+    let actual = run(root.path(), &env);
+    assert_eq!(
+        actual.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        actual.outputs
+    );
+    let output = &actual.outputs["project.python.test"];
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(!output.observation.timed_out);
+    let details = output
+        .extra
+        .get("test_quality")
+        .map(|_| &output.extra)
+        .or_else(|| {
+            output
+                .extra
+                .as_object()
+                .unwrap()
+                .values()
+                .find(|value| value.get("test_quality").is_some())
+        })
+        .unwrap();
+    assert_eq!(details["test_quality"]["repeat_timeouts"], 1, "{output:?}");
+    assert_eq!(details["test_quality"]["repeat_runs"], 3);
+    assert_eq!(details["test_quality"]["flaky_tests"], 0);
+    assert_eq!(
+        fs::read_to_string(root.path().join("tests/attempts.txt")).unwrap(),
+        "3"
+    );
+    assert!(
+        details["optional_steps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|step| step["timed_out"] == true)
+    );
+}

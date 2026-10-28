@@ -387,10 +387,57 @@ pub(crate) fn observe(
     let transcript = format!("{stderr}\n{stdout}");
     let diagnostics = parse_diagnostics(&transcript, plan)?;
     output.extra["sanitizer_diagnostics"] = serde_json::json!(diagnostics);
-    output
-        .observation
-        .findings
-        .extend(diagnostics.into_iter().map(|diagnostic| diagnostic.finding));
+    let mut counts = BTreeMap::new();
+    for diagnostic in &diagnostics {
+        if let Some(location) = &diagnostic.primary_location {
+            *counts
+                .entry((
+                    location.path.clone(),
+                    crate::finding_details::sanitizer_label(&diagnostic.kind),
+                ))
+                .or_insert(0usize) += 1;
+        }
+    }
+    let mut unlocated = false;
+    for diagnostic in diagnostics {
+        let Some(location) = &diagnostic.primary_location else {
+            unlocated = true;
+            continue;
+        };
+        let label = crate::finding_details::sanitizer_label(&diagnostic.kind);
+        let legacy_label = if counts[&(location.path.clone(), label)] == 1 {
+            label
+        } else {
+            ""
+        };
+        let mut target = InspectionTarget::at(&location.path, location.start_line);
+        target.start_column = location.start_column;
+        target.end_line = location.end_line;
+        target.end_column = location.end_column;
+        target.target_name = label.into();
+        target.status = "FAIL".into();
+        target.message = diagnostic.message.clone();
+        target.metrics.insert(
+            "frames_observed".into(),
+            serde_json::json!(diagnostic.frames_observed),
+        );
+        target.metrics.insert(
+            "project_frames".into(),
+            serde_json::json!(diagnostic.project_frames),
+        );
+        crate::finding_details::sanitizer(plan, &diagnostic, legacy_label, output);
+        output.targets.push(target);
+        output.observation.findings.push(diagnostic.finding);
+    }
+    if unlocated {
+        let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
+        target.target_name = "SanitizerDiagnosticLocation".into();
+        target.status = "ERROR".into();
+        target.message =
+            "sanitizer diagnostic has no validated project-owned source location".into();
+        output.targets.push(target);
+        return Err(ValidationError("sanitizer diagnostic has no validated project-owned source location; only confirmed source findings were retained".into()));
+    }
     if !planning::completed(outcome) {
         return Err(ValidationError(
             "sanitizer process did not complete; retained diagnostics cover only observed scope"
