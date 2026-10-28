@@ -1,12 +1,16 @@
 //! Explicit native preparation and minimal compilation exports. Planning performs no processes.
 mod artifact_facts;
+mod direct;
+mod preparation_failure;
 mod public_export;
 pub use artifact_facts::{compiled_artifact_kind, compiled_artifacts};
+pub use direct::{DirectPreparation, plan_legacy_direct_preparation};
 use ici_config::{Build, Component, ResolvedProject};
 use ici_cpp::{BuildLease, BuildPlan, BuildRequest, CompilationContext, ContextRequest};
 use ici_domain::sha256;
 use ici_execution::{Cancellation, Scheduler};
 use ici_providers::resolver::{ResolvedTool, ToolRequest};
+pub use preparation_failure::PreparationFailure;
 pub use public_export::{ExportMetadata, compilation_export_payload, render_compilation_export};
 use serde_json::{Value, json};
 use std::{
@@ -31,6 +35,7 @@ pub struct ContextPreparationPlan {
     pub declared_build: Option<Build>,
     pub descriptor: String,
     pub effects: Value,
+    pub direct: Option<DirectPreparation>,
 }
 #[derive(Clone)]
 pub struct PreparedContext {
@@ -39,6 +44,7 @@ pub struct PreparedContext {
     /// Workspace-relative measured ELF outputs of an otherwise undeclared legacy build.
     pub artifacts: Vec<String>,
     pub test_executable: Option<String>,
+    pub evidence: Option<Value>,
     _lease: Arc<BuildLease>,
 }
 
@@ -243,10 +249,33 @@ pub fn plan_preparation(
         declared_build: declared,
         descriptor,
         effects,
+        direct: None,
     })
 }
 
 pub fn execute_preparation(
+    plan: &ContextPreparationPlan,
+    scheduler: &Scheduler,
+    cancellation: &Cancellation,
+    events: &crate::events::EventLog,
+) -> Result<PreparedContext, String> {
+    execute_preparation_typed(plan, scheduler, cancellation, events)
+        .map_err(|error| error.to_string())
+}
+pub fn execute_preparation_typed(
+    plan: &ContextPreparationPlan,
+    scheduler: &Scheduler,
+    cancellation: &Cancellation,
+    events: &crate::events::EventLog,
+) -> Result<PreparedContext, PreparationFailure> {
+    if plan.direct.is_some() {
+        direct::execute(plan, scheduler, cancellation, events)
+    } else {
+        execute_native_preparation(plan, scheduler, cancellation, events)
+            .map_err(PreparationFailure::Incomplete)
+    }
+}
+fn execute_native_preparation(
     plan: &ContextPreparationPlan,
     scheduler: &Scheduler,
     cancellation: &Cancellation,
@@ -396,6 +425,7 @@ pub fn execute_preparation(
         context,
         artifacts,
         test_executable,
+        evidence: None,
         _lease: Arc::new(lease),
     })
 }

@@ -14,7 +14,7 @@ fn owned_object_compile_preserves_build_warning_debug_policy_and_analysis_stays_
         "int main(){int unused;return 0;}\n",
     )
     .unwrap();
-    fs::write(root.path().join("compile_commands.json"),serde_json::to_vec(&serde_json::json!([{"directory":root.path(),"file":"main.cpp","arguments":["g++","-std=c++17","-Wall","-Wextra","-Werror","-g3","-c","main.cpp","-o","must-not-create.o"]}])).unwrap()).unwrap();
+    fs::write(root.path().join("compile_commands.json"),serde_json::to_vec(&serde_json::json!([{"directory":root.path(),"file":"main.cpp","arguments":["g++","-std=c++17","-Wall","-Wextra","-Werror","-g3","-fdiagnostics-column-unit=byte","-fdiagnostics-column-origin=1","-c","main.cpp","-o","must-not-create.o"]}])).unwrap()).unwrap();
     let context = load_compilation_context(
         root.path(),
         &ContextRequest {

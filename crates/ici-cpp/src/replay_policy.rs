@@ -61,7 +61,11 @@ pub(crate) const DROP_JOINED: &[&str] = &[
     "--dependency-file=",
     "-fdiagnostics-serialized-file=",
 ];
-pub(crate) const DROP_PREFIXES: &[&str] = &["-g"];
+pub(crate) const DROP_PREFIXES: &[&str] = &[
+    "-g",
+    "-fdiagnostics-column-unit=",
+    "-fdiagnostics-column-origin=",
+];
 pub(crate) const PRESERVE_VALUE: &[&str] = &[
     "--language",
     "--sysroot",

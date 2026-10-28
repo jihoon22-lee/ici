@@ -1249,7 +1249,7 @@ fn failed(mut output: AnalysisOutput, reason: &str) -> AnalysisOutput {
     }
     output
 }
-fn failed_probe(
+pub(crate) fn failed_probe(
     id: &str,
     provider: &str,
     path: &str,
