@@ -659,6 +659,17 @@ fn package_and_wheel_contracts_match_frozen_findings_targets_and_metadata() {
             });
         }
         let output = analyze(&input);
+        for finding in output
+            .observation
+            .findings
+            .iter()
+            .filter(|finding| finding.rule_id.starts_with("ici.package."))
+        {
+            let detail = &output.extra["finding_details"][&finding.fingerprint];
+            assert_eq!(detail["legacy_rule_id"], finding.rule_id);
+            assert_eq!(detail["legacy_confidence"], finding.confidence);
+            assert_eq!(detail["legacy_label"], finding.primary_location.label);
+        }
         if let Some(message) = case["correction"]["native_error"].as_str() {
             assert_eq!(
                 output.observation.state,
@@ -1575,4 +1586,42 @@ fn relative_import_leaving_declared_package_is_incomplete_instead_of_guessed() {
             .any(|message| message.contains("relative-import-context"))
     );
     assert_eq!(output.extra["py_cycles"], json!(0));
+}
+
+#[test]
+fn historical_explicit_producer_details_retain_native_evidence() {
+    let output = analyze(&request(
+        "dead",
+        "def _unused():\n    return 1\n    absent()\n",
+    ));
+    assert_eq!(output.observation.findings.len(), 2);
+    for finding in &output.observation.findings {
+        let detail = &output.extra["finding_details"][&finding.fingerprint];
+        assert_eq!(detail["legacy_rule_id"], "ici.legacy.dead.target");
+        assert_eq!(detail["legacy_confidence"], finding.confidence);
+        assert_eq!(
+            detail["explanation"],
+            "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis."
+        );
+        assert!(
+            detail["remediation"]
+                .as_str()
+                .unwrap()
+                .contains("intended reference")
+        );
+    }
+    let output = analyze(&request(
+        "resource",
+        "def first(x=[]):\n    return x\ndef second(x=[]):\n    return x\n",
+    ));
+    assert_eq!(output.observation.findings.len(), 2);
+    for finding in &output.observation.findings {
+        let detail = &output.extra["finding_details"][&finding.fingerprint];
+        assert_eq!(detail["legacy_rule_id"], "ici.legacy.resource.target");
+        assert_eq!(detail["legacy_label"], "");
+        assert_eq!(detail["legacy_confidence"], "exact");
+        assert_eq!(detail["tool_name"], "ici Python AST");
+        assert_eq!(detail["tool_rule_id"], "Correctness:MutableDefault");
+        assert_eq!(detail["snippet"], "parameter=<mutable value>");
+    }
 }

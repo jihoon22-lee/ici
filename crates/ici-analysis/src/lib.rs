@@ -5,6 +5,7 @@ mod casefold_table;
 mod compat;
 mod cycle;
 mod dead;
+mod details;
 pub mod duplicates;
 mod exception;
 mod facts;
@@ -324,6 +325,7 @@ impl AnalysisSession {
             "dup" => python_duplicates::analyze(request, &files, &mut output, cancellation),
             _ => metrics::analyze(request, &files, &mut output, cancellation),
         }
+        details::decorate(&mut output);
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);
         output.extra["source_encodings"] = json!(source_encodings);
         output.extra["parser_identity"] = json!(PARSER_IDENTITY);
