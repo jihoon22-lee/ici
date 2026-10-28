@@ -16,6 +16,8 @@ from ici.execution.process import ExitContract, TaskOutcome
 
 class EcosystemProvider:
     def __init__(self, name: str, root: Path):
+        if name not in {"clippy", "eslint", "tsc"}:
+            raise ValueError(f"unknown ecosystem provider: {name}")
         self.name = name
         self.root = root.resolve()
 
@@ -28,7 +30,10 @@ class EcosystemProvider:
         unit_id: str,
         config_files: tuple[str, ...],
     ) -> ProviderPlan:
-        extra = {}
+        argv: tuple[str, ...]
+        work_dirs: tuple[str, ...] = ()
+        resource_keys: tuple[str, ...] = ()
+        environment: tuple[tuple[str, str], ...] = ()
         if self.name == "clippy":
             target = cwd / ".ici" / "cargo-target"
             argv = (
@@ -45,11 +50,8 @@ class EcosystemProvider:
             # Cargo may execute build.rs and proc macros. This is preparation,
             # even though its product is a static diagnostic.
             kind = TaskKind.PREPARE
-            extra = {
-                "resource_keys": (str(target),),
-                "work_dirs": (str(target),),
-                "env_overlay": (("RUSTUP_AUTO_INSTALL", "0"), ("CARGO_NET_OFFLINE", "true")),
-            }
+            work_dirs = resource_keys = (str(target),)
+            environment = (("RUSTUP_AUTO_INSTALL", "0"), ("CARGO_NET_OFFLINE", "true"))
             contract = ExitContract(success=(0,), findings=(101,))
         elif self.name == "eslint":
             argv = (executable, "--format", "json", "--no-fix", "--", *targets)
@@ -72,7 +74,9 @@ class EcosystemProvider:
                 input_refs=tuple(dict.fromkeys((*targets, *config_files))),
                 cacheable=False,
                 timeout_seconds=300,
-                **extra,
+                work_dirs=work_dirs,
+                resource_keys=resource_keys,
+                env_overlay=environment,
             ),
             contract=contract,
         )
@@ -122,7 +126,7 @@ class EcosystemProvider:
         documents = json.loads(outcome.parseable)
         if not isinstance(documents, list):
             raise ValueError("expected JSON file result array")
-        found = []
+        found: list[Finding] = []
         for document in documents:
             for message in document["messages"]:
                 if not message.get("line") and not message.get("fatal"):
@@ -141,7 +145,7 @@ class EcosystemProvider:
         return found
 
     def _clippy(self, outcome):
-        found = []
+        found: list[Finding] = []
         finished = False
         for line in outcome.parseable.splitlines():
             record = json.loads(line)
@@ -173,7 +177,7 @@ class EcosystemProvider:
         return found
 
     def _tsc(self, outcome):
-        found = []
+        found: list[Finding] = []
         pattern = re.compile(r"^(.+)\((\d+),(\d+)\): error TS(\d+): (.*)$")
         for line in outcome.parseable.splitlines():
             match = pattern.match(line)

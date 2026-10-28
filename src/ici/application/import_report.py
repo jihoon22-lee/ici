@@ -88,7 +88,8 @@ def _junit(text):
             else "passed"
         )
         location = _location(case.get("file"))
-        native_line = int(case.get("line")) if case.get("line") is not None else None
+        raw_line = case.get("line")
+        native_line = int(raw_line) if raw_line is not None else None
         if native_line is not None and native_line < 0:
             raise ValueError("JUnit native line cannot be negative")
         records.append(

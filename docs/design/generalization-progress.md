@@ -92,3 +92,13 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
 - jsonschema를 격리 추가한 schema/context 검사 41개 통과(1.06초). 최초 15 skip 중 7개는
   jsonschema 부재, 나머지는 clang/clang-tidy/clazy 부재 및 host syntax 조건이다.
 - pyz 빌드 통과, smoke의 verify/Zero-CDN 단계 실행 중. 수정 반영 전체 pytest 재실행 예정.
+
+## PR 및 추가 검증
+
+- 구현 PR: https://github.com/jihoon22-lee/ici/pull/295 (draft; 기능 구현과 배포 경로).
+- 새 provider/importer의 mypy untyped-body 검사에서 발견한 8개 타입 오류를 명시적
+  argv/env/resource tuple과 XML nullable 값 좁히기로 수정. 6개 신규 모듈 mypy 통과,
+  실제 provider/importer 18개 통과(1.89초).
+- quality-zoo runner/manifest 자체 테스트 68개 통과(1.079초).
+- 수정 후 전체 pytest는 공통 lock에서 대기 중. pyz smoke의 coverage 포함 자체 검증과
+  다른 프로젝트가 먼저 요청한 heavy 작업을 추월하거나 병렬 실행하지 않는다.
