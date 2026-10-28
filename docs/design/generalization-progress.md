@@ -25,7 +25,7 @@
 |8 TS/JS provider|구현·실제 fixture 통과|ESLint/tsc native config·진단 attribution|
 |9 보조자료 importer|구현·회귀 검증|SARIF/JUnit/LCOV subset, 출처·시점·범위 보존|
 |10 stable/next 수렴|구현·회귀 검증|공통 application·주 명령, legacy verify/pyz/migrate 호환 유지|
-|검증·문서·릴리스|exact-main 검증 중|0.13.0 source 6fe3e405; archive/전체 corpus/공개 검증 대기|
+|검증·문서·릴리스|태그 게시·release workflow 실행 중|main/archive/16 corpus 성공; 공개 asset 검증 대기|
 |병합·정리|구현·release PR 병합 완료|공개 검증 후 release worktree/소유 임시 자원 정리|
 
 ## 지원 원칙
@@ -202,3 +202,22 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
 - 연계 상태: Lens 현재 로컬 경로는 `/home/jihoon/projects/lens-diagnostics`이며 역사적
   toy-projects provenance는 유지한다. 부모가 공개 idk 0.5.0으로 이 후보의 INCOMPLETE
   결과 보존을 실제 소비 검증했다(분석 PASS라는 뜻이 아니다).
+
+## Exact-main·candidate 인수와 v0.13.0 태그
+
+- Exact-main CI `40617303410`이 Verify/Dogfood, Qt5/6, main 보고서 게시, Merge Gate 모두 성공했다.
+- Candidate archive: https://github.com/jihoon22-lee/ici/actions/runs/40620417747 — 성공.
+  artifact ID `12786619090`, raw ZIP SHA-256
+  `3bf7dcdb3bade700bff05745bb45a3d006afc7b51893041fd8c96a61d14f2dea`.
+  ZIP을 실제 내려받아 API digest와 일치하고 내부 pyz가 `c179986f…`임을 확인했다.
+  provenance의 target_sha는 `6fe3e405…`, package_version은 0.13.0이며 exact-main gate를 가리킨다.
+- 전체 corpus: https://github.com/jihoon22-lee/ici/actions/runs/40620940533 — 성공.
+  인수 artifact의 suite.json에서 실제 16개 결과가 모두 contract PASS, errors/failures 없음,
+  ici version 0.13.0 및 pyz digest c179986f…임을 확인했다. 단순 selector 등록을 PASS로
+  대신하지 않았다. 결함 샘플의 관측 FAIL/WARN은 기대 판정에 일치한다.
+- 기존 tag가 없음을 확인한 뒤 annotated `v0.13.0`을 exact source
+  `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`에 생성·push했다. 기존 tag/asset은 변경하지 않았다.
+- Release workflow: https://github.com/jihoon22-lee/ici/actions/runs/40622052622 — 진행 중.
+  아직 공개 release 완료 또는 공개 bytes 검증으로 기록하지 않는다.
+- 다음: workflow 완료 및 non-draft/non-prerelease 확인 → 모든 공개 asset 익명 다운로드/
+  checksum/설치/CLI 검증 → 완료 근거 문서 PR → 소유 자원 정리 및 최종 main 동기화.
