@@ -572,7 +572,8 @@ pub fn analyze(
             }
         }
         let found = output.targets.len() > start;
-        for target in output.targets[start..].to_vec() {
+        let reported_targets = output.targets[start..].to_vec();
+        for target in reported_targets {
             finding::hygiene(
                 output,
                 request,

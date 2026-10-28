@@ -22,10 +22,10 @@ pub fn loaded_names(expression: &Expr) -> BTreeSet<String> {
     struct Names(BTreeSet<String>);
     impl<'a> Visitor<'a> for Names {
         fn visit_expr(&mut self, expression: &'a Expr) {
-            if let Expr::Name(name) = expression {
-                if name.ctx == ExprContext::Load {
-                    self.0.insert(name.id.to_string());
-                }
+            if let Expr::Name(name) = expression
+                && name.ctx == ExprContext::Load
+            {
+                self.0.insert(name.id.to_string());
             }
             visitor::walk_expr(self, expression);
         }
@@ -134,10 +134,10 @@ pub fn cpython_node_count(file: &ParsedFile) -> usize {
         }
         fn visit_interpolated_string_element(&mut self, node: &'a ast::InterpolatedStringElement) {
             self.count += 1;
-            if let ast::InterpolatedStringElement::Interpolation(item) = node {
-                if item.format_spec.is_some() {
-                    self.count += 1;
-                }
+            if let ast::InterpolatedStringElement::Interpolation(item) = node
+                && item.format_spec.is_some()
+            {
+                self.count += 1;
             }
             visitor::walk_interpolated_string_element(self, node);
         }

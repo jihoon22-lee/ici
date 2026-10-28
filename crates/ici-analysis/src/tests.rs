@@ -149,10 +149,10 @@ fn scope_aliases_respect_shadowing_and_comprehension_boundaries() {
     }
     impl<'a> ruff_python_ast::visitor::Visitor<'a> for Calls<'_> {
         fn visit_expr(&mut self, e: &'a ruff_python_ast::Expr) {
-            if let ruff_python_ast::Expr::Call(call) = e {
-                if matches!(call.func.as_ref(), ruff_python_ast::Expr::Attribute(_)) {
-                    self.names.push(self.graph.resolve(&call.func));
-                }
+            if let ruff_python_ast::Expr::Call(call) = e
+                && matches!(call.func.as_ref(), ruff_python_ast::Expr::Attribute(_))
+            {
+                self.names.push(self.graph.resolve(&call.func));
             }
             ruff_python_ast::visitor::walk_expr(self, e);
         }
@@ -394,4 +394,228 @@ fn frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input() {
         SourceDocument::decode(&input).unwrap_err().code,
         "source-limit"
     );
+}
+
+fn project_request(check: &str, files: &[(&str, &str)], options: Value) -> AnalysisRequest {
+    let mut request = request(check, "");
+    request.inputs = files
+        .iter()
+        .map(|(path, text)| SourceInput {
+            path: (*path).into(),
+            bytes: text.as_bytes().to_vec(),
+        })
+        .collect();
+    request.options = options;
+    request
+}
+#[test]
+fn cycle_preserves_exact_graph_and_native_fingerprint() {
+    let input = project_request(
+        "cycle",
+        &[
+            ("src/a.py", "from b import y\n"),
+            ("src/b.py", "from a import x\ny=2\n"),
+        ],
+        json!({"source_roots":["src"]}),
+    );
+    let output = analyze(&input);
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.extra["py_cycles"], json!(1));
+    assert_eq!(
+        output.observation.findings[0].fingerprint,
+        finding::sha1_short("cycle-", "python:b:a")
+    );
+    assert_eq!(
+        output.observation.findings[0].message,
+        "import cycle: a -> b -> a"
+    );
+    assert_eq!(
+        output.observation.findings[0].evidence,
+        ici_domain::EvidenceLevel::Measured
+    );
+    let target = output
+        .targets
+        .iter()
+        .find(|target| target.target_name == "Cycle:2")
+        .unwrap();
+    assert_eq!(target.file_path, "src/a.py");
+    assert_eq!(target.metrics["modules"], json!(["a", "b"]));
+}
+#[test]
+fn package_relative_imports_and_source_root_boundaries_are_preserved() {
+    let input = project_request(
+        "cycle",
+        &[
+            ("src/pkg/__init__.py", "from . import a\n"),
+            ("src/pkg/a.py", "from .b import value\n"),
+            ("src/pkg/b.py", "from .a import value\n"),
+        ],
+        json!({"source_roots":["src"]}),
+    );
+    let output = analyze(&input);
+    assert_eq!(output.extra["py_cycles"], json!(1));
+    let edges = output.extra["import_edges"].as_array().unwrap();
+    assert!(
+        edges
+            .iter()
+            .any(|edge| edge["from"] == "pkg" && edge["to"] == "pkg.a")
+    );
+    assert!(
+        edges
+            .iter()
+            .any(|edge| edge["from"] == "pkg.a" && edge["to"] == "pkg.b")
+    );
+    assert!(
+        edges
+            .iter()
+            .any(|edge| edge["from"] == "pkg.b" && edge["to"] == "pkg.a")
+    );
+    let input = project_request(
+        "cycle",
+        &[
+            ("pkg/__init__.py", "from . import a\n"),
+            ("pkg/a.py", "from . import b\n"),
+            ("pkg/b.py", "from . import a\n"),
+        ],
+        json!({"component_root":"pkg"}),
+    );
+    let output = analyze(&input);
+    assert_eq!(output.extra["py_cycles"], json!(1));
+    assert_eq!(
+        output.extra["module_index"]["__init__"],
+        json!("pkg/__init__.py")
+    );
+}
+#[test]
+fn stdlib_collision_and_package_attributes_do_not_invent_edges() {
+    let input = project_request(
+        "cycle",
+        &[
+            ("src/pkg/html.py", "import pkg.other\n"),
+            ("src/pkg/other.py", "import html\n"),
+            ("src/pkg/__init__.py", "child=1\n"),
+            ("src/pkg/child.py", "import pkg.user\n"),
+            ("src/pkg/user.py", "from pkg import child\n"),
+        ],
+        json!({"source_roots":["src"]}),
+    );
+    let output = analyze(&input);
+    assert_eq!(output.extra["py_cycles"], json!(0));
+    assert!(
+        !output.extra["import_edges"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|edge| edge["from"] == "pkg.user" && edge["to"] == "pkg.child")
+    );
+}
+#[test]
+fn ambiguous_suffix_and_invalid_sources_are_incomplete_graphs() {
+    let input = project_request(
+        "cycle",
+        &[
+            ("one/b.py", "import a\n"),
+            ("two/b.py", "import a\n"),
+            ("a.py", "import b\n"),
+        ],
+        json!({}),
+    );
+    let output = analyze(&input);
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|text| text.contains("ambiguous-import"))
+    );
+    let output = analyze(&request("cycle", "def broken(:\n"));
+    assert_eq!(output.observation.state, TaskState::Failed);
+}
+#[test]
+fn iterative_scc_handles_deep_graph_and_real_cycle_edges() {
+    use std::collections::BTreeSet;
+    let mut graph: Vec<_> = (0..5000).map(|index| BTreeSet::from([index + 1])).collect();
+    graph.push(BTreeSet::from([0]));
+    let components = cycle::components(&graph);
+    assert_eq!(components.len(), 1);
+    assert_eq!(components[0].len(), 5001);
+}
+#[test]
+fn fixed_python_import_graphs_and_explicit_corrected_expectations_match() {
+    use std::collections::BTreeSet;
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../../../tests/rust-parity/python/cycle.json")).unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        let sources: Vec<_> = case["sources"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(path, source)| (path.as_str(), source.as_str().unwrap()))
+            .collect();
+        let input = project_request(
+            "cycle",
+            &sources,
+            json!({"source_roots":case["source_roots"]}),
+        );
+        let output = analyze(&input);
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{}: {:?}",
+            case["id"],
+            output.observation.limitations
+        );
+        let edges: BTreeSet<_> = output.extra["import_edges"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|edge| {
+                vec![
+                    edge["from"].as_str().unwrap().to_owned(),
+                    edge["to"].as_str().unwrap().to_owned(),
+                ]
+            })
+            .collect();
+        let expected = case
+            .get("corrected_edges")
+            .unwrap_or(&case["original_edges"]);
+        assert_eq!(
+            serde_json::to_value(edges).unwrap(),
+            *expected,
+            "{}",
+            case["id"]
+        );
+        let cycles = case
+            .get("corrected_cycles")
+            .unwrap_or(&case["original_cycles"])
+            .as_array()
+            .unwrap()
+            .len();
+        assert_eq!(output.extra["py_cycles"], json!(cycles), "{}", case["id"]);
+        if case["id"] == "source-precedence" {
+            assert_eq!(output.extra["module_index"]["a"], json!("first/a.py"));
+        }
+    }
+}
+#[test]
+fn relative_import_leaving_declared_package_is_incomplete_instead_of_guessed() {
+    let input = project_request(
+        "cycle",
+        &[
+            ("pkg/a.py", "from ..b import x\n"),
+            ("b.py", "import pkg.a\n"),
+        ],
+        json!({"source_roots":["."]}),
+    );
+    let output = analyze(&input);
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|message| message.contains("relative-import-context"))
+    );
+    assert_eq!(output.extra["py_cycles"], json!(0));
 }

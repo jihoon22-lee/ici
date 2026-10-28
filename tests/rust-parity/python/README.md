@@ -40,7 +40,7 @@ flock /tmp/paseo-products-20261028-heavy.lock env CARGO_BUILD_JOBS=2 \
 
 Security and resource rules now have a native implementation and 42 frozen-source
 fixtures, with explicit corrected expectations separate from the original oracle.
-Dead/cycle/duplicate/packaging compatibility rule units remain unfinished. This partial evidence does not satisfy the Rust cutover gate; R8 must close every
+Dead/duplicate/packaging compatibility rule units remain unfinished. This partial evidence does not satisfy the Rust cutover gate; R8 must close every
 functionality row first.
 
 
@@ -101,3 +101,21 @@ retained while the last file is not inspected. The measured WSL debug run return
 CANCELLED in 580 ms with one retained target; this is recorded in
 `cancellation-observation.json`. It does not establish the complete CLI/child-process
 cancellation budget or the aggregate 512 MiB stress acceptance.
+
+## Import graph unit
+
+`cycle.json` records 16 graph cases from the frozen public implementation, with
+corrected edges kept separately. Ordered declared source roots, package-relative
+imports, package attributes, deferred/conditional imports, stdlib-name collisions,
+self-cycles and the legacy unique-suffix fallback remain visible. Source-root
+precedence no longer silently takes the last conflicting module file. Ambiguous
+suffixes and relative imports leaving a declared package are incomplete instead
+of invented edges. Unique-suffix cycles carry ESTIMATED evidence because the
+runtime import search path was not proven. The displayed cycle follows real
+graph edges rather than joining the SCC member order as a path.
+
+Every successfully inspected file has a target, shadowed files have SKIP targets,
+and graph failures preserve location-bearing error targets. An iterative SCC
+fixture traverses 5,001 nodes without recursive graph walking. Twenty native tests
+(including the earlier units) passed after this unit. `cycle_oracle.py` verifies
+the recorded original graph and does not overwrite corrected expectations.

@@ -1,9 +1,11 @@
 //! Native analyses over immutable source snapshots; no process or filesystem fallback.
 mod ast_util;
+mod cycle;
 mod exception;
 mod finding;
 mod lines;
 mod metrics;
+mod modules;
 mod parser;
 mod resource;
 mod scope;
@@ -110,7 +112,7 @@ impl AnalysisSession {
         }
         if !matches!(
             kind,
-            "complexity" | "cognitive" | "security" | "resource" | "exception"
+            "complexity" | "cognitive" | "security" | "resource" | "exception" | "cycle"
         ) {
             failure(
                 &mut output,
@@ -135,7 +137,7 @@ impl AnalysisSession {
             }
             if matches!(
                 kind,
-                "security" | "resource" | "exception" | "dead" | "cycle" | "dup" | "compat"
+                "security" | "resource" | "exception" | "dead" | "dup" | "compat"
             ) {
                 let excluded: Vec<_> = source::exclusion_reasons(&input.path)
                     .into_iter()
@@ -225,6 +227,7 @@ impl AnalysisSession {
             "security" => security::analyze(request, &files, &mut output, cancellation),
             "resource" => resource::analyze(request, &files, &mut output, cancellation),
             "exception" => exception::analyze(request, &files, &mut output, cancellation),
+            "cycle" => cycle::analyze(request, &files, &mut output, cancellation),
             _ => metrics::analyze(request, &files, &mut output, cancellation),
         }
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);

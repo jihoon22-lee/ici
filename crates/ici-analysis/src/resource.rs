@@ -59,10 +59,10 @@ fn merge(states: Vec<State>) -> Option<State> {
 }
 fn outcome(state: &mut State, ids: &BTreeSet<usize>, outcome: u8) {
     for id in ids {
-        if let Some(value) = state.resources.get_mut(id) {
-            if *value & OPEN != 0 {
-                *value = (*value & !OPEN) | outcome;
-            }
+        if let Some(value) = state.resources.get_mut(id)
+            && *value & OPEN != 0
+        {
+            *value = (*value & !OPEN) | outcome;
         }
     }
 }
@@ -99,8 +99,8 @@ impl FlowAnalyzer<'_> {
         })
     }
     fn factory(&self, call: &ast::ExprCall) -> Option<String> {
-        if let Some(name) = self.qualified(&call.func) {
-            if matches!(
+        if let Some(name) = self.qualified(&call.func)
+            && matches!(
                 name.as_str(),
                 "builtins.open"
                     | "io.open"
@@ -108,18 +108,16 @@ impl FlowAnalyzer<'_> {
                     | "tempfile.NamedTemporaryFile"
                     | "tempfile.SpooledTemporaryFile"
                     | "tempfile.TemporaryFile"
-            ) {
-                return Some(name);
-            }
+            )
+        {
+            return Some(name);
         }
-        if let Expr::Attribute(attribute) = call.func.as_ref() {
-            if attribute.attr.as_str() == "open" {
-                if let Expr::Call(owner) = attribute.value.as_ref() {
-                    if self.qualified(&owner.func).as_deref() == Some("pathlib.Path") {
-                        return Some("pathlib.Path.open".into());
-                    }
-                }
-            }
+        if let Expr::Attribute(attribute) = call.func.as_ref()
+            && attribute.attr.as_str() == "open"
+            && let Expr::Call(owner) = attribute.value.as_ref()
+            && self.qualified(&owner.func).as_deref() == Some("pathlib.Path")
+        {
+            return Some("pathlib.Path.open".into());
         }
         None
     }
@@ -241,10 +239,9 @@ impl FlowAnalyzer<'_> {
             if matches!(
                 name.as_deref(),
                 Some("contextlib.ExitStack" | "contextlib.AsyncExitStack")
-            ) {
-                if let Some(expression) = &item.optional_vars {
-                    managers.extend(bound_names(expression));
-                }
+            ) && let Some(expression) = &item.optional_vars
+            {
+                managers.extend(bound_names(expression));
             }
         }
         let mut body = state;
