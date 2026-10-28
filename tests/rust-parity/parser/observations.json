@@ -1,0 +1,2526 @@
+{
+  "schema_id": "ici.rust.parser.observation",
+  "schema_version": 1,
+  "tested_at": "2026-10-28",
+  "ruff_tag": "0.16.4",
+  "ruff_revision": "11c76bf48fdac06b2f240cba502eda96da4dce77",
+  "parser_crate_version": "0.0.10",
+  "rustc": "1.99.1 (58cf8f9c3 2026-10-13)",
+  "target": "x86_64-unknown-linux-gnu",
+  "rustflags": "-C target-feature=+crt-static",
+  "host": "Linux 6.18.33.2-microsoft-standard-WSL2 x86_64; glibc 2.43",
+  "binary_sha256": "8e317aa0cc6bbcefd9e7afca15863c2d77266d1c4d794593d101f433f5ea0953",
+  "source_sha256": "b4c96fc028d932a448d576847a1836af8bd5887a7589cdf0407283dad06193f1",
+  "cargo_lock_sha256": "537b8e2357ce06b904a144d237674966fa8a51c07bc6195429d32bbf1b7609ac",
+  "upstream_license_sha256": "2597d854122b77ddc71971564ca2350a37608575ce324adc5650a2b2051c8f18",
+  "case_count": 37,
+  "native_results": [
+    {
+      "id": "unicode_columns",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 8,
+      "node_counts": {
+        "ExprName": 3,
+        "ExprNumberLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 2
+      },
+      "errors": [],
+      "unsupported": [],
+      "name_tokens": [
+        {
+          "end": 9,
+          "kind": "Name",
+          "position": {
+            "byte_column": 0,
+            "character_column": 0,
+            "line": 1
+          },
+          "start": 0,
+          "text": "한국어"
+        },
+        {
+          "end": 18,
+          "kind": "Name",
+          "position": {
+            "byte_column": 15,
+            "character_column": 9,
+            "line": 1
+          },
+          "start": 15,
+          "text": "값"
+        },
+        {
+          "end": 30,
+          "kind": "Name",
+          "position": {
+            "byte_column": 21,
+            "character_column": 13,
+            "line": 1
+          },
+          "start": 21,
+          "text": "한국어"
+        }
+      ]
+    },
+    {
+      "id": "unicode_combining",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 9,
+      "node_counts": {
+        "Arguments": 1,
+        "ExprCall": 1,
+        "ExprName": 3,
+        "ExprNumberLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 1,
+        "StmtExpr": 1
+      },
+      "errors": [],
+      "unsupported": [],
+      "name_tokens": [
+        {
+          "end": 6,
+          "kind": "Name",
+          "position": {
+            "byte_column": 0,
+            "character_column": 0,
+            "line": 1
+          },
+          "start": 0,
+          "text": "café"
+        },
+        {
+          "end": 16,
+          "kind": "Name",
+          "position": {
+            "byte_column": 0,
+            "character_column": 0,
+            "line": 2
+          },
+          "start": 11,
+          "text": "print"
+        },
+        {
+          "end": 23,
+          "kind": "Name",
+          "position": {
+            "byte_column": 6,
+            "character_column": 6,
+            "line": 2
+          },
+          "start": 17,
+          "text": "café"
+        }
+      ]
+    },
+    {
+      "id": "crlf",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 9,
+      "node_counts": {
+        "Arguments": 1,
+        "ExprCall": 1,
+        "ExprName": 3,
+        "ExprNumberLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 1,
+        "StmtExpr": 1
+      },
+      "errors": [],
+      "unsupported": [],
+      "name_tokens": [
+        {
+          "end": 6,
+          "kind": "Name",
+          "position": {
+            "byte_column": 0,
+            "character_column": 0,
+            "line": 1
+          },
+          "start": 0,
+          "text": "answer"
+        },
+        {
+          "end": 17,
+          "kind": "Name",
+          "position": {
+            "byte_column": 0,
+            "character_column": 0,
+            "line": 2
+          },
+          "start": 12,
+          "text": "print"
+        },
+        {
+          "end": 24,
+          "kind": "Name",
+          "position": {
+            "byte_column": 6,
+            "character_column": 6,
+            "line": 2
+          },
+          "start": 18,
+          "text": "answer"
+        }
+      ]
+    },
+    {
+      "id": "lone_cr",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 9,
+      "node_counts": {
+        "Arguments": 1,
+        "ExprCall": 1,
+        "ExprName": 3,
+        "ExprNumberLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 1,
+        "StmtExpr": 1
+      },
+      "errors": [],
+      "unsupported": [],
+      "name_tokens": [
+        {
+          "end": 6,
+          "kind": "Name",
+          "position": {
+            "byte_column": 0,
+            "character_column": 0,
+            "line": 1
+          },
+          "start": 0,
+          "text": "answer"
+        },
+        {
+          "end": 16,
+          "kind": "Name",
+          "position": {
+            "byte_column": 0,
+            "character_column": 0,
+            "line": 2
+          },
+          "start": 11,
+          "text": "print"
+        },
+        {
+          "end": 23,
+          "kind": "Name",
+          "position": {
+            "byte_column": 6,
+            "character_column": 6,
+            "line": 2
+          },
+          "start": 17,
+          "text": "answer"
+        }
+      ]
+    },
+    {
+      "id": "bom_raw",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 3,
+      "token_count": 4,
+      "node_counts": {
+        "ExprName": 1,
+        "ExprNumberLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 1
+      },
+      "errors": [],
+      "unsupported": [],
+      "name_tokens": [
+        {
+          "end": 6,
+          "kind": "Name",
+          "position": {
+            "byte_column": 0,
+            "character_column": 0,
+            "line": 1
+          },
+          "start": 0,
+          "text": "answer"
+        }
+      ]
+    },
+    {
+      "id": "fstring_legacy",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 17,
+      "node_counts": {
+        "ExprFString": 1,
+        "ExprName": 3,
+        "ExprStringLiteral": 1,
+        "FString": 1,
+        "InterpolatedElement": 1,
+        "InterpolatedStringLiteralElement": 2,
+        "ModModule": 1,
+        "StmtAssign": 2,
+        "StringLiteral": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "fstring_pep701",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 15,
+      "node_counts": {
+        "ExprDict": 1,
+        "ExprFString": 1,
+        "ExprName": 1,
+        "ExprNumberLiteral": 1,
+        "ExprStringLiteral": 2,
+        "ExprSubscript": 1,
+        "FString": 1,
+        "InterpolatedElement": 1,
+        "ModModule": 1,
+        "StmtAssign": 1,
+        "StringLiteral": 2
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "fstring_pep701_old",
+      "grammar_complete": false,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 15,
+      "node_counts": {
+        "ExprDict": 1,
+        "ExprFString": 1,
+        "ExprName": 1,
+        "ExprNumberLiteral": 1,
+        "ExprStringLiteral": 2,
+        "ExprSubscript": 1,
+        "FString": 1,
+        "InterpolatedElement": 1,
+        "ModModule": 1,
+        "StmtAssign": 1,
+        "StringLiteral": 2
+      },
+      "errors": [],
+      "unsupported": [
+        "UnsupportedSyntaxError { kind: Pep701FString(NestedQuote), range: 13..14, target_version: PythonVersion { major: 3, minor: 11 } }"
+      ]
+    },
+    {
+      "id": "match",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 20,
+      "node_counts": {
+        "ExprName": 2,
+        "ExprStringLiteral": 1,
+        "Identifier": 1,
+        "MatchCase": 1,
+        "ModModule": 1,
+        "PatternMatchAs": 1,
+        "PatternMatchMapping": 1,
+        "StmtMatch": 1,
+        "StmtPass": 1,
+        "StringLiteral": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "match_old",
+      "grammar_complete": false,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 14,
+      "node_counts": {
+        "ExprName": 1,
+        "ExprNumberLiteral": 1,
+        "MatchCase": 1,
+        "ModModule": 1,
+        "PatternMatchValue": 1,
+        "StmtMatch": 1,
+        "StmtPass": 1
+      },
+      "errors": [],
+      "unsupported": [
+        "UnsupportedSyntaxError { kind: Match, range: 0..5, target_version: PythonVersion { major: 3, minor: 9 } }"
+      ]
+    },
+    {
+      "id": "except_star",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 23,
+      "node_counts": {
+        "Arguments": 2,
+        "ExceptHandlerExceptHandler": 1,
+        "ExprCall": 2,
+        "ExprName": 4,
+        "Identifier": 1,
+        "ModModule": 1,
+        "StmtExpr": 2,
+        "StmtTry": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "except_star_old",
+      "grammar_complete": false,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 23,
+      "node_counts": {
+        "Arguments": 2,
+        "ExceptHandlerExceptHandler": 1,
+        "ExprCall": 2,
+        "ExprName": 4,
+        "Identifier": 1,
+        "ModModule": 1,
+        "StmtExpr": 2,
+        "StmtTry": 1
+      },
+      "errors": [],
+      "unsupported": [
+        "UnsupportedSyntaxError { kind: ExceptStar, range: 24..25, target_version: PythonVersion { major: 3, minor: 10 } }"
+      ]
+    },
+    {
+      "id": "type_alias",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 11,
+      "node_counts": {
+        "ExprName": 3,
+        "ExprSubscript": 1,
+        "Identifier": 1,
+        "ModModule": 1,
+        "StmtTypeAlias": 1,
+        "TypeParamTypeVar": 1,
+        "TypeParams": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "type_alias_old",
+      "grammar_complete": false,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 11,
+      "node_counts": {
+        "ExprName": 3,
+        "ExprSubscript": 1,
+        "Identifier": 1,
+        "ModModule": 1,
+        "StmtTypeAlias": 1,
+        "TypeParamTypeVar": 1,
+        "TypeParams": 1
+      },
+      "errors": [],
+      "unsupported": [
+        "UnsupportedSyntaxError { kind: TypeAliasStatement, range: 0..4, target_version: PythonVersion { major: 3, minor: 11 } }"
+      ]
+    },
+    {
+      "id": "type_parameter_default",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 21,
+      "node_counts": {
+        "ExprName": 4,
+        "Identifier": 3,
+        "ModModule": 1,
+        "Parameter": 1,
+        "ParameterWithDefault": 1,
+        "Parameters": 1,
+        "StmtFunctionDef": 1,
+        "StmtReturn": 1,
+        "TypeParamTypeVar": 1,
+        "TypeParams": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "type_parameter_default_old",
+      "grammar_complete": false,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 21,
+      "node_counts": {
+        "ExprName": 4,
+        "Identifier": 3,
+        "ModModule": 1,
+        "Parameter": 1,
+        "ParameterWithDefault": 1,
+        "Parameters": 1,
+        "StmtFunctionDef": 1,
+        "StmtReturn": 1,
+        "TypeParamTypeVar": 1,
+        "TypeParams": 1
+      },
+      "errors": [],
+      "unsupported": [
+        "UnsupportedSyntaxError { kind: TypeParamDefault, range: 15..20, target_version: PythonVersion { major: 3, minor: 12 } }"
+      ]
+    },
+    {
+      "id": "template_string",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 13,
+      "node_counts": {
+        "ExprName": 3,
+        "ExprStringLiteral": 1,
+        "ExprTString": 1,
+        "InterpolatedElement": 1,
+        "InterpolatedStringLiteralElement": 1,
+        "ModModule": 1,
+        "StmtAssign": 2,
+        "StringLiteral": 1,
+        "TString": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "template_string_old",
+      "grammar_complete": false,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 13,
+      "node_counts": {
+        "ExprName": 3,
+        "ExprStringLiteral": 1,
+        "ExprTString": 1,
+        "InterpolatedElement": 1,
+        "InterpolatedStringLiteralElement": 1,
+        "ModModule": 1,
+        "StmtAssign": 2,
+        "StringLiteral": 1,
+        "TString": 1
+      },
+      "errors": [],
+      "unsupported": [
+        "UnsupportedSyntaxError { kind: TemplateStrings, range: 23..38, target_version: PythonVersion { major: 3, minor: 13 } }"
+      ]
+    },
+    {
+      "id": "malformed_recovery",
+      "grammar_complete": false,
+      "syntax_valid": false,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 17,
+      "node_counts": {
+        "ExprName": 2,
+        "ExprNumberLiteral": 2,
+        "Identifier": 1,
+        "ModModule": 1,
+        "Parameters": 1,
+        "StmtAssign": 2,
+        "StmtFunctionDef": 1,
+        "StmtPass": 1
+      },
+      "errors": [
+        {
+          "end": 23,
+          "message": "Expected a parameter or the end of the parameter list at byte range 22..23",
+          "start": 22
+        },
+        {
+          "end": 24,
+          "message": "Expected `)`, found newline at byte range 23..24",
+          "start": 23
+        }
+      ],
+      "unsupported": []
+    },
+    {
+      "id": "nul",
+      "grammar_complete": false,
+      "syntax_valid": false,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 5,
+      "node_counts": {
+        "ExprName": 1,
+        "ExprNumberLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 1
+      },
+      "errors": [
+        {
+          "end": 6,
+          "message": "Got unexpected token \u0000 at byte range 5..6",
+          "start": 5
+        },
+        {
+          "end": 7,
+          "message": "Expected a statement at byte range 6..7",
+          "start": 6
+        }
+      ],
+      "unsupported": []
+    },
+    {
+      "id": "unclosed_string",
+      "grammar_complete": false,
+      "syntax_valid": false,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 4,
+      "node_counts": {
+        "ExprName": 1,
+        "ExprStringLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 1,
+        "StringLiteral": 1
+      },
+      "errors": [
+        {
+          "end": 15,
+          "message": "missing closing quote in string literal at byte range 8..15",
+          "start": 8
+        }
+      ],
+      "unsupported": []
+    },
+    {
+      "id": "scope_forms",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 99,
+      "node_counts": {
+        "Alias": 2,
+        "Arguments": 3,
+        "Comprehension": 1,
+        "ExprAttribute": 1,
+        "ExprAwait": 1,
+        "ExprCall": 3,
+        "ExprList": 1,
+        "ExprListComp": 1,
+        "ExprName": 16,
+        "ExprNumberLiteral": 2,
+        "ExprTuple": 1,
+        "ExprYield": 1,
+        "Identifier": 13,
+        "ModModule": 1,
+        "Parameter": 2,
+        "ParameterWithDefault": 2,
+        "Parameters": 3,
+        "StmtAssign": 2,
+        "StmtAugAssign": 1,
+        "StmtExpr": 1,
+        "StmtFor": 1,
+        "StmtFunctionDef": 3,
+        "StmtGlobal": 1,
+        "StmtImport": 1,
+        "StmtImportFrom": 1,
+        "StmtNonlocal": 1,
+        "StmtReturn": 2
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "lambda_shadow",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 28,
+      "node_counts": {
+        "Alias": 1,
+        "Arguments": 2,
+        "Comprehension": 1,
+        "ExprAttribute": 1,
+        "ExprCall": 2,
+        "ExprLambda": 1,
+        "ExprListComp": 1,
+        "ExprName": 6,
+        "ExprNumberLiteral": 1,
+        "ExprStringLiteral": 1,
+        "Identifier": 3,
+        "ModModule": 1,
+        "Parameter": 1,
+        "ParameterWithDefault": 1,
+        "Parameters": 1,
+        "StmtAssign": 2,
+        "StmtImport": 1,
+        "StringLiteral": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "token_trivia",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 15,
+      "node_counts": {
+        "ExprBinOp": 1,
+        "ExprName": 1,
+        "ExprNumberLiteral": 2,
+        "ModModule": 1,
+        "StmtAssign": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "implicit_concat",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 5,
+      "node_counts": {
+        "ExprName": 1,
+        "ExprStringLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 1,
+        "StringLiteral": 2
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "bytes_escape",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 8,
+      "node_counts": {
+        "BytesLiteral": 1,
+        "ExprBytesLiteral": 1,
+        "ExprName": 2,
+        "ExprStringLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 2,
+        "StringLiteral": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "invalid_semantics_return",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 3,
+      "node_counts": {
+        "ExprNumberLiteral": 1,
+        "ModModule": 1,
+        "StmtReturn": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "invalid_semantics_nonlocal",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 3,
+      "node_counts": {
+        "Identifier": 1,
+        "ModModule": 1,
+        "StmtNonlocal": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "large_flat",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 40000,
+      "node_counts": {
+        "ExprName": 10000,
+        "ExprNumberLiteral": 10000,
+        "ModModule": 1,
+        "StmtAssign": 10000
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "latin1_cookie",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "latin-1",
+      "bom_bytes": 0,
+      "token_count": 6,
+      "node_counts": {
+        "ExprName": 1,
+        "ExprStringLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 1,
+        "StringLiteral": 1
+      },
+      "errors": [],
+      "unsupported": [],
+      "name_tokens": [
+        {
+          "end": 22,
+          "kind": "Name",
+          "position": {
+            "byte_column": 0,
+            "character_column": 0,
+            "line": 2
+          },
+          "start": 18,
+          "text": "name"
+        }
+      ]
+    },
+    {
+      "id": "ascii_cookie",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "ascii",
+      "bom_bytes": 0,
+      "token_count": 6,
+      "node_counts": {
+        "ExprName": 1,
+        "ExprNumberLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "invalid_utf8",
+      "grammar_complete": false,
+      "failure": "invalid-utf8"
+    },
+    {
+      "id": "unsupported_cp1252",
+      "grammar_complete": false,
+      "failure": "unsupported-encoding"
+    },
+    {
+      "id": "bom_cookie_conflict",
+      "grammar_complete": false,
+      "failure": "bom-encoding-conflict"
+    },
+    {
+      "id": "invalid_ascii",
+      "grammar_complete": false,
+      "failure": "invalid-ascii"
+    },
+    {
+      "id": "deep_parentheses",
+      "grammar_complete": true,
+      "syntax_valid": true,
+      "encoding": "utf-8",
+      "bom_bytes": 0,
+      "token_count": 504,
+      "node_counts": {
+        "ExprName": 1,
+        "ExprNumberLiteral": 1,
+        "ModModule": 1,
+        "StmtAssign": 1
+      },
+      "errors": [],
+      "unsupported": []
+    },
+    {
+      "id": "source_limit",
+      "grammar_complete": false,
+      "failure": "source-limit"
+    }
+  ],
+  "cpython_oracles": [
+    {
+      "version": "3.10.21",
+      "implementation": "CPython",
+      "results": [
+        {
+          "id": "unicode_columns",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "한국어",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 9
+            },
+            {
+              "id": "값",
+              "line": 1,
+              "byte_column": 15,
+              "end_line": 1,
+              "end_byte_column": 18
+            },
+            {
+              "id": "한국어",
+              "line": 1,
+              "byte_column": 21,
+              "end_line": 1,
+              "end_byte_column": 30
+            }
+          ]
+        },
+        {
+          "id": "unicode_combining",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "café",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "café",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "crlf",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "answer",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "lone_cr",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "answer",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "bom_raw",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            }
+          ]
+        },
+        {
+          "id": "fstring_legacy",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "fstring_pep701",
+          "ast_valid": false,
+          "ast_error": "f-string: unmatched '{' (fstring_pep701, line 1)",
+          "compile_valid": false,
+          "compile_error": "f-string: unmatched '{' (fstring_pep701, line 1)"
+        },
+        {
+          "id": "fstring_pep701_old",
+          "ast_valid": false,
+          "ast_error": "f-string: unmatched '{' (fstring_pep701_old, line 1)",
+          "compile_valid": false,
+          "compile_error": "f-string: unmatched '{' (fstring_pep701_old, line 1)"
+        },
+        {
+          "id": "match",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "match_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "except_star",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (except_star, line 3)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (except_star, line 3)"
+        },
+        {
+          "id": "except_star_old",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (except_star_old, line 3)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (except_star_old, line 3)"
+        },
+        {
+          "id": "type_alias",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (type_alias, line 1)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (type_alias, line 1)"
+        },
+        {
+          "id": "type_alias_old",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (type_alias_old, line 1)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (type_alias_old, line 1)"
+        },
+        {
+          "id": "type_parameter_default",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (type_parameter_default, line 1)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (type_parameter_default, line 1)"
+        },
+        {
+          "id": "type_parameter_default_old",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (type_parameter_default_old, line 1)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (type_parameter_default_old, line 1)"
+        },
+        {
+          "id": "template_string",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (template_string, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (template_string, line 2)"
+        },
+        {
+          "id": "template_string_old",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (template_string_old, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (template_string_old, line 2)"
+        },
+        {
+          "id": "malformed_recovery",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (malformed_recovery, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (malformed_recovery, line 2)"
+        },
+        {
+          "id": "nul",
+          "ast_valid": false,
+          "ast_error": "source code string cannot contain null bytes",
+          "compile_valid": false,
+          "compile_error": "source code string cannot contain null bytes"
+        },
+        {
+          "id": "unclosed_string",
+          "ast_valid": false,
+          "ast_error": "unterminated string literal (detected at line 1) (unclosed_string, line 1)",
+          "compile_valid": false,
+          "compile_error": "unterminated string literal (detected at line 1) (unclosed_string, line 1)"
+        },
+        {
+          "id": "scope_forms",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "lambda_shadow",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "token_trivia",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "implicit_concat",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "bytes_escape",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "invalid_semantics_return",
+          "ast_valid": true,
+          "compile_valid": false,
+          "compile_error": "'return' outside function (invalid_semantics_return, line 1)"
+        },
+        {
+          "id": "invalid_semantics_nonlocal",
+          "ast_valid": true,
+          "compile_valid": false,
+          "compile_error": "nonlocal declaration not allowed at module level (invalid_semantics_nonlocal, line 1)"
+        },
+        {
+          "id": "large_flat",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "latin1_cookie",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "name",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 4
+            }
+          ]
+        },
+        {
+          "id": "ascii_cookie",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "invalid_utf8",
+          "ast_valid": false,
+          "ast_error": "(unicode error) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte (invalid_utf8, line 1)",
+          "compile_valid": false,
+          "compile_error": "(unicode error) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte (invalid_utf8, line 1)"
+        },
+        {
+          "id": "unsupported_cp1252",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "bom_cookie_conflict",
+          "ast_valid": false,
+          "ast_error": "encoding problem: iso-8859-1 with BOM (bom_cookie_conflict, line 0)",
+          "compile_valid": false,
+          "compile_error": "encoding problem: iso-8859-1 with BOM (bom_cookie_conflict, line 0)"
+        },
+        {
+          "id": "invalid_ascii",
+          "ast_valid": false,
+          "ast_error": "'ascii' codec can't decode byte 0xe9 in position 21: ordinal not in range(128) (invalid_ascii, line 0)",
+          "compile_valid": false,
+          "compile_error": "'ascii' codec can't decode byte 0xe9 in position 21: ordinal not in range(128) (invalid_ascii, line 0)"
+        },
+        {
+          "id": "deep_parentheses",
+          "ast_valid": false,
+          "ast_error": "too many nested parentheses (deep_parentheses, line 1)",
+          "compile_valid": false,
+          "compile_error": "too many nested parentheses (deep_parentheses, line 1)"
+        },
+        {
+          "id": "source_limit",
+          "not_run": "probe-resource-limit"
+        }
+      ]
+    },
+    {
+      "version": "3.11.16",
+      "implementation": "CPython",
+      "results": [
+        {
+          "id": "unicode_columns",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "한국어",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 9
+            },
+            {
+              "id": "값",
+              "line": 1,
+              "byte_column": 15,
+              "end_line": 1,
+              "end_byte_column": 18
+            },
+            {
+              "id": "한국어",
+              "line": 1,
+              "byte_column": 21,
+              "end_line": 1,
+              "end_byte_column": 30
+            }
+          ]
+        },
+        {
+          "id": "unicode_combining",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "café",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "café",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "crlf",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "answer",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "lone_cr",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "answer",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "bom_raw",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            }
+          ]
+        },
+        {
+          "id": "fstring_legacy",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "fstring_pep701",
+          "ast_valid": false,
+          "ast_error": "f-string: unmatched '{' (fstring_pep701, line 1)",
+          "compile_valid": false,
+          "compile_error": "f-string: unmatched '{' (fstring_pep701, line 1)"
+        },
+        {
+          "id": "fstring_pep701_old",
+          "ast_valid": false,
+          "ast_error": "f-string: unmatched '{' (fstring_pep701_old, line 1)",
+          "compile_valid": false,
+          "compile_error": "f-string: unmatched '{' (fstring_pep701_old, line 1)"
+        },
+        {
+          "id": "match",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "match_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "except_star",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "except_star_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_alias",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (type_alias, line 1)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (type_alias, line 1)"
+        },
+        {
+          "id": "type_alias_old",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (type_alias_old, line 1)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (type_alias_old, line 1)"
+        },
+        {
+          "id": "type_parameter_default",
+          "ast_valid": false,
+          "ast_error": "expected '(' (type_parameter_default, line 1)",
+          "compile_valid": false,
+          "compile_error": "expected '(' (type_parameter_default, line 1)"
+        },
+        {
+          "id": "type_parameter_default_old",
+          "ast_valid": false,
+          "ast_error": "expected '(' (type_parameter_default_old, line 1)",
+          "compile_valid": false,
+          "compile_error": "expected '(' (type_parameter_default_old, line 1)"
+        },
+        {
+          "id": "template_string",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (template_string, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (template_string, line 2)"
+        },
+        {
+          "id": "template_string_old",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (template_string_old, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (template_string_old, line 2)"
+        },
+        {
+          "id": "malformed_recovery",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (malformed_recovery, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (malformed_recovery, line 2)"
+        },
+        {
+          "id": "nul",
+          "ast_valid": false,
+          "ast_error": "source code string cannot contain null bytes",
+          "compile_valid": false,
+          "compile_error": "source code string cannot contain null bytes"
+        },
+        {
+          "id": "unclosed_string",
+          "ast_valid": false,
+          "ast_error": "unterminated string literal (detected at line 1) (unclosed_string, line 1)",
+          "compile_valid": false,
+          "compile_error": "unterminated string literal (detected at line 1) (unclosed_string, line 1)"
+        },
+        {
+          "id": "scope_forms",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "lambda_shadow",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "token_trivia",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "implicit_concat",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "bytes_escape",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "invalid_semantics_return",
+          "ast_valid": true,
+          "compile_valid": false,
+          "compile_error": "'return' outside function (invalid_semantics_return, line 1)"
+        },
+        {
+          "id": "invalid_semantics_nonlocal",
+          "ast_valid": true,
+          "compile_valid": false,
+          "compile_error": "nonlocal declaration not allowed at module level (invalid_semantics_nonlocal, line 1)"
+        },
+        {
+          "id": "large_flat",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "latin1_cookie",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "name",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 4
+            }
+          ]
+        },
+        {
+          "id": "ascii_cookie",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "invalid_utf8",
+          "ast_valid": false,
+          "ast_error": "(unicode error) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte (invalid_utf8, line 1)",
+          "compile_valid": false,
+          "compile_error": "(unicode error) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte (invalid_utf8, line 1)"
+        },
+        {
+          "id": "unsupported_cp1252",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "bom_cookie_conflict",
+          "ast_valid": false,
+          "ast_error": "encoding problem: iso-8859-1 with BOM (bom_cookie_conflict, line 0)",
+          "compile_valid": false,
+          "compile_error": "encoding problem: iso-8859-1 with BOM (bom_cookie_conflict, line 0)"
+        },
+        {
+          "id": "invalid_ascii",
+          "ast_valid": false,
+          "ast_error": "'ascii' codec can't decode byte 0xe9 in position 21: ordinal not in range(128) (invalid_ascii, line 0)",
+          "compile_valid": false,
+          "compile_error": "'ascii' codec can't decode byte 0xe9 in position 21: ordinal not in range(128) (invalid_ascii, line 0)"
+        },
+        {
+          "id": "deep_parentheses",
+          "ast_valid": false,
+          "ast_error": "too many nested parentheses (deep_parentheses, line 1)",
+          "compile_valid": false,
+          "compile_error": "too many nested parentheses (deep_parentheses, line 1)"
+        },
+        {
+          "id": "source_limit",
+          "not_run": "probe-resource-limit"
+        }
+      ]
+    },
+    {
+      "version": "3.12.14",
+      "implementation": "CPython",
+      "results": [
+        {
+          "id": "unicode_columns",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "한국어",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 9
+            },
+            {
+              "id": "값",
+              "line": 1,
+              "byte_column": 15,
+              "end_line": 1,
+              "end_byte_column": 18
+            },
+            {
+              "id": "한국어",
+              "line": 1,
+              "byte_column": 21,
+              "end_line": 1,
+              "end_byte_column": 30
+            }
+          ]
+        },
+        {
+          "id": "unicode_combining",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "café",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "café",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "crlf",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "answer",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "lone_cr",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "answer",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "bom_raw",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            }
+          ]
+        },
+        {
+          "id": "fstring_legacy",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "fstring_pep701",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "fstring_pep701_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "match",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "match_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "except_star",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "except_star_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_alias",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_alias_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_parameter_default",
+          "ast_valid": false,
+          "ast_error": "expected '(' (type_parameter_default, line 1)",
+          "compile_valid": false,
+          "compile_error": "expected '(' (type_parameter_default, line 1)"
+        },
+        {
+          "id": "type_parameter_default_old",
+          "ast_valid": false,
+          "ast_error": "expected '(' (type_parameter_default_old, line 1)",
+          "compile_valid": false,
+          "compile_error": "expected '(' (type_parameter_default_old, line 1)"
+        },
+        {
+          "id": "template_string",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (template_string, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (template_string, line 2)"
+        },
+        {
+          "id": "template_string_old",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (template_string_old, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (template_string_old, line 2)"
+        },
+        {
+          "id": "malformed_recovery",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (malformed_recovery, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (malformed_recovery, line 2)"
+        },
+        {
+          "id": "nul",
+          "ast_valid": false,
+          "ast_error": "source code string cannot contain null bytes",
+          "compile_valid": false,
+          "compile_error": "source code string cannot contain null bytes"
+        },
+        {
+          "id": "unclosed_string",
+          "ast_valid": false,
+          "ast_error": "unterminated string literal (detected at line 1) (unclosed_string, line 1)",
+          "compile_valid": false,
+          "compile_error": "unterminated string literal (detected at line 1) (unclosed_string, line 1)"
+        },
+        {
+          "id": "scope_forms",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "lambda_shadow",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "token_trivia",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "implicit_concat",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "bytes_escape",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "invalid_semantics_return",
+          "ast_valid": true,
+          "compile_valid": false,
+          "compile_error": "'return' outside function (invalid_semantics_return, line 1)"
+        },
+        {
+          "id": "invalid_semantics_nonlocal",
+          "ast_valid": true,
+          "compile_valid": false,
+          "compile_error": "nonlocal declaration not allowed at module level (invalid_semantics_nonlocal, line 1)"
+        },
+        {
+          "id": "large_flat",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "latin1_cookie",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "name",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 4
+            }
+          ]
+        },
+        {
+          "id": "ascii_cookie",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "invalid_utf8",
+          "ast_valid": false,
+          "ast_error": "(unicode error) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte (invalid_utf8, line 1)",
+          "compile_valid": false,
+          "compile_error": "(unicode error) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte (invalid_utf8, line 1)"
+        },
+        {
+          "id": "unsupported_cp1252",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "bom_cookie_conflict",
+          "ast_valid": false,
+          "ast_error": "encoding problem: iso-8859-1 with BOM (bom_cookie_conflict, line 0)",
+          "compile_valid": false,
+          "compile_error": "encoding problem: iso-8859-1 with BOM (bom_cookie_conflict, line 0)"
+        },
+        {
+          "id": "invalid_ascii",
+          "ast_valid": false,
+          "ast_error": "'ascii' codec can't decode byte 0xe9 in position 21: ordinal not in range(128) (invalid_ascii, line 0)",
+          "compile_valid": false,
+          "compile_error": "'ascii' codec can't decode byte 0xe9 in position 21: ordinal not in range(128) (invalid_ascii, line 0)"
+        },
+        {
+          "id": "deep_parentheses",
+          "ast_valid": false,
+          "ast_error": "too many nested parentheses (deep_parentheses, line 1)",
+          "compile_valid": false,
+          "compile_error": "too many nested parentheses (deep_parentheses, line 1)"
+        },
+        {
+          "id": "source_limit",
+          "not_run": "probe-resource-limit"
+        }
+      ]
+    },
+    {
+      "version": "3.13.15",
+      "implementation": "CPython",
+      "results": [
+        {
+          "id": "unicode_columns",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "한국어",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 9
+            },
+            {
+              "id": "값",
+              "line": 1,
+              "byte_column": 15,
+              "end_line": 1,
+              "end_byte_column": 18
+            },
+            {
+              "id": "한국어",
+              "line": 1,
+              "byte_column": 21,
+              "end_line": 1,
+              "end_byte_column": 30
+            }
+          ]
+        },
+        {
+          "id": "unicode_combining",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "café",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "café",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "crlf",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "answer",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "lone_cr",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "answer",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "bom_raw",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            }
+          ]
+        },
+        {
+          "id": "fstring_legacy",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "fstring_pep701",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "fstring_pep701_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "match",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "match_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "except_star",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "except_star_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_alias",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_alias_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_parameter_default",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_parameter_default_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "template_string",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (template_string, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (template_string, line 2)"
+        },
+        {
+          "id": "template_string_old",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (template_string_old, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (template_string_old, line 2)"
+        },
+        {
+          "id": "malformed_recovery",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (malformed_recovery, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (malformed_recovery, line 2)"
+        },
+        {
+          "id": "nul",
+          "ast_valid": false,
+          "ast_error": "source code string cannot contain null bytes",
+          "compile_valid": false,
+          "compile_error": "source code string cannot contain null bytes"
+        },
+        {
+          "id": "unclosed_string",
+          "ast_valid": false,
+          "ast_error": "unterminated string literal (detected at line 1) (unclosed_string, line 1)",
+          "compile_valid": false,
+          "compile_error": "unterminated string literal (detected at line 1) (unclosed_string, line 1)"
+        },
+        {
+          "id": "scope_forms",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "lambda_shadow",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "token_trivia",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "implicit_concat",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "bytes_escape",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "invalid_semantics_return",
+          "ast_valid": true,
+          "compile_valid": false,
+          "compile_error": "'return' outside function (invalid_semantics_return, line 1)"
+        },
+        {
+          "id": "invalid_semantics_nonlocal",
+          "ast_valid": true,
+          "compile_valid": false,
+          "compile_error": "nonlocal declaration not allowed at module level (invalid_semantics_nonlocal, line 1)"
+        },
+        {
+          "id": "large_flat",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "latin1_cookie",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "name",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 4
+            }
+          ]
+        },
+        {
+          "id": "ascii_cookie",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "invalid_utf8",
+          "ast_valid": false,
+          "ast_error": "(unicode error) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte (invalid_utf8, line 1)",
+          "compile_valid": false,
+          "compile_error": "(unicode error) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte (invalid_utf8, line 1)"
+        },
+        {
+          "id": "unsupported_cp1252",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "bom_cookie_conflict",
+          "ast_valid": false,
+          "ast_error": "encoding problem: iso-8859-1 with BOM (bom_cookie_conflict, line 0)",
+          "compile_valid": false,
+          "compile_error": "encoding problem: iso-8859-1 with BOM (bom_cookie_conflict, line 0)"
+        },
+        {
+          "id": "invalid_ascii",
+          "ast_valid": false,
+          "ast_error": "'ascii' codec can't decode byte 0xe9 in position 21: ordinal not in range(128) (invalid_ascii, line 0)",
+          "compile_valid": false,
+          "compile_error": "'ascii' codec can't decode byte 0xe9 in position 21: ordinal not in range(128) (invalid_ascii, line 0)"
+        },
+        {
+          "id": "deep_parentheses",
+          "ast_valid": false,
+          "ast_error": "too many nested parentheses (deep_parentheses, line 1)",
+          "compile_valid": false,
+          "compile_error": "too many nested parentheses (deep_parentheses, line 1)"
+        },
+        {
+          "id": "source_limit",
+          "not_run": "probe-resource-limit"
+        }
+      ]
+    },
+    {
+      "version": "3.14.7",
+      "implementation": "CPython",
+      "results": [
+        {
+          "id": "unicode_columns",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "한국어",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 9
+            },
+            {
+              "id": "값",
+              "line": 1,
+              "byte_column": 15,
+              "end_line": 1,
+              "end_byte_column": 18
+            },
+            {
+              "id": "한국어",
+              "line": 1,
+              "byte_column": 21,
+              "end_line": 1,
+              "end_byte_column": 30
+            }
+          ]
+        },
+        {
+          "id": "unicode_combining",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "café",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "café",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "crlf",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "answer",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "lone_cr",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            },
+            {
+              "id": "print",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 5
+            },
+            {
+              "id": "answer",
+              "line": 2,
+              "byte_column": 6,
+              "end_line": 2,
+              "end_byte_column": 12
+            }
+          ]
+        },
+        {
+          "id": "bom_raw",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "answer",
+              "line": 1,
+              "byte_column": 0,
+              "end_line": 1,
+              "end_byte_column": 6
+            }
+          ]
+        },
+        {
+          "id": "fstring_legacy",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "fstring_pep701",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "fstring_pep701_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "match",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "match_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "except_star",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "except_star_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_alias",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_alias_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_parameter_default",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "type_parameter_default_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "template_string",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "template_string_old",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "malformed_recovery",
+          "ast_valid": false,
+          "ast_error": "invalid syntax (malformed_recovery, line 2)",
+          "compile_valid": false,
+          "compile_error": "invalid syntax (malformed_recovery, line 2)"
+        },
+        {
+          "id": "nul",
+          "ast_valid": false,
+          "ast_error": "source code string cannot contain null bytes",
+          "compile_valid": false,
+          "compile_error": "source code string cannot contain null bytes"
+        },
+        {
+          "id": "unclosed_string",
+          "ast_valid": false,
+          "ast_error": "unterminated string literal (detected at line 1) (unclosed_string, line 1)",
+          "compile_valid": false,
+          "compile_error": "unterminated string literal (detected at line 1) (unclosed_string, line 1)"
+        },
+        {
+          "id": "scope_forms",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "lambda_shadow",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "token_trivia",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "implicit_concat",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "bytes_escape",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "invalid_semantics_return",
+          "ast_valid": true,
+          "compile_valid": false,
+          "compile_error": "'return' outside function (invalid_semantics_return, line 1)"
+        },
+        {
+          "id": "invalid_semantics_nonlocal",
+          "ast_valid": true,
+          "compile_valid": false,
+          "compile_error": "nonlocal declaration not allowed at module level (invalid_semantics_nonlocal, line 1)"
+        },
+        {
+          "id": "large_flat",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "latin1_cookie",
+          "ast_valid": true,
+          "compile_valid": true,
+          "names": [
+            {
+              "id": "name",
+              "line": 2,
+              "byte_column": 0,
+              "end_line": 2,
+              "end_byte_column": 4
+            }
+          ]
+        },
+        {
+          "id": "ascii_cookie",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "invalid_utf8",
+          "ast_valid": false,
+          "ast_error": "Non-UTF-8 code starting with '\\xff' on line 1, but no encoding declared; see https://peps.python.org/pep-0263/ for details (invalid_utf8, line 1)",
+          "compile_valid": false,
+          "compile_error": "Non-UTF-8 code starting with '\\xff' on line 1, but no encoding declared; see https://peps.python.org/pep-0263/ for details (invalid_utf8, line 1)"
+        },
+        {
+          "id": "unsupported_cp1252",
+          "ast_valid": true,
+          "compile_valid": true
+        },
+        {
+          "id": "bom_cookie_conflict",
+          "ast_valid": false,
+          "ast_error": "encoding problem: iso-8859-1 with BOM (bom_cookie_conflict, line 1)",
+          "compile_valid": false,
+          "compile_error": "encoding problem: iso-8859-1 with BOM (bom_cookie_conflict, line 1)"
+        },
+        {
+          "id": "invalid_ascii",
+          "ast_valid": false,
+          "ast_error": "'ascii' codec can't decode byte 0xe9 in position 21: ordinal not in range(128) (invalid_ascii, line 0)",
+          "compile_valid": false,
+          "compile_error": "'ascii' codec can't decode byte 0xe9 in position 21: ordinal not in range(128) (invalid_ascii, line 0)"
+        },
+        {
+          "id": "deep_parentheses",
+          "ast_valid": false,
+          "ast_error": "too many nested parentheses (deep_parentheses, line 1)",
+          "compile_valid": false,
+          "compile_error": "too many nested parentheses (deep_parentheses, line 1)"
+        },
+        {
+          "id": "source_limit",
+          "not_run": "probe-resource-limit"
+        }
+      ]
+    }
+  ],
+  "performance_observation": {
+    "runs": 1,
+    "elapsed_seconds": 0.02,
+    "peak_rss_kib": 9420,
+    "scope": "37 fixture parse/decode operations including rejected resource-bound case, JSON output; not product performance claim"
+  },
+  "trace": {
+    "path": "/nonexistent",
+    "execve": [
+      "/usr/bin/env",
+      "ici-parser-spike"
+    ],
+    "network_syscalls": 0,
+    "python_execve": 0
+  }
+}
