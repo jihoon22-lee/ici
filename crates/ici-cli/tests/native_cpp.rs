@@ -167,6 +167,35 @@ fn missing_declared_runtime_outputs_are_blocked_without_build_or_directory_creat
 }
 
 #[test]
+fn explicitly_disabled_clang_tools_preserve_located_not_applicable_scope_without_a_database() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    let config = runtime_config(
+        &["cpp.tidy"],
+        "[engines.lint]\nclang_tidy='off'\nclazy='off'\n",
+    )
+    .replace("build='native'\n", "");
+    fs::write(root.path().join("ici.toml"), config).unwrap();
+    let invocation = registry::parse(["ici", "analyze"]).unwrap();
+    let environment = BTreeMap::new();
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        true,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["project.cpp.tidy"];
+    assert_eq!(output.status, "SKIP", "{output:?}");
+    assert_eq!(output.targets[0].file_path, "main.cpp");
+    assert_eq!(
+        output.observation.measurements[0].evidence,
+        ici_domain::EvidenceLevel::NotApplicable
+    );
+}
+
+#[test]
 #[ignore = "explicit native CTest/gcov/ELF CLI acceptance"]
 fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
     let root = tempfile::tempdir().unwrap();
@@ -274,4 +303,268 @@ fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
             .iter()
             .any(|event| event.task_id.as_deref() == Some("project.cpp.coverage.tests.suite"))
     );
+}
+
+#[test]
+#[ignore = "explicit Clang21 tidy with recorded GCC library/configuration acceptance"]
+fn actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_standard_library() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"),"#include <vector>\nint choose(){\n#if MODE\nint *p=nullptr;return *p;\n#else\nstd::vector<int> v; return static_cast<int>(v.size());\n#endif\n}\n").unwrap();
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit GCC");
+    let rows:Vec<_>=(0..2).map(|mode|serde_json::json!({"directory":root.path(),"file":root.path().join("main.cpp"),"arguments":[compiler,"-std=c++17",format!("-DMODE={mode}"),"-Werror","-c",root.path().join("main.cpp"),"-o",format!("mode{mode}.o")]})).collect();
+    fs::write(
+        root.path().join("compile_commands.json"),
+        serde_json::to_vec(&rows).unwrap(),
+    )
+    .unwrap();
+    let tidy = std::env::var("ICI_TEST_CLANG_TIDY").expect("explicit clang-tidy21");
+    let mut config = runtime_config(
+        &["cpp.compile", "cpp.tidy"],
+        &format!(
+            "[tools.clang-tidy]\npath={}\n[engines.lint]\nclazy='off'\nclang_tidy='required'\n",
+            serde_json::to_string(&tidy).unwrap()
+        ),
+    );
+    // This static fixture has a compilation database and intentionally no build contract.
+    config = config.replace("build='native'\n", "");
+    fs::write(root.path().join("ici.toml"), config).unwrap();
+    let mut environment = BTreeMap::from([("PATH".into(), String::new())]);
+    if let Ok(paths) = std::env::var("ICI_TEST_CLANG_LIBRARY_PATH") {
+        environment.insert("LD_LIBRARY_PATH".into(), paths);
+    }
+    let invocation = registry::parse(["ici", "analyze", "--events", "events.jsonl"]).unwrap();
+    let preview = planning::prepare(&invocation, root.path(), &environment, true).unwrap();
+    assert!(!root.path().join(".ici").exists());
+    assert_eq!(
+        preview.cpp.diagnostics["project.cpp.tidy"].len(),
+        2,
+        "{}",
+        preview.text()
+    );
+    assert_eq!(preview.cpp.tooling_searches.len(), 2);
+    assert!(
+        preview.cpp.diagnostics["project.cpp.tidy"]
+            .iter()
+            .all(|provider| provider
+                .task
+                .argv
+                .iter()
+                .any(|arg| arg == "{observed-gcc-stdlib}")
+                && !provider.task.argv.iter().any(|arg| arg == "-Werror"))
+    );
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        true,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["project.cpp.tidy"];
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(
+        output
+            .observation
+            .findings
+            .iter()
+            .any(|finding| finding.primary_location.path == "main.cpp"
+                && finding.primary_location.start_line == 4
+                && finding.analysis_unit_id.is_some()),
+        "{output:?}"
+    );
+    let projections = output.extra["tooling_projections"].as_object().unwrap();
+    assert_eq!(projections.len(), 2);
+    assert!(projections.values().all(|projection| {
+        projection["stdlib"]["gnu_driver"] == true
+            && projection["argv"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|arg| arg == "-nostdinc++")
+            && !projection["argv"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|arg| arg == "{observed-gcc-stdlib}")
+    }));
+    assert!(!root.path().join("mode0.o").exists());
+    assert!(!root.path().join("mode1.o").exists());
+    fs::write(
+        root.path().join(".clang-tidy"),
+        "Checks: '-*,clang-analyzer-*'\nExtraArgs: ['-fplugin=forbidden.so']\n",
+    )
+    .unwrap();
+    let unsafe_plan = planning::prepare(&invocation, root.path(), &environment, true).unwrap();
+    let tidy = unsafe_plan
+        .plan
+        .checks
+        .iter()
+        .find(|check| check.check.id == "cpp.tidy")
+        .unwrap();
+    assert!(
+        matches!(&tidy.work,ici_application::plan::Work::Blocked{reason} if reason.contains("inject compiler arguments")),
+        "{}",
+        unsafe_plan.text()
+    );
+}
+
+#[test]
+#[ignore = "explicit Clazy1.17 Qt5/GCC contextual CLI acceptance"]
+fn actual_clazy_keeps_qt_check_and_recorded_configuration_locations() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+        root.path().join("main.cpp"),
+        "#include <QByteArray>\nbool empty(){return qgetenv(\"ICI_FIXTURE\").isEmpty();}\n",
+    )
+    .unwrap();
+    let qmake = std::env::var("ICI_TEST_QMAKE").expect("explicit Qt5 qmake");
+    let query = std::process::Command::new(qmake)
+        .args(["-query", "QT_INSTALL_HEADERS"])
+        .output()
+        .unwrap();
+    assert!(query.status.success());
+    let headers = String::from_utf8(query.stdout).unwrap().trim().to_owned();
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit GCC");
+    let row = serde_json::json!([{"directory":root.path(),"file":root.path().join("main.cpp"),"arguments":[compiler,"-std=c++17","-fPIC","-DQT_CORE_LIB",format!("-I{headers}"),format!("-I{headers}/QtCore"),"-c",root.path().join("main.cpp"),"-o","main.o"]}]);
+    fs::write(
+        root.path().join("compile_commands.json"),
+        serde_json::to_vec(&row).unwrap(),
+    )
+    .unwrap();
+    let clazy = std::env::var("ICI_TEST_CLAZY").expect("explicit Clazy standalone");
+    let config=runtime_config(&["cpp.compile","cpp.tidy"],&format!("[tools.clazy-standalone]\npath={}\n[engines.lint]\nclang_tidy='off'\nclazy='required'\nclazy_checks=['qgetenv']\n",serde_json::to_string(&clazy).unwrap())).replace("build='native'\n","");
+    fs::write(root.path().join("ici.toml"), config).unwrap();
+    let mut environment = BTreeMap::from([("PATH".into(), String::new())]);
+    if let Ok(paths) = std::env::var("ICI_TEST_CLANG_LIBRARY_PATH") {
+        environment.insert("LD_LIBRARY_PATH".into(), paths);
+    }
+    let invocation = registry::parse(["ici", "analyze"]).unwrap();
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        true,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["project.cpp.tidy"];
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(
+        output
+            .observation
+            .findings
+            .iter()
+            .any(|finding| finding.primary_location.path == "main.cpp"
+                && finding.primary_location.start_line == 2
+                && finding.native_rule_id.contains("qgetenv")),
+        "{output:?}"
+    );
+    assert!(!root.path().join("main.o").exists());
+}
+
+#[test]
+#[ignore = "explicit Clang21 metrics plus GCC include and unused configuration consensus"]
+fn actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_unused_consensus() {
+    for (tool_id, variable) in [
+        ("clang-tidy", "ICI_TEST_CLANG_TIDY"),
+        ("clang++", "ICI_TEST_CLANG"),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        fs::write(root.path().join("main.cpp"),"#include <vector>\n#if MODE\n#include \"b.hpp\"\n#else\n#include \"a.hpp\"\n#endif\nstatic int dead(){return 7;}\nstatic int sometimes(){return 1;}\nint main(){\n#if MODE\nreturn 0;\n#else\nreturn sometimes();\n#endif\n}\n").unwrap();
+        if tool_id == "clang++" {
+            let source = fs::read_to_string(root.path().join("main.cpp")).unwrap();
+            fs::write(
+                root.path().join("main.cpp"),
+                source.replace("#include <vector>", "// bounded direct-source AST fixture"),
+            )
+            .unwrap();
+        }
+        fs::write(
+            root.path().join("a.hpp"),
+            "#pragma once\n#if !MODE\n#include \"b.hpp\"\n#endif\n",
+        )
+        .unwrap();
+        fs::write(
+            root.path().join("b.hpp"),
+            "#pragma once\n#if MODE\n#include \"a.hpp\"\n#endif\n",
+        )
+        .unwrap();
+        let compiler = std::env::var("ICI_TEST_CXX").expect("explicit GCC");
+        let rows:Vec<_>=(0..2).map(|mode|serde_json::json!({"directory":root.path(),"file":root.path().join("main.cpp"),"arguments":[compiler,"-std=c++17",format!("-DMODE={mode}"),"-Werror","-c",root.path().join("main.cpp"),"-o",format!("mode{mode}.o")]})).collect();
+        fs::write(
+            root.path().join("compile_commands.json"),
+            serde_json::to_vec(&rows).unwrap(),
+        )
+        .unwrap();
+        let tool = std::env::var(variable).expect(variable);
+        let config=runtime_config(&["cpp.compile","cpp.complexity","cpp.cognitive","cpp.cycle"],&format!("[checks.\"cpp.dead\"]\nenabled=true\n[tools.\"{tool_id}\"]\npath={}\n[engines.complexity]\ncpp_boundaries='required'\n[engines.cognitive]\ncpp_boundaries='required'\n",serde_json::to_string(&tool).unwrap())).replace("build='native'\n","").replace("sources=['main.cpp']","sources=['main.cpp','*.hpp']");
+        fs::write(root.path().join("ici.toml"), config).unwrap();
+        let mut environment = BTreeMap::from([("PATH".into(), String::new())]);
+        if let Ok(paths) = std::env::var("ICI_TEST_CLANG_LIBRARY_PATH") {
+            environment.insert("LD_LIBRARY_PATH".into(), paths);
+        }
+        let invocation = registry::parse(["ici", "analyze"]).unwrap();
+        let preview = planning::prepare(&invocation, root.path(), &environment, true).unwrap();
+        assert!(!root.path().join(".ici").exists());
+        assert_eq!(
+            preview.cpp.boundaries["project.cpp.complexity"].len(),
+            2,
+            "{}",
+            preview.text()
+        );
+        assert_eq!(preview.cpp.includes["project.cpp.cycle"].len(), 2);
+        assert_eq!(preview.cpp.unused["project.cpp.dead"].len(), 2);
+        let run = execute::execute(
+            &invocation,
+            root.path(),
+            &environment,
+            true,
+            &Cancellation::default(),
+        )
+        .unwrap();
+        for id in [
+            "project.cpp.complexity",
+            "project.cpp.cognitive",
+            "project.cpp.cycle",
+            "project.cpp.dead",
+        ] {
+            let output = &run.outputs[id];
+            assert_eq!(
+                output.observation.state,
+                TaskState::Succeeded,
+                "{tool_id}: {id}: {output:?}"
+            );
+        }
+        for id in ["project.cpp.complexity", "project.cpp.cognitive"] {
+            let output = &run.outputs[id];
+            assert_eq!(
+                output.extra["boundary_mode"], "exact",
+                "{tool_id}: {id}: {output:?}"
+            );
+            assert!(output.observation.measurements.iter().all(|measurement|measurement.evidence==ici_domain::EvidenceLevel::Estimated),"{output:?}");
+            assert!(
+                output
+                    .targets
+                    .iter()
+                    .filter(|target| target.file_path == "main.cpp")
+                    .all(|target| target.metrics["boundary_confidence"] == "exact"),
+                "{output:?}"
+            );
+        }
+        assert!(
+            run.outputs["project.cpp.cycle"]
+                .observation
+                .findings
+                .is_empty()
+        );
+        let dead = &run.outputs["project.cpp.dead"];
+        assert_eq!(dead.observation.findings.len(), 1, "{dead:?}");
+        assert_eq!(dead.observation.findings[0].primary_location.start_line, 7);
+        assert_eq!(
+            dead.observation.findings[0].rule_id,
+            "dead.cpp-unused-internal-function"
+        );
+        assert!(!root.path().join("mode0.o").exists());
+        assert!(!root.path().join("mode1.o").exists());
+    }
 }
