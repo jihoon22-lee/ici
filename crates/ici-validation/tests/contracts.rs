@@ -216,6 +216,31 @@ fn def_header_alone_never_proves_a_function_was_called() {
     );
 }
 #[test]
+fn multiline_body_hits_remain_measured_when_older_coverage_has_no_function_sections() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::PythonCoverage);
+    request.functions.push(FunctionFact {
+        path: "main.py".into(),
+        name: "f".into(),
+        qualified_name: "f".into(),
+        start_line: 1,
+        entry_line: None,
+        body_start_line: 2,
+        end_line: 3,
+    });
+    let mut report = report();
+    report["files"]["main.py"]
+        .as_object_mut()
+        .unwrap()
+        .remove("functions");
+    let measured = coverage::parse_python(&serde_json::to_vec(&report).unwrap(), &request).unwrap();
+    assert_eq!(measured.counts.covered_functions, Some(1));
+    request.functions[0].body_start_line = 1;
+    request.functions[0].end_line = 1;
+    let unknown = coverage::parse_python(&serde_json::to_vec(&report).unwrap(), &request).unwrap();
+    assert_eq!(unknown.counts.covered_functions, None);
+}
+#[test]
 fn tem_requires_functions_and_merges_raw_counts_without_averaging() {
     let input = tem::TemInputs {
         passed: 1,
@@ -355,6 +380,7 @@ fn owned_artifacts_reject_reuse_symlinks_fifo_stale_and_replaced_owners() {
         spec.producer_task_id.clone(),
         outcome(&spec.producer_task_id, "", 0),
     )]);
+    run.mark_started(&spec.producer_task_id);
     let source = root.path().join("user.json");
     std::fs::write(&source, b"user data").unwrap();
     std::os::unix::fs::symlink(&source, &spec.path).unwrap();
@@ -404,4 +430,37 @@ fn owned_artifacts_reject_reuse_symlinks_fifo_stale_and_replaced_owners() {
     std::fs::create_dir(run.path()).unwrap();
     assert!(capture_artifacts(&planned, &run, &outcomes).is_err());
     assert_eq!(std::fs::read(&source).unwrap(), b"user data");
+}
+#[test]
+fn artifact_patterns_never_adopt_an_earlier_producers_reports_from_the_same_run() {
+    let root = tempfile::tempdir().unwrap();
+    let mut planned = plan(&request(root.path(), ValidationKind::PythonCoverage)).unwrap();
+    planned.artifacts.clear();
+    planned.artifact_patterns = vec![ArtifactPattern {
+        id_prefix: "reports".into(),
+        suffix: ".json".into(),
+        producer_task_id: "phase-a".into(),
+        max_files: 8,
+        max_bytes_each: 1024,
+        max_bytes_total: 8192,
+    }];
+    let run = OwnedRun::create(&planned.context.owned_run_dir).unwrap();
+    run.mark_started("phase-a");
+    std::fs::write(run.path().join("old.json"), b"old").unwrap();
+    let mut outcomes = BTreeMap::from([("phase-a".into(), outcome("phase-a", "", 0))]);
+    assert_eq!(
+        capture_artifacts(&planned, &run, &outcomes)
+            .unwrap()
+            .files
+            .len(),
+        1
+    );
+    planned.artifact_patterns[0].producer_task_id = "phase-b".into();
+    run.mark_started("phase-b");
+    std::fs::write(run.path().join("new.json"), b"new").unwrap();
+    outcomes.insert("phase-b".into(), outcome("phase-b", "", 0));
+    let captured = capture_artifacts(&planned, &run, &outcomes).unwrap();
+    assert_eq!(captured.files.len(), 1);
+    assert_eq!(captured.files["reports:new.json"].bytes, b"new");
+    assert!(!captured.files.contains_key("reports:old.json"));
 }

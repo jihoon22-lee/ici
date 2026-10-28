@@ -4,7 +4,7 @@ The Rust `ici-validation` crate runs declared project tools through the common
 executor. The fixed reference product remains v0.13.0 source
 `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`. Current checkpoints cover Python
 test/coverage/runtime/import and C++ suite/gcov/sanitizer/ELF/process contracts.
-Complete CLI integration, runtime matrices, mutation capability probes and full
+Complete CLI integration, mutation capability probes and full
 inventory closure remain separate work.
 
 ## Python checkpoint (2026-10-29)
@@ -110,6 +110,28 @@ non-instrumented binary which must never execute under a claimed sanitizer check
   user output contents. Every validation step declares component resource locks.
 - A measured empty coverage axis is N/A, with no invented 0%/100%. Missing
   function evidence is distinct and cannot satisfy a configured policy or TEM.
+
+## Runtime matrix and artifact-phase follow-up
+
+Eleven general contracts, two matrix replay tests and all seven native Python
+tests passed; the native Python gate took 13.37 seconds. The matrix additionally
+used an explicitly selected CPython 3.14.7 alongside project CPython 3.10.21.
+Strict all-target validation Clippy passed.
+
+Configured runtimes have separate visible metadata/compile/import tasks and
+isolated bytecode directories. Required names must form a unique subset of the
+configured matrix. Missing optional interpreters produce warning targets and
+limitations; required missing/failed runtimes remain incomplete. Optional
+compatibility findings keep measured evidence and advisory policy tags. No
+core-interpreter fallback occurs. The native matrix proves that Python 3.10
+rejects a `type` statement which Python 3.14 accepts without executing its main.
+
+Artifact captures now require each producer's actual start marker. A later gcov
+phase sharing an owned run directory excludes earlier producers' report files.
+An explicit two-producer fixture verifies that a fresh first-phase report cannot
+be adopted by the second phase. Older coverage JSON without per-function sections
+can still measure native multiline body hits; definition/header-only hits remain
+insufficient for one-line functions.
 
 ## Confirmed function-coverage correction
 

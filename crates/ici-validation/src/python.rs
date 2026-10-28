@@ -113,21 +113,29 @@ pub fn observe_for(
 ) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(&plan.context.task_id, kind.provider());
     output.observation.limitations.clone_from(&plan.limitations);
-    let result = match kind {
-        ValidationKind::PythonTest => observe_suite(plan, outcomes, &mut output),
-        ValidationKind::PythonCoverage => observe_coverage(plan, outcomes, artifacts, &mut output),
-        ValidationKind::PythonRuntime => observe_runtime(plan, outcomes, &mut output),
-        ValidationKind::PythonImports => observe_imports(plan, outcomes, &mut output),
-        ValidationKind::Ctest => crate::cpp::observe_ctest(plan, outcomes, &mut output),
-        ValidationKind::Qtest => crate::cpp::observe_qtest(plan, outcomes, &mut output),
-        ValidationKind::BinaryCompatibility => crate::cpp::observe_elf(plan, outcomes, &mut output),
-        ValidationKind::Sanitizer | ValidationKind::ThreadSanitizer => {
-            crate::sanitizer::observe(plan, outcomes, &mut output)
+    let result = if !plan.runtime_plans.is_empty() {
+        crate::runtime::observe(plan, outcomes, artifacts, &mut output)
+    } else {
+        match kind {
+            ValidationKind::PythonTest => observe_suite(plan, outcomes, &mut output),
+            ValidationKind::PythonCoverage => {
+                observe_coverage(plan, outcomes, artifacts, &mut output)
+            }
+            ValidationKind::PythonRuntime => observe_runtime(plan, outcomes, &mut output),
+            ValidationKind::PythonImports => observe_imports(plan, outcomes, &mut output),
+            ValidationKind::Ctest => crate::cpp::observe_ctest(plan, outcomes, &mut output),
+            ValidationKind::Qtest => crate::cpp::observe_qtest(plan, outcomes, &mut output),
+            ValidationKind::BinaryCompatibility => {
+                crate::cpp::observe_elf(plan, outcomes, &mut output)
+            }
+            ValidationKind::Sanitizer | ValidationKind::ThreadSanitizer => {
+                crate::sanitizer::observe(plan, outcomes, &mut output)
+            }
+            ValidationKind::Integration => {
+                crate::integration::observe(plan, outcomes, artifacts, &mut output)
+            }
+            ValidationKind::Gcov => crate::gcov::observe(plan, outcomes, artifacts, &mut output),
         }
-        ValidationKind::Integration => {
-            crate::integration::observe(plan, outcomes, artifacts, &mut output)
-        }
-        ValidationKind::Gcov => crate::gcov::observe(plan, outcomes, artifacts, &mut output),
     };
     let mut ids = plan
         .tasks
@@ -358,7 +366,12 @@ fn quality(
             f64::from(flaky),
         ));
     }
-    if let Some(threshold) = plan.context.options.slow_threshold_seconds {
+    if let Some(threshold) = plan
+        .context
+        .options
+        .slow_threshold_seconds
+        .filter(|threshold| *threshold > 0.0)
+    {
         let duration =
             Regex::new(r"^\s*((?:\d+(?:\.\d+)?|\.\d+))s\s+([A-Za-z][A-Za-z0-9_-]*)\s+(\S.*?)\s*$")
                 .expect("constant regex");

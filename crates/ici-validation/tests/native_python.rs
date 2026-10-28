@@ -32,6 +32,13 @@ fn request(root: &Path, kind: ValidationKind, run_name: &str) -> ValidationReque
     }
 }
 fn execute(plan: &ValidationPlan, outcomes: &mut BTreeMap<String, TaskOutcome>) {
+    execute_owned(plan, outcomes, None)
+}
+fn execute_owned(
+    plan: &ValidationPlan,
+    outcomes: &mut BTreeMap<String, TaskOutcome>,
+    owner: Option<&OwnedRun>,
+) {
     loop {
         let ready = ready_steps(plan, outcomes).unwrap();
         if ready.is_empty() {
@@ -39,6 +46,9 @@ fn execute(plan: &ValidationPlan, outcomes: &mut BTreeMap<String, TaskOutcome>) 
         }
         for id in ready {
             let spec = plan.tasks.iter().find(|task| task.id == id).unwrap();
+            if let Some(owner) = owner {
+                owner.mark_started(&id);
+            }
             let outcome = Runner::default().run(spec, &Cancellation::default());
             outcomes.insert(id, outcome);
         }
@@ -64,7 +74,7 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
     let test_plan = plan(&test).unwrap();
     let owner = OwnedRun::create(&test.owned_run_dir).unwrap();
     let mut outcomes = BTreeMap::new();
-    execute(&test_plan, &mut outcomes);
+    execute_owned(&test_plan, &mut outcomes, Some(&owner));
     let test_output = observe(&test_plan, &outcomes, &CapturedArtifacts::default());
     assert_eq!(
         test_output.observation.state,
@@ -114,7 +124,7 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
         },
     ];
     let coverage_plan = plan(&coverage).unwrap();
-    execute(&coverage_plan, &mut outcomes);
+    execute_owned(&coverage_plan, &mut outcomes, Some(&owner));
     let artifacts = capture_artifacts(&coverage_plan, &owner, &outcomes).unwrap();
     let output = observe(&coverage_plan, &outcomes, &artifacts);
     assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
@@ -168,7 +178,7 @@ fn failing_tests_still_allow_coverage_report_but_no_tests_and_collection_failure
     let planned = plan(&request).unwrap();
     let owner = OwnedRun::create(&request.owned_run_dir).unwrap();
     let mut outcomes = BTreeMap::new();
-    execute(&planned, &mut outcomes);
+    execute_owned(&planned, &mut outcomes, Some(&owner));
     assert_eq!(outcomes[&planned.tasks[0].id].exit_code, Some(1));
     assert_eq!(outcomes[&planned.tasks[1].id].exit_code, Some(0));
     let artifacts = capture_artifacts(&planned, &owner, &outcomes).unwrap();
@@ -318,5 +328,73 @@ fn quality_repeats_run_sequentially_and_keep_report_mode_findings_advisory() {
             .unwrap()
             .tags
             .is_empty()
+    );
+}
+#[test]
+#[ignore = "explicit CPython3.10/3.14 runtime matrix gate"]
+fn declared_runtime_matrix_compiles_each_interpreter_and_keeps_optional_and_required_verdicts() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.py"),"type Alias = int\nVALUE=1\nif __name__ == '__main__':\n    open('main-ran','w').write('bad')\n").unwrap();
+    let mut request = request(root.path(), ValidationKind::PythonRuntime, "run-matrix");
+    let new = ToolRequest {
+        id: "python3.14".into(),
+        explicit: Some(
+            std::env::var("ICI_TEST_PYTHON_NEW")
+                .expect("ICI_TEST_PYTHON_NEW explicit second project runtime required")
+                .into(),
+        ),
+        project_root: root.path().into(),
+        pack_root: None,
+        path_env: None,
+    }
+    .resolve()
+    .unwrap();
+    request.options.runtimes = vec![
+        RuntimeSpec {
+            configured: "project-old".into(),
+            tool: Some(request.tool.clone()),
+            required: false,
+        },
+        RuntimeSpec {
+            configured: "project-new".into(),
+            tool: Some(new),
+            required: true,
+        },
+        RuntimeSpec {
+            configured: "missing-optional".into(),
+            tool: None,
+            required: false,
+        },
+    ];
+    request.options.compile_sources = true;
+    let mut planned = plan(&request).unwrap();
+    planned.context.options.requires_python = Some(">=3.12".into());
+    assert_eq!(planned.tasks.len(), 4);
+    let _owner = OwnedRun::create(&request.owned_run_dir).unwrap();
+    let mut outcomes = BTreeMap::new();
+    execute(&planned, &mut outcomes);
+    let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert_eq!(output.observation.findings.len(), 2);
+    assert!(
+        output
+            .observation
+            .findings
+            .iter()
+            .all(|finding| finding.tags.iter().any(|tag| tag == "advisory"))
+    );
+    assert_eq!(
+        output.extra["runtime_matrix"][1]["runtime"]["version"][1],
+        14
+    );
+    assert!(!root.path().join("main-ran").exists());
+    assert!(!root.path().join("__pycache__").exists());
+    let mut required = planned.clone();
+    required.runtime_plans[2].required = true;
+    assert_eq!(
+        observe(&required, &outcomes, &CapturedArtifacts::default())
+            .observation
+            .state,
+        TaskState::Failed
     );
 }

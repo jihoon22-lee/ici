@@ -48,6 +48,12 @@ pub struct FunctionFact {
     pub body_start_line: u32,
     pub end_line: u32,
 }
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RuntimeSpec {
+    pub configured: String,
+    pub tool: Option<ResolvedTool>,
+    pub required: bool,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
@@ -72,6 +78,8 @@ pub struct ValidationOptions {
     pub min_changed_line_cov: Option<f64>,
     pub coverage_required: bool,
     pub function_facts_complete: bool,
+    pub runtimes: Vec<RuntimeSpec>,
+    pub required_interpreters: Vec<String>,
     pub auxiliary_tools: BTreeMap<String, ResolvedTool>,
     pub elf_policy: ici_cpp::ElfPolicy,
     pub build_roots: Vec<PathBuf>,
@@ -111,6 +119,8 @@ impl Default for ValidationOptions {
             min_changed_line_cov: None,
             coverage_required: false,
             function_facts_complete: false,
+            runtimes: vec![],
+            required_interpreters: vec![],
             auxiliary_tools: BTreeMap::new(),
             elf_policy: ici_cpp::ElfPolicy::default(),
             build_roots: vec![],
@@ -180,10 +190,18 @@ pub struct ValidationPlan {
     pub artifacts: Vec<OwnedArtifactSpec>,
     #[serde(default)]
     pub artifact_patterns: Vec<ArtifactPattern>,
+    #[serde(default)]
+    pub runtime_plans: Vec<RuntimePlan>,
     /// Dependencies use provider exit contracts; the generic scheduler's exit=0 rule is insufficient.
     pub prerequisites: BTreeMap<String, Vec<StepPrerequisite>>,
     pub context: ValidationRequest,
     pub limitations: Vec<String>,
     #[serde(skip)]
     pub source_coordinates: std::sync::Arc<ici_providers::SourceCoordinates>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RuntimePlan {
+    pub configured: String,
+    pub required: bool,
+    pub plan: Option<Box<ValidationPlan>>,
 }

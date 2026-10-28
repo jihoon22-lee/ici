@@ -101,11 +101,20 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
         tasks: vec![],
         artifacts: vec![],
         artifact_patterns: vec![],
+        runtime_plans: vec![],
         prerequisites: BTreeMap::new(),
         context: request.clone(),
         limitations: vec!["dynamic evidence is never reused from a previous run".into()],
         source_coordinates: std::sync::Arc::default(),
     };
+    if !request.options.runtimes.is_empty() {
+        return crate::runtime::plan(request, plan);
+    }
+    if !request.options.required_interpreters.is_empty() {
+        return Err(ValidationError(
+            "required_interpreters requires a configured runtime matrix".into(),
+        ));
+    }
     match request.kind {
         ValidationKind::PythonTest | ValidationKind::PythonCoverage => python_suite(&mut plan)?,
         ValidationKind::PythonRuntime => {
@@ -238,7 +247,11 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             "--tb=short".into(),
             "--color=no".into(),
         ]);
-        if request.options.slow_threshold_seconds.is_some() {
+        if request
+            .options
+            .slow_threshold_seconds
+            .is_some_and(|threshold| threshold > 0.0)
+        {
             args.push("--durations=0".into());
         }
         args.extend(

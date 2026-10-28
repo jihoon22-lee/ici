@@ -278,7 +278,29 @@ pub fn parse_python(
                     None
                 }
             } else {
-                None
+                // Older coverage JSON lacks per-function sections. A native multiline body
+                // hit is still execution evidence; definition/header hits are never enough.
+                if function.body_start_line > function.start_line {
+                    if file
+                        .executed
+                        .range(function.body_start_line..=function.end_line)
+                        .next()
+                        .is_some()
+                    {
+                        Some(true)
+                    } else if file
+                        .missing
+                        .range(function.body_start_line..=function.end_line)
+                        .next()
+                        .is_some()
+                    {
+                        Some(false)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
             };
             if let Some(ran) = ran {
                 covered += u64::from(ran);

@@ -229,7 +229,9 @@ pub fn capture_artifacts(
                     );
                 }
                 Err(error) => {
-                    captured.errors.insert(spec.id, error.to_string());
+                    if error.0 != "artifact predates its producer start" {
+                        captured.errors.insert(spec.id, error.to_string());
+                    }
                 }
             }
         }
@@ -391,6 +393,18 @@ fn read_spec(spec: &OwnedArtifactSpec, run: &OwnedRun) -> Result<Vec<u8>, Valida
     let mut file = File::from(descriptor);
     let before = file.metadata().map_err(error)?;
     use std::os::unix::fs::MetadataExt;
+    let started = run
+        .starts
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get(&spec.producer_task_id)
+        .copied()
+        .ok_or_else(|| ValidationError("artifact producer start timestamp is absent".into()))?;
+    if before.modified().map_err(error)? < started {
+        return Err(ValidationError(
+            "artifact predates its producer start".into(),
+        ));
+    }
     if !before.is_file()
         || before.nlink() != 1
         || before.len() > maximum as u64

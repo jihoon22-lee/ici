@@ -8,6 +8,7 @@ pub mod model;
 pub mod planning;
 pub mod policy;
 pub mod python;
+pub mod runtime;
 pub mod sanitizer;
 pub mod tem;
 
@@ -24,5 +25,10 @@ pub fn attach_sources(
     plan: &mut ValidationPlan,
     coordinates: std::sync::Arc<ici_providers::SourceCoordinates>,
 ) {
-    plan.source_coordinates = coordinates;
+    plan.source_coordinates = coordinates.clone();
+    for runtime in &mut plan.runtime_plans {
+        if let Some(child) = &mut runtime.plan {
+            attach_sources(child, coordinates.clone());
+        }
+    }
 }
