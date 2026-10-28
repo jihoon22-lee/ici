@@ -5,3 +5,13 @@ mod stored;
 pub use error::{ReportError, Result};
 pub use json::{canonical_json, script_json, strict_json};
 pub use stored::{LegacyDocument, LegacyKind, StoredResult};
+
+mod auxiliary;
+mod junit_import;
+mod lcov_import;
+mod paths;
+mod sarif_import;
+pub use auxiliary::{
+    AuxiliaryDocument, AuxiliarySource, ImportOptions, ImportProvenance, import_report,
+    load_auxiliary,
+};
