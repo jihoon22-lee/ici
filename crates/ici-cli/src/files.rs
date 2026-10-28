@@ -11,6 +11,28 @@ pub struct TreeEntry {
     pub contained: bool,
 }
 pub fn tree(root: &Path, directory: &Path) -> std::io::Result<Vec<TreeEntry>> {
+    inventory(root, directory, false)
+}
+/// Source preparation records bounded inputs without descending into tool or build state.
+pub fn build_inputs(root: &Path, directory: &Path) -> std::io::Result<Vec<String>> {
+    Ok(inventory(root, directory, true)?
+        .into_iter()
+        .filter(|entry| {
+            entry.file
+                && entry.contained
+                && root
+                    .join(&entry.relative)
+                    .canonicalize()
+                    .is_ok_and(|physical| physical == root.join(&entry.relative))
+        })
+        .map(|entry| entry.relative)
+        .collect())
+}
+fn inventory(
+    root: &Path,
+    directory: &Path,
+    source_inputs: bool,
+) -> std::io::Result<Vec<TreeEntry>> {
     let root = root.canonicalize()?;
     let mut pending = vec![(directory.to_owned(), 0usize)];
     let mut visited = BTreeSet::new();
@@ -40,6 +62,27 @@ pub fn tree(root: &Path, directory: &Path) -> std::io::Result<Vec<TreeEntry>> {
             }
             let path = child.path();
             let kind = child.file_type()?;
+            if source_inputs
+                && kind.is_dir()
+                && [
+                    ".git",
+                    ".hg",
+                    ".svn",
+                    ".ici",
+                    ".ici-native",
+                    ".venv",
+                    "venv",
+                    "node_modules",
+                    "__pycache__",
+                    "target",
+                    "build",
+                    "dist",
+                ]
+                .iter()
+                .any(|name| child.file_name() == *name)
+            {
+                continue;
+            }
             let relative = path
                 .strip_prefix(&root)
                 .map_err(|_| std::io::Error::other("artifact path leaves workspace"))?

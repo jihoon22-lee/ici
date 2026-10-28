@@ -303,6 +303,61 @@ fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
             .iter()
             .any(|event| event.task_id.as_deref() == Some("project.cpp.coverage.tests.suite"))
     );
+    let counters = ici_cli::files::tree(root.path(), &root.path().join("build"))
+        .unwrap()
+        .into_iter()
+        .filter(|entry| entry.relative.ends_with(".gcda"))
+        .map(|entry| {
+            let path = root.path().join(entry.relative);
+            let bytes = fs::read(&path).unwrap();
+            (path, bytes)
+        })
+        .collect::<Vec<_>>();
+    assert!(!counters.is_empty());
+    let next =
+        registry::parse(["ici", "next", "verify", "--events", "events-second.jsonl"]).unwrap();
+    let repeated = planning::prepare(&next, root.path(), &environment, false).unwrap();
+    assert!(
+        !repeated.validations["project.cpp.coverage"][0]
+            .context
+            .options
+            .gcov_preexisting_data
+            .is_empty()
+    );
+    for (path, bytes) in &counters {
+        assert_eq!(
+            &fs::read(path).unwrap(),
+            bytes,
+            "read-only plan must preserve prior counters"
+        );
+    }
+    let second = execute::execute(
+        &next,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        second.outputs["project.cpp.test"].observation.state,
+        TaskState::Succeeded,
+        "{:?}",
+        second.outputs
+    );
+    assert_eq!(
+        second.outputs["project.cpp.coverage"].observation.state,
+        TaskState::Blocked,
+        "{:?}",
+        second.outputs
+    );
+    assert!(
+        second.outputs["project.cpp.coverage"]
+            .observation
+            .findings
+            .is_empty()
+    );
+    assert_eq!(second.result.gate.selected, GateVerdict::Incomplete);
 }
 
 #[test]
@@ -566,5 +621,276 @@ fn actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_u
         );
         assert!(!root.path().join("mode0.o").exists());
         assert!(!root.path().join("mode1.o").exists());
+    }
+}
+
+#[test]
+#[ignore = "explicit native CMake preparation and leased user-data preservation"]
+fn actual_explicit_cmake_preparation_is_read_only_until_execution_and_overlay_keeps_user_configuration()
+ {
+    use ici_cli::export_context;
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(root.path().join("CMakeLists.txt"),"cmake_minimum_required(VERSION 3.16)\nproject(prepared LANGUAGES CXX)\nenable_testing()\nadd_executable(suite main.cpp)\nadd_test(NAME green COMMAND suite)\n").unwrap();
+    fs::write(root.path().join("data.txt"), "preserved resource\n").unwrap();
+    let cmake = std::env::var("ICI_TEST_CMAKE").expect("explicit CMake");
+    fs::write(
+        root.path().join("ici.toml"),
+        format!(
+            "schema_version=2\n[tools.cmake]\npath={}\n",
+            serde_json::to_string(&cmake).unwrap()
+        ),
+    )
+    .unwrap();
+    let config_before = fs::read(root.path().join("ici.toml")).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), std::env::var("PATH").unwrap_or_default())]);
+    let project =
+        ici_config::resolve_with_environment(root.path(), None, None, &environment).unwrap();
+    let component = project
+        .components
+        .iter()
+        .find(|component| component.languages.iter().any(|language| language == "cpp"))
+        .unwrap();
+    let plan = export_context::plan_preparation(
+        &project,
+        component,
+        &environment,
+        std::path::Path::new(env!("CARGO_BIN_EXE_ici")),
+    )
+    .unwrap();
+    assert!(!root.path().join(".ici").exists());
+    assert!(plan.inputs.contains(&"CMakeLists.txt".into()));
+    assert!(plan.inputs.contains(&"data.txt".into()));
+    assert_eq!(plan.build.tasks.len(), 2);
+    assert!(
+        plan.build
+            .tasks
+            .iter()
+            .all(|task| task.mutating() && task.tool_digest.is_some())
+    );
+    let mut scheduler = ici_execution::Scheduler::new(
+        ici_execution::Runner::with_environment(environment.clone()),
+        2,
+    );
+    scheduler.lock_directory = Some(root.path().join(".ici/rust-v1/locks/tasks"));
+    let prepared = export_context::execute_preparation(
+        &plan,
+        &scheduler,
+        &Cancellation::default(),
+        &ici_cli::events::EventLog::default(),
+    )
+    .unwrap();
+    assert!(prepared.context.complete(), "{:?}", prepared.context);
+    assert!(
+        prepared
+            .artifacts
+            .iter()
+            .any(|path| path.ends_with("/suite"))
+    );
+    let alias = export_context::for_consumer(&prepared, &plan).unwrap();
+    let mut foreign_plan = plan.clone();
+    foreign_plan.build.variant = "different".into();
+    assert!(export_context::for_consumer(&prepared, &foreign_plan).is_err());
+    let overlay = export_context::overlay(&project, &[prepared]);
+    assert!(
+        ici_cpp::BuildLease::acquire(
+            root.path(),
+            &plan.build,
+            &Cancellation::default(),
+            std::time::Duration::from_millis(20)
+        )
+        .is_err(),
+        "consumer alias must retain the original transaction guard"
+    );
+    drop(alias);
+    assert_eq!(
+        fs::read(root.path().join("ici.toml")).unwrap(),
+        config_before
+    );
+    assert_eq!(
+        fs::read_to_string(root.path().join("data.txt")).unwrap(),
+        "preserved resource\n"
+    );
+    assert_eq!(
+        overlay.components[0].build.as_deref(),
+        Some(plan.build_id.as_str())
+    );
+    assert_eq!(
+        overlay.builds[0].directory.as_deref(),
+        Some(plan.build.shadow.as_str())
+    );
+    let foreign = root.path().join("keep.gcda");
+    fs::write(&foreign, b"foreign data").unwrap();
+    let injected = root.path().join(&plan.build.shadow).join("foreign.gcda");
+    fs::hard_link(&foreign, &injected).unwrap();
+    let error = export_context::execute_preparation(
+        &plan,
+        &scheduler,
+        &Cancellation::default(),
+        &ici_cli::events::EventLog::default(),
+    )
+    .err()
+    .expect("multiply linked data refused");
+    assert!(error.contains("multiply linked"), "{error}");
+    assert_eq!(fs::read(&foreign).unwrap(), b"foreign data");
+    assert_eq!(fs::read(&injected).unwrap(), b"foreign data");
+    fs::remove_file(&injected).unwrap();
+    let stale = root.path().join(&plan.build.shadow).join("previous.gcda");
+    fs::write(&stale, b"owned counters").unwrap();
+    let prepared = export_context::execute_preparation(
+        &plan,
+        &scheduler,
+        &Cancellation::default(),
+        &ici_cli::events::EventLog::default(),
+    )
+    .unwrap();
+    assert!(!stale.exists());
+    assert!(prepared.context.complete());
+    assert_eq!(fs::read(&foreign).unwrap(), b"foreign data");
+    let mut coverage_project = project.clone();
+    coverage_project.components[0].settings["native_requested_variant"] =
+        serde_json::json!("coverage");
+    let coverage_plan = export_context::plan_preparation(
+        &coverage_project,
+        &coverage_project.components[0],
+        &environment,
+        std::path::Path::new(env!("CARGO_BIN_EXE_ici")),
+    )
+    .unwrap();
+    assert_eq!(coverage_plan.build.variant, "coverage");
+    let coverage = export_context::execute_preparation(
+        &coverage_plan,
+        &scheduler,
+        &Cancellation::default(),
+        &ici_cli::events::EventLog::default(),
+    )
+    .unwrap();
+    let overlay = export_context::overlay(&project, &[prepared, coverage]);
+    let component = &overlay.components[0];
+    assert_eq!(
+        ici_cli::cpp::linked_build(&overlay, component)
+            .unwrap()
+            .variant,
+        "release"
+    );
+    let request = ici_application::request::RunRequest {
+        checks: vec!["cpp.test".into(), "cpp.coverage".into()],
+        ..Default::default()
+    };
+    for id in ["cpp.test", "cpp.coverage"] {
+        let check = ici_domain::builtin_catalog()
+            .checks
+            .into_iter()
+            .find(|check| check.id == id)
+            .unwrap();
+        let bound = ici_cli::cpp_validation::bind(
+            &overlay,
+            component,
+            &check,
+            &format!("{}.{}", component.id, id),
+            &request,
+            &environment,
+            "variant-check",
+        )
+        .unwrap();
+        assert!(matches!(
+            bound.work,
+            ici_application::plan::Work::Steps { .. }
+        ));
+        assert!(bound.plans.iter().all(|plan| {
+            plan.context
+                .options
+                .build_dir
+                .as_ref()
+                .unwrap()
+                .ends_with("coverage")
+        }));
+    }
+}
+
+#[test]
+#[ignore = "explicit same-binary Qt5/Qt6 moc uic rcc preparation and testcase projection"]
+fn actual_qmake_preparation_keeps_generated_units_resources_and_testcase_executable() {
+    use ici_cli::export_context;
+    for variable in ["ICI_TEST_QMAKE", "ICI_TEST_QMAKE6"] {
+        let root = tempfile::tempdir().unwrap();
+        fs::write(root.path().join("main.cpp"),"#include <QtTest>\n#include \"ui_form.h\"\nclass Suite:public QObject{Q_OBJECT private slots:void green(){QVERIFY(true);}};\nQTEST_GUILESS_MAIN(Suite)\n#include \"main.moc\"\n").unwrap();
+        fs::write(root.path().join("suite.pro"),"QT += core testlib widgets\nCONFIG += console c++17 testcase\nCONFIG -= app_bundle\nTEMPLATE=app\nSOURCES += main.cpp\nFORMS += form.ui\nRESOURCES += data.qrc\nTARGET=suite\n").unwrap();
+        fs::write(root.path().join("form.ui"),"<ui version=\"4.0\"><class>Widget</class><widget class=\"QWidget\" name=\"Widget\"/></ui>").unwrap();
+        fs::write(root.path().join("data.txt"), "original resource\n").unwrap();
+        fs::write(
+            root.path().join("data.qrc"),
+            "<RCC><qresource prefix=\"/\"><file>data.txt</file></qresource></RCC>",
+        )
+        .unwrap();
+        let qmake = std::env::var(variable).expect(variable);
+        fs::write(
+            root.path().join("ici.toml"),
+            format!(
+                "schema_version=2\n[tools.qmake]\npath={}\n",
+                serde_json::to_string(&qmake).unwrap()
+            ),
+        )
+        .unwrap();
+        let environment =
+            BTreeMap::from([("PATH".into(), std::env::var("PATH").unwrap_or_default())]);
+        let project =
+            ici_config::resolve_with_environment(root.path(), None, None, &environment).unwrap();
+        let component = project
+            .components
+            .iter()
+            .find(|component| component.languages.iter().any(|language| language == "cpp"))
+            .unwrap();
+        let plan = export_context::plan_preparation(
+            &project,
+            component,
+            &environment,
+            std::path::Path::new(env!("CARGO_BIN_EXE_ici")),
+        )
+        .unwrap();
+        assert!(!root.path().join(".ici").exists());
+        assert!(plan.inputs.contains(&"form.ui".into()));
+        assert!(plan.inputs.contains(&"data.txt".into()));
+        let mut scheduler =
+            ici_execution::Scheduler::new(ici_execution::Runner::with_environment(environment), 2);
+        scheduler.lock_directory = Some(root.path().join(".ici/rust-v1/locks/tasks"));
+        let prepared = export_context::execute_preparation(
+            &plan,
+            &scheduler,
+            &Cancellation::default(),
+            &ici_cli::events::EventLog::default(),
+        )
+        .unwrap();
+        assert!(
+            prepared.context.complete(),
+            "{variable}: {:?}",
+            prepared.context
+        );
+        assert!(
+            prepared
+                .context
+                .units
+                .iter()
+                .any(|unit| unit.source.ends_with("qrc_data.cpp")),
+            "{:?}",
+            prepared.context
+        );
+        assert!(
+            prepared
+                .test_executable
+                .as_deref()
+                .is_some_and(|path| path.ends_with("/suite"))
+        );
+        let overlay = export_context::overlay(&project, &[prepared]);
+        assert_eq!(
+            overlay.builds[0].settings["test_argv"],
+            serde_json::json!(["suite"])
+        );
+        assert_eq!(
+            fs::read_to_string(root.path().join("data.txt")).unwrap(),
+            "original resource\n"
+        );
+        assert!(!root.path().join("Makefile").exists());
+        assert!(!root.path().join("main.moc").exists());
     }
 }

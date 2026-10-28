@@ -63,7 +63,26 @@ fn bind_inner(
     environment: &BTreeMap<String, String>,
     run_label: &str,
 ) -> Result<BoundCppValidation, String> {
-    let build = crate::cpp::linked_build(project, component)
+    let variant = match kind {
+        ValidationKind::Gcov => Some("coverage"),
+        ValidationKind::Ctest if selected(project, component, run_request, "cpp.coverage") => {
+            Some("coverage")
+        }
+        ValidationKind::Sanitizer => Some("sanitize"),
+        ValidationKind::ThreadSanitizer => Some("thread-sanitize"),
+        _ => None,
+    };
+    let build = variant
+        .and_then(|variant| {
+            component
+                .settings
+                .get("native_build_variants")
+                .and_then(|variants| variants.get(variant))
+        })
+        .and_then(|variant| variant.get("build_id"))
+        .and_then(Value::as_str)
+        .and_then(|id| project.builds.iter().find(|build| build.id == id))
+        .or_else(|| crate::cpp::linked_build(project, component))
         .ok_or_else(|| "C++ runtime checks require a declared component build".to_string())?;
     let directory = crate::files::under(&project.root, build.directory.as_deref().unwrap_or("."));
     regular_directory(&project.root, &directory)?;
@@ -176,17 +195,7 @@ fn bind_inner(
                 "coverage_test_argv",
                 &mut suite,
             )?;
-            let test_selected = ici_domain::builtin_catalog()
-                .checks
-                .iter()
-                .find(|check| check.id == "cpp.test")
-                .is_some_and(|check| {
-                    run_request.wants(check)
-                        && check
-                            .profiles
-                            .contains(&run_request.profile.unwrap_or(project.profile))
-                        && ici_application::plan::configured_check(project, component, check).0
-                });
+            let test_selected = selected(project, component, run_request, "cpp.test");
             let shared = test_selected
                 && (suite_argv(component, build, "coverage_test_argv").is_empty()
                     || suite_argv(component, build, "coverage_test_argv")
@@ -246,7 +255,10 @@ fn bind_inner(
             } else {
                 "thread_sanitize_test_argv"
             };
-            let argv = suite_argv(component, build, field);
+            let mut argv = suite_argv(component, build, field);
+            if argv.is_empty() && variant == Some(build.variant.as_str()) {
+                argv = suite_argv(component, build, "test_argv");
+            }
             validate_argv(&argv)?;
             if argv.is_empty() {
                 return Err(format!(
@@ -273,7 +285,7 @@ fn bind_inner(
                 .insert("readelf".into(), readelf.clone());
             tools.insert(format!("{}:readelf", component.id), readelf);
             tools.insert(
-                format!("{}:instrumented-suite", component.id),
+                format!("{}:{}:instrumented-suite", component.id, kind.provider()),
                 request.tool.clone(),
             );
         }
@@ -308,7 +320,10 @@ fn configure_suite(
     field: &str,
     request: &mut ValidationRequest,
 ) -> Result<(), String> {
-    let argv = suite_argv(component, build, field);
+    let mut argv = suite_argv(component, build, field);
+    if argv.is_empty() && field == "coverage_test_argv" {
+        argv = suite_argv(component, build, "test_argv");
+    }
     validate_argv(&argv)?;
     if !argv.is_empty() {
         request.kind = ValidationKind::Qtest;
@@ -512,4 +527,22 @@ fn validate_argv(argv: &[String]) -> Result<(), String> {
         return Err("suite argv exceeds 256 bounded literal tokens".into());
     }
     Ok(())
+}
+fn selected(
+    project: &ResolvedProject,
+    component: &Component,
+    request: &RunRequest,
+    id: &str,
+) -> bool {
+    ici_domain::builtin_catalog()
+        .checks
+        .iter()
+        .find(|check| check.id == id)
+        .is_some_and(|check| {
+            request.wants(check)
+                && check
+                    .profiles
+                    .contains(&request.profile.unwrap_or(project.profile))
+                && ici_application::plan::configured_check(project, component, check).0
+        })
 }
