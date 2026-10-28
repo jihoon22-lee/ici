@@ -911,3 +911,292 @@ fn actual_qmake_preparation_keeps_generated_units_resources_and_testcase_executa
         assert!(!root.path().join("main.moc").exists());
     }
 }
+
+#[test]
+#[ignore = "explicit owned CMake sanitizer inventory instrumentation and runtime acceptance"]
+fn actual_cmake_sanitizer_proves_test_executables_and_keeps_runtime_defect_locations() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"),"#include <climits>\nint main(int argc,char**){if(argc>1){volatile int value=INT_MAX;return value+1;}return 0;}\n").unwrap();
+    fs::write(root.path().join("CMakeLists.txt"),"cmake_minimum_required(VERSION 3.19)\nproject(sanitizer_fixture LANGUAGES CXX)\nenable_testing()\nadd_executable(suite main.cpp)\nadd_test(NAME \"clean case\" COMMAND suite)\nadd_test(NAME \"overflow case\" COMMAND suite broken)\n").unwrap();
+    let cmake = std::env::var("ICI_TEST_CMAKE").expect("explicit CMake");
+    let ctest = std::env::var("ICI_TEST_CTEST").expect("explicit CTest");
+    let readelf = std::env::var("ICI_TEST_READELF").expect("explicit readelf");
+    let config = runtime_config(
+        &["cpp.sanitize"],
+        &format!(
+            "profile='deep'\n[tools.cmake]\npath={}\n[tools.ctest]\npath={}\n[tools.readelf]\npath={}\n[builds.native]\nsystem='cmake'\nproject='.'\nvariant='sanitize'\nartifacts=['suite']\n",
+            serde_json::to_string(&cmake).unwrap(),
+            serde_json::to_string(&ctest).unwrap(),
+            serde_json::to_string(&readelf).unwrap()
+        ),
+    );
+    // The profile key belongs at the document root, before individual check tables.
+    let config = config
+        .replace("profile='deep'\n", "")
+        .replace("schema_version=2\n", "schema_version=2\nprofile='deep'\n");
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), std::env::var("PATH").unwrap_or_default())]);
+    let project =
+        ici_config::resolve_with_environment(root.path(), None, None, &environment).unwrap();
+    let plan = ici_cli::export_context::plan_preparation(
+        &project,
+        &project.components[0],
+        &environment,
+        std::path::Path::new(env!("CARGO_BIN_EXE_ici")),
+    )
+    .unwrap();
+    let mut scheduler = ici_execution::Scheduler::new(
+        ici_execution::Runner::with_environment(environment.clone()),
+        2,
+    );
+    scheduler.lock_directory = Some(root.path().join(".ici/rust-v1/locks/tasks"));
+    let prepared = ici_cli::export_context::execute_preparation(
+        &plan,
+        &scheduler,
+        &Cancellation::default(),
+        &ici_cli::events::EventLog::default(),
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("ici.toml"),
+        config.replace(
+            "variant='sanitize'\n",
+            &format!("variant='sanitize'\ndirectory='{}'\n", plan.build.shadow),
+        ),
+    )
+    .unwrap();
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let preview = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    let validation = &preview.validations["project.cpp.sanitize"][0];
+    assert_eq!(
+        validation.context.options.sanitizer_suite_kind,
+        Some(ici_validation::ValidationKind::Ctest)
+    );
+    assert_eq!(
+        validation.context.options.instrumented_artifacts,
+        vec![format!("{}/suite", plan.build.shadow)]
+    );
+    assert_eq!(validation.tasks.len(), 3);
+    assert!(validation.tasks[1].argv.last().unwrap().ends_with("/suite"));
+    assert!(validation.tasks[1].argv[0].ends_with("readelf"));
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["project.cpp.sanitize"];
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(
+        output
+            .observation
+            .findings
+            .iter()
+            .any(
+                |finding| finding.rule_id == "ici.sanitize.ubsan.signed-integer-overflow"
+                    && finding.primary_location.path == "main.cpp"
+                    && finding.primary_location.start_line == 2
+            ),
+        "{output:?}"
+    );
+    let evidence = &output.extra["project.cpp.sanitize"];
+    assert_eq!(
+        evidence["sanitizer_test_evidence"]["complete"], true,
+        "{output:?}"
+    );
+    assert_eq!(
+        evidence["sanitizer_scope"]["instrumented_artifacts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(run.result.gate.selected, GateVerdict::Fail);
+    // An empty framework scope must not inherit clean instrumentation as a passing test run.
+    fs::write(
+        root.path()
+            .join(&plan.build.shadow)
+            .join("CTestTestfile.cmake"),
+        "\n",
+    )
+    .unwrap();
+    let empty = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        empty.outputs["project.cpp.sanitize"].observation.state,
+        TaskState::Blocked,
+        "{:?}",
+        empty.outputs
+    );
+    assert_eq!(empty.result.gate.selected, GateVerdict::Incomplete);
+    assert!(prepared.context.complete());
+}
+
+#[test]
+#[ignore = "explicit CMake executable shared static and static-PIE release producer acceptance"]
+fn actual_compiled_producer_preserves_elf_kinds_soname_aliases_and_common_release_publication() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(
+        root.path().join("library.cpp"),
+        "extern \"C\" int value(){return 3;}\n",
+    )
+    .unwrap();
+    fs::write(root.path().join("CMakeLists.txt"),"cmake_minimum_required(VERSION 3.16)\nproject(compiled_fixture LANGUAGES CXX)\nadd_executable(suite main.cpp)\nadd_executable(static_pie main.cpp)\ntarget_link_options(static_pie PRIVATE -static-pie)\nadd_library(shared SHARED library.cpp)\nset_target_properties(shared PROPERTIES VERSION 2.3 SOVERSION 2)\nadd_library(archive STATIC library.cpp)\n").unwrap();
+    let cmake = std::env::var("ICI_TEST_CMAKE").expect("explicit CMake");
+    fs::write(
+        root.path().join("ici.toml"),
+        format!(
+            "schema_version=2\nname='compiled-fixture'\nversion='v1.2.3'\n[tools.cmake]\npath={}\n",
+            serde_json::to_string(&cmake).unwrap()
+        ),
+    )
+    .unwrap();
+    let original = fs::read(root.path().join("main.cpp")).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), std::env::var("PATH").unwrap_or_default())]);
+    let project =
+        ici_config::resolve_with_environment(root.path(), None, None, &environment).unwrap();
+    let component = &project.components[0];
+    let plan = ici_cli::export_context::plan_preparation(
+        &project,
+        component,
+        &environment,
+        std::path::Path::new(env!("CARGO_BIN_EXE_ici")),
+    )
+    .unwrap();
+    let mut scheduler = ici_execution::Scheduler::new(
+        ici_execution::Runner::with_environment(environment.clone()),
+        2,
+    );
+    scheduler.lock_directory = Some(root.path().join(".ici/rust-v1/locks/tasks"));
+    let prepared = ici_cli::export_context::execute_preparation(
+        &plan,
+        &scheduler,
+        &Cancellation::default(),
+        &ici_cli::events::EventLog::default(),
+    )
+    .unwrap();
+    assert!(
+        prepared
+            .artifacts
+            .iter()
+            .all(|path| !path.contains("/CMakeFiles/"))
+    );
+    let sources = ici_cli::export_context::compiled_artifacts(
+        &project,
+        component,
+        std::slice::from_ref(&prepared),
+    )
+    .unwrap();
+    assert!(sources.iter().any(|source| source.path.ends_with("/suite")
+        && source.kind == "executable"
+        && source.destination_name.is_none()));
+    assert!(
+        sources
+            .iter()
+            .any(|source| source.path.ends_with("/static_pie") && source.kind == "executable")
+    );
+    assert!(sources.iter().any(|source|source.path.ends_with("/libarchive.a")&&source.kind=="static-library"));
+    assert!(
+        sources
+            .iter()
+            .any(|source| source.path.ends_with("/libshared.so.2.3")
+                && source.kind == "shared-library"
+                && source.destination_name.as_deref() == Some("libshared.so.2"))
+    );
+    assert!(
+        sources
+            .iter()
+            .all(|source| !source.path.contains("/CMakeFiles/"))
+    );
+    let release = ici_cli::artifact_build::describe_compiled(
+        &project,
+        component,
+        "project.cpp.artifact",
+        &environment,
+        &sources,
+    )
+    .unwrap();
+    assert!(!root.path().join("v1.2.3").exists());
+    let inputs = release
+        .task
+        .input_refs
+        .iter()
+        .map(|path| {
+            std::path::Path::new(path)
+                .strip_prefix(root.path())
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()
+        })
+        .collect::<Vec<_>>();
+    let snapshot = ici_application::snapshot::InputSnapshot::take(
+        root.path(),
+        &inputs,
+        &[],
+        ici_application::snapshot::InputLimits {
+            file_bytes: 256 * 1024 * 1024,
+            total_bytes: 512 * 1024 * 1024,
+        },
+    )
+    .unwrap();
+    let output = ici_cli::artifact_build::execute(&release, &snapshot, &Cancellation::default());
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    let published = root.path().join("v1.2.3/x86_64");
+    assert!(
+        std::process::Command::new(published.join("bin/suite"))
+            .status()
+            .unwrap()
+            .success()
+    );
+    assert!(
+        std::process::Command::new(published.join("bin/static_pie"))
+            .status()
+            .unwrap()
+            .success()
+    );
+    assert_eq!(
+        fs::read(published.join("lib/libshared.so.2")).unwrap(),
+        fs::read(published.join("lib/libshared.so.2.3")).unwrap()
+    );
+    assert!(
+        fs::symlink_metadata(published.join("lib/libshared.so.2"))
+            .unwrap()
+            .is_file()
+    );
+    assert_eq!(fs::read(root.path().join("main.cpp")).unwrap(), original);
+    let mut alias = prepared.clone();
+    alias.plan.declared_build = Some(ici_config::Build {
+        id: plan.build_id.clone(),
+        system: Some("cmake".into()),
+        project: Some("CMakeLists.txt".into()),
+        directory: Some(plan.build.shadow.clone()),
+        variant: "release".into(),
+        prepare: Some("explicit".into()),
+        artifacts: vec!["libshared.so.2".into()],
+        settings: serde_json::json!({}),
+        origin: component.origin.clone(),
+    });
+    let only_alias =
+        ici_cli::export_context::compiled_artifacts(&project, component, &[alias]).unwrap();
+    assert_eq!(only_alias.len(), 1);
+    assert_eq!(
+        only_alias[0].destination_name.as_deref(),
+        Some("libshared.so.2")
+    );
+    let thin = root.path().join(&plan.build.shadow).join("thin.a");
+    fs::write(&thin, b"!<thin>\n").unwrap();
+    assert!(
+        ici_cli::export_context::compiled_artifact_kind(&thin)
+            .unwrap_err()
+            .contains("thin archives")
+    );
+}

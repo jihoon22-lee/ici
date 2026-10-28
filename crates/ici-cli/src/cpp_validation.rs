@@ -260,24 +260,63 @@ fn bind_inner(
                 argv = suite_argv(component, build, "test_argv");
             }
             validate_argv(&argv)?;
-            if argv.is_empty() {
-                return Err(format!(
-                    "{field} must select an existing declared instrumented executable"
-                ));
+            if argv.is_empty() && build.system.as_deref() == Some("cmake") {
+                let inventory = directory.join("CTestTestfile.cmake");
+                regular_file(&project.root, &inventory)?;
+                request.tool = resolve(project, environment, "ctest", None, &directory)?;
+                request.options.sanitizer_suite_kind = Some(ValidationKind::Ctest);
+                request.targets = vec![relative(&project.root, &inventory)?];
+                for path in &artifacts {
+                    let absolute = project.root.join(path);
+                    if crate::export_context::compiled_artifact_kind(&absolute)?
+                        == Some("executable")
+                    {
+                        let artifact = resolve(
+                            project,
+                            environment,
+                            "instrumented-artifact",
+                            Some(absolute),
+                            &directory,
+                        )?;
+                        tools.insert(
+                            format!(
+                                "{}:{}:artifact{}",
+                                component.id,
+                                kind.provider(),
+                                request.options.instrumented_artifacts.len()
+                            ),
+                            artifact,
+                        );
+                        request.options.instrumented_artifacts.push(path.clone());
+                    }
+                }
+                if request.options.instrumented_artifacts.is_empty() {
+                    return Err("CMake sanitizer suite has no declared executable artifacts to prove instrumentation".into());
+                }
+            } else {
+                if argv.is_empty() {
+                    return Err(format!(
+                        "{field} must select an existing declared instrumented executable"
+                    ));
+                }
+                request.tool = executable(
+                    project,
+                    environment,
+                    build,
+                    &artifacts,
+                    &argv[0],
+                    &directory,
+                )?;
+                request.options.argv =
+                    std::iter::once(request.tool.path.to_string_lossy().into_owned())
+                        .chain(argv.into_iter().skip(1))
+                        .collect();
+                request.targets = vec![relative(&project.root, &request.tool.path)?];
+                if build.system.as_deref() == Some("qmake") {
+                    request.options.sanitizer_suite_kind = Some(ValidationKind::Qtest);
+                    request.options.instrumented_artifacts = request.targets.clone();
+                }
             }
-            request.tool = executable(
-                project,
-                environment,
-                build,
-                &artifacts,
-                &argv[0],
-                &directory,
-            )?;
-            request.options.argv =
-                std::iter::once(request.tool.path.to_string_lossy().into_owned())
-                    .chain(argv.into_iter().skip(1))
-                    .collect();
-            request.targets = vec![relative(&project.root, &request.tool.path)?];
             let readelf = resolve(project, environment, "readelf", None, &directory)?;
             request
                 .options
