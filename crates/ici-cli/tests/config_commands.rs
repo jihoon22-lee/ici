@@ -160,3 +160,38 @@ fn native_default_artifacts_do_not_replace_previous_python_results() {
         "old user result, preserved"
     );
 }
+
+#[test]
+fn cache_inventory_explains_corruption_and_clear_preserves_unknown_files() {
+    let root = tempfile::tempdir().unwrap();
+    let cache = root.path().join(".ici/rust-v1/observations");
+    fs::create_dir_all(&cache).unwrap();
+    let corrupt = cache.join(format!("{}.json", "a".repeat(64)));
+    fs::write(&corrupt, "{truncated").unwrap();
+    fs::write(cache.join("user-note.json"), "user data").unwrap();
+    let before = dispatch(
+        &parse(["ici", "cache"]).unwrap(),
+        root.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert!(before.stdout.contains("0 valid, 1 corrupt"));
+    assert!(
+        before
+            .stdout
+            .contains("Invalidated by captured input/configuration bytes")
+    );
+    assert!(corrupt.exists());
+    let cleared = dispatch(
+        &parse(["ici", "cache", "--clear"]).unwrap(),
+        root.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert!(cleared.stdout.contains("removed 1"));
+    assert!(!corrupt.exists());
+    assert_eq!(
+        fs::read_to_string(cache.join("user-note.json")).unwrap(),
+        "user data"
+    );
+}

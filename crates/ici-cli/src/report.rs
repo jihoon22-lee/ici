@@ -93,7 +93,6 @@ pub fn same_file(left: &Path, right: &Path) -> bool {
 pub enum ArtifactKind {
     Html,
     Sarif,
-    Auxiliary,
     Result,
 }
 pub fn artifact_mode(path: &Path, source: &Path, kind: ArtifactKind) -> Result<WriteMode> {
@@ -108,7 +107,6 @@ pub fn artifact_mode(path: &Path, source: &Path, kind: ArtifactKind) -> Result<W
             }),
             ArtifactKind::Sarif => serde_json::from_slice::<serde_json::Value>(&previous)
                 .is_ok_and(|v| v["version"] == "2.1.0" && v["runs"].is_array()),
-            ArtifactKind::Auxiliary => ici_reporting::load_auxiliary(&previous).is_ok(),
             ArtifactKind::Result => StoredResult::from_bytes(&previous).is_ok(),
         };
         if !owned {
@@ -197,12 +195,17 @@ pub fn import(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
             .value("output")
             .unwrap_or(".ici/rust-v1/auxiliary/report.json"),
     );
-    write_artifact(
+    if same_file(&target, &source) {
+        return Err(CliError(
+            "import output must be a new file distinct from its source".into(),
+        ));
+    }
+    storage::atomic_write(
         &target,
         (document.to_json().map_err(error)? + "\n").as_bytes(),
-        &source,
-        ArtifactKind::Auxiliary,
-    )?;
+        WriteMode::CreateNew,
+    )
+    .map_err(error)?;
     Ok(CommandOutput::text(format!(
         "imported {} supporting record(s); gate not evaluated\nwrote {}\n",
         document.records.len(),

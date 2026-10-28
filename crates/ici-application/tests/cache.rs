@@ -90,6 +90,9 @@ fn cached_completion_is_validated_and_corruption_or_unknown_identity_is_not_a_hi
             .to_string()
             .contains("invalid cache")
     );
+    let inventory = cache.inventory(false).unwrap();
+    assert_eq!(inventory.valid_entries, 0);
+    assert_eq!(inventory.corrupt_entries, 1);
 }
 #[test]
 fn clear_is_confined_to_exact_regular_native_entry_names() {
@@ -111,6 +114,8 @@ fn clear_is_confined_to_exact_regular_native_entry_names() {
     .unwrap();
     let stats = cache.inventory(true).unwrap();
     assert_eq!(stats.entries, 1);
+    assert_eq!(stats.valid_entries, 1);
+    assert_eq!(stats.corrupt_entries, 0);
     assert_eq!(stats.unrecognized, 3);
     assert_eq!(fs::read_to_string(external.path()).unwrap(), "outside");
     assert_eq!(

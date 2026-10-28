@@ -140,6 +140,25 @@ fn imported_evidence_is_separate_and_never_changes_gate() {
     )
     .unwrap();
     assert!(output.stdout.contains("gate not evaluated"));
+    let imported_path = dir.path().join(".ici/rust-v1/auxiliary/report.json");
+    let imported = fs::read(&imported_path).unwrap();
+    assert!(
+        commands::dispatch(
+            &call(&[
+                "ici",
+                "import-report",
+                "tests.xml",
+                "--format",
+                "junit",
+                "--scope",
+                "a later job"
+            ]),
+            dir.path(),
+            &BTreeMap::new(),
+        )
+        .is_err()
+    );
+    assert_eq!(fs::read(&imported_path).unwrap(), imported);
     commands::dispatch(
         &call(&[
             "ici",

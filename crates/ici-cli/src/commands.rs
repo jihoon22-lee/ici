@@ -270,7 +270,7 @@ fn cache(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
     };
     let stats = cache.inventory(invocation.flag("clear")).map_err(error)?;
     Ok(CommandOutput::text(format!(
-        "{}: {} {} native observation cache entries ({} bytes); {} unrecognized entries preserved\n",
+        "{}: {} {} native observation cache entries ({} bytes); {} valid, {} corrupt; {} unrecognized entries preserved\nKey contract: ici.native.observation/v1\nInvalidated by captured input/configuration bytes, policy, core and tool executable bytes, effective child environment, provider interpretation and task/build scope. Unproven dependencies and mutating checks are not reused.\n",
         directory.display(),
         if invocation.flag("clear") {
             "removed"
@@ -279,6 +279,8 @@ fn cache(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
         },
         stats.entries,
         stats.bytes,
+        stats.valid_entries,
+        stats.corrupt_entries,
         stats.unrecognized
     )))
 }

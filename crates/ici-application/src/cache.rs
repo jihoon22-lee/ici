@@ -83,6 +83,8 @@ pub struct ObservationCache {
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct CacheStats {
     pub entries: usize,
+    pub valid_entries: usize,
+    pub corrupt_entries: usize,
     pub bytes: u64,
     pub unrecognized: usize,
 }
@@ -270,6 +272,11 @@ impl ObservationCache {
                 continue;
             }
             stats.entries += 1;
+            if inventory_entry_valid(&directory, name, &key) {
+                stats.valid_entries += 1;
+            } else {
+                stats.corrupt_entries += 1;
+            }
             stats.bytes = stats.bytes.saturating_add(metadata.st_size.max(0) as u64);
             if clear {
                 unlinkat(&directory, name, UnlinkatFlags::NoRemoveDir)
@@ -278,6 +285,41 @@ impl ObservationCache {
         }
         Ok(stats)
     }
+}
+
+fn inventory_entry_valid(directory: &std::os::fd::OwnedFd, name: &str, key: &str) -> bool {
+    let read = || -> Option<Entry> {
+        let fd = openat(
+            directory,
+            name,
+            OFlag::O_RDONLY | OFlag::O_NOFOLLOW | OFlag::O_NONBLOCK | OFlag::O_CLOEXEC,
+            Mode::empty(),
+        )
+        .ok()?;
+        let file = File::from(fd);
+        let metadata = file.metadata().ok()?;
+        if !metadata.is_file() || metadata.len() > MAX_CACHE_BYTES as u64 {
+            return None;
+        }
+        let mut bytes = vec![];
+        file.take((MAX_CACHE_BYTES + 1) as u64)
+            .read_to_end(&mut bytes)
+            .ok()?;
+        if bytes.len() > MAX_CACHE_BYTES {
+            return None;
+        }
+        serde_json::from_slice(&bytes).ok()
+    };
+    let Some(entry) = read() else { return false };
+    entry.schema_id == SCHEMA_ID
+        && entry.schema_version == 1
+        && entry.key == key
+        && validation::digest(&entry.core_digest, "cache core identity").is_ok()
+        && entry.observation.validate().is_ok()
+        && entry.observation.evidence_is_complete()
+        && entry.analysis.as_ref().is_none_or(|analysis| {
+            validate_output(analysis).is_ok() && analysis.observation == entry.observation
+        })
 }
 
 fn validate_output(output: &AnalysisOutput) -> Result<()> {

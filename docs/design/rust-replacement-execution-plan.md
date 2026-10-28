@@ -1,5 +1,20 @@
 # ici Rust 전면 교체 실행 계획
 
+### Common command inventory audit (2026-10-29)
+
+- The frozen importer requires a new output even if the existing file is a recognized auxiliary
+  artifact. Native intake now retains that ownership contract; the actual repeat-import regression
+  passed in 6.74 s (`root-import-preservation.log`). Cache inventory again distinguishes valid and
+  corrupt entries and explains invalidation inputs; five cache regressions plus the actual command
+  corruption/clear case passed. Final transitive strict Clippy passed in
+  `root-import-cache-lint-final.log` after an unrelated in-progress lifetime warning was corrected.
+- The common reporting/domain/execution/application/config suites and corresponding strict Clippy
+  passed (`root-common-audit-gates.log`). The 100,000-finding HTML/SARIF debug regression took
+  81.04 s; this is a completeness stress test, not final candidate performance acceptance.
+- `closure/common.json` links four named requirement rows and three complete source-module audits
+  to behavior-specific fixtures. Other command/configuration and whole-cache capability rows remain
+  open; the global inventory is not blanket-closed by this fragment.
+
 ### Native evidence preservation follow-up (2026-10-29)
 
 - Coverage regression policy consumes typed raw ratios only after native baseline compatibility

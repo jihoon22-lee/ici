@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+- `import-report`는 기존 auxiliary 문서도 덮어쓰지 않고 새 출력 파일만 생성합니다.
+  `cache`는 정상·손상 항목 수와 무효화 조건을 표시하며, clear는 사용자 파일·링크·이전 cache를 보존합니다.
+
 - baseline coverage 비교에 실제 분자·분모와 같은 완료 검사 범위를 사용합니다. 허용 하락치를
   넘으면 `--fail-on-new`가 실패하며 일반 검사 gate와 기준선 원본은 유지합니다. 필요한 현재/이전
   coverage 근거가 없으면 비교 불가를 알리고 새 baseline 쓰기를 거부합니다.

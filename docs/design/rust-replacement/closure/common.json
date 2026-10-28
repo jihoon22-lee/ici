@@ -1,0 +1,156 @@
+{
+  "requirements": {
+    "capability:auxiliary-import": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-reporting/src/auxiliary.rs",
+        "crates/ici-reporting/src/sarif_import.rs",
+        "crates/ici-reporting/src/junit_import.rs",
+        "crates/ici-reporting/src/lcov_import.rs",
+        "crates/ici-cli/src/report.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-reporting/tests/imports.rs::supporting_imports_never_claim_an_ici_gate_and_roundtrip_provenance",
+          "crates/ici-reporting/tests/imports.rs::junit_preserves_test_outcomes_failure_text_native_zero_lines_and_empty_suite_scope",
+          "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+        ],
+        "negative": [
+          "crates/ici-reporting/tests/imports.rs::sarif_uri_base_requires_explicit_mapping_and_unicode_columns_are_converted_once",
+          "crates/ici-reporting/tests/imports.rs::external_paths_and_invalid_sarif_shapes_do_not_escape_project_scope"
+        ],
+        "failure": [
+          "crates/ici-reporting/tests/imports.rs::junit_dtd_entities_malformed_xml_and_lcov_incomplete_records_are_refused",
+          "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+        ]
+      },
+      "evidence": [
+        "cargo test -p ici-reporting -p ici-domain -p ici-execution -p ici-application -p ici-config --locked -- --test-threads=2; all passed; strict corresponding all-targets Clippy passed; /tmp/ici-rust-replacement-20261028/root-common-audit-gates.log",
+        "cargo test -p ici-cli --test report_commands imported_evidence_is_separate --locked -- --test-threads=2; repeat import preserves earlier evidence and source/result bytes; /tmp/ici-rust-replacement-20261028/root-import-preservation.log",
+        "cargo clippy -p ici-application -p ici-cli --all-targets --locked -- -D warnings; passed after optional-coverage worker fixed an unrelated needless lifetime; /tmp/ici-rust-replacement-20261028/root-import-cache-lint-final.log"
+      ],
+      "comparison": "Reviewed frozen application/import_report.py, cli/import_report.py and reporting/auxiliary.py including all parser branches, provenance, timezones, byte bounds, output ownership and independent NOT_EVALUATED status. Native imports retain SARIF diagnostics, JUnit statuses/native lines, and LCOV DA records; no tool runs and neither attaching HTML nor import changes saved gate bytes. Existing import outputs remain create-new even when recognized as auxiliary documents.",
+      "difference_reason": "Approved native output namespace is .ici/rust-v1. SARIF uriBaseId must be explicitly mapped or refused instead of silently ignored; native regions/column units remain separate until conversion is justified. Strict duplicate keys, malformed XML, unsafe paths and invalid timestamp rejection strengthens the existing bounded intake without removing valid evidence."
+    },
+    "command:ici import-report": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-reporting/src/auxiliary.rs",
+        "crates/ici-reporting/src/sarif_import.rs",
+        "crates/ici-reporting/src/junit_import.rs",
+        "crates/ici-reporting/src/lcov_import.rs",
+        "crates/ici-cli/src/report.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-reporting/tests/imports.rs::supporting_imports_never_claim_an_ici_gate_and_roundtrip_provenance",
+          "crates/ici-reporting/tests/imports.rs::junit_preserves_test_outcomes_failure_text_native_zero_lines_and_empty_suite_scope",
+          "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+        ],
+        "negative": [
+          "crates/ici-reporting/tests/imports.rs::sarif_uri_base_requires_explicit_mapping_and_unicode_columns_are_converted_once",
+          "crates/ici-reporting/tests/imports.rs::external_paths_and_invalid_sarif_shapes_do_not_escape_project_scope"
+        ],
+        "failure": [
+          "crates/ici-reporting/tests/imports.rs::junit_dtd_entities_malformed_xml_and_lcov_incomplete_records_are_refused",
+          "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+        ]
+      },
+      "evidence": [
+        "cargo test -p ici-reporting -p ici-domain -p ici-execution -p ici-application -p ici-config --locked -- --test-threads=2; all passed; strict corresponding all-targets Clippy passed; /tmp/ici-rust-replacement-20261028/root-common-audit-gates.log",
+        "cargo test -p ici-cli --test report_commands imported_evidence_is_separate --locked -- --test-threads=2; repeat import preserves earlier evidence and source/result bytes; /tmp/ici-rust-replacement-20261028/root-import-preservation.log",
+        "cargo clippy -p ici-application -p ici-cli --all-targets --locked -- -D warnings; passed after optional-coverage worker fixed an unrelated needless lifetime; /tmp/ici-rust-replacement-20261028/root-import-cache-lint-final.log"
+      ],
+      "comparison": "Reviewed frozen application/import_report.py, cli/import_report.py and reporting/auxiliary.py including all parser branches, provenance, timezones, byte bounds, output ownership and independent NOT_EVALUATED status. Native imports retain SARIF diagnostics, JUnit statuses/native lines, and LCOV DA records; no tool runs and neither attaching HTML nor import changes saved gate bytes. Existing import outputs remain create-new even when recognized as auxiliary documents.",
+      "difference_reason": "Approved native output namespace is .ici/rust-v1. SARIF uriBaseId must be explicitly mapped or refused instead of silently ignored; native regions/column units remain separate until conversion is justified. Strict duplicate keys, malformed XML, unsafe paths and invalid timestamp rejection strengthens the existing bounded intake without removing valid evidence."
+    },
+    "wire_schema:ici-auxiliary-v1.schema.json": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-reporting/src/auxiliary.rs",
+        "crates/ici-reporting/src/sarif_import.rs",
+        "crates/ici-reporting/src/junit_import.rs",
+        "crates/ici-reporting/src/lcov_import.rs",
+        "crates/ici-cli/src/report.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-reporting/tests/imports.rs::supporting_imports_never_claim_an_ici_gate_and_roundtrip_provenance",
+          "crates/ici-reporting/tests/imports.rs::junit_preserves_test_outcomes_failure_text_native_zero_lines_and_empty_suite_scope",
+          "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+        ],
+        "negative": [
+          "crates/ici-reporting/tests/imports.rs::sarif_uri_base_requires_explicit_mapping_and_unicode_columns_are_converted_once",
+          "crates/ici-reporting/tests/imports.rs::external_paths_and_invalid_sarif_shapes_do_not_escape_project_scope"
+        ],
+        "failure": [
+          "crates/ici-reporting/tests/imports.rs::junit_dtd_entities_malformed_xml_and_lcov_incomplete_records_are_refused",
+          "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+        ]
+      },
+      "evidence": [
+        "cargo test -p ici-reporting -p ici-domain -p ici-execution -p ici-application -p ici-config --locked -- --test-threads=2; all passed; strict corresponding all-targets Clippy passed; /tmp/ici-rust-replacement-20261028/root-common-audit-gates.log",
+        "cargo test -p ici-cli --test report_commands imported_evidence_is_separate --locked -- --test-threads=2; repeat import preserves earlier evidence and source/result bytes; /tmp/ici-rust-replacement-20261028/root-import-preservation.log",
+        "cargo clippy -p ici-application -p ici-cli --all-targets --locked -- -D warnings; passed after optional-coverage worker fixed an unrelated needless lifetime; /tmp/ici-rust-replacement-20261028/root-import-cache-lint-final.log"
+      ],
+      "comparison": "Reviewed frozen application/import_report.py, cli/import_report.py and reporting/auxiliary.py including all parser branches, provenance, timezones, byte bounds, output ownership and independent NOT_EVALUATED status. Native imports retain SARIF diagnostics, JUnit statuses/native lines, and LCOV DA records; no tool runs and neither attaching HTML nor import changes saved gate bytes. Existing import outputs remain create-new even when recognized as auxiliary documents.",
+      "difference_reason": "Approved native output namespace is .ici/rust-v1. SARIF uriBaseId must be explicitly mapped or refused instead of silently ignored; native regions/column units remain separate until conversion is justified. Strict duplicate keys, malformed XML, unsafe paths and invalid timestamp rejection strengthens the existing bounded intake without removing valid evidence."
+    },
+    "command:ici cache": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/commands.rs",
+        "crates/ici-application/src/cache.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-application/tests/cache.rs::clear_is_confined_to_exact_regular_native_entry_names",
+          "crates/ici-cli/tests/config_commands.rs::cache_inventory_explains_corruption_and_clear_preserves_unknown_files"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/config_commands.rs::cache_clear_refuses_symlink_ancestors_and_preserves_legacy_or_user_files"
+        ],
+        "failure": [
+          "crates/ici-application/tests/cache.rs::cached_completion_is_validated_and_corruption_or_unknown_identity_is_not_a_hit",
+          "crates/ici-application/tests/cache.rs::cache_symlink_ancestor_and_fifo_are_refused_without_following_or_blocking"
+        ]
+      },
+      "evidence": [
+        "cargo test -p ici-application --test cache --locked -- --test-threads=2; five tests passed; /tmp/ici-rust-replacement-20261028/root-cache-audit-gates.log (the following strict check caught unrelated worker WIP; corrected and rechecked separately)",
+        "cargo test -p ici-cli --test config_commands cache_inventory_explains --locked -- --test-threads=2; passed; /tmp/ici-rust-replacement-20261028/root-cache-command.log",
+        "cargo clippy -p ici-application -p ici-cli --all-targets --locked -- -D warnings; passed; /tmp/ici-rust-replacement-20261028/root-import-cache-lint-final.log"
+      ],
+      "comparison": "The command retains read-only count/bytes/corruption inventory, explicit --clear and invalidation explanation. Cache inventory validates bounded stored schema/key/core/completed evidence and rich observations independently of the current core digest. Clearing only exact regular native entry names preserves legacy cache files, unknown files, directories, symlinks and FIFOs. The complete execution-cache correctness capability remains a separate row.",
+      "difference_reason": "R0 explicitly isolates the new cache under .ici/rust-v1/observations. No attempt is made to reuse or erase legacy Python entries. New identity includes actual executable bytes, effective child environment and known closure rather than version strings alone; unknown closure and mutating tasks are not reused."
+    }
+  },
+  "source_files": {
+    "src/ici/application/import_report.py": {
+      "disposition": "mapped",
+      "requirements": [
+        "capability:auxiliary-import",
+        "command:ici import-report",
+        "wire_schema:ici-auxiliary-v1.schema.json"
+      ],
+      "reason": "Reviewed complete frozen module and connected the same import/provenance/ownership/rendering behavior through the native importer and saved-report CLI. The named requirement fixtures cover successful imports, unsupported coordinates, malformed producers, immutable results and create-new output preservation."
+    },
+    "src/ici/cli/import_report.py": {
+      "disposition": "mapped",
+      "requirements": [
+        "capability:auxiliary-import",
+        "command:ici import-report",
+        "wire_schema:ici-auxiliary-v1.schema.json"
+      ],
+      "reason": "Reviewed complete frozen module and connected the same import/provenance/ownership/rendering behavior through the native importer and saved-report CLI. The named requirement fixtures cover successful imports, unsupported coordinates, malformed producers, immutable results and create-new output preservation."
+    },
+    "src/ici/reporting/auxiliary.py": {
+      "disposition": "mapped",
+      "requirements": [
+        "capability:auxiliary-import",
+        "command:ici import-report",
+        "wire_schema:ici-auxiliary-v1.schema.json"
+      ],
+      "reason": "Reviewed complete frozen module and connected the same import/provenance/ownership/rendering behavior through the native importer and saved-report CLI. The named requirement fixtures cover successful imports, unsupported coordinates, malformed producers, immutable results and create-new output preservation."
+    }
+  }
+}
