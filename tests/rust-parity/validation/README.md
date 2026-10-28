@@ -242,3 +242,18 @@ accumulated evidence. The original files remain unchanged. This preserves the
 independent test suite while requiring fresh coverage data before publishing
 counts, and avoids making the mere appearance of newly produced counters look
 like a changed executable/tool binding.
+
+The following artifact acceptance then passed on 2026-10-29: four ordinary CLI
+fixtures (including the frozen original launcher/environment content, broad root
+scope, source retirement, version changes, user data, and version-probe policy),
+actual generated project-callable launcher execution, and actual Git tagged /
+non-repository fallback runs. Strict CLI/validation Clippy passed with these
+changes. A Git probe is visible before native preparation, uses its resolved
+executable identity, and resolves actual output paths before any release write.
+Unavailable unconfigured Git or an actually failed/empty probe uses the historical
+v1.0.0 default with explicit provenance. Broken explicit tools, changed executable
+identity, malformed versions, and cancellation cannot silently select a default.
+Unchanged retired release files keep separate ownership evidence and remain on
+disk; only active artifacts are published in the current release manifest.
+Legacy declared wheel/report publication and shared compiled-artifact export are
+still separate follow-up acceptance work.

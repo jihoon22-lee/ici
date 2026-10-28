@@ -516,6 +516,17 @@ fn rust_python_artifacts_are_planned_read_only_and_preserve_owned_updates_and_us
     );
     let output = &result.outputs["project.python.artifact"];
     assert_eq!(output.targets.len(), 5);
+    let frozen: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/validation/python-artifacts-oracle.json"
+    ))
+    .unwrap();
+    for (path, expected) in frozen["content"].as_object().unwrap() {
+        assert_eq!(
+            fs::read_to_string(root.path().join("v1.2.3/x86_64").join(path)).unwrap(),
+            expected.as_str().unwrap(),
+            "{path}"
+        );
+    }
     let copied = root.path().join("v1.2.3/x86_64/lib/pkg/cli.py");
     let source = root.path().join("src/pkg/cli.py");
     assert_eq!(fs::read(&copied).unwrap(), fs::read(&source).unwrap());
@@ -627,4 +638,270 @@ fn generated_python_launcher_invokes_the_packaged_callable_using_project_runtime
         String::from_utf8_lossy(&output.stderr)
     );
     assert_eq!(String::from_utf8(output.stdout).unwrap(), "packaged-call\n");
+}
+
+#[test]
+fn broad_python_artifact_scope_excludes_verified_releases_and_preserves_retired_sources() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("app.py"), "def main():\n    return 0\n").unwrap();
+    fs::write(root.path().join("retired.py"), "VALUE = 7\n").unwrap();
+    fs::write(
+        root.path().join("pyproject.toml"),
+        "[project]\nname='broad-fixture'\nversion='1'\n[project.scripts]\ndemo='app:main'\n",
+    )
+    .unwrap();
+    write(
+        root.path(),
+        &config(
+            &["python.line"],
+            "[checks.\"python.artifact\"]\nenabled=true\nrequired=true\n",
+            "",
+        )
+        .replace(
+            "sources=['app.py']",
+            "source_dirs=['.']\nsources=['**/*.py']",
+        ),
+    );
+    let first = run(root.path(), &environment());
+    assert_eq!(
+        first.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        first.outputs
+    );
+    let preview = prepare(root.path(), &environment());
+    assert_eq!(
+        preview.project.components[0].files,
+        vec!["app.py", "retired.py"]
+    );
+    fs::remove_file(root.path().join("retired.py")).unwrap();
+    let second = run(root.path(), &environment());
+    assert_eq!(
+        second.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        second.outputs
+    );
+    assert_eq!(
+        fs::read_to_string(root.path().join("v1/x86_64/lib/retired.py")).unwrap(),
+        "VALUE = 7\n"
+    );
+    assert!(
+        ici_cli::artifact_build::owned_outputs(root.path())
+            .unwrap()
+            .contains("v1/x86_64/lib/retired.py")
+    );
+    assert_eq!(
+        prepare(root.path(), &environment()).project.components[0].files,
+        vec!["app.py"]
+    );
+    fs::write(
+        root.path().join("pyproject.toml"),
+        "[project]\nname='broad-fixture'\nversion='2'\n[project.scripts]\ndemo='app:main'\n",
+    )
+    .unwrap();
+    let third = run(root.path(), &environment());
+    assert_eq!(
+        third.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        third.outputs
+    );
+    assert!(root.path().join("v1/x86_64/lib/app.py").is_file());
+    assert!(root.path().join("v2/x86_64/lib/app.py").is_file());
+    let verified = ici_cli::artifact_build::owned_outputs(root.path()).unwrap();
+    assert!(verified.contains("v1/x86_64/lib/app.py"));
+    assert!(verified.contains("v2/x86_64/lib/app.py"));
+    assert_eq!(
+        prepare(root.path(), &environment()).project.components[0].files,
+        vec!["app.py"]
+    );
+    let analyzed = execute::execute(
+        &registry::parse(["ici", "analyze"]).unwrap(),
+        root.path(),
+        &environment(),
+        true,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        analyzed.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        analyzed.outputs
+    );
+    assert!(!analyzed.outputs.contains_key("project.python.artifact"));
+}
+
+#[test]
+fn artifact_version_probe_rejects_changed_tools_and_cancellation_without_writes() {
+    let root = artifact_fixture();
+    let metadata = root.path().join("pyproject.toml");
+    let text = fs::read_to_string(&metadata)
+        .unwrap()
+        .replace("version='1.2.3'\n", "");
+    fs::write(&metadata, text).unwrap();
+    let config_path = root.path().join("ici.toml");
+    let text = fs::read_to_string(&config_path).unwrap() + "\n[tools.git]\npath='/usr/bin/true'\n";
+    fs::write(&config_path, text).unwrap();
+    let project =
+        ici_config::resolve_with_environment(root.path(), None, None, &environment()).unwrap();
+    let plan = ici_cli::artifact_build::describe_with_environment(
+        &project,
+        &project.components[0],
+        "project.python.artifact",
+        &environment(),
+    )
+    .unwrap();
+    let probe = plan.version_probe.as_ref().unwrap();
+    assert_eq!(plan.metadata.version_source, "planned:git-describe");
+    assert!(!root.path().join(".ici").exists());
+    let blocked = ici_execution::TaskOutcome::blocked(&probe.id, "selected executable changed");
+    assert!(ici_cli::artifact_build::apply_version_probe(&plan, &blocked).is_err());
+    let mut outcome = ici_execution::TaskOutcome::empty(&probe.id);
+    outcome.state = TaskState::Succeeded;
+    outcome.exit_code = Some(0);
+    outcome.stdout = b"v2.4.0\n".to_vec();
+    let resolved = ici_cli::artifact_build::apply_version_probe(&plan, &outcome).unwrap();
+    assert_eq!(resolved.metadata.version, "v2.4.0");
+    assert_eq!(resolved.metadata.version_source, "git-describe");
+    assert!(
+        resolved
+            .output_paths
+            .iter()
+            .any(|path| path == "v2.4.0/x86_64/lib/pkg/cli.py")
+    );
+    assert!(
+        resolved
+            .task
+            .output_specs
+            .iter()
+            .all(|path| !path.contains("__git_describe__"))
+    );
+    outcome.stdout = b"invalid/version\n".to_vec();
+    assert!(ici_cli::artifact_build::apply_version_probe(&plan, &outcome).is_err());
+    outcome.stdout = b"v2\n".to_vec();
+    outcome.cancelled = true;
+    assert!(ici_cli::artifact_build::apply_version_probe(&plan, &outcome).is_err());
+    outcome.cancelled = false;
+    outcome.state = TaskState::Failed;
+    outcome.exit_code = None;
+    assert!(ici_cli::artifact_build::apply_version_probe(&plan, &outcome).is_err());
+    outcome.cleanup.group = Some(1234);
+    outcome.timed_out = true;
+    let fallback = ici_cli::artifact_build::apply_version_probe(&plan, &outcome).unwrap();
+    assert_eq!(fallback.metadata.version_source, "fallback:git-failed");
+    assert_eq!(fallback.metadata.version, "v1.0.0");
+    assert!(!fallback.limitations.is_empty());
+    assert!(!root.path().join("v2.4.0").exists());
+    let text = fs::read_to_string(&config_path)
+        .unwrap()
+        .replace("path='/usr/bin/true'", "path='/missing/explicit/git'");
+    fs::write(config_path, text).unwrap();
+    let project =
+        ici_config::resolve_with_environment(root.path(), None, None, &environment()).unwrap();
+    assert!(
+        ici_cli::artifact_build::describe_with_environment(
+            &project,
+            &project.components[0],
+            "project.python.artifact",
+            &environment()
+        )
+        .unwrap_err()
+        .contains("configured Git executable")
+    );
+}
+#[test]
+#[ignore = "explicit native Git version probe and fallback CLI acceptance"]
+fn native_git_version_is_visible_and_resolved_before_any_release_write() {
+    let git =
+        std::env::var("ICI_TEST_GIT").expect("set ICI_TEST_GIT to the explicit Git executable");
+    for tagged in [true, false] {
+        let root = artifact_fixture();
+        let metadata = root.path().join("pyproject.toml");
+        let text = fs::read_to_string(&metadata)
+            .unwrap()
+            .replace("version='1.2.3'\n", "");
+        fs::write(metadata, text).unwrap();
+        let path = root.path().join("ici.toml");
+        fs::write(
+            &path,
+            fs::read_to_string(&path).unwrap() + &format!("\n[tools.git]\npath={}\n", quoted(&git)),
+        )
+        .unwrap();
+        if tagged {
+            let call = |args: &[&str]| {
+                let output = std::process::Command::new(&git)
+                    .args([
+                        "-c",
+                        "init.templateDir=",
+                        "-c",
+                        "core.hooksPath=/dev/null",
+                        "-c",
+                        "user.name=Fixture",
+                        "-c",
+                        "user.email=fixture@example.invalid",
+                        "-c",
+                        "commit.gpgsign=false",
+                        "-c",
+                        "tag.gpgsign=false",
+                    ])
+                    .args(args)
+                    .env_clear()
+                    .env("PATH", "/usr/bin:/bin")
+                    .env("GIT_CONFIG_NOSYSTEM", "1")
+                    .env("GIT_CONFIG_GLOBAL", "/dev/null")
+                    .current_dir(root.path())
+                    .output()
+                    .unwrap();
+                assert!(
+                    output.status.success(),
+                    "{}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            };
+            call(&["init", "-q"]);
+            call(&["commit", "-q", "--allow-empty", "-m", "fixture"]);
+            call(&["tag", "v2.4"]);
+        }
+        let preview = prepare(root.path(), &environment());
+        let planned = &preview.plan.checks[0];
+        assert_eq!(planned.tasks().len(), 2);
+        assert_eq!(planned.tasks()[0].kind, ici_domain::TaskKind::Probe);
+        assert_eq!(
+            &planned.tasks()[0].argv[1..],
+            ["describe", "--tags", "--always"]
+        );
+        assert_eq!(planned.tasks()[1].kind, ici_domain::TaskKind::Prepare);
+        assert!(!root.path().join(".ici").exists());
+        let result = run(root.path(), &environment());
+        assert_eq!(
+            result.result.gate.selected,
+            GateVerdict::Pass,
+            "{:?}",
+            result.outputs
+        );
+        let output = &result.outputs["project.python.artifact"];
+        let expected = if tagged { "v2.4" } else { "v1.0.0" };
+        assert_eq!(output.extra["project_version"], expected);
+        assert_eq!(
+            output.extra["version_source"],
+            if tagged {
+                "git-describe"
+            } else {
+                "fallback:git-failed"
+            }
+        );
+        assert!(
+            root.path()
+                .join(expected)
+                .join("x86_64/lib/pkg/cli.py")
+                .is_file()
+        );
+        assert!(!root.path().join("v__git_describe__").exists());
+        assert_eq!(
+            output.extra["version_probe"]["exit_code"],
+            if tagged { 0 } else { 128 }
+        );
+    }
 }

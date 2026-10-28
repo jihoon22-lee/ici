@@ -3,7 +3,7 @@ use ici_application::snapshot::{InputLimits, InputSnapshot};
 use ici_config::{Component, ResolvedProject};
 use ici_domain::{AnalysisOutput, InspectionTarget, TaskKind, TaskSpec, TaskState, sha256};
 use ici_execution::{
-    Cancellation,
+    Cancellation, TaskOutcome,
     storage::{self, WriteMode},
 };
 use serde::{Deserialize, Serialize};
@@ -21,6 +21,16 @@ pub struct BuildMetadata {
     pub name: String,
     pub version: String,
     pub version_source: String,
+}
+/// Measured producer records for contained compiled outputs; aliases copy canonical bytes.
+#[derive(Clone, Debug)]
+pub struct ArtifactSource {
+    pub path: String,
+    pub kind: String,
+    pub sha256: String,
+    pub size: u64,
+    pub mode: u32,
+    pub destination_name: Option<String>,
 }
 #[derive(Clone, Debug)]
 enum Content {
@@ -43,6 +53,9 @@ pub struct ArtifactBuildPlan {
     pub metadata: BuildMetadata,
     pub output_root: String,
     pub output_paths: Vec<String>,
+    pub version_probe: Option<TaskSpec>,
+    pub limitations: Vec<String>,
+    version_probe_evidence: Option<serde_json::Value>,
     inputs: BTreeMap<String, String>,
     files: Vec<OutputFile>,
     manifest_path: String,
@@ -56,6 +69,8 @@ struct Manifest {
     output_root: String,
     metadata: BuildMetadataRecord,
     files: BTreeMap<String, ManifestFile>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    retired_files: BTreeMap<String, ManifestFile>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -77,6 +92,14 @@ pub fn describe(
     project: &ResolvedProject,
     component: &Component,
     task_id: &str,
+) -> Result<ArtifactBuildPlan, String> {
+    describe_with_environment(project, component, task_id, &BTreeMap::new())
+}
+pub fn describe_with_environment(
+    project: &ResolvedProject,
+    component: &Component,
+    task_id: &str,
+    environment: &BTreeMap<String, String>,
 ) -> Result<ArtifactBuildPlan, String> {
     let base = if component.root == "." {
         project.root.clone()
@@ -176,7 +199,71 @@ pub fn describe(
             .into_owned()
     });
     validate_name(&name)?;
-    let version=version.ok_or_else(||"Python release packaging requires a declared project version; Git fallback needs its visible version probe".to_string())?;
+    let mut limitations = vec![];
+    let mut version_probe = None;
+    let version = if let Some(version) = version {
+        version
+    } else {
+        let explicit = project
+            .tools
+            .get("git")
+            .and_then(|tool| tool.path.as_deref())
+            .map(|path| {
+                if Path::new(path).is_absolute() {
+                    PathBuf::from(path)
+                } else {
+                    project.root.join(path)
+                }
+            });
+        let explicitly_configured = explicit.is_some();
+        match (ici_providers::resolver::ToolRequest {
+            id: "git".into(),
+            explicit,
+            project_root: base.clone(),
+            pack_root: None,
+            path_env: Some(environment.get("PATH").cloned().unwrap_or_default()),
+        })
+        .resolve()
+        {
+            Ok(tool) => {
+                let mut probe = TaskSpec::command(
+                    format!("{task_id}.version"),
+                    "git-describe",
+                    vec![
+                        tool.path.to_string_lossy().into_owned(),
+                        "describe".into(),
+                        "--tags".into(),
+                        "--always".into(),
+                    ],
+                    base.to_string_lossy(),
+                );
+                probe.kind = TaskKind::Probe;
+                probe.timeout_seconds = Some(2.0);
+                probe.output_limit_bytes = Some(8192);
+                probe.tool_digest = Some(tool.digest);
+                probe.analysis_unit_ids = vec![format!("{}.python", component.id)];
+                probe
+                    .env_overlay
+                    .insert("GIT_OPTIONAL_LOCKS".into(), "0".into());
+                probe
+                    .env_overlay
+                    .insert("GIT_TERMINAL_PROMPT".into(), "0".into());
+                version_probe = Some(probe);
+                version_source = "planned:git-describe".into();
+                limitations.push("release version and output paths will be resolved by the visible Git describe probe before preparation".into());
+                "v__git_describe__".into()
+            }
+            Err(error) if explicitly_configured => {
+                return Err(format!("configured Git executable is unavailable: {error}"));
+            }
+            Err(_) => {
+                version_source = "fallback:git-unavailable".into();
+                limitations.push("Git is unavailable; the historical project version default v1.0.0 is used without claiming Git evidence".into());
+                "v1.0.0".into()
+            }
+        }
+    };
+
     let metadata = BuildMetadata {
         name,
         version,
@@ -329,6 +416,9 @@ pub fn describe(
         base.to_string_lossy(),
     );
     task.kind = TaskKind::Prepare;
+    if let Some(probe) = &version_probe {
+        task.depends_on.push(probe.id.clone());
+    }
     task.analysis_unit_ids = vec![format!("{}.python", component.id)];
     task.input_refs = inputs
         .keys()
@@ -366,6 +456,9 @@ pub fn describe(
         metadata,
         output_root,
         output_paths,
+        version_probe,
+        limitations,
+        version_probe_evidence: None,
         inputs,
         files,
         manifest_path,
@@ -378,6 +471,10 @@ pub fn execute(
     cancellation: &Cancellation,
 ) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(&plan.task.id, "ici-python-artifact");
+    output.observation.limitations.clone_from(&plan.limitations);
+    if let Some(probe) = &plan.version_probe_evidence {
+        output.extra["version_probe"] = probe.clone();
+    }
     match execute_inner(plan, snapshot, cancellation, &mut output) {
         Ok(()) => {
             output.summary = format!(
@@ -415,6 +512,11 @@ fn execute_inner(
     cancellation: &Cancellation,
     output: &mut AnalysisOutput,
 ) -> Result<(), String> {
+    if plan.metadata.version_source == "planned:git-describe" {
+        return Err(
+            "release version must be resolved by its visible Git probe before writing".into(),
+        );
+    }
     for (path, digest) in &plan.inputs {
         if snapshot
             .files
@@ -446,6 +548,7 @@ fn execute_inner(
             version_source: plan.metadata.version_source.clone(),
         },
         files: BTreeMap::new(),
+        retired_files: BTreeMap::new(),
     };
     let mut writes = vec![];
     // Complete collision/ownership validation precedes any output creation.
@@ -466,9 +569,12 @@ fn execute_inner(
             }
         }
         let (write, owned) = if let Some(current) = existing.get(&file.path) {
-            let prior = previous
-                .as_ref()
-                .and_then(|manifest| manifest.files.get(&file.path));
+            let prior = previous.as_ref().and_then(|manifest| {
+                manifest
+                    .files
+                    .get(&file.path)
+                    .or_else(|| manifest.retired_files.get(&file.path))
+            });
             if current == &digest {
                 (
                     false,
@@ -495,6 +601,30 @@ fn execute_inner(
             },
         );
         writes.push((file, bytes, write, existing.contains_key(&file.path)));
+    }
+    if let Some(previous) = &previous {
+        let candidates = previous
+            .files
+            .iter()
+            .chain(&previous.retired_files)
+            .filter(|(path, record)| record.owned && !manifest.files.contains_key(*path))
+            .collect::<Vec<_>>();
+        let existing = read_existing(
+            plan,
+            &candidates
+                .iter()
+                .map(|(path, _)| (*path).clone())
+                .collect::<Vec<_>>(),
+        )?;
+        for (path, record) in candidates {
+            if existing.get(path) == Some(&record.sha256)
+                && std::fs::symlink_metadata(plan.root.join(path)).is_ok_and(|metadata| {
+                    metadata.is_file() && metadata.permissions().mode() & 0o777 == record.mode
+                })
+            {
+                manifest.retired_files.insert(path.clone(), record.clone());
+            }
+        }
     }
     for (file, bytes, write, existed) in writes {
         if cancellation.is_cancelled() {
@@ -542,6 +672,7 @@ fn execute_inner(
     let verified = verify_output(plan)?;
     output.extra["artifact_manifests"] = json!([{"producer":"ici.python-artifact","variant":"release","scope":"project","metadata":plan.metadata,"artifacts":manifest.files.iter().map(|(path,record)|json!({"path":path,"kind":record.kind,"sha256":record.sha256,"artifact_id":format!("release:project:{path}"),"owned":record.owned})).collect::<Vec<_>>()}]);
     output.extra["verified_output_paths"] = json!(verified);
+    output.extra["retired_artifacts"] = json!(manifest.retired_files.keys().collect::<Vec<_>>());
     Ok(())
 }
 
@@ -606,6 +737,7 @@ fn read_manifest(plan: &ArtifactBuildPlan) -> Result<Option<Manifest>, String> {
         &snapshot.files[&plan.manifest_path].input.bytes,
     )
     .map_err(|error| format!("artifact ownership manifest is not a valid ici record: {error}"))?;
+    validate_records(&manifest)?;
     if manifest.schema_id != "ici.python-artifacts"
         || manifest.schema_version != 1
         || manifest.component_id != plan.component_id
@@ -654,7 +786,7 @@ fn validate_name(value: &str) -> Result<(), String> {
     if value.is_empty()
         || value == "."
         || value == ".."
-        || value.len() > 128
+        || value.len() > 255
         || !value
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || "._-".contains(c))
@@ -667,7 +799,7 @@ fn validate_name(value: &str) -> Result<(), String> {
 fn normalize_version(value: &str) -> Result<String, String> {
     let value = value.strip_prefix('v').unwrap_or(value);
     if value.is_empty()
-        || value.len() > 128
+        || value.len() > 255
         || !value
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || "._-".contains(c))
@@ -678,7 +810,7 @@ fn normalize_version(value: &str) -> Result<String, String> {
     }
 }
 fn validate_launcher_name(value: &str) -> Result<(), String> {
-    if value.len() > 128
+    if value.len() > 255
         || !value
             .chars()
             .next()
@@ -814,34 +946,13 @@ pub fn owned_outputs(root: &Path) -> Result<BTreeSet<String>, String> {
         {
             return Err("Python artifact manifest identity does not match its filename".into());
         }
-        for (path, record) in &manifest.files {
-            ici_domain::validation::relative_path(path, false)
-                .map_err(|error| error.to_string())?;
-            let local = path
-                .strip_prefix(&format!("{}/", manifest.output_root))
-                .ok_or_else(|| "Python artifact manifest escapes its output root".to_string())?;
-            let valid = match record.kind.as_str() {
-                "python-library" => {
-                    record.mode <= 0o777
-                        && local.starts_with("lib/")
-                        && (local.ends_with(".py") || local.ends_with(".pyi"))
-                }
-                "python-launcher" => {
-                    record.mode == 0o755
-                        && local
-                            .strip_prefix("bin/")
-                            .is_some_and(|name| validate_launcher_name(name).is_ok())
-                }
-                "environment-script" => {
-                    record.mode == 0o755 && matches!(local, "env.sh" | "env.csh")
-                }
-                _ => false,
-            };
-            if !valid {
-                return Err("unrecognized Python artifact file contract".into());
-            }
-        }
-        let paths = manifest.files.keys().cloned().collect::<Vec<_>>();
+        validate_records(&manifest)?;
+        let paths = manifest
+            .files
+            .keys()
+            .chain(manifest.retired_files.keys())
+            .cloned()
+            .collect::<Vec<_>>();
         let snapshot = InputSnapshot::take(root, &paths, &[], InputLimits::default())
             .map_err(|error| error.to_string())?;
         total_bytes = total_bytes
@@ -850,7 +961,7 @@ pub fn owned_outputs(root: &Path) -> Result<BTreeSet<String>, String> {
         if total_bytes > 512 * 1024 * 1024 || outputs.len().saturating_add(paths.len()) > 8192 {
             return Err("Python artifact ownership inventory exceeds 512 MiB or 8192 files".into());
         }
-        for (path, record) in &manifest.files {
+        for (path, record) in manifest.files.iter().chain(&manifest.retired_files) {
             let metadata =
                 std::fs::symlink_metadata(root.join(path)).map_err(|error| error.to_string())?;
             if snapshot.files[path].digest != record.sha256
@@ -866,9 +977,190 @@ pub fn owned_outputs(root: &Path) -> Result<BTreeSet<String>, String> {
             manifest
                 .files
                 .into_iter()
+                .chain(manifest.retired_files)
                 .filter_map(|(path, record)| record.owned.then_some(path)),
         );
         outputs.insert(manifest_path);
     }
     Ok(outputs)
+}
+
+fn validate_records(manifest: &Manifest) -> Result<(), String> {
+    if manifest
+        .files
+        .len()
+        .saturating_add(manifest.retired_files.len())
+        > 4096
+        || manifest
+            .files
+            .keys()
+            .any(|path| manifest.retired_files.contains_key(path))
+    {
+        return Err(
+            "Python artifact ownership membership is ambiguous or exceeds 4096 files".into(),
+        );
+    }
+    for (path, record) in manifest.files.iter().chain(&manifest.retired_files) {
+        ici_domain::validation::relative_path(path, false).map_err(|error| error.to_string())?;
+        let local = path
+            .strip_prefix(&format!("{}/", manifest.output_root))
+            .ok_or_else(|| "Python artifact manifest escapes its output root".to_string())?;
+        let valid = match record.kind.as_str() {
+            "python-library" => {
+                record.mode <= 0o777
+                    && local.starts_with("lib/")
+                    && (local.ends_with(".py") || local.ends_with(".pyi"))
+            }
+            "python-launcher" => {
+                record.mode == 0o755
+                    && local
+                        .strip_prefix("bin/")
+                        .is_some_and(|name| validate_launcher_name(name).is_ok())
+            }
+            "environment-script" => record.mode == 0o755 && matches!(local, "env.sh" | "env.csh"),
+            _ => false,
+        };
+        if !valid {
+            return Err("unrecognized Python artifact file contract".into());
+        }
+    }
+    Ok(())
+}
+
+/// Resolve only the visible probe outcome. This function performs no reads, writes or processes.
+pub fn apply_version_probe(
+    plan: &ArtifactBuildPlan,
+    outcome: &TaskOutcome,
+) -> Result<ArtifactBuildPlan, String> {
+    let probe = plan
+        .version_probe
+        .as_ref()
+        .ok_or_else(|| "this artifact plan has no Git version probe".to_string())?;
+    if outcome.task_id != probe.id {
+        return Err("Git version outcome belongs to a different task".into());
+    }
+    if outcome.cancelled || outcome.state == TaskState::Cancelled {
+        return Err("Git version probe was cancelled".into());
+    }
+    let started = outcome.cleanup.group.is_some()
+        || (outcome.state == TaskState::Succeeded && outcome.exit_code.is_some());
+    if outcome.state == TaskState::Blocked || !started {
+        return Err("Git version probe did not start under its selected executable identity; no fallback was selected".into());
+    }
+    let mut result = plan.clone();
+    result.limitations.retain(|message| {
+        !message.starts_with("release version and output paths will be resolved")
+    });
+    let completed = outcome.state == TaskState::Succeeded
+        && !outcome.timed_out
+        && !outcome.truncated
+        && outcome.signal.is_none()
+        && outcome.exit_code == Some(0);
+    let (version, source) = if completed {
+        let text = std::str::from_utf8(&outcome.stdout)
+            .map_err(|_| "Git version output is not UTF-8".to_string())?
+            .trim();
+        if text.is_empty() {
+            result.limitations.push(
+                "Git describe returned no version; the historical default v1.0.0 is used".into(),
+            );
+            ("v1.0.0".into(), "fallback:git-empty".to_string())
+        } else {
+            (normalize_version(text)?, "git-describe".to_string())
+        }
+    } else {
+        result.limitations.push(format!("Git describe did not complete successfully (state {:?}, exit {:?}); the historical default v1.0.0 is used",outcome.state,outcome.exit_code));
+        ("v1.0.0".into(), "fallback:git-failed".to_string())
+    };
+    let output_root = relative(
+        &plan.root,
+        &Path::new(&plan.task.cwd).join(&version).join("x86_64"),
+    )?;
+    let mut excluded = vec![];
+    result.files.retain(|file| match &file.content {
+        Content::Source(path) if under(path, &output_root) => {
+            excluded.push(path.clone());
+            false
+        }
+        _ => true,
+    });
+    for path in excluded {
+        result.inputs.remove(&path);
+    }
+    if !result
+        .files
+        .iter()
+        .any(|file| matches!(file.content, Content::Source(_)) || file.kind == "python-launcher")
+    {
+        return Err(
+            "no Python library or launcher remains outside the resolved output tree".into(),
+        );
+    }
+    for file in &mut result.files {
+        let local = file
+            .path
+            .strip_prefix(&format!("{}/", plan.output_root))
+            .ok_or_else(|| "planned artifact output is outside its version root".to_string())?;
+        file.path = format!("{output_root}/{local}");
+    }
+    result.output_root = output_root;
+    result.metadata.version = version;
+    result.metadata.version_source = source;
+    let identity = sha256(format!("{}\0{}", result.component_id, result.output_root));
+    result.manifest_path = format!(
+        ".ici/rust-v1/python-artifacts/{}.json",
+        identity.trim_start_matches("sha256:")
+    );
+    result.output_paths = result
+        .files
+        .iter()
+        .map(|file| file.path.clone())
+        .chain(std::iter::once(result.manifest_path.clone()))
+        .collect();
+    if result
+        .output_paths
+        .iter()
+        .any(|path| result.inputs.contains_key(path))
+    {
+        return Err("resolved Python artifact output collides with a captured input".into());
+    }
+    result.task.input_refs = result
+        .inputs
+        .keys()
+        .map(|path| result.root.join(path).to_string_lossy().into_owned())
+        .collect();
+    result.task.output_specs = result
+        .output_paths
+        .iter()
+        .map(|path| result.root.join(path).to_string_lossy().into_owned())
+        .collect();
+    result.task.work_dirs = vec![
+        result
+            .root
+            .join(&result.output_root)
+            .to_string_lossy()
+            .into_owned(),
+        result
+            .root
+            .join(".ici/rust-v1/python-artifacts")
+            .to_string_lossy()
+            .into_owned(),
+    ];
+    result.task.resource_keys = vec![
+        format!("project-execution:{}", result.task.cwd),
+        format!(
+            "python-artifact-root:{}",
+            result.root.join(&result.output_root).display()
+        ),
+    ];
+    result.task.argv.extend([
+        "--project-version".into(),
+        result.metadata.version.clone(),
+        "--version-source".into(),
+        result.metadata.version_source.clone(),
+    ]);
+    result.version_probe_evidence = Some(
+        json!({"task_id":outcome.task_id,"state":outcome.state,"exit_code":outcome.exit_code,"timed_out":outcome.timed_out,"truncated":outcome.truncated,"signal":outcome.signal,"source":result.metadata.version_source,"version":result.metadata.version,"tool_digest":probe.tool_digest}),
+    );
+    Ok(result)
 }
