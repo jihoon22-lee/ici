@@ -175,3 +175,16 @@ at the first statement's definition line and end at the function end, inclusive;
 nested, decorated, async and Unicode functions retain lexical class/qualified
 names for pytest resolution. Twenty-seven native tests, scoped Clippy/fmt and
 both fixed-source oracle scripts passed after this unit.
+
+## Python Type-2 lexical intake
+
+The Python pack now feeds the shared matcher from pinned native lexer tokens.
+The expanded `type2.json` has 25 fixtures: imported API/builtin anchors, physical
+lines, indentation, literals, f-strings/templates, contextual match/case keywords,
+long Unicode identifiers, import-first statement exclusion, semicolons, function
+regions, decorators and CR/LF variants. Tests compare every normalized record and
+the region equivalence partition, then the complete end-to-end clone groups.
+Scope identifiers are internal; equality of scope/segment membership is the
+matching contract. The 500,000-token bound and inherited source/record/comparison
+bounds remain explicit. `min_window` is accepted alongside the shared core's
+`window_size` option. AST semantic shapes remain the next separate unit.

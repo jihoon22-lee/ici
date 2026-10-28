@@ -14,6 +14,7 @@ mod metadata;
 mod metrics;
 mod modules;
 mod parser;
+mod python_duplicates;
 mod resource;
 mod scope;
 mod security;
@@ -154,6 +155,7 @@ impl AnalysisSession {
                 | "type"
                 | "compat"
                 | "source-facts"
+                | "dup"
         ) {
             failure(
                 &mut output,
@@ -297,6 +299,7 @@ impl AnalysisSession {
             "type" => annotations::analyze(request, &files, &mut output, cancellation),
             "compat" => compat::analyze(request, &files, &mut output, cancellation),
             "source-facts" => facts::analyze(&files, &mut output, cancellation),
+            "dup" => python_duplicates::analyze(request, &files, &mut output, cancellation),
             _ => metrics::analyze(request, &files, &mut output, cancellation),
         }
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);

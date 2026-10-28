@@ -2717,6 +2717,336 @@
       ],
       "duplicated_lines": 10,
       "total_code_lines": 17
+    },
+    {
+      "id": "soft-keywords",
+      "window_size": 6,
+      "files": [
+        {
+          "file_path": "main.py",
+          "language": "python",
+          "raw_text": "match = 1\ncase = 2\ntype = 3\nmatch case:\n    case 1:\n        pass\n    case _:\n        pass\n",
+          "indexed": [
+            [
+              1,
+              "ID\u001f=\u001fINT_LIT"
+            ],
+            [
+              2,
+              "ID\u001f=\u001fINT_LIT"
+            ],
+            [
+              3,
+              "ID\u001f=\u001fINT_LIT"
+            ],
+            [
+              4,
+              "match\u001fID\u001f:"
+            ],
+            [
+              5,
+              "INDENT\u001fcase\u001fINT_LIT\u001f:"
+            ],
+            [
+              6,
+              "INDENT\u001fpass"
+            ],
+            [
+              7,
+              "DEDENT\u001fcase\u001fID\u001f:"
+            ],
+            [
+              8,
+              "INDENT\u001fpass"
+            ]
+          ],
+          "regions": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "expected_groups": [],
+      "duplicated_lines": 0,
+      "total_code_lines": 8
+    },
+    {
+      "id": "type-soft-keyword",
+      "window_size": 6,
+      "files": [
+        {
+          "file_path": "main.py",
+          "language": "python",
+          "raw_text": "type Alias[T] = list[T]\n",
+          "indexed": [
+            [
+              1,
+              "ID\u001fID\u001f[\u001fID\u001f]\u001f=\u001fID\u001f[\u001fID\u001f]"
+            ]
+          ],
+          "regions": [
+            [
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "expected_groups": [],
+      "duplicated_lines": 0,
+      "total_code_lines": 1
+    },
+    {
+      "id": "nested-import-indentation",
+      "window_size": 6,
+      "files": [
+        {
+          "file_path": "main.py",
+          "language": "python",
+          "raw_text": "if ready:\n    import os\n    use(os.path)\n",
+          "indexed": [
+            [
+              1,
+              "if\u001fID\u001f:"
+            ],
+            [
+              3,
+              "ID\u001f(\u001fNAME(os)\u001f.\u001fNAME(path)\u001f)"
+            ]
+          ],
+          "regions": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      ],
+      "expected_groups": [],
+      "duplicated_lines": 0,
+      "total_code_lines": 2
+    },
+    {
+      "id": "semicolon-import-statements",
+      "window_size": 6,
+      "files": [
+        {
+          "file_path": "main.py",
+          "language": "python",
+          "raw_text": "import os; value = os.getcwd(); from foo import bar; bar()\n",
+          "indexed": [
+            [
+              1,
+              ";\u001fID\u001f=\u001fNAME(os)\u001f.\u001fNAME(getcwd)\u001f(\u001f)\u001f;\u001f;\u001fNAME(bar)\u001f(\u001f)"
+            ]
+          ],
+          "regions": [
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      ],
+      "expected_groups": [],
+      "duplicated_lines": 0,
+      "total_code_lines": 1
+    },
+    {
+      "id": "numeric-kinds",
+      "window_size": 6,
+      "files": [
+        {
+          "file_path": "main.py",
+          "language": "python",
+          "raw_text": "x = [0xdead,0xFE,0b10,1_000,1e3,2.5,3j,4.0j]\n",
+          "indexed": [
+            [
+              1,
+              "ID\u001f=\u001f[\u001fFLOAT_LIT\u001f,\u001fFLOAT_LIT\u001f,\u001fINT_LIT\u001f,\u001fINT_LIT\u001f,\u001fFLOAT_LIT\u001f,\u001fFLOAT_LIT\u001f,\u001fCOMPLEX_LIT\u001f,\u001fCOMPLEX_LIT\u001f]"
+            ]
+          ],
+          "regions": [
+            [
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "expected_groups": [],
+      "duplicated_lines": 0,
+      "total_code_lines": 1
+    },
+    {
+      "id": "string-kinds",
+      "window_size": 6,
+      "files": [
+        {
+          "file_path": "main.py",
+          "language": "python",
+          "raw_text": "x = [r\"raw\",b\"bytes\",rb\"rawbytes\",u\"unicode\",f\"{value}\",rf\"{value}\"]\n",
+          "indexed": [
+            [
+              1,
+              "ID\u001f=\u001f[\u001fRAW_STRING_LIT\u001f,\u001fBYTES_LIT\u001f,\u001fRAW_BYTES_LIT\u001f,\u001fSTRING_LIT\u001f,\u001fFSTRING_LIT\u001f,\u001fRAW_FSTRING_LIT\u001f]"
+            ]
+          ],
+          "regions": [
+            [
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "expected_groups": [],
+      "duplicated_lines": 0,
+      "total_code_lines": 1
+    },
+    {
+      "id": "template-string-kinds",
+      "window_size": 6,
+      "files": [
+        {
+          "file_path": "main.py",
+          "language": "python",
+          "raw_text": "value = t\"hello {name!r}\"\n",
+          "indexed": [
+            [
+              1,
+              "ID\u001f=\u001fTOKEN_TYPE(62)\u001fTOKEN_TYPE(63)\u001f{\u001fID\u001f!\u001fID\u001f}\u001fTOKEN_TYPE(64)"
+            ]
+          ],
+          "regions": [
+            [
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "expected_groups": [],
+      "duplicated_lines": 0,
+      "total_code_lines": 1
+    },
+    {
+      "id": "long-imported-name",
+      "window_size": 6,
+      "files": [
+        {
+          "file_path": "main.py",
+          "language": "python",
+          "raw_text": "import module as 이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름\n이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름이름.call()\n",
+          "indexed": [
+            [
+              2,
+              "NAME_SHA256(6a0d12863f90b9110d629da9eb325ebb62fab5cf50c3794968f2e5618a30caaf)\u001f.\u001fNAME(call)\u001f(\u001f)"
+            ]
+          ],
+          "regions": [
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      ],
+      "expected_groups": [],
+      "duplicated_lines": 0,
+      "total_code_lines": 1
+    },
+    {
+      "id": "multiline-decorator-boundary",
+      "window_size": 6,
+      "files": [
+        {
+          "file_path": "main.py",
+          "language": "python",
+          "raw_text": "@(\n    decorator\n)\ndef f():\n    return 1\n",
+          "indexed": [
+            [
+              1,
+              "@\u001f("
+            ],
+            [
+              2,
+              "ID"
+            ],
+            [
+              3,
+              ")"
+            ],
+            [
+              4,
+              "def\u001fID\u001f(\u001f)\u001f:"
+            ],
+            [
+              5,
+              "INDENT\u001freturn\u001fINT_LIT"
+            ]
+          ],
+          "regions": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ],
+      "expected_groups": [],
+      "duplicated_lines": 0,
+      "total_code_lines": 5
     }
   ]
 }

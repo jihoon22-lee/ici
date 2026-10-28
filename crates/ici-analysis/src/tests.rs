@@ -209,6 +209,46 @@ fn shared_type2_matcher_preserves_frozen_groups_and_raw_denominators() {
         let mut input = request("dup", "");
         input.options = json!({"window_size":case["window_size"]});
         let output = duplicates::analyze_type2(&input, &files);
+        let mut pipeline = input.clone();
+        pipeline.inputs = files
+            .iter()
+            .map(|file| SourceInput {
+                path: file.file_path.clone(),
+                bytes: file.raw_text.as_bytes().to_vec(),
+            })
+            .collect();
+        pipeline.options["python_semantic"] = json!("off");
+        assert_eq!(
+            analyze(&pipeline).extra["clone_groups"],
+            case["expected_groups"],
+            "{} native Python dispatch",
+            case["id"]
+        );
+        for file in &files {
+            let source = SourceInput {
+                path: file.file_path.clone(),
+                bytes: file.raw_text.as_bytes().to_vec(),
+            };
+            let parsed =
+                ParsedFile::parse(SourceDocument::decode(&source).unwrap(), "3.14").unwrap();
+            let normalized = python_duplicates::normalize(&parsed, None).unwrap();
+            assert_eq!(
+                normalized.indexed, file.indexed,
+                "{}:{} lexical records",
+                case["id"], file.file_path
+            );
+            for first in 0..file.regions.len() {
+                for second in first..file.regions.len() {
+                    assert_eq!(
+                        normalized.regions[first] == normalized.regions[second],
+                        file.regions[first] == file.regions[second],
+                        "{}:{} region partition {first}/{second}",
+                        case["id"],
+                        file.file_path
+                    );
+                }
+            }
+        }
         assert_eq!(
             output.observation.state,
             TaskState::Succeeded,

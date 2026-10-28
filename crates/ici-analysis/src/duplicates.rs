@@ -466,7 +466,7 @@ pub(crate) fn analyze_inner(
                 );
             }
         }
-        let size = option(request, "window_size", 6)?;
+        let size = option(request, "window_size", option(request, "min_window", 6)?)?;
         if size == 0 {
             return Err("window_size must be a positive integer".into());
         }
