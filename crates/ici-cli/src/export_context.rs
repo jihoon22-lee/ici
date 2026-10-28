@@ -1,11 +1,13 @@
 //! Explicit native preparation and minimal compilation exports. Planning performs no processes.
 mod artifact_facts;
+mod public_export;
 pub use artifact_facts::{compiled_artifact_kind, compiled_artifacts};
 use ici_config::{Build, Component, ResolvedProject};
 use ici_cpp::{BuildLease, BuildPlan, BuildRequest, CompilationContext, ContextRequest};
 use ici_domain::sha256;
 use ici_execution::{Cancellation, Scheduler};
 use ici_providers::resolver::{ResolvedTool, ToolRequest};
+pub use public_export::{ExportMetadata, compilation_export_payload, render_compilation_export};
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,

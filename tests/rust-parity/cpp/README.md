@@ -90,3 +90,13 @@ remains explicitly unsupported, matching the prior contract's narrow claim.
 Application/CLI task orchestration, runtime test/coverage/sanitizer verdicts, artifact
 publication and the final migration inventory are verified by their owning layers;
 these pure adapters do not independently claim whole-product acceptance.
+
+`compilation-export-oracle.json` contains ten complete standalone v1 payloads
+captured from the same frozen Python commit by `capture_compilation_export.py`.
+The native CLI test compares every field and digest after normalizing only the
+producer version. Cases retain compiler wrappers, MSVC command style, ordered
+undefines, opaque flags, target triples, secret definitions and external
+include/sysroot limitations. Additional native tests prove relocation-stable
+semantic digests, process-free reading even with unavailable component sources,
+input-preserving atomic output, explicit database failure, and actual canonical
+CMake/Qt 5/Qt 6 preparation. The Rust command never invokes the oracle script.
