@@ -211,10 +211,10 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 
 ### R0 실행 근거와 구현 경계
 
-- 19/36뿐 아니라 37 CLI nodes·115 parameters·319 config keys·271 rule/metric 생성 지점,
+- 19/36뿐 아니라 37 CLI nodes·115 parameters·322 config keys·271 rule/metric 생성 지점,
   25 별도 계약·6 schema·291 source-file audit를 고정 Git 객체로 수집했다.
   `scripts/rust_migration_inventory.py --check --self-test` 통과. `--require-closed`는
-  미완료 1135개 행을 거부한다. 이 거부를 gate 완화로 없애지 않는다.
+  미완료 1138개 행을 거부한다. 이 거부를 gate 완화로 없애지 않는다.
 - parser 37 native fixture 및 CPython 3.10–3.14 oracle 비교, static PIE/Python 없는 PATH
   실행·trace 검증 완료. native Ruff/ty 8개, system/private CA/proxy TLS 12개 fixture 통과.
 - 고정 source의 plan/doctor/publish와 cold/warm analyze/report를 실제 실행하고 JSON·시간·RSS를

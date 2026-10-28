@@ -554,7 +554,9 @@ def config_key_rows(source: Source) -> list[dict[str, Any]]:
             if not isinstance(field, ast.AnnAssign) or not isinstance(field.target, ast.Name):
                 continue
             name = field.target.id
-            if name in {"origin", "path", "component_id"}:
+            if name in {"origin", "component_id"} or (
+                name == "path" and node.name in {"RootDocument", "ComponentDocument"}
+            ):
                 continue
             if name == "id" and node.name in {"ToolSetting", "BuildDeclaration", "CheckSetting"}:
                 continue
@@ -1060,6 +1062,13 @@ def self_test() -> None:
     assert option["flags"] == ["--output", "-o"]
     assert option["option_source"]["path"] == "src/ici/flags.py"
     assert option["option_source"]["line"] == 1
+    config_keys = {item["facts"]["key"] for item in config_key_rows(read_oracle())}
+    assert {
+        "tools.*.path",
+        "suppressions[].path",
+        "components[].integrations[].output_artifacts[].path",
+    } <= config_keys
+    assert "path" not in config_keys  # Document.path is reader metadata, not user configuration.
     document = {"requirements": commands, "source_files": []}
     validate(document)
     try:

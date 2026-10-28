@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+- 전환 원장 수집기에서 사용자 설정의 `path`와 문서 메타데이터의 `path`를 구분해
+  도구·suppression·integration 출력 경로 세 키가 누락되지 않도록 고칩니다.
+
 - Rust 단일 제품 전환을 승인된 R0–R9 계획으로 시작합니다. Python 유지/CPython bundle
   결정은 새 제품에 대해 ADR-0008로 대체하며 기존 공개 Python 제품의 gate는 단일
   cutover 인수 전까지 유지합니다. 현재 내부 개발은 새 stable 배포 완료를 의미하지 않습니다.

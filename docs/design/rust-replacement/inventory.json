@@ -6,7 +6,7 @@
       "command": 36,
       "command_group": 1,
       "config": 131,
-      "config_key": 319,
+      "config_key": 322,
       "descriptor": 19,
       "finding_site": 271,
       "wire_schema": 6
@@ -18061,6 +18061,36 @@
     {
       "facts": {
         "default": null,
+        "key": "components[].integrations[].output_artifacts[].path",
+        "model": "IntegrationOutputBody",
+        "schema": "next-v1",
+        "type": "DeclaredPath | None"
+      },
+      "id": "config_key:next-v1:components[].integrations[].output_artifacts[].path",
+      "kind": "config_key",
+      "migration": {
+        "comparison": null,
+        "difference_reason": null,
+        "evidence": [],
+        "fixtures": {
+          "failure": [],
+          "negative": [],
+          "positive": []
+        },
+        "rust_paths": [],
+        "status": "not_started"
+      },
+      "sources": [
+        {
+          "line": 168,
+          "path": "src/ici/config/documents.py",
+          "symbol": null
+        }
+      ]
+    },
+    {
+      "facts": {
+        "default": null,
         "key": "components[].integrations[].python_targets",
         "model": "IntegrationCaseBody",
         "schema": "next-v1",
@@ -19051,6 +19081,36 @@
     {
       "facts": {
         "default": null,
+        "key": "suppressions[].path",
+        "model": "SuppressionBody",
+        "schema": "next-v1",
+        "type": "Sourced[str] | None"
+      },
+      "id": "config_key:next-v1:suppressions[].path",
+      "kind": "config_key",
+      "migration": {
+        "comparison": null,
+        "difference_reason": null,
+        "evidence": [],
+        "fixtures": {
+          "failure": [],
+          "negative": [],
+          "positive": []
+        },
+        "rust_paths": [],
+        "status": "not_started"
+      },
+      "sources": [
+        {
+          "line": 78,
+          "path": "src/ici/config/documents.py",
+          "symbol": null
+        }
+      ]
+    },
+    {
+      "facts": {
+        "default": null,
         "key": "suppressions[].reason",
         "model": "SuppressionBody",
         "schema": "next-v1",
@@ -19163,6 +19223,36 @@
       "sources": [
         {
           "line": 112,
+          "path": "src/ici/config/documents.py",
+          "symbol": null
+        }
+      ]
+    },
+    {
+      "facts": {
+        "default": null,
+        "key": "tools.*.path",
+        "model": "ToolSetting",
+        "schema": "next-v1",
+        "type": "DeclaredPath | None"
+      },
+      "id": "config_key:next-v1:tools.*.path",
+      "kind": "config_key",
+      "migration": {
+        "comparison": null,
+        "difference_reason": null,
+        "evidence": [],
+        "fixtures": {
+          "failure": [],
+          "negative": [],
+          "positive": []
+        },
+        "rust_paths": [],
+        "status": "not_started"
+      },
+      "sources": [
+        {
+          "line": 113,
           "path": "src/ici/config/documents.py",
           "symbol": null
         }
