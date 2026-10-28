@@ -121,6 +121,23 @@ fn actual_recorded_variants_keep_diagnostic_unit_ownership_without_python() {
             .count(),
         2
     );
+    let moved = fixture();
+    let relocated = execute::execute(
+        &invocation,
+        moved.path(),
+        &environment,
+        true,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        run.result.findings[0].analysis_unit_id,
+        relocated.result.findings[0].analysis_unit_id
+    );
+    assert_eq!(
+        run.result.findings[0].fingerprint,
+        relocated.result.findings[0].fingerprint
+    );
 }
 
 fn runtime_config(selected: &[&str], extra: &str) -> String {

@@ -295,11 +295,148 @@ fn parse_row(
     }
     unit.configuration = ici_domain::sha256(
         ici_domain::canonical_json(
-            &json!({"directory":unit.directory,"argv":unit.argv,"output":unit.output}),
+            &json!({"source":unit.source,"directory":unit.directory,"argv":configuration_arguments(root,&cwd,&unit.argv),"output":unit.output,"variant":unit.variant}),
         )
         .map_err(|e| CppError::new("identity", e.to_string()))?,
     );
     Ok(unit)
+}
+
+/// Normalize only path operands and workspace absolute values. External roots, option ordering,
+/// compiler choices, literal macro values and the configured variant remain distinct identities.
+fn configuration_arguments(root: &Path, cwd: &Path, argv: &[String]) -> Vec<String> {
+    let mut result = vec![];
+    let mut index = 0;
+    const PATH_VALUES: &[&str] = &[
+        "-I",
+        "-isystem",
+        "-idirafter",
+        "-iquote",
+        "-include-pch",
+        "-include",
+        "-imacros",
+        "-isysroot",
+        "--sysroot",
+        "-o",
+        "-MF",
+        "-MJ",
+        "-L",
+        "-F",
+        "-B",
+        "-iframework",
+        "-resource-dir",
+    ];
+    const JOINED: &[&str] = &[
+        "-include-pch=",
+        "-include-pch",
+        "-resource-dir=",
+        "-resource-dir",
+        "--sysroot=",
+        "-isystem",
+        "-idirafter",
+        "-iquote",
+        "-isysroot",
+        "-iframework",
+        "-imacros=",
+        "-imacros",
+        "-include=",
+        "-include",
+        "-MF",
+        "-MJ",
+        "-I",
+        "-L",
+        "-F",
+        "-B",
+        "-o",
+    ];
+    while index < argv.len() {
+        let argument = &argv[index];
+        if PATH_VALUES.contains(&argument.as_str())
+            && let Some(value) = argv.get(index + 1)
+        {
+            result.extend([argument.clone(), configuration_path(root, cwd, value)]);
+            index += 2;
+            continue;
+        }
+        if let Some((prefix, value)) = JOINED.iter().find_map(|prefix| {
+            argument
+                .strip_prefix(prefix)
+                .filter(|value| !value.is_empty())
+                .map(|value| (*prefix, value))
+        }) {
+            result.push(format!("{prefix}{}", configuration_path(root, cwd, value)));
+            index += 1;
+            continue;
+        }
+        let normalized = if let Some((prefix, value)) = [
+            "-ffile-prefix-map=",
+            "-fdebug-prefix-map=",
+            "-fmacro-prefix-map=",
+        ]
+        .iter()
+        .find_map(|prefix| argument.strip_prefix(prefix).map(|value| (*prefix, value)))
+        {
+            let value = value
+                .split_once('=')
+                .map(|(from, to)| {
+                    format!(
+                        "{}={}",
+                        configuration_absolute(root, cwd, from),
+                        configuration_absolute(root, cwd, to)
+                    )
+                })
+                .unwrap_or_else(|| value.into());
+            format!("{prefix}{value}")
+        } else if argument.starts_with("-Wl,") || argument.starts_with("-Wp,") {
+            argument
+                .split(',')
+                .map(|part| configuration_absolute(root, cwd, part))
+                .collect::<Vec<_>>()
+                .join(",")
+        } else if argument.starts_with('-')
+            && let Some((key, value)) = argument.split_once('=')
+        {
+            format!("{key}={}", configuration_absolute(root, cwd, value))
+        } else if index == 0 && argument.contains('/')
+            || !argument.starts_with('-')
+                && (argument.contains('/') || Path::new(argument).is_absolute())
+        {
+            configuration_path(root, cwd, argument)
+        } else {
+            argument.clone()
+        };
+        result.push(normalized);
+        index += 1;
+    }
+    result
+}
+fn configuration_absolute(root: &Path, cwd: &Path, value: &str) -> String {
+    let (quote, raw) = if value.len() > 1
+        && value.starts_with(['\'', '"'])
+        && value.as_bytes().first() == value.as_bytes().last()
+    {
+        (&value[..1], &value[1..value.len() - 1])
+    } else {
+        ("", value)
+    };
+    if Path::new(raw).is_absolute() {
+        format!("{quote}{}{quote}", configuration_path(root, cwd, raw))
+    } else {
+        value.into()
+    }
+}
+fn configuration_path(root: &Path, cwd: &Path, value: &str) -> String {
+    match scoped(root, cwd, value) {
+        Ok((path, scope, _)) if scope == "project" => {
+            if path == "." {
+                "${workspace}".into()
+            } else {
+                format!("${{workspace}}/{path}")
+            }
+        }
+        Ok((path, _, _)) => path,
+        Err(_) => value.into(),
+    }
 }
 
 pub fn is_translation_unit(path: &str) -> bool {

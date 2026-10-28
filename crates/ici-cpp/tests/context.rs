@@ -23,6 +23,108 @@ fn request() -> ContextRequest {
 }
 
 #[test]
+fn configuration_identity_survives_relocation_but_preserves_external_compiler_flags_and_variants() {
+    let first = tempfile::tempdir().unwrap();
+    let second = tempfile::tempdir().unwrap();
+    let external = tempfile::tempdir().unwrap();
+    let build = |root: &Path, include: &Path, compiler: &str, variant: &str, define: &str| {
+        fs::write(root.join("main.cpp"), "int value;\n").unwrap();
+        fs::write(root.join("forced.hpp"), "#pragma once\n").unwrap();
+        for path in [
+            root.join("include"),
+            root.join("build/generated"),
+            root.join("sysroot"),
+        ] {
+            fs::create_dir_all(path).unwrap();
+        }
+        let argv = vec![
+            compiler.to_owned(),
+            "-I".into(),
+            include.to_string_lossy().into_owned(),
+            format!("-isystem{}", root.join("build/generated").display()),
+            "-include".into(),
+            root.join("forced.hpp").to_string_lossy().into_owned(),
+            format!("--sysroot={}", root.join("sysroot").display()),
+            format!("-DROOT=\"{}\"", root.join("assets").display()),
+            format!("-DLABEL={define}"),
+            format!("-ffile-prefix-map={}=/source", root.display()),
+            "-c".into(),
+            root.join("main.cpp").to_string_lossy().into_owned(),
+            "-o".into(),
+            root.join("build/main.o").to_string_lossy().into_owned(),
+        ];
+        database(
+            root,
+            json!([{"directory":root,"file":root.join("main.cpp"),"arguments":argv}]),
+        );
+        let context = load_compilation_context(
+            root,
+            &ContextRequest {
+                variant: Some(variant.into()),
+                ..request()
+            },
+        );
+        assert!(context.complete(), "{:?}", context);
+        context.units[0].configuration.clone()
+    };
+    let one = build(
+        first.path(),
+        &first.path().join("include"),
+        "/compiler/version15/g++",
+        "release",
+        "literal",
+    );
+    let two = build(
+        second.path(),
+        &second.path().join("include"),
+        "/compiler/version15/g++",
+        "release",
+        "literal",
+    );
+    assert_eq!(one, two);
+    assert_ne!(
+        one,
+        build(
+            second.path(),
+            external.path(),
+            "/compiler/version15/g++",
+            "release",
+            "literal"
+        )
+    );
+    assert_ne!(
+        one,
+        build(
+            second.path(),
+            &second.path().join("include"),
+            "/compiler/version16/g++",
+            "release",
+            "literal"
+        )
+    );
+    assert_ne!(
+        one,
+        build(
+            second.path(),
+            &second.path().join("include"),
+            "/compiler/version15/g++",
+            "coverage",
+            "literal"
+        )
+    );
+    assert_ne!(
+        one,
+        build(
+            second.path(),
+            &second.path().join("include"),
+            "/compiler/version15/g++",
+            "release",
+            "changed"
+        )
+    );
+}
+
+#[test]
 fn original_and_expanded_arguments_keep_macro_include_variant_and_response_identity() {
     let root = tempfile::tempdir().unwrap();
     fs::write(root.path().join("main.cpp"), "int value;\n").unwrap();
