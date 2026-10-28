@@ -80,6 +80,8 @@ fn transfer(state: &mut State, expression: Option<&Expr>) {
 }
 struct FlowAnalyzer<'a> {
     file: &'a ParsedFile,
+    cancellation: Option<&'a std::sync::atomic::AtomicBool>,
+    interrupted: bool,
     acquisitions: BTreeMap<usize, Acquisition>,
     next_id: usize,
 }
@@ -202,6 +204,10 @@ impl FlowAnalyzer<'_> {
         let mut live = Some(initial);
         let mut exits = vec![];
         for statement in statements {
+            if crate::cancellation_requested(self.cancellation) {
+                self.interrupted = true;
+                break;
+            }
             let Some(state) = live else {
                 break;
             };
@@ -414,6 +420,9 @@ impl FlowAnalyzer<'_> {
     }
     fn analyze(&mut self, body: &[Stmt]) -> Vec<InspectionTarget> {
         let flow = self.suite(body, State::default());
+        if self.interrupted {
+            return Vec::new();
+        }
         let mut states: Vec<State> = flow.live.into_iter().collect();
         states.extend(flow.exits.into_iter().map(|(_, state)| state));
         let final_ = merge(states).unwrap_or_default();
@@ -464,12 +473,20 @@ const MUTABLE_EXPLANATION: &str = "Python evaluates a default value once when th
 const MUTABLE_REMEDIATION: &str =
     "Use None as the default and construct a fresh value inside the function.";
 
-pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mut AnalysisOutput) {
+pub fn analyze(
+    request: &AnalysisRequest,
+    files: &[Arc<ParsedFile>],
+    output: &mut AnalysisOutput,
+    cancellation: Option<&std::sync::atomic::AtomicBool>,
+) {
     let (mut acquisitions, mut defaults, mut ast_nodes, mut checked) =
         (0usize, 0usize, 0usize, 0usize);
     let mut all_issues = vec![];
     let mut legacy_issues = vec![];
     for file in files {
+        if crate::cancelled(output, cancellation) {
+            break;
+        }
         let nodes = cpython_node_count(file);
         if nodes > 100_000 {
             failure(
@@ -482,7 +499,6 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
             );
             continue;
         }
-        checked += 1;
         ast_nodes += nodes;
         let function_nodes = functions(file);
         let mut bodies = vec![file.body()];
@@ -493,8 +509,13 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
         );
         let mut targets = vec![];
         for body in bodies {
+            if crate::cancelled(output, cancellation) {
+                break;
+            }
             let mut flow = FlowAnalyzer {
                 file,
+                cancellation,
+                interrupted: false,
                 acquisitions: BTreeMap::new(),
                 next_id: acquisitions,
             };
@@ -502,6 +523,9 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
             acquisitions = flow.next_id;
         }
         for function in function_nodes {
+            if crate::cancelled(output, cancellation) {
+                break;
+            }
             for parameter in function.parameters.iter_non_variadic_params() {
                 let Some(default) = &parameter.default else {
                     continue;
@@ -567,6 +591,10 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
             legacy_issues.push(json!({"target":target,"category":category,"confidence":confidence,"explanation":explanation,"remediation":remediation}));
             all_issues.push(target);
         }
+        if crate::cancelled(output, cancellation) {
+            break;
+        }
+        checked += 1;
         let mut target = InspectionTarget::at(&file.source.path, 1);
         target.target_name = "Resource:ASTFlow".into();
         target.message = "Bounded intraprocedural resource-flow analysis completed".into();
@@ -590,5 +618,6 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
     } else {
         format!("Resource/correctness analysis clean across {checked} file(s)")
     };
+    crate::cancelled(output, cancellation);
     finish_status(output, request);
 }

@@ -1,11 +1,11 @@
 //! Strict, immutable Python source decoding and checked Unicode locations.
 use ici_domain::{InspectionTarget, SourceInput, SourceSpan};
-use regex::Regex;
+use regex::bytes::Regex;
 use ruff_text_size::TextRange;
 use std::sync::LazyLock;
 
-pub const MAX_SOURCE_BYTES: usize = 8 * 1024 * 1024;
-pub const MAX_TOTAL_BYTES: usize = 64 * 1024 * 1024;
+pub const MAX_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+pub const MAX_TOTAL_BYTES: usize = 512 * 1024 * 1024;
 pub const MAX_SOURCES: usize = 2048;
 
 #[derive(Clone, Debug)]
@@ -35,7 +35,8 @@ pub struct SourceDocument {
     raw_offsets: Option<Vec<(usize, usize)>>,
 }
 static COOKIE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^[ \t\x0c]*#.*?coding[:=][ \t]*([-\w.]+)").expect("constant encoding regex")
+    Regex::new(r"(?-u)^[ \t\x0c]*#.*?coding[:=][ \t]*([-A-Za-z0-9_.]+)")
+        .expect("constant encoding regex")
 });
 
 impl SourceDocument {
@@ -56,29 +57,45 @@ impl SourceDocument {
         if input.bytes.len() > MAX_SOURCE_BYTES {
             return Err(SourceError::new(
                 "source-limit",
-                "Source exceeds the 8 MiB analysis bound",
+                "Source exceeds the 16 MiB analysis bound",
             ));
         }
         let bom_bytes = usize::from(input.bytes.starts_with(&[0xef, 0xbb, 0xbf])) * 3;
         let bytes = &input.bytes[bom_bytes..];
         // Headers are bytes in the Python source encoding; ASCII cookie spelling is invariant.
         let mut encoding = "utf-8".to_owned();
-        let header_text: String = bytes.iter().map(|byte| char::from(*byte)).collect();
-        let header_text = header_text.replace("\r\n", "\n").replace('\r', "\n");
-        for line in header_text.lines().take(
-            if input.path.ends_with(".py") || input.path.ends_with(".pyi") {
-                2
-            } else {
-                0
-            },
-        ) {
-            let header = line;
-            if let Some(capture) = COOKIE.captures(&header) {
-                encoding = capture[1].to_ascii_lowercase().replace('_', "-");
-                break;
-            }
-            if !header.trim_start().starts_with('#') && !header.trim().is_empty() {
-                break;
+        if input.path.ends_with(".py") || input.path.ends_with(".pyi") {
+            let mut offset = 0usize;
+            for _ in 0..2 {
+                let end = bytes[offset..]
+                    .iter()
+                    .position(|byte| matches!(byte, b'\r' | b'\n'))
+                    .map_or(bytes.len(), |position| offset + position);
+                let header = &bytes[offset..end];
+                if let Some(capture) = COOKIE.captures(header) {
+                    encoding = std::str::from_utf8(&capture[1])
+                        .expect("ASCII encoding label")
+                        .to_ascii_lowercase()
+                        .replace('_', "-");
+                    break;
+                }
+                if header
+                    .iter()
+                    .find(|byte| !matches!(byte, b' ' | b'\t' | b'\x0c'))
+                    .is_some_and(|byte| *byte != b'#')
+                    || end == bytes.len()
+                {
+                    break;
+                }
+                offset = end
+                    + if bytes[end] == b'\r' && bytes.get(end + 1) == Some(&b'\n') {
+                        2
+                    } else {
+                        1
+                    };
+                if offset >= bytes.len() {
+                    break;
+                }
             }
         }
         let utf8 = matches!(encoding.as_str(), "utf-8" | "utf8" | "utf-8-sig");
@@ -119,7 +136,7 @@ impl SourceDocument {
         ) {
             let windows = matches!(encoding.as_str(), "cp1252" | "windows-1252");
             let mut text = String::new();
-            let mut offsets = Vec::with_capacity(bytes.len() + 1);
+            let mut offsets = Vec::with_capacity(bytes.len() / 128 + 2);
             const CP1252: [u32; 32] = [
                 0x20ac, 0, 0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021, 0x02c6, 0x2030, 0x0160,
                 0x2039, 0x0152, 0, 0x017d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013,
@@ -137,7 +154,12 @@ impl SourceDocument {
                         "Source contains an undefined CP1252 byte",
                     ));
                 }
-                offsets.push((text.len(), index + bom_bytes));
+                if offsets
+                    .last()
+                    .is_none_or(|(decoded, _)| text.len() - decoded >= 256)
+                {
+                    offsets.push((text.len(), index + bom_bytes));
+                }
                 text.push(char::from_u32(value).expect("single-byte codec scalar"));
             }
             offsets.push((text.len(), input.bytes.len()));
@@ -220,10 +242,12 @@ impl SourceDocument {
         }
         match &self.raw_offsets {
             None => Some(decoded + self.bom_bytes),
-            Some(map) => map
-                .binary_search_by_key(&decoded, |item| item.0)
-                .ok()
-                .map(|index| map[index].1),
+            Some(map) => {
+                let index = map
+                    .partition_point(|item| item.0 <= decoded)
+                    .saturating_sub(1);
+                Some(map[index].1 + self.text[map[index].0..decoded].chars().count())
+            }
         }
     }
     pub fn snippet(&self, range: TextRange, max_lines: usize) -> String {
@@ -235,16 +259,11 @@ impl SourceDocument {
             .collect::<Vec<_>>()
             .join("\n")
     }
-    pub fn lines(&self) -> Vec<&str> {
-        let mut lines = self.text.split_inclusive(['\r', '\n']).peekable();
-        let mut result = Vec::new();
-        while let Some(line) = lines.next() {
-            if line.ends_with('\r') && lines.peek() == Some(&"\n") {
-                lines.next();
-            }
-            result.push(line.trim_end_matches(['\r', '\n']));
+    pub fn lines(&self) -> UniversalLines<'_> {
+        UniversalLines {
+            text: &self.text,
+            offset: 0,
         }
-        result
     }
 }
 
@@ -281,4 +300,33 @@ pub fn exclusion_reasons(path: &str) -> Vec<&'static str> {
         reasons.push("generated");
     }
     reasons
+}
+
+pub struct UniversalLines<'a> {
+    text: &'a str,
+    offset: usize,
+}
+impl<'a> Iterator for UniversalLines<'a> {
+    type Item = &'a str;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.offset >= self.text.len() {
+            return None;
+        }
+        let start = self.offset;
+        let end = self.text.as_bytes()[start..]
+            .iter()
+            .position(|byte| matches!(byte, b'\r' | b'\n'))
+            .map_or(self.text.len(), |relative| start + relative);
+        self.offset = end;
+        if end < self.text.len() {
+            self.offset += if self.text.as_bytes()[end] == b'\r'
+                && self.text.as_bytes().get(end + 1) == Some(&b'\n')
+            {
+                2
+            } else {
+                1
+            };
+        }
+        Some(&self.text[start..end])
+    }
 }

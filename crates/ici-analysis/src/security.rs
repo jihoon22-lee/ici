@@ -75,6 +75,7 @@ fn assignment_names(expression: &Expr) -> Vec<String> {
 }
 struct SecurityVisitor<'a> {
     file: &'a ParsedFile,
+    cancellation: Option<&'a std::sync::atomic::AtomicBool>,
     allowlist: BTreeSet<String>,
     suppressed: BTreeSet<u32>,
     targets: Vec<InspectionTarget>,
@@ -225,6 +226,9 @@ impl SecurityVisitor<'_> {
 }
 impl<'a> Visitor<'a> for SecurityVisitor<'_> {
     fn visit_stmt(&mut self, statement: &'a Stmt) {
+        if crate::cancellation_requested(self.cancellation) {
+            return;
+        }
         match statement {
             Stmt::Assign(assignment) => {
                 for target in &assignment.targets {
@@ -243,6 +247,9 @@ impl<'a> Visitor<'a> for SecurityVisitor<'_> {
         visitor::walk_stmt(self, statement);
     }
     fn visit_expr(&mut self, expression: &'a Expr) {
+        if crate::cancellation_requested(self.cancellation) {
+            return;
+        }
         match expression {
             Expr::Dict(dictionary) => {
                 for item in &dictionary.items {
@@ -257,7 +264,12 @@ impl<'a> Visitor<'a> for SecurityVisitor<'_> {
         visitor::walk_expr(self, expression);
     }
 }
-pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mut AnalysisOutput) {
+pub fn analyze(
+    request: &AnalysisRequest,
+    files: &[Arc<ParsedFile>],
+    output: &mut AnalysisOutput,
+    cancellation: Option<&std::sync::atomic::AtomicBool>,
+) {
     let allowlist: BTreeSet<String> = request
         .options
         .get("secret_name_allowlist")
@@ -269,8 +281,11 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
                 .map(str::to_lowercase)
                 .collect()
         });
-    let (mut calls, mut literals) = (0, 0);
+    let (mut calls, mut literals, mut checked) = (0, 0, 0usize);
     for file in files {
+        if crate::cancelled(output, cancellation) {
+            break;
+        }
         let suppressed = file
             .parsed
             .tokens()
@@ -285,6 +300,7 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
             .collect();
         let mut visitor = SecurityVisitor {
             file,
+            cancellation,
             allowlist: allowlist.clone(),
             suppressed,
             targets: vec![],
@@ -312,6 +328,10 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
             finding::hygiene(output, request, &target, "security", "high", "", "high");
             output.targets.push(target);
         }
+        if crate::cancelled(output, cancellation) {
+            break;
+        }
+        checked += 1;
         let mut target = InspectionTarget::at(&file.source.path, 1);
         target.target_name = "Security:ASTScan".into();
         target.message = "Bounded Python AST security rules completed".into();
@@ -321,18 +341,19 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
     output.observation.measurements.extend([
         Measurement {
             unit: "files".into(),
-            ..Measurement::measured("files_checked", files.len() as f64)
+            ..Measurement::measured("files_checked", checked as f64)
         },
         Measurement {
             unit: "issues".into(),
             ..Measurement::measured("issues_found", findings as f64)
         },
     ]);
-    output.extra = json!({"analysis_mode":"python-ast-rules-v1","files_checked":files.len(),"calls_checked":calls,"secret_literals_checked":literals,"secret_name_allowlist_count":allowlist.len(),"limitations":["Rules identify risky syntax and import aliases, not runtime taint flow","Exact secret names can be allowlisted; secret values are never retained"]});
+    output.extra = json!({"analysis_mode":"python-ast-rules-v1","files_checked":checked,"calls_checked":calls,"secret_literals_checked":literals,"secret_name_allowlist_count":allowlist.len(),"limitations":["Rules identify risky syntax and import aliases, not runtime taint flow","Exact secret names can be allowlisted; secret values are never retained"]});
     output.summary = if findings > 0 {
         format!("Security hygiene: {findings} finding(s)")
     } else {
-        format!("Security hygiene clean across {} file(s)", files.len())
+        format!("Security hygiene clean across {checked} file(s)")
     };
+    crate::cancelled(output, cancellation);
     finish_status(output, request);
 }

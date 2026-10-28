@@ -17,6 +17,7 @@ use sha2::{Digest, Sha256};
 use source::{MAX_SOURCES, MAX_TOTAL_BYTES, SourceDocument, SourceError};
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 const CACHE_BUDGET: usize = 32 * 1024 * 1024;
 /// A bounded per-run cache shared by all checks against the same immutable snapshot.
@@ -34,6 +35,20 @@ impl AnalysisSession {
         self.parser_invocations
     }
     pub fn analyze(&mut self, request: &AnalysisRequest) -> AnalysisOutput {
+        self.analyze_inner(request, None)
+    }
+    pub fn analyze_cancellable(
+        &mut self,
+        request: &AnalysisRequest,
+        cancellation: &AtomicBool,
+    ) -> AnalysisOutput {
+        self.analyze_inner(request, Some(cancellation))
+    }
+    fn analyze_inner(
+        &mut self,
+        request: &AnalysisRequest,
+        cancellation: Option<&AtomicBool>,
+    ) -> AnalysisOutput {
         let kind = request.check_id.rsplit('.').next().unwrap_or("");
         let provider = match kind {
             "line" => "ici.line",
@@ -46,6 +61,9 @@ impl AnalysisSession {
             _ => "ici.analysis",
         };
         let mut output = AnalysisOutput::new(&request.task_id, provider);
+        if cancelled(&mut output, cancellation) {
+            return output;
+        }
         if request.inputs.is_empty() {
             failure(
                 &mut output,
@@ -54,7 +72,10 @@ impl AnalysisSession {
             );
             return output;
         }
-        if request.inputs.len() > MAX_SOURCES
+        if (matches!(
+            kind,
+            "security" | "resource" | "exception" | "dead" | "dup" | "compat"
+        ) && request.inputs.len() > MAX_SOURCES)
             || request
                 .inputs
                 .iter()
@@ -67,7 +88,7 @@ impl AnalysisSession {
                 ".",
                 &SourceError::new(
                     "inventory-limit",
-                    "Analysis inventory exceeds 2048 files or 64 MiB",
+                    "Analysis inventory exceeds its 2048-file rule inventory or 512 MiB snapshot bound",
                 ),
             );
             return output;
@@ -84,7 +105,7 @@ impl AnalysisSession {
             return output;
         }
         if kind == "line" {
-            lines::analyze(request, &mut output);
+            lines::analyze(request, &mut output, cancellation);
             return output;
         }
         if !matches!(
@@ -106,6 +127,9 @@ impl AnalysisSession {
         let mut excluded_source_counts: BTreeMap<String, usize> = BTreeMap::new();
         let options = serde_json::to_vec(&request.options).unwrap_or_default();
         for input in &request.inputs {
+            if cancelled(&mut output, cancellation) {
+                return output;
+            }
             if !input.path.ends_with(".py") && !input.path.ends_with(".pyi") {
                 continue;
             }
@@ -187,6 +211,9 @@ impl AnalysisSession {
                 Err(error) => failure(&mut output, &input.path, &error),
             }
         }
+        if cancelled(&mut output, cancellation) {
+            return output;
+        }
         if files.is_empty() && output.observation.state != TaskState::Failed {
             failure(
                 &mut output,
@@ -195,10 +222,10 @@ impl AnalysisSession {
             );
         }
         match kind {
-            "security" => security::analyze(request, &files, &mut output),
-            "resource" => resource::analyze(request, &files, &mut output),
-            "exception" => exception::analyze(request, &files, &mut output),
-            _ => metrics::analyze(request, &files, &mut output),
+            "security" => security::analyze(request, &files, &mut output, cancellation),
+            "resource" => resource::analyze(request, &files, &mut output, cancellation),
+            "exception" => exception::analyze(request, &files, &mut output, cancellation),
+            _ => metrics::analyze(request, &files, &mut output, cancellation),
         }
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);
         output.extra["source_encodings"] = json!(source_encodings);
@@ -233,6 +260,11 @@ fn number_option(request: &AnalysisRequest, name: &str, default: u32) -> u32 {
         .unwrap_or(default)
 }
 fn finish_status(output: &mut AnalysisOutput, request: &AnalysisRequest) {
+    if output.observation.state == TaskState::Cancelled {
+        output.status = "ERROR".into();
+        output.summary = "Analysis cancelled; completed evidence was retained".into();
+        return;
+    }
     if output.observation.state == TaskState::Failed
         || output.targets.iter().any(|target| target.status == "ERROR")
     {
@@ -267,3 +299,28 @@ fn finish_status(output: &mut AnalysisOutput, request: &AnalysisRequest) {
 
 #[cfg(test)]
 mod tests;
+
+fn cancelled(output: &mut AnalysisOutput, cancellation: Option<&AtomicBool>) -> bool {
+    if !cancellation_requested(cancellation) {
+        return false;
+    }
+    output.observation.state = TaskState::Cancelled;
+    output.status = "ERROR".into();
+    output.summary = "Analysis cancelled; completed evidence was retained".into();
+    if !output
+        .observation
+        .limitations
+        .iter()
+        .any(|message| message == "analysis cancelled")
+    {
+        output
+            .observation
+            .limitations
+            .push("analysis cancelled".into());
+    }
+    true
+}
+
+fn cancellation_requested(cancellation: Option<&AtomicBool>) -> bool {
+    cancellation.is_some_and(|flag| flag.load(Ordering::Relaxed))
+}

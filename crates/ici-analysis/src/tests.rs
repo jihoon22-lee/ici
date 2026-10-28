@@ -184,7 +184,7 @@ fn decoder_maps_original_bytes_and_universal_newlines() {
         source.raw_offset(start + 2),
         source.raw_offset(start).map(|value| value + 1)
     );
-    assert_eq!(source.lines().len(), 3);
+    assert_eq!(source.lines().count(), 3);
 }
 #[test]
 fn line_counts_and_explicit_legacy_scopes_keep_all_inspected_targets() {
@@ -357,4 +357,41 @@ fn exception_aliases_and_handler_targets_match_fixed_source() {
         let targets:Vec<Value>=output.targets.iter().map(|target|json!({"name":target.target_name,"line":target.start_line,"end_line":target.end_line,"message":target.message,"status":target.status})).collect();
         assert_eq!(json!(targets), case["targets"], "{}", case["id"]);
     }
+}
+
+#[test]
+fn cancellation_is_explicit_before_intake_and_does_not_populate_cache() {
+    use std::sync::atomic::AtomicBool;
+    let cancellation = AtomicBool::new(true);
+    let mut session = AnalysisSession::new();
+    let output = session.analyze_cancellable(
+        &request("complexity", "def f():\n return 1\n"),
+        &cancellation,
+    );
+    assert_eq!(output.observation.state, TaskState::Cancelled);
+    assert_eq!(session.parser_invocations(), 0);
+    assert!(output.targets.is_empty());
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|message| message == "analysis cancelled")
+    );
+}
+#[test]
+fn frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input() {
+    let mut input = SourceInput {
+        path: "large.py".into(),
+        bytes: vec![b' '; 16 * 1024 * 1024],
+    };
+    input.bytes[0] = b'#';
+    let source = SourceDocument::decode(&input).unwrap();
+    assert_eq!(source.text.len(), 16 * 1024 * 1024);
+    assert_eq!(source.lines().count(), 1);
+    input.bytes.push(b' ');
+    assert_eq!(
+        SourceDocument::decode(&input).unwrap_err().code,
+        "source-limit"
+    );
 }

@@ -6,7 +6,11 @@ use ici_domain::{
 };
 use serde_json::json;
 
-pub fn analyze(request: &AnalysisRequest, output: &mut AnalysisOutput) {
+pub fn analyze(
+    request: &AnalysisRequest,
+    output: &mut AnalysisOutput,
+    cancellation: Option<&std::sync::atomic::AtomicBool>,
+) {
     let warn = (!request
         .options
         .get("warn_limit")
@@ -37,6 +41,9 @@ pub fn analyze(request: &AnalysisRequest, output: &mut AnalysisOutput) {
     let (mut code, mut comment, mut blank, mut counted) = (0u64, 0u64, 0u64, 0u64);
     let mut rows = Vec::new();
     for input in &request.inputs {
+        if crate::cancelled(output, cancellation) {
+            break;
+        }
         let source = match SourceDocument::decode(input) {
             Ok(source) => source,
             Err(error) => {
@@ -50,7 +57,10 @@ pub fn analyze(request: &AnalysisRequest, output: &mut AnalysisOutput) {
             .iter()
             .any(|suffix| input.path.ends_with(suffix));
         let (mut file_code, mut file_comment, mut file_blank) = (0u64, 0u64, 0u64);
-        for line in source.lines() {
+        for (index, line) in source.lines().enumerate() {
+            if index % 256 == 0 && crate::cancelled(output, cancellation) {
+                break;
+            }
             let text = line.trim();
             if text.is_empty() {
                 file_blank += 1;
@@ -59,6 +69,9 @@ pub fn analyze(request: &AnalysisRequest, output: &mut AnalysisOutput) {
             } else {
                 file_code += 1;
             }
+        }
+        if crate::cancelled(output, cancellation) {
+            break;
         }
         all_code += file_code;
         all_comment += file_comment;
@@ -145,5 +158,6 @@ pub fn analyze(request: &AnalysisRequest, output: &mut AnalysisOutput) {
     output.summary = format!(
         "Total {total} lines ({code} code, {comment} comment, {blank} blank) across {counted} files"
     );
+    crate::cancelled(output, cancellation);
     finish_status(output, request);
 }

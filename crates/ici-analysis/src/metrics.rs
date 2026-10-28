@@ -223,7 +223,12 @@ impl<'a> Visitor<'a> for MetricVisitor {
     }
 }
 
-pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mut AnalysisOutput) {
+pub fn analyze(
+    request: &AnalysisRequest,
+    files: &[Arc<ParsedFile>],
+    output: &mut AnalysisOutput,
+    cancellation: Option<&std::sync::atomic::AtomicBool>,
+) {
     let cognitive = request.check_id.ends_with("cognitive");
     let kind = if cognitive { "cognitive" } else { "complexity" };
     let warn = number_option(
@@ -240,6 +245,9 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
     let mut peak = 0;
     let mut count = 0;
     for file in files {
+        if crate::cancelled(output, cancellation) {
+            break;
+        }
         let rows = file.metrics.get_or_init(|| scan(file));
         if rows.is_empty() {
             let mut target = ici_domain::InspectionTarget::at(&file.source.path, 1);
@@ -248,6 +256,9 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
             output.targets.push(target);
         }
         for row in rows {
+            if crate::cancelled(output, cancellation) {
+                break;
+            }
             count += 1;
             let value = if cognitive {
                 row.cognitive
@@ -377,5 +388,6 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
             "Max Cyclomatic Complexity: {peak} (limit {warn}) across {count} functions ({issues} issues)"
         )
     };
+    crate::cancelled(output, cancellation);
     finish_status(output, request);
 }

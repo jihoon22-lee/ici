@@ -503,9 +503,17 @@ fn target(
     target.message = message;
     target
 }
-pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mut AnalysisOutput) {
+pub fn analyze(
+    request: &AnalysisRequest,
+    files: &[Arc<ParsedFile>],
+    output: &mut AnalysisOutput,
+    cancellation: Option<&std::sync::atomic::AtomicBool>,
+) {
     let mut checked = 0usize;
     for file in files {
+        if crate::cancelled(output, cancellation) {
+            break;
+        }
         let events = Events::collect(file);
         let event_count: usize = events.scopes.iter().map(Vec::len).sum();
         if event_count.saturating_mul(events.handlers.len()) > 2_000_000 {
@@ -519,11 +527,13 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
             );
             continue;
         }
-        checked += 1;
         let mut handlers: Vec<_> = events.handlers.iter().collect();
         handlers.sort_by_key(|handler| (handler.depth, handler.node.range().start()));
         let start = output.targets.len();
         for handler in handlers {
+            if crate::cancelled(output, cancellation) {
+                break;
+            }
             let node = handler.node;
             if let Some(type_) = &node.type_ {
                 if base_exception(type_, &events.aliases(handler)) {
@@ -577,6 +587,10 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
                 "high",
             );
         }
+        if crate::cancelled(output, cancellation) {
+            break;
+        }
+        checked += 1;
         let mut pass = InspectionTarget::at(&file.source.path, 1);
         pass.target_name = "PythonExceptionSafety".into();
         pass.message = if found {
@@ -614,6 +628,7 @@ pub fn analyze(request: &AnalysisRequest, files: &[Arc<ParsedFile>], output: &mu
     } else {
         format!("{fail} Critical Exception Violations, {warn} Warnings")
     };
+    crate::cancelled(output, cancellation);
     finish_status(output, request);
     if request.options.get("mode").is_none() && output.status == "WARN" {
         output.status = "FAIL".into();

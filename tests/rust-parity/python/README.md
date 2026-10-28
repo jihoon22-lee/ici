@@ -79,3 +79,25 @@ and conditional-expression assignments, BaseException/bare handlers, swallowing 
 handler-local traceback resets. Handler query work is bounded; an exceeded bound is
 incomplete evidence. `exception_oracle.py` verifies original expectations without
 rewriting them. Current native tests also cover all prior units and ownership checks.
+
+## Input budget and cancellation unit
+
+R0's input bounds are 16 MiB per file and 512 MiB per snapshot. The strict decoder
+accepts the exact per-file boundary and explicitly rejects a larger file. The
+inherited 2,048-file source-inventory bound is applied only to the rule families
+that already used that bounded inventory; it is not imposed on line/metrics.
+Encoding cookies are scanned from raw first-two-line slices and single-byte codec
+origin maps use checkpoints. Line iteration does not materialize every line.
+
+`AnalysisSession::analyze_cancellable(request, &AtomicBool)` polls intake, per-file
+rules, metric/handler loops, security AST walks and resource statements. Cancellation
+keeps completed targets/findings and returns `TaskState::Cancelled`; partial resource
+flow does not invent leak findings or a file PASS. A single parser call is not
+interruptible, so full parser/rule stress and CLI descendant cleanup remain R8 work.
+
+The development `cancellation_probe` runs a small file followed by a 16 MiB input,
+sends cancellation after 20 ms, and checks that the first file's completed target is
+retained while the last file is not inspected. The measured WSL debug run returned
+CANCELLED in 580 ms with one retained target; this is recorded in
+`cancellation-observation.json`. It does not establish the complete CLI/child-process
+cancellation budget or the aggregate 512 MiB stress acceptance.
