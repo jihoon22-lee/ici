@@ -455,6 +455,48 @@ fn compiler_include_graphs_never_merge_incompatible_variant_edges_into_a_cycle()
         output.observation.findings[0].evidence,
         ici_domain::EvidenceLevel::Measured
     );
+    request
+        .inputs
+        .extend(["c.h", "d.h"].map(|path| SourceInput {
+            path: path.into(),
+            bytes: b"// fixture".to_vec(),
+        }));
+    observations[0]
+        .trace
+        .edges
+        .extend([edge("c.h", "d.h"), edge("d.h", "c.h")]);
+    request.options = json!({"max_reported":1});
+    let capped = ici_cpp::analyze_compiler_include_cycles(&request, &context, &observations);
+    assert_eq!(capped.observation.state, TaskState::Succeeded);
+    assert_eq!(capped.observation.findings.len(), 1);
+    assert_eq!(capped.extra["cycles_reported"], 1);
+    assert_eq!(capped.extra["cycles_truncated"], 1);
+    assert_eq!(
+        capped
+            .observation
+            .measurements
+            .iter()
+            .find(|metric| metric.name == "cycles_found")
+            .unwrap()
+            .value,
+        2.0
+    );
+    request.options = json!({"max_reported":2});
+    assert_eq!(
+        ici_cpp::analyze_compiler_include_cycles(&request, &context, &observations)
+            .observation
+            .findings
+            .len(),
+        2
+    );
+    request.options = json!({"max_reported":0});
+    assert_eq!(
+        ici_cpp::analyze_compiler_include_cycles(&request, &context, &observations)
+            .observation
+            .state,
+        TaskState::Failed
+    );
+    request.options = json!({});
     observations.pop();
     assert_eq!(
         ici_cpp::analyze_compiler_include_cycles(&request, &context, &observations)

@@ -233,6 +233,48 @@ fn include_cycles_resolve_direct_paths_and_report_ambiguous_and_self_edges() {
 }
 
 #[test]
+fn cycle_report_limit_caps_groups_and_diagnostics_without_changing_graph_counts() {
+    let mut input = request(
+        "cycle",
+        vec![
+            ("a.h", "#include \"a.h\"\n"),
+            ("b.h", "#include \"b.h\"\n"),
+            ("c.h", "#include \"c.h\"\n"),
+            (
+                "missing.cpp",
+                "#include \"missing.h\"\n#include \"also-missing.h\"\n",
+            ),
+        ],
+    );
+    let mut session = CppAnalysisSession::new();
+    input.options = json!({"max_reported":1});
+    let output = session.analyze(&input);
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.observation.findings.len(), 1);
+    assert_eq!(output.status, "WARN");
+    assert_eq!(output.extra["cycles_reported"], 1);
+    assert_eq!(output.extra["cycles_truncated"], 2);
+    assert_eq!(output.extra["include_diagnostics"], 2);
+    assert_eq!(output.extra["include_diagnostics_truncated"], 1);
+    assert_eq!(
+        output
+            .observation
+            .measurements
+            .iter()
+            .find(|metric| metric.name == "cycles_found")
+            .unwrap()
+            .value,
+        3.0
+    );
+    input.options = json!({"max_reported":3});
+    assert_eq!(session.analyze(&input).observation.findings.len(), 3);
+    for invalid in [json!(0), json!(-1), json!("1")] {
+        input.options["max_reported"] = invalid;
+        assert_eq!(session.analyze(&input).observation.state, TaskState::Failed);
+    }
+}
+
+#[test]
 fn frozen_cpp_exception_oracle_preserves_rule_ids_locations_summary_targets_and_measured_source_evidence()
  {
     let oracle: Value = serde_json::from_str(include_str!(

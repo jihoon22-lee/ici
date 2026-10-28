@@ -2040,3 +2040,157 @@ fn legacy_python_only_descriptors_return_cpp_applicability_through_actual_cli_di
         assert!(!root.path().join(".ici/rust-v1/build").exists());
     }
 }
+
+#[test]
+fn generated_and_vendor_duplicate_options_change_actual_selected_cpp_findings() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join("Vendor/Generated")).unwrap();
+    let code = "int f(int x) {\n int a=x;\n a+=1;\n a*=2;\n a-=3;\n a/=4;\n return a;\n}\n";
+    for path in ["main.cpp", "other.cpp", "Vendor/Generated/moc_item.cpp"] {
+        fs::write(root.path().join(path), code).unwrap();
+    }
+    let invocation = registry::parse(["ici", "dup"]).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    for (generated, vendor, expected) in [
+        (false, false, 2),
+        (true, false, 2),
+        (false, true, 2),
+        (true, true, 3),
+    ] {
+        let config = runtime_config(
+            &["cpp.dup"],
+            &format!("[engines.dup]\ninclude_generated={generated}\ninclude_vendor={vendor}\n"),
+        )
+        .replace("sources=['main.cpp']", "sources=['**/*.cpp']")
+        .replace("build='native'\n", "");
+        fs::write(root.path().join("ici.toml"), &config).unwrap();
+        let run = execute::execute(
+            &invocation,
+            root.path(),
+            &environment,
+            false,
+            &Cancellation::default(),
+        )
+        .unwrap();
+        let output = &run.outputs["project.cpp.dup"];
+        assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+        assert_eq!(output.observation.findings.len(), expected, "{output:?}");
+        assert!(run.result.execution.required_complete);
+        for option in ["include_generated", "include_vendor"] {
+            let invalid = config.replace(
+                &format!(
+                    "{option}={}",
+                    if option == "include_generated" {
+                        generated
+                    } else {
+                        vendor
+                    }
+                ),
+                &format!("{option}='true'"),
+            );
+            fs::write(root.path().join("ici.toml"), invalid).unwrap();
+            assert!(planning::prepare(&invocation, root.path(), &environment, false).is_err());
+        }
+    }
+}
+
+#[test]
+fn cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    for path in ["a.h", "b.h", "c.h"] {
+        fs::write(root.path().join(path), format!("#include \"{path}\"\n")).unwrap();
+    }
+    let invocation = registry::parse(["ici", "cycle"]).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    for limit in [1, 2] {
+        let config = runtime_config(
+            &["cpp.cycle"],
+            &format!("[engines.cycle]\nmax_reported={limit}\n"),
+        )
+        .replace("sources=['main.cpp']", "sources=['*.cpp','*.h']")
+        .replace("build='native'\n", "");
+        fs::write(root.path().join("ici.toml"), &config).unwrap();
+        let run = execute::execute(
+            &invocation,
+            root.path(),
+            &environment,
+            false,
+            &Cancellation::default(),
+        )
+        .unwrap();
+        let output = &run.outputs["project.cpp.cycle"];
+        assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+        assert_eq!(output.observation.findings.len(), limit);
+        assert_eq!(output.extra["cycles_reported"], limit);
+        assert_eq!(output.extra["cycles_truncated"], 3 - limit);
+        assert_eq!(
+            output
+                .observation
+                .measurements
+                .iter()
+                .find(|metric| metric.name == "cycles_found")
+                .unwrap()
+                .value,
+            3.0
+        );
+        fs::write(
+            root.path().join("ici.toml"),
+            config.replace(&format!("max_reported={limit}"), "max_reported=0"),
+        )
+        .unwrap();
+        assert!(planning::prepare(&invocation, root.path(), &environment, false).is_err());
+    }
+}
+
+#[test]
+#[ignore = "explicit native GCC source ownership CLI acceptance"]
+fn actual_gcc_dead_options_apply_each_generated_and_vendor_dimension() {
+    let root = tempfile::tempdir().unwrap();
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit native GCC");
+    fs::create_dir_all(root.path().join("Vendor/Generated")).unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(
+        root.path().join("Vendor/Generated/item.cpp"),
+        "static int unused(){return 1;}\nint value(){return 0;}\n",
+    )
+    .unwrap();
+    let rows=serde_json::json!(["main.cpp","Vendor/Generated/item.cpp"].map(|path|serde_json::json!({"directory":root.path(),"file":path,"arguments":[compiler,"-c",path,"-o","must-not-create.o"]})));
+    fs::write(
+        root.path().join("compile_commands.json"),
+        serde_json::to_vec(&rows).unwrap(),
+    )
+    .unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    for (generated, vendor, expected) in [
+        (false, false, 0),
+        (true, false, 0),
+        (false, true, 0),
+        (true, true, 1),
+    ] {
+        let config=runtime_config(&[],&format!("[checks.\"cpp.dead\"]\nenabled=true\n[engines.dead]\ncpp_unused='required'\ncpp_linker='off'\ninclude_generated={generated}\ninclude_vendor={vendor}\n"))
+            .replace("sources=['main.cpp']","sources=['**/*.cpp']")
+            .replace("build='native'\n","");
+        fs::write(root.path().join("ici.toml"), config).unwrap();
+        let run = execute::execute(
+            &invocation,
+            root.path(),
+            &environment,
+            false,
+            &Cancellation::default(),
+        )
+        .unwrap();
+        let output = &run.outputs["project.cpp.dead"];
+        assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+        assert_eq!(output.observation.findings.len(), expected, "{output:?}");
+        assert!(run.result.execution.required_complete);
+        if expected == 1 {
+            assert_eq!(
+                output.observation.findings[0].primary_location.path,
+                "Vendor/Generated/item.cpp"
+            );
+        }
+        assert!(!root.path().join("must-not-create.o").exists());
+    }
+}

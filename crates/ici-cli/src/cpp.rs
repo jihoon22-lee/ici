@@ -1564,7 +1564,19 @@ impl CppPlans {
                                     stderr,
                                 )
                             {
-                                output.targets.extend(targets);
+                                if request.check_id == "cpp.cycle" {
+                                    let limit = request.options["max_reported"]
+                                        .as_u64()
+                                        .unwrap_or(20)
+                                        .max(1);
+                                    let limit = usize::try_from(limit).unwrap_or(usize::MAX);
+                                    let truncated = targets.len().saturating_sub(limit);
+                                    output.targets.extend(targets.into_iter().take(limit));
+                                    output.extra["include_diagnostics_truncated"] =
+                                        json!(truncated);
+                                } else {
+                                    output.targets.extend(targets);
+                                }
                             }
                             return output;
                         }

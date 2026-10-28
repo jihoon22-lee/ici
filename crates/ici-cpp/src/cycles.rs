@@ -27,6 +27,21 @@ fn normalized(path: &Path) -> Option<String> {
     }
     result.to_str().map(str::to_owned)
 }
+
+pub(crate) fn report_limit(request: &AnalysisRequest) -> Result<usize, CppError> {
+    request.options.get("max_reported").map_or(Ok(20), |value| {
+        value
+            .as_u64()
+            .filter(|value| *value > 0)
+            .and_then(|value| usize::try_from(value).ok())
+            .ok_or_else(|| {
+                CppError::new(
+                    "invalid-report-limit",
+                    "max_reported must be a positive integer",
+                )
+            })
+    })
+}
 /// Deterministic iterative strongly connected components, including explicit self edges.
 pub(crate) fn components(graph: &BTreeMap<String, BTreeSet<String>>) -> Vec<Vec<String>> {
     let mut visited = BTreeSet::new();
@@ -100,14 +115,17 @@ pub(crate) fn analyze(
     output: &mut AnalysisOutput,
     files: &[Arc<ParsedSource>],
 ) -> Result<(), CppError> {
+    let limit = report_limit(request)?;
     let known: BTreeSet<_> = files.iter().map(|file| file.path.clone()).collect();
     let mut graph: BTreeMap<String, BTreeSet<String>> = known
         .iter()
         .map(|path| (path.clone(), BTreeSet::new()))
         .collect();
     let mut edge_lines = BTreeMap::new();
+    let mut diagnostics = 0usize;
     for file in files {
         let mut includes = 0;
+        let target_start = output.targets.len();
         for node in source::nodes(file.tree.root_node())?
             .into_iter()
             .filter(|node| node.kind() == "preproc_include")
@@ -157,18 +175,26 @@ pub(crate) fn analyze(
                     "{}:{}: {}",
                     file.path, target.start_line, target.message
                 ));
+                diagnostics += 1;
+                if diagnostics > limit {
+                    continue;
+                }
             }
             output.targets.push(target);
         }
-        if includes == 0 {
+        if output.targets.len() == target_start {
             let mut target = InspectionTarget::at(&file.path, 1);
             target.target_name = "IncludeGraph".into();
-            target.message = "No literal local include edges".into();
+            target.message = if includes == 0 {
+                "No literal local include edges"
+            } else {
+                "Additional include diagnostics omitted by max_reported; full graph counts are retained"
+            }.into();
             output.targets.push(target);
         }
     }
     let cycles = components(&graph);
-    for members in &cycles {
+    for members in cycles.iter().take(limit) {
         let first = &members[0];
         let line = graph[first]
             .iter()
@@ -195,6 +221,6 @@ pub(crate) fn analyze(
     }
     measurement(output, "cycles_found", cycles.len() as u64, true);
     output.observation.limitations.push("Include resolution is a path-suffix heuristic; compiler search order, conditional preprocessing and generated headers are not established".into());
-    output.extra = json!({"cycles":cycles,"graph":graph,"evidence":"estimated"});
+    output.extra = json!({"cycles":cycles,"graph":graph,"evidence":"estimated","cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit),"include_diagnostics":diagnostics,"include_diagnostics_truncated":diagnostics.saturating_sub(limit)});
     Ok(())
 }

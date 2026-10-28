@@ -957,6 +957,13 @@ pub fn analyze_compiler_include_cycles(
 ) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(&request.task_id, "compiler.includes");
     output.observation.state = TaskState::Succeeded;
+    let limit = match crate::cycles::report_limit(request) {
+        Ok(limit) => limit,
+        Err(error) => {
+            fail(&mut output, ".", &error.code, &error.message);
+            return output;
+        }
+    };
     if !context.complete() {
         fail(
             &mut output,
@@ -1075,7 +1082,7 @@ pub fn analyze_compiler_include_cycles(
                 .insert(configuration.clone());
         }
     }
-    for (members, configurations) in &cycles {
+    for (members, configurations) in cycles.iter().take(limit) {
         let mut target = InspectionTarget::at(&members[0], 1);
         target.target_name = "IncludeCycle".into();
         target.status = "WARN".into();
@@ -1111,7 +1118,7 @@ pub fn analyze_compiler_include_cycles(
         output.status = if cycles.is_empty() { "PASS" } else { "WARN" }.into();
     }
     measurement(&mut output, "cycles_found", cycles.len() as u64, false);
-    output.extra = json!({"resolution":"compiler_trace","configuration_graphs":graphs,"scope_counts":scope_counts,"resolved_edges":resolved,"configurations_checked":actual.len()});
+    output.extra = json!({"resolution":"compiler_trace","configuration_graphs":graphs,"scope_counts":scope_counts,"resolved_edges":resolved,"configurations_checked":actual.len(),"cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit)});
     output
 }
 
