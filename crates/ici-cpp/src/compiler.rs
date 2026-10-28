@@ -28,8 +28,6 @@ pub fn analyze_compile_context(
         .cloned()
         .collect::<BTreeSet<_>>();
     if production.is_empty()
-        && context.units.is_empty()
-        && context.diagnostics.is_empty()
         && request.options["legacy_projection"]
             .as_bool()
             .unwrap_or(false)

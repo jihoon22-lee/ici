@@ -1,6 +1,8 @@
 //! Compilation evidence, explicit legacy syntax fallback, and artifact contracts.
+mod config_scope;
 mod fallback;
 mod linker;
+pub use config_scope::external_build_directories;
 use ici_application::plan::{Work, file_language};
 use ici_config::{Component, ResolvedProject};
 use ici_cpp::{CompilationContext, CompilationUnit, ContextRequest, ReplayPurpose};
@@ -53,6 +55,7 @@ pub struct CppPlans {
     compiler_components: BTreeMap<String, String>,
     resolved: BTreeMap<String, std::result::Result<ResolvedTool, String>>,
     fallbacks: BTreeMap<String, fallback::FallbackPlan>,
+    compile_externals: BTreeMap<String, Vec<String>>,
 }
 impl CppPlans {
     fn resolve_searches(
@@ -209,6 +212,14 @@ impl CppPlans {
             );
         }
         let context = self.contexts[&component.id].clone();
+        if self.legacy_projection && check.id == "cpp.compile" {
+            match external_build_directories(project, component, environment) {
+                Ok(directories) => {
+                    self.compile_externals.insert(id.into(), directories);
+                }
+                Err(error) => return Some(blocked(error)),
+            }
+        }
         let configurations = context
             .database_path
             .iter()
@@ -248,6 +259,9 @@ impl CppPlans {
                 },
             ),
             "cpp.compile" => {
+                if self.compile_scope_is_empty(id) {
+                    return Some(Work::Internal);
+                }
                 // Unity sources are containers; observed includes must establish original membership.
                 if (context.unity_build && !context.uncovered_sources.is_empty())
                     || context
@@ -1651,7 +1665,10 @@ impl CppPlans {
                     }
                 }
             }
-            return ici_cpp::analyze_compile_context(request, &context);
+            return ici_cpp::analyze_compile_context(
+                request,
+                &self.legacy_compile_context(&request.task_id, &context),
+            );
         }
         if let Some(mut providers) = self.diagnostics.get(&request.task_id).cloned() {
             let searches: Vec<_> = providers
@@ -1800,6 +1817,9 @@ impl CppPlans {
             );
             if !projections.is_empty() {
                 output.extra["tooling_projections"] = json!(projections);
+            }
+            if request.check_id == "cpp.diagnostics" {
+                self.preserve_diagnostic_scope(&component.id, &mut output);
             }
             return output;
         }

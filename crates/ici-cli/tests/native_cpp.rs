@@ -2232,6 +2232,116 @@ fn explicit_components_inherit_origin_resolved_global_database_and_prepared_over
 }
 
 #[test]
+fn legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("qt")).unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(
+        root.path().join("qt/widget.cpp"),
+        "int widget(){return 1;}\n",
+    )
+    .unwrap();
+    let row = |path: &str, flags: Vec<&str>| serde_json::json!({"directory":root.path(),"file":path,"arguments":std::iter::once("g++").chain(flags).chain(["-c",path,"-o","never.o"]).collect::<Vec<_>>()});
+    fs::write(
+        root.path().join("compile_commands.json"),
+        serde_json::to_vec(&serde_json::json!([row("main.cpp", vec!["-fPIC"])])).unwrap(),
+    )
+    .unwrap();
+    let config=runtime_config(&["cpp.compile"],"[project]\ncpp_external_build_dirs=['${env:EXTERNAL_CPP}']\n[engines.compile_db]\nrequired_flags=['-fPIC']\n")
+        .replace("build='native'\n","").replace("sources=['main.cpp']","sources=['**/*.cpp']");
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    let environment = BTreeMap::from([
+        ("PATH".into(), String::new()),
+        ("EXTERNAL_CPP".into(), "qt".into()),
+    ]);
+    let legacy = registry::parse(["ici", "verify"]).unwrap();
+    let preview = planning::prepare(&legacy, root.path(), &environment, false).unwrap();
+    assert!(
+        preview.project.components[0]
+            .files
+            .contains(&"qt/widget.cpp".into())
+    );
+    assert!(
+        preview.cpp.contexts["project"]
+            .uncovered_sources
+            .contains(&"qt/widget.cpp".into())
+    );
+    let run = execute::execute(
+        &legacy,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        run.outputs["project.cpp.compile"].status, "PASS",
+        "{:?}",
+        run.outputs
+    );
+    assert!(run.result.execution.required_complete);
+    let modern = execute::execute(
+        &registry::parse(["ici", "next", "verify"]).unwrap(),
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(modern.result.gate.selected, GateVerdict::Incomplete);
+    fs::write(
+        root.path().join("compile_commands.json"),
+        serde_json::to_vec(&serde_json::json!([
+            row("main.cpp", vec!["-fPIC"]),
+            row("qt/widget.cpp", vec![])
+        ]))
+        .unwrap(),
+    )
+    .unwrap();
+    let recorded = execute::execute(
+        &legacy,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(recorded.result.gate.selected, GateVerdict::Fail);
+    assert!(
+        recorded.outputs["project.cpp.compile"]
+            .observation
+            .findings
+            .iter()
+            .any(|finding| finding.primary_location.path == "qt/widget.cpp"
+                && finding.rule_id == "ici.compile-db.required-flag")
+    );
+    fs::write(
+        root.path().join("ici.toml"),
+        config.replace("${env:EXTERNAL_CPP}", "."),
+    )
+    .unwrap();
+    fs::write(root.path().join("compile_commands.json"), "malformed").unwrap();
+    let not_applicable = execute::execute(
+        &legacy,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(not_applicable.outputs["project.cpp.compile"].status, "SKIP");
+    assert_eq!(
+        not_applicable.outputs["project.cpp.compile"]
+            .observation
+            .measurements[0]
+            .evidence,
+        ici_domain::EvidenceLevel::NotApplicable
+    );
+    assert!(not_applicable.result.execution.required_complete);
+    assert!(!root.path().join("never.o").exists());
+}
+
+#[test]
 #[ignore = "explicit native GCC source ownership CLI acceptance"]
 fn actual_gcc_dead_options_apply_each_generated_and_vendor_dimension() {
     let root = tempfile::tempdir().unwrap();
@@ -2281,6 +2391,93 @@ fn actual_gcc_dead_options_apply_each_generated_and_vendor_dimension() {
         }
         assert!(!root.path().join("must-not-create.o").exists());
     }
+}
+
+#[test]
+#[ignore = "explicit native GCC partial and unity diagnostic coverage acceptance"]
+fn actual_diagnostics_preserve_missing_scope_and_accept_only_observed_unity_coverage() {
+    let root = tempfile::tempdir().unwrap();
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit native GCC");
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(root.path().join("other.cpp"), "int other(){return 1;}\n").unwrap();
+    fs::write(
+        root.path().join("unity_bundle.cpp"),
+        "#include \"main.cpp\"\n#include \"other.cpp\"\n",
+    )
+    .unwrap();
+    let row = |path: &str| serde_json::json!([{"directory":root.path(),"file":path,"arguments":[compiler,"-c",path,"-o","must-not-create.o"]}]);
+    fs::write(
+        root.path().join("compile_commands.json"),
+        serde_json::to_vec(&row("main.cpp")).unwrap(),
+    )
+    .unwrap();
+    let config = runtime_config(&["cpp.compile", "cpp.diagnostics"], "")
+        .replace("sources=['main.cpp']", "sources=['main.cpp','other.cpp']")
+        .replace("build='native'\n", "");
+    fs::write(root.path().join("ici.toml"), config).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let partial = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &partial.outputs["project.cpp.diagnostics"];
+    assert_eq!(output.observation.state, TaskState::Failed, "{output:?}");
+    assert!(output.observation.findings.is_empty());
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.file_path == "main.cpp" && target.status == "PASS")
+    );
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.file_path == "other.cpp"
+                && target.target_name == "C++SyntaxContextMissing"
+                && target.status == "ERROR")
+    );
+    assert!(!partial.result.execution.required_complete);
+    assert_eq!(partial.result.gate.selected, GateVerdict::Incomplete);
+    fs::write(
+        root.path().join("compile_commands.json"),
+        serde_json::to_vec(&row("unity_bundle.cpp")).unwrap(),
+    )
+    .unwrap();
+    let preview = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert!(preview.cpp.contexts["project"].unity_build);
+    assert!(!preview.cpp.contexts["project"].complete());
+    let observed = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert!(
+        observed.result.execution.required_complete,
+        "{:?}",
+        observed.outputs
+    );
+    assert_eq!(
+        observed.outputs["project.cpp.compile"].observation.state,
+        TaskState::Succeeded
+    );
+    assert_eq!(
+        observed.outputs["project.cpp.diagnostics"]
+            .observation
+            .state,
+        TaskState::Succeeded,
+        "{:?}",
+        observed.outputs
+    );
+    assert!(!root.path().join("must-not-create.o").exists());
 }
 
 #[test]

@@ -22,6 +22,7 @@ impl CppPlans {
     }
     fn recorded_configuration_consumer(&self, id: &str) -> bool {
         !self.inactive.contains_key(id)
+            && !self.compile_scope_is_empty(id)
             && (id.ends_with(".cpp.compile")
                 || self.diagnostics.contains_key(id)
                 || self.includes.contains_key(id)
