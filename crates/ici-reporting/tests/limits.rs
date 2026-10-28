@@ -176,3 +176,33 @@ fn utf8_step_summary_and_annotation_priority_are_deterministic() {
     .unwrap();
     assert!(annotations[0].contains("new.py"));
 }
+
+#[test]
+fn baseline_presentation_is_bounded_while_saved_json_keeps_every_identity() {
+    let mut run: Value = serde_json::from_slice(include_bytes!(
+        "../../../tests/fixtures/ici-next/run-success.json"
+    ))
+    .unwrap();
+    let changes = (0..30)
+        .map(|index| format!("sha256:{index:064x}"))
+        .collect::<Vec<_>>();
+    let unchanged = (30..65)
+        .map(|index| format!("sha256:{index:064x}"))
+        .collect::<Vec<_>>();
+    run["baseline"] = json!({"state":"comparable","origin":"prior","reason":"","new":changes,"carried":[],"resolved":[],"unchanged":unchanged});
+    let stored = StoredResult::from_value(run).unwrap();
+    let omitted = format!("sha256:{:064x}", 64);
+    let archived = ici_reporting::render_json(&stored).unwrap();
+    assert!(archived.contains(&omitted));
+    let console = render_console(&stored, &RenderOptions::default()).unwrap();
+    assert!(console.contains("omitted_changed"));
+    assert!(console.contains("omitted_unchanged"));
+    assert!(!console.contains(&omitted));
+    let html = render_html(&stored, &RenderOptions::default()).unwrap();
+    let visible = html
+        .split("<details><summary>Complete saved result")
+        .next()
+        .unwrap();
+    assert!(visible.contains("omitted_unchanged"));
+    assert!(!visible.contains(&omitted));
+}

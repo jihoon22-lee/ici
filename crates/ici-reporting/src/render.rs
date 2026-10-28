@@ -3,7 +3,7 @@ use crate::{
     safe::{self, html, plain},
     view::{View, informational, location, marks, suppressed},
 };
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::fmt::Write;
 /// Output boundary; StoredResult::to_json instead preserves the raw archive for round trips.
 pub fn render_json(stored: &StoredResult) -> Result<String> {
@@ -104,7 +104,11 @@ pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<
         );
     }
     if !view.baseline().is_null() {
-        let _ = writeln!(out, "Baseline: {}", crate::canonical_json(view.baseline())?);
+        let _ = writeln!(
+            out,
+            "Baseline: {}",
+            crate::canonical_json(&baseline_preview(view.baseline()))?
+        );
     }
     for auxiliary in &options.auxiliary {
         auxiliary.validate()?;
@@ -321,7 +325,7 @@ pub fn render_markdown(stored: &StoredResult, options: &RenderOptions) -> Result
         let _ = write!(
             out,
             "\n## Baseline\n\n<pre>{}</pre>\n",
-            html(&crate::canonical_json(view.baseline())?)
+            html(&crate::canonical_json(&baseline_preview(view.baseline()))?)
         );
     }
     for document in &options.auxiliary {
@@ -627,7 +631,7 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
     rich(view.metrics(), &mut out)?;
     if !view.baseline().is_null() {
         out.push_str("<h2>Baseline comparison</h2>");
-        rich(view.baseline(), &mut out)?;
+        rich(&baseline_preview(view.baseline()), &mut out)?;
     }
     crate::facets::render(&view.engines, &mut out)?;
     for key in [
@@ -799,4 +803,115 @@ fn finding_card(finding: &Value, out: &mut String) -> Result<()> {
     }
     out.push_str("</article>");
     Ok(())
+}
+
+/// The saved result retains every delta. Presentation keeps changed rows first and a small
+/// unchanged sample, matching the frozen issues-first baseline view's 20/3 detail bounds.
+fn baseline_preview(baseline: &Value) -> Value {
+    const DETAIL: usize = 20;
+    const UNCHANGED: usize = 3;
+    let mut changed = Vec::new();
+    let mut unchanged = Vec::new();
+    if let Some(entries) = baseline["entries"].as_array() {
+        let mut entries = entries.clone();
+        let order = |entry: &Value| {
+            let state = entry["state"].as_str().unwrap_or("").to_ascii_lowercase();
+            (
+                !entry["gated"].as_bool().unwrap_or(false),
+                match state.as_str() {
+                    "new" => 0,
+                    "moved" => 1,
+                    "resolved" => 2,
+                    "carried" => 3,
+                    "unchanged" => 4,
+                    _ => 5,
+                },
+                entry["engine_name"].as_str().unwrap_or("").to_owned(),
+                entry["fingerprint"].as_str().unwrap_or("").to_owned(),
+            )
+        };
+        entries.sort_by_key(order);
+        for entry in entries {
+            let message = entry["message"].as_str().unwrap_or("");
+            let message = message.chars().take(512).collect::<String>();
+            let row = json!({"state":entry["state"],"gated":entry["gated"],"engine_name":entry["engine_name"],"rule_id":entry["rule_id"],"fingerprint":entry["fingerprint"],"current_location":entry["current_location"],"baseline_location":entry["baseline_location"],"baseline_severity":entry["baseline_severity"],"current_severity":entry["current_severity"],"message":message});
+            if entry["state"]
+                .as_str()
+                .is_some_and(|state| state.eq_ignore_ascii_case("unchanged"))
+            {
+                unchanged.push(row);
+            } else {
+                changed.push(row);
+            }
+        }
+    } else {
+        for key in ["new", "carried", "resolved", "unchanged"] {
+            for fingerprint in baseline[key]
+                .as_array()
+                .map(Vec::as_slice)
+                .unwrap_or_default()
+            {
+                let row = json!({"state":key,"fingerprint":fingerprint});
+                if key == "unchanged" {
+                    unchanged.push(row);
+                } else {
+                    changed.push(row);
+                }
+            }
+        }
+    }
+    let changed_total = changed.len();
+    let unchanged_total = unchanged.len();
+    changed.truncate(DETAIL);
+    unchanged.truncate(UNCHANGED.min(DETAIL - changed.len()));
+    let omitted_changed = changed_total - changed.len();
+    let omitted_unchanged = unchanged_total - unchanged.len();
+    changed.extend(unchanged);
+    let warnings = baseline["warnings"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let visible_warnings = warnings
+        .iter()
+        .take(10)
+        .map(|warning| {
+            warning
+                .as_str()
+                .unwrap_or("")
+                .chars()
+                .take(512)
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>();
+    json!({"state":baseline["state"],"origin":baseline["origin"],"reason":baseline["reason"],"source_path":baseline["source_path"],"fail_on_new":baseline["fail_on_new"],"gate_failed":baseline["gate_failed"],"warnings":visible_warnings,"omitted_warnings":warnings.len().saturating_sub(10),"counts":{"changed":changed_total,"unchanged":unchanged_total},"details":changed,"omitted_changed":omitted_changed,"omitted_unchanged":omitted_unchanged,"full_inventory":"The saved JSON report retains every baseline delta"})
+}
+
+#[cfg(test)]
+mod baseline_preview_tests {
+    use super::baseline_preview;
+    use serde_json::json;
+
+    #[test]
+    fn changed_rows_precede_bounded_unchanged_sample_without_losing_archive_counts() {
+        let mut entries = vec![];
+        for index in 0..30 {
+            entries.push(json!({"state":if index<25 {"unchanged"}else{"new"},"gated":index==29,"fingerprint":format!("fp-{index}"),"engine_name":"lint","message":"x".repeat(2048)}));
+        }
+        let preview = baseline_preview(&json!({"state":"comparable","entries":entries}));
+        let details = preview["details"].as_array().unwrap();
+        assert_eq!(details.len(), 8);
+        assert_eq!(details[0]["fingerprint"], "fp-29");
+        assert_eq!(preview["counts"]["changed"], 5);
+        assert_eq!(preview["counts"]["unchanged"], 25);
+        assert_eq!(preview["omitted_unchanged"], 22);
+        assert!(details[0]["message"].as_str().unwrap().len() <= 512);
+    }
+    #[test]
+    fn twenty_changed_rows_hide_all_unchanged_details() {
+        let baseline = json!({"state":"comparable","new":(0..24).map(|index|format!("new-{index}")).collect::<Vec<_>>(),"carried":[],"resolved":[],"unchanged":["same"]});
+        let preview = baseline_preview(&baseline);
+        assert_eq!(preview["details"].as_array().unwrap().len(), 20);
+        assert_eq!(preview["omitted_changed"], 4);
+        assert_eq!(preview["omitted_unchanged"], 1);
+    }
 }
