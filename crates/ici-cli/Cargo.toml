@@ -13,8 +13,12 @@ path = "src/main.rs"
 ici-domain = { path = "../ici-domain" }
 ici-config = { path = "../ici-config" }
 ici-application = { path = "../ici-application" }
+ici-analysis = { path = "../ici-analysis" }
+ici-cpp = { path = "../ici-cpp" }
 ici-execution = { path = "../ici-execution" }
 ici-providers = { path = "../ici-providers" }
+chrono = { version = "=0.4.45", default-features = false, features = ["clock", "std"] }
+signal-hook = "=0.3.18"
 clap = { version = "=4.6.7", features = ["string"] }
 serde.workspace = true
 serde_json.workspace = true

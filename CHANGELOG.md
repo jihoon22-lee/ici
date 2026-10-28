@@ -36,6 +36,9 @@
 - native CLI에 기존 37개 진입점·115개 인자의 파서와 실행 없는 plan을 연결합니다.
   init·migration preview·새 출력·명시 백업, 저장 결과 diff와 cache 정리를 Rust로 수행합니다.
   이 내부 명령 기반은 전체 실행·report·publish·legacy projection 인수 완료를 의미하지 않습니다.
+- native C++ 구문·Python packaging 분석 입력으로 Tree-sitter grammar, PEP 440/508,
+  bounded ZIP/CSV/base64와 Unicode 16 normalization 의존성을 고정합니다. 프로젝트 도구와
+  ici core는 계속 분리하며 설치·실행 중 Python backend로 돌아가지 않습니다.
 
 ## [0.13.0] - 2026-10-28
 
