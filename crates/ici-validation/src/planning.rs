@@ -568,7 +568,15 @@ pub fn ready_steps(
             if requirement.task_id.ends_with(".instrumentation") {
                 crate::cpp::instrumentation(plan, outcome)?;
             }
-            if plan.kind == ValidationKind::Gcov {
+            if plan.kind == ValidationKind::Gcov
+                && (plan.context.options.shared_test_task_id.as_deref()
+                    == Some(&requirement.task_id)
+                    || plan
+                        .context
+                        .options
+                        .shared_cpp_test_sources
+                        .contains_key(&requirement.task_id))
+            {
                 crate::cpp::completed_test(plan, &requirement.task_id, outcome)?;
             }
         }

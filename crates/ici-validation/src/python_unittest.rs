@@ -123,6 +123,7 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 probe_task_id: suite.clone(),
                 coverage_available: false,
                 missing_module: Some("pytest".into()),
+                gcov_format: None,
             },
         );
         plan.prerequisites.insert(

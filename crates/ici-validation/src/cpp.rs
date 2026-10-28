@@ -124,7 +124,7 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             report.cwd = request.owned_run_dir.to_string_lossy().into_owned();
             report.kind = TaskKind::Prepare;
             report.output_specs.push("*.gcov.json.gz".into());
-            let suite = request
+            request
                 .options
                 .shared_test_task_id
                 .as_ref()
@@ -153,11 +153,14 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             }
             plan.prerequisites.insert(
                 report.id.clone(),
-                vec![StepPrerequisite {
-                    task_id: suite.clone(),
-                    accepted_exits: (0..=255).collect(),
-                    require_test_evidence: false,
-                }],
+                crate::gcov::suite_ids(plan)?
+                    .into_iter()
+                    .map(|id| StepPrerequisite {
+                        task_id: id,
+                        accepted_exits: (0..=255).collect(),
+                        require_test_evidence: false,
+                    })
+                    .collect(),
             );
             plan.artifact_patterns.push(ArtifactPattern {
                 id_prefix: "gcov-json".into(),
@@ -168,6 +171,7 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 max_bytes_total: 64 * 1024 * 1024,
             });
             plan.tasks.push(report);
+            crate::gcov_format::configure(plan)?;
         }
         ValidationKind::BinaryCompatibility => {
             if request.options.max_artifacts == 0
@@ -269,6 +273,12 @@ pub(crate) fn test_evidence(
         .shared_test_kind
         .ok_or_else(|| ValidationError("shared C++ suite kind absent".into()))?;
     suite_plan.context.kind = suite_plan.kind;
+    if let Some(source) = plan.context.options.shared_cpp_test_sources.get(task_id) {
+        suite_plan.context.options.executable_test_source = Some(source.clone());
+        if !suite_plan.context.source_files.contains(source) {
+            suite_plan.context.source_files.push(source.clone());
+        }
+    }
     suite_plan.context.task_id = task_id
         .strip_suffix(".suite")
         .ok_or_else(|| ValidationError("shared C++ suite step id must end with .suite".into()))?
@@ -283,6 +293,59 @@ pub(crate) fn test_evidence(
         }
         _ => Err(ValidationError("unsupported C++ test evidence kind".into())),
     }?;
+    Ok(output)
+}
+pub(crate) fn collective_test_evidence(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+) -> Result<AnalysisOutput, ValidationError> {
+    let mut output = AnalysisOutput::new(&plan.context.task_id, "cpp-executable");
+    let mut nodes = serde_json::Map::new();
+    let mut passed = 0u64;
+    let mut total = 0u64;
+    for id in plan.context.options.shared_cpp_test_sources.keys() {
+        let observed = test_evidence(
+            plan,
+            id,
+            outcomes.get(id).ok_or_else(|| {
+                ValidationError(format!("C++ physical suite outcome {id} is absent"))
+            })?,
+        )?;
+        let (yes, count) = observed
+            .observation
+            .measurements
+            .iter()
+            .find(|metric| metric.name.ends_with(".cases"))
+            .and_then(|metric| metric.numerator.zip(metric.denominator))
+            .ok_or_else(|| ValidationError("C++ physical suite raw test counts absent".into()))?;
+        passed += yes;
+        total += count;
+        for (node, state) in observed.extra["test_outcomes"]
+            .as_object()
+            .ok_or_else(|| ValidationError("C++ physical suite identities absent".into()))?
+        {
+            if nodes.insert(node.clone(), state.clone()).is_some() {
+                return Err(ValidationError(
+                    "C++ physical suites repeat a source identity".into(),
+                ));
+            }
+        }
+        output.targets.extend(observed.targets);
+        output
+            .observation
+            .findings
+            .extend(observed.observation.findings);
+    }
+    if total == 0 {
+        return Err(ValidationError(
+            "no C++ physical suites were observed".into(),
+        ));
+    }
+    output
+        .observation
+        .measurements
+        .push(pair("cpp-executable.cases", passed, total));
+    output.extra["test_outcomes"] = json!(nodes);
     Ok(output)
 }
 fn suite<'a>(

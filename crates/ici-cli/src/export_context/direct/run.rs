@@ -185,7 +185,9 @@ pub(in crate::export_context) fn execute(
     };
     let providers =
         compile_providers(plan, &flags.arguments).map_err(PreparationFailure::Incomplete)?;
-    let link = link_task(plan, &providers);
+    let links = (0..direct.binaries.len())
+        .map(|index| link_task(plan, &providers, index))
+        .collect::<Vec<_>>();
     let lease = BuildLease::acquire(
         &plan.root,
         &plan.build,
@@ -198,10 +200,21 @@ pub(in crate::export_context) fn execute(
         .map_err(|error| PreparationFailure::Incomplete(error.to_string()))?;
     directory(&shadow.join("objects")).map_err(PreparationFailure::Incomplete)?;
     directory(&shadow.join("bin")).map_err(PreparationFailure::Incomplete)?;
+    // Reset only this leased variant's regular coverage counters before its new execution.
+    for entry in crate::files::tree(&plan.root, &shadow)
+        .map_err(|error| PreparationFailure::Incomplete(error.to_string()))?
+    {
+        if entry.relative.ends_with(".gcda") {
+            output_file(&plan.root, &entry.relative).map_err(PreparationFailure::Incomplete)?;
+            fs::remove_file(plan.root.join(&entry.relative))
+                .map_err(|error| PreparationFailure::Incomplete(error.to_string()))?;
+        }
+    }
+
     for path in direct
         .objects
         .iter()
-        .chain(std::iter::once(&direct.binary))
+        .chain(direct.binaries.iter().map(|binary| &binary.path))
         .chain(std::iter::once(&plan.build.compilation_database))
     {
         output_file(&plan.root, path).map_err(PreparationFailure::Incomplete)?;
@@ -265,38 +278,40 @@ pub(in crate::export_context) fn execute(
             ));
         }
     }
-    let mut staged_link = link.clone();
-    staged_link.depends_on.clear();
-    let mut outcomes = run_tasks(
-        plan,
-        std::slice::from_ref(&staged_link),
-        scheduler,
-        cancellation,
-        events,
-    )?;
-    let linked = outcomes.remove(0);
-    records.push(result_record(&linked));
-    if !linked.prerequisite_succeeded() {
-        let mut provider = providers[0].clone();
-        provider.task = staged_link;
-        let mut output = failed_compiler(plan, "link", &provider, &linked, &direct.binary);
-        attach_evidence(
-            &mut output,
-            json!({"phase":"link","pkg_config":flags.records,"compiler_tasks":providers.iter().map(|provider|&provider.task).collect::<Vec<_>>(),"link_task":link,"outcomes":records}),
-        );
-        return Err(PreparationFailure::Observed {
-            phase: "link".into(),
-            output: Box::new(output),
-        });
-    }
-    output_file(&plan.root, &direct.binary).map_err(PreparationFailure::Incomplete)?;
-    if super::super::compiled_artifact_kind(&plan.root.join(&direct.binary))
-        .map_err(PreparationFailure::Incomplete)?
-        != Some("executable")
-    {
-        return Err(PreparationFailure::Incomplete(
-            "compiler returned success without a declared executable ELF artifact".into(),
-        ));
+    for (link, binary) in links.iter().zip(&direct.binaries) {
+        let mut staged_link = link.clone();
+        staged_link.depends_on.clear();
+        let mut outcomes = run_tasks(
+            plan,
+            std::slice::from_ref(&staged_link),
+            scheduler,
+            cancellation,
+            events,
+        )?;
+        let linked = outcomes.remove(0);
+        records.push(result_record(&linked));
+        if !linked.prerequisite_succeeded() {
+            let mut provider = providers[0].clone();
+            provider.task = staged_link;
+            let mut output = failed_compiler(plan, "link", &provider, &linked, &binary.path);
+            attach_evidence(
+                &mut output,
+                json!({"phase":"link","pkg_config":flags.records,"compiler_tasks":providers.iter().map(|provider|&provider.task).collect::<Vec<_>>(),"link_task":link,"outcomes":records}),
+            );
+            return Err(PreparationFailure::Observed {
+                phase: "link".into(),
+                output: Box::new(output),
+            });
+        }
+        output_file(&plan.root, &binary.path).map_err(PreparationFailure::Incomplete)?;
+        if super::super::compiled_artifact_kind(&plan.root.join(&binary.path))
+            .map_err(PreparationFailure::Incomplete)?
+            != Some("executable")
+        {
+            return Err(PreparationFailure::Incomplete(
+                "compiler returned success without a declared executable ELF artifact".into(),
+            ));
+        }
     }
     let database=providers.iter().enumerate().map(|(index,provider)|json!({"directory":provider.task.cwd,"file":direct.sources[index].path,"arguments":provider.task.argv,"output":direct.objects[index]})).collect::<Vec<_>>();
     let bytes = serde_json::to_vec(&database)
@@ -327,11 +342,25 @@ pub(in crate::export_context) fn execute(
             context.diagnostics
         )));
     }
-    let evidence = json!({"system":"direct-gcc","pkg_config":flags.records,"limitations":flags.limitations,"compiler_tasks":providers.iter().map(|provider|&provider.task).collect::<Vec<_>>(),"link_task":link,"outcomes":records,"database":plan.build.compilation_database});
+    let evidence = json!({"system":"direct-gcc","pkg_config":flags.records,"limitations":flags.limitations,"compiler_tasks":providers.iter().map(|provider|&provider.task).collect::<Vec<_>>(),"link_tasks":links,"outcomes":records,"database":plan.build.compilation_database});
     Ok(PreparedContext {
         plan: plan.clone(),
         context,
-        artifacts: vec![direct.binary.clone()],
+        artifacts: direct
+            .binaries
+            .iter()
+            .map(|binary| binary.path.clone())
+            .collect(),
+        test_executables: direct
+            .binaries
+            .iter()
+            .filter_map(|binary| {
+                binary
+                    .source
+                    .clone()
+                    .map(|source| (source, binary.path.clone()))
+            })
+            .collect(),
         test_executable: None,
         evidence: Some(evidence),
         _lease: Arc::new(lease),

@@ -46,10 +46,16 @@ pub(crate) fn attach(
     if phase == "coverage" {
         let evidence = &mut coverage_evidence;
         let result = if matches!(plan.kind, ValidationKind::Gcov) {
-            outcomes
-                .get(&canonical)
-                .and_then(|outcome| crate::cpp::test_evidence(plan, &canonical, outcome).ok())
-                .map(|tests| *evidence = tests)
+            if !plan.context.options.shared_cpp_test_sources.is_empty() {
+                crate::cpp::collective_test_evidence(plan, outcomes)
+                    .ok()
+                    .map(|tests| *evidence = tests)
+            } else {
+                outcomes
+                    .get(&canonical)
+                    .and_then(|outcome| crate::cpp::test_evidence(plan, &canonical, outcome).ok())
+                    .map(|tests| *evidence = tests)
+            }
         } else if framework == "unittest" {
             crate::python_unittest::observe(plan, outcomes, evidence).ok()
         } else {
@@ -143,10 +149,30 @@ pub(crate) fn attach(
             .ok()
             .into_iter()
             .collect()
+    } else if !plan.context.options.shared_cpp_test_sources.is_empty() {
+        plan.context
+            .options
+            .shared_cpp_test_sources
+            .keys()
+            .cloned()
+            .collect()
     } else {
         vec![canonical.clone()]
     };
-    output.extra["test_execution"] = json!({"canonical_suite_id":canonical,"actual_suite_ids":actual_ids,"phase":phase,"framework":framework,"complete":evidence.observation.state==TaskState::Succeeded && counts.is_some(),"passed_tests":counts.map(|(passed,_)|passed),"total_tests":counts.map(|(_,total)|total),"skipped_tests":skipped,"pass_rate":counts.filter(|(_,total)|*total>0).map(|(passed,total)|passed as f64/total as f64)});
+    let complete = evidence.observation.state == TaskState::Succeeded && counts.is_some();
+    let physical_suites = if !plan.context.options.shared_cpp_test_sources.is_empty() {
+        plan.context.options.shared_cpp_test_sources.keys().map(|id| {
+            let measured=outcomes.get(id).and_then(|outcome|crate::cpp::test_evidence(plan,id,outcome).ok());
+            let counts=measured.as_ref().and_then(|output|output.observation.measurements.iter().find(|metric|metric.name.ends_with(".cases")).and_then(|metric|metric.numerator.zip(metric.denominator)));
+            json!({"canonical_suite_id":id,"complete":counts.is_some(),"passed_tests":counts.map(|(passed,_)|passed),"total_tests":counts.map(|(_,total)|total),"skipped_tests":counts.map(|_|0),"framework":"cpp-executable"})
+        }).collect::<Vec<_>>()
+    } else {
+        vec![
+            json!({"canonical_suite_id":canonical,"complete":complete,"passed_tests":counts.map(|(passed,_)|passed),"total_tests":counts.map(|(_,total)|total),"skipped_tests":skipped,"framework":framework}),
+        ]
+    };
+    output.extra["physical_test_suites"] = json!(physical_suites);
+    output.extra["test_execution"] = json!({"canonical_suite_id":canonical,"actual_suite_ids":actual_ids,"phase":phase,"framework":framework,"complete":complete,"passed_tests":counts.map(|(passed,_)|passed),"total_tests":counts.map(|(_,total)|total),"skipped_tests":skipped,"pass_rate":counts.filter(|(_,total)|*total>0).map(|(passed,total)|passed as f64/total as f64)});
     for key in ["passed_tests", "total_tests", "skipped_tests", "pass_rate"] {
         output.extra[key] = output.extra["test_execution"][key].clone();
     }
@@ -257,7 +283,7 @@ pub(crate) fn coverage(
     } else {
         "coverage.py"
     });
-    output.extra["coverage_provenance"] = json!({"format":if plan.kind==ValidationKind::Gcov{"gcov-json"}else{"coverage.py-json"},"canonical_suite_id":plan.context.options.shared_test_task_id.clone().unwrap_or_else(||format!("{}.suite",plan.context.task_id)),"included_sources":report.files.keys().collect::<Vec<_>>(),"excluded_sources":report.excluded_files,"limitations":report.limitations});
+    output.extra["coverage_provenance"] = json!({"format":if plan.kind==ValidationKind::Gcov{if output.extra.get("gcov_text_info").is_some(){"gcov-text"}else{"gcov-json"}}else{"coverage.py-json"},"canonical_suite_id":plan.context.options.shared_test_task_id.clone().unwrap_or_else(||format!("{}.suite",plan.context.task_id)),"included_sources":report.files.keys().collect::<Vec<_>>(),"excluded_sources":report.excluded_files,"limitations":report.limitations});
 }
 fn quality(plan: &ValidationPlan, output: &mut AnalysisOutput) {
     let enabled = plan.context.options.repeat_runs > 0

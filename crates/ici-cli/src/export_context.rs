@@ -44,6 +44,8 @@ pub struct PreparedContext {
     /// Workspace-relative measured ELF outputs of an otherwise undeclared legacy build.
     pub artifacts: Vec<String>,
     pub test_executable: Option<String>,
+    /// Actual source-to-executable mapping for descriptor-free native test suites.
+    pub test_executables: BTreeMap<String, String>,
     pub evidence: Option<Value>,
     _lease: Arc<BuildLease>,
 }
@@ -425,6 +427,7 @@ fn execute_native_preparation(
         context,
         artifacts,
         test_executable,
+        test_executables: BTreeMap::new(),
         evidence: None,
         _lease: Arc::new(lease),
     })
@@ -534,6 +537,10 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
                 .unwrap_or(executable);
             build.settings["test_argv"] = json!([relative]);
         }
+        if !context.test_executables.is_empty() {
+            build.settings["direct_test_executables"] = json!(context.test_executables);
+            build.settings["direct_compiled_sources"] = json!(plan.selected_sources);
+        }
         if let Some(existing) = overlay.builds.iter_mut().find(|existing| existing.id == id) {
             *existing = build;
         } else {
@@ -551,7 +558,7 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
             {
                 continue;
             }
-            component.settings["native_build_variants"][&plan.build.variant] = json!({"build_id":id,"directory":plan.build.shadow,"artifacts":context.artifacts,"test_executable":context.test_executable,"database":plan.build.compilation_database});
+            component.settings["native_build_variants"][&plan.build.variant] = json!({"build_id":id,"directory":plan.build.shadow,"artifacts":context.artifacts,"test_executable":context.test_executable,"test_executables":context.test_executables,"database":plan.build.compilation_database});
             if plan.build.variant == "link-reachability" {
                 component.settings["native_build_variants"][&plan.build.variant]["plan"] =
                     json!(plan.build);

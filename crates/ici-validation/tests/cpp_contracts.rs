@@ -221,7 +221,7 @@ fn integration_checks_declared_streams_exit_and_fresh_output_without_touching_us
     let id = planned.tasks[0].id.clone();
     std::fs::write(root.path().join("result.bin"), b"old").unwrap();
     let outcomes = BTreeMap::from([(id.clone(), outcome(&id, "ready", "", 3))]);
-    owner.mark_started(&id);
+    owner.mark_started(&planned, &id);
     let artifacts = capture_artifacts(&planned, &owner, &outcomes).unwrap();
     let stale = observe(&planned, &outcomes, &artifacts);
     assert_eq!(stale.observation.state, TaskState::Succeeded);

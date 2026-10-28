@@ -47,7 +47,7 @@ fn execute(plan: &ValidationPlan, owner: &OwnedRun) -> BTreeMap<String, TaskOutc
         }
         for id in ready {
             let task = plan.tasks.iter().find(|task| task.id == id).unwrap();
-            owner.mark_started(&id);
+            owner.mark_started(plan, &id);
             outcomes.insert(id, Runner::default().run(task, &Cancellation::default()));
         }
     }
@@ -342,7 +342,7 @@ fn uninstrumented_binary_is_rejected_before_running_user_code() {
     );
     let planned = instrumented(root.path(), ValidationKind::Sanitizer);
     let owner = OwnedRun::create(&planned.context.owned_run_dir).unwrap();
-    owner.mark_started(&planned.tasks[0].id);
+    owner.mark_started(&planned, &planned.tasks[0].id);
     let probe = Runner::default().run(&planned.tasks[0], &Cancellation::default());
     let outcomes = BTreeMap::from([(probe.task_id.clone(), probe)]);
     assert!(ready_steps(&planned, &outcomes).is_err());
@@ -446,7 +446,7 @@ fn gcov_reads_one_fresh_instrumented_ctest_run_and_refuses_stale_data() {
     let mut outcomes = execute(&test_plan, &owner);
     for id in ready_steps(&planned, &outcomes).unwrap() {
         let task = planned.tasks.iter().find(|task| task.id == id).unwrap();
-        owner.mark_started(&id);
+        owner.mark_started(&planned, &id);
         outcomes.insert(id, Runner::default().run(task, &Cancellation::default()));
     }
     let artifacts = capture_artifacts(&planned, &owner, &outcomes).unwrap();

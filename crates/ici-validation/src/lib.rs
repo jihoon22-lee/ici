@@ -5,6 +5,8 @@ pub mod coverage_baseline;
 pub mod cpp;
 mod finding_details;
 pub mod gcov;
+mod gcov_format;
+pub mod gcov_text;
 pub mod integration;
 pub mod model;
 pub mod planning;

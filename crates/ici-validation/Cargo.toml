@@ -15,7 +15,7 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 regex = "1.12"
-nix = { version = "0.30", features = ["fs"] }
+nix = { version = "0.30", features = ["fs", "time"] }
 flate2 = "=1.1.10"
 
 [dev-dependencies]

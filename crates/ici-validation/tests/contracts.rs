@@ -380,7 +380,7 @@ fn owned_artifacts_reject_reuse_symlinks_fifo_stale_and_replaced_owners() {
         spec.producer_task_id.clone(),
         outcome(&spec.producer_task_id, "", 0),
     )]);
-    run.mark_started(&spec.producer_task_id);
+    run.mark_started(&planned, &spec.producer_task_id);
     let source = root.path().join("user.json");
     std::fs::write(&source, b"user data").unwrap();
     std::os::unix::fs::symlink(&source, &spec.path).unwrap();
@@ -445,7 +445,7 @@ fn artifact_patterns_never_adopt_an_earlier_producers_reports_from_the_same_run(
         max_bytes_total: 8192,
     }];
     let run = OwnedRun::create(&planned.context.owned_run_dir).unwrap();
-    run.mark_started("phase-a");
+    run.mark_started(&planned, "phase-a");
     std::fs::write(run.path().join("old.json"), b"old").unwrap();
     let mut outcomes = BTreeMap::from([("phase-a".into(), outcome("phase-a", "", 0))]);
     assert_eq!(
@@ -456,7 +456,7 @@ fn artifact_patterns_never_adopt_an_earlier_producers_reports_from_the_same_run(
         1
     );
     planned.artifact_patterns[0].producer_task_id = "phase-b".into();
-    run.mark_started("phase-b");
+    run.mark_started(&planned, "phase-b");
     std::fs::write(run.path().join("new.json"), b"new").unwrap();
     outcomes.insert("phase-b".into(), outcome("phase-b", "", 0));
     let captured = capture_artifacts(&planned, &run, &outcomes).unwrap();

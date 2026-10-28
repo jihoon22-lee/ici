@@ -142,6 +142,7 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 probe_task_id: probe.clone(),
                 coverage_available: true,
                 missing_module: None,
+                gcov_format: None,
             },
         );
         plan.conditional_steps.insert(
@@ -150,6 +151,7 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 probe_task_id: probe.clone(),
                 coverage_available: false,
                 missing_module: None,
+                gcov_format: None,
             },
         );
         plan.tasks.insert(0, query);
@@ -162,6 +164,7 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 probe_task_id: probe.clone(),
                 coverage_available: true,
                 missing_module: None,
+                gcov_format: None,
             },
         );
     }
@@ -180,6 +183,9 @@ pub fn condition_ready(
     let Some(condition) = plan.conditional_steps.get(task) else {
         return Ok(true);
     };
+    if let Some(format) = condition.gcov_format {
+        return crate::gcov_format::condition_ready(plan, task, format, outcomes);
+    }
     if let Some(module) = &condition.missing_module {
         if module != "pytest" {
             return Err(ValidationError("unknown conditional test module".into()));

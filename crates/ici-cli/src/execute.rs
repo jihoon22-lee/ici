@@ -1144,7 +1144,7 @@ fn execute_validation(
                 .cloned()
                 .collect();
             match scheduler.run_with_start(&tasks, cancellation, |task| {
-                owners[directory].mark_started(&task.id);
+                owners[directory].mark_started(plan, &task.id);
                 events.emit(
                     "task.started",
                     Some(&task.id),

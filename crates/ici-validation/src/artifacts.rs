@@ -5,17 +5,34 @@ use ici_execution::TaskOutcome;
 use nix::{
     fcntl::{OFlag, open, openat},
     sys::stat::{Mode, fstat, mkdirat},
+    time::{ClockId, clock_gettime},
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fs::File,
     io::Read,
     os::fd::OwnedFd,
     path::{Component, Path, PathBuf},
     sync::Mutex,
-    time::SystemTime,
+    time::{Duration, SystemTime},
 };
+/// Linux stamps file times from the coarse realtime clock, which may trail
+/// `SystemTime::now()` by up to one tick. Freshness references use the same
+/// clock, floored to 1 µs for 100 ns filesystem granularity, so output written
+/// immediately after a step starts is not reported stale.
+fn filesystem_now() -> SystemTime {
+    clock_gettime(ClockId::CLOCK_REALTIME_COARSE)
+        .ok()
+        .and_then(|now| {
+            let micros = u64::try_from(now.tv_sec())
+                .ok()?
+                .checked_mul(1_000_000)?
+                .checked_add(u64::try_from(now.tv_nsec()).ok()? / 1_000)?;
+            SystemTime::UNIX_EPOCH.checked_add(Duration::from_micros(micros))
+        })
+        .unwrap_or_else(SystemTime::now)
+}
 
 /// A non-deserializable capability proves this process created the run directory afresh.
 #[derive(Debug)]
@@ -26,6 +43,55 @@ pub struct OwnedRun {
     inode: u64,
     not_before: SystemTime,
     starts: Mutex<BTreeMap<String, SystemTime>>,
+    /// Regular files already present in the run directory when each step started.
+    /// Coarse file times cannot order writes within one clock tick, so an unchanged
+    /// file from this set is never adopted as that step's output.
+    preexisting: Mutex<BTreeMap<String, BTreeSet<FileIdentity>>>,
+}
+type FileIdentity = (u64, u64, i64, i64, u64);
+fn integration_output_path(plan: &ValidationPlan, path: &Path) -> PathBuf {
+    if path.is_absolute() {
+        path.into()
+    } else {
+        plan.context.cwd.join(path)
+    }
+}
+fn file_identity(metadata: &std::fs::Metadata) -> FileIdentity {
+    use std::os::unix::fs::MetadataExt;
+    (
+        metadata.dev(),
+        metadata.ino(),
+        metadata.mtime(),
+        metadata.mtime_nsec(),
+        metadata.len(),
+    )
+}
+/// Bounded no-follow inventory; an unreadable or oversized tree records nothing,
+/// leaving the timestamp check as the only guard.
+fn inventory(root: &Path) -> BTreeSet<FileIdentity> {
+    let mut found = BTreeSet::new();
+    let mut pending = vec![(root.to_path_buf(), 0usize)];
+    let mut visited = 0usize;
+    while let Some((directory, depth)) = pending.pop() {
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            visited += 1;
+            if visited > 16384 {
+                return BTreeSet::new();
+            }
+            let Ok(metadata) = std::fs::symlink_metadata(entry.path()) else {
+                continue;
+            };
+            if metadata.is_file() {
+                found.insert(file_identity(&metadata));
+            } else if metadata.is_dir() && depth < 8 {
+                pending.push((entry.path(), depth + 1));
+            }
+        }
+    }
+    found
 }
 impl OwnedRun {
     /// Parent directories must already exist. Existing run directories are rejected.
@@ -51,7 +117,7 @@ impl OwnedRun {
                 _ => return Err(ValidationError("run directory must be normalized".into())),
             }
         }
-        let not_before = SystemTime::now();
+        let not_before = filesystem_now();
         mkdirat(&directory, name, Mode::S_IRWXU).map_err(error)?;
         let directory =
             openat(&directory, name, directory_flags(), Mode::empty()).map_err(error)?;
@@ -63,17 +129,35 @@ impl OwnedRun {
             inode: stat.st_ino,
             not_before,
             starts: Mutex::default(),
+            preexisting: Mutex::default(),
         })
     }
     pub fn path(&self) -> &Path {
         &self.path
     }
     /// Call from the scheduler start callback immediately before this step is launched.
-    pub fn mark_started(&self, task_id: &str) {
+    pub fn mark_started(&self, plan: &ValidationPlan, task_id: &str) {
+        let mut existing = inventory(&self.path);
+        if plan.kind == crate::ValidationKind::Integration
+            && task_id == format!("{}.case", plan.context.task_id)
+        {
+            for assertion in &plan.context.options.outputs {
+                if let Ok(metadata) =
+                    std::fs::symlink_metadata(integration_output_path(plan, &assertion.path))
+                    && metadata.is_file()
+                {
+                    existing.insert(file_identity(&metadata));
+                }
+            }
+        }
+        self.preexisting
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(task_id.into(), existing);
         self.starts
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .insert(task_id.into(), SystemTime::now());
+            .insert(task_id.into(), filesystem_now());
     }
     fn validate(&self, plan: &ValidationPlan) -> Result<(), ValidationError> {
         if self.path != plan.context.owned_run_dir {
@@ -252,11 +336,7 @@ pub fn capture_artifacts(
             .copied();
         for (index, assertion) in plan.context.options.outputs.iter().enumerate() {
             let id = format!("integration-output:{index}");
-            let path = if assertion.path.is_absolute() {
-                assertion.path.clone()
-            } else {
-                plan.context.cwd.join(&assertion.path)
-            };
+            let path = integration_output_path(plan, &assertion.path);
             let result = (|| -> Result<OutputWitness, ValidationError> {
                 let started = started.ok_or_else(|| {
                     ValidationError("integration case start timestamp is absent".into())
@@ -277,7 +357,13 @@ pub fn capture_artifacts(
                         "declared output is not a regular file".into(),
                     ));
                 }
-                let fresh = metadata.modified().map_err(error)? >= started;
+                let unchanged = run
+                    .preexisting
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .get(&producer)
+                    .is_some_and(|existing| existing.contains(&file_identity(&metadata)));
+                let fresh = !unchanged && metadata.modified().map_err(error)? >= started;
                 Ok(OutputWitness {
                     path: path.clone(),
                     size: metadata.len(),
@@ -302,12 +388,34 @@ pub fn capture_artifacts(
             .shared_test_task_id
             .as_ref()
             .ok_or_else(|| ValidationError("gcov shared test owner absent".into()))?;
-        let started = run
-            .starts
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .get(producer)
-            .copied();
+        let started = {
+            let starts = run
+                .starts
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if plan.context.options.shared_cpp_test_sources.is_empty() {
+                starts.get(producer).copied()
+            } else {
+                if !plan
+                    .context
+                    .options
+                    .shared_cpp_test_sources
+                    .contains_key(producer)
+                {
+                    return Err(ValidationError(
+                        "GCOV canonical batch identity is not one of its physical suites".into(),
+                    ));
+                }
+                let observed = plan
+                    .context
+                    .options
+                    .shared_cpp_test_sources
+                    .keys()
+                    .map(|id| starts.get(id).copied())
+                    .collect::<Option<Vec<_>>>();
+                observed.and_then(|times| times.into_iter().min())
+            }
+        };
         for target in &plan.context.targets {
             let key = format!("gcov-data:{target}");
             let path = plan.context.root.join(target).with_extension("gcda");
@@ -462,7 +570,13 @@ fn read_spec(spec: &OwnedArtifactSpec, run: &OwnedRun) -> Result<Vec<u8>, Valida
         .get(&spec.producer_task_id)
         .copied()
         .ok_or_else(|| ValidationError("artifact producer start timestamp is absent".into()))?;
-    if before.modified().map_err(error)? < started {
+    let unchanged = run
+        .preexisting
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get(&spec.producer_task_id)
+        .is_some_and(|existing| existing.contains(&file_identity(&before)));
+    if unchanged || before.modified().map_err(error)? < started {
         return Err(ValidationError(
             "artifact predates its producer start".into(),
         ));

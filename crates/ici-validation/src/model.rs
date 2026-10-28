@@ -68,6 +68,8 @@ pub struct ValidationOptions {
     /// Same owned run directory and source scope must be used by both logical checks.
     pub shared_test_task_id: Option<String>,
     pub shared_test_kind: Option<ValidationKind>,
+    /// Physical suites contributing fresh counters to one bounded C++ coverage batch.
+    pub shared_cpp_test_sources: BTreeMap<String, String>,
     /// Total runs including the primary suite, capped at 3. Zero disables repeats.
     pub repeat_runs: usize,
     pub slow_threshold_seconds: Option<f64>,
@@ -97,6 +99,8 @@ pub struct ValidationOptions {
     pub build_roots: Vec<PathBuf>,
     /// Existing project counters cannot prove this run's coverage counts.
     pub gcov_preexisting_data: Vec<String>,
+    /// A visible help/version probe chooses JSON or legacy text; never a failed-probe fallback.
+    pub gcov_capability_probe: bool,
     pub sanitizer_suite_kind: Option<ValidationKind>,
     pub instrumented_artifacts: Vec<String>,
     /// One explicitly mapped source for a plain executable verdict, including shared GCOV evidence.
@@ -128,6 +132,7 @@ impl Default for ValidationOptions {
             unittest_fallback: false,
             shared_test_task_id: None,
             shared_test_kind: None,
+            shared_cpp_test_sources: BTreeMap::new(),
             repeat_runs: 0,
             slow_threshold_seconds: None,
             quality_mode: "report".into(),
@@ -155,6 +160,7 @@ impl Default for ValidationOptions {
             max_artifacts: 64,
             build_roots: vec![],
             gcov_preexisting_data: vec![],
+            gcov_capability_probe: false,
             sanitizer_suite_kind: None,
             instrumented_artifacts: vec![],
             executable_test_source: None,
@@ -226,6 +232,14 @@ pub struct StepCondition {
     pub coverage_available: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub missing_module: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gcov_format: Option<GcovFormat>,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GcovFormat {
+    Json,
+    Text,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ValidationPlan {

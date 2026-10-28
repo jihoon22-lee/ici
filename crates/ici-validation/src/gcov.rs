@@ -113,6 +113,37 @@ pub struct GcovCondition {
 fn error(message: impl Into<String>) -> ValidationError {
     ValidationError(message.into())
 }
+pub(crate) fn suite_ids(plan: &ValidationPlan) -> Result<Vec<String>, ValidationError> {
+    let canonical = plan
+        .context
+        .options
+        .shared_test_task_id
+        .as_ref()
+        .ok_or_else(|| error("GCOV canonical suite identity is absent"))?;
+    let sources = &plan.context.options.shared_cpp_test_sources;
+    if sources.len() > 128
+        || !sources.is_empty()
+            && (!sources.contains_key(canonical)
+                || plan.context.options.shared_test_kind
+                    != Some(crate::ValidationKind::CppExecutable))
+    {
+        return Err(error(
+            "GCOV physical suite mapping requires at most 128 plain executables and a mapped canonical batch identity",
+        ));
+    }
+    for (id, source) in sources {
+        ici_domain::validation::relative_path(source, false)
+            .map_err(|failure| error(failure.to_string()))?;
+        if id.len() > 512 || !id.ends_with(".suite") || id.chars().any(char::is_control) {
+            return Err(error("GCOV physical suite identity is invalid"));
+        }
+    }
+    Ok(if sources.is_empty() {
+        vec![canonical.clone()]
+    } else {
+        sources.keys().cloned().collect()
+    })
+}
 pub fn parse_gzip(
     bytes: &[u8],
     maximum_decompressed: usize,
@@ -516,7 +547,7 @@ fn provenance(
         json!({"format":"gcov-json","format_versions":reports.iter().map(|report|report.format_version.parse::<u8>().expect("validated format version")).collect::<BTreeSet<_>>(),"gcc_versions":reports.iter().map(|report|&report.gcc_version).collect::<BTreeSet<_>>(),"report_count":reports.len(),"compressed_bytes":compressed,"decompressed_bytes":reports.iter().map(|report|report.decompressed_bytes).sum::<usize>(),"file_records":files,"function_records":functions,"line_records":lines,"branch_records":branches,"call_records":calls,"lines_without_block_ids":without_blocks,"ordered_branch_records":ordered,"branch_identity":if ordered==0{"basic-block"}else{"basic-block-or-line-order"},"matched_file_records":matched,"ignored_file_records":ignored,"expected_sources":plan.context.source_files.len(),"covered_sources":report.files.len(),"empty_sources":report.files.values().filter(|file|file.counts.total_lines==0).map(|file|&file.path).collect::<Vec<_>>(),"function_geometry":"exact","source_mapping":"recorded-compilation-directory-or-project-root","throw_branches_excluded":true}),
     )
 }
-fn lexical(path: &Path) -> PathBuf {
+pub(crate) fn lexical(path: &Path) -> PathBuf {
     let mut result = PathBuf::new();
     for part in path.components() {
         match part {
@@ -529,7 +560,7 @@ fn lexical(path: &Path) -> PathBuf {
     }
     result
 }
-fn source_path(
+pub(crate) fn source_path(
     name: &str,
     cwd: &str,
     plan: &ValidationPlan,
@@ -566,7 +597,32 @@ pub(crate) fn observe(
             "preexisting GCOV counters can contain accumulated coverage; prior data was preserved",
         ));
     }
-    let id = format!("{}.report", plan.context.task_id);
+    let (format, version) = crate::gcov_format::selected(plan, outcomes)?
+        .ok_or_else(|| error("GCOV capability/version evidence is absent"))?;
+    let id = format!(
+        "{}.{}",
+        plan.context.task_id,
+        if format == crate::GcovFormat::Json {
+            "report"
+        } else {
+            "text-report"
+        }
+    );
+    if plan.context.options.gcov_capability_probe
+        && outcomes.contains_key(&format!(
+            "{}.{}",
+            plan.context.task_id,
+            if format == crate::GcovFormat::Json {
+                "text-report"
+            } else {
+                "report"
+            }
+        ))
+    {
+        return Err(error(
+            "mutually exclusive GCOV report formats were both executed",
+        ));
+    }
     let outcome = outcomes
         .get(&id)
         .ok_or_else(|| error("gcov report step absent"))?;
@@ -591,7 +647,7 @@ pub(crate) fn observe(
     if artifacts
         .errors
         .keys()
-        .any(|key| key.starts_with("gcov-json"))
+        .any(|key| key.starts_with("gcov-json") || key.starts_with("gcov-text"))
     {
         return Err(error("gcov report ownership/capture failed"));
     }
@@ -601,10 +657,16 @@ pub(crate) fn observe(
         .shared_test_task_id
         .as_deref()
         .ok_or_else(|| error("gcov shared suite provenance absent"))?;
-    let suite = outcomes
-        .get(producer)
-        .ok_or_else(|| error("gcov shared suite outcome absent"))?;
-    let test_evidence = crate::cpp::test_evidence(plan, producer, suite)?;
+    let suite_ids = suite_ids(plan)?;
+    let test_evidence = if plan.context.options.shared_cpp_test_sources.is_empty() {
+        let suite = outcomes
+            .get(producer)
+            .ok_or_else(|| error("gcov shared suite outcome absent"))?;
+        crate::cpp::test_evidence(plan, producer, suite)?
+    } else {
+        crate::cpp::collective_test_evidence(plan, outcomes)?
+    };
+    output.extra["gcov_test_batch"] = json!({"canonical_batch_id":producer,"physical_suite_ids":suite_ids,"freshness":"after earliest start of all completed physical suites in this owned batch"});
     if let Some(nodes) = test_evidence.extra.get("test_outcomes") {
         output.extra["test_outcomes"] = nodes.clone();
     }
@@ -625,34 +687,19 @@ pub(crate) fn observe(
             ));
         }
     }
-    let mut reports = vec![];
-    let mut decompressed = 0;
-    for artifact in artifacts
-        .files
-        .values()
-        .filter(|artifact| artifact.id.starts_with("gcov-json:"))
-    {
-        if artifact.producer_task_id != id || artifact.digest != ici_domain::sha256(&artifact.bytes)
-        {
-            return Err(error("gcov report provenance mismatch"));
-        }
-        let budget = (256 * 1024 * 1024usize - decompressed).min(64 * 1024 * 1024);
-        let report = parse_gzip(&artifact.bytes, budget)?;
-        decompressed += report.decompressed_bytes;
-        reports.push(report);
+    let (report, info) = read_reports(plan, artifacts, &id, format)?;
+    if let Some(version) = version {
+        output
+            .observation
+            .tool_versions
+            .push(("gcov".into(), version.clone()));
+        output.extra["gcov_capability"] = json!({"format":format,"version":version,"probe_task_id":format!("{}.capability",plan.context.task_id),"version_task_id":format!("{}.version",plan.context.task_id)});
     }
-    let report = merge(&reports, plan)?;
-    output.extra["gcov_json_info"] = provenance(
-        &reports,
-        plan,
-        &report,
-        artifacts
-            .files
-            .values()
-            .filter(|artifact| artifact.id.starts_with("gcov-json:"))
-            .map(|artifact| artifact.bytes.len())
-            .sum(),
-    )?;
+    output.extra[if format == crate::GcovFormat::Json {
+        "gcov_json_info"
+    } else {
+        "gcov_text_info"
+    }] = info;
     for (name, a, b) in [
         (
             "coverage.cpp.lines",
@@ -707,6 +754,75 @@ pub(crate) fn observe(
     );
     crate::test_metrics::coverage(plan, &report, output);
     crate::policy::evaluate(plan, &report, score.score, output)
+}
+
+fn read_reports(
+    plan: &ValidationPlan,
+    artifacts: &CapturedArtifacts,
+    id: &str,
+    format: crate::GcovFormat,
+) -> Result<(CoverageReport, Value), ValidationError> {
+    let prefix = if format == crate::GcovFormat::Json {
+        "gcov-json:"
+    } else {
+        "gcov-text:"
+    };
+    let inactive = if format == crate::GcovFormat::Json {
+        "gcov-text:"
+    } else {
+        "gcov-json:"
+    };
+    if artifacts
+        .files
+        .values()
+        .any(|artifact| artifact.id.starts_with(inactive))
+    {
+        return Err(error("inactive GCOV report format has captured artifacts"));
+    }
+    let mut json_reports = vec![];
+    let mut text_reports = vec![];
+    let mut bytes = 0usize;
+    let mut decompressed = 0usize;
+    for artifact in artifacts
+        .files
+        .values()
+        .filter(|artifact| artifact.id.starts_with(prefix))
+    {
+        if artifact.producer_task_id != id || artifact.digest != ici_domain::sha256(&artifact.bytes)
+        {
+            return Err(error("GCOV report provenance mismatch"));
+        }
+        bytes = bytes
+            .checked_add(artifact.bytes.len())
+            .ok_or_else(|| error("GCOV report byte count overflow"))?;
+        if json_reports.len() + text_reports.len() >= 4096
+            || bytes
+                > if format == crate::GcovFormat::Json {
+                    64 * 1024 * 1024
+                } else {
+                    256 * 1024 * 1024
+                }
+        {
+            return Err(error("GCOV report set exceeds its count/byte bound"));
+        }
+        if format == crate::GcovFormat::Json {
+            let budget = (256 * 1024 * 1024usize - decompressed).min(64 * 1024 * 1024);
+            let report = parse_gzip(&artifact.bytes, budget)?;
+            decompressed += report.decompressed_bytes;
+            json_reports.push(report);
+        } else {
+            text_reports.push(crate::gcov_text::parse(&artifact.bytes)?);
+        }
+    }
+    if format == crate::GcovFormat::Json {
+        let report = merge(&json_reports, plan)?;
+        let info = provenance(&json_reports, plan, &report, bytes)?;
+        Ok((report, info))
+    } else {
+        let (report, mut info) = crate::gcov_text::merge(&text_reports, plan)?;
+        info["report_bytes"] = json!(bytes);
+        Ok((report, info))
+    }
 }
 
 mod strict_json {

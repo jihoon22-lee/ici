@@ -47,7 +47,7 @@ fn execute_owned(
         for id in ready {
             let spec = plan.tasks.iter().find(|task| task.id == id).unwrap();
             if let Some(owner) = owner {
-                owner.mark_started(&id);
+                owner.mark_started(plan, &id);
             }
             let outcome = Runner::default().run(spec, &Cancellation::default());
             outcomes.insert(id, outcome);

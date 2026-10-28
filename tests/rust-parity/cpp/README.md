@@ -147,8 +147,9 @@ with project include directories and ordered, visibly planned `pkg-config
 fixture preserves `-D`/`-U` ordering, package headers, estimated diagnostics,
 changed configuration scope after `.pc` edits, unsafe-option refusal, and modern
 and explicit-selection boundaries. Recorded DB commands receive no package
-flags from this fallback. Standalone binary build and sanitizer consumers remain
-open; this fixture does not establish their parity.
+flags from this fallback. Binary preparation uses the separate explicit legacy
+contract described below. This syntax fixture alone does not establish binary
+or sanitizer parity.
 
 Explicit components inherit root `project.compile_database` with origin and
 environment expansion; a held prepared context overrides that selection. A
@@ -166,3 +167,35 @@ scope returns located SKIP/NotApplicable, with no measured zero duplication.
 Cycle report limits cap emitted groups and include diagnostic targets while
 retaining full graph and cycle counts. Legacy line gates use strict `>` cutoffs,
 separate source/all-file totals, and preserve language labels for extra files.
+
+
+Descriptor-free explicit legacy builds now compile actual objects and link inside
+an owned `BuildLease` shadow. The release path requires exactly one frozen
+`int main` definition; test, coverage, sanitizer and thread-sanitizer variants
+build each `tests/**/*.cpp` as a separate executable with shared non-main
+production objects. External build directories stay outside this binary scope.
+Project include directories and ordered measured package flags are reused, while
+each compilation DB row is written only from a successful compiler invocation.
+Failed compilation/linking retains located code diagnostics and immutable source
+coordinates. Output redirection, multiple application entry points, changed
+sources, root native descriptors, and unowned output paths are refused.
+
+`native_cpp_direct.rs` exercises actual GCC release compilation and common
+packaging, green/red executable verdicts, project-root fixture I/O, and one
+collective GCOV report over the compiled production source. Physical test suite
+identities remain separate: the same two processes yield 1/2 test counts in both
+test and coverage observations and deduplicate in reporting. Fresh counters are
+bound to the earliest observed start of the complete owned batch; every declared
+physical suite must have a completed outcome. Existing user counters outside the
+leased shadow are preserved. The actual `ici test` common-application fixture
+covers the preparation/rebind/final input-stability path.
+
+The sanitizer variant has actual located UBSan overflow evidence. The measured
+thread-sanitizer variant links and completes a clean basic executable on the
+current host; this is not a race-detection accuracy claim. Separate native and
+synthetic cases distinguish ordinary exit failures, timeout, signal termination,
+output truncation and sanitizer-runtime failure. A plain executable exposes one
+process verdict, with no inferred internal assertion count. Modern `analyze`
+continues to plan existing artifacts without implicit compilation. These cases
+close specific effects only; the complete frozen Make, source and capability
+audits remain independently tracked in the closure ledger.

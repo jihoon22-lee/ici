@@ -1,4 +1,5 @@
 //! Existing declared C++ runtime artifacts. Binding is read-only and never builds a project.
+mod direct;
 use ici_application::{plan::Work, request::RunRequest};
 use ici_config::{Build, Component, ResolvedProject};
 use ici_domain::CheckDefinition;
@@ -219,6 +220,14 @@ fn bind_inner(
         ValidationKind::Ctest if selected(project, component, run_request, "cpp.coverage") => {
             Some("coverage")
         }
+        ValidationKind::Ctest
+            if component
+                .settings
+                .pointer("/native_build_variants/test")
+                .is_some() =>
+        {
+            Some("test")
+        }
         ValidationKind::Sanitizer => Some("sanitize"),
         ValidationKind::ThreadSanitizer => Some("thread-sanitize"),
         _ => None,
@@ -235,6 +244,18 @@ fn bind_inner(
         .and_then(|id| project.builds.iter().find(|build| build.id == id))
         .or_else(|| crate::cpp::linked_build(project, component))
         .ok_or_else(|| "C++ runtime checks require a declared component build".to_string())?;
+    if build.system.as_deref() == Some("direct-gcc") {
+        return direct::bind(direct::DirectBinding {
+            project,
+            component,
+            build,
+            kind,
+            id,
+            run_request,
+            environment,
+            run_label,
+        });
+    }
     let directory = crate::files::under(&project.root, build.directory.as_deref().unwrap_or("."));
     regular_directory(&project.root, &directory)?;
     let artifacts = declared_artifacts(project, component, build)?;
@@ -293,6 +314,7 @@ fn bind_inner(
     let mut plans = vec![];
     match kind {
         ValidationKind::Gcov => {
+            request.options.gcov_capability_probe = true;
             let mut suite = request.clone();
             suite.task_id = format!("{id}.tests");
             configure_suite(
