@@ -71,9 +71,6 @@ impl Declarations {
                             }
                             entries.sort_by_key(|entry| entry.file_name());
                             for entry in entries.into_iter().rev() {
-                                if matches!(entry.file_name().to_str(), Some(".git" | ".ici")) {
-                                    continue;
-                                }
                                 pending.push((entry.path(), depth + 1));
                             }
                         } else if metadata.is_file() || metadata.file_type().is_symlink() {

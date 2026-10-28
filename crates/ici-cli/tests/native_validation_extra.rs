@@ -638,6 +638,42 @@ fn generated_python_launcher_invokes_the_packaged_callable_using_project_runtime
         String::from_utf8_lossy(&output.stderr)
     );
     assert_eq!(String::from_utf8(output.stdout).unwrap(), "packaged-call\n");
+    let component = "[[components.integrations]]\nname='published launcher'\nargv=['{artifact:release:project:v1.2.3/x86_64/bin/demo}']\nstdout_contains=['packaged-call']\n[components.python]\nexecutable='missing-unused-python'\n";
+    write(
+        root.path(),
+        &config(&["integration"], "", component).replace(
+            "sources=['app.py']",
+            "source_dirs=['src']\nsources=['src/**/*.py']",
+        ),
+    );
+    let consumed = run(root.path(), &environment());
+    assert_eq!(
+        consumed.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        consumed.outputs
+    );
+    assert_eq!(
+        consumed.outputs["project.integration"].observation.state,
+        TaskState::Succeeded
+    );
+    fs::write(
+        root.path().join("v1.2.3/x86_64/lib/pkg/cli.py"),
+        "user changed published bytes\n",
+    )
+    .unwrap();
+    assert!(ici_cli::artifact_build::published_outputs(root.path()).is_err());
+    let rejected = planning::prepare(
+        &registry::parse(["ici", "next", "verify"]).unwrap(),
+        root.path(),
+        &environment(),
+        false,
+    );
+    assert!(rejected.is_err() || rejected.unwrap().plan.checks[0].blocked().is_some());
+    assert_eq!(
+        fs::read_to_string(root.path().join("v1.2.3/x86_64/lib/pkg/cli.py")).unwrap(),
+        "user changed published bytes\n"
+    );
 }
 
 #[test]
@@ -695,6 +731,10 @@ fn broad_python_artifact_scope_excludes_verified_releases_and_preserves_retired_
         prepare(root.path(), &environment()).project.components[0].files,
         vec!["app.py"]
     );
+    let active = ici_cli::artifact_build::published_outputs(root.path()).unwrap();
+    assert!(active.contains("v1/x86_64/lib/app.py"));
+    assert!(!active.contains("v1/x86_64/lib/retired.py"));
+    assert!(active.iter().all(|path| !path.starts_with(".ici/")));
     fs::write(
         root.path().join("pyproject.toml"),
         "[project]\nname='broad-fixture'\nversion='2'\n[project.scripts]\ndemo='app:main'\n",
@@ -1632,4 +1672,72 @@ fn missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_
             run.outputs
         );
     }
+}
+
+#[test]
+fn canonical_declared_integration_artifacts_require_exact_typed_membership_and_containment() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = tempfile::tempdir().unwrap();
+    clean_source(root.path());
+    fs::create_dir(root.path().join(".ici")).unwrap();
+    fs::write(root.path().join(".ici/report.txt"), "declared report\n").unwrap();
+    fs::write(root.path().join("consumer"), "#!/bin/sh\n/bin/cat \"$1\"\n").unwrap();
+    fs::set_permissions(
+        root.path().join("consumer"),
+        fs::Permissions::from_mode(0o755),
+    )
+    .unwrap();
+    let configure = |identity: &str| {
+        config(
+            &["integration"],
+            "[build.artifacts]\nreport=['consumer','**/report.txt']\n",
+            &format!(
+                "[[components.integrations]]\nname='typed consumer'\nargv=['{{artifact:release:project:consumer}}',{}]\nstdout_contains=['declared report']\n[components.python]\nexecutable='missing-unused-python'\n",
+                quoted(&format!("{{artifact:{identity}}}"))
+            ),
+        )
+    };
+    for identity in ["release:project:.ici/report.txt", ".ici/report.txt"] {
+        write(root.path(), &configure(identity));
+        let planned = prepare(root.path(), &environment());
+        assert!(
+            planned
+                .plan
+                .checks
+                .iter()
+                .all(|check| check.blocked().is_none())
+        );
+        assert!(!root.path().join(".ici/rust-v1").exists());
+    }
+    let actual = run(root.path(), &environment());
+    assert_eq!(
+        actual.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        actual.outputs
+    );
+    fs::write(root.path().join("unpublished.txt"), "user data\n").unwrap();
+    for identity in [
+        "release:project:unpublished.txt",
+        "release:shadow:.ici/report.txt",
+        "release:project:../escape",
+        "release:project:missing.txt",
+    ] {
+        write(root.path(), &configure(identity));
+        let blocked = prepare(root.path(), &environment());
+        assert!(blocked.plan.checks[0].blocked().is_some(), "{identity}");
+    }
+    fs::remove_file(root.path().join(".ici/report.txt")).unwrap();
+    let outside = tempfile::NamedTempFile::new().unwrap();
+    std::os::unix::fs::symlink(outside.path(), root.path().join(".ici/report.txt")).unwrap();
+    write(root.path(), &configure("release:project:.ici/report.txt"));
+    assert!(
+        prepare(root.path(), &environment()).plan.checks[0]
+            .blocked()
+            .is_some()
+    );
+    assert_eq!(
+        fs::read_to_string(root.path().join("unpublished.txt")).unwrap(),
+        "user data\n"
+    );
 }

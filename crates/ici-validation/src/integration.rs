@@ -24,11 +24,6 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             "integration case name must be bounded printable text".into(),
         ));
     }
-    if !(0..=255).contains(&request.options.expected_exit) {
-        return Err(ValidationError(
-            "integration expected exit must be 0..255".into(),
-        ));
-    }
     let mut task = planning::task(request, "case", request.options.argv[1..].to_vec());
     task.kind = TaskKind::Test;
     task.output_limit_bytes =

@@ -938,33 +938,54 @@ fn integration_artifact(
     component: &Component,
     identity: &str,
 ) -> Result<PathBuf, String> {
-    let (build_id, path) = identity
-        .split_once('/')
-        .ok_or_else(|| format!("artifact placeholder must name BUILD/PATH: {identity:?}"))?;
-    let build = project
-        .builds
-        .iter()
-        .find(|build| build.id == build_id)
-        .ok_or_else(|| format!("artifact references undeclared build {build_id:?}"))?;
-    ici_domain::validation::relative_path(path, false).map_err(|failure| failure.to_string())?;
-    let directory = build.directory.as_deref().unwrap_or(".");
-    let relative = if directory == "." {
-        path.to_owned()
-    } else {
-        format!("{directory}/{path}")
-    };
-    let view = Component {
-        root: directory.into(),
-        ..component.clone()
-    };
-    let matched =
-        ici_config::matching_source_paths(&view, std::slice::from_ref(&relative), &build.artifacts)
-            .map_err(|failure| failure.to_string())?;
-    if matched.is_empty() {
+    let canonical_id = identity.strip_prefix("release:project:");
+    let candidate = canonical_id.unwrap_or(identity);
+    ici_domain::validation::relative_path(candidate, false)
+        .map_err(|failure| failure.to_string())?;
+    let published = crate::artifact_build::published_outputs(&project.root)?;
+    let declared = crate::artifact_build::declared_outputs(project, component)?;
+    let relative = if published.contains(candidate) || declared.contains(candidate) {
+        candidate.to_owned()
+    } else if canonical_id.is_some() {
         return Err(format!(
-            "integration artifact {identity:?} is not declared by build {build_id:?}"
+            "integration artifact {identity:?} has no active verified publication or typed declaration; prepare the declared artifact first"
         ));
-    }
+    } else {
+        let (build_id, path) = identity.split_once('/').ok_or_else(|| {
+            format!(
+                "artifact placeholder must name release:project:PATH or BUILD/PATH: {identity:?}"
+            )
+        })?;
+        let build = project
+            .builds
+            .iter()
+            .find(|build| build.id == build_id)
+            .ok_or_else(|| format!("artifact references undeclared build {build_id:?}"))?;
+        ici_domain::validation::relative_path(path, false)
+            .map_err(|failure| failure.to_string())?;
+        let directory = build.directory.as_deref().unwrap_or(".");
+        let relative = if directory == "." {
+            path.to_owned()
+        } else {
+            format!("{directory}/{path}")
+        };
+        let view = Component {
+            root: directory.into(),
+            ..component.clone()
+        };
+        let matched = ici_config::matching_source_paths(
+            &view,
+            std::slice::from_ref(&relative),
+            &build.artifacts,
+        )
+        .map_err(|failure| failure.to_string())?;
+        if matched.is_empty() {
+            return Err(format!(
+                "integration artifact {identity:?} is not declared by build {build_id:?}"
+            ));
+        }
+        relative
+    };
     let absolute = project.root.join(relative);
     let canonical=absolute.canonicalize().map_err(|failure|format!("declared integration artifact {identity:?} is unavailable: {failure}; prepare the declared build first"))?;
     if canonical != absolute

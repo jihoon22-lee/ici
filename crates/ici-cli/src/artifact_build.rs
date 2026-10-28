@@ -1003,6 +1003,27 @@ echo "[ici Env] Loaded release environment from ${FULL_DIR}"
 /// Exclude only complete, unchanged native package records from future broad source discovery.
 /// This neither deletes stale artifacts nor trusts a version-shaped directory by its name.
 pub fn owned_outputs(root: &Path) -> Result<BTreeSet<String>, String> {
+    verified_outputs(root, true)
+}
+
+/// Active published members, including unchanged user files, after complete manifest verification.
+/// Retired files and ownership records are not currently published artifacts.
+pub fn published_outputs(root: &Path) -> Result<BTreeSet<String>, String> {
+    verified_outputs(root, false)
+}
+
+/// Existing files selected by typed configuration declarations, using their canonical identities.
+pub fn declared_outputs(
+    project: &ResolvedProject,
+    component: &Component,
+) -> Result<BTreeSet<String>, String> {
+    Ok(declarations::Declarations::collect(project, component)?
+        .select(&[], true)?
+        .into_keys()
+        .collect())
+}
+
+fn verified_outputs(root: &Path, only_owned: bool) -> Result<BTreeSet<String>, String> {
     let directory = root.join(".ici/rust-v1/python-artifacts");
     let metadata = match std::fs::symlink_metadata(&directory) {
         Ok(metadata) => metadata,
@@ -1102,14 +1123,18 @@ pub fn owned_outputs(root: &Path) -> Result<BTreeSet<String>, String> {
                 ));
             }
         }
-        outputs.extend(
-            manifest
-                .files
-                .into_iter()
-                .chain(manifest.retired_files)
-                .filter_map(|(path, record)| record.owned.then_some(path)),
-        );
-        outputs.insert(manifest_path);
+        if only_owned {
+            outputs.extend(
+                manifest
+                    .files
+                    .into_iter()
+                    .chain(manifest.retired_files)
+                    .filter_map(|(path, record)| record.owned.then_some(path)),
+            );
+            outputs.insert(manifest_path);
+        } else {
+            outputs.extend(manifest.files.into_keys());
+        }
     }
     Ok(outputs)
 }

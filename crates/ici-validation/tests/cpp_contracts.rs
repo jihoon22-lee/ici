@@ -449,3 +449,28 @@ fn measured_qt5_qt6_expected_failure_annotations_keep_terminal_counts_and_partia
         );
     }
 }
+
+#[test]
+fn integration_preserves_declared_signed_exit_policy_as_measured_assertion_data() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::Integration);
+    request.options.argv = vec![request.tool.path.to_string_lossy().into_owned()];
+    for expected in [-1, 256, i32::MIN, i32::MAX] {
+        request.options.expected_exit = expected;
+        let planned = plan(&request).unwrap();
+        let id = planned.tasks[0].id.clone();
+        let output = observe(
+            &planned,
+            &BTreeMap::from([(id.clone(), outcome(&id, "", "", 0))]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(output.observation.state, TaskState::Succeeded);
+        assert_eq!(output.observation.findings.len(), 1);
+        assert_eq!(output.observation.findings[0].rule_id, "integration.exit");
+        assert!(
+            output.observation.findings[0]
+                .message
+                .contains(&expected.to_string())
+        );
+    }
+}

@@ -339,3 +339,20 @@ in all four runs. `validation-optional-all-gates.log` passed all 38 validation c
 11 doctor cases, eight ordinary extra CLI cases and strict CLI/validation Clippy. The three new
 conditional-coverage contracts cover both branches, repeats, malformed probes and unavailable
 raw policy evidence. These scoped results do not close the root R8/R9 inventory.
+
+Integration artifact placeholders accept canonical `release:project:PATH` and the historical
+published relative path alias, with existing `BUILD/PATH` declarations retained. A canonical
+identity must belong to a completely verified active publication or an existing typed wheel/report
+declaration; filenames alone grant no membership. Retired members remain preserved/excluded from
+source discovery but cannot satisfy a current publication. Hidden reports participate in bounded
+glob inventory. Scope, traversal, symlink, missing-member and changed-publication failures remain
+incomplete and preserve user data. Declared signed 32-bit expected exits remain assertion policy:
+a completed mismatching process yields a measured violation, while signals remain incomplete.
+
+`validation-canonical-artifact-final.log` passed nine ordinary extra CLI tests, actual generated
+launcher consumption through the canonical identity, existing native `BUILD/PATH` consumption,
+and strict CLI Clippy. The launcher consumes packaged code even after the source is changed;
+editing the published copy then invalidates its manifest without overwriting the edit.
+`validation-integration-policy-final.log` passed both integration contracts, including signed exit
+policy, and strict CLI/validation Clippy. This does not prove future build/copy orchestration or
+full validation inventory closure.
