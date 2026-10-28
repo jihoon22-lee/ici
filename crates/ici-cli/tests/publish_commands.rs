@@ -322,3 +322,129 @@ fn saved_publish_can_inspect_configuration_after_sources_are_deleted_and_preserv
     assert_eq!(fs::read(root.path().join("saved.json")).unwrap(), before);
     assert!(!root.path().join("removed").exists());
 }
+
+#[test]
+fn caller_preserves_historical_destination_and_credential_precedence() {
+    for (modern, config, values, expected_url, expected_token) in [
+        (
+            true,
+            "schema_version=2\n",
+            vec![
+                ("GITHUB_REPOSITORY", "team/repo"),
+                ("GITHUB_API_URL", "https://git.example/api/v3"),
+                ("GITHUB_TOKEN", "own"),
+                ("ICI_PUBLISH_TOKEN", "other"),
+            ],
+            "https://git.example/api/v3/repos/team/repo",
+            Some("own"),
+        ),
+        (
+            true,
+            "schema_version=1\n[workspace]\nname='saved'\n[publish]\nrepo='team/declared'\napi_url='https://declared.example/api/v3'\nbranch='reports'\ntoken_env='CUSTOM_TOKEN'\n",
+            vec![
+                ("GITHUB_TOKEN", "must-not-fallback"),
+                ("CUSTOM_TOKEN", "custom"),
+            ],
+            "https://declared.example/api/v3/repos/team/declared",
+            Some("custom"),
+        ),
+        (
+            true,
+            "schema_version=1\n[workspace]\nname='saved'\n[publish]\nrepo='team/declared'\napi_url='https://declared.example/api/v3'\ntoken_env='CUSTOM_TOKEN'\n",
+            vec![("GITHUB_TOKEN", "must-not-fallback")],
+            "",
+            None,
+        ),
+        (
+            false,
+            "schema_version=2\n",
+            vec![
+                ("GITHUB_REPOSITORY", "team/repo"),
+                ("GITHUB_TOKEN", "own"),
+                ("ICI_PUBLISH_TOKEN", "unrelated-hub"),
+            ],
+            "https://api.github.com/repos/team/repo",
+            Some("own"),
+        ),
+        (
+            false,
+            "schema_version=2\n",
+            vec![
+                ("GITHUB_REPOSITORY", "team/repo"),
+                ("ICI_PUBLISH_REPO", "team/hub"),
+                ("GITHUB_TOKEN", "own"),
+                ("ICI_PUBLISH_TOKEN", "hub"),
+            ],
+            "https://api.github.com/repos/team/hub",
+            Some("hub"),
+        ),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        fs::write(root.path().join("ici.toml"), config).unwrap();
+        let old=br#"{"schema_version":"ici.result/v2","suite_status":"FAIL","results":[{"engine_name":"lint","status":"FAIL","summary":"saved historical failure"}]}"#;
+        fs::write(root.path().join("verify_report.json"), old).unwrap();
+        fs::write(
+            root.path().join("verify_report.html"),
+            "<!doctype html>saved",
+        )
+        .unwrap();
+        let environment = values
+            .into_iter()
+            .map(|(key, value)| (key.to_string(), value.to_string()))
+            .collect();
+        let invocation = if modern {
+            registry::parse([
+                "ici",
+                "next",
+                "publish",
+                "--result",
+                "verify_report.json",
+                "--out",
+                "verify_report.html",
+            ])
+            .unwrap()
+        } else {
+            registry::parse(["ici", "publish"]).unwrap()
+        };
+        let mut calls = 0;
+        let output = publish::command_with_transport(
+            &invocation,
+            root.path(),
+            &environment,
+            &mut |request: &Request| {
+                calls += 1;
+                assert!(request.url.starts_with(expected_url), "{}", request.url);
+                assert_eq!(
+                    request.headers["Authorization"],
+                    format!(
+                        "Bearer {}",
+                        expected_token.expect("not configured must not send")
+                    )
+                );
+                if request.url.contains("/git/ref/") {
+                    return response(200, json!({}));
+                }
+                if request.url.ends_with("/pages") {
+                    return response(404, json!({}));
+                }
+                if request.method == "GET" {
+                    return response(404, json!({}));
+                }
+                response(201, json!({}))
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            output.exit_code,
+            if expected_token.is_some() { 0 } else { 2 },
+            "{} {}",
+            output.stdout,
+            output.stderr
+        );
+        assert_eq!(calls > 0, expected_token.is_some());
+        assert_eq!(
+            fs::read(root.path().join("verify_report.json")).unwrap(),
+            old
+        );
+    }
+}

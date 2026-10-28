@@ -2,6 +2,12 @@
 
 ### Historical report intake follow-up (2026-10-29)
 
+- Caller-level publication audit restored the historical GitHub API default for legacy commands,
+  own-repository versus hub credentials, and next's named-token then ICI-token precedence.
+  `root-evidence-composition-final.log` records six publication cases including five actual
+  caller/configuration paths (v1 and v2) through the injected transport, preserving v2 bytes,
+  plus strict transitive CLI/application Clippy. HTTPS transport acceptance remains separate.
+
 - The saved-report boundary explicitly accepts v2 through the frozen migration adapter while
   the strict native/archive reader remains schema-specific. Unknown statuses, malformed engine
   entries, duplicate keys and forged native evidence fail intake. Source bytes remain unchanged.

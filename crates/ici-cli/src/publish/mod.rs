@@ -258,6 +258,19 @@ pub fn command(
     cwd: &Path,
     environment: &BTreeMap<String, String>,
 ) -> Result<CommandOutput> {
+    command_with_transport(
+        invocation,
+        cwd,
+        environment,
+        &mut ici_distribution::transport::send,
+    )
+}
+pub fn command_with_transport(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    send: &mut impl FnMut(&Request) -> std::result::Result<Response, TransportError>,
+) -> Result<CommandOutput> {
     let explicit = invocation.value("config_path").map(|path| under(cwd, path));
     let local = invocation
         .value("local_path")
@@ -286,7 +299,14 @@ pub fn command(
     let api_url = declared
         .map(|target| target.api_url.clone())
         .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| get("GITHUB_API_URL"));
+        .unwrap_or_else(|| {
+            let configured = get("GITHUB_API_URL");
+            if !modern && configured.is_empty() {
+                "https://api.github.com".into()
+            } else {
+                configured
+            }
+        });
     let branch = declared
         .map(|target| target.branch.clone())
         .filter(|value| !value.is_empty())
@@ -296,16 +316,27 @@ pub fn command(
                 .cloned()
                 .unwrap_or_else(|| "gh-pages".into())
         });
-    let token = declared
-        .map(|target| get(&target.token_env))
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| {
-            if !get("ICI_PUBLISH_TOKEN").is_empty() {
-                get("ICI_PUBLISH_TOKEN")
-            } else {
-                get("GITHUB_TOKEN")
-            }
-        });
+    let token = if modern {
+        let primary = get(declared
+            .map(|target| target.token_env.as_str())
+            .unwrap_or("GITHUB_TOKEN"));
+        if primary.is_empty() {
+            get("ICI_PUBLISH_TOKEN")
+        } else {
+            primary
+        }
+    } else {
+        declared
+            .map(|target| get(&target.token_env))
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| {
+                if !get("ICI_PUBLISH_REPO").is_empty() && !get("ICI_PUBLISH_TOKEN").is_empty() {
+                    get("ICI_PUBLISH_TOKEN")
+                } else {
+                    get("GITHUB_TOKEN")
+                }
+            })
+    };
     let destination = Target {
         api_url: api_url.clone(),
         repo: repo.clone(),
@@ -439,7 +470,7 @@ pub fn command(
         },
         run_url,
     };
-    let record = publish_with_transport(&publication, &mut ici_distribution::transport::send);
+    let record = publish_with_transport(&publication, send);
     save_record(&record_path, &record)?;
     Ok(CommandOutput {
         stdout: format!(
