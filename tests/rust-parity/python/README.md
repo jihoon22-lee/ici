@@ -215,3 +215,16 @@ partial clone success. All 29 native tests and scoped Clippy/fmt passed; the
 `FunctionFact.entry_line` separately retains the first decorator line for
 coverage code-object exits. `requires_python(request)` exposes the same strict
 immutable metadata parser directly to runtime compatibility consumers.
+
+## Unicode 16 archive identity and parser inventory
+
+Official Unicode 16 full case-fold and XID property data are retained with their
+source URLs, SHA-256 digests and Unicode LICENSE V3. Generated static tables
+avoid inheriting a future Unicode inventory from a transitive parser dependency.
+The complete set of 1,112,064 Unicode scalar values was compared to CPython
+3.14.7/Unicode 16 for full folding and identifier start/continuation. Native tests
+verify those digests and representative NFC/portable archive-name collisions.
+Unknown future identifier characters fail with inspected locations. The parser
+identity now includes `unicode16`; no Unicode data is downloaded at runtime.
+The normalization dependency is exactly 0.1.24, whose tables are Unicode 16.
+Thirty native tests and scoped Clippy/fmt passed after this unit.

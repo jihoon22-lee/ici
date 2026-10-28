@@ -489,6 +489,83 @@ fn semantic_clone_pipeline_preserves_old_group_merging_and_policy() {
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
 }
+
+#[test]
+fn unicode16_full_folding_and_identifier_inventory_match_every_cpython_scalar() {
+    use sha2::Digest;
+    use std::fmt::Write;
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/unicode-casefold.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        format!(
+            "{:x}",
+            sha2::Sha256::digest(include_bytes!("../data/unicode-16/CaseFolding.txt"))
+        ),
+        fixture["source_sha256"].as_str().unwrap()
+    );
+    assert_eq!(
+        format!(
+            "{:x}",
+            sha2::Sha256::digest(include_bytes!(
+                "../data/unicode-16/DerivedCoreProperties.txt"
+            ))
+        ),
+        fixture["xid_source_sha256"].as_str().unwrap()
+    );
+    assert_eq!(
+        format!(
+            "{:x}",
+            sha2::Sha256::digest(include_bytes!("../data/unicode-16/LICENSE.txt"))
+        ),
+        fixture["license_sha256"].as_str().unwrap()
+    );
+    let mut folding = sha2::Sha256::new();
+    let mut identifiers = sha2::Sha256::new();
+    let mut text = String::new();
+    for code in 0..=0x10ffff {
+        let Some(character) = char::from_u32(code) else {
+            continue;
+        };
+        identifiers.update([
+            u8::from(unicode::identifier_start(character)),
+            u8::from(unicode::identifier_continue(character)),
+        ]);
+        text.clear();
+        write!(text, "{code:06X};").unwrap();
+        let folded = unicode::fold(&character.to_string());
+        for (index, character) in folded.chars().enumerate() {
+            if index > 0 {
+                text.push(' ');
+            }
+            write!(text, "{:06X}", character as u32).unwrap();
+        }
+        text.push('\n');
+        folding.update(text.as_bytes());
+    }
+    assert_eq!(
+        format!("{:x}", folding.finalize()),
+        fixture["all_scalar_fold_sha256"].as_str().unwrap()
+    );
+    assert_eq!(
+        format!("{:x}", identifiers.finalize()),
+        fixture["all_scalar_identifier_sha256"].as_str().unwrap()
+    );
+    assert_eq!(
+        unicode::portable("Straße/Cafe\u{301}.PY/"),
+        "strasse/café.py"
+    );
+    assert_eq!(unicode::fold("IİıΣςσẞ"), "ii\u{307}ıσσσss");
+    // These scalars entered Unicode after 16 and are accepted by newer tables.
+    assert!(!unicode::identifier("\u{1c8b}"));
+    assert_eq!(
+        analyze(&request("complexity", "\u{1c8b} = 1\n"))
+            .observation
+            .state,
+        TaskState::Failed
+    );
+}
 #[test]
 fn metrics_match_fixed_python_formulas() {
     let fixtures: Value = serde_json::from_str(include_str!(

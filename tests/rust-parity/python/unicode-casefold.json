@@ -1,0 +1,17 @@
+{
+  "python": "3.14.7 (main, Aug 14 2026, 15:35:28) [Clang 22.1.3 ]",
+  "unicode_version": "16.0.0",
+  "source_url": "https://www.unicode.org/Public/16.0.0/ucd/CaseFolding.txt",
+  "source_sha256": "6f1f9c588eb4a5c718d9e8f93b782685e5c7fec872cf05e8e6878053599e09bb",
+  "license_url": "https://www.unicode.org/license.txt",
+  "license_sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+  "fold_table_entries": 1557,
+  "all_scalar_fold_sha256": "5ffc43d57fddc20699ff66c8adbc365721f84438da5519f227eeb5e626d91f44",
+  "xid_source_url": "https://www.unicode.org/Public/16.0.0/ucd/DerivedCoreProperties.txt",
+  "xid_source_sha256": "39d35161f2954497f69e08bdb9e701493f476a3d30222de20028feda36c1dabd",
+  "xid_ranges": {
+    "XID_Start": 684,
+    "XID_Continue": 800
+  },
+  "all_scalar_identifier_sha256": "ef2a5e56b38bdc5ed1bba2e6c171235c90405794f09fa019b82aadaf6faa52ea"
+}

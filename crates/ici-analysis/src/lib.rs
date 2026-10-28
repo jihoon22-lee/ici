@@ -1,6 +1,7 @@
 //! Native analyses over immutable source snapshots; no process or filesystem fallback.
 mod annotations;
 mod ast_util;
+mod casefold_table;
 mod compat;
 mod cycle;
 mod dead;
@@ -21,6 +22,8 @@ mod scope;
 mod security;
 mod semantic;
 mod source;
+pub mod unicode;
+mod xid_table;
 
 use ici_domain::{AnalysisOutput, AnalysisRequest, InspectionTarget, TaskState};
 use parser::{PARSER_IDENTITY, ParsedFile};

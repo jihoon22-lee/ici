@@ -8,7 +8,7 @@ use ruff_python_parser::{Mode, ParseOptions, Parsed, lexer, parse_unchecked};
 use ruff_text_size::Ranged;
 
 pub const PARSER_IDENTITY: &str =
-    "ruff-11c76bf48fdac06b2f240cba502eda96da4dce77:source-v1:scope-v1";
+    "ruff-11c76bf48fdac06b2f240cba502eda96da4dce77:source-v1:scope-v1:unicode16";
 pub const MAX_AST_NODES: usize = 250_000;
 pub struct ParsedFile {
     pub source: SourceDocument,
@@ -56,6 +56,23 @@ impl ParsedFile {
                 line,
                 column,
             });
+        }
+        for token in parsed.tokens() {
+            if token.kind() == TokenKind::Name
+                && !crate::unicode::identifier(
+                    &source.text[token.range().start().to_usize()..token.range().end().to_usize()],
+                )
+            {
+                let (line, column) = source.location(token.range().start().to_usize());
+                return Err(SourceError {
+                    code: "unsupported-identifier",
+                    message:
+                        "Python identifiers must use the tested Unicode 16 character inventory"
+                            .into(),
+                    line,
+                    column,
+                });
+            }
         }
         let mut budget = AstBudget::default();
         budget.visit_mod(parsed.syntax());
