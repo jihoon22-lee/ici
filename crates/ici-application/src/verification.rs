@@ -99,6 +99,11 @@ pub fn evaluate(
             if let Some(variant) = planned.task().and_then(|t| t.variant.as_ref()) {
                 finding.variant = Some(variant.clone());
             }
+            if (!planned.check.required || planned.advisory())
+                && !finding.tags.iter().any(|tag| tag == "advisory")
+            {
+                finding.tags.push("advisory".into());
+            }
             finding.fingerprint = attributed_fingerprint(finding, &units)
                 .map_err(|e| ApplicationError(e.to_string()))?;
             if planned.check.required && !planned.advisory() {

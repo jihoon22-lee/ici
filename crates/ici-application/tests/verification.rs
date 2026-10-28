@@ -116,6 +116,12 @@ fn advisory_type_diagnostics_stay_measured_and_missing_tool_still_incomplete() {
     let advisory = evaluate(&plan, observations.clone(), false, |_| {}).unwrap();
     assert_eq!(advisory.gate.selected, GateVerdict::Pass);
     assert_eq!(advisory.findings[0].evidence, EvidenceLevel::Measured);
+    assert!(
+        advisory.findings[0]
+            .tags
+            .iter()
+            .any(|tag| tag == "advisory")
+    );
     observations[index].state = TaskState::Failed;
     assert_eq!(
         evaluate(&plan, observations, false, |_| {})

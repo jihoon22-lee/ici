@@ -33,6 +33,9 @@
 - native observation cache를 기존 cache와 분리합니다. core/tool bytes·실제 환경·정책·
   provider 옵션·입력 closure가 확인된 완료 증거만 재사용하고, clear는 정확한 native
   entry 이름만 다루며 symlink·FIFO·사용자 파일을 따르거나 삭제하지 않습니다.
+- native CLI에 기존 37개 진입점·115개 인자의 파서와 실행 없는 plan을 연결합니다.
+  init·migration preview·새 출력·명시 백업, 저장 결과 diff와 cache 정리를 Rust로 수행합니다.
+  이 내부 명령 기반은 전체 실행·report·publish·legacy projection 인수 완료를 의미하지 않습니다.
 
 ## [0.13.0] - 2026-10-28
 

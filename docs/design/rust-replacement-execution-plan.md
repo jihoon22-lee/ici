@@ -299,3 +299,26 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 - R0의 path 설정 키 세 개 누락은 `c0ad365`로 교정했다 (322 keys / 1138 open rows).
   inventory check/self-test는 Python 3.10과 현재 interpreter에서 통과했고 closure는 여전히
   미완료를 거부한다. 새 PR head CI `40696941442`를 확인 중이며 앞선 실행과 구분한다.
+
+### Native CLI·결과 조립 기반
+
+- `ici-cli`는 고정 37개 command/group·115개 parameter의 flag/alias/repeatable 인자를
+  native Clap 4.6.7로 파싱한다. root 및 모든 하위 `--help`/version, enum/range/필수 인자를
+  원장과 비교한다. 이 registry는 명령 구현 parity를 대신하지 않는다.
+- `analyze --plan`/`next plan`은 resolved config와 provider argv를 읽기만 하며, 가짜 실행 파일의
+  side-effect marker와 state 폴더가 만들어지지 않는 시험을 통과했다. 명시한 깨진 도구는
+  PATH의 다른 도구로 fallback하지 않는다. Python 없는 PATH에서 native init preview도 통과했다.
+- init/minimal config의 source scope 동등, 기존 설정 거부와 명시 force 백업, migration의
+  preview/new-output/명시 write 백업, cache symlink ancestor 거부를 실제 native CLI로 검증했다.
+  `cargo test -p ici-cli --locked` 9개와 crate Clippy `-D warnings`, fmt 통과.
+- application 결과 조립은 모든 선택 check record와 실제 observation의 ID·상태·완결성을
+  확인한다. static pass는 partial로 남고, 실제 전체 범위와 필수 완료가 충족돼야 workspace
+  verdict를 만들 수 있다. 입력 drift/cancelled 결과도 얻은 finding을 유지한다.
+  `cargo test -p ici-application --locked` 기존 23개 + assembly 3개, scoped Clippy/fmt 통과.
+- config `80c8df9`/`d239b23`은 최소 설정·소스 발견·origins·comment 보존 migration과
+  nested legacy scope, workspace 안의 native mypy/ty 선택을 검증했다 (28 tests + Clippy/fmt).
+  [config 근거](../../tests/rust-parity/config/README.md)의 frozen source fixture와 실제
+  Mypy 2.3.1 marker 결과를 일반 설정 동등성과 구분한다.
+- runtime/build/compile adapter·실제 analyze/verify lifecycle·전체 report/publish·legacy rich
+  projection은 아직 통합 전이다. 해당 개발 경로를 동작한 것처럼 alias만 붙여 완료 처리하지
+  않으며 R1/R2/R7 전체와 원장 closure는 열린 상태다.

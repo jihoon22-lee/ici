@@ -1,0 +1,146 @@
+use ici_cli::{commands::dispatch, registry::parse};
+use std::{collections::BTreeMap, fs, os::unix::fs::symlink};
+
+#[test]
+fn init_preview_is_read_only_and_written_defaults_keep_discovered_scope() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.py"), "x=1\n").unwrap();
+    let before =
+        ici_config::resolve_with_environment(root.path(), None, None, &BTreeMap::new()).unwrap();
+    let preview = dispatch(
+        &parse(["ici", "init", "--preview"]).unwrap(),
+        root.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert!(preview.stdout.contains("schema_version = 2"));
+    assert!(!root.path().join("ici.toml").exists());
+    dispatch(
+        &parse(["ici", "init"]).unwrap(),
+        root.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    let after =
+        ici_config::resolve_with_environment(root.path(), None, None, &BTreeMap::new()).unwrap();
+    assert_eq!(before.components[0].files, after.components[0].files);
+    assert!(
+        dispatch(
+            &parse(["ici", "init"]).unwrap(),
+            root.path(),
+            &BTreeMap::new()
+        )
+        .is_err()
+    );
+    let old = fs::read(root.path().join("ici.toml")).unwrap();
+    dispatch(
+        &parse(["ici", "init", "--force"]).unwrap(),
+        root.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert_eq!(
+        fs::read(root.path().join("ici.toml.before-init")).unwrap(),
+        old
+    );
+    assert!(
+        dispatch(
+            &parse(["ici", "init", "--force"]).unwrap(),
+            root.path(),
+            &BTreeMap::new()
+        )
+        .is_err()
+    );
+    assert_eq!(
+        fs::read(root.path().join("ici.toml.before-init")).unwrap(),
+        old
+    );
+}
+#[test]
+fn migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_backup() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("src")).unwrap();
+    fs::write(root.path().join("src/main.py"), "x=1\n").unwrap();
+    let old = "# retain comment\n[project]\nsource_dirs = [\"src\"]\n";
+    fs::write(root.path().join("ici.toml"), old).unwrap();
+    let preview = dispatch(
+        &parse(["ici", "next", "migrate"]).unwrap(),
+        root.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert!(preview.stdout.contains("# retain comment"));
+    assert_eq!(
+        fs::read_to_string(root.path().join("ici.toml")).unwrap(),
+        old
+    );
+    dispatch(
+        &parse(["ici", "next", "migrate", "--output", "converted.toml"]).unwrap(),
+        root.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert!(root.path().join("converted.toml").is_file());
+    assert!(
+        dispatch(
+            &parse(["ici", "next", "migrate", "--output", "converted.toml"]).unwrap(),
+            root.path(),
+            &BTreeMap::new()
+        )
+        .is_err()
+    );
+    dispatch(
+        &parse(["ici", "next", "migrate", "--write"]).unwrap(),
+        root.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert_eq!(
+        fs::read_to_string(root.path().join("ici.toml.stable")).unwrap(),
+        old
+    );
+    assert!(
+        fs::read_to_string(root.path().join("ici.toml"))
+            .unwrap()
+            .contains("schema_version = 2")
+    );
+}
+#[test]
+fn cache_clear_refuses_symlink_ancestors_and_preserves_legacy_or_user_files() {
+    let root = tempfile::tempdir().unwrap();
+    let outside = tempfile::tempdir().unwrap();
+    fs::create_dir(outside.path().join("native")).unwrap();
+    symlink(outside.path(), root.path().join(".ici")).unwrap();
+    assert!(
+        dispatch(
+            &parse(["ici", "cache", "--clear"]).unwrap(),
+            root.path(),
+            &BTreeMap::new()
+        )
+        .is_err()
+    );
+    assert!(outside.path().join("native").exists());
+}
+#[test]
+fn native_binary_can_init_with_python_and_tools_absent_from_path() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.py"), "x=1\n").unwrap();
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+        .current_dir(root.path())
+        .env_clear()
+        .env("PATH", "")
+        .args(["init", "--preview"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .contains("schema_version = 2")
+    );
+    assert!(!root.path().join("ici.toml").exists());
+}

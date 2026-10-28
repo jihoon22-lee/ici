@@ -1,0 +1,327 @@
+//! Native CLI-to-application bridge. Preparing a plan reads inputs and executable bytes only.
+use crate::{
+    commands::{CliError, Result, under},
+    registry::Invocation,
+};
+use ici_application::{
+    ApplicationError,
+    graph::TaskGraph,
+    plan::{Plan, Work, file_language},
+    request::RunRequest,
+};
+use ici_config::ResolvedProject;
+use ici_domain::Profile;
+use ici_providers::{
+    ProviderKind, ProviderPlan, ProviderRequest,
+    resolver::{ResolvedTool, ToolRequest},
+};
+use serde_json::{Value, json};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::{Path, PathBuf},
+};
+
+pub struct PreparedPlan {
+    pub project: ResolvedProject,
+    pub request: RunRequest,
+    pub plan: Plan,
+    pub graph: TaskGraph,
+    pub providers: BTreeMap<String, ProviderPlan>,
+    pub tools: BTreeMap<String, ResolvedTool>,
+}
+pub fn prepare(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+) -> Result<PreparedPlan> {
+    let explicit = invocation.value("config_path").map(|path| under(cwd, path));
+    let local = invocation
+        .value("local_config")
+        .or_else(|| invocation.value("local_path"))
+        .map(|path| under(cwd, path));
+    let project = ici_config::resolve_with_environment(
+        cwd,
+        explicit.as_deref(),
+        local.as_deref(),
+        environment,
+    )
+    .map_err(|e| CliError(e.to_string()))?;
+    let mut languages = invocation.values("language").to_vec();
+    if invocation.flag("python") {
+        languages.push("python".into());
+    }
+    if invocation.flag("cpp") {
+        languages.push("cpp".into());
+    }
+    languages.sort();
+    languages.dedup();
+    let profile = invocation
+        .value("profile")
+        .map(|value| {
+            serde_json::from_value::<Profile>(Value::String(value.into()))
+                .map_err(|e| CliError(e.to_string()))
+        })
+        .transpose()?;
+    let request = RunRequest {
+        components: invocation.values("component").to_vec(),
+        languages,
+        profile,
+        require_full: invocation.flag("require_full"),
+        static_only,
+    };
+    let mut providers = BTreeMap::new();
+    let mut tools = BTreeMap::new();
+    let pack = tool_pack(environment);
+    let plan = ici_application::plan::plan(&project, &request, |component, check, task_id| {
+        let component_root = if component.root == "." {
+            project.root.clone()
+        } else {
+            project.root.join(&component.root)
+        };
+        let tool_id = match check.id.as_str() {
+            "python.lint" | "python.format" => "ruff",
+            "python.type" => match component.python_type_provider.as_deref() {
+                None | Some("ty") => "ty",
+                Some("mypy") => "mypy",
+                Some(other) => {
+                    return Err(ApplicationError(format!(
+                        "unknown Python type provider {other}"
+                    )));
+                }
+            },
+            "rust.clippy" => "clippy",
+            "javascript.lint" | "typescript.lint" => "eslint",
+            "typescript.type" => "tsc",
+            // Runtime/build/compile checks bind through their own context adapters, not a null
+            // registry tool. They stay visibly blocked until those adapters supply real work.
+            "python.test"
+            | "python.coverage"
+            | "python.compat-runtime"
+            | "cpp.compile"
+            | "cpp.diagnostics"
+            | "cpp.tidy"
+            | "cpp.test"
+            | "cpp.coverage"
+            | "cpp.artifact"
+            | "cpp.sanitize"
+            | "cpp.tsan"
+            | "cpp.binary-compat"
+            | "integration" => {
+                return Ok(Work::Blocked {
+                    reason: format!(
+                        "{} requires its native runtime/build context adapter",
+                        check.id
+                    ),
+                });
+            }
+            _ if matches!(check.language.as_str(), "python" | "cpp") => return Ok(Work::Internal),
+            _ => {
+                return Ok(Work::Blocked {
+                    reason: format!("no native provider for {}", check.id),
+                });
+            }
+        };
+        let kind = ProviderKind::for_check(&check.id, tool_id)
+            .ok_or_else(|| ApplicationError(format!("no provider for {}", check.id)))?;
+        let explicit = project
+            .tools
+            .get(tool_id)
+            .and_then(|setting| setting.path.as_deref())
+            .map(PathBuf::from);
+        let tool = match (ToolRequest {
+            id: tool_id.into(),
+            explicit,
+            project_root: component_root.clone(),
+            pack_root: pack.clone(),
+            path_env: environment.get("PATH").cloned(),
+        })
+        .resolve()
+        {
+            Ok(tool) => tool,
+            Err(error) => {
+                return Ok(Work::Blocked {
+                    reason: error.to_string(),
+                });
+            }
+        };
+        let targets: Vec<_> = component
+            .files
+            .iter()
+            .filter(|p| file_language(p) == Some(check.language.as_str()))
+            .cloned()
+            .collect();
+        let evidence = ici_providers::native_config::discover_native_configuration(
+            kind,
+            &project.root,
+            &component_root,
+            &targets,
+        )
+        .map_err(|e| ApplicationError(e.to_string()))?;
+        let mut provider_request = ProviderRequest::new(
+            kind,
+            tool.clone(),
+            &project.root,
+            &component_root,
+            targets,
+            task_id,
+        );
+        provider_request.component_id = Some(component.id.clone());
+        provider_request.analysis_unit_ids = vec![format!("{}.{}", component.id, check.language)];
+        provider_request.input_refs = evidence
+            .files
+            .keys()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect();
+        provider_request.options.jobs = 2;
+        provider_request.options.python_version = component
+            .settings
+            .pointer("/python/target_version")
+            .and_then(Value::as_str)
+            .map(str::to_owned);
+        if kind == ProviderKind::Tsc {
+            provider_request.options.project_config = ["tsconfig.json", "jsconfig.json"]
+                .into_iter()
+                .find(|name| component_root.join(name).is_file())
+                .map(str::to_owned);
+        }
+        let decided = component
+            .checks
+            .get(&check.id)
+            .or_else(|| project.checks.get(&check.id));
+        provider_request.options.advisory = kind == ProviderKind::Ty
+            && component.python_type_provider.is_none()
+            && !decided.is_some_and(|setting| {
+                setting.settings.get("required").and_then(Value::as_bool) == Some(true)
+            });
+        let mut provider =
+            ici_providers::plan(&provider_request).map_err(|e| ApplicationError(e.to_string()))?;
+        provider.scope_complete = evidence.complete;
+        provider.limitations.extend(evidence.limitations);
+        provider.task.cacheable = provider.scope_complete && !provider.task.mutating();
+        let work = if provider.advisory {
+            Work::process_advisory(provider.task.clone())
+        } else {
+            Work::process(provider.task.clone())
+        };
+        tools.insert(format!("{}:{tool_id}", component.id), tool);
+        providers.insert(task_id.to_owned(), provider);
+        Ok(work)
+    })
+    .map_err(|e| CliError(e.to_string()))?;
+    let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
+    Ok(PreparedPlan {
+        project,
+        request,
+        plan,
+        graph,
+        providers,
+        tools,
+    })
+}
+fn tool_pack(environment: &BTreeMap<String, String>) -> Option<PathBuf> {
+    if let Some(directory) = environment
+        .get("ICI_NATIVE_TOOL_PACK")
+        .filter(|p| !p.is_empty())
+    {
+        return Some(PathBuf::from(directory));
+    }
+    std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(|p| p.join("tools")))
+        .filter(|p| p.is_dir())
+}
+impl PreparedPlan {
+    pub fn document(&self) -> Value {
+        let plans:Vec<_>=self.plan.components.iter().filter_map(|component| {
+            let checks:Vec<_>=self.plan.checks.iter().filter(|p| &p.component_id==component).map(|p| {
+                let blocked=self.graph.blocked.get(&p.task_id).map(String::as_str).or_else(||p.blocked());
+                let mut entry=json!({"task_id":p.task_id,"check":p.check.id,"kind":if blocked.is_some(){"blocked"}else if p.task().is_some(){"process"}else{"internal"}});
+                if let Some(reason)=blocked {entry["blocked"]=json!(reason);}
+                else if let Some(task)=p.task() {
+                    entry["argv"]=json!(task.argv);
+                    if !task.requires.is_empty(){entry["requires"]=json!(task.requires);}
+                    if !task.work_dirs.is_empty(){entry["work_dirs"]=json!(task.work_dirs);}
+                    if p.advisory(){entry["advisory"]=json!(true);}
+                }
+                entry
+            }).collect();
+            (!checks.is_empty()).then(||json!({"component":component,"checks":checks}))
+        }).collect();
+        let mutating: BTreeMap<_, _> = self
+            .plan
+            .checks
+            .iter()
+            .filter(|p| !self.graph.blocked.contains_key(&p.task_id))
+            .filter_map(|p| {
+                p.task()
+                    .filter(|t| t.mutating())
+                    .map(|t| (&p.task_id, &t.work_dirs))
+            })
+            .collect();
+        let edges: BTreeMap<_, _> = self
+            .graph
+            .edges
+            .iter()
+            .filter(|(id, _)| !self.graph.blocked.contains_key(*id))
+            .collect();
+        let builds:Vec<_>=self.project.builds.iter().map(|build| {
+            let linked:BTreeSet<_>=self.project.components.iter().filter(|c|self.plan.components.contains(&c.id) && c.build.as_deref()==Some(build.id.as_str())).map(|c|&c.id).collect();
+            json!({"id":build.id,"system":build.system,"variant":build.variant,"directory":build.directory,"definition":build.project,"artifacts":build.artifacts,"linked_by":linked})
+        }).collect();
+        json!({"schema_id":"ici.next.plan","schema_version":1,"root":self.project.root,"scope":{"components":self.plan.components,"languages":self.plan.languages,"profile":self.plan.profile,"require_full":self.request.require_full},"plans":plans,"graph":{"edges":edges,"shared":{},"mutating":mutating},"builds":builds,"coverage_gaps":self.plan.coverage_gaps,"limitations":self.plan.limitations})
+    }
+    pub fn text(&self) -> String {
+        let mut text = format!(
+            "{}: {} check(s)\n",
+            self.project.workspace_name,
+            self.plan.checks.len()
+        );
+        for component in &self.plan.components {
+            text.push_str(&format!("{component}:\n"));
+            for check in self
+                .plan
+                .checks
+                .iter()
+                .filter(|p| &p.component_id == component)
+            {
+                let detail = if let Some(reason) = self.graph.blocked.get(&check.task_id) {
+                    format!("blocked — {reason}")
+                } else if let Some(task) = check.task() {
+                    format!(
+                        "{}{}",
+                        task.argv
+                            .iter()
+                            .map(|v| display_argument(v))
+                            .collect::<Vec<_>>()
+                            .join(" "),
+                        if check.advisory() {
+                            " [advisory findings; completion required]"
+                        } else {
+                            ""
+                        }
+                    )
+                } else {
+                    format!("{} (ici)", check.check.title)
+                };
+                text.push_str(&format!("  {}: {detail}\n", check.task_id));
+            }
+        }
+        for gap in &self.plan.coverage_gaps {
+            text.push_str(&format!("  coverage gap: {gap}\n"));
+        }
+        for limitation in &self.plan.limitations {
+            text.push_str(&format!("  note: {limitation}\n"));
+        }
+        text
+    }
+}
+fn display_argument(value: &str) -> String {
+    if value.chars().any(|c| {
+        c.is_whitespace() || matches!(c, '\'' | '"' | '$' | '`' | ';' | '&' | '|' | '<' | '>')
+    }) {
+        format!("'{}'", value.replace('\'', "'\\''"))
+    } else {
+        value.into()
+    }
+}
