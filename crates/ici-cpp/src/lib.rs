@@ -2,8 +2,10 @@
 mod arguments;
 mod build;
 mod context;
+mod entry_points;
 mod input;
 mod model;
+pub use entry_points::legacy_main_definition_count;
 mod qmake;
 mod recorder;
 mod replay;
