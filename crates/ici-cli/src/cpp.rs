@@ -1,4 +1,5 @@
 //! Existing compilation evidence and artifact contracts. This facade never invents build commands.
+mod linker;
 use ici_application::plan::{Work, file_language};
 use ici_config::{Component, ResolvedProject};
 use ici_cpp::{CompilationContext, CompilationUnit, ContextRequest, ReplayPurpose};
@@ -39,6 +40,8 @@ pub struct CppPlans {
     pub tooling_searches: BTreeMap<String, Vec<TaskSpec>>,
     pub boundaries: BTreeMap<String, Vec<BoundaryProbe>>,
     pub unused: BTreeMap<String, Vec<CompilationUnit>>,
+    linkers: BTreeMap<String, linker::LinkerPlan>,
+    held_contexts: Vec<crate::export_context::PreparedContext>,
     source_session: ici_cpp::CppAnalysisSession,
     inactive: BTreeMap<String, String>,
     resolved: BTreeMap<String, std::result::Result<ResolvedTool, String>>,
@@ -368,8 +371,13 @@ impl CppPlans {
             );
             return Ok(Work::Internal);
         }
-        if linker != "off" {
-            return Err("GNU linker dead-function evidence requires an explicitly prepared owned link-reachability build".into());
+        let linker_tasks = if linker != "off" {
+            self.bind_linker(project, component, id, environment)?
+        } else {
+            vec![]
+        };
+        if mode == "off" {
+            return Ok(Work::steps(linker_tasks, false));
         }
         if !context.complete() {
             return Err(
@@ -425,10 +433,11 @@ impl CppPlans {
             bind_inputs(project, component, context, unit, &mut provider.task);
             providers.push(provider);
         }
-        let tasks = providers
+        let mut tasks: Vec<_> = providers
             .iter()
             .map(|provider| provider.task.clone())
             .collect();
+        tasks.extend(linker_tasks);
         self.diagnostics.insert(id.into(), providers);
         self.unused.insert(id.into(), context.units.clone());
         Ok(Work::steps(tasks, false))
@@ -1124,12 +1133,14 @@ impl CppPlans {
             || self.includes.contains_key(id)
             || self.inactive.contains_key(id)
             || self.boundaries.contains_key(id)
+            || self.linkers.contains_key(id)
     }
     /// Completion does not establish a reusable header or compiler-library dependency closure.
     pub fn scope_complete(&self, id: &str) -> bool {
         !self.diagnostics.contains_key(id)
             && !self.includes.contains_key(id)
             && !self.boundaries.contains_key(id)
+            && !self.linkers.contains_key(id)
     }
     pub fn finalize_plan(&self, plan: &mut ici_application::plan::Plan) {
         for planned in &mut plan.checks {
@@ -1158,6 +1169,21 @@ impl CppPlans {
         cancellation: &ici_execution::Cancellation,
         events: &crate::events::EventLog,
     ) -> AnalysisOutput {
+        if self.linkers.contains_key(&request.task_id) {
+            let linker_output =
+                self.run_linker(project, component, request, scheduler, cancellation, events);
+            if self.unused.contains_key(&request.task_id) {
+                let linker = self.linkers.remove(&request.task_id).expect("bound linker");
+                let unused = self.run(project, component, request, scheduler, cancellation, events);
+                self.linkers.insert(request.task_id.clone(), linker);
+                return merge(
+                    &request.task_id,
+                    "ici.cpp.dead",
+                    vec![unused, linker_output],
+                );
+            }
+            return linker_output;
+        }
         if let Some(reason) = self.inactive.get(&request.task_id) {
             let mut output = AnalysisOutput::new(&request.task_id, "ici.cpp");
             output.status = "SKIP".into();

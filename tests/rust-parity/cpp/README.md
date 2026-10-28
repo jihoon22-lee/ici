@@ -100,3 +100,15 @@ include/sysroot limitations. Additional native tests prove relocation-stable
 semantic digests, process-free reading even with unavailable component sources,
 input-preserving atomic output, explicit database failure, and actual canonical
 CMake/Qt 5/Qt 6 preparation. The Rust command never invokes the oracle script.
+
+The native CLI's explicit legacy `dead` command requests an isolated
+`link-reachability` variant when GNU linker inspection is enabled. Its build,
+identity probes, relinks, ELF/object observations and bounded section-scoped
+`addr2line` effects are visible in the preparation/final plans. Relinks require
+the matching held `BuildLease`; serialized overlay metadata cannot authorize a
+write. The combined unused-function/linker mode keeps a separate primary build.
+Ordinary `analyze` does not prepare this variant, and disabled modes spawn no
+tools. The live CLI acceptance checks the two-target intersection, original
+source preservation and final input stability. Immutable object/link-command
+inputs enter the common snapshot; relink-produced executable files are declared
+outputs observed only after their producing step completes.

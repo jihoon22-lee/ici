@@ -1200,3 +1200,269 @@ fn actual_compiled_producer_preserves_elf_kinds_soname_aliases_and_common_releas
             .contains("thin archives")
     );
 }
+
+#[test]
+fn linker_analysis_requires_explicit_preparation_and_disabled_dead_checks_spawn_nothing() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(root.path().join("CMakeLists.txt"),"cmake_minimum_required(VERSION 3.16)\nproject(dead LANGUAGES CXX)\nadd_executable(dead main.cpp)\n").unwrap();
+    let config = runtime_config(
+        &[],
+        "[checks.'cpp.dead']\nenabled=true\n[engines.dead]\ncpp_unused='off'\ncpp_linker='required'\n[builds.native]\nsystem='cmake'\n",
+    );
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    let invocation = registry::parse(["ici", "analyze", "--profile", "deep"]).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    let plan = planning::prepare(&invocation, root.path(), &environment, true).unwrap();
+    assert!(plan.context_preparations.is_empty());
+    assert!(matches!(
+        plan.plan
+            .checks
+            .iter()
+            .find(|check| check.check.id == "cpp.dead")
+            .unwrap()
+            .work,
+        ici_application::plan::Work::Blocked { .. }
+    ));
+    assert!(plan.tools.is_empty());
+    assert!(!root.path().join(".ici").exists());
+    fs::write(
+        root.path().join("ici.toml"),
+        config.replace("cpp_linker='required'", "cpp_linker='off'"),
+    )
+    .unwrap();
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        true,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["project.cpp.dead"];
+    assert_eq!(output.status, "SKIP");
+    assert_eq!(output.targets[0].file_path, "main.cpp");
+    assert!(!root.path().join(".ici/rust-v1/build").exists());
+}
+
+#[test]
+#[ignore = "explicit actual GCC GNU ld readelf addr2line owned relink acceptance"]
+fn actual_linker_dead_cli_intersects_targets_and_preserves_final_input_snapshot() {
+    let root = tempfile::tempdir().unwrap();
+    let sources = [
+        (
+            "common.cpp",
+            "__attribute__((noinline,visibility(\"hidden\"))) int kept_for_one(){return 1;}\n__attribute__((noinline,visibility(\"hidden\"))) int dead_everywhere(){return 2;}\n__attribute__((noinline)) int exported_default(){return 3;}\n",
+        ),
+        (
+            "one.cpp",
+            "int kept_for_one(); int main(){return kept_for_one();}\n",
+        ),
+        ("two.cpp", "int main(){return 0;}\n"),
+    ];
+    for (path, text) in sources {
+        fs::write(root.path().join(path), text).unwrap();
+    }
+    fs::write(root.path().join("CMakeLists.txt"),"cmake_minimum_required(VERSION 3.16)\nproject(linker_cli LANGUAGES CXX)\nadd_library(common OBJECT common.cpp)\nadd_executable(one one.cpp $<TARGET_OBJECTS:common>)\nadd_executable(two two.cpp $<TARGET_OBJECTS:common>)\n").unwrap();
+    let cxx = std::env::var("ICI_TEST_CXX").expect("actual GCC");
+    let cmake = std::env::var("ICI_TEST_CMAKE").expect("actual CMake");
+    let readelf = std::env::var("ICI_TEST_READELF").expect("actual readelf");
+    let addr2line = std::env::var("ICI_TEST_ADDR2LINE").expect("actual addr2line");
+    let extra = format!(
+        "[checks.'cpp.dead']\nenabled=true\n[engines.dead]\ncpp_unused='off'\ncpp_linker='required'\n[builds.native]\nsystem='cmake'\n[tools.'c++']\npath={}\n[tools.cmake]\npath={}\n[tools.readelf]\npath={}\n[tools.addr2line]\npath={}\n",
+        serde_json::to_string(&cxx).unwrap(),
+        serde_json::to_string(&cmake).unwrap(),
+        serde_json::to_string(&readelf).unwrap(),
+        serde_json::to_string(&addr2line).unwrap()
+    );
+    let config = runtime_config(&[], &extra).replace(
+        "sources=['main.cpp']",
+        "sources=['common.cpp','one.cpp','two.cpp']",
+    );
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    let invocation = registry::parse(["ici", "dead"]).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]);
+    let plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert_eq!(plan.context_preparations.len(), 1, "{}", plan.text());
+    assert_eq!(
+        plan.context_preparations[0].build.variant,
+        "link-reachability"
+    );
+    assert!(!root.path().join(".ici").exists());
+    assert!(plan.text().contains("-ffunction-sections"));
+    // Serialized generated metadata alone does not grant permission to relink it.
+    let scheduler = ici_execution::Scheduler::new(
+        ici_execution::Runner::with_environment(environment.clone()),
+        2,
+    );
+    let prepared = ici_cli::export_context::execute_preparation(
+        &plan.context_preparations[0],
+        &scheduler,
+        &Cancellation::default(),
+        &ici_cli::events::EventLog::default(),
+    )
+    .unwrap();
+    let overlay = ici_cli::export_context::overlay(&plan.project, std::slice::from_ref(&prepared));
+    let component = &overlay.components[0];
+    let mut forged = ici_cli::cpp::CppPlans::default();
+    let definition = ici_cli::cpp::supplemental_checks(&overlay).remove(0);
+    let work = forged
+        .bind(
+            &overlay,
+            component,
+            &definition,
+            "project.cpp.dead",
+            &environment,
+        )
+        .unwrap();
+    assert!(matches!(work, ici_application::plan::Work::Steps { .. }));
+    let before = fs::metadata(root.path().join(&prepared.plan.build.shadow).join("one"))
+        .unwrap()
+        .modified()
+        .unwrap();
+    let request = ici_domain::AnalysisRequest {
+        task_id: "project.cpp.dead".into(),
+        check_id: "cpp.dead".into(),
+        component_id: component.id.clone(),
+        language: "cpp".into(),
+        inputs: sources
+            .iter()
+            .map(|(path, text)| ici_domain::SourceInput {
+                path: (*path).into(),
+                bytes: text.as_bytes().to_vec(),
+            })
+            .collect(),
+        options: serde_json::json!({}),
+        target_version: "c++17".into(),
+    };
+    let denied = forged.run(
+        &overlay,
+        component,
+        &request,
+        &scheduler,
+        &Cancellation::default(),
+        &ici_cli::events::EventLog::default(),
+    );
+    assert_eq!(denied.observation.state, TaskState::Failed);
+    assert!(denied.summary.contains("held native build lease"));
+    assert_eq!(
+        fs::metadata(root.path().join(&prepared.plan.build.shadow).join("one"))
+            .unwrap()
+            .modified()
+            .unwrap(),
+        before
+    );
+    drop(prepared);
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["project.cpp.dead"];
+    assert_eq!(
+        output.observation.state,
+        TaskState::Succeeded,
+        "{output:?}\n{:?}",
+        run.result.execution
+    );
+    assert_eq!(output.observation.findings.len(), 1, "{output:?}");
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(
+                |target| target.metrics.get("symbol").is_some_and(|symbol| symbol
+                    .as_str()
+                    .is_some_and(|symbol| symbol.contains("dead_everywhere")))
+            )
+    );
+    assert!(
+        !output
+            .targets
+            .iter()
+            .any(
+                |target| target.metrics.get("symbol").is_some_and(|symbol| symbol
+                    .as_str()
+                    .is_some_and(|symbol| symbol.contains("kept_for_one")
+                        || symbol.contains("exported_default")))
+            )
+    );
+    assert!(
+        run.result.execution.required_complete,
+        "{:?}",
+        run.result.execution
+    );
+    assert_ne!(
+        run.result.gate.selected,
+        ici_domain::GateVerdict::Incomplete,
+        "{:?}",
+        run.result.gate
+    );
+    assert!(
+        !run.result
+            .gate
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("inputs changed")),
+        "{:?}",
+        run.result.gate
+    );
+    let source = fs::read_to_string(root.path().join("common.cpp")).unwrap();
+    assert_eq!(source, sources[0].1);
+    let steps = &output.extra["linker_probes"]["steps"];
+    assert!(
+        steps
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|step| step["provider"] == "addr2line")
+    );
+    assert!(!steps.to_string().contains("{observed-discarded-section}"));
+    fs::write(
+        root.path().join("ici.toml"),
+        config.replace("cpp_unused='off'", "cpp_unused='auto'"),
+    )
+    .unwrap();
+    let combined_plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert_eq!(
+        combined_plan.context_preparations.len(),
+        2,
+        "{}",
+        combined_plan.text()
+    );
+    let combined = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        combined.outputs["project.cpp.dead"].observation.state,
+        TaskState::Succeeded,
+        "{:?}",
+        combined.outputs["project.cpp.dead"]
+    );
+    assert!(
+        combined.result.execution.required_complete,
+        "{:?}",
+        combined.result.execution
+    );
+    assert_ne!(
+        combined.result.gate.selected,
+        ici_domain::GateVerdict::Incomplete,
+        "{:?}",
+        combined.result.gate
+    );
+    assert_eq!(
+        combined.outputs["project.cpp.dead"]
+            .observation
+            .findings
+            .len(),
+        1
+    );
+}

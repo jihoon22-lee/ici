@@ -50,11 +50,12 @@ pub fn plan_linker_build(root: &Path, request: &BuildRequest) -> Result<BuildPla
     }
     let mut request = request.clone();
     request.id = format!("{}-link-reachability", request.id);
-    request.variant = "release".into();
+    request.variant = "link-reachability".into();
     request.jobs = request.jobs.min(2);
     // Keep target-owned definitions/includes/flags in the CMake project. These diagnostic additions
     // only ask its declared build to expose function sections and a non-PIE GNU GC link.
     request.extra_cmake_args.extend([
+        "-DCMAKE_BUILD_TYPE=Release".into(),
         "-DCMAKE_C_FLAGS=-g -ffunction-sections -fno-lto -fno-pie".into(),
         "-DCMAKE_CXX_FLAGS=-g -ffunction-sections -fno-lto -fno-pie".into(),
         "-DCMAKE_EXE_LINKER_FLAGS=-Wl,--gc-sections -Wl,--print-gc-sections -fno-lto -no-pie"

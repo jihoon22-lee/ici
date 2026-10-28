@@ -197,8 +197,12 @@ pub fn plan_preparation(
         .iter()
         .map(|(id, tool)| (id.clone(), tool.path.to_string_lossy().into_owned()))
         .collect();
-    let mut build =
-        ici_cpp::plan_build(&project.root, &request).map_err(|error| error.to_string())?;
+    let mut build = if request.variant == "link-reachability" {
+        ici_cpp::plan_linker_build(&project.root, &request)
+    } else {
+        ici_cpp::plan_build(&project.root, &request)
+    }
+    .map_err(|error| error.to_string())?;
     let inputs =
         crate::files::build_inputs(&project.root, &directory).map_err(|error| error.to_string())?;
     for task in &mut build.tasks {
@@ -518,6 +522,10 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
                 continue;
             }
             component.settings["native_build_variants"][&plan.build.variant] = json!({"build_id":id,"directory":plan.build.shadow,"artifacts":context.artifacts,"test_executable":context.test_executable,"database":plan.build.compilation_database});
+            if plan.build.variant == "link-reachability" {
+                component.settings["native_build_variants"][&plan.build.variant]["plan"] =
+                    json!(plan.build);
+            }
             if primary || component.build.is_none() {
                 component.build = Some(id.clone());
                 component.settings["project"]["compile_database"] =
