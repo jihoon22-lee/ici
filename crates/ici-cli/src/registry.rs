@@ -14,7 +14,7 @@ pub struct CommandDefinition {
     pub about: Option<String>,
     pub options: Vec<OptionDefinition>,
 }
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct OptionDefinition {
     pub id: String,
     pub flags: Vec<String>,
@@ -60,8 +60,47 @@ pub fn surface() -> Surface {
         .expect("frozen command surface validated by tests")
 }
 pub fn command() -> Command {
-    let surface = surface();
+    let surface = expanded_surface();
     build(&surface, &[])
+}
+fn expanded_surface() -> Surface {
+    let mut surface = surface();
+    let value = |id: &str, help: &str| OptionDefinition {
+        id: id.into(),
+        flags: vec![format!("--{}", id.replace('_', "-"))],
+        help: Some(help.into()),
+        ..Default::default()
+    };
+    let mut options = vec![
+        value("archive", "Install an offline verified native archive"),
+        value("url", "Explicitly download an HTTPS native archive"),
+        value("sha256", "Expected archive SHA-256 from a trusted source"),
+        value("prefix", "Rootless native installation directory"),
+        value(
+            "activate",
+            "Select a previously installed version or selection key",
+        ),
+    ];
+    for (id, help) in [
+        ("rollback", "Restore the previous verified selection"),
+        ("inspect", "Inspect the selected native installation"),
+        ("json_mode", "Print the installation record as JSON"),
+    ] {
+        let mut option = value(id, help);
+        option.boolean = true;
+        if id == "json_mode" {
+            option.flags = vec!["--json".into()];
+        }
+        options.push(option);
+    }
+    surface.commands.push(CommandDefinition {
+        route: vec!["setup".into()],
+        about: Some(
+            "Explicitly install, select or roll back verified native tools without root".into(),
+        ),
+        options,
+    });
+    surface
 }
 fn build(surface: &Surface, route: &[String]) -> Command {
     let name = route.last().map_or("ici", String::as_str);
@@ -155,7 +194,7 @@ fn from_matches(matches: ArgMatches) -> Invocation {
         route.push(name.to_owned());
         current = nested;
     }
-    let definition = surface()
+    let definition = expanded_surface()
         .commands
         .into_iter()
         .find(|c| c.route == route)

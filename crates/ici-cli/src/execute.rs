@@ -120,10 +120,18 @@ pub fn execute(
         baseline_path.as_deref(),
     )?;
     // Invalid baselines and artifact destinations fail before launching project tools.
-    let baseline = baseline_path
+    let baseline_document = baseline_path
         .as_ref()
-        .map(|path| storage::read_result(path).map_err(error))
+        .map(|path| crate::report::load(path))
         .transpose()?;
+    let baseline = baseline_document.as_ref().and_then(|stored| match stored {
+        ici_reporting::StoredResult::Run(run) => Some(run.as_ref().clone()),
+        ici_reporting::StoredResult::Legacy(legacy) => legacy
+            .as_value()
+            .get("native_run")
+            .cloned()
+            .and_then(|value| RunResult::from_value(value).ok()),
+    });
     validate_destination(&result_path, false)?;
     validate_destination(&crate::report::details_path(&result_path, &run_id)?, true)?;
     if result_path.exists() {
@@ -191,7 +199,8 @@ pub fn execute(
             {
                 continue;
             }
-            let mut request = inputs::analysis_request(&prepared, planned, &snapshot, false);
+            let mut request =
+                inputs::analysis_request(&prepared, planned, &snapshot, prepared.legacy_projection);
             let component = inputs::component(&prepared, planned);
             for (path, file) in &snapshot.files {
                 if path.ends_with(".py")
@@ -332,9 +341,63 @@ pub fn execute(
                 continue;
             }
             match &planned.work {
+                Work::NativePrepare { task } => {
+                    let start = Instant::now();
+                    let Some(build) = prepared.artifact_builds.get(id) else {
+                        outputs.insert(
+                            id.clone(),
+                            unavailable(
+                                id,
+                                TaskState::Blocked,
+                                "native preparation handler is not bound",
+                            ),
+                        );
+                        continue;
+                    };
+                    let leases = ici_execution::scheduler::ResourceLocks::acquire(
+                        &prepared.project.root.join(".ici/rust-v1/locks/tasks"),
+                        &task.resource_keys,
+                        cancellation,
+                        std::time::Duration::from_secs_f64(task.timeout_seconds.unwrap_or(300.0)),
+                    );
+                    let mut output = match leases {
+                        Ok(_leases) => {
+                            events.emit(
+                                "task.started",
+                                Some(id),
+                                Some(&planned.component_id),
+                                "packaging declared project artifacts",
+                            );
+                            crate::artifact_build::execute(build, &snapshot, cancellation)
+                        }
+                        Err(reason) => unavailable(
+                            id,
+                            if cancellation.is_cancelled() {
+                                TaskState::Cancelled
+                            } else {
+                                TaskState::Blocked
+                            },
+                            &reason.to_string(),
+                        ),
+                    };
+                    output.observation.duration_seconds = Some(start.elapsed().as_secs_f64());
+                    redact(&mut output)?;
+                    events.emit(
+                        "task.completed",
+                        Some(id),
+                        Some(&planned.component_id),
+                        &format!("{:?}", output.observation.state),
+                    );
+                    outputs.insert(id.clone(), output);
+                }
                 Work::Internal => {
                     let start = Instant::now();
-                    let request = inputs::analysis_request(&prepared, planned, &snapshot, false);
+                    let request = inputs::analysis_request(
+                        &prepared,
+                        planned,
+                        &snapshot,
+                        prepared.legacy_projection,
+                    );
                     if let Some(cache) = &cache {
                         match cache.internal_key(&request, &prepared.project.root, &snapshot) {
                             Ok(Some(key)) => {
@@ -371,22 +434,23 @@ pub fn execute(
                         Some(&planned.component_id),
                         "native analysis",
                     );
-                    let mut output =
-                        if matches!(planned.check.id.as_str(), "cpp.compile" | "cpp.artifact") {
-                            let component = inputs::component(&prepared, planned).clone();
-                            prepared.cpp.run(
-                                &prepared.project,
-                                &component,
-                                &request,
-                                &scheduler,
-                                cancellation,
-                                &events,
-                            )
-                        } else if planned.check.language == "python" {
-                            python.analyze_cancellable(&request, &cancellation.flag())
-                        } else {
-                            cpp.analyze_cancellable(&request, &cancellation.flag())
-                        };
+                    let mut output = if prepared.cpp.handles(id)
+                        || matches!(planned.check.id.as_str(), "cpp.compile" | "cpp.artifact")
+                    {
+                        let component = inputs::component(&prepared, planned).clone();
+                        prepared.cpp.run(
+                            &prepared.project,
+                            &component,
+                            &request,
+                            &scheduler,
+                            cancellation,
+                            &events,
+                        )
+                    } else if planned.check.language == "python" {
+                        python.analyze_cancellable(&request, &cancellation.flag())
+                    } else {
+                        cpp.analyze_cancellable(&request, &cancellation.flag())
+                    };
                     output.observation.duration_seconds = Some(start.elapsed().as_secs_f64());
                     redact(&mut output)?;
                     events.emit(
@@ -399,12 +463,14 @@ pub fn execute(
                 }
                 Work::Process { task, .. } => tasks.push(task.as_ref().clone()),
                 Work::Steps { .. } => {
-                    let mut output = if planned.check.language == "cpp"
-                        && (prepared.cpp.diagnostics.contains_key(id)
-                            || prepared.cpp.includes.contains_key(id))
+                    let mut output = if planned.check.language == "cpp" && prepared.cpp.handles(id)
                     {
-                        let request =
-                            inputs::analysis_request(&prepared, planned, &snapshot, false);
+                        let request = inputs::analysis_request(
+                            &prepared,
+                            planned,
+                            &snapshot,
+                            prepared.legacy_projection,
+                        );
                         let component = inputs::component(&prepared, planned).clone();
                         prepared.cpp.run(
                             &prepared.project,
@@ -562,18 +628,43 @@ pub fn execute(
     for output in outputs.values_mut() {
         redact(output)?;
     }
-    let inputs_stable =
-        match planning::prepare_for_run(invocation, cwd, environment, static_only, &run_id)
-            .and_then(|after| {
-                inputs::capture(&after)
-                    .map(|new| !inputs::changed(&prepared, &after, &snapshot, &new))
-            }) {
-            Ok(stable) => intake_ok && stable,
-            Err(failure) => {
-                limitations.push(format!("final input verification: {failure}"));
-                false
+    let mut generated_outputs = BTreeSet::new();
+    let mut preparation_verified = true;
+    for (id, build) in &prepared.artifact_builds {
+        if outputs
+            .get(id)
+            .is_some_and(|output| output.observation.evidence_is_complete())
+        {
+            match crate::artifact_build::verify_output(build) {
+                Ok(paths) => generated_outputs.extend(
+                    paths
+                        .into_keys()
+                        .filter(|path| !snapshot.files.contains_key(path)),
+                ),
+                Err(reason) => {
+                    preparation_verified = false;
+                    limitations.push(format!("prepared artifact integrity: {reason}"));
+                }
             }
-        };
+        }
+    }
+    let inputs_stable = match planning::prepare_for_run_omitting(
+        invocation,
+        cwd,
+        environment,
+        static_only,
+        &run_id,
+        &generated_outputs,
+    )
+    .and_then(|after| {
+        inputs::capture(&after).map(|new| !inputs::changed(&prepared, &after, &snapshot, &new))
+    }) {
+        Ok(stable) => intake_ok && preparation_verified && stable,
+        Err(failure) => {
+            limitations.push(format!("final input verification: {failure}"));
+            false
+        }
+    };
     if inputs_stable
         && !cancellation.is_cancelled()
         && let Some(cache) = &cache
@@ -666,6 +757,22 @@ pub fn execute(
             ));
         }
         result.baseline = Some(comparison);
+    } else if let Some(ici_reporting::StoredResult::Legacy(legacy)) = baseline_document {
+        let carried = legacy
+            .engines()
+            .iter()
+            .flat_map(|engine| engine["findings"].as_array().into_iter().flatten())
+            .filter_map(|finding| finding["fingerprint"].as_str().map(str::to_owned))
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        result.baseline = Some(ici_domain::BaselineComparison {
+            state: ici_domain::BaselineState::Incompatible,
+            origin: baseline_path.expect("baseline path").to_string_lossy().into_owned(),
+            reason: "historical finding inventory is readable, but native provider policy and completed check scope were not recorded; no new or resolved gate is inferred; save an explicit new baseline".into(),
+            carried,
+            ..Default::default()
+        });
     }
     if !core_known && result.gate.selected == GateVerdict::Pass {
         result.gate.selected = GateVerdict::Incomplete;

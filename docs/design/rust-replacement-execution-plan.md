@@ -463,3 +463,27 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   explicit advisory tags per finding while preserving measured evidence. `advisory-case-gates.log`
   passed six verification regressions and strict application Clippy; removing the tag in the new
   regression still fails the required gate. This does not turn missing required executions into PASS.
+
+### Common native preparation and explicit setup CLI
+
+- Rust-owned preparation is declared as `NativePrepare`, with ordinary task inputs/outputs,
+  mutation directories and resource leases. The CLI invokes its native handler after the lease,
+  using immutable captured inputs, and bypasses analysis cache. Verified generated outputs are
+  excluded individually; unknown or modified ownership records keep files as inspected inputs.
+- Native C++ facade/tooling/runtime bindings and Python runtime matrices/integration/sanitize
+  share the execution lifecycle. Compiler-managed diagnostics/boundaries/include scope do not
+  claim reusable or resolved proof while dependency closure remains unproven. Explicitly inactive
+  tooling consumes no compiler evidence and retains located NOT_APPLICABLE output.
+- `setup` is a native command extension, preserving the frozen 37-command inventory. Offline
+  archive/explicit HTTPS plus digest, selection, rollback and inspection are separate from
+  analysis. Installed tool discovery checks the version root's `tools/manifest.json`, without
+  prepending pack directories to the project's PATH.
+- `cli-native-plumbing-final.log` passed all ordinary application and CLI tests (native tool
+  fixtures remain separately explicit), then found an obsolete exact key-count assertion in
+  config. The test now checks the exact frozen key union plus five named native additions and
+  rejects duplicates. `cli-native-plumbing-lint-final.log` passed all 29 config tests, transitive
+  strict CLI/application/config Clippy and scoped fmt. `cli-setup-gates.log` separately passed
+  three setup argument/no-write/no-HTTP cases and three frozen registry cases.
+- These are internal composition milestones. Git-version preparation, explicit C++ preparation
+  and export, historical command outputs/publishing, actual full archive bootstrap/reproducibility
+  and the complete R8 inventory/cutover acceptance remain open.

@@ -43,6 +43,13 @@ pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
             }
         }
     }
+    for build in prepared.artifact_builds.values() {
+        for reference in &build.task.input_refs {
+            if let Ok(relative) = Path::new(reference).strip_prefix(&prepared.project.root) {
+                sources.insert(relative.to_string_lossy().into_owned());
+            }
+        }
+    }
     let mut configurations: BTreeSet<String> = prepared
         .project
         .configuration_files
@@ -253,7 +260,7 @@ pub fn check_records(
                 );
             }
         }
-        let options = analysis_options(prepared, planned, false);
+        let options = analysis_options(prepared, planned, prepared.legacy_projection);
         let mut context =
             json!({"options":options,"build":component.build,"externals":component.external});
         let mut files: BTreeSet<_> = component
@@ -349,6 +356,7 @@ pub fn check_records(
         let complete = inputs_stable
             && core_known
             && observation.evidence_is_complete()
+            && prepared.cpp.scope_complete(&planned.task_id)
             && prepared
                 .providers
                 .get(&planned.task_id)

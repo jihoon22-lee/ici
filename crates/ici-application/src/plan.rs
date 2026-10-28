@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Work {
     Internal,
+    /// Rust-owned preparation with declared inputs, outputs and resource leases.
+    NativePrepare {
+        task: Box<TaskSpec>,
+    },
     Process {
         task: Box<TaskSpec>,
         /// Findings remain measured; required advisory work must still complete.
@@ -26,6 +30,11 @@ pub enum Work {
     },
 }
 impl Work {
+    pub fn native_prepare(task: TaskSpec) -> Self {
+        Self::NativePrepare {
+            task: Box::new(task),
+        }
+    }
     pub fn process(task: TaskSpec) -> Self {
         Self::Process {
             task: Box::new(task),
@@ -55,7 +64,9 @@ impl PlannedCheck {
     }
     pub fn tasks(&self) -> &[TaskSpec] {
         match &self.work {
-            Work::Process { task, .. } => std::slice::from_ref(task.as_ref()),
+            Work::Process { task, .. } | Work::NativePrepare { task } => {
+                std::slice::from_ref(task.as_ref())
+            }
             Work::Steps { tasks, .. } => tasks,
             _ => &[],
         }
@@ -234,6 +245,22 @@ pub fn plan_with_checks(
                 }
             };
             let work = match work {
+                Work::NativePrepare { task } => {
+                    task.validate()
+                        .map_err(|e| ApplicationError(e.to_string()))?;
+                    if task.id != task_id || !task.mutating() || task.cacheable {
+                        return Err(ApplicationError(format!(
+                            "{task_id}: native prepare identity/effect disagrees"
+                        )));
+                    }
+                    if profile == Profile::Fast {
+                        Work::Blocked {
+                            reason: "profile 'fast' does not run prepare tasks".into(),
+                        }
+                    } else {
+                        Work::NativePrepare { task }
+                    }
+                }
                 Work::Process { task, advisory } => {
                     task.validate()
                         .map_err(|e| ApplicationError(e.to_string()))?;
@@ -337,6 +364,22 @@ pub fn configured_check(
 ) -> (bool, bool) {
     let mut enabled = true;
     let mut required = definition.required;
+    if matches!(
+        definition.id.as_str(),
+        "python.sanitize" | "python.artifact" | "cpp.dead"
+    ) && project.schema_family != SchemaFamily::Legacy
+        && !component.checks.contains_key(&definition.id)
+        && !project.checks.contains_key(&definition.id)
+        && !engine_name(&definition.id).is_some_and(|engine| {
+            project.origins.iter().any(|(key, origin)| {
+                origin.layer != "defaults"
+                    && (key == &format!("engines.{engine}")
+                        || key.starts_with(&format!("engines.{engine}.")))
+            })
+        })
+    {
+        enabled = false;
+    }
     if let Some(engine) = engine_name(&definition.id) {
         let settings = component
             .settings
@@ -388,10 +431,10 @@ pub fn engine_name(check_id: &str) -> Option<&'static str> {
         "python.exception" | "cpp.exception" => Some("exception"),
         "python.resource" => Some("resource"),
         "python.security" => Some("security"),
-        "python.dead" => Some("dead"),
+        "python.dead" | "cpp.dead" => Some("dead"),
         "cpp.compile" => Some("compile_db"),
-        "cpp.artifact" => Some("build"),
-        "cpp.sanitize" => Some("sanitize"),
+        "cpp.artifact" | "python.artifact" => Some("build"),
+        "cpp.sanitize" | "python.sanitize" => Some("sanitize"),
         "cpp.tsan" => Some("thread_sanitize"),
         "cpp.binary-compat" => Some("binary_compat"),
         "integration" => Some("integration"),

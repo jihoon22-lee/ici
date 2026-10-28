@@ -545,10 +545,22 @@ fn schema_paths_preserve_all_frozen_allowed_key_declarations() {
             "next-v1" => NEXT_KEYS,
             _ => LOCAL_KEYS,
         };
-        assert_eq!(extracted.len(), actual.len());
-        for key in extracted {
-            assert!(actual.contains(&key), "missing {family}:{key}");
+        let mut expected: std::collections::BTreeSet<_> = extracted.into_iter().collect();
+        if family == "next-v1" {
+            expected.extend([
+                "components[].integrations[].inherit_env",
+                "builds.*.test_argv",
+                "builds.*.coverage_test_argv",
+                "builds.*.sanitize_test_argv",
+                "builds.*.thread_sanitize_test_argv",
+            ]);
         }
+        let actual_keys: std::collections::BTreeSet<_> = actual.iter().copied().collect();
+        assert_eq!(actual.len(), actual_keys.len(), "duplicate {family} keys");
+        assert_eq!(
+            expected, actual_keys,
+            "frozen keys plus explicit native additions: {family}"
+        );
     }
 }
 

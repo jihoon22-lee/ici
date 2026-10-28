@@ -7,6 +7,14 @@
 
 ## [Unreleased]
 
+- Rust 준비 작업도 입력·출력·영향 디렉터리와 resource lock을 계획에 표시합니다. Python
+  배포물 생성은 snapshot bytes를 사용하며, 검증된 소유 출력만 다음 분석 입력에서 제외합니다.
+- C++ context·tooling·CTest/QTest/gcov·ELF 경로와 runtime matrix/integration를 CLI 공통
+  실행기에 연결합니다. compiler 의존 closure가 불명확한 검사는 resolved/cache 근거를 제한합니다.
+- `setup`에 검증된 offline archive/명시 HTTPS 다운로드, 기존 버전 선택·rollback·상태 조회를
+  연결합니다. 기본 도구 pack은 설치된 core의 인접 `tools/manifest.json`에서 찾으며 프로젝트
+  PATH를 바꾸지 않습니다. 실제 전체 배포 인수와 공개 전환은 아직 후속입니다.
+
 - 필수 검사 안의 선택 integration/runtime case와 보고 전용 진단도 명시 advisory 정책을
   존중합니다. 측정 증거와 finding은 보존하며 해당 case만 gate 위반에서 제외합니다.
 

@@ -847,22 +847,26 @@ dependencies = [
 name = "ici-cli"
 version = "0.14.0-dev.0"
 dependencies = [
+ "base64 0.22.1",
  "chrono",
  "clap",
  "ici-analysis",
  "ici-application",
  "ici-config",
  "ici-cpp",
+ "ici-distribution",
  "ici-domain",
  "ici-execution",
  "ici-providers",
  "ici-reporting",
  "ici-validation",
+ "percent-encoding",
  "serde",
  "serde_json",
  "signal-hook",
  "tempfile",
  "thiserror",
+ "toml_edit",
 ]
 
 [[package]]
@@ -901,6 +905,8 @@ name = "ici-distribution"
 version = "0.14.0-dev.0"
 dependencies = [
  "flate2",
+ "ici-domain",
+ "ici-execution",
  "reqwest",
  "rustix",
  "serde",

@@ -93,8 +93,9 @@ pub enum ArtifactKind {
     Html,
     Sarif,
     Auxiliary,
+    Result,
 }
-pub fn write_artifact(path: &Path, bytes: &[u8], source: &Path, kind: ArtifactKind) -> Result<()> {
+pub fn artifact_mode(path: &Path, source: &Path, kind: ArtifactKind) -> Result<WriteMode> {
     if same_file(path, source) {
         return Err(CliError("report output would replace its input".into()));
     }
@@ -107,6 +108,7 @@ pub fn write_artifact(path: &Path, bytes: &[u8], source: &Path, kind: ArtifactKi
             ArtifactKind::Sarif => serde_json::from_slice::<serde_json::Value>(&previous)
                 .is_ok_and(|v| v["version"] == "2.1.0" && v["runs"].is_array()),
             ArtifactKind::Auxiliary => ici_reporting::load_auxiliary(&previous).is_ok(),
+            ArtifactKind::Result => StoredResult::from_bytes(&previous).is_ok(),
         };
         if !owned {
             return Err(CliError(format!(
@@ -118,6 +120,10 @@ pub fn write_artifact(path: &Path, bytes: &[u8], source: &Path, kind: ArtifactKi
     } else {
         WriteMode::CreateNew
     };
+    Ok(mode)
+}
+pub fn write_artifact(path: &Path, bytes: &[u8], source: &Path, kind: ArtifactKind) -> Result<()> {
+    let mode = artifact_mode(path, source, kind)?;
     storage::atomic_write(path, bytes, mode).map_err(error)
 }
 pub fn command(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
