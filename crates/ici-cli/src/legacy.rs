@@ -40,7 +40,7 @@ pub fn apply_gate_policy(
         };
         if !prepared.legacy_projection
             && prepared.project.schema_family != ici_config::SchemaFamily::Legacy
-            && !explicit_mode_for(prepared, &check.component_id, engine_name)
+            && !explicit_mode_for(prepared, engine_name)
         {
             continue;
         }
@@ -85,24 +85,13 @@ pub fn apply_gate_policy(
 
 fn explicit_mode_for(
     prepared: &crate::planning::PreparedPlan,
-    component_id: &str,
     engine: &str,
 ) -> bool {
-    let suffix = format!("engines.{engine}.mode");
-    let component_index = prepared
+    prepared
         .project
-        .components
-        .iter()
-        .position(|component| component.id == component_id);
-    prepared.project.origins.iter().any(|(key, origin)| {
-        origin.layer != "defaults"
-            && (key == &suffix
-                || component_index.is_some_and(|index| {
-                    key == &format!("components.{index}.{suffix}")
-                        || key == &format!("components.{component_id}.{suffix}")
-                        || key == &format!("_local_components.{component_id}.{suffix}")
-                }))
-    })
+        .origins
+        .get(&format!("engines.{engine}.mode"))
+        .is_some_and(|origin| origin.layer != "defaults")
 }
 
 fn apply_test_warning_policy(output: &mut ici_domain::AnalysisOutput, mode: &str) {
@@ -229,6 +218,20 @@ pub fn annotation_check(
         }
     }
     Some(definition)
+}
+
+/// Binary ABI checks inspect published artifact bytes independently of source language.
+pub fn python_binary_compat_check() -> CheckDefinition {
+    let mut definition = ici_domain::builtin_catalog()
+        .checks
+        .into_iter()
+        .find(|check| check.id == "cpp.binary-compat")
+        .expect("built-in binary compatibility check");
+    definition.id = "python.binary-compat".into();
+    definition.title = "Published binary ABI compatibility".into();
+    definition.language = "python".into();
+    definition.needs.clear();
+    definition
 }
 
 #[cfg(test)]

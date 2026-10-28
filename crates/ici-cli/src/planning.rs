@@ -193,13 +193,27 @@ fn prepare_resolved_omitting(
                 settings: json!({"enabled":true}),
             });
     }
+    let mut definitions = ici_domain::builtin_catalog().checks;
+    let cpp_binary = definitions
+        .iter()
+        .find(|check| check.id == "cpp.binary-compat")
+        .expect("built-in ABI check");
+    let cpp_binary_selected = project.components.iter().any(|component| {
+        component.languages.iter().any(|language|language=="cpp")
+            && (invocation.values("component").is_empty() || invocation.values("component").contains(&component.id))
+            && (languages.is_empty() || languages.iter().any(|language|language=="cpp"))
+            && ici_application::plan::configured_check(&project, component, cpp_binary).0
+            && matches!(crate::cpp_validation::abi_scope(&project,component),Ok(Some(scope)) if !scope.targets.is_empty())
+    });
     let mut supplemental = crate::validation::supplemental_checks(&project);
     supplemental.extend(crate::cpp::supplemental_checks(&project));
     supplemental.extend(crate::legacy::annotation_check(invocation, &mut project));
+    if !cpp_binary_selected {
+        supplemental.push(crate::legacy::python_binary_compat_check());
+    }
     if crate::legacy::is_legacy(invocation) {
         supplemental.extend(crate::cpp::legacy_not_applicable_checks());
     }
-    let mut definitions = ici_domain::builtin_catalog().checks;
     definitions.extend(supplemental.iter().cloned());
     crate::validation::apply_legacy_coverage_defaults(invocation, &mut project);
     let selected_checks = crate::legacy::select(invocation, &mut project, &definitions);
@@ -312,6 +326,7 @@ fn prepare_resolved_omitting(
                 | "cpp.sanitize"
                 | "cpp.tsan"
                 | "cpp.binary-compat"
+                | "python.binary-compat"
                 | "integration" => {
                     return Ok(Work::Blocked {
                         reason: format!(
@@ -455,6 +470,7 @@ fn prepare_resolved_omitting(
                         | "cpp.tidy"
                         | "cpp.artifact"
                         | "cpp.binary-compat"
+                        | "python.binary-compat"
                 )
             }) {
                 variants.insert(primary);
@@ -472,13 +488,17 @@ fn prepare_resolved_omitting(
             if selected.contains("cpp.coverage") {
                 variants.insert("coverage");
             } else if selected.contains("cpp.test") {
-                variants.insert(primary);
+                variants.insert(if crate::cpp::linked_build(&project, component).is_some() {
+                    primary
+                } else {
+                    "test"
+                });
             }
             if selected.contains("cpp.sanitize") {
                 variants.insert("sanitize");
             }
             if selected.contains("cpp.tsan") {
-                variants.insert("tsan");
+                variants.insert("thread-sanitize");
             }
             if selected.contains("cpp.dead")
                 && component
@@ -524,10 +544,44 @@ fn prepare_resolved_omitting(
                         }
                         context_preparations.push(preparation);
                     }
-                    Err(reason) => plan.limitations.push(format!(
-                        "{} {variant}: no automatic preparation available: {reason}",
-                        component.id
-                    )),
+                    Err(reason) => {
+                        let direct = if crate::legacy::is_legacy(invocation)
+                            && match variant {
+                                "release" => selected.contains("cpp.artifact"),
+                                "test" => selected.contains("cpp.test"),
+                                "coverage" => selected.contains("cpp.coverage"),
+                                "sanitize" => selected.contains("cpp.sanitize"),
+                                "thread-sanitize" => selected.contains("cpp.tsan"),
+                                _ => false,
+                            } {
+                            crate::export_context::plan_legacy_direct_preparation(
+                                &selected_project,
+                                &selected_component,
+                                environment,
+                            )
+                        } else {
+                            Err("direct compiler was not selected for this scope".into())
+                        };
+                        match direct {
+                            Ok(mut preparation) => {
+                                preparation.inputs.retain(|path| {
+                                    !owned_outputs.contains(path)
+                                        && !is_command_output(invocation, &project.root, path)
+                                });
+                                for (name, tool) in &preparation.tools {
+                                    tools.insert(
+                                        format!("prepare:{}:{variant}:{name}", component.id),
+                                        tool.clone(),
+                                    );
+                                }
+                                context_preparations.push(preparation);
+                            }
+                            Err(direct_reason) => plan.limitations.push(format!(
+                                "{} {variant}: no automatic preparation available: {reason}; {direct_reason}",
+                                component.id
+                            )),
+                        }
+                    }
                 }
             }
         }
@@ -542,6 +596,32 @@ fn prepare_resolved_omitting(
                 "build {} variant {} has conflicting preparation configurations; declare separate builds",
                 preparation.build.id, preparation.build.variant
             )));
+        }
+    }
+    for check in &mut plan.checks {
+        let scoped_contract = format!("{}.artifact-contract", check.component_id);
+        if check.check.id != "cpp.binary-compat"
+            || !validations.contains_key(&check.task_id)
+            || !check
+                .check
+                .needs
+                .iter()
+                .any(|need| need == &scoped_contract)
+        {
+            continue;
+        }
+        let Some(component) = project
+            .components
+            .iter()
+            .find(|component| component.id == check.component_id)
+        else {
+            continue;
+        };
+        if crate::cpp::linked_build(&project, component).is_none()
+            && matches!(crate::cpp_validation::abi_scope(&project, component),Ok(Some(scope)) if !scope.targets.is_empty())
+        {
+            check.check.needs.retain(|need| need != &scoped_contract);
+            plan.limitations.push(format!("{} uses verified published or typed artifact bytes without a linked build producer", check.task_id));
         }
     }
     let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
@@ -781,7 +861,7 @@ impl PreparedPlan {
             document["source_identity"] = json!(self.source_identity);
         }
         if !self.context_preparations.is_empty() {
-            document["preparations"]=json!(self.context_preparations.iter().map(|plan|json!({"component":plan.component_id,"build":plan.build.id,"variant":plan.build.variant,"inputs":plan.inputs,"steps":plan.build.tasks,"generated_roots":plan.build.generated_roots,"effects":["configure and build inside the owned shadow", "reset only verified single-link coverage counters inside that shadow"]})).collect::<Vec<_>>());
+            document["preparations"]=json!(self.context_preparations.iter().map(|plan|json!({"component":plan.component_id,"build":plan.build.id,"system":plan.build.system,"variant":plan.build.variant,"direct":plan.direct.is_some(),"inputs":plan.inputs,"steps":plan.build.tasks,"generated_roots":plan.build.generated_roots,"effects":if plan.effects.is_null(){json!(["configure and build inside the owned shadow", "reset only verified single-link coverage counters inside that shadow"])}else{plan.effects.clone()}})).collect::<Vec<_>>());
             if self
                 .plan
                 .checks
@@ -836,6 +916,17 @@ impl PreparedPlan {
                 text.push_str(&format!("  {}: {detail}\n", check.task_id));
                 for plan in self.validations.get(&check.task_id).into_iter().flatten() {
                     for (step, condition) in &plan.conditional_steps {
+                        if let Some(format) = condition.gcov_format {
+                            text.push_str(&format!(
+                                "    {step}: only when {} selects gcov {} format\n",
+                                condition.probe_task_id,
+                                match format {
+                                    ici_validation::GcovFormat::Json => "JSON",
+                                    ici_validation::GcovFormat::Text => "text",
+                                }
+                            ));
+                            continue;
+                        }
                         if let Some(module) = &condition.missing_module {
                             text.push_str(&format!(
                                 "    {step}: only when {} confirms module {module} is absent\n",

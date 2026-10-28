@@ -11,7 +11,7 @@ use ici_application::{
 };
 use ici_domain::{AnalysisOutput, TaskState};
 use ici_execution::{Cancellation, Scheduler};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub struct Runtime<'a> {
     pub invocation: &'a Invocation,
@@ -131,12 +131,14 @@ pub fn execute(
 ) -> PreparedExecution {
     let initial_project = prepared.project.clone();
     let initial_pins = prepared.tool_pins();
+    let initial_tools = prepared.tools.clone();
     let original = snapshot.clone();
     let original_limits = crate::inputs::binary_limits(&prepared);
     let mut contexts: Vec<crate::export_context::PreparedContext> = vec![];
     let mut limitations = vec![];
     let mut failures = vec![];
     let mut outputs = BTreeMap::new();
+    let mut observed_failures = BTreeSet::new();
     if intake_ok && !runtime.cancellation.is_cancelled() {
         for plan in &prepared.context_preparations {
             if runtime.cancellation.is_cancelled() {
@@ -150,8 +152,9 @@ pub fn execute(
             });
             let result = if let Some(context) = matching {
                 crate::export_context::for_consumer(context, plan)
+                    .map_err(crate::export_context::PreparationFailure::Incomplete)
             } else {
-                crate::export_context::execute_preparation(
+                crate::export_context::execute_preparation_typed(
                     plan,
                     runtime.scheduler,
                     runtime.cancellation,
@@ -160,7 +163,20 @@ pub fn execute(
             };
             match result {
                 Ok(context) => contexts.push(context),
-                Err(reason) => {
+                Err(failure) => {
+                    let reason = failure.to_string();
+                    if let Some(check) = prepared.plan.checks.iter().find(|check| {
+                        check.component_id == plan.component_id && check.check.id == "cpp.artifact"
+                    }) && let Some(mut observed) = failure.observed_for(&check.task_id)
+                    {
+                        if let Err(redaction) = crate::execute::redact(&mut observed) {
+                            limitations
+                                .push(format!("direct compiler evidence redaction: {redaction}"));
+                        } else {
+                            outputs.insert(check.task_id.clone(), observed);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
                     limitations.push(format!(
                         "{} {} preparation: {reason}",
                         plan.component_id, plan.build.variant
@@ -181,7 +197,13 @@ pub fn execute(
                 &original_limits,
                 &contexts,
             ) {
-                Ok((after, captured, stable)) => {
+                Ok((mut after, captured, stable)) => {
+                    for (role, tool) in &initial_tools {
+                        after
+                            .tools
+                            .entry(role.clone())
+                            .or_insert_with(|| tool.clone());
+                    }
                     prepared = after;
                     snapshot = captured;
                     intake_ok &= stable;
@@ -220,6 +242,15 @@ pub fn execute(
                 runtime.cancellation,
                 runtime.events,
             );
+            for context in contexts
+                .iter()
+                .filter(|context| context.plan.component_id == check.component_id)
+            {
+                if let Some(evidence) = &context.evidence {
+                    output.extra["preparation_evidence"][&context.plan.build.variant] =
+                        evidence.clone();
+                }
+            }
             if let Some(resolved) = resolved {
                 check.work = Work::native_prepare_after(
                     resolved.version_probe.iter().cloned().collect(),
@@ -257,7 +288,13 @@ pub fn execute(
                 &original_limits,
                 &contexts,
             ) {
-                Ok((after, captured, stable)) => {
+                Ok((mut after, captured, stable)) => {
+                    for (role, tool) in &initial_tools {
+                        after
+                            .tools
+                            .entry(role.clone())
+                            .or_insert_with(|| tool.clone());
+                    }
                     prepared = after;
                     snapshot = captured;
                     intake_ok &= stable;
@@ -287,6 +324,12 @@ pub fn execute(
             }
         }
     }
+    for check in &mut prepared.plan.checks {
+        if observed_failures.contains(&check.task_id) {
+            check.work = Work::Internal;
+            prepared.graph.blocked.remove(&check.task_id);
+        }
+    }
     for (component, variant, reason) in failures {
         for check in &prepared.plan.checks {
             if check.component_id != component || check.check.language != "cpp" {
@@ -295,7 +338,7 @@ pub fn execute(
             let affected = match variant.as_str() {
                 "coverage" => check.check.id == "cpp.coverage",
                 "sanitize" => check.check.id == "cpp.sanitize",
-                "tsan" => check.check.id == "cpp.tsan",
+                "thread-sanitize" => check.check.id == "cpp.tsan",
                 "link-reachability" => check.check.id == "cpp.dead",
                 _ => {
                     matches!(
@@ -313,6 +356,10 @@ pub fn execute(
                 }
             };
             if affected {
+                if observed_failures.contains(&check.task_id) {
+                    prepared.graph.blocked.remove(&check.task_id);
+                    continue;
+                }
                 prepared.graph.blocked.insert(
                     check.task_id.clone(),
                     format!("explicit {variant} preparation failed: {reason}"),
@@ -321,10 +368,13 @@ pub fn execute(
         }
     }
     let after_pins = prepared.tool_pins();
-    if initial_pins
-        .iter()
-        .any(|(path, digest)| after_pins.get(path) != Some(digest))
-    {
+    if initial_pins.iter().any(|(path, digest)| {
+        after_pins.get(path) != Some(digest)
+            || ici_execution::process::executable_digest(std::path::Path::new(path))
+                .ok()
+                .as_ref()
+                != Some(digest)
+    }) {
         intake_ok = false;
         limitations.push("a selected tool changed during preparation; completed preparation remains partial evidence".into());
     }

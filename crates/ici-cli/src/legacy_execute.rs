@@ -167,6 +167,13 @@ pub fn command(
             .find(|result| result["engine_name"] == family)
             .cloned()
             .ok_or_else(|| CliError(format!("{family}: no applicable language/check selected")))?;
+        if run.result.gate.selected != GateVerdict::Incomplete {
+            exit_code = exit_code.max(match value["status"].as_str() {
+                Some("FAIL" | "ERROR") => 1,
+                Some("SKIP") => 2,
+                _ => 0,
+            });
+        }
         value["native_run"] = run.result.to_value().map_err(error)?;
         stored = StoredResult::from_value(value).map_err(error)?;
     }

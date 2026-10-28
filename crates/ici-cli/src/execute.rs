@@ -678,7 +678,26 @@ pub fn execute(
         &generated_outputs,
         &context_guards,
     )
-    .and_then(|after| {
+    .and_then(|mut after| {
+        for context in context_guards
+            .iter()
+            .filter(|context| context.plan.direct.is_some())
+        {
+            for (name, tool) in &context.plan.tools {
+                let current =
+                    ici_execution::process::executable_digest(&tool.path).map_err(error)?;
+                if current != tool.digest {
+                    return Ok(false);
+                }
+                after
+                    .tools
+                    .entry(format!(
+                        "prepare:{}:{}:{name}",
+                        context.plan.component_id, context.plan.build.variant
+                    ))
+                    .or_insert_with(|| tool.clone());
+            }
+        }
         inputs::capture_preserving(&after, &snapshot, &input_limits, &[])
             .map(|new| !inputs::changed(&prepared, &after, &snapshot, &new))
     }) {

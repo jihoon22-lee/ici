@@ -4,11 +4,11 @@ use std::{collections::BTreeMap, fs};
 
 #[test]
 fn explicit_migrated_mode_applies_per_check_without_changing_modern_default() {
-    for explicit in [false, true] {
+    for site in ["default", "root"] {
         let root = tempfile::tempdir().unwrap();
         fs::create_dir(root.path().join("src")).unwrap();
         fs::write(root.path().join("src/a.cpp"), "int value;\n").unwrap();
-        let mode = if explicit {
+        let mode = if site == "root" {
             "[engines.line]\nmode='pass_warn'\n"
         } else {
             ""
@@ -43,7 +43,7 @@ fn explicit_migrated_mode_applies_per_check_without_changing_modern_default() {
         legacy::apply_gate_policy(&prepared, &mut outputs);
         assert_eq!(
             outputs[&line.task_id].status,
-            if explicit { "WARN" } else { "FAIL" }
+            if site == "default" { "FAIL" } else { "WARN" }
         );
     }
 }

@@ -72,6 +72,7 @@ pub fn capture_preserving(
         })
         .collect();
     configurations.extend(prepared.cpp.evidence_input_limits().into_keys());
+    configurations.extend(python_binary_artifacts(prepared));
     for build in prepared.artifact_builds.values() {
         for reference in &build.task.input_refs {
             if let Ok(relative) = Path::new(reference).strip_prefix(&prepared.project.root) {
@@ -171,6 +172,27 @@ pub fn binary_limits(prepared: &PreparedPlan) -> BTreeMap<String, usize> {
         .flat_map(|build| build.binary_inputs.iter())
         .map(|path| (path.clone(), 256 * 1024 * 1024))
         .chain(prepared.cpp.evidence_input_limits())
+        .chain(
+            python_binary_artifacts(prepared)
+                .into_iter()
+                .map(|path| (path, 256 * 1024 * 1024)),
+        )
+        .collect()
+}
+fn python_binary_artifacts(prepared: &PreparedPlan) -> BTreeSet<String> {
+    prepared
+        .plan
+        .checks
+        .iter()
+        .filter(|check| check.check.id == "python.binary-compat")
+        .flat_map(|check| {
+            let component = component(prepared, check);
+            match crate::cpp_validation::abi_scope(&prepared.project, component) {
+                Ok(Some(scope)) if scope.implicit && scope.targets.is_empty() => scope.artifacts,
+                Ok(Some(scope)) => scope.targets,
+                _ => vec![],
+            }
+        })
         .collect()
 }
 pub fn code_evidence_paths(prepared: &PreparedPlan) -> BTreeSet<String> {
@@ -191,6 +213,7 @@ pub fn code_evidence_paths(prepared: &PreparedPlan) -> BTreeSet<String> {
                 .values()
                 .flat_map(|build| build.binary_inputs.iter().cloned()),
         )
+        .chain(python_binary_artifacts(prepared))
         .collect()
 }
 pub struct InputVerification {

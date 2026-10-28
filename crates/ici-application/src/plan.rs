@@ -403,7 +403,7 @@ pub fn configured_check(
     let mut required = definition.required;
     if matches!(
         definition.id.as_str(),
-        "python.sanitize" | "python.artifact" | "cpp.dead"
+        "python.sanitize" | "python.artifact" | "cpp.dead" | "python.binary-compat"
     ) && project.schema_family != SchemaFamily::Legacy
         && !component.checks.contains_key(&definition.id)
         && !project.checks.contains_key(&definition.id)
@@ -473,7 +473,7 @@ pub fn engine_name(check_id: &str) -> Option<&'static str> {
         "cpp.artifact" | "python.artifact" => Some("build"),
         "cpp.sanitize" | "python.sanitize" => Some("sanitize"),
         "cpp.tsan" => Some("thread_sanitize"),
-        "cpp.binary-compat" => Some("binary_compat"),
+        "cpp.binary-compat" | "python.binary-compat" => Some("binary_compat"),
         "integration" => Some("integration"),
         _ => None,
     }
