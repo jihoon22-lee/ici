@@ -102,6 +102,7 @@ fn dead_code_matches_frozen_targets_and_reviewed_corrections() {
 
 #[test]
 fn explicit_annotation_projection_preserves_optin_and_nested_definitions() {
+    use ici_domain::Validate;
     let fixtures: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/python/annotations.json"
     ))
@@ -110,6 +111,10 @@ fn explicit_annotation_projection_preserves_optin_and_nested_definitions() {
         let mut input = request("type", case["source"].as_str().unwrap());
         input.options = json!({"legacy_projection":true,"warn_on_missing_annotation":case["warn_on_missing_annotation"]});
         let output = analyze(&input);
+        output
+            .observation
+            .validate()
+            .expect("annotation findings must be usable by the shared application/cache");
         if case["incomplete"] == true {
             assert_eq!(output.observation.state, TaskState::Failed);
             assert_eq!(output.status, "ERROR");

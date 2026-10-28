@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+- native 반환형 주석 finding에 안정적인 identity를 부여해 공통 결과 검증과 cache가 빈
+  fingerprint 때문에 관측 결과를 거부하던 결함을 수정합니다. 추정 증거 표시는 유지합니다.
+
 - native `setup`의 기본 설치 경로를 bootstrap과 동일하게 `XDG_DATA_HOME/ici/native` 우선으로
   맞춥니다. XDG만 있거나 HOME과 동시에 있어도 install·inspect·update·rollback이 같은 경로를 사용합니다.
 - native 정적 archive builder에 고정 SDK·source·컴파일 도구 identity 검증과 Rust/musl/LLVM

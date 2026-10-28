@@ -83,6 +83,16 @@ pub fn analyze(
             result.category = "maintainability".into();
             result.component_id = Some(request.component_id.clone());
             result.task_id = Some(request.task_id.clone());
+            result.fingerprint = ici_domain::sha256(
+                json!([
+                    "ici.native.annotation.v1",
+                    result.rule_id,
+                    target.file_path,
+                    target.start_line,
+                    target.message
+                ])
+                .to_string(),
+            );
             output.observation.findings.push(result);
             output.targets.push(target);
         }
