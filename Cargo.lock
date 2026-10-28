@@ -825,6 +825,7 @@ dependencies = [
  "sha2 0.10.9",
  "toml_edit",
  "unicode-normalization",
+ "unicode_names2",
  "zip",
 ]
 
