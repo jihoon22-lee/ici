@@ -2,6 +2,7 @@
 mod config_scope;
 mod fallback;
 mod linker;
+pub(crate) mod package_flags;
 pub use config_scope::external_build_directories;
 use ici_application::plan::{Work, file_language};
 use ici_config::{Component, ResolvedProject};
