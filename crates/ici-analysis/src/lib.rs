@@ -126,6 +126,10 @@ impl AnalysisSession {
             return output;
         }
         if request.inputs.is_empty() {
+            if kind == "dup" && request.language == "python" {
+                duplicate_not_applicable(&mut output, false);
+                return output;
+            }
             failure(
                 &mut output,
                 ".",
@@ -322,7 +326,7 @@ impl AnalysisSession {
         if cancelled(&mut output, cancellation) {
             return output;
         }
-        if files.is_empty() && output.observation.state != TaskState::Failed {
+        if files.is_empty() && output.observation.state != TaskState::Failed && kind != "dup" {
             failure(
                 &mut output,
                 ".",
@@ -338,15 +342,64 @@ impl AnalysisSession {
             "type" => annotations::analyze(request, &files, &mut output, cancellation),
             "compat" => compat::analyze(request, &files, &mut output, cancellation),
             "source-facts" => facts::analyze(&files, &mut output, cancellation),
+            "dup" if files.is_empty() && output.observation.state != TaskState::Failed => {
+                duplicate_not_applicable(&mut output, !excluded_source_counts.is_empty());
+            }
             "dup" => python_duplicates::analyze(request, &files, &mut output, cancellation),
             _ => metrics::analyze(request, &files, &mut output, cancellation),
         }
         details::decorate(&mut output);
+        if kind == "dup" {
+            let excluded = output
+                .targets
+                .iter()
+                .filter(|target| target.target_name == "ExcludedAnalysisSource")
+                .count();
+            let bytes: usize = request
+                .inputs
+                .iter()
+                .filter(|input| source_encodings.contains_key(&input.path))
+                .map(|input| input.bytes.len())
+                .sum();
+            output.extra["source_files_analyzed"] = json!(files.len());
+            output.extra["source_bytes_analyzed"] = json!(bytes);
+            output.extra["source_files_excluded"] = json!(excluded);
+            output.extra["source_exclusion_counts"] = json!(excluded_source_counts);
+        }
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);
         output.extra["source_encodings"] = json!(source_encodings);
         output.extra["parser_identity"] = json!(PARSER_IDENTITY);
         output
     }
+}
+fn duplicate_not_applicable(output: &mut AnalysisOutput, excluded: bool) {
+    output.status = "SKIP".into();
+    output.summary = "Duplicate analysis skipped: no owned source files".into();
+    let mut target = InspectionTarget::at(".", 1);
+    target.target_name = "DuplicateCode".into();
+    target.status = "SKIP".into();
+    target.message = if excluded {
+        "All selected sources were excluded by the generated/vendor policy"
+    } else {
+        "No applicable source files were selected"
+    }
+    .into();
+    output.targets.push(target);
+    output
+        .observation
+        .measurements
+        .push(ici_domain::Measurement {
+            evidence: ici_domain::EvidenceLevel::NotApplicable,
+            unit: "checks".into(),
+            ..ici_domain::Measurement::measured("applicability", 0.0)
+        });
+    output.extra = json!({
+        "analysis_provenance":"language-lexical-region-heuristic",
+        "source_files_analyzed":0,
+        "source_bytes_analyzed":0,
+        "source_files_excluded":0,
+        "source_exclusion_counts":{}
+    });
 }
 pub fn analyze(request: &AnalysisRequest) -> AnalysisOutput {
     AnalysisSession::new().analyze(request)

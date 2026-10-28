@@ -2036,3 +2036,115 @@ fn shared_source_exclusions_use_frozen_full_casefold_for_every_path_part() {
     );
     assert_eq!(source_exclusion_reasons("src/owned.py"), Vec::<&str>::new());
 }
+
+#[test]
+fn duplicate_scope_exclusions_are_not_applicable_without_measured_zero_claims() {
+    let mut input = request("dup", "def owned(value):\n    return value\n");
+    input.inputs[0].path = "vendor/moc_widget.py".into();
+    let mut session = AnalysisSession::new();
+    for (options, reasons) in [
+        (json!({}), json!({"generated":1,"vendor":1})),
+        (json!({"include_generated":true}), json!({"vendor":1})),
+        (json!({"include_vendor":true}), json!({"generated":1})),
+    ] {
+        input.options = options;
+        let output = session.analyze(&input);
+        assert_eq!(output.status, "SKIP");
+        assert_eq!(output.observation.state, TaskState::Succeeded);
+        assert_eq!(output.extra["source_files_analyzed"], 0);
+        assert_eq!(output.extra["source_bytes_analyzed"], 0);
+        assert_eq!(output.extra["source_files_excluded"], 1);
+        assert_eq!(output.extra["source_exclusion_counts"], reasons);
+        assert!(output.extra.get("duplication_pct").is_none());
+        assert!(output.observation.findings.is_empty());
+        assert_eq!(output.observation.measurements.len(), 1);
+        assert_eq!(
+            output.observation.measurements[0].evidence,
+            ici_domain::EvidenceLevel::NotApplicable
+        );
+        assert!(output.targets.iter().any(|target| target.file_path == "vendor/moc_widget.py" && target.status == "SKIP"));
+    }
+    assert_eq!(session.parser_invocations(), 0);
+    input.options = json!({"include_generated":true,"include_vendor":true});
+    let output = session.analyze(&input);
+    assert_eq!(output.status, "PASS");
+    assert_eq!(output.extra["source_files_analyzed"], 1);
+    assert_eq!(
+        output.extra["source_bytes_analyzed"],
+        input.inputs[0].bytes.len()
+    );
+    assert_eq!(output.extra["source_files_excluded"], 0);
+    assert_eq!(output.extra["source_exclusion_counts"], json!({}));
+    assert_eq!(session.parser_invocations(), 1);
+    // Inclusion must not turn a selected invalid source into a skipped check.
+    input.inputs[0].bytes = b"def invalid(:\n".to_vec();
+    let output = session.analyze(&input);
+    assert_eq!(output.status, "ERROR");
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert!(
+        output
+            .observation
+            .measurements
+            .iter()
+            .all(|measurement| measurement.evidence != ici_domain::EvidenceLevel::NotApplicable)
+    );
+    input.inputs.clear();
+    let output = session.analyze(&input);
+    assert_eq!(output.status, "SKIP");
+    assert_eq!(output.extra["source_files_analyzed"], 0);
+    assert_eq!(
+        output.observation.measurements[0].evidence,
+        ici_domain::EvidenceLevel::NotApplicable
+    );
+}
+
+#[test]
+fn duplicate_source_inventory_matches_frozen_scope_policies() {
+    let evidence: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/source-scope.json"
+    ))
+    .unwrap();
+    for case in evidence["cases"].as_array().unwrap() {
+        let mut input = request("dup", "");
+        input.inputs = case["sources"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(path, text)| SourceInput {
+                path: path.clone(),
+                bytes: text.as_str().unwrap().as_bytes().to_vec(),
+            })
+            .collect();
+        input.options = case["options"].clone();
+        let output = analyze(&input);
+        assert_eq!(
+            output.status,
+            case["original"]["status"].as_str().unwrap(),
+            "{}",
+            case["id"]
+        );
+        if output.status == "ERROR" {
+            assert_eq!(output.observation.state, TaskState::Failed);
+            assert!(output.observation.findings.is_empty());
+            assert!(!case["difference_reason"].as_str().unwrap().is_empty());
+        } else {
+            for (name, expected) in case["original"]["extra"].as_object().unwrap() {
+                assert_eq!(&output.extra[name], expected, "{} {name}", case["id"]);
+            }
+            if output.status == "SKIP" {
+                assert_eq!(
+                    output.summary,
+                    case["original"]["summary"].as_str().unwrap()
+                );
+                assert!(
+                    output
+                        .observation
+                        .measurements
+                        .iter()
+                        .all(|measurement| measurement.evidence
+                            == ici_domain::EvidenceLevel::NotApplicable)
+                );
+            }
+        }
+    }
+}

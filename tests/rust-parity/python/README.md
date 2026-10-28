@@ -338,3 +338,24 @@ python3.14 -I -B tests/rust-parity/python/generate_stateful_tables.py --check
 
 UTF-7/escape/IDNA source semantics remain under a separate audit. This milestone does not close the complete codec, per-engine option or
 Python feature ledger, and unknown encodings remain explicit incomplete input.
+
+## Owned duplicate scope
+
+`source-scope.json` retains seven actual frozen `DuplicateEngine.run` outcomes:
+empty scope, independent generated/vendor inclusion, dual ownership reasons,
+fully included input, mixed owned/excluded files and invalid included syntax.
+`scope_oracle.py` calls the fixed original engine against immutable temporary
+inputs and checks the exact original status, evidence, summary and source
+inventory counters. Native tests compare the applicable counters and keep every
+excluded path as a located SKIP target.
+
+An empty owned inventory stays SKIP with explicit NOT_APPLICABLE evidence; it
+has no measured zero-duplication percentage. A failed selected input remains
+ERROR. The historical `source_files_analyzed` field counts read inputs even when
+tokenization fails; native failure metadata counts successfully parsed inputs
+and records that difference explicitly in the fixture.
+
+```sh
+python3.14 -I -B tests/rust-parity/python/scope_oracle.py FROZEN_CHECKOUT \
+  --dependencies .venv/lib/python3.10/site-packages
+```
