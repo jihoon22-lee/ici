@@ -306,28 +306,33 @@ pub fn read_event_stream(path: &Path) -> io::Result<(Vec<RunEvent>, Vec<String>)
     }
 }
 fn read_text(path: &Path) -> io::Result<String> {
-    const MAX_FILE: u64 = 64 * 1024 * 1024;
-    // Reading an explicitly selected saved result may follow a link; writing never does.
-    // Nonblocking open prevents a substituted FIFO from hanging before metadata validation.
+    String::from_utf8(read_bounded_regular(path, 64 * 1024 * 1024)?)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))
+}
+/// Bounded immutable bytes from a regular file. Nonblocking open closes the FIFO
+/// substitution race between discovery metadata and the actual read.
+pub fn read_bounded_regular(path: &Path, maximum: usize) -> io::Result<Vec<u8>> {
     let file = OpenOptions::new()
         .read(true)
         .custom_flags(nix::libc::O_NONBLOCK | nix::libc::O_CLOEXEC)
         .open(path)?;
-    if !file.metadata()?.is_file() || file.metadata()?.len() > MAX_FILE {
+    let metadata = file.metadata()?;
+    if !metadata.is_file() || metadata.len() > maximum as u64 {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "saved result is not a bounded regular file",
+            "input is not a bounded regular file",
         ));
     }
-    let mut text = String::new();
-    file.take(MAX_FILE + 1).read_to_string(&mut text)?;
-    if text.len() as u64 > MAX_FILE {
+    let mut bytes = Vec::new();
+    file.take((maximum as u64).saturating_add(1))
+        .read_to_end(&mut bytes)?;
+    if bytes.len() > maximum {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "saved result exceeds size limit",
+            "input exceeds size limit",
         ));
     }
-    Ok(text)
+    Ok(bytes)
 }
 
 pub(crate) fn prepare_directory(path: &Path) -> io::Result<()> {

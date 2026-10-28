@@ -78,7 +78,7 @@ boundary rather than modifying provider stdout before parsing.
 |---|---|---|
 |Process (11)|raw binary and nonzero completion; dual-stream flood; SIGTERM→SIGKILL timeout; pre/during cancellation; descendant holding inherited pipes; signal/start/cwd errors; environment identity/isolation; literal shell syntax and work-dir effects; absolute/no-symlink work dirs; changed executable bytes; FIFO substitution|11 passed|
 |Scheduler (8)|complete-key dedup and original ids; missing/failed prerequisite and cycle rejection; resource serialization/jobs bound; partial cancellation; lock timeout/cancel/drop; unknown tool no-sharing; kernel lock release when holder terminated; replaced tool no-sharing/no-spawn|8 passed|
-|Storage (9)|injected failed staged write; destination/ancestor symlink; concurrent create; symlink added during staging; event continuity/redaction; recursive credential masking; bounded lock failure; missing/invalid/truncated read; frozen v2 write/read and invalid envelope refusal|9 passed|
+|Storage (10)|injected failed staged write; destination/ancestor symlink; concurrent create; symlink added during staging; event continuity/redaction; recursive credential masking; bounded lock failure; missing/invalid/truncated read; frozen v2 write/read and invalid envelope refusal; bounded regular-file/FIFO read|10 passed|
 
 Commands (shared host heavy lock; two build/test workers):
 

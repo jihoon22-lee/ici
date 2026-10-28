@@ -190,3 +190,21 @@ fn valid_result_roundtrip_and_invalid_result_do_not_replace_existing_file() {
     assert!(write_result(&path, &result, WriteMode::ReplaceRegular).is_err());
     assert_eq!(fs::read(path).unwrap(), old);
 }
+#[test]
+fn bounded_regular_reader_rejects_fifo_and_large_file_without_hanging() {
+    use ici_execution::storage::read_bounded_regular;
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("input");
+    fs::write(&path, b"small input").unwrap();
+    assert!(read_bounded_regular(&path, 3).is_err());
+    assert_eq!(read_bounded_regular(&path, 11).unwrap(), b"small input");
+    fs::remove_file(&path).unwrap();
+    nix::unistd::mkfifo(
+        &path,
+        nix::sys::stat::Mode::S_IRUSR | nix::sys::stat::Mode::S_IWUSR,
+    )
+    .unwrap();
+    let start = std::time::Instant::now();
+    assert!(read_bounded_regular(&path, 100).is_err());
+    assert!(start.elapsed().as_secs_f64() < 1.0);
+}
