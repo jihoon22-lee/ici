@@ -1,5 +1,5 @@
 use crate::{ApplicationError, Result, request::RunRequest};
-use ici_config::{Component, ResolvedProject};
+use ici_config::{Component, ResolvedProject, SchemaFamily};
 use ici_domain::{CheckDefinition, Profile, TaskSpec, Validate, builtin_catalog};
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +11,13 @@ pub enum Work {
     Process {
         task: Box<TaskSpec>,
         /// Findings remain measured; required advisory work must still complete.
+        #[serde(default)]
+        advisory: bool,
+    },
+    /// Ordered native steps behind one logical check. Provider exit contracts decide whether a
+    /// completed failing test may feed coverage; no implicit work is hidden from plan/doctor.
+    Steps {
+        tasks: Vec<TaskSpec>,
         #[serde(default)]
         advisory: bool,
     },
@@ -31,6 +38,9 @@ impl Work {
             advisory: true,
         }
     }
+    pub fn steps(tasks: Vec<TaskSpec>, advisory: bool) -> Self {
+        Self::Steps { tasks, advisory }
+    }
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PlannedCheck {
@@ -41,9 +51,13 @@ pub struct PlannedCheck {
 }
 impl PlannedCheck {
     pub fn task(&self) -> Option<&TaskSpec> {
+        self.tasks().first()
+    }
+    pub fn tasks(&self) -> &[TaskSpec] {
         match &self.work {
-            Work::Process { task, .. } => Some(task),
-            _ => None,
+            Work::Process { task, .. } => std::slice::from_ref(task.as_ref()),
+            Work::Steps { tasks, .. } => tasks,
+            _ => &[],
         }
     }
     pub fn blocked(&self) -> Option<&str> {
@@ -53,7 +67,10 @@ impl PlannedCheck {
         }
     }
     pub fn advisory(&self) -> bool {
-        matches!(self.work, Work::Process { advisory: true, .. })
+        matches!(
+            self.work,
+            Work::Process { advisory: true, .. } | Work::Steps { advisory: true, .. }
+        )
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -108,10 +125,7 @@ pub fn plan(
             if !applies || !request.wants(definition) {
                 continue;
             }
-            let setting = component
-                .checks
-                .get(&definition.id)
-                .or_else(|| project.checks.get(&definition.id));
+            let (enabled, required) = configured_check(project, component, definition);
             let omitted = if !definition.profiles.contains(&profile) {
                 Some(format!(
                     "not in profile '{}'",
@@ -120,7 +134,7 @@ pub fn plan(
                         .as_str()
                         .expect("string")
                 ))
-            } else if setting.is_some_and(|s| !s.enabled) {
+            } else if !enabled {
                 Some("disabled".into())
             } else {
                 None
@@ -134,9 +148,7 @@ pub fn plan(
                 continue;
             }
             let mut check = definition.clone();
-            if let Some(setting) = setting {
-                check.required = setting.required_or(check.required);
-            }
+            check.required = required;
             for capability in check.needs.iter_mut().chain(check.provides.iter_mut()) {
                 *capability = format!("{}.{capability}", component.id);
             }
@@ -170,6 +182,16 @@ pub fn plan(
                         Work::Process { task, advisory }
                     }
                 }
+                Work::Steps { tasks, advisory } => {
+                    validate_steps(&task_id, &tasks)?;
+                    if profile == Profile::Fast && tasks.iter().any(TaskSpec::mutating) {
+                        Work::Blocked {
+                            reason: "profile 'fast' does not run prepare tasks".into(),
+                        }
+                    } else {
+                        Work::Steps { tasks, advisory }
+                    }
+                }
                 Work::Blocked { reason } if reason.trim().is_empty() => {
                     return Err(ApplicationError(format!(
                         "{task_id}: blocked work needs a reason"
@@ -198,6 +220,115 @@ pub fn plan(
         ));
     }
     Ok(result)
+}
+
+pub fn validate_steps(logical_id: &str, tasks: &[TaskSpec]) -> Result<()> {
+    if tasks.is_empty() {
+        return Err(ApplicationError(format!(
+            "{logical_id}: native steps must not be empty"
+        )));
+    }
+    let mut positions = std::collections::BTreeMap::new();
+    for (index, task) in tasks.iter().enumerate() {
+        task.validate()
+            .map_err(|error| ApplicationError(error.to_string()))?;
+        if task.id != logical_id && !task.id.starts_with(&format!("{logical_id}.")) {
+            return Err(ApplicationError(format!(
+                "{} is not owned by logical check {logical_id}",
+                task.id
+            )));
+        }
+        if positions.insert(&task.id, index).is_some() {
+            return Err(ApplicationError(format!(
+                "duplicate native step {}",
+                task.id
+            )));
+        }
+    }
+    for (index, task) in tasks.iter().enumerate() {
+        if task.depends_on.iter().any(|dependency| {
+            positions
+                .get(dependency)
+                .is_some_and(|position| *position >= index)
+        }) {
+            return Err(ApplicationError(format!(
+                "{} depends on a later ordered native step",
+                task.id
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// Honor legacy engine controls and explicit sparse compatibility keys through one selection path.
+/// Built-in legacy defaults do not silently disable newly defined next checks.
+pub fn configured_check(
+    project: &ResolvedProject,
+    component: &Component,
+    definition: &CheckDefinition,
+) -> (bool, bool) {
+    let mut enabled = true;
+    let mut required = definition.required;
+    if let Some(engine) = engine_name(&definition.id) {
+        let settings = component
+            .settings
+            .get("engines")
+            .and_then(|engines| engines.get(engine));
+        let declared = |field: &str| {
+            project.schema_family == SchemaFamily::Legacy
+                || project
+                    .origins
+                    .get(&format!("engines.{engine}.{field}"))
+                    .is_some_and(|origin| origin.layer != "defaults")
+        };
+        if declared("enabled") {
+            enabled = settings
+                .and_then(|settings| settings.get("enabled"))
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(true);
+        }
+        if declared("required") {
+            required = settings
+                .and_then(|settings| settings.get("required"))
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(required);
+        }
+    }
+    if let Some(setting) = component
+        .checks
+        .get(&definition.id)
+        .or_else(|| project.checks.get(&definition.id))
+    {
+        enabled = setting.enabled_or(enabled);
+        required = setting.required_or(required);
+    }
+    (enabled, required)
+}
+
+pub fn engine_name(check_id: &str) -> Option<&'static str> {
+    match check_id {
+        "python.line" | "cpp.line" => Some("line"),
+        "python.lint" | "python.format" | "cpp.diagnostics" | "cpp.tidy" | "rust.clippy"
+        | "javascript.lint" | "typescript.lint" => Some("lint"),
+        "python.type" | "typescript.type" => Some("type"),
+        "python.test" | "python.coverage" | "cpp.test" | "cpp.coverage" => Some("test"),
+        "python.compat" | "python.compat-runtime" => Some("python_compat"),
+        "python.complexity" | "cpp.complexity" => Some("complexity"),
+        "python.cognitive" | "cpp.cognitive" => Some("cognitive"),
+        "python.cycle" | "cpp.cycle" => Some("cycle"),
+        "python.dup" | "cpp.dup" => Some("dup"),
+        "python.exception" | "cpp.exception" => Some("exception"),
+        "python.resource" => Some("resource"),
+        "python.security" => Some("security"),
+        "python.dead" => Some("dead"),
+        "cpp.compile" => Some("compile_db"),
+        "cpp.artifact" => Some("build"),
+        "cpp.sanitize" => Some("sanitize"),
+        "cpp.tsan" => Some("thread_sanitize"),
+        "cpp.binary-compat" => Some("binary_compat"),
+        "integration" => Some("integration"),
+        _ => None,
+    }
 }
 
 pub fn file_language(path: &str) -> Option<&'static str> {

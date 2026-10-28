@@ -48,6 +48,17 @@ impl Scheduler {
         tasks: &[TaskSpec],
         cancellation: &Cancellation,
     ) -> Result<ScheduleResult, ScheduleError> {
+        self.run_with_start(tasks, cancellation, |_| {})
+    }
+    /// A start is an execution attempt after acquiring resources, never an unstarted queued task.
+    /// Shared followers receive their own outcomes without claiming a second execution.
+    pub fn run_with_start(
+        &self,
+        tasks: &[TaskSpec],
+        cancellation: &Cancellation,
+        on_started: impl Fn(&TaskSpec) + Sync + std::panic::RefUnwindSafe,
+    ) -> Result<ScheduleResult, ScheduleError> {
+        let on_started = &on_started;
         let ids = preflight(tasks)?;
         let invalid_tools: BTreeMap<_, _> = tasks
             .iter()
@@ -174,6 +185,7 @@ impl Scheduler {
                             } else {
                                 None
                             };
+                            on_started(task);
                             self.runner.run(task, cancellation)
                         })
                         .unwrap_or_else(|_| {

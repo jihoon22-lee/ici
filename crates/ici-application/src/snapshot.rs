@@ -76,8 +76,15 @@ impl InputSnapshot {
             let limit = limits
                 .file_bytes
                 .min(limits.total_bytes.saturating_sub(total_bytes));
-            let bytes = read_relative(&root_fd, path, limit)
-                .map_err(|e| ApplicationError(format!("snapshot {path}: {e}")))?;
+            let bytes = if sources.contains(path) {
+                read_relative(&root_fd, path, limit)
+            } else {
+                // Explicit/native configuration readers permit a symlink to a regular file.
+                // Capture its bounded bytes and compare again after execution; source traversal
+                // and all artifact/cache writes retain the stronger no-follow policy.
+                ici_execution::storage::read_bounded_regular(&root.join(path), limit)
+            }
+            .map_err(|e| ApplicationError(format!("snapshot {path}: {e}")))?;
             total_bytes = total_bytes
                 .checked_add(bytes.len())
                 .ok_or_else(|| ApplicationError("input byte count overflow".into()))?;

@@ -108,3 +108,27 @@ fn order_is_irrelevant_and_native_configuration_bytes_change_identity() {
     .unwrap();
     assert_eq!(before.difference(&after).changed, ["ruff.toml"]);
 }
+#[test]
+fn explicit_regular_configuration_link_is_captured_and_target_changes_are_visible() {
+    let root = tempfile::tempdir().unwrap();
+    let policy = tempfile::NamedTempFile::new().unwrap();
+    fs::write(policy.path(), "schema_version=2\n").unwrap();
+    symlink(policy.path(), root.path().join("ici.toml")).unwrap();
+    let before = InputSnapshot::take(
+        root.path(),
+        &[],
+        &["ici.toml".into()],
+        InputLimits::default(),
+    )
+    .unwrap();
+    fs::write(policy.path(), "schema_version=2\nprofile='fast'\n").unwrap();
+    let after = InputSnapshot::take(
+        root.path(),
+        &[],
+        &["ici.toml".into()],
+        InputLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(before.difference(&after).changed, ["ici.toml"]);
+    assert!(before.sources.is_empty());
+}

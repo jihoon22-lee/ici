@@ -124,6 +124,42 @@ fn disabled_check_never_reaches_tool_binding_and_one_value_override_preserves_re
     assert!(type_check.check.required);
     assert_eq!(type_check.blocked(), Some("type tool is not available"));
 }
+#[test]
+fn declared_legacy_engine_controls_remain_effective_in_both_configuration_families() {
+    for text in [
+        "[project]\nsource_dirs=['.']\n[engines.lint]\nenabled=false\n",
+        "schema_version=2\n[engines.lint]\nenabled=false\n",
+    ] {
+        let (_dir, project) = project(Some(text));
+        let selected = plan(
+            &project,
+            &RunRequest {
+                static_only: true,
+                ..Default::default()
+            },
+            |_, check, _| {
+                assert!(!matches!(
+                    check.id.as_str(),
+                    "python.lint" | "python.format"
+                ));
+                Ok(Work::Internal)
+            },
+        )
+        .unwrap();
+        assert!(
+            selected
+                .omitted
+                .iter()
+                .any(|omitted| omitted.check_id == "python.lint")
+        );
+        assert!(
+            selected
+                .omitted
+                .iter()
+                .any(|omitted| omitted.check_id == "python.format")
+        );
+    }
+}
 
 #[test]
 fn prepare_under_fast_is_blocked_and_empty_source_does_not_bind() {
@@ -257,5 +293,50 @@ fn task_identity_and_unknown_explicit_dependency_are_rejected() {
             .unwrap_err()
             .to_string()
             .contains("unknown task")
+    );
+}
+
+#[test]
+fn ordered_native_steps_keep_cross_check_dependencies_and_reject_forward_or_self_edges() {
+    let mut checks = graph_fixture();
+    checks.retain(|check| matches!(check.check.id.as_str(), "python.test" | "python.coverage"));
+    let test_id = checks[0].task_id.clone();
+    let coverage_id = checks[1].task_id.clone();
+    let suite = TaskSpec::command(
+        format!("{test_id}.suite"),
+        "pytest",
+        vec!["pytest".into()],
+        "/project",
+    );
+    checks[0].work = Work::steps(vec![suite.clone()], false);
+    let mut report = TaskSpec::command(
+        format!("{coverage_id}.report"),
+        "coverage",
+        vec!["coverage".into()],
+        "/project",
+    );
+    report.depends_on.push(suite.id.clone());
+    checks[1].work = Work::steps(vec![report], false);
+    let graph = TaskGraph::build(&checks).unwrap();
+    assert_eq!(graph.layers, [vec![test_id.clone()], vec![coverage_id]]);
+    let mut later = suite.clone();
+    later.id = format!("{test_id}.later");
+    let mut invalid = suite.clone();
+    invalid.depends_on.push(later.id.clone());
+    checks[0].work = Work::steps(vec![invalid, later], false);
+    assert!(
+        TaskGraph::build(&checks)
+            .unwrap_err()
+            .to_string()
+            .contains("later")
+    );
+    let mut invalid = suite;
+    invalid.depends_on.push(invalid.id.clone());
+    checks[0].work = Work::steps(vec![invalid], false);
+    assert!(
+        TaskGraph::build(&checks)
+            .unwrap_err()
+            .to_string()
+            .contains("itself")
     );
 }

@@ -322,3 +322,27 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 - runtime/build/compile adapter·실제 analyze/verify lifecycle·전체 report/publish·legacy rich
   projection은 아직 통합 전이다. 해당 개발 경로를 동작한 것처럼 alias만 붙여 완료 처리하지
   않으며 R1/R2/R7 전체와 원장 closure는 열린 상태다.
+
+
+### Native 정책·단계 계획과 진행 근거
+
+- R0 PR [#298](https://github.com/jihoon22-lee/ici/pull/298)은 `8c5db5b`로 병합됐다.
+  최종 PR CI `40696941442`는 기존 Python 4304 passed / 8 skipped, build/smoke,
+  Qt5/Qt6, PR Pages와 Merge Gate를 통과했다. Pages `40701907199`의 실제 HTML도 받았다.
+  main CI·최종 제품 전환은 이 PR 근거와 구분한다.
+- 상태 namespace의 규범은 R0/ADR-0008의 `.ici/rust-v1`이다. 앞선 cache checkpoint의
+  `.ici/native/v1` 표기는 내부 중간 구현이며 새 CLI 기본값은 규범으로 바로잡는다.
+- policy는 요청 범위나 개인 출력 경로와 분리하고, check scope는 선택 파일/설정/실제 argv·
+  환경을 기록하되 소스 내용 hash를 넣지 않는다. suppression은 CPython 3.10 fnmatchcase
+  oracle 400개와 비교해 slash·backslash·Unicode·잘못된 range 의미를 고정했다.
+- logical check의 ordered native steps는 빈 목록/다른 owner/중복/자기·forward 의존성을
+  거부하고, check 사이 capability/step edge와 output 충돌을 함께 검사한다. 준비 단계가
+  포함된 fast 검사도 계속 차단한다. scheduler 시작 hook은 실제 resource lease 뒤에 호출한다.
+- `driver-gates.log`의 application 32개 / execution 30개 시험이 통과했다. 해당 library의
+  scoped Clippy와 fmt도 통과했다. CLI 실제 lifecycle은 통합 중이며 별도 인수한다.
+- R3 `9ea68a8`은 actual native diagnostic 좌표/구성/inspected scope를 다룬다.
+  R4는 cycle/dead/annotation/static compatibility/Type2 lexical milestone을 진행했고,
+  R5 `6980216`/`6e5e8f5`는 source/compiler/ELF/GNU linker 증거를 추가했다.
+  R6 `9fd538f`는 명시 프로젝트 Python의 suite/shared coverage/runtime/import-only와
+  새 소유 directory artifact를 다룬다. 각 tests/rust-parity 하위 README의 실측 범위를
+  전체 기능 closure와 혼동하지 않는다. semantic/package 분석과 나머지 R6·R7–R9는 열린다.

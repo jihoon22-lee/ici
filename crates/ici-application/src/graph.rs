@@ -1,4 +1,7 @@
-use crate::{ApplicationError, Result, plan::PlannedCheck};
+use crate::{
+    ApplicationError, Result,
+    plan::{PlannedCheck, Work, validate_steps},
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -16,7 +19,11 @@ impl TaskGraph {
         let mut ids = BTreeSet::new();
         let mut producers = BTreeMap::new();
         let mut outputs = BTreeMap::new();
+        let mut step_owners = BTreeMap::new();
         for planned in checks {
+            if matches!(planned.work, Work::Steps { .. }) {
+                validate_steps(&planned.task_id, planned.tasks())?;
+            }
             if !ids.insert(planned.task_id.clone()) {
                 return Err(ApplicationError(format!(
                     "{} was selected twice",
@@ -34,10 +41,21 @@ impl TaskGraph {
             if let Some(reason) = planned.blocked() {
                 graph.blocked.insert(planned.task_id.clone(), reason.into());
             }
-            if let Some(task) = planned.task() {
+            for task in planned.tasks() {
+                if let Some(previous) =
+                    step_owners.insert(task.id.as_str(), planned.task_id.as_str())
+                    && previous != planned.task_id
+                {
+                    return Err(ApplicationError(format!(
+                        "native step {} belongs to both {previous} and {}",
+                        task.id, planned.task_id
+                    )));
+                }
                 for output in &task.output_specs {
-                    let path = std::path::Path::new(&task.cwd).join(output);
-                    if let Some(previous) = outputs.insert(path, &planned.task_id) {
+                    let path = normalized(&std::path::Path::new(&task.cwd).join(output));
+                    if let Some(previous) = outputs.insert(path, &planned.task_id)
+                        && previous != &planned.task_id
+                    {
                         return Err(ApplicationError(format!(
                             "output {output:?} is claimed by both {previous} and {}",
                             planned.task_id
@@ -56,15 +74,22 @@ impl TaskGraph {
                     missing.push(format!("needs {need}, which no selected check produces"));
                 }
             }
-            if let Some(task) = planned.task() {
+            for task in planned.tasks() {
                 for dependency in &task.depends_on {
-                    if !ids.contains(dependency) {
+                    let owner = if ids.contains(dependency) {
+                        dependency.as_str()
+                    } else if let Some(owner) = step_owners.get(dependency.as_str()) {
+                        *owner
+                    } else {
                         return Err(ApplicationError(format!(
                             "{} depends on unknown task {dependency}",
                             planned.task_id
                         )));
+                    };
+                    if owner == planned.task_id && step_owners.contains_key(dependency.as_str()) {
+                        continue;
                     }
-                    deps.insert(dependency.clone());
+                    deps.insert(owner.to_owned());
                 }
             }
             if deps.contains(&planned.task_id) {
@@ -137,4 +162,20 @@ impl TaskGraph {
         }
         Ok(graph)
     }
+}
+
+fn normalized(path: &std::path::Path) -> std::path::PathBuf {
+    let mut result = std::path::PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                if !result.pop() && !path.is_absolute() {
+                    result.push("..");
+                }
+            }
+            other => result.push(other.as_os_str()),
+        }
+    }
+    result
 }

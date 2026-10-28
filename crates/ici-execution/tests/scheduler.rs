@@ -45,6 +45,41 @@ fn duplicate_execution_has_original_consumer_ids_and_strict_bounds_identity() {
     assert_eq!(fs::read_to_string(count).unwrap().lines().count(), 2);
 }
 #[test]
+fn start_hook_reports_actual_attempts_not_blocked_cancelled_or_shared_followers() {
+    let root = tempfile::tempdir().unwrap();
+    let marker = root.path().join("count");
+    let mut first = task(root.path(), "first", "once", &[marker.to_str().unwrap()]);
+    first.tool_digest =
+        Some(ici_execution::process::executable_digest(Path::new(&first.argv[0])).unwrap());
+    let mut shared = first.clone();
+    shared.id = "shared".into();
+    let mut blocked = first.clone();
+    blocked.id = "blocked".into();
+    blocked.depends_on = vec!["not-selected".into()];
+    let started = std::sync::Mutex::new(vec![]);
+    let scheduler = Scheduler::new(Runner::default(), 2);
+    let scheduled = scheduler
+        .run_with_start(
+            &[first.clone(), shared, blocked],
+            &Cancellation::default(),
+            |task| started.lock().unwrap().push(task.id.clone()),
+        )
+        .unwrap();
+    assert_eq!(*started.lock().unwrap(), ["first"]);
+    assert_eq!(scheduled.reused_from["shared"], "first");
+    assert_eq!(scheduled.outcomes[2].state, TaskState::Blocked);
+    let cancellation = Cancellation::default();
+    cancellation.cancel();
+    started.lock().unwrap().clear();
+    let cancelled = scheduler
+        .run_with_start(&[first], &cancellation, |task| {
+            started.lock().unwrap().push(task.id.clone())
+        })
+        .unwrap();
+    assert!(started.lock().unwrap().is_empty());
+    assert_eq!(cancelled.outcomes[0].state, TaskState::Cancelled);
+}
+#[test]
 fn missing_or_failed_prerequisites_block_without_running_and_cycle_fails_closed() {
     let root = tempfile::tempdir().unwrap();
     let marker = root.path().join("must-not-run");

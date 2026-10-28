@@ -3,9 +3,11 @@ pub mod assemble;
 pub mod baseline;
 pub mod cache;
 pub mod graph;
+pub mod identity;
 pub mod plan;
 pub mod request;
 pub mod snapshot;
+pub mod suppressions;
 pub mod verification;
 
 #[derive(Debug, thiserror::Error)]

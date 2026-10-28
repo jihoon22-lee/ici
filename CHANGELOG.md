@@ -7,6 +7,14 @@
 
 ## [Unreleased]
 
+- native application의 policy·check scope·실제 argv/environment identity를 분리하고, source
+  내용이 바뀌어 수정된 finding도 동일 검사 범위에서 resolved로 판단할 수 있게 합니다.
+  suppression glob은 CPython fnmatchcase 고정 corpus로 검증하며 선언 순서와 provenance를 보존합니다.
+- 여러 native 단계를 하나의 논리 검사로 계획하고 cross-check 의존성과 output 충돌을
+  검증합니다. task 시작 이벤트는 resource lock 획득 뒤 실제 실행 시도에만 발생합니다.
+- native Python/C++ source·도구 diagnostic·프로젝트 test/coverage 기반을 확장합니다.
+  source 위치와 PASS 대상·원시 분모를 공통 결과에 유지하며 전체 제품 인수와 공개는 후속입니다.
+
 - 전환 원장 수집기에서 사용자 설정의 `path`와 문서 메타데이터의 `path`를 구분해
   도구·suppression·integration 출력 경로 세 키가 누락되지 않도록 고칩니다.
 

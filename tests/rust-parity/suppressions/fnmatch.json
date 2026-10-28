@@ -1,0 +1,2006 @@
+{
+  "oracle": "CPython fnmatch.fnmatchcase (stdlib, no ici runtime import)",
+  "python": "3.10.21",
+  "cases": [
+    {
+      "pattern": "*.py",
+      "path": "main.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "src/main.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "src/nested/main.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "src/aé.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "é.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "한.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "a.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "z.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "A.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "].py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "!.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "^.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "[a.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "[abc.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "a\\b.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "a/b.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "\nb.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "a&&b.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "-.py",
+      "matches": true
+    },
+    {
+      "pattern": "*.py",
+      "path": "b.py",
+      "matches": true
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "src/main.py",
+      "matches": true
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "src/nested/main.py",
+      "matches": true
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "src/aé.py",
+      "matches": true
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "a/b.py",
+      "matches": true
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "**/*.py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "src/main.py",
+      "matches": true
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "src/nested/main.py",
+      "matches": true
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "src/aé.py",
+      "matches": true
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/*.py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "src/aé.py",
+      "matches": true
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "src/?é.py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "a.py",
+      "matches": true
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "z.py",
+      "matches": true
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a-z].py",
+      "path": "b.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "é.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "한.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "A.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "].py",
+      "matches": true
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "!.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "^.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "-.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!a-z].py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[z-a].py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "é.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "한.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "a.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "z.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "A.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "].py",
+      "matches": true
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "!.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "^.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "-.py",
+      "matches": true
+    },
+    {
+      "pattern": "[!z-a].py",
+      "path": "b.py",
+      "matches": true
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "a.py",
+      "matches": true
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "].py",
+      "matches": true
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[]a].py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[!].py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "a.py",
+      "matches": true
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "^.py",
+      "matches": true
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[^a].py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "[a.py",
+      "matches": true
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[[]a.py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "[abc.py",
+      "matches": true
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[abc.py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "a\\b.py",
+      "matches": true
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "a\\*.py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a--b].py",
+      "path": "b.py",
+      "matches": true
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "a.py",
+      "matches": true
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a&&b].py",
+      "path": "b.py",
+      "matches": true
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "a.py",
+      "matches": true
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a~~b].py",
+      "path": "b.py",
+      "matches": true
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "a.py",
+      "matches": true
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[a||b].py",
+      "path": "b.py",
+      "matches": true
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "é.py",
+      "matches": true
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "한.py",
+      "matches": true
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "\nb.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "[é-한].py",
+      "path": "b.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "main.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "src/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "src/nested/main.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "src/aé.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "é.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "한.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "a.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "z.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "A.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "].py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "!.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "^.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "[a.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "[abc.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "a\\b.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "a/b.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "\nb.py",
+      "matches": true
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "a&&b.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "-.py",
+      "matches": false
+    },
+    {
+      "pattern": "*\n?.py",
+      "path": "b.py",
+      "matches": false
+    }
+  ]
+}
