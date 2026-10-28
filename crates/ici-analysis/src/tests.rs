@@ -1882,6 +1882,14 @@ fn source_encodings_keep_frozen_intake_ast_and_raw_unicode_boundaries_visible() 
                 if expected["parser_accepted"] == true {
                     differences.push(format!("{}: parse failed {error:?}", case["id"]));
                 }
+                if let Some(code) = expected.get("parser_error").and_then(Value::as_str)
+                    && error.code != code
+                {
+                    differences.push(format!(
+                        "{}: parser code {}, expected {code}",
+                        case["id"], error.code
+                    ));
+                }
                 continue;
             }
         };
@@ -1976,11 +1984,21 @@ fn active_multibyte_decode_cancellation_retains_finished_line_evidence() {
             b"\x1b$BF|\x1b(B".as_slice(),
         ),
         (b"# coding: hz\n".as_slice(), b"~{F|~}".as_slice()),
+        (
+            b"# coding: unicode_escape\n".as_slice(),
+            b"\\u65e5".as_slice(),
+        ),
+        (
+            b"# coding: raw_unicode_escape\n".as_slice(),
+            b"\\u65e5".as_slice(),
+        ),
+        (b"# coding: utf7\n".as_slice(), b"+ZeU-".as_slice()),
     ] {
         let mut input = request("line", "answer=1\n");
         let mut bytes = header.to_vec();
-        let count = (crate::source::MAX_SOURCE_BYTES - bytes.len()) / atom.len();
+        let count = (crate::source::MAX_SOURCE_BYTES - bytes.len() - 1) / atom.len();
         bytes.extend_from_slice(&atom.repeat(count));
+        bytes.push(b'\n');
         input.inputs.push(SourceInput {
             path: "large.py".into(),
             bytes,

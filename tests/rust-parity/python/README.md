@@ -298,7 +298,7 @@ CP932 wave dash, CP932 private-use bytes and CP864's non-identity ASCII percent.
 
 The native corpus compares 7,322,676 byte-input observations against CPython
 3.14.7: every single/double-byte combination per table, every GB18030 four-byte
-pointer and all EUC-KR Hangul composition forms. Ninety-two frozen source fixtures
+pointer and all EUC-KR Hangul composition forms. 139 frozen source fixtures
 also preserve original UTF-8-only intake/metrics observations and independent
 CPython byte-source AST semantics. They verify strict failures, BOM/cookie
 normalization, encoded identifiers, Unicode columns and original byte
@@ -336,7 +336,7 @@ already completed line evidence.
 python3.14 -I -B tests/rust-parity/python/generate_stateful_tables.py --check
 ```
 
-UTF-7/escape/IDNA source semantics remain under a separate audit. This milestone does not close the complete codec, per-engine option or
+IDNA source semantics remain under a separate audit. This milestone does not close the complete codec, per-engine option or
 Python feature ledger, and unknown encodings remain explicit incomplete input.
 
 ## Owned duplicate scope
@@ -368,3 +368,37 @@ coordinates to original bytes, including zero-width synthetic terminal LF.
 The corpus preserves original reader/AST outcomes while verifying HZ CR/CRLF
 continuations, KR shift reset, mixed UTF-8 newlines and NEL inside literals.
 Non-Python line inputs keep their original UTF-8 text and ignore Python cookies.
+
+
+## Unicode codecs and named escapes
+
+The native source decoder also handles UTF-7, UTF-16/LE/BE, UTF-32/LE/BE,
+`unicode_escape`, `raw_unicode_escape` and strict Latin-1-equivalent `charmap`.
+`generate_unicode_codec_evidence.py` pins 10,684,928 full CPython byte-input
+observations: every byte pair for ten families and every Unicode codepoint for
+nine Unicode variants. Valid scalar output, malformed data and decoded lone
+surrogates remain separate. Native tests reproduce all observation streams.
+All 148,853 Unicode 16 canonical names, six lookup variants per name and 477
+official aliases match CPython. Noncanonical zero-padded CJK escapes are refused
+in ordinary/f/t strings; raw strings, byte strings and comments keep their own
+semantics.
+
+The available standard codec census contains 455 labels and 2,275 actual
+byte-source compile samples. It proves valid UTF-16 source cases, including an
+odd input completed by Python's virtual final LF, rather than assuming every
+non-ASCII-compatible declaration is invalid. The currently accepted unclosed
+family is IDNA; punycode source compatibility remains explicitly reviewed later.
+This decoder milestone does not close the complete source or feature ledger.
+
+UTF-7 mappings retain exact aligned boundaries in base64 data; a token that
+splits the bits of a byte remains incomplete under R0. Source fixtures preserve
+that byte-AST acceptance separately from the failed mapping proof. Greedy octal
+Unicode escapes use the actual full CPython codec as the location oracle,
+because its one-byte incremental interface releases octal digits prematurely.
+Decoded NUL is explicitly rejected by the existing strict source invariant even
+where the reference C tokenizer accepts a truncated prefix. Original reader,
+metrics and byte-AST observations remain in all 139 source fixtures.
+
+```sh
+python3.14 -I -B tests/rust-parity/python/generate_unicode_codec_evidence.py --check
+```

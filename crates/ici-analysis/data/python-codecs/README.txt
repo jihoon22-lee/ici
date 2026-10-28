@@ -50,8 +50,7 @@ newline makes a terminal HZ GB shift invalid source even though a standalone HZ
 text decoder accepts it. Both original text and byte-source observations remain
 in the permanent source corpus.
 
-UTF-7/escape/IDNA source encodings remain under a separate production-contract
-audit. This table set cannot close the entire Python source-codec or
+IDNA source encoding remains under a separate production-contract audit. This table set cannot close the entire Python source-codec or
 Rust-replacement feature ledger.
 
 
@@ -61,3 +60,22 @@ translation and synthetic terminal LF retain original raw positions; synthetic
 LF maps to the existing end-of-file boundary. This permits HZ CR/CRLF
 continuations and KR shifts to follow the actual byte-source parser. Original
 request bytes and frozen historical reader/AST results remain unchanged.
+
+
+The third evidence set (unicode-manifest.json) records strict UTF-7, UTF-16/32
+with native/little/big byte order, Unicode/raw-Unicode escapes and charmap.
+All 256 singles and 65,536 pairs are tested for ten families. Nine Unicode
+variants also test all 1,114,112 codepoints, including explicit surrogate
+rejections. Numeric/name aliases come from pinned CPython 3.14.7 and Unicode 16;
+NameAliases.txt and its existing Unicode LICENSE are retained in unicode-16.
+All canonical names and six variants are independently compared with CPython.
+The source census records 455 available labels and five actual source headers
+each, with remaining family audits explicitly open.
+
+  python3.14 -I -B tests/rust-parity/python/generate_unicode_codec_evidence.py --write
+  python3.14 -I -B tests/rust-parity/python/generate_unicode_codec_evidence.py --check
+
+Native UTF-7 tracks bit alignment: a Unicode boundary sharing a base64 byte is
+unrepresentable; aligned boundaries and the end of a validated shift are exact.
+Greedy Unicode octal escapes use complete strict-codec atoms for comparison,
+which avoids CPython's non-equivalent one-byte incremental octal behavior.

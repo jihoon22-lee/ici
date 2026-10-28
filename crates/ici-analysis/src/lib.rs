@@ -26,6 +26,7 @@ mod security;
 mod semantic;
 mod source;
 mod stateful;
+mod unicode_codecs;
 pub use source::exclusion_reasons as source_exclusion_reasons;
 pub mod unicode;
 mod wheel;

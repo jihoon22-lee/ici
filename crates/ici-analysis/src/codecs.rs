@@ -8,6 +8,10 @@ pub(crate) enum Codec {
     Table(usize),
     Iso(usize),
     Hz,
+    UnicodeEscape(bool),
+    Utf7,
+    Utf16(Option<bool>),
+    Utf32(Option<bool>),
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Kind {
@@ -282,6 +286,7 @@ pub(crate) fn lookup(name: &str) -> Option<Codec> {
         .ok()
         .map(|index| ALIASES[index].1)
         .or_else(|| crate::stateful::lookup(&normalized))
+        .or_else(|| crate::unicode_codecs::lookup(&normalized))
 }
 fn hangul(bytes: &[u8]) -> Option<u32> {
     if bytes.len() < 8 || bytes[..3] != [0xA4, 0xD4, 0xA4] || bytes[4] != 0xA4 || bytes[6] != 0xA4 {
@@ -320,6 +325,9 @@ pub(crate) fn decode(
     match codec {
         Codec::Iso(index) => return crate::stateful::iso(index, bytes, raw_base, cancellation),
         Codec::Hz => return crate::stateful::hz(bytes, raw_base, cancellation),
+        Codec::UnicodeEscape(_) | Codec::Utf7 | Codec::Utf16(_) | Codec::Utf32(_) => {
+            return crate::unicode_codecs::decode(codec, bytes, raw_base, cancellation);
+        }
         Codec::Utf8 | Codec::Table(_) => {}
     }
     if let Codec::Utf8 = codec {

@@ -25,20 +25,20 @@ pub(crate) fn lookup(normalized: &str) -> Option<Codec> {
         .ok()
         .map(|index| Codec::Iso(ISO_ALIASES[index].1))
 }
-struct Builder {
+pub(crate) struct Builder {
     text: String,
     boundaries: Vec<(u32, u32)>,
     raw_base: usize,
 }
 impl Builder {
-    fn new(capacity: usize, raw_base: usize) -> Self {
+    pub(crate) fn new(capacity: usize, raw_base: usize) -> Self {
         Self {
             text: String::with_capacity(capacity),
             boundaries: vec![(0, raw_base as u32)],
             raw_base,
         }
     }
-    fn push(&mut self, value: u32, raw_end: usize) -> Result<(), SourceError> {
+    pub(crate) fn push(&mut self, value: u32, raw_end: usize) -> Result<(), SourceError> {
         if value == UNDEFINED {
             return Err(self.invalid("stateful"));
         }
@@ -66,7 +66,13 @@ impl Builder {
         }
         Ok(())
     }
-    fn invalid(&self, name: &str) -> SourceError {
+    pub(crate) fn unrepresentable(&mut self) {
+        self.boundaries.last_mut().expect("initial boundary").1 = UNDEFINED;
+    }
+    pub(crate) fn boundary(&mut self, raw_end: usize) {
+        self.boundaries.last_mut().expect("initial boundary").1 = (raw_end + self.raw_base) as u32;
+    }
+    pub(crate) fn invalid(&self, name: &str) -> SourceError {
         let mut line = 1;
         let mut column = 1;
         let mut chars = self.text.chars().peekable();
@@ -85,7 +91,7 @@ impl Builder {
             column,
         }
     }
-    fn finish(mut self, raw_end: usize) -> Decoded {
+    pub(crate) fn finish(mut self, raw_end: usize) -> Decoded {
         // A trailing designation consumes bytes without producing a scalar.
         // The final decoded boundary maps to the complete original input.
         self.boundaries.last_mut().expect("initial boundary").1 = (raw_end + self.raw_base) as u32;
@@ -102,7 +108,7 @@ fn scalar(table: &[u8], index: usize) -> u32 {
             .expect("fixed observation table"),
     )
 }
-fn cancelled(
+pub(crate) fn cancelled(
     cancellation: Option<&AtomicBool>,
     position: usize,
     checked: &mut usize,

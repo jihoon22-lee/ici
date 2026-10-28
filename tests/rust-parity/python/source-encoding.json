@@ -20799,6 +20799,9009 @@
         ]
       },
       "difference_reason": "CPython byte-source newline translation runs before and after codec recoding. Raw byte positions, decoded Unicode columns and synthetic terminal LF boundaries remain separate; Unicode NEL in a string is not a Python source line break. Original UTF8 text-only observations remain fixed."
+    },
+    {
+      "id": "charmap-latin1",
+      "codec": "charmap",
+      "bytes_base64": "IyBjb2Rpbmc6IGNoYXJtYXAKZGVmIGNhZukodmFsdWUpOgogICAgcmV0dXJuIHZhbHVlCg==",
+      "raw_sha256": "6ef44e10ac1d7339709fe2097a7a1bc19b3305d9483416fb41379832ae1d7e54",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": false,
+        "error": "AnalysisSourceError",
+        "code": "invalid-utf8",
+        "message": "Analysis source is not valid UTF-8"
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "UnicodeDecodeError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: charmap\ndef café(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            27,
+            26
+          ],
+          [
+            28,
+            27
+          ],
+          [
+            29,
+            28
+          ],
+          [
+            30,
+            29
+          ],
+          [
+            31,
+            30
+          ],
+          [
+            32,
+            31
+          ],
+          [
+            33,
+            32
+          ],
+          [
+            34,
+            33
+          ],
+          [
+            35,
+            34
+          ],
+          [
+            36,
+            35
+          ],
+          [
+            37,
+            36
+          ],
+          [
+            38,
+            37
+          ],
+          [
+            39,
+            38
+          ],
+          [
+            40,
+            39
+          ],
+          [
+            41,
+            40
+          ],
+          [
+            42,
+            41
+          ],
+          [
+            43,
+            42
+          ],
+          [
+            44,
+            43
+          ],
+          [
+            45,
+            44
+          ],
+          [
+            46,
+            45
+          ],
+          [
+            47,
+            46
+          ],
+          [
+            48,
+            47
+          ],
+          [
+            49,
+            48
+          ],
+          [
+            50,
+            49
+          ],
+          [
+            51,
+            50
+          ],
+          [
+            52,
+            51
+          ],
+          [
+            53,
+            52
+          ]
+        ],
+        "functions": [
+          {
+            "name": "café",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf7-ascii-alias",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHV0ZjcKZGVmIGhlbGxvKHZhbHVlKToKICAgIHJldHVybiB2YWx1ZQo=",
+      "raw_sha256": "835dbc993448155cf48d36aa56a3c381b125ce9e1467ac1ec2e993a3008cbb4c",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "835dbc993448155cf48d36aa56a3c381b125ce9e1467ac1ec2e993a3008cbb4c",
+        "bytes": 50
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: utf7\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "u7-ascii-alias",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHU3CmRlZiBoZWxsbyh2YWx1ZSk6CiAgICByZXR1cm4gdmFsdWUK",
+      "raw_sha256": "7a68c638d04c9ad488b6ecbf617a510b60a96dca83f55bd0ff7968935246670a",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "7a68c638d04c9ad488b6ecbf617a510b60a96dca83f55bd0ff7968935246670a",
+        "bytes": 48
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: u7\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode_1_1_utf_7-ascii-alias",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfMV8xX3V0Zl83CmRlZiBoZWxsbyh2YWx1ZSk6CiAgICByZXR1cm4gdmFsdWUK",
+      "raw_sha256": "18641a15517ce3cb42d8c6281c089794538b630e76f941e89012d90b14c4766e",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "18641a15517ce3cb42d8c6281c089794538b630e76f941e89012d90b14c4766e",
+        "bytes": 63
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: unicode_1_1_utf_7\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ],
+          [
+            59,
+            59
+          ],
+          [
+            60,
+            60
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            62,
+            62
+          ],
+          [
+            63,
+            63
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf7-japanese-boundary",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHV0Zl83CmRlZiAraWdoN2x3KCtVQ1EpOgogICAgbm90ZSA9ICIrWmVWbkxJcWUiOyByZXR1cm4gK1VDUQo=",
+      "raw_sha256": "2f0c09cd40376b496df6c33217ebe53fafcf423ba9e7b9876e6116081d6db209",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "2f0c09cd40376b496df6c33217ebe53fafcf423ba9e7b9876e6116081d6db209",
+        "bytes": 71
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: utf_7\ndef 計算(値):\n    note = \"日本語\"; return 値\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            23,
+            null
+          ],
+          [
+            26,
+            27
+          ],
+          [
+            27,
+            28
+          ],
+          [
+            30,
+            32
+          ],
+          [
+            31,
+            33
+          ],
+          [
+            32,
+            34
+          ],
+          [
+            33,
+            35
+          ],
+          [
+            34,
+            36
+          ],
+          [
+            35,
+            37
+          ],
+          [
+            36,
+            38
+          ],
+          [
+            37,
+            39
+          ],
+          [
+            38,
+            40
+          ],
+          [
+            39,
+            41
+          ],
+          [
+            40,
+            42
+          ],
+          [
+            41,
+            43
+          ],
+          [
+            42,
+            44
+          ],
+          [
+            43,
+            45
+          ],
+          [
+            44,
+            46
+          ],
+          [
+            45,
+            47
+          ],
+          [
+            48,
+            null
+          ],
+          [
+            51,
+            null
+          ],
+          [
+            54,
+            56
+          ],
+          [
+            55,
+            57
+          ],
+          [
+            56,
+            58
+          ],
+          [
+            57,
+            59
+          ],
+          [
+            58,
+            60
+          ],
+          [
+            59,
+            61
+          ],
+          [
+            60,
+            62
+          ],
+          [
+            61,
+            63
+          ],
+          [
+            62,
+            64
+          ],
+          [
+            63,
+            65
+          ],
+          [
+            64,
+            66
+          ],
+          [
+            67,
+            70
+          ],
+          [
+            68,
+            71
+          ]
+        ],
+        "functions": [
+          {
+            "name": "計算",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 26
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "値",
+            "start_line": 3,
+            "start_column": 26,
+            "end_line": 3,
+            "end_column": 26
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf7-supplementary",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHV0Zl83CmRlZiArMkFIY0FBKHZhbHVlKToKICAgIG5vdGUgPSAiKzJEM2VBQSI7IHJldHVybiB2YWx1ZQo=",
+      "raw_sha256": "18dad8fc31aa87a4c0291dafbc7c4d169235e6515431f5aca4cd39bba278b923",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "18dad8fc31aa87a4c0291dafbc7c4d169235e6515431f5aca4cd39bba278b923",
+        "bytes": 71
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: utf_7\ndef 𐐀(value):\n    note = \"😀\"; return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            24,
+            27
+          ],
+          [
+            25,
+            28
+          ],
+          [
+            26,
+            29
+          ],
+          [
+            27,
+            30
+          ],
+          [
+            28,
+            31
+          ],
+          [
+            29,
+            32
+          ],
+          [
+            30,
+            33
+          ],
+          [
+            31,
+            34
+          ],
+          [
+            32,
+            35
+          ],
+          [
+            33,
+            36
+          ],
+          [
+            34,
+            37
+          ],
+          [
+            35,
+            38
+          ],
+          [
+            36,
+            39
+          ],
+          [
+            37,
+            40
+          ],
+          [
+            38,
+            41
+          ],
+          [
+            39,
+            42
+          ],
+          [
+            40,
+            43
+          ],
+          [
+            41,
+            44
+          ],
+          [
+            42,
+            45
+          ],
+          [
+            43,
+            46
+          ],
+          [
+            44,
+            47
+          ],
+          [
+            45,
+            48
+          ],
+          [
+            49,
+            55
+          ],
+          [
+            50,
+            56
+          ],
+          [
+            51,
+            57
+          ],
+          [
+            52,
+            58
+          ],
+          [
+            53,
+            59
+          ],
+          [
+            54,
+            60
+          ],
+          [
+            55,
+            61
+          ],
+          [
+            56,
+            62
+          ],
+          [
+            57,
+            63
+          ],
+          [
+            58,
+            64
+          ],
+          [
+            59,
+            65
+          ],
+          [
+            60,
+            66
+          ],
+          [
+            61,
+            67
+          ],
+          [
+            62,
+            68
+          ],
+          [
+            63,
+            69
+          ],
+          [
+            64,
+            70
+          ],
+          [
+            65,
+            71
+          ]
+        ],
+        "functions": [
+          {
+            "name": "𐐀",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 28
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 24,
+            "end_line": 3,
+            "end_column": 28
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf7-shifted-non-ascii-terminator",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHV0ZjcKZGVmIGYodmFsdWUpOgogICAgbm90ZSA9ICIrWmVWbkxJcWUhIjsgcmV0dXJuIHZhbHVlCg==",
+      "raw_sha256": "06fefc841b15dd391530a64ba41709ea971dc6e640ee28c864e517f0cc7b0b73",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "06fefc841b15dd391530a64ba41709ea971dc6e640ee28c864e517f0cc7b0b73",
+        "bytes": 67
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: utf7\ndef f(value):\n    note = \"日本語!\"; return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            44,
+            null
+          ],
+          [
+            47,
+            null
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ],
+          [
+            59,
+            59
+          ],
+          [
+            60,
+            60
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            62,
+            62
+          ],
+          [
+            63,
+            63
+          ],
+          [
+            64,
+            64
+          ],
+          [
+            65,
+            65
+          ],
+          [
+            66,
+            66
+          ],
+          [
+            67,
+            67
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 31
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 27,
+            "end_line": 3,
+            "end_column": 31
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf7-inherently-unaligned-token",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHV0ZjcKK0FHUUFaUUJtQUNBQWFBQmxBR3dBYkFCdkFDZ0FkZ0JoQUd3QWRRQmxBQ2tBT2dBS0FDQUFJQUFnQUNBQWNnQmxBSFFBZFFCeUFHNEFJQUIyQUdFQWJBQjFBR1VBQ2ctCg==",
+      "raw_sha256": "91176be0715885ad7bff43bc6c0346300721fbc6641f8e734fa1e22676df5fd5",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "91176be0715885ad7bff43bc6c0346300721fbc6641f8e734fa1e22676df5fd5",
+        "bytes": 112
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": false,
+        "text": "# coding: utf7\ndef hello(value):\n    return value\n\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            null
+          ],
+          [
+            17,
+            null
+          ],
+          [
+            18,
+            24
+          ],
+          [
+            19,
+            null
+          ],
+          [
+            20,
+            null
+          ],
+          [
+            21,
+            32
+          ],
+          [
+            22,
+            null
+          ],
+          [
+            23,
+            null
+          ],
+          [
+            24,
+            40
+          ],
+          [
+            25,
+            null
+          ],
+          [
+            26,
+            null
+          ],
+          [
+            27,
+            48
+          ],
+          [
+            28,
+            null
+          ],
+          [
+            29,
+            null
+          ],
+          [
+            30,
+            56
+          ],
+          [
+            31,
+            null
+          ],
+          [
+            32,
+            null
+          ],
+          [
+            33,
+            64
+          ],
+          [
+            34,
+            null
+          ],
+          [
+            35,
+            null
+          ],
+          [
+            36,
+            72
+          ],
+          [
+            37,
+            null
+          ],
+          [
+            38,
+            null
+          ],
+          [
+            39,
+            80
+          ],
+          [
+            40,
+            null
+          ],
+          [
+            41,
+            null
+          ],
+          [
+            42,
+            88
+          ],
+          [
+            43,
+            null
+          ],
+          [
+            44,
+            null
+          ],
+          [
+            45,
+            96
+          ],
+          [
+            46,
+            null
+          ],
+          [
+            47,
+            null
+          ],
+          [
+            48,
+            104
+          ],
+          [
+            49,
+            null
+          ],
+          [
+            50,
+            111
+          ],
+          [
+            51,
+            112
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "parser_error": "unmapped-source-boundary"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf7-invalid-2b41412d",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHV0ZjcKZGVmIGYoKToKICAgIG5vdGU9IitBQS0iCg==",
+      "raw_sha256": "96543b2bcc795258972759cd89b64944492895a9e3390b47d0ed771e92501e8a",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'utf7' codec can't decode bytes in position 34-37: partial character in shift sequence (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "96543b2bcc795258972759cd89b64944492895a9e3390b47d0ed771e92501e8a",
+        "bytes": 40
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf7-invalid-2b4141422d",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHV0ZjcKZGVmIGYoKToKICAgIG5vdGU9IitBQUItIgo=",
+      "raw_sha256": "01be52f751be4094dfca6b9e8a4baf885aa5c10df34b7c505f7839619dc1115d",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'utf7' codec can't decode bytes in position 34-38: non-zero padding bits in shift sequence (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "01be52f751be4094dfca6b9e8a4baf885aa5c10df34b7c505f7839619dc1115d",
+        "bytes": 41
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf7-invalid-2b3241412d",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHV0ZjcKZGVmIGYoKToKICAgIG5vdGU9IisyQUEtIgo=",
+      "raw_sha256": "a5ee87cdaa3465dd085c3eb69fb6aba7faeefda62fba1412f264eabac66da6df",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'utf-8' codec can't encode character '\\ud800' in position 34: surrogates not allowed (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "a5ee87cdaa3465dd085c3eb69fb6aba7faeefda62fba1412f264eabac66da6df",
+        "bytes": 41
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-text"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf7-invalid-2b3341412d",
+      "codec": "utf_7",
+      "bytes_base64": "IyBjb2Rpbmc6IHV0ZjcKZGVmIGYoKToKICAgIG5vdGU9IiszQUEtIgo=",
+      "raw_sha256": "cb7d948106d3177d26589ef6b1d9dc0c938dd8377394d3b8b26da86f7610f2a5",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'utf-8' codec can't encode character '\\udc00' in position 34: surrogates not allowed (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "cb7d948106d3177d26589ef6b1d9dc0c938dd8377394d3b8b26da86f7610f2a5",
+        "bytes": 41
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-text"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode-escape-greek",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCmRlZiBcdTAzYjEoXHUwM2IyKTpcbiAgICBub3RlID0gIlx4ZTkgXFUwMDAxZjYwMCI7IHJldHVybiBcdTAzYjJcbg==",
+      "raw_sha256": "716dbd4112e3b0566c25e92e5f7b288908927df3a3668cc532e9bb635a4f83c9",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "716dbd4112e3b0566c25e92e5f7b288908927df3a3668cc532e9bb635a4f83c9",
+        "bytes": 91
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: unicode_escape\ndef α(β):\n    note = \"é 😀\"; return β\n\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            31,
+            35
+          ],
+          [
+            32,
+            36
+          ],
+          [
+            34,
+            42
+          ],
+          [
+            35,
+            43
+          ],
+          [
+            36,
+            44
+          ],
+          [
+            37,
+            46
+          ],
+          [
+            38,
+            47
+          ],
+          [
+            39,
+            48
+          ],
+          [
+            40,
+            49
+          ],
+          [
+            41,
+            50
+          ],
+          [
+            42,
+            51
+          ],
+          [
+            43,
+            52
+          ],
+          [
+            44,
+            53
+          ],
+          [
+            45,
+            54
+          ],
+          [
+            46,
+            55
+          ],
+          [
+            47,
+            56
+          ],
+          [
+            48,
+            57
+          ],
+          [
+            49,
+            58
+          ],
+          [
+            51,
+            62
+          ],
+          [
+            52,
+            63
+          ],
+          [
+            56,
+            73
+          ],
+          [
+            57,
+            74
+          ],
+          [
+            58,
+            75
+          ],
+          [
+            59,
+            76
+          ],
+          [
+            60,
+            77
+          ],
+          [
+            61,
+            78
+          ],
+          [
+            62,
+            79
+          ],
+          [
+            63,
+            80
+          ],
+          [
+            64,
+            81
+          ],
+          [
+            65,
+            82
+          ],
+          [
+            66,
+            83
+          ],
+          [
+            68,
+            89
+          ],
+          [
+            69,
+            91
+          ],
+          [
+            70,
+            91
+          ]
+        ],
+        "functions": [
+          {
+            "name": "α",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 26
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "β",
+            "start_line": 3,
+            "start_column": 26,
+            "end_line": 3,
+            "end_column": 26
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode-escape-named",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCmRlZiBcTntHUkVFSyBTTUFMTCBMRVRURVIgQUxQSEF9KHZhbHVlKTpcbiAgICByZXR1cm4gdmFsdWVcbg==",
+      "raw_sha256": "9551e2bd4f81a22fb4c2fa45fa18f6463987bcfaf481c69ca94d7d59b0fdbe11",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "9551e2bd4f81a22fb4c2fa45fa18f6463987bcfaf481c69ca94d7d59b0fdbe11",
+        "bytes": 85
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: unicode_escape\ndef α(value):\n    return value\n\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            31,
+            57
+          ],
+          [
+            32,
+            58
+          ],
+          [
+            33,
+            59
+          ],
+          [
+            34,
+            60
+          ],
+          [
+            35,
+            61
+          ],
+          [
+            36,
+            62
+          ],
+          [
+            37,
+            63
+          ],
+          [
+            38,
+            64
+          ],
+          [
+            39,
+            65
+          ],
+          [
+            40,
+            67
+          ],
+          [
+            41,
+            68
+          ],
+          [
+            42,
+            69
+          ],
+          [
+            43,
+            70
+          ],
+          [
+            44,
+            71
+          ],
+          [
+            45,
+            72
+          ],
+          [
+            46,
+            73
+          ],
+          [
+            47,
+            74
+          ],
+          [
+            48,
+            75
+          ],
+          [
+            49,
+            76
+          ],
+          [
+            50,
+            77
+          ],
+          [
+            51,
+            78
+          ],
+          [
+            52,
+            79
+          ],
+          [
+            53,
+            80
+          ],
+          [
+            54,
+            81
+          ],
+          [
+            55,
+            82
+          ],
+          [
+            56,
+            83
+          ],
+          [
+            57,
+            85
+          ],
+          [
+            58,
+            85
+          ]
+        ],
+        "functions": [
+          {
+            "name": "α",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode-escape-raw-crlf",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlDQpkZWYgZih2YWx1ZSk6DQogICAgcmV0dXJuIHZhbHVlDQo=",
+      "raw_sha256": "02d2905e325f8f9134f0debe963633db48b67592147886c5d23d5e8b0106dc51",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "02d2905e325f8f9134f0debe963633db48b67592147886c5d23d5e8b0106dc51",
+        "bytes": 59
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: unicode_escape\ndef f(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            26
+          ],
+          [
+            26,
+            27
+          ],
+          [
+            27,
+            28
+          ],
+          [
+            28,
+            29
+          ],
+          [
+            29,
+            30
+          ],
+          [
+            30,
+            31
+          ],
+          [
+            31,
+            32
+          ],
+          [
+            32,
+            33
+          ],
+          [
+            33,
+            34
+          ],
+          [
+            34,
+            35
+          ],
+          [
+            35,
+            36
+          ],
+          [
+            36,
+            37
+          ],
+          [
+            37,
+            38
+          ],
+          [
+            38,
+            39
+          ],
+          [
+            39,
+            41
+          ],
+          [
+            40,
+            42
+          ],
+          [
+            41,
+            43
+          ],
+          [
+            42,
+            44
+          ],
+          [
+            43,
+            45
+          ],
+          [
+            44,
+            46
+          ],
+          [
+            45,
+            47
+          ],
+          [
+            46,
+            48
+          ],
+          [
+            47,
+            49
+          ],
+          [
+            48,
+            50
+          ],
+          [
+            49,
+            51
+          ],
+          [
+            50,
+            52
+          ],
+          [
+            51,
+            53
+          ],
+          [
+            52,
+            54
+          ],
+          [
+            53,
+            55
+          ],
+          [
+            54,
+            56
+          ],
+          [
+            55,
+            57
+          ],
+          [
+            56,
+            59
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode-escape-generated-newlines",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCmRlZiBoZWxsbyh2YWx1ZSk6XHJcbiAgICByZXR1cm4gdmFsdWVccg==",
+      "raw_sha256": "c685ba6601a5ba5d3d1ecb069456a256547e476e8864f61c6e43bf0ebfc2956e",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "c685ba6601a5ba5d3d1ecb069456a256547e476e8864f61c6e43bf0ebfc2956e",
+        "bytes": 64
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: unicode_escape\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            46
+          ],
+          [
+            44,
+            47
+          ],
+          [
+            45,
+            48
+          ],
+          [
+            46,
+            49
+          ],
+          [
+            47,
+            50
+          ],
+          [
+            48,
+            51
+          ],
+          [
+            49,
+            52
+          ],
+          [
+            50,
+            53
+          ],
+          [
+            51,
+            54
+          ],
+          [
+            52,
+            55
+          ],
+          [
+            53,
+            56
+          ],
+          [
+            54,
+            57
+          ],
+          [
+            55,
+            58
+          ],
+          [
+            56,
+            59
+          ],
+          [
+            57,
+            60
+          ],
+          [
+            58,
+            61
+          ],
+          [
+            59,
+            62
+          ],
+          [
+            60,
+            64
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode-escape-unknown-literal",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCmRlZiBmKHZhbHVlKToKICAgIG5vdGUgPSAiXHEiOyByZXR1cm4gdmFsdWUK",
+      "raw_sha256": "7648b3030a2bf32c36330c6771593b309de826e8ab446cc71639e20c9eb2edf6",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "7648b3030a2bf32c36330c6771593b309de826e8ab446cc71639e20c9eb2edf6",
+        "bytes": 69
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: unicode_escape\ndef f(value):\n    note = \"\\q\"; return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            null
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ],
+          [
+            59,
+            59
+          ],
+          [
+            60,
+            60
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            62,
+            62
+          ],
+          [
+            63,
+            63
+          ],
+          [
+            64,
+            64
+          ],
+          [
+            65,
+            65
+          ],
+          [
+            66,
+            66
+          ],
+          [
+            67,
+            67
+          ],
+          [
+            68,
+            68
+          ],
+          [
+            69,
+            69
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 29
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 25,
+            "end_line": 3,
+            "end_column": 29
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode-escape-octal-wide",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCmRlZiBmKHZhbHVlKToKICAgIG5vdGUgPSAiXDc3NyI7IHJldHVybiB2YWx1ZQo=",
+      "raw_sha256": "66a6bc45280da175d7a4d587e179c195470d6824e8c9b4b3e531ba7d7f1721de",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "66a6bc45280da175d7a4d587e179c195470d6824e8c9b4b3e531ba7d7f1721de",
+        "bytes": 71
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: unicode_escape\ndef f(value):\n    note = \"ǿ\"; return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            53,
+            55
+          ],
+          [
+            54,
+            56
+          ],
+          [
+            55,
+            57
+          ],
+          [
+            56,
+            58
+          ],
+          [
+            57,
+            59
+          ],
+          [
+            58,
+            60
+          ],
+          [
+            59,
+            61
+          ],
+          [
+            60,
+            62
+          ],
+          [
+            61,
+            63
+          ],
+          [
+            62,
+            64
+          ],
+          [
+            63,
+            65
+          ],
+          [
+            64,
+            66
+          ],
+          [
+            65,
+            67
+          ],
+          [
+            66,
+            68
+          ],
+          [
+            67,
+            69
+          ],
+          [
+            68,
+            70
+          ],
+          [
+            69,
+            71
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 28
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 24,
+            "end_line": 3,
+            "end_column": 28
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode-escape-final-continuation",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCmRlZiBoZWxsbyh2YWx1ZSk6IHJldHVybiB2YWx1ZVw=",
+      "raw_sha256": "4a1e4d96df3a19e89e80a82e571fd77bb707e2d27ae1d4a5cc325e2fec76c1a5",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "4a1e4d96df3a19e89e80a82e571fd77bb707e2d27ae1d4a5cc325e2fec76c1a5",
+        "bytes": 56
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: unicode_escape\ndef hello(value): return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            56
+          ],
+          [
+            56,
+            56
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 2,
+            "end_column": 30
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 2,
+            "start_column": 26,
+            "end_line": 2,
+            "end_column": 30
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode-escape-alias-control",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCmRlZiBmKHZhbHVlKToKICAgIG5vdGUgPSAiXE57QUxFUlR9IjsgcmV0dXJuIHZhbHVlCg==",
+      "raw_sha256": "f4572928ef6dfbad8439624ed2e701268278541290f6e8ae5c65366d1ba6fbd9",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "f4572928ef6dfbad8439624ed2e701268278541290f6e8ae5c65366d1ba6fbd9",
+        "bytes": 76
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: unicode_escape\ndef f(value):\n    note = \"\u0007\"; return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            60
+          ],
+          [
+            53,
+            61
+          ],
+          [
+            54,
+            62
+          ],
+          [
+            55,
+            63
+          ],
+          [
+            56,
+            64
+          ],
+          [
+            57,
+            65
+          ],
+          [
+            58,
+            66
+          ],
+          [
+            59,
+            67
+          ],
+          [
+            60,
+            68
+          ],
+          [
+            61,
+            69
+          ],
+          [
+            62,
+            70
+          ],
+          [
+            63,
+            71
+          ],
+          [
+            64,
+            72
+          ],
+          [
+            65,
+            73
+          ],
+          [
+            66,
+            74
+          ],
+          [
+            67,
+            75
+          ],
+          [
+            68,
+            76
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 28
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 24,
+            "end_line": 3,
+            "end_column": 28
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode_escape-invalid-5c553030313130303030",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCmRlZiBmKCk6CiAgICBub3RlPSJcVTAwMTEwMDAwIgo=",
+      "raw_sha256": "a1b9e4891b6ebd950795c6547f8f570799cf2aa20190edc621dcbbc41a6e1fc0",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'unicodeescape' codec can't decode bytes in position 44-53: illegal Unicode character (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "a1b9e4891b6ebd950795c6547f8f570799cf2aa20190edc621dcbbc41a6e1fc0",
+        "bytes": 56
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode_escape-invalid-5c75313233",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCmRlZiBmKCk6CiAgICBub3RlPSJcdTEyMyIK",
+      "raw_sha256": "289a55c079fd6802e5b88a7f1650966c65929ca2879478e59da80bee9d132398",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'unicodeescape' codec can't decode bytes in position 44-48: truncated \\uXXXX escape (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "289a55c079fd6802e5b88a7f1650966c65929ca2879478e59da80bee9d132398",
+        "bytes": 51
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode_escape-invalid-5c553030303064383030",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCmRlZiBmKCk6CiAgICBub3RlPSJcVTAwMDBkODAwIgo=",
+      "raw_sha256": "23df568bd80ee494b024820a946fccf251939bd23a1f7bdaab3d572219cc3873",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'utf-8' codec can't encode character '\\ud800' in position 44: surrogates not allowed (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "23df568bd80ee494b024820a946fccf251939bd23a1f7bdaab3d572219cc3873",
+        "bytes": 56
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-text"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "raw_unicode_escape-invalid-5c553030313130303030",
+      "codec": "raw_unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHJhd191bmljb2RlX2VzY2FwZQpkZWYgZigpOgogICAgbm90ZT0iXFUwMDExMDAwMCIK",
+      "raw_sha256": "81166778518fa0160f92c332752eaee822042afe2ea0d3ad1dd2de46815ec968",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'rawunicodeescape' codec can't decode bytes in position 48-57: \\Uxxxxxxxx out of range (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "81166778518fa0160f92c332752eaee822042afe2ea0d3ad1dd2de46815ec968",
+        "bytes": 60
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "raw_unicode_escape-invalid-5c75313233",
+      "codec": "raw_unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHJhd191bmljb2RlX2VzY2FwZQpkZWYgZigpOgogICAgbm90ZT0iXHUxMjMiCg==",
+      "raw_sha256": "9482249f3d8b0e6e447472e79d025f63217ca7278ef293392b1d65a3df7dbfd8",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'rawunicodeescape' codec can't decode bytes in position 48-52: truncated \\uXXXX escape (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "9482249f3d8b0e6e447472e79d025f63217ca7278ef293392b1d65a3df7dbfd8",
+        "bytes": 55
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "raw_unicode_escape-invalid-5c553030303064383030",
+      "codec": "raw_unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHJhd191bmljb2RlX2VzY2FwZQpkZWYgZigpOgogICAgbm90ZT0iXFUwMDAwZDgwMCIK",
+      "raw_sha256": "a0f7823ab6ed120ff01b5a5b0036bfff70c4fbd42ba42623e643ef59e960b745",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'utf-8' codec can't encode character '\\ud800' in position 48: surrogates not allowed (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "a0f7823ab6ed120ff01b5a5b0036bfff70c4fbd42ba42623e643ef59e960b745",
+        "bytes": 60
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-text"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "raw-unicode-escape-greek",
+      "codec": "raw_unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHJhd191bmljb2RlX2VzY2FwZQpkZWYgXHUwM2IxKFx1MDNiMik6CiAgICBub3RlID0gIukgXFUwMDAxZjYwMCI7IHJldHVybiBcdTAzYjIK",
+      "raw_sha256": "5f88d6fb650e913fec9e89d26086a8ad715284bcf938b4786ad6e08031352b36",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": false,
+        "error": "AnalysisSourceError",
+        "code": "invalid-utf8",
+        "message": "Analysis source is not valid UTF-8"
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "UnicodeDecodeError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: raw_unicode_escape\ndef α(β):\n    note = \"é 😀\"; return β\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            35,
+            39
+          ],
+          [
+            36,
+            40
+          ],
+          [
+            38,
+            46
+          ],
+          [
+            39,
+            47
+          ],
+          [
+            40,
+            48
+          ],
+          [
+            41,
+            49
+          ],
+          [
+            42,
+            50
+          ],
+          [
+            43,
+            51
+          ],
+          [
+            44,
+            52
+          ],
+          [
+            45,
+            53
+          ],
+          [
+            46,
+            54
+          ],
+          [
+            47,
+            55
+          ],
+          [
+            48,
+            56
+          ],
+          [
+            49,
+            57
+          ],
+          [
+            50,
+            58
+          ],
+          [
+            51,
+            59
+          ],
+          [
+            52,
+            60
+          ],
+          [
+            53,
+            61
+          ],
+          [
+            55,
+            62
+          ],
+          [
+            56,
+            63
+          ],
+          [
+            60,
+            73
+          ],
+          [
+            61,
+            74
+          ],
+          [
+            62,
+            75
+          ],
+          [
+            63,
+            76
+          ],
+          [
+            64,
+            77
+          ],
+          [
+            65,
+            78
+          ],
+          [
+            66,
+            79
+          ],
+          [
+            67,
+            80
+          ],
+          [
+            68,
+            81
+          ],
+          [
+            69,
+            82
+          ],
+          [
+            70,
+            83
+          ],
+          [
+            72,
+            89
+          ],
+          [
+            73,
+            90
+          ]
+        ],
+        "functions": [
+          {
+            "name": "α",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 26
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "β",
+            "start_line": 3,
+            "start_column": 26,
+            "end_line": 3,
+            "end_column": 26
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "raw-unicode-escape-nonescaped-backslash",
+      "codec": "raw_unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHJhd191bmljb2RlX2VzY2FwZQpkZWYgZih2YWx1ZSk6CiAgICBub3RlID0gIlxcdTAwNDEiOyByZXR1cm4gdmFsdWUK",
+      "raw_sha256": "c428939d9e34a327f92da1efcb0a551dda8af868aa5d0b253d639fad2af3a7f6",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "c428939d9e34a327f92da1efcb0a551dda8af868aa5d0b253d639fad2af3a7f6",
+        "bytes": 78
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: raw_unicode_escape\ndef f(value):\n    note = \"\\\\u0041\"; return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            null
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ],
+          [
+            59,
+            59
+          ],
+          [
+            60,
+            60
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            62,
+            62
+          ],
+          [
+            63,
+            63
+          ],
+          [
+            64,
+            64
+          ],
+          [
+            65,
+            65
+          ],
+          [
+            66,
+            66
+          ],
+          [
+            67,
+            67
+          ],
+          [
+            68,
+            68
+          ],
+          [
+            69,
+            69
+          ],
+          [
+            70,
+            70
+          ],
+          [
+            71,
+            71
+          ],
+          [
+            72,
+            72
+          ],
+          [
+            73,
+            73
+          ],
+          [
+            74,
+            74
+          ],
+          [
+            75,
+            75
+          ],
+          [
+            76,
+            76
+          ],
+          [
+            77,
+            77
+          ],
+          [
+            78,
+            78
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 34
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 30,
+            "end_line": 3,
+            "end_column": 34
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "unicode-escape-decoded-nul-refusal",
+      "codec": "unicode_escape",
+      "bytes_base64": "IyBjb2Rpbmc6IHVuaWNvZGVfZXNjYXBlCng9MVx4MDBub3RfcHl0aG9uQEBA",
+      "raw_sha256": "da9a56cfdc2001818521f6f328854fa105f79ccdabc42cfec8dbfd635adc3799",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "da9a56cfdc2001818521f6f328854fa105f79ccdabc42cfec8dbfd635adc3799",
+        "bytes": 45
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "strict_source_rejection": "decoded-nul",
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-text"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf16-identifier",
+      "codec": "utf16",
+      "bytes_base64": "I2NvZGluZzp1dGYxNgo=",
+      "raw_sha256": "39041f7a8382863142baec1aa0c590c0baad2f8d36fa0bb30b0861f948df6b5e",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "39041f7a8382863142baec1aa0c590c0baad2f8d36fa0bb30b0861f948df6b5e",
+        "bytes": 14
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": []
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "挣摯湩㩧瑵ㅦਸ਼\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            12,
+            8
+          ],
+          [
+            15,
+            10
+          ],
+          [
+            18,
+            12
+          ],
+          [
+            21,
+            14
+          ],
+          [
+            22,
+            14
+          ]
+        ],
+        "functions": [],
+        "names": [
+          {
+            "name": "挣摯湩㩧瑵ᄕਸ਼",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 1,
+            "end_column": 7
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf16-odd-virtual-lf",
+      "codec": "utf16",
+      "bytes_base64": "I2NvZGluZzp1dGYxNg==",
+      "raw_sha256": "cd80294f5eee7416381881fe06d8780532283af33f64c7d04153266e567f8168",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "cd80294f5eee7416381881fe06d8780532283af33f64c7d04153266e567f8168",
+        "bytes": 13
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": []
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "挣摯湩㩧瑵ㅦਸ਼\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            12,
+            8
+          ],
+          [
+            15,
+            10
+          ],
+          [
+            18,
+            12
+          ],
+          [
+            21,
+            13
+          ],
+          [
+            22,
+            13
+          ]
+        ],
+        "functions": [],
+        "names": [
+          {
+            "name": "挣摯湩㩧瑵ᄕਸ਼",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 1,
+            "end_column": 7
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf16le-alias-identifier",
+      "codec": "utf_16_le",
+      "bytes_base64": "CSNjb2Rpbmc6dW5pY29kZWxpdHRsZXVubWFya2VkCg==",
+      "raw_sha256": "afca5d107469a1dfa3ba838fe993fb3edcfd679c2bca4efb1f32675118225436",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'utf-16-le' codec can't decode byte 0x0a in position 30: truncated data (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "afca5d107469a1dfa3ba838fe993fb3edcfd679c2bca4efb1f32675118225436",
+        "bytes": 31
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": []
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf16be-alias-identifier",
+      "codec": "utf_16_be",
+      "bytes_base64": "CSNjb2Rpbmc6dW5pY29kZWJpZ3VubWFya2VkCg==",
+      "raw_sha256": "66a17fc9565bfd9afa6522548c02bbed66377afe1b52c60fc925ddd0fd9c8854",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "66a17fc9565bfd9afa6522548c02bbed66377afe1b52c60fc925ddd0fd9c8854",
+        "bytes": 28
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": []
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "ण捯摩湧㩵湩捯摥扩杵湭慲步搊\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            12,
+            8
+          ],
+          [
+            15,
+            10
+          ],
+          [
+            18,
+            12
+          ],
+          [
+            21,
+            14
+          ],
+          [
+            24,
+            16
+          ],
+          [
+            27,
+            18
+          ],
+          [
+            30,
+            20
+          ],
+          [
+            33,
+            22
+          ],
+          [
+            36,
+            24
+          ],
+          [
+            39,
+            26
+          ],
+          [
+            42,
+            28
+          ],
+          [
+            43,
+            28
+          ]
+        ],
+        "functions": [],
+        "names": [
+          {
+            "name": "ण捯摩湧㩵湩捯摥扩杵湭慲步搊",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 1,
+            "end_column": 14
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf32-invalid-header",
+      "codec": "utf_32",
+      "bytes_base64": "I2NvZGluZzp1dGYzMgo=",
+      "raw_sha256": "8144e81caf42bb466c5ea84d0a8ff88119fd5e19fdb5b16fb2a4115e6d78ac6d",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'utf-32-le' codec can't decode bytes in position 0-3: code point not in range(0x110000) (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "8144e81caf42bb466c5ea84d0a8ff88119fd5e19fdb5b16fb2a4115e6d78ac6d",
+        "bytes": 14
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": []
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf32le-invalid-header",
+      "codec": "utf_32_le",
+      "bytes_base64": "I2NvZGluZzp1dGZfMzJfbGUK",
+      "raw_sha256": "189d0b18ff0a20200416adbd8b3b8dfc69ee7f5c96fa96ec99994dc9dc5a08c4",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'utf-32-le' codec can't decode bytes in position 0-3: code point not in range(0x110000) (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "189d0b18ff0a20200416adbd8b3b8dfc69ee7f5c96fa96ec99994dc9dc5a08c4",
+        "bytes": 18
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": []
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "utf32be-invalid-header",
+      "codec": "utf_32_be",
+      "bytes_base64": "I2NvZGluZzp1dGZfMzJfYmUK",
+      "raw_sha256": "e46d6f2b2b6b2ad2c30325e918522b78912b358eaa4968f1be7cf5e4eef0b423",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'utf-32-be' codec can't decode bytes in position 0-3: code point not in range(0x110000) (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "e46d6f2b2b6b2ad2c30325e918522b78912b358eaa4968f1be7cf5e4eef0b423",
+        "bytes": 18
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": []
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-cjk-canonical",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYoKToKICAgIHJldHVybiAiXE57Q0pLIFVOSUZJRUQgSURFT0dSQVBILTRFMDB9Igo=",
+      "raw_sha256": "fb54957bc40d8be1c0a36186916ff7d2ddd723fcd7d89d6d578a9f3dba395999",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "fb54957bc40d8be1c0a36186916ff7d2ddd723fcd7d89d6d578a9f3dba395999",
+        "bytes": 53
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": 2,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "def f():\n    return \"\\N{CJK UNIFIED IDEOGRAPH-4E00}\"\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 2,
+            "end_column": 43
+          }
+        ],
+        "names": []
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-cjk-case",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYoKToKICAgIHJldHVybiAiXE57Y2prIHVuaWZpZWQgaWRlb2dyYXBoLTRlMDB9Igo=",
+      "raw_sha256": "59cd9122fb3c08b3bcc29a43ee886e86847f81223bb62cad4be7545d8dc73584",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "59cd9122fb3c08b3bcc29a43ee886e86847f81223bb62cad4be7545d8dc73584",
+        "bytes": 53
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": 2,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "def f():\n    return \"\\N{cjk unified ideograph-4e00}\"\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 2,
+            "end_column": 43
+          }
+        ],
+        "names": []
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-cjk-zero-padded",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYoKToKICAgIHJldHVybiAiXE57Q0pLIFVOSUZJRUQgSURFT0dSQVBILTA0RTAwfSIK",
+      "raw_sha256": "93555cb24f339701889118f2d8145f84e4e1f9bdcdb9a4d0c5a83044dce06706",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "(unicode error) 'unicodeescape' codec can't decode bytes in position 0-30: unknown Unicode character name (main.py, line 2)",
+        "line": 2,
+        "offset": 12
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "93555cb24f339701889118f2d8145f84e4e1f9bdcdb9a4d0c5a83044dce06706",
+        "bytes": 54
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": false,
+        "text": "def f():\n    return \"\\N{CJK UNIFIED IDEOGRAPH-04E00}\"\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ]
+        ],
+        "functions": [],
+        "names": [],
+        "parser_error": "invalid-unicode-name"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-cjk-zero-padded-fstring",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYodmFsdWUpOgogICAgcmV0dXJuIGYiXE57Q0pLIFVOSUZJRUQgSURFT0dSQVBILTA0RTAwfXt2YWx1ZX0iCg==",
+      "raw_sha256": "42f985ab32318414cfc804bed8dda2aaa728d0ecce64cda3c5ab6c6005e4c9a9",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "(unicode error) 'unicodeescape' codec can't decode bytes in position 0-30: unknown Unicode character name (main.py, line 2)",
+        "line": 2,
+        "offset": 52
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "42f985ab32318414cfc804bed8dda2aaa728d0ecce64cda3c5ab6c6005e4c9a9",
+        "bytes": 67
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": false,
+        "text": "def f(value):\n    return f\"\\N{CJK UNIFIED IDEOGRAPH-04E00}{value}\"\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ],
+          [
+            59,
+            59
+          ],
+          [
+            60,
+            60
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            62,
+            62
+          ],
+          [
+            63,
+            63
+          ],
+          [
+            64,
+            64
+          ],
+          [
+            65,
+            65
+          ],
+          [
+            66,
+            66
+          ],
+          [
+            67,
+            67
+          ]
+        ],
+        "functions": [],
+        "names": [],
+        "parser_error": "invalid-unicode-name"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-cjk-zero-padded-tstring",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYodmFsdWUpOgogICAgcmV0dXJuIHQiXE57Q0pLIFVOSUZJRUQgSURFT0dSQVBILTA0RTAwfXt2YWx1ZX0iCg==",
+      "raw_sha256": "d6a9cc0e2d987d475216c3048d7cfa33c514a03829aba6343ea2b7184f057d9e",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "(unicode error) 'unicodeescape' codec can't decode bytes in position 0-30: unknown Unicode character name (main.py, line 2)",
+        "line": 2,
+        "offset": 52
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "d6a9cc0e2d987d475216c3048d7cfa33c514a03829aba6343ea2b7184f057d9e",
+        "bytes": 67
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": false,
+        "text": "def f(value):\n    return t\"\\N{CJK UNIFIED IDEOGRAPH-04E00}{value}\"\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ],
+          [
+            59,
+            59
+          ],
+          [
+            60,
+            60
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            62,
+            62
+          ],
+          [
+            63,
+            63
+          ],
+          [
+            64,
+            64
+          ],
+          [
+            65,
+            65
+          ],
+          [
+            66,
+            66
+          ],
+          [
+            67,
+            67
+          ]
+        ],
+        "functions": [],
+        "names": [],
+        "parser_error": "invalid-unicode-name"
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-byte-string-uninterpreted",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYoKToKICAgIHJldHVybiBiIlxOe0NKSyBVTklGSUVEIElERU9HUkFQSC0wNEUwMH0iCg==",
+      "raw_sha256": "063e3f36be9b87544a19ab0dd7f8e130ea1484a36c8f2c127f33f5f49dc72a30",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "063e3f36be9b87544a19ab0dd7f8e130ea1484a36c8f2c127f33f5f49dc72a30",
+        "bytes": 55
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": 2,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "def f():\n    return b\"\\N{CJK UNIFIED IDEOGRAPH-04E00}\"\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 2,
+            "end_column": 45
+          }
+        ],
+        "names": []
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-raw-string-uninterpreted",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYoKToKICAgIHJldHVybiByIlxOe0NKSyBVTklGSUVEIElERU9HUkFQSC0wNEUwMH0iCg==",
+      "raw_sha256": "12710ddf32e5bac30cd7a1979368709e3828404eceb7576463327e31512cfbaa",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "12710ddf32e5bac30cd7a1979368709e3828404eceb7576463327e31512cfbaa",
+        "bytes": 55
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": 2,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "def f():\n    return r\"\\N{CJK UNIFIED IDEOGRAPH-04E00}\"\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 2,
+            "end_column": 45
+          }
+        ],
+        "names": []
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-escaped-backslash-uninterpreted",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYoKToKICAgIHJldHVybiAiXFxOe0NKSyBVTklGSUVEIElERU9HUkFQSC0wNEUwMH0iCg==",
+      "raw_sha256": "d98e5f41d21a31c2905391298acf75458b4c0d49540169f576348955af57ceae",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "d98e5f41d21a31c2905391298acf75458b4c0d49540169f576348955af57ceae",
+        "bytes": 55
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": 2,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "def f():\n    return \"\\\\N{CJK UNIFIED IDEOGRAPH-04E00}\"\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 2,
+            "end_column": 45
+          }
+        ],
+        "names": []
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-raw-fstring-interpolation",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYodmFsdWUpOgogICAgcmV0dXJuIHJmIlxOe3ZhbHVlfSIK",
+      "raw_sha256": "e4b3461953eb89edc4957279377686a980c6a29854a8e972186f46997f42e554",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "e4b3461953eb89edc4957279377686a980c6a29854a8e972186f46997f42e554",
+        "bytes": 39
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": 2,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "def f(value):\n    return rf\"\\N{value}\"\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 2,
+            "end_column": 24
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 2,
+            "start_column": 18,
+            "end_line": 2,
+            "end_column": 22
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-control-alias",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYoKToKICAgIHJldHVybiAiXE57QUxFUlR9Igo=",
+      "raw_sha256": "13dc3368bfb49e8cbe9b75bb9d7be3a44e7ac6bcf1a35c1ad757d5ac3197f609",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "13dc3368bfb49e8cbe9b75bb9d7be3a44e7ac6bcf1a35c1ad757d5ac3197f609",
+        "bytes": 32
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": 2,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "def f():\n    return \"\\N{ALERT}\"\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 2,
+            "end_column": 22
+          }
+        ],
+        "names": []
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
+    },
+    {
+      "id": "named-cjk-comment-uninterpreted",
+      "codec": "utf8",
+      "bytes_base64": "ZGVmIGYodmFsdWUpOgogICAgIyBcTntDSksgVU5JRklFRCBJREVPR1JBUEgtMDRFMDB9CiAgICByZXR1cm4gdmFsdWUK",
+      "raw_sha256": "9498decc171a92ae1626bc28c495f3c8baa1a61f3181153861ed88cb512a839b",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "9498decc171a92ae1626bc28c495f3c8baa1a61f3181153861ed88cb512a839b",
+        "bytes": 69
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "def f(value):\n    # \\N{CJK UNIFIED IDEOGRAPH-04E00}\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ],
+          [
+            59,
+            59
+          ],
+          [
+            60,
+            60
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            62,
+            62
+          ],
+          [
+            63,
+            63
+          ],
+          [
+            64,
+            64
+          ],
+          [
+            65,
+            65
+          ],
+          [
+            66,
+            66
+          ],
+          [
+            67,
+            67
+          ],
+          [
+            68,
+            68
+          ],
+          [
+            69,
+            69
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 1,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython source-byte Unicode recoding, Unicode16 canonical names/official aliases, and proven original byte boundaries. A whole UTF7 shift may place token boundaries inside shared base64 bits and remains explicitly incomplete. Decoded NUL is rejected under the existing R0 source invariant even where the reference C tokenizer truncates and accepts a prefix. Original byte-AST/intake/metrics outcomes remain recorded."
     }
   ],
   "exclusions": [
