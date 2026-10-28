@@ -83,6 +83,7 @@ fn historical_family_and_verify_exports_use_one_native_result_without_python() {
     let diff = call(root.path(), &["ici", "diff", "baseline.json"]).unwrap();
     assert_eq!(diff.exit_code, 0, "{}", diff.stdout);
     assert!(diff.stdout.contains("0 new"));
+    assert!(diff.stdout.contains("baseline baseline.json → result.json"));
 }
 
 #[test]

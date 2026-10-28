@@ -83,10 +83,7 @@ pub fn apply_gate_policy(
     }
 }
 
-fn explicit_mode_for(
-    prepared: &crate::planning::PreparedPlan,
-    engine: &str,
-) -> bool {
+fn explicit_mode_for(prepared: &crate::planning::PreparedPlan, engine: &str) -> bool {
     prepared
         .project
         .origins

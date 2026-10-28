@@ -277,19 +277,30 @@ fn diff(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
         });
     }
     let mut text = format!(
-        "{} new, {} unchanged, {} resolved, {} carried\n",
+        "{} new, {} unchanged, {} resolved, {} carried (baseline {} → {})\n",
         delta.new.len(),
         delta.unchanged.len(),
         delta.resolved.len(),
-        delta.carried.len()
+        delta.carried.len(),
+        old_path
+            .file_name()
+            .map(|name| name.to_string_lossy())
+            .unwrap_or_default(),
+        new_path
+            .file_name()
+            .map(|name| name.to_string_lossy())
+            .unwrap_or_default()
     );
     if !delta.carried.is_empty() {
-        text.push_str("  carried findings have no complete matching check in the newer run\n");
+        text.push_str("  carried findings have no complete matching check in the newer run — omitted or incomplete evidence, not fixed code\n");
     }
     if old.gate.selected != current.gate.selected {
+        let old_gate = serde_json::to_value(old.gate.selected).map_err(error)?;
+        let new_gate = serde_json::to_value(current.gate.selected).map_err(error)?;
         text.push_str(&format!(
-            "  gate: {:?} → {:?}\n",
-            old.gate.selected, current.gate.selected
+            "  gate: {} → {}\n",
+            old_gate.as_str().unwrap_or("UNKNOWN"),
+            new_gate.as_str().unwrap_or("UNKNOWN")
         ));
     }
     Ok(CommandOutput::text(text))
