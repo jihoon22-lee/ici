@@ -1173,6 +1173,84 @@ fn line_counts_and_explicit_legacy_scopes_keep_all_inspected_targets() {
 }
 
 #[test]
+fn legacy_line_rankings_keep_source_scope_and_actual_extra_languages() {
+    let mut input = request("line", "# comment\nx = 1\n");
+    input.inputs.extend([
+        SourceInput {
+            path: "README.md".into(),
+            bytes: b"# title\nparagraph\nmore\n".to_vec(),
+        },
+        SourceInput {
+            path: "tools/run.sh".into(),
+            bytes: b"#!/bin/sh\n# comment\necho ready\n".to_vec(),
+        },
+        SourceInput {
+            path: "config.toml".into(),
+            bytes: b"# comment\nkey = 1\n".to_vec(),
+        },
+        SourceInput {
+            path: "ci.yaml".into(),
+            bytes: b"# comment\nkey: 1\n".to_vec(),
+        },
+        SourceInput {
+            path: "data.json".into(),
+            bytes: b"{\n}\n".to_vec(),
+        },
+        SourceInput {
+            path: "example.cpp".into(),
+            bytes: b"/* start\n\nend */\n// comment\nint x;\n".to_vec(),
+        },
+    ]);
+    input.options = json!({"legacy_projection":true,"source_paths":["main.py"],"gated_paths":["main.py"],"warn_limit":1,"fail_limit":2});
+    let output = analyze(&input);
+    assert_eq!(output.targets.len(), 7);
+    assert!(output.targets.iter().all(|target| target.status == "PASS"));
+    assert_eq!(output.extra["code"], 1);
+    assert_eq!(output.extra["comment"], 1);
+    assert_eq!(output.extra["all"]["code"], 10);
+    assert_eq!(output.extra["all"]["comment"], 8);
+    assert_eq!(output.extra["all"]["blank"], 1);
+    assert_eq!(output.extra["top_files"].as_array().unwrap().len(), 1);
+    assert_eq!(output.extra["top_files"][0]["path"], "main.py");
+    assert_eq!(output.extra["top_files_all"][0]["path"], "README.md");
+    for (path, language, code, comment, blank) in [
+        ("README.md", "Markdown", 3, 0, 0),
+        ("tools/run.sh", "Shell", 1, 2, 0),
+        ("config.toml", "TOML", 1, 1, 0),
+        ("ci.yaml", "YAML", 1, 1, 0),
+        ("data.json", "JSON", 2, 0, 0),
+        ("example.cpp", "C++", 1, 3, 1),
+    ] {
+        let row = output.extra["files_data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["path"] == path)
+            .unwrap();
+        assert_eq!(row["lang"], language, "{path}");
+        assert_eq!(row["scope"], "extra", "{path}");
+        assert_eq!(
+            (
+                row["code"].as_u64(),
+                row["comment"].as_u64(),
+                row["blank"].as_u64()
+            ),
+            (Some(code), Some(comment), Some(blank)),
+            "{path}"
+        );
+        assert_eq!(
+            output
+                .targets
+                .iter()
+                .find(|target| target.file_path == path)
+                .unwrap()
+                .target_name,
+            language
+        );
+    }
+}
+
+#[test]
 fn inclusive_endpoints_cover_unicode_multiline_and_zero_width() {
     use ruff_text_size::{TextRange, TextSize};
     let source = SourceDocument::decode(&SourceInput {

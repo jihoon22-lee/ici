@@ -59,10 +59,22 @@ pub fn analyze(
         }
         let in_scope = !legacy || selected(source_paths, &input.path);
         let gated = in_scope && (!legacy || selected(gated_paths, &input.path));
-        let hash_comments = [".py", ".pyi", ".sh", ".csh", ".toml", ".yml", ".yaml"]
-            .iter()
-            .any(|suffix| input.path.ends_with(suffix));
+        let suffix = std::path::Path::new(&input.path)
+            .extension()
+            .and_then(std::ffi::OsStr::to_str)
+            .unwrap_or("");
+        let (language, hash_comments, c_comments) = match suffix {
+            "cpp" | "c" | "h" | "hpp" | "cc" | "cxx" => ("C++", false, true),
+            "py" | "pyi" => ("Python", true, false),
+            "sh" | "csh" => ("Shell", true, false),
+            "toml" => ("TOML", true, false),
+            "yml" | "yaml" => ("YAML", true, false),
+            "md" => ("Markdown", false, false),
+            "json" => ("JSON", false, false),
+            _ => ("Text", false, false),
+        };
         let (mut file_code, mut file_comment, mut file_blank) = (0u64, 0u64, 0u64);
+        let mut in_block_comment = false;
         for (index, line) in source.lines().enumerate() {
             if index % 256 == 0 && crate::cancelled(output, cancellation) {
                 break;
@@ -70,7 +82,12 @@ pub fn analyze(
             let text = line.trim();
             if text.is_empty() {
                 file_blank += 1;
-            } else if hash_comments && text.starts_with('#') {
+            } else if c_comments && (in_block_comment || text.starts_with("/*")) {
+                file_comment += 1;
+                in_block_comment = !text.contains("*/");
+            } else if (c_comments && text.starts_with("//"))
+                || (hash_comments && text.starts_with('#'))
+            {
                 file_comment += 1;
             } else {
                 file_code += 1;
@@ -91,7 +108,7 @@ pub fn analyze(
         let mut target = InspectionTarget::at(&source.path, 1);
         let total = file_code + file_comment + file_blank;
         target.end_line = Some(total.max(1) as u32);
-        target.target_name = "Python".into();
+        target.target_name = language.into();
         target.metrics.extend([
             ("code".into(), json!(file_code)),
             ("comment".into(), json!(file_comment)),
@@ -134,7 +151,7 @@ pub fn analyze(
             finding.component_id = Some(request.component_id.clone());
             output.observation.findings.push(finding);
         }
-        rows.push(json!({"path":source.path,"lang":"Python","code":file_code,"comment":file_comment,"blank":file_blank,"total":total,"status":target.status,"scope":if in_scope { "source" } else { "extra" }}));
+        rows.push(json!({"path":source.path,"lang":language,"code":file_code,"comment":file_comment,"blank":file_blank,"total":total,"status":target.status,"scope":if in_scope { "source" } else { "extra" }}));
         output.targets.push(target);
     }
     let total = code + comment + blank;
@@ -159,8 +176,14 @@ pub fn analyze(
         output.observation.measurements.push(measurement);
     }
     rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
-    let top: Vec<_> = rows.iter().take(5).cloned().collect();
-    output.extra = json!({"code":code,"comment":comment,"blank":blank,"total":total,"files_data":rows,"top_files":top,"top_files_all":top,"all":{"code":all_code,"comment":all_comment,"blank":all_blank,"total":all_code+all_comment+all_blank,"files":rows.len()},"metrics_summary":format!("{code} code / {counted} files")});
+    let top: Vec<_> = rows
+        .iter()
+        .filter(|row| row["scope"] == "source")
+        .take(5)
+        .cloned()
+        .collect();
+    let top_all: Vec<_> = rows.iter().take(5).cloned().collect();
+    output.extra = json!({"code":code,"comment":comment,"blank":blank,"total":total,"files_data":rows,"top_files":top,"top_files_all":top_all,"all":{"code":all_code,"comment":all_comment,"blank":all_blank,"total":all_code+all_comment+all_blank,"files":rows.len()},"metrics_summary":format!("{code} code / {counted} files")});
     output.summary = format!(
         "Total {total} lines ({code} code, {comment} comment, {blank} blank) across {counted} files"
     );
