@@ -93,7 +93,7 @@ class Source:
         }
         for path, tree in self.trees.items():
             split = files[path].split(b"\n")
-            lines = tuple(line + b"\n" for line in split[:-1]) + (split[-1],)
+            lines = (*(line + b"\n" for line in split[:-1]), split[-1])
             for node in ast.walk(tree):
                 node._inventory_lines = lines
         self.modules = {
@@ -1048,7 +1048,7 @@ def self_test() -> None:
         }
     )
     unicode_source = Source(
-        {"src/ici/unicode.py": 'π = "é"\r\nresult = call(\r\n    "λ",\r\n)\r\n'.encode("utf-8")}
+        {"src/ici/unicode.py": 'π = "é"\r\nresult = call(\r\n    "λ",\r\n)\r\n'.encode()}
     )
     unicode_tree = unicode_source.trees["src/ici/unicode.py"]
     assert expression(unicode_tree.body[0].value) == '"é"'
