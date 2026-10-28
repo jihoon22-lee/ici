@@ -393,6 +393,13 @@
         "command:ici line"
       ],
       "reason": "Module fully read; implemented source/gate/extras/mode compatibility has named actual fixtures, but docs-only and automatic monorepo root-extra scope acceptance still needs resolution before source audit closure."
+    },
+    "src/ici/reporters/baseline_view.py": {
+      "disposition": "unreviewed",
+      "requirements": [
+        "capability:report-console-markdown-json-html-sarif"
+      ],
+      "reason": "Complete 76-line frozen module reviewed. Native render baseline_preview now preserves changed-first 20-row and unchanged 3-row display bounds, reports omissions, and leaves saved JSON full; actual native HTML/console replay passes. Frozen severity transition formatting and legacy enriched delta location controls still require end-to-end review, so source audit remains open."
     }
   }
 }
