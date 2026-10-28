@@ -182,5 +182,13 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
     Ok(document)
 }
 pub fn render_sarif(stored: &StoredResult, options: &RenderOptions) -> Result<String> {
-    crate::canonical_json(&sarif_document(stored, options)?)
+    let document = sarif_document(stored, options)?;
+    crate::json::validate_stored_shape(&document)?;
+    let text = ici_domain::canonical_json(&document)?;
+    if text.len() > 128 * 1024 * 1024 {
+        return Err(ReportError(
+            "SARIF exceeds 128 MiB expanded output bound".into(),
+        ));
+    }
+    Ok(text)
 }

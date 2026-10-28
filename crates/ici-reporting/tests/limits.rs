@@ -1,6 +1,6 @@
 use ici_reporting::{
     ConsoleGroupBy, RenderOptions, StoredResult, bounded_summary, github_annotations,
-    render_console, render_html,
+    render_console, render_html, render_sarif,
 };
 use serde_json::{Value, json};
 #[test]
@@ -58,6 +58,19 @@ fn large_html_keeps_100000_records_and_only_fifty_initial_issue_cards() {
         "100000 finding HTML: input_bytes={} html_bytes={} elapsed_seconds={:.3}",
         bytes.len(),
         html.len(),
+        started.elapsed().as_secs_f64()
+    );
+    drop(data);
+    drop(html);
+    drop(bytes);
+    let sarif = render_sarif(&stored, &RenderOptions::default()).unwrap();
+    assert_eq!(
+        sarif.matches("\"ruleId\":\"ici.synthetic.large\"").count(),
+        100_000
+    );
+    println!(
+        "100000 finding SARIF: bytes={} cumulative_elapsed_seconds={:.3}",
+        sarif.len(),
         started.elapsed().as_secs_f64()
     );
 }

@@ -12,7 +12,7 @@ mod facets;
 mod render;
 mod view;
 pub use render::{
-    bounded_summary, github_annotations, render_console, render_html, render_markdown,
+    bounded_summary, github_annotations, render_console, render_html, render_json, render_markdown,
 };
 pub use view::{ConsoleGroupBy, RenderOptions};
 mod sarif;
@@ -21,6 +21,8 @@ mod migration;
 pub use migration::migrate_report_payload;
 mod issues;
 pub use issues::{IssueGroup, IssueProjection, project_issue_groups};
+mod navigation;
+pub use navigation::source_link;
 
 mod auxiliary;
 mod junit_import;

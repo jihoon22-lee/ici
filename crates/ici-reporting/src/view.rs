@@ -22,6 +22,9 @@ pub struct RenderOptions {
     pub group_by: ConsoleGroupBy,
     pub max_locations: usize,
     pub console_width: usize,
+    pub source_root: Option<String>,
+    pub repository_url: Option<String>,
+    pub commit_ref: Option<String>,
 }
 impl Default for RenderOptions {
     fn default() -> Self {
@@ -36,6 +39,9 @@ impl Default for RenderOptions {
             group_by: ConsoleGroupBy::Engine,
             max_locations: 4,
             console_width: 80,
+            source_root: None,
+            repository_url: None,
+            commit_ref: None,
         }
     }
 }

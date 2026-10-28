@@ -5,6 +5,17 @@ use crate::{
 };
 use serde_json::Value;
 use std::fmt::Write;
+/// Output boundary; StoredResult::to_json instead preserves the raw archive for round trips.
+pub fn render_json(stored: &StoredResult) -> Result<String> {
+    let view = View::new(stored)?;
+    let text = ici_domain::canonical_json(&view.document)?;
+    if text.len() > crate::json::MAX_STORED_BYTES {
+        return Err(ReportError(
+            "Redacted JSON exceeds 64 MiB stored-result bound".into(),
+        ));
+    }
+    Ok(text)
+}
 
 pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<String> {
     let view = View::new(stored)?;
@@ -187,6 +198,7 @@ fn md(text: &str) -> String {
 }
 pub fn render_markdown(stored: &StoredResult, options: &RenderOptions) -> Result<String> {
     let view = View::new(stored)?;
+    crate::navigation::config(options)?;
     let mut out = format!(
         "# {}\n\n**{}**\n\n",
         md(&ici_execution::redaction::redact_text(&options.title)),
@@ -222,7 +234,7 @@ pub fn render_markdown(stored: &StoredResult, options: &RenderOptions) -> Result
         let _ = writeln!(
             out,
             "| {} | {} | {} | {} | {} |",
-            md(&location(finding)),
+            markdown_location(finding, options)?,
             md(&plain(&finding["rule_id"])),
             md(&plain(&finding["severity"])),
             md(&plain(&finding["message"])),
@@ -507,6 +519,7 @@ pub(crate) fn rich(value: &Value, out: &mut String) -> Result<()> {
 
 pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<String> {
     let view = View::new(stored)?;
+    let navigation = crate::navigation::config(options)?;
     let title = ici_execution::redaction::redact_text(&options.title);
     let mut out = format!(
         "<!DOCTYPE html>\n<html lang=en><head><meta charset=utf-8><meta name=viewport content=\"width=device-width, initial-scale=1\"><meta http-equiv=Content-Security-Policy content=\"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'\"><title>{}</title><style>{}</style></head><body><main><h1>{}</h1><p class=verdict>{}</p>",
@@ -517,6 +530,9 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
     );
     out.push_str("<h2>Scope, execution and publication</h2>");
     rich(&view.axes(), &mut out)?;
+    if options.source_root.is_some() {
+        out.push_str("<label>Open source with <select id=editor-select><option value=vscode>VS Code</option><option value=cursor>Cursor</option><option value=pycharm>PyCharm / IntelliJ</option><option value=sublime>Sublime Text</option><option value=file>Browser file</option><option value=copy>Copy location</option></select></label>");
+    }
     let suppressed_count = view
         .findings
         .iter()
@@ -632,6 +648,13 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
     }
     // Complete escaped payload survives the presentation, including unknown producer fields.
     let saved_json = crate::script_json(&view.document)?;
+    if let Some(config) = navigation {
+        let _ = write!(
+            out,
+            "<script id=ici-source-navigation type=application/json>{}</script>",
+            crate::script_json(&safe::redact(&config))?
+        );
+    }
     if saved_json.len() + group_data.as_ref().map_or(0, String::len) > crate::json::MAX_STORED_BYTES
     {
         return Err(ReportError(
@@ -709,10 +732,30 @@ fn copy_location(path: &str, line: u64, column: Option<u64>) -> String {
         return format!("<code>{}</code>", html(&text));
     }
     format!(
-        "<code>{}</code> <button type=button data-copy-location=\"{}\" aria-label=\"Copy location {}\">Copy</button>",
+        "<code>{}</code> <button type=button data-path=\"{}\" data-line={line} data-copy-location=\"{}\" aria-label=\"Copy location {}\">Copy</button>",
         html(&text),
+        html(path),
         html(&text),
         html(&text)
+    )
+}
+fn markdown_location(finding: &Value, options: &RenderOptions) -> Result<String> {
+    let span = &finding["primary_location"];
+    let path = span["path"].as_str().unwrap_or("unknown");
+    let line = span["start_line"]
+        .as_u64()
+        .and_then(|line| u32::try_from(line).ok())
+        .unwrap_or(1);
+    let end = span["end_line"]
+        .as_u64()
+        .and_then(|line| u32::try_from(line).ok());
+    let label = md(&location(finding));
+    Ok(
+        if let Some(url) = crate::source_link(path, line, end, options)? {
+            format!("[{label}]({url})")
+        } else {
+            label
+        },
     )
 }
 fn finding_card(finding: &Value, out: &mut String) -> Result<()> {

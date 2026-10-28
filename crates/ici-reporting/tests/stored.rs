@@ -80,3 +80,21 @@ fn duplicate_keys_trailing_data_and_embedded_script_closures_are_handled_at_inta
         "</script><script>alert('x')</script> & \u{2028}\u{2029}"
     );
 }
+#[test]
+fn embedded_modern_facts_cannot_bypass_strict_saved_result_validation() {
+    let mut legacy: Value = serde_json::from_slice(include_bytes!(
+        "../../../tests/fixtures/ici-next/legacy-v3-suite.json"
+    ))
+    .unwrap();
+    legacy["native_run"] =
+        json!({"schema_id":"ici.next.run","schema_version":2,"gate":{"selected":"PASS"}});
+    assert!(StoredResult::from_value(legacy.clone()).is_err());
+    legacy["native_run"] = json!({"producer_extension":"unrelated historical extension"});
+    assert_eq!(
+        StoredResult::from_value(legacy.clone())
+            .unwrap()
+            .to_value()
+            .unwrap(),
+        legacy
+    );
+}

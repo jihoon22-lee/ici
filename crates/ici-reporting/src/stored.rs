@@ -40,6 +40,14 @@ impl LegacyDocument {
                 "Legacy version conflicts with ici.result/v3".into(),
             ));
         }
+        if let Some(run) = object
+            .get("native_run")
+            .filter(|run| run["schema_id"] == "ici.next.run")
+        {
+            // A legacy extension may carry modern facts, but it must not bypass
+            // the strict reader and turn malformed execution/scope into a verdict.
+            RunResult::from_value(run.clone())?;
+        }
         let kind = if let Some(results) = object.get("results") {
             let results = results
                 .as_array()

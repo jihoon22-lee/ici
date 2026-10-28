@@ -76,3 +76,41 @@ Verification uses locked Rust tests, strict scoped Clippy and crate formatting,
 with cargo jobs and test threads capped at two under the shared heavy lock.
 Development-only Python captured the immutable fixtures; it is never invoked
 by the native report implementation or its Rust tests.
+
+Source navigation uses only explicit caller context. `source_root` enables the
+VS Code/Cursor/PyCharm/Sublime/browser-file picker. `repository_url` and
+`commit_ref` together enable encoded source links; credentials, query/fragment,
+control characters and traversal are refused. `[external]` stays literal.
+Default reports remain portable with location-copy controls. The development
+DOM harness is runnable with
+`node tests/rust-parity/reporting/navigation-dom-smoke.cjs` and verifies actual
+inline JavaScript dispatch/encoding without installing a browser or reading
+project sources.
+
+The application can use the pure APIs with its existing atomic storage:
+
+```rust,ignore
+let bytes = ici_execution::storage::read_bounded_regular(input, 64 * 1024 * 1024)?;
+let stored = ici_reporting::StoredResult::from_bytes(&bytes)?;
+let options = ici_reporting::RenderOptions {
+    title: project_name.to_string(),
+    source_root: Some(project_root.to_string_lossy().into_owned()),
+    ..Default::default()
+};
+let html = ici_reporting::render_html(&stored, &options)?;
+ici_execution::storage::atomic_write(output, html.as_bytes(), write_mode)?;
+```
+
+For a new native run, call
+`legacy_projection(&run, &outputs_by_logical_task_id, &ProjectionContext { ... })`
+then wrap it in `StoredResult::Legacy`. Supply exact `required_checks`,
+`engine_names`, `raw_fingerprints`, project name and duration from execution.
+Historical `analysis_metadata` / `legacy_baseline` require their own proven
+compatibility; otherwise leave them `None` and retain modern facts in
+`native_run`. The modern envelope never receives report-only fields.
+
+`StoredResult::to_json` is the lossless archive round-trip. Use `render_json`
+for a redacted JSON output boundary. `render_sarif`, `render_markdown`,
+`render_console` and `github_annotations` likewise project saved facts only.
+`import_report` and `load_auxiliary` handle supporting evidence; attach it via
+`RenderOptions::auxiliary` without changing the run's gate or selection.

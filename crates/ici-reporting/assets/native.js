@@ -32,6 +32,54 @@
         (filter && !row.textContent.toLocaleLowerCase().includes(filter.value.toLocaleLowerCase()));
     });
   }));
+  const navigationElement = document.getElementById('ici-source-navigation');
+  const navigation = navigationElement ? JSON.parse(navigationElement.textContent) : null;
+  const component = value => encodeURIComponent(value).replace(/[!'()*]/g,
+    character => '%' + character.charCodeAt(0).toString(16).toUpperCase());
+  const relativePath = path => path && path !== '[external]' && !/[\\:\u0000-\u001f\u007f]/.test(path) &&
+    !path.startsWith('/') && path.split('/').every(part => part && part !== '.' && part !== '..');
+  const sourceControls = root => {
+    if (!navigation) return;
+    root.querySelectorAll('[data-copy-location][data-path]').forEach(copy => {
+      if (copy.dataset.sourceDecorated || !relativePath(copy.dataset.path)) return;
+      copy.dataset.sourceDecorated = 'true';
+      const path = copy.dataset.path, line = String(Number(copy.dataset.line) || 1);
+      if (navigation.root) {
+        const open = document.createElement('a'); open.href = '#'; open.textContent = 'Open';
+        open.dataset.openSource = path; open.dataset.line = line;
+        copy.parentNode.appendChild(document.createTextNode(' ')); copy.parentNode.appendChild(open);
+      }
+      if (navigation.repository_url) {
+        const link = document.createElement('a'); link.textContent = 'Source';
+        link.href = navigation.repository_url + '/blob/' + component(navigation.commit_ref) + '/' +
+          path.split('/').map(component).join('/') + '#L' + line;
+        link.target = '_blank'; link.rel = 'noopener noreferrer';
+        copy.parentNode.appendChild(document.createTextNode(' ')); copy.parentNode.appendChild(link);
+      }
+    });
+  };
+  sourceControls(document);
+  document.addEventListener('click', event => {
+    const link = event.target.closest('[data-open-source]');
+    if (!link || !navigation || !navigation.root || !relativePath(link.dataset.openSource)) return;
+    event.preventDefault();
+    const selector = document.getElementById('editor-select');
+    const choice = selector ? selector.value : 'copy';
+    const line = String(Number(link.dataset.line) || 1), path = link.dataset.openSource;
+    const absolute = navigation.root.replace(/\\/g, '/').replace(/\/$/, '') + '/' + path;
+    const encoded = absolute.split('/').map(part => /^[A-Za-z]:$/.test(part) ? part : component(part)).join('/');
+    let uri;
+    if (choice === 'vscode' || choice === 'cursor') uri = choice + '://file/' + encoded + ':' + line;
+    else if (choice === 'pycharm') uri = 'idea://open?file=' + component(absolute) + '&line=' + line;
+    else if (choice === 'sublime') uri = 'subl://' + encoded + ':' + line;
+    else if (choice === 'file') {
+      const file = /^[A-Za-z]:\//.test(encoded) ? 'file:///' + encoded : 'file://' + encoded;
+      window.open(file, '_blank', 'noopener,noreferrer'); return;
+    } else {
+      const copy = link.parentNode.querySelector('[data-copy-location]'); if (copy) copy.click(); return;
+    }
+    window.location.href = uri;
+  });
   document.addEventListener('click', async event => {
     const button = event.target.closest('[data-copy-location]');
     if (!button) return;
@@ -42,7 +90,7 @@
   if (!groupPayload) return;
   const data = JSON.parse(groupPayload.textContent), documentData = getSaved();
   const findings = Array.isArray(documentData.results)
-    ? documentData.results.flatMap(engine => engine.findings || [])
+    ? documentData.results.flatMap(engine => (engine.findings || []).map(finding => ({...finding, evidence: finding.evidence || engine.evidence})))
     : documentData.findings || [];
   const node = (tag, text) => {
     const element = document.createElement(tag);
@@ -70,7 +118,7 @@
       const location = `${span.path || 'unknown'}:${span.start_line || 1}${span.start_column ? ':' + span.start_column : ''}`;
       const paragraph = node('p'); paragraph.appendChild(node('code', location));
       if (span.path !== '[external]') {
-        const copy = node('button', 'Copy'); copy.type = 'button'; copy.dataset.copyLocation = location;
+        const copy = node('button', 'Copy'); copy.type = 'button'; copy.dataset.copyLocation = location; copy.dataset.path = span.path; copy.dataset.line = String(span.start_line || 1);
         copy.setAttribute('aria-label', `Copy location ${location}`); paragraph.appendChild(copy);
       }
       article.appendChild(paragraph);
@@ -82,7 +130,7 @@
         details.appendChild(node('pre', JSON.stringify({provenance: group.provenance || [], locations: group.locations || [],
           findings: group.indices.map(index => findings[index])}, null, 2)));
       });
-      article.appendChild(details); root.appendChild(article);
+      article.appendChild(details); root.appendChild(article); sourceControls(article);
     }
     label.textContent = `Page ${page + 1} of ${pages} · ${selected.length} of ${data.groups.length} issue groups`;
     previous.disabled = page === 0; next.disabled = page + 1 === pages;
