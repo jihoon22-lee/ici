@@ -138,6 +138,25 @@ impl AnalysisSession {
             );
             return output;
         }
+        let deduplicated;
+        let request = match canonical_inputs(request) {
+            Ok(None) => request,
+            Ok(Some(canonical)) => {
+                deduplicated = canonical;
+                &deduplicated
+            }
+            Err(path) => {
+                failure(
+                    &mut output,
+                    &path,
+                    &SourceError::new(
+                        "conflicting-input",
+                        "The same source path was supplied more than once with different bytes",
+                    ),
+                );
+                return output;
+            }
+        };
         if (matches!(
             kind,
             "security" | "resource" | "exception" | "dead" | "dup" | "compat"
@@ -373,6 +392,47 @@ impl AnalysisSession {
         output.extra["parser_identity"] = json!(PARSER_IDENTITY);
         output
     }
+}
+/// One immutable snapshot has one content per project path. Lexically equal
+/// paths (`a.py`, `./a.py`) with equal bytes are the same input and keep the
+/// first spelling, as the old intake's normalized `seen` set did; different
+/// bytes for one path make the request self-contradictory and are refused.
+fn canonical_inputs(request: &AnalysisRequest) -> Result<Option<AnalysisRequest>, String> {
+    fn key(path: &str) -> String {
+        if path.starts_with('/') || path.contains('\\') {
+            return path.to_owned();
+        }
+        let parts: Vec<_> = path.split('/').filter(|part| *part != ".").collect();
+        if parts.is_empty() {
+            path.to_owned()
+        } else {
+            parts.join("/")
+        }
+    }
+    let mut seen: BTreeMap<String, usize> = BTreeMap::new();
+    let mut keep = Vec::with_capacity(request.inputs.len());
+    for (index, input) in request.inputs.iter().enumerate() {
+        match seen.entry(key(&input.path)) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                entry.insert(index);
+                keep.push(index);
+            }
+            std::collections::btree_map::Entry::Occupied(entry) => {
+                if request.inputs[*entry.get()].bytes != input.bytes {
+                    return Err(input.path.clone());
+                }
+            }
+        }
+    }
+    if keep.len() == request.inputs.len() {
+        return Ok(None);
+    }
+    let mut canonical = request.clone();
+    canonical.inputs = keep
+        .into_iter()
+        .map(|index| request.inputs[index].clone())
+        .collect();
+    Ok(Some(canonical))
 }
 fn duplicate_not_applicable(output: &mut AnalysisOutput, excluded: bool) {
     output.status = "SKIP".into();

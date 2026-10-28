@@ -2234,3 +2234,66 @@ fn python_newline_recoding_composes_raw_boundaries_without_changing_other_files(
         "# coding: no_such_codec\r\nnotes"
     );
 }
+
+#[test]
+fn repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused() {
+    let text = "def f(x):\n    if x:\n        return 1\n    return 2\n";
+    let single = analyze(&request("line", text));
+    let mut repeated = request("line", text);
+    for path in ["main.py", "./main.py"] {
+        repeated.inputs.push(SourceInput {
+            path: path.into(),
+            bytes: text.as_bytes().to_vec(),
+        });
+    }
+    let output = analyze(&repeated);
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.targets.len(), single.targets.len());
+    assert_eq!(output.targets[0].file_path, "main.py");
+    assert_eq!(output.extra["code"], single.extra["code"]);
+    let metric = |output: &AnalysisOutput, name: &str| {
+        output
+            .observation
+            .measurements
+            .iter()
+            .find(|item| item.name == name)
+            .map(|item| item.value)
+    };
+    let mut complexity = request("complexity", text);
+    complexity.inputs.push(complexity.inputs[0].clone());
+    assert_eq!(
+        metric(&analyze(&complexity), "functions_measured"),
+        metric(&analyze(&request("complexity", text)), "functions_measured")
+    );
+
+    let mut distinct = request("line", text);
+    distinct.inputs.push(SourceInput {
+        path: "pkg/main.py".into(),
+        bytes: text.as_bytes().to_vec(),
+    });
+    let output = analyze(&distinct);
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.targets.len(), 2 * single.targets.len());
+
+    for check in ["line", "security", "complexity", "dup"] {
+        let mut conflicting = request(check, "PASSWORD = 'hunter2hunter2xx'\n");
+        conflicting.inputs.push(SourceInput {
+            path: "./main.py".into(),
+            bytes: b"x = 1\n".to_vec(),
+        });
+        let output = analyze(&conflicting);
+        assert_eq!(output.observation.state, TaskState::Failed, "{check}");
+        assert_eq!(output.status, "ERROR");
+        assert!(output.observation.findings.is_empty(), "{check}");
+        assert_eq!(output.targets.len(), 1, "{check}");
+        assert_eq!(output.targets[0].file_path, "./main.py");
+        assert_eq!(
+            output.targets[0].target_name,
+            "PythonAnalysis:conflicting-input"
+        );
+        assert!(
+            output.observation.limitations[0].contains("conflicting-input"),
+            "{check}"
+        );
+    }
+}
