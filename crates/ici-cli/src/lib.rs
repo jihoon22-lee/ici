@@ -4,6 +4,7 @@ pub mod execute;
 pub mod inputs;
 pub mod planning;
 pub mod registry;
+pub mod report;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const DEFAULT_RESULT: &str = ".ici/rust-v1/result.json";

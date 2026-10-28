@@ -53,7 +53,33 @@ pub fn command(
     let stdout = if invocation.flag("json_mode") {
         run.result.to_json().map_err(error)? + "\n"
     } else {
-        console(&run.result, &run.result_path, 5)
+        let stored = crate::report::load(&run.result_path)?;
+        let root = crate::commands::artifact_root(cwd);
+        let options = ici_reporting::RenderOptions {
+            source_root: Some(root.to_string_lossy().into_owned()),
+            ..Default::default()
+        };
+        let mut text = ici_reporting::render_console(&stored, &options).map_err(error)?;
+        let page = run.result_path.with_extension("html");
+        let html = ici_reporting::render_html(&stored, &options).map_err(error)?;
+        crate::report::write_artifact(
+            &page,
+            html.as_bytes(),
+            &run.result_path,
+            crate::report::ArtifactKind::Html,
+        )
+        .map_err(|failure| {
+            CliError(format!(
+                "analysis result saved at {}; HTML could not be written: {failure}",
+                run.result_path.display()
+            ))
+        })?;
+        text.push_str(&format!(
+            "Result: {}\nHTML: {}\n",
+            run.result_path.display(),
+            page.display()
+        ));
+        text
     };
     Ok(CommandOutput {
         stdout,
@@ -99,6 +125,7 @@ pub fn execute(
         .map(|path| storage::read_result(path).map_err(error))
         .transpose()?;
     validate_destination(&result_path, false)?;
+    validate_destination(&crate::report::details_path(&result_path, &run_id)?, true)?;
     if result_path.exists() {
         storage::read_result(&result_path).map_err(|failure| CliError(format!("existing result is not a native run artifact; choose a new --result path: {failure}")))?;
     }
@@ -532,6 +559,9 @@ pub fn execute(
             output.summary = reason;
         }
     }
+    for output in outputs.values_mut() {
+        redact(output)?;
+    }
     let inputs_stable =
         match planning::prepare_for_run(invocation, cwd, environment, static_only, &run_id)
             .and_then(|after| {
@@ -643,6 +673,10 @@ pub fn execute(
         result.execution.required_complete = false;
         result.gate.reasons.push("core identity unavailable".into());
     }
+    result = RunResult::from_value(ici_execution::redaction::redact_value(
+        &result.to_value().map_err(error)?,
+    ))
+    .map_err(error)?;
     storage::write_result(&result_path, &result, WriteMode::ReplaceRegular).map_err(error)?;
     events.emit(
         "run.completed",
@@ -656,7 +690,7 @@ pub fn execute(
         result.limitations.push(failure);
         storage::write_result(&result_path, &result, WriteMode::ReplaceRegular).map_err(error)?;
     }
-    Ok(ExecutedRun {
+    let executed = ExecutedRun {
         result,
         outputs,
         result_path,
@@ -678,7 +712,9 @@ pub fn execute(
             .collect(),
         project_name: prepared.project.workspace_name.clone(),
         duration_seconds: started.elapsed().as_secs_f64(),
-    })
+    };
+    crate::report::save_details(&executed)?;
+    Ok(executed)
 }
 fn unavailable(id: &str, state: TaskState, reason: &str) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(id, "ici");
@@ -908,70 +944,24 @@ fn execute_validation(
         if combined.extra.is_null() {
             combined.extra = json!({});
         }
+        if let Some(details) = output
+            .extra
+            .get("finding_details")
+            .and_then(serde_json::Value::as_object)
+        {
+            if !combined
+                .extra
+                .get("finding_details")
+                .is_some_and(serde_json::Value::is_object)
+            {
+                combined.extra["finding_details"] = json!({});
+            }
+            combined.extra["finding_details"]
+                .as_object_mut()
+                .expect("details map")
+                .extend(details.clone());
+        }
         combined.extra[&plan.context.task_id] = output.extra;
     }
     combined
-}
-
-fn console(result: &RunResult, path: &Path, maximum: usize) -> String {
-    let verdict = serde_json::to_value(result.gate.selected).expect("enum");
-    let mut text = format!(
-        "{} — {} finding(s)\n",
-        verdict.as_str().expect("string enum"),
-        result
-            .findings
-            .iter()
-            .filter(|finding| !finding.suppression.suppressed)
-            .count()
-    );
-    for reason in &result.gate.reasons {
-        text.push_str(&format!("  {}\n", reason));
-    }
-    for finding in result
-        .findings
-        .iter()
-        .filter(|finding| !finding.suppression.suppressed)
-        .take(maximum)
-    {
-        let location = &finding.primary_location;
-        let column = location
-            .start_column
-            .map(|column| format!(":{column}"))
-            .unwrap_or_default();
-        text.push_str(&format!(
-            "  {}:{}{}  {}  {}\n",
-            location.path, location.start_line, column, finding.rule_id, finding.message
-        ));
-    }
-    let remaining = result
-        .findings
-        .iter()
-        .filter(|finding| !finding.suppression.suppressed)
-        .count()
-        .saturating_sub(maximum);
-    if remaining > 0 {
-        text.push_str(&format!("  {remaining} more in the saved result\n"));
-    }
-    if result.scope.kind != ici_domain::ScopeKind::Full {
-        text.push_str(
-            "  This run covers the selected scope; it does not certify the full workspace.\n",
-        );
-    }
-    if let Some(comparison) = &result.baseline {
-        if comparison.state == ici_domain::BaselineState::Comparable {
-            text.push_str(&format!(
-                "  baseline: {} new, {} resolved, {} carried\n",
-                comparison.new.len(),
-                comparison.resolved.len(),
-                comparison.carried.len()
-            ));
-        } else {
-            text.push_str(&format!(
-                "  baseline comparison unavailable: {}\n",
-                comparison.reason
-            ));
-        }
-    }
-    text.push_str(&format!("Result: {}\n", path.display()));
-    text
 }

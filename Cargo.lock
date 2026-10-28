@@ -856,6 +856,7 @@ dependencies = [
  "ici-domain",
  "ici-execution",
  "ici-providers",
+ "ici-reporting",
  "ici-validation",
  "serde",
  "serde_json",

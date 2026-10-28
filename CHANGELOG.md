@@ -7,6 +7,13 @@
 
 ## [Unreleased]
 
+- native 실행 결과에 PASS 위치·원시 metric·상세 진단을 가진 보고서 archive를 함께 보존하고,
+  기본 `analyze` 출력에 JSON과 오프라인 HTML 경로를 제공합니다. JSON 모드는 기계용 결과만 출력합니다.
+- `report`/`next report`는 저장 결과만 읽고 HTML/SARIF를 만들며, source나 설정이 없어도
+  재분석하지 않습니다. 다른 run의 상세 archive·입력 alias·기존 사용자 출력 파일을 거부합니다.
+- `import-report`의 SARIF/JUnit/LCOV는 별도 supporting evidence로 저장합니다. HTML 첨부는
+  gate를 바꾸지 않고 SARIF와의 암묵적 병합을 거부합니다.
+
 - 개별 분석 선택과 기존 36개 검사 밖의 추가 동작도 같은 application 계획·검증 경로를
   사용합니다. 검사 일부만 선택한 결과는 workspace 전체 완료로 표시하지 않습니다.
 - legacy 전역 integration case는 한 component가 소유하며 필수 case가 비어 있으면

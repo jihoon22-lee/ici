@@ -56,6 +56,8 @@ pub fn dispatch(
         }
         "analyze" => crate::execute::command(invocation, cwd, environment, true),
         "next verify" => crate::execute::command(invocation, cwd, environment, false),
+        "report" | "next report" => crate::report::command(invocation, cwd),
+        "import-report" => crate::report::import(invocation, cwd),
         "init" | "next init" => init(invocation, cwd, environment),
         "next migrate" => migrate(invocation, cwd),
         "diff" | "next diff" => diff(invocation, cwd),

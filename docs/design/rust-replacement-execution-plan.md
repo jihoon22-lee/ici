@@ -438,3 +438,22 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 - `cli-report-final.log` passed all 11 application planning cases, including supplemental and
   owner/empty-case regressions, followed by strict transitive CLI/application Clippy. This
   selection boundary is not evidence that every supplemental execution adapter is complete.
+
+### Stored CLI reports and supporting evidence
+
+- Every native execution keeps the unchanged run-v2 envelope and a separate redacted rich legacy
+  projection under `runs/<run-id>/details.json` beside the selected result. The projection retains
+  PASS targets, producer details and raw metric denominators. Report intake requires its embedded
+  run to equal the selected envelope, preventing a stale details archive from being attached.
+- `report`/`next report` only read stored artifacts; they can render after source deletion and
+  invalidated configuration. Writes use no-follow atomic storage, reject input inode aliases,
+  and replace only recognized generated artifacts. Native `analyze` prints JSON/HTML locations;
+  `--json` remains pure machine JSON. Artifact write errors identify the saved analysis result.
+- `import-report` stores external SARIF/JUnit/LCOV separately with `NOT_EVALUATED` gate; attaching
+  supporting HTML evidence leaves the result bytes intact and never silently merges into SARIF.
+- `cli-report-boundary-final.log`: all four actual CLI/report storage regressions passed (14.10s),
+  strict transitive CLI Clippy and changed-file fmt passed. `cli-report-lifecycle-gates.log` earlier
+  passed all CLI/application ordinary tests, then found two in-progress validation-binding lint
+  warnings; both were fixed by their owner and the final strict check passed. R7's 28 pure reader,
+  projection/render/import/navigation cases are documented in its corpus README; publication,
+  historical baseline enforcement and full inventory acceptance remain separate work.
