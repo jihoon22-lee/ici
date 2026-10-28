@@ -36,6 +36,13 @@ pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
             }
         }
     }
+    for context in prepared.cpp.contexts.values() {
+        for unit in &context.units {
+            if prepared.project.root.join(&unit.source).is_file() {
+                sources.insert(unit.source.clone());
+            }
+        }
+    }
     let mut configurations: BTreeSet<String> = prepared
         .project
         .configuration_files
@@ -46,6 +53,15 @@ pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
                 .map(|p| p.to_string_lossy().into_owned())
         })
         .collect();
+    for context in prepared.cpp.contexts.values() {
+        configurations.extend(context.database_path.iter().cloned());
+        configurations.extend(
+            context
+                .response_files
+                .iter()
+                .map(|input| input.path.clone()),
+        );
+    }
     for provider in prepared.providers.values() {
         for reference in &provider.task.input_refs {
             let path = Path::new(reference);
@@ -299,6 +315,23 @@ pub fn check_records(
                 }
             }
         }
+        if matches!(planned.work, ici_application::plan::Work::Steps { .. })
+            && !prepared.validations.contains_key(&planned.task_id)
+        {
+            context["steps"] = json!(
+                planned
+                    .tasks()
+                    .iter()
+                    .map(|task| InvocationIdentity::new(
+                        task,
+                        &runner.environment(task),
+                        &prepared.project.root
+                    ))
+                    .collect::<Vec<_>>()
+            );
+        }
+        let units = planned.analysis_units();
+        let variants = planned.variants();
         let scope = ScopeIdentity {
             check_id: planned.check.id.clone(),
             component_id: planned.component_id.clone(),
@@ -308,7 +341,7 @@ pub fn check_records(
             native_configuration: configuration,
             context,
             invocation: task
-                .filter(|_| !prepared.validations.contains_key(&planned.task_id))
+                .filter(|_| !matches!(planned.work, ici_application::plan::Work::Steps { .. }))
                 .map(|task| {
                     InvocationIdentity::new(task, &runner.environment(task), &prepared.project.root)
                 }),
@@ -319,7 +352,12 @@ pub fn check_records(
             && prepared
                 .providers
                 .get(&planned.task_id)
-                .is_none_or(|provider| provider.scope_complete);
+                .is_none_or(|provider| provider.scope_complete)
+            && prepared
+                .cpp
+                .diagnostics
+                .get(&planned.task_id)
+                .is_none_or(|providers| providers.iter().all(|provider| provider.scope_complete));
         records.push(CheckRecord {
             task_id: planned.task_id.clone(),
             check_id: planned.check.id.clone(),
@@ -330,12 +368,8 @@ pub fn check_records(
                 .map_err(|error| CliError(error.to_string()))?,
             state: observation.state,
             evidence_complete: complete,
-            analysis_unit_id: task
-                .and_then(|task| {
-                    (task.analysis_unit_ids.len() == 1).then(|| task.analysis_unit_ids[0].clone())
-                })
-                .or_else(|| Some(format!("{}.{}", component.id, planned.check.language))),
-            variant: task.and_then(|task| task.variant.clone()),
+            analysis_unit_id: (units.len() == 1).then(|| units[0].clone()),
+            variant: (variants.len() == 1).then(|| variants[0].clone()),
         });
     }
     Ok(records)
@@ -348,6 +382,7 @@ pub fn changed(
 ) -> bool {
     before.project.root != after.project.root
         || !old.difference(new).stable()
+        || before.cpp.configuration_identity() != after.cpp.configuration_identity()
         || before.plan.profile != after.plan.profile
         || ici_application::identity::policy_digest(&before.project).ok()
             != ici_application::identity::policy_digest(&after.project).ok()

@@ -47,6 +47,10 @@ fn completion_violations_and_workspace_scope_stay_independent() {
     assert_eq!(failed.gate.selected, GateVerdict::Fail);
     assert_eq!(failed.gate.workspace, GateVerdict::NotEvaluated);
     assert!(failed.gate.has_violations);
+    assert_eq!(
+        failed.raw_fingerprints[&failed.findings[0].fingerprint],
+        "provider-native-identity"
+    );
     observations[1].truncated = true;
     let incomplete = evaluate(&plan, observations, false, |_| {}).unwrap();
     assert_eq!(incomplete.gate.selected, GateVerdict::Incomplete);

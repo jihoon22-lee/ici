@@ -60,6 +60,29 @@ impl PlannedCheck {
             _ => &[],
         }
     }
+    pub fn analysis_units(&self) -> Vec<String> {
+        let mut units: Vec<_> = self
+            .tasks()
+            .iter()
+            .flat_map(|task| task.analysis_unit_ids.iter().cloned())
+            .collect();
+        if units.is_empty() {
+            units.push(format!("{}.{}", self.component_id, self.check.language));
+        }
+        units.sort();
+        units.dedup();
+        units
+    }
+    pub fn variants(&self) -> Vec<String> {
+        let mut variants: Vec<_> = self
+            .tasks()
+            .iter()
+            .filter_map(|task| task.variant.clone())
+            .collect();
+        variants.sort();
+        variants.dedup();
+        variants
+    }
     pub fn blocked(&self) -> Option<&str> {
         match &self.work {
             Work::Blocked { reason } => Some(reason),

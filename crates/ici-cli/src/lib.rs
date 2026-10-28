@@ -12,3 +12,6 @@ pub const DEFAULT_PAGE: &str = ".ici/rust-v1/result.html";
 pub mod validation;
 
 pub mod reuse;
+
+pub mod cpp;
+pub mod files;

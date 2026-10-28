@@ -23,6 +23,7 @@ use std::{
 
 pub struct PreparedPlan {
     pub project: ResolvedProject,
+    pub cpp: crate::cpp::CppPlans,
     pub request: RunRequest,
     pub plan: Plan,
     pub graph: TaskGraph,
@@ -82,6 +83,7 @@ pub fn prepare_for_run(
         require_full: invocation.flag("require_full"),
         static_only,
     };
+    let mut cpp = crate::cpp::CppPlans::default();
     let mut validations = BTreeMap::new();
     let mut providers = BTreeMap::new();
     let mut tools = BTreeMap::new();
@@ -93,6 +95,9 @@ pub fn prepare_for_run(
         } else {
             project.root.join(&component.root)
         };
+        if let Some(work) = cpp.bind(&project, component, check, task_id, environment) {
+            return Ok(work);
+        }
         if let Some(bound) = crate::validation::bind(
             &project,
             component,
@@ -241,6 +246,7 @@ pub fn prepare_for_run(
         Ok(work)
     })
     .map_err(|e| CliError(e.to_string()))?;
+    tools.extend(cpp.tools.clone());
     let probes = providers
         .iter()
         .filter(|(_, provider)| {
@@ -257,6 +263,7 @@ pub fn prepare_for_run(
     let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
     Ok(PreparedPlan {
         project,
+        cpp,
         request,
         plan,
         graph,

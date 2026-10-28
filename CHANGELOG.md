@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+- native C++ CLI가 기록된 각 compilation unit과 variant를 실제 컴파일러로 검사하고,
+  진단의 원래 소유권·Unicode 위치를 보존합니다. unity include 증거와 선언된 artifact를
+  별도로 확인하며 미확인 header closure는 cache/resolved 근거로 쓰지 않습니다.
+- 저장 run의 중첩 필드까지 알 수 없는 키를 거부해 새 계약을 기존 v2로 오인하지 않게 합니다.
+
 - native 저장 reader는 기존 run v1/v2와 legacy v3를 구분하고 알 수 없는 schema·중복 JSON
   key·과도한 입력을 거부합니다. legacy 확장 데이터는 읽는 과정에서 버리지 않습니다.
 - wheel 검증에 필요한 ZIP codec·CRC 의존성을 고정하고 쓰지 않는 PEP 508 의존성을 제거합니다.

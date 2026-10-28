@@ -20,7 +20,7 @@ use ici_execution::{
 };
 use serde_json::json;
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},
     time::Instant,
 };
@@ -31,6 +31,11 @@ pub struct ExecutedRun {
     /// Retain actual inspected PASS/FAIL locations and descriptor extras for report projection.
     pub outputs: BTreeMap<String, AnalysisOutput>,
     pub result_path: PathBuf,
+    pub raw_fingerprints: BTreeMap<String, String>,
+    pub required_checks: BTreeMap<String, bool>,
+    pub engine_names: BTreeMap<String, String>,
+    pub project_name: String,
+    pub duration_seconds: f64,
 }
 fn error(error: impl std::fmt::Display) -> CliError {
     CliError(error.to_string())
@@ -64,6 +69,7 @@ pub fn execute(
     static_only: bool,
     cancellation: &Cancellation,
 ) -> Result<ExecutedRun> {
+    let started = Instant::now();
     let run_id = format!(
         "{}-{}",
         chrono::Utc::now().format("%Y%m%dT%H%M%S%.9fZ"),
@@ -130,6 +136,7 @@ pub fn execute(
     let toolchain_digest=identity::digest(&json!({"namespace":"ici.rust.toolchain.v1","core":core_digest.ok(),"tools":prepared.tools.iter().map(|(id,tool)|(id,&tool.digest)).collect::<BTreeMap<_,_>>()})).map_err(error)?;
     let coordinates =
         ici_providers::source_coordinates(snapshot.files.values().map(|file| &file.input));
+    prepared.cpp.attach_sources(coordinates.clone());
     for provider in prepared.providers.values_mut() {
         ici_providers::attach_sources(provider, coordinates.clone());
     }
@@ -144,9 +151,17 @@ pub fn execute(
     let mut outputs = BTreeMap::new();
     let mut step_outcomes = BTreeMap::new();
     let mut owned_runs = BTreeMap::new();
-    if intake_ok {
+    let mut enrichment_incomplete = BTreeMap::new();
+    for plans in prepared.validations.values_mut() {
+        for plan in plans {
+            ici_validation::attach_sources(plan, coordinates.clone());
+        }
+    }
+    if intake_ok && !cancellation.is_cancelled() {
         for planned in &prepared.plan.checks {
-            if !prepared.validations.contains_key(&planned.task_id) {
+            if planned.check.language != "python"
+                || !prepared.validations.contains_key(&planned.task_id)
+            {
                 continue;
             }
             let mut request = inputs::analysis_request(&prepared, planned, &snapshot, false);
@@ -159,38 +174,73 @@ pub fn execute(
                     request.inputs.push(file.input.clone());
                 }
             }
-            let facts = match python.source_facts(&request) {
-                Ok(facts) => facts
-                    .functions
-                    .into_iter()
-                    .map(|fact| ici_validation::FunctionFact {
-                        path: fact.path,
-                        name: fact.name,
-                        qualified_name: fact.qualified_name,
-                        start_line: fact.start_line,
-                        entry_line: Some(fact.entry_line),
-                        body_start_line: fact.body_start_line,
-                        end_line: fact.end_line,
-                    })
-                    .collect::<Vec<_>>(),
-                Err(output) => {
-                    outputs.insert(planned.task_id.clone(), *output);
-                    continue;
-                }
+            let (facts, facts_complete, fact_limitation) = match python
+                .source_facts_cancellable(&request, &cancellation.flag())
+            {
+                Ok(facts) => (
+                    facts
+                        .functions
+                        .into_iter()
+                        .map(|fact| ici_validation::FunctionFact {
+                            path: fact.path,
+                            name: fact.name,
+                            qualified_name: fact.qualified_name,
+                            start_line: fact.start_line,
+                            entry_line: Some(fact.entry_line),
+                            body_start_line: fact.body_start_line,
+                            end_line: fact.end_line,
+                        })
+                        .collect::<Vec<_>>(),
+                    true,
+                    None,
+                ),
+                Err(output) => (
+                    vec![],
+                    false,
+                    Some(format!(
+                        "core source geometry unavailable; project runtime evidence is independent: {}",
+                        output
+                            .observation
+                            .limitations
+                            .last()
+                            .cloned()
+                            .unwrap_or(output.summary)
+                    )),
+                ),
             };
-            let requirement = match ici_analysis::requires_python(&request) {
-                Ok(requirement) => requirement.filter(|requirement| !requirement.is_empty()),
-                Err(output) => {
-                    outputs.insert(planned.task_id.clone(), *output);
-                    continue;
+            if cancellation.is_cancelled() {
+                break;
+            }
+            let requirement = if planned.check.id == "python.compat-runtime" {
+                match ici_analysis::requires_python(&request) {
+                    Ok(requirement) => requirement.filter(|requirement| !requirement.is_empty()),
+                    Err(output) => {
+                        enrichment_incomplete.insert(
+                            planned.task_id.clone(),
+                            format!(
+                                "declared runtime compatibility cannot be evaluated: {}",
+                                output
+                                    .observation
+                                    .limitations
+                                    .last()
+                                    .cloned()
+                                    .unwrap_or(output.summary)
+                            ),
+                        );
+                        None
+                    }
                 }
+            } else {
+                None
             };
             for plan in prepared
                 .validations
                 .get_mut(&planned.task_id)
                 .expect("selected validation")
             {
-                ici_validation::attach_sources(plan, coordinates.clone());
+                if let Some(limitation) = &fact_limitation {
+                    plan.limitations.push(limitation.clone());
+                }
                 plan.context.functions = facts
                     .iter()
                     .filter(|fact| {
@@ -199,7 +249,7 @@ pub fn execute(
                     })
                     .cloned()
                     .collect();
-                plan.context.options.function_facts_complete = true;
+                plan.context.options.function_facts_complete = facts_complete;
                 if plan.context.options.requires_python.is_none() {
                     plan.context.options.requires_python = requirement.clone();
                 }
@@ -240,6 +290,7 @@ pub fn execute(
                             outputs
                                 .get(*dependency)
                                 .is_none_or(|output| !output.observation.evidence_is_complete())
+                                && !prepared.cpp.partial_input_available(dependency, id)
                         })
                     })
                     .map(|dependency| {
@@ -293,11 +344,22 @@ pub fn execute(
                         Some(&planned.component_id),
                         "native analysis",
                     );
-                    let mut output = if planned.check.language == "python" {
-                        python.analyze_cancellable(&request, &cancellation.flag())
-                    } else {
-                        cpp.analyze_cancellable(&request, &cancellation.flag())
-                    };
+                    let mut output =
+                        if matches!(planned.check.id.as_str(), "cpp.compile" | "cpp.artifact") {
+                            let component = inputs::component(&prepared, planned).clone();
+                            prepared.cpp.run(
+                                &prepared.project,
+                                &component,
+                                &request,
+                                &scheduler,
+                                cancellation,
+                                &events,
+                            )
+                        } else if planned.check.language == "python" {
+                            python.analyze_cancellable(&request, &cancellation.flag())
+                        } else {
+                            cpp.analyze_cancellable(&request, &cancellation.flag())
+                        };
                     output.observation.duration_seconds = Some(start.elapsed().as_secs_f64());
                     redact(&mut output)?;
                     events.emit(
@@ -310,7 +372,22 @@ pub fn execute(
                 }
                 Work::Process { task, .. } => tasks.push(task.as_ref().clone()),
                 Work::Steps { .. } => {
-                    let mut output = if let Some(plans) = prepared.validations.get(id) {
+                    let mut output = if planned.check.language == "cpp"
+                        && (prepared.cpp.diagnostics.contains_key(id)
+                            || prepared.cpp.includes.contains_key(id))
+                    {
+                        let request =
+                            inputs::analysis_request(&prepared, planned, &snapshot, false);
+                        let component = inputs::component(&prepared, planned).clone();
+                        prepared.cpp.run(
+                            &prepared.project,
+                            &component,
+                            &request,
+                            &scheduler,
+                            cancellation,
+                            &events,
+                        )
+                    } else if let Some(plans) = prepared.validations.get(id) {
                         execute_validation(
                             id,
                             plans,
@@ -447,6 +524,14 @@ pub fn execute(
             )
         });
     }
+    for (id, reason) in enrichment_incomplete {
+        if let Some(output) = outputs.get_mut(&id) {
+            output.observation.state = TaskState::Failed;
+            output.observation.limitations.push(reason.clone());
+            output.status = "ERROR".into();
+            output.summary = reason;
+        }
+    }
     let inputs_stable =
         match planning::prepare_for_run(invocation, cwd, environment, static_only, &run_id)
             .and_then(|after| {
@@ -486,6 +571,7 @@ pub fn execute(
         |finding| suppressions.apply(finding),
     )
     .map_err(error)?;
+    let raw_fingerprints = verification.raw_fingerprints.clone();
     let checks = inputs::check_records(
         &prepared,
         &verification.observations,
@@ -498,6 +584,22 @@ pub fn execute(
     if let Some(failure) = events.failure() {
         limitations.push(failure);
     }
+    let mut source = snapshot.source(None, true);
+    let selected: BTreeSet<_> = prepared
+        .project
+        .components
+        .iter()
+        .flat_map(|component| component.files.iter().cloned())
+        .collect();
+    let generated: BTreeSet<_> = prepared
+        .cpp
+        .contexts
+        .values()
+        .flat_map(|context| context.units.iter().map(|unit| unit.source.clone()))
+        .filter(|path| !selected.contains(path))
+        .collect();
+    source.files.retain(|path| !generated.contains(path));
+    source.generated = generated.into_iter().collect();
     let mut result = assemble::assemble(
         &prepared.project,
         &prepared.request,
@@ -506,7 +608,7 @@ pub fn execute(
         RunContext {
             run_id,
             ici_version: crate::VERSION.into(),
-            source: snapshot.source(None, true),
+            source,
             policy_digest,
             toolchain_digest,
             bundle_digest: None,
@@ -558,6 +660,24 @@ pub fn execute(
         result,
         outputs,
         result_path,
+        raw_fingerprints,
+        required_checks: prepared
+            .plan
+            .checks
+            .iter()
+            .map(|planned| (planned.task_id.clone(), planned.check.required))
+            .collect(),
+        engine_names: prepared
+            .plan
+            .checks
+            .iter()
+            .filter_map(|planned| {
+                ici_application::plan::engine_name(&planned.check.id)
+                    .map(|name| (planned.task_id.clone(), name.into()))
+            })
+            .collect(),
+        project_name: prepared.project.workspace_name.clone(),
+        duration_seconds: started.elapsed().as_secs_f64(),
     })
 }
 fn unavailable(id: &str, state: TaskState, reason: &str) -> AnalysisOutput {

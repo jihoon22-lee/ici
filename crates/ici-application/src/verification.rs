@@ -10,6 +10,9 @@ pub struct Verification {
     pub gate: GateOutcome,
     pub observations: Vec<Observation>,
     pub findings: Vec<Finding>,
+    /// Presentation details retain their producer fingerprint without extending run v2.
+    #[serde(skip)]
+    pub raw_fingerprints: BTreeMap<String, String>,
 }
 
 /// Attribute first, then suppress/deduplicate, then judge. Requiredness belongs to the plan and
@@ -40,6 +43,7 @@ pub fn evaluate(
     let mut observations = vec![];
     let mut required_fingerprints = BTreeSet::new();
     let mut findings = vec![];
+    let mut raw_fingerprints = BTreeMap::new();
     let mut seen = BTreeSet::new();
     for planned in &plan.checks {
         let mut observation = by_id.remove(&planned.task_id).unwrap_or_else(|| {
@@ -77,12 +81,8 @@ pub fn evaluate(
             observation.state = TaskState::Blocked;
             observation.limitations.push(reason.into());
         }
-        let mut units = planned
-            .task()
-            .map(|t| t.analysis_unit_ids.clone())
-            .unwrap_or_default();
-        units.sort();
-        units.dedup();
+        let units = planned.analysis_units();
+        let variants = planned.variants();
         for finding in &mut observation.findings {
             finding.component_id = Some(planned.component_id.clone());
             finding.task_id = Some(planned.task_id.clone());
@@ -96,16 +96,26 @@ pub fn evaluate(
             {
                 finding.analysis_unit_id = None;
             }
-            if let Some(variant) = planned.task().and_then(|t| t.variant.as_ref()) {
-                finding.variant = Some(variant.clone());
+            if variants.len() == 1 {
+                finding.variant = Some(variants[0].clone());
+            } else if variants.len() > 1
+                && !finding
+                    .variant
+                    .as_ref()
+                    .is_some_and(|variant| variants.contains(variant))
+            {
+                finding.variant = None;
             }
+
             if (!planned.check.required || planned.advisory())
                 && !finding.tags.iter().any(|tag| tag == "advisory")
             {
                 finding.tags.push("advisory".into());
             }
+            let raw_fingerprint = finding.fingerprint.clone();
             finding.fingerprint = attributed_fingerprint(finding, &units)
                 .map_err(|e| ApplicationError(e.to_string()))?;
+            raw_fingerprints.insert(finding.fingerprint.clone(), raw_fingerprint);
             if planned.check.required && !planned.advisory() {
                 required_fingerprints.insert(finding.fingerprint.clone());
             }
@@ -161,5 +171,6 @@ pub fn evaluate(
         gate,
         observations,
         findings,
+        raw_fingerprints,
     })
 }
