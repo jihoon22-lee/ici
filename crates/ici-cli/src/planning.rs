@@ -108,6 +108,7 @@ pub fn prepare_with_contexts(
         run_label,
         generated_outputs,
     )?;
+    prepared.cpp.attach_prepared(contexts);
     crate::preparation::bind_compiled_artifacts(&mut prepared, contexts, environment)?;
     Ok(prepared)
 }
@@ -192,6 +193,7 @@ fn prepare_resolved_omitting(
     }
     let mut supplemental = crate::validation::supplemental_checks(&project);
     supplemental.extend(crate::cpp::supplemental_checks(&project));
+    supplemental.extend(crate::legacy::annotation_check(invocation, &mut project));
     let mut definitions = ici_domain::builtin_catalog().checks;
     definitions.extend(supplemental.iter().cloned());
     let selected_checks = crate::legacy::select(invocation, &mut project, &definitions);
@@ -450,6 +452,16 @@ fn prepare_resolved_omitting(
             }) {
                 variants.insert(primary);
             }
+            if selected.contains("cpp.dead")
+                && component
+                    .settings
+                    .pointer("/engines/dead/cpp_unused")
+                    .and_then(Value::as_str)
+                    .unwrap_or("auto")
+                    != "off"
+            {
+                variants.insert(primary);
+            }
             if selected.contains("cpp.coverage") {
                 variants.insert("coverage");
             } else if selected.contains("cpp.test") {
@@ -460,6 +472,16 @@ fn prepare_resolved_omitting(
             }
             if selected.contains("cpp.tsan") {
                 variants.insert("tsan");
+            }
+            if selected.contains("cpp.dead")
+                && component
+                    .settings
+                    .pointer("/engines/dead/cpp_linker")
+                    .and_then(Value::as_str)
+                    .unwrap_or("off")
+                    != "off"
+            {
+                variants.insert("link-reachability");
             }
             for variant in variants {
                 let mut selected_project = project.clone();
@@ -558,7 +580,7 @@ pub fn is_command_output(invocation: &Invocation, root: &Path, path: &str) -> bo
         .chain(standard)
         .any(|output| crate::report::same_file(&path, &output))
 }
-fn tool_pack(environment: &BTreeMap<String, String>) -> Option<PathBuf> {
+pub(crate) fn tool_pack(environment: &BTreeMap<String, String>) -> Option<PathBuf> {
     if let Some(directory) = environment
         .get("ICI_NATIVE_TOOL_PACK")
         .filter(|p| !p.is_empty())

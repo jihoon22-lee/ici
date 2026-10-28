@@ -432,7 +432,7 @@ pub fn engine_name(check_id: &str) -> Option<&'static str> {
         "python.line" | "cpp.line" => Some("line"),
         "python.lint" | "python.format" | "cpp.diagnostics" | "cpp.tidy" | "rust.clippy"
         | "javascript.lint" | "typescript.lint" => Some("lint"),
-        "python.type" | "typescript.type" => Some("type"),
+        "python.type" | "python.annotations" | "typescript.type" => Some("type"),
         "python.test" | "python.coverage" | "cpp.test" | "cpp.coverage" => Some("test"),
         "python.compat" | "python.compat-runtime" => Some("python_compat"),
         "python.complexity" | "cpp.complexity" => Some("complexity"),

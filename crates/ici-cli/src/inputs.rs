@@ -54,6 +54,7 @@ pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
                 .map(|p| p.to_string_lossy().into_owned())
         })
         .collect();
+    configurations.extend(prepared.cpp.evidence_input_limits().into_keys());
     for build in prepared.artifact_builds.values() {
         for reference in &build.task.input_refs {
             if let Ok(relative) = Path::new(reference).strip_prefix(&prepared.project.root) {
@@ -145,6 +146,7 @@ pub fn binary_limits(prepared: &PreparedPlan) -> BTreeMap<String, usize> {
         .values()
         .flat_map(|build| build.binary_inputs.iter())
         .map(|path| (path.clone(), 256 * 1024 * 1024))
+        .chain(prepared.cpp.evidence_input_limits())
         .collect()
 }
 pub fn empty_snapshot() -> InputSnapshot {
@@ -224,7 +226,11 @@ pub fn analysis_request(
     }
     AnalysisRequest {
         task_id: planned.task_id.clone(),
-        check_id: planned.check.id.clone(),
+        check_id: if planned.check.id == "python.annotations" {
+            "python.type".into()
+        } else {
+            planned.check.id.clone()
+        },
         component_id: planned.component_id.clone(),
         language: planned.check.language.clone(),
         inputs,

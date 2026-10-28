@@ -1,12 +1,16 @@
 pub mod artifact_build;
 pub mod commands;
+pub mod compilation_command;
+pub mod doctor;
 pub mod events;
 pub mod execute;
 pub mod export_context;
 pub mod inputs;
 pub mod legacy;
+pub mod legacy_execute;
 pub mod planning;
 pub mod preparation;
+pub mod publish;
 pub mod registry;
 pub mod report;
 pub mod setup;

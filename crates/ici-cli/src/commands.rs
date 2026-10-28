@@ -56,9 +56,17 @@ pub fn dispatch(
         }
         "analyze" => crate::execute::command(invocation, cwd, environment, true),
         "next verify" => crate::execute::command(invocation, cwd, environment, false),
+        command if command == "verify" || crate::legacy::engine(command).is_some() => {
+            crate::legacy_execute::command(invocation, cwd, environment)
+        }
         "report" | "next report" => crate::report::command(invocation, cwd),
         "import-report" => crate::report::import(invocation, cwd),
         "setup" => crate::setup::command(invocation, cwd, environment),
+        "doctor" | "next doctor" => crate::doctor::command(invocation, cwd, environment),
+        "export-compilation-context" => {
+            crate::compilation_command::command(invocation, cwd, environment)
+        }
+        "publish" | "next publish" => crate::publish::command(invocation, cwd, environment),
         "init" | "next init" => init(invocation, cwd, environment),
         "next migrate" => migrate(invocation, cwd),
         "diff" | "next diff" => diff(invocation, cwd),
@@ -204,8 +212,11 @@ fn diff(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
         &root,
         invocation.value("current").unwrap_or(crate::DEFAULT_RESULT),
     );
-    let old = ici_execution::storage::read_result(&old_path).map_err(error)?;
-    let current = ici_execution::storage::read_result(&new_path).map_err(error)?;
+    let old = native_comparison_result(&old_path)?;
+    let current = native_comparison_result(&new_path)?;
+    let (Some(old), Some(current)) = (old, current) else {
+        return Ok(CommandOutput{stdout:"incompatible: historical results are readable but have no native completed-check scope; original reports are unchanged\n".into(),stderr:String::new(),exit_code:2});
+    };
     let delta = ici_application::baseline::compare(
         &current.findings,
         &current.identity,
@@ -237,6 +248,18 @@ fn diff(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
         ));
     }
     Ok(CommandOutput::text(text))
+}
+fn native_comparison_result(path: &Path) -> Result<Option<ici_domain::RunResult>> {
+    match crate::report::load(path)? {
+        ici_reporting::StoredResult::Run(run) => Ok(Some(*run)),
+        ici_reporting::StoredResult::Legacy(legacy) => legacy
+            .as_value()
+            .get("native_run")
+            .cloned()
+            .map(ici_domain::RunResult::from_value)
+            .transpose()
+            .map_err(error),
+    }
 }
 
 fn cache(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {

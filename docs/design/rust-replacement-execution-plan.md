@@ -1,5 +1,35 @@
 # ici Rust 전면 교체 실행 계획
 
+### Historical commands and publication composition (2026-10-29)
+
+- `5e83831` connects both doctor routes and legacy brief/JSON to shared configuration/planning,
+  deduplicated bounded version probes, explicit required tool policy and actual scope guidance.
+  Eleven command cases passed in 1.09 s, including no-project-Python, disabled checks, runtime
+  matrix, recorded C++ context without replay, timeout/truncation/cancellation and no state writes;
+  transitive strict Clippy also passed (`doctor-gates-final.log`).
+
+- Historical verify/family commands use the shared native runner and stored projections. Output
+  alias/unowned-file checks precede execution; incompatible historical baselines preserve both
+  original baseline and native result, without writing the requested replacement. Native-rich
+  baselines and diff retain completed-check scope. Browser opening is an explicit detached user
+  action; GitHub summaries append safely and annotations come from the stored result.
+- Legacy return annotation inspection is a distinct optional estimated check beside the actual
+  type provider. Missing type tools stay incomplete. The first CLI test exposed an empty raw
+  finding identity in the annotation analyzer; `91d74d1` fixes it and validates the frozen
+  annotation corpus through the shared Observation contract.
+- Publication uploads stored bytes only, uses explicit HTTPS destinations/system roots, separates
+  upload status from code verdict, and guards sticky comments using current PR head and run order.
+  Hub branch creation uses the hub's own default commit; large diagnostics use bounded summaries
+  while preserving saved artifacts. `native-command-composition-final.log` records five legacy,
+  five publication and three setup command regressions, followed by strict transitive Clippy.
+- `24a12f3` preserves ten frozen compilation-export v1 payloads (producer version excluded),
+  including MSVC/wrapper/digest/privacy contracts. Eight ordinary export cases and actual
+  CMake/Qt5/Qt6 preparation passed; default export does not recursively discover project sources.
+- `0b0bd68` adds held-lease linker probes and a separate link-reachability variant. Actual GCC
+  multi-target execution preserves only the intersection of discarded hidden owned functions,
+  keeps full input integrity, and rejects forged overlays without a matching held lease.
+  Full inventory closure, final candidate acceptance and public cutover remain open.
+
 ### Native distribution acceptance checkpoint (2026-10-29)
 
 - `485b93e` adds the static musl build wrapper, verified isolated SDK/source inputs, full

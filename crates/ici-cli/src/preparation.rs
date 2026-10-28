@@ -108,6 +108,7 @@ fn rebind(
         runtime.static_only,
         runtime.run_id,
     )?;
+    prepared.cpp.attach_prepared(contexts);
     bind_compiled_artifacts(&mut prepared, contexts, runtime.environment)?;
     let after = crate::inputs::capture(&prepared)?;
     let roots: Vec<_> = contexts
@@ -284,6 +285,7 @@ pub fn execute(
                 "coverage" => check.check.id == "cpp.coverage",
                 "sanitize" => check.check.id == "cpp.sanitize",
                 "tsan" => check.check.id == "cpp.tsan",
+                "link-reachability" => check.check.id == "cpp.dead",
                 _ => {
                     matches!(
                         check.check.id.as_str(),

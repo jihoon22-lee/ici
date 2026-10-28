@@ -89,3 +89,36 @@ pub fn select(
 pub fn individual_profile(invocation: &Invocation) -> Option<Profile> {
     engine(&invocation.command()).map(|_| Profile::Deep)
 }
+
+/// Estimated annotation evidence is independent of required external type checking.
+pub fn annotation_check(
+    invocation: &Invocation,
+    project: &mut ici_config::ResolvedProject,
+) -> Option<CheckDefinition> {
+    if !is_legacy(invocation) {
+        return None;
+    }
+    let mut definition = ici_domain::builtin_catalog()
+        .checks
+        .into_iter()
+        .find(|check| check.id == "python.type")?;
+    definition.id = "python.annotations".into();
+    definition.title = "Estimated Python return annotation inspection".into();
+    definition.tool = None;
+    definition.required = false;
+    definition.needs.clear();
+    definition.provides.clear();
+    if let Some(mut setting) = project.checks.get("python.type").cloned() {
+        setting.required = false;
+        setting.settings["required"] = false.into();
+        project.checks.insert(definition.id.clone(), setting);
+    }
+    for component in &mut project.components {
+        if let Some(mut setting) = component.checks.get("python.type").cloned() {
+            setting.required = false;
+            setting.settings["required"] = false.into();
+            component.checks.insert(definition.id.clone(), setting);
+        }
+    }
+    Some(definition)
+}

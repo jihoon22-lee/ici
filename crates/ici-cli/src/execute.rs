@@ -766,19 +766,22 @@ pub fn execute(
         }
         result.baseline = Some(comparison);
     } else if let Some(ici_reporting::StoredResult::Legacy(legacy)) = baseline_document {
-        let carried = legacy
+        let previous = legacy
             .engines()
             .iter()
             .flat_map(|engine| engine["findings"].as_array().into_iter().flatten())
             .filter_map(|finding| finding["fingerprint"].as_str().map(str::to_owned))
             .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect();
+            .len();
         result.baseline = Some(ici_domain::BaselineComparison {
             state: ici_domain::BaselineState::Incompatible,
-            origin: baseline_path.expect("baseline path").to_string_lossy().into_owned(),
-            reason: "historical finding inventory is readable, but native provider policy and completed check scope were not recorded; no new or resolved gate is inferred; save an explicit new baseline".into(),
-            carried,
+            origin: baseline_path
+                .expect("baseline path")
+                .to_string_lossy()
+                .into_owned(),
+            reason: format!(
+                "historical inventory of {previous} findings is readable, but native provider policy and completed check scope were not recorded; no finding delta is inferred and the original baseline is preserved; save an explicit new baseline"
+            ),
             ..Default::default()
         });
     }
@@ -1002,7 +1005,7 @@ fn protect_outputs(
     }
     Ok(())
 }
-fn validate_destination(path: &Path, create_new: bool) -> Result<()> {
+pub(crate) fn validate_destination(path: &Path, create_new: bool) -> Result<()> {
     match std::fs::symlink_metadata(path) {
         Ok(metadata) => {
             if create_new || !metadata.file_type().is_file() {

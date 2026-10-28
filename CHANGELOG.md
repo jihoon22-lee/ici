@@ -7,6 +7,22 @@
 
 ## [Unreleased]
 
+- `doctor`/`next doctor`는 선택·생략된 검사와 실제 도구 요구를 공통 계획에서 읽고,
+  실행 파일별 제한된 version probe만 수행합니다. core Python·NAS 추정 없이 누락·실패·
+  timeout·출력 제한과 해결할 설정을 표시하며 검사·빌드·설치를 시작하지 않습니다.
+
+- 기존 `verify`·개별 검사 명령을 공통 native 실행에 연결하고 JSON/HTML/SARIF·baseline·
+  GitHub summary·명시 browser 열기를 지원합니다. 출력 alias와 사용자 파일은 실행 전에 거부하고,
+  비교 불가능한 과거 baseline은 원본을 보존하며 새 baseline을 쓰지 않습니다.
+- 기존 반환형 주석 검사는 별도 `ESTIMATED` 관측으로 보존합니다. 외부 타입 도구가 없으면
+  실제 타입 검사는 미완료이며, 개별 보고서도 원래 실행 범위·상태를 보존합니다.
+- `publish`/`next publish`는 저장된 결과와 HTML을 읽어 게시 상태를 별도 기록합니다.
+  사설 CA·GHES·hub·복수 보고서, blob 충돌 재시도, PR head/실행 순서 보호를 지원하고,
+  큰 진단은 댓글 요약만 UTF-8 한도에서 줄여 전체 결과·HTML을 유지합니다.
+- `export-compilation-context`에 읽기 전용 설정 조회·v1 payload 호환·경로/비밀값 보호와
+  명시 `--prepare`를 연결합니다. GNU linker dead 분석은 별도 소유 variant와 실제 객체·
+  relink·section 증거를 사용하며 일반 분석 중 빌드를 암묵적으로 시작하지 않습니다.
+
 - native 반환형 주석 finding에 안정적인 identity를 부여해 공통 결과 검증과 cache가 빈
   fingerprint 때문에 관측 결과를 거부하던 결함을 수정합니다. 추정 증거 표시는 유지합니다.
 
