@@ -201,3 +201,41 @@ fn actual_plain_cpp_exit_timeout_signal_output_and_ubsan_use_observed_verdicts()
         "cpp_executable"
     );
 }
+
+#[test]
+fn plain_sanitizer_runtime_failure_is_located_incomplete_without_a_code_failure() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path());
+    request.kind = ValidationKind::ThreadSanitizer;
+    request.options.sanitizer_suite_kind = Some(ValidationKind::CppExecutable);
+    request.options.instrumented_artifacts = vec!["suite".into()];
+    request
+        .options
+        .auxiliary_tools
+        .insert("readelf".into(), request.tool.clone());
+    let planned = plan(&request).unwrap();
+    let mut outcomes = BTreeMap::new();
+    for task in &planned.tasks {
+        let mut outcome = TaskOutcome::empty(&task.id);
+        outcome.state = TaskState::Succeeded;
+        if task.id.ends_with(".suite") {
+            outcome.exit_code = Some(66);
+            outcome.stderr =
+                b"FATAL: ThreadSanitizer: unexpected memory mapping 0x1234-0x5678\n".to_vec();
+        } else {
+            outcome.exit_code = Some(0);
+            outcome.stdout=b"Symbol table '.dynsym' contains 2 entries:\n 1: 0 0 FUNC GLOBAL DEFAULT UND __tsan_init\n".to_vec();
+        }
+        outcomes.insert(task.id.clone(), outcome);
+    }
+    let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
+    assert_eq!(output.observation.state, TaskState::Failed, "{output:?}");
+    assert!(output.observation.findings.is_empty());
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.file_path == "tests/red.cpp" && target.status == "ERROR"),
+        "{output:?}"
+    );
+}

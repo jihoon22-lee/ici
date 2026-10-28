@@ -439,37 +439,51 @@ pub(crate) fn observe(
         return Err(ValidationError("sanitizer diagnostic has no validated project-owned source location; only confirmed source findings were retained".into()));
     }
     if !planning::completed(outcome) {
+        let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
+        target.target_name = "Sanitizer execution".into();
+        target.status = "ERROR".into();
+        target.message = "instrumented process did not return a complete verdict".into();
+        output.targets.push(target);
         return Err(ValidationError(
             "sanitizer process did not complete; retained diagnostics cover only observed scope"
                 .into(),
         ));
     }
+    if output.observation.findings.is_empty()
+        && [
+            "AddressSanitizer:DEADLYSIGNAL",
+            "FATAL: ThreadSanitizer",
+            "Sanitizer CHECK failed",
+            "ERROR: AddressSanitizer",
+            "WARNING: ThreadSanitizer",
+        ]
+        .iter()
+        .any(|marker| transcript.contains(marker))
+    {
+        let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
+        target.target_name = "Sanitizer runtime".into();
+        target.status = "ERROR".into();
+        target.message =
+            "sanitizer runtime failed without a complete normalized code diagnostic".into();
+        output.targets.push(target);
+        return Err(ValidationError(
+            "sanitizer runtime failed or produced an incomplete diagnostic".into(),
+        ));
+    }
     if plan.context.options.sanitizer_suite_kind.is_some() {
         crate::sanitizer_suite::observe_framework(plan, outcome, output)?;
     }
-    if output.observation.findings.is_empty() {
-        if transcript.contains("AddressSanitizer:DEADLYSIGNAL")
-            || transcript.contains("FATAL: ThreadSanitizer")
-            || transcript.contains("Sanitizer CHECK failed")
-            || transcript.contains("ERROR: AddressSanitizer")
-            || transcript.contains("WARNING: ThreadSanitizer")
-        {
-            return Err(ValidationError(
-                "sanitizer runtime failed or produced an incomplete diagnostic".into(),
-            ));
-        }
-        if outcome.exit_code != Some(0) {
-            output.observation.findings.push(finding(
-                plan,
-                "ici.sanitize.suite-failure",
-                &format!(
-                    "suite exited {:?} without sanitizer defect evidence",
-                    outcome.exit_code
-                ),
-                &crate::cpp::source(plan, "sanitizer"),
-                1,
-            ));
-        }
+    if output.observation.findings.is_empty() && outcome.exit_code != Some(0) {
+        output.observation.findings.push(finding(
+            plan,
+            "ici.sanitize.suite-failure",
+            &format!(
+                "suite exited {:?} without sanitizer defect evidence",
+                outcome.exit_code
+            ),
+            &crate::cpp::source(plan, "sanitizer"),
+            1,
+        ));
     }
     output.observation.measurements.push(Measurement::measured(
         format!("{}.diagnostics", plan.kind.provider()),
