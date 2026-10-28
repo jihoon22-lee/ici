@@ -40,7 +40,7 @@ flock /tmp/paseo-products-20261028-heavy.lock env CARGO_BUILD_JOBS=2 \
 
 Security and resource rules now have a native implementation and 42 frozen-source
 fixtures, with explicit corrected expectations separate from the original oracle.
-Exception/dead/cycle/duplicate/packaging compatibility rule units remain unfinished. This partial evidence does not satisfy the Rust cutover gate; R8 must close every
+Dead/cycle/duplicate/packaging compatibility rule units remain unfinished. This partial evidence does not satisfy the Rust cutover gate; R8 must close every
 functionality row first.
 
 
@@ -68,3 +68,14 @@ functionality row first.
 
 `hygiene_oracle.py <frozen-oracle>` verifies the original evidence only. Native tests
 compare the explicit corrected expectation when present, so old defects stay visible.
+
+
+## Exception unit
+
+46 fixed-source handler fixtures preserve alias binding order, conditional paths,
+module/class/function lookup, aliases introduced after a deferred function definition,
+local future bindings, transient handler names, matching captures, deletes, boolean
+and conditional-expression assignments, BaseException/bare handlers, swallowing and
+handler-local traceback resets. Handler query work is bounded; an exceeded bound is
+incomplete evidence. `exception_oracle.py` verifies original expectations without
+rewriting them. Current native tests also cover all prior units and ownership checks.

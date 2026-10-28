@@ -1,5 +1,6 @@
 //! Native analyses over immutable source snapshots; no process or filesystem fallback.
 mod ast_util;
+mod exception;
 mod finding;
 mod lines;
 mod metrics;
@@ -86,7 +87,10 @@ impl AnalysisSession {
             lines::analyze(request, &mut output);
             return output;
         }
-        if !matches!(kind, "complexity" | "cognitive" | "security" | "resource") {
+        if !matches!(
+            kind,
+            "complexity" | "cognitive" | "security" | "resource" | "exception"
+        ) {
             failure(
                 &mut output,
                 ".",
@@ -193,6 +197,7 @@ impl AnalysisSession {
         match kind {
             "security" => security::analyze(request, &files, &mut output),
             "resource" => resource::analyze(request, &files, &mut output),
+            "exception" => exception::analyze(request, &files, &mut output),
             _ => metrics::analyze(request, &files, &mut output),
         }
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);

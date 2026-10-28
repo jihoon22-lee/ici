@@ -338,3 +338,23 @@ fn excluded_vendor_and_generated_inputs_remain_visible_and_not_measured() {
     input.options = json!({"include_vendor":true,"include_generated":true});
     assert_eq!(analyze(&input).observation.findings.len(), 3);
 }
+
+#[test]
+fn exception_aliases_and_handler_targets_match_fixed_source() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/exception.json"
+    ))
+    .unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        let output = analyze(&request("exception", case["source"].as_str().unwrap()));
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{} {:?}",
+            case["id"],
+            output.observation.limitations
+        );
+        let targets:Vec<Value>=output.targets.iter().map(|target|json!({"name":target.target_name,"line":target.start_line,"end_line":target.end_line,"message":target.message,"status":target.status})).collect();
+        assert_eq!(json!(targets), case["targets"], "{}", case["id"]);
+    }
+}
