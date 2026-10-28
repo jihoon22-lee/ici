@@ -116,7 +116,10 @@ pub fn evaluate(
             finding.fingerprint = attributed_fingerprint(finding, &units)
                 .map_err(|e| ApplicationError(e.to_string()))?;
             raw_fingerprints.insert(finding.fingerprint.clone(), raw_fingerprint);
-            if planned.check.required && !planned.advisory() {
+            if planned.check.required
+                && !planned.advisory()
+                && !finding.tags.iter().any(|tag| tag == "advisory")
+            {
                 required_fingerprints.insert(finding.fingerprint.clone());
             }
             let mut marked = finding.clone();

@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+- 필수 검사 안의 선택 integration/runtime case와 보고 전용 진단도 명시 advisory 정책을
+  존중합니다. 측정 증거와 finding은 보존하며 해당 case만 gate 위반에서 제외합니다.
+
 - native 실행 결과에 PASS 위치·원시 metric·상세 진단을 가진 보고서 archive를 함께 보존하고,
   기본 `analyze` 출력에 JSON과 오프라인 HTML 경로를 제공합니다. JSON 모드는 기계용 결과만 출력합니다.
 - `report`/`next report`는 저장 결과만 읽고 HTML/SARIF를 만들며, source나 설정이 없어도

@@ -136,6 +136,25 @@ fn advisory_type_diagnostics_stay_measured_and_missing_tool_still_incomplete() {
     );
 }
 #[test]
+fn advisory_cases_inside_a_required_check_do_not_gate_but_remain_measured() {
+    let (plan, mut observations) = fixture();
+    let mut advisory = finding();
+    advisory.tags.push("advisory".into());
+    observations[0].findings.push(advisory);
+    let result = evaluate(&plan, observations.clone(), false, |_| {}).unwrap();
+    assert_eq!(result.gate.selected, GateVerdict::Pass);
+    assert_eq!(result.findings.len(), 1);
+    assert_eq!(result.findings[0].evidence, EvidenceLevel::Measured);
+    observations[0].findings[0].tags.clear();
+    assert_eq!(
+        evaluate(&plan, observations, false, |_| {})
+            .unwrap()
+            .gate
+            .selected,
+        GateVerdict::Fail
+    );
+}
+#[test]
 fn missing_and_invalid_provider_evidence_cannot_pass_and_cancel_keeps_findings() {
     let (plan, mut observations) = fixture();
     observations.pop();

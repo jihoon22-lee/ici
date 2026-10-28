@@ -457,3 +457,9 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   warnings; both were fixed by their owner and the final strict check passed. R7's 28 pure reader,
   projection/render/import/navigation cases are documented in its corpus README; publication,
   historical baseline enforcement and full inventory acceptance remain separate work.
+
+- Actual optional integration acceptance exposed a required-check aggregation bug: producer-level
+  advisory findings were still added to the required fingerprint set. The application now honors
+  explicit advisory tags per finding while preserving measured evidence. `advisory-case-gates.log`
+  passed six verification regressions and strict application Clippy; removing the tag in the new
+  regression still fails the required gate. This does not turn missing required executions into PASS.
