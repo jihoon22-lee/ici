@@ -17,6 +17,12 @@
       "previous": "Syntax replay moved the source after all flags and could apply a trailing -x language switch to the wrong input. Driver-selected C++ mode for .c could also be mislabelled.",
       "expected": "Preserve the source operand position, bind language at that operand, and retain the invocation alias.",
       "evidence": "Actual GCC C++ template fixture in main.c succeeds with original and replayed g++ -x c++ main.c -x c; no object is written."
+    },
+    {
+      "case": "unity-source-coverage",
+      "previous": "A unity-like translation-unit filename could suppress all uncovered-source checks without proving original source membership.",
+      "expected": "Original selected sources remain uncovered until complete compiler include traces establish their TU/configuration membership.",
+      "evidence": "Actual CMake unity build and an unrelated unity_empty.cpp counterexample."
     }
   ]
 }

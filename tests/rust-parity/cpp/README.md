@@ -68,3 +68,25 @@ searches are probed separately. Their observed difference supplies
 `-nostdinc++` / `-isystem` arguments for Clang tooling; no GCC version or private
 library path is guessed. Missing active includes retain their located warning
 and do not create a dependency edge.
+
+Unity/aggregate source coverage is confirmed from complete compiler include traces,
+not from a generated TU's filename. A real CMake unity fixture covers both original
+sources only after observation; an unrelated unity-like filename leaves the
+selection incomplete. Compiler unused-internal-function ownership through unity
+remains explicitly unsupported, matching the prior contract's narrow claim.
+
+| Facet | Native API / retained contract | Evidence |
+|---|---|---|
+| Recorded compile input | `load_compilation_context`, original/expanded argv, cwd, response identities, defines/includes/sysroot/variant, explicit ambiguity | Context fixtures and actual GCC nested response observation |
+| Native build capture | `plan_build`, `BuildLease`, same-binary qmake recorder, CMake/qmake/Make owned shadows | Real CMake, explicit Make, Qt 5/6 moc/rcc/uic and coverage builds; cancellation/ownership fixtures |
+| Source measurements | `CppAnalysisSession`, all inspected PASS targets, separate line and rule bounds | 25 frozen metric/exception cases, 57 lexical cases, Unicode correction and newline/cancellation fixtures |
+| Compiler structure | `compiler_probe_task`, AST/tidy boundary readers and per-configuration policy | Frozen/live Clang 21.1.8 AST and size notes, macro/lambda/template cases |
+| Include scope | `parse_include_trace`, missing-include intake, per-configuration cycle analysis and aggregate coverage confirmation | Real GCC local/generated/external/missing header probes, variant isolation and real CMake unity membership |
+| Selected GCC library | C++/C include tasks and observed search difference | Real GCC probes; malformed/duplicate/root directory refusal |
+| Unused internal functions | `unused_function_consensus`, agreement across every selected configuration | Real GCC variant fixture; no whole-program or unity ownership claim |
+| GNU section GC | Explicit shadow build/relink tasks, source-bound object/binutils facts and cross-target intersection | Real two-target CMake build and local/hidden/default-visible/weak/COMDAT/LTO/clone exclusions |
+| Binary ABI | `parse_readelf`, `ElfPolicy`, `analyze_elf` | Real static/dynamic ELF and dependency/version/loader-path policy |
+
+Application/CLI task orchestration, runtime test/coverage/sanitizer verdicts, artifact
+publication and the final migration inventory are verified by their owning layers;
+these pure adapters do not independently claim whole-product acceptance.

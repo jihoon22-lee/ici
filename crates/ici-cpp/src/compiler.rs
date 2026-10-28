@@ -42,6 +42,20 @@ pub fn analyze_compile_context(
         }
         output.targets.push(target);
     }
+    for source in &context.selected_sources {
+        if context.units.iter().any(|unit| &unit.source == source) {
+            continue;
+        }
+        if let Some(configurations) = context.source_coverage.get(source) {
+            let mut target = InspectionTarget::at(source, 1);
+            target.target_name = "AggregateCompilationInput".into();
+            target.message="Compiler include traces confirmed this original source in recorded aggregate translation units".into();
+            target
+                .metrics
+                .insert("configurations".into(), json!(configurations));
+            output.targets.push(target);
+        }
+    }
     for source in &context.uncovered_sources {
         let mut target = InspectionTarget::at(source, 1);
         target.target_name = "UncoveredTranslationUnit".into();
@@ -349,6 +363,15 @@ pub fn unused_function_consensus(
             ".",
             "incomplete-compilation-context",
             "Unused-function consensus requires complete compile evidence",
+        );
+        return output;
+    }
+    if context.unity_build {
+        fail(
+            &mut output,
+            ".",
+            "unity-unused-unsupported",
+            "Internal unused-function ownership is not established through a unity build; use target-local GNU ELF evidence or separate source translation units",
         );
         return output;
     }
@@ -788,7 +811,7 @@ pub fn analyze_compiler_include_cycles(
     let expected: BTreeSet<_> = context
         .units
         .iter()
-        .filter(|unit| known.contains(&unit.source))
+        .filter(|unit| context.unity_build || known.contains(&unit.source))
         .map(|unit| (unit.source.clone(), unit.configuration.clone()))
         .collect();
     let mut actual = BTreeSet::new();
@@ -927,4 +950,64 @@ pub fn analyze_compiler_include_cycles(
     measurement(&mut output, "cycles_found", cycles.len() as u64, false);
     output.extra = json!({"resolution":"compiler_trace","configuration_graphs":graphs,"scope_counts":scope_counts,"resolved_edges":resolved,"configurations_checked":actual.len()});
     output
+}
+
+/// Close aggregate/unity source coverage only after every recorded TU/configuration has an
+/// observed complete compiler trace. A filename containing `unity_` is never coverage proof.
+pub fn confirm_compilation_coverage(
+    context: &CompilationContext,
+    observations: &[CompilerIncludeObservation],
+) -> Result<CompilationContext, CppError> {
+    let expected: BTreeSet<_> = context
+        .units
+        .iter()
+        .map(|unit| (unit.source.clone(), unit.configuration.clone()))
+        .collect();
+    let actual: BTreeSet<_> = observations
+        .iter()
+        .map(|observation| {
+            (
+                observation.source.clone(),
+                observation.configuration.clone(),
+            )
+        })
+        .collect();
+    if actual != expected
+        || observations.len() != expected.len()
+        || observations
+            .iter()
+            .any(|observation| !observation.complete || !observation.trace.complete())
+    {
+        return Err(CppError::new(
+            "coverage-probes-incomplete",
+            "Every recorded translation-unit configuration requires a complete include trace before aggregate source coverage is confirmed",
+        ));
+    }
+    let mut result = context.clone();
+    for observation in observations {
+        for path in std::iter::once(&observation.source).chain(
+            observation
+                .trace
+                .edges
+                .iter()
+                .filter(|edge| edge.to_scope == "project")
+                .map(|edge| &edge.to),
+        ) {
+            if crate::is_translation_unit(path) {
+                result
+                    .source_coverage
+                    .entry(path.clone())
+                    .or_default()
+                    .push(observation.configuration.clone());
+            }
+        }
+    }
+    for configurations in result.source_coverage.values_mut() {
+        configurations.sort();
+        configurations.dedup();
+    }
+    result
+        .uncovered_sources
+        .retain(|source| !result.source_coverage.contains_key(source));
+    Ok(result)
 }

@@ -161,14 +161,27 @@ pub fn load_compilation_context(root: &Path, request: &ContextRequest) -> Compil
         .units
         .iter()
         .any(|u| u.source.contains("/Unity/") || u.source.contains("unity_"));
-    if !context.unity_build {
-        let found: BTreeSet<_> = context.units.iter().map(|u| u.source.as_str()).collect();
-        context.uncovered_sources = request
-            .selected_sources
-            .iter()
-            .filter(|source| is_translation_unit(source) && !found.contains(source.as_str()))
-            .cloned()
-            .collect();
+    let found: BTreeSet<_> = context
+        .units
+        .iter()
+        .map(|unit| unit.source.as_str())
+        .collect();
+    context.uncovered_sources = request
+        .selected_sources
+        .iter()
+        .filter(|source| is_translation_unit(source) && !found.contains(source.as_str()))
+        .cloned()
+        .collect();
+    for unit in &context.units {
+        context
+            .source_coverage
+            .entry(unit.source.clone())
+            .or_default()
+            .push(unit.configuration.clone());
+    }
+    for configurations in context.source_coverage.values_mut() {
+        configurations.sort();
+        configurations.dedup();
     }
     if context.units.is_empty() {
         context.diagnostics.push(ContextDiagnostic::error(

@@ -321,3 +321,18 @@ fn replay_preserves_source_position_and_driver_language_before_trailing_language
     );
     assert!(!root.path().join("must-not-write.o").exists());
 }
+
+#[test]
+fn a_unity_filename_does_not_prove_that_an_unrelated_selected_source_was_compiled() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("unity_empty.cpp"), "int value;\n").unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    database(
+        root.path(),
+        json!([{"directory":root.path(),"file":"unity_empty.cpp","arguments":["g++","-c","unity_empty.cpp"]}]),
+    );
+    let context = load_compilation_context(root.path(), &request());
+    assert!(context.unity_build);
+    assert_eq!(context.uncovered_sources, ["main.cpp"]);
+    assert!(!context.complete());
+}

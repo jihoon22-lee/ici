@@ -96,6 +96,9 @@ pub struct CompilationContext {
     pub selected_sources: Vec<String>,
     pub uncovered_sources: Vec<String>,
     pub unity_build: bool,
+    /// Recorded or compiler-observed TU/configuration identities covering each original source.
+    #[serde(default)]
+    pub source_coverage: BTreeMap<String, Vec<String>>,
 }
 impl CompilationContext {
     pub fn complete(&self) -> bool {

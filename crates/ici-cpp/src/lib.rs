@@ -62,3 +62,5 @@ pub use tidy_boundaries::{
     ClangTidyBoundaryEvidence, FunctionSizeMetric, apply_function_size_metrics,
     clang_tidy_boundary_task, parse_clang_tidy_boundaries,
 };
+
+pub use compiler::confirm_compilation_coverage;

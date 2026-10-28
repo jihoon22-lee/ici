@@ -439,3 +439,71 @@ fn sanitizer_variant_plans_are_debug_and_keep_output_and_install_hooks_out_of_ad
         .is_err()
     );
 }
+
+#[test]
+fn actual_cmake_unity_build_requires_observed_original_source_membership() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+        root.path().join("main.cpp"),
+        "int helper();int main(){return helper();}\n",
+    )
+    .unwrap();
+    fs::write(root.path().join("helper.cpp"), "int helper(){return 0;}\n").unwrap();
+    fs::write(root.path().join("CMakeLists.txt"),"cmake_minimum_required(VERSION 3.16)\nproject(unity_fixture LANGUAGES CXX)\nadd_executable(fixture main.cpp helper.cpp)\n").unwrap();
+    let request = BuildRequest {
+        extra_cmake_args: vec!["-DCMAKE_UNITY_BUILD=ON".into()],
+        ..Default::default()
+    };
+    let (plan, _) = run(root.path(), &request);
+    let context = load_compilation_context(
+        root.path(),
+        &ContextRequest {
+            database: Some(plan.compilation_database),
+            selected_sources: vec!["main.cpp".into(), "helper.cpp".into()],
+            ..Default::default()
+        },
+    );
+    assert!(context.unity_build);
+    assert!(!context.complete());
+    assert_eq!(context.uncovered_sources.len(), 2);
+    let mut observations = vec![];
+    for unit in &context.units {
+        let task = ici_cpp::compiler_probe_task(
+            root.path(),
+            unit,
+            Path::new("/usr/bin/c++"),
+            ici_cpp::ReplayPurpose::IncludeTrace,
+            &unit.configuration,
+        )
+        .unwrap();
+        let outcome = Runner::default().run(&task, &Cancellation::default());
+        assert!(
+            outcome.prerequisite_succeeded(),
+            "{}",
+            String::from_utf8_lossy(&outcome.stderr)
+        );
+        let trace = ici_cpp::parse_include_trace(
+            root.path(),
+            &root.path().join(&unit.directory),
+            &root.path().join(&unit.source),
+            &String::from_utf8_lossy(&outcome.stderr),
+        )
+        .unwrap();
+        observations.push(ici_cpp::CompilerIncludeObservation {
+            source: unit.source.clone(),
+            configuration: unit.configuration.clone(),
+            complete: true,
+            trace,
+        });
+    }
+    let confirmed = ici_cpp::confirm_compilation_coverage(&context, &observations).unwrap();
+    assert!(confirmed.complete(), "{:?}", confirmed.uncovered_sources);
+    assert!(confirmed.source_coverage.contains_key("main.cpp"));
+    assert!(confirmed.source_coverage.contains_key("helper.cpp"));
+    observations[0].trace.edges.clear();
+    assert!(
+        !ici_cpp::confirm_compilation_coverage(&context, &observations)
+            .unwrap()
+            .complete()
+    );
+}
