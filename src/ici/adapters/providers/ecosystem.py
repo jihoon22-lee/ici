@@ -60,8 +60,23 @@ class EcosystemProvider:
         else:
             config = "tsconfig.json" if (cwd / "tsconfig.json").is_file() else "jsconfig.json"
             project = ("--project", config) if (cwd / config).is_file() else targets
-            argv = (executable, "--noEmit", "--pretty", "false", "--incremental", "false", *project)
-            kind = TaskKind.ANALYZE
+            metadata = cwd / ".ici" / "typescript" / "analysis.tsbuildinfo"
+            argv = (
+                executable,
+                "--noEmit",
+                "--pretty",
+                "false",
+                "--incremental",
+                "true",
+                "--tsBuildInfoFile",
+                str(metadata),
+                *project,
+            )
+            # Composite projects require incremental metadata. Keep it in ici's
+            # own directory and disclose the write instead of disabling a
+            # project setting or claiming a no-side-effect compiler run.
+            kind = TaskKind.PREPARE
+            work_dirs = resource_keys = (str(metadata.parent),)
             contract = ExitContract(success=(0,), findings=(1, 2))
         return ProviderPlan(
             task=TaskSpec(
@@ -94,7 +109,7 @@ class EcosystemProvider:
             limitations = {
                 "clippy": "Cargo can execute build scripts and proc macros; offline dependencies must already exist; native target closure is not a baseline resolution proof",
                 "eslint": "ESLint loads project configuration and plugins, which may execute JavaScript",
-                "tsc": "TypeScript project references are checked without building missing referenced outputs; native project closure is not a baseline resolution proof",
+                "tsc": "TypeScript writes incremental metadata under .ici; referenced outputs are not built; native project closure is not a baseline resolution proof",
             }
             return ParsedOutput(findings=tuple(findings), limitations=(limitations[self.name],))
         except (ValueError, TypeError, KeyError, AttributeError) as error:

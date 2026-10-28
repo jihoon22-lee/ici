@@ -102,3 +102,14 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
 - quality-zoo runner/manifest 자체 테스트 68개 통과(1.079초).
 - 수정 후 전체 pytest는 공통 lock에서 대기 중. pyz smoke의 coverage 포함 자체 검증과
   다른 프로젝트가 먼저 요청한 heavy 작업을 추월하거나 병렬 실행하지 않는다.
+
+## 설치/산출물 검증 및 composite 보완
+
+- pyz 빌드·Python 3.10 직접 실행·환경 진단·Zero-CDN smoke 모두 통과.
+  smoke의 전체 자체 verify도 exit 0. 이 중간 artifact는 0.12.1 version 표기의 작업
+  candidate이며 공개 release/기존 v0.12.1 asset을 바꾸지 않았다.
+- TypeScript composite fixture를 추가해 incremental 강제 비활성화의 비호환을 수정.
+  `.ici/typescript`에 metadata를 쓰는 PREPARE로 명시하고 fast에서 blocked. 일반/composite
+  및 Cargo/ESLint 포함 실제 provider 10개 통과(2.10초), provider mypy 통과.
+- 전체 pytest 재실행은 진행 중이며 이 마지막 provider 보완은 focused real-tool 검사와
+  최신 PR CI에서도 확인한다. 최종 공개 revision은 별도 release 변경에서 고정한다.

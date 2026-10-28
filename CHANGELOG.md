@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+- TypeScript composite 프로젝트의 incremental metadata는 `.ici/typescript`에 격리하고
+  PREPARE로 표시합니다. fast에서는 차단하며 JavaScript/declaration output은 생성하지 않습니다.
+
 - GitHub Release에 표준 wheel/sdist와 `ici-package.sha256`을 추가하고 격리 설치 smoke를
   CI와 release에서 실행합니다. 기존 pyz와 기존 회귀 gate는 유지합니다.
 - Cargo/tsc의 native project 입력 범위가 확정되지 않으면 baseline finding을 resolved로

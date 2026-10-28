@@ -117,12 +117,15 @@ def test_real_clippy_fixture(tmp_path):
     assert plan.task.mutating
 
 
-def test_real_typescript_fixture(tmp_path):
+@pytest.mark.parametrize("composite", [False, True])
+def test_real_typescript_fixture(tmp_path, composite):
     tsc = shutil.which("tsc")
     if not tsc:
         _missing("TypeScript unavailable; real tsc fixture not executed")
     (tmp_path / "tsconfig.json").write_text(
-        '{"compilerOptions":{"strict":true},"include":["example.ts"]}'
+        json.dumps(
+            {"compilerOptions": {"strict": True, "composite": composite}, "include": ["example.ts"]}
+        )
     )
     (tmp_path / "example.ts").write_text('const value: number = "bad";\n')
     provider = EcosystemProvider("tsc", tmp_path)
@@ -145,6 +148,8 @@ def test_real_typescript_fixture(tmp_path):
     assert any(f.native_rule_id == "2322" for f in parsed.findings)
     assert not (tmp_path / "example.js").exists()
     assert "tsconfig.json" in plan.task.input_refs
+    assert plan.task.mutating
+    assert (tmp_path / ".ici/typescript/analysis.tsbuildinfo").exists()
 
 
 def test_real_eslint_fixture(tmp_path):

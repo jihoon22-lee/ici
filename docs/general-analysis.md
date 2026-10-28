@@ -52,7 +52,7 @@ ici diff baseline.json --result current.json
 |C/C++|기존 정적 검사·compiler diagnostics·clang-tidy|compile context는 기존 compile DB/명시 설정 사용. prepare가 필요한데 없으면 incomplete|
 |Rust|Cargo Clippy|Cargo.toml/Cargo.lock·의존성과 toolchain을 사전 준비. `--offline --locked`, jobs=2, `.ici/cargo-target` 사용. build.rs/proc-macro 실행 가능. fast에서 blocked|
 |JavaScript|ESLint|project `node_modules/.bin` 우선, 없으면 PATH. 원래 설정/plugin 사용. JS 설정/plugin 실행 가능|
-|TypeScript|ESLint와 tsc noEmit|tsconfig/jsconfig 사용. ESLint TS parser/plugin은 프로젝트 책임. 참조 프로젝트의 미생성 output을 자동 build하지 않음|
+|TypeScript|ESLint와 tsc noEmit|tsconfig/jsconfig 사용. ESLint TS parser/plugin은 프로젝트 책임. 참조 프로젝트의 미생성 output을 자동 build하지 않음. composite 지원을 위한 incremental metadata는 `.ici/typescript`에 기록하며 PREPARE/fast 차단|
 
 ESLint가 파일을 무시하거나 설정하지 못한 경우 이를 정상 진단 없는 PASS로 바꾸지 않는다.
 Cargo/tsc의 native target/project closure는 아직 완전히 열거하지 않으므로 두 provider의
