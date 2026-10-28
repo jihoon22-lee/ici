@@ -61,6 +61,7 @@ pub struct RuntimeSpec {
 #[serde(default)]
 pub struct ValidationOptions {
     pub collect_coverage: bool,
+    pub coverage_module_probe: bool,
     /// Same owned run directory and source scope must be used by both logical checks.
     pub shared_test_task_id: Option<String>,
     pub shared_test_kind: Option<ValidationKind>,
@@ -118,6 +119,7 @@ impl Default for ValidationOptions {
     fn default() -> Self {
         Self {
             collect_coverage: false,
+            coverage_module_probe: false,
             shared_test_task_id: None,
             shared_test_kind: None,
             repeat_runs: 0,
@@ -212,6 +214,11 @@ pub struct StepPrerequisite {
     pub require_test_evidence: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StepCondition {
+    pub probe_task_id: String,
+    pub coverage_available: bool,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ValidationPlan {
     pub kind: ValidationKind,
     pub tasks: Vec<TaskSpec>,
@@ -222,6 +229,8 @@ pub struct ValidationPlan {
     pub runtime_plans: Vec<RuntimePlan>,
     #[serde(default)]
     pub optional_task_ids: Vec<String>,
+    #[serde(default)]
+    pub conditional_steps: BTreeMap<String, StepCondition>,
     /// Dependencies use provider exit contracts; the generic scheduler's exit=0 rule is insufficient.
     pub prerequisites: BTreeMap<String, Vec<StepPrerequisite>>,
     pub context: ValidationRequest,

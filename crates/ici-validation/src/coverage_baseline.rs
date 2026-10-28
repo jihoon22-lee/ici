@@ -175,10 +175,10 @@ impl CoveragePolicySnapshot {
             });
         }
         if let Some(sum) = sum
-            && self.raw_metrics["line"]
+            && let Some(line) = self.raw_metrics["line"]
                 .covered
                 .zip(self.raw_metrics["line"].total)
-                != Some(sum)
+            && line != sum
         {
             return Err(ValidationError(
                 "coverage snapshot aggregate line counts disagree with file denominators".into(),
@@ -456,4 +456,58 @@ fn compare_ratio(
         }
     }
     result.targets.push(target);
+}
+
+/// Preserve an explicitly configured baseline policy when coverage did not run.
+pub fn unavailable(
+    plan: &ValidationPlan,
+    reason: &str,
+) -> Result<CoveragePolicySnapshot, ValidationError> {
+    let absent = || CoverageRatio {
+        covered: None,
+        total: None,
+        state: RatioState::Unavailable,
+        reason: reason.into(),
+    };
+    let mut raw_metrics = ["line", "branch", "function", "changed_line"]
+        .into_iter()
+        .map(|name| (name.to_owned(), absent()))
+        .collect::<BTreeMap<_, _>>();
+    if plan.context.options.changed_lines.is_empty() {
+        raw_metrics.insert(
+            "changed_line".into(),
+            CoverageRatio {
+                covered: None,
+                total: None,
+                state: RatioState::NotSelected,
+                reason: "no changed-line selection was configured".into(),
+            },
+        );
+    }
+    let result = CoveragePolicySnapshot {
+        schema_id: SNAPSHOT_SCHEMA.into(),
+        schema_version: 1,
+        task_id: plan.context.task_id.clone(),
+        component_id: plan.context.component_id.clone(),
+        provider: plan.kind.provider().into(),
+        anchor_path: plan
+            .context
+            .source_files
+            .first()
+            .cloned()
+            .unwrap_or_else(|| "ici.toml".into()),
+        metrics: BTreeMap::new(),
+        files: BTreeMap::new(),
+        regression_tolerance: plan.context.options.max_coverage_regression,
+        raw_metrics,
+        raw_files: plan
+            .context
+            .source_files
+            .iter()
+            .map(|path| (path.clone(), absent()))
+            .collect(),
+        min_file_statements: plan.context.options.min_file_statements,
+    };
+    result.validate()?;
+    Ok(result)
 }

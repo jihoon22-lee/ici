@@ -130,6 +130,7 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
         artifact_patterns: vec![],
         runtime_plans: vec![],
         optional_task_ids: vec![],
+        conditional_steps: BTreeMap::new(),
         prerequisites: BTreeMap::new(),
         context: request.clone(),
         limitations: vec!["dynamic evidence is never reused from a previous run".into()],
@@ -440,6 +441,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         });
         plan.tasks.push(reporting);
     }
+    crate::python_coverage::configure(plan)?;
     Ok(())
 }
 pub(crate) fn task(request: &ValidationRequest, suffix: &str, args: Vec<String>) -> TaskSpec {
@@ -500,6 +502,9 @@ pub fn ready_steps(
     }
     let mut ready = vec![];
     for (index, task) in plan.tasks.iter().enumerate() {
+        if !crate::python_coverage::condition_ready(plan, &task.id, outcomes)? {
+            continue;
+        }
         if plan.kind == ValidationKind::BinaryCompatibility
             && plan
                 .artifact_headers
@@ -513,7 +518,9 @@ pub fn ready_steps(
         }
         let mut pending = false;
         for requirement in plan.prerequisites.get(&task.id).into_iter().flatten() {
-            let Some(outcome) = outcomes.get(&requirement.task_id) else {
+            let prerequisite =
+                crate::python_coverage::prerequisite(plan, &requirement.task_id, outcomes)?;
+            let Some(outcome) = outcomes.get(&prerequisite) else {
                 pending = true;
                 break;
             };

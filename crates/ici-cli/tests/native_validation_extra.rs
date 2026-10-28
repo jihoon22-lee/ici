@@ -1425,3 +1425,211 @@ fn skipped_pytest_case_carries_its_baseline_failure_until_it_completes() {
         "{comparison:?}"
     );
 }
+
+fn copy_project_tool_tree(source: &Path, destination: &Path) {
+    if source.is_dir() {
+        fs::create_dir_all(destination).unwrap();
+        for entry in fs::read_dir(source).unwrap() {
+            let entry = entry.unwrap();
+            if entry.file_name() == "__pycache__" {
+                continue;
+            }
+            copy_project_tool_tree(&entry.path(), &destination.join(entry.file_name()));
+        }
+    } else {
+        fs::copy(source, destination).unwrap();
+    }
+}
+fn isolated_pytest_without_coverage(root: &Path) -> String {
+    use std::process::Command;
+    let selected = python();
+    let metadata = Command::new(&selected)
+        .args([
+            "-c",
+            "import sysconfig; print(sysconfig.get_path('purelib'))",
+        ])
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .output()
+        .unwrap();
+    assert!(metadata.status.success());
+    let purelib = std::path::PathBuf::from(String::from_utf8(metadata.stdout).unwrap().trim());
+    let virtualenv = root.join(".venv");
+    let created = Command::new(&selected)
+        .args(["-m", "venv", "--without-pip"])
+        .arg(&virtualenv)
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .output()
+        .unwrap();
+    assert!(
+        created.status.success(),
+        "{}",
+        String::from_utf8_lossy(&created.stderr)
+    );
+    let executable = virtualenv.join("bin/python");
+    let metadata = Command::new(&executable)
+        .args([
+            "-c",
+            "import sysconfig; print(sysconfig.get_path('purelib'))",
+        ])
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .output()
+        .unwrap();
+    assert!(metadata.status.success());
+    let destination = std::path::PathBuf::from(String::from_utf8(metadata.stdout).unwrap().trim());
+    let packages = [
+        "pytest",
+        "_pytest",
+        "iniconfig",
+        "packaging",
+        "pluggy",
+        "pygments",
+        "exceptiongroup",
+        "tomli",
+        "py.py",
+        "typing_extensions.py",
+        "typing_extensions",
+    ];
+    for entry in fs::read_dir(&purelib).unwrap() {
+        let entry = entry.unwrap();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if packages.iter().any(|package| {
+            name == *package
+                || name.starts_with(&format!("{package}-")) && name.ends_with(".dist-info")
+        }) {
+            copy_project_tool_tree(&entry.path(), &destination.join(entry.file_name()));
+        }
+    }
+    let pytest = Command::new(&executable)
+        .args(["-m", "pytest", "--version"])
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .env("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+        .output()
+        .unwrap();
+    assert!(
+        pytest.status.success(),
+        "{}",
+        String::from_utf8_lossy(&pytest.stderr)
+    );
+    let coverage = Command::new(&executable)
+        .args(["-m", "coverage", "--version"])
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .output()
+        .unwrap();
+    assert!(!coverage.status.success());
+    assert!(String::from_utf8_lossy(&coverage.stderr).contains("No module named coverage"));
+    executable.to_string_lossy().into_owned()
+}
+#[test]
+#[ignore = "explicit real pytest-only runtime and optional/required coverage CLI acceptance"]
+fn missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("src")).unwrap();
+    fs::create_dir(root.path().join("tests")).unwrap();
+    fs::write(
+        root.path().join("src/app.py"),
+        "def answer():\n    return 42\n",
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("tests/test_app.py"),
+        "import app\ndef test_answer():\n    assert app.answer() == 42\n",
+    )
+    .unwrap();
+    let executable = isolated_pytest_without_coverage(root.path());
+    let text = config(
+        &["python.test", "python.coverage"],
+        "",
+        &format!(
+            "[components.python]\nexecutable={}\ntest_paths=['tests']\n",
+            quoted(&executable)
+        ),
+    )
+    .replace(
+        "sources=['app.py']",
+        "source_dirs=['src']\nsources=['src/**/*.py']",
+    )
+    .replace(
+        "[checks.\"python.coverage\"]\nenabled=true\nrequired=true\n",
+        "[checks.\"python.coverage\"]\nenabled=true\n",
+    );
+    let environment = BTreeMap::from([
+        ("PATH".into(), "/usr/bin:/bin".into()),
+        ("PYTEST_DISABLE_PLUGIN_AUTOLOAD".into(), "1".into()),
+    ]);
+    for (route, required, explicit) in [
+        ("verify", false, false),
+        ("verify", true, false),
+        ("next", false, false),
+        ("verify", false, true),
+    ] {
+        let mut configured = text.clone();
+        if required {
+            configured = configured.replace(
+                "[[components]]",
+                "[engines.test]\ncoverage_required=true\n[[components]]",
+            );
+        }
+        if explicit {
+            configured = configured.replace(
+                "[checks.\"python.coverage\"]\nenabled=true\n",
+                "[checks.\"python.coverage\"]\nenabled=true\nrequired=true\n",
+            );
+        }
+        write(root.path(), &configured);
+        let invocation = if route == "next" {
+            registry::parse(["ici", "next", "verify"]).unwrap()
+        } else {
+            registry::parse(["ici", "verify"]).unwrap()
+        };
+        let planned = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+        let policy = planned
+            .plan
+            .checks
+            .iter()
+            .find(|check| check.check.id == "python.coverage")
+            .unwrap();
+        assert_eq!(
+            policy.check.required,
+            required || explicit || route == "next"
+        );
+        let suite = &planned.validations["project.python.test"][0];
+        assert_eq!(suite.conditional_steps.len(), 2);
+        let run = execute::execute(
+            &invocation,
+            root.path(),
+            &environment,
+            false,
+            &Cancellation::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            run.outputs["project.python.test"].observation.state,
+            TaskState::Succeeded,
+            "{:?}",
+            run.outputs
+        );
+        assert!(
+            run.outputs["project.python.test"]
+                .observation
+                .measurements
+                .iter()
+                .any(|metric| metric.name == "pytest.cases"
+                    && metric.numerator == Some(1)
+                    && metric.denominator == Some(1))
+        );
+        let coverage = &run.outputs["project.python.coverage"];
+        assert_eq!(coverage.observation.state, TaskState::Failed);
+        assert!(coverage.score.is_none());
+        assert!(coverage.observation.measurements.is_empty());
+        assert_eq!(
+            run.result.gate.selected,
+            if required || explicit || route == "next" {
+                GateVerdict::Incomplete
+            } else {
+                GateVerdict::Pass
+            },
+            "route={route} required={required} explicit={explicit}: {:?}",
+            run.outputs
+        );
+    }
+}

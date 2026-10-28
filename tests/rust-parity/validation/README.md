@@ -323,3 +323,19 @@ matching check scope; ordinary source verification gates remain separate from fa
 Four pure comparison/validation cases and strict CLI/validation Clippy passed in
 `coverage-baseline-gates-final.log`; the actual shared pytest/coverage case passed in 2.07s
 (`coverage-baseline-native.log`). Root baseline/exit/report wiring has its own acceptance cases.
+
+Python test/coverage plans now show a bounded coverage version probe and mutually exclusive
+covered/plain-pytest suite branches. Only a completed exact missing-module diagnostic selects
+plain pytest; broken, ambiguous, truncated or timed-out probes remain incomplete. Shared
+coverage checks retain the actual suite identity and skip report generation when unavailable.
+Missing coverage has no score or invented denominator/TEM evidence, while completed pytest
+cases remain measured. Legacy coverage defaults to optional unless the historical engine policy
+or an explicit per-check required setting requests it; modern next checks keep their defaults.
+
+`validation-optional-cli-native.log` passed four actual CLI executions using an owned pytest-only
+virtual environment: optional legacy coverage passed the selected gate, while required engine
+policy, explicit check policy and modern next defaults remained incomplete. Actual pytest passed
+in all four runs. `validation-optional-all-gates.log` passed all 38 validation contract cases,
+11 doctor cases, eight ordinary extra CLI cases and strict CLI/validation Clippy. The three new
+conditional-coverage contracts cover both branches, repeats, malformed probes and unavailable
+raw policy evidence. These scoped results do not close the root R8/R9 inventory.

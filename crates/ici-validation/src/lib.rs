@@ -9,6 +9,7 @@ pub mod model;
 pub mod planning;
 pub mod policy;
 pub mod python;
+pub mod python_coverage;
 mod python_sanitize;
 pub mod runtime;
 pub mod sanitizer;

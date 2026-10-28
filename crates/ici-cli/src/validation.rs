@@ -15,6 +15,39 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Historical test policy keeps measured test execution independent from optional coverage.
+/// Explicit per-check required choices retain precedence over this compatibility default.
+pub fn apply_legacy_coverage_defaults(
+    invocation: &crate::registry::Invocation,
+    project: &mut ResolvedProject,
+) {
+    if !crate::legacy::is_legacy(invocation)
+        && project.schema_family != ici_config::SchemaFamily::Legacy
+    {
+        return;
+    }
+    for component in &mut project.components {
+        let required = component
+            .settings
+            .pointer("/engines/test/coverage_required")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        for id in ["python.coverage", "cpp.coverage"] {
+            if component
+                .checks
+                .get(id)
+                .or_else(|| project.checks.get(id))
+                .is_some_and(|setting| setting.settings.get("required").is_some())
+            {
+                continue;
+            }
+            let setting = component.checks.entry(id.into()).or_default();
+            setting.required = required;
+            setting.settings["required"] = serde_json::json!(required);
+        }
+    }
+}
+
 pub struct BoundValidation {
     pub work: Work,
     pub plans: Vec<ValidationPlan>,
@@ -145,6 +178,10 @@ pub fn bind(
             .and_then(Value::as_bool)
             .unwrap_or(true);
     let mut options = ValidationOptions {
+        coverage_module_probe: matches!(
+            kind,
+            ValidationKind::PythonTest | ValidationKind::PythonCoverage
+        ),
         collect_coverage: kind == ValidationKind::PythonTest
             && selected(project, component, request, "python.coverage"),
         shared_test_task_id: (kind == ValidationKind::PythonCoverage

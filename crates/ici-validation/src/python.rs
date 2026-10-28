@@ -151,6 +151,10 @@ pub fn observe_for(
             .flatten()
             .map(|item| item.task_id.clone()),
     );
+    ids.extend(crate::python_coverage::probe_id(plan));
+    if let Ok(id) = crate::python_coverage::actual_suite_id(plan, outcomes) {
+        ids.insert(id);
+    }
     let relevant: Vec<_> = ids.iter().filter_map(|id| outcomes.get(id)).collect();
     let required: Vec<_> = relevant
         .iter()
@@ -193,6 +197,8 @@ pub fn observe_for(
     }
     let provenance=plan.tasks.iter().map(|task|json!({"task_id":task.id,"argv":task.argv,"cwd":task.cwd,"state":outcomes.get(&task.id).map(|o|o.state),"exit_code":outcomes.get(&task.id).and_then(|o|o.exit_code)})).collect::<Vec<_>>();
     output.extra["steps"] = json!(provenance);
+    output.extra["conditional_steps"] = json!(plan.conditional_steps);
+    crate::python_coverage::annotate(plan, outcomes, &mut output);
     output.extra["optional_steps"]=json!(plan.optional_task_ids.iter().map(|id|json!({"task_id":id,"state":outcomes.get(id).map(|outcome|outcome.state),"exit_code":outcomes.get(id).and_then(|outcome|outcome.exit_code),"timed_out":outcomes.get(id).is_some_and(|outcome|outcome.timed_out),"truncated":outcomes.get(id).is_some_and(|outcome|outcome.truncated),"cancelled":outcomes.get(id).is_some_and(|outcome|outcome.cancelled)})).collect::<Vec<_>>());
     output
 }
@@ -200,12 +206,7 @@ fn suite<'a>(
     plan: &ValidationPlan,
     outcomes: &'a BTreeMap<String, TaskOutcome>,
 ) -> Result<&'a TaskOutcome, ValidationError> {
-    let id = plan
-        .context
-        .options
-        .shared_test_task_id
-        .clone()
-        .unwrap_or_else(|| format!("{}.suite", plan.context.task_id));
+    let id = crate::python_coverage::actual_suite_id(plan, outcomes)?;
     let outcome = outcomes
         .get(&id)
         .ok_or_else(|| ValidationError(format!("suite step {id} is absent")))?;
@@ -475,6 +476,12 @@ fn observe_coverage(
     artifacts: &CapturedArtifacts,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
+    if matches!(
+        crate::python_coverage::capability(plan, outcomes)?,
+        Some(crate::python_coverage::Capability::Missing)
+    ) {
+        return crate::python_coverage::unavailable(plan, output);
+    }
     let suite = suite(plan, outcomes)?;
     if !planning::completed(suite) || !matches!(suite.exit_code, Some(0 | 1)) {
         return Err(ValidationError(
