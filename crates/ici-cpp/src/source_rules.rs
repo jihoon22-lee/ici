@@ -14,8 +14,39 @@ pub(crate) fn lines(
     files: &[(&str, &str)],
     cancellation: Option<&std::sync::atomic::AtomicBool>,
 ) {
+    let legacy = request.options["legacy_projection"]
+        .as_bool()
+        .unwrap_or(false);
+    let selected = |key: &str, path: &str| {
+        request.options[key]
+            .as_array()
+            .is_none_or(|paths| paths.iter().any(|item| item.as_str() == Some(path)))
+    };
+    let limit = |key: &str, default| {
+        (!request
+            .options
+            .get(key)
+            .is_some_and(serde_json::Value::is_null))
+        .then(|| option(request, key, default))
+    };
+    let warn = limit("warn_limit", 500);
+    let fail = limit("fail_limit", 1000);
     let (mut code, mut comments, mut blanks) = (0u64, 0u64, 0u64);
+    let (mut all_code, mut all_comments, mut all_blanks, mut counted) = (0u64, 0u64, 0u64, 0u64);
+    let mut rows = vec![];
     for (path, text) in files {
+        let extension = path.rsplit('.').next().unwrap_or("");
+        let cpp = ["cpp", "c", "h", "hpp", "cc", "cxx"].contains(&extension);
+        let hash_comments = ["py", "pyi", "sh", "csh", "toml", "yml", "yaml"].contains(&extension);
+        let language = match extension {
+            "py" | "pyi" => "Python",
+            "sh" | "csh" => "Shell",
+            "toml" => "TOML",
+            "md" => "Markdown",
+            "yml" | "yaml" => "YAML",
+            "json" => "JSON",
+            _ => "C++",
+        };
         let mut comment = false;
         let (mut fc, mut fm, mut fb) = (0u64, 0u64, 0u64);
         for (index, line) in source::physical_lines(text).enumerate() {
@@ -27,38 +58,55 @@ pub(crate) fn lines(
                 fb += 1;
                 continue;
             }
-            if comment {
+            if cpp && comment {
                 fm += 1;
                 if stripped.contains("*/") {
                     comment = false;
                 }
                 continue;
             }
-            if stripped.starts_with("/*") {
+            if cpp && stripped.starts_with("/*") {
                 fm += 1;
                 comment = !stripped.contains("*/");
-            } else if stripped.starts_with("//") {
+            } else if (cpp && stripped.starts_with("//"))
+                || (hash_comments && stripped.starts_with('#'))
+            {
                 fm += 1;
             } else {
                 fc += 1;
             }
         }
-        code += fc;
-        comments += fm;
-        blanks += fb;
+        all_code += fc;
+        all_comments += fm;
+        all_blanks += fb;
+        let in_scope = !legacy || selected("source_paths", path);
+        let gated = in_scope && (!legacy || selected("gated_paths", path));
+        if in_scope {
+            code += fc;
+            comments += fm;
+            blanks += fb;
+            counted += 1;
+        }
         let mut target = InspectionTarget::at(*path, 1);
-        target.target_name = (*path).to_owned();
+        target.target_name = if legacy {
+            language.to_owned()
+        } else {
+            (*path).to_owned()
+        };
         target.end_line = Some((fc + fm + fb).max(1) as u32);
         target.metrics.insert("code_lines".into(), json!(fc));
         target.metrics.insert("comment_lines".into(), json!(fm));
         target.metrics.insert("blank_lines".into(), json!(fb));
-        let warn = option(request, "warn_limit", 500);
-        let fail = option(request, "fail_limit", 1000);
-        let legacy = request.options["legacy_projection"]
-            .as_bool()
-            .unwrap_or(false);
-        let over_fail = if legacy { fc >= fail } else { fc > fail };
-        let over_warn = if legacy { fc >= warn } else { fc > warn };
+        if legacy {
+            target.metrics.extend([
+                ("code".into(), json!(fc)),
+                ("comment".into(), json!(fm)),
+                ("blank".into(), json!(fb)),
+                ("total".into(), json!(fc + fm + fb)),
+            ]);
+        }
+        let over_fail = gated && fail.is_some_and(|limit| fc > limit);
+        let over_warn = gated && warn.is_some_and(|limit| fc > limit);
         target.status = if over_fail {
             "FAIL"
         } else if over_warn {
@@ -68,6 +116,21 @@ pub(crate) fn lines(
         }
         .into();
         target.message = format!("{fc} code lines, {fm} comment lines, {fb} blank lines");
+        if legacy {
+            target.message = if over_fail {
+                format!(
+                    "Pure code lines ({fc}) exceed {} lines limit (Refactoring required)",
+                    fail.unwrap()
+                )
+            } else if over_warn {
+                format!(
+                    "Pure code lines ({fc}) exceed {} lines threshold (Split recommended)",
+                    warn.unwrap()
+                )
+            } else {
+                format!("{fc} code lines")
+            };
+        }
         if over_warn || over_fail {
             finding(
                 output,
@@ -78,6 +141,7 @@ pub(crate) fn lines(
                 false,
             );
         }
+        rows.push(json!({"path":path,"lang":language,"code":fc,"comment":fm,"blank":fb,"total":fc+fm+fb,"status":target.status,"scope":if in_scope {"source"} else {"extra"}}));
         output.targets.push(target);
     }
     let total = code + comments + blanks;
@@ -86,7 +150,7 @@ pub(crate) fn lines(
         ("lines_code", code),
         ("lines_comment", comments),
         ("lines_blank", blanks),
-        ("files_counted", files.len() as u64),
+        ("files_counted", counted),
     ] {
         measurement(output, name, value, false);
         let metric = output.observation.measurements.last_mut().unwrap();
@@ -99,6 +163,17 @@ pub(crate) fn lines(
             metric.numerator = Some(value);
             metric.denominator = Some(denominator);
         }
+    }
+    if legacy {
+        rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
+        let top: Vec<_> = rows
+            .iter()
+            .filter(|row| row["scope"] == "source")
+            .take(5)
+            .cloned()
+            .collect();
+        let top_all: Vec<_> = rows.iter().take(5).cloned().collect();
+        output.extra = json!({"code":code,"comment":comments,"blank":blanks,"total":total,"files_data":rows,"top_files":top,"top_files_all":top_all,"all":{"code":all_code,"comment":all_comments,"blank":all_blanks,"total":all_code+all_comments+all_blanks,"files":files.len()},"metrics_summary":format!("{code} code / {counted} files")});
     }
 }
 #[derive(Default)]

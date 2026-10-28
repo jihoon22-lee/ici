@@ -20,6 +20,52 @@ fn request(kind: &str, inputs: Vec<(&str, &str)>) -> AnalysisRequest {
     }
 }
 #[test]
+fn legacy_line_policy_uses_strict_cutoffs_scope_gates_null_limits_and_extra_languages() {
+    let mut session = CppAnalysisSession::new();
+    let mut input = request(
+        "line",
+        vec![
+            ("src/equal.cpp", "int a;\nint b;\n"),
+            ("src/over.cpp", "int a;\nint b;\nint c;\n"),
+            ("custom/ungated.h", "int a;\nint b;\nint c;\nint d;\n"),
+            ("README.md", "# heading\n// ordinary prose\n\n"),
+            ("run.sh", "# comment\necho ready\n"),
+        ],
+    );
+    input.options = json!({"legacy_projection":true,"warn_limit":2,"fail_limit":3,
+        "source_paths":["src/equal.cpp","src/over.cpp","custom/ungated.h"],
+        "gated_paths":["src/equal.cpp","src/over.cpp"]});
+    let output = session.analyze(&input);
+    assert_eq!(output.status, "WARN");
+    assert_eq!(
+        output
+            .targets
+            .iter()
+            .map(|target| target.status.as_str())
+            .collect::<Vec<_>>(),
+        ["PASS", "WARN", "PASS", "PASS", "PASS"]
+    );
+    assert_eq!(output.extra["code"], 9);
+    assert_eq!(output.extra["all"]["code"], 12);
+    assert_eq!(output.extra["all"]["comment"], 1);
+    assert_eq!(output.extra["all"]["blank"], 1);
+    assert_eq!(output.extra["all"]["files"], 5);
+    assert_eq!(output.extra["top_files"].as_array().unwrap().len(), 3);
+    assert_eq!(output.targets[0].target_name, "C++");
+    assert_eq!(output.targets[3].target_name, "Markdown");
+    assert_eq!(output.targets[4].target_name, "Shell");
+    assert_eq!(output.targets[0].metrics["code"], 2);
+    input.options["warn_limit"] = Value::Null;
+    input.options["fail_limit"] = json!(2);
+    let failure = session.analyze(&input);
+    assert_eq!(failure.status, "FAIL");
+    assert_eq!(failure.targets[0].status, "PASS");
+    assert_eq!(failure.targets[1].status, "FAIL");
+    input.options["fail_limit"] = Value::Null;
+    assert_eq!(session.analyze(&input).status, "PASS");
+    assert_eq!(session.parser_invocations(), 0);
+}
+#[test]
 fn frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/source-oracle.json"
