@@ -1,6 +1,7 @@
 //! Config discovery and composition. No subprocess, network, or implicit writes.
 mod components;
 mod discovery;
+mod migration_report;
 mod model;
 mod native;
 mod parse;
@@ -11,6 +12,9 @@ mod schema_keys;
 mod settings;
 mod write;
 pub use discovery::DEFAULT_EXCLUDES;
+pub use migration_report::{
+    LegacyConflict, LegacyLayer, LegacyMigrationReport, LegacyValue, legacy_migration_report,
+};
 pub use model::*;
 pub use resolve::{
     inspect_configuration_with_environment, merge, resolve, resolve_with_environment,

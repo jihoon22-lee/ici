@@ -122,6 +122,89 @@
       ],
       "comparison": "The command retains read-only count/bytes/corruption inventory, explicit --clear and invalidation explanation. Cache inventory validates bounded stored schema/key/core/completed evidence and rich observations independently of the current core digest. Clearing only exact regular native entry names preserves legacy cache files, unknown files, directories, symlinks and FIFOs. The complete execution-cache correctness capability remains a separate row.",
       "difference_reason": "R0 explicitly isolates the new cache under .ici/rust-v1/observations. No attempt is made to reuse or erase legacy Python entries. New identity includes actual executable bytes, effective child environment and known closure rather than version strings alone; unknown closure and mutating tasks are not reused."
+    },
+    "capability:config-migration-preservation": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/write.rs",
+        "crates/ici-config/src/migration_report.rs",
+        "crates/ici-cli/src/commands.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-config/tests/resolution.rs::legacy_migration_is_preview_new_output_and_comment_preserving",
+          "crates/ici-config/tests/resolution.rs::legacy_migration_preserves_nested_package_scope_language_and_runtime",
+          "crates/ici-config/tests/resolution.rs::legacy_migration_freezes_optional_and_required_coverage_policy",
+          "crates/ici-config/tests/migration_report.rs::legacy_layers_explain_winners_losers_and_source_lines_without_merging",
+          "crates/ici-cli/tests/config_commands.rs::migration_explains_legacy_overrides_without_applying_them"
+        ],
+        "negative": [
+          "crates/ici-config/tests/migration_report.rs::equal_values_are_not_contested_and_malformed_layers_are_visible",
+          "crates/ici-cli/tests/config_commands.rs::migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_backup"
+        ],
+        "failure": [
+          "crates/ici-config/tests/resolution.rs::unknown_future_and_malformed_config_never_modify_original",
+          "crates/ici-config/tests/resolution.rs::legacy_migration_is_preview_new_output_and_comment_preserving"
+        ]
+      },
+      "evidence": [
+        "cargo test -p ici-config --locked -- --test-threads=2 and cargo test -p ici-cli --test config_commands --locked -- --test-threads=2; all passed, strict transitive Clippy passed; /tmp/ici-rust-replacement-20261028/root-migration-layer-final.log"
+      ],
+      "comparison": "Reviewed complete frozen config/convert.py, config/migration.py and cli/next_migrate.py. Preview/write-new/write-with-backup remain explicit; existing backup/output and changed source are refused. TOML comments, engine settings, source scope, selected language and runtime are preserved. Historical XDG/project/dev/ICI_CONFIG precedence is explained with winner, differing overridden values and source lines, without merging those layers. Optional coverage policy is materialized for next verify after schema migration.",
+      "difference_reason": "Approved sparse-v2 replaces the old lossy v1 converter: legacy engine tables remain directly readable instead of being dropped into unsupported/confirm notes. Unknown future schema is refused before mutation. Malformed diagnostic-only legacy layers are visible rather than silently ignored; legacy global/dev policy is not imported. Repeated backups are create-new, so an earlier original cannot be overwritten."
+    },
+    "command:ici next migrate": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/write.rs",
+        "crates/ici-config/src/migration_report.rs",
+        "crates/ici-cli/src/commands.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-config/tests/resolution.rs::legacy_migration_is_preview_new_output_and_comment_preserving",
+          "crates/ici-config/tests/resolution.rs::legacy_migration_preserves_nested_package_scope_language_and_runtime",
+          "crates/ici-config/tests/resolution.rs::legacy_migration_freezes_optional_and_required_coverage_policy",
+          "crates/ici-config/tests/migration_report.rs::legacy_layers_explain_winners_losers_and_source_lines_without_merging",
+          "crates/ici-cli/tests/config_commands.rs::migration_explains_legacy_overrides_without_applying_them"
+        ],
+        "negative": [
+          "crates/ici-config/tests/migration_report.rs::equal_values_are_not_contested_and_malformed_layers_are_visible",
+          "crates/ici-cli/tests/config_commands.rs::migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_backup"
+        ],
+        "failure": [
+          "crates/ici-config/tests/resolution.rs::unknown_future_and_malformed_config_never_modify_original",
+          "crates/ici-config/tests/resolution.rs::legacy_migration_is_preview_new_output_and_comment_preserving"
+        ]
+      },
+      "evidence": [
+        "cargo test -p ici-config --locked -- --test-threads=2 and cargo test -p ici-cli --test config_commands --locked -- --test-threads=2; all passed, strict transitive Clippy passed; /tmp/ici-rust-replacement-20261028/root-migration-layer-final.log"
+      ],
+      "comparison": "Reviewed complete frozen config/convert.py, config/migration.py and cli/next_migrate.py. Preview/write-new/write-with-backup remain explicit; existing backup/output and changed source are refused. TOML comments, engine settings, source scope, selected language and runtime are preserved. Historical XDG/project/dev/ICI_CONFIG precedence is explained with winner, differing overridden values and source lines, without merging those layers. Optional coverage policy is materialized for next verify after schema migration.",
+      "difference_reason": "Approved sparse-v2 replaces the old lossy v1 converter: legacy engine tables remain directly readable instead of being dropped into unsupported/confirm notes. Unknown future schema is refused before mutation. Malformed diagnostic-only legacy layers are visible rather than silently ignored; legacy global/dev policy is not imported. Repeated backups are create-new, so an earlier original cannot be overwritten."
+    },
+    "command:ici env": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/commands.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/native_env.rs::sh_loader_preserves_literal_installation_path_and_existing_path",
+          "crates/ici-cli/tests/native_env.rs::tcsh_loader_preserves_quotes_history_characters_and_existing_path"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_env.rs::unsafe_path_entries_and_ambiguous_shell_selection_are_refused"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_env.rs::unsafe_path_entries_and_ambiguous_shell_selection_are_refused"
+        ]
+      },
+      "evidence": [
+        "cargo test -p ici-cli --test native_env --locked -- --test-threads=2: two ordinary cases passed; ICI_TEST_TCSH=/tmp/ici-rust-replacement-20261028/shell-tools/extracted/usr/bin/tcsh cargo test -p ici-cli --test native_env --locked -- --ignored --test-threads=2: actual tcsh 6.24.13 passed; strict transitive Clippy passed; /tmp/ici-rust-replacement-20261028/root-optional-env-final.log"
+      ],
+      "comparison": "Reviewed frozen __main__.cmd_env flags/default and shell-only output. Native output prepends its actual installation directory and retains existing PATH; actual sh and tcsh execution preserves apostrophes, backslashes, spaces, dollar/backtick text and history characters without evaluation or additional files.",
+      "difference_reason": "Native archives can be installed outside ~/.local/bin, so env uses the running executable directory. tcsh history exclamation marks are escaped. Both shell flags together and installation paths containing colon/line breaks are refused explicitly because a faithful portable PATH entry cannot be generated."
     }
   },
   "source_files": {
@@ -151,6 +234,30 @@
         "wire_schema:ici-auxiliary-v1.schema.json"
       ],
       "reason": "Reviewed complete frozen module and connected the same import/provenance/ownership/rendering behavior through the native importer and saved-report CLI. The named requirement fixtures cover successful imports, unsupported coordinates, malformed producers, immutable results and create-new output preservation."
+    },
+    "src/ici/config/convert.py": {
+      "disposition": "mapped",
+      "requirements": [
+        "capability:config-migration-preservation",
+        "command:ici next migrate"
+      ],
+      "reason": "Complete module reviewed against native migration preview, immutable original/comment-preserving writer and read-only precedence explanation. Native sparse-v2 retains engine settings instead of the historical converter dropping unsupported tuning. Named positive/negative/failure fixtures verify scope, optional coverage, source changes and output ownership."
+    },
+    "src/ici/config/migration.py": {
+      "disposition": "mapped",
+      "requirements": [
+        "capability:config-migration-preservation",
+        "command:ici next migrate"
+      ],
+      "reason": "Complete module reviewed against native migration preview, immutable original/comment-preserving writer and read-only precedence explanation. Native sparse-v2 retains engine settings instead of the historical converter dropping unsupported tuning. Named positive/negative/failure fixtures verify scope, optional coverage, source changes and output ownership."
+    },
+    "src/ici/cli/next_migrate.py": {
+      "disposition": "mapped",
+      "requirements": [
+        "capability:config-migration-preservation",
+        "command:ici next migrate"
+      ],
+      "reason": "Complete module reviewed against native migration preview, immutable original/comment-preserving writer and read-only precedence explanation. Native sparse-v2 retains engine settings instead of the historical converter dropping unsupported tuning. Named positive/negative/failure fixtures verify scope, optional coverage, source changes and output ownership."
     }
   }
 }

@@ -196,10 +196,11 @@ fn prepare_resolved_omitting(
     supplemental.extend(crate::cpp::supplemental_checks(&project));
     supplemental.extend(crate::legacy::annotation_check(invocation, &mut project));
     if crate::legacy::is_legacy(invocation) {
-        supplemental.push(crate::cpp::type_not_applicable_check());
+        supplemental.extend(crate::cpp::legacy_not_applicable_checks());
     }
     let mut definitions = ici_domain::builtin_catalog().checks;
     definitions.extend(supplemental.iter().cloned());
+    crate::validation::apply_legacy_coverage_defaults(invocation, &mut project);
     let selected_checks = crate::legacy::select(invocation, &mut project, &definitions);
     let request = RunRequest {
         components: invocation.values("component").to_vec(),
@@ -666,6 +667,8 @@ impl PreparedPlan {
                     if !task.work_dirs.is_empty(){entry["work_dirs"]=json!(task.work_dirs);}
                     if p.advisory(){entry["advisory"]=json!(true);}
                 }
+                let conditions:BTreeMap<_,_>=self.validations.get(&p.task_id).into_iter().flatten().flat_map(|plan|plan.conditional_steps.iter()).collect();
+                if !conditions.is_empty() {entry["conditional_steps"]=json!(conditions);}
                 entry
             }).collect();
             (!checks.is_empty()).then(||json!({"component":component,"checks":checks}))
@@ -769,6 +772,19 @@ impl PreparedPlan {
                     format!("{} (ici)", check.check.title)
                 };
                 text.push_str(&format!("  {}: {detail}\n", check.task_id));
+                for plan in self.validations.get(&check.task_id).into_iter().flatten() {
+                    for (step, condition) in &plan.conditional_steps {
+                        text.push_str(&format!(
+                            "    {step}: only when {} confirms coverage is {}\n",
+                            condition.probe_task_id,
+                            if condition.coverage_available {
+                                "available"
+                            } else {
+                                "absent"
+                            }
+                        ));
+                    }
+                }
             }
         }
         for preparation in &self.context_preparations {

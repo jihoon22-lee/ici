@@ -1,5 +1,22 @@
 # ici Rust 전면 교체 실행 계획
 
+### Migration and shell acceptance follow-up (2026-10-29)
+
+- The complete frozen migration converter, precedence diagnostic and CLI have been reviewed.
+  Native sparse-v2 retains legacy engine tables, comments and source scope; it now also reports
+  historical XDG/project/dev/ICI_CONFIG winners and differing overridden values without merging
+  those layers. Migration freezes the legacy optional/required coverage policy explicitly.
+  Config and configuration CLI suites plus strict transitive Clippy passed in
+  `root-migration-layer-final.log`.
+- Actual sh and tcsh 6.24.13 execution found and corrected tcsh history expansion in installation
+  paths containing `!`. Quotes, spaces, backslashes, dollar/backtick text and existing PATH survive
+  unchanged; unrepresentable path entries and conflicting shell flags fail explicitly.
+  `root-optional-env-final.log` records both ordinary shell cases and the actual tcsh acceptance.
+- Optional coverage uses an explicit capability probe and conditional covered/plain pytest steps.
+  The worker's four real coverage-absent cases passed; the root's two pure and one actual baseline
+  regression passed again in 39.80 s after integration, with strict Clippy passing. The command
+  plan exposes the conditional steps. Global parity/candidate/cutover acceptance remains open.
+
 ### Common command inventory audit (2026-10-29)
 
 - The frozen importer requires a new output even if the existing file is a recognized auxiliary

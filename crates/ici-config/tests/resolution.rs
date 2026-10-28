@@ -499,6 +499,30 @@ fn legacy_migration_is_preview_new_output_and_comment_preserving() {
 }
 
 #[test]
+fn legacy_migration_freezes_optional_and_required_coverage_policy() {
+    let tree = Project::new();
+    tree.write("main.py", "value = 1\n");
+    for (policy, required) in [("", false), ("coverage_required=true\n", true)] {
+        let source = tree.write(
+            "ici.toml",
+            &format!("[project]\nsource_dirs=['.']\n[engines.test]\n{policy}"),
+        );
+        let preview = migrate_preview(&source).unwrap();
+        fs::write(&source, preview.proposed_text).unwrap();
+        let project =
+            ici_config::resolve_with_environment(tree.root(), None, None, &BTreeMap::new())
+                .unwrap();
+        for id in ["python.coverage", "cpp.coverage"] {
+            assert_eq!(project.components[0].checks[id].required, required);
+            assert_eq!(
+                project.components[0].checks[id].settings["required"],
+                required
+            );
+        }
+    }
+}
+
+#[test]
 fn explain_reports_file_line_and_default_or_discovered_origin() {
     let tree = Project::new();
     tree.write("main.py", "x=1");

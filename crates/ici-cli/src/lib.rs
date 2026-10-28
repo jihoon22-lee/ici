@@ -1,7 +1,7 @@
 pub mod artifact_build;
 pub mod commands;
-pub mod coverage_regression;
 pub mod compilation_command;
+pub mod coverage_regression;
 pub mod doctor;
 pub mod events;
 pub mod execute;

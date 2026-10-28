@@ -7,6 +7,13 @@
 
 ## [Unreleased]
 
+- 설정 migration은 과거 XDG·project·dev·ICI_CONFIG의 충돌 값과 출처를 읽기 전용으로
+  설명하며, 이전 후에도 선택형 coverage 정책을 유지합니다. 주석·원본·기존 backup은 보존합니다.
+- `env --csh`는 설치 경로의 `!`를 이력 확장으로 실행하지 않고 그대로 보존합니다.
+  sh/tcsh에서 따옴표·공백·역슬래시·달러·백틱이 포함된 실제 설치 경로를 검증했습니다.
+- coverage 부재가 허용된 legacy 실행은 실제 pytest를 계속 실행하고 coverage만 미측정으로
+  기록합니다. 필수 coverage는 실패를 유지하며 계획에 capability probe와 조건별 실행을 표시합니다.
+
 - `import-report`는 기존 auxiliary 문서도 덮어쓰지 않고 새 출력 파일만 생성합니다.
   `cache`는 정상·손상 항목 수와 무효화 조건을 표시하며, clear는 사용자 파일·링크·이전 cache를 보존합니다.
 

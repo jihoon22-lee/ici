@@ -68,7 +68,7 @@ pub fn dispatch(
         }
         "publish" | "next publish" => crate::publish::command(invocation, cwd, environment),
         "init" | "next init" => init(invocation, cwd, environment),
-        "next migrate" => migrate(invocation, cwd),
+        "next migrate" => migrate(invocation, cwd, environment),
         "diff" | "next diff" => diff(invocation, cwd),
         "cache" => cache(invocation, cwd),
         "env" => environment_loader(invocation),
@@ -132,10 +132,55 @@ fn init(
     )))
 }
 
-fn migrate(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
+fn migrate(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<CommandOutput> {
     let source = under(cwd, invocation.value("source").unwrap_or("ici.toml"));
     let preview = ici_config::migrate_preview(&source).map_err(error)?;
     let mut output = CommandOutput::text(preview.proposed_text.clone());
+    let layers = ici_config::legacy_migration_report(cwd, environment);
+    output.stderr.push_str("Historical configuration precedence (diagnostic only; these layers are not merged into the proposed file):\n");
+    for layer in &layers.sources {
+        output
+            .stderr
+            .push_str(&format!("  {}: {}\n", layer.label, layer.path.display()));
+        if let Some(error) = &layer.error {
+            output
+                .stderr
+                .push_str(&format!("    unreadable: {error}\n"));
+        }
+    }
+    for conflict in &layers.contested {
+        let display = |value: &ici_config::LegacyValue| {
+            let value_text = if ici_execution::redaction::sensitive_key(&conflict.key) {
+                "[REDACTED]".into()
+            } else {
+                ici_execution::redaction::redact_value(&value.value).to_string()
+            };
+            format!(
+                "{}={} ({}:{})",
+                value.label, value_text, value.origin.file, value.origin.line
+            )
+        };
+        output.stderr.push_str(&format!(
+            "  {}: {} overrides {}\n",
+            conflict.key,
+            display(&conflict.winner),
+            conflict
+                .overridden
+                .iter()
+                .map(display)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
+    if layers.contested.is_empty() {
+        output
+            .stderr
+            .push_str("  No differing values compete for the same key.\n");
+    }
     for note in &preview.notes {
         output.stderr.push_str(&format!("  {note}\n"));
     }
@@ -295,7 +340,15 @@ fn environment_loader(invocation: &Invocation) -> Result<CommandOutput> {
     let directory = directory
         .to_str()
         .ok_or_else(|| CliError("ici installation path is not UTF-8".into()))?;
-    let quoted = "'".to_owned() + &directory.replace('\'', "'\\''") + "'";
+    if directory.contains(':') || directory.contains(['\n', '\r']) {
+        return Err(CliError("ici installation path cannot be represented safely in a shell PATH (colon or line break)".into()));
+    }
+    let mut escaped = directory.replace('\'', "'\\''");
+    if invocation.flag("csh") {
+        // tcsh expands history even inside single quotes in a sourced script.
+        escaped = escaped.replace('!', "\\!");
+    }
+    let quoted = format!("'{escaped}'");
     if invocation.flag("csh") {
         Ok(CommandOutput::text(format!(
             "setenv PATH {quoted}:\"$PATH\"\n"

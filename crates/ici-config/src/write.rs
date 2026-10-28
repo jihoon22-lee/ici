@@ -136,10 +136,36 @@ pub fn migrate_preview(source: &Path) -> Result<MigrationPreview, ConfigError> {
             python.insert("executable", value(runtime));
             component.insert("python", toml_edit::Item::Table(python));
         }
+        // Sparse-v2 has a required coverage check by default. Freeze the historical
+        // optional-coverage policy instead of changing it merely by migrating syntax.
+        let coverage_required = parsed
+            .value
+            .pointer("/engines/test/coverage_required")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let mut checks = toml_edit::Table::new();
+        for id in ["python.coverage", "cpp.coverage"] {
+            if parsed
+                .value
+                .get("checks")
+                .and_then(|v| v.get(id))
+                .and_then(|v| v.get("required"))
+                .is_some()
+            {
+                continue;
+            }
+            let mut check = toml_edit::Table::new();
+            check.insert("required", value(coverage_required));
+            checks.insert(id, toml_edit::Item::Table(check));
+        }
+        if !checks.is_empty() {
+            component.insert("checks", toml_edit::Item::Table(checks));
+        }
         let mut components = toml_edit::ArrayOfTables::new();
         components.push(component);
         target.insert("components", toml_edit::Item::ArrayOfTables(components));
         notes.push("Legacy engine settings remain in the same tables; an explicit project component preserves source_dirs, language selection and project runtime, freezing the former scope instead of silently widening it".into());
+        notes.push("Explicit coverage required settings preserve the legacy coverage_required policy when the migrated file is used by next verify".into());
         notes.push("Legacy global/dev.toml policy is not imported automatically; review those files and move intended team policy explicitly".into());
     }
     if family == SchemaFamily::NextV1 {

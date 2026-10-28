@@ -119,7 +119,7 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 | `ici <global>` | 1 | not_started |
 | `ici analyze` | 14 | not_started |
 | `ici build` | 0 | not_started |
-| `ici cache` | 1 | not_started |
+| `ici cache` | 1 | complete |
 | `ici cognitive` | 1 | not_started |
 | `ici complexity` | 1 | not_started |
 | `ici cycle` | 1 | not_started |
@@ -127,22 +127,22 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 | `ici diff` | 2 | not_started |
 | `ici doctor` | 2 | not_started |
 | `ici dup` | 1 | not_started |
-| `ici env` | 2 | not_started |
+| `ici env` | 2 | complete |
 | `ici exception` | 1 | not_started |
 | `ici export-compilation-context` | 4 | not_started |
-| `ici import-report` | 5 | not_started |
+| `ici import-report` | 5 | complete |
 | `ici init` | 4 | not_started |
 | `ici line` | 1 | not_started |
 | `ici lint` | 1 | not_started |
 | `ici next diff` | 2 | not_started |
 | `ici next doctor` | 7 | not_started |
 | `ici next init` | 4 | not_started |
-| `ici next migrate` | 3 | not_started |
+| `ici next migrate` | 3 | complete |
 | `ici next plan` | 8 | not_started |
-| `ici next publish` | 4 | not_started |
+| `ici next publish` | 4 | difference_review |
 | `ici next report` | 4 | not_started |
 | `ici next verify` | 12 | not_started |
-| `ici publish` | 3 | not_started |
+| `ici publish` | 3 | difference_review |
 | `ici python-compat` | 1 | not_started |
 | `ici report` | 4 | not_started |
 | `ici resource` | 1 | not_started |
@@ -157,10 +157,10 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 
 | 요구 | 보존할 의미 | 상태 |
 |---|---|---|
-| `capability:auxiliary-import` | SARIF uriBaseId mapping/refusal, JUnit native line, LCOV subset; NOT_EVALUATED | not_started |
+| `capability:auxiliary-import` | SARIF uriBaseId mapping/refusal, JUnit native line, LCOV subset; NOT_EVALUATED | complete |
 | `capability:build-artifact-abi` | Declared artifact ownership, ELF/linker/ABI, Make/CMake/qmake build effects | not_started |
 | `capability:compile-context-export` | compile argv/cwd/response files, build variants, export schema and source closure | not_started |
-| `capability:config-migration-preservation` | Preview, refusal of unknown schemas and preservation of user originals/comments | not_started |
+| `capability:config-migration-preservation` | Preview, refusal of unknown schemas and preservation of user originals/comments | complete |
 | `capability:cpp-parser-heuristic-confidence` | Bounded tokens, function boundaries, cognitive/CC limits and confidence labels | not_started |
 | `capability:cpp-qt-generated-input` | moc/uic/rcc, clazy/tidy/compiler inputs and generated include attribution | not_started |
 | `capability:discovery-config-origin` | Root/child boundaries, sparse config/init equivalence, origin and local overlays | not_started |
@@ -172,7 +172,7 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 | `capability:legacy-cpp-linker-dead` | Compiler/linker unused and dead-symbol evidence, generated/vendor scope | not_started |
 | `capability:legacy-python-sanitize` | Python sanitizer/resource execution must not disappear behind cpp.sanitize | not_started |
 | `capability:native-windows-disposition` | Record unsupported/limited Windows runner disposition; do not silently drop behavior | not_started |
-| `capability:publish-ca-proxy-ghes` | Private/system CA, proxy, GHES, publication failure independent of analysis | not_started |
+| `capability:publish-ca-proxy-ghes` | Private/system CA, proxy, GHES, publication failure independent of analysis | complete |
 | `capability:python-packaging-wheel` | PEP 440/508, metadata, RECORD, tags, import distribution, entrypoints and bounds | not_started |
 | `capability:python-scope-binding` | Import alias, shadowing, scope and resource lifetime semantics | not_started |
 | `capability:python-semantic-duplicates` | Tokenizer, semantic normalization, clustering, matches and region attribution | not_started |

@@ -105,6 +105,35 @@ fn migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_bac
             .contains("schema_version = 2")
     );
 }
+
+#[test]
+fn migration_explains_legacy_overrides_without_applying_them() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+        root.path().join("ici.toml"),
+        "# original\n[engines.test]\nrequired=true\n",
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("dev.toml"),
+        "[engines.test]\nrequired=false\n",
+    )
+    .unwrap();
+    let output = dispatch(
+        &parse(["ici", "next", "migrate"]).unwrap(),
+        root.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert!(output.stderr.contains("dev.toml=false"));
+    assert!(output.stderr.contains("project ici.toml=true"));
+    assert!(output.stdout.contains("required=true"));
+    assert!(!root.path().join("ici.toml.stable").exists());
+    assert_eq!(
+        fs::read_to_string(root.path().join("dev.toml")).unwrap(),
+        "[engines.test]\nrequired=false\n"
+    );
+}
 #[test]
 fn cache_clear_refuses_symlink_ancestors_and_preserves_legacy_or_user_files() {
     let root = tempfile::tempdir().unwrap();
