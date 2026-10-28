@@ -33,3 +33,11 @@ Source syntax and lexical complexity/cognitive/include-cycle results remain
 not an exact lexical complexity score. Unused-function diagnostics require
 agreement across every selected compile configuration and make no whole-program
 reachability claim. Empty dependency lists do not prove static ELF linkage.
+
+The GNU linker corpus builds two CMake executables sharing an object. A hidden
+function discarded by both is reported; a function used by either target is
+retained. Global default-visible, weak, COMDAT, LTO, cloned and multiply aliased
+sections are excluded. The parser requires an approved GCC driver, observed GNU
+ld identity, ELF `EXEC`, complete function-section compile coverage, direct
+objects, stable source identity and a located binutils section/symbol record.
+CMake's linker dependency-file output is removed from diagnostic relinks.
