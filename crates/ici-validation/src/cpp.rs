@@ -41,6 +41,9 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             plan.tasks.push(test);
         }
         ValidationKind::Sanitizer | ValidationKind::ThreadSanitizer => {
+            if request.options.sanitizer_suite_kind.is_some() {
+                return crate::sanitizer_suite::plan(plan);
+            }
             let readelf = request
                 .options
                 .auxiliary_tools
@@ -303,7 +306,7 @@ pub(crate) fn observe_ctest(
         String::from_utf8_lossy(&outcome.stdout),
         String::from_utf8_lossy(&outcome.stderr)
     );
-    let cases = Regex::new(r"Test\s+#\d+:\s+(\S+)\s*\.{3,}\s*(.+?)\s+[\d.]+\s*sec\b")
+    let cases = Regex::new(r"Test\s+#\d+:\s+(.+?)\s*\.{3,}\s*(.+?)\s+[\d.]+\s*sec\b")
         .expect("constant regex");
     let summary =
         Regex::new(r"\d+% tests passed,\s*\d+ tests failed out of (\d+)").expect("constant regex");

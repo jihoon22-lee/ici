@@ -251,3 +251,112 @@ fn native_binary_header_policy_distinguishes_non_elf_from_tool_failure_and_honor
     request.targets = vec!["suite".into(), "suite".into()];
     assert!(plan(&request).is_err());
 }
+
+#[test]
+fn ctest_sanitizers_bind_inventory_executables_and_all_instrumentation_before_suite() {
+    for kind in [ValidationKind::Sanitizer, ValidationKind::ThreadSanitizer] {
+        let root = tempfile::tempdir().unwrap();
+        let mut context = request(root.path(), kind);
+        context.options.sanitizer_suite_kind = Some(ValidationKind::Ctest);
+        context.options.instrumented_artifacts = vec!["build/suite".into()];
+        context
+            .options
+            .auxiliary_tools
+            .insert("readelf".into(), context.tool.clone());
+        let planned = plan(&context).unwrap();
+        assert_eq!(planned.tasks.len(), 3);
+        let inventory_id = format!("{}.inventory", context.task_id);
+        let probe_id = format!("{}.artifact0.instrumentation", context.task_id);
+        let suite_id = format!("{}.suite", context.task_id);
+        assert_eq!(
+            ready_steps(&planned, &BTreeMap::new()).unwrap(),
+            vec![inventory_id.clone()]
+        );
+        assert_eq!(
+            planned.tasks[1].argv.last().unwrap(),
+            &root.path().join("build/suite").to_string_lossy()
+        );
+        let inventory=serde_json::json!({"kind":"ctestInfo","version":{"major":1,"minor":0},"tests":[{"name":"first case","command":[root.path().join("build/suite")],"properties":[]}]}).to_string();
+        let mut outcomes = BTreeMap::from([(
+            inventory_id.clone(),
+            outcome(&inventory_id, &inventory, "", 0),
+        )]);
+        assert_eq!(
+            ready_steps(&planned, &outcomes).unwrap(),
+            vec![probe_id.clone()]
+        );
+        let symbol = if kind == ValidationKind::ThreadSanitizer {
+            "__tsan_init"
+        } else {
+            "__asan_init"
+        };
+        outcomes.insert(probe_id.clone(),outcome(&probe_id,&format!("Symbol table '.dynsym' contains 2 entries:\n  1: 0000 0 FUNC GLOBAL DEFAULT UND {symbol}\n"),"",0));
+        assert_eq!(
+            ready_steps(&planned, &outcomes).unwrap(),
+            vec![suite_id.clone()]
+        );
+        outcomes.insert(suite_id.clone(),outcome(&suite_id,"1/1 Test #1: first case ........ Passed 0.01 sec\n100% tests passed, 0 tests failed out of 1\n","",0));
+        let observed = observe(&planned, &outcomes, &CapturedArtifacts::default());
+        assert_eq!(
+            observed.observation.state,
+            TaskState::Succeeded,
+            "{observed:?}"
+        );
+        assert!(observed.observation.findings.is_empty());
+        assert!(
+            observed
+                .targets
+                .iter()
+                .any(|target| target.target_name == "first case")
+        );
+        let disabled=serde_json::json!({"kind":"ctestInfo","version":{"major":1},"tests":[{"name":"suite","command":[root.path().join("build/suite")],"properties":[{"name":"DISABLED","value":true}]}]}).to_string();
+        let mut bad = BTreeMap::from([(
+            inventory_id.clone(),
+            outcome(&inventory_id, &disabled, "", 0),
+        )]);
+        assert!(ready_steps(&planned, &bad).is_err());
+        let wrapper = inventory.replace(
+            &root
+                .path()
+                .join("build/suite")
+                .to_string_lossy()
+                .to_string(),
+            "/usr/bin/cmake",
+        );
+        bad.insert(
+            inventory_id.clone(),
+            outcome(&inventory_id, &wrapper, "", 0),
+        );
+        assert!(
+            ready_steps(&planned, &bad)
+                .unwrap_err()
+                .to_string()
+                .contains("wrappers or external commands")
+        );
+        let mut no_symbols = outcomes.clone();
+        no_symbols.remove(&suite_id);
+        no_symbols.insert(
+            probe_id.clone(),
+            outcome(
+                &probe_id,
+                "Symbol table '.dynsym' contains 0 entries:\n",
+                "",
+                0,
+            ),
+        );
+        assert!(ready_steps(&planned, &no_symbols).is_err());
+        assert_eq!(
+            observe(&planned, &no_symbols, &CapturedArtifacts::default())
+                .observation
+                .state,
+            TaskState::Failed
+        );
+        outcomes.get_mut(&suite_id).unwrap().stdout = b"No tests were found!!!".to_vec();
+        assert_eq!(
+            observe(&planned, &outcomes, &CapturedArtifacts::default())
+                .observation
+                .state,
+            TaskState::Failed
+        );
+    }
+}

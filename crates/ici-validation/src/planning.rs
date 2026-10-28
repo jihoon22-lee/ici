@@ -135,6 +135,25 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
         source_coordinates: std::sync::Arc::default(),
         artifact_headers: BTreeMap::new(),
     };
+    if request.kind == ValidationKind::Gcov {
+        for target in &request.targets {
+            let relative = Path::new(target).with_extension("gcda");
+            let exists = match std::fs::symlink_metadata(request.root.join(&relative)) {
+                Ok(_) => true,
+                Err(error) => error.kind() != std::io::ErrorKind::NotFound,
+            };
+            let relative = relative.to_string_lossy().into_owned();
+            if exists
+                && !plan
+                    .context
+                    .options
+                    .gcov_preexisting_data
+                    .contains(&relative)
+            {
+                plan.context.options.gcov_preexisting_data.push(relative);
+            }
+        }
+    }
     if !request.options.runtimes.is_empty() {
         return crate::runtime::plan(request, plan);
     }
@@ -472,6 +491,12 @@ pub fn ready_steps(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
 ) -> Result<Vec<String>, ValidationError> {
+    if plan.kind == ValidationKind::Gcov && !plan.context.options.gcov_preexisting_data.is_empty() {
+        return Err(ValidationError(format!(
+            "GCOV counters existed before this run and may contain accumulated coverage; user data was preserved: {}",
+            plan.context.options.gcov_preexisting_data.join(", ")
+        )));
+    }
     let mut ready = vec![];
     for (index, task) in plan.tasks.iter().enumerate() {
         if plan.kind == ValidationKind::BinaryCompatibility
@@ -515,6 +540,11 @@ pub fn ready_steps(
                         "coverage requires a completed nonempty pytest suite".into(),
                     ));
                 }
+            }
+            if requirement.task_id.ends_with(".inventory")
+                && plan.context.options.sanitizer_suite_kind == Some(ValidationKind::Ctest)
+            {
+                crate::sanitizer_suite::inventory(plan, outcome)?;
             }
             if requirement.task_id.ends_with(".instrumentation") {
                 crate::cpp::instrumentation(plan, outcome)?;

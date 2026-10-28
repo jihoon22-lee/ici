@@ -222,3 +222,23 @@ This foundation currently handles declared project versions. Visible Git version
 fallback, broader discovery acceptance, actual generated launcher execution, and
 legacy declared wheel/report publication are follow-up acceptance work; the
 foundation evidence does not close product-wide parity.
+
+The sanitizer framework extension distinguishes a CTest driver from the programs
+it executes. A visible JSON inventory must name 1..2048 enabled tests whose direct
+executables belong to the declared contained artifact inventory. Every declared
+artifact has its own readelf instrumentation probe before the suite runs; a
+wrapper, external command, unknown format, empty/disabled inventory, or missing
+runtime symbol keeps the scope incomplete. QTest direct mode also validates its
+framework totals. Actual test-driver output and sanitizer findings remain
+separate evidence, and CTest names may contain spaces. The 15 scoped C++/GCOV/
+sanitizer test functions passed together with strict validation Clippy; the
+existing sanitizer functions include the 55-case frozen original normalizer
+oracle. This is library contract evidence; actual CMake sanitizer/TSan CLI
+execution is recorded separately by the C++ acceptance gate.
+
+GCOV plans retain their exact tool/task bindings when old counters exist, but
+execution readiness and observation reject those counters as potentially
+accumulated evidence. The original files remain unchanged. This preserves the
+independent test suite while requiring fresh coverage data before publishing
+counts, and avoids making the mere appearance of newly produced counters look
+like a changed executable/tool binding.

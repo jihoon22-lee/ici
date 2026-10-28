@@ -190,3 +190,30 @@ fn frozen_actual_gcc_report_keeps_counts_and_unicode_function_columns() {
     assert_eq!(main["start_column"], 10);
     assert_eq!(main["native_columns"]["start"], 13);
 }
+
+#[test]
+fn preexisting_counter_guard_preserves_bindings_and_user_data() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("build")).unwrap();
+    let mut request = plan_fixture().context;
+    request.root = root.path().into();
+    request.cwd = root.path().into();
+    request.owned_run_dir = root.path().join("run");
+    let clean = plan(&request).unwrap();
+    assert!(clean.context.options.gcov_preexisting_data.is_empty());
+    std::fs::write(root.path().join("build/main.gcda"), b"previous-user-run").unwrap();
+    let accumulated = plan(&request).unwrap();
+    assert_eq!(
+        accumulated.context.options.gcov_preexisting_data,
+        vec!["build/main.gcda"]
+    );
+    assert_eq!(clean.tasks, accumulated.tasks);
+    let reason = ready_steps(&accumulated, &std::collections::BTreeMap::new())
+        .unwrap_err()
+        .to_string();
+    assert!(reason.contains("accumulated coverage"));
+    assert_eq!(
+        std::fs::read(root.path().join("build/main.gcda")).unwrap(),
+        b"previous-user-run"
+    );
+}

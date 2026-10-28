@@ -11,6 +11,7 @@ pub mod python;
 mod python_sanitize;
 pub mod runtime;
 pub mod sanitizer;
+mod sanitizer_suite;
 pub mod tem;
 
 pub use artifacts::{CapturedArtifacts, OwnedRun, capture_artifacts, capture_binary_headers};

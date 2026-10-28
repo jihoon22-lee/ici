@@ -561,6 +561,11 @@ pub(crate) fn observe(
     artifacts: &CapturedArtifacts,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
+    if !plan.context.options.gcov_preexisting_data.is_empty() {
+        return Err(error(
+            "preexisting GCOV counters can contain accumulated coverage; prior data was preserved",
+        ));
+    }
     let id = format!("{}.report", plan.context.task_id);
     let outcome = outcomes
         .get(&id)

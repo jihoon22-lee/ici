@@ -367,11 +367,15 @@ pub(crate) fn observe(
     outcomes: &BTreeMap<String, TaskOutcome>,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
-    let probe_id = format!("{}.instrumentation", plan.context.task_id);
-    let probe = outcomes
-        .get(&probe_id)
-        .ok_or_else(|| ValidationError("instrumentation proof is absent".into()))?;
-    crate::cpp::instrumentation(plan, probe)?;
+    if plan.context.options.sanitizer_suite_kind.is_some() {
+        output.extra["sanitizer_scope"] = crate::sanitizer_suite::proof(plan, outcomes)?;
+    } else {
+        let probe_id = format!("{}.instrumentation", plan.context.task_id);
+        let probe = outcomes
+            .get(&probe_id)
+            .ok_or_else(|| ValidationError("instrumentation proof is absent".into()))?;
+        crate::cpp::instrumentation(plan, probe)?;
+    }
     let id = format!("{}.suite", plan.context.task_id);
     let outcome = outcomes
         .get(&id)
@@ -392,6 +396,9 @@ pub(crate) fn observe(
             "sanitizer process did not complete; retained diagnostics cover only observed scope"
                 .into(),
         ));
+    }
+    if plan.context.options.sanitizer_suite_kind.is_some() {
+        crate::sanitizer_suite::observe_framework(plan, outcome, output)?;
     }
     if output.observation.findings.is_empty() {
         if transcript.contains("AddressSanitizer:DEADLYSIGNAL")
