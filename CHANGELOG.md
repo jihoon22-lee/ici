@@ -13,6 +13,8 @@
   유지하고 gate 역할만 표시하며, `--fail-on-new`는 새 경고도 별도로 실패시킬 수 있습니다.
 - legacy JSON은 단일 검사 extra 필드를 원래 위치에 보존하고, 완료된 줄 수 검사들의 물리 파일
   집계를 합칩니다. 적용 불가 증거가 같은 descriptor의 실제 측정·추정 증거를 가리지 않습니다.
+- 여러 test·coverage 검사가 한 descriptor로 합쳐질 때 동일한 물리 test suite를 한 번만 세고,
+  coverage 비율은 실제 분자·분모로 합산합니다. 불완전하거나 상충하는 근거는 집계하지 않고 사유를 남깁니다.
 - 사례 없는 선택형 integration은 위치가 있는 적용 불가 결과를 남기며 필수 빈 범위는 미완료입니다.
 - legacy C++ 문맥이 없으면 명시된 pkg-config 순서와 프로젝트 include를 사용한 C++17 syntax
   fallback을 실행 계획에 드러냅니다. 추정 진단은 유지하되 명시적으로 잘못된 DB를 대체하지 않습니다.

@@ -330,6 +330,9 @@ fn project_extra(engine: &mut Value) -> Result<()> {
         }
         return Ok(());
     }
+    if engine["engine_name"] == "test" {
+        return project_test_extra(engine, &checks);
+    }
     if engine["engine_name"] != "line"
         || checks.is_empty()
         || checks
@@ -386,6 +389,126 @@ fn project_extra(engine: &mut Value) -> Result<()> {
         engine["extra"]["code"]
     ));
     engine["extra"]["files_data"] = json!(rows);
+    Ok(())
+}
+
+fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
+    // A coverage check can report the very same physical suite as a test check.
+    // Keep its coverage, but count the suite once and prefer the test producer.
+    let mut suites = BTreeMap::<String, Value>::new();
+    let mut coverage = BTreeMap::<String, Value>::new();
+    for check in checks {
+        if check["evidence_complete"] != true {
+            engine["extra"]["test_aggregation_limitation"] =
+                json!("At least one test or coverage check is incomplete");
+            return Ok(());
+        }
+        let extra = &check["extra"];
+        let Some(identity) = extra["test_execution"]["canonical_suite_id"].as_str() else {
+            engine["extra"]["test_aggregation_limitation"] =
+                json!("A check lacks a physical suite identity");
+            return Ok(());
+        };
+        if extra["test_execution"]["complete"] != true {
+            engine["extra"]["test_aggregation_limitation"] = json!("A suite count is incomplete");
+            return Ok(());
+        }
+        let phase = extra["test_execution"]["phase"].as_str();
+        let Some(passed) = extra["passed_tests"].as_u64() else {
+            engine["extra"]["test_aggregation_limitation"] = json!("A passed count is unavailable");
+            return Ok(());
+        };
+        let Some(total) = extra["total_tests"].as_u64() else {
+            engine["extra"]["test_aggregation_limitation"] = json!("A total count is unavailable");
+            return Ok(());
+        };
+        if passed > total {
+            return Err(ReportError("test count exceeds suite total".into()));
+        }
+        let candidate =
+            json!({"passed":passed,"total":total,"skipped":extra["skipped_tests"],"phase":phase});
+        if let Some(previous) = suites.get(identity) {
+            if previous["passed"] != passed || previous["total"] != total {
+                engine["extra"]["test_aggregation_limitation"] =
+                    json!("Checks disagree on a physical suite count");
+                return Ok(());
+            }
+            if previous["phase"] != "test" && phase == Some("test") {
+                suites.insert(identity.into(), candidate);
+            }
+        } else {
+            suites.insert(identity.into(), candidate);
+        }
+        if phase == Some("coverage")
+            && extra["coverage_totals"].is_object()
+            && let Some(previous) =
+                coverage.insert(identity.into(), extra["coverage_totals"].clone())
+            && previous != extra["coverage_totals"]
+        {
+            engine["extra"]["test_aggregation_limitation"] =
+                json!("Coverage checks disagree on a physical suite");
+            return Ok(());
+        }
+    }
+    let (passed, total) = suites
+        .values()
+        .try_fold((0u64, 0u64), |(passed, total), suite| {
+            Ok::<_, ReportError>((
+                passed
+                    .checked_add(suite["passed"].as_u64().unwrap())
+                    .ok_or_else(|| ReportError("test count overflow".into()))?,
+                total
+                    .checked_add(suite["total"].as_u64().unwrap())
+                    .ok_or_else(|| ReportError("test count overflow".into()))?,
+            ))
+        })?;
+    engine["extra"]["passed_tests"] = json!(passed);
+    engine["extra"]["total_tests"] = json!(total);
+    engine["extra"]["skipped_tests"] = suites
+        .values()
+        .try_fold(0u64, |sum, suite| {
+            suite["skipped"]
+                .as_u64()
+                .and_then(|skipped| sum.checked_add(skipped))
+        })
+        .map_or(Value::Null, |skipped| json!(skipped));
+    engine["extra"]["pass_rate"] = if total == 0 {
+        Value::Null
+    } else {
+        json!(passed as f64 / total as f64)
+    };
+    engine["extra"]["test_execution"] = json!({"physical_suites":suites,"complete":true});
+    if !coverage.is_empty() {
+        engine["extra"]["coverage_suites"] = json!(coverage.keys().collect::<Vec<_>>());
+        let mut totals = BTreeMap::<&str, u64>::new();
+        for field in ["stmts", "covered", "nb", "cb"] {
+            let mut sum = 0u64;
+            for row in coverage.values() {
+                let Some(count) = row[field].as_u64() else {
+                    engine["extra"]["test_aggregation_limitation"] =
+                        json!(format!("Coverage {field} denominator is unknown"));
+                    return Ok(());
+                };
+                sum = sum
+                    .checked_add(count)
+                    .ok_or_else(|| ReportError("coverage count overflow".into()))?;
+            }
+            totals.insert(field, sum);
+        }
+        let line = if totals["stmts"] > 0 {
+            Some(100.0 * totals["covered"] as f64 / totals["stmts"] as f64)
+        } else {
+            None
+        };
+        let branch = if totals["nb"] > 0 {
+            Some(100.0 * totals["cb"] as f64 / totals["nb"] as f64)
+        } else {
+            None
+        };
+        engine["extra"]["line_coverage"] = json!(line);
+        engine["extra"]["branch_coverage"] = json!(branch);
+        engine["extra"]["coverage_totals"] = json!(totals);
+    }
     Ok(())
 }
 
@@ -615,5 +738,55 @@ fn strip_fix_markers(finding: &mut Value) {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test_aggregation_tests {
+    use super::project_extra;
+    use serde_json::json;
+
+    #[test]
+    fn shared_suite_is_counted_once_and_coverage_uses_raw_denominators() {
+        let check = |suite: &str,
+                     phase: &str,
+                     passed: u64,
+                     total: u64,
+                     stmts: u64,
+                     covered: u64| {
+            json!({"evidence_complete":true,"extra":{
+                "test_execution":{"canonical_suite_id":suite,"phase":phase,"complete":true},
+                "passed_tests":passed,"total_tests":total,
+                "coverage_totals":if phase=="coverage" { json!({"stmts":stmts,"covered":covered,"nb":0,"cb":0}) } else { serde_json::Value::Null }
+            }})
+        };
+        let mut engine = json!({"engine_name":"test","extra":{"native_checks":[
+            check("suite-a","test",2,3,0,0),
+            check("suite-a","coverage",2,3,3,1),
+            check("suite-b","test",1,1,0,0),
+            check("suite-b","coverage",1,1,9,9)
+        ]}});
+        project_extra(&mut engine).unwrap();
+        assert_eq!(engine["extra"]["passed_tests"], 3);
+        assert_eq!(engine["extra"]["total_tests"], 4);
+        assert_eq!(engine["extra"]["pass_rate"], 0.75);
+        assert_eq!(engine["extra"]["coverage_totals"]["stmts"], 12);
+        assert_eq!(engine["extra"]["coverage_totals"]["covered"], 10);
+        assert_eq!(
+            engine["extra"]["line_coverage"].as_f64().unwrap(),
+            100.0 * 10.0 / 12.0
+        );
+        assert!(engine["extra"].get("test_aggregation_limitation").is_none());
+    }
+
+    #[test]
+    fn conflicting_suite_does_not_invent_an_aggregate() {
+        let mut engine = json!({"engine_name":"test","extra":{"native_checks":[
+            {"evidence_complete":true,"extra":{"test_execution":{"canonical_suite_id":"suite-a","phase":"test","complete":true},"passed_tests":2,"total_tests":3}},
+            {"evidence_complete":true,"extra":{"test_execution":{"canonical_suite_id":"suite-a","phase":"coverage","complete":true},"passed_tests":3,"total_tests":3}}
+        ]}});
+        project_extra(&mut engine).unwrap();
+        assert!(engine["extra"].get("passed_tests").is_none());
+        assert!(engine["extra"]["test_aggregation_limitation"].is_string());
     }
 }
