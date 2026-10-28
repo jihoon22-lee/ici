@@ -6,7 +6,9 @@ use ici_application::{
 use ici_config::{Component, ResolvedProject};
 use ici_domain::{CheckDefinition, Profile, builtin_catalog};
 use ici_providers::resolver::{ResolvedTool, ToolRequest};
-use ici_validation::{ValidationKind, ValidationOptions, ValidationPlan, ValidationRequest};
+use ici_validation::{
+    RuntimeSpec, ValidationKind, ValidationOptions, ValidationPlan, ValidationRequest,
+};
 use serde_json::Value;
 use std::{
     collections::BTreeMap,
@@ -54,9 +56,24 @@ pub fn bind(
     environment: &BTreeMap<String, String>,
     run_label: &str,
 ) -> Option<BoundValidation> {
+    if check.id == "python.artifact" {
+        return Some(blocked(
+            "Python artifact preparation requires the declared project build adapter",
+        ));
+    }
+    if check.id == "integration" {
+        return Some(bind_integration(
+            project,
+            component,
+            id,
+            environment,
+            run_label,
+        ));
+    }
     let kind = match check.id.as_str() {
         "python.test" => ValidationKind::PythonTest,
         "python.coverage" => ValidationKind::PythonCoverage,
+        "python.sanitize" => ValidationKind::PythonSanitize,
         "python.compat-runtime" => ValidationKind::PythonRuntime,
         _ => return None,
     };
@@ -65,50 +82,38 @@ pub fn bind(
     } else {
         project.root.join(&component.root)
     };
-    let (tool_id, explicit) = match component.python_executable.as_deref() {
-        Some(name) if !name.contains('/') => (name.to_owned(), None),
-        Some(path) => (
-            "python".into(),
-            Some(if Path::new(path).is_absolute() {
-                PathBuf::from(path)
-            } else {
-                project.root.join(path)
-            }),
-        ),
-        None => (
-            "python".into(),
-            project
-                .tools
-                .get("python")
-                .and_then(|tool| tool.path.as_ref())
-                .map(|path| {
-                    if Path::new(path).is_absolute() {
-                        PathBuf::from(path)
-                    } else {
-                        project.root.join(path)
-                    }
-                }),
-        ),
+    let matrix = if kind == ValidationKind::PythonRuntime {
+        match runtime_matrix(project, component, &cwd, environment) {
+            Ok(matrix) => matrix,
+            Err(reason) => return Some(blocked(reason)),
+        }
+    } else {
+        vec![]
     };
-    let tool = match (ToolRequest {
-        id: tool_id,
-        explicit,
-        project_root: cwd.clone(),
-        pack_root: None,
-        path_env: environment.get("PATH").cloned(),
-    })
-    .resolve()
-    {
-        Ok(mut tool) => {
-            tool.id = "python".into();
-            tool
+    let tool = if matrix.is_empty() {
+        match project_python(project, component, &cwd, environment) {
+            Ok(tool) => tool,
+            Err(reason) => return Some(blocked(reason)),
         }
-        Err(failure) => {
-            return Some(blocked(format!(
-                "project Python: {failure}; set components.{}.python.executable",
-                component.id
-            )));
-        }
+    } else if let Some(tool) = matrix.iter().find_map(|runtime| runtime.tool.clone()) {
+        tool
+    } else {
+        return Some(blocked(format!(
+            "no configured project runtime is available: {}",
+            matrix
+                .iter()
+                .map(|runtime| format!(
+                    "{} ({})",
+                    runtime.configured,
+                    if runtime.required {
+                        "required"
+                    } else {
+                        "optional"
+                    }
+                ))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )));
     };
     let sources: Vec<_> = component
         .files
@@ -123,13 +128,18 @@ pub fn bind(
             .collect::<Vec<_>>(),
         Err(failure) => return Some(blocked(failure.to_string())),
     };
-    let targets = match test_targets(project, component, &supporting) {
-        Ok(targets) => targets,
-        Err(failure) => return Some(blocked(failure)),
+    let targets = if kind == ValidationKind::PythonRuntime {
+        sources.clone()
+    } else {
+        match test_targets(project, component, &supporting) {
+            Ok(targets) => targets,
+            Err(failure) => return Some(blocked(failure)),
+        }
     };
     let test = component.settings.pointer("/engines/test");
     let quality = test.and_then(|test| test.get("quality"));
-    let quality_enabled = request.profile.unwrap_or(project.profile) == Profile::Deep
+    let quality_enabled = kind == ValidationKind::PythonTest
+        && request.profile.unwrap_or(project.profile) == Profile::Deep
         && quality
             .and_then(|value| value.get("enabled"))
             .and_then(Value::as_bool)
@@ -159,7 +169,17 @@ pub fn bind(
             .and_then(Value::as_str)
             .unwrap_or("report")
             .into(),
-        compile_sources: kind == ValidationKind::PythonRuntime,
+        compile_sources: kind == ValidationKind::PythonRuntime && !sources.is_empty(),
+        runtimes: matrix,
+        required_interpreters: if kind == ValidationKind::PythonRuntime {
+            strings(
+                component
+                    .settings
+                    .pointer("/engines/python_compat/required_interpreters"),
+            )
+        } else {
+            vec![]
+        },
         ..Default::default()
     };
     options.quality_timeout_seconds = quality
@@ -355,4 +375,477 @@ fn test_targets(
         .cloned()
         .collect();
     Ok(targets)
+}
+
+fn strings(value: Option<&Value>) -> Vec<String> {
+    value
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect()
+}
+fn configured_python(
+    project: &ResolvedProject,
+    cwd: &Path,
+    configured: &str,
+    environment: &BTreeMap<String, String>,
+) -> Result<ResolvedTool, String> {
+    let path = if configured.contains('/') {
+        Some(if Path::new(configured).is_absolute() {
+            PathBuf::from(configured)
+        } else {
+            project.root.join(configured)
+        })
+    } else {
+        project
+            .tools
+            .get(configured)
+            .and_then(|tool| tool.path.as_deref())
+            .map(|path| {
+                if Path::new(path).is_absolute() {
+                    PathBuf::from(path)
+                } else {
+                    project.root.join(path)
+                }
+            })
+    };
+    let mut tool = ToolRequest {
+        id: if configured.contains('/') {
+            "python".into()
+        } else {
+            configured.into()
+        },
+        explicit: path,
+        project_root: cwd.into(),
+        pack_root: None,
+        path_env: environment.get("PATH").cloned(),
+    }
+    .resolve()
+    .map_err(|failure| format!("project Python {configured:?}: {failure}"))?;
+    tool.id = "python".into();
+    Ok(tool)
+}
+fn project_python(
+    project: &ResolvedProject,
+    component: &Component,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<ResolvedTool, String> {
+    configured_python(
+        project,
+        cwd,
+        component.python_executable.as_deref().unwrap_or("python"),
+        environment,
+    )
+}
+fn runtime_matrix(
+    project: &ResolvedProject,
+    component: &Component,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<Vec<RuntimeSpec>, String> {
+    let configured = strings(
+        component
+            .settings
+            .pointer("/engines/python_compat/interpreters"),
+    );
+    let required = strings(
+        component
+            .settings
+            .pointer("/engines/python_compat/required_interpreters"),
+    );
+    if configured.is_empty() {
+        if !required.is_empty() {
+            return Err(
+                "required_interpreters must select explicitly configured interpreters".into(),
+            );
+        }
+        return Ok(vec![]);
+    }
+    if configured.len() > 32 {
+        return Err("runtime matrix exceeds 32 interpreters".into());
+    }
+    Ok(configured
+        .iter()
+        .map(|configured| RuntimeSpec {
+            configured: configured.clone(),
+            tool: configured_python(project, cwd, configured, environment).ok(),
+            required: required.contains(configured),
+        })
+        .collect())
+}
+fn integration_owner(project: &ResolvedProject) -> Option<&str> {
+    project
+        .components
+        .iter()
+        .find(|component| component.root == ".")
+        .or_else(|| project.components.first())
+        .map(|component| component.id.as_str())
+}
+fn bind_integration(
+    project: &ResolvedProject,
+    component: &Component,
+    id: &str,
+    environment: &BTreeMap<String, String>,
+    run_label: &str,
+) -> BoundValidation {
+    match integration_plans(project, component, id, environment, run_label) {
+        Ok((plans, tool)) => {
+            let tasks = plans
+                .iter()
+                .flat_map(|plan| plan.tasks.iter().cloned())
+                .collect::<Vec<_>>();
+            if tasks.is_empty() {
+                return blocked("no integration cases were declared for this component");
+            }
+            BoundValidation {
+                work: Work::steps(tasks, false),
+                plans,
+                tool,
+            }
+        }
+        Err(reason) => blocked(reason),
+    }
+}
+fn integration_plans(
+    project: &ResolvedProject,
+    component: &Component,
+    id: &str,
+    environment: &BTreeMap<String, String>,
+    run_label: &str,
+) -> Result<(Vec<ValidationPlan>, Option<ResolvedTool>), String> {
+    let settings = component.settings.pointer("/engines/integration");
+    let mut cases = component.integrations.clone();
+    if integration_owner(project) == Some(&component.id) {
+        cases.extend(
+            settings
+                .and_then(|settings| settings.get("cases"))
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .cloned(),
+        );
+    }
+    let max_cases = settings
+        .and_then(|settings| settings.get("max_cases"))
+        .and_then(Value::as_u64)
+        .unwrap_or(32);
+    if max_cases == 0 || max_cases > 32 || cases.len() > max_cases as usize {
+        return Err("integration case count exceeds the configured 1..32 maximum".into());
+    }
+    let max_output = settings
+        .and_then(|settings| settings.get("max_output_bytes"))
+        .and_then(Value::as_u64)
+        .unwrap_or(65536);
+    if !(1024..=8 * 1024 * 1024).contains(&max_output) {
+        return Err("integration max_output_bytes must be 1024..8388608".into());
+    }
+    let cwd = if component.root == "." {
+        project.root.clone()
+    } else {
+        project.root.join(&component.root)
+    };
+    let sources = ici_config::component_source_inventory(project, component)
+        .map_err(|failure| failure.to_string())?
+        .into_iter()
+        .filter(|path| path.ends_with(".py"))
+        .collect::<Vec<_>>();
+    let mut names = std::collections::BTreeSet::new();
+    let mut plans = vec![];
+    let mut selected_tool = None;
+    for (index, case) in cases.iter().enumerate() {
+        let name = case
+            .get("name")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "integration case name missing".to_string())?;
+        if !names.insert(name) {
+            return Err(format!("duplicate integration case {name:?}"));
+        }
+        let mut targets = integration_python_targets(
+            project,
+            settings.and_then(|settings| settings.get("python_targets")),
+            environment,
+        )?;
+        targets.extend(integration_python_targets(
+            project,
+            case.get("python_targets"),
+            environment,
+        )?);
+        let mut references = vec![];
+        let mut argv = vec![];
+        let mut executable = None;
+        for (position, token) in strings(case.get("argv")).iter().enumerate() {
+            if let Some(placeholder) = token
+                .strip_prefix('{')
+                .and_then(|text| text.strip_suffix('}'))
+            {
+                let (kind, identity) = placeholder
+                    .split_once(':')
+                    .ok_or_else(|| format!("unknown integration placeholder {token:?}"))?;
+                let tool = match kind {
+                    "python" => match targets.get(identity) {
+                        Some(tool) => tool.clone(),
+                        None if identity == "current" => {
+                            project_python(project, component, &cwd, environment)?
+                        }
+                        None => return Err(format!("unknown Python target {identity:?}")),
+                    },
+                    "artifact" => {
+                        let path = integration_artifact(project, component, identity)?;
+                        references.push(path.to_string_lossy().into_owned());
+                        if position != 0 {
+                            argv.push(path.to_string_lossy().into_owned());
+                            continue;
+                        }
+                        ToolRequest{id:"integration-artifact".into(),explicit:Some(path),project_root:cwd.clone(),pack_root:None,path_env:None}.resolve().map_err(|failure|format!("declared integration artifact {identity:?}: {failure}; build the declared artifact before execution"))?
+                    }
+                    _ => return Err(format!("unknown integration placeholder {token:?}")),
+                };
+                if position == 0 {
+                    executable = Some(tool.clone());
+                }
+                argv.push(tool.path.to_string_lossy().into_owned());
+            } else {
+                if token.contains(['{', '}']) {
+                    return Err(format!(
+                        "integration placeholders must occupy whole tokens: {token:?}"
+                    ));
+                }
+                argv.push(token.clone());
+            }
+        }
+        let tool = executable.ok_or_else(|| {
+            format!("integration {name:?} requires a typed Python or artifact executable")
+        })?;
+        let timeout = case
+            .get("timeout_seconds")
+            .and_then(Value::as_f64)
+            .unwrap_or(30.0);
+        if !(0.1..=300.0).contains(&timeout) {
+            return Err(format!(
+                "integration {name:?} timeout_seconds must be 0.1..300"
+            ));
+        }
+        let outputs = case
+            .get("output_artifacts")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .map(|output| {
+                let path = output
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| "integration output path missing".to_string())?;
+                ici_domain::validation::relative_path(path, false)
+                    .map_err(|failure| failure.to_string())?;
+                Ok(ici_validation::OutputAssertion {
+                    path: path.into(),
+                    min_size: output.get("min_size").and_then(Value::as_u64).unwrap_or(1),
+                })
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        let overlay = case
+            .get("env")
+            .and_then(Value::as_object)
+            .into_iter()
+            .flatten()
+            .map(|(name, value)| {
+                value
+                    .as_str()
+                    .map(|value| (name.clone(), value.to_owned()))
+                    .ok_or_else(|| format!("integration environment {name:?} is not a string"))
+            })
+            .collect::<Result<BTreeMap<_, _>, String>>()?;
+        let context = ValidationRequest {
+            kind: ValidationKind::Integration,
+            task_id: format!("{id}.case{index}"),
+            component_id: component.id.clone(),
+            root: project.root.clone(),
+            cwd: cwd.clone(),
+            owned_run_dir: project
+                .root
+                .join(".ici/rust-v1/runs")
+                .join(run_label)
+                .join(&component.id),
+            tool: tool.clone(),
+            targets: vec![if component.declared_in.is_empty() {
+                "ici.toml".into()
+            } else {
+                component.declared_in.clone()
+            }],
+            source_files: sources.clone(),
+            functions: vec![],
+            options: ValidationOptions {
+                argv,
+                expected_exit: case
+                    .get("expected_exit")
+                    .and_then(Value::as_i64)
+                    .unwrap_or(0)
+                    .try_into()
+                    .map_err(|_| "integration expected_exit exceeds a 32-bit value".to_string())?,
+                stdout_contains: strings(case.get("stdout_contains")),
+                stderr_contains: strings(case.get("stderr_contains")),
+                stdout_not_contains: strings(case.get("stdout_not_contains")),
+                stderr_not_contains: strings(case.get("stderr_not_contains")),
+                outputs,
+                requires: strings(case.get("requires")),
+                environment: overlay,
+                timeout_seconds: timeout,
+                output_limit_bytes: Some(max_output),
+                integration_case_name: Some(name.into()),
+                integration_required: case
+                    .get("required")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(true),
+                ..Default::default()
+            },
+        };
+        let mut plan = ici_validation::plan(&context).map_err(|failure| failure.to_string())?;
+        for task in &mut plan.tasks {
+            task.env_inherit = Some(strings(case.get("inherit_env")));
+            task.input_refs.extend(references.clone());
+            task.work_dirs
+                .push(context.owned_run_dir.to_string_lossy().into_owned());
+            task.analysis_unit_ids = vec![format!("{}.integration", component.id)];
+            task.input_refs.sort();
+            task.input_refs.dedup();
+        }
+        if selected_tool.is_none() {
+            selected_tool = Some(tool);
+        }
+        plans.push(plan);
+    }
+    Ok((plans, selected_tool))
+}
+fn integration_python_targets(
+    project: &ResolvedProject,
+    value: Option<&Value>,
+    environment: &BTreeMap<String, String>,
+) -> Result<BTreeMap<String, ResolvedTool>, String> {
+    let Some(values) = value.and_then(Value::as_object) else {
+        return Ok(BTreeMap::new());
+    };
+    if values.len() > 32 {
+        return Err("integration Python targets exceed 32 declarations".into());
+    }
+    values
+        .iter()
+        .map(|(name, value)| {
+            let configured = value
+                .as_str()
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| format!("integration Python target {name:?} must be a path"))?;
+            let path = if Path::new(configured).is_absolute() {
+                PathBuf::from(configured)
+            } else {
+                project.root.join(configured)
+            };
+            let tool = ToolRequest {
+                id: "python".into(),
+                explicit: Some(path),
+                project_root: project.root.clone(),
+                pack_root: None,
+                path_env: environment.get("PATH").cloned(),
+            }
+            .resolve()
+            .map_err(|failure| format!("integration Python target {name:?}: {failure}"))?;
+            Ok((name.clone(), tool))
+        })
+        .collect()
+}
+fn integration_artifact(
+    project: &ResolvedProject,
+    component: &Component,
+    identity: &str,
+) -> Result<PathBuf, String> {
+    let (build_id, path) = identity
+        .split_once('/')
+        .ok_or_else(|| format!("artifact placeholder must name BUILD/PATH: {identity:?}"))?;
+    let build = project
+        .builds
+        .iter()
+        .find(|build| build.id == build_id)
+        .ok_or_else(|| format!("artifact references undeclared build {build_id:?}"))?;
+    ici_domain::validation::relative_path(path, false).map_err(|failure| failure.to_string())?;
+    let directory = build.directory.as_deref().unwrap_or(".");
+    let relative = if directory == "." {
+        path.to_owned()
+    } else {
+        format!("{directory}/{path}")
+    };
+    let view = Component {
+        root: directory.into(),
+        ..component.clone()
+    };
+    let matched =
+        ici_config::matching_source_paths(&view, std::slice::from_ref(&relative), &build.artifacts)
+            .map_err(|failure| failure.to_string())?;
+    if matched.is_empty() {
+        return Err(format!(
+            "integration artifact {identity:?} is not declared by build {build_id:?}"
+        ));
+    }
+    let absolute = project.root.join(relative);
+    let canonical=absolute.canonicalize().map_err(|failure|format!("declared integration artifact {identity:?} is unavailable: {failure}; prepare the declared build first"))?;
+    if canonical != absolute
+        || !canonical.starts_with(&project.root)
+        || !std::fs::symlink_metadata(&absolute).is_ok_and(|metadata| metadata.is_file())
+    {
+        return Err(format!(
+            "declared integration artifact {identity:?} must be a contained regular file without symlink traversal"
+        ));
+    }
+    Ok(absolute)
+}
+
+/// Additional historical language scopes keep the frozen next catalog's 36 entries intact.
+/// Modern projects opt in through an explicit check or legacy engine setting.
+pub fn supplemental_checks(project: &ResolvedProject) -> Vec<CheckDefinition> {
+    [
+        (
+            "python.sanitize",
+            "sanitize",
+            "Python ResourceWarning checks",
+            vec![Profile::Standard, Profile::Deep],
+            "python-resource-evidence",
+        ),
+        (
+            "python.artifact",
+            "build",
+            "Declared Python artifacts",
+            vec![Profile::Deep],
+            "python-artifact-contract",
+        ),
+    ]
+    .into_iter()
+    .filter(|(id, engine, _, _, _)| {
+        project.components.iter().any(|component| {
+            component
+                .languages
+                .iter()
+                .any(|language| language == "python")
+                && (project.schema_family == ici_config::SchemaFamily::Legacy
+                    || component.checks.contains_key(*id)
+                    || project.checks.contains_key(*id)
+                    || project.origins.iter().any(|(key, origin)| {
+                        origin.layer != "defaults"
+                            && (key == &format!("engines.{engine}")
+                                || key.starts_with(&format!("engines.{engine}.")))
+                    }))
+        })
+    })
+    .map(|(id, _, title, profiles, provides)| CheckDefinition {
+        id: id.into(),
+        title: title.into(),
+        language: "python".into(),
+        tool: None,
+        required: true,
+        profiles,
+        needs: vec![],
+        provides: vec![provides.into()],
+        is_static: false,
+    })
+    .collect()
 }

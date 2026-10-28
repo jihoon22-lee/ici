@@ -118,6 +118,9 @@ pub fn observe_for(
     } else {
         match kind {
             ValidationKind::PythonTest => observe_suite(plan, outcomes, &mut output),
+            ValidationKind::PythonSanitize => {
+                crate::python_sanitize::observe(plan, outcomes, &mut output)
+            }
             ValidationKind::PythonCoverage => {
                 observe_coverage(plan, outcomes, artifacts, &mut output)
             }

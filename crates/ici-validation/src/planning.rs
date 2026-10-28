@@ -144,7 +144,9 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
         ));
     }
     match request.kind {
-        ValidationKind::PythonTest | ValidationKind::PythonCoverage => python_suite(&mut plan)?,
+        ValidationKind::PythonTest
+        | ValidationKind::PythonCoverage
+        | ValidationKind::PythonSanitize => python_suite(&mut plan)?,
         ValidationKind::PythonRuntime => {
             let mut metadata = task(
                 request,
@@ -270,7 +272,11 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         .clone()
         .unwrap_or_else(|| format!("{}.suite", request.task_id));
     if request.options.shared_test_task_id.is_none() {
-        let mut args = vec![];
+        let mut args = if request.kind == ValidationKind::PythonSanitize {
+            vec!["-W".into(), "error::ResourceWarning".into()]
+        } else {
+            vec![]
+        };
         if with_coverage {
             args.extend([
                 "-m".into(),
@@ -287,9 +293,16 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             "-p".into(),
             "no:cacheprovider".into(),
             "-v".into(),
-            "--tb=short".into(),
+            if request.kind == ValidationKind::PythonSanitize {
+                "--tb=long".into()
+            } else {
+                "--tb=short".into()
+            },
             "--color=no".into(),
         ]);
+        if request.kind == ValidationKind::PythonSanitize {
+            args.extend(["-o".into(), "addopts=".into()]);
+        }
         if request
             .options
             .slow_threshold_seconds

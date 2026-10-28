@@ -182,3 +182,43 @@ which differs from the displayed def line. Unknown invocation evidence leaves
 the function denominator unavailable instead of inventing measured coverage.
 
 These library fixtures do not establish full CLI, packaging or R6/R8 closure.
+
+## Native CLI runtime and release preparation foundation
+
+The CLI now binds configured interpreter matrices before selecting a primary
+runtime, applies required/optional interpreter policy to compile/import checks,
+and resolves typed Python or existing declared artifact integration inputs.
+Integration cases preserve their original grouped assertions, optional policy,
+rich finding metadata, declared environment inheritance, exit contract, bounded
+streams, and fresh output evidence. Existing user output is retained when the
+freshness assertion fails. Python ResourceWarning checks use the project's pytest,
+clear configured addopts, retain full traceback locations, and keep unrelated
+pytest failures or entirely skipped scopes incomplete.
+
+Measured CLI evidence on 2026-10-29 uses explicit Python 3.10.21 and 3.14.7:
+
+- Six runtime/integration test functions passed, including missing required and
+  optional interpreters, optional version incompatibility, import-only behavior,
+  environment isolation, a declared nonzero exit, output freshness, optional
+  case failures, and an existing native executable without a Python fallback.
+- A separate actual pytest fixture passed clean, ResourceWarning, unrelated test
+  failure, and entirely skipped scenarios. ResourceWarning retains its actual
+  project file and line. No project bytecode is produced.
+- Two ordinary CLI tests passed Rust release preparation: read-only planning,
+  copied modules, generated callable launchers and environment files, verified
+  ownership manifests, updates to unchanged owned files, preservation of user
+  modifications and unknown existing files, and ancestor-symlink rejection.
+- Strict all-target CLI/validation Clippy passed. The earlier validation library
+  contract fixtures also passed after the named-case extension.
+
+Release preparation reads immutable captured source bytes and writes in Rust;
+it never invokes a package installer or a Python backend. The native prepare
+operation is visible in plan output and remains uncached. Exact output hashes
+and permissions back ownership proofs; only fully verified owned files can be
+excluded from later broad source discovery. Unknown or modified files remain
+visible. A new release version has a separate ownership record.
+
+This foundation currently handles declared project versions. Visible Git version
+fallback, broader discovery acceptance, actual generated launcher execution, and
+legacy declared wheel/report publication are follow-up acceptance work; the
+foundation evidence does not close product-wide parity.
