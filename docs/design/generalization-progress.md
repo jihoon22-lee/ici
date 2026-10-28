@@ -135,3 +135,14 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
   fixture를 추가, 해당 provider 회귀 45개 통과(0.21초). gate를 완화하지 않았다.
 - CI의 Clang 실제 도구 검사는 실행됐다. CI skip은 선택적 jsonschema/host syntax 조건이다.
   최신 test-only 수정으로 CI를 재실행한다.
+
+## 0.13.0 릴리스 후보 준비
+
+- 기능은 하나의 일반 정적 분석 checkpoint이며 additive CLI/provider/package 변경이다.
+  공개 0.12.1의 patch 수정 범위를 넘고 wire schema는 유지하므로 0.13.0 minor 후보로 준비한다.
+  후보 준비는 공개 stable 판정이 아니다. 태그/게시 전 main CI와 exact candidate corpus를 확인한다.
+- 작업 소유 release worktree: `/tmp/ici-generalization-20261028/release`,
+  branch `chore/release-general-analysis`, base `8d4a313` (구현 PR #295의 head).
+  구현 PR 병합 후 새 main 위로 release-only 변경을 rebase한다.
+- 버전 source/ici.toml/CHANGELOG/README 동기화. 다음은 pyz/wheel 후보 build 및
+  정확한 digest에 대한 known-answer corpus 등록, release PR/CI/후보 인수다.
