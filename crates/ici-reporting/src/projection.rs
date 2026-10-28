@@ -504,6 +504,9 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
             }
             totals.insert(field, sum);
         }
+        if totals["covered"] > totals["stmts"] || totals["cb"] > totals["nb"] {
+            return Err(ReportError("coverage numerator exceeds denominator".into()));
+        }
         let line = if totals["stmts"] > 0 {
             Some(100.0 * totals["covered"] as f64 / totals["stmts"] as f64)
         } else {
@@ -516,7 +519,13 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
         };
         engine["extra"]["line_coverage"] = json!(line);
         engine["extra"]["branch_coverage"] = json!(branch);
-        engine["extra"]["coverage_totals"] = json!(totals);
+        engine["extra"]["coverage_totals"] = json!({
+            "stmts":totals["stmts"],"covered":totals["covered"],
+            "miss":totals["stmts"]-totals["covered"],
+            "nb":totals["nb"],"cb":totals["cb"],
+            "cover":line,"branch_cover":branch,
+            "functions":null,"covered_functions":null
+        });
     }
     Ok(())
 }
@@ -781,6 +790,11 @@ mod test_aggregation_tests {
         assert_eq!(engine["extra"]["pass_rate"], 0.75);
         assert_eq!(engine["extra"]["coverage_totals"]["stmts"], 12);
         assert_eq!(engine["extra"]["coverage_totals"]["covered"], 10);
+        assert_eq!(engine["extra"]["coverage_totals"]["miss"], 2);
+        assert_eq!(
+            engine["extra"]["coverage_totals"]["cover"],
+            engine["extra"]["line_coverage"]
+        );
         assert_eq!(
             engine["extra"]["line_coverage"].as_f64().unwrap(),
             100.0 * 10.0 / 12.0
