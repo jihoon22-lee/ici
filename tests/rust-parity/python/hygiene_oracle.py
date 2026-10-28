@@ -46,7 +46,9 @@ def main():
         ]
         assert observed == case["oracle_targets"], case["id"]
         assert counters == case["oracle_counters"], case["id"]
-    print(f"{len(fixtures['cases'])} fixed-source hygiene fixtures match; corrections stay separate")
+    print(
+        f"{len(fixtures['cases'])} fixed-source hygiene fixtures match; corrections stay separate"
+    )
 
 
 if __name__ == "__main__":
