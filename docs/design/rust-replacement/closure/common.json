@@ -311,6 +311,28 @@
       ],
       "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately.",
       "difference_reason": "Full C++ direct executable suites, other quality modes, TEM cross-component aggregation, and complete descriptor/command source audit remain open; these rows are verified, not complete."
+    },
+    "command:ici next plan": {
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/commands.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-application/src/graph.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_cpp.rs::missing_declared_runtime_outputs_are_blocked_without_build_or_directory_creation"
+        ],
+        "failure": []
+      },
+      "evidence": [
+        "Actual next plan --json over Python test+coverage shows dependency project.python.test consumed by both checks, then no .ici directory exists; cargo test -p ici-cli --test legacy_test_metrics legacy_test_report_counts --locked PASS; cargo clippy -p ici-cli --all-targets --locked -- -D warnings PASS after pinned source normalization commit; root session 2026-10-29"
+      ],
+      "comparison": "Reviewed frozen next_path.py cmd_plan and render_plan: read-only selection, graph edges, shared consumers, mutating directories, linked builds, blocked checks, cost/profile, limitations, and separate JSON/text. Native plan now exposes check-level shared dependencies while preserving explicit steps and conditional branches; actual JSON CLI case verified no state creation.",
+      "difference_reason": "Frozen shared graph unit IDs and native check dependency IDs differ, and full command option/negative/failure corpus plus every source-file audit remains pending. This row is verified, not complete."
     }
   },
   "source_files": {
