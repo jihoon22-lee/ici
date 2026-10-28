@@ -131,3 +131,12 @@ bytes enter the snapshot and policy scope. CLI regressions prove unchanged scope
 across relocated DB/response/GNU-link checkouts, changed scope for changed response
 flags, unchanged scope for code fixes, and preserved original artifacts when
 explicit preparation switches inspection to an owned shadow.
+
+Compilation policy inspects each expanded recorded configuration for exact
+`required_flags`/`forbidden_flags` tokens, including response-file arguments.
+Each violation retains its TU/configuration identity. Without a selected DB,
+the optional contract reports located estimated coverage warnings; an explicit
+`database_required` absence is a measured policy violation while compilation
+coverage remains estimated. Missing/broken explicit selections never use that
+fallback. `compile_policy.rs` and the native CLI regression exercise these
+positive, negative and failure boundaries without invoking a compiler.

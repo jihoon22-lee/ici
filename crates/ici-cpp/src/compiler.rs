@@ -21,6 +21,75 @@ pub fn analyze_compile_context(
 ) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(&request.task_id, "ici.compile");
     output.observation.state = TaskState::Succeeded;
+    let production = context
+        .selected_sources
+        .iter()
+        .filter(|source| crate::is_translation_unit(source))
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    if production.is_empty() && context.units.is_empty() && context.diagnostics.is_empty() {
+        for input in &request.inputs {
+            let mut target = InspectionTarget::at(&input.path, 1);
+            target.target_name = "CompilationDatabase:NotApplicable".into();
+            target.status = "SKIP".into();
+            target.message = "No production C/C++ translation units are in scope".into();
+            output.targets.push(target);
+        }
+        let mut applicable = ici_domain::Measurement::measured("compilation_units", 0.0);
+        applicable.evidence = ici_domain::EvidenceLevel::NotApplicable;
+        output.observation.measurements.push(applicable);
+        output.status = "SKIP".into();
+        output.summary = "No production C/C++ translation units are in scope".into();
+        return output;
+    }
+    if context.database_path.is_none() && context.diagnostics.is_empty() {
+        let required = request.options["database_required"]
+            .as_bool()
+            .unwrap_or(false);
+        for source in &production {
+            let mut target = InspectionTarget::at(source, 1);
+            target.target_name = "ici.compile-db.coverage".into();
+            target.status = if required { "FAIL" } else { "WARN" }.into();
+            target.message =
+                "No compilation database is available for this production translation unit".into();
+            crate::analysis::finding(
+                &mut output,
+                request,
+                &target,
+                "ici.compile-db.coverage",
+                if required { "high" } else { "medium" },
+                true,
+            );
+            if required {
+                // The absence violates an explicit metadata policy. Compile coverage itself is
+                // still estimated and never becomes measured syntax evidence.
+                output
+                    .observation
+                    .findings
+                    .last_mut()
+                    .expect("missing database finding")
+                    .evidence = ici_domain::EvidenceLevel::Measured;
+            }
+            output.targets.push(target);
+        }
+        for (name, value) in [
+            ("compilation_units", 0),
+            ("uncovered_sources", production.len() as u64),
+        ] {
+            let mut item = ici_domain::Measurement::measured(name, value as f64);
+            item.evidence = ici_domain::EvidenceLevel::Estimated;
+            output.observation.measurements.push(item);
+        }
+        output.status = if required { "FAIL" } else { "WARN" }.into();
+        output.summary = format!(
+            "Compilation DB: 0/{} production units covered; no database selected",
+            production.len()
+        );
+        output.extra = json!({"context":context,"database_path":null,"production_units":production.len(),"covered_units":0,"configurations":0,"coverage_percent":0.0});
+        return output;
+    }
+    let required_flags = string_options(&request.options, "required_flags");
+    let forbidden_flags = string_options(&request.options, "forbidden_flags");
     for unit in &context.units {
         let mut target = InspectionTarget::at(&unit.source, 1);
         target.target_name = "CompilationInput".into();
@@ -41,6 +110,66 @@ pub fn analyze_compile_context(
             target.status = "ERROR".into();
         }
         output.targets.push(target);
+        if !unit
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.level == "error")
+        {
+            for (rule, flags, present, message) in [
+                (
+                    "required-flag",
+                    &required_flags,
+                    false,
+                    "A required compiler flag is absent from this configuration",
+                ),
+                (
+                    "forbidden-flag",
+                    &forbidden_flags,
+                    true,
+                    "A forbidden compiler flag is present in this configuration",
+                ),
+            ] {
+                for flag in flags
+                    .iter()
+                    .filter(|flag| unit.argv.contains(flag) == present)
+                {
+                    let mut target = InspectionTarget::at(&unit.source, 1);
+                    target.target_name = format!("ici.compile-db.{rule}");
+                    target.status = "FAIL".into();
+                    target.message = message.into();
+                    target
+                        .metrics
+                        .insert("configuration".into(), json!(unit.configuration));
+                    target
+                        .metrics
+                        .insert("flag_digest".into(), json!(ici_domain::sha256(flag)));
+                    crate::analysis::finding(
+                        &mut output,
+                        request,
+                        &target,
+                        &format!("ici.compile-db.{rule}"),
+                        "high",
+                        false,
+                    );
+                    let finding = output
+                        .observation
+                        .findings
+                        .last_mut()
+                        .expect("new policy finding");
+                    finding.analysis_unit_id = Some(format!(
+                        "{}.cpp:{}",
+                        request.component_id, unit.configuration
+                    ));
+                    finding.variant = Some(unit.variant.clone());
+                    finding.fingerprint = ici_domain::sha256(format!(
+                        "compile-policy:{}:{rule}:{}",
+                        unit.configuration,
+                        ici_domain::sha256(flag)
+                    ));
+                    output.targets.push(target);
+                }
+            }
+        }
     }
     for source in &context.selected_sources {
         if context.units.iter().any(|unit| &unit.source == source) {
@@ -90,6 +219,9 @@ pub fn analyze_compile_context(
         context.uncovered_sources.len() as u64,
         false,
     );
+    if output.observation.state == TaskState::Succeeded && !output.observation.findings.is_empty() {
+        output.status = "FAIL".into();
+    }
     output.extra = json!({"context":context});
     output.summary = format!(
         "{} compile configurations, {} uncovered sources",
@@ -97,6 +229,15 @@ pub fn analyze_compile_context(
         context.uncovered_sources.len()
     );
     output
+}
+fn string_options(options: &serde_json::Value, key: &str) -> Vec<String> {
+    options[key]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(serde_json::Value::as_str)
+        .map(str::to_owned)
+        .collect()
 }
 /// The executable must have been resolved and approved by the application/tool resolver.
 pub fn compiler_probe_task(

@@ -1919,3 +1919,71 @@ fn recorded_compilation_scope_hashes_response_configuration_but_not_source_code_
         scope
     );
 }
+
+#[test]
+fn compilation_policy_flags_and_missing_database_policy_reach_the_common_cli_gate() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int value;\n").unwrap();
+    let config=runtime_config(&["cpp.compile"],"[engines.compile_db]\ndatabase_required=false\nrequired_flags=['-fPIC']\nforbidden_flags=['-fpermissive']\n").replace("build='native'\n","");
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
+    let optional = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(optional.outputs["project.cpp.compile"].status, "WARN");
+    assert!(optional.result.execution.required_complete);
+    assert_ne!(optional.result.gate.selected, GateVerdict::Incomplete);
+    fs::write(
+        root.path().join("ici.toml"),
+        config.replace("database_required=false", "database_required=true"),
+    )
+    .unwrap();
+    let required = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(required.outputs["project.cpp.compile"].status, "FAIL");
+    assert_eq!(required.result.gate.selected, GateVerdict::Fail);
+    assert!(required.result.execution.required_complete);
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    let rows = serde_json::json!([{"directory":root.path(),"file":"main.cpp","arguments":["g++","-fpermissive","-c","main.cpp","-o","main.o"]}]);
+    fs::write(
+        root.path().join("compile_commands.json"),
+        serde_json::to_vec(&rows).unwrap(),
+    )
+    .unwrap();
+    let flags = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(flags.result.gate.selected, GateVerdict::Fail);
+    let output = &flags.outputs["project.cpp.compile"];
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.observation.findings.len(), 2);
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.target_name == "ici.compile-db.required-flag")
+    );
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.target_name == "ici.compile-db.forbidden-flag")
+    );
+}
