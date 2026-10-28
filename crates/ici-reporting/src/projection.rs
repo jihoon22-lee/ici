@@ -43,7 +43,7 @@ pub fn legacy_engine(check: &str) -> Option<&'static str> {
         "python.security" => "security",
         "python.resource" => "resource",
         "cpp.artifact" | "python.artifact" => "build",
-        "cpp.binary-compat" => "binary_compat",
+        "cpp.binary-compat" | "python.binary-compat" => "binary_compat",
         "integration" => "integration",
         _ => return None,
     })
@@ -413,7 +413,8 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
             return Ok(());
         }
         let extra = check_extra(check);
-        let Some(identity) = extra["test_execution"]["canonical_suite_id"].as_str() else {
+        let Some(aggregate_identity) = extra["test_execution"]["canonical_suite_id"].as_str()
+        else {
             engine["extra"]["test_aggregation_limitation"] =
                 json!("A check lacks a physical suite identity");
             return Ok(());
@@ -423,35 +424,67 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
             return Ok(());
         }
         let phase = extra["test_execution"]["phase"].as_str();
-        let Some(passed) = extra["passed_tests"].as_u64() else {
-            engine["extra"]["test_aggregation_limitation"] = json!("A passed count is unavailable");
+        let physical = extra["physical_test_suites"].as_array().cloned().unwrap_or_else(||vec![json!({"canonical_suite_id":aggregate_identity,"complete":true,"passed_tests":extra["passed_tests"],"total_tests":extra["total_tests"],"skipped_tests":extra["skipped_tests"]})]);
+        if physical.is_empty() {
+            engine["extra"]["test_aggregation_limitation"] =
+                json!("A check has no physical suite observations");
             return Ok(());
-        };
-        let Some(total) = extra["total_tests"].as_u64() else {
-            engine["extra"]["test_aggregation_limitation"] = json!("A total count is unavailable");
-            return Ok(());
-        };
-        if passed > total {
-            return Err(ReportError("test count exceeds suite total".into()));
         }
-        let candidate =
-            json!({"passed":passed,"total":total,"skipped":extra["skipped_tests"],"phase":phase});
-        if let Some(previous) = suites.get(identity) {
-            if previous["passed"] != passed || previous["total"] != total {
+        let mut physical_passed = 0u64;
+        let mut physical_total = 0u64;
+        for row in physical {
+            let Some(identity) = row["canonical_suite_id"].as_str() else {
                 engine["extra"]["test_aggregation_limitation"] =
-                    json!("Checks disagree on a physical suite count");
+                    json!("A suite lacks a physical identity");
+                return Ok(());
+            };
+            let Some(passed) = row["passed_tests"].as_u64() else {
+                engine["extra"]["test_aggregation_limitation"] =
+                    json!("A passed count is unavailable");
+                return Ok(());
+            };
+            let Some(total) = row["total_tests"].as_u64() else {
+                engine["extra"]["test_aggregation_limitation"] =
+                    json!("A total count is unavailable");
+                return Ok(());
+            };
+            if row["complete"] != true || passed > total {
+                engine["extra"]["test_aggregation_limitation"] =
+                    json!("A physical suite count is incomplete or invalid");
                 return Ok(());
             }
-            if previous["phase"] != "test" && phase == Some("test") {
+            physical_passed = physical_passed
+                .checked_add(passed)
+                .ok_or_else(|| ReportError("test count overflow".into()))?;
+            physical_total = physical_total
+                .checked_add(total)
+                .ok_or_else(|| ReportError("test count overflow".into()))?;
+            let candidate =
+                json!({"passed":passed,"total":total,"skipped":row["skipped_tests"],"phase":phase});
+            if let Some(previous) = suites.get(identity) {
+                if previous["passed"] != passed || previous["total"] != total {
+                    engine["extra"]["test_aggregation_limitation"] =
+                        json!("Checks disagree on a physical suite count");
+                    return Ok(());
+                }
+                if previous["phase"] != "test" && phase == Some("test") {
+                    suites.insert(identity.into(), candidate);
+                }
+            } else {
                 suites.insert(identity.into(), candidate);
             }
-        } else {
-            suites.insert(identity.into(), candidate);
+        }
+        if extra["passed_tests"].as_u64() != Some(physical_passed)
+            || extra["total_tests"].as_u64() != Some(physical_total)
+        {
+            engine["extra"]["test_aggregation_limitation"] =
+                json!("Physical suite counts do not reconcile with their producer");
+            return Ok(());
         }
         if phase == Some("coverage")
             && extra["coverage_totals"].is_object()
             && let Some(previous) =
-                coverage.insert(identity.into(), extra["coverage_totals"].clone())
+                coverage.insert(aggregate_identity.into(), extra["coverage_totals"].clone())
             && previous != extra["coverage_totals"]
         {
             engine["extra"]["test_aggregation_limitation"] =
@@ -811,5 +844,39 @@ mod test_aggregation_tests {
         project_extra(&mut engine).unwrap();
         assert!(engine["extra"].get("passed_tests").is_none());
         assert!(engine["extra"]["test_aggregation_limitation"].is_string());
+    }
+
+    #[test]
+    fn collective_cpp_coverage_deduplicates_each_executable_without_multiplying_coverage() {
+        let physical = json!([
+            {"canonical_suite_id":"cpp.one.suite","complete":true,"passed_tests":1,"total_tests":1,"skipped_tests":0},
+            {"canonical_suite_id":"cpp.two.suite","complete":true,"passed_tests":2,"total_tests":2,"skipped_tests":0}
+        ]);
+        let check = |phase: &str| {
+            json!({"evidence_complete":true,"extra":{
+                "test_execution":{"canonical_suite_id":"cpp.one.suite","phase":phase,"complete":true},
+                "physical_test_suites":physical,"passed_tests":3,"total_tests":3,
+                "coverage_totals":if phase=="coverage"{json!({"stmts":10,"covered":8,"nb":4,"cb":3})}else{serde_json::Value::Null}
+            }})
+        };
+        let mut engine = json!({"engine_name":"test","extra":{"native_checks":[check("test"),check("coverage")]}});
+        project_extra(&mut engine).unwrap();
+        assert_eq!(engine["extra"]["passed_tests"], 3);
+        assert_eq!(engine["extra"]["total_tests"], 3);
+        assert_eq!(
+            engine["extra"]["test_execution"]["physical_suites"]
+                .as_object()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(engine["extra"]["coverage_totals"]["stmts"], 10);
+        assert_eq!(engine["extra"]["coverage_totals"]["covered"], 8);
+        let mut mismatch = json!({"engine_name":"test","extra":{"native_checks":[check("test"),check("coverage")]}});
+        mismatch["extra"]["native_checks"][1]["extra"]["physical_test_suites"][1]["total_tests"] =
+            json!(3);
+        project_extra(&mut mismatch).unwrap();
+        assert!(mismatch["extra"].get("total_tests").is_none());
+        assert!(mismatch["extra"]["test_aggregation_limitation"].is_string());
     }
 }
