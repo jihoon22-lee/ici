@@ -233,6 +233,84 @@
       ],
       "comparison": "Reviewed complete frozen engines/line.py and analysis/line_count.py. Named fixtures prove legacy source/gate/extras collection, mixed language ownership, strict threshold cutoffs, mode-dependent exit contracts, warning fail-on-new and JSON extra locations. Documentation-only projects with no Python/C++ component and root extras in automatic monorepos remain open acceptance cases, so this row is not complete.",
       "difference_reason": "All inspected extras retain located targets as required by project invariants, while source-only totals and gating stay separate. Explicit native state, current exports and baselines are not recounted as source. Unsafe links/oversize/intake failures remain explicit; no silent zero evidence."
+    },
+    "command:ici test": {
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-validation/src/test_metrics.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once",
+          "crates/ici-cli/tests/legacy_test_metrics.rs::report_mode_quality_keeps_finding_but_does_not_fail_legacy_test_command"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_mode_scope.rs::explicit_migrated_mode_applies_per_check_without_changing_modern_default"
+        ],
+        "failure": [
+          "crates/ici-reporting/src/projection.rs::test_aggregation_tests::conflicting_suite_does_not_invent_an_aggregate"
+        ]
+      },
+      "evidence": [
+        "cargo test -p ici-cli --test legacy_mode_scope --test legacy_test_metrics --locked: 3 actual CLI/planner cases passed; cargo test -p ici-cli --lib test_policy_tests --locked: 2 passed; cargo test -p ici-reporting --locked: full suite passed including 100k-record HTML; /tmp/ici-rust-replacement-20261028/root-resume-current.txt latest window",
+        "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed"
+      ],
+      "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately.",
+      "difference_reason": "Full C++ direct executable suites, other quality modes, TEM cross-component aggregation, and complete descriptor/command source audit remain open; these rows are verified, not complete."
+    },
+    "descriptor:test": {
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-validation/src/test_metrics.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once",
+          "crates/ici-cli/tests/legacy_test_metrics.rs::report_mode_quality_keeps_finding_but_does_not_fail_legacy_test_command"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_mode_scope.rs::explicit_migrated_mode_applies_per_check_without_changing_modern_default"
+        ],
+        "failure": [
+          "crates/ici-reporting/src/projection.rs::test_aggregation_tests::conflicting_suite_does_not_invent_an_aggregate"
+        ]
+      },
+      "evidence": [
+        "cargo test -p ici-cli --test legacy_mode_scope --test legacy_test_metrics --locked: 3 actual CLI/planner cases passed; cargo test -p ici-cli --lib test_policy_tests --locked: 2 passed; cargo test -p ici-reporting --locked: full suite passed including 100k-record HTML; /tmp/ici-rust-replacement-20261028/root-resume-current.txt latest window",
+        "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed"
+      ],
+      "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately.",
+      "difference_reason": "Full C++ direct executable suites, other quality modes, TEM cross-component aggregation, and complete descriptor/command source audit remain open; these rows are verified, not complete."
+    },
+    "capability:test-quality-tem": {
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-validation/src/test_metrics.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once",
+          "crates/ici-cli/tests/legacy_test_metrics.rs::report_mode_quality_keeps_finding_but_does_not_fail_legacy_test_command"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_mode_scope.rs::explicit_migrated_mode_applies_per_check_without_changing_modern_default"
+        ],
+        "failure": [
+          "crates/ici-reporting/src/projection.rs::test_aggregation_tests::conflicting_suite_does_not_invent_an_aggregate"
+        ]
+      },
+      "evidence": [
+        "cargo test -p ici-cli --test legacy_mode_scope --test legacy_test_metrics --locked: 3 actual CLI/planner cases passed; cargo test -p ici-cli --lib test_policy_tests --locked: 2 passed; cargo test -p ici-reporting --locked: full suite passed including 100k-record HTML; /tmp/ici-rust-replacement-20261028/root-resume-current.txt latest window",
+        "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed"
+      ],
+      "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately.",
+      "difference_reason": "Full C++ direct executable suites, other quality modes, TEM cross-component aggregation, and complete descriptor/command source audit remain open; these rows are verified, not complete."
     }
   },
   "source_files": {
