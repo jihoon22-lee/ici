@@ -60,7 +60,8 @@ pub fn save_details(run: &crate::execute::ExecutedRun) -> Result<PathBuf> {
     Ok(path)
 }
 pub fn load(path: &Path) -> Result<StoredResult> {
-    let stored = StoredResult::from_bytes(&read_bounded(path, 64 * 1024 * 1024)?).map_err(error)?;
+    let stored =
+        StoredResult::from_report_bytes(&read_bounded(path, 64 * 1024 * 1024)?).map_err(error)?;
     if let StoredResult::Run(run) = &stored {
         let details = details_path(path, &run.run_id)?;
         if details.try_exists().map_err(error)? {

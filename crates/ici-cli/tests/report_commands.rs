@@ -193,3 +193,47 @@ fn ordinary_analyze_points_to_complete_offline_html_and_json_keeps_machine_outpu
     let json: serde_json::Value = serde_json::from_str(&output.stdout).unwrap();
     assert_eq!(json["schema_id"], "ici.next.run");
 }
+
+#[test]
+fn historical_v2_reports_render_without_overwriting_or_inventing_native_evidence() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("old.json");
+    let payload = serde_json::json!({
+        "schema_version":"ici.result/v2", "suite_status":"FAIL", "results":[{
+            "engine_name":"lint", "status":"FAIL", "summary":"historical failure",
+            "targets":[{"file_path":"main.py","line_number":4,"status":"FAIL","message":"old diagnostic"}]
+        }]
+    });
+    let original = serde_json::to_vec(&payload).unwrap();
+    fs::write(&path, &original).unwrap();
+    let stored = report::load(&path).unwrap();
+    assert_eq!(stored.schema(), "ici.result/v3");
+    assert_eq!(stored.to_value().unwrap()["suite_status"], "FAIL");
+    assert!(stored.to_value().unwrap().get("native_run").is_none());
+    let rendered = commands::dispatch(
+        &call(&["ici", "report", "--result", "old.json", "--out", "old.html"]),
+        dir.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert_eq!(rendered.exit_code, 0);
+    assert!(
+        fs::read_to_string(dir.path().join("old.html"))
+            .unwrap()
+            .contains("historical failure")
+    );
+    assert_eq!(fs::read(&path).unwrap(), original);
+    assert!(!dir.path().join(".ici").exists());
+    for invalid in [
+        serde_json::json!({"schema_version":"ici.result/v2","suite_status":"UNKNOWN","results":[]}),
+        serde_json::json!({"schema_version":"ici.result/v2","suite_status":"FAIL","results":[null]}),
+        serde_json::json!({"schema_version":"ici.result/v2","engine_name":"lint","status":"UNKNOWN"}),
+        serde_json::json!({"schema_version":"ici.result/v2","engine_name":"lint","status":"PASS","native_run":{}}),
+        serde_json::json!({"schema_version":"ici.result/v9","engine_name":"lint","status":"PASS"}),
+    ] {
+        fs::write(&path, serde_json::to_vec(&invalid).unwrap()).unwrap();
+        assert!(report::load(&path).is_err(), "{invalid}");
+    }
+    fs::write(&path, br#"{"schema_version":"ici.result/v2","engine_name":"lint","status":"PASS","status":"FAIL"}"#).unwrap();
+    assert!(report::load(&path).is_err());
+}

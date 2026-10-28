@@ -1,5 +1,14 @@
 # ici Rust 전면 교체 실행 계획
 
+### Historical report intake follow-up (2026-10-29)
+
+- The saved-report boundary explicitly accepts v2 through the frozen migration adapter while
+  the strict native/archive reader remains schema-specific. Unknown statuses, malformed engine
+  entries, duplicate keys and forged native evidence fail intake. Source bytes remain unchanged.
+- `report-v2-scope-gates.log` records five CLI report cases (21.75 s) and strict transitive
+  CLI/application/reporting Clippy. This closes the discovered v2 caller omission, not the
+  remaining inventory or final artifact acceptance.
+
 ### Historical commands and publication composition (2026-10-29)
 
 - `5e83831` connects both doctor routes and legacy brief/JSON to shared configuration/planning,

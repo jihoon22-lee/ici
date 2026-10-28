@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+- 저장된 `ici.result/v2` 보고서는 명시적인 호환 reader로 읽어 render/publish에 사용합니다.
+  원본을 변경하거나 native 비교 증거를 만들지 않으며 잘못된 상태·중복 JSON 키·알 수 없는 schema를 거부합니다.
+
 - `doctor`/`next doctor`는 선택·생략된 검사와 실제 도구 요구를 공통 계획에서 읽고,
   실행 파일별 제한된 version probe만 수행합니다. core Python·NAS 추정 없이 누락·실패·
   timeout·출력 제한과 해결할 설정을 표시하며 검사·빌드·설치를 시작하지 않습니다.

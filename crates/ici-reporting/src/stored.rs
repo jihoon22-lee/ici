@@ -112,6 +112,33 @@ impl StoredResult {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         Self::from_value(strict_stored_json(bytes)?)
     }
+    /// Explicit historical report boundary. The strict native/archive reader above
+    /// does not migrate schemas, and this adapter never supplies native evidence.
+    pub fn from_report_bytes(bytes: &[u8]) -> Result<Self> {
+        let value = strict_stored_json(bytes)?;
+        if value["schema_version"] != "ici.result/v2" {
+            return Self::from_value(value);
+        }
+        if value.get("schema_id").is_some() || value.get("native_run").is_some() {
+            return Err(ReportError(
+                "Historical v2 reports cannot carry native run evidence".into(),
+            ));
+        }
+        if let Some(results) = value.get("results") {
+            status(value.get("suite_status"), "suite_status")?;
+            let engines = results
+                .as_array()
+                .ok_or_else(|| ReportError("Historical results must be an array".into()))?;
+            for engine in engines {
+                text(engine.get("engine_name"), "engine_name", true)?;
+                status(engine.get("status"), "status")?;
+            }
+        } else {
+            text(value.get("engine_name"), "engine_name", true)?;
+            status(value.get("status"), "status")?;
+        }
+        Ok(Self::Legacy(crate::migrate_report_payload(&value, None)?))
+    }
     pub fn from_value(value: Value) -> Result<Self> {
         validate_stored_shape(&value)?;
         if value.get("schema_id").is_some() {
