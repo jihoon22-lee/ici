@@ -8,7 +8,7 @@ use ruff_python_parser::{Mode, ParseOptions, Parsed, lexer, parse_unchecked};
 use ruff_text_size::Ranged;
 
 pub const PARSER_IDENTITY: &str =
-    "ruff-11c76bf48fdac06b2f240cba502eda96da4dce77:source-v1:scope-v1:unicode16";
+    "ruff-11c76bf48fdac06b2f240cba502eda96da4dce77:source-v2:codecs-cpython3147:scope-v1:unicode16";
 pub const MAX_AST_NODES: usize = 250_000;
 pub struct ParsedFile {
     pub source: SourceDocument,
@@ -58,6 +58,21 @@ impl ParsedFile {
             });
         }
         for token in parsed.tokens() {
+            if source
+                .raw_offset(token.range().start().to_usize())
+                .is_none()
+                || source.raw_offset(token.range().end().to_usize()).is_none()
+            {
+                let (line, column) = source.location(token.range().start().to_usize());
+                return Err(SourceError {
+                    code: "unmapped-source-boundary",
+                    message:
+                        "A token boundary is not representable in the original source encoding"
+                            .into(),
+                    line,
+                    column,
+                });
+            }
             if token.kind() == TokenKind::Name
                 && !crate::unicode::identifier(
                     &source.text[token.range().start().to_usize()..token.range().end().to_usize()],

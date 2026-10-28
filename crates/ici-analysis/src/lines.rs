@@ -44,13 +44,19 @@ pub fn analyze(
         if crate::cancelled(output, cancellation) {
             break;
         }
-        let source = match SourceDocument::decode(input) {
+        let source = match SourceDocument::decode_cancellable(input, cancellation) {
             Ok(source) => source,
             Err(error) => {
+                if crate::cancelled(output, cancellation) {
+                    break;
+                }
                 failure(output, &input.path, &error);
                 continue;
             }
         };
+        if crate::cancelled(output, cancellation) {
+            break;
+        }
         let in_scope = !legacy || selected(source_paths, &input.path);
         let gated = in_scope && (!legacy || selected(gated_paths, &input.path));
         let hash_comments = [".py", ".pyi", ".sh", ".csh", ".toml", ".yml", ".yaml"]

@@ -32,7 +32,7 @@ pub struct SourceDocument {
     pub encoding: String,
     pub bom_bytes: usize,
     starts: Vec<usize>,
-    raw_offsets: Option<Vec<(usize, usize)>>,
+    raw_offsets: Option<crate::codecs::OffsetMap>,
 }
 static COOKIE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?-u)^[ \t\x0c]*#.*?coding[:=][ \t]*([-A-Za-z0-9_.]+)")
@@ -41,6 +41,12 @@ static COOKIE: LazyLock<Regex> = LazyLock::new(|| {
 
 impl SourceDocument {
     pub fn decode(input: &SourceInput) -> Result<Self, SourceError> {
+        Self::decode_cancellable(input, None)
+    }
+    pub fn decode_cancellable(
+        input: &SourceInput,
+        cancellation: Option<&std::sync::atomic::AtomicBool>,
+    ) -> Result<Self, SourceError> {
         if input.path.is_empty()
             || input.path.starts_with('/')
             || input.path.contains(['\\', '\0'])
@@ -98,78 +104,34 @@ impl SourceDocument {
                 }
             }
         }
-        let utf8 = matches!(encoding.as_str(), "utf-8" | "utf8" | "utf-8-sig");
-        if bom_bytes != 0 && !utf8 {
+        // CPython normalizes only these PEP 263 families before its codec
+        // lookup and BOM comparison. In particular BOM+utf8/cp65001 is invalid,
+        // even though either alias decodes UTF-8 without a BOM.
+        let prefix = encoding.chars().take(12).collect::<String>();
+        let selected = if prefix == "utf-8" || prefix.starts_with("utf-8-") {
+            "utf-8"
+        } else if ["latin-1", "iso-8859-1", "iso-latin-1"]
+            .iter()
+            .any(|name| prefix == *name || prefix.starts_with(&format!("{name}-")))
+        {
+            "iso-8859-1"
+        } else {
+            &encoding
+        };
+        if bom_bytes != 0 && selected != "utf-8" {
             return Err(SourceError::new(
                 "encoding-conflict",
                 "UTF-8 BOM conflicts with the source encoding cookie",
             ));
         }
-        let (text, raw_offsets) = if utf8 {
-            (
-                String::from_utf8(bytes.to_vec()).map_err(|_| {
-                    SourceError::new("invalid-encoding", "Source is not valid UTF-8")
-                })?,
-                None,
-            )
-        } else if matches!(encoding.as_str(), "ascii" | "us-ascii") {
-            if !bytes.is_ascii() {
-                return Err(SourceError::new(
-                    "invalid-encoding",
-                    "Source is not valid ASCII",
-                ));
-            }
-            (
-                String::from_utf8(bytes.to_vec()).expect("ASCII is UTF-8"),
-                None,
-            )
-        } else if matches!(
-            encoding.as_str(),
-            "latin-1"
-                | "latin1"
-                | "iso-8859-1"
-                | "iso8859-1"
-                | "iso-latin-1"
-                | "l1"
-                | "cp1252"
-                | "windows-1252"
-        ) {
-            let windows = matches!(encoding.as_str(), "cp1252" | "windows-1252");
-            let mut text = String::new();
-            let mut offsets = Vec::with_capacity(bytes.len() / 128 + 2);
-            const CP1252: [u32; 32] = [
-                0x20ac, 0, 0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021, 0x02c6, 0x2030, 0x0160,
-                0x2039, 0x0152, 0, 0x017d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013,
-                0x2014, 0x02dc, 0x2122, 0x0161, 0x203a, 0x0153, 0, 0x017e, 0x0178,
-            ];
-            for (index, byte) in bytes.iter().enumerate() {
-                let value = if windows && (0x80..=0x9f).contains(byte) {
-                    CP1252[usize::from(*byte - 0x80)]
-                } else {
-                    u32::from(*byte)
-                };
-                if value == 0 && *byte != 0 {
-                    return Err(SourceError::new(
-                        "invalid-encoding",
-                        "Source contains an undefined CP1252 byte",
-                    ));
-                }
-                if offsets
-                    .last()
-                    .is_none_or(|(decoded, _)| text.len() - decoded >= 256)
-                {
-                    offsets.push((text.len(), index + bom_bytes));
-                }
-                text.push(char::from_u32(value).expect("single-byte codec scalar"));
-            }
-            offsets.push((text.len(), input.bytes.len()));
-            (text, Some(offsets))
-        } else {
-            return Err(SourceError::new(
+        let codec = crate::codecs::lookup(selected).ok_or_else(|| {
+            SourceError::new(
                 "unsupported-encoding",
                 format!("Source encoding {encoding:?} is not supported; file was not analyzed"),
-            ));
-        };
+            )
+        })?;
+        let decoded = crate::codecs::decode(codec, bytes, bom_bytes, cancellation)?;
+        let (text, raw_offsets) = (decoded.text, decoded.map);
         if text.contains('\0') {
             return Err(SourceError::new(
                 "invalid-text",
@@ -242,12 +204,7 @@ impl SourceDocument {
         }
         match &self.raw_offsets {
             None => Some(decoded + self.bom_bytes),
-            Some(map) => {
-                let index = map
-                    .partition_point(|item| item.0 <= decoded)
-                    .saturating_sub(1);
-                Some(map[index].1 + self.text[map[index].0..decoded].chars().count())
-            }
+            Some(map) => map.raw_offset(&self.text, decoded),
         }
     }
     pub fn snippet(&self, range: TextRange, max_lines: usize) -> String {
@@ -268,7 +225,7 @@ impl SourceDocument {
 }
 
 pub fn exclusion_reasons(path: &str) -> Vec<&'static str> {
-    let parts: Vec<String> = path.split('/').map(str::to_lowercase).collect();
+    let parts: Vec<String> = path.split('/').map(crate::unicode::fold).collect();
     let directories = &parts[..parts.len().saturating_sub(1)];
     let name = parts.last().map_or("", String::as_str);
     let mut reasons = Vec::new();

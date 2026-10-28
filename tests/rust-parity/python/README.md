@@ -10,7 +10,7 @@ comparison scripts. No `.py` oracle or Python worker is part of the product.
 reuses bounded parsed AST/scope/metric data by source bytes, path, target, options and
 parser identity. No filesystem or process fallback is used.
 
-- Strict UTF-8/BOM, ASCII, Latin-1, CP1252 source decoding with original-byte mapping.
+- Strict UTF-8/BOM and measured character-codec decoding with original-byte mapping.
   Unknown codecs, malformed data, target grammar violations and semantic syntax
   errors produce incomplete evidence and an inspected error target.
 - Domain spans use 1-based Unicode character columns, correcting the old Python
@@ -287,3 +287,42 @@ python3.14 unicode_oracle.py
 These commands require the recorded CPython 3.14.7 / Unicode 16 development
 oracle, packaging 26.3 and tomli 2.4.1. They are comparison tools only and are not
 product runtime dependencies.
+
+## Source character encodings
+
+The native decoder now uses 87 pinned strict character-codec tables: 70
+single-byte maps, ASCII and 16 stateless CJK codecs. This includes CP949/UHC,
+EUC-KR, Shift-JIS/CP932, Big5/HKSCS, EUC-JP/JIS variants, GBK/GB2312/GB18030 and
+Johab. Actual CPython mappings preserve differences such as Shift-JIS versus
+CP932 wave dash, CP932 private-use bytes and CP864's non-identity ASCII percent.
+
+The native corpus compares 7,322,676 byte-input observations against CPython
+3.14.7: every single/double-byte combination per table, every GB18030 four-byte
+pointer and all EUC-KR Hangul composition forms. Fifty frozen source fixtures
+also preserve original UTF-8-only intake/metrics observations and independent
+CPython byte-source AST semantics. They verify strict failures, BOM/cookie
+normalization, encoded identifiers, Unicode columns and original byte
+boundaries. Eight frozen ownership cases cover full Unicode casefold; the
+shared `source_exclusion_reasons` API supplies that exact classifier to C++.
+
+The decoder retains original bytes and handles two-scalar character mappings
+explicitly: an interior boundary without a unique raw offset is unrepresentable.
+Analysis requires proven token boundaries. Changed raw bytes/encoding headers
+invalidate the parser cache; mixed valid/invalid input cannot authorize a complete
+source-facts result. Active multibyte decoding cancellation preserves already
+completed line evidence. Parser identity now records the codec revision.
+
+```sh
+python3.14 -I -B tests/rust-parity/python/generate_codec_tables.py --check
+python3.14 -I -B tests/rust-parity/python/encoding_oracle.py FROZEN_CHECKOUT \
+  --dependencies .venv/lib/python3.10/site-packages
+```
+
+The generator writes only with explicit `--write`; verification keeps original
+observations unchanged. Numeric mapping data and the Rust decoder enter the
+product. Full upstream PSF terms and CJK mapping notes are retained beside the
+data and included by the build-time license collector.
+
+Stateful ISO-2022/HZ and UTF-7/escape/IDNA source semantics remain under a separate
+audit. This milestone does not close the complete codec, per-engine option or
+Python feature ledger, and unknown encodings remain explicit incomplete input.

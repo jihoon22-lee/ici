@@ -2,6 +2,7 @@
 mod annotations;
 mod ast_util;
 mod casefold_table;
+mod codecs;
 mod compat;
 mod cycle;
 mod dead;
@@ -24,6 +25,7 @@ mod scope;
 mod security;
 mod semantic;
 mod source;
+pub use source::exclusion_reasons as source_exclusion_reasons;
 pub mod unicode;
 mod wheel;
 mod wheel_zip;
@@ -274,27 +276,40 @@ impl AnalysisSession {
                 Ok(Arc::clone(parsed))
             } else {
                 self.parser_invocations += 1;
-                SourceDocument::decode(input)
-                    .and_then(|source| ParsedFile::parse(source, parser_target))
-                    .map(|parsed| {
-                        let weight = parsed
-                            .source
-                            .text
-                            .len()
-                            .saturating_mul(4)
-                            .saturating_add(parsed.node_count.saturating_mul(160));
-                        let parsed = Arc::new(parsed);
-                        if weight <= CACHE_BUDGET {
-                            if self.cache_weight.saturating_add(weight) > CACHE_BUDGET {
-                                self.parsed.clear();
-                                self.cache_weight = 0;
-                            }
-                            self.cache_weight += weight;
-                            self.parsed.insert(key, Arc::clone(&parsed));
+                (if cancellation.is_some() {
+                    SourceDocument::decode_cancellable(input, cancellation)
+                } else {
+                    SourceDocument::decode(input)
+                })
+                .and_then(|source| {
+                    if cancellation_requested(cancellation) {
+                        Err(SourceError::new("cancelled", "Source parsing cancelled"))
+                    } else {
+                        ParsedFile::parse(source, parser_target)
+                    }
+                })
+                .map(|parsed| {
+                    let weight = parsed
+                        .source
+                        .text
+                        .len()
+                        .saturating_mul(4)
+                        .saturating_add(parsed.node_count.saturating_mul(160));
+                    let parsed = Arc::new(parsed);
+                    if weight <= CACHE_BUDGET {
+                        if self.cache_weight.saturating_add(weight) > CACHE_BUDGET {
+                            self.parsed.clear();
+                            self.cache_weight = 0;
                         }
-                        parsed
-                    })
+                        self.cache_weight += weight;
+                        self.parsed.insert(key, Arc::clone(&parsed));
+                    }
+                    parsed
+                })
             };
+            if cancelled(&mut output, cancellation) {
+                return output;
+            }
             match parsed {
                 Ok(parsed) => {
                     source_encodings.insert(input.path.clone(), parsed.source.encoding.clone());

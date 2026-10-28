@@ -1630,3 +1630,266 @@ fn historical_explicit_producer_details_retain_native_evidence() {
         assert_eq!(detail["snippet"], "parameter=<mutable value>");
     }
 }
+
+#[test]
+fn source_encodings_keep_frozen_intake_ast_and_raw_unicode_boundaries_visible() {
+    use base64::Engine;
+    use ruff_python_ast::{
+        Expr, Stmt,
+        visitor::{self, Visitor},
+    };
+    use ruff_text_size::Ranged;
+    struct Shapes<'a> {
+        file: &'a ParsedFile,
+        functions: Vec<Value>,
+        names: Vec<Value>,
+    }
+    fn row(name: String, span: ici_domain::SourceSpan) -> Value {
+        json!({"name":name,"start_line":span.start_line,"start_column":span.start_column,"end_line":span.end_line,"end_column":span.end_column})
+    }
+    impl<'a> Visitor<'a> for Shapes<'a> {
+        fn visit_stmt(&mut self, node: &'a Stmt) {
+            if let Stmt::FunctionDef(function) = node {
+                self.functions.push(row(
+                    function.name.to_string(),
+                    self.file
+                        .source
+                        .span(crate::ast_util::function_range(self.file, function)),
+                ));
+            }
+            visitor::walk_stmt(self, node);
+        }
+        fn visit_expr(&mut self, node: &'a Expr) {
+            if let Expr::Name(name) = node {
+                self.names.push(row(
+                    name.id.to_string(),
+                    self.file.source.span(name.range()),
+                ));
+            }
+            visitor::walk_expr(self, node);
+        }
+    }
+    fn sorted(rows: &mut [Value]) {
+        rows.sort_by_key(|row| {
+            (
+                row["start_line"].as_u64(),
+                row["start_column"].as_u64(),
+                row["end_line"].as_u64(),
+                row["end_column"].as_u64(),
+                row["name"].as_str().unwrap().to_owned(),
+            )
+        });
+    }
+    let evidence: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/source-encoding.json"
+    ))
+    .unwrap();
+    let mut differences = vec![];
+    for case in evidence["cases"].as_array().unwrap() {
+        let input = SourceInput {
+            path: "main.py".into(),
+            bytes: base64::engine::general_purpose::STANDARD
+                .decode(case["bytes_base64"].as_str().unwrap())
+                .unwrap(),
+        };
+        let expected = &case["expected"];
+        let decoded = SourceDocument::decode(&input);
+        if expected["source_accepted"] == false {
+            match decoded {
+                Ok(_) => differences.push(format!("{}: invalid source was decoded", case["id"])),
+                Err(error) => {
+                    if error.code != expected["source_error"].as_str().unwrap() {
+                        differences.push(format!("{}: source code {}", case["id"], error.code));
+                    }
+                }
+            }
+            continue;
+        }
+        let decoded = match decoded {
+            Ok(source) => source,
+            Err(error) => {
+                differences.push(format!("{}: decode failed {error:?}", case["id"]));
+                continue;
+            }
+        };
+        assert_eq!(
+            decoded.text,
+            expected["text"].as_str().unwrap(),
+            "{}",
+            case["id"]
+        );
+        for boundary in expected["raw_boundaries"].as_array().unwrap() {
+            assert_eq!(
+                decoded.raw_offset(boundary[0].as_u64().unwrap() as usize),
+                boundary[1].as_u64().map(|offset| offset as usize),
+                "{} {boundary:?}",
+                case["id"]
+            );
+        }
+        for offset in 0..decoded.text.len() {
+            if !decoded.text.is_char_boundary(offset) {
+                assert_eq!(decoded.raw_offset(offset), None, "{}", case["id"]);
+            }
+        }
+        let file = match ParsedFile::parse(decoded, "3.14") {
+            Ok(file) => {
+                if expected["parser_accepted"] == false {
+                    differences.push(format!("{}: invalid syntax was parsed", case["id"]));
+                    continue;
+                }
+                file
+            }
+            Err(error) => {
+                if expected["parser_accepted"] == true {
+                    differences.push(format!("{}: parse failed {error:?}", case["id"]));
+                }
+                continue;
+            }
+        };
+        let mut shapes = Shapes {
+            file: &file,
+            functions: vec![],
+            names: vec![],
+        };
+        shapes.visit_body(file.body());
+        sorted(&mut shapes.functions);
+        sorted(&mut shapes.names);
+        if shapes.functions != *expected["functions"].as_array().unwrap()
+            || shapes.names != *expected["names"].as_array().unwrap()
+        {
+            differences.push(format!(
+                "{}: native shapes {}",
+                case["id"],
+                json!({"functions":shapes.functions,"names":shapes.names})
+            ));
+        }
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+}
+
+#[test]
+fn source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence() {
+    let mut input = request(
+        "complexity",
+        "# coding: cp949\ndef hello(value):\n    return value\n",
+    );
+    let mut session = AnalysisSession::new();
+    assert_eq!(
+        session.analyze(&input).observation.state,
+        TaskState::Succeeded
+    );
+    assert_eq!(session.parser_invocations(), 1);
+    input.check_id = "python.cognitive".into();
+    assert_eq!(
+        session.analyze(&input).observation.state,
+        TaskState::Succeeded
+    );
+    assert_eq!(
+        session.parser_invocations(),
+        1,
+        "Same immutable source shares the parser across measures"
+    );
+    input.inputs[0].bytes = b"# coding: shift_jis\ndef hello(value):\n    return value\n".to_vec();
+    let output = session.analyze(&input);
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(
+        session.parser_invocations(),
+        2,
+        "A changed encoding declaration is a different raw input"
+    );
+    assert_eq!(output.extra["source_encodings"]["main.py"], "shift-jis");
+    input.inputs.push(SourceInput {
+        path: "bad.py".into(),
+        bytes: b"# coding: cp949\nx = '\x81".to_vec(),
+    });
+    let output = session.analyze(&input);
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert_eq!(output.status, "ERROR");
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.file_path == "main.py" && target.status == "PASS")
+    );
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.file_path == "bad.py"
+                && target.status == "ERROR"
+                && target.start_line == 2
+                && target.start_column == Some(6))
+    );
+    assert!(
+        session.source_facts(&input).is_err(),
+        "A partial source inventory cannot authorize runtime probes"
+    );
+}
+
+#[test]
+fn active_multibyte_decode_cancellation_retains_finished_line_evidence() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::time::{Duration, Instant};
+    let mut input = request("line", "answer=1\n");
+    let mut bytes = b"# coding: cp949\n".to_vec();
+    let count = (crate::source::MAX_SOURCE_BYTES - bytes.len()) / 2;
+    bytes.extend_from_slice(&[0xc7, 0xd1].repeat(count));
+    input.inputs.push(SourceInput {
+        path: "large.py".into(),
+        bytes,
+    });
+    let flag = AtomicBool::new(false);
+    let started = Instant::now();
+    let output = std::thread::scope(|scope| {
+        let worker = scope.spawn(|| {
+            std::thread::sleep(Duration::from_millis(2));
+            flag.store(true, Ordering::Relaxed);
+        });
+        let output = AnalysisSession::new().analyze_cancellable(&input, &flag);
+        worker.join().unwrap();
+        output
+    });
+    assert_eq!(output.observation.state, TaskState::Cancelled);
+    assert_eq!(output.status, "ERROR");
+    assert!(started.elapsed() < Duration::from_secs(2));
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.file_path == "main.py" && target.status == "PASS")
+    );
+    assert!(
+        !output
+            .targets
+            .iter()
+            .any(|target| target.file_path == "large.py")
+    );
+    assert!(output.observation.findings.is_empty());
+}
+
+#[test]
+fn shared_source_exclusions_use_frozen_full_casefold_for_every_path_part() {
+    let evidence: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/source-encoding.json"
+    ))
+    .unwrap();
+    for case in evidence["exclusions"].as_array().unwrap() {
+        assert_eq!(
+            json!(source_exclusion_reasons(case["path"].as_str().unwrap())),
+            case["original_reasons"]
+        );
+    }
+    assert_eq!(
+        source_exclusion_reasons("node_moduleſ/checked.py"),
+        vec!["vendor"]
+    );
+    assert_eq!(
+        source_exclusion_reasons("SUBPROJECTſ/MOCſ_compilation.py"),
+        vec!["vendor", "generated"]
+    );
+    assert_eq!(
+        source_exclusion_reasons("src/mocſ_compilation.py"),
+        vec!["generated"]
+    );
+    assert_eq!(source_exclusion_reasons("src/owned.py"), Vec::<&str>::new());
+}
