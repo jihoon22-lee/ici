@@ -165,3 +165,20 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
   실행했다. 4/4에서 의도한 위반과 exit 1을 얻었고, unique run_id·result/event 일치,
   HTML 생성, TS composite metadata 격리/noEmit을 확인했다. 코드를 깨끗하다고 판정한
   PASS가 아니라 결함 검출 및 artifact 실행 계약의 PASS다.
+
+## 구현 PR 병합 및 release-only 재배치
+
+- PR #295가 필수 Merge Gate/PR 보고서/Pages 확인 후 squash 병합됐다.
+  구현 main: `20207dcba411a243fb465772725f7efc6f5d3efe`.
+  CI: https://github.com/jihoon22-lee/ici/actions/runs/40608155601
+  Pages: https://github.com/jihoon22-lee/ici/actions/runs/40611754199
+- CI unit 4303 passed, 8 skipped(271.53초), 추가 C++ fixture 16 passed. pyz 재현 build,
+  wheel 격리 설치, smoke, Python/C++/next dogfood, 게시 확인이 통과했다.
+  자체 report에는 기존 line/type/complexity WARN과 viewer lint WARN이 남는다.
+  type의 9개 finding은 이번 변경에서 수정하지 않은 기존 파일들에 있으며 신규/수정 모듈
+  별도 mypy는 통과했다. gate 통과를 진단 0건으로 표현하지 않는다.
+- `feat/general-static-analysis` local/remote branch는 PR 병합 시 삭제됐다. 기존 원격
+  `refactor/stable-shell-removal`, `gh-pages`는 보존했다.
+- release-only 3개 commit을 위 main에 rebase했다. src/pyproject/README/lock/scripts의
+  내용은 후보를 빌드한 이전 release head와 동일하여 후보 hash는 유지된다.
+- 다음: release PR CI/병합, exact-main CI와 candidate archive/corpus 인수, tag/public release.
