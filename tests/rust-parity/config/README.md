@@ -25,7 +25,7 @@ old init omitted dependency/generated exclusions even though no-config supplied
 them. Rust retains defaults when excludes are omitted. An explicitly supplied
 exclude list still replaces defaults and is treated as user intent.
 
-Actual verification on Linux/WSL, rustc/cargo 1.99.1: 25 focused regression tests passed;
+Actual verification on Linux/WSL, rustc/cargo 1.99.1: 28 focused regression tests passed;
 Clippy with `-D warnings` and the scoped rustfmt check passed.
 
 ```sh
@@ -50,3 +50,17 @@ backup/replacement workflow and is not implemented by the strict write_scaffold
 API. Existing comments/config/result files are never automatically rewritten.
 The inventory status must not be bulk-closed merely because syntax accepts all
 322 keys; provider effects and behavior fixtures remain independent evidence.
+
+Legacy migration follow-up: the preview now emits an explicit project component
+that preserves source_dirs, language filtering and project interpreter.
+`legacy-migration-scope.json` records an actual v0.13.0 reader observation from
+CPython 3.10.21 after asserting the current Python product tree has no diff from
+the frozen source. Rust legacy resolution and migrated resolution both match
+that file set, including a nested package. Global v2 source_dirs apply relative
+to the workspace, so package partitioning cannot accidentally narrow them.
+
+Native type-provider intent is now a single shared exported selector bounded
+by the workspace. It includes .mypy.ini and ancestor pyproject metadata;
+conflicting mypy/ty declarations require an explicit choice. setup.cfg section
+names are case-sensitive. `mypy-case-observation.json` records the actual
+Mypy command/output establishing that `[MYPY]` is not the `[mypy]` section.

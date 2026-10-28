@@ -594,3 +594,103 @@ fn declared_execution_settings_remain_shell_free_and_bounded() {
     let valid = "[engines.integration]\npython_targets={py='project-python'}\ncases=[{name='safe',argv=['{python:py}','test.py'],output_artifacts=[{path='result.txt',min_size=1}]}]\n";
     assert!(parse_document(Path::new("valid.toml"), valid, false).is_ok());
 }
+
+#[test]
+fn legacy_migration_preserves_nested_package_scope_language_and_runtime() {
+    let tree = Project::new();
+    tree.write("main.py", "outside=1");
+    tree.write("src/main.py", "inside=1");
+    tree.write("src/other.rs", "pub fn unrelated() {}");
+    tree.write(
+        "src/nested/pyproject.toml",
+        "[project]\nname='nested'\nversion='1'\n",
+    );
+    tree.write("src/nested/code.py", "nested=1");
+    let source=tree.write("ici.toml", "# preserve\n[project]\nsource_dirs=['src']\ntype='python'\n[engines.test]\npython='project-python'\n");
+    let before = tree.resolve();
+    let bytes = fs::read(&source).unwrap();
+    let preview = migrate_preview(&source).unwrap();
+    let output = tree.root().join("migrated.toml");
+    write_migration(&preview, &output).unwrap();
+    let after =
+        resolve_with_environment(tree.root(), Some(&output), None, &BTreeMap::new()).unwrap();
+    assert_eq!(scope(&before), scope(&after));
+    assert_eq!(
+        before.components[0].python_executable,
+        after.components[0].python_executable
+    );
+    assert_eq!(fs::read(source).unwrap(), bytes);
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/config/legacy-migration-scope.json"
+    ))
+    .unwrap();
+    assert_eq!(json!(before.components[0].files), oracle["files"]);
+    assert_eq!(json!(after.components[0].files), oracle["files"]);
+}
+
+#[test]
+fn global_source_dirs_are_workspace_relative_across_discovered_packages() {
+    let tree = Project::new();
+    tree.write("outside.py", "outside=1");
+    tree.write(
+        "src/nested/pyproject.toml",
+        "[project]\nname='nested'\nversion='1'\n",
+    );
+    tree.write("src/nested/code.py", "nested=1");
+    tree.write("ici.toml", "schema_version=2\nsource_dirs=['src']\n");
+    let project = tree.resolve();
+    assert_eq!(project.components.len(), 1);
+    assert_eq!(project.components[0].files, vec!["src/nested/code.py"]);
+}
+
+#[test]
+fn type_provider_search_is_shared_case_sensitive_and_workspace_bounded() {
+    let tree = Project::new();
+    tree.write("nested/component/main.py", "x=1");
+    tree.write("ici.toml","schema_version=2\n[[components]]\nid='nested'\nroot='nested/component'\nlanguages=['python']\n");
+    tree.write("pyproject.toml", "[tool.mypy]\nstrict=true\n");
+    assert_eq!(
+        tree.resolve().components[0].python_type_provider.as_deref(),
+        Some("mypy")
+    );
+    tree.write(
+        "nested/component/ty.toml",
+        "[environment]\npython-version='3.10'\n",
+    );
+    assert!(tree.failure().message.contains("both native mypy and ty"));
+    assert_eq!(
+        discover_type_provider(
+            &tree.root().join("nested/component"),
+            tree.root(),
+            Some("ty")
+        )
+        .unwrap()
+        .as_deref(),
+        Some("ty")
+    );
+    fs::remove_file(tree.root().join("pyproject.toml")).unwrap();
+    fs::remove_file(tree.root().join("nested/component/ty.toml")).unwrap();
+    tree.write(".mypy.ini", "[mypy]\nstrict=True\n");
+    assert_eq!(
+        tree.resolve().components[0].python_type_provider.as_deref(),
+        Some("mypy")
+    );
+    fs::remove_file(tree.root().join(".mypy.ini")).unwrap();
+    tree.write("setup.cfg", "[MYPY]\nstrict=True\n");
+    assert_eq!(tree.resolve().components[0].python_type_provider, None);
+    tree.write(
+        "setup.cfg",
+        "[mypy] # native section names are case-sensitive\nstrict=True\n",
+    );
+    assert_eq!(
+        tree.resolve().components[0].python_type_provider.as_deref(),
+        Some("mypy")
+    );
+    let separate = Project::new();
+    separate.write("main.py", "x=1");
+    assert_eq!(
+        discover_type_provider(separate.root(), separate.root(), None).unwrap(),
+        None
+    );
+    assert!(discover_type_provider(separate.root(), tree.root(), None).is_err());
+}

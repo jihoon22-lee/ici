@@ -1,0 +1,24 @@
+{
+  "oracle_source_sha": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "api": "ici.core.project.get_all_python_sources(root, config)",
+  "config": {
+    "project": {
+      "source_dirs": [
+        "src"
+      ],
+      "type": "python"
+    },
+    "engines": {
+      "test": {
+        "python": "project-python"
+      }
+    }
+  },
+  "files": [
+    "src/main.py",
+    "src/nested/code.py"
+  ],
+  "method": "Current Python source tree byte-identical to frozen commit asserted before calling existing reader; fresh temporary tree; no project code execution.",
+  "interpreter": "CPython 3.10.21",
+  "producer_version": "0.13.0"
+}

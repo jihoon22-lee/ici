@@ -106,8 +106,40 @@ pub fn migrate_preview(source: &Path) -> Result<MigrationPreview, ConfigError> {
         for item in declared {
             sources.push(item.as_str().expect("validated source directory"));
         }
-        target.insert("source_dirs", value(sources));
-        notes.push("Legacy engine settings remain in the same tables; explicit source_dirs freezes the former scope instead of silently widening it".into());
+        let mut component = toml_edit::Table::new();
+        component.insert("id", value("project"));
+        component.insert("root", value("."));
+        component.insert("source_dirs", value(sources));
+        if let Some(kind) = parsed
+            .value
+            .pointer("/project/type")
+            .or_else(|| parsed.value.get("type"))
+            .and_then(Value::as_str)
+        {
+            let names: &[&str] = match kind {
+                "python" => &["python"],
+                "cpp" => &["cpp"],
+                _ => &["python", "cpp"],
+            };
+            let mut languages = toml_edit::Array::new();
+            for name in names {
+                languages.push(*name);
+            }
+            component.insert("languages", value(languages));
+        }
+        if let Some(runtime) = parsed
+            .value
+            .pointer("/engines/test/python")
+            .and_then(Value::as_str)
+        {
+            let mut python = toml_edit::Table::new();
+            python.insert("executable", value(runtime));
+            component.insert("python", toml_edit::Item::Table(python));
+        }
+        let mut components = toml_edit::ArrayOfTables::new();
+        components.push(component);
+        target.insert("components", toml_edit::Item::ArrayOfTables(components));
+        notes.push("Legacy engine settings remain in the same tables; an explicit project component preserves source_dirs, language selection and project runtime, freezing the former scope instead of silently widening it".into());
         notes.push("Legacy global/dev.toml policy is not imported automatically; review those files and move intended team policy explicitly".into());
     }
     if family == SchemaFamily::NextV1 {

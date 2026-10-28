@@ -1,11 +1,14 @@
 //! Config discovery and composition. No subprocess, network, or implicit writes.
+mod components;
 mod discovery;
 mod model;
+mod native;
 mod parse;
 mod paths;
 mod resolve;
 mod schema;
 mod schema_keys;
+mod settings;
 mod write;
 pub use discovery::DEFAULT_EXCLUDES;
 pub use model::*;
@@ -30,3 +33,5 @@ pub fn parse_document(
     schema::validate(&parsed, family)?;
     Ok(parsed.value)
 }
+
+pub use native::discover_type_provider;

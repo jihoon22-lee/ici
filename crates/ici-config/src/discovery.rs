@@ -275,6 +275,7 @@ pub(crate) fn scan(
                 if name == "ruff.toml"
                     || name == ".ruff.toml"
                     || name == "mypy.ini"
+                    || name == ".mypy.ini"
                     || name == "ty.toml"
                     || name == "tsconfig.json"
                     || name == "pyproject.toml"
