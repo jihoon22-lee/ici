@@ -74,6 +74,8 @@ def main():
     for case in evidence["cases"]:
         raw = base64.b64decode(case["bytes_base64"], validate=True)
         assert sha(raw) == case["raw_sha256"], case["id"]
+        if "codec_text_sha256" in case:
+            assert sha(raw.decode(case["codec"]).encode()) == case["codec_text_sha256"]
         try:
             tree = ast.parse(raw, filename="main.py")
             actual = {"accepted": True}
@@ -128,6 +130,9 @@ def main():
                     offset += len(scalar.encode())
                     boundaries.append([offset, index + 1 if which == len(output) - 1 else None])
             assert decoder.decode(b"", final=True) == ""
+            # Trailing state changes consume bytes without emitting text.
+            # The terminal span includes that original suffix.
+            boundaries[-1][1] = len(raw)
             assert boundaries == expected["raw_boundaries"], case["id"]
             if tree:
                 actual = shapes(tree, text)

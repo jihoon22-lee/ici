@@ -33,6 +33,23 @@ manifest.json. The unmodified upstream LICENSE and CJK mapping notes are retaine
 in LICENSE.txt and NOTICE-cjkcodecs.txt. Unicode terms are retained alongside the
 project's other Unicode data.
 
-Stateful ISO-2022/HZ and UTF-7/escape/IDNA source encodings remain under a separate
-production-contract audit. This table set is a measured decoder milestone; it
-cannot close the entire Python source-codec or Rust-replacement feature ledger.
+The second set records all seven CPython ISO-2022 variants (JP, JP-1, JP-2,
+JP-2004, JP-3, JP-ext and KR). stateful-manifest.json pins exact permitted
+designations, aliased labels, character maps, default and designated byte-pair
+observations, historical G2 Greek/Latin-1 single shifts, and 32,768 mixed state
+transition/escape observations. HZ reuses the strict GB2312 map. State tracking,
+escape validation, source-end validation and cancellation are native Rust.
+
+  python3.14 -I -B tests/rust-parity/python/generate_stateful_tables.py --write
+  python3.14 -I -B tests/rust-parity/python/generate_stateful_tables.py --check
+
+Non-emitting designations and shifts do not create fictitious Unicode columns.
+Atomic multi-scalar output has unrepresentable interior boundaries; the terminal
+boundary includes trailing non-emitting source bytes. Python's implicit final
+newline makes a terminal HZ GB shift invalid source even though a standalone HZ
+text decoder accepts it. Both original text and byte-source observations remain
+in the permanent source corpus.
+
+UTF-7/escape/IDNA source encodings remain under a separate production-contract
+audit. This table set cannot close the entire Python source-codec or
+Rust-replacement feature ledger.

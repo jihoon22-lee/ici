@@ -298,7 +298,7 @@ CP932 wave dash, CP932 private-use bytes and CP864's non-identity ASCII percent.
 
 The native corpus compares 7,322,676 byte-input observations against CPython
 3.14.7: every single/double-byte combination per table, every GB18030 four-byte
-pointer and all EUC-KR Hangul composition forms. Fifty frozen source fixtures
+pointer and all EUC-KR Hangul composition forms. Eighty-six frozen source fixtures
 also preserve original UTF-8-only intake/metrics observations and independent
 CPython byte-source AST semantics. They verify strict failures, BOM/cookie
 normalization, encoded identifiers, Unicode columns and original byte
@@ -323,6 +323,18 @@ observations unchanged. Numeric mapping data and the Rust decoder enter the
 product. Full upstream PSF terms and CJK mapping notes are retained beside the
 data and included by the build-time license collector.
 
-Stateful ISO-2022/HZ and UTF-7/escape/IDNA source semantics remain under a separate
-audit. This milestone does not close the complete codec, per-engine option or
+Native state machines now decode all seven ISO-2022 variants and HZ, with exact
+character tables, designation validation, JP-2 G2 shifts, literal escape mode,
+KR locking shifts and HZ continuation handling. Independent exhaustive default
+and designated byte-input streams plus 32,768 mixed state/escape inputs verify
+these transitions. Source fixtures retain the old UTF-8 reader outcomes,
+independent byte-source AST, Unicode columns, atomic raw boundaries and the HZ
+implicit-final-newline failure. Active CP949, ISO-2022 and HZ cancellation keeps
+already completed line evidence.
+
+```sh
+python3.14 -I -B tests/rust-parity/python/generate_stateful_tables.py --check
+```
+
+UTF-7/escape/IDNA source semantics remain under a separate audit. This milestone does not close the complete codec, per-engine option or
 Python feature ledger, and unknown encodings remain explicit incomplete input.

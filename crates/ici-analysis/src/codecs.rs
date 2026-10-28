@@ -6,6 +6,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 pub(crate) enum Codec {
     Utf8,
     Table(usize),
+    Iso(usize),
+    Hz,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Kind {
@@ -51,6 +53,7 @@ const ASCII_IDENTITIES: [bool; TABLES.len()] = ascii_identities();
 #[derive(Clone, Debug)]
 pub(crate) enum OffsetMap {
     SingleByte(Vec<(usize, usize)>),
+    Boundaries(Vec<(u32, u32)>),
     Variable {
         /// UTF-8 position, raw position and scalar-width index at atom boundaries.
         checkpoints: Vec<(usize, usize, usize)>,
@@ -62,6 +65,13 @@ pub(crate) enum OffsetMap {
 impl OffsetMap {
     pub fn raw_offset(&self, text: &str, decoded: usize) -> Option<usize> {
         match self {
+            Self::Boundaries(boundaries) => boundaries
+                .binary_search_by_key(&(decoded as u32), |(offset, _)| *offset)
+                .ok()
+                .and_then(|index| {
+                    let raw = boundaries[index].1;
+                    (raw != u32::MAX).then_some(raw as usize)
+                }),
             Self::SingleByte(map) => {
                 let index = map
                     .partition_point(|item| item.0 <= decoded)
@@ -211,6 +221,7 @@ pub(crate) fn lookup(name: &str) -> Option<Codec> {
         .binary_search_by_key(&normalized.as_str(), |(label, _)| *label)
         .ok()
         .map(|index| ALIASES[index].1)
+        .or_else(|| crate::stateful::lookup(&normalized))
 }
 fn hangul(bytes: &[u8]) -> Option<u32> {
     if bytes.len() < 8 || bytes[..3] != [0xA4, 0xD4, 0xA4] || bytes[4] != 0xA4 || bytes[6] != 0xA4 {
@@ -246,6 +257,11 @@ pub(crate) fn decode(
     raw_base: usize,
     cancellation: Option<&AtomicBool>,
 ) -> Result<Decoded, SourceError> {
+    match codec {
+        Codec::Iso(index) => return crate::stateful::iso(index, bytes, raw_base, cancellation),
+        Codec::Hz => return crate::stateful::hz(bytes, raw_base, cancellation),
+        Codec::Utf8 | Codec::Table(_) => {}
+    }
     if let Codec::Utf8 = codec {
         return String::from_utf8(bytes.to_vec())
             .map(|text| Decoded { text, map: None })

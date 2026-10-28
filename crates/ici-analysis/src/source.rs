@@ -70,7 +70,8 @@ impl SourceDocument {
         let bytes = &input.bytes[bom_bytes..];
         // Headers are bytes in the Python source encoding; ASCII cookie spelling is invariant.
         let mut encoding = "utf-8".to_owned();
-        if input.path.ends_with(".py") || input.path.ends_with(".pyi") {
+        let python_source = input.path.ends_with(".py") || input.path.ends_with(".pyi");
+        if python_source {
             let mut offset = 0usize;
             for _ in 0..2 {
                 let end = bytes[offset..]
@@ -130,7 +131,11 @@ impl SourceDocument {
                 format!("Source encoding {encoding:?} is not supported; file was not analyzed"),
             )
         })?;
-        let decoded = crate::codecs::decode(codec, bytes, bom_bytes, cancellation)?;
+        let decoded = if python_source && matches!(codec, crate::codecs::Codec::Hz) {
+            crate::stateful::hz_source(bytes, bom_bytes, cancellation)?
+        } else {
+            crate::codecs::decode(codec, bytes, bom_bytes, cancellation)?
+        };
         let (text, raw_offsets) = (decoded.text, decoded.map);
         if text.contains('\0') {
             return Err(SourceError::new(

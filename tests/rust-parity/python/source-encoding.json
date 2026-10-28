@@ -11024,6 +11024,7710 @@
           }
         ]
       }
+    },
+    {
+      "id": "iso2022_jp-ascii",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanAKZGVmIGhlbGxvKHZhbHVlKToKICAgIHJldHVybiB2YWx1ZQo=",
+      "raw_sha256": "969a781df9210bcabf0b04f34a1b0d18f1c44719ad1b1d47e0e2621934b87b21",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "969a781df9210bcabf0b04f34a1b0d18f1c44719ad1b1d47e0e2621934b87b21",
+        "bytes": 56
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp_1-ascii",
+      "codec": "iso2022_jp_1",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfMQpkZWYgaGVsbG8odmFsdWUpOgogICAgcmV0dXJuIHZhbHVlCg==",
+      "raw_sha256": "a4b4c28a2dcb73774acdf71a2a09f0de388aaa391208cb51dfc6e4579ec78350",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "a4b4c28a2dcb73774acdf71a2a09f0de388aaa391208cb51dfc6e4579ec78350",
+        "bytes": 58
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_1\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp_2-ascii",
+      "codec": "iso2022_jp_2",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfMgpkZWYgaGVsbG8odmFsdWUpOgogICAgcmV0dXJuIHZhbHVlCg==",
+      "raw_sha256": "01299ae2fcd444a16f1c5ec7d69c117b028ec31a67b8aae5fc31e71d0d4b24e0",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "01299ae2fcd444a16f1c5ec7d69c117b028ec31a67b8aae5fc31e71d0d4b24e0",
+        "bytes": 58
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_2\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp_2004-ascii",
+      "codec": "iso2022_jp_2004",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfMjAwNApkZWYgaGVsbG8odmFsdWUpOgogICAgcmV0dXJuIHZhbHVlCg==",
+      "raw_sha256": "c80abbdea22f2ce75290309d8d422773fddbe4ed4481601bcd48bab37371df10",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "c80abbdea22f2ce75290309d8d422773fddbe4ed4481601bcd48bab37371df10",
+        "bytes": 61
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_2004\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ],
+          [
+            59,
+            59
+          ],
+          [
+            60,
+            60
+          ],
+          [
+            61,
+            61
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp_3-ascii",
+      "codec": "iso2022_jp_3",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfMwpkZWYgaGVsbG8odmFsdWUpOgogICAgcmV0dXJuIHZhbHVlCg==",
+      "raw_sha256": "a02598868b6272977cf2a2572cf732bb1661395faee325ec4483551682fc044f",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "a02598868b6272977cf2a2572cf732bb1661395faee325ec4483551682fc044f",
+        "bytes": 58
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_3\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp_ext-ascii",
+      "codec": "iso2022_jp_ext",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfZXh0CmRlZiBoZWxsbyh2YWx1ZSk6CiAgICByZXR1cm4gdmFsdWUK",
+      "raw_sha256": "74a9f3c452d5bfb498afaa4226c38998c28ca0f868fc39aeed8f71850f191228",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "74a9f3c452d5bfb498afaa4226c38998c28ca0f868fc39aeed8f71850f191228",
+        "bytes": 60
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_ext\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ],
+          [
+            59,
+            59
+          ],
+          [
+            60,
+            60
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_kr-ascii",
+      "codec": "iso2022_kr",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfa3IKZGVmIGhlbGxvKHZhbHVlKToKICAgIHJldHVybiB2YWx1ZQo=",
+      "raw_sha256": "c11e4accbbf279a3b3663439cec4308a8533eb8ed94923c7df01314aaf59c35c",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "c11e4accbbf279a3b3663439cec4308a8533eb8ed94923c7df01314aaf59c35c",
+        "bytes": 56
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_kr\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            52
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "hz-ascii",
+      "codec": "hz",
+      "bytes_base64": "IyBjb2Rpbmc6IGh6CmRlZiBoZWxsbyh2YWx1ZSk6CiAgICByZXR1cm4gdmFsdWUK",
+      "raw_sha256": "351c10404e09ef43c5c16f20c1f53c8352c01a1845ca7a646f642b64e9fbd8f8",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "351c10404e09ef43c5c16f20c1f53c8352c01a1845ca7a646f642b64e9fbd8f8",
+        "bytes": 48
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "hello",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: hz\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp-kanji",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanAKZGVmIBskQjdXOzsbKEIoGyRCQ00bKEIpOgogICAgGyRCSjg7ehsoQiA9ICIbJEJGfEtcOGwbKEIiOyByZXR1cm4gGyRCQ00bKEIK",
+      "raw_sha256": "03c4c37efb5fbf51112f0b70e0cda8ed525deddc4c292dbbb40d371c7e31017d",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "03c4c37efb5fbf51112f0b70e0cda8ed525deddc4c292dbbb40d371c7e31017d",
+        "bytes": 96
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp\ndef 計算(値):\n    文字 = \"日本語\"; return 値\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            28,
+            30
+          ],
+          [
+            31,
+            32
+          ],
+          [
+            32,
+            36
+          ],
+          [
+            35,
+            41
+          ],
+          [
+            36,
+            45
+          ],
+          [
+            37,
+            46
+          ],
+          [
+            38,
+            47
+          ],
+          [
+            39,
+            48
+          ],
+          [
+            40,
+            49
+          ],
+          [
+            41,
+            50
+          ],
+          [
+            42,
+            51
+          ],
+          [
+            45,
+            56
+          ],
+          [
+            48,
+            58
+          ],
+          [
+            49,
+            62
+          ],
+          [
+            50,
+            63
+          ],
+          [
+            51,
+            64
+          ],
+          [
+            52,
+            65
+          ],
+          [
+            55,
+            70
+          ],
+          [
+            58,
+            72
+          ],
+          [
+            61,
+            74
+          ],
+          [
+            62,
+            78
+          ],
+          [
+            63,
+            79
+          ],
+          [
+            64,
+            80
+          ],
+          [
+            65,
+            81
+          ],
+          [
+            66,
+            82
+          ],
+          [
+            67,
+            83
+          ],
+          [
+            68,
+            84
+          ],
+          [
+            69,
+            85
+          ],
+          [
+            70,
+            86
+          ],
+          [
+            71,
+            87
+          ],
+          [
+            74,
+            92
+          ],
+          [
+            75,
+            96
+          ]
+        ],
+        "functions": [
+          {
+            "name": "計算",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 24
+          }
+        ],
+        "names": [
+          {
+            "name": "文字",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 6
+          },
+          {
+            "name": "値",
+            "start_line": 3,
+            "start_column": 24,
+            "end_line": 3,
+            "end_column": 24
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp_1-kanji",
+      "codec": "iso2022_jp_1",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfMQpkZWYgGyRCN1c7OxsoQigbJEJDTRsoQik6CiAgICAbJEJKODt6GyhCID0gIhskQkZ8S1w4bBsoQiI7IHJldHVybiAbJEJDTRsoQgo=",
+      "raw_sha256": "6cbf69c45eca71fc878bc7d207a625ebaffdd5a639296e3d3f692904ab03b717",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "6cbf69c45eca71fc878bc7d207a625ebaffdd5a639296e3d3f692904ab03b717",
+        "bytes": 98
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_1\ndef 計算(値):\n    文字 = \"日本語\"; return 値\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            30,
+            32
+          ],
+          [
+            33,
+            34
+          ],
+          [
+            34,
+            38
+          ],
+          [
+            37,
+            43
+          ],
+          [
+            38,
+            47
+          ],
+          [
+            39,
+            48
+          ],
+          [
+            40,
+            49
+          ],
+          [
+            41,
+            50
+          ],
+          [
+            42,
+            51
+          ],
+          [
+            43,
+            52
+          ],
+          [
+            44,
+            53
+          ],
+          [
+            47,
+            58
+          ],
+          [
+            50,
+            60
+          ],
+          [
+            51,
+            64
+          ],
+          [
+            52,
+            65
+          ],
+          [
+            53,
+            66
+          ],
+          [
+            54,
+            67
+          ],
+          [
+            57,
+            72
+          ],
+          [
+            60,
+            74
+          ],
+          [
+            63,
+            76
+          ],
+          [
+            64,
+            80
+          ],
+          [
+            65,
+            81
+          ],
+          [
+            66,
+            82
+          ],
+          [
+            67,
+            83
+          ],
+          [
+            68,
+            84
+          ],
+          [
+            69,
+            85
+          ],
+          [
+            70,
+            86
+          ],
+          [
+            71,
+            87
+          ],
+          [
+            72,
+            88
+          ],
+          [
+            73,
+            89
+          ],
+          [
+            76,
+            94
+          ],
+          [
+            77,
+            98
+          ]
+        ],
+        "functions": [
+          {
+            "name": "計算",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 24
+          }
+        ],
+        "names": [
+          {
+            "name": "文字",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 6
+          },
+          {
+            "name": "値",
+            "start_line": 3,
+            "start_column": 24,
+            "end_line": 3,
+            "end_column": 24
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp_2-kanji",
+      "codec": "iso2022_jp_2",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfMgpkZWYgGyRCN1c7OxsoQigbJEJDTRsoQik6CiAgICAbJEJKODt6GyhCID0gIhskQkZ8S1w4bBsoQiI7IHJldHVybiAbJEJDTRsoQgo=",
+      "raw_sha256": "b6b8e6a47a1be4919f78c28d3df5bc47cf34a8328acd166871d0662c9e559cb5",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "b6b8e6a47a1be4919f78c28d3df5bc47cf34a8328acd166871d0662c9e559cb5",
+        "bytes": 98
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_2\ndef 計算(値):\n    文字 = \"日本語\"; return 値\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            30,
+            32
+          ],
+          [
+            33,
+            34
+          ],
+          [
+            34,
+            38
+          ],
+          [
+            37,
+            43
+          ],
+          [
+            38,
+            47
+          ],
+          [
+            39,
+            48
+          ],
+          [
+            40,
+            49
+          ],
+          [
+            41,
+            50
+          ],
+          [
+            42,
+            51
+          ],
+          [
+            43,
+            52
+          ],
+          [
+            44,
+            53
+          ],
+          [
+            47,
+            58
+          ],
+          [
+            50,
+            60
+          ],
+          [
+            51,
+            64
+          ],
+          [
+            52,
+            65
+          ],
+          [
+            53,
+            66
+          ],
+          [
+            54,
+            67
+          ],
+          [
+            57,
+            72
+          ],
+          [
+            60,
+            74
+          ],
+          [
+            63,
+            76
+          ],
+          [
+            64,
+            80
+          ],
+          [
+            65,
+            81
+          ],
+          [
+            66,
+            82
+          ],
+          [
+            67,
+            83
+          ],
+          [
+            68,
+            84
+          ],
+          [
+            69,
+            85
+          ],
+          [
+            70,
+            86
+          ],
+          [
+            71,
+            87
+          ],
+          [
+            72,
+            88
+          ],
+          [
+            73,
+            89
+          ],
+          [
+            76,
+            94
+          ],
+          [
+            77,
+            98
+          ]
+        ],
+        "functions": [
+          {
+            "name": "計算",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 24
+          }
+        ],
+        "names": [
+          {
+            "name": "文字",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 6
+          },
+          {
+            "name": "値",
+            "start_line": 3,
+            "start_column": 24,
+            "end_line": 3,
+            "end_column": 24
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp_ext-kanji",
+      "codec": "iso2022_jp_ext",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfZXh0CmRlZiAbJEI3Vzs7GyhCKBskQkNNGyhCKToKICAgIBskQko4O3obKEIgPSAiGyRCRnxLXDhsGyhCIjsgcmV0dXJuIBskQkNNGyhCCg==",
+      "raw_sha256": "7d1fbe7b770b53af7e2a82ef683e273c534f452ecb910a75b7c87330c0a11286",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "7d1fbe7b770b53af7e2a82ef683e273c534f452ecb910a75b7c87330c0a11286",
+        "bytes": 100
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_ext\ndef 計算(値):\n    文字 = \"日本語\"; return 値\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            32,
+            34
+          ],
+          [
+            35,
+            36
+          ],
+          [
+            36,
+            40
+          ],
+          [
+            39,
+            45
+          ],
+          [
+            40,
+            49
+          ],
+          [
+            41,
+            50
+          ],
+          [
+            42,
+            51
+          ],
+          [
+            43,
+            52
+          ],
+          [
+            44,
+            53
+          ],
+          [
+            45,
+            54
+          ],
+          [
+            46,
+            55
+          ],
+          [
+            49,
+            60
+          ],
+          [
+            52,
+            62
+          ],
+          [
+            53,
+            66
+          ],
+          [
+            54,
+            67
+          ],
+          [
+            55,
+            68
+          ],
+          [
+            56,
+            69
+          ],
+          [
+            59,
+            74
+          ],
+          [
+            62,
+            76
+          ],
+          [
+            65,
+            78
+          ],
+          [
+            66,
+            82
+          ],
+          [
+            67,
+            83
+          ],
+          [
+            68,
+            84
+          ],
+          [
+            69,
+            85
+          ],
+          [
+            70,
+            86
+          ],
+          [
+            71,
+            87
+          ],
+          [
+            72,
+            88
+          ],
+          [
+            73,
+            89
+          ],
+          [
+            74,
+            90
+          ],
+          [
+            75,
+            91
+          ],
+          [
+            78,
+            96
+          ],
+          [
+            79,
+            100
+          ]
+        ],
+        "functions": [
+          {
+            "name": "計算",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 24
+          }
+        ],
+        "names": [
+          {
+            "name": "文字",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 6
+          },
+          {
+            "name": "値",
+            "start_line": 3,
+            "start_column": 24,
+            "end_line": 3,
+            "end_column": 24
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp_2004-combined-supplementary",
+      "codec": "iso2022_jp_2004",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfMjAwNApkZWYgGyQoUSR3GyhCKBskQkNNGyhCKToKICAgIBskQk4+GyhCID0gIhskKFEuIhsoQiI7IHJldHVybiAbJEJDTRsoQgo=",
+      "raw_sha256": "f33be1fd921e6a517b77148dbf96cdc69d06718b8687ad7e2efd6ddc41dfdb7a",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "f33be1fd921e6a517b77148dbf96cdc69d06718b8687ad7e2efd6ddc41dfdb7a",
+        "bytes": 95
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_2004\ndef か゚(値):\n    両 = \"𠀋\"; return 値\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            33,
+            null
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            40
+          ],
+          [
+            40,
+            45
+          ],
+          [
+            41,
+            49
+          ],
+          [
+            42,
+            50
+          ],
+          [
+            43,
+            51
+          ],
+          [
+            44,
+            52
+          ],
+          [
+            45,
+            53
+          ],
+          [
+            46,
+            54
+          ],
+          [
+            47,
+            55
+          ],
+          [
+            50,
+            60
+          ],
+          [
+            51,
+            64
+          ],
+          [
+            52,
+            65
+          ],
+          [
+            53,
+            66
+          ],
+          [
+            54,
+            67
+          ],
+          [
+            58,
+            73
+          ],
+          [
+            59,
+            77
+          ],
+          [
+            60,
+            78
+          ],
+          [
+            61,
+            79
+          ],
+          [
+            62,
+            80
+          ],
+          [
+            63,
+            81
+          ],
+          [
+            64,
+            82
+          ],
+          [
+            65,
+            83
+          ],
+          [
+            66,
+            84
+          ],
+          [
+            67,
+            85
+          ],
+          [
+            68,
+            86
+          ],
+          [
+            71,
+            91
+          ],
+          [
+            72,
+            95
+          ]
+        ],
+        "functions": [
+          {
+            "name": "か゚",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 21
+          }
+        ],
+        "names": [
+          {
+            "name": "両",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 5
+          },
+          {
+            "name": "値",
+            "start_line": 3,
+            "start_column": 21,
+            "end_line": 3,
+            "end_column": 21
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp_3-combined-supplementary",
+      "codec": "iso2022_jp_3",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfMwpkZWYgGyQoTyR3GyhCKBskQkNNGyhCKToKICAgIBskQk4+GyhCID0gIhskKE8uIhsoQiI7IHJldHVybiAbJEJDTRsoQgo=",
+      "raw_sha256": "391b23ae333ec8aadf06082e00873e298fd7696b80f5887834ad30e527ef7319",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "391b23ae333ec8aadf06082e00873e298fd7696b80f5887834ad30e527ef7319",
+        "bytes": 92
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_3\ndef か゚(値):\n    両 = \"𠀋\"; return 値\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            30,
+            null
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            37
+          ],
+          [
+            37,
+            42
+          ],
+          [
+            38,
+            46
+          ],
+          [
+            39,
+            47
+          ],
+          [
+            40,
+            48
+          ],
+          [
+            41,
+            49
+          ],
+          [
+            42,
+            50
+          ],
+          [
+            43,
+            51
+          ],
+          [
+            44,
+            52
+          ],
+          [
+            47,
+            57
+          ],
+          [
+            48,
+            61
+          ],
+          [
+            49,
+            62
+          ],
+          [
+            50,
+            63
+          ],
+          [
+            51,
+            64
+          ],
+          [
+            55,
+            70
+          ],
+          [
+            56,
+            74
+          ],
+          [
+            57,
+            75
+          ],
+          [
+            58,
+            76
+          ],
+          [
+            59,
+            77
+          ],
+          [
+            60,
+            78
+          ],
+          [
+            61,
+            79
+          ],
+          [
+            62,
+            80
+          ],
+          [
+            63,
+            81
+          ],
+          [
+            64,
+            82
+          ],
+          [
+            65,
+            83
+          ],
+          [
+            68,
+            88
+          ],
+          [
+            69,
+            92
+          ]
+        ],
+        "functions": [
+          {
+            "name": "か゚",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 21
+          }
+        ],
+        "names": [
+          {
+            "name": "両",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 5
+          },
+          {
+            "name": "値",
+            "start_line": 3,
+            "start_column": 21,
+            "end_line": 3,
+            "end_column": 21
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022kr-korean",
+      "codec": "iso2022_kr",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfa3IKZGVmIBskKUMOMGg7ag8oDjAqDyk6CiAgICAOMVsPID0gIg5HUTFbDyI7IHJldHVybiAOMCoPCg==",
+      "raw_sha256": "47ff2ea3ad6fa9acd041dec23eaa86b2ca7bdb5427282204e4b2408daabc509f",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "47ff2ea3ad6fa9acd041dec23eaa86b2ca7bdb5427282204e4b2408daabc509f",
+        "bytes": 76
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_kr\ndef 계산(값):\n    글 = \"한글\"; return 값\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            28,
+            32
+          ],
+          [
+            31,
+            34
+          ],
+          [
+            32,
+            36
+          ],
+          [
+            35,
+            39
+          ],
+          [
+            36,
+            41
+          ],
+          [
+            37,
+            42
+          ],
+          [
+            38,
+            43
+          ],
+          [
+            39,
+            44
+          ],
+          [
+            40,
+            45
+          ],
+          [
+            41,
+            46
+          ],
+          [
+            42,
+            47
+          ],
+          [
+            45,
+            50
+          ],
+          [
+            46,
+            52
+          ],
+          [
+            47,
+            53
+          ],
+          [
+            48,
+            54
+          ],
+          [
+            49,
+            55
+          ],
+          [
+            52,
+            58
+          ],
+          [
+            55,
+            60
+          ],
+          [
+            56,
+            62
+          ],
+          [
+            57,
+            63
+          ],
+          [
+            58,
+            64
+          ],
+          [
+            59,
+            65
+          ],
+          [
+            60,
+            66
+          ],
+          [
+            61,
+            67
+          ],
+          [
+            62,
+            68
+          ],
+          [
+            63,
+            69
+          ],
+          [
+            64,
+            70
+          ],
+          [
+            65,
+            71
+          ],
+          [
+            68,
+            74
+          ],
+          [
+            69,
+            76
+          ]
+        ],
+        "functions": [
+          {
+            "name": "계산",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 22
+          }
+        ],
+        "names": [
+          {
+            "name": "글",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 5
+          },
+          {
+            "name": "값",
+            "start_line": 3,
+            "start_column": 22,
+            "end_line": 3,
+            "end_column": 22
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "hz-chinese",
+      "codec": "hz",
+      "bytes_base64": "IyBjb2Rpbmc6IGh6CmRlZiB+ezxGS2N+fSh+e1Y1fn0pOgogICAgfntXVn59ID0gIn57OjpTb359IjsgcmV0dXJuIH57VjV+fQo=",
+      "raw_sha256": "c554902729e60f41c7cd0c126e513856d889bd455bd2fd58c5f697e722915ce1",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "c554902729e60f41c7cd0c126e513856d889bd455bd2fd58c5f697e722915ce1",
+        "bytes": 74
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: hz\ndef 计算(值):\n    字 = \"汉语\"; return 值\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            20,
+            21
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            26
+          ],
+          [
+            27,
+            30
+          ],
+          [
+            28,
+            33
+          ],
+          [
+            29,
+            34
+          ],
+          [
+            30,
+            35
+          ],
+          [
+            31,
+            36
+          ],
+          [
+            32,
+            37
+          ],
+          [
+            33,
+            38
+          ],
+          [
+            34,
+            39
+          ],
+          [
+            37,
+            43
+          ],
+          [
+            38,
+            46
+          ],
+          [
+            39,
+            47
+          ],
+          [
+            40,
+            48
+          ],
+          [
+            41,
+            49
+          ],
+          [
+            44,
+            53
+          ],
+          [
+            47,
+            55
+          ],
+          [
+            48,
+            58
+          ],
+          [
+            49,
+            59
+          ],
+          [
+            50,
+            60
+          ],
+          [
+            51,
+            61
+          ],
+          [
+            52,
+            62
+          ],
+          [
+            53,
+            63
+          ],
+          [
+            54,
+            64
+          ],
+          [
+            55,
+            65
+          ],
+          [
+            56,
+            66
+          ],
+          [
+            57,
+            67
+          ],
+          [
+            60,
+            71
+          ],
+          [
+            61,
+            74
+          ]
+        ],
+        "functions": [
+          {
+            "name": "计算",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 22
+          }
+        ],
+        "names": [
+          {
+            "name": "字",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 5
+          },
+          {
+            "name": "值",
+            "start_line": 3,
+            "start_column": 22,
+            "end_line": 3,
+            "end_column": 22
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022jp1-plane2",
+      "codec": "iso2022_jp_1",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfMQpkZWYgZih2YWx1ZSk6CiAgICAbJChEMCEbKEIgPSB2YWx1ZQogICAgcmV0dXJuIBskKEQwIRsoQgo=",
+      "raw_sha256": "4ca12a6c852ac8d0f1fe38690f7062bdc664b6057e12aad909a95f794c13778a",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "4ca12a6c852ac8d0f1fe38690f7062bdc664b6057e12aad909a95f794c13778a",
+        "bytes": 80
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_1\ndef f(value):\n    丂 = value\n    return 丂\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            44,
+            47
+          ],
+          [
+            45,
+            51
+          ],
+          [
+            46,
+            52
+          ],
+          [
+            47,
+            53
+          ],
+          [
+            48,
+            54
+          ],
+          [
+            49,
+            55
+          ],
+          [
+            50,
+            56
+          ],
+          [
+            51,
+            57
+          ],
+          [
+            52,
+            58
+          ],
+          [
+            53,
+            59
+          ],
+          [
+            54,
+            60
+          ],
+          [
+            55,
+            61
+          ],
+          [
+            56,
+            62
+          ],
+          [
+            57,
+            63
+          ],
+          [
+            58,
+            64
+          ],
+          [
+            59,
+            65
+          ],
+          [
+            60,
+            66
+          ],
+          [
+            61,
+            67
+          ],
+          [
+            62,
+            68
+          ],
+          [
+            63,
+            69
+          ],
+          [
+            64,
+            70
+          ],
+          [
+            67,
+            76
+          ],
+          [
+            68,
+            80
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 4,
+            "end_column": 12
+          }
+        ],
+        "names": [
+          {
+            "name": "丂",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 5
+          },
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 9,
+            "end_line": 3,
+            "end_column": 13
+          },
+          {
+            "name": "丂",
+            "start_line": 4,
+            "start_column": 12,
+            "end_line": 4,
+            "end_column": 12
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022jpext-katakana",
+      "codec": "iso2022_jp_ext",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfZXh0CmRlZiAbJEIjZhsoQigbJEIjdhsoQik6CiAgICBub3RlID0gIhsoSTZANkUbKEpcGyhCIjsgcmV0dXJuIBskQiN2GyhCCg==",
+      "raw_sha256": "66ce30d9bd6013937dca97d0b9fface0f4470f541e380433bad9ced962ee52f2",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "66ce30d9bd6013937dca97d0b9fface0f4470f541e380433bad9ced962ee52f2",
+        "bytes": 94
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_ext\ndef ｆ(ｖ):\n    note = \"ｶﾀｶﾅ¥\"; return ｖ\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            32,
+            34
+          ],
+          [
+            33,
+            38
+          ],
+          [
+            36,
+            43
+          ],
+          [
+            37,
+            47
+          ],
+          [
+            38,
+            48
+          ],
+          [
+            39,
+            49
+          ],
+          [
+            40,
+            50
+          ],
+          [
+            41,
+            51
+          ],
+          [
+            42,
+            52
+          ],
+          [
+            43,
+            53
+          ],
+          [
+            44,
+            54
+          ],
+          [
+            45,
+            55
+          ],
+          [
+            46,
+            56
+          ],
+          [
+            47,
+            57
+          ],
+          [
+            48,
+            58
+          ],
+          [
+            49,
+            59
+          ],
+          [
+            50,
+            60
+          ],
+          [
+            51,
+            61
+          ],
+          [
+            54,
+            65
+          ],
+          [
+            57,
+            66
+          ],
+          [
+            60,
+            67
+          ],
+          [
+            63,
+            68
+          ],
+          [
+            65,
+            72
+          ],
+          [
+            66,
+            76
+          ],
+          [
+            67,
+            77
+          ],
+          [
+            68,
+            78
+          ],
+          [
+            69,
+            79
+          ],
+          [
+            70,
+            80
+          ],
+          [
+            71,
+            81
+          ],
+          [
+            72,
+            82
+          ],
+          [
+            73,
+            83
+          ],
+          [
+            74,
+            84
+          ],
+          [
+            75,
+            85
+          ],
+          [
+            78,
+            90
+          ],
+          [
+            79,
+            94
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 28
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "v",
+            "start_line": 3,
+            "start_column": 28,
+            "end_line": 3,
+            "end_column": 28
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022jp-alias",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGNzaXNvMjAyMmpwCmRlZiAbJEI3Vzs7GyhCKBskQkNNGyhCKToKICAgIHJldHVybiAbJEJDTRsoQgo=",
+      "raw_sha256": "c950dcf8bfde51fb44c107b966d9b9ff40640b1abb00af674d27a6b874872783",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "c950dcf8bfde51fb44c107b966d9b9ff40640b1abb00af674d27a6b874872783",
+        "bytes": 68
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: csiso2022jp\ndef 計算(値):\n    return 値\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            29,
+            31
+          ],
+          [
+            32,
+            33
+          ],
+          [
+            33,
+            37
+          ],
+          [
+            36,
+            42
+          ],
+          [
+            37,
+            46
+          ],
+          [
+            38,
+            47
+          ],
+          [
+            39,
+            48
+          ],
+          [
+            40,
+            49
+          ],
+          [
+            41,
+            50
+          ],
+          [
+            42,
+            51
+          ],
+          [
+            43,
+            52
+          ],
+          [
+            44,
+            53
+          ],
+          [
+            45,
+            54
+          ],
+          [
+            46,
+            55
+          ],
+          [
+            47,
+            56
+          ],
+          [
+            48,
+            57
+          ],
+          [
+            49,
+            58
+          ],
+          [
+            50,
+            59
+          ],
+          [
+            53,
+            64
+          ],
+          [
+            54,
+            68
+          ]
+        ],
+        "functions": [
+          {
+            "name": "計算",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 12
+          }
+        ],
+        "names": [
+          {
+            "name": "値",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 12
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "hz-alias",
+      "codec": "hz",
+      "bytes_base64": "IyBjb2Rpbmc6IGh6X2diXzIzMTIKZGVmIH57PEZLY359KH57VjV+fSk6CiAgICByZXR1cm4gfntWNX59Cg==",
+      "raw_sha256": "69d0ddac27c2e7bcadb30107379d839ba429cd8abb458add8ec1e1dea39e8419",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "69d0ddac27c2e7bcadb30107379d839ba429cd8abb458add8ec1e1dea39e8419",
+        "bytes": 61
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: hz_gb_2312\ndef 计算(值):\n    return 值\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            28,
+            29
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            34
+          ],
+          [
+            35,
+            38
+          ],
+          [
+            36,
+            41
+          ],
+          [
+            37,
+            42
+          ],
+          [
+            38,
+            43
+          ],
+          [
+            39,
+            44
+          ],
+          [
+            40,
+            45
+          ],
+          [
+            41,
+            46
+          ],
+          [
+            42,
+            47
+          ],
+          [
+            43,
+            48
+          ],
+          [
+            44,
+            49
+          ],
+          [
+            45,
+            50
+          ],
+          [
+            46,
+            51
+          ],
+          [
+            47,
+            52
+          ],
+          [
+            48,
+            53
+          ],
+          [
+            49,
+            54
+          ],
+          [
+            52,
+            58
+          ],
+          [
+            53,
+            61
+          ]
+        ],
+        "functions": [
+          {
+            "name": "计算",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 12
+          }
+        ],
+        "names": [
+          {
+            "name": "值",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 12
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022jp2-g2",
+      "codec": "iso2022_jp_2",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanBfMgpkZWYgZih2YWx1ZSk6CiAgICBub3RlID0gIhsuRhtOYRsuQRtOaSI7IHJldHVybiB2YWx1ZQo=",
+      "raw_sha256": "522c91a26c70a9d313ef6e329384c3d13b54d101bdf2d22d69fee5470b635b31",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "522c91a26c70a9d313ef6e329384c3d13b54d101bdf2d22d69fee5470b635b31",
+        "bytes": 77
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp_2\ndef f(value):\n    note = \"αé\"; return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            51,
+            55
+          ],
+          [
+            53,
+            61
+          ],
+          [
+            54,
+            62
+          ],
+          [
+            55,
+            63
+          ],
+          [
+            56,
+            64
+          ],
+          [
+            57,
+            65
+          ],
+          [
+            58,
+            66
+          ],
+          [
+            59,
+            67
+          ],
+          [
+            60,
+            68
+          ],
+          [
+            61,
+            69
+          ],
+          [
+            62,
+            70
+          ],
+          [
+            63,
+            71
+          ],
+          [
+            64,
+            72
+          ],
+          [
+            65,
+            73
+          ],
+          [
+            66,
+            74
+          ],
+          [
+            67,
+            75
+          ],
+          [
+            68,
+            76
+          ],
+          [
+            69,
+            77
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 29
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 25,
+            "end_line": 3,
+            "end_column": 29
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022jp-prefix",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanAKZGVmIGYodmFsdWUpOgogICAgbm90ZSA9ICIbJkAbJEJGfEtcGyhCIjsgcmV0dXJuIHZhbHVlCg==",
+      "raw_sha256": "1d3b67659f60fda8cf62b3c02005a454ab4f03584fc765be67503da3296717ed",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "1d3b67659f60fda8cf62b3c02005a454ab4f03584fc765be67503da3296717ed",
+        "bytes": 76
+      },
+      "original_metrics": {
+        "accepted": true,
+        "functions": [
+          {
+            "name": "f",
+            "path": "main.py",
+            "start_line": 2,
+            "end_line": 3,
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting": 0,
+            "heuristic": false
+          }
+        ]
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp\ndef f(value):\n    note = \"日本\"; return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            50,
+            55
+          ],
+          [
+            53,
+            57
+          ],
+          [
+            54,
+            61
+          ],
+          [
+            55,
+            62
+          ],
+          [
+            56,
+            63
+          ],
+          [
+            57,
+            64
+          ],
+          [
+            58,
+            65
+          ],
+          [
+            59,
+            66
+          ],
+          [
+            60,
+            67
+          ],
+          [
+            61,
+            68
+          ],
+          [
+            62,
+            69
+          ],
+          [
+            63,
+            70
+          ],
+          [
+            64,
+            71
+          ],
+          [
+            65,
+            72
+          ],
+          [
+            66,
+            73
+          ],
+          [
+            67,
+            74
+          ],
+          [
+            68,
+            75
+          ],
+          [
+            69,
+            76
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 29
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 25,
+            "end_line": 3,
+            "end_column": 29
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022jp-escape-through",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanAKZGVmIGYodmFsdWUpOgogICAgbm90ZSA9ICIbW/9BIjsgcmV0dXJuIHZhbHVlCg==",
+      "raw_sha256": "09728dc0fac69bffb37b38fbfb462d7311436b9e6ac7851a4afc6c4db1214d19",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": false,
+        "error": "AnalysisSourceError",
+        "code": "invalid-utf8",
+        "message": "Analysis source is not valid UTF-8"
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "UnicodeDecodeError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp\ndef f(value):\n    note = \"\u001b[ÿA\"; return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            null
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            51,
+            50
+          ],
+          [
+            52,
+            51
+          ],
+          [
+            53,
+            52
+          ],
+          [
+            54,
+            53
+          ],
+          [
+            55,
+            54
+          ],
+          [
+            56,
+            55
+          ],
+          [
+            57,
+            56
+          ],
+          [
+            58,
+            57
+          ],
+          [
+            59,
+            58
+          ],
+          [
+            60,
+            59
+          ],
+          [
+            61,
+            60
+          ],
+          [
+            62,
+            61
+          ],
+          [
+            63,
+            62
+          ],
+          [
+            64,
+            63
+          ],
+          [
+            65,
+            64
+          ],
+          [
+            66,
+            65
+          ],
+          [
+            67,
+            66
+          ],
+          [
+            68,
+            67
+          ]
+        ],
+        "functions": [
+          {
+            "name": "f",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 31
+          }
+        ],
+        "names": [
+          {
+            "name": "note",
+            "start_line": 3,
+            "start_column": 5,
+            "end_line": 3,
+            "end_column": 8
+          },
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 27,
+            "end_line": 3,
+            "end_column": 31
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "hz-continuation",
+      "codec": "hz",
+      "bytes_base64": "IyBjb2Rpbmc6IGh6CmRlZiBoZWx+CmxvKHZhbHVlKToKICAgIHJldHVybiB2YWx1ZQo=",
+      "raw_sha256": "ef137256b155a4a13d26c6b89f92f4a03a4d050c8ca5623fc91275732dd3eab9",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "ef137256b155a4a13d26c6b89f92f4a03a4d050c8ca5623fc91275732dd3eab9",
+        "bytes": 50
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: hz\ndef hello(value):\n    return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            23
+          ],
+          [
+            22,
+            24
+          ],
+          [
+            23,
+            25
+          ],
+          [
+            24,
+            26
+          ],
+          [
+            25,
+            27
+          ],
+          [
+            26,
+            28
+          ],
+          [
+            27,
+            29
+          ],
+          [
+            28,
+            30
+          ],
+          [
+            29,
+            31
+          ],
+          [
+            30,
+            32
+          ],
+          [
+            31,
+            33
+          ],
+          [
+            32,
+            34
+          ],
+          [
+            33,
+            35
+          ],
+          [
+            34,
+            36
+          ],
+          [
+            35,
+            37
+          ],
+          [
+            36,
+            38
+          ],
+          [
+            37,
+            39
+          ],
+          [
+            38,
+            40
+          ],
+          [
+            39,
+            41
+          ],
+          [
+            40,
+            42
+          ],
+          [
+            41,
+            43
+          ],
+          [
+            42,
+            44
+          ],
+          [
+            43,
+            45
+          ],
+          [
+            44,
+            46
+          ],
+          [
+            45,
+            47
+          ],
+          [
+            46,
+            48
+          ],
+          [
+            47,
+            49
+          ],
+          [
+            48,
+            50
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 3,
+            "start_column": 12,
+            "end_line": 3,
+            "end_column": 16
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022jp-trailing-designation",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanAKZGVmIGhlbGxvKHZhbHVlKTogcmV0dXJuIHZhbHVlChsoQg==",
+      "raw_sha256": "dae3f97412163458043b0ed8e37c2eb8fbab159d2b1932348e520978eb3140b2",
+      "cpython_bytes_ast": {
+        "accepted": true
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "dae3f97412163458043b0ed8e37c2eb8fbab159d2b1932348e520978eb3140b2",
+        "bytes": 55
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": true,
+        "text": "# coding: iso2022_jp\ndef hello(value): return value\n",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            55
+          ]
+        ],
+        "functions": [
+          {
+            "name": "hello",
+            "start_line": 2,
+            "start_column": 1,
+            "end_line": 2,
+            "end_column": 30
+          }
+        ],
+        "names": [
+          {
+            "name": "value",
+            "start_line": 2,
+            "start_column": 26,
+            "end_line": 2,
+            "end_column": 30
+          }
+        ]
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "hz-trailing-shift",
+      "codec": "hz",
+      "bytes_base64": "IyBjb2Rpbmc6IGh6CmRlZiBoZWxsbyh2YWx1ZSk6IHJldHVybiB2YWx1ZQp+ew==",
+      "raw_sha256": "cfdf6d8097f5b75801c5430d5b898ce1f3b09b5cd0e4458c11c34e0c83fbc42a",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'hz' codec can't decode byte 0x0a in position 46: incomplete multibyte sequence (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "cfdf6d8097f5b75801c5430d5b898ce1f3b09b5cd0e4458c11c34e0c83fbc42a",
+        "bytes": 46
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "CPython byte-source tokenization appends a final newline before recoding. A terminal HZ GB shift accepts as standalone text but that implicit newline makes it invalid Python byte-source; native source intake rejects it explicitly instead of parsing decoded text as a false success.",
+      "codec_text_sha256": "86c1a599f77896ebecc0e89f74e40ee4050d77776daa86bf658c58fa605a950f"
+    },
+    {
+      "id": "iso2022_jp-invalid-1b",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanAKZGVmIGhlbGxvKHZhbHVlKToKICAgIG5vdGUgPSAiGw==",
+      "raw_sha256": "e11e011d530bf621feba2818b5aa39395e543f0f07327c44eddc600da0e86c79",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "unterminated string literal (detected at line 3) (main.py, line 3)",
+        "line": 3,
+        "offset": 12
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "e11e011d530bf621feba2818b5aa39395e543f0f07327c44eddc600da0e86c79",
+        "bytes": 52
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp-invalid-1b2841",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanAKZGVmIGhlbGxvKHZhbHVlKToKICAgIG5vdGUgPSAiGyhB",
+      "raw_sha256": "22e0286549a2abe0c74c0e36e92079ccfa66b3fc5c3a791f36358fe588c18bbb",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'iso2022_jp' codec can't decode bytes in position 51-53: illegal multibyte sequence (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "22e0286549a2abe0c74c0e36e92079ccfa66b3fc5c3a791f36358fe588c18bbb",
+        "bytes": 54
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp-invalid-1b20202020202020202020202020202020",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanAKZGVmIGhlbGxvKHZhbHVlKToKICAgIG5vdGUgPSAiGyAgICAgICAgICAgICAgICA=",
+      "raw_sha256": "414f48616506fe1ffbc89569d9af1ccf74be874915b5e08d081a30c6426843e1",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "unterminated string literal (detected at line 3) (main.py, line 3)",
+        "line": 3,
+        "offset": 12
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "414f48616506fe1ffbc89569d9af1ccf74be874915b5e08d081a30c6426843e1",
+        "bytes": 68
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": true,
+        "parser_accepted": false,
+        "text": "# coding: iso2022_jp\ndef hello(value):\n    note = \"\u001b                ",
+        "raw_boundaries": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            12
+          ],
+          [
+            13,
+            13
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            21
+          ],
+          [
+            22,
+            22
+          ],
+          [
+            23,
+            23
+          ],
+          [
+            24,
+            24
+          ],
+          [
+            25,
+            25
+          ],
+          [
+            26,
+            26
+          ],
+          [
+            27,
+            27
+          ],
+          [
+            28,
+            28
+          ],
+          [
+            29,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            33,
+            33
+          ],
+          [
+            34,
+            34
+          ],
+          [
+            35,
+            35
+          ],
+          [
+            36,
+            36
+          ],
+          [
+            37,
+            37
+          ],
+          [
+            38,
+            38
+          ],
+          [
+            39,
+            39
+          ],
+          [
+            40,
+            40
+          ],
+          [
+            41,
+            41
+          ],
+          [
+            42,
+            42
+          ],
+          [
+            43,
+            43
+          ],
+          [
+            44,
+            44
+          ],
+          [
+            45,
+            45
+          ],
+          [
+            46,
+            46
+          ],
+          [
+            47,
+            47
+          ],
+          [
+            48,
+            48
+          ],
+          [
+            49,
+            49
+          ],
+          [
+            50,
+            50
+          ],
+          [
+            51,
+            51
+          ],
+          [
+            52,
+            null
+          ],
+          [
+            53,
+            53
+          ],
+          [
+            54,
+            54
+          ],
+          [
+            55,
+            55
+          ],
+          [
+            56,
+            56
+          ],
+          [
+            57,
+            57
+          ],
+          [
+            58,
+            58
+          ],
+          [
+            59,
+            59
+          ],
+          [
+            60,
+            60
+          ],
+          [
+            61,
+            61
+          ],
+          [
+            62,
+            62
+          ],
+          [
+            63,
+            63
+          ],
+          [
+            64,
+            64
+          ],
+          [
+            65,
+            65
+          ],
+          [
+            66,
+            66
+          ],
+          [
+            67,
+            67
+          ],
+          [
+            68,
+            68
+          ]
+        ],
+        "functions": [],
+        "names": []
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp-invalid-1b244221",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanAKZGVmIGhlbGxvKHZhbHVlKToKICAgIG5vdGUgPSAiGyRCIQ==",
+      "raw_sha256": "ed800b3b9e378e672d46698582db09f8376ca6850e5328f57c4fab95394b1ffb",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'iso2022_jp' codec can't decode bytes in position 54-55: illegal multibyte sequence (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "ed800b3b9e378e672d46698582db09f8376ca6850e5328f57c4fab95394b1ffb",
+        "bytes": 55
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_jp-invalid-ff",
+      "codec": "iso2022_jp",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfanAKZGVmIGhlbGxvKHZhbHVlKToKICAgIG5vdGUgPSAi/w==",
+      "raw_sha256": "a2c1ca8d435667e14a57aabcc6dfd1e6c714ff72c5b9dd35c356e103d7d7bbf3",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'iso2022_jp' codec can't decode byte 0xff in position 51: illegal multibyte sequence (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": false,
+        "error": "AnalysisSourceError",
+        "code": "invalid-utf8",
+        "message": "Analysis source is not valid UTF-8"
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "UnicodeDecodeError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "iso2022_kr-invalid-1b2429430e21",
+      "codec": "iso2022_kr",
+      "bytes_base64": "IyBjb2Rpbmc6IGlzbzIwMjJfa3IKZGVmIGhlbGxvKHZhbHVlKToKICAgIG5vdGUgPSAiGyQpQw4h",
+      "raw_sha256": "2162ed7422bc35ff9fc62609d44ea8afa191d1370634eed933e78707c83d46f9",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'iso2022_kr' codec can't decode bytes in position 56-57: illegal multibyte sequence (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "2162ed7422bc35ff9fc62609d44ea8afa191d1370634eed933e78707c83d46f9",
+        "bytes": 57
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "hz-invalid-7e7b21",
+      "codec": "hz",
+      "bytes_base64": "IyBjb2Rpbmc6IGh6CmRlZiBoZWxsbyh2YWx1ZSk6CiAgICBub3RlID0gIn57IQ==",
+      "raw_sha256": "7ad17b13966e241c032ff1ced1233562453136b354d74d916faacd1cf9f77e7d",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'hz' codec can't decode byte 0x21 in position 45: illegal multibyte sequence (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "7ad17b13966e241c032ff1ced1233562453136b354d74d916faacd1cf9f77e7d",
+        "bytes": 46
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "hz-invalid-7e7d",
+      "codec": "hz",
+      "bytes_base64": "IyBjb2Rpbmc6IGh6CmRlZiBoZWxsbyh2YWx1ZSk6CiAgICBub3RlID0gIn59",
+      "raw_sha256": "822f0c419f7c9f93b64d0d495ab7a1c3f1f83f4f0ab6496f2a06873b7d6822fb",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'hz' codec can't decode byte 0x7e in position 43: illegal multibyte sequence (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "822f0c419f7c9f93b64d0d495ab7a1c3f1f83f4f0ab6496f2a06873b7d6822fb",
+        "bytes": 45
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "hz-invalid-7e",
+      "codec": "hz",
+      "bytes_base64": "IyBjb2Rpbmc6IGh6CmRlZiBoZWxsbyh2YWx1ZSk6CiAgICBub3RlID0gIn4=",
+      "raw_sha256": "49a6bf9c46f4a8c08ada0c4b1558ddf74caf2afb0f2a07c5dd58ef46f6c24cb6",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "unterminated string literal (detected at line 3) (main.py, line 3)",
+        "line": 3,
+        "offset": 12
+      },
+      "original_intake": {
+        "accepted": true,
+        "text_sha256": "49a6bf9c46f4a8c08ada0c4b1558ddf74caf2afb0f2a07c5dd58ef46f6c24cb6",
+        "bytes": 44
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "SyntaxError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
+    },
+    {
+      "id": "hz-invalid-ff",
+      "codec": "hz",
+      "bytes_base64": "IyBjb2Rpbmc6IGh6CmRlZiBoZWxsbyh2YWx1ZSk6CiAgICBub3RlID0gIv8=",
+      "raw_sha256": "b31553eb548db350c8a0bae04ede7adbf21dbe8e86d5d045def8b00bccb2d3da",
+      "cpython_bytes_ast": {
+        "accepted": false,
+        "error": "SyntaxError",
+        "message": "'hz' codec can't decode byte 0xff in position 43: illegal multibyte sequence (main.py, line 0)",
+        "line": 0,
+        "offset": -1
+      },
+      "original_intake": {
+        "accepted": false,
+        "error": "AnalysisSourceError",
+        "code": "invalid-utf8",
+        "message": "Analysis source is not valid UTF-8"
+      },
+      "original_metrics": {
+        "accepted": false,
+        "error": "UnicodeDecodeError"
+      },
+      "expected": {
+        "source_accepted": false,
+        "parser_accepted": false,
+        "source_error": "invalid-encoding"
+      },
+      "difference_reason": "Use strict CPython byte-source codec semantics instead of historical UTF8 text-only intake/AST. Preserve original metrics/read failures as evidence; no failed or silently ignored byte sequence authorizes complete measurements. Canonical terminal raw boundary includes trailing non-emitting shift/designation bytes."
     }
   ],
   "exclusions": [

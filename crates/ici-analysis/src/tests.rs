@@ -1908,41 +1908,50 @@ fn source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence
 fn active_multibyte_decode_cancellation_retains_finished_line_evidence() {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::time::{Duration, Instant};
-    let mut input = request("line", "answer=1\n");
-    let mut bytes = b"# coding: cp949\n".to_vec();
-    let count = (crate::source::MAX_SOURCE_BYTES - bytes.len()) / 2;
-    bytes.extend_from_slice(&[0xc7, 0xd1].repeat(count));
-    input.inputs.push(SourceInput {
-        path: "large.py".into(),
-        bytes,
-    });
-    let flag = AtomicBool::new(false);
-    let started = Instant::now();
-    let output = std::thread::scope(|scope| {
-        let worker = scope.spawn(|| {
-            std::thread::sleep(Duration::from_millis(2));
-            flag.store(true, Ordering::Relaxed);
+    for (header, atom) in [
+        (b"# coding: cp949\n".as_slice(), b"\xc7\xd1".as_slice()),
+        (
+            b"# coding: iso2022_jp\n".as_slice(),
+            b"\x1b$BF|\x1b(B".as_slice(),
+        ),
+        (b"# coding: hz\n".as_slice(), b"~{F|~}".as_slice()),
+    ] {
+        let mut input = request("line", "answer=1\n");
+        let mut bytes = header.to_vec();
+        let count = (crate::source::MAX_SOURCE_BYTES - bytes.len()) / atom.len();
+        bytes.extend_from_slice(&atom.repeat(count));
+        input.inputs.push(SourceInput {
+            path: "large.py".into(),
+            bytes,
         });
-        let output = AnalysisSession::new().analyze_cancellable(&input, &flag);
-        worker.join().unwrap();
-        output
-    });
-    assert_eq!(output.observation.state, TaskState::Cancelled);
-    assert_eq!(output.status, "ERROR");
-    assert!(started.elapsed() < Duration::from_secs(2));
-    assert!(
-        output
-            .targets
-            .iter()
-            .any(|target| target.file_path == "main.py" && target.status == "PASS")
-    );
-    assert!(
-        !output
-            .targets
-            .iter()
-            .any(|target| target.file_path == "large.py")
-    );
-    assert!(output.observation.findings.is_empty());
+        let flag = AtomicBool::new(false);
+        let started = Instant::now();
+        let output = std::thread::scope(|scope| {
+            let worker = scope.spawn(|| {
+                std::thread::sleep(Duration::from_millis(2));
+                flag.store(true, Ordering::Relaxed);
+            });
+            let output = AnalysisSession::new().analyze_cancellable(&input, &flag);
+            worker.join().unwrap();
+            output
+        });
+        assert_eq!(output.observation.state, TaskState::Cancelled);
+        assert_eq!(output.status, "ERROR");
+        assert!(started.elapsed() < Duration::from_secs(2));
+        assert!(
+            output
+                .targets
+                .iter()
+                .any(|target| target.file_path == "main.py" && target.status == "PASS")
+        );
+        assert!(
+            !output
+                .targets
+                .iter()
+                .any(|target| target.file_path == "large.py")
+        );
+        assert!(output.observation.findings.is_empty());
+    }
 }
 
 #[test]
