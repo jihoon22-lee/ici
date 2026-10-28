@@ -15,7 +15,7 @@ ici report --result result.json --out report.html
 사용합니다. 테스트·coverage·sanitizer·배포는 `analyze`의 기본 선택에 포함되지 않습니다.
 Cargo Clippy는 build.rs/proc-macro를 실행할 수 있는 **prepare 작업**이며 fast에서 차단됩니다.
 
-0.13.0 일반 설치는 [GitHub Release](https://github.com/jihoon22-lee/ici/releases/latest)의
+0.13.0 일반 설치는 [GitHub Release](https://github.com/jihoon22-lee/ici/releases/tag/v0.13.0)의
 `ici-<version>-py3-none-any.whl`을 내려받고 `ici-package.sha256`으로 확인한 뒤,
 `uv tool install ./ici-<version>-py3-none-any.whl` 또는 격리된 venv에 pip로 설치합니다.
 시스템 Python 3.10 이상이 필요합니다. PyPI의 같은 이름 패키지를 가정하지 않습니다.

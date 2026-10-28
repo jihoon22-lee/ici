@@ -18,6 +18,8 @@ macOS/native Windows와 PE/Mach-O 동등 지원은 이번 버전에 포함하지
 이전 baseline은 native configuration scope 보완에 따라 일부 finding이 carried로 남을 수
 있으므로 새 버전에서 기준 결과를 생성합니다. 공개 artifact와 검증 revision 연결은
 [릴리스 진행 원장](docs/design/generalization-progress.md)에 기록합니다.
+정식 v0.13.0의 12개 공개 asset checksum과 pyz/wheel/sdist 각각의 4언어 실행·설치
+계약 검증을 완료했습니다. 공개 source는 `6fe3e405`이며 이후 문서 마감 commit과 구분합니다.
 
 - 명시적 Python 파일 목록에서도 Ruff의 native exclude를 적용합니다. 중첩 Ruff 설정을
   입력에 포함하고 설정 내용 변경을 check scope digest에 반영해 baseline 해결로 오판하지 않습니다.

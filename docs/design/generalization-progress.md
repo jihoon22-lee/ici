@@ -19,14 +19,14 @@
 |2 static selection|구현·회귀 검증|CheckDefinition.static 선언, 실행 검사 제외 및 PARTIAL 범위|
 |3 configless discovery|구현·회귀 검증|5개 언어 메모리 구성, 기존 설정 우회 금지|
 |4 analyze 진입점|구현·회귀 검증|run_checks/plan 공유, verify 호환 테스트|
-|5 일반 package 설치|구현·로컬 설치 통과|wheel/sdist 및 격리 설치 E2E; 공개 asset 확인 대기|
+|5 일반 package 설치|공개 설치 검증 완료|공개 wheel/sdist fresh venv 및 4언어 E2E 통과|
 |6 report UX|구현·회귀 검증|범위·baseline·suppression·관련 진단, v1 읽기 유지|
 |7 Rust provider|구현·실제 fixture 통과|Clippy/build.rs, PREPARE/fast 차단, 입력 attribution|
 |8 TS/JS provider|구현·실제 fixture 통과|ESLint/tsc native config·진단 attribution|
 |9 보조자료 importer|구현·회귀 검증|SARIF/JUnit/LCOV subset, 출처·시점·범위 보존|
 |10 stable/next 수렴|구현·회귀 검증|공통 application·주 명령, legacy verify/pyz/migrate 호환 유지|
-|검증·문서·릴리스|미완료|고정 revision/asset 다운로드 검증|
-|병합·정리|미완료|소유 자원만 정리|
+|검증·문서·릴리스|공개·bytes 검증 완료|v0.13.0, 12 assets checksum, 3종 × 4언어 실행 통과|
+|병합·정리|문서 마감 중|release worktree/branch 정리 완료; 문서 PR 및 최종 임시 정리 남음|
 
 ## 지원 원칙
 
@@ -182,3 +182,101 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
 - release-only 3개 commit을 위 main에 rebase했다. src/pyproject/README/lock/scripts의
   내용은 후보를 빌드한 이전 release head와 동일하여 후보 hash는 유지된다.
 - 다음: release PR CI/병합, exact-main CI와 candidate archive/corpus 인수, tag/public release.
+
+## 릴리스 PR 병합 — 실제 상태 갱신
+
+- PR #296: https://github.com/jihoon22-lee/ici/pull/296 — 2026-10-28 병합 완료.
+- 0.13.0 release source main: `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`.
+  release branch `de3e6d7b523e0260d5026b04328532e332708f41`와 전체 tree diff가 없음을 확인했다.
+- Release PR CI: https://github.com/jihoon22-lee/ici/actions/runs/40613274918 — 성공.
+  unit 4303 passed / 8 skipped(245.35초), 재현 pyz checksum은 로컬 후보와 같은
+  `c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde`다.
+  패키지 설치, smoke, Python/C++/next dogfood, Qt5/6, PR Pages, Merge Gate가 통과했다.
+- Exact-main CI: https://github.com/jihoon22-lee/ici/actions/runs/40617303410 — 진행 중.
+  기존 구현 main CI `40612630907`은 성공했으나 이를 새 release source의 근거로 대신 쓰지 않는다.
+- v0.13.0 태그/공개 release는 아직 없다. 다음은 exact-main CI/게시 확인 → protected-main
+  candidate archive → 전체 16개 corpus 인수 → 태그/게시 → 공개 asset 다운로드/설치 검증이다.
+- 남은 작업 소유 자원: release worktree/branch와 `/tmp/ici-generalization-20261028`.
+  완료 근거 기록용 `docs/generalization-release-evidence` branch를 생성했다.
+  공통 heavy lock은 부모 소유이므로 삭제하지 않는다.
+- 연계 상태: Lens 현재 로컬 경로는 `/home/jihoon/projects/lens-diagnostics`이며 역사적
+  toy-projects provenance는 유지한다. 부모가 공개 idk 0.5.0으로 이 후보의 INCOMPLETE
+  결과 보존을 실제 소비 검증했다(분석 PASS라는 뜻이 아니다).
+
+## Exact-main·candidate 인수와 v0.13.0 태그
+
+- Exact-main CI `40617303410`이 Verify/Dogfood, Qt5/6, main 보고서 게시, Merge Gate 모두 성공했다.
+- Candidate archive: https://github.com/jihoon22-lee/ici/actions/runs/40620417747 — 성공.
+  artifact ID `12786619090`, raw ZIP SHA-256
+  `3bf7dcdb3bade700bff05745bb45a3d006afc7b51893041fd8c96a61d14f2dea`.
+  ZIP을 실제 내려받아 API digest와 일치하고 내부 pyz가 `c179986f…`임을 확인했다.
+  provenance의 target_sha는 `6fe3e405…`, package_version은 0.13.0이며 exact-main gate를 가리킨다.
+- 전체 corpus: https://github.com/jihoon22-lee/ici/actions/runs/40620940533 — 성공.
+  인수 artifact의 suite.json에서 실제 16개 결과가 모두 contract PASS, errors/failures 없음,
+  ici version 0.13.0 및 pyz digest c179986f…임을 확인했다. 단순 selector 등록을 PASS로
+  대신하지 않았다. 결함 샘플의 관측 FAIL/WARN은 기대 판정에 일치한다.
+- 기존 tag가 없음을 확인한 뒤 annotated `v0.13.0`을 exact source
+  `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`에 생성·push했다. 기존 tag/asset은 변경하지 않았다.
+- Release workflow: https://github.com/jihoon22-lee/ici/actions/runs/40622052622 — 진행 중.
+  아직 공개 release 완료 또는 공개 bytes 검증으로 기록하지 않는다.
+- 다음: workflow 완료 및 non-draft/non-prerelease 확인 → 모든 공개 asset 익명 다운로드/
+  checksum/설치/CLI 검증 → 완료 근거 문서 PR → 소유 자원 정리 및 최종 main 동기화.
+
+## v0.13.0 공개 bytes 및 설치 검증 완료
+
+- 정식 공개: https://github.com/jihoon22-lee/ici/releases/tag/v0.13.0
+  (non-draft, non-prerelease). Release workflow `40622052622` 성공.
+- 공개 annotated tag를 API로 peel하여 source
+  `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`과 일치함을 확인했다.
+  이후 문서-only main은 이 공개 source와 구분한다. tag와 공개 asset을 덮어쓰지 않았다.
+- 인증 헤더 없이 stdlib HTTPS로 12개 asset 전부 다운로드했다. 모두 API의 크기·SHA-256과
+  일치했고 `ici.pyz.sha256`, `ici-package.sha256`의 모든 항목을 검증했다.
+  공개 pyz는 전체 16개 corpus가 인수한 candidate와 byte-identical이며 wheel/sdist도
+  공개 전 로컬 빌드 digest와 일치한다.
+
+|공개 asset|SHA-256|
+|---|---|
+|`ici-0.13.0-py3-none-any.whl`|`ede15036e1346503a9808ac22608e77e6cbb851ff702d3d735dcc98352a49fd1`|
+|`ici-0.13.0.tar.gz`|`6491851d08fc32e428d0109651b3989c1fb7997df129ba1e29a62e8385f2582f`|
+|`ici-package.sha256`|`1a57e70f32bfbe7ac67f0f3600d31951601139fe16c2c87009e9628b7d884f6d`|
+|`ici-self-report.html`|`65273bb7d7ea2004bbe7d86595c327c7e6101950054ed2eae5fc29e2ea9aaa48`|
+|`ici-self-report.json`|`2edb6450890c6f0bb6e255981204bff2aa2a0fcdcf09b4c092784e8e4a5b8cf2`|
+|`ici.pyz`|`c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde`|
+|`ici.pyz.sha256`|`0de03b0feddb9719a0141671c37191918a8a53d98bc8cebe63da6fcf94885a05`|
+|`icirv`|`e8ee55373dd6b99b73b6c37d81a3ef2154fb30ac7ac775372798d6fc65ca861d`|
+|`icirv-gui`|`df536f95427e8ae51f38504e3cc3729bd20c2c68857e2aa1742fac9982a57ca1`|
+|`icirv-gui.README.txt`|`bf76b78f0dc0af4826a131368f11b3bc1b9f69aab5fbe5fdaa53731dbe1c155f`|
+|`viewer-report.html`|`aa6b24b6e2cadfeffc4f2d715cc4ea51a024f8fb9ee6d58d205d7133a0d3d09b`|
+|`viewer-report.json`|`c760205c778646a68a1bd4c114ad2227a1b845a751ac888965212d85718b113f`|
+
+- 실행 환경: WSL2/Linux, Python 3.10.21, Ruff 0.16.4, Rust 1.99.1/Clippy 0.1.99,
+  Node 24.18.0, TypeScript 7.0.2, ESLint 10.13.0. 미리 준비한 native 도구를 사용했다.
+- 공개 pyz는 매번 새 `SHIV_ROOT`, wheel과 sdist는 각각 새 Python 3.10 venv에
+  `uv pip install --python <venv>/bin/python <downloaded-asset>`으로 설치했다.
+  sdist는 다운로드한 source archive에서 실제 build/install했다.
+- 세 배포 형태 각각 Python/Rust/JavaScript/TypeScript fresh fixture에서 `--version`,
+  `analyze --plan --json`, `analyze --json --events events.jsonl --result result.json`,
+  `report --result result.json --out report.html`을 실행했다. 12/12 계약 검증 통과.
+  각 fixture는 의도한 finding 1개와 exit 1을 냈으며 전체 분석 PASS라는 의미가 아니다.
+- result v2/stdout/file 일치, event v1의 동일 run_id, 실행별 고유 run_id,
+  부분 범위 workspace NOT_EVALUATED, native check SUCCEEDED, Rust unused_variables,
+  JS no-undef, TS 2322, Ruff exclude, TS composite metadata 격리/noEmit을 확인했다.
+- idk 0.5.0 소비 계약 v2/v1과 INCOMPLETE 보존은 부모가 인수한 범위를 유지한다.
+  RHEL/GHES 현장·macOS/native Windows 동등 지원은 이번 공개 실행 근거에 포함하지 않는다.
+  viewer GUI는 Qt 개발환경용이며 공개 다운로드 checksum 확인을 현장 GUI 실행으로 표현하지 않는다.
+  자체 report의 기존 WARN 및 선택적 CI skip도 앞선 기록대로 남는다.
+
+## 소유 자원 정리와 문서 마감
+
+- PR #296 병합 및 release branch tree와 공개 source의 동일성을 확인한 뒤
+  release worktree, local/remote `chore/release-general-analysis`를 삭제하고 prune했다.
+- 이번 작업이 만든 root `build/`, 중간 0.12.1 wheel/sdist/package checksum,
+  새로 만든 `dist/ici`, `dist/ici.pyz` 및 두 편집 helper를 삭제했다.
+- 기존 `dist/`와 2026-10-24의 `dist/ici.pyz.sha256`은 사용자 기존 파일로 보존한다.
+  해당 디렉터리에 이번 candidate executable은 남기지 않는다.
+- 기존 `.venv`, Python/uv/npm 등 공유 cache, `verify_report.json`, 사용자 자료,
+  원격 `refactor/stable-shell-removal` 및 `gh-pages`는 보존한다.
+- 문서-only PR의 필수 CI/Pages 확인·병합 후 main을 동기화하고 문서 branch를 삭제한다.
+  공개 다운로드·fixture·격리 venv·로그를 포함한 작업 임시 디렉터리는 이 원장에 근거를
+  보존한 뒤 삭제한다. 복구용 agent-state는 그중 마지막에 제거한다.
+  공통 heavy lock은 부모가 마지막으로 정리하는 자원이므로 남겨둔다.
