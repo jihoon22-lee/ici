@@ -219,7 +219,8 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   실행·trace 검증 완료. native Ruff/ty 8개, system/private CA/proxy TLS 12개 fixture 통과.
 - 고정 source의 plan/doctor/publish와 cold/warm analyze/report를 실제 실행하고 JSON·시간·RSS를
   보존했다. known-bug 교정 기대값과 R8 수용 목표는 [결정표](rust-replacement/decisions.md)에 있다.
-- 순수 Rust domain의 공개 v1/v2 JSON roundtrip, Unicode fingerprint v3, event gap/unknown kind,
-  잘못된 증거 거부 fixture 5개 통과. 이는 R1 일부 기반이며 전체 domain/제품 parity 완료가 아니다.
+- 후속 구현 branch로 옮길 로컬 Rust domain prototype에서 공개 v1/v2 JSON roundtrip, Unicode fingerprint v3, event gap/unknown kind,
+  잘못된 증거 거부 fixture 5개 통과. 이 첫 R0 PR은 해당 제품 코드를 포함하지 않으며
+  R1 PR에서 코드와 함께 재검증한다. 전체 domain/제품 parity 완료가 아니다.
 - config/discovery, 공통 process/DAG/storage, native Python 분석은 공유 타입·파일 경계를 정해
   병렬 구현한다. R3+ 통합과 R8/R9 release closure는 남아 있다.
