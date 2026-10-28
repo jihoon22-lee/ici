@@ -16,6 +16,9 @@
 - Rust 내부 개발 workspace와 공통 domain 계약을 추가합니다. 공개 v1/v2 결과와 Unicode
   fingerprint 호환 fixture를 보존하며 새 제품 명령·전체 분석은 아직 인수 전입니다.
 
+- Rust 도구 선택 계층에서 프로젝트 도구 우선순위·명시 경로 실패·native pack checksum과
+  실행 파일 identity를 검증합니다. mypy/ty의 설정 충돌은 명시 선택으로 해결합니다.
+
 ## [0.13.0] - 2026-10-28
 
 일반 프로젝트의 정적 분석을 하나의 제품 checkpoint로 공개합니다. `analyze`·설정 없는 발견·

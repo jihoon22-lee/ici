@@ -239,3 +239,16 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   event gap/unknown/truncation 및 task completion/evidence 차이를 확인했다.
 - config/discovery, execution/DAG/storage, native Python 분석 crate는 별도 범위에서 구현 중.
   전체 workspace test/CLI E2E는 아직 수행 전이며 R1/R2/R4 전체 완료로 기록하지 않는다.
+
+### 재개 체크포인트 — 도구 선택 기반
+
+- 첫 R0 CI `40692022861`은 새 ADR-0008의 문서 분류 목록 누락 1건으로 실패했다
+  (4302 passed / 8 skipped). 목록/ADR index를 갱신한 `5ae4a9c`의 focused 57개 검사는 통과했고
+  수정 CI `40693618746`을 확인 중이다. 기존 문서 gate는 유지했다.
+- `ici-providers`의 실행 없는 resolver를 구현했다. 명시 경로 → 프로젝트 동일 도구 →
+  manifest/digest가 검증된 native pack → PATH 순서이며 깨진 명시 경로는 오류다.
+  native executable bytes를 streaming SHA-256으로 식별하며 plan에서 version probe를 실행하지 않는다.
+- mypy/ty native 설정을 존중하고 둘 다 선언된 경우 명시 선택을 요구한다.
+  `cargo test -p ici-providers --locked`의 선택·도구 교체·pack 변조·부재·타입 설정 5개와
+  해당 crate Clippy `-D warnings`, fmt가 통과했다. 진단 parser/실제 도구 실행을 포함한
+  R3 전체와 CLI 통합은 계속 미완료다.

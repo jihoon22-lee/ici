@@ -368,6 +368,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ici-providers"
+version = "0.14.0-dev.0"
+dependencies = [
+ "ici-domain",
+ "ici-execution",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror",
+ "toml_edit",
+]
+
+[[package]]
 name = "indexmap"
 version = "2.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
