@@ -1,0 +1,15 @@
+{
+  "tool": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+  "argv": [
+    "g++",
+    "@rsp/outer.rsp"
+  ],
+  "cwd": "<fixture>",
+  "response_files": {
+    "rsp/outer.rsp": "@inner.rsp\n",
+    "inner.rsp": "-E -P input.cpp\n"
+  },
+  "exit": 0,
+  "stdout": "int observed;\n",
+  "stderr": ""
+}
