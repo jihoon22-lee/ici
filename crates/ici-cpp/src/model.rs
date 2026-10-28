@@ -116,6 +116,7 @@ pub enum ReplayPurpose {
     IncludeTrace,
     AstJson,
     Boundaries,
+    UnusedFunctions,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

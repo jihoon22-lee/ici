@@ -1,0 +1,12 @@
+{
+  "schema_id": "ici.rust.cpp-corrections",
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "corrections": [
+    {
+      "case": "unicode",
+      "previous": "ASCII-only fallback name scanner omitted source-spelled C++ functions with Unicode identifiers",
+      "expected": {"name": "café", "complexity": 2, "cognitive": 1},
+      "evidence": "Pinned concrete C++ grammar recognizes identifier café; source locations count Unicode characters"
+    }
+  ]
+}

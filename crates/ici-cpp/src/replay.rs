@@ -151,7 +151,7 @@ pub fn replay_command(
             i += 2;
             continue;
         }
-        if dropped(token) {
+        if dropped(token) || (purpose == ReplayPurpose::UnusedFunctions && token == "-w") {
             i += 1;
             continue;
         }
@@ -180,14 +180,7 @@ pub fn replay_command(
                     format!("unknown compiler option {token}; no unsafe guess"),
                 ));
             }
-            let value = if matches!(
-                purpose,
-                ReplayPurpose::Diagnostics | ReplayPurpose::Boundaries
-            ) {
-                diagnostic_warning_argument(token)?
-            } else {
-                Some(token.clone())
-            };
+            let value = diagnostic_warning_argument(token)?;
             if let Some(value) = value {
                 argv.push(value);
             }
@@ -211,12 +204,30 @@ pub fn replay_command(
         ));
     }
     match purpose {
-        ReplayPurpose::Diagnostics | ReplayPurpose::Boundaries => {
-            argv.extend(["-fsyntax-only".into(), "-fdiagnostics-color=never".into()])
+        ReplayPurpose::Diagnostics | ReplayPurpose::Boundaries => argv.extend([
+            "-Wall".into(),
+            "-Wextra".into(),
+            "-fsyntax-only".into(),
+            "-fdiagnostics-color=never".into(),
+        ]),
+        ReplayPurpose::UnusedFunctions => {
+            argv.extend([
+                "-Wunused-function".into(),
+                "-Wno-error=unused-function".into(),
+                "-fdiagnostics-show-option".into(),
+                "-fdiagnostics-color=never".into(),
+                "-S".into(),
+                "-o".into(),
+                "/dev/null".into(),
+            ]);
         }
-        ReplayPurpose::IncludeTrace => {
-            argv.extend(["-E".into(), "-H".into(), "-o".into(), "/dev/null".into()])
-        }
+        ReplayPurpose::IncludeTrace => argv.extend([
+            "-w".into(),
+            "-E".into(),
+            "-H".into(),
+            "-o".into(),
+            "/dev/null".into(),
+        ]),
         ReplayPurpose::AstJson => argv.extend([
             "-fsyntax-only".into(),
             "-Xclang".into(),
