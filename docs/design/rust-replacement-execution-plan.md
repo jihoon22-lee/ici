@@ -386,3 +386,9 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   acceptance(실패·coverage·수정 후 baseline, 22.69초), transitive strict Clippy와 scoped fmt가
   모두 통과했다. `root-proof/gates.log`의 library 경로도 해당 source를 가리킨다.
   이 근거는 후속 변경이나 전체 R8 exact-main 인수를 대신하지 않는다.
+
+- `1a5bcb3`의 pure stored reader를 workspace에 등록했다. published next v1/v2·legacy v3
+  fixture와 unknown/duplicate/depth/byte bound, 안전한 script JSON 3개 시험 및 strict
+  Clippy/scoped fmt/locked offline metadata가 통과했다. HTML/legacy projection/import/publish는 후속이다.
+- ZIP codec은 실제 wheel 비교를 위한 준비이며 CRC32 직접 의존성을 고정했다. 기존 Python
+  compatibility 표면에서 사용하지 않는 PEP 508을 제거해 해당 transitive dependency를 줄였다.

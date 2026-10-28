@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+- native 저장 reader는 기존 run v1/v2와 legacy v3를 구분하고 알 수 없는 schema·중복 JSON
+  key·과도한 입력을 거부합니다. legacy 확장 데이터는 읽는 과정에서 버리지 않습니다.
+- wheel 검증에 필요한 ZIP codec·CRC 의존성을 고정하고 쓰지 않는 PEP 508 의존성을 제거합니다.
+  이 준비는 모든 압축 형식의 제품 지원 인수나 전체 report 전환 완료를 의미하지 않습니다.
+
 - native `analyze`/`next verify` 실행을 immutable 입력·실제 도구·필수 검사 판정·원자 결과
   저장에 연결합니다. 실행 중 취소는 부분 증거와 130을 남기고, 입력 변경은 완료 판정을
   취소하며 소스·설정·baseline/이전 형식 결과의 덮어쓰기를 거부합니다.
