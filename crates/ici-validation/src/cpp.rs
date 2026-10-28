@@ -40,6 +40,7 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             test.kind = TaskKind::Test;
             plan.tasks.push(test);
         }
+        ValidationKind::CppExecutable => crate::standalone::plan(plan)?,
         ValidationKind::Sanitizer | ValidationKind::ThreadSanitizer => {
             if request.options.sanitizer_suite_kind.is_some() {
                 return crate::sanitizer_suite::plan(plan);
@@ -134,10 +135,11 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 })?;
             if !matches!(
                 request.options.shared_test_kind,
-                Some(ValidationKind::Ctest | ValidationKind::Qtest)
+                Some(ValidationKind::Ctest | ValidationKind::Qtest | ValidationKind::CppExecutable)
             ) {
                 return Err(ValidationError(
-                    "gcov shared suite must declare CTest or QTest kind".into(),
+                    "gcov shared suite must declare CTest, QTest or plain C++ executable kind"
+                        .into(),
                 ));
             }
             if request
@@ -276,6 +278,9 @@ pub(crate) fn test_evidence(
     match suite_plan.kind {
         ValidationKind::Ctest => observe_ctest(&suite_plan, &outcomes, &mut output),
         ValidationKind::Qtest => observe_qtest(&suite_plan, &outcomes, &mut output),
+        ValidationKind::CppExecutable => {
+            crate::standalone::observe(&suite_plan, &outcomes, &mut output)
+        }
         _ => Err(ValidationError("unsupported C++ test evidence kind".into())),
     }?;
     Ok(output)
@@ -525,6 +530,9 @@ pub(crate) fn observe_qtest(
     Ok(())
 }
 pub(crate) fn source(plan: &ValidationPlan, name: &str) -> String {
+    if let Some(source) = &plan.context.options.executable_test_source {
+        return source.clone();
+    }
     let stem = name
         .split("::")
         .next()

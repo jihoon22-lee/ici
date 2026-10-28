@@ -17,6 +17,7 @@ pub mod python_unittest;
 pub mod runtime;
 pub mod sanitizer;
 mod sanitizer_suite;
+mod standalone;
 pub mod tem;
 mod test_metrics;
 

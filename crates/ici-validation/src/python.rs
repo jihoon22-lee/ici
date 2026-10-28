@@ -128,6 +128,9 @@ pub fn observe_for(
             ValidationKind::PythonImports => observe_imports(plan, outcomes, &mut output),
             ValidationKind::Ctest => crate::cpp::observe_ctest(plan, outcomes, &mut output),
             ValidationKind::Qtest => crate::cpp::observe_qtest(plan, outcomes, &mut output),
+            ValidationKind::CppExecutable => {
+                crate::standalone::observe(plan, outcomes, &mut output)
+            }
             ValidationKind::BinaryCompatibility => {
                 crate::cpp::observe_elf(plan, outcomes, &mut output)
             }

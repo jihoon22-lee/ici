@@ -265,6 +265,7 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
         }
         ValidationKind::Ctest
         | ValidationKind::Qtest
+        | ValidationKind::CppExecutable
         | ValidationKind::Sanitizer
         | ValidationKind::ThreadSanitizer
         | ValidationKind::Gcov

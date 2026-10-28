@@ -11,7 +11,10 @@ pub(crate) fn attach(
     output: &mut AnalysisOutput,
 ) {
     let phase = match plan.kind {
-        ValidationKind::PythonTest | ValidationKind::Ctest | ValidationKind::Qtest => "test",
+        ValidationKind::PythonTest
+        | ValidationKind::Ctest
+        | ValidationKind::Qtest
+        | ValidationKind::CppExecutable => "test",
         ValidationKind::PythonCoverage | ValidationKind::Gcov => "coverage",
         _ => return,
     };
@@ -31,6 +34,7 @@ pub(crate) fn attach(
         }
         ValidationKind::Ctest => "ctest",
         ValidationKind::Qtest => "qtest",
+        ValidationKind::CppExecutable => "cpp-executable",
         ValidationKind::Gcov => plan
             .context
             .options
@@ -189,6 +193,7 @@ fn suites(evidence: &AnalysisOutput) -> Value {
             .strip_prefix("unittest:")
             .or_else(|| node.strip_prefix("ctest:"))
             .or_else(|| node.strip_prefix("qtest:"))
+            .or_else(|| node.strip_prefix("cpp-executable:"))
             .unwrap_or(node);
         let target = targets.get(name).copied();
         let path = target.map_or("tests", |target| target.file_path.as_str());

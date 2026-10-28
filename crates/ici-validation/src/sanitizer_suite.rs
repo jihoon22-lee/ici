@@ -14,10 +14,16 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         .options
         .sanitizer_suite_kind
         .expect("selected suite kind");
-    if !matches!(kind, ValidationKind::Ctest | ValidationKind::Qtest) {
+    if !matches!(
+        kind,
+        ValidationKind::Ctest | ValidationKind::Qtest | ValidationKind::CppExecutable
+    ) {
         return Err(ValidationError(
-            "sanitizer suite kind must be CTest or QTest".into(),
+            "sanitizer suite kind must be CTest, QTest or plain C++ executable".into(),
         ));
+    }
+    if kind == ValidationKind::CppExecutable {
+        crate::standalone::source(plan)?;
     }
     if request.options.instrumented_artifacts.is_empty()
         || request.options.instrumented_artifacts.len() > 64
@@ -85,7 +91,7 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 != request.tool.path
         {
             return Err(ValidationError(
-                "QTest sanitizer must directly select its one declared instrumented executable"
+                "direct sanitizer suite must select its one declared instrumented executable"
                     .into(),
             ));
         }
@@ -94,7 +100,7 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         } else {
             if Path::new(&request.options.argv[0]) != request.tool.path {
                 return Err(ValidationError(
-                    "QTest sanitizer argv must match selected executable identity".into(),
+                    "direct sanitizer suite argv must match selected executable identity".into(),
                 ));
             }
             request.options.argv[1..].to_vec()
@@ -304,7 +310,7 @@ pub(crate) fn proof(
             })?,
         )?
     } else {
-        json!({"kind":"qtest","executable":plan.context.options.instrumented_artifacts[0]})
+        json!({"kind":plan.context.options.sanitizer_suite_kind,"executable":plan.context.options.instrumented_artifacts[0]})
     };
     let mut artifacts = vec![];
     for (index, path) in plan
@@ -348,6 +354,9 @@ pub(crate) fn observe_framework(
     let result = match kind {
         ValidationKind::Ctest => crate::cpp::observe_ctest(&suite, &outcomes, &mut measured),
         ValidationKind::Qtest => crate::cpp::observe_qtest(&suite, &outcomes, &mut measured),
+        ValidationKind::CppExecutable => {
+            crate::standalone::observe(&suite, &outcomes, &mut measured)
+        }
         _ => Err(ValidationError("unsupported sanitizer framework".into())),
     };
     output.extra["sanitizer_test_evidence"] = json!({"kind":kind,"complete":result.is_ok(),"targets":measured.targets,"findings":measured.observation.findings,"summary":measured.summary,"test_outcomes":measured.extra.get("test_outcomes")});
