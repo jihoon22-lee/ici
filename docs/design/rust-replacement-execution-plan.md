@@ -338,7 +338,7 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 - logical check의 ordered native steps는 빈 목록/다른 owner/중복/자기·forward 의존성을
   거부하고, check 사이 capability/step edge와 output 충돌을 함께 검사한다. 준비 단계가
   포함된 fast 검사도 계속 차단한다. scheduler 시작 hook은 실제 resource lease 뒤에 호출한다.
-- `driver-gates.log`의 application 32개 / execution 30개 시험이 통과했다. 해당 library의
+- `driver-gates.log`의 application 34개 / execution 30개 시험이 통과했다. 해당 library의
   scoped Clippy와 fmt도 통과했다. CLI 실제 lifecycle은 통합 중이며 별도 인수한다.
 - R3 `9ea68a8`은 actual native diagnostic 좌표/구성/inspected scope를 다룬다.
   R4는 cycle/dead/annotation/static compatibility/Type2 lexical milestone을 진행했고,
@@ -346,3 +346,10 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   R6 `9fd538f`는 명시 프로젝트 Python의 suite/shared coverage/runtime/import-only와
   새 소유 directory artifact를 다룬다. 각 tests/rust-parity 하위 README의 실측 범위를
   전체 기능 closure와 혼동하지 않는다. semantic/package 분석과 나머지 R6·R7–R9는 열린다.
+
+- R0 main CI `40703311431`도 `8c5db5b`에서 success로 완료됐다. 기존 gate·Qt·main
+  publication을 유지했으며 아직 native replacement release를 만들지 않았다.
+- 실제 CLI의 프로젝트 Python 실행에서 symlink canonicalization이 가상환경을 벗어나
+  coverage를 잃는 결함을 발견했다. config executable은 선언 파일 기준 lexical invocation
+  경로를 보존하고, tool resolver가 실제 bytes identity를 따로 검증하도록 교정했다.
+  config 29개 시험과 nested symlink 회귀 fixture로 확인한다.

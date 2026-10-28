@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+- 프로젝트 interpreter/tool의 symlink 경로를 실제 실행 전 보존합니다. 가상환경 Python을
+  canonical system Python으로 바꾸어 pytest·coverage를 찾지 못하던 native 설정 결함을 고칩니다.
+  실행 bytes의 digest 검증과 설정 파일 기준 상대경로 의미는 계속 유지합니다.
+
 - native application의 policy·check scope·실제 argv/environment identity를 분리하고, source
   내용이 바뀌어 수정된 finding도 동일 검사 범위에서 resolved로 판단할 수 있게 합니다.
   suppression glob은 CPython fnmatchcase 고정 corpus로 검증하며 선언 순서와 provenance를 보존합니다.

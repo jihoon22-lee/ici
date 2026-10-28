@@ -150,7 +150,15 @@ pub(crate) fn executable(
         }
         return Ok(substituted);
     }
-    anchor(&substituted, base, root, environment, origin, true)
+    // Invocation spelling selects virtual environments and multicall dispatch. Resolve content
+    // identity at the tool boundary; canonicalizing argv[0] here can silently select system Python.
+    let path = Path::new(&substituted);
+    let candidate = normalise(&if path.is_absolute() {
+        path.to_owned()
+    } else {
+        base.join(path)
+    });
+    portable(candidate.strip_prefix(root).unwrap_or(&candidate), origin)
 }
 
 pub(crate) fn check_glob(raw: &str, origin: &Origin) -> Result<(), ConfigError> {

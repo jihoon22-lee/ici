@@ -694,3 +694,18 @@ fn type_provider_search_is_shared_case_sensitive_and_workspace_bounded() {
     );
     assert!(discover_type_provider(separate.root(), tree.root(), None).is_err());
 }
+
+#[test]
+fn explicit_interpreter_preserves_virtual_environment_and_multicall_invocation_spelling() {
+    let root = tempfile::tempdir().unwrap();
+    let runtime = root.path().join("pkg/.venv/bin");
+    fs::create_dir_all(&runtime).unwrap();
+    std::os::unix::fs::symlink("/bin/true", runtime.join("python")).unwrap();
+    fs::write(root.path().join("pkg/main.py"), "x=1\n").unwrap();
+    fs::write(root.path().join("ici.toml"),"schema_version=2\n[[components]]\nid='pkg'\nroot='pkg'\nlanguages=['python']\n[components.python]\nexecutable='pkg/.venv/bin/python'\n").unwrap();
+    let project = resolve_with_environment(root.path(), None, None, &BTreeMap::new()).unwrap();
+    assert_eq!(
+        project.components[0].python_executable.as_deref(),
+        Some("pkg/.venv/bin/python")
+    );
+}
