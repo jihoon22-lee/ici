@@ -16,6 +16,8 @@ pub struct FunctionFact {
     pub qualified_name: String,
     pub class_names: Vec<String>,
     pub start_line: u32,
+    /// Code-object entry location includes decorators, independently of def.
+    pub entry_line: u32,
     pub end_line: u32,
     /// Historical coverage policy: every integer line from the first body
     /// statement's start through the function's end, including blank lines.
@@ -70,6 +72,15 @@ impl<'a> Visitor<'a> for Collector<'a> {
                     qualified_name: self.qualifier.join("."),
                     class_names: self.classes.clone(),
                     start_line: span.start_line,
+                    entry_line: function.decorator_list.first().map_or(
+                        span.start_line,
+                        |decorator| {
+                            self.file
+                                .source
+                                .location(decorator.range().start().to_usize())
+                                .0
+                        },
+                    ),
                     end_line: span.end_line.unwrap_or(span.start_line),
                     body_start_line,
                     body_end_line: span.end_line.unwrap_or(span.start_line),

@@ -40,7 +40,7 @@ flock /tmp/paseo-products-20261028-heavy.lock env CARGO_BUILD_JOBS=2 \
 
 Security and resource rules now have a native implementation and 42 frozen-source
 fixtures, with explicit corrected expectations separate from the original oracle.
-Dead/duplicate/packaging compatibility rule units remain unfinished. This partial evidence does not satisfy the Rust cutover gate; R8 must close every
+Packaging/wheel compatibility remains unfinished. This partial evidence does not satisfy the Rust cutover gate; R8 must close every
 functionality row first.
 
 
@@ -188,3 +188,30 @@ Scope identifiers are internal; equality of scope/segment membership is the
 matching contract. The 500,000-token bound and inherited source/record/comparison
 bounds remain explicit. `min_window` is accepted alongside the shared core's
 `window_size` option. AST semantic shapes remain the next separate unit.
+
+## Bounded semantic clone shapes
+
+`semantic.json` records 50 fixed-source shape cases and all canonical field
+strings, hashes, region names/spans, node counts, serialized lengths and
+exclusions. `semantic-integration.json` records ten full stable-engine group
+merges and policy projections. The native implementation projects the pinned
+parser into CPython field order and preserves alpha binding order, constants,
+API names, annotations/default/decorator scopes, context nodes, nested-scope
+pruning, type comments, Unicode and lone UTF-16 surrogate literals. Rust scalar
+replacement characters never silently replace the latter in fingerprints.
+The source's Python 3.10 semantic grammar and conservative exclusions remain.
+Function-local star imports now fail the common semantic syntax gate rather
+than reaching an AST helper which accepted an un-compilable tree; that is an
+explicit fixture correction.
+
+Semantic groups include only leaf callables, retain canonical-shape collision
+checks, suppress already represented lexical occurrence sets, and merge their
+counted code positions before calculating the rate. `auto`, `off` and `required`
+retain their original behavior and exclusion metadata. File/region/node/string
+budgets remain 256/20,000/500,000/16 MiB. Required incomplete shapes cannot yield
+partial clone success. All 29 native tests and scoped Clippy/fmt passed; the
+`semantic_oracle.py` script verifies original evidence without rewriting it.
+
+`FunctionFact.entry_line` separately retains the first decorator line for
+coverage code-object exits. `requires_python(request)` exposes the same strict
+immutable metadata parser directly to runtime compatibility consumers.

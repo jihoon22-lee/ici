@@ -14,10 +14,12 @@ mod metadata;
 mod metrics;
 mod modules;
 mod parser;
+mod python_ast;
 mod python_duplicates;
 mod resource;
 mod scope;
 mod security;
+mod semantic;
 mod source;
 
 use ici_domain::{AnalysisOutput, AnalysisRequest, InspectionTarget, TaskState};
@@ -316,6 +318,15 @@ pub fn source_facts(request: &AnalysisRequest) -> Result<SourceFacts, Box<Analys
 }
 pub fn function_facts(request: &AnalysisRequest) -> Result<Vec<FunctionFact>, Box<AnalysisOutput>> {
     AnalysisSession::new().function_facts(request)
+}
+pub fn requires_python(request: &AnalysisRequest) -> Result<Option<String>, Box<AnalysisOutput>> {
+    metadata::load(request)
+        .map(|metadata| metadata.map(|metadata| metadata.requires_python))
+        .map_err(|error| {
+            let mut output = AnalysisOutput::new(&request.task_id, "ici.compat");
+            failure(&mut output, "pyproject.toml", &error);
+            Box::new(output)
+        })
 }
 fn failure(output: &mut AnalysisOutput, path: &str, error: &SourceError) {
     output.observation.state = TaskState::Failed;

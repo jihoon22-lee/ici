@@ -368,6 +368,7 @@ fn native_function_facts_preserve_coverage_body_ranges_and_pytest_scopes() {
     let method = &facts.functions[0];
     assert_eq!(method.name, "test_이름");
     assert_eq!(method.qualified_name, "Suite.test_이름");
+    assert_eq!(method.entry_line, 3);
     assert_eq!(method.class_names, ["Suite"]);
     assert_eq!(
         (
@@ -395,6 +396,98 @@ fn native_function_facts_preserve_coverage_body_ranges_and_pytest_scopes() {
     let mut invalid = input;
     invalid.inputs[0].bytes = vec![0xff];
     assert!(function_facts(&invalid).is_err());
+}
+
+#[test]
+fn semantic_shapes_match_fixed_cpython_fields_literals_and_exclusions() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/semantic.json"
+    ))
+    .unwrap();
+    let mut differences = vec![];
+    for case in fixture["cases"].as_array().unwrap() {
+        let mut files = vec![];
+        let mut failed = false;
+        for (path, text) in case["sources"].as_object().unwrap() {
+            let input = SourceInput {
+                path: path.clone(),
+                bytes: text.as_str().unwrap().as_bytes().to_vec(),
+            };
+            match SourceDocument::decode(&input)
+                .and_then(|source| ParsedFile::parse(source, "3.14"))
+            {
+                Ok(file) => files.push(std::sync::Arc::new(file)),
+                Err(error) => {
+                    failed = true;
+                    if case["native_source_error"] != true {
+                        differences.push(format!("{}: source failed {error:?}", case["id"]));
+                    }
+                }
+            }
+        }
+        if failed {
+            continue;
+        }
+        assert_ne!(case["native_source_error"], true, "{}", case["id"]);
+        let mut limits = semantic::Limits::default();
+        for (name, value) in case["limits"].as_object().unwrap() {
+            let value = value.as_u64().unwrap() as usize;
+            match name.as_str() {
+                "max_files" => limits.files = value,
+                "max_regions" => limits.regions = value,
+                "max_nodes" => limits.nodes = value,
+                "max_serialized_chars" => limits.chars = value,
+                _ => unreachable!(),
+            }
+        }
+        let actual = serde_json::to_value(semantic::analyze(&files, limits, None)).unwrap();
+        let expected = case.get("expected").unwrap_or(&case["original"]);
+        if actual != *expected {
+            differences.push(format!(
+                "{}\nACTUAL={actual}\nEXPECTED={expected}",
+                case["id"]
+            ));
+        }
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+}
+
+#[test]
+fn semantic_clone_pipeline_preserves_old_group_merging_and_policy() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/semantic-integration.json"
+    ))
+    .unwrap();
+    let mut differences = vec![];
+    for case in fixture["cases"].as_array().unwrap() {
+        let mut input = request("dup", "");
+        input.options = case["options"].clone();
+        input.inputs = case["sources"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(path, text)| SourceInput {
+                path: path.clone(),
+                bytes: text.as_str().unwrap().as_bytes().to_vec(),
+            })
+            .collect();
+        let output = analyze(&input);
+        if json!(output.status) != case["status"] {
+            differences.push(format!(
+                "{}: status{} vs{}",
+                case["id"], output.status, case["status"]
+            ));
+        }
+        for (key, expected) in case["extra"].as_object().unwrap() {
+            if output.extra[key] != *expected {
+                differences.push(format!(
+                    "{}:{key}\nACTUAL={}\nEXPECTED={expected}",
+                    case["id"], output.extra[key]
+                ));
+            }
+        }
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
 }
 #[test]
 fn metrics_match_fixed_python_formulas() {

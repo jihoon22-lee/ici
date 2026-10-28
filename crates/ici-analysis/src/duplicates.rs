@@ -21,10 +21,17 @@ pub struct DuplicateFileData {
     /// One (lexical scope, import/directive segment) key per indexed record.
     pub regions: Vec<(u32, u32)>,
 }
+impl DuplicateFileData {
+    pub(crate) fn records(&self, start: u32, end: u32) -> &[(u32, String)] {
+        let first = self.indexed.partition_point(|(line, _)| *line < start);
+        let last = self.indexed.partition_point(|(line, _)| *line <= end);
+        &self.indexed[first..last]
+    }
+}
 type Location = (usize, u32, u32);
 type Match = (Location, Location, usize);
 type Windows = BTreeMap<(String, u128), Vec<(usize, usize)>>;
-fn raw_lines(text: &str) -> Vec<&str> {
+pub(crate) fn raw_lines(text: &str) -> Vec<&str> {
     let bytes = text.as_bytes();
     let mut start = 0;
     let mut cursor = 0;
@@ -533,6 +540,7 @@ pub(crate) fn analyze_inner(
     });
     let mut duplicated = BTreeSet::new();
     let mut serialized_groups = vec![];
+    let mut snippets = BTreeMap::new();
     for (index, group) in groups.iter().enumerate() {
         if cancelled(&mut output, cancellation) {
             return output;
@@ -550,9 +558,8 @@ pub(crate) fn analyze_inner(
             .expect("nonempty clone component");
         let file = ordered[representative.0];
         let normalized = file
-            .indexed
+            .records(representative.1, representative.2)
             .iter()
-            .filter(|(line, _)| representative.1 <= *line && *line <= representative.2)
             .map(|(_, tokens)| tokens.as_str())
             .collect::<Vec<_>>()
             .join("\n");
@@ -562,7 +569,9 @@ pub(crate) fn analyze_inner(
                 format!("{FINGERPRINT_ALGORITHM}\0{}\0{normalized}", file.language).as_bytes()
             )
         );
-        let raw_lines = raw_lines(&file.raw_text);
+        let raw_lines = snippets
+            .entry(representative.0)
+            .or_insert_with(|| raw_lines(&file.raw_text));
         let snippet = raw_lines
             .get(representative.1.saturating_sub(1) as usize..representative.2 as usize)
             .unwrap_or(&[])
@@ -575,9 +584,8 @@ pub(crate) fn analyze_inner(
             let file = ordered[location.0];
             if position > 0 {
                 duplicated.extend(
-                    file.indexed
+                    file.records(location.1, location.2)
                         .iter()
-                        .filter(|(line, _)| location.1 <= *line && *line <= location.2)
                         .map(|(line, _)| (location.0, *line)),
                 );
             }
@@ -638,7 +646,7 @@ pub(crate) fn analyze_inner(
     let percent = if total == 0 {
         0.0
     } else {
-        duplicated as f64 * 100.0 / total as f64
+        duplicated as f64 / total as f64 * 100.0
     };
     let warn = request
         .options

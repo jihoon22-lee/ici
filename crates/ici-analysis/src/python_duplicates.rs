@@ -417,7 +417,79 @@ pub(crate) fn analyze(
     }
     let previous = std::mem::take(&mut output.targets);
     let limitations = std::mem::take(&mut output.observation.limitations);
+    let policy = request
+        .options
+        .get("python_semantic")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("auto");
+    if !matches!(policy, "auto" | "off" | "required") {
+        failure(
+            output,
+            ".",
+            &SourceError::new(
+                "invalid-semantic-policy",
+                "python_semantic must be auto, off or required",
+            ),
+        );
+        return;
+    }
+    let semantic = if policy == "off" {
+        None
+    } else {
+        Some(crate::semantic::analyze(
+            files,
+            crate::semantic::Limits::default(),
+            cancellation,
+        ))
+    };
+    if cancelled(output, cancellation) {
+        return;
+    }
+    if policy == "required"
+        && semantic
+            .as_ref()
+            .is_some_and(|outcome| !outcome.exclusions.is_empty())
+    {
+        output.observation.state = TaskState::Failed;
+        output.status = "ERROR".into();
+        for exclusion in &semantic.as_ref().unwrap().exclusions {
+            let mut target = ici_domain::InspectionTarget::at(
+                if exclusion.file_path == "<sources>" {
+                    "."
+                } else {
+                    &exclusion.file_path
+                },
+                exclusion.start_line.unwrap_or(1),
+            );
+            target.end_line = exclusion.end_line;
+            target.target_name = "PythonSemanticShapeError".into();
+            target.status = "ERROR".into();
+            target.message = format!("{}: {}", exclusion.reason, exclusion.message);
+            output.targets.push(target);
+        }
+        crate::semantic::record_metadata(
+            request,
+            semantic.as_ref(),
+            crate::semantic::Stats::default(),
+            &mut output.extra,
+        );
+        output.summary = "Required Python AST-shape duplicate analysis was incomplete".into();
+        return;
+    }
     *output = duplicates::analyze_inner(request, &normalized, cancellation);
+    if output.observation.state == TaskState::Succeeded
+        && let Some(semantic) = semantic
+    {
+        crate::semantic::merge(request, &normalized, &semantic, output);
+    }
+    if policy == "off" {
+        crate::semantic::record_metadata(
+            request,
+            None,
+            crate::semantic::Stats::default(),
+            &mut output.extra,
+        );
+    }
     output.targets.extend(previous);
     output.observation.limitations.extend(limitations);
 }
