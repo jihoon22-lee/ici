@@ -43,5 +43,287 @@
       "modifications": "The immutable published source package is retained byte-for-byte. The upstream MPL-2.0 LICENSE from the exact source revision is supplied alongside it.",
       "license_text": "sources/LICENSE-version-ranges-MPL-2.0.txt"
     }
-  ]
+  ],
+  "tool_standard_library_notices": [
+    {
+      "tool": "ruff",
+      "rust_version": "1.97.1",
+      "toolchain_evidence": "Observed ELF .comment matches the pinned source toolchain and official Rust release; no tool binary rebuild is claimed.",
+      "compiler_component_url": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz",
+      "compiler_component_sha256": "9819d0a32d56bd339585319c80260e332779f5541fd66838ab7e016d6c814819",
+      "std_component_url": "https://static.rust-lang.org/dist/2026-07-16/rust-std-1.97.1-x86_64-unknown-linux-musl.tar.xz",
+      "std_component_sha256": "51d83178680556f73a5fa8ad865b76a1ff541867445c00fc65dc67246bc2de66",
+      "channel_manifest_url": "https://static.rust-lang.org/dist/channel-rust-1.97.1.toml",
+      "retained_files": [
+        {
+          "path": "third-party/rust-1.97.1/Apache-2.0.txt",
+          "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff",
+          "size": 10280
+        },
+        {
+          "path": "third-party/rust-1.97.1/BSD-2-Clause.txt",
+          "sha256": "f32fb3b417a194167cfad068223fc975ba96c5960513a10f66a3c28720aec1df",
+          "size": 1267
+        },
+        {
+          "path": "third-party/rust-1.97.1/CC-BY-SA-4.0.txt",
+          "sha256": "23ee78c8bae49cf08ea2f0c84945c66b987ebe4520881fb51b3dad4fb43d07c2",
+          "size": 20137
+        },
+        {
+          "path": "third-party/rust-1.97.1/COPYRIGHT-library.txt",
+          "sha256": "0a65bb747c49c7bb816cbc7188319bd6e4e8d08091c1190b8a3c0971c47968ed",
+          "size": 279302
+        },
+        {
+          "path": "third-party/rust-1.97.1/GCC-exception-3.1.txt",
+          "sha256": "a3966c9410ef94a1efbfa9ec04e9c1994026a70623fbf0885ce36737bfba3b54",
+          "size": 3320
+        },
+        {
+          "path": "third-party/rust-1.97.1/GPL-2.0-only.txt",
+          "sha256": "54b212ba1f97f6948fa5486239ab505dd820b02e50cbfd296b4062c8609a70af",
+          "size": 17642
+        },
+        {
+          "path": "third-party/rust-1.97.1/GPL-3.0-or-later.txt",
+          "sha256": "05315fce6c35f79b8a35454828995fa26336f235895ac64557abc028f4ffcea2",
+          "size": 34795
+        },
+        {
+          "path": "third-party/rust-1.97.1/ISC.txt",
+          "sha256": "0ff61769b238634e042ab759dddfd104a8e69d091e3600ae3410e401a6164381",
+          "size": 730
+        },
+        {
+          "path": "third-party/rust-1.97.1/LLVM-exception.txt",
+          "sha256": "e34c58338bd89d43e709e226610d8f32b3e3c47f4ad9a99a8dc1d4ac7842488e",
+          "size": 919
+        },
+        {
+          "path": "third-party/rust-1.97.1/MIT.txt",
+          "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0",
+          "size": 1078
+        },
+        {
+          "path": "third-party/rust-1.97.1/NCSA.txt",
+          "sha256": "39cb0234065c92b9e6cee3830cbb52b1aa289aa8fe9ba2e66730fec5cf05c630",
+          "size": 1676
+        },
+        {
+          "path": "third-party/rust-1.97.1/OFL-1.1.txt",
+          "sha256": "8eea8287e5876b539670cadb82e99f9a7afddec6f6730811be1daf25d2e9bcfd",
+          "size": 4016
+        },
+        {
+          "path": "third-party/rust-1.97.1/Unicode-3.0.txt",
+          "sha256": "f5062c9a188d81dfe66b56db4182dcf9e4b17c0d9b0d311a8e20b3a1b075c443",
+          "size": 1995
+        }
+      ],
+      "observed_binary_comment": "rustc version 1.97.1 (8bab26f4f 2026-07-14)"
+    },
+    {
+      "tool": "ty",
+      "rust_version": "1.99.0",
+      "toolchain_evidence": "Observed ELF .comment matches the pinned source toolchain and official Rust release; no tool binary rebuild is claimed.",
+      "compiler_component_url": "https://static.rust-lang.org/dist/2026-10-01/rustc-1.99.0-x86_64-unknown-linux-gnu.tar.xz",
+      "compiler_component_sha256": "77171ba2a0345fdf2abc4fedda55d6de078dae7a68527c28be8c77dcc9604bd5",
+      "std_component_url": "https://static.rust-lang.org/dist/2026-10-01/rust-std-1.99.0-x86_64-unknown-linux-musl.tar.xz",
+      "std_component_sha256": "b106b0aa4565cc3525fd3161c69203a9e39044e6e6b4d618f261c3eeda14ad50",
+      "channel_manifest_url": "https://static.rust-lang.org/dist/channel-rust-1.99.0.toml",
+      "retained_files": [
+        {
+          "path": "third-party/rust-1.99.0/Apache-2.0.txt",
+          "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff",
+          "size": 10280
+        },
+        {
+          "path": "third-party/rust-1.99.0/BSD-2-Clause.txt",
+          "sha256": "f32fb3b417a194167cfad068223fc975ba96c5960513a10f66a3c28720aec1df",
+          "size": 1267
+        },
+        {
+          "path": "third-party/rust-1.99.0/CC-BY-SA-4.0.txt",
+          "sha256": "23ee78c8bae49cf08ea2f0c84945c66b987ebe4520881fb51b3dad4fb43d07c2",
+          "size": 20137
+        },
+        {
+          "path": "third-party/rust-1.99.0/COPYRIGHT-library.txt",
+          "sha256": "5647be074c8edf7339fd863055923a8fc80bc5610a8d4661ec3b767b9d392c27",
+          "size": 1499465
+        },
+        {
+          "path": "third-party/rust-1.99.0/GCC-exception-3.1.txt",
+          "sha256": "a3966c9410ef94a1efbfa9ec04e9c1994026a70623fbf0885ce36737bfba3b54",
+          "size": 3320
+        },
+        {
+          "path": "third-party/rust-1.99.0/GPL-2.0-only.txt",
+          "sha256": "54b212ba1f97f6948fa5486239ab505dd820b02e50cbfd296b4062c8609a70af",
+          "size": 17642
+        },
+        {
+          "path": "third-party/rust-1.99.0/GPL-3.0-or-later.txt",
+          "sha256": "05315fce6c35f79b8a35454828995fa26336f235895ac64557abc028f4ffcea2",
+          "size": 34795
+        },
+        {
+          "path": "third-party/rust-1.99.0/ISC.txt",
+          "sha256": "0ff61769b238634e042ab759dddfd104a8e69d091e3600ae3410e401a6164381",
+          "size": 730
+        },
+        {
+          "path": "third-party/rust-1.99.0/LLVM-exception.txt",
+          "sha256": "e34c58338bd89d43e709e226610d8f32b3e3c47f4ad9a99a8dc1d4ac7842488e",
+          "size": 919
+        },
+        {
+          "path": "third-party/rust-1.99.0/MIT.txt",
+          "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0",
+          "size": 1078
+        },
+        {
+          "path": "third-party/rust-1.99.0/NCSA.txt",
+          "sha256": "39cb0234065c92b9e6cee3830cbb52b1aa289aa8fe9ba2e66730fec5cf05c630",
+          "size": 1676
+        },
+        {
+          "path": "third-party/rust-1.99.0/OFL-1.1.txt",
+          "sha256": "8eea8287e5876b539670cadb82e99f9a7afddec6f6730811be1daf25d2e9bcfd",
+          "size": 4016
+        },
+        {
+          "path": "third-party/rust-1.99.0/Unicode-3.0.txt",
+          "sha256": "f5062c9a188d81dfe66b56db4182dcf9e4b17c0d9b0d311a8e20b3a1b075c443",
+          "size": 1995
+        }
+      ],
+      "observed_binary_comment": "rustc version 1.99.0 (b940084d7 2026-09-28)"
+    }
+  ],
+  "musl_notice": {
+    "version": "1.2.5",
+    "source_archive_url": "https://musl.libc.org/releases/musl-1.2.5.tar.gz",
+    "source_archive_sha256": "a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4",
+    "notice_path": "third-party/musl-1.2.5-COPYRIGHT.txt",
+    "notice_sha256": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
+    "evidence": [
+      {
+        "rust_version": "1.97.1",
+        "rust_revision": "8bab26f4f68e0e26f0bb7960be334d5b520ea452",
+        "source_url": "https://raw.githubusercontent.com/rust-lang/rust/8bab26f4f68e0e26f0bb7960be334d5b520ea452/src/ci/docker/scripts/musl.sh",
+        "script_sha256": "2f218a2dc7b7e73509212bfd4319ebddc2ddac7c651fca142c2b29bd7ea0aa38",
+        "observed_declaration": "MUSL=musl-1.2.5"
+      },
+      {
+        "rust_version": "1.99.0",
+        "rust_revision": "b940084d7eb6a299eb4bfeb8e34901bc051e7ac4",
+        "source_url": "https://raw.githubusercontent.com/rust-lang/rust/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/src/ci/docker/scripts/musl.sh",
+        "script_sha256": "59c361dd73a9f634a09971c15df5d2731813acd29c7bd68633bbbff7af023332",
+        "observed_declaration": "MUSL=musl-1.2.5"
+      },
+      {
+        "rust_version": "1.99.1",
+        "rust_revision": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+        "source_url": "https://raw.githubusercontent.com/rust-lang/rust/58cf8f9c35b355199727627d07ae34a4e2846d67/src/ci/docker/scripts/musl.sh",
+        "script_sha256": "59c361dd73a9f634a09971c15df5d2731813acd29c7bd68633bbbff7af023332",
+        "observed_declaration": "MUSL=musl-1.2.5; upstream script applies its recorded CVE patches"
+      }
+    ]
+  },
+  "native_standard_library_notices": [
+    {
+      "rust_version": "1.97.1",
+      "rust_llvm_submodule_revision": "dcc3606807c989700e0ac1cac18c31741bcd40d9",
+      "submodule_evidence_url": "https://api.github.com/repos/rust-lang/rust/contents/src/llvm-project?ref=8bab26f4f68e0e26f0bb7960be334d5b520ea452",
+      "files": [
+        {
+          "path": "third-party/rust-1.97.1/libunwind-LICENSE.TXT",
+          "source_url": "https://raw.githubusercontent.com/rust-lang/llvm-project/dcc3606807c989700e0ac1cac18c31741bcd40d9/libunwind/LICENSE.TXT",
+          "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+          "size": 16706
+        },
+        {
+          "path": "third-party/rust-1.97.1/compiler-rt-LICENSE.TXT",
+          "source_url": "https://raw.githubusercontent.com/rust-lang/llvm-project/dcc3606807c989700e0ac1cac18c31741bcd40d9/compiler-rt/LICENSE.TXT",
+          "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+          "size": 16708
+        },
+        {
+          "path": "third-party/rust-1.97.1/llvm-CREDITS.TXT",
+          "source_url": "https://raw.githubusercontent.com/rust-lang/llvm-project/dcc3606807c989700e0ac1cac18c31741bcd40d9/llvm/CREDITS.TXT",
+          "sha256": "dcb4d86aaecb65ac3e9dc636b08557c2caeaac1b10f55a418da24a2c762af5be",
+          "size": 13015
+        }
+      ]
+    },
+    {
+      "rust_version": "1.99.0",
+      "rust_llvm_submodule_revision": "1b9c0d5ff9bbe7634aead059efe6b11a7eeba145",
+      "submodule_evidence_url": "https://api.github.com/repos/rust-lang/rust/contents/src/llvm-project?ref=b940084d7eb6a299eb4bfeb8e34901bc051e7ac4",
+      "files": [
+        {
+          "path": "third-party/rust-1.99.0/libunwind-LICENSE.TXT",
+          "source_url": "https://raw.githubusercontent.com/rust-lang/llvm-project/1b9c0d5ff9bbe7634aead059efe6b11a7eeba145/libunwind/LICENSE.TXT",
+          "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+          "size": 16706
+        },
+        {
+          "path": "third-party/rust-1.99.0/compiler-rt-LICENSE.TXT",
+          "source_url": "https://raw.githubusercontent.com/rust-lang/llvm-project/1b9c0d5ff9bbe7634aead059efe6b11a7eeba145/compiler-rt/LICENSE.TXT",
+          "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+          "size": 16708
+        },
+        {
+          "path": "third-party/rust-1.99.0/llvm-CREDITS.TXT",
+          "source_url": "https://raw.githubusercontent.com/rust-lang/llvm-project/1b9c0d5ff9bbe7634aead059efe6b11a7eeba145/llvm/CREDITS.TXT",
+          "sha256": "dcb4d86aaecb65ac3e9dc636b08557c2caeaac1b10f55a418da24a2c762af5be",
+          "size": 13015
+        }
+      ]
+    },
+    {
+      "rust_version": "1.99.1",
+      "rust_llvm_submodule_revision": "1b9c0d5ff9bbe7634aead059efe6b11a7eeba145",
+      "submodule_evidence_url": "https://api.github.com/repos/rust-lang/rust/contents/src/llvm-project?ref=58cf8f9c35b355199727627d07ae34a4e2846d67",
+      "files": [
+        {
+          "path": "third-party/rust-1.99.1/libunwind-LICENSE.TXT",
+          "source_url": "https://raw.githubusercontent.com/rust-lang/llvm-project/1b9c0d5ff9bbe7634aead059efe6b11a7eeba145/libunwind/LICENSE.TXT",
+          "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+          "size": 16706
+        },
+        {
+          "path": "third-party/rust-1.99.1/compiler-rt-LICENSE.TXT",
+          "source_url": "https://raw.githubusercontent.com/rust-lang/llvm-project/1b9c0d5ff9bbe7634aead059efe6b11a7eeba145/compiler-rt/LICENSE.TXT",
+          "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+          "size": 16708
+        },
+        {
+          "path": "third-party/rust-1.99.1/llvm-CREDITS.TXT",
+          "source_url": "https://raw.githubusercontent.com/rust-lang/llvm-project/1b9c0d5ff9bbe7634aead059efe6b11a7eeba145/llvm/CREDITS.TXT",
+          "sha256": "dcb4d86aaecb65ac3e9dc636b08557c2caeaac1b10f55a418da24a2c762af5be",
+          "size": 13015
+        }
+      ]
+    }
+  ],
+  "core_runtime": {
+    "rust_version": "1.99.1",
+    "rust_revision": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+    "manifest_url": "https://static.rust-lang.org/dist/channel-rust-1.99.1.toml",
+    "manifest_sha256": "fb152be80975c194aa5fc684b2aec3a6e14e2b855efe2faa4e5f8ae6e590f463",
+    "target": "x86_64-unknown-linux-musl",
+    "std_component_url": "https://static.rust-lang.org/dist/2026-10-15/rust-std-1.99.1-x86_64-unknown-linux-musl.tar.xz",
+    "std_component_sha256": "1dd241eaeb19ff3b5180461c77bdee93d6cafc669eda9de834e7c06b0ec3ca95",
+    "std_component_size": 41325128,
+    "rustc_component_url": "https://static.rust-lang.org/dist/2026-10-15/rustc-1.99.1-x86_64-unknown-linux-gnu.tar.xz",
+    "rustc_component_sha256": "2ff05ff9c08a90861e7f6e4065b40a8b87463b4576186fd613871c3e37f2091f",
+    "standard_library_catalog_sha256": "5647be074c8edf7339fd863055923a8fc80bc5610a8d4661ec3b767b9d392c27",
+    "standard_library_catalog_evidence": "Installed Rust1.99.1 catalogue and referenced terms compared byte-for-byte to independently downloaded, manifest-SHA-verified official rustc component; retained verbatim by build utility",
+    "linkage": "official self-contained target CRT/libc/libunwind; C sources compiled with isolated musl headers; no ELF interpreter or DT_NEEDED allowed",
+    "std_component_file_tree_sha256": "96d45f8d9976986301d04dc0592435883e1a16a83574e6170b8a5f5f7ab0e984",
+    "std_component_file_tree_algorithm": "SHA-256 of C-sorted sha256sum output for all regular target lib files, relative paths prefixed ./ and NUL-delimited input; official archive and isolated SDK compare equal for all 70 files"
+  }
 }

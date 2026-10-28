@@ -84,6 +84,11 @@ pub fn create_bundle(
                 "Native bundle input paths are unsafe or duplicated",
             ));
         }
+        if input.path == "bin/ici" {
+            crate::install::validate_elf(&input.source, inputs.target.ends_with("-musl"))?;
+        } else if matches!(input.path.as_str(), "tools/bin/ruff" | "tools/bin/ty") {
+            crate::install::validate_elf(&input.source, true)?;
+        }
         let (size, sha256) = file_identity(&input.source, model::MAX_FILE_BYTES)?;
         records.insert(
             input.path.clone(),

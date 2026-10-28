@@ -144,6 +144,49 @@ fn identical_inputs_produce_identical_bytes_and_no_existing_output_is_overwritte
 }
 
 #[test]
+fn dynamic_elf_inputs_are_rejected_before_a_static_bundle_is_created() {
+    let root = tempfile::tempdir().unwrap();
+    for (case, program_kind) in [("interpreter", 3u32), ("shared-library", 2u32)] {
+        let mut bytes = vec![0u8; 144];
+        bytes[..6].copy_from_slice(b"\x7fELF\x02\x01");
+        bytes[18..20].copy_from_slice(&62u16.to_le_bytes());
+        bytes[32..40].copy_from_slice(&64u64.to_le_bytes());
+        bytes[54..56].copy_from_slice(&56u16.to_le_bytes());
+        bytes[56..58].copy_from_slice(&1u16.to_le_bytes());
+        bytes[64..68].copy_from_slice(&program_kind.to_le_bytes());
+        if program_kind == 2 {
+            bytes[72..80].copy_from_slice(&128u64.to_le_bytes());
+            bytes[96..104].copy_from_slice(&16u64.to_le_bytes());
+            bytes[128..136].copy_from_slice(&1u64.to_le_bytes());
+        }
+        let source = root.path().join(case);
+        fs::write(&source, bytes).unwrap();
+        for path in ["bin/ici", "tools/bin/ruff", "tools/bin/ty"] {
+            let mut build = inputs();
+            build.target = "x86_64-unknown-linux-musl".into();
+            let output = root
+                .path()
+                .join(format!("{case}-{}.tar.gz", path.replace('/', "_")));
+            let result = distribution::create_bundle(
+                "0.14.0-fixture.1",
+                build,
+                &[BundleInput {
+                    path: path.into(),
+                    source: source.clone(),
+                    executable: true,
+                }],
+                &output,
+            );
+            assert_eq!(result.unwrap_err().code, "install-elf", "{case}: {path}");
+            assert!(
+                !output.exists(),
+                "An unusable ELF must not become an archive"
+            );
+        }
+    }
+}
+
+#[test]
 fn install_update_rollback_activate_are_atomic_and_do_not_rewind_user_data() {
     let root = tempfile::tempdir().unwrap();
     let prefix = root.path().join("native");

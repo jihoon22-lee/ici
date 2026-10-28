@@ -9449,6 +9449,126 @@
       ]
     }
   ],
-  "additional": [],
-  "notices_sha256": "b7ef43bd1727dfb8474c19bad6b57648af1685f80de9779920282601d0693804"
+  "additional": [
+    {
+      "id": "musl-1.2.5",
+      "source": "https://musl.libc.org/releases/musl-1.2.5.tar.gz#musl-1.2.5/COPYRIGHT",
+      "declared_license": "MIT plus retained component notices; musl static runtime for bundled native tools",
+      "sha256": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
+      "size": 6204
+    },
+    {
+      "id": "rust-1.97.1-Apache-2.0.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/Apache-2.0.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff",
+      "size": 10280
+    },
+    {
+      "id": "rust-1.97.1-BSD-2-Clause.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/BSD-2-Clause.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "f32fb3b417a194167cfad068223fc975ba96c5960513a10f66a3c28720aec1df",
+      "size": 1267
+    },
+    {
+      "id": "rust-1.97.1-CC-BY-SA-4.0.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/CC-BY-SA-4.0.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "23ee78c8bae49cf08ea2f0c84945c66b987ebe4520881fb51b3dad4fb43d07c2",
+      "size": 20137
+    },
+    {
+      "id": "rust-1.97.1-GCC-exception-3.1.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/GCC-exception-3.1.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "a3966c9410ef94a1efbfa9ec04e9c1994026a70623fbf0885ce36737bfba3b54",
+      "size": 3320
+    },
+    {
+      "id": "rust-1.97.1-GPL-2.0-only.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/GPL-2.0-only.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "54b212ba1f97f6948fa5486239ab505dd820b02e50cbfd296b4062c8609a70af",
+      "size": 17642
+    },
+    {
+      "id": "rust-1.97.1-GPL-3.0-or-later.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/GPL-3.0-or-later.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "05315fce6c35f79b8a35454828995fa26336f235895ac64557abc028f4ffcea2",
+      "size": 34795
+    },
+    {
+      "id": "rust-1.97.1-ISC.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/ISC.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "0ff61769b238634e042ab759dddfd104a8e69d091e3600ae3410e401a6164381",
+      "size": 730
+    },
+    {
+      "id": "rust-1.97.1-LLVM-exception.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/LLVM-exception.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "e34c58338bd89d43e709e226610d8f32b3e3c47f4ad9a99a8dc1d4ac7842488e",
+      "size": 919
+    },
+    {
+      "id": "rust-1.97.1-MIT.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/MIT.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0",
+      "size": 1078
+    },
+    {
+      "id": "rust-1.97.1-NCSA.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/NCSA.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "39cb0234065c92b9e6cee3830cbb52b1aa289aa8fe9ba2e66730fec5cf05c630",
+      "size": 1676
+    },
+    {
+      "id": "rust-1.97.1-OFL-1.1.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/OFL-1.1.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "8eea8287e5876b539670cadb82e99f9a7afddec6f6730811be1daf25d2e9bcfd",
+      "size": 4016
+    },
+    {
+      "id": "rust-1.97.1-Unicode-3.0.txt",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/licenses/Unicode-3.0.txt",
+      "declared_license": "Referenced upstream Rust standard-library catalog terms; applicability follows the individual catalog entries",
+      "sha256": "f5062c9a188d81dfe66b56db4182dcf9e4b17c0d9b0d311a8e20b3a1b075c443",
+      "size": 1995
+    },
+    {
+      "id": "rust-1.97.1-compiler-rt-LICENSE.TXT",
+      "source": "https://raw.githubusercontent.com/rust-lang/llvm-project/dcc3606807c989700e0ac1cac18c31741bcd40d9/compiler-rt/LICENSE.TXT",
+      "declared_license": "Exact upstream LLVM native-runtime license or contributor credits; applicability follows individual source terms",
+      "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+      "size": 16708
+    },
+    {
+      "id": "rust-1.97.1-libunwind-LICENSE.TXT",
+      "source": "https://raw.githubusercontent.com/rust-lang/llvm-project/dcc3606807c989700e0ac1cac18c31741bcd40d9/libunwind/LICENSE.TXT",
+      "declared_license": "Exact upstream LLVM native-runtime license or contributor credits; applicability follows individual source terms",
+      "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+      "size": 16706
+    },
+    {
+      "id": "rust-1.97.1-llvm-CREDITS.TXT",
+      "source": "https://raw.githubusercontent.com/rust-lang/llvm-project/dcc3606807c989700e0ac1cac18c31741bcd40d9/llvm/CREDITS.TXT",
+      "declared_license": "Exact upstream LLVM native-runtime license or contributor credits; applicability follows individual source terms",
+      "sha256": "dcb4d86aaecb65ac3e9dc636b08557c2caeaac1b10f55a418da24a2c762af5be",
+      "size": 13015
+    },
+    {
+      "id": "rust-1.97.1-stdlib",
+      "source": "https://static.rust-lang.org/dist/2026-07-16/rustc-1.97.1-x86_64-unknown-linux-gnu.tar.xz#rustc/share/doc/rust/COPYRIGHT-library.html",
+      "declared_license": "Rust 1.97.1 standard-library source catalog for upstream ruff; individual component terms retained",
+      "sha256": "0a65bb747c49c7bb816cbc7188319bd6e4e8d08091c1190b8a3c0971c47968ed",
+      "size": 279302
+    }
+  ],
+  "notices_sha256": "7b0a63f14ff48a95d27ffe186726b5f07b0a21ecac622fc4bdb4de95181889ad"
 }

@@ -241,6 +241,10 @@ impl Root {
                 let candidate = directory.join("ici");
                 if candidate != executable
                     && candidate.is_file()
+                    && candidate
+                        .metadata()
+                        .is_ok_and(|metadata| metadata.permissions().mode() & 0o111 != 0)
+                    && candidate.canonicalize().ok() != executable.canonicalize().ok()
                     && !collisions.contains(&candidate)
                 {
                     collisions.push(candidate);
@@ -321,7 +325,7 @@ fn probe(executable: &Path, digest: &str, expected: &str) -> Result<(), Error> {
     }
     Ok(())
 }
-fn validate_elf(path: &Path, static_required: bool) -> Result<(), Error> {
+pub(crate) fn validate_elf(path: &Path, static_required: bool) -> Result<(), Error> {
     use std::io::{Seek, SeekFrom};
     let mut file = files::read_file(path, model::MAX_FILE_BYTES)?;
     let size = file.metadata().map_err(io_error)?.len();
@@ -492,6 +496,7 @@ pub fn rollback(install_root: &Path) -> Result<Installation, Error> {
 }
 pub fn inspect_installation(install_root: &Path) -> Result<Installation, Error> {
     let root = Root::open(install_root, false)?;
+    root.entrypoint(false)?;
     let current = root
         .selector("current")?
         .ok_or_else(|| error("install-current", "No native version is selected"))?;

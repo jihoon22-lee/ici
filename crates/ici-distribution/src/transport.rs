@@ -84,8 +84,9 @@ pub fn send(request: &Request) -> Result<Response, TransportError> {
     for (name, value) in &request.headers {
         let name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
             .map_err(|_| TransportError::InvalidRequest)?;
-        let value = reqwest::header::HeaderValue::from_str(value)
+        let mut value = reqwest::header::HeaderValue::from_str(value)
             .map_err(|_| TransportError::InvalidRequest)?;
+        value.set_sensitive(true);
         builder = builder.header(name, value);
     }
     if !request.body.is_empty() {
