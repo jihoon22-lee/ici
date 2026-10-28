@@ -69,6 +69,7 @@ FIXED_HEAD = (
     "--output-format",
     "json",
     "--quiet",
+    "--force-exclude",
 )
 
 #: Options that would let a lint run edit the tree, or replace the project's
@@ -96,7 +97,7 @@ _CATEGORY = "lint"
 #: The format-check head: ``ruff format --check`` is read-only — it reports
 #: what *would* change and writes nothing, which is the only kind of format
 #: check a verifier is allowed to run (#206 item 2, #215 item 1).
-FORMAT_HEAD = ("format", "--check")
+FORMAT_HEAD = ("format", "--check", "--force-exclude")
 
 
 @dataclass(frozen=True)

@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+- 명시적 Python 파일 목록에서도 Ruff의 native exclude를 적용합니다. 중첩 Ruff 설정을
+  입력에 포함하고 설정 내용 변경을 check scope digest에 반영해 baseline 해결로 오판하지 않습니다.
+
 - TypeScript composite 프로젝트의 incremental metadata는 `.ici/typescript`에 격리하고
   PREPARE로 표시합니다. fast에서는 차단하며 JavaScript/declaration output은 생성하지 않습니다.
 

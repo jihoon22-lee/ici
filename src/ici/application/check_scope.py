@@ -87,6 +87,7 @@ def records(
                     "cwd": cwd,
                     "provider": task.provider,
                     "inputs": [_workspace_reference(item, root) for item in task.input_refs],
+                    "configuration": _configuration_digests(task),
                     "environment": _environment(task, root),
                     "units": task.analysis_unit_ids,
                 },
@@ -116,6 +117,20 @@ def records(
                 )
             )
     return tuple(result)
+
+
+def _configuration_digests(task: TaskSpec) -> tuple[tuple[str, str], ...]:
+    """Changed native configuration cannot masquerade as a resolved finding."""
+    found = []
+    for ref in task.input_refs:
+        path = Path(task.cwd) / ref
+        if path.name not in {"ruff.toml", ".ruff.toml", "pyproject.toml", "mypy.ini", "setup.cfg"}:
+            continue
+        try:
+            found.append((ref, hashlib.sha256(path.read_bytes()).hexdigest()))
+        except OSError:
+            found.append((ref, "unreadable"))
+    return tuple(sorted(found))
 
 
 def _linked_builds(

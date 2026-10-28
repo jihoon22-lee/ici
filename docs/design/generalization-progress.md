@@ -113,3 +113,16 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
   및 Cargo/ESLint 포함 실제 provider 10개 통과(2.10초), provider mypy 통과.
 - 전체 pytest 재실행은 진행 중이며 이 마지막 provider 보완은 focused real-tool 검사와
   최신 PR CI에서도 확인한다. 최종 공개 revision은 별도 release 변경에서 고정한다.
+
+## 전체 검증 2차 및 native 설정 회귀
+
+- Python 3.10 + 격리 jsonschema 전체 pytest: 4299 passed, 8 skipped (204.05초).
+  skip 7개는 로컬 clang++/clang-tidy/clazy 부재, 1개는 Python 3.10 AST에서 except-star
+  구문을 읽을 수 없는 조건. 해당 실제 도구 검사는 CI의 필수 환경에서 실행한다.
+- 실제 Ruff fixture가 명시적 파일 전달 시 native exclude 무시를 재현해 실패했고,
+  force-exclude와 중첩 config attribution으로 수정. 설정 내용 변경을 check scope digest에
+  반영해 baseline 오판 방지. 관련 provider/analyze/baseline 회귀 94개 통과(3.47초),
+  변경 3개 모듈 mypy 통과. 이 후속 변경은 최신 PR CI에서 전체 재검증한다.
+- 다음: PR #295 최신 CI 및 Merge Gate 확인 → 구현 PR 병합 → 별도 릴리스 branch에서
+  0.13.0 후보 버전/known-answer corpus를 고정 → CI/후보 인수 → 태그/공개 release →
+  공개 bytes 다운로드 검사 → 최종 main 및 작업 소유 자원 정리.

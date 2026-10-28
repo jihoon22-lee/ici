@@ -94,3 +94,28 @@ def test_plan_does_not_probe_vcs_or_execute_tasks(tmp_path, monkeypatch):
     monkeypatch.setattr("ici.cli.next_path.run_task", forbidden)
     result = CliRunner().invoke(app, ["analyze", "--plan", "--json"])
     assert result.exit_code == 0, result.output
+
+
+def test_nested_ruff_configuration_is_attributed_and_changes_scope(tmp_path):
+    from ici.application.check_scope import _configuration_digests
+    from ici.application.planning import tool_configs
+    from ici.domain.enums import TaskKind
+    from ici.domain.tasks import TaskSpec
+
+    nested = tmp_path / "src"
+    nested.mkdir()
+    config = nested / "ruff.toml"
+    config.write_text('exclude = ["ignored.py"]\n')
+    configs = tool_configs(tmp_path, tmp_path, ("src/app.py",))
+    assert "src/ruff.toml" in configs
+    task = TaskSpec(
+        id="lint",
+        kind=TaskKind.ANALYZE,
+        provider="ruff",
+        argv=("ruff", "check"),
+        cwd=str(tmp_path),
+        input_refs=configs,
+    )
+    old = _configuration_digests(task)
+    config.write_text("exclude = []\n")
+    assert _configuration_digests(task) != old

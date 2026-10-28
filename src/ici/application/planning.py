@@ -110,7 +110,7 @@ def plans(
             component.id,
             units.get("python"),
             files_by_language.get("python", ()),
-            tool_configs(comp_root, root),
+            tool_configs(comp_root, root, files_by_language.get("python", ())),
             units.get("cpp"),
             compile_inputs,
         )
@@ -250,7 +250,7 @@ def planner(
     return work
 
 
-def tool_configs(component_root_: Path, root: Path) -> tuple[str, ...]:
+def tool_configs(component_root_: Path, root: Path, files: tuple[str, ...] = ()) -> tuple[str, ...]:
     """The tool configuration files a check under this root would read.
 
     Ruff reads ``ruff.toml``/``.ruff.toml``/``pyproject.toml`` from the
@@ -273,7 +273,22 @@ def tool_configs(component_root_: Path, root: Path) -> tuple[str, ...]:
         if base == root or root not in base.parents:
             break
         base = base.parent
-    return tuple(found)
+    visited = set()
+    for source in files:
+        directory = (root / source).parent
+        while directory != root and root in directory.parents:
+            if directory in visited:
+                break
+            visited.add(directory)
+            for name in ("ruff.toml", ".ruff.toml", "pyproject.toml"):
+                path = directory / name
+                if path.is_file():
+                    try:
+                        found.append(str(path.relative_to(component_root_)))
+                    except ValueError:
+                        found.append(str(path))
+            directory = directory.parent
+    return tuple(dict.fromkeys(found))
 
 
 def compile_limitations(

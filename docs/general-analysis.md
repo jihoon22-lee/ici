@@ -58,6 +58,9 @@ ESLint가 파일을 무시하거나 설정하지 못한 경우 이를 정상 진
 Cargo/tsc의 native target/project closure는 아직 완전히 열거하지 않으므로 두 provider의
 이전 finding을 baseline에서 resolved로 확정하지 않는다. 실행 진단과 baseline 증거 완료는
 독립적이다. parser가 알 수 없는 출력이나 도구 실패는 incomplete로 남긴다.
+Ruff native exclude는 명시적 파일 목록에도 적용된다. 설정 내용과 중첩 설정 경로가
+check scope에 반영되므로 이전 버전 baseline의 일부 항목은 resolved가 아닌 carried로
+남을 수 있다. 새 버전에서 기준 결과를 다시 생성해 비교한다.
 기존 분석 descriptor는 제거하지 않았으며 [분석 인벤토리](design/ici-next/inventory/current-engines.md)에
 원래 기능의 위치가 있다. 신규 언어에서 Python/C++ 전용 metric을 흉내 내지 않는다.
 

@@ -335,3 +335,32 @@ def test_a_caller_that_names_a_cache_directory_gets_it(tmp_path: Path) -> None:
 
     assert "--no-cache" not in argv
     assert argv[argv.index("--cache-dir") + 1] == str(elsewhere)
+
+
+def test_real_ruff_respects_native_excludes_for_explicit_source_inventory(tmp_path):
+    import os
+    import shutil
+
+    from ici.execution.process import run_task
+
+    executable = shutil.which("ruff")
+    if executable is None:
+        pytest.skip("Ruff is unavailable")
+    (tmp_path / "ruff.toml").write_text('exclude = ["ignored.py"]\n')
+    (tmp_path / "ignored.py").write_text("undefined_name\n")
+    (tmp_path / "included.py").write_text("answer = 42\n")
+    plan = RuffProvider().plan(
+        _request(
+            tmp_path,
+            executable=executable,
+            targets=("included.py", "ignored.py"),
+            config_files=("ruff.toml",),
+        )
+    )
+    result = run_task(
+        ProcessSpec(
+            argv=plan.task.argv, cwd=tmp_path, name=plan.task.id, environment=dict(os.environ)
+        )
+    )
+    assert result.exit_code == 0, result.stdout
+    assert not RuffProvider().parse(result).findings
