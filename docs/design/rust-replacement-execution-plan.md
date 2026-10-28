@@ -224,3 +224,18 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   R1 PR에서 코드와 함께 재검증한다. 전체 domain/제품 parity 완료가 아니다.
 - config/discovery, 공통 process/DAG/storage, native Python 분석은 공유 타입·파일 경계를 정해
   병렬 구현한다. R3+ 통합과 R8/R9 release closure는 남아 있다.
+
+
+### R1 공통 모델 구현 — 후속 branch
+
+- R0 evidence PR: https://github.com/jihoon22-lee/ici/pull/298 (`34f11e0`),
+  CI `40692022861` 진행. 제품 개발은 `feat/rust-application`에서 이어간다.
+- Rust 1.99.1 Cargo workspace와 순수 `ici-domain`을 구현했다. result/event status 축,
+  check evidence, finite metric, all inspected targets, task/observation, snapshot identity를
+  공통 타입으로 고정했다. frozen 19/36 catalog는 도구 probe 없이 읽는다.
+- `cargo test -p ici-domain --locked` (registry 1 + wire 5),
+  `cargo clippy -p ici-domain --all-targets --locked -- -D warnings`, domain fmt 통과.
+  v1/v2 정보 보존, malformed/inconsistent evidence 거부, Unicode/astral fingerprint,
+  event gap/unknown/truncation 및 task completion/evidence 차이를 확인했다.
+- config/discovery, execution/DAG/storage, native Python 분석 crate는 별도 범위에서 구현 중.
+  전체 workspace test/CLI E2E는 아직 수행 전이며 R1/R2/R4 전체 완료로 기록하지 않는다.

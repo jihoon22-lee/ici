@@ -13,6 +13,9 @@
 - 고정 공개 source에서 전체 기능·명령·설정 원장을 기계적으로 수집하고 native parser/도구/TLS
   실측 및 CLI oracle을 기록합니다. 미완료 항목은 closure gate가 거부하며 테스트 개수로 parity를 대신하지 않습니다.
 
+- Rust 내부 개발 workspace와 공통 domain 계약을 추가합니다. 공개 v1/v2 결과와 Unicode
+  fingerprint 호환 fixture를 보존하며 새 제품 명령·전체 분석은 아직 인수 전입니다.
+
 ## [0.13.0] - 2026-10-28
 
 일반 프로젝트의 정적 분석을 하나의 제품 checkpoint로 공개합니다. `analyze`·설정 없는 발견·
