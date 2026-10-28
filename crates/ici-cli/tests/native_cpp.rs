@@ -2144,6 +2144,94 @@ fn cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero() {
 }
 
 #[test]
+fn explicit_components_inherit_origin_resolved_global_database_and_prepared_override_wins() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("configs")).unwrap();
+    fs::write(root.path().join("main.cpp"), "int value;\n").unwrap();
+    for (database, flag) in [
+        ("compile_commands.json", "-DUNSELECTED=1"),
+        ("configs/chosen.json", "-DSELECTED=1"),
+        ("configs/overlay.json", "-DOVERLAY=1"),
+    ] {
+        fs::write(root.path().join(database),serde_json::to_vec(&serde_json::json!([{"directory":root.path(),"file":"main.cpp","arguments":["g++",flag,"-c","main.cpp","-o","never.o"]}])).unwrap()).unwrap();
+    }
+    let config = runtime_config(
+        &["cpp.compile"],
+        "[project]\ncompile_database='${env:CPP_DATABASE}'\n",
+    )
+    .replace("build='native'\n", "");
+    fs::write(root.path().join("ici.toml"), config).unwrap();
+    let environment = BTreeMap::from([
+        ("PATH".into(), String::new()),
+        ("CPP_DATABASE".into(), "configs/chosen.json".into()),
+    ]);
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert_eq!(
+        plan.cpp.contexts["project"].database_path.as_deref(),
+        Some("configs/chosen.json")
+    );
+    assert!(
+        plan.cpp.contexts["project"].units[0]
+            .argv
+            .iter()
+            .any(|arg| arg == "-DSELECTED=1")
+    );
+    assert_eq!(
+        plan.project
+            .resolve_path(
+                "project.compile_database",
+                "${env:CPP_DATABASE}",
+                &environment
+            )
+            .unwrap(),
+        "configs/chosen.json"
+    );
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert!(run.result.execution.required_complete, "{:?}", run.outputs);
+    let mut overlay = plan.project.clone();
+    overlay.components[0].settings["project"]["compile_database"] =
+        serde_json::json!("configs/overlay.json");
+    let check = &plan.plan.checks[0].check;
+    let mut cpp = ici_cli::cpp::CppPlans::default();
+    cpp.bind(
+        &overlay,
+        &overlay.components[0],
+        check,
+        "project.cpp.compile",
+        &environment,
+    )
+    .unwrap();
+    assert_eq!(
+        cpp.contexts["project"].database_path.as_deref(),
+        Some("configs/overlay.json")
+    );
+    assert!(
+        cpp.contexts["project"].units[0]
+            .argv
+            .iter()
+            .any(|arg| arg == "-DOVERLAY=1")
+    );
+    fs::remove_file(root.path().join("configs/chosen.json")).unwrap();
+    let missing = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert!(missing.cpp.contexts["project"].units.is_empty());
+    assert!(
+        missing.cpp.contexts["project"]
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "database-missing")
+    );
+    assert!(!root.path().join("never.o").exists());
+}
+
+#[test]
 #[ignore = "explicit native GCC source ownership CLI acceptance"]
 fn actual_gcc_dead_options_apply_each_generated_and_vendor_dimension() {
     let root = tempfile::tempdir().unwrap();
@@ -2193,4 +2281,213 @@ fn actual_gcc_dead_options_apply_each_generated_and_vendor_dimension() {
         }
         assert!(!root.path().join("must-not-create.o").exists());
     }
+}
+
+#[test]
+#[ignore = "explicit native GCC/pkg-config legacy fallback acceptance"]
+fn actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join("include/sub")).unwrap();
+    fs::create_dir_all(root.path().join("metadata/headers")).unwrap();
+    fs::write(
+        root.path().join("include/sub/local.hpp"),
+        "#define LOCAL_VALUE 7\n",
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("metadata/headers/package.hpp"),
+        "#define PACKAGE_HEADER 3\n",
+    )
+    .unwrap();
+    let source = "#include <local.hpp>\n#include <package.hpp>\nstatic_assert(ORDER==2);\nstatic_assert(PACKAGE_MACRO==9);\nint value(){return LOCAL_VALUE+PACKAGE_HEADER;}\n";
+    fs::write(root.path().join("main.cpp"), source).unwrap();
+    let package = |name: &str, flags: &str| {
+        format!("Name: {name}\nDescription: Native ici fixture\nVersion: 1.0\nCflags: {flags}\n")
+    };
+    fs::write(
+        root.path().join("metadata/ici-native-first.pc"),
+        package(
+            "first",
+            "-DORDER=1 -DPACKAGE_MACRO=9 -I${pcfiledir}/headers",
+        ),
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("metadata/ici-native-second.pc"),
+        package("second", "-UORDER -DORDER=2"),
+    )
+    .unwrap();
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit native GCC");
+    let pkg_config = std::env::var("ICI_TEST_PKG_CONFIG").expect("explicit pkg-config");
+    let extra = format!(
+        "[tools.'g++']\npath={}\n[tools.pkg-config]\npath={}\n[project]\ncpp_pkg_config=['ici-native-first','ici-native-second']\n",
+        serde_json::to_string(&compiler).unwrap(),
+        serde_json::to_string(&pkg_config).unwrap()
+    );
+    let config = runtime_config(&["cpp.diagnostics"], &extra).replace("build='native'\n", "");
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    let environment = BTreeMap::from([
+        ("PATH".into(), String::new()),
+        (
+            "PKG_CONFIG_PATH".into(),
+            root.path().join("metadata").display().to_string(),
+        ),
+    ]);
+    let invocation = registry::parse(["ici", "lint"]).unwrap();
+    let plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert!(!root.path().join(".ici").exists());
+    assert!(plan.context_preparations.is_empty());
+    assert_eq!(plan.cpp.contexts["project"].database_path, None);
+    let tasks = plan
+        .plan
+        .checks
+        .iter()
+        .find(|check| check.check.id == "cpp.diagnostics")
+        .unwrap()
+        .tasks();
+    assert_eq!(
+        tasks
+            .iter()
+            .filter(|task| task.provider == "pkg-config")
+            .count(),
+        2,
+        "{}",
+        plan.text()
+    );
+    assert!(tasks.iter().any(|task| {
+        task.argv
+            .iter()
+            .any(|arg| arg == "{observed-pkg-config-cflags}")
+    }));
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["project.cpp.diagnostics"];
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(output.observation.findings.is_empty(), "{output:?}");
+    assert!(
+        run.result.execution.required_complete,
+        "{:?}",
+        run.result.gate
+    );
+    assert_eq!(output.extra["cpp_analysis_mode"], "heuristic");
+    assert_eq!(output.extra["pkg_config"].as_array().unwrap().len(), 2);
+    let argv = output.extra["concrete_tasks"][0]["argv"]
+        .as_array()
+        .unwrap();
+    let index = |flag: &str| {
+        argv.iter()
+            .position(|arg| arg.as_str() == Some(flag))
+            .unwrap()
+    };
+    assert!(index("-DORDER=1") < index("-UORDER") && index("-UORDER") < index("-DORDER=2"));
+    assert!(argv.iter().all(|arg| arg != "{observed-pkg-config-cflags}"));
+    assert!(!plan.cpp.scope_complete("project.cpp.diagnostics"));
+    let modern = execute::execute(
+        &registry::parse(["ici", "analyze"]).unwrap(),
+        root.path(),
+        &environment,
+        true,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert!(!modern.result.execution.required_complete);
+    assert_eq!(modern.result.gate.selected, GateVerdict::Incomplete);
+    let initial_scope = run
+        .result
+        .checks
+        .as_ref()
+        .unwrap()
+        .iter()
+        .find(|check| check.check_id == "cpp.diagnostics")
+        .unwrap()
+        .scope_digest
+        .clone();
+    fs::write(
+        root.path().join("metadata/ici-native-second.pc"),
+        package("second", "-UORDER -DORDER=3"),
+    )
+    .unwrap();
+    let changed = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let changed_output = &changed.outputs["project.cpp.diagnostics"];
+    assert_eq!(
+        changed_output.observation.state,
+        TaskState::Succeeded,
+        "{changed_output:?}"
+    );
+    assert!(!changed_output.observation.findings.is_empty());
+    assert!(
+        changed_output
+            .observation
+            .findings
+            .iter()
+            .all(|finding| finding.evidence == ici_domain::EvidenceLevel::Estimated)
+    );
+    let changed_scope = &changed
+        .result
+        .checks
+        .as_ref()
+        .unwrap()
+        .iter()
+        .find(|check| check.check_id == "cpp.diagnostics")
+        .unwrap()
+        .scope_digest;
+    assert_ne!(
+        changed_scope, &initial_scope,
+        "observed package configuration must participate in selected scope"
+    );
+    fs::write(
+        root.path().join("metadata/ici-native-second.pc"),
+        package("second", "-fplugin=/tmp/ici-must-not-load.so"),
+    )
+    .unwrap();
+    let refused = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let refused_output = &refused.outputs["project.cpp.diagnostics"];
+    assert_eq!(
+        refused_output.observation.state,
+        TaskState::Failed,
+        "{refused_output:?}"
+    );
+    assert!(refused_output.observation.findings.is_empty());
+    assert!(!refused.result.execution.required_complete);
+    let explicit = config.replace(
+        "[project]\n",
+        "[project]\ncompile_database='missing.json'\n",
+    );
+    fs::write(root.path().join("ici.toml"), explicit).unwrap();
+    let explicit_plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
+    assert!(
+        explicit_plan
+            .plan
+            .checks
+            .iter()
+            .flat_map(|check| check.tasks())
+            .all(|task| task.provider != "pkg-config")
+    );
+    assert!(!root.path().join("compile_commands.json").exists());
+    assert!(!root.path().join("main.o").exists());
+    assert!(!root.path().join(".ici/rust-v1/build").exists());
+    assert_eq!(
+        fs::read_to_string(root.path().join("main.cpp")).unwrap(),
+        source
+    );
 }

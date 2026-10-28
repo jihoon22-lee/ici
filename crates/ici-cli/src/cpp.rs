@@ -1,4 +1,5 @@
-//! Existing compilation evidence and artifact contracts. This facade never invents build commands.
+//! Compilation evidence, explicit legacy syntax fallback, and artifact contracts.
+mod fallback;
 mod linker;
 use ici_application::plan::{Work, file_language};
 use ici_config::{Component, ResolvedProject};
@@ -30,6 +31,8 @@ pub struct BoundaryProbe {
 }
 #[derive(Default)]
 pub struct CppPlans {
+    /// Only explicit legacy commands may use the documented c++17 syntax fallback.
+    pub legacy_projection: bool,
     pub contexts: BTreeMap<String, CompilationContext>,
     pub diagnostics: BTreeMap<String, Vec<ProviderPlan>>,
     pub includes: BTreeMap<String, Vec<IncludeProbe>>,
@@ -49,6 +52,7 @@ pub struct CppPlans {
     compiler_configurations: BTreeMap<String, BTreeMap<String, usize>>,
     compiler_components: BTreeMap<String, String>,
     resolved: BTreeMap<String, std::result::Result<ResolvedTool, String>>,
+    fallbacks: BTreeMap<String, fallback::FallbackPlan>,
 }
 impl CppPlans {
     fn resolve_searches(
@@ -199,8 +203,10 @@ impl CppPlans {
             return Some(Work::Internal);
         }
         if !self.contexts.contains_key(&component.id) {
-            self.contexts
-                .insert(component.id.clone(), context(project, component));
+            self.contexts.insert(
+                component.id.clone(),
+                context(project, component, environment),
+            );
         }
         let context = self.contexts[&component.id].clone();
         let configurations = context
@@ -293,6 +299,18 @@ impl CppPlans {
                 }
             }
             "cpp.diagnostics" => {
+                if self.legacy_projection
+                    && context.database_path.is_none()
+                    && context.units.is_empty()
+                    && context.diagnostics.is_empty()
+                {
+                    return Some(
+                        match self.bind_fallback(project, component, id, environment) {
+                            Ok(work) => work,
+                            Err(error) => blocked(error),
+                        },
+                    );
+                }
                 if context.units.is_empty() {
                     return Some(blocked(
                         "no usable recorded compilation units; provide the declared build's compilation database",
@@ -983,23 +1001,40 @@ pub fn linked_build<'a>(
         .as_ref()
         .and_then(|id| project.builds.iter().find(|build| &build.id == id))
 }
-fn context(project: &ResolvedProject, component: &Component) -> CompilationContext {
+fn context(
+    project: &ResolvedProject,
+    component: &Component,
+    environment: &BTreeMap<String, String>,
+) -> CompilationContext {
     let explicit = component
         .settings
         .pointer("/project/compile_database")
         .and_then(Value::as_str)
         .filter(|path| !path.is_empty())
-        .map(|path| {
-            if Path::new(path).is_absolute() {
-                path.into()
-            } else {
-                let base = Path::new(&component.declared_in)
-                    .parent()
-                    .filter(|path| path.is_absolute())
-                    .unwrap_or(&project.root);
-                base.join(path).to_string_lossy().into_owned()
+        .map(str::to_owned);
+    let explicit = if explicit.is_some() {
+        explicit
+    } else if let Some(value) = project
+        .effective
+        .pointer("/project/compile_database")
+        .and_then(Value::as_str)
+        .filter(|path| !path.is_empty())
+    {
+        match project.resolve_path("project.compile_database", value, environment) {
+            Ok(path) => Some(path),
+            Err(error) => {
+                return CompilationContext {
+                    diagnostics: vec![ici_cpp::ContextDiagnostic::error(
+                        "invalid-database-setting",
+                        error.to_string(),
+                    )],
+                    ..Default::default()
+                };
             }
-        });
+        }
+    } else {
+        None
+    };
     let mut directories = BTreeSet::new();
     if component.root != "." {
         directories.insert(component.root.clone());
@@ -1248,6 +1283,7 @@ impl CppPlans {
             || self.inactive.contains_key(id)
             || self.boundaries.contains_key(id)
             || self.linkers.contains_key(id)
+            || self.fallbacks.contains_key(id)
     }
     /// Completion does not establish a reusable header or compiler-library dependency closure.
     pub fn scope_complete(&self, id: &str) -> bool {
@@ -1255,9 +1291,14 @@ impl CppPlans {
             && !self.includes.contains_key(id)
             && !self.boundaries.contains_key(id)
             && !self.linkers.contains_key(id)
+            && !self.fallbacks.contains_key(id)
     }
     pub fn finalize_plan(&self, plan: &mut ici_application::plan::Plan) {
         for planned in &mut plan.checks {
+            if self.fallbacks.contains_key(&planned.task_id) {
+                planned.check.needs.clear();
+                plan.limitations.push(format!("{}: legacy c++17 heuristic fallback; ordered pkg-config probes resolve only the declared package flags at execution; no recorded compilation or reusable header closure is claimed",planned.task_id));
+            }
             if let Some(reason) = self.inactive.get(&planned.task_id) {
                 planned.check.needs.clear();
                 plan.limitations.push(format!(
@@ -1273,6 +1314,11 @@ impl CppPlans {
                 ici_providers::attach_sources(provider, sources.clone());
             }
         }
+        for fallback in self.fallbacks.values_mut() {
+            for provider in &mut fallback.providers {
+                ici_providers::attach_sources(provider, sources.clone());
+            }
+        }
     }
     pub fn run(
         &mut self,
@@ -1283,6 +1329,9 @@ impl CppPlans {
         cancellation: &ici_execution::Cancellation,
         events: &crate::events::EventLog,
     ) -> AnalysisOutput {
+        if self.fallbacks.contains_key(&request.task_id) {
+            return self.run_fallback(project, component, request, scheduler, cancellation, events);
+        }
         if self.linkers.contains_key(&request.task_id) {
             let linker_output =
                 self.run_linker(project, component, request, scheduler, cancellation, events);

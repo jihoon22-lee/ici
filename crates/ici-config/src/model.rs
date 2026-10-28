@@ -263,15 +263,33 @@ impl ConfigurationInspection {
         value: &str,
         environment: &BTreeMap<String, String>,
     ) -> Result<String, ConfigError> {
-        let origin = self
-            .origins
-            .get(key)
-            .cloned()
-            .unwrap_or_else(|| Origin::defaults(key));
-        let base = std::path::Path::new(&origin.file)
-            .parent()
-            .filter(|path| path.is_absolute())
-            .unwrap_or(&self.root);
-        crate::paths::anchor(value, base, &self.root, environment, &origin, false)
+        resolve_policy_path(&self.root, &self.origins, key, value, environment)
     }
+}
+impl ResolvedProject {
+    pub fn resolve_path(
+        &self,
+        key: &str,
+        value: &str,
+        environment: &BTreeMap<String, String>,
+    ) -> Result<String, ConfigError> {
+        resolve_policy_path(&self.root, &self.origins, key, value, environment)
+    }
+}
+fn resolve_policy_path(
+    root: &std::path::Path,
+    origins: &BTreeMap<String, Origin>,
+    key: &str,
+    value: &str,
+    environment: &BTreeMap<String, String>,
+) -> Result<String, ConfigError> {
+    let origin = origins
+        .get(key)
+        .cloned()
+        .unwrap_or_else(|| Origin::defaults(key));
+    let base = std::path::Path::new(&origin.file)
+        .parent()
+        .filter(|path| path.is_absolute())
+        .unwrap_or(root);
+    crate::paths::anchor(value, base, root, environment, &origin, false)
 }
