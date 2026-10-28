@@ -321,6 +321,19 @@ pub fn resolve_with_environment(
 
 pub fn merge(base: &mut Value, override_value: &Value) {
     if let (Some(current), Some(overrides)) = (base.as_object_mut(), override_value.as_object()) {
+        // An explicit spelling replaces its inherited alias, including a built-in default.
+        // Two spellings in the same declaration remain present for relationship validation.
+        for (left, right) in [
+            ("repeat", "repeat_runs"),
+            ("slow_threshold", "slow_test_threshold"),
+        ] {
+            if overrides.contains_key(left) && !overrides.contains_key(right) {
+                current.remove(right);
+            }
+            if overrides.contains_key(right) && !overrides.contains_key(left) {
+                current.remove(left);
+            }
+        }
         for (key, value) in overrides {
             if let Some(existing) = current.get_mut(key) {
                 merge(existing, value);

@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+- test quality의 명시 `repeat`/`slow_threshold` 설정이 기본값의 별칭과 충돌하던 문제를
+  수정합니다. 같은 설정에서 두 별칭을 동시에 지정한 오류는 계속 거부합니다.
+
 - Rust 준비 작업도 입력·출력·영향 디렉터리와 resource lock을 계획에 표시합니다. Python
   배포물 생성은 snapshot bytes를 사용하며, 검증된 소유 출력만 다음 분석 입력에서 제외합니다.
 - C++ context·tooling·CTest/QTest/gcov·ELF 경로와 runtime matrix/integration를 CLI 공통

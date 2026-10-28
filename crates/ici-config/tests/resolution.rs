@@ -563,6 +563,26 @@ fn schema_paths_preserve_all_frozen_allowed_key_declarations() {
         );
     }
 }
+#[test]
+fn explicit_quality_alias_replaces_default_but_two_explicit_aliases_are_rejected() {
+    let tree = Project::new();
+    tree.write("main.py", "x=1\n");
+    tree.write(
+        "ici.toml",
+        "schema_version=2\n[engines.test.quality]\nrepeat=3\nslow_threshold=0.25\n",
+    );
+    let project = tree.resolve();
+    let quality = &project.effective["engines"]["test"]["quality"];
+    assert_eq!(quality["repeat"], 3);
+    assert_eq!(quality["slow_threshold"], 0.25);
+    assert!(quality.get("repeat_runs").is_none());
+    assert!(quality.get("slow_test_threshold").is_none());
+    tree.write(
+        "ici.toml",
+        "schema_version=2\n[engines.test.quality]\nrepeat=3\nrepeat_runs=2\n",
+    );
+    assert!(tree.failure().message.contains("declare only one"));
+}
 
 #[test]
 fn fixed_fixture_contracts_and_former_init_exclude_bug() {
