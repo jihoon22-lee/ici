@@ -2,7 +2,32 @@ use crate::parser::ParsedFile;
 use ruff_python_ast::visitor::source_order::{SourceOrderVisitor, TraversalSignal};
 use ruff_python_ast::visitor::{self, Visitor};
 use ruff_python_ast::{self as ast, AnyNodeRef, Expr, ExprContext, Stmt};
+use ruff_text_size::{Ranged, TextRange};
 use std::collections::BTreeSet;
+
+/// CPython function locations start at async/def, excluding decorators.
+pub fn function_range(file: &ParsedFile, function: &ast::StmtFunctionDef) -> TextRange {
+    let after_decorator = function
+        .decorator_list
+        .last()
+        .map_or(function.range().start(), |decorator| {
+            decorator.range().end()
+        });
+    let start = file
+        .parsed
+        .tokens()
+        .iter()
+        .find(|token| {
+            token.range().start() >= after_decorator
+                && token.range().start() <= function.name.range().start()
+                && matches!(
+                    token.kind(),
+                    ast::token::TokenKind::Def | ast::token::TokenKind::Async
+                )
+        })
+        .map_or(function.range().start(), |token| token.range().start());
+    TextRange::new(start, function.range().end())
+}
 
 pub fn functions(file: &ParsedFile) -> Vec<&ast::StmtFunctionDef> {
     struct Collector<'a>(Vec<&'a ast::StmtFunctionDef>);

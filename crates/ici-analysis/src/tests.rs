@@ -99,6 +99,43 @@ fn dead_code_matches_frozen_targets_and_reviewed_corrections() {
         }
     }
 }
+
+#[test]
+fn explicit_annotation_projection_preserves_optin_and_nested_definitions() {
+    let fixtures: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/annotations.json"
+    ))
+    .unwrap();
+    for case in fixtures["cases"].as_array().unwrap() {
+        let mut input = request("type", case["source"].as_str().unwrap());
+        input.options = json!({"legacy_projection":true,"warn_on_missing_annotation":case["warn_on_missing_annotation"]});
+        let output = analyze(&input);
+        if case["incomplete"] == true {
+            assert_eq!(output.observation.state, TaskState::Failed);
+            assert_eq!(output.status, "ERROR");
+            continue;
+        }
+        let mut actual: Vec<_> = output.targets.iter().filter(|target| target.status=="WARN").map(|target| json!({"line":target.start_line,"name":target.target_name,"status":target.status,"message":target.message})).collect();
+        let mut expected = case["original_targets"].as_array().unwrap().clone();
+        actual.sort_by_key(|row| row["line"].as_u64());
+        expected.sort_by_key(|row| row["line"].as_u64());
+        assert_eq!(actual, expected, "{}", case["id"]);
+        assert!(
+            output
+                .targets
+                .iter()
+                .any(|target| target.target_name == "AnnotationCoverage")
+        );
+        assert_eq!(output.observation.findings.len(), actual.len());
+    }
+    let output = analyze(&request("type", "def f():\n    pass\n"));
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert!(
+        output.targets[0]
+            .message
+            .contains("explicit legacy_projection")
+    );
+}
 #[test]
 fn metrics_match_fixed_python_formulas() {
     let fixtures: Value = serde_json::from_str(include_str!(

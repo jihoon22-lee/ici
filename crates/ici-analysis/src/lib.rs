@@ -1,4 +1,5 @@
 //! Native analyses over immutable source snapshots; no process or filesystem fallback.
+mod annotations;
 mod ast_util;
 mod cycle;
 mod dead;
@@ -61,6 +62,7 @@ impl AnalysisSession {
             "security" | "resource" | "exception" => "ici.hygiene",
             "dead" => "ici.deadcode",
             "compat" => "ici.compat",
+            "type" => "ici.type",
             _ => "ici.analysis",
         };
         let mut output = AnalysisOutput::new(&request.task_id, provider);
@@ -113,7 +115,14 @@ impl AnalysisSession {
         }
         if !matches!(
             kind,
-            "complexity" | "cognitive" | "security" | "resource" | "exception" | "cycle" | "dead"
+            "complexity"
+                | "cognitive"
+                | "security"
+                | "resource"
+                | "exception"
+                | "cycle"
+                | "dead"
+                | "type"
         ) {
             failure(
                 &mut output,
@@ -121,6 +130,25 @@ impl AnalysisSession {
                 &SourceError::new(
                     "implementation-pending",
                     format!("Native {} rule is not implemented yet", request.check_id),
+                ),
+            );
+            return output;
+        }
+        if kind == "type"
+            && !["legacy_projection", "annotation_only"].iter().any(|key| {
+                request
+                    .options
+                    .get(key)
+                    .and_then(serde_json::Value::as_bool)
+                    == Some(true)
+            })
+        {
+            failure(
+                &mut output,
+                ".",
+                &SourceError::new(
+                    "annotation-projection-required",
+                    "Native annotation coverage requires explicit legacy_projection or annotation_only; use the configured external provider for type checking",
                 ),
             );
             return output;
@@ -230,6 +258,7 @@ impl AnalysisSession {
             "exception" => exception::analyze(request, &files, &mut output, cancellation),
             "cycle" => cycle::analyze(request, &files, &mut output, cancellation),
             "dead" => dead::analyze(request, &files, &mut output, cancellation),
+            "type" => annotations::analyze(request, &files, &mut output, cancellation),
             _ => metrics::analyze(request, &files, &mut output, cancellation),
         }
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);

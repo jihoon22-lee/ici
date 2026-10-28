@@ -5,7 +5,6 @@ use ici_domain::{AnalysisOutput, AnalysisRequest, Finding, Measurement};
 use ruff_python_ast::visitor::source_order::{SourceOrderVisitor, TraversalSignal};
 use ruff_python_ast::visitor::{self, Visitor};
 use ruff_python_ast::{self as ast, AnyNodeRef, Expr, Stmt};
-use ruff_text_size::Ranged;
 use serde_json::json;
 use std::sync::Arc;
 
@@ -43,26 +42,7 @@ pub fn scan(file: &ParsedFile) -> Vec<FunctionMetric> {
             };
             metric.signature(function);
             metric.visit_body(&function.body);
-            let after_decorator = function
-                .decorator_list
-                .last()
-                .map_or(function.range().start(), |decorator| {
-                    decorator.range().end()
-                });
-            let start = file
-                .parsed
-                .tokens()
-                .iter()
-                .find(|token| {
-                    token.range().start() >= after_decorator
-                        && token.range().start() <= function.name.range().start()
-                        && matches!(
-                            token.kind(),
-                            ast::token::TokenKind::Def | ast::token::TokenKind::Async
-                        )
-                })
-                .map_or(function.range().start(), |token| token.range().start());
-            let range = ruff_text_size::TextRange::new(start, function.range().end());
+            let range = crate::ast_util::function_range(file, function);
             FunctionMetric {
                 name: function.name.to_string(),
                 range,

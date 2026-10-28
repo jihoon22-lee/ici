@@ -136,3 +136,14 @@ remain covered. Incomplete parsing produces ERROR with inspected healthy-file
 SKIP targets and no guessed unused-symbol findings. All private-symbol findings
 remain ESTIMATED. Twenty-one native tests and scoped Clippy/fmt passed; the
 `dead_oracle.py` script verifies the original evidence without regenerating it.
+
+## Explicit legacy annotation coverage
+
+`annotations.json` preserves seven frozen-source cases for the opt-in missing
+return annotation warning, including nested, async, decorated and Unicode
+functions and dunder exclusions. `python.type` in this native pack requires
+`legacy_projection=true` or `annotation_only=true`; it cannot silently stand in
+for an external type checker. All inspected files now have coverage targets,
+and invalid syntax is incomplete rather than silently ignored by the old
+fallback. Warnings preserve their original lines/names/messages. This rule
+checks annotation presence only and its findings remain ESTIMATED.
