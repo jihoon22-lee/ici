@@ -103,3 +103,16 @@ fn process_completion_does_not_imply_complete_evidence() {
     assert!(task.validate().is_err());
     assert_eq!(GateVerdict::Incomplete.exit_code(), 3);
 }
+#[test]
+fn inclusive_display_spans_validate_single_and_multiple_lines() {
+    let mut span = SourceSpan::line("한글.py", 2);
+    span.start_column = Some(4);
+    span.end_column = Some(4);
+    assert!(span.validate().is_ok());
+    span.end_column = Some(3);
+    assert!(span.validate().is_err());
+    span.end_line = Some(3);
+    assert!(span.validate().is_ok());
+    span.end_column = Some(0);
+    assert!(span.validate().is_err());
+}

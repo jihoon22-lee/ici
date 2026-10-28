@@ -5,6 +5,8 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+/// Project-relative display span with 1-based Unicode character columns and inclusive endpoints.
+/// Parser byte ranges and SARIF's exclusive end columns must be converted at their adapters.
 pub struct SourceSpan {
     pub path: String,
     pub start_line: u32,
@@ -41,6 +43,14 @@ impl Validate for SourceSpan {
             self.start_column.is_none_or(|col| col > 0)
                 && self.end_column.is_none_or(|col| col > 0),
             "columns must be 1-indexed",
+        )?;
+        validation::require(
+            self.end_line.unwrap_or(self.start_line) != self.start_line
+                || self
+                    .start_column
+                    .zip(self.end_column)
+                    .is_none_or(|(start, end)| end >= start),
+            "same-line end column precedes start",
         )
     }
 }

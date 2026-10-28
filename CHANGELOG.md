@@ -28,6 +28,8 @@
   snapshot과 입력 drift, finding 소유권·advisory/완결성 구분, 보수적 baseline 비교를 추가합니다.
   자체 Python 분석의 파서·scope·줄 수·복잡도 기반도 구현 중이며, 전체 CLI/규칙 parity와
   native 단일 제품 인수·공개는 아직 완료되지 않았습니다.
+- native domain의 위치를 기존 계약과 같은 1-based Unicode inclusive 범위로 명시하고,
+  같은 줄에서 종료 열이 시작 열보다 앞선 증거를 거부합니다.
 
 ## [0.13.0] - 2026-10-28
 
