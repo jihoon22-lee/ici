@@ -106,13 +106,22 @@ impl TaskOutcome {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Runner {
     inherited_env: BTreeMap<String, String>,
+    available_env: BTreeMap<String, String>,
     bundle_root: Option<PathBuf>,
     pub poll_interval: Duration,
     pub terminate_grace: Duration,
     pub drain_grace: Duration,
+}
+impl std::fmt::Debug for Runner {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Runner")
+            .field("bundle_root", &self.bundle_root)
+            .field("poll_interval", &self.poll_interval)
+            .finish_non_exhaustive()
+    }
 }
 impl Default for Runner {
     fn default() -> Self {
@@ -130,11 +139,13 @@ impl Runner {
     pub fn with_environment(environment: BTreeMap<String, String>) -> Self {
         let bundle_root = environment.get("ICI_BUNDLE_ROOT").map(PathBuf::from);
         let inherited_env = environment
+            .clone()
             .into_iter()
             .filter(|(key, _)| inherit_key(key))
             .collect();
         Self {
             inherited_env,
+            available_env: environment,
             bundle_root,
             poll_interval: Duration::from_millis(10),
             terminate_grace: Duration::from_millis(250),
@@ -142,7 +153,18 @@ impl Runner {
         }
     }
     pub fn environment(&self, task: &TaskSpec) -> BTreeMap<String, String> {
-        let mut environment = self.inherited_env.clone();
+        let mut environment = if let Some(names) = &task.env_inherit {
+            names
+                .iter()
+                .filter_map(|name| {
+                    self.available_env
+                        .get(name)
+                        .map(|value| (name.clone(), value.clone()))
+                })
+                .collect()
+        } else {
+            self.inherited_env.clone()
+        };
         environment.extend(task.env_overlay.clone());
         for key in [
             "ICI_BUNDLE_ROOT",

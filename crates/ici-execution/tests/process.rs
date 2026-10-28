@@ -36,6 +36,40 @@ fn captures_raw_binary_and_separates_completed_nonzero_exit() {
     assert!(!output.prerequisite_succeeded());
 }
 #[test]
+fn explicit_environment_allowlist_is_enforced_in_the_actual_child() {
+    let root = tempfile::tempdir().unwrap();
+    let runner = Runner::with_environment(BTreeMap::from([
+        ("ICI_TEST_KEEP".into(), "kept".into()),
+        ("ICI_TEST_PRIVATE".into(), "must not inherit".into()),
+    ]));
+    let mut task = TaskSpec::command(
+        "env",
+        "fixture",
+        vec!["/usr/bin/env".into()],
+        root.path().to_string_lossy(),
+    );
+    task.env_inherit = Some(vec!["ICI_TEST_KEEP".into()]);
+    task.env_overlay
+        .insert("ICI_TEST_ADDED".into(), "explicit".into());
+    let outcome = runner.run(&task, &Cancellation::default());
+    assert!(outcome.completed(), "{outcome:?}");
+    let text = String::from_utf8(outcome.stdout).unwrap();
+    assert!(text.contains("ICI_TEST_KEEP=kept\n"));
+    assert!(text.contains("ICI_TEST_ADDED=explicit\n"));
+    assert!(!text.contains("ICI_TEST_PRIVATE"));
+    let inherited_digest = runner.environment_digest(&task);
+    let restricted_share = task.share_key().unwrap();
+    task.env_inherit = Some(vec![]);
+    let outcome = runner.run(&task, &Cancellation::default());
+    assert_eq!(
+        String::from_utf8(outcome.stdout).unwrap(),
+        "ICI_TEST_ADDED=explicit\n"
+    );
+    task.env_inherit = None;
+    assert_ne!(inherited_digest, runner.environment_digest(&task));
+    assert_ne!(restricted_share, task.share_key().unwrap());
+}
+#[test]
 fn output_flood_is_bounded_and_never_complete() {
     let root = tempfile::tempdir().unwrap();
     let mut specification = task(root.path(), "flood", &[]);

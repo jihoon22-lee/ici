@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+- 명시 integration 환경 allowlist를 실제 자식 프로세스에 적용합니다. 빈 목록은 주변 환경을
+  상속하지 않고 명시 overlay만 전달하며, 일반 도구 실행의 기존 기본 환경 정책은 유지합니다.
+
 - native C++ CLI가 기록된 각 compilation unit과 variant를 실제 컴파일러로 검사하고,
   진단의 원래 소유권·Unicode 위치를 보존합니다. unity include 증거와 선언된 artifact를
   별도로 확인하며 미확인 header closure는 cache/resolved 근거로 쓰지 않습니다.

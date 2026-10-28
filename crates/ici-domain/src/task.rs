@@ -15,6 +15,9 @@ pub struct TaskSpec {
     pub analysis_unit_ids: Vec<String>,
     #[serde(default)]
     pub env_overlay: BTreeMap<String, String>,
+    /// None inherits the caller's environment; Some explicitly lists inherited keys.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub env_inherit: Option<Vec<String>>,
     #[serde(default)]
     pub input_refs: Vec<String>,
     #[serde(default)]
@@ -48,6 +51,7 @@ impl TaskSpec {
             cwd: cwd.into(),
             analysis_unit_ids: vec![],
             env_overlay: BTreeMap::new(),
+            env_inherit: None,
             input_refs: vec![],
             output_specs: vec![],
             depends_on: vec![],
@@ -105,6 +109,15 @@ impl Validate for TaskSpec {
                 !name.is_empty() && !name.contains(['=', '\0']) && !value.contains('\0'),
                 "invalid environment overlay",
             )?;
+        }
+        if let Some(names) = &self.env_inherit {
+            validation::unique(names, "inherited environment key")?;
+            for name in names {
+                validation::require(
+                    !name.is_empty() && !name.contains(['=', '\0']),
+                    "invalid inherited environment key",
+                )?;
+            }
         }
         Ok(())
     }

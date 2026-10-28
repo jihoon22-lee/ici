@@ -414,3 +414,15 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   unsupported by the core decoder limits source geometry but does not suppress independently
   completed runtime/import/test evidence. The test also retains failing-suite/shared-coverage
   then fixed-baseline behavior; Python remains an external project tool.
+
+### Declared child environment boundary
+
+- TaskSpec can explicitly select inherited environment keys (`None` retains the ordinary bounded
+  default; an empty list inherits none). Filtering occurs before explicit overlays and bundle
+  environment isolation. Custom keys are available only when explicitly requested. Runner Debug
+  omits environment values. Effective environment and the task sharing identity both change with
+  this selection.
+- `environment-isolation-gates.log` passed domain/execution tests, strict Clippy and scoped fmt.
+  The actual `/usr/bin/env` child verifies an allowed custom key, overlay, omitted private key,
+  and empty inheritance. The first regression exposed constructor filtering of custom keys;
+  retaining a private environment snapshot for explicit allowlists corrected that failure.
