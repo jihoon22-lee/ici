@@ -134,9 +134,35 @@ explicit preparation switches inspection to an owned shadow.
 
 Compilation policy inspects each expanded recorded configuration for exact
 `required_flags`/`forbidden_flags` tokens, including response-file arguments.
-Each violation retains its TU/configuration identity. Without a selected DB,
-the optional contract reports located estimated coverage warnings; an explicit
+Each violation retains its TU/configuration identity. Legacy commands without a
+selected DB report located estimated coverage warnings; an explicit
 `database_required` absence is a measured policy violation while compilation
-coverage remains estimated. Missing/broken explicit selections never use that
-fallback. `compile_policy.rs` and the native CLI regression exercise these
-positive, negative and failure boundaries without invoking a compiler.
+coverage remains estimated. Modern `cpp.compile` stays incomplete without its
+recorded DB. Missing/broken explicit selections never use a fallback.
+`compile_policy.rs` and the native CLI regression exercise these boundaries.
+
+The legacy `lint` syntax fallback is separate: real GCC runs C++17 syntax checks
+with project include directories and ordered, visibly planned `pkg-config
+--cflags` probes. It writes no DB, object, or build directory. The actual native
+fixture preserves `-D`/`-U` ordering, package headers, estimated diagnostics,
+changed configuration scope after `.pc` edits, unsafe-option refusal, and modern
+and explicit-selection boundaries. Recorded DB commands receive no package
+flags from this fallback. Standalone binary build and sanitizer consumers remain
+open; this fixture does not establish their parity.
+
+Explicit components inherit root `project.compile_database` with origin and
+environment expansion; a held prepared context overrides that selection. A
+legacy production coverage check excludes existing `cpp_external_build_dirs`
+without dropping those files from text analysis or ignoring recorded unit flag
+policies. Modern coverage keeps its full selected scope. Compiler diagnostic
+replays preserve valid partial observations and mark uncovered sources as
+incomplete. A real unity fixture only completes after the compiler include
+trace establishes both original source memberships.
+
+Generated and vendor ownership are independent options using the shared frozen
+casefold classifier. A file with both properties requires both opt-ins. Native
+GCC and CLI cases cover all four option combinations; an all-excluded duplicate
+scope returns located SKIP/NotApplicable, with no measured zero duplication.
+Cycle report limits cap emitted groups and include diagnostic targets while
+retaining full graph and cycle counts. Legacy line gates use strict `>` cutoffs,
+separate source/all-file totals, and preserve language labels for extra files.

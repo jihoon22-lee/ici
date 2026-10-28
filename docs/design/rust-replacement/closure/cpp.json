@@ -1458,9 +1458,10 @@
         ]
       },
       "evidence": [
-        "cargo test -p ici-cpp --test compile_policy --locked -j2 -- --test-threads=2; both tests passed, plus common CLI policy assertion and strict Clippy in cpp-compile-policy-final.log at 6237462."
+        "cargo test -p ici-cpp --test compile_policy --locked -j2 -- --test-threads=2; both tests passed, plus common CLI policy assertion and strict Clippy in cpp-compile-policy-final.log at 6237462.",
+        "a44ae19: cpp-applicability-policy-final.log validates actual modern absence Incomplete, legacy optional WARN and required FAIL, both expanded flag violations, and strict C++/CLI Clippy."
       ],
-      "comparison": "Frozen CompileDatabaseEngine._configuration_targets token membership and run database_required branches were read and implemented; legacy and modern missing-DB behavior must remain distinct. The follow-up legacy_projection correction is local and must be gated before closure.",
+      "comparison": "Frozen CompileDatabaseEngine.run database_required branches are implemented with distinct legacy and modern behavior. Only legacy projection permits absent implicit DB as located WARN/estimated coverage or required FAIL; modern cpp.compile remains incomplete. Explicit missing/malformed selection never takes the fallback.",
       "difference_reason": "Only explicit database absence is a measured policy violation. Coverage without a DB remains estimated. Malformed/missing explicit selection remains execution/evidence failure; no guessed compiler flags are created."
     },
     "config_key:legacy:engines.compile_db.enabled": {
@@ -1666,16 +1667,29 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.cycle.max_reported": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/cycles.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/native_cpp.rs::cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/source.rs::cycle_report_limit_caps_groups_and_diagnostics_without_changing_graph_counts",
+          "crates/ici-cpp/tests/compiler.rs::compiler_include_graphs_never_merge_incompatible_variant_edges_into_a_cycle"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_cpp.rs::cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero"
+        ]
       },
-      "evidence": [],
-      "comparison": "Current lexical and compiler include-cycle observers do not cap reported cycle groups/diagnostics by the frozen option.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "4666db9: cpp-cycle-limit-cli-final.log actual CLI 14.37 s and strict C++/CLI Clippy passed; source 10/compiler 8 scoped tests passed."
+      ],
+      "comparison": "Read frozen cycles._append_cpp_cycle_targets and _append_include_diagnostic_targets: positive max_reported defaults to 20 and caps emitted cycle groups and include diagnostic targets; every configuration graph and total cycles_found remains intact. Lexical and compiler paths expose reported/truncated counts, and zero is rejected.",
+      "difference_reason": "The cap is verified without truncating raw graph evidence or inventing a clean zero count. This is not a claim that every legacy cycle target/message/SCC path contract has been reviewed."
     },
     "config_key:legacy:engines.cycle.mode": {
       "status": "not_started",
@@ -1750,28 +1764,50 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.dead.include_generated": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cpp/src/linker.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension",
+          "crates/ici-cpp/tests/duplicates.rs::generated_and_vendor_opt_ins_are_independent_and_keep_both_exclusion_reasons"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Generated/vendor opt-in flags are accepted but current C++ source/reachability exclusion helpers do not consume both policy dimensions.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "2b96d18 and 4666db9: actual GCC and actual CLI four-way policy effects; cpp-source-policy-final.log (compiler 8, duplicates 5, linker 2), cpp-source-policy-cli-final.log (27.99 s), cpp-dead-source-policy-cli-final.log (29.44 s); strict scoped Clippy passed."
+      ],
+      "comparison": "Read frozen read_analysis_sources/analysis_exclusion_reasons and the C++ callers in DuplicateEngine/DeadCodeEngine. Both source attributes are classified independently with the shared Unicode casefold classifier; a source carrying both properties requires both opt-ins. Selected excluded paths remain located SKIP evidence; accepting the key alone is not the proof.",
+      "difference_reason": "C++ source-policy effects are verified; this row is not closure of the entire dead/duplicate descriptor or source-intake bounds. Direct binary build/sanitizer consumers remain under separate open rows."
     },
     "config_key:legacy:engines.dead.include_vendor": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cpp/src/linker.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension",
+          "crates/ici-cpp/tests/duplicates.rs::generated_and_vendor_opt_ins_are_independent_and_keep_both_exclusion_reasons"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Generated/vendor opt-in flags are accepted but current C++ source/reachability exclusion helpers do not consume both policy dimensions.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "2b96d18 and 4666db9: actual GCC and actual CLI four-way policy effects; cpp-source-policy-final.log (compiler 8, duplicates 5, linker 2), cpp-source-policy-cli-final.log (27.99 s), cpp-dead-source-policy-cli-final.log (29.44 s); strict scoped Clippy passed."
+      ],
+      "comparison": "Read frozen read_analysis_sources/analysis_exclusion_reasons and the C++ callers in DuplicateEngine/DeadCodeEngine. Both source attributes are classified independently with the shared Unicode casefold classifier; a source carrying both properties requires both opt-ins. Selected excluded paths remain located SKIP evidence; accepting the key alone is not the proof.",
+      "difference_reason": "C++ source-policy effects are verified; this row is not closure of the entire dead/duplicate descriptor or source-intake bounds. Direct binary build/sanitizer consumers remain under separate open rows."
     },
     "config_key:legacy:engines.dead.mode": {
       "status": "not_started",
@@ -1834,28 +1870,56 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.dup.include_generated": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cpp/src/source.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/native_cpp.rs::generated_and_vendor_duplicate_options_change_actual_selected_cpp_findings"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_cpp.rs::generated_and_vendor_duplicate_options_change_actual_selected_cpp_findings",
+          "crates/ici-cpp/tests/duplicates.rs::generated_and_vendor_opt_ins_are_independent_and_keep_both_exclusion_reasons",
+          "crates/ici-cli/tests/native_cpp.rs::all_excluded_cpp_duplicate_scope_is_not_applicable_through_cli"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_cpp.rs::generated_and_vendor_duplicate_options_change_actual_selected_cpp_findings"
+        ]
       },
-      "evidence": [],
-      "comparison": "Generated/vendor opt-in flags are accepted but current C++ source exclusion is unconditional.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "2b96d18 and 4666db9: actual GCC and actual CLI four-way policy effects; cpp-source-policy-final.log (compiler 8, duplicates 5, linker 2), cpp-source-policy-cli-final.log (27.99 s), cpp-dead-source-policy-cli-final.log (29.44 s); strict scoped Clippy passed.",
+        "cpp-excluded-only-final.log: six C++ duplicate tests and strict Clippy passed; cpp-excluded-only-cli-final.log actual all-excluded CLI scope returned located SKIP/NotApplicable in 8.48 s; strict CLI Clippy passed."
+      ],
+      "comparison": "Read frozen read_analysis_sources/analysis_exclusion_reasons and the C++ callers in DuplicateEngine/DeadCodeEngine. Both source attributes are classified independently with the shared Unicode casefold classifier; a source carrying both properties requires both opt-ins. Selected excluded paths remain located SKIP evidence; accepting the key alone is not the proof.",
+      "difference_reason": "C++ source-policy effects are verified; this row is not closure of the entire dead/duplicate descriptor or source-intake bounds. Direct binary build/sanitizer consumers remain under separate open rows."
     },
     "config_key:legacy:engines.dup.include_vendor": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cpp/src/source.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/native_cpp.rs::generated_and_vendor_duplicate_options_change_actual_selected_cpp_findings"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_cpp.rs::generated_and_vendor_duplicate_options_change_actual_selected_cpp_findings",
+          "crates/ici-cpp/tests/duplicates.rs::generated_and_vendor_opt_ins_are_independent_and_keep_both_exclusion_reasons",
+          "crates/ici-cli/tests/native_cpp.rs::all_excluded_cpp_duplicate_scope_is_not_applicable_through_cli"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_cpp.rs::generated_and_vendor_duplicate_options_change_actual_selected_cpp_findings"
+        ]
       },
-      "evidence": [],
-      "comparison": "Generated/vendor opt-in flags are accepted but current C++ source exclusion is unconditional.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "2b96d18 and 4666db9: actual GCC and actual CLI four-way policy effects; cpp-source-policy-final.log (compiler 8, duplicates 5, linker 2), cpp-source-policy-cli-final.log (27.99 s), cpp-dead-source-policy-cli-final.log (29.44 s); strict scoped Clippy passed.",
+        "cpp-excluded-only-final.log: six C++ duplicate tests and strict Clippy passed; cpp-excluded-only-cli-final.log actual all-excluded CLI scope returned located SKIP/NotApplicable in 8.48 s; strict CLI Clippy passed."
+      ],
+      "comparison": "Read frozen read_analysis_sources/analysis_exclusion_reasons and the C++ callers in DuplicateEngine/DeadCodeEngine. Both source attributes are classified independently with the shared Unicode casefold classifier; a source carrying both properties requires both opt-ins. Selected excluded paths remain located SKIP evidence; accepting the key alone is not the proof.",
+      "difference_reason": "C++ source-policy effects are verified; this row is not closure of the entire dead/duplicate descriptor or source-intake bounds. Direct binary build/sanitizer consumers remain under separate open rows."
     },
     "config_key:legacy:engines.dup.min_window": {
       "status": "not_started",
@@ -2002,16 +2066,28 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.line.fail_limit": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_scope.rs::actual_cpp_line_command_retains_extras_labels_and_scoped_thresholds"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/source.rs::legacy_line_policy_uses_strict_cutoffs_scope_gates_null_limits_and_extra_languages"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_scope.rs::legacy_warn_and_fail_modes_keep_measured_findings_and_their_exit_contract"
+        ]
       },
-      "evidence": [],
-      "comparison": "Legacy line gates/include/exclude paths and strict cutoff need C++ consumption/evidence; shared/non-C++ extra-file statistics remain a separate parent review.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "260e781: cpp-line-policy-final.log source 9 tests and strict C++ Clippy passed; 884d0c8 adds actual legacy line CLI scope/extra/language/exit fixtures."
+      ],
+      "comparison": "Frozen LineCountEngine._classify uses strict > cutoffs only for gated source paths. Equal cutoffs pass; null API thresholds disable the corresponding limit. Source totals and all-file totals remain separate; source/extra flags and comments/blank counts are retained. The shared legacy input collector owns include/exclude/gate classification and prevents duplicate extra ownership in hybrid scope.",
+      "difference_reason": "The C++ threshold path is verified, including mixed extra-file counting in the actual C++ line command. Full descriptor and all source-file review remain open until their separate exact rows are reconciled."
     },
     "config_key:legacy:engines.line.gate_dirs": {
       "status": "difference_review",
@@ -2062,16 +2138,28 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.line.warn_limit": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_scope.rs::actual_cpp_line_command_retains_extras_labels_and_scoped_thresholds"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/source.rs::legacy_line_policy_uses_strict_cutoffs_scope_gates_null_limits_and_extra_languages"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_scope.rs::legacy_warn_and_fail_modes_keep_measured_findings_and_their_exit_contract"
+        ]
       },
-      "evidence": [],
-      "comparison": "Legacy line gates/include/exclude paths and strict cutoff need C++ consumption/evidence; shared/non-C++ extra-file statistics remain a separate parent review.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "260e781: cpp-line-policy-final.log source 9 tests and strict C++ Clippy passed; 884d0c8 adds actual legacy line CLI scope/extra/language/exit fixtures."
+      ],
+      "comparison": "Frozen LineCountEngine._classify uses strict > cutoffs only for gated source paths. Equal cutoffs pass; null API thresholds disable the corresponding limit. Source totals and all-file totals remain separate; source/extra flags and comments/blank counts are retained. The shared legacy input collector owns include/exclude/gate classification and prevents duplicate extra ownership in hybrid scope.",
+      "difference_reason": "The C++ threshold path is verified, including mixed extra-file counting in the actual C++ line command. Full descriptor and all source-file review remain open until their separate exact rows are reconciled."
     },
     "config_key:legacy:engines.lint": {
       "status": "not_started",
@@ -2907,40 +2995,73 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:project.compile_database": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-config/src/model.rs",
+        "crates/ici-cli/src/compilation_command.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/native_cpp.rs::explicit_components_inherit_origin_resolved_global_database_and_prepared_override_wins"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/compilation_commands.rs::explicit_database_failure_and_ambiguous_selection_never_prepare_or_fallback"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:63).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "8db1f48: cpp-global-config-final.log actual CLI common application selector 7.63 s; cpp-fallback-native-final.log actual GCC/pkg-config fallback and explicit selection refusal 29.29 s; cpp-fallback-config-final.log 35 configuration tests plus strict CLI/config Clippy passed."
+      ],
+      "comparison": "Root project.compile_database is inherited even by explicitly declared components, expanded with the same origin/environment resolver as read-only inspection. A prepared component override wins. A selected missing DB never falls back to an unselected sibling DB, preparation, or heuristic syntax fallback.",
+      "difference_reason": "Public v1 compilation export still has its separately frozen full-payload corpus. This selector row does not close the whole compile-context capability."
     },
     "config_key:legacy:project.cpp_external_build_dirs": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cpp/src/compiler.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/native_cpp.rs::legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_cpp.rs::legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_cpp.rs::legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:63).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "a474bb0: cpp-external-scope-final.log actual common CLI legacy/modern scope and recorded external flag-policy cases passed in 28.79 s; strict C++/CLI Clippy passed."
+      ],
+      "comparison": "Frozen get_cpp_external_build_dirs/get_compilable_cpp_sources and CompileDatabaseEngine were read: existing configured directories exclude legacy production coverage only while recorded unit flag policies and source-reading inventories retain them. Legacy direct binary build/sanitizer scope consumers remain open.",
+      "difference_reason": "The implemented source/metadata path is explicit; no standalone binary producer or sanitizer parity is claimed from CMake/qmake support or accepted configuration."
     },
     "config_key:legacy:project.cpp_pkg_config": {
       "status": "difference_review",
-      "rust_paths": [],
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/fallback.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
+        ]
       },
-      "evidence": [],
-      "comparison": "Accepted configuration has no native pkg-config probe/observed cflags integration yet; legacy direct compiler scope without a DB also needs review.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "8db1f48: actual GCC/pkg-config ordered two-package CLI acceptance, changed .pc -> changed configuration scope/estimated compiler diagnostic, unsafe plugin flags refused, modern and explicit missing DB not downgraded; 29.29 s and strict Clippy passed."
+      ],
+      "comparison": "Legacy lint syntax fallback now observes ordered visible pkg-config --cflags probes and positive-policy sanitized actual compiler argv. No package flags are injected into recorded DB invocations. Legacy standalone binary build and sanitizer compilation consumers remain absent and must be implemented before this key is closed.",
+      "difference_reason": "The implemented source/metadata path is explicit; no standalone binary producer or sanitizer parity is claimed from CMake/qmake support or accepted configuration."
     },
     "config_key:legacy:project.source_dirs": {
       "status": "not_started",
@@ -5560,15 +5681,14 @@
       "finding_site": 134
     },
     "known_open_families": {
-      "engines.line.": "Legacy line gates/include/exclude paths and strict cutoff need C++ consumption/evidence; shared/non-C++ extra-file statistics remain a separate parent review.",
-      "engines.dead.include_": "Generated/vendor opt-in flags are accepted but current C++ source/reachability exclusion helpers do not consume both policy dimensions.",
-      "engines.dup.include_": "Generated/vendor opt-in flags are accepted but current C++ source exclusion is unconditional.",
-      "engines.cycle.max_reported": "Current lexical and compiler include-cycle observers do not cap reported cycle groups/diagnostics by the frozen option.",
-      "project.cpp_pkg_config": "Accepted configuration has no native pkg-config probe/observed cflags integration yet; legacy direct compiler scope without a DB also needs review.",
+      "engines.line.": "Strict thresholds and shared source/gate/extra intake are implemented and covered by actual CLI fixtures; full descriptor/source-file review is still independent of those key-level proofs.",
+      "project.cpp_pkg_config": "Legacy lint syntax fallback and observed ordered package flags are implemented; standalone binary build and sanitizer consumers still need implementation and exact acceptance.",
       "build.make.": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "engines.test.changed_lines": "Generic Gcov raw executed/missing policy supports this, but C++ binder wiring and actual positive/negative/failure fixture are not yet gated.",
-      "engines.test.min_changed_line_cov": "Generic Gcov supports this; C++ binder wiring is currently local/uncommitted and actual CLI acceptance is pending.",
-      "engines.test.min_tem_score": "Generic Gcov TEM exists; C++ binder wiring is currently local/uncommitted and actual CLI acceptance is pending."
+      "engines.test.changed_lines": "C++ bindings now consume this option and the real CMake/CTest/gcov positive CLI proof passed at c3953eb. R6 validation.json owns complete positive/negative/failure acceptance for test-policy rows.",
+      "engines.test.min_changed_line_cov": "C++ bindings now consume this option and the real CMake/CTest/gcov positive CLI proof passed at c3953eb. R6 validation.json owns complete positive/negative/failure acceptance for test-policy rows.",
+      "engines.test.min_tem_score": "C++ bindings now consume this option and the real CMake/CTest/gcov positive CLI proof passed at c3953eb. R6 validation.json owns complete positive/negative/failure acceptance for test-policy rows.",
+      "project.cpp_external_build_dirs": "Legacy compile coverage preserves the binary/source scope distinction; standalone binary build/sanitizer consumers remain open.",
+      "source_intake.bounds": "Generated/vendor policy now shares the exact classifier; full frozen source intake file/candidate/byte limits and all-excluded/invalid-source paths require their own source audit."
     }
   }
 }
