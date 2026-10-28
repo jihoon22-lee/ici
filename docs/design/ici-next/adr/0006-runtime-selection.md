@@ -1,5 +1,9 @@
 # ADR-0006 — 런타임 후보로 PBS CPython 3.13.7을 채택하고 glibc 하한을 2.17로 기록한다
 
+> Rust 단일 제품의 core/runtime 선택은 [ADR-0008](0008-rust-native-replacement.md)로
+> 대체한다(2026-10-28). 이 문서의 CPython/PBS·glibc 측정은 과거 bundle 경로의
+> 역사적 근거이며 새 Rust 제품의 runtime fallback이나 지원 하한이 아니다.
+
 - 상태: **accepted (evidence pending)** — 방향과 하한은 실측. 최종 버전 고정은 현장 실행 후.
 - 결정 시점: WP01 ([#199](https://github.com/jihoon22-lee/ici/issues/199))
 - 근거: [spikes/wp01-runtime-environment.md §1·§2](../spikes/wp01-runtime-environment.md)

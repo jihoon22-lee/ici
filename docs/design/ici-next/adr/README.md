@@ -13,13 +13,15 @@
 
 | ADR | 제목 | 상태 |
 |---|---|---|
-|[0001](0001-keep-python-core.md)|Python 코어와 Typer/Rich를 유지한다|accepted|
-|[0002](0002-standalone-runtime-bundle.md)|전용 런타임을 포함한 압축 디렉터리로 배포한다|accepted (evidence pending)|
+|[0001](0001-keep-python-core.md)|Python 코어와 Typer/Rich를 유지한다|Rust 제품에서는 ADR-0008로 대체; Python 공개판 역사 보존|
+|[0002](0002-standalone-runtime-bundle.md)|전용 런타임을 포함한 압축 디렉터리로 배포한다|Rust 제품에서는 ADR-0008로 대체; Python 공개판 역사 보존|
 |[0003](0003-agents-invariant-scoping.md)|AGENTS 불변식을 stable 경로 전용으로 범위 지정한다|accepted|
 |[0004](0004-check-provider-separation.md)|검사 관점(check)과 분석 제공자(provider)를 분리한다|accepted|
 |[0005](0005-tem-formula-freeze.md)|TEM 현행 수식을 그대로 동결하고 버전을 붙인다|accepted (evidence pending)|
-|[0006](0006-runtime-selection.md)|런타임 후보로 PBS CPython 3.13.7을 채택하고 glibc 하한을 2.17로 기록한다|accepted (evidence pending)|
+|[0006](0006-runtime-selection.md)|런타임 후보로 PBS CPython 3.13.7을 채택하고 glibc 하한을 2.17로 기록한다|Rust 제품에서는 ADR-0008로 대체; 이전 bundle 실측 보존|
 |[0007](0007-project-test-provider.md)|테스트는 프로젝트의 pytest/coverage로 실행하고 overlay는 보류한다|accepted|
+
+|[0008](0008-rust-native-replacement.md)|Rust 단일 제품과 검증된 단일 cutover|accepted; R0 evidence recorded|
 
 ## 보류 항목 종합
 
