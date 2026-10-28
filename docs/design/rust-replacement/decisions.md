@@ -6,7 +6,7 @@
 |결정|고정 내용|근거/남은 제품 검증|
 |---|---|---|
 |규약|ADR-0008, AGENTS §10; Python gate는 R9까지 유지|기존 ADR-0001/2·SPEC-05에 대체 범위 표시|
-|합집합|[inventory](inventory.md), 고정 Git 객체에서 19 descriptor/36 check/CLI 37 nodes·115 parameters/config 319 keys 및 별도 계약 수집|1135 requirement/source-audit 행 초기 미완료; 행별 실제 증거 없이 closure 금지|
+|합집합|[inventory](inventory.md), 고정 Git 객체에서 19 descriptor/36 check/CLI 37 nodes·115 parameters/config 322 keys 및 별도 계약 수집|1138 requirement/source-audit 행 초기 미완료; 행별 실제 증거 없이 closure 금지|
 |parser 공급|Ruff 0.16.4 revision `11c76bf48fdac06b2f240cba502eda96da4dce77`, parser/AST crate 0.0.10, Rust 1.99.1|[37-case + CPython 3.10–3.14 비교 및 static 실행](parser-evaluation.md); 제품 scope/decoder/resource 한도는 R4|
 |구문·위치|기본 grammar 3.14, 명시 project target 3.10–3.14 검사. parse/unsupported/semantic 오류를 모두 처리|AST는 UTF-8 byte range; domain display는 1-based Unicode 문자 열. 비UTF8 원본 map은 adapter에서 보존; 범위 미확정은 incomplete|
 |probe|ADR-0008 version/sysconfig/import-only allowlist; qmake recorder는 Rust 내부 mode|프로젝트 Python 선택, -I/고정 script/argv/timeout/output cap; AST 규칙의 Python 우회 금지|
