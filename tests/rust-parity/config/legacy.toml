@@ -1,0 +1,18 @@
+# Preserve intent and comments when migrating this source.
+[ici]
+profile = "deep"
+[project]
+source_dirs = ["src"]
+[engines.line]
+warn_limit = 700
+[engines.test]
+python = "project-python"
+min_tem_score = 4.2
+[engines.binary_compat]
+max_glibc = "2.28"
+[engines.python_compat]
+interpreters = ["project-python"]
+required_interpreters = ["project-python"]
+imports = ["example.module"]
+wheel_globs = ["dist/*.whl"]
+wheel_policy = "pure"

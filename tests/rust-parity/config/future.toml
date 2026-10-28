@@ -1,0 +1,3 @@
+# An unknown future schema is never rewritten or silently reinterpreted.
+schema_version = 99
+profile = "standard"
