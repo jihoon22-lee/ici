@@ -1,5 +1,25 @@
 # ici Rust 전면 교체 실행 계획
 
+### Native evidence preservation follow-up (2026-10-29)
+
+- Coverage regression policy consumes typed raw ratios only after native baseline compatibility
+  and completed matching check scope. Synthetic findings are baseline-only; ordinary gates do
+  not change. Missing current or saved metric evidence refuses explicit `--fail-on-new` before
+  any replacement baseline is written. `root-coverage-baseline-native.log` records three real
+  pytest/coverage CLI runs in 33.49 s: original baseline, measured drop, missing rich snapshot.
+- C++ execution captures ABI headers before scheduling readelf. Physical inputs retained before
+  preparation are recaptured after provider rebinding and during final validation, including
+  their binary limits and code/configuration roles. Configuration scope uses parsed normalized
+  metadata identities while raw metadata and code bytes remain drift inputs. The actual legacy
+  ABI preparation regression passed in 10.51 s (`cpp-abi-scope-final2.log`).
+- Git queries appear in the plan and run before ici creates output files. Commit and clean/dirty
+  status are descriptive; captured bytes still supply the source/cache digest. Failed status,
+  invalid commit, timeout, or missing Git cannot claim clean. `root-vcs-scope-final.log` records
+  two Git cases, two coverage composition cases and one binary scope/preservation regression,
+  followed by strict transitive CLI/application Clippy.
+- These are bounded evidence corrections. Full frozen inventory, optional-coverage composition,
+  final candidate and public cutover remain open.
+
 ### Historical report intake follow-up (2026-10-29)
 
 - Caller-level publication audit restored the historical GitHub API default for legacy commands,

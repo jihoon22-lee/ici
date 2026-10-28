@@ -1,5 +1,6 @@
 pub mod artifact_build;
 pub mod commands;
+pub mod coverage_regression;
 pub mod compilation_command;
 pub mod doctor;
 pub mod events;
@@ -14,6 +15,7 @@ pub mod publish;
 pub mod registry;
 pub mod report;
 pub mod setup;
+pub mod vcs;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const DEFAULT_RESULT: &str = ".ici/rust-v1/result.json";

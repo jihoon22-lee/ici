@@ -140,12 +140,17 @@ pub fn execute(
     if let Some(path) = &events_path {
         validate_destination(path, true)?;
     }
+    let runner = Runner::with_environment(environment.clone());
+    // Observe the user's tree before our result/event artifacts can make it dirty.
+    let vcs = crate::vcs::inspect(&prepared.source_identity, &runner, cancellation);
     let events = EventLog::open(events_path.as_deref(), &run_id).map_err(error)?;
     events.emit("run.started", None, None, "capturing selected inputs");
-    let runner = Runner::with_environment(environment.clone());
     let mut scheduler = Scheduler::new(runner.clone(), 2);
     scheduler.lock_directory = Some(prepared.project.root.join(".ici/rust-v1/locks/tasks"));
     let mut limitations = vec![];
+    limitations.extend(vcs.limitation);
+    let mut input_limits = inputs::binary_limits(&prepared);
+    let mut code_input_paths = inputs::code_evidence_paths(&prepared);
     let (snapshot, intake_ok) = match inputs::capture(&prepared) {
         Ok(snapshot) => (snapshot, true),
         Err(failure) => {
@@ -182,6 +187,8 @@ pub fn execute(
         limitations: preparation_limits,
     } = preparation;
     prepared = resolved;
+    input_limits.extend(inputs::binary_limits(&prepared));
+    code_input_paths.extend(inputs::code_evidence_paths(&prepared));
     limitations.extend(preparation_limits);
     let core_digest =
         ici_execution::process::executable_digest(Path::new("/proc/self/exe")).map_err(error);
@@ -665,7 +672,8 @@ pub fn execute(
         &context_guards,
     )
     .and_then(|after| {
-        inputs::capture(&after).map(|new| !inputs::changed(&prepared, &after, &snapshot, &new))
+        inputs::capture_preserving(&after, &snapshot, &input_limits, &[])
+            .map(|new| !inputs::changed(&prepared, &after, &snapshot, &new))
     }) {
         Ok(stable) => intake_ok && preparation_verified && stable,
         Err(failure) => {
@@ -700,20 +708,23 @@ pub fn execute(
         |finding| suppressions.apply(finding),
     )
     .map_err(error)?;
-    let raw_fingerprints = verification.raw_fingerprints.clone();
+    let mut raw_fingerprints = verification.raw_fingerprints.clone();
     let checks = inputs::check_records(
         &prepared,
         &verification.observations,
         &snapshot,
         &outputs,
         &runner,
-        inputs_stable,
+        &inputs::InputVerification {
+            stable: inputs_stable,
+            code_paths: code_input_paths,
+        },
         core_known,
     )?;
     if let Some(failure) = events.failure() {
         limitations.push(failure);
     }
-    let mut source = snapshot.source(None, true);
+    let mut source = snapshot.source(vcs.commit, !vcs.clean);
     let selected: BTreeSet<_> = prepared
         .project
         .components
@@ -765,6 +776,17 @@ pub fn execute(
             ));
         }
         result.baseline = Some(comparison);
+        if let Some(document) = &baseline_document {
+            raw_fingerprints.extend(crate::coverage_regression::apply(
+                &mut result,
+                &mut outputs,
+                &prepared.plan,
+                &baseline,
+                document,
+                &suppressions,
+                &crate::coverage_regression::configured_checks(&prepared),
+            ));
+        }
     } else if let Some(ici_reporting::StoredResult::Legacy(legacy)) = baseline_document {
         let previous = legacy
             .engines()
@@ -1035,7 +1057,16 @@ fn execute_validation(
     owners: &mut BTreeMap<PathBuf, ici_validation::OwnedRun>,
 ) -> AnalysisOutput {
     let mut combined = AnalysisOutput::new(id, "ici-validation");
-    for plan in plans {
+    for original in plans {
+        let mut captured = original.clone();
+        if let Err(error) = ici_validation::capture_binary_headers(&mut captured) {
+            return unavailable(
+                id,
+                TaskState::Failed,
+                &format!("binary artifact header capture: {error}"),
+            );
+        }
+        let plan = &captured;
         let directory = &plan.context.owned_run_dir;
         if !owners.contains_key(directory) {
             let prepare = directory

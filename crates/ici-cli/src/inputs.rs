@@ -17,7 +17,18 @@ use std::{
 };
 
 pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
-    let path_limits = binary_limits(prepared);
+    capture_preserving(prepared, &empty_snapshot(), &BTreeMap::new(), &[])
+}
+/// Keep checking original physical inputs when preparation changes provider selection.
+/// Declared generated roots may replace their prior inputs during preparation only.
+pub fn capture_preserving(
+    prepared: &PreparedPlan,
+    original: &InputSnapshot,
+    original_limits: &BTreeMap<String, usize>,
+    generated_roots: &[String],
+) -> Result<InputSnapshot> {
+    let mut path_limits = binary_limits(prepared);
+    path_limits.extend(original_limits.clone());
     let mut sources: BTreeSet<_> = prepared
         .project
         .components
@@ -131,6 +142,13 @@ pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
             }
         }
     }
+    let retained = |path: &&String| {
+        !generated_roots
+            .iter()
+            .any(|root| Path::new(path).starts_with(root))
+    };
+    sources.extend(original.sources.iter().filter(retained).cloned());
+    configurations.extend(original.configurations.iter().filter(retained).cloned());
     InputSnapshot::take_with_path_limits(
         &prepared.project.root,
         &sources.into_iter().collect::<Vec<_>>(),
@@ -148,6 +166,25 @@ pub fn binary_limits(prepared: &PreparedPlan) -> BTreeMap<String, usize> {
         .map(|path| (path.clone(), 256 * 1024 * 1024))
         .chain(prepared.cpp.evidence_input_limits())
         .collect()
+}
+pub fn code_evidence_paths(prepared: &PreparedPlan) -> BTreeSet<String> {
+    prepared
+        .plan
+        .checks
+        .iter()
+        .flat_map(|check| prepared.cpp.evidence_code_inputs_for(&check.task_id))
+        .chain(
+            prepared
+                .artifact_builds
+                .values()
+                .flat_map(|build| build.binary_inputs.iter().cloned()),
+        )
+        .collect()
+}
+pub struct InputVerification {
+    pub stable: bool,
+    /// Includes original physical code inputs retained through preparation rebinding.
+    pub code_paths: BTreeSet<String>,
 }
 pub fn empty_snapshot() -> InputSnapshot {
     InputSnapshot {
@@ -271,10 +308,12 @@ pub fn check_records(
     snapshot: &InputSnapshot,
     outputs: &BTreeMap<String, ici_domain::AnalysisOutput>,
     runner: &Runner,
-    inputs_stable: bool,
+    input_verification: &InputVerification,
     core_known: bool,
 ) -> Result<Vec<CheckRecord>> {
     let mut records = vec![];
+    let mut code_inputs = code_evidence_paths(prepared);
+    code_inputs.extend(input_verification.code_paths.iter().cloned());
     for planned in &prepared.plan.checks {
         let component = component(prepared, planned);
         let observation = observations
@@ -291,6 +330,18 @@ pub fn check_records(
                 );
             }
         }
+        let configuration_digests = prepared
+            .cpp
+            .evidence_configuration_digests_for(&planned.task_id);
+        for path in prepared.cpp.evidence_configurations_for(&planned.task_id) {
+            if let Some(file) = snapshot.files.get(&path) {
+                let digest = configuration_digests
+                    .get(&path)
+                    .unwrap_or(&file.digest)
+                    .clone();
+                configuration.insert(path, digest);
+            }
+        }
         let options = analysis_options(prepared, planned, prepared.legacy_projection);
         let mut context =
             json!({"options":options,"build":component.build,"externals":component.external});
@@ -300,6 +351,7 @@ pub fn check_records(
             .filter(|file| file_language(file) == Some(planned.check.language.as_str()))
             .cloned()
             .collect();
+        files.extend(prepared.cpp.evidence_code_inputs_for(&planned.task_id));
         if let Some(plans) = prepared.validations.get(&planned.task_id) {
             context["validation"]=json!(plans.iter().map(|plan|json!({"kind":plan.kind,"options":plan.context.options,"sources":plan.context.source_files,"targets":plan.context.targets})).collect::<Vec<_>>());
             let invocations: Vec<_> = planned
@@ -348,8 +400,15 @@ pub fn check_records(
             context["test_nodes"] = json!(nodes);
 
             for path in &snapshot.configurations {
+                // Binary evidence is captured for integrity, but its content is code,
+                // not policy. Fixing an object must not change the comparison scope.
+                if code_inputs.contains(path) {
+                    continue;
+                }
                 if let Some(file) = snapshot.files.get(path) {
-                    configuration.insert(path.clone(), file.digest.clone());
+                    configuration
+                        .entry(path.clone())
+                        .or_insert_with(|| file.digest.clone());
                 }
             }
         }
@@ -397,7 +456,7 @@ pub fn check_records(
                     InvocationIdentity::new(task, &runner.environment(task), &prepared.project.root)
                 }),
         };
-        let complete = inputs_stable
+        let complete = input_verification.stable
             && core_known
             && observation.evidence_is_complete()
             && prepared.cpp.scope_complete(&planned.task_id)

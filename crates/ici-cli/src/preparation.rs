@@ -98,6 +98,7 @@ fn rebind(
     runtime: &Runtime<'_>,
     project: ici_config::ResolvedProject,
     original: &InputSnapshot,
+    original_limits: &BTreeMap<String, usize>,
     contexts: &[crate::export_context::PreparedContext],
 ) -> Result<(PreparedPlan, InputSnapshot, bool)> {
     let overlay = crate::export_context::overlay(&project, contexts);
@@ -110,18 +111,15 @@ fn rebind(
     )?;
     prepared.cpp.attach_prepared(contexts);
     bind_compiled_artifacts(&mut prepared, contexts, runtime.environment)?;
-    let after = crate::inputs::capture(&prepared)?;
     let roots: Vec<_> = contexts
         .iter()
         .flat_map(|context| context.plan.build.generated_roots.iter().cloned())
         .collect();
+    let after = crate::inputs::capture_preserving(&prepared, original, original_limits, &roots)?;
+    let mut limits = crate::inputs::binary_limits(&prepared);
+    limits.extend(original_limits.clone());
     let (snapshot, drift) = original
-        .after_preparation_with_path_limits(
-            &after,
-            &roots,
-            InputLimits::default(),
-            &crate::inputs::binary_limits(&prepared),
-        )
+        .after_preparation_with_path_limits(&after, &roots, InputLimits::default(), &limits)
         .map_err(|error| CliError(error.to_string()))?;
     Ok((prepared, snapshot, drift.stable()))
 }
@@ -134,6 +132,7 @@ pub fn execute(
     let initial_project = prepared.project.clone();
     let initial_pins = prepared.tool_pins();
     let original = snapshot.clone();
+    let original_limits = crate::inputs::binary_limits(&prepared);
     let mut contexts: Vec<crate::export_context::PreparedContext> = vec![];
     let mut limitations = vec![];
     let mut failures = vec![];
@@ -175,7 +174,13 @@ pub fn execute(
             }
         }
         if !contexts.is_empty() {
-            match rebind(runtime, initial_project.clone(), &original, &contexts) {
+            match rebind(
+                runtime,
+                initial_project.clone(),
+                &original,
+                &original_limits,
+                &contexts,
+            ) {
                 Ok((after, captured, stable)) => {
                     prepared = after;
                     snapshot = captured;
@@ -245,7 +250,13 @@ pub fn execute(
         }
         if !executed_checks.is_empty() {
             let resolved_builds = prepared.artifact_builds.clone();
-            match rebind(runtime, initial_project, &original, &contexts) {
+            match rebind(
+                runtime,
+                initial_project,
+                &original,
+                &original_limits,
+                &contexts,
+            ) {
                 Ok((after, captured, stable)) => {
                     prepared = after;
                     snapshot = captured;

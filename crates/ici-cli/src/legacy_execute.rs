@@ -130,10 +130,17 @@ pub fn command(
     if invocation.flag("fail_on_new") {
         match &run.result.baseline {
             Some(delta) if delta.state == ici_domain::BaselineState::Comparable => {
+                if crate::coverage_regression::incomplete(&run.outputs) {
+                    return Err(CliError(format!(
+                        "coverage regression comparison is incomplete; result saved at {}",
+                        run.result_path.display()
+                    )));
+                }
                 if run.result.findings.iter().any(|finding| {
                     delta.new.contains(&finding.fingerprint)
                         && finding.counts_against_gate()
-                        && !finding.tags.iter().any(|tag| tag == "advisory")
+                        && (finding.tags.iter().any(|tag| tag == "baseline-only")
+                            || !finding.tags.iter().any(|tag| tag == "advisory"))
                 }) && run.result.gate.selected != GateVerdict::Incomplete
                 {
                     exit_code = 1;

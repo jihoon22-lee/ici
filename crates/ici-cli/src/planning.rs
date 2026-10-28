@@ -35,6 +35,7 @@ pub struct PreparedPlan {
     pub legacy_projection: bool,
     pub artifact_builds: BTreeMap<String, crate::artifact_build::ArtifactBuildPlan>,
     pub context_preparations: Vec<crate::export_context::ContextPreparationPlan>,
+    pub source_identity: crate::vcs::VcsPlan,
 }
 pub fn prepare(
     invocation: &Invocation,
@@ -194,6 +195,9 @@ fn prepare_resolved_omitting(
     let mut supplemental = crate::validation::supplemental_checks(&project);
     supplemental.extend(crate::cpp::supplemental_checks(&project));
     supplemental.extend(crate::legacy::annotation_check(invocation, &mut project));
+    if crate::legacy::is_legacy(invocation) {
+        supplemental.push(crate::cpp::type_not_applicable_check());
+    }
     let mut definitions = ici_domain::builtin_catalog().checks;
     definitions.extend(supplemental.iter().cloned());
     let selected_checks = crate::legacy::select(invocation, &mut project, &definitions);
@@ -538,6 +542,7 @@ fn prepare_resolved_omitting(
         }
     }
     let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
+    let source_identity = crate::vcs::plan(&project, environment);
     Ok(PreparedPlan {
         project,
         cpp,
@@ -552,6 +557,7 @@ fn prepare_resolved_omitting(
         legacy_projection: crate::legacy::is_legacy(invocation),
         artifact_builds,
         context_preparations,
+        source_identity,
     })
 }
 pub fn is_command_output(invocation: &Invocation, root: &Path, path: &str) -> bool {
@@ -706,6 +712,9 @@ impl PreparedPlan {
             json!({"id":build.id,"system":build.system,"variant":build.variant,"directory":build.directory,"definition":build.project,"artifacts":build.artifacts,"linked_by":linked})
         }).collect();
         let mut document = json!({"schema_id":"ici.next.plan","schema_version":1,"root":self.project.root,"scope":{"components":self.plan.components,"languages":self.plan.languages,"profile":self.plan.profile,"require_full":self.request.require_full},"plans":plans,"graph":{"edges":edges,"shared":{},"mutating":mutating},"builds":builds,"coverage_gaps":self.plan.coverage_gaps,"limitations":self.plan.limitations});
+        if !self.source_identity.tasks.is_empty() || self.source_identity.limitation.is_some() {
+            document["source_identity"] = json!(self.source_identity);
+        }
         if !self.context_preparations.is_empty() {
             document["preparations"]=json!(self.context_preparations.iter().map(|plan|json!({"component":plan.component_id,"build":plan.build.id,"variant":plan.build.variant,"inputs":plan.inputs,"steps":plan.build.tasks,"generated_roots":plan.build.generated_roots,"effects":["configure and build inside the owned shadow", "reset only verified single-link coverage counters inside that shadow"]})).collect::<Vec<_>>());
             if self
@@ -790,6 +799,19 @@ impl PreparedPlan {
         }
         for gap in &self.plan.coverage_gaps {
             text.push_str(&format!("  coverage gap: {gap}\n"));
+        }
+        for task in &self.source_identity.tasks {
+            text.push_str(&format!(
+                "  Source identity (read-only): {}\n",
+                task.argv
+                    .iter()
+                    .map(|value| display_argument(value))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            ));
+        }
+        if let Some(reason) = &self.source_identity.limitation {
+            text.push_str(&format!("  Source identity: {reason}\n"));
         }
         for limitation in &self.plan.limitations {
             text.push_str(&format!("  note: {limitation}\n"));
